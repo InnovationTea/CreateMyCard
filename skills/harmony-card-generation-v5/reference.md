@@ -31,12 +31,17 @@ V5 由 Form 协议和规则共同驱动：
 - 新的一句话桌面卡片：
   [`reference/protocol.md`](reference/protocol.md),
   [`reference/capability.md`](reference/capability.md),
+  [`reference/cardspec.md`](reference/cardspec.md),
   [`reference/card-composition-rules.md`](reference/card-composition-rules.md),
   然后 [`reference/guide.md`](reference/guide.md)。
 - 组件或样式不确定：
   [`reference/component-catalog.md`](reference/component-catalog.md)。
 - 数据绑定、表达式或重复项路径：
   [`reference/data-binding.md`](reference/data-binding.md)。
+- 动态数据能力、端侧刷新或持久化：
+  先读 [`reference/cardspec.md`](reference/cardspec.md)，再按场景读取
+  [`reference/data-capability/weather.md`](reference/data-capability/weather.md)
+  或 [`reference/data-capability/calendar.md`](reference/data-capability/calendar.md)。
 - 交互、图片、CTA 或点击行为：
   [`reference/visual-interaction.md`](reference/visual-interaction.md)。
 - 间距、圆角、阴影、视觉层次：
@@ -70,10 +75,16 @@ V5 由 Form 协议和规则共同驱动：
 
 ## 校验
 
-运行：
+内部校验可运行：
 
 ```bash
-python scripts/validate_genui_card.py path/to/card.dsl.jsonl
+python scripts/validate_genui_card.py path/to/temp.dsl.jsonl
 ```
 
-脚本接受 JSONL 消息，也接受 JSON 消息数组。最终交付物仍应为 JSONL。
+脚本接受 JSONL 消息，也接受 JSON 消息数组。最终响应仍应是 `genui` 代码块，不是文件路径。
+
+同时校验 `cardspec` 代码块对应的 JSON：
+
+```bash
+python scripts/validate_cardspec.py path/to/temp.cardspec.json
+```

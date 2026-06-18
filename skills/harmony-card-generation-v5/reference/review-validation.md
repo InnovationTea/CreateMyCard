@@ -2,23 +2,25 @@
 
 ## 目的
 
-首版草稿写入磁盘后，使用本文档作为唯一最终验收入口。本文档负责编排脚本校验、设计评审、受保护文本检查和最终阻塞项；不要在 `SKILL.md` 中另行并列调度 `design-review.md`。
+首版草稿形成 `genui` 与 `cardspec` 两个代码块后，使用本文档作为唯一最终验收入口。本文档负责编排脚本校验、设计评审、受保护文本检查、CardSpec 检查和最终阻塞项；不要在 `SKILL.md` 中另行并列调度 `design-review.md`。
 
 ## 职责边界
 
 - 协议合法性：由 `scripts/validate_genui_card.py` 机械检查。
+- CardSpec 合法性：由 `scripts/validate_cardspec.py` 机械检查。
 - 视觉、交互、数据语义质量：按 [`design-review.md`](design-review.md) 检查。
 - 受保护文本和最终阻塞项：由本文档检查。
 
 ## 端到端流程
 
-1. 读取磁盘上的 DSL 文件；不要从记忆重新起草。
-2. 运行 `python scripts/validate_genui_card.py <file>`。
-3. 直接在同一个文件中修复校验错误，并重复运行直到通过。
-4. 脚本通过后，读取 [`design-review.md`](design-review.md) 做视觉、交互和数据语义评审。
-5. 按本文档做受保护内容换行评审和最终阻塞项检查。
-6. 如果任何评审修改了文件，重新运行校验器。
-7. 只有在最终编辑后校验通过时才交付。
+1. 读取草稿中的 `genui` 和 `cardspec` 内容；不要从记忆重新起草。
+2. 用临时文件运行 `python scripts/validate_genui_card.py <temp.dsl.jsonl>`。
+3. 用临时文件运行 `python scripts/validate_cardspec.py <temp.cardspec.json>`。
+4. 直接修复草稿内容，并重复运行相关校验直到通过。
+5. 脚本通过后，读取 [`design-review.md`](design-review.md) 做视觉、交互和数据语义评审。
+6. 按本文档做受保护内容换行评审、CardSpec 对齐检查和最终阻塞项检查。
+7. 如果任何评审修改了内容，重新运行相关校验器。
+8. 只有在最终编辑后相关校验都通过时才交付。
 
 ## 协议阻塞项
 
@@ -46,6 +48,19 @@
 - 卡片由示例/模板改造而来，而不是由语义角色和构图规则生成。
 - 正式输出前没有布局理由或没有至少一次显式改进。
 - 可点击视觉区域没有 `onClick` EventHandler。
+
+## CardSpec 阻塞项
+
+以下任一项失败都不能交付：
+
+- 缺少 `cardspec` 代码块，或 `cardspec` 不是一个 JSON object。
+- `suggestSize` 与 DSL 尺寸选择不一致。
+- 静态卡片虚构 `dataBindings` 或 `refreshPlan`。
+- 动态卡片缺少 `dataBindings`。
+- `capabilityId`、`capabilityVersion` 或 `arguments` 没有来自已声明能力。
+- `writeResultTo` 不在 `/data` 下。
+- DSL 中 UI 绑定路径无法从 CardSpec 的 `writeResultTo` 和能力 `outputSchema` 推导；静态卡片则必须能从初始 DataModel 推导。
+- `refreshPlan` 引用不存在的 `bindingId`。
 
 ## 受保护内容换行评审
 

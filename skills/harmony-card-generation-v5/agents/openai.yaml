@@ -1,4 +1,4 @@
 interface:
   display_name: "Harmony Form 卡片生成 V5"
-  short_description: "按 Form 协议生成 HarmonyOS A2UI 卡片。"
-  default_prompt: "使用 $harmony-card-generation-v5 根据一句话生成符合 HarmonyOS A2UI Form 协议的服务卡片 DSL。"
+  short_description: "按 Form 协议生成 A2UI DSL 和 CardSpec。"
+  default_prompt: "使用 $harmony-card-generation-v5 根据一句话生成符合 HarmonyOS A2UI Form 协议的服务卡片完整结果：一个 genui 代码块和一个 cardspec 代码块。"

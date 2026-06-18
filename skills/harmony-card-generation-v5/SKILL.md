@@ -1,13 +1,14 @@
 ---
 name: harmony-card-generation-v5
-description: "根据 harmonyos-a2ui-form-protocol 生成 HarmonyOS A2UI Form 服务卡片 DSL JSONL：使用 extended catalog 下的 Form 子集、10 个 Form 支持组件、onClick 行为链、表达式/DataModel 和 2x2 或横版 2x4 卡片构造规则。适用于创建、优化、校验或写入 HarmonyOS/A2UI/Form/服务卡片/widget 卡片/DSL/JSONL 产物，目标场景为 160x160vp 或 320x160vp。"
+description: "根据 harmonyos-a2ui-form-protocol 生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui 代码块中的 DSL JSONL + 一个 cardspec 代码块中的 CardSpec JSON。使用 extended catalog 下的 Form 子集、10 个 Form 支持组件、onClick 行为链、表达式/DataModel、2x2 或横版 2x4 卡片构造规则，以及端侧 dataBindings/refreshPlan 契约。适用于创建、优化、校验或输出 HarmonyOS/A2UI/Form/服务卡片/widget 卡片/DSL/JSONL/CardSpec 组合结果，目标场景为 160x160vp 或 320x160vp。"
 ---
 
 # Harmony 卡片生成 V5
 
 ## 这个 Skill 做什么
 
-- 根据一句话生成 HarmonyOS A2UI Form 服务卡片 DSL。
+- 根据一句话生成 HarmonyOS A2UI Form 服务卡片完整结果。
+- 每个卡片结果都包含同一张卡片的 `genui` DSL JSONL 代码块与 `cardspec` JSON 代码块；CardSpec 是 V5 结果的一部分，不是额外外挂。
 - 使用可泛化的构图规则构造卡片：
   - `2x2`：`160 x 160vp`
   - `2x4`：`320 x 160vp` 横版
@@ -21,6 +22,7 @@ description: "根据 harmonyos-a2ui-form-protocol 生成 HarmonyOS A2UI Form 服
 - 不要把“选择模板”作为生成步骤。布局决策只来自可泛化的构造规则。
 - 除非用户明确改变任务，否则不要把桌面卡片扩展成页面、文章、长列表或仪表盘。
 - 不要发明组件、样式键或预定义函数。只有在用户/宿主提供或明确声明为宿主自定义函数假设时，才允许使用应用特定函数。
+- CardSpec 是 V5 卡片结果的一部分，负责端侧数据能力、刷新和持久化契约；不要把旧项目中的旧 catalog、旧组件清单或旧 DSL 示例合并进 V5 DSL 规则。
 
 ## 协议优先级
 
@@ -91,17 +93,19 @@ description: "根据 harmonyos-a2ui-form-protocol 生成 HarmonyOS A2UI Form 服
 
 交付物：
 
-1. `*_card.dsl.jsonl`
+1. 一个 `genui` 代码块，内容是 A2UI JSONL 消息流。
+2. 一个 `cardspec` 代码块，内容是 CardSpec JSON 对象。
 
 ### 模式 2：已有 DSL 优化 / 评审
 
-当用户提供已有 GenUI 卡片 DSL 文件，或要求修复/评审某个文件时使用。
+当用户提供已有 GenUI/CardSpec 内容，或要求修复/评审某个组合结果时使用。
 
 交付物：
 
-1. 已编辑的磁盘 DSL 文件
-2. 校验器结果
-3. 简短的问题/修复摘要
+1. 修复后的 `genui` 代码块
+2. 修复后的 `cardspec` 代码块
+3. 校验器结果
+4. 简短的问题/修复摘要
 
 ### 模式 3：能力边界 / 升级说明
 
@@ -119,8 +123,8 @@ description: "根据 harmonyos-a2ui-form-protocol 生成 HarmonyOS A2UI Form 服
 
 ### 默认必读
 
-- 新卡片：[`reference/protocol.md`](reference/protocol.md)、[`reference/capability.md`](reference/capability.md)、[`reference/card-composition-rules.md`](reference/card-composition-rules.md)、[`reference/guide.md`](reference/guide.md)。
-- 已有 DSL 修复/评审：[`reference/protocol.md`](reference/protocol.md)、[`reference/review-validation.md`](reference/review-validation.md)、[`reference/component-catalog.md`](reference/component-catalog.md)、[`reference/data-binding.md`](reference/data-binding.md)。
+- 新卡片：[`reference/protocol.md`](reference/protocol.md)、[`reference/capability.md`](reference/capability.md)、[`reference/cardspec.md`](reference/cardspec.md)、[`reference/card-composition-rules.md`](reference/card-composition-rules.md)、[`reference/guide.md`](reference/guide.md)。
+- 已有 DSL/CardSpec 修复或评审：[`reference/protocol.md`](reference/protocol.md)、[`reference/review-validation.md`](reference/review-validation.md)、[`reference/component-catalog.md`](reference/component-catalog.md)、[`reference/data-binding.md`](reference/data-binding.md)、[`reference/cardspec.md`](reference/cardspec.md)。
 - 能力边界分流：[`reference/protocol.md`](reference/protocol.md)、[`reference/capability.md`](reference/capability.md)、[`reference/card-composition-rules.md`](reference/card-composition-rules.md)。
 - 最终验收：只从 [`reference/review-validation.md`](reference/review-validation.md) 进入；该文档会按需调用 [`reference/design-review.md`](reference/design-review.md)。
 
@@ -131,28 +135,43 @@ description: "根据 harmonyos-a2ui-form-protocol 生成 HarmonyOS A2UI Form 服
 - 出现 CTA、可点击区域、`Button`、`onClick`、图片来源或媒体真实性问题：读取 [`reference/visual-interaction.md`](reference/visual-interaction.md)。
 - 需要确定 padding、`itemMargin`、圆角、阴影、半透明块或视觉层级尺度：读取 [`reference/spacing-elevation.md`](reference/spacing-elevation.md)。
 - 没有真实本地图片但需要视觉锚点，或需要渐变、字形、`Progress`、`Divider`、`Stack` 增强表现力：读取 [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)。
+- 出现动态数据能力、端侧刷新或持久化：先读 [`reference/cardspec.md`](reference/cardspec.md)，再按场景读取 [`reference/data-capability/weather.md`](reference/data-capability/weather.md) 或 [`reference/data-capability/calendar.md`](reference/data-capability/calendar.md)。
 - 只做视觉润色或卡片质量评审：读取 [`reference/design-review.md`](reference/design-review.md)；最终交付前仍回到 [`reference/review-validation.md`](reference/review-validation.md)。
 - 不确定该读哪个文件：先读 [`reference.md`](reference.md)，再只读它指向的相关文件。
 
-## 输出持久化
+## 输出格式
 
-最终产物默认写入文件。
+最终交付只有一个组合结果，由两个代码块组成：
 
-优先级：
+```genui
+{"version":"v0.9","createSurface":{...}}
+{"version":"v0.9","updateComponents":{...}}
+{"version":"v0.9","updateDataModel":{...}}
+```
 
-1. 如果用户指定路径，使用该路径。
-2. 如果优化已有文件，直接编辑该文件。
-3. 否则保存在当前工作目录下，文件名使用简短 slug，例如 `meeting-focus_card.dsl.jsonl`。
+```cardspec
+{
+  "suggestSize": "2x4",
+  "dataBindings": []
+}
+```
 
-默认 JSONL 顺序：
+规则：
+
+- 直接输出 `genui` 块和 `cardspec` 块；前后不要加解释、标题、路径或总结。
+- `genui` 块只输出 A2UI JSONL，每行是一条完整 JSON 消息。
+- `cardspec` 块只输出一个完整 JSON 对象。
+- `genui` 和 `cardspec` 是同一个 V5 卡片结果的两个部分，不要把 CardSpec 当外挂、附件或另一个项目产物。
+- 静态卡片也输出 `cardspec`；可以只包含 `suggestSize`，不要虚构 `dataBindings`。
+- 动态卡片必须在 `cardspec.dataBindings` 中声明端侧能力调用。
+
+默认 `genui` JSONL 顺序：
 
 1. `createSurface`
 2. `updateComponents`
 3. `updateDataModel`
 
 `updateComponents` 必须在 `createSurface` 之后，同一 surface 只发送一次完整 `updateComponents`。
-
-首版草稿保存后，在已有文件上继续迭代。除非结构不可用，否则不要每轮重新生成一个全新产物。
 
 ## 工作流
 
@@ -170,23 +189,54 @@ description: "根据 harmonyos-a2ui-form-protocol 生成 HarmonyOS A2UI Form 服
    - 必须完整显示的关键信息
    - 每个拥挤 Row 的组件内部宽度预算
    - 交互和 DataModel 形状
+   - CardSpec 的 `suggestSize`、静态/动态形态、能力选择、参数、`writeResultTo` 和刷新计划
 7. 正式输出前至少做一次显式改进：
    - 指出第一个内部版本缺少什么
    - 改进层级、紧凑度、场景视觉特征，或关键信息完整显示的安全性
-8. 生成并保存 JSONL 文件。
-9. 运行 `python scripts/validate_genui_card.py <path-to-dsl.jsonl>`。
-10. 直接在文件中修复校验错误，并重复运行直到通过。
-11. 脚本通过后，按 [`reference/review-validation.md`](reference/review-validation.md) 做最终验收；该文档会在需要时调用 [`reference/design-review.md`](reference/design-review.md) 做视觉、交互和数据语义评审。
-12. 如果最终验收修改了文件，重新运行校验器。
-13. 只有在校验通过且最终验收完成后交付。
+8. 生成 `genui` 与 `cardspec` 两个代码块草稿。
+9. 用临时文件或内存方式校验 `genui` JSONL 和 `cardspec` JSON。
+10. 直接修复校验错误，并重复校验直到通过。
+11. 脚本通过后，按 [`reference/review-validation.md`](reference/review-validation.md) 做最终验收；该文档会在需要时调用 [`reference/design-review.md`](reference/design-review.md) 做视觉、交互、数据语义和受保护文本评审。
+12. 如果最终验收修改了内容，重新运行相关校验。
+13. 只有在校验通过且最终验收完成后交付两个代码块。
 
 ## 不可妥协项
 
 - 协议合法性不能由设计文档放宽。具体组件、事件、媒体、表达式和 catalog 约束以 [`reference/protocol.md`](reference/protocol.md)、[`reference/component-catalog.md`](reference/component-catalog.md)、[`reference/data-binding.md`](reference/data-binding.md) 为准。
 - 卡片形态不能放宽成页面。具体尺寸、区域数量、受保护文本和构图规则以 [`reference/card-composition-rules.md`](reference/card-composition-rules.md) 为准。
-- 输出必须是落盘 JSONL，并且正式输出前必须有布局理由和至少一次显式改进。
-- 每次生成、修复或最终验收后的文件改动，都必须重新运行 `scripts/validate_genui_card.py`。
-- 最终交付只能从 [`reference/review-validation.md`](reference/review-validation.md) 完成；不要绕过脚本校验或最终验收。
+- 生成必须由规则驱动。不要选择、复制或改造内置模板。
+- 每条消息使用 `version: "v0.9"`。
+- 使用 `catalogId: "ohos.a2ui.extended.catalog"`。
+- `createSurface` 不支持 `theme` 字段。
+- 同一 surface 只允许一次完整 `updateComponents`，不要流式或增量追加组件树。
+- 最终响应只输出 `genui` 与 `cardspec` 两个代码块；不要输出文件路径、标题、总结或额外解释。
+- 使用 extended 属性名：`Text.content`、`Image.src`、`Button.label`。
+- 不要使用仅标准 catalog 的 `Text.text`、`Image.url`、`Button.child` 或 CSS kebab-case 样式键。
+- 只使用 Form 组件子集：`Text`、`Image`、`Divider`、`Progress`、`Button`、`Checkbox`、`Row`、`Column`、`List`、`Stack`。
+- 不使用 `TextInput`、`Toggle`、`Radio`、`CheckboxGroup`、`Select`、`NavContainer`、`Tabs`、`TabContent`、`Web`、`Grid`、`If` 或 A2UI 原生组件。
+- 使用扁平 `components` 邻接表和 `id` 引用。不要在 `children` 中内联组件。
+- 包含 `root` 组件，并保证所有引用可解析。
+- 目标卡片尺寸为 `2x2 = 160 x 160vp` 和横版 `2x4 = 320 x 160vp`。如果宿主要求 `width: "100%"`，仍然按所选宽度预算设计：`2x2` 为 `160vp`，`2x4` 为 `320vp`。
+- 卡片不是页面：`2x2` 主区域 <= 3，`2x4` 主区域 <= 4；不要长文案、大表格或长动态列表。
+- 正式输出前，必须有布局理由和至少一次改进。
+- 可点击 UI 必须有真实 `onClick` EventHandler 数组。Form 不使用 `Button.action`。
+- Form 只支持通用事件 `onClick`；不要使用 `onAppear`、`onChange`、`onSelect`、`onReachStart` 或 `onReachEnd`。
+- 不使用预定义扩展函数。EventHandler 的 `call` 只能引用宿主 catalog 已声明的自定义函数，或明确声明为宿主假设。
+- 不要编造远程媒体 URL。`Image.src` 和 `styles.backgroundImage` 只使用本地/资源路径；不支持网络图片或 SVG。
+- 组件属性绑定默认使用完整表达式，如 `"{{ $__dataModel.meeting.title }}"`；`updateDataModel.path` 和模板 `children.path` 使用 `/` JSON Pointer。
+- 不使用 `$__widthBreakpoint` 或 `$__colorMode`。
+- 协议模板循环只能用于 `Row`、`Column`、`List` 的 `children: { componentId, path }`。
+- 横向 `Row` 默认直接子节点 <= 3。需要更多时拆分、堆叠或使用竖向分组。
+- 时间、CTA、状态、温度、电量百分比、价格和短中文短语等受保护内容不能被挤压成碎片。
+- 关键信息默认必须完整显示：日期、星期、时间、CTA、状态、主指标/数值、主标题/名称、倒计时、价格/数量，以及用户要求显示的字段。不要依赖 `textOverflow: "ellipsis"`、`clip` 或 marquee 隐藏缺失信息。
+- `textOverflow: "ellipsis"` 只能用于明确可压缩的次要文本，例如可选地点、副标题或建议文案。如果关键值放不下，先减少 padding、itemMargin、装饰性分隔线、固定列和字体大小；再拆行、选择横版 `2x4`，或使用模式 3。
+- 每个包含两个或更多受保护文本值的 Row，在写 JSON 前都要做宽度预算：可用宽度 = 父级宽度 - 父级水平 padding - row gaps - 固定分隔线/图标 - 固定文本列。如果接近放不下，先简化该行再生成 DSL。
+- 当有 2 个以上标签时，标签组和主 CTA 不应共用一个拥挤行；放到 `Column` 内的不同行。
+- 任何手动/设计修改后，都要重新运行校验器。
+- CardSpec 的 `suggestSize` 必须与 DSL 选择的尺寸一致。
+- CardSpec 的 `dataBindings[].writeResultTo` 必须位于 `/data` 下，且 UI 绑定路径必须能由 `writeResultTo + outputSchema` 推导。
+- CardSpec 优先使用旧 cardspec 项目的简洁契约：`suggestSize`、`dataBindings[].capabilityId`、`arguments`、`writeResultTo`；只有端侧明确需要时才加入 `bindingId`、`capabilityVersion` 或 `refreshPlan`。
+- 不虚构 CardSpec 能力、参数、权限、端侧函数或刷新策略；未声明能力只能降级为静态卡片或说明需要补充 capability manifest。
 
 ## 资源
 
@@ -197,9 +247,12 @@ description: "根据 harmonyos-a2ui-form-protocol 生成 HarmonyOS A2UI Form 服
 - DSL 指南：[`reference/guide.md`](reference/guide.md)
 - 组件目录：[`reference/component-catalog.md`](reference/component-catalog.md)
 - 数据绑定：[`reference/data-binding.md`](reference/data-binding.md)
+- CardSpec 契约：[`reference/cardspec.md`](reference/cardspec.md)
+- 数据能力：[`reference/data-capability/weather.md`](reference/data-capability/weather.md), [`reference/data-capability/calendar.md`](reference/data-capability/calendar.md)
 - 视觉和交互：[`reference/visual-interaction.md`](reference/visual-interaction.md)
 - 间距和层级：[`reference/spacing-elevation.md`](reference/spacing-elevation.md)
 - 表现力工具箱：[`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)
 - 设计评审：[`reference/design-review.md`](reference/design-review.md)
 - 最终验收：[`reference/review-validation.md`](reference/review-validation.md)
 - 校验脚本：[`scripts/validate_genui_card.py`](scripts/validate_genui_card.py)
+- CardSpec 校验脚本：[`scripts/validate_cardspec.py`](scripts/validate_cardspec.py)
