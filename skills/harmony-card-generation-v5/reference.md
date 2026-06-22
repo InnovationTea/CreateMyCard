@@ -19,7 +19,8 @@
 - [`reference/card-composition-rules.md`](reference/card-composition-rules.md)：生成前和生成中的构图决策。回答“这张卡怎么组织信息”。
 - [`reference/guide.md`](reference/guide.md)：JSONL 消息形状、root、属性命名和输出清单。回答“DSL 怎么落笔”。
 - [`reference/component-catalog.md`](reference/component-catalog.md)：组件、属性、样式枚举和 Form 写法。回答“这个组件/样式怎么写”。
-- [`reference/data-binding.md`](reference/data-binding.md)：DataModel、表达式、模板循环、事件参数。回答“动态值怎么绑定”。
+- [`reference/data-binding.md`](reference/data-binding.md)：DataModel、原生 `{path}` 绑定、表达式、模板循环、事件参数。回答“动态值怎么绑定”。
+- [`reference/function.md`](reference/function.md)：`formatString` 字符串拼接函数。回答“静态文本和变量怎么拼成一个字符串”。
 - [`reference/visual-interaction.md`](reference/visual-interaction.md)：CTA、点击、图片来源和媒体真实性。回答“交互和媒体是否真实可用”。
 - [`reference/spacing-elevation.md`](reference/spacing-elevation.md)：间距、圆角、阴影、alpha 层级。回答“视觉尺度是否统一”。
 - [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)：渐变、半透明块、字形、Progress、Divider、Stack。回答“无素材时如何增强表现力”。
@@ -38,6 +39,8 @@
   [`reference/component-catalog.md`](reference/component-catalog.md)。
 - 数据绑定、表达式或重复项路径：
   [`reference/data-binding.md`](reference/data-binding.md)。
+- 字符串拼接（静态文本 + DataModel 变量）：
+  [`reference/function.md`](reference/function.md)。
 - 动态数据能力、端侧刷新或持久化：
   先读 [`reference/cardspec.md`](reference/cardspec.md)，再按场景读取
   [`reference/data-capability/weather.md`](reference/data-capability/weather.md)
@@ -58,7 +61,8 @@
 ## 按触发读取
 
 - 看到未知组件、样式位置、枚举值、Form 属性名：读 [`reference/component-catalog.md`](reference/component-catalog.md)。
-- 看到 `{{ ... }}`、`updateDataModel`、模板循环、`onClick.args`、宿主动作 ID：读 [`reference/data-binding.md`](reference/data-binding.md)。
+- 看到 `{{ ... }}`、`{"path":"/..."}`、`updateDataModel`、模板循环、`onClick.args`、宿主动作 ID：读 [`reference/data-binding.md`](reference/data-binding.md)。
+- 看到 `formatString`、`${...}` 插值，或需要把静态文本和变量拼成一个字符串：读 [`reference/function.md`](reference/function.md)。
 - 看到 CTA、`Button`、可点击容器、图片、背景图、媒体路径：读 [`reference/visual-interaction.md`](reference/visual-interaction.md)。
 - 需要定 padding、`itemMargin`、圆角、阴影、半透明层：读 [`reference/spacing-elevation.md`](reference/spacing-elevation.md)。
 - 没有真实素材但需要视觉锚点，或要使用渐变、字形、`Progress`、`Divider`、`Stack`：读 [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)。
@@ -67,7 +71,7 @@
 
 ## 内部依据
 
-本 skill 目录内的 [`reference/protocol.md`](reference/protocol.md)、[`reference/component-catalog.md`](reference/component-catalog.md) 和 [`reference/data-binding.md`](reference/data-binding.md) 构成协议与 DSL 依据。
+本 skill 目录内的 [`reference/protocol.md`](reference/protocol.md)、[`reference/component-catalog.md`](reference/component-catalog.md)、[`reference/data-binding.md`](reference/data-binding.md) 和 [`reference/function.md`](reference/function.md) 构成协议与 DSL 依据。
 
 不要把示例产物作为卡片布局来源。卡片布局只从语义角色、尺寸预算和构图规则推导。
 

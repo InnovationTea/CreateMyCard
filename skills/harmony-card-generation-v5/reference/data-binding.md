@@ -1,4 +1,4 @@
-# 数据绑定、表达式和模板
+# 数据绑定、原生绑定、表达式和模板
 
 ## DataModel
 
@@ -8,11 +8,40 @@
 {"version":"v0.9","updateDataModel":{"surfaceId":"card","path":"/","value":{"meeting":{"time":"14:00"}}}}
 ```
 
-Form 组件属性默认用表达式读取 DataModel：
+## 两种读取与绑定方式
+
+组件属性读取 DataModel 有两种方式，优先级不同：
+
+- **优选：A2UI 原生 data binding。** 用 `{"path":"/json/pointer"}` 直接绑定单个值；需要把静态文本和变量拼成字符串时，用 `formatString` 函数调用绑定。见 [`function.md`](function.md)。
+- **兜底：表达式 `{{ ... }}`。** 仅在原生绑定无法表达（例如同一字符串内需要条件或多值运算），或属性 schema 不支持对象绑定时使用。
+
+优选写法：
+
+```json
+{"id":"time","component":"Text","content":{"path":"/meeting/time"}}
+```
+
+等价的兜底表达式写法（不优选）：
 
 ```json
 {"id":"time","component":"Text","content":"{{ $__dataModel.meeting.time }}"}
 ```
+
+## A2UI 原生 data binding（优选）
+
+组件的动态属性值可以是：
+
+- 字面量：`"content":"会议"`
+- 路径绑定（响应式）：`"content":{"path":"/meeting/time"}`
+- 字符串拼接：`"content":{"call":"formatString","args":{"value":"${/meeting/time} 开始"}}`（见 [`function.md`](function.md)）
+
+规则：
+
+- `path` 使用 JSON Pointer：绝对路径以 `/` 开头，例如 `/meeting/time`。
+- 模板循环内使用相对字段路径，例如 `{"path":"name"}`，由当前数组项作用域解析。
+- 路径绑定是响应式的：`updateDataModel` 改变该路径的值后，组件自动刷新，无需重发组件树。
+- 输入类组件（如 `Checkbox.value`）使用 `{"path":"/..."}` 实现双向绑定。
+- 不要在 `path` 中使用点路径，例如 `/meeting.time`。
 
 ## JSON Pointer
 
@@ -24,7 +53,13 @@ Form 组件属性默认用表达式读取 DataModel：
 
 不要使用 `/meeting.title` 这样的点路径作为 JSON Pointer。
 
-## 表达式中的路径
+## 表达式（兜底）
+
+这里的“兜底”特指用表达式读取 DataModel 作为组件展示值：优先用上面的原生 `{"path":"/..."}` 绑定或 `formatString` 拼接，只有原生无法表达（同一字符串内的条件或多值运算）时才用表达式。
+
+注意：下文“EventHandler 数据”的 `args`/`condition`/`$context` 表达式是事件场景的固有写法，没有原生 `{path}` 等价物，不属于这里说的可被原生绑定替代的兜底。
+
+### 表达式中的路径
 
 表达式中访问 DataModel 使用点路径：
 
@@ -40,9 +75,9 @@ Form 组件属性默认用表达式读取 DataModel：
 
 一句话卡片生成中，优先在 `updateDataModel` 中放入展示字符串，避免复杂表达式。
 
-## 表达式完整性
+### 表达式完整性
 
-表达式必须是完整字符串：
+使用兜底表达式时，表达式必须是完整字符串：
 
 ```json
 {"content":"{{ $__dataModel.firstName + ' ' + $__dataModel.lastName }}"}
@@ -63,7 +98,7 @@ Form 组件属性默认用表达式读取 DataModel：
 - 内置函数仅使用 `size()`。
 - 不使用 `$__widthBreakpoint` 或 `$__colorMode`。
 
-## 禁止使用表达式的位置
+### 禁止使用表达式的位置
 
 不要在以下位置使用表达式：
 
@@ -80,25 +115,37 @@ Form 组件属性默认用表达式读取 DataModel：
 
 模板循环是协议特性，不是卡片生成模板。仅在确实需要重复数据时使用。
 
+容器（`Row`/`Column`/`List`）把 `children` 绑定到一个数组路径，并用 `componentId` 指向模板组件。模板对象只有 `componentId` 和 `path` 两个字段：
+
 ```json
-{"id":"items","component":"List","children":{"componentId":"itemTpl","path":"/items","itemVar":"item","indexVar":"index"}}
-{"id":"itemTpl","component":"Row","children":["itemName","itemValue"]}
-{"id":"itemName","component":"Text","content":"{{ $item.name }}"}
-{"id":"itemValue","component":"Text","content":"{{ $item.value }}"}
+{"id":"items","component":"List","children":{"componentId":"itemTpl","path":"/items"}}
+{"id":"itemTpl","component":"Column","children":["itemName","itemValue"]}
+{"id":"itemName","component":"Text","content":{"path":"name"}}
+{"id":"itemValue","component":"Text","content":{"path":"value"}}
 ```
+
+对应的 DataModel：
+
+```json
+{"version":"v0.9","updateDataModel":{"surfaceId":"card","path":"/","value":{"items":[{"name":"早餐","value":"08:00"},{"name":"午餐","value":"12:00"}]}}}
+```
+
+模板为数组每一项创建一个子作用域，项内取值用原生绑定：
+
+- 相对路径（不以 `/` 开头）解析到当前项：`{"path":"name"}` → `/items/N/name`。
+- 绝对路径（以 `/` 开头）仍解析到根：`{"path":"/title"}`。
+- 拼接用 `formatString`，路径同样支持相对/绝对：`{"call":"formatString","args":{"value":"${name}：${value}"}}`。
 
 规则：
 
-- 只有 `Row`、`Column`、`List` 的 `children` 支持 `{ componentId, path }`。
-- `path` 指向数组，外层使用 JSON Pointer。
-- 默认变量是 `$item` 和 `$index`。
-- `itemVar` / `indexVar` 的值不带 `$`，引用时加 `$`。
-- 自定义变量名必须匹配 `^[a-zA-Z_][a-zA-Z0-9_]*$`。
-- 嵌套模板中，为外层设置自定义 `itemVar` 以避免被内层 `$item` 遮蔽。
+- 只有 `Row`、`Column`、`List` 的 `children` 支持模板对象 `{ componentId, path }`。
+- `path` 指向数组，使用 JSON Pointer（以 `/` 开头）。
+- 模板组件及其子树内：相对路径解析到当前项，绝对路径解析到根。
+- 不使用 `$item`、`$index`、`itemVar`、`indexVar` 变量机制。
 
 ## EventHandler 数据
 
-事件参数可用表达式读取 DataModel、事件上下文或行为链变量：
+事件参数、`condition` 用表达式读取 DataModel、事件上下文或行为链变量。这是事件场景的固有写法（没有原生 `{path}` 等价物），不是可被原生绑定替代的兜底：
 
 ```json
 "onClick":[
@@ -123,7 +170,7 @@ Form 组件属性默认用表达式读取 DataModel：
 
 ## 绑定检查清单
 
-- 每个可见表达式引用的数据都在 DataModel 中有对应字段。
+- 每个可见的原生绑定或表达式引用的数据都在 DataModel 中有对应字段。
 - 每个宿主动作参数都从 DataModel 或事件上下文取得。
 - 每个模板来源路径都指向数组。
-- 组件属性中不要默认使用 `{ "path": "..." }` 绑定对象；除非宿主明确确认该属性 schema 支持。
+- 组件属性默认优先使用 `{"path":"/..."}` 原生绑定或 `formatString` 拼接；仅当属性 schema 不支持对象绑定时才退回表达式。

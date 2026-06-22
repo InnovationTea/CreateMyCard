@@ -1,6 +1,6 @@
 ---
 name: harmony-card-generation-v5
-description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui 代码块中的 DSL JSONL + 一个 cardspec 代码块中的 CardSpec JSON。使用 extended catalog 下的 Form 子集、10 个 Form 支持组件、onClick 行为链、表达式/DataModel、2x2 或横版 2x4 卡片构造规则，以及端侧 dataBindings/refreshPlan 契约。适用于创建、优化、校验或输出 HarmonyOS/A2UI/Form/服务卡片/widget 卡片/DSL/JSONL/CardSpec 组合结果，目标场景为 160x160vp 或 320x160vp。"
+description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui 代码块中的 DSL JSONL + 一个 cardspec 代码块中的 CardSpec JSON。使用 extended catalog 下的 Form 子集、10 个 Form 支持组件、onClick 行为链、原生 `{path}` 绑定/`formatString` 拼接/表达式、DataModel、2x2 或横版 2x4 卡片构造规则，以及端侧 dataBindings/refreshPlan 契约。适用于创建、优化、校验或输出 HarmonyOS/A2UI/Form/服务卡片/widget 卡片/DSL/JSONL/CardSpec 组合结果，目标场景为 160x160vp 或 320x160vp。"
 ---
 
 # Harmony 卡片生成
@@ -29,7 +29,7 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 按以下顺序解决冲突：
 
 1. [`reference/protocol.md`](reference/protocol.md)
-2. [`reference/component-catalog.md`](reference/component-catalog.md) 和 [`reference/data-binding.md`](reference/data-binding.md)
+2. [`reference/component-catalog.md`](reference/component-catalog.md)、[`reference/data-binding.md`](reference/data-binding.md) 和 [`reference/function.md`](reference/function.md)
 3. 设计、构图和评审文档
 
 设计文档只负责卡片质量，不得放宽 Form 协议约束。
@@ -130,7 +130,8 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 ### 条件触发
 
 - 组件、属性、样式枚举、`children` 形状不确定：读取 [`reference/component-catalog.md`](reference/component-catalog.md)。
-- 出现 `updateDataModel`、表达式、模板循环、事件参数或宿主动作 ID：读取 [`reference/data-binding.md`](reference/data-binding.md)。
+- 出现 `updateDataModel`、`{"path":"/..."}` 原生绑定、表达式、模板循环、事件参数或宿主动作 ID：读取 [`reference/data-binding.md`](reference/data-binding.md)。
+- 出现 `formatString`、`${...}` 插值，或需要把静态文本和 DataModel 变量拼成一个字符串：读取 [`reference/function.md`](reference/function.md)。
 - 出现 CTA、可点击区域、`Button`、`onClick`、图片来源或媒体真实性问题：读取 [`reference/visual-interaction.md`](reference/visual-interaction.md)。
 - 需要确定 padding、`itemMargin`、圆角、阴影、半透明块或视觉层级尺度：读取 [`reference/spacing-elevation.md`](reference/spacing-elevation.md)。
 - 没有真实本地图片但需要视觉锚点，或需要渐变、字形、`Progress`、`Divider`、`Stack` 增强表现力：读取 [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)。
@@ -201,7 +202,7 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 
 ## 不可妥协项
 
-- 协议合法性不能由设计文档放宽。具体组件、事件、媒体、表达式和 catalog 约束以 [`reference/protocol.md`](reference/protocol.md)、[`reference/component-catalog.md`](reference/component-catalog.md)、[`reference/data-binding.md`](reference/data-binding.md) 为准。
+- 协议合法性不能由设计文档放宽。具体组件、事件、媒体、表达式和 catalog 约束以 [`reference/protocol.md`](reference/protocol.md)、[`reference/component-catalog.md`](reference/component-catalog.md)、[`reference/data-binding.md`](reference/data-binding.md)、[`reference/function.md`](reference/function.md) 为准。
 - 卡片形态不能放宽成页面。具体尺寸、区域数量、受保护文本和构图规则以 [`reference/card-composition-rules.md`](reference/card-composition-rules.md) 为准。
 - 生成必须由规则驱动。不要选择、复制或改造内置模板。
 - 每条消息使用 `version: "v0.9"`。
@@ -222,7 +223,7 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - Form 只支持通用事件 `onClick`；不要使用 `onAppear`、`onChange`、`onSelect`、`onReachStart` 或 `onReachEnd`。
 - 不使用预定义扩展函数。EventHandler 的 `call` 只能引用宿主 catalog 已声明的自定义函数，或明确声明为宿主假设。
 - 不要编造远程媒体 URL。`Image.src` 和 `styles.backgroundImage` 只使用本地/资源路径；不支持网络图片或 SVG。
-- 组件属性绑定默认使用完整表达式，如 `"{{ $__dataModel.meeting.title }}"`；`updateDataModel.path` 和模板 `children.path` 使用 `/` JSON Pointer。
+- 组件属性绑定默认优先使用原生绑定：单值用 `{"path":"/meeting/title"}`，字符串拼接用 `{"call":"formatString","args":{"value":"${/meeting/title}"}}`；表达式 `"{{ ... }}"` 为兜底；`updateDataModel.path` 和模板 `children.path` 使用 `/` JSON Pointer。
 - 不使用 `$__widthBreakpoint` 或 `$__colorMode`。
 - 协议模板循环只能用于 `Row`、`Column`、`List` 的 `children: { componentId, path }`。
 - 横向 `Row` 默认直接子节点 <= 3。需要更多时拆分、堆叠或使用竖向分组。
@@ -246,6 +247,7 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - DSL 指南：[`reference/guide.md`](reference/guide.md)
 - 组件目录：[`reference/component-catalog.md`](reference/component-catalog.md)
 - 数据绑定：[`reference/data-binding.md`](reference/data-binding.md)
+- 字符串拼接函数：[`reference/function.md`](reference/function.md)
 - CardSpec 契约：[`reference/cardspec.md`](reference/cardspec.md)
 - 数据能力：[`reference/data-capability/weather.md`](reference/data-capability/weather.md), [`reference/data-capability/calendar.md`](reference/data-capability/calendar.md)
 - 视觉和交互：[`reference/visual-interaction.md`](reference/visual-interaction.md)

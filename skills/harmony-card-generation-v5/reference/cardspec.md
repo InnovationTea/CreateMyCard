@@ -100,17 +100,17 @@ Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构
 }
 ```
 
-固定对象或标量用 `$__dataModel` 表达式直接绑定：
+固定对象或标量优先用原生 `{path}` 绑定：
 
 ```json
 {
   "id": "temperature",
   "component": "Text",
-  "content": "{{ $__dataModel.data.weather.current.temperatureText }}"
+  "content": {"path": "/data/weather/current/temperatureText"}
 }
 ```
 
-数组字段使用 Form 模板循环：
+数组字段使用模板循环，模板对象只有 `componentId` 和 `path`：
 
 ```json
 {
@@ -118,19 +118,18 @@ Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构
   "component": "Column",
   "children": {
     "componentId": "event_template",
-    "path": "/data/calendar/items",
-    "itemVar": "event"
+    "path": "/data/calendar/items"
   }
 }
 ```
 
-模板内通过 `$event` 访问当前项：
+模板内通过相对路径访问当前项：
 
 ```json
 {
   "id": "event_title",
   "component": "Text",
-  "content": "{{ $event.title }}"
+  "content": {"path": "title"}
 }
 ```
 

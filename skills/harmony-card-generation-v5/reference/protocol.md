@@ -63,10 +63,11 @@ Form 仅支持通用事件 `onClick`。
 - `as` 绑定返回值为当前事件行为链的局部变量。
 - `call` 和 `as` 是标识符，不写表达式。
 - `call` 只能引用宿主 catalog 已声明的自定义函数，或明确声明为宿主假设。
+- 属性级字符串拼接使用原生 `formatString`（`{"call":"formatString","args":{"value":"...${/path}..."}}`）；它是属性绑定值，不是事件函数，与上面 EventHandler 的 `call` 不同。其它预定义扩展函数仍禁用。
 
-## 表达式
+## 表达式（兜底）
 
-表达式只在 `updateComponents` 中生效，写成完整字符串：
+表达式是兜底方式，优先使用原生 `{path}` 绑定和 `formatString` 拼接。表达式只在 `updateComponents` 中生效，写成完整字符串：
 
 ```json
 "content": "{{ $__dataModel.meeting.title }}"
@@ -85,25 +86,23 @@ Form 仅支持通用事件 `onClick`。
 ## DataModel 与模板
 
 - `updateDataModel.path` 使用 JSON Pointer，例如 `/`、`/meeting/title`。
-- 组件动态值默认用表达式读取 DataModel，例如 `$__dataModel.meeting.title`。
-- 表达式中也可用 `${/json/pointer}` 引用 DataModel。
-- 模板循环仅用于 `Row`、`Column`、`List` 的 `children` 对象：
+- 组件动态值优先用原生绑定：单值用 `{"path":"/meeting/title"}`，字符串拼接用 `{"call":"formatString","args":{"value":"${/meeting/title}"}}`（见 data-binding.md / function.md）。
+- 表达式 `{{ ... }}` 是兜底方式，仅在原生绑定无法表达时使用；表达式中可用 `$__dataModel.meeting.title` 或 `${/json/pointer}` 引用 DataModel。
+- 模板循环仅用于 `Row`、`Column`、`List` 的 `children` 对象，模板对象只有 `componentId` 和 `path`：
 
 ```json
 "children": {
   "path": "/items",
-  "componentId": "itemTpl",
-  "itemVar": "item",
-  "indexVar": "index"
+  "componentId": "itemTpl"
 }
 ```
 
-模板变量：
+模板项内取值：
 
-- 默认 `$item`、`$index`
-- 自定义变量名不带 `$`，引用时加 `$`
-- 变量名必须匹配 `^[a-zA-Z_][a-zA-Z0-9_]*$`
-- 嵌套模板中，外层变量需要通过自定义 `itemVar` 避免被内层 `$item` 遮蔽
+- 相对路径（不以 `/` 开头）解析到当前数组项，例如 `{"path":"name"}`。
+- 绝对路径（以 `/` 开头）仍解析到根 DataModel。
+- 拼接用 `formatString`，路径支持相对/绝对。
+- 不使用 `$item`、`$index`、`itemVar`、`indexVar` 变量机制。
 
 ## 媒体
 
