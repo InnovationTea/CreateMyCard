@@ -47,9 +47,12 @@ Form 仅支持通用事件 `onClick`。
 ```json
 "onClick": [
   {
-    "call": "openDetail",
+    "call": "clickToIntent",
     "args": {
-      "targetId": "{{ $__dataModel.action.targetId }}"
+      "intentName": "ViewCalendarEvent",
+      "params": {
+        "entityId": "{{ $__dataModel.calendar.primaryEntityId }}"
+      }
     }
   }
 ]
@@ -62,7 +65,7 @@ Form 仅支持通用事件 `onClick`。
 - `args`、`condition` 可使用完整表达式。
 - `as` 绑定返回值为当前事件行为链的局部变量。
 - `call` 和 `as` 是标识符，不写表达式。
-- `call` 只能引用宿主 catalog 已声明的自定义函数，或明确声明为宿主假设。
+- `call` 优先引用 `reference/event-capability/click-event.md` 已声明的 `functionCall`；只有用户或宿主明确提供其它自定义函数时，才作为宿主假设使用。
 
 ## 表达式
 

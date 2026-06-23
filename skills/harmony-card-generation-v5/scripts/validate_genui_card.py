@@ -136,6 +136,36 @@ COMPRESSIBLE_TEXT_HINT_RE = re.compile(
     re.IGNORECASE,
 )
 
+EVENT_CAPABILITIES = {
+    "clickToCallPhone": {
+        "required": {"phonenumber"},
+    },
+    "clickToDeeplink": {
+        "required": {"bundleName", "abilityName", "uri"},
+        "supportedTargets": {
+            (
+                "com.huawei.hmos.settings",
+                "com.huawei.hmos.settings.MainAbility",
+                "intelligent_scene_entry",
+            ),
+            (
+                "com.huawei.hmsapp.totemweather",
+                "com.huawei.hmsapp.totemweather.MainAbility",
+                "",
+            ),
+            (
+                "com.huawei.hmos.clock",
+                "com.huawei.hmos.clock.phone",
+                "",
+            ),
+        },
+    },
+    "clickToIntent": {
+        "required": {"intentName", "params"},
+        "supportedIntents": {"ViewCalendarEvent"},
+    },
+}
+
 
 def load_messages(path: Path) -> list[dict[str, Any]]:
     text = path.read_text(encoding="utf-8-sig").strip()
@@ -259,7 +289,75 @@ def pointer_exists(root: Any, pointer: str) -> bool:
     return True
 
 
-def check_event_handlers(value: Any, cid: str, field: str, errors: list[str]) -> None:
+def is_expression(value: Any) -> bool:
+    return isinstance(value, str) and EXPR_RE.match(value.strip()) is not None
+
+
+def check_event_capability_args(
+    call: str,
+    args: Any,
+    cid: str,
+    field: str,
+    index: int,
+    errors: list[str],
+    warnings: list[str],
+) -> None:
+    capability = EVENT_CAPABILITIES.get(call)
+    location = f"{cid}: {field}[{index}]"
+    if capability is None:
+        if call.startswith("clickTo"):
+            errors.append(f"{location}.call 未在 event-capability 中声明：{call!r}")
+        else:
+            warnings.append(f"{location}.call 不在内置 event-capability 中；请确认这是宿主已声明的自定义函数")
+        return
+
+    if not isinstance(args, dict):
+        errors.append(f"{location}.args 必须是 object")
+        return
+
+    for name in capability.get("required", set()):
+        if name not in args:
+            errors.append(f"{location}.args 缺少必需参数 {name!r}")
+
+    if call == "clickToCallPhone":
+        phone = args.get("phonenumber")
+        if phone is not None and not isinstance(phone, str):
+            errors.append(f"{location}.args.phonenumber 必须是 string 或表达式字符串")
+
+    if call == "clickToDeeplink":
+        target_values = (args.get("bundleName"), args.get("abilityName"), args.get("uri"))
+        if all(isinstance(item, str) and not is_expression(item) for item in target_values):
+            if target_values not in capability["supportedTargets"]:
+                errors.append(
+                    f"{location}.args 使用了 event-capability 未声明的 deeplink 目标组合：{target_values!r}"
+                )
+        elif all(item in args for item in ("bundleName", "abilityName", "uri")):
+            warnings.append(f"{location}.args 使用表达式 deeplink 目标；请确保运行时值来自 supportedTargets 的固定组合")
+
+    if call == "clickToIntent":
+        intent_name = args.get("intentName")
+        if isinstance(intent_name, str) and not is_expression(intent_name):
+            if intent_name not in capability["supportedIntents"]:
+                errors.append(f"{location}.args.intentName 未在 event-capability 中声明：{intent_name!r}")
+        elif intent_name is not None:
+            warnings.append(f"{location}.args.intentName 使用表达式；请确保运行时值来自 event-capability")
+
+        params = args.get("params")
+        if not isinstance(params, dict):
+            errors.append(f"{location}.args.params 必须是 object")
+        elif "entityId" not in params:
+            errors.append(f"{location}.args.params 缺少必需参数 'entityId'")
+        elif not isinstance(params.get("entityId"), str):
+            errors.append(f"{location}.args.params.entityId 必须是 string 或表达式字符串")
+
+
+def check_event_handlers(
+    value: Any,
+    cid: str,
+    field: str,
+    errors: list[str],
+    warnings: list[str],
+) -> None:
     if not isinstance(value, list):
         errors.append(f"{cid}: {field} 必须是 EventHandler 数组")
         return
@@ -272,6 +370,16 @@ def check_event_handlers(value: Any, cid: str, field: str, errors: list[str]) ->
             errors.append(f"{cid}: {field}[{idx}].call 是必需字段")
         if isinstance(call, str) and EXPR_RE.match(call.strip()):
             errors.append(f"{cid}: {field}[{idx}].call 不能是表达式")
+        elif isinstance(call, str) and call:
+            check_event_capability_args(
+                call,
+                handler.get("args", {}),
+                cid,
+                field,
+                idx,
+                errors,
+                warnings,
+            )
         as_name = handler.get("as")
         if isinstance(as_name, str) and EXPR_RE.match(as_name.strip()):
             errors.append(f"{cid}: {field}[{idx}].as 不能是表达式")
@@ -508,7 +616,7 @@ def validate(messages: list[dict[str, Any]]) -> tuple[list[str], list[str]]:
             if event_field in component:
                 if event_field != FORM_ONLY_EVENT:
                     errors.append(f"{cid}: Form 仅支持 onClick，不支持 {event_field}")
-                check_event_handlers(component[event_field], cid, event_field, errors)
+                check_event_handlers(component[event_field], cid, event_field, errors, warnings)
 
         check_styles(component, errors)
 

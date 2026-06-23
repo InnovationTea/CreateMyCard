@@ -131,10 +131,10 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 
 - 组件、属性、样式枚举、`children` 形状不确定：读取 [`reference/component-catalog.md`](reference/component-catalog.md)。
 - 出现 `updateDataModel`、表达式、模板循环、事件参数或宿主动作 ID：读取 [`reference/data-binding.md`](reference/data-binding.md)。
-- 出现 CTA、可点击区域、`Button`、`onClick`、图片来源或媒体真实性问题：读取 [`reference/visual-interaction.md`](reference/visual-interaction.md)。
+- 出现 CTA、可点击区域、`Button`、`onClick`、图片来源或媒体真实性问题：读取 [`reference/visual-interaction.md`](reference/visual-interaction.md)；涉及点击行为时继续读取 [`reference/event-capability/click-event.md`](reference/event-capability/click-event.md)，并只使用其中声明的 `functionCall` 与参数。
 - 需要确定 padding、`itemMargin`、圆角、阴影、半透明块或视觉层级尺度：读取 [`reference/spacing-elevation.md`](reference/spacing-elevation.md)。
 - 没有真实本地图片但需要视觉锚点，或需要渐变、字形、`Progress`、`Divider`、`Stack` 增强表现力：读取 [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)。
-- 出现动态数据能力、端侧刷新或持久化：先读 [`reference/cardspec.md`](reference/cardspec.md)，再按场景读取 [`reference/data-capability/weather.md`](reference/data-capability/weather.md) 或 [`reference/data-capability/calendar.md`](reference/data-capability/calendar.md)。
+- 出现动态渲染数据、端侧刷新或持久化：先读 [`reference/cardspec.md`](reference/cardspec.md)，再按场景读取 [`reference/data-capability/weather.md`](reference/data-capability/weather.md) 或 [`reference/data-capability/calendar.md`](reference/data-capability/calendar.md)，并用能力 `outputSchema` 推导 DSL 绑定路径。
 - 只做视觉润色或卡片质量评审：读取 [`reference/design-review.md`](reference/design-review.md)；最终交付前仍回到 [`reference/review-validation.md`](reference/review-validation.md)。
 - 不确定该读哪个文件：先读 [`reference.md`](reference.md)，再只读它指向的相关文件。
 
@@ -188,6 +188,8 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
    - 必须完整显示的关键信息
    - 每个拥挤 Row 的组件内部宽度预算
    - 交互和 DataModel 形状
+   - 数据能力选择、`writeResultTo`、UI 绑定路径和初始 DataModel 空结构
+   - 事件能力选择、`onClick.call`、点击参数来源和是否来自 `event-capability`
    - CardSpec 的 `suggestSize`、静态/动态形态、能力选择、参数、`writeResultTo` 和刷新计划
 7. 正式输出前至少做一次显式改进：
    - 指出第一个内部版本缺少什么
@@ -220,7 +222,7 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - 正式输出前，必须有布局理由和至少一次改进。
 - 可点击 UI 必须有真实 `onClick` EventHandler 数组。Form 不使用 `Button.action`。
 - Form 只支持通用事件 `onClick`；不要使用 `onAppear`、`onChange`、`onSelect`、`onReachStart` 或 `onReachEnd`。
-- 不使用预定义扩展函数。EventHandler 的 `call` 只能引用宿主 catalog 已声明的自定义函数，或明确声明为宿主假设。
+- 不使用预定义扩展函数。EventHandler 的 `call` 优先来自 [`reference/event-capability/click-event.md`](reference/event-capability/click-event.md) 的 `functionCall`；只有用户或宿主明确提供其它自定义函数时，才允许作为宿主假设使用。
 - 不要编造远程媒体 URL。`Image.src` 和 `styles.backgroundImage` 只使用本地/资源路径；不支持网络图片或 SVG。
 - 组件属性绑定默认使用完整表达式，如 `"{{ $__dataModel.meeting.title }}"`；`updateDataModel.path` 和模板 `children.path` 使用 `/` JSON Pointer。
 - 不使用 `$__widthBreakpoint` 或 `$__colorMode`。
@@ -236,6 +238,7 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - CardSpec 的 `dataBindings[].writeResultTo` 必须位于 `/data` 下，且 UI 绑定路径必须能由 `writeResultTo + outputSchema` 推导。
 - CardSpec 优先使用简洁契约：`suggestSize`、`dataBindings[].capabilityId`、`arguments`、`writeResultTo`；只有端侧明确需要时才加入 `bindingId`、`capabilityVersion` 或 `refreshPlan`。
 - 不虚构 CardSpec 能力、参数、权限、端侧函数或刷新策略；未声明能力只能降级为静态卡片或说明需要补充 capability manifest。
+- 不虚构点击函数、deeplink 目标或 intent 参数；点击行为必须来自 [`reference/event-capability/click-event.md`](reference/event-capability/click-event.md) 或明确的宿主自定义函数假设。
 
 ## 资源
 
@@ -248,6 +251,7 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - 数据绑定：[`reference/data-binding.md`](reference/data-binding.md)
 - CardSpec 契约：[`reference/cardspec.md`](reference/cardspec.md)
 - 数据能力：[`reference/data-capability/weather.md`](reference/data-capability/weather.md), [`reference/data-capability/calendar.md`](reference/data-capability/calendar.md)
+- 事件能力：[`reference/event-capability/click-event.md`](reference/event-capability/click-event.md)
 - 视觉和交互：[`reference/visual-interaction.md`](reference/visual-interaction.md)
 - 间距和层级：[`reference/spacing-elevation.md`](reference/spacing-elevation.md)
 - 表现力工具箱：[`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)

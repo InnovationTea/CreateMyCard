@@ -15,10 +15,13 @@ PATH_RE = re.compile(r"^/(?:[^~/]|~[01])*(?:/(?:[^~/]|~[01])*)*$")
 CAPABILITIES: dict[tuple[str, str], dict[str, Any]] = {
     ("calendar.events.search", "1.0"): {
         "arguments": {
-            "range": "string",
+            "entityId": "string",
+            "entityIdList": {"type": "array", "items": "string"},
             "title": "string",
             "eventLocation": "string",
-            "limit": "integer",
+            "timeInterval": {"type": "array", "items": "integer", "minItems": 2, "maxItems": 2},
+            "senderName": "string",
+            "ownerAppName": "string",
         }
     },
     ("weather.overview.get", "1.0"): {
@@ -45,6 +48,42 @@ def type_matches(value: Any, expected: str) -> bool:
     if expected == "array":
         return isinstance(value, list)
     return True
+
+
+def validate_argument_type(
+    value: Any,
+    expected: Any,
+    location: str,
+    errors: list[str],
+) -> None:
+    if isinstance(expected, str):
+        if not type_matches(value, expected):
+            errors.append(f"{location} must be {expected}")
+        return
+
+    if not isinstance(expected, dict):
+        return
+
+    expected_type = expected.get("type")
+    if expected_type == "array":
+        if not isinstance(value, list):
+            errors.append(f"{location} must be array")
+            return
+        min_items = expected.get("minItems")
+        if isinstance(min_items, int) and len(value) < min_items:
+            errors.append(f"{location} must contain at least {min_items} item(s)")
+        max_items = expected.get("maxItems")
+        if isinstance(max_items, int) and len(value) > max_items:
+            errors.append(f"{location} must contain at most {max_items} item(s)")
+        item_type = expected.get("items")
+        if isinstance(item_type, str):
+            for index, item in enumerate(value):
+                if not type_matches(item, item_type):
+                    errors.append(f"{location}[{index}] must be {item_type}")
+        return
+
+    if isinstance(expected_type, str) and not type_matches(value, expected_type):
+        errors.append(f"{location} must be {expected_type}")
 
 
 def validate_refresh(
@@ -152,9 +191,12 @@ def validate(spec: Any) -> tuple[list[str], list[str]]:
                 expected = allowed.get(name)
                 if expected is None:
                     errors.append(f"binding {binding_id!r}: unknown argument {name!r}")
-                elif not type_matches(value, expected):
-                    errors.append(
-                        f"binding {binding_id!r}: argument {name!r} must be {expected}"
+                else:
+                    validate_argument_type(
+                        value,
+                        expected,
+                        f"binding {binding_id!r}: argument {name!r}",
+                        errors,
                     )
 
         write_path = binding.get("writeResultTo")

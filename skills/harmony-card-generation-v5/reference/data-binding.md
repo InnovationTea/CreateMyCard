@@ -117,7 +117,10 @@ Form 组件属性默认用表达式读取 DataModel：
 
 规则：
 
-- `call` 必须是宿主 catalog 已声明的自定义函数名，或明确声明为宿主假设。
+- `call` 优先来自 [`event-capability/click-event.md`](event-capability/click-event.md) 中的 `functionCall`，例如 `clickToCallPhone`、`clickToDeeplink`、`clickToIntent`。
+- 如果使用 `clickToIntent` 打开日程详情，`args.intentName` 固定为 `ViewCalendarEvent`，`args.params.entityId` 绑定日历数据的 `entityId`，模板内通常写作 `"{{ $event.entityId }}"`。
+- 如果使用 `clickToDeeplink`，`args.bundleName`、`args.abilityName`、`args.uri` 必须来自 event-capability 的同一个 `supportedTargets` 项。
+- 只有用户或宿主明确提供其它自定义函数时，才允许作为宿主假设使用。
 - `as` 绑定变量只在当前事件行为链内有效。
 - `$context.componentId` 和 `$context.eventData` 只在事件处理表达式中可用。
 
