@@ -120,9 +120,6 @@
 
 - 本文件只指导 DSL `onClick`，不进入 CardSpec，也不新增第三个输出代码块。
 - `onClick.call` 必须使用 `capabilities[].functionCall` 中声明的值。不要把 `description`、应用名或页面名写成 `call`。
-- `clickToCallPhone` 必须提供 `args.phonenumber`，号码来自用户明确输入或 DataModel 绑定。
-- `clickToDeeplink` 必须使用 `supportedTargets` 中同一目标的合法 `bundleName`、`abilityName`、`uri` 组合；不要跨目标混搭字段，不要编造新 bundle、ability 或 uri。
-- `clickToIntent` 的日历详情跳转使用 `intentName: "ViewCalendarEvent"`；`params.entityId` 必须存在，值绑定日历能力输出的 `entityId`。在日程模板内写作：
 
 ```json
 {
