@@ -62,7 +62,7 @@ Form 仅支持通用事件 `onClick`。
 - `args` 中的 DataModel 参数优先使用 `{"path":"/..."}` 或 `formatString`；`condition` 使用完整表达式。
 - `as` 绑定返回值为当前事件行为链的局部变量。
 - `call` 和 `as` 是标识符，不写表达式。
-- `call` 只能引用宿主 catalog 已声明的自定义函数，或明确声明为宿主假设。
+- `call` 优先引用 `reference/event-capability/` 中已声明的 `functionCall`；未声明时只能引用宿主 catalog 已声明的自定义函数，或明确声明为宿主假设。
 - 属性级字符串拼接使用原生 `formatString`（`{"call":"formatString","args":{"value":"...${/path}..."}}`）；它是属性绑定值，不是事件函数，与上面 EventHandler 的 `call` 不同。其它预定义扩展函数仍禁用。
 
 ## 表达式（兜底）

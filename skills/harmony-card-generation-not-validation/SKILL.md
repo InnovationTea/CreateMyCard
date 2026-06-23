@@ -23,7 +23,7 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - 不要把“选择模板”作为生成步骤。布局决策只来自可泛化的构造规则。
 - 除非用户明确改变任务，否则不要把桌面卡片扩展成页面、文章、长列表或仪表盘。
 - 不要发明组件、样式键或预定义函数。只有在用户/宿主提供或明确声明为宿主自定义函数假设时，才允许使用应用特定函数。
-- CardSpec 是卡片结果的一部分，负责端侧数据能力、刷新和持久化契约；DSL 规则只来自本 skill 的协议、组件目录和数据绑定参考。
+- CardSpec 是卡片结果的一部分，负责端侧数据能力、刷新和持久化契约；点击事件能力只进入 DSL `onClick`，不进入 CardSpec。DSL 规则只来自本 skill 的协议、组件目录、数据绑定参考和已声明 event capability。
 
 ## 协议优先级
 
@@ -131,10 +131,10 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - 组件、属性、样式枚举、`children` 形状不确定：读取 [`reference/component-catalog.md`](reference/component-catalog.md)。
 - 出现 `updateDataModel`、`{"path":"/..."}` 原生绑定、表达式、模板循环、事件参数或宿主动作 ID：读取 [`reference/data-binding.md`](reference/data-binding.md)。
 - 出现 `formatString`、`${...}` 插值，或需要把静态文本和 DataModel 变量拼成一个字符串：读取 [`reference/function.md`](reference/function.md)。
-- 出现 CTA、可点击区域、`Button`、`onClick`、图片来源或媒体真实性问题：读取 [`reference/visual-interaction.md`](reference/visual-interaction.md)。
+- 出现 CTA、可点击区域、`Button`、`onClick`、打开应用/详情/拨号/意图跳转：先读 [`reference/event-capability/click-event.md`](reference/event-capability/click-event.md) 匹配已声明点击能力，再读 [`reference/visual-interaction.md`](reference/visual-interaction.md) 和 [`reference/data-binding.md`](reference/data-binding.md)。
 - 需要确定 padding、`itemMargin`、圆角、阴影、半透明块或视觉层级尺度：读取 [`reference/spacing-elevation.md`](reference/spacing-elevation.md)。
 - 没有真实本地图片但需要视觉锚点，或需要渐变、字形、`Progress`、`Divider`、`Stack` 增强表现力：读取 [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)。
-- 出现动态数据能力、端侧刷新或持久化：先读 [`reference/cardspec.md`](reference/cardspec.md)，再按场景读取 [`reference/data-capability/weather.md`](reference/data-capability/weather.md) 或 [`reference/data-capability/calendar.md`](reference/data-capability/calendar.md)。
+- 出现动态数据能力、端侧刷新或持久化：先读 [`reference/cardspec.md`](reference/cardspec.md)，再从 [`reference/data-capability/`](reference/data-capability/) 中按用户语义选择匹配的能力文档。
 - 只做视觉润色或卡片质量评审：读取 [`reference/design-review.md`](reference/design-review.md)；最终交付前仍回到 [`reference/final-review.md`](reference/final-review.md)。
 - 不确定该读哪个文件：先读 [`reference.md`](reference.md)，再只读它指向的相关文件。
 
@@ -180,7 +180,9 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 3. 按 [`reference/card-composition-rules.md`](reference/card-composition-rules.md) 选择 `2x2` 或 `2x4`。
 4. 从请求中推导语义角色：identity、primary answer、metric、context、progress/trend、media、action。
 5. 按“参考路由”读取该模式和触发条件所需的参考。
-6. 写 JSON 前必须明确说明布局理由，覆盖：
+6. 如果使用动态数据，先选择 data capability，确定 `capabilityId`、`arguments`、`writeResultTo` 和 `outputSchema`，再从 `writeResultTo + outputSchema` 推导 DSL 展示路径和事件参数来源。
+7. 如果使用点击事件，先选择 event capability 的 `functionCall` 和合法目标，再把参数从静态安全值、DataModel 绝对路径或模板项相对路径绑定到 `onClick.args`。
+8. 写 JSON 前必须明确说明布局理由，覆盖：
    - 选择的尺寸以及原因
    - 语义角色和主区域
    - 视觉焦点
@@ -188,15 +190,15 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
    - 关键横向关系
    - 必须完整显示的关键信息
    - 每个拥挤 Row 的组件内部宽度预算
-   - 交互和 DataModel 形状
+   - 交互、点击能力来源和 DataModel 形状
    - CardSpec 的 `suggestSize`、静态/动态形态、能力选择、参数、`writeResultTo` 和刷新计划
-7. 正式输出前至少做一次显式改进：
+9. 正式输出前至少做一次显式改进：
    - 指出第一个内部版本缺少什么
    - 改进层级、紧凑度、场景视觉特征，或关键信息完整显示的安全性
-8. 在当前上下文中生成 `genui` 与 `cardspec` 两个代码块草稿，不写入临时文件或中间产物。
-9. 按 [`reference/final-review.md`](reference/final-review.md) 做最终评审；该文档会调用 [`reference/design-review.md`](reference/design-review.md) 评审视觉、交互、数据语义和受保护文本。
-10. 如果评审修改了内容，重新检查受影响的评审项。
-11. 最终评审完成后，由模型直接输出两个代码块。
+10. 在当前上下文中生成 `genui` 与 `cardspec` 两个代码块草稿，不写入临时文件或中间产物。
+11. 按 [`reference/final-review.md`](reference/final-review.md) 做最终评审；该文档会调用 [`reference/design-review.md`](reference/design-review.md) 评审视觉、交互、数据语义和受保护文本。
+12. 如果评审修改了内容，重新检查受影响的评审项。
+13. 最终评审完成后，由模型直接输出两个代码块。
 
 ## 不可妥协项
 
@@ -219,7 +221,8 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - 正式输出前，必须有布局理由和至少一次改进。
 - 可点击 UI 必须有真实 `onClick` EventHandler 数组。Form 不使用 `Button.action`。
 - Form 只支持通用事件 `onClick`；不要使用 `onAppear`、`onChange`、`onSelect`、`onReachStart` 或 `onReachEnd`。
-- 不使用预定义扩展函数。EventHandler 的 `call` 只能引用宿主 catalog 已声明的自定义函数，或明确声明为宿主假设。
+- 不使用预定义扩展函数。EventHandler 的 `call` 优先来自 [`reference/event-capability/`](reference/event-capability/) 中已声明的 `functionCall`；未声明时只能引用宿主 catalog 已声明的自定义函数，或明确声明为宿主假设。
+- 事件能力不进入 CardSpec，也不产生第三个输出代码块；CardSpec 只描述数据能力。
 - 不要编造远程媒体 URL。`Image.src` 和 `styles.backgroundImage` 只使用本地/资源路径；不支持网络图片或 SVG。
 - 组件属性绑定默认优先使用原生绑定：单值用 `{"path":"/meeting/title"}`，字符串拼接用 `{"call":"formatString","args":{"value":"${/meeting/title}"}}`；表达式 `"{{ ... }}"` 为兜底；`updateDataModel.path` 和模板 `children.path` 使用 `/` JSON Pointer。
 - 不使用 `$__widthBreakpoint` 或 `$__colorMode`。
@@ -233,6 +236,7 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - 任何手动/设计修改后，都要重新检查受影响的评审项。
 - CardSpec 的 `suggestSize` 必须与 DSL 选择的尺寸一致。
 - CardSpec 的 `dataBindings[].writeResultTo` 必须位于 `/data` 下，且 UI 绑定路径必须能由 `writeResultTo + outputSchema` 推导。
+- `dataBindings[].capabilityId` 必须来自 [`reference/data-capability/`](reference/data-capability/) 中选定能力的 `id`，`arguments` 只能使用该能力 `inputSchema.properties` 声明的字段。
 - CardSpec 优先使用简洁契约：`suggestSize`、`dataBindings[].capabilityId`、`arguments`、`writeResultTo`；只有端侧明确需要时才加入 `bindingId`、`capabilityVersion` 或 `refreshPlan`。
 - 不虚构 CardSpec 能力、参数、权限、端侧函数或刷新策略；未声明能力只能降级为静态卡片或说明需要补充 capability manifest。
 
@@ -247,7 +251,8 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - 数据绑定：[`reference/data-binding.md`](reference/data-binding.md)
 - 字符串拼接函数：[`reference/function.md`](reference/function.md)
 - CardSpec 契约：[`reference/cardspec.md`](reference/cardspec.md)
-- 数据能力：[`reference/data-capability/weather.md`](reference/data-capability/weather.md), [`reference/data-capability/calendar.md`](reference/data-capability/calendar.md)
+- 数据能力目录：[`reference/data-capability/`](reference/data-capability/)；当前已有 [`reference/data-capability/weather.md`](reference/data-capability/weather.md), [`reference/data-capability/calendar.md`](reference/data-capability/calendar.md)
+- 事件能力目录：[`reference/event-capability/`](reference/event-capability/)；当前已有 [`reference/event-capability/click-event.md`](reference/event-capability/click-event.md)
 - 视觉和交互：[`reference/visual-interaction.md`](reference/visual-interaction.md)
 - 间距和层级：[`reference/spacing-elevation.md`](reference/spacing-elevation.md)
 - 表现力工具箱：[`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)

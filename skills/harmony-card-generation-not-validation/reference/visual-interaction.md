@@ -19,7 +19,8 @@
 - 当整个区域可点击时，在 `Stack`、`Row` 或 `Column` 上使用 `onClick`。
 - 当语义上是按钮时，使用带 `label` 和 `onClick` 的 `Button`。
 - 不要画没有事件的假按钮。
-- 对应用特定动作，使用有意义的宿主函数名，例如 `enterFocusMode`、`openTrainingPlan`、`makePhoneCall`，并从 DataModel 绑定所需 ID。
+- 对点击、拨号、打开应用或详情页，优先读取 [`event-capability/click-event.md`](event-capability/click-event.md)，使用已声明的 `functionCall`、`parameters` 和 `supportedTargets`。
+- 对未在 event capability 中声明的应用特定动作，才使用有意义的宿主函数名，并明确它是宿主假设；所需 ID 从 DataModel 绑定。
 
 示例：
 
@@ -31,7 +32,7 @@
 
 - `Button.label` 必须是可见文本。
 - Form 不使用 `Button.action`；按钮点击写在 `Button.onClick`。
-- 如果动作只是宿主占位，最终回复中说明。
+- 如果动作只是宿主占位，最终回复中说明；如果最终格式禁止额外说明，则不要生成该占位点击。
 - CTA 文本是受保护内容：保持一行，不要强行放进狭窄固定宽度。
 
 ## 图片来源
@@ -56,3 +57,5 @@
 - 从示例产物复用颜色或结构，而不是服务当前场景。
 - 图片背景遮住核心文本。
 - 本应来自 DataModel 的宿主动作 args 被硬编码。
+- `onClick.call` 使用了未在 event capability 或宿主声明中的函数名。
+- 跳转目标不在 event capability 的 `supportedTargets` 中。

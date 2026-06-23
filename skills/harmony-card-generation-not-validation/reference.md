@@ -21,6 +21,8 @@
 - [`reference/component-catalog.md`](reference/component-catalog.md)：组件、属性、样式枚举和 Form 写法。回答“这个组件/样式怎么写”。
 - [`reference/data-binding.md`](reference/data-binding.md)：DataModel、原生 `{path}` 绑定、表达式、模板循环、事件参数。回答“动态值怎么绑定”。
 - [`reference/function.md`](reference/function.md)：`formatString` 字符串拼接函数。回答“静态文本和变量怎么拼成一个字符串”。
+- [`reference/data-capability/`](reference/data-capability/)：目录化 data capability manifest。回答“当前有哪些可调用数据能力、输入参数和输出字段”。
+- [`reference/event-capability/`](reference/event-capability/)：目录化 event capability manifest。回答“当前有哪些可点击动作、合法目标和事件参数”。
 - [`reference/visual-interaction.md`](reference/visual-interaction.md)：CTA、点击、图片来源和媒体真实性。回答“交互和媒体是否真实可用”。
 - [`reference/spacing-elevation.md`](reference/spacing-elevation.md)：间距、圆角、阴影、alpha 层级。回答“视觉尺度是否统一”。
 - [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)：渐变、半透明块、字形、Progress、Divider、Stack。回答“无素材时如何增强表现力”。
@@ -42,11 +44,11 @@
 - 字符串拼接（静态文本 + DataModel 变量）：
   [`reference/function.md`](reference/function.md)。
 - 动态数据能力、端侧刷新或持久化：
-  先读 [`reference/cardspec.md`](reference/cardspec.md)，再按场景读取
-  [`reference/data-capability/weather.md`](reference/data-capability/weather.md)
-  或 [`reference/data-capability/calendar.md`](reference/data-capability/calendar.md)。
+  先读 [`reference/cardspec.md`](reference/cardspec.md)，再从 [`reference/data-capability/`](reference/data-capability/)
+  中按用户语义选择匹配的能力文档。当前已有天气和日历能力，但不要把能力选择写死为这两个场景。
 - 交互、图片、CTA 或点击行为：
-  [`reference/visual-interaction.md`](reference/visual-interaction.md)。
+  点击行为先读 [`reference/event-capability/click-event.md`](reference/event-capability/click-event.md)，再读
+  [`reference/visual-interaction.md`](reference/visual-interaction.md) 和 [`reference/data-binding.md`](reference/data-binding.md)。
 - 间距、圆角、阴影、视觉层次：
   [`reference/spacing-elevation.md`](reference/spacing-elevation.md)。
 - 需要在 GenUI 约束内增强视觉表现：
@@ -61,6 +63,7 @@
 - 看到未知组件、样式位置、枚举值、Form 属性名：读 [`reference/component-catalog.md`](reference/component-catalog.md)。
 - 看到 `{{ ... }}`、`{"path":"/..."}`、`updateDataModel`、模板循环、`onClick.args`、宿主动作 ID：读 [`reference/data-binding.md`](reference/data-binding.md)。
 - 看到 `formatString`、`${...}` 插值，或需要把静态文本和变量拼成一个字符串：读 [`reference/function.md`](reference/function.md)。
+- 看到 `functionCall`、`supportedTargets`、`clickTo*`、打开应用、打开详情、拨号、意图跳转：读 [`reference/event-capability/click-event.md`](reference/event-capability/click-event.md)。
 - 看到 CTA、`Button`、可点击容器、图片、背景图、媒体路径：读 [`reference/visual-interaction.md`](reference/visual-interaction.md)。
 - 需要定 padding、`itemMargin`、圆角、阴影、半透明层：读 [`reference/spacing-elevation.md`](reference/spacing-elevation.md)。
 - 没有真实素材但需要视觉锚点，或要使用渐变、字形、`Progress`、`Divider`、`Stack`：读 [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)。

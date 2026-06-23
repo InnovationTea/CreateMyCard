@@ -77,7 +77,7 @@
 - 只有结构性装饰值才保持字面量，例如空 spacer 文本。
 - 表达式引用的数据应存在于 `updateDataModel.value`。
 - `updateDataModel.path` 使用 `/` JSON Pointer。
-- 宿主动作参数尽量绑定到数据：
+- 动作参数尽量绑定到数据；点击、拨号、打开应用或详情页优先使用 event capability 中已声明的 `functionCall`：
 
 ```json
 "onClick":[{"call":"openTrainingPlan","args":{"planId":{"path":"/plan/id"}}}]
@@ -102,7 +102,7 @@
 - 当整个视觉区域可点击时，在 `Stack`、`Row` 或 `Column` 上使用 `onClick`。
 - 当控件语义上应是带直接标签文本的按钮时，使用 `Button`，并把点击行为写在 `Button.onClick`。
 - EventHandler 条目需要 `call`；`args`、`as` 和 `condition` 可选。
-- `call` 只能引用宿主 catalog 已声明的自定义函数，或明确声明为宿主假设。
+- `call` 优先引用 `reference/event-capability/` 中已声明的 `functionCall`；未声明时只能引用宿主 catalog 已声明的自定义函数，或明确声明为宿主假设。
 - 不要使用 `Button.action` 或预定义扩展函数。
 
 ## 媒体规则

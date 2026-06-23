@@ -164,14 +164,18 @@
 
 规则：
 
-- `call` 必须是宿主 catalog 已声明的自定义函数名，或明确声明为宿主假设。
+- `call` 优先使用 `reference/event-capability/` 中已声明的 `functionCall`；未声明时只能使用宿主 catalog 已声明的自定义函数名，或明确声明为宿主假设。
+- `args` 必须符合对应 event capability 的 `parameters`。跳转类能力还必须匹配 `supportedTargets` 中的合法目标组合。
 - `args` 中读取 DataModel 的值时，优先使用 `{"path":"/..."}`；需要拼接字符串时使用 `formatString`。
+- 模板循环内的事件参数可使用当前项相对路径，例如 `{"path":"entityId"}`；非模板区域使用绝对 JSON Pointer。
+- 来自 data capability 输出的事件参数，必须能从 CardSpec 的 `writeResultTo` 和该能力 `outputSchema` 推导。
 - `as` 绑定变量只在当前事件行为链内有效。
 - `$context.componentId` 和 `$context.eventData` 只在事件处理表达式中可用。
 
 ## 绑定检查清单
 
 - 每个可见的原生绑定或表达式引用的数据都在 DataModel 中有对应字段。
-- 每个宿主动作参数都从 DataModel 或事件上下文取得。
+- 每个宿主动作或 event capability 参数都从 DataModel、事件上下文或合法静态目标取得。
+- 每个来自 data capability 的事件参数路径都能由 `writeResultTo + outputSchema` 推导。
 - 每个模板来源路径都指向数组。
 - 组件属性默认优先使用 `{"path":"/..."}` 原生绑定或 `formatString` 拼接；仅当属性 schema 不支持对象绑定时才退回表达式。

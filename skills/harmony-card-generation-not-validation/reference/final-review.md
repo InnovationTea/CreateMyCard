@@ -34,6 +34,9 @@
 - 使用 Form 10 个支持组件之外的组件。
 - 使用 `Text.text`、`Image.url`、`Button.child`、`Button.action` 或 CSS kebab-case 样式键。
 - 使用 `onClick` 之外的事件。
+- `onClick.call` 没有来自 event capability 或明确宿主声明。
+- 事件 `args` 使用了未在对应 `parameters` 中声明的参数，或跳转目标不在 `supportedTargets` 中。
+- 事件参数路径无法从 DataModel 推导，或本应来自 data capability 输出却无法从 `writeResultTo + outputSchema` 推导。
 - 使用 `$__widthBreakpoint`、`$__colorMode`、网络图片 URL、SVG 或占位媒体 URL。
 
 ## 卡片阻塞项
@@ -59,6 +62,7 @@
 - `writeResultTo` 不在 `/data` 下。
 - DSL 中 UI 绑定路径无法从 CardSpec 的 `writeResultTo` 和能力 `outputSchema` 推导；静态卡片则必须能从初始 DataModel 推导。
 - `refreshPlan` 引用不存在的 `bindingId`。
+- CardSpec 包含 event capability、`functionCall`、`supportedTargets` 或点击事件清单内容。事件能力只进入 DSL `onClick`。
 
 ## 受保护内容换行评审
 

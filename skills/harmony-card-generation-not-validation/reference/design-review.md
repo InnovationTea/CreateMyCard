@@ -42,8 +42,9 @@
 ## 交互检查
 
 - 可点击视觉区域有 `onClick` EventHandler。
-- 宿主函数名有意义且稳定。
-- 必要动作参数从 DataModel 绑定；业务 ID 不硬编码。
+- `onClick.call` 优先来自 event capability 的 `functionCall`；宿主假设函数名必须有意义且稳定。
+- 必要动作参数从 DataModel、事件上下文或 event capability 允许的静态目标取得；业务 ID 不硬编码。
+- 跳转目标在 event capability 的 `supportedTargets` 中，事件参数符合对应 `parameters`。
 - 主指标、动作和有意义的纯图标区域有 accessibility label。
 
 ## 数据检查

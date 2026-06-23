@@ -14,7 +14,7 @@
 
 - `args` 只包含 `value`，`value` 是一个字符串模板。
 - 用 `${...}` 插入 DataModel 的值，`${...}` 内只能是 JSON Pointer 路径：
-  - 绝对路径：`${/data/weather/current/temperature}`
+  - 绝对路径：`${/data/weather/items/weatherData/temperature}`
   - 模板循环内的相对路径：`${name}`，由当前数组项作用域解析。
 - 一个字符串里可以有多个 `${...}`。这是它相对表达式的关键优势：表达式一个字符串只能有一对 `{{ ... }}`，而 `formatString` 可以自由拼接多个变量和静态文本。
 - 字面量 `${` 需要转义为 `\${`。
@@ -25,13 +25,13 @@
 天气卡片拼接温度数值和度数符号：
 
 ```json
-{"id":"temp","component":"Text","content":{"call":"formatString","args":{"value":"${/data/weather/current/temprature}°"}}}
+{"id":"temp","component":"Text","content":{"call":"formatString","args":{"value":"${/data/weather/items/weatherData/temperature}°"}}}
 ```
 
 对应的 DataModel：
 
 ```json
-{"version":"v0.9","updateDataModel":{"surfaceId":"card","path":"/","value":{"data":{"weather":{"current":{"temprature":26}}}}}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"card","path":"/","value":{"data":{"weather":{"items":{"weatherData":{"temperature":26}}}}}}}
 ```
 
 渲染结果：`26°`。
@@ -51,5 +51,5 @@
 
 ## 与其它能力的边界
 
-- `formatString` 是组件属性的绑定值（如 `Text.content`、`Button.label`），不是事件函数。EventHandler 的 `call` 引用的是宿主 catalog 声明的自定义动作函数，二者不同。
+- `formatString` 是组件属性的绑定值（如 `Text.content`、`Button.label`），不是事件函数。EventHandler 的 `call` 优先引用 event capability 的 `functionCall` 或宿主声明的自定义动作函数，二者不同。
 - 表达式内置的 `size()` 只在 `{{ ... }}` 表达式中使用，与 `formatString` 无关。
