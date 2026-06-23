@@ -4,37 +4,130 @@
 
 ```json
 [
-  { "src": "resource/会议widget/icon_id.png", "description": "工牌/ID图标" },
-  { "src": "resource/会议widget/icon_meeting.png", "description": "会议图标" },
-  { "src": "resource/会议widget/icon_time.png", "description": "时间图标" },
-  { "src": "resource/会议widget/icon_watermark.png", "description": "水印图标" },
-  { "src": "resource/关怀widget/icon_allergy.png", "description": "过敏源图标" },
-  { "src": "resource/关怀widget/icon_call.png", "description": "电话图标" },
-  { "src": "resource/关怀widget/icon_high_temperature.png", "description": "高温/温度计图标" },
-  { "src": "resource/关怀widget/icon_weather1.png", "description": "天气/雨伞图标" },
-  { "src": "resource/应用时长widget/icon_tiktok.png", "description": "抖音图标" },
-  { "src": "resource/应用时长widget/icon_timing.png", "description": "计时图标" },
-  { "src": "resource/手机状态widget/icon_charge.png", "description": "充电/闪电图标" },
-  { "src": "resource/手机状态widget/icon_clear.png", "description": "清除图标" },
-  { "src": "resource/手机状态widget/icon_earphone.png", "description": "耳机图标" },
-  { "src": "resource/手机状态widget/icon_phone.png", "description": "手机图标" },
-  { "src": "resource/打车widget/icon_car.png", "description": "汽车/打车图标" },
-  { "src": "resource/打车widget/icon_time1.png", "description": "时间图标" },
-  { "src": "resource/打车widget/icon_weathe2.png", "description": "天气图标" },
-  { "src": "resource/日程widget/icon_alarm_clock.png", "description": "闹钟图标" },
-  { "src": "resource/日程widget/icon_focus.png", "description": "专注图标" },
-  { "src": "resource/日程widget/icon_schedule.png", "description": "日程图标" },
-  { "src": "resource/电量widget/icon_electricity.png", "description": "电池图标" },
-  { "src": "resource/电量widget/icon_save_power.png", "description": "省电图标" },
-  { "src": "resource/睡眠widget/icon_alarm_clock1.png", "description": "闹钟图标" },
-  { "src": "resource/睡眠widget/icon_remind.png", "description": "提醒图标" },
-  { "src": "resource/睡眠widget/icon_sleep.png", "description": "睡眠图标" },
-  { "src": "resource/运动计划widget/icon_run.png", "description": "运动/跑步图标" },
-  { "src": "resource/运动计划widget/icon_schedule2.png", "description": "日程图标" },
-  { "src": "resource/音乐widget/icon_left.png", "description": "上一首图标" },
-  { "src": "resource/音乐widget/icon_like.png", "description": "收藏/心形图标" },
-  { "src": "resource/音乐widget/icon_music.png", "description": "音乐图标" },
-  { "src": "resource/音乐widget/icon_right.png", "description": "下一首图标" }
+  {
+    "src": "resource/meeting_widget/icon_id.png",
+    "description": "工牌/ID图标，适用场景：当下日程"
+  },
+  {
+    "src": "resource/meeting_widget/icon_meeting.png",
+    "description": "会议图标，适用场景：当下日程"
+  },
+  {
+    "src": "resource/meeting_widget/icon_time.png",
+    "description": "时间图标，适用场景：当下日程"
+  },
+  {
+    "src": "resource/meeting_widget/icon_watermark.png",
+    "description": "水印图标，适用场景：当下日程"
+  },
+  {
+    "src": "resource/care_widget/icon_allergy.png",
+    "description": "过敏源图标，适用场景：亲人关怀"
+  },
+  {
+    "src": "resource/care_widget/icon_call.png",
+    "description": "电话图标，适用场景：亲人关怀"
+  },
+  {
+    "src": "resource/care_widget/icon_high_temperature.png",
+    "description": "高温/温度计图标，适用场景：亲人关怀"
+  },
+  {
+    "src": "resource/care_widget/icon_weather1.png",
+    "description": "天气/雨伞图标，适用场景：亲人关怀"
+  },
+  {
+    "src": "resource/app_usage_widget/icon_tiktok.png",
+    "description": "抖音图标，适用场景：防沉迷"
+  },
+  {
+    "src": "resource/app_usage_widget/icon_timing.png",
+    "description": "计时图标，适用场景：防沉迷"
+  },
+  {
+    "src": "resource/phone_status_widget/icon_charge.png",
+    "description": "充电/闪电图标，适用场景：低电模式"
+  },
+  {
+    "src": "resource/phone_status_widget/icon_clear.png",
+    "description": "清除图标，适用场景：清理无忧"
+  },
+  {
+    "src": "resource/phone_status_widget/icon_earphone.png",
+    "description": "耳机图标，适用场景：戴耳机播控"
+  },
+  {
+    "src": "resource/phone_status_widget/icon_phone.png",
+    "description": "手机图标，适用场景：专注模式"
+  },
+  {
+    "src": "resource/taxi_widget/icon_car.png",
+    "description": "汽车/打车图标，适用场景：雨天打车"
+  },
+  {
+    "src": "resource/taxi_widget/icon_time1.png",
+    "description": "时间图标，适用场景：雨天打车"
+  },
+  {
+    "src": "resource/taxi_widget/icon_weathe2.png",
+    "description": "天气图标，适用场景：雨天打车"
+  },
+  {
+    "src": "resource/schedule_widget/icon_alarm_clock.png",
+    "description": "闹钟图标，适用场景：当下日程"
+  },
+  {
+    "src": "resource/schedule_widget/icon_focus.png",
+    "description": "专注图标，适用场景：专注模式"
+  },
+  {
+    "src": "resource/schedule_widget/icon_schedule.png",
+    "description": "日程图标，适用场景：当下日程"
+  },
+  {
+    "src": "resource/battery_widget/icon_electricity.png",
+    "description": "电池图标，适用场景：低电模式"
+  },
+  {
+    "src": "resource/battery_widget/icon_save_power.png",
+    "description": "省电图标，适用场景：低电模式"
+  },
+  {
+    "src": "resource/sleep_widget/icon_alarm_clock1.png",
+    "description": "闹钟图标，适用场景：睡眠监督"
+  },
+  {
+    "src": "resource/sleep_widget/icon_remind.png",
+    "description": "提醒图标，适用场景：睡眠监督"
+  },
+  {
+    "src": "resource/sleep_widget/icon_sleep.png",
+    "description": "睡眠图标，适用场景：睡眠监督"
+  },
+  {
+    "src": "resource/exercise_plan_widget/icon_run.png",
+    "description": "运动/跑步图标，适用场景：当下日程"
+  },
+  {
+    "src": "resource/exercise_plan_widget/icon_schedule2.png",
+    "description": "日程图标，适用场景：当下日程"
+  },
+  {
+    "src": "resource/music_widget/icon_left.png",
+    "description": "上一首图标，适用场景：戴耳机播控"
+  },
+  {
+    "src": "resource/music_widget/icon_like.png",
+    "description": "收藏/心形图标，适用场景：戴耳机播控"
+  },
+  {
+    "src": "resource/music_widget/icon_music.png",
+    "description": "音乐图标，适用场景：戴耳机播控"
+  },
+  {
+    "src": "resource/music_widget/icon_right.png",
+    "description": "下一首图标，适用场景：戴耳机播控"
+  }
 ]
 ```
 
