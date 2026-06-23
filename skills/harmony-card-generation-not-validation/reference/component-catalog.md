@@ -131,7 +131,7 @@ Form 支持 10 个扩展组件：
 语义按钮。使用 `label` 和 `onClick`，不要使用 `Button.action`。
 
 ```json
-{"id":"btn","component":"Button","label":{"path":"/action/label"},"onClick":[{"call":"openDetail","args":{"targetId":{"path":"/action/targetId"}}}]}
+{"id":"btn","component":"Button","label":{"path":"/action/label"},"onClick":[{"call":"clickToDeeplink","args":{"bundleName":"com.huawei.hmsapp.totemweather","abilityName":"com.huawei.hmsapp.totemweather.MainAbility","uri":""}}]}
 ```
 
 - `label`：字符串、`{"path":"/..."}`、`formatString` 或表达式兜底
@@ -145,7 +145,7 @@ Form 支持 10 个扩展组件：
 多选框。服务卡片中谨慎使用，通常只在用户明确要求切换状态时使用。
 
 ```json
-{"id":"done","component":"Checkbox","label":{"path":"/todo/label"},"select":{"path":"/todo/done"},"onClick":[{"call":"toggleTodo","args":{"id":{"path":"/todo/id"}}}]}
+{"id":"done","component":"Checkbox","label":{"path":"/todo/label"},"select":{"path":"/todo/done"},"onClick":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":{"path":"/todo/entityId"}}}}]}
 ```
 
 - `label`：字符串、`{"path":"/..."}`、`formatString` 或表达式兜底

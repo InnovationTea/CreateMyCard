@@ -1,0 +1,14 @@
+{
+  "name": "train",
+  "description": "训练阶段：完整 DSL 静态质量检查",
+  "enabled_modules": ["json", "protocol", "surface", "tree", "component", "data", "design"],
+  "disabled_rules": [],
+  "depends_on": {
+    "protocol": ["json"],
+    "surface": ["json", "protocol"],
+    "tree": ["json", "protocol"],
+    "component": ["json", "protocol", "tree"],
+    "data": ["json", "protocol", "tree"],
+    "design": ["json", "protocol", "tree"]
+  }
+}

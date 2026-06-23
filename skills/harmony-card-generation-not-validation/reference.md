@@ -22,6 +22,7 @@
 - [`reference/data-binding.md`](reference/data-binding.md)：DataModel、原生 `{path}` 绑定、表达式、模板循环、事件参数。回答“动态值怎么绑定”。
 - [`reference/function.md`](reference/function.md)：`formatString` 字符串拼接函数。回答“静态文本和变量怎么拼成一个字符串”。
 - [`reference/visual-interaction.md`](reference/visual-interaction.md)：CTA、点击、图片来源和媒体真实性。回答“交互和媒体是否真实可用”。
+- [`reference/event-capability/click-event.md`](reference/event-capability/click-event.md)：点击事件能力清单。回答“这个 onClick 能调用什么、参数从哪里来”。
 - [`reference/spacing-elevation.md`](reference/spacing-elevation.md)：间距、圆角、阴影、alpha 层级。回答“视觉尺度是否统一”。
 - [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)：渐变、半透明块、字形、Progress、Divider、Stack。回答“无素材时如何增强表现力”。
 - [`reference/design-review.md`](reference/design-review.md)：视觉、交互、数据语义评审。回答“质量是否像可交付卡片”。
@@ -46,7 +47,8 @@
   [`reference/data-capability/weather.md`](reference/data-capability/weather.md)
   或 [`reference/data-capability/calendar.md`](reference/data-capability/calendar.md)。
 - 交互、图片、CTA 或点击行为：
-  [`reference/visual-interaction.md`](reference/visual-interaction.md)。
+  [`reference/visual-interaction.md`](reference/visual-interaction.md)。涉及点击函数、deeplink、拨号或 intent 时，继续读取
+  [`reference/event-capability/click-event.md`](reference/event-capability/click-event.md)。
 - 间距、圆角、阴影、视觉层次：
   [`reference/spacing-elevation.md`](reference/spacing-elevation.md)。
 - 需要在 GenUI 约束内增强视觉表现：
@@ -61,7 +63,7 @@
 - 看到未知组件、样式位置、枚举值、Form 属性名：读 [`reference/component-catalog.md`](reference/component-catalog.md)。
 - 看到 `{{ ... }}`、`{"path":"/..."}`、`updateDataModel`、模板循环、`onClick.args`、宿主动作 ID：读 [`reference/data-binding.md`](reference/data-binding.md)。
 - 看到 `formatString`、`${...}` 插值，或需要把静态文本和变量拼成一个字符串：读 [`reference/function.md`](reference/function.md)。
-- 看到 CTA、`Button`、可点击容器、图片、背景图、媒体路径：读 [`reference/visual-interaction.md`](reference/visual-interaction.md)。
+- 看到 CTA、`Button`、可点击容器、图片、背景图、媒体路径：读 [`reference/visual-interaction.md`](reference/visual-interaction.md)；点击行为再读 [`reference/event-capability/click-event.md`](reference/event-capability/click-event.md)。
 - 需要定 padding、`itemMargin`、圆角、阴影、半透明层：读 [`reference/spacing-elevation.md`](reference/spacing-elevation.md)。
 - 没有真实素材但需要视觉锚点，或要使用渐变、字形、`Progress`、`Divider`、`Stack`：读 [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)。
 - 判断视觉、交互、数据语义质量：读 [`reference/design-review.md`](reference/design-review.md)。

@@ -1,0 +1,12 @@
+{
+  "rules_version": "2026-06-15",
+  "rules": [
+    {"id":"RULE_DATA_001","module":"data","dimension":"DataModel完整性","severity":"ERROR","deduct":5,"enabled":true,"message":"绝对绑定 path 必须是合法 JSON Pointer；相对 path 只能用于重复模板"},
+    {"id":"RULE_DATA_002","module":"data","dimension":"DataModel完整性","severity":"ERROR","deduct":10,"enabled":true,"message":"绑定 path 必须存在初始值"},
+    {"id":"RULE_DATA_003","module":"data","dimension":"DataModel完整性","severity":"ERROR","deduct":10,"enabled":true,"message":"禁止路径泄漏，显示文本禁止直接渲染 /xxx/yyy"},
+    {"id":"RULE_DATA_004","module":"data","dimension":"DataModel完整性","severity":"WARNING","deduct":0,"enabled":true,"message":"重复数据必须使用数组"},
+    {"id":"RULE_DATA_005","module":"data","dimension":"DataModel完整性","severity":"ERROR","deduct":5,"enabled":true,"message":"绑定表达式语法必须合法"},
+    {"id":"RULE_DATA_006","module":"data","dimension":"DataModel完整性","severity":"ERROR","deduct":5,"enabled":true,"message":"Text 内容禁止直接包含 {{ }} 表达式语法，应使用对象形式 { path: '...' }"},
+    {"id":"RULE_DATA_007","module":"data","dimension":"DataModel完整性","severity":"ERROR","deduct":5,"enabled":true,"message":"List 重复模板路径在 DataModel 中不存在"}
+  ]
+}

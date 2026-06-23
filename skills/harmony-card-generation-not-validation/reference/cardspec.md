@@ -34,10 +34,10 @@ Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构
   "suggestSize": "2x4",
   "dataBindings": [
     {
+      "bindingId": "today_events",
       "capabilityId": "calendar.events.search",
       "arguments": {
-        "range": "today",
-        "limit": 3
+        "timeInterval": [1782144000000, 1782230399999]
       },
       "writeResultTo": "/data/calendar"
     }
@@ -65,6 +65,8 @@ Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构
 - 多个 binding 的 `writeResultTo` 不得相同、互为父子，或互相覆盖。
 - 默认使用简洁形态：`capabilityId`、`arguments`、`writeResultTo`。只有端侧明确需要时才加入 `bindingId`、`capabilityVersion` 或 `refreshPlan`。
 - 如果提供 `refreshPlan`，它只能引用已存在的 `bindingId`。
+- 日历相对时间参数使用毫秒时间戳。将 today、tomorrow、next24Hours 等用户表述转换为本地时区起止毫秒后写入 `timeInterval: [startMs, endMs]`。
+- 不要使用能力文档未声明的旧参数，例如日历 `range` 或 `limit`。
 
 ## 能力清单
 
@@ -79,10 +81,19 @@ Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构
 
 端侧执行 `dataBindings` 后，将标准化结果整体写入 `writeResultTo`。UI 访问路径由 `writeResultTo + outputSchema 字段` 推导。
 
-例如 `writeResultTo` 是 `/data/calendar`，能力输出有 `items`，则列表路径是：
+例如 `writeResultTo` 是 `/data/calendar`，日历能力输出有 `items`，则列表路径是：
 
 ```text
 /data/calendar/items
+```
+
+例如 `writeResultTo` 是 `/data/weather`，天气能力输出根字段是 `items`，常用路径是：
+
+```text
+/data/weather/items/weatherData/temperature
+/data/weather/items/weatherData/weather_icon
+/data/weather/items/weatherDailyData
+/data/weather/items/weatherHoursData
 ```
 
 初始化 DataModel 要包含 UI 会访问的根结构，但不要写入用户真实隐私数据：
@@ -92,6 +103,14 @@ Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构
   "data": {
     "calendar": {
       "items": []
+    },
+    "weather": {
+      "items": {
+        "cityInfo": {},
+        "weatherData": {},
+        "weatherDailyData": [],
+        "weatherHoursData": []
+      }
     }
   },
   "state": {
@@ -106,7 +125,7 @@ Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构
 {
   "id": "temperature",
   "component": "Text",
-  "content": {"path": "/data/weather/current/temperatureText"}
+  "content": {"path": "/data/weather/items/weatherData/temperature"}
 }
 ```
 

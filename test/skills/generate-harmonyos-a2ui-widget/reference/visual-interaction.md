@@ -17,38 +17,32 @@
 可点击区域必须是真实的：
 
 - 当整个区域可点击时，在 `Stack`、`Row` 或 `Column` 上使用 `onClick`。
-- 当语义上是按钮时，使用带 `label` 和 `onClick` 的 `Button`。
+- 当语义上是按钮时，使用带 `label` 和 `action` 的 `Button`。
 - 不要画没有事件的假按钮。
-- 对应用特定动作，优先使用 [`event-capability/click-event.md`](event-capability/click-event.md) 声明的 `functionCall`，并从 DataModel 或模板变量绑定所需 ID。只有用户或宿主明确提供其它自定义函数时，才使用宿主假设函数名。
+- 对应用特定动作，使用有意义的宿主函数名，例如 `enterFocusMode`、`openTrainingPlan`、`makePhoneCall`，并从 DataModel 绑定所需 ID。
 
 示例：
 
 ```json
-{"id":"calendarItem","component":"Row","children":["eventTime","eventTitle"],"onClick":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":{"path":"entityId"}}}}]}
+{"id":"focusAction","component":"Stack","children":["focusLabel"],"onClick":[{"call":"enterFocusMode","args":{"meetingId":{"path":"/meeting/id"}}}]}
 ```
-
-事件能力规则：
-
-- `clickToCallPhone` 必须提供 `phonenumber`。
-- `clickToDeeplink` 只能使用 event-capability 中 `supportedTargets` 的合法 `bundleName`、`abilityName`、`uri` 组合。
-- `clickToIntent` 的日历详情跳转使用 `intentName: "ViewCalendarEvent"`，并绑定 `params.entityId`。
 
 ## 按钮安全
 
 - `Button.label` 必须是可见文本。
-- Form 不使用 `Button.action`；按钮点击写在 `Button.onClick`。
+- 如果使用 `Button.action`，不要同时依赖 `onClick`；`action` 优先。
 - 如果动作只是宿主占位，最终回复中说明。
 - CTA 文本是受保护内容：保持一行，不要强行放进狭窄固定宽度。
 
 ## 图片来源
 
-- 优先使用用户提供的本地/资源路径。
-- 不要编造网络 URL。
+- 优先使用用户提供的本地资源或 URL。
+- 不要编造 URL。
 - 如果没有可靠图片，使用渐变、`Stack`、半透明块、文本字形、`Divider` 或 `Progress`。
 
-## 媒体真实性
+## URL 真实性
 
-`Image.src` 和 `styles.backgroundImage` 不支持网络 URL。`example.com`、`placeholder.com` 和 `picsum.photos` 等占位域名不能用于最终卡片输出。
+`updateDataModel` 中的任何 URL 都应真实且可加载。`example.com`、`placeholder.com` 和 `picsum.photos` 等占位域名不能用于最终卡片输出。
 
 ## 反模式
 

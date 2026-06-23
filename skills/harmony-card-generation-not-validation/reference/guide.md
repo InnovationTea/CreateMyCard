@@ -80,7 +80,7 @@
 - 宿主动作参数尽量绑定到数据：
 
 ```json
-"onClick":[{"call":"openTrainingPlan","args":{"planId":{"path":"/plan/id"}}}]
+"onClick":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":{"path":"entityId"}}}}]
 ```
 
 ## 表达式规则（兜底）
@@ -102,7 +102,9 @@
 - 当整个视觉区域可点击时，在 `Stack`、`Row` 或 `Column` 上使用 `onClick`。
 - 当控件语义上应是带直接标签文本的按钮时，使用 `Button`，并把点击行为写在 `Button.onClick`。
 - EventHandler 条目需要 `call`；`args`、`as` 和 `condition` 可选。
-- `call` 只能引用宿主 catalog 已声明的自定义函数，或明确声明为宿主假设。
+- `call` 优先使用 [`event-capability/click-event.md`](event-capability/click-event.md) 声明的 `functionCall`，例如 `clickToCallPhone`、`clickToDeeplink`、`clickToIntent`。
+- `clickToCallPhone` 必须带 `args.phonenumber`；`clickToDeeplink` 只能使用支持目标中的固定组合；`clickToIntent` 查看日程详情时使用 `intentName: "ViewCalendarEvent"` 并绑定 `params.entityId`。
+- 只有用户或宿主明确提供其它自定义函数时，才允许把 `call` 写成宿主假设。
 - 不要使用 `Button.action` 或预定义扩展函数。
 
 ## 媒体规则
