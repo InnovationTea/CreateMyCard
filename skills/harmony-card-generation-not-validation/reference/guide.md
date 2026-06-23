@@ -107,9 +107,11 @@
 
 ## 媒体规则
 
-- `Image.src` 和 `styles.backgroundImage` 只使用本地/资源路径。
-- 不要使用网络图片 URL、占位图片 URL、SVG 或 base64 SVG。
-- 如果没有真实本地资源，用 `linearGradient`、半透明块、文本字形、`Progress` 和 `Divider` 创造视觉丰富度。
+- 需要图标、图片或视觉锚点时，先按 [`asset-library.md`](asset-library.md) 语义匹配已声明素材；用户明确指定的本地/资源路径也可使用。
+- `Image.src` 和 `styles.backgroundImage` 只使用用户提供或素材库声明的本地/资源路径。
+- 静态素材可直接写 `Image.src`；如果素材由 DataModel 决定，绑定到 `/asset/...` 并把该值初始化为素材库中声明过的 `src`。
+- 不要使用网络图片 URL、占位图片 URL、SVG、base64 SVG 或未声明资源路径。
+- 如果没有语义匹配的真实资源，用 `linearGradient`、半透明块、文本字形、`Progress` 和 `Divider` 创造视觉丰富度。
 
 ## 输出质量清单
 
@@ -125,5 +127,5 @@
 - [ ] 表达式引用的数据在 DataModel 中有对应字段。
 - [ ] 关键信息有明确完整显示宽度计划，不依赖 ellipsis/clip。
 - [ ] 动作有真实 `onClick` EventHandler。
-- [ ] 没有网络或占位媒体 URL。
+- [ ] 没有网络、占位媒体 URL 或未声明资源路径。
 - [ ] 结构由规则构造，不是复制模板。

@@ -23,6 +23,7 @@
 - [`reference/function.md`](reference/function.md)：`formatString` 字符串拼接函数。回答“静态文本和变量怎么拼成一个字符串”。
 - [`reference/data-capability/`](reference/data-capability/)：目录化 data capability manifest。回答“当前有哪些可调用数据能力、输入参数和输出字段”。
 - [`reference/event-capability/`](reference/event-capability/)：目录化 event capability manifest。回答“当前有哪些可点击动作、合法目标和事件参数”。
+- [`reference/asset-library.md`](reference/asset-library.md)：可扩展素材库清单。回答“当前有哪些可优先使用的本地/资源素材路径”。
 - [`reference/visual-interaction.md`](reference/visual-interaction.md)：CTA、点击、图片来源和媒体真实性。回答“交互和媒体是否真实可用”。
 - [`reference/spacing-elevation.md`](reference/spacing-elevation.md)：间距、圆角、阴影、alpha 层级。回答“视觉尺度是否统一”。
 - [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)：渐变、半透明块、字形、Progress、Divider、Stack。回答“无素材时如何增强表现力”。
@@ -46,7 +47,10 @@
 - 动态数据能力、端侧刷新或持久化：
   先读 [`reference/cardspec.md`](reference/cardspec.md)，再从 [`reference/data-capability/`](reference/data-capability/)
   中按用户语义选择匹配的能力文档。当前已有天气和日历能力，但不要把能力选择写死为这两个场景。
-- 交互、图片、CTA 或点击行为：
+- 图标、图片、媒体路径，或会议/时间/身份类视觉锚点：
+  先读 [`reference/asset-library.md`](reference/asset-library.md) 按语义匹配已声明素材；匹配不到再读
+  [`reference/visual-interaction.md`](reference/visual-interaction.md) 或 [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)。
+- 交互、CTA 或点击行为：
   点击行为先读 [`reference/event-capability/click-event.md`](reference/event-capability/click-event.md)，再读
   [`reference/visual-interaction.md`](reference/visual-interaction.md) 和 [`reference/data-binding.md`](reference/data-binding.md)。
 - 间距、圆角、阴影、视觉层次：
@@ -64,9 +68,10 @@
 - 看到 `{{ ... }}`、`{"path":"/..."}`、`updateDataModel`、模板循环、`onClick.args`、宿主动作 ID：读 [`reference/data-binding.md`](reference/data-binding.md)。
 - 看到 `formatString`、`${...}` 插值，或需要把静态文本和变量拼成一个字符串：读 [`reference/function.md`](reference/function.md)。
 - 看到 `functionCall`、`supportedTargets`、`clickTo*`、打开应用、打开详情、拨号、意图跳转：读 [`reference/event-capability/click-event.md`](reference/event-capability/click-event.md)。
-- 看到 CTA、`Button`、可点击容器、图片、背景图、媒体路径：读 [`reference/visual-interaction.md`](reference/visual-interaction.md)。
+- 看到图标、图片、背景图、媒体路径，或会议/时间/身份视觉锚点：先读 [`reference/asset-library.md`](reference/asset-library.md)，再按需读 [`reference/visual-interaction.md`](reference/visual-interaction.md)。
+- 看到 CTA、`Button`、可点击容器：读 [`reference/visual-interaction.md`](reference/visual-interaction.md)。
 - 需要定 padding、`itemMargin`、圆角、阴影、半透明层：读 [`reference/spacing-elevation.md`](reference/spacing-elevation.md)。
-- 没有真实素材但需要视觉锚点，或要使用渐变、字形、`Progress`、`Divider`、`Stack`：读 [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)。
+- 没有语义匹配素材或真实素材但需要视觉锚点，或要使用渐变、字形、`Progress`、`Divider`、`Stack`：读 [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)。
 - 判断视觉、交互、数据语义质量：读 [`reference/design-review.md`](reference/design-review.md)。
 - 最终交付前：读 [`reference/final-review.md`](reference/final-review.md)，并由它调度最终评审。
 

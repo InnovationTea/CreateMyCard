@@ -131,9 +131,10 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - 组件、属性、样式枚举、`children` 形状不确定：读取 [`reference/component-catalog.md`](reference/component-catalog.md)。
 - 出现 `updateDataModel`、`{"path":"/..."}` 原生绑定、表达式、模板循环、事件参数或宿主动作 ID：读取 [`reference/data-binding.md`](reference/data-binding.md)。
 - 出现 `formatString`、`${...}` 插值，或需要把静态文本和 DataModel 变量拼成一个字符串：读取 [`reference/function.md`](reference/function.md)。
+- 出现图标、图片、背景图、媒体路径，或会议/时间/身份类视觉锚点：先读 [`reference/asset-library.md`](reference/asset-library.md) 按语义匹配已声明素材；若无匹配素材，再按 [`reference/visual-interaction.md`](reference/visual-interaction.md) 或 [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md) 选择非媒体方案。
 - 出现 CTA、可点击区域、`Button`、`onClick`、打开应用/详情/拨号/意图跳转：先读 [`reference/event-capability/click-event.md`](reference/event-capability/click-event.md) 匹配已声明点击能力，再读 [`reference/visual-interaction.md`](reference/visual-interaction.md) 和 [`reference/data-binding.md`](reference/data-binding.md)。
 - 需要确定 padding、`itemMargin`、圆角、阴影、半透明块或视觉层级尺度：读取 [`reference/spacing-elevation.md`](reference/spacing-elevation.md)。
-- 没有真实本地图片但需要视觉锚点，或需要渐变、字形、`Progress`、`Divider`、`Stack` 增强表现力：读取 [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)。
+- 没有语义匹配素材或真实本地图片但需要视觉锚点，或需要渐变、字形、`Progress`、`Divider`、`Stack` 增强表现力：读取 [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)。
 - 出现动态数据能力、端侧刷新或持久化：先读 [`reference/cardspec.md`](reference/cardspec.md)，再从 [`reference/data-capability/`](reference/data-capability/) 中按用户语义选择匹配的能力文档。
 - 只做视觉润色或卡片质量评审：读取 [`reference/design-review.md`](reference/design-review.md)；最终交付前仍回到 [`reference/final-review.md`](reference/final-review.md)。
 - 不确定该读哪个文件：先读 [`reference.md`](reference.md)，再只读它指向的相关文件。
@@ -180,25 +181,27 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 3. 按 [`reference/card-composition-rules.md`](reference/card-composition-rules.md) 选择 `2x2` 或 `2x4`。
 4. 从请求中推导语义角色：identity、primary answer、metric、context、progress/trend、media、action。
 5. 按“参考路由”读取该模式和触发条件所需的参考。
-6. 如果使用动态数据，先选择 data capability，确定 `capabilityId`、`arguments`、`writeResultTo` 和 `outputSchema`，再从 `writeResultTo + outputSchema` 推导 DSL 展示路径和事件参数来源。
-7. 如果使用点击事件，先选择 event capability 的 `functionCall` 和合法目标，再把参数从静态安全值、DataModel 绝对路径或模板项相对路径绑定到 `onClick.args`。
-8. 写 JSON 前必须明确说明布局理由，覆盖：
+6. 如果使用图标、图片或视觉素材，先从素材库选择语义匹配的已声明 `src`；静态素材可直接写入 `Image.src`，需要数据驱动选择时绑定到 `/asset/...` 并在 DataModel 初始化为已声明 `src`。
+7. 如果使用动态数据，先选择 data capability，确定 `capabilityId`、`arguments`、`writeResultTo` 和 `outputSchema`，再从 `writeResultTo + outputSchema` 推导 DSL 展示路径和事件参数来源。
+8. 如果使用点击事件，先选择 event capability 的 `functionCall` 和合法目标，再把参数从静态安全值、DataModel 绝对路径或模板项相对路径绑定到 `onClick.args`。
+9. 写 JSON 前必须明确说明布局理由，覆盖：
    - 选择的尺寸以及原因
    - 语义角色和主区域
    - 视觉焦点
+   - 素材库匹配结果、资源路径来源，或未使用素材时的非媒体替代方案
    - 信息节奏
    - 关键横向关系
    - 必须完整显示的关键信息
    - 每个拥挤 Row 的组件内部宽度预算
    - 交互、点击能力来源和 DataModel 形状
    - CardSpec 的 `suggestSize`、静态/动态形态、能力选择、参数、`writeResultTo` 和刷新计划
-9. 正式输出前至少做一次显式改进：
+10. 正式输出前至少做一次显式改进：
    - 指出第一个内部版本缺少什么
    - 改进层级、紧凑度、场景视觉特征，或关键信息完整显示的安全性
-10. 在当前上下文中生成 `genui` 与 `cardspec` 两个代码块草稿，不写入临时文件或中间产物。
-11. 按 [`reference/final-review.md`](reference/final-review.md) 做最终评审；该文档会调用 [`reference/design-review.md`](reference/design-review.md) 评审视觉、交互、数据语义和受保护文本。
-12. 如果评审修改了内容，重新检查受影响的评审项。
-13. 最终评审完成后，由模型直接输出两个代码块。
+11. 在当前上下文中生成 `genui` 与 `cardspec` 两个代码块草稿，不写入临时文件或中间产物。
+12. 按 [`reference/final-review.md`](reference/final-review.md) 做最终评审；该文档会调用 [`reference/design-review.md`](reference/design-review.md) 评审视觉、交互、数据语义和受保护文本。
+13. 如果评审修改了内容，重新检查受影响的评审项。
+14. 最终评审完成后，由模型直接输出两个代码块。
 
 ## 不可妥协项
 
@@ -223,7 +226,7 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - Form 只支持通用事件 `onClick`；不要使用 `onAppear`、`onChange`、`onSelect`、`onReachStart` 或 `onReachEnd`。
 - 不使用预定义扩展函数。EventHandler 的 `call` 优先来自 [`reference/event-capability/`](reference/event-capability/) 中已声明的 `functionCall`；未声明时只能引用宿主 catalog 已声明的自定义函数，或明确声明为宿主假设。
 - 事件能力不进入 CardSpec，也不产生第三个输出代码块；CardSpec 只描述数据能力。
-- 不要编造远程媒体 URL。`Image.src` 和 `styles.backgroundImage` 只使用本地/资源路径；不支持网络图片或 SVG。
+- 不要编造远程媒体 URL 或未声明资源路径。`Image.src` 和 `styles.backgroundImage` 只使用用户提供或素材库声明的本地/资源路径；不支持网络图片或 SVG。
 - 组件属性绑定默认优先使用原生绑定：单值用 `{"path":"/meeting/title"}`，字符串拼接用 `{"call":"formatString","args":{"value":"${/meeting/title}"}}`；表达式 `"{{ ... }}"` 为兜底；`updateDataModel.path` 和模板 `children.path` 使用 `/` JSON Pointer。
 - 不使用 `$__widthBreakpoint` 或 `$__colorMode`。
 - 协议模板循环只能用于 `Row`、`Column`、`List` 的 `children: { componentId, path }`。
@@ -253,6 +256,7 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - CardSpec 契约：[`reference/cardspec.md`](reference/cardspec.md)
 - 数据能力目录：[`reference/data-capability/`](reference/data-capability/)；当前已有 [`reference/data-capability/weather.md`](reference/data-capability/weather.md), [`reference/data-capability/calendar.md`](reference/data-capability/calendar.md)
 - 事件能力目录：[`reference/event-capability/`](reference/event-capability/)；当前已有 [`reference/event-capability/click-event.md`](reference/event-capability/click-event.md)
+- 素材库：[`reference/asset-library.md`](reference/asset-library.md)
 - 视觉和交互：[`reference/visual-interaction.md`](reference/visual-interaction.md)
 - 间距和层级：[`reference/spacing-elevation.md`](reference/spacing-elevation.md)
 - 表现力工具箱：[`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)

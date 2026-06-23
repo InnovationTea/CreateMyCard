@@ -35,15 +35,15 @@
 - 仅在自包含演示需要时，推断中性但相关的展示值。
 - 按语义分组 DataModel，例如 `weather`、`meeting`、`action`、`asset`、`progress`。
 - 不要留下示例或历史输出中的样例值。
-- 缺少真实本地图片/资源时，省略 `Image`，使用非媒体视觉技法。
+- 缺少语义匹配的素材库素材、用户提供图片或真实本地资源时，省略 `Image`，使用非媒体视觉技法。
 
 ## 媒体和表现力选择
 
-- `Image.src` 只使用用户提供的本地/资源路径，不使用网络 URL 或 SVG。
+- `Image.src` 只使用用户提供或 [`asset-library.md`](asset-library.md) 声明的本地/资源路径，不使用网络 URL、SVG 或未声明资源路径。
 - 图片背景卡使用 `Stack` root，`Image` 作为第一个 child，内容叠层作为第二个 child。
 - 背景/hero 填充使用 `styles.objectFit: "cover"`。
 - 如果图片不能增加场景特定信息，避免使用图片。
-- 有真实视觉素材时使用 `Image`。
+- 有语义匹配的素材库素材、用户提供图片或真实视觉素材时使用 `Image`。
 - 进度/环形/胶囊指示使用 `Progress`。
 - 轻量结构使用 `Divider`。
 - 层叠光晕、图片或进度组合使用 `Stack`。
@@ -61,7 +61,7 @@
 | `metric` | 数字、时间、温度、电量、价格、时长 | 受保护 `Text`、`Progress` |
 | `context` | 次要说明或临近事件/详情 | 紧凑 `Column`、`Row`、`Divider` |
 | `status` | 良好/警告/错误/模式标签 | 带背景、字形或强调色的小 `Text` |
-| `media` | 用户提供的真实本地/资源素材 | `Stack` 内的 `Image` |
+| `media` | 用户提供或素材库声明的真实本地/资源素材 | `Stack` 内的 `Image` |
 | `action` | 一个下一步操作 | 可点击 `Stack`/`Row`/`Column` 或 `Button` |
 
 规则：
@@ -69,7 +69,7 @@
 - `primaryAnswer` 必须在视觉上占主导。
 - `context` 必须短于 `primaryAnswer`。
 - `action` 支持卡片，不应成为主视觉，除非用户要求纯动作卡。
-- 如果没有可靠 `media`，使用渐变、半透明块、字形文本、`Divider` 或 `Progress`。
+- 如果没有语义匹配且可靠的 `media`，使用渐变、半透明块、字形文本、`Divider` 或 `Progress`。
 
 ## 尺寸决策规则
 

@@ -37,13 +37,15 @@
 
 ## 图片来源
 
-- 优先使用用户提供的本地/资源路径。
-- 不要编造网络 URL。
-- 如果没有可靠图片，使用渐变、`Stack`、半透明块、文本字形、`Divider` 或 `Progress`。
+- 需要图标、图片、背景图、媒体路径或视觉锚点时，先读 [`asset-library.md`](asset-library.md)，按用户场景和素材 `description` 选择语义匹配的已声明 `src`。
+- 如果用户明确指定了本地/资源路径，可使用用户提供路径；否则不要跳过素材库去编造路径。
+- 静态素材可直接写入 `Image.src`；如果素材选择由 DataModel 管理，绑定到 `/asset/...`，并把值初始化为素材库中声明过的 `src`。
+- 不要编造网络 URL、相似资源路径或素材库中没有声明的文件名。
+- 如果没有语义匹配且可靠的图片，使用渐变、`Stack`、半透明块、文本字形、`Divider` 或 `Progress`。
 
 ## 媒体真实性
 
-`Image.src` 和 `styles.backgroundImage` 不支持网络 URL。`example.com`、`placeholder.com` 和 `picsum.photos` 等占位域名不能用于最终卡片输出。
+`Image.src` 和 `styles.backgroundImage` 不支持网络 URL。`example.com`、`placeholder.com` 和 `picsum.photos` 等占位域名不能用于最终卡片输出。未由用户提供、也未在素材库声明的资源路径不能用于最终输出。
 
 ## 反模式
 
@@ -56,6 +58,7 @@
 - 标签组和 CTA 按钮挤在同一行互相争抢。
 - 从示例产物复用颜色或结构，而不是服务当前场景。
 - 图片背景遮住核心文本。
+- 使用素材库未声明、拼写改造或与当前场景语义不匹配的资源路径。
 - 本应来自 DataModel 的宿主动作 args 被硬编码。
 - `onClick.call` 使用了未在 event capability 或宿主声明中的函数名。
 - 跳转目标不在 event capability 的 `supportedTargets` 中。
