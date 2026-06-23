@@ -19,13 +19,19 @@
 - 当整个区域可点击时，在 `Stack`、`Row` 或 `Column` 上使用 `onClick`。
 - 当语义上是按钮时，使用带 `label` 和 `onClick` 的 `Button`。
 - 不要画没有事件的假按钮。
-- 对应用特定动作，使用有意义的宿主函数名，例如 `enterFocusMode`、`openTrainingPlan`、`makePhoneCall`，并从 DataModel 绑定所需 ID。
+- 对应用特定动作，优先使用 [`event-capability/click-event.md`](event-capability/click-event.md) 声明的 `functionCall`，并从 DataModel 或模板变量绑定所需 ID。只有用户或宿主明确提供其它自定义函数时，才使用宿主假设函数名。
 
 示例：
 
 ```json
-{"id":"focusAction","component":"Stack","children":["focusLabel"],"onClick":[{"call":"enterFocusMode","args":{"meetingId":{"path":"/meeting/id"}}}]}
+{"id":"calendarItem","component":"Row","children":["eventTime","eventTitle"],"onClick":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":{"path":"entityId"}}}}]}
 ```
+
+事件能力规则：
+
+- `clickToCallPhone` 必须提供 `phonenumber`。
+- `clickToDeeplink` 只能使用 event-capability 中 `supportedTargets` 的合法 `bundleName`、`abilityName`、`uri` 组合。
+- `clickToIntent` 的日历详情跳转使用 `intentName: "ViewCalendarEvent"`，并绑定 `params.entityId`。
 
 ## 按钮安全
 
