@@ -136,6 +136,8 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - 没有真实本地图片但需要视觉锚点，或需要渐变、字形、`Progress`、`Divider`、`Stack` 增强表现力：读取 [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)。
 - 出现动态渲染数据、端侧刷新或持久化：先读 [`reference/cardspec.md`](reference/cardspec.md)，再按场景读取 [`reference/data-capability/weather.md`](reference/data-capability/weather.md) 或 [`reference/data-capability/calendar.md`](reference/data-capability/calendar.md)，并用能力 `outputSchema` 推导 DSL 绑定路径。
 - 只做视觉润色或卡片质量评审：读取 [`reference/design-review.md`](reference/design-review.md)；最终交付前仍回到 [`reference/final-review.md`](reference/final-review.md)。
+- 用户请求涉及日历、赛程、赛事倒计时、马拉松、运动计划等场景：读取 [`spec/marathon.dat`](spec/marathon.dat) 作为 DSL 参考样例，理解该场景的布局结构、数据模型设计和视觉风格。
+- 用户请求涉及家人关怀、亲情提醒、健康关注、家庭互动等场景：读取 [`spec/care.dat`](spec/care.dat) 作为 DSL 参考样例，理解该场景的布局结构、数据模型设计和视觉风格。
 - 不确定该读哪个文件：先读 [`reference.md`](reference.md)，再只读它指向的相关文件。
 
 ## 输出格式
@@ -257,3 +259,4 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - 表现力工具箱：[`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)
 - 设计评审：[`reference/design-review.md`](reference/design-review.md)
 - 最终评审：[`reference/final-review.md`](reference/final-review.md)
+- 场景 DSL 参考样例：[`spec/marathon.dat`](spec/marathon.dat)（日历/赛程/赛事倒计时）、[`spec/care.dat`](spec/care.dat)（家人关怀/亲情提醒）

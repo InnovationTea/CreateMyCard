@@ -1,0 +1,15 @@
+{
+  "rules_version": "2026-06-17",
+  "rules": [
+    {"id":"RULE_PROTOCOL_001","module":"protocol","dimension":"协议规范","severity":"ERROR","deduct":10,"enabled":true,"message":"version 必须为 v0.9"},
+    {"id":"RULE_PROTOCOL_002","module":"protocol","dimension":"协议规范","severity":"ERROR","deduct":10,"enabled":true,"message":"第一条消息必须为 createSurface"},
+    {"id":"RULE_PROTOCOL_003","module":"protocol","dimension":"协议规范","severity":"ERROR","deduct":10,"enabled":true,"message":"createSurface 只能出现一次"},
+    {"id":"RULE_PROTOCOL_004","module":"protocol","dimension":"协议规范","severity":"ERROR","deduct":10,"enabled":true,"message":"至少存在 updateComponents"},
+    {"id":"RULE_PROTOCOL_005","module":"protocol","dimension":"协议规范","severity":"ERROR","deduct":10,"enabled":true,"message":"动态 DSL 缺少 updateDataModel","static_without_data":{"severity":"WARNING","deduct":0,"message":"静态卡片未使用 updateDataModel"}},
+    {"id":"RULE_PROTOCOL_006","module":"protocol","dimension":"协议规范","severity":"ERROR","deduct":15,"enabled":true,"message":"检测到错误的 'type' 信封格式，应直接使用消息体字段如 createSurface"},
+    {"id":"RULE_PROTOCOL_007","module":"protocol","dimension":"协议规范","severity":"ERROR","deduct":15,"enabled":true,"message":"检测到错误的 'command' 信封格式，应直接使用消息体字段如 createSurface"},
+    {"id":"RULE_PROTOCOL_008","module":"protocol","dimension":"协议规范","severity":"ERROR","deduct":15,"enabled":true,"message":"消息体字段名大小写错误，应使用驼峰命名如 createSurface"},
+    {"id":"RULE_PROTOCOL_009","module":"protocol","dimension":"协议规范","severity":"ERROR","deduct":10,"enabled":true,"message":"消息缺少 surfaceId 字段"},
+    {"id":"RULE_PROTOCOL_010","module":"protocol","dimension":"协议规范","severity":"ERROR","deduct":10,"enabled":true,"message":"每条消息必须且只能包含一个消息体字段"}
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "rules_version": "2026-06-15",
+  "rules": [
+    {"id":"RULE_DESIGN_001","module":"design","dimension":"设计规范","severity":"WARNING","deduct":0,"enabled":true,"message":"根组件推荐设置合理宽度"},
+    {"id":"RULE_DESIGN_002","module":"design","dimension":"设计规范","severity":"WARNING","deduct":0,"enabled":true,"message":"建议显式设置 padding/space/itemMargin","aggregation":{"enabled":false}},
+    {"id":"RULE_DESIGN_003","module":"design","dimension":"设计规范","severity":"WARNING","deduct":0,"enabled":true,"message":"Text 建议设置 maxLines","aggregation":{"enabled":true,"mode":"by_rule","max_items":20}},
+    {"id":"RULE_DESIGN_004","module":"design","dimension":"设计规范","severity":"WARNING","deduct":0,"enabled":true,"message":"fontSize 应使用数值"},
+    {"id":"RULE_DESIGN_005","module":"design","dimension":"设计规范","severity":"WARNING","deduct":0,"enabled":true,"message":"颜色推荐使用 #RRGGBB 或 #AARRGGBB"},
+    {"id":"RULE_DESIGN_006","module":"design","dimension":"设计规范","severity":"WARNING","deduct":0,"enabled":true,"message":"Button 推荐设置最小点击区域"},
+    {"id":"RULE_DESIGN_007","module":"design","dimension":"设计规范","severity":"WARNING","deduct":0,"enabled":false,"message":"文本与相邻组件垂直间距建议不小于 8vp，防止重叠（规则待实现）"},
+    {"id":"RULE_DESIGN_008","module":"design","dimension":"设计规范","severity":"WARNING","deduct":0,"enabled":true,"message":"包含进度条/图标的 Row 容器建议设置 alignItems: 'center' 确保水平对齐"}
+  ]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Harmony 卡片生成 V4"
+  short_description: "生成关键信息完整显示的 HarmonyOS 卡片。"
+  default_prompt: "使用 $harmony-card-generation-v4 根据一句话生成关键信息完整显示的 HarmonyOS GenUI 桌面卡片。"

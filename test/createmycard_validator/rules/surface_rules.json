@@ -1,0 +1,8 @@
+{
+  "rules_version": "2026-06-15",
+  "rules": [
+    {"id":"RULE_SURFACE_001","module":"surface","dimension":"Surface一致性","severity":"ERROR","deduct":10,"enabled":true,"message":"所有消息必须使用相同 surfaceId"},
+    {"id":"RULE_SURFACE_002","module":"surface","dimension":"Surface一致性","severity":"ERROR","deduct":10,"enabled":true,"message":"surfaceId 必须非空"},
+    {"id":"RULE_SURFACE_003","module":"surface","dimension":"Surface一致性","severity":"WARNING","deduct":0,"enabled":true,"message":"surfaceId 推荐采用短横线命名"}
+  ]
+}

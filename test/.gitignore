@@ -1,0 +1,34 @@
+# 环境变量
+.env
+.env.local
+
+# 输出目录
+output/
+test/output/
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Claude 配置
+.claude/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 临时文件
+*.tmp
+*.bak
+*.log
+
+# 测试生成的 dat 文件
+*.dat
+
+# 系统文件
+.DS_Store
+Thumbs.db
