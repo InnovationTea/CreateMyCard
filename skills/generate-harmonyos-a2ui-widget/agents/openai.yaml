@@ -1,4 +1,0 @@
-interface:
-  display_name: "鸿蒙 A2UI 桌面卡片生成器"
-  short_description: "生成可直接交给鸿蒙渲染器的 A2UI 卡片 JSONL"
-  default_prompt: "使用 $generate-harmonyos-a2ui-widget，根据我的需求生成鸿蒙 A2UI 桌面卡片 JSONL。"

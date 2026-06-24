@@ -54,3 +54,7 @@ coverage/
 *.tar.gz
 *.tgz
 *.rar
+
+rules/
+great.jpg
+tempelate.jpg
