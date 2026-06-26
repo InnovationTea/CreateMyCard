@@ -46,7 +46,7 @@
   [`reference/function.md`](reference/function.md)。
 - 动态数据能力、端侧刷新或持久化：
   先读 [`reference/cardspec.md`](reference/cardspec.md)，再从 [`reference/data-capability/`](reference/data-capability/)
-  中按用户语义选择匹配的能力文档。当前已有天气和日历能力，但不要把能力选择写死为这两个场景。
+  中按用户语义选择匹配的能力文档。能力集合以后会持续扩展，不要把能力选择写死为某几个场景。
 - 图标、图片、媒体路径，或会议/时间/身份类视觉锚点：
   先读 [`reference/asset-library.md`](reference/asset-library.md) 按语义匹配已声明素材；匹配不到再读
   [`reference/visual-interaction.md`](reference/visual-interaction.md) 或 [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)。

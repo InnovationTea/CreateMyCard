@@ -69,7 +69,7 @@ Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构
 
 ## 能力选择
 
-按场景从 `reference/data-capability/` 读取对应能力文档，不要一次加载所有能力。新增数据能力应继续放入该目录，模型按用户语义和 manifest 的 `description`、`inputSchema`、`outputSchema` 选择能力。
+按场景从 `reference/data-capability/` 读取对应能力文档，不要一次加载所有能力。新增数据能力应继续放入该目录，模型按用户语义和 manifest 的 `description`、`inputSchema`、`required`、`outputSchema` 选择能力。
 
 - 当前已有天气能力：`reference/data-capability/weather.md`
 - 当前已有日历能力：`reference/data-capability/calendar.md`
@@ -86,10 +86,10 @@ Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构
 /data/calendar/items
 ```
 
-例如 `writeResultTo` 是 `/data/weather`，天气能力输出有 `items.weatherData.temperature`，则当前温度路径是：
+例如 `writeResultTo` 是 `/data/status`，某个能力输出有 `current.valueText`，则当前主值路径是：
 
 ```text
-/data/weather/items/weatherData/temperature
+/data/status/current/valueText
 ```
 
 初始化 DataModel 要包含 UI 会访问的根结构，但不要写入用户真实隐私数据：
@@ -111,9 +111,9 @@ Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构
 
 ```json
 {
-  "id": "temperature",
+  "id": "current_value",
   "component": "Text",
-  "content": {"path": "/data/weather/items/weatherData/temperature"}
+  "content": {"path": "/data/status/current/valueText"}
 }
 ```
 

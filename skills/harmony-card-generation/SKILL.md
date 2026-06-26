@@ -254,8 +254,8 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - 数据绑定：[`reference/data-binding.md`](reference/data-binding.md)
 - 字符串拼接函数：[`reference/function.md`](reference/function.md)
 - CardSpec 契约：[`reference/cardspec.md`](reference/cardspec.md)
-- 数据能力目录：[`reference/data-capability/`](reference/data-capability/)；当前已有 [`reference/data-capability/weather.md`](reference/data-capability/weather.md), [`reference/data-capability/calendar.md`](reference/data-capability/calendar.md)
-- 事件能力目录：[`reference/event-capability/`](reference/event-capability/)；当前已有 [`reference/event-capability/click-event.md`](reference/event-capability/click-event.md)
+- 数据能力目录：[`reference/data-capability/`](reference/data-capability/)；按用户语义读取目录内匹配的 capability manifest，不要写死为某个场景。
+- 事件能力目录：[`reference/event-capability/`](reference/event-capability/)；按用户意图读取目录内匹配的 event capability manifest，不要写死为某个点击目标。
 - 素材库：[`reference/asset-library.md`](reference/asset-library.md)
 - 视觉和交互：[`reference/visual-interaction.md`](reference/visual-interaction.md)
 - 间距和层级：[`reference/spacing-elevation.md`](reference/spacing-elevation.md)

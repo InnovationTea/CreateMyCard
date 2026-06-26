@@ -14,7 +14,7 @@
 
 - `args` 只包含 `value`，`value` 是一个字符串模板。
 - 用 `${...}` 插入 DataModel 的值，`${...}` 内只能是 JSON Pointer 路径：
-  - 绝对路径：`${/data/weather/items/weatherData/temperature}`
+  - 绝对路径：`${/data/status/current/valueText}`
   - 模板循环内的相对路径：`${name}`，由当前数组项作用域解析。
 - 一个字符串里可以有多个 `${...}`。这是它相对表达式的关键优势：表达式一个字符串只能有一对 `{{ ... }}`，而 `formatString` 可以自由拼接多个变量和静态文本。
 - 字面量 `${` 需要转义为 `\${`。
@@ -22,19 +22,19 @@
 
 ## 示例
 
-天气卡片拼接温度数值和度数符号：
+状态卡片拼接主值和单位：
 
 ```json
-{"id":"temp","component":"Text","content":{"call":"formatString","args":{"value":"${/data/weather/items/weatherData/temperature}°"}}}
+{"id":"metric","component":"Text","content":{"call":"formatString","args":{"value":"${/data/status/current/valueText}${/data/status/current/unit}"}}}
 ```
 
 对应的 DataModel：
 
 ```json
-{"version":"v0.9","updateDataModel":{"surfaceId":"card","path":"/","value":{"data":{"weather":{"items":{"weatherData":{"temperature":26}}}}}}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"card","path":"/","value":{"data":{"status":{"current":{"valueText":"26","unit":"%"}}}}}}
 ```
 
-渲染结果：`26°`。
+渲染结果：`26%`。
 
 ## 不支持
 
