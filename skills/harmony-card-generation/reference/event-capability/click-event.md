@@ -61,27 +61,23 @@
             },
             {
               "uri": "parent_control",
-              "description": "打开系统设置中的健康使用App页面"
+              "description": "打开系统设置中的健康使用App页面，为了设置应用使用时长"
             },
             {
               "uri": "storage_settings",
               "description": "打开系统设置中的存储空间页"
-            },
-            {
-              "uri": "app_time_management",
-              "description": "打开系统设置中的应用时长设置页面（管控按钮跳转目标）"
             }
           ]
         },
         {
           "appName": "天气",
           "description": "打开手机天气应用",
-          "bundleName": "com.huawei.hmsapp.totemweather",
-          "abilityName": "com.huawei.hmsapp.totemweather.MainAbility",
+          "bundleName": "",
+          "abilityName": "",
           "pages": [
             {
-              "uri": "",
-              "description": "打开手机天气应用首页"
+              "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode=",
+              "description": "打开手机天气应用某城市页，uri为固定值勿更改"
             }
           ]
         },
@@ -105,11 +101,11 @@
           "pages": [
             {
               "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4",
-              "description": "打开音乐app的每日30首歌单"
+              "description": "打开音乐app的每日30首歌单，uri为固定值勿更改"
             },
             {
               "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412",
-              "description": "打开音乐app的收藏歌单/心动歌单"
+              "description": "打开音乐app的收藏歌单/心动歌单，uri为固定值勿更改"
             }
           ]
         },
@@ -208,6 +204,7 @@
 - `args` 只能包含该能力 `parameters` 中声明的参数。跳转类能力必须使用 `supportedTargets` 中列出的合法目标和值组合。
 - 拨号能力参数名必须严格使用 manifest 中声明的 `phoneNumber`，不要使用其它大小写变体。
 - `clickToIntent.args.params` 必须严格匹配所选 `supportedTargets` 里的 `params` 结构。不同 intent 的参数不同，不要把某个示例参数当成通用字段。
+- 当 `supportedTargets.params` 的叶子节点是 `type`、`description` 等 schema 说明时，生成 `onClick.args.params` 只保留参数 key 和实际运行时值；不要把 schema 元数据复制到 DSL。若说明中声明固定值，使用该固定值；若说明中要求由用户意图或 DataModel 推导，则填入安全静态值或 `{ "path": "..." }` 绑定。
 - 事件参数可以来自安全静态值、DataModel 绝对路径，或模板列表项的相对路径。来自 data capability 输出的字段，必须能从 `writeResultTo + outputSchema` 推导。
 
 下面仅示例 `ViewCalendarEvent` 这个 supported target 的映射方式；其它 intent 必须按各自 target 的 `params` 结构生成。
