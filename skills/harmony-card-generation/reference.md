@@ -1,6 +1,6 @@
 # Harmony 卡片生成参考索引
 
-此文件只用于导航。只有在 `SKILL.md` 的参考路由不够明确、或当前任务横跨多个问题域时读取它；读取后只加载相关文件。
+此文件只用于导航。以 `SKILL.md` 的参考路由为准；只有在 `SKILL.md` 的参考路由不够明确、或当前任务横跨多个问题域时读取它；读取后只加载相关文件。
 
 ## 核心原则
 
@@ -19,7 +19,7 @@
 - [`reference/card-composition-rules.md`](reference/card-composition-rules.md)：生成前和生成中的构图决策。回答“这张卡怎么组织信息”。
 - [`reference/guide.md`](reference/guide.md)：JSONL 消息形状、root、属性命名和输出清单。回答“DSL 怎么落笔”。
 - [`reference/component-catalog.md`](reference/component-catalog.md)：组件、属性、样式枚举和 Form 写法。回答“这个组件/样式怎么写”。
-- [`reference/data-binding.md`](reference/data-binding.md)：DataModel、原生 `{path}` 绑定、表达式、模板循环、事件参数。回答“动态值怎么绑定”。
+- [`reference/data-binding.md`](reference/data-binding.md)：DataModel、原生 `{path}` 绑定、表达式禁用、模板循环、事件参数。回答“动态值怎么绑定”。
 - [`reference/function.md`](reference/function.md)：`formatString` 字符串拼接函数。回答“静态文本和变量怎么拼成一个字符串”。
 - [`reference/data-capability/`](reference/data-capability/)：目录化 data capability manifest。回答“当前有哪些可调用数据能力、输入参数和输出字段”。
 - [`reference/event-capability/`](reference/event-capability/)：目录化 event capability manifest。回答“当前有哪些可点击动作、合法目标和事件参数”。
@@ -40,7 +40,7 @@
   然后 [`reference/guide.md`](reference/guide.md)。
 - 组件或样式不确定：
   [`reference/component-catalog.md`](reference/component-catalog.md)。
-- 数据绑定、表达式或重复项路径：
+- 数据绑定、表达式禁用或重复项路径：
   [`reference/data-binding.md`](reference/data-binding.md)。
 - 字符串拼接（静态文本 + DataModel 变量）：
   [`reference/function.md`](reference/function.md)。
@@ -65,7 +65,7 @@
 ## 按触发读取
 
 - 看到未知组件、样式位置、枚举值、Form 属性名：读 [`reference/component-catalog.md`](reference/component-catalog.md)。
-- 看到 `{{ ... }}`、`{"path":"/..."}`、`updateDataModel`、模板循环、`onClick.args`、宿主动作 ID：读 [`reference/data-binding.md`](reference/data-binding.md)。
+- 看到 `{{ ... }}`、`{"path":"/..."}`、`updateDataModel`、模板循环、`onClick.args`、宿主动作 ID：读 [`reference/data-binding.md`](reference/data-binding.md)，并移除表达式写法。
 - 看到 `formatString`、`${...}` 插值，或需要把静态文本和变量拼成一个字符串：读 [`reference/function.md`](reference/function.md)。
 - 看到 `functionCall`、`supportedTargets`、`clickTo*`、打开应用、打开详情、拨号、意图跳转：读 [`reference/event-capability/click-event.md`](reference/event-capability/click-event.md)。
 - 看到图标、图片、背景图、媒体路径，或会议/时间/身份视觉锚点：先读 [`reference/asset-library.md`](reference/asset-library.md)，再按需读 [`reference/visual-interaction.md`](reference/visual-interaction.md)。

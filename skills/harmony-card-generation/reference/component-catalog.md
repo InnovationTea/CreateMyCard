@@ -121,8 +121,8 @@ Form 支持 10 个扩展组件：
 {"id":"progress","component":"Progress","value":{"path":"/progress/value"},"total":{"path":"/progress/total"},"styles":{"type":"ring","color":"#A77DFF","width":72,"height":72}}
 ```
 
-- `value`：数字、`{"path":"/..."}` 或表达式兜底
-- `total`：数字、`{"path":"/..."}` 或表达式兜底，必选
+- `value`：数字或 `{"path":"/..."}`
+- `total`：数字或 `{"path":"/..."}`，必选
 - `styles.type`：`linear|ring|eclipse|scaleRing|capsule`
 - `styles.color`：颜色字符串
 
@@ -134,8 +134,8 @@ Form 支持 10 个扩展组件：
 {"id":"btn","component":"Button","label":{"path":"/action/label"},"onClick":[{"call":"openDetail","args":{"targetId":{"path":"/action/targetId"}}}]}
 ```
 
-- `label`：字符串、`{"path":"/..."}`、`formatString` 或表达式兜底
-- `enabled`：boolean、`{"path":"/..."}` 或表达式兜底
+- `label`：字符串、`{"path":"/..."}` 或 `formatString`
+- `enabled`：boolean 或 `{"path":"/..."}`
 - `onClick`：EventHandler 数组
 - `styles.fontWeight`：数字或 `normal|regular|medium|bold|bolder`
 - CTA 文本是受保护内容，避免窄固定宽度和省略。
@@ -148,10 +148,10 @@ Form 支持 10 个扩展组件：
 {"id":"done","component":"Checkbox","label":{"path":"/todo/label"},"select":{"path":"/todo/done"},"onClick":[{"call":"toggleTodo","args":{"id":{"path":"/todo/id"}}}]}
 ```
 
-- `label`：字符串、`{"path":"/..."}`、`formatString` 或表达式兜底
-- `value`：字符串、`{"path":"/..."}` 或表达式兜底
-- `group`：字符串、`{"path":"/..."}` 或表达式兜底
-- `select`：boolean、`{"path":"/..."}` 或表达式兜底
+- `label`：字符串、`{"path":"/..."}` 或 `formatString`
+- `value`：字符串或 `{"path":"/..."}`
+- `group`：字符串或 `{"path":"/..."}`
+- `select`：boolean 或 `{"path":"/..."}`
 - `styles.selectedColor` / `styles.unSelectedColor`：颜色字符串
 - `styles.shape`：`circle|rounded_square`
 - `styles.mark`：`{ strokeColor, size, strokeWidth }`

@@ -46,13 +46,13 @@
 - `onClick.call` 优先来自 event capability 的 `functionCall`；宿主假设函数名必须有意义且稳定。
 - 必要动作参数从 DataModel、事件上下文或 event capability 允许的静态目标取得；业务 ID 不硬编码。
 - 跳转目标在 event capability 的 `supportedTargets` 中，事件参数符合对应 `parameters`。
-- 主指标、动作和有意义的纯图标区域有 accessibility label。
+- 主指标、动作和有意义的纯图标区域有可见文本或相邻语义文本说明，不依赖未声明的 accessibility 属性。
 
 ## 数据检查
 
 - DataModel 键是语义化的，并按领域分组：`weather`、`meeting`、`action`、`asset` 等。
 - 不要留下示例或历史输出中的样例值。
-- 当本地化或格式化会让表达式脆弱时，预先计算展示字符串。
+- 当本地化、格式化或多值运算复杂时，预先计算展示字符串，不使用表达式。
 - 没有网络/占位媒体 URL、未声明资源路径，也没有从示例遗留的业务样例事实。
 
 ## 最终检查

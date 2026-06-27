@@ -1,6 +1,6 @@
 ---
 name: harmony-card-generation
-description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui 代码块中的 DSL JSONL + 一个 cardspec 代码块中的 CardSpec JSON。使用 extended catalog 下的 Form 子集、10 个 Form 支持组件、onClick 行为链、原生 `{path}` 绑定/`formatString` 拼接/表达式、DataModel、2x2 或横版 2x4 卡片构造规则，以及端侧 dataBindings/refreshPlan 契约。适用于创建、优化、评审或输出 HarmonyOS/A2UI/Form/服务卡片/widget 卡片/DSL/JSONL/CardSpec 组合结果，目标场景为 160x160vp 或 320x160vp。"
+description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui 代码块中的 DSL JSONL + 一个 cardspec 代码块中的 CardSpec JSON。使用 extended catalog 下的 Form 子集、10 个 Form 支持组件、onClick 行为链、原生 `{path}` 绑定/`formatString` 拼接/预计算展示字段、DataModel、2x2 或横版 2x4 卡片构造规则，以及端侧 dataBindings 契约；生成结果禁用表达式。适用于创建、优化、评审或输出 HarmonyOS/A2UI/Form/服务卡片/widget 卡片/DSL/JSONL/CardSpec 组合结果，目标场景为 160x160vp 或 320x160vp。"
 ---
 
 # Harmony 卡片生成
@@ -12,7 +12,7 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - 使用可泛化的构图规则构造卡片：
   - `2x2`：`160 x 160vp`
   - `2x4`：`320 x 160vp` 横版
-- 遵循自包含工作流：模式识别、按需读取参考、先说明布局理由再写 JSON、显式改进和最终评审。
+- 遵循自包含工作流：模式识别、按需读取参考、内部形成布局理由、显式改进和最终评审。
 - 使用本 skill 内置的 Form 裁剪协议摘要。协议冲突时，以 [`reference/protocol.md`](reference/protocol.md) 为准。
 
 ## 执行边界
@@ -23,7 +23,7 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - 不要把“选择模板”作为生成步骤。布局决策只来自可泛化的构造规则。
 - 除非用户明确改变任务，否则不要把桌面卡片扩展成页面、文章、长列表或仪表盘。
 - 不要发明组件、样式键或预定义函数。只有在用户/宿主提供或明确声明为宿主自定义函数假设时，才允许使用应用特定函数。
-- CardSpec 是卡片结果的一部分，负责端侧数据能力、刷新和持久化契约；点击事件能力只进入 DSL `onClick`，不进入 CardSpec。DSL 规则只来自本 skill 的协议、组件目录、数据绑定参考和已声明 event capability。
+- CardSpec 是卡片结果的一部分，负责端侧数据能力和持久化契约；点击事件能力只进入 DSL `onClick`，不进入 CardSpec。DSL 规则只来自本 skill 的协议、组件目录、数据绑定参考和已声明 event capability。
 
 ## 协议优先级
 
@@ -129,19 +129,19 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 ### 条件触发
 
 - 组件、属性、样式枚举、`children` 形状不确定：读取 [`reference/component-catalog.md`](reference/component-catalog.md)。
-- 出现 `updateDataModel`、`{"path":"/..."}` 原生绑定、表达式、模板循环、事件参数或宿主动作 ID：读取 [`reference/data-binding.md`](reference/data-binding.md)。
+- 出现 `updateDataModel`、`{"path":"/..."}` 原生绑定、模板循环、事件参数、宿主动作 ID，或需要确认表达式禁用规则：读取 [`reference/data-binding.md`](reference/data-binding.md)。
 - 出现 `formatString`、`${...}` 插值，或需要把静态文本和 DataModel 变量拼成一个字符串：读取 [`reference/function.md`](reference/function.md)。
 - 出现图标、图片、背景图、媒体路径，或会议/时间/身份类视觉锚点：先读 [`reference/asset-library.md`](reference/asset-library.md) 按语义匹配已声明素材；若无匹配素材，再按 [`reference/visual-interaction.md`](reference/visual-interaction.md) 或 [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md) 选择非媒体方案。
 - 出现 CTA、可点击区域、`Button`、`onClick`、打开应用/详情/拨号/意图跳转：先读 [`reference/event-capability/click-event.md`](reference/event-capability/click-event.md) 匹配已声明点击能力，再读 [`reference/visual-interaction.md`](reference/visual-interaction.md) 和 [`reference/data-binding.md`](reference/data-binding.md)。
 - 需要确定 padding、`itemMargin`、圆角、阴影、半透明块或视觉层级尺度：读取 [`reference/spacing-elevation.md`](reference/spacing-elevation.md)。
 - 没有语义匹配素材或真实本地图片但需要视觉锚点，或需要渐变、字形、`Progress`、`Divider`、`Stack` 增强表现力：读取 [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)。
-- 出现动态数据能力、端侧刷新或持久化：先读 [`reference/cardspec.md`](reference/cardspec.md)，再从 [`reference/data-capability/`](reference/data-capability/) 中按用户语义选择匹配的能力文档。
+- 出现动态数据能力或持久化：先读 [`reference/cardspec.md`](reference/cardspec.md)，再从 [`reference/data-capability/`](reference/data-capability/) 中按用户语义选择匹配的能力文档。
 - 只做视觉润色或卡片质量评审：读取 [`reference/design-review.md`](reference/design-review.md)；最终交付前仍回到 [`reference/final-review.md`](reference/final-review.md)。
 - 不确定该读哪个文件：先读 [`reference.md`](reference.md)，再只读它指向的相关文件。
 
 ## 输出格式
 
-最终交付只有一个组合结果，由两个代码块组成：
+模式 1 和模式 2 的最终交付只有一个组合结果，由两个代码块组成：
 
 ```genui
 {"version":"v0.9","createSurface":{...}}
@@ -164,7 +164,9 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - `genui` 和 `cardspec` 是同一个卡片结果的两个部分，不要把 CardSpec 当外挂、附件或另一个项目产物。
 - 静态卡片也输出 `cardspec`；可以只包含 `suggestSize`，不要虚构 `dataBindings`。
 - 动态卡片必须在 `cardspec.dataBindings` 中声明端侧能力调用。
-- 数据绑定均使用path这个形式，不要使用表达式，如$__dataModel.meeting.title，忽略兜底说明。
+- 当判断需要从端侧获取用户动态数据时，`genui` 也尽量通过 `updateDataModel` 初始化对应 DataModel 结构；可使用空对象、空数组、加载态或非真实占位符，不要写入用户真实隐私数据。
+- 数据绑定均使用 `{"path":"/..."}`、`formatString` 或 `updateDataModel` 中预计算的展示字段；不要使用表达式，例如 `$__dataModel.meeting.title` 或 `{{ ... }}`。
+- 模式 3 不输出代码块时，应输出能力边界说明和最接近的受支持卡片替代方案。
 
 默认 `genui` JSONL 顺序：
 
@@ -182,9 +184,9 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 4. 从请求中推导语义角色：identity、primary answer、metric、context、progress/trend、media、action。
 5. 按“参考路由”读取该模式和触发条件所需的参考。
 6. 如果使用图标、图片或视觉素材，先从素材库选择语义匹配的已声明 `src`；静态素材可直接写入 `Image.src`，需要数据驱动选择时绑定到 `/asset/...` 并在 DataModel 初始化为已声明 `src`。
-7. 如果使用动态数据，先选择 data capability，确定 `capabilityId`、`arguments`、`writeResultTo` 和 `outputSchema`，再从 `writeResultTo + outputSchema` 推导 DSL 展示路径和事件参数来源。
+7. 如果使用动态数据，先选择 data capability，确定 `capabilityId`、`arguments`、`writeResultTo` 和 `outputSchema`，再从 `writeResultTo + outputSchema` 推导 DSL 展示路径和事件参数来源，并在 `updateDataModel` 中初始化 UI 会访问的根结构和占位字段。
 8. 如果使用点击事件，先选择 event capability 的 `functionCall` 和合法目标，再把参数从静态安全值、DataModel 绝对路径或模板项相对路径绑定到 `onClick.args`。
-9. 写 JSON 前必须明确说明布局理由，覆盖：
+9. 写 JSON 前必须在内部明确布局理由，覆盖：
    - 选择的尺寸以及原因
    - 语义角色和主区域
    - 视觉焦点
@@ -194,8 +196,8 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
    - 必须完整显示的关键信息
    - 每个拥挤 Row 的组件内部宽度预算
    - 交互、点击能力来源和 DataModel 形状
-   - CardSpec 的 `suggestSize`、静态/动态形态、能力选择、参数、`writeResultTo` 和刷新计划
-10. 正式输出前至少做一次显式改进：
+   - CardSpec 的 `suggestSize`、静态/动态形态、能力选择、参数和 `writeResultTo`
+10. 正式输出前至少在内部做一次显式改进：
    - 指出第一个内部版本缺少什么
    - 改进层级、紧凑度、场景视觉特征，或关键信息完整显示的安全性
 11. 在当前上下文中生成 `genui` 与 `cardspec` 两个代码块草稿，不写入临时文件或中间产物。
@@ -205,14 +207,14 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 
 ## 不可妥协项
 
-- 协议合法性不能由设计文档放宽。具体组件、事件、媒体、表达式和 catalog 约束以 [`reference/protocol.md`](reference/protocol.md)、[`reference/component-catalog.md`](reference/component-catalog.md)、[`reference/data-binding.md`](reference/data-binding.md)、[`reference/function.md`](reference/function.md) 为准。
+- 协议合法性不能由设计文档放宽。具体组件、事件、媒体、表达式禁用和 catalog 约束以 [`reference/protocol.md`](reference/protocol.md)、[`reference/component-catalog.md`](reference/component-catalog.md)、[`reference/data-binding.md`](reference/data-binding.md)、[`reference/function.md`](reference/function.md) 为准。
 - 卡片形态不能放宽成页面。具体尺寸、区域数量、受保护文本和构图规则以 [`reference/card-composition-rules.md`](reference/card-composition-rules.md) 为准。
 - 生成必须由规则驱动。不要选择、复制或改造内置模板。
 - 每条消息使用 `version: "v0.9"`。
 - 使用 `catalogId: "ohos.a2ui.extended.catalog"`。
 - `createSurface` 不支持 `theme` 字段。
 - 同一 surface 只允许一次完整 `updateComponents`，不要流式或增量追加组件树。
-- 最终响应只输出 `genui` 与 `cardspec` 两个代码块；不要输出文件路径、标题、总结或额外解释。
+- 模式 1 和模式 2 的最终响应只输出 `genui` 与 `cardspec` 两个代码块；不要输出文件路径、标题、总结或额外解释。
 - 使用 extended 属性名：`Text.content`、`Image.src`、`Button.label`。
 - 不要使用仅标准 catalog 的 `Text.text`、`Image.url`、`Button.child` 或 CSS kebab-case 样式键。
 - 只使用 Form 组件子集：`Text`、`Image`、`Divider`、`Progress`、`Button`、`Checkbox`、`Row`、`Column`、`List`、`Stack`。
@@ -221,13 +223,13 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - 包含 `root` 组件，并保证所有引用可解析。
 - 目标卡片尺寸为 `2x2 = 160 x 160vp` 和横版 `2x4 = 320 x 160vp`。如果宿主要求 `width: "100%"`，仍然按所选宽度预算设计：`2x2` 为 `160vp`，`2x4` 为 `320vp`。
 - 卡片不是页面：`2x2` 主区域 <= 3，`2x4` 主区域 <= 4；不要长文案、大表格或长动态列表。
-- 正式输出前，必须有布局理由和至少一次改进。
+- 正式输出前，必须在内部形成布局理由和至少一次改进；这些内容不进入模式 1/2 的最终响应。
 - 可点击 UI 必须有真实 `onClick` EventHandler 数组。Form 不使用 `Button.action`。
 - Form 只支持通用事件 `onClick`；不要使用 `onAppear`、`onChange`、`onSelect`、`onReachStart` 或 `onReachEnd`。
 - 不使用预定义扩展函数。EventHandler 的 `call` 优先来自 [`reference/event-capability/`](reference/event-capability/) 中已声明的 `functionCall`；未声明时只能引用宿主 catalog 已声明的自定义函数，或明确声明为宿主假设。
 - 事件能力不进入 CardSpec，也不产生第三个输出代码块；CardSpec 只描述数据能力。
 - 不要编造远程媒体 URL 或未声明资源路径。`Image.src` 和 `styles.backgroundImage` 只使用用户提供或素材库声明的本地/资源路径；不支持网络图片或 SVG。
-- 组件属性绑定默认优先使用原生绑定：单值用 `{"path":"/meeting/title"}`，字符串拼接用 `{"call":"formatString","args":{"value":"${/meeting/title}"}}`；表达式 `"{{ ... }}"` 为兜底；`updateDataModel.path` 和模板 `children.path` 使用 `/` JSON Pointer。
+- 组件属性绑定只使用原生绑定：单值用 `{"path":"/meeting/title"}`，字符串拼接用 `{"call":"formatString","args":{"value":"${/meeting/title}"}}`；复杂格式化或条件文案预先写入 `updateDataModel` 展示字段，无法表达时简化设计，不使用表达式；`updateDataModel.path` 和模板 `children.path` 使用 `/` JSON Pointer。
 - 不使用 `$__widthBreakpoint` 或 `$__colorMode`。
 - 协议模板循环只能用于 `Row`、`Column`、`List` 的 `children: { componentId, path }`。
 - 横向 `Row` 默认直接子节点 <= 3。需要更多时拆分、堆叠或使用竖向分组。
@@ -240,7 +242,7 @@ description: "生成 HarmonyOS A2UI Form 服务卡片完整结果：一个 genui
 - CardSpec 的 `suggestSize` 必须与 DSL 选择的尺寸一致。
 - CardSpec 的 `dataBindings[].writeResultTo` 必须位于 `/data` 下，且 UI 绑定路径必须能由 `writeResultTo + outputSchema` 推导。
 - `dataBindings[].capabilityId` 必须来自 [`reference/data-capability/`](reference/data-capability/) 中选定能力的 `id`，`arguments` 只能使用该能力 `inputSchema.properties` 声明的字段。
-- CardSpec 优先使用简洁契约：`suggestSize`、`dataBindings[].capabilityId`、`arguments`、`writeResultTo`；只有端侧明确需要时才加入 `bindingId`、`capabilityVersion` 或 `refreshPlan`。
+- CardSpec 优先使用简洁契约：`suggestSize`、`dataBindings[].capabilityId`、`arguments`、`writeResultTo`；只有端侧明确需要时才加入 `bindingId` 或 `capabilityVersion`。
 - 不虚构 CardSpec 能力、参数、权限、端侧函数或刷新策略；未声明能力只能降级为静态卡片或说明需要补充 capability manifest。
 
 ## 资源

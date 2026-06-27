@@ -37,6 +37,7 @@
 - `onClick.call` 没有来自 event capability 或明确宿主声明。
 - 事件 `args` 使用了未在对应 `parameters` 中声明的参数，或跳转目标不在 `supportedTargets` 中。
 - 事件参数路径无法从 DataModel 推导，或本应来自 data capability 输出却无法从 `writeResultTo + outputSchema` 推导。
+- 使用 `{{ ... }}`、`$__dataModel`、`$context`、`size()` 或其它表达式语法。
 - 使用 `$__widthBreakpoint`、`$__colorMode`、网络图片 URL、SVG 或占位媒体 URL。
 - 使用未由用户提供、未在 [`asset-library.md`](asset-library.md) 声明、编造相似路径或与当前场景语义不匹配的资源路径。
 
@@ -57,12 +58,11 @@
 
 - 缺少 `cardspec` 代码块，或 `cardspec` 不是一个 JSON object。
 - `suggestSize` 与 DSL 尺寸选择不一致。
-- 静态卡片虚构 `dataBindings` 或 `refreshPlan`。
+- 静态卡片虚构 `dataBindings`。
 - 动态卡片缺少 `dataBindings`。
 - `capabilityId`、`capabilityVersion` 或 `arguments` 没有来自已声明能力。
 - `writeResultTo` 不在 `/data` 下。
 - DSL 中 UI 绑定路径无法从 CardSpec 的 `writeResultTo` 和能力 `outputSchema` 推导；静态卡片则必须能从初始 DataModel 推导。
-- `refreshPlan` 引用不存在的 `bindingId`。
 - CardSpec 包含 event capability、`functionCall`、`supportedTargets` 或点击事件清单内容。事件能力只进入 DSL `onClick`。
 
 ## 受保护内容换行评审

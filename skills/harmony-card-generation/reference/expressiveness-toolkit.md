@@ -38,7 +38,7 @@
 {"id":"weatherIcon","component":"Text","content":{"path":"/weather/icon"},"styles":{"fontSize":38,"maxLines":1,"textAlign":"center"}}
 ```
 
-字形图标用于简单符号标记。当字形承载语义时，添加 `accessibility.label`。
+字形图标用于简单符号标记。当字形承载语义时，旁边放置可见文本或让相邻文本明确说明其含义；不要生成未在组件目录声明的无障碍属性。
 
 ## 4. 用 Progress 做视觉锚点
 

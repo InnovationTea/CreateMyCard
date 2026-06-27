@@ -75,7 +75,7 @@
 
 - 动态可见数据优先用原生 path 绑定：`{"path":"/meeting/time"}`。
 - 只有结构性装饰值才保持字面量，例如空 spacer 文本。
-- 表达式引用的数据应存在于 `updateDataModel.value`。
+- 所有可见动态绑定引用的数据应存在于 `updateDataModel.value`。
 - `updateDataModel.path` 使用 `/` JSON Pointer。
 - 动作参数尽量绑定到数据；点击、拨号、打开应用或详情页优先使用 event capability 中已声明的 `functionCall`：
 
@@ -83,17 +83,17 @@
 "onClick":[{"call":"openTrainingPlan","args":{"planId":{"path":"/plan/id"}}}]
 ```
 
-## 表达式规则（兜底）
+## 表达式规则（禁用）
 
-表达式是原生 path 绑定和 `formatString` 无法表达时的兜底方式，只在 Form 扩展组件中可用，并且只用于 `updateComponents` 的 value 位置：
+本 skill 生成结果不要使用 `{{ ... }}` 表达式。动态值只使用原生 path 绑定、`formatString`，或 `updateDataModel` 中预先计算好的展示字段：
 
 ```json
-{"content":"{{ '剩余 ' + $__dataModel.countdown.days + ' 天' }}"}
+{"content":{"path":"/countdown/dayLabel"}}
 ```
 
-桌面卡片中谨慎使用表达式。一句话生成时，优先在 `updateDataModel` 中预计算展示字符串，因为这样更容易评审和本地化。
+一句话生成时，优先在 `updateDataModel` 中预计算展示字符串，因为这样更容易评审和本地化。
 
-不要在 `id`、`component`、对象 key、event `call` 或 event `as` 中使用表达式。不要在一个字符串中写多段表达式，例如 `"{{ a }} {{ b }}"`。
+不要在组件属性、`id`、`component`、对象 key、event `call`、event `as` 或 event `condition` 中使用表达式。遇到原生绑定无法表达的逻辑时，先预计算展示字段；仍无法表达则简化设计。
 
 ## 交互规则
 
@@ -124,7 +124,7 @@
 - [ ] 只使用 Form 支持组件。
 - [ ] 正确使用 `Text.content`、`Image.src`、`Button.label`。
 - [ ] Root 适配 `160 x 160vp` 或横版 `320 x 160vp`。
-- [ ] 表达式引用的数据在 DataModel 中有对应字段。
+- [ ] 没有使用表达式，所有动态展示字段都能从 DataModel 推导。
 - [ ] 关键信息有明确完整显示宽度计划，不依赖 ellipsis/clip。
 - [ ] 动作有真实 `onClick` EventHandler。
 - [ ] 没有网络、占位媒体 URL 或未声明资源路径。

@@ -2,10 +2,10 @@
 
 ## 职责边界
 
-CardSpec 是卡片结果的一部分，与 DSL 一起描述同一张卡片。最终响应只有一个组合结果：`genui` 代码块中的 DSL JSONL + `cardspec` 代码块中的 JSON 对象。DSL 负责可渲染 Form 组件，CardSpec 负责推荐尺寸、端侧数据能力、刷新计划和持久化契约。DSL 按本 skill 的 Form 规则生成：
+CardSpec 是卡片结果的一部分，与 DSL 一起描述同一张卡片。最终响应只有一个组合结果：`genui` 代码块中的 DSL JSONL + `cardspec` 代码块中的 JSON 对象。DSL 负责可渲染 Form 组件，CardSpec 负责推荐尺寸、端侧数据能力和持久化契约。DSL 按本 skill 的 Form 规则生成：
 
 - `catalogId` 使用 `ohos.a2ui.extended.catalog`。
-- 组件、样式、事件、DataModel 表达式遵循 `reference/protocol.md`、`reference/component-catalog.md` 和 `reference/data-binding.md`。
+- 组件、样式、事件和 DataModel 绑定遵循 `reference/protocol.md`、`reference/component-catalog.md` 和 `reference/data-binding.md`；生成结果禁用表达式。
 - 不要从示例产物复制组件结构或 catalog。
 
 Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构、生成 DSL 和 CardSpec。端侧负责执行能力、处理权限、归一化结果、持久化配置，并在运行时发送 `updateDataModel`。
@@ -17,7 +17,7 @@ Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构
 每次生成卡片都输出两个代码块：
 
 - `genui`：A2UI JSONL 消息流。
-- `cardspec`：供端侧执行数据能力、刷新和持久化的 JSON 对象。
+- `cardspec`：供端侧执行数据能力和持久化的 JSON 对象。
 
 两者共同构成最终卡片结果。静态卡片也必须有 CardSpec，只是没有 `dataBindings`。
 
@@ -42,30 +42,21 @@ Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构
       },
       "writeResultTo": "/data/calendar"
     }
-  ],
-  "refreshPlan": {
-    "onInstall": ["today_events"],
-    "onVisible": ["today_events"],
-    "periodic": {
-      "intervalSec": 1800,
-      "bindings": ["today_events"]
-    }
-  }
+  ]
 }
 ```
 
 ## 字段规则
 
 - `suggestSize` 必须与尺寸选择一致，只能是 `"2x2"` 或 `"2x4"`。
-- 静态卡片必须输出 CardSpec，但不要虚构 `dataBindings` 或 `refreshPlan`。
+- 静态卡片必须输出 CardSpec，但不要虚构 `dataBindings`。
 - 动态卡片必须包含 `dataBindings`。
 - 每个 `dataBindings[]` 表示一次端侧能力调用。
 - `capabilityId` 必须来自 `reference/data-capability/` 中选定能力 manifest 的 `id`。
 - `arguments` 只能使用该能力 `inputSchema.properties` 声明的字段；不要沿用旧示例参数或自行改名。
 - `writeResultTo` 必须是 `/data` 下的 JSON Pointer，例如 `/data/weather`。
 - 多个 binding 的 `writeResultTo` 不得相同、互为父子，或互相覆盖。
-- 默认使用简洁形态：`capabilityId`、`arguments`、`writeResultTo`。只有端侧明确需要时才加入 `bindingId`、`capabilityVersion` 或 `refreshPlan`。
-- 如果提供 `refreshPlan`，它只能引用已存在的 `bindingId`。
+- 默认使用简洁形态：`capabilityId`、`arguments`、`writeResultTo`。只有端侧明确需要时才加入 `bindingId` 或 `capabilityVersion`。
 
 ## 能力选择
 

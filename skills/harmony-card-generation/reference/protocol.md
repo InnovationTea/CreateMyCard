@@ -59,35 +59,32 @@ Form 仅支持通用事件 `onClick`。
 
 - 事件值必须是 EventHandler 数组。
 - 每个 EventHandler 必须有 `call`。
-- `args` 中的 DataModel 参数优先使用 `{"path":"/..."}` 或 `formatString`；`condition` 使用完整表达式。
+- `args` 中的 DataModel 参数使用 `{"path":"/..."}` 或 `formatString`；不要生成 `condition` 表达式，复杂条件应预计算到 DataModel 或简化交互。
 - `as` 绑定返回值为当前事件行为链的局部变量。
 - `call` 和 `as` 是标识符，不写表达式。
 - `call` 优先引用 `reference/event-capability/` 中已声明的 `functionCall`；未声明时只能引用宿主 catalog 已声明的自定义函数，或明确声明为宿主假设。
 - 属性级字符串拼接使用原生 `formatString`（`{"call":"formatString","args":{"value":"...${/path}..."}}`）；它是属性绑定值，不是事件函数，与上面 EventHandler 的 `call` 不同。其它预定义扩展函数仍禁用。
 
-## 表达式（兜底）
+## 表达式（禁用）
 
-表达式是兜底方式，优先使用原生 `{path}` 绑定和 `formatString` 拼接。表达式只在 `updateComponents` 中生效，写成完整字符串：
+Form 协议历史上可能支持 `{{ ... }}` 表达式，但本 skill 生成结果禁用表达式。所有动态展示都应使用原生 `{path}` 绑定、`formatString` 拼接，或预先写入 `updateDataModel` 的展示字段。无法表达时简化设计，不退回表达式。
 
 ```json
-"content": "{{ $__dataModel.meeting.title }}"
+"content": {"path": "/meeting/title"}
 ```
 
 规则：
 
-- 一个字符串中只能有一对 `{{ ... }}`。
-- 不支持嵌套表达式。
-- `id`、`component`、对象 key、EventHandler `call`、EventHandler `as` 不支持表达式。
-- 表达式内字符串使用单引号。
-- 内置函数仅使用 `size()`。
-- 表达式总长度不超过 2048 字符，括号嵌套不超过 20 层。
-- 求值失败返回空字符串，不应依赖失败态做逻辑。
+- 不生成 `{{ ... }}`。
+- 不使用 `$__dataModel`、`${/json/pointer}` 表达式语法、`size()` 或 `$context` 表达式。
+- 不在 `id`、`component`、对象 key、EventHandler `call`、EventHandler `as` 或任何组件属性中使用表达式。
+- 条件文案、格式化值和多值运算优先在 `updateDataModel` 中预计算为展示字符串。
 
 ## DataModel 与模板
 
 - `updateDataModel.path` 使用 JSON Pointer，例如 `/`、`/meeting/title`。
 - 组件动态值优先用原生绑定：单值用 `{"path":"/meeting/title"}`，字符串拼接用 `{"call":"formatString","args":{"value":"${/meeting/title}"}}`（见 data-binding.md / function.md）。
-- 表达式 `{{ ... }}` 是兜底方式，仅在原生绑定无法表达时使用；表达式中可用 `$__dataModel.meeting.title` 或 `${/json/pointer}` 引用 DataModel。
+- 不使用表达式读取 DataModel；原生绑定无法表达时，改用 `formatString`、预计算展示字段或简化布局。
 - 模板循环仅用于 `Row`、`Column`、`List` 的 `children` 对象，模板对象只有 `componentId` 和 `path`：
 
 ```json

@@ -1,4 +1,4 @@
-# 数据绑定、原生绑定、表达式和模板
+# 数据绑定、原生绑定和模板
 
 ## DataModel
 
@@ -8,23 +8,18 @@
 {"version":"v0.9","updateDataModel":{"surfaceId":"card","path":"/","value":{"meeting":{"time":"14:00"}}}}
 ```
 
-## 两种读取与绑定方式
+## 读取与绑定方式
 
-组件属性读取 DataModel 有两种方式，优先级不同：
+组件属性读取 DataModel 时，使用原生 data binding：
 
-- **优选：A2UI 原生 data binding。** 用 `{"path":"/json/pointer"}` 直接绑定单个值；需要把静态文本和变量拼成字符串时，用 `formatString` 函数调用绑定。见 [`function.md`](function.md)。
-- **兜底：表达式 `{{ ... }}`。** 仅在原生绑定无法表达（例如同一字符串内需要条件或多值运算），或属性 schema 不支持对象绑定时使用。
+- 用 `{"path":"/json/pointer"}` 直接绑定单个值。
+- 需要把静态文本和变量拼成字符串时，用 `formatString` 函数调用绑定。见 [`function.md`](function.md)。
+- 条件文案、复杂格式化或多值运算应预先写入 `updateDataModel` 的展示字段；无法表达时简化设计，不使用表达式。
 
 优选写法：
 
 ```json
 {"id":"time","component":"Text","content":{"path":"/meeting/time"}}
-```
-
-等价的兜底表达式写法（不优选）：
-
-```json
-{"id":"time","component":"Text","content":"{{ $__dataModel.meeting.time }}"}
 ```
 
 ## A2UI 原生 data binding（优选）
@@ -53,63 +48,22 @@
 
 不要使用 `/meeting.title` 这样的点路径作为 JSON Pointer。
 
-## 表达式（兜底）
+## 表达式（禁用）
 
-这里的“兜底”特指用表达式读取 DataModel 作为组件展示值：优先用上面的原生 `{"path":"/..."}` 绑定或 `formatString` 拼接，只有原生无法表达（同一字符串内的条件或多值运算）时才用表达式。
+本 skill 生成结果禁用 `{{ ... }}` 表达式。不要用表达式读取 DataModel，也不要把表达式作为组件展示值、事件条件或事件上下文读取方式。
 
-注意：下文“EventHandler 数据”的 `condition`/`$context` 表达式是事件场景的固有写法，没有原生 `{path}` 等价物，不属于这里说的可被原生绑定替代的兜底。事件 `args` 中的 DataModel 参数优先使用原生 `{"path":"/..."}`。
+替代策略：
 
-### 表达式中的路径
+- 单值读取：使用 `{"path":"/..."}`。
+- 字符串拼接：使用 `formatString`。
+- 条件、多值运算、本地化格式化：预先写入 `updateDataModel` 展示字段。
+- 事件条件或上下文读取：简化为不需要条件链的点击行为，或要求宿主补充已声明的动作函数。
 
-表达式中访问 DataModel 使用点路径：
+禁用项：
 
-```json
-{"content":"{{ $__dataModel.user.profile.name }}"}
-```
-
-也可使用 `${/json/pointer}` 语法：
-
-```json
-{"content":"{{ ${/user/profile/name} + ' 您好' }}"}
-```
-
-一句话卡片生成中，优先在 `updateDataModel` 中放入展示字符串，避免复杂表达式。
-
-### 表达式完整性
-
-使用兜底表达式时，表达式必须是完整字符串：
-
-```json
-{"content":"{{ $__dataModel.firstName + ' ' + $__dataModel.lastName }}"}
-```
-
-不要写：
-
-```json
-{"content":"{{ $__dataModel.firstName }} {{ $__dataModel.lastName }}"}
-```
-
-规则：
-
-- 表达式内使用单引号字符串。
-- 一个字符串中只能有一对 `{{ ... }}`。
-- 不支持嵌套表达式。
-- 布尔值必须是 `true` / `false`。
-- 内置函数仅使用 `size()`。
-- 不使用 `$__widthBreakpoint` 或 `$__colorMode`。
-
-### 禁止使用表达式的位置
-
-不要在以下位置使用表达式：
-
-- `id`
-- `component`
-- 对象 key
-- EventHandler `call`
-- EventHandler `as`
-- `updateDataModel.path`
-- 模板 `children.path`
-- 整个 `styles` 对象值，例如 `"styles": "{{ ... }}"`
+- 不生成 `{{ ... }}`。
+- 不使用 `$__dataModel`、`$context`、`size()`、`$__widthBreakpoint` 或 `$__colorMode`。
+- 不在 `id`、`component`、对象 key、EventHandler `call`、EventHandler `as`、`updateDataModel.path`、模板 `children.path` 或任何组件属性中使用表达式。
 
 ## 模板循环
 
@@ -145,19 +99,13 @@
 
 ## EventHandler 数据
 
-事件 `args` 中的 DataModel 参数优先用原生绑定读取；`condition`、事件上下文或行为链变量继续用表达式：
+事件 `args` 中的 DataModel 参数使用原生绑定读取；不要生成 `condition`、`$context` 或行为链变量表达式：
 
 ```json
 "onClick":[
   {
-    "call":"validateForm",
-    "args":{"data":{"path":"/form"}},
-    "as":"valid"
-  },
-  {
     "call":"submitForm",
-    "condition":"{{ $valid == true }}",
-    "args":{"x":"{{ $context.eventData.x }}"}
+    "args":{"data":{"path":"/form"}}
   }
 ]
 ```
@@ -170,12 +118,12 @@
 - 模板循环内的事件参数可使用当前项相对路径，例如 `{"path":"entityId"}`；非模板区域使用绝对 JSON Pointer。
 - 来自 data capability 输出的事件参数，必须能从 CardSpec 的 `writeResultTo` 和该能力 `outputSchema` 推导。
 - `as` 绑定变量只在当前事件行为链内有效。
-- `$context.componentId` 和 `$context.eventData` 只在事件处理表达式中可用。
+- 避免依赖 `as`、`condition` 或事件上下文表达式；需要条件逻辑时让宿主动作函数内部处理，或简化为单步点击。
 
 ## 绑定检查清单
 
-- 每个可见的原生绑定或表达式引用的数据都在 DataModel 中有对应字段。
+- 每个可见的原生绑定引用的数据都在 DataModel 中有对应字段。
 - 每个宿主动作或 event capability 参数都从 DataModel、事件上下文或合法静态目标取得。
 - 每个来自 data capability 的事件参数路径都能由 `writeResultTo + outputSchema` 推导。
 - 每个模板来源路径都指向数组。
-- 组件属性默认优先使用 `{"path":"/..."}` 原生绑定或 `formatString` 拼接；仅当属性 schema 不支持对象绑定时才退回表达式。
+- 组件属性只使用 `{"path":"/..."}` 原生绑定、`formatString` 拼接或 `updateDataModel` 预计算展示字段；不使用表达式。
