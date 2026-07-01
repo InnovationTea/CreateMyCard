@@ -12,7 +12,7 @@
 - 每日预报列表路径通常是 `/data/weather/daily`，模板项内优先展示 `weekday`、`condition`、`temperatureRangeText`、`rainProbabilityPercent`；`airQuality`、`uvIndex`、`coldLevel` 作为可选次要字段。
 - 更新时间路径是 `/data/weather/updatedAt`，仅在卡片确实需要展示刷新时间时使用。
 - 保留 manifest 中声明的字段名和类型，不要自行改名或改类型。
-- 本文档只声明天气数据能力的输入、输出和常用路径；通用 data capability 选择、CardSpec 映射、事件参数绑定和最终阻塞项见 [`../cardspec.md`](../cardspec.md)、[`../event-capability/`](../event-capability/)、[`../../protocol/data-binding.md`](../../protocol/data-binding.md) 和 [`../../final-blockers.md`](../../final-blockers.md)。
+- 本文档只声明天气数据能力的输入、输出和常用路径；通用 data capability 选择、CardSpec 映射、事件参数绑定和最终门禁见 [`../cardspec.md`](../cardspec.md)、[`../event-capability/`](../event-capability/)、[`../../protocol/data-binding.md`](../../protocol/data-binding.md) 和 [`../../core-rules.md`](../../core-rules.md)。
 - 初始 `updateDataModel` 使用空对象、空数组和加载态，不要写死用户当前位置或真实天气结果：
 
 ```json

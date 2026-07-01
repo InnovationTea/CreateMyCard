@@ -7,7 +7,7 @@
 - UI 列表路径通常是 `/data/calendar/items`，对应 CardSpec `writeResultTo: "/data/calendar"`。
 - 列表模板内优先展示 `dtStart`、`dtEnd`、`title`；`eventLocation`、`description`、`senderName` 作为可压缩次要文本。
 - 日程详情点击使用 [`../event-capability/click-event.md`](../event-capability/click-event.md) 中的 `clickToIntent`，`intentName` 固定为 `ViewCalendarEvent`，`params.entityId` 绑定当前日程的 `entityId`；模板列表项内优先写作 `{"path":"entityId"}`。
-- 本文档只声明日历数据能力的输入、输出和常用路径；通用 data capability 选择、CardSpec 映射、事件参数绑定和最终阻塞项见 [`../cardspec.md`](../cardspec.md)、[`../event-capability/`](../event-capability/)、[`../../protocol/data-binding.md`](../../protocol/data-binding.md) 和 [`../../final-blockers.md`](../../final-blockers.md)。
+- 本文档只声明日历数据能力的输入、输出和常用路径；通用 data capability 选择、CardSpec 映射、事件参数绑定和最终门禁见 [`../cardspec.md`](../cardspec.md)、[`../event-capability/`](../event-capability/)、[`../../protocol/data-binding.md`](../../protocol/data-binding.md) 和 [`../../core-rules.md`](../../core-rules.md)。
 - 初始 `updateDataModel` 使用空数组和加载态，不要写死真实日程内容：
 
 ```json

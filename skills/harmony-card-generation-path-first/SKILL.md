@@ -1,21 +1,24 @@
 ---
 name: harmony-card-generation-path-first
-description: "生成、修复、评审或解释 HarmonyOS A2UI Form 服务卡片输出的 path 优先旧版 skill。用于需要保留原始数据绑定优先级（优先使用 A2UI 原生 {path}/formatString，表达式兜底）并产出同一张卡片的 genui JSONL 和 cardspec JSON，严格保证 DSL/CardSpec 语法正确、Form 组件/绑定/事件/数据契约合法、2x2 或 2x4 尺寸内渲染美观且上线可用的任务。"
+description: "生成、修复、评审或解释 HarmonyOS A2UI Form 服务卡片的路径表达版本。用于需要同时产出三行 genui JSONL 与 cardspec JSON，并只按 path/formatString 绑定、2x2/2x4 尺寸、Form 组件字段、事件能力和 CardSpec 数据契约校验同一张卡片的任务。"
 ---
 
-# Harmony 卡片生成（Path 优先版）
+# Harmony 卡片生成（路径表达版）
 
-产出同一张 Form 卡片。交付必须同时满足：可解析、可渲染、信息不重复、文本不截断、布局不错位、颜色有来源。
+产出同一张 Form 卡片：三行 `genui` JSONL 加一个 `cardspec` JSON。输出前按 `core-rules.md` 检查协议、绑定、布局、内容、颜色、事件和 CardSpec。
 
 ## 执行顺序
 
-1. 默认先读 `reference/core-rules.md`；它不足以解决当前阻塞点时，按“专项参考”逐个加载最小必要文件，解决一个阻塞点后再判断是否需要下一个。
-2. 先定取舍：一个主答案、最多 2 条支撑事实、最多 1 个主动作；每个可见组件只承载一个信息职责，同一事实不要换单位、别名、同义标签、聚合/拆分或派生文案重复展示。
-3. 写 DSL 前先算硬预算：surface/root 尺寸一致，root shell 完整，内容区、padding、margin、itemMargin、按钮热区、受保护文本、Text+Button 并排宽高、颜色来源都能推导。
-4. 起草后做模型内置校验：先过协议、绑定、布局、颜色、事件和尺寸，再查信息职责和事实等价类。不要为了校验新建、输出或保留草稿文件。
-5. 只有用户明确要求校验既有文件、修复本地草稿或调试脚本时，才运行 `scripts/validate_card.py`。
+1. 先读 `reference/core-rules.md`，把 P0/L0/L1/L2 当硬门槛。
+2. 只进入一个模式：新卡片、修复/评审、能力边界。新卡片再读 `reference/generation-workflow.md`；修复/评审按 `reference/core-rules.md` 的人工阻断补充复核。
+3. 新卡片先收敛到一个服务对象或主问题，再按角色槽位分配内容：`object`、`primary`、`support`、`metric/tile/status/badge`、`action`、`asset`。不要把所有事实硬压成固定支撑条数。
+4. 未指定尺寸先尝试 `2x2`；只有受保护文本、热区、并列关系、关键媒体或布局预算具体失败时才升级 `2x4`。
+5. 从零生成完成内容分级后，只要候选尺寸可能由模板承载，且入选内容能收敛为一个服务对象/主问题与 `object`、`primary`、`support`、`metric/tile/status/badge`、`action`、`asset` 角色槽位，先读 `reference/template-routing.md` 和 `assets/templates/index.json` 做候选判断；最多选一个模板。模板只提供骨架和预算，内容、DataModel、素材、颜色、事件必须重做。
+6. 需要专项，或对组件字段、绑定、布局、颜色、事件不确定时，按 `reference.md` 定向补读最小必要文件；没有读到权威文件前不要凭样例或记忆补字段。先解决协议、绑定、尺寸和布局，再处理事件、CardSpec、颜色、素材、主显示组突出度、支撑组归拢和表面层级。
+7. 写 DSL 前先算 surface/root、内容区、padding/margin/itemMargin、热区、受保护文本、并排宽高和颜色来源。
+8. 输出前确认协议、绑定、布局、颜色、事件、尺寸、模板槽位、信息职责、事实等价类和 CardSpec 对齐；若确认项依赖未读专项，先补读再输出。只有用户要求校验既有文件或调试脚本时才运行 `scripts/validate_card.py`。
 
-最终回答只给最终 DSL/CardSpec，不输出解释、校验日志、命令或中间文件。
+模式 1/2 的最终回答只给最终 DSL/CardSpec，不输出解释、校验日志、命令、比较过程或中间文件。
 
 ## 输出形态
 
@@ -33,22 +36,27 @@ description: "生成、修复、评审或解释 HarmonyOS A2UI Form 服务卡片
 }
 ```
 
-静态卡片也输出 `cardspec`，但不要虚构 `dataBindings`。
+静态卡片也输出 `cardspec`，但不要虚构 `dataBindings`。动态卡片的 `cardspec.dataBindings` 必须来自已声明 data capability，且 UI 路径能由 `writeResultTo + outputSchema` 推导。
+
+## 一致性约定
+
+- 新卡片默认使用 `2x2 = 140 x 140`，root `padding: 12`、`borderRadius: 18`、`clip: true`；`2x4 = 300 x 140`，root `padding: 12`、`borderRadius: 22`、`clip: true`。
+- 新卡片默认省略 `createSurface.styles`；表面背景、内容布局、安全区和 root 形状都写在 `root.styles` 或 root 下的真实背景组件。只有宿主明确要求外层形状/裁切时，`createSurface.styles` 才可出现且仅限 `borderRadius`、`clip`。
+- 绑定方式固定为：静态值或 `updateDataModel` 预计算展示字段 -> `{"path":"/..."}` -> `formatString`。本版本不输出 `{{ ... }}` 表达式；修复已有 DSL 时也必须改写为路径绑定、`formatString` 或预计算字段，无法等价改写时说明能力边界。
+- 非模板生成时使用稳定语义 ID：`surface_card`、`root`、`header_row`、`title_text`、`primary_value`、`primary_caption`、`support_row`、`action_button` 等；模板生成时保留模板 ID 体系，但删除不用的可选槽位并同步清理引用。
+- 不使用网络图、内联/base64 SVG、emoji、占位媒体、未声明资源路径、未声明 SVG、未声明事件能力、`Button.action`、非 `onClick` 事件或 Form 子集外组件；允许 `reference/design/asset-library.md` 声明的本地 SVG。
+- 可点击 UI 必须有真实 `onClick` EventHandler；如果动作能力不明，删除点击行为，把动作区降级为非误导支撑信息。
+- 颜色规则读 `reference/design/color-token-system.md`；需要具体 hex 时再读 `reference/design/color-token-values.md`。DSL 输出 hex，不输出 token 名。
+- 布局失败时按固定顺序降级：缩短弱文本 -> 删除可选角色槽位或 `shouldKeep` 字段 -> 降低到批准字号阶梯 -> 拆行/改 Column -> 放弃模板 -> 升级 `2x4` -> 能力边界说明。
 
 ## 专项参考
 
-按当前阻塞点逐个读取最小必要文件；进入专项文件后先看顶部决策、阻断或使用规则，再查 schema、表格和示例。不要一次性泛读无关参考。
+默认只读 `reference/core-rules.md`；新卡片再读 `reference/generation-workflow.md`。路由不清楚、修复已有 DSL、需要模板、动态数据、事件、颜色、素材，或主显示组不突出、支撑组散落、表面层级缺失时，再按 `reference.md` 读取对应专项文件；进入专项文件后先看顶部决策、阻断或使用规则，不一次性泛读无关参考。
 
-- 组件/样式枚举：`reference/protocol/component-catalog.md`；协议冲突兜底：`reference/protocol/protocol.md`。
-- DataModel、路径、模板、事件参数：`reference/protocol/data-binding.md`；`formatString`：`reference/protocol/function.md`。
-- 点击、拨号、跳转、动作区：`reference/capability/event-capability/click-event.md`。
-- CardSpec、动态数据能力：`reference/capability/cardspec.md`；涉及数据能力时，按场景逐个读取对应 data-capability 文件。
-- 布局承载、按钮对齐、底部贴底、重叠、留白：`reference/design/layout-system.md`。
-- 颜色、深浅色、渐变 stop、token 来源：`reference/design/color-token-system.md`。
-- 图片、图标、背景图、素材路径：`reference/design/asset-library.md`。
-- 无 L0/L1 问题但视觉弱：`reference/design/design-heuristics.md`。
-- 最终人工复核：`reference/final-blockers.md`；路由仍不清楚：`reference.md`。
+新卡片中只要入选内容存在可由素材承担的识别、状态、动作、主媒体或视觉锚点职责，先读 `reference/design/asset-library.md` 再决定是否使用 `Image`；用户未提供素材不等于素材不可用。决定省略素材前，必须确认素材库无明确匹配、加入素材会破坏 L1 布局预算，或用户明确要求不用图片/图标。
+
+运行本 skill 时不读取本 skill 包外的 UX 文档、旧样例、截图、网页或链接；需要的生成流程、布局字号、配色和验收规则已经折叠进 `reference/` 内部文件。
 
 ## 降级原则
 
-低能力模型或高风险需求优先降级自由度：少组件、少层级、少颜色、少动态路径、少 Stack。宁可输出简洁卡片，也不要输出语法不合规、文本显示不全、颜色无来源或明显错位的卡片。
+当需求信息不足、组件字段不确定、布局预算复杂、动作/素材/颜色来源不完整，或出现渲染失败迹象时，优先降低自由度：标准短需求先用 `reference/template-routing.md` 的模板 manifest 槽位模式；若不用模板，则少组件、少层级、少颜色、少动态路径、少 Stack。若协议或布局预算无法证明成立，删除可选槽位、改用 `2x4`，或进入能力边界说明。

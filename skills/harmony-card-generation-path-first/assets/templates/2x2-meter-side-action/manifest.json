@@ -1,0 +1,141 @@
+{
+  "id": "2x2-meter-side-action",
+  "size": "2x2",
+  "pattern": "meter-side-action",
+  "template": "template.genui.jsonl",
+  "cardspec": "cardspec.json",
+  "sourceObservation": "Derived from the low-battery and sleep rendered samples: a compact header, left circular meter/progress focus, right short facts, and a bottom full-width action/support pill.",
+  "layoutSummary": "Top object row, left circular progress focus, right compact facts, bottom full-width action/support pill.",
+  "lockedStructure": {
+    "surface": {
+      "width": 140,
+      "height": 140
+    },
+    "root": {
+      "width": 140,
+      "height": 140,
+      "padding": 12,
+      "borderRadius": 18,
+      "clip": true
+    },
+    "sections": [
+      {
+        "id": "headerRow",
+        "width": 116,
+        "height": 20
+      },
+      {
+        "id": "mainRow",
+        "width": 116,
+        "height": 58
+      },
+      {
+        "id": "primaryAction",
+        "width": 116,
+        "height": 26
+      }
+    ]
+  },
+  "slots": {
+    "object": {
+      "path": "/card/title",
+      "component": "titleText",
+      "maxCharsCn": 6
+    },
+    "asset.primaryIcon": {
+      "path": "/asset/primaryIcon",
+      "component": "leadingIcon",
+      "source": "reference/design/asset-library.md"
+    },
+    "progress.value": {
+      "path": "/meter/progressValue",
+      "component": "meterRing"
+    },
+    "progress.total": {
+      "path": "/meter/progressTotal",
+      "component": "meterRing"
+    },
+    "primary.value": {
+      "path": "/meter/centerLabel",
+      "component": "meterValue",
+      "maxChars": 4
+    },
+    "primary.caption": {
+      "path": "/meter/caption",
+      "component": "factLabel",
+      "maxCharsCn": 4
+    },
+    "support.1": {
+      "path": "/support/line1",
+      "component": "factValue",
+      "maxCharsCn": 5
+    },
+    "support.2": {
+      "path": "/support/line2",
+      "component": "factMeta",
+      "maxCharsCn": 5
+    },
+    "asset.actionIcon": {
+      "path": "/asset/actionIcon",
+      "component": "actionIcon",
+      "source": "reference/design/asset-library.md"
+    },
+    "action.label": {
+      "path": "/action/label",
+      "component": "actionText",
+      "maxCharsCn": 5
+    }
+  },
+  "useWhen": [
+    "battery",
+    "low-battery",
+    "power-saving",
+    "sleep",
+    "sleep-monitoring",
+    "bedtime-reminder",
+    "progress",
+    "meter",
+    "completion",
+    "habit",
+    "device-status"
+  ],
+  "avoidWhen": [
+    "no-progress-semantics",
+    "two-primary-values",
+    "center-label-longer-than-four-chars",
+    "long-fact-list",
+    "two-actions"
+  ],
+  "allowedEdits": [
+    "replace DataModel values",
+    "bind progress value/total independently from the visible center label",
+    "replace icons through DataModel",
+    "remove icons and reallocate width",
+    "add onClick to primaryAction only with valid event capability"
+  ],
+  "forbiddenEdits": [
+    "change surface/root size",
+    "add a second meter hero",
+    "use emoji/base64/network image or SVG paths not declared in asset-library",
+    "turn factColumn into a long list"
+  ],
+  "deleteRules": [
+    "If support.2 duplicates support.1 or primary.value, delete factMeta and keep the right column vertically centered.",
+    "If the main value is naturally split, keep a short centerLabel and put at most two independent fragments in factColumn; do not concatenate a long duration inside the ring."
+  ],
+  "colorPolicy": {
+    "source": "reference/design/color-token-system.md + color-token-values.md",
+    "budget": "one blue meter scene family plus neutral glass action",
+    "sceneFamily": "multi_color_08 brand/tech blue",
+    "roles": {
+      "rootGradient": "multi_color_08 light/dark blue stops",
+      "meterTrack": "comp_emphasize_secondary light",
+      "meterFill": "font_on_primary on saturated surface",
+      "action": "font_on_fourth/tertiary glass material unless action color has semantic meaning"
+    },
+    "rewriteRules": [
+      "Do not mix purple sleep colors into the default blue meter template.",
+      "For sleep-specific cards, remap the same roles to multi_color_01/06 rather than adding a second hue."
+    ]
+  }
+}
