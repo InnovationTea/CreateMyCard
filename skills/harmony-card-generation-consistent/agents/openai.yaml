@@ -1,0 +1,4 @@
+interface:
+  display_name: "Harmony Form 卡片生成（一致版）"
+  short_description: "以硬规则、路径路由和模板骨架稳定生成 HarmonyOS Form 卡片。"
+  default_prompt: "使用 $harmony-card-generation-consistent 根据一句话生成 HarmonyOS A2UI Form 服务卡片；优先遵循硬规则、path/formatString 绑定和可验证模板骨架，最后只输出 genui 和 cardspec 代码块。"

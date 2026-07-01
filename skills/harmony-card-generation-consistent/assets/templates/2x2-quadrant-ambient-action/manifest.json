@@ -1,0 +1,32 @@
+{
+  "id": "2x2-quadrant-ambient-action",
+  "size": "2x2",
+  "pattern": "quadrant-ambient-action",
+  "template": "template.genui.jsonl",
+  "cardspec": "cardspec.json",
+  "sourceObservation": "Derived from the care-style rendered sample: a full-card ambient surface divided into four quadrants, with a large primary value, small location/status, one fact panel, and one compact action target.",
+  "layoutSummary": "Two-by-two quadrant composition over an ambient surface: primary value, status identity, support card, icon action.",
+  "lockedStructure": {
+    "surface": {"width": 140, "height": 140},
+    "root": {"width": 140, "height": 140, "padding": 12, "borderRadius": 18, "clip": true},
+    "sections": [
+      {"id": "contentGrid", "width": 116, "height": 116},
+      {"id": "topRow", "width": 116, "height": 54},
+      {"id": "bottomRow", "width": 116, "height": 56}
+    ]
+  },
+  "slots": {
+    "primary.value": {"path": "/primary/value", "component": "primaryValue", "maxChars": 3},
+    "primary.caption": {"path": "/primary/caption", "component": "primaryCaption", "maxCharsCn": 5},
+    "object": {"path": "/card/title", "component": "objectText", "maxChars": 10},
+    "asset.primaryIcon": {"path": "/asset/primaryIcon", "component": "statusIcon", "source": "reference/design/asset-library.md"},
+    "support.label": {"path": "/support/label", "component": "supportLabel", "maxCharsCn": 5},
+    "support.value": {"path": "/support/value", "component": "supportValue", "maxCharsCn": 4},
+    "asset.actionIcon": {"path": "/asset/actionIcon", "component": "actionIcon", "source": "reference/design/asset-library.md"}
+  },
+  "useWhen": ["care", "weather-plus-action", "contact", "commute", "environment-alert", "quick-call"],
+  "avoidWhen": ["long-text", "no-icon-action", "more-than-one-support-card", "requires-precise-table"],
+  "allowedEdits": ["remove actionCircle if no valid action exists", "replace icons through DataModel", "turn supportCard into non-click support only"],
+  "forbiddenEdits": ["use base64 backgrounds", "use SVG or emoji icons", "add a second support card", "place required text on a noisy image without scrim"],
+  "deleteRules": ["If actionIcon is unavailable, remove actionCircle and widen supportCard to 116."]
+}
