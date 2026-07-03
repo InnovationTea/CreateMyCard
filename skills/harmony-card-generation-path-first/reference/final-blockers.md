@@ -8,8 +8,9 @@
 - JSONL 顺序不是 `createSurface`、`updateComponents`、`updateDataModel`。
 - `version`、`catalogId`、CardSpec `suggestSize` 或 `createSurface.width/height` 不正确。
 - `updateComponents.root` 缺失，或没有引用 `components` 中存在的组件 id。
-- root 组件没有承载卡片 shell：`width`、`height`、`padding`、`borderRadius`、`clip` 和表面样式。
-- `createSurface` 承载了内容布局、安全区或 shell 样式，导致 root shell 不完整。
+- root 组件没有承载卡片 shell：`width`、`height`、`padding`、`borderRadius`、`clip` 和明确表面背景（`backgroundColor`、`linearGradient` 或 root 下的真实背景组件）。
+- `createSurface` 承载了内容布局、安全区或非形状/裁切类 shell 样式，导致 root shell 不完整；`createSurface.styles` 只允许 `borderRadius`、`clip` 等卡片级形状/裁切辅助。
+- 背景色、渐变或背景图写在 `createSurface.styles` 而非 `root.styles`，或 root 缺少明确背景，导致 root 默认不透明白底遮挡 surface 背景并显示默认白底。
 - 使用禁用组件、禁用事件、`theme`、`Button.action`、网络图片、SVG、emoji 或占位素材。
 - `children` 内联组件对象，或绑定路径/DataModel/事件参数无法对应。
 - CardSpec 写入点击行为，或静态卡片虚构数据能力。

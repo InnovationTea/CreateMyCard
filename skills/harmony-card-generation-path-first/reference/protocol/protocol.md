@@ -12,11 +12,13 @@
 
 ## Surface 树契约
 
-- `createSurface` 只创建 surface，并声明 `surfaceId`、`catalogId`、`width`、`height`。
+- `createSurface` 只创建 surface，并声明 `surfaceId`、`catalogId`、`width`、`height`；若宿主需要 `createSurface.styles`，只允许卡片级形状和裁切控制，例如 `borderRadius`、`clip`。
 - `updateComponents.root` 是组件树入口，必须引用 `components` 中存在的组件 id。
-- root 组件是唯一卡片 shell，承载 `width`、`height`、`padding`、`borderRadius`、`clip` 和 `backgroundColor` / `linearGradient` / `backgroundImage` 等布局和表面样式。
+- root 组件是唯一卡片 shell，承载 `width`、`height`、`padding`、`borderRadius`、`clip` 和 `backgroundColor` / `linearGradient` / `backgroundImage` 等布局和表面样式；背景也可由 root 下的真实背景组件承载。
 - `updateDataModel` 只提供运行数据；组件绑定路径必须能从它的 `value` 中解析，模板相对路径除外。
-- 不要把 root shell、安全区或内容布局样式只写在 `createSurface.styles` 中。
+- `backgroundColor`、`linearGradient`、`backgroundImage` 等背景样式必须写在 `root.styles`，或由 root 下的真实背景组件承载，不能放进 `createSurface.styles`。
+- 原因：root 组件默认有不透明白色背景，会遮挡 surface 层背景，导致运行时显示默认白底或白屏。
+- root shell、安全区和内容布局样式也要写在 root；`createSurface.styles` 只可作为外层裁切/形状辅助，不替代 root shell。
 
 ## 核心常量
 

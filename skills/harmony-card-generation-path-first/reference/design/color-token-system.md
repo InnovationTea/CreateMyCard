@@ -13,6 +13,7 @@
 - 渐变 stop 都来自官方来源或合规场景拓展色，且只使用线性渐变。
 - 状态色只服务真实状态。
 - 没有无法说明来源、场景和用途的颜色；如无法说明，改用可回溯 token 或删除该颜色。
+- 背景颜色的**放置位置**不在本文范围：背景字段必须落在 `root.styles`（或 root 下真实背景组件），不得放 `createSurface`，见 [`../core-rules.md`](../core-rules.md) 与 [`../protocol/protocol.md`](../protocol/protocol.md)。
 
 ## 阻塞项
 

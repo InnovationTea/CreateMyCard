@@ -200,5 +200,6 @@ Form 支持 10 个扩展组件：
 - 尺寸数字默认是 vp。
 - 字符串可使用 `vp`、`fp`、`%`，以及文档允许时的 `px`。
 - 颜色使用 `#RRGGBB` 或 `#AARRGGBB`。
+- 卡片背景样式放在 root 组件的 `styles` 中；`createSurface.styles` 只用于外层 `borderRadius`、`clip` 等形状/裁切控制。
 - `backgroundImage` 只使用本地/资源路径，不支持网络 URL。
 - `linearGradient.colors` 使用 `["#RRGGBB", stop]` 对。
