@@ -6,19 +6,57 @@
   "manifestId": "xiaoyi-widget-mvp-v1",
   "capabilities": [
     {
-      "functionCall": "clickToCallPhone",
-      "description": "点击可跳转至指定号码的拨号界面",
+      "functionCall": "clickToApi",
+      "description": "点击执行特定的系统或业务API能力。只能使用 supportedTargets 中列出的合法 intentName 和 params，不要自行编造参数。",
       "parameters": {
-        "phoneNumber": {
+        "intentName": {
           "type": "string",
-          "description": "需要拨打的电话号码"
+          "description": "跳转或调用的系统API功能名称"
+        },
+        "params": {
+          "type": "object",
+          "description": "API 执行所需的输入参数对象"
         }
-      }
+      },
+      "notes": [
+        "intentName 和 params 为固定对象外壳，不可更改。",
+        "如果用户意图无法匹配 supportedTargets 中的任一目标，严禁调用此工具。"
+      ],
+      "supportedTargets": [
+        {
+          "intentName": "CallPhone",
+          "description": "点击跳转至指定号码的拨号界面，给某个亲人打电话",
+          "params": {
+            "relationship": {
+              "type": "string",
+              "description": "根据用户想给打电话的亲人，返回和亲人的关系，比如返回父亲，母亲，妻子，孩子。"
+            },
+            "phoneNumber": {
+              "type": "string",
+              "description": "需要拨打的电话号码，如果用户提供了填入，没有提供传空字符串''。"
+            }
+          }
+        },
+        {
+          "intentName": "CleanRAMMemory",
+          "description": "点击清理手机运行时内存，释放系统资源",
+          "params": {}
+        },
+        {
+          "intentName": "EnterMeeting",
+          "description": "点击一键加入下一个日程对应的在线会议",
+          "params": {}
+        }
+      ]
     },
     {
       "functionCall": "clickToDeeplink",
-      "description": "点击可跳转到指定某应用的某页面。只能使用 supportedTargets 中列出的合法 bundleName、abilityName、uri 组合，不要自行编造参数。",
+      "description": "点击可跳转到指定某应用的某页面。大模型需根据用户意图，从 supportedTargets 中匹配出合法的 intentName、bundleName、abilityName 和 uri 组合进行输出，不要自行编造参数。",
       "parameters": {
+        "intentName": {
+          "type": "string",
+          "description": "目标应用的英文意图名称（如 Settings, Weather, Clock, Music, Health），必须与 supportedTargets 中定义的 intentName 严格保持一致。"
+        },
         "bundleName": {
           "type": "string",
           "description": "应用包名。如果目标页面是通过长 URI 直接拉起（如音乐、运动健康），则此处传空字符串 ''。"
@@ -33,12 +71,13 @@
         }
       },
       "notes": [
-        "核心校验规则：bundleName、abilityName、uri 这三个参数中，必须至少有一个是有值的。允许出现只有 uri 有值，而 bundleName 和 abilityName 为空字符串的情况（如音乐、运动健康场景）。",
+        "核心校验规则：intentName 必须输出。且 bundleName、abilityName、uri 这三个参数中，必须至少有一个是有值的。允许出现只有 uri 有值，而 bundleName 和 abilityName 为空字符串的情况（如音乐、运动健康场景）。",
         "必须严格复制 supportedTargets 对应页面的结构和值，如果某个字段在 target 中没有定义或为空，请务必传入空字符串 ''，严禁自行拼凑或不传。"
       ],
       "supportedTargets": [
         {
           "appName": "设置",
+          "intentName": "Settings",
           "description": "打开手机系统设置中的某个页面，能力由uri指定页面",
           "bundleName": "com.huawei.hmos.settings",
           "abilityName": "com.huawei.hmos.settings.MainAbility",
@@ -71,6 +110,7 @@
         },
         {
           "appName": "天气",
+          "intentName": "Weather_CityCode",
           "description": "打开手机天气应用",
           "bundleName": "",
           "abilityName": "",
@@ -83,6 +123,7 @@
         },
         {
           "appName": "闹钟",
+          "intentName": "Clock",
           "description": "打开闹钟应用首页",
           "bundleName": "com.huawei.hmos.clock",
           "abilityName": "com.huawei.hmos.clock.phone",
@@ -95,6 +136,7 @@
         },
         {
           "appName": "音乐",
+          "intentName": "Music",
           "description": "通过长 Scheme URI 打开音乐应用的指定歌单",
           "bundleName": "",
           "abilityName": "",
@@ -111,6 +153,7 @@
         },
         {
           "appName": "运动健康",
+          "intentName": "Health",
           "description": "根据长 Scheme URI 打开运动健康应用的某页",
           "bundleName": "",
           "abilityName": "",
@@ -133,7 +176,7 @@
       "parameters": {
         "intentName": {
           "type": "string",
-          "description": "跳转使用的意图能力名称"
+          "description": "跳转使用的意图能力名称，"
         },
         "params": {
           "type": "object",
@@ -147,28 +190,28 @@
       "supportedTargets": [
         {
           "intentName": "ViewCalendarEvent",
-          "description": "点击日程卡片或日程按钮，跳转到日程 App 查看该日程的详情",
+          "description": "点击日程卡片 or 日程按钮，跳转到日程 App 查看该日程的详情",
           "params": {
             "entityId": ""
           }
         },
         {
           "intentName": "StartNavigate",
-          "description": "点击导航按钮，跳转到地图应用进行导航。大模型需根据用户说的目的地解析出经纬度坐标返回",
+          "description": "点击导航按钮，跳转到地图应用进行导航。大模型需根据用户说的目的地选择location的值，只支持回家和去公司的导航",
           "params": {
             "dstLocation": {
+              "location": {
+                "type": "string",
+                "description": "根据用户意图判断，用户说'导航回家'传home,'导航去公司'传company。"
+              },
               "latitude": {
                 "type": "string",
-                "description": "目标地点的纬度坐标，大模型根据用户说的目的地（如公司名称、地址等）解析出纬度并返回"
+                "description": "目标地点的纬度坐标，返回空字符串''即可"
               },
               "longitude": {
                 "type": "string",
-                "description": "目标地点的经度坐标，大模型根据用户说的目的地（如公司名称、地址等）解析出经度并返回"
+                "description": "目标地点的经度坐标，返回空字符串''即可"
               }
-            },
-            "trafficpe": {
-              "type": "string",
-              "description": "出行方式，大模型根据用户表达确定。如用户说'开车去'则传Drive，'走路去'则传Walk。枚举值：Drive(开车)、Walk(步行)、Cycle(骑行)、Bus(公共交通)"
             }
           }
         },
@@ -202,8 +245,10 @@
 - `onClick.call` 必须使用 `capabilities[].functionCall` 中声明的值。不要把 `description`、应用名或页面名写成 `call`。
 - 先按用户意图匹配 `capabilities[].description`，再校验该能力的 `parameters` 和 `supportedTargets`；不能匹配时不要伪造点击能力。
 - `args` 只能包含该能力 `parameters` 中声明的参数。跳转类能力必须使用 `supportedTargets` 中列出的合法目标和值组合。
-- 拨号能力参数名必须严格使用 manifest 中声明的 `phoneNumber`，不要使用其它大小写变体。
-- `clickToIntent.args.params` 必须严格匹配所选 `supportedTargets` 里的 `params` 结构。不同 intent 的参数不同，不要把某个示例参数当成通用字段。
+- `clickToDeeplink.args` 必须包含 manifest `parameters` 声明的 `intentName`、`bundleName`、`abilityName`、`uri`，其中 `intentName` 必须严格复制所选 `supportedTargets` 的值；页面级 `uri` 也必须从所选 target 的 `pages[]` 复制，允许按 target 传空字符串。
+- `clickToApi.args.params` 和 `clickToIntent.args.params` 必须严格匹配所选 `supportedTargets` 里的 `params` 结构。不同 `intentName` 的参数不同，不要把某个示例参数当成通用字段。
+- 拨号使用 `clickToApi` 中 `intentName: "CallPhone"` 的 target；`relationship` 和 `phoneNumber` 都放在 `params` 内，参数名必须严格使用 manifest 中声明的大小写。用户未提供电话号码时，按 manifest 传空字符串。
+- 当所选 target 的 `params` 是空对象时，`args.params` 也传空对象，不要补造字段。
 - 当 `supportedTargets.params` 的叶子节点是 `type`、`description` 等 schema 说明时，生成 `onClick.args.params` 只保留参数 key 和实际运行时值；不要把 schema 元数据复制到 DSL。若说明中声明固定值，使用该固定值；若说明中要求由用户意图或 DataModel 推导，则填入安全静态值或 `{ "path": "..." }` 绑定。
 - 事件参数可以来自安全静态值、DataModel 绝对路径，或模板列表项的相对路径。来自 data capability 输出的字段，必须能从 `writeResultTo + outputSchema` 推导。
 

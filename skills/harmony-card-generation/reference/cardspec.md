@@ -60,10 +60,7 @@ Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构
 
 ## 能力选择
 
-按场景从 `reference/data-capability/` 读取对应能力文档，不要一次加载所有能力。新增数据能力应继续放入该目录，模型按用户语义和 manifest 的 `description`、`inputSchema`、`required`、`outputSchema` 选择能力。
-
-- 当前已有天气能力：`reference/data-capability/weather.md`
-- 当前已有日历能力：`reference/data-capability/calendar.md`
+按场景从 `reference/data-capability/` 读取对应能力文档，不要一次加载所有能力。新增数据能力应继续放入该目录，模型按用户语义和 manifest 的 `description`、`inputSchema`、`required`、`outputSchema` 选择能力。本文件不维护固定能力清单，避免后续新增能力时遗漏或写死场景。
 
 如果用户请求的动态能力没有在 `reference/data-capability/` 中声明，不要编造能力。改用静态降级方案，或说明需要端侧补充 capability manifest。
 
