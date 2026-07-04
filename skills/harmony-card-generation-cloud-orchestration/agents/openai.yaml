@@ -1,0 +1,4 @@
+interface:
+  display_name: "Harmony 卡片云侧生成"
+  short_description: "编排云侧工具生成 HarmonyOS 服务卡片，返回 genWidgetResult。"
+  default_prompt: "使用 $harmony-card-generation-cloud-orchestration 根据一句话请求编排云侧工具生成 HarmonyOS 服务卡片，并返回 genWidgetResult 链接。"
