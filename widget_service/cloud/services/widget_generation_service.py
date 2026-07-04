@@ -8,6 +8,7 @@ from api.schemas import (
     DataCapabilitySchemasResponse,
     GenerateWidgetCardRequest,
     GenerateWidgetCardResponse,
+    WidgetCardServiceRequest,
 )
 from core.errors import ErrorCode, GenerationStatus
 from models.artifact import ArtifactMeta, WidgetArtifact
@@ -28,6 +29,38 @@ from services.validator import ArtifactValidator
 class WidgetGenerationService:
     """编排微服务暴露的三个工具能力。"""
 
+    def widget_card_service(
+        self,
+        request: WidgetCardServiceRequest,
+    ) -> CapabilityOverviewResponse | DataCapabilitySchemasResponse | GenerateWidgetCardResponse:
+        """统一云侧卡片工具入口。
+
+        入参：
+        - request：包含 operation 和对应能力参数的统一工具请求。
+        出参：根据 operation 返回能力概述、数据能力 schema 或卡片生成结果。
+        """
+        # 统一工具层只暴露一个工具名，通过 operation 分发到三个真实业务流程。
+        if request.operation == "getWidgetCapabilityOverview":
+            return self.get_widget_capability_overview(
+                CapabilityOverviewRequest(**request.model_dump(exclude={"operation"}))
+            )
+
+        if request.operation == "getDataCapabilitySchemas":
+            if not request.dataCapabilityIds:
+                raise ValueError("dataCapabilityIds is required for getDataCapabilitySchemas.")
+            return self.get_data_capability_schemas(
+                DataCapabilitySchemasRequest(**request.model_dump(exclude={"operation"}))
+            )
+
+        if request.operation == "generateWidgetCard":
+            if not request.userQuery:
+                raise ValueError("userQuery is required for generateWidgetCard.")
+            payload = request.model_dump(exclude={"operation", "dataCapabilityIds"})
+            payload["size"] = payload.get("size") or "2x4"
+            return self.generate_widget_card(GenerateWidgetCardRequest(**payload))
+
+        raise ValueError(f"Unknown operation: {request.operation}")
+
     def get_widget_capability_overview(
         self,
         request: CapabilityOverviewRequest,
@@ -38,7 +71,6 @@ class WidgetGenerationService:
         - request：包含 locale、appVersion、romVersion 等版本上下文。
         出参：数据能力 id+描述，以及全量事件能力和素材清单。
         """
-        print(1111)
         registry = self._capability_registry(request)
         return CapabilityOverviewResponse(
             capabilityRegistryVersion=registry.version,
@@ -101,7 +133,7 @@ class WidgetGenerationService:
                 request.xiaoyiVersion,
             )
         )
-        candidate_events = self._normalize_event_candidates(request, registry)
+        candidate_events = self._normalize_event_candidates(request)
         effective_events, removed_events = resolver.resolve_event_candidates(
             candidate_events,
             request.romVersion,
@@ -220,37 +252,23 @@ class WidgetGenerationService:
     def _normalize_event_candidates(
         self,
         request: GenerateWidgetCardRequest,
-        registry: CapabilityRegistry,
     ) -> list[EventAction]:
         """归一化候选事件入参。
 
         入参：
         - request：生成接口请求。
-        - registry：当前能力注册表，用于按 ID 补充事件 call。
         出参：统一后的 EventAction 列表。
         """
-        # 同时兼容 AGENTS.md 中的完整事件结构，以及早期的 ID/action 分离结构。
+        # 最新云侧方案要求 capabilityId 和 action 放在同一候选项里，避免能力 ID 与事件参数错配。
         candidates: list[EventAction] = []
-        used_ids: set[str] = set()
-
-        for index, action in enumerate(request.candidateEventActions):
-            capability_id = action.id
-            if not capability_id and index < len(request.candidateEventCapabilityIds):
-                capability_id = request.candidateEventCapabilityIds[index]
-            candidates.append(EventAction(id=capability_id, call=action.call, args=action.args))
-            if capability_id:
-                used_ids.add(capability_id)
-
-        for capability_id in request.candidateEventCapabilityIds:
-            if capability_id in used_ids:
-                continue
-            capability = registry.get_event_capability(capability_id)
-            call = capability.call if capability else "unknown"
-            candidates.append(EventAction(id=capability_id, call=call, args={}))
-            used_ids.add(capability_id)
-
-        for action in request.candidateEventCapabilities:
-            candidates.append(action)
+        for candidate in request.candidateEventCandidates:
+            candidates.append(
+                EventAction(
+                    id=candidate.capabilityId,
+                    call=candidate.action.call,
+                    args=candidate.action.args,
+                )
+            )
 
         return candidates
 

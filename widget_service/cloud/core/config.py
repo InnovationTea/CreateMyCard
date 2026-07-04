@@ -22,7 +22,7 @@ class Settings(BaseSettings):
         """获取 Python 包根目录。
 
         入参：无。
-        出参：`src/widget_service` 的绝对路径。
+        出参：`cloud` 包目录的绝对路径。
         """
         return Path(__file__).resolve().parents[1]
 
@@ -31,7 +31,7 @@ class Settings(BaseSettings):
         """获取服务配置数据目录。
 
         入参：无。
-        出参：`src/widget_service/data` 的绝对路径。
+        出参：`cloud/data` 的绝对路径。
         """
         return self.package_root / "data"
 
@@ -42,7 +42,7 @@ class Settings(BaseSettings):
         入参：无。
         出参：当前项目仓库根路径。
         """
-        return self.package_root.parents[2]
+        return self.package_root.parents[1]
 
     @property
     def resolved_mock_ids_response_path(self) -> Path:

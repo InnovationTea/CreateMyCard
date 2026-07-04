@@ -1,6 +1,6 @@
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 WidgetSize = Literal["2x2", "2x4"]
 
@@ -18,15 +18,17 @@ class DeviceContext(BaseModel):
 
 
 class CandidateDataBinding(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     capabilityId: str
     arguments: dict[str, Any] = Field(default_factory=dict)
-    writeResultTo: str | None = None
+    writeResultTo: str
 
 
 class EventAction(BaseModel):
     id: str | None = None
     call: str
-    args: dict[str, Any] = Field(default_factory=dict)
+    args: dict[str, Any]
 
 
 class GenerationOptions(BaseModel):

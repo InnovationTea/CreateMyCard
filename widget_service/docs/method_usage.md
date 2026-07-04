@@ -11,7 +11,8 @@ cd widget_service
 python -m venv .venv
 .venv\Scripts\activate
 pip install -e .[dev]
-uvicorn widget_service.main:app --reload
+set PYTHONPATH=cloud
+uvicorn main:app --reload
 ```
 
 健康检查：
@@ -33,7 +34,7 @@ curl http://127.0.0.1:8000/health
 能力清单按 `appVersion + romVersion` 生成的文件夹名做版本隔离：
 
 ```text
-src/widget_service/data/capabilities/{capabilityRegistryVersion}/
+cloud/data/capabilities/{capabilityRegistryVersion}/
 ├─ data_capabilities.json
 ├─ event_capabilities.json
 └─ asset_capabilities.json
@@ -48,7 +49,7 @@ app-1.0.0_rom-7.0.0
 A2UI 协议 profile 也按文件夹隔离：
 
 ```text
-src/widget_service/data/protocol_profiles/{protocolProfileId}/profile.json
+cloud/data/protocol_profiles/{protocolProfileId}/profile.json
 ```
 
 当前默认 profile：
@@ -68,7 +69,48 @@ a2ui-form-rom7-v1
 
 不传时使用 `.env` 或默认配置。
 
-## 3. HTTP 与 WebSocket 接口
+## 3. WebSocket 接口
+
+最新云侧方案把微服务对外抽象成一个工具：`widgetCardService`。主 Agent 只需要传 `operation` 和该操作需要的参数；`uid`、`device`、`appVersion`、`romVersion`、`xiaoyiVersion` 等上下文由工具层自动注入，本地测试时可以显式传入。
+
+唯一业务入口：
+
+```text
+WS /api/v1/ws/tools/widgetCardService
+```
+
+连接成功后服务先返回 ready 消息：
+
+```json
+{
+  "type": "ready",
+  "tool": "widgetCardService",
+  "operations": [
+    "getWidgetCapabilityOverview",
+    "getDataCapabilitySchemas",
+    "generateWidgetCard"
+  ]
+}
+```
+
+统一消息最小结构：
+
+```json
+{
+  "requestId": "overview-1",
+  "arguments": {
+    "operation": "getWidgetCapabilityOverview"
+  }
+}
+```
+
+支持的 `operation`：
+
+```text
+getWidgetCapabilityOverview
+getDataCapabilitySchemas
+generateWidgetCard
+```
 
 ### 3.1 GET /health
 
@@ -88,31 +130,7 @@ curl http://127.0.0.1:8000/health
 }
 ```
 
-### 3.2 WS /ws
-
-用途：预留通用 WebSocket 入口，方便后续接入你们已有的 ws 基础入口。
-
-连接后服务先返回：
-
-```json
-{
-  "type": "ready",
-  "service": "widget-service"
-}
-```
-
-当前实现是 echo：
-
-```json
-{
-  "type": "echo",
-  "payload": {}
-}
-```
-
-后续可替换为你们自己的 ws 消息协议。
-
-### 3.3 POST /api/v1/widget/capability-overview
+### 3.2 operation=getWidgetCapabilityOverview
 
 对应工具能力：`getWidgetCapabilityOverview`
 
@@ -122,44 +140,42 @@ curl http://127.0.0.1:8000/health
 
 ```json
 {
-  "locale": "zh-CN",
-  "appVersion": "1.0.0",
-  "romVersion": "7.0.0",
-  "xiaoyiVersion": "1.0.0",
-  "capabilityRegistryVersion": "app-1.0.0_rom-7.0.0"
+  "requestId": "overview-1",
+  "arguments": {
+    "operation": "getWidgetCapabilityOverview",
+    "locale": "zh-CN",
+    "appVersion": "1.0.0",
+    "romVersion": "7.0.0",
+    "xiaoyiVersion": "1.0.0",
+    "capabilityRegistryVersion": "app-1.0.0_rom-7.0.0"
+  }
 }
 ```
 
-响应核心字段：
+响应消息核心字段：
 
 ```json
 {
-  "apiVersion": "v1",
-  "capabilityRegistryVersion": "app-1.0.0_rom-7.0.0",
-  "dataCapabilities": [
-    {
-      "id": "ViewWeather",
-      "description": "查询当前天气、空气质量和未来预报"
-    }
-  ],
-  "eventCapabilities": [
-    {
-      "id": "event.open.weather",
-      "call": "clickToDeeplink",
-      "description": "打开天气应用"
-    }
-  ],
-  "assetCandidates": [
-    {
-      "id": "asset.drop_1",
-      "src": "resources/base/media/drop_1.svg",
-      "description": "水滴图标，黑色，图形为圆润水滴轮廓，适用场景：湿度数据展示、饮水提醒、天气降雨信息"
-    }
-  ]
+  "type": "result",
+  "tool": "widgetCardService",
+  "operation": "getWidgetCapabilityOverview",
+  "requestId": "overview-1",
+  "data": {
+    "apiVersion": "v1",
+    "capabilityRegistryVersion": "app-1.0.0_rom-7.0.0",
+    "dataCapabilities": [
+      {
+        "id": "ViewWeather",
+        "description": "查询当前天气、空气质量和未来预报"
+      }
+    ],
+    "eventCapabilities": [],
+    "assetCandidates": []
+  }
 }
 ```
 
-### 3.4 POST /api/v1/widget/data-capability-schemas
+### 3.3 operation=getDataCapabilitySchemas
 
 对应工具能力：`getDataCapabilitySchemas`
 
@@ -169,54 +185,55 @@ curl http://127.0.0.1:8000/health
 
 ```json
 {
-  "dataCapabilityIds": ["ViewWeather", "calendar.events.search"],
-  "capabilityRegistryVersion": "app-1.0.0_rom-7.0.0"
+  "requestId": "schema-1",
+  "arguments": {
+    "operation": "getDataCapabilitySchemas",
+    "dataCapabilityIds": ["ViewWeather", "calendar.events.search"],
+    "capabilityRegistryVersion": "app-1.0.0_rom-7.0.0"
+  }
 }
 ```
 
-响应核心字段：
+响应消息核心字段：
 
 ```json
 {
-  "apiVersion": "v1",
-  "capabilityRegistryVersion": "app-1.0.0_rom-7.0.0",
-  "dataCapabilities": [
-    {
-      "id": "ViewWeather",
-      "inputSchema": {},
-      "outputSchema": {},
-      "defaultWriteResultTo": "/data/weather",
-      "dataModelSkeleton": {}
-    }
-  ],
-  "missingCapabilityIds": []
+  "type": "result",
+  "tool": "widgetCardService",
+  "operation": "getDataCapabilitySchemas",
+  "requestId": "schema-1",
+  "data": {
+    "apiVersion": "v1",
+    "capabilityRegistryVersion": "app-1.0.0_rom-7.0.0",
+    "dataCapabilities": [
+      {
+        "id": "ViewWeather",
+        "inputSchema": {},
+        "outputSchema": {},
+        "defaultWriteResultTo": "/data/weather",
+        "dataModelSkeleton": {}
+      }
+    ],
+    "missingCapabilityIds": []
+  }
 }
 ```
 
 `missingCapabilityIds` 用来告诉主 Agent 哪些能力 ID 没有注册。
 
-### 3.5 WS /api/v1/ws/widget/generate
+### 3.4 operation=generateWidgetCard
 
-对应工具能力：`generateWidgetCard`
+对应统一工具能力：`widgetCardService`，`operation=generateWidgetCard`
 
-用途：主生成接口。能力过滤属于这个接口内部流程。第一和第二个接口使用 HTTP，第三个生成接口使用 WebSocket。
+用途：主生成接口。能力过滤属于这个接口内部流程。
 
-连接成功后先收到 ready 消息：
-
-```json
-{
-  "type": "ready",
-  "tool": "generateWidgetCard",
-  "message": "Send GenerateWidgetCardRequest JSON to start generation."
-}
-```
-
-发送消息示例：
+请求示例：
 
 ```json
 {
-  "requestId": "local-test-1",
+  "requestId": "generate-1",
   "arguments": {
+    "operation": "generateWidgetCard",
     "userQuery": "帮我做通勤卡片，包含天气和今日日程",
     "size": "2x4",
     "appVersion": "1.0.0",
@@ -240,30 +257,30 @@ curl http://127.0.0.1:8000/health
         "writeResultTo": "/data/calendar"
       }
     ],
-    "candidateEventCapabilityIds": ["event.open.weather"],
-    "candidateEventActions": [
+    "candidateEventCandidates": [
       {
-        "call": "clickToDeeplink",
-        "args": {
-          "uri": "hww://www.huawei.com/totemweather?enterType=share"
+        "capabilityId": "event.open.weather",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "uri": "hww://www.huawei.com/totemweather?enterType=share"
+          }
         }
       }
     ],
-    "candidateAssetIds": ["asset.drop_1", "asset.calendar_fill"],
-    "options": {
-      "allowDegradation": true,
-      "returnArtifactInline": true
-    }
+    "candidateAssetIds": ["asset.drop_1", "asset.calendar_fill"]
   }
 }
 ```
 
-响应消息示例：
+响应消息核心字段：
 
 ```json
 {
-  "type": "generateWidgetCardResult",
-  "requestId": "local-test-1",
+  "type": "result",
+  "tool": "widgetCardService",
+  "operation": "generateWidgetCard",
+  "requestId": "generate-1",
   "data": {
     "apiVersion": "v1",
     "status": "success",
@@ -273,7 +290,6 @@ curl http://127.0.0.1:8000/health
     "userMessage": "已为你生成可用的桌面卡片。",
     "removedCapabilities": [],
     "errorCode": "",
-    "artifact": {},
     "effectiveCapabilities": {
       "data": ["ViewWeather", "calendar.events.search"],
       "event": [],
@@ -281,13 +297,6 @@ curl http://127.0.0.1:8000/health
     }
   }
 }
-```
-
-本地测试脚本：
-
-```bash
-cd widget_service
-python tools/ws_generate_client.py
 ```
 
 状态说明：
@@ -299,67 +308,22 @@ unsupported  能力或协议限制导致不应生成卡片
 failed       系统异常、模型失败、OBS 失败等工程失败
 ```
 
-事件候选按 `docs/AGENTS.md` 优先支持：
+事件候选按最新云侧方案只使用 `candidateEventCandidates`：
 
 ```json
 {
-  "candidateEventCapabilities": [
+  "candidateEventCandidates": [
     {
-      "call": "clickToCallPhone",
-      "args": {
-        "phoneNumber": {
-          "path": "/contact/phoneNumber"
+      "capabilityId": "event.open.weather",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "uri": "hww://weather"
         }
       }
     }
   ]
 }
-```
-
-同时也兼容：
-
-```json
-{
-  "candidateEventCapabilityIds": ["event.open.weather"],
-  "candidateEventActions": [
-    {
-      "call": "clickToDeeplink",
-      "args": {
-        "uri": "hww://weather"
-      }
-    }
-  ]
-}
-```
-
-### 3.6 POST /api/v1/tools/{tool_name}
-
-用途：把微服务当作工具使用时的统一入口。
-
-支持的 `tool_name`：
-
-```text
-getWidgetCapabilityOverview
-getDataCapabilitySchemas
-generateWidgetCard
-```
-
-其中 `generateWidgetCard` 不再走 HTTP 工具分发，HTTP 调用会返回 400，并提示使用 `/api/v1/ws/widget/generate`。
-
-请求格式：
-
-```json
-{
-  "arguments": {}
-}
-```
-
-示例：
-
-```bash
-curl -X POST http://127.0.0.1:8000/api/v1/tools/getWidgetCapabilityOverview ^
-  -H "Content-Type: application/json" ^
-  -d "{\"arguments\":{\"locale\":\"zh-CN\",\"romVersion\":\"7.0.0\"}}"
 ```
 
 ## 4. 核心服务方法
@@ -369,7 +333,7 @@ curl -X POST http://127.0.0.1:8000/api/v1/tools/getWidgetCapabilityOverview ^
 位置：
 
 ```text
-src/widget_service/services/widget_generation_service.py
+cloud/services/widget_generation_service.py
 ```
 
 签名：
@@ -495,18 +459,15 @@ response = service.generate_widget_card(
 ```python
 _normalize_event_candidates(
     request: GenerateWidgetCardRequest,
-    registry: CapabilityRegistry,
 ) -> list[EventAction]
 ```
 
-用途：把兼容的事件入参统一成 `EventAction` 列表。
+用途：把最新方案中的 `candidateEventCandidates` 统一成内部 `EventAction` 列表。
 
 支持来源：
 
 ```text
-candidateEventCapabilities
-candidateEventCapabilityIds
-candidateEventActions
+candidateEventCandidates
 ```
 
 一般不从外部直接调用，由 `generate_widget_card` 内部调用。
@@ -530,7 +491,7 @@ _build_artifact(...) -> WidgetArtifact
 位置：
 
 ```text
-src/widget_service/services/capability_registry.py
+cloud/services/capability_registry.py
 ```
 
 构造：
@@ -598,7 +559,7 @@ get_asset_capability(asset_id: str) -> AssetCapability | None
 位置：
 
 ```text
-src/widget_service/services/protocol_registry.py
+cloud/services/protocol_registry.py
 ```
 
 构造：
@@ -628,7 +589,7 @@ data/protocol_profiles/{profile_id}/profile.json
 位置：
 
 ```text
-src/widget_service/services/device_capability_resolver.py
+cloud/services/device_capability_resolver.py
 ```
 
 签名：
@@ -749,7 +710,7 @@ ALN-AL00 7.0.0.36 -> 7.0.0.36
 位置：
 
 ```text
-src/widget_service/services/card_spec_builder.py
+cloud/services/card_spec_builder.py
 ```
 
 签名：
@@ -774,7 +735,7 @@ build(size: WidgetSize, effective_bindings: list[CandidateDataBinding]) -> CardS
 位置：
 
 ```text
-src/widget_service/services/task_spec_builder.py
+cloud/services/task_spec_builder.py
 ```
 
 签名：
@@ -823,7 +784,7 @@ assetCandidates
 位置：
 
 ```text
-src/widget_service/services/prompt_builder.py
+cloud/services/prompt_builder.py
 ```
 
 签名：
@@ -843,7 +804,7 @@ build(
 位置：
 
 ```text
-src/widget_service/services/a2ui_model_client.py
+cloud/services/a2ui_model_client.py
 ```
 
 签名：
@@ -873,7 +834,7 @@ generate(task_spec: TaskSpec, protocol_profile: dict, prompt: dict) -> str
 位置：
 
 ```text
-src/widget_service/services/validator.py
+cloud/services/validator.py
 ```
 
 签名：
@@ -904,7 +865,7 @@ CardSpec writeResultTo 位于 /data/
 位置：
 
 ```text
-src/widget_service/services/retry_controller.py
+cloud/services/retry_controller.py
 ```
 
 签名：
@@ -933,7 +894,7 @@ errors       最后一次校验错误
 位置：
 
 ```text
-src/widget_service/services/artifact_store.py
+cloud/services/artifact_store.py
 ```
 
 签名：
@@ -964,7 +925,7 @@ Replace this method with the team's OBS uploader.
 位置：
 
 ```text
-src/widget_service/services/response_planner.py
+cloud/services/response_planner.py
 ```
 
 签名：
@@ -996,7 +957,7 @@ plan(
 位置：
 
 ```text
-src/widget_service/core/config.py
+cloud/core/config.py
 ```
 
 用途：读取环境变量和默认配置。
@@ -1033,7 +994,7 @@ get_settings() -> Settings
 位置：
 
 ```text
-src/widget_service/core/logging.py
+cloud/core/logging.py
 ```
 
 用途：配置 structlog JSON 日志。
@@ -1043,7 +1004,7 @@ src/widget_service/core/logging.py
 位置：
 
 ```text
-src/widget_service/services/json_loader.py
+cloud/services/json_loader.py
 ```
 
 签名：
@@ -1117,7 +1078,8 @@ meta
 
 `GenerateWidgetCardRequest / Response`：卡片生成接口请求和响应。
 
-`ToolDispatchRequest`：统一工具入口请求体。
+`WidgetCardServiceRequest`：最新统一工具入口请求体。
+
 
 ## 12. 新增能力的方法
 
@@ -1131,7 +1093,7 @@ meta
 
 1. 编辑 `event_capabilities.json`。
 2. 补齐 `id`、`call`、`parametersSchema`、`dependencies.requiredIntentTargets`。
-3. 第三个接口里通过 `candidateEventCapabilities` 或 `candidateEventCapabilityIds` 传入。
+3. 第三个接口里通过 `candidateEventCandidates` 传入。
 
 新增素材：
 

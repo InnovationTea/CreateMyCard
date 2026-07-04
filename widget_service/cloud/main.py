@@ -2,7 +2,7 @@ import time
 import uuid
 
 import structlog
-from fastapi import FastAPI, Request, Response, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, Response
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
 from api.routes import router
@@ -13,7 +13,7 @@ def create_app() -> FastAPI:
     """创建 FastAPI 应用实例。
 
     入参：无。
-    出参：配置好路由、日志中间件和 WebSocket 入口的 FastAPI 应用。
+        出参：配置好路由和日志中间件的 FastAPI 应用。
     """
     configure_logging()
     app = FastAPI(
@@ -68,24 +68,6 @@ def create_app() -> FastAPI:
         出参：服务存活状态。
         """
         return {"status": "ok"}
-
-    @app.websocket("/ws")
-    async def websocket_endpoint(websocket: WebSocket) -> None:
-        """通用 WebSocket 冒烟测试入口。
-
-        入参：
-        - websocket：客户端 WebSocket 连接。
-        出参：无；连接建立后先发送 ready 消息，后续回显客户端消息。
-        """
-        # 该入口用于本地冒烟测试，也方便后续替换为团队已有的 WebSocket 启动入口。
-        await websocket.accept()
-        await websocket.send_json({"type": "ready", "service": "widget-service"})
-        try:
-            while True:
-                message = await websocket.receive_json()
-                await websocket.send_json({"type": "echo", "payload": message})
-        except WebSocketDisconnect:
-            return
 
     return app
 
