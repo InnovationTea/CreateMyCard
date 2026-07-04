@@ -1,6 +1,6 @@
 # widgetCardService WebSocket 测试报告
 
-- 生成时间：2026-07-04T10:55:59.392058+00:00
+- 生成时间：2026-07-04T10:58:21.996480+00:00
 - 入口：`WS /api/v1/ws/tools/widgetCardService`
 - ready 状态：`ready`
 - 工具名：`widgetCardService`
@@ -1288,8 +1288,8 @@
   "data": {
     "apiVersion": "v1",
     "status": "success",
-    "artifactUrl": "https://obs.todo.local/widget/1b2ae0846c7b459387e5efbe192699f3.json",
-    "artifactDigest": "sha256:0b0c13b427694ca7698ca18549f2e8b97bac2425e0a6b68a0bf1b903f484ae5b",
+    "artifactUrl": "https://obs.todo.local/widget/962dcfe6f2f64c548b3d5d397854607f.json",
+    "artifactDigest": "sha256:6d8d1446ff7b4d52094071e732911217938e75f3e5669b0e8885e1c745de9d8b",
     "suggestSize": "2x4",
     "userMessage": "已为你生成可用的桌面卡片。",
     "removedCapabilities": [],
