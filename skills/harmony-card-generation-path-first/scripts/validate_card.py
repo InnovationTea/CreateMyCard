@@ -223,11 +223,24 @@ def content_to_string(value: Any, data_model: Any) -> str | None:
 
 def collect_token_colors() -> set[str]:
     script = Path(__file__).resolve()
-    color_file = script.parent.parent / "reference" / "design" / "color-token-system.md"
-    if not color_file.exists():
-        return set()
-    text = color_file.read_text(encoding="utf-8")
+    color_files = [
+        script.parent.parent / "reference" / "design" / "color-token-system.md",
+        script.parent.parent / "reference" / "design" / "color-token-values.md",
+    ]
+    text = ""
+    for color_file in color_files:
+        if color_file.exists():
+            text += "\n" + color_file.read_text(encoding="utf-8")
     return {color.upper() for color in re.findall(r"#[0-9a-fA-F]{6,8}", text)}
+
+
+def collect_asset_sources() -> set[str]:
+    script = Path(__file__).resolve()
+    asset_file = script.parent.parent / "reference" / "design" / "asset-library.md"
+    if not asset_file.exists():
+        return set()
+    text = asset_file.read_text(encoding="utf-8")
+    return set(re.findall(r"`(resources/base/media/[^`]+\.svg)`", text, re.I))
 
 
 def check_protocol(
@@ -302,6 +315,7 @@ def check_components(update: dict[str, Any], data_msg: dict[str, Any], cardspec:
 
     data_model = data_msg.get("value", {})
     token_colors = collect_token_colors()
+    asset_sources = collect_asset_sources()
 
     for comp in components:
         cid = comp.get("id", "<unknown>")
@@ -318,10 +332,16 @@ def check_components(update: dict[str, Any], data_msg: dict[str, Any], cardspec:
             if key.startswith("on") and key != "onClick":
                 reporter.error(f"{cid}: only onClick event is allowed, found {key}.")
             if isinstance(value, str):
+                value_lower = value.lower()
                 if value.startswith("http://") or value.startswith("https://"):
                     reporter.error(f"{cid}: network URL is not allowed at {path}.")
-                if "data:image/svg" in value or value.lower().endswith(".svg"):
-                    reporter.error(f"{cid}: SVG is not allowed at {path}.")
+                if "data:image/svg" in value_lower:
+                    reporter.error(f"{cid}: inline/base64 SVG is not allowed at {path}.")
+                elif value_lower.endswith(".svg"):
+                    if value.startswith("resources/base/media/") and value not in asset_sources:
+                        reporter.error(f"{cid}: SVG path at {path} is not declared in asset-library.md.")
+                    elif not value.startswith("resources/base/media/"):
+                        reporter.warn(f"{cid}: SVG at {path} must be user-provided or declared in asset-library.md.")
                 if key.endswith("Color") or key in {"color", "backgroundColor", "borderColor", "fontColor"}:
                     check_color(value, token_colors, f"{cid}:{path}", reporter)
 

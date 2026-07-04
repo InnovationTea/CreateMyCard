@@ -1,0 +1,144 @@
+{
+  "id": "2x2-bar-dual-metric-action",
+  "size": "2x2",
+  "pattern": "bar-dual-metric-action",
+  "template": "template.genui.jsonl",
+  "cardspec": "cardspec.json",
+  "sourceObservation": "Derived from the usage-warning rendered sample: object header, threshold bar, two compact metrics, and a bottom control/support action.",
+  "layoutSummary": "Header object, horizontal adaptive Progress bar, two side-by-side metrics, bottom action/support pill.",
+  "lockedStructure": {
+    "surface": {
+      "width": 140,
+      "height": 140
+    },
+    "root": {
+      "width": 140,
+      "height": 140,
+      "padding": 12,
+      "borderRadius": 18,
+      "clip": true
+    },
+    "sections": [
+      {
+        "id": "headerRow",
+        "width": 116,
+        "height": 20
+      },
+      {
+        "id": "usageBar",
+        "width": 116,
+        "height": 22
+      },
+      {
+        "id": "metricsRow",
+        "width": 116,
+        "height": 36
+      },
+      {
+        "id": "controlAction",
+        "width": 116,
+        "height": 26
+      }
+    ]
+  },
+  "slots": {
+    "object": {
+      "path": "/card/title",
+      "component": "titleText",
+      "maxCharsCn": 6
+    },
+    "asset.primaryIcon": {
+      "path": "/asset/primaryIcon",
+      "component": "appIcon",
+      "source": "reference/design/asset-library.md"
+    },
+    "progress.value": {
+      "path": "/progress/value",
+      "component": "usageProgress"
+    },
+    "progress.total": {
+      "path": "/progress/total",
+      "component": "usageProgress"
+    },
+    "progress.color": {
+      "path": "/progress/color",
+      "component": "usageProgress"
+    },
+    "metric.1.label": {
+      "path": "/metric/left/label",
+      "component": "leftLabel",
+      "maxCharsCn": 4
+    },
+    "metric.1.value": {
+      "path": "/metric/left/value",
+      "component": "leftValue",
+      "maxCharsCn": 6
+    },
+    "metric.2.label": {
+      "path": "/metric/right/label",
+      "component": "rightLabel",
+      "maxCharsCn": 4
+    },
+    "metric.2.value": {
+      "path": "/metric/right/value",
+      "component": "rightValue",
+      "maxCharsCn": 6
+    },
+    "action.label": {
+      "path": "/action/label",
+      "component": "actionLabel",
+      "maxCharsCn": 6
+    }
+  },
+  "useWhen": [
+    "usage-limit",
+    "quota",
+    "screen-time",
+    "remaining-time",
+    "budget",
+    "threshold-warning"
+  ],
+  "avoidWhen": [
+    "no-threshold-semantics",
+    "more-than-two-metrics",
+    "exact-progress-width-unknown",
+    "primary-value-needs-large-type"
+  ],
+  "allowedEdits": [
+    "bind Progress value, total, and color to DataModel paths",
+    "replace Progress value and total with proven-safe numeric values only for static mock data",
+    "remove action icon",
+    "add onClick to controlAction only with valid event capability"
+  ],
+  "adaptiveProgressGuidance": {
+    "valueModel": "For usage-limit cards, set /progress/total to limitMinutes. If usedMinutes is within limit, set /progress/value to usedMinutes. If usedMinutes exceeds limit, clamp /progress/value to limitMinutes so Progress renders full; expose the overage only as text such as metric.2.value.",
+    "runtimeBinding": "Recompute /usage/overMinutes = max(usedMinutes - limitMinutes, 0), /progress/value = min(usedMinutes, limitMinutes), /progress/total = max(limitMinutes, 1), and /progress/color whenever usage or limit changes. Do not calculate or bind visual widths for this template.",
+    "colors": "Use green or teal for within-limit usage and rose/red for over-limit usage. The over-limit state may turn the Progress color red, while metric text continues to carry the exact exceeded duration.",
+    "structure": "Use a single linear Progress component inside the usageBar slot. Do not add Stack overlays or segmented bars unless the user explicitly asks to visualize the exceeded proportion."
+  },
+  "forbiddenEdits": [
+    "use this as a generic decorative bar",
+    "add a second bar",
+    "duplicate the same time value in both metrics",
+    "calculate visible bar widths from usage durations",
+    "represent exceeded duration as a proportional extra segment"
+  ],
+  "deleteRules": [
+    "If one metric is not real, merge metricsRow into one centered metric; if threshold no longer drives the layout, abandon this template."
+  ],
+  "colorPolicy": {
+    "source": "reference/design/color-token-system.md + color-token-values.md",
+    "budget": "dark neutral surface plus one real status/action signal",
+    "sceneFamily": "background_tertiary / neutral utility",
+    "roles": {
+      "root": "background_tertiary dark (#ff202224)",
+      "foreground": "font_on_primary/secondary on dark surface",
+      "panel": "comp_background_secondary dark glass (#19ffffff) with font_on_tertiary border",
+      "progress": "DataModel color must be a token-backed status/action color such as confirm or brand"
+    },
+    "rewriteRules": [
+      "Do not introduce a second high-saturation foreground on the dark surface.",
+      "Use warning/alert only when the quota is truly warning/alert state."
+    ]
+  }
+}

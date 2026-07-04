@@ -1,0 +1,111 @@
+{
+  "version": "v3",
+  "contract": "Self-contained normalized HarmonyOS A2UI Form layout templates for path-first generation. Select at most one template, then keep size, root shell, region budgets, slot names, and path/formatString binding style stable. Re-decide visible content, DataModel values, icons, colors, and only proven-valid onClick events. Historical observations have been folded into each manifest/sourceObservation; generation must not depend on reading any file outside this skill package.",
+  "sourceAuditSummary": [
+    "Ten rendered samples were reviewed and collapsed into nine distinct layout patterns; battery and sleep share the same side-meter/action structure.",
+    "The historical samples used a different 2x2 canvas size, while this skill validates formal 2x2 templates at 140x140; all formal templates are normalized to 140x140.",
+    "Old DSL patterns using multiple updateComponents messages, data URI images, undeclared SVG, emoji glyphs, or legacy action keys were not copied; only layout relationships and information density were retained.",
+    "Three earlier generic templates were removed from the formal route list because they overlap these more specific patterns: compact meter/fact, generic top-hero pill, and generic paper panel."
+  ],
+  "templates": [
+    {
+      "id": "2x2-meter-side-action",
+      "size": "2x2",
+      "pattern": "meter-side-action",
+      "manifest": "2x2-meter-side-action/manifest.json",
+      "template": "2x2-meter-side-action/template.genui.jsonl",
+      "cardspec": "2x2-meter-side-action/cardspec.json",
+      "useWhen": ["battery", "low-battery", "power-saving", "sleep", "sleep-monitoring", "bedtime-reminder", "progress", "meter", "completion", "habit", "device-status"],
+      "avoidWhen": ["no-progress-semantics", "two-primary-values", "center-label-longer-than-four-chars", "long-fact-list", "two-actions"],
+      "slots": ["object", "asset.primaryIcon", "progress.value", "progress.total", "primary.value", "primary.caption", "support.1", "support.2", "asset.actionIcon", "action.label"]
+    },
+    {
+      "id": "2x2-multi-meter-action",
+      "size": "2x2",
+      "pattern": "multi-meter-action",
+      "manifest": "2x2-multi-meter-action/manifest.json",
+      "template": "2x2-multi-meter-action/template.genui.jsonl",
+      "cardspec": "2x2-multi-meter-action/cardspec.json",
+      "useWhen": ["phone-status", "device-health", "cleanup", "multi-device", "memory", "storage"],
+      "avoidWhen": ["single-metric-only", "icons-unavailable", "long-labels", "more-than-three-secondary-statuses"],
+      "slots": ["object", "primary.value", "primary.total", "status.1.value", "status.2.value", "status.3.value", "asset.statusIcons", "action.label"]
+    },
+    {
+      "id": "2x2-bar-dual-metric-action",
+      "size": "2x2",
+      "pattern": "bar-dual-metric-action",
+      "manifest": "2x2-bar-dual-metric-action/manifest.json",
+      "template": "2x2-bar-dual-metric-action/template.genui.jsonl",
+      "cardspec": "2x2-bar-dual-metric-action/cardspec.json",
+      "useWhen": ["usage-limit", "quota", "screen-time", "remaining-time", "budget", "threshold-warning"],
+      "avoidWhen": ["no-threshold-semantics", "more-than-two-metrics", "exact-progress-width-unknown", "primary-value-needs-large-type"],
+      "slots": ["object", "asset.primaryIcon", "progress.value", "progress.total", "progress.color", "metric.1.label", "metric.1.value", "metric.2.label", "metric.2.value", "action.label"]
+    },
+    {
+      "id": "2x2-countdown-panel",
+      "size": "2x2",
+      "pattern": "countdown-panel",
+      "manifest": "2x2-countdown-panel/manifest.json",
+      "template": "2x2-countdown-panel/template.genui.jsonl",
+      "cardspec": "2x2-countdown-panel/cardspec.json",
+      "useWhen": ["countdown", "race", "deadline", "price-day-count", "step-goal", "limited-time"],
+      "avoidWhen": ["primary-value-longer-than-two-digits", "needs-action-and-two-facts", "date-range-is-primary"],
+      "slots": ["object", "asset.primaryIcon", "primary.tens", "primary.ones", "primary.unit", "support.label", "support.value"]
+    },
+    {
+      "id": "2x2-meeting-action-badge",
+      "size": "2x2",
+      "pattern": "meeting-action-badge",
+      "manifest": "2x2-meeting-action-badge/manifest.json",
+      "template": "2x2-meeting-action-badge/template.genui.jsonl",
+      "cardspec": "2x2-meeting-action-badge/cardspec.json",
+      "useWhen": ["meeting", "calendar", "appointment", "event", "class", "reservation"],
+      "avoidWhen": ["long-agenda", "multiple-meetings", "needs-two-actions", "no-short-badge-value"],
+      "slots": ["object", "primary.title", "primary.meta", "support.1", "badge.value", "action.label"]
+    },
+    {
+      "id": "2x2-product-stat-tiles",
+      "size": "2x2",
+      "pattern": "product-stat-tiles",
+      "manifest": "2x2-product-stat-tiles/manifest.json",
+      "template": "2x2-product-stat-tiles/template.genui.jsonl",
+      "cardspec": "2x2-product-stat-tiles/cardspec.json",
+      "useWhen": ["earbuds", "wearable", "device-product", "media-access", "connected-device", "product-status"],
+      "avoidWhen": ["product-image-unavailable", "long-product-name", "more-than-two-tiles", "critical-action-required"],
+      "slots": ["object", "asset.productImage", "support.1", "support.2", "tile.1.label", "tile.1.value", "tile.2.label", "tile.2.value"]
+    },
+    {
+      "id": "2x2-quadrant-ambient-action",
+      "size": "2x2",
+      "pattern": "quadrant-ambient-action",
+      "manifest": "2x2-quadrant-ambient-action/manifest.json",
+      "template": "2x2-quadrant-ambient-action/template.genui.jsonl",
+      "cardspec": "2x2-quadrant-ambient-action/cardspec.json",
+      "useWhen": ["care", "weather-plus-action", "contact", "commute", "environment-alert", "quick-call"],
+      "avoidWhen": ["long-text", "no-icon-action", "more-than-one-support-card", "requires-precise-table"],
+      "slots": ["primary.value", "primary.caption", "object", "asset.primaryIcon", "support.label", "support.value", "asset.actionIcon"]
+    },
+    {
+      "id": "2x2-spotlight-context-action",
+      "size": "2x2",
+      "pattern": "spotlight-context-action",
+      "manifest": "2x2-spotlight-context-action/manifest.json",
+      "template": "2x2-spotlight-context-action/template.genui.jsonl",
+      "cardspec": "2x2-spotlight-context-action/cardspec.json",
+      "useWhen": ["weather", "commute", "taxi", "spotlight-status", "single-event-context", "alert-with-action"],
+      "avoidWhen": ["long-context-title", "two-primary-values", "multiple-actions", "no-clear-context-card"],
+      "slots": ["asset.primaryIcon", "primary.value", "primary.caption", "support.title", "support.meta", "action.label"]
+    },
+    {
+      "id": "2x2-stacked-schedule-action",
+      "size": "2x2",
+      "pattern": "stacked-schedule-action",
+      "manifest": "2x2-stacked-schedule-action/manifest.json",
+      "template": "2x2-stacked-schedule-action/template.genui.jsonl",
+      "cardspec": "2x2-stacked-schedule-action/cardspec.json",
+      "useWhen": ["next-schedule", "focus-mode", "meeting-reminder", "single-event", "class-reminder"],
+      "avoidWhen": ["needs-room-and-participants", "multiple-events", "very-long-event-title", "time-range-longer-than-11-chars"],
+      "slots": ["object", "primary.title", "primary.time", "support.1", "action.label"]
+    }
+  ]
+}

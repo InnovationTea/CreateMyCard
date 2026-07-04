@@ -1,0 +1,123 @@
+{
+  "id": "2x2-multi-meter-action",
+  "size": "2x2",
+  "pattern": "multi-meter-action",
+  "template": "template.genui.jsonl",
+  "cardspec": "cardspec.json",
+  "sourceObservation": "Derived from the phone-status rendered sample: three compact status rings on top, one larger primary ring/value row, and a bottom action/support pill.",
+  "layoutSummary": "Top row of three compact ring statuses, middle primary ring plus value, bottom action/support pill.",
+  "lockedStructure": {
+    "surface": {
+      "width": 140,
+      "height": 140
+    },
+    "root": {
+      "width": 140,
+      "height": 140,
+      "padding": 12,
+      "borderRadius": 18,
+      "clip": true
+    },
+    "sections": [
+      {
+        "id": "topMeters",
+        "width": 116,
+        "height": 28
+      },
+      {
+        "id": "mainStatusRow",
+        "width": 116,
+        "height": 50
+      },
+      {
+        "id": "actionPill",
+        "width": 116,
+        "height": 26
+      }
+    ]
+  },
+  "slots": {
+    "object": {
+      "path": "/card/title",
+      "component": "memoryTitle",
+      "maxCharsCn": 5
+    },
+    "primary.value": {
+      "path": "/primary/value",
+      "component": "memoryValue",
+      "maxChars": 3
+    },
+    "primary.total": {
+      "path": "/primary/total",
+      "component": "memoryRing"
+    },
+    "status.1.value": {
+      "path": "/status/one/value",
+      "component": "meterOneRing"
+    },
+    "status.2.value": {
+      "path": "/status/two/value",
+      "component": "meterTwoRing"
+    },
+    "status.3.value": {
+      "path": "/status/three/value",
+      "component": "meterThreeRing"
+    },
+    "asset.statusIcons": {
+      "paths": [
+        "/asset/oneIcon",
+        "/asset/twoIcon",
+        "/asset/threeIcon",
+        "/asset/mainIcon"
+      ],
+      "source": "reference/design/asset-library.md"
+    },
+    "action.label": {
+      "path": "/action/label",
+      "component": "actionLabel",
+      "maxCharsCn": 5
+    }
+  },
+  "useWhen": [
+    "phone-status",
+    "device-health",
+    "cleanup",
+    "multi-device",
+    "memory",
+    "storage"
+  ],
+  "avoidWhen": [
+    "single-metric-only",
+    "icons-unavailable",
+    "long-labels",
+    "more-than-three-secondary-statuses"
+  ],
+  "allowedEdits": [
+    "delete one top meter and redistribute spacing",
+    "replace icons through DataModel",
+    "add onClick to actionPill only with valid event capability"
+  ],
+  "forbiddenEdits": [
+    "add labels under top meters",
+    "add a second action",
+    "use the small rings as duplicate facts already shown in primary.value"
+  ],
+  "deleteRules": [
+    "If fewer than two secondary statuses are real, use 2x2-meter-side-action instead."
+  ],
+  "colorPolicy": {
+    "source": "reference/design/color-token-system.md + color-token-values.md",
+    "budget": "one teal device/health family plus confirm action/status signal",
+    "sceneFamily": "multi_color_03 / multi_color_aux_03 teal",
+    "roles": {
+      "rootGradient": "multi_color_03 and multi_color_aux_03 teal stops",
+      "smallRings": "confirm only when statuses are healthy/available",
+      "primaryRing": "font_on_primary to avoid adding a second hue family",
+      "action": "confirm only for cleanup/connect/available action"
+    },
+    "rewriteRules": [
+      "Do not mix purple or brand-blue rings into this teal template.",
+      "If statuses are not positive, remap status rings from confirm to a neutral/on-color treatment."
+    ]
+  }
+}
