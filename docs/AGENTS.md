@@ -2,6 +2,24 @@
 
 本文档面向参与本项目开发的工程师和 AI 编码助手。目标是把 `docs/云侧方案设计.md` 中已经确定的边界固化为开发约束，避免实现时把职责重新揉回主 Agent，或让微服务、A2UI 模型、端侧之间的契约漂移。
 
+## 项目背景
+
+本项目服务于小艺 App 的 AI 卡片生成功能。小艺 App 已具备对话式 Agent 能力，用户可以通过自然语言让 Agent 完成任务。本项目要在现有对话链路上扩展“创建桌面卡片”能力：用户输入需求描述，例如“帮我做一个通勤日常卡片，包含今天天气和今日会议”，云侧生成可在端侧预览和添加到桌面的 HarmonyOS A2UI Form 卡片。
+
+本文档中提到的“App”“宿主 App”“小艺 App”均指小艺 App，除非上下文明确说明为天气、日历、运动健康等被调用的一方应用。
+
+目标链路是：
+
+```text
+用户在小艺 App 发起卡片生成请求
+ -> 主 Agent 识别场景并选择候选能力
+ -> 微服务按用户设备实际能力裁决并生成 artifact
+ -> 端侧下载 artifact，渲染 DSL 并持久化 DSL + CardSpec
+ -> 卡片运行时按 CardSpec 调端侧数据能力刷新 DataModel
+```
+
+一期重点只覆盖一方应用和系统能力，例如天气、日历、系统设置、运动健康等。三方 App 数据、跨端数据和复杂页面型需求不作为默认动态能力支持，必须通过能力注册表明确声明后才能生成动态 CardSpec。
+
 ## 最高优先级
 
 开发时按以下优先级处理冲突：
@@ -446,9 +464,6 @@ fontSize
       "daily": [],
       "updatedAt": ""
     }
-  },
-  "state": {
-    "loading": true
   }
 }
 ```
@@ -465,16 +480,14 @@ romVersion + appVersion + xiaoyiVersion
  -> 组件白名单、属性白名单、尺寸、绑定策略、事件策略、素材策略
 ```
 
-第一期默认遵循 `harmony-card-generation-path-first` 口径：
+第一期默认遵循：
 
 - `2x2`: `140 x 140`
 - `2x4`: `300 x 140`
 - `catalogId`: `ohos.a2ui.extended.catalog`
 - `version`: `v0.9`
 - 只允许组件：`Text`、`Image`、`Divider`、`Progress`、`Button`、`Checkbox`、`Row`、`Column`、`List`、`Stack`
-- 优先使用 `{ "path": "/..." }` 和 `formatString`
-- 表达式仅作为兜底
-- 禁止网络图、SVG、emoji、未声明事件和禁用组件
+- 禁止网络图、未声明事件和禁用组件
 
 ## A2UI 模型输入
 
@@ -518,8 +531,7 @@ A2UI 模型输出只接受一个 `genui` 代码块，且恰好三行 JSONL：
   "meta": {
     "protocolProfileId": "a2ui-form-rom7-v1",
     "capabilityRegistryVersion": "2026-07-03",
-    "createdAt": 1780000000000,
-    "digest": "sha256:xxx"
+    "createdAt": 1780000000000
   }
 }
 ```
