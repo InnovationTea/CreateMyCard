@@ -10,6 +10,24 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CLOUD_ROOT = PROJECT_ROOT / "cloud"
 REPORT_DIR = PROJECT_ROOT / "test_reports"
 REPORT_PATH = REPORT_DIR / "widget_card_service_ws_report.md"
+TOOL_CONTEXT = {
+    "uid": "test-user-001",
+    "locale": "zh-CN",
+    "appVersion": "1.0.0",
+    "romVersion": "7.0.0",
+    "xiaoyiVersion": "1.0.0",
+    "device": {
+        "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
+        "deviceType": "ALN-AL00",
+        "sysVersion": "HarmonyOS 7.0.0",
+        "deviceName": "phone",
+        "odid": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
+        "udid": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
+        "romVersion": "ALN-AL00 7.0.0.36",
+        "marketingName": "HUAWEI Mate 60 Pro",
+        "ohosApiVersion": 36,
+    },
+}
 
 if str(CLOUD_ROOT) not in sys.path:
     sys.path.insert(0, str(CLOUD_ROOT))
@@ -100,11 +118,12 @@ def test_widget_card_service_complete_flow():
 
         overview_request = {
             "requestId": "overview-1",
-            "arguments": {"operation": "getWidgetCapabilityOverview"},
+            "arguments": {
+                **TOOL_CONTEXT,
+                "operation": "getWidgetCapabilityOverview",
+            },
         }
-        websocket.send_json(
-            overview_request
-        )
+        websocket.send_json(overview_request)
         overview_message = websocket.receive_json()
         overview = overview_message["data"]
         assert overview_message["type"] == "result"
@@ -127,13 +146,12 @@ def test_widget_card_service_complete_flow():
         schema_request = {
             "requestId": "schema-1",
             "arguments": {
+                **TOOL_CONTEXT,
                 "operation": "getDataCapabilitySchemas",
                 "dataCapabilityIds": ["ViewWeather"],
             },
         }
-        websocket.send_json(
-            schema_request
-        )
+        websocket.send_json(schema_request)
         schema_message = websocket.receive_json()
         schema = schema_message["data"]
         assert schema_message["type"] == "result"
@@ -155,6 +173,7 @@ def test_widget_card_service_complete_flow():
         generate_request = {
             "requestId": "generate-1",
             "arguments": {
+                **TOOL_CONTEXT,
                 "operation": "generateWidgetCard",
                 "userQuery": "帮我做通勤卡片，包含天气",
                 "size": "2x4",
@@ -177,9 +196,7 @@ def test_widget_card_service_complete_flow():
                 "candidateAssetIds": ["asset.drop_1"],
             },
         }
-        websocket.send_json(
-            generate_request
-        )
+        websocket.send_json(generate_request)
         generate_message = websocket.receive_json()
         generated = generate_message["data"]
         assert generate_message["type"] == "result"

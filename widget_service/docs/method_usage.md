@@ -99,6 +99,16 @@ WS /api/v1/ws/tools/widgetCardService
 {
   "requestId": "overview-1",
   "arguments": {
+    "uid": "test-user-001",
+    "appVersion": "1.0.0",
+    "romVersion": "7.0.0",
+    "xiaoyiVersion": "1.0.0",
+    "device": {
+      "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
+      "deviceType": "ALN-AL00",
+      "romVersion": "ALN-AL00 7.0.0.36",
+      "ohosApiVersion": 36
+    },
     "operation": "getWidgetCapabilityOverview"
   }
 }
@@ -142,11 +152,18 @@ curl http://127.0.0.1:8000/health
 {
   "requestId": "overview-1",
   "arguments": {
+    "uid": "test-user-001",
     "operation": "getWidgetCapabilityOverview",
     "locale": "zh-CN",
     "appVersion": "1.0.0",
     "romVersion": "7.0.0",
     "xiaoyiVersion": "1.0.0",
+    "device": {
+      "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
+      "deviceType": "ALN-AL00",
+      "romVersion": "ALN-AL00 7.0.0.36",
+      "ohosApiVersion": 36
+    },
     "capabilityRegistryVersion": "app-1.0.0_rom-7.0.0"
   }
 }
@@ -187,7 +204,17 @@ curl http://127.0.0.1:8000/health
 {
   "requestId": "schema-1",
   "arguments": {
+    "uid": "test-user-001",
     "operation": "getDataCapabilitySchemas",
+    "appVersion": "1.0.0",
+    "romVersion": "7.0.0",
+    "xiaoyiVersion": "1.0.0",
+    "device": {
+      "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
+      "deviceType": "ALN-AL00",
+      "romVersion": "ALN-AL00 7.0.0.36",
+      "ohosApiVersion": 36
+    },
     "dataCapabilityIds": ["ViewWeather", "calendar.events.search"],
     "capabilityRegistryVersion": "app-1.0.0_rom-7.0.0"
   }
@@ -233,12 +260,19 @@ curl http://127.0.0.1:8000/health
 {
   "requestId": "generate-1",
   "arguments": {
+    "uid": "test-user-001",
     "operation": "generateWidgetCard",
     "userQuery": "帮我做通勤卡片，包含天气和今日日程",
     "size": "2x4",
     "appVersion": "1.0.0",
     "romVersion": "7.0.0",
     "xiaoyiVersion": "1.0.0",
+    "device": {
+      "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
+      "deviceType": "ALN-AL00",
+      "romVersion": "ALN-AL00 7.0.0.36",
+      "ohosApiVersion": 36
+    },
     "protocolProfileId": "a2ui-form-rom7-v1",
     "candidateDataBindings": [
       {
@@ -494,6 +528,16 @@ _build_artifact(...) -> WidgetArtifact
 cloud/services/capability_registry.py
 ```
 
+### 5.2 IDSClient
+
+位置：
+
+```text
+cloud/services/ids_client.py
+```
+
+用途：封装 IDS 查询与 mock IDS 响应解析，输出稳定的 `IDSDeviceCapabilityState`。当前读取 `docs/ids_res.txt`；后续接真实 IDS 时优先替换这个客户端，`DeviceCapabilityResolver` 不直接读取 IDS 文件。
+
 构造：
 
 ```python
@@ -652,24 +696,24 @@ resolve_event_candidates(
 
 用途：过滤点击事件候选。点击事件不会进入 CardSpec，只进入 TaskSpec 的 `eventCandidates`。
 
-### 6.3 DeviceCapabilityResolver._load_ids_state
+### 6.3 IDSClient.get_device_capability_state
 
 签名：
 
 ```python
-_load_ids_state() -> dict[str, Any]
+get_device_capability_state() -> IDSDeviceCapabilityState
 ```
 
-用途：读取 `docs/ids_res.txt`，转换为内部判断用的结构：
+用途：读取 mock IDS 响应并转换为内部判断用的结构：
 
 ```text
-installed_apps
-providers
-intent_targets
-permissions
+installed_apps    已安装应用包名与版本
+providers         设备可用 provider 集合
+intent_targets    设备可用 intent target 集合
+permissions       设备权限状态
 ```
 
-当前默认补了一批一方能力 provider/intent，方便 mock 流程跑通。后续接真实 IDS 时替换这里或抽出 IDSClient。
+当前默认补了一批一方能力 provider/intent，方便 mock 流程跑通。后续接真实 IDS 时优先替换 `IDSClient`，不需要让 `DeviceCapabilityResolver` 直接读取 IDS 文件。
 
 ### 6.4 DeviceCapabilityResolver._check_common_dependencies
 

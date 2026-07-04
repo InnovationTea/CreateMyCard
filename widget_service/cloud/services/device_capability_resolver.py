@@ -4,12 +4,11 @@ from typing import Any
 from jsonschema import Draft202012Validator
 from packaging.version import InvalidVersion, Version
 
-from core.config import get_settings
 from core.errors import ErrorCode
 from models.capability import DataCapability, RemovedCapability
 from models.generation import CandidateDataBinding, EventAction
 from services.capability_registry import CapabilityRegistry
-from services.json_loader import load_json
+from services.ids_client import IDSClient, IDSDeviceCapabilityState
 
 
 class DeviceCapabilityResolver:
@@ -23,7 +22,8 @@ class DeviceCapabilityResolver:
         出参：无。
         """
         self.registry = registry
-        self.settings = get_settings()
+        # IDSClient 负责屏蔽 mock IDS 与未来真实 IDS 的差异，Resolver 只处理能力裁决。
+        self.ids_client = IDSClient()
 
     def resolve_data_bindings(
         self,
@@ -41,7 +41,8 @@ class DeviceCapabilityResolver:
         - xiaoyi_version：当前小艺版本。
         出参：有效数据绑定、有效数据能力定义、被移除能力列表。
         """
-        ids_state = self._load_ids_state()
+        # 先获取设备侧真实能力快照，再用这份快照裁剪主 Agent 传入的候选能力。
+        ids_state = self.ids_client.get_device_capability_state()
         effective_bindings: list[CandidateDataBinding] = []
         effective_capabilities: list[DataCapability] = []
         removed: list[RemovedCapability] = []
@@ -53,6 +54,7 @@ class DeviceCapabilityResolver:
                 removed.append(self._removed(binding.capabilityId, ErrorCode.UNKNOWN_CAPABILITY))
                 continue
 
+            # 统一检查 ROM/App/小艺版本、安装包、provider、intent 和权限依赖。
             reason = self._check_common_dependencies(
                 capability, rom_version, app_version, xiaoyi_version, ids_state
             )
@@ -60,16 +62,19 @@ class DeviceCapabilityResolver:
                 removed.append(self._removed(binding.capabilityId, reason))
                 continue
 
+            # 参数必须符合能力注册表声明的 inputSchema，否则不允许进入最终 CardSpec。
             if not self._valid_arguments(binding.arguments, capability.inputSchema):
                 removed.append(self._removed(binding.capabilityId, ErrorCode.INVALID_ARGUMENTS))
                 continue
 
+            # 主 Agent 可显式指定写入路径；未指定时使用能力注册表默认路径。
             write_result_to = binding.writeResultTo or capability.defaultWriteResultTo
             # CardSpec 数据写入路径必须位于 /data/ 下，方便 DSL 绑定路径可追踪。
             if write_result_to is None or not write_result_to.startswith("/data/"):
                 removed.append(self._removed(binding.capabilityId, ErrorCode.INVALID_ARGUMENTS))
                 continue
 
+            # 这里重新封装 CandidateDataBinding，确保后续 CardSpec 使用的是微服务裁决后的写入路径。
             effective_bindings.append(
                 CandidateDataBinding(
                     capabilityId=binding.capabilityId,
@@ -79,6 +84,7 @@ class DeviceCapabilityResolver:
             )
             effective_capabilities.append(capability)
 
+        # 不同能力写入同一路径会让 DataModel 覆盖，必须在最终 CardSpec 生成前剔除。
         conflict_id = self._find_write_result_conflict(effective_bindings)
         if conflict_id:
             effective_bindings = [
@@ -107,110 +113,31 @@ class DeviceCapabilityResolver:
         - xiaoyi_version：当前小艺版本。
         出参：有效事件动作列表、被移除事件能力列表。
         """
-        ids_state = self._load_ids_state()
+        # 事件能力和数据能力使用同一份 IDS 状态，确保能力裁决口径一致。
+        ids_state = self.ids_client.get_device_capability_state()
         removed: list[RemovedCapability] = []
         effective: list[EventAction] = []
 
         for candidate in candidates:
             capability_id = candidate.id
             if capability_id:
+                # 事件候选必须能在事件能力注册表里找到，否则不能进入 TaskSpec。
                 event_capability = self.registry.get_event_capability(capability_id)
                 if event_capability is None:
                     removed.append(
                         self._removed(capability_id, ErrorCode.UNKNOWN_CAPABILITY, "event")
                     )
                     continue
+                # 事件能力同样需要经过版本、安装包、intent target 等依赖检查。
                 reason = self._check_common_dependencies(
                     event_capability, rom_version, app_version, xiaoyi_version, ids_state
                 )
                 if reason is not None:
                     removed.append(self._removed(capability_id, reason, "event"))
                     continue
+            # 通过过滤后的事件动作会进入模型 TaskSpec，供 DSL 绑定 onClick 行为。
             effective.append(candidate)
         return effective, removed
-
-    def _load_ids_state(self) -> dict[str, Any]:
-        """读取并转换 IDS mock 响应。
-
-        入参：无。
-        出参：包含已安装应用、provider、intent 和权限状态的内部结构。
-        """
-        # docs/ids_res.txt 是模拟 IDS 响应；后续接真实 IDS 时可替换这里并保持返回结构稳定。
-        path = self.settings.resolved_mock_ids_response_path
-        if not path.exists():
-            return {
-                "installed_apps": {},
-                "providers": set(),
-                "intent_targets": set(),
-                "permissions": {},
-            }
-
-        payload = load_json(path)
-        installed_apps: dict[str, str] = {}
-        providers: set[str] = set()
-        intent_targets: set[str] = set()
-        permissions: dict[str, str] = {}
-
-        for namespace in payload.get("nameSpaces", []):
-            data_type = namespace.get("dataType", "")
-            values = namespace.get("values", [])
-            if data_type == "t_ids_kv_ohos_installed_apps":
-                for value in values:
-                    data = value.get("data", {})
-                    bundle_name = data.get("bundleName")
-                    version_name = data.get("versionName", "0.0.0")
-                    if bundle_name:
-                        installed_apps[bundle_name] = version_name
-            elif "provider" in data_type.lower():
-                providers.update(self._collect_ids(values, "provider"))
-            elif "intent" in data_type.lower():
-                intent_targets.update(self._collect_ids(values, "intent"))
-            elif "permission" in data_type.lower():
-                for value in values:
-                    data = value.get("data", {})
-                    permission = data.get("permission") or data.get("name")
-                    status = data.get("status")
-                    if permission and status:
-                        permissions[permission] = status
-
-        default_providers = {
-            # 模拟阶段默认认为一方应用和系统能力提供方可用。
-            "UG.weather.current",
-            "UG.weather.forecast",
-            "UG.calendar.events.search",
-            "UG.system.battery.status",
-            "UG.health.sleep.summary",
-        }
-        default_intents = {
-            "OpenWeather",
-            "ViewCalendarEvent",
-            "StartNavigate",
-            "SetSettingSwitch",
-            "OpenPowerSaving",
-            "OpenHealth",
-        }
-        return {
-            "installed_apps": installed_apps,
-            "providers": providers | default_providers,
-            "intent_targets": intent_targets | default_intents,
-            "permissions": permissions,
-        }
-
-    def _collect_ids(self, values: list[dict[str, Any]], key_hint: str) -> set[str]:
-        """从 IDS values 中按字段名特征收集 ID。
-
-        入参：
-        - values：IDS 命名空间下的 values 列表。
-        - key_hint：字段名关键词，例如 provider 或 intent。
-        出参：收集到的 ID 集合。
-        """
-        result: set[str] = set()
-        for value in values:
-            data = value.get("data", {})
-            for key, item in data.items():
-                if key_hint.lower() in key.lower() and isinstance(item, str):
-                    result.add(item)
-        return result
 
     def _check_common_dependencies(
         self,
@@ -218,7 +145,7 @@ class DeviceCapabilityResolver:
         rom_version: str,
         app_version: str,
         xiaoyi_version: str,
-        ids_state: dict[str, Any],
+        ids_state: IDSDeviceCapabilityState,
     ) -> ErrorCode | None:
         """检查能力通用依赖。
 
@@ -231,6 +158,7 @@ class DeviceCapabilityResolver:
         出参：不可用原因错误码；全部满足时返回 None。
         """
         dependencies = capability.dependencies
+        # 版本门禁先判断，避免低版本设备进入后续更重的 IDS 依赖判断。
         if dependencies.minRomVersion and not self._version_gte(
             rom_version, dependencies.minRomVersion
         ):
@@ -244,7 +172,7 @@ class DeviceCapabilityResolver:
         ):
             return ErrorCode.APP_VERSION_UNSUPPORTED
 
-        installed_apps = ids_state["installed_apps"]
+        installed_apps = ids_state.installed_apps
         for package in dependencies.requiredPackages:
             installed_version = installed_apps.get(package.packageName)
             if installed_version is None:
@@ -252,18 +180,19 @@ class DeviceCapabilityResolver:
             if package.minVersion and not self._version_gte(installed_version, package.minVersion):
                 return ErrorCode.PACKAGE_VERSION_TOO_LOW
 
-        providers = ids_state["providers"]
+        providers = ids_state.providers
         for provider in dependencies.requiredProviders:
             if provider not in providers:
                 return ErrorCode.PROVIDER_NOT_FOUND
 
-        intent_targets = ids_state["intent_targets"]
+        intent_targets = ids_state.intent_targets
         for target in dependencies.requiredIntentTargets:
             if target not in intent_targets:
                 return ErrorCode.INTENT_TARGET_NOT_FOUND
 
-        permissions = ids_state["permissions"]
+        permissions = ids_state.permissions
         for permission in dependencies.requiredPermissions:
+            # IDS 未返回权限时先按 GRANTED 处理，避免 mock 阶段误杀无权限声明的一方能力。
             status = permissions.get(permission, "GRANTED")
             if status == "DENIED":
                 return ErrorCode.PERMISSION_DENIED
@@ -282,6 +211,7 @@ class DeviceCapabilityResolver:
         """
         if not schema:
             return True
+        # 使用标准 JSON Schema 校验，避免手写参数判断和注册表声明不一致。
         validator = Draft202012Validator(schema)
         return not list(validator.iter_errors(arguments))
 
@@ -298,6 +228,7 @@ class DeviceCapabilityResolver:
             normalized = path.rstrip("/")
             for other_id, other_path in paths[index + 1 :]:
                 other_normalized = other_path.rstrip("/")
+                # 同一路径、父路径、子路径都视为冲突，防止一个能力覆盖另一个能力的数据树。
                 if (
                     normalized == other_normalized
                     or normalized.startswith(other_normalized + "/")
@@ -317,8 +248,10 @@ class DeviceCapabilityResolver:
         current = self._extract_version(current)
         minimum = self._extract_version(minimum)
         try:
+            # 优先走 packaging.version，能正确处理常规语义化版本比较。
             return Version(current) >= Version(minimum)
         except InvalidVersion:
+            # 非标准版本兜底做字符串比较，保证异常版本不会打断整条生成链路。
             return current >= minimum
 
     def _extract_version(self, value: str) -> str:

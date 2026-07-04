@@ -1,6 +1,6 @@
 # widgetCardService WebSocket 测试报告
 
-- 生成时间：2026-07-04T10:58:21.996480+00:00
+- 生成时间：2026-07-04T11:35:31.137696+00:00
 - 入口：`WS /api/v1/ws/tools/widgetCardService`
 - ready 状态：`ready`
 - 工具名：`widgetCardService`
@@ -32,6 +32,22 @@
 {
   "requestId": "overview-1",
   "arguments": {
+    "uid": "test-user-001",
+    "locale": "zh-CN",
+    "appVersion": "1.0.0",
+    "romVersion": "7.0.0",
+    "xiaoyiVersion": "1.0.0",
+    "device": {
+      "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
+      "deviceType": "ALN-AL00",
+      "sysVersion": "HarmonyOS 7.0.0",
+      "deviceName": "phone",
+      "odid": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
+      "udid": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
+      "romVersion": "ALN-AL00 7.0.0.36",
+      "marketingName": "HUAWEI Mate 60 Pro",
+      "ohosApiVersion": 36
+    },
     "operation": "getWidgetCapabilityOverview"
   }
 }
@@ -1053,6 +1069,22 @@
 {
   "requestId": "schema-1",
   "arguments": {
+    "uid": "test-user-001",
+    "locale": "zh-CN",
+    "appVersion": "1.0.0",
+    "romVersion": "7.0.0",
+    "xiaoyiVersion": "1.0.0",
+    "device": {
+      "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
+      "deviceType": "ALN-AL00",
+      "sysVersion": "HarmonyOS 7.0.0",
+      "deviceName": "phone",
+      "odid": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
+      "udid": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
+      "romVersion": "ALN-AL00 7.0.0.36",
+      "marketingName": "HUAWEI Mate 60 Pro",
+      "ohosApiVersion": 36
+    },
     "operation": "getDataCapabilitySchemas",
     "dataCapabilityIds": [
       "ViewWeather"
@@ -1246,6 +1278,22 @@
 {
   "requestId": "generate-1",
   "arguments": {
+    "uid": "test-user-001",
+    "locale": "zh-CN",
+    "appVersion": "1.0.0",
+    "romVersion": "7.0.0",
+    "xiaoyiVersion": "1.0.0",
+    "device": {
+      "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
+      "deviceType": "ALN-AL00",
+      "sysVersion": "HarmonyOS 7.0.0",
+      "deviceName": "phone",
+      "odid": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
+      "udid": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
+      "romVersion": "ALN-AL00 7.0.0.36",
+      "marketingName": "HUAWEI Mate 60 Pro",
+      "ohosApiVersion": 36
+    },
     "operation": "generateWidgetCard",
     "userQuery": "帮我做通勤卡片，包含天气",
     "size": "2x4",
@@ -1288,8 +1336,8 @@
   "data": {
     "apiVersion": "v1",
     "status": "success",
-    "artifactUrl": "https://obs.todo.local/widget/962dcfe6f2f64c548b3d5d397854607f.json",
-    "artifactDigest": "sha256:6d8d1446ff7b4d52094071e732911217938e75f3e5669b0e8885e1c745de9d8b",
+    "artifactUrl": "https://obs.todo.local/widget/75fa903d6fe64695b04bcd0a0ad393f4.json",
+    "artifactDigest": "sha256:10d0bd04e518c8050dd43678c8a91d22408dc24e5fc58ad5d61ccf26bf881a11",
     "suggestSize": "2x4",
     "userMessage": "已为你生成可用的桌面卡片。",
     "removedCapabilities": [],

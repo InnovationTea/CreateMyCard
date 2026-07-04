@@ -36,6 +36,16 @@ Latest tool-style entry:
 {
   "requestId": "overview-1",
   "arguments": {
+    "uid": "test-user-001",
+    "appVersion": "1.0.0",
+    "romVersion": "7.0.0",
+    "xiaoyiVersion": "1.0.0",
+    "device": {
+      "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
+      "deviceType": "ALN-AL00",
+      "romVersion": "ALN-AL00 7.0.0.36",
+      "ohosApiVersion": 36
+    },
     "operation": "getWidgetCapabilityOverview"
   }
 }

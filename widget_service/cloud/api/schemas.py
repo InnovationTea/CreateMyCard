@@ -26,9 +26,11 @@ WidgetCardOperation = Literal[
 
 class VersionedToolRequest(BaseModel):
     locale: str = "zh-CN"
-    appVersion: str = "1.0.0"
-    romVersion: str = "7.0.0"
-    xiaoyiVersion: str = "1.0.0"
+    uid: str
+    device: DeviceContext
+    appVersion: str
+    romVersion: str
+    xiaoyiVersion: str
     capabilityRegistryVersion: str | None = None
     protocolProfileId: str | None = None
 
@@ -83,8 +85,6 @@ class GenerateWidgetCardRequest(VersionedToolRequest):
     candidateEventCandidates: list[CandidateEventCandidate] = Field(default_factory=list)
     candidateAssetIds: list[str] = Field(default_factory=list)
     options: GenerationOptions = Field(default_factory=GenerationOptions)
-    uid: str | None = None
-    device: DeviceContext | None = None
 
 
 class WidgetCardServiceRequest(VersionedToolRequest):
@@ -108,8 +108,6 @@ class WidgetCardServiceRequest(VersionedToolRequest):
     candidateDataBindings: list[CandidateDataBinding] = Field(default_factory=list)
     candidateEventCandidates: list[CandidateEventCandidate] = Field(default_factory=list)
     candidateAssetIds: list[str] = Field(default_factory=list)
-    uid: str | None = None
-    device: DeviceContext | None = None
 
 
 class GenerateWidgetCardResponse(BaseModel):
