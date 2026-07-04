@@ -1,5 +1,5 @@
-from widget_service.api.schemas import DataCapabilitySchemasRequest
-from widget_service.services.widget_generation_service import WidgetGenerationService
+from api.schemas import DataCapabilitySchemasRequest
+from services.widget_generation_service import WidgetGenerationService
 
 
 def test_get_data_capability_schemas_returns_full_schema():

@@ -1,7 +1,7 @@
-from widget_service.api.schemas import GenerateWidgetCardRequest
-from widget_service.core.errors import GenerationStatus
-from widget_service.models.generation import CandidateDataBinding, EventAction, GenerationOptions
-from widget_service.services.widget_generation_service import WidgetGenerationService
+from api.schemas import GenerateWidgetCardRequest
+from core.errors import GenerationStatus
+from models.generation import CandidateDataBinding, EventAction, GenerationOptions
+from services.widget_generation_service import WidgetGenerationService
 
 
 def test_generate_widget_card_success_with_weather_and_calendar():
@@ -26,7 +26,7 @@ def test_generate_widget_card_success_with_weather_and_calendar():
             candidateEventActions=[
                 EventAction(call="clickToDeeplink", args={"uri": "hww://weather"})
             ],
-            candidateAssetIds=["asset.weather.rain", "asset.calendar.schedule"],
+            candidateAssetIds=["asset.drop_1", "asset.calendar_fill"],
             options=GenerationOptions(returnArtifactInline=True),
         )
     )
