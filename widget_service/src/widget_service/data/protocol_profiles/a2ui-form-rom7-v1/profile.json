@@ -1,0 +1,41 @@
+{
+  "id": "a2ui-form-rom7-v1",
+  "version": "v0.9",
+  "catalogId": "ohos.a2ui.extended.catalog",
+  "minRomVersion": "7.0.0",
+  "sizes": {
+    "2x2": {
+      "width": 140,
+      "height": 140
+    },
+    "2x4": {
+      "width": 300,
+      "height": 140
+    }
+  },
+  "componentWhitelist": [
+    "Text",
+    "Image",
+    "Divider",
+    "Progress",
+    "Button",
+    "Checkbox",
+    "Row",
+    "Column",
+    "List",
+    "Stack"
+  ],
+  "styleWhitelist": [
+    "width",
+    "height",
+    "padding",
+    "borderRadius",
+    "clip",
+    "background",
+    "fontSize",
+    "fontWeight",
+    "objectFit"
+  ],
+  "fontSizeSteps": [10, 12, 14, 16, 18, 20, 32, 40],
+  "spacingSteps": [2, 4, 6, 8, 10, 12, 14, 16]
+}

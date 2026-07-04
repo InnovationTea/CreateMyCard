@@ -1,0 +1,67 @@
+[
+  {
+    "id": "event.open.weather",
+    "type": "event",
+    "call": "clickToDeeplink",
+    "description": "打开天气应用",
+    "parametersSchema": {
+      "args": {
+        "bundleName": "string",
+        "abilityName": "string",
+        "uri": "string"
+      }
+    },
+    "dependencies": {
+      "minRomVersion": "7.0.0",
+      "requiredIntentTargets": ["OpenWeather"]
+    }
+  },
+  {
+    "id": "event.viewCalendarEvent",
+    "type": "event",
+    "call": "clickToIntent",
+    "description": "点击日程进入日程详情",
+    "parametersSchema": {
+      "intentName": "ViewCalendarEvent",
+      "params": {
+        "entityId": "string"
+      }
+    },
+    "dependencies": {
+      "minRomVersion": "7.0.0",
+      "requiredIntentTargets": ["ViewCalendarEvent"]
+    }
+  },
+  {
+    "id": "event.open.powerSaving",
+    "type": "event",
+    "call": "clickToIntent",
+    "description": "打开省电设置",
+    "parametersSchema": {
+      "intentName": "OpenPowerSaving"
+    },
+    "dependencies": {
+      "minRomVersion": "7.0.0",
+      "requiredIntentTargets": ["OpenPowerSaving"]
+    }
+  },
+  {
+    "id": "event.open.health",
+    "type": "event",
+    "call": "clickToIntent",
+    "description": "打开运动健康",
+    "parametersSchema": {
+      "intentName": "OpenHealth"
+    },
+    "dependencies": {
+      "minRomVersion": "7.0.0",
+      "requiredPackages": [
+        {
+          "packageName": "com.huawei.hmos.health.core",
+          "minVersion": "16.0.0"
+        }
+      ],
+      "requiredIntentTargets": ["OpenHealth"]
+    }
+  }
+]

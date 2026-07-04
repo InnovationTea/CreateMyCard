@@ -1,0 +1,38 @@
+{
+	"retCode" : 0,
+	"description" : "OK",
+	"nameSpaces" : [{
+			"retCode" : 0,
+			"description" : "OK",
+			"dataType" : "t_ids_kv_ohos_installed_apps",
+			"values" : [ {
+					"data" : {
+						"uid" : "420086000106262610",
+						"odid" : "790d8366-cd45-c4d5-6784-06727a549e61",
+						"appName" : "蓝牙",
+						"bundleName" : "com.android.bluetooth",
+						"updateTime" : "0",
+						"installTime" : "0",
+						"versionName" : "29.1.0.0",
+						"supportDesktopIcon" : "0",
+						"installSource" : "1"
+					},
+					"updateTime" : "0"
+				}, {
+					"data" : {
+						"uid" : "420086000106262610",
+						"odid" : "790d8366-cd45-c4d5-6784-06727a549e61",
+						"appName" : "运动健康服务",
+						"bundleName" : "com.huawei.hmos.health.core",
+						"updateTime" : "1779089895396",
+						"installTime" : "1777084245713",
+						"versionName" : "16.1.4.300",
+						"supportDesktopIcon" : "0",
+						"installSource" : "0"
+					},
+					"updateTime" : "1779089895396"
+				}
+			]
+		}
+	]
+}

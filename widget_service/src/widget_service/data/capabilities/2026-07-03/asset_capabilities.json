@@ -1,0 +1,42 @@
+[
+  {
+    "id": "asset.weather.rain",
+    "type": "asset",
+    "src": "resources/base/media/icon_weather1.png",
+    "description": "天气雨伞图标，适合表达天气信息",
+    "sceneTags": ["weather", "rain"],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.weather.sunny",
+    "type": "asset",
+    "src": "resources/base/media/icon_weather_sunny.png",
+    "description": "晴天图标，适合表达天气信息",
+    "sceneTags": ["weather", "sunny"],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.calendar.schedule",
+    "type": "asset",
+    "src": "resources/base/media/icon_calendar.png",
+    "description": "日程图标，适合表达会议和提醒",
+    "sceneTags": ["calendar", "meeting"],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.battery.low",
+    "type": "asset",
+    "src": "resources/base/media/icon_battery_low.png",
+    "description": "低电量图标，适合表达省电提醒",
+    "sceneTags": ["battery", "power"],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.health.sleep",
+    "type": "asset",
+    "src": "resources/base/media/icon_sleep.png",
+    "description": "睡眠图标，适合表达睡眠监督",
+    "sceneTags": ["health", "sleep"],
+    "minXiaoyiVersion": "1.0.0"
+  }
+]
