@@ -291,6 +291,15 @@ def collect_token_colors() -> set[str]:
     return {color.upper() for color in re.findall(r"#[0-9a-fA-F]{6,8}", text)}
 
 
+def collect_asset_sources() -> set[str]:
+    script = Path(__file__).resolve()
+    asset_file = script.parent.parent / "reference" / "design" / "asset-library.md"
+    if not asset_file.exists():
+        return set()
+    text = asset_file.read_text(encoding="utf-8")
+    return set(re.findall(r"`(resources/base/media/[^`]+\.svg)`", text, re.I))
+
+
 def check_protocol(
     messages: list[dict[str, Any]],
     cardspec: dict[str, Any],
@@ -363,6 +372,7 @@ def check_components(update: dict[str, Any], data_msg: dict[str, Any], cardspec:
 
     data_model = data_msg.get("value", {})
     token_colors = collect_token_colors()
+    asset_sources = collect_asset_sources()
 
     for comp in components:
         cid = comp.get("id", "<unknown>")
@@ -379,10 +389,16 @@ def check_components(update: dict[str, Any], data_msg: dict[str, Any], cardspec:
             if key.startswith("on") and key != "onClick":
                 reporter.error(f"{cid}: only onClick event is allowed, found {key}.")
             if isinstance(value, str):
+                value_lower = value.lower()
                 if value.startswith("http://") or value.startswith("https://"):
                     reporter.error(f"{cid}: network URL is not allowed at {path}.")
-                if "data:image/svg" in value or value.lower().endswith(".svg"):
-                    reporter.error(f"{cid}: SVG is not allowed at {path}.")
+                if "data:image/svg" in value_lower:
+                    reporter.error(f"{cid}: inline/base64 SVG is not allowed at {path}.")
+                elif value_lower.endswith(".svg"):
+                    if value.startswith("resources/base/media/") and value not in asset_sources:
+                        reporter.error(f"{cid}: SVG path at {path} is not declared in asset-library.md.")
+                    elif not value.startswith("resources/base/media/"):
+                        reporter.warn(f"{cid}: SVG at {path} must be user-provided or declared in asset-library.md.")
                 if key.endswith("Color") or key in {"color", "backgroundColor", "borderColor", "fontColor"}:
                     check_color(value, token_colors, f"{cid}:{path}", reporter)
 
@@ -469,21 +485,9 @@ def check_bindings(comp: dict[str, Any], data_model: Any, reporter: Reporter) ->
                 if not ok:
                     reporter.error(f"{cid}: expression path {pointer} at {path} is missing in DataModel.")
         if isinstance(value, dict) and set(value.keys()) == {"path"}:
-            pointer = value["path"]
-            if isinstance(pointer, str) and pointer.startswith("/"):
-                ok, _ = read_pointer(data_model, pointer)
-                if not ok:
-                    reporter.error(f"{cid}: binding path {pointer} at {path} is missing in DataModel.")
+            reporter.error(f"{cid}: path binding object at {path} is not allowed; use a complete {{ ... }} expression.")
         if isinstance(value, dict) and value.get("call") == "formatString":
-            template = value.get("args", {}).get("value")
-            if not isinstance(template, str):
-                reporter.error(f"{cid}: formatString args.value must be a string.")
-                continue
-            for pointer in INTERP_RE.findall(template):
-                if pointer.startswith("/"):
-                    ok, _ = read_pointer(data_model, pointer)
-                    if not ok:
-                        reporter.error(f"{cid}: formatString path {pointer} is missing in DataModel.")
+            reporter.error(f"{cid}: formatString at {path} is not allowed; use a complete {{ ... }} expression.")
 
 
 def check_style(comp: dict[str, Any], token_colors: set[str], reporter: Reporter) -> None:

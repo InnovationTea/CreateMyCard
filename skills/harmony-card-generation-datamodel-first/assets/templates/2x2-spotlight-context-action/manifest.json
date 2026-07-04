@@ -1,0 +1,113 @@
+{
+  "id": "2x2-spotlight-context-action",
+  "size": "2x2",
+  "pattern": "spotlight-context-action",
+  "template": "template.genui.jsonl",
+  "cardspec": "cardspec.json",
+  "sourceObservation": "Derived from the weather/taxi rendered sample: a strong top hero row, one middle context card, and one full-width bottom action.",
+  "layoutSummary": "Hero icon/value row, contextual info panel with accent line, bottom action/support pill.",
+  "lockedStructure": {
+    "surface": {
+      "width": 140,
+      "height": 140
+    },
+    "root": {
+      "width": 140,
+      "height": 140,
+      "padding": 12,
+      "borderRadius": 18,
+      "clip": true
+    },
+    "sections": [
+      {
+        "id": "heroRow",
+        "width": 116,
+        "height": 42
+      },
+      {
+        "id": "contextCard",
+        "width": 116,
+        "height": 36
+      },
+      {
+        "id": "actionPill",
+        "width": 116,
+        "height": 26
+      }
+    ]
+  },
+  "slots": {
+    "asset.primaryIcon": {
+      "path": "/asset/primaryIcon",
+      "component": "primaryIcon",
+      "source": "reference/design/asset-library.md"
+    },
+    "primary.value": {
+      "path": "/primary/value",
+      "component": "primaryValue",
+      "maxChars": 4
+    },
+    "primary.caption": {
+      "path": "/primary/caption",
+      "component": "primaryCaption",
+      "maxChars": 10
+    },
+    "support.title": {
+      "path": "/support/title",
+      "component": "contextTitle",
+      "maxCharsCn": 8
+    },
+    "support.meta": {
+      "path": "/support/meta",
+      "component": "contextMeta",
+      "maxChars": 12
+    },
+    "action.label": {
+      "path": "/action/label",
+      "component": "actionLabel",
+      "maxCharsCn": 6
+    }
+  },
+  "useWhen": [
+    "weather",
+    "commute",
+    "taxi",
+    "spotlight-status",
+    "single-event-context",
+    "alert-with-action"
+  ],
+  "avoidWhen": [
+    "long-context-title",
+    "two-primary-values",
+    "multiple-actions",
+    "no-clear-context-card"
+  ],
+  "allowedEdits": [
+    "delete visualMark and give primaryInfo width 116",
+    "add onClick to actionPill only with valid event capability",
+    "change accent line color within token palette"
+  ],
+  "forbiddenEdits": [
+    "add another context card",
+    "use weather emoji",
+    "repeat primary.value in contextMeta"
+  ],
+  "deleteRules": [
+    "If support.title and support.meta are not both useful, merge contextCard into one support line; if no clear context remains, abandon this template."
+  ],
+  "colorPolicy": {
+    "source": "reference/design/color-token-system.md + color-token-values.md",
+    "budget": "one weather/commute blue scene family plus one brand action",
+    "sceneFamily": "multi_color_02 / multi_color_aux_02 weather blue",
+    "roles": {
+      "rootGradient": "multi_color_02 and multi_color_aux_02 ambient-band stops",
+      "foreground": "font_on_primary/secondary on saturated gradient",
+      "context": "font_on_fourth/tertiary glass material",
+      "action": "brand only for clear open/navigate/detail action"
+    },
+    "rewriteRules": [
+      "Keep context text on-color; do not add a second high-saturation context accent.",
+      "Use neutral action material when the action is only view/details."
+    ]
+  }
+}

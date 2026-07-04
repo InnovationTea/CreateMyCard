@@ -1,0 +1,114 @@
+{
+  "id": "2x2-quadrant-ambient-action",
+  "size": "2x2",
+  "pattern": "quadrant-ambient-action",
+  "template": "template.genui.jsonl",
+  "cardspec": "cardspec.json",
+  "sourceObservation": "Derived from the care-style rendered sample: a full-card ambient surface divided into four quadrants, with a large primary value, small location/status, one fact panel, and one compact action target.",
+  "layoutSummary": "Equal 2x2 quadrant composition over an ambient surface: primary value, status identity, support card, and icon action each occupy a 55 x 55 cell.",
+  "lockedStructure": {
+    "surface": {
+      "width": 140,
+      "height": 140
+    },
+    "root": {
+      "width": 140,
+      "height": 140,
+      "padding": 12,
+      "borderRadius": 18,
+      "clip": true
+    },
+    "sections": [
+      {
+        "id": "topRow",
+        "width": 116,
+        "height": 55
+      },
+      {
+        "id": "bottomRow",
+        "width": 116,
+        "height": 55
+      }
+    ]
+  },
+  "slots": {
+    "primary.value": {
+      "path": "/primary/value",
+      "component": "primaryValue",
+      "maxChars": 3
+    },
+    "primary.caption": {
+      "path": "/primary/caption",
+      "component": "primaryCaption",
+      "maxCharsCn": 5
+    },
+    "object": {
+      "path": "/card/title",
+      "component": "objectText",
+      "maxCharsCn": 5
+    },
+    "asset.primaryIcon": {
+      "path": "/asset/primaryIcon",
+      "component": "statusIcon",
+      "source": "reference/design/asset-library.md"
+    },
+    "support.label": {
+      "path": "/support/label",
+      "component": "supportLabel",
+      "maxCharsCn": 4
+    },
+    "support.value": {
+      "path": "/support/value",
+      "component": "supportValue",
+      "maxCharsCn": 3
+    },
+    "asset.actionIcon": {
+      "path": "/asset/actionIcon",
+      "component": "actionIcon",
+      "source": "reference/design/asset-library.md"
+    }
+  },
+  "useWhen": [
+    "care",
+    "weather-plus-action",
+    "contact",
+    "commute",
+    "environment-alert",
+    "quick-call"
+  ],
+  "avoidWhen": [
+    "long-text",
+    "no-icon-action",
+    "more-than-one-support-card",
+    "requires-precise-table"
+  ],
+  "allowedEdits": [
+    "remove actionCircle if no valid action exists",
+    "replace icons through DataModel",
+    "turn supportCard into non-click support only"
+  ],
+  "forbiddenEdits": [
+    "use base64 backgrounds",
+    "use emoji icons or SVG paths not declared in asset-library",
+    "add a second support card",
+    "place required text on a noisy image without scrim"
+  ],
+  "deleteRules": [
+    "If actionIcon is unavailable, remove actionCircle and widen supportCard to 116."
+  ],
+  "colorPolicy": {
+    "source": "reference/design/color-token-system.md + color-token-values.md",
+    "budget": "one weather/environment blue scene family plus optional confirm action",
+    "sceneFamily": "multi_color_02 / multi_color_aux_02 weather blue",
+    "roles": {
+      "rootGradient": "multi_color_02 and multi_color_aux_02 ambient-band stops",
+      "foreground": "font_on_primary/secondary only; no yellow foreground on saturated blue",
+      "support": "font_on_fourth/tertiary glass material",
+      "action": "confirm only for call/connect/positive action"
+    },
+    "rewriteRules": [
+      "Do not use multi_color_11 yellow as text on the blue gradient.",
+      "If action semantics are unclear, remove actionCircle click behavior and keep it as neutral support."
+    ]
+  }
+}

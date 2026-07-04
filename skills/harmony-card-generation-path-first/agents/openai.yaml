@@ -1,4 +1,4 @@
 interface:
-  display_name: "Harmony Form 卡片生成（Path 优先）"
-  short_description: "使用原始 path/formatString 优先绑定规则生成协议合规的 HarmonyOS A2UI Form 服务卡片。"
-  default_prompt: "使用 $harmony-card-generation-path-first 根据一句话生成 HarmonyOS A2UI Form 服务卡片，优先使用 A2UI 原生 path/formatString 绑定，遵循协议、布局和视觉硬门槛，最后只输出 genui 和 cardspec 代码块。"
+  display_name: "Harmony Form 卡片生成（路径表达）"
+  short_description: "只用 path/formatString 路径表达生成 HarmonyOS Form 卡片。"
+  default_prompt: "使用 $harmony-card-generation-path-first 根据一句话生成 HarmonyOS A2UI Form 服务卡片；只使用 path/formatString 路径表达，遵循硬规则和可验证模板骨架，最后只输出 genui 和 cardspec 代码块。"

@@ -1,0 +1,117 @@
+{
+  "id": "2x2-stacked-schedule-action",
+  "size": "2x2",
+  "pattern": "stacked-schedule-action",
+  "template": "template.genui.jsonl",
+  "cardspec": "cardspec.json",
+  "sourceObservation": "Derived from the focus rendered sample: a compact schedule label, centered title and large time range, one alert line, and one bottom focus/action pill.",
+  "layoutSummary": "Vertical schedule stack optimized for one upcoming event and one action/support pill.",
+  "lockedStructure": {
+    "surface": {
+      "width": 140,
+      "height": 140
+    },
+    "root": {
+      "width": 140,
+      "height": 140,
+      "padding": 12,
+      "borderRadius": 18,
+      "clip": true
+    },
+    "sections": [
+      {
+        "id": "scheduleHeader",
+        "width": 116,
+        "height": 18
+      },
+      {
+        "id": "eventTitle",
+        "width": 116,
+        "height": 18
+      },
+      {
+        "id": "timeText",
+        "width": 116,
+        "height": 24
+      },
+      {
+        "id": "alertRow",
+        "width": 116,
+        "height": 18
+      },
+      {
+        "id": "actionPill",
+        "width": 116,
+        "height": 26
+      }
+    ]
+  },
+  "slots": {
+    "object": {
+      "path": "/card/title",
+      "component": "scheduleLabel",
+      "maxCharsCn": 6
+    },
+    "primary.title": {
+      "path": "/event/title",
+      "component": "eventTitle",
+      "maxCharsCn": 8
+    },
+    "primary.time": {
+      "path": "/event/time",
+      "component": "timeText",
+      "maxChars": 11
+    },
+    "support.1": {
+      "path": "/event/alert",
+      "component": "alertText",
+      "maxCharsCn": 8
+    },
+    "action.label": {
+      "path": "/action/label",
+      "component": "actionText",
+      "maxCharsCn": 5
+    }
+  },
+  "useWhen": [
+    "next-schedule",
+    "focus-mode",
+    "meeting-reminder",
+    "single-event",
+    "class-reminder"
+  ],
+  "avoidWhen": [
+    "needs-room-and-participants",
+    "multiple-events",
+    "very-long-event-title",
+    "time-range-longer-than-11-chars"
+  ],
+  "allowedEdits": [
+    "delete alertRow and increase eventTitle height when alert is unavailable",
+    "replace icons through DataModel",
+    "add onClick to actionPill only with valid event capability"
+  ],
+  "forbiddenEdits": [
+    "add a second event",
+    "split one event into repeated labels",
+    "show time twice under different labels"
+  ],
+  "deleteRules": [
+    "If event.title exceeds the protected width, shorten title; if it still cannot fit, abandon this 2x2 template and re-evaluate size/layout through the normal rules."
+  ],
+  "colorPolicy": {
+    "source": "reference/design/color-token-system.md + color-token-values.md",
+    "budget": "one temporal orange scene family plus neutral glass action",
+    "sceneFamily": "multi_color_09 / multi_color_aux_09 schedule orange",
+    "roles": {
+      "rootGradient": "multi_color_09 and multi_color_aux_09 temporal-band stops",
+      "foreground": "font_on_primary/secondary on saturated gradient",
+      "alertLine": "on-color support text unless the event is truly warning/alert",
+      "action": "font_on_fourth/tertiary glass material by default"
+    },
+    "rewriteRules": [
+      "Do not use yellow or alert color for ordinary reminder text.",
+      "Use warning/alert only for genuine risk states, not normal meeting reminders."
+    ]
+  }
+}

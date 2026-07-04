@@ -1,0 +1,123 @@
+{
+  "id": "2x2-product-stat-tiles",
+  "size": "2x2",
+  "pattern": "product-stat-tiles",
+  "template": "template.genui.jsonl",
+  "cardspec": "cardspec.json",
+  "sourceObservation": "Derived from the earbuds rendered sample: product/media background, top-left identity/status facts, and two equal bottom stat tiles.",
+  "layoutSummary": "Full-card product/media layer, top-left identity and status facts, bottom row of two equal stat tiles.",
+  "lockedStructure": {
+    "surface": {
+      "width": 140,
+      "height": 140
+    },
+    "root": {
+      "width": 140,
+      "height": 140,
+      "padding": 12,
+      "borderRadius": 18,
+      "clip": true
+    },
+    "sections": [
+      {
+        "id": "contentLayer",
+        "width": 116,
+        "height": 116
+      },
+      {
+        "id": "topBlock",
+        "width": 116,
+        "height": 60
+      },
+      {
+        "id": "statsRow",
+        "width": 116,
+        "height": 50
+      }
+    ]
+  },
+  "slots": {
+    "object": {
+      "path": "/device/name",
+      "component": "deviceName",
+      "maxChars": 12
+    },
+    "asset.productImage": {
+      "path": "/asset/productImage",
+      "component": "productImage",
+      "source": "reference/design/asset-library.md"
+    },
+    "support.1": {
+      "path": "/device/statusOne",
+      "component": "statusOneText",
+      "maxChars": 5
+    },
+    "support.2": {
+      "path": "/device/statusTwo",
+      "component": "statusTwoText",
+      "maxChars": 5
+    },
+    "tile.1.label": {
+      "path": "/tiles/left/label",
+      "component": "leftTileLabel",
+      "maxCharsCn": 4
+    },
+    "tile.1.value": {
+      "path": "/tiles/left/value",
+      "component": "leftTileValue",
+      "maxCharsCn": 5
+    },
+    "tile.2.label": {
+      "path": "/tiles/right/label",
+      "component": "rightTileLabel",
+      "maxCharsCn": 4
+    },
+    "tile.2.value": {
+      "path": "/tiles/right/value",
+      "component": "rightTileValue",
+      "maxCharsCn": 5
+    }
+  },
+  "useWhen": [
+    "earbuds",
+    "wearable",
+    "device-product",
+    "media-access",
+    "connected-device",
+    "product-status"
+  ],
+  "avoidWhen": [
+    "product-image-unavailable",
+    "long-product-name",
+    "more-than-two-tiles",
+    "critical-action-required"
+  ],
+  "allowedEdits": [
+    "delete productImage and use neutral background if asset unavailable",
+    "delete one status row",
+    "replace tile icons through DataModel"
+  ],
+  "forbiddenEdits": [
+    "place required text directly on a noisy image without scrim",
+    "add more than two stat tiles",
+    "use network/product placeholder image"
+  ],
+  "deleteRules": [
+    "If either stat tile duplicates the status facts, remove that tile or replace it with a real independent entry."
+  ],
+  "colorPolicy": {
+    "source": "reference/design/color-token-system.md + color-token-values.md",
+    "budget": "neutral media surface plus small status signals",
+    "sceneFamily": "neutral product/media card",
+    "roles": {
+      "root": "background_secondary light",
+      "tiles": "comp_background_primary light with low on-color divider",
+      "statusPrimary": "confirm for online/connected only",
+      "statusSecondary": "comp_emphasize_secondary for non-critical secondary state"
+    },
+    "rewriteRules": [
+      "Keep tile backgrounds as component surfaces, not font-on alpha values.",
+      "Do not add colorful tile backgrounds unless the product artwork itself supplies the color."
+    ]
+  }
+}
