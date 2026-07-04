@@ -15,6 +15,8 @@
 
 ## 工具调用样例：天气通勤卡
 
+说明：示例中的 `timeInterval` 使用 2026-07-04 Asia/Shanghai 的当天毫秒区间；实际执行时按用户本地时区和当前日期计算。
+
 1. `getWidgetCapabilityOverview`
 
 ```json
@@ -51,33 +53,38 @@
     {
       "capabilityId": "calendar.events.search",
       "arguments": {
-        "timeRange": "today"
+        "timeInterval": [1783094400000, 1783180799999]
       },
       "writeResultTo": "/data/calendar",
       "required": false
     }
   ],
-  "candidateEventCapabilityIds": [
-    "clickToDeeplink.weather",
-    "clickToIntent.StartNavigate"
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.weather",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+        }
+      }
+    },
+    {
+      "capabilityId": "event.start.navigate"
+    }
   ],
   "candidateAssetIds": [
     "asset.weather.rain",
     "asset.calendar.schedule"
-  ],
-  "slots": {
-    "districtName": "青浦区",
-    "timeRange": "today",
-    "target": "company"
-  },
-  "options": {
-    "allowDegradation": true,
-    "returnMode": "obs_url"
-  }
+  ]
 }
 ```
 
 ## 工具调用样例：应用使用时长
+
+仅当 `getWidgetCapabilityOverview` 返回 `GetAppUsageDurationAndPower` 时才使用该候选。
 
 ```json
 {
@@ -95,16 +102,50 @@
       "required": true
     }
   ],
-  "candidateEventCapabilityIds": [],
-  "candidateAssetIds": [],
-  "slots": {
-    "appName": "抖音",
-    "appBundleName": "com.ss.hm.ugc.aweme"
-  },
-  "options": {
-    "allowDegradation": true,
-    "returnMode": "obs_url"
-  }
+  "candidateEventCandidates": [],
+  "candidateAssetIds": []
+}
+```
+
+## 工具调用样例：打开天气应用入口
+
+没有动态数据需求时，`candidateDataBindings` 可以为空；让微服务决定是否生成静态入口卡。
+
+```json
+{
+  "requestId": "auto-generated-uuid",
+  "userQuery": "帮我做一个打开天气应用的入口卡片",
+  "size": "2x2",
+  "candidateDataBindings": [],
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.weather",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+        }
+      }
+    }
+  ],
+  "candidateAssetIds": ["asset.weather.rain"]
+}
+```
+
+## 工具调用样例：不支持的外卖实时状态
+
+如果 overview 没有外卖配送数据能力，也没有打开对应应用的事件能力，不要编造能力；仍可把原始意图交给微服务裁决。
+
+```json
+{
+  "requestId": "auto-generated-uuid",
+  "userQuery": "帮我做一个美团外卖配送状态卡片",
+  "size": "2x2",
+  "candidateDataBindings": [],
+  "candidateEventCandidates": [],
+  "candidateAssetIds": []
 }
 ```
 
