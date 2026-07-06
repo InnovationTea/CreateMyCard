@@ -1,10 +1,12 @@
 import time
 import uuid
 
+import uvicorn
 from fastapi import FastAPI, Request, Response
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
 from api.routes import router
+from core.config import get_settings
 from core.logger import get_logger
 from core.logging import configure_logging
 
@@ -73,3 +75,23 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+
+
+def run_local_server() -> None:
+    """本地直接运行 main.py 时启动服务。
+
+    入参：无。
+    出参：无；函数会阻塞当前进程并启动 Uvicorn 服务。
+    """
+    # 支持 `python cloud/main.py` 直接启动，默认监听 127.0.0.1:8855。
+    settings = get_settings()
+    uvicorn.run(
+        app,
+        host=settings.server_host,
+        port=settings.server_port,
+        log_config=None,
+    )
+
+
+if __name__ == "__main__":
+    run_local_server()

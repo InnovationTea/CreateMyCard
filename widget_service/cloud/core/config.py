@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     ids_dev_fake_id: str = "123**********postmantestdevFakeId"
     ids_sign_secret: str = "postman-test-secret"
     artifact_base_url: str = "https://obs.todo.local/widget"
+    server_host: str = "127.0.0.1"
+    server_port: int = 8855
 
     @property
     def package_root(self) -> Path:
