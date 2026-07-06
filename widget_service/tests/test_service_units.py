@@ -2,6 +2,8 @@
 import sys
 from pathlib import Path
 
+import httpx
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CLOUD_ROOT = PROJECT_ROOT / "cloud"
 
@@ -56,6 +58,68 @@ def test_ids_query_builds_structured_request_and_signature():
         request.headers.devFakeId,
     )
     assert request.headers.model_dump(by_alias=True)["Content-Type"] == "application/json"
+
+
+def test_ids_client_queries_remote_when_mock_file_missing(tmp_path, monkeypatch):
+    """验证 mock 文件不存在时 IDSClient 会真实发起 HTTP 查询。
+
+    入参：
+    - tmp_path：pytest 临时目录。
+    - monkeypatch：pytest monkeypatch 工具。
+    出参：无；通过断言验证远程响应会被解析成设备能力状态。
+    """
+    captured_request: dict = {}
+    ids_payload = {
+        "nameSpaces": [
+            {
+                "dataType": "t_ids_kv_ohos_installed_apps",
+                "values": [
+                    {
+                        "data": {
+                            "bundleName": "com.huawei.hmos.weather",
+                            "versionName": "7.0.0",
+                        }
+                    }
+                ],
+            },
+            {
+                "dataType": "provider_state",
+                "values": [{"data": {"providerId": "UG.weather.current"}}],
+            },
+        ]
+    }
+
+    def fake_post(url, headers, json, timeout):
+        """模拟 IDS HTTP 响应。
+
+        入参：真实 httpx.post 调用参数。
+        出参：httpx.Response 测试对象。
+        """
+        captured_request.update(
+            {
+                "url": url,
+                "headers": headers,
+                "json": json,
+                "timeout": timeout,
+            }
+        )
+        return httpx.Response(
+            200,
+            json=ids_payload,
+            request=httpx.Request("POST", url),
+        )
+
+    client = IDSClient(mock_response_path=tmp_path / "missing_ids_response.json")
+    monkeypatch.setattr(client.settings, "ids_query_url", "http://ids.local/query")
+    monkeypatch.setattr("services.ids_client.httpx.post", fake_post)
+
+    state = client.get_device_capability_state(_device(), "ids-remote-unit-1")
+
+    assert captured_request["url"] == "http://ids.local/query"
+    assert captured_request["headers"]["idsSign"] != "{{idsSign}}"
+    assert captured_request["json"]["requestId"] == "ids-remote-unit-1"
+    assert state.installed_apps["com.huawei.hmos.weather"] == "7.0.0"
+    assert "UG.weather.current" in state.providers
 
 
 def test_capability_registry_version_is_derived_from_device_versions():

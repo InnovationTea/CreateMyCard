@@ -1,10 +1,8 @@
 from typing import Any
 
-from core.logger import get_logger
+from app.logger import logger
 from models.artifact import WidgetArtifact
 from services.card_validator import validate_card
-
-logger = get_logger(__name__)
 
 
 class ArtifactValidator:

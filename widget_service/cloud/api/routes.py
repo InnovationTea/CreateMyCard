@@ -1,3 +1,4 @@
+import time
 from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -8,7 +9,7 @@ from api.schemas import (
     DataCapabilitySchemasRequest,
     GenerateWidgetCardRequest,
 )
-from core.logger import get_logger
+from app.logger import logger
 from models.service import (
     WidgetWebSocketErrorMessage,
     WidgetWebSocketReadyMessage,
@@ -17,7 +18,6 @@ from models.service import (
 from services.widget_generation_service import WidgetGenerationService
 
 router = APIRouter(prefix="/api/v1")
-logger = get_logger(__name__)
 
 
 def get_service() -> WidgetGenerationService:
@@ -81,6 +81,14 @@ async def _serve_operation_websocket(
         while True:
             payload = await websocket.receive_json()
             request_id = payload.get("requestId")
+            started_at = time.perf_counter()
+            logger.info(
+                "widget_operation_ws_payload_received",
+                request_id=request_id,
+                operation=operation,
+                payload_keys=list(payload.keys()),
+                arguments=_arguments_from_payload(payload),
+            )
             try:
                 request = request_model(**_arguments_from_payload(payload))
                 logger.info(
@@ -88,8 +96,17 @@ async def _serve_operation_websocket(
                     request_id=request_id,
                     operation=operation,
                     uid=getattr(request, "uid", ""),
+                    request=request.model_dump(mode="json", exclude_none=True),
                 )
                 result = handler(service, request)
+                duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
+                logger.info(
+                    "widget_operation_ws_handler_completed",
+                    request_id=request_id,
+                    operation=operation,
+                    duration_ms=duration_ms,
+                    response=result.model_dump(mode="json", exclude_none=True),
+                )
                 result_message = WidgetWebSocketResultMessage(
                     tool=operation,
                     operation=operation,
@@ -100,10 +117,12 @@ async def _serve_operation_websocket(
                     result_message.model_dump(mode="json", exclude_none=True)
                 )
             except (ValidationError, ValueError) as exc:
+                duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
                 logger.error(
                     "widget_operation_ws_invalid_arguments",
                     request_id=request_id,
                     operation=operation,
+                    duration_ms=duration_ms,
                     details=_error_details(exc),
                 )
                 error_message = WidgetWebSocketErrorMessage(
@@ -117,10 +136,12 @@ async def _serve_operation_websocket(
                     error_message.model_dump(mode="json", exclude_none=True)
                 )
             except Exception as exc:
+                duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
                 logger.error(
                     "widget_operation_ws_failed",
                     request_id=request_id,
                     operation=operation,
+                    duration_ms=duration_ms,
                     error=str(exc),
                 )
                 error_message = WidgetWebSocketErrorMessage(

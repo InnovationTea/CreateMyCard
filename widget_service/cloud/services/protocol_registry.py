@@ -1,9 +1,7 @@
 import re
 
+from app.logger import logger
 from core.config import get_settings
-from core.logger import get_logger
-
-logger = get_logger(__name__)
 
 
 class A2UIProtocolRegistry:

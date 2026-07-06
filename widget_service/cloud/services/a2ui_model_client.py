@@ -1,11 +1,9 @@
 import json
 import uuid
 
-from core.logger import get_logger
+from app.logger import logger
 from models.generation import TaskSpec
 from models.service import A2UIPromptPayload
-
-logger = get_logger(__name__)
 
 
 class A2UIModelClient:

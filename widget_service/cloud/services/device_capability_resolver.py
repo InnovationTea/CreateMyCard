@@ -4,14 +4,12 @@ from typing import Any
 from jsonschema import Draft202012Validator
 from packaging.version import InvalidVersion, Version
 
+from app.logger import logger
 from core.errors import ErrorCode
-from core.logger import get_logger
 from models.capability import DataCapability, RemovedCapability
 from models.generation import CandidateDataBinding, DeviceContext, EventAction
 from services.capability_registry import CapabilityRegistry
 from services.ids_client import IDSClient, IDSDeviceCapabilityState
-
-logger = get_logger(__name__)
 
 
 class DeviceCapabilityResolver:
@@ -48,6 +46,9 @@ class DeviceCapabilityResolver:
         logger.info(
             "resolve_data_bindings_started",
             candidate_count=len(candidate_bindings),
+            candidates=[
+                item.model_dump(mode="json", exclude_none=True) for item in candidate_bindings
+            ],
             provider_count=len(ids_state.providers),
             intent_count=len(ids_state.intent_targets),
         )
@@ -57,6 +58,13 @@ class DeviceCapabilityResolver:
 
         for binding in candidate_bindings:
             # 未注册或不可用的能力不能进入最终 CardSpec。
+            logger.info(
+                "data_capability_check_started",
+                capability_id=binding.capabilityId,
+                arguments=binding.arguments,
+                write_result_to=binding.writeResultTo,
+                update_model_keys=list(binding.updateModel.keys()),
+            )
             capability = self.registry.get_data_capability(binding.capabilityId)
             if capability is None:
                 logger.warning(
@@ -113,6 +121,11 @@ class DeviceCapabilityResolver:
                 )
             )
             effective_capabilities.append(capability)
+            logger.info(
+                "data_capability_check_passed",
+                capability_id=binding.capabilityId,
+                write_result_to=write_result_to,
+            )
 
         # 不同能力写入同一路径会让 DataModel 覆盖，必须在最终 CardSpec 生成前剔除。
         conflict_id = self._find_write_result_conflict(effective_bindings)
@@ -157,6 +170,7 @@ class DeviceCapabilityResolver:
         logger.info(
             "resolve_event_candidates_started",
             candidate_count=len(candidates),
+            candidates=[item.model_dump(mode="json", exclude_none=True) for item in candidates],
             intent_count=len(ids_state.intent_targets),
         )
         removed: list[RemovedCapability] = []
@@ -164,6 +178,12 @@ class DeviceCapabilityResolver:
 
         for candidate in candidates:
             capability_id = candidate.id
+            logger.info(
+                "event_capability_check_started",
+                capability_id=capability_id,
+                call=candidate.call,
+                args=candidate.args,
+            )
             if capability_id:
                 # 事件候选必须能在事件能力注册表里找到，否则不能进入 TaskSpec。
                 event_capability = self.registry.get_event_capability(capability_id)
@@ -191,6 +211,11 @@ class DeviceCapabilityResolver:
                     continue
             # 通过过滤后的事件动作会进入模型 TaskSpec，供 DSL 绑定 onClick 行为。
             effective.append(candidate)
+            logger.info(
+                "event_capability_check_passed",
+                capability_id=capability_id,
+                call=candidate.call,
+            )
         logger.info(
             "resolve_event_candidates_completed",
             effective_count=len(effective),
@@ -213,6 +238,19 @@ class DeviceCapabilityResolver:
         出参：不可用原因错误码；全部满足时返回 None。
         """
         dependencies = capability.dependencies
+        logger.info(
+            "capability_dependency_check_started",
+            capability_id=getattr(capability, "id", ""),
+            min_rom_version=dependencies.minRomVersion,
+            min_app_version=dependencies.minAppVersion,
+            required_packages=[
+                item.model_dump(mode="json", exclude_none=True)
+                for item in dependencies.requiredPackages
+            ],
+            required_providers=dependencies.requiredProviders,
+            required_intent_targets=dependencies.requiredIntentTargets,
+            required_permissions=dependencies.requiredPermissions,
+        )
         # 版本门禁先判断，避免低版本设备进入后续更重的 IDS 依赖判断。
         if dependencies.minRomVersion and not self._version_gte(
             device.romVersion, dependencies.minRomVersion
@@ -250,6 +288,10 @@ class DeviceCapabilityResolver:
             if status == "UNKNOWN":
                 return ErrorCode.PERMISSION_UNKNOWN
 
+        logger.info(
+            "capability_dependency_check_passed",
+            capability_id=getattr(capability, "id", ""),
+        )
         return None
 
     def _valid_arguments(self, arguments: dict[str, Any], schema: dict[str, Any]) -> bool:

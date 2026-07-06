@@ -2,12 +2,10 @@ import hashlib
 import json
 import uuid
 
+from app.logger import logger
 from core.config import get_settings
-from core.logger import get_logger
 from models.artifact import WidgetArtifact
 from models.service import ArtifactSaveResult
-
-logger = get_logger(__name__)
 
 
 class ArtifactStore:

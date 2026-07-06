@@ -10,8 +10,8 @@ from api.schemas import (
     GenerateWidgetCardResponse,
     WidgetCardServiceRequest,
 )
+from app.logger import logger
 from core.errors import ErrorCode, GenerationStatus
-from core.logger import get_logger
 from models.artifact import ArtifactMeta, WidgetArtifact
 from models.generation import EventAction
 from services.a2ui_model_client import A2UIModelClient
@@ -25,8 +25,6 @@ from services.response_planner import ResponsePlanner
 from services.retry_controller import RetryController
 from services.task_spec_builder import TaskSpecBuilder
 from services.validator import ArtifactValidator
-
-logger = get_logger(__name__)
 
 
 class WidgetGenerationService:
@@ -91,9 +89,15 @@ class WidgetGenerationService:
             uid=request.uid,
             device_rom_version=request.device.romVersion,
             ohos_api_version=request.device.ohosApiVersion,
+            request=request.model_dump(mode="json", exclude_none=True),
         )
         # 能力注册表按 device.ohosApiVersion+device.romVersion 文件夹隔离。
         registry = self._capability_registry(request)
+        logger.info(
+            "capability_registry_selected",
+            operation="getWidgetCapabilityOverview",
+            registry_version=registry.version,
+        )
         response = CapabilityOverviewResponse(
             capabilityRegistryVersion=registry.version,
             dataCapabilities=[
@@ -130,9 +134,15 @@ class WidgetGenerationService:
             "data_capability_schemas_started",
             uid=request.uid,
             data_capability_ids=request.dataCapabilityIds,
+            request=request.model_dump(mode="json", exclude_none=True),
         )
         # 这里返回完整 inputSchema/outputSchema，供主 Agent 生成合法 candidateDataBindings。
         registry = self._capability_registry(request)
+        logger.info(
+            "capability_registry_selected",
+            operation="getDataCapabilitySchemas",
+            registry_version=registry.version,
+        )
         capabilities = []
         missing = []
         for capability_id in request.dataCapabilityIds:
@@ -172,12 +182,24 @@ class WidgetGenerationService:
             data_binding_count=len(request.candidateDataBindings),
             event_count=len(request.candidateEventCandidates),
             asset_count=len(request.candidateAssetIds),
+            request=request.model_dump(mode="json", exclude_none=True),
         )
         # registry 负责读取当前版本的能力清单，后续所有过滤都以这份清单为准。
         registry = self._capability_registry(request)
+        logger.info(
+            "generate_flow_step_registry_ready",
+            uid=request.uid,
+            registry_version=registry.version,
+        )
         # 协议 profile 决定 A2UI 组件白名单、DSL 行数要求和校验规则。
         protocol_registry = A2UIProtocolRegistry(request.protocolProfileId)
         protocol_profile = protocol_registry.get_profile()
+        logger.info(
+            "generate_flow_step_protocol_ready",
+            uid=request.uid,
+            protocol_profile_id=protocol_profile["id"],
+            protocol_version=protocol_profile["version"],
+        )
         # resolver 负责把主 Agent 候选能力裁决成当前设备真实可用能力。
         resolver = DeviceCapabilityResolver(registry)
 
@@ -192,6 +214,8 @@ class WidgetGenerationService:
             "data_capability_resolved",
             effective_binding_count=len(effective_bindings),
             removed_count=len(removed_data),
+            effective_binding_ids=[item.capabilityId for item in effective_bindings],
+            removed_data=[item.model_dump(mode="json") for item in removed_data],
         )
         # 事件候选先从外部协议结构转换成内部 EventAction，再进入统一能力裁决。
         candidate_events = self._normalize_event_candidates(request)
@@ -204,6 +228,8 @@ class WidgetGenerationService:
             "event_capability_resolved",
             effective_event_count=len(effective_events),
             removed_count=len(removed_events),
+            effective_events=[item.model_dump(mode="json") for item in effective_events],
+            removed_events=[item.model_dump(mode="json") for item in removed_events],
         )
         asset_candidates = []
         removed_assets = []
@@ -223,6 +249,8 @@ class WidgetGenerationService:
             "asset_capability_resolved",
             effective_asset_count=len(asset_candidates),
             removed_count=len(removed_assets),
+            effective_asset_ids=[item.id for item in asset_candidates],
+            removed_assets=[item.model_dump(mode="json") for item in removed_assets],
         )
         if request.candidateDataBindings and not effective_bindings and not effective_events:
             # 没有剩余动态数据或可用入口时，不调用模型，也不伪造数据绑定。
@@ -254,6 +282,8 @@ class WidgetGenerationService:
         logger.info(
             "card_and_task_spec_built",
             data_binding_count=len(effective_bindings),
+            card_spec=card_spec.model_dump(mode="json", exclude_none=True),
+            task_spec=task_spec.model_dump(mode="json", exclude_none=True),
             task_data_model_keys=list(task_spec.dataModel.get("value", {}).keys()),
         )
         # prompt 只作为模型生成 DSL 的约束输入，最终协议仍由 CardSpec 和 Validator 兜底。
@@ -261,6 +291,11 @@ class WidgetGenerationService:
             task_spec,
             protocol_profile,
             "；".join(f"{item.id}:{item.reason}" for item in removed),
+        )
+        logger.info(
+            "a2ui_prompt_built",
+            uid=request.uid,
+            prompt=prompt.model_dump(mode="json", exclude_none=True),
         )
 
         model_client = A2UIModelClient()
@@ -273,6 +308,7 @@ class WidgetGenerationService:
             出参：三行 JSONL genui 字符串。
             """
             # mock 模型客户端当前返回稳定 DSL；后续替换真实模型时保持 generate 入参不变。
+            logger.info("a2ui_model_operation_started", uid=request.uid)
             return model_client.generate(task_spec, protocol_profile, prompt)
 
         def validate_genui(genui: str) -> list[str]:
@@ -283,6 +319,11 @@ class WidgetGenerationService:
             出参：校验错误列表；空列表表示通过。
             """
             # 每次模型输出都临时组装 artifact，再用同一套 Validator 校验完整契约。
+            logger.info(
+                "a2ui_genui_validation_started",
+                uid=request.uid,
+                genui_length=len(genui),
+            )
             artifact = self._build_artifact(
                 genui,
                 card_spec.model_dump(mode="json", exclude_none=True),
@@ -332,6 +373,12 @@ class WidgetGenerationService:
             registry.version,
         )
         # ArtifactStore 当前是本地 mock/OBS TODO 入口，返回端侧可下载 URL 和摘要。
+        logger.info(
+            "artifact_built",
+            uid=request.uid,
+            effective_capabilities=artifact.effectiveCapabilities,
+            removed_count=len(artifact.removedCapabilities),
+        )
         artifact_save_result = ArtifactStore().save(artifact)
         # ResponsePlanner 根据移除能力和最终产物判断 success/degraded/failed 等用户状态。
         response_plan = ResponsePlanner().plan(
@@ -395,11 +442,19 @@ class WidgetGenerationService:
         """
         # capabilityRegistryVersion 显式传入时优先使用；
         # 否则根据 device.ohosApiVersion+device.romVersion 推导能力清单文件夹名。
-        return CapabilityRegistry(
+        logger.info(
+            "capability_registry_building",
+            requested_version=request.capabilityRegistryVersion,
+            ohos_api_version=request.device.ohosApiVersion,
+            device_rom_version=request.device.romVersion,
+        )
+        registry = CapabilityRegistry(
             version=request.capabilityRegistryVersion,
             ohos_api_version=request.device.ohosApiVersion,
             device_rom_version=request.device.romVersion,
         )
+        logger.info("capability_registry_built", registry_version=registry.version)
+        return registry
 
     def _build_artifact(
         self,
@@ -428,6 +483,15 @@ class WidgetGenerationService:
         出参：完整 WidgetArtifact。
         """
         # artifact 是端侧下载后的唯一交付物，里面同时包含 DSL、CardSpec、TaskSpec 和能力裁决结果。
+        logger.info(
+            "artifact_building",
+            protocol_profile_id=protocol_profile_id,
+            capability_registry_version=capability_registry_version,
+            data_capability_count=len(data_capabilities),
+            event_candidate_count=len(event_candidates),
+            asset_candidate_count=len(asset_candidates),
+            removed_count=len(removed),
+        )
         return WidgetArtifact(
             genui=genui,
             cardSpec=card_spec,

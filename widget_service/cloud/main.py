@@ -6,8 +6,8 @@ from fastapi import FastAPI, Request, Response
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
 from api.routes import router
+from app.logger import logger
 from core.config import get_settings
-from core.logger import get_logger
 from core.logging import configure_logging
 
 
@@ -24,7 +24,6 @@ def create_app() -> FastAPI:
         description="AI widget card generation microservice.",
     )
     app.include_router(router)
-    logger = get_logger(__name__)
 
     @app.middleware("http")
     async def request_logging_middleware(request: Request, call_next) -> Response:

@@ -5,8 +5,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import httpx
+
+from app.logger import logger
 from core.config import get_settings
-from core.logger import get_logger
 from models.generation import DeviceContext
 from models.service import (
     IDSHttpRequest,
@@ -17,8 +19,6 @@ from models.service import (
     IDSRequestHeaders,
 )
 from services.json_loader import load_json
-
-logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -42,8 +42,8 @@ class IDSDeviceCapabilityState:
 class IDSClient:
     """IDS 查询客户端。
 
-    当前阶段读取 mock IDS 响应文件；后续接入真实 IDS 时，只需要替换本类里的查询实现，
-    `DeviceCapabilityResolver` 继续消费稳定的 `IDSDeviceCapabilityState` 即可。
+    优先读取 mock IDS 响应文件；没有 mock 文件时会按 Postman 样例结构真实请求 IDS。
+    `DeviceCapabilityResolver` 始终消费稳定的 `IDSDeviceCapabilityState`。
     """
 
     def __init__(self, mock_response_path: Path | None = None) -> None:
@@ -54,7 +54,7 @@ class IDSClient:
         出参：无。
         """
         self.settings = get_settings()
-        # 测试和本地调试可显式传入文件路径；线上接真实 IDS 后可以去掉这个分支。
+        # 测试和本地调试可显式传入文件路径；路径不存在时自动走真实 IDS 查询。
         self.mock_response_path = (
             mock_response_path or self.settings.resolved_mock_ids_response_path
         )
@@ -93,6 +93,7 @@ class IDSClient:
             "ids_installed_apps_query_built",
             request_id=request_id,
             odid=odid,
+            body=body.model_dump(mode="json"),
             ids_sign_preview=ids_sign[:8],
         )
         return IDSHttpRequest(
@@ -120,7 +121,7 @@ class IDSClient:
         - dev_fake_id：请求头里的 devFakeId。
         出参：十六进制 HMAC-SHA256 签名字符串。
         """
-        # 当前工作区没有可读取的 ids.json；这里把 Postman 前置脚本常见的签名流程沉淀成代码：
+        # 这里对应 ids.json/Postman 前置脚本里的签名准备流程：
         # 用稳定 JSON body 和 devFakeId 组成签名原文，再用配置密钥生成 HMAC-SHA256。
         canonical_body = json.dumps(
             body.model_dump(mode="json"),
@@ -148,34 +149,114 @@ class IDSClient:
         出参：标准化后的 IDSDeviceCapabilityState，供数据能力和事件能力过滤使用。
         """
         # get_device_capability_state 与 build_installed_apps_query 是同一条链路：
-        # 先根据 device 生成 IDS 查询请求，再用 mock 响应模拟真实 IDS 返回。
+        # 先根据 device 生成 IDS 查询请求，再决定走 mock 文件还是真实 IDS 请求。
         ids_query = self.build_installed_apps_query(device, request_id)
         logger.info(
             "ids_device_capability_query_prepared",
             request_id=request_id,
             method=ids_query.method,
             url=ids_query.url,
+            headers=self._safe_headers_for_log(ids_query),
+            body=ids_query.body.model_dump(mode="json"),
         )
-        # 当前 mock 文件不存在时返回空状态，避免本地环境缺文件直接中断服务启动。
-        if not self.mock_response_path.exists():
-            logger.warning(
-                "ids_mock_response_not_found",
+        if self.mock_response_path.exists():
+            # mock 文件沿用 docs/ids_res.txt 的原始 IDS JSON 结构。
+            logger.info("ids_mock_response_loading", path=str(self.mock_response_path))
+            payload = load_json(self.mock_response_path)
+        else:
+            # 没有 mock 文件时发起真实 IDS 请求；真实返回结构应与 mock 文件一致。
+            logger.info(
+                "ids_mock_response_not_found_use_remote",
                 path=str(self.mock_response_path),
+                url=ids_query.url,
             )
-            return IDSDeviceCapabilityState()
-
-        # mock 文件沿用 docs/ids_res.txt 的原始 IDS JSON 结构。
-        logger.info("ids_mock_response_loading", path=str(self.mock_response_path))
-        payload = load_json(self.mock_response_path)
+            payload = self._query_remote_ids(ids_query, request_id)
         state = self._parse_ids_payload(payload)
         logger.info(
-            "ids_mock_response_loaded",
+            "ids_device_capability_state_loaded",
+            request_id=request_id,
             installed_app_count=len(state.installed_apps),
             provider_count=len(state.providers),
             intent_count=len(state.intent_targets),
             permission_count=len(state.permissions),
         )
         return state
+
+    def _query_remote_ids(
+        self,
+        ids_query: IDSHttpRequest,
+        request_id: str,
+    ) -> dict[str, Any]:
+        """真实请求 IDS 查询接口。
+
+        入参：
+        - ids_query：结构化 IDS HTTP 请求定义。
+        - request_id：本次 IDS 查询请求 ID。
+        出参：IDS 原始 JSON 响应；请求失败时返回空 nameSpaces，避免生成流程异常中断。
+        """
+        # URL 若仍保留 Postman 占位符，说明部署环境还没配置真实 IDS 地址。
+        if "{{" in ids_query.url or "}}" in ids_query.url:
+            logger.error(
+                "ids_remote_query_url_not_configured",
+                request_id=request_id,
+                url=ids_query.url,
+            )
+            return {"nameSpaces": []}
+
+        try:
+            logger.info(
+                "ids_remote_query_started",
+                request_id=request_id,
+                method=ids_query.method,
+                url=ids_query.url,
+                timeout_seconds=self.settings.ids_request_timeout_seconds,
+            )
+            response = httpx.post(
+                ids_query.url,
+                headers=ids_query.headers.model_dump(mode="json", by_alias=True),
+                json=ids_query.body.model_dump(mode="json"),
+                timeout=self.settings.ids_request_timeout_seconds,
+            )
+            logger.info(
+                "ids_remote_query_response_received",
+                request_id=request_id,
+                status_code=response.status_code,
+                response_bytes=len(response.content),
+            )
+            response.raise_for_status()
+            payload = response.json()
+            if not isinstance(payload, dict):
+                logger.error(
+                    "ids_remote_query_invalid_response_type",
+                    request_id=request_id,
+                    response_type=type(payload).__name__,
+                )
+                return {"nameSpaces": []}
+            logger.debug(
+                "ids_remote_query_payload_loaded",
+                request_id=request_id,
+                namespace_count=len(payload.get("nameSpaces", [])),
+            )
+            return payload
+        except (httpx.HTTPError, json.JSONDecodeError) as exc:
+            logger.error(
+                "ids_remote_query_failed",
+                request_id=request_id,
+                error=str(exc),
+            )
+            return {"nameSpaces": []}
+
+    def _safe_headers_for_log(self, ids_query: IDSHttpRequest) -> dict[str, Any]:
+        """生成可打印的 IDS 请求头。
+
+        入参：
+        - ids_query：结构化 IDS HTTP 请求定义。
+        出参：脱敏后的请求头字典。
+        """
+        headers = ids_query.headers.model_dump(mode="json", by_alias=True)
+        if "idsSign" in headers:
+            headers["idsSign"] = f"{headers['idsSign'][:8]}***"
+        return headers
 
     def _parse_ids_payload(self, payload: dict[str, Any]) -> IDSDeviceCapabilityState:
         """解析 IDS 原始响应。
