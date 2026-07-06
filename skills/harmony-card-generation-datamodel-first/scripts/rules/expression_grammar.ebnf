@@ -1,0 +1,334 @@
+(* A2UI Expression Module - Extended Backus-Naur Form Grammar *)
+(* Version: 1.0 - Phase 1 Simplified *)
+(* Date: March 25, 2026 *)
+
+(* ============================================= *)
+(* CHARACTER SETS                                *)
+(* ============================================= *)
+
+letter            = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M"
+                  | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z"
+                  | "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m"
+                  | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z";
+
+digit             = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+
+hex_digit         = digit | "a" | "b" | "c" | "d" | "e" | "f" | "A" | "B" | "C" | "D" | "E" | "F";
+
+underscore        = "_";
+
+dollar            = "$";
+
+identifier_char   = letter | digit | underscore;
+
+whitespace        = " " | "\t" | "\n" | "\r";
+
+(* ============================================= *)
+(* LITERALS                                     *)
+(* ============================================= *)
+
+(* String literal - ONLY single quotes supported in Phase 1 *)
+string_literal    = "'" , { string_char } , "'";
+
+string_char       = ? any character except single quote or backslash ?
+                  | "\'"     (* escaped single quote *)
+                  | "\\"     (* escaped backslash *)
+                  | "\n"     (* newline *)
+                  | "\r"     (* carriage return *)
+                  | "\t"     (* tab *)
+                  | "\$"     (* dollar sign (escape) *)
+                  | "\u" , hex_digit , hex_digit , hex_digit , hex_digit;  (* unicode escape *)
+
+number_literal    = integer_literal
+                  | float_literal;
+
+integer_literal   = ["-"] , digit , { digit };
+
+float_literal     = ["-"] , ( digit , { digit } , "." , { digit }
+                            | "." , digit , { digit } )
+                  , [ ( "e" | "E" ) , [ "+" | "-" ] , digit , { digit } ];
+
+boolean_literal   = "true" | "false";
+
+(* ============================================= *)
+(* IDENTIFIERS AND PATHS                        *)
+(* ============================================= *)
+
+identifier        = ( letter | underscore ) , { identifier_char };
+
+(* Path References *)
+variable_path     = absolute_path | relative_path | json_pointer_reference;
+
+(* Absolute path: $ references __dataModel variable, then accesses properties *)
+absolute_path     = "$" , "__dataModel" , "." , identifier , { "." , path_segment };
+
+(* Relative path starts with $ and uses dot notation *)
+relative_path     = "$" , identifier , { "." , path_segment };
+
+(* Path segment can be identifier or array access *)
+path_segment      = identifier | array_access;
+
+(* Array access with bracket notation - supports both integer and string keys *)
+(* String literals in brackets allow accessing properties with special characters like dots *)
+array_access      = identifier , "[" , ( integer_literal | string_literal | identifier ) , "]";
+
+(* String member access - for accessing properties with special characters *)
+(* Example: $item['ext.style'] to access property named "ext.style" *)
+string_member_access = primary_expression , "[" , string_literal , "]" ;
+
+(* JSON Pointer shorthand; equivalent to an absolute $__dataModel path. *)
+json_pointer_reference
+                  = "$" , "{" , json_pointer , "}";
+
+json_pointer      = "/" , { ? any character except closing brace ? };
+
+(* Variable reference - primary entry for variable access *)
+variable_reference = absolute_path | relative_path | json_pointer_reference;
+
+(* Global system variables *)
+global_variable   = "$" , identifier;
+
+(* Loop variables *)
+(* Available in parent components that use template to generate child components (Row, Column, List, Grid, Tabs) *)
+(* Default variables: $index (current item index), $item (current item data) *)
+(* Can be customized using component properties (value without $ prefix): *)
+(*   - indexVar: custom name for index variable (e.g., "i" → use $i in expressions) *)
+(*   - itemVar: custom name for item variable (e.g., "product" → use $product) *)
+(* Example: With indexVar="i" and itemVar="product", use $i and $product in expressions *)
+loop_variable     = "$" , ( "index" | "item" )
+                  | "$" , identifier;  (* Custom loop variable names with $ prefix *)
+
+(* ============================================= *)
+(* EXPRESSIONS                                   *)
+(* ============================================= *)
+
+expression        = logical_or_expression;
+
+(* Logical OR - only || supported, removed 'or' *)
+logical_or_expression
+                  = logical_and_expression , { "||" , logical_and_expression };
+
+(* Logical AND - only && supported, removed 'and' *)
+logical_and_expression
+                  = logical_not_expression , { "&&" , logical_not_expression };
+
+(* Logical NOT - only ! supported, removed 'not' *)
+logical_not_expression
+                  = [ "!" ] , comparison_expression;
+
+(* Comparison *)
+comparison_expression
+                  = additive_expression , [ comparison_operator , additive_expression ];
+
+(* Equality operators - only == and != supported, removed === and !== *)
+comparison_operator
+                  = "==" | "!=" | "<=" | ">=" | "<" | ">";
+
+(* Additive *)
+additive_expression
+                  = multiplicative_expression , { ( "+" | "-" ) , multiplicative_expression };
+
+(* Multiplicative *)
+multiplicative_expression
+                  = unary_expression , { ( "*" | "/" | "%" ) , unary_expression };
+
+(* Unary *)
+unary_expression  = [ "+" | "-" ] , primary_expression;
+
+(* Primary *)
+primary_expression
+                  = literal
+                  | string_literal
+                  | variable_reference
+                  | global_variable
+                  | loop_variable
+                  | function_call
+                  | member_expression
+                  | grouped_expression
+                  | conditional_expression;
+
+(* Grouped *)
+grouped_expression
+                  = "(" , expression , ")";
+
+(* Conditional / Ternary *)
+conditional_expression
+                  = logical_or_expression , "?" , expression , ":" , expression;
+
+(* Member Access *)
+member_expression
+                  = primary_expression , ( "." , identifier
+                                          | "[" , expression , "]"
+                                          | "[" , string_literal , "]" )
+                  , { "." , identifier | "[" , expression , "]" | "[" , string_literal , "]" };
+
+(* ============================================= *)
+(* LITERALS                                     *)
+(* ============================================= *)
+
+literal           = number_literal | boolean_literal | string_literal;
+
+(* ============================================= *)
+(* FUNCTION CALLS                               *)
+(* ============================================= *)
+
+(* Phase 1 only supports: size *)
+function_call     = "size" , "(" , [ argument_list ] , ")";
+
+argument_list     = expression , { "," , expression };
+
+(* ============================================= *)
+(* WRAPPED EXPRESSION (for use in A2UI)         *)
+(* ============================================= *)
+(* A wrapped expression is delimited by {{ and }} and contains exactly one expression.
+ * The expression inside must NOT contain nested {{ or }} delimiters.
+ * This ensures:
+ *   - No nested expressions like {{ inner {{ nested }} }}
+ *   - No multiple expressions like {{ expr1 }} and {{ expr2 }}
+ *   - Each {{ ... }} pair is a single, complete expression
+ *)
+
+wrapped_expression
+                  = "{{" , expression , "}}";
+
+(* ============================================= *)
+(* COMMENTS                                     *)
+(* ============================================= *)
+
+comment           = "//" , { ? any character except newline ? } , ( "\n" | "\r" | end_of_file )
+                  | "/*" , { ? any character ? } , "*/";
+
+(* ============================================= *)
+(* FULL GRAMMAR (with whitespace flexibility)   *)
+(* ============================================= *)
+
+a2ui_expression   = [ comment ] , { whitespace } , wrapped_expression , { whitespace };
+
+(* ============================================= *)
+(* OPERATOR PRECEDENCE (from highest to lowest) *)
+(* ============================================= *)
+(* 1.  ( ) Grouped expression                    *)
+(* 2.  . [] Member access                        *)
+(* 3.  ! Logical NOT (removed 'not')             *)
+(* 4.  * / % Multiplicative                      *)
+(* 5.  + - Additive                              *)
+(* 6.  < <= > >= Comparison                      *)
+(* 7.  == != Equality (removed === !==)          *)
+(* 8.  && Logical AND (removed 'and')            *)
+(* 9.  || Logical OR (removed 'or')              *)
+(* 10. ? : Ternary / Conditional                 *)
+(* Note: Nullish coalescing (??), optional chaining (?.), *)
+(*       array destructuring, and object destructuring removed *)
+
+(* ============================================= *)
+(* EXAMPLES (non-normative)                      *)
+(* ============================================= *)
+
+(* Example 1: Relative path reference *)
+(* {{ $user.name }} *)
+(*
+  wrapped_expression
+    = "{{" , expression , "}}"
+    = "{{" , primary_expression , "}}"
+    = "{{" , variable_reference , "}}"
+    = "{{" , relative_path , "}}"
+    = "{{" , "$" , identifier , "." , path_segment , "}}"
+    = "{{" , "$" , identifier , "." , identifier , "}}"
+    = "{{" , "$" , "user" , "." , "name" , "}}"
+*)
+
+(* Example 1b: Absolute path reference *)
+(* {{ $__dataModel.user.profile.name }} *)
+(*
+  wrapped_expression
+    = "{{" , expression , "}}"
+    = "{{" , primary_expression , "}}"
+    = "{{" , variable_reference , "}}"
+    = "{{" , absolute_path , "}}"
+    = "{{" , "$" , "__dataModel" , "." , identifier , "." , path_segment , "}}"
+    = "{{" , "$" , "__dataModel" , "." , "user" , "." , identifier , "." , identifier , "}}"
+    = "{{" , "$" , "__dataModel" , "." , "user" , "." , "profile" , "." , "name" , "}}"
+*)
+
+(* Example 2: Arithmetic expression *)
+(* {{ price * quantity + tax }} *)
+(*
+  wrapped_expression
+    = "{{" , expression , "}}"
+    = "{{" , logical_or_expression , "}}"
+    = "{{" , logical_and_expression , "}}"
+    = "{{" , logical_not_expression , "}}"
+    = "{{" , comparison_expression , "}}"
+    = "{{" , additive_expression , "}}"
+    = "{{" , additive_expression , "+" , multiplicative_expression , "}}"
+    = "{{" , multiplicative_expression , "+" , primary_expression , "}}"
+    = "{{" , multiplicative_expression , "+" , variable_reference , "}}"
+    = "{{" , unary_expression , "*" , unary_expression , "+" , identifier , "}}"
+    = "{{" , primary_expression , "*" , primary_expression , "+" , "tax" , "}}"
+    = "{{" , variable_reference , "*" , variable_reference , "+" , "tax" , "}}"
+    = "{{" , identifier , "*" , identifier , "+" , "tax" , "}}"
+    = "{{" , "price" , "*" , "quantity" , "+" , "tax" , "}}"
+*)
+
+(* Example 3: Ternary expression *)
+(* {{ age >= 18 ? 'adult' : 'minor' }} *)
+(*
+  wrapped_expression
+    = "{{" , conditional_expression , "}}"
+    = "{{" , logical_or_expression , "?" , expression , ":" , expression , "}}"
+    = "{{" , comparison_expression , "?" , string_literal , ":" , string_literal , "}}"
+    = "{{" , additive_expression , ">=" , additive_expression , "?" , "'" , "adult" , "'" , ":" , "'" , "minor" , "'" , "}}"
+    = "{{" , identifier , ">=" , identifier , "?" , "'adult'" , ":" , "'minor'" , "}}"
+    = "{{" , "age" , ">=" , "18" , "?" , "'adult'" , ":" , "'minor'" , "}}"
+*)
+
+(* Example 4: size function call *)
+(* {{ size($items) }} *)
+(*
+  wrapped_expression
+    = "{{" , function_call , "}}"
+    = "{{" , identifier , "(" , argument_list , ")" , "}}"
+    = "{{" , "size" , "(" , expression , ")" , "}}"
+    = "{{" , "size" , "(" , variable_reference , ")" , "}}"
+    = "{{" , "size" , "(" , "$items" , ")" , "}}"
+*)
+
+(* Example 6: Array access *)
+(* {{ items[0].name }} *)
+(*
+  wrapped_expression
+    = "{{" , member_expression , "}}"
+    = "{{" , primary_expression , "." , identifier , "}}"
+    = "{{" , primary_expression , "." , "name" , "}}"
+    = "{{" , member_expression , "." , "name" , "}}"
+    = "{{" , primary_expression , "[" , expression , "]" , "." , "name" , "}}"
+    = "{{" , variable_reference , "[" , integer_literal , "]" , "." , "name" , "}}"
+    = "{{" , identifier , "[" , "0" , "]" , "." , "name" , "}}"
+    = "{{" , "items" , "[" , "0" , "]" , "." , "name" , "}}"
+*)
+
+(* Example 8: Global variable *)
+(* {{ $__widthBreakpoint == 'sm' ? 'center' : 'start' }} *)
+(*
+  wrapped_expression
+    = "{{" , conditional_expression , "}}"
+    = "{{" , comparison_expression , "?" , expression , ":" , expression , "}}"
+    = "{{" , global_variable , "==" , string_literal , "?" , string_literal , ":" , string_literal , "}}"
+    = "{{" , "$__widthBreakpoint" , "==" , "'sm'" , "?" , "'center'" , ":" , "'start'" , "}}"
+*)
+
+(* Example 9: String member access with special characters *)
+(* {{ $item['ext.style'] }} *)
+(*
+  wrapped_expression
+    = "{{" , member_expression , "}}"
+    = "{{" , primary_expression , "[" , string_literal , "]" , "}}"
+    = "{{" , variable_reference , "[" , string_literal , "]" , "}}"
+    = "{{" , relative_path , "[" , "'" , "ext.style" , "'" , "]" , "}}"
+    = "{{" , "$" , identifier , "[" , "'" , "ext.style" , "'" , "]" , "}}"
+    = "{{" , "$" , "item" , "[" , "'ext.style'" , "]" , "}}"
+*)
+
+(* ============================================= *)
+(* END OF GRAMMAR                                *)
+(* ============================================= *)
