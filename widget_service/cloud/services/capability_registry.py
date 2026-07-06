@@ -1,7 +1,7 @@
 import re
 from pathlib import Path
 
-from core.config import get_settings
+from config.config import get_settings
 from models.capability import AssetCapability, DataCapability, EventCapability
 from services.json_loader import load_json
 

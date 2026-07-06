@@ -1,7 +1,7 @@
 import re
 
 from app.logger import logger
-from core.config import get_settings
+from config.config import get_settings
 
 
 class A2UIProtocolRegistry:
@@ -24,7 +24,7 @@ class A2UIProtocolRegistry:
         profile_dir = self.settings.data_root / "protocol_profiles" / self.profile_id
         if not profile_dir.exists():
             raise ValueError(f"Protocol profile not found: {self.profile_id}")
-        logger.info("protocol_profile_loading", profile_id=self.profile_id)
+        logger.info(f"protocol_profile_loading profile_id={self.profile_id}")
         protocol_md = self._read_markdown(profile_dir, "protocol.md")
         component_catalog_md = self._read_markdown(profile_dir, "component-catalog.md")
         data_binding_md = self._read_markdown(profile_dir, "data-binding.md")
@@ -63,10 +63,9 @@ class A2UIProtocolRegistry:
             },
         }
         logger.info(
-            "protocol_profile_loaded",
-            profile_id=self.profile_id,
-            version=profile["version"],
-            component_count=len(profile["componentWhitelist"]),
+            f"protocol_profile_loaded profile_id={self.profile_id} "
+            f"version={profile['version']} "
+            f"component_count={len(profile['componentWhitelist'])}"
         )
         return profile
 

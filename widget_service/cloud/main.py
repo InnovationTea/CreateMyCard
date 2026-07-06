@@ -7,7 +7,7 @@ from structlog.contextvars import bind_contextvars, clear_contextvars
 
 from api.routes import router
 from app.logger import logger
-from core.config import get_settings
+from config.config import get_settings
 from core.logging import configure_logging
 
 
@@ -45,18 +45,17 @@ def create_app() -> FastAPI:
         started_at = time.perf_counter()
         try:
             response = await call_next(request)
-        except Exception:
+        except Exception as exc:
             duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
-            logger.error("http_request_failed", duration_ms=duration_ms)
+            logger.error_with_exception(f"http_request_failed duration_ms={duration_ms}", exc)
             clear_contextvars()
             raise
 
         duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
         response.headers["x-request-id"] = request_id
         logger.info(
-            "http_request_completed",
-            status_code=response.status_code,
-            duration_ms=duration_ms,
+            f"http_request_completed status_code={response.status_code} "
+            f"duration_ms={duration_ms}"
         )
         clear_contextvars()
         return response

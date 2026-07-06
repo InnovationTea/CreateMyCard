@@ -1,4 +1,7 @@
 # ruff: noqa: E402, I001
+import base64
+import hashlib
+import hmac
 import sys
 from pathlib import Path
 
@@ -39,24 +42,30 @@ def _device() -> DeviceContext:
     )
 
 
-def test_ids_query_builds_structured_request_and_signature():
+def test_ids_query_builds_structured_request_and_signature(monkeypatch):
     """验证 IDS 查询请求使用实体封装，并生成真实签名。
 
     入参：无。
     出参：无；通过断言验证 request body、header 和签名符合预期。
     """
     client = IDSClient()
+    monkeypatch.setattr(client.settings, "ids_access_key", "access")
+    monkeypatch.setattr(client.settings, "ids_secret_key", base64.b64encode(b"secret").decode())
     request = client.build_installed_apps_query(_device(), "ids-unit-1")
+    expected_digest = hmac.new(
+        b"secret",
+        b"access1000",
+        hashlib.sha256,
+    ).digest()
+    expected_sign = base64.b64encode(expected_digest).decode()
 
     assert request.method == "POST"
     assert request.body.requestId == "ids-unit-1"
     assert request.body.nameSpaces[0].queryRequestData[0].keys.odid == "odid-001"
     assert request.headers.idsSign != "{{idsSign}}"
-    assert len(request.headers.idsSign) == 64
-    assert request.headers.idsSign == client.build_ids_sign(
-        request.body,
-        request.headers.devFakeId,
-    )
+    assert request.headers.idsSign.startswith("access;")
+    assert len(request.headers.idsSign.split(";")) == 3
+    assert client.build_ids_sign(timestamp_ms=1000) == f"access;1000;{expected_sign}"
     assert request.headers.model_dump(by_alias=True)["Content-Type"] == "application/json"
 
 

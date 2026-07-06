@@ -18,7 +18,8 @@ class Settings(BaseSettings):
     ids_query_url: str = "http://{{ip}}:{{port}}/hiai/ids/databus/v1/kvcommondata/query"
     ids_calling_uid: str = "decisionhub"
     ids_dev_fake_id: str = "123**********postmantestdevFakeId"
-    ids_sign_secret: str = "postman-test-secret"
+    ids_access_key: str = "23232323232"
+    ids_secret_key: str = "22222"
     ids_request_timeout_seconds: float = 5.0
     artifact_base_url: str = "https://obs.todo.local/widget"
     server_host: str = "127.0.0.1"
@@ -62,6 +63,7 @@ class Settings(BaseSettings):
         if path.is_absolute():
             return path
         return (self.repo_root / path).resolve()
+
 
 @lru_cache
 def get_settings() -> Settings:

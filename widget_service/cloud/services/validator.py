@@ -16,9 +16,8 @@ class ArtifactValidator:
         """
         # 校验入口接收完整 artifact，具体协议、组件、布局和绑定规则由 card_validator 模块统一处理。
         logger.info(
-            "artifact_validation_started",
-            protocol_profile_id=protocol_profile["id"],
-            validator_module="services.card_validator.validate_card",
+            f"artifact_validation_started protocol_profile_id={protocol_profile['id']} "
+            "validator_module=services.card_validator.validate_card"
         )
         try:
             # 直接调用本地模块方法，避免运行时动态加载脚本文件导致部署路径和缓存行为不可控。
@@ -29,10 +28,10 @@ class ArtifactValidator:
         except Exception as exc:
             # 校验模块异常属于服务侧校验链路异常，需要返回为校验失败，避免产物绕过校验。
             errors = [f"validator execution failed: {exc}"]
-            logger.error(
-                "artifact_validation_failed",
-                errors=errors,
-                validator_module="services.card_validator.validate_card",
+            logger.error_with_exception(
+                f"artifact_validation_failed errors={errors} "
+                "validator_module=services.card_validator.validate_card",
+                exc,
             )
             return errors
 
@@ -40,15 +39,12 @@ class ArtifactValidator:
         warnings = self._normalize_messages(report.warnings)
         if errors:
             logger.error(
-                "artifact_validation_failed",
-                errors=errors,
-                warnings=warnings,
+                f"artifact_validation_failed errors={errors} warnings={warnings}"
             )
         else:
             logger.info(
-                "artifact_validation_completed",
-                warning_count=len(warnings),
-                warnings=warnings,
+                f"artifact_validation_completed warning_count={len(warnings)} "
+                f"warnings={warnings}"
             )
         return errors
 

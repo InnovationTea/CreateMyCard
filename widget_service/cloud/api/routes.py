@@ -68,7 +68,7 @@ async def _serve_operation_websocket(
     """
     # 每个 WS path 只承载一个业务能力，客户端不需要再传 operation 字段。
     await websocket.accept()
-    logger.info("widget_operation_ws_connected", operation=operation)
+    logger.info(f"widget_operation_ws_connected operation={operation}")
     ready_message = WidgetWebSocketReadyMessage(
         tool=operation,
         operations=[operation],
@@ -82,30 +82,25 @@ async def _serve_operation_websocket(
             payload = await websocket.receive_json()
             request_id = payload.get("requestId")
             started_at = time.perf_counter()
+            arguments = _arguments_from_payload(payload)
             logger.info(
-                "widget_operation_ws_payload_received",
-                request_id=request_id,
-                operation=operation,
-                payload_keys=list(payload.keys()),
-                arguments=_arguments_from_payload(payload),
+                f"widget_operation_ws_payload_received request_id={request_id} "
+                f"operation={operation} payload_keys={list(payload.keys())} "
+                f"arguments={arguments}"
             )
             try:
-                request = request_model(**_arguments_from_payload(payload))
+                request = request_model(**arguments)
                 logger.info(
-                    "widget_operation_ws_message_received",
-                    request_id=request_id,
-                    operation=operation,
-                    uid=getattr(request, "uid", ""),
-                    request=request.model_dump(mode="json", exclude_none=True),
+                    f"widget_operation_ws_message_received request_id={request_id} "
+                    f"operation={operation} uid={getattr(request, 'uid', '')} "
+                    f"request={request.model_dump(mode='json', exclude_none=True)}"
                 )
                 result = handler(service, request)
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
                 logger.info(
-                    "widget_operation_ws_handler_completed",
-                    request_id=request_id,
-                    operation=operation,
-                    duration_ms=duration_ms,
-                    response=result.model_dump(mode="json", exclude_none=True),
+                    f"widget_operation_ws_handler_completed request_id={request_id} "
+                    f"operation={operation} duration_ms={duration_ms} "
+                    f"response={result.model_dump(mode='json', exclude_none=True)}"
                 )
                 result_message = WidgetWebSocketResultMessage(
                     tool=operation,
@@ -118,12 +113,11 @@ async def _serve_operation_websocket(
                 )
             except (ValidationError, ValueError) as exc:
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
-                logger.error(
-                    "widget_operation_ws_invalid_arguments",
-                    request_id=request_id,
-                    operation=operation,
-                    duration_ms=duration_ms,
-                    details=_error_details(exc),
+                logger.error_with_exception(
+                    f"widget_operation_ws_invalid_arguments request_id={request_id} "
+                    f"operation={operation} duration_ms={duration_ms} "
+                    f"details={_error_details(exc)}",
+                    exc,
                 )
                 error_message = WidgetWebSocketErrorMessage(
                     tool=operation,
@@ -137,12 +131,10 @@ async def _serve_operation_websocket(
                 )
             except Exception as exc:
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
-                logger.error(
-                    "widget_operation_ws_failed",
-                    request_id=request_id,
-                    operation=operation,
-                    duration_ms=duration_ms,
-                    error=str(exc),
+                logger.error_with_exception(
+                    f"widget_operation_ws_failed request_id={request_id} "
+                    f"operation={operation} duration_ms={duration_ms} error={exc}",
+                    exc,
                 )
                 error_message = WidgetWebSocketErrorMessage(
                     tool=operation,
@@ -154,7 +146,7 @@ async def _serve_operation_websocket(
                     error_message.model_dump(mode="json", exclude_none=True)
                 )
     except WebSocketDisconnect:
-        logger.info("widget_operation_ws_disconnected", operation=operation)
+        logger.info(f"widget_operation_ws_disconnected operation={operation}")
         return
 
 

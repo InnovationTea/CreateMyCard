@@ -23,10 +23,9 @@ class A2UIModelClient:
         """
         # 当前是模拟 A2UI 模型输出；后续可替换为真实模型客户端，但要保留三行 JSONL 契约。
         logger.info(
-            "a2ui_model_generate_started",
-            size=task_spec.size,
-            event_count=len(task_spec.eventCandidates),
-            asset_count=len(task_spec.assetCandidates),
+            f"a2ui_model_generate_started size={task_spec.size} "
+            f"event_count={len(task_spec.eventCandidates)} "
+            f"asset_count={len(task_spec.assetCandidates)}"
         )
         surface_id = f"surface-{uuid.uuid4().hex[:12]}"
         size = protocol_profile["sizes"][task_spec.size]
@@ -93,7 +92,7 @@ class A2UIModelClient:
             json.dumps(item, ensure_ascii=False, separators=(",", ":"))
             for item in [create_surface, update_components, update_data_model]
         )
-        logger.info("a2ui_model_generate_completed", surface_id=surface_id)
+        logger.info(f"a2ui_model_generate_completed surface_id={surface_id}")
         return genui
 
     def _title(self, user_query: str) -> str:

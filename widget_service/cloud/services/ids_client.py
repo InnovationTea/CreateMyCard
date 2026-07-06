@@ -1,6 +1,9 @@
+import base64
+import binascii
 import hashlib
 import hmac
 import json
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -8,7 +11,7 @@ from typing import Any
 import httpx
 
 from app.logger import logger
-from core.config import get_settings
+from config.config import get_settings
 from models.generation import DeviceContext
 from models.service import (
     IDSHttpRequest,
@@ -86,15 +89,11 @@ class IDSClient:
             ],
         )
         ids_sign = self.build_ids_sign(
-            body=body,
-            dev_fake_id=self.settings.ids_dev_fake_id,
+            timestamp_ms=int(time.time() * 1000),
         )
         logger.info(
-            "ids_installed_apps_query_built",
-            request_id=request_id,
-            odid=odid,
-            body=body.model_dump(mode="json"),
-            ids_sign_preview=ids_sign[:8],
+            f"ids_installed_apps_query_built request_id={request_id} odid={odid} "
+            f"body={body.model_dump(mode='json')} ids_sign_preview={ids_sign[:8]}"
         )
         return IDSHttpRequest(
             method="POST",
@@ -111,30 +110,38 @@ class IDSClient:
 
     def build_ids_sign(
         self,
-        body: IDSInstalledAppsQueryBody,
-        dev_fake_id: str,
+        timestamp_ms: int | None = None,
     ) -> str:
         """生成 IDS 请求签名。
 
         入参：
-        - body：IDS 请求 body 实体。
-        - dev_fake_id：请求头里的 devFakeId。
-        出参：十六进制 HMAC-SHA256 签名字符串。
+        - timestamp_ms：毫秒时间戳；不传时使用当前时间。
+        出参：`accessKey;timestamp;sign` 格式的 IDS 签名字符串。
         """
-        # 这里对应 ids.json/Postman 前置脚本里的签名准备流程：
-        # 用稳定 JSON body 和 devFakeId 组成签名原文，再用配置密钥生成 HMAC-SHA256。
-        canonical_body = json.dumps(
-            body.model_dump(mode="json"),
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-        )
-        sign_source = f"{dev_fake_id}\n{canonical_body}"
-        return hmac.new(
-            self.settings.ids_sign_secret.encode("utf-8"),
-            sign_source.encode("utf-8"),
-            hashlib.sha256,
-        ).hexdigest()
+        # 对齐 ids.json 的 Postman 前置脚本：
+        # idsSign = accessKey + ";" + ts + ";" + sign，
+        # sign = Base64(HMAC-SHA256(accessKey + ts, Base64(secretKey)))。
+        ts = timestamp_ms or int(time.time() * 1000)
+        access_key = self.settings.ids_access_key
+        secret_key_bytes = self._decode_ids_secret_key(self.settings.ids_secret_key)
+        sign_source = f"{access_key}{ts}".encode()
+        digest = hmac.new(secret_key_bytes, sign_source, hashlib.sha256).digest()
+        sign = base64.b64encode(digest).decode("utf-8")
+        return f"{access_key};{ts};{sign}"
+
+    def _decode_ids_secret_key(self, secret_key: str) -> bytes:
+        """解析 IDS secretKey。
+
+        入参：
+        - secret_key：配置中的 secretKey，按 Postman 脚本约定优先视为 Base64。
+        出参：HMAC 使用的 key bytes。
+        """
+        try:
+            padding = "=" * (-len(secret_key) % 4)
+            return base64.b64decode(secret_key + padding, validate=True)
+        except (ValueError, binascii.Error):
+            # 本地 dummy 配置可能不是合法 Base64；兜底使用原始字符串，避免本地启动直接失败。
+            return secret_key.encode("utf-8")
 
     def get_device_capability_state(
         self,
@@ -152,33 +159,29 @@ class IDSClient:
         # 先根据 device 生成 IDS 查询请求，再决定走 mock 文件还是真实 IDS 请求。
         ids_query = self.build_installed_apps_query(device, request_id)
         logger.info(
-            "ids_device_capability_query_prepared",
-            request_id=request_id,
-            method=ids_query.method,
-            url=ids_query.url,
-            headers=self._safe_headers_for_log(ids_query),
-            body=ids_query.body.model_dump(mode="json"),
+            f"ids_device_capability_query_prepared request_id={request_id} "
+            f"method={ids_query.method} url={ids_query.url} "
+            f"headers={self._safe_headers_for_log(ids_query)} "
+            f"body={ids_query.body.model_dump(mode='json')}"
         )
         if self.mock_response_path.exists():
             # mock 文件沿用 docs/ids_res.txt 的原始 IDS JSON 结构。
-            logger.info("ids_mock_response_loading", path=str(self.mock_response_path))
+            logger.info(f"ids_mock_response_loading path={self.mock_response_path}")
             payload = load_json(self.mock_response_path)
         else:
             # 没有 mock 文件时发起真实 IDS 请求；真实返回结构应与 mock 文件一致。
             logger.info(
-                "ids_mock_response_not_found_use_remote",
-                path=str(self.mock_response_path),
-                url=ids_query.url,
+                f"ids_mock_response_not_found_use_remote path={self.mock_response_path} "
+                f"url={ids_query.url}"
             )
             payload = self._query_remote_ids(ids_query, request_id)
         state = self._parse_ids_payload(payload)
         logger.info(
-            "ids_device_capability_state_loaded",
-            request_id=request_id,
-            installed_app_count=len(state.installed_apps),
-            provider_count=len(state.providers),
-            intent_count=len(state.intent_targets),
-            permission_count=len(state.permissions),
+            f"ids_device_capability_state_loaded request_id={request_id} "
+            f"installed_app_count={len(state.installed_apps)} "
+            f"provider_count={len(state.providers)} "
+            f"intent_count={len(state.intent_targets)} "
+            f"permission_count={len(state.permissions)}"
         )
         return state
 
@@ -197,19 +200,16 @@ class IDSClient:
         # URL 若仍保留 Postman 占位符，说明部署环境还没配置真实 IDS 地址。
         if "{{" in ids_query.url or "}}" in ids_query.url:
             logger.error(
-                "ids_remote_query_url_not_configured",
-                request_id=request_id,
-                url=ids_query.url,
+                f"ids_remote_query_url_not_configured request_id={request_id} "
+                f"url={ids_query.url}"
             )
             return {"nameSpaces": []}
 
         try:
             logger.info(
-                "ids_remote_query_started",
-                request_id=request_id,
-                method=ids_query.method,
-                url=ids_query.url,
-                timeout_seconds=self.settings.ids_request_timeout_seconds,
+                f"ids_remote_query_started request_id={request_id} "
+                f"method={ids_query.method} url={ids_query.url} "
+                f"timeout_seconds={self.settings.ids_request_timeout_seconds}"
             )
             response = httpx.post(
                 ids_query.url,
@@ -218,31 +218,26 @@ class IDSClient:
                 timeout=self.settings.ids_request_timeout_seconds,
             )
             logger.info(
-                "ids_remote_query_response_received",
-                request_id=request_id,
-                status_code=response.status_code,
-                response_bytes=len(response.content),
+                f"ids_remote_query_response_received request_id={request_id} "
+                f"status_code={response.status_code} response_bytes={len(response.content)}"
             )
             response.raise_for_status()
             payload = response.json()
             if not isinstance(payload, dict):
                 logger.error(
-                    "ids_remote_query_invalid_response_type",
-                    request_id=request_id,
-                    response_type=type(payload).__name__,
+                    f"ids_remote_query_invalid_response_type request_id={request_id} "
+                    f"response_type={type(payload).__name__}"
                 )
                 return {"nameSpaces": []}
             logger.debug(
-                "ids_remote_query_payload_loaded",
-                request_id=request_id,
-                namespace_count=len(payload.get("nameSpaces", [])),
+                f"ids_remote_query_payload_loaded request_id={request_id} "
+                f"namespace_count={len(payload.get('nameSpaces', []))}"
             )
             return payload
         except (httpx.HTTPError, json.JSONDecodeError) as exc:
-            logger.error(
-                "ids_remote_query_failed",
-                request_id=request_id,
-                error=str(exc),
+            logger.error_with_exception(
+                f"ids_remote_query_failed request_id={request_id} error={exc}",
+                exc,
             )
             return {"nameSpaces": []}
 
@@ -289,11 +284,9 @@ class IDSClient:
                 permissions.update(self._collect_permissions(values))
 
         logger.debug(
-            "ids_payload_parsed",
-            installed_app_count=len(installed_apps),
-            provider_count=len(providers),
-            intent_count=len(intent_targets),
-            permission_count=len(permissions),
+            f"ids_payload_parsed installed_app_count={len(installed_apps)} "
+            f"provider_count={len(providers)} intent_count={len(intent_targets)} "
+            f"permission_count={len(permissions)}"
         )
         return IDSDeviceCapabilityState(
             installed_apps=installed_apps,

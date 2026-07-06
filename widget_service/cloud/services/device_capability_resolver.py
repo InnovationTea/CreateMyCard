@@ -44,13 +44,11 @@ class DeviceCapabilityResolver:
             "resolve-data-bindings",
         )
         logger.info(
-            "resolve_data_bindings_started",
-            candidate_count=len(candidate_bindings),
-            candidates=[
-                item.model_dump(mode="json", exclude_none=True) for item in candidate_bindings
-            ],
-            provider_count=len(ids_state.providers),
-            intent_count=len(ids_state.intent_targets),
+            f"resolve_data_bindings_started candidate_count={len(candidate_bindings)} "
+            f"candidates="
+            f"{[item.model_dump(mode='json', exclude_none=True) for item in candidate_bindings]} "
+            f"provider_count={len(ids_state.providers)} "
+            f"intent_count={len(ids_state.intent_targets)}"
         )
         effective_bindings: list[CandidateDataBinding] = []
         effective_capabilities: list[DataCapability] = []
@@ -59,18 +57,15 @@ class DeviceCapabilityResolver:
         for binding in candidate_bindings:
             # 未注册或不可用的能力不能进入最终 CardSpec。
             logger.info(
-                "data_capability_check_started",
-                capability_id=binding.capabilityId,
-                arguments=binding.arguments,
-                write_result_to=binding.writeResultTo,
-                update_model_keys=list(binding.updateModel.keys()),
+                f"data_capability_check_started capability_id={binding.capabilityId} "
+                f"arguments={binding.arguments} write_result_to={binding.writeResultTo} "
+                f"update_model_keys={list(binding.updateModel.keys())}"
             )
             capability = self.registry.get_data_capability(binding.capabilityId)
             if capability is None:
                 logger.warning(
-                    "data_capability_removed",
-                    capability_id=binding.capabilityId,
-                    reason=ErrorCode.UNKNOWN_CAPABILITY.value,
+                    f"data_capability_removed capability_id={binding.capabilityId} "
+                    f"reason={ErrorCode.UNKNOWN_CAPABILITY.value}"
                 )
                 removed.append(self._removed(binding.capabilityId, ErrorCode.UNKNOWN_CAPABILITY))
                 continue
@@ -81,9 +76,8 @@ class DeviceCapabilityResolver:
             )
             if reason is not None:
                 logger.warning(
-                    "data_capability_removed",
-                    capability_id=binding.capabilityId,
-                    reason=reason.value,
+                    f"data_capability_removed capability_id={binding.capabilityId} "
+                    f"reason={reason.value}"
                 )
                 removed.append(self._removed(binding.capabilityId, reason))
                 continue
@@ -91,9 +85,8 @@ class DeviceCapabilityResolver:
             # 参数必须符合能力注册表声明的 inputSchema，否则不允许进入最终 CardSpec。
             if not self._valid_arguments(binding.arguments, capability.inputSchema):
                 logger.warning(
-                    "data_capability_removed",
-                    capability_id=binding.capabilityId,
-                    reason=ErrorCode.INVALID_ARGUMENTS.value,
+                    f"data_capability_removed capability_id={binding.capabilityId} "
+                    f"reason={ErrorCode.INVALID_ARGUMENTS.value}"
                 )
                 removed.append(self._removed(binding.capabilityId, ErrorCode.INVALID_ARGUMENTS))
                 continue
@@ -103,10 +96,9 @@ class DeviceCapabilityResolver:
             # CardSpec 数据写入路径必须位于 /data/ 下，方便 DSL 绑定路径可追踪。
             if write_result_to is None or not write_result_to.startswith("/data/"):
                 logger.warning(
-                    "data_capability_removed",
-                    capability_id=binding.capabilityId,
-                    reason=ErrorCode.INVALID_ARGUMENTS.value,
-                    write_result_to=write_result_to,
+                    f"data_capability_removed capability_id={binding.capabilityId} "
+                    f"reason={ErrorCode.INVALID_ARGUMENTS.value} "
+                    f"write_result_to={write_result_to}"
                 )
                 removed.append(self._removed(binding.capabilityId, ErrorCode.INVALID_ARGUMENTS))
                 continue
@@ -122,18 +114,16 @@ class DeviceCapabilityResolver:
             )
             effective_capabilities.append(capability)
             logger.info(
-                "data_capability_check_passed",
-                capability_id=binding.capabilityId,
-                write_result_to=write_result_to,
+                f"data_capability_check_passed capability_id={binding.capabilityId} "
+                f"write_result_to={write_result_to}"
             )
 
         # 不同能力写入同一路径会让 DataModel 覆盖，必须在最终 CardSpec 生成前剔除。
         conflict_id = self._find_write_result_conflict(effective_bindings)
         if conflict_id:
             logger.warning(
-                "data_capability_removed",
-                capability_id=conflict_id,
-                reason=ErrorCode.WRITE_RESULT_CONFLICT.value,
+                f"data_capability_removed capability_id={conflict_id} "
+                f"reason={ErrorCode.WRITE_RESULT_CONFLICT.value}"
             )
             effective_bindings = [
                 item for item in effective_bindings if item.capabilityId != conflict_id
@@ -144,9 +134,8 @@ class DeviceCapabilityResolver:
             removed.append(self._removed(conflict_id, ErrorCode.WRITE_RESULT_CONFLICT))
 
         logger.info(
-            "resolve_data_bindings_completed",
-            effective_count=len(effective_bindings),
-            removed_count=len(removed),
+            f"resolve_data_bindings_completed effective_count={len(effective_bindings)} "
+            f"removed_count={len(removed)}"
         )
         return effective_bindings, effective_capabilities, removed
 
@@ -168,10 +157,10 @@ class DeviceCapabilityResolver:
             "resolve-event-candidates",
         )
         logger.info(
-            "resolve_event_candidates_started",
-            candidate_count=len(candidates),
-            candidates=[item.model_dump(mode="json", exclude_none=True) for item in candidates],
-            intent_count=len(ids_state.intent_targets),
+            f"resolve_event_candidates_started candidate_count={len(candidates)} "
+            f"candidates="
+            f"{[item.model_dump(mode='json', exclude_none=True) for item in candidates]} "
+            f"intent_count={len(ids_state.intent_targets)}"
         )
         removed: list[RemovedCapability] = []
         effective: list[EventAction] = []
@@ -179,19 +168,16 @@ class DeviceCapabilityResolver:
         for candidate in candidates:
             capability_id = candidate.id
             logger.info(
-                "event_capability_check_started",
-                capability_id=capability_id,
-                call=candidate.call,
-                args=candidate.args,
+                f"event_capability_check_started capability_id={capability_id} "
+                f"call={candidate.call} args={candidate.args}"
             )
             if capability_id:
                 # 事件候选必须能在事件能力注册表里找到，否则不能进入 TaskSpec。
                 event_capability = self.registry.get_event_capability(capability_id)
                 if event_capability is None:
                     logger.warning(
-                        "event_capability_removed",
-                        capability_id=capability_id,
-                        reason=ErrorCode.UNKNOWN_CAPABILITY.value,
+                        f"event_capability_removed capability_id={capability_id} "
+                        f"reason={ErrorCode.UNKNOWN_CAPABILITY.value}"
                     )
                     removed.append(
                         self._removed(capability_id, ErrorCode.UNKNOWN_CAPABILITY, "event")
@@ -203,23 +189,20 @@ class DeviceCapabilityResolver:
                 )
                 if reason is not None:
                     logger.warning(
-                        "event_capability_removed",
-                        capability_id=capability_id,
-                        reason=reason.value,
+                        f"event_capability_removed capability_id={capability_id} "
+                        f"reason={reason.value}"
                     )
                     removed.append(self._removed(capability_id, reason, "event"))
                     continue
             # 通过过滤后的事件动作会进入模型 TaskSpec，供 DSL 绑定 onClick 行为。
             effective.append(candidate)
             logger.info(
-                "event_capability_check_passed",
-                capability_id=capability_id,
-                call=candidate.call,
+                f"event_capability_check_passed capability_id={capability_id} "
+                f"call={candidate.call}"
             )
         logger.info(
-            "resolve_event_candidates_completed",
-            effective_count=len(effective),
-            removed_count=len(removed),
+            f"resolve_event_candidates_completed effective_count={len(effective)} "
+            f"removed_count={len(removed)}"
         )
         return effective, removed
 
@@ -238,18 +221,19 @@ class DeviceCapabilityResolver:
         出参：不可用原因错误码；全部满足时返回 None。
         """
         dependencies = capability.dependencies
+        required_packages = [
+            item.model_dump(mode="json", exclude_none=True)
+            for item in dependencies.requiredPackages
+        ]
         logger.info(
-            "capability_dependency_check_started",
-            capability_id=getattr(capability, "id", ""),
-            min_rom_version=dependencies.minRomVersion,
-            min_app_version=dependencies.minAppVersion,
-            required_packages=[
-                item.model_dump(mode="json", exclude_none=True)
-                for item in dependencies.requiredPackages
-            ],
-            required_providers=dependencies.requiredProviders,
-            required_intent_targets=dependencies.requiredIntentTargets,
-            required_permissions=dependencies.requiredPermissions,
+            f"capability_dependency_check_started "
+            f"capability_id={getattr(capability, 'id', '')} "
+            f"min_rom_version={dependencies.minRomVersion} "
+            f"min_app_version={dependencies.minAppVersion} "
+            f"required_packages={required_packages} "
+            f"required_providers={dependencies.requiredProviders} "
+            f"required_intent_targets={dependencies.requiredIntentTargets} "
+            f"required_permissions={dependencies.requiredPermissions}"
         )
         # 版本门禁先判断，避免低版本设备进入后续更重的 IDS 依赖判断。
         if dependencies.minRomVersion and not self._version_gte(
@@ -289,8 +273,8 @@ class DeviceCapabilityResolver:
                 return ErrorCode.PERMISSION_UNKNOWN
 
         logger.info(
-            "capability_dependency_check_passed",
-            capability_id=getattr(capability, "id", ""),
+            f"capability_dependency_check_passed "
+            f"capability_id={getattr(capability, 'id', '')}"
         )
         return None
 

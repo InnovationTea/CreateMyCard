@@ -42,11 +42,9 @@ class WidgetGenerationService:
         """
         # 统一工具层只暴露一个工具名，通过 operation 分发到三个真实业务流程。
         logger.info(
-            "widget_card_service_dispatch_started",
-            operation=request.operation,
-            uid=request.uid,
-            device_rom_version=request.device.romVersion,
-            ohos_api_version=request.device.ohosApiVersion,
+            f"widget_card_service_dispatch_started operation={request.operation} "
+            f"uid={request.uid} device_rom_version={request.device.romVersion} "
+            f"ohos_api_version={request.device.ohosApiVersion}"
         )
         if request.operation == "getWidgetCapabilityOverview":
             # overview 只需要版本上下文，不需要读取完整数据 schema，避免首轮工具返回过大。
@@ -85,18 +83,16 @@ class WidgetGenerationService:
         出参：数据能力 id+描述，以及全量事件能力和素材清单。
         """
         logger.info(
-            "capability_overview_started",
-            uid=request.uid,
-            device_rom_version=request.device.romVersion,
-            ohos_api_version=request.device.ohosApiVersion,
-            request=request.model_dump(mode="json", exclude_none=True),
+            f"capability_overview_started uid={request.uid} "
+            f"device_rom_version={request.device.romVersion} "
+            f"ohos_api_version={request.device.ohosApiVersion} "
+            f"request={request.model_dump(mode='json', exclude_none=True)}"
         )
         # 能力注册表按 device.ohosApiVersion+device.romVersion 文件夹隔离。
         registry = self._capability_registry(request)
         logger.info(
-            "capability_registry_selected",
-            operation="getWidgetCapabilityOverview",
-            registry_version=registry.version,
+            "capability_registry_selected operation=getWidgetCapabilityOverview "
+            f"registry_version={registry.version}"
         )
         response = CapabilityOverviewResponse(
             capabilityRegistryVersion=registry.version,
@@ -112,11 +108,10 @@ class WidgetGenerationService:
             assetCandidates=registry.list_asset_capabilities(),
         )
         logger.info(
-            "capability_overview_completed",
-            registry_version=registry.version,
-            data_count=len(response.dataCapabilities),
-            event_count=len(response.eventCapabilities),
-            asset_count=len(response.assetCandidates),
+            f"capability_overview_completed registry_version={registry.version} "
+            f"data_count={len(response.dataCapabilities)} "
+            f"event_count={len(response.eventCapabilities)} "
+            f"asset_count={len(response.assetCandidates)}"
         )
         return response
 
@@ -131,17 +126,15 @@ class WidgetGenerationService:
         出参：已注册数据能力完整定义，以及缺失能力 ID 列表。
         """
         logger.info(
-            "data_capability_schemas_started",
-            uid=request.uid,
-            data_capability_ids=request.dataCapabilityIds,
-            request=request.model_dump(mode="json", exclude_none=True),
+            f"data_capability_schemas_started uid={request.uid} "
+            f"data_capability_ids={request.dataCapabilityIds} "
+            f"request={request.model_dump(mode='json', exclude_none=True)}"
         )
         # 这里返回完整 inputSchema/outputSchema，供主 Agent 生成合法 candidateDataBindings。
         registry = self._capability_registry(request)
         logger.info(
-            "capability_registry_selected",
-            operation="getDataCapabilitySchemas",
-            registry_version=registry.version,
+            "capability_registry_selected operation=getDataCapabilitySchemas "
+            f"registry_version={registry.version}"
         )
         capabilities = []
         missing = []
@@ -158,10 +151,8 @@ class WidgetGenerationService:
             missingCapabilityIds=missing,
         )
         logger.info(
-            "data_capability_schemas_completed",
-            registry_version=registry.version,
-            found_count=len(capabilities),
-            missing_ids=missing,
+            f"data_capability_schemas_completed registry_version={registry.version} "
+            f"found_count={len(capabilities)} missing_ids={missing}"
         )
         return response
 
@@ -176,29 +167,25 @@ class WidgetGenerationService:
         """
         # 主流程：解析能力、生成 CardSpec/TaskSpec、生成 genui、校验 artifact、返回结构化状态。
         logger.info(
-            "generate_widget_card_started",
-            uid=request.uid,
-            size=request.size,
-            data_binding_count=len(request.candidateDataBindings),
-            event_count=len(request.candidateEventCandidates),
-            asset_count=len(request.candidateAssetIds),
-            request=request.model_dump(mode="json", exclude_none=True),
+            f"generate_widget_card_started uid={request.uid} size={request.size} "
+            f"data_binding_count={len(request.candidateDataBindings)} "
+            f"event_count={len(request.candidateEventCandidates)} "
+            f"asset_count={len(request.candidateAssetIds)} "
+            f"request={request.model_dump(mode='json', exclude_none=True)}"
         )
         # registry 负责读取当前版本的能力清单，后续所有过滤都以这份清单为准。
         registry = self._capability_registry(request)
         logger.info(
-            "generate_flow_step_registry_ready",
-            uid=request.uid,
-            registry_version=registry.version,
+            f"generate_flow_step_registry_ready uid={request.uid} "
+            f"registry_version={registry.version}"
         )
         # 协议 profile 决定 A2UI 组件白名单、DSL 行数要求和校验规则。
         protocol_registry = A2UIProtocolRegistry(request.protocolProfileId)
         protocol_profile = protocol_registry.get_profile()
         logger.info(
-            "generate_flow_step_protocol_ready",
-            uid=request.uid,
-            protocol_profile_id=protocol_profile["id"],
-            protocol_version=protocol_profile["version"],
+            f"generate_flow_step_protocol_ready uid={request.uid} "
+            f"protocol_profile_id={protocol_profile['id']} "
+            f"protocol_version={protocol_profile['version']}"
         )
         # resolver 负责把主 Agent 候选能力裁决成当前设备真实可用能力。
         resolver = DeviceCapabilityResolver(registry)
@@ -211,11 +198,10 @@ class WidgetGenerationService:
             )
         )
         logger.info(
-            "data_capability_resolved",
-            effective_binding_count=len(effective_bindings),
-            removed_count=len(removed_data),
-            effective_binding_ids=[item.capabilityId for item in effective_bindings],
-            removed_data=[item.model_dump(mode="json") for item in removed_data],
+            f"data_capability_resolved effective_binding_count={len(effective_bindings)} "
+            f"removed_count={len(removed_data)} "
+            f"effective_binding_ids={[item.capabilityId for item in effective_bindings]} "
+            f"removed_data={[item.model_dump(mode='json') for item in removed_data]}"
         )
         # 事件候选先从外部协议结构转换成内部 EventAction，再进入统一能力裁决。
         candidate_events = self._normalize_event_candidates(request)
@@ -225,11 +211,10 @@ class WidgetGenerationService:
             request.device,
         )
         logger.info(
-            "event_capability_resolved",
-            effective_event_count=len(effective_events),
-            removed_count=len(removed_events),
-            effective_events=[item.model_dump(mode="json") for item in effective_events],
-            removed_events=[item.model_dump(mode="json") for item in removed_events],
+            f"event_capability_resolved effective_event_count={len(effective_events)} "
+            f"removed_count={len(removed_events)} "
+            f"effective_events={[item.model_dump(mode='json') for item in effective_events]} "
+            f"removed_events={[item.model_dump(mode='json') for item in removed_events]}"
         )
         asset_candidates = []
         removed_assets = []
@@ -246,19 +231,17 @@ class WidgetGenerationService:
         # removed 是统一降级信息源，最终会同时进入 prompt、artifact 和响应。
         removed = removed_data + removed_events + removed_assets
         logger.info(
-            "asset_capability_resolved",
-            effective_asset_count=len(asset_candidates),
-            removed_count=len(removed_assets),
-            effective_asset_ids=[item.id for item in asset_candidates],
-            removed_assets=[item.model_dump(mode="json") for item in removed_assets],
+            f"asset_capability_resolved effective_asset_count={len(asset_candidates)} "
+            f"removed_count={len(removed_assets)} "
+            f"effective_asset_ids={[item.id for item in asset_candidates]} "
+            f"removed_assets={[item.model_dump(mode='json') for item in removed_assets]}"
         )
         if request.candidateDataBindings and not effective_bindings and not effective_events:
             # 没有剩余动态数据或可用入口时，不调用模型，也不伪造数据绑定。
             logger.warning(
-                "generate_widget_card_unsupported",
-                uid=request.uid,
-                removed_count=len(removed),
-                error_code=ErrorCode.NO_EFFECTIVE_CAPABILITY.value,
+                f"generate_widget_card_unsupported uid={request.uid} "
+                f"removed_count={len(removed)} "
+                f"error_code={ErrorCode.NO_EFFECTIVE_CAPABILITY.value}"
             )
             return GenerateWidgetCardResponse(
                 status=GenerationStatus.UNSUPPORTED,
@@ -280,11 +263,10 @@ class WidgetGenerationService:
             asset_candidates,
         )
         logger.info(
-            "card_and_task_spec_built",
-            data_binding_count=len(effective_bindings),
-            card_spec=card_spec.model_dump(mode="json", exclude_none=True),
-            task_spec=task_spec.model_dump(mode="json", exclude_none=True),
-            task_data_model_keys=list(task_spec.dataModel.get("value", {}).keys()),
+            f"card_and_task_spec_built data_binding_count={len(effective_bindings)} "
+            f"card_spec={card_spec.model_dump(mode='json', exclude_none=True)} "
+            f"task_spec={task_spec.model_dump(mode='json', exclude_none=True)} "
+            f"task_data_model_keys={list(task_spec.dataModel.get('value', {}).keys())}"
         )
         # prompt 只作为模型生成 DSL 的约束输入，最终协议仍由 CardSpec 和 Validator 兜底。
         prompt = PromptBuilder().build(
@@ -293,9 +275,8 @@ class WidgetGenerationService:
             "；".join(f"{item.id}:{item.reason}" for item in removed),
         )
         logger.info(
-            "a2ui_prompt_built",
-            uid=request.uid,
-            prompt=prompt.model_dump(mode="json", exclude_none=True),
+            f"a2ui_prompt_built uid={request.uid} "
+            f"prompt={prompt.model_dump(mode='json', exclude_none=True)}"
         )
 
         model_client = A2UIModelClient()
@@ -308,7 +289,7 @@ class WidgetGenerationService:
             出参：三行 JSONL genui 字符串。
             """
             # mock 模型客户端当前返回稳定 DSL；后续替换真实模型时保持 generate 入参不变。
-            logger.info("a2ui_model_operation_started", uid=request.uid)
+            logger.info(f"a2ui_model_operation_started uid={request.uid}")
             return model_client.generate(task_spec, protocol_profile, prompt)
 
         def validate_genui(genui: str) -> list[str]:
@@ -320,9 +301,8 @@ class WidgetGenerationService:
             """
             # 每次模型输出都临时组装 artifact，再用同一套 Validator 校验完整契约。
             logger.info(
-                "a2ui_genui_validation_started",
-                uid=request.uid,
-                genui_length=len(genui),
+                f"a2ui_genui_validation_started uid={request.uid} "
+                f"genui_length={len(genui)}"
             )
             artifact = self._build_artifact(
                 genui,
@@ -342,15 +322,12 @@ class WidgetGenerationService:
         genui = retry_result.result
         errors = retry_result.errors
         logger.info(
-            "a2ui_generation_completed",
-            retry_count=retry_result.retryCount,
-            validation_error_count=len(errors),
+            f"a2ui_generation_completed retry_count={retry_result.retryCount} "
+            f"validation_error_count={len(errors)}"
         )
         if errors:
             logger.error(
-                "a2ui_generation_validation_failed",
-                errors=errors,
-                uid=request.uid,
+                f"a2ui_generation_validation_failed uid={request.uid} errors={errors}"
             )
             return GenerateWidgetCardResponse(
                 status=GenerationStatus.FAILED,
@@ -374,10 +351,9 @@ class WidgetGenerationService:
         )
         # ArtifactStore 当前是本地 mock/OBS TODO 入口，返回端侧可下载 URL 和摘要。
         logger.info(
-            "artifact_built",
-            uid=request.uid,
-            effective_capabilities=artifact.effectiveCapabilities,
-            removed_count=len(artifact.removedCapabilities),
+            f"artifact_built uid={request.uid} "
+            f"effective_capabilities={artifact.effectiveCapabilities} "
+            f"removed_count={len(artifact.removedCapabilities)}"
         )
         artifact_save_result = ArtifactStore().save(artifact)
         # ResponsePlanner 根据移除能力和最终产物判断 success/degraded/failed 等用户状态。
@@ -388,11 +364,9 @@ class WidgetGenerationService:
             has_artifact=True,
         )
         logger.info(
-            "generate_widget_card_completed",
-            status=response_plan.status.value,
-            artifact_url=artifact_save_result.artifactUrl,
-            removed_count=len(removed),
-            error_code=response_plan.errorCode,
+            f"generate_widget_card_completed status={response_plan.status.value} "
+            f"artifact_url={artifact_save_result.artifactUrl} "
+            f"removed_count={len(removed)} error_code={response_plan.errorCode}"
         )
         return GenerateWidgetCardResponse(
             status=response_plan.status,
@@ -443,17 +417,17 @@ class WidgetGenerationService:
         # capabilityRegistryVersion 显式传入时优先使用；
         # 否则根据 device.ohosApiVersion+device.romVersion 推导能力清单文件夹名。
         logger.info(
-            "capability_registry_building",
-            requested_version=request.capabilityRegistryVersion,
-            ohos_api_version=request.device.ohosApiVersion,
-            device_rom_version=request.device.romVersion,
+            f"capability_registry_building requested_version="
+            f"{request.capabilityRegistryVersion} "
+            f"ohos_api_version={request.device.ohosApiVersion} "
+            f"device_rom_version={request.device.romVersion}"
         )
         registry = CapabilityRegistry(
             version=request.capabilityRegistryVersion,
             ohos_api_version=request.device.ohosApiVersion,
             device_rom_version=request.device.romVersion,
         )
-        logger.info("capability_registry_built", registry_version=registry.version)
+        logger.info(f"capability_registry_built registry_version={registry.version}")
         return registry
 
     def _build_artifact(
@@ -484,13 +458,11 @@ class WidgetGenerationService:
         """
         # artifact 是端侧下载后的唯一交付物，里面同时包含 DSL、CardSpec、TaskSpec 和能力裁决结果。
         logger.info(
-            "artifact_building",
-            protocol_profile_id=protocol_profile_id,
-            capability_registry_version=capability_registry_version,
-            data_capability_count=len(data_capabilities),
-            event_candidate_count=len(event_candidates),
-            asset_candidate_count=len(asset_candidates),
-            removed_count=len(removed),
+            f"artifact_building protocol_profile_id={protocol_profile_id} "
+            f"capability_registry_version={capability_registry_version} "
+            f"data_capability_count={len(data_capabilities)} "
+            f"event_candidate_count={len(event_candidates)} "
+            f"asset_candidate_count={len(asset_candidates)} removed_count={len(removed)}"
         )
         return WidgetArtifact(
             genui=genui,
