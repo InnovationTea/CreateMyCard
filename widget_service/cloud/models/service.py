@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -83,7 +85,7 @@ class IDSHttpRequest(BaseModel):
     出参：可用于真实 HTTP 调用或测试断言的结构化请求。
     """
 
-    method: Literal["POST"]
+    method: Literal["GET", "POST"]
     url: str
     headers: IDSRequestHeaders
     body: IDSInstalledAppsQueryBody

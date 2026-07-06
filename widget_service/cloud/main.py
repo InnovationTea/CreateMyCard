@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import time
+import traceback
 import uuid
 
 import uvicorn
@@ -47,7 +50,11 @@ def create_app() -> FastAPI:
             response = await call_next(request)
         except Exception as exc:
             duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
-            logger.error_with_exception(f"http_request_failed duration_ms={duration_ms}", exc)
+            logger.error(
+                f"http_request_failed duration_ms={duration_ms} "
+                f"exception_type={type(exc).__name__} exception={exc!r} "
+                f"traceback={traceback.format_exc()}"
+            )
             clear_contextvars()
             raise
 

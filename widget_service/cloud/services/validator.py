@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+import traceback
 from typing import Any
 
 from app.logger import logger
@@ -28,10 +31,11 @@ class ArtifactValidator:
         except Exception as exc:
             # 校验模块异常属于服务侧校验链路异常，需要返回为校验失败，避免产物绕过校验。
             errors = [f"validator execution failed: {exc}"]
-            logger.error_with_exception(
+            logger.error(
                 f"artifact_validation_failed errors={errors} "
-                "validator_module=services.card_validator.validate_card",
-                exc,
+                "validator_module=services.card_validator.validate_card "
+                f"exception_type={type(exc).__name__} exception={exc!r} "
+                f"traceback={traceback.format_exc()}"
             )
             return errors
 

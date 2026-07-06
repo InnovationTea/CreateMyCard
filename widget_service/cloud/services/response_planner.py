@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 from core.errors import ErrorCode, GenerationStatus
 from models.capability import RemovedCapability
 from models.service import ResponsePlan

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 #!/usr/bin/env python3
 """Validate Harmony A2UI Form card drafts.
 

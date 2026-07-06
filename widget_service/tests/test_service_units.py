@@ -1,11 +1,14 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 # ruff: noqa: E402, I001
 import base64
 import hashlib
 import hmac
+import json as json_module
 import sys
 from pathlib import Path
 
-import httpx
+import requests
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CLOUD_ROOT = PROJECT_ROOT / "cloud"
@@ -14,6 +17,7 @@ if str(CLOUD_ROOT) not in sys.path:
     sys.path.insert(0, str(CLOUD_ROOT))
 
 from core.errors import ErrorCode, GenerationStatus
+from core.logger import DesensitizedErrorTool
 from models.artifact import ArtifactMeta, WidgetArtifact
 from models.capability import AssetCapability, DataCapability, RemovedCapability
 from models.generation import CandidateDataBinding, DeviceContext, EventAction
@@ -98,37 +102,61 @@ def test_ids_client_queries_remote_when_mock_file_missing(tmp_path, monkeypatch)
         ]
     }
 
-    def fake_post(url, headers, json, timeout):
+    def fake_request(method, url, headers, json, timeout, stream, verify, allow_redirects):
         """模拟 IDS HTTP 响应。
 
-        入参：真实 httpx.post 调用参数。
-        出参：httpx.Response 测试对象。
+        入参：真实 requests.request 调用参数。
+        出参：requests.Response 测试对象。
         """
         captured_request.update(
             {
+                "method": method,
                 "url": url,
                 "headers": headers,
                 "json": json,
                 "timeout": timeout,
+                "stream": stream,
+                "verify": verify,
+                "allow_redirects": allow_redirects,
             }
         )
-        return httpx.Response(
-            200,
-            json=ids_payload,
-            request=httpx.Request("POST", url),
-        )
+        response = requests.Response()
+        response.status_code = 200
+        response._content = json_module.dumps(ids_payload).encode("utf-8")
+        return response
 
     client = IDSClient(mock_response_path=tmp_path / "missing_ids_response.json")
     monkeypatch.setattr(client.settings, "ids_query_url", "http://ids.local/query")
-    monkeypatch.setattr("services.ids_client.httpx.post", fake_post)
+    monkeypatch.setattr("services.ids_client.requests.request", fake_request)
 
     state = client.get_device_capability_state(_device(), "ids-remote-unit-1")
 
+    assert captured_request["method"] == "POST"
     assert captured_request["url"] == "http://ids.local/query"
     assert captured_request["headers"]["idsSign"] != "{{idsSign}}"
     assert captured_request["json"]["requestId"] == "ids-remote-unit-1"
+    assert captured_request["stream"] is False
+    assert captured_request["verify"] is False
+    assert captured_request["allow_redirects"] is False
     assert state.installed_apps["com.huawei.hmos.weather"] == "7.0.0"
     assert "UG.weather.current" in state.providers
+
+
+def test_desensitized_error_tool_masks_common_sensitive_fields():
+    """验证脱敏 error 工具类能处理常见敏感字段。
+
+    入参：无。
+    出参：无；通过断言验证 sign、accessKey、token 等敏感值被替换。
+    """
+    message = "idsSign=abc accessKey=foo token=bar custom=secret-value"
+
+    sanitized = DesensitizedErrorTool.sanitize(message, ["secret-value"])
+
+    assert "abc" not in sanitized
+    assert "foo" not in sanitized
+    assert "bar" not in sanitized
+    assert "secret-value" not in sanitized
+    assert "custom=***" in sanitized
 
 
 def test_capability_registry_version_is_derived_from_device_versions():

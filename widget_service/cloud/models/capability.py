@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field

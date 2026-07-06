@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import time
+import traceback
 from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -113,11 +116,12 @@ async def _serve_operation_websocket(
                 )
             except (ValidationError, ValueError) as exc:
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
-                logger.error_with_exception(
+                logger.error(
                     f"widget_operation_ws_invalid_arguments request_id={request_id} "
                     f"operation={operation} duration_ms={duration_ms} "
-                    f"details={_error_details(exc)}",
-                    exc,
+                    f"details={_error_details(exc)} "
+                    f"exception_type={type(exc).__name__} exception={exc!r} "
+                    f"traceback={traceback.format_exc()}"
                 )
                 error_message = WidgetWebSocketErrorMessage(
                     tool=operation,
@@ -131,10 +135,11 @@ async def _serve_operation_websocket(
                 )
             except Exception as exc:
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
-                logger.error_with_exception(
+                logger.error(
                     f"widget_operation_ws_failed request_id={request_id} "
-                    f"operation={operation} duration_ms={duration_ms} error={exc}",
-                    exc,
+                    f"operation={operation} duration_ms={duration_ms} error={exc} "
+                    f"exception_type={type(exc).__name__} exception={exc!r} "
+                    f"traceback={traceback.format_exc()}"
                 )
                 error_message = WidgetWebSocketErrorMessage(
                     tool=operation,

@@ -1,10 +1,12 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 # ruff: noqa: E402
 import asyncio
 import json
 import os
 
-import httpx
 import pytest
+import requests
 import websockets
 
 SERVER_HOST = os.getenv("WIDGET_SERVICE_TEST_HOST", "127.0.0.1")
@@ -30,31 +32,21 @@ TOOL_CONTEXT = {
 }
 
 
-def _server_available() -> bool:
-    """检查本地服务是否已经启动。
+def _request_health_or_skip() -> requests.Response:
+    """请求健康检查接口，服务未启动时跳过 live 测试。
 
     入参：无。
-    出参：服务 `/health` 可访问时返回 True，否则返回 False。
+    出参：健康检查 HTTP 响应。
     """
     try:
-        response = httpx.get(f"{HTTP_BASE_URL}/health", timeout=2.0)
-    except httpx.HTTPError:
-        return False
-    return response.status_code == 200
-
-
-def _require_running_server() -> None:
-    """要求本地服务处于启动状态。
-
-    入参：无。
-    出参：无；服务未启动时跳过 live 测试并给出启动命令。
-    """
-    if not _server_available():
+        response = requests.get(f"{HTTP_BASE_URL}/health", timeout=2.0)
+    except requests.RequestException:
         pytest.skip(
             "本测试需要先启动本地服务："
             "cd widget_service && py -3.12 cloud\\main.py；"
             f"当前探测地址：{HTTP_BASE_URL}/health"
         )
+    return response
 
 
 async def _call_ws(path_name: str, request_id: str, arguments: dict) -> dict:
@@ -95,9 +87,7 @@ def test_live_health_endpoint():
     入参：无。
     出参：无；通过断言验证真实 HTTP `/health` 返回存活状态。
     """
-    _require_running_server()
-
-    response = httpx.get(f"{HTTP_BASE_URL}/health", timeout=2.0)
+    response = _request_health_or_skip()
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
@@ -109,7 +99,7 @@ def test_live_three_websocket_paths_complete_flow():
     入参：无。
     出参：无；通过断言验证能力概述、schema 加载和生成接口的真实 WS 链路。
     """
-    _require_running_server()
+    _request_health_or_skip()
 
     async def scenario() -> None:
         """执行真实 WebSocket 三段调用流程。

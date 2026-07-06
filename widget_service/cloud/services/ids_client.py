@@ -1,14 +1,17 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import base64
 import binascii
 import hashlib
 import hmac
 import json
 import time
+import traceback
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-import httpx
+import requests
 
 from app.logger import logger
 from config.config import get_settings
@@ -211,11 +214,15 @@ class IDSClient:
                 f"method={ids_query.method} url={ids_query.url} "
                 f"timeout_seconds={self.settings.ids_request_timeout_seconds}"
             )
-            response = httpx.post(
-                ids_query.url,
-                headers=ids_query.headers.model_dump(mode="json", by_alias=True),
+            response = requests.request(
+                method=ids_query.method,
+                url=ids_query.url,
                 json=ids_query.body.model_dump(mode="json"),
                 timeout=self.settings.ids_request_timeout_seconds,
+                headers=ids_query.headers.model_dump(mode="json", by_alias=True),
+                stream=False,
+                verify=False,
+                allow_redirects=False,
             )
             logger.info(
                 f"ids_remote_query_response_received request_id={request_id} "
@@ -234,10 +241,11 @@ class IDSClient:
                 f"namespace_count={len(payload.get('nameSpaces', []))}"
             )
             return payload
-        except (httpx.HTTPError, json.JSONDecodeError) as exc:
-            logger.error_with_exception(
-                f"ids_remote_query_failed request_id={request_id} error={exc}",
-                exc,
+        except (requests.RequestException, json.JSONDecodeError, ValueError) as exc:
+            logger.error(
+                f"ids_remote_query_failed request_id={request_id} error={exc} "
+                f"exception_type={type(exc).__name__} exception={exc!r} "
+                f"traceback={traceback.format_exc()}"
             )
             return {"nameSpaces": []}
 
