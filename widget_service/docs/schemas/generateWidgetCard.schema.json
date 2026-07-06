@@ -1,0 +1,172 @@
+{
+  "name": "generateWidgetCard",
+  "transport": "websocket",
+  "path": "/api/v1/ws/tools/generateWidgetCard",
+  "description": "提交用户需求、候选数据绑定、候选事件和素材，生成可下载的 HarmonyOS A2UI Form 卡片 artifact。",
+  "messageEnvelope": {
+    "type": "object",
+    "description": "客户端发送的 WebSocket 消息外层结构。",
+    "required": ["arguments"],
+    "properties": {
+      "requestId": {
+        "type": "string",
+        "required": false,
+        "description": "客户端请求 ID，服务端会在响应中原样返回。"
+      },
+      "arguments": {
+        "type": "GenerateWidgetCardRequest",
+        "required": true,
+        "description": "卡片生成接口业务入参。"
+      }
+    }
+  },
+  "input": {
+    "type": "object",
+    "required": ["uid", "device", "userQuery"],
+    "properties": {
+      "uid": {
+        "type": "string",
+        "required": true,
+        "description": "用户 ID，本地测试显式传入，线上由工具层注入。"
+      },
+      "locale": {
+        "type": "string",
+        "required": false,
+        "default": "zh-CN",
+        "description": "语言区域。"
+      },
+      "device": {
+        "type": "DeviceContext",
+        "required": true,
+        "description": "设备上下文；romVersion 和 ohosApiVersion 用于选择能力版本目录并裁决设备能力。"
+      },
+      "userQuery": {
+        "type": "string",
+        "required": true,
+        "description": "用户原始卡片需求。"
+      },
+      "size": {
+        "type": "string",
+        "enum": ["2x2", "2x4"],
+        "required": false,
+        "default": "2x4",
+        "description": "主 Agent 建议尺寸。"
+      },
+      "candidateDataBindings": {
+        "type": "CandidateDataBinding[]",
+        "required": false,
+        "description": "候选数据能力调用列表；微服务会按注册表和 IDS 状态裁决最终可用项。"
+      },
+      "candidateEventCandidates": {
+        "type": "CandidateEventCandidate[]",
+        "required": false,
+        "description": "候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明。"
+      },
+      "candidateAssetIds": {
+        "type": "string[]",
+        "required": false,
+        "description": "候选素材 ID 列表。"
+      },
+      "options": {
+        "type": "GenerationOptions",
+        "required": false,
+        "description": "生成选项；本地调试可用 returnArtifactInline 控制是否内联 artifact。"
+      },
+      "capabilityRegistryVersion": {
+        "type": "string|null",
+        "required": false,
+        "description": "可选能力清单版本；不传时由 device.ohosApiVersion + device.romVersion 推导。"
+      },
+      "protocolProfileId": {
+        "type": "string|null",
+        "required": false,
+        "description": "可选 A2UI 协议 profile ID；不传时使用默认 profile。"
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["apiVersion", "status", "suggestSize", "message"],
+    "properties": {
+      "apiVersion": {
+        "type": "string",
+        "required": true,
+        "description": "接口版本。"
+      },
+      "status": {
+        "type": "string",
+        "enum": ["success", "degraded", "unsupported", "failed"],
+        "required": true,
+        "description": "生成状态。"
+      },
+      "artifactUrl": {
+        "type": "string",
+        "required": false,
+        "description": "artifact 下载地址；成功或降级成功时返回。"
+      },
+      "artifactDigest": {
+        "type": "string",
+        "required": false,
+        "description": "artifact 内容摘要。"
+      },
+      "suggestSize": {
+        "type": "string",
+        "enum": ["2x2", "2x4"],
+        "required": true,
+        "description": "最终生成卡片尺寸。"
+      },
+      "message": {
+        "type": "string",
+        "required": true,
+        "description": "可展示给主 Agent 或用户的生成结果说明。"
+      },
+      "removedCapabilities": {
+        "type": "RemovedCapability[]",
+        "required": false,
+        "description": "被微服务裁决移除的能力及原因。"
+      },
+      "errorCode": {
+        "type": "string",
+        "required": false,
+        "description": "失败或不支持时返回的错误码。"
+      },
+      "artifact": {
+        "type": "object|null",
+        "required": false,
+        "description": "调试时可选内联 artifact；生产默认不返回。"
+      },
+      "effectiveCapabilities": {
+        "type": "object",
+        "required": false,
+        "description": "最终进入 artifact 的有效 data、event、asset 能力集合。"
+      }
+    }
+  },
+  "nestedTypes": {
+    "CandidateDataBinding": {
+      "required": ["capabilityId", "arguments", "writeResultTo"],
+      "properties": {
+        "capabilityId": "string，数据能力 ID。",
+        "arguments": "object，能力入参，只能使用该能力 inputSchema 声明的字段。",
+        "writeResultTo": "string，写入 DataModel 的 JSON Pointer，必须位于 /data/ 下。",
+        "updateModel": "object，可选输出字段投影结构，内部层级会原样写入 DataModel。"
+      }
+    },
+    "CandidateEventCandidate": {
+      "required": ["capabilityId", "action"],
+      "properties": {
+        "capabilityId": "string，事件能力 ID。",
+        "action": "EventAction，包含 call 和 args。"
+      }
+    },
+    "DeviceContext": {
+      "required": ["romVersion", "ohosApiVersion"],
+      "properties": {
+        "deviceId": "string|null，设备 ID。",
+        "odid": "string|null，设备 odid，IDS 查询优先使用。",
+        "romVersion": "string，ROM 版本。",
+        "ohosApiVersion": "integer，OHOS API 版本。"
+      }
+    }
+  }
+}

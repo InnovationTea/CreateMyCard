@@ -65,12 +65,12 @@ def _write_test_report(ready: dict, records: list[dict]) -> None:
     """
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     lines = [
-        "# widgetCardService WebSocket 测试报告",
+        "# Widget Service 三入口 WebSocket 测试报告",
         "",
         f"- 生成时间：{datetime.now(UTC).isoformat()}",
-        "- 入口：`WS /api/v1/ws/tools/widgetCardService`",
-        f"- ready 状态：`{ready.get('type')}`",
-        f"- 工具名：`{ready.get('tool')}`",
+        "- 入口：三个独立 WebSocket path",
+        f"- 首个 ready 状态：`{ready.get('type')}`",
+        f"- 首个工具名：`{ready.get('tool')}`",
         f"- 覆盖功能数：{len(records)}",
         "",
         "## ready 消息",
@@ -102,7 +102,7 @@ def _write_test_report(ready: dict, records: list[dict]) -> None:
 
 
 def test_widget_card_service_complete_flow():
-    """验证统一 WebSocket 工具入口覆盖能力概述、数据 schema 加载和卡片生成。
+    """验证三个 WebSocket 工具入口覆盖能力概述、数据 schema 加载和卡片生成。
 
     入参：无。
     出参：无；断言统一入口三段流程都符合预期。
@@ -115,16 +115,15 @@ def test_widget_card_service_complete_flow():
     )
     assert "UG.weather.current" in ids_state.providers
 
-    with client.websocket_connect("/api/v1/ws/tools/widgetCardService") as websocket:
+    with client.websocket_connect("/api/v1/ws/tools/getWidgetCapabilityOverview") as websocket:
         ready = websocket.receive_json()
         assert ready["type"] == "ready"
-        assert ready["tool"] == "widgetCardService"
+        assert ready["tool"] == "getWidgetCapabilityOverview"
 
         overview_request = {
             "requestId": "overview-1",
             "arguments": {
                 **TOOL_CONTEXT,
-                "operation": "getWidgetCapabilityOverview",
             },
         }
         websocket.send_json(overview_request)
@@ -147,11 +146,15 @@ def test_widget_card_service_complete_flow():
             }
         )
 
+    with client.websocket_connect("/api/v1/ws/tools/getDataCapabilitySchemas") as websocket:
+        schema_ready = websocket.receive_json()
+        assert schema_ready["type"] == "ready"
+        assert schema_ready["tool"] == "getDataCapabilitySchemas"
+
         schema_request = {
             "requestId": "schema-1",
             "arguments": {
                 **TOOL_CONTEXT,
-                "operation": "getDataCapabilitySchemas",
                 "dataCapabilityIds": ["ViewWeather"],
             },
         }
@@ -174,11 +177,15 @@ def test_widget_card_service_complete_flow():
             }
         )
 
+    with client.websocket_connect("/api/v1/ws/tools/generateWidgetCard") as websocket:
+        generate_ready = websocket.receive_json()
+        assert generate_ready["type"] == "ready"
+        assert generate_ready["tool"] == "generateWidgetCard"
+
         generate_request = {
             "requestId": "generate-1",
             "arguments": {
                 **TOOL_CONTEXT,
-                "operation": "generateWidgetCard",
                 "userQuery": "帮我做通勤卡片，包含天气",
                 "size": "2x4",
                 "candidateDataBindings": [

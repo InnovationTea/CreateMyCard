@@ -1,9 +1,9 @@
-# widgetCardService WebSocket 测试报告
+# Widget Service 三入口 WebSocket 测试报告
 
-- 生成时间：2026-07-06T06:30:39.187525+00:00
-- 入口：`WS /api/v1/ws/tools/widgetCardService`
-- ready 状态：`ready`
-- 工具名：`widgetCardService`
+- 生成时间：2026-07-06T07:39:11.869966+00:00
+- 入口：三个独立 WebSocket path
+- 首个 ready 状态：`ready`
+- 首个工具名：`getWidgetCapabilityOverview`
 - 覆盖功能数：3
 
 ## ready 消息
@@ -11,11 +11,9 @@
 ```json
 {
   "type": "ready",
-  "tool": "widgetCardService",
+  "tool": "getWidgetCapabilityOverview",
   "operations": [
-    "getWidgetCapabilityOverview",
-    "getDataCapabilitySchemas",
-    "generateWidgetCard"
+    "getWidgetCapabilityOverview"
   ]
 }
 ```
@@ -44,8 +42,7 @@
       "romVersion": "ALN-AL00 7.0.0.36",
       "marketingName": "HUAWEI Mate 60 Pro",
       "ohosApiVersion": 36
-    },
-    "operation": "getWidgetCapabilityOverview"
+    }
   }
 }
 ```
@@ -55,7 +52,7 @@
 ```json
 {
   "type": "result",
-  "tool": "widgetCardService",
+  "tool": "getWidgetCapabilityOverview",
   "operation": "getWidgetCapabilityOverview",
   "requestId": "overview-1",
   "data": {
@@ -1079,7 +1076,6 @@
       "marketingName": "HUAWEI Mate 60 Pro",
       "ohosApiVersion": 36
     },
-    "operation": "getDataCapabilitySchemas",
     "dataCapabilityIds": [
       "ViewWeather"
     ]
@@ -1092,7 +1088,7 @@
 ```json
 {
   "type": "result",
-  "tool": "widgetCardService",
+  "tool": "getDataCapabilitySchemas",
   "operation": "getDataCapabilitySchemas",
   "requestId": "schema-1",
   "data": {
@@ -1285,7 +1281,6 @@
       "marketingName": "HUAWEI Mate 60 Pro",
       "ohosApiVersion": 36
     },
-    "operation": "generateWidgetCard",
     "userQuery": "帮我做通勤卡片，包含天气",
     "size": "2x4",
     "candidateDataBindings": [
@@ -1332,14 +1327,14 @@
 ```json
 {
   "type": "result",
-  "tool": "widgetCardService",
+  "tool": "generateWidgetCard",
   "operation": "generateWidgetCard",
   "requestId": "generate-1",
   "data": {
     "apiVersion": "v1",
     "status": "success",
-    "artifactUrl": "https://obs.todo.local/widget/18e854c5816e41fcb9d71a086df2b0f7.json",
-    "artifactDigest": "sha256:7cb12c9dc50b5eeb48864cff0003b0d20db25792f3a4be0a9c37dd7d5ff5b3c1",
+    "artifactUrl": "https://obs.todo.local/widget/0eed6972a32c4dbb886a58b7d852dd1b.json",
+    "artifactDigest": "sha256:f746c2da0403b9c479641c0dcb4aa3b796f89ebc75867d99aae3eb97c678b56a",
     "suggestSize": "2x4",
     "message": "已为你生成可用的桌面卡片。",
     "removedCapabilities": [],

@@ -18,7 +18,7 @@ uvicorn main:app --reload
 健康检查：
 
 ```bash
-curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8855/health
 ```
 
 返回：
@@ -74,12 +74,16 @@ a2ui-form-rom7-v1
 
 ## 3. WebSocket 接口
 
-最新云侧方案把微服务对外抽象成一个工具：`widgetCardService`。主 Agent 只需要传 `operation` 和该操作需要的参数；`uid` 和 `device` 由工具层自动注入，本地测试时可以显式传入。
+当前微服务把三个业务能力拆成三个独立 WebSocket path。客户端连接目标 path 后，
+消息体只需要传该能力自己的参数，不需要再传 `operation`；`uid` 和 `device`
+由工具层自动注入，本地测试时可以显式传入。
 
-唯一业务入口：
+业务入口：
 
 ```text
-WS /api/v1/ws/tools/widgetCardService
+WS /api/v1/ws/tools/getWidgetCapabilityOverview
+WS /api/v1/ws/tools/getDataCapabilitySchemas
+WS /api/v1/ws/tools/generateWidgetCard
 ```
 
 连接成功后服务先返回 ready 消息：
@@ -87,11 +91,9 @@ WS /api/v1/ws/tools/widgetCardService
 ```json
 {
   "type": "ready",
-  "tool": "widgetCardService",
+  "tool": "getWidgetCapabilityOverview",
   "operations": [
-    "getWidgetCapabilityOverview",
-    "getDataCapabilitySchemas",
-    "generateWidgetCard"
+    "getWidgetCapabilityOverview"
   ]
 }
 ```
@@ -108,18 +110,17 @@ WS /api/v1/ws/tools/widgetCardService
       "deviceType": "ALN-AL00",
       "romVersion": "ALN-AL00 7.0.0.36",
       "ohosApiVersion": 36
-    },
-    "operation": "getWidgetCapabilityOverview"
+    }
   }
 }
 ```
 
-支持的 `operation`：
+接口 schema 文件：
 
 ```text
-getWidgetCapabilityOverview
-getDataCapabilitySchemas
-generateWidgetCard
+docs/schemas/getWidgetCapabilityOverview.schema.json
+docs/schemas/getDataCapabilitySchemas.schema.json
+docs/schemas/generateWidgetCard.schema.json
 ```
 
 ### 3.1 GET /health
@@ -129,7 +130,7 @@ generateWidgetCard
 请求：
 
 ```bash
-curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8855/health
 ```
 
 响应：
@@ -140,7 +141,7 @@ curl http://127.0.0.1:8000/health
 }
 ```
 
-### 3.2 operation=getWidgetCapabilityOverview
+### 3.2 WS /api/v1/ws/tools/getWidgetCapabilityOverview
 
 对应工具能力：`getWidgetCapabilityOverview`
 
@@ -153,7 +154,6 @@ curl http://127.0.0.1:8000/health
   "requestId": "overview-1",
   "arguments": {
     "uid": "test-user-001",
-    "operation": "getWidgetCapabilityOverview",
     "locale": "zh-CN",
     "device": {
       "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
@@ -171,7 +171,7 @@ curl http://127.0.0.1:8000/health
 ```json
 {
   "type": "result",
-  "tool": "widgetCardService",
+  "tool": "getWidgetCapabilityOverview",
   "operation": "getWidgetCapabilityOverview",
   "requestId": "overview-1",
   "data": {
@@ -189,7 +189,7 @@ curl http://127.0.0.1:8000/health
 }
 ```
 
-### 3.3 operation=getDataCapabilitySchemas
+### 3.3 WS /api/v1/ws/tools/getDataCapabilitySchemas
 
 对应工具能力：`getDataCapabilitySchemas`
 
@@ -202,7 +202,6 @@ curl http://127.0.0.1:8000/health
   "requestId": "schema-1",
   "arguments": {
     "uid": "test-user-001",
-    "operation": "getDataCapabilitySchemas",
     "device": {
       "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
       "deviceType": "ALN-AL00",
@@ -220,7 +219,7 @@ curl http://127.0.0.1:8000/health
 ```json
 {
   "type": "result",
-  "tool": "widgetCardService",
+  "tool": "getDataCapabilitySchemas",
   "operation": "getDataCapabilitySchemas",
   "requestId": "schema-1",
   "data": {
@@ -242,9 +241,9 @@ curl http://127.0.0.1:8000/health
 
 `missingCapabilityIds` 用来告诉主 Agent 哪些能力 ID 没有注册。
 
-### 3.4 operation=generateWidgetCard
+### 3.4 WS /api/v1/ws/tools/generateWidgetCard
 
-对应统一工具能力：`widgetCardService`，`operation=generateWidgetCard`
+对应工具能力：`generateWidgetCard`
 
 用途：主生成接口。能力过滤属于这个接口内部流程。
 
@@ -255,7 +254,6 @@ curl http://127.0.0.1:8000/health
   "requestId": "generate-1",
   "arguments": {
     "uid": "test-user-001",
-    "operation": "generateWidgetCard",
     "userQuery": "帮我做通勤卡片，包含天气和今日日程",
     "size": "2x4",
     "device": {
@@ -314,7 +312,7 @@ curl http://127.0.0.1:8000/health
 ```json
 {
   "type": "result",
-  "tool": "widgetCardService",
+  "tool": "generateWidgetCard",
   "operation": "generateWidgetCard",
   "requestId": "generate-1",
   "data": {

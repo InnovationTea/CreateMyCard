@@ -6,12 +6,15 @@
 
 分歧点：
 
-- 旧实现：对外暴露 `getWidgetCapabilityOverview`、`getDataCapabilitySchemas`、`generateWidgetCard` 三个工具名，其中生成接口主走 WebSocket。
-- 最新方案：对外抽象为一个工具 `widgetCardService`，通过 `operation` 分发三个能力。
+- 旧实现：曾对外抽象为一个工具 `widgetCardService`，通过 `operation` 分发三个能力。
+- 当前部署要求：对外恢复为 `getWidgetCapabilityOverview`、`getDataCapabilitySchemas`、`generateWidgetCard` 三个 WebSocket path。
 
 当前处理：
 
-- 仅保留 `WS /api/v1/ws/tools/widgetCardService` 作为服务请求入口。
+- 当前保留三个业务 WebSocket 入口：
+  `WS /api/v1/ws/tools/getWidgetCapabilityOverview`、
+  `WS /api/v1/ws/tools/getDataCapabilitySchemas`、
+  `WS /api/v1/ws/tools/generateWidgetCard`。
 - 旧 HTTP 接口已移除。
 
 ## 2. 生成入参
@@ -35,7 +38,7 @@
 
 当前处理：
 
-- `widgetCardService` 统一工具入口不暴露 `options`。
+- 三个 WebSocket 入口不需要传 `operation`。
 - 内部 `GenerateWidgetCardRequest` 暂时保留 `options`，便于服务内部测试和后续调试。
 
 ## 4. 自动注入上下文
@@ -56,7 +59,11 @@
 
 ```json
 {
-  "operation": "getWidgetCapabilityOverview"
+  "uid": "test-user-001",
+  "device": {
+    "romVersion": "ALN-AL00 7.0.0.36",
+    "ohosApiVersion": 36
+  }
 }
 ```
 
@@ -64,7 +71,11 @@
 
 ```json
 {
-  "operation": "getDataCapabilitySchemas",
+  "uid": "test-user-001",
+  "device": {
+    "romVersion": "ALN-AL00 7.0.0.36",
+    "ohosApiVersion": 36
+  },
   "dataCapabilityIds": ["ViewWeather"]
 }
 ```
@@ -73,7 +84,11 @@
 
 ```json
 {
-  "operation": "generateWidgetCard",
+  "uid": "test-user-001",
+  "device": {
+    "romVersion": "ALN-AL00 7.0.0.36",
+    "ohosApiVersion": 36
+  },
   "userQuery": "帮我做通勤卡片，包含天气和今日日程",
   "size": "2x4",
   "candidateDataBindings": [

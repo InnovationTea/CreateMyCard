@@ -19,18 +19,19 @@ python -m venv .venv
 pip install -e .[dev]
 # or:
 pip install -r requirements.txt
-set PYTHONPATH=cloud
-uvicorn main:app --reload
+py -3.12 cloud\main.py
 ```
 
 ## API
 
 ```text
 GET  /health
-WS   /api/v1/ws/tools/widgetCardService
+WS   /api/v1/ws/tools/getWidgetCapabilityOverview
+WS   /api/v1/ws/tools/getDataCapabilitySchemas
+WS   /api/v1/ws/tools/generateWidgetCard
 ```
 
-Latest tool-style entry:
+Example request:
 
 ```json
 {
@@ -43,15 +44,15 @@ Latest tool-style entry:
       "romVersion": "ALN-AL00 7.0.0.36",
       "ohosApiVersion": 36
     },
-    "operation": "getWidgetCapabilityOverview"
+    "locale": "zh-CN"
   }
 }
 ```
 
-Supported operations:
+Schema files:
 
-- `getWidgetCapabilityOverview`
-- `getDataCapabilitySchemas`
-- `generateWidgetCard`
+- `docs/schemas/getWidgetCapabilityOverview.schema.json`
+- `docs/schemas/getDataCapabilitySchemas.schema.json`
+- `docs/schemas/generateWidgetCard.schema.json`
 
 See `docs/method_usage.md` for detailed method and API usage.

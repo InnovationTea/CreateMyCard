@@ -1,0 +1,92 @@
+{
+  "name": "getWidgetCapabilityOverview",
+  "transport": "websocket",
+  "path": "/api/v1/ws/tools/getWidgetCapabilityOverview",
+  "description": "获取当前设备版本可用的能力概述。数据能力只返回 id 和描述；事件能力、素材能力全量返回。",
+  "messageEnvelope": {
+    "type": "object",
+    "description": "客户端发送的 WebSocket 消息外层结构。",
+    "required": ["arguments"],
+    "properties": {
+      "requestId": {
+        "type": "string",
+        "required": false,
+        "description": "客户端请求 ID，服务端会在响应中原样返回。"
+      },
+      "arguments": {
+        "type": "CapabilityOverviewRequest",
+        "required": true,
+        "description": "能力概述接口业务入参。"
+      }
+    }
+  },
+  "input": {
+    "type": "object",
+    "required": ["uid", "device"],
+    "properties": {
+      "uid": {
+        "type": "string",
+        "required": true,
+        "description": "用户 ID，本地测试显式传入，线上由工具层注入。"
+      },
+      "locale": {
+        "type": "string",
+        "required": false,
+        "default": "zh-CN",
+        "description": "语言区域。"
+      },
+      "device": {
+        "type": "DeviceContext",
+        "required": true,
+        "description": "设备上下文；romVersion 和 ohosApiVersion 用于选择能力版本目录。"
+      },
+      "capabilityRegistryVersion": {
+        "type": "string|null",
+        "required": false,
+        "description": "可选能力清单版本；不传时由 device.ohosApiVersion + device.romVersion 推导。"
+      },
+      "protocolProfileId": {
+        "type": "string|null",
+        "required": false,
+        "description": "可选 A2UI 协议 profile ID；本接口通常不需要传。"
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": [
+      "apiVersion",
+      "capabilityRegistryVersion",
+      "dataCapabilities",
+      "eventCapabilities",
+      "assetCandidates"
+    ],
+    "properties": {
+      "apiVersion": {
+        "type": "string",
+        "required": true,
+        "description": "接口版本。"
+      },
+      "capabilityRegistryVersion": {
+        "type": "string",
+        "required": true,
+        "description": "本次实际使用的能力清单版本目录名。"
+      },
+      "dataCapabilities": {
+        "type": "DataCapabilityOverview[]",
+        "required": true,
+        "description": "数据能力概述列表，只包含 id 和 description。"
+      },
+      "eventCapabilities": {
+        "type": "EventCapability[]",
+        "required": true,
+        "description": "事件能力完整列表。"
+      },
+      "assetCandidates": {
+        "type": "AssetCapability[]",
+        "required": true,
+        "description": "素材能力完整列表。"
+      }
+    }
+  }
+}
