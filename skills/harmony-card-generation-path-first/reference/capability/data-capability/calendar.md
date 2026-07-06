@@ -1,160 +1,114 @@
 # 日历数据能力
 
-## 使用规则
-
-- 适用于今日、明日、未来 24 小时、指定标题、指定地点、指定 `entityId` 或 `entityIdList` 的紧凑日程卡。
-- `timeInterval` 使用毫秒时间戳数组 `[startMs, endMs]`，按本地时区把 today、tomorrow、next24Hours 等相对时间换算为起止毫秒。
-- UI 列表路径通常是 `/data/calendar/items`，对应 CardSpec `writeResultTo: "/data/calendar"`。
-- 列表模板内优先展示 `dtStart`、`dtEnd`、`title`；`eventLocation`、`description`、`senderName` 作为可压缩次要文本。
-- 日程详情点击使用 [`../event-capability/click-event.md`](../event-capability/click-event.md) 中的 `clickToIntent`，`intentName` 固定为 `ViewCalendarEvent`，`params.entityId` 绑定当前日程的 `entityId`；模板列表项内优先写作 `{"path":"entityId"}`。
-- 本文档只声明日历数据能力的输入、输出和常用路径；通用 data capability 选择、CardSpec 映射、事件参数绑定和最终门禁见 [`../cardspec.md`](../cardspec.md)、[`../event-capability/`](../event-capability/)、[`../../protocol/data-binding.md`](../../protocol/data-binding.md) 和 [`../../core-rules.md`](../../core-rules.md)。
-- 初始 `updateDataModel` 使用空数组和加载态，不要写死真实日程内容：
-
 ```json
 {
-  "data": {
-    "calendar": {
-      "items": []
-    }
-  },
-  "state": {
-    "loading": true
-  }
-}
-```
-
-## Manifest
-
-```json
-{
-  "id": "calendar.events.search",
-  "version": "1.0",
-  "description": "查询用户手机本地日历事件。",
+  "id": "GetCalendarEvents",
+  "description": "查询用户系统日历中的日程安排。高度精简的结构化日历模型，包含日程倒计时计算、日程开始/截止时间文本，以及支持一键拉起第三方应用（如视频会议、赛事直播）的深度跳转链接。",
   "inputSchema": {
     "type": "object",
     "properties": {
-      "entityId": {
-        "type": "string",
-        "description": "索引项唯一标识符"
+      "startTimestamp": {
+        "type": "number",
+        "description": "查询的起始时间戳（毫秒级）。可不传，不传时默认查询当前系统时间。"
       },
-      "entityIdList": {
-        "type": "array",
-        "description": "索引项唯一标识符列表，类型是字符列表",
-        "items": {
-          "type": "string"
-        }
-      },
-      "title": {
-        "type": "string",
-        "description": "日程标题"
-      },
-      "eventLocation": {
-        "type": "string",
-        "description": "事件发生的位置"
-      },
-      "timeInterval": {
-        "type": "array",
-        "description": "搜索的时间段，包括开始时间和结束时间",
-        "minItems": 2,
-        "maxItems": 2,
-        "items": {
-          "type": "integer"
-        }
-      },
-      "senderName": {
-        "type": "string",
-        "description": "应用来源包名"
-      },
-      "ownerAppName": {
-        "type": "string",
-        "description": "应用来源包名，同senderName"
+      "endTimestamp": {
+        "type": "number",
+        "description": "查询的结束时间戳（毫秒级）。可不传，不传时默认查询未来7天内的日程，以保障倒计时卡片有充足的数据源。"
       }
-    }
+    },
+    "required": []
   },
   "outputSchema": {
     "type": "object",
-    "description": "搜索日程的返回结果",
+    "description": "经过端侧高级清洗后的系统日程概要，包含命中该时间段的日程总数以及按时间升序排列的具体日程明细列表。",
     "properties": {
-      "items": {
+      "eventCount": {
+        "type": "integer",
+        "description": "查询到的日程记录总数量。"
+      },
+      "events": {
         "type": "array",
-        "description": "执行具体结果",
+        "description": "高密度结构化日程信息实体列表，已按开始时间由早到晚进行升序排列。",
         "items": {
           "type": "object",
-          "description": "日程项",
           "properties": {
             "entityName": {
               "type": "string",
-              "description": "内容的类别，区分于应用、图库、文件、邮件等的类别说明，属公共属性"
+              "description": "固定为 'CalendarEvent'，用于系统底层实体识别。"
             },
             "entityId": {
               "type": "string",
-              "description": "索引项唯一标识符，属公共属性"
-            },
-            "instanceId": {
-              "type": "string",
-              "description": "实例Id"
+              "description": "系统日程的全局唯一实体ID。"
             },
             "senderName": {
               "type": "string",
-              "description": "应用来源包名"
+              "description": "日程数据标识符或发起方标识（如邀请人），若无则为空字符串。"
             },
             "title": {
               "type": "string",
-              "description": "日程标题"
+              "description": "日程标题，例如“会议”、“咪咕视频《西班牙 VS 奥地利》”。"
             },
             "eventLocation": {
               "type": "string",
-              "description": "日程发生的位置"
+              "description": "日程的具体地点描述，若未填写则为空字符串。"
             },
             "description": {
               "type": "string",
-              "description": "日程描述"
+              "description": "日程的备注、摘要或补充叙述文本。"
             },
             "dtStart": {
               "type": "string",
-              "description": "事件起始时间，如果是当天的为HH:MM格式"
+              "description": "格式化后的日程开始时间短文本，如 '03:00'，若为全天日程可能为特殊标记。"
             },
             "dtEnd": {
               "type": "string",
-              "description": "事件结束时间, 如果是当天的为HH:MM格式"
+              "description": "格式化后的日程结束时间短文本，如 '05:00'。"
+            },
+            "timeZone": {
+              "type": "string",
+              "description": "日程所处的时区标识，例如 'Asia/Shanghai'。"
             },
             "importantEventType": {
               "type": "integer",
-              "description": "与重要日的关系，0普通(默认)，1为正数日，2为倒数日"
+              "description": "日程事件的重要程度或分类枚举值（Type）。"
             },
             "remindTime": {
               "type": "array",
-              "description": "日程提醒时间，字符串数组",
+              "description": "预设的提前提醒时间跨度数组（字符串化），例如 ['15'] 代表提前15分钟提醒。",
               "items": {
-                "type": "string",
-                "description": "提醒时间字符串"
+                "type": "string"
               }
             },
             "oneClickServiceType": {
               "type": "string",
-              "description": "一键服务类型"
+              "description": "绑定的轻服务类型名称，如 'SportsEvents'。"
             },
             "oneClickServiceLink": {
               "type": "string",
-              "description": "一键服务Link"
+              "description": "一键直达的 URI 深度跳转链接，UI 卡片可直接通过此链接拉起第三方 App 落地页。"
             },
             "isServiceValid": {
               "type": "integer",
-              "description": "一键服务Link校验状态，0校验失败(默认值)，1校验中，2校验成功"
+              "description": "跳转服务连接是否有效。1代表存在有效跳转链接，0代表没有。"
             },
-            "accountId": {
+            "startDate": {
+              "type": "string",
+              "description": "日程开始日期格式化文本，例如 '07-03'。"
+            },
+            "countdownDays": {
               "type": "integer",
-              "description": "账号标识符"
+              "description": "纯数字的倒数日天数。0代表今天发生（或已发生），正整数代表距离日程开始还有多少天。"
+            },
+            "isAllDay": {
+              "type": "boolean",
+              "description": "标识该日程是否为全天日程。"
             }
-          },
-          "required": [
-            "entityName",
-            "entityId",
-            "title",
-            "dtStart",
-            "dtEnd"
-          ]
+          }
         }
+      },
+      "updatedAt": {
+        "type": "string",
+        "description": "端侧完成数据组装的时间戳字符串，格式如 '2026-07-03 15:30'。"
       }
     }
   }

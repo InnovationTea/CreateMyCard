@@ -14,7 +14,7 @@
       },
       "itemName": {
         "type": "string",
-        "description": "查询前后台时长与功耗固定传：foreground_time_power"
+        "description": "查询的数据项标识，例如查询前后台时长与功耗固定传：foreground_time_power"
       }
     },
     "required": [

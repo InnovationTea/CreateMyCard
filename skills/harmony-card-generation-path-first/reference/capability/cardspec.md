@@ -39,10 +39,14 @@ Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构
 
 ## 能力选择
 
-按场景逐个读取必要能力文档，不要预先加载全部能力：
+`data-capability/` 目录下的每个 Markdown 文件都是一个可选数据能力文档。按用户场景、能力 `description`、`inputSchema` 和 `outputSchema` 逐个读取最小必要文件，不要预先加载全部能力，也不要把能力选择限制在固定业务枚举内。
 
-- 天气：[`data-capability/weather.md`](data-capability/weather.md)
-- 日历：[`data-capability/calendar.md`](data-capability/calendar.md)
+- 先用文件名、标题和能力 `description` 判断候选领域；命中后再读取该能力文档里的 JSON manifest。
+- `capabilityId` 只使用 manifest 的 `id`，不要从文件名、标题或用户表达改写出新 ID。
+- `arguments` 只填 `inputSchema.properties` 声明的字段；必填字段必须有可靠来源或文档默认值。没有可靠来源时，不要编造参数。
+- 若能力文档提供“使用规则”“常用展示路径”或推荐 `writeResultTo`，优先遵循该文档。
+- 若能力文档只有 JSON manifest，没有额外使用规则，则按 schema 保守生成：无必填入参时 `arguments` 写 `{}`；有必填入参但无法确定值时，改用静态降级或说明需要补充信息。
+- `writeResultTo` 默认选择 `/data/...` 下的稳定语义路径，同一卡片内不得和其它 binding 冲突；路径命名应来自能力语义，而不是直接暴露内部原始接口名。
 
 如果用户请求的动态能力未声明，不要编造能力；改用静态降级方案，或说明需要端侧补充 capability manifest。
 
@@ -58,6 +62,15 @@ Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构
 ```json
 {"data":{"calendar":{"items":[]}},"state":{"loading":true}}
 ```
+
+当能力文档未给初始化示例时，根据 `outputSchema` 初始化 UI 会访问的最小结构：
+
+- object 字段初始化为 `{}`。
+- array 字段初始化为 `[]`。
+- string 字段初始化为 `""`。
+- number/integer 字段初始化为 `0`，仅作加载占位，不代表真实数据。
+- boolean 字段初始化为 `false`，并用 `/state/loading` 或明确支撑文案避免误导。
+- 只初始化已被 UI 绑定或事件参数需要读取的路径，不把完整隐私数据写进静态 DataModel。
 
 组件绑定示例：
 
