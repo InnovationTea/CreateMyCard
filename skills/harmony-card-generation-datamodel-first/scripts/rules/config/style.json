@@ -1,0 +1,39 @@
+{
+  "createSurfaceAllowedStyles": ["borderRadius", "clip"],
+  "rootBackgroundStyles": ["backgroundColor", "linearGradient", "backgroundImage"],
+  "commonStyleFields": [
+    "width", "height", "constraintSize", "margin", "padding", "borderRadius",
+    "borderWidth", "borderColor", "backgroundColor", "backgroundImage",
+    "backgroundImageSizeWithStyle", "linearGradient", "layoutWeight",
+    "flexShrink", "shadow", "visibility", "clip"
+  ],
+  "componentStyleFields": {
+    "Text": ["fontSize", "fontWeight", "fontColor", "maxLines", "minFontSize", "maxFontSize", "textAlign", "textOverflow", "wordBreak", "decoration"],
+    "Image": ["objectFit", "aspectRatio"],
+    "Divider": ["strokeWidth", "vertical", "color"],
+    "Progress": ["type", "color"],
+    "Button": ["fontSize", "fontWeight", "fontColor", "backgroundColor", "borderRadius"],
+    "Checkbox": ["selectedColor", "unSelectedColor", "shape", "mark"],
+    "Row": ["justifyContent", "alignItems"],
+    "Column": ["justifyContent", "alignItems"],
+    "List": ["listDirection", "scrollBar", "nestedScroll"],
+    "Stack": ["alignContent"]
+  },
+  "enumValues": {
+    "justifyContent": ["start", "center", "end", "spaceAround", "spaceBetween", "spaceEvenly"],
+    "Row.alignItems": ["top", "center", "bottom"],
+    "Column.alignItems": ["start", "center", "end"],
+    "Stack.alignContent": ["topStart", "top", "topEnd", "start", "center", "end", "bottomStart", "bottom", "bottomEnd"],
+    "textAlign": ["start", "center", "end", "justify"],
+    "textOverflow": ["none", "clip", "ellipsis", "marquee"],
+    "wordBreak": ["normal", "breakAll", "breakWord", "hyphenation"],
+    "objectFit": ["fill", "contain", "cover", "auto", "none", "scaleDown", "topStart", "top", "topEnd", "start", "center", "end", "bottomStart", "bottom", "bottomEnd", "matrix"],
+    "Progress.type": ["linear", "ring", "eclipse", "scaleRing", "capsule"],
+    "Checkbox.shape": ["circle", "rounded_square"],
+    "wrap": ["noWrap", "wrap"],
+    "listDirection": ["vertical", "horizontal"],
+    "scrollBar": ["off", "auto", "on"]
+  },
+  "imageRequiredStyles": ["width", "height", "objectFit"],
+  "imageDefaultObjectFit": "contain"
+}
