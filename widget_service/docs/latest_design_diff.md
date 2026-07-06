@@ -42,12 +42,12 @@
 
 分歧点：
 
-- 旧实现：本地测试通常手动传 `appVersion/romVersion/device/uid`。
-- 最新方案：工具层自动注入设备、用户、ROM/App/小艺版本信息。
+- 旧实现：本地测试通常手动传外层 `appVersion/romVersion/xiaoyiVersion`。
+- 最新方案：工具层自动注入用户和 `device`，服务使用 `device.romVersion` 与 `device.ohosApiVersion`。
 
 当前处理：
 
-- 请求模型保留这些字段和默认值，本地可直接测试。
+- 请求模型移除外层 `appVersion/romVersion/xiaoyiVersion`，本地测试必须显式传 `uid` 和 `device`。
 - 生产调用时由工具层注入，主 Agent 不需要主动填写。
 
 ## 5. 最新推荐调用方式
@@ -83,7 +83,18 @@
         "districtName": "青浦区",
         "forecastDays": 1
       },
-      "writeResultTo": "/data/weather"
+      "writeResultTo": "/data/weather",
+      "updateModel": {
+        "location": {
+          "districtName": ""
+        },
+        "current": {
+          "temperatureText": "",
+          "condition": "",
+          "airQuality": ""
+        },
+        "updatedAt": ""
+      }
     }
   ],
   "candidateEventCandidates": [

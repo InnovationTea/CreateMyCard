@@ -4,9 +4,21 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import ValidationError
 
 from api.schemas import WidgetCardServiceRequest
+from core.logger import get_logger
+from models.service import (
+    WidgetWebSocketErrorMessage,
+    WidgetWebSocketReadyMessage,
+    WidgetWebSocketResultMessage,
+)
 from services.widget_generation_service import WidgetGenerationService
 
 router = APIRouter(prefix="/api/v1")
+logger = get_logger(__name__)
+SUPPORTED_OPERATIONS = [
+    "getWidgetCapabilityOverview",
+    "getDataCapabilitySchemas",
+    "generateWidgetCard",
+]
 
 
 def get_service() -> WidgetGenerationService:
@@ -51,16 +63,10 @@ async def widget_card_service(websocket: WebSocket):
     """
     # 单一入口承载三个 operation，客户端可在同一连接内连续发送能力概述、schema 加载和卡片生成请求。
     await websocket.accept()
+    logger.info("widget_card_service_ws_connected")
+    ready_message = WidgetWebSocketReadyMessage(operations=SUPPORTED_OPERATIONS)
     await websocket.send_json(
-        {
-            "type": "ready",
-            "tool": "widgetCardService",
-            "operations": [
-                "getWidgetCapabilityOverview",
-                "getDataCapabilitySchemas",
-                "generateWidgetCard",
-            ],
-        }
+        ready_message.model_dump(mode="json", exclude_none=True)
     )
     service = get_service()
     try:
@@ -69,36 +75,50 @@ async def widget_card_service(websocket: WebSocket):
             request_id = payload.get("requestId")
             try:
                 request = _widget_card_service_request_from_payload(payload)
+                logger.info(
+                    "widget_card_service_ws_message_received",
+                    request_id=request_id,
+                    operation=request.operation,
+                    uid=request.uid,
+                )
                 result = service.widget_card_service(request)
+                result_message = WidgetWebSocketResultMessage(
+                    operation=request.operation,
+                    requestId=request_id,
+                    data=result.model_dump(mode="json", exclude_none=True),
+                )
                 await websocket.send_json(
-                    {
-                        "type": "result",
-                        "tool": "widgetCardService",
-                        "operation": request.operation,
-                        "requestId": request_id,
-                        "data": result.model_dump(mode="json", exclude_none=True),
-                    }
+                    result_message.model_dump(mode="json", exclude_none=True)
                 )
             except (ValidationError, ValueError) as exc:
+                logger.error(
+                    "widget_card_service_ws_invalid_arguments",
+                    request_id=request_id,
+                    details=_error_details(exc),
+                )
+                error_message = WidgetWebSocketErrorMessage(
+                    requestId=request_id,
+                    errorCode="INVALID_ARGUMENTS",
+                    message="Invalid widgetCardService arguments.",
+                    details=_error_details(exc),
+                )
                 await websocket.send_json(
-                    {
-                        "type": "error",
-                        "tool": "widgetCardService",
-                        "requestId": request_id,
-                        "errorCode": "INVALID_ARGUMENTS",
-                        "message": "Invalid widgetCardService arguments.",
-                        "details": _error_details(exc),
-                    }
+                    error_message.model_dump(mode="json", exclude_none=True)
                 )
             except Exception as exc:
+                logger.error(
+                    "widget_card_service_ws_failed",
+                    request_id=request_id,
+                    error=str(exc),
+                )
+                error_message = WidgetWebSocketErrorMessage(
+                    requestId=request_id,
+                    errorCode="FAILED",
+                    message=str(exc),
+                )
                 await websocket.send_json(
-                    {
-                        "type": "error",
-                        "tool": "widgetCardService",
-                        "requestId": request_id,
-                        "errorCode": "FAILED",
-                        "message": str(exc),
-                    }
+                    error_message.model_dump(mode="json", exclude_none=True)
                 )
     except WebSocketDisconnect:
+        logger.info("widget_card_service_ws_disconnected")
         return

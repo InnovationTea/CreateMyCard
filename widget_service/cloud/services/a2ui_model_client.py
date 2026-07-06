@@ -1,11 +1,20 @@
 import json
 import uuid
 
+from core.logger import get_logger
 from models.generation import TaskSpec
+from models.service import A2UIPromptPayload
+
+logger = get_logger(__name__)
 
 
 class A2UIModelClient:
-    def generate(self, task_spec: TaskSpec, protocol_profile: dict, prompt: dict) -> str:
+    def generate(
+        self,
+        task_spec: TaskSpec,
+        protocol_profile: dict,
+        prompt: A2UIPromptPayload,
+    ) -> str:
         """生成 A2UI genui JSONL。
 
         入参：
@@ -15,6 +24,12 @@ class A2UIModelClient:
         出参：三行 JSONL 格式的 genui 字符串。
         """
         # 当前是模拟 A2UI 模型输出；后续可替换为真实模型客户端，但要保留三行 JSONL 契约。
+        logger.info(
+            "a2ui_model_generate_started",
+            size=task_spec.size,
+            event_count=len(task_spec.eventCandidates),
+            asset_count=len(task_spec.assetCandidates),
+        )
         surface_id = f"surface-{uuid.uuid4().hex[:12]}"
         size = protocol_profile["sizes"][task_spec.size]
         data_model_value = task_spec.dataModel["value"]
@@ -27,37 +42,43 @@ class A2UIModelClient:
                 "catalogId": protocol_profile["catalogId"],
                 "width": size["width"],
                 "height": size["height"],
-                "root": root_id,
             },
         }
         update_components = {
             "version": protocol_profile["version"],
             "updateComponents": {
                 "surfaceId": surface_id,
+                "root": root_id,
                 "components": [
                     {
                         "id": root_id,
-                        "type": "Column",
-                        "width": size["width"],
-                        "height": size["height"],
-                        "padding": 12,
-                        "borderRadius": 16,
-                        "clip": True,
-                        "background": "#F7F8FA",
+                        "component": "Column",
+                        "styles": {
+                            "width": size["width"],
+                            "height": size["height"],
+                            "padding": 12,
+                            "borderRadius": 18 if task_spec.size == "2x2" else 22,
+                            "clip": True,
+                        },
+                        "itemMargin": 8,
                         "children": ["title", "summary"],
                     },
                     {
                         "id": "title",
-                        "type": "Text",
-                        "text": self._title(task_spec.userQuery),
-                        "fontSize": 16,
-                        "fontWeight": "bold",
+                        "component": "Text",
+                        "content": self._title(task_spec.userQuery),
+                        "styles": {
+                            "fontSize": 16,
+                            "fontWeight": 700,
+                        },
                     },
                     {
                         "id": "summary",
-                        "type": "Text",
-                        "text": "正在为你刷新最新信息",
-                        "fontSize": 12,
+                        "component": "Text",
+                        "content": "正在为你刷新最新信息",
+                        "styles": {
+                            "fontSize": 12,
+                        },
                     },
                 ],
             },
@@ -66,13 +87,16 @@ class A2UIModelClient:
             "version": protocol_profile["version"],
             "updateDataModel": {
                 "surfaceId": surface_id,
+                "path": "/",
                 "value": data_model_value,
             },
         }
-        return "\n".join(
+        genui = "\n".join(
             json.dumps(item, ensure_ascii=False, separators=(",", ":"))
             for item in [create_surface, update_components, update_data_model]
         )
+        logger.info("a2ui_model_generate_completed", surface_id=surface_id)
+        return genui
 
     def _title(self, user_query: str) -> str:
         """从用户需求生成 mock 标题。

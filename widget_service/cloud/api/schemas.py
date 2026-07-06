@@ -28,9 +28,6 @@ class VersionedToolRequest(BaseModel):
     locale: str = "zh-CN"
     uid: str
     device: DeviceContext
-    appVersion: str
-    romVersion: str
-    xiaoyiVersion: str
     capabilityRegistryVersion: str | None = None
     protocolProfileId: str | None = None
 
@@ -116,7 +113,7 @@ class GenerateWidgetCardResponse(BaseModel):
     artifactUrl: str = ""
     artifactDigest: str = ""
     suggestSize: WidgetSize
-    userMessage: str
+    message: str
     removedCapabilities: list[RemovedCapability] = Field(default_factory=list)
     errorCode: str = ""
     artifact: dict[str, Any] | None = None

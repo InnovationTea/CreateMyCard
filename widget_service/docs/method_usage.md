@@ -31,7 +31,7 @@ curl http://127.0.0.1:8000/health
 
 ## 2. 目录和版本规则
 
-能力清单按 `appVersion + romVersion` 生成的文件夹名做版本隔离：
+能力清单按 `device.ohosApiVersion + device.romVersion` 生成的文件夹名做版本隔离：
 
 ```text
 cloud/data/capabilities/{capabilityRegistryVersion}/
@@ -43,13 +43,16 @@ cloud/data/capabilities/{capabilityRegistryVersion}/
 当前默认版本：
 
 ```text
-app-1.0.0_rom-7.0.0
+ohos-36_rom-7.0.0
 ```
 
 A2UI 协议 profile 也按文件夹隔离：
 
 ```text
-cloud/data/protocol_profiles/{protocolProfileId}/profile.json
+cloud/data/protocol_profiles/{protocolProfileId}/
+├─ protocol.md
+├─ component-catalog.md
+└─ data-binding.md
 ```
 
 当前默认 profile：
@@ -62,7 +65,7 @@ a2ui-form-rom7-v1
 
 ```json
 {
-  "capabilityRegistryVersion": "app-1.0.0_rom-7.0.0",
+  "capabilityRegistryVersion": "ohos-36_rom-7.0.0",
   "protocolProfileId": "a2ui-form-rom7-v1"
 }
 ```
@@ -71,7 +74,7 @@ a2ui-form-rom7-v1
 
 ## 3. WebSocket 接口
 
-最新云侧方案把微服务对外抽象成一个工具：`widgetCardService`。主 Agent 只需要传 `operation` 和该操作需要的参数；`uid`、`device`、`appVersion`、`romVersion`、`xiaoyiVersion` 等上下文由工具层自动注入，本地测试时可以显式传入。
+最新云侧方案把微服务对外抽象成一个工具：`widgetCardService`。主 Agent 只需要传 `operation` 和该操作需要的参数；`uid` 和 `device` 由工具层自动注入，本地测试时可以显式传入。
 
 唯一业务入口：
 
@@ -100,9 +103,6 @@ WS /api/v1/ws/tools/widgetCardService
   "requestId": "overview-1",
   "arguments": {
     "uid": "test-user-001",
-    "appVersion": "1.0.0",
-    "romVersion": "7.0.0",
-    "xiaoyiVersion": "1.0.0",
     "device": {
       "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
       "deviceType": "ALN-AL00",
@@ -155,16 +155,13 @@ curl http://127.0.0.1:8000/health
     "uid": "test-user-001",
     "operation": "getWidgetCapabilityOverview",
     "locale": "zh-CN",
-    "appVersion": "1.0.0",
-    "romVersion": "7.0.0",
-    "xiaoyiVersion": "1.0.0",
     "device": {
       "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
       "deviceType": "ALN-AL00",
       "romVersion": "ALN-AL00 7.0.0.36",
       "ohosApiVersion": 36
     },
-    "capabilityRegistryVersion": "app-1.0.0_rom-7.0.0"
+    "capabilityRegistryVersion": "ohos-36_rom-7.0.0"
   }
 }
 ```
@@ -179,7 +176,7 @@ curl http://127.0.0.1:8000/health
   "requestId": "overview-1",
   "data": {
     "apiVersion": "v1",
-    "capabilityRegistryVersion": "app-1.0.0_rom-7.0.0",
+    "capabilityRegistryVersion": "ohos-36_rom-7.0.0",
     "dataCapabilities": [
       {
         "id": "ViewWeather",
@@ -206,9 +203,6 @@ curl http://127.0.0.1:8000/health
   "arguments": {
     "uid": "test-user-001",
     "operation": "getDataCapabilitySchemas",
-    "appVersion": "1.0.0",
-    "romVersion": "7.0.0",
-    "xiaoyiVersion": "1.0.0",
     "device": {
       "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
       "deviceType": "ALN-AL00",
@@ -216,7 +210,7 @@ curl http://127.0.0.1:8000/health
       "ohosApiVersion": 36
     },
     "dataCapabilityIds": ["ViewWeather", "calendar.events.search"],
-    "capabilityRegistryVersion": "app-1.0.0_rom-7.0.0"
+    "capabilityRegistryVersion": "ohos-36_rom-7.0.0"
   }
 }
 ```
@@ -231,7 +225,7 @@ curl http://127.0.0.1:8000/health
   "requestId": "schema-1",
   "data": {
     "apiVersion": "v1",
-    "capabilityRegistryVersion": "app-1.0.0_rom-7.0.0",
+    "capabilityRegistryVersion": "ohos-36_rom-7.0.0",
     "dataCapabilities": [
       {
         "id": "ViewWeather",
@@ -264,9 +258,6 @@ curl http://127.0.0.1:8000/health
     "operation": "generateWidgetCard",
     "userQuery": "帮我做通勤卡片，包含天气和今日日程",
     "size": "2x4",
-    "appVersion": "1.0.0",
-    "romVersion": "7.0.0",
-    "xiaoyiVersion": "1.0.0",
     "device": {
       "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
       "deviceType": "ALN-AL00",
@@ -281,7 +272,18 @@ curl http://127.0.0.1:8000/health
           "districtName": "青浦区",
           "forecastDays": 1
         },
-        "writeResultTo": "/data/weather"
+        "writeResultTo": "/data/weather",
+        "updateModel": {
+          "location": {
+            "districtName": ""
+          },
+          "current": {
+            "temperatureText": "",
+            "condition": "",
+            "airQuality": ""
+          },
+          "updatedAt": ""
+        }
       },
       {
         "capabilityId": "calendar.events.search",
@@ -321,7 +323,7 @@ curl http://127.0.0.1:8000/health
     "artifactUrl": "https://obs.todo.local/widget/xxx.json",
     "artifactDigest": "sha256:xxx",
     "suggestSize": "2x4",
-    "userMessage": "已为你生成可用的桌面卡片。",
+    "message": "已为你生成可用的桌面卡片。",
     "removedCapabilities": [],
     "errorCode": "",
     "effectiveCapabilities": {
@@ -388,7 +390,10 @@ from services.widget_generation_service import WidgetGenerationService
 
 service = WidgetGenerationService()
 response = service.get_widget_capability_overview(
-    CapabilityOverviewRequest(appVersion="1.0.0", romVersion="7.0.0")
+    CapabilityOverviewRequest(
+        uid="test-user-001",
+        device={"romVersion": "ALN-AL00 7.0.0.36", "ohosApiVersion": 36},
+    )
 )
 ```
 
@@ -420,7 +425,9 @@ get_data_capability_schemas(
 response = service.get_data_capability_schemas(
     DataCapabilitySchemasRequest(
         dataCapabilityIds=["ViewWeather", "calendar.events.search"],
-        capabilityRegistryVersion="app-1.0.0_rom-7.0.0",
+        uid="test-user-001",
+        device={"romVersion": "ALN-AL00 7.0.0.36", "ohosApiVersion": 36},
+        capabilityRegistryVersion="ohos-36_rom-7.0.0",
     )
 )
 ```
@@ -461,7 +468,7 @@ generate_widget_card(
 12. RetryController 控制最多 1 次重试
 13. ArtifactValidator 校验完整 artifact
 14. ArtifactStore 保存 artifact，当前为 OBS TODO hook
-15. ResponsePlanner 生成 status 和 userMessage
+15. ResponsePlanner 生成 status 和 message
 ```
 
 使用示例：
@@ -474,7 +481,8 @@ response = service.generate_widget_card(
     GenerateWidgetCardRequest(
         userQuery="帮我做一个只显示今天上海天气的桌面卡片",
         size="2x4",
-        romVersion="7.0.0",
+        uid="test-user-001",
+        device={"romVersion": "ALN-AL00 7.0.0.36", "ohosApiVersion": 36},
         candidateDataBindings=[
             CandidateDataBinding(
                 capabilityId="ViewWeather",
@@ -541,13 +549,13 @@ cloud/services/ids_client.py
 构造：
 
 ```python
-registry = CapabilityRegistry("app-1.0.0_rom-7.0.0")
+registry = CapabilityRegistry("ohos-36_rom-7.0.0")
 ```
 
-不传版本时使用默认版本：
+不传版本时可使用 device 版本推导：
 
 ```python
-registry = CapabilityRegistry()
+registry = CapabilityRegistry(device_rom_version="ALN-AL00 7.0.0.36", ohos_api_version=36)
 ```
 
 #### list_data_capabilities
@@ -621,10 +629,12 @@ get_profile() -> dict
 读取：
 
 ```text
-data/protocol_profiles/{profile_id}/profile.json
+data/protocol_profiles/{profile_id}/protocol.md
+data/protocol_profiles/{profile_id}/component-catalog.md
+data/protocol_profiles/{profile_id}/data-binding.md
 ```
 
-返回协议版本、catalogId、尺寸、组件白名单、样式白名单等。
+返回协议版本、catalogId、尺寸、组件白名单、样式白名单和 md 原文。
 
 ## 6. 能力过滤方法
 
@@ -641,9 +651,7 @@ cloud/services/device_capability_resolver.py
 ```python
 resolve_data_bindings(
     candidate_bindings: list[CandidateDataBinding],
-    rom_version: str,
-    app_version: str,
-    xiaoyi_version: str,
+    device: DeviceContext,
 ) -> tuple[list[CandidateDataBinding], list[DataCapability], list[RemovedCapability]]
 ```
 
@@ -653,7 +661,7 @@ resolve_data_bindings(
 
 ```text
 能力 ID 是否注册
- -> ROM/App/小艺版本是否满足
+ -> device.romVersion / device.ohosApiVersion 是否满足
  -> 依赖 App 是否安装且版本满足
  -> IDS provider/intent 是否存在
  -> 权限状态是否允许
@@ -675,9 +683,7 @@ removed                  被移除的能力和原因
 resolver = DeviceCapabilityResolver(registry)
 effective_bindings, effective_caps, removed = resolver.resolve_data_bindings(
     candidate_bindings=request.candidateDataBindings,
-    rom_version="7.0.0",
-    app_version="1.0.0",
-    xiaoyi_version="1.0.0",
+    device=request.device,
 )
 ```
 
@@ -688,9 +694,7 @@ effective_bindings, effective_caps, removed = resolver.resolve_data_bindings(
 ```python
 resolve_event_candidates(
     candidates: list[EventAction],
-    rom_version: str,
-    app_version: str,
-    xiaoyi_version: str,
+    device: DeviceContext,
 ) -> tuple[list[EventAction], list[RemovedCapability]]
 ```
 
@@ -701,10 +705,10 @@ resolve_event_candidates(
 签名：
 
 ```python
-get_device_capability_state() -> IDSDeviceCapabilityState
+get_device_capability_state(device: DeviceContext, request_id: str) -> IDSDeviceCapabilityState
 ```
 
-用途：读取 mock IDS 响应并转换为内部判断用的结构：
+用途：先按 device 构造 IDS 已安装应用查询请求，再读取 mock IDS 响应并转换为内部判断用的结构：
 
 ```text
 installed_apps    已安装应用包名与版本
@@ -1043,7 +1047,27 @@ cloud/core/logging.py
 
 用途：配置 structlog JSON 日志。
 
-### 10.4 load_json
+### 10.4 get_logger
+
+位置：
+
+```text
+cloud/core/logger.py
+```
+
+用途：获取统一业务日志对象，支持 `debug`、`info`、`warning`、`warn`、`error`、`exception`、`critical`。流程节点使用 `info`，参数异常或业务失败使用 `error`，带异常栈的未知异常使用 `exception`。
+
+示例：
+
+```python
+from core.logger import get_logger
+
+logger = get_logger(__name__)
+logger.info("flow_started", operation="generateWidgetCard")
+logger.error("flow_failed", error_code="VALIDATION_FAILED")
+```
+
+### 10.5 load_json
 
 位置：
 
@@ -1148,7 +1172,7 @@ meta
 新增能力版本：
 
 ```text
-复制 data/capabilities/app-1.0.0_rom-7.0.0 为新文件夹
+复制 data/capabilities/ohos-36_rom-7.0.0 为新文件夹
 修改 JSON 文件
 请求时传 capabilityRegistryVersion=新文件夹名
 ```

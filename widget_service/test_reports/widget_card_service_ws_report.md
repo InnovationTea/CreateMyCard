@@ -1,6 +1,6 @@
 # widgetCardService WebSocket 测试报告
 
-- 生成时间：2026-07-04T11:35:31.137696+00:00
+- 生成时间：2026-07-06T06:13:01.467229+00:00
 - 入口：`WS /api/v1/ws/tools/widgetCardService`
 - ready 状态：`ready`
 - 工具名：`widgetCardService`
@@ -34,9 +34,6 @@
   "arguments": {
     "uid": "test-user-001",
     "locale": "zh-CN",
-    "appVersion": "1.0.0",
-    "romVersion": "7.0.0",
-    "xiaoyiVersion": "1.0.0",
     "device": {
       "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
       "deviceType": "ALN-AL00",
@@ -63,7 +60,7 @@
   "requestId": "overview-1",
   "data": {
     "apiVersion": "v1",
-    "capabilityRegistryVersion": "app-1.0.0_rom-7.0.0",
+    "capabilityRegistryVersion": "ohos-36_rom-7.0.0",
     "dataCapabilities": [
       {
         "id": "ViewWeather",
@@ -1071,9 +1068,6 @@
   "arguments": {
     "uid": "test-user-001",
     "locale": "zh-CN",
-    "appVersion": "1.0.0",
-    "romVersion": "7.0.0",
-    "xiaoyiVersion": "1.0.0",
     "device": {
       "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
       "deviceType": "ALN-AL00",
@@ -1103,7 +1097,7 @@
   "requestId": "schema-1",
   "data": {
     "apiVersion": "v1",
-    "capabilityRegistryVersion": "app-1.0.0_rom-7.0.0",
+    "capabilityRegistryVersion": "ohos-36_rom-7.0.0",
     "dataCapabilities": [
       {
         "id": "ViewWeather",
@@ -1280,9 +1274,6 @@
   "arguments": {
     "uid": "test-user-001",
     "locale": "zh-CN",
-    "appVersion": "1.0.0",
-    "romVersion": "7.0.0",
-    "xiaoyiVersion": "1.0.0",
     "device": {
       "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
       "deviceType": "ALN-AL00",
@@ -1304,7 +1295,18 @@
           "districtName": "上海",
           "forecastDays": 1
         },
-        "writeResultTo": "/data/weather"
+        "writeResultTo": "/data/weather",
+        "updateModel": {
+          "location": {
+            "districtName": ""
+          },
+          "current": {
+            "temperatureText": "",
+            "condition": "",
+            "airQuality": ""
+          },
+          "updatedAt": ""
+        }
       }
     ],
     "candidateEventCandidates": [
@@ -1336,10 +1338,10 @@
   "data": {
     "apiVersion": "v1",
     "status": "success",
-    "artifactUrl": "https://obs.todo.local/widget/75fa903d6fe64695b04bcd0a0ad393f4.json",
-    "artifactDigest": "sha256:10d0bd04e518c8050dd43678c8a91d22408dc24e5fc58ad5d61ccf26bf881a11",
+    "artifactUrl": "https://obs.todo.local/widget/c586f6c758cf4843a522efe4cac50f33.json",
+    "artifactDigest": "sha256:2de27d177250a4b9d46dbf2fcbbb5c429d8c7757fcc4a1602c6062403e54add4",
     "suggestSize": "2x4",
-    "userMessage": "已为你生成可用的桌面卡片。",
+    "message": "已为你生成可用的桌面卡片。",
     "removedCapabilities": [],
     "errorCode": "",
     "effectiveCapabilities": {

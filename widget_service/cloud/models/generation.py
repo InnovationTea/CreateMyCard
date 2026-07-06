@@ -12,9 +12,9 @@ class DeviceContext(BaseModel):
     deviceName: str | None = None
     odid: str | None = None
     udid: str | None = None
-    romVersion: str | None = None
+    romVersion: str
     marketingName: str | None = None
-    ohosApiVersion: int | None = None
+    ohosApiVersion: int
 
 
 class CandidateDataBinding(BaseModel):
@@ -23,6 +23,7 @@ class CandidateDataBinding(BaseModel):
     capabilityId: str
     arguments: dict[str, Any] = Field(default_factory=dict)
     writeResultTo: str
+    updateModel: dict[str, Any] = Field(default_factory=dict)
 
 
 class EventAction(BaseModel):

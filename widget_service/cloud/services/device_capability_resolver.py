@@ -5,10 +5,13 @@ from jsonschema import Draft202012Validator
 from packaging.version import InvalidVersion, Version
 
 from core.errors import ErrorCode
+from core.logger import get_logger
 from models.capability import DataCapability, RemovedCapability
-from models.generation import CandidateDataBinding, EventAction
+from models.generation import CandidateDataBinding, DeviceContext, EventAction
 from services.capability_registry import CapabilityRegistry
 from services.ids_client import IDSClient, IDSDeviceCapabilityState
+
+logger = get_logger(__name__)
 
 
 class DeviceCapabilityResolver:
@@ -28,21 +31,26 @@ class DeviceCapabilityResolver:
     def resolve_data_bindings(
         self,
         candidate_bindings: list[CandidateDataBinding],
-        rom_version: str,
-        app_version: str,
-        xiaoyi_version: str,
+        device: DeviceContext,
     ) -> tuple[list[CandidateDataBinding], list[DataCapability], list[RemovedCapability]]:
         """过滤候选数据绑定。
 
         入参：
         - candidate_bindings：主 Agent 传入的候选数据绑定。
-        - rom_version：当前设备 ROM 版本。
-        - app_version：当前宿主 App 版本。
-        - xiaoyi_version：当前小艺版本。
+        - device：工具层注入的设备信息，包含 romVersion 和 ohosApiVersion。
         出参：有效数据绑定、有效数据能力定义、被移除能力列表。
         """
         # 先获取设备侧真实能力快照，再用这份快照裁剪主 Agent 传入的候选能力。
-        ids_state = self.ids_client.get_device_capability_state()
+        ids_state = self.ids_client.get_device_capability_state(
+            device,
+            "resolve-data-bindings",
+        )
+        logger.info(
+            "resolve_data_bindings_started",
+            candidate_count=len(candidate_bindings),
+            provider_count=len(ids_state.providers),
+            intent_count=len(ids_state.intent_targets),
+        )
         effective_bindings: list[CandidateDataBinding] = []
         effective_capabilities: list[DataCapability] = []
         removed: list[RemovedCapability] = []
@@ -51,19 +59,34 @@ class DeviceCapabilityResolver:
             # 未注册或不可用的能力不能进入最终 CardSpec。
             capability = self.registry.get_data_capability(binding.capabilityId)
             if capability is None:
+                logger.warning(
+                    "data_capability_removed",
+                    capability_id=binding.capabilityId,
+                    reason=ErrorCode.UNKNOWN_CAPABILITY.value,
+                )
                 removed.append(self._removed(binding.capabilityId, ErrorCode.UNKNOWN_CAPABILITY))
                 continue
 
             # 统一检查 ROM/App/小艺版本、安装包、provider、intent 和权限依赖。
             reason = self._check_common_dependencies(
-                capability, rom_version, app_version, xiaoyi_version, ids_state
+                capability, device, ids_state
             )
             if reason is not None:
+                logger.warning(
+                    "data_capability_removed",
+                    capability_id=binding.capabilityId,
+                    reason=reason.value,
+                )
                 removed.append(self._removed(binding.capabilityId, reason))
                 continue
 
             # 参数必须符合能力注册表声明的 inputSchema，否则不允许进入最终 CardSpec。
             if not self._valid_arguments(binding.arguments, capability.inputSchema):
+                logger.warning(
+                    "data_capability_removed",
+                    capability_id=binding.capabilityId,
+                    reason=ErrorCode.INVALID_ARGUMENTS.value,
+                )
                 removed.append(self._removed(binding.capabilityId, ErrorCode.INVALID_ARGUMENTS))
                 continue
 
@@ -71,6 +94,12 @@ class DeviceCapabilityResolver:
             write_result_to = binding.writeResultTo or capability.defaultWriteResultTo
             # CardSpec 数据写入路径必须位于 /data/ 下，方便 DSL 绑定路径可追踪。
             if write_result_to is None or not write_result_to.startswith("/data/"):
+                logger.warning(
+                    "data_capability_removed",
+                    capability_id=binding.capabilityId,
+                    reason=ErrorCode.INVALID_ARGUMENTS.value,
+                    write_result_to=write_result_to,
+                )
                 removed.append(self._removed(binding.capabilityId, ErrorCode.INVALID_ARGUMENTS))
                 continue
 
@@ -80,6 +109,7 @@ class DeviceCapabilityResolver:
                     capabilityId=binding.capabilityId,
                     arguments=binding.arguments,
                     writeResultTo=write_result_to,
+                    updateModel=binding.updateModel,
                 )
             )
             effective_capabilities.append(capability)
@@ -87,6 +117,11 @@ class DeviceCapabilityResolver:
         # 不同能力写入同一路径会让 DataModel 覆盖，必须在最终 CardSpec 生成前剔除。
         conflict_id = self._find_write_result_conflict(effective_bindings)
         if conflict_id:
+            logger.warning(
+                "data_capability_removed",
+                capability_id=conflict_id,
+                reason=ErrorCode.WRITE_RESULT_CONFLICT.value,
+            )
             effective_bindings = [
                 item for item in effective_bindings if item.capabilityId != conflict_id
             ]
@@ -95,26 +130,35 @@ class DeviceCapabilityResolver:
             ]
             removed.append(self._removed(conflict_id, ErrorCode.WRITE_RESULT_CONFLICT))
 
+        logger.info(
+            "resolve_data_bindings_completed",
+            effective_count=len(effective_bindings),
+            removed_count=len(removed),
+        )
         return effective_bindings, effective_capabilities, removed
 
     def resolve_event_candidates(
         self,
         candidates: list[EventAction],
-        rom_version: str,
-        app_version: str,
-        xiaoyi_version: str,
+        device: DeviceContext,
     ) -> tuple[list[EventAction], list[RemovedCapability]]:
         """过滤候选事件动作。
 
         入参：
         - candidates：候选事件动作列表。
-        - rom_version：当前设备 ROM 版本。
-        - app_version：当前宿主 App 版本。
-        - xiaoyi_version：当前小艺版本。
+        - device：工具层注入的设备信息，包含 romVersion 和 ohosApiVersion。
         出参：有效事件动作列表、被移除事件能力列表。
         """
         # 事件能力和数据能力使用同一份 IDS 状态，确保能力裁决口径一致。
-        ids_state = self.ids_client.get_device_capability_state()
+        ids_state = self.ids_client.get_device_capability_state(
+            device,
+            "resolve-event-candidates",
+        )
+        logger.info(
+            "resolve_event_candidates_started",
+            candidate_count=len(candidates),
+            intent_count=len(ids_state.intent_targets),
+        )
         removed: list[RemovedCapability] = []
         effective: list[EventAction] = []
 
@@ -124,51 +168,58 @@ class DeviceCapabilityResolver:
                 # 事件候选必须能在事件能力注册表里找到，否则不能进入 TaskSpec。
                 event_capability = self.registry.get_event_capability(capability_id)
                 if event_capability is None:
+                    logger.warning(
+                        "event_capability_removed",
+                        capability_id=capability_id,
+                        reason=ErrorCode.UNKNOWN_CAPABILITY.value,
+                    )
                     removed.append(
                         self._removed(capability_id, ErrorCode.UNKNOWN_CAPABILITY, "event")
                     )
                     continue
                 # 事件能力同样需要经过版本、安装包、intent target 等依赖检查。
                 reason = self._check_common_dependencies(
-                    event_capability, rom_version, app_version, xiaoyi_version, ids_state
+                    event_capability, device, ids_state
                 )
                 if reason is not None:
+                    logger.warning(
+                        "event_capability_removed",
+                        capability_id=capability_id,
+                        reason=reason.value,
+                    )
                     removed.append(self._removed(capability_id, reason, "event"))
                     continue
             # 通过过滤后的事件动作会进入模型 TaskSpec，供 DSL 绑定 onClick 行为。
             effective.append(candidate)
+        logger.info(
+            "resolve_event_candidates_completed",
+            effective_count=len(effective),
+            removed_count=len(removed),
+        )
         return effective, removed
 
     def _check_common_dependencies(
         self,
         capability: Any,
-        rom_version: str,
-        app_version: str,
-        xiaoyi_version: str,
+        device: DeviceContext,
         ids_state: IDSDeviceCapabilityState,
     ) -> ErrorCode | None:
         """检查能力通用依赖。
 
         入参：
         - capability：数据能力或事件能力定义。
-        - rom_version：当前设备 ROM 版本。
-        - app_version：当前宿主 App 版本。
-        - xiaoyi_version：当前小艺版本。
+        - device：工具层注入的设备信息。
         - ids_state：转换后的 IDS 状态。
         出参：不可用原因错误码；全部满足时返回 None。
         """
         dependencies = capability.dependencies
         # 版本门禁先判断，避免低版本设备进入后续更重的 IDS 依赖判断。
         if dependencies.minRomVersion and not self._version_gte(
-            rom_version, dependencies.minRomVersion
+            device.romVersion, dependencies.minRomVersion
         ):
             return ErrorCode.ROM_VERSION_UNSUPPORTED
         if dependencies.minAppVersion and not self._version_gte(
-            app_version, dependencies.minAppVersion
-        ):
-            return ErrorCode.APP_VERSION_UNSUPPORTED
-        if dependencies.minXiaoyiVersion and not self._version_gte(
-            xiaoyi_version, dependencies.minXiaoyiVersion
+            str(device.ohosApiVersion), dependencies.minAppVersion
         ):
             return ErrorCode.APP_VERSION_UNSUPPORTED
 
@@ -261,7 +312,11 @@ class DeviceCapabilityResolver:
         - value：原始版本字符串。
         出参：数字版本字符串；无法提取时返回 `0`。
         """
-        match = re.search(r"\d+(?:\.\d+)*", value or "")
+        # ROM 字符串可能类似 `ALN-AL00 7.0.0.36`，需要避开机型里的 `00`。
+        dotted_matches = re.findall(r"\d+(?:\.\d+)+", value or "")
+        if dotted_matches:
+            return dotted_matches[-1]
+        match = re.search(r"\d+", value or "")
         return match.group(0) if match else "0"
 
     def _removed(

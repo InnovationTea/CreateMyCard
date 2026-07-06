@@ -11,6 +11,7 @@ from api.schemas import (
     WidgetCardServiceRequest,
 )
 from core.errors import ErrorCode, GenerationStatus
+from core.logger import get_logger
 from models.artifact import ArtifactMeta, WidgetArtifact
 from models.generation import EventAction
 from services.a2ui_model_client import A2UIModelClient
@@ -24,6 +25,8 @@ from services.response_planner import ResponsePlanner
 from services.retry_controller import RetryController
 from services.task_spec_builder import TaskSpecBuilder
 from services.validator import ArtifactValidator
+
+logger = get_logger(__name__)
 
 
 class WidgetGenerationService:
@@ -40,6 +43,13 @@ class WidgetGenerationService:
         出参：根据 operation 返回能力概述、数据能力 schema 或卡片生成结果。
         """
         # 统一工具层只暴露一个工具名，通过 operation 分发到三个真实业务流程。
+        logger.info(
+            "widget_card_service_dispatch_started",
+            operation=request.operation,
+            uid=request.uid,
+            device_rom_version=request.device.romVersion,
+            ohos_api_version=request.device.ohosApiVersion,
+        )
         if request.operation == "getWidgetCapabilityOverview":
             # overview 只需要版本上下文，不需要读取完整数据 schema，避免首轮工具返回过大。
             return self.get_widget_capability_overview(
@@ -73,12 +83,18 @@ class WidgetGenerationService:
         """获取能力概述。
 
         入参：
-        - request：包含 locale、appVersion、romVersion 等版本上下文。
+        - request：包含 locale、uid、device 等版本上下文。
         出参：数据能力 id+描述，以及全量事件能力和素材清单。
         """
-        # 能力注册表按 appVersion+romVersion 文件夹隔离，保证不同版本清单互不影响。
+        logger.info(
+            "capability_overview_started",
+            uid=request.uid,
+            device_rom_version=request.device.romVersion,
+            ohos_api_version=request.device.ohosApiVersion,
+        )
+        # 能力注册表按 device.ohosApiVersion+device.romVersion 文件夹隔离。
         registry = self._capability_registry(request)
-        return CapabilityOverviewResponse(
+        response = CapabilityOverviewResponse(
             capabilityRegistryVersion=registry.version,
             dataCapabilities=[
                 # 第一接口只暴露数据能力 id+description，完整 schema 留给第二接口渐进加载。
@@ -91,6 +107,14 @@ class WidgetGenerationService:
             eventCapabilities=registry.list_event_capabilities(),
             assetCandidates=registry.list_asset_capabilities(),
         )
+        logger.info(
+            "capability_overview_completed",
+            registry_version=registry.version,
+            data_count=len(response.dataCapabilities),
+            event_count=len(response.eventCapabilities),
+            asset_count=len(response.assetCandidates),
+        )
+        return response
 
     def get_data_capability_schemas(
         self,
@@ -102,6 +126,11 @@ class WidgetGenerationService:
         - request：包含数据能力 ID 列表和版本上下文。
         出参：已注册数据能力完整定义，以及缺失能力 ID 列表。
         """
+        logger.info(
+            "data_capability_schemas_started",
+            uid=request.uid,
+            data_capability_ids=request.dataCapabilityIds,
+        )
         # 这里返回完整 inputSchema/outputSchema，供主 Agent 生成合法 candidateDataBindings。
         registry = self._capability_registry(request)
         capabilities = []
@@ -113,11 +142,18 @@ class WidgetGenerationService:
                 missing.append(capability_id)
             else:
                 capabilities.append(capability)
-        return DataCapabilitySchemasResponse(
+        response = DataCapabilitySchemasResponse(
             capabilityRegistryVersion=registry.version,
             dataCapabilities=capabilities,
             missingCapabilityIds=missing,
         )
+        logger.info(
+            "data_capability_schemas_completed",
+            registry_version=registry.version,
+            found_count=len(capabilities),
+            missing_ids=missing,
+        )
+        return response
 
     def generate_widget_card(
         self, request: GenerateWidgetCardRequest
@@ -129,6 +165,14 @@ class WidgetGenerationService:
         出参：生成状态、artifact 地址、摘要、用户话术、降级原因和有效能力。
         """
         # 主流程：解析能力、生成 CardSpec/TaskSpec、生成 genui、校验 artifact、返回结构化状态。
+        logger.info(
+            "generate_widget_card_started",
+            uid=request.uid,
+            size=request.size,
+            data_binding_count=len(request.candidateDataBindings),
+            event_count=len(request.candidateEventCandidates),
+            asset_count=len(request.candidateAssetIds),
+        )
         # registry 负责读取当前版本的能力清单，后续所有过滤都以这份清单为准。
         registry = self._capability_registry(request)
         # 协议 profile 决定 A2UI 组件白名单、DSL 行数要求和校验规则。
@@ -141,19 +185,25 @@ class WidgetGenerationService:
         effective_bindings, effective_data_capabilities, removed_data = (
             resolver.resolve_data_bindings(
                 request.candidateDataBindings,
-                request.romVersion,
-                request.appVersion,
-                request.xiaoyiVersion,
+                request.device,
             )
+        )
+        logger.info(
+            "data_capability_resolved",
+            effective_binding_count=len(effective_bindings),
+            removed_count=len(removed_data),
         )
         # 事件候选先从外部协议结构转换成内部 EventAction，再进入统一能力裁决。
         candidate_events = self._normalize_event_candidates(request)
         # 事件能力过滤后，只把当前设备真实可用的点击动作放入 TaskSpec。
         effective_events, removed_events = resolver.resolve_event_candidates(
             candidate_events,
-            request.romVersion,
-            request.appVersion,
-            request.xiaoyiVersion,
+            request.device,
+        )
+        logger.info(
+            "event_capability_resolved",
+            effective_event_count=len(effective_events),
+            removed_count=len(removed_events),
         )
         asset_candidates = []
         removed_assets = []
@@ -169,12 +219,23 @@ class WidgetGenerationService:
 
         # removed 是统一降级信息源，最终会同时进入 prompt、artifact 和响应。
         removed = removed_data + removed_events + removed_assets
+        logger.info(
+            "asset_capability_resolved",
+            effective_asset_count=len(asset_candidates),
+            removed_count=len(removed_assets),
+        )
         if request.candidateDataBindings and not effective_bindings and not effective_events:
             # 没有剩余动态数据或可用入口时，不调用模型，也不伪造数据绑定。
+            logger.warning(
+                "generate_widget_card_unsupported",
+                uid=request.uid,
+                removed_count=len(removed),
+                error_code=ErrorCode.NO_EFFECTIVE_CAPABILITY.value,
+            )
             return GenerateWidgetCardResponse(
                 status=GenerationStatus.UNSUPPORTED,
                 suggestSize=request.size,
-                userMessage="当前设备上没有可用的数据能力或入口能力，暂时不能生成这类实时卡片。你可以试试天气、日历或系统状态类卡片。",
+                message="当前设备上没有可用的数据能力或入口能力，暂时不能生成这类实时卡片。你可以试试天气、日历或系统状态类卡片。",
                 removedCapabilities=removed,
                 errorCode=ErrorCode.NO_EFFECTIVE_CAPABILITY.value,
             )
@@ -185,9 +246,15 @@ class WidgetGenerationService:
         task_spec = TaskSpecBuilder().build(
             request.userQuery,
             request.size,
+            effective_bindings,
             effective_data_capabilities,
             effective_events,
             asset_candidates,
+        )
+        logger.info(
+            "card_and_task_spec_built",
+            data_binding_count=len(effective_bindings),
+            task_data_model_keys=list(task_spec.dataModel.get("value", {}).keys()),
         )
         # prompt 只作为模型生成 DSL 的约束输入，最终协议仍由 CardSpec 和 Validator 兜底。
         prompt = PromptBuilder().build(
@@ -230,12 +297,24 @@ class WidgetGenerationService:
             return ArtifactValidator().validate(artifact, protocol_profile)
 
         # RetryController 把“生成一次”和“校验一次”组合起来，失败时可重试生成。
-        genui, retry_count, errors = retry_controller.run(operation, validate_genui)
+        retry_result = retry_controller.run(operation, validate_genui)
+        genui = retry_result.result
+        errors = retry_result.errors
+        logger.info(
+            "a2ui_generation_completed",
+            retry_count=retry_result.retryCount,
+            validation_error_count=len(errors),
+        )
         if errors:
+            logger.error(
+                "a2ui_generation_validation_failed",
+                errors=errors,
+                uid=request.uid,
+            )
             return GenerateWidgetCardResponse(
                 status=GenerationStatus.FAILED,
                 suggestSize=request.size,
-                userMessage="卡片生成过程中校验失败，请稍后再试。",
+                message="卡片生成过程中校验失败，请稍后再试。",
                 removedCapabilities=removed,
                 errorCode=ErrorCode.VALIDATION_FAILED.value,
             )
@@ -253,22 +332,29 @@ class WidgetGenerationService:
             registry.version,
         )
         # ArtifactStore 当前是本地 mock/OBS TODO 入口，返回端侧可下载 URL 和摘要。
-        artifact_url, artifact_digest = ArtifactStore().save(artifact)
+        artifact_save_result = ArtifactStore().save(artifact)
         # ResponsePlanner 根据移除能力和最终产物判断 success/degraded/failed 等用户状态。
-        status, user_message, error_code = ResponsePlanner().plan(
+        response_plan = ResponsePlanner().plan(
             len(request.candidateDataBindings),
             len(effective_bindings),
             removed,
             has_artifact=True,
         )
+        logger.info(
+            "generate_widget_card_completed",
+            status=response_plan.status.value,
+            artifact_url=artifact_save_result.artifactUrl,
+            removed_count=len(removed),
+            error_code=response_plan.errorCode,
+        )
         return GenerateWidgetCardResponse(
-            status=status,
-            artifactUrl=artifact_url,
-            artifactDigest=artifact_digest,
+            status=response_plan.status,
+            artifactUrl=artifact_save_result.artifactUrl,
+            artifactDigest=artifact_save_result.artifactDigest,
             suggestSize=card_spec.suggestSize,
-            userMessage=user_message,
+            message=response_plan.message,
             removedCapabilities=removed,
-            errorCode=error_code,
+            errorCode=response_plan.errorCode,
             # 生产默认不内联 artifact；调试时可通过内部 options 打开，避免 WS 响应体过大。
             artifact=artifact.model_dump(mode="json", exclude_none=True)
             if request.options.returnArtifactInline
@@ -304,15 +390,15 @@ class WidgetGenerationService:
         """按请求版本上下文创建能力注册表。
 
         入参：
-        - request：包含 capabilityRegistryVersion、appVersion、romVersion 的请求对象。
+        - request：包含 capabilityRegistryVersion 和 device 版本字段的请求对象。
         出参：对应版本的 CapabilityRegistry。
         """
         # capabilityRegistryVersion 显式传入时优先使用；
-        # 否则根据 appVersion+romVersion 推导能力清单文件夹名。
+        # 否则根据 device.ohosApiVersion+device.romVersion 推导能力清单文件夹名。
         return CapabilityRegistry(
             version=request.capabilityRegistryVersion,
-            app_version=request.appVersion,
-            rom_version=request.romVersion,
+            ohos_api_version=request.device.ohosApiVersion,
+            device_rom_version=request.device.romVersion,
         )
 
     def _build_artifact(

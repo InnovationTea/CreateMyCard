@@ -12,9 +12,13 @@ class Settings(BaseSettings):
     )
 
     env: str = "local"
-    capability_registry_version: str = "app-1.0.0_rom-7.0.0"
+    capability_registry_version: str = "ohos-36_rom-7.0.0"
     protocol_profile_id: str = "a2ui-form-rom7-v1"
     mock_ids_response_path: str = "docs/ids_res.txt"
+    ids_query_url: str = "http://{{ip}}:{{port}}/hiai/ids/databus/v1/kvcommondata/query"
+    ids_calling_uid: str = "decisionhub"
+    ids_dev_fake_id: str = "123**********postmantestdevFakeId"
+    ids_sign_secret: str = "postman-test-secret"
     artifact_base_url: str = "https://obs.todo.local/widget"
 
     @property
@@ -55,7 +59,6 @@ class Settings(BaseSettings):
         if path.is_absolute():
             return path
         return (self.repo_root / path).resolve()
-
 
 @lru_cache
 def get_settings() -> Settings:

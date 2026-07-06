@@ -1,9 +1,24 @@
+import hashlib
+import hmac
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from core.config import get_settings
+from core.logger import get_logger
+from models.generation import DeviceContext
+from models.service import (
+    IDSHttpRequest,
+    IDSInstalledAppsQueryBody,
+    IDSNamespaceQuery,
+    IDSQueryKeys,
+    IDSQueryRequestData,
+    IDSRequestHeaders,
+)
 from services.json_loader import load_json
+
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -44,19 +59,123 @@ class IDSClient:
             mock_response_path or self.settings.resolved_mock_ids_response_path
         )
 
-    def get_device_capability_state(self) -> IDSDeviceCapabilityState:
+    def build_installed_apps_query(
+        self,
+        device: DeviceContext,
+        request_id: str,
+    ) -> IDSHttpRequest:
+        """构造 IDS 已安装应用查询请求。
+
+        入参：
+        - device：工具层注入的设备信息，优先使用 odid，兜底使用 deviceId。
+        - request_id：本次 IDS 查询请求 ID。
+        出参：结构化 IDS HTTP 请求定义；后续真实 HTTP 调用可直接使用。
+        """
+        # 请求结构来自一次性 Postman 导出样例，代码内固化成实体对象后不再依赖 collection 文件。
+        odid = device.odid or device.deviceId or ""
+        body = IDSInstalledAppsQueryBody(
+            requestId=request_id,
+            callingUid=self.settings.ids_calling_uid,
+            nameSpaces=[
+                IDSNamespaceQuery(
+                    dataType="t_ids_kv_ohos_installed_apps",
+                    queryRequestData=[
+                        IDSQueryRequestData(keys=IDSQueryKeys(odid=odid)),
+                    ],
+                )
+            ],
+        )
+        ids_sign = self.build_ids_sign(
+            body=body,
+            dev_fake_id=self.settings.ids_dev_fake_id,
+        )
+        logger.info(
+            "ids_installed_apps_query_built",
+            request_id=request_id,
+            odid=odid,
+            ids_sign_preview=ids_sign[:8],
+        )
+        return IDSHttpRequest(
+            method="POST",
+            url=self.settings.ids_query_url,
+            headers=IDSRequestHeaders(
+                **{
+                    "Content-Type": "application/json",
+                    "devFakeId": self.settings.ids_dev_fake_id,
+                    "idsSign": ids_sign,
+                }
+            ),
+            body=body,
+        )
+
+    def build_ids_sign(
+        self,
+        body: IDSInstalledAppsQueryBody,
+        dev_fake_id: str,
+    ) -> str:
+        """生成 IDS 请求签名。
+
+        入参：
+        - body：IDS 请求 body 实体。
+        - dev_fake_id：请求头里的 devFakeId。
+        出参：十六进制 HMAC-SHA256 签名字符串。
+        """
+        # 当前工作区没有可读取的 ids.json；这里把 Postman 前置脚本常见的签名流程沉淀成代码：
+        # 用稳定 JSON body 和 devFakeId 组成签名原文，再用配置密钥生成 HMAC-SHA256。
+        canonical_body = json.dumps(
+            body.model_dump(mode="json"),
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        sign_source = f"{dev_fake_id}\n{canonical_body}"
+        return hmac.new(
+            self.settings.ids_sign_secret.encode("utf-8"),
+            sign_source.encode("utf-8"),
+            hashlib.sha256,
+        ).hexdigest()
+
+    def get_device_capability_state(
+        self,
+        device: DeviceContext,
+        request_id: str,
+    ) -> IDSDeviceCapabilityState:
         """获取设备能力状态。
 
-        入参：无。
+        入参：
+        - device：工具层注入的设备信息，用于构造 IDS 查询条件。
+        - request_id：本次 IDS 查询请求 ID。
         出参：标准化后的 IDSDeviceCapabilityState，供数据能力和事件能力过滤使用。
         """
+        # get_device_capability_state 与 build_installed_apps_query 是同一条链路：
+        # 先根据 device 生成 IDS 查询请求，再用 mock 响应模拟真实 IDS 返回。
+        ids_query = self.build_installed_apps_query(device, request_id)
+        logger.info(
+            "ids_device_capability_query_prepared",
+            request_id=request_id,
+            method=ids_query.method,
+            url=ids_query.url,
+        )
         # 当前 mock 文件不存在时返回空状态，避免本地环境缺文件直接中断服务启动。
         if not self.mock_response_path.exists():
+            logger.warning(
+                "ids_mock_response_not_found",
+                path=str(self.mock_response_path),
+            )
             return IDSDeviceCapabilityState()
 
         # mock 文件沿用 docs/ids_res.txt 的原始 IDS JSON 结构。
+        logger.info("ids_mock_response_loading", path=str(self.mock_response_path))
         payload = load_json(self.mock_response_path)
-        return self._parse_ids_payload(payload)
+        state = self._parse_ids_payload(payload)
+        logger.info(
+            "ids_mock_response_loaded",
+            installed_app_count=len(state.installed_apps),
+            provider_count=len(state.providers),
+            intent_count=len(state.intent_targets),
+            permission_count=len(state.permissions),
+        )
+        return state
 
     def _parse_ids_payload(self, payload: dict[str, Any]) -> IDSDeviceCapabilityState:
         """解析 IDS 原始响应。
@@ -88,6 +207,13 @@ class IDSClient:
                 # 权限状态影响后续是否允许生成需要授权的数据能力。
                 permissions.update(self._collect_permissions(values))
 
+        logger.debug(
+            "ids_payload_parsed",
+            installed_app_count=len(installed_apps),
+            provider_count=len(providers),
+            intent_count=len(intent_targets),
+            permission_count=len(permissions),
+        )
         return IDSDeviceCapabilityState(
             installed_apps=installed_apps,
             providers=providers | self._default_providers(),

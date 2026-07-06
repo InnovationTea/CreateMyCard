@@ -1,0 +1,234 @@
+from typing import Any, Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from core.errors import GenerationStatus
+
+
+class IDSQueryKeys(BaseModel):
+    """IDS 查询 key 对象。
+
+    入参：
+    - odid：设备 odid；缺失时由调用方使用 deviceId 兜底。
+    出参：可序列化为 IDS queryRequestData.keys 的实体对象。
+    """
+
+    odid: str
+
+
+class IDSQueryRequestData(BaseModel):
+    """IDS 单条查询条件。
+
+    入参：
+    - keys：IDS 查询键值。
+    出参：可序列化为 IDS queryRequestData 数组元素。
+    """
+
+    keys: IDSQueryKeys
+
+
+class IDSNamespaceQuery(BaseModel):
+    """IDS namespace 查询对象。
+
+    入参：
+    - dataType：IDS 数据类型。
+    - queryRequestData：该 namespace 下的查询条件列表。
+    出参：可序列化为 IDS nameSpaces 数组元素。
+    """
+
+    dataType: str
+    queryRequestData: list[IDSQueryRequestData]
+
+
+class IDSInstalledAppsQueryBody(BaseModel):
+    """IDS 已安装应用查询 body。
+
+    入参：
+    - requestId：本次查询请求 ID。
+    - callingUid：调用方标识。
+    - nameSpaces：查询 namespace 列表。
+    出参：可序列化为 IDS HTTP 请求 body。
+    """
+
+    requestId: str
+    callingUid: str
+    nameSpaces: list[IDSNamespaceQuery]
+
+
+class IDSRequestHeaders(BaseModel):
+    """IDS HTTP 请求头。
+
+    入参：
+    - contentType：内容类型，对外序列化为 `Content-Type`。
+    - devFakeId：调试设备 fake id。
+    - idsSign：IDS 签名。
+    出参：可序列化为 HTTP headers。
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    contentType: str = Field(alias="Content-Type")
+    devFakeId: str
+    idsSign: str
+
+
+class IDSHttpRequest(BaseModel):
+    """IDS HTTP 请求定义。
+
+    入参：
+    - method：HTTP 方法。
+    - url：IDS 查询 URL。
+    - headers：请求头实体。
+    - body：请求 body 实体。
+    出参：可用于真实 HTTP 调用或测试断言的结构化请求。
+    """
+
+    method: Literal["POST"]
+    url: str
+    headers: IDSRequestHeaders
+    body: IDSInstalledAppsQueryBody
+
+
+class WidgetWebSocketReadyMessage(BaseModel):
+    """WebSocket ready 消息。
+
+    入参：
+    - type：固定为 ready。
+    - tool：工具名。
+    - operations：当前工具支持的 operation 列表。
+    出参：可发送给客户端的 ready 消息。
+    """
+
+    type: Literal["ready"] = "ready"
+    tool: str = "widgetCardService"
+    operations: list[str]
+
+
+class WidgetWebSocketResultMessage(BaseModel):
+    """WebSocket result 消息。
+
+    入参：
+    - type：固定为 result。
+    - tool：工具名。
+    - operation：本次调用的 operation。
+    - requestId：客户端请求 ID。
+    - data：业务响应对象。
+    出参：可发送给客户端的 result 消息。
+    """
+
+    type: Literal["result"] = "result"
+    tool: str = "widgetCardService"
+    operation: str
+    requestId: str | None = None
+    data: dict[str, Any]
+
+
+class WidgetWebSocketErrorMessage(BaseModel):
+    """WebSocket error 消息。
+
+    入参：
+    - type：固定为 error。
+    - tool：工具名。
+    - requestId：客户端请求 ID。
+    - errorCode：错误码。
+    - message：错误说明。
+    - details：可选错误详情。
+    出参：可发送给客户端的 error 消息。
+    """
+
+    type: Literal["error"] = "error"
+    tool: str = "widgetCardService"
+    requestId: str | None = None
+    errorCode: str
+    message: str
+    details: Any | None = None
+
+
+class ArtifactSaveResult(BaseModel):
+    """artifact 保存结果。
+
+    入参：
+    - artifactUrl：端侧可下载地址。
+    - artifactDigest：artifact sha256 摘要。
+    出参：结构化保存结果。
+    """
+
+    artifactUrl: str
+    artifactDigest: str
+
+
+class ResponsePlan(BaseModel):
+    """生成响应规划结果。
+
+    入参：
+    - status：生成状态。
+    - message：用户可读话术。
+    - errorCode：错误码；成功时为空字符串。
+    出参：结构化响应规划结果。
+    """
+
+    status: GenerationStatus
+    message: str
+    errorCode: str = ""
+
+
+class RetryResult(BaseModel):
+    """重试控制结果。
+
+    入参：
+    - result：最终操作结果。
+    - retryCount：实际重试次数。
+    - errors：最终校验错误列表。
+    出参：结构化重试结果。
+    """
+
+    result: str
+    retryCount: int
+    errors: list[str] = Field(default_factory=list)
+
+
+class A2UIPromptProtocolProfile(BaseModel):
+    """A2UI prompt 中暴露给模型的协议摘要。
+
+    入参：
+    - id：协议 profile ID。
+    - version：A2UI 协议版本。
+    - catalogId：组件 catalog ID。
+    - sizes：支持尺寸定义。
+    - componentWhitelist：组件白名单。
+    出参：模型 prompt 内的协议摘要实体。
+    """
+
+    id: str
+    version: str
+    catalogId: str
+    sizes: dict[str, dict[str, int]]
+    componentWhitelist: list[str]
+
+
+class A2UIPromptUserMessage(BaseModel):
+    """A2UI prompt 的 user 部分。
+
+    入参：
+    - taskSpec：微服务构造的 TaskSpec。
+    - protocolProfile：协议 profile 摘要。
+    - degradationContext：降级上下文。
+    出参：模型 prompt user 消息实体。
+    """
+
+    taskSpec: dict[str, Any]
+    protocolProfile: A2UIPromptProtocolProfile
+    degradationContext: str = ""
+
+
+class A2UIPromptPayload(BaseModel):
+    """A2UI 模型调用 prompt。
+
+    入参：
+    - system：系统提示词。
+    - user：用户侧结构化输入。
+    出参：结构化模型调用 prompt。
+    """
+
+    system: str
+    user: A2UIPromptUserMessage

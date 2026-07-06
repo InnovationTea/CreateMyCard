@@ -13,9 +13,6 @@ REPORT_PATH = REPORT_DIR / "widget_card_service_ws_report.md"
 TOOL_CONTEXT = {
     "uid": "test-user-001",
     "locale": "zh-CN",
-    "appVersion": "1.0.0",
-    "romVersion": "7.0.0",
-    "xiaoyiVersion": "1.0.0",
     "device": {
         "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
         "deviceType": "ALN-AL00",
@@ -33,6 +30,8 @@ if str(CLOUD_ROOT) not in sys.path:
     sys.path.insert(0, str(CLOUD_ROOT))
 
 app = importlib.import_module("main").app
+DeviceContext = importlib.import_module("models.generation").DeviceContext
+IDSClient = importlib.import_module("services.ids_client").IDSClient
 
 
 def _json_block(payload: dict) -> str:
@@ -110,6 +109,11 @@ def test_widget_card_service_complete_flow():
     """
     client = TestClient(app)
     records: list[dict] = []
+    ids_state = IDSClient().get_device_capability_state(
+        DeviceContext(**TOOL_CONTEXT["device"]),
+        "ids-test-1",
+    )
+    assert "UG.weather.current" in ids_state.providers
 
     with client.websocket_connect("/api/v1/ws/tools/widgetCardService") as websocket:
         ready = websocket.receive_json()
@@ -128,7 +132,7 @@ def test_widget_card_service_complete_flow():
         overview = overview_message["data"]
         assert overview_message["type"] == "result"
         assert overview_message["operation"] == "getWidgetCapabilityOverview"
-        assert overview["capabilityRegistryVersion"] == "app-1.0.0_rom-7.0.0"
+        assert overview["capabilityRegistryVersion"] == "ohos-36_rom-7.0.0"
         assert any(item["id"] == "ViewWeather" for item in overview["dataCapabilities"])
         assert any(item["id"] == "event.open.weather" for item in overview["eventCapabilities"])
         assert any(item["id"] == "asset.drop_1" for item in overview["assetCandidates"])
@@ -182,6 +186,15 @@ def test_widget_card_service_complete_flow():
                         "capabilityId": "ViewWeather",
                         "arguments": {"districtName": "上海", "forecastDays": 1},
                         "writeResultTo": "/data/weather",
+                        "updateModel": {
+                            "location": {"districtName": ""},
+                            "current": {
+                                "temperatureText": "",
+                                "condition": "",
+                                "airQuality": "",
+                            },
+                            "updatedAt": "",
+                        },
                     }
                 ],
                 "candidateEventCandidates": [

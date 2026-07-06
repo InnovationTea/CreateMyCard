@@ -1,11 +1,11 @@
 import time
 import uuid
 
-import structlog
 from fastapi import FastAPI, Request, Response
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
 from api.routes import router
+from core.logger import get_logger
 from core.logging import configure_logging
 
 
@@ -22,7 +22,7 @@ def create_app() -> FastAPI:
         description="AI widget card generation microservice.",
     )
     app.include_router(router)
-    logger = structlog.get_logger(__name__)
+    logger = get_logger(__name__)
 
     @app.middleware("http")
     async def request_logging_middleware(request: Request, call_next) -> Response:
@@ -46,7 +46,7 @@ def create_app() -> FastAPI:
             response = await call_next(request)
         except Exception:
             duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
-            logger.exception("http_request_failed", duration_ms=duration_ms)
+            logger.error("http_request_failed", duration_ms=duration_ms)
             clear_contextvars()
             raise
 

@@ -6,7 +6,7 @@ The service follows `docs/AGENTS.md`:
 
 - Main Agent selects candidate capabilities.
 - This microservice resolves device capability, builds final `CardSpec`, constructs `TaskSpec`, calls the A2UI model client, validates artifact, and returns structured status.
-- Data capabilities, event capabilities, and assets are versioned by `appVersion+romVersion`
+- Data capabilities, event capabilities, and assets are versioned by `device.ohosApiVersion+device.romVersion`
   folder name under `cloud/data/capabilities/`.
 - OBS upload is intentionally left as a TODO hook in `ArtifactStore`.
 
@@ -37,9 +37,6 @@ Latest tool-style entry:
   "requestId": "overview-1",
   "arguments": {
     "uid": "test-user-001",
-    "appVersion": "1.0.0",
-    "romVersion": "7.0.0",
-    "xiaoyiVersion": "1.0.0",
     "device": {
       "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
       "deviceType": "ALN-AL00",
