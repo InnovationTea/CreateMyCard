@@ -1,6 +1,6 @@
 # Widget Service 三入口 WebSocket 测试报告
 
-- 生成时间：2026-07-06T07:39:11.869966+00:00
+- 生成时间：2026-07-06T07:48:05.290923+00:00
 - 入口：三个独立 WebSocket path
 - 首个 ready 状态：`ready`
 - 首个工具名：`getWidgetCapabilityOverview`
@@ -1333,8 +1333,8 @@
   "data": {
     "apiVersion": "v1",
     "status": "success",
-    "artifactUrl": "https://obs.todo.local/widget/0eed6972a32c4dbb886a58b7d852dd1b.json",
-    "artifactDigest": "sha256:f746c2da0403b9c479641c0dcb4aa3b796f89ebc75867d99aae3eb97c678b56a",
+    "artifactUrl": "https://obs.todo.local/widget/9710e8d526654081855c834c48715666.json",
+    "artifactDigest": "sha256:25b0ef0a2c5ff40144b5c63b1b90631db10db13c3d560a8c6027fd47124cddc9",
     "suggestSize": "2x4",
     "message": "已为你生成可用的桌面卡片。",
     "removedCapabilities": [],

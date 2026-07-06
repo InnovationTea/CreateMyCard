@@ -1,7 +1,7 @@
 {
   "name": "getWidgetCapabilityOverview",
   "transport": "websocket",
-  "path": "/api/v1/ws/tools/getWidgetCapabilityOverview",
+  "path": "/genui-agent-service/api/v1/ws/tools/getWidgetCapabilityOverview",
   "description": "获取当前设备版本可用的能力概述。数据能力只返回 id 和描述；事件能力、素材能力全量返回。",
   "messageEnvelope": {
     "type": "object",
