@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .base import BaseValidator, estimate_text_width, expression_like, numeric, read_pointer, spacing_tuple, static_expression_value
+from .base import BaseValidator, estimate_text_width, expression_like, is_match_parent, numeric, read_pointer, resolve_dimension, spacing_tuple, static_expression_value
 
 
 class QualityValidator(BaseValidator):
@@ -39,7 +39,9 @@ class QualityValidator(BaseValidator):
         if not isinstance(styles, dict):
             reporter.add("error", "LAYOUT_ROOT_SIZE_MISSING", "quality", "genui", line=2, json_pointer=f"/updateComponents/componentsById/{context.root_id}/styles", message="root.styles 必须是 object。")
             return 20
-        if numeric(styles.get("width")) != expected["width"] or numeric(styles.get("height")) != expected["height"]:
+        root_width = resolve_dimension(styles.get("width"), expected["width"])
+        root_height = resolve_dimension(styles.get("height"), expected["height"])
+        if root_width != expected["width"] or root_height != expected["height"]:
             penalties += 8
             reporter.add(
                 "error",
@@ -49,13 +51,13 @@ class QualityValidator(BaseValidator):
                 line=2,
                 json_pointer=f"/updateComponents/componentsById/{context.root_id}/styles",
                 actual={"width": styles.get("width"), "height": styles.get("height")},
-                expected={"width": expected["width"], "height": expected["height"]},
-                message="root 必须声明与尺寸一致的稳定 width/height。",
+                expected={"width": expected["width"], "height": expected["height"], "outerFill": "matchParent"},
+                message="root 必须声明与尺寸一致的 width/height；外层可使用 matchParent，校验按基准尺寸解析。",
             )
         if numeric(styles.get("borderRadius")) != expected["borderRadius"] or styles.get("clip") is not True:
             penalties += 5
             reporter.add("error", "LAYOUT_ROOT_SIZE_MISSING", "quality", "genui", line=2, json_pointer=f"/updateComponents/componentsById/{context.root_id}/styles", actual={"borderRadius": styles.get("borderRadius"), "clip": styles.get("clip")}, expected={"borderRadius": expected["borderRadius"], "clip": True}, message="root 圆角和 clip 必须与尺寸规范一致。")
-        if not self._has_background(root, context, rules):
+        if not self._has_background(root, context, rules, expected):
             penalties += 10
             reporter.add("error", "LAYOUT_ROOT_BACKGROUND_MISSING", "quality", "genui", line=2, json_pointer=f"/updateComponents/componentsById/{context.root_id}/styles", message="root 或 root 下真实背景组件必须提供背景样式。", fix_hint="在 root.styles 写 backgroundColor、linearGradient 或 backgroundImage。")
         expected_padding = rules.layout.get("defaultPadding", 12)
@@ -64,7 +66,7 @@ class QualityValidator(BaseValidator):
             reporter.add("warning", "LAYOUT_SPACING_NOT_ALLOWED", "quality", "genui", line=2, json_pointer=f"/updateComponents/componentsById/{context.root_id}/styles/padding", actual=styles.get("padding"), expected=expected_padding, message="root padding 建议使用默认安全区。")
         return penalties
 
-    def _has_background(self, root: dict[str, Any], context, rules) -> bool:
+    def _has_background(self, root: dict[str, Any], context, rules, expected: dict[str, Any] | None = None) -> bool:
         styles = root.get("styles", {})
         bg_keys = set(rules.style.get("rootBackgroundStyles", []))
         if isinstance(styles, dict) and bg_keys & set(styles.keys()):
@@ -72,8 +74,9 @@ class QualityValidator(BaseValidator):
         children = root.get("children")
         if not isinstance(children, list):
             return False
-        root_width = numeric(styles.get("width"))
-        root_height = numeric(styles.get("height"))
+        expected = expected or {}
+        root_width = resolve_dimension(styles.get("width"), expected.get("width"))
+        root_height = resolve_dimension(styles.get("height"), expected.get("height"))
         for child_id in children:
             child = context.components_by_id.get(child_id)
             child_styles = child.get("styles", {}) if isinstance(child, dict) else {}
@@ -110,6 +113,20 @@ class QualityValidator(BaseValidator):
             if extra:
                 penalties += 2
                 reporter.add("warning", "DSL_FIELD_FORBIDDEN", "quality", "genui", line=2, json_pointer=f"/updateComponents/componentsById/{component_id}/styles", actual=extra, message="styles 中存在组件目录未声明的字段。")
+            for field in ("width", "height"):
+                if component_id != context.root_id and is_match_parent(styles.get(field)):
+                    penalties += 8
+                    reporter.add(
+                        "error",
+                        "LAYOUT_MATCH_PARENT_SCOPE_INVALID",
+                        "quality",
+                        "genui",
+                        line=2,
+                        json_pointer=f"/updateComponents/componentsById/{component_id}/styles/{field}",
+                        actual=styles.get(field),
+                        expected="仅 createSurface 和 root.styles 的 width/height 可使用 matchParent",
+                        message="matchParent 只允许用于外围卡片大小；内部组件必须保持可静态预算的数值宽高。",
+                    )
             font_size = numeric(styles.get("fontSize"))
             if font_size is not None and int(font_size) not in allowed_font_sizes:
                 penalties += 4
@@ -173,7 +190,7 @@ class QualityValidator(BaseValidator):
             pad_top, pad_right, pad_bottom, pad_left = spacing_tuple(styles.get("padding"))
             gap = numeric(component.get("itemMargin")) or 0
             if component_type == "Row":
-                width = numeric(styles.get("width"))
+                width = self._component_dimension(component_id, styles, "width", context, rules)
                 if width is None:
                     continue
                 used, unknown = pad_left + pad_right + gap * max(0, len(child_components) - 1), False
@@ -190,7 +207,7 @@ class QualityValidator(BaseValidator):
                     penalties += 8
                     reporter.add("error", "LAYOUT_ROW_OVERFLOW", "quality", "genui", line=2, json_pointer=f"/updateComponents/componentsById/{component_id}", actual=used, expected=f"<= {width}", message="Row 横向预算超出父容器宽度。")
             if component_type == "Column":
-                height = numeric(styles.get("height"))
+                height = self._component_dimension(component_id, styles, "height", context, rules)
                 if height is None:
                     continue
                 used, unknown = pad_top + pad_bottom + gap * max(0, len(child_components) - 1), False
@@ -207,6 +224,15 @@ class QualityValidator(BaseValidator):
                     penalties += 8
                     reporter.add("error", "LAYOUT_COLUMN_OVERFLOW", "quality", "genui", line=2, json_pointer=f"/updateComponents/componentsById/{component_id}", actual=used, expected=f"<= {height}", message="Column 纵向预算超出父容器高度。")
         return penalties
+
+    def _component_dimension(self, component_id: str, styles: dict[str, Any], field: str, context, rules) -> float | None:
+        parent_size = None
+        if component_id == context.root_id:
+            size = context.cardspec.get("suggestSize")
+            expected = rules.protocol.get("sizes", {}).get(size)
+            if isinstance(expected, dict):
+                parent_size = expected.get(field)
+        return resolve_dimension(styles.get(field), parent_size)
 
     def _check_static_text_fit(self, context, rules, reporter) -> int:
         penalties = 0

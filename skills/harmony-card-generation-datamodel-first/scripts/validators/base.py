@@ -99,6 +99,16 @@ def numeric(value: Any) -> float | None:
     return None
 
 
+def is_match_parent(value: Any) -> bool:
+    return isinstance(value, str) and value.strip() == "matchParent"
+
+
+def resolve_dimension(value: Any, parent_size: Any = None) -> float | None:
+    if is_match_parent(value):
+        return numeric(parent_size)
+    return numeric(value)
+
+
 def spacing_tuple(value: Any) -> tuple[float, float, float, float]:
     if value is None:
         return 0, 0, 0, 0

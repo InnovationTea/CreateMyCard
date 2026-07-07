@@ -13,15 +13,15 @@
 ## Surface 树契约
 
 - `version` 固定为 `"v0.9"`；`catalogId` 固定为 `"ohos.a2ui.extended.catalog"`。
-- `createSurface` 默认只写 `surfaceId`、`catalogId`、`width`、`height`；新卡片不要为了同步 root 圆角而写 `createSurface.styles`。若宿主明确需要外层形状和裁切控制，`createSurface.styles` 只允许 `borderRadius`、`clip`；不支持 `theme`。
+- `createSurface` 默认只写 `surfaceId`、`catalogId`、`width`、`height`；`width/height` 默认写 `"matchParent"`，用于外围卡片填满端侧父布局，校验仍按 CardSpec/profile 基准尺寸解析。新卡片不要为了同步 root 圆角而写 `createSurface.styles`。若宿主明确需要外层形状和裁切控制，`createSurface.styles` 只允许 `borderRadius`、`clip`；不支持 `theme`。
 - `updateComponents` 必须在 `createSurface` 之后，同一 surface 仅发送一次完整组件树。
 - `updateComponents.root` 必须引用 `components` 中存在的组件 id。
-- root 组件是唯一卡片 shell，承载 `width`、`height`、`padding`、`borderRadius`、`clip` 和 `backgroundColor` / `linearGradient` / `backgroundImage` 等布局和表面样式；背景也可由 root 下的真实背景组件承载。
+- root 组件是唯一卡片 shell，承载 `width`、`height`、`padding`、`borderRadius`、`clip` 和 `backgroundColor` / `linearGradient` / `backgroundImage` 等布局和表面样式；root `width/height` 默认写 `"matchParent"`，只表示外围 shell 填满父布局。背景也可由 root 下的真实背景组件承载。
 - 三行消息的 `surfaceId` 必须一致；最小骨架是 `{"version":"v0.9","createSurface":{"surfaceId":"card",...}}`、`{"version":"v0.9","updateComponents":{"surfaceId":"card","root":"root","components":[...]}}`、`{"version":"v0.9","updateDataModel":{"surfaceId":"card","path":"/","value":{...}}}`。
 - `updateDataModel` 只提供运行数据；新卡片默认 `path: "/"` 并一次初始化所有 UI 表达式会访问的根结构和加载态；表达式引用必须能从 `value` 中解析，模板项相对表达式除外。
 - `backgroundColor`、`linearGradient`、`backgroundImage` 等背景样式必须写在 `root.styles`，或由 root 下的真实背景组件承载，不能放进 `createSurface.styles`。
 - 原因：root 组件默认有不透明白色背景，会遮挡 surface 层背景，导致运行时显示默认白底或白屏。
-- root shell、安全区和内容布局样式也要写在 root；新卡片默认省略 `createSurface.styles`，只有宿主明确要求时才作为外层裁切/形状辅助，不替代 root shell。
+- root shell、安全区和内容布局样式也要写在 root；除 `createSurface.width/height` 与 root `styles.width/height` 外，普通组件不得使用 `"matchParent"`。新卡片默认省略 `createSurface.styles`，只有宿主明确要求时才作为外层裁切/形状辅助，不替代 root shell。
 
 ## Form 裁剪范围
 

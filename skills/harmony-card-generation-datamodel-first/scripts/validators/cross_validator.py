@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .base import BaseValidator, is_json_pointer, read_pointer, schema_path_exists
+from .base import BaseValidator, is_json_pointer, read_pointer, resolve_dimension, schema_path_exists
 
 
 class CrossValidator(BaseValidator):
@@ -19,7 +19,9 @@ class CrossValidator(BaseValidator):
             return
         expected = rules.protocol["sizes"][size]
         create = context.create_surface
-        if create.get("width") != expected["width"] or create.get("height") != expected["height"]:
+        width = resolve_dimension(create.get("width"), expected["width"])
+        height = resolve_dimension(create.get("height"), expected["height"])
+        if width != expected["width"] or height != expected["height"]:
             reporter.add(
                 "error",
                 "CROSS_SIZE_MISMATCH",
@@ -28,8 +30,8 @@ class CrossValidator(BaseValidator):
                 line=1,
                 json_pointer="/createSurface",
                 actual={"width": create.get("width"), "height": create.get("height")},
-                expected={"width": expected["width"], "height": expected["height"]},
-                message="DSL surface 尺寸必须与 CardSpec suggestSize 一致。",
+                expected={"width": expected["width"], "height": expected["height"], "outerFill": "matchParent"},
+                message="DSL surface 尺寸必须与 CardSpec suggestSize 一致；外层可使用 matchParent，校验按基准尺寸解析。",
             )
 
     def _check_data_roots(self, context, rules, reporter) -> None:
