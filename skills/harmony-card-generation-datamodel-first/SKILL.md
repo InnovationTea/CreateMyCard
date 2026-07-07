@@ -40,7 +40,8 @@ description: "生成、修复、评审或解释 HarmonyOS A2UI Form 服务卡片
 
 ## 一致性约定
 
-- 新卡片默认使用 `2x2 = 140 x 140`，root `padding: 12`、`borderRadius: 18`、`clip: true`；`2x4 = 300 x 140`，root `padding: 12`、`borderRadius: 22`、`clip: true`。
+- 新卡片默认使用 `2x2 = 140 x 140`、`2x4 = 300 x 140` 作为逻辑画布和布局预算；`createSurface.width/height` 与 root `styles.width/height` 默认写 `"matchParent"`，只用于外围卡片填满端侧父布局。
+- root 仍承载 `padding: 12`、`borderRadius`、`clip` 和背景：`2x2` 使用 `borderRadius: 18`、`clip: true`；`2x4` 使用 `borderRadius: 22`、`clip: true`。除外围卡片尺寸外，内部 Row/Column/Text/Image/Button/Progress 等组件继续使用数值宽高，不能使用 `"matchParent"`。
 - 新卡片默认省略 `createSurface.styles`；表面背景、内容布局、安全区和 root 形状都写在 `root.styles` 或 root 下的真实背景组件。只有宿主明确要求外层形状/裁切时，`createSurface.styles` 才可出现且仅限 `borderRadius`、`clip`。
 - 绑定方式固定为：静态值或完整 `{{ ... }}` 表达式。动态展示值、样式动态值和事件参数都用表达式读取 DataModel；不使用 `{"path":"/..."}` 或 `formatString` 作为值绑定。`updateDataModel.path`、CardSpec `writeResultTo`、模板 `children.path` 是协议结构 JSON Pointer，不属于值绑定；列表模板项内用表达式读取当前项字段。
 - 非模板生成时使用稳定语义 ID：`surface_card`、`root`、`header_row`、`title_text`、`primary_value`、`primary_caption`、`support_row`、`action_button` 等；模板生成时保留模板 ID 体系，但删除不用的可选槽位并同步清理引用。
