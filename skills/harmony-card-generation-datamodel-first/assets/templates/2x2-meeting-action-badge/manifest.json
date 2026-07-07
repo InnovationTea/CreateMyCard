@@ -1,0 +1,113 @@
+{
+  "id": "2x2-meeting-action-badge",
+  "size": "2x2",
+  "pattern": "meeting-action-badge",
+  "template": "template.genui.jsonl",
+  "cardspec": "cardspec.json",
+  "sourceObservation": "Derived from the meeting rendered sample: event header and details, then a bottom row combining primary action and a compact date/count badge.",
+  "layoutSummary": "Header, compact event detail stack, bottom row with primary action pill and a small date/count badge.",
+  "lockedStructure": {
+    "surface": {
+      "width": 140,
+      "height": 140
+    },
+    "root": {
+      "width": 140,
+      "height": 140,
+      "padding": 12,
+      "borderRadius": 18,
+      "clip": true
+    },
+    "sections": [
+      {
+        "id": "headerRow",
+        "width": 116,
+        "height": 20
+      },
+      {
+        "id": "meetingInfo",
+        "width": 116,
+        "height": 58
+      },
+      {
+        "id": "bottomRow",
+        "width": 116,
+        "height": 26
+      }
+    ]
+  },
+  "slots": {
+    "object": {
+      "path": "/card/title",
+      "component": "headerTitle",
+      "maxCharsCn": 6
+    },
+    "primary.title": {
+      "path": "/primary/title",
+      "component": "meetingTitle",
+      "maxCharsCn": 8
+    },
+    "primary.meta": {
+      "path": "/primary/time",
+      "component": "timeText",
+      "maxChars": 12
+    },
+    "support.1": {
+      "path": "/primary/place",
+      "component": "placeText",
+      "maxCharsCn": 8
+    },
+    "badge.value": {
+      "path": "/badge/value",
+      "component": "badgeText",
+      "maxChars": 2
+    },
+    "action.label": {
+      "path": "/action/label",
+      "component": "actionText",
+      "maxCharsCn": 5
+    }
+  },
+  "useWhen": [
+    "meeting",
+    "calendar",
+    "appointment",
+    "event",
+    "class",
+    "reservation"
+  ],
+  "avoidWhen": [
+    "long-agenda",
+    "multiple-meetings",
+    "needs-two-actions",
+    "no-short-badge-value"
+  ],
+  "allowedEdits": [
+    "delete badgeBlock and widen actionPill when no badge exists",
+    "replace icon through DataModel",
+    "add onClick to actionPill only with valid event capability"
+  ],
+  "forbiddenEdits": [
+    "turn meetingInfo into a list",
+    "duplicate time in badge and meta",
+    "add another bottom action"
+  ],
+  "deleteRules": [
+    "If badge.value has more than two digits or is not useful, remove badgeBlock and set actionPill width to 116."
+  ],
+  "colorPolicy": {
+    "source": "reference/design/color-token-system.md + color-token-values.md",
+    "budget": "plain neutral card plus one brand action and one low-volume badge accent",
+    "sceneFamily": "neutral meeting surface",
+    "roles": {
+      "root": "background_primary light",
+      "foreground": "font_primary/secondary on ordinary background",
+      "action": "brand / comp_background_emphasize only for a real join/open action",
+      "badge": "multi_color_11 dark as compact date/count accent"
+    },
+    "rewriteRules": [
+      "If there is no valid action capability, remove onClick and convert actionPill to neutral support.",
+      "Do not use dark-mode background tokens as light-mode CTA fills."
+    ]
+  }
+}

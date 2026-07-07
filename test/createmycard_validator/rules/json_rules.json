@@ -1,9 +1,0 @@
-{
-  "rules_version": "2026-06-15",
-  "rules": [
-    {"id":"RULE_JSON_001","module":"json","dimension":"JSON合法性","severity":"ERROR","deduct":20,"enabled":true,"message":"每行必须是合法 JSON"},
-    {"id":"RULE_JSON_002","module":"json","dimension":"JSON合法性","severity":"ERROR","deduct":20,"enabled":true,"message":"禁止 Markdown 代码块"},
-    {"id":"RULE_JSON_003","module":"json","dimension":"JSON合法性","severity":"ERROR","deduct":20,"enabled":true,"message":"禁止解释性文本，JSONL 中仅允许 JSON"},
-    {"id":"RULE_JSON_004","module":"json","dimension":"JSON合法性","severity":"ERROR","deduct":10,"enabled":true,"message":"每行必须只包含一个完整 JSON 对象"}
-  ]
-}
