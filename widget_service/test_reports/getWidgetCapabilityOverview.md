@@ -1,6 +1,6 @@
 # getWidgetCapabilityOverview 测试报告
 
-- 生成时间：2026-07-07T13:49:37.171706+00:00
+- 生成时间：2026-07-07T14:11:10.002117+00:00
 - 接口名：`getWidgetCapabilityOverview`
 - WebSocket path：`/api/v1/ws/tools/getWidgetCapabilityOverview`
 - 请求协议：content/deviceInfo/session 外层包络

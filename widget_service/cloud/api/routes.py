@@ -217,7 +217,7 @@ async def _serve_operation_websocket(
                 await websocket.send_json(
                     result_message.model_dump(mode="json", exclude_none=True)
                 )
-            except (ValidationError, ValueError) as exc:
+            except ValueError as exc:
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
                 logger.error(
                     f"widget_operation_ws_invalid_arguments request_id={request_id} "

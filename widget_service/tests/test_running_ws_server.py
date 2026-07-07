@@ -84,7 +84,7 @@ async def _call_ws(path_name: str, payload: dict, expected_request_id: str) -> d
             assert message["operation"] == path_name
             assert message["requestId"] == expected_request_id
             return message
-    except (OSError, TimeoutError):
+    except OSError:
         pytest.skip(
             "本测试需要先启动本地 WebSocket 服务："
             "cd widget_service && py -3.12 cloud\\main.py；"

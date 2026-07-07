@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import base64
-import binascii
 import hashlib
 import hmac
-import json
 import time
 import traceback
 from dataclasses import dataclass, field
@@ -121,9 +119,6 @@ class IDSClient:
         - timestamp_ms：毫秒时间戳；不传时使用当前时间。
         出参：`accessKey;timestamp;sign` 格式的 IDS 签名字符串。
         """
-        # 对齐 ids.json 的 Postman 前置脚本：
-        # idsSign = accessKey + ";" + ts + ";" + sign，
-        # sign = Base64(HMAC-SHA256(accessKey + ts, Base64(secretKey)))。
         ts = timestamp_ms or int(time.time() * 1000)
         access_key = self.settings.ids_access_key
         secret_key_bytes = self._decode_ids_secret_key(self.settings.ids_secret_key)
@@ -142,7 +137,7 @@ class IDSClient:
         try:
             padding = "=" * (-len(secret_key) % 4)
             return base64.b64decode(secret_key + padding, validate=True)
-        except (ValueError, binascii.Error):
+        except ValueError:
             # 本地 dummy 配置可能不是合法 Base64；兜底使用原始字符串，避免本地启动直接失败。
             return secret_key.encode("utf-8")
 
@@ -241,7 +236,7 @@ class IDSClient:
                 f"namespace_count={len(payload.get('nameSpaces', []))}"
             )
             return payload
-        except (requests.RequestException, json.JSONDecodeError, ValueError) as exc:
+        except (requests.RequestException, ValueError) as exc:
             logger.error(
                 f"ids_remote_query_failed request_id={request_id} error={exc} "
                 f"exception_type={type(exc).__name__} exception={exc!r} "
