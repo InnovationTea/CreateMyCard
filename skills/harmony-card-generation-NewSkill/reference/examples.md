@@ -15,12 +15,13 @@
 
 ## 工具调用样例：天气通勤卡
 
-说明：以下示例是通过 `invoke(funcName:"工具名", params:{...})` 调用工具的写法。线上 `uid` 和 `device` 由工具层自动注入。示例中的 `timeInterval` 使用 2026-07-06 Asia/Shanghai 的当天毫秒区间；实际执行时按用户本地时区和当前日期计算。
+说明：以下示例是通过 `invoke(functionName:"工具名", arguments:{bundleName:"com.omega_w_0823.hmservice", ...})` 调用工具的写法。线上 `uid` 和 `device` 由工具层自动注入。示例中的 `timeInterval` 使用 2026-07-06 Asia/Shanghai 的当天毫秒区间；实际执行时按用户本地时区和当前日期计算。
 
 1. `getWidgetCapabilityOverview`
 
 ```text
-invoke(funcName:"getWidgetCapabilityOverview", params:{
+invoke(functionName:"getWidgetCapabilityOverview", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
   locale:"zh-CN"
 })
 ```
@@ -28,7 +29,8 @@ invoke(funcName:"getWidgetCapabilityOverview", params:{
 2. `getDataCapabilitySchemas`
 
 ```text
-invoke(funcName:"getDataCapabilitySchemas", params:{
+invoke(functionName:"getDataCapabilitySchemas", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
   dataCapabilityIds:["ViewWeather", "calendar.events.search"],
   locale:"zh-CN"
 })
@@ -37,7 +39,8 @@ invoke(funcName:"getDataCapabilitySchemas", params:{
 3. `generateWidgetCard`
 
 ```text
-invoke(funcName:"generateWidgetCard", params:{
+invoke(functionName:"generateWidgetCard", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
   userQuery:"生成一个通勤卡片，早上看天气、今天第一个会议和去公司的入口。",
   locale:"zh-CN",
   size:"2x4",
@@ -80,7 +83,8 @@ invoke(funcName:"generateWidgetCard", params:{
 仅当 `getWidgetCapabilityOverview` 返回 `GetAppUsageDurationAndPower` 时才使用该候选。
 
 ```text
-invoke(funcName:"generateWidgetCard", params:{
+invoke(functionName:"generateWidgetCard", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
   userQuery:"给我做一张抖音使用时长和耗电卡，显示前台时长、前台耗电和更新时间。",
   locale:"zh-CN",
   size:"2x2",
@@ -104,7 +108,8 @@ invoke(funcName:"generateWidgetCard", params:{
 没有动态数据需求时，`candidateDataBindings` 可以为空；让微服务决定是否生成静态入口卡。
 
 ```text
-invoke(funcName:"generateWidgetCard", params:{
+invoke(functionName:"generateWidgetCard", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
   userQuery:"帮我做一个打开天气应用的入口卡片",
   locale:"zh-CN",
   size:"2x2",
@@ -131,7 +136,8 @@ invoke(funcName:"generateWidgetCard", params:{
 如果 overview 没有外卖配送数据能力，也没有打开对应应用的事件能力，不要编造能力；仍可把原始意图交给微服务裁决。
 
 ```text
-invoke(funcName:"generateWidgetCard", params:{
+invoke(functionName:"generateWidgetCard", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
   userQuery:"帮我做一个美团外卖配送状态卡片",
   locale:"zh-CN",
   size:"2x2",
@@ -171,4 +177,10 @@ failed：
 
 ```text
 卡片生成服务暂时不可用，请稍后再试。
+```
+
+兜底：
+
+```text
+云侧生成工具暂时不可用，我已用兜底方式生成结果。该结果未走云侧 artifact 生成链路，请按当前交付形态预览或联调。
 ```

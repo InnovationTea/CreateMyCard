@@ -1,6 +1,6 @@
 # 回复策略
 
-回复以微服务返回为准。不要复述内部候选计划、schema、CardSpec、DSL 或校验细节。
+回复优先以微服务返回为准。不要复述内部候选计划、schema、CardSpec、DSL 或校验细节；当 `generateWidgetCard` 不可用、调用失败或结果不符合预期时，可进入主 Agent 兜底链路生成最终可交付结果。
 
 ## 通用规则
 
@@ -74,6 +74,7 @@
 
 - 不输出 `genWidgetResult`。
 - 不编造 artifact URL。
+- 如果符合兜底条件，可以改走主 Agent 兜底链路；兜底链路只有拿到真实可下载 URL 时才输出 `genWidgetResult`。
 - 如果失败原因是工具缺失，明确说当前环境尚未接入云侧生成工具。
 - 如果微服务返回 `errorCode`，仅用于内部判断是否重试或归类，不直接展示给用户。
 - `TIMEOUT`、`A2UI_GENERATION_FAILED`、`VALIDATION_FAILED`、`ARTIFACT_UPLOAD_FAILED` 等都按工程失败处理，回复“卡片生成服务暂时不可用，请稍后再试。”或使用微服务给出的用户话术。
@@ -83,8 +84,25 @@
 如果 `getWidgetCapabilityOverview`、`getDataCapabilitySchemas` 或 `generateWidgetCard` 在当前运行环境不可调用：
 
 ```text
-当前环境还没有接入云侧卡片生成工具，暂时不能生成可添加的卡片。需要接入 getWidgetCapabilityOverview、getDataCapabilitySchemas 和 generateWidgetCard 后才能完成。
+当前云侧卡片生成工具暂时不可用，我会尝试用兜底方式生成可交付结果；如果无法生成合规卡片，会直接说明原因。
 ```
+
+## 兜底成功
+
+条件：`generateWidgetCard` 不可用、调用失败或结果不符合预期，但主 Agent 已生成可交付结果。
+
+回复：
+
+```text
+云侧生成工具暂时不可用，我已用兜底方式生成结果。该结果未走云侧 artifact 生成链路，请按当前交付形态预览或联调。
+```
+
+规则：
+
+- 不伪造 `genWidgetResult`、OBS URL 或 artifactDigest。
+- 不声称“已添加到桌面”。
+- 如兜底产物包含 DSL/CardSpec，只在技术联调或端侧需要时输出；普通用户场景优先给可理解说明。
+- 动态能力、事件目标和素材 ID 必须来自本轮工具返回或明确参考资料；无法确认时降级为静态卡或入口卡。
 
 ## 话术边界
 

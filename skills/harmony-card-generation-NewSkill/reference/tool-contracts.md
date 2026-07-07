@@ -1,6 +1,6 @@
 # 微服务工具契约
 
-只调用工具并传候选计划。真实设备能力裁决、最终 CardSpec、A2UI DSL 生成、校验、降级和 artifact 上传都由微服务完成。
+优先调用工具并传候选计划。真实设备能力裁决、最终 CardSpec、A2UI DSL 生成、校验、降级和 artifact 上传默认由微服务完成；当 `generateWidgetCard` 不可用、调用失败或生成结果不符合预期时，主 Agent 可以进入兜底链路生成最终可交付结果。
 
 ## 调用总则
 
@@ -8,8 +8,8 @@
   - `getWidgetCapabilityOverview`
   - `getDataCapabilitySchemas`
   - `generateWidgetCard`
-- 必须使用 `invoke(funcName:"工具名", params:{业务参数})` 调用工具。
-- `params` 只放业务参数，不要包外层对象。
+- 必须使用 `invoke(functionName:"工具名", arguments:{bundleName:"com.omega_w_0823.hmservice", ...业务参数})` 调用工具。
+- `arguments` 放 `bundleName` 和业务参数，不要再包 `params` 外层对象。
 - `uid`、`device` 等环境字段由工具层自动拼接，不要手写或猜测。
 - `locale` 可省略，默认 `zh-CN`。
 - `capabilityRegistryVersion` 可省略，由 `device.ohosApiVersion + device.romVersion` 推导。
@@ -19,9 +19,9 @@
 调用顺序：
 
 ```text
-invoke(funcName:"getWidgetCapabilityOverview", params:{...})
-invoke(funcName:"getDataCapabilitySchemas", params:{...})
-invoke(funcName:"generateWidgetCard", params:{...})
+invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.omega_w_0823.hmservice", ...})
+invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", ...})
+invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", ...})
 ```
 
 ## 自动注入的设备上下文
@@ -64,7 +64,8 @@ invoke(funcName:"generateWidgetCard", params:{...})
 调用示例：
 
 ```text
-invoke(funcName:"getWidgetCapabilityOverview", params:{
+invoke(functionName:"getWidgetCapabilityOverview", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
   locale:"zh-CN"
 })
 ```
@@ -102,7 +103,8 @@ invoke(funcName:"getWidgetCapabilityOverview", params:{
 调用示例：
 
 ```text
-invoke(funcName:"getDataCapabilitySchemas", params:{
+invoke(functionName:"getDataCapabilitySchemas", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
   dataCapabilityIds:["ViewWeather", "calendar.events.search"],
   locale:"zh-CN"
 })
@@ -162,7 +164,8 @@ invoke(funcName:"getDataCapabilitySchemas", params:{
 调用示例：
 
 ```text
-invoke(funcName:"generateWidgetCard", params:{
+invoke(functionName:"generateWidgetCard", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
   userQuery:"帮我做通勤卡片，包含天气和今日日程",
   locale:"zh-CN",
   size:"2x4",
@@ -225,3 +228,19 @@ invoke(funcName:"generateWidgetCard", params:{
 - 允许微服务删除、改写或规范化候选能力。
 - 不重试工具，除非工具返回明确可重试错误并要求重试。
 - `message` 是用户话术来源；旧环境如果仍返回 `userMessage`，可兼容读取，但新接口以 `message` 为准。
+
+## 兜底生成
+
+进入条件：
+
+- `generateWidgetCard` 工具不可用。
+- `generateWidgetCard` 调用异常、超时或返回 `failed`。
+- `generateWidgetCard` 返回缺少必要产物字段，或产物明显不符合用户需求和当前能力约束。
+
+兜底规则：
+
+- 可以由主 Agent 生成最终可交付结果，但必须明确这是兜底路径。
+- 不输出伪造的 `genWidgetResult` 或 artifact URL；只有真实上传并获得可下载 URL 时才输出标记。
+- 不伪造动态能力、事件目标、素材 ID 或端侧数据能力结果。
+- 动态能力只能来自本轮 overview/schema；不可确认的能力要降级为静态说明或入口卡。
+- 若无法生成合规可交付结果，按 `failed` 或 `unsupported` 回复。
