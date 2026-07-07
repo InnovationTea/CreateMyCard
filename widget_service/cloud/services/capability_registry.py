@@ -9,11 +9,12 @@ from services.json_loader import load_json
 
 
 class CapabilityRegistry:
-    """从 ohosApiVersion+romVersion 文件夹加载数据能力、事件能力和素材能力。"""
+    """从 prdVer+romVersion 文件夹加载数据能力、事件能力和素材能力。"""
 
     def __init__(
         self,
         version: str | None = None,
+        app_version: str | None = None,
         device_rom_version: str | None = None,
         ohos_api_version: int | None = None,
     ) -> None:
@@ -21,13 +22,14 @@ class CapabilityRegistry:
 
         入参：
         - version：显式指定的能力版本文件夹名。
+        - app_version：deviceInfo.prdVer，对应端侧业务 API 版本。
         - device_rom_version：device.romVersion，用于推导文件夹名。
-        - ohos_api_version：device.ohosApiVersion，用于推导文件夹名。
+        - ohos_api_version：历史兼容字段，不再用于能力版本目录推导。
         出参：无；初始化失败时抛出 ValueError。
         """
         self.settings = get_settings()
         self.version = version or self.from_app_rom_versions(
-            str(ohos_api_version or 0),
+            app_version or self.settings.default_prd_version,
             device_rom_version or "0",
         )
         self.version_dir = self.settings.data_root / "capabilities" / self.version
@@ -36,17 +38,17 @@ class CapabilityRegistry:
 
     @classmethod
     def from_app_rom_versions(cls, app_version: str, rom_version: str) -> str:
-        """根据 ohosApiVersion 和 device.romVersion 生成能力版本文件夹名。
+        """根据 prdVer 和 device.romVersion 生成能力版本文件夹名。
 
         入参：
-        - app_version：ohosApiVersion 字符串。
+        - app_version：deviceInfo.prdVer 字符串。
         - rom_version：device.romVersion。
-        出参：形如 `ohos-36_rom-7.0.0` 的文件夹名。
+        出参：形如 `app-11.7.5.205_rom-36` 的文件夹名。
         """
         # 文件夹名就是工具层约定的能力版本契约。
-        ohos_api = cls._normalize_version_part(app_version)
+        app = cls._normalize_version_part(app_version)
         rom = cls._normalize_rom_version(rom_version)
-        return f"ohos-{ohos_api}_rom-{rom}"
+        return f"app-{app}_rom-{rom}"
 
     @staticmethod
     def _normalize_version_part(value: str) -> str:
@@ -65,10 +67,13 @@ class CapabilityRegistry:
 
         入参：
         - value：原始 ROM 版本，例如 `ALN-AL00 7.0.0.36`。
-        出参：三段 ROM 版本，例如 `7.0.0`。
+        出参：ROM 版本，例如 `36` 或 `7.0.0`。
         """
         matches = re.findall(r"\d+(?:\.\d+)+", value or "")
-        version = matches[-1] if matches else "0"
+        if not matches:
+            match = re.search(r"\d+", value or "")
+            return match.group(0) if match else "0"
+        version = matches[-1]
         parts = version.split(".")
         return ".".join(parts[:3]) if len(parts) >= 3 else version
 

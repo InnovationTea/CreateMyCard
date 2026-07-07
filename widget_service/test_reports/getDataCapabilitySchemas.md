@@ -1,6 +1,6 @@
 # getDataCapabilitySchemas 测试报告
 
-- 生成时间：2026-07-07T13:18:02.152607+00:00
+- 生成时间：2026-07-07T13:49:37.173708+00:00
 - 接口名：`getDataCapabilitySchemas`
 - WebSocket path：`/api/v1/ws/tools/getDataCapabilitySchemas`
 - 请求协议：content/deviceInfo/session 外层包络
@@ -74,7 +74,7 @@
   "requestId": "7676c2c8-a6d3-413c-8074-c62ed30db8de&2",
   "data": {
     "apiVersion": "v1",
-    "capabilityRegistryVersion": "ohos-36_rom-7.0.0",
+    "capabilityRegistryVersion": "app-11.7.5.205_rom-36",
     "dataCapabilities": [
       {
         "id": "ViewWeather",

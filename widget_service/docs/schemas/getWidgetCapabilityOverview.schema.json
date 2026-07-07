@@ -20,7 +20,7 @@
           "capabilityRegistryVersion": {
             "type": "string|null",
             "required": false,
-            "description": "可选能力清单版本；不传时由 deviceInfo 推导。"
+            "description": "可选能力清单版本；不传时由 deviceInfo.prdVer + ROM 版本推导。"
           },
           "protocolProfileId": {
             "type": "string|null",
@@ -32,7 +32,7 @@
       "deviceInfo": {
         "$ref": "#/nestedTypes/DeviceInfo",
         "required": true,
-        "description": "端侧设备信息；缺少 ROM 字段时服务使用 settings.default_device_rom_version。"
+        "description": "端侧设备信息；缺少 ROM 字段时服务使用 settings.default_device_rom_version。版本目录由 prdVer + ROM 版本组成。"
       },
       "session": {
         "$ref": "#/nestedTypes/Session",
@@ -115,8 +115,8 @@
         "prdVer": "string，可选，端侧传入的业务 API 版本；字段名保持端侧协议原名。",
         "sysVer": "string，推荐，系统版本，会映射到内部 sysVersion。",
         "time": "string，可选，端侧请求时间。",
-        "romVersion|romVer|rom|rom_version": "string，可选，ROM 版本；缺失时使用配置默认 ROM。",
-        "ohosApiVersion|ohos_api_version": "integer，可选，OHOS API 版本；缺失时使用配置默认值。"
+        "romVersion|romVer|rom|rom_version|ohosApiVersion|ohos_api_version": "string|integer，可选，ROM 版本；缺失时使用配置默认 ROM。",
+        "ohosApiVersion|ohos_api_version": "integer，可选；当前也可作为 ROM 版本兜底来源。"
       }
     },
     "Session": {

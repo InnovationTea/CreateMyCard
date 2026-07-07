@@ -46,7 +46,8 @@ class WidgetGenerationService:
         # 统一工具层只暴露一个工具名，通过 operation 分发到三个真实业务流程。
         logger.info(
             f"widget_card_service_dispatch_started operation={request.operation} "
-            f"uid={request.uid} device_rom_version={request.device.romVersion} "
+            f"uid={request.uid} prd_ver={request.prdVer} "
+            f"device_rom_version={request.device.romVersion} "
             f"ohos_api_version={request.device.ohosApiVersion}"
         )
         if request.operation == "getWidgetCapabilityOverview":
@@ -87,12 +88,26 @@ class WidgetGenerationService:
         """
         logger.info(
             f"capability_overview_started uid={request.uid} "
+            f"prd_ver={request.prdVer} "
             f"device_rom_version={request.device.romVersion} "
             f"ohos_api_version={request.device.ohosApiVersion} "
             f"request={request.model_dump(mode='json', exclude_none=True)}"
         )
-        # 能力注册表按 device.ohosApiVersion+device.romVersion 文件夹隔离。
-        registry = self._capability_registry(request)
+        # 能力注册表按 prdVer+device.romVersion 文件夹隔离。
+        try:
+            registry = self._capability_registry(request)
+        except ValueError as exc:
+            version = self._capability_registry_version_hint(request)
+            logger.error(
+                f"capability_overview_registry_missing uid={request.uid} "
+                f"registry_version={version} error={exc}"
+            )
+            return CapabilityOverviewResponse(
+                capabilityRegistryVersion=version,
+                dataCapabilities=[],
+                eventCapabilities=[],
+                assetCandidates=[],
+            )
         logger.info(
             "capability_registry_selected operation=getWidgetCapabilityOverview "
             f"registry_version={registry.version}"
@@ -134,7 +149,20 @@ class WidgetGenerationService:
             f"request={request.model_dump(mode='json', exclude_none=True)}"
         )
         # 这里返回完整 inputSchema/outputSchema，供主 Agent 生成合法 candidateDataBindings。
-        registry = self._capability_registry(request)
+        try:
+            registry = self._capability_registry(request)
+        except ValueError as exc:
+            version = self._capability_registry_version_hint(request)
+            logger.error(
+                f"data_capability_schemas_registry_missing uid={request.uid} "
+                f"registry_version={version} data_capability_ids={request.dataCapabilityIds} "
+                f"error={exc}"
+            )
+            return DataCapabilitySchemasResponse(
+                capabilityRegistryVersion=version,
+                dataCapabilities=[],
+                missingCapabilityIds=request.dataCapabilityIds,
+            )
         logger.info(
             "capability_registry_selected operation=getDataCapabilitySchemas "
             f"registry_version={registry.version}"
@@ -177,7 +205,21 @@ class WidgetGenerationService:
             f"request={request.model_dump(mode='json', exclude_none=True)}"
         )
         # registry 负责读取当前版本的能力清单，后续所有过滤都以这份清单为准。
-        registry = self._capability_registry(request)
+        try:
+            registry = self._capability_registry(request)
+        except ValueError as exc:
+            version = self._capability_registry_version_hint(request)
+            logger.error(
+                f"generate_widget_card_registry_missing uid={request.uid} "
+                f"registry_version={version} error={exc}"
+            )
+            return GenerateWidgetCardResponse(
+                status=GenerationStatus.UNSUPPORTED,
+                suggestSize=request.size,
+                message="当前 App/ROM 版本暂无可用能力清单，暂时不能生成这类卡片。",
+                errorCode=ErrorCode.APP_VERSION_UNSUPPORTED.value,
+                effectiveCapabilities={"data": [], "event": [], "asset": []},
+            )
         logger.info(
             f"generate_flow_step_registry_ready uid={request.uid} "
             f"registry_version={registry.version}"
@@ -425,20 +467,37 @@ class WidgetGenerationService:
         出参：对应版本的 CapabilityRegistry。
         """
         # capabilityRegistryVersion 显式传入时优先使用；
-        # 否则根据 device.ohosApiVersion+device.romVersion 推导能力清单文件夹名。
+        # 否则根据 prdVer+device.romVersion 推导能力清单文件夹名。
         logger.info(
             f"capability_registry_building requested_version="
             f"{request.capabilityRegistryVersion} "
+            f"prd_ver={request.prdVer} "
             f"ohos_api_version={request.device.ohosApiVersion} "
             f"device_rom_version={request.device.romVersion}"
         )
         registry = CapabilityRegistry(
             version=request.capabilityRegistryVersion,
+            app_version=request.prdVer,
             ohos_api_version=request.device.ohosApiVersion,
             device_rom_version=request.device.romVersion,
         )
         logger.info(f"capability_registry_built registry_version={registry.version}")
         return registry
+
+    def _capability_registry_version_hint(self, request) -> str:
+        """推导请求对应的能力清单版本名。
+
+        入参：
+        - request：包含 prdVer 和 device.romVersion 的请求对象。
+        出参：即使目录不存在也能用于响应和日志的版本文件夹名。
+        """
+        if request.capabilityRegistryVersion:
+            return request.capabilityRegistryVersion
+        settings = get_settings()
+        return CapabilityRegistry.from_app_rom_versions(
+            request.prdVer or settings.default_prd_version,
+            request.device.romVersion,
+        )
 
     def _build_artifact(
         self,

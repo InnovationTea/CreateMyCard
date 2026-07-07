@@ -1,6 +1,6 @@
 # getWidgetCapabilityOverview 测试报告
 
-- 生成时间：2026-07-07T13:18:02.150602+00:00
+- 生成时间：2026-07-07T13:49:37.171706+00:00
 - 接口名：`getWidgetCapabilityOverview`
 - WebSocket path：`/api/v1/ws/tools/getWidgetCapabilityOverview`
 - 请求协议：content/deviceInfo/session 外层包络
@@ -71,7 +71,7 @@
   "requestId": "7676c2c8-a6d3-413c-8074-c62ed30db8de&1",
   "data": {
     "apiVersion": "v1",
-    "capabilityRegistryVersion": "ohos-36_rom-7.0.0",
+    "capabilityRegistryVersion": "app-11.7.5.205_rom-36",
     "dataCapabilities": [
       {
         "id": "ViewWeather",

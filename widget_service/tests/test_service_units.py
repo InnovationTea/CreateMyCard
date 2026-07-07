@@ -6,6 +6,7 @@ import hashlib
 import hmac
 import json as json_module
 import sys
+import uuid
 from pathlib import Path
 
 import requests
@@ -180,15 +181,19 @@ def test_desensitized_error_tool_masks_common_sensitive_fields():
     assert "custom=***" in sanitized
 
 
-def test_capability_registry_version_is_derived_from_device_versions():
-    """验证能力版本目录由 ohosApiVersion 和 romVersion 推导。
+def test_capability_registry_version_is_derived_from_prd_and_rom_versions():
+    """验证能力版本目录由 prdVer 和 romVersion 推导。
 
     入参：无。
-    出参：无；通过断言验证版本文件夹名符合约定。
+    出参：无；通过随机版本参数断言版本文件夹名符合约定。
     """
-    version = CapabilityRegistry.from_app_rom_versions("36", "ALN-AL00 7.0.0.36")
+    random_patch = uuid.uuid4().int % 100000
+    prd_ver = f"88.7.{random_patch}"
+    rom_ver = f"36.{random_patch}"
 
-    assert version == "ohos-36_rom-7.0.0"
+    version = CapabilityRegistry.from_app_rom_versions(prd_ver, rom_ver)
+
+    assert version == f"app-{prd_ver}_rom-{rom_ver}"
 
 
 def test_card_spec_builder_keeps_only_data_bindings():
@@ -338,7 +343,7 @@ def test_artifact_store_returns_structured_save_result():
         taskSpec={"dataModel": {"value": {}}},
         meta=ArtifactMeta(
             protocolProfileId="a2ui-form-rom7-v1",
-            capabilityRegistryVersion="ohos-36_rom-7.0.0",
+            capabilityRegistryVersion="app-11.7.5.205_rom-36",
             createdAt=1,
         ),
     )
@@ -375,7 +380,7 @@ def test_artifact_validator_reuses_datamodel_first_validator():
         taskSpec={"dataModel": {"value": {}}},
         meta=ArtifactMeta(
             protocolProfileId="a2ui-form-rom7-v1",
-            capabilityRegistryVersion="ohos-36_rom-7.0.0",
+            capabilityRegistryVersion="app-11.7.5.205_rom-36",
             createdAt=1,
         ),
     )

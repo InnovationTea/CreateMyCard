@@ -3,6 +3,7 @@
 import importlib
 import json
 import sys
+import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -31,18 +32,24 @@ DeviceContext = importlib.import_module("models.generation").DeviceContext
 IDSClient = importlib.import_module("services.ids_client").IDSClient
 
 
-def _tool_payload(content: dict, interaction_id: str, original: str = "") -> dict:
+def _tool_payload(
+    content: dict,
+    interaction_id: str,
+    original: str = "",
+    device_info: dict | None = None,
+) -> dict:
     """构造新协议 WebSocket 请求包络。
 
     入参：
     - content：业务入参，对应旧协议 arguments。
     - interaction_id：当前交互 ID，会和 sessionId 拼接成 requestId。
     - original：用户原始表达，generateWidgetCard 未传 userQuery 时可兜底使用。
+    - device_info：可选设备信息；不传时使用正常版本设备。
     出参：完整 WebSocket 请求字典。
     """
     return {
         "content": content,
-        "deviceInfo": DEVICE_INFO,
+        "deviceInfo": device_info or DEVICE_INFO,
         "pagination": {"limit": 5, "start": ""},
         "session": {
             "interactionId": interaction_id,
@@ -170,7 +177,7 @@ def test_widget_card_service_complete_flow():
         assert overview_message["type"] == "result"
         assert overview_message["operation"] == "getWidgetCapabilityOverview"
         assert overview_message["requestId"] == _request_id("1")
-        assert overview["capabilityRegistryVersion"] == "ohos-36_rom-7.0.0"
+        assert overview["capabilityRegistryVersion"] == "app-11.7.5.205_rom-36"
         assert any(item["id"] == "ViewWeather" for item in overview["dataCapabilities"])
         assert any(item["id"] == "event.open.weather" for item in overview["eventCapabilities"])
         assert any(item["id"] == "asset.drop_1" for item in overview["assetCandidates"])
@@ -283,3 +290,89 @@ def test_widget_card_service_complete_flow():
 
     for record in records:
         _write_test_report(record)
+
+
+def test_missing_prd_version_returns_empty_capability_results():
+    """验证随机不存在 prdVer 时三个接口返回可预期的空能力结果。
+
+    入参：无。
+    出参：无；通过随机 prdVer 断言能力概述、schema 和生成接口的降级表现。
+    """
+    client = TestClient(app)
+    random_prd_ver = f"99.99.{uuid.uuid4().int % 100000000}"
+    random_capability_id = f"MissingCapability.{uuid.uuid4().hex[:8]}"
+    device_info = {**DEVICE_INFO, "prdVer": random_prd_ver}
+    expected_version = f"app-{random_prd_ver}_rom-36"
+
+    with client.websocket_connect("/api/v1/ws/tools/getWidgetCapabilityOverview") as websocket:
+        websocket.receive_json()
+        websocket.send_json(
+            _tool_payload(
+                {"bundleName": "com.omega_w_0823.hmservice"},
+                "missing-overview",
+                device_info=device_info,
+            )
+        )
+        overview_message = websocket.receive_json()
+        overview = overview_message["data"]
+
+        assert overview_message["type"] == "result"
+        assert overview_message["requestId"] == _request_id("missing-overview")
+        assert overview["capabilityRegistryVersion"] == expected_version
+        assert overview["dataCapabilities"] == []
+        assert overview["eventCapabilities"] == []
+        assert overview["assetCandidates"] == []
+
+    with client.websocket_connect("/api/v1/ws/tools/getDataCapabilitySchemas") as websocket:
+        websocket.receive_json()
+        websocket.send_json(
+            _tool_payload(
+                {
+                    "bundleName": "com.omega_w_0823.hmservice",
+                    "dataCapabilityIds": [random_capability_id],
+                },
+                "missing-schema",
+                device_info=device_info,
+            )
+        )
+        schema_message = websocket.receive_json()
+        schema = schema_message["data"]
+
+        assert schema_message["type"] == "result"
+        assert schema_message["requestId"] == _request_id("missing-schema")
+        assert schema["capabilityRegistryVersion"] == expected_version
+        assert schema["dataCapabilities"] == []
+        assert schema["missingCapabilityIds"] == [random_capability_id]
+
+    with client.websocket_connect("/api/v1/ws/tools/generateWidgetCard") as websocket:
+        websocket.receive_json()
+        websocket.send_json(
+            _tool_payload(
+                {
+                    "bundleName": "com.omega_w_0823.hmservice",
+                    "userQuery": f"随机能力版本测试 {uuid.uuid4().hex}",
+                    "size": "2x4",
+                    "candidateDataBindings": [
+                        {
+                            "capabilityId": random_capability_id,
+                            "arguments": {"districtName": "上海"},
+                            "writeResultTo": "/data/random",
+                            "updateModel": {"value": ""},
+                        }
+                    ],
+                    "candidateEventCandidates": [],
+                    "candidateAssetIds": [],
+                },
+                "missing-generate",
+                device_info=device_info,
+            )
+        )
+        generate_message = websocket.receive_json()
+        generated = generate_message["data"]
+
+        assert generate_message["type"] == "result"
+        assert generate_message["requestId"] == _request_id("missing-generate")
+        assert generated["status"] == "unsupported"
+        assert generated["errorCode"] == "APP_VERSION_UNSUPPORTED"
+        assert generated["artifactUrl"] == ""
+        assert generated["effectiveCapabilities"] == {"data": [], "event": [], "asset": []}

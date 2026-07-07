@@ -58,7 +58,14 @@ def _pick_device_rom_version(device_info: dict[str, Any]) -> str:
     出参：内部 DeviceContext 使用的 romVersion。
     """
     settings = get_settings()
-    for key in ("romVersion", "romVer", "rom", "rom_version"):
+    for key in (
+        "romVersion",
+        "romVer",
+        "rom",
+        "rom_version",
+        "ohosApiVersion",
+        "ohos_api_version",
+    ):
         value = device_info.get(key)
         if value:
             return str(value)

@@ -110,7 +110,7 @@ def test_live_three_websocket_paths_complete_flow():
             _request_id("1"),
         )
         overview = overview_message["data"]
-        assert overview["capabilityRegistryVersion"] == "ohos-36_rom-7.0.0"
+        assert overview["capabilityRegistryVersion"] == "app-11.7.5.205_rom-36"
         assert any(item["id"] == "ViewWeather" for item in overview["dataCapabilities"])
 
         schema_message = await _call_ws(
