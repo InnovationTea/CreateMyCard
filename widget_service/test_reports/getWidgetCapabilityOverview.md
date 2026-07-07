@@ -1,6 +1,6 @@
 # getWidgetCapabilityOverview 测试报告
 
-- 生成时间：2026-07-07T12:29:28.763979+00:00
+- 生成时间：2026-07-07T12:54:20.454672+00:00
 - 接口名：`getWidgetCapabilityOverview`
 - WebSocket path：`/api/v1/ws/tools/getWidgetCapabilityOverview`
 - 请求协议：content/deviceInfo/session 外层包络
@@ -34,7 +34,7 @@
     "deviceType": 0,
     "locale": "zh-CN",
     "phoneType": "CLS-AL30",
-    "prdVer": "11.7.5.205",
+    "apiVersion": "11.7.5.205",
     "sysVer": "EmotionUI_9.0.0",
     "time": "20260707115342975"
   },

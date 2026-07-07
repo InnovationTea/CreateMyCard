@@ -73,7 +73,7 @@ def _pick_ohos_api_version(device_info: dict[str, Any]) -> int:
     出参：内部 DeviceContext 使用的 ohosApiVersion。
     """
     settings = get_settings()
-    for key in ("ohosApiVersion", "apiVersion", "ohos_api_version"):
+    for key in ("ohosApiVersion", "ohos_api_version"):
         value = device_info.get(key)
         if value is not None:
             return int(value)
@@ -115,6 +115,7 @@ def _arguments_from_envelope(envelope: ToolRequestEnvelope, operation: str) -> d
         arguments["userQuery"] = envelope.utterance.original if envelope.utterance else ""
     arguments["uid"] = envelope.userAuth.user.userId or ""
     arguments["locale"] = envelope.deviceInfo.locale or "zh-CN"
+    arguments["apiVersion"] = envelope.deviceInfo.apiVersion
     arguments["device"] = _device_context_from_envelope(envelope)
     return arguments
 
