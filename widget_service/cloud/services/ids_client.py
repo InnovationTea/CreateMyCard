@@ -73,12 +73,12 @@ class IDSClient:
         """构造 IDS 已安装应用查询请求。
 
         入参：
-        - device：工具层注入的设备信息，优先使用 odid，兜底使用 deviceId。
+        - device：工具层注入的设备信息，优先使用 odid，缺失时使用固定默认 odid。
         - request_id：本次 IDS 查询请求 ID。
         出参：结构化 IDS HTTP 请求定义；后续真实 HTTP 调用可直接使用。
         """
         # 请求结构来自一次性 Postman 导出样例，代码内固化成实体对象后不再依赖 collection 文件。
-        odid = device.odid or device.deviceId or ""
+        odid = device.odid or "790d8366-cd45-c4d5-6784-06727a549e61"
         body = IDSInstalledAppsQueryBody(
             requestId=request_id,
             callingUid=self.settings.ids_calling_uid,

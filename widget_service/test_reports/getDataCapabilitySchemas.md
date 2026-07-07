@@ -1,6 +1,6 @@
 # getDataCapabilitySchemas 测试报告
 
-- 生成时间：2026-07-07T12:54:20.456178+00:00
+- 生成时间：2026-07-07T13:06:15.287858+00:00
 - 接口名：`getDataCapabilitySchemas`
 - WebSocket path：`/api/v1/ws/tools/getDataCapabilitySchemas`
 - 请求协议：content/deviceInfo/session 外层包络

@@ -73,6 +73,27 @@ def test_ids_query_builds_structured_request_and_signature(monkeypatch):
     assert request.headers.model_dump(by_alias=True)["Content-Type"] == "application/json"
 
 
+def test_ids_query_uses_default_odid_when_device_odid_missing():
+    """验证设备缺少 odid 时 IDS 查询使用固定默认 odid。
+
+    入参：无。
+    出参：无；通过断言验证 request body 中的 odid 兜底值。
+    """
+    client = IDSClient()
+    device = DeviceContext(
+        deviceId="device-should-not-be-used",
+        romVersion="ALN-AL00 7.0.0.36",
+        ohosApiVersion=36,
+    )
+
+    request = client.build_installed_apps_query(device, "ids-default-odid-1")
+
+    assert (
+        request.body.nameSpaces[0].queryRequestData[0].keys.odid
+        == "790d8366-cd45-c4d5-6784-06727a549e61"
+    )
+
+
 def test_ids_client_queries_remote_when_mock_file_missing(tmp_path, monkeypatch):
     """验证 mock 文件不存在时 IDSClient 会真实发起 HTTP 查询。
 
