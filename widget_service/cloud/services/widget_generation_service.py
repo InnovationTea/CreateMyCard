@@ -13,6 +13,7 @@ from api.schemas import (
     WidgetCardServiceRequest,
 )
 from app.logger import logger
+from config.config import get_settings
 from core.errors import ErrorCode, GenerationStatus
 from models.artifact import ArtifactMeta, WidgetArtifact
 from models.generation import EventAction
@@ -283,6 +284,7 @@ class WidgetGenerationService:
 
         model_client = A2UIModelClient()
         retry_controller = RetryController()
+        settings = get_settings()
 
         def operation() -> str:
             """执行一次 A2UI 模型生成。
@@ -302,6 +304,12 @@ class WidgetGenerationService:
             出参：校验错误列表；空列表表示通过。
             """
             # 每次模型输出都临时组装 artifact，再用同一套 Validator 校验完整契约。
+            if not settings.enable_artifact_validation:
+                logger.info(
+                    f"a2ui_genui_validation_skipped uid={request.uid} "
+                    "reason=enable_artifact_validation_false"
+                )
+                return []
             logger.info(
                 f"a2ui_genui_validation_started uid={request.uid} "
                 f"genui_length={len(genui)}"

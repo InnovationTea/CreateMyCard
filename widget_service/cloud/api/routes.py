@@ -11,8 +11,10 @@ from api.schemas import (
     CapabilityOverviewRequest,
     DataCapabilitySchemasRequest,
     GenerateWidgetCardRequest,
+    ToolRequestEnvelope,
 )
 from app.logger import logger
+from config.config import get_settings
 from models.service import (
     WidgetWebSocketErrorMessage,
     WidgetWebSocketReadyMessage,
@@ -32,14 +34,108 @@ def get_service() -> WidgetGenerationService:
     return WidgetGenerationService()
 
 
-def _arguments_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    """从 WebSocket 原始报文中提取业务入参。
+def _request_id_from_envelope(envelope: ToolRequestEnvelope) -> str | None:
+    """从外部请求包络中生成 requestId。
 
     入参：
-    - payload：客户端发送的 JSON 对象，可直接是业务入参，也可包含 arguments 包装层。
-    出参：业务入参字典。
+    - envelope：已经解析后的 WebSocket 外部请求包络。
+    出参：`sessionId&interactionId` 格式的 requestId；会话字段缺失时返回 None。
     """
-    return payload.get("arguments", payload)
+    session_id = envelope.session.sessionId
+    interaction_id = envelope.session.interactionId
+    if session_id and interaction_id:
+        return f"{session_id}&{interaction_id}"
+    if session_id:
+        return session_id
+    return None
+
+
+def _pick_device_rom_version(device_info: dict[str, Any]) -> str:
+    """从 deviceInfo 中读取 ROM 版本，缺失时使用配置默认值。
+
+    入参：
+    - device_info：外部请求中的 deviceInfo 字典。
+    出参：内部 DeviceContext 使用的 romVersion。
+    """
+    settings = get_settings()
+    for key in ("romVersion", "romVer", "rom", "rom_version"):
+        value = device_info.get(key)
+        if value:
+            return str(value)
+    return settings.default_device_rom_version
+
+
+def _pick_ohos_api_version(device_info: dict[str, Any]) -> int:
+    """从 deviceInfo 中读取 ohosApiVersion，缺失时使用配置默认值。
+
+    入参：
+    - device_info：外部请求中的 deviceInfo 字典。
+    出参：内部 DeviceContext 使用的 ohosApiVersion。
+    """
+    settings = get_settings()
+    for key in ("ohosApiVersion", "apiVersion", "ohos_api_version"):
+        value = device_info.get(key)
+        if value is not None:
+            return int(value)
+    return settings.default_ohos_api_version
+
+
+def _device_context_from_envelope(envelope: ToolRequestEnvelope) -> dict[str, Any]:
+    """把外部 deviceInfo 转换成内部 DeviceContext 字典。
+
+    入参：
+    - envelope：已经解析后的 WebSocket 外部请求包络。
+    出参：可直接传给 DeviceContext 的字典。
+    """
+    device_info = envelope.deviceInfo.model_dump(mode="json", exclude_none=True)
+    phone_type = device_info.get("phoneType")
+    return {
+        "deviceId": device_info.get("deviceId"),
+        "deviceType": phone_type or str(device_info.get("deviceType", "")),
+        "sysVersion": device_info.get("sysVer"),
+        "deviceName": device_info.get("deviceFormation"),
+        "odid": device_info.get("odid"),
+        "udid": device_info.get("udid"),
+        "romVersion": _pick_device_rom_version(device_info),
+        "marketingName": device_info.get("marketingName") or phone_type,
+        "ohosApiVersion": _pick_ohos_api_version(device_info),
+    }
+
+
+def _arguments_from_envelope(envelope: ToolRequestEnvelope, operation: str) -> dict[str, Any]:
+    """从外部请求包络中组装内部业务入参。
+
+    入参：
+    - envelope：已经解析后的 WebSocket 外部请求包络。
+    - operation：当前 WebSocket path 对应的业务能力名。
+    出参：可直接传给具体请求模型的业务入参字典。
+    """
+    arguments = dict(envelope.content)
+    if operation == "generateWidgetCard" and not arguments.get("userQuery"):
+        arguments["userQuery"] = envelope.utterance.original if envelope.utterance else ""
+    arguments["uid"] = envelope.userAuth.user.userId or ""
+    arguments["locale"] = envelope.deviceInfo.locale or "zh-CN"
+    arguments["device"] = _device_context_from_envelope(envelope)
+    return arguments
+
+
+def _normalize_payload(
+    payload: dict[str, Any],
+    operation: str,
+) -> tuple[str | None, dict[str, Any]]:
+    """归一化 WebSocket 原始报文。
+
+    入参：
+    - payload：客户端发送的 JSON 对象。
+    - operation：当前 WebSocket path 对应的业务能力名。
+    出参：requestId 与内部业务入参；优先支持 content/deviceInfo/session 新协议。
+    """
+    if "content" in payload or "deviceInfo" in payload or "session" in payload:
+        envelope = ToolRequestEnvelope(**payload)
+        return _request_id_from_envelope(envelope), _arguments_from_envelope(
+            envelope, operation
+        )
+    return payload.get("requestId"), payload.get("arguments", payload)
 
 
 def _error_details(exc: ValidationError | ValueError) -> list[dict[str, Any]] | str:
@@ -83,9 +179,8 @@ async def _serve_operation_websocket(
     try:
         while True:
             payload = await websocket.receive_json()
-            request_id = payload.get("requestId")
             started_at = time.perf_counter()
-            arguments = _arguments_from_payload(payload)
+            request_id, arguments = _normalize_payload(payload, operation)
             logger.info(
                 f"widget_operation_ws_payload_received request_id={request_id} "
                 f"operation={operation} payload_keys={list(payload.keys())} "

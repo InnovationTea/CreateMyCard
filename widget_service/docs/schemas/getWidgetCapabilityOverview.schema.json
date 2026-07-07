@@ -2,53 +2,67 @@
   "name": "getWidgetCapabilityOverview",
   "transport": "websocket",
   "path": "/genui-agent-service/api/v1/ws/tools/getWidgetCapabilityOverview",
-  "description": "获取当前设备版本可用的能力概述。数据能力只返回 id 和描述；事件能力、素材能力全量返回。",
+  "description": "获取当前设备版本可用的能力概述。content 对应业务入参，deviceInfo 由工具层注入并转换成内部 DeviceContext。",
   "messageEnvelope": {
     "type": "object",
-    "description": "客户端发送的 WebSocket 消息外层结构。",
-    "required": ["arguments"],
+    "required": ["content", "deviceInfo", "session"],
     "properties": {
-      "requestId": {
+      "content": {
+        "type": "object",
+        "required": false,
+        "description": "业务入参，对应旧协议 arguments；本接口可只传 bundleName。",
+        "properties": {
+          "bundleName": {
+            "type": "string",
+            "required": false,
+            "description": "宿主业务包名。"
+          },
+          "capabilityRegistryVersion": {
+            "type": "string|null",
+            "required": false,
+            "description": "可选能力清单版本；不传时由 deviceInfo 推导。"
+          },
+          "protocolProfileId": {
+            "type": "string|null",
+            "required": false,
+            "description": "可选 A2UI 协议 profile ID。"
+          }
+        }
+      },
+      "deviceInfo": {
+        "$ref": "#/nestedTypes/DeviceInfo",
+        "required": true,
+        "description": "端侧设备信息；缺少 ROM 字段时服务使用 settings.default_device_rom_version。"
+      },
+      "session": {
+        "$ref": "#/nestedTypes/Session",
+        "required": true,
+        "description": "会话信息；服务端 requestId = sessionId + '&' + interactionId。"
+      },
+      "pagination": {
+        "$ref": "#/nestedTypes/Pagination",
+        "required": false,
+        "description": "分页信息，当前接口暂不消费。"
+      },
+      "userAuth": {
+        "$ref": "#/nestedTypes/UserAuth",
+        "required": false,
+        "description": "用户鉴权信息；服务从 user.userId 提取 uid。"
+      },
+      "utterance": {
+        "$ref": "#/nestedTypes/Utterance",
+        "required": false,
+        "description": "用户原始表达。"
+      },
+      "version": {
         "type": "string",
         "required": false,
-        "description": "客户端请求 ID，服务端会在响应中原样返回。"
+        "description": "外部包络协议版本。"
       },
-      "arguments": {
-        "type": "CapabilityOverviewRequest",
-        "required": true,
-        "description": "能力概述接口业务入参。"
-      }
-    }
-  },
-  "input": {
-    "type": "object",
-    "required": ["uid", "device"],
-    "properties": {
-      "uid": {
-        "type": "string",
-        "required": true,
-        "description": "用户 ID，本地测试显式传入，线上由工具层注入。"
-      },
-      "locale": {
+      "bundleName": {
         "type": "string",
         "required": false,
-        "default": "zh-CN",
-        "description": "语言区域。"
-      },
-      "device": {
-        "type": "DeviceContext",
-        "required": true,
-        "description": "设备上下文；romVersion 和 ohosApiVersion 用于选择能力版本目录。"
-      },
-      "capabilityRegistryVersion": {
-        "type": "string|null",
-        "required": false,
-        "description": "可选能力清单版本；不传时由 device.ohosApiVersion + device.romVersion 推导。"
-      },
-      "protocolProfileId": {
-        "type": "string|null",
-        "required": false,
-        "description": "可选 A2UI 协议 profile ID；本接口通常不需要传。"
+        "description": "外层宿主业务包名。"
       }
     }
   },
@@ -86,6 +100,51 @@
         "type": "AssetCapability[]",
         "required": true,
         "description": "素材能力完整列表。"
+      }
+    }
+  },
+  "nestedTypes": {
+    "DeviceInfo": {
+      "required": ["locale", "phoneType", "sysVer"],
+      "properties": {
+        "countryCode": "string，可选，国家码。",
+        "deviceFormation": "string，可选，设备形态。",
+        "deviceType": "integer|string，可选，设备类型编码。",
+        "locale": "string，推荐，语言区域。",
+        "phoneType": "string，推荐，设备型号，会映射到内部 deviceType/marketingName。",
+        "prdVer": "string，可选，宿主应用版本。",
+        "sysVer": "string，推荐，系统版本，会映射到内部 sysVersion。",
+        "time": "string，可选，端侧请求时间。",
+        "romVersion|romVer|rom|rom_version": "string，可选，ROM 版本；缺失时使用配置默认 ROM。",
+        "ohosApiVersion|apiVersion|ohos_api_version": "integer，可选，OHOS API 版本；缺失时使用配置默认值。"
+      }
+    },
+    "Session": {
+      "required": ["sessionId", "interactionId"],
+      "properties": {
+        "sessionId": "string，会话 ID。",
+        "interactionId": "string，交互 ID。",
+        "isNew": "boolean，可选，是否新会话。"
+      }
+    },
+    "UserAuth": {
+      "required": false,
+      "properties": {
+        "user.userId": "string，可选，用户 ID。"
+      }
+    },
+    "Pagination": {
+      "required": false,
+      "properties": {
+        "limit": "integer，可选，分页大小。",
+        "start": "string，可选，分页游标。"
+      }
+    },
+    "Utterance": {
+      "required": false,
+      "properties": {
+        "original": "string，可选，用户原始表达。",
+        "type": "string，可选，输入类型。"
       }
     }
   }

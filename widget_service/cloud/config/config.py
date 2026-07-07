@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     ids_access_key: str = "23232323232"
     ids_secret_key: str = "22222"
     ids_request_timeout_seconds: float = 5.0
+    default_device_rom_version: str = "ALN-AL00 7.0.0.36"
+    default_ohos_api_version: int = 36
+    enable_artifact_validation: bool = True
     artifact_base_url: str = "https://obs.todo.local/widget"
     server_host: str = "127.0.0.1"
     server_port: int = 8855
