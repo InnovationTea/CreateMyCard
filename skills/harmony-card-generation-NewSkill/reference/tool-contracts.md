@@ -1,155 +1,212 @@
 # 微服务工具契约
 
-主 Agent 只调用工具并传候选计划。工具层负责注入 ROM/App/device/uid/小艺版本等上下文；除非工具 schema 明确要求，主 Agent 不手写这些环境字段。
+只调用工具并传候选计划。真实设备能力裁决、最终 CardSpec、A2UI DSL 生成、校验、降级和 artifact 上传都由微服务完成。
 
-## 总原则
+## 调用总则
 
-- 工具返回结构化 JSON；可以附加 `descriptionForLLM` 等便于主 Agent 筛选的文本字段。
-- overview 只表示“可作为候选”，不是当前设备最终可用结论。
-- 主 Agent 只生成候选，不生成最终 DSL、最终 CardSpec、最终 onClick 或 artifact。
-- `candidateDataBindings`、`candidateEventCandidates`、`candidateAssetIds` 都允许被微服务删除、改写或规范化。
-- 本版主 Agent 不传 `slots` 和 `options`；语义补充和用户约束保留在 `userQuery`，微服务使用默认 `allowDegradation: true` 和 `returnArtifactInline: false`。
+- 三个工具按顺序使用：
+  - `getWidgetCapabilityOverview`
+  - `getDataCapabilitySchemas`
+  - `generateWidgetCard`
+- 必须使用 `invoke(funcName:"工具名", params:{业务参数})` 调用工具。
+- `params` 只放业务参数，不要包外层对象。
+- `uid`、`device` 等环境字段由工具层自动拼接，不要手写或猜测。
+- `locale` 可省略，默认 `zh-CN`。
+- `capabilityRegistryVersion` 可省略，由 `device.ohosApiVersion + device.romVersion` 推导。
+- `protocolProfileId` 可省略；能力概述和 schema 接口通常不需要传。
+- 不传 `slots`。生产默认不传 `options`；只有调试确实需要内联 artifact 时，才传 `options.returnArtifactInline`。
+
+调用顺序：
+
+```text
+invoke(funcName:"getWidgetCapabilityOverview", params:{...})
+invoke(funcName:"getDataCapabilitySchemas", params:{...})
+invoke(funcName:"generateWidgetCard", params:{...})
+```
+
+## 自动注入的设备上下文
+
+工具层至少应注入：
+
+```json
+{
+  "uid": "user-id",
+  "device": {
+    "deviceId": "device-id",
+    "odid": "odid",
+    "romVersion": "ALN-AL00 6.0.0.36",
+    "ohosApiVersion": 36
+  }
+}
+```
+
+`DeviceContext` 的接口必填字段：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `romVersion` | `string` | 是 | ROM 版本，用于选择能力目录和协议 profile。 |
+| `ohosApiVersion` | `integer` | 是 | OHOS API 版本，用于选择能力目录。 |
+| `deviceId` | `string|null` | 否 | 设备 ID。 |
+| `odid` | `string|null` | 否 | 设备 odid，IDS 查询优先使用。 |
 
 ## getWidgetCapabilityOverview
 
-用途：获取当前环境可供候选筛选的能力概述。该结果不是最终可用能力结论，最终可用性由 `generateWidgetCard` 内部过滤决定。
+用途：获取当前设备版本可用的能力概述。数据能力只返回 `id` 和描述；事件能力、素材能力全量返回。该结果只用于候选筛选，不代表最终设备一定可用。
 
-建议输入：
+参数：
 
-```json
-{
-  "locale": "zh-CN"
-}
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `locale` | `string` | 否 | 默认 `zh-CN`。 |
+| `capabilityRegistryVersion` | `string|null` | 否 | 指定能力清单版本；通常不传。 |
+| `protocolProfileId` | `string|null` | 否 | 指定 A2UI 协议 profile；本接口通常不传。 |
+
+调用示例：
+
+```text
+invoke(funcName:"getWidgetCapabilityOverview", params:{
+  locale:"zh-CN"
+})
 ```
 
-典型输出：
+输出字段：
 
-```json
-{
-  "dataCapabilities": [
-    {
-      "id": "ViewWeather",
-      "description": "查询当前天气、空气质量和未来预报。用户需要天气、温度、空气质量、未来预报时可选择。"
-    }
-  ],
-  "eventCapabilities": [
-    {
-      "id": "event.open.weather",
-      "call": "clickToDeeplink",
-      "description": "打开天气应用",
-      "actionTemplate": {
-        "call": "clickToDeeplink",
-        "args": {
-          "bundleName": "",
-          "abilityName": "",
-          "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
-        }
-      }
-    }
-  ],
-  "assetCandidates": [
-    {
-      "id": "asset.weather.rain",
-      "src": "resources/base/media/icon_weather1.png",
-      "description": "天气雨伞图标"
-    }
-  ]
-}
-```
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `apiVersion` | `string` | 是 | 接口版本。 |
+| `capabilityRegistryVersion` | `string` | 是 | 本次实际使用的能力清单版本目录名。 |
+| `dataCapabilities` | `DataCapabilityOverview[]` | 是 | 数据能力概述列表，只包含 `id` 和 `description`。 |
+| `eventCapabilities` | `EventCapability[]` | 是 | 事件能力完整列表。 |
+| `assetCandidates` | `AssetCapability[]` | 是 | 素材能力完整列表。 |
 
 调用规则：
 
-- 先调该工具，再做候选选择。
+- 先调用该工具，再做候选选择。
 - 不因 overview 中出现某能力就向用户承诺设备一定可用。
-- overview 中不存在的能力、事件或素材不要编造。
-- 若工具仍使用 `summary`/`functionCall` 等旧字段，按 `description`/`call` 的语义兼容读取，但生成候选计划时使用本文件的规范字段。
+- 只从返回的 `dataCapabilities`、`eventCapabilities`、`assetCandidates` 中选择候选；不要编造能力 ID、事件目标或素材 ID。
+- 事件候选的 `action` 只能来自返回的事件能力说明或模板，不要自行拼接 `call`、`args`、deeplink、intentName 等字段。
 
 ## getDataCapabilitySchemas
 
-用途：按需加载被选中数据能力的完整 schema。只针对数据能力调用；事件能力和素材通常使用 overview 信息即可。
+用途：按数据能力 ID 加载完整 `inputSchema`、`outputSchema`、依赖和 DataModel 骨架。只对已选中的数据能力调用；事件能力和素材通常使用 overview 即可。
 
-输入：
+参数：
 
-```json
-{
-  "dataCapabilityIds": ["ViewWeather", "calendar.events.search"]
-}
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `dataCapabilityIds` | `string[]` | 是 | 需要加载完整 schema 的数据能力 ID 列表，至少 1 个。 |
+| `locale` | `string` | 否 | 默认 `zh-CN`。 |
+| `capabilityRegistryVersion` | `string|null` | 否 | 指定能力清单版本；通常不传。 |
+| `protocolProfileId` | `string|null` | 否 | 指定 A2UI 协议 profile；本接口通常不传。 |
+
+调用示例：
+
+```text
+invoke(funcName:"getDataCapabilitySchemas", params:{
+  dataCapabilityIds:["ViewWeather", "calendar.events.search"],
+  locale:"zh-CN"
+})
 ```
 
-典型输出字段：
+输出字段：
 
-```json
-{
-  "dataCapabilities": [
-    {
-      "id": "ViewWeather",
-      "inputSchema": {},
-      "outputSchema": {},
-      "defaultWriteResultTo": "/data/weather"
-    }
-  ]
-}
-```
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `apiVersion` | `string` | 是 | 接口版本。 |
+| `capabilityRegistryVersion` | `string` | 是 | 本次实际使用的能力清单版本目录名。 |
+| `dataCapabilities` | `DataCapability[]` | 是 | 已找到的数据能力完整定义。 |
+| `missingCapabilityIds` | `string[]` | 是 | 当前能力清单版本中未找到的数据能力 ID。 |
 
 调用规则：
 
-- 只传本轮候选数据能力 ID。
-- 如果某 schema 没有返回，候选计划中移除该数据能力。
-- 不把完整 schema 暴露给用户；schema 只用于构造候选计划。
-- 若工具仍返回 `schemas`，按 `dataCapabilities` 等价处理。
+- 只传本轮从 overview 中选出的数据能力 ID。
+- 如果某个 ID 出现在 `missingCapabilityIds`，候选计划中移除该数据能力。
+- `candidateDataBindings[].arguments` 只能使用对应 `inputSchema.properties` 中声明的字段。
+- `writeResultTo` 优先使用能力 schema 提供的默认写入路径；没有默认值时使用 `/data/{semanticKey}`，且多个候选不得相同或互为父子。
+- 不把完整 schema 暴露给用户。
 
 ## generateWidgetCard
 
-用途：提交用户 query 和候选计划，由微服务完成能力过滤、最终 CardSpec、DSL 生成、校验、上传和状态话术。
+用途：提交用户需求、候选数据绑定、候选事件和素材，生成可下载的 HarmonyOS A2UI Form 卡片 artifact。
 
-输入形态：
+参数：
 
-```json
-{
-  "requestId": "uuid",
-  "userQuery": "帮我做通勤卡片，包含天气和今日日程",
-  "size": "2x4",
-  "candidateDataBindings": [
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `userQuery` | `string` | 是 | 用户原始卡片需求。 |
+| `locale` | `string` | 否 | 默认 `zh-CN`。 |
+| `size` | `"2x2"|"2x4"` | 否 | 建议尺寸，默认 `2x4`。 |
+| `candidateDataBindings` | `CandidateDataBinding[]` | 否 | 候选数据能力调用列表。 |
+| `candidateEventCandidates` | `CandidateEventCandidate[]` | 否 | 候选点击事件列表。 |
+| `candidateAssetIds` | `string[]` | 否 | 候选素材 ID 列表。 |
+| `options` | `GenerationOptions` | 否 | 生成选项；调试可用 `returnArtifactInline`。 |
+| `capabilityRegistryVersion` | `string|null` | 否 | 指定能力清单版本；通常不传。 |
+| `protocolProfileId` | `string|null` | 否 | 指定 A2UI 协议 profile；通常不传。 |
+
+`CandidateDataBinding`：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `capabilityId` | `string` | 是 | 数据能力 ID，必须来自已加载 schema。 |
+| `arguments` | `object` | 是 | 能力入参，只能使用该能力 `inputSchema` 声明的字段。 |
+| `writeResultTo` | `string` | 是 | 写入 DataModel 的 JSON Pointer，必须位于 `/data/` 下。 |
+| `updateModel` | `object` | 否 | 可选输出字段投影结构，内部层级会原样写入 DataModel。 |
+
+`CandidateEventCandidate`：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `capabilityId` | `string` | 是 | 事件能力 ID，必须来自 overview。 |
+| `action` | `EventAction` | 是 | 包含 `call` 和 `args`；只能来自 overview 返回的事件能力说明。 |
+
+调用示例：
+
+```text
+invoke(funcName:"generateWidgetCard", params:{
+  userQuery:"帮我做通勤卡片，包含天气和今日日程",
+  locale:"zh-CN",
+  size:"2x4",
+  candidateDataBindings:[
     {
-      "capabilityId": "ViewWeather",
-      "arguments": {
-        "districtName": "青浦区",
-        "forecastDays": 1
+      capabilityId:"ViewWeather",
+      arguments:{
+        districtName:"青浦区",
+        forecastDays:1
       },
-      "writeResultTo": "/data/weather",
-      "required": false
+      writeResultTo:"/data/weather"
     }
   ],
-  "candidateEventCandidates": [
+  candidateEventCandidates:[
     {
-      "capabilityId": "event.open.weather",
-      "action": {
-        "call": "clickToDeeplink",
-        "args": {
-          "bundleName": "",
-          "abilityName": "",
-          "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+      capabilityId:"event.open.weather",
+      action:{
+        call:"clickToDeeplink",
+        args:{
+          bundleName:"",
+          abilityName:"",
+          uri:"hww://www.huawei.com/totemweather?enterType=share&cityCode="
         }
       }
     }
   ],
-  "candidateAssetIds": ["asset.weather.rain"]
-}
+  candidateAssetIds:["asset.weather.rain"]
+})
 ```
 
-输出形态：
+输出字段：
 
-```json
-{
-  "status": "success",
-  "artifactUrl": "https://obs.example/widget/uuid.json",
-  "artifactDigest": "sha256:...",
-  "suggestSize": "2x4",
-  "userMessage": "已为你生成通勤卡片。",
-  "removedCapabilities": [],
-  "errorCode": ""
-}
-```
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `apiVersion` | `string` | 是 | 接口版本。 |
+| `status` | `"success"|"degraded"|"unsupported"|"failed"` | 是 | 生成状态。 |
+| `suggestSize` | `"2x2"|"2x4"` | 是 | 最终生成卡片尺寸。 |
+| `message` | `string` | 是 | 可展示给用户的生成结果说明。 |
+| `artifactUrl` | `string` | 否 | artifact 下载地址；成功或降级成功时返回。 |
+| `artifactDigest` | `string` | 否 | artifact 内容摘要。 |
+| `removedCapabilities` | `RemovedCapability[]` | 否 | 被微服务裁决移除的能力及原因。 |
+| `errorCode` | `string` | 否 | 失败或不支持时返回的错误码。 |
+| `artifact` | `object|null` | 否 | 调试时可选内联 artifact；生产默认不返回。 |
+| `effectiveCapabilities` | `object` | 否 | 最终进入 artifact 的有效 data、event、asset 能力集合。 |
 
 状态：
 
@@ -158,34 +215,13 @@
 - `unsupported`: 核心能力不可用且静态卡无价值。
 - `failed`: 服务异常、生成失败或校验重试后仍失败。
 
-常见 `errorCode`：
-
-- `UNKNOWN_CAPABILITY`
-- `ROM_VERSION_UNSUPPORTED`
-- `APP_VERSION_UNSUPPORTED`
-- `PACKAGE_NOT_INSTALLED`
-- `PACKAGE_VERSION_TOO_LOW`
-- `PROVIDER_NOT_FOUND`
-- `INTENT_TARGET_NOT_FOUND`
-- `PERMISSION_DENIED`
-- `PERMISSION_UNKNOWN`
-- `INVALID_ARGUMENTS`
-- `WRITE_RESULT_CONFLICT`
-- `NO_EFFECTIVE_CAPABILITY`
-- `A2UI_GENERATION_FAILED`
-- `VALIDATION_FAILED`
-- `ARTIFACT_UPLOAD_FAILED`
-- `TIMEOUT`
-
 调用规则：
 
 - `candidateDataBindings` 是候选，不是最终 CardSpec。
-- `candidateEventCandidates` 是候选事件单数组，每项必须包含 `capabilityId`，可选包含 `action`。
-- `candidateEventCandidates[].capabilityId` 必须来自 overview 的事件能力 ID。
-- `candidateEventCandidates[].action` 必须来自 overview 的 `actionTemplate` 或已返回的完整事件描述；可以用用户 query 或 DataModel 路径填值，但不能编造 `call`、目标或参数名。
-- 如果事件参数无法安全填齐，只传 `{ "capabilityId": "..." }`，把最终事件动作交给微服务生成。
-- 微服务过滤某个事件能力时，删除整个 `candidateEventCandidates[]` 项；不要拆分 ID 和 action 后分别过滤。
-- `candidateAssetIds` 是候选素材 ID，不传自造资源路径。
-- 不传 `slots` 和 `options`；如果未来工具 schema 临时要求这两个字段，优先传空对象并推动接口改为可省略。
+- `candidateEventCandidates` 是候选事件单数组；每项必须同时包含 `capabilityId` 和完整 `action`。
+- 如果事件 `action.call/args` 无法从 overview 返回内容或用户明确输入中安全填齐，不传该事件候选。
+- 微服务过滤某个事件能力时删除整个 `candidateEventCandidates[]` 项；不要拆分 ID 和 action 后分别过滤。
+- `candidateAssetIds` 只传 overview 返回的素材 ID，不传自造资源路径。
 - 允许微服务删除、改写或规范化候选能力。
-- 不重试工具，除非工具返回明确可重试错误并要求主 Agent 重试。
+- 不重试工具，除非工具返回明确可重试错误并要求重试。
+- `message` 是用户话术来源；旧环境如果仍返回 `userMessage`，可兼容读取，但新接口以 `message` 为准。

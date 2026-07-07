@@ -1,13 +1,13 @@
 # 回复策略
 
-主 Agent 的回复以微服务返回为准。不要复述内部候选计划、schema、CardSpec、DSL 或校验细节。
+回复以微服务返回为准。不要复述内部候选计划、schema、CardSpec、DSL 或校验细节。
 
 ## 通用规则
 
 - 只认可 `success`、`degraded`、`unsupported`、`failed` 四种状态。
 - `success` 或 `degraded` 必须同时有 `artifactUrl` 才能输出 `genWidgetResult`。
 - 没有真实 `artifactUrl` 时不要输出标记，即使状态看起来成功。
-- 可以轻量润色 `userMessage`，但不要改变微服务状态判断、降级原因或可用性结论。
+- 可以轻量润色 `message`，但不要改变微服务状态判断、降级原因或可用性结论。旧环境如果仍返回 `userMessage`，可兼容读取；新接口以 `message` 为准。
 - 用户可见回复不要暴露 capabilityId、provider、TaskSpec、OBS、IDS、errorCode 等内部字段，除非用户明确追问技术细节。
 
 ## success
@@ -17,12 +17,12 @@
 回复：
 
 ````text
-{userMessage}
+{message}
 
 ```genWidgetResult:"{artifactUrl}"```
 ````
 
-如果 `userMessage` 为空，使用：“已为你生成卡片。”
+如果 `message` 为空，使用：“已为你生成卡片。”
 
 ## degraded
 
@@ -31,7 +31,7 @@
 回复：
 
 ````text
-{userMessage}
+{message}
 
 ```genWidgetResult:"{artifactUrl}"```
 ````
@@ -49,7 +49,7 @@
 回复：
 
 ```text
-{userMessage}
+{message}
 
 可以试试天气、日历、系统状态、应用使用时长或打开应用入口类卡片。
 ```
@@ -57,8 +57,8 @@
 规则：
 
 - 不输出 `genWidgetResult`。
-- 不建议用户打开不存在的权限或安装不确定的 App，除非微服务 `userMessage` 明确给出。
-- 如果 `userMessage` 已经包含替代建议，不要重复追加固定建议。
+- 不建议用户打开不存在的权限或安装不确定的 App，除非微服务 `message` 明确给出。
+- 如果 `message` 已经包含替代建议，不要重复追加固定建议。
 
 ## failed
 
@@ -67,7 +67,7 @@
 回复：
 
 ```text
-{userMessage 或 “卡片生成服务暂时不可用，请稍后再试。”}
+{message 或 “卡片生成服务暂时不可用，请稍后再试。”}
 ```
 
 规则：
@@ -89,5 +89,5 @@
 ## 话术边界
 
 - 不承诺“开启权限后一定可用”，只说“可以再试”。
-- 不说“已添加到桌面”；主 Agent 只生成预览 artifact，是否添加由端侧和用户确认。
+- 不说“已添加到桌面”；这里只生成预览 artifact，是否添加由端侧和用户确认。
 - 不把 degraded 描述成 failed，也不把 unsupported 描述成系统异常。

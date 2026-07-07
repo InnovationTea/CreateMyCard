@@ -1,6 +1,6 @@
 # Harmony 卡片生成参考索引
 
-此 skill 是云侧工具编排版。主 Agent 不直接生成 DSL/CardSpec，只负责候选选择、工具调用和用户回复组织。
+此 skill 是云侧工具编排版。不直接生成 DSL/CardSpec，只负责候选选择、工具调用和用户回复组织。
 
 若与旧版 `harmony-card-generation` 或历史模板冲突，以项目根目录 `AGENTS.md` 和 `docs/云侧方案设计.md` 中的云侧链路边界为准。
 
@@ -12,7 +12,7 @@
 
 ## 样例
 
-- [`reference/examples.md`](reference/examples.md)：10 条回归 query、主 Agent 工具调用样例、用户回复话术样例。
+- [`reference/examples.md`](reference/examples.md)：10 条回归 query、工具调用样例、用户回复话术样例。
 
 ## 边界
 

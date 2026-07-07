@@ -15,138 +15,130 @@
 
 ## 工具调用样例：天气通勤卡
 
-说明：示例中的 `timeInterval` 使用 2026-07-04 Asia/Shanghai 的当天毫秒区间；实际执行时按用户本地时区和当前日期计算。
+说明：以下示例是通过 `invoke(funcName:"工具名", params:{...})` 调用工具的写法。线上 `uid` 和 `device` 由工具层自动注入。示例中的 `timeInterval` 使用 2026-07-06 Asia/Shanghai 的当天毫秒区间；实际执行时按用户本地时区和当前日期计算。
 
 1. `getWidgetCapabilityOverview`
 
-```json
-{
-  "locale": "zh-CN"
-}
+```text
+invoke(funcName:"getWidgetCapabilityOverview", params:{
+  locale:"zh-CN"
+})
 ```
 
 2. `getDataCapabilitySchemas`
 
-```json
-{
-  "dataCapabilityIds": ["ViewWeather", "calendar.events.search"]
-}
+```text
+invoke(funcName:"getDataCapabilitySchemas", params:{
+  dataCapabilityIds:["ViewWeather", "calendar.events.search"],
+  locale:"zh-CN"
+})
 ```
 
 3. `generateWidgetCard`
 
-```json
-{
-  "requestId": "auto-generated-uuid",
-  "userQuery": "生成一个通勤卡片，早上看天气、今天第一个会议和去公司的入口。",
-  "size": "2x4",
-  "candidateDataBindings": [
+```text
+invoke(funcName:"generateWidgetCard", params:{
+  userQuery:"生成一个通勤卡片，早上看天气、今天第一个会议和去公司的入口。",
+  locale:"zh-CN",
+  size:"2x4",
+  candidateDataBindings:[
     {
-      "capabilityId": "ViewWeather",
-      "arguments": {
-        "districtName": "青浦区",
-        "forecastDays": 1
+      capabilityId:"ViewWeather",
+      arguments:{
+        districtName:"青浦区",
+        forecastDays:1
       },
-      "writeResultTo": "/data/weather",
-      "required": false
+      writeResultTo:"/data/weather"
     },
     {
-      "capabilityId": "calendar.events.search",
-      "arguments": {
-        "timeInterval": [1783094400000, 1783180799999]
+      capabilityId:"calendar.events.search",
+      arguments:{
+        timeInterval:[1783238400000, 1783324799999]
       },
-      "writeResultTo": "/data/calendar",
-      "required": false
+      writeResultTo:"/data/calendar"
     }
   ],
-  "candidateEventCandidates": [
+  candidateEventCandidates:[
     {
-      "capabilityId": "event.open.weather",
-      "action": {
-        "call": "clickToDeeplink",
-        "args": {
-          "bundleName": "",
-          "abilityName": "",
-          "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+      capabilityId:"event.open.weather",
+      action:{
+        call:"clickToDeeplink",
+        args:{
+          bundleName:"",
+          abilityName:"",
+          uri:"hww://www.huawei.com/totemweather?enterType=share&cityCode="
         }
       }
-    },
-    {
-      "capabilityId": "event.start.navigate"
     }
   ],
-  "candidateAssetIds": [
-    "asset.weather.rain",
-    "asset.calendar.schedule"
-  ]
-}
+  candidateAssetIds:["asset.weather.rain", "asset.calendar.schedule"]
+})
 ```
 
 ## 工具调用样例：应用使用时长
 
 仅当 `getWidgetCapabilityOverview` 返回 `GetAppUsageDurationAndPower` 时才使用该候选。
 
-```json
-{
-  "requestId": "auto-generated-uuid",
-  "userQuery": "给我做一张抖音使用时长和耗电卡，显示前台时长、前台耗电和更新时间。",
-  "size": "2x2",
-  "candidateDataBindings": [
+```text
+invoke(funcName:"generateWidgetCard", params:{
+  userQuery:"给我做一张抖音使用时长和耗电卡，显示前台时长、前台耗电和更新时间。",
+  locale:"zh-CN",
+  size:"2x2",
+  candidateDataBindings:[
     {
-      "capabilityId": "GetAppUsageDurationAndPower",
-      "arguments": {
-        "appBundleName": "com.ss.hm.ugc.aweme",
-        "itemName": "foreground_time_power"
+      capabilityId:"GetAppUsageDurationAndPower",
+      arguments:{
+        appBundleName:"com.ss.hm.ugc.aweme",
+        itemName:"foreground_time_power"
       },
-      "writeResultTo": "/data/appUsageStats",
-      "required": true
+      writeResultTo:"/data/appUsageStats"
     }
   ],
-  "candidateEventCandidates": [],
-  "candidateAssetIds": []
-}
+  candidateEventCandidates:[],
+  candidateAssetIds:[]
+})
 ```
 
 ## 工具调用样例：打开天气应用入口
 
 没有动态数据需求时，`candidateDataBindings` 可以为空；让微服务决定是否生成静态入口卡。
 
-```json
-{
-  "requestId": "auto-generated-uuid",
-  "userQuery": "帮我做一个打开天气应用的入口卡片",
-  "size": "2x2",
-  "candidateDataBindings": [],
-  "candidateEventCandidates": [
+```text
+invoke(funcName:"generateWidgetCard", params:{
+  userQuery:"帮我做一个打开天气应用的入口卡片",
+  locale:"zh-CN",
+  size:"2x2",
+  candidateDataBindings:[],
+  candidateEventCandidates:[
     {
-      "capabilityId": "event.open.weather",
-      "action": {
-        "call": "clickToDeeplink",
-        "args": {
-          "bundleName": "",
-          "abilityName": "",
-          "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+      capabilityId:"event.open.weather",
+      action:{
+        call:"clickToDeeplink",
+        args:{
+          bundleName:"",
+          abilityName:"",
+          uri:"hww://www.huawei.com/totemweather?enterType=share&cityCode="
         }
       }
     }
   ],
-  "candidateAssetIds": ["asset.weather.rain"]
-}
+  candidateAssetIds:["asset.weather.rain"]
+})
 ```
 
 ## 工具调用样例：不支持的外卖实时状态
 
 如果 overview 没有外卖配送数据能力，也没有打开对应应用的事件能力，不要编造能力；仍可把原始意图交给微服务裁决。
 
-```json
-{
-  "requestId": "auto-generated-uuid",
-  "userQuery": "帮我做一个美团外卖配送状态卡片",
-  "size": "2x2",
-  "candidateDataBindings": [],
-  "candidateEventCandidates": [],
-  "candidateAssetIds": []
-}
+```text
+invoke(funcName:"generateWidgetCard", params:{
+  userQuery:"帮我做一个美团外卖配送状态卡片",
+  locale:"zh-CN",
+  size:"2x2",
+  candidateDataBindings:[],
+  candidateEventCandidates:[],
+  candidateAssetIds:[]
+})
 ```
 
 ## 用户回复话术样例

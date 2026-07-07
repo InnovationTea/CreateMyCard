@@ -1,13 +1,24 @@
 ---
 name: harmony-card-generation-cloud-orchestration
-description: "编排云侧微服务生成 HarmonyOS A2UI Form 服务卡片。用于用户用自然语言请求创建、生成、预览、添加桌面 widget/服务卡片，或端侧以 /harmony-card-generation 等标记触发卡片生成时，主 Agent 识别场景、获取能力概述、筛选候选数据/事件/素材能力、构造候选 dataBindings/event candidates/asset ids/size，调用 getWidgetCapabilityOverview、getDataCapabilitySchemas、generateWidgetCard，并根据 success/degraded/unsupported/failed 返回 genWidgetResult 链接或可理解说明；本 skill 不直接输出 genui/cardspec，不直接生成最终 DSL/CardSpec。"
+description: "编排云侧微服务生成 HarmonyOS A2UI Form 服务卡片。用于用户用自然语言请求创建、生成、预览、添加桌面 widget/服务卡片，或端侧以 /harmony-card-generation 等标记触发卡片生成时，识别场景、获取能力概述、筛选候选数据/事件/素材能力、构造候选 dataBindings/event candidates/asset ids/size，调用 getWidgetCapabilityOverview、getDataCapabilitySchemas、generateWidgetCard，并根据 success/degraded/unsupported/failed 返回 genWidgetResult 链接或可理解说明；本 skill 不直接输出 genui/cardspec，不直接生成最终 DSL/CardSpec。"
+metadata:
+  tools:
+    - toolName: "getWidgetCapabilityOverview"
+      transport: "websocket"
+      path: "/genui-agent-service/api/v1/ws/tools/getWidgetCapabilityOverview"
+    - toolName: "getDataCapabilitySchemas"
+      transport: "websocket"
+      path: "/genui-agent-service/api/v1/ws/tools/getDataCapabilitySchemas"
+    - toolName: "generateWidgetCard"
+      transport: "websocket"
+      path: "/genui-agent-service/api/v1/ws/tools/generateWidgetCard"
 ---
 
 # Harmony 卡片生成（云侧工具编排版）
 
 ## 职责
 
-本 skill 只负责主 Agent 侧编排：
+本 skill 只负责工具编排：
 
 - 识别用户是否在请求创建 HarmonyOS 桌面服务卡片。
 - 调用微服务工具获取当前环境下可供候选筛选的能力概述。
@@ -33,21 +44,21 @@ description: "编排云侧微服务生成 HarmonyOS A2UI Form 服务卡片。用
 
 1. 判断用户 query 是否是创建卡片、生成 widget、生成服务卡片、添加桌面卡片、卡片预览等场景；端侧显式标记如 `/harmony-card-generation` 直接视为卡片创建场景。
 2. 不要说“可以生成某动态卡片”。需要过程回复时只说：“我先检查当前设备支持情况，然后为你生成可用的卡片。”
-3. 调用 `getWidgetCapabilityOverview` 获取数据能力、事件能力和素材概述。工具层通常自动注入 ROM/App/device/uid；只有工具 schema 要求时才显式传 `locale`、`appVersion`、`romVersion`。
+3. 使用 `invoke(funcName:"getWidgetCapabilityOverview", params:{...})` 获取数据能力、事件能力和素材概述。`uid` 和 `device` 由工具层自动注入，不要手写。
 4. 按 [`reference/candidate-planning.md`](reference/candidate-planning.md) 从概述中筛选候选能力：
    - 数据能力最多优先选 2 个核心候选。
    - 事件能力最多优先选 2 个主动作候选。
    - 素材候选只选和场景强相关的少量 ID。
-5. 如果选中了数据能力，调用 `getDataCapabilitySchemas` 渐进加载这些数据能力的完整 schema。
+5. 如果选中了数据能力，使用 `invoke(funcName:"getDataCapabilitySchemas", params:{...})` 渐进加载这些数据能力的完整 schema。
 6. 基于 schema 构造候选计划：
    - `size`: `"2x2"` 或 `"2x4"`。
    - `candidateDataBindings`: 候选数据能力调用，不是最终 CardSpec。
-   - `candidateEventCandidates`: 事件候选单数组；每项包含来自 overview 的 `capabilityId`，以及可以安全填齐时的 `action`。
+   - `candidateEventCandidates`: 事件候选单数组；每项包含来自 overview 的 `capabilityId` 和完整 `action`。如果无法安全填齐 `action.call/args`，不要传该事件候选。
    - `candidateAssetIds`: 来自 overview 的素材 ID。
-   - 本版不传 `slots` 和 `options`；降级偏好、目标、缺失信息等保留在 `userQuery` 中，由微服务解析，微服务默认 `allowDegradation: true`、`returnArtifactInline: false`。
-7. 调用 `generateWidgetCard`。不要自行补做微服务负责的过滤、协议 profile、校验、重试或上传。
+   - 本版不传 `slots`；生产默认不传 `options`。本地调试需要内联 artifact 时，才按工具 schema 传 `options.returnArtifactInline`。
+7. 使用 `invoke(funcName:"generateWidgetCard", params:{...})` 生成卡片。不要自行补做微服务负责的过滤、协议 profile、校验、重试或上传。
 8. 按 [`reference/response-policy.md`](reference/response-policy.md) 回复：
-   - `success` / `degraded`: 输出微服务 `userMessage`，并输出 `genWidgetResult` 标记。
+   - `success` / `degraded`: 输出微服务 `message`，并输出 `genWidgetResult` 标记。
    - `unsupported` / `failed`: 不输出 `genWidgetResult`，只输出用户可理解说明和可尝试的替代方向。
 
 ## 输出
@@ -67,11 +78,21 @@ description: "编排云侧微服务生成 HarmonyOS A2UI Form 服务卡片。用
 
 ## 工具
 
-本 skill 依赖三个微服务工具，契约见 [`reference/tool-contracts.md`](reference/tool-contracts.md)：
+本 skill 依赖三个微服务工具，契约见 [`reference/tool-contracts.md`](reference/tool-contracts.md)。必须通过 `invoke` 调用工具，格式为 `invoke(funcName:"工具名", params:{业务参数})`。
 
 - `getWidgetCapabilityOverview`
 - `getDataCapabilitySchemas`
 - `generateWidgetCard`
+
+线上调用时，`uid`、`device` 等环境字段由工具层自动拼接；不要把 `device`、`uid`、能力 schema、内部错误码等内容暴露给用户。
+
+调用示例：
+
+```text
+invoke(funcName:"getWidgetCapabilityOverview", params:{
+  locale:"zh-CN"
+})
+```
 
 如果工具没有以精确名称暴露，先在当前工具/MCP/插件列表中查找语义等价工具；仍不可用时，不要模拟工具结果，不要输出 `genWidgetResult`，直接说明当前环境尚未接入云侧卡片生成工具。
 
