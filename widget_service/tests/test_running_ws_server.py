@@ -20,7 +20,7 @@ DEVICE_INFO = {
     "deviceType": 0,
     "locale": "zh-CN",
     "phoneType": "CLS-AL30",
-    "apiVersion": "11.7.5.205",
+    "prdVer": "11.7.5.205",
     "sysVer": "EmotionUI_9.0.0",
     "time": "20260707115342975",
 }

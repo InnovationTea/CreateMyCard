@@ -1,6 +1,6 @@
 # generateWidgetCard 测试报告
 
-- 生成时间：2026-07-07T13:06:15.288854+00:00
+- 生成时间：2026-07-07T13:18:02.153602+00:00
 - 接口名：`generateWidgetCard`
 - WebSocket path：`/api/v1/ws/tools/generateWidgetCard`
 - 请求协议：content/deviceInfo/session 外层包络
@@ -71,7 +71,7 @@
     "deviceType": 0,
     "locale": "zh-CN",
     "phoneType": "CLS-AL30",
-    "apiVersion": "11.7.5.205",
+    "prdVer": "11.7.5.205",
     "sysVer": "EmotionUI_9.0.0",
     "time": "20260707115342975"
   },
@@ -109,8 +109,8 @@
   "data": {
     "apiVersion": "v1",
     "status": "success",
-    "artifactUrl": "https://obs.todo.local/widget/9f8ea6716ab143db989573273c23e33c.json",
-    "artifactDigest": "sha256:396a9009a2ae1de5592d7f25a26e99fc734add11fd73e64fdcad2ee93905294f",
+    "artifactUrl": "https://obs.todo.local/widget/e8a77f1c55404a1da9cb81db626e1850.json",
+    "artifactDigest": "sha256:1670e6840fd0a632b568f60cc5c87c87027958da808d19c329ec277001e92f58",
     "suggestSize": "2x4",
     "message": "已为你生成可用的桌面卡片。",
     "removedCapabilities": [],

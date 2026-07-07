@@ -2,7 +2,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 from typing import Any, Literal
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from core.errors import GenerationStatus
 from models.capability import (
@@ -35,7 +35,7 @@ class DeviceInfoEnvelope(BaseModel):
     - deviceType：设备类型编码。
     - locale：设备语言区域。
     - phoneType：手机型号。
-    - apiVersion：端侧传入的业务 API 版本。
+    - prdVer：端侧传入的业务 API 版本，字段名保持端侧协议原名。
     - sysVer：系统版本。
     - time：端侧请求时间。
     出参：Pydantic 模型对象；未声明字段会保留，方便后续接入 romVersion 等真实字段。
@@ -48,10 +48,7 @@ class DeviceInfoEnvelope(BaseModel):
     deviceType: int | str | None = None
     locale: str | None = None
     phoneType: str | None = None
-    apiVersion: str | None = Field(
-        default=None,
-        validation_alias=AliasChoices("apiVersion", "prdVer"),
-    )
+    prdVer: str | None = None
     sysVer: str | None = None
     time: str | None = None
 
@@ -150,7 +147,7 @@ class VersionedToolRequest(BaseModel):
     locale: str = "zh-CN"
     uid: str
     device: DeviceContext
-    apiVersion: str | None = None
+    prdVer: str | None = None
     capabilityRegistryVersion: str | None = None
     protocolProfileId: str | None = None
 

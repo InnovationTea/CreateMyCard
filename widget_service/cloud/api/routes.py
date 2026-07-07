@@ -115,7 +115,7 @@ def _arguments_from_envelope(envelope: ToolRequestEnvelope, operation: str) -> d
         arguments["userQuery"] = envelope.utterance.original if envelope.utterance else ""
     arguments["uid"] = envelope.userAuth.user.userId or ""
     arguments["locale"] = envelope.deviceInfo.locale or "zh-CN"
-    arguments["apiVersion"] = envelope.deviceInfo.apiVersion
+    arguments["prdVer"] = envelope.deviceInfo.prdVer
     arguments["device"] = _device_context_from_envelope(envelope)
     return arguments
 

@@ -190,7 +190,7 @@
         "deviceType": "integer|string，可选，设备类型编码。",
         "locale": "string，推荐，语言区域。",
         "phoneType": "string，推荐，设备型号。",
-        "apiVersion": "string，可选，端侧传入的业务 API 版本。",
+        "prdVer": "string，可选，端侧传入的业务 API 版本；字段名保持端侧协议原名。",
         "sysVer": "string，推荐，系统版本。",
         "time": "string，可选，端侧请求时间。",
         "romVersion|romVer|rom|rom_version": "string，可选，ROM 版本；缺失时使用配置默认 ROM。",
