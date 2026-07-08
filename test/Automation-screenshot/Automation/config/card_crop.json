@@ -1,0 +1,17 @@
+{
+  "y_start_ratio": 0.04,
+  "y_end_ratio": 0.24,
+  "x_start_2x2": 0.284,
+  "x_end_2x2": 0.719,
+  "x_start_2x4": 0.074,
+  "x_end_2x4": 0.931,
+  "wide_card_threshold": 0.8,
+  "bg_gray_threshold": 235,
+  "min_block_width": 50,
+  "col_gap_threshold": 15,
+  "col_content_threshold": 3,
+  "row_content_threshold": 2,
+  "y_refine_top_margin": 2,
+  "y_refine_bottom_margin": 3,
+  "card_type": "auto"
+}

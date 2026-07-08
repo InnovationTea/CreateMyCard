@@ -1,0 +1,4 @@
+interface:
+  display_name: "GitPush"
+  short_description: "Commit and push changes, with optional branch squash."
+  default_prompt: "Use $gitpush to commit and push my current changes."

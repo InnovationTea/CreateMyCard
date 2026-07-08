@@ -1,0 +1,4 @@
+interface:
+  display_name: "GitSync"
+  short_description: "Sync a fork mainline from upstream and push it to origin."
+  default_prompt: "Use $gitsync to sync my fork with the source repository."

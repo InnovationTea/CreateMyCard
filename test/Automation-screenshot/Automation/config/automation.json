@@ -1,0 +1,40 @@
+{
+  "automation": {
+    "project_root": ".",
+    "hdc": "hdc",
+    "deveco_sdk_home": "D:/DevEco Studio/sdk",
+    "java_home": "D:/DevEco Studio/jbr",
+    "bundle_name": "yyx.test.test",
+    "ability_name": "EntryAbility",
+    "module_name": "entry",
+    "ready_timeout": 60,
+    "extract_delay": 30,
+    "reply_timeout": 120,
+    "post_query_wait": 30,
+    "query_attempt_timeout": 90,
+    "query_max_attempts": 3,
+    "build_timeout": 300,
+    "render_wait": 5,
+    "screenshot_min_bytes": 1000,
+    "screenshot_retries": 3,
+    "screenshot_write_wait": 1,
+    "enable_card_crop": false,
+    "card_crop_config": "Automation/config/card_crop.json",
+    "card_crop_debug": false,
+    "debug": false
+  },
+  "aesthetics": {
+    "enable": false,
+    "base_url": "",
+    "api_key": "",
+    "model": "doubao-seed-2-0-lite",
+    "output_mode": "full",
+    "timeout": 360,
+    "max_retries": 3,
+    "max_tokens": 1200,
+    "temperature": 0.0,
+    "enable_cache": false,
+    "max_workers": 2,
+    "fail_fast": false
+  }
+}

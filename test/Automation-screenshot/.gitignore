@@ -1,0 +1,22 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+
+# Runtime output
+/output/
+/dsl/
+/Automation/.work/
+
+# IDE / local machine files
+/.idea/
+
+# Logs and archives
+*.log
+*.rar
+*.zip
+
+# Visual aesthetic judge config
+visual_aesthetics/.env
+*.pyc
+__pycache__/
+

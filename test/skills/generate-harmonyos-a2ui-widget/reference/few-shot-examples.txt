@@ -1,0 +1,17 @@
+﻿📚 【参考示例 1 - 天气卡片 2x2】
+请严格参考这个格式生成！
+{"version":"v0.9","createSurface":{"surfaceId":"demo1","catalogId":"ohos.a2ui.extended.catalog","width":160,"height":160}}
+{"version":"v0.9","updateComponents":{"surfaceId":"demo1","components":[{"id":"root","component":"Column","children":["tempRow","city"]},{"id":"tempRow","component":"Row","children":["tempVal","icon"]},{"id":"tempVal","component":"Text","content":"25°"},{"id":"icon","component":"Text","content":"☀️"},{"id":"city","component":"Text","content":"北京"}]}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"demo1","path":"/","value":{"city":"北京","temp":"25°"}}}
+
+📚 【参考示例 2 - 耳机卡片 2x4】
+请严格参考这个格式生成！
+{"version":"v0.9","createSurface":{"surfaceId":"demo2","catalogId":"ohos.a2ui.extended.catalog","width":320,"height":160}}
+{"version":"v0.9","updateComponents":{"surfaceId":"demo2","components":[{"id":"root","component":"Column","children":["header","battRow","btnRow"]},{"id":"header","component":"Row","children":["name","badge"]},{"id":"name","component":"Text","content":"Free Clip 2"},{"id":"badge","component":"Text","content":"已连接","styles":{"backgroundColor":"#4CAF50","borderRadius":8,"padding":{"left":8,"right":8}}},{"id":"battRow","component":"Row","children":["leftBatt","rightBatt"]},{"id":"leftBatt","component":"Text","content":"左耳 47%"},{"id":"rightBatt","component":"Text","content":"右耳 95%"},{"id":"btnRow","component":"Row","children":["playBtn","setBtn"]},{"id":"playBtn","component":"Button","label":"播放"},{"id":"setBtn","component":"Button","label":"设置"}]}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"demo2","path":"/","value":{"deviceName":"Free Clip 2","left":47,"right":95}}}
+
+🔴 【重要提醒】
+1. 必须是完整的 3 行！不多不少
+2. 所有组件必须放在同一个 updateComponents 里面！绝对禁止拆分成多个 updateComponents
+3. 必须有 id="root" 的根组件
+4. children 中引用的组件 id，必须在 components 数组中定义了
