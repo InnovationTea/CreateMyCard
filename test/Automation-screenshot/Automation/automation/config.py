@@ -35,6 +35,9 @@ class AutomationConfig:
     screenshot_min_bytes: int = 1000
     screenshot_retries: int = 3
     screenshot_write_wait: float = 1
+    enable_card_crop: bool = False
+    card_crop_config: Path | None = None
+    card_crop_debug: bool = False
     debug: bool = False
 
     @property
@@ -59,9 +62,7 @@ class AutomationConfig:
 
     @property
     def arkts_dir(self) -> Path:
-        if self.safe_sn:
-            return self.work_dir / "ArkTs"
-        return self.source_arkts_dir
+        return self.work_dir / "ArkTs"
 
     @property
     def rawfile_target(self) -> Path:
@@ -99,6 +100,17 @@ class AutomationConfig:
 
     def screenshot_path_for(self, qid: str) -> Path:
         return self.output_dir / f"{self.artifact_stem(qid)}.jpeg"
+
+    def card_screenshot_path_for(self, qid: str) -> Path:
+        return self.output_dir / f"{self.artifact_stem(qid)}_card.png"
+
+    @property
+    def card_crop_debug_dir(self) -> Path:
+        return self.output_dir / "_debug"
+
+    @property
+    def default_card_crop_config_path(self) -> Path:
+        return self.project_root / "Automation" / "config" / "card_crop.json"
     
     @property
     def scores_jsonl_path(self) -> Path:

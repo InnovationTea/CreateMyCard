@@ -48,19 +48,23 @@ class AestheticsConfig:
     def from_args(cls, args, project_root: Path = None) -> "AestheticsConfig":
         """从命令行参数加载配置，优先级高于环境变量"""
         env_config = cls.from_env(project_root)
+        def arg_or_env(name: str, env_value):
+            value = getattr(args, name, None)
+            return env_value if value is None else value
+
         return cls(
             enable=getattr(args, "enable_aesthetics", False),
-            base_url=getattr(args, "aesthetics_base_url", env_config.base_url),
-            api_key=getattr(args, "aesthetics_api_key", env_config.api_key),
-            model=getattr(args, "aesthetics_model", env_config.model),
-            output_mode=getattr(args, "aesthetics_output_mode", env_config.output_mode),
-            timeout=getattr(args, "aesthetics_timeout", env_config.timeout),
-            max_retries=getattr(args, "aesthetics_max_retries", env_config.max_retries),
-            max_tokens=getattr(args, "aesthetics_max_tokens", env_config.max_tokens),
-            temperature=getattr(args, "aesthetics_temperature", env_config.temperature),
+            base_url=arg_or_env("aesthetics_base_url", env_config.base_url),
+            api_key=arg_or_env("aesthetics_api_key", env_config.api_key),
+            model=arg_or_env("aesthetics_model", env_config.model),
+            output_mode=arg_or_env("aesthetics_output_mode", env_config.output_mode),
+            timeout=arg_or_env("aesthetics_timeout", env_config.timeout),
+            max_retries=arg_or_env("aesthetics_max_retries", env_config.max_retries),
+            max_tokens=arg_or_env("aesthetics_max_tokens", env_config.max_tokens),
+            temperature=arg_or_env("aesthetics_temperature", env_config.temperature),
             enable_cache=getattr(args, "aesthetics_enable_cache", env_config.enable_cache),
             cache_dir=getattr(args, "aesthetics_cache_dir", env_config.cache_dir),
-            max_workers=getattr(args, "aesthetics_max_workers", env_config.max_workers),
+            max_workers=arg_or_env("aesthetics_max_workers", env_config.max_workers),
             fail_fast=getattr(args, "aesthetics_fail_fast", env_config.fail_fast)
         )
     

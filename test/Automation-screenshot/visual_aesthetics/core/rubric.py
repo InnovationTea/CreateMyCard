@@ -143,6 +143,8 @@ class JudgeResult:
     model: str = ""
     prompt_version: str = AESTHETIC_PROFILE
     elapsed_ms: int = 0
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
     success: bool = True
     error_msg: str = ""
 

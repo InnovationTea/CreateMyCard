@@ -85,3 +85,69 @@ Python runner 会直接执行 ArkTS 流程：`hvigor clean`、`hvigor assembleHa
 - DSL 文件：`dsl/{safe_sn}/{safe_sn}_{qid}.jsonl`
 - ArkTS 工作副本：`Automation/.work/devices/{safe_sn}/ArkTs`
 - 截图文件：`output/{safe_sn}/{safe_sn}_{qid}.jpeg`
+
+## 常用命令
+
+以下命令默认在项目根目录 `C:\Users\afan\Desktop\Automation-screenshot` 下执行。
+
+### 全流程执行
+
+批量发送 query、提取 DSL、构建渲染、截图、裁切、评分：
+
+```powershell
+python Automation\main.py batch --enable-card-crop --enable-aesthetics
+```
+
+多设备并行全流程：
+
+```powershell
+python Automation\main.py parallel --devices auto --enable-card-crop --enable-aesthetics
+```
+
+指定多设备：
+
+```powershell
+python Automation\main.py parallel --devices "SN1,SN2" --max-workers 2 --enable-card-crop --enable-aesthetics
+```
+
+### 仅批量发送 Query 提取 DSL
+
+```powershell
+python Automation\main.py collect-dsl
+```
+
+指定 query 文件：
+
+```powershell
+python Automation\main.py collect-dsl --queries queries.jsonl
+```
+
+### 单独批量渲染 DSL 并截图
+
+渲染 `dsl` 目录下所有 `.jsonl` 文件并截图：
+
+```powershell
+python Automation\main.py render-dsl-dir --dsl-dir dsl
+```
+
+渲染后同时裁切卡片：
+
+```powershell
+python Automation\main.py render-dsl-dir --dsl-dir dsl --enable-card-crop
+```
+
+### 单独批量裁切
+
+裁切 `output` 目录下已有截图：
+
+```powershell
+python Automation\main.py crop-card --input output --output output
+```
+
+### 单独批量评分
+
+对 `output` 目录下图片批量评分并生成报告：
+
+```powershell
+python Automation\main.py aesthetics --input output --output output
+```

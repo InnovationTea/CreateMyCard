@@ -23,19 +23,22 @@ _DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
 class SNFormatter(logging.Formatter):
-    """自定义 Formatter，支持 %(sn)s 占位符"""
-    def __init__(self, fmt=None, datefmt=None, sn=""):
+    """自定义 Formatter，支持 %(sn)s 和 %(qid)s 占位符"""
+    def __init__(self, fmt=None, datefmt=None, sn="", qid=""):
         super().__init__(fmt, datefmt)
         self.sn = sn
+        self.qid = qid
 
     def format(self, record):
         record.sn = self.sn
+        record.qid = self.qid
         return super().format(record)
 
 
 def get_logger(
     name: str = "pipeline",
     sn: str = "",
+    qid: str = "",
     log_dir: Optional[Path] = None,
     debug: bool = False,
 ) -> logging.Logger:
@@ -45,6 +48,7 @@ def get_logger(
     Args:
         name: 模块名，如 "hdc", "xiaoyi", "arkts", "pipeline", "judge", "main"
         sn: 设备SN，用于日志隔离，空字符串表示无设备
+        qid: Query ID，用于全链路关联，空字符串表示无关联
         log_dir: 日志文件输出目录，为 None 时仅输出到控制台
         debug: 是否开启 DEBUG 级别
     
@@ -54,7 +58,7 @@ def get_logger(
     缓存策略：同一个 (name, sn, log_dir) 组合只会创建一次 logger。
     """
     log_path = str(log_dir / "pipeline.log") if log_dir else ""
-    cache_key = f"{name}|{sn}|{log_path}|{debug}"
+    cache_key = f"{name}|{sn}|{qid}|{log_path}|{debug}"
     
     if cache_key in _loggers:
         return _loggers[cache_key]
@@ -69,7 +73,7 @@ def get_logger(
     # 控制台 handler：INFO 及以上
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(SNFormatter(_LOG_FORMAT, _DATE_FORMAT, safe_sn))
+    console_handler.setFormatter(SNFormatter(_LOG_FORMAT, _DATE_FORMAT, safe_sn, qid))
     logger.addHandler(console_handler)
     
     # 文件 handler：写入日志文件
@@ -78,7 +82,7 @@ def get_logger(
         log_file = log_dir / "pipeline.log"
         file_handler = logging.FileHandler(str(log_file), encoding="utf-8")
         file_handler.setLevel(logging.DEBUG if debug else logging.INFO)
-        file_handler.setFormatter(SNFormatter(_LOG_FORMAT, _DATE_FORMAT, safe_sn))
+        file_handler.setFormatter(SNFormatter(_LOG_FORMAT, _DATE_FORMAT, safe_sn, qid))
         logger.addHandler(file_handler)
     
     _loggers[cache_key] = logger

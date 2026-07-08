@@ -11,12 +11,14 @@ from typing import Mapping, Sequence
 
 from .config import AutomationConfig
 from .hdc import HdcClient
+from .logger import get_logger
 
 
 class ArkTsRunner:
     def __init__(self, config: AutomationConfig, hdc: HdcClient):
         self.config = config
         self.hdc = hdc
+        self._log = get_logger("arkts", sn=config.safe_sn or "", log_dir=config.output_dir, debug=config.debug)
 
     def render(self, qid: str, dsl_path: Path) -> Path:
         self.ensure_arkts_workspace()
@@ -44,8 +46,6 @@ class ArkTsRunner:
         return self.config.rawfile_target
 
     def ensure_arkts_workspace(self) -> None:
-        if not self.config.safe_sn:
-            return
         source = self.config.source_arkts_dir
         target = self.config.arkts_dir
         if not source.exists():
@@ -65,14 +65,22 @@ class ArkTsRunner:
         self.print_hap_outputs()
 
         if not self.config.signed_hap_path.exists():
+            self._log.error("Signed HAP not found: %s", self.config.signed_hap_path)
             raise FileNotFoundError(f"Signed HAP was not generated: {self.config.signed_hap_path}")
 
         remote_dir = f"/data/local/tmp/tmp_{self.remote_temp_suffix()}"
         remote_hap = f"{remote_dir}/{self.config.signed_hap_path.name}"
         try:
             self.hdc.shell("mkdir", "-p", remote_dir, timeout=30)
+            hap_size = self.config.signed_hap_path.stat().st_size / (1024 * 1024) if self.config.signed_hap_path.exists() else 0
+            self._log.info("hdc file send start: %.1fMB", hap_size)
+            t_push = time.monotonic()
             self.hdc.run(["file", "send", self.config.signed_hap_path, remote_hap], timeout=self.config.build_timeout)
+            self._log.info("hdc file send done: %.1fs", time.monotonic() - t_push)
+            self._log.info("bm install start")
+            t_install = time.monotonic()
             self.hdc.shell("bm", "install", "-p", remote_dir, timeout=self.config.build_timeout)
+            self._log.info("bm install done: %.1fs", time.monotonic() - t_install)
         finally:
             self.hdc.shell("rm", "-rf", remote_dir, timeout=30, check=False)
 

@@ -9,6 +9,7 @@ import time
 import os
 from ..core.rubric import JudgeResult, extract_json_from_model_output, redact_secret
 from automation.logger import get_logger
+from automation.logger import get_logger
 
 class BaseAestheticsModel(ABC):
     def __init__(self, config: Dict[str, Any]):
@@ -21,6 +22,7 @@ class BaseAestheticsModel(ABC):
         self.temperature = config.get("temperature", 0.0)
         self.prompt_version = config.get("prompt_version", "aesthetic-v4")
         self.output_mode = config.get("output_mode", "full")  # full/score-only
+        self._log = get_logger("aesthetics", sn="")
         self.logger = get_logger("aesthetics", sn="")
         
     @abstractmethod
@@ -35,11 +37,17 @@ class BaseAestheticsModel(ABC):
     
     def judge(self, image_path: Path, qid: str = "", sn: str = "") -> JudgeResult:
         """对外统一打分入口"""
+        self._log.info("[%s] stage=JUDGING image=%s", qid, image_path.name)
         self.logger.info("judge start: qid=%s image=%s", qid, image_path.name)
         from ..core.rubric import image_to_data_url, calculate_weighted_total, score_to_100, AxisScore, OcclusionResult
         
         start_time = time.perf_counter()
         try:
+            if not self.base_url:
+                raise ValueError("Aesthetics API base URL is required. Pass --aesthetics-base-url or set AESTHETICS_BASE_URL.")
+            if not self.api_key:
+                raise ValueError("Aesthetics API key is required. Pass --aesthetics-api-key or set AESTHETICS_API_KEY.")
+
             # 图片转base64
             image_data_url = image_to_data_url(image_path)
             
@@ -63,12 +71,14 @@ class BaseAestheticsModel(ABC):
                         continue
             
             if raw_response is None:
+                self._log.error("[%s] API all retries exhausted", qid)
                 raise RuntimeError(f"API调用失败，重试{self.max_retries}次后仍失败: {str(last_error)}")
             
             # 解析响应
             message_content = self._extract_message_content(raw_response)
             result_json = extract_json_from_model_output(message_content)
             if not result_json:
+                self._log.error("[%s] JSON parse failed: %s", qid, message_content[:200])
                 raise RuntimeError(f"模型输出没有有效JSON结构: {message_content[:500]}")
             
             # 解析得分
@@ -107,7 +117,15 @@ class BaseAestheticsModel(ABC):
             
             elapsed_ms = int((time.perf_counter() - start_time) * 1000)
             
-            self.logger.info("judge OK: qid=%s score=%.1f/100 elapsed=%dms", qid, final_score_100, elapsed_ms)
+            # 提取 token 用量
+            prompt_tokens = 0
+            completion_tokens = 0
+            usage = raw_response.get("usage", {})
+            if usage:
+                prompt_tokens = usage.get("prompt_tokens", 0)
+                completion_tokens = usage.get("completion_tokens", 0)
+            
+            self._log.info("[%s] stage=JUDGE_DONE score=%.1f/100 elapsed=%dms tokens_in=%d tokens_out=%d", qid, final_score_100, elapsed_ms, prompt_tokens, completion_tokens)
             return JudgeResult(
                 qid=qid,
                 sn=sn,
@@ -120,6 +138,8 @@ class BaseAestheticsModel(ABC):
                 model=self.model,
                 prompt_version=self.prompt_version,
                 elapsed_ms=elapsed_ms,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
                 success=True
             )
             

@@ -3,7 +3,7 @@
 """
 from pathlib import Path
 import json
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from .config import AestheticsConfig
 from .models.doubao import DoubaoAestheticsModel
@@ -18,6 +18,7 @@ class VisualAestheticsJudge:
         self.model = DoubaoAestheticsModel(config.to_model_config())
         # 缓存默认关闭，避免旧缓存导致跳过API调用。需要开启时设置环境变量 AESTHETICS_ENABLE_CACHE=true
         self.cache = AestheticsCache(config.cache_dir) if config.enable_cache else None
+        self._log = get_logger("aesthetics", sn="")
         self.logger = get_logger("aesthetics", sn="")
     
     def judge_image(self, image_path: Path, qid: str = "", sn: str = "", skip_cache: bool = False) -> JudgeResult:
@@ -101,10 +102,12 @@ class VisualAestheticsJudge:
                     result = future.result()
                     results.append(result)
                     status = "OK" if result.success else "FAIL"
+                    self._log.info("batch_judge %s: qid=%s score=%.1f", status, result.qid, result.final_score_100)
                     self.logger.info("batch_judge %s: qid=%s score=%.1f", status, result.qid, result.final_score_100)
                 except Exception as e:
                     img = future_to_image[future]
                     self.logger.error("batch_judge EXCEPTION: image=%s error=%s", img.name, str(e)[:200])
+                    self._log.error("batch_judge EXCEPTION: image=%s error=%s", img.name, str(e)[:200])
                     results.append(JudgeResult(
                         qid=img.stem,
                         sn=sn,
@@ -119,37 +122,64 @@ class VisualAestheticsJudge:
         
         success_count = sum(1 for r in results if r.success)
         self.logger.info("batch_judge done: %d/%d success", success_count, len(results))
+        total_prompt_tokens = sum(getattr(r, "prompt_tokens", 0) or 0 for r in results)
+        total_completion_tokens = sum(getattr(r, "completion_tokens", 0) or 0 for r in results)
+        avg_score = sum(r.final_score_100 for r in results if r.success) / success_count if success_count > 0 else 0
+        self._log.info("=" * 60)
+        self._log.info("BATCH JUDGE SUMMARY: total=%d success=%d fail=%d avg_score=%.1f tokens_in=%d tokens_out=%d", len(results), success_count, len(results) - success_count, avg_score, total_prompt_tokens, total_completion_tokens)
+        self._log.info("=" * 60)
         
         # 输出jsonl
         if output_jsonl_path:
-            output_jsonl_path = Path(output_jsonl_path).absolute()
-            output_jsonl_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(output_jsonl_path, "w", encoding="utf-8") as f:
-                for result in results:
-                    data = {
-                        "qid": result.qid,
-                        "sn": result.sn,
-                        "image_path": result.image_path,
-                        "final_score": result.final_score,
-                        "final_score_100": result.final_score_100,
-                        "axis_scores": [{k: v for k, v in ax.__dict__.items() if k not in ["__len__", "__getitem__"]} for ax in result.axis_scores],
-                        "occlusion": {
-                            "detected": result.occlusion.detected,
-                            "types": result.occlusion.types,
-                            "findings": result.occlusion.findings,
-                            "affected_axes": result.occlusion.affected_axes,
-                            "score_impact": result.occlusion.score_impact
-                        },
-                        "rationale": result.rationale,
-                        "model": result.model,
-                        "prompt_version": result.prompt_version,
-                        "elapsed_ms": result.elapsed_ms,
-                        "success": result.success,
-                        "error_msg": result.error_msg
-                    }
-                    f.write(json.dumps(data, ensure_ascii=False) + "\n")
+            self._write_results_jsonl(results, Path(output_jsonl_path))
         
         return results
+
+    def judge_images(self, image_paths: List[Path], sn: str = "", output_jsonl_path: Optional[Path] = None) -> List[JudgeResult]:
+        """
+        Score an explicit list of images. Used by automation when original screenshots and cropped cards
+        live in the same output directory.
+        """
+        results: List[JudgeResult] = []
+        for image_path in image_paths:
+            qid = Path(image_path).stem
+            if qid.endswith("_card"):
+                qid = qid[:-5]
+            if sn and qid.startswith(f"{sn}_"):
+                qid = qid[len(f"{sn}_"):]
+            results.append(self.judge_image(Path(image_path), qid, sn))
+
+        if output_jsonl_path:
+            self._write_results_jsonl(results, Path(output_jsonl_path))
+        return results
+
+    def _write_results_jsonl(self, results: List[JudgeResult], output_jsonl_path: Path) -> None:
+        output_jsonl_path = Path(output_jsonl_path).absolute()
+        output_jsonl_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_jsonl_path, "w", encoding="utf-8") as f:
+            for result in results:
+                data = {
+                    "qid": result.qid,
+                    "sn": result.sn,
+                    "image_path": result.image_path,
+                    "final_score": result.final_score,
+                    "final_score_100": result.final_score_100,
+                    "axis_scores": [{k: v for k, v in ax.__dict__.items() if k not in ["__len__", "__getitem__"]} for ax in result.axis_scores],
+                    "occlusion": {
+                        "detected": result.occlusion.detected,
+                        "types": result.occlusion.types,
+                        "findings": result.occlusion.findings,
+                        "affected_axes": result.occlusion.affected_axes,
+                        "score_impact": result.occlusion.score_impact
+                    },
+                    "rationale": result.rationale,
+                    "model": result.model,
+                    "prompt_version": result.prompt_version,
+                    "elapsed_ms": result.elapsed_ms,
+                    "success": result.success,
+                    "error_msg": result.error_msg
+                }
+                f.write(json.dumps(data, ensure_ascii=False) + "\n")
     
     def build_report(self, scores_jsonl_path: Path, output_html_path: Path, image_dir: Optional[Path] = None) -> None:
         """
