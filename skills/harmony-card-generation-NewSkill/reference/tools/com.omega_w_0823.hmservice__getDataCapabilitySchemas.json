@@ -1,0 +1,89 @@
+{
+  "bundleName": "com.omega_w_0823.hmservice",
+  "pluginType": "Cloud",
+  "toolType": "XiaoYiPlugin",
+  "toolName": "getDataCapabilitySchemas",
+  "description": "按数据能力 ID 加载完整 inputSchema、outputSchema、依赖和 DataModel 骨架",
+  "arguments": {
+    "properties": {
+      "capabilityRegistryVersion": {
+        "type": "String",
+        "description": "可选能力清单版本；不传时由 device.ohosApiVersion + device.romVersion 推导。"
+      },
+      "device": {
+        "type": "Object",
+        "description": "设备上下文；romVersion 和 ohosApiVersion 用于选择能力版本目录。"
+      },
+      "protocolProfileId": {
+        "type": "String",
+        "description": "可选 A2UI 协议 profile ID；本接口通常不需要传。"
+      },
+      "dataCapabilityIds": {
+        "type": "Array",
+        "description": "需要加载完整 schema 的数据能力 ID 列表，至少 1 个。"
+      },
+      "uid": {
+        "type": "String",
+        "description": "用户 ID，本地测试显式传入，线上由工具层注入。"
+      },
+      "locale": {
+        "type": "String",
+        "description": "语言区域。"
+      }
+    },
+    "required": [
+      "device",
+      "dataCapabilityIds",
+      "uid"
+    ],
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "dataCapabilities": {
+        "type": "Array",
+        "description": "已找到的数据能力完整定义。",
+        "required": [
+          "item"
+        ],
+        "properties": {
+          "item": {
+            "type": "Object",
+            "description": "数据能力项"
+          }
+        }
+      },
+      "missingCapabilityIds": {
+        "type": "Array",
+        "description": "未在当前能力清单版本中找到的数据能力 ID。",
+        "required": [
+          "item"
+        ],
+        "properties": {
+          "item": {
+            "type": "String",
+            "description": "缺失的数据能力 ID"
+          }
+        }
+      },
+      "capabilityRegistryVersion": {
+        "type": "String",
+        "description": "本次实际使用的能力清单版本目录名。"
+      },
+      "apiVersion": {
+        "type": "String",
+        "description": "接口版本。"
+      }
+    },
+    "required": [
+      "dataCapabilities",
+      "missingCapabilityIds",
+      "capabilityRegistryVersion",
+      "apiVersion"
+    ],
+    "type": "object"
+  },
+  "protocol": "WebSocket",
+  "deviceCommand": null,
+  "schemaVersion": "1.0"
+}

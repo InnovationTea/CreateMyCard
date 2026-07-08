@@ -63,6 +63,7 @@
 
 - 尺寸数字默认是 vp。
 - 字符串可使用 `vp`、`fp`、`%`，以及文档允许时的 `px`。
+- `"matchParent"` 只允许用于 `createSurface.width/height` 和 root `styles.width/height`，用于外围卡片填满端侧父布局；普通组件的 `width/height` 必须保持数值或可静态推导的约束。
 - 颜色使用 `#RRGGBB` 或 `#AARRGGBB`。
 - 卡片背景样式放在 root 组件的 `styles` 中；新卡片默认省略 `createSurface.styles`，只有宿主明确要求外层形状/裁切时才可写 `borderRadius`、`clip`。
 - `linearGradient` 固定写成对象并包含 `direction` 与 `colors`，例如 `{"direction":"RightBottom","colors":[["#RRGGBB",0],["#RRGGBB",1]]}`；`colors` 是嵌套 stop 对数组，不写成扁平数组，颜色可用 `#RRGGBB` 或 `#AARRGGBB`。

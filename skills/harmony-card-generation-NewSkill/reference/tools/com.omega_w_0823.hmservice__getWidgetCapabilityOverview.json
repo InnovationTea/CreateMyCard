@@ -1,0 +1,103 @@
+{
+  "bundleName": "com.omega_w_0823.hmservice",
+  "pluginType": "Cloud",
+  "toolType": "XiaoYiPlugin",
+  "toolName": "getWidgetCapabilityOverview",
+  "description": "获取当前设备版本可用的能力概述。数据能力只返回 id 和描述；事件能力、素材能力全量返回",
+  "arguments": {
+    "properties": {
+      "uid": {
+        "type": "String",
+        "description": "用户 ID，本地测试显式传入，线上由工具层注入。"
+      },
+      "locale": {
+        "type": "String",
+        "description": "语言区域。"
+      },
+      "device": {
+        "type": "Object",
+        "description": "设备上下文；romVersion 和 ohosApiVersion 用于选择能力版本目录。"
+      },
+      "protocolProfileId": {
+        "type": "String",
+        "description": "可选 A2UI 协议 profile ID；本接口通常不需要传。"
+      },
+      "capabilityRegistryVersion": {
+        "type": "String",
+        "description": "可选能力清单版本；不传时由 device.ohosApiVersion + device.romVersion 推导。"
+      }
+    },
+    "required": [
+      "uid",
+      "device"
+    ],
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "apiVersion": {
+        "type": "String",
+        "description": "接口版本。"
+      },
+      "dataCapabilities": {
+        "type": "Array",
+        "description": "数据能力概述列表，只包含 id 和 description。",
+        "required": [
+          "description",
+          "id"
+        ],
+        "properties": {
+          "description": {
+            "type": "String",
+            "description": "数据能力描述"
+          },
+          "id": {
+            "type": "String",
+            "description": "数据能力 ID"
+          }
+        }
+      },
+      "assetCandidates": {
+        "type": "Array",
+        "description": "素材能力完整列表。",
+        "required": [
+          "item"
+        ],
+        "properties": {
+          "item": {
+            "type": "Object",
+            "description": "素材能力项"
+          }
+        }
+      },
+      "capabilityRegistryVersion": {
+        "type": "String",
+        "description": "本次实际使用的能力清单版本目录名。"
+      },
+      "eventCapabilities": {
+        "type": "Array",
+        "description": "事件能力完整列表。",
+        "required": [
+          "item"
+        ],
+        "properties": {
+          "item": {
+            "type": "Object",
+            "description": "事件能力项"
+          }
+        }
+      }
+    },
+    "required": [
+      "apiVersion",
+      "dataCapabilities",
+      "assetCandidates",
+      "capabilityRegistryVersion",
+      "eventCapabilities"
+    ],
+    "type": "object"
+  },
+  "protocol": "WebSocket",
+  "deviceCommand": null,
+  "schemaVersion": "1.0"
+}

@@ -236,7 +236,7 @@ hard -> semantic -> quality
 
 检查：
 
-- DSL surface 尺寸是否与 CardSpec `suggestSize` 一致。
+- DSL surface 尺寸是否与 CardSpec `suggestSize` 一致；`createSurface.width/height` 可写 `matchParent`，校验按 profile 基准尺寸解析。
 - CardSpec `writeResultTo` 根路径是否在 `updateDataModel.value` 中初始化。
 
 ### `color_validator.py`
@@ -262,7 +262,7 @@ hard -> semantic -> quality
 
 检查：
 
-- root `width/height/borderRadius/clip/padding/background`。
+- root `width/height/borderRadius/clip/padding/background`；root `width/height` 可写 `matchParent`，内部组件使用 `matchParent` 会报错。
 - Row 横向预算。
 - Column 纵向预算。
 - 字号阶梯。

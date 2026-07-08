@@ -56,11 +56,11 @@
           },
           "temperatureText": {
             "type": "string",
-            "description": "适合直接显示的温度文本，例如“29°C”。"
+            "description": "适合直接显示的温度文本，例如"29°C"。"
           },
           "condition": {
             "type": "string",
-            "description": "当前天气现象，例如“阴”“多云”“小雨”。"
+            "description": "当前天气现象，例如"阴""多云""小雨"。"
           },
           "feelsLikeC": {
             "type": "number",
@@ -74,7 +74,7 @@
           },
           "airQuality": {
             "type": "string",
-            "description": "当前空气质量等级，例如“优”“良”。"
+            "description": "当前空气质量等级，例如"优""良"。"
           },
           "windDirection": {
             "type": "string",
@@ -87,7 +87,7 @@
           },
           "uvIndex": {
             "type": "string",
-            "description": "当前紫外线等级，例如“弱”“中等”“强”。"
+            "description": "当前紫外线等级，例如"弱""中等""强"。"
           },
           "coldLevel": {
             "type": "string",
@@ -111,15 +111,15 @@
             },
             "weekday": {
               "type": "string",
-              "description": "星期文本，例如“星期日”。"
+              "description": "星期文本，例如"星期日"。"
             },
             "condition": {
               "type": "string",
-              "description": "白天天气现象。"
+              "description": "白天天气现象，来源于weather_icon。"
             },
             "temperatureRangeText": {
               "type": "string",
-              "description": "适合直接显示的温度范围，例如“24° / 32°”。"
+              "description": "适合直接显示的温度范围，例如"24° / 32°"。"
             },
             "rainProbabilityPercent": {
               "type": "string",

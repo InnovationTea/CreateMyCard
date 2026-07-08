@@ -12,9 +12,9 @@
 - 匹配成功后，不要用 `Text` 字形、emoji、自绘形状、相似资源路径、未声明 SVG 或未声明图片替代该语义素材。
 - 只有没有语义匹配素材、加入图标会破坏 L1 布局预算，或用户明确要求不用图片/图标素材时，才省略 `Image`。
 
-## SVG 图标索引
+## 本地素材索引
 
-所有 `src` 均以 `resources/base/media` 为前缀，素材格式统一为 `.svg`。
+所有 `src` 均以 `resources/base/media` 为前缀，素材格式为 `.svg` 或 `.png`。
 
 | src | description |
 | --- | --- |
@@ -35,6 +35,9 @@
 | `resources/base/media/clock.svg` | 时钟线框图标，黑色，图形为圆形表盘加指针的线性轮廓，适用场景：时间显示、定时功能、倒计时 |
 | `resources/base/media/clock_fill.svg` | 时钟实心图标，黑白双色，图形为圆形实心表盘加白色指针，适用场景：时间显示、闹钟设置、定时器 |
 | `resources/base/media/cold.svg` | 寒冷/雪花图标，黑色，图形为六角雪花晶体造型，适用场景：制冷模式、低温天气展示、空调冷风设置 |
+| `resources/base/media/cloudy.png` | 云朵组合，彩色图标，适用场景：天气、出行 |
+| `resources/base/media/cloudy_turning_sunny.png` | 小云朵和太阳组合，彩色图标，适用场景：天气、出行 |
+| `resources/base/media/courier_box.png` | 快递箱子，彩色图标，适用场景：物流信息、取件提醒 |
 | `resources/base/media/drop_1.svg` | 水滴图标，黑色，图形为圆润水滴轮廓，适用场景：湿度数据展示、饮水提醒、天气降雨信息 |
 | `resources/base/media/earphone_case_16644.svg` | 耳机收纳盒实心图标，黑色，图形为无线耳机充电盒造型，适用场景：蓝牙耳机设备连接、音频设备管理 |
 | `resources/base/media/externaldrive_fill.svg` | 外置存储设备实心图标，黑色，图形为矩形硬盘盒造型，适用场景：本地存储管理、数据备份、文件传输 |
@@ -46,6 +49,7 @@
 | `resources/base/media/heart_fill.svg` | 心形实心图标，黑色，图形为标准爱心轮廓，适用场景：健康数据、心率监测展示、收藏/喜欢功能 |
 | `resources/base/media/heat_generation.svg` | 发热/暖气图标，黑色，图形为散热或暖气片波浪造型，适用场景：暖气控制、制热模式、冬季取暖设置 |
 | `resources/base/media/house_fill.svg` | 房屋实心图标，黑白双色，图形为三角屋顶加矩形门洞的家形造型，适用场景：首页导航、智能家居入口、回家提醒 |
+| `resources/base/media/hourglass_fill.svg` | 沙漏和齿轮组合图标，图形为沙漏线性右下角齿轮组合的造型，适用场景：应用时长 |
 | `resources/base/media/id_fill.svg` | 身份证/工牌实心图标，黑色，图形为矩形证件卡片造型，适用场景：身份识别、工牌/证件展示、当下日程身份信息 |
 | `resources/base/media/kidswatch_fill.svg` | 儿童手表实心图标，黑色，图形为圆形表盘加表带的手表造型，适用场景：儿童设备管理、家长控制、儿童安全 |
 | `resources/base/media/l_circle_fill.svg` | 字母L圆形实心图标，黑色，图形为圆形背景内白色L字母，适用场景：标签分类标识、左侧导航标记 |
@@ -61,12 +65,23 @@
 | `resources/base/media/phone_fill.svg` | 电话实心图标，黑色，图形为经典听筒造型，适用场景：拨打电话、通话功能入口 |
 | `resources/base/media/phone_fill_1.svg` | 电话实心图标（变体），黑色，图形为听筒加信号波形，适用场景：来电接听、通话状态展示 |
 | `resources/base/media/play_fill.svg` | 播放实心图标，黑色，图形为向右的实心三角形，适用场景：音乐/视频播放控制、媒体播放器 |
+| `resources/base/media/partly_cloudy.png` | 云朵在前、太阳在后的组合，彩色图标，适用场景：天气、出行 |
 | `resources/base/media/qrcode.svg` | 二维码图标，黑色，图形为标准方形二维码点阵图案，适用场景：扫码功能、快速连接设备、信息分享 |
+| `resources/base/media/rain.png` | 云朵和雨滴组合，彩色图标，适用场景：天气、出行 |
 | `resources/base/media/r_circle_fill.svg` | 字母R圆形实心图标，黑色，图形为圆形背景内白色R字母，适用场景：标签分类标识、录制状态标记 |
+| `resources/base/media/snow.png` | 雪花，彩色图标，适用场景：天气、出行 |
 | `resources/base/media/stopwatch_fill.svg` | 秒表实心图标，黑白双色，图形为带按钮的圆形秒表造型，适用场景：计时功能、运动计时、倒计时 |
+| `resources/base/media/sunny.png` | 太阳，彩色图标，适用场景：天气、出行 |
 | `resources/base/media/sun_max.svg` | 太阳最大亮度图标，黑色，图形为圆形太阳加多条粗放射线，适用场景：天气晴朗展示、屏幕亮度最大值 |
 | `resources/base/media/sun_min.svg` | 太阳最小亮度图标，黑色，图形为圆形太阳加短细放射线，适用场景：低亮度调节、柔和光线、日出/日落场景 |
+| `resources/base/media/thermometer_snowflake.svg` | 温度计/雪花组合图标，黑色，图形为温度计右侧叠加雪花造型，适用场景：寒冷预警、体感指数 |
+| `resources/base/media/thermometer_sun_fill.svg` | 温度计/太阳组合图标，黑色，图形为温度计右侧叠加太阳造型，适用场景：高温预警、体感指数 |
+| `resources/base/media/thunder.png` | 云朵和闪电组合，彩色图标，适用场景：天气、出行 |
+| `resources/base/media/thunder_storm.svg` | 下雨和闪电造型组合图标，图形为下雨中带有闪电的造型，适用场景：雷暴预警 |
+| `resources/base/media/thunderstorm.png` | 云朵、闪电和雨滴组合，彩色图标，适用场景：天气、出行 |
+| `resources/base/media/tornado.png` | 龙卷风，彩色图标，适用场景：天气、出行 |
 | `resources/base/media/tram_fill.svg` | 有轨电车实心图标，黑色，图形为带导线的有轨电车侧视轮廓，适用场景：城市公共交通、地铁/轻轨出行导航 |
+| `resources/base/media/typhoon_fill.svg` | 台风黑色图标，图形为台风漩涡造型，适用场景：台风预警、台风路径 |
 | `resources/base/media/z_alarm_fill.svg` | 带Z的闹钟贪睡实心图标，黑色，图形为闹钟旁附带字母Z表示贪睡，适用场景：闹钟贪睡功能、延迟提醒、睡眠场景 |
 
 ## PNG 图标索引

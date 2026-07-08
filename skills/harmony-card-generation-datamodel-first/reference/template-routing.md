@@ -8,7 +8,7 @@
 - 不要读取 skill 包外的历史样例、截图、布局目录或其它本地文件作为生成依据。旧样例已经折叠为 `index.json.sourceAuditSummary` 和各模板 `manifest.sourceObservation`。
 - 维护本 skill 时也以本包内 `assets/templates/`、`reference/` 和已声明素材为准；新增模板规则必须先折叠为本包内 manifest、模板骨架、合规素材索引和参考规则后再被使用。
 - 不要从外部链接、网络 URL、未声明本地路径或相似路径补素材。素材只允许来自本 skill 的 `reference/design/asset-library.md` 或用户在当前任务中明确提供的资源。
-- 历史样例里的旧尺寸、多段组件更新、base64 图片、未声明 SVG、emoji 和旧动作写法不得复制。正式模板统一按本 skill 校验口径输出：`2x2 = 140 x 140`，`2x4 = 300 x 140`。
+- 历史样例里的旧尺寸、多段组件更新、base64 图片、未声明 SVG、emoji 和旧动作写法不得复制。正式模板统一按本 skill 校验口径输出：`2x2 = 140 x 140`，`2x4 = 300 x 140` 作为逻辑画布；输出时 `createSurface.width/height` 与 root `styles.width/height` 可写 `"matchParent"`，内部组件预算保持模板数值。
 
 ## 使用前判定
 
@@ -29,7 +29,7 @@
 - `useWhen`、`avoidWhen` 和 pattern 名只帮助缩小候选；真正是否使用模板，以槽位结构、尺寸预算、动作数量、素材需求、受保护文本长度和 manifest 约束为准。
 - 同时命中多个模板时，按 `assets/templates/index.json` 中出现顺序选择第一个满足全部条件的模板，不重新排序候选。
 - 模板生成默认采用 manifest 槽位模式：按 `object`、`primary`、`support`、`metric/tile/status/badge`、`action`、`asset` 分配内容；未被用户要求、无法提供独立判断或会重复 `primary` 的可选槽位直接删除。
-- 保留模板的尺寸、root shell、核心层级、ID 命名和 `colorPolicy` 角色约束；删除槽位时同步删除组件引用、DataModel 字段和 CardSpec 冗余。
+- 保留模板的逻辑尺寸、root shell 形状、内部区域预算、核心层级、ID 命名和 `colorPolicy` 角色约束；输出时只把外围 `createSurface.width/height` 与 root `styles.width/height` 改为 `"matchParent"`，删除槽位时同步删除组件引用、DataModel 字段和 CardSpec 冗余。
 - 模板填充也使用完整 `{{ ... }}` 表达式；manifest 槽位里的 `path` 只表示 DataModel 槽位地址，落到 DSL 组件值时写成 `"{{ ${/slot/path} }}"` 或模板项相对表达式。需要条件、计算或长字符串时，可先在 `updateDataModel` 中预计算展示字段，再用表达式读取。不要把模板中的 `{"path":...}` 或 `formatString` 当最终值绑定保留。
 
 ## 读取顺序

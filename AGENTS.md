@@ -23,10 +23,10 @@
 
 - `docs/云侧方案设计.md`：云侧方案、系统边界、工具接口、协议约束、校验、降级、测试和日志规范。
 - `skills/harmony-card-generation-NewSkill/`：按照目标链路设计的新 Skill，需随方案持续优化。
-- `skills/harmony-card-generation/`：旧版 Skill，之前的链路让主 Agent 自行完成生成，没有调用微服务；仅作历史参考。
-- `skills/harmony-card-generation/reference/capability/event-capability/click-event.md`：事件能力清单。
-- `skills/harmony-card-generation/reference/data-capability/`：端侧数据能力清单，持续扩充中。
-- `skills/harmony-card-generation/reference/asset-library.md`：端侧素材库清单。
+- `skills/harmony-card-generation-datamodel-first/`：这个是让主Agent端到端生成DSL与CardSpec(没有走微服务)，这个skill也需要保留，目的是用来生产卡片数据，与微服务解耦。
+- `skills/harmony-card-generation-datamodel-first/reference/capability/event-capability/click-event.md`：事件能力清单。
+- `skills/harmony-card-generation-datamodel-first/reference/data-capability/`：端侧数据能力清单，持续扩充中。
+- `skills/harmony-card-generation-datamodel-first/reference/asset-library.md`：端侧素材库清单。
 
 ## 优先级
 

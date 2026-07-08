@@ -1,0 +1,136 @@
+{
+  "bundleName": "com.omega_w_0823.hmservice",
+  "pluginType": "Cloud",
+  "toolType": "XiaoYiPlugin",
+  "toolName": "generateWidgetCard",
+  "description": "提交用户需求、候选数据绑定、候选事件和素材，生成可下载的 HarmonyOS A2UI Form 卡片 artifact",
+  "arguments": {
+    "properties": {
+      "capabilityRegistryVersion": {
+        "type": "String",
+        "description": "可选能力清单版本；不传时由 device.ohosApiVersion + device.romVersion 推导"
+      },
+      "device": {
+        "type": "Object",
+        "description": "设备上下文；romVersion 和 ohosApiVersion 用于选择能力版本目录并裁决设备能力"
+      },
+      "candidateEventCandidates": {
+        "type": "Array",
+        "description": "候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "Object",
+            "description": "事件 action"
+          }
+        }
+      },
+      "locale": {
+        "type": "String",
+        "description": "语言区域"
+      },
+      "userQuery": {
+        "type": "String",
+        "description": "用户原始卡片需求"
+      },
+      "protocolProfileId": {
+        "type": "String",
+        "description": "可选 A2UI 协议 profile ID；不传时使用默认 profile"
+      },
+      "options": {
+        "type": "Object",
+        "description": "生成选项；本地调试可用 returnArtifactInline 控制是否内联 artifact"
+      },
+      "candidateDataBindings": {
+        "type": "String",
+        "description": "候选数据能力调用列表；微服务会按注册表和 IDS 状态裁决最终可用项"
+      },
+      "uid": {
+        "type": "String",
+        "description": "用户 ID，本地测试显式传入，线上由工具层注入"
+      },
+      "size": {
+        "type": "String",
+        "description": "主 Agent 建议尺寸"
+      },
+      "candidateAssetIds": {
+        "type": "Array<String>",
+        "description": "候选素材 ID 列表",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "String",
+            "description": "候选素材 ID"
+          }
+        }
+      }
+    },
+    "required": [
+      "device",
+      "userQuery",
+      "uid"
+    ],
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "errorCode": {
+        "type": "String",
+        "description": "失败或不支持时返回的错误码。"
+      },
+      "suggestSize": {
+        "type": "String",
+        "description": "最终生成卡片尺寸。"
+      },
+      "message": {
+        "type": "String",
+        "description": "可展示给主 Agent 或用户的生成结果说明。"
+      },
+      "artifact": {
+        "type": "Object",
+        "description": "调试时可选内联 artifact；生产默认不返回。"
+      },
+      "artifactDigest": {
+        "type": "String",
+        "description": "artifact 内容摘要。"
+      },
+      "status": {
+        "type": "String",
+        "description": "生成状态。"
+      },
+      "effectiveCapabilities": {
+        "type": "Object",
+        "description": "最终进入 artifact 的有效 data、event、asset 能力集合。"
+      },
+      "removedCapabilities": {
+        "type": "Array",
+        "description": "被微服务裁决移除的能力及原因。",
+        "required": [],
+        "properties": {
+          "item": {
+            "type": "Object",
+            "description": "被移除的能力项"
+          }
+        }
+      },
+      "apiVersion": {
+        "type": "String",
+        "description": "接口版本。"
+      },
+      "artifactUrl": {
+        "type": "String",
+        "description": "artifact 下载地址；成功或降级成功时返回。"
+      }
+    },
+    "required": [
+      "suggestSize",
+      "message",
+      "status",
+      "apiVersion"
+    ],
+    "type": "object"
+  },
+  "protocol": "WebSocket",
+  "deviceCommand": null,
+  "schemaVersion": "1.0"
+}
