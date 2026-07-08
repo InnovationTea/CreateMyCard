@@ -26,6 +26,24 @@ metadata:
 - 根据微服务返回状态组织用户回复。
 - 当 `generateWidgetCard` 不可用、调用失败或结果不符合预期时，进入主 Agent 兜底链路生成最终可交付结果。
 
+## 触发场景
+
+典型触发 query：
+
+- 端侧显式带 `/harmony-card-generation`、模板 ID 或创建卡片页面上下文的请求。
+- "帮我做一张天气卡片"
+- "生成一个通勤 widget，包含天气和日程"
+- "做一个一键清理内存的桌面卡"
+- "给我做一个看抖音使用时长和耗电的卡片"
+- "创建一个会议提醒卡片，可以一键入会"
+- 任何包含"桌面卡片"、"widget"、"服务卡片"、"生成卡片"、"创建卡片"等表述的请求。
+
+不进入或直接说明边界的 query：
+
+- 纯聊天、百科、写作、代码任务。
+- 要求完整 App 页面、复杂表单、长报告。
+- 要求直接输出 DSL/CardSpec。
+
 ## 边界
 
 - 默认不直接输出 `genui` 或 `cardspec` 代码块。
@@ -74,30 +92,27 @@ metadata:
 
 ### Function: getWidgetCapabilityOverview
 - **toolName**: getWidgetCapabilityOverview
-- **description**: 获取当前设备版本可用的能力概述。数据能力只返回 id 和描述；事件能力、素材能力全量返回
-- **参数**: {"type":"object","properties":{"uid":{"type":"String","description":"用户 ID，本地测试显式传入，线上由工具层注入。"},"locale":{"type":"String","description":"语言区域。"},"device":{"type":"Object","description":"设备上下文；romVersion 和 ohosApiVersion 用于选择能力版本目录。"},"protocolProfileId":{"type":"String","description":"可选 A2UI 协议 profile ID；本接口通常不需要传。"},"capabilityRegistryVersion":{"type":"String","description":"可选能力清单版本；不传时由 device.ohosApiVersion + device.romVersion 推导。"}},"required":["uid","device"]}
-- **约束**: 必须先调用该工具，再做候选选择；不要因 overview 中出现某能力就向用户承诺设备一定可用。
+- **description**: 获取当前设备版本可用的能力概述。数据能力只返回 id 和描述；事件能力和素材能力全量返回
+- **参数**: {}
 
 ### Function: getDataCapabilitySchemas
 - **toolName**: getDataCapabilitySchemas
 - **description**: 按数据能力 ID 加载完整 inputSchema、outputSchema、依赖和 DataModel 骨架
-- **参数**: {"type":"object","properties":{"capabilityRegistryVersion":{"type":"String","description":"可选能力清单版本；不传时由 device.ohosApiVersion + device.romVersion 推导。"},"device":{"type":"Object","description":"设备上下文；romVersion 和 ohosApiVersion 用于选择能力版本目录。"},"protocolProfileId":{"type":"String","description":"可选 A2UI 协议 profile ID；本接口通常不需要传。"},"dataCapabilityIds":{"type":"Array","description":"需要加载完整 schema 的数据能力 ID 列表，至少 1 个。"},"uid":{"type":"String","description":"用户 ID，本地测试显式传入，线上由工具层注入。"},"locale":{"type":"String","description":"语言区域。"}},"required":["device","dataCapabilityIds","uid"]}
-- **约束**: 只传本轮从 overview 中选出的数据能力 ID；如果某 ID 出现在 `missingCapabilityIds`，移除该数据能力。
+- **参数**: {"type":"object","properties":{"dataCapabilityIds":{"type":"Array<String>","description":"需要加载完整 schema 的数据能力 ID 列表，至少 1 个。","required":[],"properties":{"ArrayItem":{"type":"String","description":"完整 schema 的数据能力 ID "}}}},"required":["dataCapabilityIds"]}
 
 ### Function: generateWidgetCard
 - **toolName**: generateWidgetCard
 - **description**: 提交用户需求、候选数据绑定、候选事件和素材，生成可下载的 HarmonyOS A2UI Form 卡片 artifact
-- **参数**: {"type":"object","properties":{"capabilityRegistryVersion":{"type":"String","description":"可选能力清单版本；不传时由 device.ohosApiVersion + device.romVersion 推导。"},"device":{"type":"Object","description":"设备上下文；romVersion 和 ohosApiVersion 用于选择能力版本目录并裁决设备能力。"},"candidateEventCandidates":{"type":"Array","description":"候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明。","required":[],"properties":{"ArrayItem":{"type":"Object","description":"事件 action"}}},"locale":{"type":"String","description":"语言区域。"},"userQuery":{"type":"String","description":"用户原始卡片需求。"},"protocolProfileId":{"type":"String","description":"可选 A2UI 协议 profile ID；不传时使用默认 profile。"},"options":{"type":"Object","description":"生成选项；本地调试可用 returnArtifactInline 控制是否内联 artifact。"},"candidateDataBindings":{"type":"String","description":"候选数据能力调用列表；微服务会按注册表和 IDS 状态裁决最终可用项。"},"uid":{"type":"String","description":"用户 ID，本地测试显式传入，线上由工具层注入。"},"size":{"type":"String","description":"主 Agent 建议尺寸。"},"candidateAssetIds":{"type":"Array<String>","description":"候选素材 ID 列表。","required":[],"properties":{"ArrayItem":{"type":"String","description":"候选素材 ID"}}}},"required":["device","userQuery","uid"]}
-- **约束**: `candidateDataBindings` 是候选，不是最终 CardSpec；`candidateEventCandidates` 每项必须同时包含 `capabilityId` 和完整 `action`；不重试工具。
+- **参数**: {"type":"object","properties":{"candidateEventCandidates":{"type":"Array","description":"候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明","required":[],"properties":{"ArrayItem":{"type":"Object","description":"事件 action"}}},"candidateAssetIds":{"type":"Array<String>","description":"候选素材 ID 列表","required":[],"properties":{"ArrayItem":{"type":"String","description":"候选素材 ID"}}},"candidateDataBindings":{"type":"Array","description":"候选数据能力调用列表；微服务会按注册表和 IDS 状态裁决最终可用项","required":[],"properties":{"ArrayItem":{"type":"Object","description":"候选数据能力"}}},"userQuery":{"type":"String","description":"用户原始卡片需求"},"size":{"type":"String","description":"主 Agent 建议尺寸"}},"required":["userQuery"]}
 
 ## 工具调用示例
 
 ```text
-invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.omega_w_0823.hmservice", locale:"zh-CN"})
+invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.omega_w_0823.hmservice"})
 
-invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:["ViewWeather", "calendar.events.search"], locale:"zh-CN"})
+invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:["ViewWeather", "calendar.events.search"]})
 
-invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"生成一个通勤卡片", locale:"zh-CN", size:"2x4", candidateDataBindings:[{capabilityId:"ViewWeather", arguments:{districtName:"青浦区", forecastDays:1}, writeResultTo:"/data/weather"}], candidateEventCandidates:[{capabilityId:"event.open.weather", action:{call:"clickToDeeplink", args:{bundleName:"", abilityName:"", uri:"hww://www.huawei.com/totemweather?enterType=share&cityCode="}}}], candidateAssetIds:["asset.weather.rain"]})
+invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"生成一个通勤卡片", size:"2x4", candidateDataBindings:[{capabilityId:"ViewWeather", arguments:{districtName:"青浦区", forecastDays:1}, writeResultTo:"/data/weather"}], candidateEventCandidates:[{capabilityId:"event.open.weather", action:{call:"clickToDeeplink", args:{bundleName:"", abilityName:"", uri:"hww://www.huawei.com/totemweather?enterType=share&cityCode="}}}], candidateAssetIds:["asset.weather.rain"]})
 ```
 
 

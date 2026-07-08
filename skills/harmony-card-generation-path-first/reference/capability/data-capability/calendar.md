@@ -7,13 +7,9 @@
   "inputSchema": {
     "type": "object",
     "properties": {
-      "startTimestamp": {
-        "type": "number",
-        "description": "查询的起始时间戳（毫秒级）。可不传，不传时默认查询当前系统时间。"
-      },
-      "endTimestamp": {
-        "type": "number",
-        "description": "查询的结束时间戳（毫秒级）。可不传，不传时默认查询未来7天内的日程，以保障倒计时卡片有充足的数据源。"
+      "futureDays": {
+        "type": "integer",
+        "description": "需要查询的未来时间窗口天数。例如用户想看'这周'或'未来7天'的日程则传 7。若不传，端侧默认查询未来7天。"
       }
     },
     "required": []
@@ -46,7 +42,7 @@
             },
             "title": {
               "type": "string",
-              "description": "日程标题，例如“会议”、“咪咕视频《西班牙 VS 奥地利》”。"
+              "description": "日程标题，例如"会议"、"咪咕视频《西班牙 VS 奥地利》"。"
             },
             "eventLocation": {
               "type": "string",
