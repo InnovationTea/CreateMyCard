@@ -15,8 +15,8 @@
     "updateDataModel": ["value"]
   },
   "sizes": {
-    "2x2": {"width": 140, "height": 140, "borderRadius": 18},
-    "2x4": {"width": 300, "height": 140, "borderRadius": 22}
+    "2x2": {"width": 150, "height": 150, "borderRadius": 18},
+    "2x4": {"width": 288, "height": 136, "borderRadius": 22}
   },
   "allowedComponents": ["Text", "Image", "Divider", "Progress", "Button", "Checkbox", "Row", "Column", "List", "Stack"],
   "forbiddenComponents": ["TextInput", "Toggle", "Radio", "CheckboxGroup", "Select", "NavContainer", "Tabs", "TabContent", "Web", "Grid", "If"],

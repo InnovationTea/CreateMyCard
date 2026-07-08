@@ -1,13 +1,13 @@
 # CardSpec 数据能力契约
 
-CardSpec 与 DSL 一起描述同一张卡片。最终响应只有两个代码块：`genui` DSL JSONL + `cardspec` JSON。DSL 负责可渲染 Form 组件；CardSpec 只负责推荐尺寸、端侧数据能力和持久化契约。事件能力不属于 CardSpec，点击、拨号、打开应用或详情页只写 DSL `onClick`。
+CardSpec 与 DSL 一起描述同一张卡片。最终响应只有两个代码块：`genui` DSL JSONL + `cardspec` JSON。DSL 负责可渲染 Form 组件；CardSpec 只负责宿主展示标题、宿主展示概述、推荐尺寸、端侧数据能力和持久化契约。事件能力不属于 CardSpec，点击、拨号、打开应用或详情页只写 DSL `onClick`。
 
 Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构，并让 DSL 与 CardSpec 对齐。端侧负责执行能力、处理权限、归一化结果、持久化配置，并在运行时发送 `updateDataModel`。
 
 ## 先决策
 
 - 每张卡都输出 `genui` 和 `cardspec`；静态卡片也输出 CardSpec。
-- 静态卡片只写 `suggestSize`，不要虚构 `dataBindings`。
+- 静态卡片写 `title`、`description`、`suggestSize`，不要虚构 `dataBindings`。
 - 动态卡片先选择已声明 data capability，再按其 `inputSchema` 填 `arguments`；不要沿用旧示例参数或自行改名。
 - `writeResultTo` 使用 `/data/...` JSON Pointer；UI 路径由 `writeResultTo + outputSchema` 推导。
 - `updateDataModel.value` 初始化 UI 会访问的根结构和加载态，不写死用户真实隐私数据。
@@ -18,17 +18,19 @@ Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构
 静态卡片：
 
 ```json
-{"suggestSize":"2x2"}
+{"title":"状态卡片","description":"状态概览","suggestSize":"2x2"}
 ```
 
 动态卡片：
 
 ```json
-{"suggestSize":"2x4","dataBindings":[{"capabilityId":"calendar.events.search","arguments":{"timeInterval":[1766448000000,1766534399999]},"writeResultTo":"/data/calendar"}]}
+{"title":"日程卡片","description":"今日日程","suggestSize":"2x4","dataBindings":[{"capabilityId":"calendar.events.search","arguments":{"timeInterval":[1766448000000,1766534399999]},"writeResultTo":"/data/calendar"}]}
 ```
 
 ## 字段规则
 
+- `title` 必须是用户可见的静态短标题，建议不超过 8 个字符，不能写表达式、绑定或 DataModel 路径。
+- `description` 必须是用户可见的静态短概述，建议不超过 12 个字符，不能写表达式、绑定或 DataModel 路径。
 - `suggestSize` 必须与 DSL 尺寸一致，只能是 `"2x2"` 或 `"2x4"`。
 - 动态卡片必须包含 `dataBindings`；每个 `dataBindings[]` 表示一次端侧能力调用。
 - `capabilityId` 必须来自 [`data-capability/`](data-capability/) 中选定能力 manifest 的 `id`。
