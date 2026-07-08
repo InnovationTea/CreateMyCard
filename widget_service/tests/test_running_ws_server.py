@@ -68,23 +68,33 @@ async def _call_ws(path_name: str, payload: dict, expected_request_id: str) -> d
     - path_name：WS path 最后一段，例如 getWidgetCapabilityOverview。
     - payload：新协议 WebSocket 请求包络。
     - expected_request_id：服务端应返回的 requestId。
-    出参：服务端返回的 result 消息。
+    出参：reply.items[0] 中保留的当前完整旧出参。
     """
     uri = f"{WS_BASE_URL}{WS_BASE_PATH}/{path_name}"
     try:
         async with websockets.connect(uri, open_timeout=2.0) as websocket:
             await websocket.send(json.dumps(payload, ensure_ascii=False))
             message = json.loads(await websocket.recv())
-            assert message["type"] == "result"
-            assert message["tool"] == path_name
-            assert message["operation"] == path_name
-            assert message["requestId"] == expected_request_id
-            assert "data" in message
-            assert "status" in message
-            assert "errorCode" in message
-            assert "error" in message
-            assert message["error"] == {}
-            return message
+            assert message["errorCode"] == "0"
+            assert message["errorMessage"] == ""
+            stream_info = message["reply"]["streamInfo"]
+            assert stream_info["streamingTextId"] == expected_request_id
+            assert stream_info["streamType"] == "final"
+            assert stream_info["textType"] == "markdown"
+            assert stream_info["streamContent"]
+
+            assert len(message["reply"]["items"]) == 1
+            legacy_message = message["reply"]["items"][0]
+            assert legacy_message["type"] == "result"
+            assert legacy_message["tool"] == path_name
+            assert legacy_message["operation"] == path_name
+            assert legacy_message["requestId"] == expected_request_id
+            assert "data" in legacy_message
+            assert "status" in legacy_message
+            assert "errorCode" in legacy_message
+            assert "error" in legacy_message
+            assert legacy_message["error"] == {}
+            return legacy_message
     except OSError:
         pytest.skip(
             "本测试需要先启动本地 WebSocket 服务："

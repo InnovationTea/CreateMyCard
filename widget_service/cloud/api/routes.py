@@ -2,6 +2,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import time
 import traceback
+import uuid
 from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -16,6 +17,9 @@ from api.schemas import (
 from app.logger import logger
 from config.config import get_settings
 from models.service import (
+    WidgetPluginReply,
+    WidgetPluginStreamResponse,
+    WidgetStreamInfo,
     WidgetWebSocketErrorMessage,
     WidgetWebSocketResultMessage,
 )
@@ -157,6 +161,80 @@ def _error_details(exc: ValidationError | ValueError) -> list[dict[str, Any]] | 
     return str(exc)
 
 
+def _stream_content_for_result(operation: str, result_data: dict[str, Any]) -> str:
+    """根据业务结果生成流式答复文本。
+
+    入参：
+    - operation：当前 WS path 对应的能力名。
+    - result_data：业务响应对象的 JSON 字典。
+    出参：写入 reply.streamInfo.streamContent 的 markdown 文本。
+    """
+    if operation == "getWidgetCapabilityOverview":
+        data_count = len(result_data.get("dataCapabilities", []))
+        event_count = len(result_data.get("eventCapabilities", []))
+        asset_count = len(result_data.get("assetCandidates", []))
+        return (
+            f"已获取卡片能力概述：{data_count} 个数据能力、"
+            f"{event_count} 个事件能力、{asset_count} 个素材候选。"
+        )
+
+    if operation == "getDataCapabilitySchemas":
+        found_count = len(result_data.get("dataCapabilities", []))
+        missing_count = len(result_data.get("missingCapabilityIds", []))
+        if missing_count:
+            return f"已获取 {found_count} 个数据能力 Schema，{missing_count} 个能力未找到。"
+        return f"已获取 {found_count} 个数据能力 Schema。"
+
+    if operation == "generateWidgetCard":
+        return result_data.get("message") or "卡片生成流程已完成。"
+
+    return "工具调用已完成。"
+
+
+def _stream_content_for_error(operation: str, error_code: str) -> str:
+    """根据异常类型生成流式错误文本。
+
+    入参：
+    - operation：当前 WS path 对应的能力名。
+    - error_code：错误码。
+    出参：写入 reply.streamInfo.streamContent 的 markdown 文本。
+    """
+    if error_code == "INVALID_ARGUMENTS":
+        return f"{operation} 入参校验失败，请检查参数后重试。"
+    return f"{operation} 调用失败，请稍后再试。"
+
+
+def _build_plugin_stream_response(
+    legacy_message: WidgetWebSocketResultMessage | WidgetWebSocketErrorMessage,
+    stream_content: str,
+    top_error_code: str = "0",
+    top_error_message: str = "",
+) -> WidgetPluginStreamResponse:
+    """把当前完整旧出参整体放入华为流处理插件输出包络。
+
+    入参：
+    - legacy_message：旧版 WebSocket 完整出参。
+    - stream_content：流式文本内容。
+    - top_error_code：插件顶层错误码，成功为 "0"。
+    - top_error_message：插件顶层错误描述。
+    出参：符合华为流处理插件输出参数配置的新包络。
+    """
+    streaming_text_id = legacy_message.requestId or uuid.uuid4().hex
+    return WidgetPluginStreamResponse(
+        errorCode=top_error_code,
+        errorMessage=top_error_message,
+        reply=WidgetPluginReply(
+            streamInfo=WidgetStreamInfo(
+                streamContent=stream_content,
+                streamingTextId=streaming_text_id,
+            ),
+            items=[
+                legacy_message.model_dump(mode="json", exclude_none=True),
+            ],
+        ),
+    )
+
+
 async def _serve_operation_websocket(
     websocket: WebSocket,
     operation: str,
@@ -170,7 +248,7 @@ async def _serve_operation_websocket(
     - operation：当前 WS path 对应的能力名。
     - request_model：当前能力的入参实体类。
     - handler：当前能力对应的 service 方法。
-    出参：无；服务端通过 WebSocket 返回 result 或 error 消息。
+    出参：无；服务端通过 WebSocket 返回华为流处理插件格式消息。
     """
     # 每个 WS path 只承载一个业务能力，客户端不需要再传 operation 字段。
     await websocket.accept()
@@ -210,8 +288,18 @@ async def _serve_operation_websocket(
                     errorCode=result_data.get("errorCode", ""),
                     error={},
                 )
+                plugin_response = _build_plugin_stream_response(
+                    result_message,
+                    _stream_content_for_result(operation, result_data),
+                    top_error_code=result_data.get("errorCode", "FAILED")
+                    if result_data.get("status") == "failed"
+                    else "0",
+                    top_error_message=result_data.get("message", "")
+                    if result_data.get("status") == "failed"
+                    else "",
+                )
                 await websocket.send_json(
-                    result_message.model_dump(mode="json", exclude_none=True)
+                    plugin_response.model_dump(mode="json", exclude_none=True)
                 )
             except ValueError as exc:
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
@@ -232,8 +320,14 @@ async def _serve_operation_websocket(
                         "details": _error_details(exc),
                     },
                 )
+                plugin_response = _build_plugin_stream_response(
+                    error_message,
+                    _stream_content_for_error(operation, "INVALID_ARGUMENTS"),
+                    top_error_code="INVALID_ARGUMENTS",
+                    top_error_message=f"Invalid {operation} arguments.",
+                )
                 await websocket.send_json(
-                    error_message.model_dump(mode="json", exclude_none=True)
+                    plugin_response.model_dump(mode="json", exclude_none=True)
                 )
             except Exception as exc:
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
@@ -250,8 +344,14 @@ async def _serve_operation_websocket(
                     errorCode="FAILED",
                     error={"message": str(exc)},
                 )
+                plugin_response = _build_plugin_stream_response(
+                    error_message,
+                    _stream_content_for_error(operation, "FAILED"),
+                    top_error_code="FAILED",
+                    top_error_message=str(exc),
+                )
                 await websocket.send_json(
-                    error_message.model_dump(mode="json", exclude_none=True)
+                    plugin_response.model_dump(mode="json", exclude_none=True)
                 )
     except WebSocketDisconnect:
         logger.info(f"widget_operation_ws_disconnected operation={operation}")

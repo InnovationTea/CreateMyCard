@@ -93,24 +93,36 @@ def _operation_status(message: dict) -> str:
     return message.get("status", "unknown")
 
 
-def _assert_success_envelope(message: dict, operation: str, request_id: str) -> None:
-    """校验三个 WebSocket 接口统一成功响应包络。
+def _assert_success_envelope(message: dict, operation: str, request_id: str) -> dict:
+    """校验三个 WebSocket 接口统一华为流处理插件响应包络。
 
     入参：
     - message：服务端返回的 WebSocket 消息。
     - operation：当前接口名。
     - request_id：预期 requestId。
-    出参：无；通过断言确认扩展字段稳定存在。
+    出参：reply.items[0] 中保留的当前完整旧出参。
     """
-    assert message["type"] == "result"
-    assert message["tool"] == operation
-    assert message["operation"] == operation
-    assert message["requestId"] == request_id
-    assert "data" in message
-    assert "status" in message
-    assert "errorCode" in message
-    assert "error" in message
-    assert message["error"] == {}
+    assert message["errorCode"] == "0"
+    assert message["errorMessage"] == ""
+    assert "reply" in message
+    stream_info = message["reply"]["streamInfo"]
+    assert stream_info["streamingTextId"] == request_id
+    assert stream_info["streamType"] == "final"
+    assert stream_info["textType"] == "markdown"
+    assert stream_info["streamContent"]
+
+    assert len(message["reply"]["items"]) == 1
+    legacy_message = message["reply"]["items"][0]
+    assert legacy_message["type"] == "result"
+    assert legacy_message["tool"] == operation
+    assert legacy_message["operation"] == operation
+    assert legacy_message["requestId"] == request_id
+    assert "data" in legacy_message
+    assert "status" in legacy_message
+    assert "errorCode" in legacy_message
+    assert "error" in legacy_message
+    assert legacy_message["error"] == {}
+    return legacy_message
 
 
 def _report_path(operation: str) -> Path:
@@ -183,24 +195,24 @@ def test_widget_card_service_complete_flow():
         )
         websocket.send_json(overview_request)
         overview_message = websocket.receive_json()
-        overview = overview_message["data"]
-        _assert_success_envelope(
+        overview_legacy_message = _assert_success_envelope(
             overview_message,
             "getWidgetCapabilityOverview",
             _request_id("1"),
         )
-        assert overview_message["status"] == "success"
-        assert overview_message["errorCode"] == ""
+        overview = overview_legacy_message["data"]
+        assert overview_legacy_message["status"] == "success"
+        assert overview_legacy_message["errorCode"] == ""
         assert overview["capabilityRegistryVersion"] == "app-11.7.5.205_rom-36"
         assert any(item["id"] == "ViewWeather" for item in overview["dataCapabilities"])
         assert any(item["id"] == "event.open.weather" for item in overview["eventCapabilities"])
         assert any(item["id"] == "asset.drop_1" for item in overview["assetCandidates"])
         records.append(
             {
-                "operation": overview_message["operation"],
-                "requestId": overview_message["requestId"],
-                "messageType": overview_message["type"],
-                "status": _operation_status(overview_message),
+                "operation": overview_legacy_message["operation"],
+                "requestId": overview_legacy_message["requestId"],
+                "messageType": overview_legacy_message["type"],
+                "status": _operation_status(overview_legacy_message),
                 "request": overview_request,
                 "response": overview_message,
             }
@@ -216,23 +228,23 @@ def test_widget_card_service_complete_flow():
         )
         websocket.send_json(schema_request)
         schema_message = websocket.receive_json()
-        schema = schema_message["data"]
-        _assert_success_envelope(
+        schema_legacy_message = _assert_success_envelope(
             schema_message,
             "getDataCapabilitySchemas",
             _request_id("2"),
         )
-        assert schema_message["status"] == "success"
-        assert schema_message["errorCode"] == ""
+        schema = schema_legacy_message["data"]
+        assert schema_legacy_message["status"] == "success"
+        assert schema_legacy_message["errorCode"] == ""
         assert [item["id"] for item in schema["dataCapabilities"]] == ["ViewWeather"]
         assert "districtName" in schema["dataCapabilities"][0]["inputSchema"]["properties"]
         assert schema["missingCapabilityIds"] == []
         records.append(
             {
-                "operation": schema_message["operation"],
-                "requestId": schema_message["requestId"],
-                "messageType": schema_message["type"],
-                "status": _operation_status(schema_message),
+                "operation": schema_legacy_message["operation"],
+                "requestId": schema_legacy_message["requestId"],
+                "messageType": schema_legacy_message["type"],
+                "status": _operation_status(schema_legacy_message),
                 "request": schema_request,
                 "response": schema_message,
             }
@@ -276,24 +288,24 @@ def test_widget_card_service_complete_flow():
         )
         websocket.send_json(generate_request)
         generate_message = websocket.receive_json()
-        generated = generate_message["data"]
-        _assert_success_envelope(
+        generate_legacy_message = _assert_success_envelope(
             generate_message,
             "generateWidgetCard",
             _request_id("3"),
         )
-        assert generate_message["status"] == "success"
-        assert generate_message["errorCode"] == ""
+        generated = generate_legacy_message["data"]
+        assert generate_legacy_message["status"] == "success"
+        assert generate_legacy_message["errorCode"] == ""
         assert generated["status"] == "success"
         assert generated["artifactUrl"]
         assert generated["suggestSize"] == "2x4"
         assert generated["effectiveCapabilities"]["data"] == ["ViewWeather"]
         records.append(
             {
-                "operation": generate_message["operation"],
-                "requestId": generate_message["requestId"],
-                "messageType": generate_message["type"],
-                "status": _operation_status(generate_message),
+                "operation": generate_legacy_message["operation"],
+                "requestId": generate_legacy_message["requestId"],
+                "messageType": generate_legacy_message["type"],
+                "status": _operation_status(generate_legacy_message),
                 "request": generate_request,
                 "response": generate_message,
             }
@@ -324,15 +336,15 @@ def test_missing_prd_version_returns_empty_capability_results():
             )
         )
         overview_message = websocket.receive_json()
-        overview = overview_message["data"]
 
-        _assert_success_envelope(
+        overview_legacy_message = _assert_success_envelope(
             overview_message,
             "getWidgetCapabilityOverview",
             _request_id("missing-overview"),
         )
-        assert overview_message["status"] == "success"
-        assert overview_message["errorCode"] == ""
+        overview = overview_legacy_message["data"]
+        assert overview_legacy_message["status"] == "success"
+        assert overview_legacy_message["errorCode"] == ""
         assert overview["capabilityRegistryVersion"] == expected_version
         assert overview["dataCapabilities"] == []
         assert overview["eventCapabilities"] == []
@@ -350,15 +362,15 @@ def test_missing_prd_version_returns_empty_capability_results():
             )
         )
         schema_message = websocket.receive_json()
-        schema = schema_message["data"]
 
-        _assert_success_envelope(
+        schema_legacy_message = _assert_success_envelope(
             schema_message,
             "getDataCapabilitySchemas",
             _request_id("missing-schema"),
         )
-        assert schema_message["status"] == "success"
-        assert schema_message["errorCode"] == ""
+        schema = schema_legacy_message["data"]
+        assert schema_legacy_message["status"] == "success"
+        assert schema_legacy_message["errorCode"] == ""
         assert schema["capabilityRegistryVersion"] == expected_version
         assert schema["dataCapabilities"] == []
         assert schema["missingCapabilityIds"] == [random_capability_id]
@@ -386,15 +398,15 @@ def test_missing_prd_version_returns_empty_capability_results():
             )
         )
         generate_message = websocket.receive_json()
-        generated = generate_message["data"]
 
-        _assert_success_envelope(
+        generate_legacy_message = _assert_success_envelope(
             generate_message,
             "generateWidgetCard",
             _request_id("missing-generate"),
         )
-        assert generate_message["status"] == "unsupported"
-        assert generate_message["errorCode"] == "APP_VERSION_UNSUPPORTED"
+        generated = generate_legacy_message["data"]
+        assert generate_legacy_message["status"] == "unsupported"
+        assert generate_legacy_message["errorCode"] == "APP_VERSION_UNSUPPORTED"
         assert generated["status"] == "unsupported"
         assert generated["errorCode"] == "APP_VERSION_UNSUPPORTED"
         assert generated["artifactUrl"] == ""

@@ -141,6 +141,51 @@ class WidgetWebSocketErrorMessage(BaseModel):
     error: dict[str, Any] = Field(default_factory=dict)
 
 
+class WidgetStreamInfo(BaseModel):
+    """华为流处理插件默认输出参数 streamInfo。
+
+    入参：
+    - streamContent：截止当前帧的全量答复文本。
+    - streamingTextId：一次请求内稳定的流式文本 ID。
+    - streamType：流式帧类型，本服务当前只发送 final 帧。
+    - textType：文本格式，固定使用 markdown。
+    出参：符合流处理插件输出参数配置的 streamInfo 对象。
+    """
+
+    streamContent: str
+    streamingTextId: str
+    streamType: Literal["final"] = "final"
+    textType: Literal["markdown"] = "markdown"
+
+
+class WidgetPluginReply(BaseModel):
+    """华为流处理插件 reply 响应内容。
+
+    入参：
+    - streamInfo：答复文本结构。
+    - items：结构化业务数据；当前完整旧出参整体放在 items[0]。
+    出参：符合流处理插件输出参数配置的 reply 对象。
+    """
+
+    streamInfo: WidgetStreamInfo
+    items: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class WidgetPluginStreamResponse(BaseModel):
+    """华为流处理插件 WebSocket 输出包络。
+
+    入参：
+    - errorCode：插件响应码，成功为 "0"，非 "0" 视为失败。
+    - errorMessage：错误描述或空字符串。
+    - reply：响应内容，包含 streamInfo 和 items。
+    出参：发送给小艺插件平台的流处理插件响应。
+    """
+
+    errorCode: str = "0"
+    errorMessage: str = ""
+    reply: WidgetPluginReply
+
+
 class ArtifactSaveResult(BaseModel):
     """artifact 保存结果。
 
