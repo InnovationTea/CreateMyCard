@@ -101,59 +101,112 @@
   },
   "output": {
     "type": "object",
-    "required": ["apiVersion", "status", "suggestSize", "message"],
+    "required": [
+      "type",
+      "tool",
+      "operation",
+      "requestId",
+      "data",
+      "status",
+      "errorCode",
+      "error"
+    ],
     "properties": {
-      "apiVersion": {
+      "type": {
         "type": "string",
         "required": true,
-        "description": "接口版本。"
+        "description": "消息类型；正常响应为 result，异常响应为 error。"
+      },
+      "tool": {
+        "type": "string",
+        "required": true,
+        "description": "当前工具名；本接口为 generateWidgetCard。"
+      },
+      "operation": {
+        "type": "string",
+        "required": true,
+        "description": "当前 WebSocket path 对应的接口名。"
+      },
+      "requestId": {
+        "type": "string|null",
+        "required": true,
+        "description": "服务端根据 sessionId + '&' + interactionId 生成的请求 ID。"
+      },
+      "data": {
+        "type": "object",
+        "required": true,
+        "description": "业务响应数据。",
+        "requiredProperties": ["apiVersion", "status", "suggestSize", "message"],
+        "properties": {
+          "apiVersion": {
+            "type": "string",
+            "required": true,
+            "description": "接口版本。"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["success", "degraded", "unsupported", "failed"],
+            "required": true,
+            "description": "生成状态。"
+          },
+          "artifactUrl": {
+            "type": "string",
+            "required": false,
+            "description": "artifact 下载地址；成功或降级成功时返回。"
+          },
+          "artifactDigest": {
+            "type": "string",
+            "required": false,
+            "description": "artifact 内容摘要。"
+          },
+          "suggestSize": {
+            "type": "string",
+            "enum": ["2x2", "2x4"],
+            "required": true,
+            "description": "最终生成卡片尺寸。"
+          },
+          "message": {
+            "type": "string",
+            "required": true,
+            "description": "可展示给主 Agent 或用户的生成结果说明。"
+          },
+          "removedCapabilities": {
+            "type": "RemovedCapability[]",
+            "required": false,
+            "description": "被微服务裁决移除的能力及原因。"
+          },
+          "errorCode": {
+            "type": "string",
+            "required": false,
+            "description": "失败或不支持时返回的错误码。"
+          },
+          "artifact": {
+            "type": "object|null",
+            "required": false,
+            "description": "调试时可选内联 artifact；生产默认不返回。"
+          },
+          "effectiveCapabilities": {
+            "type": "object",
+            "required": false,
+            "description": "最终进入 artifact 的有效 data、event、asset 能力集合。"
+          }
+        }
       },
       "status": {
         "type": "string",
         "enum": ["success", "degraded", "unsupported", "failed"],
         "required": true,
-        "description": "生成状态。"
-      },
-      "artifactUrl": {
-        "type": "string",
-        "required": false,
-        "description": "artifact 下载地址；成功或降级成功时返回。"
-      },
-      "artifactDigest": {
-        "type": "string",
-        "required": false,
-        "description": "artifact 内容摘要。"
-      },
-      "suggestSize": {
-        "type": "string",
-        "enum": ["2x2", "2x4"],
-        "required": true,
-        "description": "最终生成卡片尺寸。"
-      },
-      "message": {
-        "type": "string",
-        "required": true,
-        "description": "可展示给主 Agent 或用户的生成结果说明。"
-      },
-      "removedCapabilities": {
-        "type": "RemovedCapability[]",
-        "required": false,
-        "description": "被微服务裁决移除的能力及原因。"
+        "description": "本次调用状态；生成接口透传业务响应 data.status。"
       },
       "errorCode": {
         "type": "string",
-        "required": false,
-        "description": "失败或不支持时返回的错误码。"
+        "required": true,
+        "description": "错误码；生成接口透传业务响应 data.errorCode。"
       },
-      "artifact": {
-        "type": "object|null",
-        "required": false,
-        "description": "调试时可选内联 artifact；生产默认不返回。"
-      },
-      "effectiveCapabilities": {
+      "error": {
         "type": "object",
-        "required": false,
-        "description": "最终进入 artifact 的有效 data、event、asset 能力集合。"
+        "required": true,
+        "description": "错误详情；成功、降级或不支持的业务结果通常为空对象。"
       }
     }
   },

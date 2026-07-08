@@ -194,17 +194,21 @@ async def _serve_operation_websocket(
                     f"request={request.model_dump(mode='json', exclude_none=True)}"
                 )
                 result = handler(service, request)
+                result_data = result.model_dump(mode="json", exclude_none=True)
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
                 logger.info(
                     f"widget_operation_ws_handler_completed request_id={request_id} "
                     f"operation={operation} duration_ms={duration_ms} "
-                    f"response={result.model_dump(mode='json', exclude_none=True)}"
+                    f"response={result_data}"
                 )
                 result_message = WidgetWebSocketResultMessage(
                     tool=operation,
                     operation=operation,
                     requestId=request_id,
-                    data=result.model_dump(mode="json", exclude_none=True),
+                    data=result_data,
+                    status=result_data.get("status", "success"),
+                    errorCode=result_data.get("errorCode", ""),
+                    error={},
                 )
                 await websocket.send_json(
                     result_message.model_dump(mode="json", exclude_none=True)
@@ -220,10 +224,13 @@ async def _serve_operation_websocket(
                 )
                 error_message = WidgetWebSocketErrorMessage(
                     tool=operation,
+                    operation=operation,
                     requestId=request_id,
                     errorCode="INVALID_ARGUMENTS",
-                    message=f"Invalid {operation} arguments.",
-                    details=_error_details(exc),
+                    error={
+                        "message": f"Invalid {operation} arguments.",
+                        "details": _error_details(exc),
+                    },
                 )
                 await websocket.send_json(
                     error_message.model_dump(mode="json", exclude_none=True)
@@ -238,9 +245,10 @@ async def _serve_operation_websocket(
                 )
                 error_message = WidgetWebSocketErrorMessage(
                     tool=operation,
+                    operation=operation,
                     requestId=request_id,
                     errorCode="FAILED",
-                    message=str(exc),
+                    error={"message": str(exc)},
                 )
                 await websocket.send_json(
                     error_message.model_dump(mode="json", exclude_none=True)

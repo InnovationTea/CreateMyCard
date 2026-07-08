@@ -76,31 +76,83 @@
   "output": {
     "type": "object",
     "required": [
-      "apiVersion",
-      "capabilityRegistryVersion",
-      "dataCapabilities",
-      "missingCapabilityIds"
+      "type",
+      "tool",
+      "operation",
+      "requestId",
+      "data",
+      "status",
+      "errorCode",
+      "error"
     ],
     "properties": {
-      "apiVersion": {
+      "type": {
         "type": "string",
         "required": true,
-        "description": "接口版本。"
+        "description": "消息类型；正常响应为 result，异常响应为 error。"
       },
-      "capabilityRegistryVersion": {
+      "tool": {
         "type": "string",
         "required": true,
-        "description": "本次实际使用的能力清单版本目录名。"
+        "description": "当前工具名；本接口为 getDataCapabilitySchemas。"
       },
-      "dataCapabilities": {
-        "type": "DataCapability[]",
+      "operation": {
+        "type": "string",
         "required": true,
-        "description": "已找到的数据能力完整定义。"
+        "description": "当前 WebSocket path 对应的接口名。"
       },
-      "missingCapabilityIds": {
-        "type": "string[]",
+      "requestId": {
+        "type": "string|null",
         "required": true,
-        "description": "未在当前能力清单版本中找到的数据能力 ID。"
+        "description": "服务端根据 sessionId + '&' + interactionId 生成的请求 ID。"
+      },
+      "data": {
+        "type": "object",
+        "required": true,
+        "description": "业务响应数据。",
+        "requiredProperties": [
+          "apiVersion",
+          "capabilityRegistryVersion",
+          "dataCapabilities",
+          "missingCapabilityIds"
+        ],
+        "properties": {
+          "apiVersion": {
+            "type": "string",
+            "required": true,
+            "description": "接口版本。"
+          },
+          "capabilityRegistryVersion": {
+            "type": "string",
+            "required": true,
+            "description": "本次实际使用的能力清单版本目录名。"
+          },
+          "dataCapabilities": {
+            "type": "DataCapability[]",
+            "required": true,
+            "description": "已找到的数据能力完整定义。"
+          },
+          "missingCapabilityIds": {
+            "type": "string[]",
+            "required": true,
+            "description": "未在当前能力清单版本中找到的数据能力 ID。"
+          }
+        }
+      },
+      "status": {
+        "type": "string",
+        "required": true,
+        "description": "本次调用状态；成功时为 success。"
+      },
+      "errorCode": {
+        "type": "string",
+        "required": true,
+        "description": "错误码；成功时为空字符串。"
+      },
+      "error": {
+        "type": "object",
+        "required": true,
+        "description": "错误详情；成功时为空对象。"
       }
     }
   },

@@ -173,7 +173,10 @@ curl http://127.0.0.1:8855/health
     ],
     "eventCapabilities": [],
     "assetCandidates": []
-  }
+  },
+  "status": "success",
+  "errorCode": "",
+  "error": {}
 }
 ```
 
@@ -223,7 +226,10 @@ curl http://127.0.0.1:8855/health
       }
     ],
     "missingCapabilityIds": []
-  }
+  },
+  "status": "success",
+  "errorCode": "",
+  "error": {}
 }
 ```
 
@@ -317,7 +323,10 @@ curl http://127.0.0.1:8855/health
       "event": [],
       "asset": ["asset.drop_1", "asset.calendar_fill"]
     }
-  }
+  },
+  "status": "success",
+  "errorCode": "",
+  "error": {}
 }
 ```
 

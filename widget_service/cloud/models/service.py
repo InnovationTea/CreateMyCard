@@ -100,6 +100,9 @@ class WidgetWebSocketResultMessage(BaseModel):
     - operation：本次调用的 operation。
     - requestId：客户端请求 ID。
     - data：业务响应对象。
+    - status：本次调用状态；生成接口透传业务状态，其它接口成功时为 success。
+    - errorCode：错误码；成功时为空字符串。
+    - error：错误详情；成功时为空对象，预留给后续扩展。
     出参：可发送给客户端的 result 消息。
     """
 
@@ -108,6 +111,9 @@ class WidgetWebSocketResultMessage(BaseModel):
     operation: str
     requestId: str | None = None
     data: dict[str, Any]
+    status: str = "success"
+    errorCode: str = ""
+    error: dict[str, Any] = Field(default_factory=dict)
 
 
 class WidgetWebSocketErrorMessage(BaseModel):
@@ -116,19 +122,23 @@ class WidgetWebSocketErrorMessage(BaseModel):
     入参：
     - type：固定为 error。
     - tool：工具名。
+    - operation：本次调用的 operation。
     - requestId：客户端请求 ID。
+    - data：业务响应对象；失败时为空对象。
+    - status：本次调用状态；异常时固定为 failed。
     - errorCode：错误码。
-    - message：错误说明。
-    - details：可选错误详情。
+    - error：错误详情对象，包含 message/details 等排障信息。
     出参：可发送给客户端的 error 消息。
     """
 
     type: Literal["error"] = "error"
     tool: str = "widgetCardService"
+    operation: str
     requestId: str | None = None
+    data: dict[str, Any] = Field(default_factory=dict)
+    status: Literal["failed"] = "failed"
     errorCode: str
-    message: str
-    details: Any | None = None
+    error: dict[str, Any] = Field(default_factory=dict)
 
 
 class ArtifactSaveResult(BaseModel):

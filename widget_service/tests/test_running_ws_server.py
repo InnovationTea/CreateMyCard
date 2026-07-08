@@ -79,6 +79,11 @@ async def _call_ws(path_name: str, payload: dict, expected_request_id: str) -> d
             assert message["tool"] == path_name
             assert message["operation"] == path_name
             assert message["requestId"] == expected_request_id
+            assert "data" in message
+            assert "status" in message
+            assert "errorCode" in message
+            assert "error" in message
+            assert message["error"] == {}
             return message
     except OSError:
         pytest.skip(
@@ -106,6 +111,8 @@ def test_live_three_websocket_paths_complete_flow():
             _request_id("1"),
         )
         overview = overview_message["data"]
+        assert overview_message["status"] == "success"
+        assert overview_message["errorCode"] == ""
         assert overview["capabilityRegistryVersion"] == "app-11.7.5.205_rom-36"
         assert any(item["id"] == "ViewWeather" for item in overview["dataCapabilities"])
 
@@ -121,6 +128,8 @@ def test_live_three_websocket_paths_complete_flow():
             _request_id("2"),
         )
         schema = schema_message["data"]
+        assert schema_message["status"] == "success"
+        assert schema_message["errorCode"] == ""
         assert [item["id"] for item in schema["dataCapabilities"]] == ["ViewWeather"]
         assert schema["missingCapabilityIds"] == []
 
@@ -164,6 +173,8 @@ def test_live_three_websocket_paths_complete_flow():
             _request_id("3"),
         )
         generated = generate_message["data"]
+        assert generate_message["status"] == "success"
+        assert generate_message["errorCode"] == ""
         assert generated["status"] == "success"
         assert generated["artifactUrl"]
         assert generated["suggestSize"] == "2x4"
