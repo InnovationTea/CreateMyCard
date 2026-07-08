@@ -91,21 +91,6 @@ class IDSHttpRequest(BaseModel):
     body: IDSInstalledAppsQueryBody
 
 
-class WidgetWebSocketReadyMessage(BaseModel):
-    """WebSocket ready 消息。
-
-    入参：
-    - type：固定为 ready。
-    - tool：工具名。
-    - operations：当前工具支持的 operation 列表。
-    出参：可发送给客户端的 ready 消息。
-    """
-
-    type: Literal["ready"] = "ready"
-    tool: str = "widgetCardService"
-    operations: list[str]
-
-
 class WidgetWebSocketResultMessage(BaseModel):
     """WebSocket result 消息。
 

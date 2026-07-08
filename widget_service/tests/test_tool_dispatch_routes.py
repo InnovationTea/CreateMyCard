@@ -108,7 +108,7 @@ def _write_test_report(record: dict) -> None:
     """输出单个 WebSocket 接口测试报告。
 
     入参：
-    - record：单个 operation 的 ready、请求、响应和状态记录。
+    - record：单个 operation 的请求、响应和状态记录。
     出参：无；函数会写入 `接口名.md` 测试报告文件。
     """
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -120,13 +120,8 @@ def _write_test_report(record: dict) -> None:
         f"- WebSocket path：`/api/v1/ws/tools/{record['operation']}`",
         "- 请求协议：content/deviceInfo/session 外层包络",
         f"- requestId：`{record['requestId']}`",
-        f"- ready 状态：`{record['ready'].get('type')}`",
         f"- 消息状态：`{record['messageType']}`",
         f"- 业务状态：`{record['status']}`",
-        "",
-        "## ready 消息",
-        "",
-        _json_block(record["ready"]),
         "",
         "## 入参",
         "",
@@ -163,10 +158,6 @@ def test_widget_card_service_complete_flow():
     assert "UG.weather.current" in ids_state.providers
 
     with client.websocket_connect("/api/v1/ws/tools/getWidgetCapabilityOverview") as websocket:
-        ready = websocket.receive_json()
-        assert ready["type"] == "ready"
-        assert ready["tool"] == "getWidgetCapabilityOverview"
-
         overview_request = _tool_payload(
             {"bundleName": "com.omega_w_0823.hmservice"},
             "1",
@@ -187,17 +178,12 @@ def test_widget_card_service_complete_flow():
                 "requestId": overview_message["requestId"],
                 "messageType": overview_message["type"],
                 "status": _operation_status(overview_message),
-                "ready": ready,
                 "request": overview_request,
                 "response": overview_message,
             }
         )
 
     with client.websocket_connect("/api/v1/ws/tools/getDataCapabilitySchemas") as websocket:
-        schema_ready = websocket.receive_json()
-        assert schema_ready["type"] == "ready"
-        assert schema_ready["tool"] == "getDataCapabilitySchemas"
-
         schema_request = _tool_payload(
             {
                 "bundleName": "com.omega_w_0823.hmservice",
@@ -220,17 +206,12 @@ def test_widget_card_service_complete_flow():
                 "requestId": schema_message["requestId"],
                 "messageType": schema_message["type"],
                 "status": _operation_status(schema_message),
-                "ready": schema_ready,
                 "request": schema_request,
                 "response": schema_message,
             }
         )
 
     with client.websocket_connect("/api/v1/ws/tools/generateWidgetCard") as websocket:
-        generate_ready = websocket.receive_json()
-        assert generate_ready["type"] == "ready"
-        assert generate_ready["tool"] == "generateWidgetCard"
-
         generate_request = _tool_payload(
             {
                 "bundleName": "com.omega_w_0823.hmservice",
@@ -282,7 +263,6 @@ def test_widget_card_service_complete_flow():
                 "requestId": generate_message["requestId"],
                 "messageType": generate_message["type"],
                 "status": _operation_status(generate_message),
-                "ready": generate_ready,
                 "request": generate_request,
                 "response": generate_message,
             }
@@ -305,7 +285,6 @@ def test_missing_prd_version_returns_empty_capability_results():
     expected_version = f"app-{random_prd_ver}_rom-36"
 
     with client.websocket_connect("/api/v1/ws/tools/getWidgetCapabilityOverview") as websocket:
-        websocket.receive_json()
         websocket.send_json(
             _tool_payload(
                 {"bundleName": "com.omega_w_0823.hmservice"},
@@ -324,7 +303,6 @@ def test_missing_prd_version_returns_empty_capability_results():
         assert overview["assetCandidates"] == []
 
     with client.websocket_connect("/api/v1/ws/tools/getDataCapabilitySchemas") as websocket:
-        websocket.receive_json()
         websocket.send_json(
             _tool_payload(
                 {
@@ -345,7 +323,6 @@ def test_missing_prd_version_returns_empty_capability_results():
         assert schema["missingCapabilityIds"] == [random_capability_id]
 
     with client.websocket_connect("/api/v1/ws/tools/generateWidgetCard") as websocket:
-        websocket.receive_json()
         websocket.send_json(
             _tool_payload(
                 {

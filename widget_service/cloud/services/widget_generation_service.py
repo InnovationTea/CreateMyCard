@@ -221,14 +221,14 @@ class WidgetGenerationService:
                 effectiveCapabilities={"data": [], "event": [], "asset": []},
             )
         logger.info(
-            f"generate_flow_step_registry_ready uid={request.uid} "
+            f"generate_flow_step_registry_loaded uid={request.uid} "
             f"registry_version={registry.version}"
         )
         # 协议 profile 决定 A2UI 组件白名单、DSL 行数要求和校验规则。
         protocol_registry = A2UIProtocolRegistry(request.protocolProfileId)
         protocol_profile = protocol_registry.get_profile()
         logger.info(
-            f"generate_flow_step_protocol_ready uid={request.uid} "
+            f"generate_flow_step_protocol_loaded uid={request.uid} "
             f"protocol_profile_id={protocol_profile['id']} "
             f"protocol_version={protocol_profile['version']}"
         )

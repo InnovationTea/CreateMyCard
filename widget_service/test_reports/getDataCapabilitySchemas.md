@@ -1,25 +1,12 @@
 # getDataCapabilitySchemas 测试报告
 
-- 生成时间：2026-07-07T14:11:10.004116+00:00
+- 生成时间：2026-07-08T04:21:56.202581+00:00
 - 接口名：`getDataCapabilitySchemas`
 - WebSocket path：`/api/v1/ws/tools/getDataCapabilitySchemas`
 - 请求协议：content/deviceInfo/session 外层包络
 - requestId：`7676c2c8-a6d3-413c-8074-c62ed30db8de&2`
-- ready 状态：`ready`
 - 消息状态：`result`
 - 业务状态：`result`
-
-## ready 消息
-
-```json
-{
-  "type": "ready",
-  "tool": "getDataCapabilitySchemas",
-  "operations": [
-    "getDataCapabilitySchemas"
-  ]
-}
-```
 
 ## 入参
 

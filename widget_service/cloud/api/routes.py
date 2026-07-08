@@ -17,7 +17,6 @@ from app.logger import logger
 from config.config import get_settings
 from models.service import (
     WidgetWebSocketErrorMessage,
-    WidgetWebSocketReadyMessage,
     WidgetWebSocketResultMessage,
 )
 from services.widget_generation_service import WidgetGenerationService
@@ -171,18 +170,11 @@ async def _serve_operation_websocket(
     - operation：当前 WS path 对应的能力名。
     - request_model：当前能力的入参实体类。
     - handler：当前能力对应的 service 方法。
-    出参：无；服务端通过 WebSocket 返回 ready、result 或 error 消息。
+    出参：无；服务端通过 WebSocket 返回 result 或 error 消息。
     """
     # 每个 WS path 只承载一个业务能力，客户端不需要再传 operation 字段。
     await websocket.accept()
     logger.info(f"widget_operation_ws_connected operation={operation}")
-    ready_message = WidgetWebSocketReadyMessage(
-        tool=operation,
-        operations=[operation],
-    )
-    await websocket.send_json(
-        ready_message.model_dump(mode="json", exclude_none=True)
-    )
     service = get_service()
     try:
         while True:
@@ -264,7 +256,7 @@ async def get_widget_capability_overview_ws(websocket: WebSocket):
 
     入参：
     - websocket：客户端 WebSocket 连接，消息体需符合 CapabilityOverviewRequest。
-    出参：无；服务端通过 WebSocket 返回 ready、result 或 error 消息。
+    出参：无；服务端通过 WebSocket 返回 result 或 error 消息。
     """
     await _serve_operation_websocket(
         websocket,
@@ -280,7 +272,7 @@ async def get_data_capability_schemas_ws(websocket: WebSocket):
 
     入参：
     - websocket：客户端 WebSocket 连接，消息体需符合 DataCapabilitySchemasRequest。
-    出参：无；服务端通过 WebSocket 返回 ready、result 或 error 消息。
+    出参：无；服务端通过 WebSocket 返回 result 或 error 消息。
     """
     await _serve_operation_websocket(
         websocket,
@@ -296,7 +288,7 @@ async def generate_widget_card_ws(websocket: WebSocket):
 
     入参：
     - websocket：客户端 WebSocket 连接，消息体需符合 GenerateWidgetCardRequest。
-    出参：无；服务端通过 WebSocket 返回 ready、result 或 error 消息。
+    出参：无；服务端通过 WebSocket 返回 result 或 error 消息。
     """
     await _serve_operation_websocket(
         websocket,

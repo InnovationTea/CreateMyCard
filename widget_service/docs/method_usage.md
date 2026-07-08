@@ -86,19 +86,7 @@ WS /api/v1/ws/tools/getDataCapabilitySchemas
 WS /api/v1/ws/tools/generateWidgetCard
 ```
 
-连接成功后服务先返回 ready 消息：
-
-```json
-{
-  "type": "ready",
-  "tool": "getWidgetCapabilityOverview",
-  "operations": [
-    "getWidgetCapabilityOverview"
-  ]
-}
-```
-
-统一消息最小结构：
+连接成功后客户端直接发送业务消息，服务不再返回 ready 帧。统一消息最小结构：
 
 ```json
 {

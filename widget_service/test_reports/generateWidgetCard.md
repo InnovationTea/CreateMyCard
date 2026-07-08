@@ -1,25 +1,12 @@
 # generateWidgetCard 测试报告
 
-- 生成时间：2026-07-07T14:11:10.004116+00:00
+- 生成时间：2026-07-08T04:21:56.203579+00:00
 - 接口名：`generateWidgetCard`
 - WebSocket path：`/api/v1/ws/tools/generateWidgetCard`
 - 请求协议：content/deviceInfo/session 外层包络
 - requestId：`7676c2c8-a6d3-413c-8074-c62ed30db8de&3`
-- ready 状态：`ready`
 - 消息状态：`result`
 - 业务状态：`success`
-
-## ready 消息
-
-```json
-{
-  "type": "ready",
-  "tool": "generateWidgetCard",
-  "operations": [
-    "generateWidgetCard"
-  ]
-}
-```
 
 ## 入参
 
@@ -109,8 +96,8 @@
   "data": {
     "apiVersion": "v1",
     "status": "success",
-    "artifactUrl": "https://obs.todo.local/widget/0a99560963544aaba3ad45a520648268.json",
-    "artifactDigest": "sha256:82cc89445afb9c0aed528c2ab4710fd8cf7534bb94ce163621c0182bad485ef0",
+    "artifactUrl": "https://obs.todo.local/widget/8aefa5419d4248579a5884fcc20002f2.json",
+    "artifactDigest": "sha256:b042ceee5645c059ef5579fc7efc9c18dc729b72c3a2387dcadc5a7137dce2b3",
     "suggestSize": "2x4",
     "message": "已为你生成可用的桌面卡片。",
     "removedCapabilities": [],

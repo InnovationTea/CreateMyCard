@@ -73,10 +73,6 @@ async def _call_ws(path_name: str, payload: dict, expected_request_id: str) -> d
     uri = f"{WS_BASE_URL}{WS_BASE_PATH}/{path_name}"
     try:
         async with websockets.connect(uri, open_timeout=2.0) as websocket:
-            ready = json.loads(await websocket.recv())
-            assert ready["type"] == "ready"
-            assert ready["tool"] == path_name
-
             await websocket.send(json.dumps(payload, ensure_ascii=False))
             message = json.loads(await websocket.recv())
             assert message["type"] == "result"
