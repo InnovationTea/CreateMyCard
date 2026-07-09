@@ -23,13 +23,14 @@ from models.artifact import ArtifactMeta, WidgetArtifact
 from models.capability import AssetCapability, DataCapability, RemovedCapability
 from models.generation import CandidateDataBinding, DeviceContext, EventAction
 from services.artifact_store import ArtifactStore
-from services.a2ui_model_client import A2UIModelClient
+from custom.a2ui_model_client import A2UIModelClient
 from services.card_spec_builder import CardSpecBuilder
 from services.capability_registry import CapabilityRegistry
 from services.ids_client import IDSClient
 from services.prompt_builder import PromptBuilder
 from services.response_planner import ResponsePlanner
 from services.retry_controller import RetryController
+from services.sts_config import STSConfig
 from services.task_spec_builder import TaskSpecBuilder
 from services.validator import ArtifactValidator
 
@@ -46,6 +47,22 @@ def test_websocket_handler_runs_sync_service_in_threadpool():
     assert "result = handler(service, request)" not in routes_source
 
 
+def test_websocket_handler_sets_request_id_to_logger_context():
+    """验证三个 WebSocket 接口在进入业务流程前写入 requestId 日志上下文。
+
+    入参：无。
+    出参：无；通过源码顺序断言保证首条请求日志及后续线程池日志都携带 requestId。
+    """
+    routes_source = (CLOUD_ROOT / "api" / "routes.py").read_text(encoding="utf-8")
+    set_context_position = routes_source.index(
+        'task_logger.set_session_id(request_id or "None")'
+    )
+    request_log_position = routes_source.index("widget_operation_ws_payload_received")
+
+    assert "from app.logger import logger, task_logger" in routes_source
+    assert set_context_position < request_log_position
+
+
 def _device() -> DeviceContext:
     """构造测试设备上下文。
 
@@ -58,6 +75,19 @@ def _device() -> DeviceContext:
         romVersion="ALN-AL00 7.0.0.36",
         ohosApiVersion=36,
     )
+
+
+def test_sts_config_returns_mock_ids_config():
+    """验证 STSConfig 当前返回结构稳定的 IDS mock 配置。
+
+    入参：无。
+    出参：无；通过断言验证 IDSClient 所需字段均已提供。
+    """
+    ids_config = STSConfig().get_ids_config()
+
+    assert ids_config.access_key
+    assert ids_config.secret_key
+    assert ids_config.dev_fake_id
 
 
 def test_ids_query_builds_structured_request_and_signature(monkeypatch):

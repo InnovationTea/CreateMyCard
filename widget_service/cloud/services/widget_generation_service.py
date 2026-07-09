@@ -15,9 +15,9 @@ from api.schemas import (
 from app.logger import logger
 from config.config import get_settings
 from core.errors import ErrorCode, GenerationStatus
+from custom.a2ui_model_client import A2UIModelClient
 from models.artifact import ArtifactMeta, WidgetArtifact
 from models.generation import EventAction
-from services.a2ui_model_client import A2UIModelClient
 from services.artifact_store import ArtifactStore
 from services.capability_registry import CapabilityRegistry
 from services.card_spec_builder import CardSpecBuilder

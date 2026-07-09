@@ -15,7 +15,7 @@ from api.schemas import (
     GenerateWidgetCardRequest,
     ToolRequestEnvelope,
 )
-from app.logger import logger
+from app.logger import logger, task_logger
 from config.config import get_settings
 from models.service import (
     WidgetPluginReply,
@@ -260,6 +260,9 @@ async def _serve_operation_websocket(
             payload = await websocket.receive_json()
             started_at = time.perf_counter()
             request_id, arguments = _normalize_payload(payload, operation)
+            # 三个接口共用该入口；解析出 requestId 后立即写入日志上下文，
+            # 后续 service、IDS、A2UI 和异常日志都会自动携带同一个 requestId。
+            task_logger.set_session_id(request_id or "None")
             logger.info(
                 f"widget_operation_ws_payload_received request_id={request_id} "
                 f"operation={operation} payload_keys={list(payload.keys())} "
