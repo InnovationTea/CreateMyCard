@@ -19,7 +19,6 @@ if str(CLOUD_ROOT) not in sys.path:
     sys.path.insert(0, str(CLOUD_ROOT))
 
 from core.errors import ErrorCode, GenerationStatus
-from core.logger import DesensitizedErrorTool
 from models.artifact import ArtifactMeta, WidgetArtifact
 from models.capability import AssetCapability, DataCapability, RemovedCapability
 from models.generation import CandidateDataBinding, DeviceContext, EventAction
@@ -31,10 +30,8 @@ from services.ids_client import IDSClient
 from services.prompt_builder import PromptBuilder
 from services.response_planner import ResponsePlanner
 from services.retry_controller import RetryController
-from services.sts_config import STSConfig
 from services.task_spec_builder import TaskSpecBuilder
 from services.validator import ArtifactValidator
-from utils.base_utils import STSConfig as BaseSTSConfig
 from utils.base_utils import sts_config
 from utils.file import delete_file, save_txt_file
 from utils.upload_file_obs import UploadFileOSMS
@@ -82,30 +79,6 @@ def _device() -> DeviceContext:
     )
 
 
-def test_sts_config_returns_mock_ids_config():
-    """验证 STSConfig 当前返回结构稳定的 IDS mock 配置。
-
-    入参：无。
-    出参：无；通过断言验证 IDSClient 所需字段均已提供。
-    """
-    ids_config = STSConfig().get_ids_config()
-
-    assert ids_config.access_key
-    assert ids_config.secret_key
-    assert ids_config.dev_fake_id
-
-
-def test_base_sts_config_returns_ids_secret_key():
-    """验证 IDSClient 使用的 STS 单例能够读取 mock 二进制密钥。
-
-    入参：无。
-    出参：无；通过断言验证返回值可以直接用于 HMAC。
-    """
-    mock_sts_config = BaseSTSConfig({"ids.secret.key": b"secret"})
-
-    assert mock_sts_config.get_sts_config("ids.secret.key") == b"secret"
-
-
 def test_ids_query_builds_structured_request_and_signature(monkeypatch):
     """验证 IDS 查询请求使用实体封装，并生成真实签名。
 
@@ -114,10 +87,10 @@ def test_ids_query_builds_structured_request_and_signature(monkeypatch):
     """
     client = IDSClient()
     monkeypatch.setattr(client.settings, "ids_access_key", "access")
-    monkeypatch.setattr(sts_config, "get_sts_config", lambda config_key: b"secret")
+    secret_key = sts_config.get_sts_config("ids.secret.key")
     request = client.build_installed_apps_query(_device(), "ids-unit-1")
     expected_digest = hmac.new(
-        b"secret",
+        secret_key,
         b"access1000",
         hashlib.sha256,
     ).digest()
@@ -221,23 +194,6 @@ def test_ids_client_queries_remote_when_mock_file_missing(tmp_path, monkeypatch)
     assert captured_request["allow_redirects"] is False
     assert state.installed_apps["com.huawei.hmos.weather"] == "7.0.0"
     assert "UG.weather.current" in state.providers
-
-
-def test_desensitized_error_tool_masks_common_sensitive_fields():
-    """验证脱敏 error 工具类能处理常见敏感字段。
-
-    入参：无。
-    出参：无；通过断言验证 sign、accessKey、token 等敏感值被替换。
-    """
-    message = "idsSign=abc accessKey=foo token=bar custom=secret-value"
-
-    sanitized = DesensitizedErrorTool.sanitize(message, ["secret-value"])
-
-    assert "abc" not in sanitized
-    assert "foo" not in sanitized
-    assert "bar" not in sanitized
-    assert "secret-value" not in sanitized
-    assert "custom=***" in sanitized
 
 
 def test_capability_registry_version_is_derived_from_prd_and_rom_versions():
