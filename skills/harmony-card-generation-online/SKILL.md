@@ -64,7 +64,7 @@ metadata:
 
 3. **获取能力概述**：调用 `getWidgetCapabilityOverview` 获取数据能力、事件能力和素材概述。除 `bundleName` 外不传其它字段；工具返回后从包装结构 `items[].data` 中解析业务 payload；如果返回原始插件包络，则先进入 `reply.items[].data`。
 
-4. **筛选候选能力**：按 `reference/candidate-planning.md` 从概述中筛选候选能力：
+4. **筛选候选能力**：按 `references/candidate-planning.md` 从概述中筛选候选能力：
    - 数据能力最多优先选 2 个核心候选。
    - 事件能力最多优先选 2 个主动作候选。
    - 素材候选只选和场景强相关的少量 ID。
@@ -83,18 +83,18 @@ metadata:
 
 7. **生成卡片**：调用 `generateWidgetCard` 生成卡片。正常情况下不要自行补做微服务负责的过滤、协议 profile、校验、重试或上传。
 
-8. **回复用户**：按 `reference/response-policy.md` 回复：
+8. **回复用户**：按 `references/response-policy.md` 回复：
    - 先从 `generateWidgetCard` 返回的 `items[].data` 解析业务 payload；如果返回原始插件包络，则先进入 `reply.items[].data`。
    - `success` / `degraded`：输出业务 payload 的 `message`，并输出 `genWidgetResult` 标记。
    - `unsupported` / `failed`：不输出 `genWidgetResult`，只输出用户可理解说明和可尝试的替代方向。
 
-9. **兜底生成**：如果 `generateWidgetCard` 不可用、调用失败或结果不符合预期，按 `reference/tool-contracts.md` 的“兜底生成”规则由主 Agent 生成最终可交付结果。兜底结果不得伪造动态能力、事件目标、素材 ID、artifact URL 或 `genWidgetResult`。
+9. **兜底生成**：如果 `generateWidgetCard` 不可用、调用失败或结果不符合预期，按 `references/tool-contracts.md` 的“兜底生成”规则由主 Agent 生成最终可交付结果。兜底结果不得伪造动态能力、事件目标、素材 ID、artifact URL 或 `genWidgetResult`。
 
 ## 工具定义
 
 本 skill 依赖三个微服务工具，声明于 frontmatter `metadata.tools`。必须通过 `invoke` 调用，格式为 `invoke(functionName:"<toolName>", arguments:{bundleName:"<bundleName>", ...})`。除 `bundleName` 外，只传工具 JSON 已声明的业务字段；不要手写内部 `content/deviceInfo/session` 包络。
 
-注意：工具声明里部分入参只暴露为 `Array<Object>` 或 `Object`，但微服务内部会按具体类解析。传参时必须遵守 `reference/tool-contracts.md` 中的类结构，尤其是 `CandidateDataBinding`、`CandidateEventCandidate` 和 `EventAction`；不要因为外层 schema 宽松就传任意键值。
+注意：工具声明里部分入参只暴露为 `Array<Object>` 或 `Object`，但微服务内部会按具体类解析。传参时必须遵守 `references/tool-contracts.md` 中的类结构，尤其是 `CandidateDataBinding`、`CandidateEventCandidate` 和 `EventAction`；不要因为外层 schema 宽松就传任意键值。
 
 ### Function: getWidgetCapabilityOverview
 - **toolName**: getWidgetCapabilityOverview
@@ -141,11 +141,11 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 
 ## 参考
 
-- 参考索引：[`reference.md`](reference.md)
-- 微服务工具契约：[`reference/tool-contracts.md`](reference/tool-contracts.md)
-- 候选能力和 dataBindings 规划：[`reference/candidate-planning.md`](reference/candidate-planning.md)
-- 回复策略：[`reference/response-policy.md`](reference/response-policy.md)
-- 测试、工具调用和话术样例：[`reference/examples.md`](reference/examples.md)
+- 参考索引：[`references.md`](references.md)
+- 微服务工具契约：[`references/tool-contracts.md`](references/tool-contracts.md)
+- 候选能力和 dataBindings 规划：[`references/candidate-planning.md`](references/candidate-planning.md)
+- 回复策略：[`references/response-policy.md`](references/response-policy.md)
+- 测试、工具调用和话术样例：[`references/examples.md`](references/examples.md)
 
 ## 安全红线
 
