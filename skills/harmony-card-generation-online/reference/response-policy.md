@@ -4,15 +4,20 @@
 
 ## 通用规则
 
+- 三个工具返回的是包装结构：`streamInfo` 以及 `items`；如果运行环境返回原始插件包络，则先检查顶层 `errorCode/errorMessage/reply`，`errorCode` 非 `"0"` 时按工具失败处理，`errorCode` 为 `"0"` 时从 `reply.items` 继续解析。
+- 业务结果必须先从当前工具对应的 `items[].data` 解析出来。
+- `items[].status` 是工具层状态，不等同于 `generateWidgetCard` 业务 payload 中的 `status`。
+- `items[].data` 是 JSON 字符串时先解析为对象；解析失败、缺少 `data` 或 `items[].error` 表示失败时，按工具调用异常处理。
 - 只认可 `success`、`degraded`、`unsupported`、`failed` 四种状态。
-- `success` 或 `degraded` 必须同时有 `artifactUrl` 才能输出 `genWidgetResult`。
+- 这里的四种状态指 `generateWidgetCard` 业务 payload 里的 `status`。
+- `success` 或 `degraded` 必须在业务 payload 中同时有 `artifactUrl` 才能输出 `genWidgetResult`。
 - 没有真实 `artifactUrl` 时不要输出标记，即使状态看起来成功。
-- 可以轻量润色 `message`，但不要改变微服务状态判断、降级原因或可用性结论。旧环境如果仍返回 `userMessage`，可兼容读取；新接口以 `message` 为准。
-- 用户可见回复不要暴露 capabilityId、provider、TaskSpec、OBS、IDS、errorCode 等内部字段，除非用户明确追问技术细节。
+- 可以轻量润色业务 payload 的 `message`，但不要改变微服务状态判断、降级原因或可用性结论。旧环境如果仍返回 `userMessage`，可兼容读取；新接口以 `message` 为准。
+- 用户可见回复不要暴露 capabilityId、provider、TaskSpec、OBS、IDS、errorCode、requestId、items 或原始 data 字符串等内部字段，除非用户明确追问技术细节。
 
 ## success
 
-条件：微服务返回 `status: "success"` 且有 `artifactUrl`。
+条件：`generateWidgetCard` 业务 payload 返回 `status: "success"` 且有 `artifactUrl`。
 
 回复：
 
@@ -26,7 +31,7 @@
 
 ## degraded
 
-条件：微服务返回 `status: "degraded"` 且有 `artifactUrl`。
+条件：`generateWidgetCard` 业务 payload 返回 `status: "degraded"` 且有 `artifactUrl`。
 
 回复：
 
@@ -44,7 +49,7 @@
 
 ## unsupported
 
-条件：微服务返回 `status: "unsupported"`。
+条件：`generateWidgetCard` 业务 payload 返回 `status: "unsupported"`。
 
 回复：
 
@@ -62,7 +67,7 @@
 
 ## failed
 
-条件：微服务返回 `status: "failed"` 或工具调用异常。
+条件：`generateWidgetCard` 业务 payload 返回 `status: "failed"`，或包装结构无法解析、工具项包含错误、工具调用异常。
 
 回复：
 

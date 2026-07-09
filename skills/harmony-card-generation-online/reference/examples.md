@@ -15,14 +15,13 @@
 
 ## 工具调用样例：天气通勤卡
 
-说明：以下示例是通过 `invoke(functionName:"工具名", arguments:{bundleName:"com.omega_w_0823.hmservice", ...})` 调用工具的写法。线上 `uid` 和 `device` 由工具层自动注入。示例中的 `timeInterval` 使用 2026-07-06 Asia/Shanghai 的当天毫秒区间；实际执行时按用户本地时区和当前日期计算。
+说明：以下示例是通过 `invoke(functionName:"工具名", arguments:{bundleName:"com.omega_w_0823.hmservice", ...})` 调用工具的写法。不要构造内部 `content/deviceInfo/session` 包络；除 `bundleName` 外，只传当前工具 schema 已声明的业务字段。示例中的 `timeInterval` 使用 2026-07-06 Asia/Shanghai 的当天毫秒区间；实际执行时按用户本地时区和当前日期计算。
 
 1. `getWidgetCapabilityOverview`
 
 ```text
 invoke(functionName:"getWidgetCapabilityOverview", arguments:{
-  bundleName:"com.omega_w_0823.hmservice",
-  locale:"zh-CN"
+  bundleName:"com.omega_w_0823.hmservice"
 })
 ```
 
@@ -31,8 +30,7 @@ invoke(functionName:"getWidgetCapabilityOverview", arguments:{
 ```text
 invoke(functionName:"getDataCapabilitySchemas", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
-  dataCapabilityIds:["ViewWeather", "calendar.events.search"],
-  locale:"zh-CN"
+  dataCapabilityIds:["ViewWeather", "calendar.events.search"]
 })
 ```
 
@@ -42,7 +40,8 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{
 invoke(functionName:"generateWidgetCard", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
   userQuery:"生成一个通勤卡片，早上看天气、今天第一个会议和去公司的入口。",
-  locale:"zh-CN",
+  title:"通勤助手",
+  description:"天气日程速览",
   size:"2x4",
   candidateDataBindings:[
     {
@@ -86,7 +85,8 @@ invoke(functionName:"generateWidgetCard", arguments:{
 invoke(functionName:"generateWidgetCard", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
   userQuery:"给我做一张抖音使用时长和耗电卡，显示前台时长、前台耗电和更新时间。",
-  locale:"zh-CN",
+  title:"使用时长",
+  description:"时长耗电统计",
   size:"2x2",
   candidateDataBindings:[
     {
@@ -111,7 +111,8 @@ invoke(functionName:"generateWidgetCard", arguments:{
 invoke(functionName:"generateWidgetCard", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
   userQuery:"帮我做一个打开天气应用的入口卡片",
-  locale:"zh-CN",
+  title:"天气入口",
+  description:"快速打开天气",
   size:"2x2",
   candidateDataBindings:[],
   candidateEventCandidates:[
@@ -139,12 +140,86 @@ invoke(functionName:"generateWidgetCard", arguments:{
 invoke(functionName:"generateWidgetCard", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
   userQuery:"帮我做一个美团外卖配送状态卡片",
-  locale:"zh-CN",
+  title:"外卖状态",
+  description:"配送进度提醒",
   size:"2x2",
   candidateDataBindings:[],
   candidateEventCandidates:[],
   candidateAssetIds:[]
 })
+```
+
+## 工具返回解析示例
+
+三个工具都返回包装结构，业务结果需要从 `items[].data` 解析：
+
+```json
+{
+  "streamInfo": "",
+  "items": [
+    {
+      "tool": "generateWidgetCard",
+      "status": "success",
+      "data": "{\"status\":\"success\",\"message\":\"已为你生成通勤卡片。\",\"artifactUrl\":\"https://obs.example/widget/123.json\",\"suggestSize\":\"2x4\"}"
+    }
+  ]
+}
+```
+
+解析 `data` 后，再按其中的业务 `status/message/artifactUrl` 回复用户。
+
+## 对象结构注意事项
+
+对外工具 schema 中 `candidateDataBindings` 和 `candidateEventCandidates` 的数组项是 `Object`，但实际传参必须按内部类结构组装。
+
+正确的 `CandidateDataBinding`：
+
+```json
+{
+  "capabilityId": "ViewWeather",
+  "arguments": {
+    "districtName": "青浦区",
+    "forecastDays": 1
+  },
+  "writeResultTo": "/data/weather"
+}
+```
+
+不要把能力参数平铺成：
+
+```json
+{
+  "capabilityId": "ViewWeather",
+  "districtName": "青浦区",
+  "forecastDays": 1,
+  "writeResultTo": "/data/weather"
+}
+```
+
+正确的 `CandidateEventCandidate`：
+
+```json
+{
+  "capabilityId": "event.open.weather",
+  "action": {
+    "call": "clickToDeeplink",
+    "args": {
+      "bundleName": "",
+      "abilityName": "",
+      "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+    }
+  }
+}
+```
+
+不要把事件动作平铺成：
+
+```json
+{
+  "capabilityId": "event.open.weather",
+  "call": "clickToDeeplink",
+  "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+}
 ```
 
 ## 用户回复话术样例

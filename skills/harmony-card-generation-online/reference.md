@@ -6,8 +6,8 @@
 
 ## 默认读取
 
-- [`reference/tool-contracts.md`](reference/tool-contracts.md)：三个微服务工具的输入、输出和调用规则。
-- [`reference/candidate-planning.md`](reference/candidate-planning.md)：如何从能力概述中筛选候选能力、构造候选 dataBindings、event candidates、asset ids 和 size。
+- [`reference/tool-contracts.md`](reference/tool-contracts.md)：三个微服务工具的输入、包装输出解析和调用规则。
+- [`reference/candidate-planning.md`](reference/candidate-planning.md)：如何从能力概述中筛选候选能力、构造候选 dataBindings、event candidates、asset ids、size、title 和 description。
 - [`reference/response-policy.md`](reference/response-policy.md)：如何处理 `success`、`degraded`、`unsupported`、`failed`。
 - [`reference/tools/`](reference/tools/)：三个工具的 JSON 声明。工具联调、schema 排查、更新 `metadata.tools` 或核对真实工具入参时读取。
 

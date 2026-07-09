@@ -21,7 +21,7 @@
 
 ## 能力概述筛选 Prompt
 
-拿到 `getWidgetCapabilityOverview` 后，在内部按以下标准筛选：
+拿到 `getWidgetCapabilityOverview` 后，先从包装输出 `items[].data` 中解析业务 payload，再在内部按以下标准筛选：
 
 ```text
 从用户 query 中抽取：
@@ -30,7 +30,7 @@
 3. 用户想执行的动作：打开应用、查看详情、拨号、清理内存、入会、导航、切换设置。
 4. 视觉素材意图：天气图标、日历图标、应用图标、系统状态图标等。
 
-只从 overview 返回的 dataCapabilities、eventCapabilities、assetCandidates 中选择候选。
+只从 overview 业务 payload 返回的 dataCapabilities、eventCapabilities、assetCandidates 中选择候选。
 能力 description 与核心场景或动作强相关才选择。
 不能仅凭名称相似选择会改变用户意图的能力。
 ```
@@ -47,25 +47,42 @@
 - 选择 `2x4`：两个以上核心信息区、动态列表、天气+日程、主指标+上下文+动作都需要完整展示。
 - 如果不确定，优先 `2x2`，让微服务在必要时降级或调整。
 
+## 标题与概述
+
+调用 `generateWidgetCard` 时必须传 `title` 和 `description`，作为进入 TaskSpec 的静态短文案候选。
+
+- `title` 尽量不超过 8 个字，表达卡片主题，例如“通勤助手”“天气速览”“会议提醒”。
+- `description` 尽量不超过 12 个字，表达卡片用途，例如“天气日程速览”“今日安排提醒”。
+- 只写稳定、静态、用户可理解的概述，不写动态值、隐私内容、未经确认的设备状态或能力可用性承诺。
+- `title` 和 `description` 不替代 `userQuery`，也不替代数据能力、事件能力或素材能力。
+- 无法提炼出合适短文案时也不能省略；使用“桌面卡片”和“信息速览”等稳定兜底文案。
+
 ## 数据能力候选
 
 生成 `candidateDataBindings` 时遵守：
 
+- 对外工具 schema 将数组项写成 `Object`，但每一项必须按内部 `CandidateDataBinding` 类结构传入。
 - `capabilityId` 必须来自已加载 schema。
 - `arguments` 只使用 `inputSchema.properties` 中声明的字段。
+- `arguments` 必须放在 binding 的 `arguments` 对象内，不要把能力入参平铺到 binding 顶层。
 - 必填字段缺失且无法从用户 query、端侧安全上下文或 schema 默认说明推导时，不要编造；移除该候选，让微服务基于 `userQuery` 做静态降级或 unsupported 决策。
 - `writeResultTo` 优先使用 schema 返回的 `defaultWriteResultTo`；没有时使用 `/data/{semanticKey}`，且多个候选不能相同或互为父子。
 - 不传未在工具 schema 中声明的控制字段，例如 `required`；“必须包含某能力，否则不要生成”这类约束保留在 `userQuery` 中。
 - 不把候选 binding 当最终 CardSpec；微服务会过滤和规范化。
+- 默认不要传字段投影，交给微服务根据 `userQuery` 和能力 schema 构造模型输入。
+- 如果确实需要表达输出字段投影，只能使用 `updateModel`，不要传 `candidateOutputFields`；字段必须能由对应能力 `outputSchema` 推导，且不能写入真实用户数据或模型自造字段。
 - 相对时间必须转换成能力 schema 要求的参数。若日历 schema 要 `timeInterval`，把 today/tomorrow/next24Hours 按本地时区换算为毫秒区间；不要把 `timeRange` 写进 `arguments`。
 - 地点、联系人、App 包名等无法可靠解析时，移除对应候选，不用猜测值。
 
-本版不传 `slots`。生产默认不传 `options`；只有本地调试需要内联 artifact 时，才按工具 schema 传 `options.returnArtifactInline`。地点、时间范围、目标动作、模板 ID、缺失字段和不支持部分都保留在 `userQuery` 中，由微服务解析或降级。
+本版不传 `slots`、`options`、`locale`、`uid`、`device` 等当前工具 schema 未声明的字段。地点、时间范围、目标动作、模板 ID、缺失字段和不支持部分都保留在 `userQuery` 中，由微服务解析或降级。
 
 ## 事件能力候选
 
 - 使用单数组 `candidateEventCandidates`，不要使用并行的 ID 数组和 action 数组。
+- 对外工具 schema 将数组项写成 `Object`，但每一项必须按内部 `CandidateEventCandidate` 类结构传入。
 - 每个候选项必须包含 `capabilityId` 和完整 `action`，且 `capabilityId` 必须来自 overview。
+- `action` 必须是对象，内部包含 `call` 和 `args`；不要把 `call`、`args` 平铺到事件候选顶层。
+- `args` 必须是对象，不要传字符串化 JSON。
 - `action` 必须来自 overview 给出的 `actionTemplate` 或完整事件描述；只有参数可以安全填齐时才传该事件候选。
 - `action` 只是候选事件动作，不是最终 DSL `onClick`；微服务仍要做依赖过滤、参数校验和最终写入。
 - 打开应用、打开详情、拨号、入会、导航、清理内存、切换设置等都通过 overview 的事件能力选择。
@@ -103,7 +120,7 @@
 
 ## 降级
 
-生产默认不传 `options`。微服务默认 `allowDegradation: true`、`returnArtifactInline: false`。如果用户明确要求“必须包含某能力，否则不要生成”，该约束保留在 `userQuery` 中，由微服务解析并决定是否 unsupported。
+不传 `options`。如果用户明确要求“必须包含某能力，否则不要生成”，该约束保留在 `userQuery` 中，由微服务解析并决定是否 unsupported。
 
 ## 不支持场景
 
