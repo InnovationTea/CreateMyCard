@@ -8,12 +8,12 @@
   "layoutSummary": "Top object row, left circular progress focus, right compact facts, bottom full-width action/support pill.",
   "lockedStructure": {
     "surface": {
-      "width": 140,
-      "height": 140
+      "width": 150,
+      "height": 150
     },
     "root": {
-      "width": 140,
-      "height": 140,
+      "width": 150,
+      "height": 150,
       "padding": 12,
       "borderRadius": 18,
       "clip": true
@@ -21,17 +21,17 @@
     "sections": [
       {
         "id": "headerRow",
-        "width": 116,
+        "width": 126,
         "height": 20
       },
       {
         "id": "mainRow",
-        "width": 116,
+        "width": 126,
         "height": 58
       },
       {
         "id": "primaryAction",
-        "width": 116,
+        "width": 126,
         "height": 26
       }
     ]

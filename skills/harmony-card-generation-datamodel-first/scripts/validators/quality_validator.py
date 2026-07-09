@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .base import BaseValidator, estimate_text_width, expression_like, is_match_parent, numeric, read_pointer, resolve_dimension, spacing_tuple, static_expression_value
+from .base import BaseValidator, estimate_text_width, expression_like, numeric, read_pointer, resolve_dimension, spacing_tuple, static_expression_value
 
 
 class QualityValidator(BaseValidator):
@@ -51,8 +51,8 @@ class QualityValidator(BaseValidator):
                 line=2,
                 json_pointer=f"/updateComponents/componentsById/{context.root_id}/styles",
                 actual={"width": styles.get("width"), "height": styles.get("height")},
-                expected={"width": expected["width"], "height": expected["height"], "outerFill": "matchParent"},
-                message="root 必须声明与尺寸一致的 width/height；外层可使用 matchParent，校验按基准尺寸解析。",
+                expected={"width": expected["width"], "height": expected["height"]},
+                message="root 必须声明与尺寸一致的数值 width/height。",
             )
         if numeric(styles.get("borderRadius")) != expected["borderRadius"] or styles.get("clip") is not True:
             penalties += 5
@@ -113,20 +113,20 @@ class QualityValidator(BaseValidator):
             if extra:
                 penalties += 2
                 reporter.add("warning", "DSL_FIELD_FORBIDDEN", "quality", "genui", line=2, json_pointer=f"/updateComponents/componentsById/{component_id}/styles", actual=extra, message="styles 中存在组件目录未声明的字段。")
-            for field in ("width", "height"):
-                if component_id != context.root_id and is_match_parent(styles.get(field)):
-                    penalties += 8
-                    reporter.add(
-                        "error",
-                        "LAYOUT_MATCH_PARENT_SCOPE_INVALID",
-                        "quality",
-                        "genui",
-                        line=2,
-                        json_pointer=f"/updateComponents/componentsById/{component_id}/styles/{field}",
-                        actual=styles.get(field),
-                        expected="仅 createSurface 和 root.styles 的 width/height 可使用 matchParent",
-                        message="matchParent 只允许用于外围卡片大小；内部组件必须保持可静态预算的数值宽高。",
-                    )
+            if component_id != context.root_id:
+                for field in ("width", "height"):
+                    if field in styles and numeric(styles.get(field)) is None and not expression_like(styles.get(field)):
+                        penalties += 8
+                        reporter.add(
+                            "error",
+                            "LAYOUT_DIMENSION_NOT_STATIC",
+                            "quality",
+                            "genui",
+                            line=2,
+                            json_pointer=f"/updateComponents/componentsById/{component_id}/styles/{field}",
+                            actual=styles.get(field),
+                            message="组件 width/height 必须是数值 vp 或可静态推导的约束。",
+                        )
             font_size = numeric(styles.get("fontSize"))
             if font_size is not None and int(font_size) not in allowed_font_sizes:
                 penalties += 4
