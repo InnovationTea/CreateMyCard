@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 # ruff: noqa: E402, I001
+import asyncio
 import base64
 import hashlib
 import hmac
@@ -33,6 +34,10 @@ from services.retry_controller import RetryController
 from services.sts_config import STSConfig
 from services.task_spec_builder import TaskSpecBuilder
 from services.validator import ArtifactValidator
+from utils.base_utils import STSConfig as BaseSTSConfig
+from utils.base_utils import sts_config
+from utils.file import delete_file, save_txt_file
+from utils.upload_file_obs import UploadFileOSMS
 
 
 def test_websocket_handler_runs_sync_service_in_threadpool():
@@ -90,6 +95,17 @@ def test_sts_config_returns_mock_ids_config():
     assert ids_config.dev_fake_id
 
 
+def test_base_sts_config_returns_ids_secret_key():
+    """验证 IDSClient 使用的 STS 单例能够读取 mock 二进制密钥。
+
+    入参：无。
+    出参：无；通过断言验证返回值可以直接用于 HMAC。
+    """
+    mock_sts_config = BaseSTSConfig({"ids.secret.key": b"secret"})
+
+    assert mock_sts_config.get_sts_config("ids.secret.key") == b"secret"
+
+
 def test_ids_query_builds_structured_request_and_signature(monkeypatch):
     """验证 IDS 查询请求使用实体封装，并生成真实签名。
 
@@ -98,7 +114,7 @@ def test_ids_query_builds_structured_request_and_signature(monkeypatch):
     """
     client = IDSClient()
     monkeypatch.setattr(client.settings, "ids_access_key", "access")
-    monkeypatch.setattr(client.settings, "ids_secret_key", base64.b64encode(b"secret").decode())
+    monkeypatch.setattr(sts_config, "get_sts_config", lambda config_key: b"secret")
     request = client.build_installed_apps_query(_device(), "ids-unit-1")
     expected_digest = hmac.new(
         b"secret",
@@ -430,8 +446,46 @@ def test_artifact_store_returns_structured_save_result():
     )
     result = ArtifactStore().save(artifact)
 
-    assert result.artifactUrl.endswith(".json")
+    assert result.artifactUrl.endswith(".md")
     assert result.artifactDigest.startswith("sha256:")
+
+
+def test_file_utils_save_and_delete_utf8_text(tmp_path):
+    """验证文本文件工具支持自动建目录、UTF-8 写入和幂等删除。
+
+    入参：
+    - tmp_path：pytest 临时目录。
+    出参：无；通过断言验证文件工具行为。
+    """
+    file_path = tmp_path / "nested" / "artifact.md"
+
+    save_txt_file(file_path, "卡片内容")
+
+    assert file_path.read_text(encoding="utf-8") == "卡片内容"
+    delete_file(file_path)
+    delete_file(file_path)
+    assert not file_path.exists()
+
+
+def test_upload_file_osms_copies_file_and_returns_mock_url(tmp_path):
+    """验证 mock OBS 上传会保留文件副本并返回访问地址。
+
+    入参：
+    - tmp_path：pytest 临时目录。
+    出参：无；通过断言验证上传结果和 mock 落盘文件。
+    """
+    source_path = tmp_path / "source" / "artifact.md"
+    mock_storage_dir = tmp_path / "mock_obs"
+    save_txt_file(source_path, "artifact")
+    uploader = UploadFileOSMS(
+        base_url="https://obs.mock.local/widget",
+        mock_storage_dir=mock_storage_dir,
+    )
+
+    artifact_url = asyncio.run(uploader.upload_file(source_path))
+
+    assert artifact_url == "https://obs.mock.local/widget/artifact.md"
+    assert (mock_storage_dir / "artifact.md").read_text(encoding="utf-8") == "artifact"
 
 
 def test_artifact_validator_reuses_datamodel_first_validator():

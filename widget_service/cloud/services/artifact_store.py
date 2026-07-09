@@ -11,7 +11,7 @@ from app.logger import logger
 from config.config import get_settings
 from models.artifact import WidgetArtifact
 from models.service import ArtifactSaveResult
-from utils.file import save_txt_file, delete_file
+from utils.file import delete_file, save_txt_file
 from utils.upload_file_obs import UploadFileOSMS
 
 file_obs = UploadFileOSMS()
