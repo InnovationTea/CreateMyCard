@@ -37,6 +37,10 @@ jobs:
       - name: Build packages
         run: ./release.sh
 
+      - name: List output
+        run: |
+          find output -maxdepth 2 -type f -o -type d
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
