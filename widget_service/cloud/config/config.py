@@ -79,3 +79,11 @@ def get_settings() -> Settings:
     出参：缓存后的 Settings 对象。
     """
     return Settings()
+
+class LoggingConfig:
+    PROJECT_ROOT = get_settings().PROJECT_ROOT
+    if get_settings().LOCAL_FLAG:
+        LOG_DIR = PROJECT_ROOT / "logs"
+    else:
+        LOG_DIR = "/opt/test/logs/genui-agent-service/debug"
+    NOHUP_PATH = PROJECT_ROOT / "nohup.out"
