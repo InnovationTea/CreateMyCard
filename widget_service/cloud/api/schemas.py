@@ -198,8 +198,8 @@ class CandidateEventCandidate(BaseModel):
 class GenerateWidgetCardRequest(VersionedToolRequest):
     userQuery: str
     size: WidgetSize = "2x4"
-    title: str
-    description: str
+    title: str = Field(min_length=1)
+    description: str = Field(min_length=1)
     candidateDataBindings: list[CandidateDataBinding] = Field(default_factory=list)
     candidateEventCandidates: list[CandidateEventCandidate] = Field(default_factory=list)
     candidateAssetIds: list[str] = Field(default_factory=list)
@@ -226,8 +226,8 @@ class WidgetCardServiceRequest(VersionedToolRequest):
     dataCapabilityIds: list[str] = Field(default_factory=list)
     userQuery: str | None = None
     size: WidgetSize | None = None
-    title: str | None = None
-    description: str | None = None
+    title: str | None = Field(default=None, min_length=1)
+    description: str | None = Field(default=None, min_length=1)
     candidateDataBindings: list[CandidateDataBinding] = Field(default_factory=list)
     candidateEventCandidates: list[CandidateEventCandidate] = Field(default_factory=list)
     candidateAssetIds: list[str] = Field(default_factory=list)

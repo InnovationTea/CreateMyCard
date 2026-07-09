@@ -74,7 +74,10 @@ class A2UIModelClient:
                     {
                         "id": "summary",
                         "component": "Text",
-                        "content": "正在为你刷新最新信息",
+                        "content": self._description(
+                            task_spec.description,
+                            task_spec.userQuery,
+                        ),
                         "styles": {
                             "fontSize": 12,
                         },
@@ -106,3 +109,13 @@ class A2UIModelClient:
         出参：用于 mock DSL 的短标题。
         """
         return title[:18] or user_query[:18] or "桌面卡片"
+
+    def _description(self, description: str, user_query: str) -> str:
+        """从卡片说明生成 mock 摘要。
+
+        入参：
+        - description：主 Agent 建议的卡片说明。
+        - user_query：用户原始需求。
+        出参：用于 mock DSL 的短摘要。
+        """
+        return description[:28] or user_query[:28] or "正在为你刷新最新信息"

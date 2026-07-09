@@ -7,6 +7,7 @@ from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, ValidationError
+from starlette.concurrency import run_in_threadpool
 
 from api.schemas import (
     CapabilityOverviewRequest,
@@ -271,7 +272,9 @@ async def _serve_operation_websocket(
                     f"operation={operation} uid={getattr(request, 'uid', '')} "
                     f"request={request.model_dump(mode='json', exclude_none=True)}"
                 )
-                result = handler(service, request)
+                # service 目前是同步编排器，内部包含 requests、同步文件读取和重试校验。
+                # WebSocket 入口必须把它放到线程池里执行，避免阻塞当前 async 事件循环。
+                result = await run_in_threadpool(handler, service, request)
                 result_data = result.model_dump(mode="json", exclude_none=True)
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
                 logger.info(

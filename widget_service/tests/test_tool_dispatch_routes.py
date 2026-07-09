@@ -385,6 +385,7 @@ def test_missing_prd_version_returns_empty_capability_results():
                     "userQuery": f"随机能力版本测试 {uuid.uuid4().hex}",
                     "size": "2x4",
                     "title": "随机能力版本测试",
+                    "description": "随机能力版本测试",
                     "candidateDataBindings": [
                         {
                             "capabilityId": random_capability_id,

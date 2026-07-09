@@ -68,94 +68,66 @@
   },
   "output": {
     "type": "object",
-    "required": [
-      "type",
-      "tool",
-      "operation",
-      "requestId",
-      "data",
-      "status",
-      "errorCode",
-      "error"
-    ],
+    "required": ["errorCode", "errorMessage", "reply"],
     "properties": {
-      "type": {
-        "type": "string",
-        "required": true,
-        "description": "消息类型；正常响应为 result，异常响应为 error。"
-      },
-      "tool": {
-        "type": "string",
-        "required": true,
-        "description": "当前工具名；本接口为 getWidgetCapabilityOverview。"
-      },
-      "operation": {
-        "type": "string",
-        "required": true,
-        "description": "当前 WebSocket path 对应的接口名。"
-      },
-      "requestId": {
-        "type": "string|null",
-        "required": true,
-        "description": "服务端根据 sessionId + '&' + interactionId 生成的请求 ID。"
-      },
-      "data": {
-        "type": "object",
-        "required": true,
-        "description": "业务响应数据。",
-        "requiredProperties": [
-          "apiVersion",
-          "capabilityRegistryVersion",
-          "dataCapabilities",
-          "eventCapabilities",
-          "assetCandidates"
-        ],
-        "properties": {
-          "apiVersion": {
-            "type": "string",
-            "required": true,
-            "description": "接口版本。"
-          },
-          "capabilityRegistryVersion": {
-            "type": "string",
-            "required": true,
-            "description": "本次实际使用的能力清单版本目录名。"
-          },
-          "dataCapabilities": {
-            "type": "DataCapabilityOverview[]",
-            "required": true,
-            "description": "数据能力概述列表，只包含 id 和 description。"
-          },
-          "eventCapabilities": {
-            "type": "EventCapability[]",
-            "required": true,
-            "description": "事件能力完整列表。"
-          },
-          "assetCandidates": {
-            "type": "AssetCapability[]",
-            "required": true,
-            "description": "素材能力完整列表。"
-          }
-        }
-      },
-      "status": {
-        "type": "string",
-        "required": true,
-        "description": "本次调用状态；成功时为 success。"
-      },
       "errorCode": {
         "type": "string",
         "required": true,
-        "description": "错误码；成功时为空字符串。"
+        "description": "华为流处理插件顶层响应码；成功为 0，参数错误、系统异常或工程失败时为非 0。"
       },
-      "error": {
+      "errorMessage": {
+        "type": "string",
+        "required": true,
+        "description": "顶层错误描述；成功时为空字符串。"
+      },
+      "reply": {
         "type": "object",
         "required": true,
-        "description": "错误详情；成功时为空对象。"
+        "description": "流处理插件响应内容。",
+        "requiredProperties": ["streamInfo", "items"],
+        "properties": {
+          "streamInfo": {
+            "$ref": "#/nestedTypes/StreamInfo",
+            "required": true,
+            "description": "答复文本结构；当前服务一次请求只发送 final 帧。"
+          },
+          "items": {
+            "type": "GetWidgetCapabilityOverviewResult[]",
+            "required": true,
+            "minItems": 1,
+            "description": "结构化数据；items[0] 保留当前完整旧出参 type/tool/operation/requestId/data/status/errorCode/error。"
+          }
+        }
       }
     }
   },
   "nestedTypes": {
+    "StreamInfo": {
+      "required": ["streamContent", "streamingTextId", "streamType", "textType"],
+      "properties": {
+        "streamContent": "string，截止当前帧的全量输出内容。",
+        "streamingTextId": "string，流式文本 ID；当前使用 requestId，缺失时生成随机 ID。",
+        "streamType": "string，当前固定为 final。",
+        "textType": "string，当前固定为 markdown。"
+      }
+    },
+    "GetWidgetCapabilityOverviewResult": {
+      "required": ["type", "tool", "operation", "requestId", "data", "status", "errorCode", "error"],
+      "properties": {
+        "type": "string，旧完整出参消息类型；正常为 result，异常为 error。",
+        "tool": "string，当前工具名；本接口为 getWidgetCapabilityOverview。",
+        "operation": "string，当前 WebSocket path 对应的接口名。",
+        "requestId": "string|null，服务端根据 sessionId + '&' + interactionId 生成的请求 ID。",
+        "data.apiVersion": "string，接口版本。",
+        "data.capabilityRegistryVersion": "string，本次实际使用的能力清单版本目录名。",
+        "data.dataCapabilities": "DataCapabilityOverview[]，数据能力概述列表，只包含 id 和 description。",
+        "data.eventCapabilities": "EventCapability[]，事件能力完整列表。",
+        "data.assetCandidates": "AssetCapability[]，素材能力完整列表。",
+        "status": "string，本次调用状态；成功时为 success。",
+        "errorCode": "string，旧完整出参错误码；成功时为空字符串。",
+        "error": "object，旧完整出参错误详情；成功时为空对象。"
+      }
+    },
     "DeviceInfo": {
       "required": ["locale", "phoneType", "sysVer"],
       "properties": {

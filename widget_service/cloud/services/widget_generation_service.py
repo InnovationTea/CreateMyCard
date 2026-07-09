@@ -68,6 +68,10 @@ class WidgetGenerationService:
             # 生成阶段必须带原始用户需求，模型 prompt、TaskSpec 和用户话术都依赖它。
             if not request.userQuery:
                 raise ValueError("userQuery is required for generateWidgetCard.")
+            if not request.title:
+                raise ValueError("title is required for generateWidgetCard.")
+            if not request.description:
+                raise ValueError("description is required for generateWidgetCard.")
             # dataCapabilityIds 只属于 schema 加载接口，生成请求下沉时需要剔除。
             payload = request.model_dump(exclude={"operation", "dataCapabilityIds"})
             # 尺寸是主 Agent 建议值；未传时服务用 2x4 作为一期默认推荐尺寸。

@@ -23,6 +23,7 @@ from models.artifact import ArtifactMeta, WidgetArtifact
 from models.capability import AssetCapability, DataCapability, RemovedCapability
 from models.generation import CandidateDataBinding, DeviceContext, EventAction
 from services.artifact_store import ArtifactStore
+from services.a2ui_model_client import A2UIModelClient
 from services.card_spec_builder import CardSpecBuilder
 from services.capability_registry import CapabilityRegistry
 from services.ids_client import IDSClient
@@ -31,6 +32,18 @@ from services.response_planner import ResponsePlanner
 from services.retry_controller import RetryController
 from services.task_spec_builder import TaskSpecBuilder
 from services.validator import ArtifactValidator
+
+
+def test_websocket_handler_runs_sync_service_in_threadpool():
+    """验证 WebSocket async 入口不会直接同步阻塞事件循环。
+
+    入参：无。
+    出参：无；通过源码断言防止回退为 `handler(service, request)` 直调。
+    """
+    routes_source = (CLOUD_ROOT / "api" / "routes.py").read_text(encoding="utf-8")
+    assert "from starlette.concurrency import run_in_threadpool" in routes_source
+    assert "await run_in_threadpool(handler, service, request)" in routes_source
+    assert "result = handler(service, request)" not in routes_source
 
 
 def _device() -> DeviceContext:
@@ -286,6 +299,38 @@ def test_prompt_builder_returns_entity_payload():
 
     assert payload.user.protocolProfile.version == "v0.9"
     assert payload.user.degradationContext == "无降级"
+
+
+def test_a2ui_model_client_uses_title_and_description():
+    """验证 mock A2UI 生成同时使用 TaskSpec 的标题和说明。
+
+    入参：无。
+    出参：无；通过解析 genui 断言 title/summary 组件内容来自 TaskSpec。
+    """
+    task_spec = TaskSpecBuilder().build(
+        user_query="帮我做天气卡片",
+        size="2x4",
+        title="天气速览",
+        description="查看当前天气",
+        effective_bindings=[],
+        effective_data_capabilities=[],
+        event_candidates=[],
+        asset_candidates=[],
+    )
+    genui = A2UIModelClient().generate(
+        task_spec,
+        {
+            "version": "v0.9",
+            "catalogId": "ohos.a2ui.extended.catalog",
+            "sizes": {"2x4": {"width": 300, "height": 140}},
+        },
+        prompt=None,
+    )
+    update_components = json_module.loads(genui.splitlines()[1])["updateComponents"]
+    components = {item["id"]: item for item in update_components["components"]}
+
+    assert components["title"]["content"] == "天气速览"
+    assert components["summary"]["content"] == "查看当前天气"
 
 
 def test_response_planner_returns_structured_status():

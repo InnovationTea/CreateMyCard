@@ -11,7 +11,7 @@
         "type": "object",
         "required": true,
         "description": "业务入参，对应旧协议 arguments。",
-        "requiredProperties": ["userQuery"],
+        "requiredProperties": ["userQuery", "title", "description"],
         "properties": {
           "bundleName": {
             "type": "string",
@@ -30,6 +30,18 @@
             "default": "2x4",
             "description": "主 Agent 建议尺寸。"
           },
+          "title": {
+            "type": "string",
+            "required": true,
+            "minLength": 1,
+            "description": "主 Agent 建议的卡片标题；会进入 TaskSpec.title，并作为 A2UI 标题候选。"
+          },
+          "description": {
+            "type": "string",
+            "required": true,
+            "minLength": 1,
+            "description": "主 Agent 建议的卡片说明；会进入 TaskSpec.description，并作为 A2UI 摘要候选。"
+          },
           "candidateDataBindings": {
             "type": "CandidateDataBinding[]",
             "required": false,
@@ -44,11 +56,6 @@
             "type": "string[]",
             "required": false,
             "description": "候选素材 ID 列表。"
-          },
-          "options": {
-            "type": "GenerationOptions",
-            "required": false,
-            "description": "生成选项；本地调试可用 returnArtifactInline 控制是否内联 artifact。"
           },
           "capabilityRegistryVersion": {
             "type": "string|null",
@@ -101,116 +108,71 @@
   },
   "output": {
     "type": "object",
-    "required": [
-      "type",
-      "tool",
-      "operation",
-      "requestId",
-      "data",
-      "status",
-      "errorCode",
-      "error"
-    ],
+    "required": ["errorCode", "errorMessage", "reply"],
     "properties": {
-      "type": {
-        "type": "string",
-        "required": true,
-        "description": "消息类型；正常响应为 result，异常响应为 error。"
-      },
-      "tool": {
-        "type": "string",
-        "required": true,
-        "description": "当前工具名；本接口为 generateWidgetCard。"
-      },
-      "operation": {
-        "type": "string",
-        "required": true,
-        "description": "当前 WebSocket path 对应的接口名。"
-      },
-      "requestId": {
-        "type": "string|null",
-        "required": true,
-        "description": "服务端根据 sessionId + '&' + interactionId 生成的请求 ID。"
-      },
-      "data": {
-        "type": "object",
-        "required": true,
-        "description": "业务响应数据。",
-        "requiredProperties": ["apiVersion", "status", "suggestSize", "message"],
-        "properties": {
-          "apiVersion": {
-            "type": "string",
-            "required": true,
-            "description": "接口版本。"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["success", "degraded", "unsupported", "failed"],
-            "required": true,
-            "description": "生成状态。"
-          },
-          "artifactUrl": {
-            "type": "string",
-            "required": false,
-            "description": "artifact 下载地址；成功或降级成功时返回。"
-          },
-          "artifactDigest": {
-            "type": "string",
-            "required": false,
-            "description": "artifact 内容摘要。"
-          },
-          "suggestSize": {
-            "type": "string",
-            "enum": ["2x2", "2x4"],
-            "required": true,
-            "description": "最终生成卡片尺寸。"
-          },
-          "message": {
-            "type": "string",
-            "required": true,
-            "description": "可展示给主 Agent 或用户的生成结果说明。"
-          },
-          "removedCapabilities": {
-            "type": "RemovedCapability[]",
-            "required": false,
-            "description": "被微服务裁决移除的能力及原因。"
-          },
-          "errorCode": {
-            "type": "string",
-            "required": false,
-            "description": "失败或不支持时返回的错误码。"
-          },
-          "artifact": {
-            "type": "object|null",
-            "required": false,
-            "description": "调试时可选内联 artifact；生产默认不返回。"
-          },
-          "effectiveCapabilities": {
-            "type": "object",
-            "required": false,
-            "description": "最终进入 artifact 的有效 data、event、asset 能力集合。"
-          }
-        }
-      },
-      "status": {
-        "type": "string",
-        "enum": ["success", "degraded", "unsupported", "failed"],
-        "required": true,
-        "description": "本次调用状态；生成接口透传业务响应 data.status。"
-      },
       "errorCode": {
         "type": "string",
         "required": true,
-        "description": "错误码；生成接口透传业务响应 data.errorCode。"
+        "description": "华为流处理插件顶层响应码；成功、降级成功和业务 unsupported 通常为 0，参数错误、系统异常或工程 failed 时为非 0。"
       },
-      "error": {
+      "errorMessage": {
+        "type": "string",
+        "required": true,
+        "description": "顶层错误描述；成功、降级或业务 unsupported 时为空字符串。"
+      },
+      "reply": {
         "type": "object",
         "required": true,
-        "description": "错误详情；成功、降级或不支持的业务结果通常为空对象。"
+        "description": "流处理插件响应内容。",
+        "requiredProperties": ["streamInfo", "items"],
+        "properties": {
+          "streamInfo": {
+            "$ref": "#/nestedTypes/StreamInfo",
+            "required": true,
+            "description": "答复文本结构；当前服务一次请求只发送 final 帧。"
+          },
+          "items": {
+            "type": "GenerateWidgetCardResult[]",
+            "required": true,
+            "minItems": 1,
+            "description": "结构化数据；items[0] 保留当前完整旧出参 type/tool/operation/requestId/data/status/errorCode/error。"
+          }
+        }
       }
     }
   },
   "nestedTypes": {
+    "StreamInfo": {
+      "required": ["streamContent", "streamingTextId", "streamType", "textType"],
+      "properties": {
+        "streamContent": "string，截止当前帧的全量输出内容；生成接口优先使用业务响应 message。",
+        "streamingTextId": "string，流式文本 ID；当前使用 requestId，缺失时生成随机 ID。",
+        "streamType": "string，当前固定为 final。",
+        "textType": "string，当前固定为 markdown。"
+      }
+    },
+    "GenerateWidgetCardResult": {
+      "required": ["type", "tool", "operation", "requestId", "data", "status", "errorCode", "error"],
+      "properties": {
+        "type": "string，旧完整出参消息类型；正常为 result，异常为 error。",
+        "tool": "string，当前工具名；本接口为 generateWidgetCard。",
+        "operation": "string，当前 WebSocket path 对应的接口名。",
+        "requestId": "string|null，服务端根据 sessionId + '&' + interactionId 生成的请求 ID。",
+        "data.apiVersion": "string，接口版本。",
+        "data.status": "string，生成状态，枚举 success/degraded/unsupported/failed。",
+        "data.artifactUrl": "string，artifact 下载地址；成功或降级成功时返回。",
+        "data.artifactDigest": "string，artifact 内容摘要。",
+        "data.suggestSize": "string，最终生成卡片尺寸，枚举 2x2/2x4。",
+        "data.message": "string，可展示给主 Agent 或用户的生成结果说明。",
+        "data.removedCapabilities": "RemovedCapability[]，被微服务裁决移除的能力及原因。",
+        "data.errorCode": "string，失败或不支持时返回的错误码。",
+        "data.artifact": "object|null，调试时可选内联 artifact；生产默认不返回。artifact.taskSpec 会包含 userQuery/size/title/description/eventCandidates/dataModel/assetCandidates。",
+        "data.effectiveCapabilities": "object，最终进入 artifact 的有效 data、event、asset 能力集合。",
+        "status": "string，旧完整出参调用状态；生成接口透传 data.status。",
+        "errorCode": "string，旧完整出参错误码；生成接口透传 data.errorCode。",
+        "error": "object，旧完整出参错误详情；成功、降级或业务 unsupported 通常为空对象。"
+      }
+    },
     "CandidateDataBinding": {
       "required": ["capabilityId", "arguments", "writeResultTo"],
       "properties": {
@@ -226,13 +188,6 @@
         "capabilityId": "string，事件能力 ID。",
         "action.call": "string，事件调用名，例如 clickToDeeplink、clickToIntent、clickToApi。",
         "action.args": "object，事件参数对象。"
-      }
-    },
-    "GenerationOptions": {
-      "required": false,
-      "properties": {
-        "allowDegradation": "boolean，可选，是否允许降级，默认 true。",
-        "returnArtifactInline": "boolean，可选，是否在响应中内联 artifact，默认 false。"
       }
     },
     "DeviceInfo": {
