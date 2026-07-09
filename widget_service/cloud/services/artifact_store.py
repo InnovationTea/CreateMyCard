@@ -1,13 +1,48 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+import asyncio
 import hashlib
 import json
-import uuid
+import os
+import time
+from threading import Thread
 
 from app.logger import logger
 from config.config import get_settings
 from models.artifact import WidgetArtifact
 from models.service import ArtifactSaveResult
+from utils.file import save_txt_file, delete_file
+from utils.upload_file_obs import UploadFileOSMS
+
+file_obs = UploadFileOSMS()
+
+
+def _run_async(coro):
+    """在新线程中运行异步协程，避免与现有事件循环冲突。
+
+    入参：
+    - coro：待执行的协程对象。
+    出参：协程返回值。
+    """
+    result = [None]
+    exception = [None]
+
+    def runner():
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            result[0] = loop.run_until_complete(coro)
+            loop.close()
+        except Exception as e:
+            exception[0] = e
+
+    thread = Thread(target=runner)
+    thread.start()
+    thread.join()
+
+    if exception[0]:
+        raise exception[0]
+    return result[0]
 
 
 class ArtifactStore:
@@ -27,9 +62,24 @@ class ArtifactStore:
         digest = "sha256:" + hashlib.sha256(payload).hexdigest()
         logger.info(f"artifact_payload_built payload_bytes={len(payload)} digest={digest}")
 
-        # 待办：替换为团队自己的 OBS 上传方法。上传内容必须是完整产物 JSON，
-        # 不能只上传界面描述，返回值应为端侧可下载的产物地址。
-        artifact_id = uuid.uuid4().hex
-        artifact_url = f"{get_settings().artifact_base_url}/{artifact_id}.json"
-        logger.info(f"artifact_saved_mock artifact_url={artifact_url}")
-        return ArtifactSaveResult(artifactUrl=artifact_url, artifactDigest=digest)
+        # 将 genui 和 cardSpec 写入文件，格式为 markdown 代码块
+        cardspec_str = json.dumps(artifact.cardSpec, ensure_ascii=False, indent=2)
+        file_content = f"```cardspec\n{cardspec_str}\n```\n```genui\n{artifact.genui}\n```\n"
+
+        # 文件名加时间戳
+        timestamp = int(time.time() * 1000)
+        file_name = f"artifact_{timestamp}.md"
+        file_path = os.path.join(str(get_settings().WORKSPACE_ROOT), file_name)
+        save_txt_file(file_path, file_content)
+        logger.info(f"artifact_file_saved path={file_path}")
+
+        try:
+            # 上传到 OBS，获取访问链接
+            artifact_url = _run_async(file_obs.upload_file(file_path))
+            if not artifact_url:
+                raise RuntimeError("artifact upload to OBS failed")
+            logger.info(f"artifact_uploaded artifact_url={artifact_url}")
+            return ArtifactSaveResult(artifactUrl=artifact_url, artifactDigest=digest)
+        finally:
+            # 清理本地临时文件
+            delete_file(file_path)
