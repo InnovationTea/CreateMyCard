@@ -1,0 +1,175 @@
+﻿{
+  "name": "getWidgetCapabilityOverview",
+  "transport": "websocket",
+  "path": "/genui-agent-service/api/v1/ws/tools/getWidgetCapabilityOverview",
+  "description": "获取当前设备版本可用的能力概述。content 对应业务入参，deviceInfo 由工具层注入并转换成内部 DeviceContext。",
+  "messageEnvelope": {
+    "type": "object",
+    "required": ["content", "deviceInfo", "session"],
+    "properties": {
+      "content": {
+        "type": "object",
+        "required": false,
+        "description": "业务入参，对应旧协议 arguments；本接口可只传 bundleName。",
+        "properties": {
+          "bundleName": {
+            "type": "string",
+            "required": false,
+            "description": "宿主业务包名。"
+          },
+          "capabilityRegistryVersion": {
+            "type": "string|null",
+            "required": false,
+            "description": "可选能力清单版本；不传时由 deviceInfo.prdVer + ROM 版本推导。"
+          },
+          "protocolProfileId": {
+            "type": "string|null",
+            "required": false,
+            "description": "可选 A2UI 协议 profile ID。"
+          }
+        }
+      },
+      "deviceInfo": {
+        "$ref": "#/nestedTypes/DeviceInfo",
+        "required": true,
+        "description": "端侧设备信息；缺少 ROM 字段时服务使用 settings.default_device_rom_version。版本目录由 prdVer + ROM 版本组成。"
+      },
+      "session": {
+        "$ref": "#/nestedTypes/Session",
+        "required": true,
+        "description": "会话信息；服务端 requestId = sessionId + '&' + interactionId。"
+      },
+      "pagination": {
+        "$ref": "#/nestedTypes/Pagination",
+        "required": false,
+        "description": "分页信息，当前接口暂不消费。"
+      },
+      "userAuth": {
+        "$ref": "#/nestedTypes/UserAuth",
+        "required": false,
+        "description": "用户鉴权信息；服务从 user.userId 提取 uid。"
+      },
+      "utterance": {
+        "$ref": "#/nestedTypes/Utterance",
+        "required": false,
+        "description": "用户原始表达。"
+      },
+      "version": {
+        "type": "string",
+        "required": false,
+        "description": "外部包络协议版本。"
+      },
+      "bundleName": {
+        "type": "string",
+        "required": false,
+        "description": "外层宿主业务包名。"
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["errorCode", "errorMessage", "reply"],
+    "properties": {
+      "errorCode": {
+        "type": "string",
+        "required": true,
+        "description": "华为流处理插件顶层响应码；成功为 0，参数错误、系统异常或工程失败时为非 0。"
+      },
+      "errorMessage": {
+        "type": "string",
+        "required": true,
+        "description": "顶层错误描述；成功时为空字符串。"
+      },
+      "reply": {
+        "type": "object",
+        "required": true,
+        "description": "流处理插件响应内容。",
+        "requiredProperties": ["streamInfo", "items"],
+        "properties": {
+          "streamInfo": {
+            "$ref": "#/nestedTypes/StreamInfo",
+            "required": true,
+            "description": "答复文本结构；当前服务一次请求只发送 final 帧。"
+          },
+          "items": {
+            "type": "GetWidgetCapabilityOverviewResult[]",
+            "required": true,
+            "minItems": 1,
+            "description": "结构化数据；items[0] 保留当前完整旧出参 type/tool/operation/requestId/data/status/errorCode/error。"
+          }
+        }
+      }
+    }
+  },
+  "nestedTypes": {
+    "StreamInfo": {
+      "required": ["streamContent", "streamingTextId", "streamType", "textType"],
+      "properties": {
+        "streamContent": "string，截止当前帧的全量输出内容。",
+        "streamingTextId": "string，流式文本 ID；当前使用 requestId，缺失时生成随机 ID。",
+        "streamType": "string，当前固定为 final。",
+        "textType": "string，当前固定为 markdown。"
+      }
+    },
+    "GetWidgetCapabilityOverviewResult": {
+      "required": ["type", "tool", "operation", "requestId", "data", "status", "errorCode", "error"],
+      "properties": {
+        "type": "string，旧完整出参消息类型；正常为 result，异常为 error。",
+        "tool": "string，当前工具名；本接口为 getWidgetCapabilityOverview。",
+        "operation": "string，当前 WebSocket path 对应的接口名。",
+        "requestId": "string|null，服务端根据 sessionId + '&' + interactionId 生成的请求 ID。",
+        "data.apiVersion": "string，接口版本。",
+        "data.capabilityRegistryVersion": "string，本次实际使用的能力清单版本目录名。",
+        "data.dataCapabilities": "DataCapabilityOverview[]，数据能力概述列表，只包含 id 和 description。",
+        "data.eventCapabilities": "EventCapability[]，事件能力完整列表。",
+        "data.assetCandidates": "AssetCapability[]，素材能力完整列表。",
+        "status": "string，本次调用状态；成功时为 success。",
+        "errorCode": "string，旧完整出参错误码；成功时为空字符串。",
+        "error": "object，旧完整出参错误详情；成功时为空对象。"
+      }
+    },
+    "DeviceInfo": {
+      "required": ["locale", "phoneType", "sysVer"],
+      "properties": {
+        "countryCode": "string，可选，国家码。",
+        "deviceFormation": "string，可选，设备形态。",
+        "deviceType": "integer|string，可选，设备类型编码。",
+        "locale": "string，推荐，语言区域。",
+        "phoneType": "string，推荐，设备型号，会映射到内部 deviceType/marketingName。",
+        "prdVer": "string，可选，端侧传入的业务 API 版本；字段名保持端侧协议原名。",
+        "sysVer": "string，推荐，系统版本，会映射到内部 sysVersion。",
+        "time": "string，可选，端侧请求时间。",
+        "romVersion|romVer|rom|rom_version|ohosApiVersion|ohos_api_version": "string|integer，可选，ROM 版本；缺失时使用配置默认 ROM。",
+        "ohosApiVersion|ohos_api_version": "integer，可选；当前也可作为 ROM 版本兜底来源。"
+      }
+    },
+    "Session": {
+      "required": ["sessionId", "interactionId"],
+      "properties": {
+        "sessionId": "string，会话 ID。",
+        "interactionId": "string，交互 ID。",
+        "isNew": "boolean，可选，是否新会话。"
+      }
+    },
+    "UserAuth": {
+      "required": false,
+      "properties": {
+        "user.userId": "string，可选，用户 ID。"
+      }
+    },
+    "Pagination": {
+      "required": false,
+      "properties": {
+        "limit": "integer，可选，分页大小。",
+        "start": "string，可选，分页游标。"
+      }
+    },
+    "Utterance": {
+      "required": false,
+      "properties": {
+        "original": "string，可选，用户原始表达。",
+        "type": "string，可选，输入类型。"
+      }
+    }
+  }
+}
