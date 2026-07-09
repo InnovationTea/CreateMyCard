@@ -1,6 +1,6 @@
 ---
 name: harmony-card-generation-online
-description: "编排云侧微服务生成 HarmonyOS A2UI Form 服务卡片。用于用户用自然语言请求创建、生成、预览、添加桌面 widget/服务卡片，或端侧以 /harmony-card-generation 等标记触发卡片生成时，识别场景、获取能力概述、筛选候选数据/事件/素材能力、构造候选 dataBindings/event candidates/asset ids/size，调用 getWidgetCapabilityOverview、getDataCapabilitySchemas、generateWidgetCard，并根据 success/degraded/unsupported/failed 返回 genWidgetResult 链接或可理解说明；当 generateWidgetCard 不可用、调用失败或结果不符合预期时，主 Agent 可进入兜底链路生成最终可交付结果，但不得伪造动态能力或 artifact URL。"
+description: "编排云侧微服务生成 HarmonyOS A2UI Form 服务卡片。用于用户用自然语言请求创建、生成、预览、添加桌面 widget/服务卡片，或端侧以 /harmony-card-generation 等标记触发卡片生成时，识别场景、获取能力概述、筛选候选数据/事件/素材能力、构造候选 dataBindings/event candidates/asset ids/size，调用 getWidgetCapabilityOverview、getDataCapabilitySchemas、generateWidgetCard，并根据 success/degraded/unsupported/failed 返回 genWidgetResult JSON 标记或可理解说明；当 generateWidgetCard 不可用、调用失败或结果不符合预期时，主 Agent 可进入兜底链路生成最终可交付结果，但不得伪造动态能力或 artifact URL。"
 metadata:
   tools:
     - bundleName: "com.omega_w_0823.hmservice"
@@ -85,7 +85,7 @@ metadata:
 
 8. **回复用户**：按 `references/response-policy.md` 回复：
    - 先从 `generateWidgetCard` 返回的 `items[].data` 解析业务 payload；如果返回原始插件包络，则先进入 `reply.items[].data`。
-   - `success` / `degraded`：输出业务 payload 的 `message`，并输出 `genWidgetResult` 标记。
+   - `success` / `degraded`：输出业务 payload 的 `message`，并按“输出”章节格式输出 `genWidgetResult` JSON 标记。
    - `unsupported` / `failed`：不输出 `genWidgetResult`，只输出用户可理解说明和可尝试的替代方向。
 
 9. **兜底生成**：如果 `generateWidgetCard` 不可用、调用失败或结果不符合预期，按 `references/tool-contracts.md` 的“兜底生成”规则由主 Agent 生成最终可交付结果。兜底结果不得伪造动态能力、事件目标、素材 ID、artifact URL 或 `genWidgetResult`。
@@ -126,15 +126,20 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 
 ## 输出
 
-成功或降级成功时，最终回复必须包含微服务返回的 artifact URL 标记：
+成功或降级成功时，最终回复必须包含微服务返回的 artifact URL JSON 标记：
 
 ````text
-```genWidgetResult:"https://obs.example/widget/request-id.json"```
+```genWidgetResult
+{
+  "result": "https://obs.example/widget/request-id.json"
+}
+```
 ````
 
 规则：
 
 - 只使用 `generateWidgetCard` 包装结构中业务 payload 返回的真实 `artifactUrl`。
+- 标记必须是 `genWidgetResult` 代码块，代码块内容必须是合法 JSON 对象，且 `result` 的值必须等于真实 `artifactUrl`；不要再输出旧格式 `genWidgetResult:"url"`。
 - `degraded` 时保留微服务给出的降级原因，轻量润色即可。
 - `unsupported` 或 `failed` 时不要输出标记，除非兜底链路真的完成 artifact 上传并拿到真实 URL。
 - 正常链路不输出 `genui`、`cardspec`、A2UI JSONL、CardSpec JSON、校验日志或内部工具草稿；兜底链路需要交付最终结果时，可以输出必要产物，但必须说明未走云侧 artifact 生成链路。
