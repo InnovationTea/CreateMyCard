@@ -2,6 +2,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 from functools import lru_cache
 from pathlib import Path
+import platform
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
