@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     server_port: int = 8855
     PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
     WORKSPACE_ROOT: Path = PROJECT_ROOT / "workspace"
+    if platform.system() == "Windows":
+        LOCAL_FLAG: bool = True
+        HTTP_SERVER_URL: str = f"http://localhost:8080"
+    else:
+        LOCAL_FLAG: bool = False
+        HTTP_SERVER_URL: str = f"https://{container_ip}:8080"
 
     @property
     def package_root(self) -> Path:
