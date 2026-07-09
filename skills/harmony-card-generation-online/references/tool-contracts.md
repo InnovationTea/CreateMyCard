@@ -53,6 +53,7 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 - `getWidgetCapabilityOverview` 的 `data` 解析后应包含 `dataCapabilities`、`eventCapabilities`、`assetCandidates`。
 - `getDataCapabilitySchemas` 的 `data` 解析后应包含 `dataCapabilities`、`missingCapabilityIds`。
 - `generateWidgetCard` 的 `data` 解析后应包含业务 `status`、`message`，成功或降级时还应包含真实 `artifactUrl`。
+- `generateWidgetCard` 业务 `status` 为 `success` 或 `degraded` 且存在真实 `artifactUrl` 时，最终用户回复必须按 `response-policy.md` 输出 `genWidgetResult` JSON 代码块，将 `artifactUrl` 写入 `result` 字段。
 - 如果没有可解析的 `data`，或 `items[].error` 表示工具失败，按工具调用异常处理，不输出 `genWidgetResult`。
 - 用户可见回复不暴露 `items`、`requestId`、`errorCode`、工具层 `status` 或原始 `data` 字符串。
 

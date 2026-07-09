@@ -166,7 +166,7 @@ invoke(functionName:"generateWidgetCard", arguments:{
 }
 ```
 
-解析 `data` 后，再按其中的业务 `status/message/artifactUrl` 回复用户。
+解析 `data` 后，再按其中的业务 `status/message/artifactUrl` 回复用户。最终 `genWidgetResult` 必须使用 JSON 代码块格式，`result` 的值取业务 payload 的真实 `artifactUrl`。
 
 ## 对象结构注意事项
 
@@ -229,7 +229,11 @@ success：
 ````text
 已为你生成通勤卡片。
 
-```genWidgetResult:"https://obs.example/widget/123.json"```
+```genWidgetResult
+{
+  "result": "https://obs.example/widget/123.json"
+}
+```
 ````
 
 degraded：
@@ -237,7 +241,11 @@ degraded：
 ````text
 日历权限当前未开启，我先为你生成只包含天气和通勤入口的卡片。开启日历权限后可以再生成包含今日日程的版本。
 
-```genWidgetResult:"https://obs.example/widget/456.json"```
+```genWidgetResult
+{
+  "result": "https://obs.example/widget/456.json"
+}
+```
 ````
 
 unsupported：
