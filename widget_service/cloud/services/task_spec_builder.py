@@ -12,6 +12,8 @@ class TaskSpecBuilder:
         self,
         user_query: str,
         size: WidgetSize,
+        title: str,
+        description: str,
         effective_bindings: list[CandidateDataBinding],
         effective_data_capabilities: list[DataCapability],
         event_candidates: list[EventAction],
@@ -22,6 +24,8 @@ class TaskSpecBuilder:
         入参：
         - user_query：用户原始需求。
         - size：最终卡片尺寸。
+        - title：主 Agent 建议的卡片标题。
+        - description：主 Agent 建议的卡片说明。
         - effective_bindings：经过设备能力过滤后的数据绑定，包含 writeResultTo 和 updateModel。
         - effective_data_capabilities：过滤后的有效数据能力定义。
         - event_candidates：过滤后的有效事件候选。
@@ -49,6 +53,8 @@ class TaskSpecBuilder:
         return TaskSpec(
             userQuery=user_query,
             size=size,
+            title=title,
+            description=description,
             eventCandidates=event_candidates,
             dataModel={"value": data_model_value or {"data": {}}},
             assetCandidates=[

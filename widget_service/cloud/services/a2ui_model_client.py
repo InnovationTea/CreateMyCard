@@ -65,7 +65,7 @@ class A2UIModelClient:
                     {
                         "id": "title",
                         "component": "Text",
-                        "content": self._title(task_spec.userQuery),
+                        "content": self._title(task_spec.title, task_spec.userQuery),
                         "styles": {
                             "fontSize": 16,
                             "fontWeight": 700,
@@ -97,11 +97,12 @@ class A2UIModelClient:
         logger.info(f"a2ui_model_generate_completed surface_id={surface_id}")
         return genui
 
-    def _title(self, user_query: str) -> str:
+    def _title(self, title: str, user_query: str) -> str:
         """从用户需求生成 mock 标题。
 
         入参：
+        - title：主 Agent 建议的卡片标题。
         - user_query：用户原始需求。
         出参：用于 mock DSL 的短标题。
         """
-        return user_query[:18] or "桌面卡片"
+        return title[:18] or user_query[:18] or "桌面卡片"

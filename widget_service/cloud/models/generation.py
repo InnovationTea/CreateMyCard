@@ -47,6 +47,8 @@ class CardSpec(BaseModel):
 class TaskSpec(BaseModel):
     userQuery: str
     size: WidgetSize
+    title: str = ""
+    description: str = ""
     eventCandidates: list[EventAction] = Field(default_factory=list)
     dataModel: dict[str, Any]
     assetCandidates: list[dict[str, Any]] = Field(default_factory=list)

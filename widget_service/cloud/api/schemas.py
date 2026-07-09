@@ -198,6 +198,8 @@ class CandidateEventCandidate(BaseModel):
 class GenerateWidgetCardRequest(VersionedToolRequest):
     userQuery: str
     size: WidgetSize = "2x4"
+    title: str
+    description: str
     candidateDataBindings: list[CandidateDataBinding] = Field(default_factory=list)
     candidateEventCandidates: list[CandidateEventCandidate] = Field(default_factory=list)
     candidateAssetIds: list[str] = Field(default_factory=list)
@@ -212,6 +214,8 @@ class WidgetCardServiceRequest(VersionedToolRequest):
     - dataCapabilityIds：获取数据能力 schema 时使用的数据能力 ID。
     - userQuery：生成卡片时使用的用户原始需求。
     - size：生成卡片时主 Agent 建议的尺寸。
+    - title：生成卡片时主 Agent 建议的标题。
+    - description：生成卡片时主 Agent 建议的简短说明。
     - candidateDataBindings：生成卡片时的候选数据能力调用。
     - candidateEventCandidates：生成卡片时的候选点击事件单数组。
     - candidateAssetIds：生成卡片时的候选素材 ID。
@@ -222,6 +226,8 @@ class WidgetCardServiceRequest(VersionedToolRequest):
     dataCapabilityIds: list[str] = Field(default_factory=list)
     userQuery: str | None = None
     size: WidgetSize | None = None
+    title: str | None = None
+    description: str | None = None
     candidateDataBindings: list[CandidateDataBinding] = Field(default_factory=list)
     candidateEventCandidates: list[CandidateEventCandidate] = Field(default_factory=list)
     candidateAssetIds: list[str] = Field(default_factory=list)

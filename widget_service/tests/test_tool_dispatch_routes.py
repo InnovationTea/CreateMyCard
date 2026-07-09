@@ -256,6 +256,8 @@ def test_widget_card_service_complete_flow():
                 "bundleName": "com.omega_w_0823.hmservice",
                 "userQuery": "帮我做通勤卡片，包含天气",
                 "size": "2x4",
+                "title": "通勤日常",
+                "description": "天气速览",
                 "candidateDataBindings": [
                     {
                         "capabilityId": "ViewWeather",
@@ -382,6 +384,7 @@ def test_missing_prd_version_returns_empty_capability_results():
                     "bundleName": "com.omega_w_0823.hmservice",
                     "userQuery": f"随机能力版本测试 {uuid.uuid4().hex}",
                     "size": "2x4",
+                    "title": "随机能力版本测试",
                     "candidateDataBindings": [
                         {
                             "capabilityId": random_capability_id,

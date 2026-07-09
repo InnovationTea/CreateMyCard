@@ -150,6 +150,8 @@ def test_live_three_websocket_paths_complete_flow():
                     "bundleName": "com.omega_w_0823.hmservice",
                     "userQuery": "帮我做通勤卡片，包含天气",
                     "size": "2x4",
+                    "title": "通勤日常",
+                    "description": "天气速览",
                     "candidateDataBindings": [
                         {
                             "capabilityId": "ViewWeather",

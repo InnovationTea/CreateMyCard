@@ -302,6 +302,8 @@ class WidgetGenerationService:
         task_spec = TaskSpecBuilder().build(
             request.userQuery,
             request.size,
+            request.title,
+            request.description,
             effective_bindings,
             effective_data_capabilities,
             effective_events,

@@ -234,6 +234,8 @@ def test_task_spec_builder_writes_update_model_to_data_model_path():
     task_spec = TaskSpecBuilder().build(
         user_query="天气卡片",
         size="2x4",
+        title="天气速览",
+        description="查看当前天气",
         effective_bindings=[binding],
         effective_data_capabilities=[capability],
         event_candidates=[EventAction(id="event.open.weather", call="clickToDeeplink", args={})],
@@ -249,6 +251,8 @@ def test_task_spec_builder_writes_update_model_to_data_model_path():
     assert task_spec.dataModel["value"]["data"]["weather"] == {
         "current": {"temperatureText": ""}
     }
+    assert task_spec.title == "天气速览"
+    assert task_spec.description == "查看当前天气"
     assert task_spec.assetCandidates[0]["id"] == "asset.drop_1"
 
 
@@ -261,6 +265,8 @@ def test_prompt_builder_returns_entity_payload():
     task_spec = TaskSpecBuilder().build(
         user_query="天气卡片",
         size="2x4",
+        title="天气速览",
+        description="查看当前天气",
         effective_bindings=[],
         effective_data_capabilities=[],
         event_candidates=[],
