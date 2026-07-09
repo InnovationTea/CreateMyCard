@@ -23,6 +23,7 @@ from models.service import (
     IDSRequestHeaders,
 )
 from services.json_loader import load_json
+from utils.base_utils import sts_config
 
 
 @dataclass(frozen=True)
