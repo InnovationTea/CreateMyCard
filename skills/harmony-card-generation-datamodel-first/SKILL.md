@@ -42,7 +42,7 @@ description: "生成、修复、评审或解释 HarmonyOS A2UI Form 服务卡片
 
 ## 一致性约定
 
-- 新卡片默认使用 `2x2 = 150vp x 150vp`、`2x4 = 288vp x 136vp` 作为逻辑画布和布局预算；`createSurface.width/height` 与 root `styles.width/height` 必须写对应数值尺寸。
+- 新卡片默认使用 `2x2 = 146vp x 146vp`、`2x4 = 314vp x 146vp` 作为逻辑画布和布局预算；`createSurface.width/height` 与 root `styles.width/height` 必须写对应数值尺寸。
 - root 仍承载 `padding: 12`、`borderRadius`、`clip` 和背景：`2x2` 使用 `borderRadius: 18`、`clip: true`；`2x4` 使用 `borderRadius: 22`、`clip: true`。内部 Row/Column/Text/Image/Button/Progress 等组件继续使用数值宽高。
 - 新卡片默认省略 `createSurface.styles`；表面背景、内容布局、安全区和 root 形状都写在 `root.styles` 或 root 下的真实背景组件。只有宿主明确要求外层形状/裁切时，`createSurface.styles` 才可出现且仅限 `borderRadius`、`clip`。
 - 绑定方式固定为：静态值或完整 `{{ ... }}` 表达式。动态展示值、样式动态值和事件参数都用表达式读取 DataModel；不使用 `{"path":"/..."}` 或 `formatString` 作为值绑定。`updateDataModel.path`、CardSpec `writeResultTo`、模板 `children.path` 是协议结构 JSON Pointer，不属于值绑定；列表模板项内用表达式读取当前项字段。

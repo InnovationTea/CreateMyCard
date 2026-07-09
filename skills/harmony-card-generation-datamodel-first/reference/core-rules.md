@@ -25,8 +25,8 @@
 - 使用 `version: "v0.9"` 和 `catalogId: "ohos.a2ui.extended.catalog"`。
 - CardSpec 必须包含静态短 `title`、静态短 `description` 和 `suggestSize`；`title/description` 不写表达式、绑定或 DataModel 路径。
 - 尺寸只允许 `2x2` 或 `2x4`，且 CardSpec 与 DSL 一致。逻辑画布和校验预算固定为：
-  - `2x2`: 基准 `150vp x 150vp`、root `borderRadius: 18`、`clip: true`。
-  - `2x4`: 基准 `288vp x 136vp`、root `borderRadius: 22`、`clip: true`。
+  - `2x2`: 基准 `146vp x 146vp`、root `borderRadius: 18`、`clip: true`。
+  - `2x4`: 基准 `314vp x 146vp`、root `borderRadius: 22`、`clip: true`。
 - `updateComponents.root` 必须引用一个已存在组件；root 组件是卡片 shell 和组件树入口。
 - root 组件必须写 `width`、`height`、`padding`、`borderRadius`、`clip` 和表面样式；root `width/height` 按 `2x2`/`2x4` 基准尺寸写数值预算。新卡片不要为了同步 root 圆角而写 `createSurface.styles`，它只在宿主明确要求外层形状/裁切时作为可选辅助；`backgroundColor`、`linearGradient`、`backgroundImage` 等背景字段必须写在 `root.styles` 或 root 下的真实背景组件，不写进 `createSurface.styles`，因为 root 默认不透明白底会遮挡 surface 层背景。
 - 只使用 `Text`、`Image`、`Divider`、`Progress`、`Button`、`Checkbox`、`Row`、`Column`、`List`、`Stack`。
@@ -38,7 +38,7 @@
 
 ## L1 数值布局
 
-- 默认安全区为 root `padding: 12`：`2x2` 内容区 `126vp x 126vp`，`2x4` 内容区 `264vp x 112vp`。
+- 默认安全区为 root `padding: 12`：`2x2` 内容区 `122vp x 122vp`，`2x4` 内容区 `290vp x 122vp`。
 - 所有组件必须使用数值宽高或可静态推导的约束，不能把内部布局改成默认伸缩或填满父容器。
 - 未指定尺寸时先尝试 `2x2`；只有受保护文本、热区、并列关系、关键媒体或布局预算具体失败时才升级 `2x4`。
 - `2x2` 非模板默认最多 3 个主区域和 1 个显式动作；模板按选中 manifest 的 `lockedStructure.sections`、`slots` 和 `deleteRules` 执行，但不得新增未声明主区域或第二动作。`2x4` 最多 4 个主区域和 2 个动作区。

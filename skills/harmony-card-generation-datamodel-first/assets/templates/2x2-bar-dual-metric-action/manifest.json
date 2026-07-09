@@ -8,12 +8,12 @@
   "layoutSummary": "Header object, horizontal adaptive Progress bar, two side-by-side metrics, bottom action/support pill.",
   "lockedStructure": {
     "surface": {
-      "width": 150,
-      "height": 150
+      "width": 146,
+      "height": 146
     },
     "root": {
-      "width": 150,
-      "height": 150,
+      "width": 146,
+      "height": 146,
       "padding": 12,
       "borderRadius": 18,
       "clip": true
@@ -21,22 +21,22 @@
     "sections": [
       {
         "id": "headerRow",
-        "width": 126,
+        "width": 122,
         "height": 20
       },
       {
         "id": "usageBar",
-        "width": 126,
+        "width": 122,
         "height": 22
       },
       {
         "id": "metricsRow",
-        "width": 126,
+        "width": 122,
         "height": 36
       },
       {
         "id": "controlAction",
-        "width": 126,
+        "width": 122,
         "height": 26
       }
     ]

@@ -8,12 +8,12 @@
   "layoutSummary": "Full-card product/media layer, top-left identity and status facts, bottom row of two equal stat tiles.",
   "lockedStructure": {
     "surface": {
-      "width": 150,
-      "height": 150
+      "width": 146,
+      "height": 146
     },
     "root": {
-      "width": 150,
-      "height": 150,
+      "width": 146,
+      "height": 146,
       "padding": 12,
       "borderRadius": 18,
       "clip": true
@@ -21,17 +21,17 @@
     "sections": [
       {
         "id": "contentLayer",
-        "width": 126,
-        "height": 126
+        "width": 122,
+        "height": 122
       },
       {
         "id": "topBlock",
-        "width": 126,
+        "width": 122,
         "height": 60
       },
       {
         "id": "statsRow",
-        "width": 126,
+        "width": 122,
         "height": 50
       }
     ]

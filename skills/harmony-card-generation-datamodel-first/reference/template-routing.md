@@ -8,7 +8,7 @@
 - 不要读取 skill 包外的历史样例、截图、布局目录或其它本地文件作为生成依据。旧样例已经折叠为 `index.json.sourceAuditSummary` 和各模板 `manifest.sourceObservation`。
 - 维护本 skill 时也以本包内 `assets/templates/`、`reference/` 和已声明素材为准；新增模板规则必须先折叠为本包内 manifest、模板骨架、合规素材索引和参考规则后再被使用。
 - 不要从外部链接、网络 URL、未声明本地路径或相似路径补素材。素材只允许来自本 skill 的 `reference/design/asset-library.md` 或用户在当前任务中明确提供的资源。
-- 历史样例里的旧尺寸、多段组件更新、base64 图片、未声明 SVG、emoji 和旧动作写法不得复制。正式模板统一按本 skill 校验口径输出：`2x2 = 150vp x 150vp`，`2x4 = 288vp x 136vp` 作为逻辑画布；`createSurface.width/height` 与 root `styles.width/height` 必须写对应数值尺寸，内部组件预算保持模板数值。
+- 历史样例里的旧尺寸、多段组件更新、base64 图片、未声明 SVG、emoji 和旧动作写法不得复制。正式模板统一按本 skill 校验口径输出：`2x2 = 146vp x 146vp`，`2x4 = 314vp x 146vp` 作为逻辑画布；`createSurface.width/height` 与 root `styles.width/height` 必须写对应数值尺寸，内部组件预算保持模板数值。
 
 ## 使用前判定
 
