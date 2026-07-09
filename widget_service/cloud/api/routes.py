@@ -226,7 +226,7 @@ def _build_plugin_stream_response(
         errorMessage=top_error_message,
         reply=WidgetPluginReply(
             streamInfo=WidgetStreamInfo(
-                streamContent=stream_content,
+                streamContent=str(legacy_message),
                 streamingTextId=streaming_text_id,
             ),
             items=[
