@@ -121,7 +121,7 @@ class IDSClient:
         """
         ts = timestamp_ms or int(time.time() * 1000)
         access_key = self.settings.ids_access_key
-        secret_key_bytes = self._decode_ids_secret_key(self.settings.ids_secret_key)
+        secret_key_bytes = sts_config.get_sts_config("ids.secret.key")
         sign_source = f"{access_key}{ts}".encode()
         digest = hmac.new(secret_key_bytes, sign_source, hashlib.sha256).digest()
         sign = base64.b64encode(digest).decode("utf-8")
