@@ -858,7 +858,7 @@ generate(task_spec: TaskSpec, protocol_profile: dict, prompt: dict) -> str
 
 用途：根据 `enable_a2ui_model_mock` 开关选择 A2UI 输出来源。
 
-- 开关为 `true`：读取与客户端同目录的 `mock.data`，替换协议版本、尺寸、标题、摘要和 DataModel 占位符后输出三行 genui JSONL。
+- 开关为 `true`：直接读取并返回与客户端同目录的 `mock.dat` 原始内容，不做字段替换或结构调整。
 - 开关为 `false`：进入真实模型调用预留方法；当前保留 TODO 并抛出 `NotImplementedError`。
 
 环境变量：
@@ -877,9 +877,9 @@ WIDGET_SERVICE_ENABLE_A2UI_MODEL_MOCK=true
 
 后续接真实 A2UI 模型服务时实现 `_generate_from_real_model()`，无需改动上层生成流程。
 
-### 8.3 A2UIModelClient._title
+### 8.3 A2UIModelClient._load_mock_data
 
-用途：mock 阶段从用户 query 截取标题。
+用途：读取 `cloud/custom/mock.dat` 的完整 UTF-8 文本并直接返回。
 
 ### 8.4 ArtifactValidator.validate
 

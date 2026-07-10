@@ -304,11 +304,11 @@ def test_prompt_builder_returns_entity_payload():
     assert payload.user.degradationContext == "无降级"
 
 
-def test_a2ui_model_client_uses_title_and_description():
-    """验证 mock A2UI 生成同时使用 TaskSpec 的标题和说明。
+def test_a2ui_model_client_returns_mock_dat_without_processing():
+    """验证 mock A2UI 直接返回 mock.dat 原始内容。
 
     入参：无。
-    出参：无；通过解析 genui 断言 title/summary 组件内容来自 TaskSpec。
+    出参：无；通过断言验证输出与文件内容完全一致。
     """
     task_spec = TaskSpecBuilder().build(
         user_query="帮我做天气卡片",
@@ -329,12 +329,9 @@ def test_a2ui_model_client_uses_title_and_description():
         },
         prompt=None,
     )
-    update_components = json_module.loads(genui.splitlines()[1])["updateComponents"]
-    components = {item["id"]: item for item in update_components["components"]}
+    expected = (CLOUD_ROOT / "custom" / "mock.dat").read_text(encoding="utf-8")
 
-    assert components["title"]["content"] == "天气速览"
-    assert components["summary"]["content"] == "查看当前天气"
-    assert components["root"]["styles"]["backgroundColor"] == "#ffffff19"
+    assert genui == expected
 
 
 def test_a2ui_model_client_real_mode_is_todo():
