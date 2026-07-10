@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     default_device_rom_version: str = "36"
     default_prd_version: str = "1.0.0"
     default_ohos_api_version: int = 36
+    enable_a2ui_model_mock: bool = True
     enable_artifact_validation: bool = True
     artifact_base_url: str = "https://obs.todo.local/widget"
     server_host: str = "127.0.0.1"

@@ -1,6 +1,6 @@
 # generateWidgetCard 测试报告
 
-- 生成时间：2026-07-09T11:02:49.892942+00:00
+- 生成时间：2026-07-10T02:03:51.679293+00:00
 - 接口名：`generateWidgetCard`
 - WebSocket path：`/api/v1/ws/tools/generateWidgetCard`
 - 请求协议：content/deviceInfo/session 外层包络
@@ -95,7 +95,7 @@
   "errorMessage": "",
   "reply": {
     "streamInfo": {
-      "streamContent": "已为你生成可用的桌面卡片。",
+      "streamContent": "type='result' tool='generateWidgetCard' operation='generateWidgetCard' requestId='7676c2c8-a6d3-413c-8074-c62ed30db8de&3' data={'apiVersion': 'v1', 'status': 'success', 'artifactUrl': 'https://obs.todo.local/widget/artifact_1783649031671.md', 'artifactDigest': 'sha256:3dac0da964c63d8ac7bf57d81c8e7ddda7a01cd7b1f7a12029b9eb8c6e0a0f2d', 'suggestSize': '2x4', 'message': '已为你生成可用的桌面卡片。', 'removedCapabilities': [], 'errorCode': '', 'effectiveCapabilities': {'data': ['ViewWeather'], 'event': [{'id': 'event.open.weather', 'call': 'clickToDeeplink', 'args': {'uri': 'hww://weather'}}], 'asset': ['asset.drop_1']}} status='success' errorCode='' error={}",
       "streamingTextId": "7676c2c8-a6d3-413c-8074-c62ed30db8de&3",
       "streamType": "final",
       "textType": "markdown"
@@ -109,8 +109,8 @@
         "data": {
           "apiVersion": "v1",
           "status": "success",
-          "artifactUrl": "https://obs.todo.local/widget/artifact_1783594969884.md",
-          "artifactDigest": "sha256:3e2c6ad533c9b2307fc0fee5bd418cb67ead67b4e778d1181726f453426cfb22",
+          "artifactUrl": "https://obs.todo.local/widget/artifact_1783649031671.md",
+          "artifactDigest": "sha256:3dac0da964c63d8ac7bf57d81c8e7ddda7a01cd7b1f7a12029b9eb8c6e0a0f2d",
           "suggestSize": "2x4",
           "message": "已为你生成可用的桌面卡片。",
           "removedCapabilities": [],

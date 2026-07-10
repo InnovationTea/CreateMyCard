@@ -11,6 +11,7 @@ import uuid
 from pathlib import Path
 
 import requests
+import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CLOUD_ROOT = PROJECT_ROOT / "cloud"
@@ -319,7 +320,7 @@ def test_a2ui_model_client_uses_title_and_description():
         event_candidates=[],
         asset_candidates=[],
     )
-    genui = A2UIModelClient().generate(
+    genui = A2UIModelClient(use_mock=True).generate(
         task_spec,
         {
             "version": "v0.9",
@@ -333,6 +334,36 @@ def test_a2ui_model_client_uses_title_and_description():
 
     assert components["title"]["content"] == "天气速览"
     assert components["summary"]["content"] == "查看当前天气"
+    assert components["root"]["styles"]["backgroundColor"] == "#ffffff19"
+
+
+def test_a2ui_model_client_real_mode_is_todo():
+    """验证关闭 mock 开关后进入预留的真实模型调用入口。
+
+    入参：无。
+    出参：无；通过断言验证未接入真实模型时明确抛出 NotImplementedError。
+    """
+    task_spec = TaskSpecBuilder().build(
+        user_query="帮我做天气卡片",
+        size="2x4",
+        title="天气速览",
+        description="查看当前天气",
+        effective_bindings=[],
+        effective_data_capabilities=[],
+        event_candidates=[],
+        asset_candidates=[],
+    )
+
+    with pytest.raises(NotImplementedError, match="真实 A2UI 模型调用暂未接入"):
+        A2UIModelClient(use_mock=False).generate(
+            task_spec,
+            {
+                "version": "v0.9",
+                "catalogId": "ohos.a2ui.extended.catalog",
+                "sizes": {"2x4": {"width": 300, "height": 140}},
+            },
+            prompt=None,
+        )
 
 
 def test_response_planner_returns_structured_status():
