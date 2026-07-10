@@ -301,7 +301,13 @@ class WidgetGenerationService:
             )
 
         # CardSpec 是端侧运行时刷新数据的契约，只包含裁决后的有效数据绑定。
-        card_spec = CardSpecBuilder().build(request.size, effective_bindings)
+        # CardSpec 由服务侧统一组装；标题和说明直接透传第三个接口的入参。
+        card_spec = CardSpecBuilder().build(
+            request.size,
+            effective_bindings,
+            request.title,
+            request.description,
+        )
         # TaskSpec 是给 A2UI 模型的输入，包含用户目标、有效能力、事件和素材。
         task_spec = TaskSpecBuilder().build(
             request.userQuery,

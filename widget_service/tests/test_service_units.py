@@ -223,8 +223,15 @@ def test_card_spec_builder_keeps_only_data_bindings():
         arguments={"districtName": "上海"},
         writeResultTo="/data/weather",
     )
-    card_spec = CardSpecBuilder().build("2x4", [binding])
+    card_spec = CardSpecBuilder().build(
+        "2x4",
+        [binding],
+        "天气速览",
+        "查看当前天气",
+    )
 
+    assert card_spec.title == "天气速览"
+    assert card_spec.description == "查看当前天气"
     assert card_spec.suggestSize == "2x4"
     assert card_spec.dataBindings == [binding]
 
@@ -412,15 +419,29 @@ def test_retry_controller_returns_retry_result():
     assert retry_result.errors == []
 
 
-def test_artifact_store_returns_structured_save_result():
-    """验证 ArtifactStore 返回结构化保存结果。
+def test_artifact_store_returns_structured_save_result(tmp_path, monkeypatch):
+    """验证 ArtifactStore 保存包含标题和说明的 CardSpec。
 
-    入参：无。
-    出参：无；通过断言验证 artifactUrl 和 artifactDigest 字段可直接使用。
+    入参：
+    - tmp_path：pytest 临时目录。
+    - monkeypatch：pytest monkeypatch 工具。
+    出参：无；通过断言验证上传结果和 CardSpec 内容。
     """
+    mock_storage_dir = tmp_path / "mock_obs"
+    monkeypatch.setattr(
+        "services.artifact_store.file_obs",
+        UploadFileOSMS(
+            base_url="https://obs.mock.local/widget",
+            mock_storage_dir=mock_storage_dir,
+        ),
+    )
     artifact = WidgetArtifact(
         genui="{}\n{}\n{}",
-        cardSpec={"suggestSize": "2x4"},
+        cardSpec={
+            "title": "天气速览",
+            "description": "查看当前天气",
+            "suggestSize": "2x4",
+        },
         taskSpec={"dataModel": {"value": {}}},
         meta=ArtifactMeta(
             protocolProfileId="a2ui-form-rom7-v1",
@@ -432,6 +453,10 @@ def test_artifact_store_returns_structured_save_result():
 
     assert result.artifactUrl.endswith(".md")
     assert result.artifactDigest.startswith("sha256:")
+    uploaded_file = mock_storage_dir / result.artifactUrl.rsplit("/", 1)[-1]
+    uploaded_content = uploaded_file.read_text(encoding="utf-8")
+    assert '"title": "天气速览"' in uploaded_content
+    assert '"description": "查看当前天气"' in uploaded_content
 
 
 def test_file_utils_save_and_delete_utf8_text(tmp_path):

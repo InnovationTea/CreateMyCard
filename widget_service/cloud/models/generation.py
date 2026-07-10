@@ -40,6 +40,8 @@ class GenerationOptions(BaseModel):
 
 
 class CardSpec(BaseModel):
+    title: str = Field(min_length=1)
+    description: str = Field(min_length=1)
     suggestSize: WidgetSize
     dataBindings: list[CandidateDataBinding] | None = None
 

@@ -759,10 +759,18 @@ cloud/services/card_spec_builder.py
 签名：
 
 ```python
-build(size: WidgetSize, effective_bindings: list[CandidateDataBinding]) -> CardSpec
+build(
+    size: WidgetSize,
+    effective_bindings: list[CandidateDataBinding],
+    title: str,
+    description: str,
+) -> CardSpec
 ```
 
 用途：根据过滤后的有效能力生成最终 CardSpec。
+
+其中 `title` 和 `description` 来自第三个接口 `generateWidgetCard` 的入参，
+由 `WidgetGenerationService` 传给 `CardSpecBuilder`，最终随 CardSpec 写入 artifact。
 
 规则：
 
@@ -771,6 +779,7 @@ build(size: WidgetSize, effective_bindings: list[CandidateDataBinding]) -> CardS
 无有效 dataBindings -> 静态 CardSpec
 点击事件不进入 CardSpec
 静态 CardSpec 不强制改尺寸，按请求 size 返回
+动态和静态 CardSpec 都保留 title、description
 ```
 
 ### 7.2 TaskSpecBuilder.build
