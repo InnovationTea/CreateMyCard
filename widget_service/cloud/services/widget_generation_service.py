@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+import json
 import time
 
 from api.schemas import (
@@ -326,14 +327,11 @@ class WidgetGenerationService:
             f"task_data_model_keys={list(task_spec.dataModel.get('value', {}).keys())}"
         )
         # prompt 只作为模型生成 DSL 的约束输入，最终协议仍由 CardSpec 和 Validator 兜底。
-        prompt = PromptBuilder().build(
-            task_spec,
-            protocol_profile,
-            "；".join(f"{item.id}:{item.reason}" for item in removed),
-        )
+        prompt = PromptBuilder().build(task_spec)
+
         logger.info(
             f"a2ui_prompt_built uid={request.uid} "
-            f"prompt={prompt.model_dump(mode='json', exclude_none=True)}"
+            f"prompt={json.dumps(prompt, ensure_ascii=False)}"
         )
 
         model_client = A2UIModelClient()
@@ -348,7 +346,7 @@ class WidgetGenerationService:
             """
             # mock 模型客户端当前返回稳定 DSL；后续替换真实模型时保持 generate 入参不变。
             logger.info(f"a2ui_model_operation_started uid={request.uid}")
-            return model_client.generate(task_spec, protocol_profile, prompt)
+            return model_client.generate(prompt)
 
         def validate_genui(genui: str) -> list[str]:
             """校验单次模型输出。
