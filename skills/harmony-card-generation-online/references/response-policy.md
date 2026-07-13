@@ -1,6 +1,6 @@
 # 回复策略
 
-回复优先以微服务返回为准。不要复述内部候选计划、schema、CardSpec、DSL 或校验细节；当 `generateWidgetCard` 不可用、调用失败或结果不符合预期时，可进入主 Agent 兜底链路生成最终可交付结果。
+回复以微服务返回为准。不要复述内部候选计划、schema、CardSpec、DSL 或校验细节；任一工具不可用、调用失败或结果无法解析时终止本轮生成。
 
 ## 通用规则
 
@@ -11,6 +11,7 @@
 - 只认可 `success`、`degraded`、`unsupported`、`failed` 四种状态。
 - 这里的四种状态指 `generateWidgetCard` 业务 payload 里的 `status`。
 - `success` 或 `degraded` 必须在业务 payload 中同时有 `artifactUrl` 才能输出 `genWidgetResult`。
+- `success` 或 `degraded` 缺少有效 `artifactUrl` 时按 `failed` 处理。
 - `genWidgetResult` 必须输出为代码块，代码块内容是合法 JSON 对象：`{"result":"artifactUrl"}`；不要输出旧的单行 `genWidgetResult:"artifactUrl"` 格式。
 - 没有真实 `artifactUrl` 时不要输出标记，即使状态看起来成功。
 - 可以轻量润色业务 payload 的 `message`，但不要改变微服务状态判断、降级原因或可用性结论。旧环境如果仍返回 `userMessage`，可兼容读取；新接口以 `message` 为准。
@@ -88,35 +89,27 @@
 
 - 不输出 `genWidgetResult`。
 - 不编造 artifact URL。
-- 如果符合兜底条件，可以改走主 Agent 兜底链路；兜底链路只有拿到真实可下载 URL 时才输出 `genWidgetResult` JSON 标记。
-- 如果失败原因是工具缺失，明确说当前环境尚未接入云侧生成工具。
+- 如果失败原因是工具缺失或当前环境未接入工具，统一说明卡片生成服务暂时不可用，不暴露内部接入状态。
 - 如果微服务返回 `errorCode`，仅用于内部判断是否重试或归类，不直接展示给用户。
 - `TIMEOUT`、`A2UI_GENERATION_FAILED`、`VALIDATION_FAILED`、`ARTIFACT_UPLOAD_FAILED` 等都按工程失败处理，回复“卡片生成服务暂时不可用，请稍后再试。”或使用微服务给出的用户话术。
 
 ## 工具不可用
 
-如果 `getWidgetCapabilityOverview`、`getDataCapabilitySchemas` 或 `generateWidgetCard` 在当前运行环境不可调用：
+如果 `getWidgetCapabilityOverview`、`getDataCapabilitySchemas` 或 `generateWidgetCard` 在当前运行环境不可调用，终止本轮生成：
 
 ```text
-当前云侧卡片生成工具暂时不可用，我会尝试用兜底方式生成可交付结果；如果无法生成合规卡片，会直接说明原因。
+卡片生成服务暂时不可用，请稍后再试。
 ```
 
-## 兜底成功
+## 异常业务结果
 
-条件：`generateWidgetCard` 不可用、调用失败或结果不符合预期，但主 Agent 已生成可交付结果。
+以下情况都按 `failed` 处理并终止本轮生成：
 
-回复：
+- 业务 `status` 不在 `success`、`degraded`、`unsupported`、`failed` 中。
+- `success` 或 `degraded` 缺少有效 `artifactUrl`。
+- 包装结构、`items[].data` 或业务 payload 无法解析。
 
-```text
-云侧生成工具暂时不可用，我已用兜底方式生成结果。该结果未走云侧 artifact 生成链路，请按当前交付形态预览或联调。
-```
-
-规则：
-
-- 不伪造 `genWidgetResult`、OBS URL 或 artifactDigest。
-- 不声称“已添加到桌面”。
-- 如兜底产物包含 DSL/CardSpec，只在技术联调或端侧需要时输出；普通用户场景优先给可理解说明。
-- 动态能力、事件目标和素材 ID 必须来自本轮工具返回或明确参考资料；无法确认时降级为静态卡或入口卡。
+这些情况均不输出 `genWidgetResult`、DSL、CardSpec 或替代产物。
 
 ## 话术边界
 
