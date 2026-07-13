@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from .base import BaseValidator, expression_body, expression_like, expression_references, walk_json
+from .base import BaseValidator, expression_body, expression_like, expression_references
 
 
 class ExpressionValidator(BaseValidator):
@@ -11,7 +11,7 @@ class ExpressionValidator(BaseValidator):
 
     _function_re = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\(")
     _double_string_re = re.compile(r'"(?:[^"\\]|\\.)*"')
-    _banned_variables = ("$__widthBreakpoint", "$__colorMode", "$item", "$index", "itemVar", "indexVar")
+    _banned_variables = ("$__widthBreakpoint", "$__colorMode", "$context")
 
     def validate(self, context, rules, reporter) -> None:
         for file_kind, pointer, value, component_id in context.expression_locations:
@@ -31,7 +31,6 @@ class ExpressionValidator(BaseValidator):
             self._check_expression(value, pointer, line, reporter)
 
         self._check_forbidden_expression_fields(context, reporter)
-        self._check_legacy_bindings(context, reporter)
 
     def _check_expression(self, value: str, pointer: str, line: int | None, reporter) -> None:
         stripped = value.strip()
@@ -131,31 +130,3 @@ class ExpressionValidator(BaseValidator):
             children = component.get("children")
             if isinstance(children, dict) and expression_like(children.get("path")):
                 reporter.add("error", "EXPR_FORBIDDEN_FIELD", "hard", "genui", line=2, json_pointer=f"/updateComponents/componentsById/{component_id}/children/path", actual=children.get("path"), message="模板 children.path 不允许表达式。")
-
-    def _check_legacy_bindings(self, context, reporter) -> None:
-        for component in context.components:
-            component_id = component.get("id", "<unknown>")
-            for pointer, value in walk_json(component):
-                if isinstance(value, dict) and set(value.keys()) == {"path"}:
-                    if pointer.endswith("/children"):
-                        continue
-                    reporter.add(
-                        "error",
-                        "BINDING_LEGACY_PATH_OBJECT",
-                        "hard",
-                        "genui",
-                        line=2,
-                        json_pointer=f"/updateComponents/componentsById/{component_id}{pointer}",
-                        actual=value,
-                    )
-                if isinstance(value, dict) and value.get("call") == "formatString":
-                    reporter.add(
-                        "error",
-                        "BINDING_LEGACY_PATH_OBJECT",
-                        "hard",
-                        "genui",
-                        line=2,
-                        json_pointer=f"/updateComponents/componentsById/{component_id}{pointer}",
-                        actual=value,
-                    )
-

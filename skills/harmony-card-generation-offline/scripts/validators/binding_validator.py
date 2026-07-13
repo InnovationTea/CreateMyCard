@@ -147,6 +147,8 @@ class BindingValidator(BaseValidator):
             if not isinstance(handlers, list):
                 reporter.add("error", "EVENT_ARGUMENT_INVALID", "semantic", "genui", line=2, json_pointer=f"/updateComponents/componentsById/{component.get('id')}/onClick", actual=handlers, message="onClick 必须是 EventHandler 数组。")
                 continue
+            if len(handlers) > 1:
+                reporter.add("error", "EVENT_ARGUMENT_INVALID", "semantic", "genui", line=2, json_pointer=f"/updateComponents/componentsById/{component.get('id')}/onClick", actual=len(handlers), expected=1, message="Form 协议每个事件仅支持 1 个 EventHandler。")
             for index, handler in enumerate(handlers):
                 pointer = f"/updateComponents/componentsById/{component.get('id')}/onClick/{index}"
                 if not isinstance(handler, dict):

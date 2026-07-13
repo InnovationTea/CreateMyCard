@@ -8,12 +8,12 @@
   "layoutSummary": "Equal 2x2 quadrant composition over an ambient surface: primary value, status identity, support card, and icon action each occupy a 55 x 55 cell.",
   "lockedStructure": {
     "surface": {
-      "width": 146,
-      "height": 146
+      "width": 160,
+      "height": 160
     },
     "root": {
-      "width": 146,
-      "height": 146,
+      "width": 160,
+      "height": 160,
       "padding": 12,
       "borderRadius": 18,
       "clip": true
@@ -21,12 +21,12 @@
     "sections": [
       {
         "id": "topRow",
-        "width": 122,
+        "width": 136,
         "height": 55
       },
       {
         "id": "bottomRow",
-        "width": 122,
+        "width": 136,
         "height": 55
       }
     ]

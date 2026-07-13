@@ -12,40 +12,41 @@
 
 以下任一组失败都不要输出：
 
-- 输出契约：必须是两个代码块，`genui` 为三行 JSONL，`cardspec` 为 JSON；`version`、`catalogId`、CardSpec 尺寸、surface/root 数值尺寸和 root 圆角一致。`createSurface.width/height` 与 root `styles.width/height` 必须写 CardSpec/profile 的基准尺寸。
+- 输出契约：必须是两个代码块，`genui` 为三行 JSONL，`cardspec` 为 JSON；`version`、`catalogId`、CardSpec 尺寸、surface/root `matchParent` 写法、实际布局预算和 root 圆角一致。`createSurface.width/height` 与 root `styles.width/height` 必须写 `"matchParent"`。
 - Surface/root：`createSurface` 只声明 surface、catalog 和外围尺寸，默认不写 `styles`；只有宿主明确要求外层形状/裁切时才写 `createSurface.styles`，且仅限 `borderRadius`、`clip`；`updateComponents.root` 引用已存在组件；root 承载 `width`、`height`、`padding`、`borderRadius`、`clip` 和至少一种明确的表面背景（优先 `backgroundColor` 或 `linearGradient`，也可由 root 下的真实背景组件承载），否则可能渲染默认白底。
 - 消息闭环：三行 JSONL 的 `surfaceId` 必须一致；新卡片默认 `updateDataModel.path: "/"`，`value` 初始化所有 UI 表达式引用的根结构和加载态。
-- 协议范围：只使用 Form 允许组件；`children` 只引用组件 id；模板循环只用 `{ "componentId": "...", "path": "..." }`；不用禁用组件、网络图、内联/base64 SVG、emoji、未声明 SVG 或未声明事件能力。
-- 绑定/DataModel：动态展示值、样式动态值和事件参数只用完整 `{{ ... }}` 表达式；所有可见表达式引用都能在 `updateDataModel.value`、`writeResultTo + outputSchema` 或模板当前项中推导；数据能力运行时字段至少初始化到可推导根结构。`updateDataModel.path`、`writeResultTo`、模板 `children.path` 仍是协议结构 JSON Pointer。
+- 协议范围：只使用 Form 允许组件；`children` 只引用组件 id；模板循环必须有 `{ "componentId": "...", "path": "..." }`，可选 `itemVar/indexVar`；不用禁用组件、网络图、内联/base64 SVG data URI、emoji、未声明资源或未声明事件能力。
+- 绑定/DataModel：动态展示值、样式动态值和事件参数使用静态值、完整 `{{ ... }}` Expression、合法 PathBinding 或宿主明确注册的 FunctionCall；所有可见表达式引用都能在 `updateDataModel.value`、`writeResultTo + outputSchema` 或模板当前项中推导；数据能力运行时字段至少初始化到可推导根结构。`updateDataModel.path`、`writeResultTo`、模板 `children.path` 仍是协议结构 JSON Pointer。
 - 布局可渲染：Row/Column 宽高预算成立且包含子项 `margin`；关键父容器和关键子项不依赖默认伸缩；Row 内 `Text + Button` 并排时，父 Row、Text、Button 都有明确宽高预算。
 
 ## L0 协议
 
 - `genui` 必须是三行 JSONL：`createSurface`、`updateComponents`、`updateDataModel`。
-- 使用 `version: "v0.9"` 和 `catalogId: "ohos.a2ui.extended.catalog"`。
+- 使用 `version: "v0.9"` 和 `catalogId: "ohos.a2ui.extended.catalog.form"`。
 - CardSpec 必须包含静态短 `title`、静态短 `description` 和 `suggestSize`；`title/description` 不写表达式、绑定或 DataModel 路径。
 - 尺寸只允许 `2x2` 或 `2x4`，且 CardSpec 与 DSL 一致。逻辑画布和校验预算固定为：
-  - `2x2`: 基准 `146vp x 146vp`、root `borderRadius: 18`、`clip: true`。
-  - `2x4`: 基准 `314vp x 146vp`、root `borderRadius: 22`、`clip: true`。
+  - `2x2`: 实际预算 `160vp x 160vp`、root `borderRadius: 18`、`clip: true`。
+  - `2x4`: 实际预算 `320vp x 160vp`、root `borderRadius: 22`、`clip: true`。
 - `updateComponents.root` 必须引用一个已存在组件；root 组件是卡片 shell 和组件树入口。
-- root 组件必须写 `width`、`height`、`padding`、`borderRadius`、`clip` 和表面样式；root `width/height` 按 `2x2`/`2x4` 基准尺寸写数值预算。新卡片不要为了同步 root 圆角而写 `createSurface.styles`，它只在宿主明确要求外层形状/裁切时作为可选辅助；`backgroundColor`、`linearGradient`、`backgroundImage` 等背景字段必须写在 `root.styles` 或 root 下的真实背景组件，不写进 `createSurface.styles`，因为 root 默认不透明白底会遮挡 surface 层背景。
+- root 组件必须写 `width`、`height`、`padding`、`borderRadius`、`clip` 和表面样式；root `width/height` 写 `"matchParent"`，实际内部预算按 `2x2`/`2x4` 目标尺寸计算。新卡片不要为了同步 root 圆角而写 `createSurface.styles`，它只在宿主明确要求外层形状/裁切时作为可选辅助；`backgroundColor`、`linearGradient`、`backgroundImage` 等背景字段必须写在 `root.styles` 或 root 下的真实背景组件，不写进 `createSurface.styles`，因为 root 默认不透明白底会遮挡 surface 层背景。
 - 只使用 `Text`、`Image`、`Divider`、`Progress`、`Button`、`Checkbox`、`Row`、`Column`、`List`、`Stack`。
-- 禁用 `TextInput`、`Toggle`、`Radio`、`CheckboxGroup`、`Select`、`NavContainer`、`Tabs`、`TabContent`、`Web`、`Grid`、`If`、`theme`、`Button.action`、非 `onClick` 事件、预定义扩展函数、`$__widthBreakpoint`、`$__colorMode`。
-- `children` 只能是组件 ID 数组；模板循环只允许 `{ "componentId": "...", "path": "..." }`。
-- 动态值只用完整 `{{ ... }}` 表达式；单值、拼接、条件、数值和列表项字段都走表达式。不要用 `{"path":"/..."}` 或 `formatString` 做组件值绑定；复杂格式化可先写入 `updateDataModel` 预计算字段，再用表达式读取。
+- 禁用 `TextInput`、`Toggle`、`Radio`、`CheckboxGroup`、`Select`、`NavContainer`、`Tabs`、`TabContent`、`Web`、`Grid`、`If`、`theme`、`Button.action`、非 `onClick` 事件、预定义扩展函数、`$__widthBreakpoint`、`$__colorMode`、`$context`。
+- `children` 只能是组件 ID 数组；模板循环只允许 `{ "componentId": "...", "path": "..." }` 加可选 `itemVar/indexVar`。
+- 动态值优先用完整 `{{ ... }}` 表达式；简单直取可用 `{"path":"/..."}` PathBinding，宿主明确注册时才用 FunctionCall；复杂格式化可先写入 `updateDataModel` 预计算字段，再用表达式读取。
 - 点击只写 DSL `onClick`，且 `call` 必须来自已声明 event capability；CardSpec 不写点击行为。
-- `Image.src` / `backgroundImage` 只使用用户提供或素材库声明的本地/资源路径；禁用网络 URL、内联/base64 SVG、emoji、占位图和未声明 SVG。
+- 每个 `onClick` 只写 1 个 handler；不写 `condition/as/$context`。
+- `Image.src` / `backgroundImage` 只使用用户提供或素材库声明的本地/资源路径；资源路径 SVG 受支持；禁用网络 URL、内联/base64 SVG data URI、emoji 和占位图。
 
 ## L1 数值布局
 
-- 默认安全区为 root `padding: 12`：`2x2` 内容区 `122vp x 122vp`，`2x4` 内容区 `290vp x 122vp`。
+- 默认安全区为 root `padding: 12`：`2x2` 内容区 `136vp x 136vp`，`2x4` 内容区 `296vp x 136vp`。
 - 所有组件必须使用数值宽高或可静态推导的约束，不能把内部布局改成默认伸缩或填满父容器。
 - 未指定尺寸时先尝试 `2x2`；只有受保护文本、热区、并列关系、关键媒体或布局预算具体失败时才升级 `2x4`。
 - `2x2` 非模板默认最多 3 个主区域和 1 个显式动作；模板按选中 manifest 的 `lockedStructure.sections`、`slots` 和 `deleteRules` 执行，但不得新增未声明主区域或第二动作。`2x4` 最多 4 个主区域和 2 个动作区。
 - 间距只用 `2/4/6/8/10/12/14/16`；优先 `4/8/12/16`。组间距必须大于组内距。
 - 字号只用 `10/12/14/16/18/20/32/40`；`10fp` 只给弱提示，`40fp` 只给单一主数值，CTA 用 `14fp Medium`。
 - 文本估算：中文约 `fontSize`，英文/数字约 `0.6 * fontSize`，垂直高度按 `fontSize + 2-4` 预留。
-- 受保护文本必须完整显示：标题、时间、日期、状态、CTA、主指标、倒计时、价格/数量和入选用户字段。不要用 `ellipsis`、`clip`、`marquee` 解决。
+- 受保护文本必须完整显示：标题、时间、日期、状态、CTA、主指标、倒计时、价格/数量和入选用户字段。不要用 `ellipsis` 或 `clip` 解决；`textOverflow` 只允许 `clip|ellipsis`。
 - 每个 Row/Column 必须预算成立：子项宽高 + 子项 margin + 父容器 padding + itemMargin 不得超过父容器。
 - Row/Column 不得依赖默认伸缩完成关键布局；父容器、按钮、图标、进度图形和受保护文本必须能推导出明确宽高。
 - Row 内 `Text + Button` 并排时，父 Row 必须有明确 `width`/`height`，Button 必须显式 `width`/`height`，Text 必须显式 `width` 或有明确剩余宽度。
@@ -78,7 +79,7 @@
 - 状态色服务装饰而非真实状态；渐变 stop 含无场景依据的手调色、机械插值色或无来源 alpha。
 - 连续无意义空白超过 `18vp`，且不服务主视觉、媒体、进度或底部动作锚定。
 - 文本、按钮、背板虽然通过宽高估算，但视觉上贴顶、悬浮、基线不齐或靠近圆角裁剪风险区。
-- 修复已有 DSL 时仍保留 `{"path":...}` 或 `formatString` 值绑定，或没有把它改写为完整表达式。
+- 修复已有 DSL 时仍保留未注册 FunctionCall、已裁剪组件字段，或没有把无法确认的函数绑定改写为完整表达式/预计算字段。
 
 ## 生成后校验
 

@@ -1,7 +1,6 @@
 {
   "version": "v0.9",
   "catalogIds": [
-    "ohos.a2ui.extended.catalog",
     "ohos.a2ui.extended.catalog.form"
   ],
   "messageOrder": ["createSurface", "updateComponents", "updateDataModel"],
@@ -15,8 +14,8 @@
     "updateDataModel": ["value"]
   },
   "sizes": {
-    "2x2": {"width": 146, "height": 146, "borderRadius": 18},
-    "2x4": {"width": 314, "height": 146, "borderRadius": 22}
+    "2x2": {"width": 160, "height": 160, "borderRadius": 18},
+    "2x4": {"width": 320, "height": 160, "borderRadius": 22}
   },
   "allowedComponents": ["Text", "Image", "Divider", "Progress", "Button", "Checkbox", "Row", "Column", "List", "Stack"],
   "forbiddenComponents": ["TextInput", "Toggle", "Radio", "CheckboxGroup", "Select", "NavContainer", "Tabs", "TabContent", "Web", "Grid", "If"],
@@ -33,8 +32,8 @@
     "Divider": [],
     "Progress": ["value", "total"],
     "Button": ["label", "enabled"],
-    "Checkbox": ["label", "value", "group", "select"],
-    "Row": ["children", "itemMargin", "wrap"],
+    "Checkbox": ["label", "value", "select"],
+    "Row": ["children", "itemMargin"],
     "Column": ["children", "itemMargin"],
     "List": ["children", "space"],
     "Stack": ["children"]
@@ -42,7 +41,7 @@
   "componentRequiredFields": {
     "Text": ["content"],
     "Image": ["src"],
-    "Progress": ["total"],
+    "Progress": ["value"],
     "Button": ["label"],
     "Row": ["children"],
     "Column": ["children"],

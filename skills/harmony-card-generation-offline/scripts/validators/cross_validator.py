@@ -31,7 +31,7 @@ class CrossValidator(BaseValidator):
                 json_pointer="/createSurface",
                 actual={"width": create.get("width"), "height": create.get("height")},
                 expected={"width": expected["width"], "height": expected["height"]},
-                message="DSL surface 尺寸必须与 CardSpec suggestSize 的基准尺寸一致。",
+                message="DSL surface 必须使用 matchParent，并按 CardSpec suggestSize 的实际预算解析。",
             )
 
     def _check_data_roots(self, context, rules, reporter) -> None:

@@ -8,12 +8,12 @@
   "layoutSummary": "Top row of three compact ring statuses, middle primary ring plus value, bottom action/support pill.",
   "lockedStructure": {
     "surface": {
-      "width": 146,
-      "height": 146
+      "width": 160,
+      "height": 160
     },
     "root": {
-      "width": 146,
-      "height": 146,
+      "width": 160,
+      "height": 160,
       "padding": 12,
       "borderRadius": 18,
       "clip": true
@@ -21,17 +21,17 @@
     "sections": [
       {
         "id": "topMeters",
-        "width": 122,
+        "width": 136,
         "height": 28
       },
       {
         "id": "mainStatusRow",
-        "width": 122,
+        "width": 136,
         "height": 50
       },
       {
         "id": "actionPill",
-        "width": 122,
+        "width": 136,
         "height": 26
       }
     ]

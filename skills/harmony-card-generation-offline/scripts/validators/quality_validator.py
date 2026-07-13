@@ -52,7 +52,7 @@ class QualityValidator(BaseValidator):
                 json_pointer=f"/updateComponents/componentsById/{context.root_id}/styles",
                 actual={"width": styles.get("width"), "height": styles.get("height")},
                 expected={"width": expected["width"], "height": expected["height"]},
-                message="root 必须声明与尺寸一致的数值 width/height。",
+                message="root 必须声明 matchParent width/height，并按尺寸预算解析。",
             )
         if numeric(styles.get("borderRadius")) != expected["borderRadius"] or styles.get("clip") is not True:
             penalties += 5
@@ -167,7 +167,7 @@ class QualityValidator(BaseValidator):
     def _check_enums(self, component, styles, enum_values, reporter) -> None:
         component_id = component.get("id", "<unknown>")
         component_type = component.get("component")
-        for field, value in list(styles.items()) + [(key, component.get(key)) for key in ("wrap",)]:
+        for field, value in list(styles.items()):
             if expression_like(value) or value is None:
                 continue
             enum_key = f"{component_type}.{field}"
@@ -265,5 +265,5 @@ class QualityValidator(BaseValidator):
                     reporter.add("warning", "QUALITY_SCORE_LOW", "quality", "genui", line=2, json_pointer=f"/updateComponents/componentsById/{component_id}", actual=text, message="静态文本估算可能放不下当前宽度。", fix_hint="增加宽度、改为两行并预留高度，或缩短非受保护文案。")
             if styles.get("textOverflow") in set(rules.layout.get("protectedTextOverflow", [])):
                 penalties += 5
-                reporter.add("error", "QUALITY_SCORE_LOW", "quality", "genui", line=2, json_pointer=f"/updateComponents/componentsById/{component_id}/styles/textOverflow", actual=styles.get("textOverflow"), message="受保护文本不应依赖 ellipsis/clip/marquee。")
+                reporter.add("error", "QUALITY_SCORE_LOW", "quality", "genui", line=2, json_pointer=f"/updateComponents/componentsById/{component_id}/styles/textOverflow", actual=styles.get("textOverflow"), message="受保护文本不应依赖 ellipsis/clip。")
         return penalties

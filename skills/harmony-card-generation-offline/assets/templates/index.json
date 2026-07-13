@@ -3,7 +3,7 @@
   "contract": "Self-contained normalized HarmonyOS A2UI Form layout templates for expression-first generation. Select at most one template, then keep size, root shell, region budgets, slot names, and full-expression binding style stable. Re-decide visible content, DataModel values, icons, colors, and only proven-valid onClick events. Historical observations have been folded into each manifest/sourceObservation; generation must not depend on reading any file outside this skill package.",
   "sourceAuditSummary": [
     "Ten rendered samples were reviewed and collapsed into nine distinct layout patterns; battery and sleep share the same side-meter/action structure.",
-    "The historical samples used a different 2x2 canvas size, while this skill validates formal 2x2 templates at 146x146; all formal templates are normalized to 146x146.",
+    "The historical samples used a different 2x2 canvas size, while this skill validates formal 2x2 templates at 160x160; all formal templates are normalized to 160x160.",
     "Old DSL patterns using multiple updateComponents messages, data URI images, undeclared SVG, emoji glyphs, or legacy action keys were not copied; only layout relationships and information density were retained.",
     "Three earlier generic templates were removed from the formal route list because they overlap these more specific patterns: compact meter/fact, generic top-hero pill, and generic paper panel."
   ],

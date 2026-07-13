@@ -16,7 +16,7 @@ class ColorValidator(BaseValidator):
         "fontColor",
         "color",
         "selectedColor",
-        "unSelectedColor",
+        "fillColor",
         "strokeColor",
     }
 
@@ -99,4 +99,3 @@ class ColorValidator(BaseValidator):
                 color_values.append(color.lower())
             if not isinstance(offset, (int, float)) or not 0 <= offset <= 1:
                 reporter.add("error", "STYLE_GRADIENT_INVALID", "quality", "genui", line=2, json_pointer=f"{pointer}/colors/{index}/1", actual=offset, message="gradient stop offset 必须是 0 到 1 的数字。")
-

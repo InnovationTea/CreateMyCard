@@ -8,12 +8,12 @@
   "layoutSummary": "Hero icon/value row, contextual info panel with accent line, bottom action/support pill.",
   "lockedStructure": {
     "surface": {
-      "width": 146,
-      "height": 146
+      "width": 160,
+      "height": 160
     },
     "root": {
-      "width": 146,
-      "height": 146,
+      "width": 160,
+      "height": 160,
       "padding": 12,
       "borderRadius": 18,
       "clip": true
@@ -21,17 +21,17 @@
     "sections": [
       {
         "id": "heroRow",
-        "width": 122,
+        "width": 136,
         "height": 42
       },
       {
         "id": "contextCard",
-        "width": 122,
+        "width": 136,
         "height": 36
       },
       {
         "id": "actionPill",
-        "width": 122,
+        "width": 136,
         "height": 26
       }
     ]

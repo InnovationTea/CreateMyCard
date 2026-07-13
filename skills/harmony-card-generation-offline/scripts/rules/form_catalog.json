@@ -54,20 +54,11 @@
     },
     "EventHandler": {
       "type": "object",
-      "description": "A wrapper around a function call in an event handler chain. The function return type is defined by the referenced extended function, not by EventHandler itself.",
+      "description": "A wrapper around a function call in an event handler chain. Form supports one handler per event and does not support condition/as/$context.",
       "properties": {
         "call": {
           "type": "string",
           "description": "Function name referenced by this EventHandler. Predefined and custom functions are defined via catalog extendedFunctions."
-        },
-        "as": {
-          "type": "string",
-          "description": "Named variable binding for EventHandler return value. Must start with a letter or underscore, containing only letters, digits, and underscores.",
-          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
-        },
-        "condition": {
-          "type": "string",
-          "description": "Execution condition (expression)"
         },
         "args": {
           "type": "object",
@@ -271,6 +262,21 @@
             },
             {
               "type": "string"
+            },
+            {
+              "$ref": "#/$defs/Expression"
+            },
+            {
+              "$ref": "#/$defs/PathBinding"
+            }
+          ]
+        },
+        "aspectRatio": {
+          "description": "Width-to-height ratio (width/height). Common style for all Form extended components. constraintSize takes priority over aspectRatio.",
+          "oneOf": [
+            {
+              "type": "number",
+              "default": 1
             },
             {
               "$ref": "#/$defs/Expression"
@@ -715,48 +721,6 @@
       },
       "additionalProperties": true
     },
-    "EventContext": {
-      "description": "Context information automatically injected when an event is triggered. Available as $context in expressions within event handlers.",
-      "type": "object",
-      "properties": {
-        "componentId": {
-          "description": "ID of the component that triggered the event",
-          "type": "string"
-        },
-        "eventData": {
-          "description": "Event-specific data, type varies by event and component",
-          "oneOf": [
-            {
-              "$ref": "#/$defs/ClickEventData"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "required": [
-        "componentId"
-      ]
-    },
-    "ClickEventData": {
-      "description": "Event data for onClick event",
-      "type": "object",
-      "properties": {
-        "x": {
-          "description": "X coordinate of the click",
-          "type": "number"
-        },
-        "y": {
-          "description": "Y coordinate of the click",
-          "type": "number"
-        }
-      },
-      "required": [
-        "x",
-        "y"
-      ]
-    },
     "VariableScope": {
       "description": "Global variables accessible in any expression. Includes DataModel variables (surface-level scope, one instance per surface) and system variables (truly global).",
       "type": "object",
@@ -779,15 +743,6 @@
           "description": "Current iteration item data. Type is 'any' (can be a primitive or object). Available in parent components that use template to generate child components.",
           "type": "object",
           "additionalProperties": true
-        },
-        "as-binding": {
-          "description": "Named variable binding for EventHandler return values. EventHandler with 'as' field (e.g., 'as': 'validResult') creates a local variable accessible as $validResult in subsequent EventHandlers within the same event. Scoped to the current event's handler chain, released when all handlers complete.",
-          "type": "object",
-          "additionalProperties": true
-        },
-        "context": {
-          "description": "Event context information automatically injected when event is triggered. Access via $context.componentId and $context.eventData.",
-          "$ref": "#/$defs/EventContext"
         }
       }
     },
@@ -1524,7 +1479,7 @@
       }
     },
     "ExpressionReactivity": {
-      "description": "Reactive expressions automatically re-evaluate when referenced variables change. Only DataModel variables ($__dataModel.xxx) are reactive. Local variables ($item, $index, $context, as-binding) are NOT reactive.",
+      "description": "Reactive expressions automatically re-evaluate when referenced variables change. Only DataModel variables ($__dataModel.xxx) are reactive. Template local variables ($item, $index, or custom itemVar/indexVar variables) are scoped to template expansion.",
       "type": "object",
       "properties": {
         "behavior": {
@@ -1613,10 +1568,8 @@
                     {
                       "type": "string",
                       "enum": [
-                        "none",
                         "clip",
-                        "ellipsis",
-                        "marquee"
+                        "ellipsis"
                       ],
                       "default": "clip"
                     },
@@ -1627,41 +1580,7 @@
                       "$ref": "#/$defs/PathBinding"
                     }
                   ],
-                  "description": "Text overflow behavior when content exceeds maxLines. Default: 'clip'. 'none': truncate at max lines. 'clip': same as none. 'ellipsis': show ellipsis for overflow. 'marquee': scroll text in single line. Must be used with maxLines."
-                },
-                "decoration": {
-                  "type": "object",
-                  "description": "Text decoration line style. Object {type, color, style, thicknessScale}. Default: {type:'none', color:'black', style:'solid', thicknessScale:1.0}. type: none/underline/overline/lineThrough. style: solid/double/dotted/dashed/wavy.",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "enum": [
-                        "none",
-                        "underline",
-                        "overline",
-                        "lineThrough"
-                      ],
-                      "default": "none"
-                    },
-                    "color": {
-                      "type": "string"
-                    },
-                    "style": {
-                      "type": "string",
-                      "enum": [
-                        "solid",
-                        "double",
-                        "dotted",
-                        "dashed",
-                        "wavy"
-                      ],
-                      "default": "solid"
-                    },
-                    "thicknessScale": {
-                      "type": "number",
-                      "default": 1
-                    }
-                  }
+                  "description": "Text overflow behavior when content exceeds maxLines. Default: 'clip'. 'clip': truncate at max lines. 'ellipsis': show ellipsis for overflow. Must be used with maxLines."
                 },
                 "fontSize": {
                   "oneOf": [
@@ -1744,27 +1663,6 @@
                   ],
                   "description": "Maximum number of text lines. Default: inf (no limit when unset or invalid). Range: [0, inf]. Use with textOverflow for overflow behavior."
                 },
-                "wordBreak": {
-                  "oneOf": [
-                    {
-                      "type": "string",
-                      "enum": [
-                        "normal",
-                        "breakAll",
-                        "breakWord",
-                        "hyphenation"
-                      ],
-                      "default": "breakWord"
-                    },
-                    {
-                      "$ref": "#/$defs/Expression"
-                    },
-                    {
-                      "$ref": "#/$defs/PathBinding"
-                    }
-                  ],
-                  "description": "Word break rule. Default: 'breakWord'. 'normal': CJK breaks anywhere, non-CJK at whitespace. 'breakAll': break anywhere. 'breakWord': prefer word boundaries, fallback to anywhere. 'hyphenation': try hyphen at line end."
-                },
                 "maxFontSize": {
                   "oneOf": [
                     {
@@ -1797,7 +1695,7 @@
               "additionalProperties": true
             }
           },
-          "description": "Display component for rendering text content. Supports font styling, color, text overflow, word break, and adaptive font sizing."
+          "description": "Display component for rendering text content. Supports font styling, color, text overflow, and adaptive font sizing."
         }
       ],
       "unevaluatedProperties": false
@@ -1967,15 +1865,6 @@
               "description": "Horizontal spacing between children in vp. Default: 16.",
               "type": "number",
               "default": 16
-            },
-            "wrap": {
-              "description": "Line wrapping mode. Default: 'noWrap' (single-line, children constrained in container). 'wrap' allows multi-line layout with child wrapping.",
-              "type": "string",
-              "enum": [
-                "noWrap",
-                "wrap"
-              ],
-              "default": "noWrap"
             }
           },
           "required": [
@@ -2035,7 +1924,7 @@
               "additionalProperties": true
             }
           },
-          "description": "Horizontal layout component that arranges children in a row. Supports template-based child generation, configurable item spacing (itemMargin), and single/multi-line wrapping (wrap)."
+          "description": "Horizontal layout component that arranges children in a row. Supports template-based child generation and configurable item spacing (itemMargin)."
         }
       ],
       "unevaluatedProperties": false
@@ -2216,26 +2105,12 @@
                     }
                   ],
                   "description": "Scroll bar visibility. Default: 'auto'. 'off': never show. 'auto': show on touch, hide after 2s. 'on': always visible."
-                },
-                "nestedScroll": {
-                  "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "$ref": "#/$defs/Expression"
-                    },
-                    {
-                      "$ref": "#/$defs/PathBinding"
-                    }
-                  ],
-                  "description": "Nested scroll behavior for parent-child scroll coordination."
                 }
               },
               "additionalProperties": true
             }
           },
-          "description": "Scrollable list component for efficiently displaying many items. Supports template-based child generation, horizontal/vertical direction, scroll bar control, and reach-start/end events."
+          "description": "Scrollable list component for efficiently displaying many items. Supports template-based child generation, horizontal/vertical direction, and scroll bar control."
         }
       ],
       "unevaluatedProperties": false
@@ -2320,7 +2195,7 @@
               "const": "Image"
             },
             "src": {
-              "description": "Image source: local resource path only. Network URLs are not supported. Supports expression/path binding for dynamic local resource path. SVG format is not supported, including base64-encoded SVG (e.g., data:image/svg+xml;base64,...).",
+              "description": "Image source: local or resource path only. Network URLs are not supported. Resource-path SVG is supported; base64 inline SVG data URI is not supported. Supports expression/path binding for dynamic local resource path.",
               "oneOf": [
                 {
                   "type": "string"
@@ -2392,12 +2267,26 @@
                     }
                   ],
                   "description": "Image fill mode. Default: 'cover'. 'fill': stretch to fill. 'contain': fit inside maintaining ratio. 'cover': fill covering bounds. 'auto': proportional scaling. 'none': original size centered. 'scaleDown': shrink or keep original. Also supports alignment positions: topStart/top/topEnd/start/center/end/bottomStart/bottom/bottomEnd, and 'matrix' for custom positioning."
+                },
+                "fillColor": {
+                  "oneOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "$ref": "#/$defs/Expression"
+                    },
+                    {
+                      "$ref": "#/$defs/PathBinding"
+                    }
+                  ],
+                  "description": "Image tint color. ResourceColor in #AARRGGBB or #RRGGBB form. Effective for SVG fill color; PNG and other bitmaps parse normally but may not be visually tinted."
                 }
               },
               "additionalProperties": true
             }
           },
-          "description": "Image component for displaying local, network, or resource images. Supports aspect ratio and various object-fit modes."
+          "description": "Image component for displaying local or resource images. Supports resource-path SVG, aspect ratio, fillColor, and object-fit modes."
         }
       ],
       "unevaluatedProperties": false
@@ -2497,17 +2386,18 @@
               "const": "Progress"
             },
             "value": {
-              "description": "Current progress value. Default: 0.",
+              "description": "Current progress value. Required. Valid range is [0, total] when total is present.",
               "type": "number",
               "default": 0
             },
             "total": {
-              "description": "Total progress value representing 100% completion. Required.",
+              "description": "Total progress value representing 100% completion. Optional.",
               "type": "number"
             }
           },
           "required": [
-            "component"
+            "component",
+            "value"
           ]
         },
         {
@@ -2528,7 +2418,7 @@
                       "$ref": "#/$defs/PathBinding"
                     }
                   ],
-                  "description": "Progress bar foreground color in hex format. Default: light mode '#FF0A59F7', dark mode '#FF317AF7'."
+                  "description": "Progress bar foreground color in hex format. LinearGradient is not supported."
                 },
                 "type": {
                   "oneOf": [
@@ -2551,6 +2441,21 @@
                     }
                   ],
                   "description": "Progress bar style. Default: 'linear'. 'linear': horizontal bar. 'ring': circular ring without ticks. 'eclipse': moon-phase circular. 'scaleRing': clock-tick circular. 'capsule': capsule shape (vertical when height > width)."
+                },
+                "strokeWidth": {
+                  "oneOf": [
+                    {
+                      "type": "number",
+                      "default": 4
+                    },
+                    {
+                      "$ref": "#/$defs/Expression"
+                    },
+                    {
+                      "$ref": "#/$defs/PathBinding"
+                    }
+                  ],
+                  "description": "Progress stroke width in vp. Default: 4.0vp. Effective only when type is linear, ring, or scaleRing; not effective for eclipse or capsule."
                 }
               },
               "additionalProperties": true
@@ -2579,11 +2484,7 @@
               "type": "string"
             },
             "value": {
-              "description": "Semantic identifier for the checkbox. Not rendered visually. Used to distinguish different options within a group.",
-              "type": "string"
-            },
-            "group": {
-              "description": "Group name for collective control of multiple checkboxes.",
+              "description": "Semantic identifier for the checkbox. Not rendered visually.",
               "type": "string"
             },
             "select": {
@@ -2614,35 +2515,6 @@
                     }
                   ],
                   "description": "Checkbox color when selected, in hex format."
-                },
-                "unSelectedColor": {
-                  "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "$ref": "#/$defs/Expression"
-                    },
-                    {
-                      "$ref": "#/$defs/PathBinding"
-                    }
-                  ],
-                  "description": "Checkbox color when not selected, in hex format."
-                },
-                "mark": {
-                  "type": "object",
-                  "properties": {
-                    "strokeColor": {
-                      "type": "string"
-                    },
-                    "size": {
-                      "type": "number"
-                    },
-                    "strokeWidth": {
-                      "type": "number"
-                    }
-                  },
-                  "description": "Inner checkmark icon style. Object {strokeColor, size, strokeWidth}. All optional. strokeColor: hex color. size: icon size in vp (default: same as checkbox width). strokeWidth: icon line width in vp."
                 },
                 "shape": {
                   "oneOf": [

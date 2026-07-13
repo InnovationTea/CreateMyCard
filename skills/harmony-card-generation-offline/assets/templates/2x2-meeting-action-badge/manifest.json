@@ -8,12 +8,12 @@
   "layoutSummary": "Header, compact event detail stack, bottom row with primary action pill and a small date/count badge.",
   "lockedStructure": {
     "surface": {
-      "width": 146,
-      "height": 146
+      "width": 160,
+      "height": 160
     },
     "root": {
-      "width": 146,
-      "height": 146,
+      "width": 160,
+      "height": 160,
       "padding": 12,
       "borderRadius": 18,
       "clip": true
@@ -21,17 +21,17 @@
     "sections": [
       {
         "id": "headerRow",
-        "width": 122,
+        "width": 136,
         "height": 20
       },
       {
         "id": "meetingInfo",
-        "width": 122,
+        "width": 136,
         "height": 58
       },
       {
         "id": "bottomRow",
-        "width": 122,
+        "width": 136,
         "height": 26
       }
     ]
@@ -93,7 +93,7 @@
     "add another bottom action"
   ],
   "deleteRules": [
-    "If badge.value has more than two digits or is not useful, remove badgeBlock and set actionPill width to 122."
+    "If badge.value has more than two digits or is not useful, remove badgeBlock and set actionPill width to 136."
   ],
   "colorPolicy": {
     "source": "reference/design/color-token-system.md + color-token-values.md",

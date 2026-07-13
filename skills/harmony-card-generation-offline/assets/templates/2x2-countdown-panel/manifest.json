@@ -8,12 +8,12 @@
   "layoutSummary": "Small header, dominant two-digit countdown or large number, bottom support panel with a compact plan/fact.",
   "lockedStructure": {
     "surface": {
-      "width": 146,
-      "height": 146
+      "width": 160,
+      "height": 160
     },
     "root": {
-      "width": 146,
-      "height": 146,
+      "width": 160,
+      "height": 160,
       "padding": 12,
       "borderRadius": 18,
       "clip": true
@@ -21,17 +21,17 @@
     "sections": [
       {
         "id": "header",
-        "width": 122,
+        "width": 136,
         "height": 18
       },
       {
         "id": "countdownRow",
-        "width": 122,
+        "width": 136,
         "height": 44
       },
       {
         "id": "supportPanel",
-        "width": 122,
+        "width": 136,
         "height": 42
       }
     ]

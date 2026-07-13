@@ -8,12 +8,12 @@
   "layoutSummary": "Vertical schedule stack optimized for one upcoming event and one action/support pill.",
   "lockedStructure": {
     "surface": {
-      "width": 146,
-      "height": 146
+      "width": 160,
+      "height": 160
     },
     "root": {
-      "width": 146,
-      "height": 146,
+      "width": 160,
+      "height": 160,
       "padding": 12,
       "borderRadius": 18,
       "clip": true
@@ -21,27 +21,27 @@
     "sections": [
       {
         "id": "scheduleHeader",
-        "width": 122,
+        "width": 136,
         "height": 18
       },
       {
         "id": "eventTitle",
-        "width": 122,
+        "width": 136,
         "height": 18
       },
       {
         "id": "timeText",
-        "width": 122,
+        "width": 136,
         "height": 24
       },
       {
         "id": "alertRow",
-        "width": 122,
+        "width": 136,
         "height": 18
       },
       {
         "id": "actionPill",
-        "width": 122,
+        "width": 136,
         "height": 26
       }
     ]

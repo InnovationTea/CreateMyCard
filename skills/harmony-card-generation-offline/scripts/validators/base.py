@@ -100,6 +100,8 @@ def numeric(value: Any) -> float | None:
 
 
 def resolve_dimension(value: Any, parent_size: Any = None) -> float | None:
+    if isinstance(value, str) and value.strip() == "matchParent":
+        return numeric(parent_size)
     return numeric(value)
 
 

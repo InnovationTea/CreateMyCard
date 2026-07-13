@@ -110,6 +110,34 @@ class ComponentValidator(BaseValidator):
             forbidden = sorted((forbidden_global | set(forbidden_by_component.get(component_type, []))) & set(component.keys()))
             if forbidden:
                 reporter.add("error", "DSL_FIELD_FORBIDDEN", "hard", "genui", line=2, json_pointer=pointer, actual=forbidden, message="组件包含禁用字段。")
+            handlers = component.get("onClick")
+            if isinstance(handlers, list):
+                if len(handlers) > 1:
+                    reporter.add(
+                        "error",
+                        "EVENT_ARGUMENT_INVALID",
+                        "hard",
+                        "genui",
+                        line=2,
+                        json_pointer=f"{pointer}/onClick",
+                        actual=len(handlers),
+                        expected=1,
+                        message="Form 协议每个事件仅支持 1 个 EventHandler。",
+                    )
+                for handler_index, handler in enumerate(handlers):
+                    if isinstance(handler, dict):
+                        forbidden_handler = sorted(set(handler.keys()) & {"condition", "as"})
+                        if forbidden_handler:
+                            reporter.add(
+                                "error",
+                                "DSL_FIELD_FORBIDDEN",
+                                "hard",
+                                "genui",
+                                line=2,
+                                json_pointer=f"{pointer}/onClick/{handler_index}",
+                                actual=forbidden_handler,
+                                message="Form EventHandler 不支持 condition/as。",
+                            )
             for field in required_fields.get(component_type, []):
                 if field not in component or is_empty_required_value(
                     component.get(field),
@@ -143,13 +171,19 @@ class ComponentValidator(BaseValidator):
                 elif isinstance(children, dict):
                     if component_type not in template_components:
                         reporter.add("error", "DSL_TEMPLATE_CHILDREN_INVALID", "hard", "genui", line=2, json_pointer=f"{pointer}/children", message=f"{component_type}.children 不支持模板循环对象。")
-                    if set(children.keys()) != {"componentId", "path"}:
-                        reporter.add("error", "DSL_TEMPLATE_CHILDREN_INVALID", "hard", "genui", line=2, json_pointer=f"{pointer}/children", actual=children, expected={"componentId": "...", "path": "/items"}, message="模板 children 只能包含 componentId 和 path。")
+                    allowed_template_keys = {"componentId", "path", "itemVar", "indexVar"}
+                    required_template_keys = {"componentId", "path"}
+                    if not required_template_keys <= set(children.keys()) or set(children.keys()) - allowed_template_keys:
+                        reporter.add("error", "DSL_TEMPLATE_CHILDREN_INVALID", "hard", "genui", line=2, json_pointer=f"{pointer}/children", actual=children, expected={"componentId": "...", "path": "/items", "itemVar": "item", "indexVar": "index"}, message="模板 children 必须包含 componentId/path，可选 itemVar/indexVar。")
                     child_id = children.get("componentId")
                     child_path = children.get("path")
                     if child_id not in context.components_by_id:
                         reporter.add("error", "DSL_CHILD_REF_NOT_FOUND", "hard", "genui", line=2, json_pointer=f"{pointer}/children/componentId", actual=child_id, message="模板 componentId 引用了不存在的组件 id。")
                     if expression_like(child_path) or not is_json_pointer(child_path):
                         reporter.add("error", "EXPR_FORBIDDEN_FIELD", "hard", "genui", line=2, json_pointer=f"{pointer}/children/path", actual=child_path, message="模板 children.path 必须是结构 JSON Pointer，不能是表达式。")
+                    for var_field in ("itemVar", "indexVar"):
+                        var_name = children.get(var_field)
+                        if var_name is not None and (not isinstance(var_name, str) or not var_name or var_name.startswith("$")):
+                            reporter.add("error", "DSL_TEMPLATE_CHILDREN_INVALID", "hard", "genui", line=2, json_pointer=f"{pointer}/children/{var_field}", actual=var_name, message=f"{var_field} 必须是不带 $ 前缀的非空变量名。")
                 else:
                     reporter.add("error", "DSL_TEMPLATE_CHILDREN_INVALID", "hard", "genui", line=2, json_pointer=f"{pointer}/children", actual=children, message="children 必须是组件 id 数组或模板循环对象。")

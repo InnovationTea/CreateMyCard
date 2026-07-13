@@ -12,7 +12,7 @@
     "fixHint": "把静态文本也放进表达式内部，用 + 拼接。"
   },
   "BINDING_LEGACY_PATH_OBJECT": {
-    "message": "datamodel-first 不允许使用旧式 {\"path\": ...} 或 formatString 值绑定。",
+    "message": "当前 Form 配置不允许使用未声明或位置不合法的函数绑定。",
     "fixHint": "改成完整表达式，例如 \"{{ ${/meeting/time} }}\"。"
   },
   "ASSET_PATH_NOT_DECLARED": {
