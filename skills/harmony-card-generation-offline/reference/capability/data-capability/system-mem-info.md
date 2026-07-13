@@ -33,3 +33,29 @@
   }
 }
 ```
+
+## 使用规则
+
+- 适用于系统内存、可用内存、空闲内存、总内存和内存占用比例展示。
+- CardSpec 的 `capabilityId` 使用本文档 manifest 的 `id`：`GetSystemMemInfo`。
+- `arguments` 不传字段；不要自行增加清理阈值或应用包名等入参。
+- 推荐 `writeResultTo: "/data/systemMem"`；UI 访问路径必须由 `writeResultTo + outputSchema` 推导。
+- 常用展示路径：`/data/systemMem/totalMemText`、`/data/systemMem/freeMemText`、`/data/systemMem/availableMemText`、`/data/systemMem/usagePercent`。
+- 进度条或环形进度只在 `usagePercent` 是主焦点时使用；旁边文案不要重复展示同一百分比，除非它是唯一主事实。
+- 初始 `updateDataModel` 使用空值、0 值和加载态，不要写死用户真实系统状态：
+
+```json
+{
+  "data": {
+    "systemMem": {
+      "totalMemText": "",
+      "freeMemText": "",
+      "availableMemText": "",
+      "usagePercent": 0
+    }
+  },
+  "state": {
+    "loading": true
+  }
+}
+```

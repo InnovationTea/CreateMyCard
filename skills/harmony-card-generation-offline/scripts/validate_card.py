@@ -11,36 +11,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from validators.asset_validator import AssetValidator
-from validators.binding_validator import BindingValidator
-from validators.cardspec_validator import CardSpecValidator
-from validators.color_validator import ColorValidator
-from validators.component_validator import ComponentValidator
-from validators.cross_validator import CrossValidator
-from validators.diagnostics import Reporter
-from validators.expression_validator import ExpressionValidator
-from validators.protocol_validator import ProtocolValidator
-from validators.quality_validator import QualityValidator
-from validators.rule_registry import RuleRegistry
-from validators.source_parser import SourceParser, extract_combined, normalize_cardspec_text, normalize_dsl_text
-
-
-VALIDATORS = [
-    ProtocolValidator(),
-    ComponentValidator(),
-    CardSpecValidator(),
-    ExpressionValidator(),
-    AssetValidator(),
-    BindingValidator(),
-    CrossValidator(),
-    ColorValidator(),
-    QualityValidator(),
-]
-
-
-PIPELINE_BLOCKING_CODES = {
-    "DSL_JSON_PARSE_FAILED",
-}
+from validators.api import ValidationOptions, validate_card
+from validators.source_parser import extract_combined, normalize_cardspec_text, normalize_dsl_text
 
 
 def read_text(path: str | None) -> str:
@@ -58,33 +30,14 @@ def resolve_inputs(args: argparse.Namespace) -> tuple[str, str]:
     return extract_combined(raw)
 
 
-def selected_stages(stage: str) -> list[str]:
-    if stage == "hard":
-        return ["hard"]
-    if stage == "semantic":
-        return ["hard", "semantic"]
-    if stage == "quality":
-        return ["hard", "semantic", "quality"]
-    return ["hard", "semantic", "quality"]
-
-
-def run_pipeline(context, rules, reporter: Reporter, stage: str, *, stop_on_stage_error: bool = False) -> None:
-    stages = selected_stages(stage)
-    for current_stage in stages:
-        if stop_on_stage_error and current_stage == "semantic" and reporter.has_error("hard"):
-            return
-        if stop_on_stage_error and current_stage == "quality" and reporter.error_count:
-            return
-        for validator in VALIDATORS:
-            if validator.stage == current_stage:
-                validator.validate(context, rules, reporter)
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description="Validate datamodel-first HarmonyOS A2UI Form DSL and CardSpec.")
     parser.add_argument("path", nargs="?", help="Combined draft file. Reads stdin when omitted or '-'.")
     parser.add_argument("--dsl", help="Path to genui JSONL file or fenced genui block.")
     parser.add_argument("--cardspec", help="Path to cardspec JSON file or fenced cardspec block.")
+    parser.add_argument("--artifact", help="Path to a full WidgetArtifact JSON file.")
+    parser.add_argument("--effective", help="Path to effectiveCapabilities JSON, or a JSON file containing effectiveCapabilities.")
+    parser.add_argument("--capabilities-dir", help="Path to cloud-new capability registry directory, used to resolve effective asset ids.")
     parser.add_argument("--stage", choices=["hard", "semantic", "quality", "all"], default="all")
     parser.add_argument("--format", choices=["text", "json", "model"], default="text")
     parser.add_argument("--max-errors", type=int, default=50)
@@ -96,14 +49,29 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    skill_dir = SCRIPT_DIR.parent
-    rules = RuleRegistry(skill_dir)
-    reporter = Reporter(rules.diagnostics, max_errors=args.max_errors)
+    dsl_text = ""
+    cardspec_text = ""
+    if not args.artifact:
+        dsl_text, cardspec_text = resolve_inputs(args)
+    elif args.dsl or args.cardspec:
+        dsl_text, cardspec_text = resolve_inputs(args)
 
-    dsl_text, cardspec_text = resolve_inputs(args)
-    context = SourceParser().parse(dsl_text, cardspec_text, reporter)
-    if not reporter.has_code(*PIPELINE_BLOCKING_CODES):
-        run_pipeline(context, rules, reporter, args.stage, stop_on_stage_error=args.stop_on_stage_error)
+    artifact_text = read_text(args.artifact) if args.artifact else ""
+    effective_text = read_text(args.effective) if args.effective else ""
+    capabilities_dir = Path(args.capabilities_dir) if args.capabilities_dir else None
+    reporter = validate_card(
+        dsl_text=dsl_text,
+        cardspec=cardspec_text,
+        artifact=artifact_text,
+        effective_capabilities=effective_text,
+        options=ValidationOptions(
+            stage=args.stage,
+            max_errors=args.max_errors,
+            stop_on_stage_error=args.stop_on_stage_error,
+            skill_dir=SCRIPT_DIR.parent,
+            capabilities_dir=capabilities_dir,
+        ),
+    )
 
     if args.format == "json":
         print(reporter.render_json())

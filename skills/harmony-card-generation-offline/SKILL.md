@@ -15,8 +15,9 @@ description: "生成、修复、评审或解释 HarmonyOS A2UI Form 服务卡片
 4. 未指定尺寸先尝试 `2x2`；只有受保护文本、热区、并列关系、关键媒体或布局预算具体失败时才升级 `2x4`。
 5. 从零生成完成内容分级后，只要候选尺寸可能由模板承载，且入选内容能收敛为一个服务对象/主问题与 `object`、`primary`、`support`、`metric/tile/status/badge`、`action`、`asset` 角色槽位，先读 `reference/template-routing.md` 和 `assets/templates/index.json` 做候选判断；最多选一个模板。模板只提供骨架和预算，内容、DataModel、素材、颜色、事件必须重做。
 6. 需要专项，或对组件字段、绑定、布局、颜色、事件不确定时，按 `reference.md` 定向补读最小必要文件；没有读到权威文件前不要凭样例或记忆补字段。先解决协议、绑定、尺寸和布局，再处理事件、CardSpec、颜色、素材、主显示组突出度、支撑组归拢和表面层级。
-7. 写 DSL 前先算 surface/root、内容区、padding/margin/itemMargin、热区、受保护文本、并排宽高和颜色来源。
-8. 输出前确认协议、绑定、布局、颜色、事件、尺寸、模板槽位、信息职责、事实等价类和 CardSpec 对齐；若确认项依赖未读专项，先补读再输出。只有用户要求校验既有文件或调试脚本时才运行 `scripts/validate_card.py`。
+7. 需要动态数据时先读 `reference/capability/cardspec.md`，再读 `reference/capability/data-capability/index.md` 做能力路由，只加载命中的 1-2 个能力 manifest；不要预读整个 `data-capability/` 目录。多个能力必须逐个确认 `capabilityId`、`arguments`、`writeResultTo`、常用 UI 路径和初始化 DataModel。
+8. 写 DSL 前先算 surface/root、内容区、padding/margin/itemMargin、热区、受保护文本、并排宽高和颜色来源；写到任何组件属性前，若 `component-catalog.md` 未覆盖该字段或枚举，先删减设计或改用已覆盖属性。
+9. 输出前确认协议、绑定、布局、颜色、事件、尺寸、模板槽位、信息职责、事实等价类和 CardSpec 对齐；若确认项依赖未读专项，先补读再输出。只有用户要求校验既有文件或调试脚本时才运行 `scripts/validate_card.py`。
 
 模式 1/2 的最终回答只给最终 DSL/CardSpec，不输出解释、校验日志、命令、比较过程或中间文件。
 
@@ -55,6 +56,8 @@ description: "生成、修复、评审或解释 HarmonyOS A2UI Form 服务卡片
 ## 专项参考
 
 默认只读 `reference/core-rules.md`；新卡片再读 `reference/generation-workflow.md`。路由不清楚、修复已有 DSL、需要模板、动态数据、事件、颜色、素材，或主显示组不突出、支撑组散落、表面层级缺失时，再按 `reference.md` 读取对应专项文件；进入专项文件后先看顶部决策、阻断或使用规则，不一次性泛读无关参考。
+
+组件属性只以 `reference/protocol/component-catalog.md` 为权威来源；它按组件维护顶层字段、`styles` 字段和可用枚举。协议消息、root shell、事件和表达式分别查 `protocol.md`、`data-binding.md` 与事件能力文件，不要把字段从旧模板、历史 `.dat` 或包外网页直接搬进 DSL。
 
 新卡片中只要入选内容存在可由素材承担的识别、状态、动作、主媒体或视觉锚点职责，先读 `reference/design/asset-library.md` 再决定是否使用 `Image`；用户未提供素材不等于素材不可用。决定省略素材前，必须确认素材库无明确匹配、加入素材会破坏 L1 布局预算，或用户明确要求不用图片/图标。
 

@@ -110,3 +110,39 @@
   }
 }
 ```
+
+## 使用规则
+
+- 适用于睡眠、步数、热量、距离、最近一次运动、运动心率等健康运动摘要。
+- CardSpec 的 `capabilityId` 使用本文档 manifest 的 `id`：`GetHealthAndSportSummary`。
+- `arguments` 只能使用 `inputSchema.properties` 声明的字段：`targetDayOffset`；今天用 `0`，昨天用 `-1`。不要自造日期字符串入参。
+- 推荐 `writeResultTo: "/data/healthSport"`；UI 访问路径必须由 `writeResultTo + outputSchema` 推导。
+- 睡眠常用路径：`/data/healthSport/sleepScore`、`/data/healthSport/sleepStatus`、`/data/healthSport/nightSleepDurationText`、`/data/healthSport/fallAsleepTimeText`、`/data/healthSport/wakeupTimeText`。
+- 活动常用路径：`/data/healthSport/dailySteps`、`/data/healthSport/dailyTotalCaloriesText`、`/data/healthSport/dailyDistanceText`。
+- 运动常用路径：`/data/healthSport/exerciseTypeName`、`/data/healthSport/exerciseDurationText`、`/data/healthSport/exerciseCalorieText`、`/data/healthSport/exerciseHeartRateAvg`。
+- 单张卡只选择一个主问题：睡眠监督、今日活动或最近运动三者不要在 `2x2` 中并列抢主焦点。
+- 初始 `updateDataModel` 使用空值、0 值和加载态，不要写死用户真实健康数据：
+
+```json
+{
+  "data": {
+    "healthSport": {
+      "targetDateText": "",
+      "sleepScore": 0,
+      "sleepStatus": "",
+      "nightSleepDurationText": "",
+      "dailySteps": 0,
+      "dailyTotalCaloriesText": "",
+      "dailyDistanceText": "",
+      "exerciseTypeName": "",
+      "exerciseDurationText": "",
+      "exerciseCalorieText": "",
+      "exerciseHeartRateAvg": 0,
+      "updatedAt": ""
+    }
+  },
+  "state": {
+    "loading": true
+  }
+}
+```

@@ -53,3 +53,34 @@
   }
 }
 ```
+
+## 使用规则
+
+- 适用于蓝牙耳机连接状态、耳机名称、耳机盒/左右耳电量和充电状态。
+- CardSpec 的 `capabilityId` 使用本文档 manifest 的 `id`：`GetBluetoothEarphoneStatus`。
+- `arguments` 不传字段；不要自行增加设备名、蓝牙地址或包名等入参。
+- 推荐 `writeResultTo: "/data/earphone"`；UI 访问路径必须由 `writeResultTo + outputSchema` 推导。
+- 常用展示路径：`/data/earphone/isConnected`、`/data/earphone/earphoneName`、`/data/earphone/batteryLevel`、`/data/earphone/chargingStatusDesc`、`/data/earphone/leftBatteryLevel`、`/data/earphone/rightBatteryLevel`、`/data/earphone/updatedAt`。
+- `2x2` 优先展示连接状态、设备名和一个主电量；左右耳电量作为并列小状态时要确认布局预算。`2x4` 可展示盒、左耳、右耳三项。
+- 初始 `updateDataModel` 使用空值和加载态，不要写死用户真实设备名或电量：
+
+```json
+{
+  "data": {
+    "earphone": {
+      "isConnected": false,
+      "earphoneName": "",
+      "batteryLevel": 0,
+      "chargingStatusDesc": "",
+      "leftBatteryLevel": 0,
+      "leftChargingStatusDesc": "",
+      "rightBatteryLevel": 0,
+      "rightChargingStatusDesc": "",
+      "updatedAt": ""
+    }
+  },
+  "state": {
+    "loading": true
+  }
+}
+```

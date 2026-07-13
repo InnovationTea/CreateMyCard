@@ -82,7 +82,7 @@
 - `children.path` 指向数组，使用以 `/` 开头的 JSON Pointer。
 - 模板组件及其子树内，`${field}` 解析到当前数组项字段，`${/rootField}` 解析到根 DataModel。
 - 模板项内不要使用 `{"path":"field"}` 或 `formatString`；拼接仍写成完整表达式。
-- 不使用 `$item`、`$index`、`itemVar`、`indexVar`。
+- 原始 Form 协议也支持 `$item`、`$index`、`itemVar`、`indexVar`；本 Skill 为了保持表达式版本可校验、与 CardSpec 路径对齐，继续只使用 `${field}` 和 `${/rootField}` 子集，不使用 `$item`、`$index`、`itemVar`、`indexVar`。
 
 ## EventHandler 数据
 

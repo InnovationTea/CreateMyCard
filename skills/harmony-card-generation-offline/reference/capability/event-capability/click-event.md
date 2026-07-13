@@ -268,4 +268,4 @@
 
 - 模板列表项内使用当前项字段时优先写相对路径，例如 `{"path": "entityId"}`；非模板区域使用绝对路径，例如 `{"path": "/data/calendar/items/0/entityId"}`。
 - 如果用户意图无法匹配本文件任一能力或目标，不要伪造点击能力；改为静态展示或说明需要宿主补充 event-capability manifest。
-- 后续新增事件能力时，应继续放入 `reference/event-capability/`；生成卡片时按 manifest 选择能力，不要把事件逻辑写死到某个数据场景。
+- 后续新增事件能力时，应继续放入 `reference/capability/event-capability/`；生成卡片时按 manifest 选择能力，不要把事件逻辑写死到某个数据场景。

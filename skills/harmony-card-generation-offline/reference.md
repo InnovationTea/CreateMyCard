@@ -8,6 +8,7 @@
 - 从自然语言生成新卡片时，先读取 [`reference/generation-workflow.md`](reference/generation-workflow.md) 建立意图字段组、内容分级、尺寸适配、场景字段组、布局原型和配色前置决策。
 - 从零生成完成内容分级后，只要候选尺寸可能由模板承载，且入选内容能归入单一对象/主问题的角色槽位，读取 [`reference/template-routing.md`](reference/template-routing.md) 与 `assets/templates/index.json` 判断候选。模板不匹配、槽位过长、动作能力不明、素材缺失、无同尺寸模板或预算不成立时，回到非模板流程。
 - DSL 中将要出现的组件字段、绑定、事件、CardSpec、颜色或素材，必须能在已读文件中找到权威来源；找不到就按下方专项路由补读，不要从旧样例或记忆推断。
+- 动态数据只渐进加载：先读 [`reference/capability/cardspec.md`](reference/capability/cardspec.md)，再读 [`reference/capability/data-capability/index.md`](reference/capability/data-capability/index.md)，最后只打开命中的能力文件。不要一次性读取全部 data capability manifest。
 - 白屏、不渲染或 JSONL 解析失败时，先查协议消息闭环和 root shell，再查组件字段归属，最后查绑定路径闭环。
 - 长文档先看顶部决策、阻断或使用规则；manifest、token 表、素材表只在需要具体值时查。
 - 不要为了比较风格同时读取多个设计文件；只按当前失败类型读取对应专项文件。
@@ -18,7 +19,7 @@
 - `core-rules.md`：默认硬门槛，覆盖协议、绑定、尺寸、布局、内容重复和交付前基础校验。
 - `generation-workflow.md`：新卡片 UX 规划，覆盖意图字段组、内容分级、尺寸适配、场景字段组、布局原型和配色前置决策，并提供内部术语最小定义。
 - `protocol/protocol.md`：协议裁决，覆盖三行 JSONL、surface/root、禁用能力、事件语法和表达式边界；不维护组件逐项字段表。
-- `protocol/component-catalog.md`：组件字段权威来源，覆盖允许组件、顶层语义字段、组件特有属性、通用样式和枚举。
+- `protocol/component-catalog.md`：组件属性权威来源，覆盖允许组件、顶层语义字段、组件特有属性、通用样式、样式对象形态和枚举。
 - `protocol/data-binding.md`：绑定权威来源，覆盖 `updateDataModel`、完整表达式、模板循环项表达式和事件参数取值。
 - `design/layout-system.md`：几何落地，覆盖安全区、宽高预算、字号阶梯、图标区、进度几何、按钮热区和重叠防线。
 - `design/color-token-system.md`：颜色合法性，覆盖 token、多彩色、场景色族、深浅色、渐变 stop、前景/背景配对和按钮材质。
@@ -37,7 +38,7 @@
 - 白屏、不渲染、三行 JSONL 顺序、`surfaceId`、root shell 或禁用能力：[`reference/protocol/protocol.md`](reference/protocol/protocol.md)；组件字段归属、属性或样式枚举：[`reference/protocol/component-catalog.md`](reference/protocol/component-catalog.md)。
 - 自然语言需求拆解、内容取舍、尺寸适配、场景字段组、布局原型、进度可视化选择：[`reference/generation-workflow.md`](reference/generation-workflow.md)。
 - DataModel、完整表达式、表达式引用漏初始化、列表循环项表达式、事件参数：[`reference/protocol/data-binding.md`](reference/protocol/data-binding.md)。
-- CardSpec、动态数据能力：[`reference/capability/cardspec.md`](reference/capability/cardspec.md)，再按场景逐个选择必要的 [`reference/capability/data-capability/`](reference/capability/data-capability/) 文件。
+- CardSpec、动态数据能力：[`reference/capability/cardspec.md`](reference/capability/cardspec.md)，再读 [`reference/capability/data-capability/index.md`](reference/capability/data-capability/index.md) 路由到必要 manifest；只读取命中的 [`reference/capability/data-capability/`](reference/capability/data-capability/) 文件。
 - 点击、拨号、跳转和动作参数：[`reference/capability/event-capability/click-event.md`](reference/capability/event-capability/click-event.md)。
 - 布局预算、按钮对齐、底部贴底、重叠、留白：[`reference/design/layout-system.md`](reference/design/layout-system.md)。
 - 合规模板选型、槽位映射和回退规则：[`reference/template-routing.md`](reference/template-routing.md)。

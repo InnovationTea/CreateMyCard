@@ -1,62 +1,261 @@
 # Datamodel-First 卡片校验器
 
-本目录提供 `harmony-card-generation-offline` 的本地校验程序，用于校验模型生成的 `genui` DSL JSONL 和 `cardspec` JSON。
+`scripts` 目录用于校验 HarmonyOS A2UI Form 卡片产物。
 
-校验器目标：
+下文命令默认在 `skills/harmony-card-generation-offline/` 目录下运行；如果在仓库根目录运行，将 `python scripts/validate_card.py` 替换为 `python skills/harmony-card-generation-offline/scripts/validate_card.py`。
 
-- 先保证 DSL / CardSpec 语法正确、协议闭环、可渲染。
-- 再检查 DataModel 绑定、CardSpec data capability、事件参数、资源路径。
-- 最后做基础布局、样式、颜色和质量评分，帮助模型修复到更稳定、更美观的卡片。
+校验分两类：
 
-## 快速使用
+- 静态校验：按 `scripts/rules/` 中的静态能力清单和协议规则校验。
+- 动态 effective 校验：按本次 `cloud-new` 过滤后的 `effectiveCapabilities` 校验能力使用。
 
-在仓库根目录运行：
+两者的校验范围应保持一致：协议、组件、CardSpec、表达式、绑定、布局、颜色、质量等规则都相同；区别只在数据/事件/素材能力校验的来源不同。
+
+## 一、静态校验
+
+静态校验是默认模式，不需要传 `--effective`。
+
+### 1. JSONL + CardSpec
+
+分别传入 genui JSONL 和 CardSpec：
 
 ```bash
-python skills/harmony-card-generation-offline/scripts/validate_card.py --dsl out.genui.jsonl --cardspec out.cardspec.json
+python scripts/validate_card.py --dsl out.genui.jsonl --cardspec out.cardspec.json
 ```
 
-只校验 DSL：
+也可以传入同时包含两个 fenced code block 的草稿：
 
 ```bash
-python skills/harmony-card-generation-offline/scripts/validate_card.py --dsl out.genui.jsonl
+python scripts/validate_card.py draft.md
 ```
+
+草稿格式：
+
+````md
+```genui
+{"version":"v0.9","createSurface":{}}
+{"version":"v0.9","updateComponents":{}}
+{"version":"v0.9","updateDataModel":{}}
+```
+```cardspec
+{"title":"天气","description":"今日天气","suggestSize":"2x4","dataBindings":[]}
+```
+````
+
+### 2. JSONL
+
+只校验 genui JSONL：
+
+```bash
+python scripts/validate_card.py --dsl out.genui.jsonl
+```
+
+适合只检查 JSONL 语法、协议行顺序、组件结构、表达式、素材基础安全规则等。缺少 CardSpec 时，跨文件一致性和数据能力 schema 推导会受限。
+
+### 3. CardSpec
 
 只校验 CardSpec：
 
 ```bash
-python skills/harmony-card-generation-offline/scripts/validate_card.py --cardspec out.cardspec.json
+python scripts/validate_card.py --cardspec out.cardspec.json
 ```
 
-校验包含两个 fenced code block 的完整草稿：
+适合只检查 CardSpec 必填字段、尺寸、`dataBindings` 基础形态和 `writeResultTo` 冲突。
+
+## 二、动态 effective 校验
+
+动态校验是在同一套静态规则基础上，把能力相关校验切换为本次过滤后的 effective 白名单。
+
+动态校验不复算候选过滤，不判断 removed 原因，只检查最终 DSL/CardSpec 是否使用了 `effectiveCapabilities` 之外的数据、事件、素材能力。
+
+动态 effective 校验运行在 semantic 阶段。默认 `--stage all` 会覆盖它；如果指定 `--stage hard`，不会运行动态能力校验。
+
+### 1. JSONL + CardSpec
+
+分别传入 JSONL、CardSpec 和 effective 能力：
 
 ```bash
-python skills/harmony-card-generation-offline/scripts/validate_card.py draft.md
+python scripts/validate_card.py \
+  --dsl out.genui.jsonl \
+  --cardspec out.cardspec.json \
+  --effective effective.json
 ```
 
-输出给模型二次修复的短格式：
+如果输入是完整 `WidgetArtifact` JSON，且包含 `genui`、`cardSpec`、`taskSpec`、`effectiveCapabilities`：
 
 ```bash
-python skills/harmony-card-generation-offline/scripts/validate_card.py --dsl out.genui.jsonl --cardspec out.cardspec.json --format model
+python scripts/validate_card.py --artifact artifact.json
 ```
 
-## CLI 参数
+这是推荐接入方式，因为数据、事件、素材三类能力都有足够上下文。
 
-- `path`：可选，包含 `genui` / `cardspec` 代码块的草稿文件；省略或写 `-` 时读取 stdin。
-- `--dsl`：genui JSONL 文件，或包含 fenced `genui` block 的文件。
-- `--cardspec`：CardSpec JSON 文件，或包含 fenced `cardspec` block 的文件。
-- `--stage hard|semantic|quality|all`：控制校验阶段，默认 `all`。
+### 2. JSONL
+
+只传 JSONL 和 effective 能力：
+
+```bash
+python scripts/validate_card.py \
+  --dsl out.genui.jsonl \
+  --effective effective.json
+```
+
+这种模式仍会运行与静态 JSONL 校验相同的协议、组件、表达式、素材基础安全等规则，并额外使用 effective 白名单检查：
+
+- DSL 中 `onClick[].call + args` 是否来自 `effectiveCapabilities.event`。
+- DSL 中 `Image.src` / `backgroundImage` 是否来自 `effectiveCapabilities.asset` 解析出的资源路径。
+
+注意：只传 JSONL 时缺少 `CardSpec.dataBindings[].writeResultTo`，因此无法完整判断 `/data/...` 路径是否落在有效数据能力写入路径下。若 DSL 引用了 `/data/...`，建议使用 `JSONL + CardSpec` 模式。
+
+### 3. CardSpec
+
+只传 CardSpec 和 effective 能力：
+
+```bash
+python scripts/validate_card.py \
+  --cardspec out.cardspec.json \
+  --effective effective.json
+```
+
+这种模式仍会运行与静态 CardSpec 校验相同的 CardSpec 必填字段、尺寸、`dataBindings` 基础形态、`writeResultTo` 冲突等规则，并额外检查：
+
+- `cardSpec.dataBindings[].capabilityId` 是否存在于 `effectiveCapabilities.data`。
+
+由于没有 DSL，这种模式不会检查事件 `onClick` 和素材 `Image.src` / `backgroundImage`。
+
+## effective.json 格式
+
+可以直接传 `effectiveCapabilities`：
+
+```json
+{
+  "data": ["ViewWeather"],
+  "event": [
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "uri": "weather://home"
+      }
+    }
+  ],
+  "asset": ["asset.calendar_fill"]
+}
+```
+
+也可以包一层：
+
+```json
+{
+  "effectiveCapabilities": {
+    "data": ["ViewWeather"],
+    "event": [],
+    "asset": []
+  }
+}
+```
+
+素材可以传 id，也可以传带 src 的对象：
+
+```json
+{
+  "asset": [
+    {
+      "id": "asset.calendar_fill",
+      "src": "resources/base/media/calendar_fill.svg"
+    }
+  ]
+}
+```
+
+如果 effective 中只有素材 id，需要让校验器能把 id 解析成 `src`。解析优先级：
+
+1. `artifact.taskSpec.assetCandidates`
+2. `--capabilities-dir/asset_capabilities.json`
+
+示例：
+
+```bash
+python scripts/validate_card.py \
+  --artifact artifact.json \
+  --capabilities-dir cloud-new/cloud/data/capabilities/app-11.7.5.205_rom-36
+```
+
+动态模式下，数据绑定路径推导也会优先使用该目录中的 `data_capabilities.json`。这样 DSL 引用 `/data/...` 时，会按 `cloud-new` 当前版本的真实 `outputSchema` 判断，而不是使用 `scripts/rules/schemas/` 里的静态小样本。
+
+如果没有传 `--capabilities-dir`，动态模式不会回退到静态小样本 schema；只要 DSL 引用路径落在本次 effective data binding 的 `writeResultTo` 下，就不会因为静态清单缺失而误报。
+
+## 全局参数
+
 - `--format text|json|model`：输出格式，默认 `text`。
+- `--stage hard|semantic|quality|all`：校验阶段，默认 `all`。
 - `--max-errors N`：最多输出多少条 error，默认 `50`。
 - `--strict`：warning 也导致退出码为 `1`。
-- `--stop-on-stage-error`：恢复旧的阶段阻断行为；默认会继续收集可独立判断的后续阶段问题，减少多轮修复。
-
-输入文件按 `utf-8-sig` 读取，兼容带 BOM 的 UTF-8 文件；stdin 开头的 BOM 也会自动去掉。
+- `--stop-on-stage-error`：hard/semantic 出错后停止后续阶段。
+- `--capabilities-dir`：`cloud-new` 能力目录，用于解析素材 id。
 
 退出码：
 
 - `0`：无 error。
 - `1`：存在 error；或指定 `--strict` 且存在 warning。
+
+## Python API
+
+`cloud-new` 可以直接调用 API，不必起子进程跑 CLI。
+
+动态校验完整 artifact：
+
+```python
+from pathlib import Path
+import sys
+
+sys.path.insert(0, "scripts")
+
+from validators import ValidationOptions, validate_card
+
+reporter = validate_card(
+    artifact=artifact_dict,
+    options=ValidationOptions(
+        capabilities_dir=Path("cloud-new/cloud/data/capabilities/app-11.7.5.205_rom-36"),
+    ),
+)
+
+if reporter.error_count:
+    print(reporter.render_json())
+```
+
+动态校验 JSONL + CardSpec：
+
+```python
+reporter = validate_card(
+    dsl_text=genui,
+    cardspec=card_spec,
+    effective_capabilities={
+        "data": ["ViewWeather"],
+        "event": [],
+        "asset": [],
+    },
+)
+```
+
+静态校验：
+
+```python
+reporter = validate_card(
+    dsl_text=genui,
+    cardspec=card_spec,
+)
+```
+
+## 动态校验边界
+
+动态 effective 校验等价于检查“最终 DSL/CardSpec 有没有使用 effective 白名单之外的能力”。
+
+它不做：
+
+- 不检查候选能力是否合理。
+- 不复算 `DeviceCapabilityResolver`。
+- 不判断 removed 是否完整。
+- 不判断 removed 原因是否正确。
+- 不判断 effective 本身是否过滤正确。
 
 ## 目录结构
 
@@ -81,6 +280,7 @@ scripts/
       event.click.schema.json
   validators/
     __init__.py
+    api.py
     asset_validator.py
     base.py
     binding_validator.py
@@ -90,6 +290,7 @@ scripts/
     context.py
     cross_validator.py
     diagnostics.py
+    effective_capability_validator.py
     expression_validator.py
     protocol_validator.py
     quality_validator.py
@@ -97,421 +298,15 @@ scripts/
     source_parser.py
 ```
 
-## 执行流程
-
-`validate_card.py` 做三件事：
-
-1. `RuleRegistry` 从 `scripts/rules/` 加载规则、配置和 capability schema。
-2. `SourceParser` 解析 DSL / CardSpec，构造 `ValidationContext`。
-3. 按阶段运行 `validators/` 中注册的 Validator。
-
-阶段顺序：
-
-```text
-hard -> semantic -> quality
-```
-
-门禁规则：
-
-- 默认尽量多报：`hard`、`semantic`、`quality` 会按顺序运行，便于模型一次看到结构、语义和质量问题。
-- JSONL 行本身解析失败时，不继续运行依赖 DSL 结构的 Validator，避免错位索引造成误报。
-- 指定 `--stop-on-stage-error` 时恢复旧行为：`hard` error 阻断 `semantic/quality`，`semantic` error 阻断 `quality`。
-- `quality` 阶段会输出 `qualityScore` 和 `status`。
-
-`status` 含义：
-
-- `invalid`：存在 error。
-- `valid_with_quality_risks`：无 error，但质量分低于 70。
-- `valid`：无 error，质量分 70-89。
-- `polished`：无 error，质量分不低于 90。
-
 ## Validator 职责
 
-### `protocol_validator.py`
-
-阶段：`hard`
-
-检查：
-
-- 三行 JSONL 顺序：`createSurface` -> `updateComponents` -> `updateDataModel`。
-- `version`、`catalogId`、`surfaceId`。
-- `createSurface`、`updateComponents`、`updateDataModel` 的必填字段是否存在且非空。
-- `updateDataModel.path` 是否是结构 JSON Pointer。
-- `createSurface.styles` 只允许 `borderRadius`、`clip`。
-
-主要规则来源：
-
-- `rules/config/protocol.json`
-- `rules/config/style.json`
-
-### `component_validator.py`
-
-阶段：`hard`
-
-检查：
-
-- 组件类型是否允许。
-- 组件 id 是否唯一。
-- root 是否引用存在组件。
-- 顶层字段是否符合组件目录。
-- 公共必填顶层字段、组件特有必填顶层字段是否存在且非空。
-- `children` 引用是否存在。
-- 模板 `children` 对象是否只用于 `Row` / `Column` / `List`。
-
-主要规则来源：
-
-- `rules/form_catalog.json`
-- `rules/config/protocol.json`
-
-### `cardspec_validator.py`
-
-阶段：`hard`
-
-检查：
-
-- CardSpec 必填字段：`title`、`description`、`suggestSize`。
-- `title` / `description` 必须是静态字符串。
-- `suggestSize` 只能是 `2x2` / `2x4`。
-- `dataBindings[].capabilityId/arguments/writeResultTo` 基础形态。
-- 多个 `writeResultTo` 不得互相覆盖。
-
-### `expression_validator.py`
-
-阶段：`hard`
-
-检查：
-
-- 动态值必须是完整 `{{ ... }}` 表达式。
-- 不允许半嵌入表达式，例如 `"会议 {{ ${/time} }}"`。
-- 不允许嵌套多组 `{{ ... }}`。
-- 表达式内字符串必须使用单引号。
-- 禁用 `$__widthBreakpoint`、`$__colorMode`、`$item`、`$index`。
-- 禁用旧式 `{"path": ...}` 和 `formatString` 值绑定。
-- `id`、`component`、EventHandler `call/as`、模板 `children.path` 等结构字段不允许表达式。
-
-备注：
-
-- 当前实现是轻量扫描校验，不依赖第三方 parser。
-- `expression_grammar.ebnf` 保留为规范来源，后续可以接入正式 parser。
-
-### `asset_validator.py`
-
-阶段：`hard`
-
-检查：
-
-- `Image.src` 和 `styles.backgroundImage` 禁止网络 URL、`data:image`、base64。
-- 静态资源路径必须在素材 allowlist 中。
-- 表达式资源路径会尝试从 `updateDataModel.value` 静态解析；无法解析时给 warning。
-
-主要规则来源：
-
-- `rules/config/asset.json`
-- `reference/design/asset-library.md`
-
-`RuleRegistry` 会自动从 `asset-library.md` 提取 `resources/base/media/*.svg`。
-
-### `binding_validator.py`
-
-阶段：`semantic`
-
-检查：
-
-- `dataBindings[].capabilityId` 是否已声明。
-- `arguments` 是否符合 capability `inputSchema.properties`。
-- `arguments` 不能写 DSL 表达式或旧绑定对象。
-- 模板 `children.path` 是否指向数组。
-- 表达式中的绝对 JSON Pointer 是否能从 `updateDataModel.value` 或 `writeResultTo + outputSchema` 推导。
-- 模板子树内的相对表达式是否合理。
-- `onClick` 事件能力和参数是否符合 `event.click.schema.json`。
-
-主要规则来源：
-
-- `rules/schemas/capability.*.schema.json`
-- `rules/schemas/event.click.schema.json`
-
-### `cross_validator.py`
-
-阶段：`semantic`
-
-检查：
-
-- DSL surface 尺寸是否与 CardSpec `suggestSize` 对应的 profile 基准尺寸一致。
-- CardSpec `writeResultTo` 根路径是否在 `updateDataModel.value` 中初始化。
-
-### `color_validator.py`
-
-阶段：`quality`
-
-检查：
-
-- 颜色必须是最终 hex：`#RRGGBB` 或 `#AARRGGBB`。
-- 不允许直接输出 token 名，例如 `brand`、`font_primary`、`multi_color_02`。
-- 渐变结构必须包含 `direction` 和合法 stop。
-- hex 未能回溯到 token、多彩色或场景拓展色时给 warning。
-
-主要规则来源：
-
-- `rules/config/color.json`
-- `reference/design/color-token-values.md`
-- `reference/design/color-token-system.md`
-
-### `quality_validator.py`
-
-阶段：`quality`
-
-检查：
-
-- root `width/height/borderRadius/clip/padding/background`；root `width/height` 必须写 profile 基准尺寸，内部组件宽高必须保持数值或可静态推导。
-- Row 横向预算。
-- Column 纵向预算。
-- 字号阶梯。
-- 间距阶梯。
-- Button 最小尺寸。
-- Image 必须有 `width`、`height`、`objectFit`。
-- 环形 Progress 宽高相等。
-- 静态文本宽度估算。
-- 计算 `qualityScore`。
-
-主要规则来源：
-
-- `rules/config/layout.json`
-- `rules/config/style.json`
-- `rules/config/protocol.json`
-
-## 规则文件维护
-
-### 修改尺寸、圆角、catalogId
-
-编辑：
-
-```text
-scripts/rules/config/protocol.json
-```
-
-常见字段：
-
-- `version`
-- `catalogIds`
-- `messageOrder`
-- `messageRequiredFields`
-- `messageNonEmptyFields`
-- `sizes`
-- `allowedComponents`
-- `forbiddenComponents`
-- `commonTopLevelFields`
-- `componentCommonRequiredFields`
-- `componentNonEmptyRequiredFields`
-- `componentTopLevelFields`
-- `componentRequiredFields`
-
-### 修改字号、间距、按钮最小尺寸
-
-编辑：
-
-```text
-scripts/rules/config/layout.json
-```
-
-常见字段：
-
-- `allowedFontSizes`
-- `allowedSpacing`
-- `minClickableSize`
-- `defaultPadding`
-
-### 修改样式字段或枚举
-
-编辑：
-
-```text
-scripts/rules/config/style.json
-```
-
-常见字段：
-
-- `commonStyleFields`
-- `componentStyleFields`
-- `enumValues`
-- `imageRequiredStyles`
-
-### 修改颜色来源
-
-编辑：
-
-```text
-scripts/rules/config/color.json
-```
-
-如果只是新增官方 token hex，优先更新：
-
-```text
-reference/design/color-token-values.md
-```
-
-`RuleRegistry` 会从该文档自动收集 hex。
-
-### 修改资源白名单
-
-优先更新：
-
-```text
-reference/design/asset-library.md
-```
-
-校验器会自动提取文档中的：
-
-```text
-resources/base/media/*.svg
-```
-
-若需要临时追加，也可以编辑：
-
-```text
-scripts/rules/config/asset.json
-```
-
-### 新增数据能力
-
-在 `scripts/rules/schemas/` 新增文件：
-
-```text
-capability.<name>.schema.json
-```
-
-文件形态：
-
-```json
-{
-  "capabilityId": "example.capability",
-  "preferredWriteResultTo": "/data/example",
-  "inputSchema": {
-    "type": "object",
-    "properties": {}
-  },
-  "outputSchema": {
-    "type": "object",
-    "properties": {}
-  }
-}
-```
-
-新增后无需改 `RuleRegistry`，它会自动加载所有 `capability.*.schema.json`。
-
-### 新增事件能力
-
-编辑：
-
-```text
-scripts/rules/schemas/event.click.schema.json
-```
-
-当前事件校验集中在 `clickToCallPhone`、`clickToDeeplink`、`clickToIntent` 三类函数。若新增完全不同的事件函数，通常还需要扩展 `binding_validator.py` 中的事件参数检查。
-
-### 修改诊断文案
-
-编辑：
-
-```text
-scripts/rules/config/diagnostics.zh-CN.json
-```
-
-当 Validator 调用 `reporter.add()` 时，如果没有传入自定义 `message` 或 `fix_hint`，会从这里按错误码取默认文案。
-
-## 新增 Validator
-
-1. 在 `scripts/validators/` 下新增模块。
-2. 继承 `BaseValidator`。
-3. 设置 `stage` 和 `name`。
-4. 实现 `validate(self, context, rules, reporter)`。
-5. 在 `scripts/validate_card.py` 的 `VALIDATORS` 列表中注册。
-
-示例：
-
-```python
-from validators.base import BaseValidator
-
-
-class ExampleValidator(BaseValidator):
-    stage = "quality"
-    name = "example"
-
-    def validate(self, context, rules, reporter):
-        reporter.add(
-            "warning",
-            "EXAMPLE_WARNING",
-            self.stage,
-            "genui",
-            message="示例 warning。",
-            fix_hint="按需要修复。",
-        )
-```
-
-## 诊断输出
-
-内部诊断结构：
-
-```json
-{
-  "severity": "error",
-  "code": "EXPR_FULL_STRING_REQUIRED",
-  "stage": "hard",
-  "file_kind": "genui",
-  "line": 2,
-  "json_pointer": "/updateComponents/componentsById/title/content",
-  "message": "动态值必须是完整 {{ ... }} 表达式，不能半嵌入普通字符串或嵌套表达式。",
-  "actual": "会议 {{ ${/meeting/time} }}",
-  "expected": "{{ '会议 ' + ${/meeting/time} }}",
-  "fix_hint": "把静态文本也放进表达式内部，用 + 拼接。",
-  "source": "config/diagnostics.zh-CN.json"
-}
-```
-
-`--format text` 适合人工阅读。  
-`--format json` 适合集成脚本。  
-`--format model` 适合把错误直接喂回模型修复。
-
-## 验证命令
-
-编译检查：
-
-```bash
-python -m py_compile skills/harmony-card-generation-offline/scripts/validate_card.py skills/harmony-card-generation-offline/scripts/validators/*.py
-```
-
-校验单个模板：
-
-```bash
-python skills/harmony-card-generation-offline/scripts/validate_card.py \
-  --dsl skills/harmony-card-generation-offline/assets/templates/2x2-countdown-panel/template.genui.jsonl \
-  --cardspec skills/harmony-card-generation-offline/assets/templates/2x2-countdown-panel/cardspec.json \
-  --format json
-```
-
-PowerShell 批量校验模板：
-
-```powershell
-$failed = 0
-$templates = Get-ChildItem .\skills\harmony-card-generation-offline\assets\templates -Directory
-foreach ($t in $templates) {
-  $dsl = Join-Path $t.FullName 'template.genui.jsonl'
-  $card = Join-Path $t.FullName 'cardspec.json'
-  if ((Test-Path $dsl) -and (Test-Path $card)) {
-    python .\skills\harmony-card-generation-offline\scripts\validate_card.py --dsl $dsl --cardspec $card --format json | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-      Write-Host "FAILED $($t.Name)"
-      $failed++
-    }
-  }
-}
-if ($failed -eq 0) { Write-Host 'all templates passed' } else { exit 1 }
-```
-
-## 当前边界
-
-- 当前表达式检查是轻量扫描校验，不是完整 EBNF parser。
-- `cardspec.schema.json` 目前主要作为结构契约文档保留，主要 hard 校验在 `cardspec_validator.py` 中完成。
-- 布局检查是静态估算，不等同真实渲染截图验证。
-- `qualityScore` 是工程质量门，不是绝对审美评分。
-- 如果新增复杂能力，优先新增 schema/config；只有涉及跨节点推导、布局预算或新语义时，再新增 Validator。
-
+- `protocol_validator.py`：校验三行 JSONL 顺序、version、surfaceId、消息必填字段等。
+- `component_validator.py`：校验组件类型、id、root、children、组件字段白名单等。
+- `cardspec_validator.py`：校验 CardSpec 必填字段、尺寸、`dataBindings` 基础形态和 `writeResultTo` 冲突。
+- `expression_validator.py`：校验表达式形态、禁用字段、结构字段表达式等。
+- `asset_validator.py`：校验素材路径基础安全规则；动态模式下跳过静态 allowlist，由 effective 校验器接管。
+- `binding_validator.py`：校验 DataModel 路径、模板路径、事件参数等；动态模式下跳过静态能力清单检查。
+- `effective_capability_validator.py`：校验最终 DSL/CardSpec 是否只使用本次过滤后的数据、事件、素材能力。
+- `cross_validator.py`：校验 DSL 和 CardSpec 的尺寸、数据契约交叉一致性。
+- `color_validator.py`：校验颜色格式和 token。
+- `quality_validator.py`：校验布局、样式、文本适配、质量分等。

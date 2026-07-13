@@ -110,3 +110,29 @@
   }
 }
 ```
+
+## 使用规则
+
+- 适用于今日会议、未来日程、倒计时、日历提醒、赛事日程等系统日历场景。
+- CardSpec 的 `capabilityId` 使用本文档 manifest 的 `id`：`GetCalendarEvents`。
+- `arguments` 只能使用 `inputSchema.properties` 声明的字段：`futureDays`；不传时端侧默认查询未来 7 天。
+- `2x2` 通常只展示下一项或今日首个关键日程；`2x4` 可展示 2-3 条短日程摘要，不做完整列表。
+- 推荐 `writeResultTo: "/data/calendar"`；UI 访问路径必须由 `writeResultTo + outputSchema` 推导。
+- 常用展示路径：`/data/calendar/eventCount`、`/data/calendar/events`、`/data/calendar/events/0/title`、`/data/calendar/events/0/dtStart`、`/data/calendar/events/0/dtEnd`、`/data/calendar/events/0/eventLocation`、`/data/calendar/events/0/countdownDays`。
+- 事件参数常用 `/data/calendar/events/0/entityId` 或模板项内 `entityId`；必须配合已声明事件能力使用。
+- 初始 `updateDataModel` 使用空数组和加载态，不要写死用户真实日程：
+
+```json
+{
+  "data": {
+    "calendar": {
+      "eventCount": 0,
+      "events": [],
+      "updatedAt": ""
+    }
+  },
+  "state": {
+    "loading": true
+  }
+}
+```

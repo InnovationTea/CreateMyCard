@@ -8,6 +8,11 @@ from typing import Any
 class ValidationContext:
     dsl_text: str = ""
     cardspec_text: str = ""
+    use_effective_capabilities: bool = False
+    effective_capabilities: dict[str, list[Any]] = field(default_factory=dict)
+    effective_data_capabilities: dict[str, dict[str, Any]] = field(default_factory=dict)
+    effective_asset_sources: set[str] = field(default_factory=set)
+    unresolved_effective_asset_ids: set[str] = field(default_factory=set)
     dsl_messages: list[dict[str, Any]] = field(default_factory=list)
     dsl_line_count: int = 0
     cardspec: dict[str, Any] = field(default_factory=dict)
@@ -32,4 +37,3 @@ class ValidationContext:
         if pointer.startswith("/updateDataModel"):
             return 3
         return None
-

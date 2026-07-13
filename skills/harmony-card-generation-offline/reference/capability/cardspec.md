@@ -41,12 +41,18 @@ Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构
 
 ## 能力选择
 
-按场景逐个读取必要能力文档，不要预先加载全部能力：
+按场景逐个读取必要能力文档，不要预先加载全部能力。先读 [`data-capability/index.md`](data-capability/index.md) 做路由，再打开命中的 manifest：
 
 - 天气：[`data-capability/weather.md`](data-capability/weather.md)
 - 日历：[`data-capability/calendar.md`](data-capability/calendar.md)
+- 应用时长和耗电：[`data-capability/app-usage.md`](data-capability/app-usage.md)
+- 蓝牙耳机状态：[`data-capability/blutoothearphone-status.md`](data-capability/blutoothearphone-status.md)
+- 健康与运动：[`data-capability/healthy-sport.md`](data-capability/healthy-sport.md)
+- 系统内存：[`data-capability/system-mem-info.md`](data-capability/system-mem-info.md)
 
 如果用户请求的动态能力未声明，不要编造能力；改用静态降级方案，或说明需要端侧补充 capability manifest。
+
+读取单个能力文件后，只带走生成所需的最小集合：`capabilityId`、必填入参、允许入参、推荐 `writeResultTo`、常用 UI 路径和初始化 DataModel。不要把整个 `outputSchema` 复制进最终回答。
 
 ## DataModel 映射
 

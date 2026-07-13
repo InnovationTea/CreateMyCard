@@ -86,4 +86,4 @@
 }
 ```
 
-- 本文档只声明应用使用时长和耗电数据能力的输入、输出和常用路径；通用 data capability 选择、CardSpec 映射、事件参数绑定和最终评审规则见 `reference/cardspec.md`、`reference/event-capability/`、`reference/data-binding.md` 和 `reference/final-review.md`。
+- 本文档只声明应用使用时长和耗电数据能力的输入、输出和常用路径；通用 data capability 选择、CardSpec 映射见 `../cardspec.md`，事件参数绑定见 `../event-capability/` 和 `../../protocol/data-binding.md`。
