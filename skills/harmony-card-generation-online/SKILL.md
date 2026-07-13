@@ -1,6 +1,6 @@
 ---
 name: harmony-card-generation-online
-description: "编排云侧微服务生成 HarmonyOS A2UI Form 服务卡片。用于用户用自然语言请求创建、生成、预览、添加桌面 widget/服务卡片，或端侧以 /harmony-card-generation 等标记触发卡片生成时，识别场景、获取能力概述、筛选候选数据/事件/素材能力、构造候选 dataBindings/event candidates/asset ids/size，调用 getWidgetCapabilityOverview、getDataCapabilitySchemas、generateWidgetCard，并根据 success/degraded/unsupported/failed 返回 genWidgetResult JSON 标记或可理解说明；当 generateWidgetCard 不可用、调用失败或结果不符合预期时，主 Agent 可进入兜底链路生成最终可交付结果，但不得伪造动态能力或 artifact URL。"
+description: "编排云侧微服务生成 HarmonyOS A2UI Form 服务卡片。用于用户用自然语言请求创建、生成、预览、添加桌面 widget/服务卡片，或端侧以 /harmony-card-generation 等标记触发卡片生成时，识别场景、获取能力概述、筛选候选数据/事件/素材能力、构造候选 dataBindings/event candidates/asset ids/size，调用 getWidgetCapabilityOverview、getDataCapabilitySchemas、generateWidgetCard，并根据 success/degraded/unsupported/failed 返回 genWidgetResult JSON 标记或可理解说明。"
 metadata:
   tools:
     - bundleName: "com.omega_w_0823.hmservice"
@@ -24,7 +24,6 @@ metadata:
 - 构造 `candidateDataBindings`、`candidateEventCandidates`、`candidateAssetIds`、`size`、`title` 和 `description`。
 - 调用 `generateWidgetCard` 生成卡片 artifact。
 - 根据微服务返回状态组织用户回复。
-- 当 `generateWidgetCard` 不可用、调用失败或结果不符合预期时，进入主 Agent 兜底链路生成最终可交付结果。
 
 ## 触发场景
 
@@ -42,19 +41,20 @@ metadata:
 
 - 纯聊天、百科、写作、代码任务。
 - 要求完整 App 页面、复杂表单、长报告。
-- 要求直接输出 DSL/CardSpec。
+- 要求本 skill 直接输出 DSL/CardSpec；说明本 skill 只通过云侧插件生成卡片，不自行拼装协议产物。
 
 ## 边界
 
-- 默认不直接输出 `genui` 或 `cardspec` 代码块。
-- 默认不直接生成最终 DSL、最终 CardSpec、A2UI prompt 或校验修复结果；只有 `generateWidgetCard` 不可用、调用失败或结果不符合预期时才允许兜底生成最终结果。
+- 不直接输出 `genui` 或 `cardspec` 代码块。
+- 不直接生成最终 DSL、最终 CardSpec、A2UI prompt、本地 artifact 或校验修复结果。
 - 不维护完整 A2UI 协议、组件白名单、美观规则、素材合法性或版本兼容矩阵。
 - 不提前承诺设备一定支持天气、日历、应用、跳转或任一动态能力。
 - 不编造能力 ID、事件目标、素材 ID、OBS 链接或 `genWidgetResult`。
 - 不把点击事件写入 CardSpec；点击候选只作为 `candidateEventCandidates` 传给微服务裁决。
 - 不把 `generateWidgetCard` 返回前的候选计划、schema、DSL 草稿或校验细节暴露给用户。
+- 任一依赖工具不可用、调用失败或返回无法解析时终止本轮生成，不使用离线能力清单或历史资料补足。
 
-微服务默认负责真实设备能力过滤、最终 CardSpec、A2UI DSL 生成、校验、降级、失败重试、OBS 上传和最终用户话术。兜底链路只在生成工具不可用或结果不可靠时启用。
+微服务负责真实设备能力过滤、最终 CardSpec、A2UI DSL 生成、校验、降级、失败重试、OBS 上传和最终用户话术。
 
 ## 工作流
 
@@ -62,14 +62,14 @@ metadata:
 
 2. **初步回应**：不要说"可以生成某动态卡片"。需要过程回复时只说："我先检查当前设备支持情况，然后为你生成可用的卡片。"
 
-3. **获取能力概述**：调用 `getWidgetCapabilityOverview` 获取数据能力、事件能力和素材概述。除 `bundleName` 外不传其它字段；工具返回后从包装结构 `items[].data` 中解析业务 payload；如果返回原始插件包络，则先进入 `reply.items[].data`。
+3. **获取能力概述**：调用 `getWidgetCapabilityOverview` 获取数据能力、事件能力和素材概述。除 `bundleName` 外不传其它字段；工具返回后从包装结构 `items[].data` 中解析业务 payload；如果返回原始插件包络，则先进入 `reply.items[].data`。工具不可用、调用失败或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
 
 4. **筛选候选能力**：按 `references/candidate-planning.md` 从概述中筛选候选能力：
    - 数据能力最多优先选 2 个核心候选。
    - 事件能力最多优先选 2 个主动作候选。
    - 素材候选只选和场景强相关的少量 ID。
 
-5. **加载数据能力 Schema**：如果选中了数据能力，调用 `getDataCapabilitySchemas` 加载这些数据能力的完整 schema。
+5. **加载数据能力 Schema**：如果选中了数据能力，调用 `getDataCapabilitySchemas` 加载这些数据能力的完整 schema。工具不可用、调用失败或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
 
 6. **构造候选计划**：基于 schema 构造候选计划：
    - `size`：`"2x2"` 或 `"2x4"`。
@@ -78,17 +78,17 @@ metadata:
    - `candidateEventCandidates`：事件候选单数组；每项包含来自 overview 的 `capabilityId` 和完整 `action`。如果无法安全填齐 `action.call/args`，不要传该事件候选。
    - 虽然对外工具 schema 中事件项只是 `Object`，每一项仍必须按内部 `CandidateEventCandidate` 类结构组装：`capabilityId` 和 `action:{call,args}`。
    - `candidateAssetIds`：来自 overview 的素材 ID。
-   - `title` / `description`：必传的静态短标题和短概述；无法提炼时使用稳定兜底文案。
+   - `title` / `description`：必传的静态短标题和短概述；无法提炼时使用稳定默认文案。
    - 本版不传 `slots`、`options`、`locale`、`uid`、`device` 等当前工具 schema 未声明的字段。
 
-7. **生成卡片**：调用 `generateWidgetCard` 生成卡片。正常情况下不要自行补做微服务负责的过滤、协议 profile、校验、重试或上传。
+7. **生成卡片**：调用 `generateWidgetCard` 生成卡片。不要自行补做微服务负责的过滤、协议 profile、校验、重试或上传。工具不可用、调用失败或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
 
 8. **回复用户**：按 `references/response-policy.md` 回复：
    - 先从 `generateWidgetCard` 返回的 `items[].data` 解析业务 payload；如果返回原始插件包络，则先进入 `reply.items[].data`。
-   - `success` / `degraded`：输出业务 payload 的 `message`，并按“输出”章节格式输出 `genWidgetResult` JSON 标记。
-   - `unsupported` / `failed`：不输出 `genWidgetResult`，只输出用户可理解说明和可尝试的替代方向。
-
-9. **兜底生成**：如果 `generateWidgetCard` 不可用、调用失败或结果不符合预期，按 `references/tool-contracts.md` 的“兜底生成”规则由主 Agent 生成最终可交付结果。兜底结果不得伪造动态能力、事件目标、素材 ID、artifact URL 或 `genWidgetResult`。
+   - `success` / `degraded` 且存在有效 `artifactUrl`：输出业务 payload 的 `message`，并按“输出”章节格式输出 `genWidgetResult` JSON 标记。
+   - `success` / `degraded` 但缺少有效 `artifactUrl`：按 `failed` 处理，不输出 `genWidgetResult`。
+   - `unsupported`：不输出 `genWidgetResult`，输出用户可理解的能力边界和可尝试的替代方向。
+   - `failed`：不输出 `genWidgetResult`，只输出生成服务暂时不可用的说明。
 
 ## 工具定义
 
@@ -141,8 +141,9 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 - 只使用 `generateWidgetCard` 包装结构中业务 payload 返回的真实 `artifactUrl`。
 - 标记必须是 `genWidgetResult` 代码块，代码块内容必须是合法 JSON 对象，且 `result` 的值必须等于真实 `artifactUrl`；不要再输出旧格式 `genWidgetResult:"url"`。
 - `degraded` 时保留微服务给出的降级原因，轻量润色即可。
-- `unsupported` 或 `failed` 时不要输出标记，除非兜底链路真的完成 artifact 上传并拿到真实 URL。
-- 正常链路不输出 `genui`、`cardspec`、A2UI JSONL、CardSpec JSON、校验日志或内部工具草稿；兜底链路需要交付最终结果时，可以输出必要产物，但必须说明未走云侧 artifact 生成链路。
+- `success` 或 `degraded` 缺少有效 `artifactUrl` 时按 `failed` 处理，不输出标记。
+- `unsupported` 或 `failed` 时不要输出标记。
+- 任何状态都不输出 `genui`、`cardspec`、A2UI JSONL、CardSpec JSON、校验日志或内部工具草稿。
 
 ## 参考
 
@@ -156,5 +157,5 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 
 - 不编造能力 ID、事件目标、素材 ID 或 artifact URL。
 - 不把能力 schema、内部错误码、requestId、items、原始 data 字符串等内部信息暴露给用户。
-- 不模拟工具结果；工具不可用或生成结果不符合预期时，进入兜底链路或说明当前环境尚未接入云侧卡片生成工具。
-- 兜底链路不得伪造动态能力、事件目标、素材 ID、artifact URL 或 `genWidgetResult`。
+- 不模拟工具结果；任一工具不可用、调用失败、结果无法解析或缺少必要字段时，说明卡片生成服务暂时不可用并终止本轮生成。
+- 不读取离线能力清单、历史模板或旧协议资料来补足工具结果。
