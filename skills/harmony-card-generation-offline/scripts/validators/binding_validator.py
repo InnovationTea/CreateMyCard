@@ -10,10 +10,12 @@ class BindingValidator(BaseValidator):
     name = "binding"
 
     def validate(self, context, rules, reporter) -> None:
-        self._check_capability_arguments(context, rules, reporter)
+        if not getattr(context, "use_effective_capabilities", False):
+            self._check_capability_arguments(context, rules, reporter)
         self._check_template_paths(context, rules, reporter)
         self._check_expression_paths(context, rules, reporter)
-        self._check_event_handlers(context, rules, reporter)
+        if not getattr(context, "use_effective_capabilities", False):
+            self._check_event_handlers(context, rules, reporter)
 
     def _check_capability_arguments(self, context, rules, reporter) -> None:
         bindings = context.cardspec.get("dataBindings")
@@ -192,8 +194,10 @@ class BindingValidator(BaseValidator):
             if not isinstance(binding, dict):
                 continue
             root = binding.get("writeResultTo")
-            capability = rules.capabilities.get(binding.get("capabilityId"))
+            capability = self._capability_for_binding(binding, context, rules)
             if not is_json_pointer(root) or capability is None:
+                if getattr(context, "use_effective_capabilities", False) and self._path_under_root(pointer, root):
+                    return True
                 continue
             root = root.rstrip("/")
             if pointer == root or pointer.startswith(root + "/"):
@@ -213,8 +217,10 @@ class BindingValidator(BaseValidator):
             return read_pointer(first, "/" + ref)[0] if isinstance(first, dict) else False
         for binding in context.cardspec.get("dataBindings", []) if isinstance(context.cardspec.get("dataBindings"), list) else []:
             root = binding.get("writeResultTo")
-            capability = rules.capabilities.get(binding.get("capabilityId"))
+            capability = self._capability_for_binding(binding, context, rules)
             if not is_json_pointer(root) or capability is None:
+                if getattr(context, "use_effective_capabilities", False) and self._path_under_root(template_path, root):
+                    return True
                 continue
             root = root.rstrip("/")
             if template_path == root or template_path.startswith(root + "/"):
@@ -230,8 +236,10 @@ class BindingValidator(BaseValidator):
             return isinstance(value, list)
         for binding in context.cardspec.get("dataBindings", []) if isinstance(context.cardspec.get("dataBindings"), list) else []:
             root = binding.get("writeResultTo")
-            capability = rules.capabilities.get(binding.get("capabilityId"))
+            capability = self._capability_for_binding(binding, context, rules)
             if not is_json_pointer(root) or capability is None:
+                if getattr(context, "use_effective_capabilities", False) and self._path_under_root(pointer, root):
+                    return True
                 continue
             root = root.rstrip("/")
             if pointer == root or pointer.startswith(root + "/"):
@@ -239,6 +247,20 @@ class BindingValidator(BaseValidator):
                 schema = capability.get("outputSchema", {})
                 return self._schema_type(schema, relative) == "array"
         return False
+
+    def _capability_for_binding(self, binding: dict[str, Any], context, rules) -> dict[str, Any] | None:
+        capability_id = binding.get("capabilityId")
+        if getattr(context, "use_effective_capabilities", False):
+            capability = context.effective_data_capabilities.get(capability_id)
+            return capability if isinstance(capability, dict) else None
+        capability = rules.capabilities.get(capability_id)
+        return capability if isinstance(capability, dict) else None
+
+    def _path_under_root(self, pointer: str, root: Any) -> bool:
+        if not is_json_pointer(pointer) or not is_json_pointer(root):
+            return False
+        root = str(root).rstrip("/")
+        return pointer == root or pointer.startswith(root + "/")
 
     def _schema_type(self, schema: dict[str, Any], pointer: str) -> str | None:
         current = schema
@@ -254,4 +276,3 @@ class BindingValidator(BaseValidator):
                 return None
             current = properties[raw_part]
         return current.get("type")
-

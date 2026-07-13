@@ -45,7 +45,7 @@ class AssetValidator(BaseValidator):
         if is_wrapped_expression(value):
             resolved = static_expression_value(value, context.data_model)
             if isinstance(resolved, str):
-                self._check_static_path(resolved, pointer, forbidden, rules, reporter)
+                self._check_static_path(resolved, pointer, forbidden, context, rules, reporter)
             else:
                 reporter.add(
                     "warning",
@@ -59,9 +59,9 @@ class AssetValidator(BaseValidator):
                     fix_hint="确保该表达式运行时只返回素材库 allowlist 中的资源路径。",
                 )
             return
-        self._check_static_path(value, pointer, forbidden, rules, reporter)
+        self._check_static_path(value, pointer, forbidden, context, rules, reporter)
 
-    def _check_static_path(self, path: str, pointer: str, forbidden, rules, reporter) -> None:
+    def _check_static_path(self, path: str, pointer: str, forbidden, context, rules, reporter) -> None:
         for pattern in forbidden:
             if pattern.search(path):
                 reporter.add(
@@ -76,6 +76,11 @@ class AssetValidator(BaseValidator):
                     fix_hint="使用素材库声明的本地 resources/base/media/*.svg。",
                 )
                 return
+        # In effective-capability mode the asset allowlist is the filtered
+        # effective asset set, checked later by EffectiveCapabilityValidator.
+        # Keep static allowlist behavior unchanged for legacy CLI usage.
+        if getattr(context, "use_effective_capabilities", False):
+            return
         if path not in rules.asset_allowlist:
             reporter.add(
                 "error",
@@ -94,4 +99,3 @@ def collect_asset_paths(value: Any) -> list[str]:
         if isinstance(child, str) and child.startswith("resources/"):
             result.append(child)
     return result
-
