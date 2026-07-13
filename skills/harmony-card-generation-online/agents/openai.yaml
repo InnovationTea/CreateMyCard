@@ -1,4 +1,4 @@
 interface:
   display_name: "Harmony 卡片云侧编排"
-  short_description: "编排微服务生成可添加的 HarmonyOS 服务卡片。"
-  default_prompt: "使用 $harmony-card-generation-online 根据用户需求编排云侧微服务生成 HarmonyOS 服务卡片，并只返回用户话术和 genWidgetResult JSON 标记。"
+  short_description: "编排云侧插件生成 HarmonyOS 服务卡片并按真实结果回复。"
+  default_prompt: "使用 $harmony-card-generation-online 编排三个云侧插件生成 HarmonyOS 服务卡片，并严格根据真实状态和 artifactUrl 回复。"
