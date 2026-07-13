@@ -219,7 +219,7 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 
 调用规则：
 
-- `title` 和 `description` 必须始终传非空字符串；无法从需求提炼时，使用“桌面卡片”和“信息速览”等稳定兜底文案。
+- `title` 和 `description` 必须始终传非空字符串；无法从需求提炼时，使用“桌面卡片”和“信息速览”等稳定默认文案。
 - `title`、`description` 不填入动态数据、隐私数据或不确定状态，不用于替代数据能力。
 - `candidateDataBindings` 是候选，不是最终 CardSpec。
 - 默认不要传字段投影；如果确实需要投影，只能传 `updateModel`，不要传 `candidateOutputFields`。
@@ -227,3 +227,5 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 - 如果事件 `action.call/args` 无法从 overview 返回内容或用户明确输入中安全填齐，不传该事件候选。
 - `candidateAssetIds` 只传 overview 返回的素材 ID，不传自造资源路径。
 - 不重试工具，除非工具返回明确可重试错误并要求重试。
+- `success` 或 `degraded` 缺少有效 `artifactUrl` 时按 `failed` 处理，不生成替代产物。
+- 任一工具不可用、调用失败或结果无法解析时终止本轮生成，不使用离线资料补足。
