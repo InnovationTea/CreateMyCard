@@ -1,26 +1,27 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
-import json
-import requests
-import time
+import base64
 import hashlib
 import hmac
-import base64
-
+import json
+import time
 from pathlib import Path
+
+import requests
 
 from app.logger import logger
 from config.config import get_settings
+from services.compact_dsl_protocol import is_compact_dsl
 from utils.base_utils import sts_config
-
-sign_key = sts_config.get_sts_config('genui.model.secret.key')
-appid = get_settings().model_appid
-url = get_settings().model_url
-MODEL_PATH = get_settings().model_path
-MODEL_NAME = get_settings().model_name
 
 
 class A2UIModelClient:
+    """A2UI 模型调用客户端。
+
+    mock 开关打开时按协议 profile 返回对应 mock 文件的原始内容；
+    关闭时调用真实小模型接口。
+    """
+
     def __init__(
             self,
             use_mock: bool | None = None,
@@ -30,23 +31,26 @@ class A2UIModelClient:
 
         入参：
         - use_mock：是否使用 mock 数据；不传时读取全局配置。
-        - mock_data_path：可选 mock 文件路径；不传时读取本文件同级 mock.dat。
+        - mock_data_path：可选 mock 文件路径；不传时按协议选择同目录 mock 文件。
         出参：无。
         """
         settings = get_settings()
+        self.settings = settings
         self.use_mock = (
             settings.enable_a2ui_model_mock if use_mock is None else use_mock
         )
-        self.mock_data_path = Path(mock_data_path or Path(__file__).with_name("mock.dat"))
+        self.mock_data_path = Path(mock_data_path) if mock_data_path else None
 
     def generate(
             self,
-            prompt: list,
+            prompt: list[dict[str, str]],
+            protocol_profile: dict | None = None,
     ) -> str:
         """生成 A2UI genui JSONL。
 
         入参：
         - prompt：PromptBuilder 生成的模型输入。
+        - protocol_profile：用于选择协议对应的 mock；真实模型直接消费 prompt。
         出参：A2UI genui JSONL 字符串。
         """
         logger.info(
@@ -54,26 +58,40 @@ class A2UIModelClient:
         )
 
         if self.use_mock:
-            return self._load_mock_data()
+            return self._load_mock_data(protocol_profile)
 
         return self._generate_from_real_model(prompt)
 
-    def _load_mock_data(self) -> str:
-        """直接读取 mock.dat 原始内容。
+    def _load_mock_data(self, protocol_profile: dict | None = None) -> str:
+        """直接读取当前协议对应的 mock 原始内容。
 
         入参：无。
-        出参：mock.dat 的完整 UTF-8 文本，不做替换或结构调整。
+        出参：mock 文件的完整 UTF-8 文本，不做替换或结构调整。
         """
-        if not self.mock_data_path.is_file():
-            raise FileNotFoundError(f"A2UI mock 数据文件不存在: {self.mock_data_path}")
+        mock_data_path = self.mock_data_path
+        if mock_data_path is None:
+            filename = (
+                "mock.compact-dsl.dat"
+                if is_compact_dsl(protocol_profile or {})
+                else "mock.dat"
+            )
+            mock_data_path = Path(__file__).with_name(filename)
+        if not mock_data_path.is_file():
+            raise FileNotFoundError(f"A2UI mock 数据文件不存在: {mock_data_path}")
 
-        mock_data = self.mock_data_path.read_text(encoding="utf-8")
+        mock_data = mock_data_path.read_text(encoding="utf-8")
         logger.info(
-            f"a2ui_model_generate_completed mode=mock path={self.mock_data_path}"
+            f"a2ui_model_generate_completed mode=mock path={mock_data_path}"
         )
         return mock_data
 
-    def calc_sign(self, payload, method="POST", path=MODEL_PATH, query_params=None):
+    def calc_sign(self, payload, method="POST", path=None, query_params=None):
+        path = path or self.settings.model_path
+        appid = self.settings.model_appid
+        sign_key = sts_config.get_sts_config("genui.model.secret.key")
+        if isinstance(sign_key, str):
+            sign_key = sign_key.encode("utf-8")
+
         # 1. 处理请求体：空或 None 时为空字符串
         if payload is None or payload == '':
             playload = ''
@@ -100,14 +118,17 @@ class A2UIModelClient:
 
         # 6. HMAC-SHA256 计算并 Base64 编码
         signature_bytes = hmac.new(
-            sign_key.encode('utf-8'),
+            sign_key,
             sign_str.encode('utf-8'),
             hashlib.sha256
         ).digest()
         signature = base64.b64encode(signature_bytes).decode('utf-8')
 
         # 7. 组装最终的 Authorization 值
-        authorization = f'CLOUDSOA-HMAC-SHA256 appid={appid}, timestamp={timestamp}, signature="{signature}"'
+        authorization = (
+            f"CLOUDSOA-HMAC-SHA256 appid={appid}, timestamp={timestamp}, "
+            f'signature="{signature}"'
+        )
         return authorization
 
     def extract_genui_payload(self, text):
@@ -146,7 +167,7 @@ class A2UIModelClient:
             服务端返回的str字典。
         """
         payload = {
-            "model": MODEL_NAME,
+            "model": self.settings.model_name,
             "messages": messages,
             "max_tokens": max_tokens,
             "stream": stream
@@ -166,7 +187,7 @@ class A2UIModelClient:
         start = time.perf_counter()
         try:
             with requests.post(
-                    url,
+                    self.settings.model_url,
                     data=payload_str,
                     headers=headers,
                     timeout=timeout,

@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     env: str = "local"
     capability_registry_version: str = "app-1.0.0_rom-36"
-    protocol_profile_id: str = "a2ui-form-rom7-v1"
+    protocol_profile_id: str = "compact-dsl-v1"
     mock_ids_response_path: str = "docs/ids_res.txt"
     ids_query_url: str = "http://{{ip}}:{{port}}/hiai/ids/databus/v1/kvcommondata/query"
     ids_calling_uid: str = "decisionhub"
@@ -28,6 +28,15 @@ class Settings(BaseSettings):
     default_prd_version: str = "1.0.0"
     default_ohos_api_version: int = 36
     enable_a2ui_model_mock: bool = True
+    system_prompt: str = (
+        "Generate HarmonyOS A2UI Form genui JSONL only. "
+        "Use exactly createSurface, updateComponents, updateDataModel in order. "
+        "TaskSpec: {{TASK_SPEC_JSON}}"
+    )
+    model_appid: str = ""
+    model_url: str = ""
+    model_path: str = "/"
+    model_name: str = ""
     enable_artifact_validation: bool = True
     artifact_base_url: str = "https://obs.todo.local/widget"
     server_host: str = "127.0.0.1"

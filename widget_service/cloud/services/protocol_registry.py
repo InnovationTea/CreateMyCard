@@ -33,6 +33,7 @@ class A2UIProtocolRegistry:
         profile = {
             "id": self.profile_id,
             "version": self._extract_quoted_value(protocol_md, "version", "v0.9"),
+            "format": self._extract_quoted_value(protocol_md, "format", "a2ui-form"),
             "catalogId": self._extract_quoted_value(
                 protocol_md,
                 "catalogId",

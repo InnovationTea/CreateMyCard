@@ -1,0 +1,4 @@
+["root","Column",{"width":"matchParent","space":8,"padding":12},["title","description"]]
+["title","Text",{"content":{"path":"/title"},"design":"title","width":"matchParent"}]
+["/title","天气速览"]
+["description","Text",{"content":"查看当前信息","design":"body","width":"matchParent"}]
