@@ -1,0 +1,4 @@
+interface:
+  display_name: "Harmony Compact DSL 卡片"
+  short_description: "编排云侧工具生成 Compact DSL 服务卡片。"
+  default_prompt: "使用 $harmony-card-generation-compact-dsl-online 根据用户需求调用 Compact DSL 卡片工具，并只返回用户话术和真实 genWidgetResult。"

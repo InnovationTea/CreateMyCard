@@ -418,7 +418,9 @@ def test_generation_service_accepts_valid_compact_dsl_model_output(monkeypatch):
         ),
     )
 
-    response = WidgetGenerationService().generate_widget_card(_generation_request())
+    response = WidgetGenerationService().generate_widget_card_compact_dsl(
+        _generation_request()
+    )
 
     assert response.status.value == "success"
     assert response.artifact is not None
@@ -441,7 +443,9 @@ def test_generation_service_rejects_fenced_model_output_before_save(monkeypatch)
     monkeypatch.setattr(A2UIModelClient, "generate", invalid_generate)
     monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
 
-    response = WidgetGenerationService().generate_widget_card(_generation_request())
+    response = WidgetGenerationService().generate_widget_card_compact_dsl(
+        _generation_request()
+    )
 
     assert response.status.value == "failed"
     assert response.errorCode == "VALIDATION_FAILED"

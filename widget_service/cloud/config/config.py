@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     env: str = "local"
     capability_registry_version: str = "app-1.0.0_rom-36"
-    protocol_profile_id: str = "compact-dsl-v1"
+    protocol_profile_id: str = "a2ui-form-rom7-v1"
     mock_ids_response_path: str = "docs/ids_res.txt"
     ids_query_url: str = "http://{{ip}}:{{port}}/hiai/ids/databus/v1/kvcommondata/query"
     ids_calling_uid: str = "decisionhub"

@@ -28,6 +28,7 @@ if str(CLOUD_ROOT) not in sys.path:
     sys.path.insert(0, str(CLOUD_ROOT))
 
 app = importlib.import_module("main").app
+A2UIModelClient = importlib.import_module("custom.a2ui_model_client").A2UIModelClient
 DeviceContext = importlib.import_module("models.generation").DeviceContext
 IDSClient = importlib.import_module("services.ids_client").IDSClient
 
@@ -71,6 +72,68 @@ def _request_id(interaction_id: str) -> str:
     出参：`sessionId&interactionId` 格式的 requestId。
     """
     return f"{SESSION_ID}&{interaction_id}"
+
+
+def _valid_model_output(_self, _prompt, protocol_profile: dict) -> str:
+    """为路由集成测试返回对应 profile 的确定性合法模型输出。"""
+    if protocol_profile.get("format") == "compact-dsl":
+        return (CLOUD_ROOT / "custom" / "mock.compact-dsl.dat").read_text(
+            encoding="utf-8"
+        )
+
+    rows = [
+        {
+            "version": "v0.9",
+            "createSurface": {
+                "surfaceId": "card",
+                "catalogId": "ohos.a2ui.extended.catalog",
+                "width": 300,
+                "height": 140,
+            },
+        },
+        {
+            "version": "v0.9",
+            "updateComponents": {
+                "surfaceId": "card",
+                "root": "root",
+                "components": [
+                    {
+                        "id": "root",
+                        "component": "Column",
+                        "children": ["title"],
+                        "styles": {
+                            "width": 300,
+                            "height": 140,
+                            "padding": 12,
+                            "borderRadius": 22,
+                            "clip": True,
+                        },
+                    },
+                    {
+                        "id": "title",
+                        "component": "Text",
+                        "content": "Weather",
+                        "styles": {
+                            "fontSize": 16,
+                            "fontWeight": 700,
+                            "maxLines": 1,
+                        },
+                    },
+                ],
+            },
+        },
+        {
+            "version": "v0.9",
+            "updateDataModel": {
+                "surfaceId": "card",
+                "path": "/",
+                "value": {},
+            },
+        },
+    ]
+    return "\n".join(
+        json.dumps(row, ensure_ascii=False, separators=(",", ":")) for row in rows
+    )
 
 
 def _json_block(payload: dict) -> str:
@@ -169,12 +232,13 @@ def _write_test_report(record: dict) -> None:
     )
 
 
-def test_widget_card_service_complete_flow():
+def test_widget_card_service_complete_flow(monkeypatch):
     """验证三个 WebSocket 工具入口覆盖能力概述、数据 schema 加载和卡片生成。
 
     入参：无。
     出参：无；通过断言验证新协议入参、requestId 拼接和三段业务流程。
     """
+    monkeypatch.setattr(A2UIModelClient, "generate", _valid_model_output)
     client = TestClient(app)
     records: list[dict] = []
     device = DeviceContext(
@@ -315,6 +379,75 @@ def test_widget_card_service_complete_flow():
 
     for record in records:
         _write_test_report(record)
+
+
+def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
+    """验证工具3和工具4在同一服务进程中固定使用各自协议。"""
+    monkeypatch.setattr(A2UIModelClient, "generate", _valid_model_output)
+    client = TestClient(app)
+    generation_content = {
+        "bundleName": "com.omega_w_0823.hmservice",
+        "userQuery": "生成一张静态天气卡片",
+        "size": "2x4",
+        "title": "天气速览",
+        "description": "查看当前天气",
+        "candidateDataBindings": [],
+        "candidateEventCandidates": [],
+        "candidateAssetIds": [],
+        "options": {"returnArtifactInline": True},
+    }
+
+    with client.websocket_connect("/api/v1/ws/tools/generateWidgetCard") as websocket:
+        old_request = _tool_payload(
+            {
+                **generation_content,
+                "protocolProfileId": "compact-dsl-v1",
+            },
+            "profile-old",
+        )
+        websocket.send_json(old_request)
+        old_message = _assert_success_envelope(
+            websocket.receive_json(),
+            "generateWidgetCard",
+            _request_id("profile-old"),
+        )
+
+    old_artifact = old_message["data"]["artifact"]
+    old_rows = [json.loads(line) for line in old_artifact["genui"].splitlines()]
+    assert old_artifact["meta"]["protocolProfileId"] == "a2ui-form-rom7-v1"
+    assert len(old_rows) == 3
+    assert [next(iter(row)) for row in old_rows] == ["version", "version", "version"]
+    assert "createSurface" in old_rows[0]
+    assert "updateComponents" in old_rows[1]
+    assert "updateDataModel" in old_rows[2]
+
+    with client.websocket_connect(
+        "/api/v1/ws/tools/generateWidgetCardCompactDsl"
+    ) as websocket:
+        compact_content = {
+            **generation_content,
+            "protocolProfileId": "a2ui-form-rom7-v1",
+        }
+        compact_content.pop("userQuery")
+        compact_request = _tool_payload(
+            compact_content,
+            "profile-compact",
+            original="生成一张静态天气卡片",
+        )
+        websocket.send_json(compact_request)
+        compact_message = _assert_success_envelope(
+            websocket.receive_json(),
+            "generateWidgetCardCompactDsl",
+            _request_id("profile-compact"),
+        )
+
+    compact_artifact = compact_message["data"]["artifact"]
+    compact_rows = [
+        json.loads(line) for line in compact_artifact["genui"].splitlines()
+    ]
+    assert compact_artifact["meta"]["protocolProfileId"] == "compact-dsl-v1"
+    assert all(isinstance(row, list) for row in compact_rows)
+    assert any(len(row) == 2 and row[0] == "/title" for row in compact_rows)
 
 
 def test_missing_prd_version_returns_empty_capability_results():
