@@ -327,7 +327,11 @@ class WidgetGenerationService:
             f"task_data_model_keys={list(task_spec.dataModel.get('value', {}).keys())}"
         )
         # prompt 只作为模型生成 DSL 的约束输入，最终协议仍由 CardSpec 和 Validator 兜底。
-        prompt = PromptBuilder().build(task_spec)
+        prompt = PromptBuilder().build(
+            task_spec,
+            protocol_profile,
+            "；".join(f"{item.id}:{item.reason}" for item in removed),
+        )
 
         logger.info(
             f"a2ui_prompt_built uid={request.uid} "
@@ -346,7 +350,7 @@ class WidgetGenerationService:
             """
             # mock 模型客户端当前返回稳定 DSL；后续替换真实模型时保持 generate 入参不变。
             logger.info(f"a2ui_model_operation_started uid={request.uid}")
-            return model_client.generate(prompt)
+            return model_client.generate(prompt, protocol_profile)
 
         def validate_genui(genui: str) -> list[str]:
             """校验单次模型输出。
@@ -375,6 +379,7 @@ class WidgetGenerationService:
                 asset_candidates,
                 removed,
                 protocol_profile["id"],
+                protocol_profile["version"],
                 registry.version,
             )
             return ArtifactValidator().validate(artifact, protocol_profile)
@@ -409,6 +414,7 @@ class WidgetGenerationService:
             asset_candidates,
             removed,
             protocol_profile["id"],
+            protocol_profile["version"],
             registry.version,
         )
         # ArtifactStore 当前是本地 mock/OBS TODO 入口，返回端侧可下载 URL 和摘要。
@@ -519,6 +525,7 @@ class WidgetGenerationService:
         asset_candidates: list,
         removed: list,
         protocol_profile_id: str,
+        protocol_profile_version: str,
         capability_registry_version: str,
     ) -> WidgetArtifact:
         """组装完整 artifact。
@@ -532,12 +539,14 @@ class WidgetGenerationService:
         - asset_candidates：有效素材候选列表。
         - removed：被移除能力列表。
         - protocol_profile_id：协议 profile ID。
+        - protocol_profile_version：协议 profile 版本。
         - capability_registry_version：能力注册表版本。
         出参：完整 WidgetArtifact。
         """
         # artifact 是端侧下载后的唯一交付物，里面同时包含 DSL、CardSpec、TaskSpec 和能力裁决结果。
         logger.info(
             f"artifact_building protocol_profile_id={protocol_profile_id} "
+            f"protocol_profile_version={protocol_profile_version} "
             f"capability_registry_version={capability_registry_version} "
             f"data_capability_count={len(data_capabilities)} "
             f"event_candidate_count={len(event_candidates)} "
@@ -559,6 +568,7 @@ class WidgetGenerationService:
             },
             removedCapabilities=removed,
             meta=ArtifactMeta(
+                dslProtocolVersion=protocol_profile_version,
                 protocolProfileId=protocol_profile_id,
                 capabilityRegistryVersion=capability_registry_version,
                 createdAt=int(time.time() * 1000),

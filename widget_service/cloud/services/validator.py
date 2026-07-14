@@ -6,6 +6,7 @@ from typing import Any
 from app.logger import logger
 from models.artifact import WidgetArtifact
 from services.card_validator import validate_card
+from services.compact_dsl_protocol import is_compact_dsl, validate_compact_dsl
 
 
 class ArtifactValidator:
@@ -18,22 +19,34 @@ class ArtifactValidator:
         出参：错误信息列表；空列表表示校验通过。
         """
         # 校验入口接收完整 artifact，具体协议、组件、布局和绑定规则由 card_validator 模块统一处理。
+        validator_name = (
+            "services.compact_dsl_protocol.validate_compact_dsl"
+            if is_compact_dsl(protocol_profile)
+            else "services.card_validator.validate_card"
+        )
         logger.info(
             f"artifact_validation_started protocol_profile_id={protocol_profile['id']} "
-            "validator_module=services.card_validator.validate_card"
+            f"validator_module={validator_name}"
         )
         try:
             # 直接调用本地模块方法，避免运行时动态加载脚本文件导致部署路径和缓存行为不可控。
-            report = validate_card(
-                genui_text=artifact.genui,
-                cardspec=artifact.cardSpec,
-            )
+            if is_compact_dsl(protocol_profile):
+                report = validate_compact_dsl(
+                    genui_text=artifact.genui,
+                    cardspec=artifact.cardSpec,
+                    component_whitelist=protocol_profile.get("componentWhitelist"),
+                )
+            else:
+                report = validate_card(
+                    genui_text=artifact.genui,
+                    cardspec=artifact.cardSpec,
+                )
         except Exception as exc:
             # 校验模块异常属于服务侧校验链路异常，需要返回为校验失败，避免产物绕过校验。
             errors = [f"validator execution failed: {exc}"]
             logger.error(
                 f"artifact_validation_failed errors={errors} "
-                "validator_module=services.card_validator.validate_card "
+                f"validator_module={validator_name} "
                 f"exception_type={type(exc).__name__} exception={exc!r} "
                 f"traceback={traceback.format_exc()}"
             )

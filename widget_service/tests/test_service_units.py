@@ -29,6 +29,7 @@ from services.card_spec_builder import CardSpecBuilder
 from services.capability_registry import CapabilityRegistry
 from services.ids_client import IDSClient
 from services.prompt_builder import PromptBuilder
+from services.protocol_registry import A2UIProtocolRegistry
 from services.response_planner import ResponsePlanner
 from services.retry_controller import RetryController
 from services.task_spec_builder import TaskSpecBuilder
@@ -279,11 +280,11 @@ def test_task_spec_builder_writes_update_model_to_data_model_path():
     assert task_spec.assetCandidates[0]["id"] == "asset.drop_1"
 
 
-def test_prompt_builder_returns_entity_payload():
-    """验证 PromptBuilder 返回结构化 prompt 实体。
+def test_prompt_builder_returns_model_messages():
+    """验证 PromptBuilder 返回小模型消息列表。
 
     入参：无。
-    出参：无；通过断言验证模型输入不再是裸 dict 拼装。
+    出参：无；通过断言验证 system 和 user 消息内容。
     """
     task_spec = TaskSpecBuilder().build(
         user_query="天气卡片",
@@ -295,7 +296,7 @@ def test_prompt_builder_returns_entity_payload():
         event_candidates=[],
         asset_candidates=[],
     )
-    payload = PromptBuilder().build(
+    messages = PromptBuilder().build(
         task_spec,
         {
             "id": "a2ui-form-rom7-v1",
@@ -307,8 +308,53 @@ def test_prompt_builder_returns_entity_payload():
         "无降级",
     )
 
-    assert payload.user.protocolProfile.version == "v0.9"
-    assert payload.user.degradationContext == "无降级"
+    assert messages[0]["role"] == "system"
+    assert '"userQuery":"天气卡片"' in messages[0]["content"]
+    assert messages[1] == {"role": "user", "content": "天气卡片"}
+
+
+def test_compact_dsl_profile_builds_isolated_prompt():
+    """验证极简协议 profile 和 Prompt 不依赖旧 A2UI 消息结构。"""
+    profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
+    task_spec = TaskSpecBuilder().build(
+        user_query="天气卡片",
+        size="2x4",
+        title="天气速览",
+        description="查看当前天气",
+        effective_bindings=[],
+        effective_data_capabilities=[],
+        event_candidates=[],
+        asset_candidates=[],
+    )
+
+    messages = PromptBuilder().build(task_spec, profile)
+    system_prompt = messages[0]["content"]
+
+    assert profile["format"] == "compact-dsl"
+    assert A2UIProtocolRegistry("a2ui-form-rom7-v1").get_profile()["format"] == "a2ui-form"
+    assert len(profile["componentWhitelist"]) == 16
+    assert set(profile["componentWhitelist"]) == {
+        "Row",
+        "Column",
+        "List",
+        "Stack",
+        "Grid",
+        "Text",
+        "Image",
+        "Divider",
+        "Progress",
+        "Button",
+        "TextInput",
+        "Radio",
+        "Toggle",
+        "Checkbox",
+        "Select",
+        "Web",
+    }
+    assert "raw NDJSON only" in system_prompt
+    assert "Do not output Markdown fences" in system_prompt
+    assert "Use Grid only for an explicit grid" in system_prompt
+    assert '"protocolProfile":{"id":"compact-dsl-v1"' in system_prompt
 
 
 def test_a2ui_model_client_returns_mock_dat_without_processing():
@@ -317,57 +363,51 @@ def test_a2ui_model_client_returns_mock_dat_without_processing():
     入参：无。
     出参：无；通过断言验证输出与文件内容完全一致。
     """
-    task_spec = TaskSpecBuilder().build(
-        user_query="帮我做天气卡片",
-        size="2x4",
-        title="天气速览",
-        description="查看当前天气",
-        effective_bindings=[],
-        effective_data_capabilities=[],
-        event_candidates=[],
-        asset_candidates=[],
-    )
     genui = A2UIModelClient(use_mock=True).generate(
-        task_spec,
+        [],
         {
             "version": "v0.9",
+            "format": "a2ui-form",
             "catalogId": "ohos.a2ui.extended.catalog",
             "sizes": {"2x4": {"width": 300, "height": 140}},
         },
-        prompt=None,
     )
     expected = (CLOUD_ROOT / "custom" / "mock.dat").read_text(encoding="utf-8")
 
     assert genui == expected
 
 
-def test_a2ui_model_client_real_mode_is_todo():
-    """验证关闭 mock 开关后进入预留的真实模型调用入口。
+def test_a2ui_model_client_selects_compact_dsl_mock_by_profile():
+    """验证 mock 客户端只在极简 profile 下切换为 tuple NDJSON。"""
+    profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
 
-    入参：无。
-    出参：无；通过断言验证未接入真实模型时明确抛出 NotImplementedError。
-    """
-    task_spec = TaskSpecBuilder().build(
-        user_query="帮我做天气卡片",
-        size="2x4",
-        title="天气速览",
-        description="查看当前天气",
-        effective_bindings=[],
-        effective_data_capabilities=[],
-        event_candidates=[],
-        asset_candidates=[],
+    genui = A2UIModelClient(use_mock=True).generate([], profile)
+    expected = (CLOUD_ROOT / "custom" / "mock.compact-dsl.dat").read_text(
+        encoding="utf-8"
     )
 
-    with pytest.raises(NotImplementedError, match="真实 A2UI 模型调用暂未接入"):
-        A2UIModelClient(use_mock=False).generate(
-            task_spec,
-            {
-                "version": "v0.9",
-                "catalogId": "ohos.a2ui.extended.catalog",
-                "sizes": {"2x4": {"width": 300, "height": 140}},
-            },
-            prompt=None,
-        )
+    assert genui == expected
+    assert all(
+        isinstance(json_module.loads(line), list)
+        for line in genui.splitlines()
+        if line.strip()
+    )
+
+
+def test_a2ui_model_client_real_mode_forwards_messages(monkeypatch):
+    """验证关闭 mock 后把消息原样传给真实模型调用入口。
+
+    入参：无。
+    出参：无；通过断言验证消息列表不被协议选择逻辑改写。
+    """
+    messages = [{"role": "user", "content": "帮我做天气卡片"}]
+    monkeypatch.setattr(
+        A2UIModelClient,
+        "_generate_from_real_model",
+        lambda self, value: "forwarded" if value is messages else "changed",
+    )
+
+    assert A2UIModelClient(use_mock=False).generate(messages) == "forwarded"
 
 
 def test_response_planner_returns_structured_status():
@@ -534,3 +574,56 @@ def test_artifact_validator_reuses_datamodel_first_validator():
     )
 
     assert any("unsupported component" in item for item in errors)
+
+
+def test_artifact_validator_accepts_compact_dsl_ndjson():
+    """验证极简协议允许字符串属性通过 path 数据行取值。"""
+    profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
+    artifact = WidgetArtifact(
+        genui=(CLOUD_ROOT / "custom" / "mock.compact-dsl.dat").read_text(
+            encoding="utf-8"
+        ),
+        cardSpec={"suggestSize": "2x4"},
+        taskSpec={"dataModel": {"value": {}}},
+        meta=ArtifactMeta(
+            protocolProfileId="compact-dsl-v1",
+            capabilityRegistryVersion="app-11.7.5.205_rom-36",
+            createdAt=1,
+        ),
+    )
+
+    errors = ArtifactValidator().validate(artifact, profile)
+
+    assert errors == []
+
+
+@pytest.mark.parametrize(
+    ("data_line", "expected_error"),
+    [
+        (None, "has no data line"),
+        ('["/title",42]', "must initialize a string value"),
+    ],
+)
+def test_artifact_validator_rejects_invalid_binding_data(data_line, expected_error):
+    """验证 Text.content 绑定必须存在数据行并初始化为 string。"""
+    profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
+    lines = [
+        '["root","Column",{"width":"matchParent","space":8},["title"]]',
+        '["title","Text",{"content":{"path":"/title"}}]',
+    ]
+    if data_line:
+        lines.append(data_line)
+    artifact = WidgetArtifact(
+        genui="\n".join(lines),
+        cardSpec={"suggestSize": "2x4"},
+        taskSpec={"dataModel": {"value": {}}},
+        meta=ArtifactMeta(
+            protocolProfileId="compact-dsl-v1",
+            capabilityRegistryVersion="app-11.7.5.205_rom-36",
+            createdAt=1,
+        ),
+    )
+
+    errors = ArtifactValidator().validate(artifact, profile)
+
+    assert any(expected_error in item for item in errors)
