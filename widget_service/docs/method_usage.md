@@ -74,7 +74,7 @@ a2ui-form-rom7-v1
 
 ## 3. WebSocket 接口
 
-当前微服务把三个业务能力拆成三个独立 WebSocket path。客户端连接目标 path 后，
+当前微服务把业务能力拆成四个独立 WebSocket path。客户端连接目标 path 后，
 消息体只需要传该能力自己的参数，不需要再传 `operation`；`uid` 和 `device`
 由工具层自动注入，本地测试时可以显式传入。
 
@@ -84,7 +84,12 @@ a2ui-form-rom7-v1
 WS /api/v1/ws/tools/getWidgetCapabilityOverview
 WS /api/v1/ws/tools/getDataCapabilitySchemas
 WS /api/v1/ws/tools/generateWidgetCard
+WS /api/v1/ws/tools/generateWidgetCardCompactDsl
 ```
+
+`generateWidgetCard` 固定使用原 A2UI Form profile；
+`generateWidgetCardCompactDsl` 固定使用 `compact-dsl-v1`。两个入口共享业务入参和响应结构，
+调用方不需要传 `protocolProfileId`。
 
 连接成功后客户端直接发送业务消息，服务不再返回 ready 帧。统一消息最小结构：
 
@@ -109,6 +114,7 @@ WS /api/v1/ws/tools/generateWidgetCard
 docs/schemas/getWidgetCapabilityOverview.schema.json
 docs/schemas/getDataCapabilitySchemas.schema.json
 docs/schemas/generateWidgetCard.schema.json
+docs/schemas/generateWidgetCardCompactDsl.schema.json
 ```
 
 ### 3.1 GET /health

@@ -5,6 +5,9 @@ import re
 from app.logger import logger
 from config.config import get_settings
 
+A2UI_FORM_PROTOCOL_PROFILE_ID = "a2ui-form-rom7-v1"
+COMPACT_DSL_PROTOCOL_PROFILE_ID = "compact-dsl-v1"
+
 
 class A2UIProtocolRegistry:
     def __init__(self, profile_id: str | None = None) -> None:

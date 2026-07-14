@@ -29,6 +29,7 @@ GET  /health
 WS   /api/v1/ws/tools/getWidgetCapabilityOverview
 WS   /api/v1/ws/tools/getDataCapabilitySchemas
 WS   /api/v1/ws/tools/generateWidgetCard
+WS   /api/v1/ws/tools/generateWidgetCardCompactDsl
 ```
 
 Example request:
@@ -54,5 +55,6 @@ Schema files:
 - `docs/schemas/getWidgetCapabilityOverview.schema.json`
 - `docs/schemas/getDataCapabilitySchemas.schema.json`
 - `docs/schemas/generateWidgetCard.schema.json`
+- `docs/schemas/generateWidgetCardCompactDsl.schema.json`
 
 See `docs/method_usage.md` for detailed method and API usage.

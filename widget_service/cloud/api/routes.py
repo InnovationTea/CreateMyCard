@@ -28,6 +28,13 @@ from services.widget_generation_service import WidgetGenerationService
 
 router = APIRouter(prefix="/api/v1")
 
+GENERATION_OPERATIONS = frozenset(
+    {
+        "generateWidgetCard",
+        "generateWidgetCardCompactDsl",
+    }
+)
+
 
 def get_service() -> WidgetGenerationService:
     """创建卡片生成服务对象。
@@ -122,7 +129,7 @@ def _arguments_from_envelope(envelope: ToolRequestEnvelope, operation: str) -> d
     出参：可直接传给具体请求模型的业务入参字典。
     """
     arguments = dict(envelope.content)
-    if operation == "generateWidgetCard" and not arguments.get("userQuery"):
+    if operation in GENERATION_OPERATIONS and not arguments.get("userQuery"):
         arguments["userQuery"] = envelope.utterance.original if envelope.utterance else ""
     arguments["uid"] = envelope.userAuth.user.userId or ""
     arguments["locale"] = envelope.deviceInfo.locale or "zh-CN"
@@ -186,7 +193,7 @@ def _stream_content_for_result(operation: str, result_data: dict[str, Any]) -> s
             return f"已获取 {found_count} 个数据能力 Schema，{missing_count} 个能力未找到。"
         return f"已获取 {found_count} 个数据能力 Schema。"
 
-    if operation == "generateWidgetCard":
+    if operation in GENERATION_OPERATIONS:
         return result_data.get("message") or "卡片生成流程已完成。"
 
     return "工具调用已完成。"
@@ -408,5 +415,16 @@ async def generate_widget_card_ws(websocket: WebSocket):
         websocket,
         "generateWidgetCard",
         GenerateWidgetCardRequest,
-        lambda service, request: service.generate_widget_card(request),
+        lambda service, request: service.generate_widget_card_a2ui_form(request),
+    )
+
+
+@router.websocket("/ws/tools/generateWidgetCardCompactDsl")
+async def generate_widget_card_compact_dsl_ws(websocket: WebSocket):
+    """Compact DSL 卡片生成 WebSocket 入口。"""
+    await _serve_operation_websocket(
+        websocket,
+        "generateWidgetCardCompactDsl",
+        GenerateWidgetCardRequest,
+        lambda service, request: service.generate_widget_card_compact_dsl(request),
     )

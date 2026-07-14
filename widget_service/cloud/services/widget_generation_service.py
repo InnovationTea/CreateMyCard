@@ -24,7 +24,11 @@ from services.capability_registry import CapabilityRegistry
 from services.card_spec_builder import CardSpecBuilder
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.prompt_builder import PromptBuilder
-from services.protocol_registry import A2UIProtocolRegistry
+from services.protocol_registry import (
+    A2UI_FORM_PROTOCOL_PROFILE_ID,
+    COMPACT_DSL_PROTOCOL_PROFILE_ID,
+    A2UIProtocolRegistry,
+)
 from services.response_planner import ResponsePlanner
 from services.retry_controller import RetryController
 from services.task_spec_builder import TaskSpecBuilder
@@ -32,7 +36,7 @@ from services.validator import ArtifactValidator
 
 
 class WidgetGenerationService:
-    """编排微服务暴露的三个工具能力。"""
+    """编排微服务暴露的卡片工具能力。"""
 
     def widget_card_service(
         self,
@@ -65,7 +69,7 @@ class WidgetGenerationService:
                 DataCapabilitySchemasRequest(**request.model_dump(exclude={"operation"}))
             )
 
-        if request.operation == "generateWidgetCard":
+        if request.operation in {"generateWidgetCard", "generateWidgetCardCompactDsl"}:
             # 生成阶段必须带原始用户需求，模型 prompt、TaskSpec 和用户话术都依赖它。
             if not request.userQuery:
                 raise ValueError("userQuery is required for generateWidgetCard.")
@@ -77,7 +81,10 @@ class WidgetGenerationService:
             payload = request.model_dump(exclude={"operation", "dataCapabilityIds"})
             # 尺寸是主 Agent 建议值；未传时服务用 2x4 作为一期默认推荐尺寸。
             payload["size"] = payload.get("size") or "2x4"
-            return self.generate_widget_card(GenerateWidgetCardRequest(**payload))
+            generation_request = GenerateWidgetCardRequest(**payload)
+            if request.operation == "generateWidgetCardCompactDsl":
+                return self.generate_widget_card_compact_dsl(generation_request)
+            return self.generate_widget_card_a2ui_form(generation_request)
 
         raise ValueError(f"Unknown operation: {request.operation}")
 
@@ -450,6 +457,37 @@ class WidgetGenerationService:
             else None,
             effectiveCapabilities=artifact.effectiveCapabilities,
         )
+
+    def generate_widget_card_a2ui_form(
+        self,
+        request: GenerateWidgetCardRequest,
+    ) -> GenerateWidgetCardResponse:
+        """使用原 A2UI Form profile 生成卡片。"""
+        return self._generate_widget_card_with_profile(
+            request,
+            A2UI_FORM_PROTOCOL_PROFILE_ID,
+        )
+
+    def generate_widget_card_compact_dsl(
+        self,
+        request: GenerateWidgetCardRequest,
+    ) -> GenerateWidgetCardResponse:
+        """使用 Compact DSL profile 生成卡片。"""
+        return self._generate_widget_card_with_profile(
+            request,
+            COMPACT_DSL_PROTOCOL_PROFILE_ID,
+        )
+
+    def _generate_widget_card_with_profile(
+        self,
+        request: GenerateWidgetCardRequest,
+        protocol_profile_id: str,
+    ) -> GenerateWidgetCardResponse:
+        """复制请求并锁定路由对应的协议 profile。"""
+        profiled_request = request.model_copy(
+            update={"protocolProfileId": protocol_profile_id}
+        )
+        return self.generate_widget_card(profiled_request)
 
     def _normalize_event_candidates(
         self,

@@ -23,6 +23,7 @@ WidgetCardOperation = Literal[
     "getWidgetCapabilityOverview",
     "getDataCapabilitySchemas",
     "generateWidgetCard",
+    "generateWidgetCardCompactDsl",
 ]
 
 
