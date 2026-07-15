@@ -1,0 +1,52 @@
+name: Build and Release Skills
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build skill packages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install zip
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zip
+
+      - name: Validate repository structure
+        run: |
+          test -d skills
+          test -f release.sh
+          find skills -mindepth 1 -maxdepth 1 -type d | grep .
+
+      - name: Make release script executable
+        run: chmod +x ./release.sh
+
+      - name: Build packages
+        run: ./release.sh
+
+      - name: List output
+        run: |
+          find output -maxdepth 2 \( -type f -o -type d \) -print
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: create-my-card-skills
+          path: output/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            output/*.zip
+          generate_release_notes: true

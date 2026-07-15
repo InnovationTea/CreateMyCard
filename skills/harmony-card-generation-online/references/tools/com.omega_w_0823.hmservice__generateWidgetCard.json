@@ -1,0 +1,121 @@
+{
+  "bundleName": "com.omega_w_0823.hmservice",
+  "pluginType": "Cloud",
+  "toolType": "XiaoYiPlugin",
+  "toolName": "generateWidgetCard",
+  "description": "提交用户需求、候选数据绑定、候选事件和素材，生成可下载的 HarmonyOS A2UI Form 卡片 artifact",
+  "arguments": {
+    "properties": {
+      "userQuery": {
+        "type": "String",
+        "description": "用户原始卡片需求"
+      },
+      "size": {
+        "type": "String",
+        "description": "主 Agent 建议尺寸"
+      },
+      "candidateDataBindings": {
+        "type": "Array",
+        "description": "候选数据能力调用列表；微服务会按注册表和 IDS 状态裁决最终可用项",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "Object",
+            "description": "候选数据能力"
+          }
+        }
+      },
+      "description": {
+        "type": "String",
+        "description": "建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"
+      },
+      "title": {
+        "type": "String",
+        "description": "建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"
+      },
+      "candidateEventCandidates": {
+        "type": "Array",
+        "description": "候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "Object",
+            "description": "事件 action"
+          }
+        }
+      },
+      "candidateAssetIds": {
+        "type": "Array<String>",
+        "description": "候选素材 ID 列表",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "String",
+            "description": "候选素材 ID"
+          }
+        }
+      }
+    },
+    "required": [
+      "userQuery"
+    ],
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "items": {
+        "type": "Array",
+        "description": "结构化数据",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "operation": {
+            "type": "String",
+            "description": "本次动作"
+          },
+          "status": {
+            "type": "String",
+            "description": "工具状态"
+          },
+          "tool": {
+            "type": "String",
+            "description": "当前工具名"
+          },
+          "type": {
+            "type": "String",
+            "description": "回复类型"
+          },
+          "error": {
+            "type": "String",
+            "description": "错误内容"
+          },
+          "requestId": {
+            "type": "String",
+            "description": "请求ID"
+          },
+          "errorCode": {
+            "type": "String",
+            "description": "错误码"
+          },
+          "data": {
+            "type": "String",
+            "description": "工具返回结果"
+          }
+        }
+      },
+      "streamInfo": {
+        "type": "String",
+        "description": "流式信息"
+      }
+    },
+    "required": [
+      "items",
+      "streamInfo"
+    ],
+    "type": "object"
+  },
+  "protocol": "WebSocket",
+  "deviceCommand": null,
+  "schemaVersion": "1.0"
+}

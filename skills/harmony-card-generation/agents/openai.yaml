@@ -1,4 +1,0 @@
-interface:
-  display_name: "Harmony Form 卡片生成（无校验）"
-  short_description: "生成并评审 HarmonyOS A2UI Form 卡片，最终直接输出结果。"
-  default_prompt: "使用 $harmony-card-generation 根据一句话生成并评审 HarmonyOS A2UI Form 服务卡片，最后直接输出 genui 和 cardspec 代码块。"

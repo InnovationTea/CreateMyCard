@@ -22,11 +22,12 @@
 ## 关键文件说明
 
 - `docs/云侧方案设计.md`：云侧方案、系统边界、工具接口、协议约束、校验、降级、测试和日志规范。
-- `skills/harmony-card-generation-NewSkill/`：按照目标链路设计的新 Skill，需随方案持续优化。
-- `skills/harmony-card-generation/`：旧版 Skill，之前的链路让主 Agent 自行完成生成，没有调用微服务；仅作历史参考。
-- `skills/harmony-card-generation/reference/capability/event-capability/click-event.md`：事件能力清单。
-- `skills/harmony-card-generation/reference/data-capability/`：端侧数据能力清单，持续扩充中。
-- `skills/harmony-card-generation/reference/asset-library.md`：端侧素材库清单。
+- `skills/harmony-card-generation-online/`：按照目标链路设计的在线云侧编排 Skill，需随方案持续优化。
+- `skills/harmony-card-generation-offline/`：离线直出 Skill，用于不走云侧微服务时由主 Agent 端到端生成、修复、评审或解释本地 `genui` 与 `cardspec` 产物；只能作为兜底、调试和历史视觉参考，不作为在线链路协议依据。
+- `skills/harmony-card-dsl-validator/`：卡片 DSL 校验相关能力。
+- `skills/harmony-card-generation-offline/reference/capability/event-capability/click-event.md`：事件能力清单。
+- `skills/harmony-card-generation-offline/reference/capability/data-capability/`：端侧数据能力清单，持续扩充中。
+- `skills/harmony-card-generation-offline/reference/design/asset-library.md`：端侧素材库清单。
 
 ## 优先级
 
@@ -34,8 +35,9 @@
 
 1. `docs/云侧方案设计.md`
 2. 本文件 `AGENTS.md`
-3. `skills/harmony-card-generation-NewSkill/` 下的新 Skill 实现与参考资料
-4. `skills/harmony-card-generation/` 下的旧版 Skill、历史模板和样例 `.dat`
+3. `skills/harmony-card-generation-online/` 下的在线云侧编排 Skill 实现与参考资料
+4. `skills/harmony-card-generation-offline/` 下的离线 Skill、历史模板和样例 `.dat`
+5. `skills/harmony-card-dsl-validator/` 下的校验实现与配置
 
 历史模板只能作为视觉参考，不能作为协议依据。模板中出现的旧尺寸、`theme`、emoji、网络图、未声明事件或不合规属性，不得复制到新实现。
 

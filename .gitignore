@@ -55,6 +55,8 @@ coverage/
 *.tgz
 *.rar
 
+output/
+
 重构文档.md
 card-design-share/
 rules/
