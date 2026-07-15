@@ -11,7 +11,6 @@ from structlog.contextvars import bind_contextvars, clear_contextvars
 from api.routes import router
 from app.logger import logger
 from config.config import get_settings
-from core.logging import configure_logging
 
 
 def create_app() -> FastAPI:
@@ -20,7 +19,6 @@ def create_app() -> FastAPI:
     入参：无。
         出参：配置好路由和日志中间件的 FastAPI 应用。
     """
-    configure_logging()
     app = FastAPI(
         title="Widget Service",
         version="0.1.0",

@@ -16,6 +16,7 @@ Desktop.ini
 *.temp
 tmp/
 temp/
+workspace/
 
 # Environment / secrets
 .env
