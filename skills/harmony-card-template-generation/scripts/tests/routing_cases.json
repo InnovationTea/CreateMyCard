@@ -1,0 +1,16 @@
+[
+  {"query": "做一个低电量省电卡片", "size": "2x2", "style": "ambient-scene", "templateId": "meter-side-action"},
+  {"query": "做一个睡眠监督和入睡进度卡片", "size": "2x2", "style": "ambient-scene", "templateId": "meter-side-action"},
+  {"query": "显示内存使用并一键清理", "size": "2x2", "style": "dark-focus", "templateId": "multi-meter-action"},
+  {"query": "显示应用使用时长和剩余额度", "size": "2x2", "style": "dark-focus", "templateId": "bar-dual-metric-action"},
+  {"query": "马拉松倒计时", "size": "2x2", "style": "ambient-scene", "templateId": "countdown-panel"},
+  {"query": "今日会议提醒并查看日程", "size": "2x2", "style": "neutral-light", "templateId": "meeting-action-badge"},
+  {"query": "显示蓝牙耳机和耳机盒电量", "size": "2x2", "style": "media-surface", "templateId": "product-stat-tiles"},
+  {"query": "雨天关怀和快捷电话", "size": "2x2", "style": "ambient-scene", "templateId": "quadrant-ambient-action"},
+  {"query": "天气、下一场会议和出行入口", "size": "2x2", "style": "ambient-scene", "templateId": "spotlight-context-action"},
+  {"query": "显示下一日程和专注入口", "size": "2x2", "style": "ambient-scene", "templateId": "stacked-schedule-action"},
+  {"query": "横向任务摘要和两个相关操作", "size": "2x4", "style": "neutral-light", "templateId": "content-action-sidebar"},
+  {"query": "横向状态说明和两个大操作", "size": "2x4", "style": "neutral-light", "templateId": "dual-action-panel"},
+  {"query": "横向天气主状态和今日日程", "size": "2x4", "style": "ambient-scene", "templateId": "hero-context-action"},
+  {"query": "横向内存主指标、三个小指标和清理", "size": "2x4", "style": "dark-focus", "templateId": "metric-dashboard-action"}
+]

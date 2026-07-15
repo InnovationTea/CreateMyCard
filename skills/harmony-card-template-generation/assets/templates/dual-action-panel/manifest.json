@@ -1,0 +1,288 @@
+{
+    "schemaVersion":  "template-v1",
+    "id":  "dual-action-panel",
+    "size":  "2x4",
+    "pattern":  "dual-action-panel",
+    "summary":  "A wide information area paired with two equally weighted stacked action regions.",
+    "template":  "template.genui.jsonl",
+    "cardspec":  "cardspec.json",
+    "sourceProvenance":  [
+                             "Normalized from the historical 2x4 dual-action-panel layout; unsupported shadow, theme and flexible geometry were removed."
+                         ],
+    "useWhen":  [
+                    "two-related-actions",
+                    "decision-card",
+                    "device-control",
+                    "reminder-options",
+                    "wide-summary"
+                ],
+    "avoidWhen":  [
+                      "single-action",
+                      "three-actions",
+                      "no-primary-content",
+                      "two-primary-objects",
+                      "long-list"
+                  ],
+    "layout":  {
+                   "canvas":  {
+                                  "width":  320,
+                                  "height":  160
+                              },
+                   "root":  {
+                                "width":  320,
+                                "height":  160,
+                                "padding":  12,
+                                "borderRadius":  22,
+                                "clip":  true
+                            },
+                   "regions":  [
+                                   {
+                                       "id":  "contentPanel",
+                                       "role":  "primary",
+                                       "parent":  "root",
+                                       "width":  180,
+                                       "height":  136,
+                                       "required":  true,
+                                       "maxChildren":  3,
+                                       "allowedComponents":  [
+                                                                 "Column",
+                                                                 "Divider",
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "operationPanel",
+                                       "role":  "container",
+                                       "parent":  "root",
+                                       "width":  104,
+                                       "height":  136,
+                                       "required":  true,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Button",
+                                                                 "Column",
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "topAction",
+                                       "role":  "action",
+                                       "parent":  "operationPanel",
+                                       "width":  104,
+                                       "height":  62,
+                                       "required":  false,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Button",
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text",
+                                                                 "Column"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "bottomAction",
+                                       "role":  "action",
+                                       "parent":  "operationPanel",
+                                       "width":  104,
+                                       "height":  62,
+                                       "required":  false,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Button",
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text",
+                                                                 "Column"
+                                                             ]
+                                   }
+                               ],
+                   "safeArea":  {
+                                    "x":  12,
+                                    "y":  12,
+                                    "width":  296,
+                                    "height":  136
+                                }
+               },
+    "componentVariants":  {
+                              "contentPanel":  [
+                                                   {
+                                                       "id":  "default",
+                                                       "rootComponent":  "Column",
+                                                       "allowedComponents":  [
+                                                                                 "Column",
+                                                                                 "Text"
+                                                                             ]
+                                                   },
+                                                   {
+                                                       "id":  "identity-content",
+                                                       "rootComponent":  "Column",
+                                                       "allowedComponents":  [
+                                                                                 "Column",
+                                                                                 "Image",
+                                                                                 "Row",
+                                                                                 "Text"
+                                                                             ]
+                                                   }
+                                               ],
+                              "operationPanel":  [
+                                                     {
+                                                         "id":  "default",
+                                                         "rootComponent":  "Column",
+                                                         "allowedComponents":  [
+                                                                                   "Button",
+                                                                                   "Column"
+                                                                               ]
+                                                     }
+                                                 ],
+                              "topAction":  [
+                                                {
+                                                    "id":  "default",
+                                                    "rootComponent":  "Button",
+                                                    "allowedComponents":  [
+                                                                              "Button"
+                                                                          ]
+                                                },
+                                                {
+                                                    "id":  "icon-label",
+                                                    "rootComponent":  "Row",
+                                                    "allowedComponents":  [
+                                                                              "Image",
+                                                                              "Row",
+                                                                              "Text"
+                                                                          ]
+                                                },
+                                                {
+                                                    "id":  "static-support",
+                                                    "rootComponent":  "Column",
+                                                    "allowedComponents":  [
+                                                                              "Column",
+                                                                              "Text"
+                                                                          ]
+                                                }
+                                            ],
+                              "bottomAction":  [
+                                                   {
+                                                       "id":  "default",
+                                                       "rootComponent":  "Button",
+                                                       "allowedComponents":  [
+                                                                                 "Button"
+                                                                             ]
+                                                   },
+                                                   {
+                                                       "id":  "icon-label",
+                                                       "rootComponent":  "Row",
+                                                       "allowedComponents":  [
+                                                                                 "Image",
+                                                                                 "Row",
+                                                                                 "Text"
+                                                                             ]
+                                                   },
+                                                   {
+                                                       "id":  "static-support",
+                                                       "rootComponent":  "Column",
+                                                       "allowedComponents":  [
+                                                                                 "Column",
+                                                                                 "Text"
+                                                                             ]
+                                                   }
+                                               ]
+                          },
+    "slots":  {
+                  "object":  {
+                                 "path":  "/content/title",
+                                 "role":  "object",
+                                 "region":  "contentPanel",
+                                 "required":  true,
+                                 "bindingKinds":  [
+                                                      "static",
+                                                      "expression",
+                                                      "path"
+                                                  ],
+                                 "component":  "contentTitle",
+                                 "maxCharsCn":  8
+                             },
+                  "primary.title":  {
+                                        "path":  "/content/value",
+                                        "role":  "primary",
+                                        "region":  "contentPanel",
+                                        "required":  true,
+                                        "bindingKinds":  [
+                                                             "static",
+                                                             "expression",
+                                                             "path"
+                                                         ],
+                                        "component":  "primaryValue",
+                                        "maxCharsCn":  10
+                                    },
+                  "support.1":  {
+                                    "path":  "/content/description",
+                                    "role":  "support",
+                                    "region":  "contentPanel",
+                                    "required":  false,
+                                    "bindingKinds":  [
+                                                         "static",
+                                                         "expression",
+                                                         "path"
+                                                     ],
+                                    "component":  "contentDescription",
+                                    "maxCharsCn":  28
+                                },
+                  "action.primary":  {
+                                         "path":  "/actions/primary",
+                                         "role":  "action",
+                                         "region":  "bottomAction",
+                                         "required":  false,
+                                         "bindingKinds":  [
+                                                              "static",
+                                                              "expression",
+                                                              "path"
+                                                          ],
+                                         "component":  "bottomAction",
+                                         "maxCharsCn":  6
+                                     },
+                  "action.secondary":  {
+                                           "path":  "/actions/secondary",
+                                           "role":  "action",
+                                           "region":  "topAction",
+                                           "required":  false,
+                                           "bindingKinds":  [
+                                                                "static",
+                                                                "expression",
+                                                                "path"
+                                                            ],
+                                           "component":  "topAction",
+                                           "maxCharsCn":  6
+                                       }
+              },
+    "defaultStyleProfile":  "neutral-light",
+    "allowedStyleProfiles":  [
+                                 "neutral-light",
+                                 "dark-focus"
+                             ],
+    "colorRoles":  {
+                       "root":  "background_primary",
+                       "operationPanel":  "background_secondary",
+                       "primaryText":  "font_primary",
+                       "secondaryText":  "font_secondary",
+                       "primaryAction":  "background_emphasize"
+                   },
+    "allowedEdits":  [
+                         "switch either action to icon-label",
+                         "replace an unavailable action with static support",
+                         "remove one action and center the remaining region"
+                     ],
+    "forbiddenEdits":  [
+                           "change the 180/12/104 split",
+                           "add a third action",
+                           "use the actions for unrelated goals"
+                       ],
+    "deleteRules":  [
+                        "Delete an action when its event capability is unavailable.",
+                        "If only one action remains, preserve the operation panel width and center the action vertically."
+                    ]
+}

@@ -1,0 +1,318 @@
+{
+    "schemaVersion":  "template-v1",
+    "id":  "meter-side-action",
+    "size":  "2x2",
+    "pattern":  "meter-side-action",
+    "summary":  "Top object row, left circular progress focus, right compact facts, bottom full-width action/support pill.",
+    "template":  "template.genui.jsonl",
+    "cardspec":  "cardspec.json",
+    "sourceProvenance":  [
+                             "Derived from the low-battery and sleep rendered samples: a compact header, left circular meter/progress focus, right short facts, and a bottom full-width action/support pill."
+                         ],
+    "useWhen":  [
+                    "battery",
+                    "low-battery",
+                    "power-saving",
+                    "sleep",
+                    "sleep-monitoring",
+                    "bedtime-reminder",
+                    "progress",
+                    "meter",
+                    "completion",
+                    "habit",
+                    "device-status"
+                ],
+    "avoidWhen":  [
+                      "no-progress-semantics",
+                      "two-primary-values",
+                      "center-label-longer-than-four-chars",
+                      "long-fact-list",
+                      "two-actions"
+                  ],
+    "layout":  {
+                   "canvas":  {
+                                  "width":  160,
+                                  "height":  160
+                              },
+                   "root":  {
+                                "width":  160,
+                                "height":  160,
+                                "padding":  12,
+                                "borderRadius":  18,
+                                "clip":  true
+                            },
+                   "regions":  [
+                                   {
+                                       "id":  "headerRow",
+                                       "role":  "identity",
+                                       "parent":  "root",
+                                       "width":  136,
+                                       "height":  20,
+                                       "required":  true,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "mainRow",
+                                       "role":  "primary",
+                                       "parent":  "root",
+                                       "width":  136,
+                                       "height":  58,
+                                       "required":  true,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Column",
+                                                                 "Progress",
+                                                                 "Row",
+                                                                 "Stack",
+                                                                 "Text"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "primaryAction",
+                                       "role":  "action",
+                                       "parent":  "root",
+                                       "width":  136,
+                                       "height":  26,
+                                       "required":  false,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Button",
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text"
+                                                             ]
+                                   }
+                               ],
+                   "safeArea":  {
+                                    "x":  12,
+                                    "y":  12,
+                                    "width":  136,
+                                    "height":  136
+                                }
+               },
+    "componentVariants":  {
+                              "headerRow":  [
+                                                {
+                                                    "id":  "default",
+                                                    "rootComponent":  "Row",
+                                                    "allowedComponents":  [
+                                                                              "Image",
+                                                                              "Row",
+                                                                              "Text"
+                                                                          ]
+                                                },
+                                                {
+                                                    "id":  "text-only",
+                                                    "rootComponent":  "Text",
+                                                    "allowedComponents":  [
+                                                                              "Text"
+                                                                          ]
+                                                }
+                                            ],
+                              "mainRow":  [
+                                              {
+                                                  "id":  "default",
+                                                  "rootComponent":  "Row",
+                                                  "allowedComponents":  [
+                                                                            "Column",
+                                                                            "Progress",
+                                                                            "Row",
+                                                                            "Stack",
+                                                                            "Text"
+                                                                        ]
+                                              }
+                                          ],
+                              "primaryAction":  [
+                                                    {
+                                                        "id":  "default",
+                                                        "rootComponent":  "Row",
+                                                        "allowedComponents":  [
+                                                                                  "Button",
+                                                                                  "Image",
+                                                                                  "Row",
+                                                                                  "Text"
+                                                                              ]
+                                                    },
+                                                    {
+                                                        "id":  "button",
+                                                        "rootComponent":  "Button",
+                                                        "allowedComponents":  [
+                                                                                  "Button"
+                                                                              ]
+                                                    },
+                                                    {
+                                                        "id":  "static-support",
+                                                        "rootComponent":  "Row",
+                                                        "allowedComponents":  [
+                                                                                  "Row",
+                                                                                  "Image",
+                                                                                  "Text"
+                                                                              ]
+                                                    }
+                                                ]
+                          },
+    "slots":  {
+                  "object":  {
+                                 "path":  "/card/title",
+                                 "role":  "object",
+                                 "region":  "headerRow",
+                                 "required":  true,
+                                 "bindingKinds":  [
+                                                      "static",
+                                                      "expression",
+                                                      "path"
+                                                  ],
+                                 "component":  "titleText",
+                                 "maxCharsCn":  6
+                             },
+                  "asset.primaryIcon":  {
+                                            "path":  "/asset/primaryIcon",
+                                            "role":  "asset",
+                                            "region":  "headerRow",
+                                            "required":  false,
+                                            "bindingKinds":  [
+                                                                 "static",
+                                                                 "expression",
+                                                                 "path"
+                                                             ],
+                                            "component":  "leadingIcon",
+                                            "source":  "references/design/asset-library.md"
+                                        },
+                  "progress.value":  {
+                                         "path":  "/meter/progressValue",
+                                         "role":  "progress",
+                                         "region":  "mainRow",
+                                         "required":  true,
+                                         "bindingKinds":  [
+                                                              "static",
+                                                              "expression",
+                                                              "path"
+                                                          ],
+                                         "component":  "meterRing"
+                                     },
+                  "progress.total":  {
+                                         "path":  "/meter/progressTotal",
+                                         "role":  "progress",
+                                         "region":  "mainRow",
+                                         "required":  true,
+                                         "bindingKinds":  [
+                                                              "static",
+                                                              "expression",
+                                                              "path"
+                                                          ],
+                                         "component":  "meterRing"
+                                     },
+                  "primary.value":  {
+                                        "path":  "/meter/centerLabel",
+                                        "role":  "primary",
+                                        "region":  "mainRow",
+                                        "required":  true,
+                                        "bindingKinds":  [
+                                                             "static",
+                                                             "expression",
+                                                             "path"
+                                                         ],
+                                        "component":  "meterValue",
+                                        "maxChars":  4
+                                    },
+                  "primary.caption":  {
+                                          "path":  "/meter/caption",
+                                          "role":  "primary",
+                                          "region":  "mainRow",
+                                          "required":  true,
+                                          "bindingKinds":  [
+                                                               "static",
+                                                               "expression",
+                                                               "path"
+                                                           ],
+                                          "component":  "factLabel",
+                                          "maxCharsCn":  4
+                                      },
+                  "support.1":  {
+                                    "path":  "/support/line1",
+                                    "role":  "support",
+                                    "region":  "mainRow",
+                                    "required":  false,
+                                    "bindingKinds":  [
+                                                         "static",
+                                                         "expression",
+                                                         "path"
+                                                     ],
+                                    "component":  "factValue",
+                                    "maxCharsCn":  5
+                                },
+                  "support.2":  {
+                                    "path":  "/support/line2",
+                                    "role":  "support",
+                                    "region":  "mainRow",
+                                    "required":  false,
+                                    "bindingKinds":  [
+                                                         "static",
+                                                         "expression",
+                                                         "path"
+                                                     ],
+                                    "component":  "factMeta",
+                                    "maxCharsCn":  5
+                                },
+                  "asset.actionIcon":  {
+                                           "path":  "/asset/actionIcon",
+                                           "role":  "asset",
+                                           "region":  "primaryAction",
+                                           "required":  false,
+                                           "bindingKinds":  [
+                                                                "static",
+                                                                "expression",
+                                                                "path"
+                                                            ],
+                                           "component":  "actionIcon",
+                                           "source":  "references/design/asset-library.md"
+                                       },
+                  "action.label":  {
+                                       "path":  "/action/label",
+                                       "role":  "action",
+                                       "region":  "primaryAction",
+                                       "required":  false,
+                                       "bindingKinds":  [
+                                                            "static",
+                                                            "expression",
+                                                            "path"
+                                                        ],
+                                       "component":  "actionText",
+                                       "maxCharsCn":  5
+                                   }
+              },
+    "defaultStyleProfile":  "ambient-scene",
+    "allowedStyleProfiles":  [
+                                 "ambient-scene",
+                                 "dark-focus",
+                                 "neutral-light"
+                             ],
+    "colorRoles":  {
+                       "rootGradient":  "multi_color_08 light/dark blue stops",
+                       "meterTrack":  "comp_emphasize_secondary light",
+                       "meterFill":  "font_on_primary on saturated surface",
+                       "action":  "font_on_fourth/tertiary glass material unless action color has semantic meaning"
+                   },
+    "allowedEdits":  [
+                         "replace DataModel values",
+                         "bind progress value/total independently from the visible center label",
+                         "replace icons through DataModel",
+                         "remove icons and reallocate width",
+                         "add onClick to primaryAction only with valid event capability"
+                     ],
+    "forbiddenEdits":  [
+                           "change surface/root size",
+                           "add a second meter hero",
+                           "use emoji/base64/network image or SVG paths not declared in asset-library",
+                           "turn factColumn into a long list"
+                       ],
+    "deleteRules":  [
+                        "If support.2 duplicates support.1 or primary.value, delete factMeta and keep the right column vertically centered.",
+                        "If the main value is naturally split, keep a short centerLabel and put at most two independent fragments in factColumn; do not concatenate a long duration inside the ring."
+                    ]
+}

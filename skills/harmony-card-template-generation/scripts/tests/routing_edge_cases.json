@@ -1,0 +1,11 @@
+[
+  {"category": "neutral-light", "query": "用浅色展示今日会议", "expected": "select-allowed-style"},
+  {"category": "dark-focus", "query": "用深色突出应用时长", "expected": "select-allowed-style"},
+  {"category": "ambient-scene", "query": "用场景渐变展示雨天提醒", "expected": "select-allowed-style"},
+  {"category": "media-surface", "query": "用产品图展示耳机状态", "expected": "select-allowed-style"},
+  {"category": "asset-missing", "query": "展示没有本地素材的产品主视觉", "expected": "template-local-degrade"},
+  {"category": "event-missing", "query": "添加没有声明目标的点击动作", "expected": "remove-action"},
+  {"category": "text-overflow", "query": "完整展示超过槽位预算的受保护长标题", "expected": "try-2x4-or-reject"},
+  {"category": "capability-missing", "query": "实时展示未声明的数据能力", "expected": "static-degrade-or-reject"},
+  {"category": "information-overload", "query": "在小卡展示天气日历新闻股票和三个动作", "expected": "simplify-or-reject"}
+]

@@ -1,0 +1,307 @@
+{
+    "schemaVersion":  "template-v1",
+    "id":  "hero-context-action",
+    "size":  "2x4",
+    "pattern":  "hero-context-action",
+    "summary":  "A dedicated hero region beside a context panel with one bottom action or status row.",
+    "template":  "template.genui.jsonl",
+    "cardspec":  "cardspec.json",
+    "sourceProvenance":  [
+                             "Derived from the normalized spotlight, weather and schedule patterns for wide commute and context cards."
+                         ],
+    "useWhen":  [
+                    "weather-and-schedule",
+                    "commute",
+                    "hero-status",
+                    "single-event-context",
+                    "media-context"
+                ],
+    "avoidWhen":  [
+                      "no-hero",
+                      "two-primary-values",
+                      "two-actions",
+                      "long-list",
+                      "three-data-capabilities"
+                  ],
+    "layout":  {
+                   "canvas":  {
+                                  "width":  320,
+                                  "height":  160
+                              },
+                   "root":  {
+                                "width":  320,
+                                "height":  160,
+                                "padding":  12,
+                                "borderRadius":  22,
+                                "clip":  true
+                            },
+                   "regions":  [
+                                   {
+                                       "id":  "heroPanel",
+                                       "role":  "primary",
+                                       "parent":  "root",
+                                       "width":  104,
+                                       "height":  136,
+                                       "required":  true,
+                                       "maxChildren":  3,
+                                       "allowedComponents":  [
+                                                                 "Column",
+                                                                 "Image",
+                                                                 "Progress",
+                                                                 "Stack",
+                                                                 "Text"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "contextColumn",
+                                       "role":  "container",
+                                       "parent":  "root",
+                                       "width":  180,
+                                       "height":  136,
+                                       "required":  true,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Button",
+                                                                 "Column",
+                                                                 "Divider",
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "contextPanel",
+                                       "role":  "support",
+                                       "parent":  "contextColumn",
+                                       "width":  180,
+                                       "height":  96,
+                                       "required":  true,
+                                       "maxChildren":  3,
+                                       "allowedComponents":  [
+                                                                 "Column",
+                                                                 "Divider",
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "primaryAction",
+                                       "role":  "action",
+                                       "parent":  "contextColumn",
+                                       "width":  180,
+                                       "height":  32,
+                                       "required":  false,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Button",
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text"
+                                                             ]
+                                   }
+                               ],
+                   "safeArea":  {
+                                    "x":  12,
+                                    "y":  12,
+                                    "width":  296,
+                                    "height":  136
+                                }
+               },
+    "componentVariants":  {
+                              "heroPanel":  [
+                                                {
+                                                    "id":  "default",
+                                                    "rootComponent":  "Column",
+                                                    "allowedComponents":  [
+                                                                              "Column",
+                                                                              "Image",
+                                                                              "Text"
+                                                                          ]
+                                                },
+                                                {
+                                                    "id":  "numeric",
+                                                    "rootComponent":  "Column",
+                                                    "allowedComponents":  [
+                                                                              "Column",
+                                                                              "Text"
+                                                                          ]
+                                                },
+                                                {
+                                                    "id":  "meter",
+                                                    "rootComponent":  "Stack",
+                                                    "allowedComponents":  [
+                                                                              "Progress",
+                                                                              "Stack",
+                                                                              "Text"
+                                                                          ]
+                                                }
+                                            ],
+                              "contextColumn":  [
+                                                    {
+                                                        "id":  "default",
+                                                        "rootComponent":  "Column",
+                                                        "allowedComponents":  [
+                                                                                  "Button",
+                                                                                  "Column",
+                                                                                  "Row",
+                                                                                  "Text"
+                                                                              ]
+                                                    }
+                                                ],
+                              "contextPanel":  [
+                                                   {
+                                                       "id":  "default",
+                                                       "rootComponent":  "Column",
+                                                       "allowedComponents":  [
+                                                                                 "Column",
+                                                                                 "Text"
+                                                                             ]
+                                                   },
+                                                   {
+                                                       "id":  "accented",
+                                                       "rootComponent":  "Row",
+                                                       "allowedComponents":  [
+                                                                                 "Column",
+                                                                                 "Divider",
+                                                                                 "Row",
+                                                                                 "Text"
+                                                                             ]
+                                                   }
+                                               ],
+                              "primaryAction":  [
+                                                    {
+                                                        "id":  "default",
+                                                        "rootComponent":  "Button",
+                                                        "allowedComponents":  [
+                                                                                  "Button"
+                                                                              ]
+                                                    },
+                                                    {
+                                                        "id":  "icon-label",
+                                                        "rootComponent":  "Row",
+                                                        "allowedComponents":  [
+                                                                                  "Image",
+                                                                                  "Row",
+                                                                                  "Text"
+                                                                              ]
+                                                    },
+                                                    {
+                                                        "id":  "static-status",
+                                                        "rootComponent":  "Row",
+                                                        "allowedComponents":  [
+                                                                                  "Row",
+                                                                                  "Text"
+                                                                              ]
+                                                    }
+                                                ]
+                          },
+    "slots":  {
+                  "asset.primaryIcon":  {
+                                            "path":  "/asset/primaryIcon",
+                                            "role":  "asset",
+                                            "region":  "heroPanel",
+                                            "required":  false,
+                                            "bindingKinds":  [
+                                                                 "static",
+                                                                 "expression",
+                                                                 "path"
+                                                             ],
+                                            "component":  "heroIcon",
+                                            "source":  "references/design/asset-library.md"
+                                        },
+                  "primary.value":  {
+                                        "path":  "/primary/value",
+                                        "role":  "primary",
+                                        "region":  "heroPanel",
+                                        "required":  true,
+                                        "bindingKinds":  [
+                                                             "static",
+                                                             "expression",
+                                                             "path"
+                                                         ],
+                                        "component":  "heroValue",
+                                        "maxCharsCn":  5
+                                    },
+                  "primary.caption":  {
+                                          "path":  "/primary/caption",
+                                          "role":  "primary",
+                                          "region":  "heroPanel",
+                                          "required":  false,
+                                          "bindingKinds":  [
+                                                               "static",
+                                                               "expression",
+                                                               "path"
+                                                           ],
+                                          "component":  "heroCaption",
+                                          "maxCharsCn":  7
+                                      },
+                  "support.title":  {
+                                        "path":  "/context/title",
+                                        "role":  "support",
+                                        "region":  "contextPanel",
+                                        "required":  true,
+                                        "bindingKinds":  [
+                                                             "static",
+                                                             "expression",
+                                                             "path"
+                                                         ],
+                                        "component":  "contextTitle",
+                                        "maxCharsCn":  12
+                                    },
+                  "support.meta":  {
+                                       "path":  "/context/meta",
+                                       "role":  "support",
+                                       "region":  "contextPanel",
+                                       "required":  false,
+                                       "bindingKinds":  [
+                                                            "static",
+                                                            "expression",
+                                                            "path"
+                                                        ],
+                                       "component":  "contextMeta",
+                                       "maxCharsCn":  18
+                                   },
+                  "action.label":  {
+                                       "path":  "/action/label",
+                                       "role":  "action",
+                                       "region":  "primaryAction",
+                                       "required":  false,
+                                       "bindingKinds":  [
+                                                            "static",
+                                                            "expression",
+                                                            "path"
+                                                        ],
+                                       "component":  "primaryAction",
+                                       "maxCharsCn":  7
+                                   }
+              },
+    "defaultStyleProfile":  "ambient-scene",
+    "allowedStyleProfiles":  [
+                                 "ambient-scene",
+                                 "neutral-light",
+                                 "dark-focus",
+                                 "media-surface"
+                             ],
+    "colorRoles":  {
+                       "root":  "multi_color_02",
+                       "heroText":  "font_on_primary",
+                       "contextPanel":  "font_on_fourth",
+                       "contextText":  "font_on_primary",
+                       "action":  "background_emphasize"
+                   },
+    "allowedEdits":  [
+                         "switch hero among image, numeric and meter variants",
+                         "switch context to accented row",
+                         "replace unavailable action with static status"
+                     ],
+    "forbiddenEdits":  [
+                           "change the 104/12/180 split",
+                           "add a second hero",
+                           "add a second action or third data capability"
+                       ],
+    "deleteRules":  [
+                        "If no asset exists, use the numeric hero variant.",
+                        "If no event exists, replace the action with a static status or remove it and increase context spacing without changing height."
+                    ]
+}

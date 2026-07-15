@@ -1,0 +1,339 @@
+{
+    "schemaVersion":  "template-v1",
+    "id":  "bar-dual-metric-action",
+    "size":  "2x2",
+    "pattern":  "bar-dual-metric-action",
+    "summary":  "Header object, horizontal adaptive Progress bar, two side-by-side metrics, bottom action/support pill.",
+    "template":  "template.genui.jsonl",
+    "cardspec":  "cardspec.json",
+    "sourceProvenance":  [
+                             "Derived from the usage-warning rendered sample: object header, threshold bar, two compact metrics, and a bottom control/support action."
+                         ],
+    "useWhen":  [
+                    "usage-limit",
+                    "quota",
+                    "screen-time",
+                    "remaining-time",
+                    "budget",
+                    "threshold-warning"
+                ],
+    "avoidWhen":  [
+                      "no-threshold-semantics",
+                      "more-than-two-metrics",
+                      "exact-progress-width-unknown",
+                      "primary-value-needs-large-type"
+                  ],
+    "layout":  {
+                   "canvas":  {
+                                  "width":  160,
+                                  "height":  160
+                              },
+                   "root":  {
+                                "width":  160,
+                                "height":  160,
+                                "padding":  12,
+                                "borderRadius":  18,
+                                "clip":  true
+                            },
+                   "regions":  [
+                                   {
+                                       "id":  "headerRow",
+                                       "role":  "identity",
+                                       "parent":  "root",
+                                       "width":  136,
+                                       "height":  20,
+                                       "required":  true,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "usageBar",
+                                       "role":  "primary",
+                                       "parent":  "root",
+                                       "width":  136,
+                                       "height":  22,
+                                       "required":  true,
+                                       "maxChildren":  1,
+                                       "allowedComponents":  [
+                                                                 "Progress",
+                                                                 "Row"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "metricsRow",
+                                       "role":  "metrics",
+                                       "parent":  "root",
+                                       "width":  136,
+                                       "height":  36,
+                                       "required":  false,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Column",
+                                                                 "Row",
+                                                                 "Text",
+                                                                 "Divider"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "controlAction",
+                                       "role":  "action",
+                                       "parent":  "root",
+                                       "width":  136,
+                                       "height":  26,
+                                       "required":  false,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Button",
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text"
+                                                             ]
+                                   }
+                               ],
+                   "safeArea":  {
+                                    "x":  12,
+                                    "y":  12,
+                                    "width":  136,
+                                    "height":  136
+                                }
+               },
+    "componentVariants":  {
+                              "headerRow":  [
+                                                {
+                                                    "id":  "default",
+                                                    "rootComponent":  "Row",
+                                                    "allowedComponents":  [
+                                                                              "Image",
+                                                                              "Row",
+                                                                              "Text"
+                                                                          ]
+                                                },
+                                                {
+                                                    "id":  "text-only",
+                                                    "rootComponent":  "Text",
+                                                    "allowedComponents":  [
+                                                                              "Text"
+                                                                          ]
+                                                }
+                                            ],
+                              "usageBar":  [
+                                               {
+                                                   "id":  "default",
+                                                   "rootComponent":  "Row",
+                                                   "allowedComponents":  [
+                                                                             "Progress",
+                                                                             "Row"
+                                                                         ]
+                                               }
+                                           ],
+                              "metricsRow":  [
+                                                 {
+                                                     "id":  "default",
+                                                     "rootComponent":  "Row",
+                                                     "allowedComponents":  [
+                                                                               "Column",
+                                                                               "Row",
+                                                                               "Text"
+                                                                           ]
+                                                 },
+                                                 {
+                                                     "id":  "compact-text",
+                                                     "rootComponent":  "Column",
+                                                     "allowedComponents":  [
+                                                                               "Column",
+                                                                               "Row",
+                                                                               "Text",
+                                                                               "Divider"
+                                                                           ]
+                                                 }
+                                             ],
+                              "controlAction":  [
+                                                    {
+                                                        "id":  "default",
+                                                        "rootComponent":  "Row",
+                                                        "allowedComponents":  [
+                                                                                  "Button",
+                                                                                  "Image",
+                                                                                  "Row",
+                                                                                  "Text"
+                                                                              ]
+                                                    },
+                                                    {
+                                                        "id":  "button",
+                                                        "rootComponent":  "Button",
+                                                        "allowedComponents":  [
+                                                                                  "Button"
+                                                                              ]
+                                                    },
+                                                    {
+                                                        "id":  "static-support",
+                                                        "rootComponent":  "Row",
+                                                        "allowedComponents":  [
+                                                                                  "Row",
+                                                                                  "Image",
+                                                                                  "Text"
+                                                                              ]
+                                                    }
+                                                ]
+                          },
+    "slots":  {
+                  "object":  {
+                                 "path":  "/card/title",
+                                 "role":  "object",
+                                 "region":  "headerRow",
+                                 "required":  true,
+                                 "bindingKinds":  [
+                                                      "static",
+                                                      "expression",
+                                                      "path"
+                                                  ],
+                                 "component":  "titleText",
+                                 "maxCharsCn":  6
+                             },
+                  "asset.primaryIcon":  {
+                                            "path":  "/asset/primaryIcon",
+                                            "role":  "asset",
+                                            "region":  "headerRow",
+                                            "required":  false,
+                                            "bindingKinds":  [
+                                                                 "static",
+                                                                 "expression",
+                                                                 "path"
+                                                             ],
+                                            "component":  "appIcon",
+                                            "source":  "references/design/asset-library.md"
+                                        },
+                  "progress.value":  {
+                                         "path":  "/progress/value",
+                                         "role":  "progress",
+                                         "region":  "usageBar",
+                                         "required":  true,
+                                         "bindingKinds":  [
+                                                              "static",
+                                                              "expression",
+                                                              "path"
+                                                          ],
+                                         "component":  "usageProgress"
+                                     },
+                  "progress.total":  {
+                                         "path":  "/progress/total",
+                                         "role":  "progress",
+                                         "region":  "usageBar",
+                                         "required":  true,
+                                         "bindingKinds":  [
+                                                              "static",
+                                                              "expression",
+                                                              "path"
+                                                          ],
+                                         "component":  "usageProgress"
+                                     },
+                  "progress.color":  {
+                                         "path":  "/progress/color",
+                                         "role":  "progress",
+                                         "region":  "usageBar",
+                                         "required":  true,
+                                         "bindingKinds":  [
+                                                              "static",
+                                                              "expression",
+                                                              "path"
+                                                          ],
+                                         "component":  "usageProgress"
+                                     },
+                  "metric.1.label":  {
+                                         "path":  "/metric/left/label",
+                                         "role":  "metric",
+                                         "region":  "metricsRow",
+                                         "required":  false,
+                                         "bindingKinds":  [
+                                                              "static",
+                                                              "expression",
+                                                              "path"
+                                                          ],
+                                         "component":  "leftLabel",
+                                         "maxCharsCn":  4
+                                     },
+                  "metric.1.value":  {
+                                         "path":  "/metric/left/value",
+                                         "role":  "metric",
+                                         "region":  "metricsRow",
+                                         "required":  false,
+                                         "bindingKinds":  [
+                                                              "static",
+                                                              "expression",
+                                                              "path"
+                                                          ],
+                                         "component":  "leftValue",
+                                         "maxCharsCn":  6
+                                     },
+                  "metric.2.label":  {
+                                         "path":  "/metric/right/label",
+                                         "role":  "metric",
+                                         "region":  "metricsRow",
+                                         "required":  false,
+                                         "bindingKinds":  [
+                                                              "static",
+                                                              "expression",
+                                                              "path"
+                                                          ],
+                                         "component":  "rightLabel",
+                                         "maxCharsCn":  4
+                                     },
+                  "metric.2.value":  {
+                                         "path":  "/metric/right/value",
+                                         "role":  "metric",
+                                         "region":  "metricsRow",
+                                         "required":  false,
+                                         "bindingKinds":  [
+                                                              "static",
+                                                              "expression",
+                                                              "path"
+                                                          ],
+                                         "component":  "rightValue",
+                                         "maxCharsCn":  6
+                                     },
+                  "action.label":  {
+                                       "path":  "/action/label",
+                                       "role":  "action",
+                                       "region":  "controlAction",
+                                       "required":  false,
+                                       "bindingKinds":  [
+                                                            "static",
+                                                            "expression",
+                                                            "path"
+                                                        ],
+                                       "component":  "actionLabel",
+                                       "maxCharsCn":  6
+                                   }
+              },
+    "defaultStyleProfile":  "dark-focus",
+    "allowedStyleProfiles":  [
+                                 "dark-focus",
+                                 "neutral-light"
+                             ],
+    "colorRoles":  {
+                       "root":  "background_tertiary dark (#ff202224)",
+                       "foreground":  "font_on_primary/secondary on dark surface",
+                       "panel":  "comp_background_secondary dark glass (#19ffffff) with font_on_tertiary border",
+                       "progress":  "DataModel color must be a token-backed status/action color such as confirm or brand"
+                   },
+    "allowedEdits":  [
+                         "bind Progress value, total, and color to DataModel paths",
+                         "replace Progress value and total with proven-safe numeric values only for static mock data",
+                         "remove action icon",
+                         "add onClick to controlAction only with valid event capability"
+                     ],
+    "forbiddenEdits":  [
+                           "use this as a generic decorative bar",
+                           "add a second bar",
+                           "duplicate the same time value in both metrics",
+                           "calculate visible bar widths from usage durations",
+                           "represent exceeded duration as a proportional extra segment"
+                       ],
+    "deleteRules":  [
+                        "If one metric is not real, merge metricsRow into one centered metric; if threshold no longer drives the layout, abandon this template."
+                    ]
+}

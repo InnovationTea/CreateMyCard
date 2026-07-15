@@ -1,0 +1,234 @@
+{
+    "schemaVersion":  "template-v1",
+    "id":  "quadrant-ambient-action",
+    "size":  "2x2",
+    "pattern":  "quadrant-ambient-action",
+    "summary":  "Equal 2x2 quadrant composition over an ambient surface: primary value, status identity, support card, and icon action each occupy a 55 x 55 cell.",
+    "template":  "template.genui.jsonl",
+    "cardspec":  "cardspec.json",
+    "sourceProvenance":  [
+                             "Derived from the care-style rendered sample: a full-card ambient surface divided into four quadrants, with a large primary value, small location/status, one fact panel, and one compact action target."
+                         ],
+    "useWhen":  [
+                    "care",
+                    "weather-plus-action",
+                    "contact",
+                    "commute",
+                    "environment-alert",
+                    "quick-call"
+                ],
+    "avoidWhen":  [
+                      "long-text",
+                      "no-icon-action",
+                      "more-than-one-support-card",
+                      "requires-precise-table"
+                  ],
+    "layout":  {
+                   "canvas":  {
+                                  "width":  160,
+                                  "height":  160
+                              },
+                   "root":  {
+                                "width":  160,
+                                "height":  160,
+                                "padding":  12,
+                                "borderRadius":  18,
+                                "clip":  true
+                            },
+                   "regions":  [
+                                   {
+                                       "id":  "topRow",
+                                       "role":  "primary",
+                                       "parent":  "root",
+                                       "width":  136,
+                                       "height":  55,
+                                       "required":  true,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Column",
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "bottomRow",
+                                       "role":  "support",
+                                       "parent":  "root",
+                                       "width":  136,
+                                       "height":  55,
+                                       "required":  false,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Column",
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Stack",
+                                                                 "Text",
+                                                                 "Divider"
+                                                             ]
+                                   }
+                               ],
+                   "safeArea":  {
+                                    "x":  12,
+                                    "y":  12,
+                                    "width":  136,
+                                    "height":  136
+                                }
+               },
+    "componentVariants":  {
+                              "topRow":  [
+                                             {
+                                                 "id":  "default",
+                                                 "rootComponent":  "Row",
+                                                 "allowedComponents":  [
+                                                                           "Column",
+                                                                           "Image",
+                                                                           "Row",
+                                                                           "Text"
+                                                                       ]
+                                             }
+                                         ],
+                              "bottomRow":  [
+                                                {
+                                                    "id":  "default",
+                                                    "rootComponent":  "Row",
+                                                    "allowedComponents":  [
+                                                                              "Column",
+                                                                              "Image",
+                                                                              "Row",
+                                                                              "Stack",
+                                                                              "Text"
+                                                                          ]
+                                                },
+                                                {
+                                                    "id":  "compact-text",
+                                                    "rootComponent":  "Column",
+                                                    "allowedComponents":  [
+                                                                              "Column",
+                                                                              "Row",
+                                                                              "Text",
+                                                                              "Divider"
+                                                                          ]
+                                                }
+                                            ]
+                          },
+    "slots":  {
+                  "primary.value":  {
+                                        "path":  "/primary/value",
+                                        "role":  "primary",
+                                        "region":  "topRow",
+                                        "required":  true,
+                                        "bindingKinds":  [
+                                                             "static",
+                                                             "expression",
+                                                             "path"
+                                                         ],
+                                        "component":  "primaryValue",
+                                        "maxChars":  3
+                                    },
+                  "primary.caption":  {
+                                          "path":  "/primary/caption",
+                                          "role":  "primary",
+                                          "region":  "topRow",
+                                          "required":  true,
+                                          "bindingKinds":  [
+                                                               "static",
+                                                               "expression",
+                                                               "path"
+                                                           ],
+                                          "component":  "primaryCaption",
+                                          "maxCharsCn":  5
+                                      },
+                  "object":  {
+                                 "path":  "/card/title",
+                                 "role":  "object",
+                                 "region":  "topRow",
+                                 "required":  true,
+                                 "bindingKinds":  [
+                                                      "static",
+                                                      "expression",
+                                                      "path"
+                                                  ],
+                                 "component":  "objectText",
+                                 "maxCharsCn":  5
+                             },
+                  "asset.primaryIcon":  {
+                                            "path":  "/asset/primaryIcon",
+                                            "role":  "asset",
+                                            "region":  "topRow",
+                                            "required":  false,
+                                            "bindingKinds":  [
+                                                                 "static",
+                                                                 "expression",
+                                                                 "path"
+                                                             ],
+                                            "component":  "statusIcon",
+                                            "source":  "references/design/asset-library.md"
+                                        },
+                  "support.label":  {
+                                        "path":  "/support/label",
+                                        "role":  "support",
+                                        "region":  "bottomRow",
+                                        "required":  false,
+                                        "bindingKinds":  [
+                                                             "static",
+                                                             "expression",
+                                                             "path"
+                                                         ],
+                                        "component":  "supportLabel",
+                                        "maxCharsCn":  4
+                                    },
+                  "support.value":  {
+                                        "path":  "/support/value",
+                                        "role":  "support",
+                                        "region":  "bottomRow",
+                                        "required":  false,
+                                        "bindingKinds":  [
+                                                             "static",
+                                                             "expression",
+                                                             "path"
+                                                         ],
+                                        "component":  "supportValue",
+                                        "maxCharsCn":  3
+                                    },
+                  "asset.actionIcon":  {
+                                           "path":  "/asset/actionIcon",
+                                           "role":  "asset",
+                                           "region":  "bottomRow",
+                                           "required":  false,
+                                           "bindingKinds":  [
+                                                                "static",
+                                                                "expression",
+                                                                "path"
+                                                            ],
+                                           "component":  "actionIcon",
+                                           "source":  "references/design/asset-library.md"
+                                       }
+              },
+    "defaultStyleProfile":  "ambient-scene",
+    "allowedStyleProfiles":  [
+                                 "ambient-scene",
+                                 "dark-focus"
+                             ],
+    "colorRoles":  {
+                       "rootGradient":  "multi_color_02 and multi_color_aux_02 ambient-band stops",
+                       "foreground":  "font_on_primary/secondary only; no yellow foreground on saturated blue",
+                       "support":  "font_on_fourth/tertiary glass material",
+                       "action":  "confirm only for call/connect/positive action"
+                   },
+    "allowedEdits":  [
+                         "remove actionCircle if no valid action exists",
+                         "replace icons through DataModel",
+                         "turn supportCard into non-click support only"
+                     ],
+    "forbiddenEdits":  [
+                           "use base64 backgrounds",
+                           "use emoji icons or SVG paths not declared in asset-library",
+                           "add a second support card",
+                           "place required text on a noisy image without scrim"
+                       ],
+    "deleteRules":  [
+                        "If actionIcon is unavailable, remove actionCircle and widen supportCard to 116."
+                    ]
+}

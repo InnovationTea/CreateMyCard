@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "harmony-card-template-manifest-v1",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "size",
+    "pattern",
+    "summary",
+    "template",
+    "cardspec",
+    "sourceProvenance",
+    "useWhen",
+    "avoidWhen",
+    "layout",
+    "componentVariants",
+    "slots",
+    "defaultStyleProfile",
+    "allowedStyleProfiles",
+    "colorRoles",
+    "allowedEdits",
+    "forbiddenEdits",
+    "deleteRules"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "template-v1"},
+    "id": {"type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"},
+    "size": {"enum": ["2x2", "2x4"]},
+    "pattern": {"type": "string", "minLength": 1},
+    "summary": {"type": "string", "minLength": 1},
+    "template": {"const": "template.genui.jsonl"},
+    "cardspec": {"const": "cardspec.json"},
+    "sourceProvenance": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "useWhen": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "avoidWhen": {"type": "array", "items": {"type": "string"}},
+    "layout": {
+      "type": "object",
+      "required": ["canvas", "root", "safeArea", "regions"],
+      "properties": {
+        "canvas": {"$ref": "#/$defs/size"},
+        "root": {
+          "allOf": [
+            {"$ref": "#/$defs/size"},
+            {
+              "type": "object",
+              "required": ["padding", "borderRadius", "clip"],
+              "properties": {
+                "padding": {"type": "number", "minimum": 0},
+                "borderRadius": {"type": "number", "minimum": 0},
+                "clip": {"const": true}
+              }
+            }
+          ]
+        },
+        "safeArea": {
+          "type": "object",
+          "required": ["x", "y", "width", "height"],
+          "properties": {
+            "x": {"type": "number", "minimum": 0},
+            "y": {"type": "number", "minimum": 0},
+            "width": {"type": "number", "exclusiveMinimum": 0},
+            "height": {"type": "number", "exclusiveMinimum": 0}
+          },
+          "additionalProperties": false
+        },
+        "regions": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": ["id", "role", "parent", "width", "height", "required", "maxChildren", "allowedComponents"],
+            "properties": {
+              "id": {"type": "string", "minLength": 1},
+              "role": {"enum": ["identity", "primary", "support", "metrics", "action", "media", "container"]},
+              "parent": {"type": "string", "minLength": 1},
+              "width": {"type": "number", "exclusiveMinimum": 0},
+              "height": {"type": "number", "exclusiveMinimum": 0},
+              "required": {"type": "boolean"},
+              "maxChildren": {"type": "integer", "minimum": 1},
+              "allowedComponents": {
+                "type": "array",
+                "minItems": 1,
+                "items": {"enum": ["Text", "Image", "Divider", "Progress", "Button", "Checkbox", "Row", "Column", "List", "Stack"]}
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "componentVariants": {
+      "type": "object",
+      "minProperties": 2,
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "required": ["id", "rootComponent", "allowedComponents"],
+          "properties": {
+            "id": {"type": "string", "minLength": 1},
+            "rootComponent": {"type": "string"},
+            "allowedComponents": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "slots": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["path", "role", "region", "required", "bindingKinds"],
+        "properties": {
+          "path": {"type": "string", "pattern": "^/"},
+          "role": {"type": "string", "minLength": 1},
+          "region": {"type": "string", "minLength": 1},
+          "required": {"type": "boolean"},
+          "bindingKinds": {"type": "array", "minItems": 1, "items": {"enum": ["static", "expression", "path"]}},
+          "component": {"type": "string"},
+          "maxChars": {"type": "integer", "minimum": 1},
+          "maxCharsCn": {"type": "integer", "minimum": 1},
+          "source": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "defaultStyleProfile": {"$ref": "#/$defs/style"},
+    "allowedStyleProfiles": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/style"}},
+    "colorRoles": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "string"}},
+    "allowedEdits": {"type": "array", "items": {"type": "string"}},
+    "forbiddenEdits": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "deleteRules": {"type": "array", "items": {"type": "string"}}
+  },
+  "$defs": {
+    "size": {
+      "type": "object",
+      "required": ["width", "height"],
+      "properties": {
+        "width": {"type": "number", "exclusiveMinimum": 0},
+        "height": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "style": {"enum": ["neutral-light", "dark-focus", "ambient-scene", "media-surface"]}
+  },
+  "additionalProperties": false
+}
