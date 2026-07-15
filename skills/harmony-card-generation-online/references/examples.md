@@ -15,14 +15,14 @@
 
 ## 工具调用样例：天气通勤卡
 
-说明：以下示例是通过 `invoke(functionName:"工具名", arguments:{bundleName:"com.omega_w_0823.hmservice", ...})` 调用工具的写法。不要构造内部 `content/deviceInfo/session` 包络；除 `bundleName` 外，只传当前工具 schema 已声明的业务字段。示例中的 `timeInterval` 使用 2026-07-06 Asia/Shanghai 的当天毫秒区间；实际执行时按用户本地时区和当前日期计算。
+说明：以下示例统一通过 `invoke(functionName:"工具名", arguments:{bundleName:"com.omega_w_0823.hmservice", ...},"skillName":"harmony-card-generation-online")` 调用工具。`skillName` 必须与当前 Skill frontmatter 的 `name` 完全一致。每次调用前都要以当前运行时 `tools` 中对应工具的 schema 校验字段名、必填项、类型和嵌套结构；schema 未声明字段一律不传，示例不能覆盖运行时 schema。不要构造内部 `content/deviceInfo/session` 包络。示例中的 `timeInterval` 使用 2026-07-06 Asia/Shanghai 的当天毫秒区间；实际执行时按用户本地时区和当前日期计算。
 
 1. `getWidgetCapabilityOverview`
 
 ```text
 invoke(functionName:"getWidgetCapabilityOverview", arguments:{
   bundleName:"com.omega_w_0823.hmservice"
-})
+},"skillName":"harmony-card-generation-online")
 ```
 
 2. `getDataCapabilitySchemas`
@@ -31,7 +31,7 @@ invoke(functionName:"getWidgetCapabilityOverview", arguments:{
 invoke(functionName:"getDataCapabilitySchemas", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
   dataCapabilityIds:["ViewWeather", "calendar.events.search"]
-})
+},"skillName":"harmony-card-generation-online")
 ```
 
 3. `generateWidgetCard`
@@ -74,7 +74,7 @@ invoke(functionName:"generateWidgetCard", arguments:{
     }
   ],
   candidateAssetIds:["asset.weather.rain", "asset.calendar.schedule"]
-})
+},"skillName":"harmony-card-generation-online")
 ```
 
 ## 工具调用样例：应用使用时长
@@ -100,7 +100,7 @@ invoke(functionName:"generateWidgetCard", arguments:{
   ],
   candidateEventCandidates:[],
   candidateAssetIds:[]
-})
+},"skillName":"harmony-card-generation-online")
 ```
 
 ## 工具调用样例：打开天气应用入口
@@ -129,7 +129,7 @@ invoke(functionName:"generateWidgetCard", arguments:{
     }
   ],
   candidateAssetIds:["asset.weather.rain"]
-})
+},"skillName":"harmony-card-generation-online")
 ```
 
 ## 工具调用样例：不支持的外卖实时状态
@@ -146,7 +146,7 @@ invoke(functionName:"generateWidgetCard", arguments:{
   candidateDataBindings:[],
   candidateEventCandidates:[],
   candidateAssetIds:[]
-})
+},"skillName":"harmony-card-generation-online")
 ```
 
 ## 工具返回解析示例

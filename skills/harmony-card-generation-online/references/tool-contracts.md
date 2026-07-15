@@ -8,10 +8,12 @@
   1. `getWidgetCapabilityOverview`
   2. `getDataCapabilitySchemas`
   3. `generateWidgetCard`
-- 必须使用 `invoke(functionName:"<toolName>", arguments:{bundleName:"<bundleName>", ...})` 调用工具。
+- 必须使用 `invoke(functionName:"<toolName>", arguments:{bundleName:"<bundleName>", ...},"skillName":"harmony-card-generation-online")` 调用工具；`skillName` 必须与当前 Skill frontmatter 的 `name` 完全一致，不得省略、传空字符串或使用显示名称。
 - `arguments` 必须包含 `bundleName: "com.omega_w_0823.hmservice"`。
-- 除 `bundleName` 外，只传工具 JSON `arguments.properties` 中声明的业务字段。
-- 对外工具 schema 中的 `Array<Object>` / `Object` 只是插件层宽类型；具体数组项和对象必须按本文件定义的内部类结构传入。
+- 每次调用前必须读取当前运行时对应工具的 schema；除 `bundleName` 外，只传其 `arguments.properties` 中声明的业务字段，并满足 `required`、类型、数组元素类型和已声明嵌套结构。
+- 当前运行时 schema 是调用入参的唯一依据。本文件、Skill 文案、参考 JSON、历史示例或内部类结构与其冲突时，以当前运行时 schema 为准；schema 未声明字段一律删除。
+- 对外工具 schema 中的 `Array<Object>` / `Object` 是插件层宽类型。只有 schema 已声明对应数组或对象字段时，才按本文件定义的内部类结构组装其值；内部类结构不能授权新增 schema 外的顶层字段。
+- 必填字段无法可靠补齐、类型无法满足或嵌套结构不合法时，不调用工具，不猜测字段、不传 `null` 占位、不把对象字符串化规避校验。
 - 不手写内部 WebSocket 包络字段，例如 `content`、`deviceInfo`、`session`、`pagination`、`userAuth`、`utterance`、`version`。
 - 不手写或猜测 `uid`、`device`、`locale`、`protocolProfileId`、`capabilityRegistryVersion`、`options` 等未在当前对外工具 schema 中声明的字段。
 - 不传 `slots`。
@@ -19,9 +21,9 @@
 调用顺序：
 
 ```text
-invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.omega_w_0823.hmservice"})
-invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:[...]})
-invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"...", title:"...", description:"...", ...})
+invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.omega_w_0823.hmservice"},"skillName":"harmony-card-generation-online")
+invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:[...]},"skillName":"harmony-card-generation-online")
+invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"...", title:"...", description:"...", ...},"skillName":"harmony-card-generation-online")
 ```
 
 ## 包装输出
@@ -66,7 +68,7 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 调用示例：
 
 ```text
-invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.omega_w_0823.hmservice"})
+invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.omega_w_0823.hmservice"},"skillName":"harmony-card-generation-online")
 ```
 
 业务 payload 字段，即 `items[].data` 解析后的字段：
@@ -96,7 +98,7 @@ invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.om
 调用示例：
 
 ```text
-invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:["ViewWeather"]})
+invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:["ViewWeather"]},"skillName":"harmony-card-generation-online")
 ```
 
 业务 payload 字段，即 `items[].data` 解析后的字段：
@@ -193,7 +195,7 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
 调用示例：
 
 ```text
-invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"生成一个通勤卡片", title:"通勤助手", description:"天气日程速览", size:"2x4", candidateDataBindings:[...], candidateEventCandidates:[...], candidateAssetIds:[...]})
+invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"生成一个通勤卡片", title:"通勤助手", description:"天气日程速览", size:"2x4", candidateDataBindings:[...], candidateEventCandidates:[...], candidateAssetIds:[...]},"skillName":"harmony-card-generation-online")
 ```
 
 业务 payload 字段，即 `items[].data` 解析后的字段：

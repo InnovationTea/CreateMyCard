@@ -9,7 +9,7 @@
 - [`references/tool-contracts.md`](references/tool-contracts.md)：三个微服务工具的输入、包装输出解析和调用规则。
 - [`references/candidate-planning.md`](references/candidate-planning.md)：如何从能力概述中筛选候选能力、构造候选 dataBindings、event candidates、asset ids、size、title 和 description。
 - [`references/response-policy.md`](references/response-policy.md)：如何处理 `success`、`degraded`、`unsupported`、`failed`。
-- [`references/tools/`](references/tools/)：三个工具的 JSON 声明。工具联调、schema 排查、更新 `metadata.tools` 或核对真实工具入参时读取。
+- [`references/tools/`](references/tools/)：三个工具的 JSON 声明快照。工具联调、schema 排查、更新 `metadata.tools` 或核对入参时读取；每次实际调用仍以当前运行时 `tools` schema 为唯一依据，快照不能覆盖运行时 schema。
 
 ## 样例
 

@@ -61,7 +61,7 @@
 
 生成 `candidateDataBindings` 时遵守：
 
-- 对外工具 schema 将数组项写成 `Object`，但每一项必须按内部 `CandidateDataBinding` 类结构传入。
+- 先确认当前运行时 `generateWidgetCard` schema 已声明 `candidateDataBindings`；未声明时不传。schema 将数组项写成 `Object` 时，每一项按内部 `CandidateDataBinding` 类结构传入，但该内部结构不得用于扩展工具 `arguments` 顶层字段。
 - `capabilityId` 必须来自已加载 schema。
 - `arguments` 只使用 `inputSchema.properties` 中声明的字段。
 - `arguments` 必须放在 binding 的 `arguments` 对象内，不要把能力入参平铺到 binding 顶层。
@@ -79,7 +79,7 @@
 ## 事件能力候选
 
 - 使用单数组 `candidateEventCandidates`，不要使用并行的 ID 数组和 action 数组。
-- 对外工具 schema 将数组项写成 `Object`，但每一项必须按内部 `CandidateEventCandidate` 类结构传入。
+- 先确认当前运行时 `generateWidgetCard` schema 已声明 `candidateEventCandidates`；未声明时不传。schema 将数组项写成 `Object` 时，每一项按内部 `CandidateEventCandidate` 类结构传入，但该内部结构不得用于扩展工具 `arguments` 顶层字段。
 - 每个候选项必须包含 `capabilityId` 和完整 `action`，且 `capabilityId` 必须来自 overview。
 - `action` 必须是对象，内部包含 `call` 和 `args`；不要把 `call`、`args` 平铺到事件候选顶层。
 - `args` 必须是对象，不要传字符串化 JSON。

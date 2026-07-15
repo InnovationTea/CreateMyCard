@@ -62,16 +62,18 @@ metadata:
 
 2. **初步回应**：不要说"可以生成某动态卡片"。需要过程回复时只说："我先检查当前设备支持情况，然后为你生成可用的卡片。"
 
-3. **获取能力概述**：调用 `getWidgetCapabilityOverview` 获取数据能力、事件能力和素材概述。除 `bundleName` 外不传其它字段；工具返回后从包装结构 `items[].data` 中解析业务 payload；如果返回原始插件包络，则先进入 `reply.items[].data`。工具不可用、调用失败或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
+3. **校验工具入参**：每次调用前读取当前运行时 `tools` 中对应工具的 schema，按“工具定义”的调用前硬校验逐项检查 `functionName`、`bundleName`、必填字段、字段名、类型和嵌套结构。任何字段都不能只因本 Skill、参考资料、示例或内部类中出现就传入。
 
-4. **筛选候选能力**：按 `references/candidate-planning.md` 从概述中筛选候选能力：
+4. **获取能力概述**：调用 `getWidgetCapabilityOverview` 获取数据能力、事件能力和素材概述。除 `bundleName` 外不传其它字段；工具返回后从包装结构 `items[].data` 中解析业务 payload；如果返回原始插件包络，则先进入 `reply.items[].data`。工具不可用、调用失败或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
+
+5. **筛选候选能力**：按 `references/candidate-planning.md` 从概述中筛选候选能力：
    - 数据能力最多优先选 2 个核心候选。
    - 事件能力最多优先选 2 个主动作候选。
    - 素材候选只选和场景强相关的少量 ID。
 
-5. **加载数据能力 Schema**：如果选中了数据能力，调用 `getDataCapabilitySchemas` 加载这些数据能力的完整 schema。工具不可用、调用失败或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
+6. **加载数据能力 Schema**：如果选中了数据能力，调用 `getDataCapabilitySchemas` 加载这些数据能力的完整 schema。工具不可用、调用失败或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
 
-6. **构造候选计划**：基于 schema 构造候选计划：
+7. **构造候选计划**：基于 schema 构造候选计划：
    - `size`：`"2x2"` 或 `"2x4"`。
    - `candidateDataBindings`：候选数据能力调用，不是最终 CardSpec。
    - 虽然对外工具 schema 中 `candidateDataBindings` 只是 `Array<Object>`，每一项仍必须按内部 `CandidateDataBinding` 类结构组装：`capabilityId`、`arguments`、`writeResultTo`，可选 `updateModel`；不要传松散对象或额外字段。
@@ -81,9 +83,9 @@ metadata:
    - `title` / `description`：必传的静态短标题和短概述；无法提炼时使用稳定默认文案。
    - 本版不传 `slots`、`options`、`locale`、`uid`、`device` 等当前工具 schema 未声明的字段。
 
-7. **生成卡片**：调用 `generateWidgetCard` 生成卡片。不要自行补做微服务负责的过滤、协议 profile、校验、重试或上传。工具不可用、调用失败或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
+8. **生成卡片**：再次按当前运行时 `generateWidgetCard` schema 校验完整 `arguments`，删除 schema 未声明的可选字段；必填字段缺失、类型不匹配或嵌套结构不合法时不要调用。校验通过后调用 `generateWidgetCard` 生成卡片。不要自行补做微服务负责的过滤、协议 profile、校验、重试或上传。工具不可用、调用失败或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
 
-8. **回复用户**：按 `references/response-policy.md` 回复：
+9. **回复用户**：按 `references/response-policy.md` 回复：
    - 先从 `generateWidgetCard` 返回的 `items[].data` 解析业务 payload；如果返回原始插件包络，则先进入 `reply.items[].data`。
    - `success` / `degraded` 且存在有效 `artifactUrl`：输出业务 payload 的 `message`，并按“输出”章节格式输出 `genWidgetResult` JSON 标记。
    - `success` / `degraded` 但缺少有效 `artifactUrl`：按 `failed` 处理，不输出 `genWidgetResult`。
@@ -92,9 +94,20 @@ metadata:
 
 ## 工具定义
 
-本 skill 依赖三个微服务工具，声明于 frontmatter `metadata.tools`。必须通过 `invoke` 调用，格式为 `invoke(functionName:"<toolName>", arguments:{bundleName:"<bundleName>", ...})`。除 `bundleName` 外，只传工具 JSON 已声明的业务字段；不要手写内部 `content/deviceInfo/session` 包络。
+本 skill 依赖三个微服务工具，声明于 frontmatter `metadata.tools`。必须通过 `invoke` 调用，固定格式为 `invoke(functionName:"<toolName>", arguments:{bundleName:"<bundleName>", ...},"skillName":"harmony-card-generation-online")`。`skillName` 必须显式传当前 Skill frontmatter 的 `name`，本 Skill 固定为 `harmony-card-generation-online`；不要省略、传空字符串或使用显示名称。
 
-注意：工具声明里部分入参只暴露为 `Array<Object>` 或 `Object`，但微服务内部会按具体类解析。传参时必须遵守 `references/tool-contracts.md` 中的类结构，尤其是 `CandidateDataBinding`、`CandidateEventCandidate` 和 `EventAction`；不要因为外层 schema 宽松就传任意键值。
+### 调用前硬校验
+
+每一次 `invoke` 都必须先完成以下检查：
+
+1. 从当前运行时 `tools` 中找到与 `metadata.tools` 的 `bundleName + toolName` 完全匹配的工具；找不到时按工具不可用处理。
+2. `functionName` 只使用该工具的 `toolName`，`arguments.bundleName` 只使用该工具的 `bundleName`，`skillName` 必须与当前 Skill frontmatter 的 `name` 完全一致，即 `"harmony-card-generation-online"`。
+3. 除 `bundleName` 外，只从当前工具 schema 的 `arguments.properties` 选择顶层字段；schema 未声明的字段全部删除。
+4. 逐项满足当前工具 schema 的 `required`、字段类型、数组元素类型和已声明嵌套结构；不能可靠满足时停止调用，不猜测、不降格为字符串，也不补 `null` 占位。
+5. 参考资料、调用样例和内部类结构只能帮助理解 schema，不能授权新增 schema 外字段；它们与当前运行时 schema 冲突时，无条件以当前运行时 schema 为准。
+6. `candidateDataBindings[].arguments` 等能力业务参数还必须逐字段匹配本轮 `getDataCapabilitySchemas` 返回的对应 `inputSchema`；未声明字段不得传入。
+
+工具声明里部分入参可能只暴露为 `Array<Object>` 或 `Object`。只有当前运行时 schema 已声明对应数组或对象字段时，才按 `references/tool-contracts.md` 中的 `CandidateDataBinding`、`CandidateEventCandidate` 和 `EventAction` 结构组装；不得借助内部类结构向 `arguments` 顶层添加 schema 外字段。
 
 ### Function: getWidgetCapabilityOverview
 - **toolName**: getWidgetCapabilityOverview
@@ -116,11 +129,11 @@ metadata:
 ## 工具调用示例
 
 ```text
-invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.omega_w_0823.hmservice"})
+invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.omega_w_0823.hmservice"},"skillName":"harmony-card-generation-online")
 
-invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:["ViewWeather", "calendar.events.search"]})
+invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:["ViewWeather", "calendar.events.search"]},"skillName":"harmony-card-generation-online")
 
-invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"生成一个通勤卡片", title:"通勤助手", description:"天气日程速览", size:"2x4", candidateDataBindings:[{capabilityId:"ViewWeather", arguments:{districtName:"青浦区", forecastDays:1}, writeResultTo:"/data/weather"}], candidateEventCandidates:[{capabilityId:"event.open.weather", action:{call:"clickToDeeplink", args:{bundleName:"", abilityName:"", uri:"hww://www.huawei.com/totemweather?enterType=share&cityCode="}}}], candidateAssetIds:["asset.weather.rain"]})
+invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"生成一个通勤卡片", title:"通勤助手", description:"天气日程速览", size:"2x4", candidateDataBindings:[{capabilityId:"ViewWeather", arguments:{districtName:"青浦区", forecastDays:1}, writeResultTo:"/data/weather"}], candidateEventCandidates:[{capabilityId:"event.open.weather", action:{call:"clickToDeeplink", args:{bundleName:"", abilityName:"", uri:"hww://www.huawei.com/totemweather?enterType=share&cityCode="}}}], candidateAssetIds:["asset.weather.rain"]},"skillName":"harmony-card-generation-online")
 ```
 
 
