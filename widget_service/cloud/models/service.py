@@ -154,8 +154,8 @@ class WidgetStreamInfo(BaseModel):
 
     streamContent: str
     streamingTextId: str
-    streamType: Literal["final"] = "final"
-    textType: Literal["markdown"] = "markdown"
+    streamType: Literal["start", "partial", "final"] = "final"
+    textType: Literal["markdown"] = "plainText"
 
 
 class WidgetPluginReply(BaseModel):
