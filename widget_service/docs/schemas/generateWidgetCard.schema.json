@@ -34,28 +34,28 @@
             "type": "string",
             "required": true,
             "minLength": 1,
-            "description": "主 Agent 建议的卡片标题；微服务规范化后写入最终 CardSpec。"
+            "description": "主 Agent 建议的卡片标题；会进入 TaskSpec.title，并作为 A2UI 标题候选。"
           },
           "description": {
             "type": "string",
             "required": true,
             "minLength": 1,
-            "description": "主 Agent 建议的卡片说明；微服务规范化后写入最终 CardSpec。"
+            "description": "主 Agent 建议的卡片说明；会进入 TaskSpec.description，并作为 A2UI 摘要候选。"
           },
           "candidateDataBindings": {
             "type": "CandidateDataBinding[]",
             "required": false,
-            "description": "根据第一个接口可用数据能力和第二个接口 schema 规划的数据绑定。"
+            "description": "候选数据能力调用列表；微服务会按注册表和 IDS 状态裁决最终可用项。"
           },
           "candidateEventCandidates": {
             "type": "CandidateEventCandidate[]",
             "required": false,
-            "description": "从第一个接口可用事件能力中规划的点击事件列表。"
+            "description": "候选点击事件列表；action 只能来自能力概述返回的事件能力说明。"
           },
           "candidateAssetIds": {
             "type": "string[]",
             "required": false,
-            "description": "从第一个接口可用素材中选择的素材 ID 列表。"
+            "description": "候选素材 ID 列表。"
           },
           "capabilityRegistryVersion": {
             "type": "string|null",
