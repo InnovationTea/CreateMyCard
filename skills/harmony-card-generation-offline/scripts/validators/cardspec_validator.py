@@ -11,7 +11,23 @@ class CardSpecValidator(BaseValidator):
         if not context.cardspec:
             return
         cardspec = context.cardspec
-        for field in ("title", "description", "suggestSize"):
+        cardspec_rules = rules.protocol.get("cardSpec", {})
+        top_level_fields = cardspec_rules.get(
+            "topLevelFields", ["title", "description", "suggestSize", "dataBindings"]
+        )
+        required_fields = cardspec_rules.get(
+            "requiredFields", ["title", "description", "suggestSize"]
+        )
+        static_string_limits = cardspec_rules.get(
+            "staticStringLimits", {"title": 8, "description": 12}
+        )
+        data_binding_required = cardspec_rules.get(
+            "dataBindingRequiredFields", ["capabilityId", "arguments", "writeResultTo"]
+        )
+        write_prefix = cardspec_rules.get("writeResultToPrefix", "/data/")
+        allowed_sizes = sorted(rules.protocol.get("sizes", {"2x2": {}, "2x4": {}}).keys())
+
+        for field in required_fields:
             if field not in cardspec or is_empty_required_value(cardspec.get(field)):
                 reporter.add(
                     "error",
@@ -23,7 +39,7 @@ class CardSpecValidator(BaseValidator):
                     message=f"CardSpec.{field} 是必填字段，且不能为空。",
                     fix_hint=f"补齐 CardSpec.{field}。",
                 )
-        for field, limit in (("title", 8), ("description", 12)):
+        for field, limit in static_string_limits.items():
             value = cardspec.get(field)
             if is_empty_required_value(value):
                 continue
@@ -64,7 +80,7 @@ class CardSpecValidator(BaseValidator):
                 )
 
         suggest_size = cardspec.get("suggestSize")
-        if not is_empty_required_value(suggest_size) and suggest_size not in ("2x2", "2x4"):
+        if not is_empty_required_value(suggest_size) and suggest_size not in allowed_sizes:
             reporter.add(
                 "error",
                 "CARD_SUGGEST_SIZE_INVALID",
@@ -72,11 +88,11 @@ class CardSpecValidator(BaseValidator):
                 "cardspec",
                 json_pointer="/suggestSize",
                 actual=suggest_size,
-                expected=["2x2", "2x4"],
-                message='suggestSize 只能是 "2x2" 或 "2x4"。',
+                expected=allowed_sizes,
+                message=f"suggestSize 只能是 {allowed_sizes}。",
             )
 
-        extra = sorted(set(cardspec.keys()) - {"title", "description", "suggestSize", "dataBindings"})
+        extra = sorted(set(cardspec.keys()) - set(top_level_fields))
         if extra:
             reporter.add(
                 "error",
@@ -84,7 +100,7 @@ class CardSpecValidator(BaseValidator):
                 "hard",
                 "cardspec",
                 actual=extra,
-                expected=["title", "description", "suggestSize", "dataBindings"],
+                expected=top_level_fields,
                 message="CardSpec 包含协议外字段。",
                 fix_hint="CardSpec 只描述宿主标题、概述、推荐尺寸和数据能力契约，不写 DSL 组件或点击行为。",
             )
@@ -109,9 +125,8 @@ class CardSpecValidator(BaseValidator):
             if not isinstance(binding, dict):
                 reporter.add("error", "CARD_REQUIRED_FIELD", "hard", "cardspec", json_pointer=pointer, actual=binding, message="dataBindings[] 必须是 object。")
                 continue
-            for field in ("capabilityId", "arguments", "writeResultTo"):
-                empty_collections = False
-                if field not in binding or is_empty_required_value(binding.get(field), empty_collections=empty_collections):
+            for field in data_binding_required:
+                if field not in binding or is_empty_required_value(binding.get(field)):
                     reporter.add(
                         "error",
                         "CARD_REQUIRED_FIELD",
@@ -125,7 +140,7 @@ class CardSpecValidator(BaseValidator):
             target = binding.get("writeResultTo")
             if is_empty_required_value(target):
                 continue
-            if not is_json_pointer(target) or not str(target).startswith("/data/"):
+            if not is_json_pointer(target) or not str(target).startswith(write_prefix):
                 reporter.add(
                     "error",
                     "CARD_WRITE_RESULT_PATH_INVALID",
@@ -133,8 +148,8 @@ class CardSpecValidator(BaseValidator):
                     "cardspec",
                     json_pointer=f"{pointer}/writeResultTo",
                     actual=target,
-                    expected="/data/...",
-                    message="writeResultTo 必须是 /data/... JSON Pointer。",
+                    expected=f"{write_prefix}...",
+                    message=f"writeResultTo 必须是 {write_prefix}... JSON Pointer。",
                 )
             else:
                 if any(pointer_overlaps(target, existing) for existing in write_targets):

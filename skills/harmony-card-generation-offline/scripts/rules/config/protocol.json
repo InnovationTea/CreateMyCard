@@ -49,6 +49,21 @@
     "Stack": ["children"]
   },
   "templateComponents": ["Row", "Column", "List"],
+  "templateChildren": {
+    "allowedKeys": ["componentId", "path", "itemVar", "indexVar"],
+    "requiredKeys": ["componentId", "path"]
+  },
+  "eventHandlerForbiddenFields": ["condition", "as"],
+  "cardSpec": {
+    "topLevelFields": ["title", "description", "suggestSize", "dataBindings"],
+    "requiredFields": ["title", "description", "suggestSize"],
+    "dataBindingRequiredFields": ["capabilityId", "arguments", "writeResultTo"],
+    "writeResultToPrefix": "/data/",
+    "staticStringLimits": {
+      "title": 8,
+      "description": 12
+    }
+  },
   "structureFieldsNoExpression": [
     "/createSurface/surfaceId",
     "/createSurface/catalogId",

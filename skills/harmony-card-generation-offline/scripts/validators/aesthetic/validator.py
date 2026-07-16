@@ -1,6 +1,6 @@
 """DSL-only deterministic aesthetic quality validator for HarmonyOS A2UI Form cards.
 
-Wraps the standalone validate_aesthetic.py engine (v0.2.1) to fit the
+Wraps the standalone aesthetic engine (see ``engine.py``, v0.2.1) to fit the
 BaseValidator pipeline.  All aesthetic checks — contrast, palette, typography,
 layout density, style consistency, interaction affordance — are delegated to
 that engine.
@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from .base import BaseValidator
-from .validate_aesthetic import Thresholds, analyze
+from .engine import Thresholds, analyze
+from ..base import BaseValidator
 
 
 class QualityValidator(BaseValidator):

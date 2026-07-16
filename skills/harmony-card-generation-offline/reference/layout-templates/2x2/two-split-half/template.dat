@@ -1,12 +1,8 @@
-[{
+﻿[{
   "version": "v0.9",
   "createSurface": {
     "surfaceId": "template-split-half",
-    "catalogId": "ohos.a2ui.extended.catalog",
-    "theme": {
-      "primaryColor": "#0A59F7"
-    }
-  }
+    "catalogId": "ohos.a2ui.extended.catalog.form"}
 },
 {
   "version": "v0.9",

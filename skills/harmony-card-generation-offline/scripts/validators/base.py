@@ -4,7 +4,6 @@ import re
 from typing import Any, Iterable
 
 
-EXPR_RE = re.compile(r"\{\{([\s\S]*)\}\}")
 INTERP_RE = re.compile(r"\$\{([^}]+)\}")
 CJK_RE = re.compile(r"[\u4e00-\u9fff]")
 HEX_RE = re.compile(r"^#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")

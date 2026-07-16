@@ -53,6 +53,16 @@ class ComponentValidator(BaseValidator):
         forbidden_global = set(rules.protocol.get("forbiddenComponentFields", {}).get("*", []))
         forbidden_by_component = rules.protocol.get("forbiddenComponentFields", {})
         template_components = set(rules.protocol.get("templateComponents", []))
+        template_children_rules = rules.protocol.get("templateChildren", {})
+        allowed_template_keys = set(template_children_rules.get(
+            "allowedKeys", ["componentId", "path", "itemVar", "indexVar"]
+        ))
+        required_template_keys = set(template_children_rules.get(
+            "requiredKeys", ["componentId", "path"]
+        ))
+        event_handler_forbidden = set(rules.protocol.get(
+            "eventHandlerForbiddenFields", ["condition", "as"]
+        ))
 
         for index, component in enumerate(context.components):
             pointer = f"/updateComponents/components/{index}"
@@ -126,7 +136,7 @@ class ComponentValidator(BaseValidator):
                     )
                 for handler_index, handler in enumerate(handlers):
                     if isinstance(handler, dict):
-                        forbidden_handler = sorted(set(handler.keys()) & {"condition", "as"})
+                        forbidden_handler = sorted(set(handler.keys()) & event_handler_forbidden)
                         if forbidden_handler:
                             reporter.add(
                                 "error",
@@ -171,8 +181,6 @@ class ComponentValidator(BaseValidator):
                 elif isinstance(children, dict):
                     if component_type not in template_components:
                         reporter.add("error", "DSL_TEMPLATE_CHILDREN_INVALID", "hard", "genui", line=2, json_pointer=f"{pointer}/children", message=f"{component_type}.children 不支持模板循环对象。")
-                    allowed_template_keys = {"componentId", "path", "itemVar", "indexVar"}
-                    required_template_keys = {"componentId", "path"}
                     if not required_template_keys <= set(children.keys()) or set(children.keys()) - allowed_template_keys:
                         reporter.add("error", "DSL_TEMPLATE_CHILDREN_INVALID", "hard", "genui", line=2, json_pointer=f"{pointer}/children", actual=children, expected={"componentId": "...", "path": "/items", "itemVar": "item", "indexVar": "index"}, message="模板 children 必须包含 componentId/path，可选 itemVar/indexVar。")
                     child_id = children.get("componentId")

@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from .base import BaseValidator, is_wrapped_expression, static_expression_value, walk_json
+from .base import BaseValidator, is_wrapped_expression, static_expression_value
 
 
 class AssetValidator(BaseValidator):
@@ -91,11 +91,3 @@ class AssetValidator(BaseValidator):
                 json_pointer=pointer,
                 actual=path,
             )
-
-
-def collect_asset_paths(value: Any) -> list[str]:
-    result = []
-    for _, child in walk_json(value):
-        if isinstance(child, str) and child.startswith("resources/"):
-            result.append(child)
-    return result

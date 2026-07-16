@@ -47,6 +47,11 @@ def main() -> int:
         action="store_true",
         help="Stop after hard/semantic errors. Default collects independent later-stage issues to reduce repair rounds.",
     )
+    parser.add_argument(
+        "--enable-aesthetic",
+        action="store_true",
+        help="Enable the aesthetic quality validator (still under alignment with offline content).",
+    )
     args = parser.parse_args()
 
     dsl_text = ""
@@ -70,6 +75,7 @@ def main() -> int:
             stop_on_stage_error=args.stop_on_stage_error,
             skill_dir=SCRIPT_DIR.parent,
             capabilities_dir=capabilities_dir,
+            enable_aesthetic=args.enable_aesthetic,
         ),
     )
 

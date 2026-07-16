@@ -11,9 +11,22 @@ class ExpressionValidator(BaseValidator):
 
     _function_re = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\(")
     _double_string_re = re.compile(r'"(?:[^"\\]|\\.)*"')
-    _banned_variables = ("$__widthBreakpoint", "$__colorMode", "$context")
 
     def validate(self, context, rules, reporter) -> None:
+        expression_rules = getattr(rules, "expression", {}) or {}
+        self._max_length = int(expression_rules.get("maxLength", 2048))
+        self._max_paren_depth = int(expression_rules.get("maxParenDepth", 20))
+        self._banned_variables = tuple(expression_rules.get(
+            "bannedVariables", ["$__widthBreakpoint", "$__colorMode", "$context"]
+        ))
+        self._banned_operators = tuple(expression_rules.get(
+            "bannedOperators", ["===", "!==", "??", "?."]
+        ))
+        self._banned_keywords = tuple(expression_rules.get(
+            "bannedKeywords", ["and", "or", "not"]
+        ))
+        self._allowed_functions = set(expression_rules.get("allowedFunctions", ["size"]))
+
         for file_kind, pointer, value, component_id in context.expression_locations:
             line = 2 if file_kind == "genui" else None
             if file_kind == "cardspec":
@@ -67,23 +80,23 @@ class ExpressionValidator(BaseValidator):
         body = expression_body(stripped)
         if not body:
             reporter.add("error", "EXPR_PARSE_FAILED", "hard", "genui", line=line, json_pointer=pointer, actual=value, message="表达式内容不能为空。")
-        if len(stripped) > 2048:
-            reporter.add("error", "EXPR_PARSE_FAILED", "hard", "genui", line=line, json_pointer=pointer, message="表达式长度不能超过 2048 字符。")
-        if self._paren_depth(body) > 20:
-            reporter.add("error", "EXPR_PARSE_FAILED", "hard", "genui", line=line, json_pointer=pointer, message="表达式括号嵌套不能超过 20 层。")
+        if len(stripped) > self._max_length:
+            reporter.add("error", "EXPR_PARSE_FAILED", "hard", "genui", line=line, json_pointer=pointer, message=f"表达式长度不能超过 {self._max_length} 字符。")
+        if self._paren_depth(body) > self._max_paren_depth:
+            reporter.add("error", "EXPR_PARSE_FAILED", "hard", "genui", line=line, json_pointer=pointer, message=f"表达式括号嵌套不能超过 {self._max_paren_depth} 层。")
         if self._double_string_re.search(body):
             reporter.add("error", "EXPR_PARSE_FAILED", "hard", "genui", line=line, json_pointer=pointer, actual=value, message="表达式内字符串必须使用单引号。")
         for banned in self._banned_variables:
             if banned in body:
                 reporter.add("error", "EXPR_PARSE_FAILED", "hard", "genui", line=line, json_pointer=pointer, actual=banned, message="表达式使用了禁用变量。")
-        if any(token in body for token in ("===", "!==", "??", "?.")):
+        if any(token in body for token in self._banned_operators):
             reporter.add("error", "EXPR_PARSE_FAILED", "hard", "genui", line=line, json_pointer=pointer, message="表达式包含当前语法不支持的操作符。")
-        for word in ("and", "or", "not"):
+        for word in self._banned_keywords:
             if re.search(rf"\b{word}\b", body):
                 reporter.add("error", "EXPR_PARSE_FAILED", "hard", "genui", line=line, json_pointer=pointer, actual=word, message="逻辑操作只能使用 &&、||、!。")
         for function_name in self._function_re.findall(body):
-            if function_name != "size":
-                reporter.add("error", "EXPR_PARSE_FAILED", "hard", "genui", line=line, json_pointer=pointer, actual=function_name, expected="size", message="表达式只允许使用声明的内置函数。")
+            if function_name not in self._allowed_functions:
+                reporter.add("error", "EXPR_PARSE_FAILED", "hard", "genui", line=line, json_pointer=pointer, actual=function_name, expected=sorted(self._allowed_functions), message="表达式只允许使用声明的内置函数。")
         for ref in expression_references(stripped):
             if not ref:
                 reporter.add("error", "EXPR_PARSE_FAILED", "hard", "genui", line=line, json_pointer=pointer, message="表达式中存在空的 ${} 引用。")

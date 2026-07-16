@@ -10,7 +10,7 @@ class ColorValidator(BaseValidator):
     stage = "quality"
     name = "color"
 
-    COLOR_FIELDS = {
+    DEFAULT_COLOR_FIELDS = {
         "backgroundColor",
         "borderColor",
         "fontColor",
@@ -22,6 +22,7 @@ class ColorValidator(BaseValidator):
 
     def validate(self, context, rules, reporter) -> None:
         token_re = re.compile(rules.color.get("tokenNamePattern", r"^(brand|font_|icon_|background_|comp_|multi_color_)"))
+        color_fields = set(rules.style.get("colorStyleFields", self.DEFAULT_COLOR_FIELDS))
         color_values: list[str] = []
         for component in context.components:
             component_id = component.get("id", "<unknown>")
@@ -29,7 +30,7 @@ class ColorValidator(BaseValidator):
             if not isinstance(styles, dict):
                 continue
             for key, value in styles.items():
-                if key in self.COLOR_FIELDS:
+                if key in color_fields:
                     self._check_color(value, f"/updateComponents/componentsById/{component_id}/styles/{key}", token_re, rules, reporter)
                     if isinstance(value, str) and HEX_RE.fullmatch(value):
                         color_values.append(value.lower())
