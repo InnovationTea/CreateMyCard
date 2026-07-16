@@ -9,6 +9,7 @@ from typing import Any
 import pytest
 
 from api.schemas import GenerateWidgetCardRequest
+from config.config import get_settings
 from custom.a2ui_model_client import A2UIModelClient
 from models.generation import DeviceContext
 from models.service import ArtifactSaveResult
@@ -431,7 +432,15 @@ def test_generation_service_accepts_valid_compact_dsl_model_output(monkeypatch):
     assert saved_artifacts[0].meta.dslProtocolVersion == "v1"
 
 
-def test_generation_service_logs_validation_failure_and_continues_save(monkeypatch):
+@pytest.mark.parametrize(
+    ("retry_enabled", "expected_generate_calls"),
+    [(False, 1), (True, 2)],
+)
+def test_generation_service_logs_validation_failure_and_continues_save(
+    monkeypatch,
+    retry_enabled,
+    expected_generate_calls,
+):
     calls = {"generate": 0, "save": 0}
     saved_artifacts = []
     error_logs: list[str] = []
@@ -451,6 +460,11 @@ def test_generation_service_logs_validation_failure_and_continues_save(monkeypat
     monkeypatch.setattr(A2UIModelClient, "generate", invalid_generate)
     monkeypatch.setattr(ArtifactStore, "save", capture_save)
     monkeypatch.setattr(
+        get_settings(),
+        "enable_validation_failure_retry",
+        retry_enabled,
+    )
+    monkeypatch.setattr(
         "services.widget_generation_service.logger.error",
         lambda message: error_logs.append(str(message)),
     )
@@ -465,7 +479,7 @@ def test_generation_service_logs_validation_failure_and_continues_save(monkeypat
         "https://test.invalid/non-blocking-validation-artifact"
     )
     assert "artifact" not in response.model_dump()
-    assert calls == {"generate": 2, "save": 1}
+    assert calls == {"generate": expected_generate_calls, "save": 1}
     assert len(saved_artifacts) == 1
     assert saved_artifacts[0].genui == "```genui\n[]\n```"
     assert any(

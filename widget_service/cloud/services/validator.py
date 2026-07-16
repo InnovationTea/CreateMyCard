@@ -49,7 +49,7 @@ class ArtifactValidator:
                     allowed_asset_sources=allowed_asset_sources,
                 )
         except Exception as exc:
-            # 校验模块异常转成错误列表，供生成服务记录、重试并按非阻断策略继续。
+            # 校验模块异常转成错误列表，供生成服务记录，并按配置决定是否重试。
             errors = [f"validator execution failed: {exc}"]
             logger.error(
                 f"artifact_validation_failed errors={json_for_log(errors)} "

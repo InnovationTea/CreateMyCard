@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     model_path: str = "/"
     model_name: str = ""
     enable_artifact_validation: bool = True
+    enable_validation_failure_retry: bool = False
     artifact_base_url: str = "https://obs.todo.local/widget"
     server_host: str = "127.0.0.1"
     server_port: int = 8855

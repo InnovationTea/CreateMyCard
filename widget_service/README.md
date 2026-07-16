@@ -12,6 +12,7 @@ The service follows `docs/AGENTS.md`:
 - `romVersion` currently uses the numeric compatibility level `36`.
 - The first two interfaces fall back to `app-11.7.5.205_rom-36` when the requested registry is missing and `WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true`; generation interfaces never use this fallback.
 - `WIDGET_SERVICE_ENABLE_IDS_MOCK=true` by default. In this mode the service reads only `WIDGET_SERVICE_MOCK_IDS_RESPONSE_PATH`, whose default path is the service-internal `cloud/data/mock/ids_res.json`; a missing or invalid mock produces an empty IDS result and never falls back to remote IDS. When set to `false`, the service ignores the mock and queries only the real remote IDS; remote failure produces an empty result and never falls back to mock.
+- `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY=false` by default. Validation failures are logged without blocking artifact persistence or invoking the model again; setting it to `true` enables at most one regeneration attempt.
 - Structured values embedded in log messages are serialized as standard JSON with double-quoted keys and strings. Request `uid` remains part of the API contract but must never be logged in raw, masked, or hashed form; IDS request logs omit `callingUid` as well.
 - Package filtering emits exactly one summary result per capability-overview request; per-capability dependency-check logs are not emitted.
 - OBS upload is intentionally left as a TODO hook in `ArtifactStore`.

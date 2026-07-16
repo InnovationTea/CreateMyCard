@@ -60,6 +60,8 @@ IDS 数据源由 `WIDGET_SERVICE_ENABLE_IDS_MOCK` 显式控制，默认值为 `t
 
 不能再根据 mock 文件是否存在自动选择或切换数据源。
 
+DSL 校验失败重试由 `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY` 控制，默认值为 `false`。关闭时校验失败只记录日志并继续保存首次输出；开启时最多重新生成一次。
+
 A2UI 协议 profile 也按文件夹隔离：
 
 ```text
@@ -497,7 +499,7 @@ generate_widget_card(
 5. TaskSpecBuilder 根据 writeResultTo、outputSchema 和候选字段投影生成 TaskSpec.dataModelSchema
 6. PromptBuilder 生成模型输入
 7. A2UIModelClient mock 生成 genui
-8. RetryController 控制最多 1 次重试
+8. RetryController 按 `enable_validation_failure_retry` 控制校验失败后是否重试，默认不重试
 9. ArtifactValidator 校验完整 artifact；最终失败记录日志但不阻断保存和响应
 10. ArtifactStore 保存 artifact，当前为 OBS TODO hook
 11. ResponsePlanner 生成 status 和 message
@@ -977,7 +979,7 @@ DSL 动态绑定路径可从 TaskSpec.dataModelSchema 或能力 outputSchema 推
 CardSpec writeResultTo 位于 /data/
 ```
 
-返回空列表表示校验通过；否则返回错误列表。错误会触发最多一次重新生成；最终仍失败时记录非阻断错误日志，继续构造并保存最后一次模型输出。
+返回空列表表示校验通过；否则返回错误列表。默认记录非阻断错误日志并继续构造、保存首次模型输出，不重新调用模型；`enable_validation_failure_retry=true` 时才会触发最多一次重新生成。
 
 ### 8.5 RetryController.run
 
@@ -993,16 +995,18 @@ cloud/services/retry_controller.py
 run(
     operation: Callable[[], str],
     validate: Callable[[str], list[str]],
-) -> tuple[str, int, list[str]]
+    *,
+    retry_on_validation_failure: bool = False,
+) -> RetryResult
 ```
 
-用途：执行生成操作并校验，失败最多重试 1 次；最终校验错误由生成服务记录，但不阻断后续 artifact 流程。
+用途：执行生成操作并校验。`retry_on_validation_failure=false` 时校验失败直接返回首次结果；为 `true` 时最多重试 1 次。最终校验错误由生成服务记录，但不阻断后续 artifact 流程。
 
 返回：
 
 ```text
 result       最后一次生成结果
-retry_count  重试次数，0 或 1
+retryCount   重试次数，0 或 1
 errors       最后一次校验错误
 ```
 
@@ -1092,6 +1096,8 @@ WIDGET_SERVICE_ENABLE_IDS_MOCK
 WIDGET_SERVICE_PROTOCOL_PROFILE_ID
 WIDGET_SERVICE_MOCK_IDS_RESPONSE_PATH
 WIDGET_SERVICE_IDS_QUERY_URL
+WIDGET_SERVICE_ENABLE_ARTIFACT_VALIDATION
+WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY
 WIDGET_SERVICE_ARTIFACT_BASE_URL
 ```
 

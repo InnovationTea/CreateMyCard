@@ -177,6 +177,20 @@ def test_ids_mock_is_enabled_by_default():
     }
 
 
+def test_validation_failure_retry_is_disabled_by_default(monkeypatch):
+    monkeypatch.delenv("WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY", raising=False)
+    settings = Settings(_env_file=None)
+
+    assert settings.enable_validation_failure_retry is False
+
+
+def test_validation_failure_retry_can_be_enabled_by_environment(monkeypatch):
+    monkeypatch.setenv("WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY", "true")
+    settings = Settings(_env_file=None)
+
+    assert settings.enable_validation_failure_retry is True
+
+
 def test_ids_query_builds_structured_request_and_signature(monkeypatch):
     """验证 IDS 查询请求使用实体封装，并生成真实签名。
 
@@ -1419,7 +1433,7 @@ def test_response_planner_returns_structured_status():
     assert "能力未注册" in degraded_plan.message
 
 
-def test_retry_controller_returns_retry_result():
+def test_retry_controller_retries_when_enabled():
     """验证 RetryController 返回结构化重试结果。
 
     入参：无。
@@ -1430,11 +1444,31 @@ def test_retry_controller_returns_retry_result():
     retry_result = RetryController().run(
         operation=lambda: next(results),
         validate=lambda value: ["bad"] if value == "first" else [],
+        retry_on_validation_failure=True,
     )
 
     assert retry_result.result == "second"
     assert retry_result.retryCount == 1
     assert retry_result.errors == []
+
+
+def test_retry_controller_does_not_retry_validation_failure_by_default():
+    operation_calls = 0
+
+    def operation() -> str:
+        nonlocal operation_calls
+        operation_calls += 1
+        return "first"
+
+    retry_result = RetryController().run(
+        operation=operation,
+        validate=lambda _value: ["bad"],
+    )
+
+    assert operation_calls == 1
+    assert retry_result.result == "first"
+    assert retry_result.retryCount == 0
+    assert retry_result.errors == ["bad"]
 
 
 def test_artifact_store_returns_structured_save_result(tmp_path, monkeypatch):

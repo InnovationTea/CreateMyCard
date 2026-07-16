@@ -351,7 +351,7 @@ class WidgetGenerationService:
             "task_data_model_schema_keys="
             f"{json_for_log(list(task_spec.dataModelSchema))}"
         )
-        # prompt 约束模型生成 DSL；Validator 用于质量观测和一次重试，不作为保存门禁。
+        # prompt 约束模型生成 DSL；Validator 用于质量观测，重试由配置控制，不作为保存门禁。
         prompt = PromptBuilder().build(
             task_spec,
             protocol_profile,
@@ -411,12 +411,18 @@ class WidgetGenerationService:
                 allowed_asset_sources={item.src for item in asset_candidates},
             )
 
-        # RetryController 把“生成一次”和“校验一次”组合起来，失败时可重试生成。
-        retry_result = retry_controller.run(operation, validate_genui)
+        # 校验始终执行；是否因校验失败重新生成由配置开关独立控制。
+        retry_result = retry_controller.run(
+            operation,
+            validate_genui,
+            retry_on_validation_failure=settings.enable_validation_failure_retry,
+        )
         genui = retry_result.result
         errors = retry_result.errors
         logger.info(
             f"a2ui_generation_completed retry_count={retry_result.retryCount} "
+            "validation_failure_retry_enabled="
+            f"{json_for_log(settings.enable_validation_failure_retry)} "
             f"validation_error_count={len(errors)}"
         )
         if errors:
@@ -425,6 +431,8 @@ class WidgetGenerationService:
                 f"protocol_profile_id={protocol_profile['id']} "
                 f"validation_error_code={ErrorCode.VALIDATION_FAILED.value} "
                 f"retry_count={retry_result.retryCount} "
+                "validation_failure_retry_enabled="
+                f"{json_for_log(settings.enable_validation_failure_retry)} "
                 f"errors={json_for_log(errors)} "
                 "proceeding_to_artifact_save=true"
             )
