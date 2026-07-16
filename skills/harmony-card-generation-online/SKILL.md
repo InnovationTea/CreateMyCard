@@ -65,19 +65,21 @@ metadata:
 
 3. **用户确认与工具入参校验**：每次调用工具前先检查是否存在用户可回答、且会影响核心卡片需求、候选能力、目标对象、地点、日期/时间范围、动作目标或必填业务参数的未决信息。有则不要调用任何工具，先用简短自然语言追问，等待用户明确回答后重新检查当前步骤。能从用户原话、可信会话上下文或 schema 明确默认值安全确定的内容不重复确认；不要向用户询问设备能力是否可用、能力 ID、内部字段名或其它应由微服务裁决的内容。确认门禁通过后，再读取当前运行时 `tools` 中对应工具的 schema，按“工具定义”的调用前硬校验逐项检查 `functionName`、`bundleName`、必填字段、字段名、类型和嵌套结构。任何字段都不能只因本 Skill、参考资料、示例或内部类中出现就传入。
 
-4. **获取能力概述**：确认用户的核心卡片主题和明确要求不存在待追问项后，调用 `getWidgetCapabilityOverview` 获取数据能力、事件能力和素材概述。除 `bundleName` 外不传其它字段；工具返回后从包装结构 `items[].data` 中解析业务 payload；如果返回原始插件包络，则先进入 `reply.items[].data`。工具不可用、调用失败或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
+4. **获取能力概述**：确认用户的核心卡片主题和明确要求不存在待追问项后，调用 `getWidgetCapabilityOverview` 获取数据能力、可选的不可用数据能力、事件能力和素材概述。除 `bundleName` 外不传其它字段；工具返回后从包装结构 `items[].data` 中解析业务 payload；如果返回原始插件包络，则先进入 `reply.items[].data`。`unavailableCapabilities` 缺失或为 `[]` 时按空集合处理；字段存在但不是字符串数组，或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
 
 5. **筛选候选能力**：按 `references/candidate-planning.md` 从概述中筛选候选能力：
+   - `unavailableCapabilities` 存在且非空时，先从 `dataCapabilities` 中排除其中的数据能力；同一 ID 同时出现时以不可用为准。字段缺失或为空数组时不额外排除。
    - 数据能力最多优先选 2 个核心候选。
    - 事件能力最多优先选 2 个主动作候选。
    - 素材候选只选和场景强相关的少量 ID。
 
-6. **加载数据能力 Schema**：如果选中了数据能力，先确认候选选择不依赖尚未明确的用户选择；存在会改变核心候选的歧义时先追问并等待回答。确认后调用 `getDataCapabilitySchemas` 加载这些数据能力的完整 schema。工具不可用、调用失败或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
+6. **加载数据能力 Schema**：如果选中了数据能力，先确认候选选择不依赖尚未明确的用户选择；存在会改变核心候选的歧义时先追问并等待回答。确认后只为排除 `unavailableCapabilities` 后仍可选的数据能力调用 `getDataCapabilitySchemas` 加载完整 schema。工具不可用、调用失败或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
 
 7. **构造候选计划**：基于 schema 构造候选计划：
    - `size`：`"2x2"` 或 `"2x4"`。
    - `candidateDataBindings`：候选数据能力调用，不是最终 CardSpec。
-   - 虽然对外工具 schema 中 `candidateDataBindings` 只是 `Array<Object>`，每一项仍必须按内部 `CandidateDataBinding` 类结构组装：`capabilityId`、`arguments`、`writeResultTo`，可选 `updateModel`；不要传松散对象或额外字段。
+   - 按当前工具 schema 组装每个 `candidateDataBindings` 元素：`capabilityId`、`arguments`、`writeResultTo`，以及可选的 `candidateOutputFields`；不要传松散对象或额外字段。
+   - `candidateOutputFields` 只能是 JSON Pointer 字符串数组，每一项必须能从对应能力本轮返回的 `outputSchema` 推导；拿不准时省略。不要传 `updateModel`。
    - `candidateEventCandidates`：事件候选单数组；每项包含来自 overview 的 `capabilityId` 和完整 `action`。如果无法安全填齐 `action.call/args`，不要传该事件候选。
    - 虽然对外工具 schema 中事件项只是 `Object`，每一项仍必须按内部 `CandidateEventCandidate` 类结构组装：`capabilityId` 和 `action:{call,args}`。
    - `candidateAssetIds`：来自 overview 的素材 ID。
@@ -108,6 +110,7 @@ metadata:
 5. 逐项满足当前工具 schema 的 `required`、字段类型、数组元素类型和已声明嵌套结构。缺少用户可提供的核心业务值时先追问；属于工具接入、schema 不兼容或用户无法确认的技术缺口时停止调用，不把问题转嫁给用户，不猜测、不降格为字符串，也不补 `null` 占位。
 6. 参考资料、调用样例和内部类结构只能帮助理解 schema，不能授权新增 schema 外字段；它们与当前运行时 schema 冲突时，无条件以当前运行时 schema 为准。
 7. `candidateDataBindings[].arguments` 等能力业务参数还必须逐字段匹配本轮 `getDataCapabilitySchemas` 返回的对应 `inputSchema`；未声明字段不得传入。
+8. `candidateDataBindings[].candidateOutputFields` 必须是字符串数组，且每个 JSON Pointer 都能从同一能力本轮返回的 `outputSchema` 推导；不匹配的路径删除，全部不匹配时省略该字段。禁止传 `updateModel`。
 
 工具声明里部分入参可能只暴露为 `Array<Object>` 或 `Object`。只有当前运行时 schema 已声明对应数组或对象字段时，才按 `references/tool-contracts.md` 中的 `CandidateDataBinding`、`CandidateEventCandidate` 和 `EventAction` 结构组装；不得借助内部类结构向 `arguments` 顶层添加 schema 外字段。
 
@@ -115,7 +118,7 @@ metadata:
 - **toolName**: getWidgetCapabilityOverview
 - **description**: 获取当前设备版本可用的能力概述。数据能力只返回 id 和描述；事件能力、素材能力全量返回。
 - **参数**: {}
-- **语义**: 在工作流的**获取能力概述**调用，了解当前设备支持哪些数据能力、事件、素材，为后续选择数据绑定和事件提供依据。
+- **语义**: 在工作流的**获取能力概述**调用；`unavailableCapabilities` 存在且非空时先排除其指示的不可用数据能力，缺失或为空时不额外排除，再从其余数据能力、事件和素材中选择候选。
 
 ### Function: getDataCapabilitySchemas
 - **toolName**: getDataCapabilitySchemas
@@ -126,7 +129,7 @@ metadata:
 ### Function: generateWidgetCard
 - **toolName**: generateWidgetCard
 - **description**: 提交用户需求、候选数据绑定、候选事件和素材，生成可下载的 HarmonyOS A2UI Form 卡片 artifact。
-- **参数**: {"type":"object","properties":{"userQuery":{"type":"String","description":"用户原始卡片需求"},"size":{"type":"String","description":"主 Agent 建议尺寸"},"candidateDataBindings":{"type":"Array","description":"候选数据能力调用列表；微服务会按注册表和 IDS 状态裁决最终可用项","required":[],"properties":{"ArrayItem":{"type":"Object","description":"候选数据能力；可包含 capabilityId、arguments、writeResultTo 和可选 updateModel"}}},"description":{"type":"String","description":"必传静态短概述，尽量不超过 12 个字"},"title":{"type":"String","description":"必传静态短标题，尽量不超过 8 个字"},"candidateEventCandidates":{"type":"Array","description":"候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明","required":[],"properties":{"ArrayItem":{"type":"Object","description":"事件 action"}}},"candidateAssetIds":{"type":"Array<String>","description":"候选素材 ID 列表","required":[],"properties":{"ArrayItem":{"type":"String","description":"候选素材 ID"}}}},"required":["userQuery","title","description"]}
+- **参数**: {"type":"object","properties":{"size":{"type":"String","description":"主 Agent 建议尺寸"},"candidateDataBindings":{"type":"Array","description":"候选数据能力调用列表；微服务会按注册表和 IDS 状态裁决最终可用项","required":[],"properties":{"ArrayItem":{"type":"Object","description":"候选数据能力","required":[],"properties":{"candidateOutputFields":{"type":"Array<String>","description":"可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导","required":[],"properties":{"ArrayItem":{"type":"String","description":"可选候选展示字段 JSON Pointer"}}},"arguments":{"type":"Object","description":"参数"},"capabilityId":{"type":"String","description":"能力ID"},"writeResultTo":{"type":"String","description":"结果写入路径"}}}}},"candidateEventCandidates":{"type":"Array","description":"候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明","required":[],"properties":{"ArrayItem":{"type":"Object","description":"事件 action"}}},"userQuery":{"type":"String","description":"用户原始卡片需求"},"candidateAssetIds":{"type":"Array<String>","description":"候选素材 ID 列表","required":[],"properties":{"ArrayItem":{"type":"String","description":"候选素材 ID"}}},"title":{"type":"String","description":"建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"},"description":{"type":"String","description":"建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"}},"required":["userQuery"]}
 
 ## 工具调用示例
 
@@ -135,7 +138,7 @@ invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.om
 
 invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:["ViewWeather", "calendar.events.search"]},"skillName":"harmony-card-generation-online")
 
-invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"生成一个通勤卡片", title:"通勤助手", description:"天气日程速览", size:"2x4", candidateDataBindings:[{capabilityId:"ViewWeather", arguments:{districtName:"青浦区", forecastDays:1}, writeResultTo:"/data/weather"}], candidateEventCandidates:[{capabilityId:"event.open.weather", action:{call:"clickToDeeplink", args:{bundleName:"", abilityName:"", uri:"hww://www.huawei.com/totemweather?enterType=share&cityCode="}}}], candidateAssetIds:["asset.weather.rain"]},"skillName":"harmony-card-generation-online")
+invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"生成一个通勤卡片", title:"通勤助手", description:"天气日程速览", size:"2x4", candidateDataBindings:[{capabilityId:"ViewWeather", arguments:{districtName:"青浦区", forecastDays:1}, writeResultTo:"/data/weather", candidateOutputFields:["/location/name", "/current/temperatureText", "/current/weatherText"]}], candidateEventCandidates:[{capabilityId:"event.open.weather", action:{call:"clickToDeeplink", args:{bundleName:"", abilityName:"", uri:"hww://www.huawei.com/totemweather?enterType=share&cityCode="}}}], candidateAssetIds:["asset.weather.rain"]},"skillName":"harmony-card-generation-online")
 ```
 
 
@@ -171,6 +174,7 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 ## 安全红线
 
 - 不编造能力 ID、事件目标、素材 ID 或 artifact URL。
+- 不选择、加载或传递 `unavailableCapabilities` 指示的不可用数据能力。
 - 不把能力 schema、内部错误码、requestId、items、原始 data 字符串等内部信息暴露给用户。
 - 不模拟工具结果；任一工具不可用、调用失败、结果无法解析或缺少必要字段时，说明卡片生成服务暂时不可用并终止本轮生成。
 - 不读取离线能力清单、历史模板或旧协议资料来补足工具结果。

@@ -35,6 +35,24 @@ invoke(functionName:"getWidgetCapabilityOverview", arguments:{
 },"skillName":"harmony-card-generation-online")
 ```
 
+解析业务 `data` 后先应用不可用能力过滤。例如：
+
+```json
+{
+  "dataCapabilities": [
+    {"id": "ViewWeather", "description": "查询天气"},
+    {"id": "GetAppUsageDurationAndPower", "description": "查询应用使用时长和耗电"}
+  ],
+  "unavailableCapabilities": ["GetAppUsageDurationAndPower"],
+  "eventCapabilities": [],
+  "assetCandidates": []
+}
+```
+
+此时只能继续选择 `ViewWeather`；不得为 `GetAppUsageDurationAndPower` 请求 schema 或构造数据绑定。
+
+如果 `unavailableCapabilities` 缺失或为 `[]`，表示没有预先标记的不可用数据能力，继续从全部 `dataCapabilities` 中筛选。
+
 2. `getDataCapabilitySchemas`
 
 ```text
@@ -60,14 +78,24 @@ invoke(functionName:"generateWidgetCard", arguments:{
         districtName:"青浦区",
         forecastDays:1
       },
-      writeResultTo:"/data/weather"
+      writeResultTo:"/data/weather",
+      candidateOutputFields:[
+        "/location/name",
+        "/current/temperatureText",
+        "/current/weatherText"
+      ]
     },
     {
       capabilityId:"calendar.events.search",
       arguments:{
         timeInterval:[1783238400000, 1783324799999]
       },
-      writeResultTo:"/data/calendar"
+      writeResultTo:"/data/calendar",
+      candidateOutputFields:[
+        "/events/0/title",
+        "/events/0/startTimeText",
+        "/events/0/location"
+      ]
     }
   ],
   candidateEventCandidates:[
@@ -89,7 +117,7 @@ invoke(functionName:"generateWidgetCard", arguments:{
 
 ## 工具调用样例：应用使用时长
 
-仅当 `getWidgetCapabilityOverview` 返回 `GetAppUsageDurationAndPower` 时才使用该候选。
+仅当 `getWidgetCapabilityOverview` 返回 `GetAppUsageDurationAndPower`，且该 ID 不在 `unavailableCapabilities` 中时才使用该候选。
 
 ```text
 invoke(functionName:"generateWidgetCard", arguments:{
@@ -180,7 +208,7 @@ invoke(functionName:"generateWidgetCard", arguments:{
 
 ## 对象结构注意事项
 
-对外工具 schema 中 `candidateDataBindings` 和 `candidateEventCandidates` 的数组项是 `Object`，但实际传参必须按内部类结构组装。
+当前工具 schema 已显式声明 `candidateDataBindings` 数组项的 `capabilityId`、`arguments`、`writeResultTo` 和可选 `candidateOutputFields`；必须严格按这些字段组装。`candidateEventCandidates` 数组项仍是宽类型 `Object`，按内部事件契约组装，但不得扩展工具顶层入参。
 
 正确的 `CandidateDataBinding`：
 
@@ -191,9 +219,16 @@ invoke(functionName:"generateWidgetCard", arguments:{
     "districtName": "青浦区",
     "forecastDays": 1
   },
-  "writeResultTo": "/data/weather"
+  "writeResultTo": "/data/weather",
+  "candidateOutputFields": [
+    "/location/name",
+    "/current/temperatureText",
+    "/current/weatherText"
+  ]
 }
 ```
+
+`candidateOutputFields` 是可选字符串数组；每个 JSON Pointer 必须存在于该能力本轮返回的 `outputSchema`。不要传旧字段 `updateModel`。
 
 不要把能力参数平铺成：
 
