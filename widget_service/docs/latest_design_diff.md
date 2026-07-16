@@ -57,7 +57,7 @@
 ## 5. 能力裁决职责
 
 - 旧实现：在 `generateWidgetCard` 内查询 IDS 并过滤候选能力。
-- 当前实现：第一接口 `getWidgetCapabilityOverview` 读取 `ids_installation_filter_package_names`，只将命中配置范围的 `dependencies.requiredPackages[].packageName` 与 IDS `bundleName` 精确匹配。默认范围只有 `com.huawei.hmos.health.core`，所以当前过滤只对运动健康数据和事件能力生效；配置为空时跳过 IDS 查询。不比较 ROM/App/包版本，也不查询 provider、intent 或权限。第三接口只消费主 Agent 从可用清单中规划的候选，不重复查询 IDS。
+- 当前实现：第一接口 `getWidgetCapabilityOverview` 读取 `ids_installation_filter_package_names`，只将命中配置范围的 `dependencies.requiredPackages[].packageName` 与 IDS `bundleName` 精确匹配。默认范围只有 `com.huawei.hmos.health.core`，所以当前过滤只对运动健康数据和事件能力生效；配置为空时跳过 IDS 查询。不比较 ROM/App/包版本，也不查询 provider、intent 或权限；旧清单中的这些额外依赖字段兼容忽略，不再触发注册表加载失败。第三接口只消费主 Agent 从可用清单中规划的候选，不重复查询 IDS。
 - 第一接口响应不包含 TaskSpec；TaskSpec 只在生成接口内部构造并存入 artifact。
 
 ## 6. 能力注册表回退

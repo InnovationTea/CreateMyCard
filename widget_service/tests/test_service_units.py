@@ -29,6 +29,7 @@ from models.capability import (
     AssetCapability,
     DataCapability,
     Dependencies,
+    EventCapability,
     RemovedCapability,
     RequiredPackage,
 )
@@ -605,12 +606,46 @@ def test_data_capability_allows_missing_leaf_sample_value():
     assert "sampleValue" not in capability.outputSchema["properties"]["value"]
 
 
-def test_data_capability_rejects_legacy_dependency_fields():
-    with pytest.raises(ValidationError):
-        Dependencies(minRomVersion="36")
+def test_capability_dependencies_ignore_legacy_fields_and_keep_package_names():
+    dependencies = Dependencies(
+        minRomVersion="7.0.0",
+        minAppVersion="11.7.5.205",
+        requiredProviders=["UG.weather.current"],
+        requiredIntentTargets=["ViewCalendarEvent"],
+        requiredPermissions=["calendar.read"],
+        requiredPackages=[
+            {
+                "packageName": "com.example.app",
+                "minVersion": "1.0.0",
+            }
+        ],
+    )
 
-    with pytest.raises(ValidationError):
-        RequiredPackage(packageName="com.example.app", minVersion="1.0.0")
+    assert dependencies.model_dump() == {
+        "requiredPackages": [{"packageName": "com.example.app"}]
+    }
+
+
+def test_event_capability_accepts_legacy_dependency_metadata():
+    capability = EventCapability(
+        id="event.legacy",
+        call="clickToIntent",
+        description="旧版事件能力",
+        dependencies={
+            "minRomVersion": "7.0.0",
+            "requiredIntentTargets": ["ViewCalendarEvent"],
+            "requiredPackages": [
+                {
+                    "packageName": "com.huawei.hmos.calendar",
+                    "minVersion": "16.0.0",
+                }
+            ],
+        },
+    )
+
+    assert capability.dependencies.model_dump() == {
+        "requiredPackages": [{"packageName": "com.huawei.hmos.calendar"}]
+    }
 
 
 @pytest.mark.parametrize(

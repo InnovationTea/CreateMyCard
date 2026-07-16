@@ -1173,9 +1173,9 @@ load_json(path: Path) -> Any
 
 ### 11.1 capability.py
 
-`RequiredPackage`：依赖应用包名。
+`RequiredPackage`：依赖应用包名。运行时只保留 `packageName`，旧清单中的 `minVersion` 等额外字段兼容忽略。
 
-`Dependencies`：能力安装依赖，当前只包含 `requiredPackages`；能力未声明时按空依赖处理。
+`Dependencies`：能力安装依赖，当前只消费 `requiredPackages[].packageName`；能力未声明时按空依赖处理。旧清单中的 ROM/App 版本、provider、intent 和权限等额外字段加载时忽略，不参与可用性过滤。
 
 `DataCapability`：数据能力完整定义，用于 schema 返回、过滤、CardSpec 和 TaskSpec 构造。其中 `defaultWriteResultTo` 是可选建议字段，存在时才校验路径；第三接口实际使用请求中的 `writeResultTo`。`outputSchema` 叶子的 `type` 和 `description` 必需，`sampleValue` 可选；显式样例类型错误时拒绝能力配置，缺省样例由 TaskSpecBuilder 按字段类型生成受控默认值。
 

@@ -22,13 +22,16 @@ def _sample_value_matches_type(value: Any, schema_type: str) -> bool:
 
 
 class RequiredPackage(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    # 运行时只消费包名；旧清单中的 minVersion 等字段保留兼容但不参与过滤。
+    model_config = ConfigDict(extra="ignore")
 
     packageName: str
 
 
 class Dependencies(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    # ROM/App/provider/intent 等旧依赖字段已经退出过滤逻辑。加载旧清单时忽略
+    # 这些元数据，只保留当前实际使用的 requiredPackages，避免阻断整个接口。
+    model_config = ConfigDict(extra="ignore")
 
     requiredPackages: list[RequiredPackage] = Field(default_factory=list)
 
