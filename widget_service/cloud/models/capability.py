@@ -48,7 +48,7 @@ class DataCapability(BaseModel):
 
     @model_validator(mode="after")
     def validate_output_leaf_metadata(self) -> "DataCapability":
-        """保证输出 schema 可遍历，且每个叶子都能还原为模型字段说明。"""
+        """保证输出 schema 可遍历，且叶子类型和说明可用于模型字段还原。"""
         if self.defaultWriteResultTo is not None:
             write_parts = parse_json_pointer(self.defaultWriteResultTo)
             if write_parts is None or len(write_parts) < 2 or write_parts[0] != "data":
@@ -98,9 +98,11 @@ class DataCapability(BaseModel):
         description = schema.get("description")
         if not isinstance(description, str) or not description:
             return [f"{pointer}: description must be a non-empty string"], 1
-        if "sampleValue" not in schema:
-            return [f"{pointer}: sampleValue is required"], 1
-        if not _sample_value_matches_type(schema["sampleValue"], schema_type):
+        # sampleValue 是生成质量提示，不是能力加载门禁。旧注册表缺失时由
+        # TaskSpecBuilder 生成受控的类型默认值；显式提供但类型错误仍拒绝。
+        if "sampleValue" in schema and not _sample_value_matches_type(
+            schema["sampleValue"], schema_type
+        ):
             return [f"{pointer}: sampleValue does not match type {schema_type}"], 1
         return [], 1
 

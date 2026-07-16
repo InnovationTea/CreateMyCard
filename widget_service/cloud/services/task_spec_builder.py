@@ -10,6 +10,14 @@ from models.generation import CandidateDataBinding, EventAction, TaskSpec, Widge
 
 PathPart = str | int
 
+DEFAULT_SAMPLE_VALUES: dict[str, Any] = {
+    "string": "示例",
+    "integer": 0,
+    "number": 0,
+    "boolean": False,
+    "null": None,
+}
+
 
 class TaskSpecBuilder:
     def build(
@@ -63,13 +71,25 @@ class TaskSpecBuilder:
             write_parts = parse_json_pointer(binding.writeResultTo)
             if write_parts is None:
                 continue
+            generated_sample_count = 0
             for relative_parts, leaf in valid_fields:
+                if "sampleValue" in leaf:
+                    sample_value = deepcopy(leaf["sampleValue"])
+                else:
+                    sample_value = DEFAULT_SAMPLE_VALUES[leaf["type"]]
+                    generated_sample_count += 1
                 metadata = {
                     "type": leaf["type"],
                     "description": leaf["description"],
-                    "sampleValue": deepcopy(leaf["sampleValue"]),
+                    "sampleValue": sample_value,
                 }
                 self._set_by_parts(data_model_schema, (*write_parts, *relative_parts), metadata)
+            if generated_sample_count:
+                logger.warning(
+                    "output_schema_sample_value_fallback "
+                    f"capability_id={binding.capabilityId} "
+                    f"fallback_count={generated_sample_count}"
+                )
 
         return TaskSpec(
             userQuery=user_query,
@@ -111,7 +131,7 @@ class TaskSpecBuilder:
                 return None
         if current.get("type") in {"object", "array"}:
             return None
-        if not {"type", "description", "sampleValue"}.issubset(current):
+        if not {"type", "description"}.issubset(current):
             return None
         return tuple(resolved_parts), current
 
@@ -120,7 +140,7 @@ class TaskSpecBuilder:
         schema: dict[str, Any],
         parts: tuple[PathPart, ...] = (),
     ):
-        """递归枚举 outputSchema 中具备完整元数据的合法叶子。"""
+        """递归枚举 outputSchema 中具备类型和说明的合法叶子。"""
         schema_type = schema.get("type")
         if schema_type == "object":
             for name, child in schema.get("properties", {}).items():
@@ -132,7 +152,7 @@ class TaskSpecBuilder:
             if isinstance(items, dict):
                 yield from self._iter_valid_leaves(items, (*parts, 0))
             return
-        if parts and {"type", "description", "sampleValue"}.issubset(schema):
+        if parts and {"type", "description"}.issubset(schema):
             yield parts, schema
 
     def _set_by_parts(

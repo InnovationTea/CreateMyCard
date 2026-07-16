@@ -21,7 +21,7 @@ if str(CLOUD_ROOT) not in sys.path:
     sys.path.insert(0, str(CLOUD_ROOT))
 
 from core.errors import ErrorCode, GenerationStatus
-from api.routes import _pick_device_rom_version
+from api.routes import _error_details, _pick_device_rom_version
 from app.logger import json_for_log
 from config.config import Settings, get_settings
 from models.artifact import ArtifactMeta, WidgetArtifact
@@ -590,26 +590,27 @@ def test_data_capability_allows_missing_default_path_and_dependencies():
     assert payload["dependencies"] == {"requiredPackages": []}
 
 
-def test_data_capability_rejects_legacy_dependency_fields_or_missing_leaf_metadata():
+def test_data_capability_allows_missing_leaf_sample_value():
+    capability = DataCapability(
+        id="missing.sample",
+        description="缺少样例",
+        outputSchema={
+            "type": "object",
+            "properties": {
+                "value": {"type": "string", "description": "展示值"}
+            },
+        },
+    )
+
+    assert "sampleValue" not in capability.outputSchema["properties"]["value"]
+
+
+def test_data_capability_rejects_legacy_dependency_fields():
     with pytest.raises(ValidationError):
         Dependencies(minRomVersion="36")
 
     with pytest.raises(ValidationError):
         RequiredPackage(packageName="com.example.app", minVersion="1.0.0")
-
-    with pytest.raises(ValidationError):
-        DataCapability(
-            id="missing.sample",
-            description="缺少样例",
-            defaultWriteResultTo="/data/missingSample",
-            outputSchema={
-                "type": "object",
-                "properties": {
-                    "value": {"type": "string", "description": "展示值"}
-                },
-            },
-            dependencies=Dependencies(),
-        )
 
 
 @pytest.mark.parametrize(
@@ -617,6 +618,10 @@ def test_data_capability_rejects_legacy_dependency_fields_or_missing_leaf_metada
     [
         {"type": "object", "properties": {}},
         {"type": "wat", "description": "非法类型", "sampleValue": "x"},
+        {
+            "type": "object",
+            "properties": {"value": {"type": "string"}},
+        },
         {
             "type": "object",
             "properties": {
@@ -664,6 +669,31 @@ def test_data_capability_rejects_invalid_default_write_result_to(
             },
             dependencies=Dependencies(),
         )
+
+
+def test_validation_error_details_are_json_safe_and_exclude_input():
+    with pytest.raises(ValidationError) as exc_info:
+        DataCapability(
+            id="invalid.sample.type",
+            description="非法样例类型",
+            outputSchema={
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "description": "数量",
+                        "sampleValue": "not-an-integer",
+                    }
+                },
+            },
+        )
+
+    details = _error_details(exc_info.value)
+
+    json_module.dumps(details)
+    assert isinstance(details, list)
+    assert all("ctx" not in item and "input" not in item for item in details)
+    assert "sampleValue does not match type integer" in details[0]["msg"]
 
 
 @pytest.mark.parametrize(
@@ -878,6 +908,61 @@ def _task_spec_capability(capability_id: str = "ViewWeather") -> DataCapability:
         },
         dependencies=Dependencies(),
     )
+
+
+def test_task_spec_builder_synthesizes_missing_sample_values_once_per_capability(
+    monkeypatch,
+):
+    warnings: list[str] = []
+    monkeypatch.setattr(
+        "services.task_spec_builder.logger",
+        type("CapturedLogger", (), {"warning": staticmethod(warnings.append)})(),
+    )
+    capability = DataCapability(
+        id="LegacyOutputSchema",
+        description="旧版输出结构",
+        outputSchema={
+            "type": "object",
+            "properties": {
+                "label": {"type": "string", "description": "文本"},
+                "count": {"type": "integer", "description": "整数"},
+                "ratio": {"type": "number", "description": "数值"},
+                "enabled": {"type": "boolean", "description": "开关"},
+                "empty": {"type": "null", "description": "空值"},
+            },
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="LegacyOutputSchema",
+        writeResultTo="/data/legacy",
+        candidateOutputFields=[
+            "/label",
+            "/count",
+            "/ratio",
+            "/enabled",
+            "/empty",
+        ],
+    )
+
+    task_spec = TaskSpecBuilder().build(
+        user_query="兼容旧能力",
+        size="2x2",
+        effective_bindings=[binding],
+        effective_data_capabilities=[capability],
+        event_candidates=[],
+        asset_candidates=[],
+    )
+
+    legacy_schema = task_spec.dataModelSchema["data"]["legacy"]
+    assert legacy_schema["label"]["sampleValue"] == "示例"
+    assert legacy_schema["count"]["sampleValue"] == 0
+    assert legacy_schema["ratio"]["sampleValue"] == 0
+    assert legacy_schema["enabled"]["sampleValue"] is False
+    assert legacy_schema["empty"]["sampleValue"] is None
+    assert warnings == [
+        "output_schema_sample_value_fallback "
+        "capability_id=LegacyOutputSchema fallback_count=5"
+    ]
 
 
 def test_candidate_data_binding_rejects_legacy_update_model():

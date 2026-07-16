@@ -76,7 +76,8 @@
 ## 8. 字段投影直推
 
 - `candidateOutputFields` 按 JSON Pointer 直接解析对应能力的 `outputSchema` 叶子，不再维护独立的 `data_model_mappings.json`。
-- `TaskSpecBuilder` 从命中的 `outputSchema` 叶子读取 `type/description/sampleValue`，按 `writeResultTo + 原叶子路径` 生成 `dataModelSchema`。
+- `outputSchema` 叶子的 `type/description` 仍为必需元数据；`sampleValue` 是推荐维护的脱敏受控元数据，缺失不阻断注册表加载，显式样例类型错误仍拒绝能力配置。当前内置注册表继续维护高质量样例。
+- `TaskSpecBuilder` 从命中的 `outputSchema` 叶子读取 `type/description`，优先使用显式 `sampleValue`；缺失时按类型补充受控默认值：`string="示例"`、`integer/number=0`、`boolean=false`、`null=null`，再按 `writeResultTo + 原叶子路径` 生成 `dataModelSchema`。
 - 部分非法路径被忽略；未传投影或全部路径非法时回退到该能力全部合法叶子字段。
 - 端侧当前会把能力输出整体写入 `writeResultTo`，没有字段重命名、扁平化或派生字段转换层，因此生成链路不得把源字段映射到另一个目标路径。未来需要转换时，必须先单独设计并版本化实际运行时转换契约。
 
@@ -84,6 +85,7 @@
 
 - 日志里的字典、数组、布尔值和空值统一通过 `json_for_log` 输出为标准 JSON。
 - JSON 键名和字符串使用双引号，布尔值使用 `true/false`，空值使用 `null`，不再输出 Python 单引号 `repr`。
+- Pydantic 校验错误写入日志或接口错误详情前转换为 JSON-safe 结构，只保留 `loc/type/msg` 等诊断字段，不携带 `input/ctx` 原始对象。
 - `uid` 继续作为合法请求字段保留在接口契约和调用示例中，但禁止写入日志，包括原值、脱敏值和哈希值；打印请求结构前必须显式排除 `uid`，IDS 请求日志也排除 `callingUid`。
 - 每次能力概述请求的包过滤只打印一条汇总结果日志，不再逐项输出每个能力的依赖检查；汇总统一记录 `requestId`、IDS 数据源、数量统计和被移除能力摘要。
 

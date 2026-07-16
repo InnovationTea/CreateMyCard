@@ -143,7 +143,9 @@ def _error_details(exc: ValidationError | ValueError) -> list[dict[str, Any]] | 
     出参：可写入 WebSocket 错误消息的详情对象。
     """
     if isinstance(exc, ValidationError):
-        return exc.errors()
+        # Pydantic 的 ctx 可能携带原生 ValueError，input 可能包含完整请求或注册表；
+        # 二者既不适合对外返回，也可能导致错误响应再次序列化失败。
+        return exc.errors(include_context=False, include_input=False)
     return str(exc)
 
 

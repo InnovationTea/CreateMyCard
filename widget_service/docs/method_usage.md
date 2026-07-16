@@ -854,7 +854,7 @@ assetCandidates
 
 ### 7.3 TaskSpecBuilder 字段投影
 
-用途：按 JSON Pointer 校验 `candidateOutputFields` 是否能直接解析到能力 `outputSchema` 叶子，从该叶子读取 `type`、`description` 和 `sampleValue`，并按 `writeResultTo + 原叶子路径` 合并多个能力的 `dataModelSchema`。数组元素 schema 统一使用 canonical 下标 `0`，例如 `/events/0/title`；其它数组下标视为非法投影。部分非法路径被忽略；未传投影或全部路径非法时回退到该能力全部合法叶子字段。
+用途：按 JSON Pointer 校验 `candidateOutputFields` 是否能直接解析到能力 `outputSchema` 叶子，从该叶子读取必需的 `type` 和 `description`；优先使用显式 `sampleValue`，缺省时按类型生成受控默认值：`string` 为 `"示例"`，`integer/number` 为 `0`，`boolean` 为 `false`，`null` 为 `null`。随后按 `writeResultTo + 原叶子路径` 合并多个能力的 `dataModelSchema`。数组元素 schema 统一使用 canonical 下标 `0`，例如 `/events/0/title`；其它数组下标视为非法投影。部分非法路径被忽略；未传投影或全部路径非法时回退到该能力全部合法叶子字段。缺少 `sampleValue` 不阻断注册表加载或字段投影；显式 `sampleValue` 的 JSON 类型与 `type` 不一致时仍拒绝能力配置。
 
 端侧会将符合 `outputSchema` 的能力结果整体写入 `writeResultTo`，当前没有字段重命名、扁平化或派生字段转换层。因此 TaskSpec 不得使用独立映射表改写目标路径；未来需要转换时，应先增加并版本化实际运行时转换契约。
 
@@ -1137,6 +1137,7 @@ cloud/app/logger.py
 
 日志约束：
 
+- Pydantic 校验错误写入日志或接口错误详情前必须转换为 JSON-safe 结构，只保留 `loc`、`type`、`msg` 等可安全序列化字段，不得携带 `input` 或 `ctx` 中的原始对象。
 - `uid` 是合法请求字段，请求示例和接口模型继续保留；但任何日志均不得记录 `uid` 原值、脱敏值或哈希值，也不得直接打印包含 `uid` 的完整请求对象；IDS 请求日志中的 `callingUid` 同样排除。
 - 每次 `getWidgetCapabilityOverview` 的能力包过滤只记录一条汇总结果，集中包含 `requestId`、IDS 数据源、过滤是否执行、数量统计和被移除能力摘要；禁止逐能力打印依赖包检查日志。
 - 接口开始、结束等生命周期日志可以保留，但不能重复打印能力包过滤明细或第二份过滤汇总。
@@ -1176,7 +1177,7 @@ load_json(path: Path) -> Any
 
 `Dependencies`：能力安装依赖，当前只包含 `requiredPackages`；能力未声明时按空依赖处理。
 
-`DataCapability`：数据能力完整定义，用于 schema 返回、过滤、CardSpec 和 TaskSpec 构造。其中 `defaultWriteResultTo` 是可选建议字段，存在时才校验路径；第三接口实际使用请求中的 `writeResultTo`。
+`DataCapability`：数据能力完整定义，用于 schema 返回、过滤、CardSpec 和 TaskSpec 构造。其中 `defaultWriteResultTo` 是可选建议字段，存在时才校验路径；第三接口实际使用请求中的 `writeResultTo`。`outputSchema` 叶子的 `type` 和 `description` 必需，`sampleValue` 可选；显式样例类型错误时拒绝能力配置，缺省样例由 TaskSpecBuilder 按字段类型生成受控默认值。
 
 `EventCapability`：事件能力定义，用于入口事件过滤。
 
@@ -1239,7 +1240,7 @@ meta
 新增数据能力：
 
 1. 直接更新当前版本目录中的 `data_capabilities.json`；它是微服务运行时的权威数据源。
-2. 可选声明合法的 `/data/...` JSON Pointer `defaultWriteResultTo`；只有能力确实需要按安装包过滤时才声明仅含包名的 `dependencies.requiredPackages`，缺省依赖按 `requiredPackages=[]` 处理。为非空、可遍历的 `outputSchema` 每个叶子补齐 `type/description/sampleValue`；`sampleValue` 的 JSON 类型必须与 `type` 一致。
+2. 可选声明合法的 `/data/...` JSON Pointer `defaultWriteResultTo`；只有能力确实需要按安装包过滤时才声明仅含包名的 `dependencies.requiredPackages`，缺省依赖按 `requiredPackages=[]` 处理。非空、可遍历的 `outputSchema` 每个叶子必须包含 `type/description`，并推荐维护高质量、脱敏受控的 `sampleValue`。缺少 `sampleValue` 不阻断注册表加载，TaskSpecBuilder 会按类型补充受控默认值；显式 `sampleValue` 的 JSON 类型必须与 `type` 一致。当前内置注册表继续为所有叶子维护高质量样例。
 3. 增加或更新测试，覆盖第一接口过滤、schema 获取和生成。
 
 新增事件能力：
