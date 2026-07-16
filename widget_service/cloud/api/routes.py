@@ -292,6 +292,8 @@ async def _serve_operation_websocket(
     operation: str,
     request_model: type[BaseModel],
     handler,
+    heartbeat: bool = False,
+    heartbeat_interval: float = 6.0,    
 ) -> None:
     """承载单个工具能力的 WebSocket 循环。
 
@@ -487,6 +489,8 @@ async def generate_widget_card_ws(websocket: WebSocket):
         "generateWidgetCard",
         GenerateWidgetCardRequest,
         lambda service, request: service.generate_widget_card_a2ui_form(request),
+        heartbeat=True,
+        heartbeat_interval=6.0,        
     )
 
 
@@ -498,4 +502,6 @@ async def generate_widget_card_compact_dsl_ws(websocket: WebSocket):
         "generateWidgetCardCompactDsl",
         GenerateWidgetCardRequest,
         lambda service, request: service.generate_widget_card_compact_dsl(request),
+        heartbeat=True,
+        heartbeat_interval=6.0,        
     )
