@@ -42,7 +42,7 @@
             },
             "title": {
               "type": "string",
-              "description": "日程标题，例如"会议"、"咪咕视频《西班牙 VS 奥地利》"。"
+              "description": "日程标题，例如"咪咕视频《西班牙 VS 奥地利》"或航班、车次信息。"
             },
             "eventLocation": {
               "type": "string",
@@ -50,7 +50,7 @@
             },
             "description": {
               "type": "string",
-              "description": "日程的备注、摘要或补充叙述文本。"
+              "description": "日程的备注或摘要。注意：某些三方应用写入时，此字段可能仅为时间的补充描述（如'07月03日 03:00'）或补充检票口、座位号等短文本。"
             },
             "dtStart": {
               "type": "string",
@@ -77,7 +77,8 @@
             },
             "oneClickServiceType": {
               "type": "string",
-              "description": "绑定的轻服务类型名称，如 'SportsEvents'。"
+              "enum": ["Meeting", "Watching", "Repayment", "Live", "Shopping", "Trip", "Class", "SportsEvents", "SportsExercise", ""],
+              "description": "绑定的轻服务类型名称。大模型在生成一键服务按钮文案时可参考此映射：Meeting(加入会议), Watching(立即观看), Repayment(马上还款), Live(开启直播), Shopping(开始选购), Trip(立即查看), Class(开始上课), SportsEvents(立即观看), SportsExercise(开始运动)。"
             },
             "oneClickServiceLink": {
               "type": "string",

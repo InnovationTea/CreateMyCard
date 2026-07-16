@@ -8,12 +8,13 @@
   1. `getWidgetCapabilityOverview`
   2. `getDataCapabilitySchemas`
   3. `generateWidgetCard`
+- 每次调用前先执行用户确认门禁：如果当前已知信息中存在用户可回答、且会影响核心卡片意图、候选选择或业务入参的未决项，先追问并等待用户回答；回答前不得调用任何工具。能安全推导或有明确默认值的信息不重复确认，微服务负责的设备能力裁决和内部技术字段不向用户询问。
 - 必须使用 `invoke(functionName:"<toolName>", arguments:{bundleName:"<bundleName>", ...},"skillName":"harmony-card-generation-online")` 调用工具；`skillName` 必须与当前 Skill frontmatter 的 `name` 完全一致，不得省略、传空字符串或使用显示名称。
 - `arguments` 必须包含 `bundleName: "com.omega_w_0823.hmservice"`。
 - 每次调用前必须读取当前运行时对应工具的 schema；除 `bundleName` 外，只传其 `arguments.properties` 中声明的业务字段，并满足 `required`、类型、数组元素类型和已声明嵌套结构。
 - 当前运行时 schema 是调用入参的唯一依据。本文件、Skill 文案、参考 JSON、历史示例或内部类结构与其冲突时，以当前运行时 schema 为准；schema 未声明字段一律删除。
 - 对外工具 schema 中的 `Array<Object>` / `Object` 是插件层宽类型。只有 schema 已声明对应数组或对象字段时，才按本文件定义的内部类结构组装其值；内部类结构不能授权新增 schema 外的顶层字段。
-- 必填字段无法可靠补齐、类型无法满足或嵌套结构不合法时，不调用工具，不猜测字段、不传 `null` 占位、不把对象字符串化规避校验。
+- 必填字段无法可靠补齐时先区分原因：缺少用户可提供的核心业务值则追问并等待回答；工具接入、schema 不兼容或用户无法确认的技术缺口则停止调用。任何情况都不猜测字段、不传 `null` 占位、不把对象字符串化规避校验。
 - 不手写内部 WebSocket 包络字段，例如 `content`、`deviceInfo`、`session`、`pagination`、`userAuth`、`utterance`、`version`。
 - 不手写或猜测 `uid`、`device`、`locale`、`protocolProfileId`、`capabilityRegistryVersion`、`options` 等未在当前对外工具 schema 中声明的字段。
 - 不传 `slots`。
@@ -81,6 +82,7 @@ invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.om
 
 调用规则：
 
+- 调用前确认用户的核心卡片主题和明确要求不存在待追问项。
 - 先调用该工具，再做候选选择。
 - 不因 overview 中出现某能力就向用户承诺设备一定可用。
 - 只从解析后的 `dataCapabilities`、`eventCapabilities`、`assetCandidates` 中选择候选；不要编造能力 ID、事件目标或素材 ID。
@@ -110,6 +112,7 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
 
 调用规则：
 
+- 调用前确认候选能力选择不依赖未解决的用户歧义；存在会改变核心候选的选择时先追问并等待回答。
 - 只传本轮从 overview 中选出的数据能力 ID。
 - 如果某 ID 出现在 `missingCapabilityIds`，候选计划中移除该数据能力。
 - `candidateDataBindings[].arguments` 只能使用对应 `inputSchema.properties` 中声明的字段。
@@ -221,6 +224,7 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 
 调用规则：
 
+- 调用前再次检查核心目标、地点、日期/时间范围、动作目标和能力必填业务参数；存在用户可确认的缺失或歧义时先追问并等待回答，再重建候选计划。
 - `title` 和 `description` 必须始终传非空字符串；无法从需求提炼时，使用“桌面卡片”和“信息速览”等稳定默认文案。
 - `title`、`description` 不填入动态数据、隐私数据或不确定状态，不用于替代数据能力。
 - `candidateDataBindings` 是候选，不是最终 CardSpec。

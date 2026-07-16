@@ -4,6 +4,7 @@
 
 ## 通用规则
 
+- 调用工具前的用户追问不属于 `failed`。存在待确认信息时直接提出最少必要问题并等待用户回答；此时不调用工具、不输出“服务暂时不可用”，也不输出 `genWidgetResult`。
 - 三个工具返回的是包装结构：`streamInfo` 以及 `items`；如果运行环境返回原始插件包络，则先检查顶层 `errorCode/errorMessage/reply`，`errorCode` 非 `"0"` 时按工具失败处理，`errorCode` 为 `"0"` 时从 `reply.items` 继续解析。
 - 业务结果必须先从当前工具对应的 `items[].data` 解析出来。
 - `items[].status` 是工具层状态，不等同于 `generateWidgetCard` 业务 payload 中的 `status`。

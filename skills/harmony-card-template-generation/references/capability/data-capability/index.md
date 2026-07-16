@@ -14,9 +14,11 @@
 | 用户意图 | 读取文件 | 能力 ID | 推荐 `writeResultTo` |
 | --- | --- | --- | --- |
 | 天气、空气质量、温湿度、未来预报、雨天提醒、紫外线、风力 | `weather.md` | `ViewWeather` | `/data/weather` |
-| 今日/未来日程、会议、倒计时、日历提醒、赛事日程 | `calendar.md` | `GetCalendarEvents` | `/data/calendar` |
-| 指定应用使用时长、前后台耗电、应用电量消耗 | `app-usage.md` | `GetAppUsageDurationAndPower` | `/data/appUsageStats` |
-| 蓝牙耳机连接、电量、左右耳/耳机盒充电状态 | `blutoothearphone-status.md` | `GetBluetoothEarphoneStatus` | `/data/earphone` |
+| 今日/未来日程、会议、日历提醒、赛事日程 | `calendar.md` | `GetCalendarEvents` | `/data/calendar` |
+| 指定日期倒数日、纪念日、节日/考试/截止日期倒计时 | `countdown-days.md` | `GetCountdownDays` | `/data/countdown` |
+| 指定应用今日使用时长 | `app-usage.md` | `GetAppUsageDuration` | `/data/appUsageStats` |
+| 蓝牙耳机连接、电量、左右耳/耳机盒充电状态 | `blutoothearphone-status.md` | `GetEarphoneInfo` | `/data/earphone` |
+| 手机电量、充电状态、电池健康、温度、电流、电压 | `phone-battery.md` | `GetPhoneBatteryInfo` | `/data/phoneBattery` |
 | 睡眠、步数、热量、距离、最近运动、心率 | `healthy-sport.md` | `GetHealthAndSportSummary` | `/data/healthSport` |
 | 系统内存、可用内存、空闲内存、内存占用比例 | `system-mem-info.md` | `GetSystemMemInfo` | `/data/systemMem` |
 

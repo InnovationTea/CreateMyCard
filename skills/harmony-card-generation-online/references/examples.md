@@ -15,7 +15,17 @@
 
 ## 工具调用样例：天气通勤卡
 
-说明：以下示例统一通过 `invoke(functionName:"工具名", arguments:{bundleName:"com.omega_w_0823.hmservice", ...},"skillName":"harmony-card-generation-online")` 调用工具。`skillName` 必须与当前 Skill frontmatter 的 `name` 完全一致。每次调用前都要以当前运行时 `tools` 中对应工具的 schema 校验字段名、必填项、类型和嵌套结构；schema 未声明字段一律不传，示例不能覆盖运行时 schema。不要构造内部 `content/deviceInfo/session` 包络。示例中的 `timeInterval` 使用 2026-07-06 Asia/Shanghai 的当天毫秒区间；实际执行时按用户本地时区和当前日期计算。
+说明：以下示例统一通过 `invoke(functionName:"工具名", arguments:{bundleName:"com.omega_w_0823.hmservice", ...},"skillName":"harmony-card-generation-online")` 调用工具。`skillName` 必须与当前 Skill frontmatter 的 `name` 完全一致。每次调用前先检查是否有会影响核心意图、候选选择或业务入参的用户待确认项；有则先追问并等待回答，再以当前运行时 `tools` 中对应工具的 schema 校验字段名、必填项、类型和嵌套结构。schema 未声明字段一律不传，示例不能覆盖运行时 schema。不要构造内部 `content/deviceInfo/session` 包络。示例中的 `timeInterval` 使用 2026-07-06 Asia/Shanghai 的当天毫秒区间；实际执行时按用户本地时区和当前日期计算。
+
+## 调用前追问样例
+
+用户说“做一个给家人打电话的桌面卡片”，但没有说明联系人或号码。该目标会影响核心动作参数，因此在调用第一个工具前先追问：
+
+```text
+你希望卡片拨打哪位联系人或哪个号码？
+```
+
+等待用户回答后再从工作流当前步骤继续。不要先调用 overview，不要猜测联系人，也不要把拨号动作静默删除后生成另一种卡片。
 
 1. `getWidgetCapabilityOverview`
 

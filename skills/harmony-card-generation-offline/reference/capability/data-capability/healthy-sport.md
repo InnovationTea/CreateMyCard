@@ -3,7 +3,7 @@
 ```json
 {
   "id": "GetHealthAndSportSummary",
-  "description": "一键合并查询用户指定时间段内的大健康、日常大盘活动与单次专业运动训练指标。包含极其精细的夜间科学睡眠分析、当日全天步数/热量/距离总合大盘，以及最近一次专业运动训练的起止时间、计划与详尽的心率区间剖析。",
+  "description": "一键合并查询用户指定时间段内的大健康、日常大盘活动与单次专业运动训练指标。包含极其精细的夜间科学睡眠分析、当日全天步数/热量/距离总合大盘，以及最近一次专业运动训练的起止时间与详尽的心率区间剖析。",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -69,10 +69,6 @@
       "exerciseTypeName": {
         "type": "string",
         "description": "最近一次发生的单次专业运动训练类型的中文映射名称，如"羽毛球"、"自由训练"、"户外跑步"。若无记录则返回"暂无运动"。"
-      },
-      "exercisePlan": {
-        "type": "string",
-        "description": "运动训练或当日康复计划的文本描述。例如："打羽毛球一小时，运动拉伸20分钟"。"
       },
       "exerciseStartTimeText": {
         "type": "string",

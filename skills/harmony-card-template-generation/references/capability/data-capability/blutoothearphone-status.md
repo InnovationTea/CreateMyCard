@@ -2,7 +2,7 @@
 
 ```json
 {
-  "id": "GetBluetoothEarphoneStatus",
+  "id": "GetEarphoneInfo",
   "description": "查询当前手机连接的蓝牙耳机状态，包括耳机名称、主盒与左右耳的当前独立剩余电量百分比，以及它们各自的充电状态。",
   "inputSchema": {
     "type": "object",
@@ -57,7 +57,7 @@
 ## 使用规则
 
 - 适用于蓝牙耳机连接状态、耳机名称、耳机盒/左右耳电量和充电状态。
-- CardSpec 的 `capabilityId` 使用本文档 manifest 的 `id`：`GetBluetoothEarphoneStatus`。
+- CardSpec 的 `capabilityId` 使用本文档 manifest 的 `id`：`GetEarphoneInfo`。
 - `arguments` 不传字段；不要自行增加设备名、蓝牙地址或包名等入参。
 - 推荐 `writeResultTo: "/data/earphone"`；UI 访问路径必须由 `writeResultTo + outputSchema` 推导。
 - 常用展示路径：`/data/earphone/isConnected`、`/data/earphone/earphoneName`、`/data/earphone/batteryLevel`、`/data/earphone/chargingStatusDesc`、`/data/earphone/leftBatteryLevel`、`/data/earphone/rightBatteryLevel`、`/data/earphone/updatedAt`。
