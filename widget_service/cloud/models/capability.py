@@ -40,18 +40,21 @@ class DataCapability(BaseModel):
     descriptionForLLM: str = ""
     inputSchema: dict[str, Any] = Field(default_factory=dict)
     outputSchema: dict[str, Any] = Field(default_factory=dict)
-    defaultWriteResultTo: str
+    # 可选的推荐写入根路径；实际生成始终以请求绑定中的 writeResultTo 为准。
+    defaultWriteResultTo: str | None = None
     dataModelSkeleton: dict[str, Any] = Field(default_factory=dict)
-    dependencies: Dependencies
+    # 未声明依赖等价于不需要额外安装包，避免无依赖能力因缺字段而加载失败。
+    dependencies: Dependencies = Field(default_factory=Dependencies)
 
     @model_validator(mode="after")
     def validate_output_leaf_metadata(self) -> "DataCapability":
         """保证输出 schema 可遍历，且每个叶子都能还原为模型字段说明。"""
-        write_parts = parse_json_pointer(self.defaultWriteResultTo)
-        if write_parts is None or len(write_parts) < 2 or write_parts[0] != "data":
-            raise ValueError(
-                "defaultWriteResultTo must be a valid JSON Pointer below /data/"
-            )
+        if self.defaultWriteResultTo is not None:
+            write_parts = parse_json_pointer(self.defaultWriteResultTo)
+            if write_parts is None or len(write_parts) < 2 or write_parts[0] != "data":
+                raise ValueError(
+                    "defaultWriteResultTo must be a valid JSON Pointer below /data/"
+                )
         errors, leaf_count = self._output_schema_errors(self.outputSchema)
         if leaf_count == 0:
             errors.append("/: outputSchema must contain at least one leaf field")

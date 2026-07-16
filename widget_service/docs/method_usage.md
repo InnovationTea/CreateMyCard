@@ -265,7 +265,7 @@ curl http://127.0.0.1:8855/health
 }
 ```
 
-`missingCapabilityIds` 用来告诉主 Agent 哪些能力 ID 没有注册。
+`missingCapabilityIds` 用来告诉主 Agent 哪些能力 ID 没有注册。`defaultWriteResultTo` 是可选建议字段：缺少该字段不代表能力缺失或不可用，也不得阻断能力清单加载；第三接口实际使用请求中的 `candidateDataBindings[].writeResultTo`。
 
 ### 3.4 WS /api/v1/ws/tools/generateWidgetCard
 
@@ -453,7 +453,7 @@ get_data_capability_schemas(
 ) -> DataCapabilitySchemasResponse
 ```
 
-用途：按能力 ID 返回完整 schema、默认写入路径和 DataModel 骨架。
+用途：按能力 ID 返回完整 schema、可选的建议写入路径和 DataModel 骨架。
 
 使用示例：
 
@@ -1174,9 +1174,9 @@ load_json(path: Path) -> Any
 
 `RequiredPackage`：依赖应用包名。
 
-`Dependencies`：能力安装依赖，当前只包含 `requiredPackages`。
+`Dependencies`：能力安装依赖，当前只包含 `requiredPackages`；能力未声明时按空依赖处理。
 
-`DataCapability`：数据能力完整定义，用于 schema 返回、过滤、CardSpec 和 TaskSpec 构造。
+`DataCapability`：数据能力完整定义，用于 schema 返回、过滤、CardSpec 和 TaskSpec 构造。其中 `defaultWriteResultTo` 是可选建议字段，存在时才校验路径；第三接口实际使用请求中的 `writeResultTo`。
 
 `EventCapability`：事件能力定义，用于入口事件过滤。
 
@@ -1239,12 +1239,12 @@ meta
 新增数据能力：
 
 1. 直接更新当前版本目录中的 `data_capabilities.json`；它是微服务运行时的权威数据源。
-2. 声明合法的 `/data/...` JSON Pointer `defaultWriteResultTo` 和仅含包名的 `dependencies.requiredPackages`，并为非空、可遍历的 `outputSchema` 每个叶子补齐 `type/description/sampleValue`；`sampleValue` 的 JSON 类型必须与 `type` 一致。
+2. 可选声明合法的 `/data/...` JSON Pointer `defaultWriteResultTo`；只有能力确实需要按安装包过滤时才声明仅含包名的 `dependencies.requiredPackages`，缺省依赖按 `requiredPackages=[]` 处理。为非空、可遍历的 `outputSchema` 每个叶子补齐 `type/description/sampleValue`；`sampleValue` 的 JSON 类型必须与 `type` 一致。
 3. 增加或更新测试，覆盖第一接口过滤、schema 获取和生成。
 
 新增事件能力：
 
-1. 直接更新当前版本目录中的 `event_capabilities.json`，保持事件 ID 稳定，并在对应目标项声明仅含包名的 `dependencies.requiredPackages`。
+1. 直接更新当前版本目录中的 `event_capabilities.json`，保持事件 ID 稳定；只有事件确实需要按安装包过滤时才在对应目标项声明仅含包名的 `dependencies.requiredPackages`，缺省按空依赖处理。
 2. 第一接口确认可用后，在第三接口里通过 `candidateEventCandidates` 传入。
 
 新增素材：

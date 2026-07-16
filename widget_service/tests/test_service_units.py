@@ -436,7 +436,7 @@ def test_tool_envelope_reads_only_rom_version():
     assert _pick_device_rom_version({"romVersion": "35"}) == "35"
 
 
-def test_data_capability_registry_declares_dependencies_and_leaf_samples():
+def test_data_capability_registry_declares_leaf_samples_and_known_package_dependencies():
     registry = CapabilityRegistry(version="app-11.7.5.205_rom-36")
     capabilities = registry.list_data_capabilities()
     assert [item.id for item in capabilities] == [
@@ -447,7 +447,6 @@ def test_data_capability_registry_declares_dependencies_and_leaf_samples():
         "GetHealthAndSportSummary",
         "GetSystemMemInfo",
     ]
-    assert all(item.defaultWriteResultTo for item in capabilities)
     assert all(
         set(item.dependencies.model_dump()) == {"requiredPackages"}
         for item in capabilities
@@ -568,19 +567,35 @@ def test_cloud_capability_registries_are_self_contained_and_valid():
         assert len(asset_sources) == len(set(asset_sources))
 
 
-def test_data_capability_rejects_missing_dependencies_or_leaf_metadata():
+def test_data_capability_allows_missing_default_path_and_dependencies():
+    capability = DataCapability(
+        id="optional.registry.metadata",
+        description="缺省注册表元数据",
+        outputSchema={
+            "type": "object",
+            "properties": {
+                "value": {
+                    "type": "string",
+                    "description": "展示值",
+                    "sampleValue": "示例",
+                }
+            },
+        },
+    )
+
+    assert capability.defaultWriteResultTo is None
+    assert capability.dependencies == Dependencies()
+    payload = capability.model_dump(mode="json", exclude_none=True)
+    assert "defaultWriteResultTo" not in payload
+    assert payload["dependencies"] == {"requiredPackages": []}
+
+
+def test_data_capability_rejects_legacy_dependency_fields_or_missing_leaf_metadata():
     with pytest.raises(ValidationError):
         Dependencies(minRomVersion="36")
 
     with pytest.raises(ValidationError):
         RequiredPackage(packageName="com.example.app", minVersion="1.0.0")
-
-    with pytest.raises(ValidationError):
-        DataCapability(
-            id="missing.dependencies",
-            description="缺少依赖",
-            outputSchema={},
-        )
 
     with pytest.raises(ValidationError):
         DataCapability(
