@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+import asyncio
+import json
 import time
 import traceback
 import uuid
@@ -243,6 +245,48 @@ def _build_plugin_stream_response(
     )
 
 
+async def _heartbeat_sender(
+    websocket: WebSocket,
+    streaming_text_id: str,
+    interval: float = 6.0,
+) -> None:
+    """周期性向客户端发送 partial 心跳帧。
+
+    入参：
+    - websocket：客户端 WebSocket 连接。
+    - streaming_text_id：一次请求内稳定的流式文本 ID。
+    - interval：心跳发送间隔秒数，默认 6 秒。
+    出参：无；协程会持续运行直到被取消或连接关闭。
+    """
+    partial_frame = WidgetPluginStreamResponse(
+        errorCode="0",
+        errorMessage="",
+        reply=WidgetPluginReply(
+            streamInfo=WidgetStreamInfo(
+                streamContent="",
+                streamingTextId=streaming_text_id,
+                streamType="partial",
+                textType="markdown",
+            ),
+            items=[],
+        ),
+    )
+    partial_json = json.dumps(
+        partial_frame.model_dump(mode="json", exclude_none=True),
+        ensure_ascii=False,
+    )
+    try:
+        while True:
+            await asyncio.sleep(interval)
+            await websocket.send_text(partial_json)
+    except asyncio.CancelledError:
+        logger.error("widget_operation_ws_heartbeat_cancelled")
+        pass
+    except Exception:
+        logger.error("widget_operation_ws_heartbeat_failed", exc_info=True)
+        pass
+
+
 async def _serve_operation_websocket(
     websocket: WebSocket,
     operation: str,
@@ -275,6 +319,9 @@ async def _serve_operation_websocket(
                 f"operation={operation} payload_keys={list(payload.keys())} "
                 f"arguments={arguments}"
             )
+            # streaming_text_id 沿用现有逻辑：有 requestId 时取 requestId，否则生成随机 ID。
+            streaming_text_id = request_id or uuid.uuid4().hex
+            heartbeat_task: asyncio.Task | None = None
             try:
                 request = request_model(**arguments)
                 logger.info(
@@ -282,6 +329,27 @@ async def _serve_operation_websocket(
                     f"operation={operation} uid={getattr(request, 'uid', '')} "
                     f"request={request.model_dump(mode='json', exclude_none=True)}"
                 )
+                # 收到合法请求后先发送 start 帧，再启动心跳协程。
+                start_frame = WidgetPluginStreamResponse(
+                    errorCode="0",
+                    errorMessage="",
+                    reply=WidgetPluginReply(
+                        streamInfo=WidgetStreamInfo(
+                            streamContent="",
+                            streamingTextId=streaming_text_id,
+                            streamType="start",
+                            textType="markdown",
+                        ),
+                        items=[],
+                    ),
+                )
+                await websocket.send_json(
+                    start_frame.model_dump(mode="json", exclude_none=True)
+                )
+                if heartbeat:
+                    heartbeat_task = asyncio.create_task(
+                        _heartbeat_sender(websocket, streaming_text_id, heartbeat_interval)
+                    )                
                 # service 目前是同步编排器，内部包含 requests、同步文件读取和重试校验。
                 # WebSocket 入口必须把它放到线程池里执行，避免阻塞当前 async 事件循环。
                 result = await run_in_threadpool(handler, service, request)
@@ -366,6 +434,9 @@ async def _serve_operation_websocket(
                 await websocket.send_json(
                     plugin_response.model_dump(mode="json", exclude_none=True)
                 )
+            finally:
+                if heartbeat_task:
+                    heartbeat_task.cancel()                
     except WebSocketDisconnect:
         logger.info(f"widget_operation_ws_disconnected operation={operation}")
         return
