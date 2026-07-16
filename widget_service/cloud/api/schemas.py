@@ -168,6 +168,7 @@ class CapabilityOverviewResponse(BaseModel):
     dataCapabilities: list[DataCapabilityOverview]
     eventCapabilities: list[EventCapability]
     assetCandidates: list[AssetCapability]
+    unavailableCapabilities: list[RemovedCapability] = Field(default_factory=list)
 
 
 class DataCapabilitySchemasRequest(VersionedToolRequest):
@@ -243,5 +244,4 @@ class GenerateWidgetCardResponse(BaseModel):
     message: str
     removedCapabilities: list[RemovedCapability] = Field(default_factory=list)
     errorCode: str = ""
-    artifact: dict[str, Any] | None = None
     effectiveCapabilities: dict[str, list[Any]] = Field(default_factory=dict)

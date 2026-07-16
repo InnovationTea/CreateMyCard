@@ -74,7 +74,7 @@
 ```json
 {"id":"title","component":"Text","content":"{{ ${/title} }}","styles":{"fontSize":16,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}}
 {"id":"row","component":"Row","children":["title","action"],"itemMargin":8,"styles":{"justifyContent":"spaceBetween","alignItems":"center"}}
-{"id":"action","component":"Button","label":"打开","onClick":[{"call":"clickToDeeplink","args":{"bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}]}
+{"id":"action","component":"Button","label":"打开","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"battery"}}]}
 {"id":"progress","component":"Progress","value":"{{ ${/progress/value} }}","total":"{{ ${/progress/total} }}","styles":{"type":"ring","color":"#A77DFF","width":72,"height":72}}
 ```
 

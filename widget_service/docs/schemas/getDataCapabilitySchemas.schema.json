@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "getDataCapabilitySchemas",
   "transport": "websocket",
   "path": "/genui-agent-service/api/v1/ws/tools/getDataCapabilitySchemas",
@@ -27,7 +27,7 @@
           "capabilityRegistryVersion": {
             "type": "string|null",
             "required": false,
-            "description": "可选能力清单版本；不传时由 deviceInfo.prdVer + ROM 版本推导。"
+            "description": "可选能力清单版本；不传时由 deviceInfo.prdVer + ROM 版本推导。目录不存在且回退开关开启时使用默认 205/36 注册表。"
           },
           "protocolProfileId": {
             "type": "string|null",
@@ -39,7 +39,7 @@
       "deviceInfo": {
         "$ref": "#/nestedTypes/DeviceInfo",
         "required": true,
-        "description": "端侧设备信息；缺少 ROM 字段时服务使用 settings.default_device_rom_version。版本目录由 prdVer + ROM 版本组成。"
+        "description": "端侧设备信息；缺少 ROM 字段时服务使用 settings.default_device_rom_version。版本目录由 prdVer + ROM 版本组成，找不到时可按配置回退默认 205/36 注册表。"
       },
       "session": {
         "$ref": "#/nestedTypes/Session",
@@ -114,8 +114,8 @@
       "properties": {
         "streamContent": "string，截止当前帧的全量输出内容。",
         "streamingTextId": "string，流式文本 ID；当前使用 requestId，缺失时生成随机 ID。",
-        "streamType": "string，当前固定为 final。",
-        "textType": "string，当前固定为 markdown。"
+        "streamType": "string，支持 start、partial 和 final。",
+        "textType": "string，start/partial 使用 markdown，final 使用 plainText。"
       }
     },
     "GetDataCapabilitySchemasResult": {
@@ -126,7 +126,7 @@
         "operation": "string，当前 WebSocket path 对应的接口名。",
         "requestId": "string|null，服务端根据 sessionId + '&' + interactionId 生成的请求 ID。",
         "data.apiVersion": "string，接口版本。",
-        "data.capabilityRegistryVersion": "string，本次实际使用的能力清单版本目录名。",
+        "data.capabilityRegistryVersion": "string，本次实际使用的能力清单版本目录名，包含默认回退结果。",
         "data.dataCapabilities": "DataCapability[]，已找到的数据能力完整定义。",
         "data.missingCapabilityIds": "string[]，未在当前能力清单版本中找到的数据能力 ID。",
         "status": "string，本次调用状态；成功时为 success。",
@@ -145,8 +145,7 @@
         "prdVer": "string，可选，端侧传入的业务 API 版本；字段名保持端侧协议原名。",
         "sysVer": "string，推荐，系统版本。",
         "time": "string，可选，端侧请求时间。",
-        "romVersion|romVer|rom|rom_version|ohosApiVersion|ohos_api_version": "string|integer，可选，ROM 版本；缺失时使用配置默认 ROM。",
-        "ohosApiVersion|ohos_api_version": "integer，可选；当前也可作为 ROM 版本兜底来源。"
+        "romVersion": "string，可选，ROM 级别，当前统一为 36。"
       }
     },
     "Session": {

@@ -16,7 +16,6 @@ class CapabilityRegistry:
         version: str | None = None,
         app_version: str | None = None,
         device_rom_version: str | None = None,
-        ohos_api_version: int | None = None,
     ) -> None:
         """初始化能力注册表。
 
@@ -24,13 +23,12 @@ class CapabilityRegistry:
         - version：显式指定的能力版本文件夹名。
         - app_version：deviceInfo.prdVer，对应端侧业务 API 版本。
         - device_rom_version：device.romVersion，用于推导文件夹名。
-        - ohos_api_version：历史兼容字段，不再用于能力版本目录推导。
         出参：无；初始化失败时抛出 ValueError。
         """
         self.settings = get_settings()
         self.version = version or self.from_app_rom_versions(
             app_version or self.settings.default_prd_version,
-            device_rom_version or "0",
+            device_rom_version or self.settings.default_device_rom_version,
         )
         self.version_dir = self.settings.data_root / "capabilities" / self.version
         if not self.version_dir.exists():
@@ -63,19 +61,18 @@ class CapabilityRegistry:
 
     @staticmethod
     def _normalize_rom_version(value: str) -> str:
-        """从 device.romVersion 中提取 ROM 大版本。
+        """从 device.romVersion 中提取当前使用的 ROM 级别。
 
         入参：
-        - value：原始 ROM 版本，例如 `ALN-AL00 7.0.0.36`。
-        出参：ROM 版本，例如 `36` 或 `7.0.0`。
+        - value：原始 ROM 版本，例如 `36`。
+        出参：用于能力目录的版本，例如 `36`。
         """
         matches = re.findall(r"\d+(?:\.\d+)+", value or "")
         if not matches:
-            match = re.search(r"\d+", value or "")
-            return match.group(0) if match else "0"
-        version = matches[-1]
-        parts = version.split(".")
-        return ".".join(parts[:3]) if len(parts) >= 3 else version
+            numbers = re.findall(r"\d+", value or "")
+            return numbers[-1] if numbers else "0"
+        # 带前缀的 ROM 字符串统一取最后一个版本段作为注册表目录口径。
+        return matches[-1].split(".")[-1]
 
     def _path(self, name: str) -> Path:
         """获取当前能力版本目录下的配置文件路径。

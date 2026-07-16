@@ -31,7 +31,7 @@ curl http://127.0.0.1:8855/health
 
 ## 2. 目录和版本规则
 
-能力清单按 `device.ohosApiVersion + device.romVersion` 生成的文件夹名做版本隔离：
+能力清单按 `deviceInfo.prdVer + romVersion` 生成的文件夹名做版本隔离。当前 `romVersion` 暂时统一使用数字级别 `36`：
 
 ```text
 cloud/data/capabilities/{capabilityRegistryVersion}/
@@ -40,11 +40,25 @@ cloud/data/capabilities/{capabilityRegistryVersion}/
 └─ asset_capabilities.json
 ```
 
-当前默认版本：
+当前默认能力清单：
 
 ```text
-ohos-36_rom-7.0.0
+app-11.7.5.205_rom-36
 ```
+
+第一、第二接口在请求版本目录不存在且
+`WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true` 时，回退到上述默认能力清单；第三接口不回退。
+
+第一接口的 IDS 安装过滤范围由
+`WIDGET_SERVICE_IDS_INSTALLATION_FILTER_PACKAGE_NAMES` 配置，值为 JSON 字符串数组。默认只包含
+`["com.huawei.hmos.health.core"]`，因此当前只对运动健康数据和事件能力执行安装包过滤；配置为空数组时跳过 IDS 查询和安装过滤。
+
+IDS 数据源由 `WIDGET_SERVICE_ENABLE_IDS_MOCK` 显式控制，默认值为 `true`：
+
+- `true`：只读取 `WIDGET_SERVICE_MOCK_IDS_RESPONSE_PATH` 指定的 mock 文件；文件不存在、不可读、JSON 无效或响应结构无效时返回空 IDS 结果，不请求远程 IDS。
+- `false`：忽略 mock 文件，只请求 `WIDGET_SERVICE_IDS_QUERY_URL` 指定的真实远程 IDS；远程未配置、请求失败或响应无效时返回空 IDS 结果，不回退 mock。
+
+不能再根据 mock 文件是否存在自动选择或切换数据源。
 
 A2UI 协议 profile 也按文件夹隔离：
 
@@ -58,15 +72,15 @@ cloud/data/protocol_profiles/{protocolProfileId}/
 当前默认 profile：
 
 ```text
-a2ui-form-rom7-v1
+a2ui-form-rom36-v1
 ```
 
 工具入参里可以传：
 
 ```json
 {
-  "capabilityRegistryVersion": "ohos-36_rom-7.0.0",
-  "protocolProfileId": "a2ui-form-rom7-v1"
+  "capabilityRegistryVersion": "app-11.7.5.205_rom-36",
+  "protocolProfileId": "a2ui-form-rom36-v1"
 }
 ```
 
@@ -74,7 +88,7 @@ a2ui-form-rom7-v1
 
 ## 3. WebSocket 接口
 
-当前微服务把业务能力拆成四个独立 WebSocket path。客户端连接目标 path 后，
+当前微服务提供三个正式工具能力，并额外保留一个 Compact DSL 生成变体。客户端连接目标 path 后，
 消息体只需要传该能力自己的参数，不需要再传 `operation`；`uid` 和 `device`
 由工具层自动注入，本地测试时可以显式传入。
 
@@ -101,8 +115,7 @@ WS /api/v1/ws/tools/generateWidgetCardCompactDsl
     "device": {
       "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
       "deviceType": "ALN-AL00",
-      "romVersion": "ALN-AL00 7.0.0.36",
-      "ohosApiVersion": 36
+      "romVersion": "36"
     }
   }
 }
@@ -139,7 +152,7 @@ curl http://127.0.0.1:8855/health
 
 对应工具能力：`getWidgetCapabilityOverview`
 
-用途：返回主 Agent 可用于候选筛选的能力概述。数据能力只返回概述，不返回完整 schema；事件能力和素材候选在这里返回较完整信息。
+用途：先按 `romVersion`、`prdVer` 选择注册表，再读取 IDS 安装过滤包名配置。当前默认只查询并精确匹配运动健康包 `com.huawei.hmos.health.core`；天气、日历等未命中配置范围的依赖不参与安装过滤。包版本、ROM/App 依赖版本、provider、intent、权限和素材版本不参与本阶段过滤。响应不包含 TaskSpec；数据能力只返回概述，不返回完整 schema。
 
 请求示例：
 
@@ -152,10 +165,9 @@ curl http://127.0.0.1:8855/health
     "device": {
       "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
       "deviceType": "ALN-AL00",
-      "romVersion": "ALN-AL00 7.0.0.36",
-      "ohosApiVersion": 36
+      "romVersion": "36"
     },
-    "capabilityRegistryVersion": "ohos-36_rom-7.0.0"
+    "capabilityRegistryVersion": "app-11.7.5.205_rom-36"
   }
 }
 ```
@@ -170,7 +182,7 @@ curl http://127.0.0.1:8855/health
   "requestId": "overview-1",
   "data": {
     "apiVersion": "v1",
-    "capabilityRegistryVersion": "ohos-36_rom-7.0.0",
+    "capabilityRegistryVersion": "app-11.7.5.205_rom-36",
     "dataCapabilities": [
       {
         "id": "ViewWeather",
@@ -178,7 +190,8 @@ curl http://127.0.0.1:8855/health
       }
     ],
     "eventCapabilities": [],
-    "assetCandidates": []
+    "assetCandidates": [],
+    "unavailableCapabilities": []
   },
   "status": "success",
   "errorCode": "",
@@ -190,7 +203,7 @@ curl http://127.0.0.1:8855/health
 
 对应工具能力：`getDataCapabilitySchemas`
 
-用途：针对主 Agent 已选中的数据能力渐进加载完整 schema。
+用途：针对主 Agent 已选中的数据能力渐进加载完整 schema。请求版本目录不存在且回退开关开启时，读取默认 205/36 注册表。
 
 请求示例：
 
@@ -202,11 +215,10 @@ curl http://127.0.0.1:8855/health
     "device": {
       "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
       "deviceType": "ALN-AL00",
-      "romVersion": "ALN-AL00 7.0.0.36",
-      "ohosApiVersion": 36
+      "romVersion": "36"
     },
-    "dataCapabilityIds": ["ViewWeather", "calendar.events.search"],
-    "capabilityRegistryVersion": "ohos-36_rom-7.0.0"
+    "dataCapabilityIds": ["ViewWeather", "GetCalendarEvents"],
+    "capabilityRegistryVersion": "app-11.7.5.205_rom-36"
   }
 }
 ```
@@ -221,12 +233,26 @@ curl http://127.0.0.1:8855/health
   "requestId": "schema-1",
   "data": {
     "apiVersion": "v1",
-    "capabilityRegistryVersion": "ohos-36_rom-7.0.0",
+    "capabilityRegistryVersion": "app-11.7.5.205_rom-36",
     "dataCapabilities": [
       {
         "id": "ViewWeather",
         "inputSchema": {},
-        "outputSchema": {},
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "current": {
+              "type": "object",
+              "properties": {
+                "condition": {
+                  "type": "string",
+                  "description": "当前天气现象，例如‘阴’‘多云’‘小雨’。",
+                  "sampleValue": "多云"
+                }
+              }
+            }
+          }
+        },
         "defaultWriteResultTo": "/data/weather",
         "dataModelSkeleton": {}
       }
@@ -245,7 +271,7 @@ curl http://127.0.0.1:8855/health
 
 对应工具能力：`generateWidgetCard`
 
-用途：主生成接口。能力过滤属于这个接口内部流程。
+用途：第三接口。接收主 Agent 从第一接口可用清单中规划的候选并生成 artifact；不再查询 IDS 或重复执行 `dependencies` 过滤，也不使用第一、第二接口的默认注册表回退。
 
 请求示例：
 
@@ -256,13 +282,14 @@ curl http://127.0.0.1:8855/health
     "uid": "test-user-001",
     "userQuery": "帮我做通勤卡片，包含天气和今日日程",
     "size": "2x4",
+    "title": "通勤助手",
+    "description": "天气日程速览",
     "device": {
       "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
       "deviceType": "ALN-AL00",
-      "romVersion": "ALN-AL00 7.0.0.36",
-      "ohosApiVersion": 36
+      "romVersion": "36"
     },
-    "protocolProfileId": "a2ui-form-rom7-v1",
+    "protocolProfileId": "a2ui-form-rom36-v1",
     "candidateDataBindings": [
       {
         "capabilityId": "ViewWeather",
@@ -271,24 +298,25 @@ curl http://127.0.0.1:8855/health
           "forecastDays": 1
         },
         "writeResultTo": "/data/weather",
-        "updateModel": {
-          "location": {
-            "districtName": ""
-          },
-          "current": {
-            "temperatureText": "",
-            "condition": "",
-            "airQuality": ""
-          },
-          "updatedAt": ""
-        }
+        "candidateOutputFields": [
+          "/location/districtName",
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/airQuality",
+          "/updatedAt"
+        ]
       },
       {
-        "capabilityId": "calendar.events.search",
+        "capabilityId": "GetCalendarEvents",
         "arguments": {
-          "timeRange": "today"
+          "futureDays": 1
         },
-        "writeResultTo": "/data/calendar"
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/events/0/title",
+          "/events/0/dtStart",
+          "/events/0/eventLocation"
+        ]
       }
     ],
     "candidateEventCandidates": [
@@ -297,7 +325,10 @@ curl http://127.0.0.1:8855/health
         "action": {
           "call": "clickToDeeplink",
           "args": {
-            "uri": "hww://www.huawei.com/totemweather?enterType=share"
+            "intentName": "Weather_CityCode",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
           }
         }
       }
@@ -325,7 +356,7 @@ curl http://127.0.0.1:8855/health
     "removedCapabilities": [],
     "errorCode": "",
     "effectiveCapabilities": {
-      "data": ["ViewWeather", "calendar.events.search"],
+      "data": ["ViewWeather", "GetCalendarEvents"],
       "event": [],
       "asset": ["asset.drop_1", "asset.calendar_fill"]
     }
@@ -355,7 +386,10 @@ failed       系统异常、模型失败、OBS 失败等工程失败
       "action": {
         "call": "clickToDeeplink",
         "args": {
-          "uri": "hww://weather"
+          "intentName": "Weather_CityCode",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
         }
       }
     }
@@ -381,7 +415,7 @@ get_widget_capability_overview(
 ) -> CapabilityOverviewResponse
 ```
 
-用途：读取指定版本的能力清单，返回主 Agent 做候选筛选需要的概述。
+用途：读取指定版本的能力清单，并在注册表依赖命中配置的安装过滤范围时查询一次 IDS，返回当前设备实际可用的能力概述及不可用清单。
 
 使用示例：
 
@@ -393,7 +427,7 @@ service = WidgetGenerationService()
 response = service.get_widget_capability_overview(
     CapabilityOverviewRequest(
         uid="test-user-001",
-        device={"romVersion": "ALN-AL00 7.0.0.36", "ohosApiVersion": 36},
+        device={"romVersion": "36"},
     )
 )
 ```
@@ -402,9 +436,10 @@ response = service.get_widget_capability_overview(
 
 ```text
 CapabilityRegistry(version)
- -> list_data_capabilities()
- -> list_event_capabilities()
- -> list_asset_capabilities()
+ -> 读取 ids_installation_filter_package_names
+ -> 命中配置范围时按 enable_ids_mock 选择唯一 IDS 数据源
+ -> IDSClient.get_device_capability_state()
+ -> DeviceCapabilityResolver.resolve_capability_overview()
  -> 组装 CapabilityOverviewResponse
 ```
 
@@ -425,10 +460,10 @@ get_data_capability_schemas(
 ```python
 response = service.get_data_capability_schemas(
     DataCapabilitySchemasRequest(
-        dataCapabilityIds=["ViewWeather", "calendar.events.search"],
+        dataCapabilityIds=["ViewWeather", "GetCalendarEvents"],
         uid="test-user-001",
-        device={"romVersion": "ALN-AL00 7.0.0.36", "ohosApiVersion": 36},
-        capabilityRegistryVersion="ohos-36_rom-7.0.0",
+        device={"romVersion": "36"},
+        capabilityRegistryVersion="app-11.7.5.205_rom-36",
     )
 )
 ```
@@ -450,26 +485,22 @@ generate_widget_card(
 ) -> GenerateWidgetCardResponse
 ```
 
-用途：主生成编排方法。
+用途：第三接口的主生成编排方法，只消费主 Agent 从第一接口可用清单中规划的能力。
 
 内部流程：
 
 ```text
 1. 读取 CapabilityRegistry
 2. 读取 A2UIProtocolRegistry
-3. DeviceCapabilityResolver 过滤候选 dataBindings
-4. 规范化事件候选
-5. 过滤事件候选
-6. 过滤素材候选
-7. 无可用能力且无入口时返回 unsupported
-8. CardSpecBuilder 生成最终 CardSpec
-9. TaskSpecBuilder 生成 TaskSpec
-10. PromptBuilder 生成模型输入
-11. A2UIModelClient mock 生成 genui
-12. RetryController 控制最多 1 次重试
-13. ArtifactValidator 校验完整 artifact
-14. ArtifactStore 保存 artifact，当前为 OBS TODO hook
-15. ResponsePlanner 生成 status 和 message
+3. 解析候选 data/event/asset；校验参数、写入路径和注册表存在性，不查询 IDS
+4. CardSpecBuilder 生成最终 CardSpec
+5. TaskSpecBuilder 根据 writeResultTo、outputSchema 和候选字段投影生成 TaskSpec.dataModelSchema
+6. PromptBuilder 生成模型输入
+7. A2UIModelClient mock 生成 genui
+8. RetryController 控制最多 1 次重试
+9. ArtifactValidator 校验完整 artifact；最终失败记录日志但不阻断保存和响应
+10. ArtifactStore 保存 artifact，当前为 OBS TODO hook
+11. ResponsePlanner 生成 status 和 message
 ```
 
 使用示例：
@@ -482,8 +513,10 @@ response = service.generate_widget_card(
     GenerateWidgetCardRequest(
         userQuery="帮我做一个只显示今天上海天气的桌面卡片",
         size="2x4",
+        title="天气速览",
+        description="查看上海天气",
         uid="test-user-001",
-        device={"romVersion": "ALN-AL00 7.0.0.36", "ohosApiVersion": 36},
+        device={"romVersion": "36"},
         candidateDataBindings=[
             CandidateDataBinding(
                 capabilityId="ViewWeather",
@@ -515,7 +548,7 @@ candidateEventCandidates
 
 一般不从外部直接调用，由 `generate_widget_card` 内部调用。
 
-### 4.5 WidgetGenerationService._build_artifact
+### 4.6 WidgetGenerationService._build_artifact
 
 签名：
 
@@ -545,18 +578,18 @@ cloud/services/capability_registry.py
 cloud/services/ids_client.py
 ```
 
-用途：封装 IDS 查询与 mock IDS 响应解析，输出稳定的 `IDSDeviceCapabilityState`。当前读取 `docs/ids_res.txt`；后续接真实 IDS 时优先替换这个客户端，`DeviceCapabilityResolver` 不直接读取 IDS 文件。
+用途：封装 IDS mock/真实远程数据源选择、已安装应用查询和响应解析，输出稳定的 `IDSDeviceCapabilityState`。`enable_ids_mock` 默认开启；开启时只读 mock，关闭时忽略 mock 并只查真实远程 IDS，任一路径失败都返回空 IDS 结果且不跨数据源回退。`DeviceCapabilityResolver` 不直接读取 IDS 文件。
 
 构造：
 
 ```python
-registry = CapabilityRegistry("ohos-36_rom-7.0.0")
+registry = CapabilityRegistry("app-11.7.5.205_rom-36")
 ```
 
 不传版本时可使用 device 版本推导：
 
 ```python
-registry = CapabilityRegistry(device_rom_version="ALN-AL00 7.0.0.36", ohos_api_version=36)
+registry = CapabilityRegistry(device_rom_version="36")
 ```
 
 #### list_data_capabilities
@@ -618,7 +651,7 @@ cloud/services/protocol_registry.py
 构造：
 
 ```python
-registry = A2UIProtocolRegistry("a2ui-form-rom7-v1")
+registry = A2UIProtocolRegistry("a2ui-form-rom36-v1")
 ```
 
 #### get_profile
@@ -639,7 +672,7 @@ data/protocol_profiles/{profile_id}/data-binding.md
 
 ## 6. 能力过滤方法
 
-### 6.1 DeviceCapabilityResolver.resolve_data_bindings
+### 6.1 DeviceCapabilityResolver.resolve_capability_overview
 
 位置：
 
@@ -650,56 +683,54 @@ cloud/services/device_capability_resolver.py
 签名：
 
 ```python
-resolve_data_bindings(
-    candidate_bindings: list[CandidateDataBinding],
+resolve_capability_overview(
     device: DeviceContext,
-) -> tuple[list[CandidateDataBinding], list[DataCapability], list[RemovedCapability]]
+) -> tuple[list[DataCapability], list[EventCapability], list[AssetCapability], list[RemovedCapability]]
 ```
 
-用途：第三个接口内部的数据能力过滤。
+用途：第一个接口内部只对命中配置包名范围的数据和事件能力做安装包可用性过滤；默认范围仅包含 `com.huawei.hmos.health.core`。一次 IDS 已安装应用快照供本次裁决复用，素材直接保留。
 
 过滤顺序：
 
 ```text
-能力 ID 是否注册
- -> device.romVersion / device.ohosApiVersion 是否满足
- -> 依赖 App 是否安装且版本满足
- -> IDS provider/intent 是否存在
- -> 权限状态是否允许
- -> arguments 是否符合 inputSchema
- -> writeResultTo 是否位于 /data/ 且无冲突
+读取 ids_installation_filter_package_names
+ -> 找出 requiredPackages 中命中配置范围的包名
+ -> 存在命中项时读取 IDS t_ids_kv_ohos_installed_apps
+ -> 提取 values[].data.bundleName
+ -> 精确匹配受检包名
+ -> 缺少任一受检包名时以 PACKAGE_NOT_INSTALLED 移除能力
 ```
+
+配置为空或注册表没有依赖命中配置范围时，不查询 IDS；范围外的依赖只保留为注册表元数据，不影响本次可用性。
 
 返回：
 
 ```text
-effective_bindings       可进入最终 CardSpec 的 dataBindings
-effective_capabilities   可进入 TaskSpec DataModel 的能力定义
-removed                  被移除的能力和原因
+data_capabilities   可用数据能力
+event_capabilities  可用事件能力
+asset_capabilities  可用素材能力
+removed             不可用能力和原因
 ```
 
 使用示例：
 
 ```python
-resolver = DeviceCapabilityResolver(registry)
-effective_bindings, effective_caps, removed = resolver.resolve_data_bindings(
-    candidate_bindings=request.candidateDataBindings,
+data_caps, event_caps, assets, removed = resolver.resolve_capability_overview(
     device=request.device,
 )
 ```
 
-### 6.2 DeviceCapabilityResolver.resolve_event_candidates
+### 6.2 DeviceCapabilityResolver.resolve_generation_data_bindings
 
 签名：
 
 ```python
-resolve_event_candidates(
-    candidates: list[EventAction],
-    device: DeviceContext,
-) -> tuple[list[EventAction], list[RemovedCapability]]
+resolve_generation_data_bindings(
+    candidate_bindings: list[CandidateDataBinding],
+) -> tuple[list[CandidateDataBinding], list[DataCapability], list[RemovedCapability]]
 ```
 
-用途：过滤点击事件候选。点击事件不会进入 CardSpec，只进入 TaskSpec 的 `eventCandidates`。
+用途：第三接口只校验能力仍在当前注册表中、参数符合 `inputSchema`、`writeResultTo` 合法且无冲突；不查询 IDS，也不重复执行 `dependencies` 过滤。
 
 ### 6.3 IDSClient.get_device_capability_state
 
@@ -709,20 +740,30 @@ resolve_event_candidates(
 get_device_capability_state(device: DeviceContext, request_id: str) -> IDSDeviceCapabilityState
 ```
 
-用途：先按 device 构造 IDS 已安装应用查询请求，再读取 mock IDS 响应并转换为内部判断用的结构：
+用途：按 `enable_ids_mock` 选择唯一数据源，并把响应转换为内部包名集合：
 
 ```text
-installed_apps    已安装应用包名与版本
-providers         设备可用 provider 集合
-intent_targets    设备可用 intent target 集合
-permissions       设备权限状态
+enable_ids_mock=true
+ -> 只读取 mock_ids_response_path
+ -> 文件不存在、不可读、JSON/结构无效时使用空 nameSpaces
+ -> 不构造或发送远程 IDS 请求
+
+enable_ids_mock=false
+ -> 忽略 mock_ids_response_path
+ -> 构造真实 IDS 请求，只请求 t_ids_kv_ohos_installed_apps namespace
+ -> 远程未配置、失败或响应无效时使用空 nameSpaces
+ -> 不回退 mock
 ```
 
-当前默认补了一批一方能力 provider/intent，方便 mock 流程跑通。后续接真实 IDS 时优先替换 `IDSClient`，不需要让 `DeviceCapabilityResolver` 直接读取 IDS 文件。
+```text
+installed_apps    已安装应用 bundleName 集合；不保留也不比较 versionName
+```
 
-### 6.4 DeviceCapabilityResolver._check_common_dependencies
+默认 mock 文件为微服务内部的 `cloud/data/mock/ids_res.json`，只声明 mock 已安装应用。相对路径统一从 `cloud/` 解析，不读取仓库根目录或 Skill 目录。mock 文件是否存在不决定运行模式；运行模式只由 `enable_ids_mock` 决定。
 
-用途：检查能力依赖，包括最低版本、依赖包、provider、intent、权限。
+### 6.4 DeviceCapabilityResolver._check_required_packages
+
+用途：对能力 `requiredPackages[].packageName` 中命中 `ids_installation_filter_package_names` 的包名做区分大小写的精确匹配；全部受检包名都存在才通过，不比较包版本。当前默认只匹配运动健康包。
 
 一般不外部调用。
 
@@ -738,17 +779,7 @@ permissions       设备权限状态
 
 一般不外部调用。
 
-### 6.7 DeviceCapabilityResolver._version_gte / _extract_version
-
-用途：版本比较和从复杂 ROM 字符串里提取版本号。
-
-例如：
-
-```text
-ALN-AL00 7.0.0.36 -> 7.0.0.36
-```
-
-### 6.8 DeviceCapabilityResolver._removed
+### 6.7 DeviceCapabilityResolver._removed
 
 用途：把错误码转换成 `RemovedCapability`，包含内部 reason 和用户可读原因。
 
@@ -802,6 +833,7 @@ cloud/services/task_spec_builder.py
 build(
     user_query: str,
     size: WidgetSize,
+    effective_bindings: list[CandidateDataBinding],
     effective_data_capabilities: list[DataCapability],
     event_candidates: list[EventAction],
     asset_candidates: list[AssetCapability],
@@ -816,21 +848,41 @@ TaskSpec 顶层只包含：
 userQuery
 size
 eventCandidates
-dataModel
+dataModelSchema
 assetCandidates
 ```
 
-### 7.3 TaskSpecBuilder._deep_merge
+### 7.3 TaskSpecBuilder 字段投影
 
-用途：合并多个能力的 `dataModelSkeleton`。
+用途：按 JSON Pointer 校验 `candidateOutputFields` 是否能直接解析到能力 `outputSchema` 叶子，从该叶子读取 `type`、`description` 和 `sampleValue`，并按 `writeResultTo + 原叶子路径` 合并多个能力的 `dataModelSchema`。数组元素 schema 统一使用 canonical 下标 `0`，例如 `/events/0/title`；其它数组下标视为非法投影。部分非法路径被忽略；未传投影或全部路径非法时回退到该能力全部合法叶子字段。
+
+端侧会将符合 `outputSchema` 的能力结果整体写入 `writeResultTo`，当前没有字段重命名、扁平化或派生字段转换层。因此 TaskSpec 不得使用独立映射表改写目标路径；未来需要转换时，应先增加并版本化实际运行时转换契约。
 
 例如天气和日历会合并为：
 
 ```json
 {
   "data": {
-    "weather": {},
-    "calendar": {}
+    "weather": {
+      "current": {
+        "temperatureText": {
+          "type": "string",
+          "description": "适合直接显示的温度文本，例如‘29°C’。",
+          "sampleValue": "26℃"
+        }
+      }
+    },
+    "calendar": {
+      "events": [
+        {
+          "title": {
+            "type": "string",
+            "description": "日程标题，例如‘会议’、‘咪咕视频《西班牙 VS 奥地利》’。",
+            "sampleValue": "产品评审"
+          }
+        }
+      ]
+    }
   }
 }
 ```
@@ -920,12 +972,12 @@ createSurface/updateComponents/updateDataModel 顺序正确
 surfaceId 三行一致
 catalogId 与 profile 一致
 root 尺寸与 size/profile 一致
-updateDataModel.value 与 TaskSpec.dataModel.value 一致
+DSL 动态绑定路径可从 TaskSpec.dataModelSchema 或能力 outputSchema 推导
 组件在白名单内
 CardSpec writeResultTo 位于 /data/
 ```
 
-返回空列表表示校验通过；否则返回错误列表。
+返回空列表表示校验通过；否则返回错误列表。错误会触发最多一次重新生成；最终仍失败时记录非阻断错误日志，继续构造并保存最后一次模型输出。
 
 ### 8.5 RetryController.run
 
@@ -944,7 +996,7 @@ run(
 ) -> tuple[str, int, list[str]]
 ```
 
-用途：执行生成操作并校验，失败最多重试 1 次。
+用途：执行生成操作并校验，失败最多重试 1 次；最终校验错误由生成服务记录，但不阻断后续 artifact 流程。
 
 返回：
 
@@ -1024,7 +1076,7 @@ plan(
 位置：
 
 ```text
-cloud/core/config.py
+cloud/config/config.py
 ```
 
 用途：读取环境变量和默认配置。
@@ -1034,8 +1086,12 @@ cloud/core/config.py
 ```text
 WIDGET_SERVICE_ENV
 WIDGET_SERVICE_CAPABILITY_REGISTRY_VERSION
+WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK
+WIDGET_SERVICE_IDS_INSTALLATION_FILTER_PACKAGE_NAMES
+WIDGET_SERVICE_ENABLE_IDS_MOCK
 WIDGET_SERVICE_PROTOCOL_PROFILE_ID
 WIDGET_SERVICE_MOCK_IDS_RESPONSE_PATH
+WIDGET_SERVICE_IDS_QUERY_URL
 WIDGET_SERVICE_ARTIFACT_BASE_URL
 ```
 
@@ -1044,7 +1100,6 @@ WIDGET_SERVICE_ARTIFACT_BASE_URL
 ```text
 package_root
 data_root
-repo_root
 resolved_mock_ids_response_path
 ```
 
@@ -1056,34 +1111,45 @@ get_settings() -> Settings
 
 用途：获取缓存后的配置对象。
 
-### 10.3 configure_logging
+### 10.3 json_for_log
 
 位置：
 
 ```text
-cloud/core/logging.py
+cloud/app/logger.py
 ```
 
-用途：配置 structlog JSON 日志。
+```python
+json_for_log(value: Any) -> str
+```
 
-### 10.4 get_logger
+用途：将日志中的对象、数组、布尔值和空值序列化为紧凑的标准 JSON。键名和字符串使用双引号，布尔值使用 `true/false`，空值使用 `null`，避免 Python `dict/list` 的单引号 `repr`。
+
+### 10.4 logger
 
 位置：
 
 ```text
-cloud/core/logger.py
+cloud/app/logger.py
 ```
 
-用途：获取统一业务日志对象，支持 `debug`、`info`、`warning`、`warn`、`error`、`exception`、`critical`。流程节点使用 `info`，参数异常或业务失败使用 `error`，带异常栈的未知异常使用 `exception`。
+用途：统一业务日志对象。流程节点使用 `info`，参数异常或业务失败使用 `error`；日志行可保留 `key=value` 形式，但其中的结构化值必须先调用 `json_for_log`。
+
+日志约束：
+
+- `uid` 是合法请求字段，请求示例和接口模型继续保留；但任何日志均不得记录 `uid` 原值、脱敏值或哈希值，也不得直接打印包含 `uid` 的完整请求对象；IDS 请求日志中的 `callingUid` 同样排除。
+- 每次 `getWidgetCapabilityOverview` 的能力包过滤只记录一条汇总结果，集中包含 `requestId`、IDS 数据源、过滤是否执行、数量统计和被移除能力摘要；禁止逐能力打印依赖包检查日志。
+- 接口开始、结束等生命周期日志可以保留，但不能重复打印能力包过滤明细或第二份过滤汇总。
 
 示例：
 
 ```python
-from core.logger import get_logger
+from app.logger import json_for_log, logger
 
-logger = get_logger(__name__)
-logger.info("flow_started", operation="generateWidgetCard")
-logger.error("flow_failed", error_code="VALIDATION_FAILED")
+logger.info(
+    "flow_started "
+    f"operation=generateWidgetCard candidates={json_for_log(['ViewWeather'])}"
+)
 ```
 
 ### 10.5 load_json
@@ -1106,9 +1172,9 @@ load_json(path: Path) -> Any
 
 ### 11.1 capability.py
 
-`RequiredPackage`：依赖应用包名和最低版本。
+`RequiredPackage`：依赖应用包名。
 
-`Dependencies`：能力依赖，包括最低 ROM/App/小艺版本、依赖包、provider、intent、权限。
+`Dependencies`：能力安装依赖，当前只包含 `requiredPackages`。
 
 `DataCapability`：数据能力完整定义，用于 schema 返回、过滤、CardSpec 和 TaskSpec 构造。
 
@@ -1172,26 +1238,24 @@ meta
 
 新增数据能力：
 
-1. 在新版本目录或当前版本目录编辑 `data_capabilities.json`。
-2. 补齐 `id`、`inputSchema`、`outputSchema`、`defaultWriteResultTo`、`dataModelSkeleton`、`dependencies`。
-3. 增加或更新测试，覆盖 schema 获取、过滤和生成。
+1. 直接更新当前版本目录中的 `data_capabilities.json`；它是微服务运行时的权威数据源。
+2. 声明合法的 `/data/...` JSON Pointer `defaultWriteResultTo` 和仅含包名的 `dependencies.requiredPackages`，并为非空、可遍历的 `outputSchema` 每个叶子补齐 `type/description/sampleValue`；`sampleValue` 的 JSON 类型必须与 `type` 一致。
+3. 增加或更新测试，覆盖第一接口过滤、schema 获取和生成。
 
 新增事件能力：
 
-1. 编辑 `event_capabilities.json`。
-2. 补齐 `id`、`call`、`parametersSchema`、`dependencies.requiredIntentTargets`。
-3. 第三个接口里通过 `candidateEventCandidates` 传入。
+1. 直接更新当前版本目录中的 `event_capabilities.json`，保持事件 ID 稳定，并在对应目标项声明仅含包名的 `dependencies.requiredPackages`。
+2. 第一接口确认可用后，在第三接口里通过 `candidateEventCandidates` 传入。
 
 新增素材：
 
-1. 编辑 `asset_capabilities.json`。
-2. 补齐 `id`、`src`、`description`、`sceneTags`。
-3. 第三个接口里通过 `candidateAssetIds` 传入。
+1. 直接更新当前版本目录中的 `asset_capabilities.json`，补齐唯一的 `id`、`src`、`description` 和 `sceneTags`。
+2. 第一接口确认可用后，在第三接口里通过 `candidateAssetIds` 传入。
 
 新增能力版本：
 
 ```text
-复制 data/capabilities/ohos-36_rom-7.0.0 为新文件夹
+复制 data/capabilities/app-11.7.5.205_rom-36 为新文件夹
 修改 JSON 文件
 请求时传 capabilityRegistryVersion=新文件夹名
 ```
@@ -1203,5 +1267,5 @@ cd D:\ai-workspace\code-github\CreateMyCard-team-lff
 $env:PYTHONPATH='widget_service\src'
 python -m pytest widget_service\tests
 python -m ruff check widget_service
-python -m compileall -q widget_service\src widget_service\tests
+python -m compileall -q widget_service\cloud widget_service\tests
 ```

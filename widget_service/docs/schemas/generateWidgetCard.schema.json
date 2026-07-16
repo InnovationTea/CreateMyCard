@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "generateWidgetCard",
   "transport": "websocket",
   "path": "/genui-agent-service/api/v1/ws/tools/generateWidgetCard",
@@ -34,33 +34,33 @@
             "type": "string",
             "required": true,
             "minLength": 1,
-            "description": "主 Agent 建议的卡片标题；会进入 TaskSpec.title，并作为 A2UI 标题候选。"
+            "description": "主 Agent 建议的卡片标题；微服务规范化后写入最终 CardSpec。"
           },
           "description": {
             "type": "string",
             "required": true,
             "minLength": 1,
-            "description": "主 Agent 建议的卡片说明；会进入 TaskSpec.description，并作为 A2UI 摘要候选。"
+            "description": "主 Agent 建议的卡片说明；微服务规范化后写入最终 CardSpec。"
           },
           "candidateDataBindings": {
             "type": "CandidateDataBinding[]",
             "required": false,
-            "description": "候选数据能力调用列表；微服务会按注册表和 IDS 状态裁决最终可用项。"
+            "description": "根据第一个接口可用数据能力和第二个接口 schema 规划的数据绑定。"
           },
           "candidateEventCandidates": {
             "type": "CandidateEventCandidate[]",
             "required": false,
-            "description": "候选点击事件列表；action 只能来自能力概述返回的事件能力说明。"
+            "description": "从第一个接口可用事件能力中规划的点击事件列表。"
           },
           "candidateAssetIds": {
             "type": "string[]",
             "required": false,
-            "description": "候选素材 ID 列表。"
+            "description": "从第一个接口可用素材中选择的素材 ID 列表。"
           },
           "capabilityRegistryVersion": {
             "type": "string|null",
             "required": false,
-            "description": "可选能力清单版本；不传时由 deviceInfo.prdVer + ROM 版本推导。"
+            "description": "可选能力清单版本；不传时由 deviceInfo.prdVer + ROM 版本推导。生成接口不使用默认注册表回退。"
           },
           "protocolProfileId": {
             "type": "string|null",
@@ -72,7 +72,7 @@
       "deviceInfo": {
         "$ref": "#/nestedTypes/DeviceInfo",
         "required": true,
-        "description": "端侧设备信息；缺少 ROM 字段时服务使用 settings.default_device_rom_version。版本目录由 prdVer + ROM 版本组成。"
+        "description": "端侧设备信息；缺少 ROM 字段时服务使用 settings.default_device_rom_version。版本目录由 prdVer + ROM 版本组成；生成接口找不到目录时直接返回不支持。"
       },
       "session": {
         "$ref": "#/nestedTypes/Session",
@@ -147,8 +147,8 @@
       "properties": {
         "streamContent": "string，截止当前帧的全量输出内容；生成接口优先使用业务响应 message。",
         "streamingTextId": "string，流式文本 ID；当前使用 requestId，缺失时生成随机 ID。",
-        "streamType": "string，当前固定为 final。",
-        "textType": "string，当前固定为 markdown。"
+        "streamType": "string，支持 start、partial 和 final。",
+        "textType": "string，start/partial 使用 markdown，final 使用 plainText。"
       }
     },
     "GenerateWidgetCardResult": {
@@ -166,7 +166,6 @@
         "data.message": "string，可展示给主 Agent 或用户的生成结果说明。",
         "data.removedCapabilities": "RemovedCapability[]，被微服务裁决移除的能力及原因。",
         "data.errorCode": "string，失败或不支持时返回的错误码。",
-        "data.artifact": "object|null，调试时可选内联 artifact；生产默认不返回。artifact.taskSpec 会包含 userQuery/size/title/description/eventCandidates/dataModel/assetCandidates。",
         "data.effectiveCapabilities": "object，最终进入 artifact 的有效 data、event、asset 能力集合。",
         "status": "string，旧完整出参调用状态；生成接口透传 data.status。",
         "errorCode": "string，旧完整出参错误码；生成接口透传 data.errorCode。",
@@ -179,7 +178,7 @@
         "capabilityId": "string，数据能力 ID。",
         "arguments": "object，能力入参，只能使用该能力 inputSchema 声明的字段。",
         "writeResultTo": "string，写入 DataModel 的 JSON Pointer，必须位于 /data/ 下。",
-        "updateModel": "object，可选输出字段投影结构，内部层级会原样写入 DataModel。"
+        "candidateOutputFields": "string[]，可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导。"
       }
     },
     "CandidateEventCandidate": {
@@ -201,8 +200,7 @@
         "prdVer": "string，可选，端侧传入的业务 API 版本；字段名保持端侧协议原名。",
         "sysVer": "string，推荐，系统版本。",
         "time": "string，可选，端侧请求时间。",
-        "romVersion|romVer|rom|rom_version|ohosApiVersion|ohos_api_version": "string|integer，可选，ROM 版本；缺失时使用配置默认 ROM。",
-        "ohosApiVersion|ohos_api_version": "integer，可选；当前也可作为 ROM 版本兜底来源。"
+        "romVersion": "string，可选，ROM 级别，当前统一为 36。"
       }
     },
     "Session": {

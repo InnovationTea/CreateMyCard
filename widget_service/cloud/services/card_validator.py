@@ -66,8 +66,8 @@ DATA_MODEL_PATH_RE = re.compile(r"\$__dataModel((?:\.[A-Za-z_][A-Za-z0-9_]*|\[(?
 CJK_RE = re.compile(r"[\u4e00-\u9fff]")
 
 EVENT_CAPABILITIES = {
-    "clickToCallPhone": {"phoneNumber"},
-    "clickToDeeplink": {"bundleName", "abilityName", "uri"},
+    "clickToApi": {"intentName", "params"},
+    "clickToDeeplink": {"intentName", "bundleName", "abilityName", "uri"},
     "clickToIntent": {"intentName", "params"},
 }
 
@@ -119,6 +119,7 @@ def validate_card(
     genui_text: str,
     cardspec: dict[str, Any] | str,
     strict: bool = False,
+    allowed_asset_sources: set[str] | None = None,
 ) -> CardValidationReport:
     """校验完整 genui 和 CardSpec。
 
@@ -126,6 +127,7 @@ def validate_card(
     - genui_text：三行 JSONL 格式的 A2UI genui。
     - cardspec：CardSpec 字典或 JSON 字符串。
     - strict：是否把 warnings 视为失败；服务侧默认只用 errors 阻断。
+    - allowed_asset_sources：本次生成请求实际可用的素材路径；命令行独立校验时可不传。
     出参：CardValidationReport，包含 errors 和 warnings。
     """
     reporter = Reporter()
@@ -140,7 +142,13 @@ def validate_card(
     if len(messages) >= 3:
         _, update, data = check_protocol(messages, card_spec_value, reporter)
         if update:
-            check_components(update, data, card_spec_value, reporter)
+            check_components(
+                update,
+                data,
+                card_spec_value,
+                reporter,
+                allowed_asset_sources,
+            )
 
     if strict and reporter.warnings:
         # strict 模式主要供命令行或离线门禁使用；服务当前不启用 strict。
@@ -346,36 +354,6 @@ def content_to_string(value: Any, data_model: Any) -> str | None:
     return None
 
 
-def reference_root() -> Path:
-    """获取 datamodel-first skill 的 reference 目录。
-
-    入参：无。
-    出参：reference 目录绝对路径。
-    """
-    return (
-        Path(__file__).resolve().parents[3]
-        / "skills"
-        / "harmony-card-generation-datamodel-first"
-        / "reference"
-    )
-
-
-def collect_token_colors() -> set[str]:
-    color_file = reference_root() / "design" / "color-token-system.md"
-    if not color_file.exists():
-        return set()
-    text = color_file.read_text(encoding="utf-8")
-    return {color.upper() for color in re.findall(r"#[0-9a-fA-F]{6,8}", text)}
-
-
-def collect_asset_sources() -> set[str]:
-    asset_file = reference_root() / "design" / "asset-library.md"
-    if not asset_file.exists():
-        return set()
-    text = asset_file.read_text(encoding="utf-8")
-    return set(re.findall(r"`(resources/base/media/[^`]+\.svg)`", text, re.I))
-
-
 def check_protocol(
     messages: list[dict[str, Any]],
     cardspec: dict[str, Any],
@@ -422,7 +400,13 @@ def check_protocol(
     return create, update, data
 
 
-def check_components(update: dict[str, Any], data_msg: dict[str, Any], cardspec: dict[str, Any], reporter: Reporter) -> None:
+def check_components(
+    update: dict[str, Any],
+    data_msg: dict[str, Any],
+    cardspec: dict[str, Any],
+    reporter: Reporter,
+    allowed_asset_sources: set[str] | None = None,
+) -> None:
     components = update.get("components")
     if not isinstance(components, list):
         reporter.error("updateComponents.components must be a list.")
@@ -447,8 +431,6 @@ def check_components(update: dict[str, Any], data_msg: dict[str, Any], cardspec:
         return
 
     data_model = data_msg.get("value", {})
-    token_colors = collect_token_colors()
-    asset_sources = collect_asset_sources()
 
     for comp in components:
         cid = comp.get("id", "<unknown>")
@@ -471,17 +453,25 @@ def check_components(update: dict[str, Any], data_msg: dict[str, Any], cardspec:
                 if "data:image/svg" in value_lower:
                     reporter.error(f"{cid}: inline/base64 SVG is not allowed at {path}.")
                 elif value_lower.endswith(".svg"):
-                    if value.startswith("resources/base/media/") and value not in asset_sources:
-                        reporter.error(f"{cid}: SVG path at {path} is not declared in asset-library.md.")
+                    if (
+                        value.startswith("resources/base/media/")
+                        and allowed_asset_sources is not None
+                        and value not in allowed_asset_sources
+                    ):
+                        reporter.error(
+                            f"{cid}: SVG path at {path} is not present in effective asset candidates."
+                        )
                     elif not value.startswith("resources/base/media/"):
-                        reporter.warn(f"{cid}: SVG at {path} must be user-provided or declared in asset-library.md.")
+                        reporter.warn(
+                            f"{cid}: SVG at {path} must be user-provided or present in effective asset candidates."
+                        )
                 if key.endswith("Color") or key in {"color", "backgroundColor", "borderColor", "fontColor"}:
-                    check_color(value, token_colors, f"{cid}:{path}", reporter)
+                    check_color(value, f"{cid}:{path}", reporter)
 
         check_children(comp, by_id, reporter)
         check_events(comp, reporter)
         check_bindings(comp, data_model, reporter)
-        check_style(comp, token_colors, reporter)
+        check_style(comp, reporter)
         check_text_fit(comp, data_model, reporter)
 
     check_root(by_id[root_id], cardspec, reporter)
@@ -490,12 +480,9 @@ def check_components(update: dict[str, Any], data_msg: dict[str, Any], cardspec:
     check_button_rows(components, by_id, reporter)
 
 
-def check_color(value: str, token_colors: set[str], location: str, reporter: Reporter) -> None:
+def check_color(value: str, location: str, reporter: Reporter) -> None:
     if not COLOR_RE.fullmatch(value):
         reporter.error(f"{location}: color must be #RRGGBB or #AARRGGBB, found {value}.")
-        return
-    if token_colors and value.upper() not in token_colors:
-        reporter.error(f"{location}: color {value} is not found in color-token-system.md.")
 
 
 def check_children(comp: dict[str, Any], by_id: dict[str, dict[str, Any]], reporter: Reporter) -> None:
@@ -546,8 +533,8 @@ def check_events(comp: dict[str, Any], reporter: Reporter) -> None:
             reporter.error(f"{cid}: event {call} has unsupported args {sorted(extra)}.")
         if missing:
             reporter.error(f"{cid}: event {call} missing args {sorted(missing)}.")
-        if call == "clickToCallPhone" and set(args.keys()) != {"phoneNumber"}:
-            reporter.error(f"{cid}: clickToCallPhone args must contain only phoneNumber.")
+        if call == "clickToApi" and set(args.keys()) != {"intentName", "params"}:
+            reporter.error(f"{cid}: clickToApi args must contain intentName and params.")
 
 
 def check_bindings(comp: dict[str, Any], data_model: Any, reporter: Reporter) -> None:
@@ -566,7 +553,7 @@ def check_bindings(comp: dict[str, Any], data_model: Any, reporter: Reporter) ->
             reporter.error(f"{cid}: formatString at {path} is not allowed; use a complete {{ ... }} expression.")
 
 
-def check_style(comp: dict[str, Any], token_colors: set[str], reporter: Reporter) -> None:
+def check_style(comp: dict[str, Any], reporter: Reporter) -> None:
     cid = comp.get("id", "<unknown>")
     styles = comp.get("styles", {})
     if not isinstance(styles, dict):
@@ -602,7 +589,7 @@ def check_style(comp: dict[str, Any], token_colors: set[str], reporter: Reporter
             if not (isinstance(stop, list) and len(stop) == 2 and isinstance(stop[0], str)):
                 reporter.error(f"{cid}: each gradient stop must be [color, offset].")
             else:
-                check_color(stop[0], token_colors, f"{cid}:linearGradient", reporter)
+                check_color(stop[0], f"{cid}:linearGradient", reporter)
 
     if comp.get("component") == "Image":
         if "src" not in comp:

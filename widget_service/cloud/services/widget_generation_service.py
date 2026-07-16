@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
-import json
 import time
 
 from api.schemas import (
@@ -13,7 +12,7 @@ from api.schemas import (
     GenerateWidgetCardResponse,
     WidgetCardServiceRequest,
 )
-from app.logger import logger
+from app.logger import json_for_log, logger
 from config.config import get_settings
 from core.errors import ErrorCode, GenerationStatus
 from custom.a2ui_model_client import A2UIModelClient
@@ -41,19 +40,22 @@ class WidgetGenerationService:
     def widget_card_service(
         self,
         request: WidgetCardServiceRequest,
-    ) -> CapabilityOverviewResponse | DataCapabilitySchemasResponse | GenerateWidgetCardResponse:
+    ) -> (
+        CapabilityOverviewResponse
+        | DataCapabilitySchemasResponse
+        | GenerateWidgetCardResponse
+    ):
         """统一云侧卡片工具入口。
 
         入参：
         - request：包含 operation 和对应能力参数的统一工具请求。
         出参：根据 operation 返回能力概述、数据能力 schema 或卡片生成结果。
         """
-        # 统一工具层只暴露一个工具名，通过 operation 分发到三个真实业务流程。
+        # 兼容统一工具层时，通过 operation 分发到三个正式业务流程及协议变体。
         logger.info(
             f"widget_card_service_dispatch_started operation={request.operation} "
-            f"uid={request.uid} prd_ver={request.prdVer} "
-            f"device_rom_version={request.device.romVersion} "
-            f"ohos_api_version={request.device.ohosApiVersion}"
+            f"prd_ver={request.prdVer} "
+            f"device_rom_version={request.device.romVersion}"
         )
         if request.operation == "getWidgetCapabilityOverview":
             # overview 只需要版本上下文，不需要读取完整数据 schema，避免首轮工具返回过大。
@@ -96,33 +98,37 @@ class WidgetGenerationService:
 
         入参：
         - request：包含 locale、uid、device 等版本上下文。
-        出参：数据能力 id+描述，以及全量事件能力和素材清单。
+        出参：实际可用的数据能力概述、事件、素材及不可用能力清单。
         """
         logger.info(
-            f"capability_overview_started uid={request.uid} "
-            f"prd_ver={request.prdVer} "
+            f"capability_overview_started prd_ver={request.prdVer} "
             f"device_rom_version={request.device.romVersion} "
-            f"ohos_api_version={request.device.ohosApiVersion} "
-            f"request={request.model_dump(mode='json', exclude_none=True)}"
+            "request="
+            f"{json_for_log(request.model_dump(mode='json', exclude={'uid'}, exclude_none=True))}"
         )
         # 能力注册表按 prdVer+device.romVersion 文件夹隔离。
         try:
-            registry = self._capability_registry(request)
+            registry = self._capability_registry(request, allow_default_fallback=True)
         except ValueError as exc:
             version = self._capability_registry_version_hint(request)
             logger.error(
-                f"capability_overview_registry_missing uid={request.uid} "
-                f"registry_version={version} error={exc}"
+                f"capability_overview_registry_missing registry_version={version} "
+                f"error={exc}"
             )
             return CapabilityOverviewResponse(
                 capabilityRegistryVersion=version,
                 dataCapabilities=[],
                 eventCapabilities=[],
                 assetCandidates=[],
+                unavailableCapabilities=[],
             )
         logger.info(
             "capability_registry_selected operation=getWidgetCapabilityOverview "
             f"registry_version={registry.version}"
+        )
+        resolver = DeviceCapabilityResolver(registry)
+        data_capabilities, event_capabilities, asset_capabilities, removed = (
+            resolver.resolve_capability_overview(request.device)
         )
         response = CapabilityOverviewResponse(
             capabilityRegistryVersion=registry.version,
@@ -132,16 +138,18 @@ class WidgetGenerationService:
                     id=item.id,
                     description=item.description,
                 )
-                for item in registry.list_data_capabilities()
+                for item in data_capabilities
             ],
-            eventCapabilities=registry.list_event_capabilities(),
-            assetCandidates=registry.list_asset_capabilities(),
+            eventCapabilities=event_capabilities,
+            assetCandidates=asset_capabilities,
+            unavailableCapabilities=removed,
         )
         logger.info(
             f"capability_overview_completed registry_version={registry.version} "
             f"data_count={len(response.dataCapabilities)} "
             f"event_count={len(response.eventCapabilities)} "
-            f"asset_count={len(response.assetCandidates)}"
+            f"asset_count={len(response.assetCandidates)} "
+            f"unavailable_count={len(response.unavailableCapabilities)}"
         )
         return response
 
@@ -156,18 +164,19 @@ class WidgetGenerationService:
         出参：已注册数据能力完整定义，以及缺失能力 ID 列表。
         """
         logger.info(
-            f"data_capability_schemas_started uid={request.uid} "
-            f"data_capability_ids={request.dataCapabilityIds} "
-            f"request={request.model_dump(mode='json', exclude_none=True)}"
+            "data_capability_schemas_started "
+            f"data_capability_ids={json_for_log(request.dataCapabilityIds)} "
+            "request="
+            f"{json_for_log(request.model_dump(mode='json', exclude={'uid'}, exclude_none=True))}"
         )
         # 这里返回完整 inputSchema/outputSchema，供主 Agent 生成合法 candidateDataBindings。
         try:
-            registry = self._capability_registry(request)
+            registry = self._capability_registry(request, allow_default_fallback=True)
         except ValueError as exc:
             version = self._capability_registry_version_hint(request)
             logger.error(
-                f"data_capability_schemas_registry_missing uid={request.uid} "
-                f"registry_version={version} data_capability_ids={request.dataCapabilityIds} "
+                f"data_capability_schemas_registry_missing registry_version={version} "
+                f"data_capability_ids={json_for_log(request.dataCapabilityIds)} "
                 f"error={exc}"
             )
             return DataCapabilitySchemasResponse(
@@ -195,7 +204,7 @@ class WidgetGenerationService:
         )
         logger.info(
             f"data_capability_schemas_completed registry_version={registry.version} "
-            f"found_count={len(capabilities)} missing_ids={missing}"
+            f"found_count={len(capabilities)} missing_ids={json_for_log(missing)}"
         )
         return response
 
@@ -210,11 +219,12 @@ class WidgetGenerationService:
         """
         # 主流程：解析能力、生成 CardSpec/TaskSpec、生成 genui、校验 artifact、返回结构化状态。
         logger.info(
-            f"generate_widget_card_started uid={request.uid} size={request.size} "
+            f"generate_widget_card_started size={request.size} "
             f"data_binding_count={len(request.candidateDataBindings)} "
             f"event_count={len(request.candidateEventCandidates)} "
             f"asset_count={len(request.candidateAssetIds)} "
-            f"request={request.model_dump(mode='json', exclude_none=True)}"
+            "request="
+            f"{json_for_log(request.model_dump(mode='json', exclude={'uid'}, exclude_none=True))}"
         )
         # registry 负责读取当前版本的能力清单，后续所有过滤都以这份清单为准。
         try:
@@ -222,8 +232,8 @@ class WidgetGenerationService:
         except ValueError as exc:
             version = self._capability_registry_version_hint(request)
             logger.error(
-                f"generate_widget_card_registry_missing uid={request.uid} "
-                f"registry_version={version} error={exc}"
+                f"generate_widget_card_registry_missing registry_version={version} "
+                f"error={exc}"
             )
             return GenerateWidgetCardResponse(
                 status=GenerationStatus.UNSUPPORTED,
@@ -233,50 +243,56 @@ class WidgetGenerationService:
                 effectiveCapabilities={"data": [], "event": [], "asset": []},
             )
         logger.info(
-            f"generate_flow_step_registry_loaded uid={request.uid} "
-            f"registry_version={registry.version}"
+            f"generate_flow_step_registry_loaded registry_version={registry.version}"
         )
         # 协议 profile 决定 A2UI 组件白名单、DSL 行数要求和校验规则。
         protocol_registry = A2UIProtocolRegistry(request.protocolProfileId)
         protocol_profile = protocol_registry.get_profile()
         logger.info(
-            f"generate_flow_step_protocol_loaded uid={request.uid} "
-            f"protocol_profile_id={protocol_profile['id']} "
+            f"generate_flow_step_protocol_loaded protocol_profile_id={protocol_profile['id']} "
             f"protocol_version={protocol_profile['version']}"
         )
-        # resolver 负责把主 Agent 候选能力裁决成当前设备真实可用能力。
+        # 设备可用性已由第一个接口完成；生成接口只做绑定结构校验，不再查询 IDS。
         resolver = DeviceCapabilityResolver(registry)
-
-        # 数据能力过滤输出三份数据：最终写入 CardSpec 的 bindings、传给模型的能力定义、移除原因。
         effective_bindings, effective_data_capabilities, removed_data = (
-            resolver.resolve_data_bindings(
-                request.candidateDataBindings,
-                request.device,
-            )
+            resolver.resolve_generation_data_bindings(request.candidateDataBindings)
         )
         logger.info(
-            f"data_capability_resolved effective_binding_count={len(effective_bindings)} "
+            f"prevalidated_data_capability_loaded "
+            f"effective_binding_count={len(effective_bindings)} "
             f"removed_count={len(removed_data)} "
-            f"effective_binding_ids={[item.capabilityId for item in effective_bindings]} "
-            f"removed_data={[item.model_dump(mode='json') for item in removed_data]}"
+            "effective_binding_ids="
+            f"{json_for_log([item.capabilityId for item in effective_bindings])} "
+            "removed_data="
+            f"{json_for_log([item.model_dump(mode='json') for item in removed_data])}"
         )
-        # 事件候选先从外部协议结构转换成内部 EventAction，再进入统一能力裁决。
+        # 事件候选来自第一个接口的可用清单；这里只做注册表存在性检查。
         candidate_events = self._normalize_event_candidates(request)
-        # 事件能力过滤后，只把当前设备真实可用的点击动作放入 TaskSpec。
-        effective_events, removed_events = resolver.resolve_event_candidates(
-            candidate_events,
-            request.device,
-        )
+        effective_events = []
+        removed_events = []
+        for event in candidate_events:
+            if not event.id or registry.get_event_capability(event.id) is None:
+                removed_events.append(
+                    resolver._removed(
+                        event.id or "",
+                        ErrorCode.UNKNOWN_CAPABILITY,
+                        "event",
+                    )
+                )
+                continue
+            effective_events.append(event)
         logger.info(
             f"event_capability_resolved effective_event_count={len(effective_events)} "
             f"removed_count={len(removed_events)} "
-            f"effective_events={[item.model_dump(mode='json') for item in effective_events]} "
-            f"removed_events={[item.model_dump(mode='json') for item in removed_events]}"
+            "effective_events="
+            f"{json_for_log([item.model_dump(mode='json') for item in effective_events])} "
+            "removed_events="
+            f"{json_for_log([item.model_dump(mode='json') for item in removed_events])}"
         )
         asset_candidates = []
         removed_assets = []
         for asset_id in request.candidateAssetIds:
-            # 素材只允许来自注册表，防止模型引用未打包、未授权或版本不兼容的资源。
+            # 素材同样只解析第一个接口返回的可用 ID。
             asset = registry.get_asset_capability(asset_id)
             if asset is None:
                 removed_assets.append(
@@ -290,14 +306,15 @@ class WidgetGenerationService:
         logger.info(
             f"asset_capability_resolved effective_asset_count={len(asset_candidates)} "
             f"removed_count={len(removed_assets)} "
-            f"effective_asset_ids={[item.id for item in asset_candidates]} "
-            f"removed_assets={[item.model_dump(mode='json') for item in removed_assets]}"
+            "effective_asset_ids="
+            f"{json_for_log([item.id for item in asset_candidates])} "
+            "removed_assets="
+            f"{json_for_log([item.model_dump(mode='json') for item in removed_assets])}"
         )
         if request.candidateDataBindings and not effective_bindings and not effective_events:
             # 没有剩余动态数据或可用入口时，不调用模型，也不伪造数据绑定。
             logger.warning(
-                f"generate_widget_card_unsupported uid={request.uid} "
-                f"removed_count={len(removed)} "
+                f"generate_widget_card_unsupported removed_count={len(removed)} "
                 f"error_code={ErrorCode.NO_EFFECTIVE_CAPABILITY.value}"
             )
             return GenerateWidgetCardResponse(
@@ -309,7 +326,7 @@ class WidgetGenerationService:
             )
 
         # CardSpec 是端侧运行时刷新数据的契约，只包含裁决后的有效数据绑定。
-        # CardSpec 由服务侧统一组装；标题和说明直接透传第三个接口的入参。
+        # CardSpec 由服务侧统一组装；标题和说明直接透传第三个生成接口的入参。
         card_spec = CardSpecBuilder().build(
             request.size,
             effective_bindings,
@@ -320,8 +337,6 @@ class WidgetGenerationService:
         task_spec = TaskSpecBuilder().build(
             request.userQuery,
             request.size,
-            request.title,
-            request.description,
             effective_bindings,
             effective_data_capabilities,
             effective_events,
@@ -329,11 +344,14 @@ class WidgetGenerationService:
         )
         logger.info(
             f"card_and_task_spec_built data_binding_count={len(effective_bindings)} "
-            f"card_spec={card_spec.model_dump(mode='json', exclude_none=True)} "
-            f"task_spec={task_spec.model_dump(mode='json', exclude_none=True)} "
-            f"task_data_model_keys={list(task_spec.dataModel.get('value', {}).keys())}"
+            "card_spec="
+            f"{json_for_log(card_spec.model_dump(mode='json', exclude_none=True))} "
+            "task_spec="
+            f"{json_for_log(task_spec.model_dump(mode='json', exclude_none=True))} "
+            "task_data_model_schema_keys="
+            f"{json_for_log(list(task_spec.dataModelSchema))}"
         )
-        # prompt 只作为模型生成 DSL 的约束输入，最终协议仍由 CardSpec 和 Validator 兜底。
+        # prompt 约束模型生成 DSL；Validator 用于质量观测和一次重试，不作为保存门禁。
         prompt = PromptBuilder().build(
             task_spec,
             protocol_profile,
@@ -341,8 +359,7 @@ class WidgetGenerationService:
         )
 
         logger.info(
-            f"a2ui_prompt_built uid={request.uid} "
-            f"prompt={json.dumps(prompt, ensure_ascii=False)}"
+            f"a2ui_prompt_built prompt={json_for_log(prompt)}"
         )
 
         model_client = A2UIModelClient()
@@ -356,7 +373,7 @@ class WidgetGenerationService:
             出参：三行 JSONL genui 字符串。
             """
             # mock 模型客户端当前返回稳定 DSL；后续替换真实模型时保持 generate 入参不变。
-            logger.info(f"a2ui_model_operation_started uid={request.uid}")
+            logger.info("a2ui_model_operation_started")
             return model_client.generate(prompt, protocol_profile)
 
         def validate_genui(genui: str) -> list[str]:
@@ -369,13 +386,12 @@ class WidgetGenerationService:
             # 每次模型输出都临时组装 artifact，再用同一套 Validator 校验完整契约。
             if not settings.enable_artifact_validation:
                 logger.info(
-                    f"a2ui_genui_validation_skipped uid={request.uid} "
+                    "a2ui_genui_validation_skipped "
                     "reason=enable_artifact_validation_false"
                 )
                 return []
             logger.info(
-                f"a2ui_genui_validation_started uid={request.uid} "
-                f"genui_length={len(genui)}"
+                f"a2ui_genui_validation_started genui_length={len(genui)}"
             )
             artifact = self._build_artifact(
                 genui,
@@ -389,7 +405,11 @@ class WidgetGenerationService:
                 protocol_profile["version"],
                 registry.version,
             )
-            return ArtifactValidator().validate(artifact, protocol_profile)
+            return ArtifactValidator().validate(
+                artifact,
+                protocol_profile,
+                allowed_asset_sources={item.src for item in asset_candidates},
+            )
 
         # RetryController 把“生成一次”和“校验一次”组合起来，失败时可重试生成。
         retry_result = retry_controller.run(operation, validate_genui)
@@ -401,17 +421,15 @@ class WidgetGenerationService:
         )
         if errors:
             logger.error(
-                f"a2ui_generation_validation_failed uid={request.uid} errors={errors}"
-            )
-            return GenerateWidgetCardResponse(
-                status=GenerationStatus.FAILED,
-                suggestSize=request.size,
-                message="卡片生成过程中校验失败，请稍后再试。",
-                removedCapabilities=removed,
-                errorCode=ErrorCode.VALIDATION_FAILED.value,
+                "a2ui_generation_validation_failed_non_blocking "
+                f"protocol_profile_id={protocol_profile['id']} "
+                f"validation_error_code={ErrorCode.VALIDATION_FAILED.value} "
+                f"retry_count={retry_result.retryCount} "
+                f"errors={json_for_log(errors)} "
+                "proceeding_to_artifact_save=true"
             )
 
-        # 校验通过后重新组装最终 artifact，确保保存内容和最后一次成功 genui 一致。
+        # 无论校验是否通过，都使用最后一次模型输出组装 artifact；校验失败只记录质量告警。
         artifact = self._build_artifact(
             genui,
             card_spec.model_dump(mode="json", exclude_none=True),
@@ -426,8 +444,8 @@ class WidgetGenerationService:
         )
         # ArtifactStore 当前是本地 mock/OBS TODO 入口，返回端侧可下载 URL 和摘要。
         logger.info(
-            f"artifact_built uid={request.uid} "
-            f"effective_capabilities={artifact.effectiveCapabilities} "
+            "artifact_built "
+            f"effective_capabilities={json_for_log(artifact.effectiveCapabilities)} "
             f"removed_count={len(artifact.removedCapabilities)}"
         )
         artifact_save_result = ArtifactStore().save(artifact)
@@ -451,10 +469,6 @@ class WidgetGenerationService:
             message=response_plan.message,
             removedCapabilities=removed,
             errorCode=response_plan.errorCode,
-            # 生产默认不内联 artifact；调试时可通过内部 options 打开，避免 WS 响应体过大。
-            artifact=artifact.model_dump(mode="json", exclude_none=True)
-            if request.options.returnArtifactInline
-            else None,
             effectiveCapabilities=artifact.effectiveCapabilities,
         )
 
@@ -513,11 +527,17 @@ class WidgetGenerationService:
 
         return candidates
 
-    def _capability_registry(self, request) -> CapabilityRegistry:
+    def _capability_registry(
+        self,
+        request,
+        *,
+        allow_default_fallback: bool = False,
+    ) -> CapabilityRegistry:
         """按请求版本上下文创建能力注册表。
 
         入参：
         - request：包含 capabilityRegistryVersion 和 device 版本字段的请求对象。
+        - allow_default_fallback：请求版本不存在时是否允许回退默认注册表。
         出参：对应版本的 CapabilityRegistry。
         """
         # capabilityRegistryVersion 显式传入时优先使用；
@@ -526,15 +546,31 @@ class WidgetGenerationService:
             f"capability_registry_building requested_version="
             f"{request.capabilityRegistryVersion} "
             f"prd_ver={request.prdVer} "
-            f"ohos_api_version={request.device.ohosApiVersion} "
             f"device_rom_version={request.device.romVersion}"
         )
-        registry = CapabilityRegistry(
-            version=request.capabilityRegistryVersion,
-            app_version=request.prdVer,
-            ohos_api_version=request.device.ohosApiVersion,
-            device_rom_version=request.device.romVersion,
-        )
+        try:
+            registry = CapabilityRegistry(
+                version=request.capabilityRegistryVersion,
+                app_version=request.prdVer,
+                device_rom_version=request.device.romVersion,
+            )
+        except ValueError as exc:
+            settings = get_settings()
+            if (
+                not allow_default_fallback
+                or not settings.enable_default_capability_registry_fallback
+            ):
+                raise
+            requested_version = self._capability_registry_version_hint(request)
+            fallback_version = settings.capability_registry_version
+            if requested_version == fallback_version:
+                raise
+            logger.warning(
+                "capability_registry_fallback "
+                f"requested_version={requested_version} "
+                f"fallback_version={fallback_version} reason={exc}"
+            )
+            registry = CapabilityRegistry(version=fallback_version)
         logger.info(f"capability_registry_built registry_version={registry.version}")
         return registry
 

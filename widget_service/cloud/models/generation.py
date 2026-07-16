@@ -16,7 +16,6 @@ class DeviceContext(BaseModel):
     udid: str | None = None
     romVersion: str
     marketingName: str | None = None
-    ohosApiVersion: int
 
 
 class CandidateDataBinding(BaseModel):
@@ -25,7 +24,17 @@ class CandidateDataBinding(BaseModel):
     capabilityId: str
     arguments: dict[str, Any] = Field(default_factory=dict)
     writeResultTo: str
-    updateModel: dict[str, Any] = Field(default_factory=dict)
+    candidateOutputFields: list[str] = Field(default_factory=list)
+
+
+class CardSpecDataBinding(BaseModel):
+    """微服务裁决后写入最终 CardSpec 的数据绑定。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    capabilityId: str
+    arguments: dict[str, Any] = Field(default_factory=dict)
+    writeResultTo: str
 
 
 class EventAction(BaseModel):
@@ -35,22 +44,23 @@ class EventAction(BaseModel):
 
 
 class GenerationOptions(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     allowDegradation: bool = True
-    returnArtifactInline: bool = False
 
 
 class CardSpec(BaseModel):
     title: str = Field(min_length=1)
     description: str = Field(min_length=1)
     suggestSize: WidgetSize
-    dataBindings: list[CandidateDataBinding] | None = None
+    dataBindings: list[CardSpecDataBinding] | None = None
 
 
 class TaskSpec(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     userQuery: str
     size: WidgetSize
-    title: str = Field(min_length=1)
-    description: str = Field(min_length=1)
     eventCandidates: list[EventAction] = Field(default_factory=list)
-    dataModel: dict[str, Any]
+    dataModelSchema: dict[str, Any]
     assetCandidates: list[dict[str, Any]] = Field(default_factory=list)

@@ -74,13 +74,36 @@ async def _call_ws(path_name: str, payload: dict, expected_request_id: str) -> d
     try:
         async with websockets.connect(uri, open_timeout=2.0) as websocket:
             await websocket.send(json.dumps(payload, ensure_ascii=False))
-            message = json.loads(await websocket.recv())
+            start_received = False
+            while True:
+                message = json.loads(await websocket.recv())
+                stream_info = message["reply"]["streamInfo"]
+                assert stream_info["streamingTextId"] == expected_request_id
+                stream_type = stream_info["streamType"]
+                if stream_type == "start":
+                    assert stream_info["textType"] == "markdown"
+                    assert not start_received
+                    assert stream_info["streamContent"] == ""
+                    assert message["reply"]["items"] == []
+                    start_received = True
+                    continue
+                if stream_type == "partial":
+                    assert stream_info["textType"] == "markdown"
+                    assert start_received
+                    assert stream_info["streamContent"] == ""
+                    assert message["reply"]["items"] == []
+                    continue
+                assert stream_type == "final"
+                assert start_received
+                assert stream_info["textType"] == "plainText"
+                break
+            print(message)
             assert message["errorCode"] == "0"
             assert message["errorMessage"] == ""
             stream_info = message["reply"]["streamInfo"]
             assert stream_info["streamingTextId"] == expected_request_id
             assert stream_info["streamType"] == "final"
-            assert stream_info["textType"] == "markdown"
+            assert stream_info["textType"] == "plainText"
             assert stream_info["streamContent"]
 
             assert len(message["reply"]["items"]) == 1
@@ -103,14 +126,14 @@ async def _call_ws(path_name: str, payload: dict, expected_request_id: str) -> d
         )
 
 
-def test_live_three_websocket_paths_complete_flow():
-    """验证本地已启动服务上的三个真实 WebSocket 入口。
+def test_live_four_websocket_paths_complete_flow():
+    """验证本地已启动服务上的三个正式 WebSocket 入口。
 
     入参：无。
-    出参：无；通过断言验证能力概述、schema 加载和生成接口的真实 WS 链路。
+    出参：无；验证概述、schema、可用性校验和生成接口的真实 WS 链路。
     """
     async def scenario() -> None:
-        """执行真实 WebSocket 三段调用流程。
+        """执行真实 WebSocket 四段调用流程。
 
         入参：无。
         出参：无；断言每个业务响应符合预期。
@@ -143,6 +166,37 @@ def test_live_three_websocket_paths_complete_flow():
         assert [item["id"] for item in schema["dataCapabilities"]] == ["ViewWeather"]
         assert schema["missingCapabilityIds"] == []
 
+        candidate_payload = {
+            "candidateDataBindings": [
+                {
+                    "capabilityId": "ViewWeather",
+                    "arguments": {"districtName": "上海", "forecastDays": 1},
+                    "writeResultTo": "/data/weather",
+                    "candidateOutputFields": [
+                        "/location/districtName",
+                        "/current/temperatureText",
+                        "/current/condition",
+                        "/current/airQuality",
+                        "/updatedAt",
+                    ],
+                }
+            ],
+            "candidateEventCandidates": [
+                {
+                    "capabilityId": "event.open.weather",
+                    "action": {
+                        "call": "clickToDeeplink",
+                        "args": {
+                            "intentName": "Weather_CityCode",
+                            "bundleName": "",
+                            "abilityName": "",
+                            "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode=",
+                        },
+                    },
+                }
+            ],
+            "candidateAssetIds": ["asset.drop_1"],
+        }
         generate_message = await _call_ws(
             "generateWidgetCard",
             _tool_payload(
@@ -152,32 +206,7 @@ def test_live_three_websocket_paths_complete_flow():
                     "size": "2x4",
                     "title": "通勤日常",
                     "description": "天气速览",
-                    "candidateDataBindings": [
-                        {
-                            "capabilityId": "ViewWeather",
-                            "arguments": {"districtName": "上海", "forecastDays": 1},
-                            "writeResultTo": "/data/weather",
-                            "updateModel": {
-                                "location": {"districtName": ""},
-                                "current": {
-                                    "temperatureText": "",
-                                    "condition": "",
-                                    "airQuality": "",
-                                },
-                                "updatedAt": "",
-                            },
-                        }
-                    ],
-                    "candidateEventCandidates": [
-                        {
-                            "capabilityId": "event.open.weather",
-                            "action": {
-                                "call": "clickToDeeplink",
-                                "args": {"uri": "hww://weather"},
-                            },
-                        }
-                    ],
-                    "candidateAssetIds": ["asset.drop_1"],
+                    **candidate_payload,
                 },
                 "3",
                 "帮我做通勤卡片，包含天气",
@@ -193,3 +222,7 @@ def test_live_three_websocket_paths_complete_flow():
         assert generated["effectiveCapabilities"]["data"] == ["ViewWeather"]
 
     asyncio.run(scenario())
+
+
+if __name__ == "__main__":
+    test_live_four_websocket_paths_complete_flow()

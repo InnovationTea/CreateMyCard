@@ -17,7 +17,7 @@ from api.schemas import (
     GenerateWidgetCardRequest,
     ToolRequestEnvelope,
 )
-from app.logger import logger, task_logger
+from app.logger import json_for_log, logger, task_logger
 from config.config import get_settings
 from models.service import (
     WidgetPluginReply,
@@ -64,40 +64,17 @@ def _request_id_from_envelope(envelope: ToolRequestEnvelope) -> str | None:
 
 
 def _pick_device_rom_version(device_info: dict[str, Any]) -> str:
-    """从 deviceInfo 中读取 ROM 版本，缺失时使用配置默认值。
+    """从 deviceInfo 中读取 ROM 版本。
 
     入参：
     - device_info：外部请求中的 deviceInfo 字典。
     出参：内部 DeviceContext 使用的 romVersion。
     """
     settings = get_settings()
-    for key in (
-        "romVersion",
-        "romVer",
-        "rom",
-        "rom_version",
-        "ohosApiVersion",
-        "ohos_api_version",
-    ):
-        value = device_info.get(key)
-        if value:
-            return str(value)
+    value = device_info.get("romVersion")
+    if value is not None and str(value).strip():
+        return str(value)
     return settings.default_device_rom_version
-
-
-def _pick_ohos_api_version(device_info: dict[str, Any]) -> int:
-    """从 deviceInfo 中读取 ohosApiVersion，缺失时使用配置默认值。
-
-    入参：
-    - device_info：外部请求中的 deviceInfo 字典。
-    出参：内部 DeviceContext 使用的 ohosApiVersion。
-    """
-    settings = get_settings()
-    for key in ("ohosApiVersion", "ohos_api_version"):
-        value = device_info.get(key)
-        if value is not None:
-            return int(value)
-    return settings.default_ohos_api_version
 
 
 def _device_context_from_envelope(envelope: ToolRequestEnvelope) -> dict[str, Any]:
@@ -118,7 +95,6 @@ def _device_context_from_envelope(envelope: ToolRequestEnvelope) -> dict[str, An
         "udid": device_info.get("udid"),
         "romVersion": _pick_device_rom_version(device_info),
         "marketingName": device_info.get("marketingName") or phone_type,
-        "ohosApiVersion": _pick_ohos_api_version(device_info),
     }
 
 
@@ -183,9 +159,11 @@ def _stream_content_for_result(operation: str, result_data: dict[str, Any]) -> s
         data_count = len(result_data.get("dataCapabilities", []))
         event_count = len(result_data.get("eventCapabilities", []))
         asset_count = len(result_data.get("assetCandidates", []))
+        unavailable_count = len(result_data.get("unavailableCapabilities", []))
         return (
             f"已获取卡片能力概述：{data_count} 个数据能力、"
-            f"{event_count} 个事件能力、{asset_count} 个素材候选。"
+            f"{event_count} 个事件能力、{asset_count} 个素材候选，"
+            f"{unavailable_count} 项不可用。"
         )
 
     if operation == "getDataCapabilitySchemas":
@@ -243,6 +221,27 @@ def _build_plugin_stream_response(
             ],
         ),
     )
+
+
+async def _send_websocket_json(
+    websocket: WebSocket,
+    payload: dict[str, Any],
+    operation: str,
+    request_id: str | None,
+    frame_type: str,
+) -> bool:
+    """发送 WebSocket JSON 帧，并处理客户端已断开的情况。"""
+    try:
+        await websocket.send_json(payload)
+        return True
+    except (WebSocketDisconnect, RuntimeError) as exc:
+        logger.error(
+            f"widget_operation_ws_send_failed request_id={request_id} "
+            f"operation={operation} frame_type={frame_type} "
+            f"exception_type={type(exc).__name__} exception={exc!r} "
+            f"traceback={traceback.format_exc()}"
+        )
+        return False
 
 
 async def _heartbeat_sender(
@@ -318,18 +317,21 @@ async def _serve_operation_websocket(
             task_logger.set_session_id(request_id or "None")
             logger.info(
                 f"widget_operation_ws_payload_received request_id={request_id} "
-                f"operation={operation} payload_keys={list(payload.keys())} "
-                f"arguments={arguments}"
+                f"operation={operation} payload={json_for_log(payload)} "
+                f"arguments={json_for_log(arguments)}"
             )
             # streaming_text_id 沿用现有逻辑：有 requestId 时取 requestId，否则生成随机 ID。
             streaming_text_id = request_id or uuid.uuid4().hex
             heartbeat_task: asyncio.Task | None = None
             try:
                 request = request_model(**arguments)
+                request_log = json_for_log(
+                    request.model_dump(mode="json", exclude={"uid"}, exclude_none=True)
+                )
                 logger.info(
                     f"widget_operation_ws_message_received request_id={request_id} "
-                    f"operation={operation} uid={getattr(request, 'uid', '')} "
-                    f"request={request.model_dump(mode='json', exclude_none=True)}"
+                    f"operation={operation} "
+                    f"request={request_log}"
                 )
                 # 收到合法请求后先发送 start 帧，再启动心跳协程。
                 start_frame = WidgetPluginStreamResponse(
@@ -345,9 +347,14 @@ async def _serve_operation_websocket(
                         items=[],
                     ),
                 )
-                await websocket.send_json(
-                    start_frame.model_dump(mode="json", exclude_none=True)
-                )
+                if not await _send_websocket_json(
+                    websocket,
+                    start_frame.model_dump(mode="json", exclude_none=True),
+                    operation,
+                    request_id,
+                    "start",
+                ):
+                    return
                 if heartbeat:
                     heartbeat_task = asyncio.create_task(
                         _heartbeat_sender(websocket, streaming_text_id, heartbeat_interval)
@@ -360,7 +367,7 @@ async def _serve_operation_websocket(
                 logger.info(
                     f"widget_operation_ws_handler_completed request_id={request_id} "
                     f"operation={operation} duration_ms={duration_ms} "
-                    f"response={result_data}"
+                    f"response={json_for_log(result_data)}"
                 )
                 result_message = WidgetWebSocketResultMessage(
                     tool=operation,
@@ -381,15 +388,20 @@ async def _serve_operation_websocket(
                     if result_data.get("status") == "failed"
                     else "",
                 )
-                await websocket.send_json(
-                    plugin_response.model_dump(mode="json", exclude_none=True)
-                )
+                if not await _send_websocket_json(
+                    websocket,
+                    plugin_response.model_dump(mode="json", exclude_none=True),
+                    operation,
+                    request_id,
+                    "final",
+                ):
+                    return
             except ValueError as exc:
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
                 logger.error(
                     f"widget_operation_ws_invalid_arguments request_id={request_id} "
                     f"operation={operation} duration_ms={duration_ms} "
-                    f"details={_error_details(exc)} "
+                    f"details={json_for_log(_error_details(exc))} "
                     f"exception_type={type(exc).__name__} exception={exc!r} "
                     f"traceback={traceback.format_exc()}"
                 )
@@ -409,9 +421,14 @@ async def _serve_operation_websocket(
                     top_error_code="INVALID_ARGUMENTS",
                     top_error_message=f"Invalid {operation} arguments.",
                 )
-                await websocket.send_json(
-                    plugin_response.model_dump(mode="json", exclude_none=True)
-                )
+                if not await _send_websocket_json(
+                    websocket,
+                    plugin_response.model_dump(mode="json", exclude_none=True),
+                    operation,
+                    request_id,
+                    "final_error",
+                ):
+                    return
             except Exception as exc:
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
                 logger.error(
@@ -433,12 +450,21 @@ async def _serve_operation_websocket(
                     top_error_code="FAILED",
                     top_error_message=str(exc),
                 )
-                await websocket.send_json(
-                    plugin_response.model_dump(mode="json", exclude_none=True)
-                )
+                if not await _send_websocket_json(
+                    websocket,
+                    plugin_response.model_dump(mode="json", exclude_none=True),
+                    operation,
+                    request_id,
+                    "final_error",
+                ):
+                    return
             finally:
                 if heartbeat_task:
-                    heartbeat_task.cancel()                
+                    heartbeat_task.cancel()
+                    try:
+                        await heartbeat_task
+                    except asyncio.CancelledError:
+                        logger.error("widget_operation_ws_heartbeat_cancelled")
     except WebSocketDisconnect:
         logger.info(f"widget_operation_ws_disconnected operation={operation}")
         return

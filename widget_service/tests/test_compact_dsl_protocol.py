@@ -10,7 +10,7 @@ import pytest
 
 from api.schemas import GenerateWidgetCardRequest
 from custom.a2ui_model_client import A2UIModelClient
-from models.generation import DeviceContext, GenerationOptions
+from models.generation import DeviceContext
 from models.service import ArtifactSaveResult
 from services.artifact_store import ArtifactStore
 from services.compact_dsl_protocol import (
@@ -149,13 +149,12 @@ def _errors(rows: list[list[Any]]) -> list[str]:
 def _generation_request() -> GenerateWidgetCardRequest:
     return GenerateWidgetCardRequest(
         uid="compact-dsl-model-gate",
-        device=DeviceContext(romVersion="36", ohosApiVersion=36),
-        prdVer="1.0.0",
+        device=DeviceContext(romVersion="36"),
+        prdVer="11.7.5.205",
         userQuery="weather card",
         size="2x4",
         title="Weather",
         description="Current weather",
-        options=GenerationOptions(returnArtifactInline=True),
     )
 
 
@@ -383,7 +382,7 @@ def test_artifact_meta_uses_selected_protocol_profile_version():
     artifact = WidgetGenerationService()._build_artifact(
         genui=_ndjson([["root", "Column", {"width": "matchParent", "space": 8}, []]]),
         card_spec={"suggestSize": "2x4"},
-        task_spec={"dataModel": {"value": {}}},
+        task_spec={"dataModelSchema": {"data": {}}},
         data_capabilities=[],
         event_candidates=[],
         asset_candidates=[],
@@ -409,13 +408,51 @@ def test_generation_service_accepts_valid_compact_dsl_model_output(monkeypatch):
         "generate",
         lambda self, prompt, protocol_profile: model_output,
     )
-    monkeypatch.setattr(
-        ArtifactStore,
-        "save",
-        lambda self, artifact: ArtifactSaveResult(
+    saved_artifacts = []
+
+    def capture_artifact(_store, artifact):
+        saved_artifacts.append(artifact)
+        return ArtifactSaveResult(
             artifactUrl="https://test.invalid/artifact",
             artifactDigest="sha256:test",
-        ),
+        )
+
+    monkeypatch.setattr(ArtifactStore, "save", capture_artifact)
+
+    response = WidgetGenerationService().generate_widget_card_compact_dsl(
+        _generation_request()
+    )
+
+    assert response.status.value == "success"
+    assert "artifact" not in response.model_dump()
+    assert len(saved_artifacts) == 1
+    assert saved_artifacts[0].genui == model_output
+    assert saved_artifacts[0].meta.protocolProfileId == "compact-dsl-v1"
+    assert saved_artifacts[0].meta.dslProtocolVersion == "v1"
+
+
+def test_generation_service_logs_validation_failure_and_continues_save(monkeypatch):
+    calls = {"generate": 0, "save": 0}
+    saved_artifacts = []
+    error_logs: list[str] = []
+
+    def invalid_generate(self, prompt, protocol_profile):
+        calls["generate"] += 1
+        return "```genui\n[]\n```"
+
+    def capture_save(self, artifact):
+        calls["save"] += 1
+        saved_artifacts.append(artifact)
+        return ArtifactSaveResult(
+            artifactUrl="https://test.invalid/non-blocking-validation-artifact",
+            artifactDigest="sha256:validation-warning",
+        )
+
+    monkeypatch.setattr(A2UIModelClient, "generate", invalid_generate)
+    monkeypatch.setattr(ArtifactStore, "save", capture_save)
+    monkeypatch.setattr(
+        "services.widget_generation_service.logger.error",
+        lambda message: error_logs.append(str(message)),
     )
 
     response = WidgetGenerationService().generate_widget_card_compact_dsl(
@@ -423,31 +460,16 @@ def test_generation_service_accepts_valid_compact_dsl_model_output(monkeypatch):
     )
 
     assert response.status.value == "success"
-    assert response.artifact is not None
-    assert response.artifact["genui"] == model_output
-    assert response.artifact["meta"]["protocolProfileId"] == "compact-dsl-v1"
-    assert response.artifact["meta"]["dslProtocolVersion"] == "v1"
-
-
-def test_generation_service_rejects_fenced_model_output_before_save(monkeypatch):
-    calls = {"generate": 0, "save": 0}
-
-    def invalid_generate(self, prompt, protocol_profile):
-        calls["generate"] += 1
-        return "```genui\n[]\n```"
-
-    def unexpected_save(self, artifact):
-        calls["save"] += 1
-        raise AssertionError("invalid artifact must not be saved")
-
-    monkeypatch.setattr(A2UIModelClient, "generate", invalid_generate)
-    monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
-
-    response = WidgetGenerationService().generate_widget_card_compact_dsl(
-        _generation_request()
+    assert response.errorCode == ""
+    assert response.artifactUrl == (
+        "https://test.invalid/non-blocking-validation-artifact"
     )
-
-    assert response.status.value == "failed"
-    assert response.errorCode == "VALIDATION_FAILED"
-    assert response.artifact is None
-    assert calls == {"generate": 2, "save": 0}
+    assert "artifact" not in response.model_dump()
+    assert calls == {"generate": 2, "save": 1}
+    assert len(saved_artifacts) == 1
+    assert saved_artifacts[0].genui == "```genui\n[]\n```"
+    assert any(
+        "a2ui_generation_validation_failed_non_blocking" in message
+        and "proceeding_to_artifact_save=true" in message
+        for message in error_logs
+    )

@@ -11,7 +11,7 @@ from typing import Any
 
 import requests
 
-from app.logger import logger
+from app.logger import json_for_log, logger
 from config.config import get_settings
 from models.generation import DeviceContext
 from models.service import (
@@ -28,26 +28,15 @@ from utils.base_utils import sts_config
 
 @dataclass(frozen=True)
 class IDSDeviceCapabilityState:
-    """微服务内部使用的 IDS 能力状态快照。
+    """微服务内部使用的 IDS 已安装应用快照。"""
 
-    入参：
-    - installed_apps：设备已安装应用，key 为包名，value 为版本号。
-    - providers：设备当前可用的数据 provider ID 集合。
-    - intent_targets：设备当前可用的意图入口 ID 集合。
-    - permissions：设备权限状态，key 为权限名，value 为 GRANTED、DENIED 或 UNKNOWN。
-    出参：不可变数据对象，供能力过滤流程读取。
-    """
-
-    installed_apps: dict[str, str] = field(default_factory=dict)
-    providers: set[str] = field(default_factory=set)
-    intent_targets: set[str] = field(default_factory=set)
-    permissions: dict[str, str] = field(default_factory=dict)
+    installed_apps: set[str] = field(default_factory=set)
 
 
 class IDSClient:
     """IDS 查询客户端。
 
-    优先读取 mock IDS 响应文件；没有 mock 文件时会按 Postman 样例结构真实请求 IDS。
+    mock 开启时只读取本地 IDS 响应文件；mock 关闭时只请求真实 IDS。
     `DeviceCapabilityResolver` 始终消费稳定的 `IDSDeviceCapabilityState`。
     """
 
@@ -59,7 +48,7 @@ class IDSClient:
         出参：无。
         """
         self.settings = get_settings()
-        # 测试和本地调试可显式传入文件路径；路径不存在时自动走真实 IDS 查询。
+        # 测试和本地调试可显式传入文件路径；是否读取该文件仅由 enable_ids_mock 决定。
         self.mock_response_path = (
             mock_response_path or self.settings.resolved_mock_ids_response_path
         )
@@ -78,24 +67,24 @@ class IDSClient:
         """
         # 请求结构来自一次性 Postman 导出样例，代码内固化成实体对象后不再依赖 collection 文件。
         odid = device.odid or "790d8366-cd45-c4d5-6784-06727a549e61"
+        query_data = [IDSQueryRequestData(keys=IDSQueryKeys(odid=odid))]
         body = IDSInstalledAppsQueryBody(
             requestId=request_id,
             callingUid=self.settings.ids_calling_uid,
             nameSpaces=[
                 IDSNamespaceQuery(
                     dataType="t_ids_kv_ohos_installed_apps",
-                    queryRequestData=[
-                        IDSQueryRequestData(keys=IDSQueryKeys(odid=odid)),
-                    ],
-                )
+                    queryRequestData=query_data,
+                ),
             ],
         )
         ids_sign = self.build_ids_sign(
             timestamp_ms=int(time.time() * 1000),
         )
         logger.info(
-            f"ids_installed_apps_query_built request_id={request_id} odid={odid} "
-            f"body={body.model_dump(mode='json')} ids_sign_preview={ids_sign[:8]}"
+            f"ids_device_capability_query_built request_id={request_id} odid={odid} "
+            f"body={json_for_log(body.model_dump(mode='json'))} "
+            f"ids_sign_preview={ids_sign[:8]}"
         )
         return IDSHttpRequest(
             method="POST",
@@ -147,40 +136,54 @@ class IDSClient:
         device: DeviceContext,
         request_id: str,
     ) -> IDSDeviceCapabilityState:
-        """获取设备能力状态。
+        """获取设备已安装应用状态。
 
         入参：
         - device：工具层注入的设备信息，用于构造 IDS 查询条件。
         - request_id：本次 IDS 查询请求 ID。
-        出参：标准化后的 IDSDeviceCapabilityState，供数据能力和事件能力过滤使用。
+        出参：标准化后的 IDSDeviceCapabilityState，供依赖包名匹配使用。
         """
-        # get_device_capability_state 与 build_installed_apps_query 是同一条链路：
-        # 先根据 device 生成 IDS 查询请求，再决定走 mock 文件还是真实 IDS 请求。
+        if self.settings.enable_ids_mock:
+            return self._load_mock_state(request_id)
+
+        # mock 关闭时忽略本地文件，只构造并访问真实 IDS 请求。
         ids_query = self.build_installed_apps_query(device, request_id)
         logger.info(
             f"ids_device_capability_query_prepared request_id={request_id} "
             f"method={ids_query.method} url={ids_query.url} "
-            f"headers={self._safe_headers_for_log(ids_query)} "
-            f"body={ids_query.body.model_dump(mode='json')}"
+            f"headers={json_for_log(self._safe_headers_for_log(ids_query))} "
+            f"body={json_for_log(ids_query.body.model_dump(mode='json'))}"
         )
-        if self.mock_response_path.exists():
-            # mock 文件沿用 docs/ids_res.txt 的原始 IDS JSON 结构。
-            logger.info(f"ids_mock_response_loading path={self.mock_response_path}")
-            payload = load_json(self.mock_response_path)
-        else:
-            # 没有 mock 文件时发起真实 IDS 请求；真实返回结构应与 mock 文件一致。
-            logger.info(
-                f"ids_mock_response_not_found_use_remote path={self.mock_response_path} "
-                f"url={ids_query.url}"
-            )
-            payload = self._query_remote_ids(ids_query, request_id)
+        payload = self._query_remote_ids(ids_query, request_id)
         state = self._parse_ids_payload(payload)
         logger.info(
             f"ids_device_capability_state_loaded request_id={request_id} "
-            f"installed_app_count={len(state.installed_apps)} "
-            f"provider_count={len(state.providers)} "
-            f"intent_count={len(state.intent_targets)} "
-            f"permission_count={len(state.permissions)}"
+            f"source=remote installed_app_count={len(state.installed_apps)}"
+        )
+        return state
+
+    def _load_mock_state(self, request_id: str) -> IDSDeviceCapabilityState:
+        """只读取并解析本地 IDS mock；任何失败都返回空状态且不访问远端。"""
+        try:
+            logger.info(
+                f"ids_mock_response_loading request_id={request_id} "
+                f"path={self.mock_response_path}"
+            )
+            payload = load_json(self.mock_response_path)
+            if not isinstance(payload, dict):
+                raise ValueError("IDS mock payload must be a JSON object")
+            state = self._parse_ids_payload(payload)
+        except Exception as exc:
+            logger.error(
+                f"ids_mock_response_failed request_id={request_id} "
+                f"path={self.mock_response_path} "
+                f"exception_type={type(exc).__name__} error={exc}"
+            )
+            return IDSDeviceCapabilityState()
+
+        logger.info(
+            f"ids_device_capability_state_loaded request_id={request_id} "
+            f"source=mock installed_app_count={len(state.installed_apps)}"
         )
         return state
 
@@ -264,117 +267,31 @@ class IDSClient:
         - payload：IDS 原始 JSON 响应。
         出参：转换后的设备能力状态。
         """
-        installed_apps: dict[str, str] = {}
-        providers: set[str] = set()
-        intent_targets: set[str] = set()
-        permissions: dict[str, str] = {}
+        installed_apps: set[str] = set()
 
         for namespace in payload.get("nameSpaces", []):
-            # dataType 决定当前 namespace 存的是安装应用、provider、intent 还是权限。
             data_type = namespace.get("dataType", "")
             values = namespace.get("values", [])
 
             if data_type == "t_ids_kv_ohos_installed_apps":
-                # 安装应用列表需要转成 packageName -> versionName，供依赖版本检查使用。
                 installed_apps.update(self._collect_installed_apps(values))
-            elif "provider" in data_type.lower():
-                # provider ID 是数据能力可用性的关键依据。
-                providers.update(self._collect_ids(values, "provider"))
-            elif "intent" in data_type.lower():
-                # intent target 是点击事件能力可用性的关键依据。
-                intent_targets.update(self._collect_ids(values, "intent"))
-            elif "permission" in data_type.lower():
-                # 权限状态影响后续是否允许生成需要授权的数据能力。
-                permissions.update(self._collect_permissions(values))
 
         logger.debug(
-            f"ids_payload_parsed installed_app_count={len(installed_apps)} "
-            f"provider_count={len(providers)} intent_count={len(intent_targets)} "
-            f"permission_count={len(permissions)}"
+            f"ids_payload_parsed installed_app_count={len(installed_apps)}"
         )
-        return IDSDeviceCapabilityState(
-            installed_apps=installed_apps,
-            providers=providers | self._default_providers(),
-            intent_targets=intent_targets | self._default_intents(),
-            permissions=permissions,
-        )
+        return IDSDeviceCapabilityState(installed_apps=installed_apps)
 
-    def _collect_installed_apps(self, values: list[dict[str, Any]]) -> dict[str, str]:
+    def _collect_installed_apps(self, values: list[dict[str, Any]]) -> set[str]:
         """从 IDS values 中收集已安装应用。
 
         入参：
         - values：安装应用 namespace 下的 values 列表。
-        出参：包名到版本号的映射。
+        出参：已安装应用包名集合。
         """
-        installed_apps: dict[str, str] = {}
+        installed_apps: set[str] = set()
         for value in values:
             data = value.get("data", {})
             bundle_name = data.get("bundleName")
-            version_name = data.get("versionName", "0.0.0")
             if bundle_name:
-                installed_apps[bundle_name] = version_name
+                installed_apps.add(bundle_name)
         return installed_apps
-
-    def _collect_permissions(self, values: list[dict[str, Any]]) -> dict[str, str]:
-        """从 IDS values 中收集权限状态。
-
-        入参：
-        - values：权限 namespace 下的 values 列表。
-        出参：权限名到权限状态的映射。
-        """
-        permissions: dict[str, str] = {}
-        for value in values:
-            data = value.get("data", {})
-            permission = data.get("permission") or data.get("name")
-            status = data.get("status")
-            if permission and status:
-                permissions[permission] = status
-        return permissions
-
-    def _collect_ids(self, values: list[dict[str, Any]], key_hint: str) -> set[str]:
-        """从 IDS values 中按字段名特征收集 ID。
-
-        入参：
-        - values：IDS 命名空间下的 values 列表。
-        - key_hint：字段名关键词，例如 provider 或 intent。
-        出参：收集到的 ID 集合。
-        """
-        result: set[str] = set()
-        for value in values:
-            data = value.get("data", {})
-            for key, item in data.items():
-                # IDS 字段命名可能有 providerId、providerName、intentName 等差异，所以按关键词匹配。
-                if key_hint.lower() in key.lower() and isinstance(item, str):
-                    result.add(item)
-        return result
-
-    def _default_providers(self) -> set[str]:
-        """获取 mock 阶段默认可用的一方 provider。
-
-        入参：无。
-        出参：默认 provider ID 集合。
-        """
-        # mock 数据不一定覆盖所有一方系统 provider，先补充一期链路需要的稳定 provider。
-        return {
-            "UG.weather.current",
-            "UG.weather.forecast",
-            "UG.calendar.events.search",
-            "UG.system.battery.status",
-            "UG.health.sleep.summary",
-        }
-
-    def _default_intents(self) -> set[str]:
-        """获取 mock 阶段默认可用的一方 intent target。
-
-        入参：无。
-        出参：默认 intent target 集合。
-        """
-        # mock 数据不一定覆盖所有一方系统入口，先补充一期链路需要的稳定入口。
-        return {
-            "OpenWeather",
-            "ViewCalendarEvent",
-            "StartNavigate",
-            "SetSettingSwitch",
-            "OpenPowerSaving",
-            "OpenHealth",
-        }

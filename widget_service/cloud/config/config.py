@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+import platform
 from functools import lru_cache
 from pathlib import Path
-import platform
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -15,9 +15,14 @@ class Settings(BaseSettings):
     )
 
     env: str = "local"
-    capability_registry_version: str = "app-1.0.0_rom-36"
-    protocol_profile_id: str = "a2ui-form-rom7-v1"
-    mock_ids_response_path: str = "docs/ids_res.txt"
+    capability_registry_version: str = "app-11.7.5.205_rom-36"
+    enable_default_capability_registry_fallback: bool = True
+    ids_installation_filter_package_names: tuple[str, ...] = (
+        "com.huawei.hmos.health.core",
+    )
+    protocol_profile_id: str = "a2ui-form-rom36-v1"
+    enable_ids_mock: bool = True
+    mock_ids_response_path: str = "data/mock/ids_res.json"
     ids_query_url: str = "http://{{ip}}:{{port}}/hiai/ids/databus/v1/kvcommondata/query"
     ids_calling_uid: str = "decisionhub"
     ids_dev_fake_id: str = "123**********postmantestdevFakeId"
@@ -25,8 +30,7 @@ class Settings(BaseSettings):
     ids_secret_key: str = "22222"
     ids_request_timeout_seconds: float = 5.0
     default_device_rom_version: str = "36"
-    default_prd_version: str = "1.0.0"
-    default_ohos_api_version: int = 36
+    default_prd_version: str = "11.7.5.205"
     enable_a2ui_model_mock: bool = True
     system_prompt: str = (
         "Generate HarmonyOS A2UI Form genui JSONL only. "
@@ -45,10 +49,10 @@ class Settings(BaseSettings):
     WORKSPACE_ROOT: Path = PROJECT_ROOT / "workspace"
     if platform.system() == "Windows":
         LOCAL_FLAG: bool = True
-        HTTP_SERVER_URL: str = f"http://localhost:8080"
+        HTTP_SERVER_URL: str = "http://localhost:8080"
     else:
         LOCAL_FLAG: bool = False
-        HTTP_SERVER_URL: str = f"https://{container_ip}:8080"
+        HTTP_SERVER_URL: str = "https://localhost:8080"
 
     @property
     def package_root(self) -> Path:
@@ -69,25 +73,16 @@ class Settings(BaseSettings):
         return self.package_root / "data"
 
     @property
-    def repo_root(self) -> Path:
-        """获取仓库根目录。
-
-        入参：无。
-        出参：当前项目仓库根路径。
-        """
-        return self.package_root.parents[1]
-
-    @property
     def resolved_mock_ids_response_path(self) -> Path:
         """获取 mock IDS 响应文件路径。
 
         入参：无。
-        出参：解析后的 `docs/ids_res.txt` 绝对路径。
+        出参：解析后的 `cloud/data/mock/ids_res.json` 绝对路径。
         """
         path = Path(self.mock_ids_response_path)
         if path.is_absolute():
             return path
-        return (self.repo_root / path).resolve()
+        return (self.package_root / path).resolve()
 
 
 @lru_cache

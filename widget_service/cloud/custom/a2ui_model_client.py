@@ -9,7 +9,7 @@ from pathlib import Path
 
 import requests
 
-from app.logger import logger
+from app.logger import json_for_log, logger
 from config.config import get_settings
 from services.compact_dsl_protocol import is_compact_dsl
 from utils.base_utils import sts_config
@@ -54,7 +54,8 @@ class A2UIModelClient:
         出参：A2UI genui JSONL 字符串。
         """
         logger.info(
-            f"use_mock={self.use_mock}\n system prompt={prompt}"
+            f"a2ui_model_generate_started use_mock={json_for_log(self.use_mock)} "
+            f"system_prompt={json_for_log(prompt)}"
         )
 
         if self.use_mock:

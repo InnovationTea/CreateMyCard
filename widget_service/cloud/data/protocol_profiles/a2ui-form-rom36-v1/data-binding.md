@@ -89,7 +89,7 @@
 事件 `args` 中的 DataModel 参数使用完整表达式；`condition`、事件上下文或行为链变量也使用完整表达式：
 
 ```json
-"onClick":[{"call":"clickToIntent","condition":"{{ $context.eventData.x >= 0 }}","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ ${/data/calendar/items/0/entityId} }}"}}}]
+"onClick":[{"call":"clickToIntent","condition":"{{ $context.eventData.x >= 0 }}","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ ${/data/calendar/events/0/entityId} }}"}}}]
 ```
 
 模板项内事件参数读取当前项字段：

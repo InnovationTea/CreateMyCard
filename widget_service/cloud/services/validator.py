@@ -3,19 +3,25 @@
 import traceback
 from typing import Any
 
-from app.logger import logger
+from app.logger import json_for_log, logger
 from models.artifact import WidgetArtifact
 from services.card_validator import validate_card
 from services.compact_dsl_protocol import is_compact_dsl, validate_compact_dsl
 
 
 class ArtifactValidator:
-    def validate(self, artifact: WidgetArtifact, protocol_profile: dict) -> list[str]:
+    def validate(
+        self,
+        artifact: WidgetArtifact,
+        protocol_profile: dict,
+        allowed_asset_sources: set[str] | None = None,
+    ) -> list[str]:
         """校验完整 artifact。
 
         入参：
         - artifact：待校验的完整卡片产物。
         - protocol_profile：当前 A2UI 协议 profile。
+        - allowed_asset_sources：本次生成请求实际可用的素材路径集合。
         出参：错误信息列表；空列表表示校验通过。
         """
         # 校验入口接收完整 artifact，具体协议、组件、布局和绑定规则由 card_validator 模块统一处理。
@@ -40,12 +46,13 @@ class ArtifactValidator:
                 report = validate_card(
                     genui_text=artifact.genui,
                     cardspec=artifact.cardSpec,
+                    allowed_asset_sources=allowed_asset_sources,
                 )
         except Exception as exc:
-            # 校验模块异常属于服务侧校验链路异常，需要返回为校验失败，避免产物绕过校验。
+            # 校验模块异常转成错误列表，供生成服务记录、重试并按非阻断策略继续。
             errors = [f"validator execution failed: {exc}"]
             logger.error(
-                f"artifact_validation_failed errors={errors} "
+                f"artifact_validation_failed errors={json_for_log(errors)} "
                 f"validator_module={validator_name} "
                 f"exception_type={type(exc).__name__} exception={exc!r} "
                 f"traceback={traceback.format_exc()}"
@@ -56,12 +63,13 @@ class ArtifactValidator:
         warnings = self._normalize_messages(report.warnings)
         if errors:
             logger.error(
-                f"artifact_validation_failed errors={errors} warnings={warnings}"
+                f"artifact_validation_failed errors={json_for_log(errors)} "
+                f"warnings={json_for_log(warnings)}"
             )
         else:
             logger.info(
                 f"artifact_validation_completed warning_count={len(warnings)} "
-                f"warnings={warnings}"
+                f"warnings={json_for_log(warnings)}"
             )
         return errors
 

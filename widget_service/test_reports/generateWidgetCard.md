@@ -26,17 +26,13 @@
           "forecastDays": 1
         },
         "writeResultTo": "/data/weather",
-        "updateModel": {
-          "location": {
-            "districtName": ""
-          },
-          "current": {
-            "temperatureText": "",
-            "condition": "",
-            "airQuality": ""
-          },
-          "updatedAt": ""
-        }
+        "candidateOutputFields": [
+          "/location/districtName",
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/airQuality",
+          "/updatedAt"
+        ]
       }
     ],
     "candidateEventCandidates": [
@@ -45,7 +41,10 @@
         "action": {
           "call": "clickToDeeplink",
           "args": {
-            "uri": "hww://weather"
+            "intentName": "Weather_CityCode",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
           }
         }
       }
@@ -95,10 +94,10 @@
   "errorMessage": "",
   "reply": {
     "streamInfo": {
-      "streamContent": "type='result' tool='generateWidgetCard' operation='generateWidgetCard' requestId='7676c2c8-a6d3-413c-8074-c62ed30db8de&3' data={'apiVersion': 'v1', 'status': 'success', 'artifactUrl': 'https://obs.todo.local/widget/artifact_1783649031671.md', 'artifactDigest': 'sha256:3dac0da964c63d8ac7bf57d81c8e7ddda7a01cd7b1f7a12029b9eb8c6e0a0f2d', 'suggestSize': '2x4', 'message': '已为你生成可用的桌面卡片。', 'removedCapabilities': [], 'errorCode': '', 'effectiveCapabilities': {'data': ['ViewWeather'], 'event': [{'id': 'event.open.weather', 'call': 'clickToDeeplink', 'args': {'uri': 'hww://weather'}}], 'asset': ['asset.drop_1']}} status='success' errorCode='' error={}",
+      "streamContent": "type='result' tool='generateWidgetCard' operation='generateWidgetCard' requestId='7676c2c8-a6d3-413c-8074-c62ed30db8de&3' data={'apiVersion': 'v1', 'status': 'success', 'artifactUrl': 'https://test.invalid/widget/artifact.md', 'artifactDigest': 'sha256:test-artifact', 'suggestSize': '2x4', 'message': '已为你生成可用的桌面卡片。', 'removedCapabilities': [], 'errorCode': '', 'effectiveCapabilities': {'data': ['ViewWeather'], 'event': [{'id': 'event.open.weather', 'call': 'clickToDeeplink', 'args': {'intentName': 'Weather_CityCode', 'bundleName': '', 'abilityName': '', 'uri': 'hww://www.huawei.com/totemweather?enterType=share&cityCode='}}], 'asset': ['asset.drop_1']}} status='success' errorCode='' error={}",
       "streamingTextId": "7676c2c8-a6d3-413c-8074-c62ed30db8de&3",
       "streamType": "final",
-      "textType": "markdown"
+      "textType": "plainText"
     },
     "items": [
       {
@@ -109,8 +108,8 @@
         "data": {
           "apiVersion": "v1",
           "status": "success",
-          "artifactUrl": "https://obs.todo.local/widget/artifact_1783649031671.md",
-          "artifactDigest": "sha256:3dac0da964c63d8ac7bf57d81c8e7ddda7a01cd7b1f7a12029b9eb8c6e0a0f2d",
+          "artifactUrl": "https://test.invalid/widget/artifact.md",
+          "artifactDigest": "sha256:test-artifact",
           "suggestSize": "2x4",
           "message": "已为你生成可用的桌面卡片。",
           "removedCapabilities": [],
@@ -124,7 +123,10 @@
                 "id": "event.open.weather",
                 "call": "clickToDeeplink",
                 "args": {
-                  "uri": "hww://weather"
+                  "intentName": "Weather_CityCode",
+                  "bundleName": "",
+                  "abilityName": "",
+                  "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
                 }
               }
             ],

@@ -8,7 +8,7 @@
 2. `createSurface` 只声明 surface；`updateComponents.root` 是组件树入口；root 是唯一卡片 shell。
 3. 只用 Form 允许组件、允许事件和允许绑定；禁用能力不因示例出现而放行。
 4. 动态值只用完整 `{{ ... }}` 表达式；不使用 `{"path":"/..."}` 或 `formatString` 做值绑定。
-5. 组件枚举、DataModel、事件能力、图片资源和颜色 token 按对应专项文件校验。
+5. 组件枚举、DataModel 和事件能力按对应专项文件校验；图片资源必须来自当前请求的有效素材候选，颜色按组件目录规定的 Hex 格式校验。
 
 ## Surface 树契约
 
@@ -41,7 +41,7 @@
 Form 仅支持通用事件 `onClick`，其值必须是 EventHandler 数组：
 
 ```json
-"onClick":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ ${/data/calendar/items/0/entityId} }}"}}}]
+"onClick":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ ${/data/calendar/events/0/entityId} }}"}}}]
 ```
 
 规则：

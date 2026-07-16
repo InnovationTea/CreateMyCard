@@ -51,6 +51,59 @@ PROJECT_ROOT = get_settings().PROJECT_ROOT
 PRINT_LEVEL = "INFO"
 
 
+def _json_log_default(value: Any) -> Any:
+    """把常见 Python 对象转换为可写入日志的 JSON 值。"""
+    if hasattr(value, "model_dump"):
+        return value.model_dump(mode="json", exclude_none=True)
+    if isinstance(value, (set, frozenset)):
+        return sorted(value, key=str)
+    return str(value)
+
+
+def _is_user_identifier_log_key(key: Any) -> bool:
+    """判断结构化日志键是否承载 UID。"""
+    normalized = "".join(
+        character for character in str(key).casefold() if character.isalnum()
+    )
+    return normalized in {"uid", "userid", "useruid", "callinguid"}
+
+
+def _sanitize_json_log_value(value: Any) -> Any:
+    """递归移除用户 UID 和服务调用 UID 字段。"""
+    if hasattr(value, "model_dump"):
+        value = value.model_dump(mode="json", exclude_none=True)
+    if isinstance(value, dict):
+        sanitized = {
+            key: _sanitize_json_log_value(item)
+            for key, item in value.items()
+            if not _is_user_identifier_log_key(key)
+        }
+        location = value.get("loc")
+        if isinstance(location, (list, tuple)) and any(
+            _is_user_identifier_log_key(item) for item in location
+        ):
+            sanitized.pop("input", None)
+        return sanitized
+    if isinstance(value, (list, tuple)):
+        return [_sanitize_json_log_value(item) for item in value]
+    if isinstance(value, (set, frozenset)):
+        return sorted(
+            (_sanitize_json_log_value(item) for item in value),
+            key=str,
+        )
+    return value
+
+
+def json_for_log(value: Any) -> str:
+    """将结构化日志字段序列化为紧凑的标准 JSON。"""
+    return json.dumps(
+        _sanitize_json_log_value(value),
+        ensure_ascii=False,
+        separators=(",", ":"),
+        default=_json_log_default,
+    )
+
+
 class TaskLogger:
     """任务日志管理器"""
 
@@ -601,7 +654,10 @@ class LLMCallLogger:
 
     def _record_response(self, log_entry, response):
         """记录响应信息"""
-        logger.info(f"LLM response: {response}")
+        response_for_log = (
+            response if isinstance(response, str) else json_for_log(response)
+        )
+        logger.info(f"LLM response: {response_for_log}")
         if "response" not in log_entry:
             log_entry["response"] = {}
         if self.include_response:

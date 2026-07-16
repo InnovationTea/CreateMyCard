@@ -5,7 +5,7 @@ import re
 from app.logger import logger
 from config.config import get_settings
 
-A2UI_FORM_PROTOCOL_PROFILE_ID = "a2ui-form-rom7-v1"
+A2UI_FORM_PROTOCOL_PROFILE_ID = "a2ui-form-rom36-v1"
 COMPACT_DSL_PROTOCOL_PROFILE_ID = "compact-dsl-v1"
 
 
@@ -42,7 +42,7 @@ class A2UIProtocolRegistry:
                 "catalogId",
                 "ohos.a2ui.extended.catalog",
             ),
-            "minRomVersion": "7.0.0",
+            "minRomVersion": "36",
             "sizes": {
                 "2x2": {"width": 140, "height": 140},
                 "2x4": {"width": 300, "height": 140},
