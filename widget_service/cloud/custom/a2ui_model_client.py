@@ -149,6 +149,32 @@ class A2UIModelClient:
         else:
             return text
 
+    def convert_root_size(self, dsl_text: str) -> str:
+        output_lines = []
+
+        # DSL 以“每行一个 JSON 对象”的形式组织
+        for line in dsl_text.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+
+            data = json.loads(line)
+
+            update_components = data.get("updateComponents")
+            if update_components:
+                for component in update_components.get("components", []):
+                    if component.get("id") == "root":
+                        styles = component.setdefault("styles", {})
+                        styles["width"] = "matchParent"
+                        styles["height"] = "matchParent"
+                        break
+
+            output_lines.append(
+                json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+            )
+
+        return "\n".join(output_lines)
+
     def _generate_from_real_model(
             self,
             messages: list,
@@ -224,7 +250,12 @@ class A2UIModelClient:
             full_text = content_text if content_text else reason_text
             logger.info(f"小模型返回的内容：{full_text}")
 
+            # 剔除···genui ```内容
             dsl_text = self.extract_genui_payload(full_text)
+
+            # 避免加卓白边
+            dsl_text = self.convert_root_size(dsl_text)
+
             logger.info(f"生成的dsl语句：\n{dsl_text}")
             logger.info(f"小模型耗时: {time.perf_counter() - start:.4f} 秒")
 
