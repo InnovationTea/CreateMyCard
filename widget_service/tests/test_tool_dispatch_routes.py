@@ -802,8 +802,8 @@ def test_registry_fallback_switch_defaults_to_enabled():
     ].default is True
 
 
-def test_registry_fallback_switch_off_preserves_empty_first_two_results(monkeypatch):
-    """验证关闭开关后第一、第二接口不再回退。"""
+def test_registry_fallback_switch_off_applies_to_all_three_interfaces(monkeypatch):
+    """验证关闭开关后三个接口都不再回退。"""
     monkeypatch.setattr(
         get_settings(),
         "enable_default_capability_registry_fallback",
@@ -838,6 +838,31 @@ def test_registry_fallback_switch_off_preserves_empty_first_two_results(monkeypa
             _request_id("fallback-off-schema"),
         )["data"]
 
+    with client.websocket_connect("/api/v1/ws/tools/generateWidgetCard") as websocket:
+        websocket.send_json(
+            _tool_payload(
+                {
+                    "userQuery": "生成静态卡片",
+                    "size": "2x4",
+                    "title": "静态卡片",
+                    "description": "关闭版本回退测试",
+                    "candidateDataBindings": [],
+                    "candidateEventCandidates": [],
+                    "candidateAssetIds": [],
+                },
+                "fallback-off-generation",
+                device_info=device_info,
+            )
+        )
+        generation = _assert_success_envelope(
+            _receive_final_frame(
+                websocket,
+                _request_id("fallback-off-generation"),
+            ),
+            "generateWidgetCard",
+            _request_id("fallback-off-generation"),
+        )["data"]
+
     assert overview["capabilityRegistryVersion"] == expected_version
     assert overview["dataCapabilities"] == []
     assert overview["eventCapabilities"] == []
@@ -845,10 +870,12 @@ def test_registry_fallback_switch_off_preserves_empty_first_two_results(monkeypa
     assert schema["capabilityRegistryVersion"] == expected_version
     assert schema["dataCapabilities"] == []
     assert schema["missingCapabilityIds"] == ["ViewWeather"]
+    assert generation["status"] == "unsupported"
+    assert generation["errorCode"] == "APP_VERSION_UNSUPPORTED"
 
 
-def test_third_interface_never_uses_default_registry_fallback():
-    """验证生成接口的注册表缺失仍返回 unsupported。"""
+def test_third_interface_uses_default_registry_fallback():
+    """验证生成接口的注册表缺失时也使用默认注册表。"""
     client = TestClient(app)
     unknown_version = f"missing-{uuid.uuid4().hex}"
     with client.websocket_connect("/api/v1/ws/tools/generateWidgetCard") as websocket:
@@ -864,14 +891,17 @@ def test_third_interface_never_uses_default_registry_fallback():
                     "candidateEventCandidates": [],
                     "candidateAssetIds": [],
                 },
-                "third-no-fallback",
+                "third-default-fallback",
             )
         )
         response = _assert_success_envelope(
-            _receive_final_frame(websocket, _request_id("third-no-fallback")),
+            _receive_final_frame(
+                websocket,
+                _request_id("third-default-fallback"),
+            ),
             "generateWidgetCard",
-            _request_id("third-no-fallback"),
+            _request_id("third-default-fallback"),
         )["data"]
 
-    assert response["status"] == "unsupported"
-    assert response["errorCode"] == "APP_VERSION_UNSUPPORTED"
+    assert response["status"] == "success"
+    assert response["errorCode"] == ""

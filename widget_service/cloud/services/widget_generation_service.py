@@ -108,7 +108,7 @@ class WidgetGenerationService:
         )
         # 能力注册表按 prdVer+device.romVersion 文件夹隔离。
         try:
-            registry = self._capability_registry(request, allow_default_fallback=True)
+            registry = self._capability_registry(request)
         except ValueError as exc:
             version = self._capability_registry_version_hint(request)
             logger.error(
@@ -171,7 +171,7 @@ class WidgetGenerationService:
         )
         # 这里返回完整 inputSchema/outputSchema，供主 Agent 生成合法 candidateDataBindings。
         try:
-            registry = self._capability_registry(request, allow_default_fallback=True)
+            registry = self._capability_registry(request)
         except ValueError as exc:
             version = self._capability_registry_version_hint(request)
             logger.error(
@@ -538,14 +538,11 @@ class WidgetGenerationService:
     def _capability_registry(
         self,
         request,
-        *,
-        allow_default_fallback: bool = False,
     ) -> CapabilityRegistry:
         """按请求版本上下文创建能力注册表。
 
         入参：
         - request：包含 capabilityRegistryVersion 和 device 版本字段的请求对象。
-        - allow_default_fallback：请求版本不存在时是否允许回退默认注册表。
         出参：对应版本的 CapabilityRegistry。
         """
         # capabilityRegistryVersion 显式传入时优先使用；
@@ -564,10 +561,7 @@ class WidgetGenerationService:
             )
         except ValueError as exc:
             settings = get_settings()
-            if (
-                not allow_default_fallback
-                or not settings.enable_default_capability_registry_fallback
-            ):
+            if not settings.enable_default_capability_registry_fallback:
                 raise
             requested_version = self._capability_registry_version_hint(request)
             fallback_version = settings.capability_registry_version

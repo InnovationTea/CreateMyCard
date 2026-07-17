@@ -60,7 +60,7 @@
           "capabilityRegistryVersion": {
             "type": "string|null",
             "required": false,
-            "description": "可选能力清单版本；不传时由 deviceInfo.prdVer + ROM 版本推导。生成接口不使用默认注册表回退。"
+            "description": "可选能力清单版本；不传时由 deviceInfo.prdVer + ROM 版本推导。目录不存在且回退开关开启时使用默认 205/36 注册表。"
           },
           "protocolProfileId": {
             "type": "string|null",

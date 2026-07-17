@@ -46,8 +46,8 @@ cloud/data/capabilities/{capabilityRegistryVersion}/
 app-11.7.5.205_rom-36
 ```
 
-第一、第二接口在请求版本目录不存在且
-`WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true` 时，回退到上述默认能力清单；第三接口不回退。
+三个接口在请求版本目录不存在且
+`WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true` 时，统一回退到上述默认能力清单。关闭开关时，第一、第二接口返回空清单/缺失能力，第三接口返回版本不支持。
 
 第一接口的 IDS 安装过滤范围由
 `WIDGET_SERVICE_IDS_INSTALLATION_FILTER_PACKAGE_NAMES` 配置，值为 JSON 字符串数组。默认只包含
@@ -273,7 +273,7 @@ curl http://127.0.0.1:8855/health
 
 对应工具能力：`generateWidgetCard`
 
-用途：第三接口。接收主 Agent 从第一接口可用清单中规划的候选并生成 artifact；不再查询 IDS 或重复执行 `dependencies` 过滤，也不使用第一、第二接口的默认注册表回退。
+用途：第三接口。接收主 Agent 从第一接口可用清单中规划的候选并生成 artifact；不再查询 IDS 或重复执行 `dependencies` 过滤。请求版本目录不存在时，使用与第一、第二接口相同的默认注册表回退配置。
 
 请求示例：
 
