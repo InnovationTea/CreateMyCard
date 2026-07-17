@@ -4,6 +4,7 @@ import base64
 import hashlib
 import hmac
 import json
+import json_repair
 import time
 from pathlib import Path
 
@@ -149,17 +150,42 @@ class A2UIModelClient:
         else:
             return text
 
-    def convert_root_size(self, dsl_text: str) -> str:
+    def process_line(self, line):
+        """
+        处理单行 JSON 字符串，返回解析后的数据或 None
+        """
+        try:
+            return json.loads(line)
+        except json.JSONDecodeError:
+            logger.error(f"该行 JSON 格式有问题: {line}")
+            try:
+                return json_repair.loads(line)
+            except Exception as e:
+                logger.error(f" ⚠️ 修复也失败，跳过该行:{e}")
+                return None
+
+    def convert_dsl(self, dsl_text: str) -> str:
+        """
+        dsl 文本处理函数
+        """
         output_lines = []
 
-        # DSL 以“每行一个 JSON 对象”的形式组织
         for line in dsl_text.splitlines():
             line = line.strip()
             if not line:
                 continue
 
-            data = json.loads(line)
+            data = self.process_line(line)
+            if not data:
+                logger.error("dsl 格式有问题，json repair修复失败！")
+                return dsl_text
 
+            # 修改 createSurface.catalogId
+            create_surface = data.get("createSurface")
+            if create_surface:
+                create_surface["catalogId"] = "ohos.a2ui.extended.catalog.form"
+
+            # 修改 root 的宽高
             update_components = data.get("updateComponents")
             if update_components:
                 for component in update_components.get("components", []):
@@ -253,10 +279,10 @@ class A2UIModelClient:
             # 剔除···genui ```内容
             dsl_text = self.extract_genui_payload(full_text)
 
-            # 避免加卓白边
-            dsl_text = self.convert_root_size(dsl_text)
+            # 纠正 dsl 问题，包括加桌白边和其他问题
+            dsl_text = self.convert_dsl(dsl_text)
 
-            logger.info(f"生成的dsl语句：\n{dsl_text}")
+            logger.info(f"dsl语句：{dsl_text}")
             logger.info(f"小模型耗时: {time.perf_counter() - start:.4f} 秒")
 
             return dsl_text
