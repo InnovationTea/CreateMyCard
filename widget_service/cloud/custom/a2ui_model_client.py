@@ -139,11 +139,8 @@ class A2UIModelClient:
         否则原样返回。
         """
         text = text.strip()
-        # 匹配三种引号开头（可能是三个双引号或三个单引号，此处按三个双引号处理）
         if text.startswith('```genui'):
-            # 去掉开头 """genui （注意可能有换行）
             content = text[len('```genui'):].strip()
-            # 如果结尾有 """，去掉它
             if content.endswith('```'):
                 content = content[:-3].strip()
             return content
@@ -247,7 +244,6 @@ class A2UIModelClient:
                     stream=True
             ) as response:
                 for line in response.iter_lines(decode_unicode=True):
-                    logger.info(line)
                     if line.startswith("data: "):
                         data = line[6:]
                         if data == "[DONE]":
@@ -287,16 +283,16 @@ class A2UIModelClient:
 
             return dsl_text
         except requests.exceptions.Timeout:
-            logger.error("\n请求超时，请检查网络或增加 timeout 值")
+            logger.error("请求超时，请检查网络或增加 timeout 值")
         except requests.exceptions.ConnectionError:
-            logger.error("\n连接错误，请检查 URL、代理或网络设置")
+            logger.error("连接错误，请检查 URL、代理或网络设置")
         except requests.exceptions.HTTPError as e:
-            logger.error(f"\n服务器返回错误状态码: {e}")
+            logger.error(f"服务器返回错误状态码: {e}")
         except requests.exceptions.RequestException as e:
             # 其他所有 requests 异常
-            logger.error(f"\n请求发生未知错误: {e}")
+            logger.error(f"请求发生未知错误: {e}")
         except Exception as e:
             # 兜底，捕获非 requests 异常
-            logger.error(f"\n发生未预料到的错误: {e}")
+            logger.error(f"发生未预料到的错误: {e}")
 
-        return ""
+        return "小模型生成dsl内容时发生异常"
