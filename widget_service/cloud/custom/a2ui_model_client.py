@@ -6,6 +6,7 @@ import hmac
 import json
 import json_repair
 import time
+import traceback
 from pathlib import Path
 
 import requests
@@ -154,11 +155,14 @@ class A2UIModelClient:
         try:
             return json.loads(line)
         except json.JSONDecodeError:
-            logger.error(f"该行 JSON 格式有问题: {line}")
+            logger.error(f"json_parse_failed line={json_for_log(line)}")
             try:
                 return json_repair.loads(line)
             except Exception as e:
-                logger.error(f" ⚠️ 修复也失败，跳过该行:{e}")
+                logger.error(
+                    f"json_repair_failed exception_type={type(e).__name__} "
+                    f"exception={e!r} traceback={traceback.format_exc()}"
+                )
                 return None
 
     def convert_dsl(self, dsl_text: str) -> str:
@@ -174,7 +178,7 @@ class A2UIModelClient:
 
             data = self.process_line(line)
             if not data:
-                logger.error("dsl 格式有问题，json repair修复失败！")
+                logger.error(f"dsl_line_parse_failed line={json_for_log(line)}")
                 return dsl_text
 
             # 修改 createSurface.catalogId
@@ -270,7 +274,12 @@ class A2UIModelClient:
             content_text = "".join(collected_texts)
             reason_text = "".join(reasoning_parts)
             full_text = content_text if content_text else reason_text
-            logger.info(f"小模型返回的内容：{full_text}")
+            duration_ms = round((time.perf_counter() - start) * 1000, 2)
+            logger.info(
+                f"a2ui_model_response_received "
+                f"content_preview={full_text} "
+                f"duration_ms={duration_ms}"
+            )
 
             # 剔除···genui ```内容
             dsl_text = self.extract_genui_payload(full_text)
@@ -278,21 +287,48 @@ class A2UIModelClient:
             # 纠正 dsl 问题，包括加桌白边和其他问题
             dsl_text = self.convert_dsl(dsl_text)
 
-            logger.info(f"dsl语句：{dsl_text}")
-            logger.info(f"小模型耗时: {time.perf_counter() - start:.4f} 秒")
+            logger.info(
+                f"a2ui_dsl_processed "
+                f"dsl_content={dsl_text}"
+            )
 
             return dsl_text
-        except requests.exceptions.Timeout:
-            logger.error("请求超时，请检查网络或增加 timeout 值")
-        except requests.exceptions.ConnectionError:
-            logger.error("连接错误，请检查 URL、代理或网络设置")
+        except requests.exceptions.Timeout as e:
+            logger.error(
+                f"a2ui_model_request_timeout "
+                f"exception_type={type(e).__name__} exception={e!r} "
+                f"traceback={traceback.format_exc()}"
+            )
+            error_detail = f"a2ui_model_error: timeout after {timeout}s, {e}"
+        except requests.exceptions.ConnectionError as e:
+            logger.error(
+                f"a2ui_model_connection_error "
+                f"exception_type={type(e).__name__} exception={e!r} "
+                f"traceback={traceback.format_exc()}"
+            )
+            error_detail = f"a2ui_model_error: connection failed, {e}"
         except requests.exceptions.HTTPError as e:
-            logger.error(f"服务器返回错误状态码: {e}")
+            status = e.response.status_code if e.response is not None else "unknown"
+            logger.error(
+                f"a2ui_model_http_error "
+                f"status_code={status} "
+                f"exception_type={type(e).__name__} exception={e!r} "
+                f"traceback={traceback.format_exc()}"
+            )
+            error_detail = f"a2ui_model_error: HTTP {status}, {e}"
         except requests.exceptions.RequestException as e:
-            # 其他所有 requests 异常
-            logger.error(f"请求发生未知错误: {e}")
+            logger.error(
+                f"a2ui_model_request_exception "
+                f"exception_type={type(e).__name__} exception={e!r} "
+                f"traceback={traceback.format_exc()}"
+            )
+            error_detail = f"a2ui_model_error: request failed, {e}"
         except Exception as e:
-            # 兜底，捕获非 requests 异常
-            logger.error(f"发生未预料到的错误: {e}")
+            logger.error(
+                f"a2ui_model_unexpected_error "
+                f"exception_type={type(e).__name__} exception={e!r} "
+                f"traceback={traceback.format_exc()}"
+            )
+            error_detail = f"a2ui_model_error: unexpected error, {type(e).__name__}: {e}"
 
-        return "小模型生成dsl内容时发生异常"
+        return error_detail

@@ -27,13 +27,16 @@ def _run_async(coro):
     exception = [None]
 
     def runner():
+        loop = None
         try:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             result[0] = loop.run_until_complete(coro)
-            loop.close()
         except Exception as e:
             exception[0] = e
+        finally:
+            if loop is not None:
+                loop.close()
 
     thread = Thread(target=runner)
     thread.start()
