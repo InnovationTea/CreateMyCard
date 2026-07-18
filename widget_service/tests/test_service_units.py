@@ -28,7 +28,7 @@ if str(CLOUD_ROOT) not in sys.path:
 
 from core.errors import ErrorCode, GenerationStatus
 from api.schemas import GenerateWidgetCardRequest
-from api.routes import _error_details, _pick_device_rom_version
+from api.routes import _error_details, _normalize_payload, _pick_device_rom_version
 from app.logger import json_for_log
 from config.config import Settings, get_settings
 from models.artifact import ArtifactMeta, WidgetArtifact
@@ -170,6 +170,7 @@ def test_json_for_log_removes_user_uid_recursively():
                     ],
                 },
                 "callingUid": "decisionhub",
+                "odid": "private-device-odid",
                 "udid": "device-identifier",
             }
         )
@@ -315,6 +316,7 @@ def test_ids_query_builds_structured_request_and_signature(monkeypatch):
     )
     assert 'body={"requestId":"ids-unit-1"' in query_log
     assert "callingUid" not in query_log
+    assert "odid-001" not in query_log
     assert "body={'" not in query_log
 
 
@@ -533,6 +535,40 @@ def test_capability_registry_uses_rom_version_as_the_only_rom_level():
 def test_tool_envelope_reads_only_rom_version():
     assert _pick_device_rom_version({"romVersion": ROM_VERSION_6}) == "6.0"
     assert _pick_device_rom_version({"rom_version": ROM_VERSION_7_WITHOUT_MODEL}) == "6.0"
+
+
+def test_tool_envelope_maps_optional_content_odid_to_device_context():
+    request_id, arguments = _normalize_payload(
+        {
+            "content": {"odid": "content-odid", "dataCapabilityIds": ["ViewWeather"]},
+            "deviceInfo": {
+                "locale": "zh-CN",
+                "prdVer": APP_VERSION,
+                "romVersion": ROM_VERSION_6,
+                "odid": "ignored-device-info-odid",
+            },
+            "session": {"sessionId": "session", "interactionId": "interaction"},
+            "userAuth": {"user": {"userId": "user"}},
+        },
+        "getDataCapabilitySchemas",
+    )
+
+    assert request_id == "session&interaction"
+    assert arguments["device"]["odid"] == "content-odid"
+    assert "odid" not in arguments
+
+    _, arguments_without_odid = _normalize_payload(
+        {
+            "content": {},
+            "deviceInfo": {
+                "romVersion": ROM_VERSION_6,
+                "odid": "ignored-device-info-only-odid",
+            },
+            "session": {},
+        },
+        "getWidgetCapabilityOverview",
+    )
+    assert arguments_without_odid["device"]["odid"] is None
 
 
 def test_data_capability_registry_declares_leaf_samples_and_known_package_dependencies():

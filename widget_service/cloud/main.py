@@ -12,7 +12,7 @@ from structlog.contextvars import bind_contextvars, clear_contextvars
 
 from api.routes import router
 from app.logger import logger
-from app.websocket_metrics import WebSocketMetrics, report_websocket_metrics
+from app.websocket_metrics import report_websocket_metrics, websocket_metrics
 from config.config import get_settings
 
 
@@ -22,8 +22,6 @@ def create_app() -> FastAPI:
     入参：无。
         出参：配置好路由和日志中间件的 FastAPI 应用。
     """
-    websocket_metrics = WebSocketMetrics()
-
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
         """启动并回收 WebSocket 全局统计打印任务。"""
@@ -41,7 +39,6 @@ def create_app() -> FastAPI:
         description="AI widget card generation microservice.",
         lifespan=lifespan,
     )
-    app.state.websocket_metrics = websocket_metrics
     app.include_router(router)
 
     @app.middleware("http")

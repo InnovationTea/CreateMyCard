@@ -51,6 +51,9 @@ class WebSocketMetrics:
             )
 
 
+websocket_metrics = WebSocketMetrics()
+
+
 async def report_websocket_metrics(
     metrics: WebSocketMetrics,
     interval_seconds: float = 10.0,

@@ -4,11 +4,12 @@
 import asyncio
 import json
 import os
+import socket
 
 import pytest
 import websockets
 
-SERVER_HOST = os.getenv("WIDGET_SERVICE_TEST_HOST", "localhost")
+SERVER_HOST = os.getenv("WIDGET_SERVICE_TEST_HOST", socket.gethostbyname("localhost"))
 SERVER_PORT = int(os.getenv("WIDGET_SERVICE_TEST_PORT", "8855"))
 WS_BASE_URL = f"ws://{SERVER_HOST}:{SERVER_PORT}"
 WS_BASE_PATH = os.getenv("WIDGET_SERVICE_TEST_WS_BASE_PATH", "/api/v1/ws/tools")
@@ -16,6 +17,7 @@ APP_VERSION = ".".join(("11", "7", "5", "205"))
 ROM_VERSION = "CLS-AL30 " + ".".join(("6", "0", "0", "328"))
 
 SESSION_ID = "7676c2c8-a6d3-413c-8074-c62ed30db8de"
+DEVICE_ODID = "5e64f3e9-0a80-d719-d689-3c36eca5eeb6"
 DEVICE_INFO = {
     "countryCode": "CN",
     "deviceFormation": "HDSpeaker",
@@ -39,7 +41,7 @@ def _tool_payload(content: dict, interaction_id: str, original: str = "") -> dic
     出参：完整 WebSocket 请求字典。
     """
     return {
-        "content": content,
+        "content": {"odid": DEVICE_ODID, **content},
         "deviceInfo": DEVICE_INFO,
         "pagination": {"limit": 5, "start": ""},
         "session": {
@@ -121,12 +123,16 @@ async def _call_ws(path_name: str, payload: dict, expected_request_id: str) -> d
             assert "error" in legacy_message
             assert legacy_message["error"] == {}
             return legacy_message
-    except OSError:
-        pytest.skip(
+    except OSError as exc:
+        reason = (
             "本测试需要先启动本地 WebSocket 服务："
             "cd widget_service && py -3.12 cloud\\main.py；"
-            f"当前探测地址：{uri}"
+            f"当前探测地址：{uri}；"
+            f"连接错误：{type(exc).__name__}: {exc}"
         )
+        if __name__ == "__main__":
+            raise SystemExit(reason) from None
+        pytest.skip(reason)
 
 
 def test_live_four_websocket_paths_complete_flow():

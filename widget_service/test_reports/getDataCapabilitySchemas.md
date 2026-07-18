@@ -13,6 +13,7 @@
 ```json
 {
   "content": {
+    "odid": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
     "bundleName": "com.omega_w_0823.hmservice",
     "dataCapabilityIds": [
       "ViewWeather"

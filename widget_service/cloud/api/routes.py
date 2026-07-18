@@ -18,6 +18,7 @@ from api.schemas import (
     ToolRequestEnvelope,
 )
 from app.logger import json_for_log, logger, task_logger
+from app.websocket_metrics import websocket_metrics
 from config.config import get_settings
 from models.service import (
     WidgetPluginReply,
@@ -78,11 +79,15 @@ def _pick_device_rom_version(device_info: dict[str, Any]) -> str:
     return CapabilityRegistry.normalize_rom_version(settings.default_device_rom_version)
 
 
-def _device_context_from_envelope(envelope: ToolRequestEnvelope) -> dict[str, Any]:
-    """把外部 deviceInfo 转换成内部 DeviceContext 字典。
+def _device_context_from_envelope(
+    envelope: ToolRequestEnvelope,
+    odid: Any = None,
+) -> dict[str, Any]:
+    """把外部 deviceInfo 和 content.odid 转换成内部 DeviceContext 字典。
 
     入参：
     - envelope：已经解析后的 WebSocket 外部请求包络。
+    - odid：content 中可选的设备 odid。
     出参：可直接传给 DeviceContext 的字典。
     """
     device_info = envelope.deviceInfo.model_dump(mode="json", exclude_none=True)
@@ -92,7 +97,7 @@ def _device_context_from_envelope(envelope: ToolRequestEnvelope) -> dict[str, An
         "deviceType": phone_type or str(device_info.get("deviceType", "")),
         "sysVersion": device_info.get("sysVer"),
         "deviceName": device_info.get("deviceFormation"),
-        "odid": device_info.get("odid"),
+        "odid": odid,
         "udid": device_info.get("udid"),
         "romVersion": _pick_device_rom_version(device_info),
         "marketingName": device_info.get("marketingName") or phone_type,
@@ -108,12 +113,13 @@ def _arguments_from_envelope(envelope: ToolRequestEnvelope, operation: str) -> d
     出参：可直接传给具体请求模型的业务入参字典。
     """
     arguments = dict(envelope.content)
+    odid = arguments.pop("odid", None)
     if operation in GENERATION_OPERATIONS and not arguments.get("userQuery"):
         arguments["userQuery"] = envelope.utterance.original if envelope.utterance else ""
     arguments["uid"] = envelope.userAuth.user.userId or ""
     arguments["locale"] = envelope.deviceInfo.locale or "zh-CN"
     arguments["prdVer"] = envelope.deviceInfo.prdVer
-    arguments["device"] = _device_context_from_envelope(envelope)
+    arguments["device"] = _device_context_from_envelope(envelope, odid)
     return arguments
 
 
@@ -307,7 +313,7 @@ async def _serve_operation_websocket(
     出参：无；服务端通过 WebSocket 返回华为流处理插件格式消息。
     """
     # 每个 WS path 只承载一个业务能力，客户端不需要再传 operation 字段。
-    metrics = websocket.app.state.websocket_metrics
+    metrics = websocket_metrics
     await websocket.accept()
     metrics.connection_opened()
     logger.info(f"widget_operation_ws_connected operation={operation}")

@@ -30,6 +30,7 @@ from services.widget_generation_service import WidgetGenerationService
 from utils.upload_file_obs import UploadFileOSMS
 
 app = importlib.import_module("main").app
+DEVICE_ODID = "5e64f3e9-0a80-d719-d689-3c36eca5eeb6"
 
 
 def _base_request(**updates):
@@ -292,7 +293,7 @@ def test_edit_prompt_contains_previous_genui_but_not_source_url():
 
 def _websocket_result(client: TestClient, content: dict, interaction_id: str) -> dict:
     payload = {
-        "content": content,
+        "content": {"odid": DEVICE_ODID, **content},
         "deviceInfo": {
             "locale": "zh-CN",
             "prdVer": APP_VERSION,

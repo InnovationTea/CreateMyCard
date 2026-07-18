@@ -10,13 +10,18 @@
       "content": {
         "type": "object",
         "required": true,
-        "description": "业务入参，对应旧协议 arguments。",
+        "description": "业务入参，对应旧协议 arguments；odid 可选。",
         "requiredProperties": ["userQuery"],
         "properties": {
           "bundleName": {
             "type": "string",
             "required": false,
             "description": "宿主业务包名。"
+          },
+          "odid": {
+            "type": "string",
+            "required": false,
+            "description": "可选设备 odid；服务映射到内部设备上下文，缺失或为空时 IDS 查询继续使用固定兜底值。"
           },
           "userQuery": {
             "type": "string",

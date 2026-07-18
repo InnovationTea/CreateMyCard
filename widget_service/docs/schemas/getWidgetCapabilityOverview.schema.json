@@ -10,12 +10,17 @@
       "content": {
         "type": "object",
         "required": false,
-        "description": "业务入参，对应旧协议 arguments；本接口可只传 bundleName。",
+        "description": "业务入参，对应旧协议 arguments；本接口可只传 bundleName，odid 可选。",
         "properties": {
           "bundleName": {
             "type": "string",
             "required": false,
             "description": "宿主业务包名。"
+          },
+          "odid": {
+            "type": "string",
+            "required": false,
+            "description": "可选设备 odid；缺失或为空时 IDS 查询继续使用服务固定兜底值。"
           },
           "capabilityRegistryVersion": {
             "type": "string|null",

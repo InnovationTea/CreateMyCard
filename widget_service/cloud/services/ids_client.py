@@ -82,7 +82,8 @@ class IDSClient:
             timestamp_ms=int(time.time() * 1000),
         )
         logger.info(
-            f"ids_device_capability_query_built request_id={request_id} odid={odid} "
+            f"ids_device_capability_query_built request_id={request_id} "
+            f"odid_source={'content' if device.odid else 'default'} "
             f"body={json_for_log(body.model_dump(mode='json'))} "
             f"ids_sign_preview={ids_sign[:8]}"
         )

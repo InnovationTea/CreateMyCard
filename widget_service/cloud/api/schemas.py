@@ -55,7 +55,6 @@ class DeviceInfoEnvelope(BaseModel):
     romVersion: str | None = None
     time: str | None = None
     deviceId: str | None = None
-    odid: str | None = None
     udid: str | None = None
     marketingName: str | None = None
 
@@ -127,7 +126,7 @@ class ToolRequestEnvelope(BaseModel):
     """WebSocket 外部请求包络。
 
     入参：
-    - content：业务入参，对应旧协议中的 arguments。
+    - content：业务入参，对应旧协议中的 arguments；可携带可选 odid。
     - deviceInfo：端侧设备信息，服务会转换成内部 DeviceContext。
     - session：会话信息，服务会用 sessionId + '&' + interactionId 生成 requestId。
     - userAuth：用户鉴权信息，服务会从 user.userId 提取 uid。

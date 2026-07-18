@@ -13,6 +13,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CLOUD_ROOT = PROJECT_ROOT / "cloud"
 REPORT_DIR = PROJECT_ROOT / "test_reports"
 SESSION_ID = "7676c2c8-a6d3-413c-8074-c62ed30db8de"
+DEVICE_ODID = "5e64f3e9-0a80-d719-d689-3c36eca5eeb6"
 APP_VERSION = ".".join(("11", "7", "5", "205"))
 ROM_VERSION = "CLS-AL30 " + ".".join(("6", "0", "0", "328"))
 REGISTRY_VERSION = f"app-{APP_VERSION}_rom-6.0"
@@ -65,7 +66,7 @@ def _tool_payload(
     出参：完整 WebSocket 请求字典。
     """
     return {
-        "content": content,
+        "content": {"odid": DEVICE_ODID, **content},
         "deviceInfo": device_info or DEVICE_INFO,
         "pagination": {"limit": 5, "start": ""},
         "session": {
@@ -543,7 +544,7 @@ def test_overview_interface_filters_health_dependencies(monkeypatch):
     }
 
 
-def test_overview_logs_do_not_include_user_uid(monkeypatch):
+def test_overview_logs_do_not_include_user_or_device_identifiers(monkeypatch):
     sentinel_uid = "private-user-uid-must-not-be-logged"
     log_messages: list[str] = []
 
@@ -588,7 +589,9 @@ def test_overview_logs_do_not_include_user_uid(monkeypatch):
         "payload_keys=" in item and '"content"' in item for item in log_messages
     )
     assert any("capability_overview_started" in item for item in log_messages)
-    assert sentinel_uid not in "\n".join(log_messages)
+    joined_logs = "\n".join(log_messages)
+    assert sentinel_uid not in joined_logs
+    assert DEVICE_ODID not in joined_logs
     assert all(" uid=" not in item for item in log_messages)
 
 

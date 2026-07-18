@@ -5,11 +5,12 @@
 import asyncio
 import json
 import os
+import socket
 
 import pytest
 import websockets
 
-SERVER_HOST = os.getenv("WIDGET_SERVICE_TEST_HOST", "localhost")
+SERVER_HOST = os.getenv("WIDGET_SERVICE_TEST_HOST", socket.gethostbyname("localhost"))
 SERVER_PORT = int(os.getenv("WIDGET_SERVICE_TEST_PORT", "8855"))
 WS_BASE_PATH = os.getenv("WIDGET_SERVICE_TEST_WS_BASE_PATH", "/api/v1/ws/tools")
 WS_URI = f"ws://{SERVER_HOST}:{SERVER_PORT}{WS_BASE_PATH}/generateWidgetCard"
@@ -17,6 +18,7 @@ APP_VERSION = ".".join(("11", "7", "5", "205"))
 ROM_VERSION = "CLS-AL30 " + ".".join(("6", "0", "0", "328"))
 
 SESSION_ID = "multi-round-live-test"
+DEVICE_ODID = "5e64f3e9-0a80-d719-d689-3c36eca5eeb6"
 DEVICE_INFO = {
     "countryCode": "CN",
     "deviceFormation": "HDSpeaker",
@@ -32,7 +34,7 @@ DEVICE_INFO = {
 def _tool_payload(content: dict, interaction_id: str) -> dict:
     """构造华为流处理插件 WebSocket 请求包络。"""
     return {
-        "content": content,
+        "content": {"odid": DEVICE_ODID, **content},
         "deviceInfo": DEVICE_INFO,
         "pagination": {"limit": 5, "start": ""},
         "session": {
@@ -79,12 +81,16 @@ async def _generate(content: dict, interaction_id: str) -> dict:
                     + json.dumps(data, ensure_ascii=False, indent=2)
                 )
                 return data
-    except OSError:
-        pytest.skip(
+    except OSError as exc:
+        reason = (
             "需要先启动本地服务：设置 WIDGET_SERVICE_ENABLE_WIDGET_EDIT=true，"
             "然后在 widget_service 下执行 py -3.12 cloud\\main.py；"
-            f"当前探测地址：{WS_URI}"
+            f"当前探测地址：{WS_URI}；"
+            f"连接错误：{type(exc).__name__}: {exc}"
         )
+        if __name__ == "__main__":
+            raise SystemExit(reason) from None
+        pytest.skip(reason)
 
 
 def _assert_artifact_success(data: dict) -> None:
