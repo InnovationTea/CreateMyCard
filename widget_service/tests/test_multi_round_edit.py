@@ -73,6 +73,7 @@ def editable_artifact_storage(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "WORKSPACE_ROOT", tmp_path)
     monkeypatch.setattr(settings, "artifact_base_url", "https://obs.test/widget")
     monkeypatch.setattr(settings, "enable_widget_edit", True)
+    monkeypatch.setattr(settings, "enable_artifact_download_mock", True)
     monkeypatch.setattr(
         "services.artifact_store.file_obs",
         UploadFileOSMS(
@@ -159,6 +160,41 @@ def test_create_then_visual_edit_inherits_generation_plan(editable_artifact_stor
     ] == "event.open.weather"
     assert updated.artifact.generationPlan.candidateAssetIds == ["asset.drop_1"]
     assert len(list(editable_artifact_storage.glob("artifact_*.md"))) == 2
+
+
+def test_source_artifact_remote_mode_uses_shared_download_utility(
+    editable_artifact_storage,
+    monkeypatch,
+):
+    """验证关闭 mock 后由公共 URL 下载方法读取来源 artifact。"""
+    settings = get_settings()
+    created = WidgetGenerationService().generate_widget_card_a2ui_form(_base_request())
+    source_file = editable_artifact_storage / created.artifactUrl.rsplit("/", 1)[-1]
+    source_content = source_file.read_bytes()
+    requested: dict = {}
+
+    async def fake_download(url, save_path, **kwargs):
+        requested["url"] = url
+        requested["save_path"] = save_path
+        requested.update(kwargs)
+        Path(save_path).write_bytes(source_content)
+        return save_path
+
+    monkeypatch.setattr(settings, "enable_artifact_download_mock", False)
+    monkeypatch.setattr(
+        "services.source_artifact_repository.download_file",
+        fake_download,
+    )
+
+    loaded = SourceArtifactRepository().load(created.artifactUrl)
+
+    assert loaded.download_mode == "remote"
+    assert loaded.artifact.meta.artifactId in created.artifactUrl
+    assert requested["url"] == created.artifactUrl
+    assert requested["max_size_bytes"] == settings.source_artifact_max_bytes
+    assert requested["timeout_seconds"] == settings.source_artifact_read_timeout_seconds
+    assert requested["allow_redirects"] is False
+    assert not Path(requested["save_path"]).exists()
 
 
 def test_edit_can_explicitly_clear_data_bindings(editable_artifact_storage):

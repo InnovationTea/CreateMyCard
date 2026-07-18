@@ -1,17 +1,41 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
 import asyncio
-import aiofiles
 import os
 import uuid
 from pathlib import Path
 
-import aiohttp
-
-from app.logger import logger, task_logger
 import requests
 
-ALLOWED_EXTS = {".pdf", ".doc", ".docx", ".ppt", ".pptx", ".txt", ".xls", ".xlsx", ".md", ".jpg", ".jpeg", ".png"}
+from app.logger import logger, task_logger
+
+ALLOWED_EXTS = {
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".ppt",
+    ".pptx",
+    ".txt",
+    ".xls",
+    ".xlsx",
+    ".md",
+    ".jpg",
+    ".jpeg",
+    ".png",
+}
+DEFAULT_MAX_SIZE_BYTES = 150 * 1024 * 1024
+
+
+class DownloadFileError(RuntimeError):
+    """文件下载失败。"""
+
+
+class DownloadFileNotFoundError(DownloadFileError):
+    """远程文件不存在。"""
+
+
+class DownloadFileTooLargeError(DownloadFileError):
+    """远程文件超过大小限制。"""
 
 
 def add_random_suffix_uuid(filename):
@@ -52,15 +76,19 @@ def check_save_dir_and_no_overwrite(save_path: str) -> bool:
     return True
 
 
-async def download_file(url, save_path):
+async def download_file(
+    url,
+    save_path,
+    *,
+    max_size_bytes=DEFAULT_MAX_SIZE_BYTES,
+    timeout_seconds=10,
+    allow_redirects=True,
+):
     """
     下载文件并保存到本地
     url: 文件下载链接
     save_path: 本地保存路径
     """
-
-    # 安全校验：文件类型和文件最大尺寸
-    MAX_SIZE_BYTES = 150 * 1024 * 1024
 
     try:
         # 安全校验：文件名/路径跨目录片段
@@ -70,33 +98,51 @@ async def download_file(url, save_path):
         if not check_save_dir_and_no_overwrite(save_path):
             raise Exception("下载失败: 保存目录不存在或文件已存在")
 
-        response = requests.get(url, stream=True, timeout=10)
+        response = requests.get(
+            url,
+            stream=True,
+            timeout=timeout_seconds,
+            allow_redirects=allow_redirects,
+        )
+        if response.status_code == 404:
+            raise DownloadFileNotFoundError("下载失败: 文件不存在")
+        if not allow_redirects and 300 <= response.status_code < 400:
+            raise DownloadFileError("下载失败: 不允许重定向")
         response.raise_for_status()
 
         content_length = response.headers.get("Content-Length")
-        if content_length and content_length.isdigit() and int(content_length) > MAX_SIZE_BYTES:
-            logger.error("下载失败: 文件大小超过 150MB")
-            raise Exception("下载失败: 文件大小超过 150MB")
+        if (
+            content_length
+            and content_length.isdigit()
+            and int(content_length) > max_size_bytes
+        ):
+            logger.error("下载失败: 文件大小超过限制")
+            raise DownloadFileTooLargeError("下载失败: 文件大小超过限制")
 
         total = 0
         with open(save_path, 'wb') as file:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:
                     total += len(chunk)
-                    if total > MAX_SIZE_BYTES:
-                        logger.error("下载失败: 文件大小超过 150MB")
-                        raise Exception("下载失败: 文件大小超过 150MB")
+                    if total > max_size_bytes:
+                        logger.error("下载失败: 文件大小超过限制")
+                        raise DownloadFileTooLargeError("下载失败: 文件大小超过限制")
                     file.write(chunk)
 
         logger.info(f"下载成功！文件已保存至当前目录下的: {save_path}")
         return save_path
 
-    except requests.exceptions.RequestException as e:
-        logger.error(f"下载失败: {type(e).__name__} ")
-        raise Exception(f"下载失败: {type(e).__name__}") from e
-    except Exception as e:
-        logger.error(f"发生错误: {type(e).__name__} ")
+    except DownloadFileError:
+        Path(save_path).unlink(missing_ok=True)
         raise
+    except requests.exceptions.RequestException as e:
+        Path(save_path).unlink(missing_ok=True)
+        logger.error(f"下载失败: {type(e).__name__} ")
+        raise DownloadFileError(f"下载失败: {type(e).__name__}") from e
+    except Exception as e:
+        Path(save_path).unlink(missing_ok=True)
+        logger.error(f"发生错误: {type(e).__name__} ")
+        raise DownloadFileError(f"下载失败: {type(e).__name__}") from e
 
 
 async def download_multiple_files(urls_and_paths):
@@ -119,6 +165,9 @@ async def download_file_async(url, file_name, semaphore):
     """
     异步下载单个文件
     """
+    import aiofiles
+    import aiohttp
+
     async with semaphore:  # 使用信号量控制并发
         try:
             save_path = os.path.join(task_logger.get_session_id(), file_name)

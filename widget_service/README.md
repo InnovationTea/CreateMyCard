@@ -18,7 +18,7 @@ The service follows `docs/AGENTS.md`:
 - Structured values embedded in log messages are serialized as standard JSON with double-quoted keys and strings. Request `uid` remains part of the API contract but must never be logged in raw, masked, or hashed form; IDS request logs omit `callingUid` as well.
 - The server logs process-wide WebSocket `active_connections`, cumulative `total_connections`, and `running_tasks` every 10 seconds.
 - Package filtering emits exactly one summary result per capability-overview request; per-capability dependency-check logs are not emitted.
-- OBS upload is intentionally left as a TODO hook in `ArtifactStore`; source artifact reads already go through `file_obs.download_file`.
+- OBS upload is intentionally left as a TODO hook in `ArtifactStore`; remote source artifact reads reuse `utils/download_file_from_url.py`.
 
 ## Run
 

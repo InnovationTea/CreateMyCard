@@ -62,8 +62,9 @@ from services.task_spec_builder import TaskSpecBuilder
 from services.validator import ArtifactValidator
 from services.widget_generation_service import WidgetGenerationService
 from utils.base_utils import sts_config
+from utils.download_file_from_url import download_file
 from utils.file import delete_file, save_txt_file
-from utils.upload_file_obs import FileObsNotFoundError, UploadFileOSMS
+from utils.upload_file_obs import UploadFileOSMS
 
 
 def test_websocket_handler_runs_sync_service_in_threadpool():
@@ -1625,14 +1626,13 @@ def test_file_utils_save_and_delete_utf8_text(tmp_path):
     assert not file_path.exists()
 
 
-def test_upload_file_osms_copies_and_downloads_mock_file(tmp_path, monkeypatch):
-    """验证 mock OBS 上传和默认下载使用同一份本地对象。
+def test_upload_file_osms_copies_file_and_returns_mock_url(tmp_path):
+    """验证 mock OBS 上传保留本地对象并返回访问地址。
 
     入参：
     - tmp_path：pytest 临时目录。
     出参：无；通过断言验证上传结果和 mock 落盘文件。
     """
-    monkeypatch.setattr(get_settings(), "enable_artifact_download_mock", True)
     source_path = tmp_path / "source" / "artifact.md"
     mock_storage_dir = tmp_path / "mock_obs"
     save_txt_file(source_path, "artifact")
@@ -1642,59 +1642,23 @@ def test_upload_file_osms_copies_and_downloads_mock_file(tmp_path, monkeypatch):
     )
 
     artifact_url = asyncio.run(uploader.upload_file(source_path))
-    downloaded = asyncio.run(
-        uploader.download_file(
-            artifact_url,
-            max_bytes=1024,
-            timeout_seconds=1.0,
-        )
-    )
 
     assert artifact_url == "https://obs.mock.local/widget/artifact.md"
     assert (mock_storage_dir / "artifact.md").read_text(encoding="utf-8") == "artifact"
-    assert downloaded == b"artifact"
 
 
-def test_file_obs_mock_download_missing_file_does_not_use_remote(tmp_path, monkeypatch):
-    """验证默认 mock 下载缺文件时直接失败，不偷偷回退真实网络。"""
-    monkeypatch.setattr(get_settings(), "enable_artifact_download_mock", True)
-    monkeypatch.setattr(
-        "utils.upload_file_obs.requests.get",
-        lambda *_args, **_kwargs: pytest.fail("mock mode must not access remote OBS"),
-    )
-    uploader = UploadFileOSMS(
-        base_url="https://obs.mock.local/widget",
-        mock_storage_dir=tmp_path / "mock_obs",
-    )
-
-    with pytest.raises(FileObsNotFoundError):
-        asyncio.run(
-            uploader.download_file(
-                "https://obs.mock.local/widget/missing.md",
-                max_bytes=1024,
-                timeout_seconds=1.0,
-            )
-        )
-
-
-def test_file_obs_download_switch_uses_remote_http(monkeypatch):
-    """验证关闭 mock 开关后使用真实 HTTPS 下载分支。"""
+def test_shared_download_file_uses_remote_http_options(tmp_path, monkeypatch):
+    """验证公共下载方法支持来源 artifact 所需的安全参数。"""
 
     class FakeResponse:
         status_code = 200
         headers = {"Content-Length": "8"}
 
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *_args):
-            return False
-
         def raise_for_status(self):
             return None
 
         def iter_content(self, chunk_size):
-            assert chunk_size == 64 * 1024
+            assert chunk_size == 8192
             yield b"artifact"
 
     requested: dict = {}
@@ -1704,19 +1668,21 @@ def test_file_obs_download_switch_uses_remote_http(monkeypatch):
         requested.update(kwargs)
         return FakeResponse()
 
-    monkeypatch.setattr(get_settings(), "enable_artifact_download_mock", False)
-    monkeypatch.setattr("utils.upload_file_obs.requests.get", fake_get)
-    uploader = UploadFileOSMS()
+    monkeypatch.setattr("utils.download_file_from_url.requests.get", fake_get)
+    target_path = tmp_path / "artifact.md"
 
-    downloaded = asyncio.run(
-        uploader.download_file(
+    downloaded_path = asyncio.run(
+        download_file(
             "https://obs.real.example/widget/artifact.md",
-            max_bytes=1024,
+            str(target_path),
+            max_size_bytes=1024,
             timeout_seconds=2.5,
+            allow_redirects=False,
         )
     )
 
-    assert downloaded == b"artifact"
+    assert downloaded_path == str(target_path)
+    assert target_path.read_bytes() == b"artifact"
     assert requested == {
         "url": "https://obs.real.example/widget/artifact.md",
         "stream": True,

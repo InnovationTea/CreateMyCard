@@ -5,21 +5,20 @@ import hashlib
 import json
 import re
 import time
+import uuid
 from dataclasses import dataclass
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from urllib.parse import unquote, urlsplit
 
 from config.config import get_settings
 from core.errors import ErrorCode
 from models.artifact import WidgetArtifact
-from utils.upload_file_obs import (
-    FileObsDownloadError,
-    FileObsNotFoundError,
-    FileObsTooLargeError,
-    UploadFileOSMS,
+from utils.download_file_from_url import (
+    DownloadFileError,
+    DownloadFileNotFoundError,
+    DownloadFileTooLargeError,
+    download_file,
 )
-
-file_obs = UploadFileOSMS()
 
 ARTIFACT_FILE_RE = re.compile(
     r"artifact_[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.md",
@@ -71,31 +70,41 @@ def calculate_artifact_digest(artifact: WidgetArtifact) -> str:
 
 
 class SourceArtifactRepository:
-    """通过 file_obs 按配置下载并安全解析 artifact v2。"""
+    """通过公共下载工具按配置读取并安全解析 artifact v2。"""
 
     def load(self, source_url: str) -> SourceArtifactLoadResult:
         settings = get_settings()
         relative_path = self._validate_url(source_url)
+        download_mode = (
+            "mock" if settings.enable_artifact_download_mock else "remote"
+        )
         read_started_at = time.perf_counter()
         try:
-            content_bytes = asyncio.run(
-                file_obs.download_file(
-                    source_url,
-                    max_bytes=settings.source_artifact_max_bytes,
-                    timeout_seconds=settings.source_artifact_read_timeout_seconds,
+            if download_mode == "mock":
+                content_bytes = self._read_mock_file(
+                    relative_path,
+                    settings.WORKSPACE_ROOT / "mock_obs",
+                    settings.source_artifact_max_bytes,
+                    settings.source_artifact_read_timeout_seconds,
                 )
-            )
-        except FileObsNotFoundError as exc:
+            else:
+                content_bytes = self._download_remote_file(
+                    source_url,
+                    settings.WORKSPACE_ROOT,
+                    settings.source_artifact_max_bytes,
+                    settings.source_artifact_read_timeout_seconds,
+                )
+        except (FileNotFoundError, DownloadFileNotFoundError) as exc:
             raise SourceArtifactError(
                 ErrorCode.SOURCE_ARTIFACT_NOT_FOUND,
                 "source artifact does not exist",
             ) from exc
-        except FileObsTooLargeError as exc:
+        except DownloadFileTooLargeError as exc:
             raise SourceArtifactError(
                 ErrorCode.SOURCE_ARTIFACT_INVALID,
                 "source artifact exceeds size limit",
             ) from exc
-        except (FileObsDownloadError, OSError) as exc:
+        except (DownloadFileError, OSError, TimeoutError) as exc:
             raise SourceArtifactError(
                 ErrorCode.SOURCE_ARTIFACT_DOWNLOAD_FAILED,
                 "source artifact cannot be downloaded",
@@ -128,8 +137,56 @@ class SourceArtifactRepository:
             url_hash=hashlib.sha256(source_url.encode("utf-8")).hexdigest(),
             read_latency_ms=read_latency_ms,
             parse_latency_ms=parse_latency_ms,
-            download_mode=file_obs.download_mode,
+            download_mode=download_mode,
         )
+
+    @staticmethod
+    def _read_mock_file(
+        relative_path: PurePosixPath,
+        mock_storage_dir: Path,
+        max_bytes: int,
+        timeout_seconds: float,
+    ) -> bytes:
+        storage_root = mock_storage_dir.resolve()
+        file_path = (storage_root / relative_path.name).resolve()
+        if file_path.parent != storage_root:
+            raise OSError("mock artifact path escapes configured storage")
+        if not file_path.is_file():
+            raise FileNotFoundError(file_path)
+        if file_path.stat().st_size > max_bytes:
+            raise DownloadFileTooLargeError("mock artifact exceeds size limit")
+
+        async def read_with_timeout() -> bytes:
+            return await asyncio.wait_for(
+                asyncio.to_thread(file_path.read_bytes),
+                timeout=timeout_seconds,
+            )
+
+        return asyncio.run(read_with_timeout())
+
+    @staticmethod
+    def _download_remote_file(
+        source_url: str,
+        workspace_root: Path,
+        max_bytes: int,
+        timeout_seconds: float,
+    ) -> bytes:
+        download_dir = workspace_root / "source_artifact_downloads"
+        download_dir.mkdir(parents=True, exist_ok=True)
+        download_path = download_dir / f"source_{uuid.uuid4()}.md"
+        try:
+            asyncio.run(
+                download_file(
+                    source_url,
+                    str(download_path),
+                    max_size_bytes=max_bytes,
+                    timeout_seconds=timeout_seconds,
+                    allow_redirects=False,
+                )
+            )
+            return download_path.read_bytes()
+        finally:
+            download_path.unlink(missing_ok=True)
 
     def _validate_url(self, source_url: str) -> PurePosixPath:
         settings = get_settings()
