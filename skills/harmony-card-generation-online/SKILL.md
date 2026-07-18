@@ -1,6 +1,6 @@
 ---
 name: harmony-card-generation-online
-description: "编排云侧微服务生成 HarmonyOS A2UI Form 服务卡片。用于用户用自然语言请求创建、生成、预览、添加桌面 widget/服务卡片，或端侧以 /harmony-card-generation 等标记触发卡片生成时，识别场景、获取能力概述、筛选候选数据/事件/素材能力、构造候选 dataBindings/event candidates/asset ids/size，调用 getWidgetCapabilityOverview、getDataCapabilitySchemas、generateWidgetCard，并根据 success/degraded/unsupported/failed 返回 genWidgetResult JSON 标记或可理解说明。"
+description: "编排云侧微服务首次生成或继续编辑 HarmonyOS A2UI Form 服务卡片。用于用户请求创建、生成、修改、优化桌面 widget/服务卡片时，获取能力概述、构造候选计划、调用 generateWidgetCard，并根据结构化状态返回新 artifact。"
 metadata:
   tools:
     - bundleName: "com.omega_w_0823.hmservice"
@@ -23,6 +23,7 @@ metadata:
 - 按需加载选中数据能力 schema。
 - 构造 `candidateDataBindings`、`candidateEventCandidates`、`candidateAssetIds`、`size`、`title` 和 `description`。
 - 调用 `generateWidgetCard` 生成卡片 artifact。
+- 识别对上一张卡片的编辑请求，并原样回传上一轮成功结果中的 `artifactUrl`。
 - 根据微服务返回状态组织用户回复。
 - 每次调用工具前检查是否仍有会影响本次卡片核心意图、候选选择或工具入参的用户待确认信息；有则先追问并等待用户回答，再继续调用。
 
@@ -36,6 +37,8 @@ metadata:
 - "做一个一键清理内存的桌面卡"
 - "给我做一个看抖音使用时长和耗电的卡片"
 - "创建一个会议提醒卡片，可以一键入会"
+- "把刚才的卡片背景改成蓝色"
+- "把刚才卡片里的日历去掉"
 - 任何包含"桌面卡片"、"widget"、"服务卡片"、"生成卡片"、"创建卡片"等表述的请求。
 
 不进入或直接说明边界的 query：
@@ -53,9 +56,10 @@ metadata:
 - 不编造能力 ID、事件目标、素材 ID、OBS 链接或 `genWidgetResult`。
 - 不把点击事件写入 CardSpec；点击候选只作为 `candidateEventCandidates` 传给微服务裁决。
 - 不把 `generateWidgetCard` 返回前的候选计划、schema、DSL 草稿或校验细节暴露给用户。
+- 不下载来源 artifact，不解析历史 DSL，不猜测或拼接 `sourceArtifactUrl`。
 - 任一依赖工具不可用、调用失败或返回无法解析时终止本轮生成，不使用离线能力清单或历史资料补足。
 
-微服务负责真实设备能力过滤、最终 CardSpec、A2UI DSL 生成、校验、降级、失败重试、OBS 上传和最终用户话术。
+能力概述工具负责真实设备能力过滤；生成微服务负责注册表与候选结构检查、最终 CardSpec、A2UI DSL 生成、校验、可选重试、artifact 上传和最终用户话术。
 
 ## 工作流
 
@@ -65,17 +69,19 @@ metadata:
 
 3. **用户确认与工具入参校验**：每次调用工具前先检查是否存在用户可回答、且会影响核心卡片需求、候选能力、目标对象、地点、日期/时间范围、动作目标或必填业务参数的未决信息。有则不要调用任何工具，先用简短自然语言追问，等待用户明确回答后重新检查当前步骤。能从用户原话、可信会话上下文或 schema 明确默认值安全确定的内容不重复确认；不要向用户询问设备能力是否可用、能力 ID、内部字段名或其它应由微服务裁决的内容。确认门禁通过后，再读取当前运行时 `tools` 中对应工具的 schema，按“工具定义”的调用前硬校验逐项检查 `functionName`、`bundleName`、必填字段、字段名、类型和嵌套结构。任何字段都不能只因本 Skill、参考资料、示例或内部类中出现就传入。
 
-4. **获取能力概述**：确认用户的核心卡片主题和明确要求不存在待追问项后，调用 `getWidgetCapabilityOverview` 获取数据能力、可选的不可用数据能力、事件能力和素材概述。除 `bundleName` 外不传其它字段；工具返回后从包装结构 `items[].data` 中解析业务 payload；如果返回原始插件包络，则先进入 `reply.items[].data`。`unavailableCapabilities` 缺失或为 `[]` 时按空集合处理；字段存在但不是字符串数组，或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
+4. **判定首次生成或编辑**：首次生成进入完整能力规划。若当前会话存在上一轮成功或降级生成返回的真实 `artifactUrl`，且用户明确要求修改上一张卡片，则进入编辑模式并把该 URL 原样作为 `sourceArtifactUrl`。存在多张卡片且目标不明确时先追问。纯视觉、文案或尺寸编辑不重新获取能力概述；数据能力、事件或素材变化时必须刷新能力概述。
 
-5. **筛选候选能力**：按 `references/candidate-planning.md` 从概述中筛选候选能力：
+5. **获取能力概述**：首次生成或能力发生变化的编辑，在确认需求不存在待追问项后调用 `getWidgetCapabilityOverview`。除 `bundleName` 外不传其它字段；从包装结构中解析业务 payload 并排除 `unavailableCapabilities`。纯视觉、文案或尺寸编辑跳过本步骤，依赖来源 artifact 继承未变化候选。
+
+6. **筛选候选能力**：按 `references/candidate-planning.md` 从概述中筛选候选能力：
    - `unavailableCapabilities` 存在且非空时，先从 `dataCapabilities` 中排除其中的数据能力；同一 ID 同时出现时以不可用为准。字段缺失或为空数组时不额外排除。
    - 数据能力最多优先选 2 个核心候选。
    - 事件能力最多优先选 2 个主动作候选。
    - 素材候选只选和场景强相关的少量 ID。
 
-6. **加载数据能力 Schema**：如果选中了数据能力，先确认候选选择不依赖尚未明确的用户选择；存在会改变核心候选的歧义时先追问并等待回答。确认后只为排除 `unavailableCapabilities` 后仍可选的数据能力调用 `getDataCapabilitySchemas` 加载完整 schema。工具不可用、调用失败或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
+7. **加载数据能力 Schema**：首次生成选中数据能力，或编辑时数据能力发生变化，才调用 `getDataCapabilitySchemas`。纯视觉、文案、尺寸以及只修改事件/素材的编辑不加载数据 schema。
 
-7. **构造候选计划**：基于 schema 构造候选计划：
+8. **构造候选计划**：首次生成基于 schema 构造完整候选计划；编辑按变化类别构造：
    - `size`：`"2x2"` 或 `"2x4"`。
    - `candidateDataBindings`：候选数据能力调用，不是最终 CardSpec。
    - 按当前工具 schema 组装每个 `candidateDataBindings` 元素：`capabilityId`、`arguments`、`writeResultTo`，以及可选的 `candidateOutputFields`；不要传松散对象或额外字段。
@@ -83,12 +89,14 @@ metadata:
    - `candidateEventCandidates`：事件候选单数组；每项包含来自 overview 的 `capabilityId` 和完整 `action`。如果无法安全填齐 `action.call/args`，不要传该事件候选。
    - 虽然对外工具 schema 中事件项只是 `Object`，每一项仍必须按内部 `CandidateEventCandidate` 类结构组装：`capabilityId` 和 `action:{call,args}`。
    - `candidateAssetIds`：来自 overview 的素材 ID。
-   - `title` / `description`：必传的静态短标题和短概述；无法提炼时使用稳定默认文案。
+   - 首次生成时 `title` / `description` 必传；编辑时未修改的尺寸、文案和候选类别全部省略。
+   - 编辑时显式传入某类候选数组表示编辑后的完整集合，删除该类别全部内容时传 `[]`，不要传增量 patch。
+   - 纯视觉编辑只传 `userQuery` 和 `sourceArtifactUrl`。
    - 本版不传 `slots`、`options`、`locale`、`uid`、`device` 等当前工具 schema 未声明的字段。
 
-8. **生成卡片**：调用前再次执行用户确认门禁和当前运行时 `generateWidgetCard` schema 校验。核心需求所需的用户业务信息缺失或存在歧义时，先追问并等待回答，再重建候选计划；不要静默猜测、把核心候选直接删除或用默认值改变用户意图。只影响非核心可选内容时可以删除该可选候选。随后删除 schema 未声明的可选字段；必填字段缺失、类型不匹配或嵌套结构不合法时不要调用。校验通过后调用 `generateWidgetCard` 生成卡片。不要自行补做微服务负责的过滤、协议 profile、校验、重试或上传。工具不可用、调用失败或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
+9. **生成卡片**：调用前再次执行用户确认门禁和运行时 schema 校验。首次生成检查非空 `title/description`；编辑检查真实非空 `sourceArtifactUrl`，并确保省略与空数组语义正确。不要传 `null` 占位。校验通过后调用 `generateWidgetCard`；不要自行下载来源、处理 DSL、执行校验或上传。
 
-9. **回复用户**：按 `references/response-policy.md` 回复：
+10. **回复用户**：按 `references/response-policy.md` 回复；编辑成功后必须保存并输出本轮返回的新 `artifactUrl`，后续编辑只能使用这个新 URL：
    - 先从 `generateWidgetCard` 返回的 `items[].data` 解析业务 payload；如果返回原始插件包络，则先进入 `reply.items[].data`。
    - `success` / `degraded` 且存在有效 `artifactUrl`：输出业务 payload 的 `message`，并按“输出”章节格式输出 `genWidgetResult` JSON 标记。
    - `success` / `degraded` 但缺少有效 `artifactUrl`：按 `failed` 处理，不输出 `genWidgetResult`。
@@ -128,17 +136,19 @@ metadata:
 
 ### Function: generateWidgetCard
 - **toolName**: generateWidgetCard
-- **description**: 提交用户需求、候选数据绑定、候选事件和素材，生成可下载的 HarmonyOS A2UI Form 卡片 artifact。
-- **参数**: {"type":"object","properties":{"size":{"type":"String","description":"主 Agent 建议尺寸"},"candidateDataBindings":{"type":"Array","description":"候选数据能力调用列表；微服务会按注册表和 IDS 状态裁决最终可用项","required":[],"properties":{"ArrayItem":{"type":"Object","description":"候选数据能力","required":[],"properties":{"candidateOutputFields":{"type":"Array<String>","description":"可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导","required":[],"properties":{"ArrayItem":{"type":"String","description":"可选候选展示字段 JSON Pointer"}}},"arguments":{"type":"Object","description":"参数"},"capabilityId":{"type":"String","description":"能力ID"},"writeResultTo":{"type":"String","description":"结果写入路径"}}}}},"candidateEventCandidates":{"type":"Array","description":"候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明","required":[],"properties":{"ArrayItem":{"type":"Object","description":"事件 action"}}},"userQuery":{"type":"String","description":"用户原始卡片需求"},"candidateAssetIds":{"type":"Array<String>","description":"候选素材 ID 列表","required":[],"properties":{"ArrayItem":{"type":"String","description":"候选素材 ID"}}},"title":{"type":"String","description":"建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"},"description":{"type":"String","description":"建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"}},"required":["userQuery"]}
+- **description**: 首次生成或基于上一版 artifact 编辑 HarmonyOS A2UI Form 卡片。
+- **参数**: {"type":"object","properties":{"size":{"type":"String","description":"首次生成建议尺寸；编辑模式省略时继承"},"sourceArtifactUrl":{"type":"String","description":"可选的上一轮真实 artifact URL；传入时进入编辑模式"},"candidateDataBindings":{"type":"Array","description":"候选数据能力调用列表；编辑模式省略时继承，传入时整体替换，空数组表示清空","required":[],"properties":{"ArrayItem":{"type":"Object","description":"候选数据能力","required":[],"properties":{"candidateOutputFields":{"type":"Array<String>","description":"可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导","required":[],"properties":{"ArrayItem":{"type":"String","description":"可选候选展示字段 JSON Pointer"}}},"arguments":{"type":"Object","description":"参数"},"capabilityId":{"type":"String","description":"能力ID"},"writeResultTo":{"type":"String","description":"结果写入路径"}}}}},"candidateEventCandidates":{"type":"Array","description":"候选点击事件列表；编辑模式省略时继承，传入时整体替换","required":[],"properties":{"ArrayItem":{"type":"Object","description":"事件 action"}}},"userQuery":{"type":"String","description":"首次生成需求或本轮编辑指令"},"candidateAssetIds":{"type":"Array<String>","description":"候选素材 ID；编辑模式省略时继承，传入时整体替换","required":[],"properties":{"ArrayItem":{"type":"String","description":"候选素材 ID"}}},"title":{"type":"String","description":"首次生成必传；编辑模式省略时继承的静态短标题"},"description":{"type":"String","description":"首次生成必传；编辑模式省略时继承的静态短概述"}},"required":["userQuery"]}
 
 ## 工具调用示例
 
 ```text
 invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.omega_w_0823.hmservice"},"skillName":"harmony-card-generation-online")
 
-invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:["ViewWeather", "calendar.events.search"]},"skillName":"harmony-card-generation-online")
+invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:["ViewWeather", "GetCalendarEvents"]},"skillName":"harmony-card-generation-online")
 
-invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"生成一个通勤卡片", title:"通勤助手", description:"天气日程速览", size:"2x4", candidateDataBindings:[{capabilityId:"ViewWeather", arguments:{districtName:"青浦区", forecastDays:1}, writeResultTo:"/data/weather", candidateOutputFields:["/location/name", "/current/temperatureText", "/current/weatherText"]}], candidateEventCandidates:[{capabilityId:"event.open.weather", action:{call:"clickToDeeplink", args:{bundleName:"", abilityName:"", uri:"hww://www.huawei.com/totemweather?enterType=share&cityCode="}}}], candidateAssetIds:["asset.weather.rain"]},"skillName":"harmony-card-generation-online")
+invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"生成一个通勤卡片", title:"通勤助手", description:"天气日程速览", size:"2x4", candidateDataBindings:[{capabilityId:"ViewWeather", arguments:{districtName:"青浦区", forecastDays:1}, writeResultTo:"/data/weather", candidateOutputFields:["/location/districtName", "/current/temperatureText", "/current/condition"]}], candidateEventCandidates:[{capabilityId:"event.open.weather", action:{call:"clickToDeeplink", args:{bundleName:"", abilityName:"", uri:"hww://www.huawei.com/totemweather?enterType=share&cityCode="}}}], candidateAssetIds:["asset.drop_1"]},"skillName":"harmony-card-generation-online")
+
+invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"整体改成蓝色风格", sourceArtifactUrl:"https://obs.example/widget/artifact_uuid.md"},"skillName":"harmony-card-generation-online")
 ```
 
 
@@ -149,7 +159,7 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 ````text
 ```genWidgetResult
 {
-  "result": "https://obs.example/widget/request-id.json"
+  "result": "https://obs.example/widget/artifact_uuid.md"
 }
 ```
 ````

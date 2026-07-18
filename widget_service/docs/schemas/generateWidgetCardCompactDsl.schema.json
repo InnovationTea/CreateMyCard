@@ -60,7 +60,7 @@
           "capabilityRegistryVersion": {
             "type": "string|null",
             "required": false,
-            "description": "可选能力清单版本；不传时由 deviceInfo.prdVer + ROM 版本推导。目录不存在且回退开关开启时使用默认 205/36 注册表。"
+            "description": "可选能力清单版本；不传时由 deviceInfo.prdVer + ROM 版本推导。目录不存在且回退开关开启时使用默认 205/6.0 注册表。"
           },
           "protocolProfileId": {
             "type": "string|null",
@@ -200,7 +200,7 @@
         "prdVer": "string，可选，端侧传入的业务 API 版本；字段名保持端侧协议原名。",
         "sysVer": "string，推荐，系统版本。",
         "time": "string，可选，端侧请求时间。",
-        "romVersion": "string，可选，ROM 级别，当前统一为 36。"
+        "romVersion": "string，可选且字段名固定；例如 CLS-AL30 6.0.0.328，服务抽取 6.0。"
       }
     },
     "Session": {

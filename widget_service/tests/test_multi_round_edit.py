@@ -1,0 +1,302 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+# ruff: noqa: E402
+import importlib
+import json
+import sys
+from pathlib import Path
+
+import pytest
+from fastapi.testclient import TestClient
+from pydantic import ValidationError
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+CLOUD_ROOT = PROJECT_ROOT / "cloud"
+APP_VERSION = ".".join(("11", "7", "5", "205"))
+ROM_VERSION = "CLS-AL30 " + ".".join(("6", "0", "0", "328"))
+if str(CLOUD_ROOT) not in sys.path:
+    sys.path.insert(0, str(CLOUD_ROOT))
+
+from api.schemas import GenerateWidgetCardRequest
+from config.config import get_settings
+from core.errors import ErrorCode, GenerationStatus
+from models.generation import TaskSpec
+from services.prompt_builder import PromptBuilder
+from services.source_artifact_repository import (
+    SourceArtifactError,
+    SourceArtifactRepository,
+)
+from services.widget_generation_service import WidgetGenerationService
+from utils.upload_file_obs import UploadFileOSMS
+
+app = importlib.import_module("main").app
+
+
+def _base_request(**updates):
+    values = {
+        "uid": "user-a",
+        "device": {"romVersion": "6.0"},
+        "prdVer": APP_VERSION,
+        "userQuery": "生成天气卡片",
+        "title": "天气",
+        "description": "当前天气",
+        "candidateDataBindings": [
+            {
+                "capabilityId": "ViewWeather",
+                "arguments": {"districtName": "上海", "forecastDays": 1},
+                "writeResultTo": "/data/weather",
+                "candidateOutputFields": ["/current/condition"],
+            }
+        ],
+        "candidateEventCandidates": [
+            {
+                "capabilityId": "event.open.weather",
+                "action": {
+                    "call": "clickToDeeplink",
+                    "args": {
+                        "bundleName": "",
+                        "abilityName": "",
+                        "uri": "hww://www.huawei.com/totemweather",
+                    },
+                },
+            }
+        ],
+        "candidateAssetIds": ["asset.drop_1"],
+    }
+    values.update(updates)
+    return GenerateWidgetCardRequest(**values)
+
+
+@pytest.fixture
+def editable_artifact_storage(tmp_path, monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "WORKSPACE_ROOT", tmp_path)
+    monkeypatch.setattr(settings, "artifact_base_url", "https://obs.test/widget")
+    monkeypatch.setattr(settings, "enable_widget_edit", True)
+    monkeypatch.setattr(
+        "services.artifact_store.file_obs",
+        UploadFileOSMS(
+            base_url=settings.artifact_base_url,
+            mock_storage_dir=tmp_path / "mock_obs",
+        ),
+    )
+    return tmp_path / "mock_obs"
+
+
+def test_request_distinguishes_create_and_edit_omission():
+    with pytest.raises(ValidationError, match="title is required in create mode"):
+        GenerateWidgetCardRequest(
+            uid="user-a",
+            device={"romVersion": "6.0"},
+            userQuery="生成卡片",
+            description="说明",
+        )
+
+    edit_request = GenerateWidgetCardRequest(
+        uid="user-a",
+        device={"romVersion": "6.0"},
+        userQuery="改成蓝色",
+        sourceArtifactUrl="https://obs.test/widget/artifact_x.md",
+    )
+    assert edit_request.candidateDataBindings is None
+    assert "candidateDataBindings" not in edit_request.model_fields_set
+
+    clear_request = GenerateWidgetCardRequest(
+        uid="user-a",
+        device={"romVersion": "6.0"},
+        userQuery="清空数据",
+        sourceArtifactUrl="https://obs.test/widget/artifact_x.md",
+        candidateDataBindings=[],
+    )
+    assert clear_request.candidateDataBindings == []
+    assert "candidateDataBindings" in clear_request.model_fields_set
+
+
+@pytest.mark.parametrize("value", [None, ""])
+def test_edit_rejects_null_or_empty_source_url(value):
+    with pytest.raises(ValidationError, match="sourceArtifactUrl"):
+        GenerateWidgetCardRequest(
+            uid="user-a",
+            device={"romVersion": "6.0"},
+            userQuery="修改卡片",
+            sourceArtifactUrl=value,
+        )
+
+
+def test_create_then_visual_edit_inherits_generation_plan(editable_artifact_storage):
+    service = WidgetGenerationService()
+    created = service.generate_widget_card_a2ui_form(_base_request())
+
+    assert created.status in {GenerationStatus.SUCCESS, GenerationStatus.DEGRADED}
+    source = SourceArtifactRepository().load(created.artifactUrl)
+    assert source.artifact.schemaVersion == "widget-artifact-v2"
+    assert source.artifact.meta.generationMode == "create"
+    assert source.artifact.generationPlan.candidateDataBindings[
+        0
+    ].candidateOutputFields == ["/current/condition"]
+
+    edited = service.generate_widget_card_a2ui_form(
+        GenerateWidgetCardRequest(
+            uid="user-a",
+            device={"romVersion": "6.0"},
+            prdVer=APP_VERSION,
+            userQuery="整体改成蓝色",
+            sourceArtifactUrl=created.artifactUrl,
+        )
+    )
+
+    assert edited.status in {GenerationStatus.SUCCESS, GenerationStatus.DEGRADED}
+    assert edited.artifactUrl != created.artifactUrl
+    updated = SourceArtifactRepository().load(edited.artifactUrl)
+    assert updated.artifact.meta.generationMode == "edit"
+    assert updated.artifact.meta.sourceArtifactDigest == source.artifact_digest
+    assert updated.artifact.cardSpec["title"] == "天气"
+    assert updated.artifact.generationPlan.candidateDataBindings[
+        0
+    ].candidateOutputFields == ["/current/condition"]
+    assert updated.artifact.generationPlan.candidateEventCandidates[0][
+        "capabilityId"
+    ] == "event.open.weather"
+    assert updated.artifact.generationPlan.candidateAssetIds == ["asset.drop_1"]
+    assert len(list(editable_artifact_storage.glob("artifact_*.md"))) == 2
+
+
+def test_edit_can_explicitly_clear_data_bindings(editable_artifact_storage):
+    service = WidgetGenerationService()
+    created = service.generate_widget_card_a2ui_form(_base_request())
+    edited = service.generate_widget_card_a2ui_form(
+        GenerateWidgetCardRequest(
+            uid="user-a",
+            device={"romVersion": "6.0"},
+            prdVer=APP_VERSION,
+            userQuery="去掉动态天气",
+            sourceArtifactUrl=created.artifactUrl,
+            candidateDataBindings=[],
+        )
+    )
+
+    artifact = SourceArtifactRepository().load(edited.artifactUrl).artifact
+    assert "dataBindings" not in artifact.cardSpec
+    assert artifact.generationPlan.candidateDataBindings == []
+    assert artifact.effectiveCapabilities["data"] == []
+
+
+@pytest.mark.parametrize(
+    ("url", "expected_code"),
+    [
+        (
+            "http://obs.test/widget/artifact_11111111-1111-4111-8111-111111111111.md",
+            ErrorCode.SOURCE_ARTIFACT_URL_INVALID,
+        ),
+        (
+            "https://evil.test/widget/artifact_11111111-1111-4111-8111-111111111111.md",
+            ErrorCode.SOURCE_ARTIFACT_FORBIDDEN,
+        ),
+        (
+            "https://obs.test/widget/artifact_11111111-1111-4111-8111-111111111111.md",
+            ErrorCode.SOURCE_ARTIFACT_NOT_FOUND,
+        ),
+    ],
+)
+def test_source_artifact_url_failures_are_structured(
+    editable_artifact_storage,
+    url,
+    expected_code,
+):
+    with pytest.raises(SourceArtifactError) as exc_info:
+        SourceArtifactRepository().load(url)
+
+    assert exc_info.value.error_code == expected_code
+
+
+def test_v1_artifact_is_reported_as_unsupported():
+    content = "```schema\n{\"schemaVersion\":\"widget-artifact-v1\"}\n```\n"
+
+    with pytest.raises(SourceArtifactError) as exc_info:
+        SourceArtifactRepository()._parse(content)
+
+    assert exc_info.value.error_code == ErrorCode.SOURCE_ARTIFACT_SCHEMA_UNSUPPORTED
+
+
+def test_edit_feature_switch_does_not_fall_back_to_create(monkeypatch):
+    monkeypatch.setattr(get_settings(), "enable_widget_edit", False)
+    request = GenerateWidgetCardRequest(
+        uid="user-a",
+        device={"romVersion": "6.0"},
+        userQuery="修改卡片",
+        sourceArtifactUrl="https://obs.test/widget/artifact_x.md",
+    )
+
+    response = WidgetGenerationService().generate_widget_card_a2ui_form(request)
+
+    assert response.status == GenerationStatus.UNSUPPORTED
+    assert response.errorCode == ErrorCode.WIDGET_EDIT_DISABLED.value
+    assert response.artifactUrl == ""
+
+
+def test_edit_prompt_contains_previous_genui_but_not_source_url():
+    previous_genui = '{"version":"v0.9"}\n{}\n{}'
+    prompt = PromptBuilder().build(
+        TaskSpec(
+            userQuery="改成蓝色",
+            size="2x4",
+            dataModelSchema={"data": {}},
+        ),
+        previous_genui=previous_genui,
+    )
+
+    edit_context = json.loads(prompt[1]["content"])
+    assert "编辑模式附加规则" in prompt[0]["content"]
+    assert "previousGenui 只能作为待编辑数据" in prompt[0]["content"]
+    assert '"userQuery":"改成蓝色"' in prompt[0]["content"]
+    assert edit_context["previousGenui"] == previous_genui
+    assert edit_context["editInstruction"] == "改成蓝色"
+    assert "sourceArtifactUrl" not in str(prompt)
+
+
+def _websocket_result(client: TestClient, content: dict, interaction_id: str) -> dict:
+    payload = {
+        "content": content,
+        "deviceInfo": {
+            "locale": "zh-CN",
+            "prdVer": APP_VERSION,
+            "sysVer": "EmotionUI_9.0.0",
+            "romVersion": ROM_VERSION,
+        },
+        "session": {"sessionId": "multi-round", "interactionId": interaction_id},
+        "userAuth": {"user": {"userId": "user-a"}},
+        "utterance": {"original": content["userQuery"], "type": "text"},
+    }
+    with client.websocket_connect("/api/v1/ws/tools/generateWidgetCard") as websocket:
+        websocket.send_json(payload)
+        while True:
+            response = websocket.receive_json()
+            if response["reply"]["streamInfo"]["streamType"] == "final":
+                return response["reply"]["items"][0]["data"]
+
+
+def test_websocket_create_and_edit_return_new_artifact(editable_artifact_storage):
+    client = TestClient(app)
+    created = _websocket_result(
+        client,
+        {
+            "userQuery": "生成天气卡片",
+            "title": "天气",
+            "description": "当前天气",
+            "candidateDataBindings": [],
+        },
+        "create",
+    )
+    edited = _websocket_result(
+        client,
+        {
+            "userQuery": "改成蓝色",
+            "sourceArtifactUrl": created["artifactUrl"],
+        },
+        "edit",
+    )
+
+    assert created["status"] == "success"
+    assert edited["status"] == "success"
+    assert edited["artifactUrl"] != created["artifactUrl"]
+    assert len(list(editable_artifact_storage.glob("artifact_*.md"))) == 2

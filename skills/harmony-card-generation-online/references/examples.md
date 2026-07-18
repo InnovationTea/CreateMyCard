@@ -58,7 +58,7 @@ invoke(functionName:"getWidgetCapabilityOverview", arguments:{
 ```text
 invoke(functionName:"getDataCapabilitySchemas", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
-  dataCapabilityIds:["ViewWeather", "calendar.events.search"]
+  dataCapabilityIds:["ViewWeather", "GetCalendarEvents"]
 },"skillName":"harmony-card-generation-online")
 ```
 
@@ -80,13 +80,13 @@ invoke(functionName:"generateWidgetCard", arguments:{
       },
       writeResultTo:"/data/weather",
       candidateOutputFields:[
-        "/location/name",
+        "/location/districtName",
         "/current/temperatureText",
-        "/current/weatherText"
+        "/current/condition"
       ]
     },
     {
-      capabilityId:"calendar.events.search",
+      capabilityId:"GetCalendarEvents",
       arguments:{
         timeInterval:[1783238400000, 1783324799999]
       },
@@ -111,7 +111,7 @@ invoke(functionName:"generateWidgetCard", arguments:{
       }
     }
   ],
-  candidateAssetIds:["asset.weather.rain", "asset.calendar.schedule"]
+  candidateAssetIds:["asset.drop_1", "asset.calendar_fill"]
 },"skillName":"harmony-card-generation-online")
 ```
 
@@ -166,7 +166,7 @@ invoke(functionName:"generateWidgetCard", arguments:{
       }
     }
   ],
-  candidateAssetIds:["asset.weather.rain"]
+  candidateAssetIds:["asset.drop_1"]
 },"skillName":"harmony-card-generation-online")
 ```
 
@@ -198,7 +198,7 @@ invoke(functionName:"generateWidgetCard", arguments:{
     {
       "tool": "generateWidgetCard",
       "status": "success",
-      "data": "{\"status\":\"success\",\"message\":\"已为你生成通勤卡片。\",\"artifactUrl\":\"https://obs.example/widget/123.json\",\"suggestSize\":\"2x4\"}"
+      "data": "{\"status\":\"success\",\"message\":\"已为你生成通勤卡片。\",\"artifactUrl\":\"https://obs.example/widget/artifact_uuid.md\",\"suggestSize\":\"2x4\"}"
     }
   ]
 }
@@ -221,9 +221,9 @@ invoke(functionName:"generateWidgetCard", arguments:{
   },
   "writeResultTo": "/data/weather",
   "candidateOutputFields": [
-    "/location/name",
+    "/location/districtName",
     "/current/temperatureText",
-    "/current/weatherText"
+    "/current/condition"
   ]
 }
 ```
@@ -267,6 +267,31 @@ invoke(functionName:"generateWidgetCard", arguments:{
 }
 ```
 
+## 多轮编辑样例
+
+上一轮 `generateWidgetCard` 业务 payload 返回：
+
+```json
+{
+  "status": "success",
+  "artifactUrl": "https://obs.example/widget/artifact_uuid.md"
+}
+```
+
+用户说“整体改成蓝色风格”时，不重新规划能力，也不下载来源 artifact：
+
+```text
+invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"整体改成蓝色风格", sourceArtifactUrl:"https://obs.example/widget/artifact_uuid.md"},"skillName":"harmony-card-generation-online")
+```
+
+用户说“去掉所有动态数据”时，显式传空数组：
+
+```text
+invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"去掉所有动态数据", sourceArtifactUrl:"https://obs.example/widget/artifact_uuid.md", candidateDataBindings:[]},"skillName":"harmony-card-generation-online")
+```
+
+成功后后续编辑必须使用本轮返回的新 URL，不能继续使用旧 URL。
+
 ## 用户回复话术样例
 
 success：
@@ -276,7 +301,7 @@ success：
 
 ```genWidgetResult
 {
-  "result": "https://obs.example/widget/123.json"
+  "result": "https://obs.example/widget/artifact_uuid.md"
 }
 ```
 ````
@@ -288,7 +313,7 @@ degraded：
 
 ```genWidgetResult
 {
-  "result": "https://obs.example/widget/456.json"
+  "result": "https://obs.example/widget/artifact_edit_uuid.md"
 }
 ```
 ````

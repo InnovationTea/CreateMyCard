@@ -16,6 +16,12 @@ from pydantic import ValidationError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CLOUD_ROOT = PROJECT_ROOT / "cloud"
+APP_VERSION = ".".join(("11", "7", "5", "205"))
+ROM_VERSION_6 = "CLS-AL30 " + ".".join(("6", "0", "0", "328"))
+ROM_VERSION_7 = "ALN-AL00 " + ".".join(("7", "1", "0", "100"))
+ROM_VERSION_7_WITHOUT_MODEL = ".".join(("7", "1", "0", "100"))
+REGISTRY_VERSION_6 = f"app-{APP_VERSION}_rom-6.0"
+REGISTRY_VERSION_7 = f"app-{APP_VERSION}_rom-7.1"
 
 if str(CLOUD_ROOT) not in sys.path:
     sys.path.insert(0, str(CLOUD_ROOT))
@@ -57,7 +63,7 @@ from services.validator import ArtifactValidator
 from services.widget_generation_service import WidgetGenerationService
 from utils.base_utils import sts_config
 from utils.file import delete_file, save_txt_file
-from utils.upload_file_obs import UploadFileOSMS
+from utils.upload_file_obs import FileObsNotFoundError, UploadFileOSMS
 
 
 def test_websocket_handler_runs_sync_service_in_threadpool():
@@ -107,7 +113,7 @@ def test_generation_summary_contains_required_observability_fields(monkeypatch):
     )
     request = GenerateWidgetCardRequest(
         uid="uid-must-not-be-logged",
-        device={"romVersion": "36"},
+        device={"romVersion": "6.0"},
         userQuery="生成天气卡片",
         title="天气",
         description="当前天气",
@@ -117,8 +123,8 @@ def test_generation_summary_contains_required_observability_fields(monkeypatch):
         request,
         status=GenerationStatus.SUCCESS,
         error_code="",
-        protocol_profile_id="a2ui-form-rom36-v1",
-        capability_registry_version="app-11.7.5.205_rom-36",
+        protocol_profile_id="a2ui-form-rom6.0-v1",
+        capability_registry_version=REGISTRY_VERSION_6,
         latency_by_stage={"total": 12.3},
         retry_count=0,
         artifact_digest="sha256:test",
@@ -188,7 +194,7 @@ def _device() -> DeviceContext:
     return DeviceContext(
         deviceId="device-001",
         odid="odid-001",
-        romVersion="36",
+        romVersion="6.0",
     )
 
 
@@ -237,6 +243,35 @@ def test_validation_failure_retry_can_be_enabled_by_environment(monkeypatch):
     settings = Settings(_env_file=None)
 
     assert settings.enable_validation_failure_retry is True
+
+
+def test_system_prompts_are_loaded_from_docs_files():
+    """验证首次生成和编辑系统提示词均由配置文件读取。"""
+    settings = Settings(_env_file=None)
+
+    assert settings.resolved_system_prompt_file == (
+        PROJECT_ROOT.parent / "docs" / "system_prompt.txt"
+    )
+    assert settings.resolved_edit_system_prompt_file == (
+        PROJECT_ROOT.parent / "docs" / "edit_system_prompt.txt"
+    )
+    assert "你是 A2UI 模型" in settings.system_prompt
+    assert "编辑模式附加规则" in settings.edit_system_prompt
+    assert "{{CREATE_SYSTEM_PROMPT}}" in settings.edit_system_prompt
+
+
+def test_edit_system_prompt_file_can_be_overridden(tmp_path):
+    """验证编辑提示词配置支持绝对文件路径。"""
+    prompt_file = tmp_path / "custom_edit_prompt.txt"
+    prompt_file.write_text("自定义编辑提示词", encoding="utf-8")
+
+    settings = Settings(
+        _env_file=None,
+        edit_system_prompt_file=str(prompt_file),
+    )
+
+    assert settings.resolved_edit_system_prompt_file == prompt_file
+    assert settings.edit_system_prompt == "自定义编辑提示词"
 
 
 def test_ids_query_builds_structured_request_and_signature(monkeypatch):
@@ -291,7 +326,7 @@ def test_ids_query_uses_default_odid_when_device_odid_missing():
     client = IDSClient()
     device = DeviceContext(
         deviceId="device-should-not-be-used",
-        romVersion="36",
+        romVersion="6.0",
     )
 
     request = client.build_installed_apps_query(device, "ids-default-odid-1")
@@ -465,42 +500,42 @@ def test_capability_registry_version_is_derived_from_prd_and_rom_versions():
     """
     random_patch = uuid.uuid4().int % 100000
     prd_ver = f"88.7.{random_patch}"
-    rom_ver = "36"
+    rom_ver = ROM_VERSION_6
 
     version = CapabilityRegistry.from_app_rom_versions(prd_ver, rom_ver)
 
-    assert version == f"app-{prd_ver}_rom-36"
+    assert version == f"app-{prd_ver}_rom-6.0"
 
 
-def test_capability_registry_normalizes_full_rom_string_to_level_36():
+def test_capability_registry_extracts_major_minor_from_full_rom_version():
     version = CapabilityRegistry.from_app_rom_versions(
-        "11.7.5.205",
-        "ALN-AL00 1.2.3.36",
+        APP_VERSION,
+        ROM_VERSION_6,
     )
 
-    assert version == "app-11.7.5.205_rom-36"
+    assert version == REGISTRY_VERSION_6
     assert CapabilityRegistry.from_app_rom_versions(
-        "11.7.5.205",
-        "ALN-AL00 ROM 36",
-    ) == "app-11.7.5.205_rom-36"
+        APP_VERSION,
+        ROM_VERSION_7,
+    ) == REGISTRY_VERSION_7
 
 
 def test_capability_registry_uses_rom_version_as_the_only_rom_level():
     registry = CapabilityRegistry(
-        app_version="11.7.5.205",
-        device_rom_version="36",
+        app_version=APP_VERSION,
+        device_rom_version=ROM_VERSION_6,
     )
 
-    assert registry.version == "app-11.7.5.205_rom-36"
+    assert registry.version == REGISTRY_VERSION_6
 
 
 def test_tool_envelope_reads_only_rom_version():
-    assert _pick_device_rom_version({"romVersion": "36"}) == "36"
-    assert _pick_device_rom_version({"romVersion": "35"}) == "35"
+    assert _pick_device_rom_version({"romVersion": ROM_VERSION_6}) == "6.0"
+    assert _pick_device_rom_version({"rom_version": ROM_VERSION_7_WITHOUT_MODEL}) == "6.0"
 
 
 def test_data_capability_registry_declares_leaf_samples_and_known_package_dependencies():
-    registry = CapabilityRegistry(version="app-11.7.5.205_rom-36")
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
     capabilities = registry.list_data_capabilities()
     assert [item.id for item in capabilities] == [
         "ViewWeather",
@@ -542,7 +577,7 @@ def test_data_capability_registry_declares_leaf_samples_and_known_package_depend
 
 
 def test_data_capability_output_schema_is_self_contained():
-    registry = CapabilityRegistry(version="app-11.7.5.205_rom-36")
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
     capabilities = registry.list_data_capabilities()
 
     def leaf_nodes(schema):
@@ -560,7 +595,7 @@ def test_data_capability_output_schema_is_self_contained():
         CLOUD_ROOT
         / "data"
         / "capabilities"
-        / "app-11.7.5.205_rom-36"
+        / REGISTRY_VERSION_6
         / "data_model_mappings.json"
     ).exists()
     for capability in capabilities:
@@ -573,7 +608,7 @@ def test_data_capability_output_schema_is_self_contained():
 
 
 def test_event_capability_registry_uses_package_dependencies_only():
-    registry = CapabilityRegistry(version="app-11.7.5.205_rom-36")
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
     capabilities = registry.list_event_capabilities()
 
     assert capabilities
@@ -671,7 +706,7 @@ def test_data_capability_allows_missing_leaf_sample_value():
 def test_capability_dependencies_ignore_legacy_fields_and_keep_package_names():
     dependencies = Dependencies(
         minRomVersion="7.0.0",
-        minAppVersion="11.7.5.205",
+        minAppVersion=APP_VERSION,
         requiredProviders=["UG.weather.current"],
         requiredIntentTargets=["ViewCalendarEvent"],
         requiredPermissions=["calendar.read"],
@@ -808,7 +843,7 @@ def test_ids_installation_filter_only_applies_to_configured_health_package(
     installed_apps,
     is_available,
 ):
-    registry = CapabilityRegistry(version="app-11.7.5.205_rom-36")
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
     resolver = DeviceCapabilityResolver(registry)
     ids_state = IDSDeviceCapabilityState(installed_apps=installed_apps)
     available, _, _, removed = resolver.resolve_capability_overview(
@@ -826,7 +861,7 @@ def test_ids_installation_filter_only_applies_to_configured_health_package(
 
 
 def test_package_dependency_filter_ignores_rom_version():
-    registry = CapabilityRegistry(version="app-11.7.5.205_rom-36")
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
     resolver = DeviceCapabilityResolver(registry)
     ids_state = IDSDeviceCapabilityState(
         installed_apps={"com.huawei.hmos.health.core"}
@@ -850,7 +885,7 @@ def test_ids_installation_filter_default_scope_is_health_only():
 
 def test_empty_ids_installation_filter_scope_skips_ids_query(monkeypatch):
     monkeypatch.setattr(get_settings(), "ids_installation_filter_package_names", ())
-    registry = CapabilityRegistry(version="app-11.7.5.205_rom-36")
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
     resolver = DeviceCapabilityResolver(registry)
 
     def fail_if_called(*_args, **_kwargs):
@@ -874,7 +909,7 @@ def test_ids_installation_filter_scope_can_be_reconfigured(monkeypatch):
         "ids_installation_filter_package_names",
         ("com.huawei.hmos.calendar",),
     )
-    registry = CapabilityRegistry(version="app-11.7.5.205_rom-36")
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
     resolver = DeviceCapabilityResolver(registry)
     available, _, _, removed = resolver.resolve_capability_overview(
         _device(),
@@ -894,7 +929,7 @@ def test_dependency_filter_logs_one_json_result(monkeypatch):
         "services.device_capability_resolver.logger",
         type("CapturedLogger", (), {"info": staticmethod(log_messages.append)})(),
     )
-    registry = CapabilityRegistry(version="app-11.7.5.205_rom-36")
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
     resolver = DeviceCapabilityResolver(registry)
     resolver.resolve_capability_overview(_device(), IDSDeviceCapabilityState())
 
@@ -1158,7 +1193,7 @@ def test_task_spec_builder_projects_valid_object_and_array_fields():
 def test_generation_binding_rejects_invalid_write_result_json_pointer(
     write_result_to,
 ):
-    registry = CapabilityRegistry(version="app-11.7.5.205_rom-36")
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
     resolver = DeviceCapabilityResolver(registry)
     binding = CandidateDataBinding(
         capabilityId="ViewWeather",
@@ -1341,7 +1376,7 @@ def test_prompt_builder_returns_model_messages():
     messages = PromptBuilder().build(
         task_spec,
         {
-            "id": "a2ui-form-rom36-v1",
+            "id": "a2ui-form-rom6.0-v1",
             "version": "v0.9",
             "catalogId": "ohos.a2ui.extended.catalog.form",
             "sizes": {"2x4": {"width": 300, "height": 140}},
@@ -1352,6 +1387,7 @@ def test_prompt_builder_returns_model_messages():
 
     assert messages[0]["role"] == "system"
     assert '"userQuery":"天气卡片"' in messages[0]["content"]
+    assert "编辑模式附加规则" not in messages[0]["content"]
     assert messages[1] == {"role": "user", "content": "天气卡片"}
 
 
@@ -1371,7 +1407,7 @@ def test_compact_dsl_profile_builds_isolated_prompt():
     system_prompt = messages[0]["content"]
 
     assert profile["format"] == "compact-dsl"
-    assert A2UIProtocolRegistry("a2ui-form-rom36-v1").get_profile()["format"] == "a2ui-form"
+    assert A2UIProtocolRegistry("a2ui-form-rom6.0-v1").get_profile()["format"] == "a2ui-form"
     assert len(profile["componentWhitelist"]) == 16
     assert set(profile["componentWhitelist"]) == {
         "Row",
@@ -1544,8 +1580,8 @@ def test_artifact_store_returns_structured_save_result(tmp_path, monkeypatch):
         },
         taskSpec={"dataModelSchema": {"data": {}}},
         meta=ArtifactMeta(
-            protocolProfileId="a2ui-form-rom36-v1",
-            capabilityRegistryVersion="app-11.7.5.205_rom-36",
+            protocolProfileId="a2ui-form-rom6.0-v1",
+            capabilityRegistryVersion=REGISTRY_VERSION_6,
             createdAt=1,
         ),
     )
@@ -1555,17 +1591,21 @@ def test_artifact_store_returns_structured_save_result(tmp_path, monkeypatch):
     assert result.artifactDigest.startswith("sha256:")
     uploaded_file = mock_storage_dir / result.artifactUrl.rsplit("/", 1)[-1]
     uploaded_content = uploaded_file.read_text(encoding="utf-8")
+    assert uploaded_content.startswith("```cardspec\n")
+    assert uploaded_content.index("```cardspec") < uploaded_content.index("```genui")
+    assert uploaded_content.index("```genui") < uploaded_content.index("```schema")
     assert uploaded_content.count("```genui") == 1
     assert uploaded_content.count("```cardspec") == 1
     assert uploaded_content.count("```taskspec") == 1
     assert uploaded_content.count("```effectivecapabilities") == 1
     assert uploaded_content.count("```removedcapabilities") == 1
+    assert uploaded_content.count("```generationplan") == 1
     assert uploaded_content.count("```meta") == 1
     assert uploaded_content.count("```schema") == 1
     assert '"title": "天气速览"' in uploaded_content
     assert '"description": "查看当前天气"' in uploaded_content
     assert '"dataModelSchema"' in uploaded_content
-    assert '"protocolProfileId": "a2ui-form-rom36-v1"' in uploaded_content
+    assert '"protocolProfileId": "a2ui-form-rom6.0-v1"' in uploaded_content
 
 
 def test_file_utils_save_and_delete_utf8_text(tmp_path):
@@ -1585,13 +1625,14 @@ def test_file_utils_save_and_delete_utf8_text(tmp_path):
     assert not file_path.exists()
 
 
-def test_upload_file_osms_copies_file_and_returns_mock_url(tmp_path):
-    """验证 mock OBS 上传会保留文件副本并返回访问地址。
+def test_upload_file_osms_copies_and_downloads_mock_file(tmp_path, monkeypatch):
+    """验证 mock OBS 上传和默认下载使用同一份本地对象。
 
     入参：
     - tmp_path：pytest 临时目录。
     出参：无；通过断言验证上传结果和 mock 落盘文件。
     """
+    monkeypatch.setattr(get_settings(), "enable_artifact_download_mock", True)
     source_path = tmp_path / "source" / "artifact.md"
     mock_storage_dir = tmp_path / "mock_obs"
     save_txt_file(source_path, "artifact")
@@ -1601,9 +1642,87 @@ def test_upload_file_osms_copies_file_and_returns_mock_url(tmp_path):
     )
 
     artifact_url = asyncio.run(uploader.upload_file(source_path))
+    downloaded = asyncio.run(
+        uploader.download_file(
+            artifact_url,
+            max_bytes=1024,
+            timeout_seconds=1.0,
+        )
+    )
 
     assert artifact_url == "https://obs.mock.local/widget/artifact.md"
     assert (mock_storage_dir / "artifact.md").read_text(encoding="utf-8") == "artifact"
+    assert downloaded == b"artifact"
+
+
+def test_file_obs_mock_download_missing_file_does_not_use_remote(tmp_path, monkeypatch):
+    """验证默认 mock 下载缺文件时直接失败，不偷偷回退真实网络。"""
+    monkeypatch.setattr(get_settings(), "enable_artifact_download_mock", True)
+    monkeypatch.setattr(
+        "utils.upload_file_obs.requests.get",
+        lambda *_args, **_kwargs: pytest.fail("mock mode must not access remote OBS"),
+    )
+    uploader = UploadFileOSMS(
+        base_url="https://obs.mock.local/widget",
+        mock_storage_dir=tmp_path / "mock_obs",
+    )
+
+    with pytest.raises(FileObsNotFoundError):
+        asyncio.run(
+            uploader.download_file(
+                "https://obs.mock.local/widget/missing.md",
+                max_bytes=1024,
+                timeout_seconds=1.0,
+            )
+        )
+
+
+def test_file_obs_download_switch_uses_remote_http(monkeypatch):
+    """验证关闭 mock 开关后使用真实 HTTPS 下载分支。"""
+
+    class FakeResponse:
+        status_code = 200
+        headers = {"Content-Length": "8"}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def raise_for_status(self):
+            return None
+
+        def iter_content(self, chunk_size):
+            assert chunk_size == 64 * 1024
+            yield b"artifact"
+
+    requested: dict = {}
+
+    def fake_get(url, **kwargs):
+        requested["url"] = url
+        requested.update(kwargs)
+        return FakeResponse()
+
+    monkeypatch.setattr(get_settings(), "enable_artifact_download_mock", False)
+    monkeypatch.setattr("utils.upload_file_obs.requests.get", fake_get)
+    uploader = UploadFileOSMS()
+
+    downloaded = asyncio.run(
+        uploader.download_file(
+            "https://obs.real.example/widget/artifact.md",
+            max_bytes=1024,
+            timeout_seconds=2.5,
+        )
+    )
+
+    assert downloaded == b"artifact"
+    assert requested == {
+        "url": "https://obs.real.example/widget/artifact.md",
+        "stream": True,
+        "allow_redirects": False,
+        "timeout": 2.5,
+    }
 
 
 def test_artifact_validator_rejects_legacy_component_shape():
@@ -1632,14 +1751,14 @@ def test_artifact_validator_rejects_legacy_component_shape():
         cardSpec={"suggestSize": "2x4"},
         taskSpec={"dataModelSchema": {"data": {}}},
         meta=ArtifactMeta(
-            protocolProfileId="a2ui-form-rom36-v1",
-            capabilityRegistryVersion="app-11.7.5.205_rom-36",
+            protocolProfileId="a2ui-form-rom6.0-v1",
+            capabilityRegistryVersion=REGISTRY_VERSION_6,
             createdAt=1,
         ),
     )
     errors = ArtifactValidator().validate(
         artifact,
-        {"id": "a2ui-form-rom36-v1"},
+        {"id": "a2ui-form-rom6.0-v1"},
     )
 
     assert any("unsupported component" in item for item in errors)
@@ -1771,7 +1890,7 @@ def test_artifact_validator_accepts_compact_dsl_ndjson():
         taskSpec={"dataModelSchema": {"data": {}}},
         meta=ArtifactMeta(
             protocolProfileId="compact-dsl-v1",
-            capabilityRegistryVersion="app-11.7.5.205_rom-36",
+            capabilityRegistryVersion=REGISTRY_VERSION_6,
             createdAt=1,
         ),
     )
@@ -1803,7 +1922,7 @@ def test_artifact_validator_rejects_invalid_binding_data(data_line, expected_err
         taskSpec={"dataModelSchema": {"data": {}}},
         meta=ArtifactMeta(
             protocolProfileId="compact-dsl-v1",
-            capabilityRegistryVersion="app-11.7.5.205_rom-36",
+            capabilityRegistryVersion=REGISTRY_VERSION_6,
             createdAt=1,
         ),
     )

@@ -1,0 +1,235 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+import asyncio
+import hashlib
+import json
+import re
+import time
+from dataclasses import dataclass
+from pathlib import PurePosixPath
+from urllib.parse import unquote, urlsplit
+
+from config.config import get_settings
+from core.errors import ErrorCode
+from models.artifact import WidgetArtifact
+from utils.upload_file_obs import (
+    FileObsDownloadError,
+    FileObsNotFoundError,
+    FileObsTooLargeError,
+    UploadFileOSMS,
+)
+
+file_obs = UploadFileOSMS()
+
+ARTIFACT_FILE_RE = re.compile(
+    r"artifact_[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.md",
+    re.IGNORECASE,
+)
+FENCED_BLOCK_RE = re.compile(
+    r"```(?P<name>[a-zA-Z0-9_-]+)\r?\n(?P<body>.*?)\r?\n```",
+    re.DOTALL,
+)
+REQUIRED_BLOCKS = {
+    "schema",
+    "genui",
+    "cardspec",
+    "taskspec",
+    "effectivecapabilities",
+    "removedcapabilities",
+    "generationplan",
+    "meta",
+}
+
+
+class SourceArtifactError(Exception):
+    """来源 artifact 加载错误，携带稳定业务错误码。"""
+
+    def __init__(self, error_code: ErrorCode, message: str) -> None:
+        super().__init__(message)
+        self.error_code = error_code
+
+
+@dataclass(frozen=True)
+class SourceArtifactLoadResult:
+    artifact: WidgetArtifact
+    artifact_digest: str
+    url_hash: str
+    read_latency_ms: float
+    parse_latency_ms: float
+    download_mode: str
+
+
+def calculate_artifact_digest(artifact: WidgetArtifact) -> str:
+    """按 artifact 规范化 JSON 计算追踪摘要。"""
+    payload = json.dumps(
+        artifact.model_dump(mode="json", exclude_none=True),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
+class SourceArtifactRepository:
+    """通过 file_obs 按配置下载并安全解析 artifact v2。"""
+
+    def load(self, source_url: str) -> SourceArtifactLoadResult:
+        settings = get_settings()
+        relative_path = self._validate_url(source_url)
+        read_started_at = time.perf_counter()
+        try:
+            content_bytes = asyncio.run(
+                file_obs.download_file(
+                    source_url,
+                    max_bytes=settings.source_artifact_max_bytes,
+                    timeout_seconds=settings.source_artifact_read_timeout_seconds,
+                )
+            )
+        except FileObsNotFoundError as exc:
+            raise SourceArtifactError(
+                ErrorCode.SOURCE_ARTIFACT_NOT_FOUND,
+                "source artifact does not exist",
+            ) from exc
+        except FileObsTooLargeError as exc:
+            raise SourceArtifactError(
+                ErrorCode.SOURCE_ARTIFACT_INVALID,
+                "source artifact exceeds size limit",
+            ) from exc
+        except (FileObsDownloadError, OSError) as exc:
+            raise SourceArtifactError(
+                ErrorCode.SOURCE_ARTIFACT_DOWNLOAD_FAILED,
+                "source artifact cannot be downloaded",
+            ) from exc
+        try:
+            content = content_bytes.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise SourceArtifactError(
+                ErrorCode.SOURCE_ARTIFACT_INVALID,
+                "source artifact is not valid UTF-8",
+            ) from exc
+
+        read_latency_ms = round((time.perf_counter() - read_started_at) * 1000, 2)
+        parse_started_at = time.perf_counter()
+        artifact = self._parse(content)
+        parse_latency_ms = round((time.perf_counter() - parse_started_at) * 1000, 2)
+        if len(artifact.genui) > settings.source_genui_max_chars:
+            raise SourceArtifactError(
+                ErrorCode.SOURCE_ARTIFACT_INVALID,
+                "source artifact genui exceeds size limit",
+            )
+        if relative_path.name.lower() != f"artifact_{artifact.meta.artifactId}.md".lower():
+            raise SourceArtifactError(
+                ErrorCode.SOURCE_ARTIFACT_INVALID,
+                "source artifact object name does not match artifact metadata",
+            )
+        return SourceArtifactLoadResult(
+            artifact=artifact,
+            artifact_digest=calculate_artifact_digest(artifact),
+            url_hash=hashlib.sha256(source_url.encode("utf-8")).hexdigest(),
+            read_latency_ms=read_latency_ms,
+            parse_latency_ms=parse_latency_ms,
+            download_mode=file_obs.download_mode,
+        )
+
+    def _validate_url(self, source_url: str) -> PurePosixPath:
+        settings = get_settings()
+        try:
+            source = urlsplit(source_url)
+            base = urlsplit(settings.artifact_base_url.rstrip("/"))
+            source_port = source.port
+            base_port = base.port
+        except ValueError as exc:
+            raise SourceArtifactError(
+                ErrorCode.SOURCE_ARTIFACT_URL_INVALID,
+                "source artifact URL is invalid",
+            ) from exc
+        if (
+            source.scheme != "https"
+            or source.username is not None
+            or source.password is not None
+            or source.query
+            or source.fragment
+        ):
+            raise SourceArtifactError(
+                ErrorCode.SOURCE_ARTIFACT_URL_INVALID,
+                "source artifact URL is invalid",
+            )
+        if (
+            source.hostname != base.hostname
+            or source_port != base_port
+            or source.scheme != base.scheme
+        ):
+            raise SourceArtifactError(
+                ErrorCode.SOURCE_ARTIFACT_FORBIDDEN,
+                "source artifact URL is outside configured storage",
+            )
+
+        base_path = base.path.rstrip("/") + "/"
+        decoded_path = unquote(source.path)
+        if not decoded_path.startswith(base_path):
+            raise SourceArtifactError(
+                ErrorCode.SOURCE_ARTIFACT_FORBIDDEN,
+                "source artifact URL is outside configured prefix",
+            )
+        relative = PurePosixPath(decoded_path[len(base_path) :])
+        if (
+            not relative.parts
+            or any(part in {"", ".", ".."} for part in relative.parts)
+            or len(relative.parts) != 1
+            or not ARTIFACT_FILE_RE.fullmatch(relative.name)
+        ):
+            raise SourceArtifactError(
+                ErrorCode.SOURCE_ARTIFACT_URL_INVALID,
+                "source artifact object name is invalid",
+            )
+        return relative
+
+    def _parse(self, content: str) -> WidgetArtifact:
+        blocks: dict[str, str] = {}
+        for match in FENCED_BLOCK_RE.finditer(content):
+            name = match.group("name").lower()
+            if name in blocks:
+                raise SourceArtifactError(
+                    ErrorCode.SOURCE_ARTIFACT_INVALID,
+                    f"duplicate artifact block: {name}",
+                )
+            blocks[name] = match.group("body")
+        if "schema" not in blocks:
+            raise SourceArtifactError(
+                ErrorCode.SOURCE_ARTIFACT_INVALID,
+                "source artifact is missing schema block",
+            )
+        try:
+            schema = json.loads(blocks["schema"])
+        except (TypeError, json.JSONDecodeError) as exc:
+            raise SourceArtifactError(
+                ErrorCode.SOURCE_ARTIFACT_INVALID,
+                "source artifact schema block is invalid",
+            ) from exc
+        if schema.get("schemaVersion") != "widget-artifact-v2":
+            raise SourceArtifactError(
+                ErrorCode.SOURCE_ARTIFACT_SCHEMA_UNSUPPORTED,
+                "source artifact schema is not supported",
+            )
+        missing = sorted(REQUIRED_BLOCKS - blocks.keys())
+        if missing:
+            raise SourceArtifactError(
+                ErrorCode.SOURCE_ARTIFACT_INVALID,
+                "source artifact is missing required blocks",
+            )
+        try:
+            return WidgetArtifact(
+                schemaVersion=schema["schemaVersion"],
+                genui=blocks["genui"],
+                cardSpec=json.loads(blocks["cardspec"]),
+                taskSpec=json.loads(blocks["taskspec"]),
+                effectiveCapabilities=json.loads(blocks["effectivecapabilities"]),
+                removedCapabilities=json.loads(blocks["removedcapabilities"]),
+                generationPlan=json.loads(blocks["generationplan"]),
+                meta=json.loads(blocks["meta"]),
+            )
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise SourceArtifactError(
+                ErrorCode.SOURCE_ARTIFACT_INVALID,
+                "source artifact content is invalid",
+            ) from exc

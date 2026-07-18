@@ -41,11 +41,11 @@ class CapabilityRegistry:
         入参：
         - app_version：deviceInfo.prdVer 字符串。
         - rom_version：device.romVersion。
-        出参：形如 `app-11.7.5.205_rom-36` 的文件夹名。
+        出参：形如 `app-11.7.5.205_rom-6.0` 的文件夹名。
         """
         # 文件夹名就是工具层约定的能力版本契约。
         app = cls._normalize_version_part(app_version)
-        rom = cls._normalize_rom_version(rom_version)
+        rom = cls.normalize_rom_version(rom_version)
         return f"app-{app}_rom-{rom}"
 
     @staticmethod
@@ -60,19 +60,19 @@ class CapabilityRegistry:
         return match.group(0) if match else "0"
 
     @staticmethod
-    def _normalize_rom_version(value: str) -> str:
-        """从 device.romVersion 中提取当前使用的 ROM 级别。
+    def normalize_rom_version(value: str) -> str:
+        """从 romVersion 完整字符串中提取主次版本。
 
         入参：
-        - value：原始 ROM 版本，例如 `36`。
-        出参：用于能力目录的版本，例如 `36`。
+        - value：原始 ROM 版本，例如 `CLS-AL30 6.0.0.328`。
+        出参：用于内部请求和能力目录的版本，例如 `6.0`。
         """
-        matches = re.findall(r"\d+(?:\.\d+)+", value or "")
-        if not matches:
-            numbers = re.findall(r"\d+", value or "")
-            return numbers[-1] if numbers else "0"
-        # 带前缀的 ROM 字符串统一取最后一个版本段作为注册表目录口径。
-        return matches[-1].split(".")[-1]
+        match = re.search(r"\d+(?:\.\d+)+", value or "")
+        if match:
+            parts = match.group(0).split(".")
+            return ".".join(parts[:2])
+        number = re.search(r"\d+", value or "")
+        return number.group(0) if number else "0"
 
     def _path(self, name: str) -> Path:
         """获取当前能力版本目录下的配置文件路径。

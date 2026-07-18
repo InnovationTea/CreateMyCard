@@ -13,14 +13,18 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CLOUD_ROOT = PROJECT_ROOT / "cloud"
 REPORT_DIR = PROJECT_ROOT / "test_reports"
 SESSION_ID = "7676c2c8-a6d3-413c-8074-c62ed30db8de"
+APP_VERSION = ".".join(("11", "7", "5", "205"))
+ROM_VERSION = "CLS-AL30 " + ".".join(("6", "0", "0", "328"))
+REGISTRY_VERSION = f"app-{APP_VERSION}_rom-6.0"
 DEVICE_INFO = {
     "countryCode": "CN",
     "deviceFormation": "HDSpeaker",
     "deviceType": 0,
     "locale": "zh-CN",
     "phoneType": "CLS-AL30",
-    "prdVer": "11.7.5.205",
+    "prdVer": APP_VERSION,
     "sysVer": "EmotionUI_9.0.0",
+    "romVersion": ROM_VERSION,
     "time": "20260707115342975",
 }
 REPORT_TIMESTAMPS = {
@@ -325,7 +329,7 @@ def test_widget_card_service_complete_flow(monkeypatch):
         deviceType=DEVICE_INFO["phoneType"],
         sysVersion=DEVICE_INFO["sysVer"],
         deviceName=DEVICE_INFO["deviceFormation"],
-        romVersion="36",
+        romVersion="6.0",
         marketingName=DEVICE_INFO["phoneType"],
     )
     ids_state = IDSClient().get_device_capability_state(device, "ids-test-1")
@@ -580,7 +584,9 @@ def test_overview_logs_do_not_include_user_uid(monkeypatch):
         )
 
     assert any("widget_operation_ws_payload_received" in item for item in log_messages)
-    assert any("payload={" in item and '"content"' in item for item in log_messages)
+    assert any(
+        "payload_keys=" in item and '"content"' in item for item in log_messages
+    )
     assert any("capability_overview_started" in item for item in log_messages)
     assert sentinel_uid not in "\n".join(log_messages)
     assert all(" uid=" not in item for item in log_messages)
@@ -595,7 +601,7 @@ def test_overview_interface_does_not_filter_assets_by_app_version():
         websocket.send_json(
             _tool_payload(
                 {
-                    "capabilityRegistryVersion": "app-11.7.5.205_rom-36",
+                    "capabilityRegistryVersion": REGISTRY_VERSION,
                 },
                 "overview-asset-version",
                 device_info=device_info,
@@ -655,7 +661,7 @@ def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
     assert "artifact" not in old_message["data"]
     old_artifact = saved_artifacts[0]
     old_rows = [json.loads(line) for line in old_artifact["genui"].splitlines()]
-    assert old_artifact["meta"]["protocolProfileId"] == "a2ui-form-rom36-v1"
+    assert old_artifact["meta"]["protocolProfileId"] == "a2ui-form-rom6.0-v1"
     assert len(old_rows) == 3
     assert [next(iter(row)) for row in old_rows] == ["version", "version", "version"]
     assert "createSurface" in old_rows[0]
@@ -667,7 +673,7 @@ def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
     ) as websocket:
         compact_content = {
             **generation_content,
-            "protocolProfileId": "a2ui-form-rom36-v1",
+            "protocolProfileId": "a2ui-form-rom6.0-v1",
         }
         compact_content.pop("userQuery")
         compact_request = _tool_payload(
@@ -693,7 +699,7 @@ def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
 
 
 def test_unknown_prd_version_falls_back_for_first_two_interfaces():
-    """验证第一、第二接口默认回退到 205/36 注册表。"""
+    """验证第一、第二接口默认回退到 205/6.0 注册表。"""
     client = TestClient(app)
     random_prd_ver = f"99.99.{uuid.uuid4().int % 100000000}"
     random_capability_id = f"MissingCapability.{uuid.uuid4().hex[:8]}"
@@ -746,7 +752,7 @@ def test_unknown_prd_version_falls_back_for_first_two_interfaces():
         schema = schema_legacy_message["data"]
         assert schema_legacy_message["status"] == "success"
         assert schema_legacy_message["errorCode"] == ""
-        assert schema["capabilityRegistryVersion"] == "app-11.7.5.205_rom-36"
+        assert schema["capabilityRegistryVersion"] == REGISTRY_VERSION
         assert [item["id"] for item in schema["dataCapabilities"]] == ["ViewWeather"]
         assert schema["missingCapabilityIds"] == [random_capability_id]
 
@@ -790,7 +796,7 @@ def test_explicit_unknown_registry_falls_back_for_first_two_interfaces():
     assert "apiVersion" not in overview
     assert "capabilityRegistryVersion" not in overview
     assert any(item["id"] == "ViewWeather" for item in overview["dataCapabilities"])
-    assert schema["capabilityRegistryVersion"] == "app-11.7.5.205_rom-36"
+    assert schema["capabilityRegistryVersion"] == REGISTRY_VERSION
     assert [item["id"] for item in schema["dataCapabilities"]] == ["ViewWeather"]
 
 
@@ -809,7 +815,7 @@ def test_registry_fallback_switch_off_applies_to_all_three_interfaces(monkeypatc
     )
     client = TestClient(app)
     random_prd_ver = f"98.98.{uuid.uuid4().int % 100000000}"
-    expected_version = f"app-{random_prd_ver}_rom-36"
+    expected_version = f"app-{random_prd_ver}_rom-6.0"
     device_info = {**DEVICE_INFO, "prdVer": random_prd_ver}
 
     with client.websocket_connect("/api/v1/ws/tools/getWidgetCapabilityOverview") as websocket:

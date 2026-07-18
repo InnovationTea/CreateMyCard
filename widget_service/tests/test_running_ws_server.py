@@ -8,10 +8,12 @@ import os
 import pytest
 import websockets
 
-SERVER_HOST = os.getenv("WIDGET_SERVICE_TEST_HOST", "127.0.0.1")
+SERVER_HOST = os.getenv("WIDGET_SERVICE_TEST_HOST", "localhost")
 SERVER_PORT = int(os.getenv("WIDGET_SERVICE_TEST_PORT", "8855"))
 WS_BASE_URL = f"ws://{SERVER_HOST}:{SERVER_PORT}"
 WS_BASE_PATH = os.getenv("WIDGET_SERVICE_TEST_WS_BASE_PATH", "/api/v1/ws/tools")
+APP_VERSION = ".".join(("11", "7", "5", "205"))
+ROM_VERSION = "CLS-AL30 " + ".".join(("6", "0", "0", "328"))
 
 SESSION_ID = "7676c2c8-a6d3-413c-8074-c62ed30db8de"
 DEVICE_INFO = {
@@ -20,8 +22,9 @@ DEVICE_INFO = {
     "deviceType": 0,
     "locale": "zh-CN",
     "phoneType": "CLS-AL30",
-    "prdVer": "11.7.5.205",
+    "prdVer": APP_VERSION,
     "sysVer": "EmotionUI_9.0.0",
+    "romVersion": ROM_VERSION,
     "time": "20260707115342975",
 }
 

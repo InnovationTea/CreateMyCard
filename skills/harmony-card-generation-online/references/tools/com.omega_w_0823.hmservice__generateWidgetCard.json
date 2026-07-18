@@ -3,7 +3,7 @@
   "pluginType": "Cloud",
   "toolType": "XiaoYiPlugin",
   "toolName": "generateWidgetCard",
-  "description": "提交用户需求、候选数据绑定、候选事件和素材，生成可下载的 HarmonyOS A2UI Form 卡片 artifact",
+  "description": "首次生成或基于上一版 artifact 编辑 HarmonyOS A2UI Form 卡片",
   "arguments": {
     "properties": {
       "size": {
@@ -12,7 +12,7 @@
       },
       "candidateDataBindings": {
         "type": "Array",
-        "description": "候选数据能力调用列表；微服务会按注册表和 IDS 状态裁决最终可用项",
+        "description": "候选数据能力调用列表；编辑模式省略时继承，传入时整体替换，空数组表示清空",
         "required": [],
         "properties": {
           "ArrayItem": {
@@ -60,7 +60,11 @@
       },
       "userQuery": {
         "type": "String",
-        "description": "用户原始卡片需求"
+        "description": "首次生成需求或本轮编辑指令"
+      },
+      "sourceArtifactUrl": {
+        "type": "String",
+        "description": "可选的上一轮真实 artifact URL；传入时进入编辑模式"
       },
       "candidateAssetIds": {
         "type": "Array<String>",
@@ -75,11 +79,11 @@
       },
       "title": {
         "type": "String",
-        "description": "建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"
+        "description": "首次生成必传；编辑模式省略时继承的静态短标题"
       },
       "description": {
         "type": "String",
-        "description": "建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"
+        "description": "首次生成必传；编辑模式省略时继承的静态短概述"
       }
     },
     "required": [

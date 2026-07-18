@@ -21,6 +21,8 @@ from services.compact_dsl_protocol import (
 )
 from services.widget_generation_service import WidgetGenerationService
 
+APP_VERSION = ".".join(("11", "7", "5", "205"))
+
 
 def _ndjson(rows: list[list[Any]]) -> str:
     return "\n".join(
@@ -150,8 +152,8 @@ def _errors(rows: list[list[Any]]) -> list[str]:
 def _generation_request() -> GenerateWidgetCardRequest:
     return GenerateWidgetCardRequest(
         uid="compact-dsl-model-gate",
-        device=DeviceContext(romVersion="36"),
-        prdVer="11.7.5.205",
+        device=DeviceContext(romVersion="6.0"),
+        prdVer=APP_VERSION,
         userQuery="weather card",
         size="2x4",
         title="Weather",
@@ -390,7 +392,7 @@ def test_artifact_meta_uses_selected_protocol_profile_version():
         removed=[],
         protocol_profile_id="compact-dsl-v1",
         protocol_profile_version="v1",
-        capability_registry_version="app-1.0.0_rom-36",
+        capability_registry_version="app-1.0.0_rom-6.0",
     )
 
     assert artifact.meta.protocolProfileId == "compact-dsl-v1"

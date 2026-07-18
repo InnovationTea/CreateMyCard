@@ -2,6 +2,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import hashlib
 import time
+import uuid
 
 from api.schemas import (
     CapabilityOverviewRequest,
@@ -17,12 +18,13 @@ from app.logger import json_for_log, logger
 from config.config import get_settings
 from core.errors import ErrorCode, GenerationStatus
 from custom.a2ui_model_client import A2UIModelClient
-from models.artifact import ArtifactMeta, WidgetArtifact
+from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
 from models.generation import EventAction
 from services.artifact_store import ArtifactStore
 from services.capability_registry import CapabilityRegistry
 from services.card_spec_builder import CardSpecBuilder
 from services.device_capability_resolver import DeviceCapabilityResolver
+from services.edit_request_normalizer import EditRequestNormalizer
 from services.prompt_builder import PromptBuilder
 from services.protocol_registry import (
     A2UI_FORM_PROTOCOL_PROFILE_ID,
@@ -31,6 +33,10 @@ from services.protocol_registry import (
 )
 from services.response_planner import ResponsePlanner
 from services.retry_controller import RetryController
+from services.source_artifact_repository import (
+    SourceArtifactError,
+    SourceArtifactRepository,
+)
 from services.task_spec_builder import TaskSpecBuilder
 from services.validator import ArtifactValidator
 
@@ -76,14 +82,11 @@ class WidgetGenerationService:
             # 生成阶段必须带原始用户需求，模型 prompt、TaskSpec 和用户话术都依赖它。
             if not request.userQuery:
                 raise ValueError("userQuery is required for generateWidgetCard.")
-            if not request.title:
-                raise ValueError("title is required for generateWidgetCard.")
-            if not request.description:
-                raise ValueError("description is required for generateWidgetCard.")
             # dataCapabilityIds 只属于 schema 加载接口，生成请求下沉时需要剔除。
-            payload = request.model_dump(exclude={"operation", "dataCapabilityIds"})
-            # 尺寸是主 Agent 建议值；未传时服务用 2x4 作为一期默认推荐尺寸。
-            payload["size"] = payload.get("size") or "2x4"
+            payload = request.model_dump(
+                exclude={"operation", "dataCapabilityIds"},
+                exclude_unset=True,
+            )
             generation_request = GenerateWidgetCardRequest(**payload)
             if request.operation == "generateWidgetCardCompactDsl":
                 return self.generate_widget_card_compact_dsl(generation_request)
@@ -219,14 +222,98 @@ class WidgetGenerationService:
         generation_started_at = time.perf_counter()
         stage_started_at = generation_started_at
         latency_by_stage: dict[str, float] = {}
+        settings = get_settings()
+        generation_mode = (
+            "edit" if "sourceArtifactUrl" in request.model_fields_set else "create"
+        )
+        source_load_result = None
+        source_url_hash = ""
+        inherited_categories: tuple[str, ...] = ()
+        replaced_categories: tuple[str, ...] = ()
+
+        if generation_mode == "edit":
+            source_url_hash = hashlib.sha256(
+                (request.sourceArtifactUrl or "").encode("utf-8")
+            ).hexdigest()
+            if not settings.enable_widget_edit:
+                logger.warning(
+                    "widget_edit_rejected reason=feature_disabled "
+                    f"source_url_hash={source_url_hash}"
+                )
+                return GenerateWidgetCardResponse(
+                    status=GenerationStatus.UNSUPPORTED,
+                    suggestSize=request.size or "2x4",
+                    message="当前暂未开放卡片继续编辑能力。",
+                    errorCode=ErrorCode.WIDGET_EDIT_DISABLED.value,
+                )
+            try:
+                source_load_result = SourceArtifactRepository().load(
+                    request.sourceArtifactUrl or "",
+                )
+                normalized = EditRequestNormalizer().normalize_edit(
+                    request,
+                    source_load_result.artifact,
+                )
+                request = normalized.request
+                inherited_categories = normalized.inherited_categories
+                replaced_categories = normalized.replaced_categories
+                logger.info(
+                    "source_artifact_loaded "
+                    f"source_url_hash={source_load_result.url_hash} "
+                    f"source_digest={source_load_result.artifact_digest} "
+                    "source_schema_version="
+                    f"{source_load_result.artifact.schemaVersion} "
+                    f"source_read_latency_ms={source_load_result.read_latency_ms} "
+                    f"source_parse_latency_ms={source_load_result.parse_latency_ms} "
+                    f"source_download_mode={source_load_result.download_mode} "
+                    "inherited_categories="
+                    f"{json_for_log(list(inherited_categories))} "
+                    "replaced_categories="
+                    f"{json_for_log(list(replaced_categories))}"
+                )
+                latency_by_stage["sourceArtifact"] = self._elapsed_ms(stage_started_at)
+                stage_started_at = time.perf_counter()
+            except SourceArtifactError as exc:
+                logger.error(
+                    "source_artifact_load_failed "
+                    f"source_url_hash={source_url_hash} "
+                    f"error_code={exc.error_code.value} error={exc}"
+                )
+                return GenerateWidgetCardResponse(
+                    status=GenerationStatus.FAILED,
+                    suggestSize=request.size or "2x4",
+                    message="上一版卡片无法安全读取，本次修改未完成，原卡片不受影响。",
+                    errorCode=exc.error_code.value,
+                )
+            except ValueError as exc:
+                logger.error(
+                    "source_artifact_normalization_failed "
+                    f"error_code={ErrorCode.SOURCE_ARTIFACT_INVALID.value} error={exc}"
+                )
+                return GenerateWidgetCardResponse(
+                    status=GenerationStatus.FAILED,
+                    suggestSize=request.size or "2x4",
+                    message="上一版卡片结构不完整，本次修改未完成，原卡片不受影响。",
+                    errorCode=ErrorCode.SOURCE_ARTIFACT_INVALID.value,
+                )
+        else:
+            request = EditRequestNormalizer.normalize_create(request)
+
         # 主流程：解析能力、生成 CardSpec/TaskSpec、生成 genui、校验 artifact、返回结构化状态。
         logger.info(
-            f"generate_widget_card_started size={request.size} "
+            f"generate_widget_card_started generation_mode={generation_mode} "
+            f"size={request.size} "
             f"data_binding_count={len(request.candidateDataBindings)} "
             f"event_count={len(request.candidateEventCandidates)} "
             f"asset_count={len(request.candidateAssetIds)} "
             "request="
-            f"{json_for_log(request.model_dump(mode='json', exclude={'uid'}, exclude_none=True))}"
+            + json_for_log(
+                request.model_dump(
+                    mode="json",
+                    exclude={"uid", "sourceArtifactUrl"},
+                    exclude_none=True,
+                )
+            )
         )
         # registry 负责读取当前版本的能力清单，后续所有过滤都以这份清单为准。
         try:
@@ -384,6 +471,9 @@ class WidgetGenerationService:
             task_spec,
             protocol_profile,
             "；".join(f"{item.id}:{item.reason}" for item in removed),
+            previous_genui=(
+                source_load_result.artifact.genui if source_load_result else None
+            ),
         )
 
         logger.info(
@@ -394,7 +484,7 @@ class WidgetGenerationService:
 
         model_client = A2UIModelClient()
         retry_controller = RetryController()
-        settings = get_settings()
+        artifact_id = str(uuid.uuid4())
 
         def operation() -> str:
             """执行一次 A2UI 模型生成。
@@ -434,12 +524,32 @@ class WidgetGenerationService:
                 protocol_profile["id"],
                 protocol_profile["version"],
                 registry.version,
+                data_bindings=effective_bindings,
+                artifact_id=artifact_id,
+                generation_mode=generation_mode,
+                source_artifact_digest=(
+                    source_load_result.artifact_digest if source_load_result else None
+                ),
             )
-            return ArtifactValidator().validate(
+            validation_errors = ArtifactValidator().validate(
                 artifact,
                 protocol_profile,
                 allowed_asset_sources={item.src for item in asset_candidates},
             )
+            if source_load_result:
+                source_write_roots = {
+                    item.writeResultTo
+                    for item in source_load_result.artifact.generationPlan.candidateDataBindings
+                }
+                current_write_roots = {
+                    item.writeResultTo for item in effective_bindings
+                }
+                for removed_root in sorted(source_write_roots - current_write_roots):
+                    if removed_root in genui:
+                        validation_errors.append(
+                            f"removed data path remains in edited genui: {removed_root}"
+                        )
+            return validation_errors
 
         # 校验始终执行；是否因校验失败重新生成由配置开关独立控制。
         retry_result = retry_controller.run(
@@ -481,6 +591,12 @@ class WidgetGenerationService:
             protocol_profile["id"],
             protocol_profile["version"],
             registry.version,
+            data_bindings=effective_bindings,
+            artifact_id=artifact_id,
+            generation_mode=generation_mode,
+            source_artifact_digest=(
+                source_load_result.artifact_digest if source_load_result else None
+            ),
         )
         # ArtifactStore 当前是本地 mock/OBS TODO 入口，返回端侧可下载 URL 和摘要。
         logger.info(
@@ -496,6 +612,7 @@ class WidgetGenerationService:
             len(effective_bindings),
             removed,
             has_artifact=True,
+            generation_mode=generation_mode,
         )
         logger.info(
             f"generate_widget_card_completed status={response_plan.status.value} "
@@ -524,6 +641,13 @@ class WidgetGenerationService:
             latency_by_stage=latency_by_stage,
             retry_count=retry_result.retryCount,
             artifact_digest=artifact_save_result.artifactDigest,
+            generation_mode=generation_mode,
+            source_artifact_digest=(
+                source_load_result.artifact_digest if source_load_result else ""
+            ),
+            source_artifact_url_hash=(
+                source_load_result.url_hash if source_load_result else ""
+            ),
         )
         return response
 
@@ -544,12 +668,17 @@ class WidgetGenerationService:
         latency_by_stage: dict[str, float] | None = None,
         retry_count: int = 0,
         artifact_digest: str = "",
+        generation_mode: str = "create",
+        source_artifact_digest: str = "",
+        source_artifact_url_hash: str = "",
     ) -> None:
         """输出一次生成请求的统一观测字段，不记录 uid 和原始设备标识。"""
         candidate_capabilities = {
-            "data": [item.capabilityId for item in request.candidateDataBindings],
-            "event": [item.capabilityId for item in request.candidateEventCandidates],
-            "asset": list(request.candidateAssetIds),
+            "data": [item.capabilityId for item in request.candidateDataBindings or []],
+            "event": [
+                item.capabilityId for item in request.candidateEventCandidates or []
+            ],
+            "asset": list(request.candidateAssetIds or []),
         }
         removed_capabilities = [
             item.model_dump(mode="json") if hasattr(item, "model_dump") else item
@@ -576,7 +705,9 @@ class WidgetGenerationService:
             f"status={status.value} error_code={error_code} "
             f"latency_by_stage={json_for_log(latency_by_stage or {})} "
             f"retry_count={retry_count} artifact_digest={artifact_digest} "
-            "generation_mode=create"
+            f"generation_mode={generation_mode} "
+            f"source_artifact_url_hash={source_artifact_url_hash} "
+            f"source_artifact_digest={source_artifact_digest}"
         )
 
     def generate_widget_card_a2ui_form(
@@ -594,6 +725,13 @@ class WidgetGenerationService:
         request: GenerateWidgetCardRequest,
     ) -> GenerateWidgetCardResponse:
         """使用 Compact DSL profile 生成卡片。"""
+        if "sourceArtifactUrl" in request.model_fields_set:
+            return GenerateWidgetCardResponse(
+                status=GenerationStatus.UNSUPPORTED,
+                suggestSize=request.size or "2x4",
+                message="Compact DSL 调试入口不支持多轮编辑。",
+                errorCode=ErrorCode.WIDGET_EDIT_DISABLED.value,
+            )
         return self._generate_widget_card_with_profile(
             request,
             COMPACT_DSL_PROTOCOL_PROFILE_ID,
@@ -702,6 +840,10 @@ class WidgetGenerationService:
         protocol_profile_id: str,
         protocol_profile_version: str,
         capability_registry_version: str,
+        data_bindings: list | None = None,
+        artifact_id: str | None = None,
+        generation_mode: str = "create",
+        source_artifact_digest: str | None = None,
     ) -> WidgetArtifact:
         """组装完整 artifact。
 
@@ -709,6 +851,7 @@ class WidgetGenerationService:
         - genui：三行 JSONL DSL。
         - card_spec：最终 CardSpec。
         - task_spec：传给 A2UI 模型的 TaskSpec。
+        - data_bindings：有效数据绑定列表，保留字段投影用于下一轮继承。
         - data_capabilities：有效数据能力列表。
         - event_candidates：有效事件候选列表。
         - asset_candidates：有效素材候选列表。
@@ -716,6 +859,9 @@ class WidgetGenerationService:
         - protocol_profile_id：协议 profile ID。
         - protocol_profile_version：协议 profile 版本。
         - capability_registry_version：能力注册表版本。
+        - artifact_id：本轮不可变产物 UUID。
+        - generation_mode：create 或 edit。
+        - source_artifact_digest：编辑来源摘要；首次生成为空。
         出参：完整 WidgetArtifact。
         """
         # artifact 是端侧下载后的唯一交付物，里面同时包含 DSL、CardSpec、TaskSpec 和能力裁决结果。
@@ -727,6 +873,7 @@ class WidgetGenerationService:
             f"event_candidate_count={len(event_candidates)} "
             f"asset_candidate_count={len(asset_candidates)} removed_count={len(removed)}"
         )
+        artifact_id = artifact_id or str(uuid.uuid4())
         return WidgetArtifact(
             genui=genui,
             cardSpec=card_spec,
@@ -742,10 +889,27 @@ class WidgetGenerationService:
                 "asset": [item.id for item in asset_candidates],
             },
             removedCapabilities=removed,
+            generationPlan=GenerationPlan(
+                candidateDataBindings=data_bindings or [],
+                candidateEventCandidates=[
+                    {
+                        "capabilityId": item.id,
+                        "action": {
+                            "call": item.call,
+                            "args": item.args,
+                        },
+                    }
+                    for item in event_candidates
+                ],
+                candidateAssetIds=[item.id for item in asset_candidates],
+            ),
             meta=ArtifactMeta(
                 dslProtocolVersion=protocol_profile_version,
                 protocolProfileId=protocol_profile_id,
                 capabilityRegistryVersion=capability_registry_version,
+                generationMode=generation_mode,
+                artifactId=artifact_id,
+                sourceArtifactDigest=source_artifact_digest,
                 createdAt=int(time.time() * 1000),
             ),
         )

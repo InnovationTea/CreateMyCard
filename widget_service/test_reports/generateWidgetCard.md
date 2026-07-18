@@ -61,6 +61,7 @@
     "phoneType": "CLS-AL30",
     "prdVer": "11.7.5.205",
     "sysVer": "EmotionUI_9.0.0",
+    "romVersion": "CLS-AL30 6.0.0.328",
     "time": "20260707115342975"
   },
   "pagination": {

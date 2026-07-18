@@ -126,16 +126,17 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
 
 ## generateWidgetCard
 
-用途：提交用户需求、候选数据绑定、候选事件、素材和静态标题文案建议，生成可下载的 HarmonyOS A2UI Form 卡片 artifact。
+用途：首次生成或基于上一轮 artifact 编辑 HarmonyOS A2UI Form 卡片。
 
 参数：
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
 | `userQuery` | `String` | 是 | 用户原始卡片需求。 |
+| `sourceArtifactUrl` | `String` | 否 | 上一轮真实 artifact URL；传入时进入编辑模式。 |
 | `size` | `String` | 否 | 主 Agent 建议尺寸；推荐 `"2x2"` 或 `"2x4"`。 |
-| `title` | `String` | 是 | 主 Agent 建议的卡片标题；必须非空，会进入 TaskSpec 标题候选。 |
-| `description` | `String` | 是 | 主 Agent 建议的卡片说明；必须非空，会进入 TaskSpec 摘要候选。 |
+| `title` | `String` | 条件必填 | 首次生成必须非空；编辑模式省略时继承。 |
+| `description` | `String` | 条件必填 | 首次生成必须非空；编辑模式省略时继承。 |
 | `candidateDataBindings` | `Array<CandidateDataBinding>` | 否 | 候选数据能力调用列表。 |
 | `candidateEventCandidates` | `Array<CandidateEventCandidate>` | 否 | 候选点击事件列表。 |
 | `candidateAssetIds` | `Array<String>` | 否 | 候选素材 ID 列表。 |
@@ -160,9 +161,9 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
   },
   "writeResultTo": "/data/weather",
   "candidateOutputFields": [
-    "/location/name",
+    "/location/districtName",
     "/current/temperatureText",
-    "/current/weatherText"
+    "/current/condition"
   ]
 }
 ```
@@ -225,18 +226,27 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 | `artifact` | `object|null` | 否 | 调试时可选内联 artifact；生产默认不返回。 |
 | `effectiveCapabilities` | `object` | 否 | 最终进入 artifact 的有效 data、event、asset 能力集合。 |
 
+纯视觉编辑调用示例：
+
+```text
+invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"整体改成蓝色风格", sourceArtifactUrl:"https://obs.example/widget/artifact_uuid.md"},"skillName":"harmony-card-generation-online")
+```
+
 状态：
 
 - `success`: 完整成功。
 - `degraded`: 已生成可用卡片，但部分能力不可用或被移除。
 - `unsupported`: 核心能力不可用且静态卡无价值。
-- `failed`: 服务异常、生成失败或校验重试后仍失败。
+- `failed`: 来源 artifact 无法安全读取、服务异常、模型失败或上传失败。
 
 调用规则：
 
 - 调用前再次检查核心目标、地点、日期/时间范围、动作目标和能力必填业务参数；存在用户可确认的缺失或歧义时先追问并等待回答，再重建候选计划。
-- `title` 和 `description` 必须始终传非空字符串；无法从需求提炼时，使用“桌面卡片”和“信息速览”等稳定默认文案。
+- 首次生成时 `title` 和 `description` 必须传非空字符串；编辑模式未修改时省略并继承。
 - `title`、`description` 不填入动态数据、隐私数据或不确定状态，不用于替代数据能力。
+- 编辑模式必须使用上一轮业务 payload 返回的真实 `artifactUrl`，不得猜测、拼接或下载；纯视觉编辑只传 `userQuery/sourceArtifactUrl`。
+- 编辑模式省略候选数组表示继承；显式数组表示该类别编辑后的完整集合，`[]` 表示清空，禁止传增量 patch 或 `null`。
+- 数据能力、事件或素材变化时先刷新能力概述；纯视觉、文案和尺寸编辑不需要刷新。
 - `candidateDataBindings` 是候选，不是最终 CardSpec。
 - 无需字段投影时省略 `candidateOutputFields`；需要投影时只传可由对应 `outputSchema` 推导的 JSON Pointer 字符串数组。
 - 不传 `updateModel`。

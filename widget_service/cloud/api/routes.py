@@ -26,6 +26,7 @@ from models.service import (
     WidgetWebSocketErrorMessage,
     WidgetWebSocketResultMessage,
 )
+from services.capability_registry import CapabilityRegistry
 from services.widget_generation_service import WidgetGenerationService
 
 router = APIRouter(prefix="/api/v1")
@@ -73,8 +74,8 @@ def _pick_device_rom_version(device_info: dict[str, Any]) -> str:
     settings = get_settings()
     value = device_info.get("romVersion")
     if value is not None and str(value).strip():
-        return str(value)
-    return settings.default_device_rom_version
+        return CapabilityRegistry.normalize_rom_version(str(value))
+    return CapabilityRegistry.normalize_rom_version(settings.default_device_rom_version)
 
 
 def _device_context_from_envelope(envelope: ToolRequestEnvelope) -> dict[str, Any]:
@@ -306,10 +307,12 @@ async def _serve_operation_websocket(
     出参：无；服务端通过 WebSocket 返回华为流处理插件格式消息。
     """
     # 每个 WS path 只承载一个业务能力，客户端不需要再传 operation 字段。
+    metrics = websocket.app.state.websocket_metrics
     await websocket.accept()
+    metrics.connection_opened()
     logger.info(f"widget_operation_ws_connected operation={operation}")
-    service = get_service()
     try:
+        service = get_service()
         while True:
             payload = await websocket.receive_json()
             started_at = time.perf_counter()
@@ -319,16 +322,21 @@ async def _serve_operation_websocket(
             task_logger.set_session_id(request_id or "None")
             logger.info(
                 f"widget_operation_ws_payload_received request_id={request_id} "
-                f"operation={operation} payload={json_for_log(payload)} "
-                f"arguments={json_for_log(arguments)}"
+                f"operation={operation} payload_keys={json_for_log(sorted(payload))} "
+                f"argument_keys={json_for_log(sorted(arguments))}"
             )
             # streaming_text_id 沿用现有逻辑：有 requestId 时取 requestId，否则生成随机 ID。
             streaming_text_id = request_id or uuid.uuid4().hex
             heartbeat_task: asyncio.Task | None = None
+            metrics.task_started()
             try:
                 request = request_model(**arguments)
                 request_log = json_for_log(
-                    request.model_dump(mode="json", exclude={"uid"}, exclude_none=True)
+                    request.model_dump(
+                        mode="json",
+                        exclude={"uid", "sourceArtifactUrl"},
+                        exclude_none=True,
+                    )
                 )
                 logger.info(
                     f"widget_operation_ws_message_received request_id={request_id} "
@@ -461,6 +469,7 @@ async def _serve_operation_websocket(
                 ):
                     return
             finally:
+                metrics.task_finished()
                 if heartbeat_task:
                     heartbeat_task.cancel()
                     try:
@@ -470,6 +479,8 @@ async def _serve_operation_websocket(
     except WebSocketDisconnect:
         logger.info(f"widget_operation_ws_disconnected operation={operation}")
         return
+    finally:
+        metrics.connection_closed()
 
 
 @router.websocket("/ws/tools/getWidgetCapabilityOverview")

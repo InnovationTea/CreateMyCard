@@ -2,7 +2,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from core.errors import GenerationStatus
 from models.capability import (
@@ -38,11 +38,12 @@ class DeviceInfoEnvelope(BaseModel):
     - phoneType：手机型号。
     - prdVer：端侧传入的业务 API 版本，字段名保持端侧协议原名。
     - sysVer：系统版本。
+    - romVersion：ROM 完整版本字符串，字段名固定为 romVersion。
     - time：端侧请求时间。
-    出参：Pydantic 模型对象；未声明字段会保留，方便后续接入 romVersion 等真实字段。
+    出参：Pydantic 模型对象；未声明字段会忽略，不作为 ROM 版本别名处理。
     """
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="ignore")
 
     countryCode: str | None = None
     deviceFormation: str | None = None
@@ -51,7 +52,12 @@ class DeviceInfoEnvelope(BaseModel):
     phoneType: str | None = None
     prdVer: str | None = None
     sysVer: str | None = None
+    romVersion: str | None = None
     time: str | None = None
+    deviceId: str | None = None
+    odid: str | None = None
+    udid: str | None = None
+    marketingName: str | None = None
 
 
 class SessionEnvelope(BaseModel):
@@ -196,14 +202,41 @@ class CandidateEventCandidate(BaseModel):
 
 
 class GenerateWidgetCardRequest(VersionedToolRequest):
-    userQuery: str
-    size: WidgetSize = "2x4"
-    title: str = Field(min_length=1)
-    description: str = Field(min_length=1)
-    candidateDataBindings: list[CandidateDataBinding] = Field(default_factory=list)
-    candidateEventCandidates: list[CandidateEventCandidate] = Field(default_factory=list)
-    candidateAssetIds: list[str] = Field(default_factory=list)
+    userQuery: str = Field(min_length=1)
+    sourceArtifactUrl: str | None = None
+    size: WidgetSize | None = None
+    title: str | None = Field(default=None, min_length=1)
+    description: str | None = Field(default=None, min_length=1)
+    candidateDataBindings: list[CandidateDataBinding] | None = None
+    candidateEventCandidates: list[CandidateEventCandidate] | None = None
+    candidateAssetIds: list[str] | None = None
     options: GenerationOptions = Field(default_factory=GenerationOptions)
+
+    @model_validator(mode="after")
+    def validate_generation_mode_fields(self) -> "GenerateWidgetCardRequest":
+        """校验 create 条件必填及 edit 的显式空值。"""
+        is_edit = "sourceArtifactUrl" in self.model_fields_set
+        if not is_edit:
+            if self.title is None:
+                raise ValueError("title is required in create mode")
+            if self.description is None:
+                raise ValueError("description is required in create mode")
+            return self
+
+        if not isinstance(self.sourceArtifactUrl, str) or not self.sourceArtifactUrl.strip():
+            raise ValueError("sourceArtifactUrl must be a non-empty string")
+        nullable_edit_fields = (
+            "size",
+            "title",
+            "description",
+            "candidateDataBindings",
+            "candidateEventCandidates",
+            "candidateAssetIds",
+        )
+        for field_name in nullable_edit_fields:
+            if field_name in self.model_fields_set and getattr(self, field_name) is None:
+                raise ValueError(f"{field_name} cannot be null in edit mode")
+        return self
 
 
 class WidgetCardServiceRequest(VersionedToolRequest):
@@ -213,6 +246,7 @@ class WidgetCardServiceRequest(VersionedToolRequest):
     - operation：要调用的能力名称。
     - dataCapabilityIds：获取数据能力 schema 时使用的数据能力 ID。
     - userQuery：生成卡片时使用的用户原始需求。
+    - sourceArtifactUrl：编辑模式使用的上一版 artifact URL。
     - size：生成卡片时主 Agent 建议的尺寸。
     - title：生成卡片时主 Agent 建议的标题。
     - description：生成卡片时主 Agent 建议的简短说明。
@@ -225,12 +259,13 @@ class WidgetCardServiceRequest(VersionedToolRequest):
     operation: WidgetCardOperation
     dataCapabilityIds: list[str] = Field(default_factory=list)
     userQuery: str | None = None
+    sourceArtifactUrl: str | None = None
     size: WidgetSize | None = None
     title: str | None = Field(default=None, min_length=1)
     description: str | None = Field(default=None, min_length=1)
-    candidateDataBindings: list[CandidateDataBinding] = Field(default_factory=list)
-    candidateEventCandidates: list[CandidateEventCandidate] = Field(default_factory=list)
-    candidateAssetIds: list[str] = Field(default_factory=list)
+    candidateDataBindings: list[CandidateDataBinding] | None = None
+    candidateEventCandidates: list[CandidateEventCandidate] | None = None
+    candidateAssetIds: list[str] | None = None
 
 
 class GenerateWidgetCardResponse(BaseModel):

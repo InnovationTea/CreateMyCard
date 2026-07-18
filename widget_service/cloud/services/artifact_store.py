@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import asyncio
-import hashlib
 import json
 import os
-import time
 from threading import Thread
 
 from app.logger import logger
 from config.config import get_settings
 from models.artifact import WidgetArtifact
 from models.service import ArtifactSaveResult
+from services.source_artifact_repository import calculate_artifact_digest
 from utils.file import delete_file, save_txt_file
 from utils.upload_file_obs import UploadFileOSMS
 
@@ -54,28 +53,31 @@ class ArtifactStore:
         出参：artifact 保存结果，包含访问 URL 和 sha256 摘要。
         """
         artifact_data = artifact.model_dump(mode="json", exclude_none=True)
-        payload = json.dumps(
-            artifact_data,
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-        ).encode("utf-8")
-        digest = "sha256:" + hashlib.sha256(payload).hexdigest()
-        logger.info(f"artifact_payload_built payload_bytes={len(payload)} digest={digest}")
+        payload_bytes = len(
+            json.dumps(
+                artifact_data,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        )
+        digest = calculate_artifact_digest(artifact)
+        logger.info(f"artifact_payload_built payload_bytes={payload_bytes} digest={digest}")
 
         # Artifact 以具名 Markdown 代码块上传。每个块名与对应契约字段一致，
         # 既保留端侧现有的 genui/cardspec 解析方式，也完整携带排障和回放信息。
         json_blocks = {
-            "schema": {"schemaVersion": artifact_data["schemaVersion"]},
             "cardspec": artifact_data["cardSpec"],
+            "schema": {"schemaVersion": artifact_data["schemaVersion"]},
             "taskspec": artifact_data["taskSpec"],
             "effectivecapabilities": artifact_data["effectiveCapabilities"],
             "removedcapabilities": artifact_data["removedCapabilities"],
+            "generationplan": artifact_data["generationPlan"],
             "meta": artifact_data["meta"],
         }
         blocks = [
-            "```schema\n"
-            + json.dumps(json_blocks["schema"], ensure_ascii=False, indent=2)
+            "```cardspec\n"
+            + json.dumps(json_blocks["cardspec"], ensure_ascii=False, indent=2)
             + "\n```",
             f"```genui\n{artifact.genui}\n```",
         ]
@@ -84,13 +86,12 @@ class ArtifactStore:
             + json.dumps(value, ensure_ascii=False, indent=2)
             + "\n```"
             for name, value in json_blocks.items()
-            if name != "schema"
+            if name != "cardspec"
         )
         file_content = "\n".join(blocks) + "\n"
 
-        # 文件名加时间戳
-        timestamp = int(time.time() * 1000)
-        file_name = f"artifact_{timestamp}.md"
+        # UUID 同时进入 meta 和对象名，避免毫秒时间戳在并发生成时发生覆盖。
+        file_name = f"artifact_{artifact.meta.artifactId}.md"
         file_path = os.path.join(str(get_settings().WORKSPACE_ROOT), file_name)
         save_txt_file(file_path, file_content)
         logger.info(f"artifact_file_saved path={file_path}")

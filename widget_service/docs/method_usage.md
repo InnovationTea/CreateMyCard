@@ -31,7 +31,7 @@ curl http://127.0.0.1:8855/health
 
 ## 2. 目录和版本规则
 
-能力清单按 `deviceInfo.prdVer + romVersion` 生成的文件夹名做版本隔离。当前 `romVersion` 暂时统一使用数字级别 `36`：
+能力清单按 `deviceInfo.prdVer + romVersion` 生成的文件夹名做版本隔离。当前 `romVersion` 暂时统一使用主次版本 `6.0`：
 
 ```text
 cloud/data/capabilities/{capabilityRegistryVersion}/
@@ -43,7 +43,7 @@ cloud/data/capabilities/{capabilityRegistryVersion}/
 当前默认能力清单：
 
 ```text
-app-11.7.5.205_rom-36
+app-11.7.5.205_rom-6.0
 ```
 
 三个接口在请求版本目录不存在且
@@ -74,15 +74,15 @@ cloud/data/protocol_profiles/{protocolProfileId}/
 当前默认 profile：
 
 ```text
-a2ui-form-rom36-v1
+a2ui-form-rom6.0-v1
 ```
 
 工具入参里可以传：
 
 ```json
 {
-  "capabilityRegistryVersion": "app-11.7.5.205_rom-36",
-  "protocolProfileId": "a2ui-form-rom36-v1"
+  "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
+  "protocolProfileId": "a2ui-form-rom6.0-v1"
 }
 ```
 
@@ -117,7 +117,7 @@ WS /api/v1/ws/tools/generateWidgetCardCompactDsl
     "device": {
       "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
       "deviceType": "ALN-AL00",
-      "romVersion": "36"
+      "romVersion": "CLS-AL30 6.0.0.328"
     }
   }
 }
@@ -167,9 +167,9 @@ curl http://127.0.0.1:8855/health
     "device": {
       "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
       "deviceType": "ALN-AL00",
-      "romVersion": "36"
+      "romVersion": "CLS-AL30 6.0.0.328"
     },
-    "capabilityRegistryVersion": "app-11.7.5.205_rom-36"
+    "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0"
   }
 }
 ```
@@ -203,7 +203,7 @@ curl http://127.0.0.1:8855/health
 
 对应工具能力：`getDataCapabilitySchemas`
 
-用途：针对主 Agent 已选中的数据能力渐进加载完整 schema。请求版本目录不存在且回退开关开启时，读取默认 205/36 注册表。
+用途：针对主 Agent 已选中的数据能力渐进加载完整 schema。请求版本目录不存在且回退开关开启时，读取默认 205/6.0 注册表。
 
 请求示例：
 
@@ -215,10 +215,10 @@ curl http://127.0.0.1:8855/health
     "device": {
       "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
       "deviceType": "ALN-AL00",
-      "romVersion": "36"
+      "romVersion": "CLS-AL30 6.0.0.328"
     },
     "dataCapabilityIds": ["ViewWeather", "GetCalendarEvents"],
-    "capabilityRegistryVersion": "app-11.7.5.205_rom-36"
+    "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0"
   }
 }
 ```
@@ -233,7 +233,7 @@ curl http://127.0.0.1:8855/health
   "requestId": "schema-1",
   "data": {
     "apiVersion": "v1",
-    "capabilityRegistryVersion": "app-11.7.5.205_rom-36",
+    "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
     "dataCapabilities": [
       {
         "id": "ViewWeather",
@@ -271,7 +271,7 @@ curl http://127.0.0.1:8855/health
 
 对应工具能力：`generateWidgetCard`
 
-用途：第三接口。接收主 Agent 从第一接口可用清单中规划的候选并生成 artifact；不再查询 IDS 或重复执行 `dependencies` 过滤。请求版本目录不存在时，使用与第一、第二接口相同的默认注册表回退配置。
+用途：首次生成或基于上一版 artifact 继续编辑卡片。接收主 Agent 从能力概述中规划的候选并生成 artifact；不再查询 IDS 或重复执行 `dependencies` 过滤。请求版本目录不存在时，使用统一的默认注册表回退配置。
 
 请求示例：
 
@@ -287,9 +287,9 @@ curl http://127.0.0.1:8855/health
     "device": {
       "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
       "deviceType": "ALN-AL00",
-      "romVersion": "36"
+      "romVersion": "CLS-AL30 6.0.0.328"
     },
-    "protocolProfileId": "a2ui-form-rom36-v1",
+    "protocolProfileId": "a2ui-form-rom6.0-v1",
     "candidateDataBindings": [
       {
         "capabilityId": "ViewWeather",
@@ -338,6 +338,24 @@ curl http://127.0.0.1:8855/health
 }
 ```
 
+编辑请求通过 `sourceArtifactUrl` 指向上一轮真实产物。省略尺寸、标题、说明或某类候选数组表示继承；显式传入数组表示整体替换，空数组表示清空。首次生成仍必须传非空 `title/description`。
+
+```json
+{
+  "requestId": "edit-1",
+  "arguments": {
+    "uid": "test-user-001",
+    "userQuery": "整体改成蓝色风格",
+    "sourceArtifactUrl": "https://obs.todo.local/widget/artifact_uuid.md",
+    "device": {
+      "romVersion": "CLS-AL30 6.0.0.328"
+    }
+  }
+}
+```
+
+只有包含 `generationplan` 的 `widget-artifact-v2` 可作为编辑来源。编辑开关默认关闭。Compact DSL 调试入口不支持多轮编辑。
+
 响应消息核心字段：
 
 ```json
@@ -349,7 +367,7 @@ curl http://127.0.0.1:8855/health
   "data": {
     "apiVersion": "v1",
     "status": "success",
-    "artifactUrl": "https://obs.todo.local/widget/xxx.json",
+    "artifactUrl": "https://obs.todo.local/widget/artifact_uuid.md",
     "artifactDigest": "sha256:xxx",
     "suggestSize": "2x4",
     "message": "已为你生成可用的桌面卡片。",
@@ -427,7 +445,7 @@ service = WidgetGenerationService()
 response = service.get_widget_capability_overview(
     CapabilityOverviewRequest(
         uid="test-user-001",
-        device={"romVersion": "36"},
+        device={"romVersion": "CLS-AL30 6.0.0.328"},
     )
 )
 ```
@@ -462,8 +480,8 @@ response = service.get_data_capability_schemas(
     DataCapabilitySchemasRequest(
         dataCapabilityIds=["ViewWeather", "GetCalendarEvents"],
         uid="test-user-001",
-        device={"romVersion": "36"},
-        capabilityRegistryVersion="app-11.7.5.205_rom-36",
+        device={"romVersion": "CLS-AL30 6.0.0.328"},
+        capabilityRegistryVersion="app-11.7.5.205_rom-6.0",
     )
 )
 ```
@@ -516,7 +534,7 @@ response = service.generate_widget_card(
         title="天气速览",
         description="查看上海天气",
         uid="test-user-001",
-        device={"romVersion": "36"},
+        device={"romVersion": "CLS-AL30 6.0.0.328"},
         candidateDataBindings=[
             CandidateDataBinding(
                 capabilityId="ViewWeather",
@@ -583,13 +601,13 @@ cloud/services/ids_client.py
 构造：
 
 ```python
-registry = CapabilityRegistry("app-11.7.5.205_rom-36")
+registry = CapabilityRegistry("app-11.7.5.205_rom-6.0")
 ```
 
 不传版本时可使用 device 版本推导：
 
 ```python
-registry = CapabilityRegistry(device_rom_version="36")
+registry = CapabilityRegistry(device_rom_version="CLS-AL30 6.0.0.328")
 ```
 
 #### list_data_capabilities
@@ -651,7 +669,7 @@ cloud/services/protocol_registry.py
 构造：
 
 ```python
-registry = A2UIProtocolRegistry("a2ui-form-rom36-v1")
+registry = A2UIProtocolRegistry("a2ui-form-rom6.0-v1")
 ```
 
 #### get_profile
@@ -904,10 +922,11 @@ build(
     task_spec: TaskSpec,
     protocol_profile: dict,
     removed_capability_summary: str = "",
-) -> dict
+    previous_genui: str | None = None,
+) -> list[dict[str, str]]
 ```
 
-用途：构造 A2UI 模型输入。当前是 mock prompt 结构，后续可替换为真实模型服务需要的 messages。
+用途：构造 A2UI 模型输入。首次生成从 `system_prompt_file` 读取系统提示词；编辑模式从 `edit_system_prompt_file` 读取提示词，通过 `{{CREATE_SYSTEM_PROMPT}}` 组合通用生成规则，并额外把本轮指令、新 TaskSpec 和来源 genui 作为结构化用户数据传入，不传来源 URL。
 
 ### 8.2 A2UIModelClient.generate
 
@@ -1021,7 +1040,7 @@ cloud/services/artifact_store.py
 签名：
 
 ```python
-save(artifact: WidgetArtifact) -> tuple[str, str]
+save(artifact: WidgetArtifact) -> ArtifactSaveResult
 ```
 
 用途：把完整 artifact 写成具名 Markdown 代码块、上传并返回 URL 和服务端追踪摘要。
@@ -1030,7 +1049,8 @@ save(artifact: WidgetArtifact) -> tuple[str, str]
 
 ```text
 计算完整 artifact 的服务端追踪摘要
-分别写入 schema/genui/cardspec/taskspec/effectivecapabilities/removedcapabilities/meta 代码块
+按 cardspec/genui/schema/taskspec/effectivecapabilities/removedcapabilities/generationplan/meta 顺序写入代码块
+使用 artifact UUID 生成不可覆盖的对象名
 上传文件并返回 URL
 ```
 
@@ -1042,7 +1062,17 @@ Replace this method with the team's OBS uploader.
 
 后续接入 OBS 上传方法时必须保留全部具名代码块，不能只上传 genui 或 cardspec。返回的摘要用于日志关联和版本识别，调用方无需对下载文件重新计算摘要。
 
-### 9.2 ResponsePlanner.plan
+### 9.2 SourceArtifactRepository.load
+
+位置：
+
+```text
+cloud/services/source_artifact_repository.py
+```
+
+用途：在 edit 模式下校验来源 URL，通过 `file_obs.download_file` 读取 `widget-artifact-v2` 并解析具名代码块。`enable_artifact_download_mock=true` 时只读取本地 mock OBS，默认为该模式且缺文件不回退网络；关闭后从校验通过的真实 HTTPS URL 下载。两种模式都限制协议、host、对象前缀、文件名、大小和超时，不记录完整 URL。
+
+### 9.3 ResponsePlanner.plan
 
 位置：
 
@@ -1058,7 +1088,8 @@ plan(
     effective_count: int,
     removed: list[RemovedCapability],
     has_artifact: bool,
-) -> tuple[GenerationStatus, str, str]
+    generation_mode: str = "create",
+) -> ResponsePlan
 ```
 
 用途：把内部生成结果转换成主 Agent 可感知的状态和话术。
@@ -1095,9 +1126,16 @@ WIDGET_SERVICE_ENABLE_IDS_MOCK
 WIDGET_SERVICE_PROTOCOL_PROFILE_ID
 WIDGET_SERVICE_MOCK_IDS_RESPONSE_PATH
 WIDGET_SERVICE_IDS_QUERY_URL
+WIDGET_SERVICE_SYSTEM_PROMPT_FILE
+WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE
 WIDGET_SERVICE_ENABLE_ARTIFACT_VALIDATION
 WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY
+WIDGET_SERVICE_ENABLE_WIDGET_EDIT
 WIDGET_SERVICE_ARTIFACT_BASE_URL
+WIDGET_SERVICE_ENABLE_ARTIFACT_DOWNLOAD_MOCK
+WIDGET_SERVICE_SOURCE_ARTIFACT_MAX_BYTES
+WIDGET_SERVICE_SOURCE_ARTIFACT_READ_TIMEOUT_SECONDS
+WIDGET_SERVICE_SOURCE_GENUI_MAX_CHARS
 ```
 
 常用属性：
@@ -1261,7 +1299,7 @@ meta
 新增能力版本：
 
 ```text
-复制 data/capabilities/app-11.7.5.205_rom-36 为新文件夹
+复制 data/capabilities/app-11.7.5.205_rom-6.0 为新文件夹
 修改 JSON 文件
 请求时传 capabilityRegistryVersion=新文件夹名
 ```

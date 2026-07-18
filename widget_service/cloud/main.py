@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+import asyncio
 import time
 import traceback
 import uuid
+from contextlib import asynccontextmanager, suppress
 
 import uvicorn
 from fastapi import FastAPI, Request, Response
@@ -10,6 +12,7 @@ from structlog.contextvars import bind_contextvars, clear_contextvars
 
 from api.routes import router
 from app.logger import logger
+from app.websocket_metrics import WebSocketMetrics, report_websocket_metrics
 from config.config import get_settings
 
 
@@ -19,11 +22,26 @@ def create_app() -> FastAPI:
     入参：无。
         出参：配置好路由和日志中间件的 FastAPI 应用。
     """
+    websocket_metrics = WebSocketMetrics()
+
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        """启动并回收 WebSocket 全局统计打印任务。"""
+        reporter = asyncio.create_task(report_websocket_metrics(websocket_metrics))
+        try:
+            yield
+        finally:
+            reporter.cancel()
+            with suppress(asyncio.CancelledError):
+                await reporter
+
     app = FastAPI(
         title="Widget Service",
         version="0.1.0",
         description="AI widget card generation microservice.",
+        lifespan=lifespan,
     )
+    app.state.websocket_metrics = websocket_metrics
     app.include_router(router)
 
     @app.middleware("http")

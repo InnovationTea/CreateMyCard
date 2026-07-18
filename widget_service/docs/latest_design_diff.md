@@ -52,7 +52,7 @@
 
 - 请求模型移除外层 `appVersion/romVersion/xiaoyiVersion`，本地测试必须显式传 `uid` 和 `device`。
 - 生产调用时由工具层注入，主 Agent 不需要主动填写。
-- 当前 `romVersion` 暂时统一为数字兼容级别 `36`；不再定义第二个同义版本字段。
+- 当前 `romVersion` 暂时统一为主次版本 `6.0`；不再定义第二个同义版本字段。
 
 ## 5. 能力裁决职责
 
@@ -63,7 +63,7 @@
 ## 6. 能力注册表回退
 
 - 配置项 `enable_default_capability_registry_fallback` 默认开启。
-- 三个接口的请求版本目录不存在时，统一回退到 `app-11.7.5.205_rom-36`。
+- 三个接口的请求版本目录不存在时，统一回退到 `app-11.7.5.205_rom-6.0`。
 - 能力概述响应不暴露版本字段；数据 Schema 响应仍返回实际加载的版本，生成接口将实际版本写入 artifact meta。关闭开关时三个接口都不回退。
 
 ## 7. IDS mock 与真实远程模式
@@ -103,7 +103,7 @@
 {
   "uid": "test-user-001",
   "device": {
-    "romVersion": "36"
+    "romVersion": "CLS-AL30 6.0.0.328"
   }
 }
 ```
@@ -114,7 +114,7 @@
 {
   "uid": "test-user-001",
   "device": {
-    "romVersion": "36"
+    "romVersion": "CLS-AL30 6.0.0.328"
   },
   "dataCapabilityIds": ["ViewWeather"]
 }
@@ -126,7 +126,7 @@
 {
   "uid": "test-user-001",
   "device": {
-    "romVersion": "36"
+    "romVersion": "CLS-AL30 6.0.0.328"
   },
   "userQuery": "帮我做一个天气卡片",
   "title": "天气速览",

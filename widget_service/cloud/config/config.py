@@ -15,12 +15,12 @@ class Settings(BaseSettings):
     )
 
     env: str = "local"
-    capability_registry_version: str = "app-11.7.5.205_rom-36"
+    capability_registry_version: str = "app-11.7.5.205_rom-6.0"
     enable_default_capability_registry_fallback: bool = True
     ids_installation_filter_package_names: tuple[str, ...] = (
         "com.huawei.hmos.health.core",
     )
-    protocol_profile_id: str = "a2ui-form-rom36-v1"
+    protocol_profile_id: str = "a2ui-form-rom6.0-v1"
     enable_ids_mock: bool = True
     mock_ids_response_path: str = "data/mock/ids_res.json"
     ids_query_url: str = "http://{{ip}}:{{port}}/hiai/ids/databus/v1/kvcommondata/query"
@@ -29,21 +29,23 @@ class Settings(BaseSettings):
     ids_access_key: str = "23232323232"
     ids_secret_key: str = "22222"
     ids_request_timeout_seconds: float = 5.0
-    default_device_rom_version: str = "36"
+    default_device_rom_version: str = "6.0"
     default_prd_version: str = "11.7.5.205"
     enable_a2ui_model_mock: bool = True
-    system_prompt: str = (
-        "Generate HarmonyOS A2UI Form genui JSONL only. "
-        "Use exactly createSurface, updateComponents, updateDataModel in order. "
-        "TaskSpec: {{TASK_SPEC_JSON}}"
-    )
+    system_prompt_file: str = "docs/system_prompt.txt"
+    edit_system_prompt_file: str = "docs/edit_system_prompt.txt"
     model_appid: str = ""
     model_url: str = ""
     model_path: str = "/"
     model_name: str = ""
     enable_artifact_validation: bool = True
     enable_validation_failure_retry: bool = False
+    enable_widget_edit: bool = False
     artifact_base_url: str = "https://obs.todo.local/widget"
+    enable_artifact_download_mock: bool = True
+    source_artifact_max_bytes: int = 2 * 1024 * 1024
+    source_artifact_read_timeout_seconds: float = 5.0
+    source_genui_max_chars: int = 200_000
     server_host: str = "127.0.0.1"
     server_port: int = 8855
     PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
@@ -72,6 +74,37 @@ class Settings(BaseSettings):
         出参：`cloud/data` 的绝对路径。
         """
         return self.package_root / "data"
+
+    @property
+    def repository_root(self) -> Path:
+        """获取包含 docs 和 widget_service 的项目根目录。"""
+        return self.package_root.parent.parent
+
+    def _resolve_repository_file(self, configured_path: str) -> Path:
+        path = Path(configured_path)
+        if path.is_absolute():
+            return path.resolve()
+        return (self.repository_root / path).resolve()
+
+    @property
+    def resolved_system_prompt_file(self) -> Path:
+        """获取首次生成系统提示词文件路径。"""
+        return self._resolve_repository_file(self.system_prompt_file)
+
+    @property
+    def resolved_edit_system_prompt_file(self) -> Path:
+        """获取编辑模式系统提示词文件路径。"""
+        return self._resolve_repository_file(self.edit_system_prompt_file)
+
+    @property
+    def system_prompt(self) -> str:
+        """从配置文件读取首次生成系统提示词。"""
+        return self.resolved_system_prompt_file.read_text(encoding="utf-8")
+
+    @property
+    def edit_system_prompt(self) -> str:
+        """从配置文件读取编辑模式系统提示词。"""
+        return self.resolved_edit_system_prompt_file.read_text(encoding="utf-8")
 
     @property
     def resolved_mock_ids_response_path(self) -> Path:
