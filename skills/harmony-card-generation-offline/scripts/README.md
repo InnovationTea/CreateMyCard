@@ -158,7 +158,7 @@ python scripts/validate_card.py \
 ```bash
 python scripts/validate_card.py \
   --artifact artifact.json \
-  --capabilities-dir cloud-new/cloud/data/capabilities/app-11.7.5.205_rom-6.0
+  --capabilities-dir cloud-new/cloud/data/capabilities/app-11.7.5.205_rom-36
 ```
 
 动态模式下，数据绑定路径推导也会优先使用该目录中的 `data_capabilities.json`。这样 DSL 引用 `/data/...` 时，会按 `cloud-new` 当前版本的真实 `outputSchema` 判断，而不是使用 `scripts/rules/schemas/` 里的静态小样本。
@@ -194,7 +194,7 @@ from validators import ValidationOptions, validate_card
 reporter = validate_card(
     artifact=artifact_dict,
     options=ValidationOptions(
-        capabilities_dir=Path("cloud-new/cloud/data/capabilities/app-11.7.5.205_rom-6.0"),
+        capabilities_dir=Path("cloud-new/cloud/data/capabilities/app-11.7.5.205_rom-36"),
     ),
 )
 
