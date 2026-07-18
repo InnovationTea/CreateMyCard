@@ -218,32 +218,24 @@ def test_edit_can_explicitly_clear_data_bindings(editable_artifact_storage):
     assert artifact.effectiveCapabilities["data"] == []
 
 
-@pytest.mark.parametrize(
-    ("url", "expected_code"),
-    [
-        (
-            "http://obs.test/widget/artifact_11111111-1111-4111-8111-111111111111.md",
-            ErrorCode.SOURCE_ARTIFACT_URL_INVALID,
-        ),
-        (
-            "https://evil.test/widget/artifact_11111111-1111-4111-8111-111111111111.md",
-            ErrorCode.SOURCE_ARTIFACT_FORBIDDEN,
-        ),
-        (
-            "https://obs.test/widget/artifact_11111111-1111-4111-8111-111111111111.md",
-            ErrorCode.SOURCE_ARTIFACT_NOT_FOUND,
-        ),
-    ],
-)
-def test_source_artifact_url_failures_are_structured(
+def test_source_artifact_load_does_not_validate_url_storage(
     editable_artifact_storage,
-    url,
-    expected_code,
 ):
+    created = WidgetGenerationService().generate_widget_card_a2ui_form(_base_request())
+    source_name = created.artifactUrl.rsplit("/", 1)[-1]
+    loaded = SourceArtifactRepository().load(
+        f"http://other.test/other-prefix/{source_name}?token=test#fragment"
+    )
+
+    assert loaded.artifact.meta.artifactId in source_name
+
+
+def test_missing_source_artifact_is_structured(editable_artifact_storage):
+    url = "https://obs.test/widget/artifact_11111111-1111-4111-8111-111111111111.md"
     with pytest.raises(SourceArtifactError) as exc_info:
         SourceArtifactRepository().load(url)
 
-    assert exc_info.value.error_code == expected_code
+    assert exc_info.value.error_code == ErrorCode.SOURCE_ARTIFACT_NOT_FOUND
 
 
 def test_v1_artifact_is_reported_as_unsupported():

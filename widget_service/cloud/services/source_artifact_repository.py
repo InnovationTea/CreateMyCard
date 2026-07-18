@@ -8,7 +8,7 @@ import time
 import uuid
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from urllib.parse import unquote, urlsplit
+from urllib.parse import urlsplit
 
 from config.config import get_settings
 from core.errors import ErrorCode
@@ -20,10 +20,6 @@ from utils.download_file_from_url import (
     download_file,
 )
 
-ARTIFACT_FILE_RE = re.compile(
-    r"artifact_[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.md",
-    re.IGNORECASE,
-)
 FENCED_BLOCK_RE = re.compile(
     r"```(?P<name>[a-zA-Z0-9_-]+)\r?\n(?P<body>.*?)\r?\n```",
     re.DOTALL,
@@ -70,11 +66,11 @@ def calculate_artifact_digest(artifact: WidgetArtifact) -> str:
 
 
 class SourceArtifactRepository:
-    """通过公共下载工具按配置读取并安全解析 artifact v2。"""
+    """通过公共下载工具按配置读取并解析 artifact v2。"""
 
     def load(self, source_url: str) -> SourceArtifactLoadResult:
         settings = get_settings()
-        relative_path = self._validate_url(source_url)
+        source_name = PurePosixPath(urlsplit(source_url).path).name
         download_mode = (
             "mock" if settings.enable_artifact_download_mock else "remote"
         )
@@ -82,7 +78,7 @@ class SourceArtifactRepository:
         try:
             if download_mode == "mock":
                 content_bytes = self._read_mock_file(
-                    relative_path,
+                    source_name,
                     settings.WORKSPACE_ROOT / "mock_obs",
                     settings.source_artifact_max_bytes,
                     settings.source_artifact_read_timeout_seconds,
@@ -126,7 +122,7 @@ class SourceArtifactRepository:
                 ErrorCode.SOURCE_ARTIFACT_INVALID,
                 "source artifact genui exceeds size limit",
             )
-        if relative_path.name.lower() != f"artifact_{artifact.meta.artifactId}.md".lower():
+        if source_name.lower() != f"artifact_{artifact.meta.artifactId}.md".lower():
             raise SourceArtifactError(
                 ErrorCode.SOURCE_ARTIFACT_INVALID,
                 "source artifact object name does not match artifact metadata",
@@ -142,13 +138,13 @@ class SourceArtifactRepository:
 
     @staticmethod
     def _read_mock_file(
-        relative_path: PurePosixPath,
+        source_name: str,
         mock_storage_dir: Path,
         max_bytes: int,
         timeout_seconds: float,
     ) -> bytes:
         storage_root = mock_storage_dir.resolve()
-        file_path = (storage_root / relative_path.name).resolve()
+        file_path = (storage_root / source_name).resolve()
         if file_path.parent != storage_root:
             raise OSError("mock artifact path escapes configured storage")
         if not file_path.is_file():
@@ -187,59 +183,6 @@ class SourceArtifactRepository:
             return download_path.read_bytes()
         finally:
             download_path.unlink(missing_ok=True)
-
-    def _validate_url(self, source_url: str) -> PurePosixPath:
-        settings = get_settings()
-        try:
-            source = urlsplit(source_url)
-            base = urlsplit(settings.artifact_base_url.rstrip("/"))
-            source_port = source.port
-            base_port = base.port
-        except ValueError as exc:
-            raise SourceArtifactError(
-                ErrorCode.SOURCE_ARTIFACT_URL_INVALID,
-                "source artifact URL is invalid",
-            ) from exc
-        if (
-            source.scheme != "https"
-            or source.username is not None
-            or source.password is not None
-            or source.query
-            or source.fragment
-        ):
-            raise SourceArtifactError(
-                ErrorCode.SOURCE_ARTIFACT_URL_INVALID,
-                "source artifact URL is invalid",
-            )
-        if (
-            source.hostname != base.hostname
-            or source_port != base_port
-            or source.scheme != base.scheme
-        ):
-            raise SourceArtifactError(
-                ErrorCode.SOURCE_ARTIFACT_FORBIDDEN,
-                "source artifact URL is outside configured storage",
-            )
-
-        base_path = base.path.rstrip("/") + "/"
-        decoded_path = unquote(source.path)
-        if not decoded_path.startswith(base_path):
-            raise SourceArtifactError(
-                ErrorCode.SOURCE_ARTIFACT_FORBIDDEN,
-                "source artifact URL is outside configured prefix",
-            )
-        relative = PurePosixPath(decoded_path[len(base_path) :])
-        if (
-            not relative.parts
-            or any(part in {"", ".", ".."} for part in relative.parts)
-            or len(relative.parts) != 1
-            or not ARTIFACT_FILE_RE.fullmatch(relative.name)
-        ):
-            raise SourceArtifactError(
-                ErrorCode.SOURCE_ARTIFACT_URL_INVALID,
-                "source artifact object name is invalid",
-            )
-        return relative
 
     def _parse(self, content: str) -> WidgetArtifact:
         blocks: dict[str, str] = {}
