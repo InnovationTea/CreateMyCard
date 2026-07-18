@@ -1,0 +1,56 @@
+{
+  "capabilityId": "calendar.events.search",
+  "preferredWriteResultTo": "/data/calendar",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "entityId": {"type": "string"},
+      "entityIdList": {
+        "type": "array",
+        "items": {"type": "string"}
+      },
+      "title": {"type": "string"},
+      "eventLocation": {"type": "string"},
+      "timeInterval": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "items": {"type": "integer"}
+      },
+      "senderName": {"type": "string"},
+      "ownerAppName": {"type": "string"}
+    },
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "entityName": {"type": "string"},
+            "entityId": {"type": "string"},
+            "instanceId": {"type": "string"},
+            "senderName": {"type": "string"},
+            "title": {"type": "string"},
+            "eventLocation": {"type": "string"},
+            "description": {"type": "string"},
+            "dtStart": {"type": "string"},
+            "dtEnd": {"type": "string"},
+            "importantEventType": {"type": "integer"},
+            "remindTime": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "oneClickServiceType": {"type": "string"},
+            "oneClickServiceLink": {"type": "string"},
+            "isServiceValid": {"type": "integer"},
+            "accountId": {"type": "integer"}
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,299 @@
+{
+    "schemaVersion":  "template-v1",
+    "id":  "metric-dashboard-action",
+    "size":  "2x4",
+    "pattern":  "metric-dashboard-action",
+    "summary":  "A primary metric, a compact multi-metric panel and a narrow action or status region.",
+    "template":  "template.genui.jsonl",
+    "cardspec":  "cardspec.json",
+    "sourceProvenance":  [
+                             "Derived from the normalized multi-meter and dual-metric patterns for wide device and health dashboards."
+                         ],
+    "useWhen":  [
+                    "device-health",
+                    "memory",
+                    "storage",
+                    "health-summary",
+                    "multi-metric",
+                    "cleanup"
+                ],
+    "avoidWhen":  [
+                      "no-primary-metric",
+                      "more-than-three-metrics",
+                      "long-labels",
+                      "two-actions",
+                      "primary-media-required"
+                  ],
+    "layout":  {
+                   "canvas":  {
+                                  "width":  320,
+                                  "height":  160
+                              },
+                   "root":  {
+                                "width":  320,
+                                "height":  160,
+                                "padding":  12,
+                                "borderRadius":  22,
+                                "clip":  true
+                            },
+                   "regions":  [
+                                   {
+                                       "id":  "primaryMetric",
+                                       "role":  "primary",
+                                       "parent":  "root",
+                                       "width":  92,
+                                       "height":  136,
+                                       "required":  true,
+                                       "maxChildren":  3,
+                                       "allowedComponents":  [
+                                                                 "Column",
+                                                                 "Progress",
+                                                                 "Stack",
+                                                                 "Text"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "metricsPanel",
+                                       "role":  "metrics",
+                                       "parent":  "root",
+                                       "width":  124,
+                                       "height":  136,
+                                       "required":  true,
+                                       "maxChildren":  3,
+                                       "allowedComponents":  [
+                                                                 "Column",
+                                                                 "Divider",
+                                                                 "Image",
+                                                                 "Progress",
+                                                                 "Row",
+                                                                 "Text"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "actionPanel",
+                                       "role":  "action",
+                                       "parent":  "root",
+                                       "width":  64,
+                                       "height":  136,
+                                       "required":  false,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Button",
+                                                                 "Column",
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text"
+                                                             ]
+                                   }
+                               ],
+                   "safeArea":  {
+                                    "x":  12,
+                                    "y":  12,
+                                    "width":  296,
+                                    "height":  136
+                                }
+               },
+    "componentVariants":  {
+                              "primaryMetric":  [
+                                                    {
+                                                        "id":  "default",
+                                                        "rootComponent":  "Column",
+                                                        "allowedComponents":  [
+                                                                                  "Column",
+                                                                                  "Progress",
+                                                                                  "Text"
+                                                                              ]
+                                                    },
+                                                    {
+                                                        "id":  "ring",
+                                                        "rootComponent":  "Stack",
+                                                        "allowedComponents":  [
+                                                                                  "Progress",
+                                                                                  "Stack",
+                                                                                  "Text"
+                                                                              ]
+                                                    },
+                                                    {
+                                                        "id":  "numeric",
+                                                        "rootComponent":  "Column",
+                                                        "allowedComponents":  [
+                                                                                  "Column",
+                                                                                  "Text"
+                                                                              ]
+                                                    }
+                                                ],
+                              "metricsPanel":  [
+                                                   {
+                                                       "id":  "default",
+                                                       "rootComponent":  "Column",
+                                                       "allowedComponents":  [
+                                                                                 "Column",
+                                                                                 "Divider",
+                                                                                 "Row",
+                                                                                 "Text"
+                                                                             ]
+                                                   },
+                                                   {
+                                                       "id":  "three-status",
+                                                       "rootComponent":  "Column",
+                                                       "allowedComponents":  [
+                                                                                 "Column",
+                                                                                 "Image",
+                                                                                 "Progress",
+                                                                                 "Row",
+                                                                                 "Text"
+                                                                             ]
+                                                   }
+                                               ],
+                              "actionPanel":  [
+                                                  {
+                                                      "id":  "default",
+                                                      "rootComponent":  "Column",
+                                                      "allowedComponents":  [
+                                                                                "Button",
+                                                                                "Column",
+                                                                                "Image",
+                                                                                "Text"
+                                                                            ]
+                                                  },
+                                                  {
+                                                      "id":  "icon-action",
+                                                      "rootComponent":  "Column",
+                                                      "allowedComponents":  [
+                                                                                "Column",
+                                                                                "Image",
+                                                                                "Text"
+                                                                            ]
+                                                  },
+                                                  {
+                                                      "id":  "static-status",
+                                                      "rootComponent":  "Column",
+                                                      "allowedComponents":  [
+                                                                                "Column",
+                                                                                "Text"
+                                                                            ]
+                                                  }
+                                              ]
+                          },
+    "slots":  {
+                  "object":  {
+                                 "path":  "/card/title",
+                                 "role":  "object",
+                                 "region":  "primaryMetric",
+                                 "required":  true,
+                                 "bindingKinds":  [
+                                                      "static",
+                                                      "expression",
+                                                      "path"
+                                                  ],
+                                 "component":  "metricTitle",
+                                 "maxCharsCn":  6
+                             },
+                  "primary.value":  {
+                                        "path":  "/primary/value",
+                                        "role":  "primary",
+                                        "region":  "primaryMetric",
+                                        "required":  true,
+                                        "bindingKinds":  [
+                                                             "static",
+                                                             "expression",
+                                                             "path"
+                                                         ],
+                                        "component":  "primaryValue",
+                                        "maxCharsCn":  5
+                                    },
+                  "primary.caption":  {
+                                          "path":  "/primary/caption",
+                                          "role":  "primary",
+                                          "region":  "primaryMetric",
+                                          "required":  false,
+                                          "bindingKinds":  [
+                                                               "static",
+                                                               "expression",
+                                                               "path"
+                                                           ],
+                                          "component":  "primaryCaption",
+                                          "maxCharsCn":  6
+                                      },
+                  "metric.1":  {
+                                   "path":  "/metrics/first",
+                                   "role":  "metric",
+                                   "region":  "metricsPanel",
+                                   "required":  true,
+                                   "bindingKinds":  [
+                                                        "static",
+                                                        "expression",
+                                                        "path"
+                                                    ],
+                                   "component":  "metricOneValue",
+                                   "maxCharsCn":  8
+                               },
+                  "metric.2":  {
+                                   "path":  "/metrics/second",
+                                   "role":  "metric",
+                                   "region":  "metricsPanel",
+                                   "required":  true,
+                                   "bindingKinds":  [
+                                                        "static",
+                                                        "expression",
+                                                        "path"
+                                                    ],
+                                   "component":  "metricTwoValue",
+                                   "maxCharsCn":  8
+                               },
+                  "metric.3":  {
+                                   "path":  "/metrics/third",
+                                   "role":  "metric",
+                                   "region":  "metricsPanel",
+                                   "required":  false,
+                                   "bindingKinds":  [
+                                                        "static",
+                                                        "expression",
+                                                        "path"
+                                                    ],
+                                   "component":  "metricThreeValue",
+                                   "maxCharsCn":  8
+                               },
+                  "action.label":  {
+                                       "path":  "/action/label",
+                                       "role":  "action",
+                                       "region":  "actionPanel",
+                                       "required":  false,
+                                       "bindingKinds":  [
+                                                            "static",
+                                                            "expression",
+                                                            "path"
+                                                        ],
+                                       "component":  "actionButton",
+                                       "maxCharsCn":  4
+                                   }
+              },
+    "defaultStyleProfile":  "dark-focus",
+    "allowedStyleProfiles":  [
+                                 "dark-focus",
+                                 "neutral-light",
+                                 "ambient-scene"
+                             ],
+    "colorRoles":  {
+                       "root":  "background_secondary",
+                       "primaryMetric":  "background_emphasize",
+                       "metricPanel":  "background_primary",
+                       "primaryText":  "font_on_primary",
+                       "secondaryText":  "font_secondary",
+                       "action":  "confirm"
+                   },
+    "allowedEdits":  [
+                         "switch primary metric among ring and numeric variants",
+                         "show two or three metrics",
+                         "replace unavailable action with static status"
+                     ],
+    "forbiddenEdits":  [
+                           "change the 92/8/124/8/64 split",
+                           "show more than three metrics",
+                           "add a second action or unrelated service object"
+                       ],
+    "deleteRules":  [
+                        "Delete metric.3 when it is repetitive or too long.",
+                        "If no event exists, use static-status without changing the action region width."
+                    ]
+}

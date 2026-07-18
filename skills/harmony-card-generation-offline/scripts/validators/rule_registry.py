@@ -12,17 +12,16 @@ class RuleRegistry:
         self.rules_dir = skill_dir / "scripts" / "rules"
         self.config_dir = self.rules_dir / "config"
         self.schemas_dir = self.rules_dir / "schemas"
-        self.form_catalog = self._load_json(self.rules_dir / "form_catalog.json", {})
         self.protocol = self._load_json(self.config_dir / "protocol.json", {})
         self.layout = self._load_json(self.config_dir / "layout.json", {})
         self.style = self._load_json(self.config_dir / "style.json", {})
         self.color = self._load_json(self.config_dir / "color.json", {})
         self.asset = self._load_json(self.config_dir / "asset.json", {})
+        self.expression = self._load_json(self.config_dir / "expression.json", {})
         self.diagnostics = self._load_json(self.config_dir / "diagnostics.zh-CN.json", {})
-        self.cardspec_schema = self._load_json(self.schemas_dir / "cardspec.schema.json", {})
         self.capabilities = self._load_capabilities()
         self.event_schema = self._load_json(self.schemas_dir / "event.click.schema.json", {})
-        self.allowed_components = self._allowed_components()
+        self.allowed_components = set(self.protocol.get("allowedComponents", []))
         self.asset_allowlist = self._asset_allowlist()
         self.allowed_color_hex = self._allowed_color_hex()
 
@@ -40,12 +39,6 @@ class RuleRegistry:
                 data["_source"] = str(path)
                 capabilities[capability_id] = data
         return capabilities
-
-    def _allowed_components(self) -> set[str]:
-        components = self.form_catalog.get("components")
-        if isinstance(components, dict) and components:
-            return set(components.keys())
-        return set(self.protocol.get("allowedComponents", []))
 
     def _asset_allowlist(self) -> set[str]:
         result = set(self.asset.get("allowlist", []))

@@ -1,0 +1,278 @@
+{
+    "schemaVersion":  "template-v1",
+    "id":  "product-stat-tiles",
+    "size":  "2x2",
+    "pattern":  "product-stat-tiles",
+    "summary":  "Full-card product/media layer, top-left identity and status facts, bottom row of two equal stat tiles.",
+    "template":  "template.genui.jsonl",
+    "cardspec":  "cardspec.json",
+    "sourceProvenance":  [
+                             "Derived from the earbuds rendered sample: product/media background, top-left identity/status facts, and two equal bottom stat tiles."
+                         ],
+    "useWhen":  [
+                    "earbuds",
+                    "wearable",
+                    "device-product",
+                    "media-access",
+                    "connected-device",
+                    "product-status"
+                ],
+    "avoidWhen":  [
+                      "product-image-unavailable",
+                      "long-product-name",
+                      "more-than-two-tiles",
+                      "critical-action-required"
+                  ],
+    "layout":  {
+                   "canvas":  {
+                                  "width":  160,
+                                  "height":  160
+                              },
+                   "root":  {
+                                "width":  160,
+                                "height":  160,
+                                "padding":  12,
+                                "borderRadius":  18,
+                                "clip":  true
+                            },
+                   "regions":  [
+                                   {
+                                       "id":  "contentLayer",
+                                       "role":  "media",
+                                       "parent":  "root",
+                                       "width":  136,
+                                       "height":  136,
+                                       "required":  true,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Column",
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "topBlock",
+                                       "role":  "identity",
+                                       "parent":  "contentLayer",
+                                       "width":  136,
+                                       "height":  60,
+                                       "required":  true,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Column",
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "statsRow",
+                                       "role":  "metrics",
+                                       "parent":  "contentLayer",
+                                       "width":  136,
+                                       "height":  50,
+                                       "required":  false,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Column",
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text",
+                                                                 "Divider"
+                                                             ]
+                                   }
+                               ],
+                   "safeArea":  {
+                                    "x":  12,
+                                    "y":  12,
+                                    "width":  136,
+                                    "height":  136
+                                }
+               },
+    "componentVariants":  {
+                              "contentLayer":  [
+                                                   {
+                                                       "id":  "default",
+                                                       "rootComponent":  "Column",
+                                                       "allowedComponents":  [
+                                                                                 "Column",
+                                                                                 "Image",
+                                                                                 "Row",
+                                                                                 "Text"
+                                                                             ]
+                                                   }
+                                               ],
+                              "topBlock":  [
+                                               {
+                                                   "id":  "default",
+                                                   "rootComponent":  "Row",
+                                                   "allowedComponents":  [
+                                                                             "Column",
+                                                                             "Image",
+                                                                             "Row",
+                                                                             "Text"
+                                                                         ]
+                                               },
+                                               {
+                                                   "id":  "text-only",
+                                                   "rootComponent":  "Text",
+                                                   "allowedComponents":  [
+                                                                             "Text"
+                                                                         ]
+                                               }
+                                           ],
+                              "statsRow":  [
+                                               {
+                                                   "id":  "default",
+                                                   "rootComponent":  "Row",
+                                                   "allowedComponents":  [
+                                                                             "Column",
+                                                                             "Image",
+                                                                             "Row",
+                                                                             "Text"
+                                                                         ]
+                                               },
+                                               {
+                                                   "id":  "compact-text",
+                                                   "rootComponent":  "Column",
+                                                   "allowedComponents":  [
+                                                                             "Column",
+                                                                             "Row",
+                                                                             "Text",
+                                                                             "Divider"
+                                                                         ]
+                                               }
+                                           ]
+                          },
+    "slots":  {
+                  "object":  {
+                                 "path":  "/device/name",
+                                 "role":  "object",
+                                 "region":  "topBlock",
+                                 "required":  true,
+                                 "bindingKinds":  [
+                                                      "static",
+                                                      "expression",
+                                                      "path"
+                                                  ],
+                                 "component":  "deviceName",
+                                 "maxChars":  12
+                             },
+                  "asset.productImage":  {
+                                             "path":  "/asset/productImage",
+                                             "role":  "asset",
+                                             "region":  "topBlock",
+                                             "required":  false,
+                                             "bindingKinds":  [
+                                                                  "static",
+                                                                  "expression",
+                                                                  "path"
+                                                              ],
+                                             "component":  "productImage",
+                                             "source":  "references/design/asset-library.md"
+                                         },
+                  "support.1":  {
+                                    "path":  "/device/statusOne",
+                                    "role":  "support",
+                                    "region":  "topBlock",
+                                    "required":  false,
+                                    "bindingKinds":  [
+                                                         "static",
+                                                         "expression",
+                                                         "path"
+                                                     ],
+                                    "component":  "statusOneText",
+                                    "maxChars":  5
+                                },
+                  "support.2":  {
+                                    "path":  "/device/statusTwo",
+                                    "role":  "support",
+                                    "region":  "topBlock",
+                                    "required":  false,
+                                    "bindingKinds":  [
+                                                         "static",
+                                                         "expression",
+                                                         "path"
+                                                     ],
+                                    "component":  "statusTwoText",
+                                    "maxChars":  5
+                                },
+                  "tile.1.label":  {
+                                       "path":  "/tiles/left/label",
+                                       "role":  "tile",
+                                       "region":  "statsRow",
+                                       "required":  false,
+                                       "bindingKinds":  [
+                                                            "static",
+                                                            "expression",
+                                                            "path"
+                                                        ],
+                                       "component":  "leftTileLabel",
+                                       "maxCharsCn":  4
+                                   },
+                  "tile.1.value":  {
+                                       "path":  "/tiles/left/value",
+                                       "role":  "tile",
+                                       "region":  "statsRow",
+                                       "required":  false,
+                                       "bindingKinds":  [
+                                                            "static",
+                                                            "expression",
+                                                            "path"
+                                                        ],
+                                       "component":  "leftTileValue",
+                                       "maxCharsCn":  5
+                                   },
+                  "tile.2.label":  {
+                                       "path":  "/tiles/right/label",
+                                       "role":  "tile",
+                                       "region":  "statsRow",
+                                       "required":  false,
+                                       "bindingKinds":  [
+                                                            "static",
+                                                            "expression",
+                                                            "path"
+                                                        ],
+                                       "component":  "rightTileLabel",
+                                       "maxCharsCn":  4
+                                   },
+                  "tile.2.value":  {
+                                       "path":  "/tiles/right/value",
+                                       "role":  "tile",
+                                       "region":  "statsRow",
+                                       "required":  false,
+                                       "bindingKinds":  [
+                                                            "static",
+                                                            "expression",
+                                                            "path"
+                                                        ],
+                                       "component":  "rightTileValue",
+                                       "maxCharsCn":  5
+                                   }
+              },
+    "defaultStyleProfile":  "media-surface",
+    "allowedStyleProfiles":  [
+                                 "media-surface",
+                                 "neutral-light"
+                             ],
+    "colorRoles":  {
+                       "root":  "background_secondary light",
+                       "tiles":  "comp_background_primary light with low on-color divider",
+                       "statusPrimary":  "confirm for online/connected only",
+                       "statusSecondary":  "comp_emphasize_secondary for non-critical secondary state"
+                   },
+    "allowedEdits":  [
+                         "delete productImage and use neutral background if asset unavailable",
+                         "delete one status row",
+                         "replace tile icons through DataModel"
+                     ],
+    "forbiddenEdits":  [
+                           "place required text directly on a noisy image without scrim",
+                           "add more than two stat tiles",
+                           "use network/product placeholder image"
+                       ],
+    "deleteRules":  [
+                        "If either stat tile duplicates the status facts, remove that tile or replace it with a real independent entry."
+                    ]
+}

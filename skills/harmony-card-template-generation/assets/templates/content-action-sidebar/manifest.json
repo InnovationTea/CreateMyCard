@@ -1,0 +1,254 @@
+{
+    "schemaVersion":  "template-v1",
+    "id":  "content-action-sidebar",
+    "size":  "2x4",
+    "pattern":  "content-action-sidebar",
+    "summary":  "Full-width identity row above a wide content panel and a compact action sidebar.",
+    "template":  "template.genui.jsonl",
+    "cardspec":  "cardspec.json",
+    "sourceProvenance":  [
+                             "Normalized from the historical 2x4 action-sidebar layout; legacy theme, glyph and adaptive sizing fields were discarded."
+                         ],
+    "useWhen":  [
+                    "task-summary",
+                    "device-maintenance",
+                    "reminder-with-actions",
+                    "single-object-two-actions",
+                    "wide-content"
+                ],
+    "avoidWhen":  [
+                      "no-action",
+                      "three-actions",
+                      "two-primary-objects",
+                      "long-report",
+                      "primary-media-required"
+                  ],
+    "layout":  {
+                   "canvas":  {
+                                  "width":  320,
+                                  "height":  160
+                              },
+                   "root":  {
+                                "width":  320,
+                                "height":  160,
+                                "padding":  12,
+                                "borderRadius":  22,
+                                "clip":  true
+                            },
+                   "regions":  [
+                                   {
+                                       "id":  "header",
+                                       "role":  "identity",
+                                       "parent":  "root",
+                                       "width":  296,
+                                       "height":  24,
+                                       "required":  true,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "contentPanel",
+                                       "role":  "primary",
+                                       "parent":  "body",
+                                       "width":  200,
+                                       "height":  104,
+                                       "required":  true,
+                                       "maxChildren":  3,
+                                       "allowedComponents":  [
+                                                                 "Column",
+                                                                 "Divider",
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "actionSidebar",
+                                       "role":  "action",
+                                       "parent":  "body",
+                                       "width":  84,
+                                       "height":  104,
+                                       "required":  false,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Button",
+                                                                 "Column",
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text"
+                                                             ]
+                                   }
+                               ],
+                   "safeArea":  {
+                                    "x":  12,
+                                    "y":  12,
+                                    "width":  296,
+                                    "height":  136
+                                }
+               },
+    "componentVariants":  {
+                              "header":  [
+                                             {
+                                                 "id":  "default",
+                                                 "rootComponent":  "Row",
+                                                 "allowedComponents":  [
+                                                                           "Image",
+                                                                           "Row",
+                                                                           "Text"
+                                                                       ]
+                                             },
+                                             {
+                                                 "id":  "text-only",
+                                                 "rootComponent":  "Text",
+                                                 "allowedComponents":  [
+                                                                           "Text"
+                                                                       ]
+                                             }
+                                         ],
+                              "contentPanel":  [
+                                                   {
+                                                       "id":  "default",
+                                                       "rootComponent":  "Column",
+                                                       "allowedComponents":  [
+                                                                                 "Column",
+                                                                                 "Text"
+                                                                             ]
+                                                   },
+                                                   {
+                                                       "id":  "icon-content",
+                                                       "rootComponent":  "Row",
+                                                       "allowedComponents":  [
+                                                                                 "Column",
+                                                                                 "Image",
+                                                                                 "Row",
+                                                                                 "Text"
+                                                                             ]
+                                                   }
+                                               ],
+                              "actionSidebar":  [
+                                                    {
+                                                        "id":  "default",
+                                                        "rootComponent":  "Column",
+                                                        "allowedComponents":  [
+                                                                                  "Button",
+                                                                                  "Column"
+                                                                              ]
+                                                    },
+                                                    {
+                                                        "id":  "icon-label",
+                                                        "rootComponent":  "Column",
+                                                        "allowedComponents":  [
+                                                                                  "Column",
+                                                                                  "Image",
+                                                                                  "Row",
+                                                                                  "Text"
+                                                                              ]
+                                                    },
+                                                    {
+                                                        "id":  "static-support",
+                                                        "rootComponent":  "Column",
+                                                        "allowedComponents":  [
+                                                                                  "Column",
+                                                                                  "Text"
+                                                                              ]
+                                                    }
+                                                ]
+                          },
+    "slots":  {
+                  "object":  {
+                                 "path":  "/card/title",
+                                 "role":  "object",
+                                 "region":  "header",
+                                 "required":  true,
+                                 "bindingKinds":  [
+                                                      "static",
+                                                      "expression",
+                                                      "path"
+                                                  ],
+                                 "component":  "titleText",
+                                 "maxCharsCn":  8
+                             },
+                  "primary.title":  {
+                                        "path":  "/content/title",
+                                        "role":  "primary",
+                                        "region":  "contentPanel",
+                                        "required":  true,
+                                        "bindingKinds":  [
+                                                             "static",
+                                                             "expression",
+                                                             "path"
+                                                         ],
+                                        "component":  "contentTitle",
+                                        "maxCharsCn":  10
+                                    },
+                  "support.1":  {
+                                    "path":  "/content/body",
+                                    "role":  "support",
+                                    "region":  "contentPanel",
+                                    "required":  false,
+                                    "bindingKinds":  [
+                                                         "static",
+                                                         "expression",
+                                                         "path"
+                                                     ],
+                                    "component":  "contentBody",
+                                    "maxCharsCn":  24
+                                },
+                  "action.primary":  {
+                                         "path":  "/actions/primary",
+                                         "role":  "action",
+                                         "region":  "actionSidebar",
+                                         "required":  false,
+                                         "bindingKinds":  [
+                                                              "static",
+                                                              "expression",
+                                                              "path"
+                                                          ],
+                                         "component":  "primaryAction",
+                                         "maxCharsCn":  5
+                                     },
+                  "action.secondary":  {
+                                           "path":  "/actions/secondary",
+                                           "role":  "action",
+                                           "region":  "actionSidebar",
+                                           "required":  false,
+                                           "bindingKinds":  [
+                                                                "static",
+                                                                "expression",
+                                                                "path"
+                                                            ],
+                                           "component":  "secondaryAction",
+                                           "maxCharsCn":  5
+                                       }
+              },
+    "defaultStyleProfile":  "neutral-light",
+    "allowedStyleProfiles":  [
+                                 "neutral-light",
+                                 "dark-focus"
+                             ],
+    "colorRoles":  {
+                       "root":  "background_secondary",
+                       "panel":  "background_primary",
+                       "primaryText":  "font_primary",
+                       "secondaryText":  "font_secondary",
+                       "action":  "background_emphasize"
+                   },
+    "allowedEdits":  [
+                         "switch header to text-only",
+                         "replace sidebar actions with declared variants",
+                         "remove secondary action and vertically center the primary action"
+                     ],
+    "forbiddenEdits":  [
+                           "change the 200/12/84 body split",
+                           "add a third action",
+                           "turn the content panel into a list or page"
+                       ],
+    "deleteRules":  [
+                        "If no valid event exists, use the static-support variant.",
+                        "If the secondary action is not independently useful, delete it and keep one centered action."
+                    ]
+}

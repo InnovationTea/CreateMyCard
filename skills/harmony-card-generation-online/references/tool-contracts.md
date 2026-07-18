@@ -8,10 +8,13 @@
   1. `getWidgetCapabilityOverview`
   2. `getDataCapabilitySchemas`
   3. `generateWidgetCard`
-- 必须使用 `invoke(functionName:"<toolName>", arguments:{bundleName:"<bundleName>", ...})` 调用工具。
+- 每次调用前先执行用户确认门禁：如果当前已知信息中存在用户可回答、且会影响核心卡片意图、候选选择或业务入参的未决项，先追问并等待用户回答；回答前不得调用任何工具。能安全推导或有明确默认值的信息不重复确认，微服务负责的设备能力裁决和内部技术字段不向用户询问。
+- 必须使用 `invoke(functionName:"<toolName>", arguments:{bundleName:"<bundleName>", ...},"skillName":"harmony-card-generation-online")` 调用工具；`skillName` 必须与当前 Skill frontmatter 的 `name` 完全一致，不得省略、传空字符串或使用显示名称。
 - `arguments` 必须包含 `bundleName: "com.omega_w_0823.hmservice"`。
-- 除 `bundleName` 外，只传工具 JSON `arguments.properties` 中声明的业务字段。
-- 对外工具 schema 中的 `Array<Object>` / `Object` 只是插件层宽类型；具体数组项和对象必须按本文件定义的内部类结构传入。
+- 每次调用前必须读取当前运行时对应工具的 schema；除 `bundleName` 外，只传其 `arguments.properties` 中声明的业务字段，并满足 `required`、类型、数组元素类型和已声明嵌套结构。
+- 当前运行时 schema 是调用入参的唯一依据。本文件、Skill 文案、参考 JSON、历史示例或内部类结构与其冲突时，以当前运行时 schema 为准；schema 未声明字段一律删除。
+- 对外工具 schema 中的 `Array<Object>` / `Object` 是插件层宽类型。只有 schema 已声明对应数组或对象字段时，才按本文件定义的内部类结构组装其值；内部类结构不能授权新增 schema 外的顶层字段。
+- 必填字段无法可靠补齐时先区分原因：缺少用户可提供的核心业务值则追问并等待回答；工具接入、schema 不兼容或用户无法确认的技术缺口则停止调用。任何情况都不猜测字段、不传 `null` 占位、不把对象字符串化规避校验。
 - 不手写内部 WebSocket 包络字段，例如 `content`、`deviceInfo`、`session`、`pagination`、`userAuth`、`utterance`、`version`。
 - 不手写或猜测 `uid`、`device`、`locale`、`protocolProfileId`、`capabilityRegistryVersion`、`options` 等未在当前对外工具 schema 中声明的字段。
 - 不传 `slots`。
@@ -19,9 +22,9 @@
 调用顺序：
 
 ```text
-invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.omega_w_0823.hmservice"})
-invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:[...]})
-invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"...", title:"...", description:"...", ...})
+invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.omega_w_0823.hmservice"},"skillName":"harmony-card-generation-online")
+invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:[...]},"skillName":"harmony-card-generation-online")
+invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"...", title:"...", description:"...", ...},"skillName":"harmony-card-generation-online")
 ```
 
 ## 包装输出
@@ -50,7 +53,7 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 
 - 优先从 `items` 中选择 `tool` 等于当前工具名且包含 `data` 的项；没有 `tool` 时选择第一个包含 `data` 的项。
 - `data` 是 JSON 字符串时，先解析为对象；如果运行环境已将其解析成对象，可直接使用。不要把原始 `data` 字符串展示给用户。
-- `getWidgetCapabilityOverview` 的 `data` 解析后应包含 `dataCapabilities`、`eventCapabilities`、`assetCandidates`。
+- `getWidgetCapabilityOverview` 的 `data` 解析后应包含 `dataCapabilities`、`eventCapabilities`、`assetCandidates`，并可选包含 `unavailableCapabilities`；该字段存在时必须是字符串数组，缺失或为 `[]` 时按空集合处理。
 - `getDataCapabilitySchemas` 的 `data` 解析后应包含 `dataCapabilities`、`missingCapabilityIds`。
 - `generateWidgetCard` 的 `data` 解析后应包含业务 `status`、`message`，成功或降级时还应包含真实 `artifactUrl`。
 - `generateWidgetCard` 业务 `status` 为 `success` 或 `degraded` 且存在真实 `artifactUrl` 时，最终用户回复必须按 `response-policy.md` 输出 `genWidgetResult` JSON 代码块，将 `artifactUrl` 写入 `result` 字段。
@@ -66,7 +69,7 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 调用示例：
 
 ```text
-invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.omega_w_0823.hmservice"})
+invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.omega_w_0823.hmservice"},"skillName":"harmony-card-generation-online")
 ```
 
 业务 payload 字段，即 `items[].data` 解析后的字段：
@@ -74,14 +77,18 @@ invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.om
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
 | `dataCapabilities` | `DataCapabilityOverview[]` | 是 | 数据能力概述列表，只包含 `id` 和 `description`。 |
+| `unavailableCapabilities` | `string[]` | 否 | 当前不可用的数据能力 ID；缺失或为 `[]` 时不额外排除，非空时在候选筛选前从 `dataCapabilities` 中排除。 |
 | `eventCapabilities` | `EventCapability[]` | 是 | 事件能力完整列表。 |
 | `assetCandidates` | `AssetCapability[]` | 是 | 素材能力完整列表。 |
 
 调用规则：
 
+- 调用前确认用户的核心卡片主题和明确要求不存在待追问项。
 - 先调用该工具，再做候选选择。
 - 不因 overview 中出现某能力就向用户承诺设备一定可用。
-- 只从解析后的 `dataCapabilities`、`eventCapabilities`、`assetCandidates` 中选择候选；不要编造能力 ID、事件目标或素材 ID。
+- `unavailableCapabilities` 存在且非空时，先从 `dataCapabilities` 中排除其中 ID；同一 ID 同时出现时以不可用为准。字段缺失或为空数组时不额外排除。
+- 不为不可用能力调用 `getDataCapabilitySchemas`，也不把它写入 `candidateDataBindings`。
+- 只从过滤后的 `dataCapabilities`、`eventCapabilities`、`assetCandidates` 中选择候选；不要编造能力 ID、事件目标或素材 ID。
 
 ## getDataCapabilitySchemas
 
@@ -96,7 +103,7 @@ invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.om
 调用示例：
 
 ```text
-invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:["ViewWeather"]})
+invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:["ViewWeather"]},"skillName":"harmony-card-generation-online")
 ```
 
 业务 payload 字段，即 `items[].data` 解析后的字段：
@@ -108,11 +115,13 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
 
 调用规则：
 
-- 只传本轮从 overview 中选出的数据能力 ID。
+- 调用前确认候选能力选择不依赖未解决的用户歧义；存在会改变核心候选的选择时先追问并等待回答。
+- 只传本轮从 overview 中选出且不在 `unavailableCapabilities` 中的数据能力 ID。
 - 如果某 ID 出现在 `missingCapabilityIds`，候选计划中移除该数据能力。
 - `candidateDataBindings[].arguments` 只能使用对应 `inputSchema.properties` 中声明的字段。
 - `writeResultTo` 优先使用能力 schema 提供的默认写入路径；没有默认值时使用 `/data/{semanticKey}`，且多个候选不得相同或互为父子。
-- 默认不传输出字段投影；如果必须表达投影，只能使用 `candidateDataBindings[].updateModel`，且字段必须能由对应能力 `outputSchema` 推导。
+- `candidateDataBindings[].candidateOutputFields` 为可选 JSON Pointer 字符串数组；传入时每一项必须能由对应能力 `outputSchema` 推导。无需投影时省略。
+- 不再传 `candidateDataBindings[].updateModel`。
 - 不把完整 schema 暴露给用户。
 
 ## generateWidgetCard
@@ -138,7 +147,7 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
 | `capabilityId` | `string` | 是 | 数据能力 ID，必须来自已加载 schema。 |
 | `arguments` | `object` | 是 | 能力入参，只能使用该能力 `inputSchema` 声明的字段。 |
 | `writeResultTo` | `string` | 是 | 写入 DataModel 的 JSON Pointer，必须位于 `/data/` 下。 |
-| `updateModel` | `object` | 否 | 可选输出字段投影结构，内部层级会原样写入 DataModel。拿不准时不要传。 |
+| `candidateOutputFields` | `string[]` | 否 | 可选候选展示字段 JSON Pointer；每一项必须能从对应能力 `outputSchema` 推导。 |
 
 `CandidateDataBinding` 结构模板：
 
@@ -149,7 +158,12 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
     "districtName": "青浦区",
     "forecastDays": 1
   },
-  "writeResultTo": "/data/weather"
+  "writeResultTo": "/data/weather",
+  "candidateOutputFields": [
+    "/location/name",
+    "/current/temperatureText",
+    "/current/weatherText"
+  ]
 }
 ```
 
@@ -158,7 +172,8 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
 - `candidateDataBindings` 必须是数组；数组元素必须是完整对象，不要只传能力 ID 字符串。
 - `arguments` 必须是对象，即使只有一个参数也不要展开到 binding 顶层。
 - `writeResultTo` 必须是 `/data/...` JSON Pointer；不要传 `data.weather`、`weather` 或空字符串。
-- 不传 `required`、`outputSchema`、`inputSchema`、`candidateOutputFields` 等非内部类字段。
+- `candidateOutputFields` 只能传字符串数组，元素必须是合法 JSON Pointer，并逐项存在于对应能力 `outputSchema`；无法确认时省略。
+- 不传 `required`、`outputSchema`、`inputSchema`、`updateModel` 等 schema 未声明字段。
 
 `CandidateEventCandidate`：
 
@@ -193,7 +208,7 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
 调用示例：
 
 ```text
-invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"生成一个通勤卡片", title:"通勤助手", description:"天气日程速览", size:"2x4", candidateDataBindings:[...], candidateEventCandidates:[...], candidateAssetIds:[...]})
+invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"生成一个通勤卡片", title:"通勤助手", description:"天气日程速览", size:"2x4", candidateDataBindings:[...], candidateEventCandidates:[...], candidateAssetIds:[...]},"skillName":"harmony-card-generation-online")
 ```
 
 业务 payload 字段，即 `items[].data` 解析后的字段：
@@ -219,10 +234,12 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 
 调用规则：
 
+- 调用前再次检查核心目标、地点、日期/时间范围、动作目标和能力必填业务参数；存在用户可确认的缺失或歧义时先追问并等待回答，再重建候选计划。
 - `title` 和 `description` 必须始终传非空字符串；无法从需求提炼时，使用“桌面卡片”和“信息速览”等稳定默认文案。
 - `title`、`description` 不填入动态数据、隐私数据或不确定状态，不用于替代数据能力。
 - `candidateDataBindings` 是候选，不是最终 CardSpec。
-- 默认不要传字段投影；如果确实需要投影，只能传 `updateModel`，不要传 `candidateOutputFields`。
+- 无需字段投影时省略 `candidateOutputFields`；需要投影时只传可由对应 `outputSchema` 推导的 JSON Pointer 字符串数组。
+- 不传 `updateModel`。
 - `candidateEventCandidates` 每项必须同时包含 `capabilityId` 和完整 `action`。
 - 如果事件 `action.call/args` 无法从 overview 返回内容或用户明确输入中安全填齐，不传该事件候选。
 - `candidateAssetIds` 只传 overview 返回的素材 ID，不传自造资源路径。

@@ -1,0 +1,289 @@
+{
+    "schemaVersion":  "template-v1",
+    "id":  "multi-meter-action",
+    "size":  "2x2",
+    "pattern":  "multi-meter-action",
+    "summary":  "Top row of three compact ring statuses, middle primary ring plus value, bottom action/support pill.",
+    "template":  "template.genui.jsonl",
+    "cardspec":  "cardspec.json",
+    "sourceProvenance":  [
+                             "Derived from the phone-status rendered sample: three compact status rings on top, one larger primary ring/value row, and a bottom action/support pill."
+                         ],
+    "useWhen":  [
+                    "phone-status",
+                    "device-health",
+                    "cleanup",
+                    "multi-device",
+                    "memory",
+                    "storage"
+                ],
+    "avoidWhen":  [
+                      "single-metric-only",
+                      "icons-unavailable",
+                      "long-labels",
+                      "more-than-three-secondary-statuses"
+                  ],
+    "layout":  {
+                   "canvas":  {
+                                  "width":  160,
+                                  "height":  160
+                              },
+                   "root":  {
+                                "width":  160,
+                                "height":  160,
+                                "padding":  12,
+                                "borderRadius":  18,
+                                "clip":  true
+                            },
+                   "regions":  [
+                                   {
+                                       "id":  "topMeters",
+                                       "role":  "metrics",
+                                       "parent":  "root",
+                                       "width":  136,
+                                       "height":  28,
+                                       "required":  false,
+                                       "maxChildren":  3,
+                                       "allowedComponents":  [
+                                                                 "Image",
+                                                                 "Progress",
+                                                                 "Row",
+                                                                 "Stack",
+                                                                 "Column",
+                                                                 "Text",
+                                                                 "Divider"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "mainStatusRow",
+                                       "role":  "primary",
+                                       "parent":  "root",
+                                       "width":  136,
+                                       "height":  50,
+                                       "required":  true,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Column",
+                                                                 "Image",
+                                                                 "Progress",
+                                                                 "Row",
+                                                                 "Stack",
+                                                                 "Text"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "actionPill",
+                                       "role":  "action",
+                                       "parent":  "root",
+                                       "width":  136,
+                                       "height":  26,
+                                       "required":  false,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Button",
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text"
+                                                             ]
+                                   }
+                               ],
+                   "safeArea":  {
+                                    "x":  12,
+                                    "y":  12,
+                                    "width":  136,
+                                    "height":  136
+                                }
+               },
+    "componentVariants":  {
+                              "topMeters":  [
+                                                {
+                                                    "id":  "default",
+                                                    "rootComponent":  "Row",
+                                                    "allowedComponents":  [
+                                                                              "Image",
+                                                                              "Progress",
+                                                                              "Row",
+                                                                              "Stack"
+                                                                          ]
+                                                },
+                                                {
+                                                    "id":  "compact-text",
+                                                    "rootComponent":  "Column",
+                                                    "allowedComponents":  [
+                                                                              "Column",
+                                                                              "Row",
+                                                                              "Text",
+                                                                              "Divider"
+                                                                          ]
+                                                }
+                                            ],
+                              "mainStatusRow":  [
+                                                    {
+                                                        "id":  "default",
+                                                        "rootComponent":  "Row",
+                                                        "allowedComponents":  [
+                                                                                  "Column",
+                                                                                  "Image",
+                                                                                  "Progress",
+                                                                                  "Row",
+                                                                                  "Stack",
+                                                                                  "Text"
+                                                                              ]
+                                                    }
+                                                ],
+                              "actionPill":  [
+                                                 {
+                                                     "id":  "default",
+                                                     "rootComponent":  "Row",
+                                                     "allowedComponents":  [
+                                                                               "Button",
+                                                                               "Image",
+                                                                               "Row",
+                                                                               "Text"
+                                                                           ]
+                                                 },
+                                                 {
+                                                     "id":  "button",
+                                                     "rootComponent":  "Button",
+                                                     "allowedComponents":  [
+                                                                               "Button"
+                                                                           ]
+                                                 },
+                                                 {
+                                                     "id":  "static-support",
+                                                     "rootComponent":  "Row",
+                                                     "allowedComponents":  [
+                                                                               "Row",
+                                                                               "Image",
+                                                                               "Text"
+                                                                           ]
+                                                 }
+                                             ]
+                          },
+    "slots":  {
+                  "object":  {
+                                 "path":  "/card/title",
+                                 "role":  "object",
+                                 "region":  "mainStatusRow",
+                                 "required":  true,
+                                 "bindingKinds":  [
+                                                      "static",
+                                                      "expression",
+                                                      "path"
+                                                  ],
+                                 "component":  "memoryTitle",
+                                 "maxCharsCn":  5
+                             },
+                  "primary.value":  {
+                                        "path":  "/primary/value",
+                                        "role":  "primary",
+                                        "region":  "mainStatusRow",
+                                        "required":  true,
+                                        "bindingKinds":  [
+                                                             "static",
+                                                             "expression",
+                                                             "path"
+                                                         ],
+                                        "component":  "memoryValue",
+                                        "maxChars":  3
+                                    },
+                  "primary.total":  {
+                                        "path":  "/primary/total",
+                                        "role":  "primary",
+                                        "region":  "mainStatusRow",
+                                        "required":  true,
+                                        "bindingKinds":  [
+                                                             "static",
+                                                             "expression",
+                                                             "path"
+                                                         ],
+                                        "component":  "memoryRing"
+                                    },
+                  "status.1.value":  {
+                                         "path":  "/status/one/value",
+                                         "role":  "status",
+                                         "region":  "topMeters",
+                                         "required":  false,
+                                         "bindingKinds":  [
+                                                              "static",
+                                                              "expression",
+                                                              "path"
+                                                          ],
+                                         "component":  "meterOneRing"
+                                     },
+                  "status.2.value":  {
+                                         "path":  "/status/two/value",
+                                         "role":  "status",
+                                         "region":  "topMeters",
+                                         "required":  false,
+                                         "bindingKinds":  [
+                                                              "static",
+                                                              "expression",
+                                                              "path"
+                                                          ],
+                                         "component":  "meterTwoRing"
+                                     },
+                  "status.3.value":  {
+                                         "path":  "/status/three/value",
+                                         "role":  "status",
+                                         "region":  "topMeters",
+                                         "required":  false,
+                                         "bindingKinds":  [
+                                                              "static",
+                                                              "expression",
+                                                              "path"
+                                                          ],
+                                         "component":  "meterThreeRing"
+                                     },
+                  "asset.statusIcons":  {
+                                            "path":  "/asset/statusIcons",
+                                            "role":  "asset",
+                                            "region":  "topMeters",
+                                            "required":  false,
+                                            "bindingKinds":  [
+                                                                 "static",
+                                                                 "expression",
+                                                                 "path"
+                                                             ],
+                                            "source":  "references/design/asset-library.md"
+                                        },
+                  "action.label":  {
+                                       "path":  "/action/label",
+                                       "role":  "action",
+                                       "region":  "actionPill",
+                                       "required":  false,
+                                       "bindingKinds":  [
+                                                            "static",
+                                                            "expression",
+                                                            "path"
+                                                        ],
+                                       "component":  "actionLabel",
+                                       "maxCharsCn":  5
+                                   }
+              },
+    "defaultStyleProfile":  "dark-focus",
+    "allowedStyleProfiles":  [
+                                 "dark-focus",
+                                 "ambient-scene",
+                                 "neutral-light"
+                             ],
+    "colorRoles":  {
+                       "rootGradient":  "multi_color_03 and multi_color_aux_03 teal stops",
+                       "smallRings":  "confirm only when statuses are healthy/available",
+                       "primaryRing":  "font_on_primary to avoid adding a second hue family",
+                       "action":  "confirm only for cleanup/connect/available action"
+                   },
+    "allowedEdits":  [
+                         "delete one top meter and redistribute spacing",
+                         "replace icons through DataModel",
+                         "add onClick to actionPill only with valid event capability"
+                     ],
+    "forbiddenEdits":  [
+                           "add labels under top meters",
+                           "add a second action",
+                           "use the small rings as duplicate facts already shown in primary.value"
+                       ],
+    "deleteRules":  [
+                        "If fewer than two secondary statuses are real, use meter-side-action instead."
+                    ]
+}

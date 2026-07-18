@@ -1,0 +1,257 @@
+{
+    "schemaVersion":  "template-v1",
+    "id":  "meeting-action-badge",
+    "size":  "2x2",
+    "pattern":  "meeting-action-badge",
+    "summary":  "Header, compact event detail stack, bottom row with primary action pill and a small date/count badge.",
+    "template":  "template.genui.jsonl",
+    "cardspec":  "cardspec.json",
+    "sourceProvenance":  [
+                             "Derived from the meeting rendered sample: event header and details, then a bottom row combining primary action and a compact date/count badge."
+                         ],
+    "useWhen":  [
+                    "meeting",
+                    "calendar",
+                    "appointment",
+                    "event",
+                    "class",
+                    "reservation"
+                ],
+    "avoidWhen":  [
+                      "long-agenda",
+                      "multiple-meetings",
+                      "needs-two-actions",
+                      "no-short-badge-value"
+                  ],
+    "layout":  {
+                   "canvas":  {
+                                  "width":  160,
+                                  "height":  160
+                              },
+                   "root":  {
+                                "width":  160,
+                                "height":  160,
+                                "padding":  12,
+                                "borderRadius":  18,
+                                "clip":  true
+                            },
+                   "regions":  [
+                                   {
+                                       "id":  "headerRow",
+                                       "role":  "identity",
+                                       "parent":  "root",
+                                       "width":  136,
+                                       "height":  20,
+                                       "required":  true,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "meetingInfo",
+                                       "role":  "primary",
+                                       "parent":  "root",
+                                       "width":  136,
+                                       "height":  58,
+                                       "required":  true,
+                                       "maxChildren":  3,
+                                       "allowedComponents":  [
+                                                                 "Column",
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Text"
+                                                             ]
+                                   },
+                                   {
+                                       "id":  "bottomRow",
+                                       "role":  "action",
+                                       "parent":  "root",
+                                       "width":  136,
+                                       "height":  26,
+                                       "required":  false,
+                                       "maxChildren":  2,
+                                       "allowedComponents":  [
+                                                                 "Button",
+                                                                 "Image",
+                                                                 "Row",
+                                                                 "Stack",
+                                                                 "Text"
+                                                             ]
+                                   }
+                               ],
+                   "safeArea":  {
+                                    "x":  12,
+                                    "y":  12,
+                                    "width":  136,
+                                    "height":  136
+                                }
+               },
+    "componentVariants":  {
+                              "headerRow":  [
+                                                {
+                                                    "id":  "default",
+                                                    "rootComponent":  "Row",
+                                                    "allowedComponents":  [
+                                                                              "Image",
+                                                                              "Row",
+                                                                              "Text"
+                                                                          ]
+                                                },
+                                                {
+                                                    "id":  "text-only",
+                                                    "rootComponent":  "Text",
+                                                    "allowedComponents":  [
+                                                                              "Text"
+                                                                          ]
+                                                }
+                                            ],
+                              "meetingInfo":  [
+                                                  {
+                                                      "id":  "default",
+                                                      "rootComponent":  "Column",
+                                                      "allowedComponents":  [
+                                                                                "Column",
+                                                                                "Image",
+                                                                                "Row",
+                                                                                "Text"
+                                                                            ]
+                                                  }
+                                              ],
+                              "bottomRow":  [
+                                                {
+                                                    "id":  "default",
+                                                    "rootComponent":  "Row",
+                                                    "allowedComponents":  [
+                                                                              "Button",
+                                                                              "Image",
+                                                                              "Row",
+                                                                              "Stack",
+                                                                              "Text"
+                                                                          ]
+                                                },
+                                                {
+                                                    "id":  "button",
+                                                    "rootComponent":  "Button",
+                                                    "allowedComponents":  [
+                                                                              "Button"
+                                                                          ]
+                                                },
+                                                {
+                                                    "id":  "static-support",
+                                                    "rootComponent":  "Row",
+                                                    "allowedComponents":  [
+                                                                              "Row",
+                                                                              "Image",
+                                                                              "Text"
+                                                                          ]
+                                                }
+                                            ]
+                          },
+    "slots":  {
+                  "object":  {
+                                 "path":  "/card/title",
+                                 "role":  "object",
+                                 "region":  "headerRow",
+                                 "required":  true,
+                                 "bindingKinds":  [
+                                                      "static",
+                                                      "expression",
+                                                      "path"
+                                                  ],
+                                 "component":  "headerTitle",
+                                 "maxCharsCn":  6
+                             },
+                  "primary.title":  {
+                                        "path":  "/primary/title",
+                                        "role":  "primary",
+                                        "region":  "meetingInfo",
+                                        "required":  true,
+                                        "bindingKinds":  [
+                                                             "static",
+                                                             "expression",
+                                                             "path"
+                                                         ],
+                                        "component":  "meetingTitle",
+                                        "maxCharsCn":  8
+                                    },
+                  "primary.meta":  {
+                                       "path":  "/primary/time",
+                                       "role":  "primary",
+                                       "region":  "meetingInfo",
+                                       "required":  true,
+                                       "bindingKinds":  [
+                                                            "static",
+                                                            "expression",
+                                                            "path"
+                                                        ],
+                                       "component":  "timeText",
+                                       "maxChars":  12
+                                   },
+                  "support.1":  {
+                                    "path":  "/primary/place",
+                                    "role":  "support",
+                                    "region":  "meetingInfo",
+                                    "required":  false,
+                                    "bindingKinds":  [
+                                                         "static",
+                                                         "expression",
+                                                         "path"
+                                                     ],
+                                    "component":  "placeText",
+                                    "maxCharsCn":  8
+                                },
+                  "badge.value":  {
+                                      "path":  "/badge/value",
+                                      "role":  "badge",
+                                      "region":  "bottomRow",
+                                      "required":  false,
+                                      "bindingKinds":  [
+                                                           "static",
+                                                           "expression",
+                                                           "path"
+                                                       ],
+                                      "component":  "badgeText",
+                                      "maxChars":  2
+                                  },
+                  "action.label":  {
+                                       "path":  "/action/label",
+                                       "role":  "action",
+                                       "region":  "bottomRow",
+                                       "required":  false,
+                                       "bindingKinds":  [
+                                                            "static",
+                                                            "expression",
+                                                            "path"
+                                                        ],
+                                       "component":  "actionText",
+                                       "maxCharsCn":  5
+                                   }
+              },
+    "defaultStyleProfile":  "neutral-light",
+    "allowedStyleProfiles":  [
+                                 "neutral-light",
+                                 "dark-focus"
+                             ],
+    "colorRoles":  {
+                       "root":  "background_primary light",
+                       "foreground":  "font_primary/secondary on ordinary background",
+                       "action":  "brand / comp_background_emphasize only for a real join/open action",
+                       "badge":  "multi_color_11 dark as compact date/count accent"
+                   },
+    "allowedEdits":  [
+                         "delete badgeBlock and widen actionPill when no badge exists",
+                         "replace icon through DataModel",
+                         "add onClick to actionPill only with valid event capability"
+                     ],
+    "forbiddenEdits":  [
+                           "turn meetingInfo into a list",
+                           "duplicate time in badge and meta",
+                           "add another bottom action"
+                       ],
+    "deleteRules":  [
+                        "If badge.value has more than two digits or is not useful, remove badgeBlock and set actionPill width to 136."
+                    ]
+}

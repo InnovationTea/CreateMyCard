@@ -1,0 +1,4 @@
+interface:
+  display_name: "Harmony 卡片 DSL 校验"
+  short_description: "分析 A2UI Form DSL 的协议、语义与视觉质量问题"
+  default_prompt: "使用 $harmony-card-dsl-validation 校验这份卡片 DSL，并按严重度说明问题和修复建议。"

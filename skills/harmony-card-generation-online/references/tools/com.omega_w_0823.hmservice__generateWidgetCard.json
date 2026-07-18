@@ -6,10 +6,6 @@
   "description": "提交用户需求、候选数据绑定、候选事件和素材，生成可下载的 HarmonyOS A2UI Form 卡片 artifact",
   "arguments": {
     "properties": {
-      "userQuery": {
-        "type": "String",
-        "description": "用户原始卡片需求"
-      },
       "size": {
         "type": "String",
         "description": "主 Agent 建议尺寸"
@@ -21,17 +17,35 @@
         "properties": {
           "ArrayItem": {
             "type": "Object",
-            "description": "候选数据能力"
+            "description": "候选数据能力",
+            "required": [],
+            "properties": {
+              "candidateOutputFields": {
+                "type": "Array<String>",
+                "description": "可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导",
+                "required": [],
+                "properties": {
+                  "ArrayItem": {
+                    "type": "String",
+                    "description": "可选候选展示字段 JSON Pointer"
+                  }
+                }
+              },
+              "arguments": {
+                "type": "Object",
+                "description": "参数"
+              },
+              "capabilityId": {
+                "type": "String",
+                "description": "能力ID"
+              },
+              "writeResultTo": {
+                "type": "String",
+                "description": "结果写入路径"
+              }
+            }
           }
         }
-      },
-      "description": {
-        "type": "String",
-        "description": "建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"
-      },
-      "title": {
-        "type": "String",
-        "description": "建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"
       },
       "candidateEventCandidates": {
         "type": "Array",
@@ -44,6 +58,10 @@
           }
         }
       },
+      "userQuery": {
+        "type": "String",
+        "description": "用户原始卡片需求"
+      },
       "candidateAssetIds": {
         "type": "Array<String>",
         "description": "候选素材 ID 列表",
@@ -54,6 +72,14 @@
             "description": "候选素材 ID"
           }
         }
+      },
+      "title": {
+        "type": "String",
+        "description": "建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"
+      },
+      "description": {
+        "type": "String",
+        "description": "建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"
       }
     },
     "required": [
@@ -70,37 +96,37 @@
           "data"
         ],
         "properties": {
-          "operation": {
-            "type": "String",
-            "description": "本次动作"
-          },
           "status": {
             "type": "String",
             "description": "工具状态"
-          },
-          "tool": {
-            "type": "String",
-            "description": "当前工具名"
-          },
-          "type": {
-            "type": "String",
-            "description": "回复类型"
-          },
-          "error": {
-            "type": "String",
-            "description": "错误内容"
           },
           "requestId": {
             "type": "String",
             "description": "请求ID"
           },
+          "operation": {
+            "type": "String",
+            "description": "本次动作"
+          },
           "errorCode": {
             "type": "String",
             "description": "错误码"
           },
+          "type": {
+            "type": "String",
+            "description": "回复类型"
+          },
           "data": {
             "type": "String",
             "description": "工具返回结果"
+          },
+          "error": {
+            "type": "String",
+            "description": "错误内容"
+          },
+          "tool": {
+            "type": "String",
+            "description": "当前工具名"
           }
         }
       },

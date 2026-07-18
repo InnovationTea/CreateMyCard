@@ -1,4 +1,0 @@
-interface:
-  display_name: "Harmony DSL 校验"
-  short_description: "校验 HarmonyOS A2UI Form DSL 并给出改进建议"
-  default_prompt: "使用 $harmony-card-dsl-validator 校验这段 HarmonyOS A2UI Form DSL，指出语法、协议、数据绑定、交互和布局问题。"

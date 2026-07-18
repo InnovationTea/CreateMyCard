@@ -1,6 +1,10 @@
 {
   "createSurfaceAllowedStyles": ["borderRadius", "clip"],
   "rootBackgroundStyles": ["backgroundColor", "linearGradient", "backgroundImage"],
+  "colorStyleFields": [
+    "backgroundColor", "borderColor", "fontColor", "color",
+    "selectedColor", "fillColor", "strokeColor"
+  ],
   "commonStyleFields": [
     "width", "height", "aspectRatio", "constraintSize", "margin", "padding", "borderRadius",
     "borderWidth", "borderColor", "backgroundColor", "backgroundImage",

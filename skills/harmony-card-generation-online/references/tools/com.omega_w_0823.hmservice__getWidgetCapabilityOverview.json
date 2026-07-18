@@ -18,37 +18,37 @@
           "data"
         ],
         "properties": {
-          "operation": {
+          "tool": {
             "type": "String",
-            "description": "本次动作"
-          },
-          "errorCode": {
-            "type": "String",
-            "description": "错误码"
+            "description": "当前工具名"
           },
           "data": {
             "type": "String",
             "description": "工具返回结果"
           },
-          "error": {
+          "operation": {
             "type": "String",
-            "description": "错误内容"
+            "description": "本次动作"
           },
-          "tool": {
+          "requestId": {
             "type": "String",
-            "description": "当前工具名"
+            "description": "请求ID"
           },
           "type": {
             "type": "String",
             "description": "回复类型"
           },
+          "errorCode": {
+            "type": "String",
+            "description": "错误码"
+          },
+          "error": {
+            "type": "String",
+            "description": "错误内容"
+          },
           "status": {
             "type": "String",
             "description": "工具状态"
-          },
-          "requestId": {
-            "type": "String",
-            "description": "请求ID"
           }
         }
       }
