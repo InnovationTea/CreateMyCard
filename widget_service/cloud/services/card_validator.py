@@ -233,6 +233,13 @@ def escape_pointer_part(part: str) -> str:
     return part.replace("~", "~0").replace("/", "~1")
 
 
+def _is_quoted(token):
+    """判断 token 是否被引号包裹"""
+    is_single_quoted = token.startswith("'") and token.endswith("'")
+    is_double_quoted = token.startswith('"') and token.endswith('"')
+    return is_single_quoted or is_double_quoted
+
+
 def data_model_expr_to_pointer(suffix: str) -> str | None:
     parts: list[str] = []
     pos = 0
@@ -244,7 +251,7 @@ def data_model_expr_to_pointer(suffix: str) -> str | None:
         token = match.group(1) if match.group(1) is not None else match.group(2)
         if token is None:
             return None
-        if (token.startswith("'") and token.endswith("'")) or (token.startswith('"') and token.endswith('"')):
+        if _is_quoted(token):
             token = token[1:-1]
         parts.append(escape_pointer_part(token))
     if pos != len(suffix):
@@ -327,7 +334,8 @@ def content_to_string(value: Any, data_model: Any) -> str | None:
             if interp and interp.group(1).startswith("/"):
                 ok, result = read_pointer(data_model, interp.group(1))
                 return "" if not ok or result is None else str(result)
-            model_path = re.fullmatch(r"\$__dataModel((?:\.[A-Za-z_][A-Za-z0-9_]*|\[(?:\d+|'[^']+'|\"[^\"]+\")\])*)", body)
+            model_path = re.fullmatch(r"\$__dataModel((?:\.[A-Za-z_]"
+                                      r"[A-Za-z0-9_]*|\[(?:\d+|'[^']+'|\"[^\"]+\")\])*)", body)
             if model_path:
                 pointer = data_model_expr_to_pointer(model_path.group(1))
                 if pointer is not None:
@@ -378,8 +386,8 @@ def check_protocol(
         reporter.error("createSurface, updateComponents, and updateDataModel must be objects.")
         return empty, empty, empty
 
-    if create.get("catalogId") != "ohos.a2ui.extended.catalog.form":
-        reporter.error("createSurface.catalogId must be ohos.a2ui.extended.catalog.form.")
+    if create.get("catalogId") != "ohos.a2ui.extended.catalog":
+        reporter.error("createSurface.catalogId must be ohos.a2ui.extended.catalog.")
     if create.get("surfaceId") != update.get("surfaceId") or create.get("surfaceId") != data.get("surfaceId"):
         reporter.error("surfaceId must match across all genui messages.")
 
@@ -617,7 +625,8 @@ def check_text_fit(comp: dict[str, Any], data_model: Any, reporter: Reporter) ->
         if width is not None:
             estimate = estimate_text_width(text, font)
             if estimate > width * max_lines:
-                reporter.error(f"{cid}: text {text!r} estimated width {estimate:.1f} exceeds {width:g} x {max_lines} lines.")
+                reporter.error(f"{cid}: text {text!r} estimated width "
+                               f"{estimate:.1f} exceeds {width:g} x {max_lines} lines.")
 
     if ctype == "Button":
         label = content_to_string(comp.get("label"), data_model)
@@ -686,7 +695,8 @@ def check_layout(root: dict[str, Any], by_id: dict[str, dict[str, Any]], reporte
                 for child in child_components:
                     child_height = numeric(child.get("styles", {}).get("height"))
                     if child_height is not None and child_height > inner:
-                        reporter.error(f"{cid}: child {child.get('id')} height {child_height:g} exceeds Row inner height {inner:g}.")
+                        reporter.error(f"{cid}: child {child.get('id')} height "
+                                       f"{child_height:g} exceeds Row inner height {inner:g}.")
 
         if ctype == "Column" and height is not None:
             used = pad_top + pad_bottom + gap * max(0, len(child_components) - 1)
@@ -704,7 +714,8 @@ def check_layout(root: dict[str, Any], by_id: dict[str, dict[str, Any]], reporte
                 for child in child_components:
                     child_width = numeric(child.get("styles", {}).get("width"))
                     if child_width is not None and child_width > inner:
-                        reporter.error(f"{cid}: child {child.get('id')} width {child_width:g} exceeds Column inner width {inner:g}.")
+                        reporter.error(f"{cid}: child {child.get('id')} width "
+                                       f"{child_width:g} exceeds Column inner width {inner:g}.")
 
     if root.get("component") == "Column":
         check_bottom_anchor(root, by_id, reporter)
@@ -736,6 +747,15 @@ def check_bottom_anchor(root: dict[str, Any], by_id: dict[str, dict[str, Any]], 
         reporter.warn(f"root: last section bottom gap is {bottom_gap:g}; typical 2x2/2x4 bottom gap is 8-14.")
 
 
+def _is_similar_substring(text, other):
+    """判断两个字符串是否满足最小长度且存在子串关系但不相同"""
+    if len(text) < 3 or len(other) < 3:
+        return False
+    if text == other:
+        return False
+    return text in other or other in text
+
+
 def check_duplicates(components: list[dict[str, Any]], data_model: Any, reporter: Reporter) -> None:
     seen: dict[str, str] = {}
     texts: list[tuple[str, str]] = []
@@ -760,8 +780,9 @@ def check_duplicates(components: list[dict[str, Any]], data_model: Any, reporter
 
     for index, (cid, text) in enumerate(texts):
         for other_id, other in texts[index + 1:]:
-            if len(text) >= 3 and len(other) >= 3 and (text in other or other in text) and text != other:
-                reporter.warn(f"{cid} and {other_id}: visible texts may be semantically duplicated ({text!r}, {other!r}).")
+            if _is_similar_substring(text, other):
+                reporter.warn(f"{cid} and {other_id}: visible texts may "
+                              f"be semantically duplicated ({text!r}, {other!r}).")
 
 
 def contains_button(comp: dict[str, Any], by_id: dict[str, dict[str, Any]]) -> bool:
@@ -794,7 +815,8 @@ def check_button_rows(components: list[dict[str, Any]], by_id: dict[str, dict[st
         direct_buttons = [child for child in child_components if child.get("component") == "Button"]
         if not direct_buttons:
             continue
-        has_text_peer = any(child.get("component") != "Button" and contains_text_or_column(child, by_id) for child in child_components)
+        has_text_peer = any(child.get("component") != "Button" and
+                            contains_text_or_column(child, by_id) for child in child_components)
         if has_text_peer:
             for button in direct_buttons:
                 styles = button.get("styles", {})
@@ -802,7 +824,8 @@ def check_button_rows(components: list[dict[str, Any]], by_id: dict[str, dict[st
                 margin_top = numeric(margin.get("top")) if isinstance(margin, dict) else None
                 parent_padding = padding_tuple(comp.get("styles", {}).get("padding", {}))
                 if margin_top is None and parent_padding[0] == parent_padding[2]:
-                    reporter.warn(f"{cid}: Button {button.get('id')} sits beside text without margin.top or asymmetric padding; baseline may render high.")
+                    reporter.warn(f"{cid}: Button {button.get('id')} sits beside text "
+                                  f"without margin.top or asymmetric padding; baseline may render high.")
 
 
 def main() -> int:
