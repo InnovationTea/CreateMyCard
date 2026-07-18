@@ -378,8 +378,8 @@ def check_protocol(
         reporter.error("createSurface, updateComponents, and updateDataModel must be objects.")
         return empty, empty, empty
 
-    if create.get("catalogId") != "ohos.a2ui.extended.catalog":
-        reporter.error("createSurface.catalogId must be ohos.a2ui.extended.catalog.")
+    if create.get("catalogId") != "ohos.a2ui.extended.catalog.form":
+        reporter.error("createSurface.catalogId must be ohos.a2ui.extended.catalog.form.")
     if create.get("surfaceId") != update.get("surfaceId") or create.get("surfaceId") != data.get("surfaceId"):
         reporter.error("surfaceId must match across all genui messages.")
 

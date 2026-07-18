@@ -53,8 +53,9 @@ class ArtifactStore:
         - artifact：完整卡片产物。
         出参：artifact 保存结果，包含访问 URL 和 sha256 摘要。
         """
+        artifact_data = artifact.model_dump(mode="json", exclude_none=True)
         payload = json.dumps(
-            artifact.model_dump(mode="json", exclude_none=True),
+            artifact_data,
             ensure_ascii=False,
             sort_keys=True,
             separators=(",", ":"),
@@ -62,9 +63,30 @@ class ArtifactStore:
         digest = "sha256:" + hashlib.sha256(payload).hexdigest()
         logger.info(f"artifact_payload_built payload_bytes={len(payload)} digest={digest}")
 
-        # 将 genui 和 cardSpec 写入文件，格式为 markdown 代码块
-        cardspec_str = json.dumps(artifact.cardSpec, ensure_ascii=False, indent=2)
-        file_content = f"```cardspec\n{cardspec_str}\n```\n```genui\n{artifact.genui}\n```\n"
+        # Artifact 以具名 Markdown 代码块上传。每个块名与对应契约字段一致，
+        # 既保留端侧现有的 genui/cardspec 解析方式，也完整携带排障和回放信息。
+        json_blocks = {
+            "schema": {"schemaVersion": artifact_data["schemaVersion"]},
+            "cardspec": artifact_data["cardSpec"],
+            "taskspec": artifact_data["taskSpec"],
+            "effectivecapabilities": artifact_data["effectiveCapabilities"],
+            "removedcapabilities": artifact_data["removedCapabilities"],
+            "meta": artifact_data["meta"],
+        }
+        blocks = [
+            "```schema\n"
+            + json.dumps(json_blocks["schema"], ensure_ascii=False, indent=2)
+            + "\n```",
+            f"```genui\n{artifact.genui}\n```",
+        ]
+        blocks.extend(
+            "```" + name + "\n"
+            + json.dumps(value, ensure_ascii=False, indent=2)
+            + "\n```"
+            for name, value in json_blocks.items()
+            if name != "schema"
+        )
+        file_content = "\n".join(blocks) + "\n"
 
         # 文件名加时间戳
         timestamp = int(time.time() * 1000)

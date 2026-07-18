@@ -146,7 +146,8 @@ def test_live_four_websocket_paths_complete_flow():
         overview = overview_message["data"]
         assert overview_message["status"] == "success"
         assert overview_message["errorCode"] == ""
-        assert overview["capabilityRegistryVersion"] == "app-11.7.5.205_rom-36"
+        assert "apiVersion" not in overview
+        assert "capabilityRegistryVersion" not in overview
         assert any(item["id"] == "ViewWeather" for item in overview["dataCapabilities"])
 
         schema_message = await _call_ws(

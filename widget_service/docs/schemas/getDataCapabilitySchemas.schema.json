@@ -1,7 +1,7 @@
 {
   "name": "getDataCapabilitySchemas",
   "transport": "websocket",
-  "path": "/genui-agent-service/api/v1/ws/tools/getDataCapabilitySchemas",
+  "path": "/api/v1/ws/tools/getDataCapabilitySchemas",
   "description": "按数据能力 ID 加载完整 inputSchema、outputSchema、依赖和 DataModel 骨架。content 对应业务入参。",
   "messageEnvelope": {
     "type": "object",

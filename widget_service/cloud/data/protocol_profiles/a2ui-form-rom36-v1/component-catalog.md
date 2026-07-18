@@ -12,7 +12,7 @@
 
 ## 支持范围
 
-- 必需 catalog：`"catalogId": "ohos.a2ui.extended.catalog"`。
+- 必需 catalog：`"catalogId": "ohos.a2ui.extended.catalog.form"`。
 - 允许组件：`Text`、`Image`、`Divider`、`Progress`、`Button`、`Checkbox`、`Row`、`Column`、`List`、`Stack`。
 - 禁用组件：`TextInput`、`Toggle`、`Radio`、`CheckboxGroup`、`Select`、`NavContainer`、`Tabs`、`TabContent`、`Web`、`Grid`、`If`。
 - 不要把 Form 子集之外的 extended 组件或 Basic Catalog 的属性名混入 Form surface。

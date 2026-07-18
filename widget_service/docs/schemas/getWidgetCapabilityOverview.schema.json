@@ -1,8 +1,8 @@
 {
   "name": "getWidgetCapabilityOverview",
   "transport": "websocket",
-  "path": "/genui-agent-service/api/v1/ws/tools/getWidgetCapabilityOverview",
-  "description": "第一个接口：按 ROM、prdVer 选择注册表，再仅将服务端配置范围内的能力依赖包名与 IDS 已安装应用 bundleName 精确匹配（当前默认仅运动健康），返回可用能力及不可用清单。content 对应业务入参。",
+  "path": "/api/v1/ws/tools/getWidgetCapabilityOverview",
+  "description": "按 ROM、prdVer 选择注册表，再仅将服务端配置范围内的能力依赖包名与 IDS 已安装应用 bundleName 精确匹配（当前默认仅运动健康），返回可用能力及不可用能力 ID。content 对应业务入参。",
   "messageEnvelope": {
     "type": "object",
     "required": ["content", "deviceInfo", "session"],
@@ -118,12 +118,10 @@
         "tool": "string，当前工具名；本接口为 getWidgetCapabilityOverview。",
         "operation": "string，当前 WebSocket path 对应的接口名。",
         "requestId": "string|null，服务端根据 sessionId + '&' + interactionId 生成的请求 ID。",
-        "data.apiVersion": "string，接口版本。",
-        "data.capabilityRegistryVersion": "string，本次实际使用的能力清单版本目录名，包含默认回退结果。",
         "data.dataCapabilities": "DataCapabilityOverview[]，数据能力概述列表，只包含 id 和 description。",
         "data.eventCapabilities": "EventCapability[]，事件能力完整列表。",
         "data.assetCandidates": "AssetCapability[]，素材能力完整列表。",
-        "data.unavailableCapabilities": "RemovedCapability[]，因命中服务端安装过滤范围的 requiredPackages 包名未出现在 IDS 已安装应用清单而不可用的数据或事件能力。",
+        "data.unavailableCapabilities": "string[]，因命中服务端安装过滤范围的 requiredPackages 包名未出现在 IDS 已安装应用清单而不可用的数据或事件能力 ID。",
         "status": "string，本次调用状态；成功时为 success。",
         "errorCode": "string，旧完整出参错误码；成功时为空字符串。",
         "error": "object，旧完整出参错误详情；成功时为空对象。"

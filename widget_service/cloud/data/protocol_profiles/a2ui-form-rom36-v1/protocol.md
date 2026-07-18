@@ -12,7 +12,7 @@
 
 ## Surface 树契约
 
-- `version` 固定为 `"v0.9"`；`catalogId` 固定为 `"ohos.a2ui.extended.catalog"`。
+- `version` 固定为 `"v0.9"`；`catalogId` 固定为 `"ohos.a2ui.extended.catalog.form"`。
 - `createSurface` 默认只写 `surfaceId`、`catalogId`、`width`、`height`；新卡片不要为了同步 root 圆角而写 `createSurface.styles`。若宿主明确需要外层形状和裁切控制，`createSurface.styles` 只允许 `borderRadius`、`clip`；不支持 `theme`。
 - `updateComponents` 必须在 `createSurface` 之后，同一 surface 仅发送一次完整组件树。
 - `updateComponents.root` 必须引用 `components` 中存在的组件 id。

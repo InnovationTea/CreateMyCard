@@ -163,12 +163,10 @@ class DataCapabilityOverview(BaseModel):
 
 
 class CapabilityOverviewResponse(BaseModel):
-    apiVersion: str = "v1"
-    capabilityRegistryVersion: str
     dataCapabilities: list[DataCapabilityOverview]
     eventCapabilities: list[EventCapability]
     assetCandidates: list[AssetCapability]
-    unavailableCapabilities: list[RemovedCapability] = Field(default_factory=list)
+    unavailableCapabilities: list[str] = Field(default_factory=list)
 
 
 class DataCapabilitySchemasRequest(VersionedToolRequest):

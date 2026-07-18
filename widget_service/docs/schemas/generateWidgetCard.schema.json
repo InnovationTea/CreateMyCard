@@ -1,7 +1,7 @@
 {
   "name": "generateWidgetCard",
   "transport": "websocket",
-  "path": "/genui-agent-service/api/v1/ws/tools/generateWidgetCard",
+  "path": "/api/v1/ws/tools/generateWidgetCard",
   "description": "提交用户需求、候选数据绑定、候选事件和素材，生成可下载的 HarmonyOS A2UI Form 卡片 artifact。content 对应业务入参。",
   "messageEnvelope": {
     "type": "object",

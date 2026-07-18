@@ -117,13 +117,15 @@ class IDSClient:
         sign = base64.b64encode(digest).decode("utf-8")
         return f"{access_key};{ts};{sign}"
 
-    def _decode_ids_secret_key(self, secret_key: str) -> bytes:
+    def _decode_ids_secret_key(self, secret_key: str | bytes) -> bytes:
         """解析 IDS secretKey。
 
         入参：
         - secret_key：配置中的 secretKey，按 Postman 脚本约定优先视为 Base64。
         出参：HMAC 使用的 key bytes。
         """
+        if isinstance(secret_key, bytes):
+            return secret_key
         try:
             padding = "=" * (-len(secret_key) % 4)
             return base64.b64decode(secret_key + padding, validate=True)

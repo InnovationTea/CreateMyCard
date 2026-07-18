@@ -64,7 +64,7 @@
 
 - 配置项 `enable_default_capability_registry_fallback` 默认开启。
 - 三个接口的请求版本目录不存在时，统一回退到 `app-11.7.5.205_rom-36`。
-- 第一、第二接口在响应中返回实际加载的版本；第三接口将实际版本写入 artifact meta。关闭开关时三个接口都不回退。
+- 能力概述响应不暴露版本字段；数据 Schema 响应仍返回实际加载的版本，生成接口将实际版本写入 artifact meta。关闭开关时三个接口都不回退。
 
 ## 7. IDS mock 与真实远程模式
 

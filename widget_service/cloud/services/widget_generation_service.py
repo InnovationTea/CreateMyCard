@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+import hashlib
 import time
 
 from api.schemas import (
@@ -116,7 +117,6 @@ class WidgetGenerationService:
                 f"error={exc}"
             )
             return CapabilityOverviewResponse(
-                capabilityRegistryVersion=version,
                 dataCapabilities=[],
                 eventCapabilities=[],
                 assetCandidates=[],
@@ -131,7 +131,6 @@ class WidgetGenerationService:
             resolver.resolve_capability_overview(request.device)
         )
         response = CapabilityOverviewResponse(
-            capabilityRegistryVersion=registry.version,
             dataCapabilities=[
                 # 第一接口只暴露数据能力 id+description，完整 schema 留给第二接口渐进加载。
                 DataCapabilityOverview(
@@ -142,7 +141,7 @@ class WidgetGenerationService:
             ],
             eventCapabilities=event_capabilities,
             assetCandidates=asset_capabilities,
-            unavailableCapabilities=removed,
+            unavailableCapabilities=[item.id for item in removed],
         )
         logger.info(
             f"capability_overview_completed registry_version={registry.version} "
@@ -217,6 +216,9 @@ class WidgetGenerationService:
         - request：用户需求、尺寸、候选数据绑定、候选事件、候选素材和版本上下文。
         出参：生成状态、artifact 地址、摘要、用户话术、降级原因和有效能力。
         """
+        generation_started_at = time.perf_counter()
+        stage_started_at = generation_started_at
+        latency_by_stage: dict[str, float] = {}
         # 主流程：解析能力、生成 CardSpec/TaskSpec、生成 genui、校验 artifact、返回结构化状态。
         logger.info(
             f"generate_widget_card_started size={request.size} "
@@ -235,13 +237,24 @@ class WidgetGenerationService:
                 f"generate_widget_card_registry_missing registry_version={version} "
                 f"error={exc}"
             )
-            return GenerateWidgetCardResponse(
+            response = GenerateWidgetCardResponse(
                 status=GenerationStatus.UNSUPPORTED,
                 suggestSize=request.size,
                 message="当前 App/ROM 版本暂无可用能力清单，暂时不能生成这类卡片。",
                 errorCode=ErrorCode.APP_VERSION_UNSUPPORTED.value,
                 effectiveCapabilities={"data": [], "event": [], "asset": []},
             )
+            self._log_generation_summary(
+                request,
+                capability_registry_version=version,
+                status=response.status,
+                error_code=response.errorCode,
+                latency_by_stage={
+                    "registry": self._elapsed_ms(stage_started_at),
+                    "total": self._elapsed_ms(generation_started_at),
+                },
+            )
+            return response
         logger.info(
             f"generate_flow_step_registry_loaded registry_version={registry.version}"
         )
@@ -252,6 +265,8 @@ class WidgetGenerationService:
             f"generate_flow_step_protocol_loaded protocol_profile_id={protocol_profile['id']} "
             f"protocol_version={protocol_profile['version']}"
         )
+        latency_by_stage["registryAndProtocol"] = self._elapsed_ms(stage_started_at)
+        stage_started_at = time.perf_counter()
         # 设备可用性已由第一个接口完成；生成接口只做绑定结构校验，不再查询 IDS。
         resolver = DeviceCapabilityResolver(registry)
         effective_bindings, effective_data_capabilities, removed_data = (
@@ -311,19 +326,32 @@ class WidgetGenerationService:
             "removed_assets="
             f"{json_for_log([item.model_dump(mode='json') for item in removed_assets])}"
         )
+        latency_by_stage["capabilityResolution"] = self._elapsed_ms(stage_started_at)
+        stage_started_at = time.perf_counter()
         if request.candidateDataBindings and not effective_bindings and not effective_events:
             # 没有剩余动态数据或可用入口时，不调用模型，也不伪造数据绑定。
             logger.warning(
                 f"generate_widget_card_unsupported removed_count={len(removed)} "
                 f"error_code={ErrorCode.NO_EFFECTIVE_CAPABILITY.value}"
             )
-            return GenerateWidgetCardResponse(
+            response = GenerateWidgetCardResponse(
                 status=GenerationStatus.UNSUPPORTED,
                 suggestSize=request.size,
                 message="当前设备上没有可用的数据能力或入口能力，暂时不能生成这类实时卡片。你可以试试天气、日历或系统状态类卡片。",
                 removedCapabilities=removed,
                 errorCode=ErrorCode.NO_EFFECTIVE_CAPABILITY.value,
             )
+            latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
+            self._log_generation_summary(
+                request,
+                protocol_profile_id=protocol_profile["id"],
+                capability_registry_version=registry.version,
+                removed=removed,
+                status=response.status,
+                error_code=response.errorCode,
+                latency_by_stage=latency_by_stage,
+            )
+            return response
 
         # CardSpec 是端侧运行时刷新数据的契约，只包含裁决后的有效数据绑定。
         # CardSpec 由服务侧统一组装；标题和说明直接透传第三个生成接口的入参。
@@ -361,6 +389,8 @@ class WidgetGenerationService:
         logger.info(
             f"a2ui_prompt_built prompt={json_for_log(prompt)}"
         )
+        latency_by_stage["specAndPrompt"] = self._elapsed_ms(stage_started_at)
+        stage_started_at = time.perf_counter()
 
         model_client = A2UIModelClient()
         retry_controller = RetryController()
@@ -436,6 +466,8 @@ class WidgetGenerationService:
                 f"errors={json_for_log(errors)} "
                 "proceeding_to_artifact_save=true"
             )
+        latency_by_stage["modelAndValidation"] = self._elapsed_ms(stage_started_at)
+        stage_started_at = time.perf_counter()
 
         # 无论校验是否通过，都使用最后一次模型输出组装 artifact；校验失败只记录质量告警。
         artifact = self._build_artifact(
@@ -457,6 +489,7 @@ class WidgetGenerationService:
             f"removed_count={len(artifact.removedCapabilities)}"
         )
         artifact_save_result = ArtifactStore().save(artifact)
+        latency_by_stage["artifactStore"] = self._elapsed_ms(stage_started_at)
         # ResponsePlanner 根据移除能力和最终产物判断 success/degraded/failed 等用户状态。
         response_plan = ResponsePlanner().plan(
             len(request.candidateDataBindings),
@@ -469,7 +502,7 @@ class WidgetGenerationService:
             f"artifact_url={artifact_save_result.artifactUrl} "
             f"removed_count={len(removed)} error_code={response_plan.errorCode}"
         )
-        return GenerateWidgetCardResponse(
+        response = GenerateWidgetCardResponse(
             status=response_plan.status,
             artifactUrl=artifact_save_result.artifactUrl,
             artifactDigest=artifact_save_result.artifactDigest,
@@ -478,6 +511,72 @@ class WidgetGenerationService:
             removedCapabilities=removed,
             errorCode=response_plan.errorCode,
             effectiveCapabilities=artifact.effectiveCapabilities,
+        )
+        latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
+        self._log_generation_summary(
+            request,
+            protocol_profile_id=protocol_profile["id"],
+            capability_registry_version=registry.version,
+            effective_capabilities=artifact.effectiveCapabilities,
+            removed=removed,
+            status=response.status,
+            error_code=response.errorCode,
+            latency_by_stage=latency_by_stage,
+            retry_count=retry_result.retryCount,
+            artifact_digest=artifact_save_result.artifactDigest,
+        )
+        return response
+
+    @staticmethod
+    def _elapsed_ms(started_at: float) -> float:
+        return round((time.perf_counter() - started_at) * 1000, 2)
+
+    def _log_generation_summary(
+        self,
+        request: GenerateWidgetCardRequest,
+        *,
+        status: GenerationStatus,
+        error_code: str,
+        protocol_profile_id: str = "",
+        capability_registry_version: str = "",
+        effective_capabilities: dict | None = None,
+        removed: list | None = None,
+        latency_by_stage: dict[str, float] | None = None,
+        retry_count: int = 0,
+        artifact_digest: str = "",
+    ) -> None:
+        """输出一次生成请求的统一观测字段，不记录 uid 和原始设备标识。"""
+        candidate_capabilities = {
+            "data": [item.capabilityId for item in request.candidateDataBindings],
+            "event": [item.capabilityId for item in request.candidateEventCandidates],
+            "asset": list(request.candidateAssetIds),
+        }
+        removed_capabilities = [
+            item.model_dump(mode="json") if hasattr(item, "model_dump") else item
+            for item in (removed or [])
+        ]
+        query_hash = hashlib.sha256(request.userQuery.encode("utf-8")).hexdigest()
+        device_identifier = request.device.deviceId or request.device.odid or ""
+        device_id_hash = (
+            hashlib.sha256(device_identifier.encode("utf-8")).hexdigest()[:16]
+            if device_identifier
+            else ""
+        )
+        logger.info(
+            "widget_generation_summary "
+            f"query_hash={query_hash} "
+            f"device_id_hash={device_id_hash} "
+            "skill_version=skill-widget-v1 "
+            f"protocol_profile_id={protocol_profile_id} "
+            f"capability_registry_version={capability_registry_version} "
+            f"candidate_capabilities={json_for_log(candidate_capabilities)} "
+            "effective_capabilities="
+            f"{json_for_log(effective_capabilities or {'data': [], 'event': [], 'asset': []})} "
+            f"removed_capabilities={json_for_log(removed_capabilities)} "
+            f"status={status.value} error_code={error_code} "
+            f"latency_by_stage={json_for_log(latency_by_stage or {})} "
+            f"retry_count={retry_count} artifact_digest={artifact_digest} "
+            "generation_mode=create"
         )
 
     def generate_widget_card_a2ui_form(

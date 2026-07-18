@@ -21,6 +21,7 @@ if str(CLOUD_ROOT) not in sys.path:
     sys.path.insert(0, str(CLOUD_ROOT))
 
 from core.errors import ErrorCode, GenerationStatus
+from api.schemas import GenerateWidgetCardRequest
 from api.routes import _error_details, _pick_device_rom_version
 from app.logger import json_for_log
 from config.config import Settings, get_settings
@@ -53,6 +54,7 @@ from services.response_planner import ResponsePlanner
 from services.retry_controller import RetryController
 from services.task_spec_builder import TaskSpecBuilder
 from services.validator import ArtifactValidator
+from services.widget_generation_service import WidgetGenerationService
 from utils.base_utils import sts_config
 from utils.file import delete_file, save_txt_file
 from utils.upload_file_obs import UploadFileOSMS
@@ -95,6 +97,52 @@ def test_json_for_log_uses_standard_json_syntax():
             "items": ["a"],
         }
     ) == '{"name":"运动健康","enabled":true,"missing":null,"items":["a"]}'
+
+
+def test_generation_summary_contains_required_observability_fields(monkeypatch):
+    messages: list[str] = []
+    monkeypatch.setattr(
+        "services.widget_generation_service.logger",
+        type("CapturedLogger", (), {"info": staticmethod(messages.append)})(),
+    )
+    request = GenerateWidgetCardRequest(
+        uid="uid-must-not-be-logged",
+        device={"romVersion": "36"},
+        userQuery="生成天气卡片",
+        title="天气",
+        description="当前天气",
+    )
+
+    WidgetGenerationService()._log_generation_summary(
+        request,
+        status=GenerationStatus.SUCCESS,
+        error_code="",
+        protocol_profile_id="a2ui-form-rom36-v1",
+        capability_registry_version="app-11.7.5.205_rom-36",
+        latency_by_stage={"total": 12.3},
+        retry_count=0,
+        artifact_digest="sha256:test",
+    )
+
+    summary = messages[-1]
+    for field in (
+        "query_hash=",
+        "device_id_hash=",
+        "skill_version=",
+        "protocol_profile_id=",
+        "capability_registry_version=",
+        "candidate_capabilities=",
+        "effective_capabilities=",
+        "removed_capabilities=",
+        "status=success",
+        "error_code=",
+        "latency_by_stage=",
+        "retry_count=0",
+        "artifact_digest=sha256:test",
+        "generation_mode=create",
+    ):
+        assert field in summary
+    assert request.uid not in summary
 
 
 def test_json_for_log_removes_user_uid_recursively():
@@ -1295,7 +1343,7 @@ def test_prompt_builder_returns_model_messages():
         {
             "id": "a2ui-form-rom36-v1",
             "version": "v0.9",
-            "catalogId": "ohos.a2ui.extended.catalog",
+            "catalogId": "ohos.a2ui.extended.catalog.form",
             "sizes": {"2x4": {"width": 300, "height": 140}},
             "componentWhitelist": ["Text", "Column"],
         },
@@ -1360,7 +1408,7 @@ def test_a2ui_model_client_returns_mock_dat_without_processing():
         {
             "version": "v0.9",
             "format": "a2ui-form",
-            "catalogId": "ohos.a2ui.extended.catalog",
+            "catalogId": "ohos.a2ui.extended.catalog.form",
             "sizes": {"2x4": {"width": 300, "height": 140}},
         },
     )
@@ -1507,8 +1555,17 @@ def test_artifact_store_returns_structured_save_result(tmp_path, monkeypatch):
     assert result.artifactDigest.startswith("sha256:")
     uploaded_file = mock_storage_dir / result.artifactUrl.rsplit("/", 1)[-1]
     uploaded_content = uploaded_file.read_text(encoding="utf-8")
+    assert uploaded_content.count("```genui") == 1
+    assert uploaded_content.count("```cardspec") == 1
+    assert uploaded_content.count("```taskspec") == 1
+    assert uploaded_content.count("```effectivecapabilities") == 1
+    assert uploaded_content.count("```removedcapabilities") == 1
+    assert uploaded_content.count("```meta") == 1
+    assert uploaded_content.count("```schema") == 1
     assert '"title": "天气速览"' in uploaded_content
     assert '"description": "查看当前天气"' in uploaded_content
+    assert '"dataModelSchema"' in uploaded_content
+    assert '"protocolProfileId": "a2ui-form-rom36-v1"' in uploaded_content
 
 
 def test_file_utils_save_and_delete_utf8_text(tmp_path):
@@ -1559,7 +1616,7 @@ def test_artifact_validator_rejects_legacy_component_shape():
         [
             (
                 '{"version":"v0.9","createSurface":'
-                '{"surfaceId":"card","catalogId":"ohos.a2ui.extended.catalog",'
+                '{"surfaceId":"card","catalogId":"ohos.a2ui.extended.catalog.form",'
                 '"width":300,"height":140}}'
             ),
             (
@@ -1599,7 +1656,7 @@ def _a2ui_genui_with_image(
                     "version": "v0.9",
                     "createSurface": {
                         "surfaceId": "card",
-                        "catalogId": "ohos.a2ui.extended.catalog",
+                        "catalogId": "ohos.a2ui.extended.catalog.form",
                         "width": 140,
                         "height": 140,
                     },

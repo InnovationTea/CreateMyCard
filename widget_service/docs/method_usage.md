@@ -183,8 +183,6 @@ curl http://127.0.0.1:8855/health
   "operation": "getWidgetCapabilityOverview",
   "requestId": "overview-1",
   "data": {
-    "apiVersion": "v1",
-    "capabilityRegistryVersion": "app-11.7.5.205_rom-36",
     "dataCapabilities": [
       {
         "id": "ViewWeather",
@@ -1026,13 +1024,14 @@ cloud/services/artifact_store.py
 save(artifact: WidgetArtifact) -> tuple[str, str]
 ```
 
-用途：保存完整 artifact 并返回 URL 和 sha256 digest。
+用途：把完整 artifact 写成具名 Markdown 代码块、上传并返回 URL 和服务端追踪摘要。
 
 当前实现：
 
 ```text
-计算完整 artifact 的 sha256 digest
-返回 mock OBS URL
+计算完整 artifact 的服务端追踪摘要
+分别写入 schema/genui/cardspec/taskspec/effectivecapabilities/removedcapabilities/meta 代码块
+上传文件并返回 URL
 ```
 
 代码里已按要求留 TODO：
@@ -1041,7 +1040,7 @@ save(artifact: WidgetArtifact) -> tuple[str, str]
 Replace this method with the team's OBS uploader.
 ```
 
-后续你们只需要在这里接自己的 OBS 上传方法，注意上传内容必须是完整 artifact JSON，不能只上传 genui。
+后续接入 OBS 上传方法时必须保留全部具名代码块，不能只上传 genui 或 cardspec。返回的摘要用于日志关联和版本识别，调用方无需对下载文件重新计算摘要。
 
 ### 9.2 ResponsePlanner.plan
 

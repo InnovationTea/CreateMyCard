@@ -156,7 +156,7 @@ def _valid_model_output(_self, _prompt, protocol_profile: dict) -> str:
             "version": "v0.9",
             "createSurface": {
                 "surfaceId": "card",
-                "catalogId": "ohos.a2ui.extended.catalog",
+                "catalogId": "ohos.a2ui.extended.catalog.form",
                 "width": 300,
                 "height": 140,
             },
@@ -346,7 +346,8 @@ def test_widget_card_service_complete_flow(monkeypatch):
         overview = overview_legacy_message["data"]
         assert overview_legacy_message["status"] == "success"
         assert overview_legacy_message["errorCode"] == ""
-        assert overview["capabilityRegistryVersion"] == "app-11.7.5.205_rom-36"
+        assert "apiVersion" not in overview
+        assert "capabilityRegistryVersion" not in overview
         assert [item["id"] for item in overview["dataCapabilities"]] == [
             "ViewWeather",
             "GetCalendarEvents",
@@ -531,13 +532,10 @@ def test_overview_interface_filters_health_dependencies(monkeypatch):
     assert "GetHealthAndSportSummary" not in {
         item["id"] for item in data["dataCapabilities"]
     }
-    unavailable = {
-        item["id"]: item["reason"] for item in data["unavailableCapabilities"]
-    }
-    assert unavailable == {
-        "GetHealthAndSportSummary": "PACKAGE_NOT_INSTALLED",
-        "event.open.health.sport": "PACKAGE_NOT_INSTALLED",
-        "event.open.health.sleep": "PACKAGE_NOT_INSTALLED",
+    assert set(data["unavailableCapabilities"]) == {
+        "GetHealthAndSportSummary",
+        "event.open.health.sport",
+        "event.open.health.sleep",
     }
 
 
@@ -611,9 +609,7 @@ def test_overview_interface_does_not_filter_assets_by_app_version():
 
     data = message["data"]
     assert "asset.drop_1" in {item["id"] for item in data["assetCandidates"]}
-    assert "asset.drop_1" not in {
-        item["id"] for item in data["unavailableCapabilities"]
-    }
+    assert "asset.drop_1" not in data["unavailableCapabilities"]
 
 
 def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
@@ -723,7 +719,8 @@ def test_unknown_prd_version_falls_back_for_first_two_interfaces():
         overview = overview_legacy_message["data"]
         assert overview_legacy_message["status"] == "success"
         assert overview_legacy_message["errorCode"] == ""
-        assert overview["capabilityRegistryVersion"] == "app-11.7.5.205_rom-36"
+        assert "apiVersion" not in overview
+        assert "capabilityRegistryVersion" not in overview
         assert any(item["id"] == "ViewWeather" for item in overview["dataCapabilities"])
         assert overview["eventCapabilities"]
         assert overview["assetCandidates"]
@@ -790,7 +787,8 @@ def test_explicit_unknown_registry_falls_back_for_first_two_interfaces():
             _request_id("explicit-fallback-schema"),
         )["data"]
 
-    assert overview["capabilityRegistryVersion"] == "app-11.7.5.205_rom-36"
+    assert "apiVersion" not in overview
+    assert "capabilityRegistryVersion" not in overview
     assert any(item["id"] == "ViewWeather" for item in overview["dataCapabilities"])
     assert schema["capabilityRegistryVersion"] == "app-11.7.5.205_rom-36"
     assert [item["id"] for item in schema["dataCapabilities"]] == ["ViewWeather"]
@@ -863,7 +861,8 @@ def test_registry_fallback_switch_off_applies_to_all_three_interfaces(monkeypatc
             _request_id("fallback-off-generation"),
         )["data"]
 
-    assert overview["capabilityRegistryVersion"] == expected_version
+    assert "apiVersion" not in overview
+    assert "capabilityRegistryVersion" not in overview
     assert overview["dataCapabilities"] == []
     assert overview["eventCapabilities"] == []
     assert overview["assetCandidates"] == []
