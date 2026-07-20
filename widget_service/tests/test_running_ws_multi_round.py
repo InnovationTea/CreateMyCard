@@ -88,8 +88,6 @@ async def _generate(content: dict, interaction_id: str) -> dict:
             f"当前探测地址：{WS_URI}；"
             f"连接错误：{type(exc).__name__}: {exc}"
         )
-        if __name__ == "__main__":
-            raise SystemExit(reason) from None
         pytest.skip(reason)
 
 
