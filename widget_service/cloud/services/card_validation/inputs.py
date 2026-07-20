@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 """Normalization for validate_card inputs.
 
 Handles all the "dsl/cardspec/artifact/effective 可能是 dict 也可能是 str，

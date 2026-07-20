@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 """Effective capability resolution.
 
 Only used in dynamic effective mode. Resolves effective data / event / asset

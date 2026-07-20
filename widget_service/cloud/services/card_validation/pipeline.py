@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 """Validator pipeline orchestration.
 
 Owns the static list of built-in validators and the stage/short-circuit logic.
