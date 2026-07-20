@@ -4,15 +4,16 @@ import base64
 import hashlib
 import hmac
 import json
-import json_repair
 import time
 import traceback
 from pathlib import Path
 
+import json_repair
 import requests
 
 from app.logger import json_for_log, logger
 from config.config import get_settings
+from models.model_usage import ModelTokenUsage, sum_model_token_usage
 from services.compact_dsl_protocol import is_compact_dsl
 from utils.base_utils import sts_config
 
@@ -44,6 +45,7 @@ class A2UIModelClient:
             settings.enable_a2ui_model_mock if use_mock is None else use_mock
         )
         self.mock_data_path = Path(mock_data_path) if mock_data_path else None
+        self.token_usage_records: list[ModelTokenUsage] = []
 
     def generate(
             self,
@@ -65,7 +67,15 @@ class A2UIModelClient:
         if self.use_mock:
             return self._load_mock_data(protocol_profile)
 
+        profile = protocol_profile or {}
+        if is_compact_dsl(profile):
+            profile_id = str(profile.get("id") or "unknown")
+            return self._generate_compact_from_real_model(prompt, profile_id)
         return self._generate_from_real_model(prompt)
+
+    def get_token_usage_summary(self) -> tuple[ModelTokenUsage, int]:
+        """返回当前客户端的 token 汇总和有效 usage 记录数。"""
+        return sum_model_token_usage(self.token_usage_records), len(self.token_usage_records)
 
     def _load_mock_data(self, protocol_profile: dict | None = None) -> str:
         """直接读取当前协议对应的 mock 原始内容。
@@ -334,3 +344,165 @@ class A2UIModelClient:
             error_detail = f"a2ui_model_error: unexpected error, {type(e).__name__}: {e}"
 
         return error_detail
+
+    def _generate_compact_from_real_model(
+            self,
+            messages: list[dict[str, str]],
+            protocol_profile_id: str,
+            max_tokens: int = 128000,
+            timeout: int = 600,
+    ) -> str:
+        """调用老模型直接生成 Compact DSL，不经过 A2UI 包络转换。"""
+        payload = {
+            "model": self.settings.model_name,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "stream": True,
+        }
+        payload_str = json.dumps(payload, ensure_ascii=False)
+        headers = {
+            "Authorization": self.calc_sign(payload_str),
+            "Content-Type": "application/json",
+            "Accept": "text/event-stream",
+        }
+        content_parts: list[str] = []
+        reasoning_parts: list[str] = []
+        latest_token_usage: ModelTokenUsage | None = None
+        started_at = time.perf_counter()
+        try:
+            with requests.post(
+                    self.settings.model_url,
+                    data=payload_str,
+                    headers=headers,
+                    timeout=timeout,
+                    stream=True,
+            ) as response:
+                response.raise_for_status()
+                for raw_line in response.iter_lines(decode_unicode=True):
+                    data = self._stream_data(raw_line)
+                    if data is None:
+                        continue
+                    if data == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data)
+                    except json.JSONDecodeError:
+                        logger.warning(f"{_MODULE} compact_invalid_stream_chunk")
+                        continue
+
+                    usage = ModelTokenUsage.from_stream_chunk(chunk)
+                    if usage is not None:
+                        latest_token_usage = usage
+
+                    stream_payload = self._first_choice_payload(chunk)
+                    if not stream_payload:
+                        continue
+                    content = self._text_fragment(stream_payload.get("content"))
+                    if not content:
+                        content = self._text_fragment(stream_payload.get("text"))
+                    reasoning = self._reasoning_fragment(stream_payload)
+                    if content:
+                        content_parts.append(content)
+                    if reasoning:
+                        reasoning_parts.append(reasoning)
+
+            content_text = "".join(content_parts)
+            full_text = content_text or "".join(reasoning_parts)
+            dsl_text = self.extract_genui_payload(full_text)
+            duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
+            logger.info(
+                f"{_MODULE} compact_response_received duration_ms={duration_ms} "
+                f"dsl_content={dsl_text}"
+            )
+            return dsl_text
+        except requests.exceptions.Timeout as exc:
+            logger.error(
+                f"{_MODULE} compact_request_timeout exception={exc!r} "
+                f"traceback={traceback.format_exc()}"
+            )
+        except requests.exceptions.RequestException as exc:
+            logger.error(
+                f"{_MODULE} compact_request_failed exception_type={type(exc).__name__} "
+                f"exception={exc!r} traceback={traceback.format_exc()}"
+            )
+        except Exception as exc:
+            logger.error(
+                f"{_MODULE} compact_unexpected_error exception_type={type(exc).__name__} "
+                f"exception={exc!r} traceback={traceback.format_exc()}"
+            )
+        finally:
+            self._record_token_usage(protocol_profile_id, latest_token_usage)
+        return ""
+
+    def _record_token_usage(
+            self,
+            protocol_profile_id: str,
+            usage: ModelTokenUsage | None,
+    ) -> None:
+        """记录一次 Compact 模型请求的最终累计 token 用量。"""
+        if usage is None:
+            logger.warning(
+                f"{_MODULE} model_token_usage_unavailable "
+                f"protocol_profile_id={protocol_profile_id} model={self.settings.model_name}"
+            )
+            return
+        self.token_usage_records.append(usage)
+        logger.info(
+            f"{_MODULE} model_token_usage protocol_profile_id={protocol_profile_id} "
+            f"model={self.settings.model_name} prompt_tokens={usage.prompt_tokens} "
+            f"completion_tokens={usage.completion_tokens} total_tokens={usage.total_tokens} "
+            f"reasoning_tokens={usage.reasoning_tokens}"
+        )
+
+    @staticmethod
+    def _stream_data(raw_line: str | bytes) -> str | None:
+        if isinstance(raw_line, bytes):
+            line = raw_line.decode("utf-8", errors="replace").strip()
+        else:
+            line = raw_line.strip()
+        if not line:
+            return None
+        if line.startswith("data:"):
+            return line[len("data:"):].strip()
+        if line.startswith("{"):
+            return line
+        return None
+
+    @staticmethod
+    def _first_choice_payload(chunk: object) -> dict:
+        if not isinstance(chunk, dict):
+            return {}
+        choices = chunk.get("choices")
+        if not isinstance(choices, list) or not choices:
+            return {}
+        first_choice = choices[0]
+        if not isinstance(first_choice, dict):
+            return {}
+        delta = first_choice.get("delta")
+        if isinstance(delta, dict):
+            return delta
+        message = first_choice.get("message")
+        if isinstance(message, dict):
+            return message
+        return first_choice
+
+    def _reasoning_fragment(self, payload: dict) -> str:
+        reasoning = self._text_fragment(payload.get("reasoning_content"))
+        if reasoning:
+            return reasoning
+        return self._text_fragment(payload.get("reasoning"))
+
+    @staticmethod
+    def _text_fragment(value: object) -> str:
+        if isinstance(value, str):
+            return value
+        if not isinstance(value, list):
+            return ""
+        parts: list[str] = []
+        for item in value:
+            if not isinstance(item, dict):
+                continue
+            text = item.get("text")
+            if isinstance(text, str):
+                parts.append(text)
+        return "".join(parts)

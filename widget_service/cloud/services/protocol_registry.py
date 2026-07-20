@@ -35,6 +35,18 @@ class A2UIProtocolRegistry:
         protocol_md = self._read_markdown(profile_dir, "protocol.md")
         component_catalog_md = self._read_markdown(profile_dir, "component-catalog.md")
         data_binding_md = self._read_markdown(profile_dir, "data-binding.md")
+        documents = {
+            "protocol.md": protocol_md,
+            "component-catalog.md": component_catalog_md,
+            "data-binding.md": data_binding_md,
+        }
+        if self.profile_id == COMPACT_DSL_PROTOCOL_PROFILE_ID:
+            system_prompt_md = self._read_optional_markdown(
+                profile_dir,
+                "system-prompt.md",
+            )
+            if system_prompt_md:
+                documents["system-prompt.md"] = system_prompt_md
         profile = {
             "id": self.profile_id,
             "version": self._extract_quoted_value(protocol_md, "version", "v0.9"),
@@ -64,11 +76,7 @@ class A2UIProtocolRegistry:
             ],
             "fontSizeSteps": [10, 12, 14, 16, 18, 20, 32, 40],
             "spacingSteps": [2, 4, 6, 8, 10, 12, 14, 16],
-            "documents": {
-                "protocol.md": protocol_md,
-                "component-catalog.md": component_catalog_md,
-                "data-binding.md": data_binding_md,
-            },
+            "documents": documents,
         }
         logger.info(
             f"{_MODULE} protocol_profile_loaded profile_id={self.profile_id} "
@@ -88,6 +96,13 @@ class A2UIProtocolRegistry:
         path = profile_dir / filename
         if not path.exists():
             raise ValueError(f"Protocol markdown not found: {path}")
+        return path.read_text(encoding="utf-8")
+
+    def _read_optional_markdown(self, profile_dir, filename: str) -> str:
+        """读取可选的协议辅助文档，不存在时返回空字符串。"""
+        path = profile_dir / filename
+        if not path.exists():
+            return ""
         return path.read_text(encoding="utf-8")
 
     def _extract_quoted_value(self, markdown: str, key: str, default: str) -> str:

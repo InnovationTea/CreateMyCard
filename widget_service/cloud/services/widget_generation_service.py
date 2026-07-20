@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import hashlib
+import json
 import time
 import uuid
 
@@ -23,6 +24,11 @@ from models.generation import EventAction
 from services.artifact_store import ArtifactStore
 from services.capability_registry import CapabilityRegistry
 from services.card_spec_builder import CardSpecBuilder
+from services.compact_dsl_protocol import (
+    build_compact_binding_context,
+    is_compact_dsl,
+    preflight_compact_dsl,
+)
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.edit_request_normalizer import EditRequestNormalizer
 from services.prompt_builder import PromptBuilder
@@ -350,8 +356,10 @@ class WidgetGenerationService:
         # 协议 profile 决定 A2UI 组件白名单、DSL 行数要求和校验规则。
         protocol_registry = A2UIProtocolRegistry(request.protocolProfileId)
         protocol_profile = protocol_registry.get_profile()
+        compact_dsl = is_compact_dsl(protocol_profile)
         logger.info(
-            f"{_MODULE} generate_flow_step_protocol_loaded protocol_profile_id={protocol_profile['id']} "
+            f"{_MODULE} generate_flow_step_protocol_loaded "
+            f"protocol_profile_id={protocol_profile['id']} "
             f"protocol_version={protocol_profile['version']}"
         )
         latency_by_stage["registryAndProtocol"] = self._elapsed_ms(stage_started_at)
@@ -477,6 +485,23 @@ class WidgetGenerationService:
                 source_load_result.artifact.genui if source_load_result else None
             ),
         )
+        if compact_dsl:
+            compact_binding_context = build_compact_binding_context(
+                card_spec.model_dump(mode="json", exclude_none=True),
+                effective_data_capabilities,
+            )
+            if compact_binding_context is not None:
+                prompt[0]["content"] = "\n".join(
+                    [
+                        prompt[0]["content"],
+                        "Dynamic binding context JSON:",
+                        json.dumps(
+                            compact_binding_context,
+                            ensure_ascii=False,
+                            separators=(",", ":"),
+                        ),
+                    ]
+                )
 
         logger.info(
             f"{_MODULE} a2ui_prompt_built prompt={json_for_log(prompt)}"
@@ -487,6 +512,7 @@ class WidgetGenerationService:
         model_client = A2UIModelClient()
         retry_controller = RetryController()
         artifact_id = str(uuid.uuid4())
+        compact_operation_error = ""
 
         def operation() -> str:
             """执行一次 A2UI 模型生成。
@@ -494,9 +520,49 @@ class WidgetGenerationService:
             入参：无。
             出参：三行 JSONL genui 字符串。
             """
-            # mock 模型客户端当前返回稳定 DSL；后续替换真实模型时保持 generate 入参不变。
+            nonlocal compact_operation_error
             logger.info(f"{_MODULE} a2ui_model_operation_started")
-            return model_client.generate(prompt, protocol_profile)
+            generated = model_client.generate(prompt, protocol_profile)
+            if not compact_dsl:
+                return generated
+            if not generated.strip():
+                compact_operation_error = "model output is empty"
+                return ""
+
+            preflight_started_at = time.perf_counter()
+            preflight = preflight_compact_dsl(
+                generated,
+                card_spec.model_dump(mode="json", exclude_none=True),
+                effective_data_capabilities,
+                effective_events,
+                task_spec.model_dump(mode="json", exclude_none=True),
+            )
+            preflight_duration_ms = self._elapsed_ms(preflight_started_at)
+            categories = sorted(
+                {item.category for item in preflight.diagnostics}
+            )
+            logger.info(
+                f"{_MODULE} compact_preflight_completed passed={preflight.passed} "
+                f"duration_ms={preflight_duration_ms} "
+                f"repair_count={len(preflight.repairs)} "
+                f"repairs={json_for_log(list(preflight.repairs))} "
+                f"error_count={len(preflight.error_messages)} "
+                f"categories={json_for_log(categories)}"
+            )
+            if preflight.passed:
+                return preflight.genui
+
+            compact_operation_error = " | ".join(
+                f"[{item.category}] {item.message}"
+                for item in preflight.diagnostics
+                if item.severity == "error"
+            )
+            logger.error(
+                f"{_MODULE} compact_preflight_failed "
+                f"errors={json_for_log(list(preflight.error_messages))} "
+                f"categories={json_for_log(categories)}"
+            )
+            return ""
 
         def validate_genui(genui: str) -> list[str]:
             """校验单次模型输出。
@@ -505,8 +571,14 @@ class WidgetGenerationService:
             - genui：模型生成的三行 JSONL 字符串。
             出参：校验错误列表；空列表表示通过。
             """
+            if compact_dsl and not genui.strip():
+                error = compact_operation_error or "model output is empty"
+                logger.error(
+                    f"{_MODULE} compact_genui_empty error={error}"
+                )
+                return [error]
             # 每次模型输出都临时组装 artifact，再用同一套 Validator 校验完整契约。
-            if not settings.enable_artifact_validation:
+            if not settings.enable_artifact_validation and not compact_dsl:
                 logger.info(
                     f"{_MODULE} a2ui_genui_validation_skipped "
                     "reason=enable_artifact_validation_false"
@@ -533,10 +605,17 @@ class WidgetGenerationService:
                     source_load_result.artifact_digest if source_load_result else None
                 ),
             )
-            validation_errors = ArtifactValidator().validate(
+            artifact_validator = ArtifactValidator()
+            validation_errors = artifact_validator.validate(
                 artifact,
                 protocol_profile,
             )
+            if compact_dsl and validation_errors:
+                logger.info(
+                    f"{_MODULE} compact_validation_failed "
+                    "model_retry_skipped=true reason=single_pass_policy "
+                    f"categories={json_for_log(artifact_validator.error_categories)}"
+                )
             if source_load_result:
                 source_write_roots = {
                     item.writeResultTo
@@ -552,20 +631,74 @@ class WidgetGenerationService:
                         )
             return validation_errors
 
-        # 校验始终执行；是否因校验失败重新生成由配置开关独立控制。
+        # 工具3保留部署配置的重试行为；工具4依靠本地 preflight 修复并保持单次模型调用。
+        retry_on_validation_failure = (
+            settings.enable_validation_failure_retry and not compact_dsl
+        )
         retry_result = retry_controller.run(
             operation,
             validate_genui,
-            retry_on_validation_failure=settings.enable_validation_failure_retry,
+            retry_on_validation_failure=retry_on_validation_failure,
         )
         genui = retry_result.result
         errors = retry_result.errors
+        latency_by_stage["modelAndValidation"] = self._elapsed_ms(stage_started_at)
+        token_usage, usage_record_count = model_client.get_token_usage_summary()
+
+        def log_compact_token_usage(generation_status: str) -> None:
+            if not compact_dsl:
+                return
+            logger.info(
+                f"{_MODULE} model_token_usage_summary "
+                "operation=generateWidgetCardCompactDsl "
+                f"card_type={json_for_log(request.title)} card_size={request.size} "
+                f"generation_status={generation_status} "
+                f"protocol_profile_id={protocol_profile['id']} "
+                f"model_request_count={retry_result.retryCount + 1} "
+                f"usage_record_count={usage_record_count} "
+                f"retry_count={retry_result.retryCount} "
+                f"prompt_tokens={token_usage.prompt_tokens} "
+                f"completion_tokens={token_usage.completion_tokens} "
+                f"total_tokens={token_usage.total_tokens} "
+                f"reasoning_tokens={token_usage.reasoning_tokens} "
+                "model_generation_duration_ms="
+                f"{latency_by_stage['modelAndValidation']} "
+                "input_to_output_duration_ms="
+                f"{self._elapsed_ms(generation_started_at)}"
+            )
+
         logger.info(
             f"{_MODULE} a2ui_generation_completed retry_count={retry_result.retryCount} "
             "validation_failure_retry_enabled="
-            f"{json_for_log(settings.enable_validation_failure_retry)} "
+            f"{json_for_log(retry_on_validation_failure)} "
             f"validation_error_count={len(errors)}"
         )
+        if compact_dsl and errors:
+            logger.error(
+                f"{_MODULE} compact_generation_validation_failed "
+                f"errors={json_for_log(errors)}"
+            )
+            log_compact_token_usage(GenerationStatus.FAILED.value)
+            response = GenerateWidgetCardResponse(
+                status=GenerationStatus.FAILED,
+                suggestSize=request.size,
+                message="卡片生成过程中校验失败，请稍后再试。",
+                removedCapabilities=removed,
+                errorCode=ErrorCode.VALIDATION_FAILED.value,
+            )
+            latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
+            self._log_generation_summary(
+                request,
+                protocol_profile_id=protocol_profile["id"],
+                capability_registry_version=registry.version,
+                removed=removed,
+                status=response.status,
+                error_code=response.errorCode,
+                latency_by_stage=latency_by_stage,
+                retry_count=retry_result.retryCount,
+                generation_mode=generation_mode,
+            )
+            return response
         if errors:
             logger.error(
                 f"{_MODULE} a2ui_generation_validation_failed_non_blocking "
@@ -573,14 +706,13 @@ class WidgetGenerationService:
                 f"validation_error_code={ErrorCode.VALIDATION_FAILED.value} "
                 f"retry_count={retry_result.retryCount} "
                 "validation_failure_retry_enabled="
-                f"{json_for_log(settings.enable_validation_failure_retry)} "
+                f"{json_for_log(retry_on_validation_failure)} "
                 f"errors={json_for_log(errors)} "
                 "proceeding_to_artifact_save=true"
             )
-        latency_by_stage["modelAndValidation"] = self._elapsed_ms(stage_started_at)
         stage_started_at = time.perf_counter()
 
-        # 无论校验是否通过，都使用最后一次模型输出组装 artifact；校验失败只记录质量告警。
+        # 工具3沿用非阻断校验；工具4仅在 Compact 校验通过后组装 artifact。
         artifact = self._build_artifact(
             genui,
             card_spec.model_dump(mode="json", exclude_none=True),
@@ -630,6 +762,7 @@ class WidgetGenerationService:
             errorCode=response_plan.errorCode,
             effectiveCapabilities=artifact.effectiveCapabilities,
         )
+        log_compact_token_usage(response.status.value)
         latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
         self._log_generation_summary(
             request,

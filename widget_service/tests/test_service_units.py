@@ -1448,29 +1448,13 @@ def test_compact_dsl_profile_builds_isolated_prompt():
 
     assert profile["format"] == "compact-dsl"
     assert A2UIProtocolRegistry("a2ui-form-rom6.0-v1").get_profile()["format"] == "a2ui-form"
-    assert len(profile["componentWhitelist"]) == 16
-    assert set(profile["componentWhitelist"]) == {
-        "Row",
-        "Column",
-        "List",
-        "Stack",
-        "Grid",
-        "Text",
-        "Image",
-        "Divider",
-        "Progress",
-        "Button",
-        "TextInput",
-        "Radio",
-        "Toggle",
-        "Checkbox",
-        "Select",
-        "Web",
-    }
-    assert "raw NDJSON only" in system_prompt
-    assert "Do not output Markdown fences" in system_prompt
-    assert "Use Grid only for an explicit grid" in system_prompt
-    assert '"protocolProfile":{"id":"compact-dsl-v1"' in system_prompt
+    a2ui_profile = A2UIProtocolRegistry("a2ui-form-rom6.0-v1").get_profile()
+    assert profile["componentWhitelist"] == a2ui_profile["componentWhitelist"]
+    assert len(profile["componentWhitelist"]) == 10
+    assert "只输出裸 NDJSON" in system_prompt
+    assert "不输出 Markdown 围栏" in system_prompt
+    assert "Grid" not in profile["componentWhitelist"]
+    assert "Generation context JSON:" in system_prompt
 
 
 def test_a2ui_model_client_returns_mock_dat_without_processing():
@@ -1524,6 +1508,41 @@ def test_a2ui_model_client_real_mode_forwards_messages(monkeypatch):
     )
 
     assert A2UIModelClient(use_mock=False).generate(messages) == "forwarded"
+
+
+def test_a2ui_model_client_isolates_compact_and_a2ui_generators(monkeypatch):
+    """Tool 4 uses direct Compact output while Tool 3 keeps the A2UI path."""
+    calls: list[tuple[str, object]] = []
+
+    def generate_a2ui(_client, messages):
+        calls.append(("a2ui", messages))
+        return "a2ui-output"
+
+    def generate_compact(_client, messages, profile_id):
+        calls.append((profile_id, messages))
+        return "compact-output"
+
+    monkeypatch.setattr(
+        A2UIModelClient,
+        "_generate_from_real_model",
+        generate_a2ui,
+    )
+    monkeypatch.setattr(
+        A2UIModelClient,
+        "_generate_compact_from_real_model",
+        generate_compact,
+    )
+    messages = [{"role": "user", "content": "weather card"}]
+    a2ui_profile = A2UIProtocolRegistry("a2ui-form-rom6.0-v1").get_profile()
+    compact_profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
+    client = A2UIModelClient(use_mock=False)
+
+    assert client.generate(messages, a2ui_profile) == "a2ui-output"
+    assert client.generate(messages, compact_profile) == "compact-output"
+    assert calls == [
+        ("a2ui", messages),
+        ("compact-dsl-v1", messages),
+    ]
 
 
 def test_response_planner_returns_structured_status():
@@ -1901,7 +1920,7 @@ def test_artifact_validator_accepts_compact_dsl_ndjson():
         genui=(CLOUD_ROOT / "custom" / "mock.compact-dsl.dat").read_text(
             encoding="utf-8"
         ),
-        cardSpec={"suggestSize": "2x4"},
+        cardSpec={"suggestSize": "2x2"},
         taskSpec={"dataModelSchema": {"data": {}}},
         meta=ArtifactMeta(
             protocolProfileId="compact-dsl-v1",
@@ -1919,21 +1938,23 @@ def test_artifact_validator_accepts_compact_dsl_ndjson():
     ("data_line", "expected_error"),
     [
         (None, "has no data line"),
-        ('["/title",42]', "must initialize a string value"),
+        ('["/title",true]', "must initialize a string value"),
     ],
 )
 def test_artifact_validator_rejects_invalid_binding_data(data_line, expected_error):
-    """验证 Text.content 绑定必须存在数据行并初始化为 string。"""
+    """验证 Text.content 绑定有数据行，且预览值类型可被文本展示。"""
     profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
     lines = [
-        '["root","Column",{"width":"matchParent","space":8},["title"]]',
-        '["title","Text",{"content":{"path":"/title"}}]',
+        '["root","Stack",{"width":"matchParent","height":140,"padding":12,'
+        '"borderRadius":18,"clip":true,"backgroundColor":"#FFFFFFFF"},["title"]]',
+        '["title","Text",{"width":100,"height":20,'
+        '"content":{"path":"/title"},"fontSize":14}]',
     ]
     if data_line:
         lines.append(data_line)
     artifact = WidgetArtifact(
         genui="\n".join(lines),
-        cardSpec={"suggestSize": "2x4"},
+        cardSpec={"suggestSize": "2x2"},
         taskSpec={"dataModelSchema": {"data": {}}},
         meta=ArtifactMeta(
             protocolProfileId="compact-dsl-v1",
