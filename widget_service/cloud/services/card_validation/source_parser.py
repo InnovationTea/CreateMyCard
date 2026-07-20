@@ -170,7 +170,9 @@ class SourceParser:
         for component in context.components:
             component_id = component.get("id") if isinstance(component.get("id"), str) else None
             for pointer, value in walk_json(component):
-                if isinstance(value, str) and ("{{" in value or "}}" in value or "${" in value):
+                is_string = isinstance(value, str)
+                has_expression_marker = "{{" in value or "}}" in value or "${" in value
+                if is_string and has_expression_marker:
                     context.expression_locations.append(
                         (
                             "genui",
