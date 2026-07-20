@@ -47,7 +47,7 @@ REQUIRED_MANIFEST_FIELDS = {
 STYLE_PROFILES = {"neutral-light", "dark-focus", "ambient-scene", "media-surface"}
 SIZE_RULES = {
     "2x2": {"width": 160, "height": 160, "borderRadius": 18, "bindingLimit": 1},
-    "2x4": {"width": 320, "height": 160, "borderRadius": 22, "bindingLimit": 2},
+    "2x4": {"width": 320, "height": 160, "borderRadius": 18, "bindingLimit": 2},
 }
 WIDE_GEOMETRY = {
     "content-action-sidebar": {

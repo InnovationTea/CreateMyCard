@@ -15,7 +15,7 @@
   },
   "sizes": {
     "2x2": {"width": 160, "height": 160, "borderRadius": 18},
-    "2x4": {"width": 320, "height": 160, "borderRadius": 22}
+    "2x4": {"width": 320, "height": 160, "borderRadius": 18}
   },
   "allowedComponents": ["Text", "Image", "Divider", "Progress", "Button", "Checkbox", "Row", "Column", "List", "Stack"],
   "forbiddenComponents": ["TextInput", "Toggle", "Radio", "CheckboxGroup", "Select", "NavContainer", "Tabs", "TabContent", "Web", "Grid", "If"],

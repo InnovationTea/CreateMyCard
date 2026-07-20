@@ -91,7 +91,7 @@
 - 字符串可使用可解析的数值单位，例如 `vp`、`fp`、`%`，以及文档允许时的 `px`；`width/height` 还支持 `matchParent`、`wrapContent`、`fixAtIdealSize`。卡片 root 使用 `matchParent`，普通组件优先使用数值，只有历史修复或宿主明确支持时才保留百分比或自适应枚举。
 - `constraintSize` 必须同时写 `minWidth`、`maxWidth`、`minHeight`、`maxHeight`，用于约束动态文本、图片或弹性区域。
 - `margin` / `padding` 可以是数字，也可以是 `{ "left": 0, "right": 0, "top": 0, "bottom": 0 }` 对象；数值仍按 vp 预算。
-- `borderRadius`、`borderWidth` 可写数字或方向对象；卡片 root 优先用单个数字，内部小背板按预算使用。
+- `borderRadius`、`borderWidth` 可写数字或方向对象；卡片 root 必须使用单个数字 `18`，内部小背板等普通组件仍按预算使用其它合法圆角。
 - `createSurface.width/height` 和 root `styles.width/height` 必须写 `"matchParent"`；普通组件的 `width/height` 必须保持数值或可静态推导的约束，并按 `2x2 = 160vp x 160vp`、`2x4 = 320vp x 160vp` 的实际预算规划。
 - 颜色使用 `#RRGGBB` 或 `#AARRGGBB`。
 - 卡片背景样式放在 root 组件的 `styles` 中；新卡片默认省略 `createSurface.styles`，只有宿主明确要求外层形状/裁切时才可写 `borderRadius`、`clip`。

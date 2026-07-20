@@ -47,7 +47,7 @@
               "required": ["padding", "borderRadius", "clip"],
               "properties": {
                 "padding": {"type": "number", "minimum": 0},
-                "borderRadius": {"type": "number", "minimum": 0},
+                "borderRadius": {"const": 18},
                 "clip": {"const": true}
               }
             }

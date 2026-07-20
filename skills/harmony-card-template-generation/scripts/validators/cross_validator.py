@@ -11,6 +11,7 @@ class CrossValidator(BaseValidator):
         if not context.dsl_messages or not context.cardspec:
             return
         self._check_size(context, rules, reporter)
+        self._check_root_radius(context, rules, reporter)
         self._check_data_roots(context, rules, reporter)
 
     def _check_size(self, context, rules, reporter) -> None:
@@ -32,6 +33,30 @@ class CrossValidator(BaseValidator):
                 actual={"width": create.get("width"), "height": create.get("height")},
                 expected={"width": expected["width"], "height": expected["height"]},
                 message="DSL surface 必须使用 matchParent，并按 CardSpec suggestSize 的实际预算解析。",
+            )
+
+    def _check_root_radius(self, context, rules, reporter) -> None:
+        size = context.cardspec.get("suggestSize")
+        if size not in rules.protocol.get("sizes", {}) or not isinstance(context.root_component, dict):
+            return
+        expected_radius = 18
+        styles = context.root_component.get("styles")
+        if not isinstance(styles, dict):
+            actual_radius = None
+        else:
+            actual_radius = styles.get("borderRadius")
+        if resolve_dimension(actual_radius) != resolve_dimension(expected_radius):
+            reporter.add(
+                "error",
+                "CROSS_ROOT_RADIUS_MISMATCH",
+                "semantic",
+                "genui",
+                line=2,
+                json_pointer="/updateComponents/root/styles/borderRadius",
+                actual=actual_radius,
+                expected=expected_radius,
+                message="卡片 root 的 borderRadius 必须固定为 18vp，与 CardSpec 尺寸无关。",
+                fix_hint="将 updateComponents.root 指向组件的 styles.borderRadius 改为 18。",
             )
 
     def _check_data_roots(self, context, rules, reporter) -> None:

@@ -7,6 +7,10 @@
     "message": "DSL 缺少必填字段，或该字段为空。",
     "fixHint": "按 json_pointer 指向的位置补齐字段和值。"
   },
+  "CROSS_ROOT_RADIUS_MISMATCH": {
+    "message": "卡片 root 的 borderRadius 必须固定为 18vp，与 CardSpec 尺寸无关。",
+    "fixHint": "将 updateComponents.root 指向组件的 styles.borderRadius 改为 18。"
+  },
   "EXPR_FULL_STRING_REQUIRED": {
     "message": "动态值必须是完整表达式字符串，不能在普通字符串中嵌入 {{ ... }}。",
     "fixHint": "把静态文本也放进表达式内部，用 + 拼接。"

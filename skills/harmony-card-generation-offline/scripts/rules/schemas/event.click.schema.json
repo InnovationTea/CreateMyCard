@@ -8,11 +8,36 @@
     },
     "clickToDeeplink": {
       "parameters": {
+        "intentName": {"type": "string"},
         "bundleName": {"type": "string"},
         "abilityName": {"type": "string"},
         "uri": {"type": "string"}
       },
-      "required": []
+      "required": ["intentName", "uri"]
+    },
+    "clickToApi": {
+      "parameters": {
+        "intentName": {"type": "string"},
+        "params": {"type": "object"}
+      },
+      "required": ["intentName", "params"],
+      "supportedIntents": {
+        "CallPhone": {
+          "params": {
+            "relationship": {"type": "string"},
+            "phoneNumber": {"type": "string"}
+          },
+          "required": ["relationship", "phoneNumber"]
+        },
+        "CleanRAMMemory": {
+          "params": {},
+          "required": []
+        },
+        "EnterMeeting": {
+          "params": {},
+          "required": []
+        }
+      }
     },
     "clickToIntent": {
       "parameters": {
@@ -29,10 +54,9 @@
         },
         "StartNavigate": {
           "params": {
-            "dstLocation": {"type": "object"},
-            "trafficpe": {"type": "string", "enum": ["Drive", "Walk", "Cycle", "Bus"]}
+            "dstLocation": {"type": "object"}
           },
-          "required": ["dstLocation", "trafficpe"]
+          "required": ["dstLocation"]
         },
         "SetSettingSwitch": {
           "params": {

@@ -312,3 +312,73 @@ failed：
 ```text
 卡片生成服务暂时不可用，请稍后再试。
 ```
+
+## 连续编辑样例
+
+假设上一轮 `generateWidgetCard` 业务 payload 返回：
+
+```json
+{
+  "status": "success",
+  "artifactUrl": "https://obs.example/widget/v1.json",
+  "message": "已为你生成天气日历卡片。"
+}
+```
+
+### 未指定目标时默认最近结果
+
+用户：“背景改成蓝色，信息排紧凑一点。”
+
+不调用 overview/schema，直接调用：
+
+```text
+invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"背景改成蓝色，信息排紧凑一点", sourceArtifactUrl:"https://obs.example/widget/v1.json"},"skillName":"harmony-card-generation-online")
+```
+
+未指定“哪张卡片”不追问，默认使用最近一次成功或降级结果。
+
+### 修改标题和尺寸
+
+用户：“标题改成每日通勤，再改成 2x4。”
+
+```text
+invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"标题改成每日通勤，再改成 2x4", sourceArtifactUrl:"https://obs.example/widget/v1.json", title:"每日通勤", size:"2x4"},"skillName":"harmony-card-generation-online")
+```
+
+未修改的 `description` 和全部候选数组省略并继承。
+
+### 删除一个数据能力
+
+首次生成时最近一次完整数据候选为天气和日历。用户：“去掉日历，只保留天气。”
+
+重新获取 overview，并为最终保留的天气能力加载 schema。校验后传编辑后的完整集合：
+
+```text
+invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"去掉日历，只保留天气", sourceArtifactUrl:"https://obs.example/widget/v1.json", candidateDataBindings:[{capabilityId:"ViewWeather", arguments:{districtName:"上海", forecastDays:1}, writeResultTo:"/data/weather", candidateOutputFields:["/location/name", "/current/temperatureText", "/current/weatherText"]}]},"skillName":"harmony-card-generation-online")
+```
+
+这里只传天气不是增量修改，而是替换整个数据候选类别。删除全部动态数据时传 `candidateDataBindings: []`。
+
+### 修改能力参数并继续编辑
+
+用户：“把上海天气改成北京天气。”
+
+重新获取 overview 和天气 schema，将完整数据候选中的天气参数改为北京，保留其它 binding 后调用 `generateWidgetCard`。如果上一轮编辑成功并返回：
+
+```json
+{
+  "status": "success",
+  "artifactUrl": "https://obs.example/widget/v2.json",
+  "message": "已按你的要求修改卡片。"
+}
+```
+
+下一轮未指定目标的编辑必须使用 `v2.json`，不能继续使用 `v1.json`。
+
+### 编辑失败
+
+```text
+本次修改未完成，原卡片不受影响，请稍后再试。
+```
+
+不输出 `genWidgetResult`，后续编辑仍默认使用最近一次成功结果的 URL。

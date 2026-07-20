@@ -1,6 +1,6 @@
 # 候选规划
 
-目标：把用户 query 转成微服务可裁决的候选计划。候选计划只表达“用户可能需要什么”，不表达最终设备一定支持什么。
+目标：把首次生成 query 转成微服务可裁决的候选计划，并在连续编辑时只替换用户明确修改的字段或候选类别。候选计划只表达“用户可能需要什么”，不表达最终设备一定支持什么。
 
 ## 场景判断
 
@@ -12,6 +12,9 @@
 - “做一个一键清理内存的桌面卡”
 - “给我做一个看抖音使用时长和耗电的卡片”
 - “创建一个会议提醒卡片，可以一键入会”
+- “把刚才的卡片背景改成蓝色”
+- “把上海天气改成北京天气”
+- “去掉刚才卡片里的日历”
 
 不进入或直接说明边界的 query：
 
@@ -22,6 +25,8 @@
 ## 用户确认门禁
 
 每次调用工具前都检查是否存在会影响卡片核心意图、候选能力或业务入参的待确认信息。存在时先集中追问最少必要问题，等待用户明确回答后再继续；不要先调用工具再补问。
+
+编辑请求未指定目标卡片时不追问，默认选择当前会话最近一次 `success` / `degraded` 卡片结果。用户明确指定目标但无法与会话结果对应时才追问。
 
 需要追问的典型情况：
 
@@ -36,6 +41,26 @@
 - 设备是否真正支持某能力、应用是否安装、权限是否可用；这些由微服务裁决。
 - 能力 ID、内部字段名、协议版本、写入路径等内部技术信息。
 - 仅影响非核心可选内容；可删除该可选候选，不阻断核心卡片生成。
+
+## 编辑模式规划
+
+先从目标卡片最近一次工具业务 payload 取得真实 `artifactUrl`，并确认当前运行时 `generateWidgetCard` schema 已声明 `sourceArtifactUrl`。未声明或无法取得真实 URL 时停止编辑，不得改走 create。
+
+按本轮修改类型构造请求：
+
+- 纯视觉或布局：只传 `userQuery`、`sourceArtifactUrl`。
+- 标题、说明或尺寸：只额外传明确修改的字段；未修改字段省略。
+- 删除数据能力或修改能力参数：显式传编辑后的完整 `candidateDataBindings`。
+
+恢复完整数据候选集合时：
+
+1. 沿当前卡片的会话生成链，向前查找最近一次显式提交的完整 `candidateDataBindings`；中间纯视觉、文案或尺寸编辑不会改变该集合。
+2. 根据后续业务 payload 的 `removedCapabilities` 排除已被微服务移除的数据能力，不恢复已降级删除的能力。
+3. 删除用户明确要求移除的 binding，或只修改目标 binding 的 `arguments`；保留其它 binding 的 `capabilityId`、`arguments` 和 `writeResultTo`。
+4. 重新获取能力概述，排除本轮 `unavailableCapabilities`，并为最终保留的全部数据能力重新加载 schema。
+5. 重新校验全部 `arguments`、`writeResultTo` 和可选 `candidateOutputFields` 后，将完整数组传给 `generateWidgetCard`；删除全部动态数据时传 `[]`。
+
+无法可靠恢复当前完整集合时，不传不完整数组，提示用户重新创建目标卡片后再修改。本期不在 edit 模式新增数据能力，也不修改事件或素材候选。
 
 ## 能力概述筛选 Prompt
 
@@ -71,17 +96,17 @@
 
 ## 标题与概述
 
-调用 `generateWidgetCard` 时必须传 `title` 和 `description`，作为进入 TaskSpec 的静态短文案候选。
+create 模式调用 `generateWidgetCard` 时必须传 `title` 和 `description`，作为最终 CardSpec 的静态展示文案建议。edit 模式仅在用户明确修改对应文案时传入，否则省略并继承来源 CardSpec。
 
 - `title` 尽量不超过 8 个字，表达卡片主题，例如“通勤助手”“天气速览”“会议提醒”。
 - `description` 尽量不超过 12 个字，表达卡片用途，例如“天气日程速览”“今日安排提醒”。
 - 只写稳定、静态、用户可理解的概述，不写动态值、隐私内容、未经确认的设备状态或能力可用性承诺。
 - `title` 和 `description` 不替代 `userQuery`，也不替代数据能力、事件能力或素材能力。
-- 无法提炼出合适短文案时也不能省略；使用“桌面卡片”和“信息速览”等稳定默认文案。
+- create 模式无法提炼出合适短文案时也不能省略；使用“桌面卡片”和“信息速览”等稳定默认文案。
 
 ## 数据能力候选
 
-生成 `candidateDataBindings` 时遵守：
+create 模式生成候选或 edit 模式完整替换 `candidateDataBindings` 时遵守：
 
 - 先确认当前运行时 `generateWidgetCard` schema 已声明 `candidateDataBindings`；未声明时不传。schema 将数组项写成 `Object` 时，每一项按内部 `CandidateDataBinding` 类结构传入，但该内部结构不得用于扩展工具 `arguments` 顶层字段。
 - `capabilityId` 必须来自已加载 schema。
@@ -98,6 +123,8 @@
 - 地点、联系人、App 包名等核心目标无法可靠解析且用户可以确认时，先追问并等待回答；仅属于非核心可选候选时才移除，不猜测值。
 
 本版不传 `slots`、`options`、`locale`、`uid`、`device` 等当前工具 schema 未声明的字段。已经明确的地点、时间范围、目标动作、模板 ID 和不支持部分保留在 `userQuery` 中，由微服务解析或降级；会改变核心意图的缺失字段必须先向用户追问，不得只保留模糊原文后继续调用。
+
+edit 模式额外传 `sourceArtifactUrl`，但前提是当前运行时 schema 已声明该字段。不要传空字符串或 `null`，也不要把上一轮 `genWidgetResult` 代码块整体作为 URL。
 
 ## 事件能力候选
 

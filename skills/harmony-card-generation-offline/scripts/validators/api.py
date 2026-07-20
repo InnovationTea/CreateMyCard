@@ -3,6 +3,17 @@
 Only responsibility here is to wire input normalization → context building →
 pipeline execution. Split into ``inputs.py``, ``effective_loader.py``,
 ``pipeline.py`` so this file stays small and easy to read.
+
+Two entry points are exposed:
+
+- ``validate_card`` — full-featured entry that accepts DSL + CardSpec + artifact
+  + effectiveCapabilities and returns a ``Reporter``. Use this when you need
+  structured diagnostics or CardSpec-aware checks.
+- ``validate_dsl`` — quick entry that validates only the DSL and returns a
+  model-friendly string via ``Reporter.render_model``. Missing CardSpec is
+  silently tolerated: CardSpec-only errors are dropped so callers get a clean
+  DSL-only report. This is the default posture for local tests and API calls
+  from other agents/services.
 """
 
 from __future__ import annotations
@@ -74,3 +85,32 @@ def validate_card(
             enable_aesthetic=opts.enable_aesthetic,
         )
     return reporter
+
+
+def validate_dsl(
+    dsl_text: str,
+    *,
+    effective_capabilities: dict[str, Any] | str | None = None,
+    options: ValidationOptions | None = None,
+) -> str:
+    """Validate DSL only and return a model-friendly report string.
+
+    - 只跑 DSL 相关的协议/组件/表达式/绑定/跨文件/颜色规则。
+    - CardSpec 缺失是允许的：validator 层已经处理"未提供 CardSpec 时不校验
+      CardSpec 必填字段"这条语义，这里再兜底一次，把只针对 cardspec 的诊断从
+      结果中过滤掉，避免污染面向模型的输出。
+    - 返回值就是 ``Reporter.render_model`` 的字符串；调用方可以直接把它转发给
+      下游模型或写入日志。永远不会抛出诊断相关异常（校验器本身崩溃例外）。
+
+    需要结构化数据或 CardSpec-aware 校验时，走 :func:`validate_card` 拿
+    ``Reporter`` 对象。
+    """
+    reporter = validate_card(
+        dsl_text=dsl_text,
+        effective_capabilities=effective_capabilities,
+        options=options,
+    )
+    # 只留下与 DSL 相关的诊断（file_kind != "cardspec"）。CardSpec 缺失或不完整
+    # 时任何 file_kind="cardspec" 的诊断都不该出现在纯 DSL 报告里。
+    reporter.diagnostics = [d for d in reporter.diagnostics if d.file_kind != "cardspec"]
+    return reporter.render_model()

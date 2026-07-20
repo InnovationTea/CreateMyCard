@@ -16,7 +16,7 @@
 - `createSurface` 默认只写 `surfaceId`、`catalogId`、`width`、`height`；`width/height` 必须写 `"matchParent"`，实际布局预算由 CardSpec/profile 尺寸决定。新卡片不要为了同步 root 圆角而写 `createSurface.styles`。若宿主明确需要外层形状和裁切控制，`createSurface.styles` 只允许 `borderRadius`、`clip`；不支持 `theme`。
 - `updateComponents` 必须在 `createSurface` 之后，同一 surface 仅发送一次完整组件树。
 - `updateComponents.root` 必须引用 `components` 中存在的组件 id。
-- root 组件是唯一卡片 shell，承载 `width`、`height`、`padding`、`borderRadius`、`clip` 和 `backgroundColor` / `linearGradient` / `backgroundImage` 等布局和表面样式；root `width/height` 必须写 `"matchParent"`，内部组件按 `2x2 = 160vp x 160vp`、`2x4 = 320vp x 160vp` 的实际预算落数值。背景也可由 root 下的真实背景组件承载。
+- root 组件是唯一卡片 shell，承载 `width`、`height`、`padding`、`borderRadius`、`clip` 和 `backgroundColor` / `linearGradient` / `backgroundImage` 等布局和表面样式；root `width/height` 必须写 `"matchParent"`，`borderRadius` 无论 `2x2` 还是 `2x4` 都固定为 `18`，内部组件按 `2x2 = 160vp x 160vp`、`2x4 = 320vp x 160vp` 的实际预算落数值，内部组件圆角不受该固定值限制。背景也可由 root 下的真实背景组件承载。
 - 三行消息的 `surfaceId` 必须一致；最小骨架是 `{"version":"v0.9","createSurface":{"surfaceId":"card",...}}`、`{"version":"v0.9","updateComponents":{"surfaceId":"card","root":"root","components":[...]}}`、`{"version":"v0.9","updateDataModel":{"surfaceId":"card","path":"/","value":{...}}}`。
 - `updateDataModel` 只提供运行数据；新卡片默认 `path: "/"` 并一次初始化所有 UI 表达式会访问的根结构和加载态；表达式引用必须能从 `value` 中解析，模板项相对表达式除外。
 - `backgroundColor`、`linearGradient`、`backgroundImage` 等背景样式必须写在 `root.styles`，或由 root 下的真实背景组件承载，不能放进 `createSurface.styles`。

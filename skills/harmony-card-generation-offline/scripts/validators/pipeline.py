@@ -11,7 +11,6 @@ from .aesthetic import QualityValidator
 from .asset_validator import AssetValidator
 from .binding_validator import BindingValidator
 from .cardspec_validator import CardSpecValidator
-from .color_validator import ColorValidator
 from .component_validator import ComponentValidator
 from .cross_validator import CrossValidator
 from .diagnostics import Reporter
@@ -28,7 +27,6 @@ STATIC_VALIDATORS = [
     AssetValidator(),
     BindingValidator(),
     CrossValidator(),
-    ColorValidator(),
 ]
 
 EFFECTIVE_VALIDATORS = [
@@ -50,7 +48,9 @@ def selected_stages(stage: str) -> list[str]:
         return ["hard"]
     if stage == "semantic":
         return ["hard", "semantic"]
-    # "quality" and "all" both run every stage.
+    # "quality" and "all" both run every stage. Without ColorValidator the
+    # quality stage is empty by default; it only carries diagnostics when
+    # ``enable_aesthetic`` is turned on and QualityValidator joins the pipeline.
     return ["hard", "semantic", "quality"]
 
 

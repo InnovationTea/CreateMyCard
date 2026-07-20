@@ -1,0 +1,542 @@
+{
+  "schemaVersion": "module-catalog-v1",
+  "modules": [
+    {
+      "id": "identity-strip",
+      "role": "identity",
+      "summary": "可选图标加单行对象标题",
+      "variants": [
+        {
+          "id": "compact-136x20",
+          "footprint": {"width": 136, "height": 20},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Row", "children": ["icon", "title"], "itemMargin": 6, "styles": {"width": 136, "height": 20, "justifyContent": "start", "alignItems": "center"}},
+            {"id": "icon", "allowedTokens": ["icon-16", "icon-20"], "optional": true},
+            {"id": "title", "allowedTokens": ["text-body-14", "text-title-16"], "styles": {"width": 110}}
+          ],
+          "slots": {
+            "object": {"node": "title", "property": "content", "role": "object", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 8},
+            "icon": {"node": "icon", "property": "src", "role": "asset", "required": false, "bindingKinds": ["static", "expression", "path"]}
+          },
+          "eventTargets": []
+        },
+        {
+          "id": "compact-136x18",
+          "footprint": {"width": 136, "height": 18},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Row", "children": ["icon", "title"], "itemMargin": 4, "styles": {"width": 136, "height": 18, "justifyContent": "start", "alignItems": "center"}},
+            {"id": "icon", "allowedTokens": ["icon-16"], "optional": true},
+            {"id": "title", "allowedTokens": ["text-support-12", "text-body-14"], "styles": {"width": 114}}
+          ],
+          "slots": {
+            "object": {"node": "title", "property": "content", "role": "object", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 9},
+            "icon": {"node": "icon", "property": "src", "role": "asset", "required": false, "bindingKinds": ["static", "expression", "path"]}
+          },
+          "eventTargets": []
+        },
+        {
+          "id": "wide-296x24",
+          "footprint": {"width": 296, "height": 24},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Row", "children": ["icon", "title"], "itemMargin": 8, "styles": {"width": 296, "height": 24, "justifyContent": "start", "alignItems": "center"}},
+            {"id": "icon", "allowedTokens": ["icon-20", "icon-24"], "optional": true},
+            {"id": "title", "allowedTokens": ["text-title-16", "text-title-18"], "styles": {"width": 264}}
+          ],
+          "slots": {
+            "object": {"node": "title", "property": "content", "role": "object", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 16},
+            "icon": {"node": "icon", "property": "src", "role": "asset", "required": false, "bindingKinds": ["static", "expression", "path"]}
+          },
+          "eventTargets": []
+        }
+      ]
+    },
+    {
+      "id": "meter-summary",
+      "role": "primary",
+      "summary": "单个环形进度和主值说明",
+      "variants": [
+        {
+          "id": "compact-136x58",
+          "footprint": {"width": 136, "height": 58},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Row", "children": ["meter", "facts"], "itemMargin": 10, "styles": {"width": 136, "height": 58, "justifyContent": "start", "alignItems": "center"}},
+            {"id": "meter", "allowedTokens": ["progress-ring-50", "progress-ring-58"]},
+            {"id": "facts", "component": "Column", "children": ["value", "caption"], "itemMargin": 4, "styles": {"width": 68, "height": 48, "justifyContent": "center", "alignItems": "start"}},
+            {"id": "value", "allowedTokens": ["text-metric-20", "text-metric-32"], "styles": {"width": 68}},
+            {"id": "caption", "allowedTokens": ["text-support-12", "text-body-14"], "styles": {"width": 68}}
+          ],
+          "slots": {
+            "progress": {"node": "meter", "property": "value", "role": "metric", "required": true, "bindingKinds": ["static", "expression", "path"]},
+            "primary": {"node": "value", "property": "content", "role": "primary", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 5},
+            "caption": {"node": "caption", "property": "content", "role": "support", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 8}
+          },
+          "eventTargets": []
+        }
+      ]
+    },
+    {
+      "id": "metric-cluster",
+      "role": "metrics",
+      "summary": "两个或三个紧凑并列指标",
+      "variants": [
+        {
+          "id": "pair-136x28",
+          "footprint": {"width": 136, "height": 28},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Row", "children": ["left", "right"], "itemMargin": 8, "styles": {"width": 136, "height": 28, "justifyContent": "spaceBetween", "alignItems": "center"}},
+            {"id": "left", "allowedTokens": ["text-support-12", "text-body-14"], "styles": {"width": 64, "textAlign": "start"}},
+            {"id": "right", "allowedTokens": ["text-support-12", "text-body-14"], "styles": {"width": 64, "textAlign": "end"}}
+          ],
+          "slots": {
+            "metric1": {"node": "left", "property": "content", "role": "metric", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 8},
+            "metric2": {"node": "right", "property": "content", "role": "metric", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 8}
+          },
+          "eventTargets": []
+        },
+        {
+          "id": "dashboard-136x62",
+          "footprint": {"width": 136, "height": 62},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Column", "children": ["bar", "metrics"], "itemMargin": 8, "styles": {"width": 136, "height": 62, "justifyContent": "start", "alignItems": "center"}},
+            {"id": "bar", "allowedTokens": ["progress-bar-136"]},
+            {"id": "metrics", "component": "Row", "children": ["left", "right"], "itemMargin": 8, "styles": {"width": 136, "height": 36, "justifyContent": "spaceBetween", "alignItems": "center"}},
+            {"id": "left", "allowedTokens": ["text-body-14", "text-metric-20"], "styles": {"width": 64, "textAlign": "start"}},
+            {"id": "right", "allowedTokens": ["text-support-12", "text-body-14", "text-metric-20"], "styles": {"width": 64, "textAlign": "end"}}
+          ],
+          "slots": {
+            "progress": {"node": "bar", "property": "value", "role": "metric", "required": true, "bindingKinds": ["static", "expression", "path"]},
+            "metric1": {"node": "left", "property": "content", "role": "metric", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 8},
+            "metric2": {"node": "right", "property": "content", "role": "metric", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 8}
+          },
+          "eventTargets": []
+        },
+        {
+          "id": "tall-124x136",
+          "footprint": {"width": 124, "height": 136},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Column", "children": ["title", "metric1", "metric2", "metric3"], "itemMargin": 8, "styles": {"width": 124, "height": 136, "padding": 10, "borderRadius": 16, "backgroundColor": "@color.surface", "justifyContent": "center", "alignItems": "start"}},
+            {"id": "title", "allowedTokens": ["text-support-12", "text-body-14"], "styles": {"width": 104}},
+            {"id": "metric1", "allowedTokens": ["text-body-14"], "styles": {"width": 104}},
+            {"id": "metric2", "allowedTokens": ["text-body-14"], "styles": {"width": 104}},
+            {"id": "metric3", "allowedTokens": ["text-body-14"], "styles": {"width": 104}}
+          ],
+          "slots": {
+            "title": {"node": "title", "property": "content", "role": "support", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 10},
+            "metric1": {"node": "metric1", "property": "content", "role": "metric", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 10},
+            "metric2": {"node": "metric2", "property": "content", "role": "metric", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 10},
+            "metric3": {"node": "metric3", "property": "content", "role": "metric", "required": false, "bindingKinds": ["static", "expression", "path"], "maxChars": 10}
+          },
+          "eventTargets": []
+        }
+      ]
+    },
+    {
+      "id": "primary-summary",
+      "role": "primary",
+      "summary": "主值加一条支撑信息",
+      "variants": [
+        {
+          "id": "compact-136x50",
+          "footprint": {"width": 136, "height": 50},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Column", "children": ["value", "caption"], "itemMargin": 4, "styles": {"width": 136, "height": 50, "justifyContent": "center", "alignItems": "start"}},
+            {"id": "value", "allowedTokens": ["text-metric-20"], "styles": {"width": 136}},
+            {"id": "caption", "allowedTokens": ["text-support-12", "text-body-14"], "styles": {"width": 136}}
+          ],
+          "slots": {
+            "primary": {"node": "value", "property": "content", "role": "primary", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 8},
+            "caption": {"node": "caption", "property": "content", "role": "support", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 12}
+          },
+          "eventTargets": []
+        },
+        {
+          "id": "hero-136x42",
+          "footprint": {"width": 136, "height": 42},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Row", "children": ["icon", "texts"], "itemMargin": 8, "styles": {"width": 136, "height": 42, "justifyContent": "start", "alignItems": "center"}},
+            {"id": "icon", "allowedTokens": ["icon-32", "icon-40"], "optional": true},
+            {"id": "texts", "component": "Column", "children": ["value", "caption"], "itemMargin": 2, "styles": {"width": 88, "height": 42, "justifyContent": "center", "alignItems": "start"}},
+            {"id": "value", "allowedTokens": ["text-metric-20", "text-metric-32"], "styles": {"width": 88}},
+            {"id": "caption", "allowedTokens": ["text-label-10", "text-support-12"], "styles": {"width": 88}}
+          ],
+          "slots": {
+            "icon": {"node": "icon", "property": "src", "role": "asset", "required": false, "bindingKinds": ["static", "expression", "path"]},
+            "primary": {"node": "value", "property": "content", "role": "primary", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 6},
+            "caption": {"node": "caption", "property": "content", "role": "support", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 10}
+          },
+          "eventTargets": []
+        },
+        {
+          "id": "tall-92x136",
+          "footprint": {"width": 92, "height": 136},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Column", "children": ["value", "caption"], "itemMargin": 8, "styles": {"width": 92, "height": 136, "padding": 10, "borderRadius": 16, "backgroundColor": "@color.surfaceAlt", "justifyContent": "center", "alignItems": "center"}},
+            {"id": "value", "allowedTokens": ["text-metric-32", "text-metric-40"], "styles": {"width": 72, "textAlign": "center"}},
+            {"id": "caption", "allowedTokens": ["text-support-12", "text-body-14"], "styles": {"width": 72, "textAlign": "center"}}
+          ],
+          "slots": {
+            "primary": {"node": "value", "property": "content", "role": "primary", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 6},
+            "caption": {"node": "caption", "property": "content", "role": "support", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 8}
+          },
+          "eventTargets": []
+        }
+      ]
+    },
+    {
+      "id": "countdown-summary",
+      "role": "primary",
+      "summary": "大数字倒计时和单位",
+      "variants": [
+        {
+          "id": "compact-136x44",
+          "footprint": {"width": 136, "height": 44},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Row", "children": ["value", "unit"], "itemMargin": 6, "styles": {"width": 136, "height": 44, "justifyContent": "center", "alignItems": "end"}},
+            {"id": "value", "allowedTokens": ["text-metric-32", "text-metric-40"], "styles": {"width": 86, "textAlign": "end"}},
+            {"id": "unit", "allowedTokens": ["text-support-12", "text-body-14"], "styles": {"width": 34, "textAlign": "start"}}
+          ],
+          "slots": {
+            "primary": {"node": "value", "property": "content", "role": "primary", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 5},
+            "unit": {"node": "unit", "property": "content", "role": "support", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 3}
+          },
+          "eventTargets": []
+        }
+      ]
+    },
+    {
+      "id": "support-panel",
+      "role": "support",
+      "summary": "带背板的标题和元信息",
+      "variants": [
+        {
+          "id": "compact-136x42",
+          "footprint": {"width": 136, "height": 42},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Column", "children": ["title", "meta"], "itemMargin": 2, "styles": {"width": 136, "height": 42, "padding": 4, "borderRadius": 14, "backgroundColor": "@color.surface", "justifyContent": "center", "alignItems": "start"}},
+            {"id": "title", "allowedTokens": ["text-body-14"], "styles": {"width": 124}},
+            {"id": "meta", "allowedTokens": ["text-label-10", "text-support-12"], "styles": {"width": 124}}
+          ],
+          "slots": {
+            "title": {"node": "title", "property": "content", "role": "support", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 12},
+            "meta": {"node": "meta", "property": "content", "role": "support", "required": false, "bindingKinds": ["static", "expression", "path"], "maxChars": 16}
+          },
+          "eventTargets": []
+        },
+        {
+          "id": "compact-136x36",
+          "footprint": {"width": 136, "height": 36},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Row", "children": ["title", "meta"], "itemMargin": 6, "styles": {"width": 136, "height": 36, "padding": 6, "borderRadius": 12, "backgroundColor": "@color.surface", "justifyContent": "spaceBetween", "alignItems": "center"}},
+            {"id": "title", "allowedTokens": ["text-support-12", "text-body-14"], "styles": {"width": 76}},
+            {"id": "meta", "allowedTokens": ["text-label-10", "text-support-12"], "styles": {"width": 42, "textAlign": "end"}}
+          ],
+          "slots": {
+            "title": {"node": "title", "property": "content", "role": "support", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 9},
+            "meta": {"node": "meta", "property": "content", "role": "support", "required": false, "bindingKinds": ["static", "expression", "path"], "maxChars": 6}
+          },
+          "eventTargets": []
+        }
+      ]
+    },
+    {
+      "id": "schedule-summary",
+      "role": "primary",
+      "summary": "日程标题、时间和可选元信息",
+      "variants": [
+        {
+          "id": "compact-136x58",
+          "footprint": {"width": 136, "height": 58},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Column", "children": ["title", "time"], "itemMargin": 4, "styles": {"width": 136, "height": 58, "justifyContent": "center", "alignItems": "start"}},
+            {"id": "title", "allowedTokens": ["text-body-14", "text-title-16"], "styles": {"width": 136}},
+            {"id": "time", "allowedTokens": ["text-metric-20", "text-metric-32"], "styles": {"width": 136}}
+          ],
+          "slots": {
+            "title": {"node": "title", "property": "content", "role": "primary", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 12},
+            "time": {"node": "time", "property": "content", "role": "primary", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 11}
+          },
+          "eventTargets": []
+        },
+        {
+          "id": "stacked-136x68",
+          "footprint": {"width": 136, "height": 68},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Column", "children": ["title", "time", "meta"], "itemMargin": 4, "styles": {"width": 136, "height": 68, "justifyContent": "start", "alignItems": "center"}},
+            {"id": "title", "allowedTokens": ["text-body-14"], "styles": {"width": 136, "textAlign": "center"}},
+            {"id": "time", "allowedTokens": ["text-metric-20"], "styles": {"width": 136, "textAlign": "center"}},
+            {"id": "meta", "allowedTokens": ["text-support-12"], "styles": {"width": 136, "textAlign": "center"}}
+          ],
+          "slots": {
+            "title": {"node": "title", "property": "content", "role": "primary", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 12},
+            "time": {"node": "time", "property": "content", "role": "primary", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 11},
+            "meta": {"node": "meta", "property": "content", "role": "support", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 12}
+          },
+          "eventTargets": []
+        }
+      ]
+    },
+    {
+      "id": "action-strip",
+      "role": "action",
+      "summary": "全宽单一主动作",
+      "variants": [
+        {
+          "id": "compact-136x26",
+          "footprint": {"width": 136, "height": 26},
+          "rootLocalId": "action",
+          "nodes": [{"id": "action", "allowedTokens": ["button-136x26"]}],
+          "slots": {"label": {"node": "action", "property": "label", "role": "action", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 6}},
+          "eventTargets": ["action"]
+        }
+      ]
+    },
+    {
+      "id": "media-summary",
+      "role": "media",
+      "summary": "产品主视觉、标题和双状态",
+      "variants": [
+        {
+          "id": "full-136x136",
+          "footprint": {"width": 136, "height": 136},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Column", "children": ["top", "stats"], "itemMargin": 10, "styles": {"width": 136, "height": 136, "justifyContent": "start", "alignItems": "center"}},
+            {"id": "top", "component": "Row", "children": ["image", "title"], "itemMargin": 8, "styles": {"width": 136, "height": 60, "justifyContent": "start", "alignItems": "center"}},
+            {"id": "image", "allowedTokens": ["icon-40", "icon-48"]},
+            {"id": "title", "allowedTokens": ["text-title-16", "text-title-18"], "styles": {"width": 80}},
+            {"id": "stats", "component": "Row", "children": ["left", "right"], "itemMargin": 8, "styles": {"width": 136, "height": 50, "padding": 8, "borderRadius": 14, "backgroundColor": "@color.surface", "justifyContent": "spaceBetween", "alignItems": "center"}},
+            {"id": "left", "allowedTokens": ["text-body-14", "text-metric-20"], "styles": {"width": 56, "textAlign": "center"}},
+            {"id": "right", "allowedTokens": ["text-body-14", "text-metric-20"], "styles": {"width": 56, "textAlign": "center"}}
+          ],
+          "slots": {
+            "image": {"node": "image", "property": "src", "role": "asset", "required": true, "bindingKinds": ["static", "expression", "path"]},
+            "title": {"node": "title", "property": "content", "role": "object", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 8},
+            "metric1": {"node": "left", "property": "content", "role": "metric", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 8},
+            "metric2": {"node": "right", "property": "content", "role": "metric", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 8}
+          },
+          "eventTargets": []
+        }
+      ]
+    },
+    {
+      "id": "featured-pair",
+      "role": "primary",
+      "summary": "一个突出主值和一个次状态",
+      "variants": [
+        {
+          "id": "row-136x55",
+          "footprint": {"width": 136, "height": 55},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Row", "children": ["primaryGroup", "statusGroup"], "itemMargin": 6, "styles": {"width": 136, "height": 55, "justifyContent": "start", "alignItems": "center"}},
+            {"id": "primaryGroup", "component": "Column", "children": ["primaryLabel", "primaryValue"], "itemMargin": 2, "styles": {"width": 76, "height": 55, "padding": 6, "borderRadius": 14, "backgroundColor": "@color.surface", "justifyContent": "center", "alignItems": "start"}},
+            {"id": "statusGroup", "component": "Column", "children": ["statusLabel", "statusValue"], "itemMargin": 4, "styles": {"width": 54, "height": 55, "padding": 6, "borderRadius": 14, "backgroundColor": "@color.surfaceAlt", "justifyContent": "center", "alignItems": "center"}},
+            {"id": "primaryLabel", "allowedTokens": ["text-label-10", "text-support-12"], "styles": {"width": 64}},
+            {"id": "primaryValue", "allowedTokens": ["text-metric-20"], "styles": {"width": 64}},
+            {"id": "statusLabel", "allowedTokens": ["text-label-10"], "styles": {"width": 42, "textAlign": "center"}},
+            {"id": "statusValue", "allowedTokens": ["text-support-12", "text-body-14"], "styles": {"width": 42, "textAlign": "center"}}
+          ],
+          "slots": {
+            "primaryLabel": {"node": "primaryLabel", "property": "content", "role": "support", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 6},
+            "primaryValue": {"node": "primaryValue", "property": "content", "role": "primary", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 6},
+            "statusLabel": {"node": "statusLabel", "property": "content", "role": "support", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 4},
+            "statusValue": {"node": "statusValue", "property": "content", "role": "status", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 4}
+          },
+          "eventTargets": []
+        }
+      ]
+    },
+    {
+      "id": "paired-grid",
+      "role": "support",
+      "summary": "两个同尺寸 label/value 信息组",
+      "variants": [
+        {
+          "id": "row-136x55",
+          "footprint": {"width": 136, "height": 55},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Row", "children": ["leftGroup", "rightGroup"], "itemMargin": 6, "styles": {"width": 136, "height": 55, "justifyContent": "start", "alignItems": "center"}},
+            {"id": "leftGroup", "component": "Column", "children": ["leftTitle", "leftValue"], "itemMargin": 4, "styles": {"width": 65, "height": 55, "padding": 6, "borderRadius": 14, "backgroundColor": "@color.surface", "justifyContent": "center", "alignItems": "start"}},
+            {"id": "rightGroup", "component": "Column", "children": ["rightTitle", "rightValue"], "itemMargin": 4, "styles": {"width": 65, "height": 55, "padding": 6, "borderRadius": 14, "backgroundColor": "@color.surfaceAlt", "justifyContent": "center", "alignItems": "start"}},
+            {"id": "leftTitle", "allowedTokens": ["text-label-10", "text-support-12"], "styles": {"width": 53}},
+            {"id": "leftValue", "allowedTokens": ["text-support-12", "text-body-14"], "styles": {"width": 53}},
+            {"id": "rightTitle", "allowedTokens": ["text-label-10", "text-support-12"], "styles": {"width": 53}},
+            {"id": "rightValue", "allowedTokens": ["text-support-12", "text-body-14"], "styles": {"width": 53}}
+          ],
+          "slots": {
+            "leftTitle": {"node": "leftTitle", "property": "content", "role": "support", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 5},
+            "leftValue": {"node": "leftValue", "property": "content", "role": "support", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 6},
+            "rightTitle": {"node": "rightTitle", "property": "content", "role": "support", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 5},
+            "rightValue": {"node": "rightValue", "property": "content", "role": "support", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 6}
+          },
+          "eventTargets": ["rightGroup"]
+        }
+      ]
+    },
+    {
+      "id": "content-sidebar",
+      "role": "container",
+      "summary": "宽正文和两个紧凑侧栏动作",
+      "variants": [
+        {
+          "id": "wide-296x104",
+          "footprint": {"width": 296, "height": 104},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Row", "children": ["content", "actions"], "itemMargin": 12, "styles": {"width": 296, "height": 104, "justifyContent": "start", "alignItems": "center"}},
+            {"id": "content", "component": "Column", "children": ["title", "support", "metric"], "itemMargin": 6, "styles": {"width": 200, "height": 104, "padding": 10, "borderRadius": 16, "backgroundColor": "@color.surface", "justifyContent": "center", "alignItems": "start"}},
+            {"id": "title", "allowedTokens": ["text-title-16", "text-title-18"], "styles": {"width": 180}},
+            {"id": "support", "allowedTokens": ["text-support-12", "text-body-14"], "styles": {"width": 180}},
+            {"id": "metric", "allowedTokens": ["text-metric-20", "text-metric-32"], "optional": true, "styles": {"width": 180}},
+            {"id": "actions", "component": "Column", "children": ["primaryAction", "secondaryAction"], "itemMargin": 8, "styles": {"width": 84, "height": 104, "justifyContent": "start", "alignItems": "center"}},
+            {"id": "primaryAction", "allowedTokens": ["button-84x48"]},
+            {"id": "secondaryAction", "allowedTokens": ["button-84x48"]}
+          ],
+          "slots": {
+            "title": {"node": "title", "property": "content", "role": "primary", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 16},
+            "support": {"node": "support", "property": "content", "role": "support", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 24},
+            "metric": {"node": "metric", "property": "content", "role": "metric", "required": false, "bindingKinds": ["static", "expression", "path"], "maxChars": 10},
+            "primaryAction": {"node": "primaryAction", "property": "label", "role": "action", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 6},
+            "secondaryAction": {"node": "secondaryAction", "property": "label", "role": "action", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 6}
+          },
+          "eventTargets": ["primaryAction", "secondaryAction"]
+        }
+      ]
+    },
+    {
+      "id": "wide-primary",
+      "role": "primary",
+      "summary": "宽卡主标题、主值和支撑信息",
+      "variants": [
+        {
+          "id": "panel-180x136",
+          "footprint": {"width": 180, "height": 136},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Column", "children": ["title", "value", "support"], "itemMargin": 8, "styles": {"width": 180, "height": 136, "padding": 12, "borderRadius": 16, "backgroundColor": "@color.surface", "justifyContent": "center", "alignItems": "start"}},
+            {"id": "title", "allowedTokens": ["text-title-16", "text-title-18"], "styles": {"width": 156}},
+            {"id": "value", "allowedTokens": ["text-metric-20", "text-metric-32"], "styles": {"width": 156}},
+            {"id": "support", "allowedTokens": ["text-support-12", "text-body-14"], "styles": {"width": 156}}
+          ],
+          "slots": {
+            "title": {"node": "title", "property": "content", "role": "primary", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 14},
+            "primary": {"node": "value", "property": "content", "role": "primary", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 10},
+            "support": {"node": "support", "property": "content", "role": "support", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 18}
+          },
+          "eventTargets": []
+        }
+      ]
+    },
+    {
+      "id": "action-stack",
+      "role": "action",
+      "summary": "两个等权纵向动作",
+      "variants": [
+        {
+          "id": "wide-104x136",
+          "footprint": {"width": 104, "height": 136},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Column", "children": ["primaryAction", "secondaryAction"], "itemMargin": 12, "styles": {"width": 104, "height": 136, "justifyContent": "start", "alignItems": "center"}},
+            {"id": "primaryAction", "allowedTokens": ["button-104x62"]},
+            {"id": "secondaryAction", "allowedTokens": ["button-104x62"]}
+          ],
+          "slots": {
+            "primaryAction": {"node": "primaryAction", "property": "label", "role": "action", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 6},
+            "secondaryAction": {"node": "secondaryAction", "property": "label", "role": "action", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 6}
+          },
+          "eventTargets": ["primaryAction", "secondaryAction"]
+        }
+      ]
+    },
+    {
+      "id": "hero-tall",
+      "role": "primary",
+      "summary": "宽卡独立主视觉和主值",
+      "variants": [
+        {
+          "id": "wide-104x136",
+          "footprint": {"width": 104, "height": 136},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Column", "children": ["visual", "value", "caption"], "itemMargin": 6, "styles": {"width": 104, "height": 136, "padding": 10, "borderRadius": 16, "backgroundColor": "@color.surfaceAlt", "justifyContent": "center", "alignItems": "center"}},
+            {"id": "visual", "allowedTokens": ["icon-48"]},
+            {"id": "value", "allowedTokens": ["text-metric-20", "text-metric-32"], "styles": {"width": 84, "textAlign": "center"}},
+            {"id": "caption", "allowedTokens": ["text-label-10", "text-support-12"], "styles": {"width": 84, "textAlign": "center"}}
+          ],
+          "slots": {
+            "visual": {"node": "visual", "property": "src", "role": "asset", "required": true, "bindingKinds": ["static", "expression", "path"]},
+            "primary": {"node": "value", "property": "content", "role": "primary", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 7},
+            "caption": {"node": "caption", "property": "content", "role": "support", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 10}
+          },
+          "eventTargets": []
+        }
+      ]
+    },
+    {
+      "id": "context-action",
+      "role": "container",
+      "summary": "宽上下文面板和底部动作",
+      "variants": [
+        {
+          "id": "wide-180x136",
+          "footprint": {"width": 180, "height": 136},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Column", "children": ["panel", "action"], "itemMargin": 8, "styles": {"width": 180, "height": 136, "justifyContent": "start", "alignItems": "center"}},
+            {"id": "panel", "component": "Column", "children": ["title", "meta", "support"], "itemMargin": 6, "styles": {"width": 180, "height": 96, "padding": 10, "borderRadius": 16, "backgroundColor": "@color.surface", "justifyContent": "center", "alignItems": "start"}},
+            {"id": "title", "allowedTokens": ["text-body-14", "text-title-16", "text-title-18"], "styles": {"width": 160}},
+            {"id": "meta", "allowedTokens": ["text-body-14"], "styles": {"width": 160}},
+            {"id": "support", "allowedTokens": ["text-support-12"], "styles": {"width": 160}},
+            {"id": "action", "allowedTokens": ["button-180x32"]}
+          ],
+          "slots": {
+            "title": {"node": "title", "property": "content", "role": "support", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 16},
+            "meta": {"node": "meta", "property": "content", "role": "support", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 18},
+            "support": {"node": "support", "property": "content", "role": "support", "required": false, "bindingKinds": ["static", "expression", "path"], "maxChars": 18},
+            "action": {"node": "action", "property": "label", "role": "action", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 8}
+          },
+          "eventTargets": ["action"]
+        }
+      ]
+    },
+    {
+      "id": "action-tall",
+      "role": "action",
+      "summary": "窄列动作和状态",
+      "variants": [
+        {
+          "id": "narrow-64x136",
+          "footprint": {"width": 64, "height": 136},
+          "rootLocalId": "root",
+          "nodes": [
+            {"id": "root", "component": "Column", "children": ["action", "status"], "itemMargin": 10, "styles": {"width": 64, "height": 136, "justifyContent": "center", "alignItems": "center"}},
+            {"id": "action", "allowedTokens": ["button-64x48"]},
+            {"id": "status", "allowedTokens": ["text-label-10", "text-support-12"], "optional": true, "styles": {"width": 64, "textAlign": "center"}}
+          ],
+          "slots": {
+            "action": {"node": "action", "property": "label", "role": "action", "required": true, "bindingKinds": ["static", "expression", "path"], "maxChars": 4},
+            "status": {"node": "status", "property": "content", "role": "status", "required": false, "bindingKinds": ["static", "expression", "path"], "maxChars": 6}
+          },
+          "eventTargets": ["action"]
+        }
+      ]
+    }
+  ]
+}

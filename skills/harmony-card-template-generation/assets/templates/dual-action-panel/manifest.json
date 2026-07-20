@@ -32,7 +32,7 @@
                                 "width":  320,
                                 "height":  160,
                                 "padding":  12,
-                                "borderRadius":  22,
+                                "borderRadius":  18,
                                 "clip":  true
                             },
                    "regions":  [

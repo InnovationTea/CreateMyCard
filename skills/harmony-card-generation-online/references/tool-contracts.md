@@ -4,10 +4,8 @@
 
 ## 调用总则
 
-- 三个工具按顺序使用：
-  1. `getWidgetCapabilityOverview`
-  2. `getDataCapabilitySchemas`
-  3. `generateWidgetCard`
+- create 模式通常按顺序使用 `getWidgetCapabilityOverview`、按需使用 `getDataCapabilitySchemas`，最后调用 `generateWidgetCard`。
+- edit 模式按修改类型分流：纯视觉、布局、文案或尺寸修改直接调用 `generateWidgetCard`；删除数据能力或修改能力参数时才重新调用能力概述和数据 schema。
 - 每次调用前先执行用户确认门禁：如果当前已知信息中存在用户可回答、且会影响核心卡片意图、候选选择或业务入参的未决项，先追问并等待用户回答；回答前不得调用任何工具。能安全推导或有明确默认值的信息不重复确认，微服务负责的设备能力裁决和内部技术字段不向用户询问。
 - 必须使用 `invoke(functionName:"<toolName>", arguments:{bundleName:"<bundleName>", ...},"skillName":"harmony-card-generation-online")` 调用工具；`skillName` 必须与当前 Skill frontmatter 的 `name` 完全一致，不得省略、传空字符串或使用显示名称。
 - `arguments` 必须包含 `bundleName: "com.omega_w_0823.hmservice"`。
@@ -25,6 +23,7 @@
 invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.omega_w_0823.hmservice"},"skillName":"harmony-card-generation-online")
 invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:[...]},"skillName":"harmony-card-generation-online")
 invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"...", title:"...", description:"...", ...},"skillName":"harmony-card-generation-online")
+invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"背景改成蓝色", sourceArtifactUrl:"https://obs.example/widget/previous.json"},"skillName":"harmony-card-generation-online")
 ```
 
 ## 包装输出
@@ -126,16 +125,17 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
 
 ## generateWidgetCard
 
-用途：提交用户需求、候选数据绑定、候选事件、素材和静态标题文案建议，生成可下载的 HarmonyOS A2UI Form 卡片 artifact。
+用途：提交用户需求和候选计划首次生成卡片，或携带上一版 artifact URL 连续编辑卡片。
 
 参数：
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `userQuery` | `String` | 是 | 用户原始卡片需求。 |
+| `userQuery` | `String` | 是 | create 模式为原始需求；edit 模式只表达本轮修改。 |
+| `sourceArtifactUrl` | `String` | 否 | 上一版完整 artifact 的真实 URL；缺失表示 create，合法非空值表示 edit。 |
 | `size` | `String` | 否 | 主 Agent 建议尺寸；推荐 `"2x2"` 或 `"2x4"`。 |
-| `title` | `String` | 是 | 主 Agent 建议的卡片标题；必须非空，会进入 TaskSpec 标题候选。 |
-| `description` | `String` | 是 | 主 Agent 建议的卡片说明；必须非空，会进入 TaskSpec 摘要候选。 |
+| `title` | `String` | 条件必填 | create 模式必须非空；edit 模式省略时继承来源 CardSpec，显式传入时替换。 |
+| `description` | `String` | 条件必填 | create 模式必须非空；edit 模式省略时继承来源 CardSpec，显式传入时替换。 |
 | `candidateDataBindings` | `Array<CandidateDataBinding>` | 否 | 候选数据能力调用列表。 |
 | `candidateEventCandidates` | `Array<CandidateEventCandidate>` | 否 | 候选点击事件列表。 |
 | `candidateAssetIds` | `Array<String>` | 否 | 候选素材 ID 列表。 |
@@ -211,6 +211,22 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
 invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"生成一个通勤卡片", title:"通勤助手", description:"天气日程速览", size:"2x4", candidateDataBindings:[...], candidateEventCandidates:[...], candidateAssetIds:[...]},"skillName":"harmony-card-generation-online")
 ```
 
+edit 模式示例：
+
+```text
+invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"整体改成蓝色风格", sourceArtifactUrl:"https://obs.example/widget/previous.json"},"skillName":"harmony-card-generation-online")
+```
+
+编辑语义：
+
+- 用户没有指定目标卡片时，使用当前会话最近一次 `success` / `degraded` 业务 payload 的真实 `artifactUrl`。
+- 用户明确指定某张卡片时，使用与该目标对应的最近结果；只有目标无法对应时才追问。
+- `sourceArtifactUrl` 必须直接来自工具业务 payload，不从普通回复、示例或 `genWidgetResult` 代码块猜测。
+- edit 模式省略 `size`、`title`、`description` 或某类候选数组时，微服务从来源 artifact 继承并重新校验。
+- edit 模式显式传入候选数组时，该数组表示编辑后的完整集合，不是增量；`[]` 表示清空。
+- 来源 URL 为空、`null`、类型错误，或当前运行时 schema 未声明 `sourceArtifactUrl` 时不得调用；不得删除字段后按 create 模式继续。
+- 每次编辑成功必须返回新的真实 `artifactUrl`，且不得等于 `sourceArtifactUrl`；否则按 `failed` 处理。来源 artifact 保持不变。
+
 业务 payload 字段，即 `items[].data` 解析后的字段：
 
 | 字段 | 类型 | 必填 | 说明 |
@@ -235,7 +251,7 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 调用规则：
 
 - 调用前再次检查核心目标、地点、日期/时间范围、动作目标和能力必填业务参数；存在用户可确认的缺失或歧义时先追问并等待回答，再重建候选计划。
-- `title` 和 `description` 必须始终传非空字符串；无法从需求提炼时，使用“桌面卡片”和“信息速览”等稳定默认文案。
+- create 模式的 `title` 和 `description` 必须传非空字符串；无法从需求提炼时，使用“桌面卡片”和“信息速览”等稳定默认文案。edit 模式只有用户明确修改时才传，未修改时省略。
 - `title`、`description` 不填入动态数据、隐私数据或不确定状态，不用于替代数据能力。
 - `candidateDataBindings` 是候选，不是最终 CardSpec。
 - 无需字段投影时省略 `candidateOutputFields`；需要投影时只传可由对应 `outputSchema` 推导的 JSON Pointer 字符串数组。
@@ -243,6 +259,10 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 - `candidateEventCandidates` 每项必须同时包含 `capabilityId` 和完整 `action`。
 - 如果事件 `action.call/args` 无法从 overview 返回内容或用户明确输入中安全填齐，不传该事件候选。
 - `candidateAssetIds` 只传 overview 返回的素材 ID，不传自造资源路径。
+- 纯视觉、布局、文案或尺寸编辑不重新调用 overview/schema，也不重复传未修改的候选数组。
+- 删除已有数据能力或修改其参数时，传编辑后的完整 `candidateDataBindings`；无法从同一会话可靠恢复完整集合时停止编辑，不发送可能误删其它能力的不完整数组。
+- 本期 edit 模式不新增数据能力，也不修改事件或素材候选；这类需求建议重新创建卡片。
 - 不重试工具，除非工具返回明确可重试错误并要求重试。
 - `success` 或 `degraded` 缺少有效 `artifactUrl` 时按 `failed` 处理，不生成替代产物。
 - 任一工具不可用、调用失败或结果无法解析时终止本轮生成，不使用离线资料补足。
+- edit 模式失败时保留来源 URL 作为当前默认卡片，不输出新结果标记，并告知用户原卡片不受影响。

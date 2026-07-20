@@ -3,9 +3,13 @@
   "pluginType": "Cloud",
   "toolType": "XiaoYiPlugin",
   "toolName": "generateWidgetCard",
-  "description": "提交用户需求、候选数据绑定、候选事件和素材，生成可下载的 HarmonyOS A2UI Form 卡片 artifact",
+  "description": "提交用户需求和候选计划首次生成卡片，或通过上一版 artifact URL 连续编辑 HarmonyOS A2UI Form 卡片",
   "arguments": {
     "properties": {
+      "sourceArtifactUrl": {
+        "type": "String",
+        "description": "可选。上一版完整 artifact 的真实 URL；缺失表示首次生成，合法非空值表示编辑"
+      },
       "size": {
         "type": "String",
         "description": "主 Agent 建议尺寸"
@@ -60,7 +64,7 @@
       },
       "userQuery": {
         "type": "String",
-        "description": "用户原始卡片需求"
+        "description": "首次生成时为原始需求，编辑时只表达本轮修改"
       },
       "candidateAssetIds": {
         "type": "Array<String>",

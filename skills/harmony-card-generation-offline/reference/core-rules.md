@@ -12,8 +12,8 @@
 
 以下任一组失败都不要输出：
 
-- 输出契约：必须是两个代码块，`genui` 为三行 JSONL，`cardspec` 为 JSON；`version`、`catalogId`、CardSpec 尺寸、surface/root `matchParent` 写法、实际布局预算和 root 圆角一致。`createSurface.width/height` 与 root `styles.width/height` 必须写 `"matchParent"`。
-- Surface/root：`createSurface` 只声明 surface、catalog 和外围尺寸，默认不写 `styles`；只有宿主明确要求外层形状/裁切时才写 `createSurface.styles`，且仅限 `borderRadius`、`clip`；`updateComponents.root` 引用已存在组件；root 承载 `width`、`height`、`padding`、`borderRadius`、`clip` 和至少一种明确的表面背景（优先 `backgroundColor` 或 `linearGradient`，也可由 root 下的真实背景组件承载），否则可能渲染默认白底。
+- 输出契约：必须是两个代码块，`genui` 为三行 JSONL，`cardspec` 为 JSON；`version`、`catalogId`、CardSpec 尺寸、root `matchParent` 写法、实际布局预算和 root 圆角一致。root `styles.width/height` 必须写 `"matchParent"`；`createSurface.width/height` 默认省略，若声明只能写 `"matchParent"`。
+- Surface/root：`createSurface` 只声明 `surfaceId`、`catalogId`，默认不写 `width/height/styles`；宿主明确要求外层形状/裁切时才写 `createSurface.styles`，且仅限 `borderRadius`、`clip`；`updateComponents.root` 引用已存在组件；root 承载 `width`、`height`、`padding`、`borderRadius`、`clip` 和至少一种明确的表面背景（优先 `backgroundColor` 或 `linearGradient`，也可由 root 下的真实背景组件承载），否则可能渲染默认白底。
 - 消息闭环：三行 JSONL 的 `surfaceId` 必须一致；新卡片默认 `updateDataModel.path: "/"`，`value` 初始化所有 UI 表达式引用的根结构和加载态。
 - 协议范围：只使用 Form 允许组件；`children` 只引用组件 id；模板循环必须有 `{ "componentId": "...", "path": "..." }`，可选 `itemVar/indexVar`；不用禁用组件、网络图、内联/base64 SVG data URI、emoji、未声明资源或未声明事件能力。
 - 绑定/DataModel：动态展示值、样式动态值和事件参数使用静态值、完整 `{{ ... }}` Expression、合法 PathBinding 或宿主明确注册的 FunctionCall；所有可见表达式引用都能在 `updateDataModel.value`、`writeResultTo + outputSchema` 或模板当前项中推导；数据能力运行时字段至少初始化到可推导根结构。`updateDataModel.path`、`writeResultTo`、模板 `children.path` 仍是协议结构 JSON Pointer。
@@ -26,9 +26,9 @@
 - CardSpec 必须包含静态短 `title`、静态短 `description` 和 `suggestSize`；`title/description` 不写表达式、绑定或 DataModel 路径。
 - 尺寸只允许 `2x2` 或 `2x4`，且 CardSpec 与 DSL 一致。逻辑画布和校验预算固定为：
   - `2x2`: 实际预算 `160vp x 160vp`、root `borderRadius: 18`、`clip: true`。
-  - `2x4`: 实际预算 `320vp x 160vp`、root `borderRadius: 22`、`clip: true`。
+  - `2x4`: 实际预算 `320vp x 160vp`、root `borderRadius: 18`、`clip: true`。
 - `updateComponents.root` 必须引用一个已存在组件；root 组件是卡片 shell 和组件树入口。
-- root 组件必须写 `width`、`height`、`padding`、`borderRadius`、`clip` 和表面样式；root `width/height` 写 `"matchParent"`，实际内部预算按 `2x2`/`2x4` 目标尺寸计算。新卡片不要为了同步 root 圆角而写 `createSurface.styles`，它只在宿主明确要求外层形状/裁切时作为可选辅助；`backgroundColor`、`linearGradient`、`backgroundImage` 等背景字段必须写在 `root.styles` 或 root 下的真实背景组件，不写进 `createSurface.styles`，因为 root 默认不透明白底会遮挡 surface 层背景。
+- root 组件必须写 `width`、`height`、`padding`、`borderRadius`、`clip` 和表面样式；root `width/height` 写 `"matchParent"`，`borderRadius` 无论 `2x2` 还是 `2x4` 都固定为 `18`，实际内部预算按目标尺寸计算。该固定值不限制内部组件圆角。`createSurface` 默认省略 `width/height/styles`；只有宿主明确要求外层形状/裁切时才写 `createSurface.styles` 作为可选辅助；`backgroundColor`、`linearGradient`、`backgroundImage` 等背景字段必须写在 `root.styles` 或 root 下的真实背景组件，不写进 `createSurface.styles`，因为 root 默认不透明白底会遮挡 surface 层背景。
 - 只使用 `Text`、`Image`、`Divider`、`Progress`、`Button`、`Checkbox`、`Row`、`Column`、`List`、`Stack`。
 - 禁用 `TextInput`、`Toggle`、`Radio`、`CheckboxGroup`、`Select`、`NavContainer`、`Tabs`、`TabContent`、`Web`、`Grid`、`If`、`theme`、`Button.action`、非 `onClick` 事件、预定义扩展函数、`$__widthBreakpoint`、`$__colorMode`、`$context`。
 - `children` 只能是组件 ID 数组；模板循环只允许 `{ "componentId": "...", "path": "..." }` 加可选 `itemVar/indexVar`。

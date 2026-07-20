@@ -31,7 +31,7 @@
 | `Progress` | `value` | `type`、`color`、`strokeWidth`、`width`、`height`、`borderRadius`、`backgroundColor` |
 | `Button` | `label`、`enabled`、`onClick`、`accessibility` | `width`、`height`、`fontSize`、`fontWeight`、`fontColor`、`minFontSize`、`maxFontSize`、`backgroundColor`、`borderRadius`、`borderWidth`、`borderColor`、`padding`、`shadow` |
 | `Checkbox` | `label`、`value`、`select`、`onClick` | `selectedColor`、`shape` |
-| 卡片 shell | `createSurface.surfaceId/catalogId/width/height`、`updateComponents.root` | root 的 `width`、`height`、`aspectRatio`、`padding`、`borderRadius`、`clip`、`backgroundColor`、`backgroundImage`、`backgroundImageSizeWithStyle`、`linearGradient`；`createSurface.width/height` 与 root `width/height` 写 `"matchParent"` |
+| 卡片 shell | `createSurface.surfaceId/catalogId`、`updateComponents.root` | root 的 `width`、`height`、`aspectRatio`、`padding`、`borderRadius`、`clip`、`backgroundColor`、`backgroundImage`、`backgroundImageSizeWithStyle`、`linearGradient`；root `width/height` 写 `"matchParent"`；`createSurface.width/height` 默认省略，若声明只能写 `"matchParent"` |
 
 - 普通 `children` 只写组件 id 字符串数组；模板循环对象只给 `Row`、`Column`、`List.children`，必须包含 `{ "componentId": "...", "path": "/items" }`，可选 `itemVar/indexVar`；`Stack.children` 不使用模板循环。
 - 展示值优先用字面量或完整 `{{ ... }}` 表达式；也可使用协议允许的 `{"path":"/..."}` PathBinding 或宿主明确注册的 FunctionCall。
@@ -91,8 +91,8 @@
 - 字符串可使用可解析的数值单位，例如 `vp`、`fp`、`%`，以及文档允许时的 `px`；`width/height` 还支持 `matchParent`、`wrapContent`、`fixAtIdealSize`。卡片 root 使用 `matchParent`，普通组件优先使用数值，只有历史修复或宿主明确支持时才保留百分比或自适应枚举。
 - `constraintSize` 必须同时写 `minWidth`、`maxWidth`、`minHeight`、`maxHeight`，用于约束动态文本、图片或弹性区域。
 - `margin` / `padding` 可以是数字，也可以是 `{ "left": 0, "right": 0, "top": 0, "bottom": 0 }` 对象；数值仍按 vp 预算。
-- `borderRadius`、`borderWidth` 可写数字或方向对象；卡片 root 优先用单个数字，内部小背板按预算使用。
-- `createSurface.width/height` 和 root `styles.width/height` 必须写 `"matchParent"`；普通组件的 `width/height` 必须保持数值或可静态推导的约束，并按 `2x2 = 160vp x 160vp`、`2x4 = 320vp x 160vp` 的实际预算规划。
+- `borderRadius`、`borderWidth` 可写数字或方向对象；卡片 root 必须使用单个数字 `18`，内部小背板仍按视觉预算使用。
+- root `styles.width/height` 必须写 `"matchParent"`；`createSurface.width/height` 默认省略，若声明只能写 `"matchParent"`。普通组件的 `width/height` 必须保持数值或可静态推导的约束，并按 `2x2 = 160vp x 160vp`、`2x4 = 320vp x 160vp` 的实际预算规划。
 - 颜色使用 `#RRGGBB` 或 `#AARRGGBB`。
 - 卡片背景样式放在 root 组件的 `styles` 中；新卡片默认省略 `createSurface.styles`，只有宿主明确要求外层形状/裁切时才可写 `borderRadius`、`clip`。
 - `linearGradient` 固定写成对象并包含 `colors`；常用写法为 `{"direction":"RightBottom","colors":[["#RRGGBB",0],["#RRGGBB",1]]}`；`colors` 是嵌套 stop 对数组，不写成扁平数组。

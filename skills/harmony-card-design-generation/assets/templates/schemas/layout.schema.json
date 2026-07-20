@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "harmony-card-layout-catalog-v1",
+  "type": "object",
+  "required": ["schemaVersion", "layouts"],
+  "properties": {
+    "schemaVersion": {"const": "layout-catalog-v1"},
+    "layouts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "size", "summary", "root", "regions"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"},
+          "size": {"enum": ["2x2", "2x4"]},
+          "summary": {"type": "string"},
+          "root": {"type": "object", "required": ["component", "itemMargin", "styles"]},
+          "regions": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["id", "role", "width", "height", "required", "allowedModuleRoles"],
+              "properties": {
+                "id": {"type": "string"},
+                "role": {"type": "string"},
+                "width": {"type": "number", "exclusiveMinimum": 0},
+                "height": {"type": "number", "exclusiveMinimum": 0},
+                "required": {"type": "boolean"},
+                "allowedModuleRoles": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

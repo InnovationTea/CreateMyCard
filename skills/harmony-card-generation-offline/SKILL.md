@@ -26,7 +26,7 @@ description: "生成、修复、评审或解释 HarmonyOS A2UI Form 服务卡片
 只输出两个代码块，顺序固定：
 
 ```genui
-{"version":"v0.9","createSurface":{...}}
+{"version":"v0.9","createSurface":{"surfaceId":"...","catalogId":"..."}}
 {"version":"v0.9","updateComponents":{"surfaceId":"...","root":"...","components":[...]}}
 {"version":"v0.9","updateDataModel":{...}}
 ```
@@ -43,9 +43,9 @@ description: "生成、修复、评审或解释 HarmonyOS A2UI Form 服务卡片
 
 ## 一致性约定
 
-- 新卡片默认使用 `2x2 = 160vp x 160vp`、`2x4 = 320vp x 160vp` 作为实际布局预算；`createSurface.width/height` 与 root `styles.width/height` 必须写 `"matchParent"`，内部组件继续使用可静态推导的数值预算。
-- root 仍承载 `padding: 12`、`borderRadius`、`clip` 和背景：`2x2` 使用 `borderRadius: 18`、`clip: true`；`2x4` 使用 `borderRadius: 22`、`clip: true`。内部 Row/Column/Text/Image/Button/Progress 等组件继续使用数值宽高。
-- 新卡片默认省略 `createSurface.styles`；表面背景、内容布局、安全区和 root 形状都写在 `root.styles` 或 root 下的真实背景组件。只有宿主明确要求外层形状/裁切时，`createSurface.styles` 才可出现且仅限 `borderRadius`、`clip`。
+- 新卡片默认使用 `2x2 = 160vp x 160vp`、`2x4 = 320vp x 160vp` 作为实际布局预算；root `styles.width/height` 必须写 `"matchParent"`；`createSurface` 默认省略 `width/height`，若声明只能写 `"matchParent"`。内部组件继续使用可静态推导的数值预算。
+- root 仍承载 `padding: 12`、`borderRadius`、`clip` 和背景：无论 `2x2` 还是 `2x4`，都固定使用 `borderRadius: 18`、`clip: true`。该固定值只约束卡片 root，内部 Row/Column/Text/Image/Button/Progress 等组件的圆角仍按视觉预算设置，并继续使用数值宽高。
+- 新卡片默认省略 `createSurface.width/height` 与 `createSurface.styles`；表面背景、内容布局、安全区和 root 形状都写在 `root.styles` 或 root 下的真实背景组件。只有宿主明确要求外层形状/裁切时，`createSurface.styles` 才可出现且仅限 `borderRadius`、`clip`。
 - 绑定方式遵循最终 Form DSL：属性值可用静态值、完整 `{{ ... }}` Expression、`{"path":"/..."}` PathBinding，或宿主明确注册的 FunctionCall；新生成优先用完整表达式保持可读和可校验。`updateDataModel.path`、CardSpec `writeResultTo`、模板 `children.path` 是协议结构 JSON Pointer，不属于值绑定；列表模板项可用 `$item/$index` 或 `itemVar/indexVar`。
 - 非模板生成时使用稳定语义 ID：`surface_card`、`root`、`header_row`、`title_text`、`primary_value`、`primary_caption`、`support_row`、`action_button` 等；模板生成时保留模板 ID 体系，但删除不用的可选槽位并同步清理引用。
 - 不使用网络图、内联/base64 SVG data URI、emoji、占位媒体、未声明资源路径、未声明事件能力、`Button.action`、非 `onClick` 事件或 Form 子集外组件；允许 `reference/design/asset-library.md` 声明的本地 SVG/PNG，SVG 可用 `Image.styles.fillColor` 染色。

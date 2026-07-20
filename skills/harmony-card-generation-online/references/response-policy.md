@@ -1,6 +1,6 @@
 # 回复策略
 
-回复以微服务返回为准。不要复述内部候选计划、schema、CardSpec、DSL 或校验细节；任一工具不可用、调用失败或结果无法解析时终止本轮生成。
+回复以微服务返回为准。不要复述内部候选计划、schema、CardSpec、DSL、来源 URL 或校验细节；任一必要工具不可用、调用失败或结果无法解析时终止本轮生成或编辑。
 
 ## 通用规则
 
@@ -15,6 +15,8 @@
 - `success` 或 `degraded` 缺少有效 `artifactUrl` 时按 `failed` 处理。
 - `genWidgetResult` 必须输出为代码块，代码块内容是合法 JSON 对象：`{"result":"artifactUrl"}`；不要输出旧的单行 `genWidgetResult:"artifactUrl"` 格式。
 - 没有真实 `artifactUrl` 时不要输出标记，即使状态看起来成功。
+- edit 模式只认可本轮业务 payload 返回且不同于 `sourceArtifactUrl` 的新 `artifactUrl`；缺失、无效或与来源相同都按 `failed` 处理，不得回用来源 URL 伪装编辑成功。
+- edit 模式 `success` / `degraded` 后，将本轮新 URL 作为当前会话后续未指定目标编辑的默认来源。
 - 可以轻量润色业务 payload 的 `message`，但不要改变微服务状态判断、降级原因或可用性结论。旧环境如果仍返回 `userMessage`，可兼容读取；新接口以 `message` 为准。
 - 用户可见回复不要暴露 capabilityId、provider、TaskSpec、OBS、IDS、errorCode、requestId、items 或原始 data 字符串等内部字段，除非用户明确追问技术细节。
 
@@ -35,6 +37,8 @@
 ````
 
 如果 `message` 为空，使用：“已为你生成卡片。”
+
+edit 模式如果 `message` 为空，使用：“已按你的要求修改卡片。”
 
 ## degraded
 
@@ -75,6 +79,7 @@
 - 不输出 `genWidgetResult`。
 - 不建议用户打开不存在的权限或安装不确定的 App，除非微服务 `message` 明确给出。
 - 如果 `message` 已经包含替代建议，不要重复追加固定建议。
+- edit 模式不更换当前默认来源，并补充或保留“原卡片不受影响”的用户可理解说明。
 
 ## failed
 
@@ -93,6 +98,7 @@
 - 如果失败原因是工具缺失或当前环境未接入工具，统一说明卡片生成服务暂时不可用，不暴露内部接入状态。
 - 如果微服务返回 `errorCode`，仅用于内部判断是否重试或归类，不直接展示给用户。
 - `TIMEOUT`、`A2UI_GENERATION_FAILED`、`VALIDATION_FAILED`、`ARTIFACT_UPLOAD_FAILED` 等都按工程失败处理，回复“卡片生成服务暂时不可用，请稍后再试。”或使用微服务给出的用户话术。
+- edit 模式统一补充或使用等价说明：“本次修改未完成，原卡片不受影响，请稍后再试。”不输出新结果标记，也不更换当前默认来源。
 
 ## 工具不可用
 
@@ -100,6 +106,12 @@
 
 ```text
 卡片生成服务暂时不可用，请稍后再试。
+```
+
+纯视觉、布局、文案或尺寸编辑只依赖 `generateWidgetCard`；不要因为没有调用 overview/schema 而判定失败。edit 模式所需工具不可用或运行时 schema 未声明 `sourceArtifactUrl` 时回复：
+
+```text
+卡片编辑服务暂时不可用，原卡片不受影响，请稍后再试。
 ```
 
 ## 异常业务结果

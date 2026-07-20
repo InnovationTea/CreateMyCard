@@ -11,7 +11,7 @@
 
 ## 先算这些（必须先过）
 
-- root：先确定逻辑画布、安全区和内容区，`2x2` 按 `160vp x 160vp` 预算、内容区约 `136vp x 136vp`，`2x4` 按 `320vp x 160vp` 预算、内容区约 `296vp x 136vp`。`createSurface` 和 root `width/height` 必须写 `"matchParent"`。
+- root：先确定逻辑画布、安全区和内容区，`2x2` 按 `160vp x 160vp` 预算、内容区约 `136vp x 136vp`，`2x4` 按 `320vp x 160vp` 预算、内容区约 `296vp x 136vp`。root `width/height` 必须写 `"matchParent"`；`createSurface` 默认省略 `width/height`，若声明只能写 `"matchParent"`。
 - 横向：每个 Row 的固定宽度、文本估算宽度、子项左右 `margin`、padding 和 `itemMargin` 相加后，不超过父容器宽度。
 - 纵向：每个 Column 的元素高度、文本行高预算、子项上下 `margin`、padding 和 `itemMargin` 相加后，不超过父容器高度。
 - 文本：每个受保护文本都有字体大小、行数、宽度和完整显示策略。

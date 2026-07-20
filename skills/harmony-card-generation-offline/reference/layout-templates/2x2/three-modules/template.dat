@@ -26,7 +26,7 @@
             "bottom": 4,
             "left": 6
           },
-          "borderRadius": 8,
+          "borderRadius": 18,
           "clip": true,
           "shadow": "outerDefaultSM",
           "backgroundColor": "#FFFFFFFF"
