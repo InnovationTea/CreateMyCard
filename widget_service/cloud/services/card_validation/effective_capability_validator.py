@@ -44,8 +44,10 @@ class EffectiveCapabilityValidator(BaseValidator):
                         json_pointer=f"/dataBindings/{index}/capabilityId",
                         actual=capability_id,
                         expected=sorted(effective_ids),
-                        message="CardSpec.dataBindings uses a data capability that is not in effectiveCapabilities.data.",
-                        fix_hint="Remove this data binding or include it in the filtered effective data capabilities.",
+                        message="CardSpec.dataBindings uses a data "
+                                "capability that is not in effectiveCapabilities.data.",
+                        fix_hint="Remove this data binding or include it "
+                                 "in the filtered effective data capabilities.",
                     )
                     continue
                 if is_json_pointer(root):
@@ -210,7 +212,8 @@ class EffectiveCapabilityValidator(BaseValidator):
                     line=2,
                     json_pointer=pointer,
                     actual=value,
-                    message="Dynamic asset expression cannot be resolved statically against effective asset capabilities.",
+                    message="Dynamic asset expression cannot be resolved "
+                            "statically against effective asset capabilities.",
                     fix_hint="Initialize the asset path in updateDataModel.value or use a static effective asset src.",
                 )
             return
