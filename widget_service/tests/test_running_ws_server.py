@@ -162,8 +162,6 @@ async def _call_ws(path_name: str, payload: dict, expected_request_id: str) -> d
             f"当前探测地址：{uri}；"
             f"连接错误：{type(exc).__name__}: {exc}"
         )
-        if __name__ == "__main__":
-            raise SystemExit(reason) from None
         pytest.skip(reason)
 
 
