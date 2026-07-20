@@ -1,0 +1,75 @@
+{
+  "version": "v0.9",
+  "catalogIds": [
+    "ohos.a2ui.extended.catalog.form"
+  ],
+  "messageOrder": ["createSurface", "updateComponents", "updateDataModel"],
+  "messageRequiredFields": {
+    "createSurface": ["surfaceId", "catalogId"],
+    "updateComponents": ["surfaceId", "root", "components"],
+    "updateDataModel": ["surfaceId", "path", "value"]
+  },
+  "messageNonEmptyFields": {
+    "updateComponents": ["components"],
+    "updateDataModel": ["value"]
+  },
+  "sizes": {
+    "2x2": {"width": 160, "height": 160, "borderRadius": 18},
+    "2x4": {"width": 320, "height": 160, "borderRadius": 22}
+  },
+  "allowedComponents": ["Text", "Image", "Divider", "Progress", "Button", "Checkbox", "Row", "Column", "List", "Stack"],
+  "forbiddenComponents": ["TextInput", "Toggle", "Radio", "CheckboxGroup", "Select", "NavContainer", "Tabs", "TabContent", "Web", "Grid", "If"],
+  "forbiddenComponentFields": {
+    "*": ["theme", "onAppear", "onChange", "onSelect", "onReachStart", "onReachEnd"],
+    "Button": ["action"]
+  },
+  "commonTopLevelFields": ["id", "component", "styles", "onClick", "accessibility"],
+  "componentCommonRequiredFields": ["id", "component"],
+  "componentNonEmptyRequiredFields": ["id", "component", "src", "label", "children"],
+  "componentTopLevelFields": {
+    "Text": ["content"],
+    "Image": ["src"],
+    "Divider": [],
+    "Progress": ["value", "total"],
+    "Button": ["label", "enabled"],
+    "Checkbox": ["label", "value", "select"],
+    "Row": ["children", "itemMargin"],
+    "Column": ["children", "itemMargin"],
+    "List": ["children", "space"],
+    "Stack": ["children"]
+  },
+  "componentRequiredFields": {
+    "Text": ["content"],
+    "Image": ["src"],
+    "Progress": ["value"],
+    "Button": ["label"],
+    "Row": ["children"],
+    "Column": ["children"],
+    "List": ["children"],
+    "Stack": ["children"]
+  },
+  "templateComponents": ["Row", "Column", "List"],
+  "templateChildren": {
+    "allowedKeys": ["componentId", "path", "itemVar", "indexVar"],
+    "requiredKeys": ["componentId", "path"]
+  },
+  "eventHandlerForbiddenFields": ["condition", "as"],
+  "cardSpec": {
+    "topLevelFields": ["title", "description", "suggestSize", "dataBindings"],
+    "requiredFields": ["title", "description", "suggestSize"],
+    "dataBindingRequiredFields": ["capabilityId", "arguments", "writeResultTo"],
+    "writeResultToPrefix": "/data/",
+    "staticStringLimits": {
+      "title": 8,
+      "description": 12
+    }
+  },
+  "structureFieldsNoExpression": [
+    "/createSurface/surfaceId",
+    "/createSurface/catalogId",
+    "/updateComponents/surfaceId",
+    "/updateComponents/root",
+    "/updateDataModel/surfaceId",
+    "/updateDataModel/path"
+  ]
+}

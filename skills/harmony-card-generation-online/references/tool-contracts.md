@@ -54,14 +54,14 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 - `data` 是 JSON 字符串时，先解析为对象；如果运行环境已将其解析成对象，可直接使用。不要把原始 `data` 字符串展示给用户。
 - `getWidgetCapabilityOverview` 的 `data` 解析后应包含 `dataCapabilities`、`eventCapabilities`、`assetCandidates`，并可选包含 `unavailableCapabilities`；该字段存在时必须是字符串数组，缺失或为 `[]` 时按空集合处理。
 - `getDataCapabilitySchemas` 的 `data` 解析后应包含 `dataCapabilities`、`missingCapabilityIds`。
-- `generateWidgetCard` 的 `data` 解析后应包含业务 `status`、`message`，成功或降级时还应包含真实 `artifactUrl`。
-- `generateWidgetCard` 业务 `status` 为 `success` 或 `degraded` 且存在真实 `artifactUrl` 时，最终用户回复必须按 `response-policy.md` 输出 `genWidgetResult` JSON 代码块，将 `artifactUrl` 写入 `result` 字段。
+- `generateWidgetCard` 的 `data` 解析后应包含业务 `status`、`message`，成功或降级时还应包含真实 `artifactUrl`。`message` 只可在完整 `success` 时作为正常成功说明；其它状态按 `response-policy.md` 使用固定话术。
+- `generateWidgetCard` 业务 `status` 为 `success` 或 `degraded` 且存在真实 `artifactUrl` 时，最终用户回复必须按 `response-policy.md` 输出 `genWidgetResult` JSON 代码块，将 `artifactUrl` 写入 `result` 字段；若 `success` 同时存在由 `unavailableCapabilities`、`missingCapabilityIds` 或 `removedCapabilities` 证明的用户提及数据缺失，也按部分数据不支持回复。
 - 如果没有可解析的 `data`，或 `items[].error` 表示工具失败，按工具调用异常处理，不输出 `genWidgetResult`。
 - 用户可见回复不暴露 `items`、`requestId`、`errorCode`、工具层 `status` 或原始 `data` 字符串。
 
 ## getWidgetCapabilityOverview
 
-用途：获取当前设备版本可用的能力概述。数据能力只返回 `id` 和描述；事件能力、素材能力全量返回。
+用途：返回当前用户实际可用的数据能力、云侧支持但用户本地不可用的数据能力 ID，以及事件和素材概述。
 
 参数：无。除 `bundleName` 外不传其它字段。
 
@@ -75,8 +75,8 @@ invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.om
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `dataCapabilities` | `DataCapabilityOverview[]` | 是 | 数据能力概述列表，只包含 `id` 和 `description`。 |
-| `unavailableCapabilities` | `string[]` | 否 | 当前不可用的数据能力 ID；缺失或为 `[]` 时不额外排除，非空时在候选筛选前从 `dataCapabilities` 中排除。 |
+| `dataCapabilities` | `DataCapabilityOverview[]` | 是 | 当前用户实际可用的数据能力，只包含 `id` 和 `description`。 |
+| `unavailableCapabilities` | `string[]` | 否 | 云侧支持但用户本地不可用的数据能力 ID；本期不返回原因。 |
 | `eventCapabilities` | `EventCapability[]` | 是 | 事件能力完整列表。 |
 | `assetCandidates` | `AssetCapability[]` | 是 | 素材能力完整列表。 |
 
@@ -84,10 +84,9 @@ invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.om
 
 - 调用前确认用户的核心卡片主题和明确要求不存在待追问项。
 - 先调用该工具，再做候选选择。
-- 不因 overview 中出现某能力就向用户承诺设备一定可用。
-- `unavailableCapabilities` 存在且非空时，先从 `dataCapabilities` 中排除其中 ID；同一 ID 同时出现时以不可用为准。字段缺失或为空数组时不额外排除。
+- `dataCapabilities` 已完成用户实际可用性裁决，但不代表最终一定生成成功。
 - 不为不可用能力调用 `getDataCapabilitySchemas`，也不把它写入 `candidateDataBindings`。
-- 只从过滤后的 `dataCapabilities`、`eventCapabilities`、`assetCandidates` 中选择候选；不要编造能力 ID、事件目标或素材 ID。
+- 数据候选只从 `dataCapabilities` 中选择；`unavailableCapabilities` 本期仅适用于数据能力，事件和素材沿用各自返回列表。
 
 ## getDataCapabilitySchemas
 
@@ -115,7 +114,7 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
 调用规则：
 
 - 调用前确认候选能力选择不依赖未解决的用户歧义；存在会改变核心候选的选择时先追问并等待回答。
-- 只传本轮从 overview 中选出且不在 `unavailableCapabilities` 中的数据能力 ID。
+- 只传本轮从 `dataCapabilities` 中选出的数据能力 ID。
 - 如果某 ID 出现在 `missingCapabilityIds`，候选计划中移除该数据能力。
 - `candidateDataBindings[].arguments` 只能使用对应 `inputSchema.properties` 中声明的字段。
 - `writeResultTo` 优先使用能力 schema 提供的默认写入路径；没有默认值时使用 `/data/{semanticKey}`，且多个候选不得相同或互为父子。
@@ -233,7 +232,7 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 | --- | --- | --- | --- |
 | `status` | `String` | 是 | 生成状态；约定取值 `"success"`、`"degraded"`、`"unsupported"`、`"failed"`。 |
 | `suggestSize` | `String` | 否 | 最终生成卡片尺寸；通常为 `"2x2"` 或 `"2x4"`。 |
-| `message` | `string` | 是 | 可展示给用户的生成结果说明。 |
+| `message` | `string` | 是 | 微服务生成结果说明；仅完整 `success` 可直接展示，`degraded`、`unsupported`、`failed` 不透传。 |
 | `artifactUrl` | `string` | 否 | artifact 下载地址；成功或降级成功时返回。 |
 | `artifactDigest` | `string` | 否 | artifact 内容摘要。 |
 | `removedCapabilities` | `RemovedCapability[]` | 否 | 被微服务裁决移除的能力及原因。 |
@@ -265,4 +264,12 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 - 不重试工具，除非工具返回明确可重试错误并要求重试。
 - `success` 或 `degraded` 缺少有效 `artifactUrl` 时按 `failed` 处理，不生成替代产物。
 - 任一工具不可用、调用失败或结果无法解析时终止本轮生成，不使用离线资料补足。
-- edit 模式失败时保留来源 URL 作为当前默认卡片，不输出新结果标记，并告知用户原卡片不受影响。
+- edit 模式失败时保留来源 URL 作为当前默认卡片，不输出新结果标记，并使用统一的其它异常话术，不追加编辑专属说明。
+
+面向端侧的非完整满足或异常回复固定映射如下：
+
+- 部分数据不支持：`degraded` 有有效 `artifactUrl`，或 `success` 有有效 `artifactUrl` 但本轮 `unavailableCapabilities`、`missingCapabilityIds` 或 `removedCapabilities` 已表明用户提及的部分数据不可用。使用固定的部分数据不支持话术并输出真实 `genWidgetResult`。
+- 整体不支持：`unsupported`。使用固定的整体不支持话术，不输出 `genWidgetResult`。
+- 其它异常：`failed`、工具异常、payload 异常，或成功/降级状态缺少有效 `artifactUrl`。使用固定的其它异常话术，不输出 `genWidgetResult`。
+
+三类固定话术及 `XX` 提炼规则以 `response-policy.md` 为准。

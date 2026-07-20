@@ -1,0 +1,68 @@
+{
+  "capabilityId": "ViewWeather",
+  "preferredWriteResultTo": "/data/weather",
+  "inputSchema": {
+    "type": "object",
+    "required": ["districtName"],
+    "properties": {
+      "districtName": {
+        "type": "string"
+      },
+      "prefectureName": {
+        "type": "string"
+      },
+      "forecastDays": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5
+      }
+    },
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "location": {
+        "type": "object",
+        "properties": {
+          "cityCode": {"type": "string"},
+          "districtName": {"type": "string"},
+          "prefectureName": {"type": "string"}
+        }
+      },
+      "current": {
+        "type": "object",
+        "properties": {
+          "temperatureC": {"type": "number"},
+          "temperatureText": {"type": "string"},
+          "condition": {"type": "string"},
+          "feelsLikeC": {"type": "number"},
+          "humidityPercent": {"type": "number"},
+          "airQuality": {"type": "string"},
+          "windDirection": {"type": "string"},
+          "windLevel": {"type": "integer"},
+          "uvIndex": {"type": "string"},
+          "coldLevel": {"type": "string"},
+          "alertLevel": {"type": "string"}
+        }
+      },
+      "daily": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "date": {"type": "string"},
+            "weekday": {"type": "string"},
+            "condition": {"type": "string"},
+            "temperatureRangeText": {"type": "string"},
+            "rainProbabilityPercent": {"type": "string"},
+            "airQuality": {"type": "string"},
+            "uvIndex": {"type": "string"},
+            "coldLevel": {"type": "string"}
+          }
+        }
+      },
+      "updatedAt": {"type": "string"}
+    }
+  }
+}

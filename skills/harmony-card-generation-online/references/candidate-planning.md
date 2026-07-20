@@ -42,6 +42,17 @@
 - 能力 ID、内部字段名、协议版本、写入路径等内部技术信息。
 - 仅影响非核心可选内容；可删除该可选候选，不阻断核心卡片生成。
 
+## 部分满足与自动降级
+
+将用户明确要求区分为核心内容和次要内容：
+
+- 当前候选无法覆盖部分数据，但剩余可获取数据仍有卡片价值时，记录缺失数据的用户可读名称并直接继续，不询问是否继续；最终按统一的部分数据不支持话术说明。
+- 只缺少次要数据时同样继续生成，并记录缺失数据的用户可读名称。
+- 所有用户提及的数据均无法覆盖时，不把静态信息或应用入口冒充用户所需数据；保留原始 `userQuery`，由微服务作最终 `unsupported` 裁决。
+- 用户已明确某项“必须包含，否则不要生成”且该数据不可用时，不生成部分满足版本；将约束保留在 `userQuery` 中，由微服务作 `unsupported` 裁决。
+
+缺失数据名称优先从用户原话和 overview 描述提炼，多个名称用“、”连接；无法可靠提炼时使用“相关”。不得暴露能力 ID、schema 或设备裁决细节。
+
 ## 编辑模式规划
 
 先从目标卡片最近一次工具业务 payload 取得真实 `artifactUrl`，并确认当前运行时 `generateWidgetCard` schema 已声明 `sourceArtifactUrl`。未声明或无法取得真实 URL 时停止编辑，不得改走 create。
@@ -57,7 +68,7 @@
 1. 沿当前卡片的会话生成链，向前查找最近一次显式提交的完整 `candidateDataBindings`；中间纯视觉、文案或尺寸编辑不会改变该集合。
 2. 根据后续业务 payload 的 `removedCapabilities` 排除已被微服务移除的数据能力，不恢复已降级删除的能力。
 3. 删除用户明确要求移除的 binding，或只修改目标 binding 的 `arguments`；保留其它 binding 的 `capabilityId`、`arguments` 和 `writeResultTo`。
-4. 重新获取能力概述，排除本轮 `unavailableCapabilities`，并为最终保留的全部数据能力重新加载 schema。
+4. 重新获取能力概述，只保留本轮 `dataCapabilities` 中实际可用的数据能力，并重新加载 schema。
 5. 重新校验全部 `arguments`、`writeResultTo` 和可选 `candidateOutputFields` 后，将完整数组传给 `generateWidgetCard`；删除全部动态数据时传 `[]`。
 
 无法可靠恢复当前完整集合时，不传不完整数组，提示用户重新创建目标卡片后再修改。本期不在 edit 模式新增数据能力，也不修改事件或素材候选。
@@ -73,16 +84,15 @@
 3. 用户想执行的动作：打开应用、查看详情、拨号、清理内存、入会、导航、切换设置。
 4. 视觉素材意图：天气图标、日历图标、应用图标、系统状态图标等。
 
-把 overview 业务 payload 的可选 `unavailableCapabilities` 转成不可用数据能力 ID 集合；字段缺失或为 `[]` 时使用空集合，再从 `dataCapabilities` 中排除集合内 ID。
-只从过滤后的 dataCapabilities、eventCapabilities、assetCandidates 中选择候选。
+`dataCapabilities` 是当前用户实际可用的数据能力；`unavailableCapabilities` 是云侧支持但用户本地不可用的数据能力 ID，只用于记录数据缺失。
+数据候选只从 dataCapabilities 中选择；事件和素材沿用各自返回列表。
 能力 description 与核心场景或动作强相关才选择。
 不能仅凭名称相似选择会改变用户意图的能力。
 ```
 
 筛选上限：
 
-- `unavailableCapabilities` 是可选字符串数组；字段缺失或为 `[]` 时表示没有预先不可用项，不阻断后续流程。字段存在但类型错误时按 overview payload 无法解析处理。
-- 同一数据能力同时出现在 `dataCapabilities` 和 `unavailableCapabilities` 时，以不可用为准；不得继续加载 schema 或构造 binding。
+- `unavailableCapabilities` 是可选字符串数组，仅适用于数据能力；字段缺失或为 `[]` 时表示没有已识别的本地不可用数据能力，类型错误时按 payload 无法解析处理。
 
 - 数据能力：最多 2 个核心候选。超过 2 个时优先保留用户明确点名、能回答主问题、能形成动态价值的能力。
 - 事件能力：最多 2 个主动作候选。高风险动作只在用户明确要求且 overview 明确支持时选择。
@@ -93,6 +103,14 @@
 - 默认 `2x2`：一个核心状态、一个动作、一个简单提醒。
 - 选择 `2x4`：两个以上核心信息区、动态列表、天气+日程、主指标+上下文+动作都需要完整展示。
 - 如果不确定，优先 `2x2`，让微服务在必要时降级或调整。
+
+## 展示项控制
+
+主要展示数据项合计不超过 4 项，`2x2` 应更精简。优先保留用户明确点名、直接回答核心需求且彼此不重复的内容。
+
+- 优先级明显时可自动舍弃次要项并继续生成，最终简要说明。
+- 用户要求全部保留或无法判断取舍时，给出建议保留项并请用户确认。
+- 内容较多但适合横版时，可优先建议 `2x4`，仍不突破 4 项限制。
 
 ## 标题与概述
 
@@ -106,6 +124,8 @@ create 模式调用 `generateWidgetCard` 时必须传 `title` 和 `description`�
 
 ## 数据能力候选
 
+`getDataCapabilitySchemas` 返回的 `missingCapabilityIds` 命中用户提及的数据时，移除对应候选并记录其用户可读名称。其它数据仍可生成时最终使用统一的部分数据不支持话术；全部相关数据均缺失时保留原始 `userQuery`，由微服务作 `unsupported` 裁决。
+
 create 模式生成候选或 edit 模式完整替换 `candidateDataBindings` 时遵守：
 
 - 先确认当前运行时 `generateWidgetCard` schema 已声明 `candidateDataBindings`；未声明时不传。schema 将数组项写成 `Object` 时，每一项按内部 `CandidateDataBinding` 类结构传入，但该内部结构不得用于扩展工具 `arguments` 顶层字段。
@@ -118,6 +138,7 @@ create 模式生成候选或 edit 模式完整替换 `candidateDataBindings` 时
 - 不把候选 binding 当最终 CardSpec；微服务会过滤和规范化。
 - `candidateOutputFields` 是可选候选展示字段投影。无需精确投影时省略，交给微服务根据 `userQuery` 和能力 schema 构造模型输入。
 - 需要表达投影时只传 `candidateOutputFields`，值必须是 JSON Pointer 字符串数组；每个路径都必须能从对应能力本轮返回的 `outputSchema` 推导，去重后传入。不能写入真实用户数据、字段类型、字段描述或模型自造字段。
+- 所有候选的主要 `candidateOutputFields` 合计不超过 4 项；被主动舍弃的用户明确需求只保留在会话规划中，用于最终用户说明，不新增工具字段。
 - 不再传 `updateModel`。
 - 相对时间必须转换成能力 schema 要求的参数。若日历 schema 要 `timeInterval`，把 today/tomorrow/next24Hours 按本地时区换算为毫秒区间；不要把 `timeRange` 写进 `arguments`。
 - 地点、联系人、App 包名等核心目标无法可靠解析且用户可以确认时，先追问并等待回答；仅属于非核心可选候选时才移除，不猜测值。
@@ -174,6 +195,7 @@ edit 模式额外传 `sourceArtifactUrl`，但前提是当前运行时 schema �
 
 ## 不支持场景
 
-- overview 过滤 `unavailableCapabilities` 后没有任何相关数据能力，但存在可用入口事件或静态价值时，仍可提交静态/入口候选，由微服务决定 degraded 或 unsupported。
+- overview 仍有部分相关可用数据能力时继续生成，并记录缺失数据名称用于统一的部分数据不支持回复。
+- overview 没有任何相关可用数据能力时，不把入口事件或静态内容视为已满足数据需求；保留原始 `userQuery`，由微服务决定 `unsupported`。
 - 用户请求三方实时数据、跨端数据、输入表单、长列表或复杂页面时，不编造动态能力；保留原始 `userQuery`，由微服务决定是否生成静态降级卡或返回 unsupported。
-- 如果所有核心能力都缺失且没有入口或静态价值，不要自行输出 `genWidgetResult`；调用微服务后按其 `unsupported` 回复。任一工具不可用时终止本轮生成并说明服务暂时不可用。
+- 如果所有核心能力都缺失，不要自行输出 `genWidgetResult`；调用微服务后按其 `unsupported` 回复。任一工具不可用时终止本轮生成并使用统一的其它异常话术。

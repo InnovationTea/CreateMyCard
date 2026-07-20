@@ -13,6 +13,13 @@
 9. 帮我做一个音乐卡片，点击打开每日推荐歌单。
 10. 做一个省电模式卡片，可以一键开启省电模式，并展示当前是系统设置相关操作。
 
+补充回归场景：
+
+- 用户要求天气、日程和实时路况，但候选只能覆盖天气与日程：生成前确认是否接受部分版本。
+- 核心数据能力缺少地点、联系人或时间范围等必填信息：集中追问后继续当前步骤。
+- 用户指定超过 4 个主要展示项：优先保留核心项；无法判断优先级时请用户确认。
+- 主 Agent 主动删减展示项且微服务又返回降级：最终合并并去重说明，不暴露内部字段。
+
 ## 工具调用样例：天气通勤卡
 
 说明：以下示例统一通过 `invoke(functionName:"工具名", arguments:{bundleName:"com.omega_w_0823.hmservice", ...},"skillName":"harmony-card-generation-online")` 调用工具。`skillName` 必须与当前 Skill frontmatter 的 `name` 完全一致。每次调用前先检查是否有会影响核心意图、候选选择或业务入参的用户待确认项；有则先追问并等待回答，再以当前运行时 `tools` 中对应工具的 schema 校验字段名、必填项、类型和嵌套结构。schema 未声明字段一律不传，示例不能覆盖运行时 schema。不要构造内部 `content/deviceInfo/session` 包络。示例中的 `timeInterval` 使用 2026-07-06 Asia/Shanghai 的当天毫秒区间；实际执行时按用户本地时区和当前日期计算。
@@ -35,13 +42,12 @@ invoke(functionName:"getWidgetCapabilityOverview", arguments:{
 },"skillName":"harmony-card-generation-online")
 ```
 
-解析业务 `data` 后先应用不可用能力过滤。例如：
+解析业务 `data` 后直接使用已裁决结果。例如：
 
 ```json
 {
   "dataCapabilities": [
-    {"id": "ViewWeather", "description": "查询天气"},
-    {"id": "GetAppUsageDurationAndPower", "description": "查询应用使用时长和耗电"}
+    {"id": "ViewWeather", "description": "查询天气"}
   ],
   "unavailableCapabilities": ["GetAppUsageDurationAndPower"],
   "eventCapabilities": [],
@@ -51,7 +57,7 @@ invoke(functionName:"getWidgetCapabilityOverview", arguments:{
 
 此时只能继续选择 `ViewWeather`；不得为 `GetAppUsageDurationAndPower` 请求 schema 或构造数据绑定。
 
-如果 `unavailableCapabilities` 缺失或为 `[]`，表示没有预先标记的不可用数据能力，继续从全部 `dataCapabilities` 中筛选。
+如果 `unavailableCapabilities` 缺失或为 `[]`，表示没有已识别的本地不可用数据能力。
 
 2. `getDataCapabilitySchemas`
 
@@ -117,7 +123,7 @@ invoke(functionName:"generateWidgetCard", arguments:{
 
 ## 工具调用样例：应用使用时长
 
-仅当 `getWidgetCapabilityOverview` 返回 `GetAppUsageDurationAndPower`，且该 ID 不在 `unavailableCapabilities` 中时才使用该候选。
+仅当 `getWidgetCapabilityOverview.dataCapabilities` 返回 `GetAppUsageDurationAndPower` 时才使用该候选。
 
 ```text
 invoke(functionName:"generateWidgetCard", arguments:{
@@ -281,10 +287,10 @@ success：
 ```
 ````
 
-degraded：
+degraded（`XX` 已替换为“日程”）：
 
 ````text
-日历权限当前未开启，我先为你生成只包含天气和通勤入口的卡片。开启日历权限后可以再生成包含今日日程的版本。
+本次卡片生成暂无你提及的日程数据，将基于可获取数据为你生成卡片
 
 ```genWidgetResult
 {
@@ -296,22 +302,22 @@ degraded：
 unsupported：
 
 ```text
-当前设备上没有可用的外卖配送数据能力，也没有可打开的应用入口，所以暂时不能生成实时外卖卡片。
-
-可以试试天气、日历、系统状态、应用使用时长或打开应用入口类卡片。
+抱歉，当前暂无法获取你提及的外卖配送功能数据，你可以尝试生成首页精选的天气、日程、运动、设备电量等同类应用卡片
 ```
 
 failed：
 
 ```text
-卡片生成服务暂时不可用，请稍后再试。
+卡片创建过程遇到问题了，请稍后再试
 ```
 
 工具不可用或结果异常：
 
 ```text
-卡片生成服务暂时不可用，请稍后再试。
+卡片创建过程遇到问题了，请稍后再试
 ```
+
+`degraded`、`unsupported`、`failed` 即使返回非空 `message`，也忽略该字段并使用上述固定话术。完整 `success` 才可展示正常成功 `message`。
 
 ## 连续编辑样例
 
@@ -378,7 +384,7 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 ### 编辑失败
 
 ```text
-本次修改未完成，原卡片不受影响，请稍后再试。
+卡片创建过程遇到问题了，请稍后再试
 ```
 
-不输出 `genWidgetResult`，后续编辑仍默认使用最近一次成功结果的 URL。
+不输出 `genWidgetResult`，不追加编辑专属说明；后续编辑仍默认使用最近一次成功结果的 URL。

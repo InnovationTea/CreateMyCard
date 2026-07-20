@@ -20,10 +20,12 @@ metadata:
 - 识别用户是否在请求创建 HarmonyOS 桌面服务卡片。
 - 识别用户是否在继续修改当前会话中的已有卡片；用户未指定目标卡片时，默认使用最近一次成功或降级生成的卡片结果。
 - 从对应工具业务 payload 中读取真实 `artifactUrl` 作为编辑来源，不解析或猜测普通回复中的 URL。
-- 调用微服务工具获取当前环境下可供候选筛选的能力概述。
+- 调用微服务工具获取当前用户实际可用和不可用的数据能力概述。
 - 根据用户 query 选择候选数据能力、事件能力和素材。
 - 按需加载选中数据能力 schema。
+- 评估候选能力对用户核心需求的覆盖情况；只能部分满足时按影响决定追问或继续。
 - 构造 `candidateDataBindings`、`candidateEventCandidates`、`candidateAssetIds`、`size`、`title` 和 `description`。
+- 控制主要展示数据项不超过 4 项，并记录主动舍弃的用户需求用于结果说明。
 - 调用 `generateWidgetCard` 生成卡片 artifact。
 - 编辑成功后使用本轮返回的新 `artifactUrl` 作为后续编辑的默认来源。
 - 根据微服务返回状态组织用户回复。
@@ -76,7 +78,7 @@ metadata:
 
 2. **初步回应**：不要说"可以生成某动态卡片"。需要过程回复时只说："我先检查当前设备支持情况，然后为你生成可用的卡片。"
 
-3. **用户确认与工具入参校验**：每次调用工具前先检查是否存在用户可回答、且会影响核心卡片需求、候选能力、目标对象、地点、日期/时间范围、动作目标或必填业务参数的未决信息。有则不要调用任何工具，先用简短自然语言追问，等待用户明确回答后重新检查当前步骤。能从用户原话、可信会话上下文或 schema 明确默认值安全确定的内容不重复确认；未指定编辑目标不属于歧义，按最近一次卡片结果处理。不要向用户询问设备能力是否可用、能力 ID、内部字段名或其它应由微服务裁决的内容。确认门禁通过后，再读取当前运行时 `tools` 中对应工具的 schema，按“工具定义”的调用前硬校验逐项检查 `functionName`、`bundleName`、必填字段、字段名、类型和嵌套结构。任何字段都不能只因本 Skill、参考资料、示例或内部类中出现就传入。
+3. **用户确认与工具入参校验**：每次调用工具前先检查是否存在用户可回答、且会影响核心卡片需求、候选能力、目标对象、地点、日期/时间范围、动作目标或必填业务参数的未决信息。有则不要调用任何工具，用自然语言集中追问最少必要信息，等待用户回答后从当前步骤继续。能从用户原话、可信会话上下文或 schema 明确默认值安全确定的内容不重复确认；未指定编辑目标不属于歧义，按最近一次卡片结果处理。不要向用户询问设备能力是否可用、能力 ID、内部字段名或其它应由微服务裁决的内容。确认门禁通过后，再读取当前运行时 `tools` 中对应工具的 schema，按“工具定义”的调用前硬校验逐项检查 `functionName`、`bundleName`、必填字段、字段名、类型和嵌套结构。任何字段都不能只因本 Skill、参考资料、示例或内部类中出现就传入。
 
 4. **编辑请求分流**：进入 edit 模式后，先确认当前运行时 `generateWidgetCard` schema 已声明 `sourceArtifactUrl`；未声明时终止本轮编辑并按工具不可用回复，不得删除该字段后误走 create 模式。然后按编辑类型处理：
    - 纯视觉或布局修改：只准备 `userQuery` 和 `sourceArtifactUrl`，不调用能力概述或数据 schema。
@@ -87,18 +89,21 @@ metadata:
 5. **获取能力概述**：create 模式，以及需要删除数据能力或修改能力参数的 edit 模式，在确认核心要求不存在待追问项后调用 `getWidgetCapabilityOverview`。除 `bundleName` 外不传其它字段；工具返回后从包装结构 `items[].data` 中解析业务 payload；如果返回原始插件包络，则先进入 `reply.items[].data`。`unavailableCapabilities` 缺失或为 `[]` 时按空集合处理；字段存在但不是字符串数组，或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
 
 6. **筛选候选能力**：按 `references/candidate-planning.md` 从概述中筛选候选能力：
-   - `unavailableCapabilities` 存在且非空时，先从 `dataCapabilities` 中排除其中的数据能力；同一 ID 同时出现时以不可用为准。字段缺失或为空数组时不额外排除。
+   - `dataCapabilities` 是当前用户实际可用的数据能力；`unavailableCapabilities` 只记录云侧支持但用户本地不可用的数据能力 ID，本期不适用于事件能力。
    - 数据能力最多优先选 2 个核心候选。
    - 事件能力最多优先选 2 个主动作候选。
    - 素材候选只选和场景强相关的少量 ID。
+   - 若 `unavailableCapabilities` 命中用户需求，但过滤后仍有可获取数据可形成有价值的卡片，记录缺失数据的用户可读名称并直接继续，不询问是否继续；最终使用统一的部分数据不支持话术。用户明确要求缺失数据“必须包含，否则不要生成”时除外：保留该约束并由微服务作 `unsupported` 裁决。
+   - 若只缺少次要数据能力，同样记录其用户可读名称并继续。
+   - 若所有相关数据能力均不可用且没有可生成价值，仍将原始需求交给微服务作最终 `unsupported` 裁决，不伪造候选或结果。
 
-7. **加载数据能力 Schema**：如果 create 模式选中了数据能力，或 edit 模式正在修改数据能力，先确认候选选择不依赖尚未明确的用户选择；存在会改变核心候选的歧义时先追问并等待回答。确认后只为排除 `unavailableCapabilities` 后仍可选的数据能力调用 `getDataCapabilitySchemas` 加载完整 schema。工具不可用、调用失败或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
+7. **加载数据能力 Schema**：如果 create 模式选中了数据能力，或 edit 模式正在修改数据能力，先确认候选选择不依赖尚未明确的用户选择；存在会改变核心候选的歧义时先追问并等待回答。确认后只为本轮 `dataCapabilities` 中选中的能力调用 `getDataCapabilitySchemas`。schema 必填业务参数无法从用户原话、可信上下文或安全默认值取得时，使用用户可理解的说法集中追问；不要暴露字段名或为了绕过追问删除核心候选。工具不可用、调用失败或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
 
 8. **构造请求计划**：create 模式基于 schema 构造完整候选计划；edit 模式只传本轮明确替换的字段或候选类别：
    - `size`：`"2x2"` 或 `"2x4"`。
    - `candidateDataBindings`：候选数据能力调用，不是最终 CardSpec。
    - 按当前工具 schema 组装每个 `candidateDataBindings` 元素：`capabilityId`、`arguments`、`writeResultTo`，以及可选的 `candidateOutputFields`；不要传松散对象或额外字段。
-   - `candidateOutputFields` 只能是 JSON Pointer 字符串数组，每一项必须能从对应能力本轮返回的 `outputSchema` 推导；拿不准时省略。不要传 `updateModel`。
+   - `candidateOutputFields` 只能是 JSON Pointer 字符串数组，每一项必须能从对应能力本轮返回的 `outputSchema` 推导；主要展示数据项合计不超过 4 项，优先保留用户明确点名和最能回答核心需求的内容。拿不准时省略。不要传 `updateModel`。
    - `candidateEventCandidates`：事件候选单数组；每项包含来自 overview 的 `capabilityId` 和完整 `action`。如果无法安全填齐 `action.call/args`，不要传该事件候选。
    - 虽然对外工具 schema 中事件项只是 `Object`，每一项仍必须按内部 `CandidateEventCandidate` 类结构组装：`capabilityId` 和 `action:{call,args}`。
    - `candidateAssetIds`：来自 overview 的素材 ID。
@@ -110,12 +115,14 @@ metadata:
 
 10. **回复用户并推进编辑链**：按 `references/response-policy.md` 回复：
    - 先从 `generateWidgetCard` 返回的 `items[].data` 解析业务 payload；如果返回原始插件包络，则先进入 `reply.items[].data`。
-   - `success` / `degraded` 且存在有效 `artifactUrl`：输出业务 payload 的 `message`，并按“输出”章节格式输出 `genWidgetResult` JSON 标记。
+   - `success` 且没有因能力不可用而缺失用户提及的数据，并存在有效 `artifactUrl`：输出正常成功说明，并按“输出”章节格式输出 `genWidgetResult` JSON 标记。
+   - `degraded` 且存在有效 `artifactUrl`，或 `success` 但本轮 `unavailableCapabilities`、`missingCapabilityIds` 或 `removedCapabilities` 已表明用户提及的部分数据不可用且仍有可获取数据：输出“本次卡片生成暂无你提及的 XX 数据，将基于可获取数据为你生成卡片”，再输出真实 `genWidgetResult`。不要询问是否继续，也不要透传或润色业务 payload 的 `message`。
    - `success` / `degraded` 但缺少有效 `artifactUrl`：按 `failed` 处理，不输出 `genWidgetResult`。
-   - `unsupported`：不输出 `genWidgetResult`，输出用户可理解的能力边界和可尝试的替代方向。
-   - `failed`：不输出 `genWidgetResult`，只输出生成服务暂时不可用的说明。
+   - `unsupported`：只输出“抱歉，当前暂无法获取你提及的XX功能数据，你可以尝试生成首页精选的天气、日程、运动、设备电量等同类应用卡片”，不输出 `genWidgetResult`，不透传业务 payload 的 `message`。
+   - `failed`、必要工具不可用、调用异常、payload 无法解析或结果字段不合法：只输出“卡片创建过程遇到问题了，请稍后再试”，不输出 `genWidgetResult`，不透传业务 payload 的 `message`。
+   - `XX` 从用户原话、能力描述和微服务移除原因中提炼为用户可理解的数据或功能名称；多个名称用“、”连接，无法可靠提炼时使用“相关”。模板中 `XX` 两侧的空格仅用于标示占位符，实际替换后不保留，例如输出“日程数据”而不是“日程 数据”。禁止使用能力 ID 或其它内部字段。
    - edit 模式 `success` / `degraded`：本轮 `artifactUrl` 必须有效且不同于 `sourceArtifactUrl`；否则按 `failed` 处理。校验通过后输出新结果，并把它作为当前会话后续编辑的默认来源。
-   - edit 模式 `failed`：明确原卡片不受影响，不输出 `genWidgetResult`，也不更换默认来源。
+   - edit 模式失败同样使用上述统一话术，不追加“原卡片不受影响”等专属文案；不输出 `genWidgetResult`，也不更换默认来源。
 
 ## 工具定义
 
@@ -139,9 +146,9 @@ metadata:
 
 ### Function: getWidgetCapabilityOverview
 - **toolName**: getWidgetCapabilityOverview
-- **description**: 获取当前设备版本可用的能力概述。数据能力只返回 id 和描述；事件能力、素材能力全量返回。
+- **description**: 获取当前用户实际可用的数据能力、不可用数据能力 ID，以及事件和素材概述。
 - **参数**: {}
-- **语义**: 在工作流的**获取能力概述**调用；`unavailableCapabilities` 存在且非空时先排除其指示的不可用数据能力，缺失或为空时不额外排除，再从其余数据能力、事件和素材中选择候选。
+- **语义**: `dataCapabilities` 是当前用户实际可用的数据能力；`unavailableCapabilities` 只用于记录本地不可用的数据能力，不进入 schema 加载或数据候选。
 
 ### Function: getDataCapabilitySchemas
 - **toolName**: getDataCapabilitySchemas
@@ -152,7 +159,7 @@ metadata:
 ### Function: generateWidgetCard
 - **toolName**: generateWidgetCard
 - **description**: 提交用户需求和候选计划首次生成卡片，或通过上一版 artifact URL 连续编辑卡片。
-- **参数**: {"type":"object","properties":{"sourceArtifactUrl":{"type":"String","description":"可选。上一版完整 artifact 的真实 URL；缺失表示首次生成，非空表示编辑"},"size":{"type":"String","description":"主 Agent 建议尺寸"},"candidateDataBindings":{"type":"Array","description":"候选数据能力调用列表；微服务会按注册表和 IDS 状态裁决最终可用项","required":[],"properties":{"ArrayItem":{"type":"Object","description":"候选数据能力","required":[],"properties":{"candidateOutputFields":{"type":"Array<String>","description":"可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导","required":[],"properties":{"ArrayItem":{"type":"String","description":"可选候选展示字段 JSON Pointer"}}},"arguments":{"type":"Object","description":"参数"},"capabilityId":{"type":"String","description":"能力ID"},"writeResultTo":{"type":"String","description":"结果写入路径"}}}}},"candidateEventCandidates":{"type":"Array","description":"候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明","required":[],"properties":{"ArrayItem":{"type":"Object","description":"事件 action"}}},"userQuery":{"type":"String","description":"首次生成时为原始需求，编辑时只表达本轮修改"},"candidateAssetIds":{"type":"Array<String>","description":"候选素材 ID 列表","required":[],"properties":{"ArrayItem":{"type":"String","description":"候选素材 ID"}}},"title":{"type":"String","description":"建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"},"description":{"type":"String","description":"建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"}},"required":["userQuery"]}
+- **参数**: {"type":"object","properties":{"sourceArtifactUrl":{"type":"String","description":"可选。上一版完整 artifact 的真实 URL；缺失表示首次生成，非空表示编辑"},"size":{"type":"String","description":"主 Agent 建议尺寸"},"candidateDataBindings":{"type":"Array","description":"已通过能力概述裁决的候选数据能力调用列表","required":[],"properties":{"ArrayItem":{"type":"Object","description":"候选数据能力","required":[],"properties":{"candidateOutputFields":{"type":"Array<String>","description":"可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导","required":[],"properties":{"ArrayItem":{"type":"String","description":"可选候选展示字段 JSON Pointer"}}},"arguments":{"type":"Object","description":"参数"},"capabilityId":{"type":"String","description":"能力ID"},"writeResultTo":{"type":"String","description":"结果写入路径"}}}}},"candidateEventCandidates":{"type":"Array","description":"候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明","required":[],"properties":{"ArrayItem":{"type":"Object","description":"事件 action"}}},"userQuery":{"type":"String","description":"首次生成时为原始需求，编辑时只表达本轮修改"},"candidateAssetIds":{"type":"Array<String>","description":"候选素材 ID 列表","required":[],"properties":{"ArrayItem":{"type":"String","description":"候选素材 ID"}}},"title":{"type":"String","description":"建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"},"description":{"type":"String","description":"建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"}},"required":["userQuery"]}
 
 ## 工具调用示例
 
@@ -183,7 +190,7 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 
 - 只使用 `generateWidgetCard` 包装结构中业务 payload 返回的真实 `artifactUrl`。
 - 标记必须是 `genWidgetResult` 代码块，代码块内容必须是合法 JSON 对象，且 `result` 的值必须等于真实 `artifactUrl`；不要再输出旧格式 `genWidgetResult:"url"`。
-- `degraded` 时保留微服务给出的降级原因，轻量润色即可。
+- `degraded` 时使用统一的部分数据不支持话术，不透传或润色微服务 `message`。
 - `success` 或 `degraded` 缺少有效 `artifactUrl` 时按 `failed` 处理，不输出标记。
 - `unsupported` 或 `failed` 时不要输出标记。
 - 任何状态都不输出 `genui`、`cardspec`、A2UI JSONL、CardSpec JSON、校验日志或内部工具草稿。
@@ -201,6 +208,6 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 - 不编造能力 ID、事件目标、素材 ID 或 artifact URL。
 - 不选择、加载或传递 `unavailableCapabilities` 指示的不可用数据能力。
 - 不把能力 schema、内部错误码、requestId、items、原始 data 字符串等内部信息暴露给用户。
-- 不模拟工具结果；任一工具不可用、调用失败、结果无法解析或缺少必要字段时，说明卡片生成服务暂时不可用并终止本轮生成。
+- 不模拟工具结果；任一工具不可用、调用失败、结果无法解析或缺少必要字段时，统一回复“卡片创建过程遇到问题了，请稍后再试”并终止本轮生成。
 - 不读取离线能力清单、历史模板或旧协议资料来补足工具结果。
 - 不在存在用户待确认信息时抢先调用工具；追问后必须等待用户回答，不得自行假设用户已确认。

@@ -1,5 +1,5 @@
 ---
-name: harmony-card-template-generation
+name: harmony-card-design-generation
 description: "使用分层卡片设计系统生成 HarmonyOS A2UI Form 服务卡片。用于用户显式调用本 Skill，并要求主 Agent 按自然语言 query 依次提取卡片特征、选择 2x2/2x4 固定布局、分配兼容模块、选择受控元素尺寸和填充内容，再通过确定性装配生成三行 genui JSONL 与 cardspec JSON；支持已声明的数据能力、点击事件和本地素材，但不调用 harmony-card-generation-online 或 harmony-card-generation-offline。"
 ---
 
