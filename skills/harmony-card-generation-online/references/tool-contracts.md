@@ -54,8 +54,8 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 - `data` 是 JSON 字符串时，先解析为对象；如果运行环境已将其解析成对象，可直接使用。不要把原始 `data` 字符串展示给用户。
 - `getWidgetCapabilityOverview` 的 `data` 解析后应包含 `dataCapabilities`、`eventCapabilities`、`assetCandidates`，并可选包含 `unavailableCapabilities`；该字段存在时必须是字符串数组，缺失或为 `[]` 时按空集合处理。
 - `getDataCapabilitySchemas` 的 `data` 解析后应包含 `dataCapabilities`、`missingCapabilityIds`。
-- `generateWidgetCard` 的 `data` 解析后应包含业务 `status`、`message`，成功或降级时还应包含真实 `artifactUrl`。
-- `generateWidgetCard` 业务 `status` 为 `success` 或 `degraded` 且存在真实 `artifactUrl` 时，最终用户回复必须按 `response-policy.md` 输出 `genWidgetResult` JSON 代码块，将 `artifactUrl` 写入 `result` 字段。
+- `generateWidgetCard` 的 `data` 解析后应包含业务 `status`、`message`，成功或降级时还应包含真实 `artifactUrl`。`message` 只可在完整 `success` 时作为正常成功说明；其它状态按 `response-policy.md` 使用固定话术。
+- `generateWidgetCard` 业务 `status` 为 `success` 或 `degraded` 且存在真实 `artifactUrl` 时，最终用户回复必须按 `response-policy.md` 输出 `genWidgetResult` JSON 代码块，将 `artifactUrl` 写入 `result` 字段；若 `success` 同时存在由 `unavailableCapabilities`、`missingCapabilityIds` 或 `removedCapabilities` 证明的用户提及数据缺失，也按部分数据不支持回复。
 - 如果没有可解析的 `data`，或 `items[].error` 表示工具失败，按工具调用异常处理，不输出 `genWidgetResult`。
 - 用户可见回复不暴露 `items`、`requestId`、`errorCode`、工具层 `status` 或原始 `data` 字符串。
 
@@ -233,7 +233,7 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 | --- | --- | --- | --- |
 | `status` | `String` | 是 | 生成状态；约定取值 `"success"`、`"degraded"`、`"unsupported"`、`"failed"`。 |
 | `suggestSize` | `String` | 否 | 最终生成卡片尺寸；通常为 `"2x2"` 或 `"2x4"`。 |
-| `message` | `string` | 是 | 可展示给用户的生成结果说明。 |
+| `message` | `string` | 是 | 微服务生成结果说明；仅完整 `success` 可直接展示，`degraded`、`unsupported`、`failed` 不透传。 |
 | `artifactUrl` | `string` | 否 | artifact 下载地址；成功或降级成功时返回。 |
 | `artifactDigest` | `string` | 否 | artifact 内容摘要。 |
 | `removedCapabilities` | `RemovedCapability[]` | 否 | 被微服务裁决移除的能力及原因。 |
@@ -265,4 +265,12 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 - 不重试工具，除非工具返回明确可重试错误并要求重试。
 - `success` 或 `degraded` 缺少有效 `artifactUrl` 时按 `failed` 处理，不生成替代产物。
 - 任一工具不可用、调用失败或结果无法解析时终止本轮生成，不使用离线资料补足。
-- edit 模式失败时保留来源 URL 作为当前默认卡片，不输出新结果标记，并告知用户原卡片不受影响。
+- edit 模式失败时保留来源 URL 作为当前默认卡片，不输出新结果标记，并使用统一的其它异常话术，不追加编辑专属说明。
+
+面向端侧的非完整满足或异常回复固定映射如下：
+
+- 部分数据不支持：`degraded` 有有效 `artifactUrl`，或 `success` 有有效 `artifactUrl` 但本轮 `unavailableCapabilities`、`missingCapabilityIds` 或 `removedCapabilities` 已表明用户提及的部分数据不可用。使用固定的部分数据不支持话术并输出真实 `genWidgetResult`。
+- 整体不支持：`unsupported`。使用固定的整体不支持话术，不输出 `genWidgetResult`。
+- 其它异常：`failed`、工具异常、payload 异常，或成功/降级状态缺少有效 `artifactUrl`。使用固定的其它异常话术，不输出 `genWidgetResult`。
+
+三类固定话术及 `XX` 提炼规则以 `response-policy.md` 为准。

@@ -93,8 +93,9 @@ metadata:
    - 数据能力最多优先选 2 个核心候选。
    - 事件能力最多优先选 2 个主动作候选。
    - 素材候选只选和场景强相关的少量 ID。
-   - 若当前候选只能满足部分核心需求，但剩余内容仍可形成有价值的卡片，先说明无法覆盖的部分并询问是否继续；用户确认后再进入后续步骤。
-   - 若只缺少次要内容，不额外打断用户，记录该调整并继续；设备最终可用性仍由微服务裁决。
+   - 若 `unavailableCapabilities` 命中用户需求，但过滤后仍有可获取数据可形成有价值的卡片，记录缺失数据的用户可读名称并直接继续，不询问是否继续；最终使用统一的部分数据不支持话术。用户明确要求缺失数据“必须包含，否则不要生成”时除外：保留该约束并由微服务作 `unsupported` 裁决。
+   - 若只缺少次要数据能力，同样记录其用户可读名称并继续；设备最终可用性仍由微服务裁决。
+   - 若所有相关数据能力均不可用且没有可生成价值，仍将原始需求交给微服务作最终 `unsupported` 裁决，不伪造候选或结果。
 
 7. **加载数据能力 Schema**：如果 create 模式选中了数据能力，或 edit 模式正在修改数据能力，先确认候选选择不依赖尚未明确的用户选择；存在会改变核心候选的歧义时先追问并等待回答。确认后只为排除 `unavailableCapabilities` 后仍可选的数据能力调用 `getDataCapabilitySchemas` 加载完整 schema。schema 必填业务参数无法从用户原话、可信上下文或安全默认值取得时，使用用户可理解的说法集中追问；不要暴露字段名或为了绕过追问删除核心候选。工具不可用、调用失败或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
 
@@ -114,13 +115,14 @@ metadata:
 
 10. **回复用户并推进编辑链**：按 `references/response-policy.md` 回复：
    - 先从 `generateWidgetCard` 返回的 `items[].data` 解析业务 payload；如果返回原始插件包络，则先进入 `reply.items[].data`。
-   - `success` / `degraded` 且存在有效 `artifactUrl`：输出业务 payload 的 `message`，并按“输出”章节格式输出 `genWidgetResult` JSON 标记。
-   - 主 Agent 已主动舍弃用户明确要求的次要数据项时，在结果中用一句用户可理解的说明补充，且不与微服务 `message` 重复。
+   - `success` 且没有因能力不可用而缺失用户提及的数据，并存在有效 `artifactUrl`：输出正常成功说明，并按“输出”章节格式输出 `genWidgetResult` JSON 标记。
+   - `degraded` 且存在有效 `artifactUrl`，或 `success` 但本轮 `unavailableCapabilities`、`missingCapabilityIds` 或 `removedCapabilities` 已表明用户提及的部分数据不可用且仍有可获取数据：输出“本次卡片生成暂无你提及的 XX 数据，该能力暂未开放，将基于可获取数据为你生成卡片”，再输出真实 `genWidgetResult`。不要询问是否继续，也不要透传或润色业务 payload 的 `message`。
    - `success` / `degraded` 但缺少有效 `artifactUrl`：按 `failed` 处理，不输出 `genWidgetResult`。
-   - `unsupported`：不输出 `genWidgetResult`，输出用户可理解的能力边界和可尝试的替代方向。
-   - `failed`：不输出 `genWidgetResult`，只输出生成服务暂时不可用的说明。
+   - `unsupported`：只输出“抱歉，你提及的XX功能数据本期暂未开放，你可以尝试生成首页精选的天气、日程、运动、设备电量等同类应用卡片”，不输出 `genWidgetResult`，不透传业务 payload 的 `message`。
+   - `failed`、必要工具不可用、调用异常、payload 无法解析或结果字段不合法：只输出“卡片创建过程遇到问题了，请稍后再试”，不输出 `genWidgetResult`，不透传业务 payload 的 `message`。
+   - `XX` 从用户原话、能力描述和微服务移除原因中提炼为用户可理解的数据或功能名称；多个名称用“、”连接，无法可靠提炼时使用“相关”。模板中 `XX` 两侧的空格仅用于标示占位符，实际替换后不保留，例如输出“日程数据”而不是“日程 数据”。禁止使用能力 ID 或其它内部字段。
    - edit 模式 `success` / `degraded`：本轮 `artifactUrl` 必须有效且不同于 `sourceArtifactUrl`；否则按 `failed` 处理。校验通过后输出新结果，并把它作为当前会话后续编辑的默认来源。
-   - edit 模式 `failed`：明确原卡片不受影响，不输出 `genWidgetResult`，也不更换默认来源。
+   - edit 模式失败同样使用上述统一话术，不追加“原卡片不受影响”等专属文案；不输出 `genWidgetResult`，也不更换默认来源。
 
 ## 工具定义
 
@@ -188,7 +190,7 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 
 - 只使用 `generateWidgetCard` 包装结构中业务 payload 返回的真实 `artifactUrl`。
 - 标记必须是 `genWidgetResult` 代码块，代码块内容必须是合法 JSON 对象，且 `result` 的值必须等于真实 `artifactUrl`；不要再输出旧格式 `genWidgetResult:"url"`。
-- `degraded` 时保留微服务给出的降级原因，轻量润色即可。
+- `degraded` 时使用统一的部分数据不支持话术，不透传或润色微服务 `message`。
 - `success` 或 `degraded` 缺少有效 `artifactUrl` 时按 `failed` 处理，不输出标记。
 - `unsupported` 或 `failed` 时不要输出标记。
 - 任何状态都不输出 `genui`、`cardspec`、A2UI JSONL、CardSpec JSON、校验日志或内部工具草稿。
@@ -206,6 +208,6 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 - 不编造能力 ID、事件目标、素材 ID 或 artifact URL。
 - 不选择、加载或传递 `unavailableCapabilities` 指示的不可用数据能力。
 - 不把能力 schema、内部错误码、requestId、items、原始 data 字符串等内部信息暴露给用户。
-- 不模拟工具结果；任一工具不可用、调用失败、结果无法解析或缺少必要字段时，说明卡片生成服务暂时不可用并终止本轮生成。
+- 不模拟工具结果；任一工具不可用、调用失败、结果无法解析或缺少必要字段时，统一回复“卡片创建过程遇到问题了，请稍后再试”并终止本轮生成。
 - 不读取离线能力清单、历史模板或旧协议资料来补足工具结果。
 - 不在存在用户待确认信息时抢先调用工具；追问后必须等待用户回答，不得自行假设用户已确认。
