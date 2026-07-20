@@ -291,6 +291,13 @@ class A2UIModelClient:
             reason_text = "".join(reasoning_parts)
             full_text = content_text if content_text else reason_text
             duration_ms = round((time.perf_counter() - start) * 1000, 2)
+
+            # 计算生成速度（tokens/s）
+            speed_str = "N/A"
+            if first_token_at is not None and completion_tokens > 0:
+                generation_time_sec = (duration_ms - first_token_latency_ms) / 1000.0
+                if generation_time_sec > 0:
+                    speed_str = f"{completion_tokens / generation_time_sec:.2f}"
             logger.info(
                 f"{_MODULE} response_received "
                 f"content_preview={full_text} "
@@ -299,6 +306,7 @@ class A2UIModelClient:
                 f"total_tokens={total_tokens} "
                 f"completion_tokens={completion_tokens} "
                 f"prompt_tokens={prompt_tokens}"
+                f"tokens_per_sec={speed_str}"
             )
 
             # 剔除···genui ```内容
