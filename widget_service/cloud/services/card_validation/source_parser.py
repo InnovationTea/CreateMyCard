@@ -166,21 +166,29 @@ class SourceParser:
         self._collect_expressions(context)
         self._collect_template_contexts(context)
 
+    def _contains_expression_marker(self, value: object) -> bool:
+        if not isinstance(value, str):
+            return False
+
+        expression_markers = ("{{", "}}", "${")
+        return any(marker in value for marker in expression_markers)
+
     def _collect_expressions(self, context: ValidationContext) -> None:
         for component in context.components:
-            component_id = component.get("id") if isinstance(component.get("id"), str) else None
+            component_id_value = component.get("id")
+            component_id = component_id_value if isinstance(component_id_value, str) else None
+
             for pointer, value in walk_json(component):
-                is_string = isinstance(value, str)
-                has_expression_marker = "{{" in value or "}}" in value or "${" in value
-                if is_string and has_expression_marker:
-                    context.expression_locations.append(
-                        (
-                            "genui",
-                            f"/updateComponents/componentsById/{component_id}{pointer}",
-                            value,
-                            component_id,
-                        )
+                if not self._contains_expression_marker(value):
+                    continue
+                context.expression_locations.append(
+                    (
+                        "genui",
+                        f"/updateComponents/componentsById/{component_id}{pointer}",
+                        value,
+                        component_id,
                     )
+                )
 
     def _collect_template_contexts(self, context: ValidationContext) -> None:
         for component in context.components:
