@@ -18,6 +18,8 @@ from loguru import logger as _logger
 
 from config.config import get_settings, LoggingConfig
 
+_MODULE = "[Logger]"
+
 # 创建上下文变量来存储task ID
 task_id_context: ContextVar[Optional[str]] = ContextVar('task_id', default=None)
 session_id_context: ContextVar[Optional[str]] = ContextVar('session_id', default=None)
@@ -435,7 +437,7 @@ def log_func(func_name: Optional[str] = None, log_args: bool = True, log_result:
                 "error": str(e),
                 "traceback": traceback.format_exc()
             })
-            logger.error(f"函数执行失败: {json.dumps(error_data, ensure_ascii=False)}")
+            logger.error(f"{_MODULE} 函数执行失败: {json.dumps(error_data, ensure_ascii=False)}")
 
         @functools.wraps(func)
         async def async_wrapper(*args, **kwargs):
@@ -457,7 +459,7 @@ def log_func(func_name: Optional[str] = None, log_args: bool = True, log_result:
                 "start_connections": start_connections
             })
 
-            logger.info(f"开始执行函数: {json.dumps(start_data, ensure_ascii=False)}")
+            logger.info(f"{_MODULE} 开始执行函数: {json.dumps(start_data, ensure_ascii=False)}")
 
             try:
                 result = await func(*args, **kwargs)
@@ -484,7 +486,7 @@ def log_func(func_name: Optional[str] = None, log_args: bool = True, log_result:
                     "end_connections": end_connections,
                     "connection_delta": connection_delta
                 })
-                logger.info(f"函数执行成功: {json.dumps(success_data, ensure_ascii=False)}")
+                logger.info(f"{_MODULE} 函数执行成功: {json.dumps(success_data, ensure_ascii=False)}")
                 return result
             except Exception as e:
                 # ===== 新增：错误时的性能数据 =====
@@ -504,7 +506,7 @@ def log_func(func_name: Optional[str] = None, log_args: bool = True, log_result:
                     "memory_used_mb": round(end_memory - start_memory, 2),
                     "error_timestamp": time.time()
                 }
-                logger.error(f"函数执行失败(含性能): {json.dumps(error_perf_data, ensure_ascii=False)}")
+                logger.error(f"{_MODULE} 函数执行失败(含性能): {json.dumps(error_perf_data, ensure_ascii=False)}")
                 # ===== 新增结束 =====
                 return None
 
@@ -516,14 +518,14 @@ def log_func(func_name: Optional[str] = None, log_args: bool = True, log_result:
             # 记录开始执行
             start_data = _base_log_dict("function_call_start", page_id + "#" + task_id)
             _serialize_args(start_data, args, kwargs)
-            logger.info(f"开始执行函数: {json.dumps(start_data, ensure_ascii=False)}")
+            logger.info(f"{_MODULE} 开始执行函数: {json.dumps(start_data, ensure_ascii=False)}")
 
             try:
                 result = func(*args, **kwargs)
                 # 记录成功执行
                 success_data = _base_log_dict("function_call_success", page_id + "#" + task_id)
                 _process_result(success_data, result)
-                logger.info(f"函数执行成功: {json.dumps(success_data, ensure_ascii=False)}")
+                logger.info(f"{_MODULE} 函数执行成功: {json.dumps(success_data, ensure_ascii=False)}")
                 return result
             except Exception as e:
                 _handle_error(page_id + "#" + task_id, e)

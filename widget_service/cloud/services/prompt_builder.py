@@ -6,6 +6,8 @@ from config.config import get_settings
 from models.generation import TaskSpec
 from services.compact_dsl_protocol import build_compact_dsl_system_prompt, is_compact_dsl
 
+_MODULE = "[Prompt Builder]"
+
 SYSTEM_PROMPT = get_settings().system_prompt
 EDIT_SYSTEM_PROMPT = get_settings().edit_system_prompt
 

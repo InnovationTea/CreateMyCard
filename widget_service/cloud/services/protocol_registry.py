@@ -5,6 +5,8 @@ import re
 from app.logger import logger
 from config.config import get_settings
 
+_MODULE = "[Protocol Registry]"
+
 A2UI_FORM_PROTOCOL_PROFILE_ID = "a2ui-form-rom6.0-v1"
 COMPACT_DSL_PROTOCOL_PROFILE_ID = "compact-dsl-v1"
 
@@ -29,7 +31,7 @@ class A2UIProtocolRegistry:
         profile_dir = self.settings.data_root / "protocol_profiles" / self.profile_id
         if not profile_dir.exists():
             raise ValueError(f"Protocol profile not found: {self.profile_id}")
-        logger.info(f"protocol_profile_loading profile_id={self.profile_id}")
+        logger.info(f"{_MODULE} protocol_profile_loading profile_id={self.profile_id}")
         protocol_md = self._read_markdown(profile_dir, "protocol.md")
         component_catalog_md = self._read_markdown(profile_dir, "component-catalog.md")
         data_binding_md = self._read_markdown(profile_dir, "data-binding.md")
@@ -69,7 +71,7 @@ class A2UIProtocolRegistry:
             },
         }
         logger.info(
-            f"protocol_profile_loaded profile_id={self.profile_id} "
+            f"{_MODULE} protocol_profile_loaded profile_id={self.profile_id} "
             f"version={profile['version']} "
             f"component_count={len(profile['componentWhitelist'])}"
         )

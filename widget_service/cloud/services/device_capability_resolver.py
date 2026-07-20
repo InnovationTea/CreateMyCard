@@ -18,6 +18,8 @@ from models.generation import CandidateDataBinding, DeviceContext
 from services.capability_registry import CapabilityRegistry
 from services.ids_client import IDSClient, IDSDeviceCapabilityState
 
+_MODULE = "[Device Resolver]"
+
 
 class DeviceCapabilityResolver:
     """基于 IDS 已安装包名和注册表依赖解析能力。"""
@@ -124,7 +126,7 @@ class DeviceCapabilityResolver:
             ],
         }
         logger.info(
-            "capability_package_dependency_checked "
+            f"{_MODULE} capability_package_dependency_checked "
             f"result={json_for_log(dependency_filter_result)}"
         )
         return data_capabilities, event_capabilities, asset_capabilities, removed

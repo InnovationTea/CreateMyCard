@@ -25,6 +25,8 @@ from models.service import (
 from services.json_loader import load_json
 from utils.base_utils import sts_config
 
+_MODULE = "[IDS Client]"
+
 
 @dataclass(frozen=True)
 class IDSDeviceCapabilityState:
@@ -82,7 +84,7 @@ class IDSClient:
             timestamp_ms=int(time.time() * 1000),
         )
         logger.info(
-            f"ids_device_capability_query_built request_id={request_id} "
+            f"{_MODULE} ids_device_capability_query_built request_id={request_id} "
             f"odid_source={'content' if device.odid else 'default'} "
             f"body={json_for_log(body.model_dump(mode='json'))} "
             f"ids_sign_preview={ids_sign[:8]}"
@@ -152,7 +154,7 @@ class IDSClient:
         # mock 关闭时忽略本地文件，只构造并访问真实 IDS 请求。
         ids_query = self.build_installed_apps_query(device, request_id)
         logger.info(
-            f"ids_device_capability_query_prepared request_id={request_id} "
+            f"{_MODULE} ids_device_capability_query_prepared request_id={request_id} "
             f"method={ids_query.method} url={ids_query.url} "
             f"headers={json_for_log(self._safe_headers_for_log(ids_query))} "
             f"body={json_for_log(ids_query.body.model_dump(mode='json'))}"
@@ -160,7 +162,7 @@ class IDSClient:
         payload = self._query_remote_ids(ids_query, request_id)
         state = self._parse_ids_payload(payload)
         logger.info(
-            f"ids_device_capability_state_loaded request_id={request_id} "
+            f"{_MODULE} ids_device_capability_state_loaded request_id={request_id} "
             f"source=remote installed_app_count={len(state.installed_apps)}"
         )
         return state
@@ -169,7 +171,7 @@ class IDSClient:
         """只读取并解析本地 IDS mock；任何失败都返回空状态且不访问远端。"""
         try:
             logger.info(
-                f"ids_mock_response_loading request_id={request_id} "
+                f"{_MODULE} ids_mock_response_loading request_id={request_id} "
                 f"path={self.mock_response_path}"
             )
             payload = load_json(self.mock_response_path)
@@ -178,14 +180,14 @@ class IDSClient:
             state = self._parse_ids_payload(payload)
         except Exception as exc:
             logger.error(
-                f"ids_mock_response_failed request_id={request_id} "
+                f"{_MODULE} ids_mock_response_failed request_id={request_id} "
                 f"path={self.mock_response_path} "
                 f"exception_type={type(exc).__name__} error={exc}"
             )
             return IDSDeviceCapabilityState()
 
         logger.info(
-            f"ids_device_capability_state_loaded request_id={request_id} "
+            f"{_MODULE} ids_device_capability_state_loaded request_id={request_id} "
             f"source=mock installed_app_count={len(state.installed_apps)}"
         )
         return state
@@ -205,14 +207,14 @@ class IDSClient:
         # URL 若仍保留 Postman 占位符，说明部署环境还没配置真实 IDS 地址。
         if "{{" in ids_query.url or "}}" in ids_query.url:
             logger.error(
-                f"ids_remote_query_url_not_configured request_id={request_id} "
+                f"{_MODULE} ids_remote_query_url_not_configured request_id={request_id} "
                 f"url={ids_query.url}"
             )
             return {"nameSpaces": []}
 
         try:
             logger.info(
-                f"ids_remote_query_started request_id={request_id} "
+                f"{_MODULE} ids_remote_query_started request_id={request_id} "
                 f"method={ids_query.method} url={ids_query.url} "
                 f"timeout_seconds={self.settings.ids_request_timeout_seconds}"
             )
@@ -227,25 +229,25 @@ class IDSClient:
                 allow_redirects=False,
             )
             logger.info(
-                f"ids_remote_query_response_received request_id={request_id} "
+                f"{_MODULE} ids_remote_query_response_received request_id={request_id} "
                 f"status_code={response.status_code} response_bytes={len(response.content)}"
             )
             response.raise_for_status()
             payload = response.json()
             if not isinstance(payload, dict):
                 logger.error(
-                    f"ids_remote_query_invalid_response_type request_id={request_id} "
+                    f"{_MODULE} ids_remote_query_invalid_response_type request_id={request_id} "
                     f"response_type={type(payload).__name__}"
                 )
                 return {"nameSpaces": []}
             logger.debug(
-                f"ids_remote_query_payload_loaded request_id={request_id} "
+                f"{_MODULE} ids_remote_query_payload_loaded request_id={request_id} "
                 f"namespace_count={len(payload.get('nameSpaces', []))}"
             )
             return payload
         except (requests.RequestException, ValueError) as exc:
             logger.error(
-                f"ids_remote_query_failed request_id={request_id} error={exc} "
+                f"{_MODULE} ids_remote_query_failed request_id={request_id} error={exc} "
                 f"exception_type={type(exc).__name__} exception={exc!r} "
                 f"traceback={traceback.format_exc()}"
             )
@@ -280,7 +282,7 @@ class IDSClient:
                 installed_apps.update(self._collect_installed_apps(values))
 
         logger.debug(
-            f"ids_payload_parsed installed_app_count={len(installed_apps)}"
+            f"{_MODULE} ids_payload_parsed installed_app_count={len(installed_apps)}"
         )
         return IDSDeviceCapabilityState(installed_apps=installed_apps)
 

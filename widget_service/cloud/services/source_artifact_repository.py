@@ -20,6 +20,8 @@ from utils.download_file_from_url import (
     download_file,
 )
 
+_MODULE = "[Source Artifact]"
+
 FENCED_BLOCK_RE = re.compile(
     r"```(?P<name>[a-zA-Z0-9_-]+)\r?\n(?P<body>.*?)\r?\n```",
     re.DOTALL,

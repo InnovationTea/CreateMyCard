@@ -20,6 +20,9 @@ from api.schemas import (
 from app.logger import json_for_log, logger, task_logger
 from app.websocket_metrics import websocket_metrics
 from config.config import get_settings
+
+_MODULE = "[WS Router]"
+
 from models.service import (
     WidgetPluginReply,
     WidgetPluginStreamResponse,
@@ -245,7 +248,7 @@ async def _send_websocket_json(
         return True
     except (WebSocketDisconnect, RuntimeError) as exc:
         logger.error(
-            f"widget_operation_ws_send_failed request_id={request_id} "
+            f"{_MODULE} widget_operation_ws_send_failed request_id={request_id} "
             f"operation={operation} frame_type={frame_type} "
             f"exception_type={type(exc).__name__} exception={exc!r} "
             f"traceback={traceback.format_exc()}"
@@ -288,10 +291,10 @@ async def _heartbeat_sender(
             await asyncio.sleep(interval)
             await websocket.send_text(partial_json)
     except asyncio.CancelledError:
-        logger.error("widget_operation_ws_heartbeat_cancelled")
+        logger.error(f"{_MODULE} widget_operation_ws_heartbeat_cancelled")
         pass
     except Exception:
-        logger.error("widget_operation_ws_heartbeat_failed", exc_info=True)
+        logger.error(f"{_MODULE} widget_operation_ws_heartbeat_failed", exc_info=True)
         pass
 
 
@@ -316,7 +319,7 @@ async def _serve_operation_websocket(
     metrics = websocket_metrics
     await websocket.accept()
     metrics.connection_opened()
-    logger.info(f"widget_operation_ws_connected operation={operation}")
+    logger.info(f"{_MODULE} widget_operation_ws_connected operation={operation}")
     try:
         service = get_service()
         while True:
@@ -327,7 +330,7 @@ async def _serve_operation_websocket(
             # 后续 service、IDS、A2UI 和异常日志都会自动携带同一个 requestId。
             task_logger.set_session_id(request_id or "None")
             logger.info(
-                f"widget_operation_ws_payload_received request_id={request_id} "
+                f"{_MODULE} widget_operation_ws_payload_received request_id={request_id} "
                 f"operation={operation} payload_keys={json_for_log(sorted(payload))} "
                 f"argument_keys={json_for_log(sorted(arguments))}"
             )
@@ -345,7 +348,7 @@ async def _serve_operation_websocket(
                     )
                 )
                 logger.info(
-                    f"widget_operation_ws_message_received request_id={request_id} "
+                    f"{_MODULE} widget_operation_ws_message_received request_id={request_id} "
                     f"operation={operation} "
                     f"request={request_log}"
                 )
@@ -381,7 +384,7 @@ async def _serve_operation_websocket(
                 result_data = result.model_dump(mode="json", exclude_none=True)
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
                 logger.info(
-                    f"widget_operation_ws_handler_completed request_id={request_id} "
+                    f"{_MODULE} widget_operation_ws_handler_completed request_id={request_id} "
                     f"operation={operation} duration_ms={duration_ms} "
                     f"response={json_for_log(result_data)}"
                 )
@@ -415,7 +418,7 @@ async def _serve_operation_websocket(
             except ValueError as exc:
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
                 logger.error(
-                    f"widget_operation_ws_invalid_arguments request_id={request_id} "
+                    f"{_MODULE} widget_operation_ws_invalid_arguments request_id={request_id} "
                     f"operation={operation} duration_ms={duration_ms} "
                     f"details={json_for_log(_error_details(exc))} "
                     f"exception_type={type(exc).__name__} exception={exc!r} "
@@ -448,7 +451,7 @@ async def _serve_operation_websocket(
             except Exception as exc:
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
                 logger.error(
-                    f"widget_operation_ws_failed request_id={request_id} "
+                    f"{_MODULE} widget_operation_ws_failed request_id={request_id} "
                     f"operation={operation} duration_ms={duration_ms} error={exc} "
                     f"exception_type={type(exc).__name__} exception={exc!r} "
                     f"traceback={traceback.format_exc()}"
@@ -481,9 +484,9 @@ async def _serve_operation_websocket(
                     try:
                         await heartbeat_task
                     except asyncio.CancelledError:
-                        logger.error("widget_operation_ws_heartbeat_cancelled")
+                        logger.error(f"{_MODULE} widget_operation_ws_heartbeat_cancelled")
     except WebSocketDisconnect:
-        logger.info(f"widget_operation_ws_disconnected operation={operation}")
+        logger.info(f"{_MODULE} widget_operation_ws_disconnected operation={operation}")
         return
     finally:
         metrics.connection_closed()

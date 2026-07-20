@@ -40,6 +40,8 @@ from services.source_artifact_repository import (
 from services.task_spec_builder import TaskSpecBuilder
 from services.validator import ArtifactValidator
 
+_MODULE = "[Generation Service]"
+
 
 class WidgetGenerationService:
     """编排微服务暴露的卡片工具能力。"""
@@ -60,7 +62,7 @@ class WidgetGenerationService:
         """
         # 兼容统一工具层时，通过 operation 分发到三个正式业务流程及协议变体。
         logger.info(
-            f"widget_card_service_dispatch_started operation={request.operation} "
+            f"{_MODULE} widget_card_service_dispatch_started operation={request.operation} "
             f"prd_ver={request.prdVer} "
             f"device_rom_version={request.device.romVersion}"
         )
@@ -105,7 +107,7 @@ class WidgetGenerationService:
         出参：实际可用的数据能力概述、事件、素材及不可用能力清单。
         """
         logger.info(
-            f"capability_overview_started prd_ver={request.prdVer} "
+            f"{_MODULE} capability_overview_started prd_ver={request.prdVer} "
             f"device_rom_version={request.device.romVersion} "
             "request="
             f"{json_for_log(request.model_dump(mode='json', exclude={'uid'}, exclude_none=True))}"
@@ -116,7 +118,7 @@ class WidgetGenerationService:
         except ValueError as exc:
             version = self._capability_registry_version_hint(request)
             logger.error(
-                f"capability_overview_registry_missing registry_version={version} "
+                f"{_MODULE} capability_overview_registry_missing registry_version={version} "
                 f"error={exc}"
             )
             return CapabilityOverviewResponse(
@@ -126,7 +128,7 @@ class WidgetGenerationService:
                 unavailableCapabilities=[],
             )
         logger.info(
-            "capability_registry_selected operation=getWidgetCapabilityOverview "
+            f"{_MODULE} capability_registry_selected operation=getWidgetCapabilityOverview "
             f"registry_version={registry.version}"
         )
         resolver = DeviceCapabilityResolver(registry)
@@ -147,7 +149,7 @@ class WidgetGenerationService:
             unavailableCapabilities=[item.id for item in removed],
         )
         logger.info(
-            f"capability_overview_completed registry_version={registry.version} "
+            f"{_MODULE} capability_overview_completed registry_version={registry.version} "
             f"data_count={len(response.dataCapabilities)} "
             f"event_count={len(response.eventCapabilities)} "
             f"asset_count={len(response.assetCandidates)} "
@@ -166,7 +168,7 @@ class WidgetGenerationService:
         出参：已注册数据能力完整定义，以及缺失能力 ID 列表。
         """
         logger.info(
-            "data_capability_schemas_started "
+            f"{_MODULE} data_capability_schemas_started "
             f"data_capability_ids={json_for_log(request.dataCapabilityIds)} "
             "request="
             f"{json_for_log(request.model_dump(mode='json', exclude={'uid'}, exclude_none=True))}"
@@ -177,7 +179,7 @@ class WidgetGenerationService:
         except ValueError as exc:
             version = self._capability_registry_version_hint(request)
             logger.error(
-                f"data_capability_schemas_registry_missing registry_version={version} "
+                f"{_MODULE} data_capability_schemas_registry_missing registry_version={version} "
                 f"data_capability_ids={json_for_log(request.dataCapabilityIds)} "
                 f"error={exc}"
             )
@@ -187,7 +189,7 @@ class WidgetGenerationService:
                 missingCapabilityIds=request.dataCapabilityIds,
             )
         logger.info(
-            "capability_registry_selected operation=getDataCapabilitySchemas "
+            f"{_MODULE} capability_registry_selected operation=getDataCapabilitySchemas "
             f"registry_version={registry.version}"
         )
         capabilities = []
@@ -205,7 +207,7 @@ class WidgetGenerationService:
             missingCapabilityIds=missing,
         )
         logger.info(
-            f"data_capability_schemas_completed registry_version={registry.version} "
+            f"{_MODULE} data_capability_schemas_completed registry_version={registry.version} "
             f"found_count={len(capabilities)} missing_ids={json_for_log(missing)}"
         )
         return response
@@ -237,7 +239,7 @@ class WidgetGenerationService:
             ).hexdigest()
             if not settings.enable_widget_edit:
                 logger.warning(
-                    "widget_edit_rejected reason=feature_disabled "
+                    f"{_MODULE} widget_edit_rejected reason=feature_disabled "
                     f"source_url_hash={source_url_hash}"
                 )
                 return GenerateWidgetCardResponse(
@@ -258,7 +260,7 @@ class WidgetGenerationService:
                 inherited_categories = normalized.inherited_categories
                 replaced_categories = normalized.replaced_categories
                 logger.info(
-                    "source_artifact_loaded "
+                    f"{_MODULE} source_artifact_loaded "
                     f"source_url_hash={source_load_result.url_hash} "
                     f"source_digest={source_load_result.artifact_digest} "
                     "source_schema_version="
@@ -275,7 +277,7 @@ class WidgetGenerationService:
                 stage_started_at = time.perf_counter()
             except SourceArtifactError as exc:
                 logger.error(
-                    "source_artifact_load_failed "
+                    f"{_MODULE} source_artifact_load_failed "
                     f"source_url_hash={source_url_hash} "
                     f"error_code={exc.error_code.value} error={exc}"
                 )
@@ -287,7 +289,7 @@ class WidgetGenerationService:
                 )
             except ValueError as exc:
                 logger.error(
-                    "source_artifact_normalization_failed "
+                    f"{_MODULE} source_artifact_normalization_failed "
                     f"error_code={ErrorCode.SOURCE_ARTIFACT_INVALID.value} error={exc}"
                 )
                 return GenerateWidgetCardResponse(
@@ -301,7 +303,7 @@ class WidgetGenerationService:
 
         # 主流程：解析能力、生成 CardSpec/TaskSpec、生成 genui、校验 artifact、返回结构化状态。
         logger.info(
-            f"generate_widget_card_started generation_mode={generation_mode} "
+            f"{_MODULE} generate_widget_card_started generation_mode={generation_mode} "
             f"size={request.size} "
             f"data_binding_count={len(request.candidateDataBindings)} "
             f"event_count={len(request.candidateEventCandidates)} "
@@ -321,7 +323,7 @@ class WidgetGenerationService:
         except ValueError as exc:
             version = self._capability_registry_version_hint(request)
             logger.error(
-                f"generate_widget_card_registry_missing registry_version={version} "
+                f"{_MODULE} generate_widget_card_registry_missing registry_version={version} "
                 f"error={exc}"
             )
             response = GenerateWidgetCardResponse(
@@ -343,13 +345,13 @@ class WidgetGenerationService:
             )
             return response
         logger.info(
-            f"generate_flow_step_registry_loaded registry_version={registry.version}"
+            f"{_MODULE} generate_flow_step_registry_loaded registry_version={registry.version}"
         )
         # 协议 profile 决定 A2UI 组件白名单、DSL 行数要求和校验规则。
         protocol_registry = A2UIProtocolRegistry(request.protocolProfileId)
         protocol_profile = protocol_registry.get_profile()
         logger.info(
-            f"generate_flow_step_protocol_loaded protocol_profile_id={protocol_profile['id']} "
+            f"{_MODULE} generate_flow_step_protocol_loaded protocol_profile_id={protocol_profile['id']} "
             f"protocol_version={protocol_profile['version']}"
         )
         latency_by_stage["registryAndProtocol"] = self._elapsed_ms(stage_started_at)
@@ -360,7 +362,7 @@ class WidgetGenerationService:
             resolver.resolve_generation_data_bindings(request.candidateDataBindings)
         )
         logger.info(
-            f"prevalidated_data_capability_loaded "
+            f"{_MODULE} prevalidated_data_capability_loaded "
             f"effective_binding_count={len(effective_bindings)} "
             f"removed_count={len(removed_data)} "
             "effective_binding_ids="
@@ -384,7 +386,7 @@ class WidgetGenerationService:
                 continue
             effective_events.append(event)
         logger.info(
-            f"event_capability_resolved effective_event_count={len(effective_events)} "
+            f"{_MODULE} event_capability_resolved effective_event_count={len(effective_events)} "
             f"removed_count={len(removed_events)} "
             "effective_events="
             f"{json_for_log([item.model_dump(mode='json') for item in effective_events])} "
@@ -406,7 +408,7 @@ class WidgetGenerationService:
         # removed 是统一降级信息源，最终会同时进入 prompt、artifact 和响应。
         removed = removed_data + removed_events + removed_assets
         logger.info(
-            f"asset_capability_resolved effective_asset_count={len(asset_candidates)} "
+            f"{_MODULE} asset_capability_resolved effective_asset_count={len(asset_candidates)} "
             f"removed_count={len(removed_assets)} "
             "effective_asset_ids="
             f"{json_for_log([item.id for item in asset_candidates])} "
@@ -418,7 +420,7 @@ class WidgetGenerationService:
         if request.candidateDataBindings and not effective_bindings and not effective_events:
             # 没有剩余动态数据或可用入口时，不调用模型，也不伪造数据绑定。
             logger.warning(
-                f"generate_widget_card_unsupported removed_count={len(removed)} "
+                f"{_MODULE} generate_widget_card_unsupported removed_count={len(removed)} "
                 f"error_code={ErrorCode.NO_EFFECTIVE_CAPABILITY.value}"
             )
             response = GenerateWidgetCardResponse(
@@ -458,7 +460,7 @@ class WidgetGenerationService:
             asset_candidates,
         )
         logger.info(
-            f"card_and_task_spec_built data_binding_count={len(effective_bindings)} "
+            f"{_MODULE} card_and_task_spec_built data_binding_count={len(effective_bindings)} "
             "card_spec="
             f"{json_for_log(card_spec.model_dump(mode='json', exclude_none=True))} "
             "task_spec="
@@ -477,7 +479,7 @@ class WidgetGenerationService:
         )
 
         logger.info(
-            f"a2ui_prompt_built prompt={json_for_log(prompt)}"
+            f"{_MODULE} a2ui_prompt_built prompt={json_for_log(prompt)}"
         )
         latency_by_stage["specAndPrompt"] = self._elapsed_ms(stage_started_at)
         stage_started_at = time.perf_counter()
@@ -493,7 +495,7 @@ class WidgetGenerationService:
             出参：三行 JSONL genui 字符串。
             """
             # mock 模型客户端当前返回稳定 DSL；后续替换真实模型时保持 generate 入参不变。
-            logger.info("a2ui_model_operation_started")
+            logger.info(f"{_MODULE} a2ui_model_operation_started")
             return model_client.generate(prompt, protocol_profile)
 
         def validate_genui(genui: str) -> list[str]:
@@ -506,12 +508,12 @@ class WidgetGenerationService:
             # 每次模型输出都临时组装 artifact，再用同一套 Validator 校验完整契约。
             if not settings.enable_artifact_validation:
                 logger.info(
-                    "a2ui_genui_validation_skipped "
+                    f"{_MODULE} a2ui_genui_validation_skipped "
                     "reason=enable_artifact_validation_false"
                 )
                 return []
             logger.info(
-                f"a2ui_genui_validation_started genui_length={len(genui)}"
+                f"{_MODULE} a2ui_genui_validation_started genui_length={len(genui)}"
             )
             artifact = self._build_artifact(
                 genui,
@@ -559,14 +561,14 @@ class WidgetGenerationService:
         genui = retry_result.result
         errors = retry_result.errors
         logger.info(
-            f"a2ui_generation_completed retry_count={retry_result.retryCount} "
+            f"{_MODULE} a2ui_generation_completed retry_count={retry_result.retryCount} "
             "validation_failure_retry_enabled="
             f"{json_for_log(settings.enable_validation_failure_retry)} "
             f"validation_error_count={len(errors)}"
         )
         if errors:
             logger.error(
-                "a2ui_generation_validation_failed_non_blocking "
+                f"{_MODULE} a2ui_generation_validation_failed_non_blocking "
                 f"protocol_profile_id={protocol_profile['id']} "
                 f"validation_error_code={ErrorCode.VALIDATION_FAILED.value} "
                 f"retry_count={retry_result.retryCount} "
@@ -599,7 +601,7 @@ class WidgetGenerationService:
         )
         # ArtifactStore 当前是本地 mock/OBS TODO 入口，返回端侧可下载 URL 和摘要。
         logger.info(
-            "artifact_built "
+            f"{_MODULE} artifact_built "
             f"effective_capabilities={json_for_log(artifact.effectiveCapabilities)} "
             f"removed_count={len(artifact.removedCapabilities)}"
         )
@@ -614,7 +616,7 @@ class WidgetGenerationService:
             generation_mode=generation_mode,
         )
         logger.info(
-            f"generate_widget_card_completed status={response_plan.status.value} "
+            f"{_MODULE} generate_widget_card_completed status={response_plan.status.value} "
             f"artifact_url={artifact_save_result.artifactUrl} "
             f"removed_count={len(removed)} error_code={response_plan.errorCode}"
         )
@@ -691,7 +693,7 @@ class WidgetGenerationService:
             else ""
         )
         logger.info(
-            "widget_generation_summary "
+            f"{_MODULE} widget_generation_summary "
             f"query_hash={query_hash} "
             f"device_id_hash={device_id_hash} "
             "skill_version=skill-widget-v1 "
@@ -784,7 +786,7 @@ class WidgetGenerationService:
         # capabilityRegistryVersion 显式传入时优先使用；
         # 否则根据 prdVer+device.romVersion 推导能力清单文件夹名。
         logger.info(
-            f"capability_registry_building requested_version="
+            f"{_MODULE} capability_registry_building requested_version="
             f"{request.capabilityRegistryVersion} "
             f"prd_ver={request.prdVer} "
             f"device_rom_version={request.device.romVersion}"
@@ -804,12 +806,12 @@ class WidgetGenerationService:
             if requested_version == fallback_version:
                 raise
             logger.warning(
-                "capability_registry_fallback "
+                f"{_MODULE} capability_registry_fallback "
                 f"requested_version={requested_version} "
                 f"fallback_version={fallback_version} reason={exc}"
             )
             registry = CapabilityRegistry(version=fallback_version)
-        logger.info(f"capability_registry_built registry_version={registry.version}")
+        logger.info(f"{_MODULE} capability_registry_built registry_version={registry.version}")
         return registry
 
     def _capability_registry_version_hint(self, request) -> str:
@@ -865,7 +867,7 @@ class WidgetGenerationService:
         """
         # artifact 是端侧下载后的唯一交付物，里面同时包含 DSL、CardSpec、TaskSpec 和能力裁决结果。
         logger.info(
-            f"artifact_building protocol_profile_id={protocol_profile_id} "
+            f"{_MODULE} artifact_building protocol_profile_id={protocol_profile_id} "
             f"protocol_profile_version={protocol_profile_version} "
             f"capability_registry_version={capability_registry_version} "
             f"data_capability_count={len(data_capabilities)} "

@@ -16,6 +16,8 @@ from config.config import get_settings
 from services.compact_dsl_protocol import is_compact_dsl
 from utils.base_utils import sts_config
 
+_MODULE = "[A2UI Model]"
+
 
 class A2UIModelClient:
     """A2UI 模型调用客户端。
@@ -56,7 +58,7 @@ class A2UIModelClient:
         出参：A2UI genui JSONL 字符串。
         """
         logger.info(
-            f"a2ui_model_generate_started use_mock={json_for_log(self.use_mock)} "
+            f"{_MODULE} generate_started use_mock={json_for_log(self.use_mock)} "
             f"system_prompt={json_for_log(prompt)}"
         )
 
@@ -84,7 +86,7 @@ class A2UIModelClient:
 
         mock_data = mock_data_path.read_text(encoding="utf-8")
         logger.info(
-            f"a2ui_model_generate_completed mode=mock path={mock_data_path}"
+            f"{_MODULE} generate_completed mode=mock path={mock_data_path}"
         )
         return mock_data
 
@@ -155,12 +157,12 @@ class A2UIModelClient:
         try:
             return json.loads(line)
         except json.JSONDecodeError:
-            logger.error(f"json_parse_failed line={json_for_log(line)}")
+            logger.error(f"{_MODULE} json_parse_failed line={json_for_log(line)}")
             try:
                 return json_repair.loads(line)
             except Exception as e:
                 logger.error(
-                    f"json_repair_failed exception_type={type(e).__name__} "
+                    f"{_MODULE} json_repair_failed exception_type={type(e).__name__} "
                     f"exception={e!r} traceback={traceback.format_exc()}"
                 )
                 return None
@@ -178,7 +180,7 @@ class A2UIModelClient:
 
             data = self.process_line(line)
             if not data:
-                logger.error(f"dsl_line_parse_failed line={json_for_log(line)}")
+                logger.error(f"{_MODULE} dsl_line_parse_failed line={json_for_log(line)}")
                 return dsl_text
 
             # 修改 createSurface.catalogId
@@ -276,7 +278,7 @@ class A2UIModelClient:
             full_text = content_text if content_text else reason_text
             duration_ms = round((time.perf_counter() - start) * 1000, 2)
             logger.info(
-                f"a2ui_model_response_received "
+                f"{_MODULE} response_received "
                 f"content_preview={full_text} "
                 f"duration_ms={duration_ms}"
             )
@@ -288,21 +290,21 @@ class A2UIModelClient:
             dsl_text = self.convert_dsl(dsl_text)
 
             logger.info(
-                f"a2ui_dsl_processed "
+                f"{_MODULE} dsl_processed "
                 f"dsl_content={dsl_text}"
             )
 
             return dsl_text
         except requests.exceptions.Timeout as e:
             logger.error(
-                f"a2ui_model_request_timeout "
+                f"{_MODULE} request_timeout "
                 f"exception_type={type(e).__name__} exception={e!r} "
                 f"traceback={traceback.format_exc()}"
             )
             error_detail = f"a2ui_model_error: timeout after {timeout}s, {e}"
         except requests.exceptions.ConnectionError as e:
             logger.error(
-                f"a2ui_model_connection_error "
+                f"{_MODULE} connection_error "
                 f"exception_type={type(e).__name__} exception={e!r} "
                 f"traceback={traceback.format_exc()}"
             )
@@ -310,7 +312,7 @@ class A2UIModelClient:
         except requests.exceptions.HTTPError as e:
             status = e.response.status_code if e.response is not None else "unknown"
             logger.error(
-                f"a2ui_model_http_error "
+                f"{_MODULE} http_error "
                 f"status_code={status} "
                 f"exception_type={type(e).__name__} exception={e!r} "
                 f"traceback={traceback.format_exc()}"
@@ -318,14 +320,14 @@ class A2UIModelClient:
             error_detail = f"a2ui_model_error: HTTP {status}, {e}"
         except requests.exceptions.RequestException as e:
             logger.error(
-                f"a2ui_model_request_exception "
+                f"{_MODULE} request_exception "
                 f"exception_type={type(e).__name__} exception={e!r} "
                 f"traceback={traceback.format_exc()}"
             )
             error_detail = f"a2ui_model_error: request failed, {e}"
         except Exception as e:
             logger.error(
-                f"a2ui_model_unexpected_error "
+                f"{_MODULE} unexpected_error "
                 f"exception_type={type(e).__name__} exception={e!r} "
                 f"traceback={traceback.format_exc()}"
             )

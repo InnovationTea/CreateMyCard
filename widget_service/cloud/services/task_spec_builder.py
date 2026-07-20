@@ -10,6 +10,8 @@ from models.generation import CandidateDataBinding, EventAction, TaskSpec, Widge
 
 PathPart = str | int
 
+_MODULE = "[TaskSpec Builder]"
+
 DEFAULT_SAMPLE_VALUES: dict[str, Any] = {
     "string": "示例",
     "integer": 0,
@@ -55,7 +57,7 @@ class TaskSpecBuilder:
 
             if invalid_paths:
                 logger.warning(
-                    f"candidate_output_fields_ignored capability_id={binding.capabilityId} "
+                    f"{_MODULE} candidate_output_fields_ignored capability_id={binding.capabilityId} "
                     f"invalid_paths={json_for_log(invalid_paths)}"
                 )
 
@@ -63,7 +65,7 @@ class TaskSpecBuilder:
             if not requested_paths or not valid_fields:
                 valid_fields = list(self._iter_valid_leaves(capability.outputSchema))
                 logger.info(
-                    f"candidate_output_fields_fallback capability_id={binding.capabilityId} "
+                    f"{_MODULE} candidate_output_fields_fallback capability_id={binding.capabilityId} "
                     f"reason={'missing' if not requested_paths else 'all_invalid'} "
                     f"field_count={len(valid_fields)}"
                 )
@@ -86,7 +88,7 @@ class TaskSpecBuilder:
                 self._set_by_parts(data_model_schema, (*write_parts, *relative_parts), metadata)
             if generated_sample_count:
                 logger.warning(
-                    "output_schema_sample_value_fallback "
+                    f"{_MODULE} output_schema_sample_value_fallback "
                     f"capability_id={binding.capabilityId} "
                     f"fallback_count={generated_sample_count}"
                 )

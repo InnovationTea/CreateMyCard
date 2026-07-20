@@ -6,6 +6,8 @@ from threading import Lock
 
 from app.logger import logger
 
+_MODULE = "[WS Metrics]"
+
 
 @dataclass(frozen=True)
 class WebSocketMetricsSnapshot:
@@ -63,7 +65,7 @@ async def report_websocket_metrics(
         await asyncio.sleep(interval_seconds)
         snapshot = metrics.snapshot()
         logger.info(
-            "websocket_metrics "
+            f"{_MODULE} websocket_metrics "
             f"active_connections={snapshot.active_connections} "
             f"total_connections={snapshot.total_connections} "
             f"running_tasks={snapshot.running_tasks}"

@@ -7,6 +7,8 @@ from config.config import get_settings
 from models.capability import AssetCapability, DataCapability, EventCapability
 from services.json_loader import load_json
 
+_MODULE = "[Capability Registry]"
+
 
 class CapabilityRegistry:
     """从 prdVer+romVersion 文件夹加载数据能力、事件能力和素材能力。"""

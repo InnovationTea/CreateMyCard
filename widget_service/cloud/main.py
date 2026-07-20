@@ -15,6 +15,8 @@ from app.logger import logger
 from app.websocket_metrics import report_websocket_metrics, websocket_metrics
 from config.config import get_settings
 
+_MODULE = "[Main]"
+
 
 def create_app() -> FastAPI:
     """创建 FastAPI 应用实例。
@@ -64,7 +66,7 @@ def create_app() -> FastAPI:
         except Exception as exc:
             duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
             logger.error(
-                f"http_request_failed duration_ms={duration_ms} "
+                f"{_MODULE} http_request_failed duration_ms={duration_ms} "
                 f"exception_type={type(exc).__name__} exception={exc!r} "
                 f"traceback={traceback.format_exc()}"
             )
@@ -74,7 +76,7 @@ def create_app() -> FastAPI:
         duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
         response.headers["x-request-id"] = request_id
         logger.info(
-            f"http_request_completed status_code={response.status_code} "
+            f"{_MODULE} http_request_completed status_code={response.status_code} "
             f"duration_ms={duration_ms}"
         )
         clear_contextvars()

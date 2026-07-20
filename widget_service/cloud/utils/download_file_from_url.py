@@ -9,6 +9,8 @@ import requests
 
 from app.logger import logger, task_logger
 
+_MODULE = "[File Download]"
+
 ALLOWED_EXTS = {
     ".pdf",
     ".doc",
@@ -54,12 +56,12 @@ def check_path_has_cross_dir(dir_or_file_name: str) -> bool:
 
 def check_save_path(save_path: str) -> bool:
     if check_path_has_cross_dir(str(save_path)):
-        logger.error("下载失败: 文件名非法")
+        logger.error(f"{_MODULE} 下载失败: 文件名非法")
         return False
 
     ext = Path(save_path).suffix.lower()
     if ext not in ALLOWED_EXTS:
-        logger.error(f"下载失败: 不支持的文件类型 {ext}")
+        logger.error(f"{_MODULE} 下载失败: 不支持的文件类型 {ext}")
         return False
 
     return True
@@ -70,7 +72,7 @@ def check_save_dir_and_no_overwrite(save_path: str) -> bool:
 
     # 目录是否存在
     if not path.parent.is_dir():
-        logger.error("下载失败: 保存目录不存在")
+        logger.error(f"{_MODULE} 下载失败: 保存目录不存在")
         return False
 
     return True
@@ -116,7 +118,7 @@ async def download_file(
             and content_length.isdigit()
             and int(content_length) > max_size_bytes
         ):
-            logger.error("下载失败: 文件大小超过限制")
+            logger.error(f"{_MODULE} 下载失败: 文件大小超过限制")
             raise DownloadFileTooLargeError("下载失败: 文件大小超过限制")
 
         total = 0
@@ -125,11 +127,11 @@ async def download_file(
                 if chunk:
                     total += len(chunk)
                     if total > max_size_bytes:
-                        logger.error("下载失败: 文件大小超过限制")
+                        logger.error(f"{_MODULE} 下载失败: 文件大小超过限制")
                         raise DownloadFileTooLargeError("下载失败: 文件大小超过限制")
                     file.write(chunk)
 
-        logger.info(f"下载成功！文件已保存至当前目录下的: {save_path}")
+        logger.info(f"{_MODULE} 下载成功！文件已保存至当前目录下的: {save_path}")
         return save_path
 
     except DownloadFileError:
@@ -137,11 +139,11 @@ async def download_file(
         raise
     except requests.exceptions.RequestException as e:
         Path(save_path).unlink(missing_ok=True)
-        logger.error(f"下载失败: {type(e).__name__} ")
+        logger.error(f"{_MODULE} 下载失败: {type(e).__name__} ")
         raise DownloadFileError(f"下载失败: {type(e).__name__}") from e
     except Exception as e:
         Path(save_path).unlink(missing_ok=True)
-        logger.error(f"发生错误: {type(e).__name__} ")
+        logger.error(f"{_MODULE} 发生错误: {type(e).__name__} ")
         raise DownloadFileError(f"下载失败: {type(e).__name__}") from e
 
 
@@ -152,7 +154,7 @@ async def download_multiple_files(urls_and_paths):
     """
     tasks = []
     for url, file_name in urls_and_paths:
-        logger.info(f"开始下载,保存文件名：{file_name}")
+        logger.info(f"{_MODULE} 开始下载,保存文件名：{file_name}")
         save_path = os.path.join(task_logger.get_session_id(), file_name)
         task = download_file(url, save_path)
         tasks.append(task)
@@ -180,10 +182,10 @@ async def download_file_async(url, file_name, semaphore):
                         async for chunk in response.content.iter_chunked(8192):
                             await f.write(chunk)
 
-                    logger.info(f"文件 {file_name} 下载成功")
+                    logger.info(f"{_MODULE} 文件 {file_name} 下载成功")
                     return True
         except Exception as e:
-            logger.error(f"下载fileName:{file_name}, url:{url} 时发生错误, 报错信息：{str(e)}")
+            logger.error(f"{_MODULE} 下载fileName:{file_name}, url:{url} 时发生错误, 报错信息：{str(e)}")
             return False
 
 
@@ -197,13 +199,13 @@ async def download_multiple_files_async(urls_and_paths, max_concurrent=5):
 
     tasks = []
     for url, file_name in urls_and_paths:
-        logger.info(f"开始下载,保存文件名：{file_name}")
+        logger.info(f"{_MODULE} 开始下载,保存文件名：{file_name}")
         task = download_file_async(url, file_name, semaphore)
         tasks.append(task)
 
     results = await asyncio.gather(*tasks)
     if all(results):
-        logger.info("所有文件下载成功")
+        logger.info(f"{_MODULE} 所有文件下载成功")
     else:
-        logger.error("部分或全部文件下载失败")
+        logger.error(f"{_MODULE} 部分或全部文件下载失败")
     return results

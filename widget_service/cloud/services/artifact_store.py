@@ -13,6 +13,8 @@ from services.source_artifact_repository import calculate_artifact_digest
 from utils.file import delete_file, save_txt_file
 from utils.upload_file_obs import UploadFileOSMS
 
+_MODULE = "[Artifact Store]"
+
 file_obs = UploadFileOSMS()
 
 
@@ -65,7 +67,7 @@ class ArtifactStore:
             ).encode("utf-8")
         )
         digest = calculate_artifact_digest(artifact)
-        logger.info(f"artifact_payload_built payload_bytes={payload_bytes} digest={digest}")
+        logger.info(f"{_MODULE} artifact_payload_built payload_bytes={payload_bytes} digest={digest}")
 
         # Artifact 以具名 Markdown 代码块上传。每个块名与对应契约字段一致，
         # 既保留端侧现有的 genui/cardspec 解析方式，也完整携带排障和回放信息。
@@ -97,14 +99,14 @@ class ArtifactStore:
         file_name = f"artifact_{artifact.meta.artifactId}.md"
         file_path = os.path.join(str(get_settings().WORKSPACE_ROOT), file_name)
         save_txt_file(file_path, file_content)
-        logger.info(f"artifact_file_saved path={file_path}")
+        logger.info(f"{_MODULE} artifact_file_saved path={file_path}")
 
         try:
             # 上传到 OBS，获取访问链接
             artifact_url = _run_async(file_obs.upload_file(file_path))
             if not artifact_url:
                 raise RuntimeError("artifact upload to OBS failed")
-            logger.info(f"artifact_uploaded artifact_url={artifact_url}")
+            logger.info(f"{_MODULE} artifact_uploaded artifact_url={artifact_url}")
             return ArtifactSaveResult(artifactUrl=artifact_url, artifactDigest=digest)
         finally:
             # 清理本地临时文件

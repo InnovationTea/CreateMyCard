@@ -10,6 +10,8 @@ from services.card_validation import ValidationOptions, validate_card
 from services.card_validation.diagnostics import Diagnostic
 from services.compact_dsl_protocol import is_compact_dsl, validate_compact_dsl
 
+_MODULE = "[Validator]"
+
 
 class ArtifactValidator:
     def validate(
@@ -31,7 +33,7 @@ class ArtifactValidator:
             else "services.card_validation.validate_card"
         )
         logger.info(
-            f"artifact_validation_started protocol_profile_id={protocol_profile['id']} "
+            f"{_MODULE} artifact_validation_started protocol_profile_id={protocol_profile['id']} "
             f"validator_module={validator_name}"
         )
         try:
@@ -61,7 +63,7 @@ class ArtifactValidator:
             # 校验模块异常转成错误列表，供生成服务记录，并按配置决定是否重试。
             errors = [f"validator execution failed: {exc}"]
             logger.error(
-                f"artifact_validation_failed errors={json_for_log(errors)} "
+                f"{_MODULE} artifact_validation_failed errors={json_for_log(errors)} "
                 f"validator_module={validator_name} "
                 f"exception_type={type(exc).__name__} exception={exc!r} "
                 f"traceback={traceback.format_exc()}"
@@ -70,12 +72,12 @@ class ArtifactValidator:
 
         if errors:
             logger.error(
-                f"artifact_validation_failed errors={json_for_log(errors)} "
+                f"{_MODULE} artifact_validation_failed errors={json_for_log(errors)} "
                 f"warnings={json_for_log(warnings)}"
             )
         else:
             logger.info(
-                f"artifact_validation_completed warning_count={len(warnings)} "
+                f"{_MODULE} artifact_validation_completed warning_count={len(warnings)} "
                 f"warnings={json_for_log(warnings)}"
             )
         return errors
