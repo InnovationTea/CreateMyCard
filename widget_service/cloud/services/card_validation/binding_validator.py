@@ -349,7 +349,7 @@ class BindingValidator(BaseValidator):
                 continue
             root = root.rstrip("/")
             if pointer == root or pointer.startswith(root + "/"):
-                relative = "/" + pointer[len(root) :].strip("/")
+                relative = "/" + pointer[len(root):].strip("/")
                 if relative == "/":
                     return True
                 if schema_path_exists(capability.get("outputSchema", {}), relative):
@@ -378,7 +378,7 @@ class BindingValidator(BaseValidator):
                 continue
             root = root.rstrip("/")
             if template_path == root or template_path.startswith(root + "/"):
-                relative = "/" + template_path[len(root) :].strip("/")
+                relative = "/" + template_path[len(root):].strip("/")
                 item_relative = relative + "/0/" + ref
                 if schema_path_exists(capability.get("outputSchema", {}), item_relative):
                     return True
@@ -403,7 +403,7 @@ class BindingValidator(BaseValidator):
                 continue
             root = root.rstrip("/")
             if pointer == root or pointer.startswith(root + "/"):
-                relative = "/" + pointer[len(root) :].strip("/")
+                relative = "/" + pointer[len(root):].strip("/")
                 schema = capability.get("outputSchema", {})
                 return self._schema_type(schema, relative) == "array"
         return False
