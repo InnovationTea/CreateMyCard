@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "harmony-card-feature-profile-v1",
+  "type": "object",
+  "required": ["schemaVersion", "serviceObject", "primaryQuestion", "size", "primaryVisual", "contentItems", "actions", "dataNeeds", "assetNeeds", "styleIntent"],
+  "properties": {
+    "schemaVersion": {"const": "feature-profile-v1"},
+    "serviceObject": {"type": "string", "minLength": 1},
+    "primaryQuestion": {"type": "string", "minLength": 1},
+    "size": {"enum": ["2x2", "2x4"]},
+    "primaryVisual": {"enum": ["text", "metric", "progress", "media", "schedule", "status"]},
+    "contentItems": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "role", "priority"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z][a-zA-Z0-9]*$"},
+          "role": {"enum": ["object", "primary", "support", "metric", "status", "badge", "action", "asset"]},
+          "priority": {"enum": ["mustKeep", "shouldKeep"]},
+          "maxChars": {"type": "integer", "minimum": 1}
+        },
+        "additionalProperties": false
+      }
+    },
+    "actions": {"type": "array", "maxItems": 2, "items": {"type": "string"}},
+    "dataNeeds": {"type": "array", "maxItems": 2, "items": {"type": "string"}},
+    "assetNeeds": {"type": "array", "items": {"type": "string"}},
+    "styleIntent": {"enum": ["neutral-light", "dark-focus", "ambient-scene", "media-surface"]}
+  },
+  "additionalProperties": false
+}

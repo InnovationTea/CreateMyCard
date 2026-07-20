@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "harmony-card-design-plan-v1",
+  "type": "object",
+  "required": ["schemaVersion", "surfaceId", "featureProfile", "layoutId", "styleProfile", "regions", "dataModel", "cardSpec", "degradations"],
+  "properties": {
+    "schemaVersion": {"const": "design-plan-v1"},
+    "surfaceId": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "featureProfile": {"type": "object"},
+    "layoutId": {"type": "string", "minLength": 1},
+    "styleProfile": {"enum": ["neutral-light", "dark-focus", "ambient-scene", "media-surface"]},
+    "regions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["regionId", "moduleId", "variantId", "elements", "content"],
+        "properties": {
+          "regionId": {"type": "string"},
+          "moduleId": {"type": "string"},
+          "variantId": {"type": "string"},
+          "elements": {"type": "object", "additionalProperties": {"type": "string"}},
+          "content": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["featureId", "bindingKind", "value"],
+              "properties": {
+                "featureId": {"type": "string"},
+                "bindingKind": {"enum": ["static", "expression", "path"]},
+                "value": {}
+              },
+              "additionalProperties": false
+            }
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["target", "handler"],
+              "properties": {"target": {"type": "string"}, "handler": {"type": "object"}},
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "dataModel": {"type": "object"},
+    "cardSpec": {
+      "type": "object",
+      "required": ["title", "description", "suggestSize"],
+      "properties": {
+        "title": {"type": "string", "minLength": 1, "maxLength": 8},
+        "description": {"type": "string", "minLength": 1, "maxLength": 12},
+        "suggestSize": {"enum": ["2x2", "2x4"]},
+        "dataBindings": {"type": "array"}
+      },
+      "additionalProperties": false
+    },
+    "degradations": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}

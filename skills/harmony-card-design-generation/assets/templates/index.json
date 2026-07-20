@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "design-system-v1",
+  "catalogId": "ohos.a2ui.extended.catalog.form",
+  "schemas": {
+    "featureProfile": "schemas/feature-profile.schema.json",
+    "designPlan": "schemas/design-plan.schema.json",
+    "layoutCatalog": "schemas/layout.schema.json",
+    "moduleCatalog": "schemas/module.schema.json",
+    "elementCatalog": "schemas/element.schema.json"
+  },
+  "catalogs": {
+    "layouts": "layouts/catalog.json",
+    "modules": "modules/catalog.json",
+    "elements": "elements/catalog.json",
+    "cardSpecBase": "cardspec/base.json"
+  },
+  "limits": {
+    "2x2": {"width": 160, "height": 160, "padding": 12, "borderRadius": 18, "maxModules": 3, "maxDataBindings": 1},
+    "2x4": {"width": 320, "height": 160, "padding": 12, "borderRadius": 22, "maxModules": 4, "maxDataBindings": 2}
+  },
+  "styleProfiles": {
+    "neutral-light": {
+      "root": {"backgroundColor": "#fff1f3f5"},
+      "colors": {"primary": "#ff191a1c", "secondary": "#99191a1c", "muted": "#66191a1c", "accent": "#ff0a59f7", "surface": "#ffffffff", "surfaceAlt": "#14000000", "onAccent": "#ffffffff", "track": "#22000000"}
+    },
+    "dark-focus": {
+      "root": {"backgroundColor": "#ff202224"},
+      "colors": {"primary": "#ffffffff", "secondary": "#e6ffffff", "muted": "#ccffffff", "accent": "#ffa77dff", "surface": "#ff303236", "surfaceAlt": "#ff292b2d", "onAccent": "#ff191a1c", "track": "#66ffffff"}
+    },
+    "ambient-scene": {
+      "root": {"linearGradient": {"direction": "RightBottom", "colors": [["#ff191a1c", 0], ["#ff0a59f7", 1]]}},
+      "colors": {"primary": "#ffffffff", "secondary": "#ffffffff", "muted": "#ccffffff", "accent": "#ffffffff", "surface": "#ff202224", "surfaceAlt": "#ff303236", "onAccent": "#ff191a1c", "track": "#66ffffff"}
+    },
+    "media-surface": {
+      "root": {"backgroundColor": "#fff1f3f5"},
+      "colors": {"primary": "#ff191a1c", "secondary": "#99191a1c", "muted": "#66191a1c", "accent": "#ff0a59f7", "surface": "#ffffffff", "surfaceAlt": "#ffe6e8ea", "onAccent": "#ffffffff", "track": "#22000000"}
+    }
+  }
+}

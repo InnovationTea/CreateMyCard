@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "element-catalog-v1",
+  "elements": [
+    {"id": "text-label-10", "component": "Text", "role": "label", "styles": {"height": 14, "fontSize": 10, "fontWeight": 500, "fontColor": "@color.muted", "maxLines": 1}},
+    {"id": "text-support-12", "component": "Text", "role": "support", "styles": {"height": 16, "fontSize": 12, "fontWeight": 500, "fontColor": "@color.secondary", "maxLines": 1}},
+    {"id": "text-body-14", "component": "Text", "role": "body", "styles": {"height": 18, "fontSize": 14, "fontWeight": 500, "fontColor": "@color.primary", "maxLines": 1}},
+    {"id": "text-title-16", "component": "Text", "role": "title", "styles": {"height": 20, "fontSize": 16, "fontWeight": 600, "fontColor": "@color.primary", "maxLines": 1}},
+    {"id": "text-title-18", "component": "Text", "role": "title", "styles": {"height": 22, "fontSize": 18, "fontWeight": 600, "fontColor": "@color.primary", "maxLines": 1}},
+    {"id": "text-metric-20", "component": "Text", "role": "metric", "styles": {"height": 24, "fontSize": 20, "fontWeight": 800, "fontColor": "@color.primary", "maxLines": 1}},
+    {"id": "text-metric-32", "component": "Text", "role": "metric", "styles": {"height": 36, "fontSize": 32, "fontWeight": 800, "fontColor": "@color.primary", "maxLines": 1}},
+    {"id": "text-metric-40", "component": "Text", "role": "metric", "styles": {"height": 42, "fontSize": 40, "fontWeight": 800, "fontColor": "@color.primary", "maxLines": 1}},
+    {"id": "icon-16", "component": "Image", "role": "icon", "styles": {"width": 16, "height": 16, "objectFit": "contain"}},
+    {"id": "icon-20", "component": "Image", "role": "icon", "styles": {"width": 20, "height": 20, "objectFit": "contain"}},
+    {"id": "icon-24", "component": "Image", "role": "icon", "styles": {"width": 24, "height": 24, "objectFit": "contain"}},
+    {"id": "icon-32", "component": "Image", "role": "icon", "styles": {"width": 32, "height": 32, "objectFit": "contain"}},
+    {"id": "icon-40", "component": "Image", "role": "icon", "styles": {"width": 40, "height": 40, "objectFit": "contain"}},
+    {"id": "icon-48", "component": "Image", "role": "icon", "styles": {"width": 48, "height": 48, "objectFit": "contain"}},
+    {"id": "progress-ring-28", "component": "Progress", "role": "progress", "styles": {"width": 28, "height": 28, "type": "ring", "strokeWidth": 4, "color": "@color.accent"}, "properties": {"total": 100}},
+    {"id": "progress-ring-50", "component": "Progress", "role": "progress", "styles": {"width": 50, "height": 50, "type": "ring", "strokeWidth": 7, "color": "@color.accent"}, "properties": {"total": 100}},
+    {"id": "progress-ring-58", "component": "Progress", "role": "progress", "styles": {"width": 58, "height": 58, "type": "ring", "strokeWidth": 8, "color": "@color.accent"}, "properties": {"total": 100}},
+    {"id": "progress-bar-136", "component": "Progress", "role": "progress", "styles": {"width": 136, "height": 14, "type": "linear", "strokeWidth": 8, "color": "@color.accent"}, "properties": {"total": 100}},
+    {"id": "button-136x26", "component": "Button", "role": "action", "styles": {"width": 136, "height": 26, "fontSize": 14, "fontColor": "@color.onAccent", "backgroundColor": "@color.accent", "borderRadius": 13}},
+    {"id": "button-180x32", "component": "Button", "role": "action", "styles": {"width": 180, "height": 32, "fontSize": 14, "fontColor": "@color.onAccent", "backgroundColor": "@color.accent", "borderRadius": 16}},
+    {"id": "button-84x48", "component": "Button", "role": "action", "styles": {"width": 84, "height": 48, "fontSize": 14, "fontColor": "@color.onAccent", "backgroundColor": "@color.accent", "borderRadius": 12}},
+    {"id": "button-104x62", "component": "Button", "role": "action", "styles": {"width": 104, "height": 62, "fontSize": 14, "fontColor": "@color.onAccent", "backgroundColor": "@color.accent", "borderRadius": 14}},
+    {"id": "button-64x48", "component": "Button", "role": "action", "styles": {"width": 64, "height": 48, "fontSize": 14, "fontColor": "@color.onAccent", "backgroundColor": "@color.accent", "borderRadius": 12}},
+    {"id": "divider-2x24", "component": "Divider", "role": "divider", "styles": {"width": 2, "height": 24, "vertical": true, "color": "@color.track"}}
+  ]
+}

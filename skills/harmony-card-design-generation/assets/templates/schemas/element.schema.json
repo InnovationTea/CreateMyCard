@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "harmony-card-element-catalog-v1",
+  "type": "object",
+  "required": ["schemaVersion", "elements"],
+  "properties": {
+    "schemaVersion": {"const": "element-catalog-v1"},
+    "elements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "component", "role", "styles"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"},
+          "component": {"enum": ["Text", "Image", "Progress", "Button", "Divider"]},
+          "role": {"type": "string"},
+          "styles": {"type": "object"},
+          "properties": {"type": "object"}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

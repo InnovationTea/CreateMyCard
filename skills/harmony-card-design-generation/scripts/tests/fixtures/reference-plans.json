@@ -1,0 +1,1674 @@
+{
+  "schemaVersion": "reference-plans-v1",
+  "plans": [
+    {
+      "schemaVersion": "design-plan-v1",
+      "surfaceId": "ref-meter-side-action",
+      "featureProfile": {
+        "schemaVersion": "feature-profile-v1",
+        "serviceObject": "手机电池",
+        "primaryQuestion": "还剩多少电并如何省电",
+        "size": "2x2",
+        "primaryVisual": "progress",
+        "contentItems": [
+          {
+            "id": "object",
+            "role": "object",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "progress",
+            "role": "metric",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "primary",
+            "role": "primary",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "caption",
+            "role": "support",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "action",
+            "role": "action",
+            "priority": "mustKeep"
+          }
+        ],
+        "actions": [
+          "开启省电"
+        ],
+        "dataNeeds": [],
+        "assetNeeds": [],
+        "styleIntent": "ambient-scene"
+      },
+      "layoutId": "header-main-footer",
+      "styleProfile": "ambient-scene",
+      "regions": [
+        {
+          "regionId": "header",
+          "moduleId": "identity-strip",
+          "variantId": "compact-136x20",
+          "elements": {
+            "title": "text-body-14"
+          },
+          "content": {
+            "object": {
+              "featureId": "object",
+              "bindingKind": "static",
+              "value": "手机电池"
+            }
+          }
+        },
+        {
+          "regionId": "main",
+          "moduleId": "meter-summary",
+          "variantId": "compact-136x58",
+          "elements": {
+            "meter": "progress-ring-50",
+            "value": "text-metric-20",
+            "caption": "text-support-12"
+          },
+          "content": {
+            "progress": {
+              "featureId": "progress",
+              "bindingKind": "static",
+              "value": 28
+            },
+            "primary": {
+              "featureId": "primary",
+              "bindingKind": "static",
+              "value": "28%"
+            },
+            "caption": {
+              "featureId": "caption",
+              "bindingKind": "static",
+              "value": "电量偏低"
+            }
+          }
+        },
+        {
+          "regionId": "footer",
+          "moduleId": "action-strip",
+          "variantId": "compact-136x26",
+          "elements": {
+            "action": "button-136x26"
+          },
+          "content": {
+            "label": {
+              "featureId": "action",
+              "bindingKind": "static",
+              "value": "开启省电"
+            }
+          },
+          "events": [
+            {
+              "target": "action",
+              "handler": {
+                "call": "clickToIntent",
+                "args": {
+                  "intentName": "SetSettingSwitch",
+                  "params": {
+                    "appBundleName": "com.huawei.hmos.settings",
+                    "itemName": "battery_saving_mode",
+                    "switchFlag": 0
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "dataModel": {
+        "state": "ready"
+      },
+      "cardSpec": {
+        "title": "低电模式",
+        "description": "电量与省电入口",
+        "suggestSize": "2x2"
+      },
+      "degradations": []
+    },
+    {
+      "schemaVersion": "design-plan-v1",
+      "surfaceId": "ref-multi-meter-action",
+      "featureProfile": {
+        "schemaVersion": "feature-profile-v1",
+        "serviceObject": "系统内存",
+        "primaryQuestion": "当前内存压力如何",
+        "size": "2x2",
+        "primaryVisual": "status",
+        "contentItems": [
+          {
+            "id": "metric1",
+            "role": "metric",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "metric2",
+            "role": "metric",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "primary",
+            "role": "primary",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "caption",
+            "role": "support",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "action",
+            "role": "action",
+            "priority": "mustKeep"
+          }
+        ],
+        "actions": [
+          "立即清理"
+        ],
+        "dataNeeds": [],
+        "assetNeeds": [],
+        "styleIntent": "dark-focus"
+      },
+      "layoutId": "metrics-main-footer",
+      "styleProfile": "dark-focus",
+      "regions": [
+        {
+          "regionId": "metrics",
+          "moduleId": "metric-cluster",
+          "variantId": "pair-136x28",
+          "elements": {
+            "left": "text-body-14",
+            "right": "text-body-14"
+          },
+          "content": {
+            "metric1": {
+              "featureId": "metric1",
+              "bindingKind": "static",
+              "value": "已用7G"
+            },
+            "metric2": {
+              "featureId": "metric2",
+              "bindingKind": "static",
+              "value": "可用5G"
+            }
+          }
+        },
+        {
+          "regionId": "main",
+          "moduleId": "primary-summary",
+          "variantId": "compact-136x50",
+          "elements": {
+            "value": "text-metric-20",
+            "caption": "text-support-12"
+          },
+          "content": {
+            "primary": {
+              "featureId": "primary",
+              "bindingKind": "static",
+              "value": "60%"
+            },
+            "caption": {
+              "featureId": "caption",
+              "bindingKind": "static",
+              "value": "运行内存占用"
+            }
+          }
+        },
+        {
+          "regionId": "footer",
+          "moduleId": "action-strip",
+          "variantId": "compact-136x26",
+          "elements": {
+            "action": "button-136x26"
+          },
+          "content": {
+            "label": {
+              "featureId": "action",
+              "bindingKind": "static",
+              "value": "立即清理"
+            }
+          },
+          "events": [
+            {
+              "target": "action",
+              "handler": {
+                "call": "clickToApi",
+                "args": {
+                  "intentName": "CleanRAMMemory",
+                  "params": {}
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "dataModel": {
+        "state": "ready"
+      },
+      "cardSpec": {
+        "title": "内存状态",
+        "description": "内存占用与清理",
+        "suggestSize": "2x2"
+      },
+      "degradations": []
+    },
+    {
+      "schemaVersion": "design-plan-v1",
+      "surfaceId": "ref-bar-dual-metric-action",
+      "featureProfile": {
+        "schemaVersion": "feature-profile-v1",
+        "serviceObject": "应用时长",
+        "primaryQuestion": "今天还可以使用多久",
+        "size": "2x2",
+        "primaryVisual": "progress",
+        "contentItems": [
+          {
+            "id": "object",
+            "role": "object",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "progress",
+            "role": "metric",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "metric1",
+            "role": "metric",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "metric2",
+            "role": "metric",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "action",
+            "role": "action",
+            "priority": "mustKeep"
+          }
+        ],
+        "actions": [
+          "管理时长"
+        ],
+        "dataNeeds": [],
+        "assetNeeds": [],
+        "styleIntent": "dark-focus"
+      },
+      "layoutId": "header-dashboard-footer",
+      "styleProfile": "dark-focus",
+      "regions": [
+        {
+          "regionId": "header",
+          "moduleId": "identity-strip",
+          "variantId": "compact-136x20",
+          "elements": {
+            "title": "text-body-14"
+          },
+          "content": {
+            "object": {
+              "featureId": "object",
+              "bindingKind": "static",
+              "value": "应用时长"
+            }
+          }
+        },
+        {
+          "regionId": "dashboard",
+          "moduleId": "metric-cluster",
+          "variantId": "dashboard-136x62",
+          "elements": {
+            "bar": "progress-bar-136",
+            "left": "text-metric-20",
+            "right": "text-support-12"
+          },
+          "content": {
+            "progress": {
+              "featureId": "progress",
+              "bindingKind": "static",
+              "value": 65
+            },
+            "metric1": {
+              "featureId": "metric1",
+              "bindingKind": "static",
+              "value": "78分"
+            },
+            "metric2": {
+              "featureId": "metric2",
+              "bindingKind": "static",
+              "value": "剩42分"
+            }
+          }
+        },
+        {
+          "regionId": "footer",
+          "moduleId": "action-strip",
+          "variantId": "compact-136x26",
+          "elements": {
+            "action": "button-136x26"
+          },
+          "content": {
+            "label": {
+              "featureId": "action",
+              "bindingKind": "static",
+              "value": "管理时长"
+            }
+          },
+          "events": [
+            {
+              "target": "action",
+              "handler": {
+                "call": "clickToDeeplink",
+                "args": {
+                  "intentName": "Settings",
+                  "bundleName": "com.huawei.hmos.settings",
+                  "abilityName": "com.huawei.hmos.settings.MainAbility",
+                  "uri": "parent_control"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "dataModel": {
+        "state": "ready"
+      },
+      "cardSpec": {
+        "title": "应用时长",
+        "description": "今日使用与额度",
+        "suggestSize": "2x2"
+      },
+      "degradations": []
+    },
+    {
+      "schemaVersion": "design-plan-v1",
+      "surfaceId": "ref-countdown-panel",
+      "featureProfile": {
+        "schemaVersion": "feature-profile-v1",
+        "serviceObject": "马拉松",
+        "primaryQuestion": "距离比赛还有几天",
+        "size": "2x2",
+        "primaryVisual": "metric",
+        "contentItems": [
+          {
+            "id": "object",
+            "role": "object",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "primary",
+            "role": "primary",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "unit",
+            "role": "support",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "supportTitle",
+            "role": "support",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "supportMeta",
+            "role": "support",
+            "priority": "shouldKeep"
+          }
+        ],
+        "actions": [],
+        "dataNeeds": [],
+        "assetNeeds": [],
+        "styleIntent": "ambient-scene"
+      },
+      "layoutId": "header-hero-support",
+      "styleProfile": "ambient-scene",
+      "regions": [
+        {
+          "regionId": "header",
+          "moduleId": "identity-strip",
+          "variantId": "compact-136x18",
+          "elements": {
+            "title": "text-body-14"
+          },
+          "content": {
+            "object": {
+              "featureId": "object",
+              "bindingKind": "static",
+              "value": "马拉松倒计时"
+            }
+          }
+        },
+        {
+          "regionId": "hero",
+          "moduleId": "countdown-summary",
+          "variantId": "compact-136x44",
+          "elements": {
+            "value": "text-metric-40",
+            "unit": "text-body-14"
+          },
+          "content": {
+            "primary": {
+              "featureId": "primary",
+              "bindingKind": "static",
+              "value": "18"
+            },
+            "unit": {
+              "featureId": "unit",
+              "bindingKind": "static",
+              "value": "天"
+            }
+          }
+        },
+        {
+          "regionId": "support",
+          "moduleId": "support-panel",
+          "variantId": "compact-136x42",
+          "elements": {
+            "title": "text-body-14",
+            "meta": "text-label-10"
+          },
+          "content": {
+            "title": {
+              "featureId": "supportTitle",
+              "bindingKind": "static",
+              "value": "下周开始减量训练"
+            },
+            "meta": {
+              "featureId": "supportMeta",
+              "bindingKind": "static",
+              "value": "保持睡眠与补水"
+            }
+          }
+        }
+      ],
+      "dataModel": {
+        "state": "ready"
+      },
+      "cardSpec": {
+        "title": "赛事倒计时",
+        "description": "比赛日期与准备",
+        "suggestSize": "2x2"
+      },
+      "degradations": []
+    },
+    {
+      "schemaVersion": "design-plan-v1",
+      "surfaceId": "ref-meeting-action-badge",
+      "featureProfile": {
+        "schemaVersion": "feature-profile-v1",
+        "serviceObject": "产品评审",
+        "primaryQuestion": "下一场会议何时开始",
+        "size": "2x2",
+        "primaryVisual": "schedule",
+        "contentItems": [
+          {
+            "id": "object",
+            "role": "object",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "title",
+            "role": "primary",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "time",
+            "role": "primary",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "action",
+            "role": "action",
+            "priority": "mustKeep"
+          }
+        ],
+        "actions": [
+          "查看日程"
+        ],
+        "dataNeeds": [],
+        "assetNeeds": [],
+        "styleIntent": "neutral-light"
+      },
+      "layoutId": "header-main-footer",
+      "styleProfile": "neutral-light",
+      "regions": [
+        {
+          "regionId": "header",
+          "moduleId": "identity-strip",
+          "variantId": "compact-136x20",
+          "elements": {
+            "title": "text-body-14"
+          },
+          "content": {
+            "object": {
+              "featureId": "object",
+              "bindingKind": "static",
+              "value": "下一场会议"
+            }
+          }
+        },
+        {
+          "regionId": "main",
+          "moduleId": "schedule-summary",
+          "variantId": "compact-136x58",
+          "elements": {
+            "title": "text-title-16",
+            "time": "text-metric-20"
+          },
+          "content": {
+            "title": {
+              "featureId": "title",
+              "bindingKind": "static",
+              "value": "产品方案评审"
+            },
+            "time": {
+              "featureId": "time",
+              "bindingKind": "static",
+              "value": "14:30"
+            }
+          }
+        },
+        {
+          "regionId": "footer",
+          "moduleId": "action-strip",
+          "variantId": "compact-136x26",
+          "elements": {
+            "action": "button-136x26"
+          },
+          "content": {
+            "label": {
+              "featureId": "action",
+              "bindingKind": "static",
+              "value": "查看日程"
+            }
+          },
+          "events": [
+            {
+              "target": "action",
+              "handler": {
+                "call": "clickToIntent",
+                "args": {
+                  "intentName": "ViewCalendarEvent",
+                  "params": {
+                    "entityId": ""
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "dataModel": {
+        "state": "ready"
+      },
+      "cardSpec": {
+        "title": "会议提醒",
+        "description": "下一日程与入口",
+        "suggestSize": "2x2"
+      },
+      "degradations": []
+    },
+    {
+      "schemaVersion": "design-plan-v1",
+      "surfaceId": "ref-product-stat-tiles",
+      "featureProfile": {
+        "schemaVersion": "feature-profile-v1",
+        "serviceObject": "蓝牙耳机",
+        "primaryQuestion": "左右耳电量是否充足",
+        "size": "2x2",
+        "primaryVisual": "media",
+        "contentItems": [
+          {
+            "id": "image",
+            "role": "asset",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "title",
+            "role": "object",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "metric1",
+            "role": "metric",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "metric2",
+            "role": "metric",
+            "priority": "mustKeep"
+          }
+        ],
+        "actions": [],
+        "dataNeeds": [],
+        "assetNeeds": [
+          "耳机主视觉"
+        ],
+        "styleIntent": "media-surface"
+      },
+      "layoutId": "full-surface-stack",
+      "styleProfile": "media-surface",
+      "regions": [
+        {
+          "regionId": "content",
+          "moduleId": "media-summary",
+          "variantId": "full-136x136",
+          "elements": {
+            "image": "icon-48",
+            "title": "text-title-16",
+            "left": "text-metric-20",
+            "right": "text-body-14"
+          },
+          "content": {
+            "image": {
+              "featureId": "image",
+              "bindingKind": "static",
+              "value": "resources/base/media/icon_earphone.png"
+            },
+            "title": {
+              "featureId": "title",
+              "bindingKind": "static",
+              "value": "FreeBuds"
+            },
+            "metric1": {
+              "featureId": "metric1",
+              "bindingKind": "static",
+              "value": "86%"
+            },
+            "metric2": {
+              "featureId": "metric2",
+              "bindingKind": "static",
+              "value": "右82%"
+            }
+          }
+        }
+      ],
+      "dataModel": {
+        "state": "ready"
+      },
+      "cardSpec": {
+        "title": "耳机状态",
+        "description": "左右耳电量",
+        "suggestSize": "2x2"
+      },
+      "degradations": []
+    },
+    {
+      "schemaVersion": "design-plan-v1",
+      "surfaceId": "ref-quadrant-ambient-action",
+      "featureProfile": {
+        "schemaVersion": "feature-profile-v1",
+        "serviceObject": "雨天关怀",
+        "primaryQuestion": "当前天气需要注意什么",
+        "size": "2x2",
+        "primaryVisual": "status",
+        "contentItems": [
+          {
+            "id": "topLabel",
+            "role": "support",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "primary",
+            "role": "primary",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "statusLabel",
+            "role": "support",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "status",
+            "role": "status",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "bottomLabel",
+            "role": "support",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "bottomValue",
+            "role": "support",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "actionLabel",
+            "role": "support",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "actionValue",
+            "role": "support",
+            "priority": "mustKeep"
+          }
+        ],
+        "actions": [],
+        "dataNeeds": [],
+        "assetNeeds": [],
+        "styleIntent": "ambient-scene"
+      },
+      "layoutId": "two-row-grid",
+      "styleProfile": "ambient-scene",
+      "regions": [
+        {
+          "regionId": "top",
+          "moduleId": "featured-pair",
+          "variantId": "row-136x55",
+          "elements": {
+            "primaryLabel": "text-label-10",
+            "primaryValue": "text-metric-20",
+            "statusLabel": "text-label-10",
+            "statusValue": "text-support-12"
+          },
+          "content": {
+            "primaryLabel": {
+              "featureId": "topLabel",
+              "bindingKind": "static",
+              "value": "天气"
+            },
+            "primaryValue": {
+              "featureId": "primary",
+              "bindingKind": "static",
+              "value": "18℃"
+            },
+            "statusLabel": {
+              "featureId": "statusLabel",
+              "bindingKind": "static",
+              "value": "提醒"
+            },
+            "statusValue": {
+              "featureId": "status",
+              "bindingKind": "static",
+              "value": "带伞"
+            }
+          }
+        },
+        {
+          "regionId": "bottom",
+          "moduleId": "paired-grid",
+          "variantId": "row-136x55",
+          "elements": {
+            "leftTitle": "text-label-10",
+            "leftValue": "text-support-12",
+            "rightTitle": "text-label-10",
+            "rightValue": "text-support-12"
+          },
+          "content": {
+            "leftTitle": {
+              "featureId": "bottomLabel",
+              "bindingKind": "static",
+              "value": "通勤"
+            },
+            "leftValue": {
+              "featureId": "bottomValue",
+              "bindingKind": "static",
+              "value": "提前15分"
+            },
+            "rightTitle": {
+              "featureId": "actionLabel",
+              "bindingKind": "static",
+              "value": "关怀"
+            },
+            "rightValue": {
+              "featureId": "actionValue",
+              "bindingKind": "static",
+              "value": "路上慢行"
+            }
+          }
+        }
+      ],
+      "dataModel": {
+        "state": "ready"
+      },
+      "cardSpec": {
+        "title": "雨天关怀",
+        "description": "天气与通勤提醒",
+        "suggestSize": "2x2"
+      },
+      "degradations": []
+    },
+    {
+      "schemaVersion": "design-plan-v1",
+      "surfaceId": "ref-spotlight-context-action",
+      "featureProfile": {
+        "schemaVersion": "feature-profile-v1",
+        "serviceObject": "上海天气",
+        "primaryQuestion": "当前天气和下一安排是什么",
+        "size": "2x2",
+        "primaryVisual": "status",
+        "contentItems": [
+          {
+            "id": "icon",
+            "role": "asset",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "primary",
+            "role": "primary",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "caption",
+            "role": "support",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "contextTitle",
+            "role": "support",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "contextMeta",
+            "role": "support",
+            "priority": "shouldKeep"
+          },
+          {
+            "id": "action",
+            "role": "action",
+            "priority": "mustKeep"
+          }
+        ],
+        "actions": [
+          "打开天气"
+        ],
+        "dataNeeds": [],
+        "assetNeeds": [
+          "天气图标"
+        ],
+        "styleIntent": "ambient-scene"
+      },
+      "layoutId": "hero-context-footer",
+      "styleProfile": "ambient-scene",
+      "regions": [
+        {
+          "regionId": "hero",
+          "moduleId": "primary-summary",
+          "variantId": "hero-136x42",
+          "elements": {
+            "icon": "icon-32",
+            "value": "text-metric-20",
+            "caption": "text-support-12"
+          },
+          "content": {
+            "icon": {
+              "featureId": "icon",
+              "bindingKind": "static",
+              "value": "resources/base/media/rain.png"
+            },
+            "primary": {
+              "featureId": "primary",
+              "bindingKind": "static",
+              "value": "18℃"
+            },
+            "caption": {
+              "featureId": "caption",
+              "bindingKind": "static",
+              "value": "中雨"
+            }
+          }
+        },
+        {
+          "regionId": "context",
+          "moduleId": "support-panel",
+          "variantId": "compact-136x36",
+          "elements": {
+            "title": "text-body-14",
+            "meta": "text-support-12"
+          },
+          "content": {
+            "title": {
+              "featureId": "contextTitle",
+              "bindingKind": "static",
+              "value": "14:30评审"
+            },
+            "meta": {
+              "featureId": "contextMeta",
+              "bindingKind": "static",
+              "value": "线上"
+            }
+          }
+        },
+        {
+          "regionId": "footer",
+          "moduleId": "action-strip",
+          "variantId": "compact-136x26",
+          "elements": {
+            "action": "button-136x26"
+          },
+          "content": {
+            "label": {
+              "featureId": "action",
+              "bindingKind": "static",
+              "value": "打开天气"
+            }
+          },
+          "events": [
+            {
+              "target": "action",
+              "handler": {
+                "call": "clickToDeeplink",
+                "args": {
+                  "intentName": "Weather_CityCode",
+                  "bundleName": "",
+                  "abilityName": "",
+                  "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "dataModel": {
+        "state": "ready"
+      },
+      "cardSpec": {
+        "title": "天气日程",
+        "description": "天气与下一安排",
+        "suggestSize": "2x2"
+      },
+      "degradations": []
+    },
+    {
+      "schemaVersion": "design-plan-v1",
+      "surfaceId": "ref-stacked-schedule-action",
+      "featureProfile": {
+        "schemaVersion": "feature-profile-v1",
+        "serviceObject": "专注日程",
+        "primaryQuestion": "下一项安排是什么",
+        "size": "2x2",
+        "primaryVisual": "schedule",
+        "contentItems": [
+          {
+            "id": "object",
+            "role": "object",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "title",
+            "role": "primary",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "time",
+            "role": "primary",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "meta",
+            "role": "support",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "action",
+            "role": "action",
+            "priority": "mustKeep"
+          }
+        ],
+        "actions": [
+          "查看日程"
+        ],
+        "dataNeeds": [],
+        "assetNeeds": [],
+        "styleIntent": "ambient-scene"
+      },
+      "layoutId": "header-schedule-footer",
+      "styleProfile": "ambient-scene",
+      "regions": [
+        {
+          "regionId": "header",
+          "moduleId": "identity-strip",
+          "variantId": "compact-136x18",
+          "elements": {
+            "title": "text-body-14"
+          },
+          "content": {
+            "object": {
+              "featureId": "object",
+              "bindingKind": "static",
+              "value": "专注日程"
+            }
+          }
+        },
+        {
+          "regionId": "schedule",
+          "moduleId": "schedule-summary",
+          "variantId": "stacked-136x68",
+          "elements": {
+            "title": "text-body-14",
+            "time": "text-metric-20",
+            "meta": "text-support-12"
+          },
+          "content": {
+            "title": {
+              "featureId": "title",
+              "bindingKind": "static",
+              "value": "需求方案整理"
+            },
+            "time": {
+              "featureId": "time",
+              "bindingKind": "static",
+              "value": "15:00-16:00"
+            },
+            "meta": {
+              "featureId": "meta",
+              "bindingKind": "static",
+              "value": "开始前 10 分钟提醒"
+            }
+          }
+        },
+        {
+          "regionId": "footer",
+          "moduleId": "action-strip",
+          "variantId": "compact-136x26",
+          "elements": {
+            "action": "button-136x26"
+          },
+          "content": {
+            "label": {
+              "featureId": "action",
+              "bindingKind": "static",
+              "value": "查看日程"
+            }
+          },
+          "events": [
+            {
+              "target": "action",
+              "handler": {
+                "call": "clickToIntent",
+                "args": {
+                  "intentName": "ViewCalendarEvent",
+                  "params": {
+                    "entityId": ""
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "dataModel": {
+        "state": "ready"
+      },
+      "cardSpec": {
+        "title": "专注日程",
+        "description": "下一安排与提醒",
+        "suggestSize": "2x2"
+      },
+      "degradations": []
+    },
+    {
+      "schemaVersion": "design-plan-v1",
+      "surfaceId": "ref-content-action-sidebar",
+      "featureProfile": {
+        "schemaVersion": "feature-profile-v1",
+        "serviceObject": "电池维护",
+        "primaryQuestion": "电池状态需要采取什么操作",
+        "size": "2x4",
+        "primaryVisual": "status",
+        "contentItems": [
+          {
+            "id": "object",
+            "role": "object",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "title",
+            "role": "primary",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "support",
+            "role": "support",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "action1",
+            "role": "action",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "action2",
+            "role": "action",
+            "priority": "mustKeep"
+          }
+        ],
+        "actions": [
+          "电池设置",
+          "健康管理"
+        ],
+        "dataNeeds": [],
+        "assetNeeds": [],
+        "styleIntent": "neutral-light"
+      },
+      "layoutId": "header-content-sidebar",
+      "styleProfile": "neutral-light",
+      "regions": [
+        {
+          "regionId": "header",
+          "moduleId": "identity-strip",
+          "variantId": "wide-296x24",
+          "elements": {
+            "title": "text-title-16"
+          },
+          "content": {
+            "object": {
+              "featureId": "object",
+              "bindingKind": "static",
+              "value": "电池维护助手"
+            }
+          }
+        },
+        {
+          "regionId": "body",
+          "moduleId": "content-sidebar",
+          "variantId": "wide-296x104",
+          "elements": {
+            "title": "text-title-18",
+            "support": "text-body-14",
+            "primaryAction": "button-84x48",
+            "secondaryAction": "button-84x48"
+          },
+          "content": {
+            "title": {
+              "featureId": "title",
+              "bindingKind": "static",
+              "value": "当前电池状态良好"
+            },
+            "support": {
+              "featureId": "support",
+              "bindingKind": "static",
+              "value": "智能充电可延长寿命"
+            },
+            "primaryAction": {
+              "featureId": "action1",
+              "bindingKind": "static",
+              "value": "电池设置"
+            },
+            "secondaryAction": {
+              "featureId": "action2",
+              "bindingKind": "static",
+              "value": "健康管理"
+            }
+          },
+          "events": [
+            {
+              "target": "primaryAction",
+              "handler": {
+                "call": "clickToDeeplink",
+                "args": {
+                  "intentName": "Settings",
+                  "bundleName": "com.huawei.hmos.settings",
+                  "abilityName": "com.huawei.hmos.settings.MainAbility",
+                  "uri": "battery"
+                }
+              }
+            },
+            {
+              "target": "secondaryAction",
+              "handler": {
+                "call": "clickToDeeplink",
+                "args": {
+                  "intentName": "Settings",
+                  "bundleName": "com.huawei.hmos.settings",
+                  "abilityName": "com.huawei.hmos.settings.MainAbility",
+                  "uri": "smart_charge_battery_health"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "dataModel": {
+        "state": "ready"
+      },
+      "cardSpec": {
+        "title": "电池维护",
+        "description": "状态与维护入口",
+        "suggestSize": "2x4"
+      },
+      "degradations": []
+    },
+    {
+      "schemaVersion": "design-plan-v1",
+      "surfaceId": "ref-dual-action-panel",
+      "featureProfile": {
+        "schemaVersion": "feature-profile-v1",
+        "serviceObject": "系统存储",
+        "primaryQuestion": "当前存储状态及可执行操作",
+        "size": "2x4",
+        "primaryVisual": "metric",
+        "contentItems": [
+          {
+            "id": "title",
+            "role": "primary",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "primary",
+            "role": "primary",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "support",
+            "role": "support",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "action1",
+            "role": "action",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "action2",
+            "role": "action",
+            "priority": "mustKeep"
+          }
+        ],
+        "actions": [
+          "电池设置",
+          "存储管理"
+        ],
+        "dataNeeds": [],
+        "assetNeeds": [],
+        "styleIntent": "neutral-light"
+      },
+      "layoutId": "content-action-stack",
+      "styleProfile": "neutral-light",
+      "regions": [
+        {
+          "regionId": "content",
+          "moduleId": "wide-primary",
+          "variantId": "panel-180x136",
+          "elements": {
+            "title": "text-title-16",
+            "value": "text-metric-32",
+            "support": "text-body-14"
+          },
+          "content": {
+            "title": {
+              "featureId": "title",
+              "bindingKind": "static",
+              "value": "系统存储空间"
+            },
+            "primary": {
+              "featureId": "primary",
+              "bindingKind": "static",
+              "value": "68%"
+            },
+            "support": {
+              "featureId": "support",
+              "bindingKind": "static",
+              "value": "可用 82 GB，状态正常"
+            }
+          }
+        },
+        {
+          "regionId": "actions",
+          "moduleId": "action-stack",
+          "variantId": "wide-104x136",
+          "elements": {
+            "primaryAction": "button-104x62",
+            "secondaryAction": "button-104x62"
+          },
+          "content": {
+            "primaryAction": {
+              "featureId": "action1",
+              "bindingKind": "static",
+              "value": "电池设置"
+            },
+            "secondaryAction": {
+              "featureId": "action2",
+              "bindingKind": "static",
+              "value": "存储管理"
+            }
+          },
+          "events": [
+            {
+              "target": "primaryAction",
+              "handler": {
+                "call": "clickToDeeplink",
+                "args": {
+                  "intentName": "Settings",
+                  "bundleName": "com.huawei.hmos.settings",
+                  "abilityName": "com.huawei.hmos.settings.MainAbility",
+                  "uri": "battery"
+                }
+              }
+            },
+            {
+              "target": "secondaryAction",
+              "handler": {
+                "call": "clickToDeeplink",
+                "args": {
+                  "intentName": "Settings",
+                  "bundleName": "com.huawei.hmos.settings",
+                  "abilityName": "com.huawei.hmos.settings.MainAbility",
+                  "uri": "storage_settings"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "dataModel": {
+        "state": "ready"
+      },
+      "cardSpec": {
+        "title": "系统状态",
+        "description": "存储与快捷操作",
+        "suggestSize": "2x4"
+      },
+      "degradations": []
+    },
+    {
+      "schemaVersion": "design-plan-v1",
+      "surfaceId": "ref-hero-context-action",
+      "featureProfile": {
+        "schemaVersion": "feature-profile-v1",
+        "serviceObject": "通勤天气",
+        "primaryQuestion": "天气和今日安排如何",
+        "size": "2x4",
+        "primaryVisual": "media",
+        "contentItems": [
+          {
+            "id": "visual",
+            "role": "asset",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "primary",
+            "role": "primary",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "caption",
+            "role": "support",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "title",
+            "role": "support",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "meta",
+            "role": "support",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "support",
+            "role": "support",
+            "priority": "shouldKeep"
+          },
+          {
+            "id": "action",
+            "role": "action",
+            "priority": "mustKeep"
+          }
+        ],
+        "actions": [
+          "打开天气"
+        ],
+        "dataNeeds": [],
+        "assetNeeds": [
+          "天气主视觉"
+        ],
+        "styleIntent": "ambient-scene"
+      },
+      "layoutId": "hero-context-split",
+      "styleProfile": "ambient-scene",
+      "regions": [
+        {
+          "regionId": "hero",
+          "moduleId": "hero-tall",
+          "variantId": "wide-104x136",
+          "elements": {
+            "visual": "icon-48",
+            "value": "text-metric-32",
+            "caption": "text-support-12"
+          },
+          "content": {
+            "visual": {
+              "featureId": "visual",
+              "bindingKind": "static",
+              "value": "resources/base/media/cloudy_turning_sunny.png"
+            },
+            "primary": {
+              "featureId": "primary",
+              "bindingKind": "static",
+              "value": "24℃"
+            },
+            "caption": {
+              "featureId": "caption",
+              "bindingKind": "static",
+              "value": "多云转晴"
+            }
+          }
+        },
+        {
+          "regionId": "context",
+          "moduleId": "context-action",
+          "variantId": "wide-180x136",
+          "elements": {
+            "title": "text-body-14",
+            "meta": "text-body-14",
+            "support": "text-support-12",
+            "action": "button-180x32"
+          },
+          "content": {
+            "title": {
+              "featureId": "title",
+              "bindingKind": "static",
+              "value": "下一场：产品评审"
+            },
+            "meta": {
+              "featureId": "meta",
+              "bindingKind": "static",
+              "value": "14:30 · 线上会议"
+            },
+            "support": {
+              "featureId": "support",
+              "bindingKind": "static",
+              "value": "通勤预计 35 分钟"
+            },
+            "action": {
+              "featureId": "action",
+              "bindingKind": "static",
+              "value": "打开天气"
+            }
+          },
+          "events": [
+            {
+              "target": "action",
+              "handler": {
+                "call": "clickToDeeplink",
+                "args": {
+                  "intentName": "Weather_CityCode",
+                  "bundleName": "",
+                  "abilityName": "",
+                  "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "dataModel": {
+        "state": "ready"
+      },
+      "cardSpec": {
+        "title": "通勤助手",
+        "description": "天气日程速览",
+        "suggestSize": "2x4"
+      },
+      "degradations": []
+    },
+    {
+      "schemaVersion": "design-plan-v1",
+      "surfaceId": "ref-metric-dashboard-action",
+      "featureProfile": {
+        "schemaVersion": "feature-profile-v1",
+        "serviceObject": "系统内存",
+        "primaryQuestion": "主指标和支撑指标是否正常",
+        "size": "2x4",
+        "primaryVisual": "metric",
+        "contentItems": [
+          {
+            "id": "primary",
+            "role": "primary",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "caption",
+            "role": "support",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "title",
+            "role": "support",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "metric1",
+            "role": "metric",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "metric2",
+            "role": "metric",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "metric3",
+            "role": "metric",
+            "priority": "shouldKeep"
+          },
+          {
+            "id": "action",
+            "role": "action",
+            "priority": "mustKeep"
+          },
+          {
+            "id": "status",
+            "role": "status",
+            "priority": "shouldKeep"
+          }
+        ],
+        "actions": [
+          "清理"
+        ],
+        "dataNeeds": [],
+        "assetNeeds": [],
+        "styleIntent": "dark-focus"
+      },
+      "layoutId": "metric-dashboard",
+      "styleProfile": "dark-focus",
+      "regions": [
+        {
+          "regionId": "primary",
+          "moduleId": "primary-summary",
+          "variantId": "tall-92x136",
+          "elements": {
+            "value": "text-metric-40",
+            "caption": "text-support-12"
+          },
+          "content": {
+            "primary": {
+              "featureId": "primary",
+              "bindingKind": "static",
+              "value": "60%"
+            },
+            "caption": {
+              "featureId": "caption",
+              "bindingKind": "static",
+              "value": "内存占用"
+            }
+          }
+        },
+        {
+          "regionId": "metrics",
+          "moduleId": "metric-cluster",
+          "variantId": "tall-124x136",
+          "elements": {
+            "title": "text-body-14",
+            "metric1": "text-body-14",
+            "metric2": "text-body-14",
+            "metric3": "text-body-14"
+          },
+          "content": {
+            "title": {
+              "featureId": "title",
+              "bindingKind": "static",
+              "value": "系统资源"
+            },
+            "metric1": {
+              "featureId": "metric1",
+              "bindingKind": "static",
+              "value": "已用 7.2 GB"
+            },
+            "metric2": {
+              "featureId": "metric2",
+              "bindingKind": "static",
+              "value": "可用 4.8 GB"
+            },
+            "metric3": {
+              "featureId": "metric3",
+              "bindingKind": "static",
+              "value": "后台 18 个"
+            }
+          }
+        },
+        {
+          "regionId": "action",
+          "moduleId": "action-tall",
+          "variantId": "narrow-64x136",
+          "elements": {
+            "action": "button-64x48",
+            "status": "text-support-12"
+          },
+          "content": {
+            "action": {
+              "featureId": "action",
+              "bindingKind": "static",
+              "value": "清理"
+            },
+            "status": {
+              "featureId": "status",
+              "bindingKind": "static",
+              "value": "释放1.2G"
+            }
+          },
+          "events": [
+            {
+              "target": "action",
+              "handler": {
+                "call": "clickToApi",
+                "args": {
+                  "intentName": "CleanRAMMemory",
+                  "params": {}
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "dataModel": {
+        "state": "ready"
+      },
+      "cardSpec": {
+        "title": "内存面板",
+        "description": "主指标与清理",
+        "suggestSize": "2x4"
+      },
+      "degradations": []
+    }
+  ]
+}

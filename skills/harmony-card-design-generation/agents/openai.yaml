@@ -1,0 +1,7 @@
+interface:
+  display_name: "Harmony 卡片模板生成"
+  short_description: "按特征、布局、模块和元素分层装配 HarmonyOS 服务卡片。"
+  default_prompt: "使用 $harmony-card-template-generation 将用户需求转换为分层 Design Plan，并确定性装配最终 genui 和 cardspec。"
+
+policy:
+  allow_implicit_invocation: false
