@@ -43,8 +43,14 @@ class EffectiveCapabilityValidator(BaseValidator):
                         json_pointer=f"/dataBindings/{index}/capabilityId",
                         actual=capability_id,
                         expected=sorted(effective_ids),
-                        message="CardSpec.dataBindings uses a data capability that is not in effectiveCapabilities.data.",
-                        fix_hint="Remove this data binding or include it in the filtered effective data capabilities.",
+                        message=(
+                            "CardSpec.dataBindings uses a data capability that is not "
+                            "in effectiveCapabilities.data."
+                        ),
+                        fix_hint=(
+                            "Remove this data binding or include it in the filtered "
+                            "effective data capabilities."
+                        ),
                     )
                     continue
                 if is_json_pointer(root):
@@ -67,8 +73,13 @@ class EffectiveCapabilityValidator(BaseValidator):
                 json_pointer=location,
                 actual=pointer,
                 expected=allowed_roots,
-                message="DSL references a DataModel path that is not backed by an effective data capability.",
-                fix_hint="Bind the DSL to a writeResultTo path from effective CardSpec.dataBindings.",
+                message=(
+                    "DSL references a DataModel path that is not backed by an "
+                    "effective data capability."
+                ),
+                fix_hint=(
+                    "Bind the DSL to a writeResultTo path from effective CardSpec.dataBindings."
+                ),
             )
 
     def _effective_data_roots(self, items: list[Any]) -> list[str]:
@@ -132,7 +143,10 @@ class EffectiveCapabilityValidator(BaseValidator):
                     json_pointer=f"/updateComponents/componentsById/{component_id}/onClick/{index}",
                     actual={"call": call, "args": args},
                     expected=allowed_actions,
-                    message="DSL onClick uses an event action that is not in effectiveCapabilities.event.",
+                    message=(
+                        "DSL onClick uses an event action that is not in "
+                        "effectiveCapabilities.event."
+                    ),
                     fix_hint="Use only event actions that passed cloud-new capability filtering.",
                 )
 
@@ -145,7 +159,10 @@ class EffectiveCapabilityValidator(BaseValidator):
                 "artifact",
                 actual=sorted(context.unresolved_effective_asset_ids),
                 message="Some effective asset ids cannot be resolved to resource paths.",
-                fix_hint="Pass capabilities_dir or include asset src in effectiveCapabilities.asset/taskSpec.assetCandidates.",
+                fix_hint=(
+                    "Pass capabilities_dir or include asset src in "
+                    "effectiveCapabilities.asset/taskSpec.assetCandidates."
+                ),
             )
 
         for path, location in self._asset_references(context, reporter):
@@ -159,7 +176,9 @@ class EffectiveCapabilityValidator(BaseValidator):
                     json_pointer=location,
                     actual=path,
                     expected=sorted(context.effective_asset_sources),
-                    message="DSL references an asset path that is not in effective asset capabilities.",
+                    message=(
+                        "DSL references an asset path that is not in effective asset capabilities."
+                    ),
                     fix_hint="Use a src from the filtered effective asset capabilities.",
                 )
 
@@ -209,8 +228,14 @@ class EffectiveCapabilityValidator(BaseValidator):
                     line=2,
                     json_pointer=pointer,
                     actual=value,
-                    message="Dynamic asset expression cannot be resolved statically against effective asset capabilities.",
-                    fix_hint="Initialize the asset path in updateDataModel.value or use a static effective asset src.",
+                    message=(
+                        "Dynamic asset expression cannot be resolved statically "
+                        "against effective asset capabilities."
+                    ),
+                    fix_hint=(
+                        "Initialize the asset path in updateDataModel.value or use "
+                        "a static effective asset src."
+                    ),
                 )
             return
         references.append((value, pointer))

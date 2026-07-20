@@ -74,7 +74,10 @@ class Reporter:
         return sum(1 for item in self.diagnostics if item.severity == "warning")
 
     def has_error(self, stage: str | None = None) -> bool:
-        return any(item.severity == "error" and (stage is None or item.stage == stage) for item in self.diagnostics)
+        return any(
+            item.severity == "error" and (stage is None or item.stage == stage)
+            for item in self.diagnostics
+        )
 
     def has_code(self, *codes: str) -> bool:
         code_set = set(codes)

@@ -29,7 +29,7 @@ from validators.source_parser import extract_combined, normalize_cardspec_text, 
 
 def read_text(path: str | None) -> str:
     if not path or path == "-":
-        return sys.stdin.read().lstrip("﻿")
+        return sys.stdin.read().lstrip("")
     return Path(path).read_text(encoding="utf-8-sig")
 
 

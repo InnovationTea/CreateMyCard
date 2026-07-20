@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Iterable
-
+from collections.abc import Iterable
+from typing import Any
 
 INTERP_RE = re.compile(r"\$\{([^}]+)\}")
 CJK_RE = re.compile(r"[\u4e00-\u9fff]")
@@ -39,7 +39,9 @@ def is_json_pointer(value: Any) -> bool:
     return isinstance(value, str) and (value == "/" or value.startswith("/"))
 
 
-def is_empty_required_value(value: Any, *, empty_strings: bool = True, empty_collections: bool = False) -> bool:
+def is_empty_required_value(
+    value: Any, *, empty_strings: bool = True, empty_collections: bool = False
+) -> bool:
     if value is None:
         return True
     if isinstance(value, str):
@@ -121,11 +123,15 @@ def spacing_tuple(value: Any) -> tuple[float, float, float, float]:
 
 
 def expression_like(value: Any) -> bool:
-    return isinstance(value, str) and ("{{" in value or "}}" in value or "${" in value or "$__dataModel" in value)
+    return isinstance(value, str) and (
+        "{{" in value or "}}" in value or "${" in value or "$__dataModel" in value
+    )
 
 
 def is_wrapped_expression(value: Any) -> bool:
-    return isinstance(value, str) and value.strip().startswith("{{") and value.strip().endswith("}}")
+    return (
+        isinstance(value, str) and value.strip().startswith("{{") and value.strip().endswith("}}")
+    )
 
 
 def expression_body(value: str) -> str:

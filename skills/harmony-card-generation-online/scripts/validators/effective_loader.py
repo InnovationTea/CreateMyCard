@@ -125,7 +125,11 @@ def _task_asset_candidates(artifact: dict[str, Any]) -> list[dict[str, Any]]:
     if not isinstance(task_spec, dict):
         return []
     candidates = task_spec.get("assetCandidates")
-    return [item for item in candidates if isinstance(item, dict)] if isinstance(candidates, list) else []
+    return (
+        [item for item in candidates if isinstance(item, dict)]
+        if isinstance(candidates, list)
+        else []
+    )
 
 
 def _load_asset_capability_map(capabilities_dir: Path) -> dict[str, str]:
