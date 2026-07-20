@@ -240,6 +240,11 @@ class A2UIModelClient:
 
         collected_texts = []
         reasoning_parts = []
+        total_tokens = 0
+        completion_tokens = 0
+        prompt_tokens = 0
+        first_token_at: float | None = None
+        first_token_latency_ms: float = 0
         start = time.perf_counter()
         try:
             with requests.post(
@@ -261,6 +266,12 @@ class A2UIModelClient:
 
                         choices = chunk.get("choices")
                         if not choices or len(choices) == 0:
+                            # 部分模型在最后一条 chunk 中通过 usage 字段返回 token 统计。
+                            usage = chunk.get("usage")
+                            if isinstance(usage, dict):
+                                total_tokens = usage.get("total_tokens", total_tokens)
+                                completion_tokens = usage.get("completion_tokens", completion_tokens)
+                                prompt_tokens = usage.get("prompt_tokens", prompt_tokens)
                             continue
 
                         first_choice = choices[0]
@@ -270,6 +281,9 @@ class A2UIModelClient:
 
                         text = delta.get("content", "")
                         reasoning = delta.get("reasoning", "")
+                        if first_token_at is None and (text or reasoning):
+                            first_token_at = time.perf_counter()
+                            first_token_latency_ms = round((first_token_at - start) * 1000, 2)
                         collected_texts.append(text)
                         reasoning_parts.append(reasoning)
 
@@ -280,7 +294,11 @@ class A2UIModelClient:
             logger.info(
                 f"{_MODULE} response_received "
                 f"content_preview={full_text} "
-                f"duration_ms={duration_ms}"
+                f"duration_ms={duration_ms} "
+                f"first_token_latency_ms={first_token_latency_ms} "
+                f"total_tokens={total_tokens} "
+                f"completion_tokens={completion_tokens} "
+                f"prompt_tokens={prompt_tokens}"
             )
 
             # 剔除···genui ```内容
