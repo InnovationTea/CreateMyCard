@@ -3,17 +3,9 @@
   "pluginType": "Cloud",
   "toolType": "XiaoYiPlugin",
   "toolName": "generateWidgetCard",
-  "description": "提交用户需求和候选计划首次生成卡片，或通过上一版 artifact URL 连续编辑 HarmonyOS A2UI Form 卡片",
+  "description": "提交用户需求、候选数据绑定、候选事件和素材，生成可下载的 HarmonyOS A2UI Form 卡片 artifact",
   "arguments": {
     "properties": {
-      "sourceArtifactUrl": {
-        "type": "String",
-        "description": "可选。上一版完整 artifact 的真实 URL；缺失表示首次生成，合法非空值表示编辑"
-      },
-      "size": {
-        "type": "String",
-        "description": "主 Agent 建议尺寸"
-      },
       "candidateDataBindings": {
         "type": "Array",
         "description": "候选数据能力调用列表；微服务会按注册表和 IDS 状态裁决最终可用项",
@@ -24,6 +16,18 @@
             "description": "候选数据能力",
             "required": [],
             "properties": {
+              "writeResultTo": {
+                "type": "String",
+                "description": "结果写入路径"
+              },
+              "capabilityId": {
+                "type": "String",
+                "description": "能力ID"
+              },
+              "arguments": {
+                "type": "Object",
+                "description": "参数"
+              },
               "candidateOutputFields": {
                 "type": "Array<String>",
                 "description": "可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导",
@@ -34,20 +38,39 @@
                     "description": "可选候选展示字段 JSON Pointer"
                   }
                 }
-              },
-              "arguments": {
-                "type": "Object",
-                "description": "参数"
-              },
-              "capabilityId": {
-                "type": "String",
-                "description": "能力ID"
-              },
-              "writeResultTo": {
-                "type": "String",
-                "description": "结果写入路径"
               }
             }
+          }
+        }
+      },
+      "title": {
+        "type": "String",
+        "description": "建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"
+      },
+      "size": {
+        "type": "String",
+        "description": "主 Agent 建议尺寸"
+      },
+      "description": {
+        "type": "String",
+        "description": "建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"
+      },
+      "userQuery": {
+        "type": "String",
+        "description": "用户原始卡片需求"
+      },
+      "sourceArtifactUrl": {
+        "type": "String",
+        "description": "上一版完整 artifact 的真实 URL；缺失表示首次生成，合法非空值表示编辑"
+      },
+      "candidateAssetIds": {
+        "type": "Array<String>",
+        "description": "候选素材 ID 列表",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "String",
+            "description": "候选素材 ID"
           }
         }
       },
@@ -61,29 +84,6 @@
             "description": "事件 action"
           }
         }
-      },
-      "userQuery": {
-        "type": "String",
-        "description": "首次生成时为原始需求，编辑时只表达本轮修改"
-      },
-      "candidateAssetIds": {
-        "type": "Array<String>",
-        "description": "候选素材 ID 列表",
-        "required": [],
-        "properties": {
-          "ArrayItem": {
-            "type": "String",
-            "description": "候选素材 ID"
-          }
-        }
-      },
-      "title": {
-        "type": "String",
-        "description": "建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"
-      },
-      "description": {
-        "type": "String",
-        "description": "建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"
       }
     },
     "required": [
@@ -93,6 +93,10 @@
   },
   "outputSchema": {
     "properties": {
+      "streamInfo": {
+        "type": "String",
+        "description": "流式信息"
+      },
       "items": {
         "type": "Array",
         "description": "结构化数据",
@@ -100,48 +104,44 @@
           "data"
         ],
         "properties": {
-          "status": {
+          "error": {
             "type": "String",
-            "description": "工具状态"
-          },
-          "requestId": {
-            "type": "String",
-            "description": "请求ID"
-          },
-          "operation": {
-            "type": "String",
-            "description": "本次动作"
-          },
-          "errorCode": {
-            "type": "String",
-            "description": "错误码"
+            "description": "错误内容"
           },
           "type": {
             "type": "String",
             "description": "回复类型"
           },
-          "data": {
+          "status": {
             "type": "String",
-            "description": "工具返回结果"
+            "description": "工具状态"
           },
-          "error": {
+          "operation": {
             "type": "String",
-            "description": "错误内容"
+            "description": "本次动作"
           },
           "tool": {
             "type": "String",
             "description": "当前工具名"
+          },
+          "data": {
+            "type": "String",
+            "description": "工具返回结果"
+          },
+          "errorCode": {
+            "type": "String",
+            "description": "错误码"
+          },
+          "requestId": {
+            "type": "String",
+            "description": "请求ID"
           }
         }
-      },
-      "streamInfo": {
-        "type": "String",
-        "description": "流式信息"
       }
     },
     "required": [
-      "items",
-      "streamInfo"
+      "streamInfo",
+      "items"
     ],
     "type": "object"
   },
