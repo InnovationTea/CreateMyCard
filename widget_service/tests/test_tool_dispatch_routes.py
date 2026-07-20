@@ -572,6 +572,9 @@ def test_overview_logs_do_not_include_user_or_device_identifiers(monkeypatch):
     )
     request = _tool_payload({}, "overview-log-uid")
     request["userAuth"]["user"]["userId"] = sentinel_uid
+    request["content"]["sourceArtifactUrl"] = (
+        "https://obs.test/widget/source-artifact.md"
+    )
 
     client = TestClient(app)
     with client.websocket_connect(
@@ -588,6 +591,19 @@ def test_overview_logs_do_not_include_user_or_device_identifiers(monkeypatch):
     assert any(
         "payload_keys=" in item and '"content"' in item for item in log_messages
     )
+    raw_request_log = next(
+        item
+        for item in log_messages
+        if "widget_operation_ws_raw_request_received" in item
+    )
+    logged_request = json.loads(raw_request_log.split("request_body=", 1)[1])
+    assert logged_request["deviceInfo"]["romVersion"] == ROM_VERSION
+    assert logged_request["bundleName"] == request["bundleName"]
+    assert "odid" not in logged_request["content"]
+    assert logged_request["content"]["sourceArtifactUrl"] == (
+        request["content"]["sourceArtifactUrl"]
+    )
+    assert "userId" not in logged_request["userAuth"]["user"]
     assert any("capability_overview_started" in item for item in log_messages)
     joined_logs = "\n".join(log_messages)
     assert sentinel_uid not in joined_logs

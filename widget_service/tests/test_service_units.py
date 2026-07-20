@@ -172,6 +172,7 @@ def test_json_for_log_removes_user_uid_recursively():
                 },
                 "callingUid": "decisionhub",
                 "odid": "private-device-odid",
+                "sourceArtifactUrl": "https://obs.test/private-artifact.md",
                 "udid": "device-identifier",
             }
         )
@@ -184,6 +185,7 @@ def test_json_for_log_removes_user_uid_recursively():
                 {"loc": ["uid"], "message": "invalid uid"},
             ]
         },
+        "sourceArtifactUrl": "https://obs.test/private-artifact.md",
         "udid": "device-identifier",
     }
 

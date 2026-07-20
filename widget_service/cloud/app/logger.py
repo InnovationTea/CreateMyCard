@@ -61,27 +61,33 @@ def _json_log_default(value: Any) -> Any:
     return str(value)
 
 
-def _is_sensitive_identifier_log_key(key: Any) -> bool:
-    """判断结构化日志键是否承载用户或设备标识。"""
+def _is_sensitive_log_key(key: Any) -> bool:
+    """判断结构化日志键是否承载用户或设备隐私标识。"""
     normalized = "".join(
         character for character in str(key).casefold() if character.isalnum()
     )
-    return normalized in {"uid", "userid", "useruid", "callinguid", "odid"}
+    return normalized in {
+        "uid",
+        "userid",
+        "useruid",
+        "callinguid",
+        "odid",
+    }
 
 
 def _sanitize_json_log_value(value: Any) -> Any:
-    """递归移除用户 UID、服务调用 UID 和设备 odid 字段。"""
+    """递归移除用户标识和设备 odid。"""
     if hasattr(value, "model_dump"):
         value = value.model_dump(mode="json", exclude_none=True)
     if isinstance(value, dict):
         sanitized = {
             key: _sanitize_json_log_value(item)
             for key, item in value.items()
-            if not _is_sensitive_identifier_log_key(key)
+            if not _is_sensitive_log_key(key)
         }
         location = value.get("loc")
         if isinstance(location, (list, tuple)) and any(
-            _is_sensitive_identifier_log_key(item) for item in location
+            _is_sensitive_log_key(item) for item in location
         ):
             sanitized.pop("input", None)
         return sanitized

@@ -324,6 +324,13 @@ async def _serve_operation_websocket(
         service = get_service()
         while True:
             payload = await websocket.receive_json()
+            # 同一连接可连续发送多条消息，先清理上一条消息的 requestId，
+            # 避免协议归一化前的原始请求日志错误关联到旧请求。
+            task_logger.set_session_id("None")
+            logger.info(
+                f"widget_operation_ws_raw_request_received operation={operation} "
+                f"request_body={json_for_log(payload)}"
+            )
             started_at = time.perf_counter()
             request_id, arguments = _normalize_payload(payload, operation)
             # 三个接口共用该入口；解析出 requestId 后立即写入日志上下文，

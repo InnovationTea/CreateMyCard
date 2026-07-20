@@ -15,7 +15,7 @@ The service follows `docs/AGENTS.md`:
 - `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY=false` by default. Validation failures are logged without blocking artifact persistence or invoking the model again; setting it to `true` enables at most one regeneration attempt.
 - Create and edit prompts are loaded from `WIDGET_SERVICE_SYSTEM_PROMPT_FILE` and `WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE`. Their defaults are `docs/system_prompt.txt` and `docs/edit_system_prompt.txt` relative to the repository root.
 - `WIDGET_SERVICE_ENABLE_ARTIFACT_DOWNLOAD_MOCK=true` by default. Multi-round source artifacts are read only from `cloud/workspace/mock_obs`; missing mock files do not fall back to the network. Set it to `false` to download from the validated HTTPS artifact URL.
-- Structured values embedded in log messages are serialized as standard JSON with double-quoted keys and strings. Request `uid` remains part of the API contract but must never be logged in raw, masked, or hashed form; IDS request logs omit `callingUid` as well.
+- The WebSocket router logs each received request object as compact standard JSON before protocol normalization. Structured values embedded in other log messages use the same double-quoted JSON format. Sensitive `uid`/`userId`/`callingUid` and `odid` are recursively omitted; `sourceArtifactUrl` is retained in the raw request log.
 - The server logs process-wide WebSocket `active_connections`, cumulative `total_connections`, and `running_tasks` every 10 seconds.
 - Package filtering emits exactly one summary result per capability-overview request; per-capability dependency-check logs are not emitted.
 - OBS upload is intentionally left as a TODO hook in `ArtifactStore`; remote source artifact reads reuse `utils/download_file_from_url.py`.
