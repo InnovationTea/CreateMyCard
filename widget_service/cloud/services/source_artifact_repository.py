@@ -102,7 +102,7 @@ class SourceArtifactRepository:
                 ErrorCode.SOURCE_ARTIFACT_INVALID,
                 "source artifact exceeds size limit",
             ) from exc
-        except (DownloadFileError, OSError, TimeoutError) as exc:
+        except (DownloadFileError, OSError) as exc:
             raise SourceArtifactError(
                 ErrorCode.SOURCE_ARTIFACT_DOWNLOAD_FAILED,
                 "source artifact cannot be downloaded",
@@ -123,11 +123,6 @@ class SourceArtifactRepository:
             raise SourceArtifactError(
                 ErrorCode.SOURCE_ARTIFACT_INVALID,
                 "source artifact genui exceeds size limit",
-            )
-        if source_name.lower() != f"artifact_{artifact.meta.artifactId}.md".lower():
-            raise SourceArtifactError(
-                ErrorCode.SOURCE_ARTIFACT_INVALID,
-                "source artifact object name does not match artifact metadata",
             )
         return SourceArtifactLoadResult(
             artifact=artifact,
@@ -230,7 +225,7 @@ class SourceArtifactRepository:
                 generationPlan=json.loads(blocks["generationplan"]),
                 meta=json.loads(blocks["meta"]),
             )
-        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        except Exception as exc:
             raise SourceArtifactError(
                 ErrorCode.SOURCE_ARTIFACT_INVALID,
                 "source artifact content is invalid",
