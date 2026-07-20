@@ -93,7 +93,7 @@ def validate_dsl(
 ) -> str:
     """Validate DSL only and return a model-friendly report string.
 
-    - 只跑 DSL 相关的协议、组件、表达式、绑定和跨文件规则。
+    - 只跑 DSL 相关的协议/组件/表达式/绑定/跨文件/颜色规则。
     - CardSpec 缺失是允许的：validator 层已经处理"未提供 CardSpec 时不校验
       CardSpec 必填字段"这条语义，这里再兜底一次，把只针对 cardspec 的诊断从
       结果中过滤掉，避免污染面向模型的输出。

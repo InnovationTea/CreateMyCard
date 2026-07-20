@@ -1,4 +1,3 @@
-# ruff: noqa: E501
 from __future__ import annotations
 
 from .base import BaseValidator, expression_like, is_empty_required_value, is_json_pointer
@@ -220,7 +219,10 @@ class ComponentValidator(BaseValidator):
                         json_pointer=f"{pointer}/styles/{style_field}",
                         actual=raw,
                         expected="matchParent",
-                        message='root 组件的 styles.width/height 必须写 "matchParent"，实际尺寸预算由内部组件数值承担。',
+                        message=(
+                            'root 组件的 styles.width/height 必须写 "matchParent"，'
+                            "实际尺寸预算由内部组件数值承担。"
+                        ),
                         fix_hint=f'把 root.styles.{style_field} 设为 "matchParent"，删除具体数值。',
                     )
 
@@ -280,7 +282,9 @@ class ComponentValidator(BaseValidator):
                                 "itemVar": "item",
                                 "indexVar": "index",
                             },
-                            message="模板 children 必须包含 componentId/path，可选 itemVar/indexVar。",
+                            message=(
+                                "模板 children 必须包含 componentId/path，可选 itemVar/indexVar。"
+                            ),
                         )
                     child_id = children.get("componentId")
                     child_path = children.get("path")
@@ -308,13 +312,11 @@ class ComponentValidator(BaseValidator):
                         )
                     for var_field in ("itemVar", "indexVar"):
                         var_name = children.get(var_field)
-                        has_var = var_name is not None
-                        is_invalid_var = (
+                        if var_name is not None and (
                             not isinstance(var_name, str)
                             or not var_name
                             or var_name.startswith("$")
-                        )
-                        if has_var and is_invalid_var:
+                        ):
                             reporter.add(
                                 "error",
                                 "DSL_TEMPLATE_CHILDREN_INVALID",

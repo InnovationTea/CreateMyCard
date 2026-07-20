@@ -1,4 +1,3 @@
-# ruff: noqa: E501
 from __future__ import annotations
 
 from .base import (
@@ -109,7 +108,10 @@ class CardSpecValidator(BaseValidator):
                 actual=extra,
                 expected=top_level_fields,
                 message="CardSpec 包含协议外字段。",
-                fix_hint="CardSpec 只描述宿主标题、概述、推荐尺寸和数据能力契约，不写 DSL 组件或点击行为。",
+                fix_hint=(
+                    "CardSpec 只描述宿主标题、概述、推荐尺寸和数据能力契约，"
+                    "不写 DSL 组件或点击行为。"
+                ),
             )
 
         bindings = cardspec.get("dataBindings")

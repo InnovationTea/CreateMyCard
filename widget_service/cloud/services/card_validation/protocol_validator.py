@@ -1,4 +1,3 @@
-# ruff: noqa: E501
 from __future__ import annotations
 
 from .base import BaseValidator, expression_like, is_empty_required_value, is_json_pointer
@@ -45,7 +44,10 @@ class ProtocolValidator(BaseValidator):
                     actual=payload_keys,
                     expected=[expected],
                     message=f"genui 第 {line} 行必须只包含 {expected}。",
-                    fix_hint="按 createSurface -> updateComponents -> updateDataModel 的顺序输出三行 JSONL。",
+                    fix_hint=(
+                        "按 createSurface -> updateComponents -> updateDataModel "
+                        "的顺序输出三行 JSONL。"
+                    ),
                 )
             elif not isinstance(message.get(expected), dict):
                 payload_ready = False
@@ -64,14 +66,12 @@ class ProtocolValidator(BaseValidator):
         create = context.create_surface
         update = context.update_components
         data = context.update_data_model
-        invalid_conditions = (
-            not payload_ready,
-            not isinstance(create, dict),
-            not isinstance(update, dict),
-            not isinstance(data, dict),
-        )
-
-        if any(invalid_conditions):
+        if (
+            not payload_ready
+            or not isinstance(create, dict)
+            or not isinstance(update, dict)
+            or not isinstance(data, dict)
+        ):
             return
 
         required_by_message = rules.protocol.get("messageRequiredFields", {})
@@ -128,7 +128,10 @@ class ProtocolValidator(BaseValidator):
                 "genui",
                 actual=surface_ids,
                 message="三行 JSONL 的 surfaceId 必须一致。",
-                fix_hint="把 createSurface、updateComponents、updateDataModel 的 surfaceId 改成同一个值。",
+                fix_hint=(
+                    "把 createSurface、updateComponents、updateDataModel "
+                    "的 surfaceId 改成同一个值。"
+                ),
             )
 
         data_path = data.get("path")
@@ -163,7 +166,10 @@ class ProtocolValidator(BaseValidator):
                     actual=extra,
                     expected=sorted(allowed),
                     message="createSurface.styles 只允许外层形状/裁切字段。",
-                    fix_hint="把 backgroundColor、linearGradient、backgroundImage 等背景样式放到 root.styles。",
+                    fix_hint=(
+                        "把 backgroundColor、linearGradient、backgroundImage "
+                        "等背景样式放到 root.styles。"
+                    ),
                 )
 
         # createSurface.width/height 是可选字段：不写才是标准写法，实际尺寸预算由

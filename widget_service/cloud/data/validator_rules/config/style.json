@@ -35,4 +35,3 @@
   "imageRequiredStyles": ["width", "height", "objectFit"],
   "imageDefaultObjectFit": "contain"
 }
-

@@ -52,6 +52,7 @@ from custom.a2ui_model_client import A2UIModelClient
 from services.card_spec_builder import CardSpecBuilder
 from services.card_validator import validate_card
 from services.card_validation import validate_card as validate_card_api
+from services.card_validation.rule_registry import RuleRegistry
 from services.capability_registry import CapabilityRegistry
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.ids_client import IDSClient, IDSDeviceCapabilityState
@@ -1779,6 +1780,59 @@ def test_card_validation_is_exposed_as_in_process_api():
     assert "services.card_validation" in validator_source
     assert "subprocess" not in validator_source
     assert "validate_card.py" not in validator_source
+
+
+def test_card_validation_loads_latest_online_rule_snapshot():
+    rules = RuleRegistry(CLOUD_ROOT / "data" / "validator_rules")
+
+    assert set(rules.capabilities) == {
+        "GetAppUsageDuration",
+        "GetCalendarEvents",
+        "GetEarphoneInfo",
+        "GetHealthAndSportSummary",
+        "GetPhoneBatteryInfo",
+        "GetSystemMemInfo",
+        "ViewWeather",
+    }
+    assert rules.expression["maxLength"] == 2048
+    assert rules.expression["allowedFunctions"] == ["size"]
+    assert rules.protocol["sizes"]["2x4"]["borderRadius"] == 22
+
+
+def test_card_validation_snapshot_covers_all_online_runtime_files():
+    repository_root = PROJECT_ROOT.parent
+    skill_scripts = (
+        repository_root / "skills" / "harmony-card-generation-online" / "scripts"
+    )
+    skill_validators = skill_scripts / "validators"
+    service_validators = CLOUD_ROOT / "services" / "card_validation"
+    skill_rules = skill_scripts / "rules"
+    service_rules = CLOUD_ROOT / "data" / "validator_rules"
+
+    skill_validator_names = {
+        path.name for path in skill_validators.glob("*.py") if path.is_file()
+    }
+    service_validator_names = {
+        path.name for path in service_validators.glob("*.py") if path.is_file()
+    }
+    assert service_validator_names == skill_validator_names
+
+    skill_rule_paths = {
+        path.relative_to(skill_rules) for path in skill_rules.rglob("*.json")
+    }
+    service_rule_paths = {
+        path.relative_to(service_rules) for path in service_rules.rglob("*.json")
+    }
+    assert service_rule_paths == skill_rule_paths
+
+    for relative_path in skill_rule_paths:
+        skill_rule = json_module.loads(
+            (skill_rules / relative_path).read_text(encoding="utf-8")
+        )
+        service_rule = json_module.loads(
+            (service_rules / relative_path).read_text(encoding="utf-8")
+        )
+        assert service_rule == skill_rule
 
 
 def _a2ui_genui_with_image(

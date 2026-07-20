@@ -1,4 +1,3 @@
-# ruff: noqa: E501
 from __future__ import annotations
 
 from typing import Any
@@ -138,7 +137,10 @@ class BindingValidator(BaseValidator):
                 json_pointer=f"/updateComponents/componentsById/{component.get('id')}/children/path",
                 actual=path,
                 message="模板 children.path 必须指向数组。",
-                fix_hint="确认 updateDataModel.value 中该路径初始化为 []，或 CardSpec outputSchema 中该路径是 array。",
+                fix_hint=(
+                    "确认 updateDataModel.value 中该路径初始化为 []，"
+                    "或 CardSpec outputSchema 中该路径是 array。"
+                ),
             )
 
     def _check_expression_paths(self, context, rules, reporter) -> None:
@@ -158,7 +160,10 @@ class BindingValidator(BaseValidator):
                         line=2,
                         json_pointer=pointer,
                         actual=ref,
-                        message="表达式引用的 DataModel 路径无法从 updateDataModel 或 CardSpec outputSchema 推导。",
+                        message=(
+                            "表达式引用的 DataModel 路径无法从 updateDataModel "
+                            "或 CardSpec outputSchema 推导。"
+                        ),
                         fix_hint="初始化该路径，或改为 writeResultTo + outputSchema 中存在的字段。",
                     )
                 else:
@@ -349,7 +354,7 @@ class BindingValidator(BaseValidator):
                 continue
             root = root.rstrip("/")
             if pointer == root or pointer.startswith(root + "/"):
-                relative = "/" + pointer[len(root):].strip("/")
+                relative = "/" + pointer[len(root) :].strip("/")
                 if relative == "/":
                     return True
                 if schema_path_exists(capability.get("outputSchema", {}), relative):
@@ -378,7 +383,7 @@ class BindingValidator(BaseValidator):
                 continue
             root = root.rstrip("/")
             if template_path == root or template_path.startswith(root + "/"):
-                relative = "/" + template_path[len(root):].strip("/")
+                relative = "/" + template_path[len(root) :].strip("/")
                 item_relative = relative + "/0/" + ref
                 if schema_path_exists(capability.get("outputSchema", {}), item_relative):
                     return True
@@ -403,7 +408,7 @@ class BindingValidator(BaseValidator):
                 continue
             root = root.rstrip("/")
             if pointer == root or pointer.startswith(root + "/"):
-                relative = "/" + pointer[len(root):].strip("/")
+                relative = "/" + pointer[len(root) :].strip("/")
                 schema = capability.get("outputSchema", {})
                 return self._schema_type(schema, relative) == "array"
         return False
