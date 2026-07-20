@@ -68,12 +68,13 @@ class ProtocolValidator(BaseValidator):
         create = context.create_surface
         update = context.update_components
         data = context.update_data_model
-        if (
-            not payload_ready
-            or not isinstance(create, dict)
-            or not isinstance(update, dict)
-            or not isinstance(data, dict)
-        ):
+        invalid_conditions = (
+            not payload_ready,
+            not isinstance(create, dict),
+            not isinstance(update, dict),
+            not isinstance(data, dict),
+        )
+        if any(invalid_conditions):
             return
 
         required_by_message = rules.protocol.get("messageRequiredFields", {})
