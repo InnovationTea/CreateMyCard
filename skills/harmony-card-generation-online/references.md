@@ -4,12 +4,13 @@
 
 本版本只实现云侧工具编排。旧版 `harmony-card-generation`、历史模板和离线资料不能作为生产候选或产物依据。
 
-## 默认读取
+## 按场景读取
 
-- [`references/tool-contracts.md`](references/tool-contracts.md)：三个微服务工具的输入、create/edit 调用分流、包装输出解析和调用规则。
-- [`references/candidate-planning.md`](references/candidate-planning.md)：如何筛选首次生成候选，以及如何在编辑模式继承或完整替换候选类别。
-- [`references/response-policy.md`](references/response-policy.md)：如何把 create/edit 的业务状态映射为完整成功及三类固定的非完整满足或异常回复。
-- [`references/tools/`](references/tools/)：三个工具的 JSON 声明快照。工具联调、schema 排查、更新 `metadata.tools` 或核对入参时读取；每次实际调用仍以当前运行时 `tools` schema 为唯一依据，快照不能覆盖运行时 schema。
+- 所有请求先读取 [`references/orchestration-workflow.md`](references/orchestration-workflow.md)，按职责边界和完整十步流程推进。
+- create、删除数据能力或修改数据参数：继续读取 [`references/candidate-planning.md`](references/candidate-planning.md) 和 [`references/tool-contracts.md`](references/tool-contracts.md)。
+- 纯视觉、布局、文案或尺寸 edit：只继续读取 [`references/tool-contracts.md`](references/tool-contracts.md) 的 edit 契约。
+- 工具调用结束后读取 [`references/response-policy.md`](references/response-policy.md)，映射完整成功及三类固定的非完整满足或异常回复。
+- 工具联调、schema 排查或更新 `metadata.tools` 时按需读取 [`references/tools/`](references/tools/)；快照不能覆盖当前运行时 `tools` schema。
 
 ## 样例
 

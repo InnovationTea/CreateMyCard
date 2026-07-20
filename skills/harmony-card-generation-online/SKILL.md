@@ -13,116 +13,30 @@ metadata:
 
 # Harmony 卡片生成（云侧工具编排版）
 
-## 职责
+## 执行入口
 
-本 skill 优先负责工具编排：
+先判断 create/edit 模式，再按场景加载最少必要资料：
 
-- 识别用户是否在请求创建 HarmonyOS 桌面服务卡片。
-- 识别用户是否在继续修改当前会话中的已有卡片；用户未指定目标卡片时，默认使用最近一次成功或降级生成的卡片结果。
-- 从对应工具业务 payload 中读取真实 `artifactUrl` 作为编辑来源，不解析或猜测普通回复中的 URL。
-- 调用微服务工具获取当前用户实际可用和不可用的数据能力概述。
-- 根据用户 query 选择候选数据能力、事件能力和素材。
-- 按需加载选中数据能力 schema。
-- 评估候选能力对用户核心需求的覆盖情况；只能部分满足时按影响决定追问或继续。
-- 构造 `candidateDataBindings`、`candidateEventCandidates`、`candidateAssetIds`、`size`、`title` 和 `description`。
-- 控制主要展示数据项不超过 4 项，并记录主动舍弃的用户需求用于结果说明。
-- 调用 `generateWidgetCard` 生成卡片 artifact。
-- 编辑成功后使用本轮返回的新 `artifactUrl` 作为后续编辑的默认来源。
-- 根据微服务返回状态组织用户回复。
-- 每次调用工具前检查是否仍有会影响本次卡片核心意图、候选选择或工具入参的用户待确认信息；有则先追问并等待用户回答，再继续调用。
+- 所有请求先读取 [`references/orchestration-workflow.md`](references/orchestration-workflow.md)，按完整十步流程推进。
+- create、删除数据能力或修改数据参数：再读取 [`references/candidate-planning.md`](references/candidate-planning.md) 和 [`references/tool-contracts.md`](references/tool-contracts.md)。
+- 纯视觉、布局、文案或尺寸 edit：只继续读取 [`references/tool-contracts.md`](references/tool-contracts.md) 的 edit 契约。
+- 处理最终工具结果时读取 [`references/response-policy.md`](references/response-policy.md)。
+- 仅在联调、排障或核对回归格式时读取 [`references/examples.md`](references/examples.md) 和工具 JSON 快照。
 
-## 触发场景
+完整索引见 [`references.md`](references.md)。
 
-典型触发 query：
+## 模式与调用门禁
 
-- 端侧显式带 `/harmony-card-generation`、模板 ID 或创建卡片页面上下文的请求。
-- "帮我做一张天气卡片"
-- "生成一个通勤 widget，包含天气和日程"
-- "做一个一键清理内存的桌面卡"
-- "给我做一个看抖音使用时长和耗电的卡片"
-- "创建一个会议提醒卡片，可以一键入会"
-- "把刚才的卡片背景改成蓝色"
-- "把卡片从 2x2 改成 2x4"
-- "把上海天气改成北京天气"
-- "去掉卡片里的日历，只保留天气"
-- 任何包含"桌面卡片"、"widget"、"服务卡片"、"生成卡片"、"创建卡片"等表述的请求。
+- 创建请求走 create；“修改、调整、删除、替换、换颜色、改尺寸、继续优化”等请求走 edit。
+- edit 未指定目标时使用当前会话最近一次成功或降级结果；明确目标无法对应时才追问。来源只能取目标卡片工具业务 payload 的真实 `artifactUrl`；没有可用来源时要求先创建，不得改走 create。
+- 每次调用工具前检查是否缺少会改变核心意图、候选选择、目标对象、地点、时间范围、动作目标或业务入参的用户信息；有则集中追问并等待回答。设备能力、能力 ID、schema 等内部信息不向用户确认。
+- 每次调用前读取当前运行时 `tools` schema，并执行下方“调用前硬校验”。参考资料、示例、历史字段和内部类结构不能覆盖运行时 schema。
 
-不进入或直接说明边界的 query：
+## 职责边界
 
-- 纯聊天、百科、写作、代码任务。
-- 要求完整 App 页面、复杂表单、长报告。
-- 要求本 skill 直接输出 DSL/CardSpec；说明本 skill 只通过云侧插件生成卡片，不自行拼装协议产物。
+本 Skill 只负责模式识别、候选编排、工具调用和用户回复。微服务负责真实设备能力裁决、最终 CardSpec、A2UI DSL、校验、降级、重试和 artifact 上传；端侧负责下载、渲染、安装与运行时刷新。
 
-## 边界
-
-- 不直接输出 `genui` 或 `cardspec` 代码块。
-- 不直接生成最终 DSL、最终 CardSpec、A2UI prompt、本地 artifact 或校验修复结果。
-- 不维护完整 A2UI 协议、组件白名单、美观规则、素材合法性或版本兼容矩阵。
-- 不提前承诺设备一定支持天气、日历、应用、跳转或任一动态能力。
-- 不编造能力 ID、事件目标、素材 ID、OBS 链接或 `genWidgetResult`。
-- 不把点击事件写入 CardSpec；点击候选只作为 `candidateEventCandidates` 传给微服务裁决。
-- 不把 `generateWidgetCard` 返回前的候选计划、schema、DSL 草稿或校验细节暴露给用户。
-- 不下载、解析或直接修改来源 artifact；来源加载、继承、CardSpec/TaskSpec 重建和 DSL 编辑由微服务完成。
-- 不把来源 URL 当作编辑成功结果；每次成功编辑必须取得新的真实 `artifactUrl`。
-- 任一依赖工具不可用、调用失败或返回无法解析时终止本轮生成，不使用离线能力清单或历史资料补足。
-
-微服务负责真实设备能力过滤、最终 CardSpec、A2UI DSL 生成、校验、降级、失败重试、OBS 上传和最终用户话术。
-
-## 工作流
-
-1. **触发与模式判断**：判断用户 query 是否是创建或编辑卡片场景。端侧显式标记如 `/harmony-card-generation` 且不存在编辑语义时视为创建场景。用户表达“修改、调整、删除、替换、换颜色、改尺寸、继续优化”等编辑语义时：
-   - 用户明确指定某张卡片时，使用当前会话中与该目标对应的最近一次 `success` / `degraded` 业务 payload 的真实 `artifactUrl`。
-   - 用户未指定目标卡片时，默认使用当前会话中最近一次 `success` / `degraded` 业务 payload 的真实 `artifactUrl`，不因会话中存在多张卡片而额外追问。
-   - 用户指定的目标无法唯一对应到当前会话结果时才追问。
-   - 当前会话没有可用卡片结果时，不把编辑请求当作首次生成；说明需要先生成一张卡片。
-
-2. **初步回应**：不要说"可以生成某动态卡片"。需要过程回复时只说："我先检查当前设备支持情况，然后为你生成可用的卡片。"
-
-3. **用户确认与工具入参校验**：每次调用工具前先检查是否存在用户可回答、且会影响核心卡片需求、候选能力、目标对象、地点、日期/时间范围、动作目标或必填业务参数的未决信息。有则不要调用任何工具，用自然语言集中追问最少必要信息，等待用户回答后从当前步骤继续。能从用户原话、可信会话上下文或 schema 明确默认值安全确定的内容不重复确认；未指定编辑目标不属于歧义，按最近一次卡片结果处理。不要向用户询问设备能力是否可用、能力 ID、内部字段名或其它应由微服务裁决的内容。确认门禁通过后，再读取当前运行时 `tools` 中对应工具的 schema，按“工具定义”的调用前硬校验逐项检查 `functionName`、`bundleName`、必填字段、字段名、类型和嵌套结构。任何字段都不能只因本 Skill、参考资料、示例或内部类中出现就传入。
-
-4. **编辑请求分流**：进入 edit 模式后，先确认当前运行时 `generateWidgetCard` schema 已声明 `sourceArtifactUrl`；未声明时终止本轮编辑并按工具不可用回复，不得删除该字段后误走 create 模式。然后按编辑类型处理：
-   - 纯视觉或布局修改：只准备 `userQuery` 和 `sourceArtifactUrl`，不调用能力概述或数据 schema。
-   - 标题、说明或尺寸修改：只额外准备用户明确修改的字段；未修改字段省略并由微服务继承。
-   - 删除已有数据能力或修改已有能力参数：按 `references/candidate-planning.md` 恢复最近一次完整数据候选计划，重新获取能力概述并为编辑后的完整数据候选集合加载 schema；最终显式传入完整 `candidateDataBindings`，`[]` 表示清空全部动态数据。
-   - 本期不在 edit 模式新增数据能力，也不修改事件或素材候选；遇到这些请求时说明当前编辑暂不支持，并建议重新创建符合新需求的卡片。
-
-5. **获取能力概述**：create 模式，以及需要删除数据能力或修改能力参数的 edit 模式，在确认核心要求不存在待追问项后调用 `getWidgetCapabilityOverview`。除 `bundleName` 外不传其它字段；工具返回后从包装结构 `items[].data` 中解析业务 payload；如果返回原始插件包络，则先进入 `reply.items[].data`。`unavailableCapabilities` 缺失或为 `[]` 时按空集合处理；字段存在但不是字符串数组，或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
-
-6. **筛选候选能力**：按 `references/candidate-planning.md` 从概述中筛选候选能力：
-   - `dataCapabilities` 是当前用户实际可用的数据能力；`unavailableCapabilities` 只记录云侧支持但用户本地不可用的数据能力 ID，本期不适用于事件能力。
-   - 数据能力最多优先选 2 个核心候选。
-   - 事件能力最多优先选 2 个主动作候选。
-   - 素材候选只选和场景强相关的少量 ID。
-   - 若 `unavailableCapabilities` 命中用户需求，但过滤后仍有可获取数据可形成有价值的卡片，记录缺失数据的用户可读名称并直接继续，不询问是否继续；最终使用统一的部分数据不支持话术。用户明确要求缺失数据“必须包含，否则不要生成”时除外：保留该约束并由微服务作 `unsupported` 裁决。
-   - 若只缺少次要数据能力，同样记录其用户可读名称并继续。
-   - 若所有相关数据能力均不可用且没有可生成价值，仍将原始需求交给微服务作最终 `unsupported` 裁决，不伪造候选或结果。
-
-7. **加载数据能力 Schema**：如果 create 模式选中了数据能力，或 edit 模式正在修改数据能力，先确认候选选择不依赖尚未明确的用户选择；存在会改变核心候选的歧义时先追问并等待回答。确认后只为本轮 `dataCapabilities` 中选中的能力调用 `getDataCapabilitySchemas`。schema 必填业务参数无法从用户原话、可信上下文或安全默认值取得时，使用用户可理解的说法集中追问；不要暴露字段名或为了绕过追问删除核心候选。工具不可用、调用失败或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
-
-8. **构造请求计划**：create 模式基于 schema 构造完整候选计划；edit 模式只传本轮明确替换的字段或候选类别：
-   - `size`：`"2x2"` 或 `"2x4"`。
-   - `candidateDataBindings`：候选数据能力调用，不是最终 CardSpec。
-   - 按当前工具 schema 组装每个 `candidateDataBindings` 元素：`capabilityId`、`arguments`、`writeResultTo`，以及可选的 `candidateOutputFields`；不要传松散对象或额外字段。
-   - `candidateOutputFields` 只能是 JSON Pointer 字符串数组，每一项必须能从对应能力本轮返回的 `outputSchema` 推导；主要展示数据项合计不超过 4 项，优先保留用户明确点名和最能回答核心需求的内容。拿不准时省略。不要传 `updateModel`。
-   - `candidateEventCandidates`：事件候选单数组；每项包含来自 overview 的 `capabilityId` 和完整 `action`。如果无法安全填齐 `action.call/args`，不要传该事件候选。
-   - 虽然对外工具 schema 中事件项只是 `Object`，每一项仍必须按内部 `CandidateEventCandidate` 类结构组装：`capabilityId` 和 `action:{call,args}`。
-   - `candidateAssetIds`：来自 overview 的素材 ID。
-   - `title` / `description`：create 模式必传静态短标题和短概述；edit 模式仅在用户明确修改时传入，否则省略并继承。
-   - `sourceArtifactUrl`：仅 edit 模式传入，值必须来自目标卡片最近一次工具业务 payload 的真实 `artifactUrl`。
-   - 本版不传 `slots`、`options`、`locale`、`uid`、`device` 等当前工具 schema 未声明的字段。
-
-9. **生成或编辑卡片**：调用前再次执行用户确认门禁和当前运行时 `generateWidgetCard` schema 校验。核心需求所需的用户业务信息缺失或存在歧义时，先追问并等待回答，再重建请求计划；不要静默猜测、把核心候选直接删除或用默认值改变用户意图。只影响非核心可选内容时可以删除该可选候选。随后删除 schema 未声明的可选字段，但 edit 模式不得删除必需的 `sourceArtifactUrl` 后继续调用；必填字段缺失、类型不匹配或嵌套结构不合法时不要调用。校验通过后调用 `generateWidgetCard`。不要自行下载来源 artifact，也不要补做微服务负责的继承、过滤、协议 profile、校验、重试或上传。工具不可用、调用失败或 payload 无法解析时，按 `references/response-policy.md` 回复并终止本轮生成。
-
-10. **回复用户并推进编辑链**：按 `references/response-policy.md` 回复：
-   - 先从 `generateWidgetCard` 返回的 `items[].data` 解析业务 payload；如果返回原始插件包络，则先进入 `reply.items[].data`。
-   - `success` 且没有因能力不可用而缺失用户提及的数据，并存在有效 `artifactUrl`：输出正常成功说明，并按“输出”章节格式输出 `genWidgetResult` JSON 标记。
-   - `degraded` 且存在有效 `artifactUrl`，或 `success` 但本轮 `unavailableCapabilities`、`missingCapabilityIds` 或 `removedCapabilities` 已表明用户提及的部分数据不可用且仍有可获取数据：输出“本次卡片生成暂无你提及的 XX 数据，将基于可获取数据为你生成卡片”，再输出真实 `genWidgetResult`。不要询问是否继续，也不要透传或润色业务 payload 的 `message`。
-   - `success` / `degraded` 但缺少有效 `artifactUrl`：按 `failed` 处理，不输出 `genWidgetResult`。
-   - `unsupported`：只输出“抱歉，当前暂无法获取你提及的XX功能数据，你可以尝试生成首页精选的天气、日程、运动、设备电量等同类应用卡片”，不输出 `genWidgetResult`，不透传业务 payload 的 `message`。
-   - `failed`、必要工具不可用、调用异常、payload 无法解析或结果字段不合法：只输出“卡片创建过程遇到问题了，请稍后再试”，不输出 `genWidgetResult`，不透传业务 payload 的 `message`。
-   - `XX` 从用户原话、能力描述和微服务移除原因中提炼为用户可理解的数据或功能名称；多个名称用“、”连接，无法可靠提炼时使用“相关”。模板中 `XX` 两侧的空格仅用于标示占位符，实际替换后不保留，例如输出“日程数据”而不是“日程 数据”。禁止使用能力 ID 或其它内部字段。
-   - edit 模式 `success` / `degraded`：本轮 `artifactUrl` 必须有效且不同于 `sourceArtifactUrl`；否则按 `failed` 处理。校验通过后输出新结果，并把它作为当前会话后续编辑的默认来源。
-   - edit 模式失败同样使用上述统一话术，不追加“原卡片不受影响”等专属文案；不输出 `genWidgetResult`，也不更换默认来源。
+不自行生成、下载、解析或修改 DSL、CardSpec、A2UI prompt 或 artifact；不使用离线能力清单、历史模板或旧协议补足在线结果；不提前承诺任何动态能力一定可用。
 
 ## 工具定义
 
@@ -161,53 +75,10 @@ metadata:
 - **description**: 提交用户需求和候选计划首次生成卡片，或通过上一版 artifact URL 连续编辑卡片。
 - **参数**: {"type":"object","properties":{"sourceArtifactUrl":{"type":"String","description":"可选。上一版完整 artifact 的真实 URL；缺失表示首次生成，非空表示编辑"},"size":{"type":"String","description":"主 Agent 建议尺寸"},"candidateDataBindings":{"type":"Array","description":"已通过能力概述裁决的候选数据能力调用列表","required":[],"properties":{"ArrayItem":{"type":"Object","description":"候选数据能力","required":[],"properties":{"candidateOutputFields":{"type":"Array<String>","description":"可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导","required":[],"properties":{"ArrayItem":{"type":"String","description":"可选候选展示字段 JSON Pointer"}}},"arguments":{"type":"Object","description":"参数"},"capabilityId":{"type":"String","description":"能力ID"},"writeResultTo":{"type":"String","description":"结果写入路径"}}}}},"candidateEventCandidates":{"type":"Array","description":"候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明","required":[],"properties":{"ArrayItem":{"type":"Object","description":"事件 action"}}},"userQuery":{"type":"String","description":"首次生成时为原始需求，编辑时只表达本轮修改"},"candidateAssetIds":{"type":"Array<String>","description":"候选素材 ID 列表","required":[],"properties":{"ArrayItem":{"type":"String","description":"候选素材 ID"}}},"title":{"type":"String","description":"建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"},"description":{"type":"String","description":"建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"}},"required":["userQuery"]}
 
-## 工具调用示例
+## 输出与安全
 
-```text
-invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.omega_w_0823.hmservice"},"skillName":"harmony-card-generation-online")
-
-invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:["ViewWeather", "calendar.events.search"]},"skillName":"harmony-card-generation-online")
-
-invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"生成一个通勤卡片", title:"通勤助手", description:"天气日程速览", size:"2x4", candidateDataBindings:[{capabilityId:"ViewWeather", arguments:{districtName:"青浦区", forecastDays:1}, writeResultTo:"/data/weather", candidateOutputFields:["/location/name", "/current/temperatureText", "/current/weatherText"]}], candidateEventCandidates:[{capabilityId:"event.open.weather", action:{call:"clickToDeeplink", args:{bundleName:"", abilityName:"", uri:"hww://www.huawei.com/totemweather?enterType=share&cityCode="}}}], candidateAssetIds:["asset.weather.rain"]},"skillName":"harmony-card-generation-online")
-
-invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"背景改成蓝色", sourceArtifactUrl:"https://obs.example/widget/previous.json"},"skillName":"harmony-card-generation-online")
-```
-
-
-## 输出
-
-成功或降级成功时，最终回复必须包含微服务返回的 artifact URL JSON 标记：
-
-````text
-```genWidgetResult
-{
-  "result": "https://obs.example/widget/request-id.json"
-}
-```
-````
-
-规则：
-
-- 只使用 `generateWidgetCard` 包装结构中业务 payload 返回的真实 `artifactUrl`。
-- 标记必须是 `genWidgetResult` 代码块，代码块内容必须是合法 JSON 对象，且 `result` 的值必须等于真实 `artifactUrl`；不要再输出旧格式 `genWidgetResult:"url"`。
-- `degraded` 时使用统一的部分数据不支持话术，不透传或润色微服务 `message`。
-- `success` 或 `degraded` 缺少有效 `artifactUrl` 时按 `failed` 处理，不输出标记。
-- `unsupported` 或 `failed` 时不要输出标记。
-- 任何状态都不输出 `genui`、`cardspec`、A2UI JSONL、CardSpec JSON、校验日志或内部工具草稿。
-
-## 参考
-
-- 参考索引：[`references.md`](references.md)
-- 微服务工具契约：[`references/tool-contracts.md`](references/tool-contracts.md)
-- 候选能力和 dataBindings 规划：[`references/candidate-planning.md`](references/candidate-planning.md)
-- 回复策略：[`references/response-policy.md`](references/response-policy.md)
-- 测试、工具调用和话术样例：[`references/examples.md`](references/examples.md)
-
-## 安全红线
-
-- 不编造能力 ID、事件目标、素材 ID 或 artifact URL。
-- 不选择、加载或传递 `unavailableCapabilities` 指示的不可用数据能力。
-- 不把能力 schema、内部错误码、requestId、items、原始 data 字符串等内部信息暴露给用户。
-- 不模拟工具结果；任一工具不可用、调用失败、结果无法解析或缺少必要字段时，统一回复“卡片创建过程遇到问题了，请稍后再试”并终止本轮生成。
-- 不读取离线能力清单、历史模板或旧协议资料来补足工具结果。
-- 不在存在用户待确认信息时抢先调用工具；追问后必须等待用户回答，不得自行假设用户已确认。
+- 业务状态、固定回复、`XX` 提炼和 `genWidgetResult` 格式只以 [`references/response-policy.md`](references/response-policy.md) 为准；调用样例只以 [`references/examples.md`](references/examples.md) 为准。
+- 只输出 `generateWidgetCard` 业务 payload 返回的真实 `artifactUrl`；edit 成功的新 URL 必须不同于来源 URL。
+- 不编造能力 ID、事件目标、素材 ID、用户数据或 URL；不选择、加载或传递不可用数据能力；不暴露 schema、provider、错误码、requestId、items、原始 data 或内部草稿。
+- 任一必要工具不可用、调用失败、结果无法解析或字段不合法时终止本轮，按回复策略处理；不得模拟成功、输出替代产物或读取离线资料补足结果。
+- 存在用户待确认信息时不得抢先调用工具；追问后等待用户回答，再重新执行调用门禁。
