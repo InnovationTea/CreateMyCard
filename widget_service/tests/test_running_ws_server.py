@@ -5,9 +5,19 @@ import asyncio
 import json
 import os
 import socket
+import sys
+from pathlib import Path
 
 import pytest
 import websockets
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+CLOUD_ROOT = PROJECT_ROOT / "cloud"
+if str(CLOUD_ROOT) not in sys.path:
+    sys.path.insert(0, str(CLOUD_ROOT))
+
+from services.card_validation import ValidationOptions, validate_card
+from services.source_artifact_repository import SourceArtifactRepository
 
 SERVER_HOST = os.getenv("WIDGET_SERVICE_TEST_HOST", socket.gethostbyname("localhost"))
 SERVER_PORT = int(os.getenv("WIDGET_SERVICE_TEST_PORT", "8855"))
@@ -66,6 +76,25 @@ def _request_id(interaction_id: str) -> str:
     return f"{SESSION_ID}&{interaction_id}"
 
 
+def _validate_saved_artifact(artifact_url: str):
+    """通过服务内 API 重新校验本地 main.py 保存的 artifact，并打印完整诊断。"""
+    artifact = SourceArtifactRepository().load(artifact_url).artifact
+    capabilities_dir = (
+        CLOUD_ROOT
+        / "data"
+        / "capabilities"
+        / artifact.meta.capabilityRegistryVersion
+    )
+    reporter = validate_card(
+        artifact=artifact.model_dump(mode="json", exclude_none=True),
+        options=ValidationOptions(capabilities_dir=capabilities_dir),
+    )
+    print("\n===== 本地 artifact 校验报告 =====", flush=True)
+    print(reporter.render_text(), flush=True)
+    print("===== 校验报告结束 =====\n", flush=True)
+    return reporter
+
+
 async def _call_ws(path_name: str, payload: dict, expected_request_id: str) -> dict:
     """调用一个真实 WebSocket path。
 
@@ -102,7 +131,10 @@ async def _call_ws(path_name: str, payload: dict, expected_request_id: str) -> d
                 assert start_received
                 assert stream_info["textType"] == "plainText"
                 break
-            print(message)
+            print(
+                f"[{path_name}] final response received request_id={expected_request_id}",
+                flush=True,
+            )
             assert message["errorCode"] == "0"
             assert message["errorMessage"] == ""
             stream_info = message["reply"]["streamInfo"]
@@ -230,6 +262,18 @@ def test_live_four_websocket_paths_complete_flow():
         assert generated["artifactUrl"]
         assert generated["suggestSize"] == "2x4"
         assert generated["effectiveCapabilities"]["data"] == ["ViewWeather"]
+
+        # 当前 mock.dat 故意保留可被最新校验器识别的问题，用于真实验证：即使校验失败，
+        # 主流程仍会返回成功产物并继续保存，而不是阻塞 WebSocket 请求。
+        validation_report = await asyncio.to_thread(
+            _validate_saved_artifact,
+            generated["artifactUrl"],
+        )
+        assert validation_report.error_count > 0
+        print(
+            "校验发现问题，但 generateWidgetCard 仍成功返回 artifact，非阻塞链路验证通过。",
+            flush=True,
+        )
 
     asyncio.run(scenario())
 

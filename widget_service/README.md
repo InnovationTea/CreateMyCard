@@ -32,6 +32,25 @@ pip install -r requirements.txt
 py -3.12 cloud\main.py
 ```
 
+本地验证最新校验 API 和“校验失败不阻断保存”时，建议显式开启校验并关闭重试：
+
+```powershell
+$env:WIDGET_SERVICE_ENABLE_ARTIFACT_VALIDATION="true"
+$env:WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY="false"
+py -3.12 cloud\main.py
+```
+
+服务启动后，在另一个终端执行真实 WebSocket 联调脚本：
+
+```powershell
+cd widget_service
+py -3.12 tests\test_running_ws_server.py
+```
+
+该脚本会调用真实 `generateWidgetCard`，读取服务保存的 artifact，通过
+`cloud/services/card_validation/` Python API 再校验一次并打印诊断。当前 mock 输出包含
+确定的校验问题，因此脚本还会断言接口依然成功返回 artifact，用于证明校验失败不会阻塞主流程。
+
 本地多轮编辑联调需要先开启开关：
 
 ```powershell
@@ -49,6 +68,15 @@ py -3.12 -m pytest tests\test_running_ws_multi_round.py -s -q
 ```
 
 测试会依次执行首次生成、纯视觉继承编辑和显式清空数据三轮，并断言每轮返回新的 artifact URL。
+
+Pytest 默认捕获 stdout/stderr，因此测试通过时通常看不到 `print` 和控制台日志。需要实时显示时使用：
+
+```powershell
+py -3.12 -m pytest tests\test_service_units.py -s -q
+```
+
+真实 WebSocket 联调时，业务日志由单独运行的 `cloud/main.py` 进程输出，应在服务终端查看；
+本地文件日志位于 `cloud/logs/agent_YYYYMMDD.log`。客户端测试终端只显示请求响应和脚本打印的校验报告。
 
 ## API
 

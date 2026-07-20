@@ -4,8 +4,10 @@ import traceback
 from typing import Any
 
 from app.logger import json_for_log, logger
+from config.config import get_settings
 from models.artifact import WidgetArtifact
-from services.card_validator import validate_card
+from services.card_validation import ValidationOptions, validate_card
+from services.card_validation.diagnostics import Diagnostic
 from services.compact_dsl_protocol import is_compact_dsl, validate_compact_dsl
 
 
@@ -14,40 +16,47 @@ class ArtifactValidator:
         self,
         artifact: WidgetArtifact,
         protocol_profile: dict,
-        allowed_asset_sources: set[str] | None = None,
     ) -> list[str]:
         """校验完整 artifact。
 
         入参：
         - artifact：待校验的完整卡片产物。
         - protocol_profile：当前 A2UI 协议 profile。
-        - allowed_asset_sources：本次生成请求实际可用的素材路径集合。
         出参：错误信息列表；空列表表示校验通过。
         """
-        # 校验入口接收完整 artifact，具体协议、组件、布局和绑定规则由 card_validator 模块统一处理。
+        # 校验入口接收完整 artifact；标准 A2UI 通过服务内 Python API 调用最新校验流水线。
         validator_name = (
             "services.compact_dsl_protocol.validate_compact_dsl"
             if is_compact_dsl(protocol_profile)
-            else "services.card_validator.validate_card"
+            else "services.card_validation.validate_card"
         )
         logger.info(
             f"artifact_validation_started protocol_profile_id={protocol_profile['id']} "
             f"validator_module={validator_name}"
         )
         try:
-            # 直接调用本地模块方法，避免运行时动态加载脚本文件导致部署路径和缓存行为不可控。
             if is_compact_dsl(protocol_profile):
                 report = validate_compact_dsl(
                     genui_text=artifact.genui,
                     cardspec=artifact.cardSpec,
                     component_whitelist=protocol_profile.get("componentWhitelist"),
                 )
+                errors = self._normalize_messages(report.errors)
+                warnings = self._normalize_messages(report.warnings)
             else:
-                report = validate_card(
-                    genui_text=artifact.genui,
-                    cardspec=artifact.cardSpec,
-                    allowed_asset_sources=allowed_asset_sources,
+                settings = get_settings()
+                reporter = validate_card(
+                    artifact=artifact.model_dump(mode="json", exclude_none=True),
+                    options=ValidationOptions(
+                        capabilities_dir=(
+                            settings.data_root
+                            / "capabilities"
+                            / artifact.meta.capabilityRegistryVersion
+                        ),
+                    ),
                 )
+                errors = self._normalize_diagnostics(reporter.diagnostics, "error")
+                warnings = self._normalize_diagnostics(reporter.diagnostics, "warning")
         except Exception as exc:
             # 校验模块异常转成错误列表，供生成服务记录，并按配置决定是否重试。
             errors = [f"validator execution failed: {exc}"]
@@ -59,8 +68,6 @@ class ArtifactValidator:
             )
             return errors
 
-        errors = self._normalize_messages(report.errors)
-        warnings = self._normalize_messages(report.warnings)
         if errors:
             logger.error(
                 f"artifact_validation_failed errors={json_for_log(errors)} "
@@ -82,3 +89,21 @@ class ArtifactValidator:
         """
         # 当前校验模块返回字符串；保留兜底转换，方便后续扩展结构化问题对象时服务不中断。
         return [str(message) for message in messages]
+
+    def _normalize_diagnostics(
+        self,
+        diagnostics: list[Diagnostic],
+        severity: str,
+    ) -> list[str]:
+        """把结构化诊断转换为重试控制器和日志使用的稳定字符串。"""
+        messages: list[str] = []
+        for item in diagnostics:
+            if item.severity != severity:
+                continue
+            location = item.file_kind
+            if item.line is not None:
+                location += f":{item.line}"
+            if item.json_pointer:
+                location += f" {item.json_pointer}"
+            messages.append(f"{item.code}: {item.message} [{location}]")
+        return messages

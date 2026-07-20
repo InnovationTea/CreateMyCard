@@ -51,6 +51,7 @@ from services.artifact_store import ArtifactStore
 from custom.a2ui_model_client import A2UIModelClient
 from services.card_spec_builder import CardSpecBuilder
 from services.card_validator import validate_card
+from services.card_validation import validate_card as validate_card_api
 from services.capability_registry import CapabilityRegistry
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.ids_client import IDSClient, IDSDeviceCapabilityState
@@ -1731,7 +1732,7 @@ def test_artifact_validator_rejects_legacy_component_shape():
     """验证服务侧 Validator 会拦截旧组件结构。
 
     入参：无。
-    出参：无；通过断言验证旧版 `type/text` 组件结构会被新校验脚本拦截。
+    出参：无；通过断言验证旧版 `type/text` 组件结构会被新校验 API 拦截。
     """
     genui = "\n".join(
         [
@@ -1763,7 +1764,19 @@ def test_artifact_validator_rejects_legacy_component_shape():
         {"id": "a2ui-form-rom6.0-v1"},
     )
 
-    assert any("unsupported component" in item for item in errors)
+    assert any("DSL_COMPONENT_REQUIRED_FIELD" in item for item in errors)
+
+
+def test_card_validation_is_exposed_as_in_process_api():
+    reporter = validate_card_api(dsl_text="not-json")
+    validator_source = (CLOUD_ROOT / "services" / "validator.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert reporter.has_code("DSL_JSON_PARSE_FAILED")
+    assert "services.card_validation" in validator_source
+    assert "subprocess" not in validator_source
+    assert "validate_card.py" not in validator_source
 
 
 def _a2ui_genui_with_image(
@@ -1778,8 +1791,6 @@ def _a2ui_genui_with_image(
                     "createSurface": {
                         "surfaceId": "card",
                         "catalogId": "ohos.a2ui.extended.catalog.form",
-                        "width": 140,
-                        "height": 140,
                     },
                 },
                 separators=(",", ":"),
@@ -1796,8 +1807,8 @@ def _a2ui_genui_with_image(
                                 "component": "Column",
                                 "children": ["image"],
                                 "styles": {
-                                    "width": 140,
-                                    "height": 140,
+                                    "width": "matchParent",
+                                    "height": "matchParent",
                                     "padding": 12,
                                     "borderRadius": 18,
                                     "clip": True,
@@ -1825,7 +1836,7 @@ def _a2ui_genui_with_image(
                     "updateDataModel": {
                         "surfaceId": "card",
                         "path": "/",
-                        "value": {},
+                        "value": {"ready": True},
                     },
                 },
                 separators=(",", ":"),
@@ -1842,30 +1853,30 @@ def test_card_validator_uses_effective_asset_candidates_without_external_reads()
 
     selected_report = validate_card(
         _a2ui_genui_with_image(source),
-        {"suggestSize": "2x2"},
+        {"title": "天气", "description": "今日天气", "suggestSize": "2x2"},
         allowed_asset_sources={source},
     )
     unselected_report = validate_card(
         _a2ui_genui_with_image(source),
-        {"suggestSize": "2x2"},
+        {"title": "天气", "description": "今日天气", "suggestSize": "2x2"},
         allowed_asset_sources=set(),
     )
     standalone_report = validate_card(
         _a2ui_genui_with_image(source),
-        {"suggestSize": "2x2"},
+        {"title": "天气", "description": "今日天气", "suggestSize": "2x2"},
     )
 
-    assert not any("effective asset candidates" in item for item in selected_report.errors)
-    assert any("effective asset candidates" in item for item in unselected_report.errors)
-    assert not any("effective asset candidates" in item for item in standalone_report.errors)
+    assert not any("EFFECTIVE_ASSET_NOT_ALLOWED" in item for item in selected_report.errors)
+    assert any("EFFECTIVE_ASSET_NOT_ALLOWED" in item for item in unselected_report.errors)
+    assert not any("EFFECTIVE_ASSET_NOT_ALLOWED" in item for item in standalone_report.errors)
     assert "skills" not in validator_source.lower()
-    assert "parents[3]" not in validator_source
+    assert "subprocess" not in validator_source
 
 
-def test_card_validator_checks_hex_color_format_without_external_token_file():
+def test_card_validator_does_not_apply_legacy_color_quality_rule():
     valid_report = validate_card(
         _a2ui_genui_with_image("resources/base/media/air_fill.svg"),
-        {"suggestSize": "2x2"},
+        {"title": "天气", "description": "今日天气", "suggestSize": "2x2"},
         allowed_asset_sources={"resources/base/media/air_fill.svg"},
     )
     invalid_report = validate_card(
@@ -1873,12 +1884,12 @@ def test_card_validator_checks_hex_color_format_without_external_token_file():
             "resources/base/media/air_fill.svg",
             background_color="blue",
         ),
-        {"suggestSize": "2x2"},
+        {"title": "天气", "description": "今日天气", "suggestSize": "2x2"},
         allowed_asset_sources={"resources/base/media/air_fill.svg"},
     )
 
-    assert not any("color must be" in item for item in valid_report.errors)
-    assert any("color must be" in item for item in invalid_report.errors)
+    assert valid_report.errors == []
+    assert invalid_report.errors == []
 
 
 def test_artifact_validator_accepts_compact_dsl_ndjson():

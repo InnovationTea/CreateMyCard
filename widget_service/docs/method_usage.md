@@ -982,7 +982,7 @@ cloud/services/validator.py
 validate(artifact: WidgetArtifact, protocol_profile: dict) -> list[str]
 ```
 
-用途：校验完整 artifact，而不是只校验 DSL。
+用途：校验完整 artifact，而不是只校验 DSL。标准 A2UI 直接调用 `cloud/services/card_validation/` 暴露的 Python API；不会执行 Skill 校验脚本或启动子进程。静态规则从 `cloud/data/validator_rules/` 加载，动态能力白名单从 artifact 和其能力版本目录加载；Compact DSL 继续使用独立校验 API。
 
 当前校验项：
 
@@ -990,11 +990,12 @@ validate(artifact: WidgetArtifact, protocol_profile: dict) -> list[str]
 genui 恰好三行 JSONL
 createSurface/updateComponents/updateDataModel 顺序正确
 surfaceId 三行一致
-catalogId 与 profile 一致
-root 尺寸与 size/profile 一致
-DSL 动态绑定路径可从 TaskSpec.dataModelSchema 或能力 outputSchema 推导
-组件在白名单内
-CardSpec writeResultTo 位于 /data/
+catalogId 符合当前校验规则配置
+createSurface 不声明 width/height，root width/height 使用 matchParent
+DSL 动态绑定路径可从 updateDataModel.value、CardSpec outputSchema 或有效能力写入路径推导
+组件类型和顶层字段符合规则配置
+CardSpec 必填字段、suggestSize、dataBindings 和 writeResultTo 合法
+事件及素材只能使用本次有效能力
 ```
 
 返回空列表表示校验通过；否则返回错误列表。默认记录非阻断错误日志并继续构造、保存首次模型输出，不重新调用模型；`enable_validation_failure_retry=true` 时才会触发最多一次重新生成。

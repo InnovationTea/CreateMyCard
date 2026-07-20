@@ -534,7 +534,6 @@ class WidgetGenerationService:
             validation_errors = ArtifactValidator().validate(
                 artifact,
                 protocol_profile,
-                allowed_asset_sources={item.src for item in asset_candidates},
             )
             if source_load_result:
                 source_write_roots = {
