@@ -105,6 +105,7 @@ async def download_file(
             stream=True,
             timeout=timeout_seconds,
             allow_redirects=allow_redirects,
+            verify=False
         )
         if response.status_code == 404:
             raise DownloadFileNotFoundError("下载失败: 文件不存在")
