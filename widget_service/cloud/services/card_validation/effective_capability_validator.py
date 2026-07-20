@@ -148,7 +148,8 @@ class EffectiveCapabilityValidator(BaseValidator):
                 "artifact",
                 actual=sorted(context.unresolved_effective_asset_ids),
                 message="Some effective asset ids cannot be resolved to resource paths.",
-                fix_hint="Pass capabilities_dir or include asset src in effectiveCapabilities.asset/taskSpec.assetCandidates.",
+                fix_hint="Pass capabilities_dir or include asset src "
+                         "in effectiveCapabilities.asset/taskSpec.assetCandidates.",
             )
 
         for path, location in self._asset_references(context, reporter):
