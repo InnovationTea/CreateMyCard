@@ -308,11 +308,13 @@ class ComponentValidator(BaseValidator):
                         )
                     for var_field in ("itemVar", "indexVar"):
                         var_name = children.get(var_field)
-                        if var_name is not None and (
+                        has_var = var_name is not None
+                        is_invalid_var = (
                             not isinstance(var_name, str)
                             or not var_name
                             or var_name.startswith("$")
-                        ):
+                        )
+                        if has_var and is_invalid_var:
                             reporter.add(
                                 "error",
                                 "DSL_TEMPLATE_CHILDREN_INVALID",
