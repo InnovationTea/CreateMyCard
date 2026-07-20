@@ -228,9 +228,7 @@ def _build_plugin_stream_response(
                 streamContent=str(legacy_message),
                 streamingTextId=streaming_text_id,
             ),
-            items=[
-                legacy_message.model_dump(mode="json", exclude_none=True),
-            ],
+            items=[],
         ),
     )
 
