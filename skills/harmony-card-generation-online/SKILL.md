@@ -21,7 +21,7 @@ metadata:
 - create、删除数据能力或修改数据参数：再读取 [`references/candidate-planning.md`](references/candidate-planning.md) 和 [`references/tool-contracts.md`](references/tool-contracts.md)。
 - 纯视觉、布局、文案或尺寸 edit：只继续读取 [`references/tool-contracts.md`](references/tool-contracts.md) 的 edit 契约。
 - 处理最终工具结果时读取 [`references/response-policy.md`](references/response-policy.md)。
-- 仅在联调、排障或核对回归格式时读取 [`references/examples.md`](references/examples.md) 和工具 JSON 快照。
+- 仅在联调、排障或核对回归格式时读取 [`references/examples.md`](references/examples.md) 和 [`references/tools/`](references/tools/) 中的工具 JSON 快照。
 
 完整索引见 [`references.md`](references.md)。
 

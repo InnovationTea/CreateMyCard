@@ -1,6 +1,6 @@
 # 云侧编排工作流
 
-本文档承接在线卡片 Skill 的职责边界和完整 create/edit 十步流程。工具字段与包装结构以 [`tool-contracts.md`](tool-contracts.md) 为准，候选构造以 [`candidate-planning.md`](candidate-planning.md) 为准，用户输出以 [`response-policy.md`](response-policy.md) 为准；此处不复制这些模块的详细契约。
+本文档承接在线卡片 Skill 的职责边界和完整 create/edit 十步流程。工具字段与包装结构以 `references/tool-contracts.md` 为准，候选构造以 `references/candidate-planning.md` 为准，用户输出以 `references/response-policy.md` 为准；此处不复制这些模块的详细契约。
 
 ## 职责与边界
 
@@ -27,7 +27,7 @@
 
 ## 场景加载顺序
 
-- **create**：本文件 -> `candidate-planning.md` -> `tool-contracts.md` -> 调用工具 -> `response-policy.md`。
-- **纯视觉、布局、文案或尺寸 edit**：本文件 -> `tool-contracts.md` 的 edit 契约 -> 调用工具 -> `response-policy.md`。
-- **删除数据或修改参数 edit**：本文件 -> `candidate-planning.md` 的编辑恢复规则 -> `tool-contracts.md` -> 调用工具 -> `response-policy.md`。
-- **联调或排障**：在对应路径基础上按需读取 `examples.md` 和 `tools/` 快照；实际调用始终以运行时 schema 为准。
+- **create**：`references/orchestration-workflow.md` -> `references/candidate-planning.md` -> `references/tool-contracts.md` -> 调用工具 -> `references/response-policy.md`。
+- **纯视觉、布局、文案或尺寸 edit**：`references/orchestration-workflow.md` -> `references/tool-contracts.md` 的 edit 契约 -> 调用工具 -> `references/response-policy.md`。
+- **删除数据或修改参数 edit**：`references/orchestration-workflow.md` -> `references/candidate-planning.md` 的编辑恢复规则 -> `references/tool-contracts.md` -> 调用工具 -> `references/response-policy.md`。
+- **联调或排障**：在对应路径基础上按需读取 `references/examples.md` 和 `references/tools/` 快照；实际调用始终以运行时 schema 为准。
