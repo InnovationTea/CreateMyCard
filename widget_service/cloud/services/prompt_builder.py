@@ -4,7 +4,11 @@ import json
 
 from config.config import get_settings
 from models.generation import TaskSpec
-from services.compact_dsl_protocol import build_compact_dsl_system_prompt, is_compact_dsl
+from services.compact_dsl_protocol import (
+    build_compact_dsl_system_prompt,
+    build_compact_generation_context,
+    is_compact_dsl,
+)
 
 _MODULE = "[Prompt Builder]"
 
@@ -30,17 +34,11 @@ class PromptBuilder:
         出参：模型调用所需的 system 和 user 输入结构。
         """
         if protocol_profile and is_compact_dsl(protocol_profile):
-            generation_context = {
-                "taskSpec": task_spec.model_dump(mode="json", exclude_none=True),
-                "protocolProfile": {
-                    "id": protocol_profile["id"],
-                    "version": protocol_profile["version"],
-                    "catalogId": protocol_profile["catalogId"],
-                    "sizes": protocol_profile["sizes"],
-                    "componentWhitelist": protocol_profile["componentWhitelist"],
-                },
-                "degradationContext": removed_capability_summary,
-            }
+            task_spec_value = task_spec.model_dump(mode="json", exclude_none=True)
+            generation_context = build_compact_generation_context(
+                task_spec_value,
+                removed_capability_summary,
+            )
             system_prompt = "\n".join(
                 [
                     build_compact_dsl_system_prompt(protocol_profile),

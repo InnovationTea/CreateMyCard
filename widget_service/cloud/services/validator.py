@@ -14,6 +14,9 @@ _MODULE = "[Validator]"
 
 
 class ArtifactValidator:
+    def __init__(self) -> None:
+        self.error_categories: list[str] = []
+
     def validate(
         self,
         artifact: WidgetArtifact,
@@ -36,15 +39,24 @@ class ArtifactValidator:
             f"{_MODULE} artifact_validation_started protocol_profile_id={protocol_profile['id']} "
             f"validator_module={validator_name}"
         )
+        self.error_categories = []
         try:
             if is_compact_dsl(protocol_profile):
                 report = validate_compact_dsl(
                     genui_text=artifact.genui,
                     cardspec=artifact.cardSpec,
                     component_whitelist=protocol_profile.get("componentWhitelist"),
+                    task_spec=artifact.taskSpec,
                 )
                 errors = self._normalize_messages(report.errors)
                 warnings = self._normalize_messages(report.warnings)
+                self.error_categories = sorted(
+                    {
+                        item.category
+                        for item in report.diagnostics
+                        if item.severity == "error"
+                    }
+                )
             else:
                 settings = get_settings()
                 reporter = validate_card(
@@ -62,6 +74,7 @@ class ArtifactValidator:
         except Exception as exc:
             # 校验模块异常转成错误列表，供生成服务记录，并按配置决定是否重试。
             errors = [f"validator execution failed: {exc}"]
+            self.error_categories = ["VALIDATOR"]
             logger.error(
                 f"{_MODULE} artifact_validation_failed errors={json_for_log(errors)} "
                 f"validator_module={validator_name} "
