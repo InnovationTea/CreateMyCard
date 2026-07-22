@@ -13,7 +13,6 @@ import requests
 
 from app.logger import json_for_log, logger
 from config.config import get_settings
-from models.model_usage import ModelTokenUsage, sum_model_token_usage
 from services.compact_dsl_protocol import is_compact_dsl
 from utils.base_utils import sts_config
 
@@ -45,7 +44,6 @@ class A2UIModelClient:
             settings.enable_a2ui_model_mock if use_mock is None else use_mock
         )
         self.mock_data_path = Path(mock_data_path) if mock_data_path else None
-        self.token_usage_records: list[ModelTokenUsage] = []
 
     def generate(
             self,
@@ -69,13 +67,8 @@ class A2UIModelClient:
 
         profile = protocol_profile or {}
         if is_compact_dsl(profile):
-            profile_id = str(profile.get("id") or "unknown")
-            return self._generate_compact_from_real_model(prompt, profile_id)
+            return self._generate_compact_from_real_model(prompt)
         return self._generate_from_real_model(prompt)
-
-    def get_token_usage_summary(self) -> tuple[ModelTokenUsage, int]:
-        """返回当前客户端的 token 汇总和有效 usage 记录数。"""
-        return sum_model_token_usage(self.token_usage_records), len(self.token_usage_records)
 
     def _load_mock_data(self, protocol_profile: dict | None = None) -> str:
         """直接读取当前协议对应的 mock 原始内容。
@@ -348,7 +341,6 @@ class A2UIModelClient:
     def _generate_compact_from_real_model(
             self,
             messages: list[dict[str, str]],
-            protocol_profile_id: str,
             max_tokens: int = 128000,
             timeout: int = 600,
     ) -> str:
@@ -367,7 +359,6 @@ class A2UIModelClient:
         }
         content_parts: list[str] = []
         reasoning_parts: list[str] = []
-        latest_token_usage: ModelTokenUsage | None = None
         started_at = time.perf_counter()
         try:
             with requests.post(
@@ -389,10 +380,6 @@ class A2UIModelClient:
                     except json.JSONDecodeError:
                         logger.warning(f"{_MODULE} compact_invalid_stream_chunk")
                         continue
-
-                    usage = ModelTokenUsage.from_stream_chunk(chunk)
-                    if usage is not None:
-                        latest_token_usage = usage
 
                     stream_payload = self._first_choice_payload(chunk)
                     if not stream_payload:
@@ -430,29 +417,7 @@ class A2UIModelClient:
                 f"{_MODULE} compact_unexpected_error exception_type={type(exc).__name__} "
                 f"exception={exc!r} traceback={traceback.format_exc()}"
             )
-        finally:
-            self._record_token_usage(protocol_profile_id, latest_token_usage)
         return ""
-
-    def _record_token_usage(
-            self,
-            protocol_profile_id: str,
-            usage: ModelTokenUsage | None,
-    ) -> None:
-        """记录一次 Compact 模型请求的最终累计 token 用量。"""
-        if usage is None:
-            logger.warning(
-                f"{_MODULE} model_token_usage_unavailable "
-                f"protocol_profile_id={protocol_profile_id} model={self.settings.model_name}"
-            )
-            return
-        self.token_usage_records.append(usage)
-        logger.info(
-            f"{_MODULE} model_token_usage protocol_profile_id={protocol_profile_id} "
-            f"model={self.settings.model_name} prompt_tokens={usage.prompt_tokens} "
-            f"completion_tokens={usage.completion_tokens} total_tokens={usage.total_tokens} "
-            f"reasoning_tokens={usage.reasoning_tokens}"
-        )
 
     @staticmethod
     def _stream_data(raw_line: str | bytes) -> str | None:

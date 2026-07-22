@@ -1518,8 +1518,8 @@ def test_a2ui_model_client_isolates_compact_and_a2ui_generators(monkeypatch):
         calls.append(("a2ui", messages))
         return "a2ui-output"
 
-    def generate_compact(_client, messages, profile_id):
-        calls.append((profile_id, messages))
+    def generate_compact(_client, messages):
+        calls.append(("compact", messages))
         return "compact-output"
 
     monkeypatch.setattr(
@@ -1541,8 +1541,60 @@ def test_a2ui_model_client_isolates_compact_and_a2ui_generators(monkeypatch):
     assert client.generate(messages, compact_profile) == "compact-output"
     assert calls == [
         ("a2ui", messages),
-        ("compact-dsl-v1", messages),
+        ("compact", messages),
     ]
+
+
+def test_compact_model_client_returns_streamed_ndjson(monkeypatch):
+    """Compact model output is returned directly without A2UI conversion."""
+    dsl = '["root","Column",{"width":"matchParent"},[]]'
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, _exc_type, _exc, _traceback):
+            return False
+
+        @staticmethod
+        def raise_for_status():
+            return None
+
+        @staticmethod
+        def iter_lines(decode_unicode=True):
+            assert decode_unicode is True
+            content_chunk = {"choices": [{"delta": {"content": dsl}}]}
+            yield f"data: {json_module.dumps(content_chunk)}"
+            yield 'data: {"choices":[],"usage":{"total_tokens":120}}'
+            yield "data: [DONE]"
+
+    client = A2UIModelClient(use_mock=False)
+    monkeypatch.setattr(client, "calc_sign", lambda _payload: "signature")
+    monkeypatch.setattr(
+        client,
+        "convert_dsl",
+        lambda *_args: pytest.fail("Compact output must not use A2UI conversion"),
+    )
+    monkeypatch.setattr(
+        "custom.a2ui_model_client.requests.post",
+        lambda *_args, **_kwargs: FakeResponse(),
+    )
+
+    result = client._generate_compact_from_real_model(
+        [{"role": "user", "content": "weather"}],
+    )
+
+    assert result == dsl
+
+
+def test_compact_model_client_has_no_artificial_completion_limit():
+    source = (
+        CLOUD_ROOT / "custom" / "a2ui_model_client.py"
+    ).read_text(encoding="utf-8")
+
+    assert "COMPACT_DSL_MAX_TOKENS" not in source
+    assert "max_duration" not in source
+    assert "stop_when_compact_complete" not in source
 
 
 def test_response_planner_returns_structured_status():

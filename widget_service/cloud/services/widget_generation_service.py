@@ -643,29 +643,6 @@ class WidgetGenerationService:
         genui = retry_result.result
         errors = retry_result.errors
         latency_by_stage["modelAndValidation"] = self._elapsed_ms(stage_started_at)
-        token_usage, usage_record_count = model_client.get_token_usage_summary()
-
-        def log_compact_token_usage(generation_status: str) -> None:
-            if not compact_dsl:
-                return
-            logger.info(
-                f"{_MODULE} model_token_usage_summary "
-                "operation=generateWidgetCardCompactDsl "
-                f"card_type={json_for_log(request.title)} card_size={request.size} "
-                f"generation_status={generation_status} "
-                f"protocol_profile_id={protocol_profile['id']} "
-                f"model_request_count={retry_result.retryCount + 1} "
-                f"usage_record_count={usage_record_count} "
-                f"retry_count={retry_result.retryCount} "
-                f"prompt_tokens={token_usage.prompt_tokens} "
-                f"completion_tokens={token_usage.completion_tokens} "
-                f"total_tokens={token_usage.total_tokens} "
-                f"reasoning_tokens={token_usage.reasoning_tokens} "
-                "model_generation_duration_ms="
-                f"{latency_by_stage['modelAndValidation']} "
-                "input_to_output_duration_ms="
-                f"{self._elapsed_ms(generation_started_at)}"
-            )
 
         logger.info(
             f"{_MODULE} a2ui_generation_completed retry_count={retry_result.retryCount} "
@@ -678,7 +655,6 @@ class WidgetGenerationService:
                 f"{_MODULE} compact_generation_validation_failed "
                 f"errors={json_for_log(errors)}"
             )
-            log_compact_token_usage(GenerationStatus.FAILED.value)
             response = GenerateWidgetCardResponse(
                 status=GenerationStatus.FAILED,
                 suggestSize=request.size,
@@ -762,7 +738,6 @@ class WidgetGenerationService:
             errorCode=response_plan.errorCode,
             effectiveCapabilities=artifact.effectiveCapabilities,
         )
-        log_compact_token_usage(response.status.value)
         latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
         self._log_generation_summary(
             request,
