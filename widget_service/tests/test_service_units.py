@@ -35,6 +35,7 @@ from api.schemas import (
 from api.routes import (
     _build_plugin_stream_response,
     _error_details,
+    _error_explanation,
     _normalize_payload,
     _pick_device_rom_version,
 )
@@ -101,26 +102,60 @@ def test_websocket_handler_runs_sync_service_in_threadpool():
 
 
 @pytest.mark.parametrize(
-    "legacy_message",
+    ("legacy_message", "expected_explanation"),
     [
-        WidgetWebSocketResultMessage(
-            operation="generateWidgetCard",
-            requestId="request-1",
-            data={"status": "success"},
+        (
+            WidgetWebSocketResultMessage(
+                operation="generateWidgetCard",
+                requestId="request-1",
+                data={"status": "success"},
+            ),
+            "",
         ),
-        WidgetWebSocketErrorMessage(
-            operation="generateWidgetCard",
-            requestId="request-1",
-            errorCode="FAILED",
-            error={"message": "failed"},
+        (
+            WidgetWebSocketErrorMessage(
+                operation="generateWidgetCard",
+                requestId="request-1",
+                errorCode="FAILED",
+                error={"message": "failed"},
+            ),
+            "当前调用工具服务异常",
         ),
     ],
 )
-def test_plugin_final_response_uses_legacy_string_and_empty_items(legacy_message):
+def test_plugin_final_response_uses_legacy_string_and_empty_items(
+    legacy_message,
+    expected_explanation,
+):
     response = _build_plugin_stream_response(legacy_message)
+    expected_prefix = f"{expected_explanation}：" if expected_explanation else ""
 
-    assert response.reply.streamInfo.streamContent == str(legacy_message)
+    assert response.errorCode == "0"
+    assert response.errorMessage == ""
+    assert response.reply.streamInfo.streamContent == expected_prefix + str(legacy_message)
     assert response.reply.items == []
+
+
+@pytest.mark.parametrize(
+    ("error_code", "expected_explanation"),
+    [
+        ("INVALID_ARGUMENTS", "当前调用工具参数异常"),
+        ("APP_VERSION_UNSUPPORTED", "当前设备版本不支持调用此工具"),
+        ("PACKAGE_NOT_INSTALLED", "当前设备缺少工具依赖应用"),
+        ("A2UI_GENERATION_FAILED", "当前调用工具卡片生成异常"),
+        ("VALIDATION_FAILED", "当前调用工具卡片校验异常"),
+        ("ARTIFACT_UPLOAD_FAILED", "当前调用工具产物保存异常"),
+        ("WIDGET_EDIT_DISABLED", "当前调用工具编辑功能未开启"),
+        ("SOURCE_ARTIFACT_INVALID", "当前调用工具来源产物处理异常"),
+        ("TIMEOUT", "当前调用工具执行超时"),
+        ("FAILED", "当前调用工具服务异常"),
+    ],
+)
+def test_plugin_error_explanation_distinguishes_business_failures(
+    error_code,
+    expected_explanation,
+):
+    assert _error_explanation(error_code) == expected_explanation
 
 
 def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):

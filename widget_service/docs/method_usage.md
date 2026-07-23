@@ -109,6 +109,11 @@ WS /api/v1/ws/tools/generateWidgetCardCompactDsl
 `generateWidgetCardCompactDsl` 固定使用 `compact-dsl-v1`。两个入口共享业务入参和响应结构，
 调用方不需要传 `protocolProfileId`。
 
+所有帧的插件顶层 `errorCode` 固定为 `"0"`，`errorMessage` 固定为空字符串，`items`
+固定为空数组。业务错误码、异常详情和业务响应只放在 final 帧的 `streamContent` 中。
+异常内容以中文类型说明开头，后面保留完整 `str(legacy_message)`，调用方应继续读取其中
+的 `status`、`errorCode`、`error` 和 `data`，不能用插件顶层字段判断业务成功与否。
+
 连接成功后客户端直接发送业务消息，服务不再返回 ready 帧。统一消息最小结构：
 
 ```json

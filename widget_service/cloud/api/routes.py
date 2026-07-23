@@ -20,6 +20,7 @@ from api.schemas import (
 from app.logger import json_for_log, logger, task_logger
 from app.websocket_metrics import websocket_metrics
 from config.config import get_settings
+from core.errors import ErrorCode
 from models.service import (
     WidgetPluginReply,
     WidgetPluginStreamResponse,
@@ -38,6 +39,23 @@ GENERATION_OPERATIONS = frozenset(
     {
         "generateWidgetCard",
         "generateWidgetCardCompactDsl",
+    }
+)
+
+PARAMETER_ERROR_CODES = frozenset(
+    {
+        ErrorCode.INVALID_ARGUMENTS.value,
+        ErrorCode.UNKNOWN_CAPABILITY.value,
+        ErrorCode.WRITE_RESULT_CONFLICT.value,
+        ErrorCode.NO_EFFECTIVE_CAPABILITY.value,
+    }
+)
+SOURCE_ARTIFACT_ERROR_CODES = frozenset(
+    {
+        ErrorCode.SOURCE_ARTIFACT_NOT_FOUND.value,
+        ErrorCode.SOURCE_ARTIFACT_DOWNLOAD_FAILED.value,
+        ErrorCode.SOURCE_ARTIFACT_SCHEMA_UNSUPPORTED.value,
+        ErrorCode.SOURCE_ARTIFACT_INVALID.value,
     }
 )
 
@@ -164,30 +182,55 @@ def _error_details(exc: ValidationError | ValueError) -> list[dict[str, Any]] | 
 
 def _build_plugin_stream_response(
     legacy_message: WidgetWebSocketResultMessage | WidgetWebSocketErrorMessage,
-    top_error_code: str = "0",
-    top_error_message: str = "",
 ) -> WidgetPluginStreamResponse:
     """把旧版完整消息转换成华为流处理插件输出包络。
 
     入参：
     - legacy_message：旧版 WebSocket 完整出参。
-    - top_error_code：插件顶层错误码，成功为 "0"。
-    - top_error_message：插件顶层错误描述。
-    出参：旧版消息放入 streamContent、items 固定为空数组的插件包络。
+    出参：插件顶层始终成功；业务异常说明和完整旧消息放入 streamContent。
     """
     streaming_text_id = legacy_message.requestId or uuid.uuid4().hex
+    stream_content = str(legacy_message)
+    error_explanation = _error_explanation(legacy_message.errorCode)
+    if error_explanation:
+        stream_content = f"{error_explanation}：{stream_content}"
     return WidgetPluginStreamResponse(
-        errorCode=top_error_code,
-        errorMessage=top_error_message,
+        errorCode="0",
+        errorMessage="",
         reply=WidgetPluginReply(
             streamInfo=WidgetStreamInfo(
                 # 插件只消费字符串字段；保留旧消息的完整字符串表现，避免拆散旧协议字段。
-                streamContent=str(legacy_message),
+                streamContent=stream_content,
                 streamingTextId=streaming_text_id,
             ),
             items=[],
         ),
     )
+
+
+def _error_explanation(error_code: str) -> str:
+    """根据业务错误码生成放在 streamContent 最前面的中文异常类型说明。"""
+    if not error_code:
+        return ""
+    if error_code in PARAMETER_ERROR_CODES:
+        return "当前调用工具参数异常"
+    if error_code == ErrorCode.APP_VERSION_UNSUPPORTED.value:
+        return "当前设备版本不支持调用此工具"
+    if error_code == ErrorCode.PACKAGE_NOT_INSTALLED.value:
+        return "当前设备缺少工具依赖应用"
+    if error_code == ErrorCode.A2UI_GENERATION_FAILED.value:
+        return "当前调用工具卡片生成异常"
+    if error_code == ErrorCode.VALIDATION_FAILED.value:
+        return "当前调用工具卡片校验异常"
+    if error_code == ErrorCode.ARTIFACT_UPLOAD_FAILED.value:
+        return "当前调用工具产物保存异常"
+    if error_code == ErrorCode.WIDGET_EDIT_DISABLED.value:
+        return "当前调用工具编辑功能未开启"
+    if error_code in SOURCE_ARTIFACT_ERROR_CODES:
+        return "当前调用工具来源产物处理异常"
+    if error_code == ErrorCode.TIMEOUT.value:
+        return "当前调用工具执行超时"
+    return "当前调用工具服务异常"
 
 
 async def _send_websocket_json(
@@ -281,7 +324,32 @@ async def _serve_operation_websocket(
     try:
         service = get_service()
         while True:
-            payload = await websocket.receive_json()
+            try:
+                payload = await websocket.receive_json()
+            except ValueError as exc:
+                logger.error(
+                    f"{_MODULE} widget_operation_ws_invalid_json operation={operation} "
+                    f"exception_type={type(exc).__name__} exception={exc!r}"
+                )
+                error_message = WidgetWebSocketErrorMessage(
+                    tool=operation,
+                    operation=operation,
+                    errorCode=ErrorCode.INVALID_ARGUMENTS.value,
+                    error={
+                        "message": "WebSocket request body must be valid JSON.",
+                        "details": str(exc),
+                    },
+                )
+                plugin_response = _build_plugin_stream_response(error_message)
+                if not await _send_websocket_json(
+                    websocket,
+                    plugin_response.model_dump(mode="json", exclude_none=True),
+                    operation,
+                    None,
+                    "final_error",
+                ):
+                    return
+                continue
             # 同一连接可连续发送多条消息，先清理上一条消息的 requestId，
             # 避免协议归一化前的原始请求日志错误关联到旧请求。
             task_logger.set_session_id("None")
@@ -290,20 +358,23 @@ async def _serve_operation_websocket(
                 f"request_body={json_for_log(payload)}"
             )
             started_at = time.perf_counter()
-            request_id, arguments = _normalize_payload(payload, operation)
-            # 三个接口共用该入口；解析出 requestId 后立即写入日志上下文，
-            # 后续 service、IDS、A2UI 和异常日志都会自动携带同一个 requestId。
-            task_logger.set_session_id(request_id or "None")
-            logger.info(
-                f"{_MODULE} widget_operation_ws_payload_received request_id={request_id} "
-                f"operation={operation} payload_keys={json_for_log(sorted(payload))} "
-                f"argument_keys={json_for_log(sorted(arguments))}"
-            )
-            # streaming_text_id 沿用现有逻辑：有 requestId 时取 requestId，否则生成随机 ID。
-            streaming_text_id = request_id or uuid.uuid4().hex
+            request_id = None
+            arguments: dict[str, Any] = {}
             heartbeat_task: asyncio.Task | None = None
             metrics.task_started()
             try:
+                if not isinstance(payload, dict):
+                    raise ValueError("WebSocket request body must be a JSON object")
+                request_id, arguments = _normalize_payload(payload, operation)
+                # 解析出 requestId 后立即写入日志上下文，后续链路共用同一日志标识。
+                task_logger.set_session_id(request_id or "None")
+                logger.info(
+                    f"{_MODULE} widget_operation_ws_payload_received request_id={request_id} "
+                    f"operation={operation} payload_keys={json_for_log(sorted(payload))} "
+                    f"argument_keys={json_for_log(sorted(arguments))}"
+                )
+                # 有 requestId 时沿用它，否则为当前消息生成稳定的流式文本 ID。
+                streaming_text_id = request_id or uuid.uuid4().hex
                 device_arguments = arguments.get("device")
                 source_rom_version = None
                 if isinstance(device_arguments, dict):
@@ -367,15 +438,7 @@ async def _serve_operation_websocket(
                     errorCode=result_data.get("errorCode", ""),
                     error={},
                 )
-                plugin_response = _build_plugin_stream_response(
-                    result_message,
-                    top_error_code=result_data.get("errorCode", "FAILED")
-                    if result_data.get("status") == "failed"
-                    else "0",
-                    top_error_message=result_data.get("message", "")
-                    if result_data.get("status") == "failed"
-                    else "",
-                )
+                plugin_response = _build_plugin_stream_response(result_message)
                 if not await _send_websocket_json(
                     websocket,
                     plugin_response.model_dump(mode="json", exclude_none=True),
@@ -403,11 +466,7 @@ async def _serve_operation_websocket(
                         "details": _error_details(exc),
                     },
                 )
-                plugin_response = _build_plugin_stream_response(
-                    error_message,
-                    top_error_code="INVALID_ARGUMENTS",
-                    top_error_message=f"Invalid {operation} arguments.",
-                )
+                plugin_response = _build_plugin_stream_response(error_message)
                 if not await _send_websocket_json(
                     websocket,
                     plugin_response.model_dump(mode="json", exclude_none=True),
@@ -431,11 +490,7 @@ async def _serve_operation_websocket(
                     errorCode="FAILED",
                     error={"message": str(exc)},
                 )
-                plugin_response = _build_plugin_stream_response(
-                    error_message,
-                    top_error_code="FAILED",
-                    top_error_message=str(exc),
-                )
+                plugin_response = _build_plugin_stream_response(error_message)
                 if not await _send_websocket_json(
                     websocket,
                     plugin_response.model_dump(mode="json", exclude_none=True),

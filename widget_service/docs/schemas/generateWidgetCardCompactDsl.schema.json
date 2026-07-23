@@ -113,12 +113,12 @@
       "errorCode": {
         "type": "string",
         "required": true,
-        "description": "华为流处理插件顶层响应码；成功、降级成功和业务 unsupported 通常为 0，参数错误、系统异常或工程 failed 时为非 0。"
+        "description": "华为流处理插件顶层响应码，所有结果固定为 0；业务错误码位于 final streamContent。"
       },
       "errorMessage": {
         "type": "string",
         "required": true,
-        "description": "顶层错误描述；成功、降级或业务 unsupported 时为空字符串。"
+        "description": "华为流处理插件顶层错误描述，所有结果固定为空字符串。"
       },
       "reply": {
         "type": "object",
@@ -145,7 +145,7 @@
     "StreamInfo": {
       "required": ["streamContent", "streamingTextId", "streamType", "textType"],
       "properties": {
-        "streamContent": "string，start/partial 为空字符串；final 为 str(legacy_message)。",
+        "streamContent": "string，start/partial 为空；final 为完整旧消息；异常时前置中文类型说明。",
         "streamingTextId": "string，流式文本 ID；当前使用 requestId，缺失时生成随机 ID。",
         "streamType": "string，支持 start、partial 和 final。",
         "textType": "string，start/partial 使用 markdown，final 使用 plainText。"

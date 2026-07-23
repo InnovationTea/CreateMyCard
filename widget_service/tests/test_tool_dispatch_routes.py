@@ -50,6 +50,9 @@ ArtifactSaveResult = importlib.import_module("models.service").ArtifactSaveResul
 ArtifactStore = importlib.import_module("services.artifact_store").ArtifactStore
 Settings = importlib.import_module("config.config").Settings
 get_settings = importlib.import_module("config.config").get_settings
+WidgetGenerationService = importlib.import_module(
+    "services.widget_generation_service"
+).WidgetGenerationService
 
 
 def _tool_payload(
@@ -834,6 +837,83 @@ def test_unknown_prd_version_falls_back_for_first_two_interfaces():
         assert schema["missingCapabilityIds"] == [random_capability_id]
 
 
+def test_invalid_arguments_keep_plugin_envelope_successful():
+    """参数异常放入 streamContent，插件顶层仍返回成功。"""
+    client = TestClient(app)
+    request_id = _request_id("invalid-create")
+    with client.websocket_connect("/api/v1/ws/tools/generateWidgetCard") as websocket:
+        websocket.send_json(
+            _tool_payload(
+                {
+                    "userQuery": "缺少创建模式标题和说明",
+                    "candidateDataBindings": [],
+                },
+                "invalid-create",
+            )
+        )
+        response = websocket.receive_json()
+
+    assert response["errorCode"] == "0"
+    assert response["errorMessage"] == ""
+    assert response["reply"]["items"] == []
+    stream_info = response["reply"]["streamInfo"]
+    assert stream_info["streamingTextId"] == request_id
+    assert stream_info["streamType"] == "final"
+    legacy_message = parse_legacy_stream_content(
+        stream_info["streamContent"]
+    )
+    assert legacy_message["type"] == "error"
+    assert legacy_message["errorCode"] == "INVALID_ARGUMENTS"
+    assert legacy_message["explanation"] == "当前调用工具参数异常"
+    assert legacy_message["error"]["details"]
+
+
+def test_malformed_json_keeps_plugin_envelope_successful():
+    """JSON 语法异常同样通过 streamContent 返回，不中断插件协议。"""
+    client = TestClient(app)
+    with client.websocket_connect("/api/v1/ws/tools/getWidgetCapabilityOverview") as websocket:
+        websocket.send_text("{invalid-json")
+        response = websocket.receive_json()
+
+    assert response["errorCode"] == "0"
+    assert response["errorMessage"] == ""
+    assert response["reply"]["items"] == []
+    legacy_message = parse_legacy_stream_content(
+        response["reply"]["streamInfo"]["streamContent"]
+    )
+    assert legacy_message["type"] == "error"
+    assert legacy_message["requestId"] is None
+    assert legacy_message["errorCode"] == "INVALID_ARGUMENTS"
+    assert legacy_message["explanation"] == "当前调用工具参数异常"
+
+
+def test_handler_exception_keeps_plugin_envelope_successful(monkeypatch):
+    """服务执行异常保留插件顶层成功，并在旧消息中返回 FAILED。"""
+    def fail_overview(_service, _request):
+        raise RuntimeError("overview failed")
+
+    monkeypatch.setattr(
+        WidgetGenerationService,
+        "get_widget_capability_overview",
+        fail_overview,
+    )
+    client = TestClient(app)
+    request_id = _request_id("handler-failed")
+    with client.websocket_connect("/api/v1/ws/tools/getWidgetCapabilityOverview") as websocket:
+        websocket.send_json(_tool_payload({}, "handler-failed"))
+        response = _receive_final_frame(websocket, request_id)
+
+    assert response["errorCode"] == "0"
+    assert response["errorMessage"] == ""
+    legacy_message = parse_legacy_stream_content(
+        response["reply"]["streamInfo"]["streamContent"]
+    )
+    assert legacy_message["type"] == "error"
+    assert legacy_message["errorCode"] == "FAILED"
+    assert legacy_message["explanation"] == "当前调用工具服务异常"
+    assert legacy_message["error"]["message"] == "overview failed"
+
+
 def test_legacy_registry_field_is_ignored_for_first_two_interfaces():
     """验证旧字段不能覆盖 App/ROM 区间选择结果。"""
     client = TestClient(app)
@@ -935,14 +1015,15 @@ def test_registry_fallback_switch_off_applies_to_all_three_interfaces(monkeypatc
                 device_info=device_info,
             )
         )
-        generation = _assert_success_envelope(
+        generation_message = _assert_success_envelope(
             _receive_final_frame(
                 websocket,
                 _request_id("fallback-off-generation"),
             ),
             "generateWidgetCard",
             _request_id("fallback-off-generation"),
-        )["data"]
+        )
+        generation = generation_message["data"]
 
     assert "apiVersion" not in overview
     assert "capabilityRegistryVersion" not in overview
@@ -954,6 +1035,7 @@ def test_registry_fallback_switch_off_applies_to_all_three_interfaces(monkeypatc
     assert schema["missingCapabilityIds"] == ["ViewWeather"]
     assert generation["status"] == "unsupported"
     assert generation["errorCode"] == "APP_VERSION_UNSUPPORTED"
+    assert generation_message["explanation"] == "当前设备版本不支持调用此工具"
 
 
 def test_third_interface_uses_default_registry_fallback():

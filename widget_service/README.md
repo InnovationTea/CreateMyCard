@@ -57,6 +57,25 @@ py -3.12 tests\test_running_ws_server.py
 `cloud/services/card_validation/` Python API 再校验一次并打印诊断。当前 mock 输出包含
 确定的校验问题，因此脚本还会断言接口依然成功返回 artifact，用于证明校验失败不会阻塞主流程。
 
+需要像单元测试一样逐项调试本地服务时，使用单功能真实 WS 测试：
+
+```powershell
+cd widget_service
+# 运行全部单功能用例
+py -3.12 -m pytest tests\test_running_ws_features.py -s -q
+# 只测能力概述
+py -3.12 -m pytest tests\test_running_ws_features.py::test_live_widget_capability_overview -s -q
+# 只测一个数据能力 schema
+py -3.12 -m pytest "tests\test_running_ws_features.py::test_live_each_data_capability_schema[ViewWeather]" -s -q
+# 只测 A2UI Form 或 Compact DSL 生成
+py -3.12 -m pytest tests\test_running_ws_features.py::test_live_generate_widget_card -s -q
+py -3.12 -m pytest tests\test_running_ws_features.py::test_live_generate_widget_card_compact_dsl -s -q
+```
+
+该文件中的健康检查、四个 WS 接口、八个数据能力 schema、缺失能力和参数异常都是独立
+pytest 节点。默认等待模型响应 180 秒，可通过 `WIDGET_SERVICE_TEST_RESPONSE_TIMEOUT`
+调整；服务未启动时整组用例会明确跳过。
+
 本地多轮编辑联调需要先开启开关：
 
 ```powershell
