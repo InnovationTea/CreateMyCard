@@ -2095,7 +2095,7 @@ def _remove_unmatched_closers(value: str) -> str:
             output.append(char)
     if not in_string:
         closing_chars = {"{": "}", "[": "]"}
-        output.extend(closing_chars[char] for char in reversed(stack))
+        output.extend(closing_chars.get(char, "") for char in reversed(stack))
     return "".join(output)
 
 
@@ -3358,17 +3358,18 @@ def _value_at_relative_path(value: Any, relative_path: tuple[str, ...]) -> Any:
 
 def _default_value_for_schema(schema: dict[str, Any]) -> Any:
     schema_type = schema.get("type")
+    default_value: Any = None
     if schema_type == "string":
-        return ""
-    if schema_type in {"number", "integer"}:
-        return 0
-    if schema_type == "boolean":
-        return False
-    if schema_type == "array":
-        return []
-    if schema_type == "object":
-        return {}
-    return None
+        default_value = ""
+    elif schema_type in {"number", "integer"}:
+        default_value = 0
+    elif schema_type == "boolean":
+        default_value = False
+    elif schema_type == "array":
+        default_value = []
+    elif schema_type == "object":
+        default_value = {}
+    return default_value
 
 
 def _join_json_pointer(base_path: str, relative_path: tuple[str, ...]) -> str:
@@ -3493,7 +3494,7 @@ def _bind_component_row(
     replaced_source_paths: set[str] = set()
     for prop_name in prop_names:
         value = props.get(prop_name)
-        inline_expansion = _expand_inline_binding_text_component(
+        expanded_rows, expanded_values = _expand_inline_binding_text_component(
             component_id,
             component_type,
             prop_name,
@@ -3503,8 +3504,7 @@ def _bind_component_row(
             data_values,
             component_ids,
         )
-        if inline_expansion is not None:
-            expanded_rows, expanded_values = inline_expansion
+        if expanded_rows:
             return expanded_rows, expanded_values, replaced_source_paths
         source_path = value.get("path") if _is_path_binding(value) else None
         target = _select_dynamic_binding_target(
@@ -3872,9 +3872,9 @@ def _expand_inline_binding_text_component(
     targets: list[_DynamicBindingTarget],
     data_values: dict[str, Any],
     component_ids: set[str],
-) -> tuple[list[list[Any]], dict[str, Any]] | None:
+) -> tuple[list[list[Any]], dict[str, Any]]:
     if component_type != "Text" or prop_name != "content" or not isinstance(value, str):
-        return None
+        return [], {}
 
     matches = []
     for match in _INLINE_BINDING_PATH_PATTERN.finditer(value):
@@ -3886,7 +3886,7 @@ def _expand_inline_binding_text_component(
         if is_canonical:
             matches.append(match)
     if not matches:
-        return None
+        return [], {}
 
     text_props = {
         key: prop_value

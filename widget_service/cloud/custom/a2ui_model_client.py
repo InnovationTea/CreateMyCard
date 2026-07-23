@@ -93,10 +93,7 @@ class A2UIModelClient:
                 result = self._load_mock_data(protocol_profile)
             else:
                 profile = protocol_profile or {}
-                if is_compact_dsl(profile):
-                    result = self._generate_compact_from_real_model(prompt)
-                else:
-                    result = self._generate_from_real_model(prompt)
+                result = self._generate_from_real_model(prompt, profile)
             return require_generated_dsl(result)
         except A2UIModelGenerationError:
             raise
@@ -311,9 +308,10 @@ class A2UIModelClient:
     def _generate_from_real_model(
         self,
         messages: list[dict[str, str]],
+        protocol_profile: dict | None = None,
         timeout: int = 600,
     ) -> str:
-        """通过 /predict 流式模型服务生成 A2UI DSL。"""
+        """通过 /predict 流式模型服务生成当前协议的 DSL。"""
         prompt = self.messages_to_qwen_prompt(messages)
         query_params = {
             "bId": self.settings.model_bid,
@@ -410,7 +408,8 @@ class A2UIModelClient:
                     f"message={final_event.get('errorMsg')}"
                 )
             dsl_text = self.extract_genui_payload(full_text)
-            dsl_text = self.convert_dsl(dsl_text)
+            if not is_compact_dsl(protocol_profile or {}):
+                dsl_text = self.convert_dsl(dsl_text)
             logger.info(
                 f"{_MODULE} dsl_processed "
                 f"dsl_content={json_for_log(dsl_text)}"
@@ -452,145 +451,3 @@ class A2UIModelClient:
     @staticmethod
     def _event_value(event: dict | None, key: str) -> object:
         return event.get(key) if event else None
-
-    def _generate_compact_from_real_model(
-            self,
-            messages: list[dict[str, str]],
-            max_tokens: int = 128000,
-            timeout: int = 600,
-    ) -> str:
-        """调用老模型直接生成 Compact DSL，不经过 A2UI 包络转换。"""
-        payload = {
-            "model": self.settings.model_name,
-            "messages": messages,
-            "max_tokens": max_tokens,
-            "stream": True,
-        }
-        payload_str = json.dumps(payload, ensure_ascii=False)
-        headers = {
-            "Authorization": self.calc_sign(payload_str),
-            "Content-Type": "application/json",
-            "Accept": "text/event-stream",
-        }
-        content_parts: list[str] = []
-        reasoning_parts: list[str] = []
-        started_at = time.perf_counter()
-        try:
-            with requests.post(
-                    self.settings.model_url,
-                    data=payload_str,
-                    headers=headers,
-                    timeout=timeout,
-                    stream=True,
-            ) as response:
-                response.raise_for_status()
-                for raw_line in response.iter_lines(decode_unicode=True):
-                    data = self._stream_data(raw_line)
-                    if data is None:
-                        continue
-                    if data == "[DONE]":
-                        break
-                    try:
-                        chunk = json.loads(data)
-                    except json.JSONDecodeError:
-                        logger.warning(f"{_MODULE} compact_invalid_stream_chunk")
-                        continue
-
-                    stream_payload = self._first_choice_payload(chunk)
-                    if not stream_payload:
-                        continue
-                    content = self._text_fragment(stream_payload.get("content"))
-                    if not content:
-                        content = self._text_fragment(stream_payload.get("text"))
-                    reasoning = self._reasoning_fragment(stream_payload)
-                    if content:
-                        content_parts.append(content)
-                    if reasoning:
-                        reasoning_parts.append(reasoning)
-
-            content_text = "".join(content_parts)
-            full_text = content_text or "".join(reasoning_parts)
-            dsl_text = self.extract_genui_payload(full_text)
-            duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
-            logger.info(
-                f"{_MODULE} compact_response_received duration_ms={duration_ms} "
-                f"dsl_content={dsl_text}"
-            )
-            return dsl_text
-        except requests.exceptions.Timeout as exc:
-            logger.error(
-                f"{_MODULE} compact_request_timeout exception={exc!r} "
-                f"traceback={traceback.format_exc()}"
-            )
-            raise A2UIModelGenerationError(
-                f"compact model request timed out after {timeout}s"
-            ) from exc
-        except requests.exceptions.RequestException as exc:
-            logger.error(
-                f"{_MODULE} compact_request_failed exception_type={type(exc).__name__} "
-                f"exception={exc!r} traceback={traceback.format_exc()}"
-            )
-            raise A2UIModelGenerationError("compact model request failed") from exc
-        except A2UIModelGenerationError:
-            raise
-        except Exception as exc:
-            logger.error(
-                f"{_MODULE} compact_unexpected_error exception_type={type(exc).__name__} "
-                f"exception={exc!r} traceback={traceback.format_exc()}"
-            )
-            raise A2UIModelGenerationError(
-                "unexpected compact model generation error"
-            ) from exc
-
-    @staticmethod
-    def _stream_data(raw_line: str | bytes) -> str | None:
-        if isinstance(raw_line, bytes):
-            line = raw_line.decode("utf-8", errors="replace").strip()
-        else:
-            line = raw_line.strip()
-        if not line:
-            return None
-        if line.startswith("data:"):
-            return line[len("data:"):].strip()
-        if line.startswith("{"):
-            return line
-        return None
-
-    @staticmethod
-    def _first_choice_payload(chunk: object) -> dict:
-        if not isinstance(chunk, dict):
-            return {}
-        choices = chunk.get("choices")
-        if not isinstance(choices, list) or not choices:
-            return {}
-        first_choice = choices[0]
-        if not isinstance(first_choice, dict):
-            return {}
-        delta = first_choice.get("delta")
-        if isinstance(delta, dict):
-            return delta
-        message = first_choice.get("message")
-        if isinstance(message, dict):
-            return message
-        return first_choice
-
-    def _reasoning_fragment(self, payload: dict) -> str:
-        reasoning = self._text_fragment(payload.get("reasoning_content"))
-        if reasoning:
-            return reasoning
-        return self._text_fragment(payload.get("reasoning"))
-
-    @staticmethod
-    def _text_fragment(value: object) -> str:
-        if isinstance(value, str):
-            return value
-        if not isinstance(value, list):
-            return ""
-        parts: list[str] = []
-        for item in value:
-            if not isinstance(item, dict):
-                continue
-            text = item.get("text")
-            if isinstance(text, str):
-                parts.append(text)
-        return "".join(parts)
