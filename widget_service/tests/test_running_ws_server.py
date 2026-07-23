@@ -18,6 +18,7 @@ if str(CLOUD_ROOT) not in sys.path:
 
 from services.card_validation import ValidationOptions, validate_card
 from services.source_artifact_repository import SourceArtifactRepository
+from ws_response_parser import parse_legacy_stream_content
 
 SERVER_HOST = os.getenv("WIDGET_SERVICE_TEST_HOST", socket.gethostbyname("localhost"))
 SERVER_PORT = int(os.getenv("WIDGET_SERVICE_TEST_PORT", "8855"))
@@ -102,7 +103,7 @@ async def _call_ws(path_name: str, payload: dict, expected_request_id: str) -> d
     - path_name：WS path 最后一段，例如 getWidgetCapabilityOverview。
     - payload：新协议 WebSocket 请求包络。
     - expected_request_id：服务端应返回的 requestId。
-    出参：reply.items[0] 中保留的当前完整旧出参。
+    出参：从 final streamContent 解析出的当前完整旧出参。
     """
     uri = f"{WS_BASE_URL}{WS_BASE_PATH}/{path_name}"
     try:
@@ -141,10 +142,8 @@ async def _call_ws(path_name: str, payload: dict, expected_request_id: str) -> d
             assert stream_info["streamingTextId"] == expected_request_id
             assert stream_info["streamType"] == "final"
             assert stream_info["textType"] == "plainText"
-            assert stream_info["streamContent"]
-
-            assert len(message["reply"]["items"]) == 1
-            legacy_message = message["reply"]["items"][0]
+            assert message["reply"]["items"] == []
+            legacy_message = parse_legacy_stream_content(stream_info["streamContent"])
             assert legacy_message["type"] == "result"
             assert legacy_message["tool"] == path_name
             assert legacy_message["operation"] == path_name

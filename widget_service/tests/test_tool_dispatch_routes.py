@@ -9,6 +9,8 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from ws_response_parser import parse_legacy_stream_content
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CLOUD_ROOT = PROJECT_ROOT / "cloud"
 REPORT_DIR = PROJECT_ROOT / "test_reports"
@@ -294,7 +296,7 @@ def _assert_success_envelope(message: dict, operation: str, request_id: str) -> 
     - message：服务端返回的 WebSocket 消息。
     - operation：当前接口名。
     - request_id：预期 requestId。
-    出参：reply.items[0] 中保留的当前完整旧出参。
+    出参：从 reply.streamInfo.streamContent 解析出的完整旧出参。
     """
     assert message["errorCode"] == "0"
     assert message["errorMessage"] == ""
@@ -303,10 +305,8 @@ def _assert_success_envelope(message: dict, operation: str, request_id: str) -> 
     assert stream_info["streamingTextId"] == request_id
     assert stream_info["streamType"] == "final"
     assert stream_info["textType"] == "plainText"
-    assert stream_info["streamContent"]
-
-    assert len(message["reply"]["items"]) == 1
-    legacy_message = message["reply"]["items"][0]
+    assert message["reply"]["items"] == []
+    legacy_message = parse_legacy_stream_content(stream_info["streamContent"])
     assert legacy_message["type"] == "result"
     assert legacy_message["tool"] == operation
     assert legacy_message["operation"] == operation
@@ -412,8 +412,10 @@ def test_widget_card_service_complete_flow(monkeypatch):
         assert [item["id"] for item in overview["dataCapabilities"]] == [
             "ViewWeather",
             "GetCalendarEvents",
-            "GetAppUsageDurationAndPower",
-            "GetBluetoothEarphoneStatus",
+            "GetCountdownDays",
+            "GetAppUsageDuration",
+            "GetEarphoneInfo",
+            "GetPhoneBatteryInfo",
             "GetHealthAndSportSummary",
             "GetSystemMemInfo",
         ]

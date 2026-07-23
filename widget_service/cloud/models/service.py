@@ -163,7 +163,7 @@ class WidgetPluginReply(BaseModel):
 
     入参：
     - streamInfo：答复文本结构。
-    - items：结构化业务数据；当前完整旧出参整体放在 items[0]。
+    - items：插件预留结构化列表；当前所有帧固定为空数组。
     出参：符合流处理插件输出参数配置的 reply 对象。
     """
 

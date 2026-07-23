@@ -275,7 +275,19 @@
               },
               "oneClickServiceType": {
                 "type": "string",
-                "description": "绑定的轻服务类型名称，如 'SportsEvents'。",
+                "enum": [
+                  "Meeting",
+                  "Watching",
+                  "Repayment",
+                  "Live",
+                  "Shopping",
+                  "Trip",
+                  "Class",
+                  "SportsEvents",
+                  "SportsExercise",
+                  ""
+                ],
+                "description": "绑定的轻服务类型名称。大模型生成一键服务按钮时，应按照端侧能力声明的枚举选择文案。",
                 "sampleValue": "Meeting"
               },
               "oneClickServiceLink": {
@@ -317,68 +329,82 @@
     "dataModelSkeleton": {}
   },
   {
-    "id": "GetAppUsageDurationAndPower",
-    "description": "获取指定应用的使用时长和耗电量数据",
+    "id": "GetCountdownDays",
+    "description": "计算指定的日历日期距离今天还有多少天；目标日期由模型提取，实际天数差值由端侧计算。",
+    "defaultWriteResultTo": "/data/countdown",
+    "dependencies": {
+      "requiredPackages": []
+    },
+    "inputSchema": {
+      "type": "object",
+      "description": "计算倒数日需要的入参。",
+      "properties": {
+        "targetDate": {
+          "type": "string",
+          "description": "目标日期，必须是 YYYY-MM-DD 格式。"
+        }
+      },
+      "required": [
+        "targetDate"
+      ]
+    },
+    "outputSchema": {
+      "type": "object",
+      "description": "计算得出的倒数日天数结果实体。",
+      "properties": {
+        "countdownDays": {
+          "type": "integer",
+          "description": "距离目标日期的自然日天数；正数表示未来，0 表示今天，负数表示已经过去。",
+          "sampleValue": 7
+        }
+      }
+    },
+    "type": "data",
+    "dataModelSkeleton": {}
+  },
+  {
+    "id": "GetAppUsageDuration",
+    "description": "获取指定应用的使用时长数据",
     "defaultWriteResultTo": "/data/appUsageStats",
     "dependencies": {
       "requiredPackages": []
     },
     "inputSchema": {
       "type": "object",
-      "description": "查询应用使用时长和耗电量的输入参数",
+      "description": "查询应用使用时长的输入参数",
       "properties": {
         "appBundleName": {
           "type": "string",
           "description": "目标应用的包名，例如：com.ss.hm.ugc.aweme"
-        },
-        "itemName": {
-          "type": "string",
-          "description": "查询的数据项标识，例如查询前后台时长与功耗固定传：foreground_time_power"
         }
       },
       "required": [
-        "appBundleName",
-        "itemName"
+        "appBundleName"
       ]
     },
     "outputSchema": {
       "type": "object",
-      "description": "适合桌面卡片展示的应用耗电和时长概要。",
+      "description": "适合桌面卡片展示的应用时长概要。",
       "properties": {
         "appUsage": {
           "type": "object",
-          "description": "应用具体的耗电量和使用时长详情",
+          "description": "应用具体的使用时长详情",
           "properties": {
             "appName": {
               "type": "string",
               "description": "应用名称文本，例如：“抖音”",
               "sampleValue": "示例应用"
             },
-            "foreGroundDuration": {
+            "durationText": {
               "type": "string",
-              "description": "前台运行时间文本（自带单位），例如：“25 秒”或“1 分钟 21 秒”",
+              "description": "应用今日运行总时间文本（自带单位），例如：“25 秒”或“1 分钟 21 秒”。",
               "sampleValue": "25 分钟"
-            },
-            "foreGroundPower": {
-              "type": "string",
-              "description": "前台耗电量文本（自带单位），例如：“5.72 mAh”或“< 1 mAh”",
-              "sampleValue": "5.72 mAh"
-            },
-            "backGroundDuration": {
-              "type": "string",
-              "description": "后台运行时间文本（自带单位），例如：“47 秒”",
-              "sampleValue": "5 分钟"
-            },
-            "backGroundPower": {
-              "type": "string",
-              "description": "后台耗电量文本（自带单位），例如：“5.2 mAh”",
-              "sampleValue": "< 1 mAh"
             }
           }
         },
         "updatedAt": {
           "type": "string",
-          "description": "端侧完成数据查询和归一化的时间，格式如：2026-06-23 11:30",
+          "description": "端侧完成数据查询和归一化的时间，格式如：2026-07-14 10:16。",
           "sampleValue": "2026-07-15 11:30"
         }
       }
@@ -387,7 +413,7 @@
     "dataModelSkeleton": {}
   },
   {
-    "id": "GetBluetoothEarphoneStatus",
+    "id": "GetEarphoneInfo",
     "description": "查询当前手机连接的蓝牙耳机状态，包括耳机名称、主盒与左右耳的当前独立剩余电量百分比，以及它们各自的充电状态。",
     "defaultWriteResultTo": "/data/earphone",
     "dependencies": {
@@ -453,8 +479,84 @@
     "dataModelSkeleton": {}
   },
   {
+    "id": "GetPhoneBatteryInfo",
+    "description": "获取手机本机的全量电池状态快照，返回经过端侧语义化和字符化转换的电池状态。",
+    "defaultWriteResultTo": "/data/phoneBattery",
+    "dependencies": {
+      "requiredPackages": []
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    },
+    "outputSchema": {
+      "type": "object",
+      "description": "经过中文语义化清洗后的手机本机电池物理状态。",
+      "properties": {
+        "batterySOC": {
+          "type": "integer",
+          "description": "当前手机设备剩余电池电量百分比纯数字，取值范围为 0 到 100。",
+          "sampleValue": 68
+        },
+        "batterySOCText": {
+          "type": "string",
+          "description": "当前手机设备剩余电池电量百分比格式化文本。",
+          "sampleValue": "68%"
+        },
+        "chargingStatusDesc": {
+          "type": "string",
+          "description": "当前设备电池的充电状态文本描述。",
+          "sampleValue": "充电中"
+        },
+        "batteryCapacityLevelDesc": {
+          "type": "string",
+          "description": "设备电池电量等级的语义化文本描述。",
+          "sampleValue": "正常电量"
+        },
+        "healthStatusDesc": {
+          "type": "string",
+          "description": "当前设备电池的物理健康状态文本描述。",
+          "sampleValue": "正常"
+        },
+        "pluggedTypeDesc": {
+          "type": "string",
+          "description": "当前设备连接的充电器类型文本描述。",
+          "sampleValue": "交流充电器"
+        },
+        "batteryTemperatureText": {
+          "type": "string",
+          "description": "当前设备电池的实时温度文本，带有摄氏度单位。",
+          "sampleValue": "29.0 ℃"
+        },
+        "nowCurrentText": {
+          "type": "string",
+          "description": "当前设备电池的实时电流文本，带有毫安单位。",
+          "sampleValue": "-151 mA"
+        },
+        "voltageText": {
+          "type": "string",
+          "description": "当前设备电池的实时电压文本，带有伏特单位。",
+          "sampleValue": "4 V"
+        },
+        "isBatteryPresentText": {
+          "type": "string",
+          "description": "当前设备物理电池是否在位或受支持的状态描述。",
+          "sampleValue": "在位"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "端侧完成全量电量状态字符化转换的系统时间文本。",
+          "sampleValue": "2026-07-15 15:09"
+        }
+      }
+    },
+    "type": "data",
+    "dataModelSkeleton": {}
+  },
+  {
     "id": "GetHealthAndSportSummary",
-    "description": "一键合并查询用户指定时间段内的大健康、日常大盘活动与单次专业运动训练指标。包含极其精细的夜间科学睡眠分析、当日全天步数/热量/距离总合大盘，以及最近一次专业运动训练的起止时间、计划与详尽的心率区间剖析。",
+    "description": "查询健康、日常活动与单次运动训练指标，包括睡眠、步数、热量、距离和心率数据。",
     "defaultWriteResultTo": "/data/healthSport",
     "dependencies": {
       "requiredPackages": [
@@ -541,11 +643,6 @@
           "type": "string",
           "description": "最近一次发生的单次专业运动训练类型的中文映射名称，如‘羽毛球’、‘自由训练’、‘户外跑步’。若无记录则返回‘暂无运动’。",
           "sampleValue": "户外跑步"
-        },
-        "exercisePlan": {
-          "type": "string",
-          "description": "运动训练或当日康复计划的文本描述。例如：‘打羽毛球一小时，运动拉伸20分钟’。",
-          "sampleValue": "轻松跑30分钟并完成拉伸"
         },
         "exerciseStartTimeText": {
           "type": "string",

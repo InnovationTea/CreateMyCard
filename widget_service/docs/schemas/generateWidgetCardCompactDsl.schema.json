@@ -132,10 +132,10 @@
             "description": "答复文本结构；当前服务一次请求只发送 final 帧。"
           },
           "items": {
-            "type": "GenerateWidgetCardResult[]",
+            "type": "object[]",
             "required": true,
-            "minItems": 1,
-            "description": "结构化数据；items[0] 保留当前完整旧出参 type/tool/operation/requestId/data/status/errorCode/error。"
+            "minItems": 0,
+            "description": "插件预留结构化列表；start、partial 和 final 帧均固定为空数组。"
           }
         }
       }
@@ -145,7 +145,7 @@
     "StreamInfo": {
       "required": ["streamContent", "streamingTextId", "streamType", "textType"],
       "properties": {
-        "streamContent": "string，截止当前帧的全量输出内容；生成接口优先使用业务响应 message。",
+        "streamContent": "string，start/partial 为空字符串；final 为 str(legacy_message)。",
         "streamingTextId": "string，流式文本 ID；当前使用 requestId，缺失时生成随机 ID。",
         "streamType": "string，支持 start、partial 和 final。",
         "textType": "string，start/partial 使用 markdown，final 使用 plainText。"

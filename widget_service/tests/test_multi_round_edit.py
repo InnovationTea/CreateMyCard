@@ -28,6 +28,7 @@ from services.source_artifact_repository import (
 )
 from services.widget_generation_service import WidgetGenerationService
 from utils.upload_file_obs import UploadFileOSMS
+from ws_response_parser import parse_legacy_stream_content
 
 app = importlib.import_module("main").app
 DEVICE_ODID = "5e64f3e9-0a80-d719-d689-3c36eca5eeb6"
@@ -301,7 +302,9 @@ def _websocket_result(client: TestClient, content: dict, interaction_id: str) ->
         while True:
             response = websocket.receive_json()
             if response["reply"]["streamInfo"]["streamType"] == "final":
-                return response["reply"]["items"][0]["data"]
+                assert response["reply"]["items"] == []
+                stream_content = response["reply"]["streamInfo"]["streamContent"]
+                return parse_legacy_stream_content(stream_content)["data"]
 
 
 def test_websocket_create_and_edit_return_new_artifact(editable_artifact_storage):

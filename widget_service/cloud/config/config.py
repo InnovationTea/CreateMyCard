@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     model_temperature: float = 0.4
     model_top_k: int = 1
     enable_artifact_validation: bool = True
+    # 模型调用异常时用原提示词重试；与 DSL error 触发定向 repair 的开关相互独立。
+    enable_model_failure_retry: bool = False
     enable_validation_failure_retry: bool = False
     enable_widget_edit: bool = False
     artifact_base_url: str = "https://obs.todo.local/widget"

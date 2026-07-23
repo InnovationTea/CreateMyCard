@@ -32,7 +32,12 @@ from api.schemas import (
     DataCapabilitySchemasRequest,
     GenerateWidgetCardRequest,
 )
-from api.routes import _error_details, _normalize_payload, _pick_device_rom_version
+from api.routes import (
+    _build_plugin_stream_response,
+    _error_details,
+    _normalize_payload,
+    _pick_device_rom_version,
+)
 from app.logger import json_for_log
 from config.config import Settings, get_settings
 from main import configure_anyio_thread_pool
@@ -51,6 +56,11 @@ from models.generation import (
     EventAction,
     GenerationOptions,
     TaskSpec,
+)
+from models.service import (
+    ArtifactSaveResult,
+    WidgetWebSocketErrorMessage,
+    WidgetWebSocketResultMessage,
 )
 from services.artifact_store import ArtifactStore
 from custom.a2ui_model_client import (
@@ -88,6 +98,29 @@ def test_websocket_handler_runs_sync_service_in_threadpool():
     assert "from starlette.concurrency import run_in_threadpool" in routes_source
     assert "await run_in_threadpool(handler, service, request)" in routes_source
     assert "result = handler(service, request)" not in routes_source
+
+
+@pytest.mark.parametrize(
+    "legacy_message",
+    [
+        WidgetWebSocketResultMessage(
+            operation="generateWidgetCard",
+            requestId="request-1",
+            data={"status": "success"},
+        ),
+        WidgetWebSocketErrorMessage(
+            operation="generateWidgetCard",
+            requestId="request-1",
+            errorCode="FAILED",
+            error={"message": "failed"},
+        ),
+    ],
+)
+def test_plugin_final_response_uses_legacy_string_and_empty_items(legacy_message):
+    response = _build_plugin_stream_response(legacy_message)
+
+    assert response.reply.streamInfo.streamContent == str(legacy_message)
+    assert response.reply.items == []
 
 
 def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
@@ -264,6 +297,18 @@ def test_validation_failure_retry_is_disabled_by_default(monkeypatch):
     settings = Settings(_env_file=None)
 
     assert settings.enable_validation_failure_retry is False
+
+
+def test_model_failure_retry_is_disabled_by_default(monkeypatch):
+    monkeypatch.delenv("WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY", raising=False)
+
+    assert Settings(_env_file=None).enable_model_failure_retry is False
+
+
+def test_model_failure_retry_can_be_enabled_by_environment(monkeypatch):
+    monkeypatch.setenv("WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY", "true")
+
+    assert Settings(_env_file=None).enable_model_failure_retry is True
 
 
 def test_validation_failure_retry_can_be_enabled_by_environment(monkeypatch):
@@ -728,8 +773,10 @@ def test_data_capability_registry_declares_leaf_samples_and_known_package_depend
     assert [item.id for item in capabilities] == [
         "ViewWeather",
         "GetCalendarEvents",
-        "GetAppUsageDurationAndPower",
-        "GetBluetoothEarphoneStatus",
+        "GetCountdownDays",
+        "GetAppUsageDuration",
+        "GetEarphoneInfo",
+        "GetPhoneBatteryInfo",
         "GetHealthAndSportSummary",
         "GetSystemMemInfo",
     ]
@@ -851,6 +898,80 @@ def test_cloud_capability_registries_are_self_contained_and_valid():
         assert asset_capabilities
         assert len(capability_ids) == len(set(capability_ids))
         assert len(asset_sources) == len(set(asset_sources))
+
+
+def test_cloud_registry_covers_offline_skill_capability_inventory():
+    """防止离线 Skill 新增能力后，云侧版本目录继续使用不完整的旧快照。"""
+    repository_root = PROJECT_ROOT.parent
+    offline_reference = (
+        repository_root
+        / "skills"
+        / "harmony-card-generation-offline"
+        / "reference"
+    )
+    data_directory = offline_reference / "capability" / "data-capability"
+    offline_data_ids = set()
+    for path in data_directory.glob("*.md"):
+        if path.name == "index.md":
+            continue
+        manifest_text = path.read_text(encoding="utf-8").split("```json", 1)[1]
+        id_line = next(
+            line.strip()
+            for line in manifest_text.splitlines()
+            if line.strip().startswith('"id":')
+        )
+        offline_data_ids.add(id_line.split('"')[3])
+
+    event_text = (
+        offline_reference / "capability" / "event-capability" / "click-event.md"
+    ).read_text(encoding="utf-8")
+    event_manifest_text = event_text.split("```json", 1)[1].split("```", 1)[0]
+    event_manifest = json_module.loads(event_manifest_text)
+    offline_events = set()
+    for capability in event_manifest["capabilities"]:
+        for target in capability["supportedTargets"]:
+            descriptions = [
+                page["description"] for page in target.get("pages", [target])
+            ]
+            offline_events.update(
+                (
+                    capability["functionCall"],
+                    target["intentName"],
+                    description,
+                )
+                for description in descriptions
+            )
+
+    asset_text = (
+        offline_reference / "design" / "asset-library.md"
+    ).read_text(encoding="utf-8")
+    offline_assets = {}
+    for line in asset_text.splitlines():
+        if not line.startswith("| `resources/base/media/"):
+            continue
+        columns = [column.strip() for column in line.strip("|").split("|")]
+        offline_assets[columns[0].strip("`")] = columns[1]
+
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    cloud_data_ids = {item.id for item in registry.list_data_capabilities()}
+    cloud_events = {
+        (item.call, item.targetScene, item.description)
+        for item in registry.list_event_capabilities()
+    }
+    cloud_assets = {
+        item.src: item.description for item in registry.list_asset_capabilities()
+    }
+    media_directory = repository_root / "resources" / "base" / "media"
+    media_sources = {
+        path.relative_to(repository_root).as_posix()
+        for path in media_directory.iterdir()
+        if path.is_file()
+    }
+
+    assert cloud_data_ids == offline_data_ids
+    assert cloud_events == offline_events
+    assert cloud_assets == offline_assets
+    assert media_sources == set(offline_assets)
 
 
 def test_cloud_asset_registry_matches_online_skill_allowlist():
@@ -1164,7 +1285,7 @@ def test_dependency_filter_logs_one_json_result(monkeypatch):
     assert result["matchedPackages"] == []
     assert result["missingPackages"] == ["com.huawei.hmos.health.core"]
     assert result["installedPackageCount"] == 0
-    assert result["availableDataCapabilityCount"] == 5
+    assert result["availableDataCapabilityCount"] == 7
     assert result["availableEventCapabilityCount"] > 0
     assert result["availableAssetCapabilityCount"] > 0
     assert {
@@ -1952,6 +2073,8 @@ def test_model_failure_skips_validator_and_artifact_store(
     generation_method,
     failure_kind,
 ):
+    settings = get_settings()
+
     def fail_generate(_client, _prompt, _profile):
         if failure_kind == "exception":
             raise A2UIModelGenerationError("model stream failed")
@@ -1963,6 +2086,7 @@ def test_model_failure_skips_validator_and_artifact_store(
     def unexpected_save(*_args, **_kwargs):
         pytest.fail("model failure must not save an artifact")
 
+    monkeypatch.setattr(settings, "enable_model_failure_retry", False)
     monkeypatch.setattr(A2UIModelClient, "generate", fail_generate)
     monkeypatch.setattr(ArtifactValidator, "validate", unexpected_validate)
     monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
@@ -1975,6 +2099,114 @@ def test_model_failure_skips_validator_and_artifact_store(
     assert response.artifactUrl == ""
     assert response.artifactDigest == ""
     assert response.message == "卡片创建过程遇到问题了，请稍后再试。"
+
+
+def test_model_failure_retries_once_and_continues_after_success(monkeypatch):
+    settings = get_settings()
+    model_calls: list[int] = []
+
+    def fail_then_generate(_client, _prompt, _profile):
+        model_calls.append(len(model_calls) + 1)
+        if len(model_calls) == 1:
+            raise A2UIModelGenerationError("temporary model failure")
+        return "generated-dsl"
+
+    monkeypatch.setattr(settings, "enable_model_failure_retry", True)
+    monkeypatch.setattr(settings, "enable_artifact_validation", False)
+    monkeypatch.setattr(A2UIModelClient, "generate", fail_then_generate)
+    monkeypatch.setattr(
+        ArtifactStore,
+        "save",
+        lambda _store, _artifact: ArtifactSaveResult(
+            artifactUrl="https://artifact.test/retried",
+            artifactDigest="sha256:retried",
+        ),
+    )
+
+    response = WidgetGenerationService().generate_widget_card_a2ui_form(
+        _model_failure_request()
+    )
+
+    assert model_calls == [1, 2]
+    assert response.status == GenerationStatus.SUCCESS
+    assert response.artifactUrl == "https://artifact.test/retried"
+
+
+def test_model_failure_stops_after_one_retry(monkeypatch):
+    settings = get_settings()
+    model_calls: list[int] = []
+
+    def always_fail(_client, _prompt, _profile):
+        model_calls.append(len(model_calls) + 1)
+        raise A2UIModelGenerationError("persistent model failure")
+
+    def unexpected_validate(*_args, **_kwargs):
+        pytest.fail("final model failure must not enter validation")
+
+    def unexpected_save(*_args, **_kwargs):
+        pytest.fail("final model failure must not save an artifact")
+
+    monkeypatch.setattr(settings, "enable_model_failure_retry", True)
+    monkeypatch.setattr(A2UIModelClient, "generate", always_fail)
+    monkeypatch.setattr(ArtifactValidator, "validate", unexpected_validate)
+    monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
+
+    response = WidgetGenerationService().generate_widget_card_a2ui_form(
+        _model_failure_request()
+    )
+
+    assert model_calls == [1, 2]
+    assert response.status == GenerationStatus.FAILED
+    assert response.errorCode == ErrorCode.A2UI_GENERATION_FAILED.value
+
+
+def test_repair_model_failure_retries_same_repair_prompt_once(monkeypatch):
+    settings = get_settings()
+    model_prompts: list[list[dict[str, str]]] = []
+
+    def generate_with_temporary_repair_failure(_client, prompt, _profile=None):
+        model_prompts.append(prompt)
+        if len(model_prompts) == 1:
+            return "invalid-dsl"
+        if len(model_prompts) == 2:
+            raise A2UIModelGenerationError("temporary repair failure")
+        return "repaired-dsl"
+
+    def validate_repaired_result(_validator, artifact, _profile):
+        if artifact.genui == "invalid-dsl":
+            return ["DSL_REQUIRED_FIELD [genui:1 /createSurface]"]
+        return []
+
+    monkeypatch.setattr(settings, "enable_artifact_validation", True)
+    monkeypatch.setattr(settings, "enable_model_failure_retry", True)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(
+        A2UIModelClient,
+        "generate",
+        generate_with_temporary_repair_failure,
+    )
+    monkeypatch.setattr(
+        ArtifactValidator,
+        "validate",
+        validate_repaired_result,
+    )
+    monkeypatch.setattr(
+        ArtifactStore,
+        "save",
+        lambda _store, _artifact: ArtifactSaveResult(
+            artifactUrl="https://artifact.test/repaired",
+            artifactDigest="sha256:repaired",
+        ),
+    )
+
+    response = WidgetGenerationService().generate_widget_card_a2ui_form(
+        _model_failure_request()
+    )
+
+    assert len(model_prompts) == 3
+    assert model_prompts[1] == model_prompts[2]
+    assert response.status == GenerationStatus.SUCCESS
+    assert response.artifactUrl == "https://artifact.test/repaired"
 
 
 def test_repair_model_failure_does_not_validate_or_save_second_result(monkeypatch):
@@ -1996,6 +2228,7 @@ def test_repair_model_failure_does_not_validate_or_save_second_result(monkeypatc
         pytest.fail("repair model failure must not save an artifact")
 
     monkeypatch.setattr(settings, "enable_artifact_validation", True)
+    monkeypatch.setattr(settings, "enable_model_failure_retry", False)
     monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
     monkeypatch.setattr(A2UIModelClient, "generate", generate_then_fail)
     monkeypatch.setattr(ArtifactValidator, "validate", validate_once)
@@ -2308,6 +2541,7 @@ def test_card_validation_loads_latest_online_rule_snapshot():
     assert set(rules.capabilities) == {
         "GetAppUsageDuration",
         "GetCalendarEvents",
+        "GetCountdownDays",
         "GetEarphoneInfo",
         "GetHealthAndSportSummary",
         "GetPhoneBatteryInfo",

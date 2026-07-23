@@ -61,6 +61,9 @@ output/
 重构文档.md
 card-design-share/
 rules/
+!skills/harmony-card-generation-online/scripts/rules/
+!skills/harmony-card-generation-online/scripts/rules/schemas/
+!skills/harmony-card-generation-online/scripts/rules/schemas/capability.countdown.schema.json
 great.jpg
 tempelate.jpg
 .agents/

@@ -162,77 +162,30 @@ def _error_details(exc: ValidationError | ValueError) -> list[dict[str, Any]] | 
     return str(exc)
 
 
-def _stream_content_for_result(operation: str, result_data: dict[str, Any]) -> str:
-    """根据业务结果生成流式答复文本。
-
-    入参：
-    - operation：当前 WS path 对应的能力名。
-    - result_data：业务响应对象的 JSON 字典。
-    出参：写入 reply.streamInfo.streamContent 的 markdown 文本。
-    """
-    if operation == "getWidgetCapabilityOverview":
-        data_count = len(result_data.get("dataCapabilities", []))
-        event_count = len(result_data.get("eventCapabilities", []))
-        asset_count = len(result_data.get("assetCandidates", []))
-        unavailable_count = len(result_data.get("unavailableCapabilities", []))
-        return (
-            f"已获取卡片能力概述：{data_count} 个数据能力、"
-            f"{event_count} 个事件能力、{asset_count} 个素材候选，"
-            f"{unavailable_count} 项不可用。"
-        )
-
-    if operation == "getDataCapabilitySchemas":
-        found_count = len(result_data.get("dataCapabilities", []))
-        missing_count = len(result_data.get("missingCapabilityIds", []))
-        if missing_count:
-            return f"已获取 {found_count} 个数据能力 Schema，{missing_count} 个能力未找到。"
-        return f"已获取 {found_count} 个数据能力 Schema。"
-
-    if operation in GENERATION_OPERATIONS:
-        return result_data.get("message") or "卡片生成流程已完成。"
-
-    return "工具调用已完成。"
-
-
-def _stream_content_for_error(operation: str, error_code: str) -> str:
-    """根据异常类型生成流式错误文本。
-
-    入参：
-    - operation：当前 WS path 对应的能力名。
-    - error_code：错误码。
-    出参：写入 reply.streamInfo.streamContent 的 markdown 文本。
-    """
-    if error_code == "INVALID_ARGUMENTS":
-        return f"{operation} 入参校验失败，请检查参数后重试。"
-    return f"{operation} 调用失败，请稍后再试。"
-
-
 def _build_plugin_stream_response(
     legacy_message: WidgetWebSocketResultMessage | WidgetWebSocketErrorMessage,
-    stream_content: str,
     top_error_code: str = "0",
     top_error_message: str = "",
 ) -> WidgetPluginStreamResponse:
-    """把当前完整旧出参整体放入华为流处理插件输出包络。
+    """把旧版完整消息转换成华为流处理插件输出包络。
 
     入参：
     - legacy_message：旧版 WebSocket 完整出参。
-    - stream_content：流式文本内容。
     - top_error_code：插件顶层错误码，成功为 "0"。
     - top_error_message：插件顶层错误描述。
-    出参：符合华为流处理插件输出参数配置的新包络。
+    出参：旧版消息放入 streamContent、items 固定为空数组的插件包络。
     """
     streaming_text_id = legacy_message.requestId or uuid.uuid4().hex
-    legacy_payload = legacy_message.model_dump(mode="json", exclude_none=True)
     return WidgetPluginStreamResponse(
         errorCode=top_error_code,
         errorMessage=top_error_message,
         reply=WidgetPluginReply(
             streamInfo=WidgetStreamInfo(
-                streamContent=stream_content,
+                # 插件只消费字符串字段；保留旧消息的完整字符串表现，避免拆散旧协议字段。
+                streamContent=str(legacy_message),
                 streamingTextId=streaming_text_id,
             ),
-            items=[legacy_payload],
+            items=[],
         ),
     )
 
@@ -309,6 +262,9 @@ async def _serve_operation_websocket(
     heartbeat_interval: float = 6.0,    
 ) -> None:
     """承载单个工具能力的 WebSocket 循环。
+
+    每条消息依次经过：原始日志、协议归一化、start/heartbeat、线程池业务调用、
+    final 旧消息字符串封装。业务调用期间不占用事件循环线程。
 
     入参：
     - websocket：客户端 WebSocket 连接。
@@ -413,7 +369,6 @@ async def _serve_operation_websocket(
                 )
                 plugin_response = _build_plugin_stream_response(
                     result_message,
-                    _stream_content_for_result(operation, result_data),
                     top_error_code=result_data.get("errorCode", "FAILED")
                     if result_data.get("status") == "failed"
                     else "0",
@@ -450,7 +405,6 @@ async def _serve_operation_websocket(
                 )
                 plugin_response = _build_plugin_stream_response(
                     error_message,
-                    _stream_content_for_error(operation, "INVALID_ARGUMENTS"),
                     top_error_code="INVALID_ARGUMENTS",
                     top_error_message=f"Invalid {operation} arguments.",
                 )
@@ -479,7 +433,6 @@ async def _serve_operation_websocket(
                 )
                 plugin_response = _build_plugin_stream_response(
                     error_message,
-                    _stream_content_for_error(operation, "FAILED"),
                     top_error_code="FAILED",
                     top_error_message=str(exc),
                 )

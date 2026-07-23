@@ -33,6 +33,8 @@ from typing import Any
 
 import websockets
 
+from ws_response_parser import parse_legacy_stream_content
+
 # ---------------------------------------------------------------------------
 # 路径与配置
 # ---------------------------------------------------------------------------
@@ -187,11 +189,10 @@ async def _recv_until_final(
     path_name: str,
     stage_name: str,
 ) -> tuple[dict, float, float, int, int, int]:
-    """接收 WebSocket 帧直到 final，返回 (最终消息, 首token时延ms, 总时延ms, total_tokens, completion_tokens, prompt_tokens)。
+    """接收 WebSocket 帧直到 final，并返回消息、时延和 token 统计。
 
     从 start 帧到第一个包含 streamContent 的 partial/final 帧的时延作为首 token 时延。
     """
-    start_received = False
     first_token_at: float | None = None
     first_token_ms = 0.0
     stage_start = _now_ms()
@@ -207,7 +208,6 @@ async def _recv_until_final(
         content = stream_info.get("streamContent", "")
 
         if stream_type == "start":
-            start_received = True
             continue
 
         if stream_type == "partial":
@@ -222,16 +222,21 @@ async def _recv_until_final(
 
         stage_elapsed = _now_ms() - stage_start
 
-        # 尝试从 items[0] 中提取 token 统计 (generate 阶段)
-        items = message.get("reply", {}).get("items", [])
-        if items and isinstance(items[0], dict):
-            data = items[0].get("data", {})
-            if isinstance(data, dict):
-                total_tokens = data.get("total_tokens", 0)
-                completion_tokens = data.get("completion_tokens", 0)
-                prompt_tokens = data.get("prompt_tokens", 0)
+        # final 的 items 固定为空；压测统计从旧消息字符串中的 data 读取。
+        data = parse_legacy_stream_content(content).get("data", {})
+        if isinstance(data, dict):
+            total_tokens = data.get("total_tokens", 0)
+            completion_tokens = data.get("completion_tokens", 0)
+            prompt_tokens = data.get("prompt_tokens", 0)
 
-        return message, first_token_ms, stage_elapsed, total_tokens, completion_tokens, prompt_tokens
+        return (
+            message,
+            first_token_ms,
+            stage_elapsed,
+            total_tokens,
+            completion_tokens,
+            prompt_tokens,
+        )
 
 
 async def _run_single_user_iteration(
@@ -275,8 +280,6 @@ async def _run_single_user_iteration(
 
                 if msg.get("errorCode") != "0":
                     raise RuntimeError(f"overview error: {msg.get('errorMessage', '')}")
-
-                overview_data = msg["reply"]["items"][0]["data"]
 
             # ---- Stage 2: getDataCapabilitySchemas ----
             stage_start = _now_ms()
@@ -370,7 +373,8 @@ async def _run_single_user_iteration(
                 if msg.get("errorCode") != "0":
                     raise RuntimeError(f"generate error: {msg.get('errorMessage', '')}")
 
-                generated = msg["reply"]["items"][0]["data"]
+                generated_stream = msg["reply"]["streamInfo"]["streamContent"]
+                generated = parse_legacy_stream_content(generated_stream)["data"]
 
             # ---- Stage 4: 本地校验 (可选) ----
             stage_start = _now_ms()
@@ -404,7 +408,7 @@ async def _run_single_user_iteration(
             result.status = "success"
             result.total_ms = _now_ms() - iter_start
 
-        except (OSError, websockets.ConnectionClosed, asyncio.TimeoutError) as exc:
+        except (OSError, websockets.ConnectionClosed, TimeoutError) as exc:
             result.status = "error"
             result.error = f"{type(exc).__name__}: {exc}"
             result.total_ms = _now_ms() - iter_start
@@ -449,7 +453,7 @@ async def _run_pressure_test(
     lock = asyncio.Lock()
 
     print(f"\n{'='*60}")
-    print(f"全流程 WebSocket 压测开始")
+    print("全流程 WebSocket 压测开始")
     print(f"服务地址: {WS_BASE_URL}")
     print(f"并发数: {concurrency}")
     print(f"总迭代数: {total_tasks} (每用户 {iterations} 次)")
@@ -559,11 +563,11 @@ def _print_report(report: PressureReport) -> None:
     print("压测报告")
     print(f"{'='*60}")
 
-    print(f"\n── 配置 ──")
+    print("\n── 配置 ──")
     for key, value in report.config.items():
         print(f"  {key}: {value}")
 
-    print(f"\n── 总体 ──")
+    print("\n── 总体 ──")
     print(f"  总耗时: {report.duration_seconds:.2f}s")
     print(f"  总请求: {report.total_iterations}")
     print(f"  成功: {report.success_count}")
@@ -573,14 +577,17 @@ def _print_report(report: PressureReport) -> None:
     )
     print(f"  吞吐量: {report.throughput_qps} 次/秒")
 
-    print(f"\n── 各阶段耗时 (ms) ──")
+    print("\n── 各阶段耗时 (ms) ──")
     stage_labels = {
         "overview": "能力概述",
         "schema": "Schema 加载",
         "generate": "卡片生成",
         "validate": "本地校验",
     }
-    header = f"  {'阶段':<12} {'次数':>6} {'min':>8} {'max':>8} {'avg':>8} {'p50':>8} {'p90':>8} {'p99':>8}"
+    header = (
+        f"  {'阶段':<12} {'次数':>6} {'min':>8} {'max':>8} "
+        f"{'avg':>8} {'p50':>8} {'p90':>8} {'p99':>8}"
+    )
     print(header)
     print("  " + "-" * (len(header) - 2))
     for name, metrics in report.stage_metrics.items():
@@ -593,7 +600,7 @@ def _print_report(report: PressureReport) -> None:
             f"{s['p50']:>8.0f} {s['p90']:>8.0f} {s['p99']:>8.0f}"
         )
 
-    print(f"\n── 端到端总耗时 (ms) ──")
+    print("\n── 端到端总耗时 (ms) ──")
     s = report.total_metrics.summary()
     if s["count"] > 0:
         print(
@@ -601,7 +608,7 @@ def _print_report(report: PressureReport) -> None:
             f"avg={s['avg']:.0f} p50={s['p50']:.0f} p90={s['p90']:.0f} p99={s['p99']:.0f}"
         )
 
-    print(f"\n── 首 Token 时延 (ms) ──")
+    print("\n── 首 Token 时延 (ms) ──")
     s = report.first_token_metrics.summary()
     if s["count"] > 0:
         print(
@@ -611,7 +618,7 @@ def _print_report(report: PressureReport) -> None:
     else:
         print("  (无数据)")
 
-    print(f"\n── Token 统计 ──")
+    print("\n── Token 统计 ──")
     for token_type, values in report.token_metrics.items():
         if values:
             print(
@@ -620,14 +627,14 @@ def _print_report(report: PressureReport) -> None:
             )
 
     if report.errors_by_stage:
-        print(f"\n── 错误分布 ──")
+        print("\n── 错误分布 ──")
         for stage, count in sorted(
             report.errors_by_stage.items(), key=lambda x: -x[1]
         ):
             print(f"  {stage}: {count}")
 
     if report.errors:
-        print(f"\n── 错误详情 (前 10 条) ──")
+        print("\n── 错误详情 (前 10 条) ──")
         for err in report.errors[:10]:
             print(
                 f"  user={err['user_index']} iter={err['iteration']} "

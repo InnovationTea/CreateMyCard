@@ -13,7 +13,10 @@ The service follows `docs/AGENTS.md`:
 - All three interfaces currently map App `[11.7.5.205, 12.0.0.0)` and ROM `[6.0, 7.0)` to `app-11.7.5.205_rom-6.0`. An unmatched version falls back to this default when `WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true`.
 - `WIDGET_SERVICE_ENABLE_IDS_MOCK=true` by default. In this mode the service reads only `WIDGET_SERVICE_MOCK_IDS_RESPONSE_PATH`, whose default path is the service-internal `cloud/data/mock/ids_res.json`; a missing or invalid mock produces an empty IDS result and never falls back to remote IDS. When set to `false`, the service ignores the mock and queries only the real remote IDS; remote failure produces an empty result and never falls back to mock.
 - `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY=false` by default. Error-level validation failures are logged without blocking artifact persistence; when enabled, the service makes one repair request containing the invalid DSL and all errors. Warnings never trigger repair.
-- Model transport errors, explicit model errors, and empty DSL output return `failed/A2UI_GENERATION_FAILED` immediately. They do not enter validation, repair, or artifact persistence.
+- `WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY=false` by default. Model transport errors,
+  explicit model errors, and empty DSL output return `failed/A2UI_GENERATION_FAILED`;
+  when enabled, each failed initial or repair model call is repeated once with the same prompt.
+  Model failures never enter validation or artifact persistence.
 - Create, edit, and repair prompts are loaded from `WIDGET_SERVICE_SYSTEM_PROMPT_FILE`, `WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE`, and `WIDGET_SERVICE_REPAIR_SYSTEM_PROMPT_FILE`. Their defaults are files under the repository `docs/` directory.
 - `WIDGET_SERVICE_ENABLE_ARTIFACT_DOWNLOAD_MOCK=true` by default. Multi-round source artifacts are read only from `cloud/workspace/mock_obs`; missing mock files do not fall back to the network. Set it to `false` to download from the validated HTTPS artifact URL.
 - The WebSocket router logs each received request object as compact standard JSON before protocol normalization. Structured values embedded in other log messages use the same double-quoted JSON format. Sensitive `uid`/`userId`/`callingUid` and `odid` are recursively omitted; `sourceArtifactUrl` is retained in the raw request log.

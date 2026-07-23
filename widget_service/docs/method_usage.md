@@ -949,7 +949,9 @@ generate(task_spec: TaskSpec, protocol_profile: dict, prompt: dict) -> str
 
 - 开关为 `true`：直接读取并返回与客户端同目录的 `mock.dat` 原始内容，不做字段替换或结构调整。
 - 开关为 `false`：标准 A2UI Form 调用 `/predict` 流式接口，Compact DSL 调用其独立流式模型入口。
-- 模型请求异常、流式响应显式错误或最终没有非空 DSL 时抛出模型生成异常；生成服务直接返回 `failed/A2UI_GENERATION_FAILED`，不调用 Validator、RepairController 或 ArtifactStore。
+- 模型请求异常、流式响应显式错误或最终没有非空 DSL 时抛出模型生成异常。模型失败重试开关
+  关闭时直接返回 `failed/A2UI_GENERATION_FAILED`；开启时使用同一提示词重试一次。最终失败不调用
+  Validator、RepairController 或 ArtifactStore。
 
 环境变量：
 
@@ -1137,6 +1139,7 @@ WIDGET_SERVICE_IDS_QUERY_URL
 WIDGET_SERVICE_SYSTEM_PROMPT_FILE
 WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE
 WIDGET_SERVICE_ENABLE_ARTIFACT_VALIDATION
+WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY
 WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY
 WIDGET_SERVICE_ENABLE_WIDGET_EDIT
 WIDGET_SERVICE_ARTIFACT_BASE_URL
@@ -1149,6 +1152,10 @@ WIDGET_SERVICE_ANYIO_THREAD_POOL_TOKENS
 
 `WIDGET_SERVICE_ANYIO_THREAD_POOL_TOKENS` 默认值为 `80`，在应用启动时写入 AnyIO
 默认线程限制器，控制 WebSocket 同步业务处理的并发容量。它不改变单次模型调用超时。
+
+`WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY` 默认值为 `false`。开启后，首次生成或 repair
+模型调用发生请求异常、模型显式错误或空 DSL 时，使用同一提示词重试一次。它不替代
+`WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY` 的 DSL error 定向修复逻辑。
 
 常用属性：
 

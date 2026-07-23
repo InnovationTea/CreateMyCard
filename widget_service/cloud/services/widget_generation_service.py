@@ -4,6 +4,7 @@ import hashlib
 import json
 import time
 import uuid
+from collections.abc import Callable
 
 from api.schemas import (
     CapabilityOverviewRequest,
@@ -54,7 +55,11 @@ _MODULE = "[Generation Service]"
 
 
 class WidgetGenerationService:
-    """编排微服务暴露的卡片工具能力。"""
+    """编排微服务暴露的卡片工具能力。
+
+    该类是业务主流程入口：先选择版本化能力清单并裁决候选能力，再构造 CardSpec、
+    TaskSpec 和模型提示词，最后执行模型调用、校验、artifact 保存与响应规划。
+    """
 
     def widget_card_service(
         self,
@@ -226,6 +231,13 @@ class WidgetGenerationService:
         self, request: GenerateWidgetCardRequest
     ) -> GenerateWidgetCardResponse:
         """生成卡片。
+
+        主流程顺序：
+        1. 加载并归一化可选的上一版 artifact。
+        2. 选择能力注册表和协议 Profile，裁决数据、事件与素材候选。
+        3. 构造 CardSpec、TaskSpec 以及新建或编辑提示词。
+        4. 调用模型；模型异常重试和 DSL error 修复分别由独立开关控制。
+        5. 校验最终 DSL，保存 artifact，并生成面向主 Agent 的状态响应。
 
         入参：
         - request：用户需求、尺寸、候选数据绑定、候选事件、候选素材和版本上下文。
@@ -518,6 +530,7 @@ class WidgetGenerationService:
         artifact_id = str(uuid.uuid4())
         compact_operation_error = ""
         model_call_phase = "initial"
+        model_failure_retry_count = 0
         if protocol_profile["id"] == COMPACT_DSL_PROTOCOL_PROFILE_ID:
             repair_prompt_type = "compact"
         elif source_load_result:
@@ -525,16 +538,55 @@ class WidgetGenerationService:
         else:
             repair_prompt_type = "create"
 
+        def call_model_with_failure_retry(
+            model_operation: Callable[[], str],
+            phase: str,
+        ) -> str:
+            """执行一次模型阶段，并按独立开关对模型异常原样重试一次。
+
+            入参：
+            - model_operation：已绑定提示词和协议的模型调用。
+            - phase：initial 或 repair，用于日志区分调用阶段。
+            出参：非空 DSL；两次均失败时抛出 A2UIModelGenerationError。
+            """
+            nonlocal model_call_phase, model_failure_retry_count
+            model_call_phase = phase
+            max_attempts = 2 if settings.enable_model_failure_retry else 1
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    result = require_generated_dsl(model_operation())
+                    if attempt > 1:
+                        logger.info(
+                            f"{_MODULE} a2ui_model_failure_retry_succeeded "
+                            f"phase={phase} attempt={attempt}"
+                        )
+                    return result
+                except A2UIModelGenerationError as exc:
+                    should_retry = attempt < max_attempts
+                    logger.error(
+                        f"{_MODULE} a2ui_model_call_failed phase={phase} "
+                        f"attempt={attempt} retry_enabled="
+                        f"{json_for_log(settings.enable_model_failure_retry)} "
+                        f"will_retry={json_for_log(should_retry)} "
+                        f"exception_type={type(exc).__name__}"
+                    )
+                    if not should_retry:
+                        raise
+                    # 这里只重复同一模型请求，不拼装校验 repair 提示词。
+                    model_failure_retry_count += 1
+            raise AssertionError("model retry loop exited unexpectedly")
+
         def operation() -> str:
-            """执行一次 A2UI 模型生成。
+            """执行首次 A2UI 模型生成，并对 Compact DSL 做本地预检。
 
             入参：无。
             出参：三行 JSONL genui 字符串。
             """
             nonlocal compact_operation_error
             logger.info(f"{_MODULE} a2ui_model_operation_started")
-            generated = require_generated_dsl(
-                model_client.generate(prompt, protocol_profile)
+            generated = call_model_with_failure_retry(
+                lambda: model_client.generate(prompt, protocol_profile),
+                "initial",
             )
             if not compact_dsl:
                 return generated
@@ -579,8 +631,6 @@ class WidgetGenerationService:
 
         def repair_genui(invalid_genui: str, validation_errors: list[str]) -> str:
             """携带首次非法 DSL 和 error 级错误执行一次定向修复。"""
-            nonlocal model_call_phase
-            model_call_phase = "repair"
             repair_prompt = PromptBuilder().build_repair(
                 prompt,
                 invalid_genui,
@@ -590,8 +640,9 @@ class WidgetGenerationService:
                 f"{_MODULE} a2ui_repair_started repair_prompt_type={repair_prompt_type} "
                 f"initial_validation_error_count={len(validation_errors)}"
             )
-            return require_generated_dsl(
-                model_client.generate_repair(repair_prompt, protocol_profile)
+            return call_model_with_failure_retry(
+                lambda: model_client.generate_repair(repair_prompt, protocol_profile),
+                "repair",
             )
 
         def validate_genui(genui: str) -> list[str]:
@@ -643,7 +694,7 @@ class WidgetGenerationService:
             if compact_dsl and validation_errors:
                 logger.info(
                     f"{_MODULE} compact_validation_failed "
-                    "model_retry_skipped=true reason=single_pass_policy "
+                    "validation_repair_skipped=true reason=compact_single_pass_policy "
                     f"categories={json_for_log(artifact_validator.error_categories)}"
                 )
             if source_load_result:
@@ -673,6 +724,8 @@ class WidgetGenerationService:
                 repair=repair_genui,
             )
         except A2UIModelGenerationError as exc:
+            validation_retry_count = 1 if model_call_phase == "repair" else 0
+            total_retry_count = model_failure_retry_count + validation_retry_count
             latency_by_stage["modelAndValidation"] = self._elapsed_ms(stage_started_at)
             latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
             effective_capabilities = {
@@ -686,6 +739,8 @@ class WidgetGenerationService:
             logger.error(
                 f"{_MODULE} a2ui_generation_failed phase={model_call_phase} "
                 f"error_code={ErrorCode.A2UI_GENERATION_FAILED.value} "
+                f"model_failure_retry_count={model_failure_retry_count} "
+                f"validation_retry_count={validation_retry_count} "
                 f"exception_type={type(exc).__name__} validation_continued=false "
                 "artifact_saved=false"
             )
@@ -706,7 +761,7 @@ class WidgetGenerationService:
                 status=response.status,
                 error_code=response.errorCode,
                 latency_by_stage=latency_by_stage,
-                retry_count=1 if model_call_phase == "repair" else 0,
+                retry_count=total_retry_count,
                 generation_mode=generation_mode,
                 source_artifact_digest=(
                     source_load_result.artifact_digest if source_load_result else ""
@@ -718,10 +773,15 @@ class WidgetGenerationService:
             return response
         genui = retry_result.result
         errors = retry_result.errors
+        total_retry_count = model_failure_retry_count + retry_result.retryCount
         latency_by_stage["modelAndValidation"] = self._elapsed_ms(stage_started_at)
 
         logger.info(
-            f"{_MODULE} a2ui_generation_completed retry_count={retry_result.retryCount} "
+            f"{_MODULE} a2ui_generation_completed retry_count={total_retry_count} "
+            f"model_failure_retry_count={model_failure_retry_count} "
+            "model_failure_retry_enabled="
+            f"{json_for_log(settings.enable_model_failure_retry)} "
+            f"validation_retry_count={retry_result.retryCount} "
             "validation_failure_retry_enabled="
             f"{json_for_log(retry_on_validation_failure)} "
             f"initial_validation_error_count={len(retry_result.initialErrors)} "
@@ -750,7 +810,7 @@ class WidgetGenerationService:
                 status=response.status,
                 error_code=response.errorCode,
                 latency_by_stage=latency_by_stage,
-                retry_count=retry_result.retryCount,
+                retry_count=total_retry_count,
                 generation_mode=generation_mode,
             )
             return response
@@ -759,7 +819,7 @@ class WidgetGenerationService:
                 f"{_MODULE} a2ui_generation_validation_failed_non_blocking "
                 f"protocol_profile_id={protocol_profile['id']} "
                 f"validation_error_code={ErrorCode.VALIDATION_FAILED.value} "
-                f"retry_count={retry_result.retryCount} "
+                f"retry_count={total_retry_count} "
                 "validation_failure_retry_enabled="
                 f"{json_for_log(retry_on_validation_failure)} "
                 f"errors={json_for_log(errors)} "
@@ -827,7 +887,7 @@ class WidgetGenerationService:
             status=response.status,
             error_code=response.errorCode,
             latency_by_stage=latency_by_stage,
-            retry_count=retry_result.retryCount,
+            retry_count=total_retry_count,
             artifact_digest=artifact_save_result.artifactDigest,
             generation_mode=generation_mode,
             source_artifact_digest=(
