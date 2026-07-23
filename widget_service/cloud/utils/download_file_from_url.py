@@ -105,7 +105,6 @@ async def download_file(
             stream=True,
             timeout=timeout_seconds,
             allow_redirects=allow_redirects,
-            verify=False
         )
         if response.status_code == 404:
             raise DownloadFileNotFoundError("下载失败: 文件不存在")
@@ -186,7 +185,10 @@ async def download_file_async(url, file_name, semaphore):
                     logger.info(f"{_MODULE} 文件 {file_name} 下载成功")
                     return True
         except Exception as e:
-            logger.error(f"{_MODULE} 下载fileName:{file_name}, url:{url} 时发生错误, 报错信息：{str(e)}")
+            logger.error(
+                f"{_MODULE} 下载fileName:{file_name}, url:{url} 时发生错误, "
+                f"报错信息：{str(e)}"
+            )
             return False
 
 

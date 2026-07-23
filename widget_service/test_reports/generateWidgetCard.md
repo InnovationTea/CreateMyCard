@@ -96,7 +96,7 @@
   "errorMessage": "",
   "reply": {
     "streamInfo": {
-      "streamContent": "type='result' tool='generateWidgetCard' operation='generateWidgetCard' requestId='7676c2c8-a6d3-413c-8074-c62ed30db8de&3' data={'apiVersion': 'v1', 'status': 'success', 'artifactUrl': 'https://test.invalid/widget/artifact.md', 'artifactDigest': 'sha256:test-artifact', 'suggestSize': '2x4', 'message': '已为你生成可用的桌面卡片。', 'removedCapabilities': [], 'errorCode': '', 'effectiveCapabilities': {'data': ['ViewWeather'], 'event': [{'id': 'event.open.weather', 'call': 'clickToDeeplink', 'args': {'intentName': 'Weather_CityCode', 'bundleName': '', 'abilityName': '', 'uri': 'hww://www.huawei.com/totemweather?enterType=share&cityCode='}}], 'asset': ['asset.drop_1']}} status='success' errorCode='' error={}",
+      "streamContent": "已为你生成可用的桌面卡片。",
       "streamingTextId": "7676c2c8-a6d3-413c-8074-c62ed30db8de&3",
       "streamType": "final",
       "textType": "plainText"

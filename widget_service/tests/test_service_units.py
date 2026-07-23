@@ -7,11 +7,11 @@ import hashlib
 import hmac
 import json as json_module
 import sys
-import uuid
 from pathlib import Path
 
 import requests
 import pytest
+from anyio import to_thread
 from pydantic import ValidationError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -27,10 +27,15 @@ if str(CLOUD_ROOT) not in sys.path:
     sys.path.insert(0, str(CLOUD_ROOT))
 
 from core.errors import ErrorCode, GenerationStatus
-from api.schemas import GenerateWidgetCardRequest
+from api.schemas import (
+    CapabilityOverviewRequest,
+    DataCapabilitySchemasRequest,
+    GenerateWidgetCardRequest,
+)
 from api.routes import _error_details, _normalize_payload, _pick_device_rom_version
 from app.logger import json_for_log
 from config.config import Settings, get_settings
+from main import configure_anyio_thread_pool
 from models.artifact import ArtifactMeta, WidgetArtifact
 from models.capability import (
     AssetCapability,
@@ -48,7 +53,11 @@ from models.generation import (
     TaskSpec,
 )
 from services.artifact_store import ArtifactStore
-from custom.a2ui_model_client import A2UIModelClient
+from custom.a2ui_model_client import (
+    A2UIModelClient,
+    A2UIModelGenerationError,
+    require_generated_dsl,
+)
 from services.card_spec_builder import CardSpecBuilder
 from services.card_validator import validate_card
 from services.card_validation import validate_card as validate_card_api
@@ -79,6 +88,19 @@ def test_websocket_handler_runs_sync_service_in_threadpool():
     assert "from starlette.concurrency import run_in_threadpool" in routes_source
     assert "await run_in_threadpool(handler, service, request)" in routes_source
     assert "result = handler(service, request)" not in routes_source
+
+
+def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
+    assert Settings(_env_file=None).anyio_thread_pool_tokens == 80
+    settings = get_settings()
+    monkeypatch.setattr(settings, "anyio_thread_pool_tokens", 80)
+
+    async def configure_and_read_tokens() -> tuple[int, int]:
+        configured_tokens = configure_anyio_thread_pool()
+        limiter_tokens = to_thread.current_default_thread_limiter().total_tokens
+        return configured_tokens, limiter_tokens
+
+    assert asyncio.run(configure_and_read_tokens()) == (80, 80)
 
 
 def test_websocket_handler_sets_request_id_to_logger_context():
@@ -499,32 +521,86 @@ def test_ids_parser_ignores_provider_intent_and_permission_namespaces():
     assert not hasattr(state, "permissions")
 
 
-def test_capability_registry_version_is_derived_from_prd_and_rom_versions():
-    """验证能力版本目录由 prdVer 和 romVersion 推导。
+@pytest.mark.parametrize(
+    ("app_version", "rom_version"),
+    [
+        ("11.7.5.205", "CLS-AL30 6.0.0.328"),
+        ("11.8.0.0", "CLS-AL30 6.3.1.20"),
+        ("11.9.9.999", "CLS-AL30 6.9.0.1"),
+    ],
+)
+def test_capability_registry_matches_app_rom_interval(app_version, rom_version):
+    assert CapabilityRegistry.from_app_rom_versions(app_version, rom_version) == REGISTRY_VERSION_6
 
-    入参：无。
-    出参：无；通过随机版本参数断言版本文件夹名符合约定。
-    """
-    random_patch = uuid.uuid4().int % 100000
-    prd_ver = f"88.7.{random_patch}"
-    rom_ver = ROM_VERSION_6
 
-    version = CapabilityRegistry.from_app_rom_versions(prd_ver, rom_ver)
-
-    assert version == f"app-{prd_ver}_rom-6.0"
+@pytest.mark.parametrize(
+    ("app_version", "rom_version"),
+    [
+        ("12.0.0.0", "6.0"),
+        ("11.7.5.205", "7.0"),
+    ],
+)
+def test_capability_registry_excludes_maximum_boundaries(app_version, rom_version):
+    with pytest.raises(ValueError, match="range not found"):
+        CapabilityRegistry.from_app_rom_versions(app_version, rom_version)
 
 
 def test_capability_registry_extracts_major_minor_from_full_rom_version():
-    version = CapabilityRegistry.from_app_rom_versions(
-        APP_VERSION,
-        ROM_VERSION_6,
+    assert CapabilityRegistry.normalize_rom_version(ROM_VERSION_6) == "6.0"
+
+
+def _write_registry_ranges(root: Path, ranges: list[dict], directories: list[str]) -> None:
+    root.mkdir()
+    for directory in directories:
+        (root / directory).mkdir()
+    payload = {"schemaVersion": "v1", "ranges": ranges}
+    (root / "registry_ranges.json").write_text(
+        json_module.dumps(payload),
+        encoding="utf-8",
     )
 
-    assert version == REGISTRY_VERSION_6
-    assert CapabilityRegistry.from_app_rom_versions(
-        APP_VERSION,
-        ROM_VERSION_7,
-    ) == REGISTRY_VERSION_7
+
+def _registry_range(
+    registry_version: str,
+    app_min: str = "11.0",
+    app_max: str = "12.0",
+    rom_min: str = "6.0",
+    rom_max: str = "7.0",
+) -> dict:
+    return {
+        "registryVersion": registry_version,
+        "appVersion": {"minInclusive": app_min, "maxExclusive": app_max},
+        "romVersion": {"minInclusive": rom_min, "maxExclusive": rom_max},
+    }
+
+
+def test_capability_registry_rejects_overlapping_ranges(tmp_path):
+    root = tmp_path / "capabilities"
+    ranges = [
+        _registry_range("first"),
+        _registry_range("second", app_min="11.5", app_max="12.5"),
+    ]
+    _write_registry_ranges(root, ranges, ["first", "second"])
+
+    with pytest.raises(ValueError, match="Overlapping"):
+        CapabilityRegistry.from_app_rom_versions("11.8", "6.5", root)
+
+
+def test_capability_registry_rejects_inverted_range(tmp_path):
+    root = tmp_path / "capabilities"
+    ranges = [_registry_range("first", rom_min="7.0", rom_max="6.0")]
+    _write_registry_ranges(root, ranges, ["first"])
+
+    with pytest.raises(ValueError, match="minInclusive"):
+        CapabilityRegistry.from_app_rom_versions("11.8", "6.5", root)
+
+
+def test_capability_registry_rejects_missing_registry_directory(tmp_path):
+    root = tmp_path / "capabilities"
+    _write_registry_ranges(root, [_registry_range("missing")], [])
+
+    with pytest.raises(ValueError, match="version not found"):
+        CapabilityRegistry.from_app_rom_versions("11.8", "6.5", root)
 
 
 def test_capability_registry_uses_rom_version_as_the_only_rom_level():
@@ -534,6 +610,75 @@ def test_capability_registry_uses_rom_version_as_the_only_rom_level():
     )
 
     assert registry.version == REGISTRY_VERSION_6
+
+
+def test_legacy_registry_request_field_is_ignored():
+    request = CapabilityOverviewRequest(
+        uid="test-user",
+        prdVer=APP_VERSION,
+        device={"romVersion": ROM_VERSION_6},
+        capabilityRegistryVersion="missing-registry",
+    )
+
+    registry = WidgetGenerationService()._capability_registry(request)
+
+    assert "capabilityRegistryVersion" not in request.model_dump()
+    assert registry.version == REGISTRY_VERSION_6
+
+
+def test_public_tool_schemas_do_not_expose_registry_override():
+    schema_root = PROJECT_ROOT / "docs" / "schemas"
+    schema_names = [
+        "getWidgetCapabilityOverview.schema.json",
+        "getDataCapabilitySchemas.schema.json",
+        "generateWidgetCard.schema.json",
+        "generateWidgetCardCompactDsl.schema.json",
+    ]
+
+    for schema_name in schema_names:
+        payload = json_module.loads((schema_root / schema_name).read_text(encoding="utf-8"))
+        content_properties = payload["messageEnvelope"]["properties"]["content"]["properties"]
+        assert "capabilityRegistryVersion" not in content_properties
+
+
+def _out_of_range_requests():
+    common = {
+        "uid": "test-user",
+        "prdVer": "12.0.0.0",
+        "device": {"romVersion": "7.0"},
+    }
+    return [
+        CapabilityOverviewRequest(**common),
+        DataCapabilitySchemasRequest(dataCapabilityIds=["ViewWeather"], **common),
+        GenerateWidgetCardRequest(
+            userQuery="静态卡片",
+            title="静态卡片",
+            description="区间回退测试",
+            **common,
+        ),
+    ]
+
+
+@pytest.mark.parametrize("tool_request", _out_of_range_requests())
+def test_all_public_request_types_use_default_registry_fallback(tool_request):
+    registry = WidgetGenerationService()._capability_registry(tool_request)
+
+    assert registry.version == REGISTRY_VERSION_6
+
+
+@pytest.mark.parametrize("tool_request", _out_of_range_requests())
+def test_all_public_request_types_reject_unmatched_range_when_fallback_is_off(
+    tool_request,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        get_settings(),
+        "enable_default_capability_registry_fallback",
+        False,
+    )
+
+    with pytest.raises(ValueError, match="range not found"):
+        WidgetGenerationService()._capability_registry(tool_request)
 
 
 def test_tool_envelope_reads_only_rom_version():
@@ -559,6 +704,8 @@ def test_tool_envelope_maps_optional_content_odid_to_device_context():
 
     assert request_id == "session&interaction"
     assert arguments["device"]["odid"] == "content-odid"
+    assert arguments["device"]["romVersion"] == "6.0"
+    assert arguments["device"]["_sourceRomVersion"] == ROM_VERSION_6
     assert "odid" not in arguments
 
     _, arguments_without_odid = _normalize_payload(
@@ -704,6 +851,30 @@ def test_cloud_capability_registries_are_self_contained_and_valid():
         assert asset_capabilities
         assert len(capability_ids) == len(set(capability_ids))
         assert len(asset_sources) == len(set(asset_sources))
+
+
+def test_cloud_asset_registry_matches_online_skill_allowlist():
+    skill_asset_path = (
+        PROJECT_ROOT.parent
+        / "skills"
+        / "harmony-card-generation-online"
+        / "scripts"
+        / "rules"
+        / "config"
+        / "asset.json"
+    )
+    cloud_asset_rules_path = CLOUD_ROOT / "data" / "validator_rules" / "config" / "asset.json"
+    skill_asset_rules = json_module.loads(skill_asset_path.read_text(encoding="utf-8"))
+    cloud_asset_rules = json_module.loads(cloud_asset_rules_path.read_text(encoding="utf-8"))
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    registry_sources = {item.src for item in registry.list_asset_capabilities()}
+    expected_sources = set(skill_asset_rules["allowlist"])
+
+    assert registry_sources == expected_sources
+    assert cloud_asset_rules == skill_asset_rules
+    assert {source for source in registry_sources if source.endswith(".png")} == {
+        "resources/base/media/icon_tiktok.png"
+    }
 
 
 def test_data_capability_allows_missing_default_path_and_dependencies():
@@ -977,7 +1148,7 @@ def test_dependency_filter_logs_one_json_result(monkeypatch):
     dependency_logs = [
         message
         for message in log_messages
-        if message.startswith("capability_package_dependency_checked ")
+        if message.startswith("[Device Resolver] capability_package_dependency_checked ")
     ]
     assert len(dependency_logs) == 1
     result = json_module.loads(dependency_logs[0].split("result=", 1)[1])
@@ -1133,7 +1304,7 @@ def test_task_spec_builder_synthesizes_missing_sample_values_once_per_capability
     assert legacy_schema["enabled"]["sampleValue"] is False
     assert legacy_schema["empty"]["sampleValue"] is None
     assert warnings == [
-        "output_schema_sample_value_fallback "
+        "[TaskSpec Builder] output_schema_sample_value_fallback "
         "capability_id=LegacyOutputSchema fallback_count=5"
     ]
 
@@ -1458,6 +1629,43 @@ def test_compact_dsl_profile_builds_isolated_prompt():
     assert "Generation context JSON:" in system_prompt
 
 
+@pytest.mark.parametrize("mode", ["create", "edit", "compact"])
+def test_repair_prompt_inherits_initial_mode_and_contains_errors(mode):
+    task_spec = TaskSpecBuilder().build(
+        user_query="天气卡片",
+        size="2x4",
+        effective_bindings=[],
+        effective_data_capabilities=[],
+        event_candidates=[],
+        asset_candidates=[],
+    )
+    profile = A2UIProtocolRegistry("a2ui-form-rom6.0-v1").get_profile()
+    previous_genui = None
+    if mode == "edit":
+        previous_genui = "old-genui"
+    if mode == "compact":
+        profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
+    initial_prompt = PromptBuilder().build(
+        task_spec,
+        profile,
+        previous_genui=previous_genui,
+    )
+
+    repair_prompt = PromptBuilder().build_repair(
+        initial_prompt,
+        "invalid-dsl",
+        ["DSL_REQUIRED_FIELD [genui:2 /updateComponents/root]"],
+    )
+    repair_payload = json_module.loads(repair_prompt[1]["content"])
+
+    assert repair_prompt[0]["content"].startswith(initial_prompt[0]["content"])
+    assert "不可信数据" in repair_prompt[0]["content"]
+    assert repair_payload["originalUserContent"] == initial_prompt[1]["content"]
+    assert repair_payload["invalidGenui"] == "invalid-dsl"
+    assert "/updateComponents/root" in repair_payload["validationErrors"][0]
+    assert "只输出修复后的完整 DSL" in repair_payload["instruction"]
+
+
 def test_a2ui_model_client_returns_mock_dat_without_processing():
     """验证 mock A2UI 直接返回 mock.dat 原始内容。
 
@@ -1509,6 +1717,78 @@ def test_a2ui_model_client_real_mode_forwards_messages(monkeypatch):
     )
 
     assert A2UIModelClient(use_mock=False).generate(messages) == "forwarded"
+
+
+def test_a2ui_model_client_builds_qwen_chatml_prompt():
+    prompt = A2UIModelClient.messages_to_qwen_prompt(
+        [
+            {"role": "system", "content": "rules"},
+            {"role": "user", "content": "weather card"},
+        ]
+    )
+
+    assert prompt == (
+        "<|im_start|>system\nrules<|im_end|>\n"
+        "<|im_start|>user\nweather card<|im_end|>\n"
+        "<|im_start|>assistant\n"
+    )
+
+
+def test_a2ui_model_client_reads_predict_stream(monkeypatch):
+    dsl = '{"createSurface":{"surfaceId":"root"}}'
+    partial = json_module.dumps({"type": "partialText", "text": dsl})
+    final = json_module.dumps(
+        {
+            "type": "finalText",
+            "text": "__last_word___",
+            "inputTokenNum": 10,
+            "generateTokenNum": 5,
+        }
+    )
+    stream = (
+        f"$@START_PREFIX@#{partial}$@END_SUFFIX@#"
+        f"$@START_PREFIX@#{final}$@END_SUFFIX@#"
+    ).encode()
+    captured: dict = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, _exc_type, _exc, _traceback):
+            return False
+
+        @staticmethod
+        def raise_for_status():
+            return None
+
+        @staticmethod
+        def iter_content(chunk_size):
+            assert chunk_size == 4096
+            yield stream[:17]
+            yield stream[17:]
+
+    def fake_post(url, **kwargs):
+        captured["url"] = url
+        captured.update(kwargs)
+        return FakeResponse()
+
+    client = A2UIModelClient(use_mock=False)
+    monkeypatch.setattr(client.settings, "model_url", "https://model.test/predict")
+    monkeypatch.setattr(client.settings, "model_bid", "bid-1")
+    monkeypatch.setattr(client.settings, "model_flow_id", "flow-1")
+    monkeypatch.setattr(client, "calc_sign", lambda **_kwargs: "signature")
+    monkeypatch.setattr(client, "convert_dsl", lambda value: value)
+    monkeypatch.setattr("custom.a2ui_model_client.requests.post", fake_post)
+
+    result = client._generate_from_real_model(
+        [{"role": "user", "content": "weather"}]
+    )
+
+    request_payload = json_module.loads(captured["data"].decode())
+    assert result == dsl
+    assert captured["url"] == "https://model.test/predict?bId=bid-1&flowId=flow-1"
+    assert request_payload["data"]["prompt"].endswith("<|im_start|>assistant\n")
 
 
 def test_a2ui_model_client_isolates_compact_and_a2ui_generators(monkeypatch):
@@ -1598,6 +1878,130 @@ def test_compact_model_client_has_no_artificial_completion_limit():
     assert "stop_when_compact_complete" not in source
 
 
+def test_a2ui_model_client_redacts_repair_prompt_log(tmp_path, monkeypatch):
+    mock_path = tmp_path / "repair.dat"
+    mock_path.write_text("repaired", encoding="utf-8")
+    messages: list[str] = []
+    monkeypatch.setattr(
+        "custom.a2ui_model_client.logger.info",
+        lambda message: messages.append(str(message)),
+    )
+
+    result = A2UIModelClient(
+        use_mock=True,
+        mock_data_path=mock_path,
+    ).generate_repair(
+        [{"role": "user", "content": "sensitive-invalid-dsl"}],
+    )
+
+    assert result == "repaired"
+    assert any("prompt_redacted=true" in message for message in messages)
+    assert all("sensitive-invalid-dsl" not in message for message in messages)
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["", "   ", "a2ui_model_error: request timed out"],
+)
+def test_a2ui_model_client_rejects_output_without_dsl(value):
+    with pytest.raises(A2UIModelGenerationError):
+        require_generated_dsl(value)
+
+
+def test_a2ui_model_client_wraps_transport_exception(monkeypatch):
+    def raise_timeout(_client, _messages):
+        raise requests.exceptions.Timeout("model timeout")
+
+    monkeypatch.setattr(
+        A2UIModelClient,
+        "_generate_from_real_model",
+        raise_timeout,
+    )
+
+    with pytest.raises(A2UIModelGenerationError, match="model generation failed"):
+        A2UIModelClient(use_mock=False).generate([])
+
+
+def _model_failure_request() -> GenerateWidgetCardRequest:
+    return GenerateWidgetCardRequest(
+        uid="test-user",
+        prdVer=APP_VERSION,
+        device={"romVersion": ROM_VERSION_6},
+        userQuery="生成一个静态卡片",
+        title="静态卡片",
+        description="模型失败处理测试",
+    )
+
+
+@pytest.mark.parametrize(
+    "generation_method",
+    ["generate_widget_card_a2ui_form", "generate_widget_card_compact_dsl"],
+)
+@pytest.mark.parametrize("failure_kind", ["empty", "exception"])
+def test_model_failure_skips_validator_and_artifact_store(
+    monkeypatch,
+    generation_method,
+    failure_kind,
+):
+    def fail_generate(_client, _prompt, _profile):
+        if failure_kind == "exception":
+            raise A2UIModelGenerationError("model stream failed")
+        return "   "
+
+    def unexpected_validate(*_args, **_kwargs):
+        pytest.fail("model failure must not enter the validator")
+
+    def unexpected_save(*_args, **_kwargs):
+        pytest.fail("model failure must not save an artifact")
+
+    monkeypatch.setattr(A2UIModelClient, "generate", fail_generate)
+    monkeypatch.setattr(ArtifactValidator, "validate", unexpected_validate)
+    monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
+
+    service = WidgetGenerationService()
+    response = getattr(service, generation_method)(_model_failure_request())
+
+    assert response.status == GenerationStatus.FAILED
+    assert response.errorCode == ErrorCode.A2UI_GENERATION_FAILED.value
+    assert response.artifactUrl == ""
+    assert response.artifactDigest == ""
+    assert response.message == "卡片创建过程遇到问题了，请稍后再试。"
+
+
+def test_repair_model_failure_does_not_validate_or_save_second_result(monkeypatch):
+    settings = get_settings()
+    model_calls: list[int] = []
+    validation_calls: list[str] = []
+
+    def generate_then_fail(_client, _prompt, _profile=None):
+        model_calls.append(len(model_calls) + 1)
+        if len(model_calls) == 1:
+            return "invalid-but-nonempty-dsl"
+        return ""
+
+    def validate_once(_validator, artifact, _profile):
+        validation_calls.append(artifact.genui)
+        return ["DSL_REQUIRED_FIELD [genui:1 /createSurface]"]
+
+    def unexpected_save(*_args, **_kwargs):
+        pytest.fail("repair model failure must not save an artifact")
+
+    monkeypatch.setattr(settings, "enable_artifact_validation", True)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(A2UIModelClient, "generate", generate_then_fail)
+    monkeypatch.setattr(ArtifactValidator, "validate", validate_once)
+    monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
+
+    response = WidgetGenerationService().generate_widget_card_a2ui_form(
+        _model_failure_request()
+    )
+
+    assert model_calls == [1, 2]
+    assert validation_calls == ["invalid-but-nonempty-dsl"]
+    assert response.status == GenerationStatus.FAILED
+    assert response.errorCode == ErrorCode.A2UI_GENERATION_FAILED.value
+
+
 def test_response_planner_returns_structured_status():
     """验证 ResponsePlanner 返回结构化状态对象。
 
@@ -1635,17 +2039,25 @@ def test_retry_controller_retries_when_enabled():
     入参：无。
     出参：无；通过断言验证首次失败后最多重试一次。
     """
-    results = iter(["first", "second"])
+    repair_calls: list[tuple[str, list[str]]] = []
+
+    def repair(value: str, errors: list[str]) -> str:
+        repair_calls.append((value, errors))
+        return "second"
 
     retry_result = RetryController().run(
-        operation=lambda: next(results),
+        operation=lambda: "first",
         validate=lambda value: ["bad"] if value == "first" else [],
         retry_on_validation_failure=True,
+        repair=repair,
     )
 
     assert retry_result.result == "second"
     assert retry_result.retryCount == 1
     assert retry_result.errors == []
+    assert retry_result.initialErrors == ["bad"]
+    assert retry_result.repairAttempted is True
+    assert repair_calls == [("first", ["bad"])]
 
 
 def test_retry_controller_does_not_retry_validation_failure_by_default():
@@ -1665,6 +2077,34 @@ def test_retry_controller_does_not_retry_validation_failure_by_default():
     assert retry_result.result == "first"
     assert retry_result.retryCount == 0
     assert retry_result.errors == ["bad"]
+    assert retry_result.repairAttempted is False
+
+
+def test_retry_controller_saves_second_failure_without_third_call():
+    operation_calls = 0
+    repair_calls = 0
+
+    def operation() -> str:
+        nonlocal operation_calls
+        operation_calls += 1
+        return "first"
+
+    def repair(_value: str, _errors: list[str]) -> str:
+        nonlocal repair_calls
+        repair_calls += 1
+        return "second"
+
+    retry_result = RetryController().run(
+        operation,
+        validate=lambda value: [f"bad-{value}"],
+        retry_on_validation_failure=True,
+        repair=repair,
+    )
+
+    assert operation_calls == 1
+    assert repair_calls == 1
+    assert retry_result.result == "second"
+    assert retry_result.errors == ["bad-second"]
 
 
 def test_artifact_store_returns_structured_save_result(tmp_path, monkeypatch):

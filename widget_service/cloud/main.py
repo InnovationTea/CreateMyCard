@@ -7,6 +7,7 @@ import uuid
 from contextlib import asynccontextmanager, suppress
 
 import uvicorn
+from anyio import to_thread
 from fastapi import FastAPI, Request, Response
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
@@ -18,6 +19,19 @@ from config.config import get_settings
 _MODULE = "[Main]"
 
 
+def configure_anyio_thread_pool() -> int:
+    """配置 Starlette 同步业务处理使用的 AnyIO 默认线程池容量。"""
+    limiter = to_thread.current_default_thread_limiter()
+    previous_tokens = limiter.total_tokens
+    configured_tokens = get_settings().anyio_thread_pool_tokens
+    limiter.total_tokens = configured_tokens
+    logger.info(
+        f"{_MODULE} anyio_thread_pool_configured previous_tokens={previous_tokens} "
+        f"total_tokens={configured_tokens}"
+    )
+    return configured_tokens
+
+
 def create_app() -> FastAPI:
     """创建 FastAPI 应用实例。
 
@@ -27,6 +41,7 @@ def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
         """启动并回收 WebSocket 全局统计打印任务。"""
+        configure_anyio_thread_pool()
         reporter = asyncio.create_task(report_websocket_metrics(websocket_metrics))
         try:
             yield

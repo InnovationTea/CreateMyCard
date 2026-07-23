@@ -31,7 +31,7 @@ curl http://127.0.0.1:8855/health
 
 ## 2. 目录和版本规则
 
-能力清单按 `deviceInfo.prdVer + romVersion` 生成的文件夹名做版本隔离。当前 `romVersion` 暂时统一使用主次版本 `6.0`：
+能力清单由 `cloud/data/capabilities/registry_ranges.json` 统一维护 App/ROM 二维左闭右开区间，目录只作为实际注册表版本：
 
 ```text
 cloud/data/capabilities/{capabilityRegistryVersion}/
@@ -46,7 +46,9 @@ cloud/data/capabilities/{capabilityRegistryVersion}/
 app-11.7.5.205_rom-6.0
 ```
 
-三个接口在请求版本目录不存在且
+当前 App `[11.7.5.205, 12.0.0.0)`、ROM `[6.0, 7.0)` 命中上述目录。App 使用完整数字版本，ROM 从完整 `romVersion` 中抽取主次版本。索引加载时会拒绝倒置区间、App 与 ROM 同时重叠的配置以及不存在的目标目录。
+
+三个接口在版本未命中或目标目录不可用且
 `WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true` 时，统一回退到上述默认能力清单。关闭开关时，第一、第二接口返回空清单/缺失能力，第三接口返回版本不支持。
 
 第一接口的 IDS 安装过滤范围由
@@ -60,7 +62,7 @@ IDS 数据源由 `WIDGET_SERVICE_ENABLE_IDS_MOCK` 显式控制，默认值为 `t
 
 不能再根据 mock 文件是否存在自动选择或切换数据源。
 
-DSL 校验失败重试由 `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY` 控制，默认值为 `false`。关闭时校验失败只记录日志并继续保存首次输出；开启时最多重新生成一次。
+DSL 校验失败重试由 `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY` 控制，默认值为 `false`。关闭时 error 只记录日志并继续保存首次输出；开启时携带非法 DSL 和全部 error 定向修复一次。warning 不触发修复，第二次仍失败时保存第二次输出且不再调用模型。
 
 A2UI 协议 profile 也按文件夹隔离：
 
@@ -77,16 +79,15 @@ cloud/data/protocol_profiles/{protocolProfileId}/
 a2ui-form-rom6.0-v1
 ```
 
-工具入参里可以传：
+协议 Profile 入参仍可传：
 
 ```json
 {
-  "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
   "protocolProfileId": "a2ui-form-rom6.0-v1"
 }
 ```
 
-不传时使用 `.env` 或默认配置。
+`capabilityRegistryVersion` 已从公开请求删除；旧调用方继续传入时会被静默忽略，不能绕过区间匹配。Profile 不传时使用 `.env` 或默认配置。
 
 ## 3. WebSocket 接口
 
@@ -169,8 +170,7 @@ curl http://127.0.0.1:8855/health
       "deviceId": "5e64f3e9-0a80-d719-d689-3c36eca5eeb6",
       "deviceType": "ALN-AL00",
       "romVersion": "CLS-AL30 6.0.0.328"
-    },
-    "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0"
+    }
   }
 }
 ```
@@ -218,8 +218,7 @@ curl http://127.0.0.1:8855/health
       "deviceType": "ALN-AL00",
       "romVersion": "CLS-AL30 6.0.0.328"
     },
-    "dataCapabilityIds": ["ViewWeather", "GetCalendarEvents"],
-    "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0"
+    "dataCapabilityIds": ["ViewWeather", "GetCalendarEvents"]
   }
 }
 ```
@@ -482,7 +481,6 @@ response = service.get_data_capability_schemas(
         dataCapabilityIds=["ViewWeather", "GetCalendarEvents"],
         uid="test-user-001",
         device={"romVersion": "CLS-AL30 6.0.0.328"},
-        capabilityRegistryVersion="app-11.7.5.205_rom-6.0",
     )
 )
 ```
@@ -516,7 +514,7 @@ generate_widget_card(
 5. TaskSpecBuilder 根据 writeResultTo、outputSchema 和候选字段投影生成 TaskSpec.dataModelSchema
 6. PromptBuilder 生成模型输入
 7. A2UIModelClient mock 生成 genui
-8. RetryController 按 `enable_validation_failure_retry` 控制校验失败后是否重试，默认不重试
+8. RetryController 按 `enable_validation_failure_retry` 控制 error 后是否修复一次，默认不修复
 9. ArtifactValidator 校验完整 artifact；最终失败记录日志但不阻断保存和响应
 10. ArtifactStore 保存 artifact，当前为 OBS TODO hook
 11. ResponsePlanner 生成 status 和 message
@@ -929,6 +927,10 @@ build(
 
 用途：构造 A2UI 模型输入。首次生成从 `system_prompt_file` 读取系统提示词；编辑模式从 `edit_system_prompt_file` 读取提示词，通过 `{{CREATE_SYSTEM_PROMPT}}` 组合通用生成规则，并额外把本轮指令、新 TaskSpec 和来源 genui 作为结构化用户数据传入，不传来源 URL。
 
+`build_repair()` 在首次调用实际使用的 system prompt 后追加 `repair_system_prompt_file`，并把首次 user 内容、完整非法 DSL 和全部 error 级错误编码成标准 JSON user 消息。新建、编辑和 Compact DSL 因此分别继承原模式约束。
+
+修复模型调用会对完整 prompt 日志做脱敏，只记录修复类型和错误数量。
+
 ### 8.2 A2UIModelClient.generate
 
 位置：
@@ -946,7 +948,8 @@ generate(task_spec: TaskSpec, protocol_profile: dict, prompt: dict) -> str
 用途：根据 `enable_a2ui_model_mock` 开关选择 A2UI 输出来源。
 
 - 开关为 `true`：直接读取并返回与客户端同目录的 `mock.dat` 原始内容，不做字段替换或结构调整。
-- 开关为 `false`：进入真实模型调用预留方法；当前保留 TODO 并抛出 `NotImplementedError`。
+- 开关为 `false`：标准 A2UI Form 调用 `/predict` 流式接口，Compact DSL 调用其独立流式模型入口。
+- 模型请求异常、流式响应显式错误或最终没有非空 DSL 时抛出模型生成异常；生成服务直接返回 `failed/A2UI_GENERATION_FAILED`，不调用 Validator、RepairController 或 ArtifactStore。
 
 环境变量：
 
@@ -998,7 +1001,7 @@ CardSpec 必填字段、suggestSize、dataBindings 和 writeResultTo 合法
 事件及素材只能使用本次有效能力
 ```
 
-返回空列表表示校验通过；否则返回错误列表。默认记录非阻断错误日志并继续构造、保存首次模型输出，不重新调用模型；`enable_validation_failure_retry=true` 时才会触发最多一次重新生成。
+返回空列表表示没有 error；warning 只记录日志，不触发修复。默认记录非阻断 error 并继续保存首次模型输出；`enable_validation_failure_retry=true` 时才会携带非法 DSL 和错误位置触发一次定向修复。
 
 ### 8.5 RetryController.run
 
@@ -1016,10 +1019,11 @@ run(
     validate: Callable[[str], list[str]],
     *,
     retry_on_validation_failure: bool = False,
+    repair: Callable[[str, list[str]], str] | None = None,
 ) -> RetryResult
 ```
 
-用途：执行生成操作并校验。`retry_on_validation_failure=false` 时校验失败直接返回首次结果；为 `true` 时最多重试 1 次。最终校验错误由生成服务记录，但不阻断后续 artifact 流程。
+用途：执行生成操作并校验。`retry_on_validation_failure=false` 时 error 直接返回首次结果；为 `true` 时通过 `repair` 回调定向修复 1 次并重新校验。第二次仍有 error 时返回第二次结果，不发生第三次调用。最终错误由生成服务记录，但不阻断后续 artifact 流程。
 
 返回：
 
@@ -1027,6 +1031,8 @@ run(
 result       最后一次生成结果
 retryCount   重试次数，0 或 1
 errors       最后一次校验错误
+initialErrors 首次校验错误
+repairAttempted 是否执行过修复
 ```
 
 ## 9. Artifact 和响应方法
@@ -1138,7 +1144,11 @@ WIDGET_SERVICE_ENABLE_ARTIFACT_DOWNLOAD_MOCK
 WIDGET_SERVICE_SOURCE_ARTIFACT_MAX_BYTES
 WIDGET_SERVICE_SOURCE_ARTIFACT_READ_TIMEOUT_SECONDS
 WIDGET_SERVICE_SOURCE_GENUI_MAX_CHARS
+WIDGET_SERVICE_ANYIO_THREAD_POOL_TOKENS
 ```
+
+`WIDGET_SERVICE_ANYIO_THREAD_POOL_TOKENS` 默认值为 `80`，在应用启动时写入 AnyIO
+默认线程限制器，控制 WebSocket 同步业务处理的并发容量。它不改变单次模型调用超时。
 
 常用属性：
 
@@ -1303,7 +1313,7 @@ meta
 ```text
 复制 data/capabilities/app-11.7.5.205_rom-6.0 为新文件夹
 修改 JSON 文件
-请求时传 capabilityRegistryVersion=新文件夹名
+在 data/capabilities/registry_ranges.json 中新增不重叠的 App/ROM 区间并指向新文件夹
 ```
 
 ## 13. 验证命令

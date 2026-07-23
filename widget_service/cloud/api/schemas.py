@@ -154,7 +154,6 @@ class VersionedToolRequest(BaseModel):
     uid: str
     device: DeviceContext
     prdVer: str | None = None
-    capabilityRegistryVersion: str | None = None
     protocolProfileId: str | None = None
 
 

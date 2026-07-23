@@ -152,8 +152,64 @@ def test_websocket_send_disconnect_is_logged_and_not_raised(monkeypatch):
 def _valid_model_output(_self, _prompt, protocol_profile: dict) -> str:
     """为路由集成测试返回对应 profile 的确定性合法模型输出。"""
     if protocol_profile.get("format") == "compact-dsl":
-        return (CLOUD_ROOT / "custom" / "mock.compact-dsl.dat").read_text(
-            encoding="utf-8"
+        compact_rows = [
+            [
+                "root",
+                "Column",
+                {
+                    "width": "matchParent",
+                    "height": 140,
+                    "padding": 12,
+                    "borderRadius": 22,
+                    "clip": True,
+                    "space": 6,
+                    "backgroundColor": "#FFFFFFFF",
+                },
+                ["header", "body", "footer"],
+            ],
+            [
+                "header",
+                "Text",
+                {
+                    "width": 276,
+                    "height": 20,
+                    "content": "Weather",
+                    "fontSize": 16,
+                    "fontWeight": 700,
+                    "fontColor": "#E5000000",
+                    "maxLines": 1,
+                },
+            ],
+            [
+                "body",
+                "Text",
+                {
+                    "width": 276,
+                    "height": 64,
+                    "content": "Static card",
+                    "fontSize": 20,
+                    "fontWeight": 700,
+                    "fontColor": "#E5000000",
+                    "maxLines": 1,
+                },
+            ],
+            [
+                "footer",
+                "Text",
+                {
+                    "width": 276,
+                    "height": 20,
+                    "content": "Ready",
+                    "fontSize": 12,
+                    "fontWeight": 400,
+                    "fontColor": "#99000000",
+                    "maxLines": 1,
+                },
+            ],
+        ]
+        return "\n".join(
+            json.dumps(row, ensure_ascii=False, separators=(",", ":"))
+            for row in compact_rows
         )
 
     rows = [
@@ -714,7 +770,7 @@ def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
     ]
     assert compact_artifact["meta"]["protocolProfileId"] == "compact-dsl-v1"
     assert all(isinstance(row, list) for row in compact_rows)
-    assert any(len(row) == 2 and row[0] == "/title" for row in compact_rows)
+    assert compact_rows[0][0:2] == ["root", "Column"]
 
 
 def test_unknown_prd_version_falls_back_for_first_two_interfaces():
@@ -776,8 +832,8 @@ def test_unknown_prd_version_falls_back_for_first_two_interfaces():
         assert schema["missingCapabilityIds"] == [random_capability_id]
 
 
-def test_explicit_unknown_registry_falls_back_for_first_two_interfaces():
-    """验证显式传入不存在注册表时第一、第二接口也会回退。"""
+def test_legacy_registry_field_is_ignored_for_first_two_interfaces():
+    """验证旧字段不能覆盖 App/ROM 区间选择结果。"""
     client = TestClient(app)
     unknown_version = f"missing-{uuid.uuid4().hex}"
 
@@ -899,9 +955,11 @@ def test_registry_fallback_switch_off_applies_to_all_three_interfaces(monkeypatc
 
 
 def test_third_interface_uses_default_registry_fallback():
-    """验证生成接口的注册表缺失时也使用默认注册表。"""
+    """验证生成接口未命中版本区间时也使用默认注册表。"""
     client = TestClient(app)
     unknown_version = f"missing-{uuid.uuid4().hex}"
+    unknown_prd_ver = f"88.88.{uuid.uuid4().int % 100000}"
+    device_info = {**DEVICE_INFO, "prdVer": unknown_prd_ver}
     with client.websocket_connect("/api/v1/ws/tools/generateWidgetCard") as websocket:
         websocket.send_json(
             _tool_payload(
@@ -916,6 +974,7 @@ def test_third_interface_uses_default_registry_fallback():
                     "candidateAssetIds": [],
                 },
                 "third-default-fallback",
+                device_info=device_info,
             )
         )
         response = _assert_success_envelope(

@@ -20,9 +20,6 @@ from api.schemas import (
 from app.logger import json_for_log, logger, task_logger
 from app.websocket_metrics import websocket_metrics
 from config.config import get_settings
-
-_MODULE = "[WS Router]"
-
 from models.service import (
     WidgetPluginReply,
     WidgetPluginStreamResponse,
@@ -32,6 +29,8 @@ from models.service import (
 )
 from services.capability_registry import CapabilityRegistry
 from services.widget_generation_service import WidgetGenerationService
+
+_MODULE = "[WS Router]"
 
 router = APIRouter(prefix="/api/v1")
 
@@ -95,6 +94,9 @@ def _device_context_from_envelope(
     """
     device_info = envelope.deviceInfo.model_dump(mode="json", exclude_none=True)
     phone_type = device_info.get("phoneType")
+    raw_rom_version = device_info.get("romVersion")
+    if raw_rom_version is None or not str(raw_rom_version).strip():
+        raw_rom_version = get_settings().default_device_rom_version
     return {
         "deviceId": device_info.get("deviceId"),
         "deviceType": phone_type or str(device_info.get("deviceType", "")),
@@ -103,6 +105,7 @@ def _device_context_from_envelope(
         "odid": odid,
         "udid": device_info.get("udid"),
         "romVersion": _pick_device_rom_version(device_info),
+        "_sourceRomVersion": str(raw_rom_version),
         "marketingName": device_info.get("marketingName") or phone_type,
     }
 
@@ -220,15 +223,16 @@ def _build_plugin_stream_response(
     出参：符合华为流处理插件输出参数配置的新包络。
     """
     streaming_text_id = legacy_message.requestId or uuid.uuid4().hex
+    legacy_payload = legacy_message.model_dump(mode="json", exclude_none=True)
     return WidgetPluginStreamResponse(
         errorCode=top_error_code,
         errorMessage=top_error_message,
         reply=WidgetPluginReply(
             streamInfo=WidgetStreamInfo(
-                streamContent=str(legacy_message),
+                streamContent=stream_content,
                 streamingTextId=streaming_text_id,
             ),
-            items=[],
+            items=[legacy_payload],
         ),
     )
 
@@ -344,7 +348,12 @@ async def _serve_operation_websocket(
             heartbeat_task: asyncio.Task | None = None
             metrics.task_started()
             try:
+                device_arguments = arguments.get("device")
+                source_rom_version = None
+                if isinstance(device_arguments, dict):
+                    source_rom_version = device_arguments.pop("_sourceRomVersion", None)
                 request = request_model(**arguments)
+                request.device._source_rom_version = source_rom_version
                 request_log = json_for_log(
                     request.model_dump(
                         mode="json",

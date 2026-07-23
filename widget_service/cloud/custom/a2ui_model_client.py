@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import base64
+import codecs
 import hashlib
 import hmac
 import json
 import time
 import traceback
+from collections.abc import Iterator
 from pathlib import Path
+from urllib.parse import urlencode, urlparse
 
 import json_repair
 import requests
@@ -17,6 +20,22 @@ from services.compact_dsl_protocol import is_compact_dsl
 from utils.base_utils import sts_config
 
 _MODULE = "[A2UI Model]"
+START_PREFIX = "$@START_PREFIX@#"
+END_SUFFIX = "$@END_SUFFIX@#"
+LAST_WORD_TOKEN = "__last_word___"
+
+
+class A2UIModelGenerationError(RuntimeError):
+    """小模型未能产出可交给校验器的非空 DSL。"""
+
+
+def require_generated_dsl(value: object) -> str:
+    """拒绝空输出和历史错误字符串，保证下游只接收 DSL 候选。"""
+    if not isinstance(value, str) or not value.strip():
+        raise A2UIModelGenerationError("model returned empty DSL")
+    if value.lstrip().startswith("a2ui_model_error:"):
+        raise A2UIModelGenerationError("model returned an error instead of DSL")
+    return value
 
 
 class A2UIModelClient:
@@ -44,6 +63,7 @@ class A2UIModelClient:
             settings.enable_a2ui_model_mock if use_mock is None else use_mock
         )
         self.mock_data_path = Path(mock_data_path) if mock_data_path else None
+        self._suppress_prompt_log = False
 
     def generate(
             self,
@@ -57,18 +77,47 @@ class A2UIModelClient:
         - protocol_profile：用于选择协议对应的 mock；真实模型直接消费 prompt。
         出参：A2UI genui JSONL 字符串。
         """
-        logger.info(
-            f"{_MODULE} generate_started use_mock={json_for_log(self.use_mock)} "
-            f"system_prompt={json_for_log(prompt)}"
-        )
+        if self._suppress_prompt_log:
+            logger.info(
+                f"{_MODULE} generate_started use_mock={json_for_log(self.use_mock)} "
+                "prompt_redacted=true"
+            )
+        else:
+            logger.info(
+                f"{_MODULE} generate_started use_mock={json_for_log(self.use_mock)} "
+                f"system_prompt={json_for_log(prompt)}"
+            )
 
-        if self.use_mock:
-            return self._load_mock_data(protocol_profile)
+        try:
+            if self.use_mock:
+                result = self._load_mock_data(protocol_profile)
+            else:
+                profile = protocol_profile or {}
+                if is_compact_dsl(profile):
+                    result = self._generate_compact_from_real_model(prompt)
+                else:
+                    result = self._generate_from_real_model(prompt)
+            return require_generated_dsl(result)
+        except A2UIModelGenerationError:
+            raise
+        except Exception as exc:
+            logger.error(
+                f"{_MODULE} generation_failed exception_type={type(exc).__name__} "
+                f"exception={exc!r} traceback={traceback.format_exc()}"
+            )
+            raise A2UIModelGenerationError("model generation failed") from exc
 
-        profile = protocol_profile or {}
-        if is_compact_dsl(profile):
-            return self._generate_compact_from_real_model(prompt)
-        return self._generate_from_real_model(prompt)
+    def generate_repair(
+        self,
+        prompt: list[dict[str, str]],
+        protocol_profile: dict | None = None,
+    ) -> str:
+        """调用同一模型入口，但不把修复载荷写入日志。"""
+        self._suppress_prompt_log = True
+        try:
+            return self.generate(prompt, protocol_profile)
+        finally:
+            self._suppress_prompt_log = False
 
     def _load_mock_data(self, protocol_profile: dict | None = None) -> str:
         """直接读取当前协议对应的 mock 原始内容。
@@ -93,51 +142,103 @@ class A2UIModelClient:
         )
         return mock_data
 
-    def calc_sign(self, payload, method="POST", path=None, query_params=None):
+    @staticmethod
+    def messages_to_qwen_prompt(messages: list[dict[str, str]]) -> str:
+        """将 OpenAI messages 转为 Qwen ChatML Prompt。"""
+        supported_roles = {
+            "system",
+            "user",
+            "assistant",
+            "tool",
+            "classifier",
+            "web_result",
+        }
+        parts: list[str] = []
+        for message in messages:
+            role = message.get("role")
+            content = message.get("content", "")
+            if role not in supported_roles:
+                raise ValueError(f"不支持的消息角色: {role!r}")
+            if not isinstance(content, str):
+                raise TypeError(
+                    f"消息 content 必须为字符串，role={role!r}, "
+                    f"实际类型={type(content).__name__}"
+                )
+            parts.append(f"<|im_start|>{role}\n{content}<|im_end|>\n")
+        parts.append("<|im_start|>assistant\n")
+        return "".join(parts)
+
+    def calc_sign(
+        self,
+        payload: str,
+        method: str = "POST",
+        path: str | None = None,
+        query_params: dict[str, str] | None = None,
+    ) -> str:
+        """生成模型服务所需的 CLOUDSOA-HMAC-SHA256 签名。"""
         path = path or self.settings.model_path
         appid = self.settings.model_appid
         sign_key = sts_config.get_sts_config("genui.model.secret.key")
+        if not sign_key:
+            raise RuntimeError("未获取到模型签名密钥: genui.model.secret.key")
         if isinstance(sign_key, str):
             sign_key = sign_key.encode("utf-8")
-
-        # 1. 处理请求体：空或 None 时为空字符串
-        if payload is None or payload == '':
-            playload = ''
-        else:
-            playload = payload
-
-        # 2. 处理查询参数：按 key 排序并拼接为 key=value 串
-        if query_params:
-            sorted_keys = sorted(query_params.keys())
-            kv_list = [f"{k}={query_params[k]}" for k in sorted_keys]
-            query_str = '&'.join(kv_list)
-        else:
-            query_str = ''
-
-        # 3. 路径：确保以 '/' 开头
-        if not path.startswith('/'):
-            path = '/' + path
-
-        # 4. 毫秒级时间戳
+        if not path.startswith("/"):
+            path = "/" + path
+        query_params = query_params or {}
+        query_str = "&".join(
+            f"{key}={query_params[key]}" for key in sorted(query_params)
+        )
         timestamp = str(int(time.time() * 1000))
-
-        # 5. 拼接待签名字符串（注意保留原 JS 中可能出现的连续 &）
-        sign_str = f"{method}&{path}&{query_str}&{playload}&appid={appid}&timestamp={timestamp}"
-
-        # 6. HMAC-SHA256 计算并 Base64 编码
+        sign_str = (
+            f"{method}&{path}&{query_str}&{payload}"
+            f"&appid={appid}&timestamp={timestamp}"
+        )
         signature_bytes = hmac.new(
             sign_key,
-            sign_str.encode('utf-8'),
-            hashlib.sha256
+            sign_str.encode("utf-8"),
+            hashlib.sha256,
         ).digest()
-        signature = base64.b64encode(signature_bytes).decode('utf-8')
-
-        # 7. 组装最终的 Authorization 值
-        authorization = (
-            f"CLOUDSOA-HMAC-SHA256 appid={appid}, timestamp={timestamp}, "
+        signature = base64.b64encode(signature_bytes).decode("utf-8")
+        return (
+            f"CLOUDSOA-HMAC-SHA256 appid={appid}, "
+            f"timestamp={timestamp}, "
             f'signature="{signature}"'
         )
-        return authorization
+
+    @staticmethod
+    def iter_predict_events(response: requests.Response) -> Iterator[dict]:
+        """解析 /predict 的自定义流响应协议。"""
+        buffer = ""
+        decoder = codecs.getincrementaldecoder("utf-8")()
+        for chunk in response.iter_content(chunk_size=4096):
+            if not chunk:
+                continue
+            buffer += decoder.decode(chunk)
+            while True:
+                start_index = buffer.find(START_PREFIX)
+                if start_index < 0:
+                    keep_size = len(START_PREFIX) - 1
+                    if len(buffer) > keep_size:
+                        buffer = buffer[-keep_size:]
+                    break
+                if start_index > 0:
+                    buffer = buffer[start_index:]
+                end_index = buffer.find(END_SUFFIX, len(START_PREFIX))
+                if end_index < 0:
+                    break
+                json_text = buffer[len(START_PREFIX):end_index].strip()
+                buffer = buffer[end_index + len(END_SUFFIX):]
+                if not json_text:
+                    continue
+                try:
+                    yield json.loads(json_text)
+                except json.JSONDecodeError:
+                    logger.warning(
+                        f"{_MODULE} stream_json_parse_failed "
+                        f"raw_event={json_for_log(json_text)}"
+                    )
+        decoder.decode(b"", final=True)
 
     def extract_genui_payload(self, text):
         """
@@ -208,161 +309,149 @@ class A2UIModelClient:
         return "\n".join(output_lines)
 
     def _generate_from_real_model(
-            self,
-            messages: list,
-            max_tokens: int = 128000,
-            stream: bool = True,
-            timeout: int = 600,
+        self,
+        messages: list[dict[str, str]],
+        timeout: int = 600,
     ) -> str:
-        """
-        调用小模型接口生成 DSL
-
-        参数：
-            messages     : 对话消息列表，如 [{"role":"user","content":"你好"}]
-            max_tokens   : 最大生成token数
-            stream       : 是否流式
-            timeout      : 请求超时（秒）
-        返回：
-            服务端返回的str字典。
-        """
-        payload = {
-            "model": self.settings.model_name,
-            "messages": messages,
-            "max_tokens": max_tokens,
-            "stream": stream
+        """通过 /predict 流式模型服务生成 A2UI DSL。"""
+        prompt = self.messages_to_qwen_prompt(messages)
+        query_params = {
+            "bId": self.settings.model_bid,
+            "flowId": self.settings.model_flow_id,
         }
-        payload_str = json.dumps(payload, ensure_ascii=False)
-
-        authorization = self.calc_sign(payload_str)
-
+        request_body = {
+            "data": {"prompt": prompt, "stream": True},
+            "param": {
+                "temperature": self.settings.model_temperature,
+                "topkNum": self.settings.model_top_k,
+            },
+        }
+        payload_str = json.dumps(
+            request_body,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        parsed_url = urlparse(self.settings.model_url)
+        authorization = self.calc_sign(
+            payload=payload_str,
+            method="POST",
+            path=parsed_url.path or "/predict",
+            query_params=query_params,
+        )
         headers = {
             "Authorization": authorization,
             "Content-Type": "application/json",
-            "Accept": "text/event-stream"
+            "Accept": "text/event-stream",
         }
-
-        collected_texts = []
-        reasoning_parts = []
-        total_tokens = 0
-        completion_tokens = 0
-        prompt_tokens = 0
+        request_url = f"{self.settings.model_url.rstrip('/')}?{urlencode(query_params)}"
+        collected_texts: list[str] = []
+        final_event: dict | None = None
         first_token_at: float | None = None
-        first_token_latency_ms: float = 0
         start = time.perf_counter()
         try:
             with requests.post(
-                    self.settings.model_url,
-                    data=payload_str,
-                    headers=headers,
-                    timeout=timeout,
-                    stream=True
+                request_url,
+                data=payload_str.encode("utf-8"),
+                headers=headers,
+                timeout=timeout,
+                stream=True,
             ) as response:
-                for line in response.iter_lines(decode_unicode=True):
-                    if line.startswith("data: "):
-                        data = line[6:]
-                        if data == "[DONE]":
-                            break
-                        try:
-                            chunk = json.loads(data)
-                        except json.JSONDecodeError:
+                response.raise_for_status()
+                for event in self.iter_predict_events(response):
+                    event_type = event.get("type")
+                    text = event.get("text", "")
+                    if event_type == "partialText":
+                        if not isinstance(text, str) or not text:
                             continue
-
-                        choices = chunk.get("choices")
-                        if not choices or len(choices) == 0:
-                            # 部分模型在最后一条 chunk 中通过 usage 字段返回 token 统计。
-                            usage = chunk.get("usage")
-                            if isinstance(usage, dict):
-                                total_tokens = usage.get("total_tokens", total_tokens)
-                                completion_tokens = usage.get("completion_tokens", completion_tokens)
-                                prompt_tokens = usage.get("prompt_tokens", prompt_tokens)
-                            continue
-
-                        first_choice = choices[0]
-                        delta = first_choice.get("delta")
-                        if not delta:
-                            continue
-
-                        text = delta.get("content", "")
-                        reasoning = delta.get("reasoning", "")
-                        if first_token_at is None and (text or reasoning):
+                        if first_token_at is None:
                             first_token_at = time.perf_counter()
-                            first_token_latency_ms = round((first_token_at - start) * 1000, 2)
                         collected_texts.append(text)
-                        reasoning_parts.append(reasoning)
+                    elif event_type == "finalText":
+                        final_event = event
+                        has_final_text = isinstance(text, str) and text
+                        if has_final_text and text != LAST_WORD_TOKEN:
+                            collected_texts.append(text)
 
-            content_text = "".join(collected_texts)
-            reason_text = "".join(reasoning_parts)
-            full_text = content_text if content_text else reason_text
+            full_text = "".join(collected_texts)
             duration_ms = round((time.perf_counter() - start) * 1000, 2)
-
-            # 计算生成速度（tokens/s）
+            first_token_latency_ms = (
+                round((first_token_at - start) * 1000, 2)
+                if first_token_at is not None
+                else None
+            )
+            input_tokens = final_event.get("inputTokenNum") if final_event else None
+            completion_tokens = (
+                final_event.get("generateTokenNum") if final_event else None
+            )
+            model_time_ms = final_event.get("modelTime") if final_event else None
             speed_str = "N/A"
-            if first_token_at is not None and completion_tokens > 0:
-                generation_time_sec = (duration_ms - first_token_latency_ms) / 1000.0
+            has_completion_tokens = isinstance(completion_tokens, (int, float))
+            if first_token_latency_ms is not None and has_completion_tokens:
+                generation_time_sec = (duration_ms - first_token_latency_ms) / 1000
                 if generation_time_sec > 0:
                     speed_str = f"{completion_tokens / generation_time_sec:.2f}"
             logger.info(
                 f"{_MODULE} response_received "
-                f"content_preview={full_text} "
+                f"content_preview={json_for_log(full_text)} "
                 f"duration_ms={duration_ms} "
                 f"first_token_latency_ms={first_token_latency_ms} "
-                f"total_tokens={total_tokens} "
+                f"input_tokens={input_tokens} "
                 f"completion_tokens={completion_tokens} "
-                f"prompt_tokens={prompt_tokens}"
-                f"tokens_per_sec={speed_str}"
+                f"model_time_ms={model_time_ms} "
+                f"tokens_per_sec={speed_str} "
+                f"finish_reason={self._event_value(final_event, 'finishReason')} "
+                f"error_code={self._event_value(final_event, 'errorCode')} "
+                f"error_msg={self._event_value(final_event, 'errorMsg')}"
             )
-
-            # 剔除···genui ```内容
+            if final_event and final_event.get("errorCode"):
+                raise RuntimeError(
+                    "model returned error: "
+                    f"code={final_event.get('errorCode')}, "
+                    f"message={final_event.get('errorMsg')}"
+                )
             dsl_text = self.extract_genui_payload(full_text)
-
-            # 纠正 dsl 问题，包括加桌白边和其他问题
             dsl_text = self.convert_dsl(dsl_text)
-
             logger.info(
                 f"{_MODULE} dsl_processed "
-                f"dsl_content={dsl_text}"
+                f"dsl_content={json_for_log(dsl_text)}"
             )
-
             return dsl_text
         except requests.exceptions.Timeout as e:
             logger.error(
                 f"{_MODULE} request_timeout "
-                f"exception_type={type(e).__name__} exception={e!r} "
-                f"traceback={traceback.format_exc()}"
+                f"exception={e!r} traceback={traceback.format_exc()}"
             )
-            error_detail = f"a2ui_model_error: timeout after {timeout}s, {e}"
+            raise A2UIModelGenerationError(f"model request timed out after {timeout}s") from e
         except requests.exceptions.ConnectionError as e:
             logger.error(
                 f"{_MODULE} connection_error "
-                f"exception_type={type(e).__name__} exception={e!r} "
-                f"traceback={traceback.format_exc()}"
+                f"exception={e!r} traceback={traceback.format_exc()}"
             )
-            error_detail = f"a2ui_model_error: connection failed, {e}"
+            raise A2UIModelGenerationError("model connection failed") from e
         except requests.exceptions.HTTPError as e:
             status = e.response.status_code if e.response is not None else "unknown"
             logger.error(
-                f"{_MODULE} http_error "
-                f"status_code={status} "
-                f"exception_type={type(e).__name__} exception={e!r} "
-                f"traceback={traceback.format_exc()}"
+                f"{_MODULE} http_error status_code={status} "
+                f"exception={e!r} traceback={traceback.format_exc()}"
             )
-            error_detail = f"a2ui_model_error: HTTP {status}, {e}"
+            raise A2UIModelGenerationError(f"model HTTP request failed: {status}") from e
         except requests.exceptions.RequestException as e:
             logger.error(
                 f"{_MODULE} request_exception "
-                f"exception_type={type(e).__name__} exception={e!r} "
-                f"traceback={traceback.format_exc()}"
+                f"exception={e!r} traceback={traceback.format_exc()}"
             )
-            error_detail = f"a2ui_model_error: request failed, {e}"
+            raise A2UIModelGenerationError("model request failed") from e
         except Exception as e:
             logger.error(
                 f"{_MODULE} unexpected_error "
                 f"exception_type={type(e).__name__} exception={e!r} "
                 f"traceback={traceback.format_exc()}"
             )
-            error_detail = f"a2ui_model_error: unexpected error, {type(e).__name__}: {e}"
+            raise A2UIModelGenerationError("unexpected model generation error") from e
 
-        return error_detail
+    @staticmethod
+    def _event_value(event: dict | None, key: str) -> object:
+        return event.get(key) if event else None
 
     def _generate_compact_from_real_model(
             self,
@@ -433,17 +522,25 @@ class A2UIModelClient:
                 f"{_MODULE} compact_request_timeout exception={exc!r} "
                 f"traceback={traceback.format_exc()}"
             )
+            raise A2UIModelGenerationError(
+                f"compact model request timed out after {timeout}s"
+            ) from exc
         except requests.exceptions.RequestException as exc:
             logger.error(
                 f"{_MODULE} compact_request_failed exception_type={type(exc).__name__} "
                 f"exception={exc!r} traceback={traceback.format_exc()}"
             )
+            raise A2UIModelGenerationError("compact model request failed") from exc
+        except A2UIModelGenerationError:
+            raise
         except Exception as exc:
             logger.error(
                 f"{_MODULE} compact_unexpected_error exception_type={type(exc).__name__} "
                 f"exception={exc!r} traceback={traceback.format_exc()}"
             )
-        return ""
+            raise A2UIModelGenerationError(
+                "unexpected compact model generation error"
+            ) from exc
 
     @staticmethod
     def _stream_data(raw_line: str | bytes) -> str | None:

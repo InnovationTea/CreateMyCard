@@ -29,11 +29,6 @@
             "minItems": 1,
             "description": "需要加载完整 schema 的数据能力 ID 列表。"
           },
-          "capabilityRegistryVersion": {
-            "type": "string|null",
-            "required": false,
-            "description": "可选能力清单版本；不传时由 deviceInfo.prdVer + ROM 版本推导。目录不存在且回退开关开启时使用默认 205/6.0 注册表。"
-          },
           "protocolProfileId": {
             "type": "string|null",
             "required": false,

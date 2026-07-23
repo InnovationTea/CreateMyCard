@@ -18,7 +18,11 @@ from api.schemas import (
 from app.logger import json_for_log, logger
 from config.config import get_settings
 from core.errors import ErrorCode, GenerationStatus
-from custom.a2ui_model_client import A2UIModelClient
+from custom.a2ui_model_client import (
+    A2UIModelClient,
+    A2UIModelGenerationError,
+    require_generated_dsl,
+)
 from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
 from models.generation import EventAction
 from services.artifact_store import ArtifactStore
@@ -118,7 +122,7 @@ class WidgetGenerationService:
             "request="
             f"{json_for_log(request.model_dump(mode='json', exclude={'uid'}, exclude_none=True))}"
         )
-        # 能力注册表按 prdVer+device.romVersion 文件夹隔离。
+        # 三个公开接口统一按 App/ROM 二维版本区间选择能力注册表。
         try:
             registry = self._capability_registry(request)
         except ValueError as exc:
@@ -513,6 +517,13 @@ class WidgetGenerationService:
         retry_controller = RetryController()
         artifact_id = str(uuid.uuid4())
         compact_operation_error = ""
+        model_call_phase = "initial"
+        if protocol_profile["id"] == COMPACT_DSL_PROTOCOL_PROFILE_ID:
+            repair_prompt_type = "compact"
+        elif source_load_result:
+            repair_prompt_type = "edit"
+        else:
+            repair_prompt_type = "create"
 
         def operation() -> str:
             """执行一次 A2UI 模型生成。
@@ -522,7 +533,9 @@ class WidgetGenerationService:
             """
             nonlocal compact_operation_error
             logger.info(f"{_MODULE} a2ui_model_operation_started")
-            generated = model_client.generate(prompt, protocol_profile)
+            generated = require_generated_dsl(
+                model_client.generate(prompt, protocol_profile)
+            )
             if not compact_dsl:
                 return generated
             if not generated.strip():
@@ -563,6 +576,23 @@ class WidgetGenerationService:
                 f"categories={json_for_log(categories)}"
             )
             return ""
+
+        def repair_genui(invalid_genui: str, validation_errors: list[str]) -> str:
+            """携带首次非法 DSL 和 error 级错误执行一次定向修复。"""
+            nonlocal model_call_phase
+            model_call_phase = "repair"
+            repair_prompt = PromptBuilder().build_repair(
+                prompt,
+                invalid_genui,
+                validation_errors,
+            )
+            logger.info(
+                f"{_MODULE} a2ui_repair_started repair_prompt_type={repair_prompt_type} "
+                f"initial_validation_error_count={len(validation_errors)}"
+            )
+            return require_generated_dsl(
+                model_client.generate_repair(repair_prompt, protocol_profile)
+            )
 
         def validate_genui(genui: str) -> list[str]:
             """校验单次模型输出。
@@ -635,11 +665,57 @@ class WidgetGenerationService:
         retry_on_validation_failure = (
             settings.enable_validation_failure_retry and not compact_dsl
         )
-        retry_result = retry_controller.run(
-            operation,
-            validate_genui,
-            retry_on_validation_failure=retry_on_validation_failure,
-        )
+        try:
+            retry_result = retry_controller.run(
+                operation,
+                validate_genui,
+                retry_on_validation_failure=retry_on_validation_failure,
+                repair=repair_genui,
+            )
+        except A2UIModelGenerationError as exc:
+            latency_by_stage["modelAndValidation"] = self._elapsed_ms(stage_started_at)
+            latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
+            effective_capabilities = {
+                "data": [item.id for item in effective_data_capabilities],
+                "event": [
+                    item.model_dump(mode="json", exclude_none=True)
+                    for item in effective_events
+                ],
+                "asset": [item.id for item in asset_candidates],
+            }
+            logger.error(
+                f"{_MODULE} a2ui_generation_failed phase={model_call_phase} "
+                f"error_code={ErrorCode.A2UI_GENERATION_FAILED.value} "
+                f"exception_type={type(exc).__name__} validation_continued=false "
+                "artifact_saved=false"
+            )
+            response = GenerateWidgetCardResponse(
+                status=GenerationStatus.FAILED,
+                suggestSize=card_spec.suggestSize,
+                message="卡片创建过程遇到问题了，请稍后再试。",
+                removedCapabilities=removed,
+                errorCode=ErrorCode.A2UI_GENERATION_FAILED.value,
+                effectiveCapabilities=effective_capabilities,
+            )
+            self._log_generation_summary(
+                request,
+                protocol_profile_id=protocol_profile["id"],
+                capability_registry_version=registry.version,
+                effective_capabilities=effective_capabilities,
+                removed=removed,
+                status=response.status,
+                error_code=response.errorCode,
+                latency_by_stage=latency_by_stage,
+                retry_count=1 if model_call_phase == "repair" else 0,
+                generation_mode=generation_mode,
+                source_artifact_digest=(
+                    source_load_result.artifact_digest if source_load_result else ""
+                ),
+                source_artifact_url_hash=(
+                    source_load_result.url_hash if source_load_result else ""
+                ),
+            )
+            return response
         genui = retry_result.result
         errors = retry_result.errors
         latency_by_stage["modelAndValidation"] = self._elapsed_ms(stage_started_at)
@@ -648,6 +724,9 @@ class WidgetGenerationService:
             f"{_MODULE} a2ui_generation_completed retry_count={retry_result.retryCount} "
             "validation_failure_retry_enabled="
             f"{json_for_log(retry_on_validation_failure)} "
+            f"initial_validation_error_count={len(retry_result.initialErrors)} "
+            f"repair_attempted={json_for_log(retry_result.repairAttempted)} "
+            f"repair_prompt_type={repair_prompt_type} "
             f"validation_error_count={len(errors)}"
         )
         if compact_dsl and errors:
@@ -885,41 +964,37 @@ class WidgetGenerationService:
         self,
         request,
     ) -> CapabilityRegistry:
-        """按请求版本上下文创建能力注册表。
-
-        入参：
-        - request：包含 capabilityRegistryVersion 和 device 版本字段的请求对象。
-        出参：对应版本的 CapabilityRegistry。
-        """
-        # capabilityRegistryVersion 显式传入时优先使用；
-        # 否则根据 prdVer+device.romVersion 推导能力清单文件夹名。
-        logger.info(
-            f"{_MODULE} capability_registry_building requested_version="
-            f"{request.capabilityRegistryVersion} "
-            f"prd_ver={request.prdVer} "
-            f"device_rom_version={request.device.romVersion}"
-        )
+        """按请求的 App/ROM 二维版本区间创建能力注册表。"""
+        settings = get_settings()
+        requested_app = request.prdVer or settings.default_prd_version
+        requested_rom = request.device._source_rom_version or request.device.romVersion
+        requested_rom = requested_rom or settings.default_device_rom_version
+        normalized_app = CapabilityRegistry.normalize_app_version(requested_app)
+        normalized_rom = CapabilityRegistry.normalize_rom_version(requested_rom)
+        selection_type = "interval"
         try:
             registry = CapabilityRegistry(
-                version=request.capabilityRegistryVersion,
-                app_version=request.prdVer,
-                device_rom_version=request.device.romVersion,
+                app_version=requested_app,
+                device_rom_version=requested_rom,
             )
         except ValueError as exc:
-            settings = get_settings()
             if not settings.enable_default_capability_registry_fallback:
                 raise
             requested_version = self._capability_registry_version_hint(request)
             fallback_version = settings.capability_registry_version
-            if requested_version == fallback_version:
-                raise
             logger.warning(
                 f"{_MODULE} capability_registry_fallback "
                 f"requested_version={requested_version} "
                 f"fallback_version={fallback_version} reason={exc}"
             )
             registry = CapabilityRegistry(version=fallback_version)
-        logger.info(f"{_MODULE} capability_registry_built registry_version={registry.version}")
+            selection_type = "fallback"
+        logger.info(
+            f"{_MODULE} capability_registry_selected requested_app_version={requested_app} "
+            f"requested_rom_version={requested_rom} normalized_app_version={normalized_app} "
+            f"normalized_rom_version={normalized_rom} registry_version={registry.version} "
+            f"selection_type={selection_type}"
+        )
         return registry
 
     def _capability_registry_version_hint(self, request) -> str:
@@ -929,10 +1004,8 @@ class WidgetGenerationService:
         - request：包含 prdVer 和 device.romVersion 的请求对象。
         出参：即使目录不存在也能用于响应和日志的版本文件夹名。
         """
-        if request.capabilityRegistryVersion:
-            return request.capabilityRegistryVersion
         settings = get_settings()
-        return CapabilityRegistry.from_app_rom_versions(
+        return CapabilityRegistry.requested_version_label(
             request.prdVer or settings.default_prd_version,
             request.device.romVersion,
         )

@@ -187,30 +187,6 @@
     "minXiaoyiVersion": "1.0.0"
   },
   {
-    "id": "asset.cloudy",
-    "type": "asset",
-    "src": "resources/base/media/cloudy.png",
-    "description": "云朵组合，彩色图标，适用场景：天气、出行",
-    "sceneTags": [],
-    "minXiaoyiVersion": "1.0.0"
-  },
-  {
-    "id": "asset.cloudy_turning_sunny",
-    "type": "asset",
-    "src": "resources/base/media/cloudy_turning_sunny.png",
-    "description": "小云朵和太阳组合，彩色图标，适用场景：天气、出行",
-    "sceneTags": [],
-    "minXiaoyiVersion": "1.0.0"
-  },
-  {
-    "id": "asset.courier_box",
-    "type": "asset",
-    "src": "resources/base/media/courier_box.png",
-    "description": "快递箱子，彩色图标，适用场景：物流信息、取件提醒",
-    "sceneTags": [],
-    "minXiaoyiVersion": "1.0.0"
-  },
-  {
     "id": "asset.drop_1",
     "type": "asset",
     "src": "resources/base/media/drop_1.svg",
@@ -501,14 +477,6 @@
     "minXiaoyiVersion": "1.0.0"
   },
   {
-    "id": "asset.partly_cloudy",
-    "type": "asset",
-    "src": "resources/base/media/partly_cloudy.png",
-    "description": "云朵在前、太阳在后的组合，彩色图标，适用场景：天气、出行",
-    "sceneTags": [],
-    "minXiaoyiVersion": "1.0.0"
-  },
-  {
     "id": "asset.qrcode",
     "type": "asset",
     "src": "resources/base/media/qrcode.svg",
@@ -517,14 +485,6 @@
       "qrcode",
       "share"
     ],
-    "minXiaoyiVersion": "1.0.0"
-  },
-  {
-    "id": "asset.rain",
-    "type": "asset",
-    "src": "resources/base/media/rain.png",
-    "description": "云朵和雨滴组合，彩色图标，适用场景：天气、出行",
-    "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
   {
@@ -538,14 +498,6 @@
     "minXiaoyiVersion": "1.0.0"
   },
   {
-    "id": "asset.snow",
-    "type": "asset",
-    "src": "resources/base/media/snow.png",
-    "description": "雪花，彩色图标，适用场景：天气、出行",
-    "sceneTags": [],
-    "minXiaoyiVersion": "1.0.0"
-  },
-  {
     "id": "asset.stopwatch_fill",
     "type": "asset",
     "src": "resources/base/media/stopwatch_fill.svg",
@@ -554,14 +506,6 @@
       "time",
       "sport"
     ],
-    "minXiaoyiVersion": "1.0.0"
-  },
-  {
-    "id": "asset.sunny",
-    "type": "asset",
-    "src": "resources/base/media/sunny.png",
-    "description": "太阳，彩色图标，适用场景：天气、出行",
-    "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
   {
@@ -603,34 +547,10 @@
     "minXiaoyiVersion": "1.0.0"
   },
   {
-    "id": "asset.thunder",
-    "type": "asset",
-    "src": "resources/base/media/thunder.png",
-    "description": "云朵和闪电组合，彩色图标，适用场景：天气、出行",
-    "sceneTags": [],
-    "minXiaoyiVersion": "1.0.0"
-  },
-  {
     "id": "asset.thunder_storm",
     "type": "asset",
     "src": "resources/base/media/thunder_storm.svg",
     "description": "下雨和闪电造型组合图标，图形为下雨中带有闪电的造型，适用场景：雷暴预警",
-    "sceneTags": [],
-    "minXiaoyiVersion": "1.0.0"
-  },
-  {
-    "id": "asset.thunderstorm",
-    "type": "asset",
-    "src": "resources/base/media/thunderstorm.png",
-    "description": "云朵、闪电和雨滴组合，彩色图标，适用场景：天气、出行",
-    "sceneTags": [],
-    "minXiaoyiVersion": "1.0.0"
-  },
-  {
-    "id": "asset.tornado",
-    "type": "asset",
-    "src": "resources/base/media/tornado.png",
-    "description": "龙卷风，彩色图标，适用场景：天气、出行",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -667,7 +587,7 @@
   {
     "id": "asset.icon_id",
     "type": "asset",
-    "src": "resources/base/media/icon_id.png",
+    "src": "resources/base/media/icon_id.svg",
     "description": "工牌/ID图标，适用场景：当下日程",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -675,7 +595,7 @@
   {
     "id": "asset.icon_meeting",
     "type": "asset",
-    "src": "resources/base/media/icon_meeting.png",
+    "src": "resources/base/media/icon_meeting.svg",
     "description": "会议图标，适用场景：当下日程",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -683,7 +603,7 @@
   {
     "id": "asset.icon_time",
     "type": "asset",
-    "src": "resources/base/media/icon_time.png",
+    "src": "resources/base/media/icon_time.svg",
     "description": "时间图标，适用场景：当下日程",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -691,7 +611,7 @@
   {
     "id": "asset.icon_watermark",
     "type": "asset",
-    "src": "resources/base/media/icon_watermark.png",
+    "src": "resources/base/media/icon_watermark.svg",
     "description": "水印图标，适用场景：当下日程",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -699,7 +619,7 @@
   {
     "id": "asset.icon_allergy",
     "type": "asset",
-    "src": "resources/base/media/icon_allergy.png",
+    "src": "resources/base/media/icon_allergy.svg",
     "description": "过敏源图标，适用场景：亲人关怀",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -707,7 +627,7 @@
   {
     "id": "asset.icon_call",
     "type": "asset",
-    "src": "resources/base/media/icon_call.png",
+    "src": "resources/base/media/icon_call.svg",
     "description": "电话图标，适用场景：亲人关怀",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -715,7 +635,7 @@
   {
     "id": "asset.icon_high_temperature",
     "type": "asset",
-    "src": "resources/base/media/icon_high_temperature.png",
+    "src": "resources/base/media/icon_high_temperature.svg",
     "description": "高温/温度计图标，适用场景：亲人关怀",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -723,7 +643,7 @@
   {
     "id": "asset.icon_weather1",
     "type": "asset",
-    "src": "resources/base/media/icon_weather1.png",
+    "src": "resources/base/media/icon_weather1.svg",
     "description": "天气/雨伞图标，适用场景：亲人关怀",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -739,7 +659,7 @@
   {
     "id": "asset.icon_timing",
     "type": "asset",
-    "src": "resources/base/media/icon_timing.png",
+    "src": "resources/base/media/icon_timing.svg",
     "description": "计时图标，适用场景：防沉迷",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -747,7 +667,7 @@
   {
     "id": "asset.icon_charge",
     "type": "asset",
-    "src": "resources/base/media/icon_charge.png",
+    "src": "resources/base/media/icon_charge.svg",
     "description": "充电/闪电图标，适用场景：低电模式",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -755,7 +675,7 @@
   {
     "id": "asset.icon_clear",
     "type": "asset",
-    "src": "resources/base/media/icon_clear.png",
+    "src": "resources/base/media/icon_clear.svg",
     "description": "清除图标，适用场景：清理无忧",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -763,7 +683,7 @@
   {
     "id": "asset.icon_earphone",
     "type": "asset",
-    "src": "resources/base/media/icon_earphone.png",
+    "src": "resources/base/media/icon_earphone.svg",
     "description": "耳机图标，适用场景：戴耳机播控",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -771,7 +691,7 @@
   {
     "id": "asset.icon_phone",
     "type": "asset",
-    "src": "resources/base/media/icon_phone.png",
+    "src": "resources/base/media/icon_phone.svg",
     "description": "手机图标，适用场景：专注模式",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -779,7 +699,7 @@
   {
     "id": "asset.icon_car",
     "type": "asset",
-    "src": "resources/base/media/icon_car.png",
+    "src": "resources/base/media/icon_car.svg",
     "description": "汽车/打车图标，适用场景：雨天打车",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -787,23 +707,15 @@
   {
     "id": "asset.icon_time1",
     "type": "asset",
-    "src": "resources/base/media/icon_time1.png",
+    "src": "resources/base/media/icon_time1.svg",
     "description": "时间图标，适用场景：雨天打车",
-    "sceneTags": [],
-    "minXiaoyiVersion": "1.0.0"
-  },
-  {
-    "id": "asset.icon_weathe2",
-    "type": "asset",
-    "src": "resources/base/media/icon_weathe2.png",
-    "description": "天气图标，适用场景：雨天打车",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
   {
     "id": "asset.icon_alarm_clock",
     "type": "asset",
-    "src": "resources/base/media/icon_alarm_clock.png",
+    "src": "resources/base/media/icon_alarm_clock.svg",
     "description": "闹钟图标，适用场景：当下日程",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -811,7 +723,7 @@
   {
     "id": "asset.icon_focus",
     "type": "asset",
-    "src": "resources/base/media/icon_focus.png",
+    "src": "resources/base/media/icon_focus.svg",
     "description": "专注图标，适用场景：专注模式",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -819,7 +731,7 @@
   {
     "id": "asset.icon_schedule",
     "type": "asset",
-    "src": "resources/base/media/icon_schedule.png",
+    "src": "resources/base/media/icon_schedule.svg",
     "description": "日程图标，适用场景：当下日程",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -827,7 +739,7 @@
   {
     "id": "asset.icon_electricity",
     "type": "asset",
-    "src": "resources/base/media/icon_electricity.png",
+    "src": "resources/base/media/icon_electricity.svg",
     "description": "电池图标，适用场景：低电模式",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -835,7 +747,7 @@
   {
     "id": "asset.icon_save_power",
     "type": "asset",
-    "src": "resources/base/media/icon_save_power.png",
+    "src": "resources/base/media/icon_save_power.svg",
     "description": "省电图标，适用场景：低电模式",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -843,7 +755,7 @@
   {
     "id": "asset.icon_alarm_clock1",
     "type": "asset",
-    "src": "resources/base/media/icon_alarm_clock1.png",
+    "src": "resources/base/media/icon_alarm_clock1.svg",
     "description": "闹钟图标，适用场景：睡眠监督",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -851,7 +763,7 @@
   {
     "id": "asset.icon_remind",
     "type": "asset",
-    "src": "resources/base/media/icon_remind.png",
+    "src": "resources/base/media/icon_remind.svg",
     "description": "提醒图标，适用场景：睡眠监督",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -859,7 +771,7 @@
   {
     "id": "asset.icon_sleep",
     "type": "asset",
-    "src": "resources/base/media/icon_sleep.png",
+    "src": "resources/base/media/icon_sleep.svg",
     "description": "睡眠图标，适用场景：睡眠监督",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -867,7 +779,7 @@
   {
     "id": "asset.icon_run",
     "type": "asset",
-    "src": "resources/base/media/icon_run.png",
+    "src": "resources/base/media/icon_run.svg",
     "description": "运动/跑步图标，适用场景：当下日程",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -875,7 +787,7 @@
   {
     "id": "asset.icon_schedule2",
     "type": "asset",
-    "src": "resources/base/media/icon_schedule2.png",
+    "src": "resources/base/media/icon_schedule2.svg",
     "description": "日程图标，适用场景：当下日程",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -883,7 +795,7 @@
   {
     "id": "asset.icon_left",
     "type": "asset",
-    "src": "resources/base/media/icon_left.png",
+    "src": "resources/base/media/icon_left.svg",
     "description": "上一首图标，适用场景：戴耳机播控",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -891,7 +803,7 @@
   {
     "id": "asset.icon_like",
     "type": "asset",
-    "src": "resources/base/media/icon_like.png",
+    "src": "resources/base/media/icon_like.svg",
     "description": "收藏/心形图标，适用场景：戴耳机播控",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -899,7 +811,7 @@
   {
     "id": "asset.icon_music",
     "type": "asset",
-    "src": "resources/base/media/icon_music.png",
+    "src": "resources/base/media/icon_music.svg",
     "description": "音乐图标，适用场景：戴耳机播控",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
@@ -907,7 +819,7 @@
   {
     "id": "asset.icon_right",
     "type": "asset",
-    "src": "resources/base/media/icon_right.png",
+    "src": "resources/base/media/icon_right.svg",
     "description": "下一首图标，适用场景：戴耳机播控",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"

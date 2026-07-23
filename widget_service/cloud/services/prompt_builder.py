@@ -14,15 +14,16 @@ _MODULE = "[Prompt Builder]"
 
 SYSTEM_PROMPT = get_settings().system_prompt
 EDIT_SYSTEM_PROMPT = get_settings().edit_system_prompt
+REPAIR_SYSTEM_PROMPT = get_settings().repair_system_prompt
 
 
 class PromptBuilder:
     def build(
-            self,
-            task_spec: TaskSpec,
-            protocol_profile: dict | None = None,
-            removed_capability_summary: str = "",
-            previous_genui: str | None = None,
+        self,
+        task_spec: TaskSpec,
+        protocol_profile: dict | None = None,
+        removed_capability_summary: str = "",
+        previous_genui: str | None = None,
     ) -> list[dict[str, str]]:
         """构造 A2UI 模型输入。
 
@@ -84,5 +85,32 @@ class PromptBuilder:
             {
                 "role": "user",
                 "content": user_content,
-            }
+            },
+        ]
+
+    def build_repair(
+        self,
+        initial_prompt: list[dict[str, str]],
+        invalid_genui: str,
+        validation_errors: list[str],
+    ) -> list[dict[str, str]]:
+        """基于首次实际提示词构造一次非阻断修复请求。"""
+        if len(initial_prompt) != 2:
+            raise ValueError("Repair prompt requires the initial system and user messages")
+        system_prompt = initial_prompt[0]["content"] + "\n\n" + REPAIR_SYSTEM_PROMPT
+        user_content = json.dumps(
+            {
+                "originalUserContent": initial_prompt[1]["content"],
+                "invalidGenui": invalid_genui,
+                "validationErrors": validation_errors,
+                "instruction": (
+                    "只输出修复后的完整 DSL，不输出解释、补丁、Markdown 或其它内容。"
+                ),
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        return [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content},
         ]

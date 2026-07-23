@@ -34,10 +34,15 @@ class Settings(BaseSettings):
     enable_a2ui_model_mock: bool = True
     system_prompt_file: str = "docs/system_prompt.txt"
     edit_system_prompt_file: str = "docs/edit_system_prompt.txt"
+    repair_system_prompt_file: str = "docs/repair_system_prompt.txt"
     model_appid: str = ""
     model_url: str = ""
     model_path: str = "/"
     model_name: str = ""
+    model_bid: str = ""
+    model_flow_id: str = ""
+    model_temperature: float = 0.4
+    model_top_k: int = 1
     enable_artifact_validation: bool = True
     enable_validation_failure_retry: bool = False
     enable_widget_edit: bool = False
@@ -48,6 +53,7 @@ class Settings(BaseSettings):
     source_genui_max_chars: int = 200_000
     server_host: str = "127.0.0.1"
     server_port: int = 8855
+    anyio_thread_pool_tokens: int = 80
     PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
     WORKSPACE_ROOT: Path = PROJECT_ROOT / "workspace"
     if platform.system() == "Windows":
@@ -97,6 +103,11 @@ class Settings(BaseSettings):
         return self._resolve_repository_file(self.edit_system_prompt_file)
 
     @property
+    def resolved_repair_system_prompt_file(self) -> Path:
+        """获取校验错误修复提示词文件路径。"""
+        return self._resolve_repository_file(self.repair_system_prompt_file)
+
+    @property
     def system_prompt(self) -> str:
         """从配置文件读取首次生成系统提示词。"""
         return self.resolved_system_prompt_file.read_text(encoding="utf-8")
@@ -105,6 +116,11 @@ class Settings(BaseSettings):
     def edit_system_prompt(self) -> str:
         """从配置文件读取编辑模式系统提示词。"""
         return self.resolved_edit_system_prompt_file.read_text(encoding="utf-8")
+
+    @property
+    def repair_system_prompt(self) -> str:
+        """从配置文件读取校验错误修复提示词。"""
+        return self.resolved_repair_system_prompt_file.read_text(encoding="utf-8")
 
     @property
     def resolved_mock_ids_response_path(self) -> Path:

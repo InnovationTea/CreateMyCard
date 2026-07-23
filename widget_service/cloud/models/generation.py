@@ -2,12 +2,14 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
 WidgetSize = Literal["2x2", "2x4"]
 
 
 class DeviceContext(BaseModel):
+    _source_rom_version: str | None = PrivateAttr(default=None)
+
     deviceId: str | None = None
     deviceType: str | None = None
     sysVersion: str | None = None

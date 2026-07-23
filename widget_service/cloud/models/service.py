@@ -221,12 +221,16 @@ class RetryResult(BaseModel):
     - result：最终操作结果。
     - retryCount：实际重试次数。
     - errors：最终校验错误列表。
+    - initialErrors：首次校验错误列表。
+    - repairAttempted：是否执行过修复请求。
     出参：结构化重试结果。
     """
 
     result: str
     retryCount: int
     errors: list[str] = Field(default_factory=list)
+    initialErrors: list[str] = Field(default_factory=list)
+    repairAttempted: bool = False
 
 
 class A2UIPromptProtocolProfile(BaseModel):

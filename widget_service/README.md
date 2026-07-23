@@ -6,17 +6,20 @@ The service follows `docs/AGENTS.md`:
 
 - Main Agent selects candidate capabilities.
 - The first interface applies IDS installed-app matching only to dependency package names listed in `WIDGET_SERVICE_IDS_INSTALLATION_FILTER_PACKAGE_NAMES`; the default list contains only `com.huawei.hmos.health.core`. The generation interface consumes the available list, builds final `CardSpec`, constructs `TaskSpec`, calls the A2UI model client, validates artifact, and returns structured status.
-- Data capabilities, event capabilities, and assets are versioned by `prdVer+romVersion`
-  folder name under `cloud/data/capabilities/`.
+- Data capabilities, event capabilities, and assets are selected by App/ROM left-closed,
+  right-open ranges in `cloud/data/capabilities/registry_ranges.json`.
 - `TaskSpec.dataModelSchema` is projected directly from each capability `outputSchema`: the service reads `type`, `description`, and `sampleValue` from the selected leaf and writes it at `writeResultTo + candidateOutputFields` path. There is no separate data-model mapping file or runtime field-renaming layer.
 - `romVersion` is the only accepted ROM field name. A full value such as `CLS-AL30 6.0.0.328` is normalized to the major/minor version `6.0`.
-- All three interfaces fall back to `app-11.7.5.205_rom-6.0` when the requested registry is missing and `WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true`. The generation interface records the actual fallback version in artifact metadata.
+- All three interfaces currently map App `[11.7.5.205, 12.0.0.0)` and ROM `[6.0, 7.0)` to `app-11.7.5.205_rom-6.0`. An unmatched version falls back to this default when `WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true`.
 - `WIDGET_SERVICE_ENABLE_IDS_MOCK=true` by default. In this mode the service reads only `WIDGET_SERVICE_MOCK_IDS_RESPONSE_PATH`, whose default path is the service-internal `cloud/data/mock/ids_res.json`; a missing or invalid mock produces an empty IDS result and never falls back to remote IDS. When set to `false`, the service ignores the mock and queries only the real remote IDS; remote failure produces an empty result and never falls back to mock.
-- `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY=false` by default. Validation failures are logged without blocking artifact persistence or invoking the model again; setting it to `true` enables at most one regeneration attempt.
-- Create and edit prompts are loaded from `WIDGET_SERVICE_SYSTEM_PROMPT_FILE` and `WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE`. Their defaults are `docs/system_prompt.txt` and `docs/edit_system_prompt.txt` relative to the repository root.
+- `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY=false` by default. Error-level validation failures are logged without blocking artifact persistence; when enabled, the service makes one repair request containing the invalid DSL and all errors. Warnings never trigger repair.
+- Model transport errors, explicit model errors, and empty DSL output return `failed/A2UI_GENERATION_FAILED` immediately. They do not enter validation, repair, or artifact persistence.
+- Create, edit, and repair prompts are loaded from `WIDGET_SERVICE_SYSTEM_PROMPT_FILE`, `WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE`, and `WIDGET_SERVICE_REPAIR_SYSTEM_PROMPT_FILE`. Their defaults are files under the repository `docs/` directory.
 - `WIDGET_SERVICE_ENABLE_ARTIFACT_DOWNLOAD_MOCK=true` by default. Multi-round source artifacts are read only from `cloud/workspace/mock_obs`; missing mock files do not fall back to the network. Set it to `false` to download from the validated HTTPS artifact URL.
 - The WebSocket router logs each received request object as compact standard JSON before protocol normalization. Structured values embedded in other log messages use the same double-quoted JSON format. Sensitive `uid`/`userId`/`callingUid` and `odid` are recursively omitted; `sourceArtifactUrl` is retained in the raw request log.
 - The server logs process-wide WebSocket `active_connections`, cumulative `total_connections`, and `running_tasks` every 10 seconds.
+- Starlette synchronous handlers use the AnyIO worker pool with 80 concurrent tokens by default.
+  Override it with `WIDGET_SERVICE_ANYIO_THREAD_POOL_TOKENS` when deployment capacity requires a different limit.
 - Package filtering emits exactly one summary result per capability-overview request; per-capability dependency-check logs are not emitted.
 - OBS upload is intentionally left as a TODO hook in `ArtifactStore`; remote source artifact reads reuse `utils/download_file_from_url.py`.
 
