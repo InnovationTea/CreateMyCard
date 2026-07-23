@@ -1,0 +1,83 @@
+{
+  "bundleName": "com.omega_w_0823.hmservice",
+  "pluginType": "Cloud",
+  "toolType": "XiaoYiPlugin",
+  "toolName": "getDataCapabilitySchemas",
+  "description": "按数据能力 ID 加载完整 inputSchema、outputSchema、依赖和 DataModel 骨架",
+  "arguments": {
+    "properties": {
+      "dataCapabilityIds": {
+        "type": "Array<String>",
+        "description": "需要加载完整 schema 的数据能力 ID 列表，至少 1 个。",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "String",
+            "description": "完整 schema 的数据能力 ID "
+          }
+        }
+      }
+    },
+    "required": [
+      "dataCapabilityIds"
+    ],
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "streamInfo": {
+        "type": "String",
+        "description": "流式信息"
+      },
+      "items": {
+        "type": "Array",
+        "description": "结构化数据",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "status": {
+            "type": "String",
+            "description": "工具状态"
+          },
+          "tool": {
+            "type": "String",
+            "description": "当前工具名"
+          },
+          "operation": {
+            "type": "String",
+            "description": "本次动作"
+          },
+          "type": {
+            "type": "String",
+            "description": "回复类型"
+          },
+          "errorCode": {
+            "type": "String",
+            "description": "错误码"
+          },
+          "requestId": {
+            "type": "String",
+            "description": "请求ID"
+          },
+          "data": {
+            "type": "String",
+            "description": "工具返回结果"
+          },
+          "error": {
+            "type": "String",
+            "description": "错误内容"
+          }
+        }
+      }
+    },
+    "required": [
+      "streamInfo",
+      "items"
+    ],
+    "type": "object"
+  },
+  "protocol": "WebSocket",
+  "deviceCommand": null,
+  "schemaVersion": "1.0"
+}

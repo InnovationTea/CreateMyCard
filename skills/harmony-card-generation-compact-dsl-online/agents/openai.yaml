@@ -1,4 +1,4 @@
 interface:
-  display_name: "Harmony Compact DSL 卡片"
-  short_description: "编排云侧工具生成 Compact DSL 服务卡片。"
-  default_prompt: "使用 $harmony-card-generation-compact-dsl-online 根据用户需求调用 Compact DSL 卡片工具，并只返回用户话术和真实 genWidgetResult。"
+  display_name: "极简协议桌面卡片"
+  short_description: "仅处理显式指定极简协议的 HarmonyOS 桌面卡片生成请求。"
+  default_prompt: "仅当用户当前请求明确要求使用极简协议或 Compact DSL 生成 HarmonyOS 桌面卡片时，优先且排他地使用 $harmony-card-generation-compact-dsl-online；普通卡片请求不得使用本 skill。调用极简协议工具后，只返回用户话术和真实 genWidgetResult。"

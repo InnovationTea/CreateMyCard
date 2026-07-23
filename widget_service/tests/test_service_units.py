@@ -1710,10 +1710,15 @@ def test_a2ui_model_client_real_mode_forwards_messages(monkeypatch):
     出参：无；通过断言验证消息列表不被协议选择逻辑改写。
     """
     messages = [{"role": "user", "content": "帮我做天气卡片"}]
+
+    def generate(_client, value, profile):
+        assert profile == {}
+        return "forwarded" if value is messages else "changed"
+
     monkeypatch.setattr(
         A2UIModelClient,
         "_generate_from_real_model",
-        lambda self, value: "forwarded" if value is messages else "changed",
+        generate,
     )
 
     assert A2UIModelClient(use_mock=False).generate(messages) == "forwarded"
@@ -1791,44 +1796,44 @@ def test_a2ui_model_client_reads_predict_stream(monkeypatch):
     assert request_payload["data"]["prompt"].endswith("<|im_start|>assistant\n")
 
 
-def test_a2ui_model_client_isolates_compact_and_a2ui_generators(monkeypatch):
-    """Tool 4 uses direct Compact output while Tool 3 keeps the A2UI path."""
-    calls: list[tuple[str, object]] = []
+def test_a2ui_model_client_shares_transport_and_forwards_profile(monkeypatch):
+    """工具 3、4 共用模型传输层，并把各自协议传给后处理。"""
+    calls: list[tuple[object, str]] = []
 
-    def generate_a2ui(_client, messages):
-        calls.append(("a2ui", messages))
-        return "a2ui-output"
+    def generate(_client, messages, profile):
+        calls.append((messages, profile["format"]))
+        return profile["format"]
 
-    def generate_compact(_client, messages):
-        calls.append(("compact", messages))
-        return "compact-output"
-
-    monkeypatch.setattr(
-        A2UIModelClient,
-        "_generate_from_real_model",
-        generate_a2ui,
-    )
-    monkeypatch.setattr(
-        A2UIModelClient,
-        "_generate_compact_from_real_model",
-        generate_compact,
-    )
+    monkeypatch.setattr(A2UIModelClient, "_generate_from_real_model", generate)
     messages = [{"role": "user", "content": "weather card"}]
     a2ui_profile = A2UIProtocolRegistry("a2ui-form-rom6.0-v1").get_profile()
     compact_profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
     client = A2UIModelClient(use_mock=False)
 
-    assert client.generate(messages, a2ui_profile) == "a2ui-output"
-    assert client.generate(messages, compact_profile) == "compact-output"
+    assert client.generate(messages, a2ui_profile) == "a2ui-form"
+    assert client.generate(messages, compact_profile) == "compact-dsl"
     assert calls == [
-        ("a2ui", messages),
-        ("compact", messages),
+        (messages, "a2ui-form"),
+        (messages, "compact-dsl"),
     ]
 
 
 def test_compact_model_client_returns_streamed_ndjson(monkeypatch):
-    """Compact model output is returned directly without A2UI conversion."""
+    """Compact 输出通过共用 /predict 传输层返回，不经过 A2UI 转换。"""
     dsl = '["root","Column",{"width":"matchParent"},[]]'
+    partial = json_module.dumps({"type": "partialText", "text": dsl})
+    final = json_module.dumps(
+        {
+            "type": "finalText",
+            "text": "__last_word___",
+            "inputTokenNum": 10,
+            "generateTokenNum": 5,
+        }
+    )
+    stream = (
+        f"$@START_PREFIX@#{partial}$@END_SUFFIX@#"
+        f"$@START_PREFIX@#{final}$@END_SUFFIX@#"
+    ).encode()
 
     class FakeResponse:
         def __enter__(self):
@@ -1842,15 +1847,17 @@ def test_compact_model_client_returns_streamed_ndjson(monkeypatch):
             return None
 
         @staticmethod
-        def iter_lines(decode_unicode=True):
-            assert decode_unicode is True
-            content_chunk = {"choices": [{"delta": {"content": dsl}}]}
-            yield f"data: {json_module.dumps(content_chunk)}"
-            yield 'data: {"choices":[],"usage":{"total_tokens":120}}'
-            yield "data: [DONE]"
+        def iter_content(chunk_size):
+            assert chunk_size == 4096
+            yield stream[:17]
+            yield stream[17:]
 
     client = A2UIModelClient(use_mock=False)
-    monkeypatch.setattr(client, "calc_sign", lambda _payload: "signature")
+    profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
+    monkeypatch.setattr(client.settings, "model_url", "https://model.test/predict")
+    monkeypatch.setattr(client.settings, "model_bid", "bid-1")
+    monkeypatch.setattr(client.settings, "model_flow_id", "flow-1")
+    monkeypatch.setattr(client, "calc_sign", lambda **_kwargs: "signature")
     monkeypatch.setattr(
         client,
         "convert_dsl",
@@ -1861,8 +1868,9 @@ def test_compact_model_client_returns_streamed_ndjson(monkeypatch):
         lambda *_args, **_kwargs: FakeResponse(),
     )
 
-    result = client._generate_compact_from_real_model(
+    result = client._generate_from_real_model(
         [{"role": "user", "content": "weather"}],
+        profile,
     )
 
     assert result == dsl
@@ -1876,6 +1884,7 @@ def test_compact_model_client_has_no_artificial_completion_limit():
     assert "COMPACT_DSL_MAX_TOKENS" not in source
     assert "max_duration" not in source
     assert "stop_when_compact_complete" not in source
+    assert "_generate_compact_from_real_model" not in source
 
 
 def test_a2ui_model_client_redacts_repair_prompt_log(tmp_path, monkeypatch):
@@ -1909,7 +1918,7 @@ def test_a2ui_model_client_rejects_output_without_dsl(value):
 
 
 def test_a2ui_model_client_wraps_transport_exception(monkeypatch):
-    def raise_timeout(_client, _messages):
+    def raise_timeout(_client, _messages, _profile):
         raise requests.exceptions.Timeout("model timeout")
 
     monkeypatch.setattr(

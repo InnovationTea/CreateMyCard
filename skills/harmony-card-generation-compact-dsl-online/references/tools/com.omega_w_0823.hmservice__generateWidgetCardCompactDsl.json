@@ -1,0 +1,153 @@
+{
+  "bundleName": "com.omega_w_0823.hmservice",
+  "pluginType": "Cloud",
+  "toolType": "XiaoYiPlugin",
+  "toolName": "generateWidgetCardCompactDsl",
+  "description": "提交用户需求和候选计划，首次生成 HarmonyOS Compact DSL 服务卡片 artifact",
+  "arguments": {
+    "properties": {
+      "size": {
+        "type": "String",
+        "description": "主 Agent 建议尺寸，只能为 2x2 或 2x4"
+      },
+      "candidateDataBindings": {
+        "type": "Array",
+        "description": "候选数据能力调用列表；微服务会按注册表和 IDS 状态裁决最终可用项",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "Object",
+            "description": "候选数据能力",
+            "required": [],
+            "properties": {
+              "candidateOutputFields": {
+                "type": "Array<String>",
+                "description": "可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导",
+                "required": [],
+                "properties": {
+                  "ArrayItem": {
+                    "type": "String",
+                    "description": "可选候选展示字段 JSON Pointer"
+                  }
+                }
+              },
+              "arguments": {
+                "type": "Object",
+                "description": "能力入参，只能使用 inputSchema 声明的字段"
+              },
+              "capabilityId": {
+                "type": "String",
+                "description": "能力 ID"
+              },
+              "writeResultTo": {
+                "type": "String",
+                "description": "结果写入路径，必须位于 /data/ 下"
+              }
+            }
+          }
+        }
+      },
+      "candidateEventCandidates": {
+        "type": "Array",
+        "description": "候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "Object",
+            "description": "事件候选，包含 capabilityId 和 action:{call,args}"
+          }
+        }
+      },
+      "userQuery": {
+        "type": "String",
+        "description": "用户明确要求使用极简协议生成桌面卡片的原始需求"
+      },
+      "candidateAssetIds": {
+        "type": "Array<String>",
+        "description": "候选素材 ID 列表",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "String",
+            "description": "候选素材 ID"
+          }
+        }
+      },
+      "title": {
+        "type": "String",
+        "description": "建议写入最终 CardSpec 的非空静态短标题，尽量不超过 8 个字"
+      },
+      "description": {
+        "type": "String",
+        "description": "建议写入最终 CardSpec 的非空静态短概述，尽量不超过 12 个字"
+      },
+      "capabilityRegistryVersion": {
+        "type": "String",
+        "description": "可选能力清单版本；通常省略，由设备版本推导"
+      }
+    },
+    "required": [
+      "userQuery",
+      "title",
+      "description"
+    ],
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "items": {
+        "type": "Array",
+        "description": "结构化数据",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "status": {
+            "type": "String",
+            "description": "工具状态"
+          },
+          "requestId": {
+            "type": "String",
+            "description": "请求 ID"
+          },
+          "operation": {
+            "type": "String",
+            "description": "本次动作"
+          },
+          "errorCode": {
+            "type": "String",
+            "description": "错误码"
+          },
+          "type": {
+            "type": "String",
+            "description": "回复类型"
+          },
+          "data": {
+            "type": "String",
+            "description": "工具返回结果，包含 status、artifactUrl、message 等业务字段"
+          },
+          "error": {
+            "type": "String",
+            "description": "错误内容"
+          },
+          "tool": {
+            "type": "String",
+            "description": "当前工具名"
+          }
+        }
+      },
+      "streamInfo": {
+        "type": "String",
+        "description": "流式信息"
+      }
+    },
+    "required": [
+      "items",
+      "streamInfo"
+    ],
+    "type": "object"
+  },
+  "protocol": "WebSocket",
+  "deviceCommand": null,
+  "schemaVersion": "1.0"
+}
