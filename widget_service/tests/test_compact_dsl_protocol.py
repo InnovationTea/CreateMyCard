@@ -1252,12 +1252,17 @@ class CompactDslFormParityTest(unittest.TestCase):
         )
         rows = [json.loads(line) for line in result.genui.splitlines()]
         component_rows = [row for row in rows if len(row) >= 3]
-        forecast_components = [
-            row
-            for row in component_rows
-            if row[2].get("content")
-            == {"path": "/data/weather/daily/0/temperatureRangeText"}
-        ]
+        target_content = {
+            "path": "/data/weather/daily/0/temperatureRangeText"
+        }
+
+        forecast_components = []
+
+        for row in component_rows:
+            content = row[2].get("content")
+
+            if content == target_content:
+                forecast_components.append(row)
         report = validate_compact_dsl(
             result.genui,
             cardspec,
