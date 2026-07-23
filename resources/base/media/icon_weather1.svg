@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="24px" height="24px" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>ic_weather_mostcloudy</title>
+    <defs>
+        <linearGradient x1="77.6901819%" y1="6.67814371%" x2="41.4269068%" y2="75.6145508%" id="linearGradient-1">
+            <stop stop-color="#FFE466" offset="0%"></stop>
+            <stop stop-color="#FFC322" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="71.1856917%" y1="0%" x2="47.5680176%" y2="57.0520036%" id="linearGradient-2">
+            <stop stop-color="#FFDF5C" offset="0%"></stop>
+            <stop stop-color="#FFC323" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="24.7626828%" y1="25.1583209%" x2="63.9563237%" y2="69.1130392%" id="linearGradient-3">
+            <stop stop-color="#FFFFFF" offset="0%"></stop>
+            <stop stop-color="#D8E5EA" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="68.0853799%" y1="4.88269818%" x2="32.6589357%" y2="82.7499389%" id="linearGradient-4">
+            <stop stop-color="#FFFFFF" stop-opacity="0.738117351" offset="0%"></stop>
+            <stop stop-color="#FFFFFF" stop-opacity="0" offset="100%"></stop>
+        </linearGradient>
+    </defs>
+    <g id="ic_weather_mostcloudy" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g>
+            <g id="分组-copy" transform="translate(16.637034, 10.001053) rotate(5.000000) translate(-16.637034, -10.001053) translate(9.774114, 2.001053)">
+                <path d="M0.847791496,8 C0.847791496,10.694072 3.03176833,12.8780488 5.72584028,12.8780488 C8.41991223,12.8780488 10.6038891,10.694072 10.6038891,8 C10.6038891,5.30592805 8.41991223,3.12195122 5.72584028,3.12195122 C3.03176833,3.12195122 0.847791496,5.30592805 0.847791496,8 L0.847791496,8 Z" id="Path-Copy" fill="url(#linearGradient-1)"></path>
+                <path d="M5.72584028,2.27373675e-13 L5.72584028,1.56097561 M11.3826945,2.34314575 L10.2789181,3.44692219 M13.7258403,8 L12.1648647,8 M5.72584028,16 L5.72584028,14.4390244 M0.0689860274,13.6568542 L1.17276247,12.5530778 M0.0689860274,2.34314575 L1.17276247,3.44692219" id="Combined-Shape" stroke="url(#linearGradient-2)" stroke-width="1.14285714" stroke-linecap="round" stroke-linejoin="round" fill-rule="nonzero"></path>
+            </g>
+            <g id="Group" transform="translate(3.250000, 8.500000)">
+                <path d="M5.695,0 C7.96330498,0 9.92187652,1.30982642 10.8377106,3.20548496 C11.3494024,2.9877232 11.9138374,2.86764706 12.5066667,2.86764706 C14.850195,2.86764706 16.75,4.74410068 16.75,7.05882353 C16.75,9.37354638 14.850195,11.25 12.5066667,11.25 L12.5066667,11.25 L5.739,11.249 L5.695,11.25 C5.68030408,11.25 5.66562115,11.249945 5.65095143,11.2498353 L5.58333333,11.25 C2.48944898,11.1900122 0,8.69465371 0,5.625 C0,2.51839828 2.54973835,0 5.695,0 Z" id="合并形状" fill="url(#linearGradient-3)"></path>
+                <ellipse id="椭圆形-copy" fill="url(#linearGradient-4)" cx="12.5066667" cy="7.05882353" rx="4.24333333" ry="4.19117647"></ellipse>
+            </g>
+            <rect id="矩形" x="0" y="0" width="24" height="24"></rect>
+        </g>
+    </g>
+</svg>

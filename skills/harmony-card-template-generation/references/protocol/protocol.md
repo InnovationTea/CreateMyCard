@@ -34,7 +34,7 @@
 - 组件：`TextInput`、`Toggle`、`Radio`、`CheckboxGroup`、`Select`、`NavContainer`、`Tabs`、`TabContent`、`Web`、`Grid`、`If`
 - 能力/字段：`theme`、`Button.action`、`onAppear`、`onChange`、`onSelect`、`onReachStart`、`onReachEnd`
 - 函数/变量：`setDataModel`、`setAttributes`、`navigate`、`scrollTo`、`sendToAssistant`、`$__widthBreakpoint`、`$__colorMode`
-- 媒体：网络图片、SVG、内联/base64 图片、未声明资源路径、`data:image/*`
+- 媒体：网络图片、内联/base64 SVG 或图片、未声明资源路径、`data:image/*`
 
 ## 事件与函数
 
@@ -74,7 +74,7 @@ Form 仅支持通用事件 `onClick`，其值必须是 EventHandler 数组：
 - 组件动态值使用完整表达式：单值 `"{{ ${/meeting/title} }}"`，拼接 `"{{ ${/meeting/title} + ' 开始' }}"`。
 - 模板循环仅用于 `Row`、`Column`、`List` 的 `children`，模板对象必须包含 `componentId` 和 `path`，可选 `itemVar`、`indexVar`。
 - 模板 `children.path` 指向数组；模板项内可用 `$item/$index` 或自定义变量名，绝对 `${/field}` 解析到根。
-- `Image.src` 和 `styles.backgroundImage` 只使用用户提供或素材库声明的本地 PNG 资源路径；不支持 SVG、网络 URL 或内联/base64 图片。
+- `Image.src` 和 `styles.backgroundImage` 只使用用户提供或素材库声明的本地 SVG/PNG 资源路径；不支持网络 URL 或内联/base64 图片。
 - 没有真实本地资源时，只使用渐变、半透明块、文字字形、`Progress` 或 `Divider` 承载场景表面、状态或分隔。
 
 ## 样式位置

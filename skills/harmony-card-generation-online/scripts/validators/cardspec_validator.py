@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from .base import BaseValidator, expression_like, is_empty_required_value, is_json_pointer, pointer_overlaps
+from .base import (
+    BaseValidator,
+    expression_like,
+    is_empty_required_value,
+    is_json_pointer,
+    pointer_overlaps,
+)
 
 
 class CardSpecValidator(BaseValidator):
@@ -102,7 +108,10 @@ class CardSpecValidator(BaseValidator):
                 actual=extra,
                 expected=top_level_fields,
                 message="CardSpec 包含协议外字段。",
-                fix_hint="CardSpec 只描述宿主标题、概述、推荐尺寸和数据能力契约，不写 DSL 组件或点击行为。",
+                fix_hint=(
+                    "CardSpec 只描述宿主标题、概述、推荐尺寸和数据能力契约，"
+                    "不写 DSL 组件或点击行为。"
+                ),
             )
 
         bindings = cardspec.get("dataBindings")
@@ -123,7 +132,15 @@ class CardSpecValidator(BaseValidator):
         for index, binding in enumerate(bindings):
             pointer = f"/dataBindings/{index}"
             if not isinstance(binding, dict):
-                reporter.add("error", "CARD_REQUIRED_FIELD", "hard", "cardspec", json_pointer=pointer, actual=binding, message="dataBindings[] 必须是 object。")
+                reporter.add(
+                    "error",
+                    "CARD_REQUIRED_FIELD",
+                    "hard",
+                    "cardspec",
+                    json_pointer=pointer,
+                    actual=binding,
+                    message="dataBindings[] 必须是 object。",
+                )
                 continue
             for field in data_binding_required:
                 if field not in binding or is_empty_required_value(binding.get(field)):

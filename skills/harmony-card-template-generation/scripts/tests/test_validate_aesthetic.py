@@ -136,7 +136,7 @@ def add_stack_image_behind_subject(payload: str, *, nested: bool = False) -> str
             {
                 "id": "backgroundImage",
                 "component": "Image",
-                "src": "resources/base/media/icon_weather1.png",
+                "src": "resources/base/media/icon_weather1.svg",
                 "styles": {"width": 146, "height": 146, "objectFit": "cover"},
             },
         ]
@@ -147,7 +147,7 @@ def add_stack_image_behind_subject(payload: str, *, nested: bool = False) -> str
             {
                 "id": "backgroundImage",
                 "component": "Image",
-                "src": "resources/base/media/icon_weather1.png",
+                "src": "resources/base/media/icon_weather1.svg",
                 "styles": {"width": 146, "height": 146, "objectFit": "cover"},
             },
         )
@@ -948,7 +948,7 @@ class AestheticContrastCliTest(unittest.TestCase):
         process, report = run_case(
             build_payload(
                 font_color="#ffffffff",
-                root_styles={"backgroundImage": "resources/base/media/icon_weather1.png"},
+                root_styles={"backgroundImage": "resources/base/media/icon_weather1.svg"},
             )
         )
         self.assertEqual(process.returncode, 1)
@@ -961,7 +961,7 @@ class AestheticContrastCliTest(unittest.TestCase):
         process, report = run_case(
             build_payload(
                 font_color="#ffffffff",
-                root_styles={"backgroundImage": "resources/base/media/icon_weather1.png"},
+                root_styles={"backgroundImage": "resources/base/media/icon_weather1.svg"},
                 container_styles={"backgroundColor": "#ff000000"},
             )
         )
@@ -972,7 +972,7 @@ class AestheticContrastCliTest(unittest.TestCase):
         _, report = run_case(
             build_payload(
                 font_color="#ffffffff",
-                root_styles={"backgroundImage": "resources/base/media/icon_weather1.png"},
+                root_styles={"backgroundImage": "resources/base/media/icon_weather1.svg"},
                 container_styles={
                     "linearGradient": {
                         "direction": "RightBottom",
@@ -990,7 +990,7 @@ class AestheticContrastCliTest(unittest.TestCase):
         payloads = (
             build_payload(
                 font_color="#ffffffff",
-                root_styles={"backgroundImage": "resources/base/media/icon_weather1.png"},
+                root_styles={"backgroundImage": "resources/base/media/icon_weather1.svg"},
                 container_styles={
                     "backgroundColor": "#ff000000",
                     "borderRadius": 73,
@@ -998,7 +998,7 @@ class AestheticContrastCliTest(unittest.TestCase):
             ),
             build_payload(
                 font_color="#ffffffff",
-                root_styles={"backgroundImage": "resources/base/media/icon_weather1.png"},
+                root_styles={"backgroundImage": "resources/base/media/icon_weather1.svg"},
                 component_styles={
                     "backgroundColor": "#ff000000",
                     "borderRadius": 73,
@@ -1071,7 +1071,7 @@ class AestheticContrastCliTest(unittest.TestCase):
     def test_stack_scrim_must_be_visible_and_pure_solid_to_cover_image(self) -> None:
         invalid_scrims = (
             {"visibility": "hidden"},
-            {"backgroundImage": "resources/base/media/icon_watermark.png"},
+            {"backgroundImage": "resources/base/media/icon_watermark.svg"},
             {
                 "linearGradient": {
                     "direction": "RightBottom",

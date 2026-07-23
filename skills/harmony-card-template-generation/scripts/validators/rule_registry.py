@@ -52,7 +52,7 @@ class RuleRegistry:
         asset_doc = self.skill_dir / "references" / "design" / "asset-library.md"
         if asset_doc.exists():
             text = asset_doc.read_text(encoding="utf-8")
-            result.update(re.findall(r"`(resources/base/media/[^`]+\.png)`", text, re.I))
+            result.update(re.findall(r"`(resources/base/media/[^`]+\.(?:svg|png))`", text, re.I))
         return result
 
     def _allowed_color_hex(self) -> set[str]:

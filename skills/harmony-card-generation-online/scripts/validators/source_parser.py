@@ -121,11 +121,23 @@ class SourceParser:
 
     def _build_indexes(self, context: ValidationContext) -> None:
         if len(context.dsl_messages) >= 1:
-            context.create_surface = context.dsl_messages[0].get("createSurface", {}) if isinstance(context.dsl_messages[0], dict) else {}
+            context.create_surface = (
+                context.dsl_messages[0].get("createSurface", {})
+                if isinstance(context.dsl_messages[0], dict)
+                else {}
+            )
         if len(context.dsl_messages) >= 2:
-            context.update_components = context.dsl_messages[1].get("updateComponents", {}) if isinstance(context.dsl_messages[1], dict) else {}
+            context.update_components = (
+                context.dsl_messages[1].get("updateComponents", {})
+                if isinstance(context.dsl_messages[1], dict)
+                else {}
+            )
         if len(context.dsl_messages) >= 3:
-            context.update_data_model = context.dsl_messages[2].get("updateDataModel", {}) if isinstance(context.dsl_messages[2], dict) else {}
+            context.update_data_model = (
+                context.dsl_messages[2].get("updateDataModel", {})
+                if isinstance(context.dsl_messages[2], dict)
+                else {}
+            )
 
         components = context.update_components.get("components")
         if isinstance(components, list):
@@ -154,12 +166,31 @@ class SourceParser:
         self._collect_expressions(context)
         self._collect_template_contexts(context)
 
+    def _contains_expression_marker(self, value: object) -> bool:
+        if not isinstance(value, str):
+            return False
+
+        expression_markers = ("{{", "}}", "${")
+        return any(marker in value for marker in expression_markers)
+
     def _collect_expressions(self, context: ValidationContext) -> None:
         for component in context.components:
-            component_id = component.get("id") if isinstance(component.get("id"), str) else None
+            component_id_value = component.get("id")
+            component_id = (
+                component_id_value if isinstance(component_id_value, str) else None
+            )
+
             for pointer, value in walk_json(component):
-                if isinstance(value, str) and ("{{" in value or "}}" in value or "${" in value):
-                    context.expression_locations.append(("genui", f"/updateComponents/componentsById/{component_id}{pointer}", value, component_id))
+                if not self._contains_expression_marker(value):
+                    continue
+                context.expression_locations.append(
+                    (
+                        "genui",
+                        f"/updateComponents/componentsById/{component_id}{pointer}",
+                        value,
+                        component_id,
+                    )
+                )
 
     def _collect_template_contexts(self, context: ValidationContext) -> None:
         for component in context.components:

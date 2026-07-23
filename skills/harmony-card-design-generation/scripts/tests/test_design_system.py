@@ -7,12 +7,13 @@ import unittest
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parents[2]
+REPO_ROOT = SKILL_DIR.parents[1]
 SCRIPTS_DIR = SKILL_DIR / "scripts"
 FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from design_system import CATALOG_ID, DesignSystem
+from design_system import ASSET_TABLE_PATTERN, CATALOG_ID, DesignSystem
 from validators import ValidationOptions, validate_card
 
 
@@ -99,6 +100,39 @@ class DesignSystemTests(unittest.TestCase):
         plan["regions"][0]["content"]["image"]["value"] = "resources/base/media/not-declared.png"
         codes = {item.code for item in self.system.validate_plan(plan)}
         self.assertIn("DESIGN_PLAN_ASSET_NOT_DECLARED", codes)
+
+    def test_offline_asset_paths_are_synchronized_verbatim(self) -> None:
+        offline_asset_doc = SKILL_DIR.parent / "harmony-card-generation-offline" / "reference" / "design" / "asset-library.md"
+        offline_paths = set(ASSET_TABLE_PATTERN.findall(offline_asset_doc.read_text(encoding="utf-8")))
+        self.assertEqual(self.system.asset_allowlist, offline_paths)
+        actual_paths = {
+            path.relative_to(REPO_ROOT).as_posix()
+            for path in (REPO_ROOT / "resources" / "base" / "media").iterdir()
+            if path.is_file()
+        }
+        self.assertEqual(offline_paths, actual_paths)
+        for skill_name in ("harmony-card-generation-offline", "harmony-card-generation-online"):
+            config_path = SKILL_DIR.parent / skill_name / "scripts" / "rules" / "config" / "asset.json"
+            allowlist = set(json.loads(config_path.read_text(encoding="utf-8"))["allowlist"])
+            self.assertEqual(allowlist, actual_paths)
+
+    def test_declared_svg_asset_is_assembled_without_path_rewrite(self) -> None:
+        plan = copy.deepcopy(next(item for item in self.plans if item["surfaceId"] == "ref-product-stat-tiles"))
+        src = "resources/base/media/earphone_case_16644.svg"
+        plan["regions"][0]["content"]["image"]["value"] = src
+        self.assertEqual(self.system.validate_plan(plan), [])
+
+        dsl, _ = self.system.assemble(plan)
+        components = json.loads(dsl.splitlines()[1])["updateComponents"]["components"]
+        image = next(item for item in components if item.get("component") == "Image")
+        self.assertEqual(image["src"], src)
+
+        reporter = validate_card(
+            dsl_text=dsl,
+            cardspec=plan["cardSpec"],
+            options=ValidationOptions(skill_dir=SKILL_DIR, design_plan=plan),
+        )
+        self.assertFalse(reporter.has_code("ASSET_PATH_NOT_DECLARED"))
 
     def test_card_validator_rejects_manual_component_edit(self) -> None:
         plan = self.plans[0]

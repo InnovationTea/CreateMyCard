@@ -22,7 +22,6 @@ from .effective_capability_validator import EffectiveCapabilityValidator
 from .expression_validator import ExpressionValidator
 from .protocol_validator import ProtocolValidator
 
-
 STATIC_VALIDATORS = [
     ProtocolValidator(),
     ComponentValidator(),

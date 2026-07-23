@@ -55,6 +55,12 @@ python scripts/query_design_system.py --module <module-id> --variant <variant-id
 
 为所有实际 `allowedTokens` 节点选择一个 token。可选节点没有对应内容时直接省略。内容只能填入模块 `slots`，绑定方式必须在 `bindingKinds` 中，静态文本不得超过 `maxChars`。
 
+素材不是自由文本。每次路由都先读取 `references/design/asset-library.md`，按 `description` 检查对象识别、状态、动作和主媒体职责：
+
+- 有明确匹配且布局预算成立时，选择带兼容 `asset` 槽位的模块，并将表内完整 `src` 原样填入；不得自行拼接 `resources/base/media`、猜文件名或改扩展名。
+- 可选素材节点只有在无语义匹配、会挤压受保护内容/动作热区，或用户明确不要图像时才省略。
+- Design Plan 中出现的静态素材必须与素材表某个 `src` 逐字相等；近似文件名也按未声明素材处理。
+
 ## 5. 风格档案
 
 - `neutral-light`：浅色中性表面加一个强调色，适合日程、工具和信息摘要。

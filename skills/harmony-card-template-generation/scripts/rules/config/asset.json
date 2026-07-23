@@ -1,4 +1,4 @@
 {
-  "forbiddenPatterns": ["^https?://", "^data:image/", "base64", "\\.svg$"],
+  "forbiddenPatterns": ["^https?://", "^data:image/", "base64"],
   "allowlist": []
 }

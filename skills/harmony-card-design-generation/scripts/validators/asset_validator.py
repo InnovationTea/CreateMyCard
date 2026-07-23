@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from .base import BaseValidator, is_wrapped_expression, static_expression_value, walk_json
+from .base import BaseValidator, is_wrapped_expression, read_pointer, static_expression_value, walk_json
 
 
 class AssetValidator(BaseValidator):
@@ -38,6 +38,22 @@ class AssetValidator(BaseValidator):
                 )
 
     def _check_asset_value(self, value: Any, pointer: str, forbidden, context, rules, reporter, required: bool) -> None:
+        if isinstance(value, dict) and set(value) == {"path"}:
+            resolved, path = read_pointer(context.data_model, value.get("path"))
+            if resolved and isinstance(path, str):
+                self._check_static_path(path, pointer, forbidden, context, rules, reporter)
+            else:
+                reporter.add(
+                    "error",
+                    "ASSET_PATH_NOT_DECLARED",
+                    "hard",
+                    "genui",
+                    line=2,
+                    json_pointer=pointer,
+                    actual=value,
+                    message="PathBinding 必须在初始 DataModel 中解析为素材库声明的路径。",
+                )
+            return
         if not isinstance(value, str):
             if required:
                 reporter.add("error", "ASSET_PATH_NOT_DECLARED", "hard", "genui", line=2, json_pointer=pointer, actual=value, message="资源路径必须是字符串或完整表达式。")
@@ -72,8 +88,8 @@ class AssetValidator(BaseValidator):
                     line=2,
                     json_pointer=pointer,
                     actual=path,
-                    message="资源路径禁止 SVG、网络 URL、data:image 和 base64。",
-                    fix_hint="使用素材库声明的本地 resources/base/media/*.png。",
+                    message="资源路径禁止网络 URL、data:image 和 base64。",
+                    fix_hint="逐字使用素材库声明的本地 resources/base/media/*.svg 或 *.png 路径。",
                 )
                 return
         # In effective-capability mode the asset allowlist is the filtered

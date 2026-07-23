@@ -18,6 +18,10 @@ STYLE_PROFILES = {"neutral-light", "dark-focus", "ambient-scene", "media-surface
 ALLOWED_CONTAINER_COMPONENTS = {"Row", "Column", "Stack"}
 ALLOWED_ELEMENT_COMPONENTS = {"Text", "Image", "Progress", "Button", "Divider"}
 ALLOWED_FONT_SIZES = {10, 12, 14, 16, 18, 20, 32, 40}
+ASSET_TABLE_PATTERN = re.compile(
+    r"^\|\s*`(resources/base/media/[^`]+\.(?:svg|png))`\s*\|",
+    re.IGNORECASE | re.MULTILINE,
+)
 
 
 @dataclass(frozen=True)
@@ -60,7 +64,7 @@ class DesignSystem:
         self.limits = self.index.get("limits", {})
         asset_doc = skill_dir / "references" / "design" / "asset-library.md"
         asset_text = asset_doc.read_text(encoding="utf-8") if asset_doc.exists() else ""
-        self.asset_allowlist = set(re.findall(r"`(resources/base/media/[^`]+)`", asset_text))
+        self.asset_allowlist = set(ASSET_TABLE_PATTERN.findall(asset_text))
 
     @staticmethod
     def _by_id(items: Any) -> dict[str, dict[str, Any]]:

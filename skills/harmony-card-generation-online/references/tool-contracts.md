@@ -54,8 +54,8 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 - `data` 是 JSON 字符串时，先解析为对象；如果运行环境已将其解析成对象，可直接使用。不要把原始 `data` 字符串展示给用户。
 - `getWidgetCapabilityOverview` 的 `data` 解析后应包含 `dataCapabilities`、`eventCapabilities`、`assetCandidates`，并可选包含 `unavailableCapabilities`；该字段存在时必须是字符串数组，缺失或为 `[]` 时按空集合处理。
 - `getDataCapabilitySchemas` 的 `data` 解析后应包含 `dataCapabilities`、`missingCapabilityIds`。
-- `generateWidgetCard` 的 `data` 解析后应包含业务 `status`、`message`，成功或降级时还应包含真实 `artifactUrl`。`message` 只可在完整 `success` 时作为正常成功说明；其它状态按 `response-policy.md` 使用固定话术。
-- `generateWidgetCard` 业务 `status` 为 `success` 或 `degraded` 且存在真实 `artifactUrl` 时，最终用户回复必须按 `response-policy.md` 输出 `genWidgetResult` JSON 代码块，将 `artifactUrl` 写入 `result` 字段；若 `success` 同时存在由 `unavailableCapabilities`、`missingCapabilityIds` 或 `removedCapabilities` 证明的用户提及数据缺失，也按部分数据不支持回复。
+- `generateWidgetCard` 的 `data` 解析后应包含业务 `status`、`message`，成功或降级时还应包含真实 `artifactUrl`。`message` 只可在完整 `success` 时作为正常成功说明；其它状态按 `references/response-policy.md` 使用固定话术。
+- `generateWidgetCard` 业务 `status` 为 `success` 或 `degraded` 且存在真实 `artifactUrl` 时，最终用户回复必须按 `references/response-policy.md` 输出 `genWidgetResult` JSON 代码块，将 `artifactUrl` 写入 `result` 字段；若 `success` 同时存在由 `unavailableCapabilities`、`missingCapabilityIds` 或 `removedCapabilities` 证明的用户提及数据缺失，也按部分数据不支持回复。
 - 如果没有可解析的 `data`，或 `items[].error` 表示工具失败，按工具调用异常处理，不输出 `genWidgetResult`。
 - 用户可见回复不暴露 `items`、`requestId`、`errorCode`、工具层 `status` 或原始 `data` 字符串。
 
@@ -272,4 +272,4 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 - 整体不支持：`unsupported`。使用固定的整体不支持话术，不输出 `genWidgetResult`。
 - 其它异常：`failed`、工具异常、payload 异常，或成功/降级状态缺少有效 `artifactUrl`。使用固定的其它异常话术，不输出 `genWidgetResult`。
 
-三类固定话术及 `XX` 提炼规则以 `response-policy.md` 为准。
+三类固定话术及 `XX` 提炼规则以 `references/response-policy.md` 为准。

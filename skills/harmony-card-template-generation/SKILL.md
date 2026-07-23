@@ -35,7 +35,7 @@ description: "使用固定布局模板和受控组件变体生成 HarmonyOS A2UI
 - `version` 使用 `v0.9`，`catalogId` 使用 `ohos.a2ui.extended.catalog`。
 - `createSurface.width/height` 与 root `styles.width/height` 使用 `matchParent`；内部 region 使用 manifest 数值预算。
 - CardSpec 只承载静态短 `title`、静态短 `description`、`suggestSize` 和已声明的 `dataBindings`。
-- 不使用网络图、SVG、内联/base64 图、emoji、未声明素材、未声明事件、`theme`、`Button.action` 或 Form 子集外组件。
+- 不使用网络图、内联/base64 SVG、emoji、未声明素材、未声明事件、`theme`、`Button.action` 或 Form 子集外组件；允许素材库声明的本地 SVG/PNG。
 - 不修改模板 ID 体系，不新增第二主问题，不把多个事实重复写进不同槽位。
 
 ## 专项参考

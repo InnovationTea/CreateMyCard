@@ -14,7 +14,7 @@ description: "使用分层卡片设计系统生成 HarmonyOS A2UI Form 服务卡
 3. 对布局的每个 region 运行 `python scripts/query_design_system.py --compatible-modules <layout-id> <region-id>`。只选择返回的精确 footprint 模块。
 4. 对每个模块运行 `python scripts/query_design_system.py --module <module-id> --variant <variant-id>`，为所有实际节点选择 `allowedTokens` 中的 element token，并把 Feature Profile 内容映射到模块槽位。
 5. 需要动态数据时读取 `references/capability/cardspec.md` 和数据能力索引，再只读取命中的 1-2 个能力文件。`2x2` 最多一个数据能力，`2x4` 最多两个。
-6. 需要点击时读取 `references/capability/event-capability/click-event.md`；需要素材时读取 `references/design/asset-library.md`；需要颜色语义时读取 `references/design/color-token-system.md`。未声明能力必须静态降级。
+6. 每次生成都读取 `references/design/asset-library.md`，按内容职责检查对象识别、状态、动作和主媒体是否有匹配素材；命中时必须把表内 `src` 原样写入 `asset` 内容槽位，不得自定义、拼接、改名或替换扩展名。需要点击时读取 `references/capability/event-capability/click-event.md`；需要颜色语义时读取 `references/design/color-token-system.md`。未声明能力必须静态降级。
 7. 按 `references/template-contract.md` 写内部 Design Plan JSON。Design Plan 不向用户展示，也不得包含布局、模块或 element token 未声明的组件、宽高、字号或样式。
 8. 运行 `python scripts/assemble_card.py <design-plan.json> --genui-out <genui.jsonl> --cardspec-out <cardspec.json>`。装配失败时只修改 Design Plan。
 9. 运行 `python scripts/validate_card.py --dsl <genui.jsonl> --cardspec <cardspec.json> --design-plan <design-plan.json> --strict`。首次失败时按诊断修改 Design Plan 并重新装配一次；第二次仍失败则不输出产物。
@@ -29,6 +29,7 @@ description: "使用分层卡片设计系统生成 HarmonyOS A2UI Form 服务卡
 - 每个实际元素节点必须选择模块声明的 token；不得在 Design Plan 中直接写组件类型或尺寸。
 - 所有 `mustKeep` 内容恰好映射一次；删除 `shouldKeep` 时在 `degradations` 中记录内容 ID 和原因。
 - 动作数、数据能力数、素材和文本预算必须同时满足 Feature Profile、布局和模块槽位约束。
+- 素材匹配基于 `references/design/asset-library.md` 的 `description`；命中后优先选择带兼容 `asset` 槽位的模块，并在 Feature Profile 中声明对应 `asset` 内容项和 `assetNeeds`。只有无匹配素材、加入素材会破坏布局预算或用户明确不要图像时才省略。
 
 无合法组合时，依次删除 `shouldKeep`、选择同尺寸更简单布局、尝试 `2x4`。仍不成立时说明需要简化需求，不调用其它 Skill，也不退回自由生成。
 
@@ -39,7 +40,7 @@ description: "使用分层卡片设计系统生成 HarmonyOS A2UI Form 服务卡
 - `createSurface.width/height` 与 root `styles.width/height` 为 `matchParent`。
 - CardSpec 只包含静态短标题、静态短描述、`suggestSize` 和有效 `dataBindings`。
 - 点击事件只写 DSL `onClick`；不写入 CardSpec。
-- 不使用网络图、内联/base64 图、emoji、未声明素材、未声明事件、`theme`、`Button.action` 或 Form 子集外组件。
+- 不使用网络图、内联/base64 图、emoji、未声明素材、未声明事件、`theme`、`Button.action` 或 Form 子集外组件；本地 SVG/PNG 只能使用素材库逐字声明的路径。
 - 不直接编辑装配后的 DSL，不跨模块复制节点，不伪造动态能力。
 
 ## 按需参考

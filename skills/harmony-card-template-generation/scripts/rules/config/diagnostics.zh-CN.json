@@ -21,6 +21,6 @@
   },
   "ASSET_PATH_NOT_DECLARED": {
     "message": "资源路径未在素材库 allowlist 中声明。",
-    "fixHint": "使用 references/design/asset-library.md 中声明的 resources/base/media/*.png，或删除 Image。"
+    "fixHint": "使用 references/design/asset-library.md 中声明的 resources/base/media/*.svg 或 *.png，或删除 Image。"
   }
 }

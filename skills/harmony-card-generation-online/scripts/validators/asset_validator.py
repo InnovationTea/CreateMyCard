@@ -11,7 +11,9 @@ class AssetValidator(BaseValidator):
     name = "asset"
 
     def validate(self, context, rules, reporter) -> None:
-        forbidden = [re.compile(pattern, re.I) for pattern in rules.asset.get("forbiddenPatterns", [])]
+        forbidden = [
+            re.compile(pattern, re.I) for pattern in rules.asset.get("forbiddenPatterns", [])
+        ]
         for component in context.components:
             component_id = component.get("id", "<unknown>")
             component_type = component.get("component")
@@ -37,10 +39,21 @@ class AssetValidator(BaseValidator):
                     required=False,
                 )
 
-    def _check_asset_value(self, value: Any, pointer: str, forbidden, context, rules, reporter, required: bool) -> None:
+    def _check_asset_value(
+        self, value: Any, pointer: str, forbidden, context, rules, reporter, required: bool
+    ) -> None:
         if not isinstance(value, str):
             if required:
-                reporter.add("error", "ASSET_PATH_NOT_DECLARED", "hard", "genui", line=2, json_pointer=pointer, actual=value, message="资源路径必须是字符串或完整表达式。")
+                reporter.add(
+                    "error",
+                    "ASSET_PATH_NOT_DECLARED",
+                    "hard",
+                    "genui",
+                    line=2,
+                    json_pointer=pointer,
+                    actual=value,
+                    message="资源路径必须是字符串或完整表达式。",
+                )
             return
         if is_wrapped_expression(value):
             resolved = static_expression_value(value, context.data_model)
@@ -61,7 +74,9 @@ class AssetValidator(BaseValidator):
             return
         self._check_static_path(value, pointer, forbidden, context, rules, reporter)
 
-    def _check_static_path(self, path: str, pointer: str, forbidden, context, rules, reporter) -> None:
+    def _check_static_path(
+        self, path: str, pointer: str, forbidden, context, rules, reporter
+    ) -> None:
         for pattern in forbidden:
             if pattern.search(path):
                 reporter.add(

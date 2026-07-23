@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 import unittest
 from pathlib import Path
 
 
 SKILL_DIR = Path(__file__).resolve().parents[2]
+REPO_ROOT = SKILL_DIR.parents[1]
 SCRIPTS_DIR = SKILL_DIR / "scripts"
 TEMPLATES_DIR = SKILL_DIR / "assets" / "templates"
+ASSET_LIBRARY = SKILL_DIR / "references" / "design" / "asset-library.md"
+RESOURCE_PATTERN = re.compile(r"resources/base/media/[A-Za-z0-9_.-]+")
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
@@ -37,6 +41,15 @@ class TemplateLibraryTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.index = json.loads((TEMPLATES_DIR / "index.json").read_text(encoding="utf-8"))
+        cls.asset_paths = set(RESOURCE_PATTERN.findall(ASSET_LIBRARY.read_text(encoding="utf-8")))
+
+    def test_asset_library_matches_repository_media(self) -> None:
+        actual_paths = {
+            path.relative_to(REPO_ROOT).as_posix()
+            for path in (REPO_ROOT / "resources" / "base" / "media").iterdir()
+            if path.is_file()
+        }
+        self.assertEqual(self.asset_paths, actual_paths)
 
     def test_index_has_thirteen_unique_templates(self) -> None:
         entries = self.index["templates"]
@@ -69,7 +82,9 @@ class TemplateLibraryTests(unittest.TestCase):
                 self.assertNotIn("data:image", source)
                 self.assertNotIn("http://", source)
                 self.assertNotIn("https://", source)
-                self.assertNotIn(".svg", source.lower())
+                for asset_path in RESOURCE_PATTERN.findall(source):
+                    self.assertIn(asset_path, self.asset_paths)
+                    self.assertTrue((REPO_ROOT / asset_path).is_file())
                 self.assertFalse(any(0x1F300 <= ord(char) <= 0x1FAFF for char in source))
 
     def test_routing_cases_reference_valid_templates_and_styles(self) -> None:
@@ -164,7 +179,7 @@ class TemplateLibraryTests(unittest.TestCase):
         )
         self.assertTrue(reporter.has_code("TEMPLATE_SLOT_TEXT_OVERFLOW"))
 
-    def test_asset_validator_rejects_svg(self) -> None:
+    def test_asset_validator_allows_declared_svg(self) -> None:
         template_id = "meter-side-action"
         template_dir = TEMPLATES_DIR / template_id
         messages = [json.loads(line) for line in (template_dir / "template.genui.jsonl").read_text(encoding="utf-8").splitlines()]
@@ -176,7 +191,22 @@ class TemplateLibraryTests(unittest.TestCase):
             cardspec=cardspec,
             options=ValidationOptions(skill_dir=SKILL_DIR, template_id=template_id),
         )
-        self.assertTrue(reporter.has_code("ASSET_REMOTE_URL_FORBIDDEN"))
+        self.assertFalse(reporter.has_code("ASSET_REMOTE_URL_FORBIDDEN"), reporter.render_text())
+        self.assertFalse(reporter.has_code("ASSET_PATH_NOT_DECLARED"), reporter.render_text())
+
+    def test_asset_validator_rejects_undeclared_svg(self) -> None:
+        template_id = "meter-side-action"
+        template_dir = TEMPLATES_DIR / template_id
+        messages = [json.loads(line) for line in (template_dir / "template.genui.jsonl").read_text(encoding="utf-8").splitlines()]
+        messages[2]["updateDataModel"]["value"]["asset"]["primaryIcon"] = "resources/base/media/not-declared.svg"
+        dsl = "\n".join(json.dumps(item, ensure_ascii=False) for item in messages)
+        cardspec = json.loads((template_dir / "cardspec.json").read_text(encoding="utf-8"))
+        reporter = validate_card(
+            dsl_text=dsl,
+            cardspec=cardspec,
+            options=ValidationOptions(skill_dir=SKILL_DIR, template_id=template_id),
+        )
+        self.assertTrue(reporter.has_code("ASSET_PATH_NOT_DECLARED"), reporter.render_text())
 
 
 if __name__ == "__main__":

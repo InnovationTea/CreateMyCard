@@ -10,7 +10,9 @@ class ProtocolValidator(BaseValidator):
     def validate(self, context, rules, reporter) -> None:
         if not context.dsl_messages:
             return
-        order = rules.protocol.get("messageOrder", ["createSurface", "updateComponents", "updateDataModel"])
+        order = rules.protocol.get(
+            "messageOrder", ["createSurface", "updateComponents", "updateDataModel"]
+        )
         payload_ready = True
         for index, expected in enumerate(order):
             if index >= len(context.dsl_messages):
@@ -42,7 +44,10 @@ class ProtocolValidator(BaseValidator):
                     actual=payload_keys,
                     expected=[expected],
                     message=f"genui 第 {line} 行必须只包含 {expected}。",
-                    fix_hint="按 createSurface -> updateComponents -> updateDataModel 的顺序输出三行 JSONL。",
+                    fix_hint=(
+                        "按 createSurface -> updateComponents -> updateDataModel "
+                        "的顺序输出三行 JSONL。"
+                    ),
                 )
             elif not isinstance(message.get(expected), dict):
                 payload_ready = False
@@ -61,7 +66,13 @@ class ProtocolValidator(BaseValidator):
         create = context.create_surface
         update = context.update_components
         data = context.update_data_model
-        if not payload_ready or not isinstance(create, dict) or not isinstance(update, dict) or not isinstance(data, dict):
+        invalid_conditions = (
+            not payload_ready,
+            not isinstance(create, dict),
+            not isinstance(update, dict),
+            not isinstance(data, dict),
+        )
+        if any(invalid_conditions):
             return
 
         required_by_message = rules.protocol.get("messageRequiredFields", {})
@@ -74,7 +85,9 @@ class ProtocolValidator(BaseValidator):
             required = required_by_message.get(message_name, [])
             non_empty = set(non_empty_by_message.get(message_name, []))
             for field in required:
-                if field not in payload or is_empty_required_value(payload.get(field), empty_collections=field in non_empty):
+                if field not in payload or is_empty_required_value(
+                    payload.get(field), empty_collections=field in non_empty
+                ):
                     reporter.add(
                         "error",
                         "DSL_REQUIRED_FIELD",
@@ -88,7 +101,9 @@ class ProtocolValidator(BaseValidator):
                     )
 
         catalog_id = create.get("catalogId")
-        if not is_empty_required_value(catalog_id) and catalog_id not in set(rules.protocol.get("catalogIds", [])):
+        if not is_empty_required_value(catalog_id) and catalog_id not in set(
+            rules.protocol.get("catalogIds", [])
+        ):
             reporter.add(
                 "error",
                 "DSL_CATALOG_ID_INVALID",
@@ -103,7 +118,10 @@ class ProtocolValidator(BaseValidator):
             )
 
         surface_ids = [create.get("surfaceId"), update.get("surfaceId"), data.get("surfaceId")]
-        if all(not is_empty_required_value(surface_id) for surface_id in surface_ids) and len(set(surface_ids)) != 1:
+        if (
+            all(not is_empty_required_value(surface_id) for surface_id in surface_ids)
+            and len(set(surface_ids)) != 1
+        ):
             reporter.add(
                 "error",
                 "DSL_SURFACE_ID_MISMATCH",
@@ -111,11 +129,16 @@ class ProtocolValidator(BaseValidator):
                 "genui",
                 actual=surface_ids,
                 message="三行 JSONL 的 surfaceId 必须一致。",
-                fix_hint="把 createSurface、updateComponents、updateDataModel 的 surfaceId 改成同一个值。",
+                fix_hint=(
+                    "把 createSurface、updateComponents、updateDataModel "
+                    "的 surfaceId 改成同一个值。"
+                ),
             )
 
         data_path = data.get("path")
-        if not is_empty_required_value(data_path) and (expression_like(data_path) or not is_json_pointer(data_path)):
+        if not is_empty_required_value(data_path) and (
+            expression_like(data_path) or not is_json_pointer(data_path)
+        ):
             reporter.add(
                 "error",
                 "EXPR_FORBIDDEN_FIELD",
@@ -144,7 +167,10 @@ class ProtocolValidator(BaseValidator):
                     actual=extra,
                     expected=sorted(allowed),
                     message="createSurface.styles 只允许外层形状/裁切字段。",
-                    fix_hint="把 backgroundColor、linearGradient、backgroundImage 等背景样式放到 root.styles。",
+                    fix_hint=(
+                        "把 backgroundColor、linearGradient、backgroundImage "
+                        "等背景样式放到 root.styles。"
+                    ),
                 )
 
         # createSurface.width/height 是可选字段：不写才是标准写法，实际尺寸预算由
