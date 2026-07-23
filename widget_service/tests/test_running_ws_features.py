@@ -238,7 +238,8 @@ def test_live_invalid_arguments_plugin_contract():
     assert response["errorMessage"] == ""
     assert legacy_message["type"] == "error"
     assert legacy_message["errorCode"] == "INVALID_ARGUMENTS"
-    assert legacy_message["explanation"] == "当前调用工具参数异常"
+    assert legacy_message["explanation"].startswith("工具参数传入有误")
+    assert legacy_message["explanation"].endswith("报错信息如下")
     assert legacy_message["error"]["details"]
 
 
@@ -265,4 +266,4 @@ def test_live_malformed_json_plugin_contract():
     assert response["reply"]["items"] == []
     assert legacy_message["type"] == "error"
     assert legacy_message["errorCode"] == "INVALID_ARGUMENTS"
-    assert legacy_message["explanation"] == "当前调用工具参数异常"
+    assert legacy_message["explanation"].startswith("工具参数传入有误")

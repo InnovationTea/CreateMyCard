@@ -864,7 +864,8 @@ def test_invalid_arguments_keep_plugin_envelope_successful():
     )
     assert legacy_message["type"] == "error"
     assert legacy_message["errorCode"] == "INVALID_ARGUMENTS"
-    assert legacy_message["explanation"] == "当前调用工具参数异常"
+    assert legacy_message["explanation"].startswith("工具参数传入有误")
+    assert legacy_message["explanation"].endswith("报错信息如下")
     assert legacy_message["error"]["details"]
 
 
@@ -884,7 +885,7 @@ def test_malformed_json_keeps_plugin_envelope_successful():
     assert legacy_message["type"] == "error"
     assert legacy_message["requestId"] is None
     assert legacy_message["errorCode"] == "INVALID_ARGUMENTS"
-    assert legacy_message["explanation"] == "当前调用工具参数异常"
+    assert legacy_message["explanation"].startswith("工具参数传入有误")
 
 
 def test_handler_exception_keeps_plugin_envelope_successful(monkeypatch):
@@ -910,7 +911,7 @@ def test_handler_exception_keeps_plugin_envelope_successful(monkeypatch):
     )
     assert legacy_message["type"] == "error"
     assert legacy_message["errorCode"] == "FAILED"
-    assert legacy_message["explanation"] == "当前调用工具服务异常"
+    assert "未分类的服务异常" in legacy_message["explanation"]
     assert legacy_message["error"]["message"] == "overview failed"
 
 
@@ -1035,7 +1036,7 @@ def test_registry_fallback_switch_off_applies_to_all_three_interfaces(monkeypatc
     assert schema["missingCapabilityIds"] == ["ViewWeather"]
     assert generation["status"] == "unsupported"
     assert generation["errorCode"] == "APP_VERSION_UNSUPPORTED"
-    assert generation_message["explanation"] == "当前设备版本不支持调用此工具"
+    assert "App 或 ROM 版本不在服务支持范围内" in generation_message["explanation"]
 
 
 def test_third_interface_uses_default_registry_fallback():

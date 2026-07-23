@@ -119,7 +119,10 @@ def test_websocket_handler_runs_sync_service_in_threadpool():
                 errorCode="FAILED",
                 error={"message": "failed"},
             ),
-            "当前调用工具服务异常",
+            (
+                "工具执行过程中发生未分类的服务异常，本次调用未成功完成，建议稍后重试。"
+                "报错信息如下"
+            ),
         ),
     ],
 )
@@ -137,25 +140,34 @@ def test_plugin_final_response_uses_legacy_string_and_empty_items(
 
 
 @pytest.mark.parametrize(
-    ("error_code", "expected_explanation"),
+    ("error_code", "expected_fragment"),
     [
-        ("INVALID_ARGUMENTS", "当前调用工具参数异常"),
-        ("APP_VERSION_UNSUPPORTED", "当前设备版本不支持调用此工具"),
-        ("PACKAGE_NOT_INSTALLED", "当前设备缺少工具依赖应用"),
-        ("A2UI_GENERATION_FAILED", "当前调用工具卡片生成异常"),
-        ("VALIDATION_FAILED", "当前调用工具卡片校验异常"),
-        ("ARTIFACT_UPLOAD_FAILED", "当前调用工具产物保存异常"),
-        ("WIDGET_EDIT_DISABLED", "当前调用工具编辑功能未开启"),
-        ("SOURCE_ARTIFACT_INVALID", "当前调用工具来源产物处理异常"),
-        ("TIMEOUT", "当前调用工具执行超时"),
-        ("FAILED", "当前调用工具服务异常"),
+        ("INVALID_ARGUMENTS", "工具参数传入有误"),
+        ("UNKNOWN_CAPABILITY", "包含未注册的能力 ID"),
+        ("WRITE_RESULT_CONFLICT", "写入路径存在冲突"),
+        ("NO_EFFECTIVE_CAPABILITY", "没有可用于生成卡片的有效能力"),
+        ("APP_VERSION_UNSUPPORTED", "App 或 ROM 版本不在服务支持范围内"),
+        ("PACKAGE_NOT_INSTALLED", "未安装能力依赖的应用"),
+        ("A2UI_GENERATION_FAILED", "卡片生成模型调用失败"),
+        ("VALIDATION_FAILED", "存在 error 级校验问题"),
+        ("ARTIFACT_UPLOAD_FAILED", "产物保存或上传失败"),
+        ("WIDGET_EDIT_DISABLED", "没有开启卡片编辑功能"),
+        ("SOURCE_ARTIFACT_NOT_FOUND", "没有找到待编辑的来源卡片产物"),
+        ("SOURCE_ARTIFACT_DOWNLOAD_FAILED", "来源卡片产物下载失败"),
+        ("SOURCE_ARTIFACT_SCHEMA_UNSUPPORTED", "版本或结构不受当前服务支持"),
+        ("SOURCE_ARTIFACT_INVALID", "来源卡片产物内容无效或不完整"),
+        ("TIMEOUT", "工具执行超时"),
+        ("FAILED", "未分类的服务异常"),
     ],
 )
 def test_plugin_error_explanation_distinguishes_business_failures(
     error_code,
-    expected_explanation,
+    expected_fragment,
 ):
-    assert _error_explanation(error_code) == expected_explanation
+    explanation = _error_explanation(error_code)
+
+    assert expected_fragment in explanation
+    assert explanation.endswith("报错信息如下")
 
 
 def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):

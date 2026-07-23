@@ -42,21 +42,65 @@ GENERATION_OPERATIONS = frozenset(
     }
 )
 
-PARAMETER_ERROR_CODES = frozenset(
-    {
-        ErrorCode.INVALID_ARGUMENTS.value,
-        ErrorCode.UNKNOWN_CAPABILITY.value,
-        ErrorCode.WRITE_RESULT_CONFLICT.value,
-        ErrorCode.NO_EFFECTIVE_CAPABILITY.value,
-    }
-)
-SOURCE_ARTIFACT_ERROR_CODES = frozenset(
-    {
-        ErrorCode.SOURCE_ARTIFACT_NOT_FOUND.value,
-        ErrorCode.SOURCE_ARTIFACT_DOWNLOAD_FAILED.value,
-        ErrorCode.SOURCE_ARTIFACT_SCHEMA_UNSUPPORTED.value,
-        ErrorCode.SOURCE_ARTIFACT_INVALID.value,
-    }
+ERROR_EXPLANATIONS = {
+    ErrorCode.INVALID_ARGUMENTS.value: (
+        "工具参数传入有误，请检查必填字段、字段类型和字段取值后重新调用。报错信息如下"
+    ),
+    ErrorCode.UNKNOWN_CAPABILITY.value: (
+        "工具参数中包含未注册的能力 ID，请重新获取能力概述，并仅使用返回的能力 ID。报错信息如下"
+    ),
+    ErrorCode.WRITE_RESULT_CONFLICT.value: (
+        "多个数据能力的写入路径存在冲突，请调整 writeResultTo，"
+        "避免路径相同、嵌套或相互覆盖。报错信息如下"
+    ),
+    ErrorCode.NO_EFFECTIVE_CAPABILITY.value: (
+        "本次请求没有可用于生成卡片的有效能力，请检查候选能力、参数和设备可用性后重新规划。报错信息如下"
+    ),
+    ErrorCode.APP_VERSION_UNSUPPORTED.value: (
+        "当前设备的 App 或 ROM 版本不在服务支持范围内，请停止继续生成，并向用户说明版本暂不支持。"
+        "报错信息如下"
+    ),
+    ErrorCode.PACKAGE_NOT_INSTALLED.value: (
+        "当前设备未安装能力依赖的应用，请移除对应候选能力，或提示用户安装依赖应用后重试。报错信息如下"
+    ),
+    ErrorCode.A2UI_GENERATION_FAILED.value: (
+        "卡片生成模型调用失败，或模型没有返回有效 DSL；"
+        "本次没有可继续处理的卡片结果，建议稍后重新调用。"
+        "报错信息如下"
+    ),
+    ErrorCode.VALIDATION_FAILED.value: (
+        "模型生成的卡片 DSL 存在 error 级校验问题，且当前结果未通过修复校验，"
+        "请结合错误位置重新生成。"
+        "报错信息如下"
+    ),
+    ErrorCode.ARTIFACT_UPLOAD_FAILED.value: (
+        "卡片内容已经生成，但产物保存或上传失败，当前没有可用的 artifactUrl，"
+        "建议稍后重新调用。报错信息如下"
+    ),
+    ErrorCode.WIDGET_EDIT_DISABLED.value: (
+        "当前服务没有开启卡片编辑功能，无法处理 sourceArtifactUrl；"
+        "请改为新建卡片，或开启编辑功能后重试。"
+        "报错信息如下"
+    ),
+    ErrorCode.SOURCE_ARTIFACT_NOT_FOUND.value: (
+        "没有找到待编辑的来源卡片产物，请检查 sourceArtifactUrl 是否正确，"
+        "或重新创建卡片。报错信息如下"
+    ),
+    ErrorCode.SOURCE_ARTIFACT_DOWNLOAD_FAILED.value: (
+        "待编辑的来源卡片产物下载失败，请检查 sourceArtifactUrl 的可访问性后重试。报错信息如下"
+    ),
+    ErrorCode.SOURCE_ARTIFACT_SCHEMA_UNSUPPORTED.value: (
+        "待编辑的来源卡片产物版本或结构不受当前服务支持，请重新创建卡片，不要继续沿用该产物。报错信息如下"
+    ),
+    ErrorCode.SOURCE_ARTIFACT_INVALID.value: (
+        "待编辑的来源卡片产物内容无效或不完整，请检查来源产物，或重新创建卡片。报错信息如下"
+    ),
+    ErrorCode.TIMEOUT.value: (
+        "工具执行超时，本次调用未在限定时间内完成，建议稍后重试；不要把本次结果当作成功结果。报错信息如下"
+    ),
+}
+DEFAULT_ERROR_EXPLANATION = (
+    "工具执行过程中发生未分类的服务异常，本次调用未成功完成，建议稍后重试。报错信息如下"
 )
 
 
@@ -209,28 +253,10 @@ def _build_plugin_stream_response(
 
 
 def _error_explanation(error_code: str) -> str:
-    """根据业务错误码生成放在 streamContent 最前面的中文异常类型说明。"""
+    """把内部错误码转换成主 Agent 可理解、可采取下一步动作的异常说明。"""
     if not error_code:
         return ""
-    if error_code in PARAMETER_ERROR_CODES:
-        return "当前调用工具参数异常"
-    if error_code == ErrorCode.APP_VERSION_UNSUPPORTED.value:
-        return "当前设备版本不支持调用此工具"
-    if error_code == ErrorCode.PACKAGE_NOT_INSTALLED.value:
-        return "当前设备缺少工具依赖应用"
-    if error_code == ErrorCode.A2UI_GENERATION_FAILED.value:
-        return "当前调用工具卡片生成异常"
-    if error_code == ErrorCode.VALIDATION_FAILED.value:
-        return "当前调用工具卡片校验异常"
-    if error_code == ErrorCode.ARTIFACT_UPLOAD_FAILED.value:
-        return "当前调用工具产物保存异常"
-    if error_code == ErrorCode.WIDGET_EDIT_DISABLED.value:
-        return "当前调用工具编辑功能未开启"
-    if error_code in SOURCE_ARTIFACT_ERROR_CODES:
-        return "当前调用工具来源产物处理异常"
-    if error_code == ErrorCode.TIMEOUT.value:
-        return "当前调用工具执行超时"
-    return "当前调用工具服务异常"
+    return ERROR_EXPLANATIONS.get(error_code, DEFAULT_ERROR_EXPLANATION)
 
 
 async def _send_websocket_json(

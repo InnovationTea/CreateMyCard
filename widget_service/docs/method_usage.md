@@ -113,6 +113,12 @@ WS /api/v1/ws/tools/generateWidgetCardCompactDsl
 固定为空数组。业务错误码、异常详情和业务响应只放在 final 帧的 `streamContent` 中。
 异常内容以中文类型说明开头，后面保留完整 `str(legacy_message)`，调用方应继续读取其中
 的 `status`、`errorCode`、`error` 和 `data`，不能用插件顶层字段判断业务成功与否。
+中文说明面向主 Agent，包含异常原因和建议动作。例如：
+
+```text
+工具参数传入有误，请检查必填字段、字段类型和字段取值后重新调用。报错信息如下：
+type='error' ... errorCode='INVALID_ARGUMENTS' error={...}
+```
 
 连接成功后客户端直接发送业务消息，服务不再返回 ready 帧。统一消息最小结构：
 
