@@ -953,13 +953,19 @@ cloud/custom/a2ui_model_client.py
 签名：
 
 ```python
-generate(task_spec: TaskSpec, protocol_profile: dict, prompt: dict) -> str
+generate(
+    prompt: list[dict[str, str]],
+    protocol_profile: dict | None = None,
+) -> str
 ```
 
-用途：根据 `enable_a2ui_model_mock` 开关选择 A2UI 输出来源。
+用途：通过统一入口生成 A2UI DSL。先根据 `enable_a2ui_model_mock` 判断是否使用 mock；
+真实模型模式再根据 `a2ui_model_backend` 选择 MEP 或 llmclient。
 
 - 开关为 `true`：直接读取并返回与客户端同目录的 `mock.dat` 原始内容，不做字段替换或结构调整。
-- 开关为 `false`：标准 A2UI Form 调用 `/predict` 流式接口，Compact DSL 调用其独立流式模型入口。
+- 开关为 `false` 且 backend 为 `mep`：使用已有 `/predict` 流式实现。
+- 开关为 `false` 且 backend 为 `llmclient`：调用 `cloud/custom/llmclient.py`，聚合其流式 token，
+  再执行与 MEP 相同的代码块提取和 DSL 后处理。
 - 模型请求异常、流式响应显式错误或最终没有非空 DSL 时抛出模型生成异常。模型失败重试开关
   关闭时直接返回 `failed/A2UI_GENERATION_FAILED`；开启时使用同一提示词重试一次。最终失败不调用
   Validator、RepairController 或 ArtifactStore。
@@ -968,6 +974,7 @@ generate(task_spec: TaskSpec, protocol_profile: dict, prompt: dict) -> str
 
 ```text
 WIDGET_SERVICE_ENABLE_A2UI_MODEL_MOCK=true
+WIDGET_SERVICE_A2UI_MODEL_BACKEND=mep
 ```
 
 输出固定满足：
@@ -1147,6 +1154,7 @@ WIDGET_SERVICE_ENABLE_IDS_MOCK
 WIDGET_SERVICE_PROTOCOL_PROFILE_ID
 WIDGET_SERVICE_MOCK_IDS_RESPONSE_PATH
 WIDGET_SERVICE_IDS_QUERY_URL
+WIDGET_SERVICE_A2UI_MODEL_BACKEND
 WIDGET_SERVICE_SYSTEM_PROMPT_FILE
 WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE
 WIDGET_SERVICE_ENABLE_ARTIFACT_VALIDATION

@@ -17,6 +17,10 @@ The service follows `docs/AGENTS.md`:
   explicit model errors, and empty DSL output return `failed/A2UI_GENERATION_FAILED`;
   when enabled, each failed initial or repair model call is repeated once with the same prompt.
   Model failures never enter validation or artifact persistence.
+- With model mock disabled, `WIDGET_SERVICE_A2UI_MODEL_BACKEND` selects the transport behind
+  `A2UIModelClient.generate()`: `mep` keeps the existing `/predict` implementation, while
+  `llmclient` uses `cloud/custom/llmclient.py`. The default is `mep`; callers do not invoke
+  either backend directly.
 - Create, edit, and repair prompts are loaded from `WIDGET_SERVICE_SYSTEM_PROMPT_FILE`, `WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE`, and `WIDGET_SERVICE_REPAIR_SYSTEM_PROMPT_FILE`. Their defaults are files under the repository `docs/` directory.
 - `WIDGET_SERVICE_ENABLE_ARTIFACT_DOWNLOAD_MOCK=true` by default. Multi-round source artifacts are read only from `cloud/workspace/mock_obs`; missing mock files do not fall back to the network. Set it to `false` to download from the validated HTTPS artifact URL.
 - The WebSocket router logs each received request object as compact standard JSON before protocol normalization. Structured values embedded in other log messages use the same double-quoted JSON format. Sensitive `uid`/`userId`/`callingUid` and `odid` are recursively omitted; `sourceArtifactUrl` is retained in the raw request log.

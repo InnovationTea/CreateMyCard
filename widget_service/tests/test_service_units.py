@@ -172,6 +172,7 @@ def test_plugin_error_explanation_distinguishes_business_failures(
 
 def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
     assert Settings(_env_file=None).anyio_thread_pool_tokens == 80
+    assert Settings(_env_file=None).a2ui_model_backend == "mep"
     settings = get_settings()
     monkeypatch.setattr(settings, "anyio_thread_pool_tokens", 80)
 
@@ -1890,6 +1891,60 @@ def test_a2ui_model_client_real_mode_forwards_messages(monkeypatch):
     )
 
     assert A2UIModelClient(use_mock=False).generate(messages) == "forwarded"
+
+
+def test_a2ui_model_client_selects_llmclient_backend(monkeypatch):
+    """验证 A2UI generate 根据配置选择 llmclient，调用方接口保持不变。"""
+    settings = get_settings()
+    messages = [{"role": "user", "content": "帮我做天气卡片"}]
+    calls: list[tuple[object, dict]] = []
+
+    def generate_from_llm(_client, value, profile):
+        calls.append((value, profile))
+        return "llmclient-result"
+
+    monkeypatch.setattr(settings, "a2ui_model_backend", "llmclient")
+    monkeypatch.setattr(
+        A2UIModelClient,
+        "_generate_from_llm_client",
+        generate_from_llm,
+    )
+    monkeypatch.setattr(
+        A2UIModelClient,
+        "_generate_from_real_model",
+        lambda *_args: pytest.fail("MEP must not be called"),
+    )
+
+    result = A2UIModelClient(use_mock=False).generate(messages)
+
+    assert result == "llmclient-result"
+    assert calls == [(messages, {})]
+
+
+def test_a2ui_model_client_collects_llmclient_stream(monkeypatch):
+    """验证 llmclient token 在 A2UI 内聚合成最终 DSL，并继续执行统一后处理。"""
+    captured: dict = {}
+    dsl = '{"createSurface":{"surfaceId":"root"}}'
+
+    async def fake_stream(options, messages):
+        captured["api_key"] = options.api_key
+        captured["messages"] = messages
+        yield "```genui\n"
+        yield dsl
+        yield "\n```"
+
+    client = A2UIModelClient(use_mock=False)
+    messages = [{"role": "user", "content": "weather"}]
+    monkeypatch.setattr("custom.a2ui_model_client.stream_genui", fake_stream)
+    monkeypatch.setattr(client, "convert_dsl", lambda value: f"converted:{value}")
+
+    result = client._generate_from_llm_client(messages)
+
+    assert result == f"converted:{dsl}"
+    assert captured == {
+        "api_key": "AccessService",
+        "messages": messages,
+    }
 
 
 def test_a2ui_model_client_builds_qwen_chatml_prompt():

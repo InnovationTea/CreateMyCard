@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+import asyncio
 import base64
 import codecs
 import hashlib
@@ -16,6 +17,7 @@ import requests
 
 from app.logger import json_for_log, logger
 from config.config import get_settings
+from custom.llmclient import LLMClientOptions, stream_genui
 from services.compact_dsl_protocol import is_compact_dsl
 from utils.base_utils import sts_config
 
@@ -62,6 +64,7 @@ class A2UIModelClient:
         self.use_mock = (
             settings.enable_a2ui_model_mock if use_mock is None else use_mock
         )
+        self.backend = settings.a2ui_model_backend
         self.mock_data_path = Path(mock_data_path) if mock_data_path else None
         self._suppress_prompt_log = False
 
@@ -80,11 +83,13 @@ class A2UIModelClient:
         if self._suppress_prompt_log:
             logger.info(
                 f"{_MODULE} generate_started use_mock={json_for_log(self.use_mock)} "
+                f"backend={self.backend} "
                 "prompt_redacted=true"
             )
         else:
             logger.info(
                 f"{_MODULE} generate_started use_mock={json_for_log(self.use_mock)} "
+                f"backend={self.backend} "
                 f"system_prompt={json_for_log(prompt)}"
             )
 
@@ -93,7 +98,10 @@ class A2UIModelClient:
                 result = self._load_mock_data(protocol_profile)
             else:
                 profile = protocol_profile or {}
-                result = self._generate_from_real_model(prompt, profile)
+                if self.backend == "llmclient":
+                    result = self._generate_from_llm_client(prompt, profile)
+                else:
+                    result = self._generate_from_real_model(prompt, profile)
             return require_generated_dsl(result)
         except A2UIModelGenerationError:
             raise
@@ -138,6 +146,31 @@ class A2UIModelClient:
             f"{_MODULE} generate_completed mode=mock path={mock_data_path}"
         )
         return mock_data
+
+    def _generate_from_llm_client(
+        self,
+        messages: list[dict[str, str]],
+        protocol_profile: dict | None = None,
+    ) -> str:
+        """通过 llmclient 收集流式输出，并复用 A2UI 的 DSL 后处理。"""
+
+        async def collect_stream() -> str:
+            options = LLMClientOptions(api_key="AccessService")
+            chunks = [
+                chunk
+                async for chunk in stream_genui(options, messages)
+            ]
+            return "".join(chunks)
+
+        full_text = asyncio.run(collect_stream())
+        dsl_text = self.extract_genui_payload(full_text)
+        if not is_compact_dsl(protocol_profile or {}):
+            dsl_text = self.convert_dsl(dsl_text)
+        logger.info(
+            f"{_MODULE} dsl_processed backend=llmclient "
+            f"dsl_content={json_for_log(dsl_text)}"
+        )
+        return dsl_text
 
     @staticmethod
     def messages_to_qwen_prompt(messages: list[dict[str, str]]) -> str:
