@@ -11,6 +11,7 @@ import time
 import traceback
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Literal
 from urllib.parse import urlencode, urlparse
 
 import json_repair
@@ -23,12 +24,14 @@ from app.logger import json_for_log, logger
 from config.config import get_settings
 from custom.llmclient import LLMClientOptions, stream_genui
 from services.compact_dsl_a2ui_converter import (
+    CompactDslConversionError,
     ThemeMode,
     convert_compact_dsl_to_a2ui,
 )
 from services.compact_dsl_protocol import is_compact_dsl
 from services.protocol_registry import (
     A2UI_FORM_PROTOCOL_PROFILE_ID,
+    DESIGN_COMPACT_PROFILE_ID,
     A2UIProtocolRegistry,
 )
 from utils.base_utils import sts_config
@@ -37,6 +40,7 @@ _MODULE = "[A2UI Model]"
 START_PREFIX = "$@START_PREFIX@#"
 END_SUFFIX = "$@END_SUFFIX@#"
 LAST_WORD_TOKEN = "__last_word___"
+ModelBackend = Literal["mep", "llmclient"]
 
 
 class A2UIModelGenerationError(RuntimeError):
@@ -63,20 +67,24 @@ class A2UIModelClient:
             self,
             use_mock: bool | None = None,
             mock_data_path: str | Path | None = None,
+            backend: ModelBackend = "mep",
     ) -> None:
         """初始化 A2UI 模型客户端。
 
         入参：
         - use_mock：是否使用 mock 数据；不传时读取全局配置。
         - mock_data_path：可选 mock 文件路径；不传时按协议选择同目录 mock 文件。
+        - backend：模型传输后端；第三接口固定传 mep，第四接口固定传 llmclient。
         出参：无。
         """
+        if backend not in {"mep", "llmclient"}:
+            raise ValueError(f"Unsupported A2UI model backend: {backend}")
         settings = get_settings()
         self.settings = settings
         self.use_mock = (
             settings.enable_a2ui_model_mock if use_mock is None else use_mock
         )
-        self.backend = settings.a2ui_model_backend
+        self.backend = backend
         self.mock_data_path = Path(mock_data_path) if mock_data_path else None
         self._suppress_prompt_log = False
 
@@ -107,7 +115,7 @@ class A2UIModelClient:
 
         try:
             if self.use_mock:
-                result = self._load_mock_data(protocol_profile)
+                result = self._load_mock_data(protocol_profile, prompt)
             else:
                 profile = protocol_profile or {}
                 if self.backend == "llmclient":
@@ -136,19 +144,19 @@ class A2UIModelClient:
         finally:
             self._suppress_prompt_log = False
 
-    def _load_mock_data(self, protocol_profile: dict | None = None) -> str:
+    def _load_mock_data(
+        self,
+        protocol_profile: dict | None = None,
+        prompt: list[dict[str, str]] | None = None,
+    ) -> str:
         """直接读取当前协议对应的 mock 原始内容。
 
-        入参：无。
+        入参：协议 profile 和模型提示词；Design Compact mock 会从 TaskSpec 选择尺寸文件。
         出参：mock 文件的完整 UTF-8 文本，不做替换或结构调整。
         """
         mock_data_path = self.mock_data_path
         if mock_data_path is None:
-            filename = (
-                "mock.compact-dsl.dat"
-                if is_compact_dsl(protocol_profile or {})
-                else "mock.dat"
-            )
+            filename = self._mock_filename(protocol_profile or {}, prompt or [])
             mock_data_path = Path(__file__).with_name(filename)
         if not mock_data_path.is_file():
             raise FileNotFoundError(f"A2UI mock 数据文件不存在: {mock_data_path}")
@@ -158,6 +166,34 @@ class A2UIModelClient:
             f"{_MODULE} generate_completed mode=mock path={mock_data_path}"
         )
         return mock_data
+
+    @staticmethod
+    def _mock_filename(
+        protocol_profile: dict,
+        prompt: list[dict[str, str]],
+    ) -> str:
+        if protocol_profile.get("id") == DESIGN_COMPACT_PROFILE_ID:
+            size = A2UIModelClient._task_size_from_prompt(prompt)
+            return f"mock.design-compact-dsl-{size}.dat"
+        if is_compact_dsl(protocol_profile):
+            return "mock.compact-dsl.dat"
+        return "mock.dat"
+
+    @staticmethod
+    def _task_size_from_prompt(prompt: list[dict[str, str]]) -> str:
+        if not prompt:
+            return "2x2"
+        user_content = prompt[-1].get("content", "")
+        try:
+            payload = json.loads(user_content)
+        except json.JSONDecodeError as exc:
+            logger.warning(
+                f"{_MODULE} mock_task_spec_parse_failed "
+                f"exception_type={type(exc).__name__} exception={exc!r}"
+            )
+            return "2x2"
+        size = payload.get("size") if isinstance(payload, dict) else None
+        return size if size in {"2x2", "2x4"} else "2x2"
 
     def _generate_from_llm_client(
         self,
@@ -307,13 +343,20 @@ class A2UIModelClient:
     ) -> str:
         """把模型生成的 Design Compact DSL 转为标准三段 A2UI DSL。"""
         compact_dsl = self.extract_genui_payload(design_dsl)
-        return convert_compact_dsl_to_a2ui(
-            compact_dsl,
-            size=size,
-            protocol_profile=protocol_profile,
-            theme=theme,
-            surface_id=surface_id,
-        )
+        try:
+            return convert_compact_dsl_to_a2ui(
+                compact_dsl,
+                size=size,
+                protocol_profile=protocol_profile,
+                theme=theme,
+                surface_id=surface_id,
+            )
+        except CompactDslConversionError as exc:
+            logger.error(
+                f"{_MODULE} design_dsl_conversion_failed "
+                f"exception_type={type(exc).__name__} exception={exc!r}"
+            )
+            raise A2UIModelGenerationError("design DSL conversion failed") from exc
 
     def process_line(self, line):
         """
@@ -643,15 +686,9 @@ def _build_design_test_task_spec() -> dict:
 
 def main() -> int:
     """临时验证 Design Compact DSL 生成及标准 A2UI DSL 转换链路。"""
-    settings = get_settings()
-    settings.a2ui_model_backend = "llmclient"
-    prompt_path = (
-        settings.data_root
-        / "protocol_profiles"
-        / "design-compact-dsl"
-        / "PROMPT.md"
+    system_prompt = A2UIProtocolRegistry.read_design_prompt(
+        DESIGN_COMPACT_PROFILE_ID
     )
-    system_prompt = prompt_path.read_text(encoding="utf-8")
     task_spec = _build_design_test_task_spec()
     messages = [
         {"role": "system", "content": system_prompt},
@@ -660,9 +697,9 @@ def main() -> int:
             "content": json.dumps(task_spec, ensure_ascii=False),
         },
     ]
-    client = A2UIModelClient(use_mock=False)
+    client = A2UIModelClient(use_mock=False, backend="llmclient")
     design_profile = {
-        "id": "design-compact-dsl",
+        "id": DESIGN_COMPACT_PROFILE_ID,
         "format": "compact-dsl",
     }
     design_dsl = client.generate(messages, design_profile)

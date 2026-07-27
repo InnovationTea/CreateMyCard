@@ -3,7 +3,6 @@
 import platform
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -22,6 +21,8 @@ class Settings(BaseSettings):
         "com.huawei.hmos.health.core",
     )
     protocol_profile_id: str = "a2ui-form-rom6.0-v1"
+    design_compact_profile_id: str = "design-compact-dsl"
+    enable_default_protocol_profile_fallback: bool = True
     enable_ids_mock: bool = True
     mock_ids_response_path: str = "data/mock/ids_res.json"
     ids_query_url: str = "http://{{ip}}:{{port}}/hiai/ids/databus/v1/kvcommondata/query"
@@ -33,7 +34,6 @@ class Settings(BaseSettings):
     default_device_rom_version: str = "6.0"
     default_prd_version: str = "11.7.5.205"
     enable_a2ui_model_mock: bool = True
-    a2ui_model_backend: Literal["mep", "llmclient"] = "mep"
     system_prompt_file: str = "docs/system_prompt.txt"
     edit_system_prompt_file: str = "docs/edit_system_prompt.txt"
     repair_system_prompt_file: str = "docs/repair_system_prompt.txt"

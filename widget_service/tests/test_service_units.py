@@ -173,7 +173,8 @@ def test_plugin_error_explanation_distinguishes_business_failures(
 
 def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
     assert Settings(_env_file=None).anyio_thread_pool_tokens == 80
-    assert Settings(_env_file=None).a2ui_model_backend == "mep"
+    assert not hasattr(Settings(_env_file=None), "a2ui_model_backend")
+    assert Settings(_env_file=None).enable_default_protocol_profile_fallback is True
     settings = get_settings()
     monkeypatch.setattr(settings, "anyio_thread_pool_tokens", 80)
 
@@ -643,6 +644,49 @@ def test_capability_registry_extracts_major_minor_from_full_rom_version():
     assert CapabilityRegistry.normalize_rom_version(ROM_VERSION_6) == "6.0"
 
 
+@pytest.mark.parametrize(
+    ("app_version", "rom_version"),
+    [
+        ("11.7.5.205", "CLS-AL30 6.0.0.328"),
+        ("11.8.0.0", "CLS-AL30 6.3.1.20"),
+        ("11.9.9.999", "CLS-AL30 6.9.0.1"),
+    ],
+)
+def test_protocol_registry_matches_app_rom_interval(app_version, rom_version):
+    selection = A2UIProtocolRegistry.from_app_rom_versions(app_version, rom_version)
+
+    assert selection.protocol_profile_id == "a2ui-form-rom6.0-v1"
+    assert selection.design_profile_id == "design-compact-dsl"
+
+
+@pytest.mark.parametrize(
+    ("app_version", "rom_version"),
+    [
+        ("12.0.0.0", "6.0"),
+        ("11.7.5.205", "7.0"),
+    ],
+)
+def test_protocol_registry_excludes_maximum_boundaries(app_version, rom_version):
+    with pytest.raises(ValueError, match="range not found"):
+        A2UIProtocolRegistry.from_app_rom_versions(app_version, rom_version)
+
+
+def test_compact_protocol_selection_uses_configured_default_fallback():
+    request = GenerateWidgetCardRequest(
+        uid="test-user",
+        prdVer="12.0.0.0",
+        device={"romVersion": "7.0"},
+        userQuery="生成静态卡片",
+        title="静态卡片",
+        description="协议回退测试",
+    )
+
+    selection = WidgetGenerationService()._compact_protocol_selection(request)
+
+    assert selection.protocol_profile_id == "a2ui-form-rom6.0-v1"
+    assert selection.design_profile_id == "design-compact-dsl"
+
+
 def _write_registry_ranges(root: Path, ranges: list[dict], directories: list[str]) -> None:
     root.mkdir()
     for directory in directories:
@@ -652,6 +696,99 @@ def _write_registry_ranges(root: Path, ranges: list[dict], directories: list[str
         json_module.dumps(payload),
         encoding="utf-8",
     )
+
+
+def _protocol_range(
+    protocol_profile_id: str,
+    design_profile_id: str,
+    *,
+    app_min: str = "11.0",
+    app_max: str = "12.0",
+    rom_min: str = "6.0",
+    rom_max: str = "7.0",
+) -> dict:
+    return {
+        "protocolProfileId": protocol_profile_id,
+        "designProfileId": design_profile_id,
+        "appVersion": {
+            "minInclusive": app_min,
+            "maxExclusive": app_max,
+        },
+        "romVersion": {
+            "minInclusive": rom_min,
+            "maxExclusive": rom_max,
+        },
+    }
+
+
+def _write_protocol_ranges(root: Path, ranges: list[dict]) -> None:
+    root.mkdir()
+    for item in ranges:
+        protocol_dir = root / item["protocolProfileId"]
+        protocol_dir.mkdir(exist_ok=True)
+        for filename in ("protocol.md", "component-catalog.md", "data-binding.md"):
+            (protocol_dir / filename).write_text("profile", encoding="utf-8")
+        design_dir = root / item["designProfileId"]
+        design_dir.mkdir(exist_ok=True)
+        (design_dir / "PROMPT.md").write_text("prompt", encoding="utf-8")
+    (root / "registry_ranges.json").write_text(
+        json_module.dumps({"schemaVersion": "v1", "ranges": ranges}),
+        encoding="utf-8",
+    )
+
+
+def test_protocol_registry_rejects_overlapping_ranges(tmp_path):
+    root = tmp_path / "protocol_profiles"
+    ranges = [
+        _protocol_range("profile-one", "design-one"),
+        _protocol_range("profile-two", "design-two", app_min="11.5", app_max="12.5"),
+    ]
+    _write_protocol_ranges(root, ranges)
+
+    with pytest.raises(ValueError, match="Overlapping protocol profile ranges"):
+        A2UIProtocolRegistry.from_app_rom_versions("11.8", "6.5", root)
+
+
+def test_protocol_registry_rejects_inverted_interval(tmp_path):
+    root = tmp_path / "protocol_profiles"
+    ranges = [
+        _protocol_range(
+            "profile-one",
+            "design-one",
+            rom_min="7.0",
+            rom_max="6.0",
+        )
+    ]
+    _write_protocol_ranges(root, ranges)
+
+    with pytest.raises(ValueError, match="minInclusive must be less"):
+        A2UIProtocolRegistry.from_app_rom_versions("11.8", "6.5", root)
+
+
+def test_protocol_registry_rejects_missing_design_prompt(tmp_path):
+    root = tmp_path / "protocol_profiles"
+    ranges = [_protocol_range("profile-one", "design-one")]
+    _write_protocol_ranges(root, ranges)
+    (root / "design-one" / "PROMPT.md").unlink()
+
+    with pytest.raises(ValueError, match="Design Compact prompt not found"):
+        A2UIProtocolRegistry.from_app_rom_versions("11.8", "6.5", root)
+
+
+def test_protocol_registry_rejects_missing_protocol_directory(tmp_path):
+    root = tmp_path / "protocol_profiles"
+    root.mkdir()
+    design_dir = root / "design-one"
+    design_dir.mkdir()
+    (design_dir / "PROMPT.md").write_text("prompt", encoding="utf-8")
+    ranges = [_protocol_range("missing-profile", "design-one")]
+    (root / "registry_ranges.json").write_text(
+        json_module.dumps({"schemaVersion": "v1", "ranges": ranges}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Protocol profile not found"):
+        A2UIProtocolRegistry.from_app_rom_versions("11.8", "6.5", root)
 
 
 def _registry_range(
@@ -720,7 +857,7 @@ def test_legacy_registry_request_field_is_ignored():
     assert registry.version == REGISTRY_VERSION_6
 
 
-def test_public_tool_schemas_do_not_expose_registry_override():
+def test_public_tool_schemas_do_not_expose_version_overrides():
     schema_root = PROJECT_ROOT / "docs" / "schemas"
     schema_names = [
         "getWidgetCapabilityOverview.schema.json",
@@ -733,6 +870,7 @@ def test_public_tool_schemas_do_not_expose_registry_override():
         payload = json_module.loads((schema_root / schema_name).read_text(encoding="utf-8"))
         content_properties = payload["messageEnvelope"]["properties"]["content"]["properties"]
         assert "capabilityRegistryVersion" not in content_properties
+        assert "protocolProfileId" not in content_properties
 
 
 def _out_of_range_requests():
@@ -1873,6 +2011,45 @@ def test_a2ui_model_client_selects_compact_dsl_mock_by_profile():
     )
 
 
+@pytest.mark.parametrize(
+    ("size", "expected_width"),
+    [("2x2", 160), ("2x4", 320)],
+)
+def test_a2ui_model_client_selects_design_compact_mock_by_task_size(
+    size,
+    expected_width,
+):
+    """验证第四接口 mock 根据 TaskSpec 尺寸返回可转换的 Design DSL。"""
+    prompt = [
+        {"role": "system", "content": "rules"},
+        {
+            "role": "user",
+            "content": json_module.dumps({"size": size}),
+        },
+    ]
+    profile = {
+        "id": "design-compact-dsl",
+        "format": "compact-dsl",
+    }
+
+    client = A2UIModelClient(use_mock=True, backend="llmclient")
+    genui = client.generate(prompt, profile)
+    root = json_module.loads(genui.splitlines()[0])
+    standard_profile = A2UIProtocolRegistry("a2ui-form-rom6.0-v1").get_profile()
+    converted = client.convert_design_dsl_to_standard_dsl(
+        genui,
+        size=size,
+        protocol_profile=standard_profile,
+    )
+    converted_rows = [json_module.loads(line) for line in converted.splitlines()]
+
+    assert root[0:2] == ["root", "Column"]
+    assert root[2]["width"] == expected_width
+    assert root[2]["height"] == 160
+    assert len(converted_rows) == 3
+    assert converted_rows[0]["createSurface"]["width"] == expected_width - 20
+
+
 def test_a2ui_model_client_real_mode_forwards_messages(monkeypatch):
     """验证关闭 mock 后把消息原样传给真实模型调用入口。
 
@@ -1895,8 +2072,7 @@ def test_a2ui_model_client_real_mode_forwards_messages(monkeypatch):
 
 
 def test_a2ui_model_client_selects_llmclient_backend(monkeypatch):
-    """验证 A2UI generate 根据配置选择 llmclient，调用方接口保持不变。"""
-    settings = get_settings()
+    """验证 A2UI generate 根据接口显式选择 llmclient，不读取环境配置。"""
     messages = [{"role": "user", "content": "帮我做天气卡片"}]
     calls: list[tuple[object, dict]] = []
 
@@ -1904,7 +2080,6 @@ def test_a2ui_model_client_selects_llmclient_backend(monkeypatch):
         calls.append((value, profile))
         return "llmclient-result"
 
-    monkeypatch.setattr(settings, "a2ui_model_backend", "llmclient")
     monkeypatch.setattr(
         A2UIModelClient,
         "_generate_from_llm_client",
@@ -1916,7 +2091,7 @@ def test_a2ui_model_client_selects_llmclient_backend(monkeypatch):
         lambda *_args: pytest.fail("MEP must not be called"),
     )
 
-    result = A2UIModelClient(use_mock=False).generate(messages)
+    result = A2UIModelClient(use_mock=False, backend="llmclient").generate(messages)
 
     assert result == "llmclient-result"
     assert calls == [(messages, {})]

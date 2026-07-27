@@ -106,12 +106,12 @@ class UserIterationResult:
 
     user_index: int
     iteration: int
-    overview_ms: float = 0
-    schema_ms: float = 0
-    generate_ms: float = 0
-    validate_ms: float = 0
-    total_ms: float = 0
-    first_token_ms: float = 0
+    overview_ms: float = 0.0
+    schema_ms: float = 0.0
+    generate_ms: float = 0.0
+    validate_ms: float = 0.0
+    total_ms: float = 0.0
+    first_token_ms: float = 0.0
     total_tokens: int = 0
     completion_tokens: int = 0
     prompt_tokens: int = 0
@@ -133,9 +133,21 @@ class PressureReport:
     first_token_metrics: StageMetrics = field(default_factory=StageMetrics)
     token_metrics: dict[str, list[int]] = field(default_factory=dict)
     errors_by_stage: dict[str, int] = field(default_factory=dict)
-    duration_seconds: float = 0
-    throughput_qps: float = 0
+    duration_seconds: float = 0.0
+    throughput_qps: float = 0.0
     errors: list[dict[str, Any]] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class WebSocketFinalResult:
+    """WebSocket final 帧及本阶段采集到的指标。"""
+
+    message: dict[str, Any]
+    first_token_ms: float
+    elapsed_ms: float
+    total_tokens: int
+    completion_tokens: int
+    prompt_tokens: int
 
 
 # ---------------------------------------------------------------------------
@@ -188,7 +200,7 @@ async def _recv_until_final(
     websocket: websockets.WebSocketClientProtocol,
     path_name: str,
     stage_name: str,
-) -> tuple[dict, float, float, int, int, int]:
+) -> WebSocketFinalResult:
     """接收 WebSocket 帧直到 final，并返回消息、时延和 token 统计。
 
     从 start 帧到第一个包含 streamContent 的 partial/final 帧的时延作为首 token 时延。
@@ -229,13 +241,13 @@ async def _recv_until_final(
             completion_tokens = data.get("completion_tokens", 0)
             prompt_tokens = data.get("prompt_tokens", 0)
 
-        return (
-            message,
-            first_token_ms,
-            stage_elapsed,
-            total_tokens,
-            completion_tokens,
-            prompt_tokens,
+        return WebSocketFinalResult(
+            message=message,
+            first_token_ms=first_token_ms,
+            elapsed_ms=stage_elapsed,
+            total_tokens=total_tokens,
+            completion_tokens=completion_tokens,
+            prompt_tokens=prompt_tokens,
         )
 
 
@@ -273,10 +285,11 @@ async def _run_single_user_iteration(
                         ensure_ascii=False,
                     )
                 )
-                msg, _, elapsed, _, _, _ = await _recv_until_final(
+                final_result = await _recv_until_final(
                     ws, "getWidgetCapabilityOverview", "overview"
                 )
-                result.overview_ms = elapsed
+                msg = final_result.message
+                result.overview_ms = final_result.elapsed_ms
 
                 if msg.get("errorCode") != "0":
                     raise RuntimeError(f"overview error: {msg.get('errorMessage', '')}")
@@ -299,10 +312,9 @@ async def _run_single_user_iteration(
                         ensure_ascii=False,
                     )
                 )
-                msg, _, elapsed, _, _, _ = await _recv_until_final(
-                    ws, "getDataCapabilitySchemas", "schema"
-                )
-                result.schema_ms = elapsed
+                final_result = await _recv_until_final(ws, "getDataCapabilitySchemas", "schema")
+                msg = final_result.message
+                result.schema_ms = final_result.elapsed_ms
 
                 if msg.get("errorCode") != "0":
                     raise RuntimeError(f"schema error: {msg.get('errorMessage', '')}")
@@ -361,14 +373,13 @@ async def _run_single_user_iteration(
                         ensure_ascii=False,
                     )
                 )
-                msg, first_ms, elapsed, total_tok, comp_tok, prompt_tok = (
-                    await _recv_until_final(ws, "generateWidgetCard", "generate")
-                )
-                result.generate_ms = elapsed
-                result.first_token_ms = first_ms
-                result.total_tokens = total_tok
-                result.completion_tokens = comp_tok
-                result.prompt_tokens = prompt_tok
+                final_result = await _recv_until_final(ws, "generateWidgetCard", "generate")
+                msg = final_result.message
+                result.generate_ms = final_result.elapsed_ms
+                result.first_token_ms = final_result.first_token_ms
+                result.total_tokens = final_result.total_tokens
+                result.completion_tokens = final_result.completion_tokens
+                result.prompt_tokens = final_result.prompt_tokens
 
                 if msg.get("errorCode") != "0":
                     raise RuntimeError(f"generate error: {msg.get('errorMessage', '')}")
@@ -398,17 +409,19 @@ async def _run_single_user_iteration(
                         artifact=artifact.model_dump(mode="json", exclude_none=True),
                         options=ValidationOptions(capabilities_dir=capabilities_dir),
                     )
-            except ImportError:
-                pass  # 压测环境可能未安装完整依赖
-            except Exception:
-                pass
+            except Exception as exc:
+                print(
+                    f"本地校验未完成: {type(exc).__name__}: {exc}",
+                    file=sys.stderr,
+                    flush=True,
+                )
             validate_ms = _now_ms() - stage_start
             result.validate_ms = validate_ms
 
             result.status = "success"
             result.total_ms = _now_ms() - iter_start
 
-        except (OSError, websockets.ConnectionClosed, TimeoutError) as exc:
+        except (OSError, websockets.ConnectionClosed) as exc:
             result.status = "error"
             result.error = f"{type(exc).__name__}: {exc}"
             result.total_ms = _now_ms() - iter_start
@@ -452,12 +465,12 @@ async def _run_pressure_test(
     results: list[UserIterationResult] = []
     lock = asyncio.Lock()
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("全流程 WebSocket 压测开始")
     print(f"服务地址: {WS_BASE_URL}")
     print(f"并发数: {concurrency}")
     print(f"总迭代数: {total_tasks} (每用户 {iterations} 次)")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     async def _run_with_tracking(user_index: int, iteration: int) -> UserIterationResult:
         nonlocal completed
@@ -506,9 +519,7 @@ async def _run_pressure_test(
     )
 
     stage_names = ["overview", "schema", "generate", "validate"]
-    stage_metrics: dict[str, StageMetrics] = {
-        name: StageMetrics() for name in stage_names
-    }
+    stage_metrics: dict[str, StageMetrics] = {name: StageMetrics() for name in stage_names}
     total_metrics = StageMetrics()
     first_token_metrics = StageMetrics()
     token_metrics: dict[str, list[int]] = {
@@ -550,18 +561,16 @@ async def _run_pressure_test(
     report.first_token_metrics = first_token_metrics
     report.token_metrics = token_metrics
     report.errors_by_stage = dict(errors_by_stage)
-    report.throughput_qps = (
-        round(total_tasks / total_duration, 2) if total_duration > 0 else 0
-    )
+    report.throughput_qps = round(total_tasks / total_duration, 2) if total_duration > 0 else 0
 
     return report
 
 
 def _print_report(report: PressureReport) -> None:
     """打印压测报告。"""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("压测报告")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     print("\n── 配置 ──")
     for key, value in report.config.items():
@@ -572,9 +581,7 @@ def _print_report(report: PressureReport) -> None:
     print(f"  总请求: {report.total_iterations}")
     print(f"  成功: {report.success_count}")
     print(f"  失败: {report.failure_count}")
-    print(
-        f"  成功率: {report.success_count / max(report.total_iterations, 1) * 100:.1f}%"
-    )
+    print(f"  成功率: {report.success_count / max(report.total_iterations, 1) * 100:.1f}%")
     print(f"  吞吐量: {report.throughput_qps} 次/秒")
 
     print("\n── 各阶段耗时 (ms) ──")
@@ -628,9 +635,7 @@ def _print_report(report: PressureReport) -> None:
 
     if report.errors_by_stage:
         print("\n── 错误分布 ──")
-        for stage, count in sorted(
-            report.errors_by_stage.items(), key=lambda x: -x[1]
-        ):
+        for stage, count in sorted(report.errors_by_stage.items(), key=lambda x: -x[1]):
             print(f"  {stage}: {count}")
 
     if report.errors:
@@ -641,7 +646,7 @@ def _print_report(report: PressureReport) -> None:
                 f"stage={err['stage']}: {err['error'][:100]}"
             )
 
-    print(f"\n{'='*60}\n")
+    print(f"\n{'=' * 60}\n")
 
 
 # ---------------------------------------------------------------------------
@@ -716,13 +721,10 @@ def _report_to_dict(report: PressureReport) -> dict:
         "total_iterations": report.total_iterations,
         "success_count": report.success_count,
         "failure_count": report.failure_count,
-        "success_rate": round(
-            report.success_count / max(report.total_iterations, 1) * 100, 1
-        ),
+        "success_rate": round(report.success_count / max(report.total_iterations, 1) * 100, 1),
         "throughput_qps": report.throughput_qps,
         "stage_metrics": {
-            name: metrics.summary()
-            for name, metrics in report.stage_metrics.items()
+            name: metrics.summary() for name, metrics in report.stage_metrics.items()
         },
         "total_metrics": report.total_metrics.summary(),
         "first_token_metrics": report.first_token_metrics.summary(),

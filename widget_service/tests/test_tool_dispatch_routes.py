@@ -162,12 +162,12 @@ def _valid_model_output(_self, _prompt, protocol_profile: dict) -> str:
                 "root",
                 "Column",
                 {
-                    "width": "matchParent",
-                    "height": 140,
+                    "width": 320,
+                    "height": 160,
                     "padding": 12,
                     "borderRadius": 22,
                     "clip": True,
-                    "space": 6,
+                    "itemMargin": 6,
                     "backgroundColor": "#FFFFFFFF",
                 },
                 ["header", "body", "footer"],
@@ -211,6 +211,7 @@ def _valid_model_output(_self, _prompt, protocol_profile: dict) -> str:
                     "maxLines": 1,
                 },
             ],
+            ["/ui/state", "ready"],
         ]
         return "\n".join(
             json.dumps(row, ensure_ascii=False, separators=(",", ":"))
@@ -699,8 +700,20 @@ def test_overview_interface_does_not_filter_assets_by_app_version():
 
 
 def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
-    """验证两个生成入口在同一服务进程中固定使用各自协议。"""
-    monkeypatch.setattr(A2UIModelClient, "generate", _valid_model_output)
+    """验证第三接口走 MEP，第四接口走 llmclient 并转换为版本化标准 A2UI。"""
+    model_calls = []
+
+    def capture_model_call(client, prompt, protocol_profile):
+        model_calls.append(
+            {
+                "backend": client.backend,
+                "prompt": prompt,
+                "protocolProfile": protocol_profile,
+            }
+        )
+        return _valid_model_output(client, prompt, protocol_profile)
+
+    monkeypatch.setattr(A2UIModelClient, "generate", capture_model_call)
     saved_artifacts = []
 
     def capture_artifact(_store, artifact):
@@ -773,9 +786,67 @@ def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
     compact_rows = [
         json.loads(line) for line in compact_artifact["genui"].splitlines()
     ]
-    assert compact_artifact["meta"]["protocolProfileId"] == "compact-dsl-v1"
-    assert all(isinstance(row, list) for row in compact_rows)
-    assert compact_rows[0][0:2] == ["root", "Column"]
+    assert compact_artifact["meta"]["protocolProfileId"] == "a2ui-form-rom6.0-v1"
+    assert [next(iter(row)) for row in compact_rows] == ["version", "version", "version"]
+    assert "createSurface" in compact_rows[0]
+    assert "updateComponents" in compact_rows[1]
+    assert "updateDataModel" in compact_rows[2]
+    assert [item["backend"] for item in model_calls] == ["mep", "llmclient"]
+    assert model_calls[1]["protocolProfile"] == {
+        "id": "design-compact-dsl",
+        "format": "compact-dsl",
+    }
+    assert model_calls[1]["prompt"][0]["content"].startswith(
+        "# HarmonyOS Desktop Form GenUI"
+    )
+
+
+def test_compact_route_mock_converts_design_dsl_before_saving(monkeypatch):
+    """验证第四接口真实走 A2UI 客户端 mock、转换器和标准 artifact 保存链路。"""
+    monkeypatch.setattr(get_settings(), "enable_a2ui_model_mock", True)
+    saved_artifacts = []
+
+    def capture_artifact(_store, artifact):
+        saved_artifacts.append(artifact.model_dump(mode="json", exclude_none=True))
+        return ArtifactSaveResult(
+            artifactUrl="https://test.invalid/widget/design-mock.json",
+            artifactDigest="sha256:design-mock",
+        )
+
+    monkeypatch.setattr(ArtifactStore, "save", capture_artifact)
+    client = TestClient(app)
+    request_id = _request_id("design-mock")
+    with client.websocket_connect(
+        "/api/v1/ws/tools/generateWidgetCardCompactDsl"
+    ) as websocket:
+        websocket.send_json(
+            _tool_payload(
+                {
+                    "userQuery": "生成静态卡片",
+                    "size": "2x4",
+                    "title": "静态卡片",
+                    "description": "Design Mock 转换",
+                    "candidateDataBindings": [],
+                    "candidateEventCandidates": [],
+                    "candidateAssetIds": [],
+                },
+                "design-mock",
+            )
+        )
+        message = _assert_success_envelope(
+            _receive_final_frame(websocket, request_id),
+            "generateWidgetCardCompactDsl",
+            request_id,
+        )
+
+    assert message["data"]["status"] == "success"
+    assert len(saved_artifacts) == 1
+    artifact = saved_artifacts[0]
+    rows = [json.loads(line) for line in artifact["genui"].splitlines()]
+    assert artifact["meta"]["protocolProfileId"] == "a2ui-form-rom6.0-v1"
+    assert rows[0]["createSurface"]["width"] == 300
+    assert rows[1]["updateComponents"]["root"] == "root"
+    assert rows[2]["updateDataModel"]["value"]["ui"]["state"] == "ready"
 
 
 def test_unknown_prd_version_falls_back_for_first_two_interfaces():
@@ -962,6 +1033,56 @@ def test_registry_fallback_switch_defaults_to_enabled():
     assert Settings.model_fields[
         "enable_default_capability_registry_fallback"
     ].default is True
+
+
+def test_protocol_fallback_switch_defaults_to_enabled():
+    assert Settings.model_fields[
+        "enable_default_protocol_profile_fallback"
+    ].default is True
+
+
+def test_compact_protocol_fallback_switch_off_returns_unsupported(monkeypatch):
+    """验证第四接口协议区间未命中且关闭回退时不调用模型。"""
+    monkeypatch.setattr(
+        get_settings(),
+        "enable_default_protocol_profile_fallback",
+        False,
+    )
+    monkeypatch.setattr(
+        A2UIModelClient,
+        "generate",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("model must not be called")),
+    )
+    client = TestClient(app)
+    device_info = {**DEVICE_INFO, "prdVer": "98.0.0.0"}
+    request_id = _request_id("protocol-fallback-off")
+    with client.websocket_connect(
+        "/api/v1/ws/tools/generateWidgetCardCompactDsl"
+    ) as websocket:
+        websocket.send_json(
+            _tool_payload(
+                {
+                    "userQuery": "生成静态卡片",
+                    "size": "2x4",
+                    "title": "静态卡片",
+                    "description": "协议回退关闭测试",
+                    "candidateDataBindings": [],
+                    "candidateEventCandidates": [],
+                    "candidateAssetIds": [],
+                },
+                "protocol-fallback-off",
+                device_info=device_info,
+            )
+        )
+        message = _assert_success_envelope(
+            _receive_final_frame(websocket, request_id),
+            "generateWidgetCardCompactDsl",
+            request_id,
+        )
+
+    assert message["data"]["status"] == "unsupported"
+    assert message["data"]["errorCode"] == "APP_VERSION_UNSUPPORTED"
+    assert "App 或 ROM 版本不在服务支持范围内" in message["explanation"]
 
 
 def test_registry_fallback_switch_off_applies_to_all_three_interfaces(monkeypatch):

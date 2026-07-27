@@ -18,6 +18,21 @@ REPAIR_SYSTEM_PROMPT = get_settings().repair_system_prompt
 
 
 class PromptBuilder:
+    def build_design_compact(
+        self,
+        task_spec: TaskSpec,
+        system_prompt: str,
+    ) -> list[dict[str, str]]:
+        """构造第四接口的 Design Compact DSL 模型输入。"""
+        task_spec_value = task_spec.model_dump(mode="json", exclude_none=True)
+        return [
+            {"role": "system", "content": system_prompt},
+            {
+                "role": "user",
+                "content": json.dumps(task_spec_value, ensure_ascii=False),
+            },
+        ]
+
     def build(
         self,
         task_spec: TaskSpec,

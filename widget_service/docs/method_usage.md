@@ -48,8 +48,9 @@ app-11.7.5.205_rom-6.0
 
 当前 App `[11.7.5.205, 12.0.0.0)`、ROM `[6.0, 7.0)` 命中上述目录。App 使用完整数字版本，ROM 从完整 `romVersion` 中抽取主次版本。索引加载时会拒绝倒置区间、App 与 ROM 同时重叠的配置以及不存在的目标目录。
 
-三个接口在版本未命中或目标目录不可用且
-`WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true` 时，统一回退到上述默认能力清单。关闭开关时，第一、第二接口返回空清单/缺失能力，第三接口返回版本不支持。
+四个接口在能力清单版本未命中或目标目录不可用且
+`WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true` 时，统一回退到上述默认能力清单。
+关闭开关时，第一、第二接口返回空清单/缺失能力，两个生成接口返回版本不支持。
 
 第一接口的 IDS 安装过滤范围由
 `WIDGET_SERVICE_IDS_INSTALLATION_FILTER_PACKAGE_NAMES` 配置，值为 JSON 字符串数组。默认只包含
@@ -79,19 +80,12 @@ cloud/data/protocol_profiles/{protocolProfileId}/
 a2ui-form-rom6.0-v1
 ```
 
-协议 Profile 入参仍可传：
-
-```json
-{
-  "protocolProfileId": "a2ui-form-rom6.0-v1"
-}
-```
-
-`capabilityRegistryVersion` 已从公开请求删除；旧调用方继续传入时会被静默忽略，不能绕过区间匹配。Profile 不传时使用 `.env` 或默认配置。
+`capabilityRegistryVersion` 和 `protocolProfileId` 均不由公开工具调用方选择；旧调用方继续传入时会被
+静默忽略，不能绕过区间匹配或接口固定路由。
 
 ## 3. WebSocket 接口
 
-当前微服务提供三个正式工具能力，并额外保留一个 Compact DSL 生成变体。客户端连接目标 path 后，
+当前微服务提供四个工具能力，其中第四个是 Design Compact DSL 生成变体。客户端连接目标 path 后，
 消息体只需要传该能力自己的参数，不需要再传 `operation`。新协议中的 `odid` 位于 `content.odid`，
 字段可选；服务会将其映射到内部设备上下文，缺失或为空时 IDS 查询继续使用固定兜底值，且不从
 `deviceInfo` 读取同名字段。用户和设备上下文由工具层自动注入，本地测试时可以显式传入。
@@ -105,9 +99,14 @@ WS /api/v1/ws/tools/generateWidgetCard
 WS /api/v1/ws/tools/generateWidgetCardCompactDsl
 ```
 
-`generateWidgetCard` 固定使用原 A2UI Form profile；
-`generateWidgetCardCompactDsl` 固定使用 `compact-dsl-v1`。两个入口共享业务入参和响应结构，
-调用方不需要传 `protocolProfileId`。
+`generateWidgetCard` 固定使用标准 A2UI Form profile 和 MEP；
+`generateWidgetCardCompactDsl` 根据 App/ROM 区间选择目标 A2UI profile，使用 llmclient 生成
+Design Compact DSL，再由服务内转换器生成标准三段 A2UI DSL。两个入口共享业务入参和响应结构，
+调用方不需要传 `protocolProfileId`，旧值也不能覆盖路由选择结果。
+
+第四接口的协议区间索引位于 `cloud/data/protocol_profiles/registry_ranges.json`。未命中时，只有
+`WIDGET_SERVICE_ENABLE_DEFAULT_PROTOCOL_PROFILE_FALLBACK=true` 才回退到
+`WIDGET_SERVICE_PROTOCOL_PROFILE_ID`。
 
 所有帧的插件顶层 `errorCode` 固定为 `"0"`，`errorMessage` 固定为空字符串，`items`
 固定为空数组。业务错误码、异常详情和业务响应只放在 final 帧的 `streamContent` 中。
@@ -959,13 +958,13 @@ generate(
 ) -> str
 ```
 
-用途：通过统一入口生成 A2UI DSL。先根据 `enable_a2ui_model_mock` 判断是否使用 mock；
-真实模型模式再根据 `a2ui_model_backend` 选择 MEP 或 llmclient。
+用途：通过统一入口生成模型 DSL。先根据 `enable_a2ui_model_mock` 判断是否使用 mock；真实模型后端由
+生成接口固定选择，不从环境变量切换。
 
 - 开关为 `true`：直接读取并返回与客户端同目录的 `mock.dat` 原始内容，不做字段替换或结构调整。
-- 开关为 `false` 且 backend 为 `mep`：使用已有 `/predict` 流式实现。
-- 开关为 `false` 且 backend 为 `llmclient`：调用 `cloud/custom/llmclient.py`，聚合其流式 token，
-  再执行与 MEP 相同的代码块提取和 DSL 后处理。
+- 第三接口固定使用 MEP 的 `/predict` 流式实现。
+- 第四接口固定调用 `cloud/custom/llmclient.py`，聚合 Design Compact DSL 流式 token，再执行确定性
+  A2UI 转换。
 - 模型请求异常、流式响应显式错误或最终没有非空 DSL 时抛出模型生成异常。模型失败重试开关
   关闭时直接返回 `failed/A2UI_GENERATION_FAILED`；开启时使用同一提示词重试一次。最终失败不调用
   Validator、RepairController 或 ArtifactStore。
@@ -974,7 +973,6 @@ generate(
 
 ```text
 WIDGET_SERVICE_ENABLE_A2UI_MODEL_MOCK=true
-WIDGET_SERVICE_A2UI_MODEL_BACKEND=mep
 ```
 
 输出固定满足：
@@ -1005,7 +1003,7 @@ cloud/services/validator.py
 validate(artifact: WidgetArtifact, protocol_profile: dict) -> list[str]
 ```
 
-用途：校验完整 artifact，而不是只校验 DSL。标准 A2UI 直接调用 `cloud/services/card_validation/` 暴露的 Python API；不会执行 Skill 校验脚本或启动子进程。静态规则从 `cloud/data/validator_rules/` 加载，动态能力白名单从 artifact 和其能力版本目录加载；Compact DSL 继续使用独立校验 API。
+用途：校验完整 artifact，而不是只校验 DSL。标准 A2UI 直接调用 `cloud/services/card_validation/` 暴露的 Python API；不会执行 Skill 校验脚本或启动子进程。静态规则从 `cloud/data/validator_rules/` 加载，动态能力白名单从 artifact 和其能力版本目录加载；第四接口校验转换后的标准 A2UI，不保存转换前的 Design Token。
 
 当前校验项：
 
@@ -1152,9 +1150,9 @@ WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK
 WIDGET_SERVICE_IDS_INSTALLATION_FILTER_PACKAGE_NAMES
 WIDGET_SERVICE_ENABLE_IDS_MOCK
 WIDGET_SERVICE_PROTOCOL_PROFILE_ID
+WIDGET_SERVICE_ENABLE_DEFAULT_PROTOCOL_PROFILE_FALLBACK
 WIDGET_SERVICE_MOCK_IDS_RESPONSE_PATH
 WIDGET_SERVICE_IDS_QUERY_URL
-WIDGET_SERVICE_A2UI_MODEL_BACKEND
 WIDGET_SERVICE_SYSTEM_PROMPT_FILE
 WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE
 WIDGET_SERVICE_ENABLE_ARTIFACT_VALIDATION

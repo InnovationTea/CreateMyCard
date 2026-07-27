@@ -2,7 +2,7 @@
   "name": "generateWidgetCardCompactDsl",
   "transport": "websocket",
   "path": "/api/v1/ws/tools/generateWidgetCardCompactDsl",
-  "description": "提交用户需求、候选数据绑定、候选事件和素材，生成可下载的 HarmonyOS Compact DSL 卡片 artifact。content 对应业务入参。",
+  "description": "提交用户需求和候选能力，使用 Design Compact DSL 生成并转换为标准 A2UI 卡片 artifact。content 对应业务入参。",
   "messageEnvelope": {
     "type": "object",
     "required": ["content", "deviceInfo", "session"],
@@ -61,18 +61,13 @@
             "type": "string[]",
             "required": false,
             "description": "从第一个接口可用素材中选择的素材 ID 列表。"
-          },
-          "protocolProfileId": {
-            "type": "string|null",
-            "required": false,
-            "description": "兼容字段；该路由始终强制使用 compact-dsl-v1，调用方传值会被忽略。"
           }
         }
       },
       "deviceInfo": {
         "$ref": "#/nestedTypes/DeviceInfo",
         "required": true,
-        "description": "端侧设备信息；缺少 ROM 字段时服务使用 settings.default_device_rom_version。版本目录由 prdVer + ROM 版本组成；生成接口找不到目录时直接返回不支持。"
+        "description": "端侧设备信息；服务按 prdVer 与 romVersion 区间选择能力清单和目标 A2UI profile。"
       },
       "session": {
         "$ref": "#/nestedTypes/Session",
