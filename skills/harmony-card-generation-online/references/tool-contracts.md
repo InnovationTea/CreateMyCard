@@ -151,7 +151,7 @@ invoke(functionName:"RequestDataPermission", arguments:{bundleName:"com.omega_w_
 | --- | --- | --- | --- |
 | `userQuery` | `String` | 是 | create 模式为原始需求；edit 模式只表达本轮修改。 |
 | `sourceArtifactUrl` | `String` | 否 | 上一版完整 artifact 的真实 URL；缺失表示 create，合法非空值表示 edit。 |
-| `size` | `String` | 否 | 主 Agent 建议尺寸；推荐 `"2x2"` 或 `"2x4"`。 |
+| `size` | `String` | 否 | 主 Agent 建议尺寸，只使用 `"2x2"` 或 `"2x4"`；用户未指定时优先能够满足核心需求的 `"2x2"`。 |
 | `title` | `String` | 条件必填 | create 模式必须非空；edit 模式省略时继承来源 CardSpec，显式传入时替换。 |
 | `description` | `String` | 条件必填 | create 模式必须非空；edit 模式省略时继承来源 CardSpec，显式传入时替换。 |
 | `candidateDataBindings` | `Array<CandidateDataBinding>` | 否 | 候选数据能力调用列表。 |
@@ -226,7 +226,7 @@ invoke(functionName:"RequestDataPermission", arguments:{bundleName:"com.omega_w_
 调用示例：
 
 ```text
-invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"生成一个通勤卡片", title:"通勤助手", description:"天气日程速览", size:"2x4", candidateDataBindings:[...], candidateEventCandidates:[...], candidateAssetIds:[...]},"skillName":"harmony-card-generation-online")
+invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"生成一个通勤卡片", title:"通勤助手", description:"天气日程速览", size:"2x2", candidateDataBindings:[...], candidateEventCandidates:[...], candidateAssetIds:[...]},"skillName":"harmony-card-generation-online")
 ```
 
 edit 模式示例：
@@ -270,6 +270,7 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 
 - 调用前再次检查核心目标、地点、日期/时间范围、动作目标和能力必填业务参数；存在用户可确认的缺失或歧义时先追问并等待回答，再重建候选计划。
 - create 模式的 `title` 和 `description` 必须传非空字符串；无法从需求提炼时，使用“桌面卡片”和“信息速览”等稳定默认文案。edit 模式只有用户明确修改时才传，未修改时省略。
+- create 模式的尺寸遵循最小充分原则：用户未指定时先选择 `2x2`；只有必须保留的核心内容、受保护文本、必要热区、关键并列关系或关键媒体无法在 `2x2` 布局预算内成立时才选择 `2x4`。信息较多、横版更舒展或存在两个数据能力本身不构成升级理由；用户明确指定尺寸时优先尊重。
 - `title`、`description` 不填入动态数据、隐私数据或不确定状态，不用于替代数据能力。
 - `candidateDataBindings` 是候选，不是最终 CardSpec。
 - 无需字段投影时省略 `candidateOutputFields`；需要投影时只传可由对应 `outputSchema` 推导的 JSON Pointer 字符串数组。
