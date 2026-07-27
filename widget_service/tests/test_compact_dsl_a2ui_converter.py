@@ -84,7 +84,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 "Button",
                 {
                     "label": "查看详情",
-                    "design": "default-sm",
+                    "design": "capsule",
                     "width": "matchParent",
                     "onClick": [
                         {
@@ -129,11 +129,37 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(components["title"][2]["fontWeight"], 500)
         self.assertEqual(components["title"][2]["fontColor"], "#E5000000")
         self.assertNotIn("design", components["title"][2])
-        self.assertEqual(components["action"][2]["height"], 28)
+        self.assertEqual(components["action"][2]["height"], 36)
+        self.assertEqual(components["action"][2]["borderRadius"], 18)
         self.assertEqual(
             components["action"][2]["backgroundColor"],
             "#0C000000",
         )
+
+    def test_expands_icon_round_design_alias(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": 160, "height": 160},
+                    ["action"],
+                ],
+                [
+                    "action",
+                    "Button",
+                    {"label": "打开", "design": "icon-round"},
+                ],
+            ]
+        )
+
+        normalized = normalize_compact_dsl_design_tokens(compact_dsl)
+        action = json.loads(normalized.splitlines()[1])
+
+        self.assertEqual(action[2]["width"], 36)
+        self.assertEqual(action[2]["height"], 36)
+        self.assertEqual(action[2]["borderRadius"], 18)
+        self.assertNotIn("design", action[2])
 
     def test_theme_is_compatibility_only(self) -> None:
         light = normalize_compact_dsl_design_tokens(
