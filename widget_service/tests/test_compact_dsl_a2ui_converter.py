@@ -15,6 +15,15 @@ from services.compact_dsl_a2ui_converter import (
 )
 
 
+def _serialize(rows: list[list[object]]) -> str:
+    values: list[str] = []
+    for row in rows:
+        values.append(
+            json.dumps(row, ensure_ascii=False, separators=(",", ":"))
+        )
+    return "\n".join(values)
+
+
 class CompactDslA2uiConverterTest(unittest.TestCase):
     def setUp(self) -> None:
         self.profile = {
@@ -30,64 +39,84 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 "root",
                 "Column",
                 {
-                    "padding": "padding_level6",
-                    "borderRadius": "corner_radius_level9",
-                    "backgroundColor": "comp_background_list_card",
-                    "space": "padding_level4",
+                    "width": 160,
+                    "height": 160,
+                    "padding": 8,
+                    "borderRadius": 16,
+                    "clip": True,
+                    "itemMargin": 8,
+                    "linearGradient": {
+                        "angle": 142,
+                        "colors": [
+                            ["#FFFFFFFF", 0],
+                            ["#FF86C5E3", 1],
+                        ],
+                    },
                 },
-                ["title", "progress", "action"],
+                ["title", "events", "action"],
             ],
             [
                 "title",
                 "Text",
                 {
                     "content": {"path": "/data/title"},
-                    "design": "title-s",
+                    "design": "subtitle-s",
                     "fontColor": "font_primary",
                 },
             ],
-            ["/data/title", "清理无忧"],
             [
-                "progress",
-                "Progress",
+                "events",
+                "List",
+                {"space": 4},
+                ["event_title"],
+            ],
+            [
+                "event_title",
+                "Text",
                 {
-                    "value": {"path": "/data/storage/usedPercent"},
-                    "total": 100,
-                    "design": "linear",
+                    "content": {"path": "/data/calendar/events/0/title"},
+                    "design": "body-s",
+                    "fontColor": "font_secondary",
                 },
             ],
-            ["/data/storage/usedPercent", 72],
             [
                 "action",
                 "Button",
                 {
-                    "width": 116,
-                    "label": "立即清理",
-                    "design": "primary-sm",
-                    "action": {
-                        "functionCall": {
-                            "call": "clickToIntent",
+                    "label": "查看详情",
+                    "design": "default-sm",
+                    "width": "matchParent",
+                    "onClick": [
+                        {
+                            "call": "clickToApi",
                             "args": {
-                                "intentName": "StorageClean",
+                                "intentName": "ViewDetail",
                                 "params": {
                                     "entityId": {
-                                        "path": "/data/storage/entityId",
+                                        "path": (
+                                            "/data/calendar/events/0/entityId"
+                                        ),
                                     },
                                 },
                             },
                         },
-                    },
+                    ],
                 },
             ],
-            ["/data/storage/entityId", "storage-1"],
-            ["/data/items/0/name", "缓存"],
+            ["/data/title", "今日日程"],
+            [
+                "/data/calendar/events",
+                [
+                    {
+                        "title": "产品评审",
+                        "entityId": "event-1",
+                    },
+                ],
+            ],
         ]
-        self.compact_dsl = "\n".join(
-            json.dumps(row, ensure_ascii=False, separators=(",", ":"))
-            for row in rows
-        )
+        self.compact_dsl = _serialize(rows)
 
-    def test_expands_design_tokens(self) -> None:
+    def test_expands_only_current_prompt_design_aliases(self) -> None:
         normalized = normalize_compact_dsl_design_tokens(self.compact_dsl)
         rows = [json.loads(line) for line in normalized.splitlines()]
         components = {}
@@ -95,90 +124,209 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             if len(row) >= 3:
                 components[row[0]] = row
 
-        self.assertEqual(components["root"][2]["padding"], 12)
-        self.assertEqual(components["root"][2]["borderRadius"], 18)
-        self.assertEqual(components["root"][2]["backgroundColor"], "#FFFFFFFF")
-        self.assertEqual(components["title"][2]["fontSize"], 20)
-        self.assertEqual(components["title"][2]["fontWeight"], 700)
+        self.assertEqual(components["root"][2]["padding"], 8)
+        self.assertEqual(components["title"][2]["fontSize"], 14)
+        self.assertEqual(components["title"][2]["fontWeight"], 500)
+        self.assertEqual(components["title"][2]["fontColor"], "#E5000000")
         self.assertNotIn("design", components["title"][2])
         self.assertEqual(components["action"][2]["height"], 28)
         self.assertEqual(
             components["action"][2]["backgroundColor"],
-            "#FF0A59F7",
+            "#0C000000",
         )
 
-    def test_converts_components_actions_bindings_and_data(self) -> None:
-        a2ui = convert_compact_dsl_to_a2ui(
+    def test_theme_is_compatibility_only(self) -> None:
+        light = normalize_compact_dsl_design_tokens(
             self.compact_dsl,
-            size="2x2",
-            protocol_profile=self.profile,
+            theme="light",
         )
-        messages = [json.loads(line) for line in a2ui.splitlines()]
-        self.assertEqual(len(messages), 3)
-        self.assertEqual(messages[0]["createSurface"]["width"], 140)
-
-        components = {}
-        for component in messages[1]["updateComponents"]["components"]:
-            components[component["id"]] = component
-
-        root = components["root"]
-        self.assertEqual(root["itemMargin"], 8)
-        self.assertEqual(root["styles"]["width"], "matchParent")
-        self.assertEqual(root["styles"]["height"], "matchParent")
-        self.assertEqual(components["title"]["content"], "{{ ${/data/title} }}")
-        self.assertEqual(components["progress"]["value"], "{{ ${/data/storage/usedPercent} }}")
-        self.assertEqual(components["action"]["onClick"][0]["call"], "clickToIntent")
-
-        entity_id = components["action"]["onClick"][0]["args"]["params"]["entityId"]
-        self.assertEqual(entity_id, "{{ ${/data/storage/entityId} }}")
-        data_model = messages[2]["updateDataModel"]["value"]
-        self.assertEqual(data_model["data"]["title"], "清理无忧")
-        self.assertEqual(data_model["data"]["items"][0]["name"], "缓存")
-
-    def test_supports_dark_theme_and_2x4_size(self) -> None:
-        a2ui = convert_compact_dsl_to_a2ui(
+        dark = normalize_compact_dsl_design_tokens(
             self.compact_dsl,
-            size="2x4",
-            protocol_profile=self.profile,
             theme="dark",
         )
-        messages = [json.loads(line) for line in a2ui.splitlines()]
-        self.assertEqual(messages[0]["createSurface"]["width"], 300)
 
-        components = {}
-        for component in messages[1]["updateComponents"]["components"]:
-            components[component["id"]] = component
-        self.assertEqual(
-            components["root"]["styles"]["backgroundColor"],
-            "#19FFFFFF",
-        )
-        self.assertEqual(
-            components["title"]["styles"]["fontColor"],
-            "#E5FFFFFF",
-        )
+        self.assertEqual(light, dark)
 
-    def test_preserves_native_on_click_handlers(self) -> None:
-        compact_dsl = "\n".join(
-            (
-                '["root","Column",{},["action"]]',
-                '["action","Button",{"label":"查看","design":"default-sm",'
-                '"onClick":[{"call":"clickToApi","args":{"intentName":"ViewDetail",'
-                '"params":{"entityId":{"path":"/data/entityId"}}}}]}]',
-                '["/data/entityId","entity-1"]',
-            )
-        )
+    def test_converts_components_events_bindings_and_array_data(self) -> None:
         a2ui = convert_compact_dsl_to_a2ui(
-            compact_dsl,
+            self.compact_dsl,
             size="2x2",
             protocol_profile=self.profile,
         )
         messages = [json.loads(line) for line in a2ui.splitlines()]
-        action = messages[1]["updateComponents"]["components"][1]
 
-        self.assertEqual(action["onClick"][0]["call"], "clickToApi")
-        entity_id = action["onClick"][0]["args"]["params"]["entityId"]
-        self.assertEqual(entity_id, "{{ ${/data/entityId} }}")
-        self.assertNotIn("onClick", action["styles"])
+        self.assertEqual(len(messages), 3)
+        self.assertEqual(messages[0]["createSurface"]["width"], 140)
+        update = messages[1]["updateComponents"]
+        self.assertEqual(update["root"], "root")
+        components = {}
+        for component in update["components"]:
+            components[component["id"]] = component
+
+        self.assertEqual(components["root"]["itemMargin"], 8)
+        self.assertEqual(components["root"]["styles"]["width"], "matchParent")
+        self.assertEqual(components["root"]["styles"]["height"], "matchParent")
+        self.assertEqual(components["events"]["space"], 4)
+        self.assertEqual(
+            components["title"]["content"],
+            "{{ ${/data/title} }}",
+        )
+        handler = components["action"]["onClick"][0]
+        self.assertEqual(handler["call"], "clickToApi")
+        entity_id = handler["args"]["params"]["entityId"]
+        self.assertEqual(
+            entity_id,
+            "{{ ${/data/calendar/events/0/entityId} }}",
+        )
+        data_model = messages[2]["updateDataModel"]["value"]
+        event = data_model["data"]["calendar"]["events"][0]
+        self.assertEqual(event["title"], "产品评审")
+
+    def test_accepts_one_genui_fence(self) -> None:
+        fenced = f"```genui\n{self.compact_dsl}\n```"
+
+        result = convert_compact_dsl_to_a2ui(
+            fenced,
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+
+        self.assertEqual(len(result.splitlines()), 3)
+
+    def test_uses_2x4_profile_dimensions_for_4x2(self) -> None:
+        wide_rows = [
+            [
+                "root",
+                "Column",
+                {
+                    "width": 320,
+                    "height": 160,
+                    "padding": 8,
+                    "itemMargin": 8,
+                },
+                ["title"],
+            ],
+            ["title", "Text", {"content": "横向卡片", "design": "body-s"}],
+        ]
+
+        result = convert_compact_dsl_to_a2ui(
+            _serialize(wide_rows),
+            size="4x2",
+            protocol_profile=self.profile,
+        )
+        create_surface = json.loads(result.splitlines()[0])["createSurface"]
+
+        self.assertEqual(create_surface["width"], 300)
+        self.assertEqual(create_surface["height"], 140)
+
+    def test_rejects_legacy_action_and_row_space(self) -> None:
+        legacy_action = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": 160, "height": 160, "itemMargin": 8},
+                    ["action"],
+                ],
+                [
+                    "action",
+                    "Button",
+                    {
+                        "label": "查看",
+                        "action": {
+                            "functionCall": {"call": "clickToApi", "args": {}},
+                        },
+                    },
+                ],
+            ]
+        )
+        row_space = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": 160, "height": 160, "space": 8},
+                    [],
+                ],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "legacy property action",
+        ):
+            convert_compact_dsl_to_a2ui(
+                legacy_action,
+                size="2x2",
+                protocol_profile=self.profile,
+            )
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "must use itemMargin",
+        ):
+            convert_compact_dsl_to_a2ui(
+                row_space,
+                size="2x2",
+                protocol_profile=self.profile,
+            )
+
+    def test_rejects_legacy_spacing_tokens(self) -> None:
+        invalid = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {
+                        "width": 160,
+                        "height": 160,
+                        "padding": "padding_level4",
+                    },
+                    [],
+                ],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "legacy token",
+        ):
+            normalize_compact_dsl_design_tokens(invalid)
+
+    def test_rejects_root_dimensions_that_disagree_with_size(self) -> None:
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "root dimensions must be 320x160",
+        ):
+            convert_compact_dsl_to_a2ui(
+                self.compact_dsl,
+                size="2x4",
+                protocol_profile=self.profile,
+            )
+
+    def test_rejects_binding_without_data_value(self) -> None:
+        rows = [
+            [
+                "root",
+                "Column",
+                {"width": 160, "height": 160, "itemMargin": 8},
+                ["title"],
+            ],
+            [
+                "title",
+                "Text",
+                {"content": {"path": "/data/missing"}},
+            ],
+        ]
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "has no matching data value",
+        ):
+            convert_compact_dsl_to_a2ui(
+                _serialize(rows),
+                size="2x2",
+                protocol_profile=self.profile,
+            )
 
     def test_cli_converts_files_without_model_or_network(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -196,19 +344,6 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             ]
             self.assertEqual(len(messages), 3)
             self.assertIn("updateComponents", messages[1])
-
-    def test_rejects_unknown_design(self) -> None:
-        invalid = "\n".join(
-            (
-                '["root","Column",{},["title"]]',
-                '["title","Text",{"content":"标题","design":"unknown"}]',
-            )
-        )
-        with self.assertRaisesRegex(
-            CompactDslConversionError,
-            'unsupported Text.design "unknown"',
-        ):
-            normalize_compact_dsl_design_tokens(invalid)
 
 
 if __name__ == "__main__":

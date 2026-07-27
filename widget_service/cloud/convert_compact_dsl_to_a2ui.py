@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
-"""Convert Compact DSL with HarmonyOS design tokens to A2UI NDJSON.
+"""Convert Design Compact DSL to standard A2UI without calling a model.
 
 Examples:
     python convert_compact_dsl_to_a2ui.py card.dsl -o card.a2ui
-    type card.dsl | python convert_compact_dsl_to_a2ui.py - --theme dark
+    type card.dsl | python convert_compact_dsl_to_a2ui.py - --size 4x2
 """
 
 from __future__ import annotations
@@ -27,6 +27,7 @@ _DEFAULT_PROTOCOL_PROFILE: dict[str, Any] = {
     "sizes": {
         "2x2": {"width": 140, "height": 140},
         "2x4": {"width": 300, "height": 140},
+        "4x2": {"width": 300, "height": 140},
     },
 }
 
@@ -39,7 +40,7 @@ def convert_text(
     surface_id: str = "surface_card",
     protocol_profile: dict[str, Any] | None = None,
 ) -> str:
-    """Convert one Compact DSL NDJSON document without calling a model."""
+    """Convert one Design Compact DSL document without model or network calls."""
     profile = _DEFAULT_PROTOCOL_PROFILE
     if protocol_profile is not None:
         profile = protocol_profile
@@ -54,7 +55,10 @@ def convert_text(
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Expand HarmonyOS design tokens and convert Compact DSL to A2UI NDJSON.",
+        description=(
+            "Expand PROMPT.md design aliases and convert Compact DSL "
+            "to three-message A2UI NDJSON."
+        ),
     )
     parser.add_argument(
         "input",
@@ -68,8 +72,20 @@ def _build_parser() -> argparse.ArgumentParser:
         default="-",
         help="A2UI output file. Use - to write stdout.",
     )
-    parser.add_argument("--size", choices=("2x2", "2x4"), default="2x2")
-    parser.add_argument("--theme", choices=("light", "dark"), default="light")
+    parser.add_argument(
+        "--size",
+        choices=("2x2", "2x4", "4x2"),
+        default="2x2",
+    )
+    parser.add_argument(
+        "--theme",
+        choices=("light", "dark"),
+        default="light",
+        help=(
+            "Compatibility option. The current desktop prompt uses one fixed "
+            "palette, so both values expand to the same colors."
+        ),
+    )
     parser.add_argument("--surface-id", default="surface_card")
     parser.add_argument(
         "--protocol-profile",
@@ -89,7 +105,9 @@ def _read_profile(path: str | None) -> dict[str, Any] | None:
         return None
     value = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(value, dict):
-        raise CompactDslConversionError("Protocol profile JSON must contain an object.")
+        raise CompactDslConversionError(
+            "Protocol profile JSON must contain an object."
+        )
     return value
 
 
