@@ -346,13 +346,18 @@ class A2UIModelClient:
             protocol_profile = A2UIProtocolRegistry.read_design_protocol_profile(
                 design_profile_id
             )
-            return convert_compact_dsl_to_a2ui(
+            converted_dsl = convert_compact_dsl_to_a2ui(
                 compact_dsl,
                 size=size,
                 protocol_profile=protocol_profile,
                 theme=theme,
                 surface_id=surface_id,
             )
+            logger.info(
+                f"{_MODULE} design_dsl_conversion_completed "
+                f"converted_dsl={json_for_log(converted_dsl)}"
+            )
+            return converted_dsl
         except CompactDslConversionError as exc:
             logger.error(
                 f"{_MODULE} design_dsl_conversion_failed "

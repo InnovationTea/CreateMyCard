@@ -2170,8 +2170,10 @@ def test_a2ui_model_client_collects_llmclient_stream(monkeypatch):
     }
 
 
-def test_a2ui_model_client_converts_design_dsl_to_standard_dsl():
+def test_a2ui_model_client_converts_design_dsl_to_standard_dsl(monkeypatch):
     """验证 A2UI 客户端把 Design Compact DSL 转换为三段标准 DSL。"""
+    info_logs: list[str] = []
+    monkeypatch.setattr("custom.a2ui_model_client.logger.info", info_logs.append)
     design_dsl = "\n".join(
         (
             "```genui",
@@ -2194,6 +2196,14 @@ def test_a2ui_model_client_converts_design_dsl_to_standard_dsl():
     assert messages[0]["createSurface"]["width"] == 140
     assert messages[1]["updateComponents"]["root"] == "root"
     assert messages[2]["updateDataModel"]["value"]["data"]["message"] == "欢迎回来"
+    conversion_logs = [
+        message
+        for message in info_logs
+        if "design_dsl_conversion_completed" in message
+    ]
+    assert len(conversion_logs) == 1
+    assert "converted_dsl=" in conversion_logs[0]
+    assert '\\"createSurface\\"' in conversion_logs[0]
 
 
 def test_design_converter_reads_protocol_file_from_selected_design_profile(monkeypatch):
