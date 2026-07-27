@@ -11,6 +11,7 @@ from typing import Any, Literal
 
 ThemeMode = Literal["light", "dark"]
 
+_A2UI_FORM_CATALOG_ID = "ohos.a2ui.extended.catalog.form"
 _COMPONENT_TYPES = frozenset(
     {
         "Row",
@@ -295,16 +296,12 @@ def convert_compact_dsl_to_a2ui(
 
     dimensions = _surface_dimensions(size, protocol_profile)
     version = str(protocol_profile.get("version") or "v0.9")
-    catalog_id = str(
-        protocol_profile.get("catalogId")
-        or "ohos.a2ui.extended.catalog.form"
-    )
     messages = [
         {
             "version": version,
             "createSurface": {
                 "surfaceId": surface_id,
-                "catalogId": catalog_id,
+                "catalogId": _A2UI_FORM_CATALOG_ID,
                 "width": dimensions["width"],
                 "height": dimensions["height"],
             },
