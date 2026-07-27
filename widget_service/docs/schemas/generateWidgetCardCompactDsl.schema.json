@@ -28,6 +28,11 @@
             "required": true,
             "description": "用户原始卡片需求；缺失时服务会尝试使用 utterance.original 兜底。"
           },
+          "sourceArtifactUrl": {
+            "type": "string",
+            "required": false,
+            "description": "上一版完整 artifact URL；缺失表示首次生成，非空值表示编辑并受统一编辑开关控制。"
+          },
           "size": {
             "type": "string",
             "enum": ["2x2", "2x4"],

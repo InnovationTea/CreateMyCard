@@ -30,7 +30,6 @@ from services.compact_dsl_a2ui_converter import (
 )
 from services.compact_dsl_protocol import is_compact_dsl
 from services.protocol_registry import (
-    A2UI_FORM_PROTOCOL_PROFILE_ID,
     DESIGN_COMPACT_PROFILE_ID,
     A2UIProtocolRegistry,
 )
@@ -337,13 +336,16 @@ class A2UIModelClient:
         design_dsl: str,
         *,
         size: str,
-        protocol_profile: dict,
+        design_profile_id: str = DESIGN_COMPACT_PROFILE_ID,
         theme: ThemeMode = "light",
         surface_id: str = "surface_card",
     ) -> str:
-        """把模型生成的 Design Compact DSL 转为标准三段 A2UI DSL。"""
+        """使用 Design profile 自带的协议文件把 Design Compact DSL 转为标准 A2UI。"""
         compact_dsl = self.extract_genui_payload(design_dsl)
         try:
+            protocol_profile = A2UIProtocolRegistry.read_design_protocol_profile(
+                design_profile_id
+            )
             return convert_compact_dsl_to_a2ui(
                 compact_dsl,
                 size=size,
@@ -703,13 +705,10 @@ def main() -> int:
         "format": "compact-dsl",
     }
     design_dsl = client.generate(messages, design_profile)
-    standard_profile = A2UIProtocolRegistry(
-        A2UI_FORM_PROTOCOL_PROFILE_ID
-    ).get_profile()
     final_dsl = client.convert_design_dsl_to_standard_dsl(
         design_dsl,
         size=task_spec["size"],
-        protocol_profile=standard_profile,
+        design_profile_id=DESIGN_COMPACT_PROFILE_ID,
     )
     print("\n=== Final A2UI DSL ===")
     print(final_dsl)

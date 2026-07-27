@@ -796,9 +796,10 @@ def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
         "id": "design-compact-dsl",
         "format": "compact-dsl",
     }
-    assert model_calls[1]["prompt"][0]["content"].startswith(
-        "# HarmonyOS Desktop Form GenUI"
-    )
+    design_prompt = (
+        CLOUD_ROOT / "data" / "protocol_profiles" / "design-compact-dsl" / "PROMPT.md"
+    ).read_text(encoding="utf-8")
+    assert model_calls[1]["prompt"][0]["content"] == design_prompt
 
 
 def test_compact_route_mock_converts_design_dsl_before_saving(monkeypatch):

@@ -164,6 +164,29 @@ def test_create_then_visual_edit_inherits_generation_plan(editable_artifact_stor
     assert len(list(editable_artifact_storage.glob("artifact_*.md"))) == 2
 
 
+def test_design_compact_create_then_edit_uses_same_edit_switch(editable_artifact_storage):
+    service = WidgetGenerationService()
+    created = service.generate_widget_card_compact_dsl(_base_request())
+    edited = service.generate_widget_card_compact_dsl(
+        GenerateWidgetCardRequest(
+            uid="user-a",
+            device={"romVersion": "6.0"},
+            prdVer=APP_VERSION,
+            userQuery="整体改成蓝色",
+            sourceArtifactUrl=created.artifactUrl,
+        )
+    )
+
+    assert created.status in {GenerationStatus.SUCCESS, GenerationStatus.DEGRADED}
+    assert edited.status in {GenerationStatus.SUCCESS, GenerationStatus.DEGRADED}
+    assert edited.artifactUrl != created.artifactUrl
+    source = SourceArtifactRepository().load(created.artifactUrl)
+    updated = SourceArtifactRepository().load(edited.artifactUrl)
+    assert updated.artifact.meta.generationMode == "edit"
+    assert updated.artifact.meta.sourceArtifactDigest == source.artifact_digest
+    assert len(list(editable_artifact_storage.glob("artifact_*.md"))) == 2
+
+
 def test_source_artifact_remote_mode_uses_shared_download_utility(
     editable_artifact_storage,
     monkeypatch,
@@ -248,7 +271,11 @@ def test_v1_artifact_is_reported_as_unsupported():
     assert exc_info.value.error_code == ErrorCode.SOURCE_ARTIFACT_SCHEMA_UNSUPPORTED
 
 
-def test_edit_feature_switch_does_not_fall_back_to_create(monkeypatch):
+@pytest.mark.parametrize(
+    "generation_method",
+    ["generate_widget_card_a2ui_form", "generate_widget_card_compact_dsl"],
+)
+def test_edit_feature_switch_does_not_fall_back_to_create(monkeypatch, generation_method):
     monkeypatch.setattr(get_settings(), "enable_widget_edit", False)
     request = GenerateWidgetCardRequest(
         uid="user-a",
@@ -257,7 +284,8 @@ def test_edit_feature_switch_does_not_fall_back_to_create(monkeypatch):
         sourceArtifactUrl="https://obs.test/widget/artifact_x.md",
     )
 
-    response = WidgetGenerationService().generate_widget_card_a2ui_form(request)
+    service = WidgetGenerationService()
+    response = getattr(service, generation_method)(request)
 
     assert response.status == GenerationStatus.UNSUPPORTED
     assert response.errorCode == ErrorCode.WIDGET_EDIT_DISABLED.value

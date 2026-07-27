@@ -382,6 +382,7 @@ class WidgetGenerationService:
         protocol_profile = protocol_registry.get_profile()
         compact_dsl = is_compact_dsl(protocol_profile)
         design_compact = design_profile_id is not None
+        resolved_design_profile_id = design_profile_id or ""
         logger.info(
             f"{_MODULE} generate_flow_step_protocol_loaded "
             f"protocol_profile_id={protocol_profile['id']} "
@@ -510,6 +511,9 @@ class WidgetGenerationService:
             prompt = PromptBuilder().build_design_compact(
                 task_spec,
                 design_system_prompt,
+                previous_genui=(
+                    source_load_result.artifact.genui if source_load_result else None
+                ),
             )
         else:
             prompt = PromptBuilder().build(
@@ -554,9 +558,13 @@ class WidgetGenerationService:
         retry_controller = RetryController()
         artifact_id = str(uuid.uuid4())
         compact_operation_error = ""
+        latest_design_dsl = ""
         model_call_phase = "initial"
         model_failure_retry_count = 0
-        if design_compact or protocol_profile["id"] == COMPACT_DSL_PROTOCOL_PROFILE_ID:
+        if design_compact:
+            design_mode = "edit" if source_load_result else "create"
+            repair_prompt_type = f"design-compact-{design_mode}"
+        elif protocol_profile["id"] == COMPACT_DSL_PROTOCOL_PROFILE_ID:
             repair_prompt_type = "compact"
         elif source_load_result:
             repair_prompt_type = "edit"
@@ -607,16 +615,19 @@ class WidgetGenerationService:
             入参：无。
             出参：三行 JSONL genui 字符串。
             """
-            nonlocal compact_operation_error
+            nonlocal compact_operation_error, latest_design_dsl
             logger.info(f"{_MODULE} a2ui_model_operation_started")
+
             def generate_once() -> str:
+                nonlocal latest_design_dsl
                 generated_dsl = model_client.generate(prompt, model_protocol_profile)
                 if not design_compact:
                     return generated_dsl
+                latest_design_dsl = generated_dsl
                 return model_client.convert_design_dsl_to_standard_dsl(
                     generated_dsl,
                     size=card_spec.suggestSize,
-                    protocol_profile=protocol_profile,
+                    design_profile_id=resolved_design_profile_id,
                 )
 
             generated = call_model_with_failure_retry(generate_once, "initial")
@@ -663,20 +674,39 @@ class WidgetGenerationService:
 
         def repair_genui(invalid_genui: str, validation_errors: list[str]) -> str:
             """携带首次非法 DSL 和 error 级错误执行一次定向修复。"""
+            nonlocal latest_design_dsl
+            repair_source = latest_design_dsl if design_compact else invalid_genui
+            repair_format = (
+                resolved_design_profile_id if design_compact else protocol_profile["format"]
+            )
             repair_prompt = PromptBuilder().build_repair(
                 prompt,
-                invalid_genui,
+                repair_source,
                 validation_errors,
+                dsl_format=repair_format,
             )
             logger.info(
                 f"{_MODULE} a2ui_repair_started repair_prompt_type={repair_prompt_type} "
                 f"initial_validation_error_count={len(validation_errors)}"
             )
-            return call_model_with_failure_retry(
-                lambda: model_client.generate_repair(
+
+            def repair_once() -> str:
+                nonlocal latest_design_dsl
+                repaired_dsl = model_client.generate_repair(
                     repair_prompt,
                     model_protocol_profile,
-                ),
+                )
+                if not design_compact:
+                    return repaired_dsl
+                latest_design_dsl = repaired_dsl
+                return model_client.convert_design_dsl_to_standard_dsl(
+                    repaired_dsl,
+                    size=card_spec.suggestSize,
+                    design_profile_id=resolved_design_profile_id,
+                )
+
+            return call_model_with_failure_retry(
+                repair_once,
                 "repair",
             )
 
@@ -694,7 +724,7 @@ class WidgetGenerationService:
                 )
                 return [error]
             # 每次模型输出都临时组装 artifact，再用同一套 Validator 校验完整契约。
-            validation_optional = not compact_dsl and not design_compact
+            validation_optional = not compact_dsl
             if not settings.enable_artifact_validation and validation_optional:
                 logger.info(
                     f"{_MODULE} a2ui_genui_validation_skipped "
@@ -727,10 +757,10 @@ class WidgetGenerationService:
                 artifact,
                 protocol_profile,
             )
-            if (compact_dsl or design_compact) and validation_errors:
+            if compact_dsl and validation_errors:
                 logger.info(
                     f"{_MODULE} strict_validation_failed "
-                    "validation_repair_skipped=true reason=design_single_pass_policy "
+                    "validation_repair_skipped=true reason=legacy_compact_policy "
                     f"categories={json_for_log(artifact_validator.error_categories)}"
                 )
             if source_load_result:
@@ -748,10 +778,9 @@ class WidgetGenerationService:
                         )
             return validation_errors
 
-        # 工具3保留校验 repair；工具4先确定性转换并保持单次模型调用，不对标准 DSL 再发模型修复请求。
+        # 所有标准 A2UI 输出共享校验与 repair 开关；旧 Compact DSL profile 继续使用本地预检策略。
         retry_on_validation_failure = settings.enable_validation_failure_retry
         retry_on_validation_failure = retry_on_validation_failure and not compact_dsl
-        retry_on_validation_failure = retry_on_validation_failure and not design_compact
         try:
             retry_result = retry_controller.run(
                 operation,
@@ -825,7 +854,7 @@ class WidgetGenerationService:
             f"repair_prompt_type={repair_prompt_type} "
             f"validation_error_count={len(errors)}"
         )
-        strict_validation = compact_dsl or design_compact
+        strict_validation = compact_dsl
         if strict_validation and errors:
             logger.error(
                 f"{_MODULE} strict_generation_validation_failed "
@@ -1011,13 +1040,6 @@ class WidgetGenerationService:
         request: GenerateWidgetCardRequest,
     ) -> GenerateWidgetCardResponse:
         """使用 llmclient 生成 Design Compact DSL，并转换为版本匹配的标准 A2UI。"""
-        if "sourceArtifactUrl" in request.model_fields_set:
-            return GenerateWidgetCardResponse(
-                status=GenerationStatus.UNSUPPORTED,
-                suggestSize=request.size or "2x4",
-                message="Design Compact DSL 入口不支持多轮编辑。",
-                errorCode=ErrorCode.WIDGET_EDIT_DISABLED.value,
-            )
         try:
             selection = self._compact_protocol_selection(request)
         except ValueError as exc:

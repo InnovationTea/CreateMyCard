@@ -100,8 +100,9 @@ WS /api/v1/ws/tools/generateWidgetCardCompactDsl
 ```
 
 `generateWidgetCard` 固定使用标准 A2UI Form profile 和 MEP；
-`generateWidgetCardCompactDsl` 根据 App/ROM 区间选择目标 A2UI profile，使用 llmclient 生成
-Design Compact DSL，再由服务内转换器生成标准三段 A2UI DSL。两个入口共享业务入参和响应结构，
+`generateWidgetCardCompactDsl` 根据 App/ROM 区间选择 Design profile，使用 llmclient 生成
+Design Compact DSL，再由服务内转换器读取该 Design profile 下的 `protocol.json`，生成标准三段 A2UI DSL。
+两个入口共享 create/edit、校验、repair 的开关和业务语义，
 调用方不需要传 `protocolProfileId`，旧值也不能覆盖路由选择结果。
 
 第四接口的协议区间索引位于 `cloud/data/protocol_profiles/registry_ranges.json`。未命中时，只有
@@ -364,7 +365,8 @@ curl http://127.0.0.1:8855/health
 }
 ```
 
-只有包含 `generationplan` 的 `widget-artifact-v2` 可作为编辑来源。编辑开关默认关闭。Compact DSL 调试入口不支持多轮编辑。
+只有包含 `generationplan` 的 `widget-artifact-v2` 可作为编辑来源。编辑开关默认关闭。标准 A2UI 和
+Design Compact 两个生成入口都受同一个编辑开关控制，并沿用相同的继承、替换和清空语义。
 
 响应消息核心字段：
 
@@ -937,7 +939,9 @@ build(
 
 用途：构造 A2UI 模型输入。首次生成从 `system_prompt_file` 读取系统提示词；编辑模式从 `edit_system_prompt_file` 读取提示词，通过 `{{CREATE_SYSTEM_PROMPT}}` 组合通用生成规则，并额外把本轮指令、新 TaskSpec 和来源 genui 作为结构化用户数据传入，不传来源 URL。
 
-`build_repair()` 在首次调用实际使用的 system prompt 后追加 `repair_system_prompt_file`，并把首次 user 内容、完整非法 DSL 和全部 error 级错误编码成标准 JSON user 消息。新建、编辑和 Compact DSL 因此分别继承原模式约束。
+`build_repair()` 在首次调用实际使用的 system prompt 后追加 `repair_system_prompt_file`，并把首次 user
+内容、完整非法 DSL 和全部 error 级错误编码成标准 JSON user 消息。Design Compact repair 携带转换前的
+Design DSL 和转换后标准 A2UI 的校验错误，模型返回修复后的 Design DSL，再次转换后重新校验。
 
 修复模型调用会对完整 prompt 日志做脱敏，只记录修复类型和错误数量。
 
@@ -963,8 +967,8 @@ generate(
 
 - 开关为 `true`：直接读取并返回与客户端同目录的 `mock.dat` 原始内容，不做字段替换或结构调整。
 - 第三接口固定使用 MEP 的 `/predict` 流式实现。
-- 第四接口固定调用 `cloud/custom/llmclient.py`，聚合 Design Compact DSL 流式 token，再执行确定性
-  A2UI 转换。
+- 第四接口固定调用 `cloud/custom/llmclient.py`，聚合 Design Compact DSL 流式 token，再读取选中
+  Design profile 目录中的 `protocol.json` 执行确定性 A2UI 转换。
 - 模型请求异常、流式响应显式错误或最终没有非空 DSL 时抛出模型生成异常。模型失败重试开关
   关闭时直接返回 `failed/A2UI_GENERATION_FAILED`；开启时使用同一提示词重试一次。最终失败不调用
   Validator、RepairController 或 ArtifactStore。

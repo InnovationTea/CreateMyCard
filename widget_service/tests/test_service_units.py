@@ -731,6 +731,19 @@ def _write_protocol_ranges(root: Path, ranges: list[dict]) -> None:
         design_dir = root / item["designProfileId"]
         design_dir.mkdir(exist_ok=True)
         (design_dir / "PROMPT.md").write_text("prompt", encoding="utf-8")
+        (design_dir / "protocol.json").write_text(
+            json_module.dumps(
+                {
+                    "version": "v0.9",
+                    "catalogId": "ohos.a2ui.extended.catalog.form",
+                    "sizes": {
+                        "2x2": {"width": 140, "height": 140},
+                        "2x4": {"width": 300, "height": 140},
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
     (root / "registry_ranges.json").write_text(
         json_module.dumps({"schemaVersion": "v1", "ranges": ranges}),
         encoding="utf-8",
@@ -775,12 +788,23 @@ def test_protocol_registry_rejects_missing_design_prompt(tmp_path):
         A2UIProtocolRegistry.from_app_rom_versions("11.8", "6.5", root)
 
 
+def test_protocol_registry_rejects_missing_design_protocol_file(tmp_path):
+    root = tmp_path / "protocol_profiles"
+    ranges = [_protocol_range("profile-one", "design-one")]
+    _write_protocol_ranges(root, ranges)
+    (root / "design-one" / "protocol.json").unlink()
+
+    with pytest.raises(ValueError, match="Design Compact protocol file not found"):
+        A2UIProtocolRegistry.from_app_rom_versions("11.8", "6.5", root)
+
+
 def test_protocol_registry_rejects_missing_protocol_directory(tmp_path):
     root = tmp_path / "protocol_profiles"
     root.mkdir()
     design_dir = root / "design-one"
     design_dir.mkdir()
     (design_dir / "PROMPT.md").write_text("prompt", encoding="utf-8")
+    (design_dir / "protocol.json").write_text("{}", encoding="utf-8")
     ranges = [_protocol_range("missing-profile", "design-one")]
     (root / "registry_ranges.json").write_text(
         json_module.dumps({"schemaVersion": "v1", "ranges": ranges}),
@@ -1974,6 +1998,30 @@ def test_repair_prompt_inherits_initial_mode_and_contains_errors(mode):
     assert "只输出修复后的完整 DSL" in repair_payload["instruction"]
 
 
+def test_design_compact_edit_prompt_contains_previous_standard_genui():
+    task_spec = TaskSpecBuilder().build(
+        user_query="整体改成蓝色",
+        size="2x4",
+        effective_bindings=[],
+        effective_data_capabilities=[],
+        event_candidates=[],
+        asset_candidates=[],
+    )
+    previous_genui = '{"version":"v0.9"}\n{}\n{}'
+
+    prompt = PromptBuilder().build_design_compact(
+        task_spec,
+        "design rules",
+        previous_genui=previous_genui,
+    )
+    edit_payload = json_module.loads(prompt[1]["content"])
+
+    assert edit_payload["mode"] == "edit"
+    assert edit_payload["previousGenui"] == previous_genui
+    assert edit_payload["editInstruction"] == "整体改成蓝色"
+    assert "完整 Design Compact DSL" in edit_payload["instruction"]
+
+
 def test_a2ui_model_client_returns_mock_dat_without_processing():
     """验证 mock A2UI 直接返回 mock.dat 原始内容。
 
@@ -2035,11 +2083,10 @@ def test_a2ui_model_client_selects_design_compact_mock_by_task_size(
     client = A2UIModelClient(use_mock=True, backend="llmclient")
     genui = client.generate(prompt, profile)
     root = json_module.loads(genui.splitlines()[0])
-    standard_profile = A2UIProtocolRegistry("a2ui-form-rom6.0-v1").get_profile()
     converted = client.convert_design_dsl_to_standard_dsl(
         genui,
         size=size,
-        protocol_profile=standard_profile,
+        design_profile_id="design-compact-dsl",
     )
     converted_rows = [json_module.loads(line) for line in converted.splitlines()]
 
@@ -2136,16 +2183,10 @@ def test_a2ui_model_client_converts_design_dsl_to_standard_dsl():
             "```",
         )
     )
-    profile = {
-        "version": "v0.9",
-        "catalogId": "ohos.a2ui.extended.catalog.form",
-        "sizes": {"2x2": {"width": 140, "height": 140}},
-    }
-
     result = A2UIModelClient(use_mock=True).convert_design_dsl_to_standard_dsl(
         design_dsl,
         size="2x2",
-        protocol_profile=profile,
+        design_profile_id="design-compact-dsl",
     )
     messages = [json_module.loads(line) for line in result.splitlines()]
 
@@ -2153,6 +2194,38 @@ def test_a2ui_model_client_converts_design_dsl_to_standard_dsl():
     assert messages[0]["createSurface"]["width"] == 140
     assert messages[1]["updateComponents"]["root"] == "root"
     assert messages[2]["updateDataModel"]["value"]["data"]["message"] == "欢迎回来"
+
+
+def test_design_converter_reads_protocol_file_from_selected_design_profile(monkeypatch):
+    design_dsl = (CLOUD_ROOT / "custom" / "mock.design-compact-dsl-2x4.dat").read_text(
+        encoding="utf-8"
+    )
+    selected_profiles: list[str] = []
+
+    def read_design_protocol(_registry, profile_id):
+        selected_profiles.append(profile_id)
+        return {
+            "version": "v1.1",
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "sizes": {"2x4": {"width": 288, "height": 136}},
+        }
+
+    monkeypatch.setattr(
+        A2UIProtocolRegistry,
+        "read_design_protocol_profile",
+        classmethod(read_design_protocol),
+    )
+
+    result = A2UIModelClient(use_mock=True).convert_design_dsl_to_standard_dsl(
+        design_dsl,
+        size="2x4",
+        design_profile_id="design-next",
+    )
+    create_surface = json_module.loads(result.splitlines()[0])["createSurface"]
+
+    assert selected_profiles == ["design-next"]
+    assert create_surface["width"] == 288
+    assert create_surface["height"] == 136
 
 
 def test_a2ui_model_client_design_test_task_spec_covers_weather_capabilities():
@@ -2580,6 +2653,106 @@ def test_repair_model_failure_does_not_validate_or_save_second_result(monkeypatc
     assert validation_calls == ["invalid-but-nonempty-dsl"]
     assert response.status == GenerationStatus.FAILED
     assert response.errorCode == ErrorCode.A2UI_GENERATION_FAILED.value
+
+
+def test_design_compact_validation_error_uses_design_repair_then_converts(monkeypatch):
+    settings = get_settings()
+    design_dsl = (CLOUD_ROOT / "custom" / "mock.design-compact-dsl-2x4.dat").read_text(
+        encoding="utf-8"
+    )
+    model_prompts: list[list[dict[str, str]]] = []
+    validated_genui: list[str] = []
+    saved_genui: list[str] = []
+
+    def generate_design(_client, prompt, _profile=None):
+        model_prompts.append(prompt)
+        return design_dsl
+
+    def validate_standard(_validator, artifact, _profile):
+        validated_genui.append(artifact.genui)
+        if len(validated_genui) == 1:
+            return ["DSL_REQUIRED_FIELD [genui:2 /updateComponents/root]"]
+        return []
+
+    def save_artifact(_store, artifact):
+        saved_genui.append(artifact.genui)
+        return ArtifactSaveResult(
+            artifactUrl="https://artifact.test/design-repaired",
+            artifactDigest="sha256:design-repaired",
+        )
+
+    monkeypatch.setattr(settings, "enable_artifact_validation", True)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(A2UIModelClient, "generate", generate_design)
+    monkeypatch.setattr(ArtifactValidator, "validate", validate_standard)
+    monkeypatch.setattr(ArtifactStore, "save", save_artifact)
+
+    response = WidgetGenerationService().generate_widget_card_compact_dsl(
+        _model_failure_request()
+    )
+    repair_payload = json_module.loads(model_prompts[1][1]["content"])
+
+    assert response.status == GenerationStatus.SUCCESS
+    assert len(model_prompts) == 2
+    assert repair_payload["invalidGenui"] == design_dsl
+    assert repair_payload["dslFormat"] == "design-compact-dsl"
+    assert "/updateComponents/root" in repair_payload["validationErrors"][0]
+    assert len(validated_genui) == 2
+    assert all('"createSurface"' in value for value in validated_genui)
+    assert saved_genui == [validated_genui[-1]]
+
+
+def test_design_compact_respects_validation_disabled_switch(monkeypatch):
+    settings = get_settings()
+
+    def unexpected_validate(*_args, **_kwargs):
+        pytest.fail("disabled validation must not call the validator")
+
+    monkeypatch.setattr(settings, "enable_artifact_validation", False)
+    monkeypatch.setattr(ArtifactValidator, "validate", unexpected_validate)
+    monkeypatch.setattr(
+        ArtifactStore,
+        "save",
+        lambda _store, _artifact: ArtifactSaveResult(
+            artifactUrl="https://artifact.test/design-validation-disabled",
+            artifactDigest="sha256:design-validation-disabled",
+        ),
+    )
+
+    response = WidgetGenerationService().generate_widget_card_compact_dsl(
+        _model_failure_request()
+    )
+
+    assert response.status == GenerationStatus.SUCCESS
+    assert response.artifactUrl == "https://artifact.test/design-validation-disabled"
+
+
+def test_design_compact_validation_error_without_repair_still_saves(monkeypatch):
+    settings = get_settings()
+    saved_genui: list[str] = []
+
+    def validation_error(_validator, _artifact, _profile):
+        return ["DSL_REQUIRED_FIELD [genui:2 /updateComponents/root]"]
+
+    def save_artifact(_store, artifact):
+        saved_genui.append(artifact.genui)
+        return ArtifactSaveResult(
+            artifactUrl="https://artifact.test/design-unrepaired",
+            artifactDigest="sha256:design-unrepaired",
+        )
+
+    monkeypatch.setattr(settings, "enable_artifact_validation", True)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", False)
+    monkeypatch.setattr(ArtifactValidator, "validate", validation_error)
+    monkeypatch.setattr(ArtifactStore, "save", save_artifact)
+
+    response = WidgetGenerationService().generate_widget_card_compact_dsl(
+        _model_failure_request()
+    )
+
+    assert response.status == GenerationStatus.SUCCESS
+    assert response.artifactUrl == "https://artifact.test/design-unrepaired"
+    assert len(saved_genui) == 1
 
 
 def test_response_planner_returns_structured_status():

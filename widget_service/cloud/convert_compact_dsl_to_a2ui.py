@@ -12,24 +12,16 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     ThemeMode,
     convert_compact_dsl_to_a2ui,
 )
-
-_DEFAULT_PROTOCOL_PROFILE: dict[str, Any] = {
-    "version": "v0.9",
-    "catalogId": "ohos.a2ui.extended.catalog.form",
-    "sizes": {
-        "2x2": {"width": 140, "height": 140},
-        "2x4": {"width": 300, "height": 140},
-        "4x2": {"width": 300, "height": 140},
-    },
-}
+from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID, A2UIProtocolRegistry
 
 
 def convert_text(
@@ -41,7 +33,9 @@ def convert_text(
     protocol_profile: dict[str, Any] | None = None,
 ) -> str:
     """Convert one Design Compact DSL document without model or network calls."""
-    profile = _DEFAULT_PROTOCOL_PROFILE
+    profile = A2UIProtocolRegistry.read_design_protocol_profile(
+        DESIGN_COMPACT_PROFILE_ID
+    )
     if protocol_profile is not None:
         profile = protocol_profile
     return convert_compact_dsl_to_a2ui(

@@ -19,6 +19,8 @@ A2UI_FORM_PROTOCOL_PROFILE_ID = "a2ui-form-rom6.0-v1"
 COMPACT_DSL_PROTOCOL_PROFILE_ID = "compact-dsl-v1"
 DESIGN_COMPACT_PROFILE_ID = "design-compact-dsl"
 _RANGE_INDEX_FILE = "registry_ranges.json"
+_DESIGN_PROMPT_FILE = "PROMPT.md"
+_DESIGN_PROTOCOL_FILE = "protocol.json"
 
 
 @dataclass(frozen=True)
@@ -177,10 +179,27 @@ class A2UIProtocolRegistry:
     ) -> str:
         """读取版本选择结果对应的 Design Compact 完整系统提示词。"""
         root = profiles_root or get_settings().data_root / "protocol_profiles"
-        prompt_path = root / design_profile_id / "PROMPT.md"
+        prompt_path = root / design_profile_id / _DESIGN_PROMPT_FILE
         if not prompt_path.is_file():
             raise ValueError(f"Design Compact prompt not found: {prompt_path}")
         return prompt_path.read_text(encoding="utf-8")
+
+    @classmethod
+    def read_design_protocol_profile(
+        cls,
+        design_profile_id: str,
+        profiles_root: Path | None = None,
+    ) -> dict[str, Any]:
+        """读取 Design Compact 转换器专用的目标 A2UI 协议参数。"""
+        root = profiles_root or get_settings().data_root / "protocol_profiles"
+        protocol_path = root / design_profile_id / _DESIGN_PROTOCOL_FILE
+        if not protocol_path.is_file():
+            raise ValueError(f"Design Compact protocol file not found: {protocol_path}")
+        payload = load_json(protocol_path)
+        if not isinstance(payload, dict):
+            raise ValueError("Design Compact protocol file must contain an object")
+        cls._validate_design_protocol_profile(payload, protocol_path)
+        return payload
 
     @classmethod
     @cache
@@ -231,8 +250,9 @@ class A2UIProtocolRegistry:
             raise ValueError(f"Protocol profile range entry requires {name}")
         return value
 
-    @staticmethod
+    @classmethod
     def _validate_profile_files(
+        cls,
         profiles_root: Path,
         protocol_profile_id: str,
         design_profile_id: str,
@@ -245,9 +265,31 @@ class A2UIProtocolRegistry:
             profile_file = protocol_dir / filename
             if not profile_file.is_file():
                 raise ValueError(f"Protocol profile file not found: {profile_file}")
-        design_prompt = profiles_root / design_profile_id / "PROMPT.md"
+        design_prompt = profiles_root / design_profile_id / _DESIGN_PROMPT_FILE
         if not design_prompt.is_file():
             raise ValueError(f"Design Compact prompt not found: {design_prompt}")
+        cls.read_design_protocol_profile(design_profile_id, profiles_root)
+
+    @staticmethod
+    def _validate_design_protocol_profile(payload: dict[str, Any], path: Path) -> None:
+        version = payload.get("version")
+        catalog_id = payload.get("catalogId")
+        sizes = payload.get("sizes")
+        if not isinstance(version, str) or not version.strip():
+            raise ValueError(f"Design Compact protocol version is invalid: {path}")
+        if not isinstance(catalog_id, str) or not catalog_id.strip():
+            raise ValueError(f"Design Compact protocol catalogId is invalid: {path}")
+        if not isinstance(sizes, dict):
+            raise ValueError(f"Design Compact protocol sizes are invalid: {path}")
+        for size in ("2x2", "2x4"):
+            dimensions = sizes.get(size)
+            if not isinstance(dimensions, dict):
+                raise ValueError(f"Design Compact protocol size {size} is missing: {path}")
+            width = dimensions.get("width")
+            height = dimensions.get("height")
+            valid_dimensions = type(width) is int and type(height) is int
+            if not valid_dimensions or width <= 0 or height <= 0:
+                raise ValueError(f"Design Compact protocol size {size} is invalid: {path}")
 
     @classmethod
     def _parse_interval(cls, payload: Any, name: str) -> tuple[Version, Version]:
