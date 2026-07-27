@@ -127,6 +127,23 @@ _TEXT_DESIGNS: dict[str, dict[str, Any]] = {
     "caption-m": {"fontSize": 10, "fontWeight": 500},
 }
 _BUTTON_DESIGNS: dict[str, dict[str, Any]] = {
+    "capsule": {
+        "height": 36,
+        "borderRadius": 18,
+        "padding": {"left": 12, "top": 6, "right": 12, "bottom": 6},
+        "backgroundColor": "comp_background_tertiary",
+        "fontColor": "font_emphasize",
+        "fontSize": 14,
+        "fontWeight": 500,
+    },
+    "icon-round": {
+        "width": 36,
+        "height": 36,
+        "borderRadius": 18,
+        "padding": 8,
+        "backgroundColor": "comp_background_tertiary",
+        "flexShrink": 0,
+    },
     "default": {
         "height": 40,
         "borderRadius": 20,
