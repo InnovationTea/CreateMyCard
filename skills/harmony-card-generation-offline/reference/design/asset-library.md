@@ -35,9 +35,6 @@
 | `resources/base/media/clock.svg` | 时钟线框图标，黑色，图形为圆形表盘加指针的线性轮廓，适用场景：时间显示、定时功能、倒计时 |
 | `resources/base/media/clock_fill.svg` | 时钟实心图标，黑白双色，图形为圆形实心表盘加白色指针，适用场景：时间显示、闹钟设置、定时器 |
 | `resources/base/media/cold.svg` | 寒冷/雪花图标，黑色，图形为六角雪花晶体造型，适用场景：制冷模式、低温天气展示、空调冷风设置 |
-| `resources/base/media/cloudy.png` | 云朵组合，彩色图标，适用场景：天气、出行 |
-| `resources/base/media/cloudy_turning_sunny.png` | 小云朵和太阳组合，彩色图标，适用场景：天气、出行 |
-| `resources/base/media/courier_box.png` | 快递箱子，彩色图标，适用场景：物流信息、取件提醒 |
 | `resources/base/media/drop_1.svg` | 水滴图标，黑色，图形为圆润水滴轮廓，适用场景：湿度数据展示、饮水提醒、天气降雨信息 |
 | `resources/base/media/earphone_case_16644.svg` | 耳机收纳盒实心图标，黑色，图形为无线耳机充电盒造型，适用场景：蓝牙耳机设备连接、音频设备管理 |
 | `resources/base/media/externaldrive_fill.svg` | 外置存储设备实心图标，黑色，图形为矩形硬盘盒造型，适用场景：本地存储管理、数据备份、文件传输 |
@@ -65,62 +62,54 @@
 | `resources/base/media/phone_fill.svg` | 电话实心图标，黑色，图形为经典听筒造型，适用场景：拨打电话、通话功能入口 |
 | `resources/base/media/phone_fill_1.svg` | 电话实心图标（变体），黑色，图形为听筒加信号波形，适用场景：来电接听、通话状态展示 |
 | `resources/base/media/play_fill.svg` | 播放实心图标，黑色，图形为向右的实心三角形，适用场景：音乐/视频播放控制、媒体播放器 |
-| `resources/base/media/partly_cloudy.png` | 云朵在前、太阳在后的组合，彩色图标，适用场景：天气、出行 |
 | `resources/base/media/qrcode.svg` | 二维码图标，黑色，图形为标准方形二维码点阵图案，适用场景：扫码功能、快速连接设备、信息分享 |
-| `resources/base/media/rain.png` | 云朵和雨滴组合，彩色图标，适用场景：天气、出行 |
 | `resources/base/media/r_circle_fill.svg` | 字母R圆形实心图标，黑色，图形为圆形背景内白色R字母，适用场景：标签分类标识、录制状态标记 |
-| `resources/base/media/snow.png` | 雪花，彩色图标，适用场景：天气、出行 |
 | `resources/base/media/stopwatch_fill.svg` | 秒表实心图标，黑白双色，图形为带按钮的圆形秒表造型，适用场景：计时功能、运动计时、倒计时 |
-| `resources/base/media/sunny.png` | 太阳，彩色图标，适用场景：天气、出行 |
 | `resources/base/media/sun_max.svg` | 太阳最大亮度图标，黑色，图形为圆形太阳加多条粗放射线，适用场景：天气晴朗展示、屏幕亮度最大值 |
 | `resources/base/media/sun_min.svg` | 太阳最小亮度图标，黑色，图形为圆形太阳加短细放射线，适用场景：低亮度调节、柔和光线、日出/日落场景 |
 | `resources/base/media/thermometer_snowflake.svg` | 温度计/雪花组合图标，黑色，图形为温度计右侧叠加雪花造型，适用场景：寒冷预警、体感指数 |
 | `resources/base/media/thermometer_sun_fill.svg` | 温度计/太阳组合图标，黑色，图形为温度计右侧叠加太阳造型，适用场景：高温预警、体感指数 |
-| `resources/base/media/thunder.png` | 云朵和闪电组合，彩色图标，适用场景：天气、出行 |
 | `resources/base/media/thunder_storm.svg` | 下雨和闪电造型组合图标，图形为下雨中带有闪电的造型，适用场景：雷暴预警 |
-| `resources/base/media/thunderstorm.png` | 云朵、闪电和雨滴组合，彩色图标，适用场景：天气、出行 |
-| `resources/base/media/tornado.png` | 龙卷风，彩色图标，适用场景：天气、出行 |
 | `resources/base/media/tram_fill.svg` | 有轨电车实心图标，黑色，图形为带导线的有轨电车侧视轮廓，适用场景：城市公共交通、地铁/轻轨出行导航 |
 | `resources/base/media/typhoon_fill.svg` | 台风黑色图标，图形为台风漩涡造型，适用场景：台风预警、台风路径 |
 | `resources/base/media/z_alarm_fill.svg` | 带Z的闹钟贪睡实心图标，黑色，图形为闹钟旁附带字母Z表示贪睡，适用场景：闹钟贪睡功能、延迟提醒、睡眠场景 |
 
-## PNG 图标索引
+## 场景图标索引
 
-所有 `src` 均以 `resources/base/media` 为前缀，素材格式统一为 `.png`。
+所有 `src` 均以 `resources/base/media` 为前缀。除 `icon_tiktok.png` 外，本节图标均为 `.svg`。
 
 | src | description |
 | --- | --- |
-| `resources/base/media/icon_id.png` | 工牌/ID图标，适用场景：当下日程 |
-| `resources/base/media/icon_meeting.png` | 会议图标，适用场景：当下日程 |
-| `resources/base/media/icon_time.png` | 时间图标，适用场景：当下日程 |
-| `resources/base/media/icon_watermark.png` | 水印图标，适用场景：当下日程 |
-| `resources/base/media/icon_allergy.png` | 过敏源图标，适用场景：亲人关怀 |
-| `resources/base/media/icon_call.png` | 电话图标，适用场景：亲人关怀 |
-| `resources/base/media/icon_high_temperature.png` | 高温/温度计图标，适用场景：亲人关怀 |
-| `resources/base/media/icon_weather1.png` | 天气/雨伞图标，适用场景：亲人关怀 |
+| `resources/base/media/icon_id.svg` | 工牌/ID图标，适用场景：当下日程 |
+| `resources/base/media/icon_meeting.svg` | 会议图标，适用场景：当下日程 |
+| `resources/base/media/icon_time.svg` | 时间图标，适用场景：当下日程 |
+| `resources/base/media/icon_watermark.svg` | 水印图标，适用场景：当下日程 |
+| `resources/base/media/icon_allergy.svg` | 过敏源图标，适用场景：亲人关怀 |
+| `resources/base/media/icon_call.svg` | 电话图标，适用场景：亲人关怀 |
+| `resources/base/media/icon_high_temperature.svg` | 高温/温度计图标，适用场景：亲人关怀 |
+| `resources/base/media/icon_weather1.svg` | 天气/雨伞图标，适用场景：亲人关怀 |
 | `resources/base/media/icon_tiktok.png` | 抖音图标，适用场景：防沉迷 |
-| `resources/base/media/icon_timing.png` | 计时图标，适用场景：防沉迷 |
-| `resources/base/media/icon_charge.png` | 充电/闪电图标，适用场景：低电模式 |
-| `resources/base/media/icon_clear.png` | 清除图标，适用场景：清理无忧 |
-| `resources/base/media/icon_earphone.png` | 耳机图标，适用场景：戴耳机播控 |
-| `resources/base/media/icon_phone.png` | 手机图标，适用场景：专注模式 |
-| `resources/base/media/icon_car.png` | 汽车/打车图标，适用场景：雨天打车 |
-| `resources/base/media/icon_time1.png` | 时间图标，适用场景：雨天打车 |
-| `resources/base/media/icon_weathe2.png` | 天气图标，适用场景：雨天打车 |
-| `resources/base/media/icon_alarm_clock.png` | 闹钟图标，适用场景：当下日程 |
-| `resources/base/media/icon_focus.png` | 专注图标，适用场景：专注模式 |
-| `resources/base/media/icon_schedule.png` | 日程图标，适用场景：当下日程 |
-| `resources/base/media/icon_electricity.png` | 电池图标，适用场景：低电模式 |
-| `resources/base/media/icon_save_power.png` | 省电图标，适用场景：低电模式 |
-| `resources/base/media/icon_alarm_clock1.png` | 闹钟图标，适用场景：睡眠监督 |
-| `resources/base/media/icon_remind.png` | 提醒图标，适用场景：睡眠监督 |
-| `resources/base/media/icon_sleep.png` | 睡眠图标，适用场景：睡眠监督 |
-| `resources/base/media/icon_run.png` | 运动/跑步图标，适用场景：当下日程 |
-| `resources/base/media/icon_schedule2.png` | 日程图标，适用场景：当下日程 |
-| `resources/base/media/icon_left.png` | 上一首图标，适用场景：戴耳机播控 |
-| `resources/base/media/icon_like.png` | 收藏/心形图标，适用场景：戴耳机播控 |
-| `resources/base/media/icon_music.png` | 音乐图标，适用场景：戴耳机播控 |
-| `resources/base/media/icon_right.png` | 下一首图标，适用场景：戴耳机播控 |
+| `resources/base/media/icon_timing.svg` | 计时图标，适用场景：防沉迷 |
+| `resources/base/media/icon_charge.svg` | 充电/闪电图标，适用场景：低电模式 |
+| `resources/base/media/icon_clear.svg` | 清除图标，适用场景：清理无忧 |
+| `resources/base/media/icon_earphone.svg` | 耳机图标，适用场景：戴耳机播控 |
+| `resources/base/media/icon_phone.svg` | 手机图标，适用场景：专注模式 |
+| `resources/base/media/icon_car.svg` | 汽车/打车图标，适用场景：雨天打车 |
+| `resources/base/media/icon_time1.svg` | 时间图标，适用场景：雨天打车 |
+| `resources/base/media/icon_alarm_clock.svg` | 闹钟图标，适用场景：当下日程 |
+| `resources/base/media/icon_focus.svg` | 专注图标，适用场景：专注模式 |
+| `resources/base/media/icon_schedule.svg` | 日程图标，适用场景：当下日程 |
+| `resources/base/media/icon_electricity.svg` | 电池图标，适用场景：低电模式 |
+| `resources/base/media/icon_save_power.svg` | 省电图标，适用场景：低电模式 |
+| `resources/base/media/icon_alarm_clock1.svg` | 闹钟图标，适用场景：睡眠监督 |
+| `resources/base/media/icon_remind.svg` | 提醒图标，适用场景：睡眠监督 |
+| `resources/base/media/icon_sleep.svg` | 睡眠图标，适用场景：睡眠监督 |
+| `resources/base/media/icon_run.svg` | 运动/跑步图标，适用场景：当下日程 |
+| `resources/base/media/icon_schedule2.svg` | 日程图标，适用场景：当下日程 |
+| `resources/base/media/icon_left.svg` | 上一首图标，适用场景：戴耳机播控 |
+| `resources/base/media/icon_like.svg` | 收藏/心形图标，适用场景：戴耳机播控 |
+| `resources/base/media/icon_music.svg` | 音乐图标，适用场景：戴耳机播控 |
+| `resources/base/media/icon_right.svg` | 下一首图标，适用场景：戴耳机播控 |
 
 ## 布局规则
 
@@ -131,6 +120,6 @@
 
 ## 输出规则
 
-- 静态素材可直接写入 `Image.src`，例如 `"src": "resources/base/media/calendar_fill.svg"` 或 `"src": "resources/base/media/icon_meeting.png"`。
+- 静态素材可直接写入 `Image.src`，例如 `"src": "resources/base/media/calendar_fill.svg"` 或 `"src": "resources/base/media/icon_meeting.svg"`。
 - 如果素材选择需要由 DataModel 管理，将 `Image.src` 写成完整表达式（例如 `"{{ ${/asset/icon} }}"`），并在 `updateDataModel.value` 中把该字段初始化为上表声明过的 `src`。
 - 不要把素材库写入 CardSpec；CardSpec 只描述端侧 data capability。

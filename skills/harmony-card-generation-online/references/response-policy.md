@@ -1,6 +1,6 @@
 # 回复策略
 
-主 Agent 仍按微服务业务 payload 区分 `success`、`degraded`、`unsupported`、`failed`，但面向端侧的非完整满足或异常回复必须收敛为“部分数据不支持、整体不支持、其它异常”三类固定话术。不要复述内部候选计划、schema、CardSpec、DSL、来源 URL 或校验细节。
+主 Agent 仍按微服务业务 payload 区分 `success`、`degraded`、`unsupported`、`failed`。在生成前，端工具权限明确拒绝时使用独立的“权限不可用”终止话术；其它非完整满足或异常回复收敛为“部分数据不支持、整体不支持、其它异常”三类固定话术。不要复述内部候选计划、schema、CardSpec、DSL、来源 URL 或校验细节。
 
 ## 状态映射
 
@@ -9,6 +9,7 @@
 | 完整成功 | `success`，存在有效 `artifactUrl`，且没有已知的用户提及数据缺失 | 是，使用正常成功说明 |
 | 部分数据不支持 | `degraded` 且存在有效 `artifactUrl`；或 `success` 且存在有效 `artifactUrl`，但 `unavailableCapabilities`、`missingCapabilityIds` 或 `removedCapabilities` 已表明用户提及的部分数据不可用 | 是，使用固定话术 |
 | 整体不支持 | 业务 payload 为 `unsupported` | 否，使用固定话术 |
+| 权限不可用 | `RequestDataPermission` 返回 Boolean `result.stateOfPermission: false` | 否，立即终止并使用权限固定话术 |
 | 其它异常 | `failed`、必要工具不可用、调用异常、payload 无法解析、状态非法，或 `success` / `degraded` 缺少有效 `artifactUrl` | 否，使用固定话术 |
 
 edit 模式的新 `artifactUrl` 还必须不同于 `sourceArtifactUrl`；缺失、无效或与来源相同时归为其它异常，不得回用来源 URL 伪装编辑成功。
@@ -16,9 +17,11 @@ edit 模式的新 `artifactUrl` 还必须不同于 `sourceArtifactUrl`；缺失�
 ## 通用规则
 
 - 调用工具前的必要追问不属于上述结果。存在会改变用户核心意图、候选选择或必填业务入参的待确认信息时，直接提出最少必要问题并等待用户回答；此时不调用工具，也不输出固定结果话术或 `genWidgetResult`。
+- 非空数据能力集合必须先调用 `RequestDataPermission`；在得到明确权限结果前不得调用 `generateWidgetCard`。数据集合为空时跳过权限工具。
+- 当前工具快照中只将 Boolean `result.stateOfPermission: true` 视为通过，Boolean `false` 视为权限不可用；字段缺失、非 Boolean、调用失败或工具不可用均归为其它异常，不调用生成工具。
 - 部分能力不可用但剩余数据仍可生成有价值的卡片时，不再询问是否继续，直接完成降级生成。用户已明确“必须包含缺失数据，否则不要生成”时保留该约束，由微服务作 `unsupported` 裁决。
-- 三个工具返回的是包装结构：`streamInfo` 以及 `items`；如果运行环境返回原始插件包络，则先检查顶层 `errorCode/errorMessage/reply`。`errorCode` 非 `"0"` 时归为其它异常，为 `"0"` 时从 `reply.items` 继续解析。
-- 业务结果必须先从当前工具对应的 `items[].data` 解析。`items[].status` 是工具层状态，不等同于 `generateWidgetCard` 业务 payload 的 `status`。
+- 三个微服务工具返回的是包装结构：`streamInfo` 以及 `items`；如果运行环境返回原始插件包络，则先检查顶层 `errorCode/errorMessage/reply`。`errorCode` 非 `"0"` 时归为其它异常，为 `"0"` 时从 `reply.items` 继续解析。`RequestDataPermission` 按其当前运行时输出 schema 单独解析，不套用生成业务状态。
+- 三个微服务工具的业务结果必须先从当前工具对应的 `items[].data` 解析。`items[].status` 是工具层状态，不等同于 `generateWidgetCard` 业务 payload 的 `status`；`RequestDataPermission` 按其独立输出 schema 解析。
 - `items[].data` 是 JSON 字符串时先解析为对象；解析失败、缺少 `data` 或 `items[].error` 表示失败时，归为其它异常。
 - 只认可 `success`、`degraded`、`unsupported`、`failed` 四种业务状态；其它值归为其它异常。
 - `success` 或 `degraded` 必须同时有有效 `artifactUrl` 才能输出 `genWidgetResult`。代码块内容必须是合法 JSON 对象：`{"result":"artifactUrl"}`；没有真实 URL 时绝不输出标记。
@@ -35,6 +38,18 @@ edit 模式的新 `artifactUrl` 还必须不同于 `sourceArtifactUrl`；缺失�
 3. 不输出技术 ID、包名、provider、schema 字段名或错误码。
 4. 无法可靠提炼时使用“相关”，不得猜测具体名称。
 5. 部分数据不支持模板中 `XX` 两侧的空格只用于标示占位符，实际替换后不保留；例如输出“日程数据”，不要输出“日程 数据”。
+
+## 权限不可用
+
+条件：`RequestDataPermission` 返回 Boolean `result.stateOfPermission: false`。
+
+固定回复：
+
+```text
+当前生成卡片所需的数据权限不可用，已停止生成。
+```
+
+立即终止本轮，不调用 `generateWidgetCard`，不输出 `genWidgetResult`，不追加开启权限指引、替代建议或内部权限字段。edit 模式不更换当前默认来源 URL。
 
 ## 完整 success
 
@@ -108,4 +123,4 @@ edit 模式的新 `artifactUrl` 还必须不同于 `sourceArtifactUrl`；缺失�
 - 不承诺“开启权限后一定可用”，不引导用户安装不确定的 App。
 - 不说“已添加到桌面”；这里只生成预览 artifact，是否添加由端侧和用户确认。
 - 不把部分数据不支持描述成工程失败，也不把整体不支持描述成系统异常。
-- 三类固定话术不得改写同义句、增加前后缀或拼接微服务自定义文案。
+- 权限不可用话术和三类固定话术不得改写同义句、增加前后缀或拼接工具自定义文案。

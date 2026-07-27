@@ -38,7 +38,7 @@
 以下情况不追问：
 
 - `size`、`title`、`description` 可按本文件的稳定规则和默认值确定，且不会改变用户意图。
-- 设备是否真正支持某能力、应用是否安装、权限是否可用；这些由微服务裁决。
+- 设备是否真正支持某能力、应用是否安装；这些由微服务裁决。数据权限不向用户追问，候选计划完成后通过 `RequestDataPermission` 判定。
 - 能力 ID、内部字段名、协议版本、写入路径等内部技术信息。
 - 仅影响非核心可选内容；可删除该可选候选，不阻断核心卡片生成。
 
@@ -72,6 +72,16 @@
 5. 重新校验全部 `arguments`、`writeResultTo` 和可选 `candidateOutputFields` 后，将完整数组传给 `generateWidgetCard`；删除全部动态数据时传 `[]`。
 
 无法可靠恢复当前完整集合时，不传不完整数组，提示用户重新创建目标卡片后再修改。本期不在 edit 模式新增数据能力，也不修改事件或素材候选。
+
+## 权限集合规划
+
+每次调用 `generateWidgetCard` 前先确定本轮最终数据能力 ID 集合：
+
+- create：使用 schema 校验和缺失能力过滤后的 `candidateDataBindings[].capabilityId`。
+- 删除数据或修改参数 edit：使用编辑后的完整 `candidateDataBindings[].capabilityId`。
+- 纯视觉、布局、文案或尺寸 edit：优先使用目标卡片最近一次业务 payload 的 `effectiveCapabilities.data`；缺失时可从同一会话完整候选链扣除已移除能力后恢复。
+- 无法可靠恢复 edit 的完整有效数据集合时停止编辑，不读取或解析来源 artifact 猜测。
+- 集合去重后为空表示不使用动态数据，无需调用权限工具；非空时必须将完整集合传给 `RequestDataPermission`，权限通过后不得再改变数据候选，否则重新检查。
 
 ## 能力概述筛选 Prompt
 

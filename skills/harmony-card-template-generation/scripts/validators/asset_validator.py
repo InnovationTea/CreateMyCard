@@ -72,8 +72,8 @@ class AssetValidator(BaseValidator):
                     line=2,
                     json_pointer=pointer,
                     actual=path,
-                    message="资源路径禁止 SVG、网络 URL、data:image 和 base64。",
-                    fix_hint="使用素材库声明的本地 resources/base/media/*.png。",
+                    message="资源路径禁止网络 URL、data:image 和 base64。",
+                    fix_hint="使用素材库声明的本地 resources/base/media/*.svg 或 *.png。",
                 )
                 return
         # In effective-capability mode the asset allowlist is the filtered
