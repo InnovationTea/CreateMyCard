@@ -6,6 +6,7 @@ import codecs
 import hashlib
 import hmac
 import json
+import sys
 import time
 import traceback
 from collections.abc import Iterator
@@ -15,10 +16,21 @@ from urllib.parse import urlencode, urlparse
 import json_repair
 import requests
 
+if __name__ == "__main__" and __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from app.logger import json_for_log, logger
 from config.config import get_settings
 from custom.llmclient import LLMClientOptions, stream_genui
+from services.compact_dsl_a2ui_converter import (
+    ThemeMode,
+    convert_compact_dsl_to_a2ui,
+)
 from services.compact_dsl_protocol import is_compact_dsl
+from services.protocol_registry import (
+    A2UI_FORM_PROTOCOL_PROFILE_ID,
+    A2UIProtocolRegistry,
+)
 from utils.base_utils import sts_config
 
 _MODULE = "[A2UI Model]"
@@ -284,6 +296,25 @@ class A2UIModelClient:
         else:
             return text
 
+    def convert_design_dsl_to_standard_dsl(
+        self,
+        design_dsl: str,
+        *,
+        size: str,
+        protocol_profile: dict,
+        theme: ThemeMode = "light",
+        surface_id: str = "surface_card",
+    ) -> str:
+        """把模型生成的 Design Compact DSL 转为标准三段 A2UI DSL。"""
+        compact_dsl = self.extract_genui_payload(design_dsl)
+        return convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size=size,
+            protocol_profile=protocol_profile,
+            theme=theme,
+            surface_id=surface_id,
+        )
+
     def process_line(self, line):
         """
         处理单行 JSON 字符串，返回解析后的数据或 None
@@ -484,3 +515,169 @@ class A2UIModelClient:
     @staticmethod
     def _event_value(event: dict | None, key: str) -> object:
         return event.get(key) if event else None
+
+
+def _build_design_test_task_spec() -> dict:
+    """构造覆盖数据、事件和素材能力的 Design Compact DSL 本地测试任务。"""
+    return {
+        "userQuery": (
+            "生成杭州滨江区天气卡片，展示当前温度、天气状况、体感温度、湿度、空气质量、"
+            "风向风力、生活指数和未来3天天气预报，并支持打开天气详情"
+        ),
+        "size": "2x4",
+        "eventCandidates": [
+            {
+                "id": "event.open.weather",
+                "call": "clickToDeeplink",
+                "args": {
+                    "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode=",
+                },
+            }
+        ],
+        "dataModelSchema": {
+            "data": {
+                "weather": {
+                    "current": {
+                        "temperatureText": {
+                            "type": "string",
+                            "description": "适合直接显示的温度文本",
+                            "sampleValue": "26℃",
+                        },
+                        "condition": {
+                            "type": "string",
+                            "description": "当前天气现象",
+                            "sampleValue": "多云",
+                        },
+                        "feelsLikeC": {
+                            "type": "number",
+                            "description": "当前体感摄氏温度",
+                            "sampleValue": 27,
+                        },
+                        "humidityPercent": {
+                            "type": "number",
+                            "description": "当前相对湿度百分比",
+                            "sampleValue": 68,
+                        },
+                        "airQuality": {
+                            "type": "string",
+                            "description": "当前空气质量等级",
+                            "sampleValue": "优",
+                        },
+                        "windDirection": {
+                            "type": "string",
+                            "description": "当前风向",
+                            "sampleValue": "东南风",
+                        },
+                        "windLevel": {
+                            "type": "integer",
+                            "description": "当前风力等级",
+                            "sampleValue": 2,
+                        },
+                        "uvIndex": {
+                            "type": "string",
+                            "description": "当前紫外线等级",
+                            "sampleValue": "中等",
+                        },
+                        "coldLevel": {
+                            "type": "string",
+                            "description": "当前感冒指数",
+                            "sampleValue": "较低",
+                        },
+                        "alertLevel": {
+                            "type": "string",
+                            "description": "当前天气预警信息",
+                            "sampleValue": "无预警",
+                        },
+                    },
+                    "daily": [
+                        {
+                            "date": {
+                                "type": "string",
+                                "description": "预报日期",
+                                "sampleValue": "2026-07-15",
+                            },
+                            "weekday": {
+                                "type": "string",
+                                "description": "星期文本",
+                                "sampleValue": "星期三",
+                            },
+                            "condition": {
+                                "type": "string",
+                                "description": "白天天气现象",
+                                "sampleValue": "多云",
+                            },
+                            "temperatureRangeText": {
+                                "type": "string",
+                                "description": "适合直接显示的温度范围",
+                                "sampleValue": "24℃ / 31℃",
+                            },
+                            "rainProbabilityPercent": {
+                                "type": "string",
+                                "description": "白天降雨概率百分比",
+                                "sampleValue": "20%",
+                            },
+                        }
+                    ],
+                }
+            }
+        },
+        "assetCandidates": [
+            {
+                "id": "asset.sun_max",
+                "src": "resources/base/media/sun_max.svg",
+                "description": "天气晴朗和亮度信息使用的太阳图标",
+            },
+            {
+                "id": "asset.drop_1",
+                "src": "resources/base/media/drop_1.svg",
+                "description": "湿度和降雨信息使用的水滴图标",
+            },
+            {
+                "id": "asset.thermometer_sun_fill",
+                "src": "resources/base/media/thermometer_sun_fill.svg",
+                "description": "温度和体感信息使用的温度计太阳图标",
+            },
+        ],
+    }
+
+
+def main() -> int:
+    """临时验证 Design Compact DSL 生成及标准 A2UI DSL 转换链路。"""
+    settings = get_settings()
+    settings.a2ui_model_backend = "llmclient"
+    prompt_path = (
+        settings.data_root
+        / "protocol_profiles"
+        / "design-compact-dsl"
+        / "PROMPT.md"
+    )
+    system_prompt = prompt_path.read_text(encoding="utf-8")
+    task_spec = _build_design_test_task_spec()
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {
+            "role": "user",
+            "content": json.dumps(task_spec, ensure_ascii=False),
+        },
+    ]
+    client = A2UIModelClient(use_mock=False)
+    design_profile = {
+        "id": "design-compact-dsl",
+        "format": "compact-dsl",
+    }
+    design_dsl = client.generate(messages, design_profile)
+    standard_profile = A2UIProtocolRegistry(
+        A2UI_FORM_PROTOCOL_PROFILE_ID
+    ).get_profile()
+    final_dsl = client.convert_design_dsl_to_standard_dsl(
+        design_dsl,
+        size=task_spec["size"],
+        protocol_profile=standard_profile,
+    )
+    print("\n=== Final A2UI DSL ===")
+    print(final_dsl)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

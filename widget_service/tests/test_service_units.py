@@ -67,6 +67,7 @@ from services.artifact_store import ArtifactStore
 from custom.a2ui_model_client import (
     A2UIModelClient,
     A2UIModelGenerationError,
+    _build_design_test_task_spec,
     require_generated_dsl,
 )
 from services.card_spec_builder import CardSpecBuilder
@@ -1945,6 +1946,65 @@ def test_a2ui_model_client_collects_llmclient_stream(monkeypatch):
         "api_key": "AccessService",
         "messages": messages,
     }
+
+
+def test_a2ui_model_client_converts_design_dsl_to_standard_dsl():
+    """验证 A2UI 客户端把 Design Compact DSL 转换为三段标准 DSL。"""
+    design_dsl = "\n".join(
+        (
+            "```genui",
+            '["root","Column",{"padding":"padding_level4"},["title"]]',
+            '["title","Text",{"content":{"path":"/data/message"},'
+            '"design":"title-s"}]',
+            '["/data/message","欢迎回来"]',
+            "```",
+        )
+    )
+    profile = {
+        "version": "v0.9",
+        "catalogId": "ohos.a2ui.extended.catalog.form",
+        "sizes": {"2x2": {"width": 140, "height": 140}},
+    }
+
+    result = A2UIModelClient(use_mock=True).convert_design_dsl_to_standard_dsl(
+        design_dsl,
+        size="2x2",
+        protocol_profile=profile,
+    )
+    messages = [json_module.loads(line) for line in result.splitlines()]
+
+    assert len(messages) == 3
+    assert messages[0]["createSurface"]["width"] == 140
+    assert messages[1]["updateComponents"]["root"] == "root"
+    assert messages[2]["updateDataModel"]["value"]["data"]["message"] == "欢迎回来"
+
+
+def test_a2ui_model_client_design_test_task_spec_covers_weather_capabilities():
+    """验证临时 main 使用的数据覆盖天气数据、事件和 SVG 素材。"""
+    task_spec = _build_design_test_task_spec()
+    weather_schema = task_spec["dataModelSchema"]["data"]["weather"]
+
+    assert task_spec["size"] == "2x4"
+    assert len(weather_schema["current"]) == 10
+    assert len(weather_schema["daily"][0]) == 5
+    assert task_spec["eventCandidates"] == [
+        {
+            "id": "event.open.weather",
+            "call": "clickToDeeplink",
+            "args": {
+                "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode=",
+            },
+        }
+    ]
+    assert [candidate["id"] for candidate in task_spec["assetCandidates"]] == [
+        "asset.sun_max",
+        "asset.drop_1",
+        "asset.thermometer_sun_fill",
+    ]
+    assert all(
+        candidate["src"].endswith(".svg")
+        for candidate in task_spec["assetCandidates"]
+    )
 
 
 def test_a2ui_model_client_builds_qwen_chatml_prompt():
