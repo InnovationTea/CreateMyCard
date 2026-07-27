@@ -89,7 +89,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--surface-id", default="surface_card")
     parser.add_argument(
         "--protocol-profile",
-        help="Optional JSON file overriding version, catalogId, and sizes.",
+        help="Optional JSON file overriding version and sizes.",
     )
     return parser
 
