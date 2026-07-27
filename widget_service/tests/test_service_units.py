@@ -1953,7 +1953,8 @@ def test_a2ui_model_client_converts_design_dsl_to_standard_dsl():
     design_dsl = "\n".join(
         (
             "```genui",
-            '["root","Column",{"padding":"padding_level4"},["title"]]',
+            '["root","Column",{"width":160,"height":160,"padding":8,'
+            '"itemMargin":8},["title"]]',
             '["title","Text",{"content":{"path":"/data/message"},'
             '"design":"title-s"}]',
             '["/data/message","欢迎回来"]',
