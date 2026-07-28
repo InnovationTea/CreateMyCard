@@ -117,14 +117,15 @@
 - 编造字段、图标、事件;把事件 `params` 或 schema 地点/关系拼进标题。
 - 写了 `design` 后仍覆盖子样式定值(`capsule` 的宽高/背景等)。
 - `capsule` 带行内 `Image` 却未显式写 `fontColor`，或图标 `fillColor` 与 `fontColor` 不是同一字符串。
-- `2x2` 有 `capsule` 时 content 直接子块 >2，或 title/content/action 区间距 8 被内容挤占（按溢出处理）。
+- `2x2` 有 `capsule` 时：content 直接子块 >2，或 content 内使用 `display-s`，或 title/content/action 区间距 8 被挤占（按溢出处理）。
+- 浅色洗色上的 title 单色 SVG 使用反白 `fillColor`（如 `#66FFFFFF`），导致图标不可读。
 
 **质量复查(不成立就回退重判):**
 
 - identity 是否为用途名?上屏内容是否语义完整、能回答 query 主线?
 - 是否单焦点、场景洗色、套色单家族?细则见 `design-system.md`。
 - molecule / 角色是否落地?细则见 `visual-molecules.md`。
-- `2x2` + `capsule` 时：是否先扣 `rootGaps`(16) 再算 `contentBudget`(约 64)，且无 `display-s` 与 Progress 叠同一百分比?细则见 `2x2-pack.md`。
+- `2x2` + `capsule` 时：是否先锁 shell、点名配方（而非估高碰运气），`contentBudget`≈64?细则见 `2x2-pack.md`。
 - `2x4`/`4x2` 是否用横卡配方且高度不爆?细则见 `2x4-pack.md`。
 - 12vp safe margin 内是否无越界、遮挡、按钮与内容重叠?区间距 8 是否完整保留?
 - 动态值是否均为 path + data，无把 sampleValue 写进静态文案（如 `"–10:30"`）?
@@ -357,7 +358,7 @@ Role 落地规则：
 - `Image.src` 只准来自 `assetCandidates[].src` 的匹配子集。
 - 已展示角色若有候选 `description` 语义匹配，优先用图标点题；不要候选全贴。
 - identity / title 区图标统一 **20×20vp**；行内小图标通常 **14–16**；按钮内图标 **16×16**。
-- SVG 鸿蒙规范图标（`resources/...`）用于 2x2 title 区时使用 `icon_on_tertiary` / `#66FFFFFF`；应用图标或多色插画不要写 `fillColor`。
+- **墨色随表面**：浅色场景洗色上的 title 单色 SVG 用主墨 `#E5000000`（与标题可读对比）；反白 `#66FFFFFF` / `#FFFFFFFF` 仅当图标落在深色底或实色块上。应用图标或多色插画不写 `fillColor`。
 - 无匹配候选时省略图标，不编造 `src`。
 
 ---
@@ -797,7 +798,7 @@ Scene Vector 是生成前的中间判断，不直接写进 DSL。它帮助后续
 - 不完整子集示例：只留总量 + 电量、只留地点名 + 按钮、只留紫外线标签无值。
 - 缩字阶、合并同行、一行双列，优先于拆散主线。
 - 仅当完整主线仍超预算时，才丢掉 shouldKeep 或次主线；主线内部字段成组保留或成组替换，不拆成无意义碎片。
-- **`2x2` + `capsule`**：`contentBudget ≈ 64`（已扣 rootGaps=16），content 直接子块必须 ≤2；电量/地点等次主线放不进就 drop 或并入已有块，禁止三行直挂；禁止 `display-s` + Progress + 多行 support 叠满；区间距 8 被挤扁 = 溢出。
+- **`2x2` + `capsule`**：先锁 shell（`contentBudget ≈ 64`），再点名封闭配方；content 内禁用 `display-s`；直接子块 ≤2；次主线（电量等）塞不进就 drop；区间距 8 被挤扁 = 溢出。`layoutWeight:1` 只分白，不压缩子块固有高。
 - `2x4`/`4x2`：宽更松可多留 shouldKeep，但不要增加纵向堆叠。
 - 所有上屏数值用 path 绑定；不要把 sampleValue 抄进静态 `content`。
 
@@ -1050,6 +1051,7 @@ primary/support 内可使用信息托盘；root 保持固定 shell 和清晰角�
 
 - Image：`src` ∈ `assetCandidates`；禁止网络 URL、base64 SVG、编造路径；多色插画不要写 `fillColor`
 - Image：identity 图标 20×20，行内图标 14–16，按钮内图标 16×16；不要把候选图标全贴上
+- Image：`fillColor` 遵循「墨色随表面」——浅色洗色上的 title SVG 用主墨 `#E5000000`；反白仅用于深底
 - Progress：仅在明确进度 / 占用 / 阈值场景使用；一卡最多一个主 Progress 信息块；必须配 label / value / status Text，禁止裸 Progress
 - Progress 形态：单一比例仪表用 `type:"ring"` + Stack 中心图标/短文本；可比较连续值用 `linear-bar`；有序阶段用 `segmented-bar`；阈值/超限用 `threshold-bar`
 - Progress：`linear-bar` / `ring` 用 `value / total` 表示比例；`segmented-bar` 用 `value` 表示当前阶段、`total` 表示阶段数；`threshold-bar` 必须有 `threshold`
@@ -1125,17 +1127,20 @@ primary/support 内可使用信息托盘；root 保持固定 shell 和清晰角�
 - **One focus**：每卡一个主锚点；不做仪表盘。
 - **Material honesty**：Button 背景由 `capsule` / `icon-round` 子样式提供；行动强弱通过是否生成 action、位置和 label 表达，不改 Button 背景定值。
 - **Scene wash**：根面默认写 `linearGradient` 场景洗色；一卡一个主色家族。纯白实底不是默认。
+- **Ink follows surface**：图标 / 文字墨色必须相对**它所落的表面**可读。浅色洗色上用主墨（`#E5000000`）；反白只用于深底。不要把「三级反色」token 无脑套在浅底 title 图标上。
 - **Optical calm**：定高分白；角色间距 8；空副文不占位。
 - **Compact first**：160×160 / 320×160；优先减 shouldKeep；容量不足时取语义完整子集，不留碎片字段。
+- **Recipe over estimate**：2x2 有 capsule 时先点名 content 配方再写节点；不靠估高碰运气。
 
 ## 2. Color Lexicon
 
 | 角色 | Hex | 用途 |
 | --- | --- | --- |
-| 主文字 | `#E5000000` | identity、主文 |
-| 次文字 | `#99000000` | 标签、副文 |
+| 主文字 | `#E5000000` | identity、主文、浅底上的 title 单色图标 |
+| 次文字 | `#99000000` | 标签、副文、次要行内图标 |
 | 弱文字 | `#66000000` | 更弱说明 |
 | 反白字 | `#FFFFFFFF` | 深色根面 / 深色托盘上 |
+| 浅底反白图标 | `#66FFFFFF` | **仅**深色底 / 实色块上的规范 SVG；浅色洗色上禁用 |
 | 品牌蓝 | `#FF0A59F7` | 主行动、品牌强调 |
 | 品牌浅 | `#190A59F7` | 轻强调底 |
 | 磨砂填充 | `#19000000` | 信息托盘 / 轻底 |
@@ -1349,10 +1354,8 @@ root Column itemMargin:8 [
 
 - 图标可选；有与 `assetCandidates[].description` 匹配的已展示字段时优先使用。
 - 图标大小统一 **20×20vp**。
-- 图标可使用：
-  - SVG 鸿蒙规范图标（`resources/...` 路径）
-  - 应用图标
-- 使用 SVG 鸿蒙规范图标时，图标色使用 `icon_on_tertiary`，即 `#66FFFFFF`。在 DSL 中可通过 `fillColor:"#66FFFFFF"` 落地。
+- 图标可使用：SVG 鸿蒙规范图标（`resources/...`）或应用图标。
+- **墨色随表面（可读性优先）**：title 图标画在根面场景洗色之上。默认浅色洗色上，单色 SVG 用与标题同级的主墨 `icon_primary` / `#E5000000`（次要装饰可用 `#99000000`）。`#66FFFFFF` / `#FFFFFFFF` 等反白只用于图标落在**深色底或实色块**上时；浅底上写反白 = 不可读，禁止。
 - 应用图标 / 多色图标保持原样，不写 `fillColor`。
 - 图标与同一行 title 的水平间距最小 **4vp**；主标题 / 数字标题占左侧弹性空间，图标贴该行右边界。
 - Title row anatomy：左侧是可伸缩 text track，右侧是可选 accessory icon。DSL 的 children 顺序按视觉从左到右写，因此 title 文本 track 在前，accessory icon 在后。
@@ -1448,58 +1451,52 @@ title_area Column [
 ## 4. Content Area
 
 - `content_area` 必选，对应 role `primary` + 必要 `support`。
-- `content_area` 写 `layoutWeight:1`，接住 title_area 与 action_area 之间的剩余高度。
+- `content_area` 写 `layoutWeight:1`，只负责**接住剩余空白**；它**不会**把子节点的固有高度压进预算。子块自然高度之和仍必须 ≤ `contentBudget`。
 - 内部节点按自然高度排布；短内容不要再写 `layoutWeight:1` 制造空白。
-- `content_area` 内部 `itemMargin` 只用 `2` / `4` / `8`；不要写 `6`。默认档用 **4**；只有 1–2 个子块且预算宽松时才用 8。
+- `content_area` 内部 `itemMargin` 只用 `2` / `4` / `8`；不要写 `6`。默认档用 **4**；只有预算明显宽松（无 capsule 或单块）时才用 8。
 - KV Row：label `layoutWeight:1` + `flexShrink:1`，value `flexShrink:0` + `textAlign:"end"`。
-- **写 DSL 之前必须先算容量账本并选定配方**；算不过就改子集 / 合并 / 降字阶，禁止先堆字段再靠 `clip` 裁。
+
+### 4.1 Fit 原则（根治溢出）
+
+固定画布上，**先锁 shell，再选封闭配方**——不要自由堆字段再估会不会爆。
+
+1. 锁 shell：`title` 形态（单行 / 双行 / 数字 title）+ 有无 `capsule`/`icon-round` → `contentBudget` 已定（常见：单行 title + capsule → **≈64**）。
+2. 在该预算档的**配方表**里选一条；只输出该配方允许的结构与字阶。
+3. 字段塞不进所选配方 → **换更小完整子集或换配方**，禁止加第 3 块、禁止靠 `clip` / 压缩区间距硬塞。
+
+`layoutWeight:1` ≠ 可溢出。溢出定义：子块估高之和（含内部 itemMargin）> `contentBudget`，或区间距 8 被挤扁。
 
 **什么算 1 个 content 直接子块**
 
-- `content_area.children` 里的每一个 id = 1 块（Row / Column / Text / Progress / … 都算）。
-- Progress 的说明文字必须放在**同一个**信息块容器内（例如 `Column[label_row, progress]`），整体只占 **1** 块；不要把大号百分比 Text 与 Progress 拆成两个直接子块。
-- 可用/总量等 support 应合并进上述信息块，或单独作为第 2 块；不要再拆第 3、第 4 块。
+- `content_area.children` 里的每一个 id = 1 块。
+- Progress 的说明文字必须与条在**同一**信息块内（`Column[label_row, progress]` = 1 块）。
 
 **Allowed content blocks（角色内积木）**
 
-- 主副文 Column
-- 左锚点 + 内容 Row（小图标 / 时间）
-- KV Row（值列靠右）
-- 托盘容器内 1–2 行
-- 短列表最多 1–2 项
-- 少量 Checkbox 组（提交仍归 action_area）
-- 一个 Progress 信息块（说明 + 条在同一容器内）
+- 主副文 Column / 左锚点 Row / KV Row / 托盘 / 短列表 1–2 项 / Checkbox 组 / 一个 Progress 信息块
 
-不要新增上表以外的 content_area 专属母型。
+### 4.2 预算档 → 封闭配方（先选后写）
 
-**2x2 Capacity Worksheet（强制）**
+单行 title + capsule 时 **`contentBudget ≈ 64`**。此档**禁止** content 内使用 `display-s`（一字阶即可吃光预算；与 Progress / 第二行不可共存）。
 
-1. `innerH = 136`
-2. 先扣 `rootGaps`（有 action=16 / 无=8），再扣 `titleH`、`actionH`
-3. `contentBudget = innerH - rootGaps - titleH - actionH`
-4. 估高：常规 title 单行 ≈20、双行 ≈34；`capsule` ≈36；有 action 时 rootGaps=16。因此「单行 title + capsule」时 **`contentBudget ≈ 64`**。
-5. 内容块估高：单行 KV / 图标行 ≈16–20；紧凑 Progress 信息块（说明+条）≈20–28；`title-s`/`subtitle-s` 数值行 ≈20–24；**`display-s` ≈40+（几乎吃光 64 档）**。
-6. 校验：`sum(blockH) + (n-1)*itemMargin ≤ contentBudget`（`n` = content_area **直接**子块数）。**超了 = 溢出**（含：区间距被压扁、区贴区、靠 clip 裁切）。
-
-按 `contentBudget` 选配方（先选配方，再写节点）：
-
-| 预算档 | 直接子块上限 | 字阶 | 推荐配方 |
+| 配方 | 直接子块 | 允许字阶 | 结构 |
 | --- | --- | --- | --- |
-| **≈64（单行 title + capsule）** | **≤2** | 不用 `display-s` | `Progress 信息块`；或 `Progress 信息块 + 1 条 support`；或 `双列指标 + 1 条 support`；或 `两行 KV`；或 `时间行 + 标题`（地点合并进标题行/丢次要） |
-| **≈50（双行 title + capsule）** | **≤2** 且更紧 | 同上 | Progress 与 support 必须合并进同一块或同一行 |
-| **≥84（无 action）** | 才可到 3 | 可考虑更大字阶 | 仍优先完整子集，不要仪表盘 |
+| `progress-compact` | 1 | 读数 ≤ `title-s` / `body-m` | `Column[pct_row, linear-bar]`；旁注进 pct 行右轨 |
+| `progress+support` | 2 | 同上；support ≤ `caption-l` | 上：Progress 信息块；下：一行 KV / 短 caption |
+| `dual-kv` | ≤2 | ≤ `body-s` | 两行 KV 或「时间行 + 标题行」 |
+| `metric-pair` | 1–2 | ≤ `title-s` | 一行双列指标，或指标 + 一行说明 |
 
-**64 档硬约束（有 capsule 时几乎总是这一档）：**
+双行 title + capsule → 预算更紧（≈50）：只允许 `progress-compact`（单块）或把 support 并进说明行。  
+无 action（预算 ≥84）才可考虑更大字阶或第 3 块；仍优先完整子集，不做仪表盘。
 
-- `n ≤ 2`。出现 3 个及以上 content 直接子块 = 溢出，必须重写（例：时间行 + 事件标题 + 地点行 三块并列 = 不合格）。
-- 使用 Progress 时：**不要**再为同一百分比另开 `display-s` / 大号 Text；百分比读数留在 Progress 信息块的说明行。
-- 说明行若展示 **number** 占比，必须用内层 `Row[数值 path, 静态 "%"]`（`itemMargin:2`），禁止裸数字（如 `43.75`）；string 型已含 `%` 的叶子直接绑 path。有旁注时先成组再分轨，禁止 `Row[value, %, trailing]` 三兄弟平铺。
-- 次要指标（如电量、地点）挤不进 2 块完整子集时 → **整项 drop** 或并入已有块，不要硬塞第 3、第 4 行。
-- 动态值必须 `{"path"}` + `data` 行；禁止把 `sampleValue` 写进静态 `content` 字符串。
-- **rootGaps 神圣**：宁可少展示字段，也不能让 title/content/action 之间的 8vp 消失。
+压缩顺序：并进 Progress 说明行 → 降字阶 → 缩短 label → drop 次主线（如电量），保留能回答 query 的完整更小子集。
 
-多字段放进 2 块：support 合并为「一行双列」或「一条 KV + 行内次要值」。
-超预算压缩顺序：合并进 Progress 信息块 → 降字阶 → 缩短 label → 丢掉次主线，保留语义完整的更小子集。
+**64 档伴随约束**
+
+- `n ≤ 2`；3+ 直接子块 = 溢出。
+- number 占比读数：内层 `Row[path, "%"]`（`itemMargin:2`）；有旁注则两轨，禁止三兄弟平铺。
+- 动态值 path + data；禁止 sampleValue 进静态文案。
+- rootGaps 不可挤占。
 
 ## 5. Action Area
 
@@ -1531,32 +1528,24 @@ title_area Column [
 
 生成前按顺序过一遍（写数字，不要凭感觉）：
 
-1. 先写出 `rootGaps`（有 action=16），再写出 `contentBudget`（通常单行 title + capsule ≈ **64**）。
-2. 列出 `content_area` 每个直接子块及其估高，算 `sum + gaps`。
-3. 若 `sum + gaps > contentBudget`，或有 capsule 时直接子块 **> 2**，或 Progress 旁另挂 `display-s` 同百分比，或区间距会被压扁 → **立刻改配方**，禁止输出。
-4. title_area / content_area 都已落位，content_area 接住剩余高度；区间距 8vp **完整保留**。
-5. title 行 anatomy：text track 左、accessory icon 右。
-6. `capsule` 占底行；`icon-round` 靠右；capsule 带图标时 **必有** `fontColor` 且与图标 `fillColor` 同值（缺则硬错误）。
+1. 锁 shell → 写出 `rootGaps` 与 `contentBudget`（单行 title + capsule ≈ **64**）。
+2. **先点名配方**（`progress-compact` / `progress+support` / `dual-kv` / `metric-pair`…），再列子块；禁止无配方自由堆叠。
+3. 若配方不允许的字阶（如 64 档 `display-s`）、或 `n` 超上限、或估高 > budget、或区间距会被压扁 → **换配方 / 减子集**，禁止输出。
+4. title / content / action 落位；区间距 8 完整保留；`layoutWeight:1` 只分白、不救命。
+5. title 行 anatomy：text track 左、accessory icon 右；浅底 title 图标用主墨，不用反白。
+6. `capsule` 占底行；带图标时必有同色 `fontColor`/`fillColor`。
 7. title 是用途名；上屏是语义完整子集；动态值均有 path + data 行。
 
 ## 8. Audit
 
 - root 是否 `160×160`、`borderRadius:20`、`padding:12`？
-- title_area / content_area 是否必选存在？action_area 是否仅合法事件才出现？
-- 是否先扣 rootGaps，再写出 contentBudget，且 `sum(blockH)+gaps ≤ budget`？
-- 有 capsule 时 content 直接子块是否 ≤2？是否避免 `display-s` + Progress 双挂同一百分比？
-- title 是否在最上、action 是否在最下、content_area 是否占满中间剩余高度？
-- title/content/action 之间是否固定 8vp，且未被内容挤占？
-- content_area 是否只使用允许的 content blocks？
-- `capsule` action 是否整行宽？`icon-round` action 是否靠右？
-- capsule 带行内图标时，Button 是否写了 `fontColor`，且与 `fillColor` 同值？
-- 常规 title 是否按主标题 + 可选副标题，行距 2vp？标题是否来自 query 用途名？
-- 有 title 图标时，title 行是否符合 text track + accessory icon anatomy？
-- 数字 title 是否按标签 / 数字 / 单位，且单位与数字底部对齐？
-- SVG 鸿蒙规范图标是否 20×20 且使用 `icon_on_tertiary` / `#66FFFFFF`？
-- 有 action 时是否 ≤1 热区且内容与按钮无重叠、无裁切、区间距未被压扁？
-- 上屏内容是否语义完整；字段多时是否优先合并/降阶，再取完整子集而非碎片字段？
-- 是否误把 sampleValue 写进静态 Text，导致无法刷新？
+- 是否先锁 shell 并点名配方，而不是先堆字段再估高？
+- 有 capsule 的 64 档是否禁用了 content 内 `display-s`？直接子块是否 ≤2？
+- `layoutWeight:1` 是否被误当成可溢出许可证？
+- title/content/action 区间距 8 是否完整？
+- 浅色洗色上的 title SVG 是否用主墨（`#E5000000`），而非反白 `#66FFFFFF`？
+- `capsule` 是否整行宽？带图标时 `fontColor` 与 `fillColor` 是否同值？
+- 上屏是否语义完整；动态值是否 path + data？
 
 # 2x4 Pack（320×160 横卡）
 
