@@ -377,26 +377,175 @@ def _validate_surface_id(surface_id: str) -> None:
 
 
 def _strip_optional_genui_fence(compact_dsl: str) -> str:
-    text = compact_dsl.strip()
-    if not text.startswith("```"):
-        return text
+    text = compact_dsl.lstrip("\ufeff").strip()
     lines = text.splitlines()
-    if len(lines) < 3 or lines[0].strip() != "```genui":
-        raise CompactDslConversionError(
-            "Compact DSL must use exactly one genui fence."
-        )
-    if lines[-1].strip() != "```":
-        raise CompactDslConversionError("Compact DSL genui fence is not closed.")
-    body = "\n".join(lines[1:-1]).strip()
+    opening_index = _find_fence_opening(lines)
+    if opening_index is None:
+        return text
+
+    closing_index = _find_fence_closing(lines, opening_index + 1)
+    body_end = closing_index if closing_index is not None else len(lines)
+    body = "\n".join(lines[opening_index + 1 : body_end]).strip()
     if "```" in body:
         raise CompactDslConversionError(
             "Compact DSL must contain exactly one genui fence."
         )
+    if closing_index is not None:
+        _validate_no_additional_fence(lines[closing_index + 1 :])
     return body
 
 
-def _parse_compact_rows(compact_dsl: str) -> list[CompactRow]:
+def _find_fence_opening(lines: list[str]) -> int | None:
+    supported_openings = {"```", "```genui", "```json"}
+    for index, line in enumerate(lines):
+        if line.strip().lower() in supported_openings:
+            return index
+    return None
+
+
+def _find_fence_closing(lines: list[str], start: int) -> int | None:
+    for index in range(start, len(lines)):
+        if lines[index].strip() == "```":
+            return index
+    return None
+
+
+def _validate_no_additional_fence(lines: list[str]) -> None:
+    for line in lines:
+        if line.strip().startswith("```"):
+            raise CompactDslConversionError(
+                "Compact DSL must contain exactly one genui fence."
+            )
+
+
+def _repair_compact_json_rows(compact_dsl: str) -> str:
     body = _strip_optional_genui_fence(compact_dsl)
+    rows = _extract_top_level_array_rows(body)
+    repaired_rows: list[str] = []
+    for line_number, row in enumerate(rows, 1):
+        repaired = _remove_trailing_json_commas(row)
+        value = _parse_json_line(repaired, line_number)
+        repaired_rows.append(
+            json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+        )
+    return "\n".join(repaired_rows)
+
+
+def _extract_top_level_array_rows(body: str) -> list[str]:
+    rows: list[str] = []
+    current: list[str] = []
+    expected_closers: list[str] = []
+    outside: list[str] = []
+    in_string = False
+    escaped = False
+
+    for char in body:
+        if not expected_closers:
+            if char == "[":
+                _validate_text_between_rows(outside, bool(rows))
+                outside = []
+                current = [char]
+                expected_closers = ["]"]
+                in_string = False
+                escaped = False
+            else:
+                outside.append(char)
+            continue
+
+        current.append(char)
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+
+        if char == '"':
+            in_string = True
+            continue
+        if char in {"[", "{"}:
+            expected_closers.append("]" if char == "[" else "}")
+            continue
+        if char not in {"]", "}"}:
+            continue
+        if char != expected_closers[-1]:
+            raise CompactDslConversionError(
+                "Compact DSL contains mismatched JSON delimiters."
+            )
+        expected_closers.pop()
+        if not expected_closers:
+            rows.append("".join(current))
+            current = []
+
+    if expected_closers:
+        if in_string:
+            raise CompactDslConversionError(
+                "Compact DSL contains an unclosed JSON string."
+            )
+        current.extend(reversed(expected_closers))
+        rows.append("".join(current))
+
+    if not rows:
+        raise CompactDslConversionError("Compact DSL output is empty.")
+    return rows
+
+
+def _validate_text_between_rows(outside: list[str], has_previous_row: bool) -> None:
+    if not has_previous_row:
+        return
+    text = "".join(outside)
+    for char in text:
+        if not char.isspace() and char not in {"]", "}"}:
+            raise CompactDslConversionError(
+                "Compact DSL contains non-JSON text between rows."
+            )
+
+
+def _remove_trailing_json_commas(row: str) -> str:
+    output: list[str] = []
+    in_string = False
+    escaped = False
+    index = 0
+
+    while index < len(row):
+        char = row[index]
+        if in_string:
+            output.append(char)
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            index += 1
+            continue
+
+        if char == '"':
+            in_string = True
+            output.append(char)
+            index += 1
+            continue
+        if char == "," and _next_non_whitespace_is_closer(row, index + 1):
+            index += 1
+            continue
+        output.append(char)
+        index += 1
+
+    return "".join(output)
+
+
+def _next_non_whitespace_is_closer(text: str, start: int) -> bool:
+    for index in range(start, len(text)):
+        if text[index].isspace():
+            continue
+        return text[index] in {"]", "}"}
+    return False
+
+
+def _parse_compact_rows(compact_dsl: str) -> list[CompactRow]:
+    body = _repair_compact_json_rows(compact_dsl)
     rows: list[CompactRow] = []
 
     for line_number, raw_line in enumerate(body.splitlines(), 1):
