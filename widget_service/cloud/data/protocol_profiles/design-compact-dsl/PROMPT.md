@@ -62,7 +62,7 @@
 - 仅 10 组件:`Row` / `Column` / `List` / `Stack` / `Text` / `Image` / `Divider` / `Progress` / `Button` / `Checkbox`。
 - `Image.src` 只来自匹配的 `assetCandidates`;禁止网络 URL 与编造路径。
 - `onClick` 只原样使用 `eventCandidates.call/args`;`args`/`params` 不进可见文案。
-- 动态值只来自 `dataModelSchema` path + `data` 行;禁止用 query/事件参数冒充数据。
+- 动态值只来自 `dataModelSchema` path + `data` 行;禁止用 query/事件参数冒充数据,禁止把 `sampleValue` 抄进静态 `Text.content`(单位/`%`/纯分隔符除外)。
 - Row/Column 用 `itemMargin`;List 用 `space`;显式 `fontWeight` 必须用数字。
 - 根面默认 `linearGradient` 场景洗色;禁止无脑纯白实底。
 
@@ -116,18 +116,20 @@
 - 绑定路径不在 `dataModelSchema`;使用 `$item` / `$__dataModel` 模板列表。
 - 编造字段、图标、事件;把事件 `params` 或 schema 地点/关系拼进标题。
 - 写了 `design` 后仍覆盖子样式定值(`capsule` 的宽高/背景等)。
+- `capsule` 带行内 `Image` 却未显式写 `fontColor`，或图标 `fillColor` 与 `fontColor` 不是同一字符串。
+- `2x2` 有 `capsule` 时 content 直接子块 >2，或 title/content/action 区间距 8 被内容挤占（按溢出处理）。
 
 **质量复查(不成立就回退重判):**
 
 - identity 是否为用途名?上屏内容是否语义完整、能回答 query 主线?
 - 是否单焦点、场景洗色、套色单家族?细则见 `design-system.md`。
 - molecule / 角色是否落地?细则见 `visual-molecules.md`。
-- `2x2` + `capsule` 时：是否先算 `contentBudget`(约 64)，content 直接子块 ≤2，且无 `display-s` 与 Progress 叠同一百分比?细则见 `2x2-pack.md`。
-- `capsule` 带行内图标时，图标是否与按钮字色同源（同一墨色，而非另选图标色）?
+- `2x2` + `capsule` 时：是否先扣 `rootGaps`(16) 再算 `contentBudget`(约 64)，且无 `display-s` 与 Progress 叠同一百分比?细则见 `2x2-pack.md`。
 - `2x4`/`4x2` 是否用横卡配方且高度不爆?细则见 `2x4-pack.md`。
-- 12vp safe margin 内是否无越界、遮挡、按钮与内容重叠?
-- 动态值是否均为 path + data，无把 sampleValue 写进静态文案?
+- 12vp safe margin 内是否无越界、遮挡、按钮与内容重叠?区间距 8 是否完整保留?
+- 动态值是否均为 path + data，无把 sampleValue 写进静态文案（如 `"–10:30"`）?
 - number 百分比读数是否带静态 `%` 单位（不能在同一 Text 里拼 path）?细则见 `data-binding.md`。
+- 相邻可见元素是否有合法间距（无零贴、无 `itemMargin:6`）?读数+`%` 是否先成组再与旁注分轨?
 - 主信息层级是否清晰;不是所有字段同字号同颜色。
 
 # Protocol Core(桌面 Form 卡)
@@ -201,7 +203,8 @@ genui NDJSON 协议核心:两种行形态和格式标准。
 - `path` 必须来自输入 schema 中可绑定的叶子路径。
 - 绑定对象只放在组件 props 的具体字段上，例如 `Text.content`、`Progress.value`、`Checkbox.select`。
 - 不使用模板字符串，不使用 `$item` / `$__dataModel` / `{{ ... }}`。
-- 静态 UI 文案、组件 id、`Image.src`、`Button.label` 通常保持字面量。
+- 静态 UI 壳（短标签、`%`、纯分隔符、`Button.label`）可以是字面量；**事实性内容**（时刻、地点、标题、度量值）必须绑 path，不要把 `sampleValue` 写进静态 `content`。
+- 组件 id、`Image.src` 通常保持字面量（`src` 仍须来自 asset 白名单）。
 
 ## 2. Data Rows
 
@@ -252,18 +255,23 @@ Compact DSL **不能**在同一个 `Text.content` 里拼接 path 与字面量（
 
 当 schema 叶子是 **number**，且语义为 0–100 占比 / 百分比（字段名或 `description` 含 percent、百分比、占比等）时：
 
-- **可见读数**必须带 `%`：用 `Row [value, unit]`（或数字 title 的数字行）——`value` 绑 path，`unit` 为静态 Text `"%"`。
+- **可见读数**必须带 `%`：用内层 `Row [value, unit]`（`itemMargin:2`）——`value` 绑 path，`unit` 为静态 Text `"%"`。
+- 同一说明行若还有旁注（可用容量等）：先把 `value+%` 收成 **一个簇**，再与旁注分两轨（外层 `spaceBetween` 或 `itemMargin:4`）。禁止 `Row[value, unit, trailing]` 三兄弟平铺。
 - Progress 条本身的 `value`/`total` 仍只绑数字 path，**不必**改 data 行；`%` 只出现在旁边的读数 Text。
 - 若叶子已是带 `%` 的 **string**（如 `"68%"`），直接绑该 path，不要再叠一个 `%`。
 
 ```genui
-["pct_row","Row",{"alignItems":"end","itemMargin":2},["pct_value","pct_unit"]]
+["label_row","Row",{"width":"matchParent","alignItems":"end","justifyContent":"spaceBetween"},["pct_group","available"]]
+["pct_group","Row",{"alignItems":"end","itemMargin":2,"flexShrink":0},["pct_value","pct_unit"]]
 ["pct_value","Text",{"content":{"path":"/data/systemMem/usagePercent"},"design":"body-m","fontWeight":700,"flexShrink":0}]
 ["pct_unit","Text",{"content":"%","design":"caption-l","fontColor":"#99000000","flexShrink":0}]
+["available","Text",{"content":{"path":"/data/systemMem/availableMemText"},"design":"caption-l","fontColor":"#99000000","flexShrink":0}]
 ["/data/systemMem/usagePercent",43.75]
+["/data/systemMem/availableMemText","4.50 GB"]
 ```
 
 禁止只绑 number path 却不展示单位，导致界面出现裸 `43.75`。
+禁止把 `%` 与旁注当同级叶子贴在一起。
 
 ## 6. Audit
 
@@ -273,6 +281,7 @@ Compact DSL **不能**在同一个 `Text.content` 里拼接 path 与字面量（
 - List 是否为静态 children + 下标 path？
 - 是否出现 `$item` / `$__dataModel` / 模板字符串？
 - number 百分比读数是否有静态 `%` 单位，或 string 叶子已自带 `%`？
+- `value+%` 是否先成组，旁注是否另轨且有间距？
 
 # Card Structure（桌面 Form 共同结构）
 
@@ -595,6 +604,7 @@ Role 落地规则：
 - `label` 表达动作语义。
 - `onClick` 承载事件 handler 数组。
 - `enabled` 可绑定 DataModel 布尔值。
+- `capsule` 有行内 `Image` 时：实例**必须**写 `fontColor`，且子图标 `fillColor` 与其同值（图标不继承默认字色）。
 
 ### `Checkbox`
 
@@ -690,6 +700,21 @@ Role 落地规则：
 
 identity 标题来自 `userQuery` 的卡片用途，不来自 schema 叶子拼接，也不来自事件参数。
 
+### Content Fidelity（可见内容保真）
+
+卡上用户读到的**事实**必须能追溯到输入，不能靠模型补造。
+
+| 可见内容 | 来源 |
+| --- | --- |
+| 时间、地点、标题、状态、数值等事实 | 只绑 `dataModelSchema` path；预览用对应 `data` 行 / `sampleValue` |
+| 字段旁短标签（如「总量」「空气质量」） | 压缩叶子 `description` / 字段名语义（2–6 字） |
+| 单位与纯分隔（`%`、`–`、`/`） | 可做**独立**静态 Text，贴在已绑定的读数旁；**不要**把 sample 写进静态串（✗ `"–10:30"`；✓ path 绑 `dtEnd` + 可选单独的 `"–"`） |
+| identity 标题 | `userQuery` 用途名 |
+| 图标 | 仅 `assetCandidates` 中与**已展示角色**匹配的 `src` |
+| 按钮文案 | 动作语义（`intentName` / query），不抄事件 `params` |
+
+不要：编造未提供的图标路径、地点、时间段、关系称谓；把 `sampleValue` 抄进 `Text.content`；用事件参数冒充正文事实。
+
 ## 1. 入口
 
 生成前内部清单：
@@ -772,7 +797,7 @@ Scene Vector 是生成前的中间判断，不直接写进 DSL。它帮助后续
 - 不完整子集示例：只留总量 + 电量、只留地点名 + 按钮、只留紫外线标签无值。
 - 缩字阶、合并同行、一行双列，优先于拆散主线。
 - 仅当完整主线仍超预算时，才丢掉 shouldKeep 或次主线；主线内部字段成组保留或成组替换，不拆成无意义碎片。
-- **`2x2` + `capsule`**：`contentBudget ≈ 64`，content 直接子块必须 ≤2；电量等次主线放不进就 drop，禁止 `display-s` + Progress + 多行 support 叠满。
+- **`2x2` + `capsule`**：`contentBudget ≈ 64`（已扣 rootGaps=16），content 直接子块必须 ≤2；电量/地点等次主线放不进就 drop 或并入已有块，禁止三行直挂；禁止 `display-s` + Progress + 多行 support 叠满；区间距 8 被挤扁 = 溢出。
 - `2x4`/`4x2`：宽更松可多留 shouldKeep，但不要增加纵向堆叠。
 - 所有上屏数值用 path 绑定；不要把 sampleValue 抄进静态 `content`。
 
@@ -797,6 +822,7 @@ Scene Vector 是生成前的中间判断，不直接写进 DSL。它帮助后续
 
 - `size` 是否仅为 `2x2` / `2x4` / `4x2`？
 - identity 标题是否来自 `userQuery` 用途名，而不是 schema 叶子或事件参数拼接？
+- 上屏事实是否均可追溯到 schema path / asset / event 白名单，无把 sampleValue 写进静态文案？
 - 上屏字段是否构成语义完整子集，并能回答 query 主线？
 - 容量不足时是否先合并/降阶，再选择完整子集，而不是留下无意义碎片？
 - 每个可见数值旁是否有从 `description` 压出的短标签？
@@ -843,11 +869,20 @@ Button 的 `height` / `width` / `backgroundColor` / `borderRadius` / `padding` /
 
 示例：
 
+无行内图标时可省略 `fontColor`：
+
 ```genui
 ["join_btn","Button",{"label":"加入会议","design":"capsule","onClick":[{"call":"clickToApi","args":{"intentName":"EnterMeeting","params":{}}}]}]
 ```
 
-capsule + 行内图标（图标与文字同一墨色；这里显式写出字色，图标跟它走）：
+**有行内图标时必须同时写 `fontColor` + 同色 `fillColor`（漏写 = 硬错误）**：
+
+```genui
+["join_btn","Button",{"label":"加入会议","design":"capsule","fontColor":"#FF0A59F7","onClick":[{"call":"clickToApi","args":{"intentName":"EnterMeeting","params":{}}}]},["join_icon"]]
+["join_icon","Image",{"src":"resources/base/media/icon_meeting.svg","width":16,"height":16,"flexShrink":0,"fillColor":"#FF0A59F7"}]
+```
+
+另一例（拨打）：
 
 ```genui
 ["call_btn","Button",{"label":"拨打电话","design":"capsule","fontColor":"#FF0A59F7","onClick":[{"call":"clickToApi","args":{"intentName":"CallPhone","params":{"phoneNumber":"","relationship":"哥哥"}}}]},["call_icon"]]
@@ -928,7 +963,10 @@ Progress 不是自解释组件，必须和说明 Text 组成信息块。
 - `segmented status`：`Progress design:"segmented-bar"` + 当前阶段 Text；`value` 为当前阶段，`total` 为阶段数。
 - `threshold status`：`Progress design:"threshold-bar"` + 阈值 / 已用 / 剩余或超限说明；必须有 `threshold`。
 - 信息块的 children 应同时包含说明文本与 Progress 本体；定义出的 Progress 节点必须从 root 可达。
-- 旁侧 / 说明行展示 **number** 占比时：用 `Row [path 数值, 静态 "%"]`，不要只绑数字 path 留下裸 `43.75`；string 已含 `%` 则直接绑。
+- 旁侧 / 说明行展示 **number** 占比时：用内层 `Row [path 数值, 静态 "%"]`（`itemMargin:2`），不要只绑数字 path 留下裸 `43.75`；string 已含 `%` 则直接绑。
+- 说明行若还有旁注（可用容量、总量等）：结构必须是 **两轨**——
+  - ✓ `Row [pct_group, trailing]`（`spaceBetween` 或外层 `itemMargin:4`）；`pct_group = Row[value, unit]`
+  - ✗ `Row [value, unit, trailing]` 三兄弟平铺（单位易与旁注零间距贴死）
 
 ## 3. 使用边界（整卡级）
 
@@ -938,6 +976,7 @@ Progress 不是自解释组件，必须和说明 Text 组成信息块。
 - 无 schema 数组时硬造 List。
 - 裸 Progress（没有 label / value / status 说明）。
 - number 百分比读数缺 `%` 单位。
+- 同行可见子节点零间距贴死；`itemMargin:6`；把 `%` 与旁注当同级叶子平铺。
 
 ## 4. Audit
 
@@ -946,6 +985,7 @@ Progress 不是自解释组件，必须和说明 Text 组成信息块。
 - 短内容是否避免空 `layoutWeight`？
 - 托盘是否只用于 primary/support，而非整卡第二层壳？
 - number 百分比可见读数是否带 `%`？
+- 读数+单位是否先成组，旁注是否另轨且有间距？
 
 # Style and Spacing（桌面小卡）
 
@@ -999,7 +1039,9 @@ primary/support 内可使用信息托盘；root 保持固定 shell 和清晰角�
 - Button `design` 仅允许 `capsule` / `icon-round`
 - Button 子样式定值由 `design` 展开；实例只写 `label` / `design` / `onClick` / `enabled` / `fontColor`，不写 `height` / `width` / `backgroundColor` / `borderRadius` / `padding` / `fontSize` / `fontWeight` / `maxLines` / `flexShrink`。
 - `capsule` 背景固定来自子样式；行动强弱通过是否生成 action、位置和 label 表达，不通过改背景表达。
-- `capsule` 行内图标与文字是同一行动信号：`Image.fillColor` 与 Button 实际字色同源（写了 `fontColor` 就用同一字符串；未写则用 capsule 默认标签色 `font_emphasize`）。不要给图标另选一套颜色。
+- `capsule` 行内图标与文字是同一行动信号，必须共墨（硬错误）：
+  - 有行内 `Image` 时，Button **必须显式写** `fontColor`，图标 `fillColor` 用**同一字符串**（DSL 里图标不会自动继承子样式默认字色；漏写 `fontColor` = 不合格）。
+  - 无行内图标时，`fontColor` 仍可省略，走 capsule 默认标签色（`font_emphasize`）。
 - `icon-round` 必须有唯一可见 16×16 `Image` 子节点；`label` 仅语义，不绘制。
 - `2x2` ≤1 显式动作；`2x4` ≤2 分离热区
 - 无 `eventCandidates` → 不造 action
@@ -1029,6 +1071,10 @@ primary/support 内可使用信息托盘；root 保持固定 shell 和清晰角�
 - 12vp safe margin 零例外：文字、按钮、背板、图标、highlight、溢出内容都不能触碰或越过卡片边缘。
 - 固定尺寸内的文字、图标、按钮、背板必须允许 shrink / 截断；必要时容器 `clip:true` 兜底，禁止互相压住。
 - 按钮和内容背板不能重叠；同列堆叠时二者独立，保留 8vp 间距。
+- **2x2 三区区间距 8 是保护区**：`title_area`↔`content_area`↔`action_area` 的 8vp 先扣进高度账本；内容塞满导致区间距被压扁、区贴区，等同溢出——必须改内容尺寸/布局/子集，不能只看「文字有没有被 clip 裁掉」。
+- **相邻可见元素禁止零间距贴死**（图标贴字、字贴字、读数贴旁注）。`Row`/`Column` 有 ≥2 个可见子节点时，必须用合法 `itemMargin`（`2`/`4`/`8`）拉开，或用 `spaceBetween` 拉开**至多两个语义轨**；禁止写 `6`。
+- **读数成组再分轨**：`数值 + "%"` / `数字 + 单位` 先收进内层 `Row`（`itemMargin:2` 或 `4`）成为一个簇；旁注（如可用容量）是另一轨。✗ 把 `43.75`、`%`、`4.50 GB` 三个 Text 平铺成同一 Row 的三兄弟（`%` 易与旁注贴死）；✓ `Row[pct_group, available]` + 组内 `Row[value, unit]`。
+- `justifyContent:"spaceBetween"` 时 `itemMargin` 不生效：子节点应是 **2 个语义组**（左簇 / 右簇），不要塞 3+ 个叶子 Text 指望自动分开。
 - `2x4` 右侧零散 label/value 必须进入背板、托盘或成组 Row；不要直接浮在根面上。
 - 底部锚定 action 上方必须有真实内容；否则改居中、减少内容或取消显式 action。
 
@@ -1044,8 +1090,10 @@ primary/support 内可使用信息托盘；root 保持固定 shell 和清晰角�
 | 2x2 数字 title 标题行↔数字行 | `2` | title_area Column `itemMargin` |
 | 2x2 数字 title 数字↔单位 | `4` | metric_row `itemMargin` |
 | 同源紧密块（icon+标题） | `4` | Row/Column `itemMargin` |
-| 异质角色（identity↔primary、primary↔action） | `8` | root 或主容器 `itemMargin` |
-| 2x2 title_area↔content_area↔action_area | `8` | root 或主 Column `itemMargin` |
+| 数值↔单位 / 数值↔`%`（同簇内） | `2`（或数字 title 用 `4`） | 内层 metric/`pct` Row `itemMargin` |
+| 读数簇↔旁注（如可用容量） | `4` 或 `spaceBetween` 两轨 | 外层说明行；旁注不与 `%` 同级平铺 |
+| 异质角色（identity↔primary、primary↔action） | `8`（硬，不可挤占） | root 或主容器 `itemMargin` |
+| 2x2 title_area↔content_area↔action_area | `8`（硬，不可挤占） | root 或主 Column `itemMargin` |
 | 列表项之间 | `4`（密）/ `8`（稀） | List `space` |
 
 ## 5. 定高剩余高度分配
@@ -1064,6 +1112,7 @@ primary/support 内可使用信息托盘；root 保持固定 shell 和清晰角�
 - 卡级 action 是否 `capsule`/`icon-round`？是否误写 Button 子样式定值？
 - 定高短内容是否「上沉 + 中空 + 底部 action」？
 - Progress 是否有说明文本，且一卡最多一个主信息块？
+- 相邻可见子节点是否都有合法间距（无 `itemMargin:6`、无 `%` 贴旁注）？读数+单位是否先成组再分轨？
 
 # Harmony Desktop Form Style Core
 
@@ -1178,7 +1227,7 @@ primary/support 内可使用信息托盘；root 保持固定 shell 和清晰角�
 | 纯图标行动 | `icon-round` | 必须有匹配候选作 `Image` 子节点；否则改 `capsule` |
 
 - 查看、打开、详情、进入、切换等常规动作也用 `capsule`，不改背景。
-- `capsule` 带行内图标时：图标与文字共用同一墨色——`fillColor` 等于按钮实际字色（显式 `fontColor`，或未写时的默认 `font_emphasize`）。图标不是装饰层，不要单独取色。
+- `capsule` 带行内图标时：图标不会继承子样式默认字色。Button **必须**显式写 `fontColor`，`Image.fillColor` 用同一值，保证共墨；漏写 = 硬错误。无图标时可省略 `fontColor`（默认 `font_emphasize`）。
 - `icon-round` 可见内容只能是图标；要文字用 `capsule`。
 - 热区：`2x2` ≤1；`2x4` ≤2。
 - 无 `eventCandidates` → 不造 action。
@@ -1289,6 +1338,7 @@ root Column itemMargin:8 [
 - `title_area` 固定在顶部；`action_area` 固定在底部；除标题区和按钮区外，中间剩余高度全部归 `content_area`。
 - `content_area` 是 2x2 唯一默认吃剩余高度的区域，写 `layoutWeight:1`；其内部短内容不要再滥用 `layoutWeight:1` 制造空白。
 - 三个区域之间的垂直间距固定 **8vp**；写在 root 或主 Column 的 `itemMargin:8`。
+- **区间距 8 不可挤占**：title↔content、content↔action 的 8vp 先从高度账本里扣掉。内容再「看起来塞得下」，只要把区间距压扁、区与区贴死或互相侵占，一律按**溢出**处理——必须降字阶、合并行、减直接子块或 drop 次要字段，禁止靠 `clip` / 压缩区间距硬塞。
 - root 仍为 `width:160,height:160,borderRadius:20,padding:12,clip:true`。
 
 ## 2. Title Area
@@ -1380,14 +1430,20 @@ title_area Column [
 
 可用内容高 ≈ `160 - 24`(上下 padding) = **136**。
 
+扣款顺序（先扣保护区，再分配内容）：
+
+1. **rootGaps**（保护区）：有 action 时 title↔content + content↔action = **16**；无 action 时 title↔content = **8**。不可再被 content 吃掉。
+2. **titleH** / **actionH**（固定区）：常规 title 单行 ≈20、双行 ≈34；数字 title ≈50–64；`capsule` ≈36；`icon-round` ≈28–36。
+3. **contentBudget** = `136 - rootGaps - titleH - actionH`。
+
 | 先扣项 | 约高 |
 | --- | --- |
+| rootGaps（区间距 8） | 有 action **16** / 无 action **8** |
 | `capsule` action | **36** |
-| title/content/action 区间距 | 每段 **8** |
 | 常规 title | **20–36** |
 | 数字 title | **50–64** |
 
-有 action 时，title + content 需要在约 **84–92** 高内完成。数字呈现 title 占高更大，content 必须更克制。
+有 action 时，title + content 需要在约 **84–92** 高内完成（已含区间距）。数字呈现 title 占高更大，content 必须更克制。
 
 ## 4. Content Area
 
@@ -1419,26 +1475,28 @@ title_area Column [
 **2x2 Capacity Worksheet（强制）**
 
 1. `innerH = 136`
-2. `contentBudget = innerH - titleH - actionH - rootGaps`
-3. 估高：常规 title 单行 ≈20、双行 ≈34；`capsule` ≈36；有 action 时 rootGaps ≈16。因此「单行 title + capsule」时 **`contentBudget ≈ 64`**。
-4. 内容块估高：单行 KV / 图标行 ≈16–20；紧凑 Progress 信息块（说明+条）≈20–28；`title-s`/`subtitle-s` 数值行 ≈20–24；**`display-s` ≈40+（几乎吃光 64 档）**。
-5. 校验：`sum(blockH) + (n-1)*itemMargin ≤ contentBudget`（`n` = content_area **直接**子块数）。
+2. 先扣 `rootGaps`（有 action=16 / 无=8），再扣 `titleH`、`actionH`
+3. `contentBudget = innerH - rootGaps - titleH - actionH`
+4. 估高：常规 title 单行 ≈20、双行 ≈34；`capsule` ≈36；有 action 时 rootGaps=16。因此「单行 title + capsule」时 **`contentBudget ≈ 64`**。
+5. 内容块估高：单行 KV / 图标行 ≈16–20；紧凑 Progress 信息块（说明+条）≈20–28；`title-s`/`subtitle-s` 数值行 ≈20–24；**`display-s` ≈40+（几乎吃光 64 档）**。
+6. 校验：`sum(blockH) + (n-1)*itemMargin ≤ contentBudget`（`n` = content_area **直接**子块数）。**超了 = 溢出**（含：区间距被压扁、区贴区、靠 clip 裁切）。
 
 按 `contentBudget` 选配方（先选配方，再写节点）：
 
 | 预算档 | 直接子块上限 | 字阶 | 推荐配方 |
 | --- | --- | --- | --- |
-| **≈64（单行 title + capsule）** | **≤2** | 不用 `display-s` | `Progress 信息块`；或 `Progress 信息块 + 1 条 support`；或 `双列指标 + 1 条 support`；或 `两行 KV` |
+| **≈64（单行 title + capsule）** | **≤2** | 不用 `display-s` | `Progress 信息块`；或 `Progress 信息块 + 1 条 support`；或 `双列指标 + 1 条 support`；或 `两行 KV`；或 `时间行 + 标题`（地点合并进标题行/丢次要） |
 | **≈50（双行 title + capsule）** | **≤2** 且更紧 | 同上 | Progress 与 support 必须合并进同一块或同一行 |
 | **≥84（无 action）** | 才可到 3 | 可考虑更大字阶 | 仍优先完整子集，不要仪表盘 |
 
 **64 档硬约束（有 capsule 时几乎总是这一档）：**
 
-- `n ≤ 2`。出现 3 个及以上 content 直接子块 = 溢出，必须重写。
+- `n ≤ 2`。出现 3 个及以上 content 直接子块 = 溢出，必须重写（例：时间行 + 事件标题 + 地点行 三块并列 = 不合格）。
 - 使用 Progress 时：**不要**再为同一百分比另开 `display-s` / 大号 Text；百分比读数留在 Progress 信息块的说明行。
-- 说明行若展示 **number** 占比，必须用 `Row[数值 path, 静态 "%"]`，禁止裸数字（如 `43.75`）；string 型已含 `%` 的叶子直接绑 path。
-- 次要指标（如电量）挤不进 2 块完整子集时 → **整项 drop**，不要硬塞第 3、第 4 行。
+- 说明行若展示 **number** 占比，必须用内层 `Row[数值 path, 静态 "%"]`（`itemMargin:2`），禁止裸数字（如 `43.75`）；string 型已含 `%` 的叶子直接绑 path。有旁注时先成组再分轨，禁止 `Row[value, %, trailing]` 三兄弟平铺。
+- 次要指标（如电量、地点）挤不进 2 块完整子集时 → **整项 drop** 或并入已有块，不要硬塞第 3、第 4 行。
 - 动态值必须 `{"path"}` + `data` 行；禁止把 `sampleValue` 写进静态 `content` 字符串。
+- **rootGaps 神圣**：宁可少展示字段，也不能让 title/content/action 之间的 8vp 消失。
 
 多字段放进 2 块：support 合并为「一行双列」或「一条 KV + 行内次要值」。
 超预算压缩顺序：合并进 Progress 信息块 → 降字阶 → 缩短 label → 丢掉次主线，保留语义完整的更小子集。
@@ -1456,7 +1514,7 @@ title_area Column [
 
 - `capsule` 不做短按钮、不居中浮动。
 - `capsule` 的宽高由子样式和父级 `action_area` 共同决定，不在 Button 实例中重写。
-- `capsule` 行内图标与字色同源（同一 `fontColor` / 默认标签色），不要给图标另配色。
+- `capsule` 行内图标与字色同源（硬错误）：有行内 `Image` 时，Button **必须**显式写 `fontColor`，图标 `fillColor` 为**同一字符串**；漏写 `fontColor` 或两色不一致 → 不合格，禁止输出。无图标时可省略 `fontColor`。
 - `icon-round` 不占整行，不居中；靠右但仍在底部 action_area 内。
 - 不把 action 放进 `title_area` 右侧；title 右侧图标只是 identity 装饰。
 
@@ -1473,29 +1531,30 @@ title_area Column [
 
 生成前按顺序过一遍（写数字，不要凭感觉）：
 
-1. 写出 `contentBudget`（通常单行 title + capsule ≈ **64**）。
+1. 先写出 `rootGaps`（有 action=16），再写出 `contentBudget`（通常单行 title + capsule ≈ **64**）。
 2. 列出 `content_area` 每个直接子块及其估高，算 `sum + gaps`。
-3. 若 `sum + gaps > contentBudget`，或有 capsule 时直接子块 **> 2**，或 Progress 旁另挂 `display-s` 同百分比 → **立刻改配方**，禁止输出。
-4. title_area / content_area 都已落位，content_area 接住剩余高度；区间距 8vp。
+3. 若 `sum + gaps > contentBudget`，或有 capsule 时直接子块 **> 2**，或 Progress 旁另挂 `display-s` 同百分比，或区间距会被压扁 → **立刻改配方**，禁止输出。
+4. title_area / content_area 都已落位，content_area 接住剩余高度；区间距 8vp **完整保留**。
 5. title 行 anatomy：text track 左、accessory icon 右。
-6. `capsule` 占底行；`icon-round` 靠右；capsule 带图标时图标与字色同源。
+6. `capsule` 占底行；`icon-round` 靠右；capsule 带图标时 **必有** `fontColor` 且与图标 `fillColor` 同值（缺则硬错误）。
 7. title 是用途名；上屏是语义完整子集；动态值均有 path + data 行。
 
 ## 8. Audit
 
 - root 是否 `160×160`、`borderRadius:20`、`padding:12`？
 - title_area / content_area 是否必选存在？action_area 是否仅合法事件才出现？
-- 是否写出 contentBudget，且 `sum(blockH)+gaps ≤ budget`？
+- 是否先扣 rootGaps，再写出 contentBudget，且 `sum(blockH)+gaps ≤ budget`？
 - 有 capsule 时 content 直接子块是否 ≤2？是否避免 `display-s` + Progress 双挂同一百分比？
 - title 是否在最上、action 是否在最下、content_area 是否占满中间剩余高度？
-- title/content/action 之间是否固定 8vp？
+- title/content/action 之间是否固定 8vp，且未被内容挤占？
 - content_area 是否只使用允许的 content blocks？
 - `capsule` action 是否整行宽？`icon-round` action 是否靠右？
+- capsule 带行内图标时，Button 是否写了 `fontColor`，且与 `fillColor` 同值？
 - 常规 title 是否按主标题 + 可选副标题，行距 2vp？标题是否来自 query 用途名？
 - 有 title 图标时，title 行是否符合 text track + accessory icon anatomy？
 - 数字 title 是否按标签 / 数字 / 单位，且单位与数字底部对齐？
 - SVG 鸿蒙规范图标是否 20×20 且使用 `icon_on_tertiary` / `#66FFFFFF`？
-- 有 action 时是否 ≤1 热区且内容与按钮无重叠、无裁切？
+- 有 action 时是否 ≤1 热区且内容与按钮无重叠、无裁切、区间距未被压扁？
 - 上屏内容是否语义完整；字段多时是否优先合并/降阶，再取完整子集而非碎片字段？
 - 是否误把 sampleValue 写进静态 Text，导致无法刷新？
 
