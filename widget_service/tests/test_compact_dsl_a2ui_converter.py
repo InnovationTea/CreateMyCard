@@ -217,6 +217,113 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(action[2]["padding"], 0)
         self.assertNotIn("design", action[2])
 
+    def test_degrades_button_image_child_to_a2ui_leaf(self) -> None:
+        event = {
+            "call": "clickToApi",
+            "args": {"intentName": "Open"},
+        }
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": 160, "height": 160},
+                    ["action"],
+                ],
+                [
+                    "action",
+                    "Button",
+                    {
+                        "label": "Open",
+                        "design": "icon-round",
+                        "onClick": [
+                            {
+                                "call": event["call"],
+                                "args": event["args"],
+                            }
+                        ],
+                    },
+                    ["action_icon"],
+                ],
+                [
+                    "action_icon",
+                    "Image",
+                    {"src": "resources/base/media/weather.svg"},
+                ],
+            ]
+        )
+
+        normalized = normalize_compact_dsl_design_tokens(compact_dsl)
+        rows = [json.loads(line) for line in normalized.splitlines()]
+
+        self.assertEqual([row[0] for row in rows], ["root", "action"])
+        self.assertEqual(len(rows[1]), 3)
+        validate_compact_dsl_context(
+            compact_dsl,
+            task_spec={
+                "dataModelSchema": {},
+                "assetCandidates": [],
+                "eventCandidates": [event],
+            },
+            card_spec={"dataBindings": []},
+        )
+        a2ui = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+        messages = [json.loads(line) for line in a2ui.splitlines()]
+        components = messages[1]["updateComponents"]["components"]
+
+        self.assertEqual(
+            [component["id"] for component in components],
+            ["root", "action"],
+        )
+        self.assertNotIn("children", components[1])
+
+    def test_removes_empty_children_from_leaf_component(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": 160, "height": 160},
+                    ["title"],
+                ],
+                ["title", "Text", {"content": "Weather"}, []],
+            ]
+        )
+
+        normalized = normalize_compact_dsl_design_tokens(compact_dsl)
+        title = json.loads(normalized.splitlines()[1])
+
+        self.assertEqual(len(title), 3)
+
+    def test_rejects_non_image_button_child(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": 160, "height": 160},
+                    ["action"],
+                ],
+                [
+                    "action",
+                    "Button",
+                    {"label": "Open", "design": "capsule"},
+                    ["action_text"],
+                ],
+                ["action_text", "Text", {"content": "Open"}],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "Button child must be an Image",
+        ):
+            normalize_compact_dsl_design_tokens(compact_dsl)
+
     def test_expands_latest_text_progress_and_checkbox_designs(self) -> None:
         compact_dsl = _serialize(
             [

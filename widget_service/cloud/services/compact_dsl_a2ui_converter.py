@@ -702,7 +702,7 @@ def _parse_compact_rows(compact_dsl: str) -> list[CompactRow]:
 
     if not rows:
         raise CompactDslConversionError("Compact DSL output is empty.")
-    return rows
+    return _degrade_button_image_children(rows)
 
 
 def _parse_json_line(line: str, line_number: int) -> list[Any]:
@@ -785,15 +785,15 @@ def _parse_children(
     component_type: str,
 ) -> tuple[str, ...]:
     is_container = component_type in _CONTAINER_TYPES
-    if not is_container:
-        if len(value) == 4:
+    if len(value) != 4:
+        if is_container:
             raise CompactDslConversionError(
-                f"{component_id}: non-container components cannot have children."
+                f"{component_id}: {component_type} requires a children array."
             )
         return ()
-    if len(value) != 4 or not isinstance(value[3], list):
+    if not isinstance(value[3], list):
         raise CompactDslConversionError(
-            f"{component_id}: {component_type} requires a children array."
+            f"{component_id}: children must be an array."
         )
 
     children: list[str] = []
@@ -807,7 +807,81 @@ def _parse_children(
         raise CompactDslConversionError(
             f"{component_id}: children contain duplicate component ids."
         )
-    return tuple(children)
+    if is_container or component_type == "Button":
+        return tuple(children)
+    if children:
+        raise CompactDslConversionError(
+            f"{component_id}: non-container components cannot have children."
+        )
+    return ()
+
+
+def _degrade_button_image_children(
+    rows: list[CompactRow],
+) -> list[CompactRow]:
+    components_by_id = {
+        row.component_id: row
+        for row in rows
+        if isinstance(row, ComponentRow)
+    }
+    button_icon_ids: set[str] = set()
+
+    for row in rows:
+        if not isinstance(row, ComponentRow):
+            continue
+        if row.component_type != "Button" or not row.children:
+            continue
+        if len(row.children) != 1:
+            raise CompactDslConversionError(
+                f"{row.component_id}: Button supports at most one Image child."
+            )
+        icon_id = row.children[0]
+        icon = components_by_id.get(icon_id)
+        if icon is None or icon.component_type != "Image":
+            raise CompactDslConversionError(
+                f"{row.component_id}: Button child must be an Image."
+            )
+        button_icon_ids.add(icon_id)
+
+    if not button_icon_ids:
+        return rows
+
+    _validate_button_icon_ownership(rows, button_icon_ids)
+    degraded_rows: list[CompactRow] = []
+    for row in rows:
+        if isinstance(row, ComponentRow) and row.component_id in button_icon_ids:
+            continue
+        if isinstance(row, ComponentRow) and row.component_type == "Button":
+            row = ComponentRow(
+                component_id=row.component_id,
+                component_type=row.component_type,
+                props=row.props,
+            )
+        degraded_rows.append(row)
+    return degraded_rows
+
+
+def _validate_button_icon_ownership(
+    rows: list[CompactRow],
+    button_icon_ids: set[str],
+) -> None:
+    parent_counts = dict.fromkeys(button_icon_ids, 0)
+    for row in rows:
+        if not isinstance(row, ComponentRow):
+            continue
+        for child_id in row.children:
+            if child_id in parent_counts:
+                parent_counts[child_id] += 1
+    shared_icons = [
+        icon_id
+        for icon_id, parent_count in parent_counts.items()
+        if parent_count != 1
+    ]
+    if shared_icons:
+        icon_list = ", ".join(sorted(shared_icons))
+        raise CompactDslConversionError(
+            f"Button Image children must have one parent: {icon_list}."
+        )
 
 
 def _validate_component_props(
