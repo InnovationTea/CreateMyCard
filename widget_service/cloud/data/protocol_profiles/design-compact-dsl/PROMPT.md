@@ -485,7 +485,7 @@ root 背景按 `design-system.md` 选实色或 `linearGradient`。
 
 禁止:`TextInput` / `Toggle` / `Radio` / `CheckboxGroup` / `Select` / `NavContainer` / `Tabs` / `TabContent` / `Web` / `Grid` / `If` / `Chart` 及任何未列类型。
 
-当前有 `design` 子样式的组件:**Text / Button / Progress / Divider**。`Image` / `Checkbox` / 布局组件无 `design` 枚举。颜色类 props 允许 hex(桌面卡无 light/dark 双轨)。
+当前有 `design` 子样式的组件:**Text / Button / Progress / Divider / Checkbox**。`Image` / 布局组件无 `design` 枚举。颜色类 props 允许 hex(桌面卡无 light/dark 双轨)。
 
 ### 布局组件
 
@@ -544,7 +544,7 @@ root 背景按 `design-system.md` 选实色或 `linearGradient`。
     | "body-l" | "body-m" | "body-s"
     | "caption-l" | "caption-m",
   textOverflow?: "clip" | "ellipsis",
-  fontSize?: 56 | 48 | 38 | 30 | 24 | 20 | 18 | 16 | 14 | 12 | 10,
+  fontSize?: 56 | 48 | 36 | 30 | 24 | 20 | 18 | 16 | 14 | 12 | 10,
   fontWeight?: 100 | 300 | 400 | 500 | 700 | 900,
   fontColor?: "font_primary" | "font_secondary" | "font_tertiary" | "font_emphasize" | "font_on_primary" | "warning" | "alert" | "confirm" | string,
   textAlign?: "start" | "center" | "end" | "justify",
@@ -601,8 +601,9 @@ root 背景按 `design-system.md` 选实色或 `linearGradient`。
 ```ts
 {
   value: number, // [0, total]
-  total?: number,
-  design?: "linear" | "eclipse",
+  total: number,
+  threshold?: number, // threshold-bar 必填
+  design?: "linear-bar" | "segmented-bar" | "threshold-bar",
   color?: string,
   type?: "linear" | "ring" | "eclipse" | "scaleRing" | "capsule",
   strokeWidth?: number,
@@ -611,10 +612,11 @@ root 背景按 `design-system.md` 选实色或 `linearGradient`。
 
 | design | 要点 |
 | --- | --- |
-| `linear` | type linear,height 4,圆角 2,底 `comp_background_secondary`,前景 `background_emphasize` |
-| `eclipse` | type eclipse,20×20,色 `comp_background_secondary` |
+| `linear-bar` | type linear,高 8,圆角 4,通栏,底 `comp_background_secondary`;连续比例 |
+| `segmented-bar` | 段高 8,圆角 4,段间距 4,通栏,底 `comp_background_secondary`;离散阶段 |
+| `threshold-bar` | 高 20,圆角 10,通栏,底 `#6B7F91`,安全色 `#C8F000`,警告色 `#FF4B22` |
 
-优先用 `design`;不要把进度数字塞进 Progress,用相邻 Text。
+优先用 `design`;`ring` 直接写 `type:"ring"` 而不是 design。不要把进度数字塞进 Progress,用相邻 Text。
 
 **占比/电量(0–100):** `value` 用 `{"path":"/…/usagePercent"}`(或同类 number 叶子),`total` 固定为字面量 **100**,并写对应 `data` 行。禁止 `value`/`total` 同 path;禁止无数据时写死满条。
 
@@ -649,12 +651,15 @@ root 背景按 `design-system.md` 选实色或 `linearGradient`。
   label?: string,
   value?: string, // 标识,不绘制
   select?: boolean, // 是否选中,默认 false
+  design?: "default",
   selectedColor?: string,
+  unSelectedColor?: string,
+  mark?: { strokeColor: string, size: number, strokeWidth: number },
   shape?: "circle" | "rounded_square",
 }
 ```
 
-无 `design` 枚举。桌面卡没有 `CheckboxGroup` / `Radio` / `Toggle`;互斥或分组用多个 Checkbox + 文案结构表达,或交给宿主逻辑。
+`design:"default"` 固定 20×20、圆形、品牌选中色、三级未选中色和反色勾选标记。桌面卡没有 `CheckboxGroup` / `Radio` / `Toggle`;互斥或分组用多个 Checkbox + 文案结构表达,或交给宿主逻辑。
 
 ## Common Props(通用样式)
 
@@ -1069,7 +1074,7 @@ Checkbox 在内容区；提交在按钮区 `capsule`（确认语义可 `backgrou
 - Image：`src` ∈ `assetCandidates`；`fillColor` 决策见 `card-structure` §3.1
 - Progress：仅真实进度；一卡最多一个；色用场景 hex；数字旁路 Text；百分比 `value` path + `total:100`，禁止同 path 满条、禁止写死 100 充数
 - Divider：默认不加
-- Checkbox：无 design；动态态绑 DataModel
+- Checkbox：使用 `design:"default"`；动态态绑 DataModel
 
 ## 4. Layout & Spacing
 
