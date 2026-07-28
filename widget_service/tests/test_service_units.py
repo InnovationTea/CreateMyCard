@@ -2787,14 +2787,13 @@ def test_repair_model_failure_does_not_validate_or_save_second_result(monkeypatc
     assert response.errorCode == ErrorCode.A2UI_GENERATION_FAILED.value
 
 
-def test_design_compact_validation_error_uses_design_repair_then_converts(monkeypatch):
+def test_design_compact_validation_error_does_not_retry_or_save(monkeypatch):
     settings = get_settings()
     design_dsl = (CLOUD_ROOT / "custom" / "mock.design-compact-dsl-2x4.dat").read_text(
         encoding="utf-8"
     )
     model_prompts: list[list[dict[str, str]]] = []
     validated_genui: list[str] = []
-    saved_genui: list[str] = []
 
     def generate_design(_client, prompt, _profile=None):
         model_prompts.append(prompt)
@@ -2802,46 +2801,38 @@ def test_design_compact_validation_error_uses_design_repair_then_converts(monkey
 
     def validate_standard(_validator, artifact, _profile):
         validated_genui.append(artifact.genui)
-        if len(validated_genui) == 1:
-            return ["DSL_REQUIRED_FIELD [genui:2 /updateComponents/root]"]
-        return []
+        return ["DSL_REQUIRED_FIELD [genui:2 /updateComponents/root]"]
 
-    def save_artifact(_store, artifact):
-        saved_genui.append(artifact.genui)
-        return ArtifactSaveResult(
-            artifactUrl="https://artifact.test/design-repaired",
-            artifactDigest="sha256:design-repaired",
-        )
+    def unexpected_save(*_args, **_kwargs):
+        pytest.fail("invalid Design Compact output must not be saved")
 
     monkeypatch.setattr(settings, "enable_artifact_validation", True)
     monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
     monkeypatch.setattr(A2UIModelClient, "generate", generate_design)
     monkeypatch.setattr(ArtifactValidator, "validate", validate_standard)
-    monkeypatch.setattr(ArtifactStore, "save", save_artifact)
+    monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
 
     response = WidgetGenerationService().generate_widget_card_compact_dsl(
         _model_failure_request()
     )
-    repair_payload = json_module.loads(model_prompts[1][1]["content"])
 
-    assert response.status == GenerationStatus.SUCCESS
-    assert len(model_prompts) == 2
-    assert repair_payload["invalidGenui"] == design_dsl
-    assert repair_payload["dslFormat"] == "design-compact-dsl"
-    assert "/updateComponents/root" in repair_payload["validationErrors"][0]
-    assert len(validated_genui) == 2
-    assert all('"createSurface"' in value for value in validated_genui)
-    assert saved_genui == [validated_genui[-1]]
+    assert response.status == GenerationStatus.FAILED
+    assert response.errorCode == ErrorCode.VALIDATION_FAILED.value
+    assert len(model_prompts) == 1
+    assert len(validated_genui) == 1
+    assert '"createSurface"' in validated_genui[0]
 
 
-def test_design_compact_respects_validation_disabled_switch(monkeypatch):
+def test_design_compact_ignores_validation_disabled_switch(monkeypatch):
     settings = get_settings()
+    validation_calls: list[str] = []
 
-    def unexpected_validate(*_args, **_kwargs):
-        pytest.fail("disabled validation must not call the validator")
+    def validate_design(_validator, artifact, _profile):
+        validation_calls.append(artifact.genui)
+        return []
 
     monkeypatch.setattr(settings, "enable_artifact_validation", False)
-    monkeypatch.setattr(ArtifactValidator, "validate", unexpected_validate)
+    monkeypatch.setattr(ArtifactValidator, "validate", validate_design)
     monkeypatch.setattr(
         ArtifactStore,
         "save",
@@ -2857,34 +2848,29 @@ def test_design_compact_respects_validation_disabled_switch(monkeypatch):
 
     assert response.status == GenerationStatus.SUCCESS
     assert response.artifactUrl == "https://artifact.test/design-validation-disabled"
+    assert len(validation_calls) == 1
 
 
-def test_design_compact_validation_error_without_repair_still_saves(monkeypatch):
+def test_design_compact_validation_error_without_repair_fails(monkeypatch):
     settings = get_settings()
-    saved_genui: list[str] = []
 
     def validation_error(_validator, _artifact, _profile):
         return ["DSL_REQUIRED_FIELD [genui:2 /updateComponents/root]"]
 
-    def save_artifact(_store, artifact):
-        saved_genui.append(artifact.genui)
-        return ArtifactSaveResult(
-            artifactUrl="https://artifact.test/design-unrepaired",
-            artifactDigest="sha256:design-unrepaired",
-        )
+    def unexpected_save(*_args, **_kwargs):
+        pytest.fail("invalid Design Compact output must not be saved")
 
     monkeypatch.setattr(settings, "enable_artifact_validation", True)
     monkeypatch.setattr(settings, "enable_validation_failure_retry", False)
     monkeypatch.setattr(ArtifactValidator, "validate", validation_error)
-    monkeypatch.setattr(ArtifactStore, "save", save_artifact)
+    monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
 
     response = WidgetGenerationService().generate_widget_card_compact_dsl(
         _model_failure_request()
     )
 
-    assert response.status == GenerationStatus.SUCCESS
-    assert response.artifactUrl == "https://artifact.test/design-unrepaired"
-    assert len(saved_genui) == 1
+    assert response.status == GenerationStatus.FAILED
+    assert response.errorCode == ErrorCode.VALIDATION_FAILED.value
 
 
 def test_response_planner_returns_structured_status():
