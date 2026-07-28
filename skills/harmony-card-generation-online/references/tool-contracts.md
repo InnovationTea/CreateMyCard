@@ -4,8 +4,8 @@
 
 ## 调用总则
 
-- create 模式通常按顺序使用 `getWidgetCapabilityOverview`、按需使用 `getDataCapabilitySchemas`，再对最终数据能力集合调用 `RequestDataPermission`；权限通过或本轮无需权限检查后，调用 `PrepareGenerateCard`，然后立即调用 `generateWidgetCard`。
-- edit 模式按修改类型分流：纯视觉、布局、文案或尺寸修改不重新调用能力概述和数据 schema，但仍须对来源卡片的有效数据能力调用 `RequestDataPermission`；删除数据能力或修改能力参数时，重新调用能力概述和数据 schema，再检查编辑后的完整数据能力集合。权限通过或无需检查后的动效与生成顺序和 create 相同。
+- create 模式通常按顺序使用 `getWidgetCapabilityOverview`、按需使用 `getDataCapabilitySchemas`，再对最终数据能力集合调用 `RequestDataPermission`；权限通过或本轮无需权限检查后，调用 `generateWidgetCard`。
+- edit 模式按修改类型分流：纯视觉、布局、文案或尺寸修改不重新调用能力概述和数据 schema，但仍须对来源卡片的有效数据能力调用 `RequestDataPermission`；删除数据能力或修改能力参数时，重新调用能力概述和数据 schema，再检查编辑后的完整数据能力集合。
 - 需求适配门禁判定为追问或结束并引导时，不调用任何工具。能力概述后无法满足核心数据、核心动作或用户声明必须使用的素材，且不能形成满足原意图的静态或入口卡时，不调用 schema 或生成接口；schema 移除最后一个核心能力时不调用生成接口。
 - 核心内容可满足而仅次要数据、动作或非核心素材不可用时，先按回复策略告知调整，再自动继续工具链，不等待用户确认。
 - 每次调用前先执行用户确认门禁：如果当前已知信息中存在用户可回答、且会影响核心卡片意图、候选选择或业务入参的未决项，先追问并等待用户回答；回答前不得调用任何工具。能安全推导或有明确默认值的信息不重复确认，微服务负责的设备能力裁决和内部技术字段不向用户询问。
@@ -25,13 +25,12 @@
 invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.omega_w_0823.hmservice"},"skillName":"harmony-card-generation-online")
 invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:[...]},"skillName":"harmony-card-generation-online")
 invoke(functionName:"RequestDataPermission", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:[...]},"skillName":"harmony-card-generation-online")
-invoke(functionName:"PrepareGenerateCard", arguments:{bundleName:"com.omega_w_0823.hmservice"},"skillName":"harmony-card-generation-online")
 invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"...", title:"...", description:"...", ...},"skillName":"harmony-card-generation-online")
 ```
 
 ## 包装输出
 
-三个微服务工具通常返回包装结构。如果运行环境返回原始插件包络，则先处理顶层 `errorCode/errorMessage/reply`：`errorCode` 非 `"0"` 时按工具失败处理；`errorCode` 为 `"0"` 时从 `reply` 中继续读取 `streamInfo/items`。如果运行环境已归一化，则直接读取顶层 `streamInfo/items`。端工具 `RequestDataPermission` 按当前运行时输出 schema 读取 `result.stateOfPermission` 和可选的 `result.nonAuthStatus`，不套用微服务业务状态解析规则。端工具 `PrepareGenerateCard` 的返回无需读取、解析或校验。
+三个微服务工具通常返回包装结构。如果运行环境返回原始插件包络，则先处理顶层 `errorCode/errorMessage/reply`：`errorCode` 非 `"0"` 时按工具失败处理；`errorCode` 为 `"0"` 时从 `reply` 中继续读取 `streamInfo/items`。如果运行环境已归一化，则直接读取顶层 `streamInfo/items`。端工具 `RequestDataPermission` 按当前运行时输出 schema 读取 `result.stateOfPermission` 和可选的 `result.nonAuthStatus`，不套用微服务业务状态解析规则。
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
@@ -146,30 +145,10 @@ invoke(functionName:"RequestDataPermission", arguments:{bundleName:"com.omega_w_
 - `dataCapabilityIds` 为空时不调用；这表示本轮卡片不使用动态数据。
 - 调用后必须等待并解析权限结果；在得到明确结果前不得调用 `generateWidgetCard`，也不得继续修改待生成的数据能力集合。
 - 当前工具快照的输出包含 `result.stateOfPermission: Boolean` 和可选的 `result.nonAuthStatus: Array<Object>`。只有 `stateOfPermission` 为 `true`、`nonAuthStatus` 缺失或为空数组，且返回中的权限项均未出现 Boolean `false` 时才允许继续。
-- 权限结果一票否决：`stateOfPermission` 为 `false`，或任一权限项的 Boolean `authorized` 为 `false`，立即结束任务并拒绝继续生成，不调用 `PrepareGenerateCard` 或生成工具。`nonAuthStatus` 非空时每项读取 `name` 和 `settingsPath`；`name` 用作用户可见授权名称，非空 `settingsPath` 用作手动授权路径。
+- 权限结果一票否决：`stateOfPermission` 为 `false`，或任一权限项的 Boolean `authorized` 为 `false`，立即结束任务并拒绝继续生成，不调用生成工具。`nonAuthStatus` 非空时每项读取 `name` 和 `settingsPath`；`name` 用作用户可见授权名称，非空 `settingsPath` 用作手动授权路径。
 - 用户回复不输出 `capabilityId`、`authType` 或 `authorized`。同名项去重；路径非空时使用“请前往「{settingsPath}」，为「{name}」开启权限，然后再试。”，路径为空时使用“请为「{name}」开启权限，然后再试。”。
 - `stateOfPermission` 为 `false` 且 `nonAuthStatus` 缺失或为空数组时，使用通用权限不可用回复。缺少 `result`、`stateOfPermission` 非 Boolean、`nonAuthStatus` 非数组、数组项非对象、`name` 为空、字段类型非法、工具不可用或调用失败均按其它异常终止，不调用生成工具。
 - 权限通过后只能继续执行已检查的同一组数据能力；集合或数据 binding 发生变化时必须重新调用。
-
-## PrepareGenerateCard
-
-用途：在生成或编辑卡片前通知端侧展示渲染动效。
-
-调用：
-
-```text
-invoke(functionName:"PrepareGenerateCard", arguments:{bundleName:"com.omega_w_0823.hmservice"},"skillName":"harmony-card-generation-online")
-```
-
-调用规则：
-
-- 仅在全部生成前门禁通过，且数据权限明确通过或本轮数据集合为空无需检查权限后调用一次。
-- 权限未通过、需要手动授权、权限结果非法、权限工具不可用或调用失败时不调用。
-- 除 `bundleName` 外不传业务参数；实际调用仍以当前运行时 schema 为准。
-- 调用发出后立即按既定参数调用 `generateWidgetCard`，不等待、不读取、不解析、不校验也不使用返回值。
-- 工具不可用、调用失败、超时、没有返回或返回结构非法都不阻断 `generateWidgetCard`，也不改变权限判定。
-- 该工具不是生成必要工具，不进入业务状态或异常映射，不向用户输出其状态、返回或错误。
-- 权限通过后数据集合发生变化时，先重新调用 `RequestDataPermission`，通过后再调用本工具和生成工具。
 
 ## generateWidgetCard
 
@@ -314,7 +293,7 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 - edit 请求新增数据能力、修改事件或素材候选时，不调用编辑接口，按回复策略给出重新创建新卡片的可直接复述需求。
 - 不重试工具，除非工具返回明确可重试错误并要求重试。
 - `success` 或 `degraded` 缺少有效 `artifactUrl` 时按 `failed` 处理，不生成替代产物。
-- 任一必要工具不可用、调用失败或结果无法解析时终止本轮生成，不使用离线资料补足；`PrepareGenerateCard` 不属于必要工具。
+- 任一必要工具不可用、调用失败或结果无法解析时终止本轮生成，不使用离线资料补足。
 - edit 模式失败且没有合法新 URL 时保留来源 URL 作为当前默认卡片，不输出新结果标记，并使用统一的其它异常话术，不追加编辑专属说明。
 
 面向端侧的非完整满足或异常回复映射如下：
@@ -322,6 +301,6 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 - URL 输出规则：业务 payload 只要有合法真实 `artifactUrl` 就必须输出 `genWidgetResult`；`degraded` 不得省略，状态只影响自然语言。
 - 部分满足：`degraded` 有有效 `artifactUrl`，或 `success` 有有效 `artifactUrl` 但本轮已知部分用户需求缺失。按数据、动作、素材或混合缺失使用受控话术并输出真实 `genWidgetResult`。
 - 整体不支持：`unsupported`。使用受控核心句，追加最多 3 条安全建议；没有合法 URL 时不输出 `genWidgetResult`。
-- 其它异常：`failed`、必要工具异常、payload 异常，或成功/降级状态缺少有效 `artifactUrl`。使用固定的其它异常话术；没有合法 URL 时不输出 `genWidgetResult`。`PrepareGenerateCard` 的返回或异常不属于此类。
+- 其它异常：`failed`、必要工具异常、payload 异常，或成功/降级状态缺少有效 `artifactUrl`。使用固定的其它异常话术；没有合法 URL 时不输出 `genWidgetResult`。
 
 生成前与生成后话术、名称提炼和推荐规则以 `references/response-policy.md` 为准。

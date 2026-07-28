@@ -24,7 +24,7 @@
 | 整体不支持 | 业务 payload 为 `unsupported` | 无 URL 时否；若 payload 同时返回合法 URL，仍必须输出 |
 | 需要手动授权 | `RequestDataPermission` 返回非空 `result.nonAuthStatus`，或任一权限项 `authorized: false` | 否，立即终止并按授权项引导用户手动授权 |
 | 权限不可用 | `RequestDataPermission` 返回 Boolean `result.stateOfPermission: false`，且 `nonAuthStatus` 缺失或为空 | 否，立即终止并使用通用权限话术 |
-| 其它异常 | `failed`、必要工具不可用、调用异常、payload 无法解析、状态非法，或 `success` / `degraded` 缺少有效 `artifactUrl`；不包含 `PrepareGenerateCard` 的返回或异常 | 无 URL 时否；若可解析 payload 含合法 URL，仍必须输出 |
+| 其它异常 | `failed`、必要工具不可用、调用异常、payload 无法解析、状态非法，或 `success` / `degraded` 缺少有效 `artifactUrl` | 无 URL 时否；若可解析 payload 含合法 URL，仍必须输出 |
 
 edit 模式的新 `artifactUrl` 还必须不同于 `sourceArtifactUrl`；缺失、无效或与来源相同时归为其它异常，不得回用来源 URL 伪装编辑成功。
 
@@ -32,13 +32,11 @@ edit 模式的新 `artifactUrl` 还必须不同于 `sourceArtifactUrl`；缺失�
 
 - 调用工具前存在会改变核心意图、候选选择或必填业务入参的待确认信息时，只提出最小必要问题并等待用户回答；此时不调用工具，也不输出结果话术或 `genWidgetResult`。
 - 非空数据能力集合必须先调用 `RequestDataPermission`；在得到明确权限结果前不得调用 `generateWidgetCard`。数据集合为空时跳过权限工具。
-- 当前工具快照中只将 Boolean `result.stateOfPermission: true`、`result.nonAuthStatus` 缺失或为空数组，且返回中的权限项均未出现 Boolean `false` 视为通过。权限结果实行一票否决：`stateOfPermission` 或任一权限项 `authorized` 为 `false` 时立即结束任务并拒绝继续生成，不调用 `PrepareGenerateCard` 或生成工具；有明细时进入手动授权引导，无明细时视为权限不可用。字段缺失、类型非法、调用失败或工具不可用均归为其它异常，不调用生成工具。
-- 权限通过或本轮无需权限检查时，在生成前调用一次 `PrepareGenerateCard`，调用后立即继续 `generateWidgetCard`；不等待、不解析、不校验或使用其返回。该工具不可用、失败、超时或结果非法都不阻断生成，也不产生任何用户可见回复。
-- 权限未通过、需要手动授权或权限工具异常时，不调用 `PrepareGenerateCard`。是否继续生成只由权限门禁及其它既有前置门禁决定，不由渲染动效工具决定。
+- 当前工具快照中只将 Boolean `result.stateOfPermission: true`、`result.nonAuthStatus` 缺失或为空数组，且返回中的权限项均未出现 Boolean `false` 视为通过。权限结果实行一票否决：`stateOfPermission` 或任一权限项 `authorized` 为 `false` 时立即结束任务并拒绝继续生成，不调用生成工具；有明细时进入手动授权引导，无明细时视为权限不可用。字段缺失、类型非法、调用失败或工具不可用均归为其它异常，不调用生成工具。
 - 核心内容可满足而仅次要内容不可用时，不询问是否继续；先输出部分满足预告，再自动完成生成。
 - 用户明确“必须包含，否则不要生成”的能力已知不可用时，结束并引导，不生成部分满足版本。
-- 三个微服务工具返回的是包装结构：`streamInfo` 以及 `items`；如果运行环境返回原始插件包络，则先检查顶层 `errorCode/errorMessage/reply`。`errorCode` 非 `"0"` 时归为其它异常，为 `"0"` 时从 `reply.items` 继续解析。`RequestDataPermission` 按其当前运行时输出 schema 单独解析；`PrepareGenerateCard` 的返回直接忽略，二者都不套用生成业务状态。
-- 三个微服务工具的业务结果必须先从当前工具对应的 `items[].data` 解析。`items[].status` 是工具层状态，不等同于 `generateWidgetCard` 业务 payload 的 `status`；`RequestDataPermission` 按其独立输出 schema 解析，`PrepareGenerateCard` 无需解析。
+- 三个微服务工具返回的是包装结构：`streamInfo` 以及 `items`；如果运行环境返回原始插件包络，则先检查顶层 `errorCode/errorMessage/reply`。`errorCode` 非 `"0"` 时归为其它异常，为 `"0"` 时从 `reply.items` 继续解析。`RequestDataPermission` 按其当前运行时输出 schema 单独解析，不套用生成业务状态。
+- 三个微服务工具的业务结果必须先从当前工具对应的 `items[].data` 解析。`items[].status` 是工具层状态，不等同于 `generateWidgetCard` 业务 payload 的 `status`；`RequestDataPermission` 按其独立输出 schema 解析。
 - `items[].data` 是 JSON 字符串时先解析为对象；解析失败、缺少 `data` 或 `items[].error` 表示失败时，归为其它异常。
 - 只认可 `success`、`degraded`、`unsupported`、`failed` 四种业务状态；其它值归为其它异常。
 - 合法真实 `artifactUrl` 是输出 `genWidgetResult` 的充分条件：只要 URL 存在就必须输出，`degraded` 也不得省略。代码块内容必须是合法 JSON 对象：`{"result":"artifactUrl"}`；没有真实 URL 时绝不输出标记。
@@ -64,7 +62,7 @@ edit 模式的新 `artifactUrl` 还必须不同于 `sourceArtifactUrl`；缺失�
 
 处理规则：
 
-- 立即终止本轮，不调用 `PrepareGenerateCard` 或 `generateWidgetCard`，不输出 `genWidgetResult`；edit 模式不更换当前默认来源 URL。
+- 立即终止本轮，不调用 `generateWidgetCard`，不输出 `genWidgetResult`；edit 模式不更换当前默认来源 URL。
 - 只使用 `name` 和 `settingsPath`，不暴露 `capabilityId`、`authType`、`authorized` 或其它内部字段。
 - 按返回顺序输出授权项，同名项只保留第一项。
 - `settingsPath` 为非空字符串：
@@ -91,7 +89,7 @@ edit 模式的新 `artifactUrl` 还必须不同于 `sourceArtifactUrl`；缺失�
 当前生成卡片所需的数据权限不可用，已停止生成。
 ```
 
-立即终止本轮，不调用 `PrepareGenerateCard` 或 `generateWidgetCard`，不输出 `genWidgetResult`，不追加猜测的开启权限路径、替代建议或内部权限字段。edit 模式不更换当前默认来源 URL。
+立即终止本轮，不调用 `generateWidgetCard`，不输出 `genWidgetResult`，不追加猜测的开启权限路径、替代建议或内部权限字段。edit 模式不更换当前默认来源 URL。
 
 ## 推荐生成规则
 

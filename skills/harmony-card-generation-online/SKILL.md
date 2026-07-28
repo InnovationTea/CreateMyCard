@@ -10,8 +10,6 @@ metadata:
     - bundleName: "com.omega_w_0823.hmservice"
       toolName: "RequestDataPermission"
     - bundleName: "com.omega_w_0823.hmservice"
-      toolName: "PrepareGenerateCard"
-    - bundleName: "com.omega_w_0823.hmservice"
       toolName: "generateWidgetCard"
 ---
 
@@ -21,7 +19,7 @@ metadata:
 
 先判断 create/edit 模式，再按场景加载最少必要资料：
 
-- 所有请求先读取 [`references/orchestration-workflow.md`](references/orchestration-workflow.md)，按完整十四步流程推进。
+- 所有请求先读取 [`references/orchestration-workflow.md`](references/orchestration-workflow.md)，按完整十三步流程推进。
 - create、删除数据能力或修改数据参数：再读取 [`references/candidate-planning.md`](references/candidate-planning.md) 和 [`references/tool-contracts.md`](references/tool-contracts.md)。
 - 纯视觉、布局、文案或尺寸 edit：只继续读取 [`references/tool-contracts.md`](references/tool-contracts.md) 的 edit 契约。
 - 生成前需要追问、结束、引导、说明部分满足，或处理最终工具结果时读取 [`references/response-policy.md`](references/response-policy.md)。
@@ -38,8 +36,7 @@ metadata:
 - edit 未指定目标时使用当前会话最近一次成功或降级结果；明确目标无法对应时才追问。来源只能取目标卡片工具业务 payload 的真实 `artifactUrl`；没有可用来源时要求先创建，不得改走 create。
 - 每次调用工具前检查是否缺少会改变核心意图、候选选择、目标对象、地点、时间范围、动作目标或业务入参的用户信息；有则集中追问并等待回答。设备能力、能力 ID、schema 等内部信息不向用户确认。
 - 每次调用前读取当前运行时 `tools` schema，并执行下方“调用前硬校验”。参考资料、示例、历史字段和内部类结构不能覆盖运行时 schema。
-- **权限一票否决**：在每次 `generateWidgetCard` 前确定本轮最终数据能力 ID 集合；非空时必须调用 `RequestDataPermission` 并等待结果。只有 Boolean `result.stateOfPermission` 为 `true`、`result.nonAuthStatus` 缺失或为空数组，且返回中的权限项均未出现 Boolean `false` 时才能继续。`stateOfPermission` 或任一权限项 `authorized` 为 `false` 时立即结束任务并拒绝继续生成，不调用 `PrepareGenerateCard` 或 `generateWidgetCard`；有授权明细时按 `name`、`settingsPath` 引导，无明细时告知权限不可用。字段缺失、类型错误或其它非法结果按工具异常终止。数据集合变化后必须重新检查；空集合表示无需检查动态数据权限。
-- 权限明确通过或本轮数据集合为空无需检查时，在 `generateWidgetCard` 前调用一次 `PrepareGenerateCard`，调用后立即继续生成；不等待、不解析、不校验也不使用该工具的返回。该工具不可用、调用失败、超时或结果非法均不阻断生成，也不向用户输出独立状态或异常。权限未通过或权限工具异常时不得调用它。
+- **权限一票否决**：在每次 `generateWidgetCard` 前确定本轮最终数据能力 ID 集合；非空时必须调用 `RequestDataPermission` 并等待结果。只有 Boolean `result.stateOfPermission` 为 `true`、`result.nonAuthStatus` 缺失或为空数组，且返回中的权限项均未出现 Boolean `false` 时才能继续。`stateOfPermission` 或任一权限项 `authorized` 为 `false` 时立即结束任务并拒绝继续生成，不调用 `generateWidgetCard`；有授权明细时按 `name`、`settingsPath` 引导，无明细时告知权限不可用。字段缺失、类型错误或其它非法结果按工具异常终止。数据集合变化后必须重新检查；空集合表示无需检查动态数据权限。
 
 ## 生成前能力门禁
 
@@ -57,7 +54,7 @@ metadata:
 
 ## 工具定义
 
-本 skill 依赖三个微服务工具和两个端工具，声明于 frontmatter `metadata.tools`。必须通过 `invoke` 调用，固定格式为 `invoke(functionName:"<toolName>", arguments:{bundleName:"<bundleName>", ...},"skillName":"harmony-card-generation-online")`。`skillName` 必须显式传当前 Skill frontmatter 的 `name`，本 Skill 固定为 `harmony-card-generation-online`；不要省略、传空字符串或使用显示名称。
+本 skill 依赖三个微服务工具和一个端工具，声明于 frontmatter `metadata.tools`。必须通过 `invoke` 调用，固定格式为 `invoke(functionName:"<toolName>", arguments:{bundleName:"<bundleName>", ...},"skillName":"harmony-card-generation-online")`。`skillName` 必须显式传当前 Skill frontmatter 的 `name`，本 Skill 固定为 `harmony-card-generation-online`；不要省略、传空字符串或使用显示名称。
 
 ### 调用前硬校验
 
@@ -92,11 +89,6 @@ metadata:
 - **description**: 获取特定场景的数据权限能力
 - **参数**: {"type":"object","properties":{"dataCapabilityIds":{"type":"Array<String>","description":"需要加载完整 schema 的数据能力 ID 列表，至少 1 个。","required":[],"properties":{"ArrayItem":{"type":"String","description":"完整 schema 的数据能力 ID "}}}},"required":["dataCapabilityIds"]}
 
-### Function: PrepareGenerateCard
-- **toolName**: PrepareGenerateCard
-- **description**: 提醒端侧准备生成卡片，触发端侧渲染动效
-- **参数**: {}
-
 ### Function: generateWidgetCard
 - **toolName**: generateWidgetCard
 - **description**: 提交用户需求和候选计划首次生成卡片，或通过上一版 artifact URL 连续编辑卡片。
@@ -108,6 +100,6 @@ metadata:
 - **URL 强制输出**：`generateWidgetCard` 业务 payload 只要返回合法真实 `artifactUrl`，就必须按 `genWidgetResult` JSON 代码块输出给端侧，完整成功或 `degraded` 均不得省略；业务状态只决定配套自然语言。没有 URL 时绝不输出或伪造该标记。edit 的新 URL 必须不同于来源 URL。
 - 生成前结束时不伪造 `unsupported` payload，不输出 `genWidgetResult`；推荐内容只用于引导下一轮请求，不代表能力承诺。
 - 不编造能力 ID、事件目标、素材 ID、用户数据或 URL；不选择、加载或传递不可用数据能力；不暴露 schema、provider、错误码、requestId、items、原始 data 或内部草稿。
-- 任一必要工具不可用、调用失败、结果无法解析或字段不合法时终止本轮，按回复策略处理；不得模拟成功、输出替代产物或读取离线资料补足结果。`PrepareGenerateCard` 是非阻断通知工具，不属于此处的必要工具，其返回或异常一律忽略。
+- 任一必要工具不可用、调用失败、结果无法解析或字段不合法时终止本轮，按回复策略处理；不得模拟成功、输出替代产物或读取离线资料补足结果。
 - 未取得本轮最终数据能力集合的明确权限通过结果时，不得调用 `generateWidgetCard`；任一权限为 `false` 或返回非空 `nonAuthStatus` 时立即终止并拒绝继续生成，不输出 `genWidgetResult`。
 - 存在用户待确认信息时不得抢先调用工具；追问后等待用户回答，再重新执行调用门禁。
