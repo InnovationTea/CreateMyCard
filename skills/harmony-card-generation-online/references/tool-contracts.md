@@ -6,6 +6,8 @@
 
 - create 模式通常按顺序使用 `getWidgetCapabilityOverview`、按需使用 `getDataCapabilitySchemas`，最后调用 `generateWidgetCard`。
 - edit 模式按修改类型分流：纯视觉、布局、文案或尺寸修改直接调用 `generateWidgetCard`；删除数据能力或修改能力参数时才重新调用能力概述和数据 schema。
+- 需求适配门禁判定为追问或结束并引导时，不调用任何工具。能力概述后无法满足核心数据、核心动作或用户声明必须使用的素材，且不能形成满足原意图的静态或入口卡时，不调用 schema 或生成接口；schema 移除最后一个核心能力时不调用生成接口。
+- 核心内容可满足而仅次要数据、动作或非核心素材不可用时，先按回复策略告知调整，再自动继续工具链，不等待用户确认。
 - 每次调用前先执行用户确认门禁：如果当前已知信息中存在用户可回答、且会影响核心卡片意图、候选选择或业务入参的未决项，先追问并等待用户回答；回答前不得调用任何工具。能安全推导或有明确默认值的信息不重复确认，微服务负责的设备能力裁决和内部技术字段不向用户询问。
 - 必须使用 `invoke(functionName:"<toolName>", arguments:{bundleName:"<bundleName>", ...},"skillName":"harmony-card-generation-online")` 调用工具；`skillName` 必须与当前 Skill frontmatter 的 `name` 完全一致，不得省略、传空字符串或使用显示名称。
 - `arguments` 必须包含 `bundleName: "com.omega_w_0823.hmservice"`。
@@ -54,9 +56,10 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 - `data` 是 JSON 字符串时，先解析为对象；如果运行环境已将其解析成对象，可直接使用。不要把原始 `data` 字符串展示给用户。
 - `getWidgetCapabilityOverview` 的 `data` 解析后应包含 `dataCapabilities`、`eventCapabilities`、`assetCandidates`，并可选包含 `unavailableCapabilities`；该字段存在时必须是字符串数组，缺失或为 `[]` 时按空集合处理。
 - `getDataCapabilitySchemas` 的 `data` 解析后应包含 `dataCapabilities`、`missingCapabilityIds`。
-- `generateWidgetCard` 的 `data` 解析后应包含业务 `status`、`message`，成功或降级时还应包含真实 `artifactUrl`。`message` 只可在完整 `success` 时作为正常成功说明；其它状态按 `references/response-policy.md` 使用固定话术。
-- `generateWidgetCard` 业务 `status` 为 `success` 或 `degraded` 且存在真实 `artifactUrl` 时，最终用户回复必须按 `references/response-policy.md` 输出 `genWidgetResult` JSON 代码块，将 `artifactUrl` 写入 `result` 字段；若 `success` 同时存在由 `unavailableCapabilities`、`missingCapabilityIds` 或 `removedCapabilities` 证明的用户提及数据缺失，也按部分数据不支持回复。
+- `generateWidgetCard` 的 `data` 解析后应包含业务 `status`、`message`，成功或降级时还应包含真实 `artifactUrl`。`message` 只可在完整 `success` 时作为正常成功说明；其它状态按 `references/response-policy.md` 使用受控话术。
+- `generateWidgetCard` 业务 `status` 为 `success` 或 `degraded` 且存在真实 `artifactUrl` 时，最终用户回复必须按 `references/response-policy.md` 输出 `genWidgetResult` JSON 代码块，将 `artifactUrl` 写入 `result` 字段；若 `success` 同时存在由 `unavailableCapabilities`、`missingCapabilityIds`、`removedCapabilities` 或本轮规划证明的用户需求缺失，也按数据、动作、素材或混合缺失回复。
 - 如果没有可解析的 `data`，或 `items[].error` 表示工具失败，按工具调用异常处理，不输出 `genWidgetResult`。
+- 生成前合法结束不属于工具失败，不伪造工具包络、生成业务状态或 `artifactUrl`。
 - 用户可见回复不暴露 `items`、`requestId`、`errorCode`、工具层 `status` 或原始 `data` 字符串。
 
 ## getWidgetCapabilityOverview
@@ -87,6 +90,8 @@ invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.om
 - `dataCapabilities` 已完成用户实际可用性裁决，但不代表最终一定生成成功。
 - 不为不可用能力调用 `getDataCapabilitySchemas`，也不把它写入 `candidateDataBindings`。
 - 数据候选只从 `dataCapabilities` 中选择；`unavailableCapabilities` 本期仅适用于数据能力，事件和素材沿用各自返回列表。
+- 解析成功后执行能力满足度门禁。核心数据、核心动作或用户声明必须使用的素材无法满足，且不能形成满足原意图的静态或入口卡时，停止后续调用，并基于本轮概述提供相近建议。
+- 数据候选为空但用户原本只要求 overview 中可安全填齐的静态入口或动作时，可以继续调用 `generateWidgetCard`。
 
 ## getDataCapabilitySchemas
 
@@ -116,6 +121,7 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
 - 调用前确认候选能力选择不依赖未解决的用户歧义；存在会改变核心候选的选择时先追问并等待回答。
 - 只传本轮从 `dataCapabilities` 中选出的数据能力 ID。
 - 如果某 ID 出现在 `missingCapabilityIds`，候选计划中移除该数据能力。
+- 移除后重新执行能力满足度门禁；最后一个核心能力被移除且不存在满足原意图的静态或入口价值时，不调用 `generateWidgetCard`。
 - `candidateDataBindings[].arguments` 只能使用对应 `inputSchema.properties` 中声明的字段。
 - `writeResultTo` 优先使用能力 schema 提供的默认写入路径；没有默认值时使用 `/data/{semanticKey}`，且多个候选不得相同或互为父子。
 - `candidateDataBindings[].candidateOutputFields` 为可选 JSON Pointer 字符串数组；传入时每一项必须能由对应能力 `outputSchema` 推导。无需投影时省略。
@@ -132,7 +138,7 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
 | --- | --- | --- | --- |
 | `userQuery` | `String` | 是 | create 模式为原始需求；edit 模式只表达本轮修改。 |
 | `sourceArtifactUrl` | `String` | 否 | 上一版完整 artifact 的真实 URL；缺失表示 create，合法非空值表示 edit。 |
-| `size` | `String` | 否 | 主 Agent 建议尺寸；推荐 `"2x2"` 或 `"2x4"`。 |
+| `size` | `String` | 否 | 建议尺寸；推荐 `"2x2"` 或 `"2x4"`。 |
 | `title` | `String` | 条件必填 | create 模式必须非空；edit 模式省略时继承来源 CardSpec，显式传入时替换。 |
 | `description` | `String` | 条件必填 | create 模式必须非空；edit 模式省略时继承来源 CardSpec，显式传入时替换。 |
 | `candidateDataBindings` | `Array<CandidateDataBinding>` | 否 | 候选数据能力调用列表。 |
@@ -261,15 +267,16 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 - 纯视觉、布局、文案或尺寸编辑不重新调用 overview/schema，也不重复传未修改的候选数组。
 - 删除已有数据能力或修改其参数时，传编辑后的完整 `candidateDataBindings`；无法从同一会话可靠恢复完整集合时停止编辑，不发送可能误删其它能力的不完整数组。
 - 本期 edit 模式不新增数据能力，也不修改事件或素材候选；这类需求建议重新创建卡片。
+- edit 请求新增数据能力、修改事件或素材候选时，不调用编辑接口，按回复策略给出重新创建新卡片的可直接复述需求。
 - 不重试工具，除非工具返回明确可重试错误并要求重试。
 - `success` 或 `degraded` 缺少有效 `artifactUrl` 时按 `failed` 处理，不生成替代产物。
 - 任一工具不可用、调用失败或结果无法解析时终止本轮生成，不使用离线资料补足。
 - edit 模式失败时保留来源 URL 作为当前默认卡片，不输出新结果标记，并使用统一的其它异常话术，不追加编辑专属说明。
 
-面向端侧的非完整满足或异常回复固定映射如下：
+面向端侧的非完整满足或异常回复映射如下：
 
-- 部分数据不支持：`degraded` 有有效 `artifactUrl`，或 `success` 有有效 `artifactUrl` 但本轮 `unavailableCapabilities`、`missingCapabilityIds` 或 `removedCapabilities` 已表明用户提及的部分数据不可用。使用固定的部分数据不支持话术并输出真实 `genWidgetResult`。
-- 整体不支持：`unsupported`。使用固定的整体不支持话术，不输出 `genWidgetResult`。
+- 部分满足：`degraded` 有有效 `artifactUrl`，或 `success` 有有效 `artifactUrl` 但本轮已知部分用户需求缺失。按数据、动作、素材或混合缺失使用受控话术并输出真实 `genWidgetResult`。
+- 整体不支持：`unsupported`。使用受控核心句，追加最多 3 条安全建议，不输出 `genWidgetResult`。
 - 其它异常：`failed`、工具异常、payload 异常，或成功/降级状态缺少有效 `artifactUrl`。使用固定的其它异常话术，不输出 `genWidgetResult`。
 
-三类固定话术及 `XX` 提炼规则以 `references/response-policy.md` 为准。
+生成前与生成后话术、名称提炼和推荐规则以 `references/response-policy.md` 为准。
