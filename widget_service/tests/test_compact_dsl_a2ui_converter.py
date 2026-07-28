@@ -12,6 +12,7 @@ from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     convert_compact_dsl_to_a2ui,
     normalize_compact_dsl_design_tokens,
+    validate_compact_dsl_context,
 )
 
 
@@ -115,6 +116,54 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             ],
         ]
         self.compact_dsl = _serialize(rows)
+        self.task_spec = {
+            "dataModelSchema": {
+                "data": {
+                    "title": {
+                        "type": "string",
+                        "sampleValue": "Today",
+                    },
+                    "calendar": {
+                        "events": [
+                            {
+                                "title": {
+                                    "type": "string",
+                                    "sampleValue": "Review",
+                                },
+                                "entityId": {
+                                    "type": "string",
+                                    "sampleValue": "event-1",
+                                },
+                            }
+                        ],
+                    },
+                },
+            },
+            "assetCandidates": [],
+            "eventCandidates": [
+                {
+                    "id": "event.view.detail",
+                    "call": "clickToApi",
+                    "args": {
+                        "intentName": "ViewDetail",
+                        "params": {
+                            "entityId": {
+                                "path": "/data/calendar/events/0/entityId",
+                            },
+                        },
+                    },
+                },
+            ],
+        }
+        self.card_spec = {
+            "dataBindings": [
+                {
+                    "capabilityId": "GetCalendarEvents",
+                    "arguments": {},
+                    "writeResultTo": "/data",
+                },
+            ],
+        }
 
     def test_expands_only_current_prompt_design_aliases(self) -> None:
         normalized = normalize_compact_dsl_design_tokens(self.compact_dsl)
@@ -596,6 +645,184 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 size="2x2",
                 protocol_profile=self.profile,
             )
+
+    def test_rejects_unknown_component_property(self) -> None:
+        rows = [
+            [
+                "root",
+                "Column",
+                {
+                    "width": 160,
+                    "height": 160,
+                    "unsupportedStyle": 1,
+                },
+                [],
+            ],
+        ]
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "unsupported properties",
+        ):
+            convert_compact_dsl_to_a2ui(
+                _serialize(rows),
+                size="2x2",
+                protocol_profile=self.profile,
+            )
+
+    def test_validates_task_and_capability_context(self) -> None:
+        result = validate_compact_dsl_context(
+            self.compact_dsl,
+            task_spec=self.task_spec,
+            card_spec=self.card_spec,
+        )
+
+        self.assertEqual(result.warnings, ())
+
+    def test_rejects_data_value_that_disagrees_with_schema_type(self) -> None:
+        rows = [
+            [
+                "root",
+                "Column",
+                {"width": 160, "height": 160},
+                ["humidity"],
+            ],
+            [
+                "humidity",
+                "Text",
+                {"content": {"path": "/data/weather/humidityPercent"}},
+            ],
+            ["/data/weather/humidityPercent", "68%"],
+        ]
+        task_spec = {
+            "dataModelSchema": {
+                "data": {
+                    "weather": {
+                        "humidityPercent": {
+                            "type": "number",
+                            "sampleValue": 68,
+                        },
+                    },
+                },
+            },
+            "assetCandidates": [],
+            "eventCandidates": [],
+        }
+        card_spec = {
+            "dataBindings": [
+                {
+                    "capabilityId": "ViewWeather",
+                    "arguments": {},
+                    "writeResultTo": "/data/weather",
+                },
+            ],
+        }
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "does not match schema type number",
+        ):
+            validate_compact_dsl_context(
+                _serialize(rows),
+                task_spec=task_spec,
+                card_spec=card_spec,
+            )
+
+    def test_rejects_event_and_asset_outside_candidates(self) -> None:
+        rows = [
+            [
+                "root",
+                "Column",
+                {"width": 160, "height": 160},
+                ["icon", "action"],
+            ],
+            [
+                "icon",
+                "Image",
+                {"src": "resources/base/media/unknown.svg"},
+            ],
+            [
+                "action",
+                "Button",
+                {
+                    "label": "Open",
+                    "onClick": [{"call": "unknownCall", "args": {}}],
+                },
+            ],
+        ]
+        task_spec = {
+            "dataModelSchema": {},
+            "assetCandidates": [
+                {
+                    "id": "asset.known",
+                    "src": "resources/base/media/known.svg",
+                },
+            ],
+            "eventCandidates": [
+                {
+                    "id": "event.known",
+                    "call": "knownCall",
+                    "args": {},
+                },
+            ],
+        }
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "Image.src",
+        ):
+            validate_compact_dsl_context(
+                _serialize(rows),
+                task_spec=task_spec,
+                card_spec={"dataBindings": []},
+            )
+
+        task_spec["assetCandidates"][0]["src"] = (
+            "resources/base/media/unknown.svg"
+        )
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "onClick is not present",
+        ):
+            validate_compact_dsl_context(
+                _serialize(rows),
+                task_spec=task_spec,
+                card_spec={"dataBindings": []},
+            )
+
+    def test_warns_when_declared_data_capability_is_unused(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": 160, "height": 160},
+                    ["title"],
+                ],
+                ["title", "Text", {"content": "Static title"}],
+            ]
+        )
+
+        result = validate_compact_dsl_context(
+            compact_dsl,
+            task_spec={
+                "dataModelSchema": {"data": {"weather": {}}},
+                "assetCandidates": [],
+                "eventCandidates": [],
+            },
+            card_spec={
+                "dataBindings": [
+                    {
+                        "capabilityId": "ViewWeather",
+                        "arguments": {},
+                        "writeResultTo": "/data/weather",
+                    },
+                ],
+            },
+        )
+
+        self.assertEqual(len(result.warnings), 1)
+        self.assertIn("/data/weather", result.warnings[0])
 
     def test_cli_converts_files_without_model_or_network(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:

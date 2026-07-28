@@ -30,6 +30,10 @@ from models.generation import EventAction
 from services.artifact_store import ArtifactStore
 from services.capability_registry import CapabilityRegistry
 from services.card_spec_builder import CardSpecBuilder
+from services.compact_dsl_a2ui_converter import (
+    CompactDslConversionError,
+    validate_compact_dsl_context,
+)
 from services.compact_dsl_protocol import (
     build_compact_binding_context,
     is_compact_dsl,
@@ -382,6 +386,7 @@ class WidgetGenerationService:
         protocol_profile = protocol_registry.get_profile()
         compact_dsl = is_compact_dsl(protocol_profile)
         design_compact = design_profile_id is not None
+        strict_compact_validation = compact_dsl or design_compact
         resolved_design_profile_id = design_profile_id or ""
         logger.info(
             f"{_MODULE} generate_flow_step_protocol_loaded "
@@ -619,18 +624,44 @@ class WidgetGenerationService:
             logger.info(f"{_MODULE} a2ui_model_operation_started")
 
             def generate_once() -> str:
-                nonlocal latest_design_dsl
-                generated_dsl = model_client.generate(prompt, model_protocol_profile)
-                if not design_compact:
-                    return generated_dsl
-                latest_design_dsl = generated_dsl
-                return model_client.convert_design_dsl_to_standard_dsl(
-                    generated_dsl,
+                return model_client.generate(prompt, model_protocol_profile)
+
+            generated_source = call_model_with_failure_retry(
+                generate_once,
+                "initial",
+            )
+            generated = generated_source
+            if design_compact:
+                latest_design_dsl = generated_source
+                try:
+                    context_validation = validate_compact_dsl_context(
+                        latest_design_dsl,
+                        task_spec=task_spec.model_dump(
+                            mode="json",
+                            exclude_none=True,
+                        ),
+                        card_spec=card_spec.model_dump(
+                            mode="json",
+                            exclude_none=True,
+                        ),
+                    )
+                except CompactDslConversionError as exc:
+                    compact_operation_error = str(exc)
+                    logger.error(
+                        f"{_MODULE} design_compact_context_validation_failed "
+                        f"error={exc}"
+                    )
+                    return ""
+                logger.info(
+                    f"{_MODULE} design_compact_context_validation_completed "
+                    f"warning_count={len(context_validation.warnings)} "
+                    f"warnings={json_for_log(list(context_validation.warnings))}"
+                )
+                generated = model_client.convert_design_dsl_to_standard_dsl(
+                    generated_source,
                     size=card_spec.suggestSize,
                     design_profile_id=resolved_design_profile_id,
                 )
-
-            generated = call_model_with_failure_retry(generate_once, "initial")
             if not compact_dsl:
                 return generated
             if not generated.strip():
@@ -717,14 +748,14 @@ class WidgetGenerationService:
             - genui：模型生成的三行 JSONL 字符串。
             出参：校验错误列表；空列表表示通过。
             """
-            if compact_dsl and not genui.strip():
+            if strict_compact_validation and not genui.strip():
                 error = compact_operation_error or "model output is empty"
                 logger.error(
                     f"{_MODULE} compact_genui_empty error={error}"
                 )
                 return [error]
             # 每次模型输出都临时组装 artifact，再用同一套 Validator 校验完整契约。
-            validation_optional = not compact_dsl
+            validation_optional = not strict_compact_validation
             if not settings.enable_artifact_validation and validation_optional:
                 logger.info(
                     f"{_MODULE} a2ui_genui_validation_skipped "
@@ -757,10 +788,10 @@ class WidgetGenerationService:
                 artifact,
                 protocol_profile,
             )
-            if compact_dsl and validation_errors:
+            if strict_compact_validation and validation_errors:
                 logger.info(
                     f"{_MODULE} strict_validation_failed "
-                    "validation_repair_skipped=true reason=legacy_compact_policy "
+                    "validation_repair_skipped=true reason=compact_local_policy "
                     f"categories={json_for_log(artifact_validator.error_categories)}"
                 )
             if source_load_result:
@@ -778,9 +809,11 @@ class WidgetGenerationService:
                         )
             return validation_errors
 
-        # 所有标准 A2UI 输出共享校验与 repair 开关；旧 Compact DSL profile 继续使用本地预检策略。
+        # Compact output uses deterministic validation without model repair.
         retry_on_validation_failure = settings.enable_validation_failure_retry
-        retry_on_validation_failure = retry_on_validation_failure and not compact_dsl
+        retry_on_validation_failure = (
+            retry_on_validation_failure and not strict_compact_validation
+        )
         try:
             retry_result = retry_controller.run(
                 operation,
@@ -854,7 +887,7 @@ class WidgetGenerationService:
             f"repair_prompt_type={repair_prompt_type} "
             f"validation_error_count={len(errors)}"
         )
-        strict_validation = compact_dsl
+        strict_validation = strict_compact_validation
         if strict_validation and errors:
             logger.error(
                 f"{_MODULE} strict_generation_validation_failed "
