@@ -1,4 +1,4 @@
 interface:
   display_name: "Harmony 卡片云侧编排"
-  short_description: "编排云侧插件创建或连续编辑 HarmonyOS 服务卡片。"
-  default_prompt: "使用 $harmony-card-generation-online 创建或编辑 HarmonyOS 服务卡片；未指定尺寸时优先选择能满足核心需求的 2x2，只有 2x2 明确无法承载核心内容时才使用 2x4；编辑未指定目标时使用最近一次卡片结果，并严格根据真实状态、artifactUrl 和三类固定异常话术回复。"
+  short_description: "判断需求适配、能力满足度与数据权限，编排云侧插件创建或编辑 HarmonyOS 服务卡片。"
+  default_prompt: "使用 $harmony-card-generation-online 创建或编辑 HarmonyOS 服务卡片；在卡片上下文中先判断需求适配和能力满足度，无法满足时提前结束并给出安全的相近场景，部分满足时先说明再自动生成；未指定尺寸时优先选择能满足核心需求的 2x2，非空数据能力集合仅在权限明确通过后生成；编辑未指定目标时使用最近一次卡片结果，并严格根据真实状态和 artifactUrl 回复。"

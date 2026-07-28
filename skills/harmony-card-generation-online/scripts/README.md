@@ -14,7 +14,7 @@ CLI 与 Python API 默认按以下设定运行，让本地测试和接口调用�
 
 Python API 提供两个入口：
 
-- `validate_dsl(dsl_text) -> str`：DSL only 便捷入口，直接返回 `render_model` 字符串，把 CardSpec-only 诊断从结果里剔除。用于其它工具、Agent 或服务接接口。
+- `validate_dsl(dsl_text) -> str`：DSL only 便捷入口，直接返回 `render_model` 字符串，把 CardSpec-only 诊断从结果里剔除。用于其它工具、调用方或服务接接口。
 - `validate_card(...) -> Reporter`：功能全集入口，返回 `Reporter` 对象，可以进一步渲染、结构化处理，或按需打开 CardSpec / effectiveCapabilities 校验。
 
 需要更详细报告或 CI 阻塞时显式覆盖：`--format text|json`、`--strict`、`--fail-on-error`、`--cardspec` 等。
