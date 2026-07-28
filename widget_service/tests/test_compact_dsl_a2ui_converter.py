@@ -377,6 +377,91 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         self.assertEqual(len(result.splitlines()), 3)
 
+    def test_repairs_bom_json_fence_and_surrounding_text(self) -> None:
+        source = (
+            "\ufeffModel output follows.\n"
+            f"```json\n{self.compact_dsl}\n```\n"
+            "End of output."
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            source,
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+
+        self.assertEqual(len(result.splitlines()), 3)
+
+    def test_repairs_unclosed_fence_and_extra_eof_closers(self) -> None:
+        source = f"```genui\n{self.compact_dsl}\n]}}"
+
+        result = convert_compact_dsl_to_a2ui(
+            source,
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+
+        self.assertEqual(len(result.splitlines()), 3)
+
+    def test_repairs_concatenated_and_multiline_rows(self) -> None:
+        source_rows = self.compact_dsl.splitlines()
+        concatenated = "".join(source_rows)
+        multiline_rows: list[str] = []
+        for row in source_rows:
+            value = json.loads(row)
+            multiline_rows.append(json.dumps(value, ensure_ascii=False, indent=2))
+
+        for source in (concatenated, "\n".join(multiline_rows)):
+            with self.subTest(source_length=len(source)):
+                result = convert_compact_dsl_to_a2ui(
+                    source,
+                    size="2x2",
+                    protocol_profile=self.profile,
+                )
+                self.assertEqual(len(result.splitlines()), 3)
+
+    def test_repairs_trailing_comma_and_missing_eof_closer(self) -> None:
+        source_rows = self.compact_dsl.splitlines()
+        source_rows[0] = f"{source_rows[0][:-1]},]"
+        source_rows[-1] = source_rows[-1][:-1]
+
+        result = convert_compact_dsl_to_a2ui(
+            "\n".join(source_rows),
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+
+        self.assertEqual(len(result.splitlines()), 3)
+
+    def test_rejects_unclosed_string_and_mismatched_delimiters(self) -> None:
+        invalid_sources = (
+            '["root","Column",{"width":160,"height":160},["title]]',
+            '["root","Column",{"width":160],"height":160}]',
+        )
+
+        for source in invalid_sources:
+            with self.subTest(source=source):
+                with self.assertRaises(CompactDslConversionError):
+                    convert_compact_dsl_to_a2ui(
+                        source,
+                        size="2x2",
+                        protocol_profile=self.profile,
+                    )
+
+    def test_rejects_non_json_text_between_rows(self) -> None:
+        source_rows = self.compact_dsl.splitlines()
+        source_rows.insert(1, "unexpected explanation")
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "non-JSON text between rows",
+        ):
+            convert_compact_dsl_to_a2ui(
+                "\n".join(source_rows),
+                size="2x2",
+                protocol_profile=self.profile,
+            )
+
     def test_uses_2x4_profile_dimensions_for_4x2(self) -> None:
         wide_rows = [
             [
