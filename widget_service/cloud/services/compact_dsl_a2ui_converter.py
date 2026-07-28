@@ -530,13 +530,13 @@ def _strip_optional_genui_fence(compact_dsl: str) -> str:
 
     closing_index = _find_fence_closing(lines, opening_index + 1)
     body_end = closing_index if closing_index is not None else len(lines)
-    body = "\n".join(lines[opening_index + 1 : body_end]).strip()
+    body = "\n".join(lines[opening_index + 1:body_end]).strip()
     if "```" in body:
         raise CompactDslConversionError(
             "Compact DSL must contain exactly one genui fence."
         )
     if closing_index is not None:
-        _validate_no_additional_fence(lines[closing_index + 1 :])
+        _validate_no_additional_fence(lines[closing_index + 1:])
     return body
 
 
