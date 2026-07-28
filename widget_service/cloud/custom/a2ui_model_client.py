@@ -26,6 +26,7 @@ from services.compact_dsl_a2ui_converter import (
 from services.compact_dsl_protocol import is_compact_dsl
 from services.protocol_registry import (
     DESIGN_COMPACT_PROFILE_ID,
+    TERSE_DSL_NESTED2_PROFILE_ID,
     A2UIProtocolRegistry,
 )
 
@@ -208,6 +209,8 @@ class A2UIModelClient:
         if protocol_profile.get("id") == DESIGN_COMPACT_PROFILE_ID:
             size = A2UIModelClient._task_size_from_prompt(prompt)
             return f"mock.design-compact-dsl-{size}.dat"
+        if protocol_profile.get("id") == TERSE_DSL_NESTED2_PROFILE_ID:
+            return "mock.terse-dsl-nested-2.dat"
         if is_compact_dsl(protocol_profile):
             return "mock.compact-dsl.dat"
         return "mock.dat"

@@ -156,6 +156,11 @@ def test_websocket_send_disconnect_is_logged_and_not_raised(monkeypatch):
 
 def _valid_model_output(_self, _prompt, protocol_profile: dict) -> str:
     """为路由集成测试返回对应 profile 的确定性合法模型输出。"""
+    if protocol_profile.get("id") == "terse-dsl-nested-2":
+        return (
+            'Column("card", Text("Weather", "title"), '
+            'Text("Static card", "body"), Text("Ready", "success"));'
+        )
     if protocol_profile.get("format") == "compact-dsl":
         compact_rows = [
             [
@@ -849,6 +854,53 @@ def test_compact_route_mock_converts_design_dsl_before_saving(monkeypatch):
     rows = [json.loads(line) for line in artifact["genui"].splitlines()]
     assert artifact["meta"]["protocolProfileId"] == "a2ui-form-rom6.0-v1"
     assert rows[0]["createSurface"]["width"] == 300
+    assert rows[1]["updateComponents"]["root"] == "root"
+    assert rows[2]["updateDataModel"]["value"]["ui"]["state"] == "ready"
+
+
+def test_terse_nested2_route_mock_converts_local_dsl_before_saving(monkeypatch):
+    """验证第五接口使用本地 prompt、mock 和 DSL 转换器保存标准 A2UI。"""
+    monkeypatch.setattr(get_settings(), "enable_a2ui_model_mock", True)
+    saved_artifacts = []
+
+    def capture_artifact(_store, artifact):
+        saved_artifacts.append(artifact.model_dump(mode="json", exclude_none=True))
+        return ArtifactSaveResult(
+            artifactUrl="https://test.invalid/widget/terse-nested2-mock.json",
+            artifactDigest="sha256:terse-nested2-mock",
+        )
+
+    monkeypatch.setattr(ArtifactStore, "save", capture_artifact)
+    client = TestClient(app)
+    request_id = _request_id("terse-nested2-mock")
+    route = "/api/v1/ws/tools/generateWidgetCardTerseDslNested2"
+    with client.websocket_connect(route) as websocket:
+        websocket.send_json(
+            _tool_payload(
+                {
+                    "userQuery": "生成静态天气卡片",
+                    "size": "2x2",
+                    "title": "天气",
+                    "description": "TerseDSL-Nested-2 转换",
+                    "candidateDataBindings": [],
+                    "candidateEventCandidates": [],
+                    "candidateAssetIds": [],
+                },
+                "terse-nested2-mock",
+            )
+        )
+        message = _assert_success_envelope(
+            _receive_final_frame(websocket, request_id),
+            "generateWidgetCardTerseDslNested2",
+            request_id,
+        )
+
+    assert message["data"]["status"] == "success"
+    assert len(saved_artifacts) == 1
+    artifact = saved_artifacts[0]
+    rows = [json.loads(line) for line in artifact["genui"].splitlines()]
+    assert artifact["meta"]["protocolProfileId"] == "a2ui-form-rom6.0-v1"
+    assert rows[0]["createSurface"]["width"] == 140
     assert rows[1]["updateComponents"]["root"] == "root"
     assert rows[2]["updateDataModel"]["value"]["ui"]["state"] == "ready"
 

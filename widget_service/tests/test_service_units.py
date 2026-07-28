@@ -85,12 +85,162 @@ from services.protocol_registry import A2UIProtocolRegistry
 from services.response_planner import ResponsePlanner
 from services.retry_controller import RetryController
 from services.task_spec_builder import TaskSpecBuilder
+from services.terse_dsl_nested2_converter import (
+    TerseDslNested2ConversionError,
+    convert_terse_dsl_nested2_to_a2ui,
+    parse_terse_dsl_nested2,
+)
 from services.validator import ArtifactValidator
 from services.widget_generation_service import WidgetGenerationService
 from utils.base_utils import sts_config
 from utils.download_file_from_url import download_file
 from utils.file import delete_file, save_txt_file
 from utils.upload_file_obs import UploadFileOSMS
+
+
+def test_terse_dsl_nested2_converts_nested_tree_to_standard_a2ui():
+    source = """
+Column("card",
+  Text("天气速览", "title"),
+  Row("between",
+    Text("当前温度", "body"),
+    Text("26℃", "success")
+  ),
+  Progress({value: 68, total: 100})
+);
+"""
+    profile = A2UIProtocolRegistry("a2ui-form-rom6.0-v1").get_profile()
+
+    genui = convert_terse_dsl_nested2_to_a2ui(
+        source,
+        size="2x2",
+        protocol_profile=profile,
+    )
+    messages = [json_module.loads(line) for line in genui.splitlines()]
+
+    assert len(messages) == 3
+    assert messages[0]["createSurface"]["width"] == 140
+    assert messages[0]["createSurface"]["height"] == 140
+    components = messages[1]["updateComponents"]["components"]
+    assert [item["id"] for item in components] == [
+        "root",
+        "root_0",
+        "root_1",
+        "root_1_0",
+        "root_1_1",
+        "root_2",
+    ]
+    assert components[0]["styles"]["width"] == "matchParent"
+    assert components[4]["styles"]["fontColor"] == "#FF64BB5C"
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        'Column("card", Text(fetch("x"), "body"));',
+        'Column("card", Unknown("x"));',
+        'Column("card", Text("x", {constructor: "bad"}));',
+        'Row("between", Text("x", "body"));',
+    ],
+)
+def test_terse_dsl_nested2_rejects_executable_or_unsupported_input(source):
+    with pytest.raises(TerseDslNested2ConversionError):
+        parse_terse_dsl_nested2(source)
+
+
+def test_terse_dsl_nested2_generation_uses_local_prompt_and_converter(monkeypatch):
+    source = """
+Column("card",
+  Text("静态天气", "title"),
+  Text("晴 26℃", "success")
+);
+"""
+    prompts: list[list[dict[str, str]]] = []
+    saved_genui: list[str] = []
+    selected_conversion_profiles: list[str] = []
+    original_protocol_reader = A2UIProtocolRegistry.read_design_protocol_profile
+
+    def generate_nested2(_client, prompt, protocol_profile):
+        prompts.append(prompt)
+        assert protocol_profile["id"] == "terse-dsl-nested-2"
+        return source
+
+    def save_artifact(_store, artifact):
+        saved_genui.append(artifact.genui)
+        return ArtifactSaveResult(
+            artifactUrl="https://artifact.test/nested2",
+            artifactDigest="sha256:nested2",
+        )
+
+    def read_nested2_protocol(_registry, profile_id, profiles_root=None):
+        if profile_id != "terse-dsl-nested-2":
+            return original_protocol_reader(profile_id, profiles_root)
+        selected_conversion_profiles.append(profile_id)
+        return {
+            "version": "v0.9",
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "sizes": {
+                "2x2": {"width": 138, "height": 138},
+                "2x4": {"width": 298, "height": 138},
+            },
+        }
+
+    monkeypatch.setattr(A2UIModelClient, "generate", generate_nested2)
+    monkeypatch.setattr(ArtifactValidator, "validate", lambda *_args: [])
+    monkeypatch.setattr(ArtifactStore, "save", save_artifact)
+    monkeypatch.setattr(
+        A2UIProtocolRegistry,
+        "read_design_protocol_profile",
+        classmethod(read_nested2_protocol),
+    )
+
+    response = WidgetGenerationService().generate_widget_card_terse_dsl_nested2(
+        _model_failure_request()
+    )
+
+    assert response.status == GenerationStatus.SUCCESS
+    assert response.artifactUrl == "https://artifact.test/nested2"
+    assert "TerseDSL-Nested-2" in prompts[0][0]["content"]
+    assert '"createSurface"' in saved_genui[0]
+    assert selected_conversion_profiles == ["terse-dsl-nested-2"]
+    create_surface = json_module.loads(saved_genui[0].splitlines()[0])["createSurface"]
+    assert create_surface["width"] == 298
+
+
+def test_terse_dsl_nested2_rejects_dynamic_and_edit_requests():
+    dynamic_request = GenerateWidgetCardRequest(
+        uid="test-user",
+        prdVer=APP_VERSION,
+        device={"romVersion": ROM_VERSION_6},
+        userQuery="生成动态天气卡片",
+        title="天气",
+        description="动态天气",
+        candidateDataBindings=[
+            {
+                "capabilityId": "ViewWeather",
+                "arguments": {"districtName": "上海"},
+                "writeResultTo": "/data/weather",
+            }
+        ],
+    )
+    edit_request = GenerateWidgetCardRequest(
+        uid="test-user",
+        prdVer=APP_VERSION,
+        device={"romVersion": ROM_VERSION_6},
+        userQuery="修改背景",
+        sourceArtifactUrl="https://artifact.test/source",
+    )
+    service = WidgetGenerationService()
+
+    dynamic_response = service.generate_widget_card_terse_dsl_nested2(
+        dynamic_request
+    )
+    edit_response = service.generate_widget_card_terse_dsl_nested2(edit_request)
+
+    assert dynamic_response.status == GenerationStatus.UNSUPPORTED
+    assert edit_response.status == GenerationStatus.UNSUPPORTED
+    assert dynamic_response.errorCode == "PROTOCOL_CAPABILITY_UNSUPPORTED"
+    assert edit_response.errorCode == "PROTOCOL_CAPABILITY_UNSUPPORTED"
 
 
 def test_websocket_handler_runs_sync_service_in_threadpool():
@@ -160,6 +310,7 @@ def test_plugin_final_response_uses_legacy_string_and_empty_items(
         ("SOURCE_ARTIFACT_DOWNLOAD_FAILED", "来源卡片产物下载失败"),
         ("SOURCE_ARTIFACT_SCHEMA_UNSUPPORTED", "版本或结构不受当前服务支持"),
         ("SOURCE_ARTIFACT_INVALID", "来源卡片产物内容无效或不完整"),
+        ("PROTOCOL_CAPABILITY_UNSUPPORTED", "不支持本次请求中的动态能力或编辑模式"),
         ("TIMEOUT", "工具执行超时"),
         ("FAILED", "未分类的服务异常"),
     ],
@@ -892,6 +1043,7 @@ def test_public_tool_schemas_do_not_expose_version_overrides():
         "getDataCapabilitySchemas.schema.json",
         "generateWidgetCard.schema.json",
         "generateWidgetCardCompactDsl.schema.json",
+        "generateWidgetCardTerseDslNested2.schema.json",
     ]
 
     for schema_name in schema_names:
@@ -2576,6 +2728,11 @@ def _model_failure_request() -> GenerateWidgetCardRequest:
     [
         ("generate_widget_card_a2ui_form", "a2ui_form_model_backend", "llmclient"),
         ("generate_widget_card_compact_dsl", "design_compact_model_backend", "mep"),
+        (
+            "generate_widget_card_terse_dsl_nested2",
+            "design_compact_model_backend",
+            "mep",
+        ),
     ],
 )
 def test_generation_routes_accept_each_configured_model_backend(
@@ -2584,7 +2741,7 @@ def test_generation_routes_accept_each_configured_model_backend(
     setting_name,
     backend,
 ):
-    """第三、第四接口都只从各自服务端配置选择模型后端。"""
+    """第三至第五接口都只从各自服务端配置选择模型后端。"""
     settings = get_settings()
     monkeypatch.setattr(settings, setting_name, backend)
     service = WidgetGenerationService()
@@ -2604,6 +2761,8 @@ def test_generation_routes_accept_each_configured_model_backend(
     assert captured["model_backend"] == backend
     if generation_method == "generate_widget_card_compact_dsl":
         assert captured["design_profile_id"] == "design-compact-dsl"
+    if generation_method == "generate_widget_card_terse_dsl_nested2":
+        assert captured["design_profile_id"] == "terse-dsl-nested-2"
 
 
 @pytest.mark.parametrize(

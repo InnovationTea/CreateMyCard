@@ -85,7 +85,8 @@ a2ui-form-rom6.0-v1
 
 ## 3. WebSocket 接口
 
-当前微服务提供四个工具能力，其中第四个是 Design Compact DSL 生成变体。客户端连接目标 path 后，
+当前微服务提供五个工具能力，其中第四个是 Design Compact DSL 生成变体，第五个是
+TerseDSL-Nested-2 静态生成变体。客户端连接目标 path 后，
 消息体只需要传该能力自己的参数，不需要再传 `operation`。新协议中的 `odid` 位于 `content.odid`，
 字段可选；服务会将其映射到内部设备上下文，缺失或为空时 IDS 查询继续使用固定兜底值，且不从
 `deviceInfo` 读取同名字段。用户和设备上下文由工具层自动注入，本地测试时可以显式传入。
@@ -97,6 +98,7 @@ WS /api/v1/ws/tools/getWidgetCapabilityOverview
 WS /api/v1/ws/tools/getDataCapabilitySchemas
 WS /api/v1/ws/tools/generateWidgetCard
 WS /api/v1/ws/tools/generateWidgetCardCompactDsl
+WS /api/v1/ws/tools/generateWidgetCardTerseDslNested2
 ```
 
 `generateWidgetCard` 固定使用标准 A2UI Form profile 和 MEP；
@@ -104,6 +106,13 @@ WS /api/v1/ws/tools/generateWidgetCardCompactDsl
 Design Compact DSL，再由服务内转换器读取该 Design profile 下的 `protocol.json`，生成标准三段 A2UI DSL。
 两个入口共享 create/edit、校验、repair 的开关和业务语义，
 调用方不需要传 `protocolProfileId`，旧值也不能覆盖路由选择结果。
+
+`generateWidgetCardTerseDslNested2` 从
+`cloud/data/protocol_profiles/terse-dsl-nested-2/PROMPT.md` 读取本地 Prompt。模型输出只进入
+`cloud/services/terse_dsl_nested2_converter.py` 的受限 Parser，不作为 Python 或 JavaScript 执行；
+Parser 只接受单根组件调用、字面量、白名单组件和安全对象键，再复用标准 A2UI 转换与 artifact 校验。
+首版只支持静态 create；编辑、动态数据绑定和点击事件返回
+`PROTOCOL_CAPABILITY_UNSUPPORTED`。
 
 第四接口的协议区间索引位于 `cloud/data/protocol_profiles/registry_ranges.json`。未命中时，只有
 `WIDGET_SERVICE_ENABLE_DEFAULT_PROTOCOL_PROFILE_FALLBACK=true` 才回退到
@@ -143,6 +152,7 @@ docs/schemas/getWidgetCapabilityOverview.schema.json
 docs/schemas/getDataCapabilitySchemas.schema.json
 docs/schemas/generateWidgetCard.schema.json
 docs/schemas/generateWidgetCardCompactDsl.schema.json
+docs/schemas/generateWidgetCardTerseDslNested2.schema.json
 ```
 
 ### 3.1 GET /health

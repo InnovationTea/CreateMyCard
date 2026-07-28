@@ -39,6 +39,7 @@ GENERATION_OPERATIONS = frozenset(
     {
         "generateWidgetCard",
         "generateWidgetCardCompactDsl",
+        "generateWidgetCardTerseDslNested2",
     }
 )
 
@@ -55,6 +56,11 @@ ERROR_EXPLANATIONS = {
     ),
     ErrorCode.NO_EFFECTIVE_CAPABILITY.value: (
         "本次请求没有可用于生成卡片的有效能力，请检查候选能力、参数和设备可用性后重新规划。报错信息如下"
+    ),
+    ErrorCode.PROTOCOL_CAPABILITY_UNSUPPORTED.value: (
+        "当前指定的 DSL 协议不支持本次请求中的动态能力或编辑模式，"
+        "请改为静态新建请求，"
+        "或选择支持对应能力的生成接口。报错信息如下"
     ),
     ErrorCode.APP_VERSION_UNSUPPORTED.value: (
         "当前设备的 App 或 ROM 版本不在服务支持范围内，请停止继续生成，并向用户说明版本暂不支持。"
@@ -600,4 +606,19 @@ async def generate_widget_card_compact_dsl_ws(websocket: WebSocket):
         lambda service, request: service.generate_widget_card_compact_dsl(request),
         heartbeat=True,
         heartbeat_interval=6.0,        
+    )
+
+
+@router.websocket("/ws/tools/generateWidgetCardTerseDslNested2")
+async def generate_widget_card_terse_dsl_nested2_ws(websocket: WebSocket):
+    """TerseDSL-Nested-2 卡片生成 WebSocket 入口。"""
+    await _serve_operation_websocket(
+        websocket,
+        "generateWidgetCardTerseDslNested2",
+        GenerateWidgetCardRequest,
+        lambda service, request: service.generate_widget_card_terse_dsl_nested2(
+            request
+        ),
+        heartbeat=True,
+        heartbeat_interval=6.0,
     )
