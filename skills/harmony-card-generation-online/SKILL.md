@@ -36,7 +36,7 @@ metadata:
 - edit 未指定目标时使用当前会话最近一次成功或降级结果；明确目标无法对应时才追问。来源只能取目标卡片工具业务 payload 的真实 `artifactUrl`；没有可用来源时要求先创建，不得改走 create。
 - 每次调用工具前检查是否缺少会改变核心意图、候选选择、目标对象、地点、时间范围、动作目标或业务入参的用户信息；有则集中追问并等待回答。设备能力、能力 ID、schema 等内部信息不向用户确认。
 - 每次调用前读取当前运行时 `tools` schema，并执行下方“调用前硬校验”。参考资料、示例、历史字段和内部类结构不能覆盖运行时 schema。
-- 在每次 `generateWidgetCard` 前确定本轮最终数据能力 ID 集合；非空时必须调用 `RequestDataPermission` 并等待结果。只有 Boolean `result.stateOfPermission` 明确为 `true` 才能生成；为 `false` 时终止并告知权限不可用，缺失、非 Boolean 或其它非法结果按工具异常终止。数据集合变化后必须重新检查；空集合表示无动态数据权限需要检查。
+- 在每次 `generateWidgetCard` 前确定本轮最终数据能力 ID 集合；非空时必须调用 `RequestDataPermission` 并等待结果。只有 Boolean `result.stateOfPermission` 明确为 `true` 且 `result.nonAuthStatus` 缺失或为空数组时才能生成；`nonAuthStatus` 为非空数组时终止并按回复策略使用其中的 `name` 与 `settingsPath` 引导用户手动授权；为 `false` 且没有授权明细时使用通用权限不可用提示。字段缺失、类型错误或其它非法结果按工具异常终止。数据集合变化后必须重新检查；空集合表示无动态数据权限需要检查。
 
 ## 生成前能力门禁
 
@@ -101,5 +101,5 @@ metadata:
 - 生成前结束时不伪造 `unsupported` payload，不输出 `genWidgetResult`；推荐内容只用于引导下一轮请求，不代表能力承诺。
 - 不编造能力 ID、事件目标、素材 ID、用户数据或 URL；不选择、加载或传递不可用数据能力；不暴露 schema、provider、错误码、requestId、items、原始 data 或内部草稿。
 - 任一必要工具不可用、调用失败、结果无法解析或字段不合法时终止本轮，按回复策略处理；不得模拟成功、输出替代产物或读取离线资料补足结果。
-- 未取得本轮最终数据能力集合的明确权限通过结果时，不得调用 `generateWidgetCard`；权限拒绝不输出 `genWidgetResult`。
+- 未取得本轮最终数据能力集合的明确权限通过结果时，不得调用 `generateWidgetCard`；返回非空 `nonAuthStatus` 或权限拒绝时不输出 `genWidgetResult`。
 - 存在用户待确认信息时不得抢先调用工具；追问后等待用户回答，再重新执行调用门禁。
