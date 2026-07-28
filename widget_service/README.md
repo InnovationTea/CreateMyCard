@@ -10,18 +10,27 @@ The service follows `docs/AGENTS.md`:
   right-open ranges in `cloud/data/capabilities/registry_ranges.json`.
 - `TaskSpec.dataModelSchema` is projected directly from each capability `outputSchema`: the service reads `type`, `description`, and `sampleValue` from the selected leaf and writes it at `writeResultTo + candidateOutputFields` path. There is no separate data-model mapping file or runtime field-renaming layer.
 - `romVersion` is the only accepted ROM field name. A full value such as `CLS-AL30 6.0.0.328` is normalized to the major/minor version `6.0`.
-- All three interfaces currently map App `[11.7.5.205, 12.0.0.0)` and ROM `[6.0, 7.0)` to `app-11.7.5.205_rom-6.0`. An unmatched version falls back to this default when `WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true`.
+- All four interfaces currently map App `[11.7.5.205, 12.0.0.0)` and ROM `[6.0, 7.0)` to `app-11.7.5.205_rom-6.0`. An unmatched version falls back to this default when `WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true`.
+- `generateWidgetCard` selects MEP or llmclient through `WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND`.
+  `generateWidgetCardCompactDsl` selects its backend through `WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND`, loads
+  the Design profile from `data/protocol_profiles/registry_ranges.json`, and converts Design Compact DSL with that
+  profile's `protocol.json` before validation and storage. Both routes share create/edit, validation, and repair
+  switches. Tool callers cannot select or override either backend.
 - `WIDGET_SERVICE_ENABLE_IDS_MOCK=true` by default. In this mode the service reads only `WIDGET_SERVICE_MOCK_IDS_RESPONSE_PATH`, whose default path is the service-internal `cloud/data/mock/ids_res.json`; a missing or invalid mock produces an empty IDS result and never falls back to remote IDS. When set to `false`, the service ignores the mock and queries only the real remote IDS; remote failure produces an empty result and never falls back to mock.
 - `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY=false` by default. Error-level validation failures are logged without blocking artifact persistence; when enabled, the service makes one repair request containing the invalid DSL and all errors. Warnings never trigger repair.
 - `WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY=false` by default. Model transport errors,
   explicit model errors, and empty DSL output return `failed/A2UI_GENERATION_FAILED`;
   when enabled, each failed initial or repair model call is repeated once with the same prompt.
   Model failures never enter validation or artifact persistence.
-- With model mock disabled, `WIDGET_SERVICE_A2UI_MODEL_BACKEND` selects the transport behind
-  `A2UIModelClient.generate()`: `mep` keeps the existing `/predict` implementation, while
-  `llmclient` uses `cloud/custom/llmclient.py`. The default is `mep`; callers do not invoke
-  either backend directly.
-- Create, edit, and repair prompts are loaded from `WIDGET_SERVICE_SYSTEM_PROMPT_FILE`, `WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE`, and `WIDGET_SERVICE_REPAIR_SYSTEM_PROMPT_FILE`. Their defaults are files under the repository `docs/` directory.
+- With model mock disabled, both generation routes use the same `A2UIModelClient.generate()` entry. MEP and
+  `cloud/custom/llmclient.py` are isolated behind model transport adapters; backend selection is controlled by the
+  two route-specific server settings, and tool callers cannot select either backend directly.
+- If MEP ends a Design request with `6241/Early stop due to aborted` after emitting a non-empty candidate, the
+  candidate continues through the strict Design converter and validation flow. Empty output and non-Design requests
+  remain model failures.
+- Standard create, edit, and repair prompts are loaded from `WIDGET_SERVICE_SYSTEM_PROMPT_FILE`,
+  `WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE`, and `WIDGET_SERVICE_REPAIR_SYSTEM_PROMPT_FILE`. The Design route uses
+  its selected profile's `PROMPT.md` for create/edit and appends the same repair constraints when repair is enabled.
 - `WIDGET_SERVICE_ENABLE_ARTIFACT_DOWNLOAD_MOCK=true` by default. Multi-round source artifacts are read only from `cloud/workspace/mock_obs`; missing mock files do not fall back to the network. Set it to `false` to download from the validated HTTPS artifact URL.
 - The WebSocket router logs each received request object as compact standard JSON before protocol normalization. Structured values embedded in other log messages use the same double-quoted JSON format. Sensitive `uid`/`userId`/`callingUid` and `odid` are recursively omitted; `sourceArtifactUrl` is retained in the raw request log.
 - The server logs process-wide WebSocket `active_connections`, cumulative `total_connections`, and `running_tasks` every 10 seconds.

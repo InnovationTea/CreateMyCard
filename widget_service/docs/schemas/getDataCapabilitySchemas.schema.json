@@ -28,11 +28,6 @@
             "required": true,
             "minItems": 1,
             "description": "需要加载完整 schema 的数据能力 ID 列表。"
-          },
-          "protocolProfileId": {
-            "type": "string|null",
-            "required": false,
-            "description": "可选 A2UI 协议 profile ID。"
           }
         }
       },

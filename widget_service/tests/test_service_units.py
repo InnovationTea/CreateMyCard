@@ -67,8 +67,12 @@ from services.artifact_store import ArtifactStore
 from custom.a2ui_model_client import (
     A2UIModelClient,
     A2UIModelGenerationError,
+    _build_design_test_task_spec,
     require_generated_dsl,
 )
+from custom.llmclient_model_transport import LlmClientModelTransport
+from custom.mep_model_transport import MepModelTransport
+from custom.model_transport import ModelTransportError, create_model_transport
 from services.card_spec_builder import CardSpecBuilder
 from services.card_validator import validate_card
 from services.card_validation import validate_card as validate_card_api
@@ -172,7 +176,9 @@ def test_plugin_error_explanation_distinguishes_business_failures(
 
 def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
     assert Settings(_env_file=None).anyio_thread_pool_tokens == 80
-    assert Settings(_env_file=None).a2ui_model_backend == "mep"
+    assert Settings(_env_file=None).a2ui_form_model_backend == "mep"
+    assert Settings(_env_file=None).design_compact_model_backend == "llmclient"
+    assert Settings(_env_file=None).enable_default_protocol_profile_fallback is True
     settings = get_settings()
     monkeypatch.setattr(settings, "anyio_thread_pool_tokens", 80)
 
@@ -642,6 +648,49 @@ def test_capability_registry_extracts_major_minor_from_full_rom_version():
     assert CapabilityRegistry.normalize_rom_version(ROM_VERSION_6) == "6.0"
 
 
+@pytest.mark.parametrize(
+    ("app_version", "rom_version"),
+    [
+        ("11.7.5.205", "CLS-AL30 6.0.0.328"),
+        ("11.8.0.0", "CLS-AL30 6.3.1.20"),
+        ("11.9.9.999", "CLS-AL30 6.9.0.1"),
+    ],
+)
+def test_protocol_registry_matches_app_rom_interval(app_version, rom_version):
+    selection = A2UIProtocolRegistry.from_app_rom_versions(app_version, rom_version)
+
+    assert selection.protocol_profile_id == "a2ui-form-rom6.0-v1"
+    assert selection.design_profile_id == "design-compact-dsl"
+
+
+@pytest.mark.parametrize(
+    ("app_version", "rom_version"),
+    [
+        ("12.0.0.0", "6.0"),
+        ("11.7.5.205", "7.0"),
+    ],
+)
+def test_protocol_registry_excludes_maximum_boundaries(app_version, rom_version):
+    with pytest.raises(ValueError, match="range not found"):
+        A2UIProtocolRegistry.from_app_rom_versions(app_version, rom_version)
+
+
+def test_compact_protocol_selection_uses_configured_default_fallback():
+    request = GenerateWidgetCardRequest(
+        uid="test-user",
+        prdVer="12.0.0.0",
+        device={"romVersion": "7.0"},
+        userQuery="生成静态卡片",
+        title="静态卡片",
+        description="协议回退测试",
+    )
+
+    selection = WidgetGenerationService()._compact_protocol_selection(request)
+
+    assert selection.protocol_profile_id == "a2ui-form-rom6.0-v1"
+    assert selection.design_profile_id == "design-compact-dsl"
+
+
 def _write_registry_ranges(root: Path, ranges: list[dict], directories: list[str]) -> None:
     root.mkdir()
     for directory in directories:
@@ -651,6 +700,123 @@ def _write_registry_ranges(root: Path, ranges: list[dict], directories: list[str
         json_module.dumps(payload),
         encoding="utf-8",
     )
+
+
+def _protocol_range(
+    protocol_profile_id: str,
+    design_profile_id: str,
+    *,
+    app_min: str = "11.0",
+    app_max: str = "12.0",
+    rom_min: str = "6.0",
+    rom_max: str = "7.0",
+) -> dict:
+    return {
+        "protocolProfileId": protocol_profile_id,
+        "designProfileId": design_profile_id,
+        "appVersion": {
+            "minInclusive": app_min,
+            "maxExclusive": app_max,
+        },
+        "romVersion": {
+            "minInclusive": rom_min,
+            "maxExclusive": rom_max,
+        },
+    }
+
+
+def _write_protocol_ranges(root: Path, ranges: list[dict]) -> None:
+    root.mkdir()
+    for item in ranges:
+        protocol_dir = root / item["protocolProfileId"]
+        protocol_dir.mkdir(exist_ok=True)
+        for filename in ("protocol.md", "component-catalog.md", "data-binding.md"):
+            (protocol_dir / filename).write_text("profile", encoding="utf-8")
+        design_dir = root / item["designProfileId"]
+        design_dir.mkdir(exist_ok=True)
+        (design_dir / "PROMPT.md").write_text("prompt", encoding="utf-8")
+        (design_dir / "protocol.json").write_text(
+            json_module.dumps(
+                {
+                    "version": "v0.9",
+                    "catalogId": "ohos.a2ui.extended.catalog.form",
+                    "sizes": {
+                        "2x2": {"width": 140, "height": 140},
+                        "2x4": {"width": 300, "height": 140},
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+    (root / "registry_ranges.json").write_text(
+        json_module.dumps({"schemaVersion": "v1", "ranges": ranges}),
+        encoding="utf-8",
+    )
+
+
+def test_protocol_registry_rejects_overlapping_ranges(tmp_path):
+    root = tmp_path / "protocol_profiles"
+    ranges = [
+        _protocol_range("profile-one", "design-one"),
+        _protocol_range("profile-two", "design-two", app_min="11.5", app_max="12.5"),
+    ]
+    _write_protocol_ranges(root, ranges)
+
+    with pytest.raises(ValueError, match="Overlapping protocol profile ranges"):
+        A2UIProtocolRegistry.from_app_rom_versions("11.8", "6.5", root)
+
+
+def test_protocol_registry_rejects_inverted_interval(tmp_path):
+    root = tmp_path / "protocol_profiles"
+    ranges = [
+        _protocol_range(
+            "profile-one",
+            "design-one",
+            rom_min="7.0",
+            rom_max="6.0",
+        )
+    ]
+    _write_protocol_ranges(root, ranges)
+
+    with pytest.raises(ValueError, match="minInclusive must be less"):
+        A2UIProtocolRegistry.from_app_rom_versions("11.8", "6.5", root)
+
+
+def test_protocol_registry_rejects_missing_design_prompt(tmp_path):
+    root = tmp_path / "protocol_profiles"
+    ranges = [_protocol_range("profile-one", "design-one")]
+    _write_protocol_ranges(root, ranges)
+    (root / "design-one" / "PROMPT.md").unlink()
+
+    with pytest.raises(ValueError, match="Design Compact prompt not found"):
+        A2UIProtocolRegistry.from_app_rom_versions("11.8", "6.5", root)
+
+
+def test_protocol_registry_rejects_missing_design_protocol_file(tmp_path):
+    root = tmp_path / "protocol_profiles"
+    ranges = [_protocol_range("profile-one", "design-one")]
+    _write_protocol_ranges(root, ranges)
+    (root / "design-one" / "protocol.json").unlink()
+
+    with pytest.raises(ValueError, match="Design Compact protocol file not found"):
+        A2UIProtocolRegistry.from_app_rom_versions("11.8", "6.5", root)
+
+
+def test_protocol_registry_rejects_missing_protocol_directory(tmp_path):
+    root = tmp_path / "protocol_profiles"
+    root.mkdir()
+    design_dir = root / "design-one"
+    design_dir.mkdir()
+    (design_dir / "PROMPT.md").write_text("prompt", encoding="utf-8")
+    (design_dir / "protocol.json").write_text("{}", encoding="utf-8")
+    ranges = [_protocol_range("missing-profile", "design-one")]
+    (root / "registry_ranges.json").write_text(
+        json_module.dumps({"schemaVersion": "v1", "ranges": ranges}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Protocol profile not found"):
+        A2UIProtocolRegistry.from_app_rom_versions("11.8", "6.5", root)
 
 
 def _registry_range(
@@ -719,7 +885,7 @@ def test_legacy_registry_request_field_is_ignored():
     assert registry.version == REGISTRY_VERSION_6
 
 
-def test_public_tool_schemas_do_not_expose_registry_override():
+def test_public_tool_schemas_do_not_expose_version_overrides():
     schema_root = PROJECT_ROOT / "docs" / "schemas"
     schema_names = [
         "getWidgetCapabilityOverview.schema.json",
@@ -732,6 +898,7 @@ def test_public_tool_schemas_do_not_expose_registry_override():
         payload = json_module.loads((schema_root / schema_name).read_text(encoding="utf-8"))
         content_properties = payload["messageEnvelope"]["properties"]["content"]["properties"]
         assert "capabilityRegistryVersion" not in content_properties
+        assert "protocolProfileId" not in content_properties
 
 
 def _out_of_range_requests():
@@ -1835,6 +2002,30 @@ def test_repair_prompt_inherits_initial_mode_and_contains_errors(mode):
     assert "只输出修复后的完整 DSL" in repair_payload["instruction"]
 
 
+def test_design_compact_edit_prompt_contains_previous_standard_genui():
+    task_spec = TaskSpecBuilder().build(
+        user_query="整体改成蓝色",
+        size="2x4",
+        effective_bindings=[],
+        effective_data_capabilities=[],
+        event_candidates=[],
+        asset_candidates=[],
+    )
+    previous_genui = '{"version":"v0.9"}\n{}\n{}'
+
+    prompt = PromptBuilder().build_design_compact(
+        task_spec,
+        "design rules",
+        previous_genui=previous_genui,
+    )
+    edit_payload = json_module.loads(prompt[1]["content"])
+
+    assert edit_payload["mode"] == "edit"
+    assert edit_payload["previousGenui"] == previous_genui
+    assert edit_payload["editInstruction"] == "整体改成蓝色"
+    assert "完整 Design Compact DSL" in edit_payload["instruction"]
+
+
 def test_a2ui_model_client_returns_mock_dat_without_processing():
     """验证 mock A2UI 直接返回 mock.dat 原始内容。
 
@@ -1872,6 +2063,44 @@ def test_a2ui_model_client_selects_compact_dsl_mock_by_profile():
     )
 
 
+@pytest.mark.parametrize(
+    ("size", "expected_width"),
+    [("2x2", 160), ("2x4", 320)],
+)
+def test_a2ui_model_client_selects_design_compact_mock_by_task_size(
+    size,
+    expected_width,
+):
+    """验证第四接口 mock 根据 TaskSpec 尺寸返回可转换的 Design DSL。"""
+    prompt = [
+        {"role": "system", "content": "rules"},
+        {
+            "role": "user",
+            "content": json_module.dumps({"size": size}),
+        },
+    ]
+    profile = {
+        "id": "design-compact-dsl",
+        "format": "compact-dsl",
+    }
+
+    client = A2UIModelClient(use_mock=True, backend="llmclient")
+    genui = client.generate(prompt, profile)
+    root = json_module.loads(genui.splitlines()[0])
+    converted = client.convert_design_dsl_to_standard_dsl(
+        genui,
+        size=size,
+        design_profile_id="design-compact-dsl",
+    )
+    converted_rows = [json_module.loads(line) for line in converted.splitlines()]
+
+    assert root[0:2] == ["root", "Column"]
+    assert root[2]["width"] == expected_width
+    assert root[2]["height"] == 160
+    assert len(converted_rows) == 3
+    assert converted_rows[0]["createSurface"]["width"] == expected_width - 20
+
+
 def test_a2ui_model_client_real_mode_forwards_messages(monkeypatch):
     """验证关闭 mock 后把消息原样传给真实模型调用入口。
 
@@ -1880,49 +2109,116 @@ def test_a2ui_model_client_real_mode_forwards_messages(monkeypatch):
     """
     messages = [{"role": "user", "content": "帮我做天气卡片"}]
 
-    def generate(_client, value, profile):
-        assert profile == {}
-        return "forwarded" if value is messages else "changed"
+    class FakeTransport:
+        @staticmethod
+        def generate(value):
+            return "forwarded" if value is messages else "changed"
 
-    monkeypatch.setattr(
-        A2UIModelClient,
-        "_generate_from_real_model",
-        generate,
-    )
+    client = A2UIModelClient(use_mock=False, transport=FakeTransport())
+    monkeypatch.setattr(client, "convert_dsl", lambda value: value)
 
-    assert A2UIModelClient(use_mock=False).generate(messages) == "forwarded"
+    assert client.generate(messages) == "forwarded"
 
 
 def test_a2ui_model_client_selects_llmclient_backend(monkeypatch):
-    """验证 A2UI generate 根据配置选择 llmclient，调用方接口保持不变。"""
-    settings = get_settings()
+    """验证 A2UI generate 通过工厂选择 llmclient 传输层。"""
     messages = [{"role": "user", "content": "帮我做天气卡片"}]
-    calls: list[tuple[object, dict]] = []
+    calls: list[tuple[str, object]] = []
 
-    def generate_from_llm(_client, value, profile):
-        calls.append((value, profile))
-        return "llmclient-result"
+    class FakeTransport:
+        @staticmethod
+        def generate(value):
+            calls.append(("generate", value))
+            return "llmclient-result"
 
-    monkeypatch.setattr(settings, "a2ui_model_backend", "llmclient")
     monkeypatch.setattr(
-        A2UIModelClient,
-        "_generate_from_llm_client",
-        generate_from_llm,
+        "custom.a2ui_model_client.create_model_transport",
+        lambda backend, _settings: (
+            calls.append(("factory", backend)) or FakeTransport()
+        ),
     )
-    monkeypatch.setattr(
-        A2UIModelClient,
-        "_generate_from_real_model",
-        lambda *_args: pytest.fail("MEP must not be called"),
-    )
-
-    result = A2UIModelClient(use_mock=False).generate(messages)
+    client = A2UIModelClient(use_mock=False, backend="llmclient")
+    monkeypatch.setattr(client, "convert_dsl", lambda value: value)
+    result = client.generate(messages)
 
     assert result == "llmclient-result"
-    assert calls == [(messages, {})]
+    assert calls == [("factory", "llmclient"), ("generate", messages)]
+
+
+@pytest.mark.parametrize(
+    ("backend", "transport_type"),
+    [
+        ("mep", MepModelTransport),
+        ("llmclient", LlmClientModelTransport),
+    ],
+)
+def test_model_transport_factory_builds_configured_backend(backend, transport_type):
+    transport = create_model_transport(backend, Settings(_env_file=None))
+
+    assert isinstance(transport, transport_type)
+
+
+def test_design_output_uses_non_empty_mep_result_after_abort(monkeypatch):
+    """MEP 6241 已产生 Design 输出时继续交给后续严格转换和校验。"""
+    design_dsl = '["root","Column",{"width":160,"height":160},[]]'
+    warning_logs: list[str] = []
+
+    class AbortedTransport:
+        @staticmethod
+        def generate(_messages):
+            raise ModelTransportError(
+                "model returned error: code=6241",
+                code="6241",
+                partial_output=design_dsl,
+            )
+
+    monkeypatch.setattr(
+        "custom.a2ui_model_client.logger.warning",
+        warning_logs.append,
+    )
+    client = A2UIModelClient(
+        use_mock=False,
+        backend="mep",
+        transport=AbortedTransport(),
+    )
+    profile = {"id": "design-compact-dsl", "format": "compact-dsl"}
+
+    assert client.generate([], profile) == design_dsl
+    assert any("mep_design_output_recovered_after_abort" in item for item in warning_logs)
+
+
+@pytest.mark.parametrize(
+    ("profile", "partial_output"),
+    [
+        ({"id": "design-compact-dsl", "format": "compact-dsl"}, ""),
+        ({"id": "a2ui-form-rom6.0-v1", "format": "a2ui-form"}, "partial"),
+    ],
+)
+def test_mep_abort_without_usable_design_output_remains_failure(
+    profile,
+    partial_output,
+):
+    class AbortedTransport:
+        @staticmethod
+        def generate(_messages):
+            raise ModelTransportError(
+                "model returned error: code=6241",
+                code="6241",
+                partial_output=partial_output,
+            )
+
+    client = A2UIModelClient(
+        use_mock=False,
+        backend="mep",
+        transport=AbortedTransport(),
+    )
+
+    with pytest.raises(A2UIModelGenerationError, match="model generation failed"):
+        client.generate([], profile)
 
 
 def test_a2ui_model_client_collects_llmclient_stream(monkeypatch):
-    """验证 llmclient token 在 A2UI 内聚合成最终 DSL，并继续执行统一后处理。"""
+    """验证 llmclient 传输层只聚合 Token，DSL 后处理由 A2UI 客户端统一执行。"""
     captured: dict = {}
     dsl = '{"createSurface":{"surfaceId":"root"}}'
 
@@ -1933,12 +2229,17 @@ def test_a2ui_model_client_collects_llmclient_stream(monkeypatch):
         yield dsl
         yield "\n```"
 
-    client = A2UIModelClient(use_mock=False)
     messages = [{"role": "user", "content": "weather"}]
-    monkeypatch.setattr("custom.a2ui_model_client.stream_genui", fake_stream)
+    monkeypatch.setattr("custom.llmclient_model_transport.stream_genui", fake_stream)
+    transport = LlmClientModelTransport()
+    client = A2UIModelClient(
+        use_mock=False,
+        backend="llmclient",
+        transport=transport,
+    )
     monkeypatch.setattr(client, "convert_dsl", lambda value: f"converted:{value}")
 
-    result = client._generate_from_llm_client(messages)
+    result = client.generate(messages)
 
     assert result == f"converted:{dsl}"
     assert captured == {
@@ -1947,8 +2248,104 @@ def test_a2ui_model_client_collects_llmclient_stream(monkeypatch):
     }
 
 
+def test_a2ui_model_client_converts_design_dsl_to_standard_dsl(monkeypatch):
+    """验证 A2UI 客户端把 Design Compact DSL 转换为三段标准 DSL。"""
+    info_logs: list[str] = []
+    monkeypatch.setattr("custom.a2ui_model_client.logger.info", info_logs.append)
+    design_dsl = "\n".join(
+        (
+            "```genui",
+            '["root","Column",{"width":160,"height":160,"padding":8,'
+            '"itemMargin":8},["title"]]',
+            '["title","Text",{"content":{"path":"/data/message"},'
+            '"design":"title-s"}]',
+            '["/data/message","欢迎回来"]',
+            "```",
+        )
+    )
+    result = A2UIModelClient(use_mock=True).convert_design_dsl_to_standard_dsl(
+        design_dsl,
+        size="2x2",
+        design_profile_id="design-compact-dsl",
+    )
+    messages = [json_module.loads(line) for line in result.splitlines()]
+
+    assert len(messages) == 3
+    assert messages[0]["createSurface"]["width"] == 140
+    assert messages[1]["updateComponents"]["root"] == "root"
+    assert messages[2]["updateDataModel"]["value"]["data"]["message"] == "欢迎回来"
+    conversion_logs = [
+        message
+        for message in info_logs
+        if "design_dsl_conversion_completed" in message
+    ]
+    assert len(conversion_logs) == 1
+    assert "converted_dsl=" in conversion_logs[0]
+    assert '\\"createSurface\\"' in conversion_logs[0]
+
+
+def test_design_converter_reads_protocol_file_from_selected_design_profile(monkeypatch):
+    design_dsl = (CLOUD_ROOT / "custom" / "mock.design-compact-dsl-2x4.dat").read_text(
+        encoding="utf-8"
+    )
+    selected_profiles: list[str] = []
+
+    def read_design_protocol(_registry, profile_id):
+        selected_profiles.append(profile_id)
+        return {
+            "version": "v1.1",
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "sizes": {"2x4": {"width": 288, "height": 136}},
+        }
+
+    monkeypatch.setattr(
+        A2UIProtocolRegistry,
+        "read_design_protocol_profile",
+        classmethod(read_design_protocol),
+    )
+
+    result = A2UIModelClient(use_mock=True).convert_design_dsl_to_standard_dsl(
+        design_dsl,
+        size="2x4",
+        design_profile_id="design-next",
+    )
+    create_surface = json_module.loads(result.splitlines()[0])["createSurface"]
+
+    assert selected_profiles == ["design-next"]
+    assert create_surface["width"] == 288
+    assert create_surface["height"] == 136
+
+
+def test_a2ui_model_client_design_test_task_spec_covers_weather_capabilities():
+    """验证临时 main 使用的数据覆盖天气数据、事件和 SVG 素材。"""
+    task_spec = _build_design_test_task_spec()
+    weather_schema = task_spec["dataModelSchema"]["data"]["weather"]
+
+    assert task_spec["size"] == "2x4"
+    assert len(weather_schema["current"]) == 10
+    assert len(weather_schema["daily"][0]) == 5
+    assert task_spec["eventCandidates"] == [
+        {
+            "id": "event.open.weather",
+            "call": "clickToDeeplink",
+            "args": {
+                "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode=",
+            },
+        }
+    ]
+    assert [candidate["id"] for candidate in task_spec["assetCandidates"]] == [
+        "asset.sun_max",
+        "asset.drop_1",
+        "asset.thermometer_sun_fill",
+    ]
+    assert all(
+        candidate["src"].endswith(".svg")
+        for candidate in task_spec["assetCandidates"]
+    )
+
+
 def test_a2ui_model_client_builds_qwen_chatml_prompt():
-    prompt = A2UIModelClient.messages_to_qwen_prompt(
+    prompt = MepModelTransport.messages_to_qwen_prompt(
         [
             {"role": "system", "content": "rules"},
             {"role": "user", "content": "weather card"},
@@ -2001,17 +2398,15 @@ def test_a2ui_model_client_reads_predict_stream(monkeypatch):
         captured.update(kwargs)
         return FakeResponse()
 
-    client = A2UIModelClient(use_mock=False)
-    monkeypatch.setattr(client.settings, "model_url", "https://model.test/predict")
-    monkeypatch.setattr(client.settings, "model_bid", "bid-1")
-    monkeypatch.setattr(client.settings, "model_flow_id", "flow-1")
-    monkeypatch.setattr(client, "calc_sign", lambda **_kwargs: "signature")
-    monkeypatch.setattr(client, "convert_dsl", lambda value: value)
-    monkeypatch.setattr("custom.a2ui_model_client.requests.post", fake_post)
+    settings = get_settings()
+    monkeypatch.setattr(settings, "model_url", "https://model.test/predict")
+    monkeypatch.setattr(settings, "model_bid", "bid-1")
+    monkeypatch.setattr(settings, "model_flow_id", "flow-1")
+    transport = MepModelTransport(settings)
+    monkeypatch.setattr(transport, "calc_sign", lambda **_kwargs: "signature")
+    monkeypatch.setattr("custom.mep_model_transport.requests.post", fake_post)
 
-    result = client._generate_from_real_model(
-        [{"role": "user", "content": "weather"}]
-    )
+    result = transport.generate([{"role": "user", "content": "weather"}])
 
     request_payload = json_module.loads(captured["data"].decode())
     assert result == dsl
@@ -2019,26 +2414,39 @@ def test_a2ui_model_client_reads_predict_stream(monkeypatch):
     assert request_payload["data"]["prompt"].endswith("<|im_start|>assistant\n")
 
 
-def test_a2ui_model_client_shares_transport_and_forwards_profile(monkeypatch):
-    """工具 3、4 共用模型传输层，并把各自协议传给后处理。"""
-    calls: list[tuple[object, str]] = []
+def test_mep_transport_preserves_error_code_and_partial_output():
+    with pytest.raises(ModelTransportError) as error_info:
+        MepModelTransport._raise_for_model_error(
+            {
+                "errorCode": 6241,
+                "errorMsg": "Early stop due to aborted",
+            },
+            "partial-design-dsl",
+        )
 
-    def generate(_client, messages, profile):
-        calls.append((messages, profile["format"]))
-        return profile["format"]
+    assert error_info.value.code == "6241"
+    assert error_info.value.partial_output == "partial-design-dsl"
 
-    monkeypatch.setattr(A2UIModelClient, "_generate_from_real_model", generate)
+
+def test_a2ui_model_client_processes_transport_output_by_profile(monkeypatch):
+    """模型传输层不感知 DSL 格式，A2UI 客户端根据协议统一执行后处理。"""
+    calls: list[object] = []
+
+    class FakeTransport:
+        @staticmethod
+        def generate(messages):
+            calls.append(messages)
+            return "raw-dsl"
+
     messages = [{"role": "user", "content": "weather card"}]
     a2ui_profile = A2UIProtocolRegistry("a2ui-form-rom6.0-v1").get_profile()
     compact_profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
-    client = A2UIModelClient(use_mock=False)
+    client = A2UIModelClient(use_mock=False, transport=FakeTransport())
+    monkeypatch.setattr(client, "convert_dsl", lambda value: f"standard:{value}")
 
-    assert client.generate(messages, a2ui_profile) == "a2ui-form"
-    assert client.generate(messages, compact_profile) == "compact-dsl"
-    assert calls == [
-        (messages, "a2ui-form"),
-        (messages, "compact-dsl"),
-    ]
+    assert client.generate(messages, a2ui_profile) == "standard:raw-dsl"
+    assert client.generate(messages, compact_profile) == "raw-dsl"
+    assert calls == [messages, messages]
 
 
 def test_compact_model_client_returns_streamed_ndjson(monkeypatch):
@@ -2075,23 +2483,25 @@ def test_compact_model_client_returns_streamed_ndjson(monkeypatch):
             yield stream[:17]
             yield stream[17:]
 
-    client = A2UIModelClient(use_mock=False)
     profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
-    monkeypatch.setattr(client.settings, "model_url", "https://model.test/predict")
-    monkeypatch.setattr(client.settings, "model_bid", "bid-1")
-    monkeypatch.setattr(client.settings, "model_flow_id", "flow-1")
-    monkeypatch.setattr(client, "calc_sign", lambda **_kwargs: "signature")
+    settings = get_settings()
+    monkeypatch.setattr(settings, "model_url", "https://model.test/predict")
+    monkeypatch.setattr(settings, "model_bid", "bid-1")
+    monkeypatch.setattr(settings, "model_flow_id", "flow-1")
+    transport = MepModelTransport(settings)
+    monkeypatch.setattr(transport, "calc_sign", lambda **_kwargs: "signature")
+    client = A2UIModelClient(use_mock=False, transport=transport)
     monkeypatch.setattr(
         client,
         "convert_dsl",
         lambda *_args: pytest.fail("Compact output must not use A2UI conversion"),
     )
     monkeypatch.setattr(
-        "custom.a2ui_model_client.requests.post",
+        "custom.mep_model_transport.requests.post",
         lambda *_args, **_kwargs: FakeResponse(),
     )
 
-    result = client._generate_from_real_model(
+    result = client.generate(
         [{"role": "user", "content": "weather"}],
         profile,
     )
@@ -2100,9 +2510,9 @@ def test_compact_model_client_returns_streamed_ndjson(monkeypatch):
 
 
 def test_compact_model_client_has_no_artificial_completion_limit():
-    source = (
-        CLOUD_ROOT / "custom" / "a2ui_model_client.py"
-    ).read_text(encoding="utf-8")
+    source = (CLOUD_ROOT / "custom" / "mep_model_transport.py").read_text(
+        encoding="utf-8"
+    )
 
     assert "COMPACT_DSL_MAX_TOKENS" not in source
     assert "max_duration" not in source
@@ -2141,17 +2551,13 @@ def test_a2ui_model_client_rejects_output_without_dsl(value):
 
 
 def test_a2ui_model_client_wraps_transport_exception(monkeypatch):
-    def raise_timeout(_client, _messages, _profile):
-        raise requests.exceptions.Timeout("model timeout")
-
-    monkeypatch.setattr(
-        A2UIModelClient,
-        "_generate_from_real_model",
-        raise_timeout,
-    )
+    class FailingTransport:
+        @staticmethod
+        def generate(_messages):
+            raise requests.exceptions.Timeout("model timeout")
 
     with pytest.raises(A2UIModelGenerationError, match="model generation failed"):
-        A2UIModelClient(use_mock=False).generate([])
+        A2UIModelClient(use_mock=False, transport=FailingTransport()).generate([])
 
 
 def _model_failure_request() -> GenerateWidgetCardRequest:
@@ -2163,6 +2569,41 @@ def _model_failure_request() -> GenerateWidgetCardRequest:
         title="静态卡片",
         description="模型失败处理测试",
     )
+
+
+@pytest.mark.parametrize(
+    ("generation_method", "setting_name", "backend"),
+    [
+        ("generate_widget_card_a2ui_form", "a2ui_form_model_backend", "llmclient"),
+        ("generate_widget_card_compact_dsl", "design_compact_model_backend", "mep"),
+    ],
+)
+def test_generation_routes_accept_each_configured_model_backend(
+    monkeypatch,
+    generation_method,
+    setting_name,
+    backend,
+):
+    """第三、第四接口都只从各自服务端配置选择模型后端。"""
+    settings = get_settings()
+    monkeypatch.setattr(settings, setting_name, backend)
+    service = WidgetGenerationService()
+    captured: dict[str, object] = {}
+    sentinel = object()
+
+    def capture_route(_request, _profile_id, *, model_backend, design_profile_id=None):
+        captured["model_backend"] = model_backend
+        captured["design_profile_id"] = design_profile_id
+        return sentinel
+
+    monkeypatch.setattr(service, "_generate_widget_card_with_profile", capture_route)
+
+    result = getattr(service, generation_method)(_model_failure_request())
+
+    assert result is sentinel
+    assert captured["model_backend"] == backend
+    if generation_method == "generate_widget_card_compact_dsl":
+        assert captured["design_profile_id"] == "design-compact-dsl"
 
 
 @pytest.mark.parametrize(
@@ -2344,6 +2785,106 @@ def test_repair_model_failure_does_not_validate_or_save_second_result(monkeypatc
     assert validation_calls == ["invalid-but-nonempty-dsl"]
     assert response.status == GenerationStatus.FAILED
     assert response.errorCode == ErrorCode.A2UI_GENERATION_FAILED.value
+
+
+def test_design_compact_validation_error_uses_design_repair_then_converts(monkeypatch):
+    settings = get_settings()
+    design_dsl = (CLOUD_ROOT / "custom" / "mock.design-compact-dsl-2x4.dat").read_text(
+        encoding="utf-8"
+    )
+    model_prompts: list[list[dict[str, str]]] = []
+    validated_genui: list[str] = []
+    saved_genui: list[str] = []
+
+    def generate_design(_client, prompt, _profile=None):
+        model_prompts.append(prompt)
+        return design_dsl
+
+    def validate_standard(_validator, artifact, _profile):
+        validated_genui.append(artifact.genui)
+        if len(validated_genui) == 1:
+            return ["DSL_REQUIRED_FIELD [genui:2 /updateComponents/root]"]
+        return []
+
+    def save_artifact(_store, artifact):
+        saved_genui.append(artifact.genui)
+        return ArtifactSaveResult(
+            artifactUrl="https://artifact.test/design-repaired",
+            artifactDigest="sha256:design-repaired",
+        )
+
+    monkeypatch.setattr(settings, "enable_artifact_validation", True)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(A2UIModelClient, "generate", generate_design)
+    monkeypatch.setattr(ArtifactValidator, "validate", validate_standard)
+    monkeypatch.setattr(ArtifactStore, "save", save_artifact)
+
+    response = WidgetGenerationService().generate_widget_card_compact_dsl(
+        _model_failure_request()
+    )
+    repair_payload = json_module.loads(model_prompts[1][1]["content"])
+
+    assert response.status == GenerationStatus.SUCCESS
+    assert len(model_prompts) == 2
+    assert repair_payload["invalidGenui"] == design_dsl
+    assert repair_payload["dslFormat"] == "design-compact-dsl"
+    assert "/updateComponents/root" in repair_payload["validationErrors"][0]
+    assert len(validated_genui) == 2
+    assert all('"createSurface"' in value for value in validated_genui)
+    assert saved_genui == [validated_genui[-1]]
+
+
+def test_design_compact_respects_validation_disabled_switch(monkeypatch):
+    settings = get_settings()
+
+    def unexpected_validate(*_args, **_kwargs):
+        pytest.fail("disabled validation must not call the validator")
+
+    monkeypatch.setattr(settings, "enable_artifact_validation", False)
+    monkeypatch.setattr(ArtifactValidator, "validate", unexpected_validate)
+    monkeypatch.setattr(
+        ArtifactStore,
+        "save",
+        lambda _store, _artifact: ArtifactSaveResult(
+            artifactUrl="https://artifact.test/design-validation-disabled",
+            artifactDigest="sha256:design-validation-disabled",
+        ),
+    )
+
+    response = WidgetGenerationService().generate_widget_card_compact_dsl(
+        _model_failure_request()
+    )
+
+    assert response.status == GenerationStatus.SUCCESS
+    assert response.artifactUrl == "https://artifact.test/design-validation-disabled"
+
+
+def test_design_compact_validation_error_without_repair_still_saves(monkeypatch):
+    settings = get_settings()
+    saved_genui: list[str] = []
+
+    def validation_error(_validator, _artifact, _profile):
+        return ["DSL_REQUIRED_FIELD [genui:2 /updateComponents/root]"]
+
+    def save_artifact(_store, artifact):
+        saved_genui.append(artifact.genui)
+        return ArtifactSaveResult(
+            artifactUrl="https://artifact.test/design-unrepaired",
+            artifactDigest="sha256:design-unrepaired",
+        )
+
+    monkeypatch.setattr(settings, "enable_artifact_validation", True)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", False)
+    monkeypatch.setattr(ArtifactValidator, "validate", validation_error)
+    monkeypatch.setattr(ArtifactStore, "save", save_artifact)
+
+    response = WidgetGenerationService().generate_widget_card_compact_dsl(
+        _model_failure_request()
+    )
+
+    assert response.status == GenerationStatus.SUCCESS
+    assert response.artifactUrl == "https://artifact.test/design-unrepaired"
+    assert len(saved_genui) == 1
 
 
 def test_response_planner_returns_structured_status():

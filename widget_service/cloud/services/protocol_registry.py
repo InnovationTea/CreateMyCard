@@ -1,14 +1,56 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import re
+from dataclasses import dataclass
+from functools import cache
+from pathlib import Path
+from typing import Any
+
+from packaging.version import InvalidVersion, Version
 
 from app.logger import logger
 from config.config import get_settings
+from services.capability_registry import CapabilityRegistry
+from services.json_loader import load_json
 
 _MODULE = "[Protocol Registry]"
 
 A2UI_FORM_PROTOCOL_PROFILE_ID = "a2ui-form-rom6.0-v1"
 COMPACT_DSL_PROTOCOL_PROFILE_ID = "compact-dsl-v1"
+DESIGN_COMPACT_PROFILE_ID = "design-compact-dsl"
+_RANGE_INDEX_FILE = "registry_ranges.json"
+_DESIGN_PROMPT_FILE = "PROMPT.md"
+_DESIGN_PROTOCOL_FILE = "protocol.json"
+
+
+@dataclass(frozen=True)
+class ProtocolProfileSelection:
+    """App/ROM 区间命中的输出协议和 Design Compact 提示词版本。"""
+
+    protocol_profile_id: str
+    design_profile_id: str
+    normalized_app_version: str
+    normalized_rom_version: str
+
+
+@dataclass(frozen=True)
+class ProtocolRegistryRange:
+    protocol_profile_id: str
+    design_profile_id: str
+    app_min: Version
+    app_max: Version
+    rom_min: Version
+    rom_max: Version
+
+    def matches(self, app_version: Version, rom_version: Version) -> bool:
+        app_matches = self.app_min <= app_version < self.app_max
+        rom_matches = self.rom_min <= rom_version < self.rom_max
+        return app_matches and rom_matches
+
+    def overlaps(self, other: "ProtocolRegistryRange") -> bool:
+        app_overlaps = self.app_min < other.app_max and other.app_min < self.app_max
+        rom_overlaps = self.rom_min < other.rom_max and other.rom_min < self.rom_max
+        return app_overlaps and rom_overlaps
 
 
 class A2UIProtocolRegistry:
@@ -84,6 +126,205 @@ class A2UIProtocolRegistry:
             f"component_count={len(profile['componentWhitelist'])}"
         )
         return profile
+
+    @classmethod
+    def from_app_rom_versions(
+        cls,
+        app_version: str,
+        rom_version: str,
+        profiles_root: Path | None = None,
+    ) -> ProtocolProfileSelection:
+        """根据规范化 App/ROM 版本选择第四接口使用的协议版本。"""
+        root = profiles_root or get_settings().data_root / "protocol_profiles"
+        normalized_app = CapabilityRegistry.normalize_app_version(app_version)
+        normalized_rom = CapabilityRegistry.normalize_rom_version(rom_version)
+        app = cls._parse_runtime_version(normalized_app, "App")
+        rom = cls._parse_runtime_version(normalized_rom, "ROM")
+        matches = [item for item in cls._load_ranges(root) if item.matches(app, rom)]
+        if len(matches) > 1:
+            raise ValueError("Multiple protocol profile ranges matched the same device")
+        if not matches:
+            raise ValueError(
+                "Protocol profile range not found: "
+                f"app={normalized_app}, rom={normalized_rom}"
+            )
+        matched = matches[0]
+        return ProtocolProfileSelection(
+            protocol_profile_id=matched.protocol_profile_id,
+            design_profile_id=matched.design_profile_id,
+            normalized_app_version=normalized_app,
+            normalized_rom_version=normalized_rom,
+        )
+
+    @classmethod
+    def default_selection(
+        cls,
+        app_version: str,
+        rom_version: str,
+    ) -> ProtocolProfileSelection:
+        """构造配置指定的默认协议回退结果。"""
+        settings = get_settings()
+        return ProtocolProfileSelection(
+            protocol_profile_id=settings.protocol_profile_id,
+            design_profile_id=settings.design_compact_profile_id,
+            normalized_app_version=CapabilityRegistry.normalize_app_version(app_version),
+            normalized_rom_version=CapabilityRegistry.normalize_rom_version(rom_version),
+        )
+
+    @classmethod
+    def read_design_prompt(
+        cls,
+        design_profile_id: str,
+        profiles_root: Path | None = None,
+    ) -> str:
+        """读取版本选择结果对应的 Design Compact 完整系统提示词。"""
+        root = profiles_root or get_settings().data_root / "protocol_profiles"
+        prompt_path = root / design_profile_id / _DESIGN_PROMPT_FILE
+        if not prompt_path.is_file():
+            raise ValueError(f"Design Compact prompt not found: {prompt_path}")
+        return prompt_path.read_text(encoding="utf-8")
+
+    @classmethod
+    def read_design_protocol_profile(
+        cls,
+        design_profile_id: str,
+        profiles_root: Path | None = None,
+    ) -> dict[str, Any]:
+        """读取 Design Compact 转换器专用的目标 A2UI 协议参数。"""
+        root = profiles_root or get_settings().data_root / "protocol_profiles"
+        protocol_path = root / design_profile_id / _DESIGN_PROTOCOL_FILE
+        if not protocol_path.is_file():
+            raise ValueError(f"Design Compact protocol file not found: {protocol_path}")
+        payload = load_json(protocol_path)
+        if not isinstance(payload, dict):
+            raise ValueError("Design Compact protocol file must contain an object")
+        cls._validate_design_protocol_profile(payload, protocol_path)
+        return payload
+
+    @classmethod
+    @cache
+    def _load_ranges(cls, profiles_root: Path) -> list[ProtocolRegistryRange]:
+        index_path = profiles_root / _RANGE_INDEX_FILE
+        if not index_path.is_file():
+            raise ValueError(f"Protocol profile range index not found: {index_path}")
+        payload = load_json(index_path)
+        if not isinstance(payload, dict):
+            raise ValueError("Protocol profile range index must be an object")
+        raw_ranges = payload.get("ranges")
+        if not isinstance(raw_ranges, list) or not raw_ranges:
+            raise ValueError("Protocol profile range index must contain non-empty ranges")
+        ranges = [cls._parse_range(item, profiles_root) for item in raw_ranges]
+        cls._validate_no_overlaps(ranges)
+        return ranges
+
+    @classmethod
+    def _parse_range(
+        cls,
+        payload: Any,
+        profiles_root: Path,
+    ) -> ProtocolRegistryRange:
+        if not isinstance(payload, dict):
+            raise ValueError("Protocol profile range entry must be an object")
+        protocol_profile_id = cls._required_profile_id(payload, "protocolProfileId")
+        design_profile_id = cls._required_profile_id(payload, "designProfileId")
+        cls._validate_profile_files(
+            profiles_root,
+            protocol_profile_id,
+            design_profile_id,
+        )
+        app_min, app_max = cls._parse_interval(payload.get("appVersion"), "appVersion")
+        rom_min, rom_max = cls._parse_interval(payload.get("romVersion"), "romVersion")
+        return ProtocolRegistryRange(
+            protocol_profile_id=protocol_profile_id,
+            design_profile_id=design_profile_id,
+            app_min=app_min,
+            app_max=app_max,
+            rom_min=rom_min,
+            rom_max=rom_max,
+        )
+
+    @staticmethod
+    def _required_profile_id(payload: dict, name: str) -> str:
+        value = payload.get(name)
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"Protocol profile range entry requires {name}")
+        return value
+
+    @classmethod
+    def _validate_profile_files(
+        cls,
+        profiles_root: Path,
+        protocol_profile_id: str,
+        design_profile_id: str,
+    ) -> None:
+        protocol_dir = profiles_root / protocol_profile_id
+        if not protocol_dir.is_dir():
+            raise ValueError(f"Protocol profile not found: {protocol_profile_id}")
+        required_files = ("protocol.md", "component-catalog.md", "data-binding.md")
+        for filename in required_files:
+            profile_file = protocol_dir / filename
+            if not profile_file.is_file():
+                raise ValueError(f"Protocol profile file not found: {profile_file}")
+        design_prompt = profiles_root / design_profile_id / _DESIGN_PROMPT_FILE
+        if not design_prompt.is_file():
+            raise ValueError(f"Design Compact prompt not found: {design_prompt}")
+        cls.read_design_protocol_profile(design_profile_id, profiles_root)
+
+    @staticmethod
+    def _validate_design_protocol_profile(payload: dict[str, Any], path: Path) -> None:
+        version = payload.get("version")
+        catalog_id = payload.get("catalogId")
+        sizes = payload.get("sizes")
+        if not isinstance(version, str) or not version.strip():
+            raise ValueError(f"Design Compact protocol version is invalid: {path}")
+        if not isinstance(catalog_id, str) or not catalog_id.strip():
+            raise ValueError(f"Design Compact protocol catalogId is invalid: {path}")
+        if not isinstance(sizes, dict):
+            raise ValueError(f"Design Compact protocol sizes are invalid: {path}")
+        for size in ("2x2", "2x4"):
+            dimensions = sizes.get(size)
+            if not isinstance(dimensions, dict):
+                raise ValueError(f"Design Compact protocol size {size} is missing: {path}")
+            width = dimensions.get("width")
+            height = dimensions.get("height")
+            valid_dimensions = type(width) is int and type(height) is int
+            if not valid_dimensions or width <= 0 or height <= 0:
+                raise ValueError(f"Design Compact protocol size {size} is invalid: {path}")
+
+    @classmethod
+    def _parse_interval(cls, payload: Any, name: str) -> tuple[Version, Version]:
+        if not isinstance(payload, dict):
+            raise ValueError(f"{name} range must be an object")
+        minimum = cls._parse_config_version(payload.get("minInclusive"), f"{name}.minInclusive")
+        maximum = cls._parse_config_version(payload.get("maxExclusive"), f"{name}.maxExclusive")
+        if minimum >= maximum:
+            raise ValueError(f"{name} minInclusive must be less than maxExclusive")
+        return minimum, maximum
+
+    @staticmethod
+    def _parse_config_version(value: Any, name: str) -> Version:
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"{name} must be a non-empty version string")
+        try:
+            return Version(value)
+        except InvalidVersion as error:
+            raise ValueError(f"Invalid {name}: {value}") from error
+
+    @staticmethod
+    def _parse_runtime_version(value: str, name: str) -> Version:
+        try:
+            return Version(value)
+        except InvalidVersion as error:
+            raise ValueError(f"Invalid normalized {name} version: {value}") from error
+
+    @staticmethod
+    def _validate_no_overlaps(ranges: list[ProtocolRegistryRange]) -> None:
+        for index, current in enumerate(ranges):
+            for other_index in range(index + 1, len(ranges)):
+                other = ranges[other_index]
+                if current.overlaps(other):
+                    profiles = f"{current.protocol_profile_id}, {other.protocol_profile_id}"
+                    raise ValueError(f"Overlapping protocol profile ranges: {profiles}")
 
     def _read_markdown(self, profile_dir, filename: str) -> str:
         """读取协议版本目录下的 md 原文。

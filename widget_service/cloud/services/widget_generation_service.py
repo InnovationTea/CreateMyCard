@@ -24,6 +24,7 @@ from custom.a2ui_model_client import (
     A2UIModelGenerationError,
     require_generated_dsl,
 )
+from custom.model_transport import ModelBackend
 from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
 from models.generation import EventAction
 from services.artifact_store import ArtifactStore
@@ -41,6 +42,7 @@ from services.protocol_registry import (
     A2UI_FORM_PROTOCOL_PROFILE_ID,
     COMPACT_DSL_PROTOCOL_PROFILE_ID,
     A2UIProtocolRegistry,
+    ProtocolProfileSelection,
 )
 from services.response_planner import ResponsePlanner
 from services.retry_controller import RetryController
@@ -228,7 +230,12 @@ class WidgetGenerationService:
         return response
 
     def generate_widget_card(
-        self, request: GenerateWidgetCardRequest
+        self,
+        request: GenerateWidgetCardRequest,
+        *,
+        protocol_profile_id: str | None = None,
+        model_backend: ModelBackend = "mep",
+        design_profile_id: str | None = None,
     ) -> GenerateWidgetCardResponse:
         """生成卡片。
 
@@ -370,13 +377,17 @@ class WidgetGenerationService:
             f"{_MODULE} generate_flow_step_registry_loaded registry_version={registry.version}"
         )
         # 协议 profile 决定 A2UI 组件白名单、DSL 行数要求和校验规则。
-        protocol_registry = A2UIProtocolRegistry(request.protocolProfileId)
+        selected_profile_id = protocol_profile_id or request.protocolProfileId
+        protocol_registry = A2UIProtocolRegistry(selected_profile_id)
         protocol_profile = protocol_registry.get_profile()
         compact_dsl = is_compact_dsl(protocol_profile)
+        design_compact = design_profile_id is not None
+        resolved_design_profile_id = design_profile_id or ""
         logger.info(
             f"{_MODULE} generate_flow_step_protocol_loaded "
             f"protocol_profile_id={protocol_profile['id']} "
-            f"protocol_version={protocol_profile['version']}"
+            f"protocol_version={protocol_profile['version']} "
+            f"model_backend={model_backend} design_profile_id={design_profile_id or ''}"
         )
         latency_by_stage["registryAndProtocol"] = self._elapsed_ms(stage_started_at)
         stage_started_at = time.perf_counter()
@@ -493,14 +504,26 @@ class WidgetGenerationService:
             f"{json_for_log(list(task_spec.dataModelSchema))}"
         )
         # prompt 约束模型生成 DSL；Validator 用于质量观测，重试由配置控制，不作为保存门禁。
-        prompt = PromptBuilder().build(
-            task_spec,
-            protocol_profile,
-            "；".join(f"{item.id}:{item.reason}" for item in removed),
-            previous_genui=(
-                source_load_result.artifact.genui if source_load_result else None
-            ),
-        )
+        if design_profile_id is not None:
+            design_system_prompt = A2UIProtocolRegistry.read_design_prompt(
+                design_profile_id
+            )
+            prompt = PromptBuilder().build_design_compact(
+                task_spec,
+                design_system_prompt,
+                previous_genui=(
+                    source_load_result.artifact.genui if source_load_result else None
+                ),
+            )
+        else:
+            prompt = PromptBuilder().build(
+                task_spec,
+                protocol_profile,
+                "；".join(f"{item.id}:{item.reason}" for item in removed),
+                previous_genui=(
+                    source_load_result.artifact.genui if source_load_result else None
+                ),
+            )
         if compact_dsl:
             compact_binding_context = build_compact_binding_context(
                 card_spec.model_dump(mode="json", exclude_none=True),
@@ -525,13 +548,23 @@ class WidgetGenerationService:
         latency_by_stage["specAndPrompt"] = self._elapsed_ms(stage_started_at)
         stage_started_at = time.perf_counter()
 
-        model_client = A2UIModelClient()
+        model_client = A2UIModelClient(backend=model_backend)
+        model_protocol_profile = protocol_profile
+        if design_profile_id is not None:
+            model_protocol_profile = {
+                "id": design_profile_id,
+                "format": "compact-dsl",
+            }
         retry_controller = RetryController()
         artifact_id = str(uuid.uuid4())
         compact_operation_error = ""
+        latest_design_dsl = ""
         model_call_phase = "initial"
         model_failure_retry_count = 0
-        if protocol_profile["id"] == COMPACT_DSL_PROTOCOL_PROFILE_ID:
+        if design_compact:
+            design_mode = "edit" if source_load_result else "create"
+            repair_prompt_type = f"design-compact-{design_mode}"
+        elif protocol_profile["id"] == COMPACT_DSL_PROTOCOL_PROFILE_ID:
             repair_prompt_type = "compact"
         elif source_load_result:
             repair_prompt_type = "edit"
@@ -582,12 +615,22 @@ class WidgetGenerationService:
             入参：无。
             出参：三行 JSONL genui 字符串。
             """
-            nonlocal compact_operation_error
+            nonlocal compact_operation_error, latest_design_dsl
             logger.info(f"{_MODULE} a2ui_model_operation_started")
-            generated = call_model_with_failure_retry(
-                lambda: model_client.generate(prompt, protocol_profile),
-                "initial",
-            )
+
+            def generate_once() -> str:
+                nonlocal latest_design_dsl
+                generated_dsl = model_client.generate(prompt, model_protocol_profile)
+                if not design_compact:
+                    return generated_dsl
+                latest_design_dsl = generated_dsl
+                return model_client.convert_design_dsl_to_standard_dsl(
+                    generated_dsl,
+                    size=card_spec.suggestSize,
+                    design_profile_id=resolved_design_profile_id,
+                )
+
+            generated = call_model_with_failure_retry(generate_once, "initial")
             if not compact_dsl:
                 return generated
             if not generated.strip():
@@ -631,17 +674,39 @@ class WidgetGenerationService:
 
         def repair_genui(invalid_genui: str, validation_errors: list[str]) -> str:
             """携带首次非法 DSL 和 error 级错误执行一次定向修复。"""
+            nonlocal latest_design_dsl
+            repair_source = latest_design_dsl if design_compact else invalid_genui
+            repair_format = (
+                resolved_design_profile_id if design_compact else protocol_profile["format"]
+            )
             repair_prompt = PromptBuilder().build_repair(
                 prompt,
-                invalid_genui,
+                repair_source,
                 validation_errors,
+                dsl_format=repair_format,
             )
             logger.info(
                 f"{_MODULE} a2ui_repair_started repair_prompt_type={repair_prompt_type} "
                 f"initial_validation_error_count={len(validation_errors)}"
             )
+
+            def repair_once() -> str:
+                nonlocal latest_design_dsl
+                repaired_dsl = model_client.generate_repair(
+                    repair_prompt,
+                    model_protocol_profile,
+                )
+                if not design_compact:
+                    return repaired_dsl
+                latest_design_dsl = repaired_dsl
+                return model_client.convert_design_dsl_to_standard_dsl(
+                    repaired_dsl,
+                    size=card_spec.suggestSize,
+                    design_profile_id=resolved_design_profile_id,
+                )
+
             return call_model_with_failure_retry(
-                lambda: model_client.generate_repair(repair_prompt, protocol_profile),
+                repair_once,
                 "repair",
             )
 
@@ -659,7 +724,8 @@ class WidgetGenerationService:
                 )
                 return [error]
             # 每次模型输出都临时组装 artifact，再用同一套 Validator 校验完整契约。
-            if not settings.enable_artifact_validation and not compact_dsl:
+            validation_optional = not compact_dsl
+            if not settings.enable_artifact_validation and validation_optional:
                 logger.info(
                     f"{_MODULE} a2ui_genui_validation_skipped "
                     "reason=enable_artifact_validation_false"
@@ -693,8 +759,8 @@ class WidgetGenerationService:
             )
             if compact_dsl and validation_errors:
                 logger.info(
-                    f"{_MODULE} compact_validation_failed "
-                    "validation_repair_skipped=true reason=compact_single_pass_policy "
+                    f"{_MODULE} strict_validation_failed "
+                    "validation_repair_skipped=true reason=legacy_compact_policy "
                     f"categories={json_for_log(artifact_validator.error_categories)}"
                 )
             if source_load_result:
@@ -712,10 +778,9 @@ class WidgetGenerationService:
                         )
             return validation_errors
 
-        # 工具3保留部署配置的重试行为；工具4依靠本地 preflight 修复并保持单次模型调用。
-        retry_on_validation_failure = (
-            settings.enable_validation_failure_retry and not compact_dsl
-        )
+        # 所有标准 A2UI 输出共享校验与 repair 开关；旧 Compact DSL profile 继续使用本地预检策略。
+        retry_on_validation_failure = settings.enable_validation_failure_retry
+        retry_on_validation_failure = retry_on_validation_failure and not compact_dsl
         try:
             retry_result = retry_controller.run(
                 operation,
@@ -789,9 +854,10 @@ class WidgetGenerationService:
             f"repair_prompt_type={repair_prompt_type} "
             f"validation_error_count={len(errors)}"
         )
-        if compact_dsl and errors:
+        strict_validation = compact_dsl
+        if strict_validation and errors:
             logger.error(
-                f"{_MODULE} compact_generation_validation_failed "
+                f"{_MODULE} strict_generation_validation_failed "
                 f"errors={json_for_log(errors)}"
             )
             response = GenerateWidgetCardResponse(
@@ -827,7 +893,7 @@ class WidgetGenerationService:
             )
         stage_started_at = time.perf_counter()
 
-        # 工具3沿用非阻断校验；工具4仅在 Compact 校验通过后组装 artifact。
+        # 工具3沿用非阻断校验；工具4仅在转换后的标准 A2UI 校验通过后组装 artifact。
         artifact = self._build_artifact(
             genui,
             card_spec.model_dump(mode="json", exclude_none=True),
@@ -962,39 +1028,96 @@ class WidgetGenerationService:
         self,
         request: GenerateWidgetCardRequest,
     ) -> GenerateWidgetCardResponse:
-        """使用原 A2UI Form profile 生成卡片。"""
+        """使用标准 A2UI Form profile 和配置选择的模型后端生成卡片。"""
         return self._generate_widget_card_with_profile(
             request,
             A2UI_FORM_PROTOCOL_PROFILE_ID,
+            model_backend=get_settings().a2ui_form_model_backend,
         )
 
     def generate_widget_card_compact_dsl(
         self,
         request: GenerateWidgetCardRequest,
     ) -> GenerateWidgetCardResponse:
-        """使用 Compact DSL profile 生成卡片。"""
-        if "sourceArtifactUrl" in request.model_fields_set:
+        """使用配置选择的后端生成 Design Compact DSL，并转换为标准 A2UI。"""
+        try:
+            selection = self._compact_protocol_selection(request)
+        except ValueError as exc:
+            logger.error(
+                f"{_MODULE} compact_protocol_selection_failed "
+                f"error_code={ErrorCode.APP_VERSION_UNSUPPORTED.value} error={exc}"
+            )
             return GenerateWidgetCardResponse(
                 status=GenerationStatus.UNSUPPORTED,
                 suggestSize=request.size or "2x4",
-                message="Compact DSL 调试入口不支持多轮编辑。",
-                errorCode=ErrorCode.WIDGET_EDIT_DISABLED.value,
+                message="当前 App/ROM 版本暂无可用的卡片协议，暂时不能生成卡片。",
+                errorCode=ErrorCode.APP_VERSION_UNSUPPORTED.value,
             )
         return self._generate_widget_card_with_profile(
             request,
-            COMPACT_DSL_PROTOCOL_PROFILE_ID,
+            selection.protocol_profile_id,
+            model_backend=get_settings().design_compact_model_backend,
+            design_profile_id=selection.design_profile_id,
         )
 
     def _generate_widget_card_with_profile(
         self,
         request: GenerateWidgetCardRequest,
         protocol_profile_id: str,
+        *,
+        model_backend: ModelBackend,
+        design_profile_id: str | None = None,
     ) -> GenerateWidgetCardResponse:
         """复制请求并锁定路由对应的协议 profile。"""
         profiled_request = request.model_copy(
             update={"protocolProfileId": protocol_profile_id}
         )
-        return self.generate_widget_card(profiled_request)
+        return self.generate_widget_card(
+            profiled_request,
+            protocol_profile_id=protocol_profile_id,
+            model_backend=model_backend,
+            design_profile_id=design_profile_id,
+        )
+
+    def _compact_protocol_selection(
+        self,
+        request: GenerateWidgetCardRequest,
+    ) -> ProtocolProfileSelection:
+        """按 App/ROM 区间选择第四接口的输出协议和 Design 提示词。"""
+        settings = get_settings()
+        requested_app = request.prdVer or settings.default_prd_version
+        requested_rom = request.device._source_rom_version or request.device.romVersion
+        requested_rom = requested_rom or settings.default_device_rom_version
+        selection_type = "interval"
+        try:
+            selection = A2UIProtocolRegistry.from_app_rom_versions(
+                requested_app,
+                requested_rom,
+            )
+        except ValueError as exc:
+            if not settings.enable_default_protocol_profile_fallback:
+                raise
+            selection = A2UIProtocolRegistry.default_selection(
+                requested_app,
+                requested_rom,
+            )
+            A2UIProtocolRegistry(selection.protocol_profile_id).get_profile()
+            A2UIProtocolRegistry.read_design_prompt(selection.design_profile_id)
+            selection_type = "fallback"
+            logger.warning(
+                f"{_MODULE} protocol_profile_fallback "
+                f"requested_app_version={requested_app} requested_rom_version={requested_rom} "
+                f"fallback_profile_id={selection.protocol_profile_id} reason={exc}"
+            )
+        logger.info(
+            f"{_MODULE} protocol_profile_selected requested_app_version={requested_app} "
+            f"requested_rom_version={requested_rom} "
+            f"normalized_app_version={selection.normalized_app_version} "
+            f"normalized_rom_version={selection.normalized_rom_version} "
+            f"protocol_profile_id={selection.protocol_profile_id} "
+            f"design_profile_id={selection.design_profile_id} selection_type={selection_type}"
+        )
+        return selection
 
     def _normalize_event_candidates(
         self,

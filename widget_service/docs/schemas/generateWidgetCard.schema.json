@@ -67,11 +67,6 @@
             "type": "string[]",
             "required": false,
             "description": "候选素材 ID 列表。"
-          },
-          "protocolProfileId": {
-            "type": "string|null",
-            "required": false,
-            "description": "可选 A2UI 协议 profile ID；不传时使用默认 profile。"
           }
         }
       },

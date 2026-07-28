@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design Token 极简协议卡片"
+  short_description: "仅处理显式指定 Design Token 极简协议的 HarmonyOS 卡片请求。"
+  default_prompt: "仅当用户当前请求明确要求使用带 Design Token 的极简协议或 Design Compact DSL 创建或编辑 HarmonyOS 桌面卡片时，使用 $harmony-card-generation-design-compact-dsl-online；依次调用工具 1、2、4，并严格根据真实状态、artifactUrl 和三类固定异常话术回复。"

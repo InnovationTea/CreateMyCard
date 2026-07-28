@@ -1,0 +1,65 @@
+{
+  "bundleName": "com.omega_w_0823.hmservice",
+  "pluginType": "Cloud",
+  "toolType": "XiaoYiPlugin",
+  "toolName": "getWidgetCapabilityOverview",
+  "description": "获取当前用户实际可用的数据能力、不可用数据能力 ID，以及事件和素材概述",
+  "arguments": {},
+  "outputSchema": {
+    "properties": {
+      "items": {
+        "type": "Array",
+        "description": "结构化数据",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "operation": {
+            "type": "String",
+            "description": "本次动作"
+          },
+          "errorCode": {
+            "type": "String",
+            "description": "错误码"
+          },
+          "status": {
+            "type": "String",
+            "description": "工具状态"
+          },
+          "requestId": {
+            "type": "String",
+            "description": "请求ID"
+          },
+          "data": {
+            "type": "String",
+            "description": "工具返回结果"
+          },
+          "error": {
+            "type": "String",
+            "description": "错误内容"
+          },
+          "tool": {
+            "type": "String",
+            "description": "当前工具名"
+          },
+          "type": {
+            "type": "String",
+            "description": "回复类型"
+          }
+        }
+      },
+      "streamInfo": {
+        "type": "String",
+        "description": "流式信息"
+      }
+    },
+    "required": [
+      "items",
+      "streamInfo"
+    ],
+    "type": "object"
+  },
+  "protocol": "WebSocket",
+  "deviceCommand": null,
+  "schemaVersion": "1.0"
+}
