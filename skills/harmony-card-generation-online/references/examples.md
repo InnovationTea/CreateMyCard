@@ -129,7 +129,7 @@ invoke(functionName:"RequestDataPermission", arguments:{
 }
 ```
 
-`stateOfPermission` 或任一权限项 `authorized` 返回 Boolean `false` 时一票否决，立即结束任务，不调用 `PrepareGenerateCard` 或生成工具，并拒绝继续生成；有 `nonAuthStatus` 时使用每项的 `name` 与 `settingsPath` 引导用户手动授权。例如：
+`stateOfPermission` 或任一权限项 `authorized` 返回 Boolean `false` 时一票否决，立即结束任务，不调用生成工具，并拒绝继续生成；有 `nonAuthStatus` 时使用每项的 `name` 与 `settingsPath` 引导用户手动授权。例如：
 
 ```json
 {
@@ -156,17 +156,7 @@ invoke(functionName:"RequestDataPermission", arguments:{
 
 不向用户输出 `capabilityId`、`authorized` 或 `authType`。返回 Boolean `false` 且 `nonAuthStatus` 缺失或为空数组时，回复“当前生成卡片所需的数据权限不可用，已停止生成。”
 
-4. `PrepareGenerateCard`
-
-权限通过后先通知端侧展示渲染动效。调用发出后直接继续，不等待或关注其返回；即使调用失败、超时或结果非法也不阻断生成。
-
-```text
-invoke(functionName:"PrepareGenerateCard", arguments:{
-  bundleName:"com.omega_w_0823.hmservice"
-},"skillName":"harmony-card-generation-online")
-```
-
-5. `generateWidgetCard`
+4. `generateWidgetCard`
 
 本例把天气、第一场会议和去公司入口都作为必须同屏的核心内容；删除可选展示字段后，`2x2` 仍无法同时保证两个数据区和必要动作热区，因此使用 `2x4`。如果用户只要求天气与下一场会议摘要，则应优先改用 `2x2`。
 
@@ -234,10 +224,9 @@ invoke(functionName:"RequestDataPermission", arguments:{
 },"skillName":"harmony-card-generation-online")
 ```
 
-仅在权限返回 Boolean `true` 后依次调用；`PrepareGenerateCard` 的返回忽略：
+仅在权限返回 Boolean `true` 后调用：
 
 ```text
-invoke(functionName:"PrepareGenerateCard", arguments:{bundleName:"com.omega_w_0823.hmservice"},"skillName":"harmony-card-generation-online")
 invoke(functionName:"generateWidgetCard", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
   userQuery:"给我做一张抖音使用时长和耗电卡，显示前台时长、前台耗电和更新时间。",
@@ -261,10 +250,9 @@ invoke(functionName:"generateWidgetCard", arguments:{
 
 ## 工具调用样例：打开天气应用入口
 
-没有动态数据需求时，`candidateDataBindings` 可以为空；此时没有需要检查的数据权限，不调用 `RequestDataPermission`。仍先调用 `PrepareGenerateCard` 通知端侧展示动效，再让微服务决定是否生成静态入口卡。
+没有动态数据需求时，`candidateDataBindings` 可以为空；此时没有需要检查的数据权限，不调用 `RequestDataPermission`，让微服务决定是否生成静态入口卡。
 
 ```text
-invoke(functionName:"PrepareGenerateCard", arguments:{bundleName:"com.omega_w_0823.hmservice"},"skillName":"harmony-card-generation-online")
 invoke(functionName:"generateWidgetCard", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
   userQuery:"帮我做一个打开天气应用的入口卡片",
@@ -299,7 +287,7 @@ invoke(functionName:"generateWidgetCard", arguments:{
 
 ## 工具返回解析示例
 
-三个微服务工具返回包装结构，业务结果需要从 `items[].data` 解析。端工具 `RequestDataPermission` 按其输出 schema 读取 `result.stateOfPermission` 和可选的 `result.nonAuthStatus`；非空授权明细只使用 `name` 与 `settingsPath` 生成手动授权指引。端工具 `PrepareGenerateCard` 的返回不读取、不解析，也不进入异常处理：
+三个微服务工具返回包装结构，业务结果需要从 `items[].data` 解析。端工具 `RequestDataPermission` 按其输出 schema 读取 `result.stateOfPermission` 和可选的 `result.nonAuthStatus`；非空授权明细只使用 `name` 与 `settingsPath` 生成手动授权指引：
 
 ```json
 {
@@ -489,7 +477,6 @@ invoke(functionName:"RequestDataPermission", arguments:{bundleName:"com.omega_w_
 权限返回 Boolean `true` 后依次调用，且不关注动效工具返回：
 
 ```text
-invoke(functionName:"PrepareGenerateCard", arguments:{bundleName:"com.omega_w_0823.hmservice"},"skillName":"harmony-card-generation-online")
 invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"背景改成蓝色，信息排紧凑一点", sourceArtifactUrl:"https://obs.example/widget/v1.json"},"skillName":"harmony-card-generation-online")
 ```
 
@@ -502,7 +489,6 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 同样先对 `effectiveCapabilities.data` 调用 `RequestDataPermission`，权限返回 Boolean `true` 后依次调用：
 
 ```text
-invoke(functionName:"PrepareGenerateCard", arguments:{bundleName:"com.omega_w_0823.hmservice"},"skillName":"harmony-card-generation-online")
 invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"标题改成每日通勤，再改成 2x4", sourceArtifactUrl:"https://obs.example/widget/v1.json", title:"每日通勤", size:"2x4"},"skillName":"harmony-card-generation-online")
 ```
 
@@ -521,17 +507,16 @@ invoke(functionName:"RequestDataPermission", arguments:{bundleName:"com.omega_w_
 权限返回 Boolean `true` 后先触发动效，再传编辑后的完整集合：
 
 ```text
-invoke(functionName:"PrepareGenerateCard", arguments:{bundleName:"com.omega_w_0823.hmservice"},"skillName":"harmony-card-generation-online")
 invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"去掉日历，只保留天气", sourceArtifactUrl:"https://obs.example/widget/v1.json", candidateDataBindings:[{capabilityId:"ViewWeather", arguments:{districtName:"上海", forecastDays:1}, writeResultTo:"/data/weather", candidateOutputFields:["/location/name", "/current/temperatureText", "/current/weatherText"]}]},"skillName":"harmony-card-generation-online")
 ```
 
-这里只传天气不是增量修改，而是替换整个数据候选类别。删除全部动态数据时传 `candidateDataBindings: []`，无需调用 `RequestDataPermission`，但仍须先调用一次 `PrepareGenerateCard` 再生成。
+这里只传天气不是增量修改，而是替换整个数据候选类别。删除全部动态数据时传 `candidateDataBindings: []`，无需调用 `RequestDataPermission`。
 
 ### 修改能力参数并继续编辑
 
 用户：“把上海天气改成北京天气。”
 
-重新获取 overview 和天气 schema，将完整数据候选中的天气参数改为北京，保留其它 binding；先对编辑后的完整数据能力 ID 调用 `RequestDataPermission`，权限返回 Boolean `true` 后调用一次 `PrepareGenerateCard`，忽略其返回并立即调用 `generateWidgetCard`。如果上一轮编辑成功并返回：
+重新获取 overview 和天气 schema，将完整数据候选中的天气参数改为北京，保留其它 binding；先对编辑后的完整数据能力 ID 调用 `RequestDataPermission`，权限返回 Boolean `true` 后再调用 `generateWidgetCard`。如果上一轮编辑成功并返回：
 
 ```json
 {
