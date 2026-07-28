@@ -123,6 +123,7 @@
 - 是否单焦点、场景洗色、套色单家族?细则见 `design-system.md`。
 - molecule / 角色是否落地?细则见 `visual-molecules.md`。
 - `2x2` + `capsule` 时：是否先算 `contentBudget`(约 64)，content 直接子块 ≤2，且无 `display-s` 与 Progress 叠同一百分比?细则见 `2x2-pack.md`。
+- `capsule` 带行内图标时，图标是否与按钮字色同源（同一墨色，而非另选图标色）?
 - `2x4`/`4x2` 是否用横卡配方且高度不爆?细则见 `2x4-pack.md`。
 - 12vp safe margin 内是否无越界、遮挡、按钮与内容重叠?
 - 动态值是否均为 path + data，无把 sampleValue 写进静态文案?
@@ -846,11 +847,18 @@ Button 的 `height` / `width` / `backgroundColor` / `borderRadius` / `padding` /
 ["join_btn","Button",{"label":"加入会议","design":"capsule","onClick":[{"call":"clickToApi","args":{"intentName":"EnterMeeting","params":{}}}]}]
 ```
 
+capsule + 行内图标（图标与文字同一墨色；这里显式写出字色，图标跟它走）：
+
+```genui
+["call_btn","Button",{"label":"拨打电话","design":"capsule","fontColor":"#FF0A59F7","onClick":[{"call":"clickToApi","args":{"intentName":"CallPhone","params":{"phoneNumber":"","relationship":"哥哥"}}}]},["call_icon"]]
+["call_icon","Image",{"src":"resources/base/media/icon_call.svg","width":16,"height":16,"flexShrink":0,"fillColor":"#FF0A59F7"}]
+```
+
 图标圆钮示例（`label` 仅语义；可见为 `Image`）：
 
 ```genui
-["call_btn","Button",{"label":"拨打电话","design":"icon-round","onClick":[{"call":"clickToApi","args":{"intentName":"CallPhone","params":{"phoneNumber":"","relationship":"哥哥"}}}]},["call_icon"]]
-["call_icon","Image",{"src":"resources/base/media/icon_call.svg","width":16,"height":16,"flexShrink":0,"fillColor":"#E5000000"}]
+["call_round","Button",{"label":"拨打电话","design":"icon-round","onClick":[{"call":"clickToApi","args":{"intentName":"CallPhone","params":{"phoneNumber":"","relationship":"哥哥"}}}]},["call_round_icon"]]
+["call_round_icon","Image",{"src":"resources/base/media/icon_call.svg","width":16,"height":16,"flexShrink":0,"fillColor":"#E5000000"}]
 ```
 
 ## Checkbox
@@ -991,7 +999,7 @@ primary/support 内可使用信息托盘；root 保持固定 shell 和清晰角�
 - Button `design` 仅允许 `capsule` / `icon-round`
 - Button 子样式定值由 `design` 展开；实例只写 `label` / `design` / `onClick` / `enabled` / `fontColor`，不写 `height` / `width` / `backgroundColor` / `borderRadius` / `padding` / `fontSize` / `fontWeight` / `maxLines` / `flexShrink`。
 - `capsule` 背景固定来自子样式；行动强弱通过是否生成 action、位置和 label 表达，不通过改背景表达。
-- `capsule` 若包含行内 `Image` 图标，图标 `fillColor` 必须与 Button `fontColor` 完全一致；未显式写 `fontColor` 时，图标使用同一默认文字色。
+- `capsule` 行内图标与文字是同一行动信号：`Image.fillColor` 与 Button 实际字色同源（写了 `fontColor` 就用同一字符串；未写则用 capsule 默认标签色 `font_emphasize`）。不要给图标另选一套颜色。
 - `icon-round` 必须有唯一可见 16×16 `Image` 子节点；`label` 仅语义，不绘制。
 - `2x2` ≤1 显式动作；`2x4` ≤2 分离热区
 - 无 `eventCandidates` → 不造 action
@@ -1170,6 +1178,7 @@ primary/support 内可使用信息托盘；root 保持固定 shell 和清晰角�
 | 纯图标行动 | `icon-round` | 必须有匹配候选作 `Image` 子节点；否则改 `capsule` |
 
 - 查看、打开、详情、进入、切换等常规动作也用 `capsule`，不改背景。
+- `capsule` 带行内图标时：图标与文字共用同一墨色——`fillColor` 等于按钮实际字色（显式 `fontColor`，或未写时的默认 `font_emphasize`）。图标不是装饰层，不要单独取色。
 - `icon-round` 可见内容只能是图标；要文字用 `capsule`。
 - 热区：`2x2` ≤1；`2x4` ≤2。
 - 无 `eventCandidates` → 不造 action。
@@ -1447,6 +1456,7 @@ title_area Column [
 
 - `capsule` 不做短按钮、不居中浮动。
 - `capsule` 的宽高由子样式和父级 `action_area` 共同决定，不在 Button 实例中重写。
+- `capsule` 行内图标与字色同源（同一 `fontColor` / 默认标签色），不要给图标另配色。
 - `icon-round` 不占整行，不居中；靠右但仍在底部 action_area 内。
 - 不把 action 放进 `title_area` 右侧；title 右侧图标只是 identity 装饰。
 
@@ -1468,7 +1478,7 @@ title_area Column [
 3. 若 `sum + gaps > contentBudget`，或有 capsule 时直接子块 **> 2**，或 Progress 旁另挂 `display-s` 同百分比 → **立刻改配方**，禁止输出。
 4. title_area / content_area 都已落位，content_area 接住剩余高度；区间距 8vp。
 5. title 行 anatomy：text track 左、accessory icon 右。
-6. `capsule` 占底行；`icon-round` 靠右。
+6. `capsule` 占底行；`icon-round` 靠右；capsule 带图标时图标与字色同源。
 7. title 是用途名；上屏是语义完整子集；动态值均有 path + data 行。
 
 ## 8. Audit
