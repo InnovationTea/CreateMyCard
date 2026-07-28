@@ -102,8 +102,15 @@ Text `design` 只展开字号和字重，颜色由实例的 `fontColor` 决定�
 | `backgroundColor` | `#0C000000` |
 | `flexShrink` | `0` |
 
-支持状态：几何和背景完整支持。标准 A2UI Form Button 使用 `label`，不支持 Compact DSL
-Button 子节点，因此“按钮内部嵌套 Image”不在当前云侧转换范围内。
+支持状态：几何和背景完整支持。标准 A2UI Form Button 使用 `label`，不支持子节点。为兼容
+PROMPT.md 允许的单个行内 `Image`，转换器会验证该子节点后将其移除，并保留 Button 的
+`label`、`onClick` 和设计样式。该行为属于**降级支持**，图标不会出现在 A2UI 输出中。
+
+兼容规则：
+
+- Button 最多接受一个 `Image` 子节点，其他类型或多个子节点继续拒绝。
+- 叶子组件误带的空 `children: []` 会被直接移除。
+- 除 Button 的单个 `Image` 外，叶子组件的非空 `children` 继续拒绝。
 
 已移除的旧别名：
 
@@ -274,6 +281,12 @@ Compact DSL 的 `threshold` 由转换层消费，不写入 A2UI `styles`，避�
 提示词文件不由转换层 PR 自动修改。提示词维护方需要根据同一上游 token 版本单独同步。
 
 ## 11. Change Log
+
+### v3 - 2026-07-28
+
+- 兼容叶子组件多余的空 `children: []`，转换后不输出 `children`。
+- Button 的单个 `Image` 子节点按标准 A2UI Form 能力降级移除。
+- Button 的多个子节点、非 Image 子节点以及其他叶子组件的非空子节点仍为硬错误。
 
 ### v2 - 2026-07-28 - PR #13
 
