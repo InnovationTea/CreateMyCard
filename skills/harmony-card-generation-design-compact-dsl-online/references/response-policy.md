@@ -21,7 +21,11 @@ edit 模式的新 `artifactUrl` 还必须不同于 `sourceArtifactUrl`；缺失�
 - 业务结果必须先从当前工具对应的 `items[].data` 解析。`items[].status` 是工具层状态，不等同于 `generateWidgetCardCompactDsl` 业务 payload 的 `status`。
 - `items[].data` 是 JSON 字符串时先解析为对象；解析失败、缺少 `data` 或 `items[].error` 表示失败时，归为其它异常。
 - 只认可 `success`、`degraded`、`unsupported`、`failed` 四种业务状态；其它值归为其它异常。
-- `success` 或 `degraded` 必须同时有有效 `artifactUrl` 才能输出 `genWidgetResult`。代码块内容必须是合法 JSON 对象：`{"result":"artifactUrl"}`；没有真实 URL 时绝不输出标记。
+- `success` 或 `degraded` 必须同时有有效 `artifactUrl` 才能输出 `genWidgetResult`。Markdown
+  代码围栏的信息字符串必须逐字等于 `genWidgetResult`，不得使用 `json`、`JSON`、空标签或其它名称。
+  围栏内容必须是合法 JSON 根对象：`{"result":"artifactUrl"}`。`genWidgetResult` 只表示围栏标签，
+  绝不能作为 JSON 字段；禁止输出 `{"genWidgetResult":{"result":"artifactUrl"}}`。没有真实 URL
+  时绝不输出标记。
 - 除完整成功外，不透传、不拼接、也不润色业务 payload 的 `message` 或旧字段 `userMessage`。工具或微服务提供的原因只可用于内部判定和提炼 `XX`。
 - edit 模式完整成功或部分数据不支持后，将本轮新 URL 作为后续未指定目标编辑的默认来源；其它结果不更换默认来源。
 - 用户可见回复不要暴露 capabilityId、provider、TaskSpec、OBS、IDS、errorCode、requestId、items 或原始 data 字符串。
