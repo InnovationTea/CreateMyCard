@@ -72,7 +72,7 @@ from custom.a2ui_model_client import (
 )
 from custom.llmclient_model_transport import LlmClientModelTransport
 from custom.mep_model_transport import MepModelTransport
-from custom.model_transport import create_model_transport
+from custom.model_transport import ModelTransportError, create_model_transport
 from services.card_spec_builder import CardSpecBuilder
 from services.card_validator import validate_card
 from services.card_validation import validate_card as validate_card_api
@@ -2158,6 +2158,65 @@ def test_model_transport_factory_builds_configured_backend(backend, transport_ty
     assert isinstance(transport, transport_type)
 
 
+def test_design_output_uses_non_empty_mep_result_after_abort(monkeypatch):
+    """MEP 6241 已产生 Design 输出时继续交给后续严格转换和校验。"""
+    design_dsl = '["root","Column",{"width":160,"height":160},[]]'
+    warning_logs: list[str] = []
+
+    class AbortedTransport:
+        @staticmethod
+        def generate(_messages):
+            raise ModelTransportError(
+                "model returned error: code=6241",
+                code="6241",
+                partial_output=design_dsl,
+            )
+
+    monkeypatch.setattr(
+        "custom.a2ui_model_client.logger.warning",
+        warning_logs.append,
+    )
+    client = A2UIModelClient(
+        use_mock=False,
+        backend="mep",
+        transport=AbortedTransport(),
+    )
+    profile = {"id": "design-compact-dsl", "format": "compact-dsl"}
+
+    assert client.generate([], profile) == design_dsl
+    assert any("mep_design_output_recovered_after_abort" in item for item in warning_logs)
+
+
+@pytest.mark.parametrize(
+    ("profile", "partial_output"),
+    [
+        ({"id": "design-compact-dsl", "format": "compact-dsl"}, ""),
+        ({"id": "a2ui-form-rom6.0-v1", "format": "a2ui-form"}, "partial"),
+    ],
+)
+def test_mep_abort_without_usable_design_output_remains_failure(
+    profile,
+    partial_output,
+):
+    class AbortedTransport:
+        @staticmethod
+        def generate(_messages):
+            raise ModelTransportError(
+                "model returned error: code=6241",
+                code="6241",
+                partial_output=partial_output,
+            )
+
+    client = A2UIModelClient(
+        use_mock=False,
+        backend="mep",
+        transport=AbortedTransport(),
+    )
+
+    with pytest.raises(A2UIModelGenerationError, match="model generation failed"):
+        client.generate([], profile)
+
+
 def test_a2ui_model_client_collects_llmclient_stream(monkeypatch):
     """验证 llmclient 传输层只聚合 Token，DSL 后处理由 A2UI 客户端统一执行。"""
     captured: dict = {}
@@ -2353,6 +2412,20 @@ def test_a2ui_model_client_reads_predict_stream(monkeypatch):
     assert result == dsl
     assert captured["url"] == "https://model.test/predict?bId=bid-1&flowId=flow-1"
     assert request_payload["data"]["prompt"].endswith("<|im_start|>assistant\n")
+
+
+def test_mep_transport_preserves_error_code_and_partial_output():
+    with pytest.raises(ModelTransportError) as error_info:
+        MepModelTransport._raise_for_model_error(
+            {
+                "errorCode": 6241,
+                "errorMsg": "Early stop due to aborted",
+            },
+            "partial-design-dsl",
+        )
+
+    assert error_info.value.code == "6241"
+    assert error_info.value.partial_output == "partial-design-dsl"
 
 
 def test_a2ui_model_client_processes_transport_output_by_profile(monkeypatch):

@@ -18,6 +18,17 @@ class ModelTransport(Protocol):
 class ModelTransportError(RuntimeError):
     """模型传输、协议解析或远端显式错误。"""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "",
+        partial_output: str = "",
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.partial_output = partial_output
+
 
 def create_model_transport(
     backend: ModelBackend,

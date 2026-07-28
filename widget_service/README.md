@@ -25,6 +25,9 @@ The service follows `docs/AGENTS.md`:
 - With model mock disabled, both generation routes use the same `A2UIModelClient.generate()` entry. MEP and
   `cloud/custom/llmclient.py` are isolated behind model transport adapters; backend selection is controlled by the
   two route-specific server settings, and tool callers cannot select either backend directly.
+- If MEP ends a Design request with `6241/Early stop due to aborted` after emitting a non-empty candidate, the
+  candidate continues through the strict Design converter and validation flow. Empty output and non-Design requests
+  remain model failures.
 - Standard create, edit, and repair prompts are loaded from `WIDGET_SERVICE_SYSTEM_PROMPT_FILE`,
   `WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE`, and `WIDGET_SERVICE_REPAIR_SYSTEM_PROMPT_FILE`. The Design route uses
   its selected profile's `PROMPT.md` for create/edit and appends the same repair constraints when repair is enabled.

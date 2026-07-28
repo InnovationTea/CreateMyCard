@@ -15,6 +15,7 @@ from config.config import get_settings
 from custom.model_transport import (
     ModelBackend,
     ModelTransport,
+    ModelTransportError,
     create_model_transport,
 )
 from services.compact_dsl_a2ui_converter import (
@@ -114,7 +115,13 @@ class A2UIModelClient:
                         self.backend,
                         self.settings,
                     )
-                raw_output = self.transport.generate(prompt)
+                try:
+                    raw_output = self.transport.generate(prompt)
+                except ModelTransportError as exc:
+                    raw_output = self._recover_design_output_after_abort(
+                        exc,
+                        profile,
+                    )
                 result = self._process_model_output(raw_output, profile)
             return require_generated_dsl(result)
         except A2UIModelGenerationError:
@@ -152,6 +159,23 @@ class A2UIModelClient:
             f"dsl_content={json_for_log(dsl_text)}"
         )
         return dsl_text
+
+    @staticmethod
+    def _recover_design_output_after_abort(
+        exc: ModelTransportError,
+        protocol_profile: dict,
+    ) -> str:
+        """MEP 中止但已返回 Design 候选时交给严格转换器继续判定。"""
+        is_design_output = protocol_profile.get("id") == DESIGN_COMPACT_PROFILE_ID
+        has_partial_output = bool(exc.partial_output.strip())
+        can_recover = exc.code == "6241" and is_design_output
+        if not can_recover or not has_partial_output:
+            raise exc
+        logger.warning(
+            f"{_MODULE} mep_design_output_recovered_after_abort "
+            f"error_code={exc.code} partial_length={len(exc.partial_output)}"
+        )
+        return exc.partial_output
 
     def _load_mock_data(
         self,

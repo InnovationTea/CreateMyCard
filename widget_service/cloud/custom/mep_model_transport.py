@@ -184,7 +184,7 @@ class MepModelTransport:
                         self._append_final_text(collected_texts, text)
             full_text = "".join(collected_texts)
             self._log_response(start, first_token_at, final_event, full_text)
-            self._raise_for_model_error(final_event)
+            self._raise_for_model_error(final_event, full_text)
             return full_text
         except ModelTransportError:
             raise
@@ -262,13 +262,18 @@ class MepModelTransport:
         return f"{completion_tokens / generation_time_sec:.2f}"
 
     @staticmethod
-    def _raise_for_model_error(final_event: dict | None) -> None:
+    def _raise_for_model_error(
+        final_event: dict | None,
+        partial_output: str,
+    ) -> None:
         if not final_event or not final_event.get("errorCode"):
             return
+        error_code = str(final_event.get("errorCode"))
         raise ModelTransportError(
             "model returned error: "
-            f"code={final_event.get('errorCode')}, "
-            f"message={final_event.get('errorMsg')}"
+            f"code={error_code}, message={final_event.get('errorMsg')}",
+            code=error_code,
+            partial_output=partial_output,
         )
 
     @staticmethod
