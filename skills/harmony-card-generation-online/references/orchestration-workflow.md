@@ -1,10 +1,10 @@
 # 云侧编排工作流
 
-本文档承接在线卡片 Skill 的职责边界和完整 create/edit 十三步流程。工具字段与包装结构以 `references/tool-contracts.md` 为准，候选构造以 `references/candidate-planning.md` 为准，生成前及生成后用户输出以 `references/response-policy.md` 为准。
+本文档承接在线卡片 Skill 的职责边界和完整 create/edit 十四步流程。工具字段与包装结构以 `references/tool-contracts.md` 为准，候选构造以 `references/candidate-planning.md` 为准，生成前及生成后用户输出以 `references/response-policy.md` 为准。
 
 ## 职责与边界
 
-识别创建或连续编辑场景，判断需求是否适合桌面卡片，维护当前会话的卡片来源链，获取能力概述，选择候选，按需加载数据能力 schema，在生成前判断能力满足度并检查本轮数据权限，提交生成或编辑请求，并根据决策、权限结果或业务状态回复用户。编辑来源只从对应工具业务 payload 读取真实 `artifactUrl`，不解析或猜测普通回复中的 URL。
+识别创建或连续编辑场景，判断需求是否适合桌面卡片，维护当前会话的卡片来源链，获取能力概述，选择候选，按需加载数据能力 schema，在生成前判断能力满足度并检查本轮数据权限，权限通过或无需检查后通知端侧展示渲染动效，提交生成或编辑请求，并根据决策、权限结果或业务状态回复用户。编辑来源只从对应工具业务 payload 读取真实 `artifactUrl`，不解析或猜测普通回复中的 URL。
 
 每次调用工具前检查是否仍有会影响核心卡片意图、候选选择或工具入参的用户待确认信息；有则只追问最小必要内容并等待用户回答。控制主要展示数据项不超过 4 项，编辑成功后使用本轮返回的新 `artifactUrl` 作为后续编辑的默认来源。
 
@@ -12,7 +12,7 @@
 
 不要直接生成或输出 `genui`、CardSpec、A2UI prompt、替代 artifact 或校验修复结果；不要下载、解析或修改来源 artifact；不要把点击事件写入 CardSpec；不要使用离线能力清单、历史模板或旧协议资料补足在线工具结果；不要提前承诺任何动态能力一定可用。
 
-## 十三步流程
+## 十四步流程
 
 1. **触发与卡片上下文判断**：普通对话且不在卡片上下文时不召回本 Skill。端侧显式标记、卡片创建页面、模板选择上下文或明确创建桌面卡片的请求进入本流程。
 2. **需求适配门禁**：明确要求纯聊天、写作、代码、长报告、完整 App 页面或复杂表单时，不调用工具，按回复策略说明桌面卡片边界并提供 1 至 3 条可直接复述的卡片需求。是否要做成卡片仍有歧义时，只追问一个最小必要问题并等待回答。
@@ -28,9 +28,10 @@
    - 静态入口或动作本身就是核心目标：允许没有数据候选，继续生成。
 9. **加载 schema 并执行第二次能力满足度门禁**：只为本轮实际可用且已选中的数据能力调用 `getDataCapabilitySchemas`。候选选择或必填业务参数仍有核心歧义时先追问。移除 `missingCapabilityIds` 对应候选后重新执行第 8 步的能力满足度门禁；最后一个核心能力被移除时不调用 `generateWidgetCard`。
 10. **构造请求与权限集合**：create 基于 schema 构造完整候选计划；edit 只传本轮明确替换的字段或候选类别。`size` 只使用 `2x2` 或 `2x4`；用户未指定时先按 `2x2` 收敛非核心可选信息，只有必须保留的核心内容、受保护文本、必要热区、关键并列关系或关键媒体无法在 `2x2` 中成立时才传 `2x4`，不得仅因横版更舒展、信息较多或存在两个数据能力而升级。用户明确指定尺寸时优先尊重。create 必传静态短 `title` 和 `description`，edit 仅在用户明确修改时传。数据 binding、展示字段、事件 action 和素材 ID 必须分别来自本轮 schema 或 overview。本版不传 `slots`、`options`、`locale`、`uid`、`device` 等未声明字段。同步确定本轮最终数据能力 ID 集合并去重：create 取最终候选 binding，数据类 edit 取编辑后的完整 binding，其它 edit 取目标卡片有效数据集合；纯静态或仅入口卡片可为空。
-11. **数据权限门禁**：先对完整生成参数再次执行确认门禁、能力满足度门禁和当前运行时 `generateWidgetCard` schema 校验。数据能力 ID 集合非空时，读取当前运行时 `RequestDataPermission` schema，传完整 `dataCapabilityIds` 并等待结果；未返回前不得生成。只有 Boolean `result.stateOfPermission: true` 且 `result.nonAuthStatus` 缺失或为空数组时继续；`nonAuthStatus` 为非空数组时立即终止，使用有效项的 `name` 与 `settingsPath` 引导用户手动授权；`stateOfPermission: false` 且没有授权明细时使用通用权限不可用话术。字段缺失、类型非法、工具不可用或调用失败时按其它异常终止。权限检查后若数据集合发生变化，必须重新检查；集合为空时跳过权限工具。
-12. **生成或编辑**：仅在前置门禁通过且数据权限已通过或无需检查时调用 `generateWidgetCard`。不补做微服务负责的继承、过滤、协议选择、校验、重试或上传。
-13. **回复与编辑链**：从生成工具的 `items[].data` 解析业务 payload。完整 `success`、按数据/动作/素材/混合分类的部分满足、`unsupported` 和其它异常均按回复策略处理。只有 `success` / `degraded` 且存在合法真实 URL 时才能输出 `genWidgetResult`。`unsupported` 在保留受控核心句后，优先使用本轮概述提供相近建议；`failed`、权限工具异常或生成工具异常不追加建议。edit 成功还要求新 URL 不同于来源 URL，并将新 URL 设为后续默认来源；其它结果不更换默认来源。
+11. **数据权限门禁**：先对完整生成参数再次执行确认门禁、能力满足度门禁和当前运行时 `generateWidgetCard` schema 校验。数据能力 ID 集合非空时，读取当前运行时 `RequestDataPermission` schema，传完整 `dataCapabilityIds` 并等待结果；未返回前不得生成。只有 Boolean `result.stateOfPermission: true`、`result.nonAuthStatus` 缺失或为空数组，且返回中的权限项均未出现 Boolean `false` 时继续。`stateOfPermission: false` 或任一权限项 `authorized: false` 都一票否决，立即结束任务并拒绝继续生成；有授权明细时使用有效项的 `name` 与 `settingsPath` 引导用户手动授权，无明细时使用通用权限不可用话术。字段缺失、类型非法、工具不可用或调用失败时按其它异常终止。权限检查后若数据集合发生变化，必须重新检查；集合为空时跳过权限工具。
+12. **触发生成动效**：仅在前置门禁通过，且数据权限已明确通过或本轮数据集合为空无需检查时调用一次 `PrepareGenerateCard`。调用后立即进入下一步；不等待、不解析、不校验也不使用返回值。工具不可用、调用失败、超时、返回缺失或结果非法均不阻断生成，不产生用户回复。权限未通过、需手动授权或权限工具异常时不调用。权限通过后数据集合若发生变化，先回到第 11 步重新检查，再触发动效。
+13. **生成或编辑**：第 12 步调用完成后立即按既定参数调用 `generateWidgetCard`；`PrepareGenerateCard` 的任何返回或异常都不改变此决定。不补做微服务负责的继承、过滤、协议选择、校验、重试或上传。
+14. **回复与编辑链**：从生成工具的 `items[].data` 解析业务 payload。合法真实 `artifactUrl` 对端侧输出具有最高优先级：只要存在就必须输出 `genWidgetResult`，`degraded` 也不得省略；没有 URL 时不得输出。完整 `success`、按数据/动作/素材/混合分类的部分满足、`unsupported` 和其它异常仍按回复策略组织自然语言。`unsupported` 在保留受控核心句后，优先使用本轮概述提供相近建议；`failed`、权限工具异常或生成工具异常不追加建议。`PrepareGenerateCard` 不参与状态映射，不产生独立回复。edit 成功还要求新 URL 不同于来源 URL，并将新 URL 设为后续默认来源；其它结果不更换默认来源。
 
 ## 场景加载顺序
 
