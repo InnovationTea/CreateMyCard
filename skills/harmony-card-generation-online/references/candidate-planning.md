@@ -97,7 +97,7 @@
 - 删除数据或修改参数 edit：使用编辑后的完整 `candidateDataBindings[].capabilityId`。
 - 纯视觉、布局、文案或尺寸 edit：优先使用目标卡片最近一次业务 payload 的 `effectiveCapabilities.data`；缺失时可从同一会话完整候选链扣除已移除能力后恢复。
 - 无法可靠恢复 edit 的完整有效数据集合时停止编辑，不读取或解析来源 artifact 猜测。
-- 集合去重后为空表示不使用动态数据，无需调用权限工具；非空时必须将完整集合传给 `RequestDataPermission`，权限通过后不得再改变数据候选，否则重新检查。
+- 集合去重后为空表示不使用动态数据，无需调用权限工具；非空时必须将完整集合传给 `RequestDataPermission`。只有 `stateOfPermission` 为 `true` 且 `nonAuthStatus` 缺失或为空时视为通过；返回非空 `nonAuthStatus` 时按回复策略引导用户手动授权。权限通过后不得再改变数据候选，否则重新检查。
 
 ## 能力概述筛选 Prompt
 

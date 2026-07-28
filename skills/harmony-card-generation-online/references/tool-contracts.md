@@ -30,7 +30,7 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 
 ## 包装输出
 
-三个微服务工具通常返回包装结构。如果运行环境返回原始插件包络，则先处理顶层 `errorCode/errorMessage/reply`：`errorCode` 非 `"0"` 时按工具失败处理；`errorCode` 为 `"0"` 时从 `reply` 中继续读取 `streamInfo/items`。如果运行环境已归一化，则直接读取顶层 `streamInfo/items`。端工具 `RequestDataPermission` 按当前运行时输出 schema 读取 `result.stateOfPermission`，不套用微服务业务状态解析规则。
+三个微服务工具通常返回包装结构。如果运行环境返回原始插件包络，则先处理顶层 `errorCode/errorMessage/reply`：`errorCode` 非 `"0"` 时按工具失败处理；`errorCode` 为 `"0"` 时从 `reply` 中继续读取 `streamInfo/items`。如果运行环境已归一化，则直接读取顶层 `streamInfo/items`。端工具 `RequestDataPermission` 按当前运行时输出 schema 读取 `result.stateOfPermission` 和可选的 `result.nonAuthStatus`，不套用微服务业务状态解析规则。
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
@@ -144,7 +144,10 @@ invoke(functionName:"RequestDataPermission", arguments:{bundleName:"com.omega_w_
 - 无法从会话中的有效结果或完整候选链可靠恢复 edit 的数据能力集合时停止编辑，不读取来源 artifact 猜测。
 - `dataCapabilityIds` 为空时不调用；这表示本轮卡片不使用动态数据。
 - 调用后必须等待并解析权限结果；在得到明确结果前不得调用 `generateWidgetCard`，也不得继续修改待生成的数据能力集合。
-- 当前工具快照的输出为 `result.stateOfPermission: Boolean`：`true` 才允许继续，`false` 表示权限不可用并立即终止。缺少 `result`、字段缺失、非 Boolean、工具不可用或调用失败均按其它异常终止，不调用生成工具。
+- 当前工具快照的输出包含 `result.stateOfPermission: Boolean` 和可选的 `result.nonAuthStatus: Array<Object>`。只有 `stateOfPermission` 为 `true` 且 `nonAuthStatus` 缺失或为空数组时才允许继续。
+- `nonAuthStatus` 非空时表示存在需要用户手动授权的项目，立即终止本轮，不调用生成工具。每项读取 `name` 和 `settingsPath`；`name` 用作用户可见授权名称，非空 `settingsPath` 用作手动授权路径。
+- 用户回复不输出 `capabilityId`、`authType` 或 `authorized`。同名项去重；路径非空时使用“请前往「{settingsPath}」，为「{name}」开启权限，然后再试。”，路径为空时使用“请为「{name}」开启权限，然后再试。”。
+- `stateOfPermission` 为 `false` 且 `nonAuthStatus` 缺失或为空数组时，使用通用权限不可用回复。缺少 `result`、`stateOfPermission` 非 Boolean、`nonAuthStatus` 非数组、数组项非对象、`name` 为空、字段类型非法、工具不可用或调用失败均按其它异常终止，不调用生成工具。
 - 权限通过后只能继续执行已检查的同一组数据能力；集合或数据 binding 发生变化时必须重新调用。
 
 ## generateWidgetCard

@@ -20,7 +20,8 @@
 | 完整成功 | `success`，存在有效 `artifactUrl`，且没有已知的用户需求缺失 | 是，使用正常成功说明 |
 | 部分满足 | `degraded` 且存在有效 `artifactUrl`；或 `success` 且存在有效 URL，但本轮已知部分用户需求缺失 | 是，按数据、动作、素材或混合缺失使用受控话术 |
 | 整体不支持 | 业务 payload 为 `unsupported` | 否，保留核心拒答并给出相近建议 |
-| 权限不可用 | `RequestDataPermission` 返回 Boolean `result.stateOfPermission: false` | 否，立即终止并使用权限固定话术 |
+| 需要手动授权 | `RequestDataPermission` 返回非空 `result.nonAuthStatus` | 否，立即终止并按授权项引导用户手动授权 |
+| 权限不可用 | `RequestDataPermission` 返回 Boolean `result.stateOfPermission: false`，且 `nonAuthStatus` 缺失或为空 | 否，立即终止并使用通用权限话术 |
 | 其它异常 | `failed`、必要工具不可用、调用异常、payload 无法解析、状态非法，或 `success` / `degraded` 缺少有效 `artifactUrl` | 否，使用固定话术 |
 
 edit 模式的新 `artifactUrl` 还必须不同于 `sourceArtifactUrl`；缺失、无效或与来源相同时归为其它异常，不得回用来源 URL 伪装编辑成功。
@@ -29,7 +30,7 @@ edit 模式的新 `artifactUrl` 还必须不同于 `sourceArtifactUrl`；缺失�
 
 - 调用工具前存在会改变核心意图、候选选择或必填业务入参的待确认信息时，只提出最小必要问题并等待用户回答；此时不调用工具，也不输出结果话术或 `genWidgetResult`。
 - 非空数据能力集合必须先调用 `RequestDataPermission`；在得到明确权限结果前不得调用 `generateWidgetCard`。数据集合为空时跳过权限工具。
-- 当前工具快照中只将 Boolean `result.stateOfPermission: true` 视为通过，Boolean `false` 视为权限不可用；字段缺失、非 Boolean、调用失败或工具不可用均归为其它异常，不调用生成工具。
+- 当前工具快照中只将 Boolean `result.stateOfPermission: true` 且 `result.nonAuthStatus` 缺失或为空数组视为通过。`nonAuthStatus` 非空时进入手动授权引导；Boolean `false` 且没有授权明细时视为权限不可用。字段缺失、类型非法、调用失败或工具不可用均归为其它异常，不调用生成工具。
 - 核心内容可满足而仅次要内容不可用时，不询问是否继续；先输出部分满足预告，再自动完成生成。
 - 用户明确“必须包含，否则不要生成”的能力已知不可用时，结束并引导，不生成部分满足版本。
 - 三个微服务工具返回的是包装结构：`streamInfo` 以及 `items`；如果运行环境返回原始插件包络，则先检查顶层 `errorCode/errorMessage/reply`。`errorCode` 非 `"0"` 时归为其它异常，为 `"0"` 时从 `reply.items` 继续解析。`RequestDataPermission` 按其当前运行时输出 schema 单独解析，不套用生成业务状态。
@@ -51,9 +52,34 @@ edit 模式的新 `artifactUrl` 还必须不同于 `sourceArtifactUrl`；缺失�
 4. 无法可靠提炼时，`XX` 使用“相关内容”，`YY` 使用“其他可用内容”。
 5. 模板中的空格用于标示占位符，实际回复按中文自然拼接，例如输出“日程数据”，不要输出“日程 数据”。
 
-## 权限不可用
+## 权限未通过
 
-条件：`RequestDataPermission` 返回 Boolean `result.stateOfPermission: false`。
+### 需要手动授权
+
+条件：`RequestDataPermission` 返回非空 `result.nonAuthStatus`。数组项必须是对象，`name` 必须是非空字符串，`settingsPath` 缺失时按空字符串处理；其它类型错误按工具结果非法处理。
+
+处理规则：
+
+- 立即终止本轮，不调用 `generateWidgetCard`，不输出 `genWidgetResult`；edit 模式不更换当前默认来源 URL。
+- 只使用 `name` 和 `settingsPath`，不暴露 `capabilityId`、`authType`、`authorized` 或其它内部字段。
+- 按返回顺序输出授权项，同名项只保留第一项。
+- `settingsPath` 为非空字符串：
+
+```text
+请前往「{settingsPath}」，为「{name}」开启权限，然后再试。
+```
+
+- `settingsPath` 缺失或为空：
+
+```text
+请为「{name}」开启权限，然后再试。
+```
+
+多个授权项逐行输出对应指引，不追加替代建议，也不承诺授权后一定能够生成。
+
+### 无授权明细
+
+条件：`RequestDataPermission` 返回 Boolean `result.stateOfPermission: false`，且 `nonAuthStatus` 缺失或为空数组。
 
 固定回复：
 
@@ -61,7 +87,7 @@ edit 模式的新 `artifactUrl` 还必须不同于 `sourceArtifactUrl`；缺失�
 当前生成卡片所需的数据权限不可用，已停止生成。
 ```
 
-立即终止本轮，不调用 `generateWidgetCard`，不输出 `genWidgetResult`，不追加开启权限指引、替代建议或内部权限字段。edit 模式不更换当前默认来源 URL。
+立即终止本轮，不调用 `generateWidgetCard`，不输出 `genWidgetResult`，不追加猜测的开启权限路径、替代建议或内部权限字段。edit 模式不更换当前默认来源 URL。
 
 ## 推荐生成规则
 
@@ -186,5 +212,6 @@ edit 模式的新 `artifactUrl` 还必须不同于 `sourceArtifactUrl`；缺失�
 - 不承诺“开启权限后一定可用”，不引导用户安装不确定的 App。
 - 不说“已添加到桌面”；这里只生成预览 artifact，是否添加由端侧和用户确认。
 - 不把部分满足描述成工程失败，也不把整体不支持描述成系统异常。
-- 权限不可用话术不得改写同义句、增加前后缀、追加建议或拼接工具自定义文案。
+- 没有授权明细时，通用权限不可用话术不得改写同义句、增加前后缀、追加建议或拼接工具自定义文案。
+- 存在授权明细时，只按 `name` 与 `settingsPath` 模板逐项引导，不补充工具未返回的路径，不输出其它授权字段。
 - 其它受控核心句只替换占位符、填充建议，并按规定追加 `genWidgetResult`。

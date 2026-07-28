@@ -129,7 +129,32 @@ invoke(functionName:"RequestDataPermission", arguments:{
 }
 ```
 
-返回 Boolean `false` 时立即终止，不调用生成工具，并回复“当前生成卡片所需的数据权限不可用，已停止生成。”
+返回非空 `nonAuthStatus` 时立即终止，不调用生成工具，并使用每项的 `name` 与 `settingsPath` 引导用户手动授权。例如：
+
+```json
+{
+  "result": {
+    "stateOfPermission": false,
+    "nonAuthStatus": [
+      {
+        "capabilityId": "GetAppUsageDurationAndPower",
+        "authorized": false,
+        "authType": "NON_CONFIGURABLE",
+        "name": "应用使用时长",
+        "settingsPath": "设置-健康使用设备-使用统计和管理"
+      }
+    ]
+  }
+}
+```
+
+对应回复：
+
+```text
+请前往「设置-健康使用设备-使用统计和管理」，为「应用使用时长」开启权限，然后再试。
+```
+
+不向用户输出 `capabilityId`、`authorized` 或 `authType`。返回 Boolean `false` 且 `nonAuthStatus` 缺失或为空数组时，回复“当前生成卡片所需的数据权限不可用，已停止生成。”
 
 4. `generateWidgetCard`
 
@@ -262,7 +287,7 @@ invoke(functionName:"generateWidgetCard", arguments:{
 
 ## 工具返回解析示例
 
-三个微服务工具返回包装结构，业务结果需要从 `items[].data` 解析。端工具 `RequestDataPermission` 按其输出 schema 读取 `result.stateOfPermission`：
+三个微服务工具返回包装结构，业务结果需要从 `items[].data` 解析。端工具 `RequestDataPermission` 按其输出 schema 读取 `result.stateOfPermission` 和可选的 `result.nonAuthStatus`；非空授权明细只使用 `name` 与 `settingsPath` 生成手动授权指引：
 
 ```json
 {
@@ -402,7 +427,13 @@ failed：
 卡片创建过程遇到问题了，请稍后再试
 ```
 
-权限不可用（`RequestDataPermission` 返回 Boolean `false`）：
+需要手动授权（`RequestDataPermission` 返回非空 `nonAuthStatus`）：
+
+```text
+请前往「设置-健康使用设备-使用统计和管理」，为「应用使用时长」开启权限，然后再试。
+```
+
+权限不可用（`RequestDataPermission` 返回 Boolean `false` 且没有授权明细）：
 
 ```text
 当前生成卡片所需的数据权限不可用，已停止生成。
