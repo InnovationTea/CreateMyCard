@@ -35,7 +35,7 @@
 
 - 普通 `children` 只写组件 id 字符串数组；模板循环对象只给 `Row`、`Column`、`List.children`，必须包含 `{ "componentId": "...", "path": "/items" }`，可选 `itemVar/indexVar`；`Stack.children` 不使用模板循环。
 - 展示值优先用字面量或完整 `{{ ... }}` 表达式；也可使用协议允许的 `{"path":"/..."}` PathBinding 或宿主明确注册的 FunctionCall。
-- 图片和背景图只用用户提供或素材库声明的本地 PNG 资源路径；没有真实资源时省略 `Image`，改用合法颜色、`Progress` 或 `Divider`。
+- 图片和背景图只用用户提供或素材库声明的本地 SVG/PNG 资源路径；没有真实资源时省略 `Image`，改用合法颜色、`Progress` 或 `Divider`。
 
 ## 组件速查表
 
@@ -45,7 +45,7 @@
 - `Row`：横向容器；必需 `children`；`children` 为字符串数组或模板循环对象；`itemMargin` 数字 vp；不写已裁剪的 `wrap`；`styles.justifyContent` 取 `start|center|end|spaceAround|spaceBetween|spaceEvenly`，**卡片中推荐 `center`**；`styles.alignItems` 取 `top|center|bottom`，**卡片中推荐 `center`**。
 - `Stack`：层叠容器，用于光晕、图片背景、叠加内容和进度环；必需 `children`；`children` 为字符串数组；`styles.alignContent` 取 `topStart|top|topEnd|start|center|end|bottomStart|bottom|bottomEnd`。
 - `Text`：文本展示；必需 `content`；`content` 为字符串、数字、完整表达式或 PathBinding；`fontSize` 数字 fp；`fontWeight` 数字 `100..900`，按 100 间隔取值；`fontColor` 取 `#RRGGBB` 或 `#AARRGGBB`；`maxLines`、`minFontSize`、`maxFontSize` 为数字，`minFontSize/maxFontSize` 必须配合 `maxLines` 或布局大小限制才生效；`textOverflow` 只取 `clip|ellipsis`；`textAlign` 取 `start|center|end|justify`。卡片受保护文本不要用 `ellipsis` 或 `clip` 规避布局；不要写已裁剪的 `wordBreak` 或 `decoration`。
-- `Image`：图片展示；必需 `src`；`src` 为用户提供或素材库声明的本地 PNG 路径，也可为完整表达式或 PathBinding 读取已声明资源路径；不支持 SVG、网络 URL 和 base64 内联图片；`objectFit` 取 `fill|contain|cover|auto|none|scaleDown|topStart|top|topEnd|start|center|end|bottomStart|bottom|bottomEnd|matrix`。图片承担主对象或状态识别时必须写明确 `width`、`height` 和 `objectFit`。
+- `Image`：图片展示；必需 `src`；`src` 为用户提供或素材库声明的本地 SVG/PNG 路径，也可为完整表达式或 PathBinding 读取已声明资源路径；不支持网络 URL 和 base64 内联图片；`objectFit` 取 `fill|contain|cover|auto|none|scaleDown|topStart|top|topEnd|start|center|end|bottomStart|bottom|bottomEnd|matrix`。图片承担主对象或状态识别时必须写明确 `width`、`height` 和 `objectFit`。
 - `Divider`：分隔线；无额外必需字段；属性位于 `styles`：`strokeWidth` 为数字或带单位字符串，`vertical` 为 boolean，`color` 为颜色字符串。只用于真实分隔、时间线或强调线，不做装饰堆叠。
 - `Progress`：进度条或进度环；必需 `value`，`total` 可选；`value/total` 为数字、完整表达式或 PathBinding；`styles.type` 取 `linear|ring|eclipse|scaleRing|capsule`；`styles.color` 只用纯色字符串或完整表达式，不支持 LinearGradient；`styles.strokeWidth` 数字 vp，默认 4.0，仅 `linear|ring|scaleRing` 生效；可写 `backgroundColor` 表达 track；`ring` 和 `scaleRing` 必须有稳定 `width`、`height`。
 - `Button`：语义按钮；必需 `label`；使用 `label` 和 `onClick`，不用 `Button.action`；`label` 为字符串或完整表达式；`enabled` 为 boolean 或完整表达式；`onClick` 为 EventHandler 数组；`styles.fontWeight` 为数字或 `lighter|normal|regular|medium|bold|bolder`；`minFontSize/maxFontSize` 与文本自适应规则相同，必须配合布局限制才生效。CTA 是受保护文本，必须预留文字宽度和内边距；动作能力不明时删除 `onClick` 并改为普通支撑信息。
@@ -168,14 +168,14 @@ EventHandler 结构：
 
 | 属性 | 类型 | 必选 | 支持动态数据类型 | 说明 |
 |------|------|------|------|------|
-| `src` | string | **是** | 是 | 图片数据源（素材库声明的本地 PNG 路径）；**不支持** SVG、base64 内联图片和网络 URL |
+| `src` | string | **是** | 是 | 图片数据源（素材库声明的本地 SVG/PNG 路径）；**不支持** base64 内联图片和网络 URL |
 
 **样式**
 
 | 样式名 | 说明 | 类型 | 必选 | 支持动态数据类型 | 使用示例 |
 |--------|------|------|------|------|----------|
 | `objectFit` | 图片填充效果 | 枚举，默认 `cover`。取值：`fill`（拉伸填满）、`contain`（保持比例完整显示）、`cover`（保持比例裁切填满）、`auto`（适当缩放保持比例）、`none`（保持原有尺寸）、`scaleDown`（保持比例缩小或不变）、`topStart`/`top`/`topEnd`/`start`/`center`/`end`/`bottomStart`/`bottom`/`bottomEnd`（各对齐位置保持原有尺寸）、`matrix`（配合 imageMatrix 自定义位置） | 否 | 是 | `"objectFit": "contain"` |
-| `fillColor` | 图片染色颜色 | 当前 PNG 素材不使用该字段，生成时省略 | 否 | 是 | `"fillColor": "#FFFF0000"` |
+| `fillColor` | 图片染色颜色 | SVG 可按设计需要使用；PNG 和其它位图通常省略 | 否 | 是 | `"fillColor": "#FFFF0000"` |
 
 支持[通用事件](#通用事件)。
 
@@ -384,7 +384,7 @@ EventHandler 结构：
 ## 特殊规则
 
 - `children`：普通组件树只写组件 id 字符串数组；模板循环对象只用于 `Row`、`Column`、`List` 的 `children`，对象必须包含 `componentId/path`，可选 `itemVar/indexVar`；`Stack.children` 只用字符串数组。
-- `Image.src` 和 `styles.backgroundImage` 只使用用户提供或素材库声明的本地 PNG 路径；不支持 SVG、网络 URL、内联/base64 图片或占位图；没有真实资源时省略 `Image`。
+- `Image.src` 和 `styles.backgroundImage` 只使用用户提供或素材库声明的本地 SVG/PNG 路径；不支持网络 URL、内联/base64 图片或占位图；没有真实资源时省略 `Image`。
 - `backgroundColor`、`linearGradient`、`backgroundImage` 等卡片背景字段写在 root 组件或 root 下真实背景组件，不写进 `createSurface.styles`。
 - `Button`：CTA 文本是受保护内容，避免窄固定宽度和省略；可点击按钮必须有已声明的 `onClick` EventHandler，动作能力不明时删除点击行为。
 - `Checkbox`：如需点击行为，必须使用已声明 event capability；不要虚构 `toggleTodo` 一类切换函数。

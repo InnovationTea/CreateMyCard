@@ -138,7 +138,7 @@ class ValidationTests(unittest.TestCase):
         report = self.validate(messages)
         self.assertTrue(report.has_code("AESTHETIC_COLOR_CONTRAST_LOW"), report.render_text())
 
-    def test_declared_png_asset_is_allowed(self) -> None:
+    def test_declared_svg_asset_is_allowed(self) -> None:
         messages = copy.deepcopy(VALID_MESSAGES)
         root = messages[1]["updateComponents"]["components"][0]
         root["children"].append("icon")
@@ -146,7 +146,7 @@ class ValidationTests(unittest.TestCase):
             {
                 "id": "icon",
                 "component": "Image",
-                "src": "resources/base/media/icon_weather1.png",
+                "src": "resources/base/media/icon_weather1.svg",
                 "styles": {"width": 24, "height": 24, "objectFit": "contain"},
             }
         )

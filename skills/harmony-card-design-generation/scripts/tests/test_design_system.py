@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parents[2]
+REPO_ROOT = SKILL_DIR.parents[1]
 SCRIPTS_DIR = SKILL_DIR / "scripts"
 FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
 if str(SCRIPTS_DIR) not in sys.path:
@@ -104,6 +105,16 @@ class DesignSystemTests(unittest.TestCase):
         offline_asset_doc = SKILL_DIR.parent / "harmony-card-generation-offline" / "reference" / "design" / "asset-library.md"
         offline_paths = set(ASSET_TABLE_PATTERN.findall(offline_asset_doc.read_text(encoding="utf-8")))
         self.assertEqual(self.system.asset_allowlist, offline_paths)
+        actual_paths = {
+            path.relative_to(REPO_ROOT).as_posix()
+            for path in (REPO_ROOT / "resources" / "base" / "media").iterdir()
+            if path.is_file()
+        }
+        self.assertEqual(offline_paths, actual_paths)
+        for skill_name in ("harmony-card-generation-offline", "harmony-card-generation-online"):
+            config_path = SKILL_DIR.parent / skill_name / "scripts" / "rules" / "config" / "asset.json"
+            allowlist = set(json.loads(config_path.read_text(encoding="utf-8"))["allowlist"])
+            self.assertEqual(allowlist, actual_paths)
 
     def test_declared_svg_asset_is_assembled_without_path_rewrite(self) -> None:
         plan = copy.deepcopy(next(item for item in self.plans if item["surfaceId"] == "ref-product-stat-tiles"))

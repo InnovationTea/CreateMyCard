@@ -171,7 +171,7 @@ def reference_plans() -> list[dict[str, Any]]:
     plans.append(make_plan(
         "ref-product-stat-tiles", "蓝牙耳机", "左右耳电量是否充足", "2x2", "media", "media-surface", "full-surface-stack",
         [item("image", "asset"), item("title", "object"), item("metric1", "metric"), item("metric2", "metric")],
-        [region("content", "media-summary", "full-136x136", {"image": "icon-48", "title": "text-title-16", "left": "text-metric-20", "right": "text-body-14"}, {"image": content("image", "resources/base/media/icon_earphone.png"), "title": content("title", "FreeBuds"), "metric1": content("metric1", "86%"), "metric2": content("metric2", "右82%")})],
+        [region("content", "media-summary", "full-136x136", {"image": "icon-48", "title": "text-title-16", "left": "text-metric-20", "right": "text-body-14"}, {"image": content("image", "resources/base/media/icon_earphone.svg"), "title": content("title", "FreeBuds"), "metric1": content("metric1", "86%"), "metric2": content("metric2", "右82%")})],
         "耳机状态", "左右耳电量", assets=["耳机主视觉"]
     ))
     plans.append(make_plan(
@@ -186,7 +186,7 @@ def reference_plans() -> list[dict[str, Any]]:
         "ref-spotlight-context-action", "上海天气", "当前天气和下一安排是什么", "2x2", "status", "ambient-scene", "hero-context-footer",
         [item("icon", "asset"), item("primary", "primary"), item("caption", "support"), item("contextTitle", "support"), item("contextMeta", "support", "shouldKeep"), item("action", "action")],
         [
-            region("hero", "primary-summary", "hero-136x42", {"icon": "icon-32", "value": "text-metric-20", "caption": "text-support-12"}, {"icon": content("icon", "resources/base/media/rain.png"), "primary": content("primary", "18℃"), "caption": content("caption", "中雨")}),
+            region("hero", "primary-summary", "hero-136x42", {"icon": "icon-32", "value": "text-metric-20", "caption": "text-support-12"}, {"icon": content("icon", "resources/base/media/icon_weather1.svg"), "primary": content("primary", "18℃"), "caption": content("caption", "中雨")}),
             region("context", "support-panel", "compact-136x36", {"title": "text-body-14", "meta": "text-support-12"}, {"title": content("contextTitle", "14:30评审"), "meta": content("contextMeta", "线上")}),
             region("footer", "action-strip", "compact-136x26", {"action": "button-136x26"}, {"label": content("action", "打开天气")}, [weather_event]),
         ], "天气日程", "天气与下一安排", ["打开天气"], ["天气图标"]
@@ -220,7 +220,7 @@ def reference_plans() -> list[dict[str, Any]]:
         "ref-hero-context-action", "通勤天气", "天气和今日安排如何", "2x4", "media", "ambient-scene", "hero-context-split",
         [item("visual", "asset"), item("primary", "primary"), item("caption", "support"), item("title", "support"), item("meta", "support"), item("support", "support", "shouldKeep"), item("action", "action")],
         [
-            region("hero", "hero-tall", "wide-104x136", {"visual": "icon-48", "value": "text-metric-32", "caption": "text-support-12"}, {"visual": content("visual", "resources/base/media/cloudy_turning_sunny.png"), "primary": content("primary", "24℃"), "caption": content("caption", "多云转晴")}),
+            region("hero", "hero-tall", "wide-104x136", {"visual": "icon-48", "value": "text-metric-32", "caption": "text-support-12"}, {"visual": content("visual", "resources/base/media/icon_weather1.svg"), "primary": content("primary", "24℃"), "caption": content("caption", "多云转晴")}),
             region("context", "context-action", "wide-180x136", {"title": "text-body-14", "meta": "text-body-14", "support": "text-support-12", "action": "button-180x32"}, {"title": content("title", "下一场：产品评审"), "meta": content("meta", "14:30 · 线上会议"), "support": content("support", "通勤预计 35 分钟"), "action": content("action", "打开天气")}, [weather_event]),
         ], "通勤助手", "天气日程速览", ["打开天气"], ["天气主视觉"]
     ))

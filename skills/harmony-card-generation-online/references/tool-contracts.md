@@ -4,8 +4,8 @@
 
 ## 调用总则
 
-- create 模式通常按顺序使用 `getWidgetCapabilityOverview`、按需使用 `getDataCapabilitySchemas`，最后调用 `generateWidgetCard`。
-- edit 模式按修改类型分流：纯视觉、布局、文案或尺寸修改直接调用 `generateWidgetCard`；删除数据能力或修改能力参数时才重新调用能力概述和数据 schema。
+- create 模式通常按顺序使用 `getWidgetCapabilityOverview`、按需使用 `getDataCapabilitySchemas`，再对最终数据能力集合调用 `RequestDataPermission`，权限通过后才调用 `generateWidgetCard`。
+- edit 模式按修改类型分流：纯视觉、布局、文案或尺寸修改不重新调用能力概述和数据 schema，但仍须对来源卡片的有效数据能力调用 `RequestDataPermission`；删除数据能力或修改能力参数时，重新调用能力概述和数据 schema，再检查编辑后的完整数据能力集合。
 - 需求适配门禁判定为追问或结束并引导时，不调用任何工具。能力概述后无法满足核心数据、核心动作或用户声明必须使用的素材，且不能形成满足原意图的静态或入口卡时，不调用 schema 或生成接口；schema 移除最后一个核心能力时不调用生成接口。
 - 核心内容可满足而仅次要数据、动作或非核心素材不可用时，先按回复策略告知调整，再自动继续工具链，不等待用户确认。
 - 每次调用前先执行用户确认门禁：如果当前已知信息中存在用户可回答、且会影响核心卡片意图、候选选择或业务入参的未决项，先追问并等待用户回答；回答前不得调用任何工具。能安全推导或有明确默认值的信息不重复确认，微服务负责的设备能力裁决和内部技术字段不向用户询问。
@@ -24,13 +24,13 @@
 ```text
 invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.omega_w_0823.hmservice"},"skillName":"harmony-card-generation-online")
 invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:[...]},"skillName":"harmony-card-generation-online")
+invoke(functionName:"RequestDataPermission", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:[...]},"skillName":"harmony-card-generation-online")
 invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"...", title:"...", description:"...", ...},"skillName":"harmony-card-generation-online")
-invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"背景改成蓝色", sourceArtifactUrl:"https://obs.example/widget/previous.json"},"skillName":"harmony-card-generation-online")
 ```
 
 ## 包装输出
 
-当前三个工具通常返回包装结构。如果运行环境返回原始插件包络，则先处理顶层 `errorCode/errorMessage/reply`：`errorCode` 非 `"0"` 时按工具失败处理；`errorCode` 为 `"0"` 时从 `reply` 中继续读取 `streamInfo/items`。如果运行环境已归一化，则直接读取顶层 `streamInfo/items`。
+三个微服务工具通常返回包装结构。如果运行环境返回原始插件包络，则先处理顶层 `errorCode/errorMessage/reply`：`errorCode` 非 `"0"` 时按工具失败处理；`errorCode` 为 `"0"` 时从 `reply` 中继续读取 `streamInfo/items`。如果运行环境已归一化，则直接读取顶层 `streamInfo/items`。端工具 `RequestDataPermission` 按当前运行时输出 schema 读取 `result.stateOfPermission`，不套用微服务业务状态解析规则。
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
@@ -128,6 +128,25 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
 - 不再传 `candidateDataBindings[].updateModel`。
 - 不把完整 schema 暴露给用户。
 
+## RequestDataPermission
+
+用途：在 `generateWidgetCard` 前判断本轮卡片将使用的数据能力是否有权限。
+
+调用：
+
+```text
+invoke(functionName:"RequestDataPermission", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:["ViewWeather", "GetCalendarEvents"]},"skillName":"harmony-card-generation-online")
+```
+
+调用规则：
+
+- `dataCapabilityIds` 必须是本轮最终数据能力集合，去重后传入；create 和数据类 edit 取最终 `candidateDataBindings[].capabilityId`，纯视觉、布局、文案或尺寸 edit 取目标卡片最近一次有效业务 payload 的 `effectiveCapabilities.data`。
+- 无法从会话中的有效结果或完整候选链可靠恢复 edit 的数据能力集合时停止编辑，不读取来源 artifact 猜测。
+- `dataCapabilityIds` 为空时不调用；这表示本轮卡片不使用动态数据。
+- 调用后必须等待并解析权限结果；在得到明确结果前不得调用 `generateWidgetCard`，也不得继续修改待生成的数据能力集合。
+- 当前工具快照的输出为 `result.stateOfPermission: Boolean`：`true` 才允许继续，`false` 表示权限不可用并立即终止。缺少 `result`、字段缺失、非 Boolean、工具不可用或调用失败均按其它异常终止，不调用生成工具。
+- 权限通过后只能继续执行已检查的同一组数据能力；集合或数据 binding 发生变化时必须重新调用。
+
 ## generateWidgetCard
 
 用途：提交用户需求和候选计划首次生成卡片，或携带上一版 artifact URL 连续编辑卡片。
@@ -138,7 +157,7 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
 | --- | --- | --- | --- |
 | `userQuery` | `String` | 是 | create 模式为原始需求；edit 模式只表达本轮修改。 |
 | `sourceArtifactUrl` | `String` | 否 | 上一版完整 artifact 的真实 URL；缺失表示 create，合法非空值表示 edit。 |
-| `size` | `String` | 否 | 建议尺寸；推荐 `"2x2"` 或 `"2x4"`。 |
+| `size` | `String` | 否 | 建议尺寸，只使用 `"2x2"` 或 `"2x4"`；用户未指定时优先能够满足核心需求的 `"2x2"`，只有必须保留的核心内容无法在 `"2x2"` 中成立时才使用 `"2x4"`。 |
 | `title` | `String` | 条件必填 | create 模式必须非空；edit 模式省略时继承来源 CardSpec，显式传入时替换。 |
 | `description` | `String` | 条件必填 | create 模式必须非空；edit 模式省略时继承来源 CardSpec，显式传入时替换。 |
 | `candidateDataBindings` | `Array<CandidateDataBinding>` | 否 | 候选数据能力调用列表。 |
@@ -213,7 +232,7 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
 调用示例：
 
 ```text
-invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"生成一个通勤卡片", title:"通勤助手", description:"天气日程速览", size:"2x4", candidateDataBindings:[...], candidateEventCandidates:[...], candidateAssetIds:[...]},"skillName":"harmony-card-generation-online")
+invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"生成一个通勤卡片", title:"通勤助手", description:"天气日程速览", size:"2x2", candidateDataBindings:[...], candidateEventCandidates:[...], candidateAssetIds:[...]},"skillName":"harmony-card-generation-online")
 ```
 
 edit 模式示例：
@@ -257,6 +276,7 @@ invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_082
 
 - 调用前再次检查核心目标、地点、日期/时间范围、动作目标和能力必填业务参数；存在用户可确认的缺失或歧义时先追问并等待回答，再重建候选计划。
 - create 模式的 `title` 和 `description` 必须传非空字符串；无法从需求提炼时，使用“桌面卡片”和“信息速览”等稳定默认文案。edit 模式只有用户明确修改时才传，未修改时省略。
+- create 模式的尺寸遵循最小充分原则：用户未指定时先选择 `2x2`；只有必须保留的核心内容、受保护文本、必要热区、关键并列关系或关键媒体无法在 `2x2` 布局预算内成立时才选择 `2x4`。信息较多、横版更舒展或存在两个数据能力本身不构成升级理由；用户明确指定尺寸时优先尊重。
 - `title`、`description` 不填入动态数据、隐私数据或不确定状态，不用于替代数据能力。
 - `candidateDataBindings` 是候选，不是最终 CardSpec。
 - 无需字段投影时省略 `candidateOutputFields`；需要投影时只传可由对应 `outputSchema` 推导的 JSON Pointer 字符串数组。

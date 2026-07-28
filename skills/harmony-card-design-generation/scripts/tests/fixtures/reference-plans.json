@@ -669,7 +669,7 @@
             "image": {
               "featureId": "image",
               "bindingKind": "static",
-              "value": "resources/base/media/icon_earphone.png"
+              "value": "resources/base/media/icon_earphone.svg"
             },
             "title": {
               "featureId": "title",
@@ -901,7 +901,7 @@
             "icon": {
               "featureId": "icon",
               "bindingKind": "static",
-              "value": "resources/base/media/rain.png"
+              "value": "resources/base/media/icon_weather1.svg"
             },
             "primary": {
               "featureId": "primary",
@@ -1439,7 +1439,7 @@
             "visual": {
               "featureId": "visual",
               "bindingKind": "static",
-              "value": "resources/base/media/cloudy_turning_sunny.png"
+              "value": "resources/base/media/icon_weather1.svg"
             },
             "primary": {
               "featureId": "primary",

@@ -71,7 +71,7 @@
       {
         "id": "weather_icon",
         "component": "Image",
-        "src": "resources/base/media/partly_cloudy.png",
+        "src": "resources/base/media/icon_weather1.svg",
         "styles": {
           "width": 48,
           "height": 48,
@@ -228,7 +228,7 @@
       {
         "id": "call_btn",
         "component": "Image",
-        "src": "resources/base/media/icon_call.png",
+        "src": "resources/base/media/icon_call.svg",
         "styles": {
           "width": 30,
           "height": 30,

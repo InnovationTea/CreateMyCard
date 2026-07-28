@@ -49,7 +49,7 @@
       },
       "size": {
         "type": "String",
-        "description": "主 Agent 建议尺寸"
+        "description": "建议尺寸"
       },
       "description": {
         "type": "String",
