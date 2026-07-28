@@ -130,7 +130,13 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(components["title"][2]["fontColor"], "#E5000000")
         self.assertNotIn("design", components["title"][2])
         self.assertEqual(components["action"][2]["height"], 36)
-        self.assertEqual(components["action"][2]["borderRadius"], 18)
+        self.assertEqual(components["action"][2]["borderRadius"], 20)
+        self.assertEqual(
+            components["action"][2]["padding"],
+            {"left": 8, "top": 0, "right": 8, "bottom": 0},
+        )
+        self.assertEqual(components["action"][2]["minFontSize"], 12)
+        self.assertEqual(components["action"][2]["maxFontSize"], 14)
         self.assertEqual(
             components["action"][2]["backgroundColor"],
             "#0C000000",
@@ -159,7 +165,143 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(action[2]["width"], 36)
         self.assertEqual(action[2]["height"], 36)
         self.assertEqual(action[2]["borderRadius"], 18)
+        self.assertEqual(action[2]["padding"], 0)
         self.assertNotIn("design", action[2])
+
+    def test_expands_latest_text_progress_and_checkbox_designs(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": 160, "height": 160},
+                    [
+                        "metric",
+                        "linear",
+                        "segmented",
+                        "threshold",
+                        "choice",
+                    ],
+                ],
+                [
+                    "metric",
+                    "Text",
+                    {"content": "68%", "design": "display-s"},
+                ],
+                [
+                    "linear",
+                    "Progress",
+                    {"value": 68, "total": 100, "design": "linear-bar"},
+                ],
+                [
+                    "segmented",
+                    "Progress",
+                    {"value": 2, "total": 4, "design": "segmented-bar"},
+                ],
+                [
+                    "threshold",
+                    "Progress",
+                    {
+                        "value": 80,
+                        "threshold": 60,
+                        "total": 100,
+                        "design": "threshold-bar",
+                    },
+                ],
+                [
+                    "choice",
+                    "Checkbox",
+                    {
+                        "label": "同意",
+                        "select": True,
+                        "design": "default",
+                    },
+                ],
+            ]
+        )
+
+        normalized = normalize_compact_dsl_design_tokens(compact_dsl)
+        rows = [json.loads(line) for line in normalized.splitlines()]
+        components = {}
+        for row in rows:
+            components[row[0]] = row[2]
+
+        self.assertEqual(components["metric"]["fontSize"], 36)
+        self.assertEqual(components["metric"]["fontWeight"], 700)
+        self.assertEqual(components["linear"]["type"], "linear")
+        self.assertEqual(components["linear"]["height"], 8)
+        self.assertEqual(components["linear"]["borderRadius"], 4)
+        self.assertEqual(components["segmented"]["height"], 8)
+        self.assertEqual(components["threshold"]["height"], 20)
+        self.assertEqual(components["threshold"]["backgroundColor"], "#6B7F91")
+        self.assertEqual(components["threshold"]["color"], "#C8F000")
+        self.assertEqual(components["choice"]["selectedColor"], "#FF0A59F7")
+        self.assertEqual(components["choice"]["unSelectedColor"], "#66000000")
+        self.assertEqual(
+            components["choice"]["mark"],
+            {"strokeColor": "#FFFFFFFF", "size": 20, "strokeWidth": 2},
+        )
+
+        a2ui = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+        update = json.loads(a2ui.splitlines()[1])["updateComponents"]
+        a2ui_components = {}
+        for component in update["components"]:
+            a2ui_components[component["id"]] = component
+        self.assertNotIn("threshold", a2ui_components["threshold"]["styles"])
+
+    def test_rejects_design_aliases_removed_from_latest_prompt(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": 160, "height": 160},
+                    ["progress"],
+                ],
+                [
+                    "progress",
+                    "Progress",
+                    {"value": 50, "total": 100, "design": "linear"},
+                ],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            'unsupported Progress.design "linear"',
+        ):
+            normalize_compact_dsl_design_tokens(compact_dsl)
+
+    def test_requires_progress_total_for_valid_a2ui(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": 160, "height": 160},
+                    ["progress"],
+                ],
+                [
+                    "progress",
+                    "Progress",
+                    {"value": 50, "design": "linear-bar"},
+                ],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "Progress.total is required",
+        ):
+            convert_compact_dsl_to_a2ui(
+                compact_dsl,
+                size="2x2",
+                protocol_profile=self.profile,
+            )
 
     def test_theme_is_compatibility_only(self) -> None:
         light = normalize_compact_dsl_design_tokens(

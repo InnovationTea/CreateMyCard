@@ -34,6 +34,9 @@ _SEMANTIC_FIELDS = {
     "Button": frozenset({"label", "enabled"}),
     "Checkbox": frozenset({"label", "value", "select"}),
 }
+_COMPACT_ONLY_FIELDS = {
+    "Progress": frozenset({"threshold"}),
+}
 _REQUIRED_FIELDS = {
     "Text": "content",
     "Image": "src",
@@ -93,6 +96,7 @@ _COLOR_PROPERTIES = frozenset(
         "selectedColor",
         "shadowColor",
         "strokeColor",
+        "unSelectedColor",
     }
 )
 _COLOR_TOKENS = {
@@ -104,16 +108,55 @@ _COLOR_TOKENS = {
     "warning": "#FFE84026",
     "alert": "#FFED6F21",
     "confirm": "#FF64BB5C",
+    "icon_primary": "#E5000000",
+    "icon_secondary": "#99000000",
+    "icon_tertiary": "#66000000",
+    "icon_emphasize": "#FF0A59F7",
+    "icon_on_primary": "#FFFFFFFF",
+    "icon_on_tertiary": "#66FFFFFF",
+    "background_primary": "#FFFFFFFF",
     "background_emphasize": "#FF0A59F7",
+    "comp_background_list_card": "#FFFFFFFF",
     "comp_background_emphasize": "#FF0A59F7",
     "comp_background_tertiary": "#0C000000",
     "comp_background_secondary": "#19000000",
+    "comp_background_primary_contrary": "#FFFFFFFF",
     "comp_divider": "#33000000",
+    "container40": "#66000000",
+    "primary50": "#7F000000",
+    "multi_color_01": "#FF564AF7",
+    "multi_color_02": "#FF46B1E3",
+    "multi_color_03": "#FF61CFBE",
+    "multi_color_04": "#FF64BB5C",
+    "multi_color_05": "#FFA5D61D",
+    "multi_color_06": "#FFAC49F5",
+    "multi_color_07": "#FFE64566",
+    "multi_color_08": "#FFE84026",
+    "multi_color_09": "#FFED6F21",
+    "multi_color_10": "#FFF9A01E",
+    "multi_color_11": "#FFF7CE00",
+    "multi_color_aux_01": "#FF8981F7",
+    "multi_color_aux_02": "#FF86C5E3",
+    "multi_color_aux_03": "#FF92D6CC",
+    "multi_color_aux_04": "#FF92C48D",
+    "multi_color_aux_05": "#FFBDDB69",
+    "multi_color_aux_06": "#FFC386F0",
+    "multi_color_aux_07": "#FFE67C92",
+    "multi_color_aux_08": "#FFE87361",
+    "multi_color_aux_09": "#FFED955F",
+    "multi_color_aux_10": "#FFF9BC64",
+    "multi_color_aux_11": "#FFF5DC62",
+    "mask_primary": "#CC000000",
+    "mask_secondary": "#99000000",
+    "mask_tertiary": "#66000000",
+    "mask_fourth": "#33000000",
+    "mask_fifth": "#19000000",
+    "mask_sixth": "#0C000000",
 }
 _TEXT_DESIGNS: dict[str, dict[str, Any]] = {
     "display-l": {"fontSize": 56, "fontWeight": 300},
     "display-m": {"fontSize": 48, "fontWeight": 300},
-    "display-s": {"fontSize": 38, "fontWeight": 300},
+    "display-s": {"fontSize": 36, "fontWeight": 700},
     "title-l": {"fontSize": 30, "fontWeight": 700},
     "title-m": {"fontSize": 24, "fontWeight": 700},
     "title-s": {"fontSize": 20, "fontWeight": 700},
@@ -128,88 +171,50 @@ _TEXT_DESIGNS: dict[str, dict[str, Any]] = {
 }
 _BUTTON_DESIGNS: dict[str, dict[str, Any]] = {
     "capsule": {
+        "width": "matchParent",
         "height": 36,
-        "borderRadius": 18,
-        "padding": {"left": 12, "top": 6, "right": 12, "bottom": 6},
+        "borderRadius": 20,
+        "padding": {"left": 8, "top": 0, "right": 8, "bottom": 0},
         "backgroundColor": "comp_background_tertiary",
         "fontColor": "font_emphasize",
         "fontSize": 14,
         "fontWeight": 500,
+        "maxFontSize": 14,
+        "minFontSize": 12,
+        "maxLines": 1,
+        "flexShrink": 0,
     },
     "icon-round": {
         "width": 36,
         "height": 36,
         "borderRadius": 18,
-        "padding": 8,
-        "backgroundColor": "comp_background_tertiary",
-        "flexShrink": 0,
-    },
-    "default": {
-        "height": 40,
-        "borderRadius": 20,
-        "padding": {"left": 16, "top": 8, "right": 16, "bottom": 8},
-        "backgroundColor": "comp_background_tertiary",
-        "fontColor": "font_emphasize",
-        "fontSize": 16,
-        "fontWeight": 500,
-    },
-    "primary": {
-        "height": 40,
-        "borderRadius": 20,
-        "padding": {"left": 16, "top": 8, "right": 16, "bottom": 8},
-        "backgroundColor": "comp_background_emphasize",
-        "fontColor": "font_on_primary",
-        "fontSize": 16,
-        "fontWeight": 500,
-    },
-    "icon": {
-        "width": 48,
-        "height": 48,
-        "borderRadius": 24,
-        "padding": 12,
-        "backgroundColor": "comp_background_tertiary",
-        "flexShrink": 0,
-    },
-    "default-sm": {
-        "height": 28,
-        "borderRadius": 14,
-        "padding": {"left": 8, "top": 4, "right": 8, "bottom": 4},
-        "backgroundColor": "comp_background_tertiary",
-        "fontColor": "font_emphasize",
-        "fontSize": 14,
-        "fontWeight": 500,
-    },
-    "primary-sm": {
-        "height": 28,
-        "borderRadius": 14,
-        "padding": {"left": 8, "top": 4, "right": 8, "bottom": 4},
-        "backgroundColor": "comp_background_emphasize",
-        "fontColor": "font_on_primary",
-        "fontSize": 14,
-        "fontWeight": 500,
-    },
-    "icon-sm": {
-        "width": 40,
-        "height": 40,
-        "borderRadius": 20,
-        "padding": 8,
+        "padding": 0,
         "backgroundColor": "comp_background_tertiary",
         "flexShrink": 0,
     },
 }
 _PROGRESS_DESIGNS: dict[str, dict[str, Any]] = {
-    "linear": {
+    "linear-bar": {
         "type": "linear",
-        "height": 4,
-        "borderRadius": 2,
+        "width": "matchParent",
+        "height": 8,
+        "borderRadius": 4,
         "backgroundColor": "comp_background_secondary",
-        "color": "background_emphasize",
     },
-    "eclipse": {
-        "type": "eclipse",
-        "width": 20,
+    "segmented-bar": {
+        "type": "linear",
+        "width": "matchParent",
+        "height": 8,
+        "borderRadius": 4,
+        "backgroundColor": "comp_background_secondary",
+    },
+    "threshold-bar": {
+        "type": "linear",
+        "width": "matchParent",
         "height": 20,
-        "color": "comp_background_secondary",
+        "borderRadius": 10,
+        "backgroundColor": "#6B7F91",
+        "color": "#C8F000",
     },
 }
 _DIVIDER_DESIGNS: dict[str, dict[str, Any]] = {
@@ -224,11 +229,27 @@ _DIVIDER_DESIGNS: dict[str, dict[str, Any]] = {
         "color": "comp_background_tertiary",
     },
 }
+_CHECKBOX_DESIGNS: dict[str, dict[str, Any]] = {
+    "default": {
+        "width": 20,
+        "height": 20,
+        "borderRadius": 10,
+        "selectedColor": "comp_background_emphasize",
+        "unSelectedColor": "icon_tertiary",
+        "mark": {
+            "strokeColor": "icon_on_primary",
+            "size": 20,
+            "strokeWidth": 2,
+        },
+        "shape": "circle",
+    },
+}
 _COMPONENT_DESIGNS = {
     "Text": _TEXT_DESIGNS,
     "Button": _BUTTON_DESIGNS,
     "Progress": _PROGRESS_DESIGNS,
     "Divider": _DIVIDER_DESIGNS,
+    "Checkbox": _CHECKBOX_DESIGNS,
 }
 _COMPACT_ROOT_DIMENSIONS = {
     "2x2": {"width": 160, "height": 160},
@@ -608,12 +629,15 @@ def _validate_progress_props(
         "Progress.value",
         props.get("value"),
     )
-    if "total" in props:
-        _require_numeric_or_binding(
-            component_id,
-            "Progress.total",
-            props["total"],
+    if "total" not in props:
+        raise CompactDslConversionError(
+            f"{component_id}: Progress.total is required."
         )
+    _require_numeric_or_binding(
+        component_id,
+        "Progress.total",
+        props["total"],
+    )
 
 
 def _require_numeric_or_binding(
@@ -950,7 +974,13 @@ def _convert_component(component: ComponentRow) -> dict[str, Any]:
         component.component_type,
         frozenset(),
     )
+    compact_only_fields = _COMPACT_ONLY_FIELDS.get(
+        component.component_type,
+        frozenset(),
+    )
     for property_name, source_value in component.props.items():
+        if property_name in compact_only_fields:
+            continue
         value = _convert_path_bindings(source_value)
         if _move_component_property(
             converted,
