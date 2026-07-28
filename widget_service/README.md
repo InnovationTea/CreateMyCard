@@ -11,18 +11,20 @@ The service follows `docs/AGENTS.md`:
 - `TaskSpec.dataModelSchema` is projected directly from each capability `outputSchema`: the service reads `type`, `description`, and `sampleValue` from the selected leaf and writes it at `writeResultTo + candidateOutputFields` path. There is no separate data-model mapping file or runtime field-renaming layer.
 - `romVersion` is the only accepted ROM field name. A full value such as `CLS-AL30 6.0.0.328` is normalized to the major/minor version `6.0`.
 - All four interfaces currently map App `[11.7.5.205, 12.0.0.0)` and ROM `[6.0, 7.0)` to `app-11.7.5.205_rom-6.0`. An unmatched version falls back to this default when `WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true`.
-- `generateWidgetCard` always uses MEP. `generateWidgetCardCompactDsl` always uses llmclient, selects its Design
-  profile from `data/protocol_profiles/registry_ranges.json`, and converts Design Compact DSL with that profile's
-  `protocol.json` before validation and storage. Both routes share create/edit, validation, and repair switches.
+- `generateWidgetCard` selects MEP or llmclient through `WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND`.
+  `generateWidgetCardCompactDsl` selects its backend through `WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND`, loads
+  the Design profile from `data/protocol_profiles/registry_ranges.json`, and converts Design Compact DSL with that
+  profile's `protocol.json` before validation and storage. Both routes share create/edit, validation, and repair
+  switches. Tool callers cannot select or override either backend.
 - `WIDGET_SERVICE_ENABLE_IDS_MOCK=true` by default. In this mode the service reads only `WIDGET_SERVICE_MOCK_IDS_RESPONSE_PATH`, whose default path is the service-internal `cloud/data/mock/ids_res.json`; a missing or invalid mock produces an empty IDS result and never falls back to remote IDS. When set to `false`, the service ignores the mock and queries only the real remote IDS; remote failure produces an empty result and never falls back to mock.
 - `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY=false` by default. Error-level validation failures are logged without blocking artifact persistence; when enabled, the service makes one repair request containing the invalid DSL and all errors. Warnings never trigger repair.
 - `WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY=false` by default. Model transport errors,
   explicit model errors, and empty DSL output return `failed/A2UI_GENERATION_FAILED`;
   when enabled, each failed initial or repair model call is repeated once with the same prompt.
   Model failures never enter validation or artifact persistence.
-- With model mock disabled, each generation route selects its transport explicitly behind
-  `A2UIModelClient.generate()`: the standard route uses MEP and the Design Compact route uses
-  `cloud/custom/llmclient.py`; callers do not select either backend directly.
+- With model mock disabled, both generation routes use the same `A2UIModelClient.generate()` entry. MEP and
+  `cloud/custom/llmclient.py` are isolated behind model transport adapters; backend selection is controlled by the
+  two route-specific server settings, and tool callers cannot select either backend directly.
 - Standard create, edit, and repair prompts are loaded from `WIDGET_SERVICE_SYSTEM_PROMPT_FILE`,
   `WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE`, and `WIDGET_SERVICE_REPAIR_SYSTEM_PROMPT_FILE`. The Design route uses
   its selected profile's `PROMPT.md` for create/edit and appends the same repair constraints when repair is enabled.

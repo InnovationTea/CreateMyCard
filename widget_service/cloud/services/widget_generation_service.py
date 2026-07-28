@@ -22,9 +22,9 @@ from core.errors import ErrorCode, GenerationStatus
 from custom.a2ui_model_client import (
     A2UIModelClient,
     A2UIModelGenerationError,
-    ModelBackend,
     require_generated_dsl,
 )
+from custom.model_transport import ModelBackend
 from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
 from models.generation import EventAction
 from services.artifact_store import ArtifactStore
@@ -1028,18 +1028,18 @@ class WidgetGenerationService:
         self,
         request: GenerateWidgetCardRequest,
     ) -> GenerateWidgetCardResponse:
-        """使用原 A2UI Form profile 生成卡片。"""
+        """使用标准 A2UI Form profile 和配置选择的模型后端生成卡片。"""
         return self._generate_widget_card_with_profile(
             request,
             A2UI_FORM_PROTOCOL_PROFILE_ID,
-            model_backend="mep",
+            model_backend=get_settings().a2ui_form_model_backend,
         )
 
     def generate_widget_card_compact_dsl(
         self,
         request: GenerateWidgetCardRequest,
     ) -> GenerateWidgetCardResponse:
-        """使用 llmclient 生成 Design Compact DSL，并转换为版本匹配的标准 A2UI。"""
+        """使用配置选择的后端生成 Design Compact DSL，并转换为标准 A2UI。"""
         try:
             selection = self._compact_protocol_selection(request)
         except ValueError as exc:
@@ -1056,7 +1056,7 @@ class WidgetGenerationService:
         return self._generate_widget_card_with_profile(
             request,
             selection.protocol_profile_id,
-            model_backend="llmclient",
+            model_backend=get_settings().design_compact_model_backend,
             design_profile_id=selection.design_profile_id,
         )
 

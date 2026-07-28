@@ -700,7 +700,10 @@ def test_overview_interface_does_not_filter_assets_by_app_version():
 
 
 def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
-    """验证第三接口走 MEP，第四接口走 llmclient 并转换为版本化标准 A2UI。"""
+    """验证两个生成接口使用各自默认后端，并隔离协议和转换流程。"""
+    settings = get_settings()
+    monkeypatch.setattr(settings, "a2ui_form_model_backend", "mep")
+    monkeypatch.setattr(settings, "design_compact_model_backend", "llmclient")
     model_calls = []
 
     def capture_model_call(client, prompt, protocol_profile):

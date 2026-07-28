@@ -70,6 +70,9 @@ from custom.a2ui_model_client import (
     _build_design_test_task_spec,
     require_generated_dsl,
 )
+from custom.llmclient_model_transport import LlmClientModelTransport
+from custom.mep_model_transport import MepModelTransport
+from custom.model_transport import create_model_transport
 from services.card_spec_builder import CardSpecBuilder
 from services.card_validator import validate_card
 from services.card_validation import validate_card as validate_card_api
@@ -173,7 +176,8 @@ def test_plugin_error_explanation_distinguishes_business_failures(
 
 def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
     assert Settings(_env_file=None).anyio_thread_pool_tokens == 80
-    assert not hasattr(Settings(_env_file=None), "a2ui_model_backend")
+    assert Settings(_env_file=None).a2ui_form_model_backend == "mep"
+    assert Settings(_env_file=None).design_compact_model_backend == "llmclient"
     assert Settings(_env_file=None).enable_default_protocol_profile_fallback is True
     settings = get_settings()
     monkeypatch.setattr(settings, "anyio_thread_pool_tokens", 80)
@@ -2105,47 +2109,57 @@ def test_a2ui_model_client_real_mode_forwards_messages(monkeypatch):
     """
     messages = [{"role": "user", "content": "帮我做天气卡片"}]
 
-    def generate(_client, value, profile):
-        assert profile == {}
-        return "forwarded" if value is messages else "changed"
+    class FakeTransport:
+        @staticmethod
+        def generate(value):
+            return "forwarded" if value is messages else "changed"
 
-    monkeypatch.setattr(
-        A2UIModelClient,
-        "_generate_from_real_model",
-        generate,
-    )
+    client = A2UIModelClient(use_mock=False, transport=FakeTransport())
+    monkeypatch.setattr(client, "convert_dsl", lambda value: value)
 
-    assert A2UIModelClient(use_mock=False).generate(messages) == "forwarded"
+    assert client.generate(messages) == "forwarded"
 
 
 def test_a2ui_model_client_selects_llmclient_backend(monkeypatch):
-    """验证 A2UI generate 根据接口显式选择 llmclient，不读取环境配置。"""
+    """验证 A2UI generate 通过工厂选择 llmclient 传输层。"""
     messages = [{"role": "user", "content": "帮我做天气卡片"}]
-    calls: list[tuple[object, dict]] = []
+    calls: list[tuple[str, object]] = []
 
-    def generate_from_llm(_client, value, profile):
-        calls.append((value, profile))
-        return "llmclient-result"
+    class FakeTransport:
+        @staticmethod
+        def generate(value):
+            calls.append(("generate", value))
+            return "llmclient-result"
 
     monkeypatch.setattr(
-        A2UIModelClient,
-        "_generate_from_llm_client",
-        generate_from_llm,
+        "custom.a2ui_model_client.create_model_transport",
+        lambda backend, _settings: (
+            calls.append(("factory", backend)) or FakeTransport()
+        ),
     )
-    monkeypatch.setattr(
-        A2UIModelClient,
-        "_generate_from_real_model",
-        lambda *_args: pytest.fail("MEP must not be called"),
-    )
-
-    result = A2UIModelClient(use_mock=False, backend="llmclient").generate(messages)
+    client = A2UIModelClient(use_mock=False, backend="llmclient")
+    monkeypatch.setattr(client, "convert_dsl", lambda value: value)
+    result = client.generate(messages)
 
     assert result == "llmclient-result"
-    assert calls == [(messages, {})]
+    assert calls == [("factory", "llmclient"), ("generate", messages)]
+
+
+@pytest.mark.parametrize(
+    ("backend", "transport_type"),
+    [
+        ("mep", MepModelTransport),
+        ("llmclient", LlmClientModelTransport),
+    ],
+)
+def test_model_transport_factory_builds_configured_backend(backend, transport_type):
+    transport = create_model_transport(backend, Settings(_env_file=None))
+
+    assert isinstance(transport, transport_type)
 
 
 def test_a2ui_model_client_collects_llmclient_stream(monkeypatch):
-    """验证 llmclient token 在 A2UI 内聚合成最终 DSL，并继续执行统一后处理。"""
+    """验证 llmclient 传输层只聚合 Token，DSL 后处理由 A2UI 客户端统一执行。"""
     captured: dict = {}
     dsl = '{"createSurface":{"surfaceId":"root"}}'
 
@@ -2156,12 +2170,17 @@ def test_a2ui_model_client_collects_llmclient_stream(monkeypatch):
         yield dsl
         yield "\n```"
 
-    client = A2UIModelClient(use_mock=False)
     messages = [{"role": "user", "content": "weather"}]
-    monkeypatch.setattr("custom.a2ui_model_client.stream_genui", fake_stream)
+    monkeypatch.setattr("custom.llmclient_model_transport.stream_genui", fake_stream)
+    transport = LlmClientModelTransport()
+    client = A2UIModelClient(
+        use_mock=False,
+        backend="llmclient",
+        transport=transport,
+    )
     monkeypatch.setattr(client, "convert_dsl", lambda value: f"converted:{value}")
 
-    result = client._generate_from_llm_client(messages)
+    result = client.generate(messages)
 
     assert result == f"converted:{dsl}"
     assert captured == {
@@ -2267,7 +2286,7 @@ def test_a2ui_model_client_design_test_task_spec_covers_weather_capabilities():
 
 
 def test_a2ui_model_client_builds_qwen_chatml_prompt():
-    prompt = A2UIModelClient.messages_to_qwen_prompt(
+    prompt = MepModelTransport.messages_to_qwen_prompt(
         [
             {"role": "system", "content": "rules"},
             {"role": "user", "content": "weather card"},
@@ -2320,17 +2339,15 @@ def test_a2ui_model_client_reads_predict_stream(monkeypatch):
         captured.update(kwargs)
         return FakeResponse()
 
-    client = A2UIModelClient(use_mock=False)
-    monkeypatch.setattr(client.settings, "model_url", "https://model.test/predict")
-    monkeypatch.setattr(client.settings, "model_bid", "bid-1")
-    monkeypatch.setattr(client.settings, "model_flow_id", "flow-1")
-    monkeypatch.setattr(client, "calc_sign", lambda **_kwargs: "signature")
-    monkeypatch.setattr(client, "convert_dsl", lambda value: value)
-    monkeypatch.setattr("custom.a2ui_model_client.requests.post", fake_post)
+    settings = get_settings()
+    monkeypatch.setattr(settings, "model_url", "https://model.test/predict")
+    monkeypatch.setattr(settings, "model_bid", "bid-1")
+    monkeypatch.setattr(settings, "model_flow_id", "flow-1")
+    transport = MepModelTransport(settings)
+    monkeypatch.setattr(transport, "calc_sign", lambda **_kwargs: "signature")
+    monkeypatch.setattr("custom.mep_model_transport.requests.post", fake_post)
 
-    result = client._generate_from_real_model(
-        [{"role": "user", "content": "weather"}]
-    )
+    result = transport.generate([{"role": "user", "content": "weather"}])
 
     request_payload = json_module.loads(captured["data"].decode())
     assert result == dsl
@@ -2338,26 +2355,25 @@ def test_a2ui_model_client_reads_predict_stream(monkeypatch):
     assert request_payload["data"]["prompt"].endswith("<|im_start|>assistant\n")
 
 
-def test_a2ui_model_client_shares_transport_and_forwards_profile(monkeypatch):
-    """工具 3、4 共用模型传输层，并把各自协议传给后处理。"""
-    calls: list[tuple[object, str]] = []
+def test_a2ui_model_client_processes_transport_output_by_profile(monkeypatch):
+    """模型传输层不感知 DSL 格式，A2UI 客户端根据协议统一执行后处理。"""
+    calls: list[object] = []
 
-    def generate(_client, messages, profile):
-        calls.append((messages, profile["format"]))
-        return profile["format"]
+    class FakeTransport:
+        @staticmethod
+        def generate(messages):
+            calls.append(messages)
+            return "raw-dsl"
 
-    monkeypatch.setattr(A2UIModelClient, "_generate_from_real_model", generate)
     messages = [{"role": "user", "content": "weather card"}]
     a2ui_profile = A2UIProtocolRegistry("a2ui-form-rom6.0-v1").get_profile()
     compact_profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
-    client = A2UIModelClient(use_mock=False)
+    client = A2UIModelClient(use_mock=False, transport=FakeTransport())
+    monkeypatch.setattr(client, "convert_dsl", lambda value: f"standard:{value}")
 
-    assert client.generate(messages, a2ui_profile) == "a2ui-form"
-    assert client.generate(messages, compact_profile) == "compact-dsl"
-    assert calls == [
-        (messages, "a2ui-form"),
-        (messages, "compact-dsl"),
-    ]
+    assert client.generate(messages, a2ui_profile) == "standard:raw-dsl"
+    assert client.generate(messages, compact_profile) == "raw-dsl"
+    assert calls == [messages, messages]
 
 
 def test_compact_model_client_returns_streamed_ndjson(monkeypatch):
@@ -2394,23 +2410,25 @@ def test_compact_model_client_returns_streamed_ndjson(monkeypatch):
             yield stream[:17]
             yield stream[17:]
 
-    client = A2UIModelClient(use_mock=False)
     profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
-    monkeypatch.setattr(client.settings, "model_url", "https://model.test/predict")
-    monkeypatch.setattr(client.settings, "model_bid", "bid-1")
-    monkeypatch.setattr(client.settings, "model_flow_id", "flow-1")
-    monkeypatch.setattr(client, "calc_sign", lambda **_kwargs: "signature")
+    settings = get_settings()
+    monkeypatch.setattr(settings, "model_url", "https://model.test/predict")
+    monkeypatch.setattr(settings, "model_bid", "bid-1")
+    monkeypatch.setattr(settings, "model_flow_id", "flow-1")
+    transport = MepModelTransport(settings)
+    monkeypatch.setattr(transport, "calc_sign", lambda **_kwargs: "signature")
+    client = A2UIModelClient(use_mock=False, transport=transport)
     monkeypatch.setattr(
         client,
         "convert_dsl",
         lambda *_args: pytest.fail("Compact output must not use A2UI conversion"),
     )
     monkeypatch.setattr(
-        "custom.a2ui_model_client.requests.post",
+        "custom.mep_model_transport.requests.post",
         lambda *_args, **_kwargs: FakeResponse(),
     )
 
-    result = client._generate_from_real_model(
+    result = client.generate(
         [{"role": "user", "content": "weather"}],
         profile,
     )
@@ -2419,9 +2437,9 @@ def test_compact_model_client_returns_streamed_ndjson(monkeypatch):
 
 
 def test_compact_model_client_has_no_artificial_completion_limit():
-    source = (
-        CLOUD_ROOT / "custom" / "a2ui_model_client.py"
-    ).read_text(encoding="utf-8")
+    source = (CLOUD_ROOT / "custom" / "mep_model_transport.py").read_text(
+        encoding="utf-8"
+    )
 
     assert "COMPACT_DSL_MAX_TOKENS" not in source
     assert "max_duration" not in source
@@ -2460,17 +2478,13 @@ def test_a2ui_model_client_rejects_output_without_dsl(value):
 
 
 def test_a2ui_model_client_wraps_transport_exception(monkeypatch):
-    def raise_timeout(_client, _messages, _profile):
-        raise requests.exceptions.Timeout("model timeout")
-
-    monkeypatch.setattr(
-        A2UIModelClient,
-        "_generate_from_real_model",
-        raise_timeout,
-    )
+    class FailingTransport:
+        @staticmethod
+        def generate(_messages):
+            raise requests.exceptions.Timeout("model timeout")
 
     with pytest.raises(A2UIModelGenerationError, match="model generation failed"):
-        A2UIModelClient(use_mock=False).generate([])
+        A2UIModelClient(use_mock=False, transport=FailingTransport()).generate([])
 
 
 def _model_failure_request() -> GenerateWidgetCardRequest:
@@ -2482,6 +2496,41 @@ def _model_failure_request() -> GenerateWidgetCardRequest:
         title="静态卡片",
         description="模型失败处理测试",
     )
+
+
+@pytest.mark.parametrize(
+    ("generation_method", "setting_name", "backend"),
+    [
+        ("generate_widget_card_a2ui_form", "a2ui_form_model_backend", "llmclient"),
+        ("generate_widget_card_compact_dsl", "design_compact_model_backend", "mep"),
+    ],
+)
+def test_generation_routes_accept_each_configured_model_backend(
+    monkeypatch,
+    generation_method,
+    setting_name,
+    backend,
+):
+    """第三、第四接口都只从各自服务端配置选择模型后端。"""
+    settings = get_settings()
+    monkeypatch.setattr(settings, setting_name, backend)
+    service = WidgetGenerationService()
+    captured: dict[str, object] = {}
+    sentinel = object()
+
+    def capture_route(_request, _profile_id, *, model_backend, design_profile_id=None):
+        captured["model_backend"] = model_backend
+        captured["design_profile_id"] = design_profile_id
+        return sentinel
+
+    monkeypatch.setattr(service, "_generate_widget_card_with_profile", capture_route)
+
+    result = getattr(service, generation_method)(_model_failure_request())
+
+    assert result is sentinel
+    assert captured["model_backend"] == backend
+    if generation_method == "generate_widget_card_compact_dsl":
+        assert captured["design_profile_id"] == "design-compact-dsl"
 
 
 @pytest.mark.parametrize(
