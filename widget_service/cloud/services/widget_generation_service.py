@@ -45,6 +45,7 @@ from services.prompt_builder import PromptBuilder
 from services.protocol_registry import (
     A2UI_FORM_PROTOCOL_PROFILE_ID,
     COMPACT_DSL_PROTOCOL_PROFILE_ID,
+    TERSE_DSL_NESTED2_PROFILE_ID,
     A2UIProtocolRegistry,
     ProtocolProfileSelection,
 )
@@ -55,6 +56,10 @@ from services.source_artifact_repository import (
     SourceArtifactRepository,
 )
 from services.task_spec_builder import TaskSpecBuilder
+from services.terse_dsl_nested2_converter import (
+    TerseDslNested2ConversionError,
+    convert_terse_dsl_nested2_to_a2ui,
+)
 from services.validator import ArtifactValidator
 
 _MODULE = "[Generation Service]"
@@ -101,7 +106,11 @@ class WidgetGenerationService:
                 DataCapabilitySchemasRequest(**request.model_dump(exclude={"operation"}))
             )
 
-        if request.operation in {"generateWidgetCard", "generateWidgetCardCompactDsl"}:
+        if request.operation in {
+            "generateWidgetCard",
+            "generateWidgetCardCompactDsl",
+            "generateWidgetCardTerseDslNested2",
+        }:
             # 生成阶段必须带原始用户需求，模型 prompt、TaskSpec 和用户话术都依赖它。
             if not request.userQuery:
                 raise ValueError("userQuery is required for generateWidgetCard.")
@@ -113,6 +122,10 @@ class WidgetGenerationService:
             generation_request = GenerateWidgetCardRequest(**payload)
             if request.operation == "generateWidgetCardCompactDsl":
                 return self.generate_widget_card_compact_dsl(generation_request)
+            if request.operation == "generateWidgetCardTerseDslNested2":
+                return self.generate_widget_card_terse_dsl_nested2(
+                    generation_request
+                )
             return self.generate_widget_card_a2ui_form(generation_request)
 
         raise ValueError(f"Unknown operation: {request.operation}")
@@ -387,6 +400,14 @@ class WidgetGenerationService:
         compact_dsl = is_compact_dsl(protocol_profile)
         design_compact = design_profile_id is not None
         strict_compact_validation = compact_dsl or design_compact
+        terse_nested2 = design_profile_id == TERSE_DSL_NESTED2_PROFILE_ID
+        conversion_protocol_profile = protocol_profile
+        if terse_nested2:
+            conversion_protocol_profile = (
+                A2UIProtocolRegistry.read_design_protocol_profile(
+                    TERSE_DSL_NESTED2_PROFILE_ID
+                )
+            )
         resolved_design_profile_id = design_profile_id or ""
         logger.info(
             f"{_MODULE} generate_flow_step_protocol_loaded "
@@ -566,7 +587,9 @@ class WidgetGenerationService:
         latest_design_dsl = ""
         model_call_phase = "initial"
         model_failure_retry_count = 0
-        if design_compact:
+        if terse_nested2:
+            repair_prompt_type = "terse-dsl-nested-2-create"
+        elif design_compact:
             design_mode = "edit" if source_load_result else "create"
             repair_prompt_type = f"design-compact-{design_mode}"
         elif protocol_profile["id"] == COMPACT_DSL_PROTOCOL_PROFILE_ID:
@@ -633,35 +656,47 @@ class WidgetGenerationService:
             generated = generated_source
             if design_compact:
                 latest_design_dsl = generated_source
-                try:
-                    context_validation = validate_compact_dsl_context(
-                        latest_design_dsl,
-                        task_spec=task_spec.model_dump(
-                            mode="json",
-                            exclude_none=True,
-                        ),
-                        card_spec=card_spec.model_dump(
-                            mode="json",
-                            exclude_none=True,
-                        ),
+                if terse_nested2:
+                    try:
+                        generated = convert_terse_dsl_nested2_to_a2ui(
+                            generated_source,
+                            size=card_spec.suggestSize,
+                            protocol_profile=conversion_protocol_profile,
+                        )
+                    except TerseDslNested2ConversionError as exc:
+                        raise A2UIModelGenerationError(
+                            "TerseDSL-Nested-2 conversion failed"
+                        ) from exc
+                else:
+                    try:
+                        context_validation = validate_compact_dsl_context(
+                            latest_design_dsl,
+                            task_spec=task_spec.model_dump(
+                                mode="json",
+                                exclude_none=True,
+                            ),
+                            card_spec=card_spec.model_dump(
+                                mode="json",
+                                exclude_none=True,
+                            ),
+                        )
+                    except CompactDslConversionError as exc:
+                        compact_operation_error = str(exc)
+                        logger.error(
+                            f"{_MODULE} design_compact_context_validation_failed "
+                            f"error={exc}"
+                        )
+                        return ""
+                    logger.info(
+                        f"{_MODULE} design_compact_context_validation_completed "
+                        f"warning_count={len(context_validation.warnings)} "
+                        f"warnings={json_for_log(list(context_validation.warnings))}"
                     )
-                except CompactDslConversionError as exc:
-                    compact_operation_error = str(exc)
-                    logger.error(
-                        f"{_MODULE} design_compact_context_validation_failed "
-                        f"error={exc}"
+                    generated = model_client.convert_design_dsl_to_standard_dsl(
+                        generated_source,
+                        size=card_spec.suggestSize,
+                        design_profile_id=resolved_design_profile_id,
                     )
-                    return ""
-                logger.info(
-                    f"{_MODULE} design_compact_context_validation_completed "
-                    f"warning_count={len(context_validation.warnings)} "
-                    f"warnings={json_for_log(list(context_validation.warnings))}"
-                )
-                generated = model_client.convert_design_dsl_to_standard_dsl(
-                    generated_source,
-                    size=card_spec.suggestSize,
-                    design_profile_id=resolved_design_profile_id,
-                )
             if not compact_dsl:
                 return generated
             if not generated.strip():
@@ -730,6 +765,17 @@ class WidgetGenerationService:
                 if not design_compact:
                     return repaired_dsl
                 latest_design_dsl = repaired_dsl
+                if terse_nested2:
+                    try:
+                        return convert_terse_dsl_nested2_to_a2ui(
+                            repaired_dsl,
+                            size=card_spec.suggestSize,
+                            protocol_profile=conversion_protocol_profile,
+                        )
+                    except TerseDslNested2ConversionError as exc:
+                        raise A2UIModelGenerationError(
+                            "TerseDSL-Nested-2 repair conversion failed"
+                        ) from exc
                 return model_client.convert_design_dsl_to_standard_dsl(
                     repaired_dsl,
                     size=card_spec.suggestSize,
@@ -1091,6 +1137,48 @@ class WidgetGenerationService:
             selection.protocol_profile_id,
             model_backend=get_settings().design_compact_model_backend,
             design_profile_id=selection.design_profile_id,
+        )
+
+    def generate_widget_card_terse_dsl_nested2(
+        self,
+        request: GenerateWidgetCardRequest,
+    ) -> GenerateWidgetCardResponse:
+        """使用本地 TerseDSL-Nested-2 Prompt 和转换器生成标准 A2UI。"""
+        if "sourceArtifactUrl" in request.model_fields_set:
+            return GenerateWidgetCardResponse(
+                status=GenerationStatus.UNSUPPORTED,
+                suggestSize=request.size or "2x4",
+                message="TerseDSL-Nested-2 当前只支持新建卡片，不支持继续编辑。",
+                errorCode=ErrorCode.PROTOCOL_CAPABILITY_UNSUPPORTED.value,
+            )
+        if request.candidateDataBindings or request.candidateEventCandidates:
+            return GenerateWidgetCardResponse(
+                status=GenerationStatus.UNSUPPORTED,
+                suggestSize=request.size or "2x4",
+                message=(
+                    "TerseDSL-Nested-2 当前只支持字面量静态卡片，"
+                    "不支持动态数据或点击事件。"
+                ),
+                errorCode=ErrorCode.PROTOCOL_CAPABILITY_UNSUPPORTED.value,
+            )
+        try:
+            selection = self._compact_protocol_selection(request)
+        except ValueError as exc:
+            logger.error(
+                f"{_MODULE} terse_nested2_protocol_selection_failed "
+                f"error_code={ErrorCode.APP_VERSION_UNSUPPORTED.value} error={exc}"
+            )
+            return GenerateWidgetCardResponse(
+                status=GenerationStatus.UNSUPPORTED,
+                suggestSize=request.size or "2x4",
+                message="当前 App/ROM 版本暂无可用的卡片协议，暂时不能生成卡片。",
+                errorCode=ErrorCode.APP_VERSION_UNSUPPORTED.value,
+            )
+        return self._generate_widget_card_with_profile(
+            request,
+            selection.protocol_profile_id,
+            model_backend=get_settings().design_compact_model_backend,
+            design_profile_id=TERSE_DSL_NESTED2_PROFILE_ID,
         )
 
     def _generate_widget_card_with_profile(

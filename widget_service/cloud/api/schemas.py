@@ -24,6 +24,7 @@ WidgetCardOperation = Literal[
     "getDataCapabilitySchemas",
     "generateWidgetCard",
     "generateWidgetCardCompactDsl",
+    "generateWidgetCardTerseDslNested2",
 ]
 
 
