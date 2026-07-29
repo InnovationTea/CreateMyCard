@@ -122,13 +122,14 @@ edit 先取得目标卡片最近一次业务 payload 的真实 `artifactUrl`，�
 
 恢复完整数据候选集合：
 
-1. 沿当前卡片会话链找到最近一次显式提交的完整 `candidateDataBindings`。
-2. 根据后续有效业务结果排除已被微服务移除的数据能力。
-3. 删除用户要求移除的 binding，或只修改目标 binding 的 `arguments`；保留其它 binding。
-4. 重新获取能力概述并只保留当前可用能力，再加载所需 schema。
-5. 重新校验全部参数、写入路径和字段投影后，显式传完整数组；删除全部动态数据时传 `[]`。
+1. 从当前对话上下文中找到目标卡片最新一次有效业务结果的 `artifactUrl`，再找到产生该结果的真实 `generateWidgetCard` 调用。
+2. 若该调用显式提交了完整 `candidateDataBindings`，以其为基线；若省略了该字段，则沿调用参数中的 `sourceArtifactUrl` 向前追溯，直到找到最近一次显式提交的完整数组。
+3. 只沿“真实调用参数 → 合法业务结果 → 新 artifactUrl”的有效链路，根据后续 `effectiveCapabilities.data` 和可可靠对应的移除结果排除未生效的数据能力；失败、非法结果、无新 URL 或 edit 返回来源 URL 的调用不进入链路。
+4. 删除用户要求移除的 binding，或只修改目标 binding 的 `arguments`；保留其它 binding。
+5. 重新获取能力概述并只保留当前可用能力，再加载所需 schema。
+6. 重新校验全部参数、写入路径和字段投影后，显式传完整数组；删除全部动态数据时传 `[]`。
 
-无法可靠恢复时停止编辑，不传不完整数组，不下载来源 artifact 猜测。
+无法从当前对话上下文可靠对应目标结果、历史调用参数和完整数组时停止编辑；不从用户或模型的普通回复、`genWidgetResult` 文本、示例或来源 artifact 猜测，不传不完整数组。
 
 ## 权限集合
 
@@ -136,6 +137,6 @@ edit 先取得目标卡片最近一次业务 payload 的真实 `artifactUrl`，�
 
 - create：最终 `candidateDataBindings[].capabilityId`。
 - 删除数据或修改参数 edit：编辑后完整 binding 的能力 ID。
-- 纯视觉、布局、文案或尺寸 edit：优先使用目标卡片最近一次 `effectiveCapabilities.data`；缺失时才从同一会话完整候选链扣除已移除能力后恢复。
+- 纯视觉、布局、文案或尺寸 edit：优先使用目标卡片最近一次 `effectiveCapabilities.data`；缺失时才按上述对话上下文追溯规则，从最近一次完整候选数组中扣除后续已移除能力。
 
 无法可靠恢复 edit 的集合时停止编辑。集合为空时跳过 `RequestDataPermission`；非空时完整传入。权限通过后若集合或 binding 发生变化，必须重新检查。
