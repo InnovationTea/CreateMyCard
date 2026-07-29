@@ -17,15 +17,12 @@ metadata:
 
 ## 目标与边界
 
-只执行主 Agent 编排：识别 create/edit、判断需求适配、选择候选、执行生成前能力与权限门禁、调用工具并组织用户回复。
-
-微服务负责真实设备能力裁决、最终 CardSpec、A2UI 模型输入、DSL 生成、校验、降级、重试和 artifact 上传；端侧负责下载、渲染、确认添加和运行时刷新。
-
-不得自行生成、下载、解析、修改或校验 DSL、CardSpec、A2UI prompt、来源 artifact 或替代产物；不得用离线清单、历史模板、旧协议或 `scripts/` 补足在线工具结果。
+只执行编排：识别 create/edit、判断需求适配、选择候选、执行生成前能力与权限门禁、调用工具并组织用户回复。
+不得自行生成、修改或校验卡片DSL、artifact 或其它产物；
 
 ## 执行入口
 
-所有已召回请求先读取 [`references/orchestration-workflow.md`](references/orchestration-workflow.md)，再按场景只加载必要资料：
+先读取 [`references/orchestration-workflow.md`](references/orchestration-workflow.md)，再按场景只加载必要资料：
 
 - create、删除数据能力或修改数据参数：读取 [`references/candidate-planning.md`](references/candidate-planning.md) 和 [`references/tool-contracts.md`](references/tool-contracts.md)。
 - 纯视觉、布局、文案或尺寸 edit：只读取 [`references/tool-contracts.md`](references/tool-contracts.md) 的 edit 契约。
@@ -61,4 +58,3 @@ invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmserv
 - 生成前合法结束不伪造 `unsupported` payload，不输出 `genWidgetResult`。
 - 任一必要工具不可用、调用失败、结果无法解析或字段非法时终止本轮，不模拟成功、不重试补偿、不生成替代产物。
 - 用户可见回复不暴露能力 ID、schema、provider、TaskSpec、OBS、IDS、错误码、请求 ID、工具包络或内部草稿。
-- `scripts/` 仅为历史联调兼容资源，不属于本 Skill 的运行流程或生产协议依据。
