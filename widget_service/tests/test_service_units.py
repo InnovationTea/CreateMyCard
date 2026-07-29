@@ -3167,7 +3167,12 @@ def test_artifact_store_returns_structured_save_result(tmp_path, monkeypatch):
             createdAt=1,
         ),
     )
-    result = ArtifactStore().save(artifact)
+    design_compact_dsl = (
+        '["root","Column",{"width":"matchParent","height":140},[]]'
+    )
+    result = ArtifactStore(
+        design_compact_dsl=design_compact_dsl
+    ).save(artifact)
 
     assert result.artifactUrl.endswith(".md")
     assert result.artifactDigest.startswith("sha256:")
@@ -3184,12 +3189,19 @@ def test_artifact_store_returns_structured_save_result(tmp_path, monkeypatch):
     assert uploaded_content.count("```generationplan") == 1
     assert uploaded_content.count("```meta") == 1
     assert uploaded_content.count("```schema") == 1
+    assert uploaded_content.count("```designcompactdsl") == 1
+    assert uploaded_content.index("```meta") < uploaded_content.index(
+        "```designcompactdsl"
+    )
+    assert uploaded_content.endswith(
+        "```designcompactdsl\n"
+        '["root","Column",{"width":"matchParent","height":140},[]]\n'
+        "```\n"
+    )
     assert '"title": "天气速览"' in uploaded_content
     assert '"description": "查看当前天气"' in uploaded_content
     assert '"dataModelSchema"' in uploaded_content
     assert '"protocolProfileId": "a2ui-form-rom6.0-v1"' in uploaded_content
-
-
 def test_file_utils_save_and_delete_utf8_text(tmp_path):
     """验证文本文件工具支持自动建目录、UTF-8 写入和幂等删除。
 
