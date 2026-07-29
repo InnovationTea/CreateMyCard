@@ -1,82 +1,49 @@
-# 样例
+# 联调与回归样例
 
-## 10 条回归 Query
+仅在联调、排障或核对回归行为时读取。所有调用都必须再次按当前运行时 schema 校验；示例不能授权额外字段。
 
-1. 帮我做一张 2x2 天气卡片，显示上海青浦今天的温度、天气和空气质量，点一下能打开天气详情。
-2. 生成一个通勤卡片，早上看天气、今天第一个会议和去公司的入口。
-3. 做一个今天日程卡，显示下一场会议的标题和时间，点击可以进入会议详情。
-4. 帮我创建一个一键入会卡片，显示下一场线上会议并提供加入按钮。
-5. 做一个手机状态卡，展示内存状态，底部按钮可以一键清理运行内存。
-6. 给我做一张抖音使用时长和耗电卡，显示前台时长、前台耗电和更新时间。
-7. 做一个给妈妈打电话的桌面卡片，按钮点一下进入拨号界面。
-8. 创建一个导航卡片，按钮用于导航回家，只要一个明确入口。
-9. 帮我做一个音乐卡片，点击打开每日推荐歌单。
-10. 做一个省电模式卡片，可以一键开启省电模式，并展示当前是系统设置相关操作。
+## 导航
 
-补充回归场景：
+- [场景矩阵](#场景矩阵)
+- [动态 create：天气与下一场日程](#动态-create天气与下一场日程)
+- [静态入口 create](#静态入口-create)
+- [权限未通过](#权限未通过)
+- [连续编辑](#连续编辑)
+- [结果映射速查](#结果映射速查)
 
-- 用户要求天气、日程和实时路况，但候选只能覆盖天气与日程：生成前说明缺失路况、保留天气和日程，然后自动继续生成。
-- 用户未指定尺寸，需求可通过一个主问题、必要数据和一个动作在 `2x2` 中完整表达：必须传 `size:"2x2"`，不得仅因横版更舒展或还有可选支撑信息而传 `2x4`。
-- 用户未指定尺寸，但必须保留的核心内容、受保护文本、必要热区或关键并列关系经删减可选项后仍无法在 `2x2` 中成立：允许传 `size:"2x4"`，并在内部记录具体布局失败点。
-- 用户明确指定 `2x4`：优先遵从，不把它自动缩回 `2x2`。
-- 核心数据能力缺少地点、联系人或时间范围等必填信息：集中追问后继续当前步骤。
-- 用户指定超过 4 个主要展示项：优先保留核心项；无法判断优先级时请用户确认。
-- 主动删减展示项且微服务又返回降级：最终合并并去重说明，不暴露内部字段。
+## 场景矩阵
 
-## 生成前门禁回归
-
-以下调用轨迹用于验证是否正确提前结束；“零调用”表示不执行任何 `invoke`。
-
-| 请求与上下文 | 预期决策 | 预期调用 |
+| 请求或上下文 | 预期决策 | 调用轨迹 |
 | --- | --- | --- |
-| 在卡片创建页面说“帮我写一篇手机行业长报告” | 结束并引导 | 零调用 |
-| “做一个美团外卖实时配送状态卡片”，overview 无相关核心能力 | 结束并引导 | 只调用 `getWidgetCapabilityOverview` |
-| “天气和股票都要，股票没有就别生成”，仅天气可用 | 结束并引导 | 只调用 `getWidgetCapabilityOverview` |
-| “天气加股票”，仅天气可用且天气仍有独立价值 | 调整后生成 | overview → 天气 schema → permission → generate |
-| “天气卡片，最好点一下看详情”，数据可用但动作不可用 | 调整后生成 | overview → 天气 schema → permission → generate |
-| “一键打开天气详情”，动作是唯一核心目标且不可用 | 结束并引导 | 只调用 overview |
-| 最后一个核心数据能力出现在 `missingCapabilityIds` | 结束并引导 | overview → schema，不调用 generate |
-| “做一个打开天气应用的入口卡片”，事件可安全填齐 | 继续生成 | overview → generate，不要求数据 schema |
-| edit 请求“再加股票数据” | 结束并引导重新创建 | 零调用 |
-| edit 请求“背景改成蓝色”，来源卡片含动态数据 | 继续编辑 | permission → generate |
-| edit 请求“背景改成蓝色”，来源卡片无动态数据 | 继续编辑 | 只调用 generate |
-| overview 调用失败或 payload 非法 | 其它异常 | overview 后终止，不给能力建议 |
+| 卡片创建页面要求撰写长报告 | 结束并引导 | 零调用 |
+| 外卖实时配送卡，overview 无相关核心能力 | 结束并引导 | overview |
+| 天气和股票都要，股票没有就不生成 | 结束并引导 | overview |
+| 天气加股票，只有天气可用且仍有独立价值 | 调整后生成 | overview → schema → permission → generate |
+| 天气卡片，点击详情是次要诉求但事件不可用 | 调整后生成 | overview → schema → permission → generate |
+| 打开天气详情是唯一核心动作但事件不可用 | 结束并引导 | overview |
+| 最后一个核心数据能力进入 `missingCapabilityIds` | 结束并引导 | overview → schema |
+| 打开天气应用的静态入口卡 | 继续生成 | overview → generate |
+| edit“背景改成蓝色”，来源含动态数据 | 继续编辑 | permission → generate |
+| edit“背景改成蓝色”，来源无动态数据 | 继续编辑 | generate |
+| edit“去掉日历，只保留天气” | 继续编辑 | overview → schema → permission → generate |
+| edit“再加股票数据” | 引导重新创建 | 零调用 |
+| overview、权限或生成工具结果非法 | 其它异常 | 当前工具后终止 |
 
-非卡片边界回复示例：
+尺寸回归：
 
-```text
-桌面卡片适合展示少量关键信息或提供快捷入口，暂不适合处理你这次的长报告。你可以试试：“做一张显示今日天气的桌面卡片”、“做一张今日安排提醒卡片”
-```
+- 未指定尺寸，天气与下一场日程可通过摘要在一个主问题中表达：使用 `2x2`。
+- 未指定尺寸，删去可选项后仍无法容纳必须同屏的核心内容和必要热区：允许使用 `2x4`。
+- 用户明确指定 `2x4`：优先遵从。
 
-能力概述后提前结束示例：
+## 动态 create：天气与下一场日程
 
-```text
-当前卡片能力暂无法满足你需要的外卖实时配送状态，因此这次先不生成。你可以试试：“做一张显示今日天气的桌面卡片”、“做一张设备电量状态卡片”
-```
-
-部分满足预告示例：
+用户：
 
 ```text
-当前暂无法提供股票数据，我会保留天气数据继续为你生成卡片。
+做一张通勤卡片，显示上海青浦今天的天气和下一场日程。
 ```
 
-该预告输出后直接继续工具调用，不等待用户回答。
-
-## 工具调用样例：天气通勤卡
-
-说明：以下示例统一通过 `invoke(functionName:"工具名", arguments:{bundleName:"com.omega_w_0823.hmservice", ...},"skillName":"harmony-card-generation-online")` 调用工具。`skillName` 必须与当前 Skill frontmatter 的 `name` 完全一致。每次调用前先检查是否有会影响核心意图、候选选择或业务入参的用户待确认项；有则先追问并等待回答，再以当前运行时 `tools` 中对应工具的 schema 校验字段名、必填项、类型和嵌套结构。schema 未声明字段一律不传，示例不能覆盖运行时 schema。不要构造内部 `content/deviceInfo/session` 包络。示例中的 `timeInterval` 使用 2026-07-06 Asia/Shanghai 的当天毫秒区间；实际执行时按用户本地时区和当前日期计算。
-
-## 调用前追问样例
-
-用户说“做一个给家人打电话的桌面卡片”，但没有说明联系人或号码。该目标会影响核心动作参数，因此在调用第一个工具前先追问：
-
-```text
-你希望卡片拨打哪位联系人或哪个号码？
-```
-
-等待用户回答后再从工作流当前步骤继续。不要先调用 overview，不要猜测联系人，也不要把拨号动作静默删除后生成另一种卡片。
-
-1. `getWidgetCapabilityOverview`
+### 1. 能力概述
 
 ```text
 invoke(functionName:"getWidgetCapabilityOverview", arguments:{
@@ -84,42 +51,29 @@ invoke(functionName:"getWidgetCapabilityOverview", arguments:{
 },"skillName":"harmony-card-generation-online")
 ```
 
-解析业务 `data` 后直接使用已裁决结果。例如：
+假设业务 payload 提供 `ViewWeather`、`GetCalendarEvents`，且未返回可用点击事件。
 
-```json
-{
-  "dataCapabilities": [
-    {"id": "ViewWeather", "description": "查询天气"}
-  ],
-  "unavailableCapabilities": ["GetAppUsageDurationAndPower"],
-  "eventCapabilities": [],
-  "assetCandidates": []
-}
-```
-
-此时只能继续选择 `ViewWeather`；不得为 `GetAppUsageDurationAndPower` 请求 schema 或构造数据绑定。
-
-如果 `unavailableCapabilities` 缺失或为 `[]`，表示没有已识别的本地不可用数据能力。
-
-2. `getDataCapabilitySchemas`
+### 2. 加载 schema
 
 ```text
 invoke(functionName:"getDataCapabilitySchemas", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
-  dataCapabilityIds:["ViewWeather", "calendar.events.search"]
+  dataCapabilityIds:["ViewWeather","GetCalendarEvents"]
 },"skillName":"harmony-card-generation-online")
 ```
 
-3. `RequestDataPermission`
+候选参数和字段必须取自本轮 schema。日历使用当前契约的 `futureDays`，不得使用旧参数或旧能力 ID。
+
+### 3. 权限门禁
 
 ```text
 invoke(functionName:"RequestDataPermission", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
-  dataCapabilityIds:["ViewWeather", "calendar.events.search"]
+  dataCapabilityIds:["ViewWeather","GetCalendarEvents"]
 },"skillName":"harmony-card-generation-online")
 ```
 
-只有返回以下明确结果，且结果中没有任何权限项为 Boolean `false` 时才能继续：
+只有以下结果，且不存在任何权限项为 Boolean `false` 时才继续：
 
 ```json
 {
@@ -129,7 +83,109 @@ invoke(functionName:"RequestDataPermission", arguments:{
 }
 ```
 
-`stateOfPermission` 或任一权限项 `authorized` 返回 Boolean `false` 时一票否决，立即结束任务，不调用生成工具，并拒绝继续生成；有 `nonAuthStatus` 时使用每项的 `name` 与 `settingsPath` 引导用户手动授权。例如：
+### 4. 生成
+
+天气和下一场日程经过摘要可以在 `2x2` 完整表达，因此不因存在两个数据能力升级为 `2x4`：
+
+```text
+invoke(functionName:"generateWidgetCard", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
+  userQuery:"做一张通勤卡片，显示上海青浦今天的天气和下一场日程。",
+  title:"通勤助手",
+  description:"天气日程速览",
+  size:"2x2",
+  candidateDataBindings:[
+    {
+      capabilityId:"ViewWeather",
+      arguments:{
+        districtName:"青浦区",
+        forecastDays:1
+      },
+      writeResultTo:"/data/weather",
+      candidateOutputFields:[
+        "/current/temperatureText",
+        "/current/condition"
+      ]
+    },
+    {
+      capabilityId:"GetCalendarEvents",
+      arguments:{
+        futureDays:1
+      },
+      writeResultTo:"/data/calendar",
+      candidateOutputFields:[
+        "/events/0/title",
+        "/events/0/dtStart"
+      ]
+    }
+  ],
+  candidateEventCandidates:[],
+  candidateAssetIds:[]
+},"skillName":"harmony-card-generation-online")
+```
+
+若返回：
+
+```json
+{
+  "status": "success",
+  "message": "已为你生成通勤卡片。",
+  "artifactUrl": "https://obs.example/widget/123.md"
+}
+```
+
+回复：
+
+````text
+已为你生成通勤卡片。
+
+```genWidgetResult
+{
+  "result": "https://obs.example/widget/123.md"
+}
+```
+````
+
+## 静态入口 create
+
+用户：
+
+```text
+做一个打开天气应用的入口卡片。
+```
+
+overview 返回可安全填齐的天气入口事件后，不加载数据 schema，也不调用权限工具：
+
+```text
+invoke(functionName:"generateWidgetCard", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
+  userQuery:"做一个打开天气应用的入口卡片。",
+  title:"天气入口",
+  description:"快速打开天气",
+  size:"2x2",
+  candidateDataBindings:[],
+  candidateEventCandidates:[
+    {
+      capabilityId:"event.open.weather",
+      action:{
+        call:"clickToDeeplink",
+        args:{
+          bundleName:"",
+          abilityName:"",
+          uri:"hww://www.huawei.com/totemweather?enterType=share&cityCode="
+        }
+      }
+    }
+  ],
+  candidateAssetIds:[]
+},"skillName":"harmony-card-generation-online")
+```
+
+事件 action 必须来自本轮 overview；示例值不能替代实际返回。
+
+## 权限未通过
+
+假设权限结果：
 
 ```json
 {
@@ -148,25 +204,59 @@ invoke(functionName:"RequestDataPermission", arguments:{
 }
 ```
 
-对应回复：
+立即终止，不调用生成工具，只回复：
 
 ```text
 请前往「设置-健康使用设备-使用统计和管理」，为「应用使用时长」开启权限，然后再试。
 ```
 
-不向用户输出 `capabilityId`、`authorized` 或 `authType`。返回 Boolean `false` 且 `nonAuthStatus` 缺失或为空数组时，回复“当前生成卡片所需的数据权限不可用，已停止生成。”
+没有有效授权明细时固定回复：
 
-4. `generateWidgetCard`
+```text
+当前生成卡片所需的数据权限不可用，已停止生成。
+```
 
-本例把天气、第一场会议和去公司入口都作为必须同屏的核心内容；删除可选展示字段后，`2x2` 仍无法同时保证两个数据区和必要动作热区，因此使用 `2x4`。如果用户只要求天气与下一场会议摘要，则应优先改用 `2x2`。
+## 连续编辑
+
+假设上一轮有效业务结果为：
+
+```json
+{
+  "status": "success",
+  "artifactUrl": "https://obs.example/widget/v1.md",
+  "effectiveCapabilities": {
+    "data": ["ViewWeather", "GetCalendarEvents"]
+  }
+}
+```
+
+### 纯视觉 edit
+
+用户：“背景改成蓝色，信息排紧凑一点。”
+
+先对来源的完整数据能力集合执行权限门禁，通过后调用：
 
 ```text
 invoke(functionName:"generateWidgetCard", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
-  userQuery:"生成一个通勤卡片，早上看天气、今天第一个会议和去公司的入口。",
-  title:"通勤助手",
-  description:"天气日程速览",
-  size:"2x4",
+  userQuery:"背景改成蓝色，信息排紧凑一点",
+  sourceArtifactUrl:"https://obs.example/widget/v1.md"
+},"skillName":"harmony-card-generation-online")
+```
+
+不重复传未修改的标题、尺寸或候选数组。
+
+### 删除日历
+
+用户：“去掉日历，只保留天气。”
+
+重新获取 overview 和天气 schema，恢复并校验编辑后的完整数据候选，只对 `ViewWeather` 检查权限。通过后调用：
+
+```text
+invoke(functionName:"generateWidgetCard", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
+  userQuery:"去掉日历，只保留天气",
+  sourceArtifactUrl:"https://obs.example/widget/v1.md",
   candidateDataBindings:[
     {
       capabilityId:"ViewWeather",
@@ -176,370 +266,36 @@ invoke(functionName:"generateWidgetCard", arguments:{
       },
       writeResultTo:"/data/weather",
       candidateOutputFields:[
-        "/location/name",
+        "/location/districtName",
         "/current/temperatureText",
-        "/current/weatherText"
-      ]
-    },
-    {
-      capabilityId:"calendar.events.search",
-      arguments:{
-        timeInterval:[1783238400000, 1783324799999]
-      },
-      writeResultTo:"/data/calendar",
-      candidateOutputFields:[
-        "/events/0/title",
-        "/events/0/startTimeText",
-        "/events/0/location"
+        "/current/condition"
       ]
     }
-  ],
-  candidateEventCandidates:[
-    {
-      capabilityId:"event.open.weather",
-      action:{
-        call:"clickToDeeplink",
-        args:{
-          bundleName:"",
-          abilityName:"",
-          uri:"hww://www.huawei.com/totemweather?enterType=share&cityCode="
-        }
-      }
-    }
-  ],
-  candidateAssetIds:["asset.weather.rain", "asset.calendar.schedule"]
-},"skillName":"harmony-card-generation-online")
-```
-
-## 工具调用样例：应用使用时长
-
-仅当 `getWidgetCapabilityOverview.dataCapabilities` 返回 `GetAppUsageDurationAndPower` 时才使用该候选。
-
-生成前先检查最终数据能力集合：
-
-```text
-invoke(functionName:"RequestDataPermission", arguments:{
-  bundleName:"com.omega_w_0823.hmservice",
-  dataCapabilityIds:["GetAppUsageDurationAndPower"]
-},"skillName":"harmony-card-generation-online")
-```
-
-仅在权限返回 Boolean `true` 后调用：
-
-```text
-invoke(functionName:"generateWidgetCard", arguments:{
-  bundleName:"com.omega_w_0823.hmservice",
-  userQuery:"给我做一张抖音使用时长和耗电卡，显示前台时长、前台耗电和更新时间。",
-  title:"使用时长",
-  description:"时长耗电统计",
-  size:"2x2",
-  candidateDataBindings:[
-    {
-      capabilityId:"GetAppUsageDurationAndPower",
-      arguments:{
-        appBundleName:"com.ss.hm.ugc.aweme",
-        itemName:"foreground_time_power"
-      },
-      writeResultTo:"/data/appUsageStats"
-    }
-  ],
-  candidateEventCandidates:[],
-  candidateAssetIds:[]
-},"skillName":"harmony-card-generation-online")
-```
-
-## 工具调用样例：打开天气应用入口
-
-没有动态数据需求时，`candidateDataBindings` 可以为空；此时没有需要检查的数据权限，不调用 `RequestDataPermission`，让微服务决定是否生成静态入口卡。
-
-```text
-invoke(functionName:"generateWidgetCard", arguments:{
-  bundleName:"com.omega_w_0823.hmservice",
-  userQuery:"帮我做一个打开天气应用的入口卡片",
-  title:"天气入口",
-  description:"快速打开天气",
-  size:"2x2",
-  candidateDataBindings:[],
-  candidateEventCandidates:[
-    {
-      capabilityId:"event.open.weather",
-      action:{
-        call:"clickToDeeplink",
-        args:{
-          bundleName:"",
-          abilityName:"",
-          uri:"hww://www.huawei.com/totemweather?enterType=share&cityCode="
-        }
-      }
-    }
-  ],
-  candidateAssetIds:["asset.weather.rain"]
-},"skillName":"harmony-card-generation-online")
-```
-
-## 工具调用样例：不支持的外卖实时状态
-
-如果 overview 没有外卖配送数据能力，也没有打开对应应用的事件能力，不要编造能力，也不再调用 schema、权限或生成工具。直接按能力概述选择相近建议并回复：
-
-```text
-当前卡片能力暂无法满足你需要的外卖实时配送状态，因此这次先不生成。你可以试试：“做一张显示今日天气的桌面卡片”、“做一张设备电量状态卡片”
-```
-
-## 工具返回解析示例
-
-三个微服务工具返回包装结构，业务结果需要从 `items[].data` 解析。端工具 `RequestDataPermission` 按其输出 schema 读取 `result.stateOfPermission` 和可选的 `result.nonAuthStatus`；非空授权明细只使用 `name` 与 `settingsPath` 生成手动授权指引：
-
-```json
-{
-  "streamInfo": "",
-  "items": [
-    {
-      "tool": "generateWidgetCard",
-      "status": "success",
-      "data": "{\"status\":\"success\",\"message\":\"已为你生成通勤卡片。\",\"artifactUrl\":\"https://obs.example/widget/123.json\",\"suggestSize\":\"2x4\"}"
-    }
   ]
-}
+},"skillName":"harmony-card-generation-online")
 ```
 
-解析 `data` 后，再按其中的业务 `status/message/artifactUrl` 回复用户。最终 `genWidgetResult` 必须使用 JSON 代码块格式，`result` 的值取业务 payload 的真实 `artifactUrl`。
+这里的数组是完整替换，不是增量。删除全部动态数据时传 `candidateDataBindings:[]`，并跳过权限工具。
 
-## 对象结构注意事项
+若 edit 成功返回 `https://obs.example/widget/v2.md`，下一轮默认使用 v2；新 URL 缺失、无效或仍为 v1 时按其它异常，继续保留 v1。
 
-当前工具 schema 已显式声明 `candidateDataBindings` 数组项的 `capabilityId`、`arguments`、`writeResultTo` 和可选 `candidateOutputFields`；必须严格按这些字段组装。`candidateEventCandidates` 数组项仍是宽类型 `Object`，按内部事件契约组装，但不得扩展工具顶层入参。
+### 新增能力
 
-正确的 `CandidateDataBinding`：
+用户：“再加上股票数据。”
 
-```json
-{
-  "capabilityId": "ViewWeather",
-  "arguments": {
-    "districtName": "青浦区",
-    "forecastDays": 1
-  },
-  "writeResultTo": "/data/weather",
-  "candidateOutputFields": [
-    "/location/name",
-    "/current/temperatureText",
-    "/current/weatherText"
-  ]
-}
-```
-
-`candidateOutputFields` 是可选字符串数组；每个 JSON Pointer 必须存在于该能力本轮返回的 `outputSchema`。不要传旧字段 `updateModel`。
-
-不要把能力参数平铺成：
-
-```json
-{
-  "capabilityId": "ViewWeather",
-  "districtName": "青浦区",
-  "forecastDays": 1,
-  "writeResultTo": "/data/weather"
-}
-```
-
-正确的 `CandidateEventCandidate`：
-
-```json
-{
-  "capabilityId": "event.open.weather",
-  "action": {
-    "call": "clickToDeeplink",
-    "args": {
-      "bundleName": "",
-      "abilityName": "",
-      "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
-    }
-  }
-}
-```
-
-不要把事件动作平铺成：
-
-```json
-{
-  "capabilityId": "event.open.weather",
-  "call": "clickToDeeplink",
-  "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
-}
-```
-
-## 用户回复话术样例
-
-success：
-
-````text
-已为你生成通勤卡片。
-
-```genWidgetResult
-{
-  "result": "https://obs.example/widget/123.json"
-}
-```
-````
-
-degraded（`XX` 已替换为“日程”）：
-
-````text
-本次卡片生成暂无你提及的日程数据，将基于可获取数据为你生成卡片
-
-```genWidgetResult
-{
-  "result": "https://obs.example/widget/456.json"
-}
-```
-````
-
-degraded（动作缺失，`XX` 已替换为“查看详情”）：
-
-````text
-本次卡片暂不支持你提及的查看详情操作，将保留可展示内容为你生成卡片
-
-```genWidgetResult
-{
-  "result": "https://obs.example/widget/457.json"
-}
-```
-````
-
-degraded（素材缺失，`XX` 已替换为“品牌图标”）：
-
-````text
-本次卡片暂无法使用你提及的品牌图标素材，将使用可用样式为你生成卡片
-
-```genWidgetResult
-{
-  "result": "https://obs.example/widget/458.json"
-}
-```
-````
-
-unsupported：
-
-```text
-抱歉，当前暂无法获取你提及的外卖配送功能数据。你可以试试：“做一张显示今日天气的桌面卡片”、“做一张今日安排提醒卡片”
-```
-
-failed：
-
-```text
-卡片创建过程遇到问题了，请稍后再试
-```
-
-`generateWidgetCard` 只要返回合法真实 `artifactUrl`，就必须输出 `genWidgetResult`；`degraded` 不能因部分能力缺失而省略端侧标记。没有 URL 时不得输出。
-
-需要手动授权（`RequestDataPermission` 返回非空 `nonAuthStatus`）：
-
-```text
-请前往「设置-健康使用设备-使用统计和管理」，为「应用使用时长」开启权限，然后再试。
-```
-
-权限不可用（`RequestDataPermission` 返回 Boolean `false` 且没有授权明细）：
-
-```text
-当前生成卡片所需的数据权限不可用，已停止生成。
-```
-
-工具不可用或结果异常：
-
-```text
-卡片创建过程遇到问题了，请稍后再试
-```
-
-`degraded`、`unsupported`、`failed` 即使返回非空 `message`，也忽略该字段并使用上述受控话术。完整 `success` 才可展示正常成功 `message`。`failed` 不追加能力建议。
-
-## 连续编辑样例
-
-假设上一轮 `generateWidgetCard` 业务 payload 返回：
-
-```json
-{
-  "status": "success",
-  "artifactUrl": "https://obs.example/widget/v1.json",
-  "message": "已为你生成天气日历卡片。",
-  "effectiveCapabilities": {
-    "data": ["ViewWeather", "calendar.events.search"]
-  }
-}
-```
-
-### 未指定目标时默认最近结果
-
-用户：“背景改成蓝色，信息排紧凑一点。”
-
-不调用 overview/schema，但先对来源卡片的有效数据集合检查权限：
-
-```text
-invoke(functionName:"RequestDataPermission", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:["ViewWeather", "calendar.events.search"]},"skillName":"harmony-card-generation-online")
-```
-
-权限返回 Boolean `true` 后依次调用，且不关注动效工具返回：
-
-```text
-invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"背景改成蓝色，信息排紧凑一点", sourceArtifactUrl:"https://obs.example/widget/v1.json"},"skillName":"harmony-card-generation-online")
-```
-
-未指定“哪张卡片”不追问，默认使用最近一次成功或降级结果。
-
-### 修改标题和尺寸
-
-用户：“标题改成每日通勤，再改成 2x4。”
-
-同样先对 `effectiveCapabilities.data` 调用 `RequestDataPermission`，权限返回 Boolean `true` 后依次调用：
-
-```text
-invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"标题改成每日通勤，再改成 2x4", sourceArtifactUrl:"https://obs.example/widget/v1.json", title:"每日通勤", size:"2x4"},"skillName":"harmony-card-generation-online")
-```
-
-未修改的 `description` 和全部候选数组省略并继承。
-
-### 删除一个数据能力
-
-首次生成时最近一次完整数据候选为天气和日历。用户：“去掉日历，只保留天气。”
-
-重新获取 overview，并为最终保留的天气能力加载 schema。校验后先检查编辑后的完整数据集合：
-
-```text
-invoke(functionName:"RequestDataPermission", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:["ViewWeather"]},"skillName":"harmony-card-generation-online")
-```
-
-权限返回 Boolean `true` 后先触发动效，再传编辑后的完整集合：
-
-```text
-invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"去掉日历，只保留天气", sourceArtifactUrl:"https://obs.example/widget/v1.json", candidateDataBindings:[{capabilityId:"ViewWeather", arguments:{districtName:"上海", forecastDays:1}, writeResultTo:"/data/weather", candidateOutputFields:["/location/name", "/current/temperatureText", "/current/weatherText"]}]},"skillName":"harmony-card-generation-online")
-```
-
-这里只传天气不是增量修改，而是替换整个数据候选类别。删除全部动态数据时传 `candidateDataBindings: []`，无需调用 `RequestDataPermission`。
-
-### 修改能力参数并继续编辑
-
-用户：“把上海天气改成北京天气。”
-
-重新获取 overview 和天气 schema，将完整数据候选中的天气参数改为北京，保留其它 binding；先对编辑后的完整数据能力 ID 调用 `RequestDataPermission`，权限返回 Boolean `true` 后再调用 `generateWidgetCard`。如果上一轮编辑成功并返回：
-
-```json
-{
-  "status": "success",
-  "artifactUrl": "https://obs.example/widget/v2.json",
-  "message": "已按你的要求修改卡片。"
-}
-```
-
-下一轮未指定目标的编辑必须使用 `v2.json`，不能继续使用 `v1.json`。
-
-### 请求新增数据、事件或素材
-
-用户说“再加上股票数据”。本期 edit 不新增数据能力，不调用 overview、schema 或 `generateWidgetCard`：
+本期不调用工具：
 
 ```text
 当前连续编辑暂不支持新增股票数据，这次先不修改。你可以重新创建一张卡片，例如：“重新创建一张同时展示天气和股票的桌面卡片”
 ```
 
-### 编辑失败
+## 结果映射速查
 
-```text
-卡片创建过程遇到问题了，请稍后再试
-```
-
-不输出 `genWidgetResult`，不追加编辑专属说明；后续编辑仍默认使用最近一次成功结果的 URL。
+| 结果 | 回复 |
+| --- | --- |
+| 完整 `success` + URL | 使用 `message`，输出 URL 标记 |
+| `degraded` + URL | 使用对应部分满足话术，输出 URL 标记 |
+| 已知部分缺失的 `success` + URL | 按部分满足处理，输出 URL 标记 |
+| `unsupported` 无 URL | 整体不支持话术 + 安全建议 |
+| `failed` 或工具异常无 URL | 固定其它异常话术 |
+| 任意可解析 payload 含合法真实 URL | 无论状态均输出 URL 标记 |
