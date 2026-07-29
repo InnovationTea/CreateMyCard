@@ -7,10 +7,9 @@ import hmac
 import json
 import time
 import traceback
-from collections.abc import Iterator
 from urllib.parse import urlencode, urlparse
 
-import requests
+import httpx
 
 from app.logger import json_for_log, logger
 from config.config import Settings
@@ -23,12 +22,68 @@ END_SUFFIX = "$@END_SUFFIX@#"
 LAST_WORD_TOKEN = "__last_word___"
 
 
-class MepModelTransport:
-    """封装 MEP 鉴权、请求和自定义流协议解析。"""
+class PredictEventDecoder:
+    """跨任意网络 chunk 边界解析 MEP 自定义事件帧。"""
 
-    def __init__(self, settings: Settings, timeout: int = 600) -> None:
+    def __init__(self) -> None:
+        self._buffer = ""
+        self._decoder = codecs.getincrementaldecoder("utf-8")()
+
+    def feed(self, chunk: bytes, *, final: bool = False) -> list[dict]:
+        """输入一个字节块并返回其中已经完整解析出的事件。"""
+        self._buffer += self._decoder.decode(chunk, final=final)
+        events: list[dict] = []
+        while True:
+            start_index = self._buffer.find(START_PREFIX)
+            if start_index < 0:
+                self._retain_possible_prefix()
+                break
+            if start_index > 0:
+                self._buffer = self._buffer[start_index:]
+            payload = self._buffer.removeprefix(START_PREFIX)
+            if END_SUFFIX not in payload:
+                break
+            json_text, _, self._buffer = payload.partition(END_SUFFIX)
+            json_text = json_text.strip()
+            if not json_text:
+                continue
+            try:
+                events.append(json.loads(json_text))
+            except json.JSONDecodeError:
+                logger.warning(
+                    f"{_MODULE} stream_json_parse_failed raw_event={json_for_log(json_text)}"
+                )
+        return events
+
+    def _retain_possible_prefix(self) -> None:
+        keep_size = len(START_PREFIX) - 1
+        if len(self._buffer) > keep_size:
+            self._buffer = self._buffer[-keep_size:]
+
+
+class MepModelTransport:
+    """封装 MEP 鉴权、异步请求和流式协议解析。"""
+
+    def __init__(
+        self,
+        settings: Settings,
+        http_client: httpx.AsyncClient | None = None,
+    ) -> None:
         self.settings = settings
-        self.timeout = timeout
+        self._owns_http_client = http_client is None
+        self.http_client = http_client or httpx.AsyncClient(
+            limits=httpx.Limits(
+                max_connections=settings.model_max_concurrency,
+                max_keepalive_connections=settings.model_max_concurrency,
+            ),
+            timeout=settings.model_request_timeout_seconds,
+            trust_env=False,
+        )
+
+    async def aclose(self) -> None:
+        """关闭当前 Transport 自行创建的连接池。"""
+        if self._owns_http_client:
+            await self.http_client.aclose()
 
     @staticmethod
     def messages_to_qwen_prompt(messages: list[dict[str, str]]) -> str:
@@ -49,7 +104,8 @@ class MepModelTransport:
                 raise ValueError(f"不支持的消息角色: {role!r}")
             if not isinstance(content, str):
                 raise TypeError(
-                    f"消息 content 必须为字符串，role={role!r}, 实际类型={type(content).__name__}"
+                    f"消息 content 必须为字符串，role={role!r}，"
+                    f"实际类型={type(content).__name__}"
                 )
             parts.append(f"<|im_start|>{role}\n{content}<|im_end|>\n")
         parts.append("<|im_start|>assistant\n")
@@ -75,50 +131,17 @@ class MepModelTransport:
         query_params = query_params or {}
         query_str = "&".join(f"{key}={query_params[key]}" for key in sorted(query_params))
         timestamp = str(int(time.time() * 1000))
-        sign_str = f"{method}&{path}&{query_str}&{payload}&appid={appid}&timestamp={timestamp}"
+        sign_text = f"{method}&{path}&{query_str}&{payload}&appid={appid}&timestamp={timestamp}"
         signature_bytes = hmac.new(
             sign_key,
-            sign_str.encode("utf-8"),
+            sign_text.encode("utf-8"),
             hashlib.sha256,
         ).digest()
         signature = base64.b64encode(signature_bytes).decode("utf-8")
         return f'CLOUDSOA-HMAC-SHA256 appid={appid}, timestamp={timestamp}, signature="{signature}"'
 
-    @staticmethod
-    def iter_predict_events(response: requests.Response) -> Iterator[dict]:
-        """解析 MEP /predict 的自定义流响应协议。"""
-        buffer = ""
-        decoder = codecs.getincrementaldecoder("utf-8")()
-        for chunk in response.iter_content(chunk_size=4096):
-            if not chunk:
-                continue
-            buffer += decoder.decode(chunk)
-            while True:
-                start_index = buffer.find(START_PREFIX)
-                if start_index < 0:
-                    keep_size = len(START_PREFIX) - 1
-                    if len(buffer) > keep_size:
-                        buffer = buffer[-keep_size:]
-                    break
-                if start_index > 0:
-                    buffer = buffer[start_index:]
-                payload_buffer = buffer.removeprefix(START_PREFIX)
-                if END_SUFFIX not in payload_buffer:
-                    break
-                json_text, _, buffer = payload_buffer.partition(END_SUFFIX)
-                json_text = json_text.strip()
-                if not json_text:
-                    continue
-                try:
-                    yield json.loads(json_text)
-                except json.JSONDecodeError:
-                    logger.warning(
-                        f"{_MODULE} stream_json_parse_failed raw_event={json_for_log(json_text)}"
-                    )
-        decoder.decode(b"", final=True)
-
-    def generate(self, messages: list[dict[str, str]]) -> str:
-        """调用 MEP /predict 并返回未经 DSL 处理的完整模型文本。"""
+    async def generate(self, messages: list[dict[str, str]]) -> str:
+        """异步调用 MEP /predict 并返回聚合后的原始模型文本。"""
         prompt = self.messages_to_qwen_prompt(messages)
         query_params = {
             "bId": self.settings.model_bid,
@@ -131,11 +154,7 @@ class MepModelTransport:
                 "topkNum": self.settings.model_top_k,
             },
         }
-        payload = json.dumps(
-            request_body,
-            ensure_ascii=False,
-            separators=(",", ":"),
-        )
+        payload = json.dumps(request_body, ensure_ascii=False, separators=(",", ":"))
         parsed_url = urlparse(self.settings.model_url)
         authorization = self.calc_sign(
             payload=payload,
@@ -149,9 +168,9 @@ class MepModelTransport:
             "Accept": "text/event-stream",
         }
         request_url = f"{self.settings.model_url.rstrip('/')}?{urlencode(query_params)}"
-        return self._request_stream(request_url, payload, headers)
+        return await self._request_stream(request_url, payload, headers)
 
-    def _request_stream(
+    async def _request_stream(
         self,
         request_url: str,
         payload: str,
@@ -160,45 +179,47 @@ class MepModelTransport:
         collected_texts: list[str] = []
         final_event: dict | None = None
         first_token_at: float | None = None
-        start = time.perf_counter()
+        started_at = time.perf_counter()
         try:
-            with requests.post(
+            decoder = PredictEventDecoder()
+            async with self.http_client.stream(
+                "POST",
                 request_url,
-                data=payload.encode("utf-8"),
+                content=payload.encode("utf-8"),
                 headers=headers,
-                timeout=self.timeout,
-                stream=True,
             ) as response:
                 response.raise_for_status()
-                for event in self.iter_predict_events(response):
-                    event_type = event.get("type")
-                    text = event.get("text", "")
-                    if event_type == "partialText":
-                        first_token_at = self._append_partial_text(
-                            collected_texts,
-                            text,
-                            first_token_at,
-                        )
-                    elif event_type == "finalText":
-                        final_event = event
-                        self._append_final_text(collected_texts, text)
+                async for chunk in response.aiter_bytes():
+                    first_token_at, final_event = self._collect_events(
+                        decoder.feed(chunk),
+                        collected_texts,
+                        first_token_at,
+                        final_event,
+                    )
+                first_token_at, final_event = self._collect_events(
+                    decoder.feed(b"", final=True),
+                    collected_texts,
+                    first_token_at,
+                    final_event,
+                )
             full_text = "".join(collected_texts)
-            self._log_response(start, first_token_at, final_event, full_text)
+            self._log_response(started_at, first_token_at, final_event, full_text)
             self._raise_for_model_error(final_event, full_text)
             return full_text
         except ModelTransportError:
             raise
-        except requests.exceptions.Timeout as exc:
+        except httpx.TimeoutException as exc:
             self._raise_request_error("request_timeout", exc)
-            raise ModelTransportError(f"model request timed out after {self.timeout}s") from exc
-        except requests.exceptions.ConnectionError as exc:
+            timeout = self.settings.model_request_timeout_seconds
+            raise ModelTransportError(f"model request timed out after {timeout}s") from exc
+        except httpx.ConnectError as exc:
             self._raise_request_error("connection_error", exc)
             raise ModelTransportError("model connection failed") from exc
-        except requests.exceptions.HTTPError as exc:
-            status = exc.response.status_code if exc.response is not None else "unknown"
+        except httpx.HTTPStatusError as exc:
+            status = exc.response.status_code
             self._raise_request_error("http_error", exc, status)
             raise ModelTransportError(f"model HTTP request failed: {status}") from exc
-        except requests.exceptions.RequestException as exc:
+        except httpx.RequestError as exc:
             self._raise_request_error("request_exception", exc)
             raise ModelTransportError("model request failed") from exc
         except Exception as exc:
@@ -206,42 +227,50 @@ class MepModelTransport:
             raise ModelTransportError("unexpected model generation error") from exc
 
     @staticmethod
-    def _append_partial_text(
+    def _collect_events(
+        events: list[dict],
         collected_texts: list[str],
-        text: object,
         first_token_at: float | None,
-    ) -> float | None:
-        if not isinstance(text, str) or not text:
-            return first_token_at
-        collected_texts.append(text)
-        return first_token_at or time.perf_counter()
-
-    @staticmethod
-    def _append_final_text(collected_texts: list[str], text: object) -> None:
-        has_final_text = isinstance(text, str) and bool(text)
-        if has_final_text and text != LAST_WORD_TOKEN:
-            collected_texts.append(text)
+        final_event: dict | None,
+    ) -> tuple[float | None, dict | None]:
+        for event in events:
+            event_type = event.get("type")
+            text = event.get("text", "")
+            if event_type == "partialText":
+                if not isinstance(text, str) or not text:
+                    continue
+                first_token_at = first_token_at or time.perf_counter()
+                collected_texts.append(text)
+                continue
+            if event_type == "finalText":
+                final_event = event
+                has_final_text = isinstance(text, str) and bool(text)
+                if has_final_text and text != LAST_WORD_TOKEN:
+                    collected_texts.append(text)
+        return first_token_at, final_event
 
     def _log_response(
         self,
-        start: float,
+        started_at: float,
         first_token_at: float | None,
         final_event: dict | None,
         full_text: str,
     ) -> None:
-        duration_ms = round((time.perf_counter() - start) * 1000, 2)
+        duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
         first_token_latency_ms = (
-            round((first_token_at - start) * 1000, 2) if first_token_at is not None else None
+            round((first_token_at - started_at) * 1000, 2)
+            if first_token_at is not None
+            else None
         )
-        input_tokens = final_event.get("inputTokenNum") if final_event else None
         completion_tokens = final_event.get("generateTokenNum") if final_event else None
-        model_time_ms = final_event.get("modelTime") if final_event else None
         speed = self._token_speed(duration_ms, first_token_latency_ms, completion_tokens)
         logger.info(
             f"{_MODULE} response_received content_preview={json_for_log(full_text)} "
             f"duration_ms={duration_ms} first_token_latency_ms={first_token_latency_ms} "
-            f"input_tokens={input_tokens} completion_tokens={completion_tokens} "
-            f"model_time_ms={model_time_ms} tokens_per_sec={speed} "
+            f"input_tokens={self._event_value(final_event, 'inputTokenNum')} "
+            f"completion_tokens={completion_tokens} "
+            f"model_time_ms={self._event_value(final_event, 'modelTime')} "
+            f"tokens_per_sec={speed} "
             f"finish_reason={self._event_value(final_event, 'finishReason')} "
             f"error_code={self._event_value(final_event, 'errorCode')} "
             f"error_msg={self._event_value(final_event, 'errorMsg')}"

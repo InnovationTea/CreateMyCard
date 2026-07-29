@@ -15,6 +15,7 @@ from api.routes import router
 from app.logger import logger
 from app.websocket_metrics import report_websocket_metrics, websocket_metrics
 from config.config import get_settings
+from custom.model_runtime import ModelExecutionRuntime
 
 _MODULE = "[Main]"
 
@@ -42,6 +43,8 @@ def create_app() -> FastAPI:
     async def lifespan(_app: FastAPI):
         """启动并回收 WebSocket 全局统计打印任务。"""
         configure_anyio_thread_pool()
+        model_runtime = ModelExecutionRuntime()
+        _app.state.model_runtime = model_runtime
         reporter = asyncio.create_task(report_websocket_metrics(websocket_metrics))
         try:
             yield
@@ -49,6 +52,7 @@ def create_app() -> FastAPI:
             reporter.cancel()
             with suppress(asyncio.CancelledError):
                 await reporter
+            await model_runtime.aclose()
 
     app = FastAPI(
         title="Widget Service",

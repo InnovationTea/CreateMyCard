@@ -14,20 +14,31 @@ The service follows `docs/AGENTS.md`:
 - `generateWidgetCard` selects MEP or llmclient through `WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND`.
   `generateWidgetCardCompactDsl` selects its backend through `WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND`, loads
   the Design profile from `data/protocol_profiles/registry_ranges.json`, and converts Design Compact DSL with that
-  profile's `protocol.json` before validation and storage. Both routes share create/edit, validation, and repair
-  switches. Tool callers cannot select or override either backend.
+  profile's `protocol.json` before validation and storage. The three generation routes share one policy-driven
+  generation pipeline and the same model-failure, quality-repair, and validation switches. Tool callers cannot
+  select or override either backend.
 - `generateWidgetCardTerseDslNested2` uses the local `tersedsl-nested-2/0.1` Prompt and a restricted
   literal-only parser. It never executes model output and deterministically converts the nested component tree to
   standard A2UI. The first version supports static create requests only.
 - `WIDGET_SERVICE_ENABLE_IDS_MOCK=true` by default. In this mode the service reads only `WIDGET_SERVICE_MOCK_IDS_RESPONSE_PATH`, whose default path is the service-internal `cloud/data/mock/ids_res.json`; a missing or invalid mock produces an empty IDS result and never falls back to remote IDS. When set to `false`, the service ignores the mock and queries only the real remote IDS; remote failure produces an empty result and never falls back to mock.
-- `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY=false` by default. Error-level validation failures are logged without blocking artifact persistence; when enabled, the service makes one repair request containing the invalid DSL and all errors. Warnings never trigger repair.
+- `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY=false` by default. It controls targeted repair for both source
+  DSL conversion errors and Validator errors. `WIDGET_SERVICE_VALIDATION_FAILURE_MAX_REPAIR_ATTEMPTS=1` limits
+  repair to 1-10 attempts, and processing stops early when all errors disappear. Warnings never trigger repair.
+  Conversion remains mandatory when Validator is disabled. Unconverted Design/Terse output is never saved;
+  remaining Validator errors are non-blocking only for the standard third interface.
 - `WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY=false` by default. Model transport errors,
   explicit model errors, and empty DSL output return `failed/A2UI_GENERATION_FAILED`;
   when enabled, each failed initial or repair model call is repeated once with the same prompt.
   Model failures never enter validation or artifact persistence.
-- With model mock disabled, both generation routes use the same `A2UIModelClient.generate()` entry. MEP and
+- With model mock disabled, all three generation routes use the same async `A2UIModelClient.generate()` entry. MEP and
   `cloud/custom/llmclient.py` are isolated behind model transport adapters; backend selection is controlled by the
   two route-specific server settings, and tool callers cannot select either backend directly.
+- All real model calls share one application-lifetime runtime and one process-level concurrency limit. MEP uses a
+  shared async `httpx.AsyncClient`; the unchanged synchronous llmclient runs in a dedicated executor. Configure the
+  shared limit with `WIDGET_SERVICE_MODEL_MAX_CONCURRENCY`, queue timeout with
+  `WIDGET_SERVICE_MODEL_QUEUE_TIMEOUT_SECONDS`, and execution timeout with
+  `WIDGET_SERVICE_MODEL_REQUEST_TIMEOUT_SECONDS`. Queue waits are coroutine waits and do not occupy worker threads.
+  A timed-out llmclient call retains its permit until the underlying synchronous call actually finishes.
 - If MEP ends a Design request with `6241/Early stop due to aborted` after emitting a non-empty candidate, the
   candidate continues through the strict Design converter and validation flow. Empty output and non-Design requests
   remain model failures.
@@ -39,6 +50,8 @@ The service follows `docs/AGENTS.md`:
 - The server logs process-wide WebSocket `active_connections`, cumulative `total_connections`, and `running_tasks` every 10 seconds.
 - Starlette synchronous handlers use the AnyIO worker pool with 80 concurrent tokens by default.
   Override it with `WIDGET_SERVICE_ANYIO_THREAD_POOL_TOKENS` when deployment capacity requires a different limit.
+  The three generation WebSocket handlers directly await the async generation service; heartbeat send failure does
+  not cancel generation, repair, or artifact persistence.
 - Package filtering emits exactly one summary result per capability-overview request; per-capability dependency-check logs are not emitted.
 - OBS upload is intentionally left as a TODO hook in `ArtifactStore`; remote source artifact reads reuse `utils/download_file_from_url.py`.
 

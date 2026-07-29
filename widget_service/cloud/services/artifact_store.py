@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
-import asyncio
 import json
 import os
-from threading import Thread
+
+from anyio import to_thread
 
 from app.logger import logger
 from config.config import get_settings
@@ -18,42 +18,11 @@ _MODULE = "[Artifact Store]"
 file_obs = UploadFileOSMS()
 
 
-def _run_async(coro):
-    """在新线程中运行异步协程，避免与现有事件循环冲突。
-
-    入参：
-    - coro：待执行的协程对象。
-    出参：协程返回值。
-    """
-    result = [None]
-    exception = [None]
-
-    def runner():
-        loop = None
-        try:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            result[0] = loop.run_until_complete(coro)
-        except Exception as e:
-            exception[0] = e
-        finally:
-            if loop is not None:
-                loop.close()
-
-    thread = Thread(target=runner)
-    thread.start()
-    thread.join()
-
-    if exception[0]:
-        raise exception[0]
-    return result[0]
-
-
 class ArtifactStore:
     def __init__(self, design_compact_dsl: str | None = None) -> None:
         self.design_compact_dsl = design_compact_dsl
 
-    def save(self, artifact: WidgetArtifact) -> ArtifactSaveResult:
+    async def save(self, artifact: WidgetArtifact) -> ArtifactSaveResult:
         """保存 artifact 并返回访问地址和摘要。
 
         入参：
@@ -70,7 +39,10 @@ class ArtifactStore:
             ).encode("utf-8")
         )
         digest = calculate_artifact_digest(artifact)
-        logger.info(f"{_MODULE} artifact_payload_built payload_bytes={payload_bytes} digest={digest}")
+        logger.info(
+            f"{_MODULE} artifact_payload_built "
+            f"payload_bytes={payload_bytes} digest={digest}"
+        )
 
         # Artifact 以具名 Markdown 代码块上传。每个块名与对应契约字段一致，
         # 既保留端侧现有的 genui/cardspec 解析方式，也完整携带排障和回放信息。
@@ -105,16 +77,16 @@ class ArtifactStore:
         # UUID 同时进入 meta 和对象名，避免毫秒时间戳在并发生成时发生覆盖。
         file_name = f"artifact_{artifact.meta.artifactId}.md"
         file_path = os.path.join(str(get_settings().WORKSPACE_ROOT), file_name)
-        save_txt_file(file_path, file_content)
+        await to_thread.run_sync(save_txt_file, file_path, file_content)
         logger.info(f"{_MODULE} artifact_file_saved path={file_path}")
 
         try:
             # 上传到 OBS，获取访问链接
-            artifact_url = _run_async(file_obs.upload_file(file_path))
+            artifact_url = await file_obs.upload_file(file_path)
             if not artifact_url:
                 raise RuntimeError("artifact upload to OBS failed")
             logger.info(f"{_MODULE} artifact_uploaded artifact_url={artifact_url}")
             return ArtifactSaveResult(artifactUrl=artifact_url, artifactDigest=digest)
         finally:
             # 清理本地临时文件
-            delete_file(file_path)
+            await to_thread.run_sync(delete_file, file_path)

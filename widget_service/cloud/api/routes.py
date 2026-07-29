@@ -5,6 +5,7 @@ import json
 import time
 import traceback
 import uuid
+from contextlib import suppress
 from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -21,6 +22,7 @@ from app.logger import json_for_log, logger, task_logger
 from app.websocket_metrics import websocket_metrics
 from config.config import get_settings
 from core.errors import ErrorCode
+from custom.model_runtime import ModelExecutionRuntime
 from models.service import (
     WidgetPluginReply,
     WidgetPluginStreamResponse,
@@ -110,13 +112,15 @@ DEFAULT_ERROR_EXPLANATION = (
 )
 
 
-def get_service() -> WidgetGenerationService:
+def get_service(
+    model_runtime: ModelExecutionRuntime | None = None,
+) -> WidgetGenerationService:
     """创建卡片生成服务对象。
 
     入参：无。
     出参：WidgetGenerationService 实例。
     """
-    return WidgetGenerationService()
+    return WidgetGenerationService(model_runtime=model_runtime)
 
 
 def _request_id_from_envelope(envelope: ToolRequestEnvelope) -> str | None:
@@ -321,11 +325,9 @@ async def _heartbeat_sender(
             await asyncio.sleep(interval)
             await websocket.send_text(partial_json)
     except asyncio.CancelledError:
-        logger.error(f"{_MODULE} widget_operation_ws_heartbeat_cancelled")
-        pass
+        raise
     except Exception:
         logger.error(f"{_MODULE} widget_operation_ws_heartbeat_failed", exc_info=True)
-        pass
 
 
 async def _serve_operation_websocket(
@@ -334,18 +336,20 @@ async def _serve_operation_websocket(
     request_model: type[BaseModel],
     handler,
     heartbeat: bool = False,
-    heartbeat_interval: float = 6.0,    
+    heartbeat_interval: float = 6.0,
+    handler_in_threadpool: bool = True,
 ) -> None:
     """承载单个工具能力的 WebSocket 循环。
 
-    每条消息依次经过：原始日志、协议归一化、start/heartbeat、线程池业务调用、
-    final 旧消息字符串封装。业务调用期间不占用事件循环线程。
+    每条消息依次经过：原始日志、协议归一化、start/heartbeat、业务调用和 final 封装。
+    同步查询在线程池执行，长耗时生成链路直接等待异步 service。
 
     入参：
     - websocket：客户端 WebSocket 连接。
     - operation：当前 WS path 对应的能力名。
     - request_model：当前能力的入参实体类。
     - handler：当前能力对应的 service 方法。
+    - handler_in_threadpool：同步查询为 true，异步生成链路为 false。
     出参：无；服务端通过 WebSocket 返回华为流处理插件格式消息。
     """
     # 每个 WS path 只承载一个业务能力，客户端不需要再传 operation 字段。
@@ -354,7 +358,8 @@ async def _serve_operation_websocket(
     metrics.connection_opened()
     logger.info(f"{_MODULE} widget_operation_ws_connected operation={operation}")
     try:
-        service = get_service()
+        model_runtime = getattr(websocket.app.state, "model_runtime", None)
+        service = get_service(model_runtime)
         while True:
             try:
                 payload = await websocket.receive_json()
@@ -450,10 +455,12 @@ async def _serve_operation_websocket(
                 if heartbeat:
                     heartbeat_task = asyncio.create_task(
                         _heartbeat_sender(websocket, streaming_text_id, heartbeat_interval)
-                    )                
-                # service 目前是同步编排器，内部包含 requests、同步文件读取和重试校验。
-                # WebSocket 入口必须把它放到线程池里执行，避免阻塞当前 async 事件循环。
-                result = await run_in_threadpool(handler, service, request)
+                    )
+                if handler_in_threadpool:
+                    result = await run_in_threadpool(handler, service, request)
+                else:
+                    # 心跳通道断开不取消内部生成、repair 或 artifact 保存。
+                    result = await handler(service, request)
                 result_data = result.model_dump(mode="json", exclude_none=True)
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
                 logger.info(
@@ -535,10 +542,8 @@ async def _serve_operation_websocket(
                 metrics.task_finished()
                 if heartbeat_task:
                     heartbeat_task.cancel()
-                    try:
+                    with suppress(asyncio.CancelledError):
                         await heartbeat_task
-                    except asyncio.CancelledError:
-                        logger.error(f"{_MODULE} widget_operation_ws_heartbeat_cancelled")
     except WebSocketDisconnect:
         logger.info(f"{_MODULE} widget_operation_ws_disconnected operation={operation}")
         return
@@ -592,7 +597,8 @@ async def generate_widget_card_ws(websocket: WebSocket):
         GenerateWidgetCardRequest,
         lambda service, request: service.generate_widget_card_a2ui_form(request),
         heartbeat=True,
-        heartbeat_interval=6.0,        
+        heartbeat_interval=6.0,
+        handler_in_threadpool=False,
     )
 
 
@@ -605,7 +611,8 @@ async def generate_widget_card_compact_dsl_ws(websocket: WebSocket):
         GenerateWidgetCardRequest,
         lambda service, request: service.generate_widget_card_compact_dsl(request),
         heartbeat=True,
-        heartbeat_interval=6.0,        
+        heartbeat_interval=6.0,
+        handler_in_threadpool=False,
     )
 
 
@@ -621,4 +628,5 @@ async def generate_widget_card_terse_dsl_nested2_ws(websocket: WebSocket):
         ),
         heartbeat=True,
         heartbeat_interval=6.0,
+        handler_in_threadpool=False,
     )

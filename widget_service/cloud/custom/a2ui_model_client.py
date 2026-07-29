@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+import asyncio
+import inspect
 import json
 import sys
 import traceback
@@ -12,11 +14,11 @@ if __name__ == "__main__" and __package__ in {None, ""}:
 
 from app.logger import json_for_log, logger
 from config.config import get_settings
+from custom.model_runtime import ModelExecutionRuntime
 from custom.model_transport import (
     ModelBackend,
     ModelTransport,
     ModelTransportError,
-    create_model_transport,
 )
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
@@ -54,11 +56,12 @@ class A2UIModelClient:
     """
 
     def __init__(
-            self,
-            use_mock: bool | None = None,
-            mock_data_path: str | Path | None = None,
-            backend: ModelBackend = "mep",
-            transport: ModelTransport | None = None,
+        self,
+        use_mock: bool | None = None,
+        mock_data_path: str | Path | None = None,
+        backend: ModelBackend = "mep",
+        transport: ModelTransport | None = None,
+        runtime: ModelExecutionRuntime | None = None,
     ) -> None:
         """初始化 A2UI 模型客户端。
 
@@ -79,12 +82,21 @@ class A2UIModelClient:
         self.backend = backend
         self.transport = transport
         self.mock_data_path = Path(mock_data_path) if mock_data_path else None
-        self._suppress_prompt_log = False
+        needs_runtime = not self.use_mock and transport is None
+        self._owns_runtime = needs_runtime and runtime is None
+        self.runtime = runtime or (ModelExecutionRuntime(settings) if needs_runtime else None)
 
-    def generate(
-            self,
-            prompt: list[dict[str, str]],
-            protocol_profile: dict | None = None,
+    async def aclose(self) -> None:
+        """关闭当前客户端自行创建的模型运行时。"""
+        if self._owns_runtime and self.runtime is not None:
+            await self.runtime.aclose()
+
+    async def generate(
+        self,
+        prompt: list[dict[str, str]],
+        protocol_profile: dict | None = None,
+        *,
+        suppress_prompt_log: bool = False,
     ) -> str:
         """生成 A2UI genui JSONL。
 
@@ -93,7 +105,7 @@ class A2UIModelClient:
         - protocol_profile：用于选择协议对应的 mock；真实模型直接消费 prompt。
         出参：A2UI genui JSONL 字符串。
         """
-        if self._suppress_prompt_log:
+        if suppress_prompt_log:
             logger.info(
                 f"{_MODULE} generate_started use_mock={json_for_log(self.use_mock)} "
                 f"backend={self.backend} "
@@ -111,13 +123,8 @@ class A2UIModelClient:
                 result = self._load_mock_data(protocol_profile, prompt)
             else:
                 profile = protocol_profile or {}
-                if self.transport is None:
-                    self.transport = create_model_transport(
-                        self.backend,
-                        self.settings,
-                    )
                 try:
-                    raw_output = self.transport.generate(prompt)
+                    raw_output = await self._call_transport(prompt)
                 except ModelTransportError as exc:
                     raw_output = self._recover_design_output_after_abort(
                         exc,
@@ -134,17 +141,34 @@ class A2UIModelClient:
             )
             raise A2UIModelGenerationError("model generation failed") from exc
 
-    def generate_repair(
+    async def generate_repair(
         self,
         prompt: list[dict[str, str]],
         protocol_profile: dict | None = None,
     ) -> str:
         """调用同一模型入口，但不把修复载荷写入日志。"""
-        self._suppress_prompt_log = True
-        try:
-            return self.generate(prompt, protocol_profile)
-        finally:
-            self._suppress_prompt_log = False
+        result = self.generate(
+            prompt,
+            protocol_profile,
+            suppress_prompt_log=True,
+        )
+        if inspect.isawaitable(result):
+            return await result
+        return result
+
+    async def _call_transport(self, prompt: list[dict[str, str]]) -> str:
+        """调用注入的测试 Transport 或应用级共享模型 Runtime。"""
+        if self.transport is not None:
+            generate = self.transport.generate
+            if inspect.iscoroutinefunction(generate):
+                return await generate(prompt)
+            result = await asyncio.to_thread(generate, prompt)
+            if inspect.isawaitable(result):
+                return await result
+            return result
+        if self.runtime is None:
+            raise A2UIModelGenerationError("model runtime is not initialized")
+        return await self.runtime.generate(self.backend, prompt)
 
     def _process_model_output(
         self,
@@ -461,7 +485,7 @@ def _build_design_test_task_spec() -> dict:
     }
 
 
-def main() -> int:
+async def _run_main() -> int:
     """临时验证 Design Compact DSL 生成及标准 A2UI DSL 转换链路。"""
     system_prompt = A2UIProtocolRegistry.read_design_prompt(
         DESIGN_COMPACT_PROFILE_ID
@@ -482,15 +506,23 @@ def main() -> int:
         "id": DESIGN_COMPACT_PROFILE_ID,
         "format": "compact-dsl",
     }
-    design_dsl = client.generate(messages, design_profile)
-    final_dsl = client.convert_design_dsl_to_standard_dsl(
-        design_dsl,
-        size=task_spec["size"],
-        design_profile_id=DESIGN_COMPACT_PROFILE_ID,
-    )
-    print("\n=== Final A2UI DSL ===")
-    print(final_dsl)
-    return 0
+    try:
+        design_dsl = await client.generate(messages, design_profile)
+        final_dsl = client.convert_design_dsl_to_standard_dsl(
+            design_dsl,
+            size=task_spec["size"],
+            design_profile_id=DESIGN_COMPACT_PROFILE_ID,
+        )
+        print("\n=== Final A2UI DSL ===")
+        print(final_dsl)
+        return 0
+    finally:
+        await client.aclose()
+
+
+def main() -> int:
+    """运行临时 Design Compact DSL 端到端测试。"""
+    return asyncio.run(_run_main())
 
 
 if __name__ == "__main__":

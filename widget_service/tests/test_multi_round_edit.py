@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 # ruff: noqa: E402
+import asyncio
 import importlib
 import json
 import sys
@@ -126,19 +127,23 @@ def test_edit_rejects_null_or_empty_source_url(value):
         )
 
 
-def test_create_then_visual_edit_inherits_generation_plan(editable_artifact_storage):
+@pytest.mark.asyncio
+async def test_create_then_visual_edit_inherits_generation_plan(editable_artifact_storage):
     service = WidgetGenerationService()
-    created = service.generate_widget_card_a2ui_form(_base_request())
+    created = await service.generate_widget_card_a2ui_form(_base_request())
 
     assert created.status in {GenerationStatus.SUCCESS, GenerationStatus.DEGRADED}
-    source = SourceArtifactRepository().load(created.artifactUrl)
+    source = await asyncio.to_thread(
+        SourceArtifactRepository().load,
+        created.artifactUrl,
+    )
     assert source.artifact.schemaVersion == "widget-artifact-v2"
     assert source.artifact.meta.generationMode == "create"
     assert source.artifact.generationPlan.candidateDataBindings[
         0
     ].candidateOutputFields == ["/current/condition"]
 
-    edited = service.generate_widget_card_a2ui_form(
+    edited = await service.generate_widget_card_a2ui_form(
         GenerateWidgetCardRequest(
             uid="user-a",
             device={"romVersion": "6.0"},
@@ -150,7 +155,10 @@ def test_create_then_visual_edit_inherits_generation_plan(editable_artifact_stor
 
     assert edited.status in {GenerationStatus.SUCCESS, GenerationStatus.DEGRADED}
     assert edited.artifactUrl != created.artifactUrl
-    updated = SourceArtifactRepository().load(edited.artifactUrl)
+    updated = await asyncio.to_thread(
+        SourceArtifactRepository().load,
+        edited.artifactUrl,
+    )
     assert updated.artifact.meta.generationMode == "edit"
     assert updated.artifact.meta.sourceArtifactDigest == source.artifact_digest
     assert updated.artifact.cardSpec["title"] == "天气"
@@ -164,10 +172,11 @@ def test_create_then_visual_edit_inherits_generation_plan(editable_artifact_stor
     assert len(list(editable_artifact_storage.glob("artifact_*.md"))) == 2
 
 
-def test_design_compact_create_then_edit_uses_same_edit_switch(editable_artifact_storage):
+@pytest.mark.asyncio
+async def test_design_compact_create_then_edit_uses_same_edit_switch(editable_artifact_storage):
     service = WidgetGenerationService()
-    created = service.generate_widget_card_compact_dsl(_base_request())
-    edited = service.generate_widget_card_compact_dsl(
+    created = await service.generate_widget_card_compact_dsl(_base_request())
+    edited = await service.generate_widget_card_compact_dsl(
         GenerateWidgetCardRequest(
             uid="user-a",
             device={"romVersion": "6.0"},
@@ -180,20 +189,29 @@ def test_design_compact_create_then_edit_uses_same_edit_switch(editable_artifact
     assert created.status in {GenerationStatus.SUCCESS, GenerationStatus.DEGRADED}
     assert edited.status in {GenerationStatus.SUCCESS, GenerationStatus.DEGRADED}
     assert edited.artifactUrl != created.artifactUrl
-    source = SourceArtifactRepository().load(created.artifactUrl)
-    updated = SourceArtifactRepository().load(edited.artifactUrl)
+    source = await asyncio.to_thread(
+        SourceArtifactRepository().load,
+        created.artifactUrl,
+    )
+    updated = await asyncio.to_thread(
+        SourceArtifactRepository().load,
+        edited.artifactUrl,
+    )
     assert updated.artifact.meta.generationMode == "edit"
     assert updated.artifact.meta.sourceArtifactDigest == source.artifact_digest
     assert len(list(editable_artifact_storage.glob("artifact_*.md"))) == 2
 
 
-def test_source_artifact_remote_mode_uses_shared_download_utility(
+@pytest.mark.asyncio
+async def test_source_artifact_remote_mode_uses_shared_download_utility(
     editable_artifact_storage,
     monkeypatch,
 ):
     """验证关闭 mock 后由公共 URL 下载方法读取来源 artifact。"""
     settings = get_settings()
-    created = WidgetGenerationService().generate_widget_card_a2ui_form(_base_request())
+    created = await WidgetGenerationService().generate_widget_card_a2ui_form(
+        _base_request()
+    )
     source_file = editable_artifact_storage / created.artifactUrl.rsplit("/", 1)[-1]
     source_content = source_file.read_bytes()
     requested: dict = {}
@@ -211,7 +229,10 @@ def test_source_artifact_remote_mode_uses_shared_download_utility(
         fake_download,
     )
 
-    loaded = SourceArtifactRepository().load(created.artifactUrl)
+    loaded = await asyncio.to_thread(
+        SourceArtifactRepository().load,
+        created.artifactUrl,
+    )
 
     assert loaded.download_mode == "remote"
     assert loaded.artifact.meta.artifactId in created.artifactUrl
@@ -222,10 +243,11 @@ def test_source_artifact_remote_mode_uses_shared_download_utility(
     assert not Path(requested["save_path"]).exists()
 
 
-def test_edit_can_explicitly_clear_data_bindings(editable_artifact_storage):
+@pytest.mark.asyncio
+async def test_edit_can_explicitly_clear_data_bindings(editable_artifact_storage):
     service = WidgetGenerationService()
-    created = service.generate_widget_card_a2ui_form(_base_request())
-    edited = service.generate_widget_card_a2ui_form(
+    created = await service.generate_widget_card_a2ui_form(_base_request())
+    edited = await service.generate_widget_card_a2ui_form(
         GenerateWidgetCardRequest(
             uid="user-a",
             device={"romVersion": "6.0"},
@@ -236,19 +258,27 @@ def test_edit_can_explicitly_clear_data_bindings(editable_artifact_storage):
         )
     )
 
-    artifact = SourceArtifactRepository().load(edited.artifactUrl).artifact
+    loaded = await asyncio.to_thread(
+        SourceArtifactRepository().load,
+        edited.artifactUrl,
+    )
+    artifact = loaded.artifact
     assert "dataBindings" not in artifact.cardSpec
     assert artifact.generationPlan.candidateDataBindings == []
     assert artifact.effectiveCapabilities["data"] == []
 
 
-def test_source_artifact_load_does_not_validate_url_storage(
+@pytest.mark.asyncio
+async def test_source_artifact_load_does_not_validate_url_storage(
     editable_artifact_storage,
 ):
-    created = WidgetGenerationService().generate_widget_card_a2ui_form(_base_request())
+    created = await WidgetGenerationService().generate_widget_card_a2ui_form(
+        _base_request()
+    )
     source_name = created.artifactUrl.rsplit("/", 1)[-1]
-    loaded = SourceArtifactRepository().load(
-        f"http://other.test/other-prefix/{source_name}?token=test#fragment"
+    loaded = await asyncio.to_thread(
+        SourceArtifactRepository().load,
+        f"http://other.test/other-prefix/{source_name}?token=test#fragment",
     )
 
     assert loaded.artifact.meta.artifactId in source_name
@@ -275,7 +305,11 @@ def test_v1_artifact_is_reported_as_unsupported():
     "generation_method",
     ["generate_widget_card_a2ui_form", "generate_widget_card_compact_dsl"],
 )
-def test_edit_feature_switch_does_not_fall_back_to_create(monkeypatch, generation_method):
+@pytest.mark.asyncio
+async def test_edit_feature_switch_does_not_fall_back_to_create(
+    monkeypatch,
+    generation_method,
+):
     monkeypatch.setattr(get_settings(), "enable_widget_edit", False)
     request = GenerateWidgetCardRequest(
         uid="user-a",
@@ -285,7 +319,7 @@ def test_edit_feature_switch_does_not_fall_back_to_create(monkeypatch, generatio
     )
 
     service = WidgetGenerationService()
-    response = getattr(service, generation_method)(request)
+    response = await getattr(service, generation_method)(request)
 
     assert response.status == GenerationStatus.UNSUPPORTED
     assert response.errorCode == ErrorCode.WIDGET_EDIT_DISABLED.value

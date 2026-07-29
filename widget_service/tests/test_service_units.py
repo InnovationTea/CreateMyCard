@@ -7,8 +7,11 @@ import hashlib
 import hmac
 import json as json_module
 import sys
+import threading
+import time
 from pathlib import Path
 
+import httpx
 import requests
 import pytest
 from anyio import to_thread
@@ -36,6 +39,7 @@ from api.routes import (
     _build_plugin_stream_response,
     _error_details,
     _error_explanation,
+    _heartbeat_sender,
     _normalize_payload,
     _pick_device_rom_version,
 )
@@ -71,8 +75,9 @@ from custom.a2ui_model_client import (
     require_generated_dsl,
 )
 from custom.llmclient_model_transport import LlmClientModelTransport
-from custom.mep_model_transport import MepModelTransport
+from custom.mep_model_transport import MepModelTransport, PredictEventDecoder
 from custom.model_transport import ModelTransportError, create_model_transport
+from custom.model_runtime import ModelExecutionRuntime
 from services.card_spec_builder import CardSpecBuilder
 from services.card_validator import validate_card
 from services.card_validation import validate_card as validate_card_api
@@ -148,7 +153,8 @@ def test_terse_dsl_nested2_rejects_executable_or_unsupported_input(source):
         parse_terse_dsl_nested2(source)
 
 
-def test_terse_dsl_nested2_generation_uses_local_prompt_and_converter(monkeypatch):
+@pytest.mark.asyncio
+async def test_terse_dsl_nested2_generation_uses_local_prompt_and_converter(monkeypatch):
     source = """
 Column("card",
   Text("静态天气", "title"),
@@ -202,7 +208,7 @@ Column("card",
         classmethod(read_nested2_protocol),
     )
 
-    response = WidgetGenerationService().generate_widget_card_terse_dsl_nested2(
+    response = await WidgetGenerationService().generate_widget_card_terse_dsl_nested2(
         _model_failure_request()
     )
 
@@ -233,7 +239,8 @@ def test_terse_dsl_nested2_prompt_builder_uses_terse_system_prompt():
     )
 
 
-def test_terse_dsl_nested2_rejects_dynamic_and_edit_requests():
+@pytest.mark.asyncio
+async def test_terse_dsl_nested2_rejects_dynamic_and_edit_requests():
     dynamic_request = GenerateWidgetCardRequest(
         uid="test-user",
         prdVer=APP_VERSION,
@@ -258,10 +265,10 @@ def test_terse_dsl_nested2_rejects_dynamic_and_edit_requests():
     )
     service = WidgetGenerationService()
 
-    dynamic_response = service.generate_widget_card_terse_dsl_nested2(
+    dynamic_response = await service.generate_widget_card_terse_dsl_nested2(
         dynamic_request
     )
-    edit_response = service.generate_widget_card_terse_dsl_nested2(edit_request)
+    edit_response = await service.generate_widget_card_terse_dsl_nested2(edit_request)
 
     assert dynamic_response.status == GenerationStatus.UNSUPPORTED
     assert edit_response.status == GenerationStatus.UNSUPPORTED
@@ -356,6 +363,10 @@ def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
     assert Settings(_env_file=None).a2ui_form_model_backend == "mep"
     assert Settings(_env_file=None).design_compact_model_backend == "llmclient"
     assert Settings(_env_file=None).enable_default_protocol_profile_fallback is True
+    assert Settings(_env_file=None).model_max_concurrency == 20
+    assert Settings(_env_file=None).model_queue_timeout_seconds == 120.0
+    assert Settings(_env_file=None).model_request_timeout_seconds == 120.0
+    assert Settings(_env_file=None).validation_failure_max_repair_attempts == 1
     settings = get_settings()
     monkeypatch.setattr(settings, "anyio_thread_pool_tokens", 80)
 
@@ -365,6 +376,15 @@ def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
         return configured_tokens, limiter_tokens
 
     assert asyncio.run(configure_and_read_tokens()) == (80, 80)
+
+
+@pytest.mark.parametrize("attempts", [0, 11])
+def test_validation_repair_attempt_count_rejects_out_of_range_values(attempts):
+    with pytest.raises(ValidationError):
+        Settings(
+            _env_file=None,
+            validation_failure_max_repair_attempts=attempts,
+        )
 
 
 def test_websocket_handler_sets_request_id_to_logger_context():
@@ -2204,13 +2224,14 @@ def test_design_compact_edit_prompt_contains_previous_standard_genui():
     assert "完整 Design Compact DSL" in edit_payload["instruction"]
 
 
-def test_a2ui_model_client_returns_mock_dat_without_processing():
+@pytest.mark.asyncio
+async def test_a2ui_model_client_returns_mock_dat_without_processing():
     """验证 mock A2UI 直接返回 mock.dat 原始内容。
 
     入参：无。
     出参：无；通过断言验证输出与文件内容完全一致。
     """
-    genui = A2UIModelClient(use_mock=True).generate(
+    genui = await A2UIModelClient(use_mock=True).generate(
         [],
         {
             "version": "v0.9",
@@ -2224,11 +2245,12 @@ def test_a2ui_model_client_returns_mock_dat_without_processing():
     assert genui == expected
 
 
-def test_a2ui_model_client_selects_compact_dsl_mock_by_profile():
+@pytest.mark.asyncio
+async def test_a2ui_model_client_selects_compact_dsl_mock_by_profile():
     """验证 mock 客户端只在极简 profile 下切换为 tuple NDJSON。"""
     profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
 
-    genui = A2UIModelClient(use_mock=True).generate([], profile)
+    genui = await A2UIModelClient(use_mock=True).generate([], profile)
     expected = (CLOUD_ROOT / "custom" / "mock.compact-dsl.dat").read_text(
         encoding="utf-8"
     )
@@ -2245,7 +2267,8 @@ def test_a2ui_model_client_selects_compact_dsl_mock_by_profile():
     ("size", "expected_width"),
     [("2x2", 160), ("2x4", 320)],
 )
-def test_a2ui_model_client_selects_design_compact_mock_by_task_size(
+@pytest.mark.asyncio
+async def test_a2ui_model_client_selects_design_compact_mock_by_task_size(
     size,
     expected_width,
 ):
@@ -2263,7 +2286,7 @@ def test_a2ui_model_client_selects_design_compact_mock_by_task_size(
     }
 
     client = A2UIModelClient(use_mock=True, backend="llmclient")
-    genui = client.generate(prompt, profile)
+    genui = await client.generate(prompt, profile)
     root = json_module.loads(genui.splitlines()[0])
     converted = client.convert_design_dsl_to_standard_dsl(
         genui,
@@ -2279,7 +2302,8 @@ def test_a2ui_model_client_selects_design_compact_mock_by_task_size(
     assert converted_rows[0]["createSurface"]["width"] == expected_width - 20
 
 
-def test_a2ui_model_client_real_mode_forwards_messages(monkeypatch):
+@pytest.mark.asyncio
+async def test_a2ui_model_client_real_mode_forwards_messages(monkeypatch):
     """验证关闭 mock 后把消息原样传给真实模型调用入口。
 
     入参：无。
@@ -2295,32 +2319,31 @@ def test_a2ui_model_client_real_mode_forwards_messages(monkeypatch):
     client = A2UIModelClient(use_mock=False, transport=FakeTransport())
     monkeypatch.setattr(client, "convert_dsl", lambda value: value)
 
-    assert client.generate(messages) == "forwarded"
+    assert await client.generate(messages) == "forwarded"
 
 
-def test_a2ui_model_client_selects_llmclient_backend(monkeypatch):
-    """验证 A2UI generate 通过工厂选择 llmclient 传输层。"""
+@pytest.mark.asyncio
+async def test_a2ui_model_client_selects_llmclient_backend(monkeypatch):
+    """验证 A2UI generate 把后端选择交给共享模型 Runtime。"""
     messages = [{"role": "user", "content": "帮我做天气卡片"}]
     calls: list[tuple[str, object]] = []
 
-    class FakeTransport:
+    class FakeRuntime:
         @staticmethod
-        def generate(value):
-            calls.append(("generate", value))
+        async def generate(backend, value):
+            calls.append((backend, value))
             return "llmclient-result"
 
-    monkeypatch.setattr(
-        "custom.a2ui_model_client.create_model_transport",
-        lambda backend, _settings: (
-            calls.append(("factory", backend)) or FakeTransport()
-        ),
+    client = A2UIModelClient(
+        use_mock=False,
+        backend="llmclient",
+        runtime=FakeRuntime(),
     )
-    client = A2UIModelClient(use_mock=False, backend="llmclient")
     monkeypatch.setattr(client, "convert_dsl", lambda value: value)
-    result = client.generate(messages)
+    result = await client.generate(messages)
 
     assert result == "llmclient-result"
-    assert calls == [("factory", "llmclient"), ("generate", messages)]
+    assert calls == [("llmclient", messages)]
 
 
 @pytest.mark.parametrize(
@@ -2336,7 +2359,8 @@ def test_model_transport_factory_builds_configured_backend(backend, transport_ty
     assert isinstance(transport, transport_type)
 
 
-def test_design_output_uses_non_empty_mep_result_after_abort(monkeypatch):
+@pytest.mark.asyncio
+async def test_design_output_uses_non_empty_mep_result_after_abort(monkeypatch):
     """MEP 6241 已产生 Design 输出时继续交给后续严格转换和校验。"""
     design_dsl = '["root","Column",{"width":160,"height":160},[]]'
     warning_logs: list[str] = []
@@ -2361,7 +2385,7 @@ def test_design_output_uses_non_empty_mep_result_after_abort(monkeypatch):
     )
     profile = {"id": "design-compact-dsl", "format": "compact-dsl"}
 
-    assert client.generate([], profile) == design_dsl
+    assert await client.generate([], profile) == design_dsl
     assert any("mep_design_output_recovered_after_abort" in item for item in warning_logs)
 
 
@@ -2372,7 +2396,8 @@ def test_design_output_uses_non_empty_mep_result_after_abort(monkeypatch):
         ({"id": "a2ui-form-rom6.0-v1", "format": "a2ui-form"}, "partial"),
     ],
 )
-def test_mep_abort_without_usable_design_output_remains_failure(
+@pytest.mark.asyncio
+async def test_mep_abort_without_usable_design_output_remains_failure(
     profile,
     partial_output,
 ):
@@ -2392,10 +2417,11 @@ def test_mep_abort_without_usable_design_output_remains_failure(
     )
 
     with pytest.raises(A2UIModelGenerationError, match="model generation failed"):
-        client.generate([], profile)
+        await client.generate([], profile)
 
 
-def test_a2ui_model_client_collects_llmclient_stream(monkeypatch):
+@pytest.mark.asyncio
+async def test_a2ui_model_client_collects_llmclient_stream(monkeypatch):
     """验证 llmclient 传输层只聚合 Token，DSL 后处理由 A2UI 客户端统一执行。"""
     captured: dict = {}
     dsl = '{"createSurface":{"surfaceId":"root"}}'
@@ -2417,7 +2443,7 @@ def test_a2ui_model_client_collects_llmclient_stream(monkeypatch):
     )
     monkeypatch.setattr(client, "convert_dsl", lambda value: f"converted:{value}")
 
-    result = client.generate(messages)
+    result = await client.generate(messages)
 
     assert result == f"converted:{dsl}"
     assert captured == {
@@ -2537,7 +2563,8 @@ def test_a2ui_model_client_builds_qwen_chatml_prompt():
     )
 
 
-def test_a2ui_model_client_reads_predict_stream(monkeypatch):
+@pytest.mark.asyncio
+async def test_a2ui_model_client_reads_predict_stream(monkeypatch):
     dsl = '{"createSurface":{"surfaceId":"root"}}'
     partial = json_module.dumps({"type": "partialText", "text": dsl})
     final = json_module.dumps(
@@ -2555,10 +2582,10 @@ def test_a2ui_model_client_reads_predict_stream(monkeypatch):
     captured: dict = {}
 
     class FakeResponse:
-        def __enter__(self):
+        async def __aenter__(self):
             return self
 
-        def __exit__(self, _exc_type, _exc, _traceback):
+        async def __aexit__(self, _exc_type, _exc, _traceback):
             return False
 
         @staticmethod
@@ -2566,30 +2593,348 @@ def test_a2ui_model_client_reads_predict_stream(monkeypatch):
             return None
 
         @staticmethod
-        def iter_content(chunk_size):
-            assert chunk_size == 4096
+        async def aiter_bytes():
             yield stream[:17]
             yield stream[17:]
 
-    def fake_post(url, **kwargs):
-        captured["url"] = url
-        captured.update(kwargs)
-        return FakeResponse()
+    class FakeHttpClient:
+        @staticmethod
+        def stream(method, url, **kwargs):
+            captured["method"] = method
+            captured["url"] = url
+            captured.update(kwargs)
+            return FakeResponse()
 
     settings = get_settings()
     monkeypatch.setattr(settings, "model_url", "https://model.test/predict")
     monkeypatch.setattr(settings, "model_bid", "bid-1")
     monkeypatch.setattr(settings, "model_flow_id", "flow-1")
-    transport = MepModelTransport(settings)
+    transport = MepModelTransport(settings, http_client=FakeHttpClient())
     monkeypatch.setattr(transport, "calc_sign", lambda **_kwargs: "signature")
-    monkeypatch.setattr("custom.mep_model_transport.requests.post", fake_post)
 
-    result = transport.generate([{"role": "user", "content": "weather"}])
+    result = await transport.generate([{"role": "user", "content": "weather"}])
 
-    request_payload = json_module.loads(captured["data"].decode())
+    request_payload = json_module.loads(captured["content"].decode())
     assert result == dsl
     assert captured["url"] == "https://model.test/predict?bId=bid-1&flowId=flow-1"
     assert request_payload["data"]["prompt"].endswith("<|im_start|>assistant\n")
+
+
+def test_mep_event_decoder_accepts_single_byte_chunk_boundaries():
+    partial = json_module.dumps(
+        {"type": "partialText", "text": "晴天卡片"},
+        ensure_ascii=False,
+    )
+    final = json_module.dumps(
+        {"type": "finalText", "text": "__last_word___"},
+        ensure_ascii=False,
+    )
+    stream = (
+        f"noise$@START_PREFIX@#{partial}$@END_SUFFIX@#"
+        f"$@START_PREFIX@#{final}$@END_SUFFIX@#"
+    ).encode()
+    decoder = PredictEventDecoder()
+    events = []
+
+    for chunk in stream:
+        events.extend(decoder.feed(bytes([chunk])))
+    events.extend(decoder.feed(b"", final=True))
+
+    assert [item["type"] for item in events] == ["partialText", "finalText"]
+    assert events[0]["text"] == "晴天卡片"
+
+
+@pytest.mark.asyncio
+async def test_model_runtime_shares_concurrency_between_mep_and_llmclient():
+    settings = Settings(
+        model_max_concurrency=1,
+        model_queue_timeout_seconds=1.0,
+        model_request_timeout_seconds=1.0,
+    )
+    lock = threading.Lock()
+    active_calls = 0
+    max_active_calls = 0
+
+    def enter_call() -> None:
+        nonlocal active_calls, max_active_calls
+        with lock:
+            active_calls += 1
+            max_active_calls = max(max_active_calls, active_calls)
+
+    def leave_call() -> None:
+        nonlocal active_calls
+        with lock:
+            active_calls -= 1
+
+    class FakeMepTransport:
+        @staticmethod
+        async def generate(_messages):
+            enter_call()
+            try:
+                await asyncio.sleep(0.03)
+                return "mep-result"
+            finally:
+                leave_call()
+
+        @staticmethod
+        async def aclose():
+            return None
+
+    class FakeLlmClientTransport:
+        @staticmethod
+        def generate(_messages):
+            enter_call()
+            try:
+                time.sleep(0.03)
+                return "llmclient-result"
+            finally:
+                leave_call()
+
+    runtime = ModelExecutionRuntime(
+        settings,
+        mep_transport=FakeMepTransport(),
+        llmclient_transport=FakeLlmClientTransport(),
+    )
+    try:
+        results = await asyncio.gather(
+            runtime.generate("mep", []),
+            runtime.generate("llmclient", []),
+        )
+    finally:
+        await runtime.aclose()
+
+    assert results == ["mep-result", "llmclient-result"]
+    assert max_active_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_model_queue_wait_keeps_websocket_heartbeat_running():
+    settings = Settings(
+        model_max_concurrency=1,
+        model_queue_timeout_seconds=1.0,
+        model_request_timeout_seconds=1.0,
+    )
+    release_first = asyncio.Event()
+    first_started = asyncio.Event()
+    calls = 0
+
+    class QueuedMepTransport:
+        @staticmethod
+        async def generate(_messages):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                first_started.set()
+                await release_first.wait()
+            return f"result-{calls}"
+
+        @staticmethod
+        async def aclose():
+            return None
+
+    class UnusedLlmClientTransport:
+        @staticmethod
+        def generate(_messages):
+            pytest.fail("llmclient must not be called")
+
+    class RecordingWebSocket:
+        def __init__(self):
+            self.frames = 0
+
+        async def send_text(self, _payload):
+            self.frames += 1
+
+    runtime = ModelExecutionRuntime(
+        settings,
+        mep_transport=QueuedMepTransport(),
+        llmclient_transport=UnusedLlmClientTransport(),
+    )
+    websocket = RecordingWebSocket()
+    first = asyncio.create_task(runtime.generate("mep", []))
+    await first_started.wait()
+    queued = asyncio.create_task(runtime.generate("mep", []))
+    heartbeat = asyncio.create_task(_heartbeat_sender(websocket, "queue", 0.005))
+    try:
+        await asyncio.sleep(0.02)
+        assert queued.done() is False
+        assert websocket.frames >= 1
+        release_first.set()
+        await asyncio.gather(first, queued)
+    finally:
+        release_first.set()
+        await asyncio.gather(first, queued, return_exceptions=True)
+        heartbeat.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await heartbeat
+        await runtime.aclose()
+
+
+@pytest.mark.asyncio
+async def test_heartbeat_disconnect_does_not_cancel_model_generation():
+    model_completed = False
+
+    async def run_model() -> str:
+        nonlocal model_completed
+        await asyncio.sleep(0.03)
+        model_completed = True
+        return "generated"
+
+    class DisconnectedWebSocket:
+        @staticmethod
+        async def send_text(_payload):
+            raise RuntimeError("websocket disconnected")
+
+    generation = asyncio.create_task(run_model())
+    heartbeat = asyncio.create_task(
+        _heartbeat_sender(DisconnectedWebSocket(), "disconnected", 0.005)
+    )
+
+    await heartbeat
+    assert await generation == "generated"
+    assert model_completed is True
+
+
+@pytest.mark.asyncio
+async def test_llmclient_timeout_keeps_shared_permit_until_physical_completion():
+    settings = Settings(
+        model_max_concurrency=1,
+        model_queue_timeout_seconds=0.02,
+        model_request_timeout_seconds=0.005,
+    )
+    llm_started = threading.Event()
+    allow_llm_finish = threading.Event()
+    mep_calls = 0
+
+    class FakeMepTransport:
+        @staticmethod
+        async def generate(_messages):
+            nonlocal mep_calls
+            mep_calls += 1
+            return "mep-result"
+
+        @staticmethod
+        async def aclose():
+            return None
+
+    class SlowLlmClientTransport:
+        @staticmethod
+        def generate(_messages):
+            llm_started.set()
+            allow_llm_finish.wait(timeout=1.0)
+            return "late-result"
+
+    runtime = ModelExecutionRuntime(
+        settings,
+        mep_transport=FakeMepTransport(),
+        llmclient_transport=SlowLlmClientTransport(),
+    )
+    llm_task = asyncio.create_task(runtime.generate("llmclient", []))
+    try:
+        started = await asyncio.to_thread(llm_started.wait, 1.0)
+        assert started is True
+        with pytest.raises(ModelTransportError) as queue_error:
+            await runtime.generate("mep", [])
+        assert queue_error.value.code == "MODEL_QUEUE_TIMEOUT"
+        assert llm_task.done() is False
+        allow_llm_finish.set()
+        with pytest.raises(ModelTransportError) as request_error:
+            await llm_task
+        assert request_error.value.code == "MODEL_REQUEST_TIMEOUT"
+    finally:
+        allow_llm_finish.set()
+        await runtime.aclose()
+
+    assert mep_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_model_runtime_cancels_mep_when_execution_timeout_expires():
+    settings = Settings(
+        model_max_concurrency=1,
+        model_queue_timeout_seconds=1.0,
+        model_request_timeout_seconds=0.005,
+    )
+    cancelled = False
+
+    class SlowMepTransport:
+        @staticmethod
+        async def generate(_messages):
+            nonlocal cancelled
+            try:
+                await asyncio.sleep(1.0)
+            except asyncio.CancelledError:
+                cancelled = True
+                raise
+            return "late-result"
+
+        @staticmethod
+        async def aclose():
+            return None
+
+    class UnusedLlmClientTransport:
+        @staticmethod
+        def generate(_messages):
+            pytest.fail("llmclient must not be called")
+
+    runtime = ModelExecutionRuntime(
+        settings,
+        mep_transport=SlowMepTransport(),
+        llmclient_transport=UnusedLlmClientTransport(),
+    )
+    try:
+        with pytest.raises(ModelTransportError) as error_info:
+            await runtime.generate("mep", [])
+    finally:
+        await runtime.aclose()
+
+    assert error_info.value.code == "MODEL_REQUEST_TIMEOUT"
+    assert cancelled is True
+
+
+@pytest.mark.parametrize(
+    ("transport_error", "expected_message"),
+    [
+        (
+            httpx.ReadTimeout(
+                "read timeout",
+                request=httpx.Request("POST", "https://model.test/predict"),
+            ),
+            "timed out",
+        ),
+        (
+            httpx.ConnectError(
+                "connect failed",
+                request=httpx.Request("POST", "https://model.test/predict"),
+            ),
+            "connection failed",
+        ),
+        (
+            httpx.HTTPStatusError(
+                "service unavailable",
+                request=httpx.Request("POST", "https://model.test/predict"),
+                response=httpx.Response(503),
+            ),
+            "HTTP request failed: 503",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_mep_transport_maps_async_request_errors(
+    transport_error,
+    expected_message,
+):
+    class RaisingHttpClient:
+        @staticmethod
+        def stream(*_args, **_kwargs):
+            raise transport_error
+
+    transport = MepModelTransport(
+        Settings(_env_file=None),
+        http_client=RaisingHttpClient(),
+    )
+
+    with pytest.raises(ModelTransportError, match=expected_message):
+        await transport._request_stream("https://model.test/predict", "{}", {})
 
 
 def test_mep_transport_preserves_error_code_and_partial_output():
@@ -2606,7 +2951,8 @@ def test_mep_transport_preserves_error_code_and_partial_output():
     assert error_info.value.partial_output == "partial-design-dsl"
 
 
-def test_a2ui_model_client_processes_transport_output_by_profile(monkeypatch):
+@pytest.mark.asyncio
+async def test_a2ui_model_client_processes_transport_output_by_profile(monkeypatch):
     """模型传输层不感知 DSL 格式，A2UI 客户端根据协议统一执行后处理。"""
     calls: list[object] = []
 
@@ -2622,12 +2968,13 @@ def test_a2ui_model_client_processes_transport_output_by_profile(monkeypatch):
     client = A2UIModelClient(use_mock=False, transport=FakeTransport())
     monkeypatch.setattr(client, "convert_dsl", lambda value: f"standard:{value}")
 
-    assert client.generate(messages, a2ui_profile) == "standard:raw-dsl"
-    assert client.generate(messages, compact_profile) == "raw-dsl"
+    assert await client.generate(messages, a2ui_profile) == "standard:raw-dsl"
+    assert await client.generate(messages, compact_profile) == "raw-dsl"
     assert calls == [messages, messages]
 
 
-def test_compact_model_client_returns_streamed_ndjson(monkeypatch):
+@pytest.mark.asyncio
+async def test_compact_model_client_returns_streamed_ndjson(monkeypatch):
     """Compact 输出通过共用 /predict 传输层返回，不经过 A2UI 转换。"""
     dsl = '["root","Column",{"width":"matchParent"},[]]'
     partial = json_module.dumps({"type": "partialText", "text": dsl})
@@ -2645,10 +2992,10 @@ def test_compact_model_client_returns_streamed_ndjson(monkeypatch):
     ).encode()
 
     class FakeResponse:
-        def __enter__(self):
+        async def __aenter__(self):
             return self
 
-        def __exit__(self, _exc_type, _exc, _traceback):
+        async def __aexit__(self, _exc_type, _exc, _traceback):
             return False
 
         @staticmethod
@@ -2656,17 +3003,21 @@ def test_compact_model_client_returns_streamed_ndjson(monkeypatch):
             return None
 
         @staticmethod
-        def iter_content(chunk_size):
-            assert chunk_size == 4096
+        async def aiter_bytes():
             yield stream[:17]
             yield stream[17:]
+
+    class FakeHttpClient:
+        @staticmethod
+        def stream(_method, _url, **_kwargs):
+            return FakeResponse()
 
     profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
     settings = get_settings()
     monkeypatch.setattr(settings, "model_url", "https://model.test/predict")
     monkeypatch.setattr(settings, "model_bid", "bid-1")
     monkeypatch.setattr(settings, "model_flow_id", "flow-1")
-    transport = MepModelTransport(settings)
+    transport = MepModelTransport(settings, http_client=FakeHttpClient())
     monkeypatch.setattr(transport, "calc_sign", lambda **_kwargs: "signature")
     client = A2UIModelClient(use_mock=False, transport=transport)
     monkeypatch.setattr(
@@ -2674,12 +3025,7 @@ def test_compact_model_client_returns_streamed_ndjson(monkeypatch):
         "convert_dsl",
         lambda *_args: pytest.fail("Compact output must not use A2UI conversion"),
     )
-    monkeypatch.setattr(
-        "custom.mep_model_transport.requests.post",
-        lambda *_args, **_kwargs: FakeResponse(),
-    )
-
-    result = client.generate(
+    result = await client.generate(
         [{"role": "user", "content": "weather"}],
         profile,
     )
@@ -2698,7 +3044,8 @@ def test_compact_model_client_has_no_artificial_completion_limit():
     assert "_generate_compact_from_real_model" not in source
 
 
-def test_a2ui_model_client_redacts_repair_prompt_log(tmp_path, monkeypatch):
+@pytest.mark.asyncio
+async def test_a2ui_model_client_redacts_repair_prompt_log(tmp_path, monkeypatch):
     mock_path = tmp_path / "repair.dat"
     mock_path.write_text("repaired", encoding="utf-8")
     messages: list[str] = []
@@ -2707,7 +3054,7 @@ def test_a2ui_model_client_redacts_repair_prompt_log(tmp_path, monkeypatch):
         lambda message: messages.append(str(message)),
     )
 
-    result = A2UIModelClient(
+    result = await A2UIModelClient(
         use_mock=True,
         mock_data_path=mock_path,
     ).generate_repair(
@@ -2728,14 +3075,15 @@ def test_a2ui_model_client_rejects_output_without_dsl(value):
         require_generated_dsl(value)
 
 
-def test_a2ui_model_client_wraps_transport_exception(monkeypatch):
+@pytest.mark.asyncio
+async def test_a2ui_model_client_wraps_transport_exception(monkeypatch):
     class FailingTransport:
         @staticmethod
         def generate(_messages):
             raise requests.exceptions.Timeout("model timeout")
 
     with pytest.raises(A2UIModelGenerationError, match="model generation failed"):
-        A2UIModelClient(use_mock=False, transport=FailingTransport()).generate([])
+        await A2UIModelClient(use_mock=False, transport=FailingTransport()).generate([])
 
 
 def _model_failure_request() -> GenerateWidgetCardRequest:
@@ -2761,7 +3109,8 @@ def _model_failure_request() -> GenerateWidgetCardRequest:
         ),
     ],
 )
-def test_generation_routes_accept_each_configured_model_backend(
+@pytest.mark.asyncio
+async def test_generation_routes_accept_each_configured_model_backend(
     monkeypatch,
     generation_method,
     setting_name,
@@ -2774,14 +3123,14 @@ def test_generation_routes_accept_each_configured_model_backend(
     captured: dict[str, object] = {}
     sentinel = object()
 
-    def capture_route(_request, _profile_id, *, model_backend, design_profile_id=None):
-        captured["model_backend"] = model_backend
-        captured["design_profile_id"] = design_profile_id
+    async def capture_route(_request, policy):
+        captured["model_backend"] = policy.backend
+        captured["design_profile_id"] = policy.design_profile_id
         return sentinel
 
-    monkeypatch.setattr(service, "_generate_widget_card_with_profile", capture_route)
+    monkeypatch.setattr(service, "_generate_widget_card_with_policy", capture_route)
 
-    result = getattr(service, generation_method)(_model_failure_request())
+    result = await getattr(service, generation_method)(_model_failure_request())
 
     assert result is sentinel
     assert captured["model_backend"] == backend
@@ -2796,7 +3145,8 @@ def test_generation_routes_accept_each_configured_model_backend(
     ["generate_widget_card_a2ui_form", "generate_widget_card_compact_dsl"],
 )
 @pytest.mark.parametrize("failure_kind", ["empty", "exception"])
-def test_model_failure_skips_validator_and_artifact_store(
+@pytest.mark.asyncio
+async def test_model_failure_skips_validator_and_artifact_store(
     monkeypatch,
     generation_method,
     failure_kind,
@@ -2820,7 +3170,7 @@ def test_model_failure_skips_validator_and_artifact_store(
     monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
 
     service = WidgetGenerationService()
-    response = getattr(service, generation_method)(_model_failure_request())
+    response = await getattr(service, generation_method)(_model_failure_request())
 
     assert response.status == GenerationStatus.FAILED
     assert response.errorCode == ErrorCode.A2UI_GENERATION_FAILED.value
@@ -2829,7 +3179,8 @@ def test_model_failure_skips_validator_and_artifact_store(
     assert response.message == "卡片创建过程遇到问题了，请稍后再试。"
 
 
-def test_model_failure_retries_once_and_continues_after_success(monkeypatch):
+@pytest.mark.asyncio
+async def test_model_failure_retries_once_and_continues_after_success(monkeypatch):
     settings = get_settings()
     model_calls: list[int] = []
 
@@ -2851,7 +3202,7 @@ def test_model_failure_retries_once_and_continues_after_success(monkeypatch):
         ),
     )
 
-    response = WidgetGenerationService().generate_widget_card_a2ui_form(
+    response = await WidgetGenerationService().generate_widget_card_a2ui_form(
         _model_failure_request()
     )
 
@@ -2860,7 +3211,8 @@ def test_model_failure_retries_once_and_continues_after_success(monkeypatch):
     assert response.artifactUrl == "https://artifact.test/retried"
 
 
-def test_model_failure_stops_after_one_retry(monkeypatch):
+@pytest.mark.asyncio
+async def test_model_failure_stops_after_one_retry(monkeypatch):
     settings = get_settings()
     model_calls: list[int] = []
 
@@ -2879,7 +3231,7 @@ def test_model_failure_stops_after_one_retry(monkeypatch):
     monkeypatch.setattr(ArtifactValidator, "validate", unexpected_validate)
     monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
 
-    response = WidgetGenerationService().generate_widget_card_a2ui_form(
+    response = await WidgetGenerationService().generate_widget_card_a2ui_form(
         _model_failure_request()
     )
 
@@ -2888,11 +3240,17 @@ def test_model_failure_stops_after_one_retry(monkeypatch):
     assert response.errorCode == ErrorCode.A2UI_GENERATION_FAILED.value
 
 
-def test_repair_model_failure_retries_same_repair_prompt_once(monkeypatch):
+@pytest.mark.asyncio
+async def test_repair_model_failure_retries_same_repair_prompt_once(monkeypatch):
     settings = get_settings()
     model_prompts: list[list[dict[str, str]]] = []
 
-    def generate_with_temporary_repair_failure(_client, prompt, _profile=None):
+    def generate_with_temporary_repair_failure(
+        _client,
+        prompt,
+        _profile=None,
+        **_kwargs,
+    ):
         model_prompts.append(prompt)
         if len(model_prompts) == 1:
             return "invalid-dsl"
@@ -2927,7 +3285,7 @@ def test_repair_model_failure_retries_same_repair_prompt_once(monkeypatch):
         ),
     )
 
-    response = WidgetGenerationService().generate_widget_card_a2ui_form(
+    response = await WidgetGenerationService().generate_widget_card_a2ui_form(
         _model_failure_request()
     )
 
@@ -2937,12 +3295,13 @@ def test_repair_model_failure_retries_same_repair_prompt_once(monkeypatch):
     assert response.artifactUrl == "https://artifact.test/repaired"
 
 
-def test_repair_model_failure_does_not_validate_or_save_second_result(monkeypatch):
+@pytest.mark.asyncio
+async def test_repair_model_failure_does_not_validate_or_save_second_result(monkeypatch):
     settings = get_settings()
     model_calls: list[int] = []
     validation_calls: list[str] = []
 
-    def generate_then_fail(_client, _prompt, _profile=None):
+    def generate_then_fail(_client, _prompt, _profile=None, **_kwargs):
         model_calls.append(len(model_calls) + 1)
         if len(model_calls) == 1:
             return "invalid-but-nonempty-dsl"
@@ -2962,7 +3321,7 @@ def test_repair_model_failure_does_not_validate_or_save_second_result(monkeypatc
     monkeypatch.setattr(ArtifactValidator, "validate", validate_once)
     monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
 
-    response = WidgetGenerationService().generate_widget_card_a2ui_form(
+    response = await WidgetGenerationService().generate_widget_card_a2ui_form(
         _model_failure_request()
     )
 
@@ -2972,7 +3331,49 @@ def test_repair_model_failure_does_not_validate_or_save_second_result(monkeypatc
     assert response.errorCode == ErrorCode.A2UI_GENERATION_FAILED.value
 
 
-def test_design_compact_validation_error_does_not_retry_or_save(monkeypatch):
+@pytest.mark.asyncio
+async def test_validation_repair_stops_early_after_second_configured_repair(monkeypatch):
+    settings = get_settings()
+    generated_values = iter(["dsl-first", "dsl-second", "dsl-third"])
+    model_calls = 0
+    validation_calls: list[str] = []
+
+    def generate_next(_client, _prompt, _profile=None, **_kwargs):
+        nonlocal model_calls
+        model_calls += 1
+        return next(generated_values)
+
+    def validate_until_third(_validator, artifact, _profile):
+        validation_calls.append(artifact.genui)
+        if artifact.genui == "dsl-third":
+            return []
+        return [f"invalid {artifact.genui}"]
+
+    monkeypatch.setattr(settings, "enable_artifact_validation", True)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 2)
+    monkeypatch.setattr(A2UIModelClient, "generate", generate_next)
+    monkeypatch.setattr(ArtifactValidator, "validate", validate_until_third)
+    monkeypatch.setattr(
+        ArtifactStore,
+        "save",
+        lambda _store, _artifact: ArtifactSaveResult(
+            artifactUrl="https://artifact.test/third-validation-result",
+            artifactDigest="sha256:third-validation-result",
+        ),
+    )
+
+    response = await WidgetGenerationService().generate_widget_card_a2ui_form(
+        _model_failure_request()
+    )
+
+    assert model_calls == 3
+    assert validation_calls == ["dsl-first", "dsl-second", "dsl-third"]
+    assert response.status == GenerationStatus.SUCCESS
+
+
+@pytest.mark.asyncio
+async def test_design_compact_validation_error_retries_then_does_not_save(monkeypatch):
     settings = get_settings()
     design_dsl = (CLOUD_ROOT / "custom" / "mock.design-compact-dsl-2x4.dat").read_text(
         encoding="utf-8"
@@ -2980,7 +3381,7 @@ def test_design_compact_validation_error_does_not_retry_or_save(monkeypatch):
     model_prompts: list[list[dict[str, str]]] = []
     validated_genui: list[str] = []
 
-    def generate_design(_client, prompt, _profile=None):
+    def generate_design(_client, prompt, _profile=None, **_kwargs):
         model_prompts.append(prompt)
         return design_dsl
 
@@ -2997,18 +3398,19 @@ def test_design_compact_validation_error_does_not_retry_or_save(monkeypatch):
     monkeypatch.setattr(ArtifactValidator, "validate", validate_standard)
     monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
 
-    response = WidgetGenerationService().generate_widget_card_compact_dsl(
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(
         _model_failure_request()
     )
 
     assert response.status == GenerationStatus.FAILED
     assert response.errorCode == ErrorCode.VALIDATION_FAILED.value
-    assert len(model_prompts) == 1
-    assert len(validated_genui) == 1
+    assert len(model_prompts) == 2
+    assert len(validated_genui) == 2
     assert '"createSurface"' in validated_genui[0]
 
 
-def test_design_compact_ignores_validation_disabled_switch(monkeypatch):
+@pytest.mark.asyncio
+async def test_design_compact_skips_validator_when_validation_is_disabled(monkeypatch):
     settings = get_settings()
     validation_calls: list[str] = []
 
@@ -3027,16 +3429,17 @@ def test_design_compact_ignores_validation_disabled_switch(monkeypatch):
         ),
     )
 
-    response = WidgetGenerationService().generate_widget_card_compact_dsl(
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(
         _model_failure_request()
     )
 
     assert response.status == GenerationStatus.SUCCESS
     assert response.artifactUrl == "https://artifact.test/design-validation-disabled"
-    assert len(validation_calls) == 1
+    assert validation_calls == []
 
 
-def test_design_compact_validation_error_without_repair_fails(monkeypatch):
+@pytest.mark.asyncio
+async def test_design_compact_validation_error_without_repair_fails(monkeypatch):
     settings = get_settings()
 
     def validation_error(_validator, _artifact, _profile):
@@ -3050,10 +3453,131 @@ def test_design_compact_validation_error_without_repair_fails(monkeypatch):
     monkeypatch.setattr(ArtifactValidator, "validate", validation_error)
     monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
 
-    response = WidgetGenerationService().generate_widget_card_compact_dsl(
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(
         _model_failure_request()
     )
 
+    assert response.status == GenerationStatus.FAILED
+    assert response.errorCode == ErrorCode.VALIDATION_FAILED.value
+
+
+@pytest.mark.parametrize(
+    ("generation_method", "valid_source", "source_format"),
+    [
+        (
+            "generate_widget_card_compact_dsl",
+            (CLOUD_ROOT / "custom" / "mock.design-compact-dsl-2x4.dat").read_text(
+                encoding="utf-8"
+            ),
+            "design-compact-dsl",
+        ),
+        (
+            "generate_widget_card_terse_dsl_nested2",
+            'Column("card", Text("静态天气", "title"), Text("晴 26℃", "success"));',
+            "terse-dsl-nested-2",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_conversion_failure_repair_uses_latest_source_format(
+    monkeypatch,
+    generation_method,
+    valid_source,
+    source_format,
+):
+    settings = get_settings()
+    model_prompts: list[list[dict[str, str]]] = []
+    outputs = iter(["invalid-source-dsl", valid_source])
+
+    def generate_source(_client, prompt, _profile=None, **_kwargs):
+        model_prompts.append(prompt)
+        return next(outputs)
+
+    monkeypatch.setattr(settings, "enable_artifact_validation", False)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 2)
+    monkeypatch.setattr(A2UIModelClient, "generate", generate_source)
+    monkeypatch.setattr(
+        ArtifactStore,
+        "save",
+        lambda _store, _artifact: ArtifactSaveResult(
+            artifactUrl="https://artifact.test/conversion-repaired",
+            artifactDigest="sha256:conversion-repaired",
+        ),
+    )
+
+    service = WidgetGenerationService()
+    response = await getattr(service, generation_method)(_model_failure_request())
+    repair_payload = json_module.loads(model_prompts[1][1]["content"])
+
+    assert response.status == GenerationStatus.SUCCESS
+    assert len(model_prompts) == 2
+    assert repair_payload["invalidGenui"] == "invalid-source-dsl"
+    assert repair_payload["dslFormat"] == source_format
+    assert "stage=conversion" in repair_payload["validationErrors"][0]
+
+
+@pytest.mark.parametrize(
+    "generation_method",
+    [
+        "generate_widget_card_compact_dsl",
+        "generate_widget_card_terse_dsl_nested2",
+    ],
+)
+@pytest.mark.asyncio
+async def test_conversion_failure_does_not_repair_when_switch_is_disabled(
+    monkeypatch,
+    generation_method,
+):
+    settings = get_settings()
+    model_calls = 0
+
+    def generate_invalid(_client, _prompt, _profile=None):
+        nonlocal model_calls
+        model_calls += 1
+        return "invalid-source-dsl"
+
+    def unexpected_save(*_args, **_kwargs):
+        pytest.fail("unconverted source DSL must not be saved")
+
+    monkeypatch.setattr(settings, "enable_artifact_validation", False)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", False)
+    monkeypatch.setattr(A2UIModelClient, "generate", generate_invalid)
+    monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
+
+    service = WidgetGenerationService()
+    response = await getattr(service, generation_method)(_model_failure_request())
+
+    assert model_calls == 1
+    assert response.status == GenerationStatus.FAILED
+    assert response.errorCode == ErrorCode.VALIDATION_FAILED.value
+    assert response.artifactUrl == ""
+
+
+@pytest.mark.asyncio
+async def test_conversion_repair_stops_at_configured_maximum(monkeypatch):
+    settings = get_settings()
+    model_calls = 0
+
+    def generate_invalid(_client, _prompt, _profile=None, **_kwargs):
+        nonlocal model_calls
+        model_calls += 1
+        return f"invalid-source-dsl-{model_calls}"
+
+    def unexpected_save(*_args, **_kwargs):
+        pytest.fail("unconverted source DSL must not be saved")
+
+    monkeypatch.setattr(settings, "enable_artifact_validation", False)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 2)
+    monkeypatch.setattr(A2UIModelClient, "generate", generate_invalid)
+    monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
+
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(
+        _model_failure_request()
+    )
+
+    assert model_calls == 3
     assert response.status == GenerationStatus.FAILED
     assert response.errorCode == ErrorCode.VALIDATION_FAILED.value
 
@@ -3089,7 +3613,8 @@ def test_response_planner_returns_structured_status():
     assert "能力未注册" in degraded_plan.message
 
 
-def test_retry_controller_retries_when_enabled():
+@pytest.mark.asyncio
+async def test_retry_controller_retries_when_enabled():
     """验证 RetryController 返回结构化重试结果。
 
     入参：无。
@@ -3101,10 +3626,10 @@ def test_retry_controller_retries_when_enabled():
         repair_calls.append((value, errors))
         return "second"
 
-    retry_result = RetryController().run(
+    retry_result = await RetryController().run(
         operation=lambda: "first",
-        validate=lambda value: ["bad"] if value == "first" else [],
-        retry_on_validation_failure=True,
+        evaluate=lambda value: ["bad"] if value == "first" else [],
+        retry_on_quality_failure=True,
         repair=repair,
     )
 
@@ -3116,7 +3641,8 @@ def test_retry_controller_retries_when_enabled():
     assert repair_calls == [("first", ["bad"])]
 
 
-def test_retry_controller_does_not_retry_validation_failure_by_default():
+@pytest.mark.asyncio
+async def test_retry_controller_does_not_retry_validation_failure_by_default():
     operation_calls = 0
 
     def operation() -> str:
@@ -3124,9 +3650,9 @@ def test_retry_controller_does_not_retry_validation_failure_by_default():
         operation_calls += 1
         return "first"
 
-    retry_result = RetryController().run(
+    retry_result = await RetryController().run(
         operation=operation,
-        validate=lambda _value: ["bad"],
+        evaluate=lambda _value: ["bad"],
     )
 
     assert operation_calls == 1
@@ -3136,7 +3662,8 @@ def test_retry_controller_does_not_retry_validation_failure_by_default():
     assert retry_result.repairAttempted is False
 
 
-def test_retry_controller_saves_second_failure_without_third_call():
+@pytest.mark.asyncio
+async def test_retry_controller_saves_second_failure_without_third_call():
     operation_calls = 0
     repair_calls = 0
 
@@ -3150,10 +3677,10 @@ def test_retry_controller_saves_second_failure_without_third_call():
         repair_calls += 1
         return "second"
 
-    retry_result = RetryController().run(
+    retry_result = await RetryController().run(
         operation,
-        validate=lambda value: [f"bad-{value}"],
-        retry_on_validation_failure=True,
+        evaluate=lambda value: [f"bad-{value}"],
+        retry_on_quality_failure=True,
         repair=repair,
     )
 
@@ -3163,7 +3690,8 @@ def test_retry_controller_saves_second_failure_without_third_call():
     assert retry_result.errors == ["bad-second"]
 
 
-def test_artifact_store_returns_structured_save_result(tmp_path, monkeypatch):
+@pytest.mark.asyncio
+async def test_artifact_store_returns_structured_save_result(tmp_path, monkeypatch):
     """验证 ArtifactStore 保存包含标题和说明的 CardSpec。
 
     入参：
@@ -3196,7 +3724,7 @@ def test_artifact_store_returns_structured_save_result(tmp_path, monkeypatch):
     design_compact_dsl = (
         '["root","Column",{"width":"matchParent","height":140},[]]'
     )
-    result = ArtifactStore(
+    result = await ArtifactStore(
         design_compact_dsl=design_compact_dsl
     ).save(artifact)
 

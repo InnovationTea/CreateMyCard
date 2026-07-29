@@ -48,9 +48,9 @@ app-11.7.5.205_rom-6.0
 
 当前 App `[11.7.5.205, 12.0.0.0)`、ROM `[6.0, 7.0)` 命中上述目录。App 使用完整数字版本，ROM 从完整 `romVersion` 中抽取主次版本。索引加载时会拒绝倒置区间、App 与 ROM 同时重叠的配置以及不存在的目标目录。
 
-四个接口在能力清单版本未命中或目标目录不可用且
+五个接口在能力清单版本未命中或目标目录不可用且
 `WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true` 时，统一回退到上述默认能力清单。
-关闭开关时，第一、第二接口返回空清单/缺失能力，两个生成接口返回版本不支持。
+关闭开关时，第一、第二接口返回空清单/缺失能力，三个生成接口返回版本不支持。
 
 第一接口的 IDS 安装过滤范围由
 `WIDGET_SERVICE_IDS_INSTALLATION_FILTER_PACKAGE_NAMES` 配置，值为 JSON 字符串数组。默认只包含
@@ -63,7 +63,10 @@ IDS 数据源由 `WIDGET_SERVICE_ENABLE_IDS_MOCK` 显式控制，默认值为 `t
 
 不能再根据 mock 文件是否存在自动选择或切换数据源。
 
-DSL 校验失败重试由 `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY` 控制，默认值为 `false`。关闭时 error 只记录日志并继续保存首次输出；开启时携带非法 DSL 和全部 error 定向修复一次。warning 不触发修复，第二次仍失败时保存第二次输出且不再调用模型。
+DSL 质量失败重试由 `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY` 控制，默认值为 `false`，同时覆盖
+源 DSL 转换 error 和 Validator error。最大 repair 次数由
+`WIDGET_SERVICE_VALIDATION_FAILURE_MAX_REPAIR_ATTEMPTS` 控制，默认 `1`，范围 `1～10`；warning 不触发
+repair，全部 error 消失时提前停止。
 
 A2UI 协议 profile 也按文件夹隔离：
 
@@ -101,10 +104,11 @@ WS /api/v1/ws/tools/generateWidgetCardCompactDsl
 WS /api/v1/ws/tools/generateWidgetCardTerseDslNested2
 ```
 
-`generateWidgetCard` 固定使用标准 A2UI Form profile 和 MEP；
-`generateWidgetCardCompactDsl` 根据 App/ROM 区间选择 Design profile，使用 llmclient 生成
+`generateWidgetCard` 固定使用标准 A2UI Form profile，后端由
+`WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND` 选择；`generateWidgetCardCompactDsl` 根据 App/ROM 区间选择
+Design profile，后端由 `WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND` 选择并生成
 Design Compact DSL，再由服务内转换器读取该 Design profile 下的 `protocol.json`，生成标准三段 A2UI DSL。
-两个入口共享 create/edit、校验、repair 的开关和业务语义，
+第三至第五入口共享同一策略驱动生成管线、校验和 repair 语义，
 调用方不需要传 `protocolProfileId`，旧值也不能覆盖路由选择结果。
 
 `generateWidgetCardTerseDslNested2` 从
@@ -112,7 +116,8 @@ Design Compact DSL，再由服务内转换器读取该 Design profile 下的 `pr
 `cloud/services/terse_dsl_nested2_converter.py` 的受限 Parser，不作为 Python 或 JavaScript 执行；
 Parser 只接受单根组件调用、字面量、白名单组件和安全对象键，再复用标准 A2UI 转换与 artifact 校验。
 首版只支持静态 create；编辑、动态数据绑定和点击事件返回
-`PROTOCOL_CAPABILITY_UNSUPPORTED`。
+`PROTOCOL_CAPABILITY_UNSUPPORTED`。第五接口沿用 Design Compact 后端配置；两项后端配置都可取
+`mep` 或 `llmclient`。
 
 第四接口的协议区间索引位于 `cloud/data/protocol_profiles/registry_ranges.json`。未命中时，只有
 `WIDGET_SERVICE_ENABLE_DEFAULT_PROTOCOL_PROFILE_FALLBACK=true` 才回退到
@@ -519,12 +524,16 @@ missingCapabilityIds  未注册的数据能力 ID
 签名：
 
 ```python
-generate_widget_card(
+async generate_widget_card(
     request: GenerateWidgetCardRequest,
+    *,
+    policy: GenerationRoutePolicy,
 ) -> GenerateWidgetCardResponse
 ```
 
-用途：第三接口的主生成编排方法，只消费主 Agent 从第一接口可用清单中规划的能力。
+用途：第三至第五接口的共用异步生成编排方法，只消费主 Agent 从第一接口可用清单中规划的能力。
+公开包装方法只负责选择一次 `GenerationRoutePolicy`，其中集中定义协议/Profile、模型后端、源 DSL
+格式、Processor、编辑/动态能力支持范围和 Validator error 是否阻断。
 
 内部流程：
 
@@ -535,11 +544,12 @@ generate_widget_card(
 4. CardSpecBuilder 生成最终 CardSpec
 5. TaskSpecBuilder 根据 writeResultTo、outputSchema 和候选字段投影生成 TaskSpec.dataModelSchema
 6. PromptBuilder 生成模型输入
-7. A2UIModelClient mock 生成 genui
-8. RetryController 按 `enable_validation_failure_retry` 控制 error 后是否修复一次，默认不修复
-9. ArtifactValidator 校验完整 artifact；最终失败记录日志但不阻断保存和响应
-10. ArtifactStore 保存 artifact，当前为 OBS TODO hook
-11. ResponsePlanner 生成 status 和 message
+7. 异步 A2UIModelClient 生成当前策略要求的源 DSL
+8. 对应 Processor 把源 DSL 转成标准 A2UI，并返回带阶段的结构化质量问题
+9. 启用 Validator 时校验标准 artifact；转换 error 与 Validator error 统一交给 RetryController
+10. RetryController 按开关和最大次数执行有限 repair，每轮重新经过同一 Processor 和 Validator
+11. ArtifactStore 异步保存可用 artifact，当前为 OBS TODO hook
+12. ResponsePlanner 生成 status 和 message
 ```
 
 使用示例：
@@ -548,7 +558,7 @@ generate_widget_card(
 from api.schemas import GenerateWidgetCardRequest
 from models.generation import CandidateDataBinding
 
-response = service.generate_widget_card(
+response = await service.generate_widget_card_a2ui_form(
     GenerateWidgetCardRequest(
         userQuery="帮我做一个只显示今天上海天气的桌面卡片",
         size="2x4",
@@ -966,19 +976,20 @@ cloud/custom/a2ui_model_client.py
 签名：
 
 ```python
-generate(
+async generate(
     prompt: list[dict[str, str]],
     protocol_profile: dict | None = None,
 ) -> str
 ```
 
 用途：通过统一入口生成模型 DSL。先根据 `enable_a2ui_model_mock` 判断是否使用 mock；真实模型后端由
-生成接口固定选择，不从环境变量切换。
+生成接口的服务端路由配置选择，调用方不能通过请求参数切换。
 
 - 开关为 `true`：直接读取并返回与客户端同目录的 `mock.dat` 原始内容，不做字段替换或结构调整。
-- 第三接口固定使用 MEP 的 `/predict` 流式实现。
-- 第四接口固定调用 `cloud/custom/llmclient.py`，聚合 Design Compact DSL 流式 token，再读取选中
-  Design profile 目录中的 `protocol.json` 执行确定性 A2UI 转换。
+- 第三接口读取 `WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND`；第四、第五接口读取
+  `WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND`。两项均可配置 `mep` 或 `llmclient`。
+- MEP 使用应用生命周期共享的异步 HTTP 连接池；`cloud/custom/llmclient.py` 本体保持同步且不修改，
+  通过模型 Runtime 的专用线程池适配。
 - 模型请求异常、流式响应显式错误或最终没有非空 DSL 时抛出模型生成异常。模型失败重试开关
   关闭时直接返回 `failed/A2UI_GENERATION_FAILED`；开启时使用同一提示词重试一次。最终失败不调用
   Validator、RepairController 或 ArtifactStore。
@@ -1033,7 +1044,10 @@ CardSpec 必填字段、suggestSize、dataBindings 和 writeResultTo 合法
 事件及素材只能使用本次有效能力
 ```
 
-返回空列表表示没有 error；warning 只记录日志，不触发修复。默认记录非阻断 error 并继续保存首次模型输出；`enable_validation_failure_retry=true` 时才会携带非法 DSL 和错误位置触发一次定向修复。
+返回空列表表示没有 error；warning 只记录日志，不触发修复。Processor 的转换问题和 Validator 问题
+统一携带 `stage`、`code`、`message`。`enable_validation_failure_retry=true` 时才会携带当前最新源 DSL、
+源格式和错误位置执行有限次数定向 repair。第四、第五接口转换失败始终阻断保存；Validator error 的
+最终阻断策略由接口路由策略决定。
 
 ### 8.5 RetryController.run
 
@@ -1046,22 +1060,25 @@ cloud/services/retry_controller.py
 签名：
 
 ```python
-run(
-    operation: Callable[[], str],
-    validate: Callable[[str], list[str]],
+async run(
+    operation: Callable[[], str | Awaitable[str]],
+    evaluate: Callable[[str], list[str] | Awaitable[list[str]]],
     *,
-    retry_on_validation_failure: bool = False,
-    repair: Callable[[str, list[str]], str] | None = None,
+    retry_on_quality_failure: bool = False,
+    max_repair_attempts: int = 1,
+    repair: Callable[[str, list[str]], str | Awaitable[str]] | None = None,
 ) -> RetryResult
 ```
 
-用途：执行生成操作并校验。`retry_on_validation_failure=false` 时 error 直接返回首次结果；为 `true` 时通过 `repair` 回调定向修复 1 次并重新校验。第二次仍有 error 时返回第二次结果，不发生第三次调用。最终错误由生成服务记录，但不阻断后续 artifact 流程。
+用途：执行生成并评估转换/校验质量。开关关闭时直接返回当前结果；开启时最多执行
+`max_repair_attempts` 轮 repair，并在每轮重新评估，error 清空后提前停止。达到上限后的阻断或保存
+行为由接口路由策略决定。
 
 返回：
 
 ```text
 result       最后一次生成结果
-retryCount   重试次数，0 或 1
+retryCount   实际 repair 次数，0 到配置上限
 errors       最后一次校验错误
 initialErrors 首次校验错误
 repairAttempted 是否执行过修复
@@ -1080,7 +1097,7 @@ cloud/services/artifact_store.py
 签名：
 
 ```python
-save(artifact: WidgetArtifact) -> ArtifactSaveResult
+async save(artifact: WidgetArtifact) -> ArtifactSaveResult
 ```
 
 用途：把完整 artifact 写成具名 Markdown 代码块、上传并返回 URL 和服务端追踪摘要。
@@ -1169,9 +1186,16 @@ WIDGET_SERVICE_MOCK_IDS_RESPONSE_PATH
 WIDGET_SERVICE_IDS_QUERY_URL
 WIDGET_SERVICE_SYSTEM_PROMPT_FILE
 WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE
+WIDGET_SERVICE_REPAIR_SYSTEM_PROMPT_FILE
+WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND
+WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND
 WIDGET_SERVICE_ENABLE_ARTIFACT_VALIDATION
 WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY
 WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY
+WIDGET_SERVICE_VALIDATION_FAILURE_MAX_REPAIR_ATTEMPTS
+WIDGET_SERVICE_MODEL_MAX_CONCURRENCY
+WIDGET_SERVICE_MODEL_QUEUE_TIMEOUT_SECONDS
+WIDGET_SERVICE_MODEL_REQUEST_TIMEOUT_SECONDS
 WIDGET_SERVICE_ENABLE_WIDGET_EDIT
 WIDGET_SERVICE_ARTIFACT_BASE_URL
 WIDGET_SERVICE_ENABLE_ARTIFACT_DOWNLOAD_MOCK
@@ -1182,11 +1206,18 @@ WIDGET_SERVICE_ANYIO_THREAD_POOL_TOKENS
 ```
 
 `WIDGET_SERVICE_ANYIO_THREAD_POOL_TOKENS` 默认值为 `80`，在应用启动时写入 AnyIO
-默认线程限制器，控制 WebSocket 同步业务处理的并发容量。它不改变单次模型调用超时。
+默认线程限制器，仅控制第一、第二接口和短时同步 IO/校验任务的并发容量。第三至第五接口直接等待
+异步生成 Service，不让完整模型链路占用该线程池。
 
 `WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY` 默认值为 `false`。开启后，首次生成或 repair
 模型调用发生请求异常、模型显式错误或空 DSL 时，使用同一提示词重试一次。它不替代
 `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY` 的 DSL error 定向修复逻辑。
+
+`WIDGET_SERVICE_MODEL_MAX_CONCURRENCY` 默认 `20`，由应用生命周期唯一模型 Runtime 的共享 Semaphore
+执行。MEP、llmclient、三个生成接口、create/edit、模型失败重试和 repair 的每一次真实模型调用都要
+单独获取令牌；mock 不占令牌。排队和执行分别由 `WIDGET_SERVICE_MODEL_QUEUE_TIMEOUT_SECONDS` 与
+`WIDGET_SERVICE_MODEL_REQUEST_TIMEOUT_SECONDS` 控制，默认均为 120 秒。llmclient 超时后令牌保留到
+同步后台调用真正结束，避免物理并发超限。
 
 常用属性：
 

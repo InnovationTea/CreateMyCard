@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+from collections.abc import Awaitable
 from typing import Literal, Protocol
 
 from config.config import Settings, get_settings
@@ -10,7 +11,7 @@ ModelBackend = Literal["mep", "llmclient"]
 class ModelTransport(Protocol):
     """模型传输层只负责发送消息并返回完整原始文本。"""
 
-    def generate(self, messages: list[dict[str, str]]) -> str:
+    def generate(self, messages: list[dict[str, str]]) -> str | Awaitable[str]:
         """发送模型消息并返回聚合后的原始输出。"""
         ...
 

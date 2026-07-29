@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import hashlib
+import inspect
 import json
 import time
 import uuid
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
+
+from anyio import to_thread
 
 from api.schemas import (
     CapabilityOverviewRequest,
@@ -24,23 +27,26 @@ from custom.a2ui_model_client import (
     A2UIModelGenerationError,
     require_generated_dsl,
 )
-from custom.model_transport import ModelBackend
+from custom.model_runtime import ModelExecutionRuntime
 from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
 from models.generation import EventAction
 from services.artifact_store import ArtifactStore
 from services.capability_registry import CapabilityRegistry
 from services.card_spec_builder import CardSpecBuilder
-from services.compact_dsl_a2ui_converter import (
-    CompactDslConversionError,
-    validate_compact_dsl_context,
-)
 from services.compact_dsl_protocol import (
     build_compact_binding_context,
     is_compact_dsl,
-    preflight_compact_dsl,
 )
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.edit_request_normalizer import EditRequestNormalizer
+from services.generation_pipeline import (
+    DslProcessingContext,
+    DslProcessingResult,
+    DslProcessorKind,
+    GenerationRoutePolicy,
+    QualityIssue,
+    get_dsl_processor,
+)
 from services.prompt_builder import PromptBuilder
 from services.protocol_registry import (
     A2UI_FORM_PROTOCOL_PROFILE_ID,
@@ -56,10 +62,6 @@ from services.source_artifact_repository import (
     SourceArtifactRepository,
 )
 from services.task_spec_builder import TaskSpecBuilder
-from services.terse_dsl_nested2_converter import (
-    TerseDslNested2ConversionError,
-    convert_terse_dsl_nested2_to_a2ui,
-)
 from services.validator import ArtifactValidator
 
 _MODULE = "[Generation Service]"
@@ -72,7 +74,11 @@ class WidgetGenerationService:
     TaskSpec 和模型提示词，最后执行模型调用、校验、artifact 保存与响应规划。
     """
 
-    def widget_card_service(
+    def __init__(self, model_runtime: ModelExecutionRuntime | None = None) -> None:
+        """注入应用生命周期共享的模型运行时。"""
+        self.model_runtime = model_runtime
+
+    async def widget_card_service(
         self,
         request: WidgetCardServiceRequest,
     ) -> (
@@ -121,12 +127,12 @@ class WidgetGenerationService:
             )
             generation_request = GenerateWidgetCardRequest(**payload)
             if request.operation == "generateWidgetCardCompactDsl":
-                return self.generate_widget_card_compact_dsl(generation_request)
+                return await self.generate_widget_card_compact_dsl(generation_request)
             if request.operation == "generateWidgetCardTerseDslNested2":
-                return self.generate_widget_card_terse_dsl_nested2(
+                return await self.generate_widget_card_terse_dsl_nested2(
                     generation_request
                 )
-            return self.generate_widget_card_a2ui_form(generation_request)
+            return await self.generate_widget_card_a2ui_form(generation_request)
 
         raise ValueError(f"Unknown operation: {request.operation}")
 
@@ -246,13 +252,11 @@ class WidgetGenerationService:
         )
         return response
 
-    def generate_widget_card(
+    async def generate_widget_card(
         self,
         request: GenerateWidgetCardRequest,
         *,
-        protocol_profile_id: str | None = None,
-        model_backend: ModelBackend = "mep",
-        design_profile_id: str | None = None,
+        policy: GenerationRoutePolicy,
     ) -> GenerateWidgetCardResponse:
         """生成卡片。
 
@@ -295,7 +299,8 @@ class WidgetGenerationService:
                     errorCode=ErrorCode.WIDGET_EDIT_DISABLED.value,
                 )
             try:
-                source_load_result = SourceArtifactRepository().load(
+                source_load_result = await to_thread.run_sync(
+                    SourceArtifactRepository().load,
                     request.sourceArtifactUrl or "",
                 )
                 normalized = EditRequestNormalizer().normalize_edit(
@@ -394,26 +399,21 @@ class WidgetGenerationService:
             f"{_MODULE} generate_flow_step_registry_loaded registry_version={registry.version}"
         )
         # 协议 profile 决定 A2UI 组件白名单、DSL 行数要求和校验规则。
-        selected_profile_id = protocol_profile_id or request.protocolProfileId
-        protocol_registry = A2UIProtocolRegistry(selected_profile_id)
+        protocol_registry = A2UIProtocolRegistry(policy.protocol_profile_id)
         protocol_profile = protocol_registry.get_profile()
         compact_dsl = is_compact_dsl(protocol_profile)
-        design_compact = design_profile_id is not None
-        strict_compact_validation = compact_dsl or design_compact
-        terse_nested2 = design_profile_id == TERSE_DSL_NESTED2_PROFILE_ID
         conversion_protocol_profile = protocol_profile
-        if terse_nested2:
-            conversion_protocol_profile = (
-                A2UIProtocolRegistry.read_design_protocol_profile(
-                    TERSE_DSL_NESTED2_PROFILE_ID
-                )
+        if policy.processor_kind == DslProcessorKind.TERSE_NESTED2:
+            conversion_protocol_profile = A2UIProtocolRegistry.read_design_protocol_profile(
+                policy.model_profile_id
             )
-        resolved_design_profile_id = design_profile_id or ""
         logger.info(
             f"{_MODULE} generate_flow_step_protocol_loaded "
             f"protocol_profile_id={protocol_profile['id']} "
             f"protocol_version={protocol_profile['version']} "
-            f"model_backend={model_backend} design_profile_id={design_profile_id or ''}"
+            f"operation={policy.operation} processor={policy.processor_kind} "
+            f"model_backend={policy.backend} "
+            f"design_profile_id={policy.design_profile_id or ''}"
         )
         latency_by_stage["registryAndProtocol"] = self._elapsed_ms(stage_started_at)
         stage_started_at = time.perf_counter()
@@ -529,18 +529,18 @@ class WidgetGenerationService:
             "task_data_model_schema_keys="
             f"{json_for_log(list(task_spec.dataModelSchema))}"
         )
-        # prompt 约束模型生成 DSL；Validator 用于质量观测，重试由配置控制，不作为保存门禁。
-        if terse_nested2:
+        # Prompt 约束模型生成源 DSL；Processor 和 Validator 依次产出统一质量问题，再由策略决定门禁。
+        if policy.processor_kind == DslProcessorKind.TERSE_NESTED2:
             terse_system_prompt = A2UIProtocolRegistry.read_design_prompt(
-                TERSE_DSL_NESTED2_PROFILE_ID
+                policy.model_profile_id
             )
             prompt = PromptBuilder().build_terse_dsl_nested2(
                 task_spec,
                 terse_system_prompt,
             )
-        elif design_profile_id is not None:
+        elif policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
             design_system_prompt = A2UIProtocolRegistry.read_design_prompt(
-                design_profile_id
+                policy.model_profile_id
             )
             prompt = PromptBuilder().build_design_compact(
                 task_spec,
@@ -582,26 +582,22 @@ class WidgetGenerationService:
         latency_by_stage["specAndPrompt"] = self._elapsed_ms(stage_started_at)
         stage_started_at = time.perf_counter()
 
-        model_client = A2UIModelClient(backend=model_backend)
-        model_protocol_profile = protocol_profile
-        if design_profile_id is not None:
-            model_protocol_profile = {
-                "id": design_profile_id,
-                "format": (
-                    TERSE_DSL_NESTED2_PROFILE_ID
-                    if terse_nested2
-                    else "compact-dsl"
-                ),
-            }
+        model_client = A2UIModelClient(
+            backend=policy.backend,
+            runtime=self.model_runtime,
+        )
+        model_protocol_profile = {
+            "id": policy.model_profile_id,
+            "format": policy.model_format,
+        }
         retry_controller = RetryController()
         artifact_id = str(uuid.uuid4())
-        compact_operation_error = ""
-        latest_design_dsl = ""
         model_call_phase = "initial"
         model_failure_retry_count = 0
-        if terse_nested2:
+        validation_repair_attempt_count = 0
+        if policy.processor_kind == DslProcessorKind.TERSE_NESTED2:
             repair_prompt_type = "terse-dsl-nested-2-create"
-        elif design_compact:
+        elif policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
             design_mode = "edit" if source_load_result else "create"
             repair_prompt_type = f"design-compact-{design_mode}"
         elif protocol_profile["id"] == COMPACT_DSL_PROTOCOL_PROFILE_ID:
@@ -611,8 +607,8 @@ class WidgetGenerationService:
         else:
             repair_prompt_type = "create"
 
-        def call_model_with_failure_retry(
-            model_operation: Callable[[], str],
+        async def call_model_with_failure_retry(
+            model_operation: Callable[[], Awaitable[str]],
             phase: str,
         ) -> str:
             """执行一次模型阶段，并按独立开关对模型异常原样重试一次。
@@ -627,7 +623,10 @@ class WidgetGenerationService:
             max_attempts = 2 if settings.enable_model_failure_retry else 1
             for attempt in range(1, max_attempts + 1):
                 try:
-                    result = require_generated_dsl(model_operation())
+                    model_result = model_operation()
+                    if inspect.isawaitable(model_result):
+                        model_result = await model_result
+                    result = require_generated_dsl(model_result)
                     if attempt > 1:
                         logger.info(
                             f"{_MODULE} a2ui_model_failure_retry_succeeded "
@@ -649,184 +648,86 @@ class WidgetGenerationService:
                     model_failure_retry_count += 1
             raise AssertionError("model retry loop exited unexpectedly")
 
-        def operation() -> str:
-            """执行首次 A2UI 模型生成，并对 Compact DSL 做本地预检。
+        processor = get_dsl_processor(policy.processor_kind)
+        processing_context = DslProcessingContext(
+            size=card_spec.suggestSize,
+            card_spec=card_spec.model_dump(mode="json", exclude_none=True),
+            task_spec=task_spec.model_dump(mode="json", exclude_none=True),
+            protocol_profile=conversion_protocol_profile,
+            design_profile_id=policy.design_profile_id,
+            data_capabilities=effective_data_capabilities,
+            event_candidates=effective_events,
+        )
+        latest_processing_result = DslProcessingResult(source_dsl="")
 
-            入参：无。
-            出参：三行 JSONL genui 字符串。
-            """
-            nonlocal compact_operation_error, latest_design_dsl
-            logger.info(f"{_MODULE} a2ui_model_operation_started")
-
-            def generate_once() -> str:
-                return model_client.generate(prompt, model_protocol_profile)
-
-            generated_source = call_model_with_failure_retry(
-                generate_once,
+        async def generate_source_dsl() -> str:
+            logger.info(
+                f"{_MODULE} model_source_generation_started operation={policy.operation}"
+            )
+            return await call_model_with_failure_retry(
+                lambda: model_client.generate(prompt, model_protocol_profile),
                 "initial",
             )
-            generated = generated_source
-            if design_compact:
-                latest_design_dsl = generated_source
-                if terse_nested2:
-                    try:
-                        generated = convert_terse_dsl_nested2_to_a2ui(
-                            generated_source,
-                            size=card_spec.suggestSize,
-                            protocol_profile=conversion_protocol_profile,
-                        )
-                    except TerseDslNested2ConversionError as exc:
-                        raise A2UIModelGenerationError(
-                            "TerseDSL-Nested-2 conversion failed"
-                        ) from exc
-                else:
-                    try:
-                        context_validation = validate_compact_dsl_context(
-                            latest_design_dsl,
-                            task_spec=task_spec.model_dump(
-                                mode="json",
-                                exclude_none=True,
-                            ),
-                            card_spec=card_spec.model_dump(
-                                mode="json",
-                                exclude_none=True,
-                            ),
-                        )
-                    except CompactDslConversionError as exc:
-                        compact_operation_error = str(exc)
-                        logger.error(
-                            f"{_MODULE} design_compact_context_validation_failed "
-                            f"error={exc}"
-                        )
-                        return ""
-                    logger.info(
-                        f"{_MODULE} design_compact_context_validation_completed "
-                        f"warning_count={len(context_validation.warnings)} "
-                        f"warnings={json_for_log(list(context_validation.warnings))}"
-                    )
-                    generated = model_client.convert_design_dsl_to_standard_dsl(
-                        generated_source,
-                        size=card_spec.suggestSize,
-                        design_profile_id=resolved_design_profile_id,
-                    )
-            if not compact_dsl:
-                return generated
-            if not generated.strip():
-                compact_operation_error = "model output is empty"
-                return ""
 
-            preflight_started_at = time.perf_counter()
-            preflight = preflight_compact_dsl(
-                generated,
-                card_spec.model_dump(mode="json", exclude_none=True),
-                effective_data_capabilities,
-                effective_events,
-                task_spec.model_dump(mode="json", exclude_none=True),
-            )
-            preflight_duration_ms = self._elapsed_ms(preflight_started_at)
-            categories = sorted(
-                {item.category for item in preflight.diagnostics}
-            )
-            logger.info(
-                f"{_MODULE} compact_preflight_completed passed={preflight.passed} "
-                f"duration_ms={preflight_duration_ms} "
-                f"repair_count={len(preflight.repairs)} "
-                f"repairs={json_for_log(list(preflight.repairs))} "
-                f"error_count={len(preflight.error_messages)} "
-                f"categories={json_for_log(categories)}"
-            )
-            if preflight.passed:
-                return preflight.genui
-
-            compact_operation_error = " | ".join(
-                f"[{item.category}] {item.message}"
-                for item in preflight.diagnostics
-                if item.severity == "error"
-            )
-            logger.error(
-                f"{_MODULE} compact_preflight_failed "
-                f"errors={json_for_log(list(preflight.error_messages))} "
-                f"categories={json_for_log(categories)}"
-            )
-            return ""
-
-        def repair_genui(invalid_genui: str, validation_errors: list[str]) -> str:
-            """携带首次非法 DSL 和 error 级错误执行一次定向修复。"""
-            nonlocal latest_design_dsl
-            repair_source = latest_design_dsl if design_compact else invalid_genui
-            repair_format = (
-                resolved_design_profile_id if design_compact else protocol_profile["format"]
-            )
+        async def repair_source_dsl(
+            invalid_source_dsl: str,
+            quality_errors: list[str],
+        ) -> str:
+            nonlocal validation_repair_attempt_count
+            validation_repair_attempt_count += 1
             repair_prompt = PromptBuilder().build_repair(
                 prompt,
-                repair_source,
-                validation_errors,
-                dsl_format=repair_format,
+                invalid_source_dsl,
+                quality_errors,
+                dsl_format=policy.source_format,
             )
             logger.info(
                 f"{_MODULE} a2ui_repair_started repair_prompt_type={repair_prompt_type} "
-                f"initial_validation_error_count={len(validation_errors)}"
+                f"repair_attempt={validation_repair_attempt_count} "
+                f"max_repair_attempts={settings.validation_failure_max_repair_attempts} "
+                f"quality_error_count={len(quality_errors)}"
             )
-
-            def repair_once() -> str:
-                nonlocal latest_design_dsl
-                repaired_dsl = model_client.generate_repair(
+            return await call_model_with_failure_retry(
+                lambda: model_client.generate_repair(
                     repair_prompt,
                     model_protocol_profile,
-                )
-                if not design_compact:
-                    return repaired_dsl
-                latest_design_dsl = repaired_dsl
-                if terse_nested2:
-                    try:
-                        return convert_terse_dsl_nested2_to_a2ui(
-                            repaired_dsl,
-                            size=card_spec.suggestSize,
-                            protocol_profile=conversion_protocol_profile,
-                        )
-                    except TerseDslNested2ConversionError as exc:
-                        raise A2UIModelGenerationError(
-                            "TerseDSL-Nested-2 repair conversion failed"
-                        ) from exc
-                return model_client.convert_design_dsl_to_standard_dsl(
-                    repaired_dsl,
-                    size=card_spec.suggestSize,
-                    design_profile_id=resolved_design_profile_id,
-                )
-
-            return call_model_with_failure_retry(
-                repair_once,
+                ),
                 "repair",
             )
 
-        def validate_genui(genui: str) -> list[str]:
-            """校验单次模型输出。
-
-            入参：
-            - genui：模型生成的三行 JSONL 字符串。
-            出参：校验错误列表；空列表表示通过。
-            """
-            if strict_compact_validation and not genui.strip():
-                error = compact_operation_error or "model output is empty"
-                logger.error(
-                    f"{_MODULE} compact_genui_empty error={error}"
+        def evaluate_source_dsl_sync(source_dsl: str) -> list[str]:
+            nonlocal latest_processing_result
+            processing_result = processor.process(source_dsl, processing_context)
+            latest_processing_result = processing_result
+            warnings = [
+                item.repair_message()
+                for item in processing_result.issues
+                if item.severity == "warning"
+            ]
+            if warnings:
+                logger.warning(
+                    f"{_MODULE} dsl_processing_warnings operation={policy.operation} "
+                    f"warnings={json_for_log(warnings)}"
                 )
-                return [error]
-            # 每次模型输出都临时组装 artifact，再用同一套 Validator 校验完整契约。
-            validation_optional = not strict_compact_validation
-            if not settings.enable_artifact_validation and validation_optional:
+            conversion_errors = [item.repair_message() for item in processing_result.errors]
+            if conversion_errors:
+                logger.error(
+                    f"{_MODULE} dsl_conversion_failed operation={policy.operation} "
+                    f"errors={json_for_log(conversion_errors)}"
+                )
+                return conversion_errors
+            if not settings.enable_artifact_validation:
                 logger.info(
-                    f"{_MODULE} a2ui_genui_validation_skipped "
+                    f"{_MODULE} artifact_validation_skipped operation={policy.operation} "
                     "reason=enable_artifact_validation_false"
                 )
                 return []
-            logger.info(
-                f"{_MODULE} a2ui_genui_validation_started genui_length={len(genui)}"
-            )
+
+            standard_dsl = processing_result.standard_dsl
             artifact = self._build_artifact(
-                genui,
-                card_spec.model_dump(mode="json", exclude_none=True),
-                task_spec.model_dump(mode="json", exclude_none=True),
+                standard_dsl,
+                processing_context.card_spec,
+                processing_context.task_spec,
                 effective_data_capabilities,
                 effective_events,
                 asset_candidates,
@@ -842,45 +743,47 @@ class WidgetGenerationService:
                 ),
             )
             artifact_validator = ArtifactValidator()
-            validation_errors = artifact_validator.validate(
-                artifact,
-                protocol_profile,
-            )
-            if strict_compact_validation and validation_errors:
-                logger.info(
-                    f"{_MODULE} strict_validation_failed "
-                    "validation_repair_skipped=true reason=compact_local_policy "
-                    f"categories={json_for_log(artifact_validator.error_categories)}"
-                )
+            validation_errors = artifact_validator.validate(artifact, protocol_profile)
             if source_load_result:
                 source_write_roots = {
                     item.writeResultTo
                     for item in source_load_result.artifact.generationPlan.candidateDataBindings
                 }
-                current_write_roots = {
-                    item.writeResultTo for item in effective_bindings
-                }
+                current_write_roots = {item.writeResultTo for item in effective_bindings}
                 for removed_root in sorted(source_write_roots - current_write_roots):
-                    if removed_root in genui:
+                    if removed_root in standard_dsl:
                         validation_errors.append(
                             f"removed data path remains in edited genui: {removed_root}"
                         )
-            return validation_errors
+            validation_issues = tuple(
+                QualityIssue(
+                    stage="validation",
+                    code="ARTIFACT_VALIDATION_FAILED",
+                    message=message,
+                )
+                for message in validation_errors
+            )
+            latest_processing_result = DslProcessingResult(
+                source_dsl=processing_result.source_dsl,
+                standard_dsl=processing_result.standard_dsl,
+                issues=processing_result.issues + validation_issues,
+            )
+            return [item.repair_message() for item in validation_issues]
 
-        # Compact output uses deterministic validation without model repair.
+        async def evaluate_source_dsl(source_dsl: str) -> list[str]:
+            return await to_thread.run_sync(evaluate_source_dsl_sync, source_dsl)
+
         retry_on_validation_failure = settings.enable_validation_failure_retry
-        retry_on_validation_failure = (
-            retry_on_validation_failure and not strict_compact_validation
-        )
         try:
-            retry_result = retry_controller.run(
-                operation,
-                validate_genui,
-                retry_on_validation_failure=retry_on_validation_failure,
-                repair=repair_genui,
+            retry_result = await retry_controller.run(
+                generate_source_dsl,
+                evaluate_source_dsl,
+                retry_on_quality_failure=retry_on_validation_failure,
+                max_repair_attempts=settings.validation_failure_max_repair_attempts,
+                repair=repair_source_dsl,
             )
         except A2UIModelGenerationError as exc:
-            validation_retry_count = 1 if model_call_phase == "repair" else 0
+            validation_retry_count = validation_repair_attempt_count
             total_retry_count = model_failure_retry_count + validation_retry_count
             latency_by_stage["modelAndValidation"] = self._elapsed_ms(stage_started_at)
             latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
@@ -927,7 +830,8 @@ class WidgetGenerationService:
                 ),
             )
             return response
-        genui = retry_result.result
+        source_dsl = retry_result.result
+        genui = latest_processing_result.standard_dsl
         errors = retry_result.errors
         total_retry_count = model_failure_retry_count + retry_result.retryCount
         latency_by_stage["modelAndValidation"] = self._elapsed_ms(stage_started_at)
@@ -945,10 +849,13 @@ class WidgetGenerationService:
             f"repair_prompt_type={repair_prompt_type} "
             f"validation_error_count={len(errors)}"
         )
-        strict_validation = strict_compact_validation
-        if strict_validation and errors:
+        conversion_failed = not genui.strip()
+        validation_failed_blocking = policy.validation_failure_blocking and bool(errors)
+        if conversion_failed or validation_failed_blocking:
+            failure_category = "conversion" if conversion_failed else "validation"
             logger.error(
                 f"{_MODULE} strict_generation_validation_failed "
+                f"failure_category={failure_category} "
                 f"errors={json_for_log(errors)}"
             )
             response = GenerateWidgetCardResponse(
@@ -984,12 +891,15 @@ class WidgetGenerationService:
             )
         stage_started_at = time.perf_counter()
 
-        # 工具3沿用非阻断校验；工具4仅在转换后的标准 A2UI 校验通过后组装 artifact。
+        # 工具3沿用非阻断校验；工具4、5仅在转换和严格校验策略通过后组装 artifact。
         design_compact_dsl = None
-        if design_compact:
-            design_compact_dsl = model_client.extract_genui_payload(
-                latest_design_dsl
-            )
+        source_dsl_processors = {
+            DslProcessorKind.DESIGN_COMPACT,
+            DslProcessorKind.TERSE_NESTED2,
+        }
+        stores_source_dsl = policy.processor_kind in source_dsl_processors
+        if stores_source_dsl:
+            design_compact_dsl = model_client.extract_genui_payload(source_dsl)
         artifact = self._build_artifact(
             genui,
             card_spec.model_dump(mode="json", exclude_none=True),
@@ -1017,6 +927,8 @@ class WidgetGenerationService:
         artifact_save_result = ArtifactStore(
             design_compact_dsl=design_compact_dsl
         ).save(artifact)
+        if inspect.isawaitable(artifact_save_result):
+            artifact_save_result = await artifact_save_result
         latency_by_stage["artifactStore"] = self._elapsed_ms(stage_started_at)
         # ResponsePlanner 根据移除能力和最终产物判断 success/degraded/failed 等用户状态。
         response_plan = ResponsePlanner().plan(
@@ -1122,18 +1034,24 @@ class WidgetGenerationService:
             f"source_artifact_digest={source_artifact_digest}"
         )
 
-    def generate_widget_card_a2ui_form(
+    async def generate_widget_card_a2ui_form(
         self,
         request: GenerateWidgetCardRequest,
     ) -> GenerateWidgetCardResponse:
         """使用标准 A2UI Form profile 和配置选择的模型后端生成卡片。"""
-        return self._generate_widget_card_with_profile(
-            request,
-            A2UI_FORM_PROTOCOL_PROFILE_ID,
-            model_backend=get_settings().a2ui_form_model_backend,
+        settings = get_settings()
+        policy = GenerationRoutePolicy(
+            operation="generateWidgetCard",
+            protocol_profile_id=A2UI_FORM_PROTOCOL_PROFILE_ID,
+            backend=settings.a2ui_form_model_backend,
+            processor_kind=DslProcessorKind.STANDARD_A2UI,
+            source_format="a2ui-form",
+            model_profile_id=A2UI_FORM_PROTOCOL_PROFILE_ID,
+            model_format="a2ui-form",
         )
+        return await self._generate_widget_card_with_policy(request, policy)
 
-    def generate_widget_card_compact_dsl(
+    async def generate_widget_card_compact_dsl(
         self,
         request: GenerateWidgetCardRequest,
     ) -> GenerateWidgetCardResponse:
@@ -1151,35 +1069,24 @@ class WidgetGenerationService:
                 message="当前 App/ROM 版本暂无可用的卡片协议，暂时不能生成卡片。",
                 errorCode=ErrorCode.APP_VERSION_UNSUPPORTED.value,
             )
-        return self._generate_widget_card_with_profile(
-            request,
-            selection.protocol_profile_id,
-            model_backend=get_settings().design_compact_model_backend,
+        policy = GenerationRoutePolicy(
+            operation="generateWidgetCardCompactDsl",
+            protocol_profile_id=selection.protocol_profile_id,
+            backend=get_settings().design_compact_model_backend,
+            processor_kind=DslProcessorKind.DESIGN_COMPACT,
+            source_format=selection.design_profile_id,
+            model_profile_id=selection.design_profile_id,
+            model_format="compact-dsl",
             design_profile_id=selection.design_profile_id,
+            validation_failure_blocking=True,
         )
+        return await self._generate_widget_card_with_policy(request, policy)
 
-    def generate_widget_card_terse_dsl_nested2(
+    async def generate_widget_card_terse_dsl_nested2(
         self,
         request: GenerateWidgetCardRequest,
     ) -> GenerateWidgetCardResponse:
         """使用本地 TerseDSL-Nested-2 Prompt 和转换器生成标准 A2UI。"""
-        if "sourceArtifactUrl" in request.model_fields_set:
-            return GenerateWidgetCardResponse(
-                status=GenerationStatus.UNSUPPORTED,
-                suggestSize=request.size or "2x4",
-                message="TerseDSL-Nested-2 当前只支持新建卡片，不支持继续编辑。",
-                errorCode=ErrorCode.PROTOCOL_CAPABILITY_UNSUPPORTED.value,
-            )
-        if request.candidateDataBindings or request.candidateEventCandidates:
-            return GenerateWidgetCardResponse(
-                status=GenerationStatus.UNSUPPORTED,
-                suggestSize=request.size or "2x4",
-                message=(
-                    "TerseDSL-Nested-2 当前只支持字面量静态卡片，"
-                    "不支持动态数据或点击事件。"
-                ),
-                errorCode=ErrorCode.PROTOCOL_CAPABILITY_UNSUPPORTED.value,
-            )
         try:
             selection = self._compact_protocol_selection(request)
         except ValueError as exc:
@@ -1193,31 +1100,63 @@ class WidgetGenerationService:
                 message="当前 App/ROM 版本暂无可用的卡片协议，暂时不能生成卡片。",
                 errorCode=ErrorCode.APP_VERSION_UNSUPPORTED.value,
             )
-        return self._generate_widget_card_with_profile(
-            request,
-            selection.protocol_profile_id,
-            model_backend=get_settings().design_compact_model_backend,
+        policy = GenerationRoutePolicy(
+            operation="generateWidgetCardTerseDslNested2",
+            protocol_profile_id=selection.protocol_profile_id,
+            backend=get_settings().design_compact_model_backend,
+            processor_kind=DslProcessorKind.TERSE_NESTED2,
+            source_format=TERSE_DSL_NESTED2_PROFILE_ID,
+            model_profile_id=TERSE_DSL_NESTED2_PROFILE_ID,
+            model_format=TERSE_DSL_NESTED2_PROFILE_ID,
             design_profile_id=TERSE_DSL_NESTED2_PROFILE_ID,
+            supports_edit=False,
+            supports_dynamic_capabilities=False,
+            validation_failure_blocking=True,
         )
+        return await self._generate_widget_card_with_policy(request, policy)
 
-    def _generate_widget_card_with_profile(
+    async def _generate_widget_card_with_policy(
         self,
         request: GenerateWidgetCardRequest,
-        protocol_profile_id: str,
-        *,
-        model_backend: ModelBackend,
-        design_profile_id: str | None = None,
+        policy: GenerationRoutePolicy,
     ) -> GenerateWidgetCardResponse:
         """复制请求并锁定路由对应的协议 profile。"""
+        unsupported_response = self._policy_unsupported_response(request, policy)
+        if unsupported_response is not None:
+            return unsupported_response
         profiled_request = request.model_copy(
-            update={"protocolProfileId": protocol_profile_id}
+            update={"protocolProfileId": policy.protocol_profile_id}
         )
-        return self.generate_widget_card(
+        return await self.generate_widget_card(
             profiled_request,
-            protocol_profile_id=protocol_profile_id,
-            model_backend=model_backend,
-            design_profile_id=design_profile_id,
+            policy=policy,
         )
+
+    @staticmethod
+    def _policy_unsupported_response(
+        request: GenerateWidgetCardRequest,
+        policy: GenerationRoutePolicy,
+    ) -> GenerateWidgetCardResponse | None:
+        """按集中路由策略拒绝当前源格式尚未支持的编辑或动态能力。"""
+        is_edit = "sourceArtifactUrl" in request.model_fields_set
+        if is_edit and not policy.supports_edit:
+            return GenerateWidgetCardResponse(
+                status=GenerationStatus.UNSUPPORTED,
+                suggestSize=request.size or "2x4",
+                message="当前生成协议只支持新建卡片，不支持继续编辑。",
+                errorCode=ErrorCode.PROTOCOL_CAPABILITY_UNSUPPORTED.value,
+            )
+        has_dynamic_capabilities = bool(
+            request.candidateDataBindings or request.candidateEventCandidates
+        )
+        if has_dynamic_capabilities and not policy.supports_dynamic_capabilities:
+            return GenerateWidgetCardResponse(
+                status=GenerationStatus.UNSUPPORTED,
+                suggestSize=request.size or "2x4",
+                message="当前生成协议只支持字面量静态卡片，不支持动态数据或点击事件。",
+                errorCode=ErrorCode.PROTOCOL_CAPABILITY_UNSUPPORTED.value,
+            )
+        return None
 
     def _compact_protocol_selection(
         self,

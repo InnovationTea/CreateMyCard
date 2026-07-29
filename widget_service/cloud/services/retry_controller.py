@@ -1,31 +1,34 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
-from collections.abc import Callable
+import inspect
+from collections.abc import Awaitable, Callable
 
 from models.service import RetryResult
 
 
-class RetryController:
-    def run(
-        self,
-        operation: Callable[[], str],
-        validate: Callable[[str], list[str]],
-        *,
-        retry_on_validation_failure: bool = False,
-        repair: Callable[[str, list[str]], str] | None = None,
-    ) -> RetryResult:
-        """执行首次生成和校验，并按开关决定是否定向修复一次。
+async def _resolve[T](value: T | Awaitable[T]) -> T:
+    """兼容异步生产实现和测试提供的立即返回值。"""
+    if inspect.isawaitable(value):
+        return await value
+    return value
 
-        入参：
-        - operation：无参生成函数，返回生成结果。
-        - validate：校验函数，入参为生成结果，返回错误列表。
-        - retry_on_validation_failure：error 存在时是否修复一次，默认关闭。
-        - repair：接收非法 DSL 和首次错误列表的修复回调。
-        出参：结构化结果，包含最终输出、首次及最终错误和修复次数。
-        """
-        result = operation()
-        initial_errors = validate(result)
-        should_repair = bool(initial_errors) and retry_on_validation_failure
+
+class RetryController:
+    async def run(
+        self,
+        operation: Callable[[], str | Awaitable[str]],
+        evaluate: Callable[[str], list[str] | Awaitable[list[str]]],
+        *,
+        retry_on_quality_failure: bool = False,
+        max_repair_attempts: int = 1,
+        repair: Callable[[str, list[str]], str | Awaitable[str]] | None = None,
+    ) -> RetryResult:
+        """生成一次，并按转换或校验 error 在有限次数内执行定向 repair。"""
+        if max_repair_attempts < 1:
+            raise ValueError("max_repair_attempts must be at least 1")
+        result = await _resolve(operation())
+        initial_errors = await _resolve(evaluate(result))
+        should_repair = bool(initial_errors) and retry_on_quality_failure
         if not should_repair:
             return RetryResult(
                 result=result,
@@ -33,15 +36,19 @@ class RetryController:
                 errors=initial_errors,
                 initialErrors=initial_errors,
             )
-
         if repair is None:
-            raise ValueError("Repair callback is required when validation retry is enabled")
-        result = repair(result, initial_errors)
-        errors = validate(result)
+            raise ValueError("Repair callback is required when quality retry is enabled")
+
+        errors = initial_errors
+        repair_count = 0
+        while errors and repair_count < max_repair_attempts:
+            result = await _resolve(repair(result, errors))
+            repair_count += 1
+            errors = await _resolve(evaluate(result))
         return RetryResult(
             result=result,
-            retryCount=1,
+            retryCount=repair_count,
             errors=errors,
             initialErrors=initial_errors,
-            repairAttempted=True,
+            repairAttempted=repair_count > 0,
         )
