@@ -12,6 +12,7 @@ from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     convert_compact_dsl_to_a2ui,
     normalize_compact_dsl_design_tokens,
+    repair_compact_dsl_binding_paths,
     validate_compact_dsl_context,
 )
 
@@ -785,6 +786,96 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         )
 
         self.assertEqual(result.warnings, ())
+
+    def test_repairs_only_unique_missing_data_root(self) -> None:
+        rows = [
+            ["root", "Column", {"width": 160, "height": 160}, ["value"]],
+            [
+                "value",
+                "Text",
+                {"content": {"path": "/data/current/temperatureC"}},
+            ],
+            ["/data/current/temperatureC", 26],
+        ]
+        schema = {
+            "current": {
+                "temperatureC": {
+                    "type": "number",
+                    "sampleValue": 26,
+                },
+            },
+        }
+        task_spec = {
+            "dataModelSchema": {"data": {"weather": schema}},
+        }
+        card_spec = {
+            "dataBindings": [{"writeResultTo": "/data/weather"}],
+        }
+        compact_dsl = _serialize(rows)
+
+        repaired = repair_compact_dsl_binding_paths(
+            compact_dsl,
+            task_spec=task_spec,
+            card_spec=card_spec,
+        )
+        repaired_rows = [json.loads(line) for line in repaired.splitlines()]
+        self.assertEqual(
+            repaired_rows[1][2]["content"]["path"],
+            "/data/weather/current/temperatureC",
+        )
+        self.assertEqual(
+            repaired_rows[2][0],
+            "/data/weather/current/temperatureC",
+        )
+
+        task_spec["dataModelSchema"]["data"]["backup"] = schema
+        card_spec["dataBindings"].append(
+            {"writeResultTo": "/data/backup"}
+        )
+        self.assertEqual(
+            repair_compact_dsl_binding_paths(
+                compact_dsl,
+                task_spec=task_spec,
+                card_spec=card_spec,
+            ),
+            compact_dsl,
+        )
+
+    def test_inlines_local_values_without_data_capabilities(self) -> None:
+        rows = [
+            [
+                "root",
+                "Column",
+                {"width": 160, "height": 160},
+                ["value", "progress"],
+            ],
+            ["value", "Text", {"content": {"path": "/battery/level"}}],
+            [
+                "progress",
+                "Progress",
+                {"value": {"path": "/battery/level"}, "total": 100},
+            ],
+            ["/battery/level", 68],
+        ]
+        repaired = repair_compact_dsl_binding_paths(
+            _serialize(rows),
+            task_spec={"dataModelSchema": {}},
+            card_spec={"dataBindings": []},
+        )
+        repaired_rows = [json.loads(line) for line in repaired.splitlines()]
+
+        self.assertEqual(repaired_rows[1][2]["content"], "68")
+        self.assertEqual(repaired_rows[2][2]["value"], 68)
+        self.assertEqual(len(repaired_rows), 3)
+        validate_compact_dsl_context(
+            repaired,
+            task_spec={
+                "dataModelSchema": {},
+                "assetCandidates": [],
+                "eventCandidates": [],
+            },
+            card_spec={"dataBindings": []},
+        )
 
     def test_rejects_data_value_that_disagrees_with_schema_type(self) -> None:
         rows = [
