@@ -333,6 +333,7 @@ class A2UIModelClient:
 
         return "\n".join(output_lines)
 
+
 def _build_design_test_task_spec() -> dict:
     """构造覆盖数据、事件和素材能力的 Design Compact DSL 本地测试任务。"""
     return {

@@ -168,7 +168,7 @@ def _next_token_is_colon(
         tokenize.NEWLINE,
         tokenize.COMMENT,
     }
-    for candidate in tokens[index + 1 :]:
+    for candidate in tokens[index + 1:]:
         if candidate.type in ignored:
             continue
         return candidate.type == tokenize.OP and candidate.string == ":"
