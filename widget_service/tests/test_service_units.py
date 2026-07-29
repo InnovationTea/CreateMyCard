@@ -163,6 +163,7 @@ Column("card",
     def generate_nested2(_client, prompt, protocol_profile):
         prompts.append(prompt)
         assert protocol_profile["id"] == "terse-dsl-nested-2"
+        assert protocol_profile["format"] == "terse-dsl-nested-2"
         return source
 
     def save_artifact(_store, artifact):
@@ -186,6 +187,13 @@ Column("card",
         }
 
     monkeypatch.setattr(A2UIModelClient, "generate", generate_nested2)
+    monkeypatch.setattr(
+        PromptBuilder,
+        "build_design_compact",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("Nested-2 must not use the Design Compact prompt builder")
+        ),
+    )
     monkeypatch.setattr(ArtifactValidator, "validate", lambda *_args: [])
     monkeypatch.setattr(ArtifactStore, "save", save_artifact)
     monkeypatch.setattr(
@@ -205,6 +213,24 @@ Column("card",
     assert selected_conversion_profiles == ["terse-dsl-nested-2"]
     create_surface = json_module.loads(saved_genui[0].splitlines()[0])["createSurface"]
     assert create_surface["width"] == 298
+
+
+def test_terse_dsl_nested2_prompt_builder_uses_terse_system_prompt():
+    task_spec = TaskSpec(**_build_design_test_task_spec())
+    prompt = PromptBuilder().build_terse_dsl_nested2(
+        task_spec,
+        "TERSE_NESTED2_SYSTEM_PROMPT",
+    )
+
+    assert prompt[0] == {
+        "role": "system",
+        "content": "TERSE_NESTED2_SYSTEM_PROMPT",
+    }
+    assert prompt[1]["role"] == "user"
+    assert json_module.loads(prompt[1]["content"]) == task_spec.model_dump(
+        mode="json",
+        exclude_none=True,
+    )
 
 
 def test_terse_dsl_nested2_rejects_dynamic_and_edit_requests():

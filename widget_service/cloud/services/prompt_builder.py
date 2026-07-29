@@ -18,6 +18,23 @@ REPAIR_SYSTEM_PROMPT = get_settings().repair_system_prompt
 
 
 class PromptBuilder:
+    def build_terse_dsl_nested2(
+        self,
+        task_spec: TaskSpec,
+        system_prompt: str,
+    ) -> list[dict[str, str]]:
+        """构造 TerseDSL-Nested-2 静态新建模型输入。"""
+        return [
+            {"role": "system", "content": system_prompt},
+            {
+                "role": "user",
+                "content": json.dumps(
+                    task_spec.model_dump(mode="json", exclude_none=True),
+                    ensure_ascii=False,
+                ),
+            },
+        ]
+
     def build_design_compact(
         self,
         task_spec: TaskSpec,
