@@ -210,7 +210,10 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 }
 ```
 
-解析 `data` 后，再按其中的业务 `status/message/artifactUrl` 回复用户。最终 `genWidgetResult` 必须使用 JSON 代码块格式，`result` 的值取业务 payload 的真实 `artifactUrl`。
+解析 `data` 后，再按其中的业务 `status/message/artifactUrl` 回复用户。最终结果围栏标签必须逐字使用
+`genWidgetResult`，不得使用 `json`、`JSON`、空标签或其它名称。围栏内容是 JSON 根对象，`result`
+的值取业务 payload 的真实 `artifactUrl`。`genWidgetResult` 不是 JSON 字段，禁止输出
+`{"genWidgetResult":{"result":"..."}}`。
 
 ## 对象结构注意事项
 

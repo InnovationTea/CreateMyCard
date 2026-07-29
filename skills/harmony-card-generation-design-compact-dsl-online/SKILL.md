@@ -91,6 +91,10 @@ CardSpec、带 Design Token 的 Compact DSL、A2UI DSL 转换、校验、降级�
 ## 输出与安全
 
 - 业务状态、固定回复、`XX` 提炼和 `genWidgetResult` 格式只以 [`references/response-policy.md`](references/response-policy.md) 为准；调用样例只以 [`references/examples.md`](references/examples.md) 为准。
+- 输出结果标记时，Markdown 代码围栏的信息字符串必须逐字使用 `genWidgetResult`；围栏内是 JSON
+  对象，但不得把围栏标签改为 `json`、`JSON`、留空或其它名称。
+- `genWidgetResult` 只表示围栏标签，不是 JSON 字段；围栏内根对象必须直接是
+  `{"result":"{artifactUrl}"}`，不得输出 `{"genWidgetResult":{"result":"..."}}`。
 - 只输出 `generateWidgetCardCompactDsl` 业务 payload 返回的真实 `artifactUrl`；edit 成功的新 URL 必须不同于来源 URL。
 - 不编造能力 ID、事件目标、素材 ID、用户数据或 URL；不选择、加载或传递不可用数据能力；不暴露 schema、provider、错误码、requestId、items、原始 data 或内部草稿。
 - 任一必要工具不可用、调用失败、结果无法解析或字段不合法时终止本轮，按回复策略处理；不得模拟成功、输出替代产物或读取离线资料补足结果。
