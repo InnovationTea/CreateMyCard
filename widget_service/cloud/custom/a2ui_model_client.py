@@ -153,7 +153,10 @@ class A2UIModelClient:
     ) -> str:
         """按目标 DSL 格式统一处理各模型后端的原始输出。"""
         dsl_text = self.extract_genui_payload(raw_output)
-        if not is_compact_dsl(protocol_profile):
+        is_terse_nested2 = (
+            protocol_profile.get("id") == TERSE_DSL_NESTED2_PROFILE_ID
+        )
+        if not is_compact_dsl(protocol_profile) and not is_terse_nested2:
             dsl_text = self.convert_dsl(dsl_text)
         logger.info(
             f"{_MODULE} dsl_processed backend={self.backend} "

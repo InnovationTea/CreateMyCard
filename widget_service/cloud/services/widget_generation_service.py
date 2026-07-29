@@ -530,7 +530,15 @@ class WidgetGenerationService:
             f"{json_for_log(list(task_spec.dataModelSchema))}"
         )
         # prompt 约束模型生成 DSL；Validator 用于质量观测，重试由配置控制，不作为保存门禁。
-        if design_profile_id is not None:
+        if terse_nested2:
+            terse_system_prompt = A2UIProtocolRegistry.read_design_prompt(
+                TERSE_DSL_NESTED2_PROFILE_ID
+            )
+            prompt = PromptBuilder().build_terse_dsl_nested2(
+                task_spec,
+                terse_system_prompt,
+            )
+        elif design_profile_id is not None:
             design_system_prompt = A2UIProtocolRegistry.read_design_prompt(
                 design_profile_id
             )
@@ -579,7 +587,11 @@ class WidgetGenerationService:
         if design_profile_id is not None:
             model_protocol_profile = {
                 "id": design_profile_id,
-                "format": "compact-dsl",
+                "format": (
+                    TERSE_DSL_NESTED2_PROFILE_ID
+                    if terse_nested2
+                    else "compact-dsl"
+                ),
             }
         retry_controller = RetryController()
         artifact_id = str(uuid.uuid4())
