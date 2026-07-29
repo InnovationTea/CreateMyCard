@@ -973,6 +973,11 @@ class WidgetGenerationService:
         stage_started_at = time.perf_counter()
 
         # 工具3沿用非阻断校验；工具4仅在转换后的标准 A2UI 校验通过后组装 artifact。
+        design_compact_dsl = None
+        if design_compact:
+            design_compact_dsl = model_client.extract_genui_payload(
+                latest_design_dsl
+            )
         artifact = self._build_artifact(
             genui,
             card_spec.model_dump(mode="json", exclude_none=True),
@@ -997,7 +1002,9 @@ class WidgetGenerationService:
             f"effective_capabilities={json_for_log(artifact.effectiveCapabilities)} "
             f"removed_count={len(artifact.removedCapabilities)}"
         )
-        artifact_save_result = ArtifactStore().save(artifact)
+        artifact_save_result = ArtifactStore(
+            design_compact_dsl=design_compact_dsl
+        ).save(artifact)
         latency_by_stage["artifactStore"] = self._elapsed_ms(stage_started_at)
         # ResponsePlanner 根据移除能力和最终产物判断 success/degraded/failed 等用户状态。
         response_plan = ResponsePlanner().plan(

@@ -723,9 +723,11 @@ def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
 
     monkeypatch.setattr(A2UIModelClient, "generate", capture_model_call)
     saved_artifacts = []
+    saved_design_compact_dsls = []
 
     def capture_artifact(_store, artifact):
         saved_artifacts.append(artifact.model_dump(mode="json", exclude_none=True))
+        saved_design_compact_dsls.append(_store.design_compact_dsl)
         return ArtifactSaveResult(
             artifactUrl=f"https://test.invalid/widget/artifact-{len(saved_artifacts)}.json",
             artifactDigest=f"sha256:test-{len(saved_artifacts)}",
@@ -763,6 +765,7 @@ def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
     old_artifact = saved_artifacts[0]
     old_rows = [json.loads(line) for line in old_artifact["genui"].splitlines()]
     assert old_artifact["meta"]["protocolProfileId"] == "a2ui-form-rom6.0-v1"
+    assert saved_design_compact_dsls[0] is None
     assert len(old_rows) == 3
     assert [next(iter(row)) for row in old_rows] == ["version", "version", "version"]
     assert "createSurface" in old_rows[0]
@@ -795,6 +798,10 @@ def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
         json.loads(line) for line in compact_artifact["genui"].splitlines()
     ]
     assert compact_artifact["meta"]["protocolProfileId"] == "a2ui-form-rom6.0-v1"
+    assert saved_design_compact_dsls[1].startswith(
+        '["root","Column"'
+    )
+    assert saved_design_compact_dsls[1] != compact_artifact["genui"]
     assert [next(iter(row)) for row in compact_rows] == ["version", "version", "version"]
     assert "createSurface" in compact_rows[0]
     assert "updateComponents" in compact_rows[1]
