@@ -78,7 +78,7 @@ def _request_id(interaction_id: str) -> str:
 
 
 def _validate_saved_artifact(artifact_url: str):
-    """通过服务内 API 重新校验本地 main.py 保存的 artifact，并打印完整诊断。"""
+    """通过服务内 API 重新校验本地服务保存的 artifact，并打印完整诊断。"""
     artifact = SourceArtifactRepository().load(artifact_url).artifact
     capabilities_dir = (
         CLOUD_ROOT
@@ -157,7 +157,7 @@ async def _call_ws(path_name: str, payload: dict, expected_request_id: str) -> d
     except OSError as exc:
         reason = (
             "本测试需要先启动本地 WebSocket 服务："
-            "cd widget_service && py -3.12 cloud\\main.py；"
+            "cd widget_service && py -3.12 cloud\\start_websocket_server.py；"
             f"当前探测地址：{uri}；"
             f"连接错误：{type(exc).__name__}: {exc}"
         )

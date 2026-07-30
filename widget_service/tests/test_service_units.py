@@ -45,7 +45,7 @@ from api.routes import (
 )
 from app.logger import json_for_log
 from config.config import Settings, get_settings
-from main import configure_anyio_thread_pool
+from start_websocket_server import configure_anyio_thread_pool
 from models.artifact import ArtifactMeta, WidgetArtifact
 from models.capability import (
     AssetCapability,

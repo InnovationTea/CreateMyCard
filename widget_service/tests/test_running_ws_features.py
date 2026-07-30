@@ -43,7 +43,7 @@ def require_local_service():
             pass
     except OSError as exc:
         pytest.skip(
-            "请先在 widget_service 下执行 py -3.12 cloud\\main.py；"
+            "请先在 widget_service 下执行 py -3.12 cloud\\start_websocket_server.py；"
             f"当前地址={SERVER_HOST}:{SERVER_PORT}，连接失败={exc}"
         )
     yield

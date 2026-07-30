@@ -88,7 +88,7 @@ async def _generate(content: dict, interaction_id: str) -> dict:
     except OSError as exc:
         reason = (
             "需要先启动本地服务：设置 WIDGET_SERVICE_ENABLE_WIDGET_EDIT=true，"
-            "然后在 widget_service 下执行 py -3.12 cloud\\main.py；"
+            "然后在 widget_service 下执行 py -3.12 cloud\\start_websocket_server.py；"
             f"当前探测地址：{WS_URI}；"
             f"连接错误：{type(exc).__name__}: {exc}"
         )

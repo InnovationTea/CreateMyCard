@@ -64,7 +64,7 @@ python -m venv .venv
 pip install -e .[dev]
 # or:
 pip install -r requirements.txt
-py -3.12 cloud\main.py
+py -3.12 cloud\start_websocket_server.py
 ```
 
 本地验证最新校验 API 和“校验失败不阻断保存”时，建议显式开启校验并关闭重试：
@@ -72,7 +72,7 @@ py -3.12 cloud\main.py
 ```powershell
 $env:WIDGET_SERVICE_ENABLE_ARTIFACT_VALIDATION="true"
 $env:WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY="false"
-py -3.12 cloud\main.py
+py -3.12 cloud\start_websocket_server.py
 ```
 
 服务启动后，在另一个终端执行真实 WebSocket 联调脚本：
@@ -109,7 +109,7 @@ pytest 节点。默认等待模型响应 180 秒，可通过 `WIDGET_SERVICE_TES
 
 ```powershell
 $env:WIDGET_SERVICE_ENABLE_WIDGET_EDIT="true"
-py -3.12 cloud\main.py
+py -3.12 cloud\start_websocket_server.py
 ```
 
 服务启动后，在另一个终端执行真实 WebSocket 多轮测试：
@@ -129,7 +129,7 @@ Pytest 默认捕获 stdout/stderr，因此测试通过时通常看不到 `print`
 py -3.12 -m pytest tests\test_service_units.py -s -q
 ```
 
-真实 WebSocket 联调时，业务日志由单独运行的 `cloud/main.py` 进程输出，应在服务终端查看；
+真实 WebSocket 联调时，业务日志由单独运行的 `cloud/start_websocket_server.py` 进程输出，应在服务终端查看；
 本地文件日志位于 `cloud/logs/agent_YYYYMMDD.log`。客户端测试终端只显示请求响应和脚本打印的校验报告。
 
 ## API

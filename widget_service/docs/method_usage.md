@@ -12,7 +12,7 @@ python -m venv .venv
 .venv\Scripts\activate
 pip install -e .[dev]
 set PYTHONPATH=cloud
-uvicorn main:app --reload
+uvicorn start_websocket_server:app --reload
 ```
 
 健康检查：
