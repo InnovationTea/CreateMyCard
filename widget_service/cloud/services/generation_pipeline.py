@@ -11,7 +11,6 @@ from services.compact_dsl_a2ui_converter import (
     repair_compact_dsl_binding_paths,
     validate_compact_dsl_context,
 )
-from services.compact_dsl_protocol import preflight_compact_dsl
 from services.protocol_registry import A2UIProtocolRegistry
 from services.terse_dsl_nested2_converter import (
     TerseDslNested2ConversionError,
@@ -28,7 +27,6 @@ class DslProcessorKind(StrEnum):
     STANDARD_A2UI = "standard"
     DESIGN_COMPACT = "design-compact"
     TERSE_NESTED2 = "terse-nested2"
-    LEGACY_COMPACT = "legacy-compact"
 
 
 @dataclass(frozen=True)
@@ -190,41 +188,10 @@ class TerseNested2Processor:
             return DslProcessingResult(source_dsl=source_dsl, issues=(issue,))
 
 
-class LegacyCompactProcessor:
-    def process(
-        self,
-        source_dsl: str,
-        context: DslProcessingContext,
-    ) -> DslProcessingResult:
-        preflight = preflight_compact_dsl(
-            source_dsl,
-            context.card_spec,
-            context.data_capabilities,
-            context.event_candidates,
-            context.task_spec,
-        )
-        issues = tuple(
-            QualityIssue(
-                stage="conversion",
-                code=item.category,
-                message=item.message,
-                severity=item.severity,
-            )
-            for item in preflight.diagnostics
-        )
-        standard_dsl = preflight.genui if preflight.passed else ""
-        return DslProcessingResult(
-            source_dsl=source_dsl,
-            standard_dsl=standard_dsl,
-            issues=issues,
-        )
-
-
 _PROCESSORS: dict[DslProcessorKind, DslProcessor] = {
     DslProcessorKind.STANDARD_A2UI: StandardA2UIProcessor(),
     DslProcessorKind.DESIGN_COMPACT: DesignCompactProcessor(),
     DslProcessorKind.TERSE_NESTED2: TerseNested2Processor(),
-    DslProcessorKind.LEGACY_COMPACT: LegacyCompactProcessor(),
 }
 
 

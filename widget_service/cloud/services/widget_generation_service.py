@@ -2,7 +2,6 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import hashlib
 import inspect
-import json
 import time
 import uuid
 from collections.abc import Awaitable, Callable
@@ -33,10 +32,6 @@ from models.generation import EventAction
 from services.artifact_store import ArtifactStore
 from services.capability_registry import CapabilityRegistry
 from services.card_spec_builder import CardSpecBuilder
-from services.compact_dsl_protocol import (
-    build_compact_binding_context,
-    is_compact_dsl,
-)
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_pipeline import (
@@ -50,7 +45,6 @@ from services.generation_pipeline import (
 from services.prompt_builder import PromptBuilder
 from services.protocol_registry import (
     A2UI_FORM_PROTOCOL_PROFILE_ID,
-    COMPACT_DSL_PROTOCOL_PROFILE_ID,
     TERSE_DSL_NESTED2_PROFILE_ID,
     A2UIProtocolRegistry,
     ProtocolProfileSelection,
@@ -407,7 +401,6 @@ class WidgetGenerationService:
         # 协议 profile 决定 A2UI 组件白名单、DSL 行数要求和校验规则。
         protocol_registry = A2UIProtocolRegistry(policy.protocol_profile_id)
         protocol_profile = protocol_registry.get_profile()
-        compact_dsl = is_compact_dsl(protocol_profile)
         conversion_protocol_profile = protocol_profile
         if policy.processor_kind == DslProcessorKind.TERSE_NESTED2:
             conversion_protocol_profile = A2UIProtocolRegistry.read_design_protocol_profile(
@@ -574,24 +567,6 @@ class WidgetGenerationService:
                     source_load_result.artifact.genui if source_load_result else None
                 ),
             )
-        if compact_dsl:
-            compact_binding_context = build_compact_binding_context(
-                card_spec.model_dump(mode="json", exclude_none=True),
-                effective_data_capabilities,
-            )
-            if compact_binding_context is not None:
-                prompt[0]["content"] = "\n".join(
-                    [
-                        prompt[0]["content"],
-                        "Dynamic binding context JSON:",
-                        json.dumps(
-                            compact_binding_context,
-                            ensure_ascii=False,
-                            separators=(",", ":"),
-                        ),
-                    ]
-                )
-
         logger.info(
             f"{_MODULE} a2ui_prompt_built prompt={json_for_log(prompt)}"
         )
@@ -617,8 +592,6 @@ class WidgetGenerationService:
         elif policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
             design_mode = "edit" if source_load_result else "create"
             repair_prompt_type = f"design-compact-{design_mode}"
-        elif protocol_profile["id"] == COMPACT_DSL_PROTOCOL_PROFILE_ID:
-            repair_prompt_type = "compact"
         elif source_load_result:
             repair_prompt_type = "edit"
         else:

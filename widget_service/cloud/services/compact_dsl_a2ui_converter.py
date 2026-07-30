@@ -780,7 +780,78 @@ def _parse_compact_rows(compact_dsl: str) -> list[CompactRow]:
 
     if not rows:
         raise CompactDslConversionError("Compact DSL output is empty.")
-    return _degrade_button_image_children(rows)
+    degraded_rows = _degrade_button_image_children(rows)
+    return _canonicalize_component_order(degraded_rows)
+
+
+def _canonicalize_component_order(rows: list[CompactRow]) -> list[CompactRow]:
+    components_by_id: dict[str, ComponentRow] = {}
+    data_rows: list[DataRow] = []
+    duplicate_ids: set[str] = set()
+
+    for row in rows:
+        if isinstance(row, DataRow):
+            data_rows.append(row)
+            continue
+        if row.component_id in components_by_id:
+            duplicate_ids.add(row.component_id)
+        components_by_id[row.component_id] = row
+
+    if duplicate_ids:
+        return rows
+    root = components_by_id.get("root")
+    if root is None:
+        return rows
+    if root.component_type != "Column":
+        return rows
+
+    ordered_components: list[ComponentRow] = []
+    visiting: set[str] = set()
+    visited: set[str] = set()
+    is_complete = _append_component_preorder(
+        "root",
+        components_by_id,
+        ordered_components,
+        visiting,
+        visited,
+    )
+    if not is_complete:
+        return rows
+    if len(visited) != len(components_by_id):
+        return rows
+    return [*ordered_components, *data_rows]
+
+
+def _append_component_preorder(
+    component_id: str,
+    components_by_id: dict[str, ComponentRow],
+    ordered_components: list[ComponentRow],
+    visiting: set[str],
+    visited: set[str],
+) -> bool:
+    if component_id in visiting:
+        return False
+    if component_id in visited:
+        return False
+    component = components_by_id.get(component_id)
+    if component is None:
+        return False
+
+    visiting.add(component_id)
+    ordered_components.append(component)
+    for child_id in component.children:
+        child_added = _append_component_preorder(
+            child_id,
+            components_by_id,
+            ordered_components,
+            visiting,
+            visited,
+        )
+        if not child_added:
+            return False
+    visiting.remove(component_id)
+    visited.add(component_id)
+    return True
 
 
 def _parse_json_line(line: str, line_number: int) -> list[Any]:
@@ -1327,10 +1398,16 @@ def _validate_component_tree(
 ) -> tuple[list[ComponentRow], list[DataRow]]:
     first_row = rows[0]
     if not isinstance(first_row, ComponentRow):
-        raise CompactDslConversionError("The first Compact DSL row must be root.")
-    if first_row.component_id != "root" or first_row.component_type != "Column":
         raise CompactDslConversionError(
-            'The first component must be ["root","Column",...].'
+            "The root Column component is missing; model output may be truncated."
+        )
+    if first_row.component_id != "root" or first_row.component_type != "Column":
+        first_component = (
+            f"{first_row.component_id}/{first_row.component_type}"
+        )
+        raise CompactDslConversionError(
+            "The root Column component is missing; model output may be "
+            f"truncated. First parsed component: {first_component}."
         )
 
     components: list[ComponentRow] = []

@@ -577,6 +577,38 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 )
                 self.assertEqual(len(result.splitlines()), 3)
 
+    def test_repairs_component_rows_emitted_out_of_order(self) -> None:
+        source_rows = self.compact_dsl.splitlines()
+        component_rows = list(reversed(source_rows[:5]))
+        data_rows = source_rows[5:]
+
+        result = convert_compact_dsl_to_a2ui(
+            "\n".join([*component_rows, *data_rows]),
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+
+        update_components = json.loads(result.splitlines()[1])
+        components = update_components["updateComponents"]["components"]
+        self.assertEqual(components[0]["id"], "root")
+        self.assertEqual(
+            [component["id"] for component in components],
+            ["root", "title", "events", "event_title", "action"],
+        )
+
+    def test_reports_missing_root_as_possible_truncated_output(self) -> None:
+        source_rows = self.compact_dsl.splitlines()[1:]
+
+        with self.assertRaisesRegex(
+            CompactDslConversionError,
+            "root Column component is missing; model output may be truncated",
+        ):
+            convert_compact_dsl_to_a2ui(
+                "\n".join(source_rows),
+                size="2x2",
+                protocol_profile=self.profile,
+            )
+
     def test_repairs_trailing_comma_and_missing_eof_closer(self) -> None:
         source_rows = self.compact_dsl.splitlines()
         source_rows[0] = f"{source_rows[0][:-1]},]"
