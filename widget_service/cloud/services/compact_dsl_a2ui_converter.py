@@ -480,13 +480,10 @@ def repair_compact_dsl_binding_paths(
         )
         original_content = row.props.get("content")
         content = props.get("content")
-        if (
-            row.component_type == "Text"
-            and _is_path_binding(original_content)
-            and original_content["path"] in literal_replacements
-            and not isinstance(content, str)
-        ):
-            props["content"] = str(content)
+        if row.component_type == "Text" and _is_path_binding(original_content):
+            binding_path = original_content["path"]
+            if binding_path in literal_replacements and not isinstance(content, str):
+                props["content"] = str(content)
         repaired_rows.append(
             _component_to_tuple(
                 ComponentRow(
