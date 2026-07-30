@@ -13,8 +13,8 @@
 ## 输出优先级
 
 1. 当前仍有会改变核心意图或入参的用户待确认信息：只追问最小必要问题，等待回答，不调用下一工具。
-2. 权限未通过或结果非法：立即终止，不调用 `generateWidgetCard`。
-3. `generateWidgetCard` 返回合法真实 `artifactUrl`：无论状态如何都输出 `genWidgetResult`；`degraded` 不能省略。
+2. 权限未通过或结果非法：立即终止，不调用 `generateWidgetCardCompactDsl`。
+3. `generateWidgetCardCompactDsl` 返回合法真实 `artifactUrl`：无论状态如何都输出 `genWidgetResult`；`degraded` 不能省略。
 4. 没有 URL：绝不输出或伪造 `genWidgetResult`。
 
 edit 只有新 URL 合法且不同于来源时才更新默认来源。

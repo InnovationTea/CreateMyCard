@@ -7,7 +7,7 @@ subsystem a given validator belongs to.
 The online variant of this pipeline ships only ``hard`` and ``semantic`` stages.
 The ``quality`` stage exists in the stage enum for CLI symmetry with the offline
 version but has no validators attached — colour / aesthetic checks are the
-responsibility of the ``generateWidgetCard`` microservice for online output.
+responsibility of the ``generateWidgetCardCompactDsl`` microservice for online output.
 """
 
 from __future__ import annotations

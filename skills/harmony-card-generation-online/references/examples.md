@@ -88,7 +88,7 @@ invoke(functionName:"RequestDataPermission", arguments:{
 天气和下一场日程经过摘要可以在 `2x2` 完整表达，因此不因存在两个数据能力升级为 `2x4`：
 
 ```text
-invoke(functionName:"generateWidgetCard", arguments:{
+invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
   userQuery:"做一张通勤卡片，显示上海青浦今天的天气和下一场日程。",
   title:"通勤助手",
@@ -157,7 +157,7 @@ invoke(functionName:"generateWidgetCard", arguments:{
 overview 返回可安全填齐的天气入口事件后，不加载数据 schema，也不调用权限工具：
 
 ```text
-invoke(functionName:"generateWidgetCard", arguments:{
+invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
   userQuery:"做一个打开天气应用的入口卡片。",
   title:"天气入口",
@@ -237,7 +237,7 @@ invoke(functionName:"generateWidgetCard", arguments:{
 先对来源的完整数据能力集合执行权限门禁，通过后调用：
 
 ```text
-invoke(functionName:"generateWidgetCard", arguments:{
+invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
   userQuery:"背景改成蓝色，信息排紧凑一点",
   sourceArtifactUrl:"https://obs.example/widget/v1.md"
@@ -253,7 +253,7 @@ invoke(functionName:"generateWidgetCard", arguments:{
 重新获取 overview 和天气 schema，恢复并校验编辑后的完整数据候选，只对 `ViewWeather` 检查权限。通过后调用：
 
 ```text
-invoke(functionName:"generateWidgetCard", arguments:{
+invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
   userQuery:"去掉日历，只保留天气",
   sourceArtifactUrl:"https://obs.example/widget/v1.md",
