@@ -422,6 +422,84 @@ def normalize_compact_dsl_design_tokens(
     return _serialize_rows(normalized_rows)
 
 
+def repair_compact_dsl_binding_paths(
+    compact_dsl: str,
+    *,
+    task_spec: dict[str, Any],
+    card_spec: dict[str, Any],
+) -> str:
+    """Repair unique data roots or safely inline unbacked local values."""
+    rows = _parse_compact_rows(compact_dsl)
+    components, data_rows = _validate_component_tree(rows)
+    schema = task_spec.get("dataModelSchema")
+    if not isinstance(schema, dict):
+        return compact_dsl
+
+    component_paths = _component_binding_paths(components)
+    paths = list(component_paths)
+    paths.extend(row.path for row in data_rows)
+    roots = _card_spec_data_roots(card_spec)
+    data_values = {row.path: row.value for row in data_rows}
+    path_replacements: dict[str, str] = {}
+    literal_replacements: dict[str, Any] = {}
+    for path in dict.fromkeys(paths):
+        if _schema_node_at_path(schema, path) is not None:
+            continue
+        suffix = path
+        if path == "/data" or path.startswith("/data/"):
+            suffix = path[len("/data"):]
+        candidates: set[str] = set()
+        for root in roots:
+            candidate = f"{root.rstrip('/')}{suffix}"
+            if _schema_node_at_path(schema, candidate) is not None:
+                candidates.add(candidate)
+        if len(candidates) == 1:
+            path_replacements[path] = candidates.pop()
+            continue
+        if not roots and path in component_paths and path in data_values:
+            literal_replacements[path] = copy.deepcopy(data_values[path])
+
+    if not path_replacements and not literal_replacements:
+        return compact_dsl
+    repaired_rows: list[list[Any]] = []
+    for row in rows:
+        if isinstance(row, DataRow):
+            if row.path in literal_replacements:
+                continue
+            repaired_rows.append(
+                [
+                    path_replacements.get(row.path, row.path),
+                    copy.deepcopy(row.value),
+                ]
+            )
+            continue
+        props = _replace_binding_paths(
+            row.props,
+            path_replacements,
+            literal_replacements,
+        )
+        original_content = row.props.get("content")
+        content = props.get("content")
+        if (
+            row.component_type == "Text"
+            and _is_path_binding(original_content)
+            and original_content["path"] in literal_replacements
+            and not isinstance(content, str)
+        ):
+            props["content"] = str(content)
+        repaired_rows.append(
+            _component_to_tuple(
+                ComponentRow(
+                    row.component_id,
+                    row.component_type,
+                    props,
+                    row.children,
+                )
+            )
+        )
+    return _serialize_rows(repaired_rows)
+
+
 def validate_compact_dsl_context(
     compact_dsl: str,
     *,
@@ -1983,6 +2061,37 @@ def _collect_binding_paths(value: Any, paths: list[str]) -> None:
     if isinstance(value, list):
         for item in value:
             _collect_binding_paths(item, paths)
+
+
+def _replace_binding_paths(
+    value: Any,
+    path_replacements: dict[str, str],
+    literal_replacements: dict[str, Any],
+) -> Any:
+    if isinstance(value, dict):
+        if set(value) == {"path"} and isinstance(value.get("path"), str):
+            path = value["path"]
+            if path in literal_replacements:
+                return copy.deepcopy(literal_replacements[path])
+            return {"path": path_replacements.get(path, path)}
+        return {
+            key: _replace_binding_paths(
+                item,
+                path_replacements,
+                literal_replacements,
+            )
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [
+            _replace_binding_paths(
+                item,
+                path_replacements,
+                literal_replacements,
+            )
+            for item in value
+        ]
+    return copy.deepcopy(value)
 
 
 def _json_pointer_value(

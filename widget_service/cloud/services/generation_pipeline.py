@@ -8,6 +8,7 @@ from custom.model_transport import ModelBackend
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     convert_compact_dsl_to_a2ui,
+    repair_compact_dsl_binding_paths,
     validate_compact_dsl_context,
 )
 from services.compact_dsl_protocol import preflight_compact_dsl
@@ -113,6 +114,11 @@ class DesignCompactProcessor:
         context: DslProcessingContext,
     ) -> DslProcessingResult:
         try:
+            source_dsl = repair_compact_dsl_binding_paths(
+                source_dsl,
+                task_spec=context.task_spec,
+                card_spec=context.card_spec,
+            )
             context_result = validate_compact_dsl_context(
                 source_dsl,
                 task_spec=context.task_spec,
