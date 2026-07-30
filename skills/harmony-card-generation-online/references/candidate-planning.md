@@ -122,7 +122,7 @@ edit 先取得目标卡片最近一次业务 payload 的真实 `artifactUrl`，�
 
 恢复完整数据候选集合：
 
-1. 从当前对话上下文中找到目标卡片最新一次有效业务结果的 `artifactUrl`，再找到产生该结果的真实 `generateWidgetCard` 调用。
+1. 从当前对话上下文中找到目标卡片最新一次有效业务结果的 `artifactUrl`，再找到产生该结果的真实 `generateWidgetCardCompactDsl` 调用。
 2. 若该调用显式提交了完整 `candidateDataBindings`，以其为基线；若省略了该字段，则沿调用参数中的 `sourceArtifactUrl` 向前追溯，直到找到最近一次显式提交的完整数组。
 3. 只沿“真实调用参数 → 合法业务结果 → 新 artifactUrl”的有效链路，根据后续 `effectiveCapabilities.data` 和可可靠对应的移除结果排除未生效的数据能力；失败、非法结果、无新 URL 或 edit 返回来源 URL 的调用不进入链路。
 4. 删除用户要求移除的 binding，或只修改目标 binding 的 `arguments`；保留其它 binding。
@@ -133,7 +133,7 @@ edit 先取得目标卡片最近一次业务 payload 的真实 `artifactUrl`，�
 
 ## 权限集合
 
-每次 `generateWidgetCard` 前确定并去重最终数据能力 ID：
+每次 `generateWidgetCardCompactDsl` 前确定并去重最终数据能力 ID：
 
 - create：最终 `candidateDataBindings[].capabilityId`。
 - 删除数据或修改参数 edit：编辑后完整 binding 的能力 ID。

@@ -10,7 +10,7 @@ metadata:
     - bundleName: "com.omega_w_0823.hmservice"
       toolName: "RequestDataPermission"
     - bundleName: "com.omega_w_0823.hmservice"
-      toolName: "generateWidgetCard"
+      toolName: "generateWidgetCardCompactDsl"
 ---
 
 # Harmony 卡片云侧编排

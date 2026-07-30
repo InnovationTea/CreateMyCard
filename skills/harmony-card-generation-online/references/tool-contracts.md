@@ -9,7 +9,7 @@
 - [getWidgetCapabilityOverview](#getwidgetcapabilityoverview)
 - [getDataCapabilitySchemas](#getdatacapabilityschemas)
 - [RequestDataPermission](#requestdatapermission)
-- [generateWidgetCard](#generatewidgetcard)
+- [generateWidgetCardCompactDsl](#generatewidgetcardcompactdsl)
 - [编辑继承语义](#编辑继承语义)
 
 ## 调用总则
@@ -34,7 +34,7 @@ invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmserv
 典型 create 顺序：
 
 ```text
-getWidgetCapabilityOverview → getDataCapabilitySchemas（有数据候选时）→ RequestDataPermission（数据集合非空时）→ generateWidgetCard
+getWidgetCapabilityOverview → getDataCapabilitySchemas（有数据候选时）→ RequestDataPermission（数据集合非空时）→ generateWidgetCardCompactDsl
 ```
 
 ## 微服务包装结果
@@ -129,7 +129,7 @@ invoke(functionName:"RequestDataPermission", arguments:{bundleName:"com.omega_w_
 
 用户回复只使用 `name` 和 `settingsPath`，不输出 `capabilityId`、`authType` 或 `authorized`。
 
-## generateWidgetCard
+## generateWidgetCardCompactDsl
 
 运行时 schema 允许时使用以下业务字段：
 
@@ -147,7 +147,7 @@ invoke(functionName:"RequestDataPermission", arguments:{bundleName:"com.omega_w_
 调用示例：
 
 ```text
-invoke(functionName:"generateWidgetCard", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"生成天气卡片", title:"天气速览", description:"今日天气信息", size:"2x2", candidateDataBindings:[...], candidateEventCandidates:[...], candidateAssetIds:[...]},"skillName":"harmony-card-generation-online")
+invoke(functionName:"generateWidgetCardCompactDsl", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"生成天气卡片", title:"天气速览", description:"今日天气信息", size:"2x2", candidateDataBindings:[...], candidateEventCandidates:[...], candidateAssetIds:[...]},"skillName":"harmony-card-generation-online")
 ```
 
 ### CandidateDataBinding

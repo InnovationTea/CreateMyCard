@@ -6,7 +6,7 @@
 
 `scripts` 目录用于校验 HarmonyOS A2UI Form 卡片产物（三行 `genui` JSONL + `cardspec` JSON），是 `harmony-card-generation-offline` 校验器的**精简版**：移除了美学质检模块与颜色校验，只保留协议、组件、CardSpec、表达式、素材、绑定、跨文件一致等硬/半硬约束。
 
-美学、字号阶梯、间距节奏、颜色层级等主观质量项由云侧 `generateWidgetCard` 微服务负责，不在本地校验器中重复实现。
+美学、字号阶梯、间距节奏、颜色层级等主观质量项由云侧 `generateWidgetCardCompactDsl` 微服务负责，不在本地校验器中重复实现。
 
 ## 默认运行姿态
 
@@ -285,7 +285,7 @@ reporter = validate_card(
 | `semantic` | 结构 OK 后跑语义规则 | `BindingValidator`、`CrossValidator`、`EffectiveCapabilityValidator`（仅动态模式） |
 | `quality` | 保留 stage 但没有 validator | 空 |
 
-在线场景下颜色和美学都由 `generateWidgetCard` 微服务负责，本地只做协议/结构/语义/能力白名单四类硬约束。`--stage quality` 与 `--stage all` 在效果上都等同于 `--stage semantic`。
+在线场景下颜色和美学都由 `generateWidgetCardCompactDsl` 微服务负责，本地只做协议/结构/语义/能力白名单四类硬约束。`--stage quality` 与 `--stage all` 在效果上都等同于 `--stage semantic`。
 
 默认 `--stage all` 即三阶段全跑；`--stop-on-stage-error` 会在 hard 出错后跳过 semantic、任一阶段累计出 error 后跳过 quality，用于交互式修复减少回合。若 JSONL 出现 `DSL_JSON_PARSE_FAILED`（属于 hard 阶段的致命错），流水线会整体停在解析层不再往后走。
 
@@ -345,7 +345,7 @@ scripts/
 | 动态 `effectiveCapabilities` 校验 | ✅ | ✅（完全一致） |
 | 默认 `--format` / DSL-only / 非阻塞退出码 / `validate_dsl` API | ✅ | ✅（完全一致） |
 
-online 场景下卡片的最终协议合规、颜色和美学质检都由 `generateWidgetCard` 微服务负责；本地脚本用于开发调试和 artifact 侧回归验证。
+online 场景下卡片的最终协议合规、颜色和美学质检都由 `generateWidgetCardCompactDsl` 微服务负责；本地脚本用于开发调试和 artifact 侧回归验证。
 
 ## Validator 与 rules 对应表
 
@@ -373,7 +373,7 @@ online 场景下卡片的最终协议合规、颜色和美学质检都由 `gener
 
 online 版本没有任何 validator 挂在 quality 阶段。stage 名保留是为了和 offline 版本 CLI 参数保持一致；`--stage quality` / `--stage all` 与 `--stage semantic` 效果相同。
 
-颜色 / 对比度 / 美学都由 `generateWidgetCard` 微服务承担；本地不做二次判定。
+颜色 / 对比度 / 美学都由 `generateWidgetCardCompactDsl` 微服务承担；本地不做二次判定。
 
 ### 规则文件到 validator 的反查表
 

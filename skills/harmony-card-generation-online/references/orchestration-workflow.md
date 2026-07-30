@@ -7,7 +7,7 @@
 主 Agent 不创建独立状态或快照，只从当前对话上下文中的真实工具调用参数及其合法业务结果追溯编辑链：
 
 - `success` / `degraded` 的真实 `artifactUrl` 标识一个有效结果；edit 调用中的 `sourceArtifactUrl` 将它与来源结果关联。
-- `candidateDataBindings` 只取自编辑链中实际调用 `generateWidgetCard` 时显式提交的完整数组；某轮省略该字段时，沿 `sourceArtifactUrl` 向前查找最近一次显式提交。
+- `candidateDataBindings` 只取自编辑链中实际调用 `generateWidgetCardCompactDsl` 时显式提交的完整数组；某轮省略该字段时，沿 `sourceArtifactUrl` 向前查找最近一次显式提交。
 - 后续有效业务结果中的 `effectiveCapabilities.data` 和可可靠对应的移除结果用于排除未生效的数据能力。
 - 调用失败、结果非法、没有新 URL 或 edit 返回来源 URL 时不形成新的有效结果，不改变后续追溯起点。
 - 用户对话只用于理解目标卡片和修改意图；普通回复、`genWidgetResult` 文本、示例和来源 artifact 不用于恢复内部字段。
@@ -30,7 +30,7 @@
 9. **加载数据 schema**：只为本轮已选且实际可用的数据能力调用 `getDataCapabilitySchemas`。移除 `missingCapabilityIds` 后重新执行能力满足度门禁；最后一个核心能力被移除时不生成。
 10. **构造生成参数**：按运行时 schema 生成 create 完整候选计划，或 edit 的明确替换字段；同时确定去重后的最终数据能力 ID 集合。
 11. **执行权限门禁**：数据集合非空时调用 `RequestDataPermission` 并等待；只有契约明确通过才进入下一步。集合为空时跳过。权限检查后不得改变数据集合，否则重新检查。
-12. **生成或编辑**：前置门禁通过后调用 `generateWidgetCard`；不补做微服务负责的继承、协议选择、校验、重试或上传。
+12. **生成或编辑**：前置门禁通过后调用 `generateWidgetCardCompactDsl`；不补做微服务负责的继承、协议选择、校验、重试或上传。
 13. **组织回复并识别新链路节点**：按响应策略输出自然语言和可用 URL。edit 只有在返回不同于来源的新 URL 时，才把本次真实调用及其业务结果作为后续可追溯节点；其它结果继续使用上一版有效结果。
 
 ## 调用轨迹
