@@ -371,7 +371,7 @@ def _build_design_test_task_spec() -> dict:
             "生成杭州滨江区天气卡片，展示当前温度、天气状况、体感温度、湿度、空气质量、"
             "风向风力、生活指数和未来3天天气预报，并支持打开天气详情"
         ),
-        "size": "2x4",
+        "size": "2x2",
         "eventCandidates": [
             {
                 "id": "event.open.weather",
@@ -488,6 +488,7 @@ def _build_design_test_task_spec() -> dict:
     }
 
 
+
 async def _run_main() -> int:
     """临时验证 Design Compact DSL 生成及标准 A2UI DSL 转换链路。"""
     system_prompt = A2UIProtocolRegistry.read_design_prompt(
@@ -507,7 +508,7 @@ async def _run_main() -> int:
     )
     design_profile = {
         "id": DESIGN_COMPACT_PROFILE_ID,
-        "format": "compact-dsl",
+        "format": "design-compact-dsl",
     }
     try:
         design_dsl = await client.generate(messages, design_profile)

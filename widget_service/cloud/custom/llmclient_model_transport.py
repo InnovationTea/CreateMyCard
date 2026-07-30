@@ -4,6 +4,7 @@ import asyncio
 
 from app.logger import json_for_log, logger
 from custom.llmclient import LLMClientOptions, stream_genui
+from custom.model_transport import ModelTransportError
 
 _MODULE = "[LLMClient Model Transport]"
 
@@ -15,10 +16,19 @@ class LlmClientModelTransport:
         """聚合 llmclient 的流式 Token，返回未经 DSL 处理的完整文本。"""
 
         async def collect_stream() -> str:
-            options = LLMClientOptions(api_key="AccessService")
+            options = LLMClientOptions()
             chunks = [chunk async for chunk in stream_genui(options, messages)]
             return "".join(chunks)
 
-        result = asyncio.run(collect_stream())
-        logger.info(f"{_MODULE} response_collected content={json_for_log(result)}")
-        return result
+        try:
+            result = asyncio.run(collect_stream())
+            logger.info(f"{_MODULE} response_collected content={json_for_log(result)}")
+            return result
+        except ModelTransportError:
+            raise
+        except Exception as exc:
+            logger.error(
+                f"{_MODULE} generation_failed "
+                f"error_type={type(exc).__name__} error={exc!r}"
+            )
+            raise ModelTransportError("llmclient model generation failed") from exc
