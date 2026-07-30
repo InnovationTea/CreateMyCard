@@ -1110,7 +1110,7 @@ class WidgetGenerationService:
             model_format=TERSE_DSL_NESTED2_PROFILE_ID,
             design_profile_id=TERSE_DSL_NESTED2_PROFILE_ID,
             supports_edit=False,
-            supports_dynamic_capabilities=False,
+            supports_dynamic_capabilities=True,
             validation_failure_blocking=True,
         )
         return await self._generate_widget_card_with_policy(request, policy)
