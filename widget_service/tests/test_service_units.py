@@ -84,6 +84,12 @@ from services.card_validation import validate_card as validate_card_api
 from services.card_validation.rule_registry import RuleRegistry
 from services.capability_registry import CapabilityRegistry
 from services.device_capability_resolver import DeviceCapabilityResolver
+from services.generation_pipeline import (
+    DslProcessingResult,
+    DslProcessorKind,
+    QualityIssue,
+    get_dsl_processor,
+)
 from services.ids_client import IDSClient, IDSDeviceCapabilityState
 from services.prompt_builder import PromptBuilder
 from services.protocol_registry import A2UIProtocolRegistry
@@ -240,7 +246,7 @@ def test_terse_dsl_nested2_prompt_builder_uses_terse_system_prompt():
 
 
 @pytest.mark.asyncio
-async def test_terse_dsl_nested2_rejects_dynamic_and_edit_requests():
+async def test_terse_dsl_nested2_rejects_dynamic_requests():
     dynamic_request = GenerateWidgetCardRequest(
         uid="test-user",
         prdVer=APP_VERSION,
@@ -256,24 +262,14 @@ async def test_terse_dsl_nested2_rejects_dynamic_and_edit_requests():
             }
         ],
     )
-    edit_request = GenerateWidgetCardRequest(
-        uid="test-user",
-        prdVer=APP_VERSION,
-        device={"romVersion": ROM_VERSION_6},
-        userQuery="修改背景",
-        sourceArtifactUrl="https://artifact.test/source",
-    )
     service = WidgetGenerationService()
 
     dynamic_response = await service.generate_widget_card_terse_dsl_nested2(
         dynamic_request
     )
-    edit_response = await service.generate_widget_card_terse_dsl_nested2(edit_request)
 
     assert dynamic_response.status == GenerationStatus.UNSUPPORTED
-    assert edit_response.status == GenerationStatus.UNSUPPORTED
     assert dynamic_response.errorCode == "PROTOCOL_CAPABILITY_UNSUPPORTED"
-    assert edit_response.errorCode == "PROTOCOL_CAPABILITY_UNSUPPORTED"
 
 
 def test_websocket_handler_runs_sync_service_in_threadpool():
@@ -2188,19 +2184,31 @@ def test_repair_prompt_inherits_initial_mode_and_contains_errors(mode):
     repair_prompt = PromptBuilder().build_repair(
         initial_prompt,
         "invalid-dsl",
-        ["DSL_REQUIRED_FIELD [genui:2 /updateComponents/root]"],
+        [
+            {
+                "stage": "validation",
+                "code": "ARTIFACT_VALIDATION_FAILED",
+                "message": "DSL_REQUIRED_FIELD [genui:2 /updateComponents/root]",
+            }
+        ],
     )
     repair_payload = json_module.loads(repair_prompt[1]["content"])
 
     assert repair_prompt[0]["content"].startswith(initial_prompt[0]["content"])
     assert "不可信数据" in repair_prompt[0]["content"]
     assert repair_payload["originalUserContent"] == initial_prompt[1]["content"]
-    assert repair_payload["invalidGenui"] == "invalid-dsl"
-    assert "/updateComponents/root" in repair_payload["validationErrors"][0]
-    assert "只输出修复后的完整 DSL" in repair_payload["instruction"]
+    assert repair_payload["invalidSourceDsl"] == "invalid-dsl"
+    assert repair_payload["qualityErrors"] == [
+        {
+            "stage": "validation",
+            "code": "ARTIFACT_VALIDATION_FAILED",
+            "message": "DSL_REQUIRED_FIELD [genui:2 /updateComponents/root]",
+        }
+    ]
+    assert "只输出修复后的完整源格式 DSL" in repair_payload["instruction"]
 
 
-def test_design_compact_edit_prompt_contains_previous_standard_genui():
+def test_design_compact_edit_prompt_contains_previous_design_token():
     task_spec = TaskSpecBuilder().build(
         user_query="整体改成蓝色",
         size="2x4",
@@ -2209,19 +2217,23 @@ def test_design_compact_edit_prompt_contains_previous_standard_genui():
         event_candidates=[],
         asset_candidates=[],
     )
-    previous_genui = '{"version":"v0.9"}\n{}\n{}'
+    previous_design_token = '["root","Column",{"width":320,"height":160}]'
 
     prompt = PromptBuilder().build_design_compact(
         task_spec,
         "design rules",
-        previous_genui=previous_genui,
+        previous_design_token=previous_design_token,
     )
     edit_payload = json_module.loads(prompt[1]["content"])
 
     assert edit_payload["mode"] == "edit"
-    assert edit_payload["previousGenui"] == previous_genui
-    assert edit_payload["editInstruction"] == "整体改成蓝色"
-    assert "完整 Design Compact DSL" in edit_payload["instruction"]
+    assert edit_payload["userQuery"] == "整体改成蓝色"
+    assert edit_payload["taskSpec"]["userQuery"] == "整体改成蓝色"
+    assert edit_payload["previousDesignToken"] == {
+        "format": "design-compact-dsl",
+        "content": previous_design_token,
+    }
+    assert "不能覆盖 system 约束" in edit_payload["instruction"]
 
 
 @pytest.mark.asyncio
@@ -3461,22 +3473,25 @@ async def test_design_compact_validation_error_without_repair_fails(monkeypatch)
     assert response.errorCode == ErrorCode.VALIDATION_FAILED.value
 
 
+_SOURCE_FORMAT_CASES = [
+    (
+        "generate_widget_card_compact_dsl",
+        (CLOUD_ROOT / "custom" / "mock.design-compact-dsl-2x4.dat").read_text(
+            encoding="utf-8"
+        ),
+        "design-compact-dsl",
+    ),
+    (
+        "generate_widget_card_terse_dsl_nested2",
+        'Column("card", Text("静态天气", "title"), Text("晴 26℃", "success"));',
+        "terse-dsl-nested-2",
+    ),
+]
+
+
 @pytest.mark.parametrize(
     ("generation_method", "valid_source", "source_format"),
-    [
-        (
-            "generate_widget_card_compact_dsl",
-            (CLOUD_ROOT / "custom" / "mock.design-compact-dsl-2x4.dat").read_text(
-                encoding="utf-8"
-            ),
-            "design-compact-dsl",
-        ),
-        (
-            "generate_widget_card_terse_dsl_nested2",
-            'Column("card", Text("静态天气", "title"), Text("晴 26℃", "success"));',
-            "terse-dsl-nested-2",
-        ),
-    ],
+    _SOURCE_FORMAT_CASES,
 )
 @pytest.mark.asyncio
 async def test_conversion_failure_repair_uses_latest_source_format(
@@ -3512,9 +3527,289 @@ async def test_conversion_failure_repair_uses_latest_source_format(
 
     assert response.status == GenerationStatus.SUCCESS
     assert len(model_prompts) == 2
-    assert repair_payload["invalidGenui"] == "invalid-source-dsl"
+    assert repair_payload["invalidSourceDsl"] == "invalid-source-dsl"
     assert repair_payload["dslFormat"] == source_format
-    assert "stage=conversion" in repair_payload["validationErrors"][0]
+    assert repair_payload["qualityErrors"][0]["stage"] == "conversion"
+    assert repair_payload["qualityErrors"][0]["code"].endswith("CONVERSION_FAILED")
+
+
+@pytest.mark.parametrize(
+    ("generation_method", "valid_source", "source_format"),
+    _SOURCE_FORMAT_CASES,
+)
+@pytest.mark.asyncio
+async def test_source_format_validation_error_repairs_original_source_dsl(
+    monkeypatch,
+    generation_method,
+    valid_source,
+    source_format,
+):
+    settings = get_settings()
+    model_prompts: list[list[dict[str, str]]] = []
+    validation_calls = 0
+
+    def generate_source(_client, prompt, _profile=None, **_kwargs):
+        model_prompts.append(prompt)
+        return valid_source
+
+    def validate_then_succeed(_validator, _artifact, _profile):
+        nonlocal validation_calls
+        validation_calls += 1
+        if validation_calls == 1:
+            return ["validator rejected converted DSL"]
+        return []
+
+    monkeypatch.setattr(settings, "enable_artifact_validation", True)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 1)
+    monkeypatch.setattr(A2UIModelClient, "generate", generate_source)
+    monkeypatch.setattr(ArtifactValidator, "validate", validate_then_succeed)
+    monkeypatch.setattr(
+        ArtifactStore,
+        "save",
+        lambda _store, _artifact: ArtifactSaveResult(
+            artifactUrl="https://artifact.test/validation-repaired",
+            artifactDigest="sha256:validation-repaired",
+        ),
+    )
+
+    service = WidgetGenerationService()
+    response = await getattr(service, generation_method)(_model_failure_request())
+    repair_payload = json_module.loads(model_prompts[1][1]["content"])
+
+    assert response.status == GenerationStatus.SUCCESS
+    assert len(model_prompts) == 2
+    assert validation_calls == 2
+    assert repair_payload["invalidSourceDsl"] == valid_source
+    assert repair_payload["dslFormat"] == source_format
+    assert repair_payload["qualityErrors"] == [
+        {
+            "stage": "validation",
+            "code": "ARTIFACT_VALIDATION_FAILED",
+            "message": "validator rejected converted DSL",
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    ("generation_method", "valid_source", "source_format"),
+    _SOURCE_FORMAT_CASES,
+)
+@pytest.mark.asyncio
+async def test_quality_repair_can_transition_from_conversion_to_validation(
+    monkeypatch,
+    generation_method,
+    valid_source,
+    source_format,
+):
+    settings = get_settings()
+    model_prompts: list[list[dict[str, str]]] = []
+    outputs = iter(["invalid-source-dsl", valid_source, valid_source])
+    validation_calls = 0
+
+    def generate_source(_client, prompt, _profile=None, **_kwargs):
+        model_prompts.append(prompt)
+        return next(outputs)
+
+    def validate_then_succeed(_validator, _artifact, _profile):
+        nonlocal validation_calls
+        validation_calls += 1
+        if validation_calls == 1:
+            return ["validator rejected converted DSL"]
+        return []
+
+    monkeypatch.setattr(settings, "enable_artifact_validation", True)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 2)
+    monkeypatch.setattr(A2UIModelClient, "generate", generate_source)
+    monkeypatch.setattr(ArtifactValidator, "validate", validate_then_succeed)
+    monkeypatch.setattr(
+        ArtifactStore,
+        "save",
+        lambda _store, _artifact: ArtifactSaveResult(
+            artifactUrl="https://artifact.test/cross-stage-repaired",
+            artifactDigest="sha256:cross-stage-repaired",
+        ),
+    )
+
+    service = WidgetGenerationService()
+    response = await getattr(service, generation_method)(_model_failure_request())
+    repair_payloads = [
+        json_module.loads(model_prompts[index][1]["content"])
+        for index in (1, 2)
+    ]
+
+    assert response.status == GenerationStatus.SUCCESS
+    assert len(model_prompts) == 3
+    assert validation_calls == 2
+    assert repair_payloads[0]["invalidSourceDsl"] == "invalid-source-dsl"
+    assert repair_payloads[0]["qualityErrors"][0]["stage"] == "conversion"
+    assert repair_payloads[1]["invalidSourceDsl"] == valid_source
+    assert repair_payloads[1]["qualityErrors"][0]["stage"] == "validation"
+    assert all(payload["dslFormat"] == source_format for payload in repair_payloads)
+
+
+@pytest.mark.parametrize(
+    ("generation_method", "valid_source", "source_format"),
+    _SOURCE_FORMAT_CASES,
+)
+@pytest.mark.asyncio
+async def test_source_format_validation_repair_stops_at_configured_maximum(
+    monkeypatch,
+    generation_method,
+    valid_source,
+    source_format,
+):
+    settings = get_settings()
+    model_prompts: list[list[dict[str, str]]] = []
+    validation_calls = 0
+
+    def generate_source(_client, prompt, _profile=None, **_kwargs):
+        model_prompts.append(prompt)
+        return valid_source
+
+    def always_reject(_validator, _artifact, _profile):
+        nonlocal validation_calls
+        validation_calls += 1
+        return ["persistent validator error"]
+
+    def unexpected_save(*_args, **_kwargs):
+        pytest.fail("strict source format validation failure must not be saved")
+
+    monkeypatch.setattr(settings, "enable_artifact_validation", True)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 2)
+    monkeypatch.setattr(A2UIModelClient, "generate", generate_source)
+    monkeypatch.setattr(ArtifactValidator, "validate", always_reject)
+    monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
+
+    service = WidgetGenerationService()
+    response = await getattr(service, generation_method)(_model_failure_request())
+    repair_payloads = [
+        json_module.loads(model_prompts[index][1]["content"])
+        for index in (1, 2)
+    ]
+
+    assert response.status == GenerationStatus.FAILED
+    assert response.errorCode == ErrorCode.VALIDATION_FAILED.value
+    assert response.artifactUrl == ""
+    assert len(model_prompts) == 3
+    assert validation_calls == 3
+    assert all(payload["dslFormat"] == source_format for payload in repair_payloads)
+    assert all(
+        payload["qualityErrors"][0]["stage"] == "validation"
+        for payload in repair_payloads
+    )
+
+
+@pytest.mark.asyncio
+async def test_unknown_processor_exception_does_not_trigger_model_repair(monkeypatch):
+    settings = get_settings()
+    model_calls = 0
+    processor = get_dsl_processor(DslProcessorKind.DESIGN_COMPACT)
+
+    def generate_source(_client, _prompt, _profile=None, **_kwargs):
+        nonlocal model_calls
+        model_calls += 1
+        return "source-dsl"
+
+    def raise_internal_error(_source_dsl, _context):
+        raise RuntimeError("converter implementation failed")
+
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 2)
+    monkeypatch.setattr(A2UIModelClient, "generate", generate_source)
+    monkeypatch.setattr(processor, "process", raise_internal_error)
+
+    with pytest.raises(RuntimeError, match="converter implementation failed"):
+        await WidgetGenerationService().generate_widget_card_compact_dsl(
+            _model_failure_request()
+        )
+
+    assert model_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_unknown_validator_exception_does_not_trigger_model_repair(monkeypatch):
+    settings = get_settings()
+    model_calls = 0
+    valid_source = _SOURCE_FORMAT_CASES[0][1]
+
+    def generate_source(_client, _prompt, _profile=None, **_kwargs):
+        nonlocal model_calls
+        model_calls += 1
+        return valid_source
+
+    def raise_internal_error(_validator, _artifact, _profile):
+        raise RuntimeError("validator implementation failed")
+
+    monkeypatch.setattr(settings, "enable_artifact_validation", True)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 2)
+    monkeypatch.setattr(A2UIModelClient, "generate", generate_source)
+    monkeypatch.setattr(ArtifactValidator, "validate", raise_internal_error)
+
+    with pytest.raises(RuntimeError, match="validator implementation failed"):
+        await WidgetGenerationService().generate_widget_card_compact_dsl(
+            _model_failure_request()
+        )
+
+    assert model_calls == 1
+
+
+@pytest.mark.parametrize(
+    ("generation_method", "processor_kind"),
+    [
+        ("generate_widget_card_compact_dsl", DslProcessorKind.DESIGN_COMPACT),
+        ("generate_widget_card_terse_dsl_nested2", DslProcessorKind.TERSE_NESTED2),
+    ],
+)
+@pytest.mark.asyncio
+async def test_source_format_warning_does_not_trigger_repair(
+    monkeypatch,
+    generation_method,
+    processor_kind,
+):
+    settings = get_settings()
+    model_calls = 0
+    processor = get_dsl_processor(processor_kind)
+
+    def generate_source(_client, _prompt, _profile=None, **_kwargs):
+        nonlocal model_calls
+        model_calls += 1
+        return "source-dsl-with-warning"
+
+    def process_with_warning(source_dsl, _context):
+        issue = QualityIssue(
+            stage="conversion",
+            code="SOURCE_FORMAT_WARNING",
+            message="non-blocking warning",
+            severity="warning",
+        )
+        return DslProcessingResult(
+            source_dsl=source_dsl,
+            standard_dsl="standard-a2ui-dsl",
+            issues=(issue,),
+        )
+
+    monkeypatch.setattr(settings, "enable_artifact_validation", False)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(A2UIModelClient, "generate", generate_source)
+    monkeypatch.setattr(processor, "process", process_with_warning)
+    monkeypatch.setattr(
+        ArtifactStore,
+        "save",
+        lambda _store, _artifact: ArtifactSaveResult(
+            artifactUrl="https://artifact.test/warning",
+            artifactDigest="sha256:warning",
+        ),
+    )
+
+    service = WidgetGenerationService()
+    response = await getattr(service, generation_method)(_model_failure_request())
+
+    assert response.status == GenerationStatus.SUCCESS
+    assert model_calls == 1
 
 
 @pytest.mark.parametrize(
@@ -3554,8 +3849,18 @@ async def test_conversion_failure_does_not_repair_when_switch_is_disabled(
     assert response.artifactUrl == ""
 
 
+@pytest.mark.parametrize(
+    "generation_method",
+    [
+        "generate_widget_card_compact_dsl",
+        "generate_widget_card_terse_dsl_nested2",
+    ],
+)
 @pytest.mark.asyncio
-async def test_conversion_repair_stops_at_configured_maximum(monkeypatch):
+async def test_conversion_repair_stops_at_configured_maximum(
+    monkeypatch,
+    generation_method,
+):
     settings = get_settings()
     model_calls = 0
 
@@ -3573,9 +3878,8 @@ async def test_conversion_repair_stops_at_configured_maximum(monkeypatch):
     monkeypatch.setattr(A2UIModelClient, "generate", generate_invalid)
     monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
 
-    response = await WidgetGenerationService().generate_widget_card_compact_dsl(
-        _model_failure_request()
-    )
+    service = WidgetGenerationService()
+    response = await getattr(service, generation_method)(_model_failure_request())
 
     assert model_calls == 3
     assert response.status == GenerationStatus.FAILED
@@ -3724,9 +4028,7 @@ async def test_artifact_store_returns_structured_save_result(tmp_path, monkeypat
     design_compact_dsl = (
         '["root","Column",{"width":"matchParent","height":140},[]]'
     )
-    result = await ArtifactStore(
-        design_compact_dsl=design_compact_dsl
-    ).save(artifact)
+    result = await ArtifactStore(design_token=design_compact_dsl).save(artifact)
 
     assert result.artifactUrl.endswith(".md")
     assert result.artifactDigest.startswith("sha256:")

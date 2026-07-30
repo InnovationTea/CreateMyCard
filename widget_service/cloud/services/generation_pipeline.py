@@ -43,6 +43,14 @@ class QualityIssue:
     def repair_message(self) -> str:
         return f"[stage={self.stage} code={self.code}] {self.message}"
 
+    def to_prompt_payload(self) -> dict[str, str]:
+        """把质量问题转换为 repair user 消息中的稳定结构。"""
+        return {
+            "stage": self.stage,
+            "code": self.code,
+            "message": self.message,
+        }
+
 
 @dataclass(frozen=True)
 class DslProcessingContext:
@@ -85,6 +93,7 @@ class GenerationRoutePolicy:
     supports_edit: bool = True
     supports_dynamic_capabilities: bool = True
     validation_failure_blocking: bool = False
+    stores_design_token: bool = False
 
 
 class DslProcessor(Protocol):

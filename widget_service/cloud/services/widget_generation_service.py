@@ -59,6 +59,7 @@ from services.response_planner import ResponsePlanner
 from services.retry_controller import RetryController
 from services.source_artifact_repository import (
     SourceArtifactError,
+    SourceArtifactLoadResult,
     SourceArtifactRepository,
 )
 from services.task_spec_builder import TaskSpecBuilder
@@ -280,6 +281,7 @@ class WidgetGenerationService:
         )
         source_load_result = None
         source_url_hash = ""
+        previous_design_token = None
         inherited_categories: tuple[str, ...] = ()
         replaced_categories: tuple[str, ...] = ()
 
@@ -303,6 +305,10 @@ class WidgetGenerationService:
                     SourceArtifactRepository().load,
                     request.sourceArtifactUrl or "",
                 )
+                if policy.stores_design_token:
+                    previous_design_token = self._require_source_design_token(
+                        source_load_result
+                    )
                 normalized = EditRequestNormalizer().normalize_edit(
                     request,
                     source_load_result.artifact,
@@ -407,6 +413,25 @@ class WidgetGenerationService:
             conversion_protocol_profile = A2UIProtocolRegistry.read_design_protocol_profile(
                 policy.model_profile_id
             )
+        if previous_design_token is not None:
+            token_is_valid = await self._validate_source_design_token(
+                previous_design_token,
+                source_load_result,
+                policy,
+                conversion_protocol_profile,
+            )
+            if not token_is_valid:
+                logger.error(
+                    f"{_MODULE} source_design_token_invalid "
+                    f"operation={policy.operation} source_format={policy.source_format} "
+                    f"error_code={ErrorCode.SOURCE_ARTIFACT_INVALID.value}"
+                )
+                return GenerateWidgetCardResponse(
+                    status=GenerationStatus.FAILED,
+                    suggestSize=request.size or "2x4",
+                    message="上一版卡片的设计数据无效，本次修改未完成，原卡片不受影响。",
+                    errorCode=ErrorCode.SOURCE_ARTIFACT_INVALID.value,
+                )
         logger.info(
             f"{_MODULE} generate_flow_step_protocol_loaded "
             f"protocol_profile_id={protocol_profile['id']} "
@@ -530,24 +555,15 @@ class WidgetGenerationService:
             f"{json_for_log(list(task_spec.dataModelSchema))}"
         )
         # Prompt 约束模型生成源 DSL；Processor 和 Validator 依次产出统一质量问题，再由策略决定门禁。
-        if policy.processor_kind == DslProcessorKind.TERSE_NESTED2:
-            terse_system_prompt = A2UIProtocolRegistry.read_design_prompt(
-                policy.model_profile_id
-            )
-            prompt = PromptBuilder().build_terse_dsl_nested2(
-                task_spec,
-                terse_system_prompt,
-            )
-        elif policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
+        if policy.stores_design_token:
             design_system_prompt = A2UIProtocolRegistry.read_design_prompt(
                 policy.model_profile_id
             )
-            prompt = PromptBuilder().build_design_compact(
+            prompt = PromptBuilder().build_design_token(
                 task_spec,
                 design_system_prompt,
-                previous_genui=(
-                    source_load_result.artifact.genui if source_load_result else None
-                ),
+                policy.source_format,
+                previous_design_token=previous_design_token,
             )
         else:
             prompt = PromptBuilder().build(
@@ -594,9 +610,10 @@ class WidgetGenerationService:
         artifact_id = str(uuid.uuid4())
         model_call_phase = "initial"
         model_failure_retry_count = 0
-        validation_repair_attempt_count = 0
+        quality_repair_attempt_count = 0
         if policy.processor_kind == DslProcessorKind.TERSE_NESTED2:
-            repair_prompt_type = "terse-dsl-nested-2-create"
+            design_mode = "edit" if source_load_result else "create"
+            repair_prompt_type = f"terse-dsl-nested-2-{design_mode}"
         elif policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
             design_mode = "edit" if source_load_result else "create"
             repair_prompt_type = f"design-compact-{design_mode}"
@@ -673,17 +690,28 @@ class WidgetGenerationService:
             invalid_source_dsl: str,
             quality_errors: list[str],
         ) -> str:
-            nonlocal validation_repair_attempt_count
-            validation_repair_attempt_count += 1
+            nonlocal quality_repair_attempt_count
+            quality_repair_attempt_count += 1
+            quality_error_payloads = [
+                item.to_prompt_payload() for item in latest_processing_result.errors
+            ]
+            if len(quality_error_payloads) != len(quality_errors):
+                raise RuntimeError("repair quality issue state is inconsistent")
+            quality_error_stages = sorted(
+                {item["stage"] for item in quality_error_payloads}
+            )
             repair_prompt = PromptBuilder().build_repair(
                 prompt,
                 invalid_source_dsl,
-                quality_errors,
+                quality_error_payloads,
                 dsl_format=policy.source_format,
             )
             logger.info(
                 f"{_MODULE} a2ui_repair_started repair_prompt_type={repair_prompt_type} "
-                f"repair_attempt={validation_repair_attempt_count} "
+                f"operation={policy.operation} model_backend={policy.backend} "
+                f"source_format={policy.source_format} "
+                f"quality_error_stages={json_for_log(quality_error_stages)} "
+                f"repair_attempt={quality_repair_attempt_count} "
                 f"max_repair_attempts={settings.validation_failure_max_repair_attempts} "
                 f"quality_error_count={len(quality_errors)}"
             )
@@ -783,8 +811,8 @@ class WidgetGenerationService:
                 repair=repair_source_dsl,
             )
         except A2UIModelGenerationError as exc:
-            validation_retry_count = validation_repair_attempt_count
-            total_retry_count = model_failure_retry_count + validation_retry_count
+            quality_repair_count = quality_repair_attempt_count
+            total_retry_count = model_failure_retry_count + quality_repair_count
             latency_by_stage["modelAndValidation"] = self._elapsed_ms(stage_started_at)
             latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
             effective_capabilities = {
@@ -799,7 +827,7 @@ class WidgetGenerationService:
                 f"{_MODULE} a2ui_generation_failed phase={model_call_phase} "
                 f"error_code={ErrorCode.A2UI_GENERATION_FAILED.value} "
                 f"model_failure_retry_count={model_failure_retry_count} "
-                f"validation_retry_count={validation_retry_count} "
+                f"quality_repair_count={quality_repair_count} "
                 f"exception_type={type(exc).__name__} validation_continued=false "
                 "artifact_saved=false"
             )
@@ -841,13 +869,13 @@ class WidgetGenerationService:
             f"model_failure_retry_count={model_failure_retry_count} "
             "model_failure_retry_enabled="
             f"{json_for_log(settings.enable_model_failure_retry)} "
-            f"validation_retry_count={retry_result.retryCount} "
+            f"quality_repair_count={retry_result.retryCount} "
             "validation_failure_retry_enabled="
             f"{json_for_log(retry_on_validation_failure)} "
-            f"initial_validation_error_count={len(retry_result.initialErrors)} "
+            f"initial_quality_error_count={len(retry_result.initialErrors)} "
             f"repair_attempted={json_for_log(retry_result.repairAttempted)} "
             f"repair_prompt_type={repair_prompt_type} "
-            f"validation_error_count={len(errors)}"
+            f"quality_error_count={len(errors)}"
         )
         conversion_failed = not genui.strip()
         validation_failed_blocking = policy.validation_failure_blocking and bool(errors)
@@ -892,14 +920,9 @@ class WidgetGenerationService:
         stage_started_at = time.perf_counter()
 
         # 工具3沿用非阻断校验；工具4、5仅在转换和严格校验策略通过后组装 artifact。
-        design_compact_dsl = None
-        source_dsl_processors = {
-            DslProcessorKind.DESIGN_COMPACT,
-            DslProcessorKind.TERSE_NESTED2,
-        }
-        stores_source_dsl = policy.processor_kind in source_dsl_processors
-        if stores_source_dsl:
-            design_compact_dsl = model_client.extract_genui_payload(source_dsl)
+        design_token = None
+        if policy.stores_design_token:
+            design_token = model_client.extract_genui_payload(source_dsl)
         artifact = self._build_artifact(
             genui,
             card_spec.model_dump(mode="json", exclude_none=True),
@@ -924,9 +947,7 @@ class WidgetGenerationService:
             f"effective_capabilities={json_for_log(artifact.effectiveCapabilities)} "
             f"removed_count={len(artifact.removedCapabilities)}"
         )
-        artifact_save_result = ArtifactStore(
-            design_compact_dsl=design_compact_dsl
-        ).save(artifact)
+        artifact_save_result = ArtifactStore(design_token=design_token).save(artifact)
         if inspect.isawaitable(artifact_save_result):
             artifact_save_result = await artifact_save_result
         latency_by_stage["artifactStore"] = self._elapsed_ms(stage_started_at)
@@ -1079,6 +1100,7 @@ class WidgetGenerationService:
             model_format="compact-dsl",
             design_profile_id=selection.design_profile_id,
             validation_failure_blocking=True,
+            stores_design_token=True,
         )
         return await self._generate_widget_card_with_policy(request, policy)
 
@@ -1109,9 +1131,9 @@ class WidgetGenerationService:
             model_profile_id=TERSE_DSL_NESTED2_PROFILE_ID,
             model_format=TERSE_DSL_NESTED2_PROFILE_ID,
             design_profile_id=TERSE_DSL_NESTED2_PROFILE_ID,
-            supports_edit=False,
-            supports_dynamic_capabilities=True,
+            supports_dynamic_capabilities=False,
             validation_failure_blocking=True,
+            stores_design_token=True,
         )
         return await self._generate_widget_card_with_policy(request, policy)
 
@@ -1131,6 +1153,44 @@ class WidgetGenerationService:
             profiled_request,
             policy=policy,
         )
+
+    @staticmethod
+    def _require_source_design_token(
+        source: SourceArtifactLoadResult,
+    ) -> str:
+        """源格式编辑必须取得上一轮模型原始输出，禁止使用标准 genui 兜底。"""
+        design_token = source.design_token
+        if not isinstance(design_token, str) or not design_token.strip():
+            raise SourceArtifactError(
+                ErrorCode.SOURCE_ARTIFACT_INVALID,
+                "source artifact is missing a non-empty designcompactdsl block",
+            )
+        return design_token
+
+    @staticmethod
+    async def _validate_source_design_token(
+        design_token: str,
+        source: SourceArtifactLoadResult | None,
+        policy: GenerationRoutePolicy,
+        conversion_protocol_profile: dict,
+    ) -> bool:
+        """用目标接口对应 Processor 验证上一轮 Token，防止跨源格式编辑。"""
+        if source is None:
+            return False
+        source_card_spec = source.artifact.cardSpec
+        source_size = source_card_spec.get("suggestSize")
+        if not isinstance(source_size, str) or not source_size:
+            return False
+        context = DslProcessingContext(
+            size=source_size,
+            card_spec=source_card_spec,
+            task_spec=source.artifact.taskSpec,
+            protocol_profile=conversion_protocol_profile,
+            design_profile_id=policy.design_profile_id,
+        )
+        processor = get_dsl_processor(policy.processor_kind)
+        result = await to_thread.run_sync(processor.process, design_token, context)
+        return not result.errors
 
     @staticmethod
     def _policy_unsupported_response(

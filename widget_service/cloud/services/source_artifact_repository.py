@@ -49,11 +49,20 @@ class SourceArtifactError(Exception):
 @dataclass(frozen=True)
 class SourceArtifactLoadResult:
     artifact: WidgetArtifact
+    design_token: str | None
     artifact_digest: str
     url_hash: str
     read_latency_ms: float
     parse_latency_ms: float
     download_mode: str
+
+
+@dataclass(frozen=True)
+class ParsedSourceArtifact:
+    """保留正式 artifact 与可供源格式接口继续编辑的模型原始输出。"""
+
+    artifact: WidgetArtifact
+    design_token: str | None
 
 
 def calculate_artifact_digest(artifact: WidgetArtifact) -> str:
@@ -117,15 +126,23 @@ class SourceArtifactRepository:
 
         read_latency_ms = round((time.perf_counter() - read_started_at) * 1000, 2)
         parse_started_at = time.perf_counter()
-        artifact = self._parse(content)
+        parsed_artifact = self._parse_document(content)
+        artifact = parsed_artifact.artifact
         parse_latency_ms = round((time.perf_counter() - parse_started_at) * 1000, 2)
         if len(artifact.genui) > settings.source_genui_max_chars:
             raise SourceArtifactError(
                 ErrorCode.SOURCE_ARTIFACT_INVALID,
                 "source artifact genui exceeds size limit",
             )
+        design_token = parsed_artifact.design_token
+        if design_token is not None and len(design_token) > settings.source_genui_max_chars:
+            raise SourceArtifactError(
+                ErrorCode.SOURCE_ARTIFACT_INVALID,
+                "source artifact design token exceeds size limit",
+            )
         return SourceArtifactLoadResult(
             artifact=artifact,
+            design_token=design_token,
             artifact_digest=calculate_artifact_digest(artifact),
             url_hash=hashlib.sha256(source_url.encode("utf-8")).hexdigest(),
             read_latency_ms=read_latency_ms,
@@ -182,6 +199,11 @@ class SourceArtifactRepository:
             download_path.unlink(missing_ok=True)
 
     def _parse(self, content: str) -> WidgetArtifact:
+        """兼容只需要正式 artifact 的现有调用方。"""
+        return self._parse_document(content).artifact
+
+    def _parse_document(self, content: str) -> ParsedSourceArtifact:
+        """解析 artifact v2 及其可选的 designcompactdsl 调试代码块。"""
         blocks: dict[str, str] = {}
         for match in FENCED_BLOCK_RE.finditer(content):
             name = match.group("name").lower()
@@ -215,7 +237,7 @@ class SourceArtifactRepository:
                 "source artifact is missing required blocks",
             )
         try:
-            return WidgetArtifact(
+            artifact = WidgetArtifact(
                 schemaVersion=schema["schemaVersion"],
                 genui=blocks["genui"],
                 cardSpec=json.loads(blocks["cardspec"]),
@@ -230,3 +252,7 @@ class SourceArtifactRepository:
                 ErrorCode.SOURCE_ARTIFACT_INVALID,
                 "source artifact content is invalid",
             ) from exc
+        return ParsedSourceArtifact(
+            artifact=artifact,
+            design_token=blocks.get("designcompactdsl"),
+        )

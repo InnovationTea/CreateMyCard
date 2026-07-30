@@ -115,8 +115,9 @@ Design Compact DSL，再由服务内转换器读取该 Design profile 下的 `pr
 `cloud/data/protocol_profiles/terse-dsl-nested-2/PROMPT.md` 读取本地 Prompt。模型输出只进入
 `cloud/services/terse_dsl_nested2_converter.py` 的受限 Parser，不作为 Python 或 JavaScript 执行；
 Parser 只接受单根组件调用、字面量、白名单组件和安全对象键，再复用标准 A2UI 转换与 artifact 校验。
-首版只支持静态 create；编辑、动态数据绑定和点击事件返回
-`PROTOCOL_CAPABILITY_UNSUPPORTED`。第五接口沿用 Design Compact 后端配置；两项后端配置都可取
+该接口支持静态 create/edit；动态数据绑定和点击事件返回 `PROTOCOL_CAPABILITY_UNSUPPORTED`。edit 与
+第四接口共用 `enable_widget_edit` 和 artifact 的 `designcompactdsl` 块，但会按 TerseDSL-Nested-2
+语法验证其中的上一轮模型原始输出。第五接口沿用 Design Compact 后端配置；两项后端配置都可取
 `mep` 或 `llmclient`。
 
 第四接口的协议区间索引位于 `cloud/data/protocol_profiles/registry_ranges.json`。未命中时，只有
@@ -959,9 +960,15 @@ build(
 
 用途：构造 A2UI 模型输入。首次生成从 `system_prompt_file` 读取系统提示词；编辑模式从 `edit_system_prompt_file` 读取提示词，通过 `{{CREATE_SYSTEM_PROMPT}}` 组合通用生成规则，并额外把本轮指令、新 TaskSpec 和来源 genui 作为结构化用户数据传入，不传来源 URL。
 
+第四、第五接口不使用上述标准 A2UI edit system prompt。两者保持对应 Profile 的 `PROMPT.md` 原文作为
+第一条 system 消息，并在第二条 user 消息中传入 `userQuery`、完整 TaskSpec 和
+`previousDesignToken:{format,content}`。`content` 来自来源 artifact 的 `designcompactdsl` 原文，禁止以
+标准 `genui` 兜底。
+
 `build_repair()` 在首次调用实际使用的 system prompt 后追加 `repair_system_prompt_file`，并把首次 user
-内容、完整非法 DSL 和全部 error 级错误编码成标准 JSON user 消息。Design Compact repair 携带转换前的
-Design DSL 和转换后标准 A2UI 的校验错误，模型返回修复后的 Design DSL，再次转换后重新校验。
+内容、当前最新源 DSL、`dslFormat` 和结构化 `qualityErrors` 编码成标准 JSON user 消息。每项错误包含
+`stage`、`code`、`message`；编辑模式的首次 user 内容保留上一轮 `previousDesignToken`。模型返回修复后的
+同格式源 DSL，再次执行对应 Processor 和标准 A2UI Validator。
 
 修复模型调用会对完整 prompt 日志做脱敏，只记录修复类型和错误数量。
 

@@ -19,8 +19,9 @@ file_obs = UploadFileOSMS()
 
 
 class ArtifactStore:
-    def __init__(self, design_compact_dsl: str | None = None) -> None:
-        self.design_compact_dsl = design_compact_dsl
+    def __init__(self, design_token: str | None = None) -> None:
+        """接收第四、第五接口最终模型源输出，两个接口沿用同一 artifact 块名。"""
+        self.design_token = design_token
 
     async def save(self, artifact: WidgetArtifact) -> ArtifactSaveResult:
         """保存 artifact 并返回访问地址和摘要。
@@ -68,10 +69,8 @@ class ArtifactStore:
             for name, value in json_blocks.items()
             if name != "cardspec"
         )
-        if self.design_compact_dsl is not None:
-            blocks.append(
-                f"```designcompactdsl\n{self.design_compact_dsl}\n```"
-            )
+        if self.design_token is not None:
+            blocks.append(f"```designcompactdsl\n{self.design_token}\n```")
         file_content = "\n".join(blocks) + "\n"
 
         # UUID 同时进入 meta 和对象名，避免毫秒时间戳在并发生成时发生覆盖。

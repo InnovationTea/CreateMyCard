@@ -39,7 +39,7 @@ REPORT_TIMESTAMPS = {
 if str(CLOUD_ROOT) not in sys.path:
     sys.path.insert(0, str(CLOUD_ROOT))
 
-app = importlib.import_module("main").app
+app = importlib.import_module("start_websocket_server").app
 A2UIModelClient = importlib.import_module("custom.a2ui_model_client").A2UIModelClient
 DeviceContext = importlib.import_module("models.generation").DeviceContext
 IDSClient = importlib.import_module("services.ids_client").IDSClient
@@ -727,7 +727,7 @@ def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
 
     def capture_artifact(_store, artifact):
         saved_artifacts.append(artifact.model_dump(mode="json", exclude_none=True))
-        saved_design_compact_dsls.append(_store.design_compact_dsl)
+        saved_design_compact_dsls.append(_store.design_token)
         return ArtifactSaveResult(
             artifactUrl=f"https://test.invalid/widget/artifact-{len(saved_artifacts)}.json",
             artifactDigest=f"sha256:test-{len(saved_artifacts)}",

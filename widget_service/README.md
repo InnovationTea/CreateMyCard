@@ -19,7 +19,8 @@ The service follows `docs/AGENTS.md`:
   select or override either backend.
 - `generateWidgetCardTerseDslNested2` uses the local `tersedsl-nested-2/0.1` Prompt and a restricted
   literal-only parser. It never executes model output and deterministically converts the nested component tree to
-  standard A2UI. The first version supports static create requests only.
+  standard A2UI. It supports static create/edit requests and shares the edit switch with the other generation
+  routes; dynamic data bindings and events remain unsupported.
 - `WIDGET_SERVICE_ENABLE_IDS_MOCK=true` by default. In this mode the service reads only `WIDGET_SERVICE_MOCK_IDS_RESPONSE_PATH`, whose default path is the service-internal `cloud/data/mock/ids_res.json`; a missing or invalid mock produces an empty IDS result and never falls back to remote IDS. When set to `false`, the service ignores the mock and queries only the real remote IDS; remote failure produces an empty result and never falls back to mock.
 - `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY=false` by default. It controls targeted repair for both source
   DSL conversion errors and Validator errors. `WIDGET_SERVICE_VALIDATION_FAILURE_MAX_REPAIR_ATTEMPTS=1` limits
@@ -43,8 +44,10 @@ The service follows `docs/AGENTS.md`:
   candidate continues through the strict Design converter and validation flow. Empty output and non-Design requests
   remain model failures.
 - Standard create, edit, and repair prompts are loaded from `WIDGET_SERVICE_SYSTEM_PROMPT_FILE`,
-  `WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE`, and `WIDGET_SERVICE_REPAIR_SYSTEM_PROMPT_FILE`. The Design route uses
-  its selected profile's `PROMPT.md` for create/edit and appends the same repair constraints when repair is enabled.
+  `WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE`, and `WIDGET_SERVICE_REPAIR_SYSTEM_PROMPT_FILE`. The Design and Terse
+  routes keep their selected profile's `PROMPT.md` as the system message. Their edit user message contains the
+  current query, TaskSpec, and the previous raw model output read from the artifact `designcompactdsl` block.
+  Repair appends the same repair constraints when enabled.
 - `WIDGET_SERVICE_ENABLE_ARTIFACT_DOWNLOAD_MOCK=true` by default. Multi-round source artifacts are read only from `cloud/workspace/mock_obs`; missing mock files do not fall back to the network. Set it to `false` to download from the validated HTTPS artifact URL.
 - The WebSocket router logs each received request object as compact standard JSON before protocol normalization. Structured values embedded in other log messages use the same double-quoted JSON format. Sensitive `uid`/`userId`/`callingUid` and `odid` are recursively omitted; `sourceArtifactUrl` is retained in the raw request log.
 - The server logs process-wide WebSocket `active_connections`, cumulative `total_connections`, and `running_tasks` every 10 seconds.

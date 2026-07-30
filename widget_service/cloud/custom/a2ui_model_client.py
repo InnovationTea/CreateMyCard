@@ -256,6 +256,9 @@ class A2UIModelClient:
             )
             return "2x2"
         size = payload.get("size") if isinstance(payload, dict) else None
+        task_spec = payload.get("taskSpec") if isinstance(payload, dict) else None
+        if size is None and isinstance(task_spec, dict):
+            size = task_spec.get("size")
         return size if size in {"2x2", "2x4"} else "2x2"
 
     def extract_genui_payload(self, text):

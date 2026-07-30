@@ -215,13 +215,13 @@ class ResponsePlan(BaseModel):
 
 
 class RetryResult(BaseModel):
-    """重试控制结果。
+    """质量失败修复控制结果。
 
     入参：
     - result：最终操作结果。
     - retryCount：实际重试次数。
-    - errors：最终校验错误列表。
-    - initialErrors：首次校验错误列表。
+    - errors：最终转换或校验错误列表。
+    - initialErrors：首次转换或校验错误列表。
     - repairAttempted：是否执行过修复请求。
     出参：结构化重试结果。
     """
