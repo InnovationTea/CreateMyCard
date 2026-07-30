@@ -4,11 +4,6 @@ import json
 
 from config.config import get_settings
 from models.generation import TaskSpec
-from services.compact_dsl_protocol import (
-    build_compact_dsl_system_prompt,
-    build_compact_generation_context,
-    is_compact_dsl,
-)
 from services.protocol_registry import (
     DESIGN_COMPACT_PROFILE_ID,
     TERSE_DSL_NESTED2_PROFILE_ID,
@@ -104,29 +99,16 @@ class PromptBuilder:
         - previous_genui：编辑模式的来源 genui；首次生成为空。
         出参：模型调用所需的 system 和 user 输入结构。
         """
-        if protocol_profile and is_compact_dsl(protocol_profile):
-            task_spec_value = task_spec.model_dump(mode="json", exclude_none=True)
-            generation_context = build_compact_generation_context(
-                task_spec_value,
-                removed_capability_summary,
+        del protocol_profile
+        system_prompt_template = SYSTEM_PROMPT
+        if previous_genui is not None:
+            system_prompt_template = EDIT_SYSTEM_PROMPT.replace(
+                "{{CREATE_SYSTEM_PROMPT}}",
+                SYSTEM_PROMPT,
             )
-            system_prompt = "\n".join(
-                [
-                    build_compact_dsl_system_prompt(protocol_profile),
-                    "Generation context JSON:",
-                    json.dumps(generation_context, ensure_ascii=False, separators=(",", ":")),
-                ]
-            )
-        else:
-            system_prompt_template = SYSTEM_PROMPT
-            if previous_genui is not None:
-                system_prompt_template = EDIT_SYSTEM_PROMPT.replace(
-                    "{{CREATE_SYSTEM_PROMPT}}",
-                    SYSTEM_PROMPT,
-                )
-            system_prompt = system_prompt_template.replace(
-                "{{TASK_SPEC_JSON}}", task_spec.model_dump_json()
-            )
+        system_prompt = system_prompt_template.replace(
+            "{{TASK_SPEC_JSON}}", task_spec.model_dump_json()
+        )
 
         user_content = task_spec.userQuery
         if previous_genui is not None:

@@ -747,30 +747,27 @@ def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
     }
 
     with client.websocket_connect("/api/v1/ws/tools/generateWidgetCard") as websocket:
-        old_request = _tool_payload(
-            {
-                **generation_content,
-                "protocolProfileId": "compact-dsl-v1",
-            },
-            "profile-old",
+        a2ui_request = _tool_payload(
+            generation_content,
+            "profile-a2ui",
         )
-        websocket.send_json(old_request)
-        old_message = _assert_success_envelope(
-            _receive_final_frame(websocket, _request_id("profile-old")),
+        websocket.send_json(a2ui_request)
+        a2ui_message = _assert_success_envelope(
+            _receive_final_frame(websocket, _request_id("profile-a2ui")),
             "generateWidgetCard",
-            _request_id("profile-old"),
+            _request_id("profile-a2ui"),
         )
 
-    assert "artifact" not in old_message["data"]
-    old_artifact = saved_artifacts[0]
-    old_rows = [json.loads(line) for line in old_artifact["genui"].splitlines()]
-    assert old_artifact["meta"]["protocolProfileId"] == "a2ui-form-rom6.0-v1"
+    assert "artifact" not in a2ui_message["data"]
+    a2ui_artifact = saved_artifacts[0]
+    a2ui_rows = [json.loads(line) for line in a2ui_artifact["genui"].splitlines()]
+    assert a2ui_artifact["meta"]["protocolProfileId"] == "a2ui-form-rom6.0-v1"
     assert saved_design_compact_dsls[0] is None
-    assert len(old_rows) == 3
-    assert [next(iter(row)) for row in old_rows] == ["version", "version", "version"]
-    assert "createSurface" in old_rows[0]
-    assert "updateComponents" in old_rows[1]
-    assert "updateDataModel" in old_rows[2]
+    assert len(a2ui_rows) == 3
+    assert [next(iter(row)) for row in a2ui_rows] == ["version", "version", "version"]
+    assert "createSurface" in a2ui_rows[0]
+    assert "updateComponents" in a2ui_rows[1]
+    assert "updateDataModel" in a2ui_rows[2]
 
     with client.websocket_connect(
         "/api/v1/ws/tools/generateWidgetCardCompactDsl"

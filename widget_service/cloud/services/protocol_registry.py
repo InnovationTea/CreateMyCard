@@ -16,7 +16,6 @@ from services.json_loader import load_json
 _MODULE = "[Protocol Registry]"
 
 A2UI_FORM_PROTOCOL_PROFILE_ID = "a2ui-form-rom6.0-v1"
-COMPACT_DSL_PROTOCOL_PROFILE_ID = "compact-dsl-v1"
 DESIGN_COMPACT_PROFILE_ID = "design-compact-dsl"
 TERSE_DSL_NESTED2_PROFILE_ID = "terse-dsl-nested-2"
 _RANGE_INDEX_FILE = "registry_ranges.json"
@@ -83,13 +82,6 @@ class A2UIProtocolRegistry:
             "component-catalog.md": component_catalog_md,
             "data-binding.md": data_binding_md,
         }
-        if self.profile_id == COMPACT_DSL_PROTOCOL_PROFILE_ID:
-            system_prompt_md = self._read_optional_markdown(
-                profile_dir,
-                "system-prompt.md",
-            )
-            if system_prompt_md:
-                documents["system-prompt.md"] = system_prompt_md
         profile = {
             "id": self.profile_id,
             "version": self._extract_quoted_value(protocol_md, "version", "v0.9"),
@@ -338,13 +330,6 @@ class A2UIProtocolRegistry:
         path = profile_dir / filename
         if not path.exists():
             raise ValueError(f"Protocol markdown not found: {path}")
-        return path.read_text(encoding="utf-8")
-
-    def _read_optional_markdown(self, profile_dir, filename: str) -> str:
-        """读取可选的协议辅助文档，不存在时返回空字符串。"""
-        path = profile_dir / filename
-        if not path.exists():
-            return ""
         return path.read_text(encoding="utf-8")
 
     def _extract_quoted_value(self, markdown: str, key: str, default: str) -> str:

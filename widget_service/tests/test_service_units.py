@@ -2133,33 +2133,7 @@ def test_prompt_builder_returns_model_messages():
     assert messages[1] == {"role": "user", "content": "天气卡片"}
 
 
-def test_compact_dsl_profile_builds_isolated_prompt():
-    """验证极简协议 profile 和 Prompt 不依赖旧 A2UI 消息结构。"""
-    profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
-    task_spec = TaskSpecBuilder().build(
-        user_query="天气卡片",
-        size="2x4",
-        effective_bindings=[],
-        effective_data_capabilities=[],
-        event_candidates=[],
-        asset_candidates=[],
-    )
-
-    messages = PromptBuilder().build(task_spec, profile)
-    system_prompt = messages[0]["content"]
-
-    assert profile["format"] == "compact-dsl"
-    assert A2UIProtocolRegistry("a2ui-form-rom6.0-v1").get_profile()["format"] == "a2ui-form"
-    a2ui_profile = A2UIProtocolRegistry("a2ui-form-rom6.0-v1").get_profile()
-    assert profile["componentWhitelist"] == a2ui_profile["componentWhitelist"]
-    assert len(profile["componentWhitelist"]) == 10
-    assert "只输出裸 NDJSON" in system_prompt
-    assert "不输出 Markdown 围栏" in system_prompt
-    assert "Grid" not in profile["componentWhitelist"]
-    assert "Generation context JSON:" in system_prompt
-
-
-@pytest.mark.parametrize("mode", ["create", "edit", "compact"])
+@pytest.mark.parametrize("mode", ["create", "edit"])
 def test_repair_prompt_inherits_initial_mode_and_contains_errors(mode):
     task_spec = TaskSpecBuilder().build(
         user_query="天气卡片",
@@ -2173,8 +2147,6 @@ def test_repair_prompt_inherits_initial_mode_and_contains_errors(mode):
     previous_genui = None
     if mode == "edit":
         previous_genui = "old-genui"
-    if mode == "compact":
-        profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
     initial_prompt = PromptBuilder().build(
         task_spec,
         profile,
@@ -2255,24 +2227,6 @@ async def test_a2ui_model_client_returns_mock_dat_without_processing():
     expected = (CLOUD_ROOT / "custom" / "mock.dat").read_text(encoding="utf-8")
 
     assert genui == expected
-
-
-@pytest.mark.asyncio
-async def test_a2ui_model_client_selects_compact_dsl_mock_by_profile():
-    """验证 mock 客户端只在极简 profile 下切换为 tuple NDJSON。"""
-    profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
-
-    genui = await A2UIModelClient(use_mock=True).generate([], profile)
-    expected = (CLOUD_ROOT / "custom" / "mock.compact-dsl.dat").read_text(
-        encoding="utf-8"
-    )
-
-    assert genui == expected
-    assert all(
-        isinstance(json_module.loads(line), list)
-        for line in genui.splitlines()
-        if line.strip()
-    )
 
 
 @pytest.mark.parametrize(
@@ -2976,18 +2930,21 @@ async def test_a2ui_model_client_processes_transport_output_by_profile(monkeypat
 
     messages = [{"role": "user", "content": "weather card"}]
     a2ui_profile = A2UIProtocolRegistry("a2ui-form-rom6.0-v1").get_profile()
-    compact_profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
+    design_profile = {
+        "id": "design-compact-dsl",
+        "format": "compact-dsl",
+    }
     client = A2UIModelClient(use_mock=False, transport=FakeTransport())
     monkeypatch.setattr(client, "convert_dsl", lambda value: f"standard:{value}")
 
     assert await client.generate(messages, a2ui_profile) == "standard:raw-dsl"
-    assert await client.generate(messages, compact_profile) == "raw-dsl"
+    assert await client.generate(messages, design_profile) == "raw-dsl"
     assert calls == [messages, messages]
 
 
 @pytest.mark.asyncio
-async def test_compact_model_client_returns_streamed_ndjson(monkeypatch):
-    """Compact 输出通过共用 /predict 传输层返回，不经过 A2UI 转换。"""
+async def test_design_compact_model_client_returns_streamed_ndjson(monkeypatch):
+    """Design Compact 输出通过共用 /predict 传输层返回，不经过 A2UI 转换。"""
     dsl = '["root","Column",{"width":"matchParent"},[]]'
     partial = json_module.dumps({"type": "partialText", "text": dsl})
     final = json_module.dumps(
@@ -3024,7 +2981,10 @@ async def test_compact_model_client_returns_streamed_ndjson(monkeypatch):
         def stream(_method, _url, **_kwargs):
             return FakeResponse()
 
-    profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
+    profile = {
+        "id": "design-compact-dsl",
+        "format": "compact-dsl",
+    }
     settings = get_settings()
     monkeypatch.setattr(settings, "model_url", "https://model.test/predict")
     monkeypatch.setattr(settings, "model_bid", "bid-1")
@@ -4356,58 +4316,3 @@ def test_card_validator_does_not_apply_legacy_color_quality_rule():
 
     assert valid_report.errors == []
     assert invalid_report.errors == []
-
-
-def test_artifact_validator_accepts_compact_dsl_ndjson():
-    """验证极简协议允许字符串属性通过 path 数据行取值。"""
-    profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
-    artifact = WidgetArtifact(
-        genui=(CLOUD_ROOT / "custom" / "mock.compact-dsl.dat").read_text(
-            encoding="utf-8"
-        ),
-        cardSpec={"suggestSize": "2x2"},
-        taskSpec={"dataModelSchema": {"data": {}}},
-        meta=ArtifactMeta(
-            protocolProfileId="compact-dsl-v1",
-            capabilityRegistryVersion=REGISTRY_VERSION_6,
-            createdAt=1,
-        ),
-    )
-
-    errors = ArtifactValidator().validate(artifact, profile)
-
-    assert errors == []
-
-
-@pytest.mark.parametrize(
-    ("data_line", "expected_error"),
-    [
-        (None, "has no data line"),
-        ('["/title",true]', "must initialize a string value"),
-    ],
-)
-def test_artifact_validator_rejects_invalid_binding_data(data_line, expected_error):
-    """验证 Text.content 绑定有数据行，且预览值类型可被文本展示。"""
-    profile = A2UIProtocolRegistry("compact-dsl-v1").get_profile()
-    lines = [
-        '["root","Stack",{"width":"matchParent","height":140,"padding":12,'
-        '"borderRadius":18,"clip":true,"backgroundColor":"#FFFFFFFF"},["title"]]',
-        '["title","Text",{"width":100,"height":20,'
-        '"content":{"path":"/title"},"fontSize":14}]',
-    ]
-    if data_line:
-        lines.append(data_line)
-    artifact = WidgetArtifact(
-        genui="\n".join(lines),
-        cardSpec={"suggestSize": "2x2"},
-        taskSpec={"dataModelSchema": {"data": {}}},
-        meta=ArtifactMeta(
-            protocolProfileId="compact-dsl-v1",
-            capabilityRegistryVersion=REGISTRY_VERSION_6,
-            createdAt=1,
-        ),
-    )
-
-    errors = ArtifactValidator().validate(artifact, profile)
-
-    assert any(expected_error in item for item in errors)
