@@ -10,6 +10,7 @@
 - [权限未通过](#权限未通过)
 - [连续编辑](#连续编辑)
 - [结果映射速查](#结果映射速查)
+- [URL 交付回归](#url-交付回归)
 
 ## 场景矩阵
 
@@ -299,3 +300,19 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 | `unsupported` 无 URL | 整体不支持话术 + 安全建议 |
 | `failed` 或工具异常无 URL | 固定其它异常话术 |
 | 任意可解析 payload 含合法真实 URL | 无论状态均输出 URL 标记 |
+
+## URL 交付回归
+
+生成工具返回后，以业务 payload 的 `artifactUrl` 作为唯一交付触发器。至少回归以下场景：
+
+| 业务 payload | 最终回复要求 |
+| --- | --- |
+| `success` + 合法 URL + 非空 `message` | `message` 后紧接且只接一个 URL 标记 |
+| `degraded` + 合法 URL | 受控部分满足话术后紧接且只接一个 URL 标记 |
+| `unsupported` / `failed` + 合法 URL | 对应受控话术后仍紧接且只接一个 URL 标记 |
+| 可解析异常 payload + 合法 URL | 其它异常话术后仍紧接且只接一个 URL 标记 |
+| `success` / `degraded` 无合法 URL | 其它异常话术，不输出标记 |
+| 只有 `streamInfo` 或普通文本含 URL | 不输出标记 |
+| edit 返回与 `sourceArtifactUrl` 相同的 URL | 按无有效新 URL 处理，不输出标记，不更新来源 |
+
+每个有 URL 的用例都必须同时断言：代码块数量为 1、语言标签为 `genWidgetResult`、块内 JSON 可解析、仅有 `result` 字段、字段值与当前业务 payload URL 完全一致、代码块后无其它内容。仅检查自然语言包含“已生成”不算通过。

@@ -52,6 +52,27 @@ invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmserv
 
 `skillName` 必须与 frontmatter `name` 完全一致。四个工具的调用顺序、字段结构、包装结果解析和 edit 继承语义只以 [`references/tool-contracts.md`](references/tool-contracts.md) 为准。
 
+## 生成结果原子交付
+
+`generateWidgetCardCompactDsl` 返回后，必须在结束本轮前连续完成以下步骤，不得只回复 `message`、先结束回复、等待用户确认或留到下一轮补发：
+
+1. 按工具契约解析当前调用的业务 payload，并只从其中读取 `artifactUrl`；`streamInfo`、普通文本、历史回复、示例和模型猜测都不是产物 URL。
+2. 在判断 `status` 和选择话术前，先锁存 `mustEmitGenWidgetResult = artifactUrl 合法真实`。edit 返回来源 URL 时按无有效新 URL 处理。
+3. `status` 只决定自然语言，不能清除或覆盖 `mustEmitGenWidgetResult`。`success`、`degraded`、`unsupported`、`failed` 或其它可解析异常 payload 只要带有效 URL，都必须下发标记。
+4. `mustEmitGenWidgetResult` 为 `true` 时，在同一条最终回复中输出且只输出一个以下代码块，将占位符替换为当前 payload 的原始 URL：
+
+````text
+```genWidgetResult
+{
+  "result": "{artifactUrl}"
+}
+```
+````
+
+5. 发送前执行硬检查：`合法 artifactUrl` 当且仅当回复中存在一个 `genWidgetResult` 代码块；块内必须是可解析 JSON，唯一字段 `result` 必须是字符串并与当前 payload 的 `artifactUrl` 完全一致。检查失败时先修正回复，不得发送半成品。
+
+自然语言可以位于代码块之前，但不得把代码块改成普通链接、行内代码、无语言标签代码块或其它字段名；不得在代码块之后追加会干扰端侧识别的内容。
+
 ## 输出与安全
 
 - 完整 `success` 可使用业务 `message`；其它状态使用 [`references/response-policy.md`](references/response-policy.md) 的受控话术。

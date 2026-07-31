@@ -8,13 +8,14 @@
 - [生成前回复](#生成前回复)
 - [权限未通过](#权限未通过)
 - [生成后回复](#生成后回复)
+- [发送前硬检查](#发送前硬检查)
 - [名称与推荐](#名称与推荐)
 
 ## 输出优先级
 
 1. 当前仍有会改变核心意图或入参的用户待确认信息：只追问最小必要问题，等待回答，不调用下一工具。
 2. 权限未通过或结果非法：立即终止，不调用 `generateWidgetCardCompactDsl`。
-3. `generateWidgetCardCompactDsl` 返回合法真实 `artifactUrl`：无论状态如何都输出 `genWidgetResult`；`degraded` 不能省略。
+3. `generateWidgetCardCompactDsl` 返回后先锁存合法真实 `artifactUrl`；有 URL 时无论状态如何都输出 `genWidgetResult`，`degraded` 不能省略。
 4. 没有 URL：绝不输出或伪造 `genWidgetResult`。
 
 edit 只有新 URL 合法且不同于来源时才更新默认来源。
@@ -85,7 +86,13 @@ edit 只有新 URL 合法且不同于来源时才更新默认来源。
 
 ## 生成后回复
 
-先判断 URL，再选择自然语言。只有完整 `success` 可以使用业务 `message`；其它状态不透传、不润色 `message`。
+按以下固定顺序处理，不得交换第 1、2 步：
+
+1. 只从当前生成调用的可解析业务 payload 读取并锁存合法真实 `artifactUrl`；不把 `streamInfo`、工具外层字段、历史结果或普通文本当作 URL。
+2. 得到 `mustEmitGenWidgetResult`，其值只由第 1 步决定，后续状态判断不得修改。
+3. 根据状态选择自然语言。只有完整 `success` 可以使用业务 `message`；其它状态不透传、不润色 `message`。
+4. `mustEmitGenWidgetResult` 为 `true` 时，在同一条回复中紧接自然语言输出一个 `genWidgetResult` 代码块；为 `false` 时不输出。
+5. 通过发送前硬检查后才能结束本轮。
 
 ### 完整 success
 
@@ -167,6 +174,23 @@ edit 只有新 URL 合法且不同于来源时才更新默认来源。
 ```
 
 适用于 `failed`、必要工具异常、payload 异常，或 `success/degraded` 缺少合法 URL。没有 URL 时不输出标记，不追加能力建议、失败原因或 edit 专属说明；若可解析 payload 已含合法真实 URL，仍追加标记。
+
+## 发送前硬检查
+
+在提交最终回复前逐项检查：
+
+- 当前生成业务 payload 有合法真实 `artifactUrl` 时，回复中必须恰好有一个语言标签严格为 `genWidgetResult` 的代码块；没有 URL 时必须为零个。
+- 代码块内容必须是合法 JSON 对象，只含一个 `result` 字段；`result` 必须是字符串，并与当前 payload 的 `artifactUrl` 逐字符相同。
+- 标记必须与本次生成后的自然语言位于同一条最终回复中；不得仅输出成功说明、普通 Markdown 链接或把标记留到下一轮。
+- `status`、自然语言模板、已发送的部分满足预告和 edit/create 模式都不得抑制合法 URL。
+- 代码块之后不追加其它内容。任一项不满足时，先重写回复再发送。
+
+可将发送条件视为以下不变量：
+
+```text
+hasValidArtifactUrl == hasExactlyOneValidGenWidgetResultBlock
+genWidgetResult.result == artifactUrl
+```
 
 ## 名称与推荐
 
