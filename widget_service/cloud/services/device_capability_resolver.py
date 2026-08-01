@@ -226,7 +226,7 @@ class DeviceCapabilityResolver:
         paths = [(item.capabilityId, item.writeResultTo or "") for item in bindings]
         for index, (capability_id, path) in enumerate(paths):
             normalized = path.rstrip("/")
-            for other_id, other_path in paths[index + 1 :]:
+            for other_id, other_path in paths[index + 1:]:
                 other_normalized = other_path.rstrip("/")
                 if (
                     normalized == other_normalized
