@@ -217,9 +217,12 @@ _COLOR_TOKENS = {
     "icon_primary": "#E5000000",
     "icon_secondary": "#99000000",
     "icon_tertiary": "#66000000",
+    "icon_fourth": "#33000000",
     "icon_emphasize": "#FF0A59F7",
     "icon_on_primary": "#FFFFFFFF",
+    "icon_on_secondary": "#99FFFFFF",
     "icon_on_tertiary": "#66FFFFFF",
+    "icon_on_fourth": "#33FFFFFF",
     "background_primary": "#FFFFFFFF",
     "background_emphasize": "#FF0A59F7",
     "comp_background_list_card": "#FFFFFFFF",
@@ -262,7 +265,7 @@ _COLOR_TOKENS = {
 _TEXT_DESIGNS: dict[str, dict[str, Any]] = {
     "display-l": {"fontSize": 56, "fontWeight": 300},
     "display-m": {"fontSize": 48, "fontWeight": 300},
-    "display-s": {"fontSize": 36, "fontWeight": 700},
+    "display-s": {"fontSize": 38, "fontWeight": 700},
     "title-l": {"fontSize": 30, "fontWeight": 700},
     "title-m": {"fontSize": 24, "fontWeight": 700},
     "title-s": {"fontSize": 20, "fontWeight": 700},
@@ -299,28 +302,33 @@ _BUTTON_DESIGNS: dict[str, dict[str, Any]] = {
         "flexShrink": 0,
     },
 }
+_IMAGE_DESIGNS: dict[str, dict[str, Any]] = {
+    "icon-lg": {
+        "width": "matchParent",
+        "height": "matchParent",
+        "aspectRatio": 1.0,
+        "borderRadius": 8,
+        "objectFit": "cover",
+        "clip": True,
+        "flexShrink": 0,
+    },
+}
 _PROGRESS_DESIGNS: dict[str, dict[str, Any]] = {
     "linear-bar": {
         "type": "linear",
         "width": "matchParent",
         "height": 8,
         "borderRadius": 4,
+        "layoutWeight": 1,
         "backgroundColor": "comp_background_secondary",
     },
-    "segmented-bar": {
-        "type": "linear",
+    "ring": {
+        "type": "ring",
         "width": "matchParent",
-        "height": 8,
-        "borderRadius": 4,
+        "height": "matchParent",
+        "strokeWidth": 6,
         "backgroundColor": "comp_background_secondary",
-    },
-    "threshold-bar": {
-        "type": "linear",
-        "width": "matchParent",
-        "height": 20,
-        "borderRadius": 10,
-        "backgroundColor": "#6B7F91",
-        "color": "#C8F000",
+        "color": "multi_color_10",
     },
 }
 _DIVIDER_DESIGNS: dict[str, dict[str, Any]] = {
@@ -336,22 +344,23 @@ _DIVIDER_DESIGNS: dict[str, dict[str, Any]] = {
     },
 }
 _CHECKBOX_DESIGNS: dict[str, dict[str, Any]] = {
-    "default": {
-        "width": 20,
-        "height": 20,
-        "borderRadius": 10,
-        "selectedColor": "comp_background_emphasize",
+    "check": {
+        "width": 16,
+        "height": 16,
+        "borderRadius": 4,
+        "selectedColor": "icon_on_fourth",
         "unSelectedColor": "icon_tertiary",
         "mark": {
             "strokeColor": "icon_on_primary",
-            "size": 20,
+            "size": 16,
             "strokeWidth": 2,
         },
-        "shape": "circle",
+        "shape": "rounded_square",
     },
 }
 _COMPONENT_DESIGNS = {
     "Text": _TEXT_DESIGNS,
+    "Image": _IMAGE_DESIGNS,
     "Button": _BUTTON_DESIGNS,
     "Progress": _PROGRESS_DESIGNS,
     "Divider": _DIVIDER_DESIGNS,
