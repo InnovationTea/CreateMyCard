@@ -2460,6 +2460,43 @@ def test_a2ui_model_client_converts_design_dsl_to_standard_dsl(monkeypatch):
     assert '\\"createSurface\\"' in conversion_logs[0]
 
 
+def test_design_converter_expands_latest_design_tokens():
+    design_dsl = "\n".join(
+        (
+            '["root","Column",{"width":160,"height":160,"padding":8,'
+            '"itemMargin":4},["hero","title","progress","check"]]',
+            '["hero","Image",{"src":"resources/base/media/sun_max.svg",'
+            '"design":"icon-lg","fillColor":"icon_fourth"}]',
+            '["title","Text",{"content":"电量","design":"display-s",'
+            '"fontColor":"font_primary"}]',
+            '["progress","Progress",{"value":68,"total":100,'
+            '"design":"ring"}]',
+            '["check","Checkbox",{"label":"省电","select":true,'
+            '"design":"check"}]',
+        )
+    )
+
+    result = A2UIModelClient(use_mock=True).convert_design_dsl_to_standard_dsl(
+        design_dsl,
+        size="2x2",
+        design_profile_id="design-compact-dsl",
+    )
+    components = json_module.loads(result.splitlines()[1])
+    component_by_id = {
+        component["id"]: component
+        for component in components["updateComponents"]["components"]
+    }
+
+    assert component_by_id["hero"]["styles"]["width"] == "matchParent"
+    assert component_by_id["hero"]["styles"]["fillColor"] == "#33000000"
+    assert component_by_id["title"]["styles"]["fontSize"] == 38
+    assert component_by_id["progress"]["styles"]["type"] == "ring"
+    assert component_by_id["progress"]["styles"]["strokeWidth"] == 6
+    assert component_by_id["progress"]["styles"]["color"] == "#FFF9A01E"
+    assert component_by_id["check"]["styles"]["shape"] == "rounded_square"
+    assert component_by_id["check"]["styles"]["selectedColor"] == "#33FFFFFF"
+
+
 def test_design_converter_reads_protocol_file_from_selected_design_profile(monkeypatch):
     design_dsl = (CLOUD_ROOT / "custom" / "mock.design-compact-dsl-2x4.dat").read_text(
         encoding="utf-8"
