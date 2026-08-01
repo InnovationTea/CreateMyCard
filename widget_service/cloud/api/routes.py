@@ -31,6 +31,10 @@ from models.service import (
     WidgetWebSocketResultMessage,
 )
 from services.capability_registry import CapabilityRegistry
+from services.widget_directive import (
+    WidgetDirectiveState,
+    build_widget_directive_response,
+)
 from services.widget_generation_service import WidgetGenerationService
 
 _MODULE = "[WS Router]"
@@ -236,6 +240,7 @@ def _error_details(exc: ValidationError | ValueError) -> list[dict[str, Any]] | 
 
 def _build_plugin_stream_response(
     legacy_message: WidgetWebSocketResultMessage | WidgetWebSocketErrorMessage,
+    streaming_text_id: str | None = None,
 ) -> WidgetPluginStreamResponse:
     """把旧版完整消息转换成华为流处理插件输出包络。
 
@@ -243,7 +248,7 @@ def _build_plugin_stream_response(
     - legacy_message：旧版 WebSocket 完整出参。
     出参：插件顶层始终成功；业务异常说明和完整旧消息放入 streamContent。
     """
-    streaming_text_id = legacy_message.requestId or uuid.uuid4().hex
+    resolved_streaming_text_id = streaming_text_id or legacy_message.requestId or uuid.uuid4().hex
     stream_content = str(legacy_message)
     error_explanation = _error_explanation(legacy_message.errorCode)
     if error_explanation:
@@ -255,7 +260,7 @@ def _build_plugin_stream_response(
             streamInfo=WidgetStreamInfo(
                 # 插件只消费字符串字段；保留旧消息的完整字符串表现，避免拆散旧协议字段。
                 streamContent=stream_content,
-                streamingTextId=streaming_text_id,
+                streamingTextId=resolved_streaming_text_id,
             ),
             items=[],
         ),
@@ -288,6 +293,45 @@ async def _send_websocket_json(
             f"traceback={traceback.format_exc()}"
         )
         return False
+
+
+async def _send_widget_directive_command(
+    websocket: WebSocket,
+    raw_payload: dict[str, Any],
+    operation: str,
+    request_id: str | None,
+    streaming_text_id: str,
+    state: WidgetDirectiveState,
+    artifact_url: str = "",
+) -> bool:
+    """按开关发送生成进度指令，不改变原有业务帧和异常处理。"""
+    if not get_settings().enable_widget_directive_commands:
+        return True
+    response = build_widget_directive_response(
+        raw_payload,
+        state,
+        streaming_text_id,
+        artifact_url,
+    )
+    return await _send_websocket_json(
+        websocket,
+        response.model_dump(mode="json", exclude_none=True),
+        operation,
+        request_id,
+        f"command_{state.value}",
+    )
+
+
+def _generation_result_directive(
+    result_data: dict[str, Any],
+) -> tuple[WidgetDirectiveState, str]:
+    """根据生成结果是否具有有效 artifact 地址选择结束指令。"""
+    status = result_data.get("status")
+    artifact_url = result_data.get("artifactUrl")
+    valid_artifact_url = isinstance(artifact_url, str) and bool(artifact_url.strip())
+    if status in {"success", "degraded"} and valid_artifact_url:
+        return WidgetDirectiveState.SUCCESS, artifact_url
+    return WidgetDirectiveState.FAILURE, ""
 
 
 async def _heartbeat_sender(
@@ -377,7 +421,21 @@ async def _serve_operation_websocket(
                         "details": str(exc),
                     },
                 )
-                plugin_response = _build_plugin_stream_response(error_message)
+                streaming_text_id = uuid.uuid4().hex
+                if operation in GENERATION_OPERATIONS:
+                    if not await _send_widget_directive_command(
+                        websocket,
+                        {},
+                        operation,
+                        None,
+                        streaming_text_id,
+                        WidgetDirectiveState.FAILURE,
+                    ):
+                        return
+                plugin_response = _build_plugin_stream_response(
+                    error_message,
+                    streaming_text_id,
+                )
                 if not await _send_websocket_json(
                     websocket,
                     plugin_response.model_dump(mode="json", exclude_none=True),
@@ -398,6 +456,7 @@ async def _serve_operation_websocket(
             request_id = None
             arguments: dict[str, Any] = {}
             heartbeat_task: asyncio.Task | None = None
+            streaming_text_id = uuid.uuid4().hex
             metrics.task_started()
             try:
                 if not isinstance(payload, dict):
@@ -460,7 +519,21 @@ async def _serve_operation_websocket(
                     result = await run_in_threadpool(handler, service, request)
                 else:
                     # 心跳通道断开不取消内部生成、repair 或 artifact 保存。
-                    result = await handler(service, request)
+                    async def send_model_start_command(
+                        raw_payload=payload,
+                        current_request_id=request_id,
+                        current_streaming_text_id=streaming_text_id,
+                    ) -> None:
+                        await _send_widget_directive_command(
+                            websocket,
+                            raw_payload,
+                            operation,
+                            current_request_id,
+                            current_streaming_text_id,
+                            WidgetDirectiveState.START,
+                        )
+
+                    result = await handler(service, request, send_model_start_command)
                 result_data = result.model_dump(mode="json", exclude_none=True)
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
                 logger.info(
@@ -477,7 +550,22 @@ async def _serve_operation_websocket(
                     errorCode=result_data.get("errorCode", ""),
                     error={},
                 )
-                plugin_response = _build_plugin_stream_response(result_message)
+                if operation in GENERATION_OPERATIONS:
+                    directive_state, artifact_url = _generation_result_directive(result_data)
+                    if not await _send_widget_directive_command(
+                        websocket,
+                        payload,
+                        operation,
+                        request_id,
+                        streaming_text_id,
+                        directive_state,
+                        artifact_url,
+                    ):
+                        return
+                plugin_response = _build_plugin_stream_response(
+                    result_message,
+                    streaming_text_id,
+                )
                 if not await _send_websocket_json(
                     websocket,
                     plugin_response.model_dump(mode="json", exclude_none=True),
@@ -505,7 +593,21 @@ async def _serve_operation_websocket(
                         "details": _error_details(exc),
                     },
                 )
-                plugin_response = _build_plugin_stream_response(error_message)
+                if operation in GENERATION_OPERATIONS:
+                    raw_payload = payload if isinstance(payload, dict) else {}
+                    if not await _send_widget_directive_command(
+                        websocket,
+                        raw_payload,
+                        operation,
+                        request_id,
+                        streaming_text_id,
+                        WidgetDirectiveState.FAILURE,
+                    ):
+                        return
+                plugin_response = _build_plugin_stream_response(
+                    error_message,
+                    streaming_text_id,
+                )
                 if not await _send_websocket_json(
                     websocket,
                     plugin_response.model_dump(mode="json", exclude_none=True),
@@ -529,7 +631,21 @@ async def _serve_operation_websocket(
                     errorCode="FAILED",
                     error={"message": str(exc)},
                 )
-                plugin_response = _build_plugin_stream_response(error_message)
+                if operation in GENERATION_OPERATIONS:
+                    raw_payload = payload if isinstance(payload, dict) else {}
+                    if not await _send_widget_directive_command(
+                        websocket,
+                        raw_payload,
+                        operation,
+                        request_id,
+                        streaming_text_id,
+                        WidgetDirectiveState.FAILURE,
+                    ):
+                        return
+                plugin_response = _build_plugin_stream_response(
+                    error_message,
+                    streaming_text_id,
+                )
                 if not await _send_websocket_json(
                     websocket,
                     plugin_response.model_dump(mode="json", exclude_none=True),
@@ -595,7 +711,10 @@ async def generate_widget_card_ws(websocket: WebSocket):
         websocket,
         "generateWidgetCard",
         GenerateWidgetCardRequest,
-        lambda service, request: service.generate_widget_card_a2ui_form(request),
+        lambda service, request, before_model_call: service.generate_widget_card_a2ui_form(
+            request,
+            before_model_call=before_model_call,
+        ),
         heartbeat=True,
         heartbeat_interval=6.0,
         handler_in_threadpool=False,
@@ -609,7 +728,10 @@ async def generate_widget_card_compact_dsl_ws(websocket: WebSocket):
         websocket,
         "generateWidgetCardCompactDsl",
         GenerateWidgetCardRequest,
-        lambda service, request: service.generate_widget_card_compact_dsl(request),
+        lambda service, request, before_model_call: service.generate_widget_card_compact_dsl(
+            request,
+            before_model_call=before_model_call,
+        ),
         heartbeat=True,
         heartbeat_interval=6.0,
         handler_in_threadpool=False,
@@ -623,8 +745,9 @@ async def generate_widget_card_terse_dsl_nested2_ws(websocket: WebSocket):
         websocket,
         "generateWidgetCardTerseDslNested2",
         GenerateWidgetCardRequest,
-        lambda service, request: service.generate_widget_card_terse_dsl_nested2(
-            request
+        lambda service, request, before_model_call: service.generate_widget_card_terse_dsl_nested2(
+            request,
+            before_model_call=before_model_call,
         ),
         heartbeat=True,
         heartbeat_interval=6.0,

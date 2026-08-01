@@ -252,6 +252,7 @@ class WidgetGenerationService:
         request: GenerateWidgetCardRequest,
         *,
         policy: GenerationRoutePolicy,
+        before_model_call: Callable[[], Awaitable[None]] | None = None,
     ) -> GenerateWidgetCardResponse:
         """生成卡片。
 
@@ -651,6 +652,8 @@ class WidgetGenerationService:
         latest_processing_result = DslProcessingResult(source_dsl="")
 
         async def generate_source_dsl() -> str:
+            if before_model_call is not None:
+                await before_model_call()
             logger.info(
                 f"{_MODULE} model_source_generation_started operation={policy.operation}"
             )
@@ -1031,6 +1034,8 @@ class WidgetGenerationService:
     async def generate_widget_card_a2ui_form(
         self,
         request: GenerateWidgetCardRequest,
+        *,
+        before_model_call: Callable[[], Awaitable[None]] | None = None,
     ) -> GenerateWidgetCardResponse:
         """使用标准 A2UI Form profile 和配置选择的模型后端生成卡片。"""
         settings = get_settings()
@@ -1043,11 +1048,19 @@ class WidgetGenerationService:
             model_profile_id=A2UI_FORM_PROTOCOL_PROFILE_ID,
             model_format="a2ui-form",
         )
-        return await self._generate_widget_card_with_policy(request, policy)
+        if before_model_call is None:
+            return await self._generate_widget_card_with_policy(request, policy)
+        return await self._generate_widget_card_with_policy(
+            request,
+            policy,
+            before_model_call=before_model_call,
+        )
 
     async def generate_widget_card_compact_dsl(
         self,
         request: GenerateWidgetCardRequest,
+        *,
+        before_model_call: Callable[[], Awaitable[None]] | None = None,
     ) -> GenerateWidgetCardResponse:
         """使用配置选择的后端生成 Design Compact DSL，并转换为标准 A2UI。"""
         try:
@@ -1075,11 +1088,19 @@ class WidgetGenerationService:
             validation_failure_blocking=True,
             stores_design_token=True,
         )
-        return await self._generate_widget_card_with_policy(request, policy)
+        if before_model_call is None:
+            return await self._generate_widget_card_with_policy(request, policy)
+        return await self._generate_widget_card_with_policy(
+            request,
+            policy,
+            before_model_call=before_model_call,
+        )
 
     async def generate_widget_card_terse_dsl_nested2(
         self,
         request: GenerateWidgetCardRequest,
+        *,
+        before_model_call: Callable[[], Awaitable[None]] | None = None,
     ) -> GenerateWidgetCardResponse:
         """使用本地 TerseDSL-Nested-2 Prompt 和转换器生成标准 A2UI。"""
         try:
@@ -1108,12 +1129,20 @@ class WidgetGenerationService:
             validation_failure_blocking=True,
             stores_design_token=True,
         )
-        return await self._generate_widget_card_with_policy(request, policy)
+        if before_model_call is None:
+            return await self._generate_widget_card_with_policy(request, policy)
+        return await self._generate_widget_card_with_policy(
+            request,
+            policy,
+            before_model_call=before_model_call,
+        )
 
     async def _generate_widget_card_with_policy(
         self,
         request: GenerateWidgetCardRequest,
         policy: GenerationRoutePolicy,
+        *,
+        before_model_call: Callable[[], Awaitable[None]] | None = None,
     ) -> GenerateWidgetCardResponse:
         """复制请求并锁定路由对应的协议 profile。"""
         unsupported_response = self._policy_unsupported_response(request, policy)
@@ -1125,6 +1154,7 @@ class WidgetGenerationService:
         return await self.generate_widget_card(
             profiled_request,
             policy=policy,
+            before_model_call=before_model_call,
         )
 
     @staticmethod

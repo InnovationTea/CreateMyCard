@@ -552,6 +552,12 @@ def test_model_failure_retry_is_disabled_by_default(monkeypatch):
     assert Settings(_env_file=None).enable_model_failure_retry is False
 
 
+def test_widget_directive_commands_are_disabled_by_default(monkeypatch):
+    monkeypatch.delenv("WIDGET_SERVICE_ENABLE_WIDGET_DIRECTIVE_COMMANDS", raising=False)
+
+    assert Settings(_env_file=None).enable_widget_directive_commands is False
+
+
 def test_model_failure_retry_can_be_enabled_by_environment(monkeypatch):
     monkeypatch.setenv("WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY", "true")
 

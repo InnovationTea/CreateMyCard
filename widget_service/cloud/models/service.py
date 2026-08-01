@@ -147,15 +147,15 @@ class WidgetStreamInfo(BaseModel):
     入参：
     - streamContent：截止当前帧的全量答复文本。
     - streamingTextId：一次请求内稳定的流式文本 ID。
-    - streamType：流式帧类型，支持 start、partial 和 final。
-    - textType：文本格式，支持 markdown 和 plainText。
+    - streamType：流式帧类型，支持 start、partial、final 和 command。
+    - textType：文本格式，支持 markdown、plainText 和 command。
     出参：符合流处理插件输出参数配置的 streamInfo 对象。
     """
 
     streamContent: str
     streamingTextId: str
-    streamType: Literal["start", "partial", "final"] = "final"
-    textType: Literal["markdown", "plainText"] = "plainText"
+    streamType: Literal["start", "partial", "final", "command"] = "final"
+    textType: Literal["markdown", "plainText", "command"] = "plainText"
 
 
 class WidgetPluginReply(BaseModel):

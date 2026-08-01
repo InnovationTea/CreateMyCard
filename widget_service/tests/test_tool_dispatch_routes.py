@@ -41,6 +41,9 @@ if str(CLOUD_ROOT) not in sys.path:
 
 app = importlib.import_module("start_websocket_server").app
 A2UIModelClient = importlib.import_module("custom.a2ui_model_client").A2UIModelClient
+A2UIModelGenerationError = importlib.import_module(
+    "custom.a2ui_model_client"
+).A2UIModelGenerationError
 DeviceContext = importlib.import_module("models.generation").DeviceContext
 IDSClient = importlib.import_module("services.ids_client").IDSClient
 IDSDeviceCapabilityState = importlib.import_module(
@@ -124,6 +127,29 @@ def _receive_final_frame(websocket, expected_request_id: str) -> dict:
         assert start_received
         assert stream_info["textType"] == "plainText"
         return message
+
+
+def _receive_frames_until_final(websocket, expected_request_id: str) -> list[dict]:
+    """读取同一请求的全部非心跳帧，直到 final。"""
+    frames = []
+    while True:
+        message = websocket.receive_json()
+        stream_info = message["reply"]["streamInfo"]
+        assert stream_info["streamingTextId"] == expected_request_id
+        if stream_info["streamType"] == "partial":
+            continue
+        frames.append(message)
+        if stream_info["streamType"] == "final":
+            return frames
+
+
+def _command_content(frame: dict) -> dict:
+    """解析 command 帧中的完整指令 JSON。"""
+    stream_info = frame["reply"]["streamInfo"]
+    assert stream_info["streamType"] == "command"
+    assert stream_info["textType"] == "command"
+    assert frame["reply"]["items"] == []
+    return json.loads(stream_info["streamContent"])
 
 
 def test_websocket_send_disconnect_is_logged_and_not_raised(monkeypatch):
@@ -907,6 +933,132 @@ def test_terse_nested2_route_mock_converts_local_dsl_before_saving(monkeypatch):
     assert rows[0]["createSurface"]["width"] == 140
     assert rows[1]["updateComponents"]["root"] == "root"
     assert rows[2]["updateDataModel"]["value"]["ui"]["state"] == "ready"
+
+
+def test_generation_routes_send_start_and_success_commands(monkeypatch):
+    """验证三个生成入口在模型前和上传后发送 command 帧。"""
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_widget_directive_commands", True)
+    monkeypatch.setattr(A2UIModelClient, "generate", _valid_model_output)
+
+    def capture_artifact(_store, _artifact):
+        return ArtifactSaveResult(
+            artifactUrl="https://test.invalid/widget/directive.json",
+            artifactDigest="sha256:directive",
+        )
+
+    monkeypatch.setattr(ArtifactStore, "save", capture_artifact)
+    routes = (
+        ("generateWidgetCard", "directive-a2ui"),
+        ("generateWidgetCardCompactDsl", "directive-compact"),
+        ("generateWidgetCardTerseDslNested2", "directive-terse"),
+    )
+    content = {
+        "userQuery": "生成静态天气卡片",
+        "size": "2x4",
+        "title": "天气",
+        "description": "天气概览",
+        "candidateDataBindings": [],
+        "candidateEventCandidates": [],
+        "candidateAssetIds": [],
+    }
+    client = TestClient(app)
+
+    for operation, interaction_id in routes:
+        route = f"/api/v1/ws/tools/{operation}"
+        request_id = _request_id(interaction_id)
+        with client.websocket_connect(route) as websocket:
+            websocket.send_json(_tool_payload(content, interaction_id))
+            frames = _receive_frames_until_final(websocket, request_id)
+
+        frame_types = [item["reply"]["streamInfo"]["streamType"] for item in frames]
+        assert frame_types == ["start", "command", "command", "final"]
+        start_command = _command_content(frames[1])
+        success_command = _command_content(frames[2])
+        start_payload = start_command["directives"][0]["payload"]
+        success_payload = success_command["directives"][0]["payload"]
+        assert start_payload == {"executeParam": {"intentName": "AIWidgetStart"}}
+        assert success_payload["executeParam"] == {
+            "status": True,
+            "intentName": "AIWidgetEnd",
+            "intentParam": {
+                "genWidgetResult": "https://test.invalid/widget/directive.json"
+            },
+        }
+        assert start_command["errorCode"] == "0"
+        assert start_command["errorMsg"] == "OK"
+        assert start_command["session"]["sessionId"] == SESSION_ID
+        assert start_command["session"]["interactionId"] == interaction_id
+        assert start_command["session"]["messageName"] == "progressInfo"
+        assert start_command["session"]["messageId"] != success_command["session"]["messageId"]
+
+
+def test_generation_validation_error_sends_failure_command(monkeypatch):
+    """验证模型调用前的请求失败只发送失败结束指令。"""
+    monkeypatch.setattr(get_settings(), "enable_widget_directive_commands", True)
+    client = TestClient(app)
+    interaction_id = "directive-invalid"
+    request_id = _request_id(interaction_id)
+    request = _tool_payload(
+        {
+            "userQuery": "生成卡片",
+            "size": "invalid-size",
+            "title": "卡片",
+            "description": "非法尺寸",
+        },
+        interaction_id,
+    )
+
+    with client.websocket_connect("/api/v1/ws/tools/generateWidgetCard") as websocket:
+        websocket.send_json(request)
+        frames = _receive_frames_until_final(websocket, request_id)
+
+    frame_types = [item["reply"]["streamInfo"]["streamType"] for item in frames]
+    assert frame_types == ["command", "final"]
+    failure_command = _command_content(frames[0])
+    assert failure_command["directives"][0]["payload"] == {
+        "executeParam": {"status": False, "intentName": "AIWidgetEnd"}
+    }
+
+
+def test_generation_model_error_sends_start_and_failure_commands(monkeypatch):
+    """验证模型调用失败时已发送开始指令，并以失败结束指令收口。"""
+    monkeypatch.setattr(get_settings(), "enable_widget_directive_commands", True)
+
+    def fail_model_call(_self, _prompt, _protocol_profile):
+        raise A2UIModelGenerationError("model unavailable")
+
+    monkeypatch.setattr(A2UIModelClient, "generate", fail_model_call)
+    client = TestClient(app)
+    interaction_id = "directive-model-error"
+    request_id = _request_id(interaction_id)
+    request = _tool_payload(
+        {
+            "userQuery": "生成卡片",
+            "size": "2x4",
+            "title": "卡片",
+            "description": "模型异常",
+            "candidateDataBindings": [],
+            "candidateEventCandidates": [],
+            "candidateAssetIds": [],
+        },
+        interaction_id,
+    )
+
+    with client.websocket_connect("/api/v1/ws/tools/generateWidgetCard") as websocket:
+        websocket.send_json(request)
+        frames = _receive_frames_until_final(websocket, request_id)
+
+    frame_types = [item["reply"]["streamInfo"]["streamType"] for item in frames]
+    assert frame_types == ["start", "command", "command", "final"]
+    start_command = _command_content(frames[1])
+    failure_command = _command_content(frames[2])
+    assert start_command["directives"][0]["payload"] == {
+        "executeParam": {"intentName": "AIWidgetStart"}
+    }
+    assert failure_command["directives"][0]["payload"] == {
+        "executeParam": {"status": False, "intentName": "AIWidgetEnd"}
+    }
 
 
 def test_unknown_prd_version_falls_back_for_first_two_interfaces():

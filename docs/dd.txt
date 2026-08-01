@@ -1,0 +1,85 @@
+{
+	"directives" : [{
+			"header" : {
+				"name" : "Action",
+				"namespace" : "Common"
+			},
+			"payload" : {
+				"type": "AIWidgetStart",
+				"sadsadsa":"sadsadsa"
+			}
+		}
+	],
+	"errorCode" : "0",
+	"errorMsg" : "OK",
+	"isContainsDialogFinishDirective" : false,
+	"isDialogFinished" : false,
+	"isFinal" : false,
+	"isFinished" : false,
+	"isIgnoreDialogState" : false,
+	"session" : {
+		"clientVersion" : "11.7.7.205",
+		"deviceId" : "***_36",
+		"deviceModel" : "***_8",
+		"deviceType" : "phone",
+		"dialogId" : 0,
+		"dialogPageId" : "",
+		"interactionId" : 6,
+		"ipAddress" : "***_28",
+		"messageId" : "f88de65a-375b-4f6b-89e6-20136a14680e",
+		"messageName" : "progressInfo",
+		"packageName" : "com.huawei.hmos.vassistant",
+		"phoneType" : "phone",
+		"prdVer" : "11.7.7.205",
+		"sessionId" : "2324f024-fff9-4f6b-bf3b-95abbe9a66d4",
+		"uid" : "d4aa4c1c9b3f609e583dc1468ec6a599"
+	},
+	"triggerRedLine" : false
+}
+
+
+
+
+{ {
+		"name" : "Action",
+		"namespace" : "Common"
+	},
+	"payload" : {
+		"executeParam" : {
+			"intentName" : "AIWidgetStart"
+		},
+
+	}
+}
+
+
+成功
+{ {
+		"name" : "Action",
+		"namespace" : "Common"
+	},
+	"payload" : {
+		"executeParam" : {
+			"status": true
+			"intentName" : "AIWidgetEnd",
+			"intentParam" : {
+				"genWidgetResult" : "https://xxxxxxx",
+			}
+		},
+
+	}
+}
+
+失败
+{ {
+		"name" : "Action",
+		"namespace" : "Common"
+	},
+	"payload" : {
+		"executeParam" : {
+			"status": false
+			"intentName" : "AIWidgetEnd"
+		},
+
+	}
+}
