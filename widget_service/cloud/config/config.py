@@ -38,6 +38,20 @@ class Settings(BaseSettings):
     enable_a2ui_model_mock: bool = True
     a2ui_form_model_backend: Literal["mep", "llmclient"] = "mep"
     design_compact_model_backend: Literal["mep", "llmclient"] = "llmclient"
+    # llmclient 使用的 DeepSeek 兼容 WebSocket 请求参数；默认值保持原客户端行为。
+    deepseek_api_key: str = "AccessService"
+    deepseek_model: str = "deepseek-ai/DeepSeek-V4-Flash"
+    deepseek_ws_url: str = "ws://10.32.101.24:18087/llm/websocket/openai/chat/completions"
+    deepseek_user: str = "genui_user"
+    deepseek_request_id: str = "genui_ui"
+    deepseek_temperature: float = Field(default=0.7, ge=0.0, le=2.0)
+    deepseek_top_p: float = Field(default=0.9, ge=0.0, le=1.0)
+    deepseek_top_k: int = Field(default=1, ge=1)
+    deepseek_max_tokens: int = Field(default=128_000, ge=1)
+    deepseek_enable_thinking: bool = False
+    deepseek_include_usage: bool = True
+    deepseek_debug_usage: bool = True
+    deepseek_recv_timeout: int = Field(default=120, ge=1)
     system_prompt_file: str = "docs/system_prompt.txt"
     edit_system_prompt_file: str = "docs/edit_system_prompt.txt"
     repair_system_prompt_file: str = "docs/repair_system_prompt.txt"

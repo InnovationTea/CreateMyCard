@@ -74,6 +74,7 @@ from custom.a2ui_model_client import (
     _build_design_test_task_spec,
     require_generated_dsl,
 )
+from custom.llmclient import LLMClientOptions
 from custom.llmclient_model_transport import LlmClientModelTransport
 from custom.mep_model_transport import MepModelTransport, PredictEventDecoder
 from custom.model_transport import ModelTransportError, create_model_transport
@@ -372,6 +373,45 @@ def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
         return configured_tokens, limiter_tokens
 
     assert asyncio.run(configure_and_read_tokens()) == (80, 80)
+
+
+def test_llmclient_settings_are_complete_and_keep_previous_defaults():
+    settings = Settings(_env_file=None)
+    options = LLMClientOptions()
+
+    assert settings.deepseek_api_key == "AccessService"
+    assert settings.deepseek_model == "deepseek-ai/DeepSeek-V4-Flash"
+    assert settings.deepseek_ws_url.endswith("/llm/websocket/openai/chat/completions")
+    assert settings.deepseek_user == "genui_user"
+    assert settings.deepseek_request_id == "genui_ui"
+    assert settings.deepseek_temperature == 0.7
+    assert settings.deepseek_top_p == 0.9
+    assert settings.deepseek_top_k == 1
+    assert settings.deepseek_max_tokens == 128_000
+    assert settings.deepseek_enable_thinking is False
+    assert settings.deepseek_include_usage is True
+    assert settings.deepseek_debug_usage is True
+    assert settings.deepseek_recv_timeout == 120
+    assert options.api_key == settings.deepseek_api_key
+    assert options.model == settings.deepseek_model
+    assert options.ws_url == settings.deepseek_ws_url
+
+
+@pytest.mark.parametrize(
+    ("field_name", "invalid_value"),
+    [
+        ("deepseek_temperature", -0.1),
+        ("deepseek_temperature", 2.1),
+        ("deepseek_top_p", -0.1),
+        ("deepseek_top_p", 1.1),
+        ("deepseek_top_k", 0),
+        ("deepseek_max_tokens", 0),
+        ("deepseek_recv_timeout", 0),
+    ],
+)
+def test_llmclient_numeric_settings_reject_invalid_values(field_name, invalid_value):
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, **{field_name: invalid_value})
 
 
 @pytest.mark.parametrize("attempts", [0, 11])

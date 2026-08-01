@@ -34,6 +34,9 @@ The service follows `docs/AGENTS.md`:
 - With model mock disabled, all three generation routes use the same async `A2UIModelClient.generate()` entry. MEP and
   `cloud/custom/llmclient.py` are isolated behind model transport adapters; backend selection is controlled by the
   two route-specific server settings, and tool callers cannot select either backend directly.
+- The llmclient WebSocket request is configured by the `WIDGET_SERVICE_DEEPSEEK_*` settings in `.env.example`,
+  covering credentials, endpoint, model/user/request identifiers, sampling, maximum tokens, thinking/usage flags,
+  and receive timeout. These fields have defaults matching the client behavior before configuration extraction.
 - All real model calls share one application-lifetime runtime and one process-level concurrency limit. MEP uses a
   shared async `httpx.AsyncClient`; the unchanged synchronous llmclient runs in a dedicated executor. Configure the
   shared limit with `WIDGET_SERVICE_MODEL_MAX_CONCURRENCY`, queue timeout with
