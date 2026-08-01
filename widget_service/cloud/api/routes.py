@@ -369,7 +369,8 @@ async def _heartbeat_sender(
             await asyncio.sleep(interval)
             await websocket.send_text(partial_json)
     except asyncio.CancelledError:
-        raise
+        logger.error(f"{_MODULE} widget_operation_ws_heartbeat_cancelled")
+        pass
     except Exception:
         logger.error(f"{_MODULE} widget_operation_ws_heartbeat_failed", exc_info=True)
 
