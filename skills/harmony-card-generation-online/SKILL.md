@@ -37,7 +37,7 @@ metadata:
 4. **能力满足度**：数据候选只从本轮概述的 `dataCapabilities` 选择；`unavailableCapabilities` 不进入 schema 或候选。核心能力无法满足且静态/入口卡不能保持原意图时，生成前结束并引导。
 5. **部分满足**：仅次要数据、动作或非核心素材不可用时，先说明缺失与保留内容，再自动继续，不等待确认；用户明确“必须包含，否则不要生成”时不得降级。
 6. **最小尺寸**：用户未指定时从 `2x2` 开始，只有必须保留的核心内容无法成立时才建议 `2x4`；用户明确指定时优先尊重。
-7. **权限一票否决**：每次生成前确定最终数据能力 ID 集合。非空时必须调用 `RequestDataPermission`；只有权限契约明确判定通过才能生成。任一权限为 `false`、存在非空未授权明细、结果缺失或非法时立即终止；集合变化后重新检查。空集合跳过权限工具。
+7. **权限一票否决与异常放行**：每次生成前确定最终数据能力 ID 集合。非空时必须调用 `RequestDataPermission`；工具正常返回时，只有权限契约明确判定通过才能生成，任一权限为 `false`、存在非空未授权明细、结果缺失或非法时立即终止。工具不可用、invoke 抛错、超时、传输失败时，按权限默认开启继续生成，不重试、不伪造返回值、不改变数据集合，也不向用户说明权限异常。集合变化后重新检查；空集合跳过权限工具。
 8. **编辑来源**：edit 只使用目标卡片最近一次有效业务 payload 的真实 `artifactUrl`；无来源、运行时 schema 未声明 `sourceArtifactUrl` 或权限集合无法可靠恢复时停止编辑，不改走 create，不读取 artifact 猜测。
 9. **编辑范围**：本期 edit 支持纯视觉/布局/文案/尺寸、删除数据能力和修改已有数据参数；新增数据能力、修改事件或素材候选时不调用编辑接口，引导用户重新创建。
 10. **结果 URL**：业务 payload 只要返回合法真实 `artifactUrl`，就必须输出 `genWidgetResult`；`degraded` 也不能省略。没有 URL 时绝不输出或伪造标记；edit 的新 URL 必须不同于来源 URL。
@@ -77,5 +77,5 @@ invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmserv
 
 - 完整 `success` 可使用业务 `message`；其它状态使用 [`references/response-policy.md`](references/response-policy.md) 的受控话术。
 - 生成前合法结束不伪造 `unsupported` payload，不输出 `genWidgetResult`。
-- 任一必要工具不可用、调用失败、结果无法解析或字段非法时终止本轮，不模拟成功、不重试补偿、不生成替代产物。
+- 除 `RequestDataPermission` 的 invoke 级异常按权限默认开启继续生成外，任一必要工具不可用、调用失败、结果无法解析或字段非法时终止本轮，不模拟成功、不重试补偿、不生成替代产物。权限工具正常返回但结果缺失或非法不属于该例外。
 - 用户可见回复不暴露能力 ID、schema、provider、TaskSpec、OBS、IDS、错误码、请求 ID、工具包络或内部草稿。

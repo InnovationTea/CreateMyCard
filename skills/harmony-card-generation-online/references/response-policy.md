@@ -14,9 +14,10 @@
 ## 输出优先级
 
 1. 当前仍有会改变核心意图或入参的用户待确认信息：只追问最小必要问题，等待回答，不调用下一工具。
-2. 权限未通过或结果非法：立即终止，不调用 `generateWidgetCardCompactDsl`。
-3. `generateWidgetCardCompactDsl` 返回后先锁存合法真实 `artifactUrl`；有 URL 时无论状态如何都输出 `genWidgetResult`，`degraded` 不能省略。
-4. 没有 URL：绝不输出或伪造 `genWidgetResult`。
+2. 权限工具正常返回且未通过或结果非法：立即终止，不调用 `generateWidgetCardCompactDsl`。
+3. 权限工具发生 invoke 级异常且没有正常权限结果：不输出权限异常说明，按默认开启继续调用 `generateWidgetCardCompactDsl`。
+4. `generateWidgetCardCompactDsl` 返回后先锁存合法真实 `artifactUrl`；有 URL 时无论状态如何都输出 `genWidgetResult`，`degraded` 不能省略。
+5. 没有 URL：绝不输出或伪造 `genWidgetResult`。
 
 edit 只有新 URL 合法且不同于来源时才更新默认来源。
 
@@ -80,9 +81,13 @@ edit 只有新 URL 合法且不同于来源时才更新默认来源。
 
 不得改写、增加前后缀、猜测设置路径或追加建议。
 
-### 权限结果异常
+### 权限 invoke 异常
 
-权限工具不可用、调用失败、字段缺失或类型非法时使用其它异常话术。以上权限未通过场景都不调用生成工具、不输出 `genWidgetResult`，edit 不更换来源。
+权限工具不可用、invoke 抛错、超时、传输失败，或工具层明确报告执行失败且没有正常权限结果时，不向用户输出异常话术或权限说明，按权限默认开启继续调用生成工具。不得重试权限工具、构造虚假权限结果或宣称权限已开启；最终只按生成工具结果回复。
+
+### 权限结果非法
+
+权限工具正常返回但字段缺失或类型非法时使用其它异常话术，不调用生成工具、不输出 `genWidgetResult`，edit 不更换来源。明确拒绝、有效未授权明细和正常返回结果非法都不适用 invoke 异常默认开启。
 
 ## 生成后回复
 

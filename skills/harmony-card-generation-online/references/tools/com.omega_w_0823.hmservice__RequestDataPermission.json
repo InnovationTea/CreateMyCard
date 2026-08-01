@@ -25,54 +25,47 @@
   },
   "outputSchema": {
     "properties": {
+      "code": {
+        "type": "Integer",
+        "description": "返回码"
+      },
       "result": {
         "type": "Object",
         "description": "返回结果",
         "required": [],
         "properties": {
-          "stateOfPermission": {
-            "type": "Boolean",
-            "description": "获取到的权限结果"
-          },
           "nonAuthStatus": {
             "type": "Array",
             "description": "需要用户手动授权的项目；非空时应停止生成并引导用户按指定路径授权",
             "required": [],
             "properties": {
-              "ArrayItem": {
-                "type": "Object",
-                "description": "未授权项目",
-                "required": [],
-                "properties": {
-                  "capabilityId": {
-                    "type": "String",
-                    "description": "数据能力 ID"
-                  },
-                  "authorized": {
-                    "type": "Boolean",
-                    "description": "是否已授权"
-                  },
-                  "authType": {
-                    "type": "String",
-                    "description": "授权类型"
-                  },
-                  "name": {
-                    "type": "String",
-                    "description": "面向用户展示的授权项名称"
-                  },
-                  "settingsPath": {
-                    "type": "String",
-                    "description": "手动授权的设置路径；不需要指定路径时为空字符串"
-                  }
-                }
+              "name": {
+                "type": "String",
+                "description": "面向用户展示的授权项名称"
+              },
+              "capabilityId": {
+                "type": "String",
+                "description": "数据能力ID"
+              },
+              "authorized": {
+                "type": "Boolean",
+                "description": "是否已授权"
+              },
+              "settingsPath": {
+                "type": "String",
+                "description": "手动授权的设置路径；不需要指定路径时为空字符串"
+              },
+              "authType": {
+                "type": "String",
+                "description": "授权类型"
               }
             }
+          },
+          "stateOfPermission": {
+            "type": "Boolean",
+            "description": "获取到的权限结果"
           }
         }
-      },
-      "code": {
-        "type": "Integer",
-        "description": "返回码"
       }
     },
     "required": [
