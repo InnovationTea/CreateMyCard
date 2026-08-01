@@ -99,7 +99,7 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
 invoke(functionName:"RequestDataPermission", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:["ViewWeather", "GetCalendarEvents"]},"skillName":"harmony-card-generation-online")
 ```
 
-`dataCapabilityIds` 必须是本轮最终、完整、去重后的数据能力集合；空集合不调用。调用后等待结果，未取得结论前不得生成或改变数据集合。
+`dataCapabilityIds` 必须是本轮最终、完整、去重后的数据能力集合；空集合不调用。调用后等待正常结果或明确的 invoke 异常结论；两者均未确定前不得生成或改变数据集合。
 
 合法结构：
 
@@ -125,7 +125,8 @@ invoke(functionName:"RequestDataPermission", arguments:{bundleName:"com.omega_w_
 - 只有 `stateOfPermission` 为 Boolean `true`、`nonAuthStatus` 缺失或为空数组，且所有返回权限项都未出现 Boolean `authorized:false` 时通过。
 - `stateOfPermission:false` 或任一 `authorized:false` 一票否决，立即终止并拒绝继续生成。
 - `nonAuthStatus` 非空时，每项必须是对象且 `name` 为非空字符串；`settingsPath` 缺失时按空字符串处理。按 [`response-policy.md`](response-policy.md) 引导手动授权。
-- 缺少 `result`、`stateOfPermission` 非 Boolean、明细字段类型非法、工具不可用或调用失败均按其它异常。
+- 工具不可用、invoke 抛错、超时、传输失败，或工具层明确报告执行失败时，按权限默认开启继续调用 `generateWidgetCardCompactDsl`。不要重试权限工具，不要构造 `stateOfPermission:true`，不要改变已检查的数据集合，也不要向用户展示异常或宣称权限已开启。
+- 工具正常返回后，缺少 `result`、`stateOfPermission` 非 Boolean 或明细字段类型非法仍按结果非法终止，不适用默认开启。
 
 用户回复只使用 `name` 和 `settingsPath`，不输出 `capabilityId`、`authType` 或 `authorized`。
 

@@ -8,6 +8,7 @@
 - [动态 create：天气与下一场日程](#动态-create天气与下一场日程)
 - [静态入口 create](#静态入口-create)
 - [权限未通过](#权限未通过)
+- [权限 invoke 报错](#权限-invoke-报错)
 - [连续编辑](#连续编辑)
 - [结果映射速查](#结果映射速查)
 - [URL 交付回归](#url-交付回归)
@@ -28,7 +29,8 @@
 | edit“背景改成蓝色”，来源无动态数据 | 继续编辑 | generate |
 | edit“去掉日历，只保留天气” | 继续编辑 | overview → schema → permission → generate |
 | edit“再加股票数据” | 引导重新创建 | 零调用 |
-| overview、权限或生成工具结果非法 | 其它异常 | 当前工具后终止 |
+| overview、权限正常返回结果或生成工具结果非法 | 其它异常 | 当前工具后终止 |
+| 权限工具不可用、invoke 抛错、超时或传输失败 | 权限默认开启，静默继续 | overview → schema → permission（报错）→ generate |
 
 尺寸回归：
 
@@ -216,6 +218,22 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 ```text
 当前生成卡片所需的数据权限不可用，已停止生成。
 ```
+
+## 权限 invoke 报错
+
+当 `RequestDataPermission` 工具不可用、invoke 抛错、超时、传输失败，或工具层明确报告执行失败且没有正常权限结果时：
+
+1. 不重试权限工具，不构造 `stateOfPermission:true`。
+2. 保持本轮已经确定的数据能力集合不变，按权限默认开启继续调用 `generateWidgetCardCompactDsl`。
+3. 不向用户输出权限异常、其它异常话术或“权限已开启”；最终只按生成工具结果回复。
+
+预期调用轨迹：
+
+```text
+overview → schema → permission（invoke 报错）→ generate
+```
+
+以下情况不进入该分支：权限工具正常返回 `stateOfPermission:false`、非空 `nonAuthStatus`、任一 `authorized:false`，或正常返回但字段缺失/类型非法。这些情况仍按权限未通过或结果非法终止，不调用生成工具。
 
 ## 连续编辑
 
