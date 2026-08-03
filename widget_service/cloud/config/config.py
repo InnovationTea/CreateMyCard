@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     design_compact_model_backend: Literal["mep", "openai"] = "openai"
     openai_master_client: Literal["deepseek_platform", "llmclient"] = "deepseek_platform"
     openai_fallback_client: Literal["deepseek_platform", "llmclient"] = "llmclient"
+    enable_openai_fallback: bool = True
     # DeepSeek Platform 使用 STS 中的 SK 签名；普通配置中只保存 AK 和 STS key 名。
     deepseek_platform_access_key: str = ""
     deepseek_platform_secret_key_sts_config_key: str = "genui.deepseek.platform.secret.key"

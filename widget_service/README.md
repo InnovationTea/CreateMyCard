@@ -35,7 +35,8 @@ The service follows `docs/AGENTS.md`:
   explicit model errors, and empty DSL output return `failed/A2UI_GENERATION_FAILED`;
   when disabled, the selected route calls only its master once and does not use fallback. When enabled, every initial
   or repair call retries its master with asynchronous exponential backoff and jitter, then switches to the configured
-  fallback after the master budget is exhausted. Configure the master and fallback additional retry counts with
+  fallback after the master budget is exhausted. Set `WIDGET_SERVICE_ENABLE_OPENAI_FALLBACK=false` to keep master
+  retries but disable fallback calls. Configure the master and fallback additional retry counts with
   `WIDGET_SERVICE_MODEL_FAILURE_MAX_RETRY_ATTEMPTS` and
   `WIDGET_SERVICE_FALLBACK_MODEL_FAILURE_MAX_RETRY_ATTEMPTS` (1-10), and tune their shared delay with the
   `WIDGET_SERVICE_MODEL_FAILURE_RETRY_INITIAL_DELAY_SECONDS`, `WIDGET_SERVICE_MODEL_FAILURE_RETRY_MAX_DELAY_SECONDS`,
@@ -46,7 +47,8 @@ The service follows `docs/AGENTS.md`:
 - With model mock disabled, all three generation routes use `A2UIModelClient.generate()` and the internal
   `UnifiedModelClient.generate()` entry. The `openai` route uses DeepSeek Platform as master and the existing
   `cloud/custom/llmclient.py` as fallback by default. Configure them with `WIDGET_SERVICE_OPENAI_MASTER_CLIENT` and
-  `WIDGET_SERVICE_OPENAI_FALLBACK_CLIENT`; tool callers cannot select a backend or physical client directly.
+  `WIDGET_SERVICE_OPENAI_FALLBACK_CLIENT`, and control fallback with `WIDGET_SERVICE_ENABLE_OPENAI_FALLBACK`; tool
+  callers cannot select a backend or physical client directly.
 - DeepSeek Platform reads its SK only from the STS key configured by
   `WIDGET_SERVICE_DEEPSEEK_PLATFORM_SECRET_KEY_STS_CONFIG_KEY`, whose default is
   `genui.deepseek.platform.secret.key`. Its remaining static request fields use the

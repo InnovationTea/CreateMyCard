@@ -95,7 +95,8 @@ class UnifiedModelClient:
             role="master",
             max_retry_attempts=master_retry_count,
         )
-        if not self.settings.enable_model_failure_retry:
+        fallback_enabled = self.settings.enable_openai_fallback
+        if not self.settings.enable_model_failure_retry or not fallback_enabled:
             return (master,)
         fallback = ProviderAttemptPlan(
             provider=self.settings.openai_fallback_client,

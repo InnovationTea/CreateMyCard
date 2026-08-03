@@ -1209,6 +1209,7 @@ WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND
 WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND
 WIDGET_SERVICE_OPENAI_MASTER_CLIENT
 WIDGET_SERVICE_OPENAI_FALLBACK_CLIENT
+WIDGET_SERVICE_ENABLE_OPENAI_FALLBACK
 WIDGET_SERVICE_DEEPSEEK_PLATFORM_ACCESS_KEY
 WIDGET_SERVICE_DEEPSEEK_PLATFORM_SECRET_KEY_STS_CONFIG_KEY
 WIDGET_SERVICE_DEEPSEEK_PLATFORM_WS_URL
@@ -1269,7 +1270,8 @@ WIDGET_SERVICE_ANYIO_THREAD_POOL_TOKENS
 
 `WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY` 默认值为 `false`。关闭时每个模型阶段只调用 master 一次，
 不重试且不切换 fallback。开启后，首次生成或 repair 模型调用边界内发生任意异常或空 DSL 时，master
-使用同一提示词进行异步指数退避重试，耗尽后立即切换 fallback。master 额外重试次数由
+使用同一提示词进行异步指数退避重试。`WIDGET_SERVICE_ENABLE_OPENAI_FALLBACK=true` 时，master 耗尽后
+立即切换 fallback；关闭该开关时直接返回 master 的最终异常。master 额外重试次数由
 `WIDGET_SERVICE_MODEL_FAILURE_MAX_RETRY_ATTEMPTS` 控制；fallback 使用独立的
 `WIDGET_SERVICE_FALLBACK_MODEL_FAILURE_MAX_RETRY_ATTEMPTS`。两者默认 `1`，合法范围 `1～10`。退避等待
 不占用工作线程或模型并发令牌，等待结束后重新参与模型并发排队。conversion/Validator error 不直接切换
@@ -1278,7 +1280,7 @@ master 开始。
 
 若 master/fallback 的额外重试次数是 `M/F`、repair 上限是 `R`，开启重试后单个模型阶段最多调用
 `(1 + M) + (1 + F)` 次，整个请求最多调用 `(1 + R) × [(1 + M) + (1 + F)]` 次。关闭重试时每个模型
-阶段只调用 master `1` 次。
+阶段只调用 master `1` 次；仅关闭 fallback 时分别降为 `1 + M` 和 `(1 + R) × (1 + M)` 次。
 
 `WIDGET_SERVICE_MODEL_PROMPT_LOG_PREVIEW_CHARS` 默认值为 `30`。首次生成日志只记录 system prompt 的前
 N 个字符、system prompt 总字符数和消息数量，不记录完整 system/user 消息；配置为 `0` 时不记录任何

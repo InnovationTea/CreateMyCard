@@ -297,6 +297,40 @@ async def test_unified_model_client_retry_disabled_never_calls_fallback():
 
 
 @pytest.mark.asyncio
+async def test_unified_model_client_fallback_disabled_retries_only_master():
+    settings = Settings(
+        _env_file=None,
+        enable_model_failure_retry=True,
+        enable_openai_fallback=False,
+        model_failure_max_retry_attempts=1,
+        model_failure_retry_jitter_ratio=0.0,
+    )
+    failure = ModelTransportError("master unavailable", code="MODEL_UNAVAILABLE")
+    runtime = _SequenceRuntime({"deepseek_platform": [failure, failure]})
+    delays: list[float] = []
+
+    async def record_sleep(delay: float) -> None:
+        delays.append(delay)
+
+    client = UnifiedModelClient(
+        settings,
+        runtime,
+        operation_name="compact",
+        sleep=record_sleep,
+    )
+
+    with pytest.raises(ModelTransportError, match="master unavailable"):
+        await client.generate("openai", [], _request_context(), phase="initial")
+
+    assert [provider for provider, _context in runtime.calls] == [
+        "deepseek_platform",
+        "deepseek_platform",
+    ]
+    assert delays == [1.0]
+    assert client.retry_count == 1
+
+
+@pytest.mark.asyncio
 async def test_unified_model_client_exhausts_master_then_uses_fallback_retries():
     settings = Settings(
         _env_file=None,
