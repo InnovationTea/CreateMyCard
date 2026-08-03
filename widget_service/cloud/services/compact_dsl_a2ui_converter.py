@@ -294,9 +294,9 @@ _BUTTON_DESIGNS: dict[str, dict[str, Any]] = {
         "flexShrink": 0,
     },
     "icon-round": {
-        "width": 36,
-        "height": 36,
-        "borderRadius": 18,
+        "width": 30,
+        "height": 30,
+        "borderRadius": 15,
         "padding": 0,
         "backgroundColor": "comp_background_tertiary",
         "flexShrink": 0,
@@ -319,7 +319,13 @@ _PROGRESS_DESIGNS: dict[str, dict[str, Any]] = {
         "width": "matchParent",
         "height": 8,
         "borderRadius": 4,
-        "layoutWeight": 1,
+        "backgroundColor": "comp_background_secondary",
+    },
+    "linear-bar-small": {
+        "type": "linear",
+        "width": "matchParent",
+        "height": 4,
+        "borderRadius": 2,
         "backgroundColor": "comp_background_secondary",
     },
     "segmented-bar": {
