@@ -24,6 +24,7 @@ from core.errors import ErrorCode, GenerationStatus
 from custom.a2ui_model_client import (
     A2UIModelClient,
     A2UIModelGenerationError,
+    build_prompt_log_summary,
 )
 from custom.model_runtime import ModelExecutionRuntime
 from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
@@ -568,8 +569,13 @@ class WidgetGenerationService:
                     source_load_result.artifact.genui if source_load_result else None
                 ),
             )
+        prompt_log_summary = build_prompt_log_summary(
+            prompt,
+            settings.model_prompt_log_preview_chars,
+        )
         logger.info(
-            f"{_MODULE} a2ui_prompt_built prompt={json_for_log(prompt)}"
+            f"{_MODULE} a2ui_prompt_built "
+            f"prompt_summary={json_for_log(prompt_log_summary)}"
         )
         latency_by_stage["specAndPrompt"] = self._elapsed_ms(stage_started_at)
         stage_started_at = time.perf_counter()

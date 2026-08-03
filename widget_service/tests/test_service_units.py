@@ -72,6 +72,7 @@ from custom.a2ui_model_client import (
     A2UIModelClient,
     A2UIModelGenerationError,
     _build_design_test_task_spec,
+    build_prompt_log_summary,
     require_generated_dsl,
 )
 from custom.llmclient import LLMClientOptions
@@ -369,6 +370,7 @@ def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
     assert Settings(_env_file=None).model_failure_retry_max_delay_seconds == 30.0
     assert Settings(_env_file=None).model_failure_retry_backoff_multiplier == 2.0
     assert Settings(_env_file=None).model_failure_retry_jitter_ratio == 0.2
+    assert Settings(_env_file=None).model_prompt_log_preview_chars == 30
     assert Settings(_env_file=None).validation_failure_max_repair_attempts == 1
     settings = get_settings()
     monkeypatch.setattr(settings, "anyio_thread_pool_tokens", 80)
@@ -445,6 +447,24 @@ def test_model_failure_retry_delay_range_rejects_inverted_values():
             model_failure_retry_initial_delay_seconds=10.0,
             model_failure_retry_max_delay_seconds=5.0,
         )
+
+
+def test_prompt_log_summary_only_keeps_configured_system_prompt_prefix():
+    system_prompt = "系统提示词" * 10
+    prompt = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": "不得出现在日志中的用户内容"},
+    ]
+
+    summary = build_prompt_log_summary(prompt, 30)
+
+    assert summary == {
+        "messageCount": 2,
+        "systemPromptChars": len(system_prompt),
+        "systemPromptPreview": system_prompt[:30],
+    }
+    assert "用户内容" not in json_module.dumps(summary, ensure_ascii=False)
+    assert build_prompt_log_summary(prompt, 0)["systemPromptPreview"] == ""
 
 
 def test_websocket_handler_sets_request_id_to_logger_context():

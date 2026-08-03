@@ -1226,6 +1226,7 @@ WIDGET_SERVICE_MODEL_BID
 WIDGET_SERVICE_MODEL_FLOW_ID
 WIDGET_SERVICE_MODEL_TEMPERATURE
 WIDGET_SERVICE_MODEL_TOP_K
+WIDGET_SERVICE_MODEL_PROMPT_LOG_PREVIEW_CHARS
 WIDGET_SERVICE_ENABLE_ARTIFACT_VALIDATION
 WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY
 WIDGET_SERVICE_MODEL_FAILURE_MAX_RETRY_ATTEMPTS
@@ -1257,6 +1258,10 @@ WIDGET_SERVICE_ANYIO_THREAD_POOL_TOKENS
 退避倍率和抖动比例分别由四个 `WIDGET_SERVICE_MODEL_FAILURE_RETRY_*` 配置控制。退避等待不占用工作线程
 或模型并发令牌，等待结束后重新参与模型并发排队。conversion/Validator error 不执行退避，而是继续由
 `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY` 立即触发携带当前源 DSL 和质量错误的定向 repair。
+
+`WIDGET_SERVICE_MODEL_PROMPT_LOG_PREVIEW_CHARS` 默认值为 `30`。首次生成日志只记录 system prompt 的前
+N 个字符、system prompt 总字符数和消息数量，不记录完整 system/user 消息；配置为 `0` 时不记录任何
+提示词正文。repair 请求继续保持完整载荷不落日志。
 
 `WIDGET_SERVICE_MODEL_MAX_CONCURRENCY` 默认 `20`，由应用生命周期唯一模型 Runtime 的共享 Semaphore
 执行。MEP、llmclient、三个生成接口、create/edit、模型失败重试和 repair 的每一次真实模型调用都要

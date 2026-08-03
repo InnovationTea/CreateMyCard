@@ -59,7 +59,9 @@ The service follows `docs/AGENTS.md`:
   `WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE`, and `WIDGET_SERVICE_REPAIR_SYSTEM_PROMPT_FILE`. The Design and Terse
   routes keep their selected profile's `PROMPT.md` as the system message. Their edit user message contains the
   current query, TaskSpec, and the previous raw model output read from the artifact `designcompactdsl` block.
-  Repair appends the same repair constraints when enabled.
+  Repair appends the same repair constraints when enabled. Prompt logs never write the full messages;
+  `WIDGET_SERVICE_MODEL_PROMPT_LOG_PREVIEW_CHARS=30` limits the logged system-prompt prefix, and `0` disables prompt
+  text while retaining message and character counts.
 - `WIDGET_SERVICE_ENABLE_ARTIFACT_DOWNLOAD_MOCK=true` by default. Multi-round source artifacts are read only from `cloud/workspace/mock_obs`; missing mock files do not fall back to the network. Set it to `false` to download from the validated HTTPS artifact URL.
 - The WebSocket router logs each received request object as compact standard JSON before protocol normalization. Structured values embedded in other log messages use the same double-quoted JSON format. Sensitive `uid`/`userId`/`callingUid` and `odid` are recursively omitted; `sourceArtifactUrl` is retained in the raw request log.
 - The server logs process-wide WebSocket `active_connections`, cumulative `total_connections`, and `running_tasks` every 10 seconds.

@@ -47,6 +47,25 @@ def require_generated_dsl(value: object) -> str:
     return value
 
 
+def build_prompt_log_summary(
+    prompt: list[dict[str, str]],
+    preview_chars: int,
+) -> dict[str, int | str]:
+    """构造不包含完整消息正文的提示词日志摘要。"""
+    system_prompt = ""
+    for message in prompt:
+        if message.get("role") != "system":
+            continue
+        content = message.get("content", "")
+        system_prompt = content if isinstance(content, str) else str(content)
+        break
+    return {
+        "messageCount": len(prompt),
+        "systemPromptChars": len(system_prompt),
+        "systemPromptPreview": system_prompt[:preview_chars],
+    }
+
+
 class A2UIModelClient:
     """A2UI 模型调用客户端。
 
@@ -111,10 +130,14 @@ class A2UIModelClient:
                 "prompt_redacted=true"
             )
         else:
+            prompt_summary = build_prompt_log_summary(
+                prompt,
+                self.settings.model_prompt_log_preview_chars,
+            )
             logger.info(
                 f"{_MODULE} generate_started use_mock={json_for_log(self.use_mock)} "
                 f"backend={self.backend} "
-                f"system_prompt={json_for_log(prompt)}"
+                f"prompt_summary={json_for_log(prompt_summary)}"
             )
 
         try:

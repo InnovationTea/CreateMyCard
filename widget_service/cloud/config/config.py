@@ -55,6 +55,7 @@ class Settings(BaseSettings):
     system_prompt_file: str = "docs/system_prompt.txt"
     edit_system_prompt_file: str = "docs/edit_system_prompt.txt"
     repair_system_prompt_file: str = "docs/repair_system_prompt.txt"
+    model_prompt_log_preview_chars: int = Field(default=30, ge=0, le=1000)
     model_appid: str = ""
     model_url: str = ""
     model_path: str = "/"
