@@ -24,7 +24,6 @@ from core.errors import ErrorCode, GenerationStatus
 from custom.a2ui_model_client import (
     A2UIModelClient,
     A2UIModelGenerationError,
-    require_generated_dsl,
 )
 from custom.model_runtime import ModelExecutionRuntime
 from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
@@ -42,6 +41,7 @@ from services.generation_pipeline import (
     QualityIssue,
     get_dsl_processor,
 )
+from services.model_failure_retry import ModelFailureRetryExecutor
 from services.prompt_builder import PromptBuilder
 from services.protocol_registry import (
     A2UI_FORM_PROTOCOL_PROFILE_ID,
@@ -585,8 +585,12 @@ class WidgetGenerationService:
         retry_controller = RetryController()
         artifact_id = str(uuid.uuid4())
         model_call_phase = "initial"
-        model_failure_retry_count = 0
         quality_repair_attempt_count = 0
+        model_retry_executor = ModelFailureRetryExecutor(
+            settings,
+            operation_name=policy.operation,
+            backend=policy.backend,
+        )
         if policy.processor_kind == DslProcessorKind.TERSE_NESTED2:
             design_mode = "edit" if source_load_result else "create"
             repair_prompt_type = f"terse-dsl-nested-2-{design_mode}"
@@ -599,45 +603,19 @@ class WidgetGenerationService:
             repair_prompt_type = "create"
 
         async def call_model_with_failure_retry(
-            model_operation: Callable[[], Awaitable[str]],
+            model_operation: Callable[[], str | Awaitable[str]],
             phase: str,
         ) -> str:
-            """执行一次模型阶段，并按独立开关对模型异常原样重试一次。
+            """执行一次模型阶段，并按独立开关对调用异常执行异步退避重试。
 
             入参：
             - model_operation：已绑定提示词和协议的模型调用。
             - phase：initial 或 repair，用于日志区分调用阶段。
-            出参：非空 DSL；两次均失败时抛出 A2UIModelGenerationError。
+            出参：非空 DSL；达到最大重试次数后抛出 A2UIModelGenerationError。
             """
-            nonlocal model_call_phase, model_failure_retry_count
+            nonlocal model_call_phase
             model_call_phase = phase
-            max_attempts = 2 if settings.enable_model_failure_retry else 1
-            for attempt in range(1, max_attempts + 1):
-                try:
-                    model_result = model_operation()
-                    if inspect.isawaitable(model_result):
-                        model_result = await model_result
-                    result = require_generated_dsl(model_result)
-                    if attempt > 1:
-                        logger.info(
-                            f"{_MODULE} a2ui_model_failure_retry_succeeded "
-                            f"phase={phase} attempt={attempt}"
-                        )
-                    return result
-                except A2UIModelGenerationError as exc:
-                    should_retry = attempt < max_attempts
-                    logger.error(
-                        f"{_MODULE} a2ui_model_call_failed phase={phase} "
-                        f"attempt={attempt} retry_enabled="
-                        f"{json_for_log(settings.enable_model_failure_retry)} "
-                        f"will_retry={json_for_log(should_retry)} "
-                        f"exception_type={type(exc).__name__}"
-                    )
-                    if not should_retry:
-                        raise
-                    # 这里只重复同一模型请求，不拼装校验 repair 提示词。
-                    model_failure_retry_count += 1
-            raise AssertionError("model retry loop exited unexpectedly")
+            return await model_retry_executor.execute(model_operation, phase)
 
         processor = get_dsl_processor(policy.processor_kind)
         processing_context = DslProcessingContext(
@@ -788,6 +766,7 @@ class WidgetGenerationService:
             )
         except A2UIModelGenerationError as exc:
             quality_repair_count = quality_repair_attempt_count
+            model_failure_retry_count = model_retry_executor.retry_count
             total_retry_count = model_failure_retry_count + quality_repair_count
             latency_by_stage["modelAndValidation"] = self._elapsed_ms(stage_started_at)
             latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
@@ -837,6 +816,7 @@ class WidgetGenerationService:
         source_dsl = retry_result.result
         genui = latest_processing_result.standard_dsl
         errors = retry_result.errors
+        model_failure_retry_count = model_retry_executor.retry_count
         total_retry_count = model_failure_retry_count + retry_result.retryCount
         latency_by_stage["modelAndValidation"] = self._elapsed_ms(stage_started_at)
 

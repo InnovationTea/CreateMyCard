@@ -1003,9 +1003,10 @@ async generate(
   `WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND`。两项均可配置 `mep` 或 `llmclient`。
 - MEP 使用应用生命周期共享的异步 HTTP 连接池；`cloud/custom/llmclient.py` 本体保持同步且不修改，
   通过模型 Runtime 的专用线程池适配。
-- 模型请求异常、流式响应显式错误或最终没有非空 DSL 时抛出模型生成异常。模型失败重试开关
-  关闭时直接返回 `failed/A2UI_GENERATION_FAILED`；开启时使用同一提示词重试一次。最终失败不调用
-  Validator、RepairController 或 ArtifactStore。
+- 模型调用边界内的请求异常、未规范化内部异常、流式响应显式错误或最终没有非空 DSL，统一按模型
+  生成失败处理，不依赖上游错误码。模型失败重试开关关闭时直接返回
+  `failed/A2UI_GENERATION_FAILED`；开启时使用同一提示词执行有限次数的异步指数退避重试。最终失败
+  不调用 Validator、RepairController 或 ArtifactStore。
 
 环境变量：
 
@@ -1227,6 +1228,11 @@ WIDGET_SERVICE_MODEL_TEMPERATURE
 WIDGET_SERVICE_MODEL_TOP_K
 WIDGET_SERVICE_ENABLE_ARTIFACT_VALIDATION
 WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY
+WIDGET_SERVICE_MODEL_FAILURE_MAX_RETRY_ATTEMPTS
+WIDGET_SERVICE_MODEL_FAILURE_RETRY_INITIAL_DELAY_SECONDS
+WIDGET_SERVICE_MODEL_FAILURE_RETRY_MAX_DELAY_SECONDS
+WIDGET_SERVICE_MODEL_FAILURE_RETRY_BACKOFF_MULTIPLIER
+WIDGET_SERVICE_MODEL_FAILURE_RETRY_JITTER_RATIO
 WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY
 WIDGET_SERVICE_VALIDATION_FAILURE_MAX_REPAIR_ATTEMPTS
 WIDGET_SERVICE_MODEL_MAX_CONCURRENCY
@@ -1245,9 +1251,12 @@ WIDGET_SERVICE_ANYIO_THREAD_POOL_TOKENS
 默认线程限制器，仅控制第一、第二接口和短时同步 IO/校验任务的并发容量。第三至第五接口直接等待
 异步生成 Service，不让完整模型链路占用该线程池。
 
-`WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY` 默认值为 `false`。开启后，首次生成或 repair
-模型调用发生请求异常、模型显式错误或空 DSL 时，使用同一提示词重试一次。它不替代
-`WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY` 的 DSL error 定向修复逻辑。
+`WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY` 默认值为 `false`。开启后，首次生成或 repair 模型调用边界内
+发生任意异常或空 DSL 时，使用同一提示词进行异步指数退避重试。额外重试次数由
+`WIDGET_SERVICE_MODEL_FAILURE_MAX_RETRY_ATTEMPTS` 控制，默认 `1`，合法范围 `1～10`；首次等待、最大等待、
+退避倍率和抖动比例分别由四个 `WIDGET_SERVICE_MODEL_FAILURE_RETRY_*` 配置控制。退避等待不占用工作线程
+或模型并发令牌，等待结束后重新参与模型并发排队。conversion/Validator error 不执行退避，而是继续由
+`WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY` 立即触发携带当前源 DSL 和质量错误的定向 repair。
 
 `WIDGET_SERVICE_MODEL_MAX_CONCURRENCY` 默认 `20`，由应用生命周期唯一模型 Runtime 的共享 Semaphore
 执行。MEP、llmclient、三个生成接口、create/edit、模型失败重试和 repair 的每一次真实模型调用都要

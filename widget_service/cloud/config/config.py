@@ -5,7 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -67,8 +67,13 @@ class Settings(BaseSettings):
     model_queue_timeout_seconds: float = Field(default=120.0, gt=0)
     model_request_timeout_seconds: float = Field(default=120.0, gt=0)
     enable_artifact_validation: bool = True
-    # 模型调用异常时用原提示词重试；与 DSL error 触发定向 repair 的开关相互独立。
+    # 模型调用异常按异步指数退避重试；与 DSL error 触发定向 repair 的开关相互独立。
     enable_model_failure_retry: bool = False
+    model_failure_max_retry_attempts: int = Field(default=1, ge=1, le=10)
+    model_failure_retry_initial_delay_seconds: float = Field(default=1.0, gt=0.0, le=300.0)
+    model_failure_retry_max_delay_seconds: float = Field(default=30.0, gt=0.0, le=600.0)
+    model_failure_retry_backoff_multiplier: float = Field(default=2.0, ge=1.0, le=10.0)
+    model_failure_retry_jitter_ratio: float = Field(default=0.2, ge=0.0, lt=1.0)
     enable_validation_failure_retry: bool = False
     validation_failure_max_repair_attempts: int = Field(default=1, ge=1, le=10)
     enable_widget_edit: bool = False
@@ -83,6 +88,16 @@ class Settings(BaseSettings):
     anyio_thread_pool_tokens: int = 80
     PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
     WORKSPACE_ROOT: Path = PROJECT_ROOT / "workspace"
+
+    @model_validator(mode="after")
+    def validate_model_failure_retry_delays(self) -> "Settings":
+        """保证退避上限不小于首次等待时间。"""
+        max_delay = self.model_failure_retry_max_delay_seconds
+        initial_delay = self.model_failure_retry_initial_delay_seconds
+        if max_delay < initial_delay:
+            raise ValueError("model failure retry max delay must not be less than initial delay")
+        return self
+
     if platform.system() == "Windows":
         LOCAL_FLAG: bool = True
         HTTP_SERVER_URL: str = "http://localhost:8080"

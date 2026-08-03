@@ -91,6 +91,7 @@ from services.generation_pipeline import (
     QualityIssue,
     get_dsl_processor,
 )
+from services.model_failure_retry import ModelFailureRetryExecutor
 from services.ids_client import IDSClient, IDSDeviceCapabilityState
 from services.prompt_builder import PromptBuilder
 from services.protocol_registry import A2UIProtocolRegistry
@@ -363,6 +364,11 @@ def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
     assert Settings(_env_file=None).model_max_concurrency == 20
     assert Settings(_env_file=None).model_queue_timeout_seconds == 120.0
     assert Settings(_env_file=None).model_request_timeout_seconds == 120.0
+    assert Settings(_env_file=None).model_failure_max_retry_attempts == 1
+    assert Settings(_env_file=None).model_failure_retry_initial_delay_seconds == 1.0
+    assert Settings(_env_file=None).model_failure_retry_max_delay_seconds == 30.0
+    assert Settings(_env_file=None).model_failure_retry_backoff_multiplier == 2.0
+    assert Settings(_env_file=None).model_failure_retry_jitter_ratio == 0.2
     assert Settings(_env_file=None).validation_failure_max_repair_attempts == 1
     settings = get_settings()
     monkeypatch.setattr(settings, "anyio_thread_pool_tokens", 80)
@@ -420,6 +426,24 @@ def test_validation_repair_attempt_count_rejects_out_of_range_values(attempts):
         Settings(
             _env_file=None,
             validation_failure_max_repair_attempts=attempts,
+        )
+
+
+@pytest.mark.parametrize("attempts", [0, 11])
+def test_model_failure_retry_attempt_count_rejects_out_of_range_values(attempts):
+    with pytest.raises(ValidationError):
+        Settings(
+            _env_file=None,
+            model_failure_max_retry_attempts=attempts,
+        )
+
+
+def test_model_failure_retry_delay_range_rejects_inverted_values():
+    with pytest.raises(ValidationError):
+        Settings(
+            _env_file=None,
+            model_failure_retry_initial_delay_seconds=10.0,
+            model_failure_retry_max_delay_seconds=5.0,
         )
 
 
@@ -602,6 +626,86 @@ def test_model_failure_retry_can_be_enabled_by_environment(monkeypatch):
     monkeypatch.setenv("WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY", "true")
 
     assert Settings(_env_file=None).enable_model_failure_retry is True
+
+
+@pytest.mark.asyncio
+async def test_model_failure_retry_uses_configured_exponential_backoff_for_raw_exceptions():
+    settings = Settings(
+        _env_file=None,
+        enable_model_failure_retry=True,
+        model_failure_max_retry_attempts=2,
+        model_failure_retry_initial_delay_seconds=1.0,
+        model_failure_retry_max_delay_seconds=30.0,
+        model_failure_retry_backoff_multiplier=2.0,
+        model_failure_retry_jitter_ratio=0.2,
+    )
+    calls = 0
+    delays: list[float] = []
+    jitter_bounds: list[tuple[float, float]] = []
+
+    def call_model() -> str:
+        nonlocal calls
+        calls += 1
+        if calls < 3:
+            raise RuntimeError("unstructured upstream failure")
+        return "generated-dsl"
+
+    async def record_sleep(delay: float) -> None:
+        delays.append(delay)
+
+    def midpoint(lower_bound: float, upper_bound: float) -> float:
+        jitter_bounds.append((lower_bound, upper_bound))
+        return (lower_bound + upper_bound) / 2
+
+    executor = ModelFailureRetryExecutor(
+        settings,
+        operation_name="generateWidgetCard",
+        backend="mep",
+        sleep=record_sleep,
+        random_uniform=midpoint,
+    )
+
+    result = await executor.execute(call_model, "initial")
+
+    assert result == "generated-dsl"
+    assert calls == 3
+    assert executor.retry_count == 2
+    assert delays == [1.0, 2.0]
+    assert jitter_bounds == pytest.approx([(0.8, 1.2), (1.6, 2.4)])
+
+
+@pytest.mark.asyncio
+async def test_model_failure_retry_switch_disables_wait_and_additional_calls():
+    settings = Settings(
+        _env_file=None,
+        enable_model_failure_retry=False,
+        model_failure_max_retry_attempts=3,
+    )
+    calls = 0
+    delays: list[float] = []
+
+    def call_model() -> str:
+        nonlocal calls
+        calls += 1
+        raise RuntimeError("unstructured upstream failure")
+
+    async def record_sleep(delay: float) -> None:
+        delays.append(delay)
+
+    executor = ModelFailureRetryExecutor(
+        settings,
+        operation_name="generateWidgetCardCompactDsl",
+        backend="llmclient",
+        sleep=record_sleep,
+    )
+
+    with pytest.raises(A2UIModelGenerationError) as error_info:
+        await executor.execute(call_model, "initial")
+
+    assert isinstance(error_info.value.__cause__, RuntimeError)
+    assert calls == 1
+    assert delays == []
+    assert executor.retry_count == 0
 
 
 def test_validation_failure_retry_can_be_enabled_by_environment(monkeypatch):
@@ -3240,6 +3344,9 @@ async def test_model_failure_retries_once_and_continues_after_success(monkeypatc
     settings = get_settings()
     model_calls: list[int] = []
 
+    async def skip_retry_delay(_delay: float) -> None:
+        return None
+
     def fail_then_generate(_client, _prompt, _profile):
         model_calls.append(len(model_calls) + 1)
         if len(model_calls) == 1:
@@ -3248,6 +3355,7 @@ async def test_model_failure_retries_once_and_continues_after_success(monkeypatc
 
     monkeypatch.setattr(settings, "enable_model_failure_retry", True)
     monkeypatch.setattr(settings, "enable_artifact_validation", False)
+    monkeypatch.setattr("services.model_failure_retry.asyncio.sleep", skip_retry_delay)
     monkeypatch.setattr(A2UIModelClient, "generate", fail_then_generate)
     monkeypatch.setattr(
         ArtifactStore,
@@ -3272,6 +3380,9 @@ async def test_model_failure_stops_after_one_retry(monkeypatch):
     settings = get_settings()
     model_calls: list[int] = []
 
+    async def skip_retry_delay(_delay: float) -> None:
+        return None
+
     def always_fail(_client, _prompt, _profile):
         model_calls.append(len(model_calls) + 1)
         raise A2UIModelGenerationError("persistent model failure")
@@ -3283,6 +3394,7 @@ async def test_model_failure_stops_after_one_retry(monkeypatch):
         pytest.fail("final model failure must not save an artifact")
 
     monkeypatch.setattr(settings, "enable_model_failure_retry", True)
+    monkeypatch.setattr("services.model_failure_retry.asyncio.sleep", skip_retry_delay)
     monkeypatch.setattr(A2UIModelClient, "generate", always_fail)
     monkeypatch.setattr(ArtifactValidator, "validate", unexpected_validate)
     monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
@@ -3300,6 +3412,9 @@ async def test_model_failure_stops_after_one_retry(monkeypatch):
 async def test_repair_model_failure_retries_same_repair_prompt_once(monkeypatch):
     settings = get_settings()
     model_prompts: list[list[dict[str, str]]] = []
+
+    async def skip_retry_delay(_delay: float) -> None:
+        return None
 
     def generate_with_temporary_repair_failure(
         _client,
@@ -3322,6 +3437,7 @@ async def test_repair_model_failure_retries_same_repair_prompt_once(monkeypatch)
     monkeypatch.setattr(settings, "enable_artifact_validation", True)
     monkeypatch.setattr(settings, "enable_model_failure_retry", True)
     monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr("services.model_failure_retry.asyncio.sleep", skip_retry_delay)
     monkeypatch.setattr(
         A2UIModelClient,
         "generate",
@@ -3394,6 +3510,9 @@ async def test_validation_repair_stops_early_after_second_configured_repair(monk
     model_calls = 0
     validation_calls: list[str] = []
 
+    async def unexpected_backoff(_delay: float) -> None:
+        pytest.fail("quality repair must not wait for model-failure backoff")
+
     def generate_next(_client, _prompt, _profile=None, **_kwargs):
         nonlocal model_calls
         model_calls += 1
@@ -3406,8 +3525,10 @@ async def test_validation_repair_stops_early_after_second_configured_repair(monk
         return [f"invalid {artifact.genui}"]
 
     monkeypatch.setattr(settings, "enable_artifact_validation", True)
+    monkeypatch.setattr(settings, "enable_model_failure_retry", True)
     monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
     monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 2)
+    monkeypatch.setattr("services.model_failure_retry.asyncio.sleep", unexpected_backoff)
     monkeypatch.setattr(A2UIModelClient, "generate", generate_next)
     monkeypatch.setattr(ArtifactValidator, "validate", validate_until_third)
     monkeypatch.setattr(

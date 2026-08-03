@@ -32,8 +32,14 @@ The service follows `docs/AGENTS.md`:
   remaining Validator errors are non-blocking only for the standard third interface.
 - `WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY=false` by default. Model transport errors,
   explicit model errors, and empty DSL output return `failed/A2UI_GENERATION_FAILED`;
-  when enabled, each failed initial or repair model call is repeated once with the same prompt.
-  Model failures never enter validation or artifact persistence.
+  when enabled, every exception raised inside an initial or repair model-call boundary retries the same prompt with
+  asynchronous exponential backoff and jitter. Configure the additional retry count with
+  `WIDGET_SERVICE_MODEL_FAILURE_MAX_RETRY_ATTEMPTS` (1-10), and tune the delay with the
+  `WIDGET_SERVICE_MODEL_FAILURE_RETRY_INITIAL_DELAY_SECONDS`, `WIDGET_SERVICE_MODEL_FAILURE_RETRY_MAX_DELAY_SECONDS`,
+  `WIDGET_SERVICE_MODEL_FAILURE_RETRY_BACKOFF_MULTIPLIER`, and
+  `WIDGET_SERVICE_MODEL_FAILURE_RETRY_JITTER_RATIO` settings. Backoff does not hold a worker thread or model permit.
+  Conversion and Validator errors still trigger immediate targeted repair through the separate validation retry switch.
+  Final model failures never enter validation or artifact persistence.
 - With model mock disabled, all three generation routes use the same async `A2UIModelClient.generate()` entry. MEP and
   `cloud/custom/llmclient.py` are isolated behind model transport adapters; backend selection is controlled by the
   two route-specific server settings, and tool callers cannot select either backend directly.

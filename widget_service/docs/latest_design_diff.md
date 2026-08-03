@@ -76,8 +76,9 @@
 ## 8. DSL 校验失败重试开关
 
 - 新增配置项 `enable_validation_failure_retry`，环境变量为 `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY`，默认关闭。
-- 关闭时 `validate_genui` 失败只记录非阻断日志，保留首次模型输出并继续 artifact 保存，不再调用模型生成第二次。
-- 开启时沿用最多重试一次的行为；重试后仍失败也不阻断 artifact 流程。
+- 关闭时 conversion 或 Validator error 不调用 repair，并按各生成接口既有的阻断策略处理。
+- 开启时立即携带当前源 DSL 和结构化质量错误执行定向 repair；最多 repair 次数由
+  `WIDGET_SERVICE_VALIDATION_FAILURE_MAX_REPAIR_ATTEMPTS` 控制，warning 不触发 repair。
 
 ## 9. 字段投影直推
 
