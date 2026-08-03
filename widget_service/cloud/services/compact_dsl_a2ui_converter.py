@@ -591,9 +591,11 @@ def convert_compact_dsl_to_a2ui(
     data_model = _build_data_model(data_rows)
     _validate_binding_paths(normalized_components, data_model)
 
+    icon_round_button_ids = _button_ids_with_design(components, "icon-round")
     converted_components = []
     for component in normalized_components:
-        converted_components.append(_convert_component(component))
+        hide_label = component.component_id in icon_round_button_ids
+        converted_components.append(_convert_component(component, hide_label=hide_label))
 
     dimensions = _surface_dimensions(size, protocol_profile)
     version = str(protocol_profile.get("version") or "v0.9")
@@ -1630,7 +1632,24 @@ def _component_to_tuple(component: ComponentRow) -> list[Any]:
     return row
 
 
-def _convert_component(component: ComponentRow) -> dict[str, Any]:
+def _button_ids_with_design(
+    components: list[ComponentRow],
+    design: str,
+) -> set[str]:
+    button_ids: set[str] = set()
+    for component in components:
+        if component.component_type != "Button":
+            continue
+        if component.props.get("design") == design:
+            button_ids.add(component.component_id)
+    return button_ids
+
+
+def _convert_component(
+    component: ComponentRow,
+    *,
+    hide_label: bool = False,
+) -> dict[str, Any]:
     converted: dict[str, Any] = {
         "id": component.component_id,
         "component": component.component_type,
@@ -1648,6 +1667,8 @@ def _convert_component(component: ComponentRow) -> dict[str, Any]:
         frozenset(),
     )
     for property_name, source_value in component.props.items():
+        if property_name == "label" and hide_label:
+            continue
         if property_name in compact_only_fields:
             continue
         value = _convert_path_bindings(source_value)
