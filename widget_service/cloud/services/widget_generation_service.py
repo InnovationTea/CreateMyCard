@@ -25,10 +25,11 @@ from custom.a2ui_model_client import (
     A2UIModelClient,
     A2UIModelGenerationError,
     build_prompt_log_summary,
+    require_generated_dsl,
 )
 from custom.model_runtime import ModelExecutionRuntime
 from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
-from models.generation import EventAction
+from models.generation import DEFAULT_WIDGET_SIZE, EventAction, ModelRequestContext
 from services.artifact_store import ArtifactStore
 from services.capability_registry import CapabilityRegistry
 from services.card_spec_builder import CardSpecBuilder
@@ -42,7 +43,6 @@ from services.generation_pipeline import (
     QualityIssue,
     get_dsl_processor,
 )
-from services.model_failure_retry import ModelFailureRetryExecutor
 from services.prompt_builder import PromptBuilder
 from services.protocol_registry import (
     A2UI_FORM_PROTOCOL_PROFILE_ID,
@@ -292,7 +292,7 @@ class WidgetGenerationService:
                 )
                 return GenerateWidgetCardResponse(
                     status=GenerationStatus.UNSUPPORTED,
-                    suggestSize=request.size or "2x4",
+                    suggestSize=request.size or DEFAULT_WIDGET_SIZE,
                     message="当前暂未开放卡片继续编辑能力。",
                     errorCode=ErrorCode.WIDGET_EDIT_DISABLED.value,
                 )
@@ -336,7 +336,7 @@ class WidgetGenerationService:
                 )
                 return GenerateWidgetCardResponse(
                     status=GenerationStatus.FAILED,
-                    suggestSize=request.size or "2x4",
+                    suggestSize=request.size or DEFAULT_WIDGET_SIZE,
                     message="上一版卡片无法安全读取，本次修改未完成，原卡片不受影响。",
                     errorCode=exc.error_code.value,
                 )
@@ -347,7 +347,7 @@ class WidgetGenerationService:
                 )
                 return GenerateWidgetCardResponse(
                     status=GenerationStatus.FAILED,
-                    suggestSize=request.size or "2x4",
+                    suggestSize=request.size or DEFAULT_WIDGET_SIZE,
                     message="上一版卡片结构不完整，本次修改未完成，原卡片不受影响。",
                     errorCode=ErrorCode.SOURCE_ARTIFACT_INVALID.value,
                 )
@@ -423,7 +423,7 @@ class WidgetGenerationService:
                 )
                 return GenerateWidgetCardResponse(
                     status=GenerationStatus.FAILED,
-                    suggestSize=request.size or "2x4",
+                    suggestSize=request.size or DEFAULT_WIDGET_SIZE,
                     message="上一版卡片的设计数据无效，本次修改未完成，原卡片不受影响。",
                     errorCode=ErrorCode.SOURCE_ARTIFACT_INVALID.value,
                 )
@@ -583,6 +583,8 @@ class WidgetGenerationService:
         model_client = A2UIModelClient(
             backend=policy.backend,
             runtime=self.model_runtime,
+            request_context=self._resolve_model_request_context(request),
+            operation_name=policy.operation,
         )
         model_protocol_profile = {
             "id": policy.model_profile_id,
@@ -592,11 +594,6 @@ class WidgetGenerationService:
         artifact_id = str(uuid.uuid4())
         model_call_phase = "initial"
         quality_repair_attempt_count = 0
-        model_retry_executor = ModelFailureRetryExecutor(
-            settings,
-            operation_name=policy.operation,
-            backend=policy.backend,
-        )
         if policy.processor_kind == DslProcessorKind.TERSE_NESTED2:
             design_mode = "edit" if source_load_result else "create"
             repair_prompt_type = f"terse-dsl-nested-2-{design_mode}"
@@ -607,21 +604,6 @@ class WidgetGenerationService:
             repair_prompt_type = "edit"
         else:
             repair_prompt_type = "create"
-
-        async def call_model_with_failure_retry(
-            model_operation: Callable[[], str | Awaitable[str]],
-            phase: str,
-        ) -> str:
-            """执行一次模型阶段，并按独立开关对调用异常执行异步退避重试。
-
-            入参：
-            - model_operation：已绑定提示词和协议的模型调用。
-            - phase：initial 或 repair，用于日志区分调用阶段。
-            出参：非空 DSL；达到最大重试次数后抛出 A2UIModelGenerationError。
-            """
-            nonlocal model_call_phase
-            model_call_phase = phase
-            return await model_retry_executor.execute(model_operation, phase)
 
         processor = get_dsl_processor(policy.processor_kind)
         processing_context = DslProcessingContext(
@@ -641,16 +623,16 @@ class WidgetGenerationService:
             logger.info(
                 f"{_MODULE} model_source_generation_started operation={policy.operation}"
             )
-            return await call_model_with_failure_retry(
-                lambda: model_client.generate(prompt, model_protocol_profile),
-                "initial",
+            result = await self._resolve_model_result(
+                model_client.generate(prompt, model_protocol_profile)
             )
+            return require_generated_dsl(result)
 
         async def repair_source_dsl(
             invalid_source_dsl: str,
             quality_errors: list[str],
         ) -> str:
-            nonlocal quality_repair_attempt_count
+            nonlocal model_call_phase, quality_repair_attempt_count
             quality_repair_attempt_count += 1
             quality_error_payloads = [
                 item.to_prompt_payload() for item in latest_processing_result.errors
@@ -675,13 +657,14 @@ class WidgetGenerationService:
                 f"max_repair_attempts={settings.validation_failure_max_repair_attempts} "
                 f"quality_error_count={len(quality_errors)}"
             )
-            return await call_model_with_failure_retry(
-                lambda: model_client.generate_repair(
+            model_call_phase = "repair"
+            result = await self._resolve_model_result(
+                model_client.generate_repair(
                     repair_prompt,
                     model_protocol_profile,
-                ),
-                "repair",
+                )
             )
+            return require_generated_dsl(result)
 
         def evaluate_source_dsl_sync(source_dsl: str) -> list[str]:
             nonlocal latest_processing_result
@@ -772,7 +755,7 @@ class WidgetGenerationService:
             )
         except A2UIModelGenerationError as exc:
             quality_repair_count = quality_repair_attempt_count
-            model_failure_retry_count = model_retry_executor.retry_count
+            model_failure_retry_count = model_client.model_failure_retry_count
             total_retry_count = model_failure_retry_count + quality_repair_count
             latency_by_stage["modelAndValidation"] = self._elapsed_ms(stage_started_at)
             latency_by_stage["total"] = self._elapsed_ms(generation_started_at)
@@ -822,7 +805,7 @@ class WidgetGenerationService:
         source_dsl = retry_result.result
         genui = latest_processing_result.standard_dsl
         errors = retry_result.errors
-        model_failure_retry_count = model_retry_executor.retry_count
+        model_failure_retry_count = model_client.model_failure_retry_count
         total_retry_count = model_failure_retry_count + retry_result.retryCount
         latency_by_stage["modelAndValidation"] = self._elapsed_ms(stage_started_at)
 
@@ -962,6 +945,31 @@ class WidgetGenerationService:
     def _elapsed_ms(started_at: float) -> float:
         return round((time.perf_counter() - started_at) * 1000, 2)
 
+    @staticmethod
+    async def _resolve_model_result(value: str | Awaitable[str]) -> str:
+        """兼容生产协程与测试注入的立即模型结果。"""
+        if inspect.isawaitable(value):
+            return await value
+        return value
+
+    @staticmethod
+    def _resolve_model_request_context(
+        request: GenerateWidgetCardRequest,
+    ) -> ModelRequestContext:
+        """优先使用路由注入的模型上下文，并为 Service 直调生成稳定兜底。"""
+        if request._model_request_context is not None:
+            return request._model_request_context
+        settings = get_settings()
+        device_id = request.device.deviceId or f"aiwidget-{uuid.uuid4().hex}"
+        return ModelRequestContext(
+            session_id=uuid.uuid4().hex,
+            interaction_id=uuid.uuid4().hex,
+            device_id=device_id,
+            country_code=settings.deepseek_platform_default_country_code,
+            app_version=request.prdVer or settings.default_prd_version,
+            app_name=settings.deepseek_platform_default_app_name,
+        )
+
     def _log_generation_summary(
         self,
         request: GenerateWidgetCardRequest,
@@ -1058,7 +1066,7 @@ class WidgetGenerationService:
             )
             return GenerateWidgetCardResponse(
                 status=GenerationStatus.UNSUPPORTED,
-                suggestSize=request.size or "2x4",
+                suggestSize=request.size or DEFAULT_WIDGET_SIZE,
                 message="当前 App/ROM 版本暂无可用的卡片协议，暂时不能生成卡片。",
                 errorCode=ErrorCode.APP_VERSION_UNSUPPORTED.value,
             )
@@ -1098,7 +1106,7 @@ class WidgetGenerationService:
             )
             return GenerateWidgetCardResponse(
                 status=GenerationStatus.UNSUPPORTED,
-                suggestSize=request.size or "2x4",
+                suggestSize=request.size or DEFAULT_WIDGET_SIZE,
                 message="当前 App/ROM 版本暂无可用的卡片协议，暂时不能生成卡片。",
                 errorCode=ErrorCode.APP_VERSION_UNSUPPORTED.value,
             )
@@ -1137,6 +1145,7 @@ class WidgetGenerationService:
         profiled_request = request.model_copy(
             update={"protocolProfileId": policy.protocol_profile_id}
         )
+        profiled_request._model_request_context = request._model_request_context
         return await self.generate_widget_card(
             profiled_request,
             policy=policy,
@@ -1191,7 +1200,7 @@ class WidgetGenerationService:
         if is_edit and not policy.supports_edit:
             return GenerateWidgetCardResponse(
                 status=GenerationStatus.UNSUPPORTED,
-                suggestSize=request.size or "2x4",
+                suggestSize=request.size or DEFAULT_WIDGET_SIZE,
                 message="当前生成协议只支持新建卡片，不支持继续编辑。",
                 errorCode=ErrorCode.PROTOCOL_CAPABILITY_UNSUPPORTED.value,
             )
@@ -1201,7 +1210,7 @@ class WidgetGenerationService:
         if has_dynamic_capabilities and not policy.supports_dynamic_capabilities:
             return GenerateWidgetCardResponse(
                 status=GenerationStatus.UNSUPPORTED,
-                suggestSize=request.size or "2x4",
+                suggestSize=request.size or DEFAULT_WIDGET_SIZE,
                 message="当前生成协议只支持字面量静态卡片，不支持动态数据或点击事件。",
                 errorCode=ErrorCode.PROTOCOL_CAPABILITY_UNSUPPORTED.value,
             )

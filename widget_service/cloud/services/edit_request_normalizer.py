@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from api.schemas import CandidateEventCandidate, GenerateWidgetCardRequest
 from models.artifact import WidgetArtifact
-from models.generation import CardSpec
+from models.generation import DEFAULT_WIDGET_SIZE, CardSpec
 
 
 @dataclass(frozen=True)
@@ -21,7 +21,7 @@ class EditRequestNormalizer:
     def normalize_create(request: GenerateWidgetCardRequest) -> GenerateWidgetCardRequest:
         return request.model_copy(
             update={
-                "size": request.size or "2x4",
+                "size": request.size or DEFAULT_WIDGET_SIZE,
                 "candidateDataBindings": request.candidateDataBindings or [],
                 "candidateEventCandidates": request.candidateEventCandidates or [],
                 "candidateAssetIds": request.candidateAssetIds or [],

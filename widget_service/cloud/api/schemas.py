@@ -2,7 +2,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 
 from core.errors import GenerationStatus
 from models.capability import (
@@ -16,6 +16,7 @@ from models.generation import (
     DeviceContext,
     EventAction,
     GenerationOptions,
+    ModelRequestContext,
     WidgetSize,
 )
 
@@ -152,6 +153,8 @@ class ToolRequestEnvelope(BaseModel):
 
 
 class VersionedToolRequest(BaseModel):
+    _model_request_context: ModelRequestContext | None = PrivateAttr(default=None)
+
     locale: str = "zh-CN"
     uid: str
     device: DeviceContext

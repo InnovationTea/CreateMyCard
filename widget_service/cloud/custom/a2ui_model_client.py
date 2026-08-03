@@ -5,6 +5,7 @@ import inspect
 import json
 import sys
 import traceback
+import uuid
 from pathlib import Path
 
 import json_repair
@@ -20,6 +21,8 @@ from custom.model_transport import (
     ModelTransport,
     ModelTransportError,
 )
+from custom.unified_model_client import UnifiedModelClient
+from models.generation import ModelRequestContext
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     ThemeMode,
@@ -80,6 +83,8 @@ class A2UIModelClient:
         backend: ModelBackend = "mep",
         transport: ModelTransport | None = None,
         runtime: ModelExecutionRuntime | None = None,
+        request_context: ModelRequestContext | None = None,
+        operation_name: str = "a2ui-model",
     ) -> None:
         """初始化 A2UI 模型客户端。
 
@@ -90,7 +95,7 @@ class A2UIModelClient:
         - transport：测试或扩展场景可注入的模型传输实现。
         出参：无。
         """
-        if backend not in {"mep", "llmclient"}:
+        if backend not in {"mep", "openai"}:
             raise ValueError(f"Unsupported A2UI model backend: {backend}")
         settings = get_settings()
         self.settings = settings
@@ -100,9 +105,24 @@ class A2UIModelClient:
         self.backend = backend
         self.transport = transport
         self.mock_data_path = Path(mock_data_path) if mock_data_path else None
+        self.request_context = request_context or self._default_request_context()
         needs_runtime = not self.use_mock and transport is None
         self._owns_runtime = needs_runtime and runtime is None
         self.runtime = runtime or (ModelExecutionRuntime(settings) if needs_runtime else None)
+        self.unified_client = None
+        if needs_runtime and self.runtime is not None:
+            self.unified_client = UnifiedModelClient(
+                settings,
+                self.runtime,
+                operation_name=operation_name,
+            )
+
+    @property
+    def model_failure_retry_count(self) -> int:
+        """返回当前生成请求累计发生的模型额外调用次数。"""
+        if self.unified_client is None:
+            return 0
+        return self.unified_client.retry_count
 
     async def aclose(self) -> None:
         """关闭当前客户端自行创建的模型运行时。"""
@@ -115,6 +135,7 @@ class A2UIModelClient:
         protocol_profile: dict | None = None,
         *,
         suppress_prompt_log: bool = False,
+        phase: str = "initial",
     ) -> str:
         """生成 A2UI genui JSONL。
 
@@ -145,13 +166,11 @@ class A2UIModelClient:
                 result = self._load_mock_data(protocol_profile, prompt)
             else:
                 profile = protocol_profile or {}
-                try:
-                    raw_output = await self._call_transport(prompt)
-                except ModelTransportError as exc:
-                    raw_output = self._recover_design_output_after_abort(
-                        exc,
-                        profile,
-                    )
+                raw_output = await self._call_transport(
+                    prompt,
+                    profile,
+                    phase=phase,
+                )
                 result = self._process_model_output(raw_output, profile)
             return require_generated_dsl(result)
         except A2UIModelGenerationError:
@@ -173,24 +192,57 @@ class A2UIModelClient:
             prompt,
             protocol_profile,
             suppress_prompt_log=True,
+            phase="repair",
         )
         if inspect.isawaitable(result):
             return await result
         return result
 
-    async def _call_transport(self, prompt: list[dict[str, str]]) -> str:
+    async def _call_transport(
+        self,
+        prompt: list[dict[str, str]],
+        protocol_profile: dict,
+        *,
+        phase: str,
+    ) -> str:
         """调用注入的测试 Transport 或应用级共享模型 Runtime。"""
         if self.transport is not None:
-            generate = self.transport.generate
-            if inspect.iscoroutinefunction(generate):
-                return await generate(prompt)
-            result = await asyncio.to_thread(generate, prompt)
-            if inspect.isawaitable(result):
-                return await result
-            return result
-        if self.runtime is None:
+            try:
+                generate = self.transport.generate
+                if inspect.iscoroutinefunction(generate):
+                    return await generate(prompt)
+                result = await asyncio.to_thread(generate, prompt)
+                if inspect.isawaitable(result):
+                    return await result
+                return result
+            except ModelTransportError as exc:
+                return self._recover_design_output_after_abort(
+                    exc,
+                    protocol_profile,
+                )
+        if self.unified_client is None:
             raise A2UIModelGenerationError("model runtime is not initialized")
-        return await self.runtime.generate(self.backend, prompt)
+        allow_partial_abort = (
+            protocol_profile.get("id") == DESIGN_COMPACT_PROFILE_ID
+        )
+        return await self.unified_client.generate(
+            self.backend,
+            prompt,
+            self.request_context,
+            phase=phase,
+            allow_mep_partial_abort=allow_partial_abort,
+        )
+
+    def _default_request_context(self) -> ModelRequestContext:
+        """为本地直调和单元测试生成不含硬编码会话 ID 的上下文。"""
+        return ModelRequestContext(
+            session_id=uuid.uuid4().hex,
+            interaction_id=uuid.uuid4().hex,
+            device_id=f"aiwidget-{uuid.uuid4().hex}",
+            country_code=self.settings.deepseek_platform_default_country_code,
+            app_version=self.settings.default_prd_version,
+            app_name=self.settings.deepseek_platform_default_app_name,
+        )
 
     def _process_model_output(
         self,

@@ -1,10 +1,24 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+from dataclasses import dataclass
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
 WidgetSize = Literal["2x2", "2x4"]
+DEFAULT_WIDGET_SIZE: WidgetSize = "2x2"
+
+
+@dataclass(frozen=True)
+class ModelRequestContext:
+    """一次工具请求传递给物理模型服务的稳定会话上下文。"""
+
+    session_id: str
+    interaction_id: str
+    device_id: str
+    country_code: str
+    app_version: str
+    app_name: str
 
 
 class DeviceContext(BaseModel):

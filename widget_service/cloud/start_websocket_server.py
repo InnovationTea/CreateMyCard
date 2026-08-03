@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import asyncio
-import time
-import traceback
-import uvicorn
-from fastapi import FastAPI, Request, Response
 from contextlib import asynccontextmanager, suppress
 
+import uvicorn
 from anyio import to_thread
+from fastapi import FastAPI, Request, Response
+
 from api.routes import router
 from app.logger import logger
-from config.config import get_settings
 from app.websocket_metrics import report_websocket_metrics, websocket_metrics
+from config.config import get_settings
 from custom.model_runtime import ModelExecutionRuntime
 
 _MODULE = "[Main]"
@@ -49,6 +48,7 @@ def create_app() -> FastAPI:
             reporter.cancel()
             with suppress(asyncio.CancelledError):
                 await reporter
+            await model_runtime.aclose()
     fastapi_app = FastAPI(
         title="Widget Service",
         version="0.1.0",

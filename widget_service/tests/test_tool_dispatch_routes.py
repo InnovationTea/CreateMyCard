@@ -734,7 +734,7 @@ def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
     """验证两个生成接口使用各自默认后端，并隔离协议和转换流程。"""
     settings = get_settings()
     monkeypatch.setattr(settings, "a2ui_form_model_backend", "mep")
-    monkeypatch.setattr(settings, "design_compact_model_backend", "llmclient")
+    monkeypatch.setattr(settings, "design_compact_model_backend", "openai")
     model_calls = []
 
     def capture_model_call(client, prompt, protocol_profile):
@@ -829,7 +829,7 @@ def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
     assert "createSurface" in compact_rows[0]
     assert "updateComponents" in compact_rows[1]
     assert "updateDataModel" in compact_rows[2]
-    assert [item["backend"] for item in model_calls] == ["mep", "llmclient"]
+    assert [item["backend"] for item in model_calls] == ["mep", "openai"]
     assert model_calls[1]["protocolProfile"] == {
         "id": "design-compact-dsl",
         "format": "compact-dsl",

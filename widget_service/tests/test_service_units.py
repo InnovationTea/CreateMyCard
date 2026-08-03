@@ -76,23 +76,22 @@ from custom.a2ui_model_client import (
     require_generated_dsl,
 )
 from custom.llmclient import LLMClientOptions
-from custom.llmclient_model_transport import LlmClientModelTransport
 from custom.mep_model_transport import MepModelTransport, PredictEventDecoder
-from custom.model_transport import ModelTransportError, create_model_transport
-from custom.model_runtime import ModelExecutionRuntime
+from custom.model_transport import ModelTransportError
+from custom.model_runtime import ModelExecutionRuntime, _generate_with_llmclient
 from services.card_spec_builder import CardSpecBuilder
 from services.card_validator import validate_card
 from services.card_validation import validate_card as validate_card_api
 from services.card_validation.rule_registry import RuleRegistry
 from services.capability_registry import CapabilityRegistry
 from services.device_capability_resolver import DeviceCapabilityResolver
+from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_pipeline import (
     DslProcessingResult,
     DslProcessorKind,
     QualityIssue,
     get_dsl_processor,
 )
-from services.model_failure_retry import ModelFailureRetryExecutor
 from services.ids_client import IDSClient, IDSDeviceCapabilityState
 from services.prompt_builder import PromptBuilder
 from services.protocol_registry import A2UIProtocolRegistry
@@ -360,12 +359,15 @@ def test_plugin_error_explanation_distinguishes_business_failures(
 def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
     assert Settings(_env_file=None).anyio_thread_pool_tokens == 80
     assert Settings(_env_file=None).a2ui_form_model_backend == "mep"
-    assert Settings(_env_file=None).design_compact_model_backend == "llmclient"
+    assert Settings(_env_file=None).design_compact_model_backend == "openai"
+    assert Settings(_env_file=None).openai_master_client == "deepseek_platform"
+    assert Settings(_env_file=None).openai_fallback_client == "llmclient"
     assert Settings(_env_file=None).enable_default_protocol_profile_fallback is True
     assert Settings(_env_file=None).model_max_concurrency == 20
     assert Settings(_env_file=None).model_queue_timeout_seconds == 120.0
     assert Settings(_env_file=None).model_request_timeout_seconds == 120.0
     assert Settings(_env_file=None).model_failure_max_retry_attempts == 1
+    assert Settings(_env_file=None).fallback_model_failure_max_retry_attempts == 1
     assert Settings(_env_file=None).model_failure_retry_initial_delay_seconds == 1.0
     assert Settings(_env_file=None).model_failure_retry_max_delay_seconds == 30.0
     assert Settings(_env_file=None).model_failure_retry_backoff_multiplier == 2.0
@@ -431,13 +433,20 @@ def test_validation_repair_attempt_count_rejects_out_of_range_values(attempts):
         )
 
 
+@pytest.mark.parametrize(
+    "field_name",
+    [
+        "model_failure_max_retry_attempts",
+        "fallback_model_failure_max_retry_attempts",
+    ],
+)
 @pytest.mark.parametrize("attempts", [0, 11])
-def test_model_failure_retry_attempt_count_rejects_out_of_range_values(attempts):
+def test_model_failure_retry_attempt_count_rejects_out_of_range_values(
+    field_name,
+    attempts,
+):
     with pytest.raises(ValidationError):
-        Settings(
-            _env_file=None,
-            model_failure_max_retry_attempts=attempts,
-        )
+        Settings(_env_file=None, **{field_name: attempts})
 
 
 def test_model_failure_retry_delay_range_rejects_inverted_values():
@@ -646,86 +655,6 @@ def test_model_failure_retry_can_be_enabled_by_environment(monkeypatch):
     monkeypatch.setenv("WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY", "true")
 
     assert Settings(_env_file=None).enable_model_failure_retry is True
-
-
-@pytest.mark.asyncio
-async def test_model_failure_retry_uses_configured_exponential_backoff_for_raw_exceptions():
-    settings = Settings(
-        _env_file=None,
-        enable_model_failure_retry=True,
-        model_failure_max_retry_attempts=2,
-        model_failure_retry_initial_delay_seconds=1.0,
-        model_failure_retry_max_delay_seconds=30.0,
-        model_failure_retry_backoff_multiplier=2.0,
-        model_failure_retry_jitter_ratio=0.2,
-    )
-    calls = 0
-    delays: list[float] = []
-    jitter_bounds: list[tuple[float, float]] = []
-
-    def call_model() -> str:
-        nonlocal calls
-        calls += 1
-        if calls < 3:
-            raise RuntimeError("unstructured upstream failure")
-        return "generated-dsl"
-
-    async def record_sleep(delay: float) -> None:
-        delays.append(delay)
-
-    def midpoint(lower_bound: float, upper_bound: float) -> float:
-        jitter_bounds.append((lower_bound, upper_bound))
-        return (lower_bound + upper_bound) / 2
-
-    executor = ModelFailureRetryExecutor(
-        settings,
-        operation_name="generateWidgetCard",
-        backend="mep",
-        sleep=record_sleep,
-        random_uniform=midpoint,
-    )
-
-    result = await executor.execute(call_model, "initial")
-
-    assert result == "generated-dsl"
-    assert calls == 3
-    assert executor.retry_count == 2
-    assert delays == [1.0, 2.0]
-    assert jitter_bounds == pytest.approx([(0.8, 1.2), (1.6, 2.4)])
-
-
-@pytest.mark.asyncio
-async def test_model_failure_retry_switch_disables_wait_and_additional_calls():
-    settings = Settings(
-        _env_file=None,
-        enable_model_failure_retry=False,
-        model_failure_max_retry_attempts=3,
-    )
-    calls = 0
-    delays: list[float] = []
-
-    def call_model() -> str:
-        nonlocal calls
-        calls += 1
-        raise RuntimeError("unstructured upstream failure")
-
-    async def record_sleep(delay: float) -> None:
-        delays.append(delay)
-
-    executor = ModelFailureRetryExecutor(
-        settings,
-        operation_name="generateWidgetCardCompactDsl",
-        backend="llmclient",
-        sleep=record_sleep,
-    )
-
-    with pytest.raises(A2UIModelGenerationError) as error_info:
-        await executor.execute(call_model, "initial")
-
-    assert isinstance(error_info.value.__cause__, RuntimeError)
-    assert calls == 1
-    assert delays == []
-    assert executor.retry_count == 0
 
 
 def test_validation_failure_retry_can_be_enabled_by_environment(monkeypatch):
@@ -1264,6 +1193,35 @@ def test_public_tool_schemas_do_not_expose_version_overrides():
         content_properties = payload["messageEnvelope"]["properties"]["content"]["properties"]
         assert "capabilityRegistryVersion" not in content_properties
         assert "protocolProfileId" not in content_properties
+
+
+def test_generation_tool_schemas_default_to_2x2():
+    schema_root = PROJECT_ROOT / "docs" / "schemas"
+    schema_names = [
+        "generateWidgetCard.schema.json",
+        "generateWidgetCardCompactDsl.schema.json",
+        "generateWidgetCardCompactDslWithDirective.schema.json",
+        "generateWidgetCardTerseDslNested2.schema.json",
+    ]
+
+    for schema_name in schema_names:
+        payload = json_module.loads((schema_root / schema_name).read_text(encoding="utf-8"))
+        content_properties = payload["messageEnvelope"]["properties"]["content"]["properties"]
+        assert content_properties["size"]["default"] == "2x2"
+
+
+def test_create_request_defaults_to_2x2_when_size_is_omitted():
+    request = GenerateWidgetCardRequest(
+        uid="test-user",
+        device={"romVersion": ROM_VERSION_6},
+        userQuery="生成一张天气卡片",
+        title="天气",
+        description="今日天气",
+    )
+
+    normalized = EditRequestNormalizer.normalize_create(request)
+
+    assert normalized.size == "2x2"
 
 
 def _out_of_range_requests():
@@ -2422,7 +2380,7 @@ async def test_a2ui_model_client_selects_design_compact_mock_by_task_size(
         "format": "compact-dsl",
     }
 
-    client = A2UIModelClient(use_mock=True, backend="llmclient")
+    client = A2UIModelClient(use_mock=True, backend="openai")
     genui = await client.generate(prompt, profile)
     root = json_module.loads(genui.splitlines()[0])
     converted = client.convert_design_dsl_to_standard_dsl(
@@ -2457,43 +2415,6 @@ async def test_a2ui_model_client_real_mode_forwards_messages(monkeypatch):
     monkeypatch.setattr(client, "convert_dsl", lambda value: value)
 
     assert await client.generate(messages) == "forwarded"
-
-
-@pytest.mark.asyncio
-async def test_a2ui_model_client_selects_llmclient_backend(monkeypatch):
-    """验证 A2UI generate 把后端选择交给共享模型 Runtime。"""
-    messages = [{"role": "user", "content": "帮我做天气卡片"}]
-    calls: list[tuple[str, object]] = []
-
-    class FakeRuntime:
-        @staticmethod
-        async def generate(backend, value):
-            calls.append((backend, value))
-            return "llmclient-result"
-
-    client = A2UIModelClient(
-        use_mock=False,
-        backend="llmclient",
-        runtime=FakeRuntime(),
-    )
-    monkeypatch.setattr(client, "convert_dsl", lambda value: value)
-    result = await client.generate(messages)
-
-    assert result == "llmclient-result"
-    assert calls == [("llmclient", messages)]
-
-
-@pytest.mark.parametrize(
-    ("backend", "transport_type"),
-    [
-        ("mep", MepModelTransport),
-        ("llmclient", LlmClientModelTransport),
-    ],
-)
-def test_model_transport_factory_builds_configured_backend(backend, transport_type):
-    transport = create_model_transport(backend, Settings(_env_file=None))
-
-    assert isinstance(transport, transport_type)
 
 
 @pytest.mark.asyncio
@@ -2558,8 +2479,8 @@ async def test_mep_abort_without_usable_design_output_remains_failure(
 
 
 @pytest.mark.asyncio
-async def test_a2ui_model_client_collects_llmclient_stream(monkeypatch):
-    """验证 llmclient 传输层只聚合 Token，DSL 后处理由 A2UI 客户端统一执行。"""
+async def test_model_runtime_collects_llmclient_stream(monkeypatch):
+    """验证 Runtime 内部适配器聚合原有 llmclient Token 流。"""
     captured: dict = {}
     dsl = '{"createSurface":{"surfaceId":"root"}}'
 
@@ -2571,18 +2492,11 @@ async def test_a2ui_model_client_collects_llmclient_stream(monkeypatch):
         yield "\n```"
 
     messages = [{"role": "user", "content": "weather"}]
-    monkeypatch.setattr("custom.llmclient_model_transport.stream_genui", fake_stream)
-    transport = LlmClientModelTransport()
-    client = A2UIModelClient(
-        use_mock=False,
-        backend="llmclient",
-        transport=transport,
-    )
-    monkeypatch.setattr(client, "convert_dsl", lambda value: f"converted:{value}")
+    monkeypatch.setattr("custom.model_runtime.stream_genui", fake_stream)
 
-    result = await client.generate(messages)
+    result = await asyncio.to_thread(_generate_with_llmclient, messages)
 
-    assert result == f"converted:{dsl}"
+    assert result == f"```genui\n{dsl}\n```"
     assert captured == {
         "api_key": "AccessService",
         "messages": messages,
@@ -2654,7 +2568,7 @@ def test_design_converter_expands_latest_design_tokens():
 
     assert component_by_id["hero"]["styles"]["width"] == "matchParent"
     assert component_by_id["hero"]["styles"]["fillColor"] == "#33000000"
-    assert component_by_id["title"]["styles"]["fontSize"] == 38
+    assert component_by_id["title"]["styles"]["fontSize"] == 36
     assert component_by_id["progress"]["styles"]["type"] == "ring"
     assert component_by_id["progress"]["styles"]["strokeWidth"] == 6
     assert component_by_id["progress"]["styles"]["color"] == "#FFF9A01E"
@@ -2699,7 +2613,7 @@ def test_a2ui_model_client_design_test_task_spec_covers_weather_capabilities():
     task_spec = _build_design_test_task_spec()
     weather_schema = task_spec["dataModelSchema"]["data"]["weather"]
 
-    assert task_spec["size"] == "2x4"
+    assert task_spec["size"] == "2x2"
     assert len(weather_schema["current"]) == 10
     assert len(weather_schema["daily"][0]) == 5
     assert task_spec["eventCandidates"] == [
@@ -2938,8 +2852,7 @@ async def test_model_queue_wait_keeps_websocket_heartbeat_running():
         release_first.set()
         await asyncio.gather(first, queued, return_exceptions=True)
         heartbeat.cancel()
-        with pytest.raises(asyncio.CancelledError):
-            await heartbeat
+        await heartbeat
         await runtime.aclose()
 
 
@@ -3272,6 +3185,7 @@ def _model_failure_request() -> GenerateWidgetCardRequest:
         prdVer=APP_VERSION,
         device={"romVersion": ROM_VERSION_6},
         userQuery="生成一个静态卡片",
+        size="2x4",
         title="静态卡片",
         description="模型失败处理测试",
     )
@@ -3280,7 +3194,7 @@ def _model_failure_request() -> GenerateWidgetCardRequest:
 @pytest.mark.parametrize(
     ("generation_method", "setting_name", "backend"),
     [
-        ("generate_widget_card_a2ui_form", "a2ui_form_model_backend", "llmclient"),
+        ("generate_widget_card_a2ui_form", "a2ui_form_model_backend", "openai"),
         ("generate_widget_card_compact_dsl", "design_compact_model_backend", "mep"),
         (
             "generate_widget_card_terse_dsl_nested2",
@@ -3360,134 +3274,6 @@ async def test_model_failure_skips_validator_and_artifact_store(
 
 
 @pytest.mark.asyncio
-async def test_model_failure_retries_once_and_continues_after_success(monkeypatch):
-    settings = get_settings()
-    model_calls: list[int] = []
-
-    async def skip_retry_delay(_delay: float) -> None:
-        return None
-
-    def fail_then_generate(_client, _prompt, _profile):
-        model_calls.append(len(model_calls) + 1)
-        if len(model_calls) == 1:
-            raise A2UIModelGenerationError("temporary model failure")
-        return "generated-dsl"
-
-    monkeypatch.setattr(settings, "enable_model_failure_retry", True)
-    monkeypatch.setattr(settings, "enable_artifact_validation", False)
-    monkeypatch.setattr("services.model_failure_retry.asyncio.sleep", skip_retry_delay)
-    monkeypatch.setattr(A2UIModelClient, "generate", fail_then_generate)
-    monkeypatch.setattr(
-        ArtifactStore,
-        "save",
-        lambda _store, _artifact: ArtifactSaveResult(
-            artifactUrl="https://artifact.test/retried",
-            artifactDigest="sha256:retried",
-        ),
-    )
-
-    response = await WidgetGenerationService().generate_widget_card_a2ui_form(
-        _model_failure_request()
-    )
-
-    assert model_calls == [1, 2]
-    assert response.status == GenerationStatus.SUCCESS
-    assert response.artifactUrl == "https://artifact.test/retried"
-
-
-@pytest.mark.asyncio
-async def test_model_failure_stops_after_one_retry(monkeypatch):
-    settings = get_settings()
-    model_calls: list[int] = []
-
-    async def skip_retry_delay(_delay: float) -> None:
-        return None
-
-    def always_fail(_client, _prompt, _profile):
-        model_calls.append(len(model_calls) + 1)
-        raise A2UIModelGenerationError("persistent model failure")
-
-    def unexpected_validate(*_args, **_kwargs):
-        pytest.fail("final model failure must not enter validation")
-
-    def unexpected_save(*_args, **_kwargs):
-        pytest.fail("final model failure must not save an artifact")
-
-    monkeypatch.setattr(settings, "enable_model_failure_retry", True)
-    monkeypatch.setattr("services.model_failure_retry.asyncio.sleep", skip_retry_delay)
-    monkeypatch.setattr(A2UIModelClient, "generate", always_fail)
-    monkeypatch.setattr(ArtifactValidator, "validate", unexpected_validate)
-    monkeypatch.setattr(ArtifactStore, "save", unexpected_save)
-
-    response = await WidgetGenerationService().generate_widget_card_a2ui_form(
-        _model_failure_request()
-    )
-
-    assert model_calls == [1, 2]
-    assert response.status == GenerationStatus.FAILED
-    assert response.errorCode == ErrorCode.A2UI_GENERATION_FAILED.value
-
-
-@pytest.mark.asyncio
-async def test_repair_model_failure_retries_same_repair_prompt_once(monkeypatch):
-    settings = get_settings()
-    model_prompts: list[list[dict[str, str]]] = []
-
-    async def skip_retry_delay(_delay: float) -> None:
-        return None
-
-    def generate_with_temporary_repair_failure(
-        _client,
-        prompt,
-        _profile=None,
-        **_kwargs,
-    ):
-        model_prompts.append(prompt)
-        if len(model_prompts) == 1:
-            return "invalid-dsl"
-        if len(model_prompts) == 2:
-            raise A2UIModelGenerationError("temporary repair failure")
-        return "repaired-dsl"
-
-    def validate_repaired_result(_validator, artifact, _profile):
-        if artifact.genui == "invalid-dsl":
-            return ["DSL_REQUIRED_FIELD [genui:1 /createSurface]"]
-        return []
-
-    monkeypatch.setattr(settings, "enable_artifact_validation", True)
-    monkeypatch.setattr(settings, "enable_model_failure_retry", True)
-    monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
-    monkeypatch.setattr("services.model_failure_retry.asyncio.sleep", skip_retry_delay)
-    monkeypatch.setattr(
-        A2UIModelClient,
-        "generate",
-        generate_with_temporary_repair_failure,
-    )
-    monkeypatch.setattr(
-        ArtifactValidator,
-        "validate",
-        validate_repaired_result,
-    )
-    monkeypatch.setattr(
-        ArtifactStore,
-        "save",
-        lambda _store, _artifact: ArtifactSaveResult(
-            artifactUrl="https://artifact.test/repaired",
-            artifactDigest="sha256:repaired",
-        ),
-    )
-
-    response = await WidgetGenerationService().generate_widget_card_a2ui_form(
-        _model_failure_request()
-    )
-
-    assert len(model_prompts) == 3
-    assert model_prompts[1] == model_prompts[2]
-    assert response.status == GenerationStatus.SUCCESS
-    assert response.artifactUrl == "https://artifact.test/repaired"
-
-
-@pytest.mark.asyncio
 async def test_repair_model_failure_does_not_validate_or_save_second_result(monkeypatch):
     settings = get_settings()
     model_calls: list[int] = []
@@ -3530,9 +3316,6 @@ async def test_validation_repair_stops_early_after_second_configured_repair(monk
     model_calls = 0
     validation_calls: list[str] = []
 
-    async def unexpected_backoff(_delay: float) -> None:
-        pytest.fail("quality repair must not wait for model-failure backoff")
-
     def generate_next(_client, _prompt, _profile=None, **_kwargs):
         nonlocal model_calls
         model_calls += 1
@@ -3548,7 +3331,6 @@ async def test_validation_repair_stops_early_after_second_configured_repair(monk
     monkeypatch.setattr(settings, "enable_model_failure_retry", True)
     monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
     monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 2)
-    monkeypatch.setattr("services.model_failure_retry.asyncio.sleep", unexpected_backoff)
     monkeypatch.setattr(A2UIModelClient, "generate", generate_next)
     monkeypatch.setattr(ArtifactValidator, "validate", validate_until_third)
     monkeypatch.setattr(

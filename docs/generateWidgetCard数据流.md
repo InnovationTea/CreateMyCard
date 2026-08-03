@@ -374,7 +374,8 @@ validation_failure_blocking = false
 `A2UIModelClient.generate()` 根据配置选择 mock 或真实模型：
 
 - mock 开启：读取 `cloud/custom/mock.dat`。
-- mock 关闭：调用 `a2ui_form_model_backend` 对应的模型 Runtime。
+- mock 关闭：调用 `a2ui_form_model_backend` 对应的统一模型入口。默认使用 `mep`；配置为 `openai` 时，
+  默认由 DeepSeek Platform 作为 master、llmclient 作为 fallback。
 
 模型必须直接输出标准 A2UI JSONL。`StandardA2UIProcessor` 不执行格式转换：
 

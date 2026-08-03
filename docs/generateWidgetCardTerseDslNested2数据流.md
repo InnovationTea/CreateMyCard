@@ -9,7 +9,7 @@
 - 请求模型：`GenerateWidgetCardRequest`
 - 模型源格式：TerseDSL-Nested-2
 - 最终 `genui`：由本地受限转换器生成的标准三段 A2UI JSONL
-- 默认模型后端：`design_compact_model_backend`，当前默认值为 `llmclient`
+- 默认模型后端：`design_compact_model_backend`，当前默认值为 `openai`
 - 支持创建：是
 - 支持多轮编辑：是，由 `enable_widget_edit` 控制
 - 当前代码是否允许动态数据和事件入参：否
@@ -311,7 +311,8 @@ User 消息是完整 TaskSpec JSON：
 数据源：
 
 - `enable_a2ui_model_mock=true`：读取 `cloud/custom/mock.terse-dsl-nested-2.dat`。
-- mock 关闭：调用 `design_compact_model_backend`，当前默认 `llmclient`。
+- mock 关闭：调用 `design_compact_model_backend`，当前默认 `openai`。该复合后端默认先调用
+  DeepSeek Platform，模型异常重试耗尽后再切换到 llmclient。
 
 模型输出示例：
 

@@ -11,7 +11,8 @@ The service follows `docs/AGENTS.md`:
 - `TaskSpec.dataModelSchema` is projected directly from each capability `outputSchema`: the service reads `type`, `description`, and `sampleValue` from the selected leaf and writes it at `writeResultTo + candidateOutputFields` path. There is no separate data-model mapping file or runtime field-renaming layer.
 - `romVersion` is the only accepted ROM field name. A full value such as `CLS-AL30 6.0.0.328` is normalized to the major/minor version `6.0`.
 - All five interfaces currently map App `[11.7.5.205, 12.0.0.0)` and ROM `[6.0, 7.0)` to `app-11.7.5.205_rom-6.0`. An unmatched version falls back to this default when `WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true`.
-- `generateWidgetCard` selects MEP or llmclient through `WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND`.
+- `generateWidgetCard` selects `mep` or the composite `openai` route through
+  `WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND`.
   `generateWidgetCardCompactDsl` selects its backend through `WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND`, loads
   the Design profile from `data/protocol_profiles/registry_ranges.json`, and converts Design Compact DSL with that
   profile's `protocol.json` before validation and storage. The three generation routes share one policy-driven
@@ -32,22 +33,31 @@ The service follows `docs/AGENTS.md`:
   remaining Validator errors are non-blocking only for the standard third interface.
 - `WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY=false` by default. Model transport errors,
   explicit model errors, and empty DSL output return `failed/A2UI_GENERATION_FAILED`;
-  when enabled, every exception raised inside an initial or repair model-call boundary retries the same prompt with
-  asynchronous exponential backoff and jitter. Configure the additional retry count with
-  `WIDGET_SERVICE_MODEL_FAILURE_MAX_RETRY_ATTEMPTS` (1-10), and tune the delay with the
+  when disabled, the selected route calls only its master once and does not use fallback. When enabled, every initial
+  or repair call retries its master with asynchronous exponential backoff and jitter, then switches to the configured
+  fallback after the master budget is exhausted. Configure the master and fallback additional retry counts with
+  `WIDGET_SERVICE_MODEL_FAILURE_MAX_RETRY_ATTEMPTS` and
+  `WIDGET_SERVICE_FALLBACK_MODEL_FAILURE_MAX_RETRY_ATTEMPTS` (1-10), and tune their shared delay with the
   `WIDGET_SERVICE_MODEL_FAILURE_RETRY_INITIAL_DELAY_SECONDS`, `WIDGET_SERVICE_MODEL_FAILURE_RETRY_MAX_DELAY_SECONDS`,
   `WIDGET_SERVICE_MODEL_FAILURE_RETRY_BACKOFF_MULTIPLIER`, and
   `WIDGET_SERVICE_MODEL_FAILURE_RETRY_JITTER_RATIO` settings. Backoff does not hold a worker thread or model permit.
   Conversion and Validator errors still trigger immediate targeted repair through the separate validation retry switch.
   Final model failures never enter validation or artifact persistence.
-- With model mock disabled, all three generation routes use the same async `A2UIModelClient.generate()` entry. MEP and
-  `cloud/custom/llmclient.py` are isolated behind model transport adapters; backend selection is controlled by the
-  two route-specific server settings, and tool callers cannot select either backend directly.
+- With model mock disabled, all three generation routes use `A2UIModelClient.generate()` and the internal
+  `UnifiedModelClient.generate()` entry. The `openai` route uses DeepSeek Platform as master and the existing
+  `cloud/custom/llmclient.py` as fallback by default. Configure them with `WIDGET_SERVICE_OPENAI_MASTER_CLIENT` and
+  `WIDGET_SERVICE_OPENAI_FALLBACK_CLIENT`; tool callers cannot select a backend or physical client directly.
+- DeepSeek Platform reads its SK only from the STS key configured by
+  `WIDGET_SERVICE_DEEPSEEK_PLATFORM_SECRET_KEY_STS_CONFIG_KEY`, whose default is
+  `genui.deepseek.platform.secret.key`. Its remaining static request fields use the
+  `WIDGET_SERVICE_DEEPSEEK_PLATFORM_*` settings; session, interaction, device, country, App version, and App name
+  prefer the current WebSocket request context.
 - The llmclient WebSocket request is configured by the `WIDGET_SERVICE_DEEPSEEK_*` settings in `.env.example`,
   covering credentials, endpoint, model/user/request identifiers, sampling, maximum tokens, thinking/usage flags,
   and receive timeout. These fields have defaults matching the client behavior before configuration extraction.
 - All real model calls share one application-lifetime runtime and one process-level concurrency limit. MEP uses a
-  shared async `httpx.AsyncClient`; the unchanged synchronous llmclient runs in a dedicated executor. Configure the
+  shared async `httpx.AsyncClient`, DeepSeek Platform uses async WebSocket, and the unchanged synchronous llmclient
+  runs in a dedicated executor. Configure the
   shared limit with `WIDGET_SERVICE_MODEL_MAX_CONCURRENCY`, queue timeout with
   `WIDGET_SERVICE_MODEL_QUEUE_TIMEOUT_SECONDS`, and execution timeout with
   `WIDGET_SERVICE_MODEL_REQUEST_TIMEOUT_SECONDS`. Queue waits are coroutine waits and do not occupy worker threads.

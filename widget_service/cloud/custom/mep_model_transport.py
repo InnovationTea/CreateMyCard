@@ -14,6 +14,7 @@ import httpx
 from app.logger import json_for_log, logger
 from config.config import Settings
 from custom.model_transport import ModelTransportError
+from models.generation import ModelRequestContext
 from utils.base_utils import sts_config
 
 _MODULE = "[MEP Model Transport]"
@@ -140,8 +141,13 @@ class MepModelTransport:
         signature = base64.b64encode(signature_bytes).decode("utf-8")
         return f'CLOUDSOA-HMAC-SHA256 appid={appid}, timestamp={timestamp}, signature="{signature}"'
 
-    async def generate(self, messages: list[dict[str, str]]) -> str:
+    async def generate(
+        self,
+        messages: list[dict[str, str]],
+        request_context: ModelRequestContext | None = None,
+    ) -> str:
         """异步调用 MEP /predict 并返回聚合后的原始模型文本。"""
+        del request_context
         prompt = self.messages_to_qwen_prompt(messages)
         query_params = {
             "bId": self.settings.model_bid,

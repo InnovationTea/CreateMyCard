@@ -32,7 +32,7 @@
             "type": "string",
             "enum": ["2x2", "2x4"],
             "required": false,
-            "default": "2x4",
+            "default": "2x2",
             "description": "首次生成的建议尺寸；编辑模式省略时继承来源尺寸。"
           },
           "sourceArtifactUrl": {

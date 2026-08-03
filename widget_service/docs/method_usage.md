@@ -124,7 +124,7 @@ Parser 只接受单根组件调用、字面量、白名单组件和安全对象�
 该接口支持静态 create/edit；动态数据绑定和点击事件返回 `PROTOCOL_CAPABILITY_UNSUPPORTED`。edit 与
 第四接口共用 `enable_widget_edit` 和 artifact 的 `designcompactdsl` 块，但会按 TerseDSL-Nested-2
 语法验证其中的上一轮模型原始输出。第五接口沿用 Design Compact 后端配置；两项后端配置都可取
-`mep` 或 `llmclient`。
+`mep` 或 `openai`。其它配置值会在启动配置校验阶段直接报错，不做自动迁移。
 
 第四接口的协议区间索引位于 `cloud/data/protocol_profiles/registry_ranges.json`。未命中时，只有
 `WIDGET_SERVICE_ENABLE_DEFAULT_PROTOCOL_PROFILE_FALLBACK=true` 才回退到
@@ -1000,9 +1000,11 @@ async generate(
 
 - 开关为 `true`：直接读取并返回与客户端同目录的 `mock.dat` 原始内容，不做字段替换或结构调整。
 - 第三接口读取 `WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND`；第四、第五接口读取
-  `WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND`。两项均可配置 `mep` 或 `llmclient`。
-- MEP 使用应用生命周期共享的异步 HTTP 连接池；`cloud/custom/llmclient.py` 本体保持同步且不修改，
-  通过模型 Runtime 的专用线程池适配。
+  `WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND`。两项均可配置 `mep` 或 `openai`。
+- `A2UIModelClient` 通过 `UnifiedModelClient` 调用物理模型。`mep` 路由直接使用 MEP；`openai` 路由默认
+  使用 DeepSeek Platform master，模型异常重试耗尽后切换到 llmclient fallback。
+- MEP 使用应用生命周期共享的异步 HTTP 连接池，DeepSeek Platform 使用异步 WebSocket；
+  `cloud/custom/llmclient.py` 本体保持同步且不修改，通过模型 Runtime 的专用线程池适配。
 - 模型调用边界内的请求异常、未规范化内部异常、流式响应显式错误或最终没有非空 DSL，统一按模型
   生成失败处理，不依赖上游错误码。模型失败重试开关关闭时直接返回
   `failed/A2UI_GENERATION_FAILED`；开启时使用同一提示词执行有限次数的异步指数退避重试。最终失败
@@ -1205,6 +1207,18 @@ WIDGET_SERVICE_EDIT_SYSTEM_PROMPT_FILE
 WIDGET_SERVICE_REPAIR_SYSTEM_PROMPT_FILE
 WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND
 WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND
+WIDGET_SERVICE_OPENAI_MASTER_CLIENT
+WIDGET_SERVICE_OPENAI_FALLBACK_CLIENT
+WIDGET_SERVICE_DEEPSEEK_PLATFORM_ACCESS_KEY
+WIDGET_SERVICE_DEEPSEEK_PLATFORM_SECRET_KEY_STS_CONFIG_KEY
+WIDGET_SERVICE_DEEPSEEK_PLATFORM_WS_URL
+WIDGET_SERVICE_DEEPSEEK_PLATFORM_MODEL_NAME
+WIDGET_SERVICE_DEEPSEEK_PLATFORM_API_KEY
+WIDGET_SERVICE_DEEPSEEK_PLATFORM_SENDER
+WIDGET_SERVICE_DEEPSEEK_PLATFORM_RECEIVER
+WIDGET_SERVICE_DEEPSEEK_PLATFORM_MESSAGE_NAME
+WIDGET_SERVICE_DEEPSEEK_PLATFORM_DEFAULT_COUNTRY_CODE
+WIDGET_SERVICE_DEEPSEEK_PLATFORM_DEFAULT_APP_NAME
 WIDGET_SERVICE_DEEPSEEK_API_KEY
 WIDGET_SERVICE_DEEPSEEK_MODEL
 WIDGET_SERVICE_DEEPSEEK_WS_URL
@@ -1230,6 +1244,7 @@ WIDGET_SERVICE_MODEL_PROMPT_LOG_PREVIEW_CHARS
 WIDGET_SERVICE_ENABLE_ARTIFACT_VALIDATION
 WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY
 WIDGET_SERVICE_MODEL_FAILURE_MAX_RETRY_ATTEMPTS
+WIDGET_SERVICE_FALLBACK_MODEL_FAILURE_MAX_RETRY_ATTEMPTS
 WIDGET_SERVICE_MODEL_FAILURE_RETRY_INITIAL_DELAY_SECONDS
 WIDGET_SERVICE_MODEL_FAILURE_RETRY_MAX_DELAY_SECONDS
 WIDGET_SERVICE_MODEL_FAILURE_RETRY_BACKOFF_MULTIPLIER
@@ -1252,24 +1267,38 @@ WIDGET_SERVICE_ANYIO_THREAD_POOL_TOKENS
 默认线程限制器，仅控制第一、第二接口和短时同步 IO/校验任务的并发容量。第三至第五接口直接等待
 异步生成 Service，不让完整模型链路占用该线程池。
 
-`WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY` 默认值为 `false`。开启后，首次生成或 repair 模型调用边界内
-发生任意异常或空 DSL 时，使用同一提示词进行异步指数退避重试。额外重试次数由
-`WIDGET_SERVICE_MODEL_FAILURE_MAX_RETRY_ATTEMPTS` 控制，默认 `1`，合法范围 `1～10`；首次等待、最大等待、
-退避倍率和抖动比例分别由四个 `WIDGET_SERVICE_MODEL_FAILURE_RETRY_*` 配置控制。退避等待不占用工作线程
-或模型并发令牌，等待结束后重新参与模型并发排队。conversion/Validator error 不执行退避，而是继续由
-`WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY` 立即触发携带当前源 DSL 和质量错误的定向 repair。
+`WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY` 默认值为 `false`。关闭时每个模型阶段只调用 master 一次，
+不重试且不切换 fallback。开启后，首次生成或 repair 模型调用边界内发生任意异常或空 DSL 时，master
+使用同一提示词进行异步指数退避重试，耗尽后立即切换 fallback。master 额外重试次数由
+`WIDGET_SERVICE_MODEL_FAILURE_MAX_RETRY_ATTEMPTS` 控制；fallback 使用独立的
+`WIDGET_SERVICE_FALLBACK_MODEL_FAILURE_MAX_RETRY_ATTEMPTS`。两者默认 `1`，合法范围 `1～10`。退避等待
+不占用工作线程或模型并发令牌，等待结束后重新参与模型并发排队。conversion/Validator error 不直接切换
+fallback，而是由 `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY` 触发定向 repair；每轮 repair 重新从
+master 开始。
+
+若 master/fallback 的额外重试次数是 `M/F`、repair 上限是 `R`，开启重试后单个模型阶段最多调用
+`(1 + M) + (1 + F)` 次，整个请求最多调用 `(1 + R) × [(1 + M) + (1 + F)]` 次。关闭重试时每个模型
+阶段只调用 master `1` 次。
 
 `WIDGET_SERVICE_MODEL_PROMPT_LOG_PREVIEW_CHARS` 默认值为 `30`。首次生成日志只记录 system prompt 的前
 N 个字符、system prompt 总字符数和消息数量，不记录完整 system/user 消息；配置为 `0` 时不记录任何
 提示词正文。repair 请求继续保持完整载荷不落日志。
 
 `WIDGET_SERVICE_MODEL_MAX_CONCURRENCY` 默认 `20`，由应用生命周期唯一模型 Runtime 的共享 Semaphore
-执行。MEP、llmclient、三个生成接口、create/edit、模型失败重试和 repair 的每一次真实模型调用都要
-单独获取令牌；mock 不占令牌。排队和执行分别由 `WIDGET_SERVICE_MODEL_QUEUE_TIMEOUT_SECONDS` 与
-`WIDGET_SERVICE_MODEL_REQUEST_TIMEOUT_SECONDS` 控制，默认均为 120 秒。llmclient 超时后令牌保留到
-同步后台调用真正结束，避免物理并发超限。
+执行。MEP、DeepSeek Platform、llmclient、三个生成接口、create/edit、模型失败重试和 repair 的每一次
+真实模型调用都要单独获取令牌；mock 不占令牌。排队和执行分别由
+`WIDGET_SERVICE_MODEL_QUEUE_TIMEOUT_SECONDS` 与 `WIDGET_SERVICE_MODEL_REQUEST_TIMEOUT_SECONDS` 控制，
+默认均为 120 秒。llmclient 超时后令牌保留到同步后台调用真正结束，避免物理并发超限。
 
-`WIDGET_SERVICE_DEEPSEEK_*` 用于 llmclient：配置 WebSocket 地址、鉴权和请求身份、模型采样参数、最大
+`WIDGET_SERVICE_OPENAI_MASTER_CLIENT` 和 `WIDGET_SERVICE_OPENAI_FALLBACK_CLIENT` 只允许配置
+`deepseek_platform` 或 `llmclient`，并且不能相同。DeepSeek Platform 的 SK 只从
+`WIDGET_SERVICE_DEEPSEEK_PLATFORM_SECRET_KEY_STS_CONFIG_KEY` 指定的 STS key 读取，默认 key 为
+`genui.deepseek.platform.secret.key`；普通配置和日志中不保存 SK。AK、WebSocket URL、模型名、业务 API
+Key、sender、receiver、messageName、默认国家和默认 App 使用 `WIDGET_SERVICE_DEEPSEEK_PLATFORM_*`
+配置。会话、交互、设备、国家、App 版本和 App 名称由每次 WebSocket 请求构造，同一请求的首次生成、
+重试和 repair 复用，后续请求不会串用。
+
+`WIDGET_SERVICE_DEEPSEEK_*` 仍只用于 fallback llmclient：配置 WebSocket 地址、鉴权和请求身份、模型采样参数、最大
 Token、思考/usage 开关及连接接收超时。默认值与配置抽离前 llmclient 的固定参数一致；生产环境应通过
 部署环境变量覆盖鉴权、地址和请求身份。
 

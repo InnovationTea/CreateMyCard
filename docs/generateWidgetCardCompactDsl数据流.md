@@ -3,13 +3,17 @@
 本文描述 `generateWidgetCardCompactDsl` WebSocket 接口在当前微服务代码中的真实数据流。接口契约及
 规则仍以 `云侧方案设计.md` 为准；本文用于开发、联调和问题定位。
 
+![generateWidgetCardCompactDsl 完整流程图](./generate-widget-card-compact-dsl-flow.png)
+
+可缩放矢量版本：[`generate-widget-card-compact-dsl-flow.svg`](./generate-widget-card-compact-dsl-flow.svg)
+
 ## 1. 接口定位
 
 - WebSocket 路径：`/api/v1/ws/tools/generateWidgetCardCompactDsl`
 - 请求模型：`GenerateWidgetCardRequest`
 - 模型源格式：Design Compact DSL
 - 最终 `genui`：由确定性转换器生成的标准三段 A2UI JSONL
-- 默认模型后端：`design_compact_model_backend`，当前默认值为 `llmclient`
+- 默认模型后端：`design_compact_model_backend`，当前默认值为 `openai`
 - 支持创建：是
 - 支持多轮编辑：是，由 `enable_widget_edit` 控制
 - 支持动态数据和事件：是
@@ -357,7 +361,8 @@ Compact DSL，再由 Processor 转换为标准 A2UI。
 
 - `enable_a2ui_model_mock=true`：根据尺寸读取
   `mock.design-compact-dsl-2x2.dat` 或 `mock.design-compact-dsl-2x4.dat`。
-- mock 关闭：调用 `design_compact_model_backend`，当前默认 `llmclient`。
+- mock 关闭：调用 `design_compact_model_backend`，当前默认 `openai`。该复合后端默认先调用
+  DeepSeek Platform，模型异常重试耗尽后再切换到 llmclient。
 
 模型源输出示例：
 

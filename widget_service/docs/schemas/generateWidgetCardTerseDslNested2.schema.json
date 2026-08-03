@@ -17,7 +17,7 @@
             "required": false,
             "description": "上一轮完整 artifact URL；缺失表示首次生成，非空值表示基于 designcompactdsl 中的 Terse Design Token 编辑。"
           },
-          "size": {"type": "string", "enum": ["2x2", "2x4"], "default": "2x4"},
+          "size": {"type": "string", "enum": ["2x2", "2x4"], "default": "2x2"},
           "title": {"type": "string", "minLength": 1},
           "description": {"type": "string", "minLength": 1},
           "candidateAssetIds": {

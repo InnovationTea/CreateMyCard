@@ -17,12 +17,14 @@ from api.schemas import (
     DataCapabilitySchemasRequest,
     GenerateWidgetCardRequest,
     ToolRequestEnvelope,
+    VersionedToolRequest,
 )
 from app.logger import json_for_log, logger, task_logger
 from app.websocket_metrics import websocket_metrics
 from config.config import get_settings
 from core.errors import ErrorCode
 from custom.model_runtime import ModelExecutionRuntime
+from models.generation import ModelRequestContext
 from models.service import (
     WidgetPluginReply,
     WidgetPluginStreamResponse,
@@ -230,6 +232,68 @@ def _normalize_payload(
     return payload.get("requestId"), payload.get("arguments", payload)
 
 
+def _mapping(value: Any) -> dict[str, Any]:
+    """把请求中的可选对象安全归一化为字典。"""
+    return value if isinstance(value, dict) else {}
+
+
+def _first_text(*values: Any, default: str = "") -> str:
+    """按顺序选择第一个非空值并转换为字符串。"""
+    for value in values:
+        if value is not None and str(value).strip():
+            return str(value)
+    return default
+
+
+def _model_request_context_from_payload(
+    payload: dict[str, Any],
+    request: VersionedToolRequest,
+) -> ModelRequestContext:
+    """从原始工具请求构造模型服务使用的稳定动态上下文。"""
+    settings = get_settings()
+    session = _mapping(payload.get("session"))
+    device_info = _mapping(payload.get("deviceInfo"))
+    content = _mapping(payload.get("content"))
+    arguments = _mapping(payload.get("arguments"))
+    session_id = _first_text(session.get("sessionId"), default=uuid.uuid4().hex)
+    interaction_id = _first_text(
+        session.get("interactionId"),
+        default=uuid.uuid4().hex,
+    )
+    device_id = _first_text(
+        session.get("deviceId"),
+        device_info.get("deviceId"),
+        request.device.deviceId,
+        default=f"aiwidget-{uuid.uuid4().hex}",
+    )
+    app_version = _first_text(
+        session.get("clientVersion"),
+        session.get("prdVer"),
+        device_info.get("prdVer"),
+        request.prdVer,
+        default=settings.default_prd_version,
+    )
+    app_name = _first_text(
+        session.get("packageName"),
+        payload.get("bundleName"),
+        content.get("bundleName"),
+        arguments.get("bundleName"),
+        default=settings.deepseek_platform_default_app_name,
+    )
+    country_code = _first_text(
+        device_info.get("countryCode"),
+        default=settings.deepseek_platform_default_country_code,
+    )
+    return ModelRequestContext(
+        session_id=session_id,
+        interaction_id=interaction_id,
+        device_id=device_id,
+        country_code=country_code,
+        app_version=app_version,
+        app_name=app_name,
+    )
+
+
 def _error_details(exc: ValidationError | ValueError) -> list[dict[str, Any]] | str:
     """将参数异常转换成可序列化详情。
 
@@ -378,7 +442,7 @@ async def _heartbeat_sender(
             await websocket.send_text(partial_json)
     except asyncio.CancelledError:
         logger.error(f"{_MODULE} widget_operation_ws_heartbeat_cancelled")
-        pass
+        return
     except Exception:
         logger.error(f"{_MODULE} widget_operation_ws_heartbeat_failed", exc_info=True)
 
@@ -486,6 +550,11 @@ async def _serve_operation_websocket(
                     source_rom_version = device_arguments.pop("_sourceRomVersion", None)
                 request = request_model(**arguments)
                 request.device._source_rom_version = source_rom_version
+                if operation in GENERATION_OPERATIONS:
+                    request._model_request_context = _model_request_context_from_payload(
+                        payload,
+                        request,
+                    )
                 request_log = json_for_log(
                     request.model_dump(
                         mode="json",

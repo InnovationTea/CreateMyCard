@@ -265,7 +265,7 @@ _COLOR_TOKENS = {
 _TEXT_DESIGNS: dict[str, dict[str, Any]] = {
     "display-l": {"fontSize": 56, "fontWeight": 300},
     "display-m": {"fontSize": 48, "fontWeight": 300},
-    "display-s": {"fontSize": 38, "fontWeight": 700},
+    "display-s": {"fontSize": 36, "fontWeight": 700},
     "title-l": {"fontSize": 30, "fontWeight": 700},
     "title-m": {"fontSize": 24, "fontWeight": 700},
     "title-s": {"fontSize": 20, "fontWeight": 700},
@@ -322,6 +322,21 @@ _PROGRESS_DESIGNS: dict[str, dict[str, Any]] = {
         "layoutWeight": 1,
         "backgroundColor": "comp_background_secondary",
     },
+    "segmented-bar": {
+        "type": "linear",
+        "width": "matchParent",
+        "height": 8,
+        "borderRadius": 4,
+        "backgroundColor": "comp_background_secondary",
+    },
+    "threshold-bar": {
+        "type": "linear",
+        "width": "matchParent",
+        "height": 20,
+        "borderRadius": 10,
+        "backgroundColor": "#6B7F91",
+        "color": "#C8F000",
+    },
     "ring": {
         "type": "ring",
         "width": "matchParent",
@@ -344,6 +359,19 @@ _DIVIDER_DESIGNS: dict[str, dict[str, Any]] = {
     },
 }
 _CHECKBOX_DESIGNS: dict[str, dict[str, Any]] = {
+    "default": {
+        "width": 20,
+        "height": 20,
+        "borderRadius": 10,
+        "selectedColor": "#FF0A59F7",
+        "unSelectedColor": "#66000000",
+        "mark": {
+            "strokeColor": "#FFFFFFFF",
+            "size": 20,
+            "strokeWidth": 2,
+        },
+        "shape": "circle",
+    },
     "check": {
         "width": 16,
         "height": 16,

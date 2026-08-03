@@ -37,7 +37,7 @@
             "type": "string",
             "enum": ["2x2", "2x4"],
             "required": false,
-            "default": "2x4",
+            "default": "2x2",
             "description": "主 Agent 建议尺寸。"
           },
           "title": {

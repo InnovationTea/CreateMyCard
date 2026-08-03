@@ -36,8 +36,21 @@ class Settings(BaseSettings):
     default_device_rom_version: str = "6.0"
     default_prd_version: str = "11.7.5.205"
     enable_a2ui_model_mock: bool = True
-    a2ui_form_model_backend: Literal["mep", "llmclient"] = "mep"
-    design_compact_model_backend: Literal["mep", "llmclient"] = "llmclient"
+    a2ui_form_model_backend: Literal["mep", "openai"] = "mep"
+    design_compact_model_backend: Literal["mep", "openai"] = "openai"
+    openai_master_client: Literal["deepseek_platform", "llmclient"] = "deepseek_platform"
+    openai_fallback_client: Literal["deepseek_platform", "llmclient"] = "llmclient"
+    # DeepSeek Platform 使用 STS 中的 SK 签名；普通配置中只保存 AK 和 STS key 名。
+    deepseek_platform_access_key: str = ""
+    deepseek_platform_secret_key_sts_config_key: str = "genui.deepseek.platform.secret.key"
+    deepseek_platform_ws_url: str = ""
+    deepseek_platform_model_name: str = "AGENT-DEEPSEEK-V4-FLASH"
+    deepseek_platform_api_key: str = "AccessService"
+    deepseek_platform_sender: str = "superagent"
+    deepseek_platform_receiver: str = "LLM-WS"
+    deepseek_platform_message_name: str = "llmRecognize"
+    deepseek_platform_default_country_code: str = "CN"
+    deepseek_platform_default_app_name: str = "com.huawei.hmos.vassistant"
     # llmclient 使用的 DeepSeek 兼容 WebSocket 请求参数；默认值保持原客户端行为。
     deepseek_api_key: str = "AccessService"
     deepseek_model: str = "deepseek-ai/DeepSeek-V4-Flash"
@@ -71,6 +84,7 @@ class Settings(BaseSettings):
     # 模型调用异常按异步指数退避重试；与 DSL error 触发定向 repair 的开关相互独立。
     enable_model_failure_retry: bool = False
     model_failure_max_retry_attempts: int = Field(default=1, ge=1, le=10)
+    fallback_model_failure_max_retry_attempts: int = Field(default=1, ge=1, le=10)
     model_failure_retry_initial_delay_seconds: float = Field(default=1.0, gt=0.0, le=300.0)
     model_failure_retry_max_delay_seconds: float = Field(default=30.0, gt=0.0, le=600.0)
     model_failure_retry_backoff_multiplier: float = Field(default=2.0, ge=1.0, le=10.0)
@@ -97,6 +111,8 @@ class Settings(BaseSettings):
         initial_delay = self.model_failure_retry_initial_delay_seconds
         if max_delay < initial_delay:
             raise ValueError("model failure retry max delay must not be less than initial delay")
+        if self.openai_master_client == self.openai_fallback_client:
+            raise ValueError("OpenAI master and fallback clients must be different")
         return self
 
     if platform.system() == "Windows":
