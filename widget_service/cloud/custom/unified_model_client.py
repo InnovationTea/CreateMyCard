@@ -82,28 +82,34 @@ class UnifiedModelClient:
 
     def _provider_plans(self, backend: ModelBackend) -> tuple[ProviderAttemptPlan, ...]:
         master_retry_count = self._retry_count_for_role("master")
+        plans: list[ProviderAttemptPlan] = []
         if backend == "mep":
-            return (
+            plans.append(
                 ProviderAttemptPlan(
                     provider="mep",
                     role="master",
                     max_retry_attempts=master_retry_count,
-                ),
+                )
             )
-        master = ProviderAttemptPlan(
-            provider=self.settings.openai_master_client,
-            role="master",
-            max_retry_attempts=master_retry_count,
-        )
-        fallback_enabled = self.settings.enable_openai_fallback
-        if not self.settings.enable_model_failure_retry or not fallback_enabled:
-            return (master,)
-        fallback = ProviderAttemptPlan(
-            provider=self.settings.openai_fallback_client,
-            role="fallback",
-            max_retry_attempts=self._retry_count_for_role("fallback"),
-        )
-        return master, fallback
+        else:
+            plans.append(
+                ProviderAttemptPlan(
+                    provider=self.settings.openai_master_client,
+                    role="master",
+                    max_retry_attempts=master_retry_count,
+                )
+            )
+            fallback_enabled = self.settings.enable_openai_fallback
+            retry_enabled = self.settings.enable_model_failure_retry
+            if retry_enabled and fallback_enabled:
+                plans.append(
+                    ProviderAttemptPlan(
+                        provider=self.settings.openai_fallback_client,
+                        role="fallback",
+                        max_retry_attempts=self._retry_count_for_role("fallback"),
+                    )
+                )
+        return tuple(plans)
 
     def _retry_count_for_role(self, role: str) -> int:
         if not self.settings.enable_model_failure_retry:
