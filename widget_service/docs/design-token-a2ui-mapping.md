@@ -95,16 +95,17 @@ Text `design` 只展开字号和字重，颜色由实例的 `fontColor` 决定�
 
 | A2UI styles 字段 | 值 |
 | --- | --- |
-| `width` | `36` |
-| `height` | `36` |
-| `borderRadius` | `18` |
+| `width` | `30` |
+| `height` | `30` |
+| `borderRadius` | `15` |
 | `padding` | `0` |
 | `backgroundColor` | `#0C000000` |
 | `flexShrink` | `0` |
 
-支持状态：几何和背景完整支持。标准 A2UI Form Button 使用 `label`，不支持子节点。为兼容
-PROMPT.md 允许的单个行内 `Image`，转换器会验证该子节点后将其移除，并保留 Button 的
-`label`、`onClick` 和设计样式。该行为属于**降级支持**，图标不会出现在 A2UI 输出中。
+支持状态：几何和背景完整支持。`label` 只保留在 Design Compact DSL 中表达动作语义；
+转换为 A2UI 时会被移除，端侧不会绘制 label 文字。标准 A2UI Form Button 不支持子节点。
+为兼容 PROMPT.md 允许的单个行内 `Image`，转换器会验证该子节点后将其移除，并保留
+Button 的 `onClick` 和设计样式。该行为属于**降级支持**，图标不会出现在 A2UI 输出中。
 
 兼容规则：
 

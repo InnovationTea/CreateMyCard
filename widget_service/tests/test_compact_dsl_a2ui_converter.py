@@ -212,10 +212,11 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         normalized = normalize_compact_dsl_design_tokens(compact_dsl)
         action = json.loads(normalized.splitlines()[1])
 
-        self.assertEqual(action[2]["width"], 36)
-        self.assertEqual(action[2]["height"], 36)
-        self.assertEqual(action[2]["borderRadius"], 18)
+        self.assertEqual(action[2]["width"], 30)
+        self.assertEqual(action[2]["height"], 30)
+        self.assertEqual(action[2]["borderRadius"], 15)
         self.assertEqual(action[2]["padding"], 0)
+        self.assertIn("label", action[2])
         self.assertNotIn("design", action[2])
 
     def test_degrades_button_image_child_to_a2ui_leaf(self) -> None:
@@ -281,6 +282,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             ["root", "action"],
         )
         self.assertNotIn("children", components[1])
+        self.assertNotIn("label", components[1])
 
     def test_removes_empty_children_from_leaf_component(self) -> None:
         compact_dsl = _serialize(
