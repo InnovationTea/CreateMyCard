@@ -2543,13 +2543,16 @@ def test_design_converter_expands_latest_design_tokens():
     design_dsl = "\n".join(
         (
             '["root","Column",{"width":160,"height":160,"padding":8,'
-            '"itemMargin":4},["hero","title","progress","check"]]',
+            '"itemMargin":4},["hero","title","button","progress","small_progress","check"]]',
             '["hero","Image",{"src":"resources/base/media/sun_max.svg",'
             '"design":"icon-lg","fillColor":"icon_fourth"}]',
             '["title","Text",{"content":"电量","design":"display-s",'
             '"fontColor":"font_primary"}]',
             '["progress","Progress",{"value":68,"total":100,'
             '"design":"ring"}]',
+            '["small_progress","Progress",{"value":32,"total":100,'
+            '"design":"linear-bar-small"}]',
+            '["button","Button",{"label":"info","design":"icon-round"}]',
             '["check","Checkbox",{"label":"省电","select":true,'
             '"design":"check"}]',
         )
@@ -2569,9 +2572,13 @@ def test_design_converter_expands_latest_design_tokens():
     assert component_by_id["hero"]["styles"]["width"] == "matchParent"
     assert component_by_id["hero"]["styles"]["fillColor"] == "#33000000"
     assert component_by_id["title"]["styles"]["fontSize"] == 36
+    assert component_by_id["button"]["styles"]["width"] == 30
+    assert component_by_id["button"]["styles"]["borderRadius"] == 15
     assert component_by_id["progress"]["styles"]["type"] == "ring"
     assert component_by_id["progress"]["styles"]["strokeWidth"] == 6
     assert component_by_id["progress"]["styles"]["color"] == "#FFF9A01E"
+    assert component_by_id["small_progress"]["styles"]["height"] == 4
+    assert component_by_id["small_progress"]["styles"]["borderRadius"] == 2
     assert component_by_id["check"]["styles"]["shape"] == "rounded_square"
     assert component_by_id["check"]["styles"]["selectedColor"] == "#33FFFFFF"
 
