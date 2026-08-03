@@ -1131,6 +1131,7 @@ def test_public_tool_schemas_do_not_expose_version_overrides():
         "getDataCapabilitySchemas.schema.json",
         "generateWidgetCard.schema.json",
         "generateWidgetCardCompactDsl.schema.json",
+        "generateWidgetCardCompactDslWithDirective.schema.json",
         "generateWidgetCardTerseDslNested2.schema.json",
     ]
 

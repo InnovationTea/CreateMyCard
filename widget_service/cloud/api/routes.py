@@ -41,12 +41,18 @@ _MODULE = "[WS Router]"
 
 router = APIRouter(prefix="/api/v1")
 
+TEMPORARY_COMPACT_DIRECTIVE_OPERATION = "generateWidgetCardCompactDslWithDirective"
 GENERATION_OPERATIONS = frozenset(
     {
         "generateWidgetCard",
         "generateWidgetCardCompactDsl",
         "generateWidgetCardTerseDslNested2",
+        TEMPORARY_COMPACT_DIRECTIVE_OPERATION,
     }
+)
+# 临时接口只在路由层强制开启指令帧；删除临时入口时一并删除该集合即可。
+FORCED_WIDGET_DIRECTIVE_OPERATIONS = frozenset(
+    {TEMPORARY_COMPACT_DIRECTIVE_OPERATION}
 )
 
 ERROR_EXPLANATIONS = {
@@ -305,7 +311,9 @@ async def _send_widget_directive_command(
     artifact_url: str = "",
 ) -> bool:
     """按开关发送生成进度指令，不改变原有业务帧和异常处理。"""
-    if not get_settings().enable_widget_directive_commands:
+    settings_enabled = get_settings().enable_widget_directive_commands
+    operation_forced = operation in FORCED_WIDGET_DIRECTIVE_OPERATIONS
+    if not settings_enabled and not operation_forced:
         return True
     response = build_widget_directive_response(
         raw_payload,
@@ -728,6 +736,23 @@ async def generate_widget_card_compact_dsl_ws(websocket: WebSocket):
     await _serve_operation_websocket(
         websocket,
         "generateWidgetCardCompactDsl",
+        GenerateWidgetCardRequest,
+        lambda service, request, before_model_call: service.generate_widget_card_compact_dsl(
+            request,
+            before_model_call=before_model_call,
+        ),
+        heartbeat=True,
+        heartbeat_interval=6.0,
+        handler_in_threadpool=False,
+    )
+
+
+@router.websocket(f"/ws/tools/{TEMPORARY_COMPACT_DIRECTIVE_OPERATION}")
+async def generate_widget_card_compact_dsl_with_directive_ws(websocket: WebSocket):
+    """临时复用第四接口，并始终发送端侧指令帧。"""
+    await _serve_operation_websocket(
+        websocket,
+        TEMPORARY_COMPACT_DIRECTIVE_OPERATION,
         GenerateWidgetCardRequest,
         lambda service, request, before_model_call: service.generate_widget_card_compact_dsl(
             request,

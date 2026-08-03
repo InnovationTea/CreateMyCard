@@ -88,8 +88,8 @@ a2ui-form-rom6.0-v1
 
 ## 3. WebSocket 接口
 
-当前微服务提供五个工具能力，其中第四个是 Design Compact DSL 生成变体，第五个是
-TerseDSL-Nested-2 静态生成变体。客户端连接目标 path 后，
+当前微服务提供五个正式工具能力和一个临时指令验证接口，其中第四个是 Design Compact DSL 生成变体，
+第五个是 TerseDSL-Nested-2 静态生成变体。客户端连接目标 path 后，
 消息体只需要传该能力自己的参数，不需要再传 `operation`。新协议中的 `odid` 位于 `content.odid`，
 字段可选；服务会将其映射到内部设备上下文，缺失或为空时 IDS 查询继续使用固定兜底值，且不从
 `deviceInfo` 读取同名字段。用户和设备上下文由工具层自动注入，本地测试时可以显式传入。
@@ -101,8 +101,14 @@ WS /api/v1/ws/tools/getWidgetCapabilityOverview
 WS /api/v1/ws/tools/getDataCapabilitySchemas
 WS /api/v1/ws/tools/generateWidgetCard
 WS /api/v1/ws/tools/generateWidgetCardCompactDsl
+WS /api/v1/ws/tools/generateWidgetCardCompactDslWithDirective
 WS /api/v1/ws/tools/generateWidgetCardTerseDslNested2
 ```
+
+`generateWidgetCardCompactDslWithDirective` 是临时路由别名，请求和响应 schema 与第四接口一致，内部直接
+调用同一个 `generate_widget_card_compact_dsl()` Service 方法。该 operation 在路由层强制发送
+`AIWidgetStart/AIWidgetEnd` 指令，不受 `WIDGET_SERVICE_ENABLE_WIDGET_DIRECTIVE_COMMANDS` 影响；第四接口
+继续由全局开关控制。
 
 `generateWidgetCard` 固定使用标准 A2UI Form profile，后端由
 `WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND` 选择；`generateWidgetCardCompactDsl` 根据 App/ROM 区间选择

@@ -993,6 +993,101 @@ def test_generation_routes_send_start_and_success_commands(monkeypatch):
         assert start_command["session"]["messageId"] != success_command["session"]["messageId"]
 
 
+def test_temporary_compact_route_forces_directives_without_global_switch(monkeypatch):
+    """验证临时接口复用第四接口结果，但在全局开关关闭时仍发送指令。"""
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_widget_directive_commands", False)
+    monkeypatch.setattr(A2UIModelClient, "generate", _valid_model_output)
+    monkeypatch.setattr(
+        ArtifactStore,
+        "save",
+        lambda _store, _artifact: ArtifactSaveResult(
+            artifactUrl="https://test.invalid/widget/temporary-directive.json",
+            artifactDigest="sha256:temporary-directive",
+        ),
+    )
+    content = {
+        "userQuery": "生成静态天气卡片",
+        "size": "2x4",
+        "title": "天气",
+        "description": "天气概览",
+        "candidateDataBindings": [],
+        "candidateEventCandidates": [],
+        "candidateAssetIds": [],
+    }
+    client = TestClient(app)
+    standard_interaction_id = "directive-standard-disabled"
+    temporary_interaction_id = "directive-temporary-forced"
+
+    with client.websocket_connect(
+        "/api/v1/ws/tools/generateWidgetCardCompactDsl"
+    ) as websocket:
+        websocket.send_json(_tool_payload(content, standard_interaction_id))
+        standard_frames = _receive_frames_until_final(
+            websocket,
+            _request_id(standard_interaction_id),
+        )
+
+    temporary_operation = "generateWidgetCardCompactDslWithDirective"
+    with client.websocket_connect(
+        f"/api/v1/ws/tools/{temporary_operation}"
+    ) as websocket:
+        websocket.send_json(_tool_payload(content, temporary_interaction_id))
+        temporary_frames = _receive_frames_until_final(
+            websocket,
+            _request_id(temporary_interaction_id),
+        )
+
+    standard_types = [item["reply"]["streamInfo"]["streamType"] for item in standard_frames]
+    temporary_types = [
+        item["reply"]["streamInfo"]["streamType"] for item in temporary_frames
+    ]
+    assert standard_types == ["start", "final"]
+    assert temporary_types == ["start", "command", "command", "final"]
+    standard_message = _assert_success_envelope(
+        standard_frames[-1],
+        "generateWidgetCardCompactDsl",
+        _request_id(standard_interaction_id),
+    )
+    temporary_message = _assert_success_envelope(
+        temporary_frames[-1],
+        temporary_operation,
+        _request_id(temporary_interaction_id),
+    )
+    assert temporary_message["data"] == standard_message["data"]
+    assert get_settings().enable_widget_directive_commands is False
+
+
+def test_temporary_compact_route_forces_failure_directive(monkeypatch):
+    """验证临时接口在模型调用前失败时也无条件发送失败结束指令。"""
+    monkeypatch.setattr(get_settings(), "enable_widget_directive_commands", False)
+    interaction_id = "directive-temporary-invalid"
+    request_id = _request_id(interaction_id)
+    request = _tool_payload(
+        {
+            "userQuery": "生成卡片",
+            "size": "invalid-size",
+            "title": "卡片",
+            "description": "非法尺寸",
+        },
+        interaction_id,
+    )
+    client = TestClient(app)
+
+    with client.websocket_connect(
+        "/api/v1/ws/tools/generateWidgetCardCompactDslWithDirective"
+    ) as websocket:
+        websocket.send_json(request)
+        frames = _receive_frames_until_final(websocket, request_id)
+
+    frame_types = [item["reply"]["streamInfo"]["streamType"] for item in frames]
+    assert frame_types == ["command", "final"]
+    failure_command = _command_content(frames[0])
+    assert failure_command["directives"][0]["payload"] == {
+        "executeParam": {"status": False, "intentName": "AIWidgetEnd"}
+    }
+
+
 def test_generation_validation_error_sends_failure_command(monkeypatch):
     """验证模型调用前的请求失败只发送失败结束指令。"""
     monkeypatch.setattr(get_settings(), "enable_widget_directive_commands", True)

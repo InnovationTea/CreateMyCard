@@ -21,6 +21,9 @@ The service follows `docs/AGENTS.md`:
   literal-only parser. It never executes model output and deterministically converts the nested component tree to
   standard A2UI. It supports static create/edit requests and shares the edit switch with the other generation
   routes; dynamic data bindings and events remain unsupported.
+- Temporary route `generateWidgetCardCompactDslWithDirective` directly reuses the fourth route's generation service
+  and schema, but always emits widget directive command frames even when the global directive switch is disabled.
+  Its forced behavior is isolated in the router so the route can be removed without changing the generation pipeline.
 - `WIDGET_SERVICE_ENABLE_IDS_MOCK=true` by default. In this mode the service reads only `WIDGET_SERVICE_MOCK_IDS_RESPONSE_PATH`, whose default path is the service-internal `cloud/data/mock/ids_res.json`; a missing or invalid mock produces an empty IDS result and never falls back to remote IDS. When set to `false`, the service ignores the mock and queries only the real remote IDS; remote failure produces an empty result and never falls back to mock.
 - `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY=false` by default. It controls targeted repair for both source
   DSL conversion errors and Validator errors. `WIDGET_SERVICE_VALIDATION_FAILURE_MAX_REPAIR_ATTEMPTS=1` limits
