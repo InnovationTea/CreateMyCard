@@ -407,9 +407,9 @@ _COMPACT_ROOT_DIMENSIONS = {
     "4x2": {"width": 320, "height": 160},
 }
 _A2UI_FALLBACK_DIMENSIONS = {
-    "2x2": {"width": 140, "height": 140},
-    "2x4": {"width": 300, "height": 140},
-    "4x2": {"width": 300, "height": 140},
+    "2x2": {"width": 160, "height": 160},
+    "2x4": {"width": 320, "height": 160},
+    "4x2": {"width": 320, "height": 160},
 }
 _BUTTON_LABEL_FALLBACKS = (
     (("navigate", "startnavigate", "location", "map"), "导航"),
@@ -605,6 +605,7 @@ def convert_compact_dsl_to_a2ui(
         hide_label = component.component_id in icon_round_button_ids
         converted_components.append(_convert_component(component, hide_label=hide_label))
 
+    surface_dimensions = _surface_dimensions(size, protocol_profile)
     version = str(protocol_profile.get("version") or "v0.9")
     messages = [
         {
@@ -612,6 +613,8 @@ def convert_compact_dsl_to_a2ui(
             "createSurface": {
                 "surfaceId": surface_id,
                 "catalogId": _A2UI_FORM_CATALOG_ID,
+                "width": surface_dimensions["width"],
+                "height": surface_dimensions["height"],
             },
         },
         {
@@ -1816,6 +1819,8 @@ def _surface_dimensions(
 ) -> dict[str, int]:
     if size not in _A2UI_FALLBACK_DIMENSIONS:
         raise CompactDslConversionError(f'Unsupported Form size "{size}".')
+    if size in _COMPACT_ROOT_DIMENSIONS:
+        return copy.deepcopy(_COMPACT_ROOT_DIMENSIONS[size])
     sizes = protocol_profile.get("sizes")
     dimensions = _profile_dimensions(size, sizes)
     if dimensions is not None:
