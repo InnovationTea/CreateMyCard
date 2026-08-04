@@ -284,6 +284,41 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertNotIn("children", components[1])
         self.assertNotIn("label", components[1])
 
+    def test_repairs_empty_button_label(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": 160, "height": 160},
+                    ["navigate_btn"],
+                ],
+                [
+                    "navigate_btn",
+                    "Button",
+                    {
+                        "label": "",
+                        "onClick": [
+                            {
+                                "call": "clickToIntent",
+                                "args": {"intentName": "StartNavigate"},
+                            },
+                        ],
+                    },
+                ],
+            ]
+        )
+
+        a2ui = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+        messages = [json.loads(line) for line in a2ui.splitlines()]
+        components = messages[1]["updateComponents"]["components"]
+
+        self.assertEqual(components[1]["label"], "导航")
+
     def test_removes_empty_children_from_leaf_component(self) -> None:
         compact_dsl = _serialize(
             [
@@ -604,13 +639,38 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         with self.assertRaisesRegex(
             CompactDslConversionError,
-            "root Column component is missing; model output may be truncated",
+            "root Row/Column component is missing; model output may be truncated",
         ):
             convert_compact_dsl_to_a2ui(
                 "\n".join(source_rows),
                 size="2x2",
                 protocol_profile=self.profile,
             )
+
+    def test_accepts_root_row_for_wide_card(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Row",
+                    {"width": 320, "height": 160, "itemMargin": 8},
+                    ["title", "value"],
+                ],
+                ["title", "Text", {"content": "通勤助手"}],
+                ["value", "Text", {"content": "09:30"}],
+            ]
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x4",
+            protocol_profile=self.profile,
+        )
+        update_components = json.loads(result.splitlines()[1])
+        components = update_components["updateComponents"]["components"]
+
+        self.assertEqual(components[0]["id"], "root")
+        self.assertEqual(components[0]["component"], "Row")
 
     def test_repairs_trailing_comma_and_missing_eof_closer(self) -> None:
         source_rows = self.compact_dsl.splitlines()
