@@ -597,7 +597,6 @@ def convert_compact_dsl_to_a2ui(
         hide_label = component.component_id in icon_round_button_ids
         converted_components.append(_convert_component(component, hide_label=hide_label))
 
-    dimensions = _surface_dimensions(size, protocol_profile)
     version = str(protocol_profile.get("version") or "v0.9")
     messages = [
         {
@@ -605,8 +604,6 @@ def convert_compact_dsl_to_a2ui(
             "createSurface": {
                 "surfaceId": surface_id,
                 "catalogId": _A2UI_FORM_CATALOG_ID,
-                "width": dimensions["width"],
-                "height": dimensions["height"],
             },
         },
         {
