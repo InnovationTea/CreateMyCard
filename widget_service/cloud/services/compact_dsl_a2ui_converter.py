@@ -27,6 +27,7 @@ _COMPONENT_TYPES = frozenset(
     }
 )
 _CONTAINER_TYPES = frozenset({"Row", "Column", "List", "Stack"})
+_ROOT_COMPONENT_TYPES = frozenset({"Row", "Column"})
 _SEMANTIC_FIELDS = {
     "Text": frozenset({"content"}),
     "Image": frozenset({"src"}),
@@ -410,6 +411,13 @@ _A2UI_FALLBACK_DIMENSIONS = {
     "2x4": {"width": 300, "height": 140},
     "4x2": {"width": 300, "height": 140},
 }
+_BUTTON_LABEL_FALLBACKS = (
+    (("navigate", "startnavigate", "location", "map"), "导航"),
+    (("weather", "forecast"), "天气"),
+    (("alarm", "clock"), "闹钟"),
+    (("music", "song"), "音乐"),
+    (("setting", "settings"), "设置"),
+)
 
 
 class CompactDslConversionError(ValueError):
@@ -841,7 +849,7 @@ def _canonicalize_component_order(rows: list[CompactRow]) -> list[CompactRow]:
     root = components_by_id.get("root")
     if root is None:
         return rows
-    if root.component_type != "Column":
+    if root.component_type not in _ROOT_COMPONENT_TYPES:
         return rows
 
     ordered_components: list[ComponentRow] = []
@@ -934,6 +942,7 @@ def _parse_component_row(value: list[Any], line_number: int) -> ComponentRow:
         props,
         line_number,
     )
+    props = _repair_button_label(component_id, component_type, props)
     children = _parse_children(value, component_id, component_type)
     _validate_component_props(component_id, component_type, props)
     return ComponentRow(
@@ -1229,6 +1238,62 @@ def _validate_button_label(component_id: str, label: Any) -> None:
         )
 
 
+def _repair_button_label(
+    component_id: str,
+    component_type: str,
+    props: dict[str, Any],
+) -> dict[str, Any]:
+    if component_type != "Button":
+        return props
+    label = props.get("label")
+    if isinstance(label, str) and label.strip():
+        return props
+
+    repaired = copy.deepcopy(props)
+    repaired["label"] = _fallback_button_label(component_id, props)
+    return repaired
+
+
+def _fallback_button_label(component_id: str, props: dict[str, Any]) -> str:
+    text = f"{component_id} {_button_action_hint(props)}".lower()
+    for keywords, fallback_label in _BUTTON_LABEL_FALLBACKS:
+        if _contains_keyword(text, keywords):
+            return fallback_label
+    return "打开"
+
+
+def _button_action_hint(props: dict[str, Any]) -> str:
+    handlers = props.get("onClick")
+    if not isinstance(handlers, list):
+        return ""
+
+    hints: list[str] = []
+    for handler in handlers:
+        if not isinstance(handler, dict):
+            continue
+        call = handler.get("call")
+        if isinstance(call, str):
+            hints.append(call)
+        args = handler.get("args")
+        if isinstance(args, dict):
+            _append_button_action_arg_hints(args, hints)
+    return " ".join(hints)
+
+
+def _append_button_action_arg_hints(args: dict[str, Any], hints: list[str]) -> None:
+    for key in ("intentName", "uri", "abilityName", "bundleName"):
+        value = args.get(key)
+        if isinstance(value, str):
+            hints.append(value)
+
+
+def _contains_keyword(text: str, keywords: tuple[str, ...]) -> bool:
+    for keyword in keywords:
+        if keyword in text:
+            return True
+    return False
+
+
 def _validate_semantic_props(
     component_id: str,
     component_type: str,
@@ -1438,14 +1503,14 @@ def _validate_component_tree(
     first_row = rows[0]
     if not isinstance(first_row, ComponentRow):
         raise CompactDslConversionError(
-            "The root Column component is missing; model output may be truncated."
+            "The root Row/Column component is missing; model output may be truncated."
         )
-    if first_row.component_id != "root" or first_row.component_type != "Column":
+    if first_row.component_id != "root" or first_row.component_type not in _ROOT_COMPONENT_TYPES:
         first_component = (
             f"{first_row.component_id}/{first_row.component_type}"
         )
         raise CompactDslConversionError(
-            "The root Column component is missing; model output may be "
+            "The root Row/Column component is missing; model output may be "
             f"truncated. First parsed component: {first_component}."
         )
 
