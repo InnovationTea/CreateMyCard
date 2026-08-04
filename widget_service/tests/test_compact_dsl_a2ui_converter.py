@@ -483,7 +483,8 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         messages = [json.loads(line) for line in a2ui.splitlines()]
 
         self.assertEqual(len(messages), 3)
-        self.assertEqual(messages[0]["createSurface"]["width"], 140)
+        self.assertNotIn("width", messages[0]["createSurface"])
+        self.assertNotIn("height", messages[0]["createSurface"])
         update = messages[1]["updateComponents"]
         self.assertEqual(update["root"], "root")
         components = {}
@@ -653,7 +654,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 protocol_profile=self.profile,
             )
 
-    def test_uses_2x4_profile_dimensions_for_4x2(self) -> None:
+    def test_omits_surface_dimensions_for_4x2(self) -> None:
         wide_rows = [
             [
                 "root",
@@ -676,8 +677,8 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         )
         create_surface = json.loads(result.splitlines()[0])["createSurface"]
 
-        self.assertEqual(create_surface["width"], 300)
-        self.assertEqual(create_surface["height"], 140)
+        self.assertNotIn("width", create_surface)
+        self.assertNotIn("height", create_surface)
 
     def test_rejects_legacy_action_and_row_space(self) -> None:
         legacy_action = _serialize(

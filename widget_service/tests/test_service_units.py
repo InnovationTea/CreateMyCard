@@ -2394,7 +2394,8 @@ async def test_a2ui_model_client_selects_design_compact_mock_by_task_size(
     assert root[2]["width"] == expected_width
     assert root[2]["height"] == 160
     assert len(converted_rows) == 3
-    assert converted_rows[0]["createSurface"]["width"] == expected_width - 20
+    assert "width" not in converted_rows[0]["createSurface"]
+    assert "height" not in converted_rows[0]["createSurface"]
 
 
 @pytest.mark.asyncio
@@ -2526,7 +2527,8 @@ def test_a2ui_model_client_converts_design_dsl_to_standard_dsl(monkeypatch):
     messages = [json_module.loads(line) for line in result.splitlines()]
 
     assert len(messages) == 3
-    assert messages[0]["createSurface"]["width"] == 140
+    assert "width" not in messages[0]["createSurface"]
+    assert "height" not in messages[0]["createSurface"]
     assert messages[1]["updateComponents"]["root"] == "root"
     assert messages[2]["updateDataModel"]["value"]["data"]["message"] == "欢迎回来"
     conversion_logs = [
@@ -2611,8 +2613,8 @@ def test_design_converter_reads_protocol_file_from_selected_design_profile(monke
     create_surface = json_module.loads(result.splitlines()[0])["createSurface"]
 
     assert selected_profiles == ["design-next"]
-    assert create_surface["width"] == 288
-    assert create_surface["height"] == 136
+    assert "width" not in create_surface
+    assert "height" not in create_surface
 
 
 def test_a2ui_model_client_design_test_task_spec_covers_weather_capabilities():
