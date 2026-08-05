@@ -151,6 +151,24 @@ def _request_id_from_envelope(envelope: ToolRequestEnvelope) -> str | None:
     return None
 
 
+def _request_id_from_raw_payload(payload: Any) -> str | None:
+    """在完整协议校验前，从原始请求中提取稳定的 requestId。"""
+    if not isinstance(payload, dict):
+        return None
+    session = payload.get("session")
+    if isinstance(session, dict):
+        session_id = str(session.get("sessionId") or "").strip()
+        interaction_id = str(session.get("interactionId") or "").strip()
+        if session_id and interaction_id:
+            return f"{session_id}&{interaction_id}"
+        if session_id:
+            return session_id
+    request_id = payload.get("requestId")
+    if request_id is None:
+        return None
+    return str(request_id).strip() or None
+
+
 def _pick_device_rom_version(device_info: dict[str, Any]) -> str:
     """从 deviceInfo 中读取 ROM 版本。
 
@@ -518,9 +536,9 @@ async def _serve_operation_websocket(
                 ):
                     return
                 continue
-            # 同一连接可连续发送多条消息，先清理上一条消息的 requestId，
-            # 避免协议归一化前的原始请求日志错误关联到旧请求。
-            task_logger.set_session_id("None")
+            # 完整协议校验前只提取关联 ID，保证原始请求日志也能归属当前轮次。
+            raw_request_id = _request_id_from_raw_payload(payload)
+            task_logger.set_session_id(raw_request_id or "None")
             logger.info(
                 f"widget_operation_ws_raw_request_received operation={operation} "
                 f"request_body={json_for_log(payload)}"

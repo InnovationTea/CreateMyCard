@@ -42,6 +42,7 @@ from api.routes import (
     _heartbeat_sender,
     _normalize_payload,
     _pick_device_rom_version,
+    _request_id_from_raw_payload,
 )
 from app.logger import json_for_log
 from config.config import Settings, get_settings
@@ -487,10 +488,31 @@ def test_websocket_handler_sets_request_id_to_logger_context():
     set_context_position = routes_source.index(
         'task_logger.set_session_id(request_id or "None")'
     )
+    raw_context_position = routes_source.index(
+        'task_logger.set_session_id(raw_request_id or "None")'
+    )
+    raw_request_log_position = routes_source.index(
+        "widget_operation_ws_raw_request_received"
+    )
     request_log_position = routes_source.index("widget_operation_ws_payload_received")
 
     assert "from app.logger import json_for_log, logger, task_logger" in routes_source
+    assert raw_context_position < raw_request_log_position
     assert set_context_position < request_log_position
+
+
+def test_raw_payload_request_id_uses_session_and_interaction_id():
+    assert _request_id_from_raw_payload(
+        {
+            "session": {
+                "sessionId": "session-001",
+                "interactionId": "round-003",
+            }
+        }
+    ) == "session-001&round-003"
+    assert _request_id_from_raw_payload({"requestId": "legacy-request"}) == (
+        "legacy-request"
+    )
 
 
 def test_json_for_log_uses_standard_json_syntax():

@@ -44,6 +44,10 @@ A2UIModelClient = importlib.import_module("custom.a2ui_model_client").A2UIModelC
 A2UIModelGenerationError = importlib.import_module(
     "custom.a2ui_model_client"
 ).A2UIModelGenerationError
+DeepSeekPlatformClient = importlib.import_module(
+    "custom.deepseek_platform_client"
+).DeepSeekPlatformClient
+task_logger = importlib.import_module("app.logger").task_logger
 DeviceContext = importlib.import_module("models.generation").DeviceContext
 IDSClient = importlib.import_module("services.ids_client").IDSClient
 IDSDeviceCapabilityState = importlib.import_module(
@@ -839,6 +843,64 @@ def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
         CLOUD_ROOT / "data" / "protocol_profiles" / "design-compact-dsl" / "PROMPT.md"
     ).read_text(encoding="utf-8")
     assert model_calls[1]["prompt"][0]["content"] == design_prompt
+
+
+def test_websocket_request_context_reaches_deepseek_platform(monkeypatch):
+    """验证真实 WebSocket 生成链路会把组合 requestId 传入模型日志上下文。"""
+    settings = get_settings()
+    monkeypatch.setattr(settings, "enable_a2ui_model_mock", False)
+    monkeypatch.setattr(settings, "design_compact_model_backend", "openai")
+    monkeypatch.setattr(settings, "openai_master_client", "deepseek_platform")
+    monkeypatch.setattr(settings, "enable_model_failure_retry", False)
+    captured: dict[str, str | None] = {}
+
+    async def capture_deepseek_context(_client, _messages, request_context):
+        captured["loggerRequestId"] = task_logger.get_session_id()
+        captured["modelSessionId"] = request_context.session_id
+        captured["modelInteractionId"] = request_context.interaction_id
+        return _valid_model_output(
+            None,
+            None,
+            {"id": "design-compact-dsl", "format": "compact-dsl"},
+        )
+
+    def capture_artifact(_store, _artifact):
+        return ArtifactSaveResult(
+            artifactUrl="https://test.invalid/widget/deepseek-context.json",
+            artifactDigest="sha256:deepseek-context",
+        )
+
+    monkeypatch.setattr(DeepSeekPlatformClient, "generate", capture_deepseek_context)
+    monkeypatch.setattr(ArtifactStore, "save", capture_artifact)
+    interaction_id = "deepseek-context"
+    request_id = _request_id(interaction_id)
+    content = {
+        "userQuery": "生成静态天气卡片",
+        "size": "2x4",
+        "title": "天气",
+        "description": "天气概览",
+        "candidateDataBindings": [],
+        "candidateEventCandidates": [],
+        "candidateAssetIds": [],
+    }
+
+    client = TestClient(app)
+    with client.websocket_connect(
+        "/api/v1/ws/tools/generateWidgetCardCompactDsl"
+    ) as websocket:
+        websocket.send_json(_tool_payload(content, interaction_id))
+        message = _assert_success_envelope(
+            _receive_final_frame(websocket, request_id),
+            "generateWidgetCardCompactDsl",
+            request_id,
+        )
+
+    assert message["data"]["status"] == "success"
+    assert captured == {
+        "loggerRequestId": request_id,
+        "modelSessionId": SESSION_ID,
+        "modelInteractionId": interaction_id,
+    }
 
 
 def test_compact_route_mock_converts_design_dsl_before_saving(monkeypatch):
