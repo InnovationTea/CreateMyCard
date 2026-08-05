@@ -1,0 +1,68 @@
+%%{init: {"flowchart": {"curve": "basis", "nodeSpacing": 30, "rankSpacing": 42}, "theme": "neutral"}}%%
+flowchart TD
+    A(["第3段：一次模型阶段<br/>首次生成或任一轮 quality repair"])
+    B{"enable_a2ui_model_mock？"}
+    C["按 2x2/2x4 读取本地 Design mock<br/>不占真实模型令牌"]
+    D{"路由后端？"}
+    E["MEP：唯一物理 provider"]
+    F["OpenAI 复合后端<br/>从配置的 master 开始"]
+    G["确定当前 provider 的调用预算<br/>重试关闭：1 次<br/>重试开启：master 1+M / fallback 1+F"]
+    H["一次真实物理调用进入 ModelExecutionRuntime"]
+    I["请求共享 asyncio.Semaphore<br/>model_max_concurrency 默认 20 / 每进程"]
+    J{"当前有空闲模型令牌？"}
+    K["无令牌：请求协程排队<br/>不占线程，6 秒 heartbeat 仍可运行"]
+    L{"排队超过独立的<br/>model_queue_timeout_seconds<br/>默认 120 秒？"}
+    L1["MODEL_QUEUE_TIMEOUT<br/>本次物理调用按模型异常处理"]
+    M["取得 1 个模型令牌<br/>记录 queue_duration_ms"]
+    N{"物理 provider？"}
+    O["MEP：httpx 异步流<br/>网络等待不占 AnyIO 工作线程"]
+    P["DeepSeek Platform：异步 WebSocket<br/>网络等待不占 AnyIO 工作线程"]
+    Q["llmclient：专用 ThreadPoolExecutor<br/>max_workers 默认同为 20<br/>不占 AnyIO 默认线程池"]
+    R{"执行超过独立的<br/>model_request_timeout_seconds<br/>默认 120 秒？"}
+    S["MEP/DeepSeek：取消异步请求<br/>抛 MODEL_REQUEST_TIMEOUT"]
+    T["llmclient：线程不能强制终止<br/>继续持有模型令牌直到物理调用结束<br/>丢弃迟到结果后抛超时"]
+    U["成功或异常都在 finally 释放模型令牌<br/>记录 execution_duration_ms"]
+    V{"得到非空源 Design Token？"}
+    W(["进入第4段：Conversion / Validation"])
+    X{"当前 provider 还有模型异常重试预算？"}
+    Y["指数退避 + jitter 的 asyncio.sleep<br/>不占模型令牌、不占线程"]
+    Z["下一次尝试重新排队<br/>不会连续独占模型令牌"]
+    AA{"OpenAI master 已耗尽，且<br/>模型重试和 fallback 开关都开启？"}
+    AB["切换 llmclient fallback<br/>每次调用仍获取同一个共享令牌"]
+    AC["A2UI_GENERATION_FAILED<br/>不进入转换、校验和保存"]
+    AD["并发统计范围<br/>第三至第五接口、Create/Edit、首次生成、<br/>模型重试、master/fallback、所有 repair"]
+    AE["限制按进程生效<br/>N 个 Uvicorn 进程理论总上限为 N × 20"]
+
+    A --> B
+    B -- "是" --> C --> W
+    B -- "否" --> D
+    D -- "mep" --> E --> G
+    D -- "openai" --> F --> G
+    G --> H --> I --> J
+    J -- "否" --> K --> L
+    L -- "否：继续等" --> J
+    L -- "是" --> L1 --> X
+    J -- "是" --> M --> N
+    N -- "mep" --> O --> R
+    N -- "deepseek_platform" --> P --> R
+    N -- "llmclient" --> Q --> R
+    R -- "否：成功或其它异常" --> U
+    R -- "是：异步 provider" --> S --> U
+    R -- "是：llmclient" --> T --> U
+    U --> V
+    V -- "是" --> W
+    V -- "否/异常" --> X
+    X -- "是" --> Y --> Z --> H
+    X -- "否" --> AA
+    AA -- "是" --> AB --> G
+    AA -- "否" --> AC
+    I -. "共享边界" .-> AD --> AE
+
+    classDef terminal fill:#fde8e8,stroke:#b42318,color:#3b0a08;
+    classDef success fill:#e8f7ee,stroke:#16803b,color:#072b16;
+    classDef decision fill:#fff4d6,stroke:#b7791f,color:#3a2500;
+    classDef limit fill:#e8f0fe,stroke:#3159a6,color:#101d3f;
+    class L1,S,T,AC terminal;
+    class W success;
+    class B,D,J,L,N,R,V,X,AA decision;
+    class I,M,AD,AE limit;

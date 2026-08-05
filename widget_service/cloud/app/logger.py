@@ -103,8 +103,11 @@ def _sanitize_json_log_value(value: Any) -> Any:
 
 def json_for_log(value: Any) -> str:
     """将结构化日志字段序列化为紧凑的标准 JSON。"""
+    log_value = value
+    if not get_settings().enable_sensitive_log_fields:
+        log_value = _sanitize_json_log_value(value)
     return json.dumps(
-        _sanitize_json_log_value(value),
+        log_value,
         ensure_ascii=False,
         separators=(",", ":"),
         default=_json_log_default,

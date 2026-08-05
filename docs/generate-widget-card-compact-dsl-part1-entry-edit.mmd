@@ -1,0 +1,49 @@
+%%{init: {"flowchart": {"curve": "basis", "nodeSpacing": 32, "rankSpacing": 44}, "theme": "neutral"}}%%
+flowchart TD
+    A(["第四接口：请求入口"])
+    B["WebSocket accept<br/>连接统计 + receive_json + 原始请求日志"]
+    C{"JSON、包络和请求字段合法？"}
+    C1["INVALID_ARGUMENTS final<br/>不进入生成 Service"]
+    D["构造本次请求稳定的 ModelRequestContext<br/>发送 start，启动 6 秒 heartbeat"]
+    E["事件循环直接 await 异步 Service<br/>running_tasks 在等待和执行期间均保持计数"]
+    F["按 App 完整版本 + ROM 主次版本<br/>匹配协议区间"]
+    G{"唯一命中协议区间？"}
+    H["加载标准 A2UI Profile<br/>和 Design Compact Profile/PROMPT.md"]
+    I{"默认协议 Profile 回退开启<br/>且默认文件有效？"}
+    I1["APP_VERSION_UNSUPPORTED<br/>不调用模型、不保存"]
+    J["建立第四接口固定策略<br/>Design Compact Processor<br/>严格质量失败、不保存不可用 artifact"]
+    K{"是否显式传入非空 sourceArtifactUrl？"}
+    L["Create 模式<br/>size 缺失 → 2x2<br/>候选数组缺失 → 空数组"]
+    M{"enable_widget_edit？"}
+    M1["WIDGET_EDIT_DISABLED<br/>不读取来源、不调用模型"]
+    N["申请短时 AnyIO 线程令牌<br/>加载来源 artifact、校验大小和 Markdown"]
+    O{"来源 artifact、schemaVersion、<br/>designcompactdsl 非空且未超限？"}
+    O1["SOURCE_ARTIFACT_*<br/>不回退 Create、不使用 genui 兜底"]
+    P["使用第四接口 Processor 校验来源 Token 格式<br/>失败 → SOURCE_ARTIFACT_INVALID"]
+    Q["EditRequestNormalizer<br/>省略字段继承、显式字段替换、空数组清空"]
+    R(["进入第2段：能力裁决与 Prompt"])
+    S["heartbeat 通道断开<br/>只停止心跳，不取消内部生成"]
+
+    A --> B --> C
+    C -- "否" --> C1
+    C -- "是" --> D --> E --> F --> G
+    G -- "是" --> H --> J
+    G -- "否" --> I
+    I -- "是" --> H
+    I -- "否" --> I1
+    J --> K
+    K -- "否：Create" --> L --> R
+    K -- "是：Edit" --> M
+    M -- "否" --> M1
+    M -- "是" --> N --> O
+    O -- "否" --> O1
+    O -- "是" --> P --> Q --> R
+    D -. "独立协程" .-> S
+    S -. "主链路继续" .-> E
+
+    classDef terminal fill:#fde8e8,stroke:#b42318,color:#3b0a08;
+    classDef success fill:#e8f7ee,stroke:#16803b,color:#072b16;
+    classDef decision fill:#fff4d6,stroke:#b7791f,color:#3a2500;
+    class C1,I1,M1,O1 terminal;
+    class R success;
+    class C,G,I,K,M,O decision;

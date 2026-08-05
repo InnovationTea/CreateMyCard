@@ -638,6 +638,7 @@ def test_overview_interface_filters_health_dependencies(monkeypatch):
 
 
 def test_overview_logs_do_not_include_user_or_device_identifiers(monkeypatch):
+    monkeypatch.setattr(get_settings(), "enable_sensitive_log_fields", False)
     sentinel_uid = "private-user-uid-must-not-be-logged"
     log_messages: list[str] = []
 

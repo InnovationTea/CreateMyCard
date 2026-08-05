@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     )
 
     env: str = "local"
+    enable_sensitive_log_fields: bool = True
     capability_registry_version: str = "app-11.7.5.205_rom-6.0"
     enable_default_capability_registry_fallback: bool = True
     ids_installation_filter_package_names: tuple[str, ...] = (

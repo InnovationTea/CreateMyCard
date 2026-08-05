@@ -358,6 +358,7 @@ def test_plugin_error_explanation_distinguishes_business_failures(
 
 def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
     assert Settings(_env_file=None).anyio_thread_pool_tokens == 80
+    assert Settings(_env_file=None).enable_sensitive_log_fields is True
     assert Settings(_env_file=None).a2ui_form_model_backend == "mep"
     assert Settings(_env_file=None).design_compact_model_backend == "openai"
     assert Settings(_env_file=None).openai_master_client == "deepseek_platform"
@@ -549,7 +550,19 @@ def test_generation_summary_contains_required_observability_fields(monkeypatch):
     assert request.uid not in summary
 
 
-def test_json_for_log_removes_user_uid_recursively():
+def test_json_for_log_keeps_sensitive_fields_when_enabled(monkeypatch):
+    monkeypatch.setattr(get_settings(), "enable_sensitive_log_fields", True)
+    value = {
+        "uid": "top-secret-user",
+        "nested": {"userId": "nested-secret-user"},
+        "odid": "private-device-odid",
+    }
+
+    assert json_module.loads(json_for_log(value)) == value
+
+
+def test_json_for_log_removes_user_uid_recursively(monkeypatch):
+    monkeypatch.setattr(get_settings(), "enable_sensitive_log_fields", False)
     logged = json_module.loads(
         json_for_log(
             {
@@ -700,6 +713,7 @@ def test_ids_query_builds_structured_request_and_signature(monkeypatch):
     出参：无；通过断言验证 request body、header 和签名符合预期。
     """
     client = IDSClient()
+    monkeypatch.setattr(get_settings(), "enable_sensitive_log_fields", False)
     monkeypatch.setattr(client.settings, "ids_access_key", "access")
     log_messages: list[str] = []
     monkeypatch.setattr(

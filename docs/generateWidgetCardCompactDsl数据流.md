@@ -3,9 +3,21 @@
 本文描述 `generateWidgetCardCompactDsl` WebSocket 接口在当前微服务代码中的真实数据流。接口契约及
 规则仍以 `云侧方案设计.md` 为准；本文用于开发、联调和问题定位。
 
-![generateWidgetCardCompactDsl 完整流程图](./generate-widget-card-compact-dsl-flow.png)
+第四接口总图较长，推荐使用支持滚轮缩放和拖拽的本地查看器：
+[`generate-widget-card-compact-dsl-viewer.html`](./generate-widget-card-compact-dsl-viewer.html)
 
-可缩放矢量版本：[`generate-widget-card-compact-dsl-flow.svg`](./generate-widget-card-compact-dsl-flow.svg)
+可缩放矢量版本：
+[`generate-widget-card-compact-dsl-detailed-flow.svg`](./generate-widget-card-compact-dsl-detailed-flow.svg)
+
+普通图片查看器请使用分段 PNG：
+
+- [第1段：入口、协议和编辑](./generate-widget-card-compact-dsl-part1-entry-edit.png)
+- [第2段：能力和 Prompt](./generate-widget-card-compact-dsl-part2-capability-prompt.png)
+- [第3段：模型并发与限流](./generate-widget-card-compact-dsl-part3-model-limit.png)
+- [第4段：转换、校验、Repair 和保存](./generate-widget-card-compact-dsl-part4-quality-save.png)
+
+共享线程池、模型 Semaphore、排队/执行超时、退避和 llmclient 超时占令牌的专图：
+[`interfaces-concurrency-rate-limit-flow.svg`](./interfaces-concurrency-rate-limit-flow.svg)
 
 ## 1. 接口定位
 
@@ -362,7 +374,8 @@ Compact DSL，再由 Processor 转换为标准 A2UI。
 - `enable_a2ui_model_mock=true`：根据尺寸读取
   `mock.design-compact-dsl-2x2.dat` 或 `mock.design-compact-dsl-2x4.dat`。
 - mock 关闭：调用 `design_compact_model_backend`，当前默认 `openai`。该复合后端默认先调用
-  DeepSeek Platform，模型异常重试耗尽后再切换到 llmclient。
+  DeepSeek Platform；模型异常重试开启且 `enable_openai_fallback=true` 时，master 重试耗尽后再切换
+  到 llmclient。fallback 关闭时直接返回 master 的最终异常。
 
 模型源输出示例：
 

@@ -1,0 +1,105 @@
+%%{init: {"flowchart": {"curve": "basis", "nodeSpacing": 28, "rankSpacing": 42}, "theme": "neutral"}}%%
+flowchart TD
+    A(["WS /api/v1/ws/tools/getWidgetCapabilityOverview"])
+
+    subgraph WS["WebSocket 接入与公共协议层"]
+        B["accept 连接<br/>active_connections +1<br/>total_connections +1"]
+        C["receive_json<br/>记录 JSON 规范化原始请求日志"]
+        D{"合法 JSON？"}
+        D1["组装 INVALID_ARGUMENTS<br/>插件 errorCode 仍为 0<br/>items=[]"]
+        E{"请求体是对象且<br/>包络/字段校验通过？"}
+        E1["提取 requestId=sessionId&interactionId<br/>content → arguments<br/>deviceInfo.romVersion → 内部 ROM<br/>content.odid → device.odid<br/>旧 capabilityRegistryVersion 被忽略"]
+        E2["构造 CapabilityOverviewRequest<br/>记录脱敏请求日志"]
+        F["发送 start 帧<br/>本接口不启动 heartbeat"]
+        G["run_in_threadpool 请求 AnyIO 默认令牌<br/>默认 80 个 / 每进程"]
+        G1{"有空闲 AnyIO 令牌？"}
+        G2["无令牌：请求协程异步等待<br/>不占工作线程、无独立排队超时<br/>running_tasks 仍计数；本接口无 heartbeat"]
+        G3["取得 1 个令牌 + 1 个工作线程<br/>整个同步 Service 和 IDS requests 都占用令牌"]
+        G4["Service 返回/抛异常后自动释放令牌<br/>事件循环负责发送 final"]
+        X1["参数异常 final<br/>工具参数传入有误 + 具体详情"]
+        X2["未捕获服务异常 final<br/>服务调用异常 + 具体详情"]
+    end
+
+    subgraph VERSION["App/ROM 二维能力注册表选择"]
+        H["App=request.prdVer 或 default_prd_version<br/>ROM=完整 _source_rom_version 或 romVersion 或默认值"]
+        I["规范化 App 完整数字版本<br/>ROM 只抽取主次版本，例如 6.0"]
+        J{"registry_ranges.json<br/>是否唯一命中左闭右开区间？"}
+        K["加载命中的 registryVersion 目录"]
+        L{"默认能力目录回退开关开启？"}
+        M["加载 capability_registry_version<br/>默认目录"]
+        N["返回空概述<br/>data/event/asset/unavailable 均为空"]
+        O{"能力注册表区间选择或<br/>默认目录构造成功？"}
+    end
+
+    subgraph IDS["IDS 安装状态查询"]
+        P["读取注册表中的 data/event 能力<br/>读取 asset 能力"]
+        Q{"任一 data/event 的 requiredPackages<br/>命中配置过滤包名范围？"}
+        R["跳过 IDS<br/>使用空安装快照<br/>无过滤范围依赖的能力不受影响"]
+        S{"enable_ids_mock？"}
+        T["读取本地 IDS mock"]
+        U{"mock JSON 可解析？"}
+        V["解析 installed_apps"]
+        W["mock 失败 → 空安装快照<br/>不访问远端"]
+        Y["构造远端 IDS 请求<br/>odid：content.odid 或固定兜底<br/>STS 签名 + 超时"]
+        Z{"URL 已配置且请求、HTTP、JSON 正常？"}
+        AA["解析 installed_apps"]
+        AB["远端失败 → 空安装快照<br/>不中断接口"]
+    end
+
+    subgraph FILTER["能力裁决与响应"]
+        AC["逐个检查 data 能力<br/>仅检查配置过滤范围内的依赖包"]
+        AD{"所需受检包均已安装？"}
+        AE["保留 data 能力"]
+        AF["移入 removed<br/>reason=PACKAGE_NOT_INSTALLED"]
+        AG["逐个检查 event 能力<br/>规则与 data 相同"]
+        AH{"所需受检包均已安装？"}
+        AI["保留 event 能力"]
+        AJ["移入 removed<br/>reason=PACKAGE_NOT_INSTALLED"]
+        AK["asset 不做安装过滤<br/>全部注册素材直接保留"]
+        AL["组装响应<br/>data 仅 id+description<br/>event/asset 返回完整候选<br/>unavailableCapabilities=removed.id"]
+        AM["包装旧业务消息字符串到 streamContent<br/>插件 errorCode=0 / errorMessage='' / items=[]"]
+        AN["发送 final 帧<br/>running_tasks -1"]
+        AO{"同一 WS 是否继续发下一条消息？"}
+        AP(["连接关闭<br/>active_connections -1"])
+    end
+
+    A --> B --> C --> D
+    D -- "否" --> D1 --> AO
+    D -- "是" --> E
+    E -- "否" --> X1 --> AO
+    E -- "是" --> E1 --> E2 --> F --> G --> G1
+    G1 -- "否" --> G2 --> G1
+    G1 -- "是" --> G3 --> H --> I --> J
+    J -- "是" --> K --> O
+    J -- "否" --> L
+    L -- "是" --> M --> O
+    L -- "否" --> N --> G4
+    O -- "否：ValueError" --> N
+    O -- "否：其它异常" --> X2
+    O -- "是" --> P --> Q
+    Q -- "否" --> R --> AC
+    Q -- "是" --> S
+    S -- "是" --> T --> U
+    U -- "是" --> V --> AC
+    U -- "否" --> W --> AC
+    S -- "否" --> Y --> Z
+    Z -- "是" --> AA --> AC
+    Z -- "否" --> AB --> AC
+    AC --> AD
+    AD -- "是" --> AE --> AG
+    AD -- "否" --> AF --> AG
+    AG --> AH
+    AH -- "是" --> AI --> AK
+    AH -- "否" --> AJ --> AK
+    AK --> AL --> G4 --> AM --> AN --> AO
+    P -. "能力 JSON 加载/解析异常" .-> X2
+    G3 -. "未捕获异常；令牌仍自动释放" .-> X2 --> AO
+    AO -- "是" --> C
+    AO -- "否/断开" --> AP
+
+    classDef terminal fill:#fde8e8,stroke:#b42318,color:#3b0a08;
+    classDef success fill:#e8f7ee,stroke:#16803b,color:#072b16;
+    classDef decision fill:#fff4d6,stroke:#b7791f,color:#3a2500;
+    class N,D1,X1,X2 terminal;
+    class AL,AM,AN success;
+    class D,E,G1,J,L,O,Q,S,U,Z,AD,AH,AO decision;

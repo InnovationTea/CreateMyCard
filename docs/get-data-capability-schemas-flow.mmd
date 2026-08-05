@@ -1,0 +1,83 @@
+%%{init: {"flowchart": {"curve": "basis", "nodeSpacing": 30, "rankSpacing": 44}, "theme": "neutral"}}%%
+flowchart TD
+    A(["WS /api/v1/ws/tools/getDataCapabilitySchemas"])
+
+    subgraph WS["WebSocket 接入与公共协议层"]
+        B["accept 连接并更新 WS 连接统计"]
+        C["receive_json<br/>记录原始请求体"]
+        D{"合法 JSON？"}
+        E{"对象包络和字段类型合法？<br/>dataCapabilityIds 字段存在？"}
+        F["归一化 requestId、App、ROM、uid、device<br/>旧版本覆盖字段静默忽略"]
+        G["构造 DataCapabilitySchemasRequest"]
+        H["发送 start 帧<br/>本接口不启动 heartbeat"]
+        I["run_in_threadpool 请求 AnyIO 默认令牌<br/>默认 80 个 / 每进程"]
+        I1{"有空闲 AnyIO 令牌？"}
+        I2["无令牌：请求协程异步等待<br/>不占工作线程、无独立排队超时<br/>running_tasks 仍计数；本接口无 heartbeat"]
+        I3["取得 1 个令牌 + 1 个工作线程<br/>整个同步 Service/JSON 查询都占用令牌"]
+        I4["Service 返回/抛异常后自动释放令牌<br/>事件循环负责发送 final"]
+        X1["INVALID_ARGUMENTS final<br/>缺字段、类型错误或非法 JSON"]
+        X2["FAILED final<br/>未捕获的注册表文件/服务异常"]
+    end
+
+    subgraph VERSION["能力注册表区间选择"]
+        J["App=request.prdVer 或默认 App<br/>ROM=完整来源 ROM 或内部 ROM 或默认 ROM"]
+        K["规范化版本<br/>App 保留完整数字版本<br/>ROM 抽取主次版本"]
+        L{"是否唯一命中 App/ROM<br/>左闭右开区间？"}
+        M["加载命中 registryVersion"]
+        N{"默认能力目录回退开启？"}
+        O["加载默认 capability_registry_version"]
+        P["构造非阻断响应<br/>capabilityRegistryVersion=请求版本标签<br/>dataCapabilities=[]<br/>missingCapabilityIds=全部请求 ID"]
+        Q{"能力注册表区间选择或<br/>默认目录构造成功？"}
+    end
+
+    subgraph LOOKUP["按 ID 渐进加载完整 Schema"]
+        R{"dataCapabilityIds 是否为空数组？"}
+        S["初始化 found=[] / missing=[]"]
+        T["按输入顺序逐项查找 ID<br/>不查询 IDS、不检查安装包<br/>不做生成参数裁决"]
+        U{"当前 ID 在数据能力注册表中？"}
+        V["追加完整 DataCapability<br/>包含 inputSchema/outputSchema 等"]
+        W["追加当前 ID 到 missingCapabilityIds"]
+        Y{"还有下一个 ID？"}
+        Z["组装响应<br/>registryVersion + found + missing"]
+    end
+
+    subgraph OUT["统一输出"]
+        AA["WidgetWebSocketResultMessage<br/>status 默认 success"]
+        AB["streamContent=str(legacy_message)<br/>插件 errorCode=0 / errorMessage='' / items=[]"]
+        AC["发送 final；running_tasks -1"]
+        AD{"同一 WS 是否继续发消息？"}
+        AE(["连接关闭并更新统计"])
+    end
+
+    A --> B --> C --> D
+    D -- "否" --> X1 --> AD
+    D -- "是" --> E
+    E -- "否" --> X1
+    E -- "是" --> F --> G --> H --> I --> I1
+    I1 -- "否" --> I2 --> I1
+    I1 -- "是" --> I3 --> J --> K --> L
+    L -- "是" --> M --> Q
+    L -- "否" --> N
+    N -- "是" --> O --> Q
+    N -- "否" --> P --> I4
+    Q -- "否：ValueError" --> P
+    Q -- "否：其它异常" --> X2
+    Q -- "是" --> R
+    R -- "是" --> Z
+    R -- "否" --> S --> T --> U
+    U -- "是" --> V --> Y
+    U -- "否" --> W --> Y
+    Y -- "是" --> T
+    Y -- "否" --> Z
+    Z --> I4 --> AA --> AB --> AC --> AD
+    T -. "能力 JSON 加载/解析异常" .-> X2 --> AD
+    I3 -. "未捕获异常；令牌仍自动释放" .-> X2
+    AD -- "是" --> C
+    AD -- "否/断开" --> AE
+
+    classDef terminal fill:#fde8e8,stroke:#b42318,color:#3b0a08;
+    classDef success fill:#e8f7ee,stroke:#16803b,color:#072b16;
+    classDef decision fill:#fff4d6,stroke:#b7791f,color:#3a2500;
+    class P,X1,X2 terminal;
+    class Z,AA,AB,AC success;
+    class D,E,I1,L,N,Q,R,U,Y,AD decision;
