@@ -12,6 +12,7 @@ from typing import Any, Literal
 ThemeMode = Literal["light", "dark"]
 
 _A2UI_FORM_CATALOG_ID = "ohos.a2ui.extended.catalog.form"
+_A2UI_ICON_BUTTON_LABEL = "\u200B"
 _COMPONENT_TYPES = frozenset(
     {
         "Row",
@@ -830,8 +831,8 @@ def _parse_compact_rows(compact_dsl: str) -> list[CompactRow]:
 
     if not rows:
         raise CompactDslConversionError("Compact DSL output is empty.")
-    degraded_rows = _degrade_button_image_children(rows)
-    return _canonicalize_component_order(degraded_rows)
+    _validate_button_image_children(rows)
+    return _canonicalize_component_order(rows)
 
 
 def _canonicalize_component_order(rows: list[CompactRow]) -> list[CompactRow]:
@@ -1016,9 +1017,7 @@ def _parse_children(
     return ()
 
 
-def _degrade_button_image_children(
-    rows: list[CompactRow],
-) -> list[CompactRow]:
+def _validate_button_image_children(rows: list[CompactRow]) -> None:
     components_by_id = {
         row.component_id: row
         for row in rows
@@ -1043,22 +1042,8 @@ def _degrade_button_image_children(
             )
         button_icon_ids.add(icon_id)
 
-    if not button_icon_ids:
-        return rows
-
-    _validate_button_icon_ownership(rows, button_icon_ids)
-    degraded_rows: list[CompactRow] = []
-    for row in rows:
-        if isinstance(row, ComponentRow) and row.component_id in button_icon_ids:
-            continue
-        if isinstance(row, ComponentRow) and row.component_type == "Button":
-            row = ComponentRow(
-                component_id=row.component_id,
-                component_type=row.component_type,
-                props=row.props,
-            )
-        degraded_rows.append(row)
-    return degraded_rows
+    if button_icon_ids:
+        _validate_button_icon_ownership(rows, button_icon_ids)
 
 
 def _validate_button_icon_ownership(
@@ -1692,7 +1677,7 @@ def _component_to_tuple(component: ComponentRow) -> list[Any]:
         component.component_type,
         copy.deepcopy(component.props),
     ]
-    if component.component_type in _CONTAINER_TYPES:
+    if component.component_type in _CONTAINER_TYPES or component.children:
         row.append(list(component.children))
     return row
 
@@ -1719,8 +1704,10 @@ def _convert_component(
         "id": component.component_id,
         "component": component.component_type,
     }
-    if component.component_type in _CONTAINER_TYPES:
+    if component.component_type in _CONTAINER_TYPES or component.children:
         converted["children"] = list(component.children)
+    if hide_label:
+        converted["label"] = _A2UI_ICON_BUTTON_LABEL
 
     styles: dict[str, Any] = {}
     semantic_fields = _SEMANTIC_FIELDS.get(
