@@ -1026,6 +1026,7 @@ def test_generation_routes_send_start_and_success_commands(monkeypatch):
         "candidateAssetIds": [],
     }
     client = TestClient(app)
+    card_ids: set[str] = set()
 
     for operation, interaction_id in routes:
         route = f"/api/v1/ws/tools/{operation}"
@@ -1040,20 +1041,28 @@ def test_generation_routes_send_start_and_success_commands(monkeypatch):
         success_command = _command_content(frames[2])
         start_payload = start_command["directives"][0]["payload"]
         success_payload = success_command["directives"][0]["payload"]
-        assert start_payload == {"executeParam": {"intentName": "AIWidgetStart"}}
+        card_id = start_payload["executeParam"]["cardId"]
+        assert str(uuid.UUID(card_id)) == card_id
+        assert start_payload == {
+            "executeParam": {"intentName": "AIWidgetStart", "cardId": card_id}
+        }
         assert success_payload["executeParam"] == {
             "status": True,
             "intentName": "AIWidgetEnd",
+            "cardId": card_id,
             "intentParam": {
                 "genWidgetResult": "https://test.invalid/widget/directive.json"
             },
         }
+        card_ids.add(card_id)
         assert start_command["errorCode"] == "0"
         assert start_command["errorMsg"] == "OK"
         assert start_command["session"]["sessionId"] == SESSION_ID
         assert start_command["session"]["interactionId"] == interaction_id
         assert start_command["session"]["messageName"] == "progressInfo"
         assert start_command["session"]["messageId"] != success_command["session"]["messageId"]
+
+    assert len(card_ids) == len(routes)
 
 
 def test_temporary_compact_route_forces_directives_without_global_switch(monkeypatch):
@@ -1107,6 +1116,12 @@ def test_temporary_compact_route_forces_directives_without_global_switch(monkeyp
     ]
     assert standard_types == ["start", "final"]
     assert temporary_types == ["start", "command", "command", "final"]
+    temporary_start = _command_content(temporary_frames[1])
+    temporary_success = _command_content(temporary_frames[2])
+    temporary_card_id = temporary_start["directives"][0]["payload"]["executeParam"]["cardId"]
+    success_card_id = temporary_success["directives"][0]["payload"]["executeParam"]["cardId"]
+    assert str(uuid.UUID(temporary_card_id)) == temporary_card_id
+    assert success_card_id == temporary_card_id
     standard_message = _assert_success_envelope(
         standard_frames[-1],
         "generateWidgetCardCompactDsl",
@@ -1146,9 +1161,10 @@ def test_temporary_compact_route_forces_failure_directive(monkeypatch):
     frame_types = [item["reply"]["streamInfo"]["streamType"] for item in frames]
     assert frame_types == ["command", "final"]
     failure_command = _command_content(frames[0])
-    assert failure_command["directives"][0]["payload"] == {
-        "executeParam": {"status": False, "intentName": "AIWidgetEnd"}
-    }
+    failure_execute_param = failure_command["directives"][0]["payload"]["executeParam"]
+    assert failure_execute_param["status"] is False
+    assert failure_execute_param["intentName"] == "AIWidgetEnd"
+    assert str(uuid.UUID(failure_execute_param["cardId"])) == failure_execute_param["cardId"]
 
 
 def test_generation_validation_error_sends_failure_command(monkeypatch):
@@ -1174,9 +1190,10 @@ def test_generation_validation_error_sends_failure_command(monkeypatch):
     frame_types = [item["reply"]["streamInfo"]["streamType"] for item in frames]
     assert frame_types == ["command", "final"]
     failure_command = _command_content(frames[0])
-    assert failure_command["directives"][0]["payload"] == {
-        "executeParam": {"status": False, "intentName": "AIWidgetEnd"}
-    }
+    failure_execute_param = failure_command["directives"][0]["payload"]["executeParam"]
+    assert failure_execute_param["status"] is False
+    assert failure_execute_param["intentName"] == "AIWidgetEnd"
+    assert str(uuid.UUID(failure_execute_param["cardId"])) == failure_execute_param["cardId"]
 
 
 def test_generation_model_error_sends_start_and_failure_commands(monkeypatch):
@@ -1211,11 +1228,16 @@ def test_generation_model_error_sends_start_and_failure_commands(monkeypatch):
     assert frame_types == ["start", "command", "command", "final"]
     start_command = _command_content(frames[1])
     failure_command = _command_content(frames[2])
+    start_card_id = start_command["directives"][0]["payload"]["executeParam"]["cardId"]
     assert start_command["directives"][0]["payload"] == {
-        "executeParam": {"intentName": "AIWidgetStart"}
+        "executeParam": {"intentName": "AIWidgetStart", "cardId": start_card_id}
     }
     assert failure_command["directives"][0]["payload"] == {
-        "executeParam": {"status": False, "intentName": "AIWidgetEnd"}
+        "executeParam": {
+            "status": False,
+            "intentName": "AIWidgetEnd",
+            "cardId": start_card_id,
+        }
     }
 
 

@@ -108,7 +108,8 @@ WS /api/v1/ws/tools/generateWidgetCardTerseDslNested2
 `generateWidgetCardCompactDslWithDirective` 是临时路由别名，请求和响应 schema 与第四接口一致，内部直接
 调用同一个 `generate_widget_card_compact_dsl()` Service 方法。该 operation 在路由层强制发送
 `AIWidgetStart/AIWidgetEnd` 指令，不受 `WIDGET_SERVICE_ENABLE_WIDGET_DIRECTIVE_COMMANDS` 影响；第四接口
-继续由全局开关控制。
+继续由全局开关控制。每个生成请求会创建一个 UUID 格式的 `cardId`，放在指令的
+`payload.executeParam.cardId`；同一请求的开始、成功和失败指令共用该值，不同请求使用不同值。
 
 `generateWidgetCard` 固定使用标准 A2UI Form profile，后端由
 `WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND` 选择；`generateWidgetCardCompactDsl` 根据 App/ROM 区间选择

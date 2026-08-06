@@ -55,12 +55,21 @@ def _build_session(raw_payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _build_execute_payload(state: WidgetDirectiveState, artifact_url: str) -> dict[str, Any]:
-    if state is WidgetDirectiveState.START:
-        return {"executeParam": {"intentName": "AIWidgetStart"}}
+def _build_execute_payload(
+    state: WidgetDirectiveState,
+    artifact_url: str,
+    card_id: str,
+) -> dict[str, Any]:
     execute_param: dict[str, Any] = {
+        "intentName": "AIWidgetStart",
+        "cardId": card_id,
+    }
+    if state is WidgetDirectiveState.START:
+        return {"executeParam": execute_param}
+    execute_param = {
         "status": state is WidgetDirectiveState.SUCCESS,
         "intentName": "AIWidgetEnd",
+        "cardId": card_id,
     }
     if state is WidgetDirectiveState.SUCCESS:
         if not artifact_url:
@@ -73,6 +82,7 @@ def build_widget_directive_response(
     raw_payload: dict[str, Any],
     state: WidgetDirectiveState,
     streaming_text_id: str,
+    card_id: str,
     artifact_url: str = "",
 ) -> WidgetPluginStreamResponse:
     """构造插件协议 command 帧，streamContent 保存完整端侧指令 JSON。"""
@@ -80,7 +90,7 @@ def build_widget_directive_response(
         "directives": [
             {
                 "header": {"name": "Action", "namespace": "Common"},
-                "payload": _build_execute_payload(state, artifact_url),
+                "payload": _build_execute_payload(state, artifact_url, card_id),
             }
         ],
         "errorCode": "0",

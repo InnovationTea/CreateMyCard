@@ -37,6 +37,6 @@
     "candidateEventCandidates"
   ],
   "output": {
-    "description": "与其它生成接口相同的华为流处理插件 start/partial/final 包络。"
+    "description": "华为流处理插件 start/partial/command/final 包络；command 的 cardId 是请求内稳定 UUID。"
   }
 }

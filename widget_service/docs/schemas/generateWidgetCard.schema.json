@@ -146,10 +146,10 @@
     "StreamInfo": {
       "required": ["streamContent", "streamingTextId", "streamType", "textType"],
       "properties": {
-        "streamContent": "string，start/partial 为空；final 为完整旧消息；异常时前置中文类型说明。",
+        "streamContent": "string；command 为指令 JSON；payload.executeParam.cardId 是请求内稳定的 UUID；final 为完整旧消息。",
         "streamingTextId": "string，流式文本 ID；当前使用 requestId，缺失时生成随机 ID。",
-        "streamType": "string，支持 start、partial 和 final。",
-        "textType": "string，start/partial 使用 markdown，final 使用 plainText。"
+        "streamType": "string，支持 start、partial、command 和 final。",
+        "textType": "string，start/partial 使用 markdown，command 使用 command，final 使用 plainText。"
       }
     },
     "GenerateWidgetCardResult": {

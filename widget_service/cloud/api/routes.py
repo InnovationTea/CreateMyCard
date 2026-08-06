@@ -390,6 +390,7 @@ async def _send_widget_directive_command(
     request_id: str | None,
     streaming_text_id: str,
     state: WidgetDirectiveState,
+    card_id: str,
     artifact_url: str = "",
 ) -> bool:
     """按开关发送生成进度指令，不改变原有业务帧和异常处理。"""
@@ -401,6 +402,7 @@ async def _send_widget_directive_command(
         raw_payload,
         state,
         streaming_text_id,
+        card_id,
         artifact_url,
     )
     return await _send_websocket_json(
@@ -496,6 +498,7 @@ async def _serve_operation_websocket(
         model_runtime = getattr(websocket.app.state, "model_runtime", None)
         service = get_service(model_runtime)
         while True:
+            card_id = str(uuid.uuid4())
             try:
                 payload = await websocket.receive_json()
             except ValueError as exc:
@@ -521,6 +524,7 @@ async def _serve_operation_websocket(
                         None,
                         streaming_text_id,
                         WidgetDirectiveState.FAILURE,
+                        card_id,
                     ):
                         return
                 plugin_response = _build_plugin_stream_response(
@@ -619,6 +623,7 @@ async def _serve_operation_websocket(
                         raw_payload=payload,
                         current_request_id=request_id,
                         current_streaming_text_id=streaming_text_id,
+                        current_card_id=card_id,
                     ) -> None:
                         await _send_widget_directive_command(
                             websocket,
@@ -627,6 +632,7 @@ async def _serve_operation_websocket(
                             current_request_id,
                             current_streaming_text_id,
                             WidgetDirectiveState.START,
+                            current_card_id,
                         )
 
                     result = await handler(service, request, send_model_start_command)
@@ -655,6 +661,7 @@ async def _serve_operation_websocket(
                         request_id,
                         streaming_text_id,
                         directive_state,
+                        card_id,
                         artifact_url,
                     ):
                         return
@@ -698,6 +705,7 @@ async def _serve_operation_websocket(
                         request_id,
                         streaming_text_id,
                         WidgetDirectiveState.FAILURE,
+                        card_id,
                     ):
                         return
                 plugin_response = _build_plugin_stream_response(
@@ -736,6 +744,7 @@ async def _serve_operation_websocket(
                         request_id,
                         streaming_text_id,
                         WidgetDirectiveState.FAILURE,
+                        card_id,
                     ):
                         return
                 plugin_response = _build_plugin_stream_response(

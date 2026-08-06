@@ -35,6 +35,7 @@ def _directive_content(state: WidgetDirectiveState, artifact_url: str = "") -> d
         _raw_payload(),
         state,
         "stream-1",
+        "card-1",
         artifact_url,
     )
     result = response.model_dump(mode="json")
@@ -54,15 +55,20 @@ def test_widget_directive_payloads_use_plugin_command_frame():
     failure = _directive_content(WidgetDirectiveState.FAILURE)
 
     assert start["directives"][0]["payload"] == {
-        "executeParam": {"intentName": "AIWidgetStart"}
+        "executeParam": {"intentName": "AIWidgetStart", "cardId": "card-1"}
     }
     assert success["directives"][0]["payload"]["executeParam"] == {
         "status": True,
         "intentName": "AIWidgetEnd",
+        "cardId": "card-1",
         "intentParam": {"genWidgetResult": "https://example.invalid/artifact.json"},
     }
     assert failure["directives"][0]["payload"] == {
-        "executeParam": {"status": False, "intentName": "AIWidgetEnd"}
+        "executeParam": {
+            "status": False,
+            "intentName": "AIWidgetEnd",
+            "cardId": "card-1",
+        }
     }
     assert start["session"]["sessionId"] == "session-1"
     assert start["session"]["interactionId"] == 6
