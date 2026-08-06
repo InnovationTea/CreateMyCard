@@ -145,7 +145,7 @@
     "StreamInfo": {
       "required": ["streamContent", "streamingTextId", "streamType", "textType"],
       "properties": {
-        "streamContent": "string；command 为指令 JSON；payload.executeParam.cardId 是请求内稳定的 UUID；final 为完整旧消息。",
+        "streamContent": "string；command 为含 content/content_type/event/process_time/task_id 的 JSON；content 为指令 JSON 字符串。",
         "streamingTextId": "string，流式文本 ID；当前使用 requestId，缺失时生成随机 ID。",
         "streamType": "string，支持 start、partial、command 和 final。",
         "textType": "string，start/partial 使用 markdown，command 使用 command，final 使用 plainText。"

@@ -403,6 +403,7 @@ async def _send_widget_directive_command(
         state,
         streaming_text_id,
         card_id,
+        request_id or "",
         artifact_url,
     )
     return await _send_websocket_json(

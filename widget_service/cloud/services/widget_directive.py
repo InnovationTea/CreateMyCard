@@ -2,6 +2,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import json
 import uuid
+from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
@@ -78,14 +79,20 @@ def _build_execute_payload(
     return {"executeParam": execute_param}
 
 
+def _current_process_time() -> str:
+    """返回端侧 command 消息要求的本地毫秒时间。"""
+    return datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+
+
 def build_widget_directive_response(
     raw_payload: dict[str, Any],
     state: WidgetDirectiveState,
     streaming_text_id: str,
     card_id: str,
+    task_id: str,
     artifact_url: str = "",
 ) -> WidgetPluginStreamResponse:
-    """构造插件协议 command 帧，streamContent 保存完整端侧指令 JSON。"""
+    """构造插件协议 command 帧，streamContent 保存 command 消息 JSON。"""
     directive = {
         "directives": [
             {
@@ -103,7 +110,14 @@ def build_widget_directive_response(
         "session": _build_session(raw_payload),
         "triggerRedLine": False,
     }
-    stream_content = json.dumps(directive, ensure_ascii=False, separators=(",", ":"))
+    command_message = {
+        "content": json.dumps(directive, ensure_ascii=False, separators=(",", ":")),
+        "content_type": "aIWidgetDirectives",
+        "event": "command",
+        "process_time": _current_process_time(),
+        "task_id": task_id,
+    }
+    stream_content = json.dumps(command_message, ensure_ascii=False, separators=(",", ":"))
     return WidgetPluginStreamResponse(
         errorCode="0",
         errorMessage="",

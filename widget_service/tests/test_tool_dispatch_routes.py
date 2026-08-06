@@ -147,13 +147,18 @@ def _receive_frames_until_final(websocket, expected_request_id: str) -> list[dic
             return frames
 
 
-def _command_content(frame: dict) -> dict:
-    """解析 command 帧中的完整指令 JSON。"""
+def _command_envelope(frame: dict) -> dict:
+    """解析 command 帧中的 command 消息 JSON。"""
     stream_info = frame["reply"]["streamInfo"]
     assert stream_info["streamType"] == "command"
     assert stream_info["textType"] == "command"
     assert frame["reply"]["items"] == []
     return json.loads(stream_info["streamContent"])
+
+
+def _command_content(frame: dict) -> dict:
+    """从 command 消息的 content 字符串解析完整指令 JSON。"""
+    return json.loads(_command_envelope(frame)["content"])
 
 
 def test_websocket_send_disconnect_is_logged_and_not_raised(monkeypatch):
@@ -1039,6 +1044,12 @@ def test_generation_routes_send_start_and_success_commands(monkeypatch):
         assert frame_types == ["start", "command", "command", "final"]
         start_command = _command_content(frames[1])
         success_command = _command_content(frames[2])
+        start_envelope = _command_envelope(frames[1])
+        success_envelope = _command_envelope(frames[2])
+        assert start_envelope["content_type"] == "aIWidgetDirectives"
+        assert start_envelope["event"] == "command"
+        assert start_envelope["task_id"] == request_id
+        assert success_envelope["task_id"] == request_id
         start_payload = start_command["directives"][0]["payload"]
         success_payload = success_command["directives"][0]["payload"]
         card_id = start_payload["executeParam"]["cardId"]

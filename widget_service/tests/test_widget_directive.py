@@ -3,6 +3,7 @@
 import importlib
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -36,6 +37,7 @@ def _directive_content(state: WidgetDirectiveState, artifact_url: str = "") -> d
         state,
         "stream-1",
         "card-1",
+        "request-1",
         artifact_url,
     )
     result = response.model_dump(mode="json")
@@ -43,7 +45,12 @@ def _directive_content(state: WidgetDirectiveState, artifact_url: str = "") -> d
     assert stream_info["streamType"] == "command"
     assert stream_info["textType"] == "command"
     assert result["reply"]["items"] == []
-    return json.loads(stream_info["streamContent"])
+    command_message = json.loads(stream_info["streamContent"])
+    assert command_message["content_type"] == "aIWidgetDirectives"
+    assert command_message["event"] == "command"
+    assert command_message["task_id"] == "request-1"
+    datetime.strptime(command_message["process_time"], "%Y-%m-%d %H:%M:%S.%f")
+    return json.loads(command_message["content"])
 
 
 def test_widget_directive_payloads_use_plugin_command_frame():
