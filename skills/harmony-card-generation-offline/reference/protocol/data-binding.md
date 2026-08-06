@@ -7,6 +7,7 @@
 - 最终 Form DSL 也支持 `{"path":"/..."}` PathBinding 和宿主明确注册的 FunctionCall；同一属性值只能三选一。新生成优先用表达式，修复/评审时合法 PathBinding 可以保留。
 - `updateDataModel.path`、CardSpec `writeResultTo`、模板 `children.path` 是协议结构 JSON Pointer，不属于值绑定，仍按协议保留。
 - 可见表达式引用必须能从 `updateDataModel.value`、CardSpec `writeResultTo + outputSchema` 或模板当前项推导。
+- `writeResultTo` 对应动态子树允许使用示例初始值；该子树必须是能力 `outputSchema` 的合法投影，字段名、嵌套层级、JSON 类型、枚举、数值范围和数组 `items` 结构均不得偏离 schema。
 - 模板循环只用于 `Row`、`Column`、`List` 的 `children`，模板对象只有 `componentId` 和 `path`；模板项内字段读取也用表达式。
 
 ## DataModel 与表达式
@@ -32,6 +33,7 @@
 - 也可使用 `$__dataModel.meeting.time`，但同一卡片内优先统一使用 `${/json/pointer}`，便于和 CardSpec `writeResultTo` 对齐。
 - 数字、布尔、对象参数可由表达式返回对应运行时值；简单直取也可用 PathBinding，但同一卡片内尽量统一绑定风格。
 - 需要复杂日期、货币、条件文案或多步格式化时，优先在 `updateDataModel.value` 中预计算展示字段，再用表达式读取。
+- 展示辅助字段可以放在动态能力写入路径之外；不得把 `outputSchema` 未声明的格式化字段塞入 `writeResultTo` 对应子树。若初始数组包含示例项，每个示例项也必须符合 `outputSchema.items`。
 
 ## 表达式规则
 

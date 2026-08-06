@@ -62,21 +62,21 @@
 - 推荐 `writeResultTo: "/data/earphone"`；UI 访问路径必须由 `writeResultTo + outputSchema` 推导。
 - 常用展示路径：`/data/earphone/isConnected`、`/data/earphone/earphoneName`、`/data/earphone/batteryLevel`、`/data/earphone/chargingStatusDesc`、`/data/earphone/leftBatteryLevel`、`/data/earphone/rightBatteryLevel`、`/data/earphone/updatedAt`。
 - `2x2` 优先展示连接状态、设备名和一个主电量；左右耳电量作为并列小状态时要确认布局预算。`2x4` 可展示盒、左耳、右耳三项。
-- 初始 `updateDataModel` 使用空值和加载态，不要写死用户真实设备名或电量：
+- 初始 `updateDataModel` 可以使用示例值；`/data/earphone` 中出现的字段、层级、类型和数值范围必须符合本文 `outputSchema`。示例值只用于首帧展示，不表示已经读取用户真实设备状态：
 
 ```json
 {
   "data": {
     "earphone": {
-      "isConnected": false,
-      "earphoneName": "",
-      "batteryLevel": 0,
-      "chargingStatusDesc": "",
-      "leftBatteryLevel": 0,
-      "leftChargingStatusDesc": "",
-      "rightBatteryLevel": 0,
-      "rightChargingStatusDesc": "",
-      "updatedAt": ""
+      "isConnected": true,
+      "earphoneName": "示例耳机",
+      "batteryLevel": 80,
+      "chargingStatusDesc": "未充电",
+      "leftBatteryLevel": 76,
+      "leftChargingStatusDesc": "未充电",
+      "rightBatteryLevel": 78,
+      "rightChargingStatusDesc": "未充电",
+      "updatedAt": "2026-08-06 09:00"
     }
   },
   "state": {
