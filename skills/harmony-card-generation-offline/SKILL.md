@@ -15,7 +15,7 @@ description: "生成、修复、评审或解释 HarmonyOS A2UI Form 服务卡片
 4. 用户明确指定 `2x2` 或 `2x4` 时优先尊重；未指定尺寸时选择能够满足需求的最小尺寸，并默认从 `2x2` 开始。删除非核心可选信息后，只要核心问题、必须展示的数据和必要动作仍能完整表达，就必须使用 `2x2`；只有受保护文本、必要热区、必须同屏理解的并列关系、关键媒体或整体布局预算出现可说明的具体失败时才升级 `2x4`。不得仅因信息较多、横版更舒展、视觉更丰富或存在两个数据能力而选择 `2x4`。
 5. 从零生成完成内容分级后，只要候选尺寸可能由模板承载，且入选内容能收敛为一个服务对象/主问题与 `object`、`primary`、`support`、`metric/tile/status/badge`、`action`、`asset` 角色槽位，先读 `reference/template-routing.md` 和 `assets/templates/index.json` 做候选判断；最多选一个模板。模板只提供骨架和预算，内容、DataModel、素材、颜色、事件必须重做。
 6. 需要专项，或对组件字段、绑定、布局、颜色、事件不确定时，按 `reference.md` 定向补读最小必要文件；没有读到权威文件前不要凭样例或记忆补字段。先解决协议、绑定、尺寸和布局，再处理事件、CardSpec、颜色、素材、主显示组突出度、支撑组归拢和表面层级。
-7. 需要动态数据时先读 `reference/capability/cardspec.md`，再读 `reference/capability/data-capability/index.md` 做能力路由，只加载命中的 1-2 个能力 manifest；不要预读整个 `data-capability/` 目录。多个能力必须逐个确认 `capabilityId`、`arguments`、`writeResultTo`、常用 UI 路径和初始化 DataModel；只有入选字段才进入 DSL 和 CardSpec。
+7. 需要动态数据时先读 `reference/capability/cardspec.md`，再读 `reference/capability/data-capability/index.md` 做能力路由，只加载命中的 1-2 个能力 manifest；不要预读整个 `data-capability/` 目录。多个能力必须逐个确认 `capabilityId`、`arguments`、`writeResultTo`、常用 UI 路径和初始化 DataModel；初始化可以使用示例值，但 `writeResultTo` 对应动态子树中的每个字段、层级、类型、枚举、范围和数组项结构都必须来自该能力的 `outputSchema`，只有入选字段才进入 DSL 和 CardSpec。
 8. 写 DSL 前先算 surface/root、内容区、padding/margin/itemMargin、热区、受保护文本、并排宽高和颜色来源；写到任何组件属性前，若 `component-catalog.md` 未覆盖该字段或枚举，先删减设计或改用已覆盖属性。
 9. 输出前确认协议、绑定、布局、颜色、事件、尺寸、模板槽位、信息职责、事实等价类和 CardSpec 对齐；若确认项依赖未读专项，先补读再输出。只有用户要求校验既有文件或调试脚本时才运行 `scripts/validate_card.py`。
 

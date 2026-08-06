@@ -10,7 +10,7 @@ Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构
 - 静态卡片写 `title`、`description`、`suggestSize`，不要虚构 `dataBindings`。
 - 动态卡片先选择已声明 data capability，再按其 `inputSchema` 填 `arguments`；不要沿用旧示例参数或自行改名。
 - `writeResultTo` 使用 `/data/...` JSON Pointer；UI 路径由 `writeResultTo + outputSchema` 推导。
-- `updateDataModel.value` 初始化 UI 会访问的根结构和加载态，不写死用户真实隐私数据。
+- `updateDataModel.value` 初始化 UI 会访问的根结构和必要状态，也允许提供示例初始值。`writeResultTo` 对应动态子树必须是该能力 `outputSchema` 的合法投影：只使用 schema 声明的字段和层级，并匹配类型、枚举、范围及数组项结构；不得把未知用户数据伪装成真实结果。
 - DSL 仍按 [`../protocol/protocol.md`](../protocol/protocol.md)、[`../protocol/component-catalog.md`](../protocol/component-catalog.md) 和 [`../protocol/data-binding.md`](../protocol/data-binding.md) 生成。
 
 ## 输出形态
@@ -58,20 +58,22 @@ Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构
 
 端侧执行 `dataBindings` 后，将标准化结果整体写入 `writeResultTo`。UI 访问路径由 `writeResultTo + outputSchema 字段` 推导：
 
-- `writeResultTo = /data/calendar` 且输出有 `items`，列表路径是 `/data/calendar/items`。
+- `writeResultTo = /data/calendar` 且输出有 `events`，列表路径是 `/data/calendar/events`。
 - `writeResultTo = /data/status` 且输出有 `current.valueText`，主值路径是 `/data/status/current/valueText`。
 
-初始化 DataModel 只放 UI 会访问的根结构和加载态：
+初始化 DataModel 可以使用示例值，但只放 UI 会访问的 schema 字段；示例值必须符合对应 `outputSchema`，数组项也必须符合其 `items`。加载态或展示辅助字段应放在能力写入路径之外：
 
 ```json
-{"data":{"calendar":{"items":[]}},"state":{"loading":true}}
+{"data":{"calendar":{"eventCount":1,"events":[{"entityName":"CalendarEvent","entityId":"example-event-001","title":"项目例会","dtStart":"14:00","dtEnd":"15:00","isAllDay":false}],"updatedAt":"2026-08-06 09:00"}},"state":{"loading":true}}
 ```
+
+上例的 `/data/calendar` 是 `GetCalendarEvents.outputSchema` 的合法投影；`state.loading` 不属于能力返回值，因此位于 `/data/calendar` 之外。示例值用于首帧展示，不代表端侧已经取得真实结果。
 
 组件表达式示例：
 
 ```json
 {"id":"current_value","component":"Text","content":"{{ ${/data/weather/current/temperatureText} }}"}
-{"id":"event_list","component":"Column","children":{"componentId":"event_template","path":"/data/calendar/items"}}
+{"id":"event_list","component":"Column","children":{"componentId":"event_template","path":"/data/calendar/events"}}
 {"id":"event_title","component":"Text","content":"{{ ${title} }}"}
 {"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ ${entityId} }}"}}}
 ```
@@ -82,7 +84,7 @@ Agent 负责选择已声明能力、生成参数、设计 DataModel 初始结构
 - DSL 和 CardSpec 是同一张卡，DataModel 访问路径互相对齐。
 - 所有 UI 访问字段都能从 `writeResultTo + outputSchema` 推导。
 - 事件参数若来自数据能力输出，也能从同一 DataModel 路径推导；事件能力本身不写入 CardSpec。
-- `updateDataModel.value` 初始化了 `/data/...` 根结构和必要 `/state/...` 字段。
+- `updateDataModel.value` 初始化了 `/data/...` 根结构和必要状态；若提供示例初始值，能力子树是对应 `outputSchema` 的合法投影，数组项符合 `items`。
 - 数组字段使用模板循环，不展开成固定重复组件。
 - CardSpec 不包含 DSL catalog、组件规则、事件能力或示例结构的替代定义。
-- 不暴露意图框架原始返回结构，不写死用户真实隐私数据。
+- 不暴露意图框架原始返回结构；示例初始值不得伪装成已经获取的真实用户隐私数据。

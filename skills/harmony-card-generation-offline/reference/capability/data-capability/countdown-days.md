@@ -34,13 +34,13 @@
 - CardSpec 的 `capabilityId` 使用本文档 manifest 的 `id`：`GetCountdownDays`。
 - `arguments` 只能使用必填字段 `targetDate`，并将用户给出的自然语言日期转换为 `YYYY-MM-DD`；无法可靠确定具体日期时先向用户确认，不要猜测。
 - 推荐 `writeResultTo: "/data/countdown"`；常用展示路径为 `/data/countdown/countdownDays`。
-- 初始 `updateDataModel` 使用 `countdownDays: 0` 和加载态，不要预先计算或写死真实倒数天数：
+- 初始 `updateDataModel` 可以使用示例值；`/data/countdown` 中出现的字段和类型必须符合本文 `outputSchema`。示例倒数天数只用于首帧展示，不表示端侧已经完成真实计算：
 
 ```json
 {
   "data": {
     "countdown": {
-      "countdownDays": 0
+      "countdownDays": 30
     }
   },
   "state": {
