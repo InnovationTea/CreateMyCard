@@ -2,7 +2,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Any
 
@@ -81,7 +81,7 @@ def _build_execute_payload(
 
 def _current_process_time() -> str:
     """返回端侧 command 消息要求的本地毫秒时间。"""
-    return datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+    return datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
 
 def build_widget_directive_response(
