@@ -10,7 +10,7 @@ from config.config import get_settings
 from models.artifact import WidgetArtifact
 from models.service import ArtifactSaveResult
 from services.source_artifact_repository import calculate_artifact_digest
-from utils.file import delete_file, save_txt_file
+from utils.file import save_txt_file
 from utils.upload_file_obs import UploadFileOSMS
 
 _MODULE = "[Artifact Store]"
@@ -79,13 +79,13 @@ class ArtifactStore:
         await to_thread.run_sync(save_txt_file, file_path, file_content)
         logger.info(f"{_MODULE} artifact_file_saved path={file_path}")
 
-        try:
-            # 上传到 OBS，获取访问链接
-            artifact_url = await file_obs.upload_file(file_path)
-            if not artifact_url:
-                raise RuntimeError("artifact upload to OBS failed")
-            logger.info(f"{_MODULE} artifact_uploaded artifact_url={artifact_url}")
-            return ArtifactSaveResult(artifactUrl=artifact_url, artifactDigest=digest)
-        finally:
-            # 清理本地临时文件
-            await to_thread.run_sync(delete_file, file_path)
+        # 上传只产生远端或 mock OBS 副本，本地 artifact 暂时保留在 workspace，
+        # 便于排障和人工核对；后续如需清理应由独立生命周期策略处理。
+        artifact_url = await file_obs.upload_file(file_path)
+        if not artifact_url:
+            raise RuntimeError("artifact upload to OBS failed")
+        logger.info(
+            f"{_MODULE} artifact_uploaded artifact_url={artifact_url} "
+            f"local_file_retained={file_path}"
+        )
+        return ArtifactSaveResult(artifactUrl=artifact_url, artifactDigest=digest)

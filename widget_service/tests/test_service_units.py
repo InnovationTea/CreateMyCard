@@ -4049,7 +4049,9 @@ async def test_artifact_store_returns_structured_save_result(tmp_path, monkeypat
     - monkeypatch：pytest monkeypatch 工具。
     出参：无；通过断言验证上传结果和 CardSpec 内容。
     """
+    workspace_dir = tmp_path / "workspace"
     mock_storage_dir = tmp_path / "mock_obs"
+    monkeypatch.setattr(get_settings(), "WORKSPACE_ROOT", workspace_dir)
     monkeypatch.setattr(
         "services.artifact_store.file_obs",
         UploadFileOSMS(
@@ -4079,7 +4081,10 @@ async def test_artifact_store_returns_structured_save_result(tmp_path, monkeypat
     assert result.artifactUrl.endswith(".md")
     assert result.artifactDigest.startswith("sha256:")
     uploaded_file = mock_storage_dir / result.artifactUrl.rsplit("/", 1)[-1]
+    workspace_file = workspace_dir / uploaded_file.name
+    assert workspace_file.is_file()
     uploaded_content = uploaded_file.read_text(encoding="utf-8")
+    assert workspace_file.read_text(encoding="utf-8") == uploaded_content
     assert uploaded_content.startswith("```cardspec\n")
     assert uploaded_content.index("```cardspec") < uploaded_content.index("```genui")
     assert uploaded_content.index("```genui") < uploaded_content.index("```schema")
