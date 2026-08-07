@@ -1,0 +1,526 @@
+[
+  {
+    "userQuery": "帮我在桌面放个今日日程卡片，显示下一场安排就行。",
+    "size": "2x2",
+    "eventCandidates": [],
+    "dataModelSchema": {
+      "data": {
+        "calendar": {
+          "events": [
+            {
+              "title": { "type": "string", "description": "日程标题", "sampleValue": "产品评审" },
+              "dtStart": { "type": "string", "description": "日程开始时间", "sampleValue": "09:30" }
+            }
+          ]
+        }
+      }
+    },
+    "assetCandidates": [
+      { "src": "resources/base/media/calendar_fill.svg", "description": "日历实心图标，适合日程管理和当日安排" }
+    ]
+  },
+  {
+    "userQuery": "给我做一张上海天气卡片，显示现在温度、天气情况和感冒指数。",
+    "size": "2x2",
+    "eventCandidates": [],
+    "dataModelSchema": {
+      "data": {
+        "weather": {
+          "location": {
+            "prefectureName": { "type": "string", "description": "城市名称", "sampleValue": "上海" }
+          },
+          "current": {
+            "temperatureText": { "type": "string", "description": "当前温度展示文本", "sampleValue": "26℃" },
+            "condition": { "type": "string", "description": "当前天气现象", "sampleValue": "多云" },
+            "coldLevel": { "type": "string", "description": "感冒指数", "sampleValue": "较易感冒" }
+          }
+        }
+      }
+    },
+    "assetCandidates": [
+      { "src": "resources/base/media/icon_weather1.svg", "description": "天气雨伞图标，适合表达天气信息" }
+    ]
+  },
+  {
+    "userQuery": "弄个手机电量小组件，我想一眼看到剩余电量和是不是在充电。",
+    "size": "2x2",
+    "eventCandidates": [],
+    "dataModelSchema": {
+      "data": {
+        "phoneBattery": {
+          "batterySOCText": { "type": "string", "description": "手机剩余电量百分比文本", "sampleValue": "68%" },
+          "chargingStatusDesc": { "type": "string", "description": "当前充电状态", "sampleValue": "未充电" }
+        }
+      }
+    },
+    "assetCandidates": [
+      { "src": "resources/base/media/icon_electricity.svg", "description": "电池图标，适合低电量和电池状态展示" }
+    ]
+  },
+  {
+    "userQuery": "做个昨晚睡眠卡片，显示睡了多久、睡眠分数，点一下能看睡眠详情。",
+    "size": "2x2",
+    "eventCandidates": [
+      {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Health",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "huaweischeme://healthapp/router/sleepDetail"
+        }
+      }
+    ],
+    "dataModelSchema": {
+      "data": {
+        "healthSport": {
+          "nightSleepDurationText": { "type": "string", "description": "夜间睡眠总时长", "sampleValue": "7小时18分" },
+          "sleepScore": { "type": "integer", "description": "睡眠综合得分", "sampleValue": 86 },
+          "sleepStatus": { "type": "string", "description": "睡眠状态评价", "sampleValue": "良好" }
+        }
+      }
+    },
+    "assetCandidates": [
+      { "src": "resources/base/media/moon_z_fill_1.svg", "description": "月亮加睡眠图标，适合睡眠追踪和休息提醒" }
+    ]
+  },
+  {
+    "userQuery": "我每天想看走了多少步，做个卡片，顺便能点进去开始锻炼。",
+    "size": "2x2",
+    "eventCandidates": [
+      {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Health",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+        }
+      }
+    ],
+    "dataModelSchema": {
+      "data": {
+        "healthSport": {
+          "dailySteps": { "type": "integer", "description": "今日累计步数", "sampleValue": 6842 },
+          "dailyDistanceText": { "type": "string", "description": "今日累计活动距离", "sampleValue": "4.76 公里" }
+        }
+      }
+    },
+    "assetCandidates": [
+      { "src": "resources/base/media/figure_run.svg", "description": "跑步人物图标，适合运动记录和步数统计" }
+    ]
+  },
+  {
+    "userQuery": "做个内存卡片，显示占用率和可用内存，再放个一键清理按钮。",
+    "size": "2x2",
+    "eventCandidates": [
+      {
+        "call": "clickToApi",
+        "args": {
+          "intentName": "CleanRAMMemory",
+          "params": {}
+        }
+      }
+    ],
+    "dataModelSchema": {
+      "data": {
+        "systemMem": {
+          "usagePercent": { "type": "number", "description": "当前系统内存占用百分比", "sampleValue": 63 },
+          "availableMemText": { "type": "string", "description": "当前可用内存", "sampleValue": "4.50 GB" }
+        }
+      }
+    },
+    "assetCandidates": [
+      { "src": "resources/base/media/icon_clear.svg", "description": "清除图标，适合内存清理动作" }
+    ]
+  },
+  {
+    "userQuery": "帮我做个耳机状态卡，看看连接没、耳机叫什么、还剩多少电，点一下打开蓝牙设置。",
+    "size": "2x2",
+    "eventCandidates": [
+      {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "bluetooth_entry"
+        }
+      }
+    ],
+    "dataModelSchema": {
+      "data": {
+        "earphone": {
+          "isConnected": { "type": "boolean", "description": "蓝牙耳机是否已连接", "sampleValue": true },
+          "earphoneName": { "type": "string", "description": "当前耳机名称", "sampleValue": "FreeBuds Pro" },
+          "batteryLevel": { "type": "integer", "description": "耳机盒或耳机整体电量百分比", "sampleValue": 72 }
+        }
+      }
+    },
+    "assetCandidates": [
+      { "src": "resources/base/media/earphone_case_16644.svg", "description": "无线耳机收纳盒图标，适合蓝牙耳机连接和电量状态" }
+    ]
+  },
+  {
+    "userQuery": "我想少刷点抖音，做个卡片显示今天用了多久，点一下能去健康使用手机里设置时长。",
+    "size": "2x2",
+    "eventCandidates": [
+      {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "parent_control"
+        }
+      }
+    ],
+    "dataModelSchema": {
+      "data": {
+        "appUsageStats": {
+          "appUsage": {
+            "appName": { "type": "string", "description": "应用名称", "sampleValue": "抖音" },
+            "durationText": { "type": "string", "description": "应用今日使用时长", "sampleValue": "42 分钟" }
+          }
+        }
+      }
+    },
+    "assetCandidates": [
+      { "src": "resources/base/media/icon_tiktok.png", "description": "抖音图标，适合应用使用时长和防沉迷场景" }
+    ]
+  },
+  {
+    "userQuery": "距离今年国庆还有多少天？做成桌面倒数日卡片，点一下打开闹钟。",
+    "size": "2x2",
+    "eventCandidates": [
+      {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Clock",
+          "bundleName": "com.huawei.hmos.clock",
+          "abilityName": "com.huawei.hmos.clock.phone",
+          "uri": ""
+        }
+      }
+    ],
+    "dataModelSchema": {
+      "data": {
+        "countdown": {
+          "countdownDays": { "type": "integer", "description": "距离目标日期的自然日天数", "sampleValue": 55 }
+        }
+      }
+    },
+    "assetCandidates": [
+      { "src": "resources/base/media/hourglass_fill.svg", "description": "沙漏图标，适合倒数日和时间提醒" }
+    ]
+  },
+  {
+    "userQuery": "创建一个卡片，写着“天天开心”，清爽一点就好。",
+    "size": "2x2",
+    "eventCandidates": [],
+    "dataModelSchema": {},
+    "assetCandidates": []
+  },
+  {
+    "userQuery": "做个打开天气的快捷卡片，桌面一点就能进天气应用。",
+    "size": "2x2",
+    "eventCandidates": [
+      {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Weather_CityCode",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+        }
+      }
+    ],
+    "dataModelSchema": {},
+    "assetCandidates": [
+      { "src": "resources/base/media/icon_weather1.svg", "description": "天气雨伞图标，适合天气应用入口" }
+    ]
+  },
+  {
+    "userQuery": "做一张每日歌单入口卡片，点一下打开音乐里的每日30首。",
+    "size": "2x2",
+    "eventCandidates": [
+      {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Music",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+        }
+      }
+    ],
+    "dataModelSchema": {},
+    "assetCandidates": [
+      { "src": "resources/base/media/music_fill.svg", "description": "音乐音符图标，适合音乐播放卡片和歌单入口" }
+    ]
+  },
+  {
+    "userQuery": "给我做个联系妈妈的卡片，号码是13800000000，点一下直接到拨号界面。",
+    "size": "2x2",
+    "eventCandidates": [
+      {
+        "call": "clickToApi",
+        "args": {
+          "intentName": "CallPhone",
+          "params": {
+            "relationship": "妈妈",
+            "phoneNumber": "13800000000"
+          }
+        }
+      }
+    ],
+    "dataModelSchema": {},
+    "assetCandidates": [
+      { "src": "resources/base/media/phone_fill.svg", "description": "电话实心图标，适合拨打电话入口" }
+    ]
+  },
+  {
+    "userQuery": "做个低电量卡片，显示电量和电量等级，点一下就开启省电模式。",
+    "size": "2x2",
+    "eventCandidates": [
+      {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "SetSettingSwitch",
+          "params": {
+            "appBundleName": "com.huawei.hmos.settings",
+            "itemName": "battery_saving_mode",
+            "switchFlag": 0
+          }
+        }
+      }
+    ],
+    "dataModelSchema": {
+      "data": {
+        "phoneBattery": {
+          "batterySOCText": { "type": "string", "description": "手机剩余电量百分比文本", "sampleValue": "18%" },
+          "batteryCapacityLevelDesc": { "type": "string", "description": "当前电池电量等级", "sampleValue": "低电量" }
+        }
+      }
+    },
+    "assetCandidates": [
+      { "src": "resources/base/media/battery_leaf_fill.svg", "description": "电池与绿叶图标，适合省电模式和绿色用电" }
+    ]
+  },
+  {
+    "userQuery": "帮我看手机电池健康和温度，做成卡片，点一下可以打开电池健康设置。",
+    "size": "2x2",
+    "eventCandidates": [
+      {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "smart_charge_battery_health"
+        }
+      }
+    ],
+    "dataModelSchema": {
+      "data": {
+        "phoneBattery": {
+          "healthStatusDesc": { "type": "string", "description": "电池物理健康状态", "sampleValue": "正常" },
+          "batteryTemperatureText": { "type": "string", "description": "电池实时温度文本", "sampleValue": "29.0 ℃" }
+        }
+      }
+    },
+    "assetCandidates": [
+      { "src": "resources/base/media/icon_electricity.svg", "description": "电池图标，适合电池健康状态展示" }
+    ]
+  },
+  {
+    "userQuery": "做一张横向天气卡，显示杭州未来三天的天气、最高最低温、降雨概率和空气质量，点一下能打开天气详情。",
+    "size": "2x4",
+    "eventCandidates": [
+      {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Weather_CityCode",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+        }
+      }
+    ],
+    "dataModelSchema": {
+      "data": {
+        "weather": {
+          "location": {
+            "prefectureName": { "type": "string", "description": "城市名称", "sampleValue": "杭州" }
+          },
+          "daily": [
+            {
+              "weekday": { "type": "string", "description": "星期文本", "sampleValue": "星期六" },
+              "condition": { "type": "string", "description": "白天天气现象", "sampleValue": "阵雨" },
+              "temperatureRangeText": { "type": "string", "description": "当天温度范围", "sampleValue": "25° / 32°" },
+              "rainProbabilityPercent": { "type": "string", "description": "白天降雨概率", "sampleValue": "70%" },
+              "airQuality": { "type": "string", "description": "当天空气质量等级", "sampleValue": "良" }
+            }
+          ]
+        }
+      }
+    },
+    "assetCandidates": [
+      { "src": "resources/base/media/icon_weather1.svg", "description": "天气雨伞图标，适合天气预报" },
+      { "src": "resources/base/media/drop_1.svg", "description": "水滴图标，适合降雨概率展示" }
+    ]
+  },
+  {
+    "userQuery": "给我做个这周会议卡片，横着显示接下来三场会议的时间、标题和地点，点某一项能打开详情，再放一个一键入会按钮。",
+    "size": "2x4",
+    "eventCandidates": [
+      {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": { "path": "entityId" }
+          }
+        }
+      },
+      {
+        "call": "clickToApi",
+        "args": {
+          "intentName": "EnterMeeting",
+          "params": {}
+        }
+      }
+    ],
+    "dataModelSchema": {
+      "data": {
+        "calendar": {
+          "events": [
+            {
+              "entityId": { "type": "string", "description": "系统日程唯一标识", "sampleValue": "calendar-event-demo" },
+              "title": { "type": "string", "description": "日程标题", "sampleValue": "项目周会" },
+              "dtStart": { "type": "string", "description": "日程开始时间", "sampleValue": "10:00" },
+              "eventLocation": { "type": "string", "description": "日程地点", "sampleValue": "A3会议室" }
+            }
+          ]
+        }
+      }
+    },
+    "assetCandidates": [
+      { "src": "resources/base/media/calendar_fill.svg", "description": "日历实心图标，适合日程管理和当日安排" },
+      { "src": "resources/base/media/icon_meeting.svg", "description": "会议图标，适合会议日程" }
+    ]
+  },
+  {
+    "userQuery": "创建一个横向卡片，可以显示深圳现在的天气和手机电量，还要能一键给爸爸打电话，号码是13900000000。",
+    "size": "2x4",
+    "eventCandidates": [
+      {
+        "call": "clickToApi",
+        "args": {
+          "intentName": "CallPhone",
+          "params": {
+            "relationship": "爸爸",
+            "phoneNumber": "13900000000"
+          }
+        }
+      }
+    ],
+    "dataModelSchema": {
+      "data": {
+        "weather": {
+          "location": {
+            "prefectureName": { "type": "string", "description": "城市名称", "sampleValue": "深圳" }
+          },
+          "current": {
+            "temperatureText": { "type": "string", "description": "当前温度展示文本", "sampleValue": "31℃" },
+            "condition": { "type": "string", "description": "当前天气现象", "sampleValue": "雷阵雨" }
+          }
+        },
+        "phoneBattery": {
+          "batterySOCText": { "type": "string", "description": "手机剩余电量百分比文本", "sampleValue": "46%" },
+          "chargingStatusDesc": { "type": "string", "description": "当前充电状态", "sampleValue": "未充电" }
+        }
+      }
+    },
+    "assetCandidates": [
+      { "src": "resources/base/media/icon_weather1.svg", "description": "天气雨伞图标，适合表达天气信息" },
+      { "src": "resources/base/media/icon_electricity.svg", "description": "电池图标，适合电量状态展示" },
+      { "src": "resources/base/media/phone_fill.svg", "description": "电话实心图标，适合拨打电话入口" }
+    ]
+  },
+  {
+    "userQuery": "做一张上班通勤卡，左边放上海今天的天气，右边放接下来两场会议，底部给我一个导航去公司的按钮。",
+    "size": "2x4",
+    "eventCandidates": [
+      {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "StartNavigate",
+          "params": {
+            "dstLocation": {
+              "location": "company",
+              "latitude": "",
+              "longitude": ""
+            }
+          }
+        }
+      }
+    ],
+    "dataModelSchema": {
+      "data": {
+        "weather": {
+          "location": {
+            "prefectureName": { "type": "string", "description": "城市名称", "sampleValue": "上海" }
+          },
+          "current": {
+            "temperatureText": { "type": "string", "description": "当前温度展示文本", "sampleValue": "27℃" },
+            "condition": { "type": "string", "description": "当前天气现象", "sampleValue": "小雨" }
+          }
+        },
+        "calendar": {
+          "events": [
+            {
+              "title": { "type": "string", "description": "会议标题", "sampleValue": "晨会" },
+              "dtStart": { "type": "string", "description": "会议开始时间", "sampleValue": "09:00" },
+              "eventLocation": { "type": "string", "description": "会议地点", "sampleValue": "线上会议" }
+            }
+          ]
+        }
+      }
+    },
+    "assetCandidates": [
+      { "src": "resources/base/media/icon_weather1.svg", "description": "天气雨伞图标，适合表达天气信息" },
+      { "src": "resources/base/media/calendar_fill.svg", "description": "日历实心图标，适合会议日程" },
+      { "src": "resources/base/media/location_north_up_right_fill.svg", "description": "方向导航图标，适合地图导航和路线规划" }
+    ]
+  },
+  {
+    "userQuery": "做个横向设备状态面板，同时显示手机电量、充电状态、内存占用和可用内存，再放一个清理内存按钮。",
+    "size": "2x4",
+    "eventCandidates": [
+      {
+        "call": "clickToApi",
+        "args": {
+          "intentName": "CleanRAMMemory",
+          "params": {}
+        }
+      }
+    ],
+    "dataModelSchema": {
+      "data": {
+        "phoneBattery": {
+          "batterySOCText": { "type": "string", "description": "手机剩余电量百分比文本", "sampleValue": "58%" },
+          "chargingStatusDesc": { "type": "string", "description": "当前充电状态", "sampleValue": "充电中" }
+        },
+        "systemMem": {
+          "usagePercent": { "type": "number", "description": "当前系统内存占用百分比", "sampleValue": 71 },
+          "availableMemText": { "type": "string", "description": "当前可用内存", "sampleValue": "3.20 GB" }
+        }
+      }
+    },
+    "assetCandidates": [
+      { "src": "resources/base/media/icon_electricity.svg", "description": "电池图标，适合电量状态展示" },
+      { "src": "resources/base/media/icon_clear.svg", "description": "清除图标，适合内存清理动作" }
+    ]
+  }
+]
