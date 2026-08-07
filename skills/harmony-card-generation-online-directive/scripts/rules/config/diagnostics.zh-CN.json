@@ -1,0 +1,22 @@
+{
+  "DSL_JSONL_LINE_COUNT": {
+    "message": "genui 必须是三行 JSONL。",
+    "fixHint": "输出 createSurface、updateComponents、updateDataModel 三行 JSON。"
+  },
+  "DSL_REQUIRED_FIELD": {
+    "message": "DSL 缺少必填字段，或该字段为空。",
+    "fixHint": "按 json_pointer 指向的位置补齐字段和值。"
+  },
+  "EXPR_FULL_STRING_REQUIRED": {
+    "message": "动态值必须是完整表达式字符串，不能在普通字符串中嵌入 {{ ... }}。",
+    "fixHint": "把静态文本也放进表达式内部，用 + 拼接。"
+  },
+  "BINDING_LEGACY_PATH_OBJECT": {
+    "message": "当前 Form 配置不允许使用未声明或位置不合法的函数绑定。",
+    "fixHint": "改成完整表达式，例如 \"{{ ${/meeting/time} }}\"。"
+  },
+  "ASSET_PATH_NOT_DECLARED": {
+    "message": "资源路径未在素材库 allowlist 中声明。",
+    "fixHint": "使用 rules/config/asset.json.allowlist 中声明的素材，或删除 Image。"
+  }
+}

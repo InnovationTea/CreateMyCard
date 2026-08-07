@@ -1,0 +1,25 @@
+{
+  "capabilityId": "GetAppUsageDuration",
+  "preferredWriteResultTo": "/data/appUsageStats",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "appBundleName": {"type": "string"}
+    },
+    "required": ["appBundleName"],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "appUsage": {
+        "type": "object",
+        "properties": {
+          "appName": {"type": "string"},
+          "durationText": {"type": "string"}
+        }
+      },
+      "updatedAt": {"type": "string"}
+    }
+  }
+}
