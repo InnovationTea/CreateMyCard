@@ -37,6 +37,6 @@
     "candidateEventCandidates"
   ],
   "output": {
-    "description": "华为流处理插件 start/partial/command/final 包络；command 内容使用标准 command 消息结构。"
+    "description": "华为流处理插件 start/partial/command/final 包络；command 的 content 指令包含 cardId 和 size。"
   }
 }

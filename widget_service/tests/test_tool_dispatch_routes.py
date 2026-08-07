@@ -1055,12 +1055,17 @@ def test_generation_routes_send_start_and_success_commands(monkeypatch):
         card_id = start_payload["executeParam"]["cardId"]
         assert str(uuid.UUID(card_id)) == card_id
         assert start_payload == {
-            "executeParam": {"intentName": "AIWidgetStart", "cardId": card_id}
+            "executeParam": {
+                "intentName": "AIWidgetStart",
+                "cardId": card_id,
+                "size": "2x4",
+            }
         }
         assert success_payload["executeParam"] == {
             "status": True,
             "intentName": "AIWidgetEnd",
             "cardId": card_id,
+            "size": "2x4",
             "intentParam": {
                 "genWidgetResult": "https://test.invalid/widget/directive.json"
             },
@@ -1091,7 +1096,6 @@ def test_temporary_compact_route_forces_directives_without_global_switch(monkeyp
     )
     content = {
         "userQuery": "生成静态天气卡片",
-        "size": "2x4",
         "title": "天气",
         "description": "天气概览",
         "candidateDataBindings": [],
@@ -1133,6 +1137,8 @@ def test_temporary_compact_route_forces_directives_without_global_switch(monkeyp
     success_card_id = temporary_success["directives"][0]["payload"]["executeParam"]["cardId"]
     assert str(uuid.UUID(temporary_card_id)) == temporary_card_id
     assert success_card_id == temporary_card_id
+    assert temporary_start["directives"][0]["payload"]["executeParam"]["size"] == "2x2"
+    assert temporary_success["directives"][0]["payload"]["executeParam"]["size"] == "2x2"
     standard_message = _assert_success_envelope(
         standard_frames[-1],
         "generateWidgetCardCompactDsl",
@@ -1175,6 +1181,7 @@ def test_temporary_compact_route_forces_failure_directive(monkeypatch):
     failure_execute_param = failure_command["directives"][0]["payload"]["executeParam"]
     assert failure_execute_param["status"] is False
     assert failure_execute_param["intentName"] == "AIWidgetEnd"
+    assert failure_execute_param["size"] == "2x2"
     assert str(uuid.UUID(failure_execute_param["cardId"])) == failure_execute_param["cardId"]
 
 
@@ -1204,6 +1211,7 @@ def test_generation_validation_error_sends_failure_command(monkeypatch):
     failure_execute_param = failure_command["directives"][0]["payload"]["executeParam"]
     assert failure_execute_param["status"] is False
     assert failure_execute_param["intentName"] == "AIWidgetEnd"
+    assert failure_execute_param["size"] == "2x2"
     assert str(uuid.UUID(failure_execute_param["cardId"])) == failure_execute_param["cardId"]
 
 
@@ -1241,13 +1249,18 @@ def test_generation_model_error_sends_start_and_failure_commands(monkeypatch):
     failure_command = _command_content(frames[2])
     start_card_id = start_command["directives"][0]["payload"]["executeParam"]["cardId"]
     assert start_command["directives"][0]["payload"] == {
-        "executeParam": {"intentName": "AIWidgetStart", "cardId": start_card_id}
+        "executeParam": {
+            "intentName": "AIWidgetStart",
+            "cardId": start_card_id,
+            "size": "2x4",
+        }
     }
     assert failure_command["directives"][0]["payload"] == {
         "executeParam": {
             "status": False,
             "intentName": "AIWidgetEnd",
             "cardId": start_card_id,
+            "size": "2x4",
         }
     }
 

@@ -24,7 +24,7 @@ from app.websocket_metrics import websocket_metrics
 from config.config import get_settings
 from core.errors import ErrorCode
 from custom.model_runtime import ModelExecutionRuntime
-from models.generation import ModelRequestContext
+from models.generation import DEFAULT_WIDGET_SIZE, ModelRequestContext, WidgetSize
 from models.service import (
     WidgetPluginReply,
     WidgetPluginStreamResponse,
@@ -167,6 +167,28 @@ def _request_id_from_raw_payload(payload: Any) -> str | None:
     if request_id is None:
         return None
     return str(request_id).strip() or None
+
+
+def _normalize_directive_size(
+    value: Any,
+    fallback: WidgetSize = DEFAULT_WIDGET_SIZE,
+) -> WidgetSize:
+    """将指令尺寸限制为服务支持的标准值。"""
+    if value == "2x4":
+        return "2x4"
+    if value == "2x2":
+        return "2x2"
+    return fallback
+
+
+def _directive_size_from_raw_payload(payload: Any) -> WidgetSize:
+    """在请求模型构造前读取显式尺寸，缺失或非法时使用首次生成默认值。"""
+    if not isinstance(payload, dict):
+        return DEFAULT_WIDGET_SIZE
+    content = payload.get("content")
+    if not isinstance(content, dict):
+        return DEFAULT_WIDGET_SIZE
+    return _normalize_directive_size(content.get("size"))
 
 
 def _pick_device_rom_version(device_info: dict[str, Any]) -> str:
@@ -391,6 +413,7 @@ async def _send_widget_directive_command(
     streaming_text_id: str,
     state: WidgetDirectiveState,
     card_id: str,
+    size: WidgetSize,
     artifact_url: str = "",
 ) -> bool:
     """按开关发送生成进度指令，不改变原有业务帧和异常处理。"""
@@ -404,6 +427,7 @@ async def _send_widget_directive_command(
         streaming_text_id,
         card_id,
         request_id or "",
+        size,
         artifact_url,
     )
     return await _send_websocket_json(
@@ -500,6 +524,7 @@ async def _serve_operation_websocket(
         service = get_service(model_runtime)
         while True:
             card_id = str(uuid.uuid4())
+            directive_size = DEFAULT_WIDGET_SIZE
             try:
                 payload = await websocket.receive_json()
             except ValueError as exc:
@@ -526,6 +551,7 @@ async def _serve_operation_websocket(
                         streaming_text_id,
                         WidgetDirectiveState.FAILURE,
                         card_id,
+                        directive_size,
                     ):
                         return
                 plugin_response = _build_plugin_stream_response(
@@ -543,6 +569,7 @@ async def _serve_operation_websocket(
                 continue
             # 完整协议校验前只提取关联 ID，保证原始请求日志也能归属当前轮次。
             raw_request_id = _request_id_from_raw_payload(payload)
+            directive_size = _directive_size_from_raw_payload(payload)
             task_logger.set_session_id(raw_request_id or "None")
             logger.info(
                 f"widget_operation_ws_raw_request_received operation={operation} "
@@ -621,11 +648,14 @@ async def _serve_operation_websocket(
                 else:
                     # 心跳通道断开不取消内部生成、repair 或 artifact 保存。
                     async def send_model_start_command(
+                        resolved_size: WidgetSize,
                         raw_payload=payload,
                         current_request_id=request_id,
                         current_streaming_text_id=streaming_text_id,
                         current_card_id=card_id,
                     ) -> None:
+                        nonlocal directive_size
+                        directive_size = resolved_size
                         await _send_widget_directive_command(
                             websocket,
                             raw_payload,
@@ -634,6 +664,7 @@ async def _serve_operation_websocket(
                             current_streaming_text_id,
                             WidgetDirectiveState.START,
                             current_card_id,
+                            resolved_size,
                         )
 
                     result = await handler(service, request, send_model_start_command)
@@ -655,6 +686,10 @@ async def _serve_operation_websocket(
                 )
                 if operation in GENERATION_OPERATIONS:
                     directive_state, artifact_url = _generation_result_directive(result_data)
+                    directive_size = _normalize_directive_size(
+                        result_data.get("suggestSize"),
+                        directive_size,
+                    )
                     if not await _send_widget_directive_command(
                         websocket,
                         payload,
@@ -663,6 +698,7 @@ async def _serve_operation_websocket(
                         streaming_text_id,
                         directive_state,
                         card_id,
+                        directive_size,
                         artifact_url,
                     ):
                         return
@@ -707,6 +743,7 @@ async def _serve_operation_websocket(
                         streaming_text_id,
                         WidgetDirectiveState.FAILURE,
                         card_id,
+                        directive_size,
                     ):
                         return
                 plugin_response = _build_plugin_stream_response(
@@ -746,6 +783,7 @@ async def _serve_operation_websocket(
                         streaming_text_id,
                         WidgetDirectiveState.FAILURE,
                         card_id,
+                        directive_size,
                     ):
                         return
                 plugin_response = _build_plugin_stream_response(

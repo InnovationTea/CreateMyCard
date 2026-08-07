@@ -701,6 +701,38 @@ def _websocket_result(
                 return parse_legacy_stream_content(stream_content)["data"]
 
 
+def _websocket_command_sizes(
+    client: TestClient,
+    content: dict,
+    interaction_id: str,
+) -> list[str]:
+    payload = {
+        "content": {"odid": DEVICE_ODID, **content},
+        "deviceInfo": {
+            "locale": "zh-CN",
+            "prdVer": APP_VERSION,
+            "sysVer": "EmotionUI_9.0.0",
+            "romVersion": ROM_VERSION,
+        },
+        "session": {"sessionId": "multi-round", "interactionId": interaction_id},
+        "userAuth": {"user": {"userId": "user-a"}},
+        "utterance": {"original": content["userQuery"], "type": "text"},
+    }
+    sizes: list[str] = []
+    with client.websocket_connect("/api/v1/ws/tools/generateWidgetCard") as websocket:
+        websocket.send_json(payload)
+        while True:
+            response = websocket.receive_json()
+            stream_info = response["reply"]["streamInfo"]
+            if stream_info["streamType"] == "command":
+                command_message = json.loads(stream_info["streamContent"])
+                directive = json.loads(command_message["content"])
+                execute_param = directive["directives"][0]["payload"]["executeParam"]
+                sizes.append(execute_param["size"])
+            if stream_info["streamType"] == "final":
+                return sizes
+
+
 def test_websocket_create_and_edit_return_new_artifact(editable_artifact_storage):
     client = TestClient(app)
     created = _websocket_result(
@@ -726,6 +758,36 @@ def test_websocket_create_and_edit_return_new_artifact(editable_artifact_storage
     assert edited["status"] == "success"
     assert edited["artifactUrl"] != created["artifactUrl"]
     assert len(list(editable_artifact_storage.glob("artifact_*.md"))) == 2
+
+
+def test_edit_directives_inherit_source_artifact_size(
+    editable_artifact_storage,
+    monkeypatch,
+):
+    monkeypatch.setattr(get_settings(), "enable_widget_directive_commands", True)
+    client = TestClient(app)
+    created = _websocket_result(
+        client,
+        {
+            "userQuery": "生成天气卡片",
+            "size": "2x4",
+            "title": "天气",
+            "description": "当前天气",
+            "candidateDataBindings": [],
+        },
+        "directive-size-create",
+    )
+
+    sizes = _websocket_command_sizes(
+        client,
+        {
+            "userQuery": "改成蓝色",
+            "sourceArtifactUrl": created["artifactUrl"],
+        },
+        "directive-size-edit",
+    )
+
+    assert sizes == ["2x4", "2x4"]
 
 
 @pytest.mark.parametrize(

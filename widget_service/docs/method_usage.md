@@ -109,7 +109,9 @@ WS /api/v1/ws/tools/generateWidgetCardTerseDslNested2
 调用同一个 `generate_widget_card_compact_dsl()` Service 方法。该 operation 在路由层强制发送
 `AIWidgetStart/AIWidgetEnd` 指令，不受 `WIDGET_SERVICE_ENABLE_WIDGET_DIRECTIVE_COMMANDS` 影响；第四接口
 继续由全局开关控制。每个生成请求会创建一个 UUID 格式的 `cardId`，放在指令的
-`payload.executeParam.cardId`；同一请求的开始、成功和失败指令共用该值，不同请求使用不同值。指令帧
+`payload.executeParam.cardId`；同一请求的开始、成功和失败指令共用该值，不同请求使用不同值。指令的
+`payload.executeParam.size` 优先使用 `content.size`；首次生成未传时为 `2x2`，编辑未传时继承来源
+artifact 的 `cardSpec.suggestSize`。指令帧
 `streamContent` 外层为 command 消息 JSON，`content` 保存原指令 JSON 字符串，`content_type` 固定为
 `aIWidgetDirectives`，`event` 固定为 `command`，`process_time` 使用当前本地时间，`task_id` 使用 requestId。
 

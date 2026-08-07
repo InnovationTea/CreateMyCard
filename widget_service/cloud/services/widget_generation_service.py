@@ -29,7 +29,7 @@ from custom.a2ui_model_client import (
 )
 from custom.model_runtime import ModelExecutionRuntime
 from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
-from models.generation import DEFAULT_WIDGET_SIZE, EventAction, ModelRequestContext
+from models.generation import DEFAULT_WIDGET_SIZE, EventAction, ModelRequestContext, WidgetSize
 from services.artifact_store import ArtifactStore
 from services.capability_registry import CapabilityRegistry
 from services.card_spec_builder import CardSpecBuilder
@@ -253,7 +253,7 @@ class WidgetGenerationService:
         request: GenerateWidgetCardRequest,
         *,
         policy: GenerationRoutePolicy,
-        before_model_call: Callable[[], Awaitable[None]] | None = None,
+        before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
     ) -> GenerateWidgetCardResponse:
         """生成卡片。
 
@@ -619,7 +619,7 @@ class WidgetGenerationService:
 
         async def generate_source_dsl() -> str:
             if before_model_call is not None:
-                await before_model_call()
+                await before_model_call(card_spec.suggestSize)
             logger.info(
                 f"{_MODULE} model_source_generation_started operation={policy.operation}"
             )
@@ -1029,7 +1029,7 @@ class WidgetGenerationService:
         self,
         request: GenerateWidgetCardRequest,
         *,
-        before_model_call: Callable[[], Awaitable[None]] | None = None,
+        before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
     ) -> GenerateWidgetCardResponse:
         """使用标准 A2UI Form profile 和配置选择的模型后端生成卡片。"""
         settings = get_settings()
@@ -1054,7 +1054,7 @@ class WidgetGenerationService:
         self,
         request: GenerateWidgetCardRequest,
         *,
-        before_model_call: Callable[[], Awaitable[None]] | None = None,
+        before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
     ) -> GenerateWidgetCardResponse:
         """使用配置选择的后端生成 Design Compact DSL，并转换为标准 A2UI。"""
         try:
@@ -1094,7 +1094,7 @@ class WidgetGenerationService:
         self,
         request: GenerateWidgetCardRequest,
         *,
-        before_model_call: Callable[[], Awaitable[None]] | None = None,
+        before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
     ) -> GenerateWidgetCardResponse:
         """使用本地 TerseDSL-Nested-2 Prompt 和转换器生成标准 A2UI。"""
         try:
@@ -1136,7 +1136,7 @@ class WidgetGenerationService:
         request: GenerateWidgetCardRequest,
         policy: GenerationRoutePolicy,
         *,
-        before_model_call: Callable[[], Awaitable[None]] | None = None,
+        before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
     ) -> GenerateWidgetCardResponse:
         """复制请求并锁定路由对应的协议 profile。"""
         unsupported_response = self._policy_unsupported_response(request, policy)

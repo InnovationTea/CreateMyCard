@@ -2,10 +2,11 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
+from models.generation import WidgetSize
 from models.service import WidgetPluginReply, WidgetPluginStreamResponse, WidgetStreamInfo
 
 
@@ -60,10 +61,12 @@ def _build_execute_payload(
     state: WidgetDirectiveState,
     artifact_url: str,
     card_id: str,
+    size: WidgetSize,
 ) -> dict[str, Any]:
     execute_param: dict[str, Any] = {
         "intentName": "AIWidgetStart",
         "cardId": card_id,
+        "size": size,
     }
     if state is WidgetDirectiveState.START:
         return {"executeParam": execute_param}
@@ -71,6 +74,7 @@ def _build_execute_payload(
         "status": state is WidgetDirectiveState.SUCCESS,
         "intentName": "AIWidgetEnd",
         "cardId": card_id,
+        "size": size,
     }
     if state is WidgetDirectiveState.SUCCESS:
         if not artifact_url:
@@ -81,7 +85,7 @@ def _build_execute_payload(
 
 def _current_process_time() -> str:
     """返回端侧 command 消息要求的本地毫秒时间。"""
-    return datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+    return datetime.now(UTC).astimezone().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
 
 def build_widget_directive_response(
@@ -90,6 +94,7 @@ def build_widget_directive_response(
     streaming_text_id: str,
     card_id: str,
     task_id: str,
+    size: WidgetSize,
     artifact_url: str = "",
 ) -> WidgetPluginStreamResponse:
     """构造插件协议 command 帧，streamContent 保存 command 消息 JSON。"""
@@ -97,7 +102,7 @@ def build_widget_directive_response(
         "directives": [
             {
                 "header": {"name": "Action", "namespace": "Common"},
-                "payload": _build_execute_payload(state, artifact_url, card_id),
+                "payload": _build_execute_payload(state, artifact_url, card_id, size),
             }
         ],
         "errorCode": "0",
