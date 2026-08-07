@@ -1,0 +1,112 @@
+{
+  "bundleName": "com.omega_w_0823.hmservice",
+  "pluginType": "Device",
+  "toolType": "XiaoYiDeviceTool",
+  "toolName": "RequestDataPermission",
+  "description": "获取特定场景的数据权限能力",
+  "arguments": {
+    "properties": {
+      "dataCapabilityIds": {
+        "type": "Array<String>",
+        "description": "需要加载完整 schema 的数据能力 ID 列表，至少 1 个。",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "String",
+            "description": "完整 schema 的数据能力 ID "
+          }
+        }
+      }
+    },
+    "required": [
+      "dataCapabilityIds"
+    ],
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "code": {
+        "type": "Integer",
+        "description": "返回码"
+      },
+      "result": {
+        "type": "Object",
+        "description": "返回结果",
+        "required": [],
+        "properties": {
+          "nonAuthStatus": {
+            "type": "Array",
+            "description": "需要用户手动授权的项目；非空时应停止生成并引导用户按指定路径授权",
+            "required": [],
+            "properties": {
+              "name": {
+                "type": "String",
+                "description": "面向用户展示的授权项名称"
+              },
+              "capabilityId": {
+                "type": "String",
+                "description": "数据能力ID"
+              },
+              "authorized": {
+                "type": "Boolean",
+                "description": "是否已授权"
+              },
+              "settingsPath": {
+                "type": "String",
+                "description": "手动授权的设置路径；不需要指定路径时为空字符串"
+              },
+              "authType": {
+                "type": "String",
+                "description": "授权类型"
+              }
+            }
+          },
+          "stateOfPermission": {
+            "type": "Boolean",
+            "description": "获取到的权限结果"
+          }
+        }
+      }
+    },
+    "required": [
+      "result"
+    ],
+    "type": "object"
+  },
+  "protocol": "",
+  "deviceCommand": {
+    "template": {
+      "header": {
+        "name": "Action",
+        "namespace": "Common"
+      },
+      "payload": {
+        "cardParam": {},
+        "executeParam": {
+          "executeMode": "foreground",
+          "intentName": "RequestDataPermission",
+          "bundleName": "com.omega_w_0823.hmservice",
+          "needUnlock": true,
+          "actionResponse": true,
+          "appType": "OHOS_APP",
+          "timeOut": 5,
+          "permissionId": [],
+          "intentParam": {
+            "dataCapabilityIds": "#{arguments.dataCapabilityIds}"
+          }
+        },
+        "responses": [
+          {
+            "displayText": "",
+            "ttsText": "",
+            "resultCode": ""
+          }
+        ],
+        "needUploadResult": true,
+        "noHalfPage": false,
+        "pageControlRelated": true
+      }
+    }
+  },
+  "schemaVersion": "1.0"
+}

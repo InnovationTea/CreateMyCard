@@ -52,14 +52,17 @@
 - 推荐 `writeResultTo` 使用语义化路径，例如 `/data/appUsageStats`。UI 访问路径必须由 `writeResultTo + outputSchema` 推导。
 - 常用展示路径：`/data/appUsageStats/appUsage/appName`、`/data/appUsageStats/appUsage/durationText`。
 - 更新时间路径是 `/data/appUsageStats/updatedAt`，仅在卡片确实需要展示刷新时间时使用。
-- 初始 `updateDataModel` 使用空对象和加载态，不要写死用户真实应用使用数据：
+- 初始 `updateDataModel` 可以使用示例值；`/data/appUsageStats` 中出现的字段、层级和类型必须符合本文 `outputSchema`。示例值只用于首帧展示，不表示已经取得用户真实应用使用数据：
 
 ```json
 {
   "data": {
     "appUsageStats": {
-      "appUsage": {},
-      "updatedAt": ""
+      "appUsage": {
+        "appName": "示例应用",
+        "durationText": "25 分钟"
+      },
+      "updatedAt": "2026-08-06 09:00"
     }
   },
   "state": {

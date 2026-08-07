@@ -162,16 +162,43 @@
 - 更新时间路径是 `/data/weather/updatedAt`，仅在卡片确实需要展示刷新时间时使用。
 - 保留 manifest 中声明的字段名和类型，不要自行改名或改类型。
 - 本文档只声明天气数据能力的输入、输出和常用路径；通用 data capability 选择、CardSpec 映射见 `../cardspec.md`，事件参数绑定见 `../event-capability/` 和 `../../protocol/data-binding.md`。
-- 初始 `updateDataModel` 使用空对象、空数组和加载态，不要写死用户当前位置或真实天气结果：
+- 初始 `updateDataModel` 可以使用示例值；`/data/weather` 中出现的字段、嵌套层级、类型、枚举和数值范围必须符合本文 `outputSchema`，`daily` 中的每一项都必须符合 `outputSchema.properties.daily.items`。示例值只用于首帧展示，不表示已经取得用户真实天气结果：
 
 ```json
 {
   "data": {
     "weather": {
-      "location": {},
-      "current": {},
-      "daily": [],
-      "updatedAt": ""
+      "location": {
+        "cityCode": "60814",
+        "districtName": "青浦区",
+        "prefectureName": "上海市"
+      },
+      "current": {
+        "temperatureC": 29,
+        "temperatureText": "29°C",
+        "condition": "多云",
+        "feelsLikeC": 31,
+        "humidityPercent": 68,
+        "airQuality": "良",
+        "windDirection": "东南风",
+        "windLevel": 2,
+        "uvIndex": "中等",
+        "coldLevel": "低",
+        "alertLevel": ""
+      },
+      "daily": [
+        {
+          "date": "2026-08-06",
+          "weekday": "星期四",
+          "condition": "多云",
+          "temperatureRangeText": "25° / 32°",
+          "rainProbabilityPercent": "20%",
+          "airQuality": "良",
+          "uvIndex": "中等",
+          "coldLevel": "低"
+        }
+      ],
+      "updatedAt": "2026-08-06 09:00"
     }
   },
   "state": {

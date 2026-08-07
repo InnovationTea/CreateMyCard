@@ -7,257 +7,258 @@
     "height": "matchParent"
   }
 },
-{
-  "version": "v0.9",
-  "updateComponents": {
-    "surfaceId": "card",
-    "root": "root",
-    "components": [
-      {
-        "id": "root",
-        "component": "Column",
-        "children": [
-          "hero_row",
-          "sub_row",
-          "bottom_row"
-        ],
-        "itemMargin": 4,
-        "styles": {
-          "width": "matchParent",
-          "height": "matchParent",
-          "padding": 12,
-          "borderRadius": 18,
-          "clip": true,
-          "linearGradient": {
-            "direction": "Bottom",
-            "colors": [
-              [
-                "#072973",
-                0.0
-              ],
-              [
-                "#5e93ff",
-                1.0
+  {
+    "version": "v0.9",
+    "updateComponents": {
+      "surfaceId": "card",
+      "root": "root",
+      "components": [
+        {
+          "id": "root",
+          "component": "Column",
+          "children": [
+            "hero_row",
+            "sub_row",
+            "bottom_row"
+          ],
+          "itemMargin": 4,
+          "styles": {
+            "width": "matchParent",
+            "height": "matchParent",
+            "padding": 12,
+            "borderRadius": 18,
+            "clip": true,
+            "linearGradient": {
+              "direction": "Bottom",
+              "colors": [
+                [
+                  "#072973",
+                  0.0
+                ],
+                [
+                  "#5e93ff",
+                  1.0
+                ]
               ]
-            ]
-          }
-        }
-      },
-      {
-        "id": "hero_row",
-        "component": "Row",
-        "children": [
-          "temp_text",
-          "weather_icon"
-        ],
-        "styles": {
-          "width": "matchParent",
-          "justifyContent": "spaceBetween",
-          "alignItems": "bottom"
-        }
-      },
-      {
-        "id": "temp_text",
-        "component": "Text",
-        "content": "31°",
-        "styles": {
-          "fontSize": 38,
-          "fontWeight": 800,
-          "fontColor": "#FFFFFFFF",
-          "maxLines": 1
-        }
-      },
-      {
-        "id": "weather_icon",
-        "component": "Image",
-        "src": "resources/base/media/icon_weather1.svg",
-        "styles": {
-          "width": 48,
-          "height": 48,
-          "objectFit": "contain"
-        }
-      },
-      {
-        "id": "sub_row",
-        "component": "Row",
-        "children": [
-          "warning_row",
-          "city_text"
-        ],
-        "styles": {
-          "width": "matchParent",
-          "justifyContent": "spaceBetween",
-          "alignItems": "center"
-        }
-      },
-      {
-        "id": "warning_row",
-        "component": "Row",
-        "children": [
-          "warning_icon",
-          "warning_text"
-        ],
-        "itemMargin": 3,
-        "styles": {
-          "alignItems": "center",
-          "layoutWeight": 1
-        }
-      },
-      {
-        "id": "warning_icon",
-        "component": "Image",
-        "src": "resources/base/media/thermometer_sun_fill.svg",
-        "styles": {
-          "width": 14,
-          "height": 14,
-          "objectFit": "contain",
-          "fillColor": "#FFF9A01E"
-        }
-      },
-      {
-        "id": "warning_text",
-        "component": "Text",
-        "content": "高温预警",
-        "styles": {
-          "fontSize": 10,
-          "fontWeight": 700,
-          "fontColor": "#FFF9A01E",
-          "maxLines": 1
-        }
-      },
-      {
-        "id": "city_text",
-        "component": "Text",
-        "content": "   北京",
-        "styles": {
-          "fontSize": 12,
-          "fontWeight": 600,
-          "fontColor": "#FFFFFFFF",
-          "maxLines": 1,
-          "textAlign": "center",
-          "layoutWeight": 1
-        }
-      },
-      {
-        "id": "bottom_row",
-        "component": "Row",
-        "children": [
-          "cold_panel",
-          "call_stack"
-        ],
-        "styles": {
-          "width": "matchParent",
-          "justifyContent": "spaceBetween",
-          "alignItems": "center",
-          "margin": {
-            "top": 10
-          }
-        }
-      },
-      {
-        "id": "cold_panel",
-        "component": "Column",
-        "children": [
-          "cold_label",
-          "cold_value"
-        ],
-        "itemMargin": 2,
-        "styles": {
-          "width": 74,
-          "backgroundColor": "#26FFFFFF",
-          "borderRadius": 16,
-          "borderWidth": 1,
-          "borderColor": "#33FFFFFF",
-          "padding": {
-            "top": 6,
-            "right": 6,
-            "bottom": 6,
-            "left": 6
-          },
-          "clip": true,
-          "alignItems": "center"
-        }
-      },
-      {
-        "id": "cold_label",
-        "component": "Text",
-        "content": "\uD83E\uDD27 感冒指数",
-        "styles": {
-          "fontSize": 10,
-          "fontWeight": 600,
-          "fontColor": "#FFFFFFFF",
-          "maxLines": 1
-        }
-      },
-      {
-        "id": "cold_value",
-        "component": "Text",
-        "content": "易发",
-        "styles": {
-          "fontSize": 16,
-          "fontWeight": 700,
-          "fontColor": "#FFFFFFFF",
-          "maxLines": 1
-        }
-      },
-      {
-        "id": "call_stack",
-        "component": "Stack",
-        "children": [
-          "call_bg",
-          "call_btn"
-        ],
-        "styles": {
-          "width": 40,
-          "height": 40,
-          "alignContent": "center"
-        }
-      },
-      {
-        "id": "call_bg",
-        "component": "Column",
-        "children": [],
-        "styles": {
-          "width": 45,
-          "height": 45,
-          "backgroundColor": "#4CAF50",
-          "borderRadius": 20
-        }
-      },
-      {
-        "id": "call_btn",
-        "component": "Image",
-        "src": "resources/base/media/icon_call.svg",
-        "styles": {
-          "width": 30,
-          "height": 30,
-          "objectFit": "contain"
-        },
-        "accessibility": {
-          "label": "拨打电话"
-        },
-        "onClick": [
-          {
-            "call": "clickToApi",
-            "args": {
-              "intentName": "CallPhone",
-              "params": {
-                "relationship": "",
-                "phoneNumber": "111222333"
-              }
             }
           }
-        ]
-      }
-    ]
+        },
+        {
+          "id": "hero_row",
+          "component": "Row",
+          "children": [
+            "temp_text",
+            "weather_icon"
+          ],
+          "styles": {
+            "width": "matchParent",
+            "justifyContent": "spaceBetween",
+            "alignItems": "bottom"
+          }
+        },
+        {
+          "id": "temp_text",
+          "component": "Text",
+          "content": "31°",
+          "styles": {
+            "fontSize": 38,
+            "fontWeight": 800,
+            "fontColor": "#FFFFFFFF",
+            "maxLines": 1
+          }
+        },
+        {
+          "id": "weather_icon",
+          "component": "Image",
+          "src": "resources/base/media/icon_weather1.svg",
+          "styles": {
+            "width": 52,
+            "height": 52,
+            "objectFit": "contain"
+          }
+        },
+        {
+          "id": "sub_row",
+          "component": "Row",
+          "children": [
+            "warning_row",
+            "city_text"
+          ],
+          "styles": {
+            "width": "matchParent",
+            "justifyContent": "spaceBetween",
+            "alignItems": "center"
+          }
+        },
+        {
+          "id": "warning_row",
+          "component": "Row",
+          "children": [
+            "warning_icon",
+            "warning_text"
+          ],
+          "itemMargin": 3,
+          "styles": {
+            "alignItems": "center",
+            "layoutWeight": 1
+          }
+        },
+        {
+          "id": "warning_icon",
+          "component": "Image",
+          "src": "resources/base/media/thermometer_sun_fill.svg",
+          "styles": {
+            "width": 14,
+            "height": 14,
+            "objectFit": "contain",
+            "fillColor": "#FFF9A01E"
+          }
+        },
+        {
+          "id": "warning_text",
+          "component": "Text",
+          "content": "高温预警",
+          "styles": {
+            "fontSize": 10,
+            "fontWeight": 700,
+            "fontColor": "#FFF9A01E",
+            "maxLines": 1
+          }
+        },
+        {
+          "id": "city_text",
+          "component": "Text",
+          "content": "   北京",
+          "styles": {
+            "fontSize": 12,
+            "fontWeight": 600,
+            "fontColor": "#FFFFFFFF",
+            "maxLines": 1,
+            "textAlign": "center",
+            "layoutWeight": 1
+          }
+        },
+        {
+          "id": "bottom_row",
+          "component": "Row",
+          "children": [
+            "cold_panel",
+            "call_stack"
+          ],
+          "styles": {
+            "width": "matchParent",
+            "justifyContent": "spaceBetween",
+            "alignItems": "center",
+            "margin": {
+              "top": 10
+            }
+          }
+        },
+        {
+          "id": "cold_panel",
+          "component": "Column",
+          "children": [
+            "cold_label",
+            "cold_value"
+          ],
+          "itemMargin": 2,
+          "styles": {
+            "width": 74,
+            "backgroundColor": "#26FFFFFF",
+            "borderRadius": 16,
+            "borderWidth": 1,
+            "borderColor": "#33FFFFFF",
+            "padding": {
+              "top": 6,
+              "right": 6,
+              "bottom": 6,
+              "left": 6
+            },
+            "clip": true,
+            "alignItems": "center"
+          }
+        },
+        {
+          "id": "cold_label",
+          "component": "Text",
+          "content": "\uD83E\uDD27 感冒指数",
+          "styles": {
+            "fontSize": 10,
+            "fontWeight": 600,
+            "fontColor": "#FFFFFFFF",
+            "maxLines": 1
+          }
+        },
+        {
+          "id": "cold_value",
+          "component": "Text",
+          "content": "易发",
+          "styles": {
+            "fontSize": 16,
+            "fontWeight": 700,
+            "fontColor": "#FFFFFFFF",
+            "maxLines": 1
+          }
+        },
+        {
+          "id": "call_stack",
+          "component": "Stack",
+          "children": [
+            "call_bg",
+            "call_btn"
+          ],
+          "styles": {
+            "width": 40,
+            "height": 40,
+            "alignContent": "center"
+          }
+        },
+        {
+          "id": "call_bg",
+          "component": "Column",
+          "children": [],
+          "styles": {
+            "width": 45,
+            "height": 45,
+            "backgroundColor": "#4CAF50",
+            "borderRadius": 20
+          }
+        },
+        {
+          "id": "call_btn",
+          "component": "Image",
+          "src": "resources/base/media/icon_call.svg",
+          "styles": {
+            "width": 30,
+            "height": 30,
+            "objectFit": "contain",
+            "fillColor": "#fdfdfe"
+          },
+          "accessibility": {
+            "label": "拨打电话"
+          },
+          "onClick": [
+            {
+              "call": "clickToApi",
+              "args": {
+                "intentName": "CallPhone",
+                "params": {
+                  "relationship": "",
+                  "phoneNumber": "111222333"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "version": "v0.9",
+    "updateDataModel": {
+      "surfaceId": "card",
+      "path": "/",
+      "value": {}
+    }
   }
-},
-{
-  "version": "v0.9",
-  "updateDataModel": {
-    "surfaceId": "card",
-    "path": "/",
-    "value": {}
-  }
-}
 ]

@@ -42,16 +42,16 @@
 - 推荐 `writeResultTo: "/data/systemMem"`；UI 访问路径必须由 `writeResultTo + outputSchema` 推导。
 - 常用展示路径：`/data/systemMem/totalMemText`、`/data/systemMem/freeMemText`、`/data/systemMem/availableMemText`、`/data/systemMem/usagePercent`。
 - 进度条或环形进度只在 `usagePercent` 是主焦点时使用；旁边文案不要重复展示同一百分比，除非它是唯一主事实。
-- 初始 `updateDataModel` 使用空值、0 值和加载态，不要写死用户真实系统状态：
+- 初始 `updateDataModel` 可以使用示例值；`/data/systemMem` 中出现的字段、层级、类型和数值范围必须符合本文 `outputSchema`。示例值只用于首帧展示，不表示已经读取用户真实系统状态：
 
 ```json
 {
   "data": {
     "systemMem": {
-      "totalMemText": "",
-      "freeMemText": "",
-      "availableMemText": "",
-      "usagePercent": 0
+      "totalMemText": "8.00 GB",
+      "freeMemText": "1.20 GB",
+      "availableMemText": "4.50 GB",
+      "usagePercent": 43.75
     }
   },
   "state": {

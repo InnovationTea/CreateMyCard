@@ -2,40 +2,40 @@
   "bundleName": "com.omega_w_0823.hmservice",
   "pluginType": "Cloud",
   "toolType": "XiaoYiPlugin",
-  "toolName": "generateWidgetCard",
-  "description": "提交用户需求、候选数据绑定、候选事件和素材，生成可下载的 HarmonyOS A2UI Form 卡片 artifact",
+  "toolName": "generateWidgetCardCompactDsl",
+  "description": "Generate a HarmonyOS A2UI Form artifact from the user request and candidate capabilities using Compact DSL.",
   "arguments": {
     "properties": {
       "candidateDataBindings": {
         "type": "Array",
-        "description": "已通过能力概述裁决的候选数据能力调用列表",
+        "description": "Candidate data capability calls approved by the capability overview.",
         "required": [],
         "properties": {
           "ArrayItem": {
             "type": "Object",
-            "description": "候选数据能力",
+            "description": "Candidate data capability.",
             "required": [],
             "properties": {
               "writeResultTo": {
                 "type": "String",
-                "description": "结果写入路径"
+                "description": "Result target path."
               },
               "capabilityId": {
                 "type": "String",
-                "description": "能力ID"
+                "description": "Capability identifier."
               },
               "arguments": {
                 "type": "Object",
-                "description": "参数"
+                "description": "Capability arguments."
               },
               "candidateOutputFields": {
                 "type": "Array<String>",
-                "description": "可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导",
+                "description": "Optional JSON Pointer paths for candidate display fields.",
                 "required": [],
                 "properties": {
                   "ArrayItem": {
                     "type": "String",
-                    "description": "可选候选展示字段 JSON Pointer"
+                    "description": "Candidate display field JSON Pointer."
                   }
                 }
               }
@@ -45,43 +45,43 @@
       },
       "title": {
         "type": "String",
-        "description": "建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"
+        "description": "Suggested static card title."
       },
       "size": {
         "type": "String",
-        "description": "主 Agent 建议尺寸"
+        "description": "Suggested card size."
       },
       "description": {
         "type": "String",
-        "description": "建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"
+        "description": "Suggested static card description."
       },
       "userQuery": {
         "type": "String",
-        "description": "用户原始卡片需求"
+        "description": "Original user card request."
       },
       "sourceArtifactUrl": {
         "type": "String",
-        "description": "上一版完整 artifact 的真实 URL；缺失表示首次生成，合法非空值表示编辑"
+        "description": "Previous complete artifact URL; omit for initial generation."
       },
       "candidateAssetIds": {
         "type": "Array<String>",
-        "description": "候选素材 ID 列表",
+        "description": "Candidate asset identifiers.",
         "required": [],
         "properties": {
           "ArrayItem": {
             "type": "String",
-            "description": "候选素材 ID"
+            "description": "Candidate asset identifier."
           }
         }
       },
       "candidateEventCandidates": {
         "type": "Array",
-        "description": "候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明",
+        "description": "Candidate click events from the capability overview.",
         "required": [],
         "properties": {
           "ArrayItem": {
             "type": "Object",
-            "description": "事件 action"
+            "description": "Event action."
           }
         }
       }
@@ -95,46 +95,46 @@
     "properties": {
       "streamInfo": {
         "type": "String",
-        "description": "流式信息"
+        "description": "Streaming information."
       },
       "items": {
         "type": "Array",
-        "description": "结构化数据",
+        "description": "Structured result items.",
         "required": [
           "data"
         ],
         "properties": {
           "error": {
             "type": "String",
-            "description": "错误内容"
+            "description": "Error message."
           },
           "type": {
             "type": "String",
-            "description": "回复类型"
+            "description": "Response type."
           },
           "status": {
             "type": "String",
-            "description": "工具状态"
+            "description": "Tool status."
           },
           "operation": {
             "type": "String",
-            "description": "本次动作"
+            "description": "Operation."
           },
           "tool": {
             "type": "String",
-            "description": "当前工具名"
+            "description": "Current tool name."
           },
           "data": {
             "type": "String",
-            "description": "工具返回结果"
+            "description": "Tool result."
           },
           "errorCode": {
             "type": "String",
-            "description": "错误码"
+            "description": "Error code."
           },
           "requestId": {
             "type": "String",
-            "description": "请求ID"
+            "description": "Request identifier."
           }
         }
       }

@@ -18,7 +18,7 @@
 - `updateComponents.root` 必须引用 `components` 中存在的组件 id。
 - root 组件是唯一卡片 shell，承载 `width`、`height`、`padding`、`borderRadius`、`clip` 和 `backgroundColor` / `linearGradient` / `backgroundImage` 等布局和表面样式；root `width/height` 必须写 `"matchParent"`，`borderRadius` 无论 `2x2` 还是 `2x4` 都固定为 `18`，内部组件按 `2x2 = 160vp x 160vp`、`2x4 = 320vp x 160vp` 的实际预算落数值，内部组件圆角不受该固定值限制。背景也可由 root 下的真实背景组件承载。
 - 三行消息的 `surfaceId` 必须一致；最小骨架是 `{"version":"v0.9","createSurface":{"surfaceId":"card","catalogId":"ohos.a2ui.extended.catalog.form"}}`、`{"version":"v0.9","updateComponents":{"surfaceId":"card","root":"root","components":[...]}}`、`{"version":"v0.9","updateDataModel":{"surfaceId":"card","path":"/","value":{...}}}`。
-- `updateDataModel` 只提供运行数据；新卡片默认 `path: "/"` 并一次初始化所有 UI 表达式会访问的根结构和加载态；表达式引用必须能从 `value` 中解析，模板项相对表达式除外。
+- `updateDataModel` 只提供运行数据；新卡片默认 `path: "/"` 并一次初始化所有 UI 表达式会访问的根结构和必要状态。动态数据能力路径允许放置示例初始值，但该路径下出现的字段、层级、类型、枚举、范围和数组项结构必须符合对应 `outputSchema`；表达式引用必须能从 `value` 或 `writeResultTo + outputSchema` 中推导，模板项相对表达式除外。
 - `backgroundColor`、`linearGradient`、`backgroundImage` 等背景样式必须写在 `root.styles`，或由 root 下的真实背景组件承载，不能放进 `createSurface.styles`。
 - 原因：root 组件默认有不透明白色背景，会遮挡 surface 层背景，导致运行时显示默认白底或白屏。
 - root shell、安全区和内容布局样式也要写在 root；普通组件使用数值宽高或可静态推导的约束。新卡片默认省略 `createSurface.styles`，只有宿主明确要求时才作为外层裁切/形状辅助，不替代 root shell。

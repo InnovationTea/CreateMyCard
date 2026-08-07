@@ -12,10 +12,10 @@ description: "生成、修复、评审或解释 HarmonyOS A2UI Form 服务卡片
 1. 先读 `reference/core-rules.md`，把 P0/L0/L1/L2 当硬门槛。
 2. 再按任务类型读最小必要文件：新卡片读 `reference/generation-workflow.md`；修复/评审读 `reference/protocol/protocol.md`、`reference/protocol/component-catalog.md`、`reference/protocol/data-binding.md` 中与问题相关的部分；能力边界读 `reference/capability/cardspec.md` 和命中的能力索引。
 3. 新卡片先收敛到一个服务对象或主问题，再按角色槽位分配内容：`object`、`primary`、`support`、`metric/tile/status/badge`、`action`、`asset`。不要把所有事实硬压成固定支撑条数。
-4. 未指定尺寸先尝试 `2x2`；只有受保护文本、热区、并列关系、关键媒体或布局预算具体失败时才升级 `2x4`。
+4. 用户明确指定 `2x2` 或 `2x4` 时优先尊重；未指定尺寸时选择能够满足需求的最小尺寸，并默认从 `2x2` 开始。删除非核心可选信息后，只要核心问题、必须展示的数据和必要动作仍能完整表达，就必须使用 `2x2`；只有受保护文本、必要热区、必须同屏理解的并列关系、关键媒体或整体布局预算出现可说明的具体失败时才升级 `2x4`。不得仅因信息较多、横版更舒展、视觉更丰富或存在两个数据能力而选择 `2x4`。
 5. 从零生成完成内容分级后，只要候选尺寸可能由模板承载，且入选内容能收敛为一个服务对象/主问题与 `object`、`primary`、`support`、`metric/tile/status/badge`、`action`、`asset` 角色槽位，先读 `reference/template-routing.md` 和 `assets/templates/index.json` 做候选判断；最多选一个模板。模板只提供骨架和预算，内容、DataModel、素材、颜色、事件必须重做。
 6. 需要专项，或对组件字段、绑定、布局、颜色、事件不确定时，按 `reference.md` 定向补读最小必要文件；没有读到权威文件前不要凭样例或记忆补字段。先解决协议、绑定、尺寸和布局，再处理事件、CardSpec、颜色、素材、主显示组突出度、支撑组归拢和表面层级。
-7. 需要动态数据时先读 `reference/capability/cardspec.md`，再读 `reference/capability/data-capability/index.md` 做能力路由，只加载命中的 1-2 个能力 manifest；不要预读整个 `data-capability/` 目录。多个能力必须逐个确认 `capabilityId`、`arguments`、`writeResultTo`、常用 UI 路径和初始化 DataModel；只有入选字段才进入 DSL 和 CardSpec。
+7. 需要动态数据时先读 `reference/capability/cardspec.md`，再读 `reference/capability/data-capability/index.md` 做能力路由，只加载命中的 1-2 个能力 manifest；不要预读整个 `data-capability/` 目录。多个能力必须逐个确认 `capabilityId`、`arguments`、`writeResultTo`、常用 UI 路径和初始化 DataModel；初始化可以使用示例值，但 `writeResultTo` 对应动态子树中的每个字段、层级、类型、枚举、范围和数组项结构都必须来自该能力的 `outputSchema`，只有入选字段才进入 DSL 和 CardSpec。
 8. 写 DSL 前先算 surface/root、内容区、padding/margin/itemMargin、热区、受保护文本、并排宽高和颜色来源；写到任何组件属性前，若 `component-catalog.md` 未覆盖该字段或枚举，先删减设计或改用已覆盖属性。
 9. 输出前确认协议、绑定、布局、颜色、事件、尺寸、模板槽位、信息职责、事实等价类和 CardSpec 对齐；若确认项依赖未读专项，先补读再输出。只有用户要求校验既有文件或调试脚本时才运行 `scripts/validate_card.py`。
 
@@ -44,6 +44,7 @@ description: "生成、修复、评审或解释 HarmonyOS A2UI Form 服务卡片
 ## 一致性约定
 
 - 新卡片默认使用 `2x2 = 160vp x 160vp`、`2x4 = 320vp x 160vp` 作为实际布局预算；root `styles.width/height` 必须写 `"matchParent"`；`createSurface` 默认省略 `width/height`，若声明只能写 `"matchParent"`。内部组件继续使用可静态推导的数值预算。
+- 未指定尺寸时执行“最小充分尺寸”门禁：先删除 `shouldKeep` 等非核心可选内容并验证 `2x2`；能够完整满足核心需求就不得升级。选择 `2x4` 必须能指出 `2x2` 在受保护文本、必要热区、关键并列关系、关键媒体或整体布局预算上的具体失败点。
 - root 仍承载 `padding: 12`、`borderRadius`、`clip` 和背景：无论 `2x2` 还是 `2x4`，都固定使用 `borderRadius: 18`、`clip: true`。该固定值只约束卡片 root，内部 Row/Column/Text/Image/Button/Progress 等组件的圆角仍按视觉预算设置，并继续使用数值宽高。
 - 新卡片默认省略 `createSurface.width/height` 与 `createSurface.styles`；表面背景、内容布局、安全区和 root 形状都写在 `root.styles` 或 root 下的真实背景组件。只有宿主明确要求外层形状/裁切时，`createSurface.styles` 才可出现且仅限 `borderRadius`、`clip`。
 - 绑定方式遵循最终 Form DSL：属性值可用静态值、完整 `{{ ... }}` Expression、`{"path":"/..."}` PathBinding，或宿主明确注册的 FunctionCall；新生成优先用完整表达式保持可读和可校验。`updateDataModel.path`、CardSpec `writeResultTo`、模板 `children.path` 是协议结构 JSON Pointer，不属于值绑定；列表模板项可用 `$item/$index` 或 `itemVar/indexVar`。
@@ -65,4 +66,4 @@ description: "生成、修复、评审或解释 HarmonyOS A2UI Form 服务卡片
 
 ## 降级原则
 
-当需求信息不足、组件字段不确定、布局预算复杂、动作/素材/颜色来源不完整，或出现渲染失败迹象时，优先降低自由度：标准短需求先用 `reference/template-routing.md` 的模板 manifest 槽位模式；若不用模板，则少组件、少层级、少颜色、少动态路径、少 Stack。若协议或布局预算无法证明成立，删除可选槽位、改用 `2x4`，或进入能力边界说明。
+当需求信息不足、组件字段不确定、布局预算复杂、动作/素材/颜色来源不完整，或出现渲染失败迹象时，优先降低自由度：标准短需求先用 `reference/template-routing.md` 的模板 manifest 槽位模式；若不用模板，则少组件、少层级、少颜色、少动态路径、少 Stack。未指定尺寸时先删除可选槽位并验证 `2x2`；只有核心需求仍无法在明确布局预算内成立时才改用 `2x4`，否则进入能力边界说明。

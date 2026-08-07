@@ -117,24 +117,33 @@
 - 活动常用路径：`/data/healthSport/dailySteps`、`/data/healthSport/dailyTotalCaloriesText`、`/data/healthSport/dailyDistanceText`。
 - 运动常用路径：`/data/healthSport/exerciseTypeName`、`/data/healthSport/exerciseDurationText`、`/data/healthSport/exerciseCalorieText`、`/data/healthSport/exerciseHeartRateAvg`。
 - 单张卡只选择一个主问题：睡眠监督、今日活动或最近运动三者不要在 `2x2` 中并列抢主焦点。
-- 初始 `updateDataModel` 使用空值、0 值和加载态，不要写死用户真实健康数据：
+- 初始 `updateDataModel` 可以使用示例值；`/data/healthSport` 中出现的字段、层级、类型和数值范围必须符合本文 `outputSchema`。示例值只用于首帧展示，不表示已经读取用户真实健康数据：
 
 ```json
 {
   "data": {
     "healthSport": {
-      "targetDateText": "",
-      "sleepScore": 0,
-      "sleepStatus": "",
-      "nightSleepDurationText": "",
-      "dailySteps": 0,
-      "dailyTotalCaloriesText": "",
-      "dailyDistanceText": "",
-      "exerciseTypeName": "",
-      "exerciseDurationText": "",
-      "exerciseCalorieText": "",
-      "exerciseHeartRateAvg": 0,
-      "updatedAt": ""
+      "targetDateText": "2026-08-06",
+      "sleepScore": 82,
+      "sleepStatus": "良好",
+      "sleepTypeDesc": "科学睡眠",
+      "nightSleepDurationText": "7小时1分",
+      "deepSleepDurationText": "2小时15分",
+      "totalNapDurationText": "0分",
+      "fallAsleepTimeText": "23:15",
+      "wakeupTimeText": "07:30",
+      "dailySteps": 6200,
+      "dailyTotalCaloriesText": "420 千卡",
+      "dailyDistanceText": "4.60 公里",
+      "exerciseTypeName": "户外跑步",
+      "exerciseStartTimeText": "18:30",
+      "exerciseEndTimeText": "19:10",
+      "exerciseDurationText": "40分",
+      "exerciseCalorieText": "260 千卡",
+      "exerciseHeartRateAvg": 135,
+      "exerciseHeartRateMax": 168,
+      "exerciseHeartRateMin": 96,
+      "updatedAt": "2026-08-06 09:00"
     }
   },
   "state": {

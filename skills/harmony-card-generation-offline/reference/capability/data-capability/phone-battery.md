@@ -70,23 +70,23 @@
 - 推荐 `writeResultTo: "/data/phoneBattery"`；UI 访问路径必须由 `writeResultTo + outputSchema` 推导。
 - 常用展示路径：`/data/phoneBattery/batterySOC`、`/data/phoneBattery/batterySOCText`、`/data/phoneBattery/chargingStatusDesc`、`/data/phoneBattery/batteryCapacityLevelDesc`、`/data/phoneBattery/healthStatusDesc`、`/data/phoneBattery/batteryTemperatureText`、`/data/phoneBattery/updatedAt`。
 - `2x2` 只保留电量主值和 1-2 条关键状态；`2x4` 才考虑温度、电流、电压等更多指标。
-- 初始 `updateDataModel` 使用空值、0 值和加载态，不要写死用户真实电池数据：
+- 初始 `updateDataModel` 可以使用示例值；`/data/phoneBattery` 中出现的字段、层级、类型和数值范围必须符合本文 `outputSchema`。示例值只用于首帧展示，不表示已经读取用户真实电池状态：
 
 ```json
 {
   "data": {
     "phoneBattery": {
-      "batterySOC": 0,
-      "batterySOCText": "",
-      "chargingStatusDesc": "",
-      "batteryCapacityLevelDesc": "",
-      "healthStatusDesc": "",
-      "pluggedTypeDesc": "",
-      "batteryTemperatureText": "",
-      "nowCurrentText": "",
-      "voltageText": "",
-      "isBatteryPresentText": "",
-      "updatedAt": ""
+      "batterySOC": 68,
+      "batterySOCText": "68%",
+      "chargingStatusDesc": "未充电",
+      "batteryCapacityLevelDesc": "正常电量",
+      "healthStatusDesc": "正常",
+      "pluggedTypeDesc": "未连接充电器",
+      "batteryTemperatureText": "29.0 ℃",
+      "nowCurrentText": "-151 mA",
+      "voltageText": "4 V",
+      "isBatteryPresentText": "在位",
+      "updatedAt": "2026-08-06 09:00"
     }
   },
   "state": {

@@ -121,15 +121,35 @@
 - 推荐 `writeResultTo: "/data/calendar"`；UI 访问路径必须由 `writeResultTo + outputSchema` 推导。
 - 常用展示路径：`/data/calendar/eventCount`、`/data/calendar/events`、`/data/calendar/events/0/title`、`/data/calendar/events/0/dtStart`、`/data/calendar/events/0/dtEnd`、`/data/calendar/events/0/eventLocation`、`/data/calendar/events/0/countdownDays`。
 - 事件参数常用 `/data/calendar/events/0/entityId` 或模板项内 `entityId`；必须配合已声明事件能力使用。
-- 初始 `updateDataModel` 使用空数组和加载态，不要写死用户真实日程：
+- 初始 `updateDataModel` 可以使用示例值；`/data/calendar` 中出现的字段、层级和类型必须符合本文 `outputSchema`，`events` 中的每一项都必须符合 `outputSchema.properties.events.items`。`eventCount` 应与示例数组数量保持一致，示例内容不得伪装成用户真实日程：
 
 ```json
 {
   "data": {
     "calendar": {
-      "eventCount": 0,
-      "events": [],
-      "updatedAt": ""
+      "eventCount": 1,
+      "events": [
+        {
+          "entityName": "CalendarEvent",
+          "entityId": "example-event-001",
+          "senderName": "",
+          "title": "项目例会",
+          "eventLocation": "会议室",
+          "description": "周例会",
+          "dtStart": "14:00",
+          "dtEnd": "15:00",
+          "timeZone": "Asia/Shanghai",
+          "importantEventType": 0,
+          "remindTime": ["15"],
+          "oneClickServiceType": "Meeting",
+          "oneClickServiceLink": "",
+          "isServiceValid": 0,
+          "startDate": "08-06",
+          "countdownDays": 0,
+          "isAllDay": false
+        }
+      ],
+      "updatedAt": "2026-08-06 09:00"
     }
   },
   "state": {

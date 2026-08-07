@@ -6,7 +6,7 @@
 
 1. 先读 `../cardspec.md`，确认静态卡还是动态卡、`writeResultTo` 规则和 DataModel 映射规则。
 2. 用下方场景路由选择最多 1-2 个必要能力文件；如果用户请求超出已声明能力，不要编造 `capabilityId`，改成静态降级或能力边界说明。
-3. 打开命中的 manifest 后，只抽取这些信息：`id`、`inputSchema.properties`、`required`、`outputSchema.properties`、推荐 `writeResultTo`、常用展示路径和初始化 DataModel。
+3. 打开命中的 manifest 后，只抽取这些信息：`id`、`inputSchema.properties`、`required`、`outputSchema.properties`、推荐 `writeResultTo`、常用展示路径和初始化 DataModel。初始化允许使用示例值，但 `writeResultTo` 对应动态子树必须是 `outputSchema` 的合法投影。
 4. 生成 CardSpec 时只写该 manifest 声明的入参字段；UI 表达式只能访问 `writeResultTo + outputSchema` 可推导字段。
 
 ## 场景路由
@@ -28,6 +28,7 @@
 - `2x4` 最多组合两个核心数据能力；第三个能力通常降级为详情入口或不进入卡片。
 - 多个 `writeResultTo` 不得相同、互为父子或覆盖，例如不要同时写 `/data/weather` 与 `/data/weather/current`。
 - 同一卡片中不同能力的初始化 DataModel 要合并到同一个 `updateDataModel.value` 根对象，不要发送多张卡或多套 CardSpec。
+- 每个能力的初始化子树只能使用其 `outputSchema` 已声明的字段和嵌套层级；值必须匹配 JSON 类型、枚举、数值范围和数组 `items`，不得把展示辅助字段写进能力子树。
 - 事件参数若来自数据能力输出，必须在已读 manifest 的 `outputSchema` 中存在。
 
 ## 未声明能力
