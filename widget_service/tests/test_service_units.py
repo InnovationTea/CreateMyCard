@@ -1369,7 +1369,7 @@ def test_data_capability_registry_declares_leaf_samples_and_known_package_depend
     ]
     assert weather.outputSchema["properties"]["current"]["properties"][
         "temperatureText"
-    ]["sampleValue"] == "26℃"
+    ]["sampleValue"] == "29°C"
 
     assert calendar is not None
     assert calendar.dependencies.requiredPackages == [
@@ -1377,12 +1377,12 @@ def test_data_capability_registry_declares_leaf_samples_and_known_package_depend
     ]
     assert calendar.outputSchema["properties"]["events"]["items"]["properties"]["title"][
         "sampleValue"
-    ] == "产品评审"
+    ] == "项目例会"
     assert health is not None
     assert health.dependencies.requiredPackages == [
         RequiredPackage(packageName="com.huawei.hmos.health.core")
     ]
-    assert health.outputSchema["properties"]["sleepScore"]["sampleValue"] == 86
+    assert health.outputSchema["properties"]["sleepScore"]["sampleValue"] == 82
 
 
 def test_data_capability_output_schema_is_self_contained():
@@ -1439,6 +1439,13 @@ def test_event_capability_registry_uses_package_dependencies_only():
         == [RequiredPackage(packageName="com.huawei.hmos.health.core")]
         for item in health_events.values()
     )
+    capability_by_id = {item.id: item for item in capabilities}
+    assert all(item.argsDescription.strip() for item in capabilities)
+    assert "phoneNumber" in capability_by_id["event.call.phone"].argsDescription
+    assert "home" in capability_by_id["event.startNavigate"].argsDescription
+    assert "switchFlag 开启填 0、关闭填 1" in (
+        capability_by_id["event.setPowerSavingMode"].argsDescription
+    )
 
 
 def test_cloud_capability_registries_are_self_contained_and_valid():
@@ -1474,6 +1481,17 @@ def test_cloud_capability_registries_are_self_contained_and_valid():
         assert len(asset_sources) == len(set(asset_sources))
 
 
+def _sample_data_from_schema(schema):
+    if schema.get("type") == "object":
+        return {
+            name: _sample_data_from_schema(child)
+            for name, child in schema.get("properties", {}).items()
+        }
+    if schema.get("type") == "array":
+        return [_sample_data_from_schema(schema["items"])]
+    return schema["sampleValue"]
+
+
 def test_cloud_registry_covers_offline_skill_capability_inventory():
     """防止离线 Skill 新增能力后，云侧版本目录继续使用不完整的旧快照。"""
     repository_root = PROJECT_ROOT.parent
@@ -1485,16 +1503,21 @@ def test_cloud_registry_covers_offline_skill_capability_inventory():
     )
     data_directory = offline_reference / "capability" / "data-capability"
     offline_data_ids = set()
+    offline_data_samples = {}
     for path in data_directory.glob("*.md"):
         if path.name == "index.md":
             continue
-        manifest_text = path.read_text(encoding="utf-8").split("```json", 1)[1]
+        capability_text = path.read_text(encoding="utf-8")
+        manifest_text = capability_text.split("```json", 1)[1]
         id_line = next(
             line.strip()
             for line in manifest_text.splitlines()
             if line.strip().startswith('"id":')
         )
-        offline_data_ids.add(id_line.split('"')[3])
+        capability_id = id_line.split('"')[3]
+        offline_data_ids.add(capability_id)
+        sample_text = capability_text.rsplit("```json", 1)[1].split("```", 1)[0]
+        offline_data_samples[capability_id] = json_module.loads(sample_text)["data"]
 
     event_text = (
         offline_reference / "capability" / "event-capability" / "click-event.md"
@@ -1527,7 +1550,16 @@ def test_cloud_registry_covers_offline_skill_capability_inventory():
         offline_assets[columns[0].strip("`")] = columns[1]
 
     registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
-    cloud_data_ids = {item.id for item in registry.list_data_capabilities()}
+    cloud_data_capabilities = registry.list_data_capabilities()
+    cloud_data_ids = {item.id for item in cloud_data_capabilities}
+    cloud_data_samples = {
+        item.id: {
+            item.defaultWriteResultTo.rsplit("/", 1)[-1]: _sample_data_from_schema(
+                item.outputSchema
+            )
+        }
+        for item in cloud_data_capabilities
+    }
     cloud_events = {
         (item.call, item.targetScene, item.description)
         for item in registry.list_event_capabilities()
@@ -1543,6 +1575,7 @@ def test_cloud_registry_covers_offline_skill_capability_inventory():
     }
 
     assert cloud_data_ids == offline_data_ids
+    assert cloud_data_samples == offline_data_samples
     assert cloud_events == offline_events
     assert cloud_assets == offline_assets
     assert media_sources == set(offline_assets)
@@ -1635,6 +1668,7 @@ def test_event_capability_accepts_legacy_dependency_metadata():
         id="event.legacy",
         call="clickToIntent",
         description="旧版事件能力",
+        argsDescription="按旧版参数模板构造事件。",
         dependencies={
             "minRomVersion": "7.0.0",
             "requiredIntentTargets": ["ViewCalendarEvent"],

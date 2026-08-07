@@ -4,6 +4,7 @@
     "type": "event",
     "call": "clickToApi",
     "description": "点击跳转至指定号码的拨号界面，给某个亲人打电话",
+    "argsDescription": "intentName 固定为 CallPhone；relationship 填亲属关系，phoneNumber 填用户提供的号码，未提供号码时传空字符串。",
     "targetScene": "CallPhone",
     "argsTemplate": {
       "intentName": "CallPhone",
@@ -28,6 +29,7 @@
     "type": "event",
     "call": "clickToApi",
     "description": "点击清理手机运行时内存，释放系统资源",
+    "argsDescription": "intentName 固定为 CleanRAMMemory，params 固定为空对象；完整复制 argsTemplate。",
     "targetScene": "CleanRAMMemory",
     "argsTemplate": {
       "intentName": "CleanRAMMemory",
@@ -46,6 +48,7 @@
     "type": "event",
     "call": "clickToApi",
     "description": "点击一键加入下一个日程对应的在线会议",
+    "argsDescription": "intentName 固定为 EnterMeeting，params 固定为空对象；完整复制 argsTemplate。",
     "targetScene": "EnterMeeting",
     "argsTemplate": {
       "intentName": "EnterMeeting",
@@ -64,6 +67,7 @@
     "type": "event",
     "call": "clickToDeeplink",
     "description": "打开系统设置中的情景模式，用户可以打开免打扰或专注模式",
+    "argsDescription": "所有字段均为固定目标参数；完整复制 argsTemplate，空字符串也必须保留。",
     "targetScene": "Settings",
     "argsTemplate": {
       "intentName": "Settings",
@@ -87,6 +91,7 @@
     "type": "event",
     "call": "clickToDeeplink",
     "description": "打开系统设置中的蓝牙设置页",
+    "argsDescription": "所有字段均为固定目标参数；完整复制 argsTemplate，空字符串也必须保留。",
     "targetScene": "Settings",
     "argsTemplate": {
       "intentName": "Settings",
@@ -110,6 +115,7 @@
     "type": "event",
     "call": "clickToDeeplink",
     "description": "打开系统设置中的电池页",
+    "argsDescription": "所有字段均为固定目标参数；完整复制 argsTemplate，空字符串也必须保留。",
     "targetScene": "Settings",
     "argsTemplate": {
       "intentName": "Settings",
@@ -133,6 +139,7 @@
     "type": "event",
     "call": "clickToDeeplink",
     "description": "打开系统设置中的电池健康页",
+    "argsDescription": "所有字段均为固定目标参数；完整复制 argsTemplate，空字符串也必须保留。",
     "targetScene": "Settings",
     "argsTemplate": {
       "intentName": "Settings",
@@ -156,6 +163,7 @@
     "type": "event",
     "call": "clickToDeeplink",
     "description": "打开系统设置中的健康使用App页面，为了设置应用使用时长",
+    "argsDescription": "所有字段均为固定目标参数；完整复制 argsTemplate，空字符串也必须保留。",
     "targetScene": "Settings",
     "argsTemplate": {
       "intentName": "Settings",
@@ -179,6 +187,7 @@
     "type": "event",
     "call": "clickToDeeplink",
     "description": "打开系统设置中的存储空间页",
+    "argsDescription": "所有字段均为固定目标参数；完整复制 argsTemplate，空字符串也必须保留。",
     "targetScene": "Settings",
     "argsTemplate": {
       "intentName": "Settings",
@@ -202,6 +211,7 @@
     "type": "event",
     "call": "clickToDeeplink",
     "description": "打开手机天气应用某城市页，uri为固定值勿更改",
+    "argsDescription": "所有字段均为固定目标参数；完整复制 argsTemplate，空字符串也必须保留。",
     "targetScene": "Weather_CityCode",
     "argsTemplate": {
       "intentName": "Weather_CityCode",
@@ -225,6 +235,7 @@
     "type": "event",
     "call": "clickToDeeplink",
     "description": "打开闹钟应用首页",
+    "argsDescription": "所有字段均为固定目标参数；完整复制 argsTemplate，空字符串也必须保留。",
     "targetScene": "Clock",
     "argsTemplate": {
       "intentName": "Clock",
@@ -248,6 +259,7 @@
     "type": "event",
     "call": "clickToDeeplink",
     "description": "打开音乐app的每日30首歌单，uri为固定值勿更改",
+    "argsDescription": "所有字段均为固定目标参数；完整复制 argsTemplate，空字符串也必须保留。",
     "targetScene": "Music",
     "argsTemplate": {
       "intentName": "Music",
@@ -271,6 +283,7 @@
     "type": "event",
     "call": "clickToDeeplink",
     "description": "打开音乐app的收藏歌单/心动歌单，uri为固定值勿更改",
+    "argsDescription": "所有字段均为固定目标参数；完整复制 argsTemplate，空字符串也必须保留。",
     "targetScene": "Music",
     "argsTemplate": {
       "intentName": "Music",
@@ -294,6 +307,7 @@
     "type": "event",
     "call": "clickToDeeplink",
     "description": "打开运动健康应用的锻炼Tab页",
+    "argsDescription": "所有字段均为固定目标参数；完整复制 argsTemplate，空字符串也必须保留。",
     "targetScene": "Health",
     "argsTemplate": {
       "intentName": "Health",
@@ -321,6 +335,7 @@
     "type": "event",
     "call": "clickToDeeplink",
     "description": "打开运动健康应用的睡眠详情页",
+    "argsDescription": "所有字段均为固定目标参数；完整复制 argsTemplate，空字符串也必须保留。",
     "targetScene": "Health",
     "argsTemplate": {
       "intentName": "Health",
@@ -348,6 +363,7 @@
     "type": "event",
     "call": "clickToIntent",
     "description": "点击日程卡片 or 日程按钮，跳转到日程 App 查看该日程的详情",
+    "argsDescription": "intentName 固定为 ViewCalendarEvent；entityId 使用日程数据项的 entityId，列表内保持相对路径绑定。",
     "targetScene": "ViewCalendarEvent",
     "argsTemplate": {
       "intentName": "ViewCalendarEvent",
@@ -372,6 +388,7 @@
     "type": "event",
     "call": "clickToIntent",
     "description": "点击导航按钮，跳转到地图应用进行导航。大模型需根据用户说的目的地选择location的值，只支持回家和去公司的导航",
+    "argsDescription": "intentName 固定为 StartNavigate；location 回家填 home、去公司填 company，latitude 和 longitude 固定传空字符串。",
     "targetScene": "StartNavigate",
     "argsTemplate": {
       "intentName": "StartNavigate",
@@ -402,6 +419,7 @@
     "type": "event",
     "call": "clickToIntent",
     "description": "点击一键开启/关闭省电模式。大模型根据用户表达确定是开启还是关闭，然后传对应的switchFlag值",
+    "argsDescription": "intentName 固定为 SetSettingSwitch；appBundleName 和 itemName 复制模板，switchFlag 开启填 0、关闭填 1。",
     "targetScene": "SetSettingSwitch",
     "argsTemplate": {
       "intentName": "SetSettingSwitch",

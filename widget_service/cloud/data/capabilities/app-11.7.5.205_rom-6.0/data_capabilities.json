@@ -62,12 +62,12 @@
             "temperatureC": {
               "type": "number",
               "description": "当前摄氏温度。",
-              "sampleValue": 26
+              "sampleValue": 29
             },
             "temperatureText": {
               "type": "string",
               "description": "适合直接显示的温度文本，例如‘29°C’。",
-              "sampleValue": "26℃"
+              "sampleValue": "29°C"
             },
             "condition": {
               "type": "string",
@@ -77,7 +77,7 @@
             "feelsLikeC": {
               "type": "number",
               "description": "当前体感摄氏温度。",
-              "sampleValue": 27
+              "sampleValue": 31
             },
             "humidityPercent": {
               "type": "number",
@@ -89,7 +89,7 @@
             "airQuality": {
               "type": "string",
               "description": "当前空气质量等级，例如‘优’‘良’。",
-              "sampleValue": "优"
+              "sampleValue": "良"
             },
             "windDirection": {
               "type": "string",
@@ -110,12 +110,12 @@
             "coldLevel": {
               "type": "string",
               "description": "感冒指数。",
-              "sampleValue": "较低"
+              "sampleValue": "低"
             },
             "alertLevel": {
               "type": "string",
               "description": "预警信息。",
-              "sampleValue": "无预警"
+              "sampleValue": ""
             }
           }
         },
@@ -128,12 +128,12 @@
               "date": {
                 "type": "string",
                 "description": "预报日期，来源于 day_time。",
-                "sampleValue": "2026-07-15"
+                "sampleValue": "2026-08-06"
               },
               "weekday": {
                 "type": "string",
                 "description": "星期文本，例如‘星期日’。",
-                "sampleValue": "星期三"
+                "sampleValue": "星期四"
               },
               "condition": {
                 "type": "string",
@@ -143,7 +143,7 @@
               "temperatureRangeText": {
                 "type": "string",
                 "description": "适合直接显示的温度范围，例如‘24° / 32°’。",
-                "sampleValue": "24℃ / 31℃"
+                "sampleValue": "25° / 32°"
               },
               "rainProbabilityPercent": {
                 "type": "string",
@@ -163,7 +163,7 @@
               "coldLevel": {
                 "type": "string",
                 "description": "感冒指数。",
-                "sampleValue": "较低"
+                "sampleValue": "低"
               }
             }
           }
@@ -171,7 +171,7 @@
         "updatedAt": {
           "type": "string",
           "description": "端侧完成天气查询和归一化的时间。如：2026-06-14 15:30",
-          "sampleValue": "2026-07-15 09:30"
+          "sampleValue": "2026-08-06 09:00"
         }
       }
     },
@@ -206,7 +206,7 @@
         "eventCount": {
           "type": "integer",
           "description": "查询到的日程记录总数量。",
-          "sampleValue": 2
+          "sampleValue": 1
         },
         "events": {
           "type": "array",
@@ -222,37 +222,37 @@
               "entityId": {
                 "type": "string",
                 "description": "系统日程的全局唯一实体ID。",
-                "sampleValue": "calendar-demo-001"
+                "sampleValue": "example-event-001"
               },
               "senderName": {
                 "type": "string",
                 "description": "日程数据标识符或发起方标识（如邀请人），若无则为空字符串。",
-                "sampleValue": "系统日历"
+                "sampleValue": ""
               },
               "title": {
                 "type": "string",
                 "description": "日程标题，例如‘会议’、‘咪咕视频《西班牙 VS 奥地利》’。",
-                "sampleValue": "产品评审"
+                "sampleValue": "项目例会"
               },
               "eventLocation": {
                 "type": "string",
                 "description": "日程的具体地点描述，若未填写则为空字符串。",
-                "sampleValue": "A区会议室"
+                "sampleValue": "会议室"
               },
               "description": {
                 "type": "string",
                 "description": "日程的备注、摘要或补充叙述文本。",
-                "sampleValue": "项目方案评审"
+                "sampleValue": "周例会"
               },
               "dtStart": {
                 "type": "string",
                 "description": "格式化后的日程开始时间短文本，如 '03:00'，若为全天日程可能为特殊标记。",
-                "sampleValue": "09:30"
+                "sampleValue": "14:00"
               },
               "dtEnd": {
                 "type": "string",
                 "description": "格式化后的日程结束时间短文本，如 '05:00'。",
-                "sampleValue": "10:30"
+                "sampleValue": "15:00"
               },
               "timeZone": {
                 "type": "string",
@@ -293,17 +293,17 @@
               "oneClickServiceLink": {
                 "type": "string",
                 "description": "一键直达的 URI 深度跳转链接，UI 卡片可直接通过此链接拉起第三方 App 落地页。",
-                "sampleValue": "huawei-calendar://event/demo"
+                "sampleValue": ""
               },
               "isServiceValid": {
                 "type": "integer",
                 "description": "跳转服务连接是否有效。1代表存在有效跳转链接，0代表没有。",
-                "sampleValue": 1
+                "sampleValue": 0
               },
               "startDate": {
                 "type": "string",
                 "description": "日程开始日期格式化文本，例如 '07-03'。",
-                "sampleValue": "07-15"
+                "sampleValue": "08-06"
               },
               "countdownDays": {
                 "type": "integer",
@@ -321,7 +321,7 @@
         "updatedAt": {
           "type": "string",
           "description": "端侧完成数据组装的时间戳字符串，格式如 '2026-07-03 15:30'。",
-          "sampleValue": "2026-07-15 09:00"
+          "sampleValue": "2026-08-06 09:00"
         }
       }
     },
@@ -355,7 +355,7 @@
         "countdownDays": {
           "type": "integer",
           "description": "距离目标日期的自然日天数；正数表示未来，0 表示今天，负数表示已经过去。",
-          "sampleValue": 7
+          "sampleValue": 30
         }
       }
     },
@@ -405,7 +405,7 @@
         "updatedAt": {
           "type": "string",
           "description": "端侧完成数据查询和归一化的时间，格式如：2026-07-14 10:16。",
-          "sampleValue": "2026-07-15 11:30"
+          "sampleValue": "2026-08-06 09:00"
         }
       }
     },
@@ -436,7 +436,7 @@
         "earphoneName": {
           "type": "string",
           "description": "耳机的设备广播名称，如果未连接则返回'未连接耳机'。如: 'FreeBuds Pro 3'。",
-          "sampleValue": "FreeBuds Pro 3"
+          "sampleValue": "示例耳机"
         },
         "batteryLevel": {
           "type": "integer",
@@ -461,7 +461,7 @@
         "rightBatteryLevel": {
           "type": "integer",
           "description": "右耳机的当前电量百分比，取值范围 0-100。若未连接则为 0。",
-          "sampleValue": 74
+          "sampleValue": 78
         },
         "rightChargingStatusDesc": {
           "type": "string",
@@ -471,7 +471,7 @@
         "updatedAt": {
           "type": "string",
           "description": "端侧完成多源数据感知和融合的时间戳字符串。如：2026-07-02 20:15",
-          "sampleValue": "2026-07-15 10:15"
+          "sampleValue": "2026-08-06 09:00"
         }
       }
     },
@@ -507,7 +507,7 @@
         "chargingStatusDesc": {
           "type": "string",
           "description": "当前设备电池的充电状态文本描述。",
-          "sampleValue": "充电中"
+          "sampleValue": "未充电"
         },
         "batteryCapacityLevelDesc": {
           "type": "string",
@@ -522,7 +522,7 @@
         "pluggedTypeDesc": {
           "type": "string",
           "description": "当前设备连接的充电器类型文本描述。",
-          "sampleValue": "交流充电器"
+          "sampleValue": "未连接充电器"
         },
         "batteryTemperatureText": {
           "type": "string",
@@ -547,7 +547,7 @@
         "updatedAt": {
           "type": "string",
           "description": "端侧完成全量电量状态字符化转换的系统时间文本。",
-          "sampleValue": "2026-07-15 15:09"
+          "sampleValue": "2026-08-06 09:00"
         }
       }
     },
@@ -582,12 +582,12 @@
         "targetDateText": {
           "type": "string",
           "description": "该组健康与运动数据所归属的确切日期文本，格式为 YYYY-MM-DD，例如 '2026-07-06'。用于明确展示当前查阅的是哪一天的数据。",
-          "sampleValue": "2026-07-15"
+          "sampleValue": "2026-08-06"
         },
         "sleepScore": {
           "type": "integer",
           "description": "睡眠综合得分，取值范围 0-100。",
-          "sampleValue": 86
+          "sampleValue": 82
         },
         "sleepStatus": {
           "type": "string",
@@ -612,7 +612,7 @@
         "totalNapDurationText": {
           "type": "string",
           "description": "白天零星小睡（午休）的累计总时长文本，例如‘45分’或‘0分’。",
-          "sampleValue": "45分"
+          "sampleValue": "0分"
         },
         "fallAsleepTimeText": {
           "type": "string",
@@ -627,17 +627,17 @@
         "dailySteps": {
           "type": "integer",
           "description": "与最新睡眠同属一天的日常全天累计活动总步数，例如 1070。",
-          "sampleValue": 6320
+          "sampleValue": 6200
         },
         "dailyTotalCaloriesText": {
           "type": "string",
           "description": "与最新睡眠同属一天的日常活动及总消耗热量文本（已完成千分位归一化换算），例如‘998 千卡’。",
-          "sampleValue": "998 千卡"
+          "sampleValue": "420 千卡"
         },
         "dailyDistanceText": {
           "type": "string",
           "description": "与最新睡眠同属一天的日常活动总距离文本。端侧已根据数值大小自动变换米或公里后缀，例如‘5.42 公里’或‘755 米’。",
-          "sampleValue": "5.42 公里"
+          "sampleValue": "4.60 公里"
         },
         "exerciseTypeName": {
           "type": "string",
@@ -662,12 +662,12 @@
         "exerciseCalorieText": {
           "type": "string",
           "description": "该单次专业运动所产生的净热量消耗文本（已转换千卡），例如‘98 千卡’。",
-          "sampleValue": "298 千卡"
+          "sampleValue": "260 千卡"
         },
         "exerciseHeartRateAvg": {
           "type": "integer",
           "description": "专业运动期间的平均心率（次/分钟）。",
-          "sampleValue": 132
+          "sampleValue": 135
         },
         "exerciseHeartRateMax": {
           "type": "integer",
@@ -677,12 +677,12 @@
         "exerciseHeartRateMin": {
           "type": "integer",
           "description": "专业运动期间录得的最低心率（次/分钟）。",
-          "sampleValue": 92
+          "sampleValue": 96
         },
         "updatedAt": {
           "type": "string",
           "description": "端侧完成多实体规整转换的系统格式化时间戳字符串，如 '2026-07-03 14:57'。",
-          "sampleValue": "2026-07-15 19:15"
+          "sampleValue": "2026-08-06 09:00"
         }
       }
     },

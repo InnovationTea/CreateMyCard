@@ -118,6 +118,7 @@ class EventCapability(BaseModel):
     targetApp: str | None = None
     targetScene: str | None = None
     argsTemplate: dict[str, Any] = Field(default_factory=dict)
+    argsDescription: str = Field(min_length=1)
     parametersSchema: dict[str, Any] = Field(default_factory=dict)
     dependencies: Dependencies = Field(default_factory=Dependencies)
 

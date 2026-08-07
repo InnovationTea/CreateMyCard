@@ -464,7 +464,13 @@ def test_widget_card_service_complete_flow(monkeypatch):
             "GetSystemMemInfo",
         ]
         assert overview["unavailableCapabilities"] == []
-        assert any(item["id"] == "event.open.weather" for item in overview["eventCapabilities"])
+        weather_event = next(
+            item
+            for item in overview["eventCapabilities"]
+            if item["id"] == "event.open.weather"
+        )
+        assert weather_event["argsTemplate"]["intentName"] == "Weather_CityCode"
+        assert "完整复制 argsTemplate" in weather_event["argsDescription"]
         assert any(item["id"] == "asset.drop_1" for item in overview["assetCandidates"])
         assert "taskSpec" not in overview
         assert "task_spec" not in overview
@@ -591,7 +597,7 @@ def test_widget_card_service_complete_flow(monkeypatch):
         }
         assert task_spec["dataModelSchema"]["data"]["weather"]["current"][
             "temperatureText"
-        ]["sampleValue"] == "26℃"
+        ]["sampleValue"] == "29°C"
         card_binding = saved_artifacts[0]["cardSpec"]["dataBindings"][0]
         assert set(card_binding) == {"capabilityId", "arguments", "writeResultTo"}
         records.append(
