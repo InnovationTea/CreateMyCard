@@ -1,0 +1,4 @@
+interface:
+  display_name: "Harmony 卡片云侧编排（Directive）"
+  short_description: "判断需求适配、能力满足度与数据权限，通过 Directive 工具创建或编辑 HarmonyOS 服务卡片。"
+  default_prompt: "使用 $harmony-card-generation-online-directive 判断需求适配、能力与权限，并创建或编辑 HarmonyOS 服务卡片。"

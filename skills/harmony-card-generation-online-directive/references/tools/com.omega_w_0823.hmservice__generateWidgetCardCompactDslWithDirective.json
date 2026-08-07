@@ -1,0 +1,151 @@
+{
+  "bundleName": "com.omega_w_0823.hmservice",
+  "pluginType": "Cloud",
+  "toolType": "XiaoYiPlugin",
+  "toolName": "generateWidgetCardCompactDslWithDirective",
+  "description": "Generate a HarmonyOS A2UI Form artifact with Compact DSL and emit widget directive command frames.",
+  "arguments": {
+    "properties": {
+      "candidateDataBindings": {
+        "type": "Array",
+        "description": "Candidate data capability calls approved by the capability overview.",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "Object",
+            "description": "Candidate data capability.",
+            "required": [],
+            "properties": {
+              "writeResultTo": {
+                "type": "String",
+                "description": "Result target path."
+              },
+              "capabilityId": {
+                "type": "String",
+                "description": "Capability identifier."
+              },
+              "arguments": {
+                "type": "Object",
+                "description": "Capability arguments."
+              },
+              "candidateOutputFields": {
+                "type": "Array<String>",
+                "description": "Optional JSON Pointer paths for candidate display fields.",
+                "required": [],
+                "properties": {
+                  "ArrayItem": {
+                    "type": "String",
+                    "description": "Candidate display field JSON Pointer."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "title": {
+        "type": "String",
+        "description": "Suggested static card title."
+      },
+      "size": {
+        "type": "String",
+        "description": "Suggested card size."
+      },
+      "description": {
+        "type": "String",
+        "description": "Suggested static card description."
+      },
+      "userQuery": {
+        "type": "String",
+        "description": "Original user card request."
+      },
+      "sourceArtifactUrl": {
+        "type": "String",
+        "description": "Previous complete artifact URL; omit for initial generation."
+      },
+      "candidateAssetIds": {
+        "type": "Array<String>",
+        "description": "Candidate asset identifiers.",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "String",
+            "description": "Candidate asset identifier."
+          }
+        }
+      },
+      "candidateEventCandidates": {
+        "type": "Array",
+        "description": "Candidate click events from the capability overview.",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "Object",
+            "description": "Event action."
+          }
+        }
+      }
+    },
+    "required": [
+      "userQuery"
+    ],
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "streamInfo": {
+        "type": "String",
+        "description": "Streaming information."
+      },
+      "items": {
+        "type": "Array",
+        "description": "Structured result items.",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "error": {
+            "type": "String",
+            "description": "Error message."
+          },
+          "type": {
+            "type": "String",
+            "description": "Response type."
+          },
+          "status": {
+            "type": "String",
+            "description": "Tool status."
+          },
+          "operation": {
+            "type": "String",
+            "description": "Operation."
+          },
+          "tool": {
+            "type": "String",
+            "description": "Current tool name."
+          },
+          "data": {
+            "type": "String",
+            "description": "Tool result."
+          },
+          "errorCode": {
+            "type": "String",
+            "description": "Error code."
+          },
+          "requestId": {
+            "type": "String",
+            "description": "Request identifier."
+          }
+        }
+      }
+    },
+    "required": [
+      "streamInfo",
+      "items"
+    ],
+    "type": "object"
+  },
+  "protocol": "WebSocket",
+  "deviceCommand": null,
+  "schemaVersion": "1.0"
+}
