@@ -417,9 +417,7 @@ async def _send_widget_directive_command(
     artifact_url: str = "",
 ) -> bool:
     """按开关发送生成进度指令，不改变原有业务帧和异常处理。"""
-    settings_enabled = get_settings().enable_widget_directive_commands
-    operation_forced = operation in FORCED_WIDGET_DIRECTIVE_OPERATIONS
-    if not settings_enabled and not operation_forced:
+    if not _widget_directive_commands_enabled(operation):
         return True
     response = build_widget_directive_response(
         raw_payload,
@@ -437,6 +435,13 @@ async def _send_widget_directive_command(
         request_id,
         f"command_{state.value}",
     )
+
+
+def _widget_directive_commands_enabled(operation: str) -> bool:
+    """判断当前生成接口是否需要下发端侧卡片指令。"""
+    settings_enabled = get_settings().enable_widget_directive_commands
+    operation_forced = operation in FORCED_WIDGET_DIRECTIVE_OPERATIONS
+    return settings_enabled or operation_forced
 
 
 def _generation_result_directive(
@@ -525,6 +530,7 @@ async def _serve_operation_websocket(
         while True:
             card_id = str(uuid.uuid4())
             directive_size = DEFAULT_WIDGET_SIZE
+            widget_directive_started = False
             try:
                 payload = await websocket.receive_json()
             except ValueError as exc:
@@ -542,18 +548,6 @@ async def _serve_operation_websocket(
                     },
                 )
                 streaming_text_id = uuid.uuid4().hex
-                if operation in GENERATION_OPERATIONS:
-                    if not await _send_widget_directive_command(
-                        websocket,
-                        {},
-                        operation,
-                        None,
-                        streaming_text_id,
-                        WidgetDirectiveState.FAILURE,
-                        card_id,
-                        directive_size,
-                    ):
-                        return
                 plugin_response = _build_plugin_stream_response(
                     error_message,
                     streaming_text_id,
@@ -654,9 +648,10 @@ async def _serve_operation_websocket(
                         current_streaming_text_id=streaming_text_id,
                         current_card_id=card_id,
                     ) -> None:
-                        nonlocal directive_size
+                        nonlocal directive_size, widget_directive_started
                         directive_size = resolved_size
-                        await _send_widget_directive_command(
+                        command_enabled = _widget_directive_commands_enabled(operation)
+                        command_sent = await _send_widget_directive_command(
                             websocket,
                             raw_payload,
                             operation,
@@ -666,6 +661,8 @@ async def _serve_operation_websocket(
                             current_card_id,
                             resolved_size,
                         )
+                        if command_enabled and command_sent:
+                            widget_directive_started = True
 
                     result = await handler(service, request, send_model_start_command)
                 result_data = result.model_dump(mode="json", exclude_none=True)
@@ -684,7 +681,7 @@ async def _serve_operation_websocket(
                     errorCode=result_data.get("errorCode", ""),
                     error={},
                 )
-                if operation in GENERATION_OPERATIONS:
+                if operation in GENERATION_OPERATIONS and widget_directive_started:
                     directive_state, artifact_url = _generation_result_directive(result_data)
                     directive_size = _normalize_directive_size(
                         result_data.get("suggestSize"),
@@ -733,7 +730,7 @@ async def _serve_operation_websocket(
                         "details": _error_details(exc),
                     },
                 )
-                if operation in GENERATION_OPERATIONS:
+                if operation in GENERATION_OPERATIONS and widget_directive_started:
                     raw_payload = payload if isinstance(payload, dict) else {}
                     if not await _send_widget_directive_command(
                         websocket,
@@ -773,7 +770,7 @@ async def _serve_operation_websocket(
                     errorCode="FAILED",
                     error={"message": str(exc)},
                 )
-                if operation in GENERATION_OPERATIONS:
+                if operation in GENERATION_OPERATIONS and widget_directive_started:
                     raw_payload = payload if isinstance(payload, dict) else {}
                     if not await _send_widget_directive_command(
                         websocket,

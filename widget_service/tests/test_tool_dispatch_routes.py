@@ -1159,8 +1159,8 @@ def test_temporary_compact_route_forces_directives_without_global_switch(monkeyp
     assert get_settings().enable_widget_directive_commands is False
 
 
-def test_temporary_compact_route_forces_failure_directive(monkeypatch):
-    """验证临时接口在模型调用前失败时也无条件发送失败结束指令。"""
+def test_temporary_compact_route_does_not_end_before_start(monkeypatch):
+    """验证临时接口在模型调用前失败时不发送孤立的结束指令。"""
     monkeypatch.setattr(get_settings(), "enable_widget_directive_commands", False)
     interaction_id = "directive-temporary-invalid"
     request_id = _request_id(interaction_id)
@@ -1182,17 +1182,11 @@ def test_temporary_compact_route_forces_failure_directive(monkeypatch):
         frames = _receive_frames_until_final(websocket, request_id)
 
     frame_types = [item["reply"]["streamInfo"]["streamType"] for item in frames]
-    assert frame_types == ["command", "final"]
-    failure_command = _command_content(frames[0])
-    failure_execute_param = failure_command["directives"][0]["payload"]["executeParam"]
-    assert failure_execute_param["status"] is False
-    assert failure_execute_param["intentName"] == "AIWidgetEnd"
-    assert failure_execute_param["size"] == "2x2"
-    assert str(uuid.UUID(failure_execute_param["cardId"])) == failure_execute_param["cardId"]
+    assert frame_types == ["final"]
 
 
-def test_generation_validation_error_sends_failure_command(monkeypatch):
-    """验证模型调用前的请求失败只发送失败结束指令。"""
+def test_generation_validation_error_does_not_end_before_start(monkeypatch):
+    """验证模型调用前的请求失败不发送孤立的结束指令。"""
     monkeypatch.setattr(get_settings(), "enable_widget_directive_commands", True)
     client = TestClient(app)
     interaction_id = "directive-invalid"
@@ -1212,13 +1206,7 @@ def test_generation_validation_error_sends_failure_command(monkeypatch):
         frames = _receive_frames_until_final(websocket, request_id)
 
     frame_types = [item["reply"]["streamInfo"]["streamType"] for item in frames]
-    assert frame_types == ["command", "final"]
-    failure_command = _command_content(frames[0])
-    failure_execute_param = failure_command["directives"][0]["payload"]["executeParam"]
-    assert failure_execute_param["status"] is False
-    assert failure_execute_param["intentName"] == "AIWidgetEnd"
-    assert failure_execute_param["size"] == "2x2"
-    assert str(uuid.UUID(failure_execute_param["cardId"])) == failure_execute_param["cardId"]
+    assert frame_types == ["final"]
 
 
 def test_generation_model_error_sends_start_and_failure_commands(monkeypatch):
@@ -1379,6 +1367,20 @@ def test_malformed_json_keeps_plugin_envelope_successful():
     assert legacy_message["requestId"] is None
     assert legacy_message["errorCode"] == "INVALID_ARGUMENTS"
     assert legacy_message["explanation"].startswith("工具参数传入有误")
+
+
+def test_generation_malformed_json_does_not_end_before_start(monkeypatch):
+    """生成请求不是合法 JSON 时只返回错误帧，不发送孤立的 AIWidgetEnd。"""
+    monkeypatch.setattr(get_settings(), "enable_widget_directive_commands", True)
+    client = TestClient(app)
+    with client.websocket_connect("/api/v1/ws/tools/generateWidgetCard") as websocket:
+        websocket.send_text("{invalid-json")
+        response = websocket.receive_json()
+
+    stream_info = response["reply"]["streamInfo"]
+    assert stream_info["streamType"] == "final"
+    legacy_message = parse_legacy_stream_content(stream_info["streamContent"])
+    assert legacy_message["errorCode"] == "INVALID_ARGUMENTS"
 
 
 def test_handler_exception_keeps_plugin_envelope_successful(monkeypatch):
