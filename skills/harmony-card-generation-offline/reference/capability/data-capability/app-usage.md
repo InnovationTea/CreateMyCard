@@ -27,11 +27,11 @@
         "properties": {
           "appName": {
             "type": "string",
-            "description": "应用名称文本，例如："抖音""
+            "description": "应用名称文本，例如：“抖音”"
           },
           "durationText": {
             "type": "string",
-            "description": "应用今日运行总时间文本（自带单位），例如："25 秒"或"1 分钟 21 秒""
+            "description": "应用今日运行总时间文本（自带单位），例如：“25 秒”或“1 分钟 21 秒”"
           }
         }
       },

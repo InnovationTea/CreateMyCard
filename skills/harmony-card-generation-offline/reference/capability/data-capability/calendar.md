@@ -42,7 +42,7 @@
             },
             "title": {
               "type": "string",
-              "description": "日程标题，例如"咪咕视频《西班牙 VS 奥地利》"或航班、车次信息。"
+              "description": "日程标题，例如“咪咕视频《西班牙 VS 奥地利》”或航班、车次信息。"
             },
             "eventLocation": {
               "type": "string",

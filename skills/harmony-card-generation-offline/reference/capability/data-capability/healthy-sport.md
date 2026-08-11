@@ -3,7 +3,7 @@
 ```json
 {
   "id": "GetHealthAndSportSummary",
-  "description": "一键合并查询用户指定时间段内的大健康、日常大盘活动与单次专业运动训练指标。包含极其精细的夜间科学睡眠分析、当日全天步数/热量/距离总合大盘，以及最近一次专业运动训练的起止时间与详尽的心率区间剖析。",
+  "description": "一键合并查询用户指定时间段内的大健康、日常大盘活动与单次专业运动训练指标。包含极其精细的夜间科学睡眠分析、当日全天步数/热量/距离总合大盘，以及最近一次专业运动训练的起止时间、计划与详尽的心率区间剖析。",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -32,27 +32,27 @@
       },
       "sleepTypeDesc": {
         "type": "string",
-        "description": "睡眠记录方式或类型的描述，例如"科学睡眠"、"普通睡眠"、"手动输入睡眠"、"手机记录睡眠"。"
+        "description": "睡眠记录方式或类型的描述，例如“科学睡眠”、“普通睡眠”、“手动输入睡眠”、“手机记录睡眠”。"
       },
       "nightSleepDurationText": {
         "type": "string",
-        "description": "夜间正式睡眠的总时长文本，例如"7小时1分"。"
+        "description": "夜间正式睡眠的总时长文本，例如“7小时1分”。"
       },
       "deepSleepDurationText": {
         "type": "string",
-        "description": "夜间正式睡眠中的深睡总时长文本，例如"2小时15分"。"
+        "description": "夜间正式睡眠中的深睡总时长文本，例如“2小时15分”。"
       },
       "totalNapDurationText": {
         "type": "string",
-        "description": "白天零星小睡（午休）的累计总时长文本，例如"45分"或"0分"。"
+        "description": "白天零星小睡（午休）的累计总时长文本，例如“45分”或“0分”。"
       },
       "fallAsleepTimeText": {
         "type": "string",
-        "description": "格式化后的确切入睡时刻短文本（HH:mm），例如"23:15"。"
+        "description": "格式化后的确切入睡时刻短文本（HH:mm），例如“23:15”。"
       },
       "wakeupTimeText": {
         "type": "string",
-        "description": "格式化后的确切醒来时刻短文本（HH:mm），例如"07:30"。"
+        "description": "格式化后的确切醒来时刻短文本（HH:mm），例如“07:30”。"
       },
       "dailySteps": {
         "type": "integer",
@@ -60,31 +60,31 @@
       },
       "dailyTotalCaloriesText": {
         "type": "string",
-        "description": "与最新睡眠同属一天的日常活动及总消耗热量文本（已完成千分位归一化换算），例如"998 千卡"。"
+        "description": "与最新睡眠同属一天的日常活动及总消耗热量文本（已完成千分位归一化换算），例如“998 千卡”。"
       },
       "dailyDistanceText": {
         "type": "string",
-        "description": "与最新睡眠同属一天的日常活动总距离文本。端侧已根据数值大小自动变换米或公里后缀，例如"5.42 公里"或"755 米"。"
+        "description": "与最新睡眠同属一天的日常活动总距离文本。端侧已根据数值大小自动变换米或公里后缀，例如“5.42 公里”或“755 米”。"
       },
       "exerciseTypeName": {
         "type": "string",
-        "description": "最近一次发生的单次专业运动训练类型的中文映射名称，如"羽毛球"、"自由训练"、"户外跑步"。若无记录则返回"暂无运动"。"
+        "description": "最近一次发生的单次专业运动训练类型的中文映射名称，如“羽毛球”、“自由训练”、“户外跑步”。若无记录则返回“暂无运动”。"
       },
       "exerciseStartTimeText": {
         "type": "string",
-        "description": "专业运动开始的确切时刻文本（HH:mm），例如"18:30"。"
+        "description": "专业运动开始的确切时刻文本（HH:mm），例如“18:30”。"
       },
       "exerciseEndTimeText": {
         "type": "string",
-        "description": "专业运动结束的确切时刻文本（HH:mm），例如"19:50"。"
+        "description": "专业运动结束的确切时刻文本（HH:mm），例如“19:50”。"
       },
       "exerciseDurationText": {
         "type": "string",
-        "description": "该单次专业运动的实际持续时长文本，例如"1小时40分"。"
+        "description": "该单次专业运动的实际持续时长文本，例如“1小时40分”。"
       },
       "exerciseCalorieText": {
         "type": "string",
-        "description": "该单次专业运动所产生的净热量消耗文本（已转换千卡），例如"98 千卡"。"
+        "description": "该单次专业运动所产生的净热量消耗文本（已转换千卡），例如“98 千卡”。"
       },
       "exerciseHeartRateAvg": {
         "type": "integer",
