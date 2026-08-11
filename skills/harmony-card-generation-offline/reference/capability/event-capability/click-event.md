@@ -111,7 +111,7 @@
           "abilityName": "",
           "pages": [
             {
-              "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode={{ ${data/weather/location/cityCode} }}",
+              "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}",
               "description": "打开手机天气应用某城市页，uri为固定值勿更改。cityCode来自于数据能力中ViewWeather出参cityCode字段，进行动态拼接，表示跳转到指定城市天气页。"
             }
           ]
@@ -171,7 +171,7 @@
           "abilityName": "",
           "pages": [
             {
-              "uri": "{{ ${data/calendar/events/i/oneClickServiceLink} }}",
+              "uri": "{{ ${/data/calendar/events/i/oneClickServiceLink} }}",
               "description": "点击一键加入下一个日程对应的Welink会议。uri取自数据能力GetCalendarEvents返回结果中event的oneClickServiceLink字段。注意：模板中events/i的i需替换为当前事件的实际索引，如events/0、events/1等。"
             }
           ]
@@ -200,7 +200,7 @@
           "intentName": "ViewCalendarEvent",
           "description": "点击日程卡片 or 日程按钮，跳转到日程 App 查看该日程的详情",
           "params": {
-            "entityId": "{{ ${data/calendar/events/i/entityId} }}",
+            "entityId": "{{ ${/data/calendar/events/i/entityId} }}",
             "description": "entityId取自数据能力GetCalendarEvents返回结果中event的entityId字段。"
           }
         },
