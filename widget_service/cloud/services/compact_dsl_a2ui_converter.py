@@ -567,6 +567,8 @@ _DESIGN_ALIASES = {
         "button": "body-m",
     },
 }
+
+
 class CompactDslConversionError(ValueError):
     """Raised when valid A2UI cannot be derived from Compact DSL."""
 
