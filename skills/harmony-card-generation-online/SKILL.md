@@ -27,7 +27,7 @@ metadata:
 - 示例和快照不能授权额外字段，也不能覆盖当前运行时工具 schema。
 
 ## 执行流程
-主流程固定为：识别 create/edit → 检查用户必填信息 → 获取能力概述 → 选择候选并按需加载数据 schema → 检查最终数据权限 → 调用生成工具 → 按 URL 原子交付结果。识别为 create 后，必须以本轮工具结果完整执行四工具链；不得以历史对话、此前卡片、缓存、经验或“需求相似”为由跳过、替代或复用任一前置步骤。
+主流程固定为：识别 create/edit → 检查用户必填信息 → 获取能力概述 → 选择候选并按需加载数据 schema → 检查最终数据权限 → 调用生成工具 → 记录编辑来源并组织自然语言回复。识别为 create 后，必须以本轮工具结果完整执行四工具链；不得以历史对话、此前卡片、缓存、经验或“需求相似”为由跳过、替代或复用任一前置步骤。
 
 四个工具按以下顺序和职责使用：
 
@@ -55,16 +55,7 @@ invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmserv
 3. 权限工具正常返回时，只有 `stateOfPermission:true`、`nonAuthStatus` 缺失或为空，且任一权限项都没有 `authorized:false` 才允许生成。任一授权不通过、存在未授权明细或正常返回结果非法时，必须立即终止，不调用 `generateWidgetCardCompactDsl`，并且只能按运行指南的预置权限话术回复用户。
 4. 唯一的权限放行例外是本次 `RequestDataPermission` 工具调用失败，包括工具不可用、invoke 抛错或工具层明确执行失败；仅在此条件下按权限默认开启静默放行并继续调用生成工具。不重试、不伪造权限结果、不改变数据集合，也不向用户说明权限异常。
 5. 除上述权限 invoke 级异常外，任一必要工具失败或结果非法都终止本轮，不模拟成功。
-6. 生成工具返回后，先从当前可解析业务 payload 锁存合法真实 `artifactUrl`，再判断状态和话术。`streamInfo`、工具外层、历史回复或普通文本中的 URL 不算产物 URL。
-7. 只要当前业务 payload 含合法真实 `artifactUrl`，同一条最终回复就必须且只能输出一个以下代码块；没有 URL 时不得输出，edit 返回来源 URL 时也按无有效新 URL 处理：
-
-````text
-```genWidgetResult
-{
-  "result": "{artifactUrl}"
-}
-```
-````
-
-8. `genWidgetResult` 必须位于自然语言之后，块内 JSON 只能包含字符串字段 `result`，其值与当前 `artifactUrl` 完全一致，代码块之后不得追加内容。
-9. 用户可见回复不暴露能力 ID、schema、provider、TaskSpec、OBS、IDS、错误码、请求 ID、工具包络或内部草稿。
+6. 生成工具返回后，从当前可解析业务 payload 读取合法真实 `artifactUrl`，仅在内部工具调用轨迹中保留，用于后续 edit 的 `sourceArtifactUrl`。`streamInfo`、工具外层、历史回复或普通文本中的 URL 不算产物 URL。
+7. 卡片展示由生成工具内部把 URL 交给端侧完成。主 Agent 不得在用户可见回复中输出、转述或链接 `artifactUrl`，也不得输出 `genWidgetResult`、`genuiResult` 或任何替代结果代码块。
+8. 只有带全新合法 URL 的 `success` / `degraded` 结果形成有效编辑节点；失败、非法结果、无新 URL 或 edit 返回来源 URL 都不更新编辑来源。
+9. 用户可见回复不暴露能力 ID、schema、provider、TaskSpec、OBS、IDS、错误码、请求 ID、工具包络、内部草稿或产物 URL。
