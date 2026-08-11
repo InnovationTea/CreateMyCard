@@ -821,14 +821,14 @@ def _normalize_special_action_units(
 def _action_style_for_root_gradient(
     components: list[ComponentRow],
 ) -> tuple[str, str] | None:
+    action_style: tuple[str, str] | None = None
     color_set = _root_gradient_color_set(components)
-    if color_set is None:
-        return None
-    action_ink = _GRADIENT_ACTION_INKS.get(color_set)
-    action_background = _GRADIENT_ACTION_BACKGROUNDS.get(color_set)
-    if action_ink is None or action_background is None:
-        return None
-    return action_ink, action_background
+    if color_set is not None:
+        action_ink = _GRADIENT_ACTION_INKS.get(color_set)
+        action_background = _GRADIENT_ACTION_BACKGROUNDS.get(color_set)
+        if action_ink is not None and action_background is not None:
+            action_style = action_ink, action_background
+    return action_style
 
 
 def _normalize_ring_stack_children(
@@ -1648,12 +1648,12 @@ def _parse_children(
 
 
 def _drop_empty_image_components(rows: list[CompactRow]) -> list[CompactRow]:
-    empty_image_ids = {
-        row.component_id
-        for row in rows
-        if isinstance(row, ComponentRow)
-        and _is_empty_image_component(row.component_type, row.props)
-    }
+    empty_image_ids: set[str] = set()
+    for row in rows:
+        if not isinstance(row, ComponentRow):
+            continue
+        if _is_empty_image_component(row.component_type, row.props):
+            empty_image_ids.add(row.component_id)
     if not empty_image_ids:
         return rows
 
