@@ -75,6 +75,7 @@ class PromptBuilder:
                 ensure_ascii=False,
                 separators=(",", ":"),
             )
+        user_content = "TaskSpec:\n" + user_content            
         return [
             {"role": "system", "content": system_prompt},
             {
