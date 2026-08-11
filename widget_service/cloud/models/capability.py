@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from core.json_pointer import parse_json_pointer
 
 OUTPUT_LEAF_TYPES = {"string", "number", "integer", "boolean", "null"}
+EVENT_PARAMETER_TYPES = OUTPUT_LEAF_TYPES | {"object", "array"}
 
 
 def _sample_value_matches_type(value: Any, schema_type: str) -> bool:
@@ -118,9 +119,104 @@ class EventCapability(BaseModel):
     targetApp: str | None = None
     targetScene: str | None = None
     argsTemplate: dict[str, Any] = Field(default_factory=dict)
-    argsDescription: str = Field(min_length=1)
-    parametersSchema: dict[str, Any] = Field(default_factory=dict)
+    parametersSchema: dict[str, Any]
     dependencies: Dependencies = Field(default_factory=Dependencies)
+
+    @model_validator(mode="after")
+    def validate_parameter_descriptions(self) -> "EventCapability":
+        """保证主 Agent 能从参数 schema 逐字段理解取值方式。"""
+        errors = self._parameter_schema_errors(self.parametersSchema)
+        errors.extend(
+            self._template_schema_errors(
+                self.argsTemplate,
+                self.parametersSchema,
+            )
+        )
+        if errors:
+            raise ValueError("invalid event parametersSchema: " + ", ".join(errors))
+        return self
+
+    @classmethod
+    def _parameter_schema_errors(
+        cls,
+        schema: dict[str, Any],
+        path: tuple[str, ...] = (),
+        *,
+        require_description: bool = False,
+    ) -> list[str]:
+        pointer = "/" + "/".join(path)
+        if not isinstance(schema, dict):
+            return [f"{pointer}: schema node must be an object"]
+        errors: list[str] = []
+        description = schema.get("description")
+        description_missing = not isinstance(description, str) or not description.strip()
+        if require_description and description_missing:
+            errors.append(f"{pointer}: description must be a non-empty string")
+        schema_type = schema.get("type")
+        if schema_type not in EVENT_PARAMETER_TYPES:
+            errors.append(f"{pointer}: unsupported parameter type {schema_type!r}")
+            return errors
+        if schema_type == "object":
+            properties = schema.get("properties")
+            if not isinstance(properties, dict):
+                errors.append(f"{pointer}: object properties must be an object")
+                return errors
+            root_is_empty = not path and not properties
+            if root_is_empty:
+                errors.append("/: root properties must not be empty")
+            for name, child in properties.items():
+                errors.extend(
+                    cls._parameter_schema_errors(
+                        child,
+                        (*path, name),
+                        require_description=True,
+                    )
+                )
+        elif schema_type == "array":
+            items = schema.get("items")
+            errors.extend(
+                cls._parameter_schema_errors(
+                    items,
+                    (*path, "0"),
+                    require_description=False,
+                )
+            )
+        return errors
+
+    @classmethod
+    def _template_schema_errors(
+        cls,
+        template: Any,
+        schema: dict[str, Any],
+        path: tuple[str, ...] = (),
+    ) -> list[str]:
+        """保证参数模板与带说明的 schema 一一对应。"""
+        if schema.get("type") != "object":
+            return []
+        pointer = "/" + "/".join(path)
+        if not isinstance(template, dict):
+            return [f"{pointer}: argsTemplate node must be an object"]
+        properties = schema.get("properties", {})
+        template_fields = set(template)
+        schema_fields = set(properties)
+        field_prefix = pointer.rstrip("/")
+        errors = [
+            f"{field_prefix}/{name}: argsTemplate field is missing from schema"
+            for name in sorted(template_fields - schema_fields)
+        ]
+        errors.extend(
+            f"{field_prefix}/{name}: schema field is missing from argsTemplate"
+            for name in sorted(schema_fields - template_fields)
+        )
+        for name in sorted(template_fields & schema_fields):
+            errors.extend(
+                cls._template_schema_errors(
+                    template[name],
+                    properties[name],
+                    (*path, name),
+                )
+            )
+        return errors
 
 
 class AssetCapability(BaseModel):

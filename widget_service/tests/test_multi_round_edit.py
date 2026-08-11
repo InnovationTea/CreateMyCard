@@ -234,6 +234,8 @@ async def test_design_compact_edit_uses_previous_design_token(
 
     assert len(prompts[0]) == 2
     assert prompts[0][0] == {"role": "system", "content": expected_system}
+    assert "编辑模式仍只接收一个 JSON 对象" in expected_system
+    assert prompts[0][1]["content"].startswith("{")
     assert edit_payload["userQuery"] == "整体改成蓝色"
     assert edit_payload["taskSpec"]["userQuery"] == "整体改成蓝色"
     assert edit_payload["previousDesignToken"] == {

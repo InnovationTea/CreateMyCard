@@ -133,8 +133,8 @@ Column("card",
     messages = [json_module.loads(line) for line in genui.splitlines()]
 
     assert len(messages) == 3
-    assert messages[0]["createSurface"]["width"] == 140
-    assert messages[0]["createSurface"]["height"] == 140
+    assert "width" not in messages[0]["createSurface"]
+    assert "height" not in messages[0]["createSurface"]
     components = messages[1]["updateComponents"]["components"]
     assert [item["id"] for item in components] == [
         "root",
@@ -227,7 +227,8 @@ Column("card",
     assert '"createSurface"' in saved_genui[0]
     assert selected_conversion_profiles == ["terse-dsl-nested-2"]
     create_surface = json_module.loads(saved_genui[0].splitlines()[0])["createSurface"]
-    assert create_surface["width"] == 298
+    assert "width" not in create_surface
+    assert "height" not in create_surface
 
 
 def test_terse_dsl_nested2_prompt_builder_uses_terse_system_prompt():
@@ -1352,7 +1353,6 @@ def test_data_capability_registry_declares_leaf_samples_and_known_package_depend
         "GetEarphoneInfo",
         "GetPhoneBatteryInfo",
         "GetHealthAndSportSummary",
-        "GetSystemMemInfo",
     ]
     assert all(
         set(item.dependencies.model_dump()) == {"requiredPackages"}
@@ -1378,11 +1378,19 @@ def test_data_capability_registry_declares_leaf_samples_and_known_package_depend
     assert calendar.outputSchema["properties"]["events"]["items"]["properties"]["title"][
         "sampleValue"
     ] == "项目例会"
+    calendar_title = calendar.outputSchema["properties"]["events"]["items"]["properties"][
+        "title"
+    ]
+    assert calendar_title["description"] == (
+        "日程标题，例如“咪咕视频《西班牙 VS 奥地利》”或航班、车次信息。"
+    )
     assert health is not None
     assert health.dependencies.requiredPackages == [
         RequiredPackage(packageName="com.huawei.hmos.health.core")
     ]
+    assert "计划" in health.description
     assert health.outputSchema["properties"]["sleepScore"]["sampleValue"] == 82
+    assert registry.get_data_capability("GetSystemMemInfo") is None
 
 
 def test_data_capability_output_schema_is_self_contained():
@@ -1440,12 +1448,24 @@ def test_event_capability_registry_uses_package_dependencies_only():
         for item in health_events.values()
     )
     capability_by_id = {item.id: item for item in capabilities}
-    assert all(item.argsDescription.strip() for item in capabilities)
-    assert "phoneNumber" in capability_by_id["event.call.phone"].argsDescription
-    assert "home" in capability_by_id["event.startNavigate"].argsDescription
-    assert "switchFlag 开启填 0、关闭填 1" in (
-        capability_by_id["event.setPowerSavingMode"].argsDescription
-    )
+    serialized = [item.model_dump(mode="json") for item in capabilities]
+    assert all("argsDescription" not in item for item in serialized)
+    phone_schema = capability_by_id["event.call.phone"].parametersSchema
+    phone_properties = phone_schema["properties"]["params"]["properties"]
+    assert "电话号码" in phone_properties["phoneNumber"]["description"]
+    navigate_schema = capability_by_id["event.startNavigate"].parametersSchema
+    destination = navigate_schema["properties"]["params"]["properties"]["dstLocation"]
+    assert destination["properties"]["location"]["enum"] == ["home", "company"]
+    power_schema = capability_by_id["event.setPowerSavingMode"].parametersSchema
+    switch_flag = power_schema["properties"]["params"]["properties"]["switchFlag"]
+    assert "开启省电模式填写 0" in switch_flag["description"]
+    weather = capability_by_id["event.open.weather"]
+    assert "/location/cityCode" in weather.parametersSchema["properties"]["uri"]["description"]
+    meeting = capability_by_id["event.enter.meeting"]
+    assert meeting.call == "clickToDeeplink"
+    assert "oneClickServiceLink" in meeting.argsTemplate["uri"]
+    calendar = capability_by_id["event.viewCalendarEvent"]
+    assert "events/i/entityId" in calendar.argsTemplate["params"]["entityId"]
 
 
 def test_cloud_capability_registries_are_self_contained_and_valid():
@@ -1668,7 +1688,16 @@ def test_event_capability_accepts_legacy_dependency_metadata():
         id="event.legacy",
         call="clickToIntent",
         description="旧版事件能力",
-        argsDescription="按旧版参数模板构造事件。",
+        argsTemplate={"intentName": "LegacyIntent"},
+        parametersSchema={
+            "type": "object",
+            "properties": {
+                "intentName": {
+                    "type": "string",
+                    "description": "事件意图名称。",
+                }
+            },
+        },
         dependencies={
             "minRomVersion": "7.0.0",
             "requiredIntentTargets": ["ViewCalendarEvent"],
@@ -1684,6 +1713,23 @@ def test_event_capability_accepts_legacy_dependency_metadata():
     assert capability.dependencies.model_dump() == {
         "requiredPackages": [{"packageName": "com.huawei.hmos.calendar"}]
     }
+
+
+def test_event_capability_rejects_parameter_without_description():
+    with pytest.raises(ValidationError, match="description must be a non-empty string"):
+        EventCapability(
+            id="event.invalid",
+            call="clickToIntent",
+            description="缺少参数说明的事件能力",
+            parametersSchema={
+                "type": "object",
+                "properties": {
+                    "intentName": {
+                        "type": "string",
+                    }
+                },
+            },
+        )
 
 
 @pytest.mark.parametrize(
@@ -1893,7 +1939,7 @@ def test_dependency_filter_logs_one_json_result(monkeypatch):
     assert result["matchedPackages"] == []
     assert result["missingPackages"] == ["com.huawei.hmos.health.core"]
     assert result["installedPackageCount"] == 0
-    assert result["availableDataCapabilityCount"] == 7
+    assert result["availableDataCapabilityCount"] == 6
     assert result["availableEventCapabilityCount"] > 0
     assert result["availableAssetCapabilityCount"] > 0
     assert {
@@ -2397,6 +2443,14 @@ def test_design_compact_edit_prompt_contains_previous_design_token():
     )
     edit_payload = json_module.loads(prompt[1]["content"])
 
+    assert prompt[1]["content"].startswith("{")
+    assert set(edit_payload) == {
+        "mode",
+        "userQuery",
+        "taskSpec",
+        "previousDesignToken",
+        "instruction",
+    }
     assert edit_payload["mode"] == "edit"
     assert edit_payload["userQuery"] == "整体改成蓝色"
     assert edit_payload["taskSpec"]["userQuery"] == "整体改成蓝色"
@@ -2405,6 +2459,31 @@ def test_design_compact_edit_prompt_contains_previous_design_token():
         "content": previous_design_token,
     }
     assert "不能覆盖 system 约束" in edit_payload["instruction"]
+    assert "最新格式" in edit_payload["instruction"]
+
+
+def test_design_compact_create_prompt_is_plain_task_spec_json():
+    task_spec = TaskSpecBuilder().build(
+        user_query="生成天气卡片",
+        size="2x2",
+        effective_bindings=[],
+        effective_data_capabilities=[],
+        event_candidates=[],
+        asset_candidates=[],
+    )
+
+    prompt = PromptBuilder().build_design_compact(task_spec, "design rules")
+    payload = json_module.loads(prompt[1]["content"])
+
+    assert prompt[1]["content"].startswith("{")
+    assert set(payload) == {
+        "userQuery",
+        "size",
+        "eventCandidates",
+        "dataModelSchema",
+        "assetCandidates",
+    }
+    assert payload["userQuery"] == "生成天气卡片"
 
 
 @pytest.mark.asyncio

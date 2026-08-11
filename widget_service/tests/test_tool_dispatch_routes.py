@@ -461,7 +461,6 @@ def test_widget_card_service_complete_flow(monkeypatch):
             "GetEarphoneInfo",
             "GetPhoneBatteryInfo",
             "GetHealthAndSportSummary",
-            "GetSystemMemInfo",
         ]
         assert overview["unavailableCapabilities"] == []
         weather_event = next(
@@ -470,7 +469,10 @@ def test_widget_card_service_complete_flow(monkeypatch):
             if item["id"] == "event.open.weather"
         )
         assert weather_event["argsTemplate"]["intentName"] == "Weather_CityCode"
-        assert "完整复制 argsTemplate" in weather_event["argsDescription"]
+        assert "argsDescription" not in weather_event
+        uri_schema = weather_event["parametersSchema"]["properties"]["uri"]
+        assert "/location/cityCode" in uri_schema["description"]
+        assert "/location/cityCode" in weather_event["argsTemplate"]["uri"]
         assert any(item["id"] == "asset.drop_1" for item in overview["assetCandidates"])
         assert "taskSpec" not in overview
         assert "task_spec" not in overview
@@ -957,7 +959,8 @@ def test_compact_route_mock_converts_design_dsl_before_saving(monkeypatch):
     artifact = saved_artifacts[0]
     rows = [json.loads(line) for line in artifact["genui"].splitlines()]
     assert artifact["meta"]["protocolProfileId"] == "a2ui-form-rom6.0-v1"
-    assert rows[0]["createSurface"]["width"] == 300
+    assert "width" not in rows[0]["createSurface"]
+    assert "height" not in rows[0]["createSurface"]
     assert rows[1]["updateComponents"]["root"] == "root"
     assert rows[2]["updateDataModel"]["value"]["ui"]["state"] == "ready"
 
@@ -1004,7 +1007,8 @@ def test_terse_nested2_route_mock_converts_local_dsl_before_saving(monkeypatch):
     artifact = saved_artifacts[0]
     rows = [json.loads(line) for line in artifact["genui"].splitlines()]
     assert artifact["meta"]["protocolProfileId"] == "a2ui-form-rom6.0-v1"
-    assert rows[0]["createSurface"]["width"] == 140
+    assert "width" not in rows[0]["createSurface"]
+    assert "height" not in rows[0]["createSurface"]
     assert rows[1]["updateComponents"]["root"] == "root"
     assert rows[2]["updateDataModel"]["value"]["ui"]["state"] == "ready"
 

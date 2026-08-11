@@ -66,12 +66,12 @@
             },
             "temperatureText": {
               "type": "string",
-              "description": "适合直接显示的温度文本，例如‘29°C’。",
+              "description": "适合直接显示的温度文本，例如“29°C”。",
               "sampleValue": "29°C"
             },
             "condition": {
               "type": "string",
-              "description": "当前天气现象，例如‘阴’‘多云’‘小雨’。",
+              "description": "当前天气现象，例如“阴”“多云”“小雨”。",
               "sampleValue": "多云"
             },
             "feelsLikeC": {
@@ -88,7 +88,7 @@
             },
             "airQuality": {
               "type": "string",
-              "description": "当前空气质量等级，例如‘优’‘良’。",
+              "description": "当前空气质量等级，例如“优”“良”。",
               "sampleValue": "良"
             },
             "windDirection": {
@@ -104,7 +104,7 @@
             },
             "uvIndex": {
               "type": "string",
-              "description": "当前紫外线等级，例如‘弱’‘中等’‘强’。",
+              "description": "当前紫外线等级，例如“弱”“中等”“强”。",
               "sampleValue": "中等"
             },
             "coldLevel": {
@@ -132,7 +132,7 @@
               },
               "weekday": {
                 "type": "string",
-                "description": "星期文本，例如‘星期日’。",
+                "description": "星期文本，例如“星期日”。",
                 "sampleValue": "星期四"
               },
               "condition": {
@@ -142,7 +142,7 @@
               },
               "temperatureRangeText": {
                 "type": "string",
-                "description": "适合直接显示的温度范围，例如‘24° / 32°’。",
+                "description": "适合直接显示的温度范围，例如“24° / 32°”。",
                 "sampleValue": "25° / 32°"
               },
               "rainProbabilityPercent": {
@@ -231,7 +231,7 @@
               },
               "title": {
                 "type": "string",
-                "description": "日程标题，例如‘会议’、‘咪咕视频《西班牙 VS 奥地利》’。",
+                "description": "日程标题，例如“咪咕视频《西班牙 VS 奥地利》”或航班、车次信息。",
                 "sampleValue": "项目例会"
               },
               "eventLocation": {
@@ -397,7 +397,7 @@
             },
             "durationText": {
               "type": "string",
-              "description": "应用今日运行总时间文本（自带单位），例如：“25 秒”或“1 分钟 21 秒”。",
+              "description": "应用今日运行总时间文本（自带单位），例如：“25 秒”或“1 分钟 21 秒”",
               "sampleValue": "25 分钟"
             }
           }
@@ -556,7 +556,7 @@
   },
   {
     "id": "GetHealthAndSportSummary",
-    "description": "查询健康、日常活动与单次运动训练指标，包括睡眠、步数、热量、距离和心率数据。",
+    "description": "一键合并查询用户指定时间段内的大健康、日常大盘活动与单次专业运动训练指标。包含极其精细的夜间科学睡眠分析、当日全天步数/热量/距离总合大盘，以及最近一次专业运动训练的起止时间、计划与详尽的心率区间剖析。",
     "defaultWriteResultTo": "/data/healthSport",
     "dependencies": {
       "requiredPackages": [
@@ -596,32 +596,32 @@
         },
         "sleepTypeDesc": {
           "type": "string",
-          "description": "睡眠记录方式或类型的描述，例如‘科学睡眠’、‘普通睡眠’、‘手动输入睡眠’、‘手机记录睡眠’。",
+          "description": "睡眠记录方式或类型的描述，例如“科学睡眠”、“普通睡眠”、“手动输入睡眠”、“手机记录睡眠”。",
           "sampleValue": "科学睡眠"
         },
         "nightSleepDurationText": {
           "type": "string",
-          "description": "夜间正式睡眠的总时长文本，例如‘7小时1分’。",
+          "description": "夜间正式睡眠的总时长文本，例如“7小时1分”。",
           "sampleValue": "7小时1分"
         },
         "deepSleepDurationText": {
           "type": "string",
-          "description": "夜间正式睡眠中的深睡总时长文本，例如‘2小时15分’。",
+          "description": "夜间正式睡眠中的深睡总时长文本，例如“2小时15分”。",
           "sampleValue": "2小时15分"
         },
         "totalNapDurationText": {
           "type": "string",
-          "description": "白天零星小睡（午休）的累计总时长文本，例如‘45分’或‘0分’。",
+          "description": "白天零星小睡（午休）的累计总时长文本，例如“45分”或“0分”。",
           "sampleValue": "0分"
         },
         "fallAsleepTimeText": {
           "type": "string",
-          "description": "格式化后的确切入睡时刻短文本（HH:mm），例如‘23:15’。",
+          "description": "格式化后的确切入睡时刻短文本（HH:mm），例如“23:15”。",
           "sampleValue": "23:15"
         },
         "wakeupTimeText": {
           "type": "string",
-          "description": "格式化后的确切醒来时刻短文本（HH:mm），例如‘07:30’。",
+          "description": "格式化后的确切醒来时刻短文本（HH:mm），例如“07:30”。",
           "sampleValue": "07:30"
         },
         "dailySteps": {
@@ -631,37 +631,37 @@
         },
         "dailyTotalCaloriesText": {
           "type": "string",
-          "description": "与最新睡眠同属一天的日常活动及总消耗热量文本（已完成千分位归一化换算），例如‘998 千卡’。",
+          "description": "与最新睡眠同属一天的日常活动及总消耗热量文本（已完成千分位归一化换算），例如“998 千卡”。",
           "sampleValue": "420 千卡"
         },
         "dailyDistanceText": {
           "type": "string",
-          "description": "与最新睡眠同属一天的日常活动总距离文本。端侧已根据数值大小自动变换米或公里后缀，例如‘5.42 公里’或‘755 米’。",
+          "description": "与最新睡眠同属一天的日常活动总距离文本。端侧已根据数值大小自动变换米或公里后缀，例如“5.42 公里”或“755 米”。",
           "sampleValue": "4.60 公里"
         },
         "exerciseTypeName": {
           "type": "string",
-          "description": "最近一次发生的单次专业运动训练类型的中文映射名称，如‘羽毛球’、‘自由训练’、‘户外跑步’。若无记录则返回‘暂无运动’。",
+          "description": "最近一次发生的单次专业运动训练类型的中文映射名称，如“羽毛球”、“自由训练”、“户外跑步”。若无记录则返回“暂无运动”。",
           "sampleValue": "户外跑步"
         },
         "exerciseStartTimeText": {
           "type": "string",
-          "description": "专业运动开始的确切时刻文本（HH:mm），例如‘18:30’。",
+          "description": "专业运动开始的确切时刻文本（HH:mm），例如“18:30”。",
           "sampleValue": "18:30"
         },
         "exerciseEndTimeText": {
           "type": "string",
-          "description": "专业运动结束的确切时刻文本（HH:mm），例如‘19:50’。",
+          "description": "专业运动结束的确切时刻文本（HH:mm），例如“19:50”。",
           "sampleValue": "19:10"
         },
         "exerciseDurationText": {
           "type": "string",
-          "description": "该单次专业运动的实际持续时长文本，例如‘1小时40分’。",
+          "description": "该单次专业运动的实际持续时长文本，例如“1小时40分”。",
           "sampleValue": "40分"
         },
         "exerciseCalorieText": {
           "type": "string",
-          "description": "该单次专业运动所产生的净热量消耗文本（已转换千卡），例如‘98 千卡’。",
+          "description": "该单次专业运动所产生的净热量消耗文本（已转换千卡），例如“98 千卡”。",
           "sampleValue": "260 千卡"
         },
         "exerciseHeartRateAvg": {
@@ -683,47 +683,6 @@
           "type": "string",
           "description": "端侧完成多实体规整转换的系统格式化时间戳字符串，如 '2026-07-03 14:57'。",
           "sampleValue": "2026-08-06 09:00"
-        }
-      }
-    },
-    "type": "data",
-    "dataModelSkeleton": {}
-  },
-  {
-    "id": "GetSystemMemInfo",
-    "description": "查询系统当前的内存使用情况，包括总内存、完全空闲内存、可用内存以及真实内存占用百分比。",
-    "defaultWriteResultTo": "/data/systemMem",
-    "dependencies": {
-      "requiredPackages": []
-    },
-    "inputSchema": {
-      "type": "object",
-      "properties": {},
-      "required": []
-    },
-    "outputSchema": {
-      "type": "object",
-      "description": "系统内存的当前状态概要，已经过端侧单位换算（GB/MB）和占用百分比计算，适合直接展示在卡片或开发者工具仪表盘上。",
-      "properties": {
-        "totalMemText": {
-          "type": "string",
-          "description": "系统总内存，格式化后的文本（如 '8.00 GB'）。",
-          "sampleValue": "8.00 GB"
-        },
-        "freeMemText": {
-          "type": "string",
-          "description": "系统完全空闲的内存，格式化后的文本（如 '1.20 GB'）。注意：在现代 OS 架构中，系统常驻缓存会导致此值偏小，不代表系统真正吃紧。",
-          "sampleValue": "1.20 GB"
-        },
-        "availableMemText": {
-          "type": "string",
-          "description": "系统可用于重新分配的可用内存，格式化后的文本（如 '4.50 GB'）。判断系统是否存在内存瓶颈的核心指标。",
-          "sampleValue": "4.50 GB"
-        },
-        "usagePercent": {
-          "type": "number",
-          "description": "当前系统内存真实占用百分比（计算方式：(总内存-可用内存)/总内存 * 100），取值范围 0-100。",
-          "sampleValue": 43.75
         }
       }
     },

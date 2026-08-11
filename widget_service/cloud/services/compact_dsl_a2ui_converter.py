@@ -4,10 +4,10 @@
 
 from __future__ import annotations
 
+import argparse
 import copy
 import hashlib
 import json
-import argparse
 import re
 import sys
 from dataclasses import dataclass
@@ -764,7 +764,6 @@ def convert_compact_dsl_to_a2ui(
         "surfaceId": surface_id,
         "catalogId": _A2UI_FORM_CATALOG_ID,
     }
-    create_surface.update(_root_surface_dimensions(components[0]))
     messages = [
         {
             "version": version,
@@ -2263,20 +2262,6 @@ def _convert_path_bindings(value: Any) -> Any:
             converted_items.append(_convert_path_bindings(item))
         return converted_items
     return copy.deepcopy(value)
-
-
-def _root_surface_dimensions(root: ComponentRow) -> dict[str, int]:
-    width = root.props.get("width")
-    height = root.props.get("height")
-    if not _is_positive_surface_dimension(width):
-        return {}
-    if not _is_positive_surface_dimension(height):
-        return {}
-    return {"width": width, "height": height}
-
-
-def _is_positive_surface_dimension(value: Any) -> bool:
-    return isinstance(value, int) and not isinstance(value, bool) and value > 0
 
 
 def _build_data_model(data_rows: list[DataRow]) -> dict[str, Any]:

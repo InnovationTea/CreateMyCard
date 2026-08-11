@@ -31,7 +31,6 @@ DATA_CAPABILITY_IDS = (
     "GetEarphoneInfo",
     "GetPhoneBatteryInfo",
     "GetHealthAndSportSummary",
-    "GetSystemMemInfo",
 )
 
 
