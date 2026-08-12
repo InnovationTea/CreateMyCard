@@ -182,6 +182,7 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
       "action":{
         "call":"clickToDeeplink",
         "args":{
+          "intentName":"Weather_CityCode",
           "bundleName":"",
           "abilityName":"",
           "uri":"hww://www.huawei.com/totemweather?enterType=share&cityCode="
