@@ -36,33 +36,33 @@
           "data"
         ],
         "properties": {
-          "operation": {
+          "type": {
             "type": "String",
-            "description": "本次动作"
+            "description": "回复类型"
           },
           "requestId": {
             "type": "String",
             "description": "请求ID"
           },
-          "data": {
-            "type": "String",
-            "description": "工具返回结果"
-          },
           "status": {
             "type": "String",
             "description": "工具状态"
           },
-          "errorCode": {
-            "type": "String",
-            "description": "错误码"
-          },
-          "type": {
-            "type": "String",
-            "description": "回复类型"
-          },
           "tool": {
             "type": "String",
             "description": "当前工具名"
+          },
+          "operation": {
+            "type": "String",
+            "description": "本次动作"
+          },
+          "data": {
+            "type": "String",
+            "description": "工具返回结果"
+          },
+          "errorCode": {
+            "type": "String",
+            "description": "错误码"
           },
           "error": {
             "type": "String",
