@@ -81,3 +81,4 @@ invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmserv
 7. 卡片展示由生成工具内部把 URL 交给端侧完成。主 Agent 不得在用户可见回复中输出、转述或链接 `artifactUrl`，也不得输出 `genWidgetResult`、`genuiResult` 或任何替代结果代码块。
 8. 只有带全新合法 URL 的 `success` / `degraded` 结果形成有效编辑节点；失败、非法结果、无新 URL 或 edit 返回来源 URL 都不更新编辑来源。
 9. 用户可见回复不暴露能力 ID、schema、provider、TaskSpec、OBS、IDS、错误码、请求 ID、工具包络、内部草稿或产物 URL。
+10. 严格执行工具返回字段闭环：下一步工具调用所需的必填字段，必须从上一步合法返回的字段、模板或 schema 中读取并传入；不得因示例、历史结果或经验省略、改名、改类型或猜测必填值。
