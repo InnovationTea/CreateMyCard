@@ -154,9 +154,7 @@ edit 模式额外传 `sourceArtifactUrl`，但前提是当前运行时 schema �
 - 每个候选项必须包含 `capabilityId` 和完整 `action`，且 `capabilityId` 必须来自 overview。
 - `action` 必须是对象，内部包含 `call` 和 `args`；不要把 `call`、`args` 平铺到事件候选顶层。
 - `args` 必须是对象，不要传字符串化 JSON。
-- 将 overview 同项 `actionTemplate` 完整深拷贝为 `action`；不得删除或改写固定字段，`intentName` 和值为
-  空字符串的字段也必须保留。只允许按 `dynamicArguments[].path` 替换动态值；只有动态参数可以安全填齐
-  时才传该事件候选。
+- `action` 必须来自 overview 给出的 `actionTemplate` 或完整事件描述；只有参数可以安全填齐时才传该事件候选。
 - `action` 只是候选事件动作，不是最终 DSL `onClick`；微服务仍要做依赖过滤、参数校验和最终写入。
 - 打开应用、打开详情、拨号、入会、导航、清理内存、切换设置等都通过 overview 的事件能力选择。
 - 如果用户没有明确动作，但场景有自然入口，可以选一个低风险入口候选，例如打开天气或日历详情。
@@ -175,10 +173,9 @@ edit 模式额外传 `sourceArtifactUrl`，但前提是当前运行时 schema �
       "action": {
         "call": "clickToDeeplink",
         "args": {
-          "intentName": "Weather_CityCode",
           "bundleName": "",
           "abilityName": "",
-          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
         }
       }
     }

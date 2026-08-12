@@ -85,9 +85,8 @@ metadata:
    - `writeResultTo` 必须是 `/data/` 下的 JSON Pointer。
    - `candidateOutputFields` 只能包含可由对应 `outputSchema` 推导出的 JSON Pointer；拿不准时省略。
    - 禁止传 `updateModel`。
-   - `candidateEventCandidates` 每项包含 overview 返回的 `capabilityId`，并将同项 `actionTemplate` 完整
-     深拷贝为 `action`；固定字段和空字符串不得省略，只能按 `dynamicArguments` 替换动态值。无法安全
-     填齐时移除该事件候选。
+   - `candidateEventCandidates` 每项包含 overview 返回的 `capabilityId` 和完整
+     `action:{call,args}`；无法安全填齐时移除该事件候选。
    - `candidateAssetIds` 只能来自 overview 返回的素材 ID。
 8. **生成卡片**：再次执行调用前硬校验，然后调用 `generateWidgetCardCompactDsl`。
 9. **回复结果**：`success` 或 `degraded` 且存在有效 `artifactUrl` 时，输出业务 `message` 和
@@ -128,8 +127,8 @@ invoke(functionName:"<toolName>", arguments:{bundleName:"<bundleName>", ...},"sk
 - **bundleName**: `com.omega_w_0823.hmservice`
 - **toolName**: `getWidgetCapabilityOverview`
 - **接口路径**: `/api/v1/ws/tools/getWidgetCapabilityOverview`
-- **描述**: 获取当前设备版本可用的能力概述。数据能力返回 ID 和描述；事件返回可直接复制的动作模板
-  和动态参数说明；素材只返回 ID 和描述；同时返回不可用能力 ID。
+- **描述**: 获取当前设备版本可用的能力概述。数据能力返回 ID 和描述；事件能力和素材候选返回完整
+  可用定义；同时返回不可用能力 ID。
 - **业务参数**: `{}`
 - **主要业务出参**:
   - `dataCapabilities`: 可用数据能力概述列表。
@@ -236,10 +235,7 @@ invoke(functionName:"<toolName>", arguments:{bundleName:"<bundleName>", ...},"sk
   "action": {
     "call": "clickToDeeplink",
     "args": {
-      "intentName": "Weather_CityCode",
-      "bundleName": "",
-      "abilityName": "",
-      "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+      "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
     }
   }
 }
@@ -264,7 +260,7 @@ invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.om
 
 invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega_w_0823.hmservice", dataCapabilityIds:["ViewWeather"]},"skillName":"harmony-card-generation-compact-dsl-online")
 
-invoke(functionName:"generateWidgetCardCompactDsl", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"请使用极简协议生成一张青浦天气桌面卡片", title:"青浦天气", description:"实时天气与预报", size:"2x2", candidateDataBindings:[{capabilityId:"ViewWeather", arguments:{districtName:"青浦区", forecastDays:1}, writeResultTo:"/data/weather", candidateOutputFields:["/current/temperatureText", "/current/condition", "/current/humidityPercent"]}], candidateEventCandidates:[{capabilityId:"event.open.weather", action:{call:"clickToDeeplink", args:{intentName:"Weather_CityCode", bundleName:"", abilityName:"", uri:"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"}}}], candidateAssetIds:["asset.sun_max", "asset.drop_1"]},"skillName":"harmony-card-generation-compact-dsl-online")
+invoke(functionName:"generateWidgetCardCompactDsl", arguments:{bundleName:"com.omega_w_0823.hmservice", userQuery:"请使用极简协议生成一张青浦天气桌面卡片", title:"青浦天气", description:"实时天气与预报", size:"2x2", candidateDataBindings:[{capabilityId:"ViewWeather", arguments:{districtName:"青浦区", forecastDays:1}, writeResultTo:"/data/weather", candidateOutputFields:["/current/temperatureText", "/current/condition", "/current/humidityPercent"]}], candidateEventCandidates:[{capabilityId:"event.open.weather", action:{call:"clickToDeeplink", args:{uri:"hww://www.huawei.com/totemweather?enterType=share&cityCode="}}}], candidateAssetIds:["asset.sun_max", "asset.drop_1"]},"skillName":"harmony-card-generation-compact-dsl-online")
 ```
 
 示例中的能力、事件、素材和字段路径只有在本轮工具真实返回且当前运行时 Schema 允许时才能使用。
