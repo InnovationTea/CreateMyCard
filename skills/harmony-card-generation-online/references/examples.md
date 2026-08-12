@@ -24,7 +24,7 @@
 | 天气卡片，点击详情是次要诉求但事件不可用 | 调整后生成 | overview → schema → permission → generate |
 | 打开天气详情是唯一核心动作但事件不可用 | 结束并引导 | overview |
 | 最后一个核心数据能力进入 `missingCapabilityIds` | 结束并引导 | overview → schema |
-| 打开天气应用的静态入口卡 | 继续生成 | overview → generate |
+| 固定文字内容的静态展示卡 | 继续生成 | overview → schema（空数组）→ generate（跳过 permission） |
 | edit“背景改成蓝色”，来源含动态数据 | 继续编辑 | permission → generate |
 | edit“背景改成蓝色”，来源无动态数据 | 继续编辑 | generate |
 | edit“去掉日历，只保留天气” | 继续编辑 | overview → schema → permission → generate |
@@ -99,24 +99,24 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
   size:"2x2",
   candidateDataBindings:[
     {
-      capabilityId:"ViewWeather",
-      arguments:{
-        districtName:"青浦区",
-        forecastDays:1
+      "capabilityId":"ViewWeather",
+      "arguments":{
+        "districtName":"青浦区",
+        "forecastDays":1
       },
-      writeResultTo:"/data/weather",
-      candidateOutputFields:[
+      "writeResultTo":"/data/weather",
+      "candidateOutputFields":[
         "/current/temperatureText",
         "/current/condition"
       ]
     },
     {
-      capabilityId:"GetCalendarEvents",
-      arguments:{
-        futureDays:1
+      "capabilityId":"GetCalendarEvents",
+      "arguments":{
+        "futureDays":1
       },
-      writeResultTo:"/data/calendar",
-      candidateOutputFields:[
+      "writeResultTo":"/data/calendar",
+      "candidateOutputFields":[
         "/events/0/title",
         "/events/0/dtStart"
       ]
@@ -153,7 +153,20 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 做一个打开天气应用的入口卡片。
 ```
 
-overview 返回可安全填齐的天气入口事件后，不加载数据 schema，也不调用权限工具：
+overview 返回可安全填齐的天气入口事件后，仍调用 schema，但传空数据能力数组；最终候选数据为空，因此跳过权限工具：
+
+这是 create 模式无数据候选的唯一分支：必须执行 overview → schema → generate，只有 permission 被跳过。
+
+### 2. 加载空 schema
+
+```text
+invoke(functionName:"getDataCapabilitySchemas", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
+  dataCapabilityIds:[]
+},"skillName":"harmony-card-generation-online")
+```
+
+返回合法空数据 schema 后继续生成；不得跳过 schema。
 
 ```text
 invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
@@ -165,13 +178,13 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
   candidateDataBindings:[],
   candidateEventCandidates:[
     {
-      capabilityId:"event.open.weather",
-      action:{
-        call:"clickToDeeplink",
-        args:{
-          bundleName:"",
-          abilityName:"",
-          uri:"hww://www.huawei.com/totemweather?enterType=share&cityCode="
+      "capabilityId":"event.open.weather",
+      "action":{
+        "call":"clickToDeeplink",
+        "args":{
+          "bundleName":"",
+          "abilityName":"",
+          "uri":"hww://www.huawei.com/totemweather?enterType=share&cityCode="
         }
       }
     }
@@ -274,13 +287,13 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
   sourceArtifactUrl:"https://obs.example/widget/v1.md",
   candidateDataBindings:[
     {
-      capabilityId:"ViewWeather",
-      arguments:{
-        districtName:"青浦区",
-        forecastDays:1
+      "capabilityId":"ViewWeather",
+      "arguments":{
+        "districtName":"青浦区",
+        "forecastDays":1
       },
-      writeResultTo:"/data/weather",
-      candidateOutputFields:[
+      "writeResultTo":"/data/weather",
+      "candidateOutputFields":[
         "/location/districtName",
         "/current/temperatureText",
         "/current/condition"

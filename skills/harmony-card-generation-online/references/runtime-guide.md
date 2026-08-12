@@ -6,7 +6,7 @@
 
 ### 模式判断
 
-1. 明确创建、生成、预览或添加桌面卡片时走 create；修改、删除、替换、改颜色、改尺寸或继续优化已有卡片时走 edit。
+1. 明确创建、生成、预览或添加桌面卡片时走 create；修改、删除、替换、改颜色、改尺寸或继续优化已有卡片时走 edit。create 不传 `sourceArtifactUrl`，每轮从本轮 overview 重新规划；edit 必须传目标卡片最近一次真实 `sourceArtifactUrl`，只能继承该来源，不得改走 create。
 2. 明确非卡片任务、长报告、完整页面或复杂表单时零工具调用并说明边界。卡片意图仍有歧义时只追问一个最小必要问题并等待。
 3. edit 未指定目标时使用当前会话最近有效卡片；明确目标无法对应时才追问。
 4. edit 仅支持纯视觉/布局/文案/尺寸、删除数据能力和修改已有数据参数。新增数据能力、修改事件或素材候选时不调用工具，引导重新创建。
@@ -25,7 +25,8 @@
 
 | 场景 | 轨迹 |
 | --- | --- |
-| create | overview → schema → permission → generate |
+| create，有数据候选 | overview → schema → permission → generate |
+| create，无数据候选 | overview → schema（空数组）→ generate |
 | 纯视觉/布局/文案/尺寸 edit，来源含动态数据 | permission → generate |
 | 纯视觉/布局/文案/尺寸 edit，来源无动态数据 | generate |
 | 删除数据或修改参数 edit | overview → schema → permission（集合非空时）→ generate |
@@ -35,12 +36,12 @@
 
 ### create 强制四工具链
 
-一旦判定为 create，必须使用本轮结果按顺序执行 `getWidgetCapabilityOverview` → `getDataCapabilitySchemas` → `RequestDataPermission` → `generateWidgetCardCompactDsl`。历史对话、此前 artifact、旧的能力概述或 schema、缓存、相似需求经验和用户之前的授权结果均不得替代本轮步骤或作为跳过理由。
+一旦判定为 create，必须严格按本轮结果执行四工具链：`getWidgetCapabilityOverview` → `getDataCapabilitySchemas` → `RequestDataPermission` → `generateWidgetCardCompactDsl`。唯一允许不调用的工具是：最终候选数据集合为空时跳过 `RequestDataPermission`；集合非空时必须尝试调用权限工具，即使调用失败也只能按权限工具异常分支继续，不能事先省略。此时仍必须执行 overview、schema 和 generate。历史对话、此前 artifact、旧的能力概述或 schema、缓存、相似需求经验和用户之前的授权结果均不得替代本轮步骤或作为跳过理由。
 
 - 每个 create 必须先调用本轮 `getWidgetCapabilityOverview`；未取得合法概述不得调用后续工具。
-- 本轮概述选出数据候选后，必须调用 `getDataCapabilitySchemas`；只有本轮没有任何数据候选时不发起该调用。
+- 每个 create 都必须调用本轮 `getDataCapabilitySchemas`；无数据候选时传 `dataCapabilityIds:[]`，表示没有需要加载的数据 schema。
 - 本轮最终数据集合非空时，必须调用 `RequestDataPermission`；只有最终集合为空时不发起该调用。
-- 前述门禁均满足后才调用 `generateWidgetCardCompactDsl`。因此，无数据候选或空集合是协议规定的不调用条件，不是基于经验省略步骤；create 的四工具流程检查仍不得跳过。
+- 前述门禁均满足后才调用 `generateWidgetCardCompactDsl`。create 不得省略 overview、schema 或 generate；只有最终候选数据集合为空时跳过权限工具。
 
 ### 端到端十三步
 
@@ -125,7 +126,7 @@
 
 ### 调用与 schema 总则
 
-统一调用格式：
+统一调用格式保持不变。`arguments` 顶层键名沿用当前格式；每个键的 value 必须是合法 JSON 值，嵌套对象和数组元素递归使用 JSON 键和值：
 
 ```text
 invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmservice", ...},"skillName":"harmony-card-generation-online")
@@ -137,10 +138,8 @@ invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmserv
 
 ### 微服务包装解析
 
-三个微服务工具可能返回原始包络或已归一化结果：
+三个微服务工具当前按快照返回统一包络：顶层必须包含 `streamInfo` 和 `items`，`items[]` 承载 `tool`、`data`、`status`、`error`、`errorCode`、`operation`、`type` 与 `requestId`。直接读取顶层 `items`。
 
-- 原始包络先检查顶层 `errorCode/errorMessage/reply`；`errorCode` 非字符串 `"0"` 为失败，为 `"0"` 时读取 `reply.items`。
-- 已归一化结果直接读取顶层 `items`。
 - 从 `items` 优先选择 `tool` 等于当前工具名且含 `data` 的项；无 `tool` 时选第一个含 `data` 的项。`data` 为 JSON 字符串时解析为对象，已是对象时直接使用。
 - 没有可解析的 `items[].data`、`items[].error` 表示失败、payload 缺结构或字段类型非法时按工具异常终止。
 - `streamInfo` 只用于展示/调试；`items[].status/errorCode/requestId` 不是业务状态，也不向用户展示。
@@ -248,7 +247,7 @@ payload 常用字段为 `status`、`message`、可选 `artifactUrl/suggestSize/r
 - create 的有效 URL 作为该卡片后续 edit 的初始 `sourceArtifactUrl`；edit 的有效新 URL 替换该卡片此前的来源。
 - `unsupported`、`failed`、非法 payload、缺失 URL 或 edit 返回来源 URL 都不更新编辑来源。
 - 不从用户可见回复、历史自然语言、示例、`streamInfo` 或工具外层恢复 URL。
-- 用户可见回复不得包含原始 URL、Markdown 链接、`genWidgetResult`、`genuiResult` 或任何等价结果标记。
+- 用户可见回复不得包含原始 URL、Markdown 链接、`genWidgetResult`、`genuiResult` 或任何替代结果代码块。
 
 发送前检查：
 

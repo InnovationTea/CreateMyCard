@@ -27,22 +27,44 @@ metadata:
 - 示例和快照不能授权额外字段，也不能覆盖当前运行时工具 schema。
 
 ## 执行流程
-主流程固定为：识别 create/edit → 检查用户必填信息 → 获取能力概述 → 选择候选并按需加载数据 schema → 检查最终数据权限 → 调用生成工具 → 记录编辑来源并组织自然语言回复。识别为 create 后，必须以本轮工具结果完整执行四工具链；不得以历史对话、此前卡片、缓存、经验或“需求相似”为由跳过、替代或复用任一前置步骤。
+主流程固定为：先明确区分 create/edit，再检查用户必填信息、获取能力概述、选择候选并按需加载 schema、检查最终数据权限、调用生成工具，最后记录编辑来源并组织自然语言回复。create 和 edit 不得互相替代：create 不得携带 `sourceArtifactUrl`，edit 必须携带目标卡片真实 `sourceArtifactUrl`；不得以历史卡片、缓存或相似需求跨模式调用。
 
 四个工具按以下顺序和职责使用：
 
 1. `getWidgetCapabilityOverview`：每个 create 必须调用，获取本轮当前可用数据、事件和素材概述；删除数据/修改数据参数的 edit 也调用，纯视觉 edit 可跳过。
-2. `getDataCapabilitySchemas`：create 或数据类 edit 存在本轮数据候选时必须调用，只为已选且实际可用的数据能力加载完整 schema；只有本轮确无数据候选时才能不调用，不能因历史 schema 跳过。
+2. `getDataCapabilitySchemas`：每个 create 必须调用；有数据候选时只为已选且实际可用的数据能力加载完整 schema，无数据候选时传空数组表示本轮没有数据 schema。数据类 edit 存在本轮数据候选时也必须调用，不能因历史 schema 跳过。
 3. `RequestDataPermission`：生成前检查本轮最终、完整、去重后的数据能力集合；集合非空时必须调用，只有集合为空时才能不调用。纯视觉 edit 若来源含动态数据，仍须检查继承的数据权限。
-4. `generateWidgetCardCompactDsl`：只有前置门禁通过，或权限工具发生允许放行的 invoke 级异常时才调用；主 Agent 不补做微服务负责的 DSL、CardSpec、校验、重试或上传。
+4. `generateWidgetCardCompactDsl`：只有前置门禁通过，或权限工具发生 invoke 级异常时默认放行才调用；主 Agent 不补做微服务负责的 DSL、CardSpec、校验、重试或上传。生成工具内部负责向端侧交付卡片，主 Agent 不重复下发 URL。
 
 ```text
-getWidgetCapabilityOverview → getDataCapabilitySchemas（有数据候选时）→ RequestDataPermission（数据集合非空时）→ generateWidgetCardCompactDsl
+create：严格执行 getWidgetCapabilityOverview → getDataCapabilitySchemas → RequestDataPermission（仅最终候选数据集合为空时才允许不调用；集合非空时必须尝试调用，即使调用失败也不得跳过该步骤）→ generateWidgetCardCompactDsl。edit 按纯视觉或数据类分支执行，不得套用 create。
 ```
+
+## 工具定义
+
+### Function: getWidgetCapabilityOverview
+- **toolName**: getWidgetCapabilityOverview
+- **description**: 获取当前用户实际可用的数据能力、不可用数据能力 ID，以及事件和素材概述
+- **参数**: {"type":"object","properties":{}}
+
+### Function: getDataCapabilitySchemas
+- **toolName**: getDataCapabilitySchemas
+- **description**: 按数据能力 ID 加载完整 inputSchema、outputSchema、依赖和 DataModel 骨架
+- **参数**: {"type":"object","properties":{"dataCapabilityIds":{"type":"Array<String>","description":"需要加载完整 schema 的数据能力 ID 列表，至少 1 个。","required":[],"properties":{"ArrayItem":{"type":"String","description":"完整 schema 的数据能力 ID "}}}},"required":["dataCapabilityIds"]}
+
+### Function: RequestDataPermission
+- **toolName**: RequestDataPermission
+- **description**: 获取特定场景的数据权限能力
+- **参数**: {"type":"object","properties":{"dataCapabilityIds":{"type":"Array<String>","description":"需要加载完整 schema 的数据能力 ID 列表，至少 1 个。","required":[],"properties":{"ArrayItem":{"type":"String","description":"完整 schema 的数据能力 ID "}}}},"required":["dataCapabilityIds"]}
+
+### Function: generateWidgetCardCompactDsl
+- **toolName**: generateWidgetCardCompactDsl
+- **description**: 生成极简协议版本的鸿蒙卡片
+- **参数**: {"type":"object","properties":{"candidateEventCandidates":{"type":"Array","description":"候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明","required":[],"properties":{"ArrayItem":{"type":"Object","description":"事件 action"}}},"description":{"type":"String","description":"建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"},"candidateAssetIds":{"type":"Array<String>","description":"候选素材 ID 列表","required":[],"properties":{"ArrayItem":{"type":"String","description":"候选素材 ID"}}},"userQuery":{"type":"String","description":"用户原始卡片需求"},"candidateDataBindings":{"type":"Array","description":"已通过能力概述裁决的候选数据能力调用列表","required":[],"properties":{"ArrayItem":{"type":"Object","description":"候选数据能力","required":[],"properties":{"writeResultTo":{"type":"String","description":"结果写入路径"},"arguments":{"type":"Object","description":"参数"},"capabilityId":{"type":"String","description":"能力ID"},"candidateOutputFields":{"type":"Array<String>","description":"可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导","required":[],"properties":{"ArrayItem":{"type":"String","description":"可选候选展示字段 JSON Pointer"}}}}}}},"title":{"type":"String","description":"建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"},"size":{"type":"String","description":"主 Agent 建议尺寸"},"sourceArtifactUrl":{"type":"String","description":"上一版完整 artifact 的真实 URL；缺失表示首次生成，合法非空值表示编辑"}},"required":["userQuery"]}
 
 ## 工具调用
 
-依赖 frontmatter 声明的三个微服务工具和一个端工具。使用统一调用格式：
+依赖 frontmatter 声明的三个微服务工具和一个端工具。使用统一调用格式；仅要求 `arguments` 内各键对应的值是合法 JSON 值，保留现有 invoke 外层和键名格式：
 
 ```text
 invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmservice", ...},"skillName":"harmony-card-generation-online")
