@@ -77,8 +77,8 @@ invoke(functionName:"getWidgetCapabilityOverview", arguments:{bundleName:"com.om
 | --- | --- | --- | --- |
 | `dataCapabilities` | `DataCapabilityOverview[]` | 是 | 当前用户实际可用的数据能力，只包含 `id` 和 `description`。 |
 | `unavailableCapabilities` | `string[]` | 否 | 云侧支持但用户本地不可用的数据能力 ID；本期不返回原因。 |
-| `eventCapabilities` | `EventCapability[]` | 是 | 事件能力完整列表。 |
-| `assetCandidates` | `AssetCapability[]` | 是 | 素材能力完整列表。 |
+| `eventCapabilities` | `EventCapabilityOverview[]` | 是 | 精简事件列表，包含可直接复制的完整 `actionTemplate` 和 `dynamicArguments`。 |
+| `assetCandidates` | `AssetCapabilityOverview[]` | 是 | 精简素材列表，每项只包含 `id` 和 `description`。 |
 
 调用规则：
 
@@ -189,9 +189,10 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
   "action": {
     "call": "clickToDeeplink",
     "args": {
+      "intentName": "Weather_CityCode",
       "bundleName": "",
       "abilityName": "",
-      "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+      "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
     }
   }
 }

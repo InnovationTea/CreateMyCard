@@ -49,13 +49,13 @@ invoke(functionName:"getWidgetCapabilityOverview", arguments:{
   "dataCapabilities": [
     {"id": "ViewWeather", "description": "查询天气"}
   ],
-  "unavailableCapabilities": ["GetAppUsageDurationAndPower"],
+  "unavailableCapabilities": ["GetAppUsageDuration"],
   "eventCapabilities": [],
   "assetCandidates": []
 }
 ```
 
-此时只能继续选择 `ViewWeather`；不得为 `GetAppUsageDurationAndPower` 请求 schema 或构造数据绑定。
+此时只能继续选择 `ViewWeather`；不得为 `GetAppUsageDuration` 请求 schema 或构造数据绑定。
 
 如果 `unavailableCapabilities` 缺失或为 `[]`，表示没有已识别的本地不可用数据能力。
 
@@ -64,7 +64,7 @@ invoke(functionName:"getWidgetCapabilityOverview", arguments:{
 ```text
 invoke(functionName:"getDataCapabilitySchemas", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
-  dataCapabilityIds:["ViewWeather", "calendar.events.search"]
+  dataCapabilityIds:["ViewWeather", "GetCalendarEvents"]
 },"skillName":"harmony-card-generation-design-compact-dsl-online")
 ```
 
@@ -86,21 +86,21 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
       },
       writeResultTo:"/data/weather",
       candidateOutputFields:[
-        "/location/name",
+        "/location/districtName",
         "/current/temperatureText",
-        "/current/weatherText"
+        "/current/condition"
       ]
     },
     {
-      capabilityId:"calendar.events.search",
+      capabilityId:"GetCalendarEvents",
       arguments:{
-        timeInterval:[1783238400000, 1783324799999]
+        futureDays:1
       },
       writeResultTo:"/data/calendar",
       candidateOutputFields:[
         "/events/0/title",
-        "/events/0/startTimeText",
-        "/events/0/location"
+        "/events/0/dtStart",
+        "/events/0/eventLocation"
       ]
     }
   ],
@@ -110,34 +110,34 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
       action:{
         call:"clickToDeeplink",
         args:{
+          intentName:"Weather_CityCode",
           bundleName:"",
           abilityName:"",
-          uri:"hww://www.huawei.com/totemweather?enterType=share&cityCode="
+          uri:"{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
         }
       }
     }
   ],
-  candidateAssetIds:["asset.weather.rain", "asset.calendar.schedule"]
+  candidateAssetIds:["asset.drop_1", "asset.calendar_fill"]
 },"skillName":"harmony-card-generation-design-compact-dsl-online")
 ```
 
 ## 工具调用样例：应用使用时长
 
-仅当 `getWidgetCapabilityOverview.dataCapabilities` 返回 `GetAppUsageDurationAndPower` 时才使用该候选。
+仅当 `getWidgetCapabilityOverview.dataCapabilities` 返回 `GetAppUsageDuration` 时才使用该候选。
 
 ```text
 invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
-  userQuery:"给我做一张抖音使用时长和耗电卡，显示前台时长、前台耗电和更新时间。",
+  userQuery:"给我做一张抖音使用时长卡，显示今日使用时长和更新时间。",
   title:"使用时长",
-  description:"时长耗电统计",
+  description:"今日时长统计",
   size:"2x2",
   candidateDataBindings:[
     {
-      capabilityId:"GetAppUsageDurationAndPower",
+      capabilityId:"GetAppUsageDuration",
       arguments:{
-        appBundleName:"com.ss.hm.ugc.aweme",
-        itemName:"foreground_time_power"
+        appBundleName:"com.ss.hm.ugc.aweme"
       },
       writeResultTo:"/data/appUsageStats"
     }
@@ -147,32 +147,33 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 },"skillName":"harmony-card-generation-design-compact-dsl-online")
 ```
 
-## 工具调用样例：打开天气应用入口
+## 工具调用样例：打开闹钟应用入口
 
 没有动态数据需求时，`candidateDataBindings` 可以为空；让微服务决定是否生成静态入口卡。
 
 ```text
 invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
-  userQuery:"帮我做一个打开天气应用的入口卡片",
-  title:"天气入口",
-  description:"快速打开天气",
+  userQuery:"帮我做一个打开闹钟应用的入口卡片",
+  title:"闹钟入口",
+  description:"快速打开闹钟",
   size:"2x2",
   candidateDataBindings:[],
   candidateEventCandidates:[
     {
-      capabilityId:"event.open.weather",
+      capabilityId:"event.open.clock.alarm",
       action:{
         call:"clickToDeeplink",
         args:{
-          bundleName:"",
-          abilityName:"",
-          uri:"hww://www.huawei.com/totemweather?enterType=share&cityCode="
+          intentName:"Clock",
+          bundleName:"com.huawei.hmos.clock",
+          abilityName:"com.huawei.hmos.clock.phone",
+          uri:""
         }
       }
     }
   ],
-  candidateAssetIds:["asset.weather.rain"]
+  candidateAssetIds:[]
 },"skillName":"harmony-card-generation-design-compact-dsl-online")
 ```
 
@@ -258,9 +259,10 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
   "action": {
     "call": "clickToDeeplink",
     "args": {
+      "intentName": "Weather_CityCode",
       "bundleName": "",
       "abilityName": "",
-      "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+      "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
     }
   }
 }
@@ -272,7 +274,8 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 {
   "capabilityId": "event.open.weather",
   "call": "clickToDeeplink",
-  "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+  "intentName": "Weather_CityCode",
+  "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
 }
 ```
 

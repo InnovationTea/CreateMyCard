@@ -114,12 +114,37 @@
         "operation": "string，当前 WebSocket path 对应的接口名。",
         "requestId": "string|null，服务端根据 sessionId + '&' + interactionId 生成的请求 ID。",
         "data.dataCapabilities": "DataCapabilityOverview[]，数据能力概述列表，只包含 id 和 description。",
-        "data.eventCapabilities": "EventCapability[]，事件能力完整列表。",
-        "data.assetCandidates": "AssetCapability[]，素材能力完整列表。",
+        "data.eventCapabilities": "EventCapabilityOverview[]，精简事件列表；每项包含 id、description、可直接复制的完整 actionTemplate，以及允许替换的 dynamicArguments。",
+        "data.assetCandidates": "AssetCapabilityOverview[]，精简素材列表；每项只包含 id 和 description，src 等完整注册信息由微服务在生成阶段按 ID 还原。",
         "data.unavailableCapabilities": "string[]，因命中服务端安装过滤范围的 requiredPackages 包名未出现在 IDS 已安装应用清单而不可用的数据或事件能力 ID。",
         "status": "string，本次调用状态；成功时为 success。",
         "errorCode": "string，旧完整出参错误码；成功时为空字符串。",
         "error": "object，旧完整出参错误详情；成功时为空对象。"
+      }
+    },
+    "EventCapabilityOverview": {
+      "required": ["id", "description", "actionTemplate", "dynamicArguments"],
+      "properties": {
+        "id": "string，事件能力 ID。",
+        "description": "string，供主 Agent 选择事件的简短语义说明。",
+        "actionTemplate": "object，可直接完整复制为第三接口 action 的 {call,args}；固定字段和空字符串不得省略。",
+        "dynamicArguments": "EventDynamicArgument[]，允许替换的动态参数；path 是相对 actionTemplate.args 的 JSON Pointer，空数组表示模板无需修改。"
+      }
+    },
+    "EventDynamicArgument": {
+      "required": ["path", "description", "type"],
+      "properties": {
+        "path": "string，相对 actionTemplate.args 的 JSON Pointer。",
+        "description": "string，动态值来源或填写规则。",
+        "type": "string，动态值类型。",
+        "enum": "array，可选允许值列表。"
+      }
+    },
+    "AssetCapabilityOverview": {
+      "required": ["id", "description"],
+      "properties": {
+        "id": "string，生成接口 candidateAssetIds 使用的素材 ID。",
+        "description": "string，供主 Agent 选择素材的语义说明。"
       }
     },
     "DeviceInfo": {

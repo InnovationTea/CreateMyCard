@@ -111,24 +111,51 @@ class DataCapability(BaseModel):
         return [], 1
 
 
-class EventCapability(BaseModel):
-    id: str
-    type: Literal["event"] = "event"
-    call: str
+class EventDynamicArgument(BaseModel):
+    """事件动作模板中允许主 Agent 替换的参数。"""
+
+    path: str
     description: str
+    type: str
+    enum: list[Any] | None = None
+
+
+class EventActionTemplate(BaseModel):
+    """可直接复制到生成请求 action 的完整事件骨架。"""
+
+    call: str
+    args: dict[str, Any]
+
+
+class EventCapabilityOverview(BaseModel):
+    """第一接口向主 Agent 暴露的精简事件能力。"""
+
+    id: str
+    description: str
+    actionTemplate: EventActionTemplate
+    dynamicArguments: list[EventDynamicArgument] = Field(default_factory=list)
+
+
+class EventCapability(EventCapabilityOverview):
+    type: Literal["event"] = "event"
     targetApp: str | None = None
     targetScene: str | None = None
-    argsTemplate: dict[str, Any] = Field(default_factory=dict)
     parametersSchema: dict[str, Any]
     dependencies: Dependencies = Field(default_factory=Dependencies)
 
     @model_validator(mode="after")
     def validate_parameter_descriptions(self) -> "EventCapability":
-        """保证主 Agent 能从参数 schema 逐字段理解取值方式。"""
+        """保证动作模板、动态参数说明和内部参数 schema 始终一致。"""
         errors = self._parameter_schema_errors(self.parametersSchema)
         errors.extend(
             self._template_schema_errors(
-                self.argsTemplate,
+                self.actionTemplate.args,
+                self.parametersSchema,
+            )
+        )
+        errors.extend(
+            self._dynamic_argument_errors(
+                self.dynamicArguments,
                 self.parametersSchema,
             )
         )
@@ -184,6 +211,55 @@ class EventCapability(BaseModel):
         return errors
 
     @classmethod
+    def _dynamic_argument_errors(
+        cls,
+        arguments: list[EventDynamicArgument],
+        schema: dict[str, Any],
+    ) -> list[str]:
+        """保证注册表显式声明的动态参数没有遗漏或重复。"""
+        expected = cls._dynamic_parameter_nodes(schema)
+        actual_paths = [item.path for item in arguments]
+        actual = {item.path: item for item in arguments}
+        errors = []
+        if len(actual) != len(actual_paths):
+            errors.append("dynamicArguments paths must be unique")
+        missing_paths = sorted(set(expected) - set(actual))
+        extra_paths = sorted(set(actual) - set(expected))
+        errors.extend(f"{path}: dynamic argument is missing" for path in missing_paths)
+        errors.extend(f"{path}: dynamic argument is not declared by schema" for path in extra_paths)
+        for path in sorted(set(expected) & set(actual)):
+            node = expected[path]
+            argument = actual[path]
+            if argument.description != node.get("description"):
+                errors.append(f"{path}: dynamic argument description does not match schema")
+            if argument.type != node.get("type"):
+                errors.append(f"{path}: dynamic argument type does not match schema")
+            expected_enum = node.get("enum")
+            if argument.enum != expected_enum:
+                errors.append(f"{path}: dynamic argument enum does not match schema")
+        return errors
+
+    @classmethod
+    def _dynamic_parameter_nodes(
+        cls,
+        schema: dict[str, Any],
+        path: tuple[str, ...] = (),
+    ) -> dict[str, dict[str, Any]]:
+        """提取没有 const 的参数叶子，作为注册表 dynamicArguments 的权威集合。"""
+        schema_type = schema.get("type")
+        if schema_type == "object":
+            nodes = {}
+            for name, child in schema.get("properties", {}).items():
+                nodes.update(cls._dynamic_parameter_nodes(child, (*path, name)))
+            return nodes
+        if schema_type == "array":
+            return cls._dynamic_parameter_nodes(schema.get("items", {}), (*path, "0"))
+        if "const" in schema:
+            return {}
+        pointer = "/" + "/".join(path)
+        return {pointer: schema}
+
+    @classmethod
     def _template_schema_errors(
         cls,
         template: Any,
@@ -195,17 +271,17 @@ class EventCapability(BaseModel):
             return []
         pointer = "/" + "/".join(path)
         if not isinstance(template, dict):
-            return [f"{pointer}: argsTemplate node must be an object"]
+            return [f"{pointer}: actionTemplate.args node must be an object"]
         properties = schema.get("properties", {})
         template_fields = set(template)
         schema_fields = set(properties)
         field_prefix = pointer.rstrip("/")
         errors = [
-            f"{field_prefix}/{name}: argsTemplate field is missing from schema"
+            f"{field_prefix}/{name}: actionTemplate.args field is missing from schema"
             for name in sorted(template_fields - schema_fields)
         ]
         errors.extend(
-            f"{field_prefix}/{name}: schema field is missing from argsTemplate"
+            f"{field_prefix}/{name}: schema field is missing from actionTemplate.args"
             for name in sorted(schema_fields - template_fields)
         )
         for name in sorted(template_fields & schema_fields):
@@ -219,11 +295,16 @@ class EventCapability(BaseModel):
         return errors
 
 
-class AssetCapability(BaseModel):
+class AssetCapabilityOverview(BaseModel):
+    """第一接口向主 Agent 暴露的精简素材能力。"""
+
     id: str
+    description: str
+
+
+class AssetCapability(AssetCapabilityOverview):
     type: Literal["asset"] = "asset"
     src: str
-    description: str
     sceneTags: list[str] = Field(default_factory=list)
     minXiaoyiVersion: str | None = None
 

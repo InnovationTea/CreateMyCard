@@ -148,28 +148,29 @@ directive 指令帧已经下发卡片结果，主 Agent 只回复自然语言：
 用户：
 
 ```text
-做一个打开天气应用的入口卡片。
+做一个打开闹钟应用的入口卡片。
 ```
 
-overview 返回可安全填齐的天气入口事件后，不加载数据 schema，也不调用权限工具：
+overview 返回无需动态参数的闹钟入口事件后，不加载数据 schema，也不调用权限工具：
 
 ```text
 invoke(functionName:"generateWidgetCardCompactDslWithDirective", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
-  userQuery:"做一个打开天气应用的入口卡片。",
-  title:"天气入口",
-  description:"快速打开天气",
+  userQuery:"做一个打开闹钟应用的入口卡片。",
+  title:"闹钟入口",
+  description:"快速打开闹钟",
   size:"2x2",
   candidateDataBindings:[],
   candidateEventCandidates:[
     {
-      capabilityId:"event.open.weather",
+      capabilityId:"event.open.clock.alarm",
       action:{
         call:"clickToDeeplink",
         args:{
-          bundleName:"",
-          abilityName:"",
-          uri:"hww://www.huawei.com/totemweather?enterType=share&cityCode="
+          intentName:"Clock",
+          bundleName:"com.huawei.hmos.clock",
+          abilityName:"com.huawei.hmos.clock.phone",
+          uri:""
         }
       }
     }
@@ -190,7 +191,7 @@ invoke(functionName:"generateWidgetCardCompactDslWithDirective", arguments:{
     "stateOfPermission": false,
     "nonAuthStatus": [
       {
-        "capabilityId": "GetAppUsageDurationAndPower",
+        "capabilityId": "GetAppUsageDuration",
         "authorized": false,
         "authType": "NON_CONFIGURABLE",
         "name": "应用使用时长",

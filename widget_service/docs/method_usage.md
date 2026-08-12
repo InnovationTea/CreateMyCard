@@ -194,7 +194,7 @@ curl http://127.0.0.1:8855/health
 
 对应工具能力：`getWidgetCapabilityOverview`
 
-用途：先按 `romVersion`、`prdVer` 选择注册表，再读取 IDS 安装过滤包名配置。当前默认只查询并精确匹配运动健康包 `com.huawei.hmos.health.core`；天气、日历等未命中配置范围的依赖不参与安装过滤。包版本、ROM/App 依赖版本、provider、intent、权限和素材版本不参与本阶段过滤。响应不包含 TaskSpec；数据能力只返回概述，不返回完整 schema。
+用途：先按 `romVersion`、`prdVer` 选择注册表，再读取 IDS 安装过滤包名配置。当前默认只查询并精确匹配运动健康包 `com.huawei.hmos.health.core`；天气、日历等未命中配置范围的依赖不参与安装过滤。包版本、ROM/App 依赖版本、provider、intent、权限和素材版本不参与本阶段过滤。响应不包含 TaskSpec；数据能力、事件能力和素材都只返回主 Agent 决策所需的精简概述。
 
 请求示例：
 
@@ -228,8 +228,34 @@ curl http://127.0.0.1:8855/health
         "description": "查询当前天气、空气质量和未来预报"
       }
     ],
-    "eventCapabilities": [],
-    "assetCandidates": [],
+    "eventCapabilities": [
+      {
+        "id": "event.open.weather",
+        "description": "打开天气应用",
+        "actionTemplate": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Weather_CityCode",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          }
+        },
+        "dynamicArguments": [
+          {
+            "path": "/uri",
+            "description": "cityCode 取自天气结果中的城市编码，保留完整 URI 模板。",
+            "type": "string"
+          }
+        ]
+      }
+    ],
+    "assetCandidates": [
+      {
+        "id": "asset.drop_1",
+        "description": "水滴图标，适合湿度和降雨场景"
+      }
+    ],
     "unavailableCapabilities": []
   },
   "status": "success",
@@ -472,7 +498,7 @@ get_widget_capability_overview(
 ) -> CapabilityOverviewResponse
 ```
 
-用途：读取指定版本的能力清单，并在注册表依赖命中配置的安装过滤范围时查询一次 IDS，返回当前设备实际可用的能力概述及不可用清单。
+用途：读取指定版本的能力清单，并在注册表依赖命中配置的安装过滤范围时查询一次 IDS，返回当前设备实际可用的精简能力概述及不可用清单。事件返回可直接复制的完整 `actionTemplate` 和动态参数说明；素材只返回 `id` 与 `description`。完整注册信息仍保留在微服务内，第三接口按 ID 还原。
 
 使用示例：
 
@@ -1396,6 +1422,12 @@ load_json(path: Path) -> Any
 `EventCapability`：事件能力定义，用于入口事件过滤。
 
 `AssetCapability`：素材能力定义，用于 TaskSpec 的素材白名单。
+
+`EventCapabilityOverview`：第一接口的精简事件定义，包含事件 ID、描述、可直接复制的完整动作模板，以及
+允许替换的动态参数路径；不暴露依赖和完整参数 schema。
+
+`AssetCapabilityOverview`：第一接口的精简素材定义，只包含素材 ID 和描述；素材路径和版本信息由微服务
+内部保留并在生成阶段按 ID 还原。
 
 `RemovedCapability`：被过滤掉的能力，包含：
 
