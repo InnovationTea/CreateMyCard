@@ -469,12 +469,34 @@ def test_widget_card_service_complete_flow(monkeypatch):
             for item in overview["eventCapabilities"]
             if item["id"] == "event.open.weather"
         )
-        assert weather_event["argsTemplate"]["intentName"] == "Weather_CityCode"
-        assert "argsDescription" not in weather_event
-        uri_schema = weather_event["parametersSchema"]["properties"]["uri"]
-        assert "/location/cityCode" in uri_schema["description"]
-        assert "/location/cityCode" in weather_event["argsTemplate"]["uri"]
-        assert any(item["id"] == "asset.drop_1" for item in overview["assetCandidates"])
+        assert set(weather_event) == {
+            "id",
+            "description",
+            "actionTemplate",
+            "dynamicArguments",
+        }
+        weather_action = weather_event["actionTemplate"]
+        assert weather_action["call"] == "clickToDeeplink"
+        assert weather_action["args"]["intentName"] == "Weather_CityCode"
+        assert "/location/cityCode" in weather_action["args"]["uri"]
+        assert weather_event["dynamicArguments"] == [
+            {
+                "path": "/uri",
+                "description": (
+                    "cityCode 取自 ViewWeather 的 /location/cityCode，保留完整 URI 模板。"
+                ),
+                "type": "string",
+            }
+        ]
+        meeting_event = next(
+            item
+            for item in overview["eventCapabilities"]
+            if item["id"] == "event.enter.meeting"
+        )
+        assert meeting_event["actionTemplate"]["args"]["intentName"] == "EnterMeeting"
+        assets = overview["assetCandidates"]
+        assert any(item["id"] == "asset.drop_1" for item in assets)
+        assert all(set(item) == {"id", "description"} for item in assets)
         assert "taskSpec" not in overview
         assert "task_spec" not in overview
         records.append(
@@ -553,7 +575,10 @@ def test_widget_card_service_complete_flow(monkeypatch):
                         "intentName": "Weather_CityCode",
                         "bundleName": "",
                         "abilityName": "",
-                        "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode=",
+                        "uri": (
+                            "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' "
+                            "+ ${/data/weather/location/cityCode} }}"
+                        ),
                     },
                 },
             }
@@ -601,6 +626,15 @@ def test_widget_card_service_complete_flow(monkeypatch):
         assert task_spec["dataModelSchema"]["data"]["weather"]["current"][
             "temperatureText"
         ]["sampleValue"] == "29°C"
+        assert task_spec["assetCandidates"] == [
+            {
+                "id": "asset.drop_1",
+                "src": "resources/base/media/drop_1.svg",
+                "description": (
+                    "水滴图标，黑色，图形为圆润水滴轮廓，适用场景：湿度数据展示、饮水提醒、天气降雨信息"
+                ),
+            }
+        ]
         card_binding = saved_artifacts[0]["cardSpec"]["dataBindings"][0]
         assert set(card_binding) == {"capabilityId", "arguments", "writeResultTo"}
         records.append(

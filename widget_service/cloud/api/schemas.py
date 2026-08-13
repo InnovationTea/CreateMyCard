@@ -6,9 +6,9 @@ from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 
 from core.errors import GenerationStatus
 from models.capability import (
-    AssetCapability,
+    AssetCapabilityOverview,
     DataCapability,
-    EventCapability,
+    EventCapabilityOverview,
     RemovedCapability,
 )
 from models.generation import (
@@ -173,8 +173,8 @@ class DataCapabilityOverview(BaseModel):
 
 class CapabilityOverviewResponse(BaseModel):
     dataCapabilities: list[DataCapabilityOverview]
-    eventCapabilities: list[EventCapability]
-    assetCandidates: list[AssetCapability]
+    eventCapabilities: list[EventCapabilityOverview]
+    assetCandidates: list[AssetCapabilityOverview]
     unavailableCapabilities: list[str] = Field(default_factory=list)
 
 

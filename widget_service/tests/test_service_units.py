@@ -1455,6 +1455,8 @@ def test_event_capability_registry_uses_package_dependencies_only():
     capability_by_id = {item.id: item for item in capabilities}
     serialized = [item.model_dump(mode="json") for item in capabilities]
     assert all("argsDescription" not in item for item in serialized)
+    assert all("call" not in item and "argsTemplate" not in item for item in serialized)
+    assert all("actionTemplate" in item and "dynamicArguments" in item for item in serialized)
     phone_schema = capability_by_id["event.call.phone"].parametersSchema
     phone_properties = phone_schema["properties"]["params"]["properties"]
     assert "电话号码" in phone_properties["phoneNumber"]["description"]
@@ -1467,10 +1469,43 @@ def test_event_capability_registry_uses_package_dependencies_only():
     weather = capability_by_id["event.open.weather"]
     assert "/location/cityCode" in weather.parametersSchema["properties"]["uri"]["description"]
     meeting = capability_by_id["event.enter.meeting"]
-    assert meeting.call == "clickToDeeplink"
-    assert "oneClickServiceLink" in meeting.argsTemplate["uri"]
+    assert meeting.actionTemplate.call == "clickToDeeplink"
+    assert "oneClickServiceLink" in meeting.actionTemplate.args["uri"]
     calendar = capability_by_id["event.viewCalendarEvent"]
-    assert "events/i/entityId" in calendar.argsTemplate["params"]["entityId"]
+    assert "events/i/entityId" in calendar.actionTemplate.args["params"]["entityId"]
+
+
+def test_first_interface_keeps_complete_event_action_and_only_dynamic_metadata():
+    """验证第一接口事件结构可直接复制，且不暴露完整参数 schema。"""
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    meeting = registry.get_event_capability("event.enter.meeting")
+    assert meeting is not None
+
+    payload = meeting.model_dump(
+        mode="json",
+        include={"id", "description", "actionTemplate", "dynamicArguments"},
+        exclude_none=True,
+    )
+
+    assert payload["actionTemplate"] == {
+        "call": "clickToDeeplink",
+        "args": meeting.actionTemplate.args,
+    }
+    assert payload["actionTemplate"]["args"]["intentName"] == "EnterMeeting"
+    assert payload["actionTemplate"]["args"]["bundleName"] == ""
+    assert payload["actionTemplate"]["args"]["abilityName"] == ""
+    assert payload["dynamicArguments"] == [
+        {
+            "path": "/uri",
+            "description": (
+                "取自 GetCalendarEvents 的 events[i].oneClickServiceLink，i 替换为实际索引。"
+            ),
+            "type": "string",
+        }
+    ]
+    assert "parametersSchema" not in payload
+    assert "dependencies" not in payload
+    assert "targetScene" not in payload
 
 
 def test_cloud_capability_registries_are_self_contained_and_valid():
@@ -1586,7 +1621,7 @@ def test_cloud_registry_covers_offline_skill_capability_inventory():
         for item in cloud_data_capabilities
     }
     cloud_events = {
-        (item.call, item.targetScene, item.description)
+        (item.actionTemplate.call, item.targetScene, item.description)
         for item in registry.list_event_capabilities()
     }
     cloud_assets = {
@@ -1691,9 +1726,18 @@ def test_capability_dependencies_ignore_legacy_fields_and_keep_package_names():
 def test_event_capability_accepts_legacy_dependency_metadata():
     capability = EventCapability(
         id="event.legacy",
-        call="clickToIntent",
         description="旧版事件能力",
-        argsTemplate={"intentName": "LegacyIntent"},
+        actionTemplate={
+            "call": "clickToIntent",
+            "args": {"intentName": "LegacyIntent"},
+        },
+        dynamicArguments=[
+            {
+                "path": "/intentName",
+                "description": "事件意图名称。",
+                "type": "string",
+            }
+        ],
         parametersSchema={
             "type": "object",
             "properties": {
@@ -1724,8 +1768,11 @@ def test_event_capability_rejects_parameter_without_description():
     with pytest.raises(ValidationError, match="description must be a non-empty string"):
         EventCapability(
             id="event.invalid",
-            call="clickToIntent",
             description="缺少参数说明的事件能力",
+            actionTemplate={
+                "call": "clickToIntent",
+                "args": {"intentName": "LegacyIntent"},
+            },
             parametersSchema={
                 "type": "object",
                 "properties": {
