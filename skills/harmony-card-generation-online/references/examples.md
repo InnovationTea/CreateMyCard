@@ -25,6 +25,9 @@
 | 打开天气详情是唯一核心动作但事件不可用 | 结束并引导 | overview |
 | 最后一个核心数据能力进入 `missingCapabilityIds` | 结束并引导 | overview → schema |
 | 固定文字内容的静态展示卡 | 继续生成 | overview → schema（空数组）→ generate（跳过 permission） |
+| 已生成卡片后说“颜色换成红色” | 强制 edit | 按来源数据集合执行 permission（非空时）→ generate，且传最近一次 `artifactUrl` |
+| 上一轮已生成天气卡片，本轮只说“标题改成今天的天气”且未提“卡片” | 识别为 edit | 传上一轮最近一次 `artifactUrl`，按纯文案 edit 执行 |
+| 上一轮已生成天气卡片，本轮说“再做一张日历卡片” | 识别为 create | 不继承上一轮 `sourceArtifactUrl`，执行 create 流程 |
 | edit“背景改成蓝色”，来源含动态数据 | 继续编辑 | permission → generate |
 | edit“背景改成蓝色”，来源无动态数据 | 继续编辑 | generate |
 | edit“去掉日历，只保留天气” | 继续编辑 | overview → schema → permission → generate |
@@ -261,14 +264,14 @@ overview → schema → permission（invoke 报错）→ generate
 
 ### 纯视觉 edit
 
-用户：“背景改成蓝色，信息排紧凑一点。”
+用户：“颜色换成红色，信息排紧凑一点。”
 
 先对来源的完整数据能力集合执行权限门禁，通过后调用：
 
 ```text
 invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
-  userQuery:"背景改成蓝色，信息排紧凑一点",
+  userQuery:"颜色换成红色，信息排紧凑一点",
   sourceArtifactUrl:"https://obs.example/widget/v1.md"
 },"skillName":"harmony-card-generation-online")
 ```

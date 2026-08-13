@@ -6,16 +6,23 @@
 
 ### 模式判断
 
-1. 明确创建、生成、预览或添加桌面卡片时走 create；修改、删除、替换、改颜色、改尺寸或继续优化已有卡片时走 edit。create 不传 `sourceArtifactUrl`，每轮从本轮 overview 重新规划；edit 必须传目标卡片最近一次真实 `sourceArtifactUrl`，只能继承该来源，不得改走 create。
-2. 明确非卡片任务、长报告、完整页面或复杂表单时零工具调用并说明边界。卡片意图仍有歧义时只追问一个最小必要问题并等待。
+1. 明确创建、生成、预览或添加桌面卡片时走 create；修改、删除、替换、改颜色、改背景、改布局、改文案、改尺寸或继续优化已有卡片时走 edit。create 不传 `sourceArtifactUrl`，每轮从本轮 overview 重新规划；edit 必须传目标卡片最近一次有效生成业务 payload 的真实 `artifactUrl` 作为 `sourceArtifactUrl`，只能继承该来源，不得改走 create。
+2. 本轮 query 未出现“卡片”等词时，先结合连续上下文判断：若上一轮已成功生成目标卡片，且本轮明确是在修改其颜色、背景、布局、文案、尺寸或已有数据，则仍走 edit；若本轮表达“再做一张/重新创建”或无法确认修改对象，则按 create 或追问处理，不能仅凭历史卡片自动走 edit。明确非卡片任务、长报告、完整页面或复杂表单时零工具调用并说明边界。
 3. edit 未指定目标时使用当前会话最近有效卡片；明确目标无法对应时才追问。
 4. edit 仅支持纯视觉/布局/文案/尺寸、删除数据能力和修改已有数据参数。新增数据能力、修改事件或素材候选时不调用工具，引导重新创建。
+
+模式判断示例：
+
+- 无有效卡片上下文，用户说“做一张天气卡片”或“生成一个天气 widget”：判定为 create，不传 `sourceArtifactUrl`。
+- 上一轮已成功生成卡片，本轮 query 未提“卡片”，但说“颜色换成红色”“标题改成今天的天气”或“排版紧凑一点”：判定为 edit，必须将目标卡片最近一次有效业务 payload 的 `artifactUrl` 原样作为 `sourceArtifactUrl`。
+- 上一轮已成功生成卡片，本轮说“再做一张日历卡片”或“重新创建一个更大的天气卡片”：判定为 create，不继承上一轮 URL。
+- 上一轮有卡片但本轮只说“改一下”“继续优化”，无法确认修改对象或修改内容：先追问一个最小必要问题，不调用 create/edit 工具。
 
 ### 编辑链
 
 主 Agent 不创建独立状态，只从当前对话中的真实工具调用参数和合法业务结果追溯：
 
-- `success` / `degraded` 的真实 `artifactUrl` 标识有效结果，下一轮 edit 的 `sourceArtifactUrl` 指向目标卡片最近一次有效结果。
+- 仅本会话中目标卡片最近一次 `success` / `degraded` 生成业务 payload 的真实 `artifactUrl` 标识有效结果，并且必须原样作为下一轮 edit 的 `sourceArtifactUrl`；不能使用用户可见回复、示例、`streamInfo`、缓存或普通文本中的 URL。
 - `candidateDataBindings` 取自生成该结果的真实 `generateWidgetCardCompactDsl` 调用；若该轮省略，则沿 `sourceArtifactUrl` 查找最近一次显式完整数组。
 - 后续 `effectiveCapabilities.data` 和可靠对应的移除结果用于排除未生效能力。
 - 失败、非法结果、无新 URL 或 edit 返回来源 URL 都不形成新节点，不改变追溯起点。
@@ -180,7 +187,7 @@ invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmserv
 | 字段 | create | edit |
 | --- | --- | --- |
 | `userQuery` | 原始需求，必填 | 本轮修改，必填 |
-| `sourceArtifactUrl` | 不传 | 目标卡片最近一次真实 URL，必填 |
+| `sourceArtifactUrl` | 不传 | 目标卡片最近一次有效生成业务 payload 的真实 `artifactUrl`，必填 |
 | `size` | 可选，只用 `2x2` / `2x4` | 仅修改时传 |
 | `title` / `description` | 非空 | 仅修改时传 |
 | `candidateDataBindings` | 可选 | 替换数据类别时传完整数组；`[]` 清空 |
