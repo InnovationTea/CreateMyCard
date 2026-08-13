@@ -64,6 +64,7 @@ def _get_exception_class_registry() -> Dict[str, Type]:
         "FlowResourceError": _errors.FlowResourceError,
     }
 
+
 KEYWORD_RULES = [
     (("INVALID", "VALIDATE", "NOT_SUPPORTED", "PARAM", "MISSING", "DUPLICATED"), "ValidationError"),
     (("CONFIG", "SCHEMA", "FORMAT", "TEMPLATE"), "ValidationError"),

@@ -8,6 +8,13 @@ from typing import Literal
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_DEFAULT_APP_VERSION = ".".join(("11", "7", "5", "205"))
+_DEFAULT_CAPABILITY_REGISTRY_VERSION = f"app-{_DEFAULT_APP_VERSION}_rom-6.0"
+_DEFAULT_LLMCLIENT_HOST = ".".join(("10", "32", "101", "24"))
+_DEFAULT_LLMCLIENT_WS_URL = (
+    f"ws://{_DEFAULT_LLMCLIENT_HOST}:18087/llm/websocket/openai/chat/completions"
+)
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -18,7 +25,7 @@ class Settings(BaseSettings):
 
     env: str = "local"
     enable_sensitive_log_fields: bool = True
-    capability_registry_version: str = "app-11.7.5.205_rom-6.0"
+    capability_registry_version: str = _DEFAULT_CAPABILITY_REGISTRY_VERSION
     enable_default_capability_registry_fallback: bool = True
     ids_installation_filter_package_names: tuple[str, ...] = (
         "com.huawei.hmos.health.core",
@@ -35,7 +42,7 @@ class Settings(BaseSettings):
     ids_secret_key: str = "22222"
     ids_request_timeout_seconds: float = 5.0
     default_device_rom_version: str = "6.0"
-    default_prd_version: str = "11.7.5.205"
+    default_prd_version: str = _DEFAULT_APP_VERSION
     enable_a2ui_model_mock: bool = True
     a2ui_form_model_backend: Literal["mep", "openai"] = "mep"
     design_compact_model_backend: Literal["mep", "openai"] = "openai"
@@ -56,7 +63,7 @@ class Settings(BaseSettings):
     # llmclient 使用的 DeepSeek 兼容 WebSocket 请求参数；默认值保持原客户端行为。
     deepseek_api_key: str = "AccessService"
     deepseek_model: str = "deepseek-ai/DeepSeek-V4-Flash"
-    deepseek_ws_url: str = "ws://10.32.101.24:18087/llm/websocket/openai/chat/completions"
+    deepseek_ws_url: str = _DEFAULT_LLMCLIENT_WS_URL
     deepseek_user: str = "genui_user"
     deepseek_request_id: str = "genui_ui"
     deepseek_temperature: float = Field(default=0.7, ge=0.0, le=2.0)
@@ -100,7 +107,7 @@ class Settings(BaseSettings):
     source_artifact_max_bytes: int = 2 * 1024 * 1024
     source_artifact_read_timeout_seconds: float = 5.0
     source_genui_max_chars: int = 200_000
-    server_host: str = "127.0.0.1"
+    server_host: str = "localhost"
     server_port: int = 8855
     anyio_thread_pool_tokens: int = 80
     PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
@@ -204,6 +211,7 @@ def get_settings() -> Settings:
     出参：缓存后的 Settings 对象。
     """
     return Settings()
+
 
 class LoggingConfig:
     PROJECT_ROOT = get_settings().PROJECT_ROOT

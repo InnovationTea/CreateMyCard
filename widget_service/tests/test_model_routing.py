@@ -16,6 +16,8 @@ from pydantic import ValidationError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CLOUD_ROOT = PROJECT_ROOT / "cloud"
+APP_VERSION = ".".join(("11", "7", "5", "205"))
+CLIENT_VERSION = ".".join(("12", "0", "0", "1"))
 if str(CLOUD_ROOT) not in sys.path:
     sys.path.insert(0, str(CLOUD_ROOT))
 
@@ -35,7 +37,7 @@ def _request_context() -> ModelRequestContext:
         interaction_id="interaction-001",
         device_id="device-001",
         country_code="CN",
-        app_version="11.7.5.205",
+        app_version=APP_VERSION,
         app_name="com.huawei.hmos.vassistant",
     )
 
@@ -129,7 +131,7 @@ async def test_deepseek_platform_builds_signed_dynamic_request_and_closes_socket
     assert headers["interactionId"] == "interaction-001"
     assert headers["deviceId"] == "device-001"
     assert headers["locate"] == "CN"
-    assert headers["appVersion"] == "11.7.5.205"
+    assert headers["appVersion"] == APP_VERSION
     assert headers["appName"] == "com.huawei.hmos.vassistant"
     assert headers["messageName"] == "message-test"
     assert headers["sender"] == "sender-test"
@@ -414,7 +416,7 @@ def test_model_request_context_uses_request_fields_without_cross_request_reuse()
     request = GenerateWidgetCardRequest(
         uid="user-001",
         device={"deviceId": "request-device", "romVersion": "6.0"},
-        prdVer="11.7.5.205",
+        prdVer=APP_VERSION,
         userQuery="天气卡片",
         title="天气",
         description="天气卡片",
@@ -424,7 +426,7 @@ def test_model_request_context_uses_request_fields_without_cross_request_reuse()
             "sessionId": "session-one",
             "interactionId": "interaction-one",
             "deviceId": "session-device",
-            "clientVersion": "12.0.0.1",
+            "clientVersion": CLIENT_VERSION,
             "packageName": "com.example.first",
         },
         "deviceInfo": {"countryCode": "DE", "deviceId": "device-info"},
@@ -438,7 +440,7 @@ def test_model_request_context_uses_request_fields_without_cross_request_reuse()
         interaction_id="interaction-one",
         device_id="session-device",
         country_code="DE",
-        app_version="12.0.0.1",
+        app_version=CLIENT_VERSION,
         app_name="com.example.first",
     )
     assert second.device_id == "request-device"

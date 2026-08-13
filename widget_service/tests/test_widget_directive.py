@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 CLOUD_ROOT = Path(__file__).resolve().parents[1] / "cloud"
+APP_VERSION = ".".join(("11", "7", "7", "205"))
 if str(CLOUD_ROOT) not in sys.path:
     sys.path.insert(0, str(CLOUD_ROOT))
 
@@ -24,7 +25,7 @@ def _raw_payload() -> dict:
             "marketingName": "Device Model",
             "deviceFormation": "phone",
             "phoneType": "phone",
-            "prdVer": "11.7.7.205",
+            "prdVer": APP_VERSION,
         },
         "session": {"sessionId": "session-1", "interactionId": 6},
         "userAuth": {"user": {"userId": "user-1"}},

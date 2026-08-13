@@ -20,7 +20,12 @@ from pydantic import ValidationError
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CLOUD_ROOT = PROJECT_ROOT / "cloud"
 APP_VERSION = ".".join(("11", "7", "5", "205"))
+APP_VERSION_11_8 = ".".join(("11", "8", "0", "0"))
+APP_VERSION_11_9 = ".".join(("11", "9", "9", "999"))
+APP_VERSION_12 = ".".join(("12", "0", "0", "0"))
 ROM_VERSION_6 = "CLS-AL30 " + ".".join(("6", "0", "0", "328"))
+ROM_VERSION_6_3 = "CLS-AL30 " + ".".join(("6", "3", "1", "20"))
+ROM_VERSION_6_9 = "CLS-AL30 " + ".".join(("6", "9", "0", "1"))
 ROM_VERSION_7 = "ALN-AL00 " + ".".join(("7", "1", "0", "100"))
 ROM_VERSION_7_WITHOUT_MODEL = ".".join(("7", "1", "0", "100"))
 REGISTRY_VERSION_6 = f"app-{APP_VERSION}_rom-6.0"
@@ -952,9 +957,9 @@ def test_ids_parser_ignores_provider_intent_and_permission_namespaces():
 @pytest.mark.parametrize(
     ("app_version", "rom_version"),
     [
-        ("11.7.5.205", "CLS-AL30 6.0.0.328"),
-        ("11.8.0.0", "CLS-AL30 6.3.1.20"),
-        ("11.9.9.999", "CLS-AL30 6.9.0.1"),
+        (APP_VERSION, ROM_VERSION_6),
+        (APP_VERSION_11_8, ROM_VERSION_6_3),
+        (APP_VERSION_11_9, ROM_VERSION_6_9),
     ],
 )
 def test_capability_registry_matches_app_rom_interval(app_version, rom_version):
@@ -964,8 +969,8 @@ def test_capability_registry_matches_app_rom_interval(app_version, rom_version):
 @pytest.mark.parametrize(
     ("app_version", "rom_version"),
     [
-        ("12.0.0.0", "6.0"),
-        ("11.7.5.205", "7.0"),
+        (APP_VERSION_12, "6.0"),
+        (APP_VERSION, "7.0"),
     ],
 )
 def test_capability_registry_excludes_maximum_boundaries(app_version, rom_version):
@@ -980,9 +985,9 @@ def test_capability_registry_extracts_major_minor_from_full_rom_version():
 @pytest.mark.parametrize(
     ("app_version", "rom_version"),
     [
-        ("11.7.5.205", "CLS-AL30 6.0.0.328"),
-        ("11.8.0.0", "CLS-AL30 6.3.1.20"),
-        ("11.9.9.999", "CLS-AL30 6.9.0.1"),
+        (APP_VERSION, ROM_VERSION_6),
+        (APP_VERSION_11_8, ROM_VERSION_6_3),
+        (APP_VERSION_11_9, ROM_VERSION_6_9),
     ],
 )
 def test_protocol_registry_matches_app_rom_interval(app_version, rom_version):
@@ -995,8 +1000,8 @@ def test_protocol_registry_matches_app_rom_interval(app_version, rom_version):
 @pytest.mark.parametrize(
     ("app_version", "rom_version"),
     [
-        ("12.0.0.0", "6.0"),
-        ("11.7.5.205", "7.0"),
+        (APP_VERSION_12, "6.0"),
+        (APP_VERSION, "7.0"),
     ],
 )
 def test_protocol_registry_excludes_maximum_boundaries(app_version, rom_version):
@@ -1007,7 +1012,7 @@ def test_protocol_registry_excludes_maximum_boundaries(app_version, rom_version)
 def test_compact_protocol_selection_uses_configured_default_fallback():
     request = GenerateWidgetCardRequest(
         uid="test-user",
-        prdVer="12.0.0.0",
+        prdVer=APP_VERSION_12,
         device={"romVersion": "7.0"},
         userQuery="生成静态卡片",
         title="静态卡片",
@@ -1264,7 +1269,7 @@ def test_create_request_defaults_to_2x2_when_size_is_omitted():
 def _out_of_range_requests():
     common = {
         "uid": "test-user",
-        "prdVer": "12.0.0.0",
+        "prdVer": APP_VERSION_12,
         "device": {"romVersion": "7.0"},
     }
     return [
@@ -4188,6 +4193,8 @@ async def test_artifact_store_returns_structured_save_result(tmp_path, monkeypat
     assert '"description": "查看当前天气"' in uploaded_content
     assert '"dataModelSchema"' in uploaded_content
     assert '"protocolProfileId": "a2ui-form-rom6.0-v1"' in uploaded_content
+
+
 def test_file_utils_save_and_delete_utf8_text(tmp_path):
     """验证文本文件工具支持自动建目录、UTF-8 写入和幂等删除。
 

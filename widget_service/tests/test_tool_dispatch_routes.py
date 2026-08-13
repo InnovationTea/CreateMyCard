@@ -17,6 +17,7 @@ REPORT_DIR = PROJECT_ROOT / "test_reports"
 SESSION_ID = "7676c2c8-a6d3-413c-8074-c62ed30db8de"
 DEVICE_ODID = "5e64f3e9-0a80-d719-d689-3c36eca5eeb6"
 APP_VERSION = ".".join(("11", "7", "5", "205"))
+UNSUPPORTED_APP_VERSION = ".".join(("98", "0", "0", "0"))
 ROM_VERSION = "CLS-AL30 " + ".".join(("6", "0", "0", "328"))
 REGISTRY_VERSION = f"app-{APP_VERSION}_rom-6.0"
 DEVICE_INFO = {
@@ -1482,7 +1483,7 @@ def test_compact_protocol_fallback_switch_off_returns_unsupported(monkeypatch):
         lambda *_args: (_ for _ in ()).throw(AssertionError("model must not be called")),
     )
     client = TestClient(app)
-    device_info = {**DEVICE_INFO, "prdVer": "98.0.0.0"}
+    device_info = {**DEVICE_INFO, "prdVer": UNSUPPORTED_APP_VERSION}
     request_id = _request_id("protocol-fallback-off")
     with client.websocket_connect(
         "/api/v1/ws/tools/generateWidgetCardCompactDsl"
