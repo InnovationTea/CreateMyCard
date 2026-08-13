@@ -117,8 +117,11 @@
 
 事件与素材候选：
 
-- `candidateEventCandidates` 每项同时包含 `capabilityId` 和完整 `action.call/action.args`。ID、函数和参数结构来自 overview 的事件描述或 `actionTemplate`；用户只补业务值，不编造 deeplink、intent、包名、ability、号码或参数名。参数无法补齐时移除整个候选，核心动作因此缺失时重新决策。
-- 工具返回的 `actionTemplate`、`parametersSchema`、`required` 或其它必填字段是下一步调用的约束来源：逐项检查字段存在、名称、类型和值，再将所有必填字段原样传入下一步。以 `clickToDeeplink` 为例，`intentName`、`bundleName`、`abilityName`、`uri` 必须同时存在，即使包名或 ability 为空字符串也不能省略 `intentName`。
+- `candidateEventCandidates` 每项同时包含 overview 返回的 `capabilityId`，并将同项 `actionTemplate` 完整
+  深拷贝为 `action`。不得删除、重排或改写模板中的固定字段；`intentName` 以及值为空字符串的字段也必须
+  保留。`dynamicArguments[].path` 是相对 `actionTemplate.args` 的 JSON Pointer，只允许按这些路径替换动态
+  值；用户只补业务值，不编造 deeplink、intent、包名、ability、号码或参数名。模板中的动态占位符无法
+  按说明安全解析且模板默认值也不合法时，移除整个候选；核心动作因此缺失时重新决策。
 - 高风险或不可逆动作仅在用户明确要求且 overview 明确支持时选择。候选 action 不是最终 DSL `onClick`，最终过滤和写入由微服务负责。
 - `candidateAssetIds` 只用 overview 返回的 ID；没有语义匹配时传空数组，不自造路径。
 - 不传 `slots`、`options`、`locale`、`uid`、`device` 或运行时 schema 未声明的字段。
@@ -149,7 +152,10 @@ invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmserv
 
 ### getWidgetCapabilityOverview
 
-仅传 `bundleName`。payload 包含 `dataCapabilities`、可选 `unavailableCapabilities:string[]`、`eventCapabilities` 和 `assetCandidates`。`unavailableCapabilities` 缺失或 `[]` 视为空；非字符串数组则 payload 非法。数据候选只能来自 `dataCapabilities`。
+仅传 `bundleName`。payload 包含 `dataCapabilities`、可选 `unavailableCapabilities:string[]`、
+`eventCapabilities` 和 `assetCandidates`。事件每项必须有 `id/description/actionTemplate/dynamicArguments`，
+素材每项只读取 `id/description`；不得要求或猜测素材路径、版本或标签。`unavailableCapabilities` 缺失或
+`[]` 视为空；非字符串数组则 payload 非法。数据候选只能来自 `dataCapabilities`。
 
 ### getDataCapabilitySchemas
 

@@ -3,7 +3,7 @@
   "pluginType": "Cloud",
   "toolType": "XiaoYiPlugin",
   "toolName": "getWidgetCapabilityOverview",
-  "description": "获取当前用户实际可用的数据能力、不可用数据能力 ID，以及事件和素材概述",
+  "description": "获取当前用户实际可用的数据能力、不可用数据能力 ID、可直接复制动作模板的精简事件概述，以及仅含 ID 和描述的精简素材概述",
   "arguments": {},
   "outputSchema": {
     "properties": {

@@ -150,10 +150,10 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 用户：
 
 ```text
-做一个打开天气应用的入口卡片。
+做一个打开闹钟应用的入口卡片。
 ```
 
-overview 返回可安全填齐的天气入口事件后，仍调用 schema，但传空数据能力数组；最终候选数据为空，因此跳过权限工具：
+overview 返回无需动态参数的闹钟入口事件后，仍调用 schema，但传空数据能力数组；最终候选数据为空，因此跳过权限工具：
 
 这是 create 模式无数据候选的唯一分支：必须执行 overview → schema → generate，只有 permission 被跳过。
 
@@ -171,21 +171,21 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{
 ```text
 invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
-  userQuery:"做一个打开天气应用的入口卡片。",
-  title:"天气入口",
-  description:"快速打开天气",
+  userQuery:"做一个打开闹钟应用的入口卡片。",
+  title:"闹钟入口",
+  description:"快速打开闹钟",
   size:"2x2",
   candidateDataBindings:[],
   candidateEventCandidates:[
     {
-      "capabilityId":"event.open.weather",
+      "capabilityId":"event.open.clock.alarm",
       "action":{
         "call":"clickToDeeplink",
         "args":{
-          "intentName":"Weather_CityCode",
-          "bundleName":"",
-          "abilityName":"",
-          "uri":"hww://www.huawei.com/totemweather?enterType=share&cityCode="
+          "intentName":"Clock",
+          "bundleName":"com.huawei.hmos.clock",
+          "abilityName":"com.huawei.hmos.clock.phone",
+          "uri":""
         }
       }
     }
@@ -206,7 +206,7 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
     "stateOfPermission": false,
     "nonAuthStatus": [
       {
-        "capabilityId": "GetAppUsageDurationAndPower",
+        "capabilityId": "GetAppUsageDuration",
         "authorized": false,
         "authType": "NON_CONFIGURABLE",
         "name": "应用使用时长",

@@ -31,7 +31,10 @@ metadata:
 
 四个工具按以下顺序和职责使用：
 
-1. `getWidgetCapabilityOverview`：每个 create 必须调用，获取本轮当前可用数据、事件和素材概述；删除数据/修改数据参数的 edit 也调用，纯视觉 edit 可跳过。
+1. `getWidgetCapabilityOverview`：每个 create 必须调用，获取本轮当前可用数据、事件和素材概述；删除数据/
+   修改数据参数的 edit 也调用，纯视觉 edit 可跳过。事件候选必须将同项 `actionTemplate` 完整深拷贝为
+   `action`，不得省略 `intentName`、空字符串或其它固定字段，只能按 `dynamicArguments` 替换动态值；
+   素材只按 `id/description` 选择并传 ID。
 2. `getDataCapabilitySchemas`：每个 create 必须调用；有数据候选时只为已选且实际可用的数据能力加载完整 schema，无数据候选时传空数组表示本轮没有数据 schema。数据类 edit 存在本轮数据候选时也必须调用，不能因历史 schema 跳过。
 3. `RequestDataPermission`：生成前检查本轮最终、完整、去重后的数据能力集合；集合非空时必须调用，只有集合为空时才能不调用。纯视觉 edit 若来源含动态数据，仍须检查继承的数据权限。
 4. `generateWidgetCardCompactDsl`：只有前置门禁通过，或权限工具发生 invoke 级异常时默认放行才调用；主 Agent 不补做微服务负责的 DSL、CardSpec、校验、重试或上传。生成工具内部负责向端侧交付卡片，主 Agent 不重复下发 URL。
