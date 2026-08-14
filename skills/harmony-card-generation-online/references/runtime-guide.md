@@ -22,7 +22,9 @@
 
 主 Agent 不创建独立状态，只从当前对话中的真实工具调用参数和合法业务结果追溯：
 
-- 仅本会话中目标卡片最近一次 `success` / `degraded` 生成业务 payload 的真实 `artifactUrl` 标识有效结果，并且必须原样作为下一轮 edit 的 `sourceArtifactUrl`；不能使用用户可见回复、示例、`streamInfo`、缓存或普通文本中的 URL。
+- 仅本会话中目标卡片最近一次 `success` / `degraded` 生成结果的真实 `artifactUrl` 标识有效结果，并且
+  必须原样作为下一轮 edit 的 `sourceArtifactUrl`；不能使用用户可见回复、示例、缓存或普通文本中的
+  URL。
 - `candidateDataBindings` 取自生成该结果的真实 `generateWidgetCardCompactDsl` 调用；若该轮省略，则沿 `sourceArtifactUrl` 查找最近一次显式完整数组。
 - 后续 `effectiveCapabilities.data` 和可靠对应的移除结果用于排除未生效能力。
 - 失败、非法结果、无新 URL 或 edit 返回来源 URL 都不形成新节点，不改变追溯起点。
@@ -147,15 +149,10 @@ invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmserv
 
 业务必填值缺失且用户可回答时先追问；工具/schema 技术缺口直接终止。不得猜测、传 `null`、降格为字符串、把对象字符串化，或手写 `content`、`deviceInfo`、`session`、`pagination`、`userAuth`、`utterance`、`version` 等插件包络。
 
-### 微服务包装解析
+### 工具返回读取
 
-三个微服务工具当前按快照返回统一包络：顶层必须包含 `streamInfo` 和 `items`，`items[]` 承载 `tool`、`data`、`status`、`error`、`errorCode`、`operation`、`type` 与 `requestId`。直接读取顶层 `items`。
-
-- 从 `items` 优先选择 `tool` 等于当前工具名且含 `data` 的项；无 `tool` 时选第一个含 `data` 的项。`data` 为 JSON 字符串时解析为对象，已是对象时直接使用。
-- 没有可解析的 `items[].data`、`items[].error` 表示失败、payload 缺结构或字段类型非法时按工具异常终止。
-- `streamInfo` 只用于展示/调试；`items[].status/errorCode/requestId` 不是业务状态，也不向用户展示。
-
-`RequestDataPermission` 是端工具，直接读取其运行时输出，不套用上述微服务包络。
+工具展示的内容就是本次完整结果，按当前运行时 schema 直接读取。业务字段缺失、类型非法、无法可靠
+识别或工具明确执行失败时终止；不得使用历史回复或其它工具结果补齐。
 
 ### getWidgetCapabilityOverview
 
@@ -214,7 +211,8 @@ payload 常用字段为 `status`、`message`、可选 `artifactUrl/suggestSize/r
 1. 仍有用户待确认信息：只追问并等待，不调用下一工具。
 2. 权限正常返回未通过或非法：立即终止，不调用生成工具，并且只能输出对应预置话术。
 3. 仅权限工具调用失败：静默放行并调用生成工具。
-4. 生成返回后先从当前可解析业务 payload 读取合法真实 `artifactUrl`，再判断状态和话术；`streamInfo`、工具外层、历史结果和普通文本不是产物 URL。
+4. 生成返回后先从当前结果读取合法真实 `artifactUrl`，再判断状态和话术；历史结果和普通文本不是
+   产物 URL。
 5. URL 只在内部工具调用轨迹中留存。用户可见回复只输出状态对应的自然语言，不输出 URL、Markdown 链接、结果代码块或任何替代标记。
 
 ### 固定回复
@@ -260,7 +258,7 @@ payload 常用字段为 `status`、`message`、可选 `artifactUrl/suggestSize/r
 - 只有当前业务 payload 中带全新合法 `artifactUrl` 的 `success` / `degraded` 结果才形成有效编辑节点。
 - create 的有效 URL 作为该卡片后续 edit 的初始 `sourceArtifactUrl`；edit 的有效新 URL 替换该卡片此前的来源。
 - `unsupported`、`failed`、非法 payload、缺失 URL 或 edit 返回来源 URL 都不更新编辑来源。
-- 不从用户可见回复、历史自然语言、示例、`streamInfo` 或工具外层恢复 URL。
+- 不从用户可见回复、历史自然语言或示例恢复 URL。
 - 用户可见回复不得包含原始 URL、Markdown 链接、`genWidgetResult`、`genuiResult` 或任何替代结果代码块。
 
 发送前检查：

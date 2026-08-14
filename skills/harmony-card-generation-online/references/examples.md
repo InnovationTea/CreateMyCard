@@ -344,7 +344,7 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 | `unsupported` / `failed` + 合法 URL | 只输出对应受控话术；不更新来源 |
 | 可解析异常 payload + 合法 URL | 只输出其它异常话术；不更新来源 |
 | `success` / `degraded` 无合法 URL | 输出其它异常话术；不更新来源 |
-| 只有 `streamInfo` 或普通文本含 URL | 不采信 URL，不更新来源 |
+| 只有历史回复或普通文本含 URL | 不采信 URL，不更新来源 |
 | edit 返回与 `sourceArtifactUrl` 相同的 URL | 按无有效新 URL 处理，不更新来源 |
 
 所有用例都必须断言：用户可见回复不包含原始 URL、Markdown URL、`genWidgetResult`、`genuiResult` 或任何替代结果代码块。有效 `success/degraded` 用例还要断言下一轮 edit 原样使用当前业务 payload URL；其它用例不得改变来源。

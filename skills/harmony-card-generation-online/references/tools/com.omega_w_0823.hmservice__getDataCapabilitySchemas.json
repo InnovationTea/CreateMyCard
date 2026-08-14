@@ -25,55 +25,24 @@
   },
   "outputSchema": {
     "properties": {
-      "streamInfo": {
-        "type": "String",
-        "description": "流式信息"
-      },
-      "items": {
+      "dataCapabilities": {
         "type": "Array",
-        "description": "结构化数据",
-        "required": [
-          "data"
-        ],
+        "description": "已找到的数据能力完整定义",
         "properties": {
-          "type": {
-            "type": "String",
-            "description": "回复类型"
-          },
-          "requestId": {
-            "type": "String",
-            "description": "请求ID"
-          },
-          "status": {
-            "type": "String",
-            "description": "工具状态"
-          },
-          "tool": {
-            "type": "String",
-            "description": "当前工具名"
-          },
-          "operation": {
-            "type": "String",
-            "description": "本次动作"
-          },
-          "data": {
-            "type": "String",
-            "description": "工具返回结果"
-          },
-          "errorCode": {
-            "type": "String",
-            "description": "错误码"
-          },
-          "error": {
-            "type": "String",
-            "description": "错误内容"
+          "ArrayItem": {
+            "type": "Object",
+            "description": "包含 ID、inputSchema、outputSchema 和默认写入路径的数据能力"
           }
         }
+      },
+      "missingCapabilityIds": {
+        "type": "Array<String>",
+        "description": "本次未找到的数据能力 ID"
       }
     },
     "required": [
-      "streamInfo",
-      "items"
+      "dataCapabilities",
+      "missingCapabilityIds"
     ],
     "type": "object"
   },

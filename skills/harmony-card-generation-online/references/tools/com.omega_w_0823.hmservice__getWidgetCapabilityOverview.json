@@ -7,55 +7,45 @@
   "arguments": {},
   "outputSchema": {
     "properties": {
-      "streamInfo": {
-        "type": "String",
-        "description": "流式信息"
-      },
-      "items": {
+      "dataCapabilities": {
         "type": "Array",
-        "description": "结构化数据",
-        "required": [
-          "data"
-        ],
+        "description": "当前用户实际可用的数据能力概述",
         "properties": {
-          "errorCode": {
-            "type": "String",
-            "description": "错误码"
-          },
-          "requestId": {
-            "type": "String",
-            "description": "请求ID"
-          },
-          "error": {
-            "type": "String",
-            "description": "错误内容"
-          },
-          "type": {
-            "type": "String",
-            "description": "回复类型"
-          },
-          "tool": {
-            "type": "String",
-            "description": "当前工具名"
-          },
-          "status": {
-            "type": "String",
-            "description": "工具状态"
-          },
-          "operation": {
-            "type": "String",
-            "description": "本次动作"
-          },
-          "data": {
-            "type": "String",
-            "description": "工具返回结果"
+          "ArrayItem": {
+            "type": "Object",
+            "description": "数据能力 ID 和用户可理解的说明"
+          }
+        }
+      },
+      "unavailableCapabilities": {
+        "type": "Array<String>",
+        "description": "云侧已注册但当前用户设备不可用的数据能力 ID"
+      },
+      "eventCapabilities": {
+        "type": "Array",
+        "description": "可用事件能力及可直接复制的动作模板",
+        "properties": {
+          "ArrayItem": {
+            "type": "Object",
+            "description": "事件能力概述"
+          }
+        }
+      },
+      "assetCandidates": {
+        "type": "Array",
+        "description": "可用素材 ID 和说明",
+        "properties": {
+          "ArrayItem": {
+            "type": "Object",
+            "description": "素材概述"
           }
         }
       }
     },
     "required": [
-      "streamInfo",
-      "items"
+      "dataCapabilities",
+      "eventCapabilities",
+      "assetCandidates"
     ],
     "type": "object"
   },
