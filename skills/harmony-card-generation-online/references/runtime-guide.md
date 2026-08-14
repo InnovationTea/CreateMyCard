@@ -6,36 +6,26 @@
 
 ### 模式判断
 
-1. 明确创建、生成、预览或添加桌面卡片时走 create；修改、删除、替换、改颜色、改背景、改布局、改文案、改尺寸或继续优化已有卡片时走 edit。create 不传 `sourceArtifactUrl`，每轮从本轮 overview 重新规划；edit 必须传目标卡片最近一次有效生成业务 payload 的真实 `artifactUrl` 作为 `sourceArtifactUrl`，只能继承该来源，不得改走 create。
-2. 本轮 query 未出现“卡片”等词时，先结合连续上下文判断：若上一轮已成功生成目标卡片，且本轮明确是在修改其颜色、背景、布局、文案、尺寸或已有数据，则仍走 edit；若本轮表达“再做一张/重新创建”或无法确认修改对象，则按 create 或追问处理，不能仅凭历史卡片自动走 edit。明确非卡片任务、长报告、完整页面或复杂表单时零工具调用并说明边界。
+1. 明确创建、生成、预览或添加桌面卡片时走 create；修改、删除、替换、改颜色、改尺寸或继续优化已有卡片时走 edit。
+2. 明确非卡片任务、长报告、完整页面或复杂表单时零工具调用并说明边界。卡片意图仍有歧义时只追问一个最小必要问题并等待。
 3. edit 未指定目标时使用当前会话最近有效卡片；明确目标无法对应时才追问。
 4. edit 仅支持纯视觉/布局/文案/尺寸、删除数据能力和修改已有数据参数。新增数据能力、修改事件或素材候选时不调用工具，引导重新创建。
-
-模式判断示例：
-
-- 无有效卡片上下文，用户说“做一张天气卡片”或“生成一个天气 widget”：判定为 create，不传 `sourceArtifactUrl`。
-- 上一轮已成功生成卡片，本轮 query 未提“卡片”，但说“颜色换成红色”“标题改成今天的天气”或“排版紧凑一点”：判定为 edit，必须将目标卡片最近一次有效业务 payload 的 `artifactUrl` 原样作为 `sourceArtifactUrl`。
-- 上一轮已成功生成卡片，本轮说“再做一张日历卡片”或“重新创建一个更大的天气卡片”：判定为 create，不继承上一轮 URL。
-- 上一轮有卡片但本轮只说“改一下”“继续优化”，无法确认修改对象或修改内容：先追问一个最小必要问题，不调用 create/edit 工具。
 
 ### 编辑链
 
 主 Agent 不创建独立状态，只从当前对话中的真实工具调用参数和合法业务结果追溯：
 
-- 仅本会话中目标卡片最近一次 `success` / `degraded` 生成结果的真实 `artifactUrl` 标识有效结果，并且
-  必须原样作为下一轮 edit 的 `sourceArtifactUrl`；不能使用用户可见回复、示例、缓存或普通文本中的
-  URL。
+- `success` / `degraded` 的真实 `artifactUrl` 标识有效结果，下一轮 edit 的 `sourceArtifactUrl` 指向目标卡片最近一次有效结果。
 - `candidateDataBindings` 取自生成该结果的真实 `generateWidgetCardCompactDsl` 调用；若该轮省略，则沿 `sourceArtifactUrl` 查找最近一次显式完整数组。
 - 后续 `effectiveCapabilities.data` 和可靠对应的移除结果用于排除未生效能力。
 - 失败、非法结果、无新 URL 或 edit 返回来源 URL 都不形成新节点，不改变追溯起点。
-- 不从普通回复、任何结果代码块、示例或来源 artifact 恢复内部字段。链路无法可靠建立时停止 edit，不猜测或改走 create。
+- 不从普通回复、`genWidgetResult` 文本、示例或来源 artifact 恢复内部字段。链路无法可靠建立时停止 edit，不猜测或改走 create。
 
 ### 调用轨迹
 
 | 场景 | 轨迹 |
 | --- | --- |
-| create，有数据候选 | overview → schema → permission → generate |
-| create，无数据候选 | overview → schema（空数组）→ generate |
+| create | overview → schema → permission → generate |
 | 纯视觉/布局/文案/尺寸 edit，来源含动态数据 | permission → generate |
 | 纯视觉/布局/文案/尺寸 edit，来源无动态数据 | generate |
 | 删除数据或修改参数 edit | overview → schema → permission（集合非空时）→ generate |
@@ -45,12 +35,12 @@
 
 ### create 强制四工具链
 
-一旦判定为 create，必须严格按本轮结果执行四工具链：`getWidgetCapabilityOverview` → `getDataCapabilitySchemas` → `RequestDataPermission` → `generateWidgetCardCompactDsl`。唯一允许不调用的工具是：最终候选数据集合为空时跳过 `RequestDataPermission`；集合非空时必须尝试调用权限工具，即使调用失败也只能按权限工具异常分支继续，不能事先省略。此时仍必须执行 overview、schema 和 generate。历史对话、此前 artifact、旧的能力概述或 schema、缓存、相似需求经验和用户之前的授权结果均不得替代本轮步骤或作为跳过理由。
+一旦判定为 create，必须使用本轮结果按顺序执行 `getWidgetCapabilityOverview` → `getDataCapabilitySchemas` → `RequestDataPermission` → `generateWidgetCardCompactDsl`。历史对话、此前 artifact、旧的能力概述或 schema、缓存、相似需求经验和用户之前的授权结果均不得替代本轮步骤或作为跳过理由。
 
 - 每个 create 必须先调用本轮 `getWidgetCapabilityOverview`；未取得合法概述不得调用后续工具。
-- 每个 create 都必须调用本轮 `getDataCapabilitySchemas`；无数据候选时传 `dataCapabilityIds:[]`，表示没有需要加载的数据 schema。
+- 本轮概述选出数据候选后，必须调用 `getDataCapabilitySchemas`；只有本轮没有任何数据候选时不发起该调用。
 - 本轮最终数据集合非空时，必须调用 `RequestDataPermission`；只有最终集合为空时不发起该调用。
-- 前述门禁均满足后才调用 `generateWidgetCardCompactDsl`。create 不得省略 overview、schema 或 generate；只有最终候选数据集合为空时跳过权限工具。
+- 前述门禁均满足后才调用 `generateWidgetCardCompactDsl`。因此，无数据候选或空集合是协议规定的不调用条件，不是基于经验省略步骤；create 的四工具流程检查仍不得跳过。
 
 ### 端到端十三步
 
@@ -66,7 +56,7 @@
 10. 构造 create 完整候选计划或 edit 明确替换字段，并确定最终数据能力集合。
 11. 集合非空时执行权限门禁，空集合跳过。
 12. 前置门禁通过后调用生成工具，不补做微服务职责。
-13. 在内部调用轨迹中锁存当前 payload 的有效 URL，按状态回复自然语言；端侧展示由生成工具内部完成，有效 edit 结果成为后续编辑链新节点。
+13. 锁存当前 payload 的 URL，完成原子交付；有效 edit 结果成为后续编辑链新节点。
 
 ## 生成前规划
 
@@ -107,10 +97,18 @@
 
 ### 候选构造
 
+候选数组本身均可省略；一旦传入，数组项字段约束如下：
+
+| 数组项 | 必填字段 | 可选字段 |
+| --- | --- | --- |
+| `candidateDataBindings[]` | `capabilityId`、`writeResultTo` | `arguments`、`candidateOutputFields` |
+| `candidateEventCandidates[]` | `capabilityId`、`action`、`action.call`、`action.args` | `action.id` |
+
 数据候选：
 
 - 仅在运行时 schema 声明 `candidateDataBindings` 时传。`capabilityId` 必须来自本轮完整数据 schema。
-- `arguments` 只含对应 `inputSchema.properties` 字段；核心必填值缺失且用户可回答时先追问。
+- `arguments` 可省略，省略等价于 `{}`；传入时只含对应 `inputSchema.properties` 字段。对应
+  `inputSchema.required` 参数仍必须提供；核心必填值缺失且用户可回答时先追问。
 - `writeResultTo` 优先使用 schema 默认值，否则使用不冲突的 `/data/{semanticKey}`；多个路径不得相同、互为父子或覆盖。
 - `candidateOutputFields` 可省略；传入时只能是从 `outputSchema` 推导的叶子 JSON Pointer，数组元素用 `/0`，去重后所有候选合计不超过 4 项。
 - 不传 `required`、`inputSchema`、`outputSchema`、`updateModel` 或未声明字段。
@@ -139,7 +137,7 @@
 
 ### 调用与 schema 总则
 
-统一调用格式保持不变。`arguments` 顶层键名沿用当前格式；每个键的 value 必须是合法 JSON 值，嵌套对象和数组元素递归使用 JSON 键和值：
+统一调用格式：
 
 ```text
 invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmservice", ...},"skillName":"harmony-card-generation-online")
@@ -184,13 +182,16 @@ invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmserv
 | 字段 | create | edit |
 | --- | --- | --- |
 | `userQuery` | 原始需求，必填 | 本轮修改，必填 |
-| `sourceArtifactUrl` | 不传 | 目标卡片最近一次有效生成业务 payload 的真实 `artifactUrl`，必填 |
+| `sourceArtifactUrl` | 不传 | 目标卡片最近一次真实 URL，必填 |
 | `size` | 可选，只用 `2x2` / `2x4` | 仅修改时传 |
-| `title` / `description` | 非空 | 仅修改时传 |
+| `title` / `description` | 必填且非空 | 仅修改时传 |
 | `candidateDataBindings` | 可选 | 替换数据类别时传完整数组；`[]` 清空 |
 | `candidateEventCandidates` / `candidateAssetIds` | 可选 | 本期不修改 |
 
-payload 常用字段为 `status`、`message`、可选 `artifactUrl/suggestSize/removedCapabilities/effectiveCapabilities`。只认可 `success/degraded/unsupported/failed`；其它状态按 payload 非法。`success/degraded` 缺合法 URL 时按其它异常。合法 URL 仅用于确认有效结果和维护后续编辑链，不进入用户可见回复；卡片展示由生成工具内部交给端侧。
+当前返回内容常用字段为 `status`、`message`、可选
+`artifactUrl/suggestSize/removedCapabilities/effectiveCapabilities`。只认可
+`success/degraded/unsupported/failed`；其它状态按结果非法。`success/degraded` 缺合法 URL 时按其它
+异常。只要当前生成结果有合法真实 URL，就进入原子交付，状态只决定自然语言。
 
 ### 编辑请求构造与继承
 
@@ -204,16 +205,15 @@ payload 常用字段为 `status`、`message`、可选 `artifactUrl/suggestSize/r
 
 省略 `size/title/description` 或某类候选数组时由微服务从来源继承并重新校验；显式数组是完整替换，不是增量。来源为空、类型错误或运行时 schema 未声明 `sourceArtifactUrl` 时不调用，也不改走 create。成功 edit 必须返回不同于来源的新 URL；缺失、无效或相同均按其它异常，且不更新默认来源。
 
-## 回复与内部结果留存
+## 回复与原子交付
 
 ### 输出优先级
 
 1. 仍有用户待确认信息：只追问并等待，不调用下一工具。
 2. 权限正常返回未通过或非法：立即终止，不调用生成工具，并且只能输出对应预置话术。
 3. 仅权限工具调用失败：静默放行并调用生成工具。
-4. 生成返回后先从当前结果读取合法真实 `artifactUrl`，再判断状态和话术；历史结果和普通文本不是
-   产物 URL。
-5. URL 只在内部工具调用轨迹中留存。用户可见回复只输出状态对应的自然语言，不输出 URL、Markdown 链接、结果代码块或任何替代标记。
+4. 生成返回后先从当前可见结果锁存合法真实 `artifactUrl`，再判断状态和话术；历史结果和普通文本不是产物 URL。
+5. 有 URL 时无论状态如何都输出 `genWidgetResult`；没有 URL 时绝不输出或伪造。
 
 ### 固定回复
 
@@ -223,7 +223,7 @@ payload 常用字段为 `status`、`message`、可选 `artifactUrl/suggestSize/r
 - 核心能力缺失：`当前卡片能力暂无法满足你需要的 XX，因此这次先不生成。你可以试试：“建议一”、“建议二”`
 - 部分满足预告：`当前暂无法提供 XX，我会保留 YY 继续为你生成卡片。` 输出后自动继续，不等待确认；若后续工具失败，最终只输出其它异常话术。
 - edit 新增能力：`当前连续编辑暂不支持新增 XX，这次先不修改。你可以重新创建一张卡片，例如：“重新创建需求”`
-- 生成前合法结束不伪造 `unsupported` payload，也不伪造产物 URL 或端侧展示结果。
+- 生成前合法结束不伪造 `unsupported` payload，也不输出 `genWidgetResult`。
 
 权限未通过（仅限权限工具正常返回且明确拒绝）：
 
@@ -236,7 +236,7 @@ payload 常用字段为 `status`、`message`、可选 `artifactUrl/suggestSize/r
 
 | 情形 | 话术 |
 | --- | --- |
-| 完整 success | 仅使用不含产物 URL 和内部信息的 `message`；为空或不安全时 create 用“已为你生成卡片。”，edit 用“已按你的要求修改卡片。” |
+| 完整 success | 使用 `message`；为空时 create 用“已为你生成卡片。”，edit 用“已按你的要求修改卡片。” |
 | 部分数据缺失 | `本次卡片生成暂无你提及的 XX 数据，将基于可获取数据为你生成卡片` |
 | 部分动作缺失 | `本次卡片暂不支持你提及的 XX 操作，将保留可展示内容为你生成卡片` |
 | 部分素材缺失 | `本次卡片暂无法使用你提及的 XX 素材，将使用可用样式为你生成卡片` |
@@ -244,7 +244,7 @@ payload 常用字段为 `status`、`message`、可选 `artifactUrl/suggestSize/r
 | unsupported | `抱歉，当前暂无法获取你提及的 XX 功能数据。你可以试试：“建议一”、“建议二”` |
 | failed、必要工具异常、payload 异常、success/degraded 无 URL | `卡片创建过程遇到问题了，请稍后再试` |
 
-`degraded + URL` 或已知部分缺失的 `success + URL` 使用部分满足话术。除完整 success 外不透传或润色业务 `message`。其它异常不追加建议、原因或 edit 专属话术。任何状态下都不得把 payload 中的 URL 输出给用户；`unsupported`、`failed` 或异常 payload 即使带 URL，也不形成有效编辑节点。
+`degraded + URL` 或已知部分缺失的 `success + URL` 使用部分满足话术。除完整 success 外不透传或润色业务 `message`。其它异常不追加建议、原因或 edit 专属话术。unsupported/failed/异常 payload 若仍带合法真实 URL，也必须在对应话术后输出结果标记。
 
 ### 名称与建议
 
@@ -252,19 +252,23 @@ payload 常用字段为 `status`、`message`、可选 `artifactUrl/suggestSize/r
 
 回复不得声称“已添加到桌面”；这里只生成预览 artifact，端侧负责下载、渲染和确认添加。不要把部分满足描述成工程失败，不把整体不支持描述成系统异常，不引导安装不确定的 App，不承诺开启权限后一定可用，也不暴露来源 URL、CardSpec、DSL 或校验细节。
 
-### URL 留存与保密不变量
+### genWidgetResult 不变量
 
-- 卡片展示由生成工具内部将 URL 交给端侧，主 Agent 不重复承担交付职责。
-- 只有当前业务 payload 中带全新合法 `artifactUrl` 的 `success` / `degraded` 结果才形成有效编辑节点。
-- create 的有效 URL 作为该卡片后续 edit 的初始 `sourceArtifactUrl`；edit 的有效新 URL 替换该卡片此前的来源。
-- `unsupported`、`failed`、非法 payload、缺失 URL 或 edit 返回来源 URL 都不更新编辑来源。
-- 不从用户可见回复、历史自然语言或示例恢复 URL。
-- 用户可见回复不得包含原始 URL、Markdown 链接、`genWidgetResult`、`genuiResult` 或任何替代结果代码块。
+只要当前生成结果有合法真实 `artifactUrl`，在同一条最终回复的自然语言之后输出且只输出一个以下代码块；将占位符替换为原始 URL：
 
-发送前检查：
+````text
+```genWidgetResult
+{
+  "result": "{artifactUrl}"
+}
+```
+````
+
+发送前检查：代码块语言标签严格为 `genWidgetResult`；内容是只含字符串字段 `result` 的合法 JSON；值与当前 `artifactUrl` 逐字符相同；代码块后没有其它内容。edit 返回来源 URL 时按无有效新 URL 处理，不输出标记、不更新来源。
 
 ```text
-userVisibleContainsArtifactUrl == false
-userVisibleContainsResultMarker == false
-validEditNode == ((status == success || status == degraded) && hasNewValidArtifactUrl)
+hasValidArtifactUrl == hasExactlyOneValidGenWidgetResultBlock
+genWidgetResult.result == artifactUrl
 ```
+
+自然语言、状态、已发送的部分满足预告和 create/edit 模式都不能抑制合法 URL。任一检查失败时先重写回复，不得发送半成品。
