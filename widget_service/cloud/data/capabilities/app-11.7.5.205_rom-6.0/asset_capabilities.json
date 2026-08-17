@@ -587,7 +587,7 @@
     "id": "asset.icon_meeting",
     "type": "asset",
     "src": "resources/base/media/icon_meeting.svg",
-    "description": "样式：纯白色单色线面结合的会议演示板图标，画板内有两条横线，原始尺寸为 14×14，浅色背景需染色；适用：会议、汇报、演示、议程。",
+    "description": "样式：纯白色单色线面结合的会议演示板图标，画板内有两条横线，原始尺寸为 14×14；适用：会议、汇报、演示、议程。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -675,7 +675,7 @@
     "id": "asset.icon_schedule",
     "type": "asset",
     "src": "resources/base/media/icon_schedule.svg",
-    "description": "样式：纯白色单色实心日历图标，顶部双装订环，内部为六个日期点，浅色背景需染色；适用：日程、日期、日历入口或当日安排。",
+    "description": "样式：纯白色单色实心日历图标，顶部双装订环，内部为六个日期点；适用：日程、日期、日历入口或当日安排。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
