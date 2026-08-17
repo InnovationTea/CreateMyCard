@@ -555,7 +555,7 @@ def test_widget_card_service_complete_flow(monkeypatch):
         "candidateDataBindings": [
             {
                 "capabilityId": "ViewWeather",
-                "arguments": {"districtName": "上海", "forecastDays": 1},
+                "arguments": {"prefectureName": "上海市", "forecastDays": 1},
                 "writeResultTo": "/data/weather",
                 "candidateOutputFields": [
                     "/location/districtName",

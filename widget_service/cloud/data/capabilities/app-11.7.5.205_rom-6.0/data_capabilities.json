@@ -11,25 +11,29 @@
       ]
     },
     "inputSchema": {
-          "type": "object",
-          "properties": {
-            "districtName": {
-              "type": "string",
-              "description": "区县名，如'滨江区'。可选。"
-            },
-            "prefectureName": {
-              "type": "string",
-              "description": "城市名，如'杭州市'。若不能根据用户query或上下文来推断出是哪个城市，则需要向用户发起追问，明确城市名。注意，部分区县对应多个城市，此时也需要让用户明确。"
-            },
-            "forecastDays": {
-              "type": "integer",
-              "description": "返回预报天数，支持1至5天；可选，不传时默认返回3天。"
-            }
-          },
-          "required": [
-            "prefectureName"
-          ]
+      "type": "object",
+      "properties": {
+        "districtName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "区县名，如'滨江区'。可选。"
         },
+        "prefectureName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "城市名，如'杭州市'。若不能根据用户query或上下文来推断出是哪个城市，则需要向用户发起追问，明确城市名。注意，部分区县对应多个城市，此时也需要让用户明确。"
+        },
+        "forecastDays": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "description": "返回预报天数，支持1至5天；可选，不传时默认返回3天。"
+        }
+      },
+      "required": [
+        "prefectureName"
+      ]
+    },
     "outputSchema": {
       "type": "object",
       "description": "适合桌面卡片展示的标准化天气概要。current 是固定对象，daily 是数量由 forecastDays 决定的数组。",

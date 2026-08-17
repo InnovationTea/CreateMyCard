@@ -358,6 +358,7 @@ curl http://127.0.0.1:8855/health
       {
         "capabilityId": "ViewWeather",
         "arguments": {
+          "prefectureName": "上海市",
           "districtName": "青浦区",
           "forecastDays": 1
         },
@@ -607,7 +608,7 @@ response = await service.generate_widget_card_a2ui_form(
         candidateDataBindings=[
             CandidateDataBinding(
                 capabilityId="ViewWeather",
-                arguments={"districtName": "上海", "forecastDays": 1},
+                arguments={"prefectureName": "上海市", "forecastDays": 1},
                 writeResultTo="/data/weather",
             )
         ],

@@ -48,7 +48,7 @@ def _base_request(**updates):
         "candidateDataBindings": [
             {
                 "capabilityId": "ViewWeather",
-                "arguments": {"districtName": "上海", "forecastDays": 1},
+                "arguments": {"prefectureName": "上海市", "forecastDays": 1},
                 "writeResultTo": "/data/weather",
                 "candidateOutputFields": ["/current/condition"],
             }

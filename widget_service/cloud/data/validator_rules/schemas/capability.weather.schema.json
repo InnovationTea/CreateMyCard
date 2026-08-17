@@ -3,10 +3,7 @@
   "preferredWriteResultTo": "/data/weather",
   "inputSchema": {
     "type": "object",
-    "anyOf": [
-      {"required": ["districtName"]},
-      {"required": ["prefectureName"]}
-    ],
+    "required": ["prefectureName"],
     "properties": {
       "districtName": {
         "type": "string",

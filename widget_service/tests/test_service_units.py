@@ -266,7 +266,7 @@ async def test_terse_dsl_nested2_rejects_dynamic_requests():
         candidateDataBindings=[
             {
                 "capabilityId": "ViewWeather",
-                "arguments": {"districtName": "上海"},
+                "arguments": {"prefectureName": "上海市"},
                 "writeResultTo": "/data/weather",
             }
         ],
@@ -2015,7 +2015,7 @@ def test_card_spec_builder_keeps_only_data_bindings():
     """
     binding = CandidateDataBinding(
         capabilityId="ViewWeather",
-        arguments={"districtName": "上海"},
+        arguments={"prefectureName": "上海市"},
         writeResultTo="/data/weather",
         candidateOutputFields=["/current/temperatureText"],
     )
@@ -2032,7 +2032,7 @@ def test_card_spec_builder_keeps_only_data_bindings():
     assert card_spec.dataBindings is not None
     assert card_spec.dataBindings[0].model_dump() == {
         "capabilityId": "ViewWeather",
-        "arguments": {"districtName": "上海"},
+        "arguments": {"prefectureName": "上海市"},
         "writeResultTo": "/data/weather",
     }
     assert "candidateOutputFields" not in card_spec.model_dump()["dataBindings"][0]
@@ -2173,7 +2173,7 @@ def test_task_spec_builder_projects_valid_object_and_array_fields():
     """
     binding = CandidateDataBinding(
         capabilityId="ViewWeather",
-        arguments={"districtName": "上海"},
+        arguments={"prefectureName": "上海市"},
         writeResultTo="/data/weather",
         candidateOutputFields=[
             "/current/temperatureText",
@@ -2236,7 +2236,7 @@ def test_generation_binding_rejects_invalid_write_result_json_pointer(
     resolver = DeviceCapabilityResolver(registry)
     binding = CandidateDataBinding(
         capabilityId="ViewWeather",
-        arguments={"districtName": "上海"},
+        arguments={"prefectureName": "上海市"},
         writeResultTo=write_result_to,
         candidateOutputFields=["/current/condition"],
     )
@@ -2288,11 +2288,14 @@ def test_weather_binding_accepts_prefecture_without_district():
     "arguments",
     [
         {},
+        {"districtName": "滨江区"},
         {"districtName": ""},
         {"prefectureName": ""},
+        {"prefectureName": "杭州市", "forecastDays": 0},
+        {"prefectureName": "杭州市", "forecastDays": 6},
     ],
 )
-def test_weather_binding_rejects_missing_or_empty_location(arguments):
+def test_weather_binding_requires_valid_prefecture_and_forecast_days(arguments):
     registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
     resolver = DeviceCapabilityResolver(registry)
     binding = CandidateDataBinding(
@@ -2358,7 +2361,7 @@ async def test_generation_stops_before_model_when_event_data_dependency_is_missi
         candidateDataBindings=[
             {
                 "capabilityId": "ViewWeather",
-                "arguments": {"forecastDays": 1},
+                "arguments": {"districtName": "滨江区", "forecastDays": 1},
                 "writeResultTo": "/data/weather",
             }
         ],

@@ -701,7 +701,11 @@ class CompactDslFormParityTest(unittest.TestCase):
                 {
                     "capabilityId": "ViewWeather",
                     "writeResultTo": "/data/weather",
-                    "arguments": {"districtName": "青浦区", "forecastDays": 3},
+                    "arguments": {
+                        "districtName": "青浦区",
+                        "prefectureName": "上海市",
+                        "forecastDays": 3,
+                    },
                     "updateModel": {},
                 }
             ],
@@ -732,7 +736,11 @@ class CompactDslFormParityTest(unittest.TestCase):
                     {
                         "id": "ViewWeather",
                         "root": "/data/weather",
-                        "args": {"districtName": "青浦区", "forecastDays": 3},
+                        "args": {
+                            "districtName": "青浦区",
+                            "prefectureName": "上海市",
+                            "forecastDays": 3,
+                        },
                         "fields": [
                             ["/current/temperatureText", "string", "当前温度文本"]
                         ],

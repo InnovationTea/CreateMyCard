@@ -116,7 +116,7 @@ def test_live_multi_round_create_visual_edit_and_clear_data():
                 "candidateDataBindings": [
                     {
                         "capabilityId": "ViewWeather",
-                        "arguments": {"districtName": "上海", "forecastDays": 1},
+                        "arguments": {"prefectureName": "上海市", "forecastDays": 1},
                         "writeResultTo": "/data/weather",
                         "candidateOutputFields": [
                             "/location/districtName",

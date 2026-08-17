@@ -70,6 +70,7 @@ generate_widget_card_ws
       {
         "capabilityId": "ViewWeather",
         "arguments": {
+          "prefectureName": "上海市",
           "districtName": "青浦区",
           "forecastDays": 1
         },
@@ -204,6 +205,7 @@ SourceArtifactRepository.load(sourceArtifactUrl)
 {
   "capabilityId": "ViewWeather",
   "arguments": {
+    "prefectureName": "上海市",
     "districtName": "青浦区",
     "forecastDays": 1
   },
@@ -226,6 +228,7 @@ SourceArtifactRepository.load(sourceArtifactUrl)
     {
       "capabilityId": "ViewWeather",
       "arguments": {
+        "prefectureName": "上海市",
         "districtName": "青浦区",
         "forecastDays": 1
       },

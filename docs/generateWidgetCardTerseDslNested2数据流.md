@@ -180,6 +180,7 @@ _capability_registry
     {
       "capabilityId": "ViewWeather",
       "arguments": {
+        "prefectureName": "上海市",
         "districtName": "青浦区"
       },
       "writeResultTo": "/data/weather",

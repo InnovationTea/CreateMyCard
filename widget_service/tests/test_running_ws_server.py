@@ -209,7 +209,7 @@ def test_live_four_websocket_paths_complete_flow():
             "candidateDataBindings": [
                 {
                     "capabilityId": "ViewWeather",
-                    "arguments": {"districtName": "上海", "forecastDays": 1},
+                    "arguments": {"prefectureName": "上海市", "forecastDays": 1},
                     "writeResultTo": "/data/weather",
                     "candidateOutputFields": [
                         "/location/districtName",

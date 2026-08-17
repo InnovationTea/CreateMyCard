@@ -338,7 +338,7 @@ async def _run_single_user_iteration(
                                     {
                                         "capabilityId": "ViewWeather",
                                         "arguments": {
-                                            "districtName": "上海",
+                                            "prefectureName": "上海市",
                                             "forecastDays": 1,
                                         },
                                         "writeResultTo": "/data/weather",
