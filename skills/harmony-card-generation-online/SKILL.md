@@ -27,7 +27,7 @@ metadata:
 - 示例和快照不能授权额外字段，也不能覆盖当前运行时工具 schema。
 
 ## 执行流程
-主流程固定为：先明确区分 create/edit，再检查用户必填信息、获取能力概述、选择候选并按需加载 schema、检查最终数据权限、调用生成工具，最后记录编辑来源并组织自然语言回复。对已有卡片提出改颜色、背景、布局、文案或尺寸等修改时，必须判定为 edit，不得改走 create。create 不得携带 `sourceArtifactUrl`；edit 必须携带目标卡片最近一次有效生成业务 payload 中的真实 `artifactUrl` 作为 `sourceArtifactUrl`，不得使用回复文本、示例、缓存或猜测的 URL。
+主流程固定为：先明确区分 create/edit，并仅检查卡片形态、静态边界和最小语义歧义；随后获取能力概述，基于本轮概述判断动态数据能力满足度，选择可用候选并按需加载 schema，依据 schema 的必填参数追问，再检查最终数据权限、调用生成工具，最后记录编辑来源并组织自然语言回复。不得在 `getWidgetCapabilityOverview` 前根据 query、历史或经验判断动态数据能力是否满足，也不得因此追问数据参数。对已有卡片提出改颜色、背景、布局、文案或尺寸等修改时，必须判定为 edit，不得改走 create。create 不得携带 `sourceArtifactUrl`；edit 必须携带目标卡片最近一次有效生成业务 payload 中的真实 `artifactUrl` 作为 `sourceArtifactUrl`，不得使用回复文本、示例、缓存或猜测的 URL。
 
 四个工具按以下顺序和职责使用：
 
@@ -40,7 +40,7 @@ metadata:
 4. `generateWidgetCardCompactDsl`：只有前置门禁通过，或权限工具发生 invoke 级异常时默认放行才调用；主 Agent 不补做微服务负责的 DSL、CardSpec、校验、重试或上传。生成工具内部负责向端侧交付卡片，主 Agent 不重复下发 URL。
 
 ```text
-create：严格执行 getWidgetCapabilityOverview → getDataCapabilitySchemas → RequestDataPermission（仅最终候选数据集合为空时才允许不调用；集合非空时必须尝试调用，即使调用失败也不得跳过该步骤）→ generateWidgetCardCompactDsl。edit 按纯视觉或数据类分支执行，不得套用 create。
+create：严格执行 getWidgetCapabilityOverview → 基于 overview 裁决动态数据能力 → getDataCapabilitySchemas → 基于 schema 的 required 参数追问（如有）→ RequestDataPermission（仅最终候选数据集合为空时才允许不调用；集合非空时必须尝试调用，即使调用失败也不得跳过该步骤）→ generateWidgetCardCompactDsl。edit 按纯视觉或数据类分支执行，不得套用 create。
 ```
 
 ## 工具定义
@@ -87,3 +87,4 @@ invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmserv
 8. 只有带全新合法 URL 的 `success` / `degraded` 结果形成有效编辑节点；失败、非法结果、无新 URL 或 edit 返回来源 URL 都不更新编辑来源。
 9. 用户可见回复不暴露能力 ID、schema、provider、TaskSpec、OBS、IDS、错误码、请求 ID、工具包络、内部草稿或产物 URL。
 10. 严格执行工具返回字段闭环：下一步工具调用所需的必填字段，必须从上一步合法返回的字段、模板或 schema 中读取并传入；不得因示例、历史结果或经验省略、改名、改类型或猜测必填值。
+11. 需求分流必须区分三类：仅不支持的静态形态或需求可在 overview 前零调用终止；动态数据能力满足度必须在本轮 `getWidgetCapabilityOverview` 成功返回后裁决。所需数据能力全部无法满足时，立即终止并使用“抱歉，当前暂无法获取你提及的XX功能数据。你可以试试：“建议一”、“建议二””的格式回复；其中 `XX` 替换为用户提及的功能，建议一、建议二由 Agent 按本轮结果生成，不得原样输出。数据能力部分可用时，基于可用能力降级生成并使用“本次卡片暂无法完整支持你提及的XX，将基于可用内容为你生成卡片”的格式回复；`XX` 同样替换为用户提及但未满足的功能。overview 确认能力可用后，只有 schema 的必填参数或会改变核心结果的信息缺失时才追问最小必要问题并等待。生成结果只代表预览，禁止声称已添加到桌面或完成其它未执行的端侧操作。

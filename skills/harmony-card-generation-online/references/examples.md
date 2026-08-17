@@ -20,10 +20,12 @@
 | 卡片创建页面要求撰写长报告 | 结束并引导 | 零调用 |
 | 外卖实时配送卡，overview 无相关核心能力 | 结束并引导 | overview |
 | 天气和股票都要，股票没有就不生成 | 结束并引导 | overview |
-| 天气加股票，只有天气可用且仍有独立价值 | 调整后生成 | overview → schema → permission → generate |
+| 天气加股票，股票数据能力不可用但天气可用 | 降级生成并说明差异 | overview → schema → permission → generate |
 | 天气卡片，点击详情是次要诉求但事件不可用 | 调整后生成 | overview → schema → permission → generate |
 | 打开天气详情是唯一核心动作但事件不可用 | 结束并引导 | overview |
 | 最后一个核心数据能力进入 `missingCapabilityIds` | 结束并引导 | overview → schema |
+| 查询日程但未说明日期范围，overview 确认日程可用且 schema 将其列为必填参数 | 追问日期范围 | overview → schema → 追问 |
+| 用户明确要求不支持的静态形态，例如在卡片内撰写长报告 | 结束并说明 | 零调用 |
 | 固定文字内容的静态展示卡 | 继续生成 | overview → schema（空数组）→ generate（跳过 permission） |
 | 已生成卡片后说“颜色换成红色” | 强制 edit | 按来源数据集合执行 permission（非空时）→ generate，且传最近一次 `artifactUrl` |
 | 上一轮已生成天气卡片，本轮只说“标题改成今天的天气”且未提“卡片” | 识别为 edit | 传上一轮最近一次 `artifactUrl`，按纯文案 edit 执行 |
