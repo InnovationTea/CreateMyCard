@@ -2250,6 +2250,142 @@ def test_generation_binding_rejects_invalid_write_result_json_pointer(
     assert [item.reason for item in removed] == [ErrorCode.INVALID_ARGUMENTS.value]
 
 
+def test_weather_binding_accepts_prefecture_without_district():
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    resolver = DeviceCapabilityResolver(registry)
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        arguments={"prefectureName": "杭州市", "forecastDays": 3},
+        writeResultTo="/data/weather",
+        candidateOutputFields=["/current/condition"],
+    )
+
+    effective, capabilities, removed = resolver.resolve_generation_data_bindings(
+        [binding]
+    )
+
+    assert effective == [binding]
+    assert [item.id for item in capabilities] == ["ViewWeather"]
+    assert removed == []
+    weather_event = registry.get_event_capability("event.open.weather")
+    assert weather_event is not None
+    event = EventAction(
+        id=weather_event.id,
+        call=weather_event.actionTemplate.call,
+        args=weather_event.actionTemplate.args,
+    )
+
+    effective_events, removed_events = resolver.resolve_generation_event_candidates(
+        [event],
+        effective,
+    )
+
+    assert effective_events == [event]
+    assert removed_events == []
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        {},
+        {"districtName": ""},
+        {"prefectureName": ""},
+    ],
+)
+def test_weather_binding_rejects_missing_or_empty_location(arguments):
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    resolver = DeviceCapabilityResolver(registry)
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        arguments=arguments,
+        writeResultTo="/data/weather",
+    )
+
+    effective, capabilities, removed = resolver.resolve_generation_data_bindings(
+        [binding]
+    )
+
+    assert effective == []
+    assert capabilities == []
+    assert [(item.id, item.reason) for item in removed] == [
+        ("ViewWeather", ErrorCode.INVALID_ARGUMENTS.value)
+    ]
+
+
+def test_event_candidate_requires_an_effective_binding_for_dynamic_data_path():
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    resolver = DeviceCapabilityResolver(registry)
+    weather_event = registry.get_event_capability("event.open.weather")
+    assert weather_event is not None
+    event = EventAction(
+        id=weather_event.id,
+        call=weather_event.actionTemplate.call,
+        args=weather_event.actionTemplate.args,
+    )
+
+    effective, removed = resolver.resolve_generation_event_candidates([event], [])
+
+    assert effective == []
+    assert [(item.id, item.type, item.reason) for item in removed] == [
+        (
+            "event.open.weather",
+            "event",
+            ErrorCode.NO_EFFECTIVE_CAPABILITY.value,
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_generation_stops_before_model_when_event_data_dependency_is_missing(
+    monkeypatch,
+):
+    def unexpected_generate(*_args, **_kwargs):
+        pytest.fail("an event with a missing data dependency must not reach the model")
+
+    monkeypatch.setattr(A2UIModelClient, "generate", unexpected_generate)
+    weather_event = CapabilityRegistry(
+        version=REGISTRY_VERSION_6
+    ).get_event_capability("event.open.weather")
+    assert weather_event is not None
+    request = GenerateWidgetCardRequest(
+        uid="test-user",
+        prdVer=APP_VERSION,
+        device={"romVersion": ROM_VERSION_6},
+        userQuery="生成天气卡片",
+        size="2x2",
+        title="天气卡片",
+        description="天气能力依赖测试",
+        candidateDataBindings=[
+            {
+                "capabilityId": "ViewWeather",
+                "arguments": {"forecastDays": 1},
+                "writeResultTo": "/data/weather",
+            }
+        ],
+        candidateEventCandidates=[
+            {
+                "capabilityId": weather_event.id,
+                "action": weather_event.actionTemplate.model_dump(mode="json"),
+            }
+        ],
+    )
+
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(
+        request
+    )
+
+    assert response.status == GenerationStatus.UNSUPPORTED
+    assert response.errorCode == ErrorCode.NO_EFFECTIVE_CAPABILITY.value
+    assert [(item.id, item.type, item.reason) for item in response.removedCapabilities] == [
+        ("ViewWeather", "data", ErrorCode.INVALID_ARGUMENTS.value),
+        (
+            "event.open.weather",
+            "event",
+            ErrorCode.NO_EFFECTIVE_CAPABILITY.value,
+        ),
+    ]
+
+
 def test_task_spec_builder_preserves_output_leaf_path():
     binding = CandidateDataBinding(
         capabilityId="ViewWeather",

@@ -451,21 +451,12 @@ class WidgetGenerationService:
             "removed_data="
             f"{json_for_log([item.model_dump(mode='json') for item in removed_data])}"
         )
-        # 事件候选来自第一个接口的可用清单；这里只做注册表存在性检查。
+        # 事件候选还需确认其动态数据路径有有效 binding 支撑，避免生成矛盾 TaskSpec。
         candidate_events = self._normalize_event_candidates(request)
-        effective_events = []
-        removed_events = []
-        for event in candidate_events:
-            if not event.id or registry.get_event_capability(event.id) is None:
-                removed_events.append(
-                    resolver._removed(
-                        event.id or "",
-                        ErrorCode.UNKNOWN_CAPABILITY,
-                        "event",
-                    )
-                )
-                continue
-            effective_events.append(event)
+        effective_events, removed_events = resolver.resolve_generation_event_candidates(
+            candidate_events,
+            effective_bindings,
+        )
         logger.info(
             f"{_MODULE} event_capability_resolved effective_event_count={len(effective_events)} "
             f"removed_count={len(removed_events)} "

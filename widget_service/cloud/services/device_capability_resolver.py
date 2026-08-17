@@ -14,8 +14,9 @@ from models.capability import (
     EventCapability,
     RemovedCapability,
 )
-from models.generation import CandidateDataBinding, DeviceContext
+from models.generation import CandidateDataBinding, DeviceContext, EventAction
 from services.capability_registry import CapabilityRegistry
+from services.card_validation.base import expression_references
 from services.ids_client import IDSClient, IDSDeviceCapabilityState
 
 _MODULE = "[Device Resolver]"
@@ -175,6 +176,80 @@ class DeviceCapabilityResolver:
 
         return effective_bindings, effective_capabilities, removed
 
+    def resolve_generation_event_candidates(
+        self,
+        candidate_events: list[EventAction],
+        effective_bindings: list[CandidateDataBinding],
+    ) -> tuple[list[EventAction], list[RemovedCapability]]:
+        """过滤未注册事件和引用无效数据路径的事件候选。"""
+        effective_events: list[EventAction] = []
+        removed: list[RemovedCapability] = []
+        effective_roots = [binding.writeResultTo for binding in effective_bindings]
+
+        for event in candidate_events:
+            capability = self.registry.get_event_capability(event.id or "")
+            if capability is None:
+                removed.append(
+                    self._removed(
+                        event.id or "",
+                        ErrorCode.UNKNOWN_CAPABILITY,
+                        "event",
+                    )
+                )
+                continue
+            data_paths = self._data_reference_paths(capability.actionTemplate.args)
+            data_paths.update(self._data_reference_paths(event.args))
+            missing_paths = sorted(
+                path
+                for path in data_paths
+                if not self._path_has_effective_binding(path, effective_roots)
+            )
+            if missing_paths:
+                logger.warning(
+                    f"{_MODULE} event_data_dependency_unavailable event_id={event.id} "
+                    f"missing_data_paths={json_for_log(missing_paths)}"
+                )
+                removed.append(
+                    self._removed(
+                        event.id or "",
+                        ErrorCode.NO_EFFECTIVE_CAPABILITY,
+                        "event",
+                    )
+                )
+                continue
+            effective_events.append(event)
+
+        return effective_events, removed
+
+    @classmethod
+    def _data_reference_paths(cls, value: Any) -> set[str]:
+        paths: set[str] = set()
+        if isinstance(value, str):
+            paths.update(
+                path for path in expression_references(value) if path.startswith("/data/")
+            )
+            return paths
+        if isinstance(value, dict):
+            path = value.get("path") if set(value) == {"path"} else None
+            if isinstance(path, str) and path.startswith("/data/"):
+                paths.add(path)
+                return paths
+            for child in value.values():
+                paths.update(cls._data_reference_paths(child))
+            return paths
+        if isinstance(value, list):
+            for child in value:
+                paths.update(cls._data_reference_paths(child))
+        return paths
+
+    @staticmethod
+    def _path_has_effective_binding(path: str, effective_roots: list[str]) -> bool:
+        for root in effective_roots:
+            normalized_root = root.rstrip("/")
+            if path == normalized_root or path.startswith(f"{normalized_root}/"):
+                return True
+        return False
+
     def _check_required_packages(
         self,
         capability: DataCapability | EventCapability,
@@ -248,6 +323,7 @@ class DeviceCapabilityResolver:
             ErrorCode.PACKAGE_NOT_INSTALLED: "依赖应用未安装",
             ErrorCode.INVALID_ARGUMENTS: "参数不合法",
             ErrorCode.WRITE_RESULT_CONFLICT: "数据写入路径冲突",
+            ErrorCode.NO_EFFECTIVE_CAPABILITY: "依赖的数据能力不可用",
         }.get(reason, "能力不可用")
         return RemovedCapability(
             id=capability_id,

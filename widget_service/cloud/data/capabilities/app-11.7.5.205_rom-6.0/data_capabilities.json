@@ -15,10 +15,12 @@
       "properties": {
         "districtName": {
           "type": "string",
+          "minLength": 1,
           "description": "区县名，如'滨江区'。与prefectureName至少传一个。"
         },
         "prefectureName": {
           "type": "string",
+          "minLength": 1,
           "description": "城市名，如'杭州市'。与districtName至少传一个，两者都传时须为同一城市。注意，如果不能推断出用户城市名或区县名，则需要追问用户提供。"
         },
         "forecastDays": {
@@ -26,8 +28,17 @@
           "description": "返回预报天数，支持1至5天；不传时默认返回3天。"
         }
       },
-      "required": [
-        "districtName"
+      "anyOf": [
+        {
+          "required": [
+            "districtName"
+          ]
+        },
+        {
+          "required": [
+            "prefectureName"
+          ]
+        }
       ]
     },
     "outputSchema": {
