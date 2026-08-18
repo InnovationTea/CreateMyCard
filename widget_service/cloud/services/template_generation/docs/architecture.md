@@ -14,9 +14,9 @@ generateWidgetCardCompactDsl
   └─ create
        ├─ generate_template_artifact
        │    ├─ 准备 dev 能力裁决、CardSpec、TaskSpec
-       │    ├─ 第一层 LLM：从候选字段中提取 query 必显字段，选择 Theme 和业务模板
+       │    ├─ 第一层 LLM：从 TaskSpec 全量字段中判断 query 必显字段，只输出 theme/component/action
        │    ├─ 服务端完整覆盖校验
-       │    │    ├─ 必显字段不属于候选或模板未消费任一必显字段 → 抛出异常
+       │    │    ├─ 所选组件无可展开 Provider Variant 或缺少可信字段 → 抛出异常
        │    │    └─ 全部覆盖 → 锁定模板路由
        │    ├─ 第二层 LLM：只生成受限布局和模板调用
        │    ├─ 服务端解析、参数校验、模板展开
@@ -33,7 +33,7 @@ generateWidgetCardTerseDslNested2
   ├─ edit → 模板接口抛出异常 → 原始 TerseDSL-Nested-2 流程
   └─ create
        ├─ generate_template_artifact
-       │    ├─ 第一层 LLM 提取 query 必显字段并执行服务端完整覆盖校验
+       │    ├─ 第一层 LLM 只输出 theme/component/action，并执行服务端完整覆盖校验
        │    │    └─ 未匹配、字段未完整覆盖或模型不可用 → 抛出异常
        │    ├─ 第二层 LLM、参数校验和模板展开
        │    │    └─ 任一失败 → 抛出异常
@@ -69,9 +69,25 @@ generateWidgetCardTerseDslNested2
 | 第二层或模板编译失败 | 公开入口执行原协议流程 | 模板异常不阻断既有协议能力 |
 | 归档、Validator 或保存失败 | 公开入口执行原协议流程 | 不保存半成品，改走原协议重新生成 |
 
-`candidateOutputFields` 是可用候选集合，不是强制展示集合。第一层只能从候选集合中输出 query 实际要求的
-必显字段；服务端随后证明这些字段被所选模板直接绑定或作为派生参数来源消费。模板可以为了保持原始视觉
-额外展示其必需事实，但不得遗漏 query 必显事实。
+`candidateOutputFields` 只负责形成 TaskSpec 的候选数据投影，不等于本轮全部必须显示字段。第一层结合
+`userQuery` 与 TaskSpec 中的全量字段说明，在模型内部选出必须显示字段，再用 Provider 首层 MD 中的
+“高级组件 → TaskSpec 绝对路径”映射选择能够完整覆盖这些字段的组件。中间字段集合不回传，服务端继续
+确定性复核所选组件存在可从本轮 TaskSpec/CardSpec 展开的 Provider Variant。
+
+第一层输出严格限制为：
+
+```json
+{"theme":"theme.id","component":["ComponentId"],"action":["action.id"]}
+```
+
+不匹配时固定输出 `{"theme":null,"component":[],"action":[]}`。`action` 是批准的交互动作 ID，不是
+数据项；SystemPrompt 只保留这一通用语义和输出约束。Provider 首层 MD 描述“高级组件 → TaskSpec 数据
+路径”，Theme 首层 MD 描述主题适用场景；两类文档都只按本轮候选动态加载。服务端先按候选组件的
+Action 白名单过滤 TaskSpec 事件，并为每个 Action 候选标注 `supportedComponent`。第一层只有在
+`userQuery` 明确要求交互且最终组件受支持时才输出 `action.id`；Action 不参与数据字段覆盖。
+
+第二层从所选 Provider 的二层 MD 读取 Variant、参数、素材和 Action 使用规则。Python 只保留候选过滤、
+可信事实投影、Action 白名单、模板签名与编译校验，不再把全部领域规则拼入 SystemPrompt。
 
 旧 Python 模板流水线仅通过 `legacy_python.route_legacy_python_terse_generation(...)` 作为问题定位入口保留；
 生产默认入口不引用该函数。

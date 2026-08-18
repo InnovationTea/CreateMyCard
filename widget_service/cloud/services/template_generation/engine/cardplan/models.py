@@ -182,6 +182,10 @@ class CardActionStyle(StrictModel):
     font_weight: Literal[400, 500, 600, 700] = Field(alias="fontWeight")
 
 
+class MarkdownRuleReference(StrictModel):
+    path: str = Field(min_length=1)
+
+
 class ThemeDefinition(StrictModel):
     theme_profile_id: str = Field(alias="themeProfileId")
     description: str
@@ -195,6 +199,7 @@ class ThemeDefinition(StrictModel):
     root_component: Literal["Column", "Stack"] = Field(alias="rootComponent")
     root_styles: dict[str, Any] = Field(alias="rootStyles")
     action_style: CardActionStyle | None = Field(default=None, alias="actionStyle")
+    first_layer_rule: MarkdownRuleReference = Field(alias="firstLayerRule")
 
 
 class TemplateCall(StrictModel):

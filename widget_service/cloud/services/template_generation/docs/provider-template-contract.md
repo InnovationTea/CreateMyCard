@@ -2,22 +2,36 @@
 
 ## Provider 清单
 
-每个数据提供方在自己的垂域资源目录中提供 `provider.json`、数据 Schema 和一个或多个 `.cardtpl`。
+每个 CLI 数据提供方在自己的资源目录中提供 `provider.json`、两份分层规则 MD、数据 Schema 和一个或多个 `.cardtpl`。
 能力与模板的关联只保留以下核心信息：
 
 ```json
 {
+  "firstLayerRule": {"path": "layer-docs/first-layer.md"},
+  "secondLayerRule": {"path": "layer-docs/second-layer.md"},
+  "capabilities": [{
   "capabilityId": "ViewWeather",
   "dataSchema": {
     "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
     "version": "app-11.7.5.205_rom-6.0"
   },
   "templates": ["WeatherOverview@1"]
+  }]
 }
 ```
 
 `dataSchema.path` 优先引用上游能力数据；上游没有稳定路径时，允许指向 Provider 目录内的本地 Schema。
 模板名使用短业务名加主版本，例如 `WeatherOverview@1`，不再增加 Provider 前缀。
+
+两个规则路径相对 `provider.json` 所在目录解析，只允许非空 UTF-8 `.md` 文件，禁止绝对路径和目录越界：
+
+- `firstLayerRule.path`：只描述高级组件、该组件支持的数据路径和首层选择边界。路径使用
+  `{{dataRoot:CapabilityId}}/...`，服务端在本轮 Prompt 中替换成 `writeResultTo` 对应的 TaskSpec 绝对路径。
+- `secondLayerRule.path`：只描述高级组件 Variant、参数、素材和 Action 使用规则。只有首层最终选中的
+  Provider 文档才进入第二层 Prompt。
+
+Theme 不属于 Provider，在 `theme-profiles.json` 的每个主题条目中用
+`firstLayerRule.path` 指向独立 MD。Theme 文档只进入第一层，不提供二层规则。
 
 ## 模板语法
 
@@ -52,11 +66,14 @@ durationPrimaryValueText: {
 
 ## 完整覆盖要求
 
-第一层 LLM 只能提出候选，服务端必须再次确认：
+第一层 LLM 顶层只能输出 `theme`、`component`、`action`，服务端必须再次确认：
 
 - 每个 `candidateDataBinding.capabilityId` 都有可用 Provider 模板。
-- 第一层输出的 query 必显字段非空，且全部属于对应能力的 `candidateOutputFields`。
-- 每个 query 必显字段都被所选一个或多个模板直接绑定或作为派生参数来源消费。
+- 第一层只能根据 `userQuery` 和 TaskSpec 全量字段在内部判断必须显示字段，且这些字段都落在所选组件的
+  首层规则支持路径内；不得把 `candidateOutputFields` 整体当成强制展示集合。
+- `theme`、`component`、`action` 都来自本轮 Prompt 候选；Action 候选由服务端按组件白名单预过滤并
+  标注 `supportedComponent`，Action ID 不参与数据覆盖判断。
+- 所选组件至少存在一个能从本轮 TaskSpec/CardSpec 唯一解析必需绑定的 Provider Variant。
 - 所选 Variant 的必需绑定能从 TaskSpec 与 CardSpec 唯一解析。
 - 模板参数只来自可信事实、批准事件和批准素材。
 - 任一字段不满足时，整个模板判断失败，不能用模板只展示一部分后继续。

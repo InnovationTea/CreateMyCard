@@ -23,10 +23,12 @@ from services.template_generation.engine.advanced.models import (
 )
 
 from .models import TemplateDefinition, TemplateVariant, ThemeDefinition
-from .provider_bundle import load_provider_templates
+from .provider_bundle import LoadedProviderBundle, load_provider_bundles
 
 _WIRE_ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9-]{0,63}@[1-9][0-9]*$")
+_DATA_ROOT_TOKEN_RE = re.compile(r"\{\{dataRoot:([A-Za-z][A-Za-z0-9._-]{0,127})\}\}")
 _FORBIDDEN_KEYS = frozenset({"__proto__", "prototype", "constructor"})
+_MAX_RULE_DOCUMENT_BYTES = 262_144
 _NamedCapability = TypeVar(
     "_NamedCapability",
     AdvancedComponentCapability,
@@ -55,13 +57,21 @@ class CardPlanRegistry:
             TemplateDefinition.model_validate(item)
             for item in template_payload.get("templates", [])
         )
-        provider_templates = load_provider_templates(self.source_root / "providers")
+        provider_bundles = load_provider_bundles(self.source_root / "providers")
+        provider_templates = tuple(
+            definition for bundle in provider_bundles for definition in bundle.templates
+        )
         themes = tuple(
             ThemeDefinition.model_validate(item) for item in theme_payload.get("themes", [])
         )
         self.templates = self._unique_by_wire_id((*templates, *provider_templates))
         self.provider_template_ids = tuple(item.wire_id for item in provider_templates)
+        self.provider_bundles = self._provider_bundles_by_id(provider_bundles)
         self.themes = self._unique_themes(themes)
+        self.theme_first_layer_rules = {
+            theme_id: self._load_markdown_rule(theme.first_layer_rule.path, "Theme first-layer")
+            for theme_id, theme in self.themes.items()
+        }
         advanced_version = "advanced-component-registry/1"
         if self.manifest.get("advancedComponentRegistryVersion") != advanced_version:
             raise ValueError("Advanced Component Manifest version mismatch")
@@ -124,6 +134,23 @@ class CardPlanRegistry:
             raise ValueError(f"CardPlan source must be an object: {relative_path}")
         self._reject_forbidden_keys(value)
         return value
+
+    def _load_markdown_rule(self, relative_path: str, label: str) -> str:
+        relative = Path(relative_path)
+        if relative.is_absolute() or ".." in relative.parts:
+            raise ValueError(f"{label} rule path must be relative")
+        if relative.suffix.lower() != ".md":
+            raise ValueError(f"{label} rule must be a Markdown file")
+        path = (self.source_root / relative).resolve()
+        source_root = self.source_root.resolve()
+        if source_root not in path.parents or not path.is_file():
+            raise ValueError(f"{label} rule file is unavailable: {relative_path}")
+        if path.stat().st_size > _MAX_RULE_DOCUMENT_BYTES:
+            raise ValueError(f"{label} rule exceeds the size limit: {relative_path}")
+        content = path.read_text(encoding="utf-8").strip()
+        if not content:
+            raise ValueError(f"{label} rule must not be empty: {relative_path}")
+        return content
 
     def _verify_manifest(self) -> None:
         if self.manifest.get("catalogId") != "ohos.a2ui.extended.catalog.form":
@@ -211,6 +238,18 @@ class CardPlanRegistry:
             result[theme.theme_profile_id] = theme
         return result
 
+    @staticmethod
+    def _provider_bundles_by_id(
+        bundles: tuple[LoadedProviderBundle, ...],
+    ) -> dict[str, LoadedProviderBundle]:
+        result: dict[str, LoadedProviderBundle] = {}
+        for bundle in bundles:
+            provider_id = bundle.manifest.provider_id
+            if provider_id in result:
+                raise ValueError(f"duplicate Provider Bundle: {provider_id}")
+            result[provider_id] = bundle
+        return result
+
     def require_template(self, wire_id: str) -> TemplateDefinition:
         if not _WIRE_ID_RE.fullmatch(wire_id):
             raise ValueError(f"invalid Template wire ID: {wire_id}")
@@ -231,6 +270,77 @@ class CardPlanRegistry:
             return self.themes[theme_id]
         except KeyError as exc:
             raise ValueError(f"unknown CardPlan theme: {theme_id}") from exc
+
+    def provider_first_layer_rules(
+        self,
+        component_ids: tuple[str, ...],
+        data_roots: dict[str, str],
+    ) -> tuple[dict[str, str], ...]:
+        """Return only candidate Providers' first-layer rules with TaskSpec roots resolved."""
+        return tuple(
+            {
+                "providerId": bundle.manifest.provider_id,
+                "content": self._render_provider_data_roots(bundle.first_layer_rule, data_roots),
+            }
+            for bundle in self._provider_bundles_for_components(component_ids)
+        )
+
+    def provider_second_layer_rules(
+        self,
+        component_ids: tuple[str, ...],
+    ) -> tuple[dict[str, str], ...]:
+        """Return only selected Providers' second-layer variant and parameter rules."""
+        return tuple(
+            {
+                "providerId": bundle.manifest.provider_id,
+                "content": bundle.second_layer_rule,
+            }
+            for bundle in self._provider_bundles_for_components(component_ids)
+        )
+
+    def theme_first_layer_rule_documents(
+        self,
+        theme_ids: tuple[str, ...],
+    ) -> tuple[dict[str, str], ...]:
+        """Return only candidate Theme documents needed by the first-layer selector."""
+        return tuple(
+            {"theme": theme_id, "content": self.theme_first_layer_rules[theme_id]}
+            for theme_id in dict.fromkeys(theme_ids)
+        )
+
+    def _provider_bundles_for_components(
+        self,
+        component_ids: tuple[str, ...],
+    ) -> tuple[LoadedProviderBundle, ...]:
+        provider_ids: list[str] = []
+        for component_id in component_ids:
+            component = self.require_ux_business_component(component_id)
+            for template_id in component.local_template_ids:
+                definition = self.require_template(template_id)
+                if definition.provider_id is not None:
+                    provider_ids.append(definition.provider_id)
+        return tuple(
+            self.provider_bundles[provider_id] for provider_id in dict.fromkeys(provider_ids)
+        )
+
+    @staticmethod
+    def _render_provider_data_roots(content: str, data_roots: dict[str, str]) -> str:
+        missing: set[str] = set()
+
+        def replace(match: re.Match[str]) -> str:
+            capability_id = match.group(1)
+            root = data_roots.get(capability_id)
+            if root is None:
+                missing.add(capability_id)
+                return match.group(0)
+            return root.rstrip("/")
+
+        rendered = _DATA_ROOT_TOKEN_RE.sub(replace, content)
+        if missing:
+            raise ValueError(
+                "Provider first-layer rule has no TaskSpec data root: " + ", ".join(sorted(missing))
+            )
+        return rendered
 
     @staticmethod
     def _unique_by_name(

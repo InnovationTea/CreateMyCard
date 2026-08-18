@@ -4,6 +4,7 @@
     {
       "themeProfileId": "family-weather-care-blue",
       "description": "家庭天气关怀蓝",
+      "firstLayerRule": {"path": "themes/family-weather-care-blue/first-layer.md"},
       "supportedCapabilityIds": [
         "ViewWeather"
       ],
@@ -45,6 +46,7 @@
     {
       "themeProfileId": "device-clean-blue-teal",
       "description": "设备清理蓝青",
+      "firstLayerRule": {"path": "themes/device-clean-blue-teal/first-layer.md"},
       "supportedCapabilityIds": [
         "GetSystemMemInfo"
       ],
@@ -88,6 +90,7 @@
     {
       "themeProfileId": "rainy-commute-gray-blue",
       "description": "雨天通勤灰蓝",
+      "firstLayerRule": {"path": "themes/rainy-commute-gray-blue/first-layer.md"},
       "supportedCapabilityIds": [
         "ViewWeather",
         "GetCalendarEvents"
@@ -131,6 +134,7 @@
     {
       "themeProfileId": "system-low-power-blue",
       "description": "系统低电蓝",
+      "firstLayerRule": {"path": "themes/system-low-power-blue/first-layer.md"},
       "supportedCapabilityIds": [
         "GetPhoneBatteryInfo"
       ],
@@ -174,6 +178,7 @@
     {
       "themeProfileId": "audio-product-neutral-violet",
       "description": "音频产品中性紫",
+      "firstLayerRule": {"path": "themes/audio-product-neutral-violet/first-layer.md"},
       "supportedCapabilityIds": [
         "GetEarphoneInfo"
       ],
@@ -216,6 +221,7 @@
     {
       "themeProfileId": "sleep-night-violet",
       "description": "睡眠夜间紫",
+      "firstLayerRule": {"path": "themes/sleep-night-violet/first-layer.md"},
       "supportedCapabilityIds": [
         "GetHealthAndSportSummary"
       ],
@@ -259,6 +265,7 @@
     {
       "themeProfileId": "race-night-violet",
       "description": "赛事活力橙（兼容历史主题标识）",
+      "firstLayerRule": {"path": "themes/race-night-violet/first-layer.md"},
       "supportedCapabilityIds": [
         "GetCountdownDays",
         "GetHealthAndSportSummary"
@@ -302,6 +309,7 @@
     {
       "themeProfileId": "race-sunrise-action",
       "description": "赛事日出行动橙",
+      "firstLayerRule": {"path": "themes/race-sunrise-action/first-layer.md"},
       "supportedCapabilityIds": [
         "GetCountdownDays",
         "GetHealthAndSportSummary"
@@ -345,6 +353,7 @@
     {
       "themeProfileId": "focus-warm-amber",
       "description": "专注暖琥珀",
+      "firstLayerRule": {"path": "themes/focus-warm-amber/first-layer.md"},
       "supportedCapabilityIds": [
         "GetCountdownDays",
         "GetAppUsageDuration"
@@ -389,6 +398,7 @@
     {
       "themeProfileId": "meeting-paper-neutral",
       "description": "会议纸张中性",
+      "firstLayerRule": {"path": "themes/meeting-paper-neutral/first-layer.md"},
       "supportedCapabilityIds": [
         "GetCalendarEvents"
       ],
@@ -432,6 +442,7 @@
     {
       "themeProfileId": "digital-wellbeing-neutral-dark",
       "description": "健康使用设备中性明暗",
+      "firstLayerRule": {"path": "themes/digital-wellbeing-neutral-dark/first-layer.md"},
       "supportedCapabilityIds": [
         "GetAppUsageDuration"
       ],

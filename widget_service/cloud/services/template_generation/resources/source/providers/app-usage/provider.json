@@ -2,6 +2,8 @@
   "bundleFormat": "card-provider-bundle/1",
   "providerId": "com.huawei.app-usage.cli",
   "providerVersion": "1.0.0-poc",
+  "firstLayerRule": {"path": "layer-docs/first-layer.md"},
+  "secondLayerRule": {"path": "layer-docs/second-layer.md"},
   "capabilities": [
     {
       "capabilityId": "GetAppUsageDuration",

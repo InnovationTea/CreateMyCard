@@ -64,6 +64,10 @@ class ProviderDataSchema(StrictModel):
     version: str = Field(min_length=1)
 
 
+class ProviderRuleReference(StrictModel):
+    path: str = Field(min_length=1)
+
+
 class ProviderCapabilityEntry(StrictModel):
     capability_id: str = Field(alias="capabilityId", min_length=1)
     data_schema: ProviderDataSchema = Field(alias="dataSchema")
@@ -88,6 +92,8 @@ class ProviderManifest(StrictModel):
     provider_version: str = Field(alias="providerVersion", min_length=1)
     capabilities: tuple[ProviderCapabilityEntry, ...] = Field(min_length=1)
     templates: tuple[ProviderTemplateEntry, ...] = Field(min_length=1)
+    first_layer_rule: ProviderRuleReference = Field(alias="firstLayerRule")
+    second_layer_rule: ProviderRuleReference = Field(alias="secondLayerRule")
     compatibility: ProviderCompatibility
 
 
@@ -95,6 +101,8 @@ class ProviderManifest(StrictModel):
 class LoadedProviderBundle:
     manifest: ProviderManifest
     templates: tuple[TemplateDefinition, ...]
+    first_layer_rule: str
+    second_layer_rule: str
     bundle_digest: str
 
 
@@ -117,9 +125,18 @@ class _CompiledParameters:
 
 def load_provider_templates(providers_root: Path) -> tuple[TemplateDefinition, ...]:
     """Compile every registered Provider Bundle below one trusted source root."""
+    return tuple(
+        definition
+        for bundle in load_provider_bundles(providers_root)
+        for definition in bundle.templates
+    )
+
+
+def load_provider_bundles(providers_root: Path) -> tuple[LoadedProviderBundle, ...]:
+    """Load every Provider Bundle together with its two explicit rule documents."""
     if not providers_root.is_dir():
         return ()
-    definitions: list[TemplateDefinition] = []
+    bundles: list[LoadedProviderBundle] = []
     seen: set[str] = set()
     manifests = sorted(providers_root.glob("*/provider.json"))
     for manifest_path in manifests:
@@ -128,8 +145,8 @@ def load_provider_templates(providers_root: Path) -> tuple[TemplateDefinition, .
             if definition.wire_id in seen:
                 raise ValueError(f"duplicate Provider Template: {definition.wire_id}")
             seen.add(definition.wire_id)
-            definitions.append(definition)
-    return tuple(definitions)
+        bundles.append(bundle)
+    return tuple(bundles)
 
 
 def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
@@ -149,6 +166,8 @@ def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
 
     template_entries = _unique_template_entries(manifest.templates)
     owners = _template_owners(manifest.capabilities)
+    first_layer_rule = _load_rule_document(root, manifest.first_layer_rule, "first-layer")
+    second_layer_rule = _load_rule_document(root, manifest.second_layer_rule, "second-layer")
     bundle_digest = _bundle_digest(root, manifest)
     definitions: list[TemplateDefinition] = []
     for wire_id, entry in template_entries.items():
@@ -175,7 +194,13 @@ def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
     if set(owners) != set(template_entries):
         missing = sorted(set(owners) - set(template_entries))
         raise ValueError(f"Provider capability references unknown Templates: {missing}")
-    return LoadedProviderBundle(manifest, tuple(definitions), bundle_digest)
+    return LoadedProviderBundle(
+        manifest,
+        tuple(definitions),
+        first_layer_rule,
+        second_layer_rule,
+        bundle_digest,
+    )
 
 
 def compile_card_template(
@@ -1097,6 +1122,24 @@ def _read_object(path: Path) -> dict[str, Any]:
     return value
 
 
+def _load_rule_document(
+    root: Path,
+    reference: ProviderRuleReference,
+    layer: str,
+) -> str:
+    relative = Path(reference.path)
+    if relative.suffix.lower() != ".md":
+        raise ValueError(f"Provider {layer} rule must be a Markdown file")
+    path = _bundle_file(root, reference.path)
+    try:
+        content = _bounded_file_bytes(path).decode("utf-8").strip()
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"Provider {layer} rule must be UTF-8") from exc
+    if not content:
+        raise ValueError(f"Provider {layer} rule must not be empty")
+    return content
+
+
 def _bounded_file_bytes(path: Path) -> bytes:
     if path.stat().st_size > _MAX_BUNDLE_FILE_BYTES:
         raise ValueError(f"Provider Bundle file exceeds the size limit: {path.name}")
@@ -1204,6 +1247,14 @@ def _resolve_data_schema(
 def _bundle_digest(root: Path, manifest: ProviderManifest) -> str:
     paths = {
         "provider.json": _bundle_file(root, "provider.json"),
+        f"firstLayerRule:{manifest.first_layer_rule.path}": _bundle_file(
+            root,
+            manifest.first_layer_rule.path,
+        ),
+        f"secondLayerRule:{manifest.second_layer_rule.path}": _bundle_file(
+            root,
+            manifest.second_layer_rule.path,
+        ),
         **{entry.entry: _bundle_file(root, entry.entry) for entry in manifest.templates},
     }
     for capability in manifest.capabilities:
@@ -1409,6 +1460,7 @@ __all__ = [
     "ProviderTemplateAdmission",
     "compile_card_template",
     "load_provider_bundle",
+    "load_provider_bundles",
     "load_provider_templates",
     "provider_template_admission",
     "provider_template_variant_admission",

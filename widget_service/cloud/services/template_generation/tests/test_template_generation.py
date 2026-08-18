@@ -96,6 +96,57 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
     }
 
 
+def test_first_layer_uses_candidate_provider_and_theme_documents_with_task_spec_paths():
+    registry = get_cardplan_registry()
+    task_spec = _weather_task_spec().model_copy(
+        update={
+            "eventCandidates": [
+                EventAction(
+                    id="event.open.weather",
+                    call="clickToDeeplink",
+                    args={"intentName": "Weather_CityCode"},
+                )
+            ]
+        }
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=list(_WEATHER_TEMPLATE_FIELDS),
+    )
+
+    messages = build_advanced_scope_prompt(
+        task_spec,
+        extract_data_shape(task_spec),
+        registry,
+        ("ViewWeather",),
+        template_route_decision=True,
+        coverage_bindings=(binding,),
+        card_spec=_weather_card_spec(),
+    )
+
+    system = messages[0]["content"]
+    payload = json.loads(messages[1]["content"])
+    assert set(json.loads(system.splitlines()[-1])["properties"]) == {
+        "theme",
+        "component",
+        "action",
+    }
+    assert "Action 是点击或跳转动作，不是数据项" in system
+    assert "requiredOutputFieldsByCapability" not in system
+    assert "action.supportedComponent" in system
+    assert payload["action"] == []
+    assert (
+        "/data/weather/current/temperatureText" in payload["component"][0]["supportedTaskSpecPaths"]
+    )
+    provider_rules = json.dumps(payload["providerFirstLayerRules"], ensure_ascii=False)
+    theme_rules = json.dumps(payload["themeFirstLayerRules"], ensure_ascii=False)
+    assert "天气高级组件首层规则" in provider_rules
+    assert "手机电量高级组件首层规则" not in provider_rules
+    assert "family-weather-care-blue" in theme_rules
+    assert "system-low-power-blue" not in theme_rules
+
+
 def test_phone_battery_binding_auto_includes_numeric_soc_for_template_rendering():
     binding = CandidateDataBinding(
         capabilityId="GetPhoneBatteryInfo",
@@ -298,20 +349,15 @@ async def test_derived_parameter_source_field_is_counted_as_template_coverage():
         task_spec,
         registry,
         (binding,),
-        {"GetAppUsageDuration": ("/appUsage/durationText",)},
         card_spec,
     )
 
     class AppUsageTemplateModel:
         async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
             return {
-                "routeVersion": "template-route-decision/2",
-                "templateUsable": True,
-                "themeId": "digital-wellbeing-neutral-dark",
-                "advancedComponentIds": ["AppUsageOverview"],
-                "requiredOutputFieldsByCapability": {
-                    "GetAppUsageDuration": ["/appUsage/durationText"],
-                },
+                "theme": "digital-wellbeing-neutral-dark",
+                "component": ["AppUsageOverview"],
+                "action": [],
             }
 
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
@@ -354,25 +400,19 @@ class _FixedTemplateModel:
         *,
         theme_id: str,
         component_id: str,
-        capability_id: str,
-        required_fields: tuple[str, ...],
         body: str,
+        action_ids: tuple[str, ...] = (),
     ) -> None:
         self.theme_id = theme_id
         self.component_id = component_id
-        self.capability_id = capability_id
-        self.required_fields = required_fields
+        self.action_ids = action_ids
         self.body = body
 
     async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
         return {
-            "routeVersion": "template-route-decision/2",
-            "templateUsable": True,
-            "themeId": self.theme_id,
-            "advancedComponentIds": [self.component_id],
-            "requiredOutputFieldsByCapability": {
-                self.capability_id: list(self.required_fields),
-            },
+            "theme": self.theme_id,
+            "component": [self.component_id],
+            "action": list(self.action_ids),
         }
 
     async def generate(self, *_args: Any, **_kwargs: Any) -> str:
@@ -441,19 +481,11 @@ async def test_bluetooth_connection_and_case_queries_have_honest_template_covera
     binding = CandidateDataBinding(
         capabilityId="GetEarphoneInfo",
         writeResultTo="/data/earphone",
-        candidateOutputFields=[
-            "/isConnected",
-            "/earphoneName",
-            "/batteryLevel",
-            "/leftBatteryLevel",
-            "/rightBatteryLevel",
-        ],
+        candidateOutputFields=list(required_fields),
     )
     model = _FixedTemplateModel(
         theme_id="audio-product-neutral-violet",
         component_id="BluetoothDeviceOverview",
-        capability_id="GetEarphoneInfo",
-        required_fields=required_fields,
         body=(
             'SingleFocusLayout(Template("BluetoothDeviceOverview@1","'
             + variant
@@ -504,8 +536,7 @@ async def test_bluetooth_layout_action_uses_cardtpl_foreground_opacity():
     model = _FixedTemplateModel(
         theme_id="audio-product-neutral-violet",
         component_id="BluetoothDeviceOverview",
-        capability_id="GetEarphoneInfo",
-        required_fields=("/isConnected", "/batteryLevel"),
+        action_ids=("event.open.music.daily",),
         body=(
             'HeroActionLayout(Template("BluetoothDeviceOverview@1","earbuds",{}),'
             'PillAction({"actionId":"event.open.music.daily"}));'
@@ -520,6 +551,47 @@ async def test_bluetooth_layout_action_uses_cardtpl_foreground_opacity():
     )
 
     assert "#1964BB5C" in output.a2ui
+
+
+def test_first_layer_action_candidate_declares_supported_component():
+    registry = get_cardplan_registry()
+    task_spec = _bluetooth_task(
+        "看看蓝牙耳机充电盒电量并打开每日推荐",
+    ).model_copy(
+        update={
+            "eventCandidates": [
+                EventAction(
+                    id="event.open.music.daily",
+                    call="clickToIntent",
+                    args={"intentName": "event.open.music.daily"},
+                )
+            ]
+        }
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetEarphoneInfo",
+        writeResultTo="/data/earphone",
+        candidateOutputFields=["/isConnected", "/batteryLevel"],
+    )
+
+    messages = build_advanced_scope_prompt(
+        task_spec,
+        extract_data_shape(task_spec),
+        registry,
+        ("GetEarphoneInfo",),
+        template_route_decision=True,
+        coverage_bindings=(binding,),
+        card_spec=_bluetooth_card_spec(),
+    )
+
+    payload = json.loads(messages[1]["content"])
+    assert payload["action"] == [
+        {
+            "id": "event.open.music.daily",
+            "call": "clickToIntent",
+            "supportedComponent": ["BluetoothDeviceOverview"],
+        }
+    ]
 
 
 @pytest.mark.asyncio
@@ -558,8 +630,6 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
     model = _FixedTemplateModel(
         theme_id="meeting-paper-neutral",
         component_id="CountdownOverview",
-        capability_id="GetCountdownDays",
-        required_fields=("/countdownDays",),
         body='SingleFocusLayout(Template("CountdownOverview@1","countdown",{}));',
     )
 
@@ -574,24 +644,32 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
 class WeatherTemplateModel:
     def __init__(
         self,
-        required_fields: tuple[str, ...] = _WEATHER_TEMPLATE_FIELDS,
+        *,
+        route_usable: bool = True,
+        action_ids: tuple[str, ...] = (),
     ) -> None:
         self.body_called = False
-        self.required_fields = required_fields
+        self.route_usable = route_usable
+        self.action_ids = action_ids
+        self.first_layer_prompt: list[dict[str, str]] | None = None
+        self.second_layer_prompt: list[dict[str, str]] | None = None
 
-    async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
+    async def generate_json(self, prompt: list[dict[str, str]], **_kwargs: Any) -> dict[str, Any]:
+        self.first_layer_prompt = prompt
         return {
-            "routeVersion": "template-route-decision/2",
-            "templateUsable": True,
-            "themeId": "family-weather-care-blue",
-            "advancedComponentIds": ["WeatherOverview"],
-            "requiredOutputFieldsByCapability": {
-                "ViewWeather": list(self.required_fields),
-            },
+            "theme": "family-weather-care-blue" if self.route_usable else None,
+            "component": ["WeatherOverview"] if self.route_usable else [],
+            "action": list(self.action_ids) if self.route_usable else [],
         }
 
-    async def generate(self, *_args: Any, **_kwargs: Any) -> str:
+    async def generate(
+        self,
+        prompt: list[dict[str, str]],
+        *_args: Any,
+        **_kwargs: Any,
+    ) -> str:
         self.body_called = True
+        self.second_layer_prompt = prompt
         return _WEATHER_BODY
 
 
@@ -780,6 +858,12 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
     assert response.artifactUrl == "https://artifact.test/weather-template"
     assert starts == ["2x2"]
     assert model.body_called is True
+    assert model.first_layer_prompt is not None
+    assert model.second_layer_prompt is not None
+    second_layer_user = model.second_layer_prompt[1]["content"]
+    assert "providerSecondLayerRules=" in second_layer_user
+    assert "天气高级组件二层规则" in second_layer_user
+    assert "手机电量高级组件二层规则" not in second_layer_user
     assert captured["compact"]
     assert "{{ ${/data/weather/current/condition}" in captured["compact"]
     messages = [json.loads(line) for line in captured["artifact"].genui.splitlines()]
@@ -830,8 +914,8 @@ async def test_weather_template_generates_a2ui_and_terse_artifact(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_uncovered_requested_field_rejects_template_before_body_generation():
-    model = WeatherTemplateModel(("/current/humidityPercent",))
+async def test_first_layer_no_match_rejects_template_before_body_generation():
+    model = WeatherTemplateModel(route_usable=False)
     binding = CandidateDataBinding(
         capabilityId="ViewWeather",
         arguments={"districtName": "青浦区", "prefectureName": "上海市"},
@@ -842,7 +926,7 @@ async def test_uncovered_requested_field_rejects_template_before_body_generation
         ],
     )
 
-    with pytest.raises(TemplateRouteNotApplicable, match="do not cover every"):
+    with pytest.raises(TemplateRouteNotApplicable, match="first-layer LLM rejected"):
         await generate_template_a2ui(
             _weather_task_spec(),
             _weather_card_spec(),
@@ -855,12 +939,7 @@ async def test_uncovered_requested_field_rejects_template_before_body_generation
 
 @pytest.mark.asyncio
 async def test_unused_candidate_fields_do_not_block_query_required_weather_fields():
-    model = WeatherTemplateModel(
-        (
-            "/current/temperatureText",
-            "/current/condition",
-        )
-    )
+    model = WeatherTemplateModel()
     binding = CandidateDataBinding(
         capabilityId="ViewWeather",
         arguments={"districtName": "青浦区", "prefectureName": "上海市"},
@@ -885,8 +964,19 @@ async def test_unused_candidate_fields_do_not_block_query_required_weather_field
 
 
 @pytest.mark.asyncio
-async def test_query_required_fields_must_come_from_candidates():
-    model = WeatherTemplateModel(("/current/airQuality",))
+async def test_first_layer_action_must_be_supported_by_selected_components():
+    model = WeatherTemplateModel(action_ids=("event.open.weather",))
+    task_spec = _weather_task_spec().model_copy(
+        update={
+            "eventCandidates": [
+                EventAction(
+                    id="event.open.weather",
+                    call="clickToDeeplink",
+                    args={"intentName": "Weather_CityCode"},
+                )
+            ]
+        }
+    )
     binding = CandidateDataBinding(
         capabilityId="ViewWeather",
         arguments={"districtName": "青浦区", "prefectureName": "上海市"},
@@ -894,9 +984,9 @@ async def test_query_required_fields_must_come_from_candidates():
         candidateOutputFields=["/current/condition"],
     )
 
-    with pytest.raises(TemplateRouteNotApplicable, match="selected from candidateOutputFields"):
+    with pytest.raises(TemplateRouteNotApplicable, match="unsupported by the component scope"):
         await generate_template_a2ui(
-            _weather_task_spec(),
+            task_spec,
             _weather_card_spec(),
             (binding,),
             model,

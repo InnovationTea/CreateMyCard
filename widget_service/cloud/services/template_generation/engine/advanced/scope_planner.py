@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Awaitable, Callable
-from itertools import combinations, product
+from itertools import combinations
 from typing import Any
 
 from pydantic import ValidationError
@@ -49,6 +49,7 @@ from .models import (
     AdvancedScopeBrief,
     DataShape,
     TemplateRouteDecision,
+    TemplateRouteSelection,
     UxBusinessComponentCapability,
 )
 
@@ -69,7 +70,7 @@ def build_advanced_scope_prompt(
     available_capability_ids: tuple[str, ...] | None = None,
     *,
     template_route_decision: bool = False,
-    candidate_output_fields: dict[str, tuple[str, ...]] | None = None,
+    coverage_bindings: tuple[CandidateDataBinding, ...] = (),
     card_spec: dict[str, Any] | None = None,
 ) -> list[dict[str, str]]:
     """构造不含 Template、布局源码和整卡置信度信息的新第一层 Prompt。"""
@@ -95,6 +96,16 @@ def build_advanced_scope_prompt(
         )
     if not component_candidates:
         raise ValueError("no provider-backed UX Business Component candidate")
+    if template_route_decision:
+        return _build_template_route_prompt(
+            task_spec=task_spec,
+            data_shape=data_shape,
+            registry=registry,
+            effective_ids=effective_ids,
+            component_candidates=component_candidates,
+            coverage_bindings=coverage_bindings,
+            card_spec=card_spec,
+        )
     candidate_ids = {item.name for item in component_candidates}
     admission_relaxed = advanced_component_data_admission_is_bypassed()
     user_payload = {
@@ -134,147 +145,151 @@ def build_advanced_scope_prompt(
         "maxAdvancedComponents": registry.ux_size_budgets[task_spec.size].max_business_components,
         "temporaryDataAdmissionBypass": admission_relaxed,
     }
-    if template_route_decision:
-        user_payload["candidateOutputFieldsByCapability"] = candidate_output_fields or {}
-        schema = TemplateRouteDecision.model_json_schema(by_alias=True)
-        scope_instruction = (
-            "你是第四接口的首层模板路由判断器。只输出 JSON；routeVersion 固定为"
-            " template-route-decision/2。candidateOutputFieldsByCapability 是本轮可用候选，不是"
-            "全部必显字段。requiredOutputFieldsByCapability 中的每一个路径都必须从同一 capability"
-            " 的 candidateOutputFieldsByCapability 数组中逐字复制，必须保留开头斜杠、大小写和"
-            "数组下标；禁止输出 /_advancedSelectors、/data、writeResultTo 前缀、展示别名，或任何"
-            "自行拼接、缩写和改写后的路径。只选择 userQuery 明确要求展示的候选字段，不要因为"
-            "模板内部需要其他数据而把全部候选字段都列为 query 必显字段。"
-            "对于 WeatherOverview，city、temperature、condition、airQuality、temperatureRange"
-            "只是语义名称，不是允许输出的路径；必须分别从候选数组中选择实际 Provider 路径，"
-            "通常对应 /location/districtName、/current/temperatureText、/current/condition、"
-            "/current/airQuality、/daily/0/temperatureRangeText，且只能选择本轮候选数组中真实存在"
-            "的项。例如 query 为'看看是否下雨、现在多少度'时，只应复制候选中的"
-            " /current/condition 和 /current/temperatureText，不得输出"
-            " /_advancedSelectors/weather/condition 或 /_advancedSelectors/weather/temperature。"
-            "如果 userQuery 包含天气组件的意图（如"
-            "'天气小组件'、'天气卡片'、'今天天气怎么样'等），则认为 WeatherOverview 适用，"
-            "完全忽略 userQuery 中对体感温度、湿度、风力、紫外线、感冒指数、预警等的提及，"
-            "这些舒适度提及不纳入 requiredOutputFieldsByCapability，也不影响 "
-            "templateUsable 的判断。"
-            "不得纳入 query 未要求的候选字段，也不得输出候选以外的路径。"
-            "只有一个或多个 advancedComponents 的 templateCoverageByCapability 能完整覆盖"
-            "全部必显数据"
-            "时，templateUsable 才能为 true，并同时输出 themeId 与 advancedComponentIds。"
-            "只要有一个数据无法映射或呈现，或存在歧义、缺字段、缺模板，必须输出 "
-            "templateUsable=false、themeId=null、advancedComponentIds=[]、"
-            "requiredOutputFieldsByCapability={}。不得让标准组件、静态文案、推测值或后续模型"
-            "补齐模板不支持的数据。不得输出理由或额外字段。"
-        )
-    else:
-        schema = AdvancedScopeBrief.model_json_schema(by_alias=True)
-        scope_instruction = (
-            "你是第五接口独立的 Advanced Scope Planner。只输出 JSON，且只决定 themeId "
-            "与 advancedComponentIds；scopeVersion 固定为 advanced-scope-brief/1。不得输出"
-            "整卡置信度、整卡参数、局部模板候选、布局选择、组件参数、颜色、尺寸、"
-            "Action、理由或任何额外字段。advancedComponentIds 只能从 advancedComponents 选择，"
-            "必须覆盖用户主要业务语义，并遵守 maxAdvancedComponents；选择多个组件时必须"
-            "互相出现在 compatibleWith 中。themeId 只能从 themes 选择，并且必须出现在每个"
-            "所选高级组件的 themeIds 合集中。"
-        )
+    schema = AdvancedScopeBrief.model_json_schema(by_alias=True)
+    scope_instruction = (
+        "你是第五接口独立的 Advanced Scope Planner。只输出 JSON，且只决定 themeId "
+        "与 advancedComponentIds；scopeVersion 固定为 advanced-scope-brief/1。不得输出"
+        "整卡置信度、整卡参数、局部模板候选、布局选择、组件参数、颜色、尺寸、"
+        "Action、理由或任何额外字段。advancedComponentIds 只能从 advancedComponents 选择，"
+        "必须覆盖用户主要业务语义，并遵守 maxAdvancedComponents；选择多个组件时必须"
+        "互相出现在 compatibleWith 中。themeId 只能从 themes 选择，并且必须出现在每个"
+        "所选高级组件的 themeIds 合集中。"
+    )
     return [
         {
             "role": "system",
-            "content": (
-                scope_instruction
-                + "WeatherOverview 用于天气卡片请求：只要 userQuery 表达了天气组件意图（如"
-                "'天气小组件'、'天气卡片'、"
-                "'查看天气'等），即认为适用，完全忽略对体感温度、湿度、风力、紫外线、感冒指数、预警等的提及，"
-                "不要将这些纳入 requiredOutputFieldsByCapability。只在 ViewWeather 提供完整"
-                "核心五事实且用户未请求小时预报、日出日落、气压、能见度、AQI 数值、降雨概率"
-                "或未来多日预报时可选；候选列表已由服务端执行相同准入过滤。"
-                "DateOverview 只表达 "
-                "GetCalendarEvents "
-                "首个有效事件的日期和星期：仅当候选说明中的全部准入条件满足时选择；"
-                "系统当前日期、月/年/农历/相对日期请求，以及 2x2 未明确请求事件日期的"
-                "纯日程内容请求都不得选择 DateOverview。ScheduleOverview 只表达 "
-                "GetCalendarEvents 同一可信首项的非空 title、由非空 dtStart 和可选 dtEnd "
-                "形成的 timeText，以及可选 location；只支持 nextEvent、meetingCompact 和"
-                "有地点时的 meetingExpanded。多日程列表、实时状态、分钟倒计时、会议号、"
-                "备注、邀请人、可加入状态、待办和备忘录不得选择。明确请求地点时必须有"
-                "非空 location；明确请求入会/返回/查看或开启专注时必须有语义匹配的本轮"
-                "批准事件候选。明确请求来源、时间、地点或 Action 图标时，"
-                "必须有语义匹配的本轮"
-                "assetCandidates。候选列表与模型输出后均由服务端执行同一准入复核。"
-                "BatteryOverview 只表达 GetPhoneBatteryInfo 的手机本机 SOC 数值/文本、电量等级"
-                "与充电状态：SOC 必须为 0 到 100，或可从百分比文本确定性解析，二者同时存在时"
-                "必须一致，0% 合法，等级与充电状态必须为可信非空字符串。只要 userQuery 表达了电池"
-                "卡片意图（如'低电量卡片'、'电量小组件'、'电量状态'、'省电模式'等），即认为适用，"
-                "完全忽略对续航时间、剩余可用时间、预计充满时间等的提及，不要将这些纳入"
-                "requiredOutputFieldsByCapability。只请求健康度、温度、电压、电流、充电器类型或外设"
-                "电量时不得选择；外设电量应选 BluetoothDeviceOverview。省电动作只有存在语义闭环"
-                "的批准事件候选时才可进入第二层；否则仍可选择 BatteryOverview，但必须生成"
-                "无动作布局。"
-                "BluetoothDeviceOverview 只表达 GetEarphoneInfo 的蓝牙耳机/耳塞连接状态、"
-                "设备名称和盒/左/右电量。必须有可信 boolean isConnected、非空 earphoneName，"
-                "以及至少一路 0 到 100 的电量；0% 合法。用户明确请求左耳、右耳、双耳或充电盒"
-                "时，对应电量必须存在。只有用户主体明确为蓝牙耳机/耳塞，或手机+蓝牙耳机设备"
-                "电量/连接概览时才能选择；天气、日程、运动、睡眠、应用使用及手表、车机、键鼠、"
-                "音箱等非耳机设备请求不得选择。播放/暂停、上一首、下一首、曲目或进度请求也不得"
-                "选择。音乐入口只允许本轮真实的 event.open.music.daily 和"
-                " event.open.music.favorite；没有批准事件时必须生成无动作布局。"
-                "ResourceUsageOverview 当前只表达 GetSystemMemInfo 的 memory 变体，且仅使用"
-                "完整可信的 usagePercent、availableMemText、totalMemText；usagePercent 必须是"
-                " 0 到 100 的有限数值，0% 合法。存储/磁盘、缓存、进程明细、CPU/GPU、swap、"
-                "趋势、历史曲线或仅请求 freeMemText 时不得选择；不得从百分比推断内存不足、"
-                "正常或告警。一键清理只在用户明确请求且存在 event.clean.memory 候选时可用。"
-                "AppUsageOverview 当前只允许 singleApp：必须有 GetAppUsageDuration，用户明确"
-                "指定一个应用并请求该应用使用时长，当日口径由 Provider 能力定义；同一"
-                "可信数据树中的 appName 和"
-                "durationText 均为非空字符串，updatedAt 可选且只在存在时展示；明确请求更新时间时"
-                "updatedAt 才必须存在。durationText 需可由服务端按小时/分钟"
-                "无损解析。总屏幕时间、多应用、排行、限额、超限、剩余时长、比例/进度、趋势/"
-                "历史和分类汇总均不得选择；纯秒或含秒时长也不得选择。dailyLimit、overLimit、"
-                "topApps 虽在 Registry 声明但当前 capability 未启用。管控动作只在用户明确请求且"
-                "存在 event.open.settings.parentControl 候选时进入第二层，否则使用无动作布局。"
-                "AppUsageOverview 与 SystemModeOverview 只有两边均有可信数据时才能组合；当前无"
-                "可信 SystemMode 状态时不得选择该组合，也不得输出占位状态。"
-                "ActivityOverview 当前只开放 steps 和 dailySummary。steps 要求 dailySteps 为非负"
-                "整数，0 有效；dailySummary 要求步数、热量文本、距离文本完整且类型正确。明确请求"
-                "热量或距离时对应事实必须存在；缺项只有需求仍仅为步数时才能降为 steps。目标步数、"
-                "达成率、目标环/进度、活动分钟、站立小时、趋势、单独 calories/exercise 均不得选择，"
-                "也不得生成 Ring 或 Progress。Activity 无动作。"
-                "WorkoutOverview 当前只开放 latest，要求运动类型、时长、热量三个非空可信"
-                "字符串，暂无运动视为空态。CountdownOverview 只表达 GetCountdownDays 的非负整数"
-                "剩余天数，0 天有效；适用于高考、考试、节日、纪念日、旅行或赛事等通用倒计时，"
-                "不得补造事件名或目标日期。"
-                "实时/计划状态、距离、配速、轨迹、心率区间、赛事名、训练计划、总里程和完成率均不得"
-                "选择；倒计时不得生成进度或补造名称。运动动作只有用户请求动作且本轮存在批准的"
-                " event.open.health.sport 时可用。"
-                "HeartRateOverview 只开放 average，且必须表述为运动平均心率；心率值必须是正整数。"
-                "明确请求更新时间时 updatedAt 必须存在。当前/实时、静息、异常/风险、区间、趋势、"
-                "波形、最大/最低心率均不得选择；不得判断状态或生成 Ring、Progress、折线、波形。"
-                "多业务中 HeartRateOverview 固定为 Support 且无动作。Activity 多业务只与独立通过"
-                "准入的 SleepOverview 或 HeartRateOverview 组合；Workout 多业务只与独立通过准入的"
-                " ActivityOverview 组合，不得生成占位业务。"
-                "SleepOverview 只消费 GetHealthAndSportSummary 同一可信记录中的夜间总睡眠时长；"
-                "nightSleepDurationText 必须是可无损解析并确定性归一化的小时/分钟文本，0分钟合法。"
-                "状态、入睡时刻和醒来时刻只在各自字段类型与格式可信时使用；schedule 只对 2x4"
-                " 且同时具有 HH:mm 入睡/醒来时刻开放。insufficient 只在 sleepStatus 明确表达睡眠"
-                "不足时开放，绝不根据时长阈值推断。批量效果测试阶段，睡眠得分、深睡/浅睡/REM、"
-                "午睡、目标完成率、趋势、历史、阶段图和睡眠建议虽超出当前投影，但只要总时长准入"
-                "成立仍可选择，并统一降级到 duration；请求状态或作息而对应字段不可信时也降级到"
-                " duration，不得补造所请求内容。提醒动作只允许用户明确"
-                "请求且本轮批准的 event.open.clock.alarm；否则必须使用无动作布局。"
-                "跨领域选择多个组件时，themeId "
-                "必须从 crossDomainThemeIds 中选择。"
-                + (
-                    "临时批跑模式：第一层高级组件数据适配准入已放开。"
-                    "忽略上文关于字段完整性、查询细分与动作闭环是否允许进入候选的限制，"
-                    "以 advancedComponents 实际列表为准进行选择；不得虚构候选列表之外的组件。"
-                    if admission_relaxed
-                    else ""
-                )
-                + "\n"
-                + json.dumps(schema, ensure_ascii=False)
-            ),
+            "content": scope_instruction + "\n" + json.dumps(schema, ensure_ascii=False),
         },
         {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)},
+    ]
+
+
+def _build_template_route_prompt(
+    *,
+    task_spec: TaskSpec,
+    data_shape: DataShape,
+    registry: CardPlanRegistry,
+    effective_ids: set[str],
+    component_candidates: tuple[UxBusinessComponentCapability, ...],
+    coverage_bindings: tuple[CandidateDataBinding, ...],
+    card_spec: dict[str, Any] | None,
+) -> list[dict[str, str]]:
+    data_roots = _data_roots_by_capability(coverage_bindings)
+    candidate_ids = tuple(item.name for item in component_candidates)
+    candidate_id_set = set(candidate_ids)
+    theme_ids = tuple(
+        dict.fromkeys(
+            theme_id
+            for component in component_candidates
+            for theme_id in _theme_ids_for_components((component,), registry)
+        )
+    )
+    components = [
+        {
+            "id": capability.name,
+            "supportedTaskSpecPaths": sorted(
+                _absolute_task_spec_path(data_roots[capability_id], path)
+                for capability_id, paths in _component_template_coverage_union(
+                    capability,
+                    task_spec,
+                    registry,
+                    effective_ids,
+                    card_spec,
+                ).items()
+                for path in paths
+            ),
+            "theme": _theme_ids_for_components((capability,), registry),
+            "compatibleComponent": _compatible_component_ids(
+                capability,
+                candidate_id_set,
+                task_spec.size,
+                task_spec.userQuery,
+                registry,
+            ),
+        }
+        for capability in component_candidates
+    ]
+    payload = {
+        "userQuery": task_spec.userQuery,
+        "size": task_spec.size,
+        "taskSpecDataFields": [
+            {
+                "path": field.path,
+                "name": field.name,
+                "dataType": field.data_type,
+                "description": field.description,
+                "roles": field.roles,
+            }
+            for field in data_shape.fields
+        ],
+        "component": components,
+        "theme": theme_ids,
+        "action": _template_action_candidates(task_spec, component_candidates),
+        "maxComponent": registry.ux_size_budgets[task_spec.size].max_business_components,
+        "providerFirstLayerRules": registry.provider_first_layer_rules(
+            candidate_ids,
+            data_roots,
+        ),
+        "themeFirstLayerRules": registry.theme_first_layer_rule_documents(theme_ids),
+    }
+    schema = TemplateRouteDecision.model_json_schema(by_alias=True)
+    system = (
+        "你是模板生成的第一层选择器。只输出一个 JSON 对象，且顶层只能有 "
+        "theme、component、action "
+        "三个字段，字段类型必须符合末尾 JSON Schema。theme 只能是 theme 候选中的一个 ID；"
+        "component 只能由 component 候选 ID 组成；action 只能由 action 候选的 id 组成。"
+        "Action 是点击或跳转动作，不是数据项：不得把 action.id、call 或动作参数"
+        "当作数据路径，"
+        "不得把动作放进 component。action 候选已按垂域组件能力过滤；只有 userQuery 明确要求"
+        "该交互，且最终所选 component 出现在 action.supportedComponent 中时，才在 action 中"
+        "逐字输出其 action.id；没有明确交互请求时输出空数组。"
+        "先根据 userQuery 从 taskSpecDataFields 的全量内容中判断本轮必须显示的数据字段，再用"
+        "Provider 第一层规则选择能够完整覆盖这些字段的一个或多个 component；"
+        "这个中间字段集合"
+        "只用于判断，不得出现在输出中。candidateOutputFields 不是本层的强制完整展示集合。"
+        "任一必须显示字段无法呈现、组件不兼容、主题不适用或存在歧义时，输出"
+        '{"theme":null,"component":[],"action":[]}。不得输出数据路径、Variant、参数、布局、'
+        "理由、置信度或额外字段。\n" + json.dumps(schema, ensure_ascii=False)
+    )
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
+    ]
+
+
+def _data_roots_by_capability(
+    coverage_bindings: tuple[CandidateDataBinding, ...],
+) -> dict[str, str]:
+    roots: dict[str, str] = {}
+    for binding in coverage_bindings:
+        existing = roots.get(binding.capabilityId)
+        if existing is not None and existing != binding.writeResultTo:
+            raise ValueError("Template route requires one TaskSpec root per data capability")
+        roots[binding.capabilityId] = binding.writeResultTo
+    return roots
+
+
+def _absolute_task_spec_path(root: str, relative_path: str) -> str:
+    return f"{root.rstrip('/')}/{relative_path.lstrip('/')}"
+
+
+def _template_action_candidates(
+    task_spec: TaskSpec,
+    component_candidates: tuple[UxBusinessComponentCapability, ...],
+) -> list[dict[str, Any]]:
+    supported_components_by_action: dict[str, list[str]] = {}
+    for component in component_candidates:
+        approved_ids = _approved_action_ids_for_component_scope(task_spec, {component.name})
+        for action_id in approved_ids:
+            supported_components_by_action.setdefault(action_id, []).append(component.name)
+    return [
+        {
+            "id": event.id,
+            "call": event.call,
+            "supportedComponent": supported_components_by_action[event.id],
+        }
+        for event in task_spec.eventCandidates
+        if event.id in supported_components_by_action
     ]
 
 
@@ -367,44 +382,20 @@ def _component_template_coverage_union(
     return coverage
 
 
-def _requested_output_fields_by_capability(
-    coverage_bindings: tuple[CandidateDataBinding, ...],
-) -> dict[str, tuple[str, ...]]:
-    fields: dict[str, list[str]] = {}
-    for binding in coverage_bindings:
-        values = fields.setdefault(binding.capabilityId, [])
-        values.extend(binding.candidateOutputFields)
-    return {
-        capability_id: tuple(dict.fromkeys(paths))
-        for capability_id, paths in fields.items()
-    }
-
-
 def validate_template_request_coverage(
     scope: AdvancedScopeBrief,
     task_spec: TaskSpec,
     registry: CardPlanRegistry,
     coverage_bindings: tuple[CandidateDataBinding, ...],
-    required_output_fields: dict[str, tuple[str, ...]],
     card_spec: dict[str, Any] | None,
 ) -> None:
-    """证明每个 query 筛选字段都可由所选组件的某组模板 Variant 覆盖。"""
+    """证明每个首层所选组件都有能从本轮 TaskSpec 展开的 Provider 模板。"""
     if not coverage_bindings:
         raise ValueError("Template route requires query-selected data fields")
     capability_ids = [binding.capabilityId for binding in coverage_bindings]
     if len(capability_ids) != len(set(capability_ids)):
         raise ValueError("Template route requires one binding root per data capability")
-    candidates = _requested_output_fields_by_capability(coverage_bindings)
-    if not required_output_fields:
-        raise ValueError("Template route requires query-selected data fields")
-    for capability_id, fields in required_output_fields.items():
-        candidate_fields = set(candidates.get(capability_id, ()))
-        if not candidate_fields:
-            raise ValueError("query-required capability has no candidateOutputFields")
-        if not set(fields).issubset(candidate_fields):
-            raise ValueError("query-required fields must be selected from candidateOutputFields")
     effective_ids = resolve_available_capability_ids(task_spec, registry, tuple(capability_ids))
-    component_options = []
     for component_id in scope.advanced_component_ids:
         capability = registry.require_ux_business_component(component_id)
         options = _component_template_coverage_options(
@@ -416,22 +407,8 @@ def validate_template_request_coverage(
         )
         if not options:
             raise ValueError(
-                "Template route component has no applicable Provider Template: "
-                f"{component_id}"
+                f"Template route component has no applicable Provider Template: {component_id}"
             )
-        component_options.append(options)
-    for selected_options in product(*component_options):
-        covered: dict[str, set[str]] = {}
-        for option in selected_options:
-            for capability_id, paths in option.items():
-                covered.setdefault(capability_id, set()).update(paths)
-        has_full_coverage = all(
-            set(fields).issubset(covered.get(capability_id, set()))
-            for capability_id, fields in required_output_fields.items()
-        )
-        if has_full_coverage:
-            return
-    raise ValueError("selected Provider Templates do not cover every query-selected data field")
 
 
 async def plan_advanced_scope_with_llm(
@@ -502,16 +479,15 @@ async def plan_template_route_with_llm(
     coverage_bindings: tuple[CandidateDataBinding, ...],
     available_capability_ids: tuple[str, ...] | None = None,
     card_spec: dict[str, Any] | None = None,
-) -> AdvancedScopeBrief:
+) -> TemplateRouteSelection:
     """由首层 LLM 决定模板路由，并用 Provider 契约做确定性完整覆盖复核。"""
-    candidate_fields = _requested_output_fields_by_capability(coverage_bindings)
     prompt = build_advanced_scope_prompt(
         task_spec,
         data_shape,
         registry,
         available_capability_ids,
         template_route_decision=True,
-        candidate_output_fields=candidate_fields,
+        coverage_bindings=coverage_bindings,
         card_spec=card_spec,
     )
     raw = await generate_json(prompt, "template-route-decision")
@@ -519,17 +495,22 @@ async def plan_template_route_with_llm(
         decision = TemplateRouteDecision.model_validate(raw)
     except ValidationError as exc:
         raise TemplateRouteNotApplicable("invalid TemplateRouteDecision") from exc
-    if not decision.template_usable:
+    if decision.theme is None or not decision.component:
         raise TemplateRouteNotApplicable("first-layer LLM rejected the Template route")
     scope = AdvancedScopeBrief(
-        themeId=decision.theme_id or "",
-        advancedComponentIds=decision.advanced_component_ids,
+        themeId=decision.theme,
+        advancedComponentIds=decision.component,
     )
     scope = _normalize_redundant_2x2_support(scope, task_spec)
     try:
+        selected_task_spec = task_spec_with_selected_scope_actions(
+            task_spec,
+            scope.advanced_component_ids,
+            decision.action,
+        )
         validate_advanced_scope(
             scope,
-            task_spec,
+            selected_task_spec,
             data_shape,
             registry,
             available_capability_ids,
@@ -539,12 +520,11 @@ async def plan_template_route_with_llm(
             task_spec,
             registry,
             coverage_bindings,
-            decision.required_output_fields_by_capability,
             card_spec,
         )
     except ValueError as exc:
         raise TemplateRouteNotApplicable(str(exc)) from exc
-    return scope
+    return TemplateRouteSelection(scope=scope, action_ids=decision.action)
 
 
 def _normalize_scope_to_shared_theme(
@@ -731,6 +711,72 @@ def _normalize_empty_component_scope(
     normalized = dict(raw)
     normalized["advancedComponentIds"] = [selected]
     return normalized
+
+
+def task_spec_with_selected_scope_actions(
+    task_spec: TaskSpec,
+    component_ids: tuple[str, ...],
+    action_ids: tuple[str, ...],
+) -> TaskSpec:
+    """Keep only first-layer selected Action IDs that pass the existing domain allowlists."""
+    available_ids = {event.id for event in task_spec.eventCandidates if event.id}
+    if not set(action_ids).issubset(available_ids):
+        raise ValueError("Template route selected an Action outside TaskSpec.eventCandidates")
+    selected = task_spec.model_copy(
+        update={
+            "eventCandidates": [
+                event for event in task_spec.eventCandidates if event.id in set(action_ids)
+            ]
+        }
+    )
+    filtered = _task_spec_with_scope_action_allowlist(selected, set(component_ids))
+    filtered_ids = {event.id for event in filtered.eventCandidates if event.id}
+    if filtered_ids != set(action_ids):
+        raise ValueError("Template route selected an Action unsupported by the component scope")
+    return filtered
+
+
+def _task_spec_with_scope_action_allowlist(
+    task_spec: TaskSpec,
+    component_ids: set[str],
+) -> TaskSpec:
+    return _task_spec_with_action_ids(
+        task_spec,
+        _approved_action_ids_for_component_scope(task_spec, component_ids),
+    )
+
+
+def _approved_action_ids_for_component_scope(
+    task_spec: TaskSpec,
+    component_ids: set[str],
+) -> set[str]:
+    approved_ids: set[str] = set()
+    if "SleepOverview" in component_ids and not component_ids & {
+        "ActivityOverview",
+        "HeartRateOverview",
+        "WorkoutOverview",
+    }:
+        approved_ids.update(approved_sleep_action_ids(task_spec))
+    if "WorkoutOverview" in component_ids:
+        approved_ids.update(approved_workout_action_ids(task_spec))
+    if "AppUsageOverview" in component_ids:
+        approved_ids.update(approved_app_usage_action_ids(task_spec))
+    if "ResourceUsageOverview" in component_ids:
+        approved_ids.update(approved_memory_cleanup_action_ids(task_spec))
+    has_battery = "BatteryOverview" in component_ids
+    has_bluetooth = "BluetoothDeviceOverview" in component_ids
+    if has_battery and not has_bluetooth:
+        approved_ids.update(approved_battery_power_action_ids(task_spec))
+    if has_bluetooth and not has_battery:
+        approved_ids.update(approved_bluetooth_music_action_ids(task_spec))
+    if "ScheduleOverview" in component_ids:
+        approved_ids.update(approved_schedule_action_ids(task_spec))
+    return approved_ids
+
+
+def _task_spec_with_action_ids(task_spec: TaskSpec, approved_ids: set[str]) -> TaskSpec:
+    events = [event for event in task_spec.eventCandidates if event.id in approved_ids]
+    return task_spec.model_copy(update={"eventCandidates": events})
 
 
 def resolve_scope_layout_ids(

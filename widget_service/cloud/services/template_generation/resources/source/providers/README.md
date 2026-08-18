@@ -3,6 +3,8 @@
 本目录按数据能力提供方组织声明式垂域模板。
 每个子目录必须以 `provider.json` 为入口；单个能力关联只允许
 `capabilityId`、`dataSchema` 和 `templates` 三个字段。
+Provider 根级必须另外登记 `firstLayerRule.path` 和 `secondLayerRule.path`，分别指向首层组件/数据路径
+规则和二层 Variant/参数规则。领域规则只从这些 MD 按候选动态加载。
 
 当前迁移范围：
 

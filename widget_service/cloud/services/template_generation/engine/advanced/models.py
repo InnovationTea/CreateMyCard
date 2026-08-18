@@ -276,54 +276,44 @@ class AdvancedScopeBrief(StrictModel):
 class TemplateRouteDecision(StrictModel):
     """第四接口 create 路由的首层模板完整覆盖判断。"""
 
-    route_version: Literal["template-route-decision/2"] = Field(
-        default="template-route-decision/2",
-        alias="routeVersion",
-    )
-    template_usable: bool = Field(alias="templateUsable")
-    theme_id: str | None = Field(default=None, alias="themeId")
-    advanced_component_ids: tuple[str, ...] = Field(
-        default=(),
-        alias="advancedComponentIds",
-        max_length=4,
-    )
-    required_output_fields_by_capability: dict[str, tuple[str, ...]] = Field(
-        default_factory=dict,
-        alias="requiredOutputFieldsByCapability",
-    )
+    theme: str | None
+    component: tuple[str, ...] = Field(max_length=4)
+    action: tuple[str, ...] = Field(max_length=4)
 
-    @field_validator("required_output_fields_by_capability")
+    @field_validator("theme")
     @classmethod
-    def valid_required_output_fields(
-        cls,
-        values: dict[str, tuple[str, ...]],
-    ) -> dict[str, tuple[str, ...]]:
-        pointer_pattern = re.compile(r"^/(?:[^/~]|~[01])+(?:/(?:[^/~]|~[01])+)*$")
-        for capability_id, paths in values.items():
-            if not capability_id.strip() or not paths:
-                raise ValueError("required output field groups must be non-empty")
-            if len(paths) != len(set(paths)):
-                raise ValueError("required output fields must be unique")
-            if any(pointer_pattern.fullmatch(path) is None for path in paths):
-                raise ValueError("required output fields must be JSON Pointers")
+    def normalized_theme(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("theme must be null or a non-empty candidate ID")
+        return normalized
+
+    @field_validator("component", "action")
+    @classmethod
+    def unique_non_empty_ids(cls, values: tuple[str, ...]) -> tuple[str, ...]:
+        if any(not value.strip() for value in values):
+            raise ValueError("component and action IDs must not be empty")
+        if len(values) != len(set(values)):
+            raise ValueError("component and action IDs must be unique")
         return values
 
     @model_validator(mode="after")
     def route_fields_match_decision(self) -> TemplateRouteDecision:
-        if len(self.advanced_component_ids) != len(set(self.advanced_component_ids)):
-            raise ValueError("advancedComponentIds must be unique")
-        has_template_scope = bool(self.theme_id and self.advanced_component_ids)
-        has_required_fields = bool(self.required_output_fields_by_capability)
-        if self.template_usable and not (has_template_scope and has_required_fields):
-            raise ValueError("usable Template route requires scope and query-required fields")
-        rejected_has_route_data = bool(
-            self.theme_id
-            or self.advanced_component_ids
-            or self.required_output_fields_by_capability
-        )
-        if not self.template_usable and rejected_has_route_data:
-            raise ValueError("rejected Template route must not include route data")
+        has_scope = bool(self.theme and self.component)
+        if has_scope:
+            return self
+        if self.theme is not None or self.component or self.action:
+            raise ValueError("rejected Template route must clear theme, component and action")
         return self
+
+
+class TemplateRouteSelection(StrictModel):
+    """服务端校验后的模板范围，不直接暴露为首层 LLM 输出。"""
+
+    scope: AdvancedScopeBrief
+    action_ids: tuple[str, ...] = ()
 
 
 class AdaptiveTemplateSlot(StrictModel):

@@ -23,7 +23,7 @@ await generate_template_artifact(
 
 - 模板模块只负责模板生成结果，不接收主服务对象，也不调用原始生成逻辑。
 - 模板接口内部识别 edit 请求并抛出不适用异常，由 Compact 或 Terse 公开入口执行原协议流程。
-- create 请求先由第一层 LLM 判断一个或多个模板能否覆盖完整需求。
+- create 请求先由第一层 LLM 只选择 `theme`、`component`、`action`，再判断一个或多个模板能否覆盖完整需求。
 - 第一层拒绝、输出非法、调用失败、确定性覆盖检查不通过，以及后续生成、转换、校验或保存异常，均向公开
   入口抛出异常。
 - Compact 与 Terse 公开入口捕获异常后，分别执行各自原协议流程。
@@ -51,6 +51,10 @@ template_generation/
 模块允许复用 dev 已有的 CardSpec/TaskSpec Builder、Compact Processor、Validator 和 ArtifactStore；
 能力注册表、模型运行时和请求上下文由公开入口显式提供。模板模块自行组装完整 artifact，不得通过主服务对象
 调用私有能力或反向调用原协议逻辑。
+
+领域选择规则不直接写入 Python SystemPrompt。每个 Provider 通过 `provider.json` 显式登记首层和二层 MD；
+Theme 通过 `theme-profiles.json` 登记只供首层使用的 MD。首层只加载候选 Provider/Theme 文档，二层只加载
+已选 Provider 文档。
 
 详细流程见 [architecture.md](architecture.md)，Provider 接入见
 [provider-template-contract.md](provider-template-contract.md)。
