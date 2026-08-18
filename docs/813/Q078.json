@@ -1,0 +1,53 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "想听新歌时做个音乐卡片，点击可以进入新歌推荐和排行榜。",
+    "candidateDataBindings": [],
+    "title": "音乐推荐",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "音乐快捷入口",
+    "candidateAssetIds": [
+      "asset.music_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260813000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "78",
+    "isNew": true,
+    "sessionId": "taskspec-813"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "想听新歌时做个音乐卡片，点击可以进入新歌推荐和排行榜。",
+  "candidateDataBindings": [],
+  "title": "音乐推荐",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "音乐快捷入口",
+  "candidateAssetIds": [
+    "asset.music_fill"
+  ]
+}

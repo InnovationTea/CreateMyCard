@@ -1,0 +1,83 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "做一张日程倒数卡片，我想看看高考还剩下多少天。",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "targetDate": "2027-06-07"
+        },
+        "candidateOutputFields": [
+          "/countdownDays"
+        ],
+        "capabilityId": "GetCountdownDays",
+        "writeResultTo": "/data/countdown"
+      }
+    ],
+    "title": "高考倒数",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "高考倒计时",
+    "candidateAssetIds": [
+      "asset.calendar_fill",
+      "asset.icon_meeting",
+      "asset.clock_fill",
+      "asset.bell_fill",
+      "asset.hourglass_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260813000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "47",
+    "isNew": true,
+    "sessionId": "taskspec-813"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "做一张日程倒数卡片，我想看看高考还剩下多少天。",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "targetDate": "2027-06-07"
+      },
+      "candidateOutputFields": [
+        "/countdownDays"
+      ],
+      "capabilityId": "GetCountdownDays",
+      "writeResultTo": "/data/countdown"
+    }
+  ],
+  "title": "高考倒数",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "高考倒计时",
+  "candidateAssetIds": [
+    "asset.calendar_fill",
+    "asset.icon_meeting",
+    "asset.clock_fill",
+    "asset.bell_fill",
+    "asset.hourglass_fill"
+  ]
+}

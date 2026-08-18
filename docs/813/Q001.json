@@ -1,0 +1,147 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "下雨出门麻烦，帮我做个打车卡片，看看外面是不是雨天，顺手进打车页面。",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "districtName": "青浦区",
+          "forecastDays": 1,
+          "prefectureName": "上海市"
+        },
+        "candidateOutputFields": [
+          "/location/cityCode",
+          "/current/condition",
+          "/current/temperatureText",
+          "/current/humidityPercent",
+          "/current/airQuality"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "title": "雨天打车",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "StartNavigate",
+            "params": {
+              "dstLocation": {
+                "latitude": "",
+                "location": "company",
+                "longitude": ""
+              }
+            }
+          },
+          "call": "clickToIntent"
+        },
+        "capabilityId": "event.startNavigate"
+      },
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.weather"
+      }
+    ],
+    "description": "实时天气+打车入口",
+    "candidateAssetIds": [
+      "asset.drop_1",
+      "asset.icon_car"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260813000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "1",
+    "isNew": true,
+    "sessionId": "taskspec-813"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "下雨出门麻烦，帮我做个打车卡片，看看外面是不是雨天，顺手进打车页面。",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "districtName": "青浦区",
+        "forecastDays": 1,
+        "prefectureName": "上海市"
+      },
+      "candidateOutputFields": [
+        "/location/cityCode",
+        "/current/condition",
+        "/current/temperatureText",
+        "/current/humidityPercent",
+        "/current/airQuality"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    }
+  ],
+  "title": "雨天打车",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "StartNavigate",
+          "params": {
+            "dstLocation": {
+              "latitude": "",
+              "location": "company",
+              "longitude": ""
+            }
+          }
+        },
+        "call": "clickToIntent"
+      },
+      "capabilityId": "event.startNavigate"
+    },
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.weather"
+    }
+  ],
+  "description": "实时天气+打车入口",
+  "candidateAssetIds": [
+    "asset.drop_1",
+    "asset.icon_car"
+  ]
+}

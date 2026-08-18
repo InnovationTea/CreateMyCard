@@ -1,0 +1,145 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "手机掉电快，帮我做个电池卡片，看看还剩多少电、充电状态和电池健康，点击可以进入电池设置。",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batterySOC",
+          "/batterySOCText",
+          "/chargingStatusDesc",
+          "/batteryCapacityLevelDesc",
+          "/healthStatusDesc",
+          "/pluggedTypeDesc",
+          "/batteryTemperatureText",
+          "/nowCurrentText",
+          "/voltageText",
+          "/isBatteryPresentText",
+          "/updatedAt"
+        ],
+        "capabilityId": "GetPhoneBatteryInfo",
+        "writeResultTo": "/data/phoneBattery"
+      }
+    ],
+    "title": "电池状态",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "battery"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.settings.battery"
+      },
+      {
+        "action": {
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "smart_charge_battery_health"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.settings.batteryHealth"
+      }
+    ],
+    "description": "电量状态管理",
+    "candidateAssetIds": [
+      "asset.battery_leaf_fill",
+      "asset.bolt_fill",
+      "asset.icon_save_power"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260813000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "79",
+    "isNew": true,
+    "sessionId": "taskspec-813"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "手机掉电快，帮我做个电池卡片，看看还剩多少电、充电状态和电池健康，点击可以进入电池设置。",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/batterySOC",
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc",
+        "/healthStatusDesc",
+        "/pluggedTypeDesc",
+        "/batteryTemperatureText",
+        "/nowCurrentText",
+        "/voltageText",
+        "/isBatteryPresentText",
+        "/updatedAt"
+      ],
+      "capabilityId": "GetPhoneBatteryInfo",
+      "writeResultTo": "/data/phoneBattery"
+    }
+  ],
+  "title": "电池状态",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "battery"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.settings.battery"
+    },
+    {
+      "action": {
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "smart_charge_battery_health"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.settings.batteryHealth"
+    }
+  ],
+  "description": "电量状态管理",
+  "candidateAssetIds": [
+    "asset.battery_leaf_fill",
+    "asset.bolt_fill",
+    "asset.icon_save_power"
+  ]
+}

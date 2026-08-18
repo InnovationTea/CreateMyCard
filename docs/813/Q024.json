@@ -1,0 +1,81 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "想换点新歌听，帮我做个音乐推荐卡片，点击可以查看新歌、排行榜和每天推荐。",
+    "candidateDataBindings": [],
+    "title": "音乐推荐",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "Music",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.music.daily"
+      }
+    ],
+    "description": "音乐快捷入口",
+    "candidateAssetIds": [
+      "asset.music_fill",
+      "asset.play_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260813000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "24",
+    "isNew": true,
+    "sessionId": "taskspec-813"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "想换点新歌听，帮我做个音乐推荐卡片，点击可以查看新歌、排行榜和每天推荐。",
+  "candidateDataBindings": [],
+  "title": "音乐推荐",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "Music",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.music.daily"
+    }
+  ],
+  "description": "音乐快捷入口",
+  "candidateAssetIds": [
+    "asset.music_fill",
+    "asset.play_fill"
+  ]
+}

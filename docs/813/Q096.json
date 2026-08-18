@@ -1,0 +1,167 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "睡前做个睡眠卡片，看看昨晚睡了多久、睡眠得分和几点起床，点击可以进入闹钟。",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "candidateOutputFields": [
+          "/targetDateText",
+          "/sleepScore",
+          "/sleepStatus",
+          "/sleepTypeDesc",
+          "/nightSleepDurationText",
+          "/deepSleepDurationText",
+          "/totalNapDurationText",
+          "/fallAsleepTimeText",
+          "/wakeupTimeText",
+          "/dailySteps",
+          "/dailyTotalCaloriesText",
+          "/dailyDistanceText",
+          "/exerciseTypeName",
+          "/exerciseStartTimeText",
+          "/exerciseEndTimeText",
+          "/exerciseDurationText",
+          "/exerciseCalorieText",
+          "/exerciseHeartRateAvg",
+          "/exerciseHeartRateMax",
+          "/exerciseHeartRateMin",
+          "/updatedAt"
+        ],
+        "capabilityId": "GetHealthAndSportSummary",
+        "writeResultTo": "/data/healthSport"
+      }
+    ],
+    "title": "睡眠监督",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "Clock",
+            "bundleName": "com.huawei.hmos.clock",
+            "abilityName": "com.huawei.hmos.clock.phone",
+            "uri": ""
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.clock.alarm"
+      },
+      {
+        "action": {
+          "args": {
+            "intentName": "Health",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "huaweischeme://healthapp/router/sleepDetail"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.health.sleep"
+      }
+    ],
+    "description": "睡眠健康速览",
+    "candidateAssetIds": [
+      "asset.moon_z_fill_1",
+      "asset.alarm_fill_1"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260813000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "96",
+    "isNew": true,
+    "sessionId": "taskspec-813"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "睡前做个睡眠卡片，看看昨晚睡了多久、睡眠得分和几点起床，点击可以进入闹钟。",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "targetDayOffset": 0
+      },
+      "candidateOutputFields": [
+        "/targetDateText",
+        "/sleepScore",
+        "/sleepStatus",
+        "/sleepTypeDesc",
+        "/nightSleepDurationText",
+        "/deepSleepDurationText",
+        "/totalNapDurationText",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText",
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseDurationText",
+        "/exerciseCalorieText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/updatedAt"
+      ],
+      "capabilityId": "GetHealthAndSportSummary",
+      "writeResultTo": "/data/healthSport"
+    }
+  ],
+  "title": "睡眠监督",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "Clock",
+          "bundleName": "com.huawei.hmos.clock",
+          "abilityName": "com.huawei.hmos.clock.phone",
+          "uri": ""
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.clock.alarm"
+    },
+    {
+      "action": {
+        "args": {
+          "intentName": "Health",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "huaweischeme://healthapp/router/sleepDetail"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.health.sleep"
+    }
+  ],
+  "description": "睡眠健康速览",
+  "candidateAssetIds": [
+    "asset.moon_z_fill_1",
+    "asset.alarm_fill_1"
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "我想少刷短视频，帮我做个防沉迷小组件，看看抖音今天用了多久，点击可以进入设置限制。",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "appBundleName": "com.ss.hm.ugc.aweme"
+        },
+        "candidateOutputFields": [
+          "/appUsage/appName",
+          "/appUsage/durationText",
+          "/updatedAt"
+        ],
+        "capabilityId": "GetAppUsageDuration",
+        "writeResultTo": "/data/appUsageStats"
+      }
+    ],
+    "title": "抖音防沉迷",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "parent_control"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.settings.parentControl"
+      }
+    ],
+    "description": "应用使用时长",
+    "candidateAssetIds": [
+      "asset.icon_tiktok",
+      "asset.hourglass_fill",
+      "asset.icon_timing"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260813000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "16",
+    "isNew": true,
+    "sessionId": "taskspec-813"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "我想少刷短视频，帮我做个防沉迷小组件，看看抖音今天用了多久，点击可以进入设置限制。",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "appBundleName": "com.ss.hm.ugc.aweme"
+      },
+      "candidateOutputFields": [
+        "/appUsage/appName",
+        "/appUsage/durationText",
+        "/updatedAt"
+      ],
+      "capabilityId": "GetAppUsageDuration",
+      "writeResultTo": "/data/appUsageStats"
+    }
+  ],
+  "title": "抖音防沉迷",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "parent_control"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.settings.parentControl"
+    }
+  ],
+  "description": "应用使用时长",
+  "candidateAssetIds": [
+    "asset.icon_tiktok",
+    "asset.hourglass_fill",
+    "asset.icon_timing"
+  ]
+}

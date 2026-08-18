@@ -946,6 +946,9 @@ dataModelSchema
 assetCandidates
 ```
 
+`eventCandidates[]` 固定包含同层级的 `id/description/call/args`。其中 `description` 来自事件能力注册表，
+只帮助模型理解事件用途；生成的事件处理器仍必须逐字段复用候选 `call/args`。
+
 ### 7.3 TaskSpecBuilder 字段投影
 
 用途：按 JSON Pointer 读取已经由 `GenerationPreflight` 校验通过的 `candidateOutputFields`，从能力

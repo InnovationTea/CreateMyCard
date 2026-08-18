@@ -100,6 +100,10 @@ def test_preflight_accepts_weather_without_district_and_builds_specs():
         "forecastDays": 1,
     }
     assert [item.id for item in result.effective_events] == [event.id]
+    assert result.effective_events[0].description == event.description
+    task_event = result.task_spec.model_dump(mode="json")["eventCandidates"][0]
+    assert set(task_event) == {"id", "description", "call", "args"}
+    assert task_event["description"] == event.description
     weather_schema = result.task_spec.dataModelSchema["data"]["weather"]
     assert weather_schema["current"]["condition"]
     assert weather_schema["location"]["cityCode"]

@@ -1,0 +1,223 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "下午两点有评审会，我怕被消息打断，帮我做个专注小组件，会前一键免打扰，再看看会议叫什么、几点开始、几点结束和提醒。",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "futureDays": 7
+        },
+        "candidateOutputFields": [
+          "/eventCount",
+          "/events/0/entityName",
+          "/events/0/entityId",
+          "/events/0/senderName",
+          "/events/0/title",
+          "/events/0/eventLocation",
+          "/events/0/description",
+          "/events/0/dtStart",
+          "/events/0/dtEnd",
+          "/events/0/timeZone",
+          "/events/0/remindTime",
+          "/events/0/importantEventType",
+          "/events/0/oneClickServiceType",
+          "/events/0/oneClickServiceLink",
+          "/events/0/isServiceValid",
+          "/events/0/startDate",
+          "/events/0/countdownDays",
+          "/events/0/isAllDay",
+          "/events/1/title",
+          "/events/1/dtStart",
+          "/events/1/dtEnd",
+          "/events/1/eventLocation",
+          "/events/1/description",
+          "/events/1/timeZone",
+          "/events/1/remindTime",
+          "/events/1/entityId",
+          "/events/1/oneClickServiceLink",
+          "/events/1/isServiceValid",
+          "/events/1/startDate",
+          "/events/1/countdownDays",
+          "/events/1/isAllDay",
+          "/events/2/title",
+          "/events/2/dtStart",
+          "/events/2/dtEnd",
+          "/events/2/eventLocation",
+          "/events/2/description",
+          "/events/2/timeZone",
+          "/events/2/remindTime",
+          "/events/2/entityId",
+          "/events/2/oneClickServiceLink",
+          "/events/2/isServiceValid",
+          "/events/2/startDate",
+          "/events/2/countdownDays",
+          "/events/2/isAllDay",
+          "/updatedAt"
+        ],
+        "capabilityId": "GetCalendarEvents",
+        "writeResultTo": "/data/calendar"
+      }
+    ],
+    "title": "会议专注",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "intelligent_scene_entry"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.settings.dnd"
+      },
+      {
+        "action": {
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+            }
+          },
+          "call": "clickToIntent"
+        },
+        "capabilityId": "event.viewCalendarEvent"
+      }
+    ],
+    "description": "日程会议提醒",
+    "candidateAssetIds": [
+      "asset.calendar_fill",
+      "asset.icon_meeting",
+      "asset.clock_fill",
+      "asset.bell_fill",
+      "asset.icon_focus",
+      "asset.bell_slash_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260813000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "11",
+    "isNew": true,
+    "sessionId": "taskspec-813"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "下午两点有评审会，我怕被消息打断，帮我做个专注小组件，会前一键免打扰，再看看会议叫什么、几点开始、几点结束和提醒。",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "futureDays": 7
+      },
+      "candidateOutputFields": [
+        "/eventCount",
+        "/events/0/entityName",
+        "/events/0/entityId",
+        "/events/0/senderName",
+        "/events/0/title",
+        "/events/0/eventLocation",
+        "/events/0/description",
+        "/events/0/dtStart",
+        "/events/0/dtEnd",
+        "/events/0/timeZone",
+        "/events/0/remindTime",
+        "/events/0/importantEventType",
+        "/events/0/oneClickServiceType",
+        "/events/0/oneClickServiceLink",
+        "/events/0/isServiceValid",
+        "/events/0/startDate",
+        "/events/0/countdownDays",
+        "/events/0/isAllDay",
+        "/events/1/title",
+        "/events/1/dtStart",
+        "/events/1/dtEnd",
+        "/events/1/eventLocation",
+        "/events/1/description",
+        "/events/1/timeZone",
+        "/events/1/remindTime",
+        "/events/1/entityId",
+        "/events/1/oneClickServiceLink",
+        "/events/1/isServiceValid",
+        "/events/1/startDate",
+        "/events/1/countdownDays",
+        "/events/1/isAllDay",
+        "/events/2/title",
+        "/events/2/dtStart",
+        "/events/2/dtEnd",
+        "/events/2/eventLocation",
+        "/events/2/description",
+        "/events/2/timeZone",
+        "/events/2/remindTime",
+        "/events/2/entityId",
+        "/events/2/oneClickServiceLink",
+        "/events/2/isServiceValid",
+        "/events/2/startDate",
+        "/events/2/countdownDays",
+        "/events/2/isAllDay",
+        "/updatedAt"
+      ],
+      "capabilityId": "GetCalendarEvents",
+      "writeResultTo": "/data/calendar"
+    }
+  ],
+  "title": "会议专注",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "intelligent_scene_entry"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.settings.dnd"
+    },
+    {
+      "action": {
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+          }
+        },
+        "call": "clickToIntent"
+      },
+      "capabilityId": "event.viewCalendarEvent"
+    }
+  ],
+  "description": "日程会议提醒",
+  "candidateAssetIds": [
+    "asset.calendar_fill",
+    "asset.icon_meeting",
+    "asset.clock_fill",
+    "asset.bell_fill",
+    "asset.icon_focus",
+    "asset.bell_slash_fill"
+  ]
+}

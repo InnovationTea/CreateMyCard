@@ -1,0 +1,119 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "我通勤戴耳机，帮我做个播控小组件，看看耳机叫什么、有没有连上、左右耳还剩多少电，顺手切下一首。",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/isConnected",
+          "/earphoneName",
+          "/batteryLevel",
+          "/chargingStatusDesc",
+          "/leftBatteryLevel",
+          "/leftChargingStatusDesc",
+          "/rightBatteryLevel",
+          "/rightChargingStatusDesc",
+          "/updatedAt"
+        ],
+        "capabilityId": "GetEarphoneInfo",
+        "writeResultTo": "/data/earphone"
+      }
+    ],
+    "title": "耳机播控",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "bluetooth_entry"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.settings.bluetooth"
+      }
+    ],
+    "description": "耳机连接状态",
+    "candidateAssetIds": [
+      "asset.icon_earphone",
+      "asset.earphone_case_16644",
+      "asset.music_fill",
+      "asset.fast_forward"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260813000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "8",
+    "isNew": true,
+    "sessionId": "taskspec-813"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "我通勤戴耳机，帮我做个播控小组件，看看耳机叫什么、有没有连上、左右耳还剩多少电，顺手切下一首。",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/isConnected",
+        "/earphoneName",
+        "/batteryLevel",
+        "/chargingStatusDesc",
+        "/leftBatteryLevel",
+        "/leftChargingStatusDesc",
+        "/rightBatteryLevel",
+        "/rightChargingStatusDesc",
+        "/updatedAt"
+      ],
+      "capabilityId": "GetEarphoneInfo",
+      "writeResultTo": "/data/earphone"
+    }
+  ],
+  "title": "耳机播控",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "bluetooth_entry"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.settings.bluetooth"
+    }
+  ],
+  "description": "耳机连接状态",
+  "candidateAssetIds": [
+    "asset.icon_earphone",
+    "asset.earphone_case_16644",
+    "asset.music_fill",
+    "asset.fast_forward"
+  ]
+}

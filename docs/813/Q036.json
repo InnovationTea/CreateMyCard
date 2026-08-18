@@ -1,0 +1,153 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我生成一张天气关怀卡片，想看看今天容易不容易感冒。",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "districtName": "青浦区",
+          "forecastDays": 1,
+          "prefectureName": "上海市"
+        },
+        "candidateOutputFields": [
+          "/location/cityCode",
+          "/location/districtName",
+          "/location/prefectureName",
+          "/current/temperatureC",
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/feelsLikeC",
+          "/current/humidityPercent",
+          "/current/airQuality",
+          "/current/windDirection",
+          "/current/windLevel",
+          "/current/uvIndex",
+          "/current/coldLevel",
+          "/current/alertLevel",
+          "/daily/0/date",
+          "/daily/0/weekday",
+          "/daily/0/condition",
+          "/daily/0/temperatureRangeText",
+          "/daily/0/rainProbabilityPercent",
+          "/daily/0/airQuality",
+          "/daily/0/uvIndex",
+          "/daily/0/coldLevel"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      }
+    ],
+    "title": "感冒指数",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.weather"
+      }
+    ],
+    "description": "天气状态速览",
+    "candidateAssetIds": [
+      "asset.icon_weather1",
+      "asset.thermometer_sun_fill",
+      "asset.thermometer_snowflake",
+      "asset.cold"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260813000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "36",
+    "isNew": true,
+    "sessionId": "taskspec-813"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我生成一张天气关怀卡片，想看看今天容易不容易感冒。",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "districtName": "青浦区",
+        "forecastDays": 1,
+        "prefectureName": "上海市"
+      },
+      "candidateOutputFields": [
+        "/location/cityCode",
+        "/location/districtName",
+        "/location/prefectureName",
+        "/current/temperatureC",
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/feelsLikeC",
+        "/current/humidityPercent",
+        "/current/airQuality",
+        "/current/windDirection",
+        "/current/windLevel",
+        "/current/uvIndex",
+        "/current/coldLevel",
+        "/current/alertLevel",
+        "/daily/0/date",
+        "/daily/0/weekday",
+        "/daily/0/condition",
+        "/daily/0/temperatureRangeText",
+        "/daily/0/rainProbabilityPercent",
+        "/daily/0/airQuality",
+        "/daily/0/uvIndex",
+        "/daily/0/coldLevel"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    }
+  ],
+  "title": "感冒指数",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.weather"
+    }
+  ],
+  "description": "天气状态速览",
+  "candidateAssetIds": [
+    "asset.icon_weather1",
+    "asset.thermometer_sun_fill",
+    "asset.thermometer_snowflake",
+    "asset.cold"
+  ]
+}

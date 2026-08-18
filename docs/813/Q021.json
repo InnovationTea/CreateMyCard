@@ -1,0 +1,109 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "我最近老是玩手机过长时间，帮我做个应用管理卡片，看看抖音今天用了多久，点击可以进入限制设置。",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "appBundleName": "com.ss.hm.ugc.aweme"
+        },
+        "candidateOutputFields": [
+          "/appUsage/appName",
+          "/appUsage/durationText",
+          "/updatedAt"
+        ],
+        "capabilityId": "GetAppUsageDuration",
+        "writeResultTo": "/data/appUsageStats"
+      }
+    ],
+    "title": "抖音使用管理",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "parent_control"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.settings.parentControl"
+      }
+    ],
+    "description": "应用使用时长",
+    "candidateAssetIds": [
+      "asset.icon_tiktok",
+      "asset.hourglass_fill",
+      "asset.icon_timing"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260813000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "21",
+    "isNew": true,
+    "sessionId": "taskspec-813"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "我最近老是玩手机过长时间，帮我做个应用管理卡片，看看抖音今天用了多久，点击可以进入限制设置。",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "appBundleName": "com.ss.hm.ugc.aweme"
+      },
+      "candidateOutputFields": [
+        "/appUsage/appName",
+        "/appUsage/durationText",
+        "/updatedAt"
+      ],
+      "capabilityId": "GetAppUsageDuration",
+      "writeResultTo": "/data/appUsageStats"
+    }
+  ],
+  "title": "抖音使用管理",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "parent_control"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.settings.parentControl"
+    }
+  ],
+  "description": "应用使用时长",
+  "candidateAssetIds": [
+    "asset.icon_tiktok",
+    "asset.hourglass_fill",
+    "asset.icon_timing"
+  ]
+}

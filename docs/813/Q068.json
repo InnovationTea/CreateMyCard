@@ -1,0 +1,171 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我生成一张运动健康卡片，看看今天起床时间、热量消耗和最高最低心率。",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "candidateOutputFields": [
+          "/targetDateText",
+          "/sleepScore",
+          "/sleepStatus",
+          "/sleepTypeDesc",
+          "/nightSleepDurationText",
+          "/deepSleepDurationText",
+          "/totalNapDurationText",
+          "/fallAsleepTimeText",
+          "/wakeupTimeText",
+          "/dailySteps",
+          "/dailyTotalCaloriesText",
+          "/dailyDistanceText",
+          "/exerciseTypeName",
+          "/exerciseStartTimeText",
+          "/exerciseEndTimeText",
+          "/exerciseDurationText",
+          "/exerciseCalorieText",
+          "/exerciseHeartRateAvg",
+          "/exerciseHeartRateMax",
+          "/exerciseHeartRateMin",
+          "/updatedAt"
+        ],
+        "capabilityId": "GetHealthAndSportSummary",
+        "writeResultTo": "/data/healthSport"
+      }
+    ],
+    "title": "晨间健康",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "Health",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.health.sport"
+      },
+      {
+        "action": {
+          "args": {
+            "intentName": "Health",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "huaweischeme://healthapp/router/sleepDetail"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.health.sleep"
+      }
+    ],
+    "description": "运动数据速览",
+    "candidateAssetIds": [
+      "asset.moon_z_fill_1",
+      "asset.clock_fill",
+      "asset.flame_fill",
+      "asset.heart_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260813000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "68",
+    "isNew": true,
+    "sessionId": "taskspec-813"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我生成一张运动健康卡片，看看今天起床时间、热量消耗和最高最低心率。",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "targetDayOffset": 0
+      },
+      "candidateOutputFields": [
+        "/targetDateText",
+        "/sleepScore",
+        "/sleepStatus",
+        "/sleepTypeDesc",
+        "/nightSleepDurationText",
+        "/deepSleepDurationText",
+        "/totalNapDurationText",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText",
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseDurationText",
+        "/exerciseCalorieText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/updatedAt"
+      ],
+      "capabilityId": "GetHealthAndSportSummary",
+      "writeResultTo": "/data/healthSport"
+    }
+  ],
+  "title": "晨间健康",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "Health",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.health.sport"
+    },
+    {
+      "action": {
+        "args": {
+          "intentName": "Health",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "huaweischeme://healthapp/router/sleepDetail"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.health.sleep"
+    }
+  ],
+  "description": "运动数据速览",
+  "candidateAssetIds": [
+    "asset.moon_z_fill_1",
+    "asset.clock_fill",
+    "asset.flame_fill",
+    "asset.heart_fill"
+  ]
+}

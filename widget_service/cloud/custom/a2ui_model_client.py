@@ -450,6 +450,7 @@ def _build_design_test_task_spec() -> dict:
         "eventCandidates": [
             {
                 "id": "event.open.weather",
+                "description": "打开天气应用详情页",
                 "call": "clickToDeeplink",
                 "args": {
                     "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode=",

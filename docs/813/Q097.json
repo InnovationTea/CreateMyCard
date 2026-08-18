@@ -1,0 +1,237 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "早上想出去跑步，做个运动天气卡片，看看天气现象、体感温度和今天走了多少步。",
+    "candidateDataBindings": [
+      {
+        "arguments": {
+          "districtName": "青浦区",
+          "forecastDays": 1,
+          "prefectureName": "上海市"
+        },
+        "candidateOutputFields": [
+          "/location/cityCode",
+          "/location/districtName",
+          "/location/prefectureName",
+          "/current/temperatureC",
+          "/current/temperatureText",
+          "/current/condition",
+          "/current/feelsLikeC",
+          "/current/humidityPercent",
+          "/current/airQuality",
+          "/current/windDirection",
+          "/current/windLevel",
+          "/current/uvIndex",
+          "/current/coldLevel",
+          "/current/alertLevel",
+          "/daily/0/date",
+          "/daily/0/weekday",
+          "/daily/0/condition",
+          "/daily/0/temperatureRangeText",
+          "/daily/0/rainProbabilityPercent",
+          "/daily/0/airQuality",
+          "/daily/0/uvIndex",
+          "/daily/0/coldLevel",
+          "/updatedAt"
+        ],
+        "capabilityId": "ViewWeather",
+        "writeResultTo": "/data/weather"
+      },
+      {
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "candidateOutputFields": [
+          "/targetDateText",
+          "/sleepScore",
+          "/sleepStatus",
+          "/sleepTypeDesc",
+          "/nightSleepDurationText",
+          "/deepSleepDurationText",
+          "/totalNapDurationText",
+          "/fallAsleepTimeText",
+          "/wakeupTimeText",
+          "/dailySteps",
+          "/dailyTotalCaloriesText",
+          "/dailyDistanceText",
+          "/exerciseTypeName",
+          "/exerciseStartTimeText",
+          "/exerciseEndTimeText",
+          "/exerciseDurationText",
+          "/exerciseCalorieText",
+          "/exerciseHeartRateAvg",
+          "/exerciseHeartRateMax",
+          "/exerciseHeartRateMin",
+          "/updatedAt"
+        ],
+        "capabilityId": "GetHealthAndSportSummary",
+        "writeResultTo": "/data/healthSport"
+      }
+    ],
+    "title": "运动天气",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Weather_CityCode",
+            "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.weather"
+      },
+      {
+        "action": {
+          "args": {
+            "intentName": "Health",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.health.sport"
+      }
+    ],
+    "description": "运动数据速览",
+    "candidateAssetIds": [
+      "asset.icon_weather1",
+      "asset.heat_generation",
+      "asset.figure_run"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260813000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "97",
+    "isNew": true,
+    "sessionId": "taskspec-813"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "早上想出去跑步，做个运动天气卡片，看看天气现象、体感温度和今天走了多少步。",
+  "candidateDataBindings": [
+    {
+      "arguments": {
+        "districtName": "青浦区",
+        "forecastDays": 1,
+        "prefectureName": "上海市"
+      },
+      "candidateOutputFields": [
+        "/location/cityCode",
+        "/location/districtName",
+        "/location/prefectureName",
+        "/current/temperatureC",
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/feelsLikeC",
+        "/current/humidityPercent",
+        "/current/airQuality",
+        "/current/windDirection",
+        "/current/windLevel",
+        "/current/uvIndex",
+        "/current/coldLevel",
+        "/current/alertLevel",
+        "/daily/0/date",
+        "/daily/0/weekday",
+        "/daily/0/condition",
+        "/daily/0/temperatureRangeText",
+        "/daily/0/rainProbabilityPercent",
+        "/daily/0/airQuality",
+        "/daily/0/uvIndex",
+        "/daily/0/coldLevel",
+        "/updatedAt"
+      ],
+      "capabilityId": "ViewWeather",
+      "writeResultTo": "/data/weather"
+    },
+    {
+      "arguments": {
+        "targetDayOffset": 0
+      },
+      "candidateOutputFields": [
+        "/targetDateText",
+        "/sleepScore",
+        "/sleepStatus",
+        "/sleepTypeDesc",
+        "/nightSleepDurationText",
+        "/deepSleepDurationText",
+        "/totalNapDurationText",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText",
+        "/exerciseTypeName",
+        "/exerciseStartTimeText",
+        "/exerciseEndTimeText",
+        "/exerciseDurationText",
+        "/exerciseCalorieText",
+        "/exerciseHeartRateAvg",
+        "/exerciseHeartRateMax",
+        "/exerciseHeartRateMin",
+        "/updatedAt"
+      ],
+      "capabilityId": "GetHealthAndSportSummary",
+      "writeResultTo": "/data/healthSport"
+    }
+  ],
+  "title": "运动天气",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "abilityName": "",
+          "bundleName": "",
+          "intentName": "Weather_CityCode",
+          "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.weather"
+    },
+    {
+      "action": {
+        "args": {
+          "intentName": "Health",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.health.sport"
+    }
+  ],
+  "description": "运动数据速览",
+  "candidateAssetIds": [
+    "asset.icon_weather1",
+    "asset.heat_generation",
+    "asset.figure_run"
+  ]
+}

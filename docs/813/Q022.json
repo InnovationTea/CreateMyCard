@@ -1,0 +1,49 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "我需要出国办业务，帮我做个常用设置卡片，可以方便切换默认支付和输入法，改语言地区。",
+    "candidateDataBindings": [],
+    "title": "出国设置",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "常用设置入口",
+    "candidateAssetIds": []
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260813000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "22",
+    "isNew": true,
+    "sessionId": "taskspec-813"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "我需要出国办业务，帮我做个常用设置卡片，可以方便切换默认支付和输入法，改语言地区。",
+  "candidateDataBindings": [],
+  "title": "出国设置",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "常用设置入口",
+  "candidateAssetIds": []
+}

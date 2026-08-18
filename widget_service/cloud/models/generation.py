@@ -55,6 +55,7 @@ class CardSpecDataBinding(BaseModel):
 
 class EventAction(BaseModel):
     id: str | None = None
+    description: str | None = None
     call: str
     args: dict[str, Any]
 

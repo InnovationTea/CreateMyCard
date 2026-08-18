@@ -1,0 +1,143 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "通勤时做个耳机音乐卡片，显示耳机名称、连接状态和耳机盒电量，点击可以进每日30首。",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/isConnected",
+          "/earphoneName",
+          "/batteryLevel",
+          "/chargingStatusDesc",
+          "/leftBatteryLevel",
+          "/leftChargingStatusDesc",
+          "/rightBatteryLevel",
+          "/rightChargingStatusDesc",
+          "/updatedAt"
+        ],
+        "capabilityId": "GetEarphoneInfo",
+        "writeResultTo": "/data/earphone"
+      }
+    ],
+    "title": "耳机音乐",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "Music",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.music.daily"
+      },
+      {
+        "action": {
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "bluetooth_entry"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.settings.bluetooth"
+      }
+    ],
+    "description": "耳机连接状态",
+    "candidateAssetIds": [
+      "asset.icon_earphone",
+      "asset.earphone_case_16644",
+      "asset.music_fill",
+      "asset.play_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260813000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "92",
+    "isNew": true,
+    "sessionId": "taskspec-813"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "通勤时做个耳机音乐卡片，显示耳机名称、连接状态和耳机盒电量，点击可以进每日30首。",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/isConnected",
+        "/earphoneName",
+        "/batteryLevel",
+        "/chargingStatusDesc",
+        "/leftBatteryLevel",
+        "/leftChargingStatusDesc",
+        "/rightBatteryLevel",
+        "/rightChargingStatusDesc",
+        "/updatedAt"
+      ],
+      "capabilityId": "GetEarphoneInfo",
+      "writeResultTo": "/data/earphone"
+    }
+  ],
+  "title": "耳机音乐",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "Music",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.music.daily"
+    },
+    {
+      "action": {
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "bluetooth_entry"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.settings.bluetooth"
+    }
+  ],
+  "description": "耳机连接状态",
+  "candidateAssetIds": [
+    "asset.icon_earphone",
+    "asset.earphone_case_16644",
+    "asset.music_fill",
+    "asset.play_fill"
+  ]
+}

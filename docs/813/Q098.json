@@ -1,0 +1,83 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "做个回电卡片，看看有没有未接来电，点击可以拨打老板电话。",
+    "candidateDataBindings": [],
+    "title": "未接来电",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "relationship": "老板",
+              "phoneNumber": ""
+            }
+          },
+          "call": "clickToApi"
+        },
+        "capabilityId": "event.call.phone"
+      }
+    ],
+    "description": "联系人快捷拨号",
+    "candidateAssetIds": [
+      "asset.phone_fill",
+      "asset.person_3_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260813000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "98",
+    "isNew": true,
+    "sessionId": "taskspec-813"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "做个回电卡片，看看有没有未接来电，点击可以拨打老板电话。",
+  "candidateDataBindings": [],
+  "title": "未接来电",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "CallPhone",
+          "params": {
+            "relationship": "老板",
+            "phoneNumber": ""
+          }
+        },
+        "call": "clickToApi"
+      },
+      "capabilityId": "event.call.phone"
+    }
+  ],
+  "description": "联系人快捷拨号",
+  "candidateAssetIds": [
+    "asset.phone_fill",
+    "asset.person_3_fill"
+  ]
+}

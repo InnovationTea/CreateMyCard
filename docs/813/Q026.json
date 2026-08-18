@@ -1,0 +1,91 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "赶时间出门，帮我做个出行卡片，看看我现在在哪，直接选家为目的地叫车。",
+    "candidateDataBindings": [],
+    "title": "回家叫车",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "StartNavigate",
+            "params": {
+              "dstLocation": {
+                "location": "home",
+                "latitude": "",
+                "longitude": ""
+              }
+            }
+          },
+          "call": "clickToIntent"
+        },
+        "capabilityId": "event.startNavigate"
+      }
+    ],
+    "description": "天气出行入口",
+    "candidateAssetIds": [
+      "asset.icon_car",
+      "asset.location_north_up_right_fill",
+      "asset.house_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260813000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "26",
+    "isNew": true,
+    "sessionId": "taskspec-813"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "赶时间出门，帮我做个出行卡片，看看我现在在哪，直接选家为目的地叫车。",
+  "candidateDataBindings": [],
+  "title": "回家叫车",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "StartNavigate",
+          "params": {
+            "dstLocation": {
+              "location": "home",
+              "latitude": "",
+              "longitude": ""
+            }
+          }
+        },
+        "call": "clickToIntent"
+      },
+      "capabilityId": "event.startNavigate"
+    }
+  ],
+  "description": "天气出行入口",
+  "candidateAssetIds": [
+    "asset.icon_car",
+    "asset.location_north_up_right_fill",
+    "asset.house_fill"
+  ]
+}

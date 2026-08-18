@@ -368,6 +368,7 @@ class GenerationPreflight:
                 effective_events.append(
                     EventAction(
                         id=capability_id,
+                        description=capability.description,
                         call=action.call,
                         args=action.args,
                     )

@@ -1,0 +1,149 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "下班后还得在外面跑一阵，怕手机撑不住，帮我做个低电量卡片，看看还剩多少电、现在有没有在充电和插的是什么充电器，不够就开超省电。",
+    "candidateDataBindings": [
+      {
+        "arguments": {},
+        "candidateOutputFields": [
+          "/batterySOC",
+          "/batterySOCText",
+          "/chargingStatusDesc",
+          "/batteryCapacityLevelDesc",
+          "/healthStatusDesc",
+          "/pluggedTypeDesc",
+          "/batteryTemperatureText",
+          "/nowCurrentText",
+          "/voltageText",
+          "/isBatteryPresentText",
+          "/updatedAt"
+        ],
+        "capabilityId": "GetPhoneBatteryInfo",
+        "writeResultTo": "/data/phoneBattery"
+      }
+    ],
+    "title": "省电管理",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "action": {
+          "args": {
+            "intentName": "SetSettingSwitch",
+            "params": {
+              "appBundleName": "com.huawei.hmos.settings",
+              "itemName": "battery_saving_mode",
+              "switchFlag": 0
+            }
+          },
+          "call": "clickToIntent"
+        },
+        "capabilityId": "event.setPowerSavingMode"
+      },
+      {
+        "action": {
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "battery"
+          },
+          "call": "clickToDeeplink"
+        },
+        "capabilityId": "event.open.settings.battery"
+      }
+    ],
+    "description": "电量状态管理",
+    "candidateAssetIds": [
+      "asset.battery_leaf_fill",
+      "asset.bolt_fill",
+      "asset.icon_save_power"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260813000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "6",
+    "isNew": true,
+    "sessionId": "taskspec-813"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "下班后还得在外面跑一阵，怕手机撑不住，帮我做个低电量卡片，看看还剩多少电、现在有没有在充电和插的是什么充电器，不够就开超省电。",
+  "candidateDataBindings": [
+    {
+      "arguments": {},
+      "candidateOutputFields": [
+        "/batterySOC",
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc",
+        "/healthStatusDesc",
+        "/pluggedTypeDesc",
+        "/batteryTemperatureText",
+        "/nowCurrentText",
+        "/voltageText",
+        "/isBatteryPresentText",
+        "/updatedAt"
+      ],
+      "capabilityId": "GetPhoneBatteryInfo",
+      "writeResultTo": "/data/phoneBattery"
+    }
+  ],
+  "title": "省电管理",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "action": {
+        "args": {
+          "intentName": "SetSettingSwitch",
+          "params": {
+            "appBundleName": "com.huawei.hmos.settings",
+            "itemName": "battery_saving_mode",
+            "switchFlag": 0
+          }
+        },
+        "call": "clickToIntent"
+      },
+      "capabilityId": "event.setPowerSavingMode"
+    },
+    {
+      "action": {
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "battery"
+        },
+        "call": "clickToDeeplink"
+      },
+      "capabilityId": "event.open.settings.battery"
+    }
+  ],
+  "description": "电量状态管理",
+  "candidateAssetIds": [
+    "asset.battery_leaf_fill",
+    "asset.bolt_fill",
+    "asset.icon_save_power"
+  ]
+}

@@ -2188,7 +2188,14 @@ def test_task_spec_builder_projects_valid_object_and_array_fields():
         size="2x4",
         effective_bindings=[binding],
         effective_data_capabilities=[_task_spec_capability()],
-        event_candidates=[EventAction(id="event.open.weather", call="clickToDeeplink", args={})],
+        event_candidates=[
+            EventAction(
+                id="event.open.weather",
+                description="打开天气详情",
+                call="clickToDeeplink",
+                args={},
+            )
+        ],
         asset_candidates=[
             AssetCapability(
                 id="asset.drop_1",
@@ -2279,6 +2286,7 @@ def test_weather_binding_accepts_prefecture_without_district():
     assert weather_event is not None
     event = EventAction(
         id=weather_event.id,
+        description=weather_event.description,
         call=weather_event.actionTemplate.call,
         args=weather_event.actionTemplate.args,
     )
@@ -2330,6 +2338,7 @@ def test_event_candidate_requires_an_effective_binding_for_dynamic_data_path():
     assert weather_event is not None
     event = EventAction(
         id=weather_event.id,
+        description=weather_event.description,
         call=weather_event.actionTemplate.call,
         args=weather_event.actionTemplate.args,
     )
@@ -2657,12 +2666,18 @@ def test_design_compact_edit_prompt_contains_previous_design_token():
 
 
 def test_design_compact_create_prompt_is_plain_task_spec_json():
+    event = EventAction(
+        id="event.open.weather",
+        description="打开天气详情",
+        call="clickToDeeplink",
+        args={"uri": "weather://detail"},
+    )
     task_spec = TaskSpecBuilder().build(
         user_query="生成天气卡片",
         size="2x2",
         effective_bindings=[],
         effective_data_capabilities=[],
-        event_candidates=[],
+        event_candidates=[event],
         asset_candidates=[],
     )
 
@@ -2678,6 +2693,14 @@ def test_design_compact_create_prompt_is_plain_task_spec_json():
         "assetCandidates",
     }
     assert payload["userQuery"] == "生成天气卡片"
+    assert payload["eventCandidates"] == [
+        {
+            "id": "event.open.weather",
+            "description": "打开天气详情",
+            "call": "clickToDeeplink",
+            "args": {"uri": "weather://detail"},
+        }
+    ]
 
 
 @pytest.mark.asyncio
@@ -2971,6 +2994,7 @@ def test_a2ui_model_client_design_test_task_spec_covers_weather_capabilities():
     assert task_spec["eventCandidates"] == [
         {
             "id": "event.open.weather",
+            "description": "打开天气应用详情页",
             "call": "clickToDeeplink",
             "args": {
                 "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode=",
