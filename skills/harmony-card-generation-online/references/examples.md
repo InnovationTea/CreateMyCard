@@ -52,6 +52,12 @@
 做一张通勤卡片，显示上海青浦今天的天气和下一场日程。
 ```
 
+首个工具调用前立即回复一次：
+
+```text
+好的，我现在为你创建卡片。
+```
+
 ### 1. 能力概述
 
 ```text
@@ -157,6 +163,12 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 
 ```text
 做一个打开闹钟应用的入口卡片。
+```
+
+首个工具调用前立即回复一次：
+
+```text
+好的，我现在为你创建卡片。
 ```
 
 overview 返回无需动态参数的闹钟入口事件后，仍调用 schema，但传空数据能力数组；最终候选数据为空，因此跳过权限工具：
@@ -269,7 +281,7 @@ overview → schema → permission（invoke 报错）→ generate
 
 用户：“颜色换成红色，信息排紧凑一点。”
 
-先对来源的完整数据能力集合执行权限门禁，通过后调用：
+首个工具调用前回复“好的，我现在按你的要求修改卡片。”，然后对来源的完整数据能力集合执行权限门禁，通过后调用：
 
 ```text
 invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
