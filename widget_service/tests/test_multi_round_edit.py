@@ -59,9 +59,13 @@ def _base_request(**updates):
                 "action": {
                     "call": "clickToDeeplink",
                     "args": {
+                        "intentName": "Weather_CityCode",
                         "bundleName": "",
                         "abilityName": "",
-                        "uri": "hww://www.huawei.com/totemweather",
+                        "uri": (
+                            "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' "
+                            "+ ${/data/weather/location/cityCode} }}"
+                        ),
                     },
                 },
             }

@@ -216,7 +216,6 @@ def test_live_four_websocket_paths_complete_flow():
                         "/current/temperatureText",
                         "/current/condition",
                         "/current/airQuality",
-                        "/updatedAt",
                     ],
                 }
             ],
@@ -229,7 +228,11 @@ def test_live_four_websocket_paths_complete_flow():
                             "intentName": "Weather_CityCode",
                             "bundleName": "",
                             "abilityName": "",
-                            "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode=",
+                            "uri": (
+                                "{{ 'hww://www.huawei.com/totemweather?"
+                                "enterType=share&cityCode=' "
+                                "+ ${/data/weather/location/cityCode} }}"
+                            ),
                         },
                     },
                 }

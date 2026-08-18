@@ -562,7 +562,6 @@ def test_widget_card_service_complete_flow(monkeypatch):
                     "/current/temperatureText",
                     "/current/condition",
                     "/current/airQuality",
-                    "/updatedAt",
                 ],
             }
         ],
@@ -1387,6 +1386,286 @@ def test_invalid_arguments_keep_plugin_envelope_successful():
     assert legacy_message["explanation"].startswith("工具参数传入有误")
     assert legacy_message["explanation"].endswith("报错信息如下")
     assert legacy_message["error"]["details"]
+
+
+def test_generation_preflight_error_keeps_plugin_format_and_actionable_details(
+    monkeypatch,
+):
+    """前置门禁错误沿用插件包络，并给主 Agent 返回定位和处理动作。"""
+    def unexpected_generate(*_args, **_kwargs):
+        raise AssertionError("generation preflight failure must not call the model")
+
+    monkeypatch.setattr(A2UIModelClient, "generate", unexpected_generate)
+    interaction_id = "generation-preflight-invalid"
+    request_id = _request_id(interaction_id)
+    client = TestClient(app)
+    with client.websocket_connect(
+        "/api/v1/ws/tools/generateWidgetCardCompactDsl"
+    ) as websocket:
+        websocket.send_json(
+            _tool_payload(
+                {
+                    "userQuery": "生成天气卡片",
+                    "size": "2x2",
+                    "title": "天气卡片",
+                    "description": "天气信息",
+                    "candidateDataBindings": [
+                        {
+                            "capabilityId": "ViewWeather",
+                            "arguments": {"districtName": "滨江区"},
+                            "writeResultTo": "/data/weather",
+                        }
+                    ],
+                },
+                interaction_id,
+            )
+        )
+        response = _receive_final_frame(websocket, request_id)
+
+    assert response["errorCode"] == "0"
+    assert response["errorMessage"] == ""
+    assert response["reply"]["items"] == []
+    legacy_message = parse_legacy_stream_content(
+        response["reply"]["streamInfo"]["streamContent"]
+    )
+    assert legacy_message["type"] == "error"
+    assert legacy_message["errorCode"] == "INVALID_ARGUMENTS"
+    details = legacy_message["error"]["details"]
+    assert details["stage"] == "generationPreflight"
+    assert details["modelCalled"] is False
+    assert details["issues"][0]["path"] == (
+        "/candidateDataBindings/0/arguments/prefectureName"
+    )
+    assert details["issues"][0]["agentAction"] == "FIX_AND_RETRY"
+
+
+def test_weak_agent_repairs_weather_request_from_overview_schema_and_preflight(
+    monkeypatch,
+):
+    """模拟较弱主 Agent 根据前三段工具反馈修正整单，再成功进入一次模型调用。"""
+    model_call_count = 0
+    saved_artifacts = []
+
+    def capture_model_call(client, prompt, protocol_profile):
+        nonlocal model_call_count
+        model_call_count += 1
+        return _valid_model_output(client, prompt, protocol_profile)
+
+    def capture_artifact(_store, artifact):
+        saved_artifacts.append(artifact.model_dump(mode="json", exclude_none=True))
+        return ArtifactSaveResult(
+            artifactUrl="https://test.invalid/widget/weak-agent-repaired.md",
+            artifactDigest="sha256:weak-agent-repaired",
+        )
+
+    monkeypatch.setattr(A2UIModelClient, "generate", capture_model_call)
+    monkeypatch.setattr(ArtifactStore, "save", capture_artifact)
+    client = TestClient(app)
+    device_info = {**DEVICE_INFO, "prdVer": "11.7.5.208"}
+    device_info.pop("romVersion")
+
+    with client.websocket_connect(
+        "/api/v1/ws/tools/getWidgetCapabilityOverview"
+    ) as websocket:
+        websocket.send_json(
+            _tool_payload({}, "weak-overview", device_info=device_info)
+        )
+        overview_frame = _receive_final_frame(
+            websocket,
+            _request_id("weak-overview"),
+        )
+    overview_message = _assert_success_envelope(
+        overview_frame,
+        "getWidgetCapabilityOverview",
+        _request_id("weak-overview"),
+    )
+    overview = overview_message["data"]
+    assert any(item["id"] == "ViewWeather" for item in overview["dataCapabilities"])
+    weather_event = next(
+        item
+        for item in overview["eventCapabilities"]
+        if item["id"] == "event.open.weather"
+    )
+
+    with client.websocket_connect(
+        "/api/v1/ws/tools/getDataCapabilitySchemas"
+    ) as websocket:
+        websocket.send_json(
+            _tool_payload(
+                {"dataCapabilityIds": ["ViewWeather"]},
+                "weak-schema",
+                device_info=device_info,
+            )
+        )
+        schema_frame = _receive_final_frame(
+            websocket,
+            _request_id("weak-schema"),
+        )
+    schema_message = _assert_success_envelope(
+        schema_frame,
+        "getDataCapabilitySchemas",
+        _request_id("weak-schema"),
+    )
+    weather_schema = schema_message["data"]["dataCapabilities"][0]
+    assert weather_schema["inputSchema"]["required"] == ["prefectureName"]
+    assert weather_schema["defaultWriteResultTo"] == "/data/weather"
+
+    weak_content = {
+        "userQuery": "使用2x2规格创建上海天气卡，点击可查看天气详情",
+        "size": "2x2",
+        "title": "上海天气",
+        "description": "上海今日天气",
+        "candidateDataBindings": [
+            {
+                "capabilityId": "ViewWeather",
+                "arguments": {"districtName": "上海", "forecastDays": "1"},
+                "writeResultTo": "/weather",
+                "candidateOutputFields": [
+                    "/current/temperatureText",
+                    "/current/condition",
+                    "/current/humidity",
+                    "/current/airQuality",
+                    "/daily/date",
+                ],
+            }
+        ],
+        "candidateEventCandidates": [
+            {
+                "capabilityId": "event.open.weather",
+                "action": {
+                    "call": "clickToIntent",
+                    "args": {
+                        "intentName": "Weather",
+                        "bundleName": "weather",
+                        "abilityName": "MainAbility",
+                        "uri": (
+                            "hww://www.huawei.com/totemweather?"
+                            "enterType=share&cityCode="
+                        ),
+                    },
+                },
+            }
+        ],
+        "candidateAssetIds": ["asset.weather.guessed"],
+    }
+    with client.websocket_connect(
+        "/api/v1/ws/tools/generateWidgetCardCompactDsl"
+    ) as websocket:
+        websocket.send_json(
+            _tool_payload(
+                weak_content,
+                "weak-invalid",
+                device_info=device_info,
+            )
+        )
+        invalid_frame = _receive_final_frame(
+            websocket,
+            _request_id("weak-invalid"),
+        )
+
+    invalid_message = parse_legacy_stream_content(
+        invalid_frame["reply"]["streamInfo"]["streamContent"]
+    )
+    details = invalid_message["error"]["details"]
+    assert model_call_count == 0
+    assert "其它问题" in invalid_message["explanation"]
+    assert details["modelCalled"] is False
+    assert details["requiredActions"] == ["REFRESH_CAPABILITIES", "FIX_AND_RETRY"]
+    issues_by_code = {}
+    for issue in details["issues"]:
+        issues_by_code.setdefault(issue["code"], []).append(issue)
+    issue_paths = {issue["path"] for issue in details["issues"]}
+    assert {
+        "/candidateDataBindings/0/arguments/prefectureName",
+        "/candidateDataBindings/0/arguments/forecastDays",
+        "/candidateDataBindings/0/writeResultTo",
+        "/candidateDataBindings/0/candidateOutputFields/2",
+        "/candidateDataBindings/0/candidateOutputFields/4",
+        "/candidateDataBindings",
+        "/candidateEventCandidates/0/action/call",
+        "/candidateEventCandidates/0/action/args/intentName",
+        "/candidateEventCandidates/0/action/args/uri",
+        "/candidateAssetIds/0",
+    } <= issue_paths
+    missing_city = next(
+        issue
+        for issue in issues_by_code["DATA_ARGUMENT_SCHEMA_INVALID"]
+        if issue["path"].endswith("/prefectureName")
+    )
+    assert "城市名" in missing_city["expected"]
+    assert "询问用户" in missing_city["repairInstruction"]
+    assert issues_by_code["WRITE_RESULT_PATH_INVALID"][0]["expected"] == (
+        weather_schema["defaultWriteResultTo"]
+    )
+    assert issues_by_code["EVENT_CALL_MISMATCH"][0]["expected"] == (
+        weather_event["actionTemplate"]["call"]
+    )
+    assert issues_by_code["OUTPUT_FIELD_BUDGET_EXCEEDED"][0]["expected"].endswith(
+        "最多 4 项"
+    )
+    assert issues_by_code["EVENT_DATA_REFERENCE_MISSING"][0][
+        "referenceSource"
+    ].endswith("actionTemplate")
+    assert issues_by_code["UNKNOWN_CAPABILITY"][0][
+        "referenceSource"
+    ].endswith("assetCandidates[]")
+
+    repaired_content = json.loads(json.dumps(weak_content, ensure_ascii=False))
+    repaired_binding = repaired_content["candidateDataBindings"][0]
+    repaired_binding["arguments"] = {
+        "prefectureName": "上海",
+        "forecastDays": 1,
+    }
+    repaired_binding["writeResultTo"] = weather_schema["defaultWriteResultTo"]
+    repaired_binding["candidateOutputFields"] = [
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/humidityPercent",
+        "/current/alertLevel",
+    ]
+    repaired_content["candidateEventCandidates"][0]["action"] = weather_event[
+        "actionTemplate"
+    ]
+    valid_asset_ids = {item["id"] for item in overview["assetCandidates"]}
+    repaired_content["candidateAssetIds"] = [
+        "asset.icon_weather1"
+    ] if "asset.icon_weather1" in valid_asset_ids else []
+
+    retry_payload = _tool_payload(
+        repaired_content,
+        "weak-repaired",
+        device_info=device_info,
+    )
+    retry_payload["candidateDataBindings"] = weak_content["candidateDataBindings"]
+    retry_payload["candidateEventCandidates"] = weak_content[
+        "candidateEventCandidates"
+    ]
+    with client.websocket_connect(
+        "/api/v1/ws/tools/generateWidgetCardCompactDsl"
+    ) as websocket:
+        websocket.send_json(retry_payload)
+        repaired_frame = _receive_final_frame(
+            websocket,
+            _request_id("weak-repaired"),
+        )
+
+    repaired_message = _assert_success_envelope(
+        repaired_frame,
+        "generateWidgetCardCompactDsl",
+        _request_id("weak-repaired"),
+    )
+    assert repaired_message["data"]["status"] == "success"
+    assert model_call_count == 1
+    assert len(saved_artifacts) == 1
+    artifact = saved_artifacts[0]
+    assert artifact["cardSpec"]["dataBindings"][0]["arguments"] == {
+        "prefectureName": "上海",
+        "forecastDays": 1,
+    }
+    weather_data_model = artifact["taskSpec"]["dataModelSchema"]["data"][
+        "weather"
+    ]
+    assert weather_data_model["location"]["cityCode"]
 
 
 def test_malformed_json_keeps_plugin_envelope_successful():

@@ -393,7 +393,7 @@ curl http://127.0.0.1:8855/health
             "intentName": "Weather_CityCode",
             "bundleName": "",
             "abilityName": "",
-            "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
           }
         }
       }
@@ -473,7 +473,7 @@ failed       系统异常、模型失败、OBS 失败等工程失败
           "intentName": "Weather_CityCode",
           "bundleName": "",
           "abilityName": "",
-          "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
         }
       }
     }
@@ -808,17 +808,21 @@ data_caps, event_caps, assets, removed = resolver.resolve_capability_overview(
 )
 ```
 
-### 6.2 DeviceCapabilityResolver.resolve_generation_data_bindings
+### 6.2 GenerationPreflight.run
 
 签名：
 
 ```python
-resolve_generation_data_bindings(
-    candidate_bindings: list[CandidateDataBinding],
-) -> tuple[list[CandidateDataBinding], list[DataCapability], list[RemovedCapability]]
+run(request: GenerateWidgetCardRequest) -> GenerationPreflightResult
 ```
 
-用途：第三接口只校验能力仍在当前注册表中、参数符合 `inputSchema`、`writeResultTo` 合法且无冲突；不查询 IDS，也不重复执行 `dependencies` 过滤。
+用途：生成接口在构造 Prompt 和调用模型前执行统一硬门禁。一次性校验数据、事件和素材候选，并在没有
+blocking issue 时构造 CardSpec 和 TaskSpec；不查询 IDS，也不重复执行 `dependencies` 过滤。
+
+阻断项包括未注册 ID、参数 schema 错误、静态数据入参中的绑定表达式、非法或冲突的
+`writeResultTo`、非法或超过 4 项总预算的字段投影、事件 call/args、缺失或错误的数据引用，以及未注册
+素材。issue 返回 `path/expected/actualType/agentAction/repairInstruction/referenceSource/retryable`，既不回显
+实际参数值，又能让主 Agent 回到第一或第二接口结果完成定点修正。
 
 ### 6.3 IDSClient.get_device_capability_state
 
@@ -895,7 +899,7 @@ build(
 用途：根据过滤后的有效能力生成最终 CardSpec。
 
 其中 `title` 和 `description` 来自第三个接口 `generateWidgetCard` 的入参，
-由 `WidgetGenerationService` 传给 `CardSpecBuilder`，最终随 CardSpec 写入 artifact。
+由 `GenerationPreflight` 传给 `CardSpecBuilder`，最终随 CardSpec 写入 artifact。
 
 规则：
 
@@ -942,7 +946,14 @@ assetCandidates
 
 ### 7.3 TaskSpecBuilder 字段投影
 
-用途：按 JSON Pointer 校验 `candidateOutputFields` 是否能直接解析到能力 `outputSchema` 叶子，从该叶子读取必需的 `type` 和 `description`；优先使用显式 `sampleValue`，缺省时按类型生成受控默认值：`string` 为 `"示例"`，`integer/number` 为 `0`，`boolean` 为 `false`，`null` 为 `null`。随后按 `writeResultTo + 原叶子路径` 合并多个能力的 `dataModelSchema`。数组元素 schema 统一使用 canonical 下标 `0`，例如 `/events/0/title`；其它数组下标视为非法投影。部分非法路径被忽略；未传投影或全部路径非法时回退到该能力全部合法叶子字段。缺少 `sampleValue` 不阻断注册表加载或字段投影；显式 `sampleValue` 的 JSON 类型与 `type` 不一致时仍拒绝能力配置。
+用途：按 JSON Pointer 读取已经由 `GenerationPreflight` 校验通过的 `candidateOutputFields`，从能力
+`outputSchema` 叶子取得必需的 `type` 和 `description`；优先使用显式 `sampleValue`，缺省时按类型生成
+受控默认值：`string` 为 `"示例"`，`integer/number` 为 `0`，`boolean` 为 `false`，`null` 为 `null`。随后
+按 `writeResultTo + 原叶子路径` 合并多个能力的 `dataModelSchema`。所有显式展示投影去重后合计最多 4
+项；事件动作引用的合法数据叶子会自动补入且不占展示预算，避免事件依赖延迟到 DSL 校验阶段才失败。
+数组元素 schema 统一使用 canonical 下标 `0`，例如 `/events/0/title`；其它数组下标由前置门禁整单拒绝。
+未传投影或传入空数组时回退到该能力全部合法叶子字段。缺少 `sampleValue` 不阻断注册表加载或字段投影；
+显式 `sampleValue` 的 JSON 类型与 `type` 不一致时仍拒绝能力配置。
 
 端侧会将符合 `outputSchema` 的能力结果整体写入 `writeResultTo`，当前没有字段重命名、扁平化或派生字段转换层。因此 TaskSpec 不得使用独立映射表改写目标路径；未来需要转换时，应先增加并版本化实际运行时转换契约。
 

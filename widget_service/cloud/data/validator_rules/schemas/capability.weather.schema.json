@@ -3,7 +3,6 @@
   "preferredWriteResultTo": "/data/weather",
   "inputSchema": {
     "type": "object",
-    "required": ["prefectureName"],
     "properties": {
       "districtName": {
         "type": "string",
@@ -19,6 +18,9 @@
         "maximum": 5
       }
     },
+    "required": [
+      "prefectureName"
+    ],
     "additionalProperties": false
   },
   "outputSchema": {
@@ -27,25 +29,56 @@
       "location": {
         "type": "object",
         "properties": {
-          "cityCode": {"type": "string"},
-          "districtName": {"type": "string"},
-          "prefectureName": {"type": "string"}
+          "cityCode": {
+            "type": "string"
+          },
+          "districtName": {
+            "type": "string"
+          },
+          "prefectureName": {
+            "type": "string"
+          }
         }
       },
       "current": {
         "type": "object",
         "properties": {
-          "temperatureC": {"type": "number"},
-          "temperatureText": {"type": "string"},
-          "condition": {"type": "string"},
-          "feelsLikeC": {"type": "number"},
-          "humidityPercent": {"type": "number"},
-          "airQuality": {"type": "string"},
-          "windDirection": {"type": "string"},
-          "windLevel": {"type": "integer"},
-          "uvIndex": {"type": "string"},
-          "coldLevel": {"type": "string"},
-          "alertLevel": {"type": "string"}
+          "temperatureC": {
+            "type": "number"
+          },
+          "temperatureText": {
+            "type": "string"
+          },
+          "condition": {
+            "type": "string"
+          },
+          "feelsLikeC": {
+            "type": "number"
+          },
+          "humidityPercent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "airQuality": {
+            "type": "string"
+          },
+          "windDirection": {
+            "type": "string"
+          },
+          "windLevel": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "uvIndex": {
+            "type": "string"
+          },
+          "coldLevel": {
+            "type": "string"
+          },
+          "alertLevel": {
+            "type": "string"
+          }
         }
       },
       "daily": {
@@ -53,18 +86,36 @@
         "items": {
           "type": "object",
           "properties": {
-            "date": {"type": "string"},
-            "weekday": {"type": "string"},
-            "condition": {"type": "string"},
-            "temperatureRangeText": {"type": "string"},
-            "rainProbabilityPercent": {"type": "string"},
-            "airQuality": {"type": "string"},
-            "uvIndex": {"type": "string"},
-            "coldLevel": {"type": "string"}
+            "date": {
+              "type": "string"
+            },
+            "weekday": {
+              "type": "string"
+            },
+            "condition": {
+              "type": "string"
+            },
+            "temperatureRangeText": {
+              "type": "string"
+            },
+            "rainProbabilityPercent": {
+              "type": "string"
+            },
+            "airQuality": {
+              "type": "string"
+            },
+            "uvIndex": {
+              "type": "string"
+            },
+            "coldLevel": {
+              "type": "string"
+            }
           }
         }
       },
-      "updatedAt": {"type": "string"}
+      "updatedAt": {
+        "type": "string"
+      }
     }
   }
 }

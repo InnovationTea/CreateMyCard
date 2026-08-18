@@ -25,6 +25,7 @@ from config.config import get_settings
 from core.errors import ErrorCode
 from custom.model_runtime import ModelExecutionRuntime
 from models.generation import DEFAULT_WIDGET_SIZE, ModelRequestContext, WidgetSize
+from models.preflight import GenerationPreflightError
 from models.service import (
     WidgetPluginReply,
     WidgetPluginStreamResponse,
@@ -59,14 +60,16 @@ FORCED_WIDGET_DIRECTIVE_OPERATIONS = frozenset(
 
 ERROR_EXPLANATIONS = {
     ErrorCode.INVALID_ARGUMENTS.value: (
-        "工具参数传入有误，请检查必填字段、字段类型和字段取值后重新调用。报错信息如下"
+        "工具参数传入有误，请按 details.issues 修正全部必填字段、类型和取值后再调用；"
+        "不要只修第一项或原样重试。报错信息如下"
     ),
     ErrorCode.UNKNOWN_CAPABILITY.value: (
-        "工具参数中包含未注册的能力 ID，请重新获取能力概述，并仅使用返回的能力 ID。报错信息如下"
+        "工具参数中包含未注册的能力 ID，请重新获取能力概述，并仅使用返回的能力 ID；"
+        "随后继续修正 details.issues 中的其它问题。报错信息如下"
     ),
     ErrorCode.WRITE_RESULT_CONFLICT.value: (
         "多个数据能力的写入路径存在冲突，请调整 writeResultTo，"
-        "避免路径相同、嵌套或相互覆盖。报错信息如下"
+        "避免路径相同、嵌套或相互覆盖，并继续修正 details.issues 中的其它问题。报错信息如下"
     ),
     ErrorCode.NO_EFFECTIVE_CAPABILITY.value: (
         "本次请求没有可用于生成卡片的有效能力，请检查候选能力、参数和设备可用性后重新规划。报错信息如下"
@@ -334,18 +337,30 @@ def _model_request_context_from_payload(
     )
 
 
-def _error_details(exc: ValidationError | ValueError) -> list[dict[str, Any]] | str:
+def _error_details(
+    exc: ValidationError | ValueError,
+) -> dict[str, Any] | list[dict[str, Any]] | str:
     """将参数异常转换成可序列化详情。
 
     入参：
     - exc：Pydantic 校验异常或业务参数异常。
     出参：可写入 WebSocket 错误消息的详情对象。
     """
+    if isinstance(exc, GenerationPreflightError):
+        return exc.details()
     if isinstance(exc, ValidationError):
         # Pydantic 的 ctx 可能携带原生 ValueError，input 可能包含完整请求或注册表；
         # 二者既不适合对外返回，也可能导致错误响应再次序列化失败。
         return exc.errors(include_context=False, include_input=False)
     return str(exc)
+
+
+def _value_error_code(exc: ValueError) -> str:
+    """读取业务参数异常的错误码，普通参数错误保持原有错误码。"""
+    error_code = getattr(exc, "error_code", ErrorCode.INVALID_ARGUMENTS)
+    if isinstance(error_code, ErrorCode):
+        return error_code.value
+    return str(error_code)
 
 
 def _build_plugin_stream_response(
@@ -713,9 +728,11 @@ async def _serve_operation_websocket(
                     return
             except ValueError as exc:
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
+                error_code = _value_error_code(exc)
                 logger.error(
                     f"{_MODULE} widget_operation_ws_invalid_arguments request_id={request_id} "
                     f"operation={operation} duration_ms={duration_ms} "
+                    f"error_code={error_code} "
                     f"details={json_for_log(_error_details(exc))} "
                     f"exception_type={type(exc).__name__} exception={exc!r} "
                     f"traceback={traceback.format_exc()}"
@@ -724,7 +741,7 @@ async def _serve_operation_websocket(
                     tool=operation,
                     operation=operation,
                     requestId=request_id,
-                    errorCode="INVALID_ARGUMENTS",
+                    errorCode=error_code,
                     error={
                         "message": f"Invalid {operation} arguments.",
                         "details": _error_details(exc),

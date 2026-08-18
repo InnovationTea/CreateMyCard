@@ -68,6 +68,7 @@ from models.generation import (
     GenerationOptions,
     TaskSpec,
 )
+from models.preflight import GenerationPreflightError
 from models.service import (
     ArtifactSaveResult,
     WidgetWebSocketErrorMessage,
@@ -2373,20 +2374,15 @@ async def test_generation_stops_before_model_when_event_data_dependency_is_missi
         ],
     )
 
-    response = await WidgetGenerationService().generate_widget_card_compact_dsl(
-        request
-    )
+    with pytest.raises(GenerationPreflightError) as exc_info:
+        await WidgetGenerationService().generate_widget_card_compact_dsl(request)
 
-    assert response.status == GenerationStatus.UNSUPPORTED
-    assert response.errorCode == ErrorCode.NO_EFFECTIVE_CAPABILITY.value
-    assert [(item.id, item.type, item.reason) for item in response.removedCapabilities] == [
-        ("ViewWeather", "data", ErrorCode.INVALID_ARGUMENTS.value),
-        (
-            "event.open.weather",
-            "event",
-            ErrorCode.NO_EFFECTIVE_CAPABILITY.value,
-        ),
-    ]
+    details = exc_info.value.details()
+    assert details["modelCalled"] is False
+    assert details["issues"][0]["path"] == (
+        "/candidateDataBindings/0/arguments/prefectureName"
+    )
+    assert details["warnings"][0]["code"] == "EVENT_DATA_DEPENDENCY_REMOVED"
 
 
 def test_task_spec_builder_preserves_output_leaf_path():

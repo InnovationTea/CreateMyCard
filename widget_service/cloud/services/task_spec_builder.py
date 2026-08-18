@@ -7,6 +7,7 @@ from app.logger import json_for_log, logger
 from core.json_pointer import parse_json_pointer
 from models.capability import AssetCapability, DataCapability
 from models.generation import CandidateDataBinding, EventAction, TaskSpec, WidgetSize
+from services.card_validation.base import expression_references
 
 PathPart = str | int
 
@@ -34,6 +35,7 @@ class TaskSpecBuilder:
         """按有效能力 outputSchema 构造传给 A2UI 模型的 TaskSpec。"""
         data_model_schema: dict[str, Any] = {"data": {}}
         capability_by_id = {item.id: item for item in effective_data_capabilities}
+        event_data_paths = self._event_data_reference_paths(event_candidates)
 
         for binding in effective_bindings:
             capability = capability_by_id.get(binding.capabilityId)
@@ -46,7 +48,7 @@ class TaskSpecBuilder:
             seen: set[tuple[PathPart, ...]] = set()
 
             for pointer in requested_paths:
-                resolved = self._resolve_leaf(capability.outputSchema, pointer)
+                resolved = self.resolve_output_leaf(capability.outputSchema, pointer)
                 if resolved is None:
                     invalid_paths.append(pointer)
                     continue
@@ -55,9 +57,24 @@ class TaskSpecBuilder:
                     seen.add(parts)
                     valid_fields.append((parts, leaf))
 
+            event_pointers = self._event_pointers_for_binding(
+                event_data_paths,
+                binding.writeResultTo,
+                capability.outputSchema,
+            )
+            for pointer in event_pointers:
+                resolved = self.resolve_output_leaf(capability.outputSchema, pointer)
+                if resolved is None:
+                    continue
+                parts, leaf = resolved
+                if parts not in seen:
+                    seen.add(parts)
+                    valid_fields.append((parts, leaf))
+
             if invalid_paths:
                 logger.warning(
-                    f"{_MODULE} candidate_output_fields_ignored capability_id={binding.capabilityId} "
+                    f"{_MODULE} candidate_output_fields_ignored "
+                    f"capability_id={binding.capabilityId} "
                     f"invalid_paths={json_for_log(invalid_paths)}"
                 )
 
@@ -65,7 +82,8 @@ class TaskSpecBuilder:
             if not requested_paths or not valid_fields:
                 valid_fields = list(self._iter_valid_leaves(capability.outputSchema))
                 logger.info(
-                    f"{_MODULE} candidate_output_fields_fallback capability_id={binding.capabilityId} "
+                    f"{_MODULE} candidate_output_fields_fallback "
+                    f"capability_id={binding.capabilityId} "
                     f"reason={'missing' if not requested_paths else 'all_invalid'} "
                     f"field_count={len(valid_fields)}"
                 )
@@ -104,7 +122,82 @@ class TaskSpecBuilder:
             ],
         )
 
-    def _resolve_leaf(
+    @classmethod
+    def _event_data_reference_paths(cls, events: list[EventAction]) -> set[str]:
+        paths = set()
+        for event in events:
+            paths.update(cls._data_reference_paths(event.args))
+        return paths
+
+    @classmethod
+    def _data_reference_paths(cls, value: Any) -> set[str]:
+        paths: set[str] = set()
+        if isinstance(value, str):
+            paths.update(
+                path for path in expression_references(value) if path.startswith("/data/")
+            )
+            return paths
+        if isinstance(value, dict):
+            path = value.get("path") if set(value) == {"path"} else None
+            if isinstance(path, str) and path.startswith("/data/"):
+                paths.add(path)
+                return paths
+            for child in value.values():
+                paths.update(cls._data_reference_paths(child))
+            return paths
+        if isinstance(value, list):
+            for child in value:
+                paths.update(cls._data_reference_paths(child))
+        return paths
+
+    @classmethod
+    def _event_pointers_for_binding(
+        cls,
+        event_data_paths: set[str],
+        write_result_to: str,
+        output_schema: dict[str, Any],
+    ) -> list[str]:
+        root = write_result_to.rstrip("/")
+        pointers = []
+        for path in sorted(event_data_paths):
+            if not path.startswith(f"{root}/"):
+                continue
+            relative_path = path.removeprefix(root)
+            pointer = cls._canonical_output_pointer(output_schema, relative_path)
+            if pointer is not None:
+                pointers.append(pointer)
+        return pointers
+
+    @staticmethod
+    def _canonical_output_pointer(
+        schema: dict[str, Any],
+        pointer: str,
+    ) -> str | None:
+        parts = parse_json_pointer(pointer)
+        if not parts:
+            return None
+        current = schema
+        canonical_parts = []
+        for part in parts:
+            schema_type = current.get("type")
+            if schema_type == "object":
+                child = current.get("properties", {}).get(part)
+                if not isinstance(child, dict):
+                    return None
+                canonical_parts.append(part)
+                current = child
+                continue
+            if schema_type == "array":
+                items = current.get("items")
+                if not part.isdigit() or not isinstance(items, dict):
+                    return None
+                canonical_parts.append("0")
+                current = items
+                continue
+            return None
+        return "".join(f"/{part}" for part in canonical_parts)
+
+    def resolve_output_leaf(
         self,
         schema: dict[str, Any],
         pointer: str,

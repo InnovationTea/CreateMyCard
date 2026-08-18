@@ -29,10 +29,10 @@ from custom.a2ui_model_client import (
 )
 from custom.model_runtime import ModelExecutionRuntime
 from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
-from models.generation import DEFAULT_WIDGET_SIZE, EventAction, ModelRequestContext, WidgetSize
+from models.generation import DEFAULT_WIDGET_SIZE, ModelRequestContext, WidgetSize
+from models.preflight import GenerationPreflightError
 from services.artifact_store import ArtifactStore
 from services.capability_registry import CapabilityRegistry
-from services.card_spec_builder import CardSpecBuilder
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_pipeline import (
@@ -43,6 +43,7 @@ from services.generation_pipeline import (
     QualityIssue,
     get_dsl_processor,
 )
+from services.generation_preflight import GenerationPreflight
 from services.prompt_builder import PromptBuilder
 from services.protocol_registry import (
     A2UI_FORM_PROTOCOL_PROFILE_ID,
@@ -57,7 +58,6 @@ from services.source_artifact_repository import (
     SourceArtifactLoadResult,
     SourceArtifactRepository,
 )
-from services.task_spec_builder import TaskSpecBuilder
 from services.validator import ArtifactValidator
 
 _MODULE = "[Generation Service]"
@@ -400,6 +400,31 @@ class WidgetGenerationService:
         logger.info(
             f"{_MODULE} generate_flow_step_registry_loaded registry_version={registry.version}"
         )
+        latency_by_stage["registry"] = self._elapsed_ms(stage_started_at)
+        stage_started_at = time.perf_counter()
+        # 设备可用性已由第一个接口完成；生成前置门禁只做确定性的注册表和结构校验。
+        preflight = GenerationPreflight(registry).run(request)
+        if preflight.blocking_issues:
+            issue_payloads = [
+                item.model_dump(mode="json") for item in preflight.blocking_issues
+            ]
+            logger.warning(
+                f"{_MODULE} generation_preflight_rejected "
+                f"issue_count={len(preflight.blocking_issues)} "
+                f"issues={json_for_log(issue_payloads)}"
+            )
+            raise GenerationPreflightError(preflight)
+        effective_bindings = list(preflight.effective_bindings)
+        effective_data_capabilities = list(preflight.effective_data_capabilities)
+        effective_events = list(preflight.effective_events)
+        asset_candidates = list(preflight.effective_assets)
+        removed = list(preflight.removed_capabilities)
+        card_spec = preflight.card_spec
+        task_spec = preflight.task_spec
+        if card_spec is None or task_spec is None:
+            raise RuntimeError("generation preflight did not build generation specs")
+        latency_by_stage["generationPreflight"] = self._elapsed_ms(stage_started_at)
+        stage_started_at = time.perf_counter()
         # 协议 profile 决定 A2UI 组件白名单、DSL 行数要求和校验规则。
         protocol_registry = A2UIProtocolRegistry(policy.protocol_profile_id)
         protocol_profile = protocol_registry.get_profile()
@@ -435,60 +460,26 @@ class WidgetGenerationService:
             f"model_backend={policy.backend} "
             f"design_profile_id={policy.design_profile_id or ''}"
         )
-        latency_by_stage["registryAndProtocol"] = self._elapsed_ms(stage_started_at)
+        latency_by_stage["protocol"] = self._elapsed_ms(stage_started_at)
         stage_started_at = time.perf_counter()
-        # 设备可用性已由第一个接口完成；生成接口只做绑定结构校验，不再查询 IDS。
-        resolver = DeviceCapabilityResolver(registry)
-        effective_bindings, effective_data_capabilities, removed_data = (
-            resolver.resolve_generation_data_bindings(request.candidateDataBindings)
-        )
         logger.info(
             f"{_MODULE} prevalidated_data_capability_loaded "
             f"effective_binding_count={len(effective_bindings)} "
-            f"removed_count={len(removed_data)} "
             "effective_binding_ids="
-            f"{json_for_log([item.capabilityId for item in effective_bindings])} "
-            "removed_data="
-            f"{json_for_log([item.model_dump(mode='json') for item in removed_data])}"
-        )
-        # 事件候选还需确认其动态数据路径有有效 binding 支撑，避免生成矛盾 TaskSpec。
-        candidate_events = self._normalize_event_candidates(request)
-        effective_events, removed_events = resolver.resolve_generation_event_candidates(
-            candidate_events,
-            effective_bindings,
+            f"{json_for_log([item.capabilityId for item in effective_bindings])}"
         )
         logger.info(
             f"{_MODULE} event_capability_resolved effective_event_count={len(effective_events)} "
-            f"removed_count={len(removed_events)} "
+            f"removed_count={len(removed)} "
             "effective_events="
             f"{json_for_log([item.model_dump(mode='json') for item in effective_events])} "
-            "removed_events="
-            f"{json_for_log([item.model_dump(mode='json') for item in removed_events])}"
+            "preflight_warnings="
+            f"{json_for_log([item.model_dump(mode='json') for item in preflight.warnings])}"
         )
-        asset_candidates = []
-        removed_assets = []
-        for asset_id in request.candidateAssetIds:
-            # 素材同样只解析第一个接口返回的可用 ID。
-            asset = registry.get_asset_capability(asset_id)
-            if asset is None:
-                removed_assets.append(
-                    resolver._removed(asset_id, ErrorCode.UNKNOWN_CAPABILITY, "asset")
-                )
-            else:
-                asset_candidates.append(asset)
-
-        # removed 是统一降级信息源，最终会同时进入 prompt、artifact 和响应。
-        removed = removed_data + removed_events + removed_assets
         logger.info(
             f"{_MODULE} asset_capability_resolved effective_asset_count={len(asset_candidates)} "
-            f"removed_count={len(removed_assets)} "
-            "effective_asset_ids="
-            f"{json_for_log([item.id for item in asset_candidates])} "
-            "removed_assets="
-            f"{json_for_log([item.model_dump(mode='json') for item in removed_assets])}"
+            f"effective_asset_ids={json_for_log([item.id for item in asset_candidates])}"
         )
-        latency_by_stage["capabilityResolution"] = self._elapsed_ms(stage_started_at)
-        stage_started_at = time.perf_counter()
         if request.candidateDataBindings and not effective_bindings and not effective_events:
             # 没有剩余动态数据或可用入口时，不调用模型，也不伪造数据绑定。
             logger.warning(
@@ -514,23 +505,6 @@ class WidgetGenerationService:
             )
             return response
 
-        # CardSpec 是端侧运行时刷新数据的契约，只包含裁决后的有效数据绑定。
-        # CardSpec 由服务侧统一组装；标题和说明直接透传第三个生成接口的入参。
-        card_spec = CardSpecBuilder().build(
-            request.size,
-            effective_bindings,
-            request.title,
-            request.description,
-        )
-        # TaskSpec 是给 A2UI 模型的输入，包含用户目标、有效能力、事件和素材。
-        task_spec = TaskSpecBuilder().build(
-            request.userQuery,
-            request.size,
-            effective_bindings,
-            effective_data_capabilities,
-            effective_events,
-            asset_candidates,
-        )
         logger.info(
             f"{_MODULE} card_and_task_spec_built data_binding_count={len(effective_bindings)} "
             "card_spec="
@@ -1246,30 +1220,6 @@ class WidgetGenerationService:
             f"design_profile_id={selection.design_profile_id} selection_type={selection_type}"
         )
         return selection
-
-    def _normalize_event_candidates(
-        self,
-        request: GenerateWidgetCardRequest,
-    ) -> list[EventAction]:
-        """归一化候选事件入参。
-
-        入参：
-        - request：生成接口请求。
-        出参：统一后的 EventAction 列表。
-        """
-        # 最新云侧方案要求 capabilityId 和 action 放在同一候选项里，避免能力 ID 与事件参数错配。
-        candidates: list[EventAction] = []
-        for candidate in request.candidateEventCandidates:
-            # EventAction 是模型 TaskSpec 使用的内部结构，id 用于后续设备能力过滤。
-            candidates.append(
-                EventAction(
-                    id=candidate.capabilityId,
-                    call=candidate.action.call,
-                    args=candidate.action.args,
-                )
-            )
-
-        return candidates
 
     def _capability_registry(
         self,
