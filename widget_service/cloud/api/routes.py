@@ -44,18 +44,26 @@ _MODULE = "[WS Router]"
 
 router = APIRouter(prefix="/api/v1")
 
-TEMPORARY_COMPACT_DIRECTIVE_OPERATION = "generateWidgetCardCompactDslWithDirective"
+COMPACT_DSL_OPERATION = "generateWidgetCardCompactDsl"
 GENERATION_OPERATIONS = frozenset(
     {
         "generateWidgetCard",
-        "generateWidgetCardCompactDsl",
+        COMPACT_DSL_OPERATION,
         "generateWidgetCardTerseDslNested2",
-        TEMPORARY_COMPACT_DIRECTIVE_OPERATION,
     }
 )
-# 临时接口只在路由层强制开启指令帧；删除临时入口时一并删除该集合即可。
-FORCED_WIDGET_DIRECTIVE_OPERATIONS = frozenset(
-    {TEMPORARY_COMPACT_DIRECTIVE_OPERATION}
+COMPACT_DSL_CONTENT_FIELDS = frozenset(
+    {
+        "userQuery",
+        "sourceArtifactUrl",
+        "size",
+        "title",
+        "description",
+        "candidateDataBindings",
+        "candidateEventCandidates",
+        "candidateAssetIds",
+        "options",
+    }
 )
 
 ERROR_EXPLANATIONS = {
@@ -125,6 +133,65 @@ ERROR_EXPLANATIONS = {
 DEFAULT_ERROR_EXPLANATION = (
     "工具执行过程中发生未分类的服务异常，本次调用未成功完成，建议稍后重试。报错信息如下"
 )
+
+
+class NestedToolArgumentsError(ValueError):
+    """表示主 Agent 把完整工具调用再次嵌套进了 content.arguments。"""
+
+    error_code = ErrorCode.INVALID_ARGUMENTS
+
+    def __init__(self, arguments_value: Any) -> None:
+        self.arguments_type = _json_type_name(arguments_value)
+        super().__init__("content.arguments must be a JSON object with direct tool arguments")
+
+    def details(self) -> dict[str, Any]:
+        """构造保持插件包络格式的可执行修复说明。"""
+        return {
+            "stage": "requestEnvelope",
+            "modelCalled": False,
+            "retryable": True,
+            "requiredActions": ["FIX_AND_RETRY"],
+            "agentInstruction": (
+                "调用 generateWidgetCardCompactDsl 时，arguments 应该是一个合法的 JSON 对象，"
+                "不能是 JSON 字符串，也不能再次包含 skillName、functionName 或 arguments 外层。"
+                "请把 userQuery、title、description 等工具字段直接放入 arguments 后重新调用。"
+            ),
+            "issues": [
+                {
+                    "code": "NESTED_TOOL_ARGUMENTS",
+                    "path": "/content/arguments",
+                    "message": "content 未包含生成接口字段，却包含了嵌套的 arguments。",
+                    "expected": "JSON object containing the generation tool fields directly",
+                    "actualType": self.arguments_type,
+                    "agentAction": "FIX_AND_RETRY",
+                    "retryable": True,
+                    "capabilityId": "",
+                    "repairInstruction": (
+                        "将 arguments 的 JSON 字符串解析为对象，并把该对象直接作为工具 arguments；"
+                        "不要传 skillName、functionName、uid、odid 或 romVersion。"
+                    ),
+                    "referenceSource": "generateWidgetCardCompactDsl tool schema",
+                }
+            ],
+            "warnings": [],
+        }
+
+
+def _json_type_name(value: Any) -> str:
+    """返回不会泄露实际值的 JSON 类型名称。"""
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, dict):
+        return "object"
+    if isinstance(value, list):
+        return "array"
+    if isinstance(value, str):
+        return "string"
+    if isinstance(value, (int, float)):
+        return "number"
+    return type(value).__name__
 
 
 def get_service(
@@ -268,11 +335,27 @@ def _normalize_payload(
     出参：requestId 与内部业务入参；优先支持 content/deviceInfo/session 新协议。
     """
     if "content" in payload or "deviceInfo" in payload or "session" in payload:
+        _validate_compact_dsl_content(payload, operation)
         envelope = ToolRequestEnvelope(**payload)
         return _request_id_from_envelope(envelope), _arguments_from_envelope(
             envelope, operation
         )
     return payload.get("requestId"), payload.get("arguments", payload)
+
+
+def _validate_compact_dsl_content(
+    payload: dict[str, Any],
+    operation: str,
+) -> None:
+    """拒绝把完整工具调用元数据再次嵌套到第四接口 content 的请求。"""
+    if operation != COMPACT_DSL_OPERATION:
+        return
+    content = payload.get("content")
+    if not isinstance(content, dict):
+        return
+    has_direct_fields = bool(COMPACT_DSL_CONTENT_FIELDS.intersection(content))
+    if "arguments" in content and not has_direct_fields:
+        raise NestedToolArgumentsError(content["arguments"])
 
 
 def _mapping(value: Any) -> dict[str, Any]:
@@ -346,6 +429,8 @@ def _error_details(
     - exc：Pydantic 校验异常或业务参数异常。
     出参：可写入 WebSocket 错误消息的详情对象。
     """
+    if isinstance(exc, NestedToolArgumentsError):
+        return exc.details()
     if isinstance(exc, GenerationPreflightError):
         return exc.details()
     if isinstance(exc, ValidationError):
@@ -432,7 +517,7 @@ async def _send_widget_directive_command(
     artifact_url: str = "",
 ) -> bool:
     """按开关发送生成进度指令，不改变原有业务帧和异常处理。"""
-    if not _widget_directive_commands_enabled(operation):
+    if not _widget_directive_commands_enabled():
         return True
     response = build_widget_directive_response(
         raw_payload,
@@ -452,11 +537,9 @@ async def _send_widget_directive_command(
     )
 
 
-def _widget_directive_commands_enabled(operation: str) -> bool:
+def _widget_directive_commands_enabled() -> bool:
     """判断当前生成接口是否需要下发端侧卡片指令。"""
-    settings_enabled = get_settings().enable_widget_directive_commands
-    operation_forced = operation in FORCED_WIDGET_DIRECTIVE_OPERATIONS
-    return settings_enabled or operation_forced
+    return get_settings().enable_widget_directive_commands
 
 
 def _generation_result_directive(
@@ -585,10 +668,10 @@ async def _serve_operation_websocket(
                 f"request_body={json_for_log(payload)}"
             )
             started_at = time.perf_counter()
-            request_id = None
+            request_id = raw_request_id
             arguments: dict[str, Any] = {}
             heartbeat_task: asyncio.Task | None = None
-            streaming_text_id = uuid.uuid4().hex
+            streaming_text_id = request_id or uuid.uuid4().hex
             metrics.task_started()
             try:
                 if not isinstance(payload, dict):
@@ -665,7 +748,7 @@ async def _serve_operation_websocket(
                     ) -> None:
                         nonlocal directive_size, widget_directive_started
                         directive_size = resolved_size
-                        command_enabled = _widget_directive_commands_enabled(operation)
+                        command_enabled = _widget_directive_commands_enabled()
                         command_sent = await _send_widget_directive_command(
                             websocket,
                             raw_payload,
@@ -885,23 +968,6 @@ async def generate_widget_card_compact_dsl_ws(websocket: WebSocket):
     await _serve_operation_websocket(
         websocket,
         "generateWidgetCardCompactDsl",
-        GenerateWidgetCardRequest,
-        lambda service, request, before_model_call: service.generate_widget_card_compact_dsl(
-            request,
-            before_model_call=before_model_call,
-        ),
-        heartbeat=True,
-        heartbeat_interval=6.0,
-        handler_in_threadpool=False,
-    )
-
-
-@router.websocket(f"/ws/tools/{TEMPORARY_COMPACT_DIRECTIVE_OPERATION}")
-async def generate_widget_card_compact_dsl_with_directive_ws(websocket: WebSocket):
-    """临时复用第四接口，并始终发送端侧指令帧。"""
-    await _serve_operation_websocket(
-        websocket,
-        TEMPORARY_COMPACT_DIRECTIVE_OPERATION,
         GenerateWidgetCardRequest,
         lambda service, request, before_model_call: service.generate_widget_card_compact_dsl(
             request,

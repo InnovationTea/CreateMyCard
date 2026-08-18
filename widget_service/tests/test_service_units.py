@@ -1227,7 +1227,6 @@ def test_public_tool_schemas_do_not_expose_version_overrides():
         "getDataCapabilitySchemas.schema.json",
         "generateWidgetCard.schema.json",
         "generateWidgetCardCompactDsl.schema.json",
-        "generateWidgetCardCompactDslWithDirective.schema.json",
         "generateWidgetCardTerseDslNested2.schema.json",
     ]
 
@@ -1243,7 +1242,6 @@ def test_generation_tool_schemas_default_to_2x2():
     schema_names = [
         "generateWidgetCard.schema.json",
         "generateWidgetCardCompactDsl.schema.json",
-        "generateWidgetCardCompactDslWithDirective.schema.json",
         "generateWidgetCardTerseDslNested2.schema.json",
     ]
 

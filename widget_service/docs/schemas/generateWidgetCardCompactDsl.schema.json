@@ -10,7 +10,7 @@
       "content": {
         "type": "object",
         "required": true,
-        "description": "唯一业务入参来源，对应旧协议 arguments；odid 可选；外层同名业务字段不会覆盖 content。",
+        "description": "唯一业务入参来源，对应旧协议 arguments；odid 可选；外层同名业务字段不会覆盖 content；不得再次嵌套 arguments 或传入字符串化工具调用。",
         "requiredProperties": ["userQuery", "title", "description"],
         "properties": {
           "bundleName": {

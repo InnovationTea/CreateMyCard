@@ -1125,102 +1125,11 @@ def test_generation_routes_send_start_and_success_commands(monkeypatch):
     assert len(card_ids) == len(routes)
 
 
-def test_temporary_compact_route_forces_directives_without_global_switch(monkeypatch):
-    """验证临时接口复用第四接口结果，但在全局开关关闭时仍发送指令。"""
-    settings = get_settings()
-    monkeypatch.setattr(settings, "enable_widget_directive_commands", False)
-    monkeypatch.setattr(A2UIModelClient, "generate", _valid_model_output)
-    monkeypatch.setattr(
-        ArtifactStore,
-        "save",
-        lambda _store, _artifact: ArtifactSaveResult(
-            artifactUrl="https://test.invalid/widget/temporary-directive.json",
-            artifactDigest="sha256:temporary-directive",
-        ),
-    )
-    content = {
-        "userQuery": "生成静态天气卡片",
-        "title": "天气",
-        "description": "天气概览",
-        "candidateDataBindings": [],
-        "candidateEventCandidates": [],
-        "candidateAssetIds": [],
-    }
-    client = TestClient(app)
-    standard_interaction_id = "directive-standard-disabled"
-    temporary_interaction_id = "directive-temporary-forced"
+def test_obsolete_compact_directive_route_is_not_registered():
+    """已下线的临时生成接口不能继续出现在应用路由表。"""
+    route_paths = {getattr(route, "path", "") for route in app.routes}
 
-    with client.websocket_connect(
-        "/api/v1/ws/tools/generateWidgetCardCompactDsl"
-    ) as websocket:
-        websocket.send_json(_tool_payload(content, standard_interaction_id))
-        standard_frames = _receive_frames_until_final(
-            websocket,
-            _request_id(standard_interaction_id),
-        )
-
-    temporary_operation = "generateWidgetCardCompactDslWithDirective"
-    with client.websocket_connect(
-        f"/api/v1/ws/tools/{temporary_operation}"
-    ) as websocket:
-        websocket.send_json(_tool_payload(content, temporary_interaction_id))
-        temporary_frames = _receive_frames_until_final(
-            websocket,
-            _request_id(temporary_interaction_id),
-        )
-
-    standard_types = [item["reply"]["streamInfo"]["streamType"] for item in standard_frames]
-    temporary_types = [
-        item["reply"]["streamInfo"]["streamType"] for item in temporary_frames
-    ]
-    assert standard_types == ["start", "final"]
-    assert temporary_types == ["start", "command", "command", "final"]
-    temporary_start = _command_content(temporary_frames[1])
-    temporary_success = _command_content(temporary_frames[2])
-    temporary_card_id = temporary_start["directives"][0]["payload"]["executeParam"]["cardId"]
-    success_card_id = temporary_success["directives"][0]["payload"]["executeParam"]["cardId"]
-    assert str(uuid.UUID(temporary_card_id)) == temporary_card_id
-    assert success_card_id == temporary_card_id
-    assert temporary_start["directives"][0]["payload"]["executeParam"]["size"] == "2x2"
-    assert temporary_success["directives"][0]["payload"]["executeParam"]["size"] == "2x2"
-    standard_message = _assert_success_envelope(
-        standard_frames[-1],
-        "generateWidgetCardCompactDsl",
-        _request_id(standard_interaction_id),
-    )
-    temporary_message = _assert_success_envelope(
-        temporary_frames[-1],
-        temporary_operation,
-        _request_id(temporary_interaction_id),
-    )
-    assert temporary_message["data"] == standard_message["data"]
-    assert get_settings().enable_widget_directive_commands is False
-
-
-def test_temporary_compact_route_does_not_end_before_start(monkeypatch):
-    """验证临时接口在模型调用前失败时不发送孤立的结束指令。"""
-    monkeypatch.setattr(get_settings(), "enable_widget_directive_commands", False)
-    interaction_id = "directive-temporary-invalid"
-    request_id = _request_id(interaction_id)
-    request = _tool_payload(
-        {
-            "userQuery": "生成卡片",
-            "size": "invalid-size",
-            "title": "卡片",
-            "description": "非法尺寸",
-        },
-        interaction_id,
-    )
-    client = TestClient(app)
-
-    with client.websocket_connect(
-        "/api/v1/ws/tools/generateWidgetCardCompactDslWithDirective"
-    ) as websocket:
-        websocket.send_json(request)
-        frames = _receive_frames_until_final(websocket, request_id)
-
-    frame_types = [item["reply"]["streamInfo"]["streamType"] for item in frames]
-    assert frame_types == ["final"]
+    assert "/api/v1/ws/tools/generateWidgetCardCompactDslWithDirective" not in route_paths
 
 
 def test_generation_validation_error_does_not_end_before_start(monkeypatch):
@@ -1245,6 +1154,50 @@ def test_generation_validation_error_does_not_end_before_start(monkeypatch):
 
     frame_types = [item["reply"]["streamInfo"]["streamType"] for item in frames]
     assert frame_types == ["final"]
+
+
+def test_compact_route_rejects_stringified_nested_tool_arguments(monkeypatch):
+    """第四接口应明确要求主 Agent 直接传 JSON 对象，而不是嵌套工具调用。"""
+    def unexpected_generate(*_args, **_kwargs):
+        raise AssertionError("malformed tool arguments must not call the model")
+
+    monkeypatch.setattr(A2UIModelClient, "generate", unexpected_generate)
+    interaction_id = "nested-tool-arguments"
+    request_id = _request_id(interaction_id)
+    content = {
+        "skillName": "harmony-card-generation-online-directive",
+        "functionName": "generateWidgetCardCompactDslWithDirective",
+        "arguments": json.dumps(
+            {
+                "userQuery": "生成大理天气卡片",
+                "title": "大理天气",
+                "description": "大理天气关怀卡片",
+            },
+            ensure_ascii=False,
+        ),
+    }
+    client = TestClient(app)
+
+    with client.websocket_connect(
+        "/api/v1/ws/tools/generateWidgetCardCompactDsl"
+    ) as websocket:
+        websocket.send_json(_tool_payload(content, interaction_id))
+        response = websocket.receive_json()
+
+    assert response["errorCode"] == "0"
+    assert response["errorMessage"] == ""
+    stream_info = response["reply"]["streamInfo"]
+    assert stream_info["streamType"] == "final"
+    assert stream_info["streamingTextId"] == request_id
+    legacy_message = parse_legacy_stream_content(stream_info["streamContent"])
+    assert legacy_message["type"] == "error"
+    assert legacy_message["errorCode"] == "INVALID_ARGUMENTS"
+    details = legacy_message["error"]["details"]
+    assert details["stage"] == "requestEnvelope"
+    assert details["modelCalled"] is False
+    assert details["issues"][0]["path"] == "/content/arguments"
+    assert details["issues"][0]["actualType"] == "string"
+    assert "arguments 应该是一个合法的 JSON 对象" in details["agentInstruction"]
 
 
 def test_generation_model_error_sends_start_and_failure_commands(monkeypatch):
