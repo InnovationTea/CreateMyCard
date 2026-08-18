@@ -726,6 +726,9 @@ def test_template_route_prompt_requires_exact_candidate_output_paths():
     assert payload["candidateOutputFieldsByCapability"]["ViewWeather"] == list(
         _WEATHER_TEMPLATE_FIELDS
     )
+    assert "LocationOverview" not in {
+        item["id"] for item in payload["advancedComponents"]
+    }
 
 
 @pytest.mark.asyncio

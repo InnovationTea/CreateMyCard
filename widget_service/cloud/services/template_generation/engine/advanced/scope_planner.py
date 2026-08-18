@@ -79,6 +79,20 @@ def build_advanced_scope_prompt(
         available_capability_ids,
     )
     component_candidates = _component_candidates(task_spec, data_shape, registry, effective_ids)
+    if template_route_decision:
+        # Template routing may only expose components that have a matching
+        # Provider Template; UX-only context components cannot be archived here.
+        component_candidates = tuple(
+            capability
+            for capability in component_candidates
+            if _component_template_coverage_options(
+                capability,
+                task_spec,
+                registry,
+                effective_ids,
+                card_spec,
+            )
+        )
     if not component_candidates:
         raise ValueError("no provider-backed UX Business Component candidate")
     candidate_ids = {item.name for item in component_candidates}
