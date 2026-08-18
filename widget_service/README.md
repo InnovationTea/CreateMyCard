@@ -22,9 +22,8 @@ The service follows `docs/AGENTS.md`:
   literal-only parser. It never executes model output and deterministically converts the nested component tree to
   standard A2UI. It supports static create/edit requests and shares the edit switch with the other generation
   routes; dynamic data bindings and events remain unsupported.
-- `generateWidgetCardCompactDsl` rejects a nested `content.arguments` wrapper before model invocation when no direct
-  generation fields are present. Tool callers must pass `arguments` as a JSON object whose top-level fields are the
-  generation request fields, rather than a JSON string or another tool-call envelope.
+- `generateWidgetCardCompactDsl` rejects a stringified tool `arguments` value before model invocation. Main Agent
+  calls keep `arguments`, `functionName`, and `skillName` at the same level, with `arguments` passed as a JSON object.
 - `WIDGET_SERVICE_ENABLE_IDS_MOCK=true` by default. In this mode the service reads only `WIDGET_SERVICE_MOCK_IDS_RESPONSE_PATH`, whose default path is the service-internal `cloud/data/mock/ids_res.json`; a missing or invalid mock produces an empty IDS result and never falls back to remote IDS. When set to `false`, the service ignores the mock and queries only the real remote IDS; remote failure produces an empty result and never falls back to mock.
 - `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY=false` by default. It controls targeted repair for both source
   DSL conversion errors and Validator errors. `WIDGET_SERVICE_VALIDATION_FAILURE_MAX_REPAIR_ATTEMPTS=1` limits

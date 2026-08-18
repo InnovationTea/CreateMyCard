@@ -52,20 +52,6 @@ GENERATION_OPERATIONS = frozenset(
         "generateWidgetCardTerseDslNested2",
     }
 )
-COMPACT_DSL_CONTENT_FIELDS = frozenset(
-    {
-        "userQuery",
-        "sourceArtifactUrl",
-        "size",
-        "title",
-        "description",
-        "candidateDataBindings",
-        "candidateEventCandidates",
-        "candidateAssetIds",
-        "options",
-    }
-)
-
 ERROR_EXPLANATIONS = {
     ErrorCode.INVALID_ARGUMENTS.value: (
         "工具参数传入有误，请按 details.issues 修正全部必填字段、类型和取值后再调用；"
@@ -135,14 +121,13 @@ DEFAULT_ERROR_EXPLANATION = (
 )
 
 
-class NestedToolArgumentsError(ValueError):
-    """表示主 Agent 把完整工具调用再次嵌套进了 content.arguments。"""
+class StringifiedToolArgumentsError(ValueError):
+    """表示主 Agent 把工具 arguments 错误序列化成了 JSON 字符串。"""
 
     error_code = ErrorCode.INVALID_ARGUMENTS
 
-    def __init__(self, arguments_value: Any) -> None:
-        self.arguments_type = _json_type_name(arguments_value)
-        super().__init__("content.arguments must be a JSON object with direct tool arguments")
+    def __init__(self) -> None:
+        super().__init__("tool arguments must be a JSON object instead of a JSON string")
 
     def details(self) -> dict[str, Any]:
         """构造保持插件包络格式的可执行修复说明。"""
@@ -152,46 +137,30 @@ class NestedToolArgumentsError(ValueError):
             "retryable": True,
             "requiredActions": ["FIX_AND_RETRY"],
             "agentInstruction": (
-                "调用 generateWidgetCardCompactDsl 时，arguments 应该是一个合法的 JSON 对象，"
-                "不能是 JSON 字符串，也不能再次包含 skillName、functionName 或 arguments 外层。"
-                "请把 userQuery、title、description 等工具字段直接放入 arguments 后重新调用。"
+                "调用 generateWidgetCardCompactDsl 时，arguments 必须直接传合法的 "
+                "JSON 对象，不能把整个对象序列化成 JSON 字符串。请保持 arguments、"
+                "functionName、skillName 同层，并把 bundleName、userQuery、title、"
+                "description 等工具字段放入 arguments 对象后重新调用。"
             ),
             "issues": [
                 {
-                    "code": "NESTED_TOOL_ARGUMENTS",
-                    "path": "/content/arguments",
-                    "message": "content 未包含生成接口字段，却包含了嵌套的 arguments。",
-                    "expected": "JSON object containing the generation tool fields directly",
-                    "actualType": self.arguments_type,
+                    "code": "STRINGIFIED_TOOL_ARGUMENTS",
+                    "path": "/arguments",
+                    "message": "工具调用的 arguments 被错误地传成了 JSON 字符串。",
+                    "expected": "arguments must be a JSON object",
+                    "actualType": "string",
                     "agentAction": "FIX_AND_RETRY",
                     "retryable": True,
                     "capabilityId": "",
                     "repairInstruction": (
-                        "将 arguments 的 JSON 字符串解析为对象，并把该对象直接作为工具 arguments；"
-                        "不要传 skillName、functionName。"
+                        "将 arguments 字符串反序列化为 JSON 对象；保留 functionName 和 skillName 为"
+                        " arguments 的同层字段，不要在 arguments 内再次嵌套工具调用外层。"
                     ),
                     "referenceSource": "generateWidgetCardCompactDsl tool schema",
                 }
             ],
             "warnings": [],
         }
-
-
-def _json_type_name(value: Any) -> str:
-    """返回不会泄露实际值的 JSON 类型名称。"""
-    if value is None:
-        return "null"
-    if isinstance(value, bool):
-        return "boolean"
-    if isinstance(value, dict):
-        return "object"
-    if isinstance(value, list):
-        return "array"
-    if isinstance(value, str):
-        return "string"
-    if isinstance(value, (int, float)):
-        return "number"
-    return type(value).__name__
 
 
 def get_service(
@@ -347,15 +316,14 @@ def _validate_compact_dsl_content(
     payload: dict[str, Any],
     operation: str,
 ) -> None:
-    """拒绝把完整工具调用元数据再次嵌套到第四接口 content 的请求。"""
+    """识别工具层映射后可见的字符串化 arguments 错误。"""
     if operation != COMPACT_DSL_OPERATION:
         return
     content = payload.get("content")
     if not isinstance(content, dict):
         return
-    has_direct_fields = bool(COMPACT_DSL_CONTENT_FIELDS.intersection(content))
-    if "arguments" in content and not has_direct_fields:
-        raise NestedToolArgumentsError(content["arguments"])
+    if isinstance(content.get("arguments"), str):
+        raise StringifiedToolArgumentsError()
 
 
 def _mapping(value: Any) -> dict[str, Any]:
@@ -429,7 +397,7 @@ def _error_details(
     - exc：Pydantic 校验异常或业务参数异常。
     出参：可写入 WebSocket 错误消息的详情对象。
     """
-    if isinstance(exc, NestedToolArgumentsError):
+    if isinstance(exc, StringifiedToolArgumentsError):
         return exc.details()
     if isinstance(exc, GenerationPreflightError):
         return exc.details()

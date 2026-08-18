@@ -1156,8 +1156,8 @@ def test_generation_validation_error_does_not_end_before_start(monkeypatch):
     assert frame_types == ["final"]
 
 
-def test_compact_route_rejects_stringified_nested_tool_arguments(monkeypatch):
-    """第四接口应明确要求主 Agent 直接传 JSON 对象，而不是嵌套工具调用。"""
+def test_compact_route_rejects_stringified_tool_arguments(monkeypatch):
+    """第四接口应明确要求主 Agent 将 arguments 直接传为 JSON 对象。"""
     def unexpected_generate(*_args, **_kwargs):
         raise AssertionError("malformed tool arguments must not call the model")
 
@@ -1195,9 +1195,10 @@ def test_compact_route_rejects_stringified_nested_tool_arguments(monkeypatch):
     details = legacy_message["error"]["details"]
     assert details["stage"] == "requestEnvelope"
     assert details["modelCalled"] is False
-    assert details["issues"][0]["path"] == "/content/arguments"
+    assert details["issues"][0]["path"] == "/arguments"
     assert details["issues"][0]["actualType"] == "string"
-    assert "arguments 应该是一个合法的 JSON 对象" in details["agentInstruction"]
+    assert "arguments 必须直接传合法的 JSON 对象" in details["agentInstruction"]
+    assert "content" not in details["agentInstruction"]
 
 
 def test_generation_model_error_sends_start_and_failure_commands(monkeypatch):

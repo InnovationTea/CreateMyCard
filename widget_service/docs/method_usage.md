@@ -119,10 +119,10 @@ Design Compact DSL，再由服务内转换器读取该 Design profile 下的 `pr
 第三至第五入口共享同一策略驱动生成管线、校验和 repair 语义，
 调用方不需要传 `protocolProfileId`，旧值也不能覆盖路由选择结果。
 
-第四接口的新插件包络只接受直接位于 `content` 的业务字段。若主 Agent 把完整工具调用再次放入
-`content.arguments`，服务会在模型调用前返回 `/content/arguments` 错误；主 Agent 应将调用时的
-`arguments` 传为 JSON 对象，并把 `userQuery`、`title`、`description` 等字段直接放入该对象，不要传
-JSON 字符串或再次嵌套 `skillName/functionName/arguments`。
+主 Agent 调用第四接口时不感知 WebSocket 的 `content` 字段，只使用标准工具调用格式：`arguments`、
+`functionName`、`skillName` 位于同层。`arguments` 必须直接传 JSON 对象，并包含 `bundleName`、
+`userQuery`、`title`、`description` 等工具字段；若误传为 JSON 字符串，服务会在模型调用前返回
+`/arguments` 错误，要求将字符串反序列化为对象后重新调用。
 
 `generateWidgetCardTerseDslNested2` 从
 `cloud/data/protocol_profiles/terse-dsl-nested-2/PROMPT.md` 读取本地 Prompt。模型输出只进入
