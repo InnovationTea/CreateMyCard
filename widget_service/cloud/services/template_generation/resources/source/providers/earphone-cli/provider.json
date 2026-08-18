@@ -1,0 +1,27 @@
+{
+  "bundleFormat": "card-provider-bundle/1",
+  "providerId": "com.huawei.earphone.cli",
+  "providerVersion": "1.0.0-poc",
+  "capabilities": [
+    {
+      "capabilityId": "GetEarphoneInfo",
+      "dataSchema": {
+        "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
+        "version": "app-11.7.5.205_rom-6.0"
+      },
+      "templates": ["BluetoothDeviceOverview@1"]
+    }
+  ],
+  "templates": [
+    {
+      "templateId": "BluetoothDeviceOverview@1",
+      "entry": "templates/bluetooth-device-overview.cardtpl",
+      "digest": "sha256:83865e685a44d571371cb30af223552b3cc419c8d41182fc67328f4cbc93a995"
+    }
+  ],
+  "compatibility": {
+    "templateLanguage": "cardtpl/1",
+    "catalogId": "ohos.a2ui.extended.catalog.form",
+    "a2uiWireVersion": "v0.9"
+  }
+}

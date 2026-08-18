@@ -58,6 +58,10 @@ from services.source_artifact_repository import (
     SourceArtifactLoadResult,
     SourceArtifactRepository,
 )
+from services.template_generation import (
+    route_compact_generation,
+    route_terse_nested2_generation,
+)
 from services.validator import ArtifactValidator
 
 _MODULE = "[Generation Service]"
@@ -1047,9 +1051,8 @@ class WidgetGenerationService:
             validation_failure_blocking=True,
             stores_design_token=True,
         )
-        if before_model_call is None:
-            return await self._generate_widget_card_with_policy(request, policy)
-        return await self._generate_widget_card_with_policy(
+        return await route_compact_generation(
+            self,
             request,
             policy,
             before_model_call=before_model_call,
@@ -1088,9 +1091,8 @@ class WidgetGenerationService:
             validation_failure_blocking=True,
             stores_design_token=True,
         )
-        if before_model_call is None:
-            return await self._generate_widget_card_with_policy(request, policy)
-        return await self._generate_widget_card_with_policy(
+        return await route_terse_nested2_generation(
+            self,
             request,
             policy,
             before_model_call=before_model_call,

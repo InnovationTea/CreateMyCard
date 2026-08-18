@@ -1,0 +1,29 @@
+{
+  "bundleFormat": "card-provider-bundle/1",
+  "providerId": "com.huawei.weather.cli",
+  "providerVersion": "1.0.0-poc",
+  "capabilities": [
+    {
+      "capabilityId": "ViewWeather",
+      "dataSchema": {
+        "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
+        "version": "app-11.7.5.205_rom-6.0"
+      },
+      "templates": [
+        "WeatherOverview@1"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "templateId": "WeatherOverview@1",
+      "entry": "templates/weather-overview.cardtpl",
+      "digest": "sha256:4d10213c498cd456573bba151b3ebe94bbfb35339750847e510303cdfb6ef3ba"
+    }
+  ],
+  "compatibility": {
+    "templateLanguage": "cardtpl/1",
+    "catalogId": "ohos.a2ui.extended.catalog.form",
+    "a2uiWireVersion": "v0.9"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "bundleFormat": "card-provider-bundle/1",
+  "providerId": "com.huawei.battery.cli",
+  "providerVersion": "1.0.0-poc",
+  "capabilities": [
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "dataSchema": {
+        "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
+        "version": "app-11.7.5.205_rom-6.0"
+      },
+      "templates": ["BatteryOverview@1"]
+    }
+  ],
+  "templates": [
+    {
+      "templateId": "BatteryOverview@1",
+      "entry": "templates/battery-overview.cardtpl",
+      "digest": "sha256:091b8a04edc20253b78a96462699ab4765d0b0e1ea5da00ade7c8b713421710a"
+    }
+  ],
+  "compatibility": {
+    "templateLanguage": "cardtpl/1",
+    "catalogId": "ohos.a2ui.extended.catalog.form",
+    "a2uiWireVersion": "v0.9"
+  }
+}

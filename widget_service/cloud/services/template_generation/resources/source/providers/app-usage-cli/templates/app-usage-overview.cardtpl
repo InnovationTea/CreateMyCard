@@ -1,0 +1,168 @@
+#Template("AppUsageOverview@1", {
+  capability: "GetAppUsageDuration",
+  description: "应用使用数据提供方交付的单应用时长概览",
+  domainTags: ["app", "usage", "screen-time"],
+  compatibleThemeProfileIds: ["digital-wellbeing-neutral-dark", "focus-warm-amber"],
+  allowedParentComponents: ["Column", "Row", "List", "Stack"],
+  bindings: {
+    appName: { path: "/appUsage/appName", type: "string" },
+    updatedAt: { path: "/updatedAt", type: "string" }
+  },
+  params: {
+    durationPrimaryValueText: {
+      type: "string", required: true, sourcePaths: ["/appUsage/durationText"]
+    },
+    durationPrimaryUnitText: {
+      type: "string", required: true, sourcePaths: ["/appUsage/durationText"]
+    },
+    durationSecondaryValueText: { type: "string", sourcePaths: ["/appUsage/durationText"] },
+    durationSecondaryUnitText: { type: "string", sourcePaths: ["/appUsage/durationText"] },
+    appIcon: { type: "string", kind: "asset", semanticTags: ["app"] }
+  },
+  limits: { maxNodes: 18, maxDepth: 6 }
+})
+
+#Variant("singleApp", { sizes: ["2x2"], roles: ["hero"], requires: ["appName"], requiresParams: ["durationPrimaryValueText", "durationPrimaryUnitText"] })
+Column("compact", {
+  _advancedComponent: "AppUsageOverview", width: "matchParent", height: "matchParent",
+  itemMargin: 4, justifyContent: "start", alignItems: "start", clip: true,
+  constraintSize: { minWidth: 0, minHeight: 0 }
+},
+  Row("between", {
+    width: "matchParent", height: 20, itemMargin: 4, justifyContent: "spaceBetween",
+    alignItems: "top", clip: true, constraintSize: { minWidth: 0, minHeight: 0 }
+  },
+    Text(Bind("appName"), "compact-title", {
+      fontSize: 12, minFontSize: 12, fontWeight: 600, fontColor: "#E6000000",
+      maxLines: 1, textOverflow: "ellipsis", layoutWeight: 1,
+      constraintSize: { minWidth: 0, minHeight: 0 }
+    }),
+    IfParam("appIcon",
+      Image(Asset("appIcon"), "icon", { width: 20, height: 20, borderRadius: 4, objectFit: "contain", flexShrink: 0 })
+    )
+  ),
+  Column("compact", {
+    layoutWeight: 1, justifyContent: "end", alignItems: "start",
+    clip: true, constraintSize: { minWidth: 0, minHeight: 0 }
+  },
+    Row("between", {
+      width: "matchParent", itemMargin: 2, justifyContent: "start", alignItems: "bottom",
+      clip: true, constraintSize: { minWidth: 0, minHeight: 0 }
+    },
+      Text(Param("durationPrimaryValueText"), "title", {
+        fontSize: 30, minFontSize: 30, fontWeight: 700, fontColor: "#E6000000",
+        maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 }
+      }),
+      Text(Param("durationPrimaryUnitText"), "subtitle", {
+        fontSize: 12, minFontSize: 12, fontWeight: 400, fontColor: "#99000000",
+        maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 }
+      })
+    )
+  ),
+  IfBind("updatedAt",
+    Text(Bind("updatedAt"), "subtitle", {
+      fontSize: 10, minFontSize: 10, fontWeight: 400, fontColor: "#99000000",
+      maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 }
+    })
+  )
+)
+#EndVariant
+
+#Variant("singleAppDetailed", { sizes: ["2x2"], roles: ["hero"], requires: ["appName"], requiresParams: ["durationPrimaryValueText", "durationPrimaryUnitText", "durationSecondaryValueText", "durationSecondaryUnitText"] })
+Column("compact", {
+  _advancedComponent: "AppUsageOverview", width: "matchParent", height: "matchParent",
+  itemMargin: 4, justifyContent: "start", alignItems: "start", clip: true,
+  constraintSize: { minWidth: 0, minHeight: 0 }
+},
+  Row("between", { width: "matchParent", height: 20, itemMargin: 4, justifyContent: "spaceBetween", alignItems: "top", clip: true, constraintSize: { minWidth: 0, minHeight: 0 } },
+    Text(Bind("appName"), "compact-title", { fontSize: 12, minFontSize: 12, fontWeight: 600, fontColor: "#E6000000", maxLines: 1, textOverflow: "ellipsis", layoutWeight: 1, constraintSize: { minWidth: 0, minHeight: 0 } }),
+    IfParam("appIcon",
+      Image(Asset("appIcon"), "icon", { width: 20, height: 20, borderRadius: 4, objectFit: "contain", flexShrink: 0 })
+    )
+  ),
+  Column("compact", { layoutWeight: 1, justifyContent: "end", alignItems: "start", clip: true, constraintSize: { minWidth: 0, minHeight: 0 } },
+    Row("between", { width: "matchParent", itemMargin: 2, justifyContent: "start", alignItems: "bottom", clip: true, constraintSize: { minWidth: 0, minHeight: 0 } },
+      Text(Param("durationPrimaryValueText"), "title", { fontSize: 30, minFontSize: 30, fontWeight: 700, fontColor: "#E6000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } }),
+      Text(Param("durationPrimaryUnitText"), "subtitle", { fontSize: 12, minFontSize: 12, fontWeight: 400, fontColor: "#99000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } }),
+      Text(Param("durationSecondaryValueText"), "title", { fontSize: 30, minFontSize: 30, fontWeight: 700, fontColor: "#E6000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } }),
+      Text(Param("durationSecondaryUnitText"), "subtitle", { fontSize: 12, minFontSize: 12, fontWeight: 400, fontColor: "#99000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+    )
+  ),
+  IfBind("updatedAt",
+    Text(Bind("updatedAt"), "subtitle", { fontSize: 10, minFontSize: 10, fontWeight: 400, fontColor: "#99000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+  )
+)
+#EndVariant
+
+#Variant("singleAppWide", { sizes: ["2x4"], roles: ["hero"], requires: ["appName"], requiresParams: ["durationPrimaryValueText", "durationPrimaryUnitText"] })
+Row("between", {
+  _advancedComponent: "AppUsageOverview", width: "matchParent", height: "matchParent",
+  itemMargin: 8, justifyContent: "center", alignItems: "center", clip: true,
+  constraintSize: { minWidth: 0, minHeight: 0 }
+},
+  Column("compact", {
+    layoutWeight: 3, height: "matchParent", itemMargin: 4, justifyContent: "start",
+    alignItems: "start", clip: true, constraintSize: { minWidth: 0, minHeight: 0 }
+  },
+    Row("between", { width: "matchParent", height: 20, itemMargin: 4, justifyContent: "spaceBetween", alignItems: "top", clip: true, constraintSize: { minWidth: 0, minHeight: 0 } },
+      Text(Bind("appName"), "compact-title", { fontSize: 12, minFontSize: 12, fontWeight: 600, fontColor: "#E6000000", maxLines: 1, textOverflow: "ellipsis", layoutWeight: 1, constraintSize: { minWidth: 0, minHeight: 0 } }),
+      IfParam("appIcon",
+        Image(Asset("appIcon"), "icon", { width: 20, height: 20, borderRadius: 4, objectFit: "contain", flexShrink: 0 })
+      )
+    ),
+    Column("compact", { layoutWeight: 1, itemMargin: 4, justifyContent: "center", alignItems: "start", clip: true, constraintSize: { minWidth: 0, minHeight: 0 } },
+      Row("between", { width: "matchParent", itemMargin: 2, justifyContent: "start", alignItems: "bottom", clip: true, constraintSize: { minWidth: 0, minHeight: 0 } },
+        Text(Param("durationPrimaryValueText"), "title", { fontSize: 30, minFontSize: 30, fontWeight: 700, fontColor: "#E6000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } }),
+        Text(Param("durationPrimaryUnitText"), "subtitle", { fontSize: 12, minFontSize: 12, fontWeight: 400, fontColor: "#99000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+      )
+    )
+  ),
+  IfBind("updatedAt",
+    Column("compact", {
+      layoutWeight: 2, padding: 8, borderRadius: 12, backgroundColor: "#0D000000",
+      justifyContent: "center", alignItems: "start", clip: true,
+      constraintSize: { minWidth: 0, minHeight: 0 }
+    },
+      Text(Bind("updatedAt"), "subtitle", { fontSize: 10, minFontSize: 10, fontWeight: 400, fontColor: "#99000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+    )
+  )
+)
+#EndVariant
+
+#Variant("singleAppDetailedWide", { sizes: ["2x4"], roles: ["hero"], requires: ["appName"], requiresParams: ["durationPrimaryValueText", "durationPrimaryUnitText", "durationSecondaryValueText", "durationSecondaryUnitText"] })
+Row("between", {
+  _advancedComponent: "AppUsageOverview", width: "matchParent", height: "matchParent",
+  itemMargin: 8, justifyContent: "center", alignItems: "center", clip: true,
+  constraintSize: { minWidth: 0, minHeight: 0 }
+},
+  Column("compact", {
+    layoutWeight: 3, height: "matchParent", itemMargin: 4, justifyContent: "start",
+    alignItems: "start", clip: true, constraintSize: { minWidth: 0, minHeight: 0 }
+  },
+    Row("between", { width: "matchParent", height: 20, itemMargin: 4, justifyContent: "spaceBetween", alignItems: "top", clip: true, constraintSize: { minWidth: 0, minHeight: 0 } },
+      Text(Bind("appName"), "compact-title", { fontSize: 12, minFontSize: 12, fontWeight: 600, fontColor: "#E6000000", maxLines: 1, textOverflow: "ellipsis", layoutWeight: 1, constraintSize: { minWidth: 0, minHeight: 0 } }),
+      IfParam("appIcon",
+        Image(Asset("appIcon"), "icon", { width: 20, height: 20, borderRadius: 4, objectFit: "contain", flexShrink: 0 })
+      )
+    ),
+    Column("compact", { layoutWeight: 1, itemMargin: 4, justifyContent: "center", alignItems: "start", clip: true, constraintSize: { minWidth: 0, minHeight: 0 } },
+      Row("between", { width: "matchParent", itemMargin: 2, justifyContent: "start", alignItems: "bottom", clip: true, constraintSize: { minWidth: 0, minHeight: 0 } },
+        Text(Param("durationPrimaryValueText"), "title", { fontSize: 30, minFontSize: 30, fontWeight: 700, fontColor: "#E6000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } }),
+        Text(Param("durationPrimaryUnitText"), "subtitle", { fontSize: 12, minFontSize: 12, fontWeight: 400, fontColor: "#99000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } }),
+        Text(Param("durationSecondaryValueText"), "title", { fontSize: 30, minFontSize: 30, fontWeight: 700, fontColor: "#E6000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } }),
+        Text(Param("durationSecondaryUnitText"), "subtitle", { fontSize: 12, minFontSize: 12, fontWeight: 400, fontColor: "#99000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+      )
+    )
+  ),
+  IfBind("updatedAt",
+    Column("compact", {
+      layoutWeight: 2, padding: 8, borderRadius: 12, backgroundColor: "#0D000000",
+      justifyContent: "center", alignItems: "start", clip: true,
+      constraintSize: { minWidth: 0, minHeight: 0 }
+    },
+      Text(Bind("updatedAt"), "subtitle", { fontSize: 10, minFontSize: 10, fontWeight: 400, fontColor: "#99000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+    )
+  )
+)
+#EndVariant
+#EndTemplate

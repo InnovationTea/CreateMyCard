@@ -1,0 +1,1415 @@
+"""Load CLI Provider Bundles and compile declarative ``.cardtpl`` assets."""
+
+from __future__ import annotations
+
+import ast
+import hashlib
+import io
+import json
+import re
+import tokenize
+from collections.abc import Iterator
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+from jsonschema import Draft202012Validator
+from pydantic import Field
+
+from config.config import get_settings
+from models.generation import TaskSpec
+
+from .models import (
+    StrictModel,
+    TemplateBinding,
+    TemplateDefinition,
+    TemplateNode,
+    TemplateValue,
+    TemplateVariant,
+)
+
+_COMPONENTS = frozenset(
+    {
+        "Text",
+        "Image",
+        "Divider",
+        "Progress",
+        "Button",
+        "Checkbox",
+        "Row",
+        "Column",
+        "List",
+        "Stack",
+    }
+)
+_CONDITIONAL_PARAMETER_COMPONENTS = frozenset({"IfParam", "IfMissingParam"})
+_CONDITIONAL_BINDING_COMPONENTS = frozenset({"IfBind", "IfMissingBind"})
+_CONDITIONAL_COMPONENTS = _CONDITIONAL_PARAMETER_COMPONENTS | _CONDITIONAL_BINDING_COMPONENTS
+_TEMPLATE_COMPONENTS = _COMPONENTS | _CONDITIONAL_COMPONENTS
+_CONTAINERS = frozenset({"Row", "Column", "List", "Stack"}) | _CONDITIONAL_COMPONENTS
+_REFERENCE_CALLS = frozenset({"Bind", "Param", "Asset", "Expr", "_CardTplInterpolation"})
+_FORBIDDEN_KEYS = frozenset({"__proto__", "prototype", "constructor"})
+_TEMPLATE_ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9-]{0,63}$")
+_REFERENCE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
+_VARIANT_RE = re.compile(r"^[A-Za-z][A-Za-z0-9-]{0,31}$")
+_DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+_PROVIDER_ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:\.[a-z][a-z0-9-]*)+$")
+_PROVIDER_VERSION_RE = re.compile(r"^[1-9][0-9]*\.[0-9]+\.[0-9]+(?:-[a-z0-9.-]+)?$")
+_MAX_BUNDLE_FILE_BYTES = 1_048_576
+_MAX_TEMPLATE_SOURCE_CHARS = 262_144
+
+
+class ProviderDataSchema(StrictModel):
+    path: str = Field(min_length=1)
+    version: str = Field(min_length=1)
+
+
+class ProviderCapabilityEntry(StrictModel):
+    capability_id: str = Field(alias="capabilityId", min_length=1)
+    data_schema: ProviderDataSchema = Field(alias="dataSchema")
+    templates: tuple[str, ...] = Field(min_length=1)
+
+
+class ProviderTemplateEntry(StrictModel):
+    template_id: str = Field(alias="templateId", min_length=1)
+    entry: str = Field(min_length=1)
+    digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+
+
+class ProviderCompatibility(StrictModel):
+    template_language: str = Field(alias="templateLanguage")
+    catalog_id: str = Field(alias="catalogId")
+    a2ui_wire_version: str = Field(alias="a2uiWireVersion")
+
+
+class ProviderManifest(StrictModel):
+    bundle_format: str = Field(alias="bundleFormat")
+    provider_id: str = Field(alias="providerId", min_length=1)
+    provider_version: str = Field(alias="providerVersion", min_length=1)
+    capabilities: tuple[ProviderCapabilityEntry, ...] = Field(min_length=1)
+    templates: tuple[ProviderTemplateEntry, ...] = Field(min_length=1)
+    compatibility: ProviderCompatibility
+
+
+@dataclass(frozen=True)
+class LoadedProviderBundle:
+    manifest: ProviderManifest
+    templates: tuple[TemplateDefinition, ...]
+    bundle_digest: str
+
+
+@dataclass(frozen=True)
+class ProviderTemplateAdmission:
+    admitted: bool
+    reason: str = ""
+    binding_name: str | None = None
+    path: str | None = None
+    expected_type: str | None = None
+    actual_type: str | None = None
+
+
+@dataclass(frozen=True)
+class _CompiledParameters:
+    schema: dict[str, Any]
+    asset_semantic_tags: dict[str, tuple[str, ...]]
+    required_names: tuple[str, ...]
+
+
+def load_provider_templates(providers_root: Path) -> tuple[TemplateDefinition, ...]:
+    """Compile every registered Provider Bundle below one trusted source root."""
+    if not providers_root.is_dir():
+        return ()
+    definitions: list[TemplateDefinition] = []
+    seen: set[str] = set()
+    manifests = sorted(providers_root.glob("*/provider.json"))
+    for manifest_path in manifests:
+        bundle = load_provider_bundle(manifest_path.parent)
+        for definition in bundle.templates:
+            if definition.wire_id in seen:
+                raise ValueError(f"duplicate Provider Template: {definition.wire_id}")
+            seen.add(definition.wire_id)
+            definitions.append(definition)
+    return tuple(definitions)
+
+
+def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
+    """Validate one Bundle and compile all referenced CardTemplate files."""
+    root = bundle_root.resolve()
+    manifest_path = _bundle_file(root, "provider.json")
+    payload = _read_object(manifest_path)
+    _reject_forbidden_keys(payload)
+    manifest = ProviderManifest.model_validate(payload)
+    if manifest.bundle_format != "card-provider-bundle/1":
+        raise ValueError("unsupported Provider Bundle format")
+    if _PROVIDER_ID_RE.fullmatch(manifest.provider_id) is None:
+        raise ValueError(f"invalid Provider ID: {manifest.provider_id}")
+    if _PROVIDER_VERSION_RE.fullmatch(manifest.provider_version) is None:
+        raise ValueError(f"invalid Provider version: {manifest.provider_version}")
+    _validate_compatibility(manifest.compatibility)
+
+    template_entries = _unique_template_entries(manifest.templates)
+    owners = _template_owners(manifest.capabilities)
+    bundle_digest = _bundle_digest(root, manifest)
+    definitions: list[TemplateDefinition] = []
+    for wire_id, entry in template_entries.items():
+        capability = owners.get(wire_id)
+        if capability is None:
+            raise ValueError(f"Provider Template has no capability owner: {wire_id}")
+        output_schema = _load_data_schema(root, capability)
+
+        template_path = _bundle_file(root, entry.entry)
+        template_bytes = _bounded_file_bytes(template_path)
+        actual_digest = _sha256_digest(template_bytes)
+        if actual_digest != entry.digest:
+            raise ValueError(f"Provider Template digest mismatch: {wire_id}")
+        definition = compile_card_template(
+            template_bytes.decode("utf-8"),
+            provider_id=manifest.provider_id,
+            expected_wire_id=wire_id,
+            expected_capability_id=capability.capability_id,
+            output_schema=output_schema,
+            bundle_digest=bundle_digest,
+        )
+        definitions.append(definition)
+
+    if set(owners) != set(template_entries):
+        missing = sorted(set(owners) - set(template_entries))
+        raise ValueError(f"Provider capability references unknown Templates: {missing}")
+    return LoadedProviderBundle(manifest, tuple(definitions), bundle_digest)
+
+
+def compile_card_template(
+    source: str,
+    *,
+    provider_id: str,
+    expected_wire_id: str,
+    expected_capability_id: str,
+    output_schema: dict[str, Any],
+    bundle_digest: str,
+) -> TemplateDefinition:
+    """Compile one non-executable ``cardtpl/1`` source into the trusted Template IR."""
+    if len(source) > _MAX_TEMPLATE_SOURCE_CHARS:
+        raise ValueError("Provider Template source exceeds the size limit")
+    header_call, offset = _marker_call(source, 0, "#Template")
+    wire_id, header = _template_header(header_call)
+    if wire_id != expected_wire_id:
+        raise ValueError(f"Provider Template ID mismatch: {wire_id}")
+    _validate_header_keys(header)
+    capability_id = _required_string(header, "capability")
+    if capability_id != expected_capability_id:
+        raise ValueError(f"Provider Template capability mismatch: {wire_id}")
+
+    bindings = _compile_bindings(header.get("bindings"), output_schema)
+    parameters = _compile_parameters(header.get("params", {}), output_schema)
+    name_overlap = set(bindings) & set(parameters.schema["properties"])
+    if name_overlap:
+        raise ValueError(
+            f"Provider Template binding/parameter names overlap: {sorted(name_overlap)}"
+        )
+    default_limits = _limits(header.get("limits"))
+    variants: list[TemplateVariant] = []
+    variants_by_name: dict[str, TemplateVariant] = {}
+    while True:
+        offset = _skip_whitespace(source, offset)
+        if source.startswith("#EndTemplate", offset):
+            offset += len("#EndTemplate")
+            break
+        variant_call, body_start = _marker_call(source, offset, "#Variant")
+        end_match = re.search(r"(?m)^[ \t]*#EndVariant[ \t]*$", source[body_start:])
+        if end_match is None:
+            raise ValueError("Provider Template Variant is not closed")
+        body_end = body_start + end_match.start()
+        body = source[body_start:body_end].strip()
+        variant = _compile_variant(
+            variant_call,
+            body,
+            bindings=bindings,
+            parameters_schema=parameters.schema,
+            globally_required=parameters.required_names,
+            default_limits=default_limits,
+            previous_variants=variants_by_name,
+        )
+        variants.append(variant)
+        variants_by_name[variant.size] = variant
+        offset = body_start + end_match.end()
+
+    if source[offset:].strip():
+        raise ValueError("Provider Template contains content after #EndTemplate")
+    if not variants:
+        raise ValueError("Provider Template must contain at least one Variant")
+    variant_names = [variant.size for variant in variants]
+    if len(variant_names) != len(set(variant_names)):
+        raise ValueError(f"Provider Template has duplicate Variants: {wire_id}")
+
+    template_id, version = _split_wire_id(wire_id)
+    compatible_themes = _string_tuple(header, "compatibleThemeProfileIds")
+    domain_tags = _string_tuple(header, "domainTags")
+    allowed_parents = _string_tuple(header, "allowedParentComponents")
+    return TemplateDefinition.model_validate(
+        {
+            "templateId": template_id,
+            "version": version,
+            "description": _required_string(header, "description"),
+            "domainTags": domain_tags,
+            "compatibleThemeProfileIds": compatible_themes,
+            "allowedParentComponents": allowed_parents,
+            "actionPolicy": "none",
+            "layoutActionStyle": header.get("layoutActionStyle"),
+            "supportedSizes": tuple(variant_names),
+            "allowedDesignTokens": [],
+            "allowedLayoutTokens": [],
+            "assetParameterSemanticTags": parameters.asset_semantic_tags,
+            "providerId": provider_id,
+            "capabilityId": capability_id,
+            "bindings": {
+                name: binding.model_dump(by_alias=True) for name, binding in bindings.items()
+            },
+            "bundleDigest": bundle_digest,
+            "sourceFormat": "cardtpl/1",
+            "variants": [variant.model_dump(by_alias=True) for variant in variants],
+        }
+    )
+
+
+def _compile_variant(
+    call: ast.Call,
+    body: str,
+    *,
+    bindings: dict[str, TemplateBinding],
+    parameters_schema: dict[str, Any],
+    globally_required: tuple[str, ...],
+    default_limits: tuple[int, int],
+    previous_variants: dict[str, TemplateVariant],
+) -> TemplateVariant:
+    args = _call_literal_args(call, "Variant")
+    if len(args) != 2 or not isinstance(args[0], str) or not isinstance(args[1], dict):
+        raise ValueError("#Variant requires a name and one metadata object")
+    name = args[0]
+    metadata = args[1]
+    if _VARIANT_RE.fullmatch(name) is None:
+        raise ValueError(f"invalid Provider Template Variant: {name}")
+    allowed_keys = {
+        "sizes",
+        "roles",
+        "requires",
+        "requiresParams",
+        "maxNodes",
+        "maxDepth",
+        "extends",
+    }
+    unknown = set(metadata) - allowed_keys
+    if unknown:
+        raise ValueError(f"unknown Provider Template Variant fields: {sorted(unknown)}")
+    base_name = metadata.get("extends")
+    if base_name is not None:
+        if not isinstance(base_name, str) or base_name not in previous_variants:
+            raise ValueError(f"unknown Provider Template base Variant: {base_name}")
+        if body:
+            raise ValueError("Provider Template inherited Variant body must be empty")
+        if set(metadata) - {"extends", "sizes", "roles", "maxNodes", "maxDepth"}:
+            raise ValueError("Provider Template inherited Variant cannot replace references")
+        base = previous_variants[base_name]
+        supported_sizes = (
+            _metadata_strings(metadata, "sizes")
+            if "sizes" in metadata
+            else base.supported_card_sizes
+        )
+        supported_roles = (
+            _metadata_strings(metadata, "roles") if "roles" in metadata else base.supported_roles
+        )
+        node_count, depth = _template_shape(base.root)
+        max_nodes = _positive_int(
+            metadata.get("maxNodes"),
+            base.expanded_node_budget,
+            "maxNodes",
+        )
+        max_depth = _positive_int(
+            metadata.get("maxDepth"),
+            base.expanded_depth_budget,
+            "maxDepth",
+        )
+        if node_count > max_nodes or depth > max_depth:
+            raise ValueError(f"Provider Template Variant budget exceeded: {name}")
+        return base.model_copy(
+            update={
+                "size": name,
+                "supported_card_sizes": supported_sizes,
+                "supported_roles": supported_roles,
+                "expanded_node_budget": max_nodes,
+                "expanded_depth_budget": max_depth,
+            }
+        )
+    required_bindings = _metadata_strings(metadata, "requires")
+    unknown_bindings = set(required_bindings) - set(bindings)
+    if unknown_bindings:
+        raise ValueError(f"unknown Provider Template bindings: {sorted(unknown_bindings)}")
+    required_params = tuple(
+        dict.fromkeys((*globally_required, *_metadata_strings(metadata, "requiresParams")))
+    )
+    properties = parameters_schema.get("properties", {})
+    unknown_params = set(required_params) - set(properties)
+    if unknown_params:
+        raise ValueError(f"unknown Provider Template params: {sorted(unknown_params)}")
+    root = _parse_component_body(body)
+    if root.component in _CONDITIONAL_COMPONENTS:
+        raise ValueError("Provider Template conditional cannot be the Variant root")
+    _validate_interpolation_bindings(root, bindings)
+    binding_references, parameter_references = _template_references(root)
+    unknown_references = binding_references - set(bindings)
+    if unknown_references:
+        raise ValueError(f"unknown Provider Template bindings: {sorted(unknown_references)}")
+    unknown_references = parameter_references - set(properties)
+    if unknown_references:
+        raise ValueError(f"unknown Provider Template params: {sorted(unknown_references)}")
+    guarded_params, guarded_bindings = _validate_conditional_guards(
+        root,
+        properties,
+        bindings,
+        set(required_params),
+        set(required_bindings),
+    )
+    allowed_binding_references = set(required_bindings) | guarded_bindings
+    if not set(required_bindings) <= binding_references:
+        raise ValueError(f"Provider Template requires must be referenced: {name}")
+    if not binding_references <= allowed_binding_references:
+        raise ValueError(f"Provider Template optional binding is not guarded: {name}")
+    allowed_parameter_references = set(required_params) | guarded_params
+    if not set(required_params) <= parameter_references:
+        raise ValueError(f"Provider Template requiresParams must be referenced: {name}")
+    if not parameter_references <= allowed_parameter_references:
+        raise ValueError(f"Provider Template optional parameter is not guarded: {name}")
+    variant_schema = dict(parameters_schema)
+    variant_schema["properties"] = {
+        parameter_name: properties[parameter_name]
+        for parameter_name in properties
+        if parameter_name in allowed_parameter_references
+    }
+    variant_schema["required"] = list(required_params)
+    node_count, depth = _template_shape(root)
+    max_nodes = _positive_int(metadata.get("maxNodes"), default_limits[0], "maxNodes")
+    max_depth = _positive_int(metadata.get("maxDepth"), default_limits[1], "maxDepth")
+    if node_count > max_nodes or depth > max_depth:
+        raise ValueError(f"Provider Template Variant budget exceeded: {name}")
+    return TemplateVariant.model_validate(
+        {
+            "size": name,
+            "parametersSchema": variant_schema,
+            "supportedCardSizes": _metadata_strings(metadata, "sizes"),
+            "supportedRoles": _metadata_strings(metadata, "roles"),
+            "requiredBindings": required_bindings,
+            "optionalBindings": tuple(sorted(guarded_bindings - set(required_bindings))),
+            "root": root.model_dump(),
+            "expandedNodeBudget": max_nodes,
+            "expandedDepthBudget": max_depth,
+        }
+    )
+
+
+def _parse_component_body(body: str) -> TemplateNode:
+    if not body:
+        raise ValueError("Provider Template Variant body is empty")
+    if re.search(r"\b_CardTplInterpolation\s*\(", body):
+        raise ValueError("Provider Template uses a reserved internal name")
+    translated = _python_compatible_source(_translate_template_strings(body))
+    try:
+        module = ast.parse(translated, mode="exec")
+    except SyntaxError as exc:
+        raise ValueError(f"Provider Template body syntax error: {exc.msg}") from exc
+    if len(module.body) != 1 or not isinstance(module.body[0], ast.Expr):
+        raise ValueError("Provider Template Variant must contain exactly one component")
+    return _component_node(module.body[0].value)
+
+
+def _component_node(node: ast.AST) -> TemplateNode:
+    if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
+        raise ValueError("Provider Template body accepts direct component calls only")
+    if node.keywords:
+        raise ValueError("Provider Template component calls do not accept keyword arguments")
+    component = node.func.id
+    if component not in _TEMPLATE_COMPONENTS:
+        raise ValueError(f"unsupported Provider Template component: {component}")
+    values: list[TemplateValue] = []
+    children: list[TemplateNode] = []
+    child_started = False
+    for argument in node.args:
+        is_reference = _is_reference_call(argument)
+        if isinstance(argument, ast.Call) and not is_reference:
+            child_started = True
+            children.append(_component_node(argument))
+            continue
+        if child_started:
+            raise ValueError("Provider Template values must precede child components")
+        values.append(_template_value(argument))
+    if children and component not in _CONTAINERS:
+        raise ValueError(f"Provider Template leaf cannot contain children: {component}")
+    if component in _CONDITIONAL_COMPONENTS:
+        if (
+            len(values) != 1
+            or values[0].kind != "literal"
+            or not isinstance(values[0].value, str)
+            or len(children) != 1
+        ):
+            raise ValueError(
+                f"Provider Template {component} requires one parameter name and one child"
+            )
+    return TemplateNode(component=component, values=tuple(values), children=tuple(children))
+
+
+def _template_value(node: ast.AST) -> TemplateValue:
+    if _is_reference_call(node):
+        assert isinstance(node, ast.Call)
+        assert isinstance(node.func, ast.Name)
+        if node.func.id == "_CardTplInterpolation":
+            return _interpolation_value(node)
+        if node.func.id == "Expr":
+            if node.keywords or len(node.args) != 1:
+                raise ValueError("Expr requires one template string")
+            argument = node.args[0]
+            if (
+                not isinstance(argument, ast.Call)
+                or not isinstance(argument.func, ast.Name)
+                or argument.func.id != "_CardTplInterpolation"
+            ):
+                raise ValueError("Expr requires one backtick template string")
+            interpolation = _interpolation_value(argument)
+            return TemplateValue(kind="expression", items=interpolation.items)
+        args = _call_literal_args(node, node.func.id)
+        if len(args) != 1 or not isinstance(args[0], str):
+            raise ValueError(f"{node.func.id} requires one string name")
+        kind = "binding" if node.func.id == "Bind" else "parameter"
+        return TemplateValue(kind=kind, name=args[0])
+    if isinstance(node, ast.Constant):
+        value = node.value
+        if value is None or isinstance(value, (str, int, float, bool)):
+            return TemplateValue(kind="literal", value=value)
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+        value = _literal_value(node)
+        return TemplateValue(kind="literal", value=value)
+    if isinstance(node, ast.List):
+        return TemplateValue(
+            kind="array",
+            items=tuple(_template_value(item) for item in node.elts),
+        )
+    if isinstance(node, ast.Dict):
+        properties: dict[str, TemplateValue] = {}
+        for key_node, value_node in zip(node.keys, node.values, strict=True):
+            key = _literal_value(key_node)
+            if not isinstance(key, str):
+                raise ValueError("Provider Template object keys must be strings")
+            if key in _FORBIDDEN_KEYS or key in properties:
+                raise ValueError(f"invalid Provider Template object key: {key}")
+            properties[key] = _template_value(value_node)
+        return TemplateValue(kind="object", properties=properties)
+    raise ValueError(
+        "Provider Template values must be literals, bindings, template strings, "
+        "Expr, Param or Asset"
+    )
+
+
+def _interpolation_value(call: ast.Call) -> TemplateValue:
+    args = _call_literal_args(call, "template string")
+    if len(args) != 1 or not isinstance(args[0], str):
+        raise ValueError("CardTemplate interpolation is invalid")
+    source = args[0]
+    parts: list[TemplateValue] = []
+    cursor = 0
+    matches = tuple(re.finditer(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}", source))
+    if not matches:
+        raise ValueError("CardTemplate interpolation requires one ${binding}")
+    for match in matches:
+        literal = source[slice(cursor, match.start())]
+        if "${" in literal:
+            raise ValueError("CardTemplate interpolation contains an invalid placeholder")
+        if literal:
+            parts.append(TemplateValue(kind="literal", value=literal))
+        parts.append(TemplateValue(kind="binding", name=match.group(1)))
+        cursor = match.end()
+    literal = source[slice(cursor, None)]
+    if "${" in literal:
+        raise ValueError("CardTemplate interpolation contains an invalid placeholder")
+    if literal:
+        parts.append(TemplateValue(kind="literal", value=literal))
+    return TemplateValue(kind="interpolation", items=tuple(parts))
+
+
+def _compile_bindings(
+    payload: Any,
+    output_schema: dict[str, Any],
+) -> dict[str, TemplateBinding]:
+    if not isinstance(payload, dict):
+        raise ValueError("Provider Template bindings must be an object")
+    result: dict[str, TemplateBinding] = {}
+    for name, raw_binding in payload.items():
+        if not isinstance(name, str) or not isinstance(raw_binding, dict):
+            raise ValueError("Provider Template binding is invalid")
+        if _REFERENCE_NAME_RE.fullmatch(name) is None:
+            raise ValueError(f"invalid Provider Template binding name: {name}")
+        binding = TemplateBinding.model_validate(raw_binding)
+        if not _binding_pointer_is_encodable(binding.path):
+            raise ValueError(f"Provider Template binding path cannot be encoded: {name}")
+        leaf = _schema_leaf(output_schema, binding.path)
+        if leaf is None or leaf.get("type") != binding.data_type:
+            raise ValueError(f"Provider Template binding does not match outputSchema: {name}")
+        result[name] = binding
+    return result
+
+
+def _compile_parameters(
+    payload: Any,
+    output_schema: dict[str, Any],
+) -> _CompiledParameters:
+    if not isinstance(payload, dict):
+        raise ValueError("Provider Template params must be an object")
+    properties: dict[str, dict[str, Any]] = {}
+    asset_tags: dict[str, tuple[str, ...]] = {}
+    required: list[str] = []
+    for name, raw_parameter in payload.items():
+        if not isinstance(name, str) or not isinstance(raw_parameter, dict):
+            raise ValueError("Provider Template parameter is invalid")
+        if _REFERENCE_NAME_RE.fullmatch(name) is None:
+            raise ValueError(f"invalid Provider Template parameter name: {name}")
+        parameter = dict(raw_parameter)
+        kind = parameter.pop("kind", "value")
+        tags = parameter.pop("semanticTags", [])
+        is_required = parameter.pop("required", False)
+        source_paths = parameter.get("sourcePaths")
+        if kind not in {"value", "asset"}:
+            raise ValueError(f"unsupported Provider Template parameter kind: {kind}")
+        if kind == "asset":
+            if source_paths is not None:
+                raise ValueError(f"Provider Template asset cannot declare sourcePaths: {name}")
+            parameter["type"] = "string"
+            if not isinstance(tags, list) or any(not isinstance(tag, str) for tag in tags):
+                raise ValueError(f"invalid Provider Template asset tags: {name}")
+            asset_tags[name] = tuple(tags)
+        elif source_paths is not None:
+            _validate_parameter_source_paths(name, source_paths, output_schema)
+        if parameter.get("type") not in {"string", "integer", "number", "boolean"}:
+            raise ValueError(f"invalid Provider Template parameter type: {name}")
+        properties[name] = parameter
+        if is_required is True:
+            required.append(name)
+        elif is_required is not False:
+            raise ValueError(f"invalid Provider Template required flag: {name}")
+    schema = {
+        "type": "object",
+        "properties": properties,
+        "required": required,
+        "additionalProperties": False,
+    }
+    Draft202012Validator.check_schema(schema)
+    return _CompiledParameters(schema, asset_tags, tuple(required))
+
+
+def _validate_parameter_source_paths(
+    name: str,
+    source_paths: Any,
+    output_schema: dict[str, Any],
+) -> None:
+    if not isinstance(source_paths, list) or not source_paths:
+        raise ValueError(f"Provider Template parameter sourcePaths must be non-empty: {name}")
+    if any(not isinstance(source_path, str) for source_path in source_paths):
+        raise ValueError(f"Provider Template parameter sourcePaths must be strings: {name}")
+    if len(source_paths) != len(set(source_paths)):
+        raise ValueError(f"Provider Template parameter sourcePaths must be unique: {name}")
+    for source_path in source_paths:
+        if not _binding_pointer_is_encodable(source_path):
+            raise ValueError(f"Provider Template parameter sourcePath is invalid: {name}")
+        if _schema_leaf(output_schema, source_path) is None:
+            raise ValueError(f"Provider Template parameter sourcePath is invalid: {name}")
+
+
+def _binding_pointer_is_encodable(pointer: str) -> bool:
+    parts = pointer.removeprefix("/").split("/")
+    return all(part.isdigit() or _REFERENCE_NAME_RE.fullmatch(part) is not None for part in parts)
+
+
+def _schema_leaf(schema: dict[str, Any], pointer: str) -> dict[str, Any] | None:
+    current: Any = schema
+    for raw_part in pointer.removeprefix("/").split("/"):
+        part = raw_part.replace("~1", "/").replace("~0", "~")
+        if not isinstance(current, dict):
+            return None
+        if current.get("type") == "array":
+            if part != "0":
+                return None
+            current = current.get("items")
+            continue
+        properties = current.get("properties")
+        if not isinstance(properties, dict) or part not in properties:
+            return None
+        current = properties[part]
+    return current if isinstance(current, dict) else None
+
+
+def _marker_call(source: str, offset: int, marker: str) -> tuple[ast.Call, int]:
+    offset = _skip_whitespace(source, offset)
+    if not source.startswith(marker, offset):
+        raise ValueError(f"expected {marker}")
+    open_index = offset + len(marker)
+    if open_index >= len(source) or source[open_index] != "(":
+        raise ValueError(f"{marker} must be followed by (")
+    close_index = _matching_parenthesis(source, open_index)
+    call_source = source[offset + 1 : close_index + 1]
+    translated = _python_compatible_source(call_source)
+    try:
+        expression = ast.parse(translated, mode="eval").body
+    except SyntaxError as exc:
+        raise ValueError(f"{marker} syntax error: {exc.msg}") from exc
+    if not isinstance(expression, ast.Call) or not isinstance(expression.func, ast.Name):
+        raise ValueError(f"{marker} is invalid")
+    if expression.func.id != marker.removeprefix("#") or expression.keywords:
+        raise ValueError(f"{marker} is invalid")
+    return expression, close_index + 1
+
+
+def _matching_parenthesis(source: str, open_index: int) -> int:
+    depth = 0
+    quote: str | None = None
+    escaped = False
+    for index in range(open_index, len(source)):
+        char = source[index]
+        if quote is not None:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            continue
+        if char in {'"', "'"}:
+            quote = char
+        elif char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+            if depth == 0:
+                return index
+    raise ValueError("Provider Template directive is not closed")
+
+
+def _template_header(call: ast.Call) -> tuple[str, dict[str, Any]]:
+    args = _call_literal_args(call, "Template")
+    if len(args) != 2 or not isinstance(args[0], str) or not isinstance(args[1], dict):
+        raise ValueError("#Template requires a versioned ID and one metadata object")
+    _split_wire_id(args[0])
+    return args[0], args[1]
+
+
+def _call_literal_args(call: ast.Call, label: str) -> list[Any]:
+    if call.keywords:
+        raise ValueError(f"{label} does not accept keyword arguments")
+    return [_literal_value(argument) for argument in call.args]
+
+
+def _literal_value(node: ast.AST | None) -> Any:
+    if node is None:
+        raise ValueError("Provider Template dictionary unpacking is forbidden")
+    if isinstance(node, ast.Constant):
+        value = node.value
+        if value is None or isinstance(value, (str, int, float, bool)):
+            return value
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+        operand = _literal_value(node.operand)
+        if isinstance(operand, bool) or not isinstance(operand, (int, float)):
+            raise ValueError("Provider Template unary signs require numbers")
+        return operand if isinstance(node.op, ast.UAdd) else -operand
+    if isinstance(node, ast.List):
+        return [_literal_value(item) for item in node.elts]
+    if isinstance(node, ast.Dict):
+        result: dict[str, Any] = {}
+        for key_node, value_node in zip(node.keys, node.values, strict=True):
+            key = _literal_value(key_node)
+            if not isinstance(key, str) or key in _FORBIDDEN_KEYS or key in result:
+                raise ValueError(f"invalid Provider Template metadata key: {key}")
+            result[key] = _literal_value(value_node)
+        return result
+    raise ValueError("Provider Template directives accept literal data only")
+
+
+def _translate_template_strings(source: str) -> str:
+    translated: list[str] = []
+    quote: str | None = None
+    escaped = False
+    comment = False
+    index = 0
+    while index < len(source):
+        char = source[index]
+        if comment:
+            translated.append(char)
+            comment = char != "\n"
+            index += 1
+            continue
+        if quote is not None:
+            translated.append(char)
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            index += 1
+            continue
+        if char in {'"', "'"}:
+            quote = char
+            translated.append(char)
+            index += 1
+            continue
+        if char == "#":
+            comment = True
+            translated.append(char)
+            index += 1
+            continue
+        if char == "`":
+            value, index = _read_template_string(source, index)
+            translated.append(f"_CardTplInterpolation({value!r})")
+            continue
+        translated.append(char)
+        index += 1
+    return "".join(translated)
+
+
+def _read_template_string(source: str, start: int) -> tuple[str, int]:
+    value: list[str] = []
+    index = start + 1
+    while index < len(source):
+        char = source[index]
+        if char == "`":
+            return "".join(value), index + 1
+        if char == "\\":
+            if index + 1 >= len(source):
+                break
+            following = source[index + 1]
+            if following in {"`", "\\"}:
+                value.append(following)
+            else:
+                value.extend((char, following))
+            index += 2
+            continue
+        value.append(char)
+        index += 1
+    raise ValueError("CardTemplate interpolation is not closed")
+
+
+def _python_compatible_source(source: str) -> str:
+    try:
+        tokens = list(tokenize.generate_tokens(io.StringIO(source).readline))
+    except tokenize.TokenError as exc:
+        raise ValueError(f"Provider Template tokenization failed: {exc.args[0]}") from exc
+    translated: list[tokenize.TokenInfo] = []
+    literals = {"true": "True", "false": "False", "null": "None"}
+    for index, token in enumerate(tokens):
+        value = literals.get(token.string, token.string)
+        token_type = token.type
+        if token.type == tokenize.NAME and _next_token_is_colon(tokens, index):
+            value = repr(token.string)
+            token_type = tokenize.STRING
+        translated.append(tokenize.TokenInfo(token_type, value, token.start, token.end, token.line))
+    return tokenize.untokenize(translated)
+
+
+def _next_token_is_colon(tokens: list[tokenize.TokenInfo], index: int) -> bool:
+    ignored = {
+        tokenize.INDENT,
+        tokenize.DEDENT,
+        tokenize.NL,
+        tokenize.NEWLINE,
+        tokenize.COMMENT,
+    }
+    for candidate in tokens[index + 1 :]:
+        if candidate.type in ignored:
+            continue
+        return candidate.type == tokenize.OP and candidate.string == ":"
+    return False
+
+
+def _is_reference_call(node: ast.AST) -> bool:
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in _REFERENCE_CALLS
+    )
+
+
+def _validate_header_keys(header: dict[str, Any]) -> None:
+    allowed = {
+        "capability",
+        "description",
+        "domainTags",
+        "compatibleThemeProfileIds",
+        "allowedParentComponents",
+        "layoutActionStyle",
+        "bindings",
+        "params",
+        "limits",
+    }
+    unknown = set(header) - allowed
+    if unknown:
+        raise ValueError(f"unknown Provider Template fields: {sorted(unknown)}")
+
+
+def _limits(value: Any) -> tuple[int, int]:
+    if not isinstance(value, dict):
+        raise ValueError("Provider Template limits must be an object")
+    unknown = set(value) - {"maxNodes", "maxDepth"}
+    if unknown:
+        raise ValueError(f"unknown Provider Template limits: {sorted(unknown)}")
+    return (
+        _positive_int(value.get("maxNodes"), 32, "maxNodes"),
+        _positive_int(value.get("maxDepth"), 8, "maxDepth"),
+    )
+
+
+def _positive_int(value: Any, default: int, label: str) -> int:
+    candidate = default if value is None else value
+    if isinstance(candidate, bool) or not isinstance(candidate, int) or candidate <= 0:
+        raise ValueError(f"Provider Template {label} must be a positive integer")
+    return candidate
+
+
+def _required_string(payload: dict[str, Any], key: str) -> str:
+    value = payload.get(key)
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"Provider Template {key} must be a non-empty string")
+    return value
+
+
+def _string_tuple(payload: dict[str, Any], key: str) -> tuple[str, ...]:
+    value = payload.get(key)
+    if not isinstance(value, list) or not value:
+        raise ValueError(f"Provider Template {key} must be a non-empty string array")
+    if any(not isinstance(item, str) or not item for item in value):
+        raise ValueError(f"Provider Template {key} must be a non-empty string array")
+    if len(value) != len(set(value)):
+        raise ValueError(f"Provider Template {key} must not contain duplicates")
+    return tuple(value)
+
+
+def _metadata_strings(payload: dict[str, Any], key: str) -> tuple[str, ...]:
+    value = payload.get(key, [])
+    if not isinstance(value, list) or any(not isinstance(item, str) or not item for item in value):
+        raise ValueError(f"Provider Template Variant {key} must be a string array")
+    if len(value) != len(set(value)):
+        raise ValueError(f"Provider Template Variant {key} must not contain duplicates")
+    return tuple(value)
+
+
+def _split_wire_id(wire_id: str) -> tuple[str, int]:
+    if "@" not in wire_id:
+        raise ValueError(f"Provider Template ID must be versioned: {wire_id}")
+    template_id, raw_version = wire_id.rsplit("@", 1)
+    if _TEMPLATE_ID_RE.fullmatch(template_id) is None:
+        raise ValueError(f"invalid Provider Template ID: {wire_id}")
+    if not raw_version.isdigit() or raw_version.startswith("0"):
+        raise ValueError(f"invalid Provider Template version: {wire_id}")
+    return template_id, int(raw_version)
+
+
+def _template_shape(root: TemplateNode) -> tuple[int, int]:
+    if root.component in _CONDITIONAL_COMPONENTS:
+        return _template_shape(root.children[0])
+    if root.component == "Text" and root.values and root.values[0].kind == "interpolation":
+        return 1 + len(root.values[0].items), 2
+    child_shapes = [_template_shape(child) for child in root.children]
+    count = 1 + sum(shape[0] for shape in child_shapes)
+    depth = 1 + max((shape[1] for shape in child_shapes), default=0)
+    return count, depth
+
+
+def _template_references(root: TemplateNode) -> tuple[set[str], set[str]]:
+    bindings: set[str] = set()
+    parameters: set[str] = set()
+
+    def visit_value(value: TemplateValue) -> None:
+        if value.kind == "binding" and value.name:
+            bindings.add(value.name)
+        elif value.kind == "parameter" and value.name:
+            parameters.add(value.name)
+        for item in value.items:
+            visit_value(item)
+        for item in value.properties.values():
+            visit_value(item)
+
+    def visit_node(node: TemplateNode) -> None:
+        for value in node.values:
+            visit_value(value)
+        for child in node.children:
+            visit_node(child)
+
+    visit_node(root)
+    return bindings, parameters
+
+
+def _validate_conditional_guards(
+    root: TemplateNode,
+    properties: dict[str, Any],
+    bindings: dict[str, TemplateBinding],
+    required_params: set[str],
+    required_bindings: set[str],
+) -> tuple[set[str], set[str]]:
+    guarded_params: set[str] = set()
+    guarded_bindings: set[str] = set()
+
+    def parameter_references(value: TemplateValue) -> set[str]:
+        result = {value.name} if value.kind == "parameter" and value.name else set()
+        for item in value.items:
+            result.update(parameter_references(item))
+        for item in value.properties.values():
+            result.update(parameter_references(item))
+        return result
+
+    def binding_references(value: TemplateValue) -> set[str]:
+        result = {value.name} if value.kind == "binding" and value.name else set()
+        for item in value.items:
+            result.update(binding_references(item))
+        for item in value.properties.values():
+            result.update(binding_references(item))
+        return result
+
+    def visit(
+        node: TemplateNode,
+        active_param_guards: set[str],
+        active_binding_guards: set[str],
+    ) -> None:
+        if node.component in _CONDITIONAL_PARAMETER_COMPONENTS:
+            parameter_name = node.values[0].value
+            assert isinstance(parameter_name, str)
+            if parameter_name not in properties:
+                raise ValueError(
+                    f"unknown Provider Template conditional parameter: {parameter_name}"
+                )
+            guarded_params.add(parameter_name)
+            child_param_guards = set(active_param_guards)
+            if node.component == "IfParam":
+                child_param_guards.add(parameter_name)
+            visit(node.children[0], child_param_guards, active_binding_guards)
+            return
+        if node.component in _CONDITIONAL_BINDING_COMPONENTS:
+            binding_name = node.values[0].value
+            assert isinstance(binding_name, str)
+            if binding_name not in bindings:
+                raise ValueError(f"unknown Provider Template conditional binding: {binding_name}")
+            guarded_bindings.add(binding_name)
+            child_binding_guards = set(active_binding_guards)
+            if node.component == "IfBind":
+                child_binding_guards.add(binding_name)
+            visit(node.children[0], active_param_guards, child_binding_guards)
+            return
+        for value in node.values:
+            for parameter_name in parameter_references(value):
+                if (
+                    parameter_name not in required_params
+                    and parameter_name not in active_param_guards
+                ):
+                    raise ValueError(
+                        "Provider Template optional Param/Asset must be nested under "
+                        f'IfParam("{parameter_name}", ...)'
+                    )
+            for binding_name in binding_references(value):
+                if (
+                    binding_name not in required_bindings
+                    and binding_name not in active_binding_guards
+                ):
+                    raise ValueError(
+                        "Provider Template optional Bind must be nested under "
+                        f'IfBind("{binding_name}", ...)'
+                    )
+        for child in node.children:
+            visit(child, active_param_guards, active_binding_guards)
+
+    visit(root, set(), set())
+    return guarded_params, guarded_bindings
+
+
+def _validate_interpolation_bindings(
+    root: TemplateNode,
+    bindings: dict[str, TemplateBinding],
+) -> None:
+    for node in _walk_template_nodes(root):
+        for index, value in enumerate(node.values):
+            if value.kind == "interpolation" and (node.component != "Text" or index != 0):
+                raise ValueError("CardTemplate interpolation must be the first Text value")
+            _validate_dynamic_template_value(value, bindings, direct=True)
+
+
+def _validate_dynamic_template_value(
+    value: TemplateValue,
+    bindings: dict[str, TemplateBinding],
+    *,
+    direct: bool,
+) -> None:
+    if value.kind == "interpolation" and not direct:
+        raise ValueError("CardTemplate interpolation must be a direct Text value")
+    if value.kind in {"interpolation", "expression"}:
+        has_binding = False
+        for item in value.items:
+            binding = bindings.get(item.name) if item.kind == "binding" else None
+            if binding is not None:
+                has_binding = True
+            if (
+                value.kind == "interpolation"
+                and binding is not None
+                and binding.data_type != "string"
+            ):
+                raise ValueError(f"CardTemplate interpolation must use strings: {item.name}")
+        if value.kind == "expression" and not has_binding:
+            raise ValueError("CardTemplate Expr must reference at least one binding")
+        return
+    for item in value.items:
+        _validate_dynamic_template_value(item, bindings, direct=False)
+    for item in value.properties.values():
+        _validate_dynamic_template_value(item, bindings, direct=False)
+
+
+def _contains_template_value_kind(value: TemplateValue, kind: str) -> bool:
+    return any(
+        item.kind == kind or _contains_template_value_kind(item, kind)
+        for item in (*value.items, *value.properties.values())
+    )
+
+
+def _walk_template_nodes(root: TemplateNode) -> Iterator[TemplateNode]:
+    yield root
+    for child in root.children:
+        yield from _walk_template_nodes(child)
+
+
+def _skip_whitespace(source: str, offset: int) -> int:
+    while offset < len(source) and source[offset].isspace():
+        offset += 1
+    return offset
+
+
+def _bundle_file(root: Path, relative: str) -> Path:
+    candidate = Path(relative)
+    if candidate.is_absolute():
+        raise ValueError(f"Provider Bundle path must be relative: {relative}")
+    resolved = (root / candidate).resolve()
+    if root not in resolved.parents or not resolved.is_file():
+        raise ValueError(f"Provider Bundle file is unavailable: {relative}")
+    return resolved
+
+
+def _read_object(path: Path) -> dict[str, Any]:
+    value = json.loads(_bounded_file_bytes(path))
+    if not isinstance(value, dict):
+        raise ValueError(f"Provider Bundle JSON must be an object: {path.name}")
+    return value
+
+
+def _bounded_file_bytes(path: Path) -> bytes:
+    if path.stat().st_size > _MAX_BUNDLE_FILE_BYTES:
+        raise ValueError(f"Provider Bundle file exceeds the size limit: {path.name}")
+    return path.read_bytes()
+
+
+def _reject_forbidden_keys(value: Any) -> None:
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if key in _FORBIDDEN_KEYS:
+                raise ValueError(f"forbidden Provider Bundle key: {key}")
+            _reject_forbidden_keys(child)
+    elif isinstance(value, list):
+        for child in value:
+            _reject_forbidden_keys(child)
+
+
+def _validate_compatibility(compatibility: ProviderCompatibility) -> None:
+    if compatibility.template_language != "cardtpl/1":
+        raise ValueError("unsupported Provider Template language")
+    if compatibility.catalog_id != "ohos.a2ui.extended.catalog.form":
+        raise ValueError("Provider Bundle Catalog mismatch")
+    if compatibility.a2ui_wire_version != "v0.9":
+        raise ValueError("Provider Bundle A2UI wire version mismatch")
+
+
+def _unique_template_entries(
+    entries: tuple[ProviderTemplateEntry, ...],
+) -> dict[str, ProviderTemplateEntry]:
+    result: dict[str, ProviderTemplateEntry] = {}
+    for entry in entries:
+        _split_wire_id(entry.template_id)
+        if entry.template_id in result:
+            raise ValueError(f"duplicate Provider Template entry: {entry.template_id}")
+        if _DIGEST_RE.fullmatch(entry.digest) is None:
+            raise ValueError(f"invalid Provider Template digest: {entry.template_id}")
+        result[entry.template_id] = entry
+    return result
+
+
+def _template_owners(
+    capabilities: tuple[ProviderCapabilityEntry, ...],
+) -> dict[str, ProviderCapabilityEntry]:
+    result: dict[str, ProviderCapabilityEntry] = {}
+    capability_ids: set[str] = set()
+    for capability in capabilities:
+        if capability.capability_id in capability_ids:
+            raise ValueError(f"duplicate Provider capability: {capability.capability_id}")
+        capability_ids.add(capability.capability_id)
+        for wire_id in capability.templates:
+            if wire_id in result:
+                raise ValueError(f"Provider Template has multiple owners: {wire_id}")
+            result[wire_id] = capability
+    return result
+
+
+def _load_data_schema(
+    root: Path,
+    capability: ProviderCapabilityEntry,
+) -> dict[str, Any]:
+    schema_path = _resolve_data_schema(root, capability.data_schema)
+    payload = json.loads(_bounded_file_bytes(schema_path))
+    _reject_forbidden_keys(payload)
+    schema: Any
+    if isinstance(payload, list):
+        matches = [
+            item
+            for item in payload
+            if isinstance(item, dict) and item.get("id") == capability.capability_id
+        ]
+        if len(matches) != 1:
+            raise ValueError(
+                f"Provider dataSchema capability resolution failed: {capability.capability_id}"
+            )
+        schema = matches[0].get("outputSchema")
+    elif isinstance(payload, dict) and payload.get("id") == capability.capability_id:
+        schema = payload.get("outputSchema")
+    else:
+        schema = payload
+    if not isinstance(schema, dict):
+        raise ValueError(
+            f"Provider dataSchema must resolve to an object: {capability.capability_id}"
+        )
+    Draft202012Validator.check_schema(schema)
+    return schema
+
+
+def _resolve_data_schema(
+    root: Path,
+    data_schema: ProviderDataSchema,
+) -> Path:
+    relative = Path(data_schema.path)
+    if relative.is_absolute() or ".." in relative.parts:
+        raise ValueError("Provider dataSchema path must be relative")
+    data_root = get_settings().data_root.resolve()
+    upstream_path = (data_root / relative).resolve()
+    if data_root in upstream_path.parents and upstream_path.is_file():
+        upstream_relative = upstream_path.relative_to(data_root)
+        if data_schema.version not in upstream_relative.parts:
+            raise ValueError("Provider upstream dataSchema version does not match its path")
+        return upstream_path
+    return _bundle_file(root, data_schema.path)
+
+
+def _bundle_digest(root: Path, manifest: ProviderManifest) -> str:
+    paths = {
+        "provider.json": _bundle_file(root, "provider.json"),
+        **{entry.entry: _bundle_file(root, entry.entry) for entry in manifest.templates},
+    }
+    for capability in manifest.capabilities:
+        schema_path = _resolve_data_schema(root, capability.data_schema)
+        label = (
+            f"dataSchema:{capability.capability_id}:"
+            f"{capability.data_schema.version}:{capability.data_schema.path}"
+        )
+        paths[label] = schema_path
+    digest = hashlib.sha256()
+    for label, path in sorted(paths.items()):
+        digest.update(label.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(_bounded_file_bytes(path))
+        digest.update(b"\0")
+    return "sha256:" + digest.hexdigest()
+
+
+def _sha256_digest(value: bytes) -> str:
+    return "sha256:" + hashlib.sha256(value).hexdigest()
+
+
+def provider_template_admission(
+    definition: TemplateDefinition,
+    task_spec: TaskSpec,
+    card_spec: dict[str, Any] | None,
+) -> ProviderTemplateAdmission:
+    if definition.source_format != "cardtpl/1":
+        return ProviderTemplateAdmission(True)
+    capability_id = definition.capability_id
+    if not capability_id:
+        return ProviderTemplateAdmission(False, "missing-capability-id")
+    root = _provider_data_root(card_spec, capability_id)
+    if isinstance(root, ProviderTemplateAdmission):
+        return root
+    failures: list[ProviderTemplateAdmission] = []
+    for variant in definition.variants:
+        admission = _provider_variant_binding_admission(
+            definition,
+            variant,
+            task_spec,
+            root,
+        )
+        if admission.admitted:
+            return admission
+        failures.append(admission)
+    return failures[0] if failures else ProviderTemplateAdmission(False, "variant-unavailable")
+
+
+def provider_template_variant_admission(
+    definition: TemplateDefinition,
+    variant: TemplateVariant,
+    task_spec: TaskSpec,
+    card_spec: dict[str, Any] | None,
+) -> ProviderTemplateAdmission:
+    if definition.source_format != "cardtpl/1":
+        return ProviderTemplateAdmission(True)
+    capability_id = definition.capability_id
+    if not capability_id:
+        return ProviderTemplateAdmission(False, "missing-capability-id")
+    root = _provider_data_root(card_spec, capability_id)
+    if isinstance(root, ProviderTemplateAdmission):
+        return root
+    return _provider_variant_binding_admission(definition, variant, task_spec, root)
+
+
+def _provider_variant_binding_admission(
+    definition: TemplateDefinition,
+    variant: TemplateVariant,
+    task_spec: TaskSpec,
+    root: str,
+) -> ProviderTemplateAdmission:
+    for name in variant.required_bindings:
+        binding = definition.bindings[name]
+        path = f"{root.rstrip('/')}{binding.path}"
+        leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, path)
+        if leaf is None:
+            return ProviderTemplateAdmission(
+                False,
+                "binding-path-unavailable",
+                binding_name=name,
+                path=path,
+                expected_type=binding.data_type,
+            )
+        actual_type = leaf.get("type")
+        if not _provider_binding_types_match(binding.data_type, actual_type):
+            return ProviderTemplateAdmission(
+                False,
+                "binding-type-mismatch",
+                binding_name=name,
+                path=path,
+                expected_type=binding.data_type,
+                actual_type=str(actual_type),
+            )
+    values_by_field = _provider_sample_values_by_field(task_spec.dataModelSchema)
+    properties = variant.parameters_schema.get("properties", {})
+    for name in variant.parameters_schema.get("required", ()):
+        if name in definition.asset_parameter_semantic_tags:
+            continue
+        candidates = list(dict.fromkeys(values_by_field.get(name, ())))
+        if len(candidates) != 1:
+            return ProviderTemplateAdmission(
+                False,
+                "parameter-value-unavailable",
+                binding_name=name,
+            )
+        expected_type = properties.get(name, {}).get("type")
+        if not _parameter_value_matches_type(candidates[0], expected_type):
+            return ProviderTemplateAdmission(
+                False,
+                "parameter-type-mismatch",
+                binding_name=name,
+                expected_type=str(expected_type),
+                actual_type=type(candidates[0]).__name__,
+            )
+    return ProviderTemplateAdmission(True)
+
+
+def _provider_sample_values_by_field(value: object) -> dict[str, tuple[object, ...]]:
+    collected: dict[str, list[object]] = {}
+
+    def visit(current: object, field_name: str | None = None) -> None:
+        if isinstance(current, dict) and "sampleValue" in current and field_name:
+            sample = current["sampleValue"]
+            if sample is None or isinstance(sample, (str, int, float, bool)):
+                collected.setdefault(field_name, []).append(sample)
+            return
+        if isinstance(current, dict):
+            for key, child in current.items():
+                visit(child, key)
+        elif isinstance(current, list):
+            for child in current[:1]:
+                visit(child, field_name)
+
+    visit(value)
+    return {key: tuple(values) for key, values in collected.items()}
+
+
+def _parameter_value_matches_type(value: object, expected: object) -> bool:
+    if expected == "string":
+        return isinstance(value, str)
+    if expected == "boolean":
+        return isinstance(value, bool)
+    if expected == "integer":
+        return isinstance(value, int) and not isinstance(value, bool)
+    if expected == "number":
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+    return False
+
+
+def _provider_data_root(
+    card_spec: dict[str, Any] | None,
+    capability_id: str,
+) -> str | ProviderTemplateAdmission:
+    if card_spec is None:
+        return ProviderTemplateAdmission(False, "card-spec-unavailable")
+    raw_bindings = card_spec.get("dataBindings")
+    if not isinstance(raw_bindings, list):
+        return ProviderTemplateAdmission(False, "data-bindings-unavailable")
+    roots = {
+        item.get("writeResultTo")
+        for item in raw_bindings
+        if isinstance(item, dict)
+        and item.get("capabilityId") == capability_id
+        and _valid_runtime_data_root(item.get("writeResultTo"))
+    }
+    if not roots:
+        return ProviderTemplateAdmission(False, "capability-binding-unavailable")
+    if len(roots) > 1:
+        return ProviderTemplateAdmission(False, "capability-binding-ambiguous")
+    return next(iter(roots))
+
+
+def _valid_runtime_data_root(value: Any) -> bool:
+    return isinstance(value, str) and (value == "/data" or value.startswith("/data/"))
+
+
+def _task_spec_schema_leaf(
+    schema: dict[str, Any],
+    pointer: str,
+) -> dict[str, Any] | None:
+    current: Any = schema
+    for raw_part in pointer.removeprefix("/").split("/"):
+        part = raw_part.replace("~1", "/").replace("~0", "~")
+        if isinstance(current, dict):
+            current = current.get(part)
+            continue
+        if isinstance(current, list) and part == "0" and current:
+            current = current[0]
+            continue
+        return None
+    if not isinstance(current, dict) or not isinstance(current.get("type"), str):
+        return None
+    return current
+
+
+def _provider_binding_types_match(provider_type: str, data_type: Any) -> bool:
+    return provider_type == data_type or (provider_type == "integer" and data_type == "number")
+
+
+__all__ = [
+    "LoadedProviderBundle",
+    "ProviderTemplateAdmission",
+    "compile_card_template",
+    "load_provider_bundle",
+    "load_provider_templates",
+    "provider_template_admission",
+    "provider_template_variant_admission",
+]

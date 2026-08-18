@@ -1,0 +1,47 @@
+{
+  "bundleFormat": "card-provider-bundle/1",
+  "providerId": "com.huawei.health-sport.cli",
+  "providerVersion": "1.0.0-poc",
+  "capabilities": [
+    {
+      "capabilityId": "GetHealthAndSportSummary",
+      "dataSchema": {
+        "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
+        "version": "app-11.7.5.205_rom-6.0"
+      },
+      "templates": [
+        "ActivityOverview@1",
+        "WorkoutOverview@1",
+        "HeartRateOverview@1",
+        "SleepOverview@1"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "templateId": "ActivityOverview@1",
+      "entry": "templates/activity-overview.cardtpl",
+      "digest": "sha256:12268d05542021bcb6da5af19618626a656edcd483c53f9917adb2c6c5a7d42b"
+    },
+    {
+      "templateId": "WorkoutOverview@1",
+      "entry": "templates/workout-overview.cardtpl",
+      "digest": "sha256:f649f82ae9b7f415143ad9c80e417f068dc043a948c601d9ce68436eac002e4b"
+    },
+    {
+      "templateId": "HeartRateOverview@1",
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "digest": "sha256:d09096b3144523b77b5e72169cb29c6ee4e30b3e34d5ce6f58007ae28876375e"
+    },
+    {
+      "templateId": "SleepOverview@1",
+      "entry": "templates/sleep-overview.cardtpl",
+      "digest": "sha256:5d8453a3051d8e2b6cec03b1f07aa130b343e62937c40d4c1f8984882c374236"
+    }
+  ],
+  "compatibility": {
+    "templateLanguage": "cardtpl/1",
+    "catalogId": "ohos.a2ui.extended.catalog.form",
+    "a2uiWireVersion": "v0.9"
+  }
+}

@@ -1,0 +1,553 @@
+#Template("BluetoothDeviceOverview@1", {
+  capability: "GetEarphoneInfo",
+  description: "蓝牙耳机数据提供方交付的设备概览",
+  domainTags: ["bluetooth", "earbuds", "device"],
+  compatibleThemeProfileIds: ["audio-product-neutral-violet", "system-low-power-blue", "device-clean-blue-teal"],
+  allowedParentComponents: ["Column", "Row", "List", "Stack"],
+  layoutActionStyle: { backgroundOpacity: 0.1 },
+  bindings: {
+    connected: { path: "/isConnected", type: "boolean" },
+    name: { path: "/earphoneName", type: "string" },
+    battery: { path: "/batteryLevel", type: "integer" },
+    charging: { path: "/chargingStatusDesc", type: "string" },
+    left: { path: "/leftBatteryLevel", type: "integer" },
+    right: { path: "/rightBatteryLevel", type: "integer" }
+  },
+  params: {
+    sourceIcon: { type: "string", kind: "asset", semanticTags: ["product"] },
+    leftEarIcon: { type: "string", kind: "asset", semanticTags: ["earphone"] },
+    rightEarIcon: { type: "string", kind: "asset", semanticTags: ["earphone"] }
+  },
+  limits: { maxNodes: 40, maxDepth: 8 }
+})
+
+#Variant("disconnected", { sizes: ["2x2", "2x4"], roles: ["hero", "peer"], requires: ["connected", "name"] })
+Column("compact", {
+  _advancedComponent: "BluetoothDeviceOverview", width: "matchParent", height: "matchParent",
+  itemMargin: 4, justifyContent: "spaceBetween", alignItems: "start", clip: true,
+  constraintSize: { minWidth: 0, minHeight: 0 }
+},
+  Row("between", {
+    width: "matchParent", height: 20, itemMargin: 4, justifyContent: "spaceBetween",
+    alignItems: "top", constraintSize: { minWidth: 0, minHeight: 0 }
+  },
+    Text(Bind("name"), "subtitle", {
+      width: "matchParent", fontSize: 12, fontWeight: 400, fontColor: "#99000000",
+      maxLines: 1, textAlign: "start", textOverflow: "ellipsis", layoutWeight: 1,
+      constraintSize: { minWidth: 0, minHeight: 0 }
+    }),
+    IfParam("sourceIcon",
+      Image(Asset("sourceIcon"), "icon", { width: 20, height: 20, borderRadius: 4, objectFit: "contain", fillColor: "#99000000", flexShrink: 0 })
+    )
+  ),
+  Text(Expr(`${connected} ? '已连接' : '未连接'`), "compact-title", {
+    width: "matchParent", fontSize: 14, fontWeight: 500, fontColor: "#E6000000",
+    maxLines: 1, textAlign: "start", textOverflow: "ellipsis",
+    constraintSize: { minWidth: 0, minHeight: 0 }
+  })
+)
+#EndVariant
+
+#Variant("connection", { sizes: ["2x2", "2x4"], roles: ["hero", "peer"], requires: ["connected", "name"] })
+Column("compact", {
+  _advancedComponent: "BluetoothDeviceOverview", width: "matchParent", height: "matchParent",
+  itemMargin: 4, justifyContent: "spaceBetween", alignItems: "start", clip: true,
+  constraintSize: { minWidth: 0, minHeight: 0 }
+},
+  Row("between", {
+    width: "matchParent", height: 20, itemMargin: 4, justifyContent: "spaceBetween",
+    alignItems: "top", constraintSize: { minWidth: 0, minHeight: 0 }
+  },
+    Text(Bind("name"), "subtitle", {
+      width: "matchParent", fontSize: 12, fontWeight: 400, fontColor: "#99000000",
+      maxLines: 1, textAlign: "start", textOverflow: "ellipsis", layoutWeight: 1,
+      constraintSize: { minWidth: 0, minHeight: 0 }
+    }),
+    IfParam("sourceIcon",
+      Image(Asset("sourceIcon"), "icon", { width: 20, height: 20, borderRadius: 4, objectFit: "contain", fillColor: "#99000000", flexShrink: 0 })
+    )
+  ),
+  Text(Expr(`${connected} ? '已连接' : '未连接'`), "compact-title", {
+    width: "matchParent", fontSize: 18, fontWeight: 600, fontColor: "#E6000000",
+    maxLines: 1, textAlign: "start", textOverflow: "ellipsis",
+    constraintSize: { minWidth: 0, minHeight: 0 }
+  })
+)
+#EndVariant
+
+#Variant("disconnectedPhone", { sizes: ["2x2", "2x4"], roles: ["support"], requires: ["connected"] })
+Column("compact", {
+  _advancedComponent: "BluetoothDeviceOverview", width: "matchParent", height: "matchParent",
+  justifyContent: "center", alignItems: "center", clip: true,
+  constraintSize: { minWidth: 0, minHeight: 0 }
+},
+  Text(Expr(`${connected} ? '已连接' : '未连接'`), "subtitle", {
+    width: "matchParent", fontSize: 11, fontWeight: 400, fontColor: "#99000000",
+    maxLines: 1, textAlign: "center", textOverflow: "ellipsis",
+    constraintSize: { minWidth: 0, minHeight: 0 }
+  })
+)
+#EndVariant
+
+#Variant("earbudsPhone", { sizes: ["2x2"], roles: ["support"], requires: ["connected"] })
+Column("compact", {
+  _advancedComponent: "BluetoothDeviceOverview", width: "matchParent", height: "matchParent",
+  padding: 0, borderRadius: 0, backgroundColor: "#00000000", itemMargin: 2,
+  justifyContent: "center", alignItems: "center", clip: true,
+  constraintSize: { minWidth: 0, minHeight: 0 }
+},
+  Column("compact", {
+    width: "matchParent", height: "matchParent", itemMargin: 2,
+    justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 }
+  },
+    IfBind("left",
+      Column("compact", { layoutWeight: 1, itemMargin: 1, justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 } },
+        Stack("overlay", { width: 32, height: 32, alignContent: "center", flexShrink: 0 },
+          Progress({ value: Bind("left"), total: 100, type: "ring", color: Expr(`${left} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), backgroundColor: "#1A000000", width: 32, height: 32, strokeWidth: 6 }),
+          IfParam("leftEarIcon",
+            Image(Asset("leftEarIcon"), "icon", { width: 14, height: 14, objectFit: "contain", fillColor: "#99000000" })
+          )
+        ),
+        Text(Expr(`'' + ${left} + '%'`), "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textAlign: "center", textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+      )
+    ),
+    IfBind("right",
+      Column("compact", { layoutWeight: 1, itemMargin: 1, justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 } },
+        Stack("overlay", { width: 32, height: 32, alignContent: "center", flexShrink: 0 },
+          Progress({ value: Bind("right"), total: 100, type: "ring", color: Expr(`${right} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), backgroundColor: "#1A000000", width: 32, height: 32, strokeWidth: 6 }),
+          IfParam("rightEarIcon",
+            Image(Asset("rightEarIcon"), "icon", { width: 14, height: 14, objectFit: "contain", fillColor: "#99000000" })
+          )
+        ),
+        Text(Expr(`'' + ${right} + '%'`), "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textAlign: "center", textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+      )
+    ),
+    IfMissingBind("left",
+      IfMissingBind("right",
+        IfBind("battery",
+          Column("compact", { layoutWeight: 1, itemMargin: 1, justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 } },
+            Stack("overlay", { width: 32, height: 32, alignContent: "center", flexShrink: 0 },
+              Progress({ value: Bind("battery"), total: 100, type: "ring", color: Expr(`${battery} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), backgroundColor: "#1A000000", width: 32, height: 32, strokeWidth: 6 }),
+              IfParam("sourceIcon",
+                Image(Asset("sourceIcon"), "icon", { width: 14, height: 14, objectFit: "contain", fillColor: "#99000000" })
+              )
+            ),
+            Text(Expr(`'' + ${battery} + '%'`), "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textAlign: "center", textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+          )
+        )
+      )
+    )
+  ),
+  Text(Expr(`${connected} ? '已连接' : '未连接'`), "subtitle", {
+    width: "matchParent", fontSize: 10, fontWeight: 400, fontColor: "#99000000",
+    maxLines: 1, textAlign: "center", textOverflow: "ellipsis",
+    constraintSize: { minWidth: 0, minHeight: 0 }
+  })
+)
+#EndVariant
+
+#Variant("earbudsPhoneWide", { sizes: ["2x4"], roles: ["support"], requires: ["connected", "name"] })
+Column("compact", {
+  _advancedComponent: "BluetoothDeviceOverview", width: "matchParent", height: "matchParent",
+  padding: { left: 8, top: 6, right: 8, bottom: 6 }, borderRadius: 8,
+  backgroundColor: "#1A64BB5C", itemMargin: 4, justifyContent: "start",
+  alignItems: "start", clip: true, constraintSize: { minWidth: 0, minHeight: 0 }
+},
+  IfMissingBind("battery",
+    Text(Expr(`${connected} ? ${name} + ' · 已连接' : ${name} + ' · 未连接'`), "subtitle", { width: "matchParent", fontSize: 11, fontWeight: 400, fontColor: "#99000000", maxLines: 1, textAlign: "start", textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+  ),
+  IfBind("battery",
+    Text(Expr(`${connected} ? ${name} + ' · 已连接 · 充电盒 ' + ${battery} + '%' : ${name} + ' · 未连接 · 充电盒 ' + ${battery} + '%'`), "subtitle", { width: "matchParent", fontSize: 11, fontWeight: 400, fontColor: "#99000000", maxLines: 1, textAlign: "start", textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+  ),
+  Row("between", {
+    width: "matchParent", height: 56, itemMargin: 8, justifyContent: "center",
+    alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 }
+  },
+    IfBind("left",
+      Column("compact", { layoutWeight: 1, itemMargin: 1, justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 } },
+        Stack("overlay", { width: 40, height: 40, alignContent: "center", flexShrink: 0 },
+          Progress({ value: Bind("left"), total: 100, type: "ring", color: Expr(`${left} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), backgroundColor: "#1A000000", width: 40, height: 40, strokeWidth: 6 }),
+          IfParam("leftEarIcon", Image(Asset("leftEarIcon"), "icon", { width: 18, height: 18, objectFit: "contain", fillColor: "#99000000" }))
+        ),
+        Text(Expr(`'' + ${left} + '%'`), "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textAlign: "center", textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+      )
+    ),
+    IfBind("right",
+      Column("compact", { layoutWeight: 1, itemMargin: 1, justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 } },
+        Stack("overlay", { width: 40, height: 40, alignContent: "center", flexShrink: 0 },
+          Progress({ value: Bind("right"), total: 100, type: "ring", color: Expr(`${right} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), backgroundColor: "#1A000000", width: 40, height: 40, strokeWidth: 6 }),
+          IfParam("rightEarIcon", Image(Asset("rightEarIcon"), "icon", { width: 18, height: 18, objectFit: "contain", fillColor: "#99000000" }))
+        ),
+        Text(Expr(`'' + ${right} + '%'`), "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textAlign: "center", textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+      )
+    ),
+    IfMissingBind("left",
+      IfMissingBind("right",
+        IfBind("battery",
+          Column("compact", { layoutWeight: 1, itemMargin: 1, justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 } },
+            Stack("overlay", { width: 40, height: 40, alignContent: "center", flexShrink: 0 },
+              Progress({ value: Bind("battery"), total: 100, type: "ring", color: Expr(`${battery} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), backgroundColor: "#1A000000", width: 40, height: 40, strokeWidth: 6 }),
+              IfParam("sourceIcon", Image(Asset("sourceIcon"), "icon", { width: 18, height: 18, objectFit: "contain", fillColor: "#99000000" }))
+            ),
+            Text(Expr(`'' + ${battery} + '%'`), "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textAlign: "center", textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+          )
+        )
+      )
+    )
+  )
+)
+#EndVariant
+
+#Variant("earbudsDynamicWide", { sizes: ["2x4"], roles: ["hero", "peer"], requires: ["connected", "name"] })
+Column("compact", {
+  _advancedComponent: "BluetoothDeviceOverview", width: "matchParent", height: "matchParent",
+  itemMargin: 4, justifyContent: "spaceBetween", alignItems: "start", clip: true,
+  constraintSize: { minWidth: 0, minHeight: 0 }
+},
+  Row("between", {
+    width: "matchParent", height: 20, itemMargin: 4, justifyContent: "spaceBetween",
+    alignItems: "top", constraintSize: { minWidth: 0, minHeight: 0 }
+  },
+    Text(Expr(`${connected} ? ${name} + ' · 已连接' : ${name} + ' · 未连接'`), "subtitle", {
+      width: "matchParent", fontSize: 12, fontWeight: 400, fontColor: "#99000000",
+      maxLines: 1, textAlign: "start", textOverflow: "ellipsis", layoutWeight: 1,
+      constraintSize: { minWidth: 0, minHeight: 0 }
+    }),
+    IfParam("sourceIcon",
+      Image(Asset("sourceIcon"), "icon", { width: 20, height: 20, borderRadius: 4, objectFit: "contain", fillColor: "#99000000", flexShrink: 0 })
+    )
+  ),
+  Row("between", {
+    width: "matchParent", height: 56, itemMargin: 8, justifyContent: "center",
+    alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 }
+  },
+    IfBind("left",
+      Column("compact", { layoutWeight: 1, itemMargin: 1, justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 } },
+        Stack("overlay", { width: 40, height: 40, alignContent: "center", flexShrink: 0 },
+          Progress({ value: Bind("left"), total: 100, type: "ring", color: Expr(`${left} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), backgroundColor: "#1A000000", width: 40, height: 40, strokeWidth: 6 }),
+          IfParam("leftEarIcon", Image(Asset("leftEarIcon"), "icon", { width: 18, height: 18, objectFit: "contain", fillColor: "#99000000" }))
+        ),
+        Text(Expr(`'' + ${left} + '%'`), "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textAlign: "center", textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+      )
+    ),
+    IfBind("right",
+      Column("compact", { layoutWeight: 1, itemMargin: 1, justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 } },
+        Stack("overlay", { width: 40, height: 40, alignContent: "center", flexShrink: 0 },
+          Progress({ value: Bind("right"), total: 100, type: "ring", color: Expr(`${right} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), backgroundColor: "#1A000000", width: 40, height: 40, strokeWidth: 6 }),
+          IfParam("rightEarIcon", Image(Asset("rightEarIcon"), "icon", { width: 18, height: 18, objectFit: "contain", fillColor: "#99000000" }))
+        ),
+        Text(Expr(`'' + ${right} + '%'`), "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textAlign: "center", textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+      )
+    ),
+    IfMissingBind("left",
+      IfMissingBind("right",
+        IfBind("battery",
+          Column("compact", { layoutWeight: 1, itemMargin: 1, justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 } },
+            Stack("overlay", { width: 40, height: 40, alignContent: "center", flexShrink: 0 },
+              Progress({ value: Bind("battery"), total: 100, type: "ring", color: Expr(`${battery} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), backgroundColor: "#1A000000", width: 40, height: 40, strokeWidth: 6 }),
+              IfParam("sourceIcon", Image(Asset("sourceIcon"), "icon", { width: 18, height: 18, objectFit: "contain", fillColor: "#99000000" }))
+            ),
+            Text(Expr(`'' + ${battery} + '%'`), "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textAlign: "center", textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+          )
+        )
+      )
+    )
+  ),
+  IfBind("battery",
+    Text(Expr(`'充电盒 ' + ${battery} + '%'`), "subtitle", {
+      width: "matchParent", fontSize: 11, fontWeight: 400, fontColor: "#99000000",
+      maxLines: 1, textAlign: "start", textOverflow: "ellipsis",
+      constraintSize: { minWidth: 0, minHeight: 0 }
+    })
+  )
+)
+#EndVariant
+
+#Variant("earbuds", { sizes: ["2x2", "2x4"], roles: ["hero", "support", "peer"], requires: ["connected", "name", "battery"] })
+Column("compact", {
+  _advancedComponent: "BluetoothDeviceOverview", width: "matchParent", height: "matchParent",
+  itemMargin: 4, justifyContent: "spaceBetween", alignItems: "start", clip: true,
+  constraintSize: { minWidth: 0, minHeight: 0 }
+},
+  Row("between", {
+    width: "matchParent", height: 20, itemMargin: 4, justifyContent: "spaceBetween",
+    alignItems: "top", constraintSize: { minWidth: 0, minHeight: 0 }
+  },
+    Text(Expr(`${connected} ? ${name} + ' · 已连接' : ${name} + ' · 未连接'`), "subtitle", {
+      width: "matchParent", fontSize: 12, fontWeight: 400, fontColor: "#99000000",
+      maxLines: 1, textAlign: "start", textOverflow: "ellipsis", layoutWeight: 1,
+      constraintSize: { minWidth: 0, minHeight: 0 }
+    }),
+    IfParam("sourceIcon",
+      Image(Asset("sourceIcon"), "icon", { width: 20, height: 20, borderRadius: 4, objectFit: "contain", fillColor: "#99000000", flexShrink: 0 })
+    )
+  ),
+  Row("between", {
+    width: "matchParent", height: 56, itemMargin: 8, justifyContent: "center",
+    alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 }
+  },
+    Column("compact", {
+      layoutWeight: 1, itemMargin: 1, justifyContent: "center", alignItems: "center",
+      constraintSize: { minWidth: 0, minHeight: 0 }
+    },
+      Stack("overlay", { width: 40, height: 40, alignContent: "center", flexShrink: 0 },
+        Progress({
+          value: Bind("battery"), total: 100, type: "ring",
+          color: Expr(`${battery} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`),
+          backgroundColor: "#1A000000", width: 40, height: 40, strokeWidth: 6
+        }),
+        IfParam("sourceIcon",
+          Image(Asset("sourceIcon"), "icon", { width: 18, height: 18, objectFit: "contain", fillColor: "#99000000" })
+        )
+      ),
+      Text(Expr(`'' + ${battery} + '%'`), "subtitle", {
+        width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000",
+        maxLines: 1, textAlign: "center", textOverflow: "ellipsis",
+        constraintSize: { minWidth: 0, minHeight: 0 }
+      })
+    )
+  )
+)
+#EndVariant
+
+#Variant("leftEarbud", { sizes: ["2x2", "2x4"], roles: ["hero", "support", "peer"], requires: ["connected", "name", "left"] })
+Column("compact", {
+  _advancedComponent: "BluetoothDeviceOverview", width: "matchParent", height: "matchParent",
+  itemMargin: 4, justifyContent: "spaceBetween", alignItems: "start", clip: true,
+  constraintSize: { minWidth: 0, minHeight: 0 }
+},
+  Row("between", { width: "matchParent", height: 20, itemMargin: 4, justifyContent: "spaceBetween", alignItems: "top", constraintSize: { minWidth: 0, minHeight: 0 } },
+    Text(Expr(`${connected} ? ${name} + ' · 已连接' : ${name} + ' · 未连接'`), "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 400, fontColor: "#99000000", maxLines: 1, textAlign: "start", textOverflow: "ellipsis", layoutWeight: 1, constraintSize: { minWidth: 0, minHeight: 0 } }),
+    IfParam("sourceIcon",
+      Image(Asset("sourceIcon"), "icon", { width: 20, height: 20, borderRadius: 4, objectFit: "contain", fillColor: "#99000000", flexShrink: 0 })
+    )
+  ),
+  Row("between", { width: "matchParent", height: 56, itemMargin: 8, justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 } },
+    Column("compact", {
+      layoutWeight: 1, itemMargin: 1, justifyContent: "center", alignItems: "center",
+      constraintSize: { minWidth: 0, minHeight: 0 }
+    },
+      Stack("overlay", { width: 40, height: 40, alignContent: "center", flexShrink: 0 },
+        Progress({ value: Bind("left"), total: 100, type: "ring", color: Expr(`${left} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), backgroundColor: "#1A000000", width: 40, height: 40, strokeWidth: 6 }),
+        IfParam("leftEarIcon",
+          Image(Asset("leftEarIcon"), "icon", { width: 18, height: 18, objectFit: "contain", fillColor: "#99000000" })
+        )
+      ),
+      Text(Expr(`'' + ${left} + '%'`), "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textAlign: "center", textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+    )
+  )
+)
+#EndVariant
+
+#Variant("rightEarbud", { sizes: ["2x2", "2x4"], roles: ["hero", "support", "peer"], requires: ["connected", "name", "right"] })
+Column("compact", {
+  _advancedComponent: "BluetoothDeviceOverview", width: "matchParent", height: "matchParent",
+  itemMargin: 4, justifyContent: "spaceBetween", alignItems: "start", clip: true,
+  constraintSize: { minWidth: 0, minHeight: 0 }
+},
+  Row("between", { width: "matchParent", height: 20, itemMargin: 4, justifyContent: "spaceBetween", alignItems: "top", constraintSize: { minWidth: 0, minHeight: 0 } },
+    Text(Expr(`${connected} ? ${name} + ' · 已连接' : ${name} + ' · 未连接'`), "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 400, fontColor: "#99000000", maxLines: 1, textAlign: "start", textOverflow: "ellipsis", layoutWeight: 1, constraintSize: { minWidth: 0, minHeight: 0 } }),
+    IfParam("sourceIcon",
+      Image(Asset("sourceIcon"), "icon", { width: 20, height: 20, borderRadius: 4, objectFit: "contain", fillColor: "#99000000", flexShrink: 0 })
+    )
+  ),
+  Row("between", { width: "matchParent", height: 56, itemMargin: 8, justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 } },
+    Column("compact", {
+      layoutWeight: 1, itemMargin: 1, justifyContent: "center", alignItems: "center",
+      constraintSize: { minWidth: 0, minHeight: 0 }
+    },
+      Stack("overlay", { width: 40, height: 40, alignContent: "center", flexShrink: 0 },
+        Progress({ value: Bind("right"), total: 100, type: "ring", color: Expr(`${right} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), backgroundColor: "#1A000000", width: 40, height: 40, strokeWidth: 6 }),
+        IfParam("rightEarIcon",
+          Image(Asset("rightEarIcon"), "icon", { width: 18, height: 18, objectFit: "contain", fillColor: "#99000000" })
+        )
+      ),
+      Text(Expr(`'' + ${right} + '%'`), "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textAlign: "center", textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+    )
+  )
+)
+#EndVariant
+
+#Variant("earbudPair", { sizes: ["2x2", "2x4"], roles: ["hero", "support", "peer"], requires: ["connected", "name", "left", "right"] })
+Column("compact", {
+  _advancedComponent: "BluetoothDeviceOverview", width: "matchParent", height: "matchParent",
+  itemMargin: 4, justifyContent: "spaceBetween", alignItems: "start", clip: true,
+  constraintSize: { minWidth: 0, minHeight: 0 }
+},
+  Row("between", {
+    width: "matchParent", height: 20, itemMargin: 4, justifyContent: "spaceBetween",
+    alignItems: "top", constraintSize: { minWidth: 0, minHeight: 0 }
+  },
+    Text(Expr(`${connected} ? ${name} + ' · 已连接' : ${name} + ' · 未连接'`), "subtitle", {
+      width: "matchParent", fontSize: 12, fontWeight: 400, fontColor: "#99000000",
+      maxLines: 1, textAlign: "start", textOverflow: "ellipsis", layoutWeight: 1,
+      constraintSize: { minWidth: 0, minHeight: 0 }
+    }),
+    IfParam("sourceIcon",
+      Image(Asset("sourceIcon"), "icon", { width: 20, height: 20, borderRadius: 4, objectFit: "contain", fillColor: "#99000000", flexShrink: 0 })
+    )
+  ),
+  Row("between", {
+    width: "matchParent", height: 56, itemMargin: 8, justifyContent: "center",
+    alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 }
+  },
+    Column("compact", { layoutWeight: 1, itemMargin: 1, justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 } },
+      Stack("overlay", { width: 40, height: 40, alignContent: "center", flexShrink: 0 },
+        Progress({
+          value: Bind("left"), total: 100, type: "ring",
+          color: Expr(`${left} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`),
+          backgroundColor: "#1A000000", width: 40, height: 40, strokeWidth: 6
+        }),
+        IfParam("leftEarIcon",
+          Image(Asset("leftEarIcon"), "icon", { width: 18, height: 18, objectFit: "contain", fillColor: "#99000000" })
+        )
+      ),
+      Text(Expr(`'' + ${left} + '%'`), "subtitle", {
+        width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000",
+        maxLines: 1, textAlign: "center", textOverflow: "ellipsis",
+        constraintSize: { minWidth: 0, minHeight: 0 }
+      })
+    ),
+    Column("compact", { layoutWeight: 1, itemMargin: 1, justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 } },
+      Stack("overlay", { width: 40, height: 40, alignContent: "center", flexShrink: 0 },
+        Progress({
+          value: Bind("right"), total: 100, type: "ring",
+          color: Expr(`${right} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`),
+          backgroundColor: "#1A000000", width: 40, height: 40, strokeWidth: 6
+        }),
+        IfParam("rightEarIcon",
+          Image(Asset("rightEarIcon"), "icon", { width: 18, height: 18, objectFit: "contain", fillColor: "#99000000" })
+        )
+      ),
+      Text(Expr(`'' + ${right} + '%'`), "subtitle", {
+        width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000",
+        maxLines: 1, textAlign: "center", textOverflow: "ellipsis",
+        constraintSize: { minWidth: 0, minHeight: 0 }
+      })
+    )
+  )
+)
+#EndVariant
+
+#Variant("earbudsFull", { extends: "earbudPair" })
+#EndVariant
+
+#Variant("earbudsFullWide", { sizes: ["2x4"], roles: ["hero"], requires: ["connected", "name", "battery", "left", "right"] })
+Column("compact", {
+  _advancedComponent: "BluetoothDeviceOverview", width: "matchParent", height: "matchParent",
+  itemMargin: 4, justifyContent: "spaceBetween", alignItems: "start", clip: true,
+  constraintSize: { minWidth: 0, minHeight: 0 }
+},
+  Row("between", { width: "matchParent", height: 20, itemMargin: 4, justifyContent: "spaceBetween", alignItems: "top", constraintSize: { minWidth: 0, minHeight: 0 } },
+    Text(Expr(`${connected} ? ${name} + ' · 已连接' : ${name} + ' · 未连接'`), "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 400, fontColor: "#99000000", maxLines: 1, textAlign: "start", textOverflow: "ellipsis", layoutWeight: 1, constraintSize: { minWidth: 0, minHeight: 0 } }),
+    IfParam("sourceIcon",
+      Image(Asset("sourceIcon"), "icon", { width: 20, height: 20, borderRadius: 4, objectFit: "contain", fillColor: "#99000000", flexShrink: 0 })
+    )
+  ),
+  Row("between", {
+    width: "matchParent", height: 56, itemMargin: 8, justifyContent: "center",
+    alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 }
+  },
+    Column("compact", { layoutWeight: 1, itemMargin: 1, justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 } },
+      Stack("overlay", { width: 40, height: 40, alignContent: "center", flexShrink: 0 },
+        Progress({ value: Bind("left"), total: 100, type: "ring", color: Expr(`${left} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), backgroundColor: "#1A000000", width: 40, height: 40, strokeWidth: 6 }),
+        IfParam("leftEarIcon",
+          Image(Asset("leftEarIcon"), "icon", { width: 18, height: 18, objectFit: "contain", fillColor: "#99000000" })
+        )
+      ),
+      Text(Expr(`'' + ${left} + '%'`), "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textAlign: "center", textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+    ),
+    Column("compact", { layoutWeight: 1, itemMargin: 1, justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 } },
+      Stack("overlay", { width: 40, height: 40, alignContent: "center", flexShrink: 0 },
+        Progress({ value: Bind("right"), total: 100, type: "ring", color: Expr(`${right} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), backgroundColor: "#1A000000", width: 40, height: 40, strokeWidth: 6 }),
+        IfParam("rightEarIcon",
+          Image(Asset("rightEarIcon"), "icon", { width: 18, height: 18, objectFit: "contain", fillColor: "#99000000" })
+        )
+      ),
+      Text(Expr(`'' + ${right} + '%'`), "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textAlign: "center", textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+    )
+  ),
+  Text(Expr(`'充电盒 ' + ${battery} + '%'`), "subtitle", {
+    width: "matchParent", fontSize: 11, fontWeight: 400, fontColor: "#99000000",
+    maxLines: 1, textAlign: "start", textOverflow: "ellipsis",
+    constraintSize: { minWidth: 0, minHeight: 0 }
+  })
+)
+#EndVariant
+
+#Variant("earbudPairPhone", { sizes: ["2x2"], roles: ["support"], requires: ["connected", "left", "right"] })
+Column("compact", {
+  _advancedComponent: "BluetoothDeviceOverview", width: "matchParent", height: "matchParent",
+  padding: 0, borderRadius: 0, backgroundColor: "#00000000", itemMargin: 2,
+  justifyContent: "center", alignItems: "center", clip: true,
+  constraintSize: { minWidth: 0, minHeight: 0 }
+},
+  Column("compact", {
+    width: "matchParent", height: "matchParent", itemMargin: 2,
+    justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 }
+  },
+    Column("compact", { layoutWeight: 1, itemMargin: 1, justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 } },
+      Stack("overlay", { width: 32, height: 32, alignContent: "center", flexShrink: 0 },
+        Progress({ value: Bind("left"), total: 100, type: "ring", color: Expr(`${left} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), backgroundColor: "#1A000000", width: 32, height: 32, strokeWidth: 6 }),
+        IfParam("leftEarIcon",
+          Image(Asset("leftEarIcon"), "icon", { width: 14, height: 14, objectFit: "contain", fillColor: "#99000000" })
+        )
+      ),
+      Text(Expr(`'' + ${left} + '%'`), "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textAlign: "center", textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+    ),
+    Column("compact", { layoutWeight: 1, itemMargin: 1, justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 } },
+      Stack("overlay", { width: 32, height: 32, alignContent: "center", flexShrink: 0 },
+        Progress({ value: Bind("right"), total: 100, type: "ring", color: Expr(`${right} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), backgroundColor: "#1A000000", width: 32, height: 32, strokeWidth: 6 }),
+        IfParam("rightEarIcon",
+          Image(Asset("rightEarIcon"), "icon", { width: 14, height: 14, objectFit: "contain", fillColor: "#99000000" })
+        )
+      ),
+      Text(Expr(`'' + ${right} + '%'`), "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textAlign: "center", textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+    )
+  ),
+  Text(Expr(`${connected} ? '已连接' : '未连接'`), "subtitle", {
+    width: "matchParent", fontSize: 10, fontWeight: 400, fontColor: "#99000000",
+    maxLines: 1, textAlign: "center", textOverflow: "ellipsis",
+    constraintSize: { minWidth: 0, minHeight: 0 }
+  })
+)
+#EndVariant
+
+#Variant("earbudsFullPhoneWide", { sizes: ["2x4"], roles: ["support"], requires: ["connected", "name", "battery", "left", "right"] })
+Column("compact", {
+  _advancedComponent: "BluetoothDeviceOverview", width: "matchParent", height: "matchParent",
+  padding: { left: 8, top: 6, right: 8, bottom: 6 }, borderRadius: 8,
+  backgroundColor: "#1A64BB5C", itemMargin: 4, justifyContent: "start",
+  alignItems: "start", clip: true, constraintSize: { minWidth: 0, minHeight: 0 }
+},
+  Text(Expr(`${connected} ? ${name} + ' · 已连接 · 充电盒 ' + ${battery} + '%' : ${name} + ' · 未连接 · 充电盒 ' + ${battery} + '%'`), "subtitle", {
+    width: "matchParent", fontSize: 11, fontWeight: 400, fontColor: "#99000000",
+    maxLines: 1, textAlign: "start", textOverflow: "ellipsis",
+    constraintSize: { minWidth: 0, minHeight: 0 }
+  }),
+  Row("between", {
+    width: "matchParent", height: 56, itemMargin: 8, justifyContent: "center",
+    alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 }
+  },
+    Column("compact", { layoutWeight: 1, itemMargin: 1, justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 } },
+      Stack("overlay", { width: 40, height: 40, alignContent: "center", flexShrink: 0 },
+        Progress({ value: Bind("left"), total: 100, type: "ring", color: Expr(`${left} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), backgroundColor: "#1A000000", width: 40, height: 40, strokeWidth: 6 }),
+        IfParam("leftEarIcon",
+          Image(Asset("leftEarIcon"), "icon", { width: 18, height: 18, objectFit: "contain", fillColor: "#99000000" })
+        )
+      ),
+      Text(Expr(`'' + ${left} + '%'`), "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textAlign: "center", textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+    ),
+    Column("compact", { layoutWeight: 1, itemMargin: 1, justifyContent: "center", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 } },
+      Stack("overlay", { width: 40, height: 40, alignContent: "center", flexShrink: 0 },
+        Progress({ value: Bind("right"), total: 100, type: "ring", color: Expr(`${right} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), backgroundColor: "#1A000000", width: 40, height: 40, strokeWidth: 6 }),
+        IfParam("rightEarIcon",
+          Image(Asset("rightEarIcon"), "icon", { width: 18, height: 18, objectFit: "contain", fillColor: "#99000000" })
+        )
+      ),
+      Text(Expr(`'' + ${right} + '%'`), "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textAlign: "center", textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+    )
+  )
+)
+#EndVariant
+#EndTemplate

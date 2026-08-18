@@ -1,0 +1,42 @@
+#Template("CountdownOverview@1", {
+  capability: "GetCountdownDays",
+  description: "倒数日数据提供方交付的通用事件倒计时概览",
+  domainTags: ["countdown", "date", "event"],
+  compatibleThemeProfileIds: ["meeting-paper-neutral", "digital-wellbeing-neutral-dark"],
+  allowedParentComponents: ["Column", "Row", "List", "Stack"],
+  bindings: { days: { path: "/countdownDays", type: "integer" } },
+  params: {},
+  limits: { maxNodes: 6, maxDepth: 4 }
+})
+
+#Variant("countdown", { sizes: ["2x2", "2x4"], roles: ["hero"], requires: ["days"] })
+Column("compact", {
+  _advancedComponent: "CountdownOverview", width: "matchParent", height: "matchParent",
+  itemMargin: 4, justifyContent: "start", alignItems: "start",
+  constraintSize: { minWidth: 0, minHeight: 0 }
+},
+  Text("倒计时", "subtitle", {
+    width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#99000000",
+    maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 }
+  }),
+  Column("compact", {
+    width: "matchParent", layoutWeight: 1, justifyContent: "center", alignItems: "center",
+    constraintSize: { minWidth: 0, minHeight: 0 }
+  },
+    Row("between", {
+      width: "matchParent", itemMargin: 4, justifyContent: "center", alignItems: "bottom",
+      constraintSize: { minWidth: 0, minHeight: 0 }
+    },
+      Text(Bind("days"), "title", {
+        fontSize: 38, fontWeight: 800, fontColor: "#E6000000", maxLines: 1,
+        textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 }
+      }),
+      Text("天", "subtitle", {
+        fontSize: 12, fontWeight: 500, fontColor: "#99000000", maxLines: 1,
+        textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 }
+      })
+    )
+  )
+)
+#EndVariant
+#EndTemplate
