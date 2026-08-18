@@ -248,14 +248,14 @@ class GenerationPreflight:
         removed: list[RemovedCapability],
     ) -> list[EventAction]:
         effective_events: list[EventAction] = []
-        capability_by_root = {
-            binding.writeResultTo: capability
-            for binding, capability in zip(
-                effective_bindings,
-                data_capabilities,
-                strict=True,
-            )
-        }
+        capability_by_root: dict[str, DataCapability] = {}
+        binding_capability_pairs = zip(
+            effective_bindings,
+            data_capabilities,
+            strict=True,
+        )
+        for binding, capability in binding_capability_pairs:
+            capability_by_root[binding.writeResultTo] = capability
         for index, candidate in enumerate(candidate_events):
             base_path = f"/candidateEventCandidates/{index}"
             capability_id = candidate.capabilityId
