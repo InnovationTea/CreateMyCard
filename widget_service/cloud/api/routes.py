@@ -168,7 +168,7 @@ class NestedToolArgumentsError(ValueError):
                     "capabilityId": "",
                     "repairInstruction": (
                         "将 arguments 的 JSON 字符串解析为对象，并把该对象直接作为工具 arguments；"
-                        "不要传 skillName、functionName、uid、odid 或 romVersion。"
+                        "不要传 skillName、functionName。"
                     ),
                     "referenceSource": "generateWidgetCardCompactDsl tool schema",
                 }
