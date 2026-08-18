@@ -31,9 +31,11 @@ from services.template_generation.engine.advanced.content_selectors import (
     app_usage_overview_query_is_supported,
     apply_content_selectors,
 )
+from services.template_generation.engine.advanced.data_shape import extract_data_shape
 from services.template_generation.engine.advanced.models import AdvancedScopeBrief
 from services.template_generation.engine.advanced.scope_planner import (
     TemplateRouteNotApplicable,
+    build_advanced_scope_prompt,
     validate_template_request_coverage,
 )
 from services.template_generation.engine.cardplan.compiler import (
@@ -694,6 +696,36 @@ def _weather_card_spec() -> dict[str, Any]:
             }
         ],
     }
+
+
+def test_template_route_prompt_requires_exact_candidate_output_paths():
+    task_spec = apply_content_selectors(
+        _weather_task_spec().model_copy(
+            update={"userQuery": "看看是否下雨、现在多少度"}
+        ),
+        {"ViewWeather"},
+    )
+    prompt = build_advanced_scope_prompt(
+        task_spec,
+        extract_data_shape(task_spec),
+        get_cardplan_registry(),
+        ("ViewWeather",),
+        template_route_decision=True,
+        candidate_output_fields={"ViewWeather": _WEATHER_TEMPLATE_FIELDS},
+        card_spec=_weather_card_spec(),
+    )
+
+    system_prompt = prompt[0]["content"]
+    assert (
+        "必须从同一 capability 的 candidateOutputFieldsByCapability 数组中逐字复制"
+        in system_prompt
+    )
+    assert "禁止输出 /_advancedSelectors" in system_prompt
+    assert "/current/condition 和 /current/temperatureText" in system_prompt
+    payload = json.loads(prompt[1]["content"])
+    assert payload["candidateOutputFieldsByCapability"]["ViewWeather"] == list(
+        _WEATHER_TEMPLATE_FIELDS
+    )
 
 
 @pytest.mark.asyncio
