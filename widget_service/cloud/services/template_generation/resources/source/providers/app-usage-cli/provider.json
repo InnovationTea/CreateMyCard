@@ -1,0 +1,27 @@
+{
+  "bundleFormat": "card-provider-bundle/1",
+  "providerId": "com.huawei.app-usage.cli",
+  "providerVersion": "1.0.0-poc",
+  "capabilities": [
+    {
+      "capabilityId": "GetAppUsageDuration",
+      "dataSchema": {
+        "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
+        "version": "app-11.7.5.205_rom-6.0"
+      },
+      "templates": ["AppUsageOverview@1"]
+    }
+  ],
+  "templates": [
+    {
+      "templateId": "AppUsageOverview@1",
+      "entry": "templates/app-usage-overview.cardtpl",
+      "digest": "sha256:7e4925a06e28818c6f96786c4df07abd912c7c1b103102f967bad4849c99a991"
+    }
+  ],
+  "compatibility": {
+    "templateLanguage": "cardtpl/1",
+    "catalogId": "ohos.a2ui.extended.catalog.form",
+    "a2uiWireVersion": "v0.9"
+  }
+}

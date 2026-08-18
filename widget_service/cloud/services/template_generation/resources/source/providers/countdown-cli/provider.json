@@ -1,0 +1,27 @@
+{
+  "bundleFormat": "card-provider-bundle/1",
+  "providerId": "com.huawei.countdown.cli",
+  "providerVersion": "1.0.0-poc",
+  "capabilities": [
+    {
+      "capabilityId": "GetCountdownDays",
+      "dataSchema": {
+        "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
+        "version": "app-11.7.5.205_rom-6.0"
+      },
+      "templates": ["CountdownOverview@1"]
+    }
+  ],
+  "templates": [
+    {
+      "templateId": "CountdownOverview@1",
+      "entry": "templates/countdown-overview.cardtpl",
+      "digest": "sha256:8ac73f6d8dd1a23ffa1aa4556a41c32d31fe2d581f961d86398e2464868a8a76"
+    }
+  ],
+  "compatibility": {
+    "templateLanguage": "cardtpl/1",
+    "catalogId": "ohos.a2ui.extended.catalog.form",
+    "a2uiWireVersion": "v0.9"
+  }
+}

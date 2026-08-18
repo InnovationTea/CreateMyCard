@@ -1,0 +1,249 @@
+#Template("WeatherOverview@1", {
+  capability: "ViewWeather",
+  description: "CLI 天气 Provider 提供的当前天气局部模板 PoC",
+  domainTags: ["weather", "temperature", "commute"],
+  compatibleThemeProfileIds: [
+    "family-weather-care-blue",
+    "rainy-commute-gray-blue"
+  ],
+  allowedParentComponents: ["Column", "Row", "List", "Stack"],
+  bindings: {
+    city: {
+      path: "/location/districtName",
+      type: "string"
+    },
+    temperature: {
+      path: "/current/temperatureText",
+      type: "string"
+    },
+    condition: {
+      path: "/current/condition",
+      type: "string"
+    },
+    airQuality: {
+      path: "/current/airQuality",
+      type: "string"
+    },
+    temperatureRange: {
+      path: "/daily/0/temperatureRangeText",
+      type: "string"
+    }
+  },
+  params: {
+    conditionIcon: {
+      kind: "asset",
+      semanticTags: ["weather"],
+      required: false
+    }
+  },
+  limits: {
+    maxNodes: 16,
+    maxDepth: 5
+  }
+})
+
+#Variant("compact", {
+  sizes: ["2x2", "2x4"],
+  roles: ["support", "peer"],
+  requires: ["city", "temperature", "condition", "airQuality", "temperatureRange"]
+})
+Column("compact", {
+  _advancedComponent: "WeatherOverview",
+  width: "matchParent",
+  height: "matchParent",
+  itemMargin: 4,
+  justifyContent: "spaceBetween",
+  alignItems: "start"
+},
+  Text(Bind("city"), "compact-title", {
+    width: "matchParent",
+    fontSize: 12,
+    fontWeight: 400,
+    maxLines: 1,
+    textOverflow: "ellipsis"
+  }),
+  Row("between", {
+    width: "matchParent",
+    itemMargin: 4,
+    alignItems: "bottom"
+  },
+    Text(Bind("temperature"), "title", {
+      fontSize: 30,
+      fontWeight: 800,
+      maxLines: 1
+    }),
+    Text(`${condition}｜${airQuality}`, "body", {
+      fontSize: 12,
+      fontWeight: 500,
+      maxLines: 1
+    })
+  ),
+  Text(Bind("temperatureRange"), "subtitle", {
+    width: "matchParent",
+    fontSize: 10,
+    maxLines: 1
+  })
+)
+#EndVariant
+
+#Variant("compactIcon", {
+  sizes: ["2x2", "2x4"],
+  roles: ["support", "peer"],
+  requires: ["city", "temperature", "condition", "airQuality", "temperatureRange"],
+  requiresParams: ["conditionIcon"]
+})
+Column("compact", {
+  _advancedComponent: "WeatherOverview",
+  width: "matchParent",
+  height: "matchParent",
+  itemMargin: 4,
+  justifyContent: "spaceBetween",
+  alignItems: "start"
+},
+  Row("between", {
+    width: "matchParent",
+    height: 20,
+    itemMargin: 4,
+    justifyContent: "spaceBetween",
+    alignItems: "top"
+  },
+    Text(Bind("city"), "compact-title", {
+      fontSize: 12,
+      fontWeight: 400,
+      maxLines: 1,
+      textOverflow: "ellipsis"
+    }),
+    Image(Asset("conditionIcon"), "icon", {
+      width: 20,
+      height: 20,
+      objectFit: "contain",
+      flexShrink: 0,
+      _preserveOriginalColor: true
+    })
+  ),
+  Row("between", {
+    width: "matchParent",
+    itemMargin: 4,
+    alignItems: "bottom"
+  },
+    Text(Bind("temperature"), "title", {
+      fontSize: 30,
+      fontWeight: 800,
+      maxLines: 1
+    }),
+    Text(`${condition}｜${airQuality}`, "body", {
+      fontSize: 12,
+      fontWeight: 500,
+      maxLines: 1
+    })
+  ),
+  Text(Bind("temperatureRange"), "subtitle", {
+    width: "matchParent",
+    fontSize: 10,
+    maxLines: 1
+  })
+)
+#EndVariant
+
+#Variant("hero", {
+  sizes: ["2x2", "2x4"],
+  roles: ["hero"],
+  requires: ["city", "temperature", "condition", "airQuality", "temperatureRange"]
+})
+Column("compact", {
+  _advancedComponent: "WeatherOverview",
+  width: "matchParent",
+  height: "matchParent",
+  itemMargin: 4,
+  justifyContent: "spaceBetween",
+  alignItems: "start"
+},
+  Text(Bind("city"), "compact-title", {
+    width: "matchParent",
+    fontSize: 12,
+    fontWeight: 400,
+    maxLines: 1,
+    textOverflow: "ellipsis"
+  }),
+  Text(Bind("temperature"), "title", {
+    fontSize: 38,
+    fontWeight: 800,
+    maxLines: 1
+  }),
+  Row("between", {
+    width: "matchParent",
+    itemMargin: 4,
+    alignItems: "center"
+  },
+    Text(`${condition}｜${airQuality}`, "body", {
+      fontSize: 14,
+      fontWeight: 500,
+      maxLines: 1
+    }),
+    Text(Bind("temperatureRange"), "subtitle", {
+      fontSize: 12,
+      maxLines: 1
+    })
+  )
+)
+#EndVariant
+
+#Variant("heroIcon", {
+  sizes: ["2x2", "2x4"],
+  roles: ["hero"],
+  requires: ["city", "temperature", "condition", "airQuality", "temperatureRange"],
+  requiresParams: ["conditionIcon"]
+})
+Column("compact", {
+  _advancedComponent: "WeatherOverview",
+  width: "matchParent",
+  height: "matchParent",
+  itemMargin: 4,
+  justifyContent: "spaceBetween",
+  alignItems: "start"
+},
+  Row("between", {
+    width: "matchParent",
+    height: 20,
+    itemMargin: 4,
+    justifyContent: "spaceBetween",
+    alignItems: "top"
+  },
+    Text(Bind("city"), "compact-title", {
+      fontSize: 12,
+      fontWeight: 400,
+      maxLines: 1,
+      textOverflow: "ellipsis"
+    }),
+    Image(Asset("conditionIcon"), "icon", {
+      width: 20,
+      height: 20,
+      objectFit: "contain",
+      flexShrink: 0,
+      _preserveOriginalColor: true
+    })
+  ),
+  Text(Bind("temperature"), "title", {
+    fontSize: 38,
+    fontWeight: 800,
+    maxLines: 1
+  }),
+  Row("between", {
+    width: "matchParent",
+    itemMargin: 4,
+    alignItems: "center"
+  },
+    Text(`${condition}｜${airQuality}`, "body", {
+      fontSize: 14,
+      fontWeight: 500,
+      maxLines: 1
+    }),
+    Text(Bind("temperatureRange"), "subtitle", {
+      fontSize: 12,
+      maxLines: 1
+    })
+  )
+)
+#EndVariant
+
+#EndTemplate
