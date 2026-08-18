@@ -165,7 +165,7 @@ def test_preflight_rejects_invalid_output_projection():
     assert issue.path == "/candidateDataBindings/0/candidateOutputFields/0"
 
 
-def test_preflight_rejects_weak_agent_weather_output_field_overload():
+def test_preflight_accepts_weather_output_fields_without_layout_count_limit():
     output_fields = [
         "/location/districtName",
         "/location/prefectureName",
@@ -188,15 +188,40 @@ def test_preflight_rejects_weak_agent_weather_output_field_overload():
 
     result = _run(request)
 
-    issue = next(
-        item
-        for item in result.blocking_issues
-        if item.code == "OUTPUT_FIELD_BUDGET_EXCEEDED"
+    assert result.blocking_issues == ()
+    assert result.task_spec is not None
+    weather = result.task_spec.dataModelSchema["data"]["weather"]
+    assert weather["current"]["temperatureText"]
+    assert weather["daily"][0]["rainProbabilityPercent"]
+
+
+def test_preflight_accepts_calendar_array_indices_and_scalar_array_field():
+    request = _request(
+        candidateDataBindings=[
+            {
+                "capabilityId": "GetCalendarEvents",
+                "arguments": {"futureDays": 7},
+                "writeResultTo": "/data/calendar",
+                "candidateOutputFields": [
+                    "/events/0/title",
+                    "/events/1/title",
+                    "/events/1/remindTime",
+                    "/events/2/title",
+                ],
+            }
+        ]
     )
-    assert issue.path == "/candidateDataBindings"
-    assert issue.expected.endswith("最多 4 项")
-    assert "询问如何取舍" in issue.repairInstruction
-    assert issue.actualType == "array"
+
+    result = _run(request)
+
+    assert result.blocking_issues == ()
+    assert result.task_spec is not None
+    events = result.task_spec.dataModelSchema["data"]["calendar"]["events"]
+    assert len(events) == 3
+    assert events[0]["title"]
+    assert events[1]["title"]
+    assert events[1]["remindTime"][0]
+    assert events[2]["title"]
 
 
 def test_preflight_reports_write_result_conflict_on_second_binding():
@@ -270,7 +295,7 @@ def test_preflight_rejects_event_data_path_outside_registered_template():
     assert issue.path == "/candidateEventCandidates/0/action/args/uri"
 
 
-def test_preflight_rejects_incomplete_static_weather_event_uri():
+def test_preflight_accepts_legacy_static_weather_event_uri():
     registry = CapabilityRegistry(version=REGISTRY_VERSION)
     event = registry.get_event_capability("event.open.weather")
     assert event is not None
@@ -290,14 +315,9 @@ def test_preflight_rejects_incomplete_static_weather_event_uri():
 
     result = _run(request)
 
-    issue = next(
-        item
-        for item in result.blocking_issues
-        if item.code == "EVENT_DATA_REFERENCE_MISSING"
-    )
-    assert issue.path == "/candidateEventCandidates/0/action/args/uri"
-    assert "重新完整复制 actionTemplate" in issue.repairInstruction
-    assert issue.referenceSource.endswith("actionTemplate")
+    assert result.blocking_issues == ()
+    assert result.task_spec is not None
+    assert result.effective_events[0].args["uri"] == action["args"]["uri"]
 
 
 def test_preflight_removes_event_with_missing_data_dependency_without_blocking():

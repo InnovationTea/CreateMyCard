@@ -1581,10 +1581,8 @@ def test_weak_agent_repairs_weather_request_from_overview_schema_and_preflight(
         "/candidateDataBindings/0/writeResultTo",
         "/candidateDataBindings/0/candidateOutputFields/2",
         "/candidateDataBindings/0/candidateOutputFields/4",
-        "/candidateDataBindings",
         "/candidateEventCandidates/0/action/call",
         "/candidateEventCandidates/0/action/args/intentName",
-        "/candidateEventCandidates/0/action/args/uri",
         "/candidateAssetIds/0",
     } <= issue_paths
     missing_city = next(
@@ -1600,12 +1598,6 @@ def test_weak_agent_repairs_weather_request_from_overview_schema_and_preflight(
     assert issues_by_code["EVENT_CALL_MISMATCH"][0]["expected"] == (
         weather_event["actionTemplate"]["call"]
     )
-    assert issues_by_code["OUTPUT_FIELD_BUDGET_EXCEEDED"][0]["expected"].endswith(
-        "最多 4 项"
-    )
-    assert issues_by_code["EVENT_DATA_REFERENCE_MISSING"][0][
-        "referenceSource"
-    ].endswith("actionTemplate")
     assert issues_by_code["UNKNOWN_CAPABILITY"][0][
         "referenceSource"
     ].endswith("assetCandidates[]")

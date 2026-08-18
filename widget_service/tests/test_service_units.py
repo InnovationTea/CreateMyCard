@@ -2170,7 +2170,7 @@ def test_task_spec_builder_projects_valid_object_and_array_fields():
     """验证候选字段由注册表还原，并按 writeResultTo 写入 dataModelSchema。
 
     入参：无。
-    出参：无；通过断言验证非法字段被裁剪、对象和数组层级均正确。
+    出参：无；通过断言验证非法字段被裁剪、对象和多个数组下标层级均正确。
     """
     binding = CandidateDataBinding(
         capabilityId="ViewWeather",
@@ -2213,7 +2213,14 @@ def test_task_spec_builder_projects_valid_object_and_array_fields():
                     "description": "每日天气",
                     "sampleValue": "小雨",
                 }
-            }
+            },
+            {
+                "condition": {
+                    "type": "string",
+                    "description": "每日天气",
+                    "sampleValue": "小雨",
+                }
+            },
         ],
     }
     assert set(task_spec.model_dump()) == {

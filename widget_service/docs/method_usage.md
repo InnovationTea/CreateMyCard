@@ -820,9 +820,11 @@ run(request: GenerateWidgetCardRequest) -> GenerationPreflightResult
 blocking issue 时构造 CardSpec 和 TaskSpec；不查询 IDS，也不重复执行 `dependencies` 过滤。
 
 阻断项包括未注册 ID、参数 schema 错误、静态数据入参中的绑定表达式、非法或冲突的
-`writeResultTo`、非法或超过 4 项总预算的字段投影、事件 call/args、缺失或错误的数据引用，以及未注册
-素材。issue 返回 `path/expected/actualType/agentAction/repairInstruction/referenceSource/retryable`，既不回显
-实际参数值，又能让主 Agent 回到第一或第二接口结果完成定点修正。
+`writeResultTo`、无法从 outputSchema 推导的字段投影、事件 call/args、缺失或错误的数据引用，以及未注册
+素材。字段投影不按布局区域数设置入口上限，数组数字下标只按 `items` Schema 校验。天气详情事件兼容
+当前动态 URI 和历史静态 URI。issue 返回
+`path/expected/actualType/agentAction/repairInstruction/referenceSource/retryable`，既不回显实际参数值，又能让
+主 Agent 回到第一或第二接口结果完成定点修正。
 
 ### 6.3 IDSClient.get_device_capability_state
 
@@ -949,9 +951,10 @@ assetCandidates
 用途：按 JSON Pointer 读取已经由 `GenerationPreflight` 校验通过的 `candidateOutputFields`，从能力
 `outputSchema` 叶子取得必需的 `type` 和 `description`；优先使用显式 `sampleValue`，缺省时按类型生成
 受控默认值：`string` 为 `"示例"`，`integer/number` 为 `0`，`boolean` 为 `false`，`null` 为 `null`。随后
-按 `writeResultTo + 原叶子路径` 合并多个能力的 `dataModelSchema`。所有显式展示投影去重后合计最多 4
-项；事件动作引用的合法数据叶子会自动补入且不占展示预算，避免事件依赖延迟到 DSL 校验阶段才失败。
-数组元素 schema 统一使用 canonical 下标 `0`，例如 `/events/0/title`；其它数组下标由前置门禁整单拒绝。
+按 `writeResultTo + 原叶子路径` 合并多个能力的 `dataModelSchema`。显式展示投影不按布局主区域数量设置
+字段上限；事件动作引用的合法数据叶子会自动补入，避免事件依赖延迟到 DSL 校验阶段才失败。数组元素
+接受 `/events/0/title`、`/events/1/title`、`/events/2/title` 等数字下标，统一使用数组 `items` Schema
+校验，不读取运行时实际数组长度。指向标量数组的投影会展开到其元素 Schema。
 未传投影或传入空数组时回退到该能力全部合法叶子字段。缺少 `sampleValue` 不阻断注册表加载或字段投影；
 显式 `sampleValue` 的 JSON 类型与 `type` 不一致时仍拒绝能力配置。
 

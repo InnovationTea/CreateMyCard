@@ -12,6 +12,7 @@ from services.card_validation.base import expression_references
 PathPart = str | int
 
 _MODULE = "[TaskSpec Builder]"
+_MAX_PROJECTED_ARRAY_INDEX = 99
 
 DEFAULT_SAMPLE_VALUES: dict[str, Any] = {
     "string": "示例",
@@ -168,8 +169,9 @@ class TaskSpecBuilder:
                 pointers.append(pointer)
         return pointers
 
-    @staticmethod
+    @classmethod
     def _canonical_output_pointer(
+        cls,
         schema: dict[str, Any],
         pointer: str,
     ) -> str | None:
@@ -189,9 +191,10 @@ class TaskSpecBuilder:
                 continue
             if schema_type == "array":
                 items = current.get("items")
-                if not part.isdigit() or not isinstance(items, dict):
+                array_index = cls._projected_array_index(part)
+                if array_index is None or not isinstance(items, dict):
                     return None
-                canonical_parts.append("0")
+                canonical_parts.append(str(array_index))
                 current = items
                 continue
             return None
@@ -216,19 +219,34 @@ class TaskSpecBuilder:
                 current = child
                 resolved_parts.append(part)
             elif schema_type == "array":
-                # 字段投影描述的是数组元素 schema，统一使用 canonical `/0`，
-                # 避免模型通过大下标制造稀疏 DataModel 或改变字段结构语义。
-                if part != "0" or not isinstance(current.get("items"), dict):
+                items = current.get("items")
+                array_index = self._projected_array_index(part)
+                if array_index is None or not isinstance(items, dict):
                     return None
-                current = current["items"]
-                resolved_parts.append(0)
+                current = items
+                resolved_parts.append(array_index)
             else:
                 return None
+        if current.get("type") == "array":
+            items = current.get("items")
+            item_type = items.get("type") if isinstance(items, dict) else None
+            if item_type not in {None, "object", "array"}:
+                current = items
+                resolved_parts.append(0)
         if current.get("type") in {"object", "array"}:
             return None
         if not {"type", "description"}.issubset(current):
             return None
         return tuple(resolved_parts), current
+
+    @staticmethod
+    def _projected_array_index(value: str) -> int | None:
+        if not value.isdigit():
+            return None
+        index = int(value)
+        if index > _MAX_PROJECTED_ARRAY_INDEX:
+            return None
+        return index
 
     def _iter_valid_leaves(
         self,

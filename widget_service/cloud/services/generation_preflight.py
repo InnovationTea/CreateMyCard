@@ -29,6 +29,9 @@ _DATA_INPUT_SOURCE = "getDataCapabilitySchemas.dataCapabilities[].inputSchema"
 _DATA_OUTPUT_SOURCE = "getDataCapabilitySchemas.dataCapabilities[].outputSchema"
 _EVENT_SOURCE = "getWidgetCapabilityOverview.eventCapabilities[].actionTemplate"
 _ASSET_SOURCE = "getWidgetCapabilityOverview.assetCandidates[]"
+_LEGACY_WEATHER_URI = (
+    "hww://www.huawei.com/totemweather?enterType=share&cityCode="
+)
 
 
 class GenerationPreflight:
@@ -52,7 +55,6 @@ class GenerationPreflight:
             candidate_bindings,
             issues,
         )
-        self._append_output_budget_issue(candidate_bindings, request.size, issues)
         effective_events = self._resolve_events(
             candidate_events,
             effective_bindings,
@@ -172,35 +174,6 @@ class GenerationPreflight:
         self._append_write_conflicts(candidate_bindings, issues)
         return effective_bindings, capabilities
 
-    @staticmethod
-    def _append_output_budget_issue(
-        bindings: list[CandidateDataBinding],
-        size: str,
-        issues: list[PreflightIssue],
-    ) -> None:
-        field_count = sum(
-            len(set(binding.candidateOutputFields)) for binding in bindings
-        )
-        if field_count <= 4:
-            return
-        issues.append(
-            PreflightIssue(
-                code="OUTPUT_FIELD_BUDGET_EXCEEDED",
-                path="/candidateDataBindings",
-                message="候选展示字段总数超过卡片生成入口允许的预算。",
-                expected="所有 candidateOutputFields 去重后合计最多 4 项",
-                actualType="array",
-                agentAction=AgentAction.FIX_AND_RETRY,
-                retryable=True,
-                repairInstruction=(
-                    f"当前尺寸为 {size}，请根据用户核心目标最多保留 4 个展示字段；"
-                    "若用户明确要求全部保留，先说明卡片容量限制并询问如何取舍，"
-                    "不要静默删除核心内容。"
-                ),
-                referenceSource=f"userQuery + {_DATA_OUTPUT_SOURCE}",
-            )
-        )
-
     def _append_output_field_issues(
         self,
         binding: CandidateDataBinding,
@@ -217,12 +190,12 @@ class GenerationPreflight:
                     "OUTPUT_FIELD_PATH_INVALID",
                     f"{base_path}/candidateOutputFields/{index}",
                     "候选展示字段不是对应 outputSchema 中的规范叶子路径。",
-                    "outputSchema 中存在的叶子 JSON Pointer；数组元素使用 /0",
+                    "outputSchema 中存在的叶子 JSON Pointer；数组元素使用数字下标",
                     binding.capabilityId,
                     actual_value=pointer,
                     repair_instruction=(
-                        "从本轮 outputSchema 重新选择准确的叶子 JSON Pointer，"
-                        "数组元素必须写 /0；不需要该字段时可删除此数组项。"
+                        "从本轮 outputSchema 重新选择准确的叶子 JSON Pointer；"
+                        "数组元素可使用 /0、/1、/2 等数字下标。"
                     ),
                     reference_source=_DATA_OUTPUT_SOURCE,
                 )
@@ -332,6 +305,13 @@ class GenerationPreflight:
                 path for path, _location in template_reference_locations
             }
             actual_reference_locations = self._data_reference_locations(action.args)
+            actual_reference_locations.extend(
+                self._legacy_event_reference_locations(
+                    capability_id,
+                    action.args,
+                    template_reference_locations,
+                )
+            )
             allowed_actual_paths = self._append_event_reference_issues(
                 template_reference_locations,
                 actual_reference_locations,
@@ -455,6 +435,22 @@ class GenerationPreflight:
                 )
             )
         return allowed_actual_paths
+
+    @staticmethod
+    def _legacy_event_reference_locations(
+        capability_id: str,
+        actual_args: dict[str, Any],
+        template_references: list[tuple[str, str]],
+    ) -> list[tuple[str, str]]:
+        is_weather_event = capability_id == "event.open.weather"
+        uses_legacy_uri = actual_args.get("uri") == _LEGACY_WEATHER_URI
+        if not is_weather_event or not uses_legacy_uri:
+            return []
+        return [
+            (data_path, relative_path)
+            for data_path, relative_path in template_references
+            if relative_path == "/uri"
+        ]
 
     def _resolve_assets(
         self,
