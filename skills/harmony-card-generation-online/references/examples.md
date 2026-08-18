@@ -11,7 +11,7 @@
 - [权限 invoke 报错](#权限-invoke-报错)
 - [连续编辑](#连续编辑)
 - [结果映射速查](#结果映射速查)
-- [URL 交付回归](#url-交付回归)
+- [URL 内部留存回归](#url-内部留存回归)
 
 ## 场景矩阵
 
@@ -20,11 +20,17 @@
 | 卡片创建页面要求撰写长报告 | 结束并引导 | 零调用 |
 | 外卖实时配送卡，overview 无相关核心能力 | 结束并引导 | overview |
 | 天气和股票都要，股票没有就不生成 | 结束并引导 | overview |
-| 天气加股票，只有天气可用且仍有独立价值 | 调整后生成 | overview → schema → permission → generate |
+| 天气是核心、股票是次要补充，股票不可用但天气可用 | 降级生成并说明差异 | overview → schema → permission → generate |
+| 股票是核心、天气是次要补充，股票不可用但天气可用 | 结束并引导 | overview |
 | 天气卡片，点击详情是次要诉求但事件不可用 | 调整后生成 | overview → schema → permission → generate |
 | 打开天气详情是唯一核心动作但事件不可用 | 结束并引导 | overview |
 | 最后一个核心数据能力进入 `missingCapabilityIds` | 结束并引导 | overview → schema |
-| 打开天气应用的静态入口卡 | 继续生成 | overview → generate |
+| 查询日程但未说明日期范围，overview 确认日程可用且 schema 将其列为必填参数 | 追问日期范围 | overview → schema → 追问 |
+| 用户明确要求不支持的静态形态，例如在卡片内撰写长报告 | 结束并说明 | 零调用 |
+| 固定文字内容的静态展示卡 | 继续生成 | overview → schema（空数组）→ generate（跳过 permission） |
+| 已生成卡片后说“颜色换成红色” | 强制 edit | 按来源数据集合执行 permission（非空时）→ generate，且传最近一次 `artifactUrl` |
+| 上一轮已生成天气卡片，本轮只说“标题改成今天的天气”且未提“卡片” | 识别为 edit | 传上一轮最近一次 `artifactUrl`，按纯文案 edit 执行 |
+| 上一轮已生成天气卡片，本轮说“再做一张日历卡片” | 识别为 create | 不继承上一轮 `sourceArtifactUrl`，执行 create 流程 |
 | edit“背景改成蓝色”，来源含动态数据 | 继续编辑 | permission → generate |
 | edit“背景改成蓝色”，来源无动态数据 | 继续编辑 | generate |
 | edit“去掉日历，只保留天气” | 继续编辑 | overview → schema → permission → generate |
@@ -99,24 +105,24 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
   size:"2x2",
   candidateDataBindings:[
     {
-      capabilityId:"ViewWeather",
-      arguments:{
-        districtName:"青浦区",
-        forecastDays:1
+      "capabilityId":"ViewWeather",
+      "arguments":{
+        "districtName":"青浦区",
+        "forecastDays":1
       },
-      writeResultTo:"/data/weather",
-      candidateOutputFields:[
+      "writeResultTo":"/data/weather",
+      "candidateOutputFields":[
         "/current/temperatureText",
         "/current/condition"
       ]
     },
     {
-      capabilityId:"GetCalendarEvents",
-      arguments:{
-        futureDays:1
+      "capabilityId":"GetCalendarEvents",
+      "arguments":{
+        "futureDays":1
       },
-      writeResultTo:"/data/calendar",
-      candidateOutputFields:[
+      "writeResultTo":"/data/calendar",
+      "candidateOutputFields":[
         "/events/0/title",
         "/events/0/dtStart"
       ]
@@ -139,15 +145,11 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 
 回复：
 
-````text
+```text
 已为你生成通勤卡片。
-
-```genWidgetResult
-{
-  "result": "https://obs.example/widget/123.md"
-}
 ```
-````
+
+`artifactUrl` 仅保留在本轮真实工具调用轨迹中，用作后续 edit 的 `sourceArtifactUrl`；端侧展示由生成工具内部完成。
 
 ## 静态入口 create
 
@@ -157,7 +159,20 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 做一个打开闹钟应用的入口卡片。
 ```
 
-overview 返回无需动态参数的闹钟入口事件后，不加载数据 schema，也不调用权限工具：
+overview 返回无需动态参数的闹钟入口事件后，仍调用 schema，但传空数据能力数组；最终候选数据为空，因此跳过权限工具：
+
+这是 create 模式无数据候选的唯一分支：必须执行 overview → schema → generate，只有 permission 被跳过。
+
+### 2. 加载空 schema
+
+```text
+invoke(functionName:"getDataCapabilitySchemas", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
+  dataCapabilityIds:[]
+},"skillName":"harmony-card-generation-online")
+```
+
+返回合法空数据 schema 后继续生成；不得跳过 schema。
 
 ```text
 invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
@@ -169,14 +184,14 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
   candidateDataBindings:[],
   candidateEventCandidates:[
     {
-      capabilityId:"event.open.clock.alarm",
-      action:{
-        call:"clickToDeeplink",
-        args:{
-          intentName:"Clock",
-          bundleName:"com.huawei.hmos.clock",
-          abilityName:"com.huawei.hmos.clock.phone",
-          uri:""
+      "capabilityId":"event.open.clock.alarm",
+      "action":{
+        "call":"clickToDeeplink",
+        "args":{
+          "intentName":"Clock",
+          "bundleName":"com.huawei.hmos.clock",
+          "abilityName":"com.huawei.hmos.clock.phone",
+          "uri":""
         }
       }
     }
@@ -252,14 +267,14 @@ overview → schema → permission（invoke 报错）→ generate
 
 ### 纯视觉 edit
 
-用户：“背景改成蓝色，信息排紧凑一点。”
+用户：“颜色换成红色，信息排紧凑一点。”
 
 先对来源的完整数据能力集合执行权限门禁，通过后调用：
 
 ```text
 invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
   bundleName:"com.omega_w_0823.hmservice",
-  userQuery:"背景改成蓝色，信息排紧凑一点",
+  userQuery:"颜色换成红色，信息排紧凑一点",
   sourceArtifactUrl:"https://obs.example/widget/v1.md"
 },"skillName":"harmony-card-generation-online")
 ```
@@ -279,13 +294,13 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
   sourceArtifactUrl:"https://obs.example/widget/v1.md",
   candidateDataBindings:[
     {
-      capabilityId:"ViewWeather",
-      arguments:{
-        districtName:"青浦区",
-        forecastDays:1
+      "capabilityId":"ViewWeather",
+      "arguments":{
+        "districtName":"青浦区",
+        "forecastDays":1
       },
-      writeResultTo:"/data/weather",
-      candidateOutputFields:[
+      "writeResultTo":"/data/weather",
+      "candidateOutputFields":[
         "/location/districtName",
         "/current/temperatureText",
         "/current/condition"
@@ -313,25 +328,26 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 
 | 结果 | 回复 |
 | --- | --- |
-| 完整 `success` + URL | 使用 `message`，输出 URL 标记 |
-| `degraded` + URL | 使用对应部分满足话术，输出 URL 标记 |
-| 已知部分缺失的 `success` + URL | 按部分满足处理，输出 URL 标记 |
+| 完整 `success` + URL | 使用不含 URL 和内部信息的 `message`，否则使用固定成功话术；内部记录 URL，不向用户输出 |
+| `degraded` + URL | 使用对应部分满足话术，内部记录 URL，不向用户输出 |
+| 已知部分缺失的 `success` + URL | 按部分满足处理，内部记录 URL，不向用户输出 |
 | `unsupported` 无 URL | 整体不支持话术 + 安全建议 |
 | `failed` 或工具异常无 URL | 固定其它异常话术 |
-| 任意可解析 payload 含合法真实 URL | 无论状态均输出 URL 标记 |
+| `unsupported` / `failed` 或异常 payload 含 URL | 不输出 URL，也不更新编辑来源 |
 
-## URL 交付回归
+## URL 内部留存回归
 
-生成工具返回后，以业务 payload 的 `artifactUrl` 作为唯一交付触发器。至少回归以下场景：
+生成工具返回后，端侧展示由工具内部负责；主 Agent 仅用业务 payload 的 `artifactUrl` 维护编辑链。至少回归以下场景：
 
 | 业务 payload | 最终回复要求 |
 | --- | --- |
-| `success` + 合法 URL + 非空 `message` | `message` 后紧接且只接一个 URL 标记 |
-| `degraded` + 合法 URL | 受控部分满足话术后紧接且只接一个 URL 标记 |
-| `unsupported` / `failed` + 合法 URL | 对应受控话术后仍紧接且只接一个 URL 标记 |
-| 可解析异常 payload + 合法 URL | 其它异常话术后仍紧接且只接一个 URL 标记 |
-| `success` / `degraded` 无合法 URL | 其它异常话术，不输出标记 |
-| 只有 `streamInfo` 或普通文本含 URL | 不输出标记 |
-| edit 返回与 `sourceArtifactUrl` 相同的 URL | 按无有效新 URL 处理，不输出标记，不更新来源 |
+| `success` + 合法 URL + 安全非空 `message` | 只输出 `message`；URL 成为后续 edit 来源 |
+| `success` + 合法 URL + 含 URL 或内部信息的 `message` | 输出固定成功话术；URL 成为后续 edit 来源 |
+| `degraded` + 合法 URL | 只输出受控部分满足话术；URL 成为后续 edit 来源 |
+| `unsupported` / `failed` + 合法 URL | 只输出对应受控话术；不更新来源 |
+| 可解析异常 payload + 合法 URL | 只输出其它异常话术；不更新来源 |
+| `success` / `degraded` 无合法 URL | 输出其它异常话术；不更新来源 |
+| 只有历史回复或普通文本含 URL | 不采信 URL，不更新来源 |
+| edit 返回与 `sourceArtifactUrl` 相同的 URL | 按无有效新 URL 处理，不更新来源 |
 
-每个有 URL 的用例都必须同时断言：代码块数量为 1、语言标签为 `genWidgetResult`、块内 JSON 可解析、仅有 `result` 字段、字段值与当前业务 payload URL 完全一致、代码块后无其它内容。仅检查自然语言包含“已生成”不算通过。
+所有用例都必须断言：用户可见回复不包含原始 URL、Markdown URL、`genWidgetResult`、`genuiResult` 或任何替代结果代码块。有效 `success/degraded` 用例还要断言下一轮 edit 原样使用当前业务 payload URL；其它用例不得改变来源。

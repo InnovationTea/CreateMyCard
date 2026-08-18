@@ -3,39 +3,69 @@
   "pluginType": "Cloud",
   "toolType": "XiaoYiPlugin",
   "toolName": "generateWidgetCardCompactDsl",
-  "description": "Generate a HarmonyOS A2UI Form artifact from the user request and candidate capabilities using Compact DSL.",
+  "description": "生成极简协议版本的鸿蒙卡片",
   "arguments": {
     "properties": {
-      "candidateDataBindings": {
+      "candidateEventCandidates": {
         "type": "Array",
-        "description": "Candidate data capability calls approved by the capability overview.",
+        "description": "候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明",
         "required": [],
         "properties": {
           "ArrayItem": {
             "type": "Object",
-            "description": "Candidate data capability.",
+            "description": "事件 action"
+          }
+        }
+      },
+      "description": {
+        "type": "String",
+        "description": "建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"
+      },
+      "candidateAssetIds": {
+        "type": "Array<String>",
+        "description": "候选素材 ID 列表",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "String",
+            "description": "候选素材 ID"
+          }
+        }
+      },
+      "userQuery": {
+        "type": "String",
+        "description": "用户原始卡片需求"
+      },
+      "candidateDataBindings": {
+        "type": "Array",
+        "description": "已通过能力概述裁决的候选数据能力调用列表",
+        "required": [],
+        "properties": {
+          "ArrayItem": {
+            "type": "Object",
+            "description": "候选数据能力",
             "required": [],
             "properties": {
               "writeResultTo": {
                 "type": "String",
-                "description": "Result target path."
-              },
-              "capabilityId": {
-                "type": "String",
-                "description": "Capability identifier."
+                "description": "结果写入路径"
               },
               "arguments": {
                 "type": "Object",
-                "description": "Capability arguments."
+                "description": "参数"
+              },
+              "capabilityId": {
+                "type": "String",
+                "description": "能力ID"
               },
               "candidateOutputFields": {
                 "type": "Array<String>",
-                "description": "Optional JSON Pointer paths for candidate display fields.",
+                "description": "可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导",
                 "required": [],
                 "properties": {
                   "ArrayItem": {
                     "type": "String",
-                    "description": "Candidate display field JSON Pointer."
+                    "description": "可选候选展示字段 JSON Pointer"
                   }
                 }
               }
@@ -45,45 +75,15 @@
       },
       "title": {
         "type": "String",
-        "description": "Suggested static card title."
+        "description": "建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"
       },
       "size": {
         "type": "String",
-        "description": "Suggested card size."
-      },
-      "description": {
-        "type": "String",
-        "description": "Suggested static card description."
-      },
-      "userQuery": {
-        "type": "String",
-        "description": "Original user card request."
+        "description": "主 Agent 建议尺寸"
       },
       "sourceArtifactUrl": {
         "type": "String",
-        "description": "Previous complete artifact URL; omit for initial generation."
-      },
-      "candidateAssetIds": {
-        "type": "Array<String>",
-        "description": "Candidate asset identifiers.",
-        "required": [],
-        "properties": {
-          "ArrayItem": {
-            "type": "String",
-            "description": "Candidate asset identifier."
-          }
-        }
-      },
-      "candidateEventCandidates": {
-        "type": "Array",
-        "description": "Candidate click events from the capability overview.",
-        "required": [],
-        "properties": {
-          "ArrayItem": {
-            "type": "Object",
-            "description": "Event action."
-          }
-        }
+        "description": "上一版完整 artifact 的真实 URL；缺失表示首次生成，合法非空值表示编辑"
       }
     },
     "required": [
@@ -93,55 +93,49 @@
   },
   "outputSchema": {
     "properties": {
-      "streamInfo": {
+      "status": {
         "type": "String",
-        "description": "Streaming information."
+        "description": "业务状态：success、degraded、unsupported 或 failed。"
       },
-      "items": {
+      "artifactUrl": {
+        "type": "String",
+        "description": "成功生成的新 artifact 地址；无有效产物时为空或缺失。"
+      },
+      "artifactDigest": {
+        "type": "String",
+        "description": "服务端排障使用的 artifact 摘要。"
+      },
+      "suggestSize": {
+        "type": "String",
+        "description": "微服务最终裁决的卡片尺寸。"
+      },
+      "message": {
+        "type": "String",
+        "description": "完整成功时可使用的用户可读说明。"
+      },
+      "removedCapabilities": {
         "type": "Array",
-        "description": "Structured result items.",
-        "required": [
-          "data"
-        ],
+        "description": "本轮被移除的能力及原因。",
         "properties": {
-          "error": {
-            "type": "String",
-            "description": "Error message."
-          },
-          "type": {
-            "type": "String",
-            "description": "Response type."
-          },
-          "status": {
-            "type": "String",
-            "description": "Tool status."
-          },
-          "operation": {
-            "type": "String",
-            "description": "Operation."
-          },
-          "tool": {
-            "type": "String",
-            "description": "Current tool name."
-          },
-          "data": {
-            "type": "String",
-            "description": "Tool result."
-          },
-          "errorCode": {
-            "type": "String",
-            "description": "Error code."
-          },
-          "requestId": {
-            "type": "String",
-            "description": "Request identifier."
+          "ArrayItem": {
+            "type": "Object",
+            "description": "被移除能力的结构化说明。"
           }
         }
+      },
+      "errorCode": {
+        "type": "String",
+        "description": "服务端业务错误码；不得向用户展示。"
+      },
+      "effectiveCapabilities": {
+        "type": "Object",
+        "description": "本轮最终生效的数据、事件和素材能力。"
       }
     },
     "required": [
-      "streamInfo",
-      "items"
+      "status",
+      "suggestSize",
+      "message"
     ],
     "type": "object"
   },

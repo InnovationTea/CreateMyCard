@@ -81,7 +81,7 @@
 | src | description |
 | --- | --- |
 | `resources/base/media/icon_id.svg` | 样式：米灰色半透明圆角矩形徽标，内部以浅色显示大写 ID，原始尺寸为 12×12，保留原色与透明度；适用：会议 ID、身份编号或日程中的标识码。 |
-| `resources/base/media/icon_meeting.svg` | 样式：纯白色单色线面结合的会议演示板图标，画板内有两条横线，原始尺寸为 14×14，浅色背景需染色；适用：会议、汇报、演示、议程。 |
+| `resources/base/media/icon_meeting.svg` | 样式：纯白色单色线面结合的会议演示板图标，画板内有两条横线，原始尺寸为 14×14；适用：会议、汇报、演示、议程。 |
 | `resources/base/media/icon_watermark.svg` | 样式：米灰色低透明度的大型日历轮廓装饰，画布和图形尺寸关系特殊，保留原色与透明层级；适用：日程卡片的弱化背景水印或装饰锚点。 |
 | `resources/base/media/icon_allergy.svg` | 样式：默认黑色的单色侧面人头轮廓，面部周围分布颗粒点，表现过敏原或空气刺激；适用：过敏、花粉、空气刺激、呼吸道敏感提示。 |
 | `resources/base/media/icon_high_temperature.svg` | 样式：默认黑色的单色线框温度计，内部温度柱较高，源文件语义指向体温；适用：体温偏高、发热、人体温度提醒。 |
