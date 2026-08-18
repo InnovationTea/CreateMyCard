@@ -20,7 +20,8 @@
 | 卡片创建页面要求撰写长报告 | 结束并引导 | 零调用 |
 | 外卖实时配送卡，overview 无相关核心能力 | 结束并引导 | overview |
 | 天气和股票都要，股票没有就不生成 | 结束并引导 | overview |
-| 天气加股票，股票数据能力不可用但天气可用 | 降级生成并说明差异 | overview → schema → permission → generate |
+| 天气是核心、股票是次要补充，股票不可用但天气可用 | 降级生成并说明差异 | overview → schema → permission → generate |
+| 股票是核心、天气是次要补充，股票不可用但天气可用 | 结束并引导 | overview |
 | 天气卡片，点击详情是次要诉求但事件不可用 | 调整后生成 | overview → schema → permission → generate |
 | 打开天气详情是唯一核心动作但事件不可用 | 结束并引导 | overview |
 | 最后一个核心数据能力进入 `missingCapabilityIds` | 结束并引导 | overview → schema |
