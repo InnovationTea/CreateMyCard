@@ -27,7 +27,7 @@
 
 - `firstLayerRule.path`：只描述高级组件、该组件支持的数据路径和首层选择边界。路径使用
   `{{dataRoot:CapabilityId}}/...`，服务端在本轮 Prompt 中替换成 `writeResultTo` 对应的 TaskSpec 绝对路径。
-- `secondLayerRule.path`：只描述高级组件 Variant、参数、素材和 Action 使用规则。只有首层最终选中的
+- `secondLayerRule.path`：只描述高级组件 Variant、参数和素材使用规则。只有首层最终选中的
   Provider 文档才进入第二层 Prompt。
 
 Theme 不属于 Provider，在 `theme-profiles.json` 的每个主题条目中用
@@ -71,8 +71,9 @@ durationPrimaryValueText: {
 - 每个 `candidateDataBinding.capabilityId` 都有可用 Provider 模板。
 - 第一层只能根据 `userQuery` 和 TaskSpec 全量字段在内部判断必须显示字段，且这些字段都落在所选组件的
   首层规则支持路径内；不得把 `candidateOutputFields` 整体当成强制展示集合。
-- `theme`、`component`、`action` 都来自本轮 Prompt 候选；Action 候选由服务端按组件白名单预过滤并
-  标注 `supportedComponent`，Action ID 不参与数据覆盖判断。
+- `theme`、`component`、`action` 都来自本轮 Prompt 候选；`action` 是一个事件候选的 `eventId` 或
+  `null`，不与组件绑定，也不参与数据覆盖判断。
+- 第二层只把非空 `action` 生成成布局根末尾唯一的 `PillAction`，不得改写事件 ID。
 - 所选组件至少存在一个能从本轮 TaskSpec/CardSpec 唯一解析必需绑定的 Provider Variant。
 - 所选 Variant 的必需绑定能从 TaskSpec 与 CardSpec 唯一解析。
 - 模板参数只来自可信事实、批准事件和批准素材。

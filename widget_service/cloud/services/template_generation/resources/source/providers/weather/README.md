@@ -4,7 +4,7 @@
 
 - `provider.json`：Provider、两层规则 MD、能力、数据 Schema 位置和模板入口；
 - `layer-docs/first-layer.md`：高级组件到本轮 TaskSpec 数据路径的首层规则；
-- `layer-docs/second-layer.md`：Variant、参数、素材和 Action 的二层规则；
+- `layer-docs/second-layer.md`：Variant、参数和素材的二层规则；
 - `schemas/`：上游没有可用 Schema 路径时的本地兜底示例；
 - `templates/`：只含闭合声明式语法的 `.cardtpl`。
 

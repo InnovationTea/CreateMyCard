@@ -77,17 +77,18 @@ generateWidgetCardTerseDslNested2
 第一层输出严格限制为：
 
 ```json
-{"theme":"theme.id","component":["ComponentId"],"action":["action.id"]}
+{"theme":"theme.id","component":["ComponentId"],"action":"event.id"}
 ```
 
-不匹配时固定输出 `{"theme":null,"component":[],"action":[]}`。`action` 是批准的交互动作 ID，不是
+不匹配时固定输出 `{"theme":null,"component":[],"action":null}`。`action` 是批准的事件 ID，不是
 数据项；SystemPrompt 只保留这一通用语义和输出约束。Provider 首层 MD 描述“高级组件 → TaskSpec 数据
-路径”，Theme 首层 MD 描述主题适用场景；两类文档都只按本轮候选动态加载。服务端先按候选组件的
-Action 白名单过滤 TaskSpec 事件，并为每个 Action 候选标注 `supportedComponent`。第一层只有在
-`userQuery` 明确要求交互且最终组件受支持时才输出 `action.id`；Action 不参与数据字段覆盖。
+路径”，Theme 首层 MD 描述主题适用场景；两类文档都只按本轮候选动态加载。第一层根据用户动作意图
+从 TaskSpec 事件候选中输出对应 `eventId`，不判断 Action 属于哪个组件；没有动作时输出 `null`。
+Action 不参与数据字段覆盖。
 
-第二层从所选 Provider 的二层 MD 读取 Variant、参数、素材和 Action 使用规则。Python 只保留候选过滤、
-可信事实投影、Action 白名单、模板签名与编译校验，不再把全部领域规则拼入 SystemPrompt。
+第二层从所选 Provider 的二层 MD 读取 Variant、参数和素材使用规则。选中的 `eventId` 与业务组件解耦，
+统一生成布局根末尾唯一的 `PillAction`。Python 只保留候选过滤、可信事实投影、事件 ID 校验、模板签名
+与编译校验，不再把全部领域规则拼入 SystemPrompt。
 
 旧 Python 模板流水线仅通过 `legacy_python.route_legacy_python_terse_generation(...)` 作为问题定位入口保留；
 生产默认入口不引用该函数。

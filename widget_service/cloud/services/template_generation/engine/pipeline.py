@@ -23,7 +23,7 @@ from services.template_generation.engine.advanced.scope_planner import (
     TemplateRouteNotApplicable,
     plan_template_route_with_llm,
     resolve_available_capability_ids,
-    task_spec_with_selected_scope_actions,
+    task_spec_with_selected_action,
 )
 from services.template_generation.engine.advanced.ux_mixed_framer import (
     frame_ux_layout_root_children,
@@ -123,10 +123,9 @@ async def generate_template_a2ui(
 
     try:
         scope = selection.scope
-        selected_task_spec = task_spec_with_selected_scope_actions(
+        selected_task_spec = task_spec_with_selected_action(
             selected_task_spec,
-            scope.advanced_component_ids,
-            selection.action_ids,
+            selection.action_id,
         )
         return await _generate_selected_templates(
             source_task_spec=selected_task_spec,

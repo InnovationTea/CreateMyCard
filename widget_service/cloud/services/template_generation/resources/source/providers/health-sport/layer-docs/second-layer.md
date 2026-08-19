@@ -9,7 +9,7 @@
 ## WorkoutOverview
 
 - 调用：`Template("WorkoutOverview@1", "latest", params)`。
-- `params` 只允许语义匹配的 `sourceIcon`、`caloriesIcon`；Action 只由布局末尾持有。
+- `params` 只允许语义匹配的 `sourceIcon`、`caloriesIcon`。
 
 ## HeartRateOverview
 

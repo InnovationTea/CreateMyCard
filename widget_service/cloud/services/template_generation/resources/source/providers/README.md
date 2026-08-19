@@ -33,4 +33,5 @@ PYTHONPATH=cloud .venv/bin/pytest -q tests/test_provider_template_bundle.py
 
 上述 Provider CardTemplate 均已接入 UX Registry 默认实现。运行时按 Variant 的 `requiredBindings`、
 CardSpec `writeResultTo`、卡片尺寸和主题进行准入，并在 Compiler 中继续复用原业务组件的组合顺序、
-角色和 Action 归属校验。可信 Python 构造器仅作为代码级回滚和影子测试基线，不再出现在默认 Prompt。
+角色校验。Action 使用第一层独立选择的 `eventId`，由第二层统一生成布局末尾 `PillAction`；可信 Python
+构造器仅作为代码级回滚和影子测试基线，不再出现在默认 Prompt。

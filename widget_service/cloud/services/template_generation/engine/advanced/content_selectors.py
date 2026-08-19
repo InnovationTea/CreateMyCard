@@ -2093,12 +2093,7 @@ def schedule_overview_is_eligible(
         return False
     if schedule_query_requests_location(task_spec.userQuery) and facts.location is None:
         return False
-    requested_action_kinds = _schedule_requested_action_kinds(task_spec.userQuery)
-    if task_spec.size == "2x2" and len(requested_action_kinds) > 1:
-        return False
-    approved_action_ids = approved_schedule_action_ids(task_spec)
-    actions_are_closed = not requested_action_kinds or bool(approved_action_ids)
-    return actions_are_closed and _requested_schedule_assets_are_available(task_spec)
+    return _requested_schedule_assets_are_available(task_spec)
 
 
 def schedule_overview_query_is_supported(query: str) -> bool:
@@ -2306,6 +2301,7 @@ def _requested_schedule_assets_are_available(task_spec: TaskSpec) -> bool:
     requested = {
         kind
         for kind, terms in _SCHEDULE_ASSET_REQUEST_TERMS.items()
+        if kind != "action"
         if _contains_query_term(normalized, compact, terms)
     }
     if not requested:
@@ -2317,15 +2313,6 @@ def _requested_schedule_assets_are_available(task_spec: TaskSpec) -> bool:
     )
     for kind in requested:
         expected = _SCHEDULE_ASSET_EXPECTED_TAGS.get(kind)
-        if kind == "action":
-            action_kinds = set(_schedule_requested_action_kinds(task_spec.userQuery))
-            if not action_kinds:
-                return False
-            expected = {"focus"} if action_kinds == {"focus"} else {
-                "calendar",
-                "schedule",
-                "meeting",
-            }
         if expected is None or not any(tags & expected for tags in asset_tags):
             return False
     return True

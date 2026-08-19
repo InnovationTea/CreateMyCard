@@ -224,7 +224,7 @@ def build_hybrid_prompt(
         max_nesting_depth=9 if ux_layout_root_ids else 7,
         vertical_budget_vp=126,
     )
-    ux_action_components = ("PillAction", "IconAction", "ActionTile") if ux_layout_root_ids else ()
+    ux_action_components = ("PillAction",) if ux_layout_root_ids else ()
     contract = HybridBodyContract(
         theme_profile_id=theme_id,
         allowed_components=tuple(
@@ -562,21 +562,15 @@ def _composition_rules(ux_layout_root: bool) -> tuple[str, ...]:
             "布局调用可省略配置；需要覆盖默认重排时，"
             "只能把 Contract 声明的一个闭合配置对象"
             "放在第一个 child 前。布局的 businessChildren 数量不含 Action；"
-            "所有 Action 必须是布局根的"
-            "连续末尾直接 children，禁止放进 Column/Row/Stack/List/Template。除 ActionMatrixLayout"
-            "可按 Contract 使用2到4个控制项外，其它布局最多一个 Action。",
+            "所有 Action 必须是布局根的连续末尾直接 children，"
+            "禁止放进 Column/Row/Stack/List/Template；整卡最多一个 Action。",
             "禁止独立整卡 Header。若 cardComposition.businessTitleCandidate 能准确命名"
             "当前业务，"
             "可在业务内容区使用；若局部 Template 或事实已表达则省略，"
             "禁止从 request 截取标题。",
-            'Action 只允许 PillAction({"actionId":"批准ID","icon":"可选批准素材"})、'
-            'IconAction({"actionId":"批准ID","icon":"必填批准素材"}) 或 '
-            'ActionTile({"actionId":"批准ID","icon":"可选批准素材"})。',
-            "2x2 的主 Action 通常使用 PillAction，但这是通用默认而非业务覆盖规则；"
-            "BatteryOverview 的省电动作在 size=2x2 时必须使用末尾唯一 IconAction，禁止 PillAction；"
-            "size=2x4 才允许该 Battery 动作使用 PillAction；天气、拨号等仅图标入口可用 IconAction；"
-            "ActionTile 默认只用于 2x4，2x2 仅 ActionMatrixLayout 可用。"
-            "禁止标准 Button、事件对象和 Action 局部 Template。",
+            'Action 只允许 PillAction({"actionId":"批准eventId"})。'
+            "Action 与业务组件解耦，不得根据组件改写、丢弃或重新归属 eventId；"
+            "禁止 IconAction、ActionTile、标准 Button、事件对象和 Action 局部 Template。",
         )
     return (
         'Card 外壳必须是 Template("card@1", cardParams, content)。',

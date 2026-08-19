@@ -45,7 +45,10 @@ from services.template_generation.engine.cardplan.compiler import (
 )
 from services.template_generation.engine.cardplan.models import HybridBodyContract, HybridLimits
 from services.template_generation.engine.cardplan.registry import get_cardplan_registry
-from services.template_generation.engine.pipeline import generate_template_a2ui
+from services.template_generation.engine.pipeline import (
+    TemplateGenerationError,
+    generate_template_a2ui,
+)
 from services.template_generation.engine.terse_dsl_nested2_converter import Nested2Node
 from services.widget_generation_service import WidgetGenerationService
 
@@ -134,8 +137,11 @@ def test_first_layer_uses_candidate_provider_and_theme_documents_with_task_spec_
     }
     assert "Action 是点击或跳转动作，不是数据项" in system
     assert "requiredOutputFieldsByCapability" not in system
-    assert "action.supportedComponent" in system
-    assert payload["action"] == []
+    assert "不得判断 Action 属于哪个 component" in system
+    assert "明确要求交互但 action 候选中没有语义匹配的 eventId" in system
+    assert payload["action"] == [
+        {"eventId": "event.open.weather", "call": "clickToDeeplink"}
+    ]
     assert (
         "/data/weather/current/temperatureText" in payload["component"][0]["supportedTaskSpecPaths"]
     )
@@ -357,7 +363,7 @@ async def test_derived_parameter_source_field_is_counted_as_template_coverage():
             return {
                 "theme": "digital-wellbeing-neutral-dark",
                 "component": ["AppUsageOverview"],
-                "action": [],
+                "action": None,
             }
 
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
@@ -401,18 +407,18 @@ class _FixedTemplateModel:
         theme_id: str,
         component_id: str,
         body: str,
-        action_ids: tuple[str, ...] = (),
+        action_id: str | None = None,
     ) -> None:
         self.theme_id = theme_id
         self.component_id = component_id
-        self.action_ids = action_ids
+        self.action_id = action_id
         self.body = body
 
     async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
         return {
             "theme": self.theme_id,
             "component": [self.component_id],
-            "action": list(self.action_ids),
+            "action": self.action_id,
         }
 
     async def generate(self, *_args: Any, **_kwargs: Any) -> str:
@@ -536,7 +542,7 @@ async def test_bluetooth_layout_action_uses_cardtpl_foreground_opacity():
     model = _FixedTemplateModel(
         theme_id="audio-product-neutral-violet",
         component_id="BluetoothDeviceOverview",
-        action_ids=("event.open.music.daily",),
+        action_id="event.open.music.daily",
         body=(
             'HeroActionLayout(Template("BluetoothDeviceOverview@1","earbuds",{}),'
             'PillAction({"actionId":"event.open.music.daily"}));'
@@ -553,7 +559,7 @@ async def test_bluetooth_layout_action_uses_cardtpl_foreground_opacity():
     assert "#1964BB5C" in output.a2ui
 
 
-def test_first_layer_action_candidate_declares_supported_component():
+def test_first_layer_action_candidate_exposes_only_event_identity():
     registry = get_cardplan_registry()
     task_spec = _bluetooth_task(
         "看看蓝牙耳机充电盒电量并打开每日推荐",
@@ -587,9 +593,8 @@ def test_first_layer_action_candidate_declares_supported_component():
     payload = json.loads(messages[1]["content"])
     assert payload["action"] == [
         {
-            "id": "event.open.music.daily",
+            "eventId": "event.open.music.daily",
             "call": "clickToIntent",
-            "supportedComponent": ["BluetoothDeviceOverview"],
         }
     ]
 
@@ -646,11 +651,13 @@ class WeatherTemplateModel:
         self,
         *,
         route_usable: bool = True,
-        action_ids: tuple[str, ...] = (),
+        action_id: str | None = None,
+        body: str = _WEATHER_BODY,
     ) -> None:
         self.body_called = False
         self.route_usable = route_usable
-        self.action_ids = action_ids
+        self.action_id = action_id
+        self.body = body
         self.first_layer_prompt: list[dict[str, str]] | None = None
         self.second_layer_prompt: list[dict[str, str]] | None = None
 
@@ -659,7 +666,7 @@ class WeatherTemplateModel:
         return {
             "theme": "family-weather-care-blue" if self.route_usable else None,
             "component": ["WeatherOverview"] if self.route_usable else [],
-            "action": list(self.action_ids) if self.route_usable else [],
+            "action": self.action_id if self.route_usable else None,
         }
 
     async def generate(
@@ -670,7 +677,7 @@ class WeatherTemplateModel:
     ) -> str:
         self.body_called = True
         self.second_layer_prompt = prompt
-        return _WEATHER_BODY
+        return self.body
 
 
 def _policy() -> GenerationRoutePolicy:
@@ -789,12 +796,17 @@ def _weather_card_spec() -> dict[str, Any]:
     }
 
 
-def test_template_route_prompt_requires_exact_candidate_output_paths():
+def test_template_route_prompt_exposes_exact_task_spec_paths_from_bindings():
     task_spec = apply_content_selectors(
         _weather_task_spec().model_copy(
             update={"userQuery": "看看是否下雨、现在多少度"}
         ),
         {"ViewWeather"},
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=list(_WEATHER_TEMPLATE_FIELDS),
     )
     prompt = build_advanced_scope_prompt(
         task_spec,
@@ -802,24 +814,16 @@ def test_template_route_prompt_requires_exact_candidate_output_paths():
         get_cardplan_registry(),
         ("ViewWeather",),
         template_route_decision=True,
-        candidate_output_fields={"ViewWeather": _WEATHER_TEMPLATE_FIELDS},
+        coverage_bindings=(binding,),
         card_spec=_weather_card_spec(),
     )
 
-    system_prompt = prompt[0]["content"]
-    assert (
-        "必须从同一 capability 的 candidateOutputFieldsByCapability 数组中逐字复制"
-        in system_prompt
-    )
-    assert "禁止输出 /_advancedSelectors" in system_prompt
-    assert "/current/condition 和 /current/temperatureText" in system_prompt
     payload = json.loads(prompt[1]["content"])
-    assert payload["candidateOutputFieldsByCapability"]["ViewWeather"] == list(
-        _WEATHER_TEMPLATE_FIELDS
-    )
-    assert "LocationOverview" not in {
-        item["id"] for item in payload["advancedComponents"]
-    }
+    weather = next(item for item in payload["component"] if item["id"] == "WeatherOverview")
+    assert "/data/weather/current/condition" in weather["supportedTaskSpecPaths"]
+    assert "/data/weather/current/temperatureText" in weather["supportedTaskSpecPaths"]
+    assert all("/_advancedSelectors/" not in path for path in weather["supportedTaskSpecPaths"])
+    assert "candidateOutputFieldsByCapability" not in payload
 
 
 @pytest.mark.asyncio
@@ -862,6 +866,8 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
     assert model.second_layer_prompt is not None
     second_layer_user = model.second_layer_prompt[1]["content"]
     assert "providerSecondLayerRules=" in second_layer_user
+    assert "selectedActionEventId=null" in second_layer_user
+    assert 'PillAction({"actionId":"<selectedActionEventId>"})' in second_layer_user
     assert "天气高级组件二层规则" in second_layer_user
     assert "手机电量高级组件二层规则" not in second_layer_user
     assert captured["compact"]
@@ -964,8 +970,15 @@ async def test_unused_candidate_fields_do_not_block_query_required_weather_field
 
 
 @pytest.mark.asyncio
-async def test_first_layer_action_must_be_supported_by_selected_components():
-    model = WeatherTemplateModel(action_ids=("event.open.weather",))
+async def test_first_layer_action_is_independent_from_selected_components():
+    model = WeatherTemplateModel(
+        action_id="event.open.weather",
+        body=(
+            'SingleFocusLayout(Template("WeatherOverview@1","heroIcon",'
+            '{"conditionIcon":"resources/base/media/icon_weather1.svg"}),'
+            'PillAction({"actionId":"event.open.weather"}));'
+        ),
+    )
     task_spec = _weather_task_spec().model_copy(
         update={
             "eventCandidates": [
@@ -984,9 +997,77 @@ async def test_first_layer_action_must_be_supported_by_selected_components():
         candidateOutputFields=["/current/condition"],
     )
 
-    with pytest.raises(TemplateRouteNotApplicable, match="unsupported by the component scope"):
+    output = await generate_template_a2ui(
+        task_spec,
+        _weather_card_spec(),
+        (binding,),
+        model,
+    )
+
+    assert model.body_called is True
+    assert '"call":"clickToDeeplink"' in output.a2ui
+    assert "天气详情" in output.a2ui
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "action_call",
+    [
+        'IconAction({"actionId":"event.open.weather"})',
+        'ActionTile({"actionId":"event.open.weather"})',
+        (
+            'PillAction({"actionId":"event.open.weather",'
+            '"icon":"resources/base/media/icon_weather1.svg"})'
+        ),
+    ],
+)
+async def test_second_layer_rejects_non_pill_or_decorated_actions(action_call: str):
+    model = WeatherTemplateModel(
+        action_id="event.open.weather",
+        body=(
+            'SingleFocusLayout(Template("WeatherOverview@1","heroIcon",'
+            '{"conditionIcon":"resources/base/media/icon_weather1.svg"}),' + action_call + ");"
+        ),
+    )
+    task_spec = _weather_task_spec().model_copy(
+        update={
+            "eventCandidates": [
+                EventAction(
+                    id="event.open.weather",
+                    call="clickToDeeplink",
+                    args={"intentName": "Weather_CityCode"},
+                )
+            ]
+        }
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=["/current/condition"],
+    )
+
+    with pytest.raises(TemplateGenerationError, match="template body validation failed"):
         await generate_template_a2ui(
             task_spec,
+            _weather_card_spec(),
+            (binding,),
+            model,
+        )
+
+
+@pytest.mark.asyncio
+async def test_first_layer_action_must_be_a_task_spec_event_id():
+    model = WeatherTemplateModel(action_id="event.unknown")
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        arguments={"districtName": "青浦区", "prefectureName": "上海市"},
+        writeResultTo="/data/weather",
+        candidateOutputFields=["/current/condition"],
+    )
+
+    with pytest.raises(TemplateRouteNotApplicable, match="outside TaskSpec.eventCandidates"):
+        await generate_template_a2ui(
+            _weather_task_spec(),
             _weather_card_spec(),
             (binding,),
             model,

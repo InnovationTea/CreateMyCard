@@ -155,12 +155,6 @@ class _ExpansionState:
     expanded_components: int = 0
 
 
-@dataclass(frozen=True)
-class _CardTapAction:
-    action_id: str
-    handlers: tuple[dict[str, Any], ...]
-
-
 def compile_hybrid_card(
     source: str,
     *,
@@ -341,8 +335,6 @@ def compile_ux_layout_card(
     """
     source = _normalize_resource_cleanup_layout_source(source, contract)
     composition = parse_ux_layout_card(source)
-    composition = _normalize_empty_icon_actions(composition)
-    composition = _normalize_battery_power_action_icon(composition, contract, registry)
     composition = _normalize_resource_usage_optional_icon(composition, contract)
     composition = _normalize_single_resource_usage_title(composition, contract)
     composition = _normalize_trusted_composite_text_calls(composition, contract)
@@ -405,13 +397,11 @@ def compile_ux_layout_card(
     expanded = _append_missing_required_literals_to_ux_layout(expanded, contract)
     expanded = _inject_ux_business_title(expanded, business_title, contract)
     expanded = _normalize_weather_condition_icons(expanded, contract)
-    card_tap_action = _weather_card_tap_action(expanded, contract)
     content = _lower_ux_layout_root(
         expanded,
         size=task_spec.size,
         contract=contract,
         registry=registry,
-        card_tap_action=card_tap_action,
     )
     content = _inject_resource_battery_title(
         content,
@@ -432,7 +422,6 @@ def compile_ux_layout_card(
         content,
         contract,
         registry,
-        card_tap_action=card_tap_action,
     )
     text_role = registry.require_theme(contract.theme_profile_id).text_role
     root = _apply_theme_text_role(root, text_role)
@@ -538,54 +527,6 @@ def _normalize_resource_cleanup_layout_source(
             'PillAction({"actionId":"event.clean.memory"}));'
         )
     return source
-
-
-def _normalize_empty_icon_actions(call: ParsedCall) -> ParsedCall:
-    children = tuple(_normalize_empty_icon_actions(child) for child in call.children)
-    normalized = ParsedCall(call.kind, call.name, call.values, children, call.span)
-    if call.name != "IconAction" or len(call.values) != 1:
-        return normalized
-    if not isinstance(call.values[0], dict):
-        return normalized
-    params = dict(call.values[0])
-    icon = params.get("icon")
-    if isinstance(icon, str) and icon.strip():
-        return normalized
-    params.pop("icon", None)
-    return ParsedCall(call.kind, "PillAction", (params,), children, call.span)
-
-
-def _normalize_battery_power_action_icon(
-    call: ParsedCall,
-    contract: HybridBodyContract,
-    registry: CardPlanRegistry,
-) -> ParsedCall:
-    """Repair an IconAction to the sole approved power-saving asset, if unambiguous."""
-    children = tuple(
-        _normalize_battery_power_action_icon(child, contract, registry) for child in call.children
-    )
-    normalized = ParsedCall(call.kind, call.name, call.values, children, call.span)
-    if (
-        _contract_ux_business_component_names(contract, registry) != {"BatteryOverview"}
-        or call.name != "IconAction"
-        or len(call.values) != 1
-        or not isinstance(call.values[0], dict)
-        or call.values[0].get("actionId") != "event.setPowerSavingMode"
-    ):
-        return normalized
-    approved = tuple(
-        source
-        for source in contract.allowed_asset_sources
-        if set(contract.asset_semantic_tags_by_source.get(source, ()))
-        & {"power-saving", "battery-saver", "saving", "leaf"}
-    )
-    if len(approved) != 1:
-        return normalized
-    params = dict(call.values[0])
-    if params.get("icon") == approved[0]:
-        return normalized
-    params["icon"] = approved[0]
-    return ParsedCall(call.kind, call.name, (params,), children, call.span)
 
 
 def _normalize_resource_usage_optional_icon(
@@ -738,7 +679,7 @@ def _expand_call(
 ) -> Nested2Node:
     if call.kind == "component":
         if call.name in _UX_ACTION_COMPONENTS:
-            return _expand_ux_action_call(call, contract, state, registry)
+            return _expand_ux_action_call(call, contract, state)
         if call.name == "ActivityOverview":
             return _expand_activity_overview_call(
                 call,
@@ -978,13 +919,13 @@ def _expand_ux_action_call(
     call: ParsedCall,
     contract: HybridBodyContract,
     state: _ExpansionState,
-    registry: CardPlanRegistry,
 ) -> Nested2Node:
+    if call.name != "PillAction":
+        raise TerseDslNested2ConversionError("UX template route only accepts PillAction.")
     if len(call.values) != 1 or not isinstance(call.values[0], dict):
         raise TerseDslNested2ConversionError(f"{call.name} requires one object argument.")
     params = dict(call.values[0])
-    allowed_keys = {"actionId", "icon"}
-    if set(params) - allowed_keys:
+    if set(params) != {"actionId"}:
         raise TerseDslNested2ConversionError(f"{call.name} contains unknown fields.")
     action_id = params.get("actionId")
     if not isinstance(action_id, str):
@@ -995,116 +936,10 @@ def _expand_ux_action_call(
     )
     if binding is None or action_id not in contract.content_action_ids:
         raise TerseDslNested2ConversionError(f"{call.name} Action is not approved.")
-    icon = params.get("icon")
-    if icon is not None and (
-        not isinstance(icon, str) or icon not in contract.allowed_asset_sources
-    ):
-        raise TerseDslNested2ConversionError(f"{call.name} icon is not approved.")
-    if call.name == "IconAction" and not isinstance(icon, str):
-        raise TerseDslNested2ConversionError("IconAction requires an approved icon.")
-    business_names = _contract_ux_business_component_names(contract, registry)
-    schedule_owned = (
-        business_names.issubset({"DateOverview", "ScheduleOverview"})
-        and "ScheduleOverview" in business_names
-    )
-    if schedule_owned and isinstance(icon, str):
-        expected_tags = _schedule_action_expected_tags(binding)
-        actual_tags = set(contract.asset_semantic_tags_by_source.get(icon, ()))
-        if not actual_tags & expected_tags:
-            raise TerseDslNested2ConversionError(
-                f"{call.name} icon does not match the approved schedule Action."
-            )
-    resource_usage_owned = "ResourceUsageOverview" in business_names
-    if resource_usage_owned:
-        if action_id != "event.clean.memory":
-            raise TerseDslNested2ConversionError(
-                f"{call.name} Action does not close the memory cleanup intent."
-            )
-        if isinstance(icon, str):
-            actual_tags = set(contract.asset_semantic_tags_by_source.get(icon, ()))
-            if not actual_tags & {"clean", "memory", "resource"}:
-                raise TerseDslNested2ConversionError(
-                    f"{call.name} icon does not match the memory cleanup Action."
-                )
-    app_usage_owned = "AppUsageOverview" in business_names
-    if app_usage_owned:
-        if call.name != "PillAction" or action_id != "event.open.settings.parentControl":
-            raise TerseDslNested2ConversionError(
-                f"{call.name} Action does not close the app usage control intent."
-            )
-        if isinstance(icon, str):
-            actual_tags = set(contract.asset_semantic_tags_by_source.get(icon, ()))
-            if not actual_tags & {"timer", "settings", "parental-control"}:
-                raise TerseDslNested2ConversionError(
-                    f"{call.name} icon does not match the app usage control Action."
-                )
-    battery_owned = business_names == {"BatteryOverview"}
-    if battery_owned:
-        if isinstance(icon, str):
-            actual_tags = set(contract.asset_semantic_tags_by_source.get(icon, ()))
-            if not actual_tags & {"power-saving", "battery-saver", "saving", "leaf"}:
-                raise TerseDslNested2ConversionError(
-                    f"{call.name} icon does not match the power-saving Action."
-                )
-    bluetooth_owned = business_names == {"BluetoothDeviceOverview"}
-    if bluetooth_owned:
-        if action_id not in {"event.open.music.daily", "event.open.music.favorite"}:
-            raise TerseDslNested2ConversionError(
-                f"{call.name} Action is not an approved Bluetooth music entry."
-            )
-        if isinstance(icon, str):
-            actual_tags = set(contract.asset_semantic_tags_by_source.get(icon, ()))
-            expected_tags = (
-                {"favorite", "heart"}
-                if action_id == "event.open.music.favorite"
-                else {"music", "audio"}
-            )
-            if not actual_tags & expected_tags:
-                raise TerseDslNested2ConversionError(
-                    f"{call.name} icon does not match the Bluetooth music Action."
-                )
-    workout_owned = "WorkoutOverview" in business_names
-    if workout_owned:
-        if action_id != "event.open.health.sport":
-            raise TerseDslNested2ConversionError(
-                f"{call.name} Action does not close the approved workout intent."
-            )
-        if isinstance(icon, str):
-            actual_tags = set(contract.asset_semantic_tags_by_source.get(icon, ()))
-            if not actual_tags & {"workout", "sport", "run"}:
-                raise TerseDslNested2ConversionError(
-                    f"{call.name} icon does not match workout semantics."
-                )
-    sleep_owned = "SleepOverview" in business_names
-    if sleep_owned:
-        if call.name != "PillAction" or action_id != "event.open.clock.alarm":
-            raise TerseDslNested2ConversionError(
-                f"{call.name} Action does not close the approved sleep reminder intent."
-            )
-        if isinstance(icon, str):
-            actual_tags = set(contract.asset_semantic_tags_by_source.get(icon, ()))
-            if not actual_tags & {"sleep", "moon", "alarm"}:
-                raise TerseDslNested2ConversionError(
-                    f"{call.name} icon does not match sleep reminder semantics."
-                )
     if action_id not in state.action_ids:
         state.action_ids.append(action_id)
     state.action_occurrences.append(action_id)
-    return Nested2Node(call.name, (params,), ())
-
-
-def _schedule_action_expected_tags(binding: Any) -> set[str]:
-    searchable = " ".join(
-        (
-            binding.action_id,
-            binding.display_label,
-            binding.call,
-            json.dumps(binding.args, ensure_ascii=False, sort_keys=True),
-        )
-    ).casefold()
-    if any(term in searchable for term in ("focus", "dnd", "专注", "勿扰")):
-        return {"focus"}
-    return {"calendar", "schedule", "meeting"}
+    return Nested2Node("PillAction", ({"actionId": action_id},), ())
 
 
 def _expand_date_overview_call(
@@ -4883,8 +4718,6 @@ def _compile_ux_layout_shell(
     content: Nested2Node,
     contract: HybridBodyContract,
     registry: CardPlanRegistry,
-    *,
-    card_tap_action: _CardTapAction | None = None,
 ) -> Nested2Node:
     theme = registry.require_theme(contract.theme_profile_id)
     root_options = _normalize_theme_styles(theme.root_styles)
@@ -4900,8 +4733,6 @@ def _compile_ux_layout_shell(
         root_options["alignItems"] = _column_align_items(alignment)
     root_options.pop("width", None)
     root_options.pop("height", None)
-    if card_tap_action is not None:
-        root_options["onClick"] = list(card_tap_action.handlers)
     root_options["_id"] = "root"
     return Nested2Node("Column", ("card", root_options), (content,))
 
@@ -5500,20 +5331,17 @@ def _validate_optional_semantic_assets(
 
 
 def _validate_raw_ux_action(node: ParsedCall, contract: HybridBodyContract) -> None:
+    if node.name != "PillAction":
+        raise TerseDslNested2ConversionError("UX template route only accepts PillAction.")
     if node.children or len(node.values) != 1 or not isinstance(node.values[0], dict):
         raise TerseDslNested2ConversionError(f"{node.name} must be one leaf object call.")
     params = node.values[0]
-    if set(params) - {"actionId", "icon"}:
+    if set(params) != {"actionId"}:
         raise TerseDslNested2ConversionError(f"{node.name} contains unknown fields.")
     action_id = params.get("actionId")
     approved_ids = set(contract.content_action_ids)
     if not isinstance(action_id, str) or action_id not in approved_ids:
         raise TerseDslNested2ConversionError(f"{node.name} Action is not approved.")
-    icon = params.get("icon")
-    if icon is not None and icon not in contract.allowed_asset_sources:
-        raise TerseDslNested2ConversionError(f"{node.name} icon is not approved.")
-    if node.name == "IconAction" and not isinstance(icon, str):
-        raise TerseDslNested2ConversionError("IconAction requires an approved icon.")
 
 
 def _ux_business_component_name(
@@ -5767,46 +5595,8 @@ def _validate_ux_layout_root(
         contract=contract,
         registry=registry,
     )
-    if action_children and len(content_children) == 1:
-        only_child = content_children[0]
-        if _ux_business_component_name(only_child, registry, contract) == "DateOverview":
-            raise TerseDslNested2ConversionError(
-                "Single-business DateOverview cannot consume an Action."
-            )
-    business_names = {
-        business_name
-        for child in content_children
-        if (business_name := _ux_business_component_name(child, registry, contract)) is not None
-    }
-    battery_owned = "BatteryOverview" in business_names and not business_names & {
-        "ResourceUsageOverview",
-        "AppUsageOverview",
-    }
-    if (
-        battery_owned
-        and size == "2x2"
-        and any(child.name != "IconAction" for child in action_children)
-    ):
-        raise TerseDslNested2ConversionError("BatteryOverview 2x2 only accepts an IconAction.")
-    bluetooth_owned = business_names == {"BluetoothDeviceOverview"}
-    if (
-        bluetooth_owned
-        and size == "2x2"
-        and any(child.name != "PillAction" for child in action_children)
-    ):
-        raise TerseDslNested2ConversionError(
-            "BluetoothDeviceOverview 2x2 only accepts one PillAction."
-        )
-    if bluetooth_owned and size == "2x4" and node.name == "ActionMatrixLayout":
-        if any(child.name != "ActionTile" for child in action_children):
-            raise TerseDslNested2ConversionError(
-                "BluetoothDeviceOverview ActionMatrixLayout requires ActionTile entries."
-            )
-    phone_earphone = business_names == {"BatteryOverview", "BluetoothDeviceOverview"}
-    if phone_earphone and action_children:
-        raise TerseDslNested2ConversionError(
-            "Phone and earphone overview does not accept media or power Actions."
-        )
+    if any(child.name != "PillAction" for child in action_children):
+        raise TerseDslNested2ConversionError("UX template route only accepts PillAction.")
 
     def reject_nested_layout(current: ParsedCall) -> None:
         for child in current.children:
@@ -6639,39 +6429,6 @@ def _split_ux_layout_children(
     return content, actions
 
 
-def _weather_card_tap_action(
-    node: Nested2Node,
-    contract: HybridBodyContract,
-) -> _CardTapAction | None:
-    """Lower the dedicated weather-details action to the CardFrame click target."""
-    content, actions = _split_ux_layout_children(node)
-    if len(actions) != 1 or not any(_is_weather_region(item) for item in content):
-        return None
-    params = actions[0].values[0] if actions[0].values else None
-    action_id = params.get("actionId") if isinstance(params, dict) else None
-    if action_id != "event.open.weather":
-        return None
-    binding = next(
-        (item for item in contract.action_bindings if item.action_id == action_id),
-        None,
-    )
-    if binding is None:
-        return None
-    return _CardTapAction(
-        action_id=action_id,
-        handlers=({"call": binding.call, "args": binding.args},),
-    )
-
-
-def _matches_card_tap_action(node: Nested2Node, card_tap_action: _CardTapAction | None) -> bool:
-    if card_tap_action is None or not node.values:
-        return False
-    params = node.values[0]
-    if not isinstance(params, dict):
-        return False
-    return params.get("actionId") == card_tap_action.action_id
-
-
 def _inject_ux_business_title(
     node: Nested2Node,
     title: str | None,
@@ -6831,7 +6588,6 @@ def _lower_ux_layout_root(
     size: Literal["2x2", "2x4"],
     contract: HybridBodyContract,
     registry: CardPlanRegistry,
-    card_tap_action: _CardTapAction | None = None,
 ) -> Nested2Node:
     if node.component_type not in UX_LAYOUT_COMPONENT_IDS:
         raise TerseDslNested2ConversionError("UX Mixed root is not a Layout Component.")
@@ -6847,9 +6603,6 @@ def _lower_ux_layout_root(
         )
         for child in content
     )
-    visible_actions = tuple(
-        child for child in actions if not _matches_card_tap_action(child, card_tap_action)
-    )
     lowered_actions = tuple(
         _lower_ux_action(
             child,
@@ -6861,30 +6614,8 @@ def _lower_ux_layout_root(
                 "vertical" if node.component_type == "ActionMatrixLayout" else "horizontal"
             ),
         )
-        for child in visible_actions
+        for child in actions
     )
-    if (
-        size == "2x2"
-        and node.component_type == "WeatherNowForecastLayout"
-        and len(visible_actions) == 1
-        and visible_actions[0].component_type == "PillAction"
-        and isinstance(visible_actions[0].values[0], dict)
-        and isinstance(visible_actions[0].values[0].get("icon"), str)
-    ):
-        # The UX contract reserves the bottom-right weather control for the
-        # compact icon treatment. Normalizing here keeps the event binding and
-        # asset checks trusted while preventing a model-selected pill from
-        # consuming one third of a 2x2 weather card.
-        lowered_actions = (
-            _lower_ux_action(
-                Nested2Node("IconAction", visible_actions[0].values, ()),
-                size=size,
-                contract=contract,
-                registry=registry,
-                allow_action_tile_2x2=False,
-                action_tile_orientation="horizontal",
-            ),
-        )
     if (
         not layout.minimum_children(size)
         <= len(lowered_content)

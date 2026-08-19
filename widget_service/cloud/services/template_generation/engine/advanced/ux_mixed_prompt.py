@@ -26,7 +26,7 @@ from .scope_planner import (
     resolve_available_capability_ids,
     resolve_scope_layout_ids,
     scope_template_ids,
-    task_spec_with_selected_scope_actions,
+    task_spec_with_selected_action,
 )
 
 _WEATHER_BUILTIN_ASSETS = (
@@ -99,14 +99,11 @@ def build_ux_mixed_prompt(
     components = tuple(
         registry.require_ux_business_component(item) for item in scope.advanced_component_ids
     )
-    selected_action_ids = tuple(
-        event.id for event in task_spec.eventCandidates if event.id is not None
+    selected_action_id = next(
+        (event.id for event in task_spec.eventCandidates if event.id is not None),
+        None,
     )
-    task_spec = task_spec_with_selected_scope_actions(
-        task_spec,
-        scope.advanced_component_ids,
-        selected_action_ids,
-    )
+    task_spec = task_spec_with_selected_action(task_spec, selected_action_id)
     allowed_layout_ids = resolve_scope_layout_ids(scope, task_spec, registry)
     if not allowed_layout_ids:
         raise ValueError("Advanced Scope has no compatible UX layout")
@@ -315,6 +312,9 @@ def build_ux_mixed_prompt(
             "directBusinessComponents=" + json.dumps(direct_components, ensure_ascii=False),
             "providerSecondLayerRules="
             + json.dumps(provider_second_layer_rules, ensure_ascii=False),
+            "selectedActionEventId=" + json.dumps(selected_action_id, ensure_ascii=False),
+            "Action 与业务组件解耦；selectedActionEventId 非空时，只能在布局根末尾输出唯一的 "
+            'PillAction({"actionId":"<selectedActionEventId>"})；为空时不得输出 Action。',
             "业务高级组件字段由服务端绑定到 TaskSpec.dataModelSchema 的端侧数据路径；"
             "最终有效 TerseDSL 使用完整 `${data.weather.temperature}` 占位值，模型不得编造路径。",
             "只输出混合 DSL，不输出说明。",

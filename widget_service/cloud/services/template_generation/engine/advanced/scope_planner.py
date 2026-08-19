@@ -21,13 +21,6 @@ from .content_selectors import (
     activity_overview_is_eligible,
     activity_overview_variants,
     app_usage_overview_is_eligible,
-    approved_app_usage_action_ids,
-    approved_battery_power_action_ids,
-    approved_bluetooth_music_action_ids,
-    approved_memory_cleanup_action_ids,
-    approved_schedule_action_ids,
-    approved_sleep_action_ids,
-    approved_workout_action_ids,
     battery_overview_is_eligible,
     bluetooth_device_overview_is_eligible,
     bluetooth_device_overview_variants,
@@ -224,7 +217,11 @@ def _build_template_route_prompt(
         ],
         "component": components,
         "theme": theme_ids,
-        "action": _template_action_candidates(task_spec, component_candidates),
+        "action": [
+            {"eventId": event.id, "call": event.call}
+            for event in task_spec.eventCandidates
+            if event.id
+        ],
         "maxComponent": registry.ux_size_budgets[task_spec.size].max_business_components,
         "providerFirstLayerRules": registry.provider_first_layer_rules(
             candidate_ids,
@@ -237,18 +234,19 @@ def _build_template_route_prompt(
         "你是模板生成的第一层选择器。只输出一个 JSON 对象，且顶层只能有 "
         "theme、component、action "
         "三个字段，字段类型必须符合末尾 JSON Schema。theme 只能是 theme 候选中的一个 ID；"
-        "component 只能由 component 候选 ID 组成；action 只能由 action 候选的 id 组成。"
-        "Action 是点击或跳转动作，不是数据项：不得把 action.id、call 或动作参数"
+        "component 只能由 component 候选 ID 组成；action 只能是 action 候选中的 eventId 或 null。"
+        "Action 是点击或跳转动作，不是数据项：不得把 eventId、call 或动作参数"
         "当作数据路径，"
-        "不得把动作放进 component。action 候选已按垂域组件能力过滤；只有 userQuery 明确要求"
-        "该交互，且最终所选 component 出现在 action.supportedComponent 中时，才在 action 中"
-        "逐字输出其 action.id；没有明确交互请求时输出空数组。"
+        "不得把动作放进 component，也不得判断 Action 属于哪个 component。只有 userQuery 明确"
+        "要求某个交互时，才在 action 中逐字输出对应 eventId；没有明确交互请求时输出 null。"
+        "如果 userQuery 明确要求交互但 action 候选中没有语义匹配的 eventId，必须拒绝模板路线并"
+        '输出 {"theme":null,"component":[],"action":null}。'
         "先根据 userQuery 从 taskSpecDataFields 的全量内容中判断本轮必须显示的数据字段，再用"
         "Provider 第一层规则选择能够完整覆盖这些字段的一个或多个 component；"
         "这个中间字段集合"
         "只用于判断，不得出现在输出中。candidateOutputFields 不是本层的强制完整展示集合。"
         "任一必须显示字段无法呈现、组件不兼容、主题不适用或存在歧义时，输出"
-        '{"theme":null,"component":[],"action":[]}。不得输出数据路径、Variant、参数、布局、'
+        '{"theme":null,"component":[],"action":null}。不得输出数据路径、Variant、参数、布局、'
         "理由、置信度或额外字段。\n" + json.dumps(schema, ensure_ascii=False)
     )
     return [
@@ -271,26 +269,6 @@ def _data_roots_by_capability(
 
 def _absolute_task_spec_path(root: str, relative_path: str) -> str:
     return f"{root.rstrip('/')}/{relative_path.lstrip('/')}"
-
-
-def _template_action_candidates(
-    task_spec: TaskSpec,
-    component_candidates: tuple[UxBusinessComponentCapability, ...],
-) -> list[dict[str, Any]]:
-    supported_components_by_action: dict[str, list[str]] = {}
-    for component in component_candidates:
-        approved_ids = _approved_action_ids_for_component_scope(task_spec, {component.name})
-        for action_id in approved_ids:
-            supported_components_by_action.setdefault(action_id, []).append(component.name)
-    return [
-        {
-            "id": event.id,
-            "call": event.call,
-            "supportedComponent": supported_components_by_action[event.id],
-        }
-        for event in task_spec.eventCandidates
-        if event.id in supported_components_by_action
-    ]
 
 
 def _scope_candidate_prompt_payload(
@@ -503,9 +481,8 @@ async def plan_template_route_with_llm(
     )
     scope = _normalize_redundant_2x2_support(scope, task_spec)
     try:
-        selected_task_spec = task_spec_with_selected_scope_actions(
+        selected_task_spec = task_spec_with_selected_action(
             task_spec,
-            scope.advanced_component_ids,
             decision.action,
         )
         validate_advanced_scope(
@@ -524,7 +501,7 @@ async def plan_template_route_with_llm(
         )
     except ValueError as exc:
         raise TemplateRouteNotApplicable(str(exc)) from exc
-    return TemplateRouteSelection(scope=scope, action_ids=decision.action)
+    return TemplateRouteSelection(scope=scope, action_id=decision.action)
 
 
 def _normalize_scope_to_shared_theme(
@@ -713,70 +690,21 @@ def _normalize_empty_component_scope(
     return normalized
 
 
-def task_spec_with_selected_scope_actions(
+def task_spec_with_selected_action(
     task_spec: TaskSpec,
-    component_ids: tuple[str, ...],
-    action_ids: tuple[str, ...],
+    action_id: str | None,
 ) -> TaskSpec:
-    """Keep only first-layer selected Action IDs that pass the existing domain allowlists."""
+    """Keep only the eventId independently selected by the first-layer LLM."""
     available_ids = {event.id for event in task_spec.eventCandidates if event.id}
-    if not set(action_ids).issubset(available_ids):
+    if action_id is not None and action_id not in available_ids:
         raise ValueError("Template route selected an Action outside TaskSpec.eventCandidates")
-    selected = task_spec.model_copy(
+    return task_spec.model_copy(
         update={
             "eventCandidates": [
-                event for event in task_spec.eventCandidates if event.id in set(action_ids)
+                event for event in task_spec.eventCandidates if event.id == action_id
             ]
         }
     )
-    filtered = _task_spec_with_scope_action_allowlist(selected, set(component_ids))
-    filtered_ids = {event.id for event in filtered.eventCandidates if event.id}
-    if filtered_ids != set(action_ids):
-        raise ValueError("Template route selected an Action unsupported by the component scope")
-    return filtered
-
-
-def _task_spec_with_scope_action_allowlist(
-    task_spec: TaskSpec,
-    component_ids: set[str],
-) -> TaskSpec:
-    return _task_spec_with_action_ids(
-        task_spec,
-        _approved_action_ids_for_component_scope(task_spec, component_ids),
-    )
-
-
-def _approved_action_ids_for_component_scope(
-    task_spec: TaskSpec,
-    component_ids: set[str],
-) -> set[str]:
-    approved_ids: set[str] = set()
-    if "SleepOverview" in component_ids and not component_ids & {
-        "ActivityOverview",
-        "HeartRateOverview",
-        "WorkoutOverview",
-    }:
-        approved_ids.update(approved_sleep_action_ids(task_spec))
-    if "WorkoutOverview" in component_ids:
-        approved_ids.update(approved_workout_action_ids(task_spec))
-    if "AppUsageOverview" in component_ids:
-        approved_ids.update(approved_app_usage_action_ids(task_spec))
-    if "ResourceUsageOverview" in component_ids:
-        approved_ids.update(approved_memory_cleanup_action_ids(task_spec))
-    has_battery = "BatteryOverview" in component_ids
-    has_bluetooth = "BluetoothDeviceOverview" in component_ids
-    if has_battery and not has_bluetooth:
-        approved_ids.update(approved_battery_power_action_ids(task_spec))
-    if has_bluetooth and not has_battery:
-        approved_ids.update(approved_bluetooth_music_action_ids(task_spec))
-    if "ScheduleOverview" in component_ids:
-        approved_ids.update(approved_schedule_action_ids(task_spec))
-    return approved_ids
-
-
-def _task_spec_with_action_ids(task_spec: TaskSpec, approved_ids: set[str]) -> TaskSpec:
-    events = [event for event in task_spec.eventCandidates if event.id in approved_ids]
-    return task_spec.model_copy(update={"eventCandidates": events})
 
 
 def resolve_scope_layout_ids(
@@ -812,32 +740,6 @@ def resolve_scope_layout_ids(
         and component_names not in approved_health_compositions
     ):
         return ()
-    if "AppUsageOverview" in component_names:
-        action_count = len(approved_app_usage_action_ids(task_spec))
-    if "ResourceUsageOverview" in component_names:
-        action_count = len(approved_memory_cleanup_action_ids(task_spec))
-    if "SleepOverview" in component_names:
-        action_count = len(approved_sleep_action_ids(task_spec))
-    if health_component_names:
-        action_count = (
-            len(approved_workout_action_ids(task_spec))
-            if "WorkoutOverview" in component_names
-            else 0
-        )
-    schedule_owned_scope = {item.name for item in components}.issubset(
-        {"DateOverview", "ScheduleOverview"}
-    )
-    if schedule_owned_scope and any(item.name == "ScheduleOverview" for item in components):
-        action_count = len(approved_schedule_action_ids(task_spec))
-    battery_owned_scope = component_names.issubset(
-        {"BatteryOverview", "BluetoothDeviceOverview"}
-    )
-    if component_names == {"BatteryOverview", "BluetoothDeviceOverview"}:
-        action_count = 0
-    elif battery_owned_scope and "BatteryOverview" in component_names:
-        action_count = len(approved_battery_power_action_ids(task_spec))
-    if component_names == {"BluetoothDeviceOverview"}:
-        action_count = len(approved_bluetooth_music_action_ids(task_spec))
     has_action = action_count > 0
     common = set(registry.ux_layout_components)
     for capability in components:
@@ -854,6 +756,8 @@ def resolve_scope_layout_ids(
         ):
             continue
         if action_count < layout.min_action_children_by_size[task_spec.size]:
+            continue
+        if action_count > layout.max_action_children_by_size[task_spec.size]:
             continue
         if "ResourceUsageOverview" in component_names and count > 1:
             resource_battery = component_names == {
@@ -881,12 +785,11 @@ def resolve_scope_layout_ids(
             if layout_id != expected_layout:
                 continue
         if component_names == {"BluetoothDeviceOverview"}:
-            if action_count == 0:
-                expected_bluetooth_layouts = {"SingleFocusLayout"}
-            elif task_spec.size == "2x2":
-                expected_bluetooth_layouts = {"HeroActionLayout"}
-            else:
-                expected_bluetooth_layouts = {"ActionMatrixLayout"}
+            expected_bluetooth_layouts = (
+                {"SingleFocusLayout", "HeroActionLayout"}
+                if has_action
+                else {"SingleFocusLayout"}
+            )
             if layout_id not in expected_bluetooth_layouts:
                 continue
         has_weather = any(item.name == "WeatherOverview" for item in components)

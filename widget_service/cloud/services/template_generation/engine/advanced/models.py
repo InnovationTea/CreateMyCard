@@ -278,7 +278,7 @@ class TemplateRouteDecision(StrictModel):
 
     theme: str | None
     component: tuple[str, ...] = Field(max_length=4)
-    action: tuple[str, ...] = Field(max_length=4)
+    action: str | None
 
     @field_validator("theme")
     @classmethod
@@ -290,21 +290,31 @@ class TemplateRouteDecision(StrictModel):
             raise ValueError("theme must be null or a non-empty candidate ID")
         return normalized
 
-    @field_validator("component", "action")
+    @field_validator("component")
     @classmethod
     def unique_non_empty_ids(cls, values: tuple[str, ...]) -> tuple[str, ...]:
         if any(not value.strip() for value in values):
-            raise ValueError("component and action IDs must not be empty")
+            raise ValueError("component IDs must not be empty")
         if len(values) != len(set(values)):
-            raise ValueError("component and action IDs must be unique")
+            raise ValueError("component IDs must be unique")
         return values
+
+    @field_validator("action")
+    @classmethod
+    def normalized_action(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("action must be null or a non-empty eventId")
+        return normalized
 
     @model_validator(mode="after")
     def route_fields_match_decision(self) -> TemplateRouteDecision:
         has_scope = bool(self.theme and self.component)
         if has_scope:
             return self
-        if self.theme is not None or self.component or self.action:
+        if self.theme is not None or self.component or self.action is not None:
             raise ValueError("rejected Template route must clear theme, component and action")
         return self
 
@@ -313,7 +323,7 @@ class TemplateRouteSelection(StrictModel):
     """服务端校验后的模板范围，不直接暴露为首层 LLM 输出。"""
 
     scope: AdvancedScopeBrief
-    action_ids: tuple[str, ...] = ()
+    action_id: str | None = None
 
 
 class AdaptiveTemplateSlot(StrictModel):

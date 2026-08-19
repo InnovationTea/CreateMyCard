@@ -36,7 +36,7 @@
   "layoutComponents": [
     {
       "name": "SingleFocusLayout",
-      "description": "单一主内容布局；可在最后一个 child 承载一个布局 Action。WeatherOverview 的天气详情 Action 降级为整卡点击；其它 2x2 IconAction 叠放右下，PillAction 固定底部，业务区不得侵入动作预留区。",
+      "description": "单一主内容布局；可在最后一个 child 承载一个 PillAction，业务区不得侵入底部动作预留区。",
       "supportedCardSizes": ["2x2", "2x4"],
       "minChildren": 1,
       "maxChildrenBySize": {"2x2": 1, "2x4": 1},
@@ -200,7 +200,7 @@
     },
     {
       "name": "WeatherNowForecastLayout",
-      "description": "当前天气、预报和可选辅助语义布局；2x2 只显示城市、主温度、天气/空气和高低温，不展示未来预报列表，不重复事实；有动作图标时使用右下 IconAction。",
+      "description": "当前天气、预报和可选辅助语义布局；2x2 只显示城市、主温度、天气/空气和高低温，不展示未来预报列表，不重复事实；有动作时使用布局根末尾 PillAction。",
       "supportedCardSizes": ["2x2", "2x4"],
       "minChildren": 1,
       "maxChildrenBySize": {"2x2": 1, "2x4": 4},
@@ -215,7 +215,7 @@
     {
       "name": "WeatherOverview",
       "domainId": "weather",
-      "description": "由 ViewWeather Provider CardTemplate 展开的原子当前天气。仅在 ViewWeather 提供完整城市、温度、天气、空气质量和当日温度范围时可选；标题 Row 的地点在 leading、可用天气图标在 trailing，温度和底部事实顺序排列。天气详情使用整卡点击，不渲染独立按钮；不展示未来预报列表。",
+      "description": "由 ViewWeather Provider CardTemplate 展开的原子当前天气。仅在 ViewWeather 提供完整城市、温度、天气、空气质量和当日温度范围时可选；标题 Row 的地点在 leading、可用天气图标在 trailing，温度和底部事实顺序排列；不展示未来预报列表。Action 由第二层作为布局根末尾独立 PillAction 处理。",
       "variants": ["current", "commute"],
       "supportedCardSizes": ["2x2", "2x4"],
       "minRegion": "compact",
@@ -249,7 +249,7 @@
     {
       "name": "ScheduleOverview",
       "domainId": "schedule",
-      "description": "由可信 TerseDSL 构造器展开的首项日程摘要。仅当 GetCalendarEvents 可用、同一可信首项存在非空 string title/dtStart 且用户意图属于下一日程、会议或预约摘要时可选；dtEnd 仅在非空 string 时拼成 timeText，eventLocation 可选。明确请求地点必须有 location；明确请求加入、返回、查看会议或开启专注必须有语义闭环的批准事件候选；明确请求来源、时间、地点或 Action 图标必须有语义匹配的本轮 assetCandidate。多日程、实时状态、分钟倒计时、会议号、备注、邀请人、可加入状态、日期-only、待办和备忘录均不可选。meetingExpanded 必须有 location；focusContext 必须有批准专注动作。agendaList/countdown 当前禁用。",
+      "description": "由可信 TerseDSL 构造器展开的首项日程摘要。仅当 GetCalendarEvents 可用、同一可信首项存在非空 string title/dtStart 且用户意图属于下一日程、会议或预约摘要时可选；dtEnd 仅在非空 string 时拼成 timeText，eventLocation 可选。明确请求地点必须有 location；明确请求来源、时间或地点素材时必须有语义匹配的本轮 assetCandidate。多日程、实时状态、分钟倒计时、会议号、备注、邀请人、可加入状态、日期-only、待办和备忘录均不可选。meetingExpanded 必须有 location；agendaList/countdown 当前禁用。Action 由第二层独立处理。",
       "variants": ["nextEvent", "meetingCompact", "meetingExpanded", "focusContext"],
       "supportedCardSizes": ["2x2", "2x4"],
       "minRegion": "compact",
@@ -318,7 +318,7 @@
     {
       "name": "BatteryOverview",
       "domainId": "battery",
-      "description": "由可信 TerseDSL 构造器展开的手机本机电量。仅当 GetPhoneBatteryInfo 提供 0..100 的 batterySOC，或可从 batterySOCText 解析出一致百分比，并且 batteryCapacityLevelDesc、chargingStatusDesc 均为可信非空字符串时可选；0% 合法。只投影这四个字段，不表达续航、预计充满时间、健康度、温度、电压、电流、充电器类型或外设电量。2x2 单业务使用标题、状态建议、52vp Ring 与可选 IconAction；2x4 单业务左图右文；与 ResourceUsageOverview 的 2x2 对等组合必须显式 showTitle=false，由外层写独立业务标题并统一两列基线；与 BluetoothDeviceOverview 组合时手机使用 56vp 主 Ring，耳机使用更小的支持 Ring。省电动作只由布局持有且必须有语义闭环的批准事件候选。",
+      "description": "由可信 TerseDSL 构造器展开的手机本机电量。仅当 GetPhoneBatteryInfo 提供 0..100 的 batterySOC，或可从 batterySOCText 解析出一致百分比，并且 batteryCapacityLevelDesc、chargingStatusDesc 均为可信非空字符串时可选；0% 合法。只投影这四个字段，不表达续航、预计充满时间、健康度、温度、电压、电流、充电器类型或外设电量。2x2 单业务使用标题、状态建议与 52vp Ring；2x4 单业务左图右文；与 ResourceUsageOverview 的 2x2 对等组合必须显式 showTitle=false，由外层写独立业务标题并统一两列基线；与 BluetoothDeviceOverview 组合时手机使用 56vp 主 Ring，耳机使用更小的支持 Ring。Action 由第二层作为布局根末尾独立 PillAction 处理。",
       "variants": ["normal", "charging", "low"],
       "supportedCardSizes": ["2x2", "2x4"],
       "minRegion": "compact",
