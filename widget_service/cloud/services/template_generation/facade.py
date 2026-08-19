@@ -52,6 +52,8 @@ async def generate_template_artifact(
     before_model_call: ModelStartCallback | None = None,
 ) -> GenerateWidgetCardResponse:
     """独立执行模板生成并直接返回接口结果，异常交由调用入口降级。"""
+    if "sourceArtifactUrl" in request.model_fields_set:
+        raise TemplateRouteNotApplicable("template generation does not support edit mode")
     normalized_request = EditRequestNormalizer.normalize_create(request)
     resolver = DeviceCapabilityResolver(registry)
     effective_bindings, data_capabilities, removed_data = (

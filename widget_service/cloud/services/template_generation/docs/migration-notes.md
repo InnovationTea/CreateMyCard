@@ -7,7 +7,7 @@
 
 1. `cloud/services/template_generation/`：模板功能的全部代码、资源、测试和文档。
 2. `cloud/services/widget_generation_service.py`：一个模板接口 import，以及 Compact、Terse 两个主入口各一段
-   简单的 `if/try` 模板尝试和旧链路回退。
+   简单的 `try/except` 模板尝试和旧链路回退。
 
 明确不纳入本次 PR：
 

@@ -1048,22 +1048,20 @@ class WidgetGenerationService:
             validation_failure_blocking=True,
             stores_design_token=True,
         )
-        is_edit = "sourceArtifactUrl" in request.model_fields_set
-        if not is_edit:
-            try:
-                return await generate_template_artifact(
-                    request,
-                    policy,
-                    registry=self._capability_registry(request),
-                    model_runtime=self.model_runtime,
-                    model_request_context=self._resolve_model_request_context(request),
-                    before_model_call=before_model_call,
-                )
-            except Exception as exc:
-                logger.info(
-                    f"{_MODULE} template_route_fallback operation={policy.operation} "
-                    f"reason={type(exc).__name__} detail={json_for_log(str(exc))}"
-                )
+        try:
+            return await generate_template_artifact(
+                request,
+                policy,
+                registry=self._capability_registry(request),
+                model_runtime=self.model_runtime,
+                model_request_context=self._resolve_model_request_context(request),
+                before_model_call=before_model_call,
+            )
+        except Exception as exc:
+            logger.info(
+                f"{_MODULE} template_route_fallback operation={policy.operation} "
+                f"reason={type(exc).__name__} detail={json_for_log(str(exc))}"
+            )
         if before_model_call is None:
             return await self._generate_widget_card_with_policy(request, policy)
         return await self._generate_widget_card_with_policy(
@@ -1105,22 +1103,20 @@ class WidgetGenerationService:
             validation_failure_blocking=True,
             stores_design_token=True,
         )
-        is_edit = "sourceArtifactUrl" in request.model_fields_set
-        if not is_edit:
-            try:
-                return await generate_template_artifact(
-                    request,
-                    policy,
-                    registry=self._capability_registry(request),
-                    model_runtime=self.model_runtime,
-                    model_request_context=self._resolve_model_request_context(request),
-                    before_model_call=before_model_call,
-                )
-            except Exception as exc:
-                logger.info(
-                    f"{_MODULE} template_route_fallback operation={policy.operation} "
-                    f"reason={type(exc).__name__} detail={json_for_log(str(exc))}"
-                )
+        try:
+            return await generate_template_artifact(
+                request,
+                policy,
+                registry=self._capability_registry(request),
+                model_runtime=self.model_runtime,
+                model_request_context=self._resolve_model_request_context(request),
+                before_model_call=before_model_call,
+            )
+        except Exception as exc:
+            logger.info(
+                f"{_MODULE} template_route_fallback operation={policy.operation} "
+                f"reason={type(exc).__name__} detail={json_for_log(str(exc))}"
+            )
         if before_model_call is None:
             return await self._generate_widget_card_with_policy(request, policy)
         return await self._generate_widget_card_with_policy(

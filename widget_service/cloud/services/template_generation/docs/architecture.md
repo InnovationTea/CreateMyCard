@@ -10,7 +10,7 @@
 
 ```text
 generateWidgetCardCompactDsl
-  ├─ edit → 原始 Compact 流程
+  ├─ edit → 模板接口抛出异常 → 原始 Compact 流程
   └─ create
        ├─ generate_template_artifact
        │    ├─ 准备 dev 能力裁决、CardSpec、TaskSpec
@@ -30,7 +30,7 @@ generateWidgetCardCompactDsl
 
 ```text
 generateWidgetCardTerseDslNested2
-  ├─ edit → 原始 TerseDSL-Nested-2 流程
+  ├─ edit → 模板接口抛出异常 → 原始 TerseDSL-Nested-2 流程
   └─ create
        ├─ generate_template_artifact
        │    ├─ 第一层 LLM 提取 query 必显字段并执行服务端完整覆盖校验
@@ -79,8 +79,8 @@ generateWidgetCardTerseDslNested2
 ## 对原始 dev 的修改边界
 
 `widget_generation_service.py` 只新增模板接口 import，并在 Compact、Terse 两个公开入口各增加一段简单的
-`if/try`：非 edit 时尝试模板，任一异常后继续调用原协议流程。模板 artifact 在隔离模块内部组装，不修改主
-服务原有 `_build_artifact`。
+`try/except`：尝试模板，任一异常后继续调用原协议流程。edit 判断由模板接口内部完成。模板 artifact 在隔离
+模块内部组装，不修改主服务原有 `_build_artifact`。
 
 模板渲染需要的附加候选字段由 `binding_dependencies.py` 在模板路由内补齐，不修改通用能力模型、能力注册表
 或 `DeviceCapabilityResolver`。

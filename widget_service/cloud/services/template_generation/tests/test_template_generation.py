@@ -906,25 +906,17 @@ async def test_query_required_fields_must_come_from_candidates():
 
 
 @pytest.mark.asyncio
-async def test_edit_skips_template_attempt_and_uses_original_flow(monkeypatch):
+async def test_compact_edit_rejection_uses_original_flow(monkeypatch):
     request = _weather_request().model_copy(
         update={"sourceArtifactUrl": "https://artifact.test/source.md"}
     )
     request.model_fields_set.add("sourceArtifactUrl")
     original_response = object()
 
-    async def unexpected_attempt(*_args: Any, **_kwargs: Any) -> Any:
-        pytest.fail("edit must not enter the template attempt")
-
     async def original_generation(*_args: Any, **_kwargs: Any) -> Any:
         return original_response
 
     service = WidgetGenerationService()
-    monkeypatch.setattr(
-        widget_generation_service_module,
-        "generate_template_artifact",
-        unexpected_attempt,
-    )
     monkeypatch.setattr(
         service,
         "_generate_widget_card_with_policy",
@@ -1024,14 +1016,11 @@ async def test_terse_template_mismatch_falls_back_to_original_at_entry(monkeypat
 
 
 @pytest.mark.asyncio
-async def test_terse_edit_skips_template_and_uses_original_flow(monkeypatch):
+async def test_terse_edit_rejection_uses_original_flow(monkeypatch):
     request = _weather_request().model_copy(
         update={"sourceArtifactUrl": "https://artifact.test/source.md"}
     )
     request.model_fields_set.add("sourceArtifactUrl")
-
-    async def unexpected_attempt(*_args: Any, **_kwargs: Any) -> Any:
-        pytest.fail("Terse edit must not attempt template generation")
 
     original_response = object()
 
@@ -1039,11 +1028,6 @@ async def test_terse_edit_skips_template_and_uses_original_flow(monkeypatch):
         return original_response
 
     service = WidgetGenerationService()
-    monkeypatch.setattr(
-        widget_generation_service_module,
-        "generate_template_artifact",
-        unexpected_attempt,
-    )
     monkeypatch.setattr(
         service,
         "_generate_widget_card_with_policy",
