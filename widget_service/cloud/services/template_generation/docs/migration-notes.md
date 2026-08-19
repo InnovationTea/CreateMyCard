@@ -3,11 +3,11 @@
 本次重新合入不沿用旧模板 PR 的整体 squash。旧分支同时修改了 API、配置、模型客户端、协议注册、批量服务、
 日志、Docker、根文档、Skill、测试报告和多个通用转换器，无法证明每项都属于模板主路径。
 
-新的变更分类只有三类：
+新的变更分类只有两类：
 
 1. `cloud/services/template_generation/`：模板功能的全部代码、资源、测试和文档。
-2. `cloud/services/widget_generation_service.py`：Compact、Terse 两个主入口持有模板尝试和旧链路回退。
-3. `cloud/services/widget_artifact_builder.py`：原生成链和模板链共用的 artifact 组装逻辑。
+2. `cloud/services/widget_generation_service.py`：一个模板接口 import，以及 Compact、Terse 两个主入口各一段
+   简单的 `if/try` 模板尝试和旧链路回退。
 
 明确不纳入本次 PR：
 

@@ -16,7 +16,7 @@ generateWidgetCardCompactDsl
        │    ├─ 准备 dev 能力裁决、CardSpec、TaskSpec
        │    ├─ 第一层 LLM：从候选字段中提取 query 必显字段，选择 Theme 和业务模板
        │    ├─ 服务端完整覆盖校验
-       │    │    ├─ 必显字段不属于候选或模板未消费任一必显字段 → 抛出回退信号
+       │    │    ├─ 必显字段不属于候选或模板未消费任一必显字段 → 抛出异常
        │    │    └─ 全部覆盖 → 锁定模板路由
        │    ├─ 第二层 LLM：只生成受限布局和模板调用
        │    ├─ 服务端解析、参数校验、模板展开
@@ -25,7 +25,7 @@ generateWidgetCardCompactDsl
        │    ├─ dev Compact Processor → 最终 A2UI
        │    ├─ dev ArtifactValidator
        │    └─ ArtifactStore 保存 genui + designcompactdsl
-       └─ 回退信号 → 原始 Compact 流程
+       └─ 任一异常 → 原始 Compact 流程
 ```
 
 ```text
@@ -34,13 +34,13 @@ generateWidgetCardTerseDslNested2
   └─ create
        ├─ generate_template_artifact
        │    ├─ 第一层 LLM 提取 query 必显字段并执行服务端完整覆盖校验
-       │    │    └─ 未匹配、字段未完整覆盖或模型不可用 → 抛出回退信号
+       │    │    └─ 未匹配、字段未完整覆盖或模型不可用 → 抛出异常
        │    ├─ 第二层 LLM、参数校验和模板展开
-       │    │    └─ 任一失败 → 抛出回退信号
+       │    │    └─ 任一失败 → 抛出异常
        │    ├─ 展开后的 TerseDSL-Nested-2 → 模块内隔离转换器 → 最终 A2UI
        │    ├─ dev ArtifactValidator
        │    └─ ArtifactStore 保存 genui + 展开后的 TerseDSL-Nested-2
-       └─ 回退信号 → 原始 TerseDSL-Nested-2 流程
+       └─ 任一异常 → 原始 TerseDSL-Nested-2 流程
 ```
 
 ## 为什么先归档 Compact 再确定最终 A2UI
@@ -73,14 +73,14 @@ generateWidgetCardTerseDslNested2
 必显字段；服务端随后证明这些字段被所选模板直接绑定或作为派生参数来源消费。模板可以为了保持原始视觉
 额外展示其必需事实，但不得遗漏 query 必显事实。
 
-`before_model_call` 由公开入口包装为单次通知。第一层已经触发通知时，即使回退原始模型，也不会重复下发
-开始事件。旧 Python 模板流水线仅通过 `legacy_python.route_legacy_python_terse_generation(...)` 作为问题
-定位入口保留；生产默认入口不引用该函数。
+旧 Python 模板流水线仅通过 `legacy_python.route_legacy_python_terse_generation(...)` 作为问题定位入口保留；
+生产默认入口不引用该函数。
 
 ## 对原始 dev 的修改边界
 
-`widget_generation_service.py` 在 Compact、Terse 两个公开入口统一持有模板尝试和原协议回退；模板模块只返回
-结果或回退信号。共享 artifact 组装位于独立 Builder，避免模板模块依赖主服务私有方法。
+`widget_generation_service.py` 只新增模板接口 import，并在 Compact、Terse 两个公开入口各增加一段简单的
+`if/try`：非 edit 时尝试模板，任一异常后继续调用原协议流程。模板 artifact 在隔离模块内部组装，不修改主
+服务原有 `_build_artifact`。
 
 模板渲染需要的附加候选字段由 `binding_dependencies.py` 在模板路由内补齐，不修改通用能力模型、能力注册表
 或 `DeviceCapabilityResolver`。

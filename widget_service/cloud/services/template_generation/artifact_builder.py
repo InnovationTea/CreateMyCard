@@ -1,4 +1,4 @@
-"""共享的卡片 artifact 组装逻辑。"""
+"""模板生成模块内部的 artifact 组装逻辑。"""
 
 from __future__ import annotations
 
@@ -8,10 +8,10 @@ import uuid
 from app.logger import logger
 from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
 
-_MODULE = "[Artifact Builder]"
+_MODULE = "[Template Generation]"
 
 
-def build_widget_artifact(
+def build_template_artifact(
     genui: str,
     card_spec: dict,
     task_spec: dict,
@@ -23,11 +23,8 @@ def build_widget_artifact(
     protocol_profile_version: str,
     capability_registry_version: str,
     data_bindings: list | None = None,
-    artifact_id: str | None = None,
-    generation_mode: str = "create",
-    source_artifact_digest: str | None = None,
 ) -> WidgetArtifact:
-    """组装端侧交付和云侧排障共用的完整 artifact。"""
+    """组装模板路线直接返回所需的完整 artifact。"""
     logger.info(
         f"{_MODULE} artifact_building protocol_profile_id={protocol_profile_id} "
         f"protocol_profile_version={protocol_profile_version} "
@@ -36,7 +33,6 @@ def build_widget_artifact(
         f"event_candidate_count={len(event_candidates)} "
         f"asset_candidate_count={len(asset_candidates)} removed_count={len(removed)}"
     )
-    resolved_artifact_id = artifact_id or str(uuid.uuid4())
     return WidgetArtifact(
         genui=genui,
         cardSpec=card_spec,
@@ -68,9 +64,8 @@ def build_widget_artifact(
             dslProtocolVersion=protocol_profile_version,
             protocolProfileId=protocol_profile_id,
             capabilityRegistryVersion=capability_registry_version,
-            generationMode=generation_mode,
-            artifactId=resolved_artifact_id,
-            sourceArtifactDigest=source_artifact_digest,
+            generationMode="create",
+            artifactId=str(uuid.uuid4()),
             createdAt=int(time.time() * 1000),
         ),
     )

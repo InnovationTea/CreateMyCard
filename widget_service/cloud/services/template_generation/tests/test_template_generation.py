@@ -23,7 +23,6 @@ from services.protocol_registry import (
     A2UIProtocolRegistry,
 )
 from services.template_generation import (
-    TemplateRouteFallbackError,
     facade,
     route_legacy_python_terse_generation,
 )
@@ -947,7 +946,7 @@ async def test_selected_template_failure_falls_back_to_original_at_entry(monkeyp
         return original_response
 
     async def selected_failure(*_args: Any, **_kwargs: Any) -> Any:
-        raise TemplateRouteFallbackError("TemplateGenerationError: selected route failed")
+        raise RuntimeError("selected route failed")
 
     service = WidgetGenerationService()
     monkeypatch.setattr(
@@ -967,33 +966,16 @@ async def test_selected_template_failure_falls_back_to_original_at_entry(monkeyp
 
 
 @pytest.mark.asyncio
-async def test_first_layer_rejection_falls_back_and_notifies_model_start_once(monkeypatch):
-    notifications: list[str] = []
-
-    async def original_generation(
-        _request: Any,
-        _policy_value: Any,
-        *,
-        before_model_call: Any,
-    ) -> str:
-        await before_model_call("2x2")
-        await before_model_call("2x2")
+async def test_first_layer_rejection_falls_back_to_original(monkeypatch):
+    async def original_generation(*_args: Any, **_kwargs: Any) -> str:
         return "original"
 
     async def rejected(
         _request: Any,
         _policy_value: Any,
-        *,
-        before_model_call: Any,
         **_kwargs: Any,
     ) -> Any:
-        await before_model_call("2x2")
-        raise TemplateRouteFallbackError(
-            "TemplateRouteNotApplicable: LLM rejected template route"
-        )
-
-    async def notify(size: str) -> None:
-        notifications.append(size)
+        raise TemplateRouteNotApplicable("LLM rejected template route")
 
     service = WidgetGenerationService()
     monkeypatch.setattr(
@@ -1006,13 +988,9 @@ async def test_first_layer_rejection_falls_back_and_notifies_model_start_once(mo
         "_generate_widget_card_with_policy",
         original_generation,
     )
-    response = await service.generate_widget_card_compact_dsl(
-        _weather_request(),
-        before_model_call=notify,
-    )
+    response = await service.generate_widget_card_compact_dsl(_weather_request())
 
     assert response == "original"
-    assert notifications == ["2x2"]
 
 
 @pytest.mark.asyncio
@@ -1026,9 +1004,7 @@ async def test_terse_template_mismatch_falls_back_to_original_at_entry(monkeypat
         return original_response
 
     async def rejected(*_args: Any, **_kwargs: Any) -> Any:
-        raise TemplateRouteFallbackError(
-            "TemplateRouteNotApplicable: LLM rejected template route"
-        )
+        raise TemplateRouteNotApplicable("LLM rejected template route")
 
     service = WidgetGenerationService()
     monkeypatch.setattr(

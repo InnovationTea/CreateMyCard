@@ -25,10 +25,9 @@ await generate_template_artifact(
 - edit 请求不进入模板模块，由 Compact 或 Terse 公开入口直接执行原协议流程。
 - create 请求先由第一层 LLM 判断一个或多个模板能否覆盖完整需求。
 - 第一层拒绝、输出非法、调用失败、确定性覆盖检查不通过，以及后续生成、转换、校验或保存异常，均向公开
-  入口抛出统一回退信号。
-- Compact 与 Terse 公开入口收到回退信号后，分别执行各自原协议流程。
+  入口抛出异常。
+- Compact 与 Terse 公开入口捕获异常后，分别执行各自原协议流程。
 - 模板成功时直接保存包含 `genui` 和 `designcompactdsl` 的标准 artifact。
-- 模板尝试和原协议流程共用单次模型开始通知，回退时不重复下发。
 
 旧 Python Terse 模板流水线只保留
 `route_legacy_python_terse_generation(...)` 诊断入口，用于临时对比定位，不属于生产默认路由。
@@ -38,6 +37,7 @@ await generate_template_artifact(
 ```text
 template_generation/
 ├── facade.py                 Compact/Terse 模板结果与 artifact 编排
+├── artifact_builder.py       模板模块内部的 artifact 组装
 ├── binding_dependencies.py   仅供模板渲染使用的字段依赖补齐
 ├── legacy_python.py          旧 Python Terse 流水线诊断入口
 ├── model_client.py           第一层/第二层模型窄适配器
@@ -48,9 +48,9 @@ template_generation/
 └── docs/                     本功能设计与接入文档
 ```
 
-模块允许复用 dev 已有的 CardSpec/TaskSpec Builder、Compact Processor、Validator、ArtifactStore 和共享
-artifact Builder；能力注册表、模型运行时和请求上下文由公开入口显式提供。不得在模板目录中复制这些通用
-服务，也不得通过主服务对象反向调用原协议逻辑。
+模块允许复用 dev 已有的 CardSpec/TaskSpec Builder、Compact Processor、Validator 和 ArtifactStore；
+能力注册表、模型运行时和请求上下文由公开入口显式提供。模板模块自行组装完整 artifact，不得通过主服务对象
+调用私有能力或反向调用原协议逻辑。
 
 详细流程见 [architecture.md](architecture.md)，Provider 接入见
 [provider-template-contract.md](provider-template-contract.md)。

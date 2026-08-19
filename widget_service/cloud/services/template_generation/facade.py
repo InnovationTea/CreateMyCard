@@ -24,6 +24,7 @@ from services.template_generation.archive import (
     build_template_archive,
     build_terse_template_archive,
 )
+from services.template_generation.artifact_builder import build_template_artifact
 from services.template_generation.binding_dependencies import enrich_template_bindings
 from services.template_generation.engine.advanced.scope_planner import (
     TemplateRouteNotApplicable,
@@ -36,14 +37,9 @@ from services.template_generation.model_client import (
     create_template_model_client,
 )
 from services.validator import ArtifactValidator
-from services.widget_artifact_builder import build_widget_artifact
 
 _MODULE = "[Template Generation]"
 ModelStartCallback = Callable[[WidgetSize], Awaitable[None]]
-
-
-class TemplateRouteFallbackError(RuntimeError):
-    """模板未生成有效结果，公开入口应执行原协议生成链。"""
 
 
 async def generate_template_artifact(
@@ -55,31 +51,7 @@ async def generate_template_artifact(
     model_request_context: ModelRequestContext,
     before_model_call: ModelStartCallback | None = None,
 ) -> GenerateWidgetCardResponse:
-    """只执行模板生成；无法返回有效结果时向公开入口抛出统一回退信号。"""
-    try:
-        return await _generate_template_artifact(
-            request,
-            policy,
-            registry=registry,
-            model_runtime=model_runtime,
-            model_request_context=model_request_context,
-            before_model_call=before_model_call,
-        )
-    except Exception as exc:
-        reason = type(exc).__name__
-        detail = str(exc)
-        raise TemplateRouteFallbackError(f"{reason}: {detail}") from exc
-
-
-async def _generate_template_artifact(
-    request: GenerateWidgetCardRequest,
-    policy: GenerationRoutePolicy,
-    *,
-    registry: CapabilityRegistry,
-    model_runtime: ModelExecutionRuntime | None,
-    model_request_context: ModelRequestContext,
-    before_model_call: ModelStartCallback | None,
-) -> GenerateWidgetCardResponse:
+    """独立执行模板生成并直接返回接口结果，异常交由调用入口降级。"""
     normalized_request = EditRequestNormalizer.normalize_create(request)
     resolver = DeviceCapabilityResolver(registry)
     effective_bindings, data_capabilities, removed_data = (
@@ -153,7 +125,7 @@ async def _generate_template_artifact(
         data_capabilities=data_capabilities,
         event_candidates=effective_events,
     )
-    artifact = build_widget_artifact(
+    artifact = build_template_artifact(
         archive.a2ui,
         card_spec.model_dump(mode="json", exclude_none=True),
         projected_task_spec,
@@ -165,7 +137,6 @@ async def _generate_template_artifact(
         protocol_profile["version"],
         registry.version,
         data_bindings=effective_bindings,
-        generation_mode="create",
     )
     artifact = _with_internal_template_assets(
         artifact,
