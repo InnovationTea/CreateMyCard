@@ -1265,6 +1265,15 @@ def test_create_request_defaults_to_2x2_when_size_is_omitted():
     assert normalized.size == "2x2"
 
 
+def test_data_capability_schema_request_rejects_empty_ids():
+    with pytest.raises(ValidationError):
+        DataCapabilitySchemasRequest(
+            uid="test-user",
+            device={"romVersion": ROM_VERSION_6},
+            dataCapabilityIds=[],
+        )
+
+
 def _out_of_range_requests():
     common = {
         "uid": "test-user",

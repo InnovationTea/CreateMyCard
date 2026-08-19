@@ -220,7 +220,6 @@ class WidgetGenerationService:
                 f"error={exc}"
             )
             return DataCapabilitySchemasResponse(
-                capabilityRegistryVersion=version,
                 dataCapabilities=[],
                 missingCapabilityIds=request.dataCapabilityIds,
             )
@@ -238,7 +237,6 @@ class WidgetGenerationService:
             else:
                 capabilities.append(capability)
         response = DataCapabilitySchemasResponse(
-            capabilityRegistryVersion=registry.version,
             dataCapabilities=capabilities,
             missingCapabilityIds=missing,
         )

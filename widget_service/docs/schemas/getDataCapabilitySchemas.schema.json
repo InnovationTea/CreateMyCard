@@ -120,8 +120,6 @@
         "tool": "string，当前工具名；本接口为 getDataCapabilitySchemas。",
         "operation": "string，当前 WebSocket path 对应的接口名。",
         "requestId": "string|null，服务端根据 sessionId + '&' + interactionId 生成的请求 ID。",
-        "data.apiVersion": "string，接口版本。",
-        "data.capabilityRegistryVersion": "string，本次实际使用的能力清单版本目录名，包含默认回退结果。",
         "data.dataCapabilities": "DataCapability[]，已找到的数据能力完整定义。",
         "data.missingCapabilityIds": "string[]，未在当前能力清单版本中找到的数据能力 ID。",
         "status": "string，本次调用状态；成功时为 success。",

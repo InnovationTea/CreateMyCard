@@ -449,7 +449,6 @@ meta
 
 ```json
 {
-  "apiVersion": "v1",
   "status": "success",
   "artifactUrl": "上传后的地址",
   "artifactDigest": "sha256:...",

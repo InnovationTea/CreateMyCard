@@ -298,8 +298,6 @@ curl http://127.0.0.1:8855/health
   "operation": "getDataCapabilitySchemas",
   "requestId": "schema-1",
   "data": {
-    "apiVersion": "v1",
-    "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
     "dataCapabilities": [
       {
         "id": "ViewWeather",
@@ -433,7 +431,6 @@ Design Compact 两个生成入口都受同一个编辑开关控制，并沿用�
   "operation": "generateWidgetCard",
   "requestId": "generate-1",
   "data": {
-    "apiVersion": "v1",
     "status": "success",
     "artifactUrl": "https://obs.todo.local/widget/artifact_uuid.md",
     "artifactDigest": "sha256:xxx",

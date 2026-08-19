@@ -202,6 +202,8 @@ def test_live_four_websocket_paths_complete_flow():
         schema = schema_message["data"]
         assert schema_message["status"] == "success"
         assert schema_message["errorCode"] == ""
+        assert "apiVersion" not in schema
+        assert "capabilityRegistryVersion" not in schema
         assert [item["id"] for item in schema["dataCapabilities"]] == ["ViewWeather"]
         assert schema["missingCapabilityIds"] == []
 

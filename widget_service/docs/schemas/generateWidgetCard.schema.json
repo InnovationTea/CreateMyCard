@@ -159,7 +159,6 @@
         "tool": "string，当前工具名；本接口为 generateWidgetCard。",
         "operation": "string，当前 WebSocket path 对应的接口名。",
         "requestId": "string|null，服务端根据 sessionId + '&' + interactionId 生成的请求 ID。",
-        "data.apiVersion": "string，接口版本。",
         "data.status": "string，生成状态，枚举 success/degraded/unsupported/failed。",
         "data.artifactUrl": "string，artifact 下载地址；成功或降级成功时返回。",
         "data.artifactDigest": "string，artifact 内容摘要。",

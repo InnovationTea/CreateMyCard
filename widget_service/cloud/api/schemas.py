@@ -179,12 +179,10 @@ class CapabilityOverviewResponse(BaseModel):
 
 
 class DataCapabilitySchemasRequest(VersionedToolRequest):
-    dataCapabilityIds: list[str]
+    dataCapabilityIds: list[str] = Field(min_length=1)
 
 
 class DataCapabilitySchemasResponse(BaseModel):
-    apiVersion: str = "v1"
-    capabilityRegistryVersion: str
     dataCapabilities: list[DataCapability]
     missingCapabilityIds: list[str] = Field(default_factory=list)
 
@@ -272,7 +270,6 @@ class WidgetCardServiceRequest(VersionedToolRequest):
 
 
 class GenerateWidgetCardResponse(BaseModel):
-    apiVersion: str = "v1"
     status: GenerationStatus
     artifactUrl: str = ""
     artifactDigest: str = ""

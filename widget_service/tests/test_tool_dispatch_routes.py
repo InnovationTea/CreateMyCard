@@ -528,6 +528,8 @@ def test_widget_card_service_complete_flow(monkeypatch):
         schema = schema_legacy_message["data"]
         assert schema_legacy_message["status"] == "success"
         assert schema_legacy_message["errorCode"] == ""
+        assert "apiVersion" not in schema
+        assert "capabilityRegistryVersion" not in schema
         assert [item["id"] for item in schema["dataCapabilities"]] == ["ViewWeather"]
         weather_schema = schema["dataCapabilities"][0]
         assert "districtName" in weather_schema["inputSchema"]["properties"]
@@ -1314,7 +1316,8 @@ def test_unknown_prd_version_falls_back_for_first_two_interfaces():
         schema = schema_legacy_message["data"]
         assert schema_legacy_message["status"] == "success"
         assert schema_legacy_message["errorCode"] == ""
-        assert schema["capabilityRegistryVersion"] == REGISTRY_VERSION
+        assert "apiVersion" not in schema
+        assert "capabilityRegistryVersion" not in schema
         assert [item["id"] for item in schema["dataCapabilities"]] == ["ViewWeather"]
         assert schema["missingCapabilityIds"] == [random_capability_id]
 
@@ -1722,7 +1725,8 @@ def test_legacy_registry_field_is_ignored_for_first_two_interfaces():
     assert "apiVersion" not in overview
     assert "capabilityRegistryVersion" not in overview
     assert any(item["id"] == "ViewWeather" for item in overview["dataCapabilities"])
-    assert schema["capabilityRegistryVersion"] == REGISTRY_VERSION
+    assert "apiVersion" not in schema
+    assert "capabilityRegistryVersion" not in schema
     assert [item["id"] for item in schema["dataCapabilities"]] == ["ViewWeather"]
 
 
@@ -1791,7 +1795,6 @@ def test_registry_fallback_switch_off_applies_to_all_three_interfaces(monkeypatc
     )
     client = TestClient(app)
     random_prd_ver = f"98.98.{uuid.uuid4().int % 100000000}"
-    expected_version = f"app-{random_prd_ver}_rom-6.0"
     device_info = {**DEVICE_INFO, "prdVer": random_prd_ver}
 
     with client.websocket_connect("/api/v1/ws/tools/getWidgetCapabilityOverview") as websocket:
@@ -1849,10 +1852,12 @@ def test_registry_fallback_switch_off_applies_to_all_three_interfaces(monkeypatc
     assert overview["dataCapabilities"] == []
     assert overview["eventCapabilities"] == []
     assert overview["assetCandidates"] == []
-    assert schema["capabilityRegistryVersion"] == expected_version
+    assert "apiVersion" not in schema
+    assert "capabilityRegistryVersion" not in schema
     assert schema["dataCapabilities"] == []
     assert schema["missingCapabilityIds"] == ["ViewWeather"]
     assert generation["status"] == "unsupported"
+    assert "apiVersion" not in generation
     assert generation["errorCode"] == "APP_VERSION_UNSUPPORTED"
     assert "App 或 ROM 版本不在服务支持范围内" in generation_message["explanation"]
 

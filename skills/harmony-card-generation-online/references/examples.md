@@ -27,7 +27,7 @@
 | 最后一个核心数据能力进入 `missingCapabilityIds` | 结束并引导 | overview → schema |
 | 查询日程但未说明日期范围，overview 确认日程可用且 schema 将其列为必填参数 | 追问日期范围 | overview → schema → 追问 |
 | 用户明确要求不支持的静态形态，例如在卡片内撰写长报告 | 结束并说明 | 零调用 |
-| 固定文字内容的静态展示卡 | 继续生成 | overview → schema（空数组）→ generate（跳过 permission） |
+| 固定文字内容的静态展示卡 | 继续生成 | overview → generate（跳过 schema 和 permission） |
 | 已生成卡片后说“颜色换成红色” | 强制 edit | 按来源数据集合执行 permission（非空时）→ generate，且传最近一次 `artifactUrl` |
 | 上一轮已生成天气卡片，本轮只说“标题改成今天的天气”且未提“卡片” | 识别为 edit | 传上一轮最近一次 `artifactUrl`，按纯文案 edit 执行 |
 | 上一轮已生成天气卡片，本轮说“再做一张日历卡片” | 识别为 create | 不继承上一轮 `sourceArtifactUrl`，执行 create 流程 |
@@ -174,20 +174,11 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 好的，我现在为你创建卡片。
 ```
 
-overview 返回无需动态参数的闹钟入口事件后，仍调用 schema，但传空数据能力数组；最终候选数据为空，因此跳过权限工具：
+overview 返回无需动态参数的闹钟入口事件后，没有数据候选，因此跳过 schema 和权限工具：
 
-这是 create 模式无数据候选的唯一分支：必须执行 overview → schema → generate，只有 permission 被跳过。
+这是 create 模式无数据候选的分支：执行 overview → generate，不调用 schema 或 permission，也不传空数组。
 
-### 2. 加载空 schema
-
-```text
-invoke(functionName:"getDataCapabilitySchemas", arguments:{
-  bundleName:"com.omega_w_0823.hmservice",
-  dataCapabilityIds:[]
-},"skillName":"harmony-card-generation-online")
-```
-
-返回合法空数据 schema 后继续生成；不得跳过 schema。
+### 2. 生成入口卡
 
 ```text
 invoke(functionName:"generateWidgetCardCompactDsl", arguments:{

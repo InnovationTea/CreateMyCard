@@ -35,7 +35,7 @@
 | 场景 | 轨迹 |
 | --- | --- |
 | create，有数据候选 | overview → schema → permission → generate |
-| create，无数据候选 | overview → schema（空数组）→ generate |
+| create，无数据候选 | overview → generate |
 | 纯视觉/布局/文案/尺寸 edit，来源含动态数据 | permission → generate |
 | 纯视觉/布局/文案/尺寸 edit，来源无动态数据 | generate |
 | 删除数据或修改参数 edit | overview → schema → permission（集合非空时）→ generate |
@@ -43,14 +43,20 @@
 
 箭头均以当前结果合法且门禁通过为前提。除权限工具 invoke 级异常按默认开启继续外，任一步失败立即终止，不调用后续工具。生成工具返回后不再调用其它工具补做交付。
 
-### create 强制四工具链
+### create 条件工具链
 
-一旦判定为 create，必须严格按本轮结果执行四工具链：`getWidgetCapabilityOverview` → `getDataCapabilitySchemas` → `RequestDataPermission` → `generateWidgetCardCompactDsl`。唯一允许不调用的工具是：最终候选数据集合为空时跳过 `RequestDataPermission`；集合非空时必须尝试调用权限工具，即使调用失败也只能按权限工具异常分支继续，不能事先省略。此时仍必须执行 overview、schema 和 generate。历史对话、此前 artifact、旧的能力概述或 schema、缓存、相似需求经验和用户之前的授权结果均不得替代本轮步骤或作为跳过理由。
+一旦判定为 create，必须先调用 `getWidgetCapabilityOverview`，再按本轮候选执行条件工具链。有数据候选时调用
+`getDataCapabilitySchemas`，最终数据集合非空时调用 `RequestDataPermission`，最后调用
+`generateWidgetCardCompactDsl`。没有数据候选时跳过 schema 和权限工具，不传空数组。数据集合非空时必须尝试
+调用权限工具，即使调用失败也只能按权限工具异常分支继续，不能事先省略。历史对话、此前 artifact、旧的能力
+概述或 schema、缓存、相似需求经验和用户之前的授权结果均不得替代本轮必需步骤或作为跳过理由。
 
 - 每个 create 必须先调用本轮 `getWidgetCapabilityOverview`；未取得合法概述不得调用后续工具。
-- 每个 create 都必须调用本轮 `getDataCapabilitySchemas`；无数据候选时传 `dataCapabilityIds:[]`，表示没有需要加载的数据 schema。
+- 有数据候选的 create 必须调用本轮 `getDataCapabilitySchemas`；无数据候选时跳过，不传空
+  `dataCapabilityIds`。
 - 本轮最终数据集合非空时，必须调用 `RequestDataPermission`；只有最终集合为空时不发起该调用。
-- 前述门禁均满足后才调用 `generateWidgetCardCompactDsl`。create 不得省略 overview、schema 或 generate；只有最终候选数据集合为空时跳过权限工具。
+- 前述门禁均满足后才调用 `generateWidgetCardCompactDsl`。create 不得省略 overview 或 generate；schema 和权限
+  工具分别在数据候选、最终数据集合非空时调用。
 
 ### 端到端十三步
 
@@ -163,7 +169,11 @@ invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmserv
 
 ### getDataCapabilitySchemas
 
-仅为 overview 后保留的可用候选传 `dataCapabilityIds`，ID 只能来自本轮 overview 的 `dataCapabilities`。payload 包含完整 `dataCapabilities` 和 `missingCapabilityIds:string[]`；移除 missing 候选后重新执行满足度门禁，最后一个核心能力被移除时不生成。仅在此处读取 `inputSchema.required`：用户可回答的必填参数缺失时追问最小必要信息，技术缺口则终止。完整 schema 不向用户展示。
+仅在 overview 后保留至少一个可用数据候选时调用，并传非空 `dataCapabilityIds`；ID 只能来自本轮 overview 的
+`dataCapabilities`。没有数据候选时跳过本接口，不传空数组。payload 包含完整 `dataCapabilities` 和
+`missingCapabilityIds:string[]`；移除 missing 候选后重新执行满足度门禁，最后一个核心能力被移除时不生成。
+仅在此处读取 `inputSchema.required`：用户可回答的必填参数缺失时追问最小必要信息，技术缺口则终止。完整
+schema 不向用户展示。
 
 ### RequestDataPermission
 
