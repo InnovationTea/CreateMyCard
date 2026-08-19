@@ -28,7 +28,7 @@ from custom.a2ui_model_client import (
     require_generated_dsl,
 )
 from custom.model_runtime import ModelExecutionRuntime
-from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
+from models.artifact import WidgetArtifact
 from models.generation import DEFAULT_WIDGET_SIZE, ModelRequestContext, WidgetSize
 from models.preflight import GenerationPreflightError
 from services.artifact_store import ArtifactStore
@@ -59,12 +59,30 @@ from services.source_artifact_repository import (
     SourceArtifactRepository,
 )
 from services.template_generation import (
-    route_compact_generation,
-    route_terse_nested2_generation,
+    TemplateRouteFallbackError,
+    generate_template_artifact,
 )
 from services.validator import ArtifactValidator
+from services.widget_artifact_builder import build_widget_artifact
 
 _MODULE = "[Generation Service]"
+
+
+class _ModelStartOnce:
+    """模板尝试回退旧链路时，保证模型开始通知最多发送一次。"""
+
+    def __init__(
+        self,
+        callback: Callable[[WidgetSize], Awaitable[None]],
+    ) -> None:
+        self._callback = callback
+        self._notified = False
+
+    async def __call__(self, size: WidgetSize) -> None:
+        if self._notified:
+            return
+        await self._callback(size)
+        self._notified = True
 
 
 class WidgetGenerationService:
@@ -358,7 +376,8 @@ class WidgetGenerationService:
         else:
             request = EditRequestNormalizer.normalize_create(request)
 
-        # 主流程：解析能力、生成 CardSpec/TaskSpec、生成 genui、校验 artifact、返回结构化状态。
+        # 主流程：解析能力、生成 CardSpec/TaskSpec 和 genui，
+        # 再校验 artifact 并返回结构化状态。
         logger.info(
             f"{_MODULE} generate_widget_card_started generation_mode={generation_mode} "
             f"size={request.size} "
@@ -493,7 +512,10 @@ class WidgetGenerationService:
             response = GenerateWidgetCardResponse(
                 status=GenerationStatus.UNSUPPORTED,
                 suggestSize=request.size,
-                message="当前设备上没有可用的数据能力或入口能力，暂时不能生成这类实时卡片。你可以试试天气、日历或系统状态类卡片。",
+                message=(
+                    "当前设备上没有可用的数据能力或入口能力，暂时不能生成这类实时卡片。"
+                    "你可以试试天气、日历或系统状态类卡片。"
+                ),
                 removedCapabilities=removed,
                 errorCode=ErrorCode.NO_EFFECTIVE_CAPABILITY.value,
             )
@@ -518,7 +540,8 @@ class WidgetGenerationService:
             "task_data_model_schema_keys="
             f"{json_for_log(list(task_spec.dataModelSchema))}"
         )
-        # Prompt 约束模型生成源 DSL；Processor 和 Validator 依次产出统一质量问题，再由策略决定门禁。
+        # Prompt 约束模型生成源 DSL；Processor 和 Validator 依次产出统一质量问题，
+        # 再由策略决定门禁。
         if policy.stores_design_token:
             design_system_prompt = A2UIProtocolRegistry.read_design_prompt(
                 policy.model_profile_id
@@ -1051,11 +1074,10 @@ class WidgetGenerationService:
             validation_failure_blocking=True,
             stores_design_token=True,
         )
-        return await route_compact_generation(
-            self,
+        return await self._generate_widget_card_with_template_fallback(
             request,
             policy,
-            before_model_call=before_model_call,
+            before_model_call,
         )
 
     async def generate_widget_card_terse_dsl_nested2(
@@ -1091,8 +1113,66 @@ class WidgetGenerationService:
             validation_failure_blocking=True,
             stores_design_token=True,
         )
-        return await route_terse_nested2_generation(
-            self,
+        return await self._generate_widget_card_with_template_fallback(
+            request,
+            policy,
+            before_model_call,
+        )
+
+    async def _generate_widget_card_with_template_fallback(
+        self,
+        request: GenerateWidgetCardRequest,
+        policy: GenerationRoutePolicy,
+        before_model_call: Callable[[WidgetSize], Awaitable[None]] | None,
+    ) -> GenerateWidgetCardResponse:
+        """模板只负责返回结果；edit 或模板异常由公开入口回退原协议链。"""
+        if "sourceArtifactUrl" in request.model_fields_set:
+            logger.info(
+                f"{_MODULE} template_route_fallback operation={policy.operation} "
+                "reason=edit_mode fallback=original_protocol_flow"
+            )
+            return await self._call_original_protocol_generation(
+                request,
+                policy,
+                before_model_call,
+            )
+
+        notify_model_start = (
+            _ModelStartOnce(before_model_call) if before_model_call is not None else None
+        )
+        try:
+            response = await generate_template_artifact(
+                request,
+                policy,
+                registry=self._capability_registry(request),
+                model_runtime=self.model_runtime,
+                model_request_context=self._resolve_model_request_context(request),
+                before_model_call=notify_model_start,
+            )
+        except (TemplateRouteFallbackError, ValueError) as exc:
+            logger.info(
+                f"{_MODULE} template_route_fallback operation={policy.operation} "
+                f"reason={type(exc).__name__} detail={json_for_log(str(exc))} "
+                "fallback=original_protocol_flow"
+            )
+        else:
+            return response
+        return await self._call_original_protocol_generation(
+            request,
+            policy,
+            notify_model_start,
+        )
+
+    async def _call_original_protocol_generation(
+        self,
+        request: GenerateWidgetCardRequest,
+        policy: GenerationRoutePolicy,
+        before_model_call: Callable[[WidgetSize], Awaitable[None]] | None,
+    ) -> GenerateWidgetCardResponse:
+        """只由公开服务入口调用现有协议生成链。"""
+        if before_model_call is None:
+            return await self._generate_widget_card_with_policy(request, policy)
+        return await self._generate_widget_card_with_policy(
             request,
             policy,
             before_model_call=before_model_call,
@@ -1309,52 +1389,21 @@ class WidgetGenerationService:
         - source_artifact_digest：编辑来源摘要；首次生成为空。
         出参：完整 WidgetArtifact。
         """
-        # artifact 是端侧下载后的唯一交付物，里面同时包含 DSL、CardSpec、TaskSpec 和能力裁决结果。
-        logger.info(
-            f"{_MODULE} artifact_building protocol_profile_id={protocol_profile_id} "
-            f"protocol_profile_version={protocol_profile_version} "
-            f"capability_registry_version={capability_registry_version} "
-            f"data_capability_count={len(data_capabilities)} "
-            f"event_candidate_count={len(event_candidates)} "
-            f"asset_candidate_count={len(asset_candidates)} removed_count={len(removed)}"
-        )
-        artifact_id = artifact_id or str(uuid.uuid4())
-        return WidgetArtifact(
-            genui=genui,
-            cardSpec=card_spec,
-            taskSpec=task_spec,
-            effectiveCapabilities={
-                # data 只暴露能力 ID，端侧按 CardSpec.dataBindings 执行真实数据刷新。
-                "data": [item.id for item in data_capabilities],
-                # event 保留完整 call/args，方便端侧直接绑定点击行为。
-                "event": [
-                    item.model_dump(mode="json", exclude_none=True) for item in event_candidates
-                ],
-                # asset 只暴露素材 ID，端侧从资源包或素材注册表解析具体文件。
-                "asset": [item.id for item in asset_candidates],
-            },
-            removedCapabilities=removed,
-            generationPlan=GenerationPlan(
-                candidateDataBindings=data_bindings or [],
-                candidateEventCandidates=[
-                    {
-                        "capabilityId": item.id,
-                        "action": {
-                            "call": item.call,
-                            "args": item.args,
-                        },
-                    }
-                    for item in event_candidates
-                ],
-                candidateAssetIds=[item.id for item in asset_candidates],
-            ),
-            meta=ArtifactMeta(
-                dslProtocolVersion=protocol_profile_version,
-                protocolProfileId=protocol_profile_id,
-                capabilityRegistryVersion=capability_registry_version,
-                generationMode=generation_mode,
-                artifactId=artifact_id,
-                sourceArtifactDigest=source_artifact_digest,
-                createdAt=int(time.time() * 1000),
-            ),
+        # artifact 是端侧下载后的唯一交付物，
+        # 里面同时包含 DSL、CardSpec、TaskSpec 和能力裁决结果。
+        return build_widget_artifact(
+            genui,
+            card_spec,
+            task_spec,
+            data_capabilities,
+            event_candidates,
+            asset_candidates,
+            removed,
+            protocol_profile_id,
+            protocol_profile_version,
+            capability_registry_version,
+            data_bindings=data_bindings,
+            artifact_id=artifact_id,
+            generation_mode=generation_mode,
+            source_artifact_digest=source_artifact_digest,
         )

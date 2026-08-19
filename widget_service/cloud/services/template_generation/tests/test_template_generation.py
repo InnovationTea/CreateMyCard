@@ -11,6 +11,7 @@ from api.schemas import GenerateWidgetCardRequest
 from core.errors import GenerationStatus
 from models.generation import CandidateDataBinding, EventAction, TaskSpec
 from models.service import ArtifactSaveResult
+from services import widget_generation_service as widget_generation_service_module
 from services.artifact_store import ArtifactStore
 from services.generation_pipeline import (
     DslProcessorKind,
@@ -22,6 +23,7 @@ from services.protocol_registry import (
     A2UIProtocolRegistry,
 )
 from services.template_generation import (
+    TemplateRouteFallbackError,
     facade,
     route_legacy_python_terse_generation,
 )
@@ -44,10 +46,7 @@ from services.template_generation.engine.cardplan.compiler import (
 )
 from services.template_generation.engine.cardplan.models import HybridBodyContract, HybridLimits
 from services.template_generation.engine.cardplan.registry import get_cardplan_registry
-from services.template_generation.engine.pipeline import (
-    TemplateGenerationError,
-    generate_template_a2ui,
-)
+from services.template_generation.engine.pipeline import generate_template_a2ui
 from services.template_generation.engine.terse_dsl_nested2_converter import Nested2Node
 from services.widget_generation_service import WidgetGenerationService
 
@@ -66,6 +65,11 @@ _WEATHER_TEMPLATE_FIELDS = (
 
 def test_all_provider_templates_are_loaded_from_the_isolated_directory():
     registry = get_cardplan_registry()
+    provider_directories = {
+        path.name
+        for path in (registry.source_root / "providers").iterdir()
+        if path.is_dir()
+    }
 
     assert set(registry.provider_template_ids) == {
         "ActivityOverview@1",
@@ -80,6 +84,16 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "SleepOverview@1",
         "WeatherOverview@1",
         "WorkoutOverview@1",
+    }
+    assert provider_directories == {
+        "app-usage",
+        "battery",
+        "calendar",
+        "countdown",
+        "earphone",
+        "health-sport",
+        "system-memory",
+        "weather",
     }
 
 
@@ -900,76 +914,100 @@ async def test_edit_skips_template_attempt_and_uses_original_flow(monkeypatch):
     request.model_fields_set.add("sourceArtifactUrl")
     original_response = object()
 
-    class Host:
-        async def _generate_widget_card_with_policy(self, *_args: Any, **_kwargs: Any) -> Any:
-            return original_response
-
     async def unexpected_attempt(*_args: Any, **_kwargs: Any) -> Any:
         pytest.fail("edit must not enter the template attempt")
 
-    monkeypatch.setattr(facade, "_try_generate_template_artifact", unexpected_attempt)
-    response = await facade.route_compact_generation(Host(), request, _policy())
+    async def original_generation(*_args: Any, **_kwargs: Any) -> Any:
+        return original_response
+
+    service = WidgetGenerationService()
+    monkeypatch.setattr(
+        widget_generation_service_module,
+        "generate_template_artifact",
+        unexpected_attempt,
+    )
+    monkeypatch.setattr(
+        service,
+        "_generate_widget_card_with_policy",
+        original_generation,
+    )
+    response = await service.generate_widget_card_compact_dsl(request)
 
     assert response is original_response
 
 
 @pytest.mark.asyncio
-async def test_selected_template_failure_does_not_fallback_to_original(monkeypatch):
+async def test_selected_template_failure_falls_back_to_original_at_entry(monkeypatch):
     original_called = False
+    original_response = object()
 
-    class Host:
-        async def _generate_widget_card_with_policy(self, *_args: Any, **_kwargs: Any) -> Any:
-            nonlocal original_called
-            original_called = True
-            return object()
+    async def original_generation(*_args: Any, **_kwargs: Any) -> Any:
+        nonlocal original_called
+        original_called = True
+        return original_response
 
     async def selected_failure(*_args: Any, **_kwargs: Any) -> Any:
-        raise TemplateGenerationError("selected route failed")
+        raise TemplateRouteFallbackError("TemplateGenerationError: selected route failed")
 
-    monkeypatch.setattr(facade, "_try_generate_template_artifact", selected_failure)
-    response = await facade.route_compact_generation(
-        Host(),
-        _weather_request(),
-        _policy(),
+    service = WidgetGenerationService()
+    monkeypatch.setattr(
+        widget_generation_service_module,
+        "generate_template_artifact",
+        selected_failure,
     )
+    monkeypatch.setattr(
+        service,
+        "_generate_widget_card_with_policy",
+        original_generation,
+    )
+    response = await service.generate_widget_card_compact_dsl(_weather_request())
 
-    assert response.status == GenerationStatus.FAILED
-    assert original_called is False
+    assert response is original_response
+    assert original_called is True
 
 
 @pytest.mark.asyncio
 async def test_first_layer_rejection_falls_back_and_notifies_model_start_once(monkeypatch):
     notifications: list[str] = []
 
-    class Host:
-        async def _generate_widget_card_with_policy(
-            self,
-            _request: Any,
-            _policy_value: Any,
-            *,
-            before_model_call: Any,
-        ) -> str:
-            await before_model_call("2x2")
-            await before_model_call("2x2")
-            return "original"
-
-    async def rejected(
-        _host: Any,
+    async def original_generation(
         _request: Any,
         _policy_value: Any,
-        notify: Any,
+        *,
+        before_model_call: Any,
+    ) -> str:
+        await before_model_call("2x2")
+        await before_model_call("2x2")
+        return "original"
+
+    async def rejected(
+        _request: Any,
+        _policy_value: Any,
+        *,
+        before_model_call: Any,
+        **_kwargs: Any,
     ) -> Any:
-        await notify("2x2")
-        raise TemplateRouteNotApplicable("LLM rejected template route")
+        await before_model_call("2x2")
+        raise TemplateRouteFallbackError(
+            "TemplateRouteNotApplicable: LLM rejected template route"
+        )
 
     async def notify(size: str) -> None:
         notifications.append(size)
 
-    monkeypatch.setattr(facade, "_try_generate_template_artifact", rejected)
-    response = await facade.route_compact_generation(
-        Host(),
+    service = WidgetGenerationService()
+    monkeypatch.setattr(
+        widget_generation_service_module,
+        "generate_template_artifact",
+        rejected,
+    )
+    monkeypatch.setattr(
+        service,
+        "_generate_widget_card_with_policy",
+        original_generation,
+    )
+    response = await service.generate_widget_card_compact_dsl(
         _weather_request(),
-        _policy(),
         before_model_call=notify,
     )
 
@@ -978,52 +1016,66 @@ async def test_first_layer_rejection_falls_back_and_notifies_model_start_once(mo
 
 
 @pytest.mark.asyncio
-async def test_terse_template_mismatch_returns_failed_without_original_flow(monkeypatch):
+async def test_terse_template_mismatch_falls_back_to_original_at_entry(monkeypatch):
     original_called = False
+    original_response = object()
 
-    class Host:
-        async def _generate_widget_card_with_policy(self, *_args: Any, **_kwargs: Any) -> Any:
-            nonlocal original_called
-            original_called = True
-            return object()
+    async def original_generation(*_args: Any, **_kwargs: Any) -> Any:
+        nonlocal original_called
+        original_called = True
+        return original_response
 
     async def rejected(*_args: Any, **_kwargs: Any) -> Any:
-        raise TemplateRouteNotApplicable("LLM rejected template route")
+        raise TemplateRouteFallbackError(
+            "TemplateRouteNotApplicable: LLM rejected template route"
+        )
 
-    monkeypatch.setattr(facade, "_try_generate_template_artifact", rejected)
-    response = await facade.route_terse_nested2_generation(
-        Host(),
-        _weather_request(),
-        _terse_policy(),
+    service = WidgetGenerationService()
+    monkeypatch.setattr(
+        widget_generation_service_module,
+        "generate_template_artifact",
+        rejected,
     )
+    monkeypatch.setattr(
+        service,
+        "_generate_widget_card_with_policy",
+        original_generation,
+    )
+    response = await service.generate_widget_card_terse_dsl_nested2(_weather_request())
 
-    assert response.status == GenerationStatus.FAILED
-    assert original_called is False
+    assert response is original_response
+    assert original_called is True
 
 
 @pytest.mark.asyncio
-async def test_terse_edit_returns_failed_without_template_or_original_flow(monkeypatch):
+async def test_terse_edit_skips_template_and_uses_original_flow(monkeypatch):
     request = _weather_request().model_copy(
         update={"sourceArtifactUrl": "https://artifact.test/source.md"}
     )
     request.model_fields_set.add("sourceArtifactUrl")
 
-    class Host:
-        async def _generate_widget_card_with_policy(self, *_args: Any, **_kwargs: Any) -> Any:
-            pytest.fail("Terse edit must not enter the original flow")
-
     async def unexpected_attempt(*_args: Any, **_kwargs: Any) -> Any:
         pytest.fail("Terse edit must not attempt template generation")
 
-    monkeypatch.setattr(facade, "_try_generate_template_artifact", unexpected_attempt)
-    response = await facade.route_terse_nested2_generation(
-        Host(),
-        request,
-        _terse_policy(),
-    )
+    original_response = object()
 
-    assert response.status == GenerationStatus.FAILED
-    assert response.errorCode == "A2UI_GENERATION_FAILED"
+    async def original_generation(*_args: Any, **_kwargs: Any) -> Any:
+        return original_response
+
+    service = WidgetGenerationService()
+    monkeypatch.setattr(
+        widget_generation_service_module,
+        "generate_template_artifact",
+        unexpected_attempt,
+    )
+    monkeypatch.setattr(
+        service,
+        "_generate_widget_card_with_policy",
+        original_generation,
+    )
+    response = await service.generate_widget_card_terse_dsl_nested2(request)
+
+    assert response is original_response
 
 
 @pytest.mark.asyncio
