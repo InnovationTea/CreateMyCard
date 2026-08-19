@@ -343,7 +343,7 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 
 | 结果 | 回复 |
 | --- | --- |
-| 完整 `success` + URL | 使用不含 URL 和内部信息的 `message`，否则使用固定成功话术；内部记录 URL，不向用户输出 |
+| 完整 `success` + URL | 忽略业务 `message`，使用固定泛化成功话术；内部记录 URL，不向用户输出 |
 | `degraded` + URL | 使用对应部分满足话术，内部记录 URL，不向用户输出 |
 | 已知部分缺失的 `success` + URL | 按部分满足处理，内部记录 URL，不向用户输出 |
 | `unsupported` 无 URL | 整体不支持话术 + 安全建议 |
@@ -356,8 +356,7 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 
 | 业务 payload | 最终回复要求 |
 | --- | --- |
-| `success` + 合法 URL + 安全非空 `message` | 只输出 `message`；URL 成为后续 edit 来源 |
-| `success` + 合法 URL + 含 URL 或内部信息的 `message` | 输出固定成功话术；URL 成为后续 edit 来源 |
+| `success` + 合法 URL + 任意 `message` | 忽略 `message`，输出固定泛化成功话术；URL 成为后续 edit 来源 |
 | `degraded` + 合法 URL | 只输出受控部分满足话术；URL 成为后续 edit 来源 |
 | `unsupported` / `failed` + 合法 URL | 只输出对应受控话术；不更新来源 |
 | 可解析异常 payload + 合法 URL | 只输出其它异常话术；不更新来源 |
