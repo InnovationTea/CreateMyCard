@@ -1,4 +1,4 @@
-# CLI Provider CardTemplate
+# Provider CardTemplate
 
 本目录按数据能力提供方组织声明式垂域模板。
 每个子目录必须以 `provider.json` 为入口；单个能力关联只允许
@@ -6,15 +6,15 @@
 
 当前迁移范围：
 
-- `weather-cli`：`ViewWeather` → `WeatherOverview@1`
-- `calendar-cli`：`GetCalendarEvents` → `DateOverview@1`、`ScheduleOverview@1`
-- `battery-cli`：`GetPhoneBatteryInfo` → `BatteryOverview@1`
-- `system-memory-cli`：`GetSystemMemInfo` → `ResourceUsageOverview@1`
-- `app-usage-cli`：`GetAppUsageDuration` → `AppUsageOverview@1`
-- `health-sport-cli`：`GetHealthAndSportSummary` → `ActivityOverview@1`、
+- `weather`：`ViewWeather` → `WeatherOverview@1`
+- `calendar`：`GetCalendarEvents` → `DateOverview@1`、`ScheduleOverview@1`
+- `battery`：`GetPhoneBatteryInfo` → `BatteryOverview@1`
+- `system-memory`：`GetSystemMemInfo` → `ResourceUsageOverview@1`
+- `app-usage`：`GetAppUsageDuration` → `AppUsageOverview@1`
+- `health-sport`：`GetHealthAndSportSummary` → `ActivityOverview@1`、
   `WorkoutOverview@1`、`HeartRateOverview@1`、`SleepOverview@1`
-- `countdown-cli`：`GetCountdownDays` → `CountdownOverview@1`
-- `earphone-cli`：`GetEarphoneInfo` → `BluetoothDeviceOverview@1`
+- `countdown`：`GetCountdownDays` → `CountdownOverview@1`
+- `earphone`：`GetEarphoneInfo` → `BluetoothDeviceOverview@1`
 
 除 `GetSystemMemInfo` 使用 Bundle 本地 Schema 外，
 其余能力均只读引用正式能力注册表。新增或修改 `.cardtpl` 后必须更新对应 SHA-256，

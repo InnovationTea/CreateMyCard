@@ -6,11 +6,12 @@ import inspect
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from api.schemas import GenerateWidgetCardResponse
+from api.schemas import GenerateWidgetCardRequest, GenerateWidgetCardResponse
 from app.logger import json_for_log, logger
-from core.errors import ErrorCode, GenerationStatus
-from models.generation import DEFAULT_WIDGET_SIZE, EventAction, WidgetSize
+from custom.model_runtime import ModelExecutionRuntime
+from models.generation import EventAction, ModelRequestContext, WidgetSize
 from services.artifact_store import ArtifactStore
+from services.capability_registry import CapabilityRegistry
 from services.card_spec_builder import CardSpecBuilder
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.edit_request_normalizer import EditRequestNormalizer
@@ -23,6 +24,7 @@ from services.template_generation.archive import (
     build_template_archive,
     build_terse_template_archive,
 )
+from services.template_generation.artifact_builder import build_template_artifact
 from services.template_generation.binding_dependencies import enrich_template_bindings
 from services.template_generation.engine.advanced.scope_planner import (
     TemplateRouteNotApplicable,
@@ -32,7 +34,6 @@ from services.template_generation.engine.pipeline import (
     generate_template_a2ui,
 )
 from services.template_generation.model_client import (
-    TemplateModelUnavailable,
     create_template_model_client,
 )
 from services.validator import ArtifactValidator
@@ -41,167 +42,48 @@ _MODULE = "[Template Generation]"
 ModelStartCallback = Callable[[WidgetSize], Awaitable[None]]
 
 
-class _ModelStartOnce:
-    def __init__(self, callback: ModelStartCallback | None) -> None:
-        self._callback = callback
-        self._notified = False
-
-    async def __call__(self, size: WidgetSize) -> None:
-        if self._callback is None or self._notified:
-            return
-        await self._callback(size)
-        self._notified = True
-
-
-async def route_compact_generation(
-    host: Any,
-    request: Any,
+async def generate_template_artifact(
+    request: GenerateWidgetCardRequest,
     policy: GenerationRoutePolicy,
     *,
+    registry: CapabilityRegistry,
+    model_runtime: ModelExecutionRuntime | None,
+    model_request_context: ModelRequestContext,
     before_model_call: ModelStartCallback | None = None,
-) -> Any:
-    """模板成功则直接返回；未匹配和 edit 均调用原始 dev 生成逻辑。"""
-    notify_model_start = _ModelStartOnce(before_model_call)
-    is_edit = "sourceArtifactUrl" in request.model_fields_set
-    if not is_edit:
-        try:
-            response = await _try_generate_template_artifact(
-                host,
-                request,
-                policy,
-                notify_model_start,
-            )
-        except (TemplateModelUnavailable, TemplateRouteNotApplicable) as exc:
-            logger.info(
-                f"{_MODULE} route_fallback reason={type(exc).__name__} "
-                f"detail={json_for_log(str(exc))} fallback=original_compact_flow"
-            )
-        except (TemplateArchiveError, TemplateGenerationError) as exc:
-            logger.error(
-                f"{_MODULE} selected_route_failed exception_type={type(exc).__name__} "
-                f"detail={json_for_log(str(exc))} "
-                "fallback=disabled"
-            )
-            return GenerateWidgetCardResponse(
-                status=GenerationStatus.FAILED,
-                suggestSize=request.size,
-                message="卡片模板生成失败，请稍后再试。",
-                errorCode=ErrorCode.A2UI_GENERATION_FAILED.value,
-            )
-        else:
-            if response is not None:
-                return response
-
-    return await _call_original_generation(
-        host,
-        request,
-        policy,
-        before_model_call,
-        notify_model_start,
-    )
-
-
-async def route_terse_nested2_generation(
-    host: Any,
-    request: Any,
-    policy: GenerationRoutePolicy,
-    *,
-    before_model_call: ModelStartCallback | None = None,
-) -> Any:
-    """Terse create 只允许模板成功；edit、未匹配和模板错误均明确失败。"""
+) -> GenerateWidgetCardResponse:
+    """独立执行模板生成并直接返回接口结果，异常交由调用入口降级。"""
     if "sourceArtifactUrl" in request.model_fields_set:
-        logger.info(f"{_MODULE} terse_route_rejected reason=edit_not_supported")
-        return _template_failure_response(request, "模板路线暂不支持二次更新。")
-
-    notify_model_start = _ModelStartOnce(before_model_call)
-    try:
-        response = await _try_generate_template_artifact(
-            host,
-            request,
-            policy,
-            notify_model_start,
-        )
-    except (TemplateModelUnavailable, TemplateRouteNotApplicable) as exc:
-        logger.info(
-            f"{_MODULE} terse_route_rejected reason={type(exc).__name__} "
-            f"detail={json_for_log(str(exc))} fallback=disabled"
-        )
-        return _template_failure_response(request, "当前需求没有可完整呈现的模板。")
-    except (TemplateArchiveError, TemplateGenerationError) as exc:
-        logger.error(
-            f"{_MODULE} terse_route_failed exception_type={type(exc).__name__} "
-            f"detail={json_for_log(str(exc))} "
-            "fallback=disabled"
-        )
-        return _template_failure_response(request, "卡片模板生成失败，请稍后再试。")
-    if response is None:
-        logger.info(f"{_MODULE} terse_route_rejected reason=capability_not_applicable")
-        return _template_failure_response(request, "当前需求没有可完整呈现的模板。")
-    return response
-
-
-async def _call_original_generation(
-    host: Any,
-    request: Any,
-    policy: GenerationRoutePolicy,
-    before_model_call: ModelStartCallback | None,
-    notify_model_start: _ModelStartOnce,
-) -> Any:
-    if before_model_call is None:
-        return await host._generate_widget_card_with_policy(request, policy)
-    return await host._generate_widget_card_with_policy(
-        request,
-        policy,
-        before_model_call=notify_model_start,
-    )
-
-
-def _template_failure_response(request: Any, message: str) -> GenerateWidgetCardResponse:
-    return GenerateWidgetCardResponse(
-        status=GenerationStatus.FAILED,
-        suggestSize=request.size or DEFAULT_WIDGET_SIZE,
-        message=message,
-        errorCode=ErrorCode.A2UI_GENERATION_FAILED.value,
-    )
-
-
-async def _try_generate_template_artifact(
-    host: Any,
-    request: Any,
-    policy: GenerationRoutePolicy,
-    notify_model_start: _ModelStartOnce,
-) -> Any | None:
+        raise TemplateRouteNotApplicable("template generation does not support edit mode")
     normalized_request = EditRequestNormalizer.normalize_create(request)
-    try:
-        registry = host._capability_registry(normalized_request)
-        protocol_profile = A2UIProtocolRegistry(policy.protocol_profile_id).get_profile()
-        design_protocol_profile = A2UIProtocolRegistry.read_design_protocol_profile(
-            policy.model_profile_id
-        )
-    except ValueError:
-        return None
-
     resolver = DeviceCapabilityResolver(registry)
     effective_bindings, data_capabilities, removed_data = (
         resolver.resolve_generation_data_bindings(normalized_request.candidateDataBindings)
     )
     if removed_data or not effective_bindings:
-        return None
+        raise TemplateRouteNotApplicable("template data bindings are not applicable")
     effective_bindings = enrich_template_bindings(effective_bindings)
 
     event_candidates = _normalize_event_candidates(normalized_request)
     effective_events = []
     for event in event_candidates:
         if not event.id or registry.get_event_capability(event.id) is None:
-            return None
+            raise TemplateRouteNotApplicable("template event candidate is not applicable")
         effective_events.append(event)
 
     asset_candidates = []
     for asset_id in normalized_request.candidateAssetIds:
         asset = registry.get_asset_capability(asset_id)
         if asset is None:
-            return None
+            raise TemplateRouteNotApplicable("template asset candidate is not applicable")
         asset_candidates.append(asset)
+
+    try:
+        protocol_profile = A2UIProtocolRegistry(policy.protocol_profile_id).get_profile()
+        design_protocol_profile = A2UIProtocolRegistry.read_design_protocol_profile(
+            policy.model_profile_id
+        )
+    except ValueError as exc:
+        raise TemplateRouteNotApplicable("template protocol profile is unavailable") from exc
 
     card_spec = CardSpecBuilder().build(
         normalized_request.size,
@@ -218,10 +100,11 @@ async def _try_generate_template_artifact(
         asset_candidates,
     )
     model_client = create_template_model_client(
-        host.model_runtime,
-        host._resolve_model_request_context(normalized_request),
+        model_runtime,
+        model_request_context,
     )
-    await notify_model_start(card_spec.suggestSize)
+    if before_model_call is not None:
+        await before_model_call(card_spec.suggestSize)
     engine_output = await generate_template_a2ui(
         task_spec,
         card_spec.model_dump(mode="json", exclude_none=True),
@@ -244,7 +127,7 @@ async def _try_generate_template_artifact(
         data_capabilities=data_capabilities,
         event_candidates=effective_events,
     )
-    artifact = host._build_artifact(
+    artifact = build_template_artifact(
         archive.a2ui,
         card_spec.model_dump(mode="json", exclude_none=True),
         projected_task_spec,
@@ -256,7 +139,6 @@ async def _try_generate_template_artifact(
         protocol_profile["version"],
         registry.version,
         data_bindings=effective_bindings,
-        generation_mode="create",
     )
     artifact = _with_internal_template_assets(
         artifact,

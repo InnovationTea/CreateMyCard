@@ -1,8 +1,8 @@
-# CLI Provider 模板接入约定
+# Provider 模板接入约定
 
 ## Provider 清单
 
-每个 CLI 数据提供方在自己的资源目录中提供 `provider.json`、数据 Schema 和一个或多个 `.cardtpl`。
+每个数据提供方在自己的垂域资源目录中提供 `provider.json`、数据 Schema 和一个或多个 `.cardtpl`。
 能力与模板的关联只保留以下核心信息：
 
 ```json

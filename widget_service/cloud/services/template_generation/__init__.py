@@ -1,10 +1,9 @@
-"""模板路由及旧 Python 诊断入口。"""
+"""模板生成接口及旧 Python 诊断入口。"""
 
-from .facade import route_compact_generation, route_terse_nested2_generation
+from .facade import generate_template_artifact
 from .legacy_python import route_legacy_python_terse_generation
 
 __all__ = [
-    "route_compact_generation",
+    "generate_template_artifact",
     "route_legacy_python_terse_generation",
-    "route_terse_nested2_generation",
 ]

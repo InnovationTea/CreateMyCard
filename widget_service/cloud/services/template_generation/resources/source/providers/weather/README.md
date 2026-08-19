@@ -1,4 +1,4 @@
-# Weather CLI Provider Template PoC
+# Weather Provider Template PoC
 
 本目录是 `card-provider-bundle/1` 的最小可运行样例：
 
@@ -19,7 +19,7 @@
 
 ```bash
 .venv/bin/python scripts/validate_provider_bundle.py \
-  cloud/data/cardplan_template/source/providers/weather-cli
+  cloud/services/template_generation/resources/source/providers/weather
 ```
 
 校验器只读取解析出的 Schema，检查 `.cardtpl` 使用的相对字段路径和类型。
