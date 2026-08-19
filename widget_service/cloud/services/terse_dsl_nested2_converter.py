@@ -269,6 +269,188 @@ def _append_compact_rows(
         _append_compact_rows(child, child_id, size, rows)
 
 
+def bind_task_spec_values(root: Nested2Node, task_spec: dict[str, Any]) -> Nested2Node:
+    """Bind exact advanced-component facts to their declared TaskSpec leaf paths."""
+    bindings = _unique_task_spec_sample_bindings(task_spec)
+    counters: dict[str, int] = {}
+
+    def consume(key: str) -> str | None:
+        paths = bindings.get(key)
+        if not paths:
+            return None
+        if len(paths) == 1:
+            return paths[0]
+        idx = counters.get(key, 0)
+        if idx >= len(paths):
+            return None
+        counters[key] = idx + 1
+        return paths[idx]
+
+    def bind(node: Nested2Node) -> Nested2Node:
+        children = tuple(bind(child) for child in node.children)
+        values = list(node.values)
+        if node.component_type == "Text" and values:
+            placeholder = consume(_stable_sample_key(values[0]))
+            if placeholder is None:
+                placeholder = _coerced_consume(values[0], consume)
+            if placeholder is not None:
+                values[0] = placeholder
+        if node.component_type in {"Progress", "Checkbox"}:
+            values = [_bind_numeric_semantic_fields(value, consume) for value in values]
+        return Nested2Node(node.component_type, tuple(values), children)
+
+    return bind(root)
+
+
+def _coerced_consume(value: Any, consume) -> str | None:
+    """Try numeric coercion so templates that str() an integer can still bind."""
+    if not isinstance(value, str):
+        return None
+    try:
+        coerced = json.loads(value)
+    except (json.JSONDecodeError, ValueError):
+        return None
+    if isinstance(coerced, bool) or not isinstance(coerced, (int, float)):
+        return None
+    return consume(_stable_sample_key(coerced))
+
+
+def _bind_numeric_semantic_fields(value: Any, consume) -> Any:
+    if not isinstance(value, dict):
+        return value
+    result = dict(value)
+    for field in ("value", "total", "select"):
+        if field not in result:
+            continue
+        placeholder = consume(_stable_sample_key(result[field]))
+        if placeholder is None:
+            placeholder = _coerced_consume(result[field], consume)
+        if placeholder is not None:
+            result[field] = placeholder
+    return result
+
+
+def _unique_task_spec_sample_bindings(task_spec: dict[str, Any]) -> dict[str, list[str]]:
+    candidates: dict[str, list[str]] = {}
+    _collect_task_spec_samples(task_spec.get("dataModelSchema"), "", candidates)
+    bindings: dict[str, list[str]] = {}
+    for key, paths in candidates.items():
+        bound: list[str] = []
+        for path in paths:
+            placeholder = _pointer_to_placeholder(path)
+            if placeholder is not None:
+                bound.append(placeholder)
+        if bound:
+            bindings[key] = bound
+    return bindings
+
+
+def _collect_task_spec_samples(
+    value: Any,
+    path: str,
+    candidates: dict[str, list[str]],
+) -> None:
+    if isinstance(value, dict) and "type" in value:
+        is_runtime_path = path.startswith("/data/")
+        is_internal_selector = "/_advancedSelectors/" in path
+        if is_runtime_path and not is_internal_selector and "sampleValue" in value:
+            candidates.setdefault(_stable_sample_key(value["sampleValue"]), []).append(path)
+        return
+    if isinstance(value, dict):
+        for key, child in value.items():
+            _collect_task_spec_samples(child, f"{path}/{key}", candidates)
+        return
+    if isinstance(value, list) and value:
+        for index, item in enumerate(value):
+            _collect_task_spec_samples(item, f"{path}/{index}", candidates)
+
+
+def _stable_sample_key(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def _pointer_to_placeholder(path: str) -> str | None:
+    parts = path.removeprefix("/").split("/")
+    valid_parts = all(
+        part.isdigit() or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", part)
+        for part in parts
+    )
+    if not parts or parts[0] != "data" or not valid_parts:
+        return None
+    return "${" + ".".join(parts) + "}"
+
+
+def _convert_data_placeholders(value: Any, allowed_paths: frozenset[str]) -> Any:
+    if isinstance(value, str):
+        match = _DATA_PLACEHOLDER.fullmatch(value)
+        if match is None:
+            return value
+        path = "/" + match.group(1).replace(".", "/")
+        if path not in allowed_paths:
+            raise TerseDslNested2ConversionError(
+                f"Data binding path is not a TaskSpec leaf: {path}."
+            )
+        return {"path": path}
+    if isinstance(value, dict):
+        return {
+            key: _convert_data_placeholders(child, allowed_paths)
+            for key, child in value.items()
+        }
+    if isinstance(value, list):
+        return [_convert_data_placeholders(child, allowed_paths) for child in value]
+    return value
+
+
+def _task_spec_leaf_paths(task_spec: dict[str, Any] | None) -> frozenset[str]:
+    if task_spec is None:
+        return frozenset()
+    paths: set[str] = set()
+
+    def visit(value: Any, path: str) -> None:
+        if isinstance(value, dict) and "type" in value:
+            paths.add(path)
+            return
+        if isinstance(value, dict):
+            for key, child in value.items():
+                if key == "_advancedSelectors":
+                    continue
+                visit(child, f"{path}/{key}")
+        elif isinstance(value, list) and value:
+            for index, item in enumerate(value):
+                visit(item, f"{path}/{index}")
+
+    visit(task_spec.get("dataModelSchema"), "")
+    return frozenset(paths)
+
+
+def _task_spec_sample_data(task_spec: dict[str, Any]) -> Any:
+    def sample(value: Any) -> Any:
+        if isinstance(value, dict) and "type" in value:
+            return value.get("sampleValue")
+        if isinstance(value, dict):
+            return {
+                key: sample(child)
+                for key, child in value.items()
+                if key != "_advancedSelectors"
+            }
+        if isinstance(value, list):
+            return [sample(child) for child in value]
+        return value
+
+    return sample(task_spec.get("dataModelSchema", {}))
+
+
+def _explicit_component_id(node: Nested2Node) -> str | None:
+    for value in reversed(node.values):
+        if not isinstance(value, dict) or "_id" not in value:
+            continue
+        component_id = value["_id"]
+        if not isinstance(component_id, str) or not component_id:
+            raise TerseDslNested2ConversionError("Internal component _id must be non-empty.")
+        return component_id
+    return None
+
+
 def _component_props(
     node: Nested2Node,
     component_id: str,
