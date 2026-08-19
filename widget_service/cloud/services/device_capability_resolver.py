@@ -102,6 +102,10 @@ class DeviceCapabilityResolver:
             "idsSource": ids_source,
             "idsQueryStatus": ids_query_status,
             "filterPackages": sorted(self.ids_installation_filter_package_names),
+            "dataCapabilityPackageStatuses": self._data_capability_package_statuses(
+                registered_data_capabilities,
+                ids_state,
+            ),
             "checkedCapabilityIds": [
                 capability.id for capability in checked_capabilities
             ],
@@ -277,6 +281,35 @@ class DeviceCapabilityResolver:
             for package in capability.dependencies.requiredPackages
             if package.packageName in self.ids_installation_filter_package_names
         ]
+
+    def _data_capability_package_statuses(
+        self,
+        capabilities: list[DataCapability],
+        ids_state: IDSDeviceCapabilityState,
+    ) -> list[dict[str, Any]]:
+        """记录注册表数据能力依赖包在 IDS 结果中的安装状态。"""
+        installed_package_names = set(ids_state.installed_apps)
+        statuses: list[dict[str, Any]] = []
+        for capability in capabilities:
+            required_package_names = self._checked_required_package_names(capability)
+            if not required_package_names:
+                continue
+            matched_package_names = [
+                name for name in required_package_names if name in installed_package_names
+            ]
+            missing_package_names = [
+                name for name in required_package_names if name not in installed_package_names
+            ]
+            statuses.append(
+                {
+                    "capabilityId": capability.id,
+                    "requiredPackages": required_package_names,
+                    "matchedPackages": matched_package_names,
+                    "missingPackages": missing_package_names,
+                    "isInstalled": not missing_package_names,
+                }
+            )
+        return statuses
 
     def _has_ids_filtered_dependency(
         self,

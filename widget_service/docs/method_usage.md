@@ -53,8 +53,8 @@ app-11.7.5.205_rom-6.0
 关闭开关时，第一、第二接口返回空清单/缺失能力，三个生成接口返回版本不支持。
 
 第一接口的 IDS 安装过滤范围由
-`WIDGET_SERVICE_IDS_INSTALLATION_FILTER_PACKAGE_NAMES` 配置，值为 JSON 字符串数组。默认只包含
-`["com.huawei.hmos.health.core"]`，因此当前只对运动健康数据和事件能力执行安装包过滤；配置为空数组时跳过 IDS 查询和安装过滤。
+`WIDGET_SERVICE_IDS_INSTALLATION_FILTER_PACKAGE_NAMES` 配置，值为 JSON 字符串数组。默认包含
+`["com.huawei.hmsapp.totemweather","com.huawei.hmos.health","com.huawei.hmos.calendar"]`，因此当前对天气、运动健康和日历能力执行安装包过滤；配置为空数组时跳过 IDS 查询和安装过滤。
 
 IDS 数据源由 `WIDGET_SERVICE_ENABLE_IDS_MOCK` 显式控制，默认值为 `true`：
 
@@ -196,7 +196,7 @@ curl http://127.0.0.1:8855/health
 
 对应工具能力：`getWidgetCapabilityOverview`
 
-用途：先按 `romVersion`、`prdVer` 选择注册表，再读取 IDS 安装过滤包名配置。当前默认只查询并精确匹配运动健康包 `com.huawei.hmos.health.core`；天气、日历等未命中配置范围的依赖不参与安装过滤。包版本、ROM/App 依赖版本、provider、intent、权限和素材版本不参与本阶段过滤。响应不包含 TaskSpec；数据能力、事件能力和素材都只返回主 Agent 决策所需的精简概述。
+用途：先按 `romVersion`、`prdVer` 选择注册表，再读取 IDS 安装过滤包名配置。当前默认查询并精确匹配天气包 `com.huawei.hmsapp.totemweather`、运动健康包 `com.huawei.hmos.health` 和日历包 `com.huawei.hmos.calendar`。包版本、ROM/App 依赖版本、provider、intent、权限和素材版本不参与本阶段过滤。响应不包含 TaskSpec；数据能力、事件能力和素材都只返回主 Agent 决策所需的精简概述。
 
 请求示例：
 
@@ -775,7 +775,7 @@ resolve_capability_overview(
 ) -> tuple[list[DataCapability], list[EventCapability], list[AssetCapability], list[RemovedCapability]]
 ```
 
-用途：第一个接口内部只对命中配置包名范围的数据和事件能力做安装包可用性过滤；默认范围仅包含 `com.huawei.hmos.health.core`。一次 IDS 已安装应用快照供本次裁决复用，素材直接保留。
+用途：第一个接口内部只对命中配置包名范围的数据和事件能力做安装包可用性过滤；默认范围包含天气、运动健康和日历包。一次 IDS 已安装应用快照供本次裁决复用，素材直接保留。
 
 过滤顺序：
 
@@ -856,7 +856,7 @@ installed_apps    已安装应用 bundleName 集合；不保留也不比较 vers
 
 ### 6.4 DeviceCapabilityResolver._check_required_packages
 
-用途：对能力 `requiredPackages[].packageName` 中命中 `ids_installation_filter_package_names` 的包名做区分大小写的精确匹配；全部受检包名都存在才通过，不比较包版本。当前默认只匹配运动健康包。
+用途：对能力 `requiredPackages[].packageName` 中命中 `ids_installation_filter_package_names` 的包名做区分大小写的精确匹配；全部受检包名都存在才通过，不比较包版本。当前默认匹配天气、运动健康和日历包。
 
 一般不外部调用。
 

@@ -435,7 +435,7 @@ def test_widget_card_service_complete_flow(monkeypatch):
         marketingName=DEVICE_INFO["phoneType"],
     )
     ids_state = IDSClient().get_device_capability_state(device, "ids-test-1")
-    assert "com.huawei.hmos.weather" in ids_state.installed_apps
+    assert "com.huawei.hmsapp.totemweather" in ids_state.installed_apps
 
     with client.websocket_connect("/api/v1/ws/tools/getWidgetCapabilityOverview") as websocket:
         overview_request = _tool_payload(
@@ -538,7 +538,7 @@ def test_widget_card_service_complete_flow(monkeypatch):
         ]["sampleValue"] == "多云"
         assert weather_schema["dependencies"] == {
             "requiredPackages": [
-                {"packageName": "com.huawei.hmos.weather"}
+                {"packageName": "com.huawei.hmsapp.totemweather"}
             ]
         }
         assert schema["missingCapabilityIds"] == []
@@ -653,12 +653,12 @@ def test_widget_card_service_complete_flow(monkeypatch):
         _write_test_report(record)
 
 
-def test_overview_interface_filters_health_dependencies(monkeypatch):
+def test_overview_interface_filters_default_package_whitelist(monkeypatch):
     monkeypatch.setattr(
         IDSClient,
         "get_device_capability_state",
         lambda _self, _device, _request_id: IDSDeviceCapabilityState(
-            installed_apps={"com.huawei.hmos.weather"}
+            installed_apps={"com.huawei.hmsapp.totemweather"}
         ),
     )
     client = TestClient(app)
@@ -679,11 +679,14 @@ def test_overview_interface_filters_health_dependencies(monkeypatch):
 
     data = message["data"]
     assert "ViewWeather" in {item["id"] for item in data["dataCapabilities"]}
-    assert "GetCalendarEvents" in {item["id"] for item in data["dataCapabilities"]}
+    assert "GetCalendarEvents" not in {
+        item["id"] for item in data["dataCapabilities"]
+    }
     assert "GetHealthAndSportSummary" not in {
         item["id"] for item in data["dataCapabilities"]
     }
     assert set(data["unavailableCapabilities"]) == {
+        "GetCalendarEvents",
         "GetHealthAndSportSummary",
         "event.open.health.sport",
         "event.open.health.sleep",
@@ -714,7 +717,7 @@ def test_overview_logs_do_not_include_user_or_device_identifiers(monkeypatch):
         IDSClient,
         "get_device_capability_state",
         lambda _self, _device, _request_id: IDSDeviceCapabilityState(
-            installed_apps={"com.huawei.hmos.health.core"}
+            installed_apps={"com.huawei.hmos.health"}
         ),
     )
     request = _tool_payload({}, "overview-log-uid")

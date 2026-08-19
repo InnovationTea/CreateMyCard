@@ -1,38 +1,118 @@
 {
-	"retCode" : 0,
-	"description" : "OK",
-	"nameSpaces" : [{
-			"retCode" : 0,
-			"description" : "OK",
-			"dataType" : "t_ids_kv_ohos_installed_apps",
-			"values" : [ {
-					"data" : {
-						"uid" : "420086000106262610",
-						"odid" : "790d8366-cd45-c4d5-6784-06727a549e61",
-						"appName" : "蓝牙",
-						"bundleName" : "com.android.bluetooth",
-						"updateTime" : "0",
-						"installTime" : "0",
-						"versionName" : "29.1.0.0",
-						"supportDesktopIcon" : "0",
-						"installSource" : "1"
-					},
-					"updateTime" : "0"
-				}, {
-					"data" : {
-						"uid" : "420086000106262610",
-						"odid" : "790d8366-cd45-c4d5-6784-06727a549e61",
-						"appName" : "运动健康服务",
-						"bundleName" : "com.huawei.hmos.health.core",
-						"updateTime" : "1779089895396",
-						"installTime" : "1777084245713",
-						"versionName" : "16.1.4.300",
-						"supportDesktopIcon" : "0",
-						"installSource" : "0"
-					},
-					"updateTime" : "1779089895396"
-				}
-			]
-		}
-	]
+    "retCode": 0,
+    "description": "OK",
+    "nameSpaces": [
+        {
+            "retCode": 0,
+            "description": "OK",
+            "dataType": "t_ids_kv_ohos_installed_apps",
+            "values": [
+                {
+                    "data": {
+                        "uid": "xxxxxxxx",
+                        "odid": "yyyyyyyyyyyyyy",
+                        "appName": "抖音",
+                        "bundleName": "com.ss.hm.ugc.aweme",
+                        "updateTime": "1787105183731",
+                        "installTime": "1787105183731",
+                        "versionName": "40.1.0",
+                        "supportDesktopIcon": "1",
+                        "installSource": "0",
+                        "insidePackageName": "com.huawei.hmsapp.appgallery"
+                    },
+                    "updateTime": "1787105183731"
+                },
+                {
+                    "data": {
+                        "uid": "xxxxxxxx",
+                        "odid": "yyyyyyyyyyyyyy",
+                        "appName": "天际通",
+                        "bundleName": "com.huawei.hmos.hiskytone",
+                        "updateTime": "1787110922271",
+                        "installTime": "1787052729912",
+                        "versionName": "7.0.1.300",
+                        "supportDesktopIcon": "1",
+                        "installSource": "0",
+                        "insidePackageName": "pre-installed"
+                    },
+                    "updateTime": "1787110922271"
+                },
+                {
+                    "data": {
+                        "uid": "xxxxxxxx",
+                        "odid": "yyyyyyyyyyyyyy",
+                        "appName": "高德地图",
+                        "bundleName": "com.amap.hmapp",
+                        "updateTime": "1787105593062",
+                        "installTime": "1787052729082",
+                        "versionName": "16.23.0.2006",
+                        "supportDesktopIcon": "1",
+                        "installSource": "0",
+                        "insidePackageName": "pre-installed"
+                    },
+                    "updateTime": "1787105593062"
+                },
+                {
+                    "data": {
+                        "uid": "xxxxxxxx",
+                        "odid": "yyyyyyyyyyyyyy",
+                        "appName": "喜马拉雅",
+                        "bundleName": "com.ximalaya.ting.xmharmony",
+                        "updateTime": "1787110897456",
+                        "installTime": "1787052731382",
+                        "versionName": "9.4.58.5",
+                        "supportDesktopIcon": "1",
+                        "installSource": "0",
+                        "insidePackageName": "pre-installed"
+                    },
+                    "updateTime": "1787110897456"
+                },
+                {
+                    "data": {
+                        "uid": "xxxxxxxx",
+                        "odid": "yyyyyyyyyyyyyy",
+                        "appName": "百度",
+                        "bundleName": "com.baidu.baiduapp",
+                        "updateTime": "1787110918232",
+                        "installTime": "1787052723750",
+                        "versionName": "15.72.0.10",
+                        "supportDesktopIcon": "1",
+                        "installSource": "0",
+                        "insidePackageName": "pre-installed"
+                    },
+                    "updateTime": "1787110918232"
+                },
+                {
+                    "data": {
+                        "uid": "xxxxxxxx",
+                        "odid": "yyyyyyyyyyyyyy",
+                        "appName": "携程旅行",
+                        "bundleName": "com.ctrip.harmonynext",
+                        "updateTime": "1787122898127",
+                        "installTime": "1787052727910",
+                        "versionName": "8.95.2",
+                        "supportDesktopIcon": "1",
+                        "installSource": "0",
+                        "insidePackageName": "pre-installed"
+                    },
+                    "updateTime": "1787122898127"
+                },
+                {
+                    "data": {
+                        "uid": "xxxxxxxx",
+                        "odid": "yyyyyyyyyyyyyy",
+                        "appName": "红果免费短剧",
+                        "bundleName": "com.phoenix.read.next",
+                        "updateTime": "1787105389188",
+                        "installTime": "1787105389188",
+                        "versionName": "7.3.3.32",
+                        "supportDesktopIcon": "1",
+                        "installSource": "0",
+                        "insidePackageName": "com.huawei.hmsapp.appgallery"
+                    },
+                    "updateTime": "1787105389188"
+                }
+            ]
+        }
+    ]
 }

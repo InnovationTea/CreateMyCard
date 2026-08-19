@@ -6,7 +6,7 @@
     "dependencies": {
       "requiredPackages": [
         {
-          "packageName": "com.huawei.hmos.weather"
+          "packageName": "com.huawei.hmsapp.totemweather"
         }
       ]
     },
@@ -565,7 +565,7 @@
     "dependencies": {
       "requiredPackages": [
         {
-          "packageName": "com.huawei.hmos.health.core"
+          "packageName": "com.huawei.hmos.health"
         }
       ]
     },
