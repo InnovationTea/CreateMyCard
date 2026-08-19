@@ -1173,7 +1173,8 @@ async save(artifact: WidgetArtifact) -> ArtifactSaveResult
 
 ```text
 计算完整 artifact 的服务端追踪摘要
-按 cardspec/genui/schema/taskspec/effectivecapabilities/removedcapabilities/generationplan/meta 顺序写入代码块
+按 cardspec/genui/schema/taskspec/effectivecapabilities/removedcapabilities/generationplan/meta 顺序写入正式块
+在正式块和可选 designcompactdsl 后追加 request，以及实际发生的 repair-1/2/3 等回放块
 使用 artifact UUID 生成不可覆盖的对象名
 上传文件并返回 URL
 ```

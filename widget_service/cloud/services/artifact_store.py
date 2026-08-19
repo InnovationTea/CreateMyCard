@@ -2,6 +2,8 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import json
 import os
+from dataclasses import dataclass
+from typing import Any
 
 from anyio import to_thread
 
@@ -18,10 +20,33 @@ _MODULE = "[Artifact Store]"
 file_obs = UploadFileOSMS()
 
 
+@dataclass(frozen=True)
+class RepairArtifactRecord:
+    """记录一次模型 repair 及其确定性转换、校验结果。"""
+
+    model_generated_compact_dsl: str
+    generated_dsl: str
+    validation_errors: tuple[dict[str, str], ...]
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "modelGeneratedCompactDsl": self.model_generated_compact_dsl,
+            "generatedDsl": self.generated_dsl,
+            "validationErrors": list(self.validation_errors),
+        }
+
+
 class ArtifactStore:
-    def __init__(self, design_token: str | None = None) -> None:
+    def __init__(
+        self,
+        design_token: str | None = None,
+        request_body: str | dict[str, Any] | None = None,
+        repair_records: list[RepairArtifactRecord] | None = None,
+    ) -> None:
         """接收第四、第五接口最终模型源输出，两个接口沿用同一 artifact 块名。"""
         self.design_token = design_token
+        self.request_body = {} if request_body is None else request_body
+        self.repair_records = list(repair_records or [])
 
     async def save(self, artifact: WidgetArtifact) -> ArtifactSaveResult:
         """保存 artifact 并返回访问地址和摘要。
@@ -71,6 +96,17 @@ class ArtifactStore:
         )
         if self.design_token is not None:
             blocks.append(f"```designcompactdsl\n{self.design_token}\n```")
+        request_block_body = self._request_block_body()
+        request_block_separator = "" if request_block_body.endswith("\n") else "\n"
+        blocks.append(
+            f"```request\n{request_block_body}{request_block_separator}```"
+        )
+        blocks.extend(
+            f"```repair-{index}\n"
+            + json.dumps(record.to_payload(), ensure_ascii=False, indent=2)
+            + "\n```"
+            for index, record in enumerate(self.repair_records, start=1)
+        )
         file_content = "\n".join(blocks) + "\n"
 
         # UUID 同时进入 meta 和对象名，避免毫秒时间戳在并发生成时发生覆盖。
@@ -89,3 +125,9 @@ class ArtifactStore:
             f"local_file_retained={file_path}"
         )
         return ArtifactSaveResult(artifactUrl=artifact_url, artifactDigest=digest)
+
+    def _request_block_body(self) -> str:
+        """WebSocket 请求保留原文，本地直调请求按 JSON 输出。"""
+        if isinstance(self.request_body, str):
+            return self.request_body
+        return json.dumps(self.request_body, ensure_ascii=False, indent=2)

@@ -598,7 +598,8 @@ async def _serve_operation_websocket(
             directive_size = DEFAULT_WIDGET_SIZE
             widget_directive_started = False
             try:
-                payload = await websocket.receive_json()
+                raw_request_body = await websocket.receive_text()
+                payload = json.loads(raw_request_body)
             except ValueError as exc:
                 logger.error(
                     f"{_MODULE} widget_operation_ws_invalid_json operation={operation} "
@@ -660,6 +661,7 @@ async def _serve_operation_websocket(
                     source_rom_version = device_arguments.pop("_sourceRomVersion", None)
                 request = request_model(**arguments)
                 request.device._source_rom_version = source_rom_version
+                request._raw_request_body = raw_request_body
                 if operation in GENERATION_OPERATIONS:
                     request._model_request_context = _model_request_context_from_payload(
                         payload,

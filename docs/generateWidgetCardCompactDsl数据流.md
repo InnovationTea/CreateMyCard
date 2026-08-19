@@ -456,12 +456,18 @@ removedcapabilities
 generationplan
 meta
 designcompactdsl
+request
+repair-1
+repair-2
+...
 ```
 
 其中：
 
 - `genui`：标准三段 A2UI。
 - `designcompactdsl`：模型原始 Design Compact DSL，用于调试和回放。
+- `request`：本轮 WebSocket 请求体 JSON 原文，保留外层包络、业务字段和原始文本格式。
+- `repair-N`：第 N 轮 repair 的模型极简协议、转换后标准 DSL 和本轮质量异常；未发生 repair 时不写。
 - `generationPlan`：保留候选字段投影，供后续编辑继承。
 - `meta.protocolProfileId`：最终标准 A2UI Profile。
 - `meta.generationMode`：`create` 或 `edit`。

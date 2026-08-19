@@ -802,10 +802,12 @@ def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
     monkeypatch.setattr(A2UIModelClient, "generate", capture_model_call)
     saved_artifacts = []
     saved_design_compact_dsls = []
+    saved_request_bodies = []
 
-    def capture_artifact(_store, artifact):
+    def capture_artifact(store, artifact):
         saved_artifacts.append(artifact.model_dump(mode="json", exclude_none=True))
-        saved_design_compact_dsls.append(_store.design_token)
+        saved_design_compact_dsls.append(store.design_token)
+        saved_request_bodies.append(store.request_body)
         return ArtifactSaveResult(
             artifactUrl=f"https://test.invalid/widget/artifact-{len(saved_artifacts)}.json",
             artifactDigest=f"sha256:test-{len(saved_artifacts)}",
@@ -860,7 +862,12 @@ def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
             "profile-compact",
             original="生成一张静态天气卡片",
         )
-        websocket.send_json(compact_request)
+        compact_request_text = json.dumps(
+            compact_request,
+            ensure_ascii=False,
+            indent=3,
+        )
+        websocket.send_text(compact_request_text)
         compact_message = _assert_success_envelope(
             _receive_final_frame(websocket, _request_id("profile-compact")),
             "generateWidgetCardCompactDsl",
@@ -881,6 +888,8 @@ def test_generation_routes_lock_and_isolate_protocol_profiles(monkeypatch):
     assert "createSurface" in compact_rows[0]
     assert "updateComponents" in compact_rows[1]
     assert "updateDataModel" in compact_rows[2]
+    assert json.loads(saved_request_bodies[0]) == a2ui_request
+    assert saved_request_bodies[1] == compact_request_text
     assert [item["backend"] for item in model_calls] == ["mep", "openai"]
     assert model_calls[1]["protocolProfile"] == {
         "id": "design-compact-dsl",

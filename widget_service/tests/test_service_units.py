@@ -74,7 +74,7 @@ from models.service import (
     WidgetWebSocketErrorMessage,
     WidgetWebSocketResultMessage,
 )
-from services.artifact_store import ArtifactStore
+from services.artifact_store import ArtifactStore, RepairArtifactRecord
 from custom.a2ui_model_client import (
     A2UIModelClient,
     A2UIModelGenerationError,
@@ -3945,6 +3945,7 @@ async def test_quality_repair_can_transition_from_conversion_to_validation(
 ):
     settings = get_settings()
     model_prompts: list[list[dict[str, str]]] = []
+    saved_repair_records: list[RepairArtifactRecord] = []
     outputs = iter(["invalid-source-dsl", valid_source, valid_source])
     validation_calls = 0
 
@@ -3959,19 +3960,19 @@ async def test_quality_repair_can_transition_from_conversion_to_validation(
             return ["validator rejected converted DSL"]
         return []
 
+    def capture_artifact(store, _artifact):
+        saved_repair_records.extend(store.repair_records)
+        return ArtifactSaveResult(
+            artifactUrl="https://artifact.test/cross-stage-repaired",
+            artifactDigest="sha256:cross-stage-repaired",
+        )
+
     monkeypatch.setattr(settings, "enable_artifact_validation", True)
     monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
     monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 2)
     monkeypatch.setattr(A2UIModelClient, "generate", generate_source)
     monkeypatch.setattr(ArtifactValidator, "validate", validate_then_succeed)
-    monkeypatch.setattr(
-        ArtifactStore,
-        "save",
-        lambda _store, _artifact: ArtifactSaveResult(
-            artifactUrl="https://artifact.test/cross-stage-repaired",
-            artifactDigest="sha256:cross-stage-repaired",
-        ),
-    )
+    monkeypatch.setattr(ArtifactStore, "save", capture_artifact)
 
     service = WidgetGenerationService()
     response = await getattr(service, generation_method)(_model_failure_request())
@@ -3988,6 +3989,19 @@ async def test_quality_repair_can_transition_from_conversion_to_validation(
     assert repair_payloads[1]["invalidSourceDsl"] == valid_source
     assert repair_payloads[1]["qualityErrors"][0]["stage"] == "validation"
     assert all(payload["dslFormat"] == source_format for payload in repair_payloads)
+    assert len(saved_repair_records) == 2
+    assert saved_repair_records[0].model_generated_compact_dsl == valid_source
+    assert saved_repair_records[0].generated_dsl
+    assert saved_repair_records[0].validation_errors == (
+        {
+            "stage": "validation",
+            "code": "ARTIFACT_VALIDATION_FAILED",
+            "message": "validator rejected converted DSL",
+        },
+    )
+    assert saved_repair_records[1].model_generated_compact_dsl == valid_source
+    assert saved_repair_records[1].generated_dsl
+    assert saved_repair_records[1].validation_errors == ()
 
 
 @pytest.mark.parametrize(
@@ -4371,7 +4385,41 @@ async def test_artifact_store_returns_structured_save_result(tmp_path, monkeypat
     design_compact_dsl = (
         '["root","Column",{"width":"matchParent","height":140},[]]'
     )
-    result = await ArtifactStore(design_token=design_compact_dsl).save(artifact)
+    request_body_value = {
+        "content": {
+            "userQuery": "生成天气卡片",
+            "candidateDataBindings": [],
+        },
+        "session": {"interactionId": "artifact-store-test"},
+    }
+    request_body = json_module.dumps(
+        request_body_value,
+        ensure_ascii=False,
+        indent=3,
+    )
+    repair_records = [
+        RepairArtifactRecord(
+            model_generated_compact_dsl="compact-repair-1",
+            generated_dsl="dsl-repair-1",
+            validation_errors=(
+                {
+                    "stage": "validation",
+                    "code": "ARTIFACT_VALIDATION_FAILED",
+                    "message": "missing field",
+                },
+            ),
+        ),
+        RepairArtifactRecord(
+            model_generated_compact_dsl="compact-repair-2",
+            generated_dsl="dsl-repair-2",
+            validation_errors=(),
+        ),
+    ]
+    result = await ArtifactStore(
+        design_token=design_compact_dsl,
+        request_body=request_body,
+        repair_records=repair_records,
+    ).save(artifact)
 
     assert result.artifactUrl.endswith(".md")
     assert result.artifactDigest.startswith("sha256:")
@@ -4392,14 +4440,31 @@ async def test_artifact_store_returns_structured_save_result(tmp_path, monkeypat
     assert uploaded_content.count("```meta") == 1
     assert uploaded_content.count("```schema") == 1
     assert uploaded_content.count("```designcompactdsl") == 1
+    assert uploaded_content.count("```request") == 1
+    assert uploaded_content.count("```repair-1") == 1
+    assert uploaded_content.count("```repair-2") == 1
     assert uploaded_content.index("```meta") < uploaded_content.index(
         "```designcompactdsl"
     )
-    assert uploaded_content.endswith(
-        "```designcompactdsl\n"
-        '["root","Column",{"width":"matchParent","height":140},[]]\n'
-        "```\n"
+    assert uploaded_content.index("```designcompactdsl") < uploaded_content.index(
+        "```request"
     )
+    assert uploaded_content.index("```request") < uploaded_content.index("```repair-1")
+    assert uploaded_content.index("```repair-1") < uploaded_content.index("```repair-2")
+    request_block = uploaded_content.split("```request\n", 1)[1].split("\n```", 1)[0]
+    repair_one_block = uploaded_content.split("```repair-1\n", 1)[1].split(
+        "\n```",
+        1,
+    )[0]
+    repair_two_block = uploaded_content.split("```repair-2\n", 1)[1].split(
+        "\n```",
+        1,
+    )[0]
+    assert request_block == request_body
+    assert json_module.loads(request_block) == request_body_value
+    assert json_module.loads(repair_one_block) == repair_records[0].to_payload()
+    assert json_module.loads(repair_two_block) == repair_records[1].to_payload()
+    assert uploaded_content.endswith("```\n")
     assert '"title": "天气速览"' in uploaded_content
     assert '"description": "查看当前天气"' in uploaded_content
     assert '"dataModelSchema"' in uploaded_content

@@ -153,6 +153,7 @@ class ToolRequestEnvelope(BaseModel):
 
 class VersionedToolRequest(BaseModel):
     _model_request_context: ModelRequestContext | None = PrivateAttr(default=None)
+    _raw_request_body: str | None = PrivateAttr(default=None)
 
     locale: str = "zh-CN"
     uid: str

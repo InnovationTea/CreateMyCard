@@ -31,7 +31,7 @@ from custom.model_runtime import ModelExecutionRuntime
 from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
 from models.generation import DEFAULT_WIDGET_SIZE, ModelRequestContext, WidgetSize
 from models.preflight import GenerationPreflightError
-from services.artifact_store import ArtifactStore
+from services.artifact_store import ArtifactStore, RepairArtifactRecord
 from services.capability_registry import CapabilityRegistry
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.edit_request_normalizer import EditRequestNormalizer
@@ -272,6 +272,7 @@ class WidgetGenerationService:
         stage_started_at = generation_started_at
         latency_by_stage: dict[str, float] = {}
         settings = get_settings()
+        request_body = self._request_body_for_artifact(request)
         generation_mode = (
             "edit" if "sourceArtifactUrl" in request.model_fields_set else "create"
         )
@@ -559,6 +560,7 @@ class WidgetGenerationService:
         artifact_id = str(uuid.uuid4())
         model_call_phase = "initial"
         quality_repair_attempt_count = 0
+        repair_records: list[RepairArtifactRecord] = []
         if policy.processor_kind == DslProcessorKind.TERSE_NESTED2:
             design_mode = "edit" if source_load_result else "create"
             repair_prompt_type = f"terse-dsl-nested-2-{design_mode}"
@@ -651,11 +653,25 @@ class WidgetGenerationService:
                     f"{_MODULE} dsl_conversion_failed operation={policy.operation} "
                     f"errors={json_for_log(conversion_errors)}"
                 )
+                self._append_repair_record(
+                    repair_records,
+                    model_call_phase,
+                    quality_repair_attempt_count,
+                    source_dsl,
+                    latest_processing_result,
+                )
                 return conversion_errors
             if not settings.enable_artifact_validation:
                 logger.info(
                     f"{_MODULE} artifact_validation_skipped operation={policy.operation} "
                     "reason=enable_artifact_validation_false"
+                )
+                self._append_repair_record(
+                    repair_records,
+                    model_call_phase,
+                    quality_repair_attempt_count,
+                    source_dsl,
+                    latest_processing_result,
                 )
                 return []
 
@@ -703,6 +719,13 @@ class WidgetGenerationService:
                 source_dsl=processing_result.source_dsl,
                 standard_dsl=processing_result.standard_dsl,
                 issues=processing_result.issues + validation_issues,
+            )
+            self._append_repair_record(
+                repair_records,
+                model_call_phase,
+                quality_repair_attempt_count,
+                source_dsl,
+                latest_processing_result,
             )
             return [item.repair_message() for item in validation_issues]
 
@@ -857,7 +880,11 @@ class WidgetGenerationService:
             f"effective_capabilities={json_for_log(artifact.effectiveCapabilities)} "
             f"removed_count={len(artifact.removedCapabilities)}"
         )
-        artifact_save_result = ArtifactStore(design_token=design_token).save(artifact)
+        artifact_save_result = ArtifactStore(
+            design_token=design_token,
+            request_body=request_body,
+            repair_records=repair_records,
+        ).save(artifact)
         if inspect.isawaitable(artifact_save_result):
             artifact_save_result = await artifact_save_result
         latency_by_stage["artifactStore"] = self._elapsed_ms(stage_started_at)
@@ -1111,10 +1138,42 @@ class WidgetGenerationService:
             update={"protocolProfileId": policy.protocol_profile_id}
         )
         profiled_request._model_request_context = request._model_request_context
+        profiled_request._raw_request_body = request._raw_request_body
         return await self.generate_widget_card(
             profiled_request,
             policy=policy,
             before_model_call=before_model_call,
+        )
+
+    @staticmethod
+    def _request_body_for_artifact(
+        request: GenerateWidgetCardRequest,
+    ) -> str | dict[str, object]:
+        """优先保留 WebSocket 原始请求文本，本地直调时回退为请求模型。"""
+        if request._raw_request_body is not None:
+            return request._raw_request_body
+        return request.model_dump(mode="json", exclude_none=True)
+
+    @staticmethod
+    def _append_repair_record(
+        repair_records: list[RepairArtifactRecord],
+        model_call_phase: str,
+        repair_attempt: int,
+        model_source_dsl: str,
+        processing_result: DslProcessingResult,
+    ) -> None:
+        """每轮 repair 评估结束后只追加一次可回放记录。"""
+        if model_call_phase != "repair" or repair_attempt <= len(repair_records):
+            return
+        validation_errors = tuple(
+            item.to_prompt_payload() for item in processing_result.errors
+        )
+        repair_records.append(
+            RepairArtifactRecord(
+                model_generated_compact_dsl=model_source_dsl,
+                generated_dsl=processing_result.standard_dsl,
+                validation_errors=validation_errors,
+            )
         )
 
     @staticmethod
