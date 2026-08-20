@@ -1339,7 +1339,7 @@ async def test_terse_template_mismatch_returns_failed_without_original_flow(monk
 
     service = WidgetGenerationService()
     monkeypatch.setattr(
-        facade,
+        widget_generation_service_module,
         "generate_template_artifact",
         rejected,
     )
@@ -1370,7 +1370,11 @@ async def test_terse_selected_template_failure_returns_failed_without_original_f
         raise TemplateGenerationError("template body validation failed")
 
     service = WidgetGenerationService()
-    monkeypatch.setattr(facade, "generate_template_artifact", failed)
+    monkeypatch.setattr(
+        widget_generation_service_module,
+        "generate_template_artifact",
+        failed,
+    )
     monkeypatch.setattr(
         service,
         "_generate_widget_card_with_policy",
@@ -1384,20 +1388,27 @@ async def test_terse_selected_template_failure_returns_failed_without_original_f
 
 
 @pytest.mark.asyncio
-async def test_terse_edit_returns_failed_without_template_or_original_flow(monkeypatch):
+async def test_terse_edit_uses_shared_template_entry_then_returns_failed(monkeypatch):
     request = _weather_request().model_copy(
         update={"sourceArtifactUrl": "https://artifact.test/source.md"}
     )
     request.model_fields_set.add("sourceArtifactUrl")
+    template_called = False
 
     async def original_generation(*_args: Any, **_kwargs: Any) -> Any:
         pytest.fail("Terse edit must not enter the original flow")
 
-    async def unexpected_template(*_args: Any, **_kwargs: Any) -> Any:
-        pytest.fail("Terse edit must not attempt template generation")
+    async def rejected_template(*_args: Any, **_kwargs: Any) -> Any:
+        nonlocal template_called
+        template_called = True
+        raise TemplateRouteNotApplicable("template generation does not support edit mode")
 
     service = WidgetGenerationService()
-    monkeypatch.setattr(facade, "generate_template_artifact", unexpected_template)
+    monkeypatch.setattr(
+        widget_generation_service_module,
+        "generate_template_artifact",
+        rejected_template,
+    )
     monkeypatch.setattr(
         service,
         "_generate_widget_card_with_policy",
@@ -1407,6 +1418,7 @@ async def test_terse_edit_returns_failed_without_template_or_original_flow(monke
 
     assert response.status == GenerationStatus.FAILED
     assert response.errorCode == "A2UI_GENERATION_FAILED"
+    assert template_called is True
 
 
 @pytest.mark.asyncio

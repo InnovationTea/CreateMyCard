@@ -278,14 +278,14 @@ async def test_terse_dsl_nested2_supports_dynamic_requests(monkeypatch):
     observed_policy = None
     expected_response = object()
 
-    async def strict_template_route(_request, policy, **_kwargs):
+    async def template_route(_request, policy, **_kwargs):
         nonlocal observed_policy
         observed_policy = policy
         return expected_response
 
     monkeypatch.setattr(
-        "services.widget_generation_service.generate_strict_terse_template_artifact",
-        strict_template_route,
+        "services.widget_generation_service.generate_template_artifact",
+        template_route,
     )
     dynamic_request = GenerateWidgetCardRequest(
         uid="test-user",
@@ -3623,7 +3623,7 @@ async def test_generation_routes_accept_each_configured_model_backend(
             return await capture_route(_request, policy)
 
         monkeypatch.setattr(
-            "services.widget_generation_service.generate_strict_terse_template_artifact",
+            "services.widget_generation_service.generate_template_artifact",
             capture_terse_route,
         )
     else:

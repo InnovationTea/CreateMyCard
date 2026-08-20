@@ -58,10 +58,7 @@ from services.source_artifact_repository import (
     SourceArtifactLoadResult,
     SourceArtifactRepository,
 )
-from services.template_generation import (
-    generate_strict_terse_template_artifact,
-    generate_template_artifact,
-)
+from services.template_generation import generate_template_artifact
 from services.validator import ArtifactValidator
 
 _MODULE = "[Generation Service]"
@@ -1108,15 +1105,33 @@ class WidgetGenerationService:
         )
         # 问题定位时可显式调用
         # services.template_generation.route_legacy_python_terse_generation(...)；
-        # 生产默认严格限定为模板路线，edit 或任一模板失败均直接返回失败。
-        return await generate_strict_terse_template_artifact(
-            request,
-            policy,
-            registry=self._capability_registry(request),
-            model_runtime=self.model_runtime,
-            model_request_context=self._resolve_model_request_context(request),
-            before_model_call=before_model_call,
-        )
+        # 第四、第五接口共用模板生成入口，区别只在调用方的失败策略：
+        # Compact 失败后回退原流程，Terse 失败后直接返回 failed。
+        try:
+            return await generate_template_artifact(
+                request,
+                policy,
+                registry=self._capability_registry(request),
+                model_runtime=self.model_runtime,
+                model_request_context=self._resolve_model_request_context(request),
+                before_model_call=before_model_call,
+            )
+        except Exception as exc:
+            logger.info(
+                f"{_MODULE} template_route_failed operation={policy.operation} "
+                f"fallback=disabled reason={type(exc).__name__} "
+                f"detail={json_for_log(str(exc))}"
+            )
+            return GenerateWidgetCardResponse(
+                status=GenerationStatus.FAILED,
+                suggestSize=request.size or DEFAULT_WIDGET_SIZE,
+                message=(
+                    "模板路线暂不支持二次更新。"
+                    if "sourceArtifactUrl" in request.model_fields_set
+                    else "当前需求无法通过模板完整生成卡片。"
+                ),
+                errorCode=ErrorCode.A2UI_GENERATION_FAILED.value,
+            )
 
     async def _generate_widget_card_with_policy(
         self,
