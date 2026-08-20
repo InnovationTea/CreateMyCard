@@ -19,7 +19,7 @@
     "providers/app-usage/layer-docs/first-layer.md": "sha256:4901392fae5117e95c3e2ce8c6649b08c812973f5b0dc779b98d6c361a3c1859",
     "providers/app-usage/layer-docs/second-layer.md": "sha256:76886881c9d1c27b0dc76f7a74ad298f775101565a6c17f5e8f91e361cbe79fb",
     "providers/app-usage/provider.json": "sha256:06c2bf9d81eff315074f30781d2ac8d0be51156e5dc67b719c134fb1cd3d8fed",
-    "providers/app-usage/templates/app-usage-overview.cardtpl": "sha256:092d3e7d9ec334ddb87bc3360c795820b4abef15a58a0d98716916b8939bec2a",
+    "providers/app-usage/templates/app-usage-overview.cardtpl": "sha256:b1761c1ed6850197e602daf5d5b9ae28d33ec6fb496e2c2d75c4e23d01d15cc2",
     "providers/battery/layer-docs/first-layer.md": "sha256:a8abb1e4e7ddb7dca95c93663fb66931e9198cbbcc2766c18899e13e4fdab675",
     "providers/battery/layer-docs/second-layer.md": "sha256:c24f17664aaa36f64be2200b87e3f9fb86f6bdd32c9c306013f73b0615dc06fc",
     "providers/battery/provider.json": "sha256:31d67edab682a9bdbede5385501afcf7b40da32c8fc72c5faf060b5ad0d1ae41",
