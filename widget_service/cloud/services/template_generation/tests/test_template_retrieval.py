@@ -5,6 +5,9 @@ from typing import Any
 import pytest
 
 from models.generation import CandidateDataBinding, TaskSpec
+from services.template_generation.engine.advanced.content_selectors import (
+    apply_content_selectors,
+)
 from services.template_generation.engine.cardplan.registry import get_cardplan_registry
 from services.template_generation.engine.cardplan.template_retrieval import (
     TemplateRetrievalMiss,
@@ -119,6 +122,53 @@ def test_cross_theme_query_keeps_field_compatible_candidates() -> None:
         "WeatherOverviewCompact@1",
         "WeatherOverviewHero@1",
     }
+
+
+def test_shared_capability_keeps_each_component_scoped_templates() -> None:
+    task = TaskSpec(
+        userQuery="显示下一场会议的标题和时间",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "calendar": {
+                    "events": [
+                        {
+                            "title": _field("项目例会"),
+                            "dtStart": _field("14:00"),
+                            "dtEnd": _field("15:00"),
+                        }
+                    ]
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetCalendarEvents",
+        writeResultTo="/data/calendar",
+        candidateOutputFields=["/events/0/title", "/events/0/dtStart", "/events/0/dtEnd"],
+    )
+    query = TemplateRetrievalQuery(
+        themeId="meeting-paper-neutral",
+        requiredOutputFieldsByCapability={
+            "GetCalendarEvents": ("/events/0/title", "/events/0/dtStart")
+        },
+    )
+
+    selected_task = apply_content_selectors(task, {"GetCalendarEvents"})
+    matches = retrieve_template_variants(
+        query,
+        selected_task,
+        get_cardplan_registry(),
+        (binding,),
+        {
+            "suggestSize": "2x2",
+            "dataBindings": [
+                {"capabilityId": "GetCalendarEvents", "writeResultTo": "/data/calendar"}
+            ],
+        },
+    )
+
+    assert {match.template_id for match in matches} >= {"ScheduleOverviewNextEvent@1"}
 
 
 def test_optional_data_is_available_but_not_required_for_second_containment() -> None:

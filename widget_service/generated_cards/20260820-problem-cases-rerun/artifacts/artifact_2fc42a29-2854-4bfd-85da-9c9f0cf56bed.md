@@ -1,0 +1,160 @@
+```cardspec
+{
+  "title": "TRE-069 测试卡片",
+  "description": "睡眠时长通过required参数sourcePaths参与字段Token。",
+  "suggestSize": "2x2",
+  "dataBindings": [
+    {
+      "capabilityId": "GetHealthAndSportSummary",
+      "arguments": {},
+      "writeResultTo": "/data/healthSport"
+    }
+  ]
+}
+```
+```genui
+{"version":"v0.9","createSurface":{"surfaceId":"surface_card","catalogId":"ohos.a2ui.extended.catalog.form"}}
+{"version":"v0.9","updateComponents":{"surfaceId":"surface_card","root":"root","components":[{"id":"root","component":"Column","children":["root_0"],"itemMargin":8,"styles":{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":18,"clip":true,"backgroundColor":"#FFAC49F5","justifyContent":"spaceBetween","alignItems":"start","linearGradient":{"direction":"RightBottom","colors":[["#FFAC49F5",0],["#FFC386F0",1]]}}},{"id":"root_0","component":"Column","children":["root_0_0"],"itemMargin":4,"styles":{"width":"matchParent","height":"matchParent","justifyContent":"start","alignItems":"start","clip":true}},{"id":"root_0_0","component":"Column","children":["root_0_0_0","root_0_0_1"],"itemMargin":4,"styles":{"width":"matchParent","height":"matchParent","justifyContent":"spaceBetween","alignItems":"start","clip":true,"constraintSize":{"minWidth":0,"minHeight":0}}},{"id":"root_0_0_0","component":"Row","children":["root_0_0_0_0"],"itemMargin":4,"styles":{"width":"matchParent","justifyContent":"spaceBetween","alignItems":"middle","height":20,"clip":true,"constraintSize":{"minWidth":0,"minHeight":0}}},{"id":"root_0_0_0_0","component":"Text","content":"睡眠","styles":{"fontSize":12,"fontWeight":400,"fontColor":"#FFFFFFFF","minFontSize":12,"maxLines":1,"textOverflow":"clip","layoutWeight":1,"constraintSize":{"minWidth":0,"minHeight":0}}},{"id":"root_0_0_1","component":"Row","children":["root_0_0_1_0"],"itemMargin":2,"styles":{"width":"matchParent","justifyContent":"start","alignItems":"bottom","clip":true,"constraintSize":{"minWidth":0,"minHeight":0}}},{"id":"root_0_0_1_0","component":"Row","children":["root_0_0_1_0_0","root_0_0_1_0_1"],"itemMargin":0,"styles":{"width":"matchParent","justifyContent":"start","alignItems":"bottom","constraintSize":{"minWidth":0,"minHeight":0}}},{"id":"root_0_0_1_0_0","component":"Text","content":"{{ ${/data/healthSport/_templateProjection/SleepOverview/sleepDurationPrimaryValueText} }}","styles":{"fontSize":30,"fontWeight":700,"fontColor":"#FFFFFFFF","minFontSize":30,"maxLines":1,"textOverflow":"clip","constraintSize":{"minWidth":0,"minHeight":0}}},{"id":"root_0_0_1_0_1","component":"Text","content":"{{ ${/data/healthSport/_templateProjection/SleepOverview/sleepDurationPrimaryUnitText} }}","styles":{"fontSize":12,"fontWeight":400,"fontColor":"#FFFFFFFF","minFontSize":12,"maxLines":1,"textOverflow":"clip","constraintSize":{"minWidth":0,"minHeight":0}}}]}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"surface_card","path":"/","value":{"data":{"healthSport":{"_templateProjection":{"SleepOverview":{"nightSleepDurationText":"7小时1分","sleepDurationPrimaryValueText":"7","sleepDurationPrimaryUnitText":"小时","sleepDurationSecondaryValueText":"1","sleepDurationSecondaryUnitText":"分钟","sleepStatus":"良好","fallAsleepTimeText":"23:15","wakeupTimeText":"07:30"}},"nightSleepDurationText":"7小时1分","sleepStatus":"良好","fallAsleepTimeText":"23:15","wakeupTimeText":"07:30"}}}}}
+```
+```schema
+{
+  "schemaVersion": "widget-artifact-v2"
+}
+```
+```taskspec
+{
+  "userQuery": "我要睡眠时长卡，重点显示昨晚睡了多久",
+  "size": "2x2",
+  "eventCandidates": [],
+  "dataModelSchema": {
+    "data": {
+      "healthSport": {
+        "_templateProjection": {
+          "SleepOverview": {
+            "nightSleepDurationText": {
+              "type": "string",
+              "description": "可信夜间睡眠总时长原文",
+              "sampleValue": "7小时1分"
+            },
+            "sleepDurationPrimaryValueText": {
+              "type": "string",
+              "description": "从可信夜间睡眠总时长无损解析的主数值",
+              "sampleValue": "7"
+            },
+            "sleepDurationPrimaryUnitText": {
+              "type": "string",
+              "description": "从可信夜间睡眠总时长无损解析的主单位",
+              "sampleValue": "小时"
+            },
+            "sleepDurationSecondaryValueText": {
+              "type": "string",
+              "description": "从可信夜间睡眠总时长无损解析的次数值",
+              "sampleValue": "1"
+            },
+            "sleepDurationSecondaryUnitText": {
+              "type": "string",
+              "description": "从可信夜间睡眠总时长无损解析的次单位",
+              "sampleValue": "分钟"
+            },
+            "sleepStatus": {
+              "type": "string",
+              "description": "可信睡眠状态原文",
+              "sampleValue": "良好"
+            },
+            "fallAsleepTimeText": {
+              "type": "string",
+              "description": "可信入睡时刻原文",
+              "sampleValue": "23:15"
+            },
+            "wakeupTimeText": {
+              "type": "string",
+              "description": "可信醒来时刻原文",
+              "sampleValue": "07:30"
+            }
+          }
+        },
+        "nightSleepDurationText": {
+          "type": "string",
+          "description": "夜间正式睡眠的总时长文本，例如“7小时1分”。",
+          "sampleValue": "7小时1分"
+        },
+        "sleepStatus": {
+          "type": "string",
+          "description": "基于得分智能生成的睡眠状态语义判定，包括：'优秀'、'良好'、'一般'、'较差'。",
+          "sampleValue": "良好"
+        },
+        "fallAsleepTimeText": {
+          "type": "string",
+          "description": "格式化后的确切入睡时刻短文本（HH:mm），例如“23:15”。",
+          "sampleValue": "23:15"
+        },
+        "wakeupTimeText": {
+          "type": "string",
+          "description": "格式化后的确切醒来时刻短文本（HH:mm），例如“07:30”。",
+          "sampleValue": "07:30"
+        }
+      }
+    }
+  },
+  "assetCandidates": []
+}
+```
+```effectivecapabilities
+{
+  "data": [
+    "GetHealthAndSportSummary"
+  ],
+  "event": [],
+  "asset": []
+}
+```
+```removedcapabilities
+[]
+```
+```generationplan
+{
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetHealthAndSportSummary",
+      "arguments": {},
+      "writeResultTo": "/data/healthSport",
+      "candidateOutputFields": [
+        "/nightSleepDurationText",
+        "/sleepStatus",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText"
+      ]
+    }
+  ],
+  "candidateEventCandidates": [],
+  "candidateAssetIds": []
+}
+```
+```meta
+{
+  "apiVersion": "v1",
+  "taskSpecVersion": "task-spec-v1",
+  "cardSpecVersion": "card-spec-v1",
+  "dslProtocolVersion": "v0.9",
+  "skillVersion": "skill-widget-v1",
+  "protocolProfileId": "a2ui-form-rom6.0-v1",
+  "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
+  "artifactSchemaVersion": "widget-artifact-v2",
+  "generationMode": "create",
+  "artifactId": "2fc42a29-2854-4bfd-85da-9c9f0cf56bed",
+  "createdAt": 1787204470786
+}
+```
+```designcompactdsl
+["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":18,"clip":true,"backgroundColor":"#FFAC49F5","justifyContent":"spaceBetween","alignItems":"start","linearGradient":{"direction":"RightBottom","colors":[["#FFAC49F5",0],["#FFC386F0",1]]},"itemMargin":8},["root_0"]]
+["root_0","Column",{"width":"100%","height":"100%","justifyContent":"start","alignItems":"start","clip":true,"itemMargin":4},["root_0_0"]]
+["root_0_0","Column",{"width":"matchParent","height":"matchParent","justifyContent":"spaceBetween","alignItems":"start","clip":true,"constraintSize":{"minWidth":0,"minHeight":0},"itemMargin":4},["root_0_0_0","root_0_0_1"]]
+["root_0_0_0","Row",{"width":"matchParent","justifyContent":"spaceBetween","alignItems":"middle","height":20,"clip":true,"constraintSize":{"minWidth":0,"minHeight":0},"itemMargin":4},["root_0_0_0_0"]]
+["root_0_0_0_0","Text",{"fontSize":12,"fontWeight":400,"fontColor":"#FFFFFFFF","minFontSize":12,"maxLines":1,"textOverflow":"ellipsis","layoutWeight":1,"constraintSize":{"minWidth":0,"minHeight":0},"content":"睡眠"}]
+["root_0_0_1","Row",{"width":"matchParent","justifyContent":"start","alignItems":"bottom","clip":true,"constraintSize":{"minWidth":0,"minHeight":0},"itemMargin":2},["root_0_0_1_0"]]
+["root_0_0_1_0","Row",{"width":"matchParent","justifyContent":"start","alignItems":"bottom","constraintSize":{"minWidth":0,"minHeight":0},"itemMargin":0},["root_0_0_1_0_0","root_0_0_1_0_1"]]
+["root_0_0_1_0_0","Text",{"fontSize":30,"fontWeight":700,"fontColor":"#FFFFFFFF","minFontSize":30,"maxLines":1,"textOverflow":"ellipsis","constraintSize":{"minWidth":0,"minHeight":0},"content":"{{ ${/data/healthSport/_templateProjection/SleepOverview/sleepDurationPrimaryValueText} }}"}]
+["root_0_0_1_0_1","Text",{"fontSize":12,"fontWeight":400,"fontColor":"#FFFFFFFF","minFontSize":12,"maxLines":1,"textOverflow":"ellipsis","constraintSize":{"minWidth":0,"minHeight":0},"content":"{{ ${/data/healthSport/_templateProjection/SleepOverview/sleepDurationPrimaryUnitText} }}"}]
+["/",{"data":{"healthSport":{"_templateProjection":{"SleepOverview":{"nightSleepDurationText":"7小时1分","sleepDurationPrimaryValueText":"7","sleepDurationPrimaryUnitText":"小时","sleepDurationSecondaryValueText":"1","sleepDurationSecondaryUnitText":"分钟","sleepStatus":"良好","fallAsleepTimeText":"23:15","wakeupTimeText":"07:30"}},"nightSleepDurationText":"7小时1分","sleepStatus":"良好","fallAsleepTimeText":"23:15","wakeupTimeText":"07:30"}}}]
+```

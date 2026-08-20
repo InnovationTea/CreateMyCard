@@ -309,19 +309,35 @@ def _preferred_template_ids(
             for template_id in component.local_template_ids
         )
     )
-    if len(components) != 1:
-        return ()
-    component = components[0]
-    theme_id = next(
-        theme_id
-        for scene in component.palette_scenes
-        for theme_id in registry.palette_scene_theme_ids[scene]
+    # A provider capability may legitimately back several business components:
+    # GetCalendarEvents powers both date and schedule cards, for example.  The
+    # retrieval gate must consider the scoped templates of every such component;
+    # the selected template is later adapted back to exactly one component.
+    return tuple(
+        dict.fromkeys(
+            template_id
+            for component in components
+            for theme_id in _component_theme_ids(component, registry)
+            for template_id in scope_template_ids(
+                AdvancedScopeBrief(
+                    themeId=theme_id,
+                    advancedComponentIds=(component.name,),
+                ),
+                registry,
+                task_spec,
+            )
+        )
     )
-    scope = AdvancedScopeBrief(
-        themeId=theme_id,
-        advancedComponentIds=(component.name,),
+
+
+def _component_theme_ids(component: Any, registry: CardPlanRegistry) -> tuple[str, ...]:
+    return tuple(
+        dict.fromkeys(
+            theme_id
+            for scene in component.palette_scenes
+            for theme_id in registry.palette_scene_theme_ids[scene]
+        )
     )
-    return scope_template_ids(scope, registry, task_spec)
 
 
 def _template_preference_rank(
