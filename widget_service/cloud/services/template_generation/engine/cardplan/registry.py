@@ -18,12 +18,11 @@ from services.template_generation.engine.advanced.models import (
     AdaptiveTemplateFamily,
     AdvancedComponentCapability,
     CardSizeContentBudget,
-    UxBusinessComponentCapability,
     UxCardSizeBudget,
     UxLayoutComponentCapability,
 )
 
-from .models import TemplateDefinition, TemplateVariant, ThemeDefinition
+from .models import BusinessTemplateGroup, TemplateDefinition, TemplateVariant, ThemeDefinition
 from .provider_bundle import LoadedProviderBundle, load_provider_bundles
 from .retrieval_index import (
     TemplateVariantSearchRecord,
@@ -37,7 +36,7 @@ _MAX_RULE_DOCUMENT_BYTES = 262_144
 _NamedCapability = TypeVar(
     "_NamedCapability",
     AdvancedComponentCapability,
-    UxBusinessComponentCapability,
+    BusinessTemplateGroup,
     UxLayoutComponentCapability,
 )
 
@@ -118,19 +117,27 @@ class CardPlanRegistry:
         self.size_budgets = {item.size: item for item in size_budgets}
         self.domain_groups = self._domain_groups(advanced_payload.get("domainGroups"))
         self._validate_advanced_registry()
-        ux_version = "advanced-component-ux-registry/1"
+        ux_version = "advanced-component-ux-registry/2"
         if self.manifest.get("uxAdvancedComponentRegistryVersion") != ux_version:
             raise ValueError("UX Advanced Component Manifest version mismatch")
         if ux_advanced_payload.get("registryVersion") != ux_version:
             raise ValueError("unsupported UX Advanced Component Registry version")
-        ux_business_components = tuple(
-            UxBusinessComponentCapability.model_validate(item)
-            for item in ux_advanced_payload.get("businessComponents", [])
+        if "businessComponents" in ux_advanced_payload or "layoutComponents" in ux_advanced_payload:
+            raise ValueError(
+                "UX Advanced Component Registry must not duplicate Provider Components"
+            )
+        provider_business_components = tuple(
+            component
+            for bundle in provider_bundles
+            for component in bundle.business_groups
         )
-        ux_layout_components = tuple(
-            UxLayoutComponentCapability.model_validate(item)
-            for item in ux_advanced_payload.get("layoutComponents", [])
+        provider_layout_components = tuple(
+            (component, bundle.manifest.provider_id)
+            for bundle in provider_bundles
+            for component in bundle.manifest.layout_components
         )
+        ux_business_components = provider_business_components
+        ux_layout_components = tuple(item[0] for item in provider_layout_components)
         ux_size_budgets = tuple(
             UxCardSizeBudget.model_validate(item)
             for item in ux_advanced_payload.get("sizeBudgets", [])
@@ -140,10 +147,18 @@ class CardPlanRegistry:
             ux_business_components,
             "UX Business Component",
         )
+        self.ux_business_component_provider_ids = {
+            component.name: component.provider_id
+            for component in provider_business_components
+        }
         self.ux_layout_components = self._unique_by_name(
             ux_layout_components,
             "UX Layout Component",
         )
+        self.ux_layout_component_provider_ids = {
+            component.name: provider_id
+            for component, provider_id in provider_layout_components
+        }
         self.ux_size_budgets = {item.size: item for item in ux_size_budgets}
         self.ux_tokens = self._ux_tokens(ux_advanced_payload.get("uxTokens"))
         self.palette_scene_theme_ids = self._palette_scene_themes(
@@ -385,13 +400,12 @@ class CardPlanRegistry:
         self,
         component_ids: tuple[str, ...],
     ) -> tuple[LoadedProviderBundle, ...]:
-        provider_ids: list[str] = []
-        for component_id in component_ids:
-            component = self.require_ux_business_component(component_id)
-            for template_id in self.enabled_template_ids(component.local_template_ids):
-                definition = self.require_template(template_id)
-                if definition.provider_id is not None:
-                    provider_ids.append(definition.provider_id)
+        provider_ids = [
+            self.ux_business_component_provider_ids[component_id]
+            for component_id in component_ids
+            if self.ux_business_component_provider_ids[component_id]
+            not in self.disabled_provider_ids
+        ]
         return tuple(
             self.provider_bundles[provider_id] for provider_id in dict.fromkeys(provider_ids)
         )
@@ -522,8 +536,8 @@ class CardPlanRegistry:
             raise ValueError("UX Advanced Component size budgets are incomplete")
         if len(self.ux_layout_components) != 10:
             raise ValueError("UX Advanced Component layout registry must contain 10 families")
-        if len(self.ux_business_components) != 18:
-            raise ValueError("UX Advanced Component business registry must contain 18 families")
+        if len(self.ux_business_components) != 12:
+            raise ValueError("Provider Template business index must contain 12 families")
         known_layouts = set(self.ux_layout_components)
         if known_layouts != set(UX_LAYOUT_COMPONENT_IDS):
             raise ValueError("UX Advanced Component layout registry IDs are incomplete")
@@ -534,12 +548,31 @@ class CardPlanRegistry:
             if not set(theme_ids).issubset(known_themes):
                 raise ValueError("UX palette scene references an unknown Theme")
         for capability in self.ux_business_components.values():
-            if not set(capability.supported_layouts).issubset(known_layouts):
-                raise ValueError(f"UX Business Component has an unknown layout: {capability.name}")
-            if not set(capability.palette_scenes).issubset(self.palette_scene_theme_ids):
-                raise ValueError(f"UX Business Component has an unknown palette: {capability.name}")
+            provider_id = self.ux_business_component_provider_ids[capability.name]
+            provider_capability_ids = {
+                item.capability_id
+                for item in self.provider_bundles[provider_id].manifest.capabilities
+                if item.capability_id is not None
+            }
+            if not set(capability.data_capability_ids).issubset(provider_capability_ids):
+                raise ValueError(
+                    "UX Business Component references a capability outside its Provider: "
+                    f"{capability.name}"
+                )
             for wire_id in capability.local_template_ids:
-                self.require_template(wire_id)
+                definition = self.require_template(wire_id)
+                if definition.business_id != capability.name:
+                    raise ValueError(
+                        "Provider Template businessId does not match its derived group: "
+                        f"{wire_id}"
+                    )
+                if definition.provider_id != provider_id:
+                    raise ValueError(f"Provider Template is outside its business owner: {wire_id}")
+        for layout in self.ux_layout_components.values():
+            provider_id = self.ux_layout_component_provider_ids[layout.name]
+            definition = self.require_template(f"{layout.name}@1")
+            if definition.provider_id != provider_id:
+                raise ValueError(f"UX Layout Component is outside its Provider: {layout.name}")
 
     def require_advanced_component(self, component_id: str) -> AdvancedComponentCapability:
         try:
@@ -556,7 +589,7 @@ class CardPlanRegistry:
     def require_ux_business_component(
         self,
         component_id: str,
-    ) -> UxBusinessComponentCapability:
+    ) -> BusinessTemplateGroup:
         try:
             return self.ux_business_components[component_id]
         except KeyError as exc:

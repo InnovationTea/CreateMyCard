@@ -11,6 +11,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from models.generation import CandidateDataBinding, TaskSpec, WidgetSize
+from services.template_generation.engine.cardplan.models import BusinessTemplateGroup
 from services.template_generation.engine.cardplan.prompt import (
     admitted_provider_template_variants,
 )
@@ -44,7 +45,6 @@ from .models import (
     TemplateComponentCandidate,
     TemplateRouteDecision,
     TemplateRouteSelection,
-    UxBusinessComponentCapability,
 )
 
 _REDUNDANT_2X2_SUPPORTS = {
@@ -164,7 +164,7 @@ def _build_template_route_prompt(
     data_shape: DataShape,
     registry: CardPlanRegistry,
     effective_ids: set[str],
-    component_candidates: tuple[UxBusinessComponentCapability, ...],
+    component_candidates: tuple[BusinessTemplateGroup, ...],
     coverage_bindings: tuple[CandidateDataBinding, ...],
     card_spec: dict[str, Any] | None,
 ) -> list[dict[str, str]]:
@@ -237,17 +237,22 @@ def _build_template_route_prompt(
         "当作数据路径，"
         "不得把动作放进 componentCandidates，也不得判断 Action 属于哪个 component。"
         "只有 userQuery 明确"
-        "要求某个交互时，才在 action 中逐字输出对应 eventId；没有明确交互请求时输出 null。"
+        "要求某个交互时，才在 action 中逐字输出对应 eventId；"
+        "没有明确交互请求时输出 null。"
         "即使模板路线失败，也必须从 theme 候选中选择最匹配用户意图的 theme；失败仅以"
         "componentCandidates 为空数组表示，并把 action 置为 null。"
-        "如果 userQuery 明确要求交互但 action 候选中没有语义匹配的 eventId，必须拒绝模板路线并"
+        "如果 userQuery 明确要求交互但 action 候选中没有语义匹配的 eventId，"
+        "必须拒绝模板路线并"
         '输出 {"theme":"<最匹配的候选 theme>","componentCandidates":[],"action":null}。'
-        "第一步，根据 userQuery 从 taskSpecDataFields 的全量内容中标定本轮显式要求显示的数据字段；"
-        "第二步，只能选择 supportedTaskSpecPaths 的并集能够完整覆盖全部显式字段的一个或多个"
+        "第一步，根据 userQuery 从 taskSpecDataFields 的全量内容中"
+        "标定本轮显式要求显示的数据字段；"
+        "第二步，只能选择 supportedTaskSpecPaths 的并集能够完整覆盖"
+        "全部显式字段的一个或多个"
         "componentId，任意一个显式字段全部或部分不能承载都必须失败；第三步，"
         "为每个组件保留能承载本轮显式字段的 availableTemplateIds，并逐个检查候选模板"
-        "自身 requiredData 对应的数据字段是否在 taskSpecDataFields 中真实存在，缺少任意必需字段"
-        "也必须失败。availableTemplateIds 是第二层可以继续选择的候选集，不是最终模板结果。"
+        "自身 requiredData 对应的数据字段是否在 taskSpecDataFields 中真实存在，"
+        "缺少任意必需字段也必须失败。availableTemplateIds 是第二层可以继续"
+        "选择的候选集，不是最终模板结果。"
         "这个中间字段集合"
         "只用于判断，不得出现在输出中。candidateOutputFields 不是本层的强制完整展示集合。"
         "任一必须显示字段无法呈现、组件不兼容、主题不适用或存在歧义时，输出"
@@ -262,7 +267,7 @@ def _build_template_route_prompt(
 
 
 def _template_route_component_payload(
-    capability: UxBusinessComponentCapability,
+    capability: BusinessTemplateGroup,
     task_spec: TaskSpec,
     registry: CardPlanRegistry,
     effective_ids: set[str],
@@ -321,7 +326,7 @@ def _absolute_task_spec_path(root: str, relative_path: str) -> str:
 
 
 def _scope_candidate_prompt_payload(
-    capability: UxBusinessComponentCapability,
+    capability: BusinessTemplateGroup,
     task_spec: TaskSpec,
     effective_ids: set[str],
     candidate_ids: set[str],
@@ -358,7 +363,7 @@ def _scope_candidate_prompt_payload(
 
 
 def _component_template_coverage_options(
-    capability: UxBusinessComponentCapability,
+    capability: BusinessTemplateGroup,
     task_spec: TaskSpec,
     registry: CardPlanRegistry,
     effective_ids: set[str],
@@ -381,7 +386,7 @@ def _component_template_coverage_options(
 
 
 def _component_template_coverage_union(
-    capability: UxBusinessComponentCapability,
+    capability: BusinessTemplateGroup,
     task_spec: TaskSpec,
     registry: CardPlanRegistry,
     effective_ids: set[str],
@@ -401,7 +406,7 @@ def _component_template_coverage_union(
 
 
 def _component_template_prompt_contracts(
-    capability: UxBusinessComponentCapability,
+    capability: BusinessTemplateGroup,
     task_spec: TaskSpec,
     registry: CardPlanRegistry,
     effective_ids: set[str],
@@ -649,16 +654,7 @@ def _normalize_scope_to_shared_theme(
     theme_ids = _theme_ids_for_components(components, registry)
     if not theme_ids:
         raise ValueError("AdvancedScopeBrief selected a Theme outside component palettes")
-    preferred_theme_ids = tuple(
-        theme_id
-        for component in components
-        for scene in component.palette_scenes
-        if scene != "generic"
-        for theme_id in registry.palette_scene_theme_ids[scene]
-        if theme_id in theme_ids
-    )
-    resolved_theme_id = next(iter(dict.fromkeys(preferred_theme_ids)), theme_ids[0])
-    return scope.model_copy(update={"theme_id": resolved_theme_id})
+    return scope.model_copy(update={"theme_id": theme_ids[0]})
 
 
 def plan_advanced_scope_offline(
@@ -1079,7 +1075,7 @@ def _component_candidates(
     extract_shape: DataShape | None,
     registry: CardPlanRegistry,
     available_capability_ids: set[str],
-) -> tuple[UxBusinessComponentCapability, ...]:
+) -> tuple[BusinessTemplateGroup, ...]:
     schema_parts = [json.dumps(task_spec.dataModelSchema, ensure_ascii=False)]
     if extract_shape is not None:
         schema_parts.append(
@@ -1167,7 +1163,7 @@ def _component_candidates(
 
 
 def _compatible_component_ids(
-    capability: UxBusinessComponentCapability,
+    capability: BusinessTemplateGroup,
     candidate_ids: set[str],
     size: WidgetSize,
     user_query: str,
@@ -1206,7 +1202,7 @@ def _compatible_component_ids(
 
 
 def _effective_candidate_variants(
-    capability: UxBusinessComponentCapability,
+    capability: BusinessTemplateGroup,
     task_spec: TaskSpec,
     capability_ids: set[str],
 ) -> tuple[str, ...]:
@@ -1247,39 +1243,21 @@ def _health_pair_is_approved(pair: frozenset[str]) -> bool:
 
 
 def _theme_ids_for_components(
-    components: tuple[UxBusinessComponentCapability, ...],
+    components: tuple[BusinessTemplateGroup, ...],
     registry: CardPlanRegistry,
 ) -> tuple[str, ...]:
-    component_names = {component.name for component in components}
-    if component_names == {"ActivityOverview", "SleepOverview"}:
-        return tuple(registry.palette_scene_theme_ids["sport.action"])
-    if len(components) == 1 and components[0].name == "SleepOverview":
-        return tuple(registry.palette_scene_theme_ids["sleep.violet"])
-    per_component = [
-        tuple(
-            dict.fromkeys(
-                theme_id
-                for scene in component.palette_scenes
-                for theme_id in registry.palette_scene_theme_ids[scene]
-            )
-        )
+    capability_ids = {
+        capability_id
         for component in components
-    ]
-    if not per_component:
+        for capability_id in component.data_capability_ids
+    }
+    if not capability_ids:
         return ()
-    cross_domain = len({component.domain_id for component in components}) > 1
-    if cross_domain:
-        return tuple(
-            dict.fromkeys(
-                theme_id
-                for component_theme_ids in per_component
-                for theme_id in component_theme_ids
-            )
-        )
-    common = set(per_component[0])
-    for theme_ids in per_component[1:]:
-        common &= set(theme_ids)
-    return tuple(theme_id for theme_id in per_component[0] if theme_id in common)
+    return tuple(
+        theme_id
+        for theme_id, theme in registry.themes.items()
+        if capability_ids.intersection(theme.supported_capability_ids)
+    )
 
 
 def _layout_rank(layout_id: str, count: int, has_action: bool) -> tuple[int, str]:

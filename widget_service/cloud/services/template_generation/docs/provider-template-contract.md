@@ -5,6 +5,17 @@
 业务 Provider 同时提供数据能力、第一层/第二层规则和 UI 模板。`dataDomain` 明确能力数据写入
 TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路径：
 
+`provider.json` 同时是业务模板归属的唯一事实源：
+
+- 每个业务模板直接声明 `businessId` 和 `capabilityId`；
+- `capabilities` 只声明数据根和 Schema，不重复枚举模板；
+- Registry 从模板条目派生业务分组和模板归属，不维护独立高级组件清单；
+- Layout Provider 使用 `layoutComponents` 声明布局尺寸、业务子节点和 Action 约束；
+- 全局 UX 配置只保留 Token、Theme 场景映射和尺寸预算。
+
+同一个模板 ID 只能在 `templates` 中出现一次。业务分组、数据能力归属和 Provider 归属均从该条目推导，
+避免 `capabilities[].templates`、`businessComponents[].localTemplateIds` 和 `templates[]` 三处同步。
+
 ```json
 {
   "firstLayerRule": {"path": "layer-docs/first-layer.md"},
@@ -15,27 +26,30 @@ TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路�
     "dataSchema": {
       "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
       "version": "app-11.7.5.205_rom-6.0"
-    },
-    "templates": ["WeatherOverviewHero@1", "WeatherOverviewCompact@1"]
+    }
   }],
   "templates": [{
     "templateId": "WeatherOverviewHero@1",
+    "businessId": "WeatherOverview",
+    "capabilityId": "ViewWeather",
     "description": "天气主视觉摘要。",
     "requiredData": ["/current/temperatureText", "/current/condition"],
     "optionalData": ["/current/airQuality"],
-    "entry": "templates/weather-overview.cardtpl",
-    "digest": "sha256:<生成时计算>"
+    "entry": "templates/weather-overview.cardtpl"
   }]
 }
 ```
 
-布局 Provider 不拥有数据能力，因此 capability 条目只登记 `templates`，也不需要分层领域规则：
+布局 Provider 不拥有数据能力，因此不声明 `capabilities`、`businessId` 或 `capabilityId`，也不需要分层
+领域规则：
 
 ```json
 {
   "providerId": "com.huawei.layout.cli",
-  "capabilities": [{
-    "templates": ["SingleFocusLayout@1", "HeroSupportLayout@1"]
+  "templates": [{
+    "templateId": "SingleFocusLayout@1",
+    "description": "单一焦点纵向骨架。",
+    "entry": "templates/layout.cardtpl"
   }]
 }
 ```
@@ -77,8 +91,8 @@ Column("compact",
   素材全集；第二层只从本轮 TaskSpec 实际下发的素材候选中按 description 匹配，没有合适候选时省略
   可选参数，或选择不依赖该素材的模板。
 - 反引号 `${...}` 可混合 `props`、`data` 和静态分隔符；云侧保留为 A2UI 表达式，不投影样例值。
-- 同一个 `.cardtpl` 可以包含多个 `#Template ... #End`，`provider.json` 中每个模板条目都指向同一文件
-  并校验相同文件摘要。
+- 同一个 `.cardtpl` 可以包含多个 `#Template ... #End`，`provider.json` 中每个模板条目可指向同一文件；
+  文件完整性由 CardPlan bundle 清单统一校验，不在模板条目重复维护摘要。
 
 允许接收子组件的布局模板显式声明 `...children`，且正文只能放置一次 `children`：
 
@@ -114,11 +128,15 @@ Provider 模板作者侧声明，不进入最终 Nested-2 语法。最终产物�
 第一层顶层只能输出 `theme`、`componentCandidates`、`action`：
 
 1. 从 `userQuery` 和 `taskSpecDataFields` 标定用户显式要求显示的字段；
-2. 所选一个或多个组件的模板覆盖并集必须承载全部显式字段，任一字段全部或部分不能承载即失败；
+2. Search 只允许选择一个业务组件；该组件下一个或多个模板的覆盖并集必须承载全部显式字段，任一字段全部
+   或部分不能承载即失败；
 3. 每个所选组件输出 `componentId` 与非空 `availableTemplateIds`，模板 ID 必须来自该组件；
 4. 显式字段满足后，再检查候选模板自身 `requiredData` 在 TaskSpec 中全部存在；
 5. `candidateOutputFields` 只是候选数据投影，不直接等于强制显示集合；
 6. `action` 只输出显式动作对应的 `eventId`，不属于组件，也不参与数据覆盖。
+
+显式请求包含多个数据能力，或必须联合多个业务组件才能覆盖字段时，Search 直接返回模板不匹配；单业务加
+Action 仍属于支持范围。
 
 成功示例：
 

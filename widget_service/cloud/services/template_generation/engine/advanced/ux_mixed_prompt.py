@@ -9,7 +9,11 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict
 
 from models.generation import TaskSpec
-from services.template_generation.engine.cardplan.models import Fact, HybridBodyContract
+from services.template_generation.engine.cardplan.models import (
+    BusinessTemplateGroup,
+    Fact,
+    HybridBodyContract,
+)
 from services.template_generation.engine.cardplan.prompt import build_hybrid_prompt
 from services.template_generation.engine.cardplan.registry import CardPlanRegistry
 
@@ -24,7 +28,6 @@ from .content_selectors import (
 from .models import (
     AdvancedScopeBrief,
     TemplateComponentCandidate,
-    UxBusinessComponentCapability,
 )
 from .scope_planner import (
     resolve_available_capability_ids,
@@ -428,7 +431,7 @@ def _required_template_group(
 
 
 def _business_component_line(
-    component: UxBusinessComponentCapability,
+    component: BusinessTemplateGroup,
     capability_ids: set[str],
     size: str,
     requested_template_ids: tuple[str, ...],
@@ -462,7 +465,7 @@ def _card_spec_capability_ids(card_spec: dict[str, Any]) -> tuple[str, ...] | No
 def _provider_component_server_owned_values(
     task_spec: TaskSpec,
     card_spec: dict[str, Any],
-    components: tuple[UxBusinessComponentCapability, ...],
+    components: tuple[BusinessTemplateGroup, ...],
     registry: CardPlanRegistry,
     allowed_template_ids: set[str],
 ) -> tuple[str | int | float, ...]:

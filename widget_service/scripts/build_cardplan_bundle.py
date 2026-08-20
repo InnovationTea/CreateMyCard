@@ -71,7 +71,7 @@ def _build() -> tuple[str, str]:
         "contractVersion": "hybrid-body-contract/0.5",
         "templateRegistryVersion": "terse-template-registry/0.7",
         "advancedComponentRegistryVersion": "advanced-component-registry/1",
-        "uxAdvancedComponentRegistryVersion": "advanced-component-ux-registry/1",
+        "uxAdvancedComponentRegistryVersion": "advanced-component-ux-registry/2",
         "a2uiWireVersion": "v0.9",
         "a2uiTargetSpecVersion": "v0.9.1",
         "catalogId": "ohos.a2ui.extended.catalog.form",

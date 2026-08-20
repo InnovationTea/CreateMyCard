@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -160,6 +161,7 @@ class TemplateDefinition(StrictModel):
         alias="assetParameterSemanticTags",
     )
     provider_id: str | None = Field(default=None, alias="providerId")
+    business_id: str | None = Field(default=None, alias="businessId")
     capability_id: str | None = Field(default=None, alias="capabilityId")
     data_domain: str | None = Field(default=None, alias="dataDomain")
     required_data: tuple[str, ...] = Field(default=(), alias="requiredData")
@@ -184,6 +186,51 @@ class TemplateDefinition(StrictModel):
     @property
     def wire_id(self) -> str:
         return f"{self.template_id}@{self.version}"
+
+
+@dataclass(frozen=True)
+class BusinessTemplateGroup:
+    """从 Provider 模板条目派生的单业务分组，不是独立配置模型。"""
+
+    name: str
+    provider_id: str
+    description: str
+    supported_card_sizes: tuple[Literal["2x2", "2x4"], ...]
+    data_capability_ids: tuple[str, ...]
+    local_template_ids: tuple[str, ...]
+
+    @property
+    def domain_id(self) -> str:
+        return self.provider_id
+
+    @property
+    def variants(self) -> tuple[str, ...]:
+        return ("template",)
+
+    @property
+    def roles(self) -> tuple[Literal["hero"], ...]:
+        return ("hero",)
+
+    @property
+    def max_items_by_size(self) -> dict[Literal["2x2", "2x4"], int]:
+        return {"2x2": 1, "2x4": 1}
+
+    @property
+    def supported_layouts(self) -> tuple[str, ...]:
+        return ("SingleFocusLayout", "HeroActionLayout")
+
+    @property
+    def detection_terms(self) -> tuple[str, ...]:
+        return (self.name, self.description)
+
+    @property
+    def implementation(self) -> Literal["template"]:
+        return "template"
+
+    def enabled_variants(self, capability_ids: set[str]) -> tuple[str, ...]:
+        if capability_ids.intersection(self.data_capability_ids):
+            return self.variants
+        return ()
 
 
 class CardActionStyle(StrictModel):

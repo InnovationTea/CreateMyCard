@@ -117,6 +117,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "ScheduleOverviewNextEvent@1",
         "SleepOverviewDuration@1",
         "SleepOverviewDurationScore@1",
+        "SleepOverviewDurationScoreDetailed@1",
         "WeatherOverviewHero@1",
         "WorkoutOverview@1",
         "SingleFocusLayout@1",
@@ -145,6 +146,41 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         for template_id in registry.provider_template_ids
         for definition in (registry.require_template(template_id),)
     )
+
+
+def test_business_groups_are_derived_from_provider_templates() -> None:
+    registry = get_cardplan_registry()
+    foundation = json.loads(
+        (registry.source_root / "advanced-component-ux-registry.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    provider_business_groups = {
+        component.name
+        for bundle in registry.provider_bundles.values()
+        for component in bundle.business_groups
+    }
+    provider_layout_components = {
+        component.name
+        for bundle in registry.provider_bundles.values()
+        for component in bundle.manifest.layout_components
+    }
+
+    assert foundation["registryVersion"] == "advanced-component-ux-registry/2"
+    assert "businessComponents" not in foundation
+    assert "layoutComponents" not in foundation
+    assert provider_business_groups == set(registry.ux_business_components)
+    assert provider_layout_components == set(registry.ux_layout_components)
+    assert len(registry.ux_business_component_provider_ids) == 12
+    assert len(registry.ux_layout_component_provider_ids) == 10
+    for bundle in registry.provider_bundles.values():
+        payload = json.loads(
+            (registry.source_root / "providers" / bundle.manifest.provider_id.removeprefix(
+                "com.huawei."
+            ).removesuffix(".cli") / "provider.json").read_text(encoding="utf-8")
+        )
+        assert "businessComponents" not in payload
+        assert all("digest" not in template for template in payload.get("templates", []))
 
 
 def test_every_provider_asset_prop_has_second_layer_semantic_description():
@@ -240,6 +276,28 @@ def test_nested2_full_document_requires_data_for_every_component_binding():
             protocol_profile=profile,
             task_spec=task_spec,
         )
+
+
+def test_app_usage_template_sizes_separate_compact_and_wide_variants():
+    registry = get_cardplan_registry()
+    compact_ids = (
+        "AppUsageOverviewSingleApp@1",
+        "AppUsageOverviewSingleAppDetailed@1",
+    )
+    wide_ids = (
+        "AppUsageOverviewSingleAppWide@1",
+        "AppUsageOverviewSingleAppDetailedWide@1",
+    )
+
+    for template_id in compact_ids:
+        assert registry.require_template(template_id).variants[0].supported_card_sizes == (
+            "2x2",
+        )
+    for template_id in wide_ids:
+        assert registry.require_template(template_id).variants[0].supported_card_sizes == (
+            "2x4",
+        )
+
 
 def test_workout_template_requires_one_complete_training_session():
     registry = get_cardplan_registry()
@@ -903,7 +961,7 @@ def _provider_field(value: Any, field_type: str) -> dict[str, Any]:
 
 
 @pytest.mark.asyncio
-async def test_q094_sleep_duration_score_and_steps_are_all_preserved():
+async def test_q094_multi_business_fields_reject_template_search():
     task_spec = TaskSpec(
         userQuery="刚睡醒，看看昨晚睡了多久、睡眠得分和今天走了多少步",
         size="2x2",
@@ -983,32 +1041,12 @@ async def test_q094_sleep_duration_score_and_steps_are_all_preserved():
             **_kwargs: Any,
         ) -> str:
             self.second_layer_prompt = prompt
-            return (
-                'Template("HeroSupportLayout@1",{},'
-                'Template("ActivityOverviewSteps@1",'
-                '{"stepsIcon":"resources/base/media/figure_run.svg"}),'
-                'Template("SleepOverviewDurationScoreSupport@1",{}));'
-            )
+            raise AssertionError("multi-business Search miss must skip the second layer")
 
     model = Q094TemplateModel()
-    output = await generate_template_a2ui(task_spec, card_spec, (binding,), model)
+    with pytest.raises(TemplateRouteNotApplicable, match="one business component"):
+        await generate_template_a2ui(task_spec, card_spec, (binding,), model)
 
-    assert output.template_ids == (
-        "ActivityOverviewSteps@1",
-        "SleepOverviewDurationScoreSupport@1",
-        "HeroSupportLayout@1",
-    )
-    messages = [json.loads(line) for line in output.a2ui.splitlines()]
-    component_source = json.dumps(
-        messages[1]["updateComponents"]["components"],
-        ensure_ascii=False,
-    )
-    assert all(
-        f"${{/data/healthSport/{field}}}" in component_source
-        for field in ("dailySteps", "nightSleepDurationText", "sleepScore")
-    )
-    assert "_templateProjection" not in output.a2ui
-    assert "#FFED6F21" in output.a2ui
     assert model.first_layer_prompt is not None
     first_layer_payload = json.loads(model.first_layer_prompt[1]["content"])
     assert first_layer_payload["candidateOutputFieldsByCapability"] == {
@@ -1019,10 +1057,7 @@ async def test_q094_sleep_duration_score_and_steps_are_all_preserved():
         ]
     }
     assert first_layer_payload["providerFirstLayerRules"]
-    assert model.second_layer_prompt is not None
-    second_layer_user = model.second_layer_prompt[1]["content"]
-    assert "没有合适候选时省略可选参数" in second_layer_user
-    assert "caloriesIcon" in second_layer_user and "distanceIcon" in second_layer_user
+    assert model.second_layer_prompt is None
 
 
 class _FixedTemplateModel:

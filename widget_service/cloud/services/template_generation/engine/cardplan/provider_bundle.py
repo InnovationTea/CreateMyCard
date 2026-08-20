@@ -11,15 +11,17 @@ import tokenize
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from jsonschema import Draft202012Validator
 from pydantic import Field, model_validator
 
 from config.config import get_settings
 from models.generation import TaskSpec
+from services.template_generation.engine.advanced.models import UxLayoutComponentCapability
 
 from .models import (
+    BusinessTemplateGroup,
     StrictModel,
     TemplateBinding,
     TemplateDefinition,
@@ -70,7 +72,6 @@ _FORBIDDEN_KEYS = frozenset({"__proto__", "prototype", "constructor"})
 _TEMPLATE_ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9-]{0,63}$")
 _REFERENCE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
 _VARIANT_RE = re.compile(r"^[A-Za-z][A-Za-z0-9-]{0,31}$")
-_DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 _PROVIDER_ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:\.[a-z][a-z0-9-]*)+$")
 _PROVIDER_VERSION_RE = re.compile(r"^[1-9][0-9]*\.[0-9]+\.[0-9]+(?:-[a-z0-9.-]+)?$")
 _MAX_BUNDLE_FILE_BYTES = 1_048_576
@@ -108,8 +109,6 @@ class ProviderCapabilityEntry(StrictModel):
         pattern=r"^/data(?:/[^/~]+(?:~[01][^/~]*)*)*$",
     )
     data_schema: ProviderDataSchema | None = Field(default=None, alias="dataSchema")
-    templates: tuple[str, ...] = Field(min_length=1)
-
     @model_validator(mode="after")
     def data_contract_is_all_or_none(self) -> ProviderCapabilityEntry:
         values = (self.capability_id, self.data_domain, self.data_schema)
@@ -124,11 +123,20 @@ class ProviderCapabilityEntry(StrictModel):
 
 class ProviderTemplateEntry(StrictModel):
     template_id: str = Field(alias="templateId", min_length=1)
+    business_id: str | None = Field(
+        default=None,
+        alias="businessId",
+        pattern=r"^[A-Z][A-Za-z0-9]{0,63}$",
+    )
+    capability_id: str | None = Field(default=None, alias="capabilityId", min_length=1)
     description: str = Field(min_length=1)
+    supported_card_sizes: tuple[Literal["2x2", "2x4"], ...] = Field(
+        default=(),
+        alias="supportedCardSizes",
+    )
     required_data: tuple[str, ...] = Field(default=(), alias="requiredData")
     optional_data: tuple[str, ...] = Field(default=(), alias="optionalData")
     entry: str = Field(min_length=1)
-    digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
 
     @model_validator(mode="after")
     def data_paths_are_disjoint(self) -> ProviderTemplateEntry:
@@ -141,6 +149,10 @@ class ProviderTemplateEntry(StrictModel):
         for path in (*self.required_data, *self.optional_data):
             if not _provider_relative_data_path(path):
                 raise ValueError(f"Provider Template data path is invalid: {path}")
+        if (self.required_data or self.optional_data) and self.capability_id is None:
+            raise ValueError("Provider data Template must declare capabilityId")
+        if self.capability_id is not None and self.business_id is None:
+            raise ValueError("Provider data Template must declare businessId")
         return self
 
 
@@ -154,17 +166,32 @@ class ProviderManifest(StrictModel):
     bundle_format: str = Field(alias="bundleFormat")
     provider_id: str = Field(alias="providerId", min_length=1)
     provider_version: str = Field(alias="providerVersion", min_length=1)
-    capabilities: tuple[ProviderCapabilityEntry, ...] = Field(min_length=1)
-    templates: tuple[ProviderTemplateEntry, ...] = Field(min_length=1)
+    capabilities: tuple[ProviderCapabilityEntry, ...] = ()
+    templates: tuple[ProviderTemplateEntry, ...] = ()
+    layout_components: tuple[UxLayoutComponentCapability, ...] = Field(
+        default=(),
+        alias="layoutComponents",
+    )
     first_layer_rule: ProviderRuleReference | None = Field(default=None, alias="firstLayerRule")
     second_layer_rule: ProviderRuleReference | None = Field(default=None, alias="secondLayerRule")
     compatibility: ProviderCompatibility
+
+    @model_validator(mode="after")
+    def declares_provider_content(self) -> ProviderManifest:
+        content = (self.templates, self.layout_components)
+        if not any(content):
+            raise ValueError("Provider must declare Templates or Layout Components")
+        layout_names = tuple(item.name for item in self.layout_components)
+        if len(layout_names) != len(set(layout_names)):
+            raise ValueError("Provider layoutComponents must be unique")
+        return self
 
 
 @dataclass(frozen=True)
 class LoadedProviderBundle:
     manifest: ProviderManifest
     templates: tuple[TemplateDefinition, ...]
+    business_groups: tuple[BusinessTemplateGroup, ...]
     first_layer_rule: str
     second_layer_rule: str
     bundle_digest: str
@@ -244,7 +271,7 @@ def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
     _validate_compatibility(manifest.compatibility)
 
     template_entries = _unique_template_entries(manifest.templates)
-    owners = _template_owners(manifest.capabilities)
+    capabilities = _capabilities_by_id(manifest.capabilities)
     first_layer_rule = (
         _load_rule_document(root, manifest.first_layer_rule, "first-layer")
         if manifest.first_layer_rule is not None
@@ -258,23 +285,28 @@ def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
     bundle_digest = _bundle_digest(root, manifest)
     definitions: list[TemplateDefinition] = []
     for wire_id, entry in template_entries.items():
-        capability = owners.get(wire_id)
-        if capability is None:
-            raise ValueError(f"Provider Template has no capability owner: {wire_id}")
-        output_schema = _load_data_schema(root, capability) if capability.data_schema else {}
+        capability = (
+            capabilities.get(entry.capability_id)
+            if entry.capability_id is not None
+            else None
+        )
+        if entry.capability_id is not None and capability is None:
+            raise ValueError(
+                f"Provider Template references an unknown capability: {wire_id}"
+            )
+        output_schema = _load_data_schema(root, capability) if capability is not None else {}
 
         template_path = _bundle_file(root, entry.entry)
         template_bytes = _bounded_file_bytes(template_path)
-        actual_digest = _sha256_digest(template_bytes)
-        if actual_digest != entry.digest:
-            raise ValueError(f"Provider Template digest mismatch: {wire_id}")
         definition = compile_card_template(
             template_bytes.decode("utf-8"),
             provider_id=manifest.provider_id,
+            business_id=entry.business_id,
             expected_wire_id=wire_id,
-            expected_capability_id=capability.capability_id,
-            data_domain=capability.data_domain,
+            expected_capability_id=entry.capability_id,
+            data_domain=capability.data_domain if capability is not None else None,
             description=entry.description,
+            supported_card_sizes=entry.supported_card_sizes,
             required_data=entry.required_data,
             optional_data=entry.optional_data,
             output_schema=output_schema,
@@ -283,12 +315,19 @@ def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
         _validate_provider_template_data_contract(definition, entry)
         definitions.append(definition)
 
-    if set(owners) != set(template_entries):
-        missing = sorted(set(owners) - set(template_entries))
-        raise ValueError(f"Provider capability references unknown Templates: {missing}")
+    referenced_capability_ids = {
+        entry.capability_id
+        for entry in template_entries.values()
+        if entry.capability_id is not None
+    }
+    if set(capabilities) != referenced_capability_ids:
+        unused = sorted(set(capabilities) - referenced_capability_ids)
+        raise ValueError(f"Provider capability has no Templates: {unused}")
+    business_groups = _derive_business_groups(manifest, template_entries, definitions)
     return LoadedProviderBundle(
         manifest,
         tuple(definitions),
+        business_groups,
         first_layer_rule,
         second_layer_rule,
         bundle_digest,
@@ -299,10 +338,12 @@ def compile_card_template(
     source: str,
     *,
     provider_id: str,
+    business_id: str | None,
     expected_wire_id: str,
     expected_capability_id: str | None,
     data_domain: str | None,
     description: str,
+    supported_card_sizes: tuple[Literal["2x2", "2x4"], ...],
     required_data: tuple[str, ...],
     optional_data: tuple[str, ...],
     output_schema: dict[str, Any],
@@ -315,10 +356,12 @@ def compile_card_template(
         return _compile_ui_card_template(
             source,
             provider_id=provider_id,
+            business_id=business_id,
             expected_wire_id=expected_wire_id,
             expected_capability_id=expected_capability_id,
             data_domain=data_domain,
             description=description,
+            supported_card_sizes=supported_card_sizes,
             required_data=required_data,
             optional_data=optional_data,
             output_schema=output_schema,
@@ -327,6 +370,7 @@ def compile_card_template(
     return _compile_legacy_card_template(
         source,
         provider_id=provider_id,
+        business_id=business_id,
         expected_wire_id=expected_wire_id,
         expected_capability_id=expected_capability_id,
         data_domain=data_domain,
@@ -342,6 +386,7 @@ def _compile_legacy_card_template(
     source: str,
     *,
     provider_id: str,
+    business_id: str | None,
     expected_wire_id: str,
     expected_capability_id: str | None,
     data_domain: str | None,
@@ -421,6 +466,7 @@ def _compile_legacy_card_template(
             "allowedLayoutTokens": [],
             "assetParameterSemanticTags": parameters.asset_semantic_tags,
             "providerId": provider_id,
+            "businessId": business_id,
             "capabilityId": capability_id,
             "dataDomain": data_domain,
             "requiredData": required_data,
@@ -441,10 +487,12 @@ def _compile_ui_card_template(
     source: str,
     *,
     provider_id: str,
+    business_id: str | None,
     expected_wire_id: str,
     expected_capability_id: str | None,
     data_domain: str | None,
     description: str,
+    supported_card_sizes: tuple[Literal["2x2", "2x4"], ...],
     required_data: tuple[str, ...],
     optional_data: tuple[str, ...],
     output_schema: dict[str, Any],
@@ -516,7 +564,7 @@ def _compile_ui_card_template(
         {
             "size": "default",
             "parametersSchema": schema,
-            "supportedCardSizes": [],
+            "supportedCardSizes": supported_card_sizes,
             "supportedRoles": [],
             "requiredBindings": tuple(required_bindings),
             "optionalBindings": tuple(optional_bindings),
@@ -547,6 +595,7 @@ def _compile_ui_card_template(
             "allowedLayoutTokens": [],
             "assetParameterSemanticTags": asset_tags,
             "providerId": provider_id,
+            "businessId": business_id,
             "capabilityId": expected_capability_id,
             "dataDomain": data_domain,
             "requiredData": required_data,
@@ -1699,27 +1748,77 @@ def _unique_template_entries(
         _split_wire_id(entry.template_id)
         if entry.template_id in result:
             raise ValueError(f"duplicate Provider Template entry: {entry.template_id}")
-        if _DIGEST_RE.fullmatch(entry.digest) is None:
-            raise ValueError(f"invalid Provider Template digest: {entry.template_id}")
         result[entry.template_id] = entry
     return result
 
 
-def _template_owners(
+def _capabilities_by_id(
     capabilities: tuple[ProviderCapabilityEntry, ...],
 ) -> dict[str, ProviderCapabilityEntry]:
     result: dict[str, ProviderCapabilityEntry] = {}
-    capability_ids: set[str] = set()
     for capability in capabilities:
-        if capability.capability_id is not None and capability.capability_id in capability_ids:
-            raise ValueError(f"duplicate Provider capability: {capability.capability_id}")
-        if capability.capability_id is not None:
-            capability_ids.add(capability.capability_id)
-        for wire_id in capability.templates:
-            if wire_id in result:
-                raise ValueError(f"Provider Template has multiple owners: {wire_id}")
-            result[wire_id] = capability
+        capability_id = capability.capability_id
+        if capability_id is None:
+            raise ValueError("Provider capability must declare capabilityId")
+        if capability_id in result:
+            raise ValueError(f"duplicate Provider capability: {capability_id}")
+        result[capability_id] = capability
     return result
+
+
+def _derive_business_groups(
+    manifest: ProviderManifest,
+    entries: dict[str, ProviderTemplateEntry],
+    definitions: list[TemplateDefinition],
+) -> tuple[BusinessTemplateGroup, ...]:
+    definitions_by_id = {definition.wire_id: definition for definition in definitions}
+    business_ids = tuple(
+        dict.fromkeys(
+            entry.business_id for entry in entries.values() if entry.business_id is not None
+        )
+    )
+    groups: list[BusinessTemplateGroup] = []
+    for business_id in business_ids:
+        group_entries = tuple(
+            entry for entry in entries.values() if entry.business_id == business_id
+        )
+        template_ids = tuple(entry.template_id for entry in group_entries)
+        capability_ids = tuple(
+            dict.fromkeys(
+                entry.capability_id
+                for entry in group_entries
+                if entry.capability_id is not None
+            )
+        )
+        supported_sizes = _business_supported_sizes(
+            tuple(definitions_by_id[template_id] for template_id in template_ids)
+        )
+        descriptions = tuple(dict.fromkeys(entry.description for entry in group_entries))
+        groups.append(
+            BusinessTemplateGroup(
+                name=business_id,
+                provider_id=manifest.provider_id,
+                description=" ".join(descriptions),
+                supported_card_sizes=supported_sizes,
+                data_capability_ids=capability_ids,
+                local_template_ids=template_ids,
+            )
+        )
+    return tuple(groups)
+
+
+def _business_supported_sizes(
+    definitions: tuple[TemplateDefinition, ...],
+) -> tuple[Literal["2x2", "2x4"], ...]:
+    declared = {
+        size
+        for definition in definitions
+        for variant in definition.variants
+        for size in variant.supported_card_sizes
+    }
+    if any(not variant.supported_card_sizes for item in definitions for variant in item.variants):
+        return ("2x2", "2x4")
+    return tuple(size for size in ("2x2", "2x4") if size in declared)
 
 
 def _load_data_schema(
@@ -1801,10 +1900,6 @@ def _bundle_digest(root: Path, manifest: ProviderManifest) -> str:
         digest.update(_bounded_file_bytes(path))
         digest.update(b"\0")
     return "sha256:" + digest.hexdigest()
-
-
-def _sha256_digest(value: bytes) -> str:
-    return "sha256:" + hashlib.sha256(value).hexdigest()
 
 
 def provider_template_admission(

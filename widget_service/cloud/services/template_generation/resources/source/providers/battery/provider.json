@@ -15,30 +15,14 @@
       "dataSchema": {
         "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
         "version": "app-11.7.5.205_rom-6.0"
-      },
-      "templates": [
-        "BatteryOverviewNormal@1",
-        "BatteryOverviewNormalHero@1",
-        "BatteryOverviewCharging@1",
-        "BatteryOverviewLow@1",
-        "BatteryOverviewNormalWide@1",
-        "BatteryOverviewChargingWide@1",
-        "BatteryOverviewLowWide@1",
-        "BatteryOverviewNormalPeer@1",
-        "BatteryOverviewChargingPeer@1",
-        "BatteryOverviewLowPeer@1",
-        "BatteryOverviewNormalPhone@1",
-        "BatteryOverviewChargingPhone@1",
-        "BatteryOverviewLowPhone@1",
-        "BatteryOverviewNormalWeather@1",
-        "BatteryOverviewChargingWeather@1",
-        "BatteryOverviewLowWeather@1"
-      ]
+      }
     }
   ],
   "templates": [
     {
       "templateId": "BatteryOverviewNormal@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normal。",
       "requiredData": [
         "/batterySOC",
@@ -47,11 +31,12 @@
         "/batteryCapacityLevelDesc"
       ],
       "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
+      "entry": "templates/battery-overview.cardtpl"
     },
     {
       "templateId": "BatteryOverviewNormalHero@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量摘要，面向 2x2 底部 PillAction 预留空间，使用 normalWide 横向信息排版。 组件形态：normalHero。",
       "requiredData": [
         "/batterySOC",
@@ -60,11 +45,12 @@
         "/batteryCapacityLevelDesc"
       ],
       "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
+      "entry": "templates/battery-overview.cardtpl"
     },
     {
       "templateId": "BatteryOverviewCharging@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：charging。",
       "requiredData": [
         "/batterySOC",
@@ -73,11 +59,12 @@
         "/batteryCapacityLevelDesc"
       ],
       "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
+      "entry": "templates/battery-overview.cardtpl"
     },
     {
       "templateId": "BatteryOverviewLow@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：low。",
       "requiredData": [
         "/batterySOC",
@@ -86,11 +73,12 @@
         "/batteryCapacityLevelDesc"
       ],
       "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
+      "entry": "templates/battery-overview.cardtpl"
     },
     {
       "templateId": "BatteryOverviewNormalWide@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normalWide。",
       "requiredData": [
         "/batterySOC",
@@ -99,11 +87,12 @@
         "/batteryCapacityLevelDesc"
       ],
       "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
+      "entry": "templates/battery-overview.cardtpl"
     },
     {
       "templateId": "BatteryOverviewChargingWide@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：chargingWide。",
       "requiredData": [
         "/batterySOC",
@@ -112,11 +101,12 @@
         "/batteryCapacityLevelDesc"
       ],
       "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
+      "entry": "templates/battery-overview.cardtpl"
     },
     {
       "templateId": "BatteryOverviewLowWide@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：lowWide。",
       "requiredData": [
         "/batterySOC",
@@ -125,11 +115,12 @@
         "/batteryCapacityLevelDesc"
       ],
       "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
+      "entry": "templates/battery-overview.cardtpl"
     },
     {
       "templateId": "BatteryOverviewNormalPeer@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normalPeer。",
       "requiredData": [
         "/batterySOC",
@@ -138,11 +129,12 @@
         "/batteryCapacityLevelDesc"
       ],
       "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
+      "entry": "templates/battery-overview.cardtpl"
     },
     {
       "templateId": "BatteryOverviewChargingPeer@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：chargingPeer。",
       "requiredData": [
         "/batterySOC",
@@ -151,11 +143,12 @@
         "/batteryCapacityLevelDesc"
       ],
       "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
+      "entry": "templates/battery-overview.cardtpl"
     },
     {
       "templateId": "BatteryOverviewLowPeer@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：lowPeer。",
       "requiredData": [
         "/batterySOC",
@@ -164,44 +157,48 @@
         "/batteryCapacityLevelDesc"
       ],
       "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
+      "entry": "templates/battery-overview.cardtpl"
     },
     {
       "templateId": "BatteryOverviewNormalPhone@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normalPhone。",
       "requiredData": [
         "/batterySOC",
         "/batterySOCText"
       ],
       "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
+      "entry": "templates/battery-overview.cardtpl"
     },
     {
       "templateId": "BatteryOverviewChargingPhone@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：chargingPhone。",
       "requiredData": [
         "/batterySOC",
         "/batterySOCText"
       ],
       "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
+      "entry": "templates/battery-overview.cardtpl"
     },
     {
       "templateId": "BatteryOverviewLowPhone@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：lowPhone。",
       "requiredData": [
         "/batterySOC",
         "/batterySOCText"
       ],
       "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
+      "entry": "templates/battery-overview.cardtpl"
     },
     {
       "templateId": "BatteryOverviewNormalWeather@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normalWeather。",
       "requiredData": [
         "/batterySOCText",
@@ -209,11 +206,12 @@
         "/batteryCapacityLevelDesc"
       ],
       "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
+      "entry": "templates/battery-overview.cardtpl"
     },
     {
       "templateId": "BatteryOverviewChargingWeather@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：chargingWeather。",
       "requiredData": [
         "/batterySOCText",
@@ -221,11 +219,12 @@
         "/batteryCapacityLevelDesc"
       ],
       "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
+      "entry": "templates/battery-overview.cardtpl"
     },
     {
       "templateId": "BatteryOverviewLowWeather@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：lowWeather。",
       "requiredData": [
         "/batterySOCText",
@@ -233,8 +232,7 @@
         "/batteryCapacityLevelDesc"
       ],
       "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
+      "entry": "templates/battery-overview.cardtpl"
     }
   ],
   "compatibility": {

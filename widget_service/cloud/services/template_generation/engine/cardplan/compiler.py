@@ -394,6 +394,7 @@ def compile_ux_layout_card(
         raise TerseDslNested2ConversionError("UX Layout cannot repeat the same Action.")
     expanded = _append_missing_required_literals_to_ux_layout(expanded, contract)
     expanded = _inject_ux_business_title(expanded, business_title, contract)
+    expanded = _strip_2x2_composite_headers(expanded, size=task_spec.size)
     expanded = _normalize_weather_condition_icons(expanded, contract)
     content = _lower_ux_layout_root(
         expanded,
@@ -6578,6 +6579,52 @@ def _split_ux_layout_children(
     return content, actions
 
 
+def _strip_2x2_composite_headers(
+    node: Nested2Node,
+    *,
+    size: Literal["2x2", "2x4"],
+) -> Nested2Node:
+    """Remove redundant provider title rows from compact multi-region cards."""
+    if size != "2x2" or node.component_type not in {
+        "HeroSupportLayout",
+        "HeroSupportActionLayout",
+    }:
+        return node
+    content, actions = _split_ux_layout_children(node)
+    if len(content) < 2:
+        return node
+    compact_content = tuple(_strip_redundant_component_header(item) for item in content)
+    return Nested2Node(node.component_type, node.values, (*compact_content, *actions))
+
+
+def _strip_redundant_component_header(node: Nested2Node) -> Nested2Node:
+    if not _is_advanced_component_region(node) or len(node.children) < 2:
+        return node
+    header = node.children[0]
+    if not _is_literal_component_header(header):
+        return node
+    return Nested2Node(node.component_type, node.values, node.children[1:])
+
+
+def _is_literal_component_header(node: Nested2Node) -> bool:
+    if node.component_type == "Text":
+        return bool(node.values) and _is_plain_literal_text(node.values[0])
+    if node.component_type != "Row" or not node.children:
+        return False
+    if any(child.component_type not in {"Image", "Text"} for child in node.children):
+        return False
+    text_values = [
+        child.values[0]
+        for child in node.children
+        if child.component_type == "Text" and child.values
+    ]
+    return bool(text_values) and all(_is_plain_literal_text(value) for value in text_values)
+
+
+def _is_plain_literal_text(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip()) and "${" not in value
+
+
 def _inject_ux_business_title(
     node: Nested2Node,
     title: str | None,
@@ -6918,7 +6965,9 @@ def _lower_hero_support_layout(
     default_ratio = "balanced" if size == "2x4" else "heroWide"
     ratio = configuration.get("ratio", default_ratio)
     direction = configuration.get("direction", "auto")
-    if direction == "auto":
+    if size == "2x2":
+        direction = "vertical"
+    elif direction == "auto":
         direction = "horizontal" if size == "2x4" else _auto_pair_direction(content)
     weights = {
         "balanced": (50, 50),

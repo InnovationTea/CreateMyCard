@@ -121,61 +121,6 @@ class AdvancedComponentCapability(StrictModel):
         return self
 
 
-class UxBusinessComponentCapability(StrictModel):
-    """UX 设计包中的业务高级组件能力；与旧整卡 Registry 隔离。"""
-
-    name: str
-    domain_id: str = Field(alias="domainId")
-    description: str
-    variants: tuple[str, ...]
-    supported_card_sizes: tuple[Literal["2x2", "2x4"], ...] = Field(alias="supportedCardSizes")
-    min_region: Literal["compact", "half", "full"] = Field(alias="minRegion")
-    roles: tuple[Literal["hero", "support", "peer", "list", "action"], ...]
-    max_items_by_size: dict[Literal["2x2", "2x4"], int] = Field(alias="maxItemsBySize")
-    supported_layouts: tuple[str, ...] = Field(alias="supportedLayouts")
-    supports_action: bool = Field(alias="supportsAction")
-    palette_scenes: tuple[PaletteScene, ...] = Field(alias="paletteScenes")
-    sensitive_fields: tuple[str, ...] = Field(default=(), alias="sensitiveFields")
-    detection_terms: tuple[str, ...] = Field(alias="detectionTerms")
-    data_capability_ids: tuple[str, ...] = Field(alias="dataCapabilityIds")
-    enabled_variants_by_capability: dict[str, tuple[str, ...]] = Field(
-        alias="enabledVariantsByCapability"
-    )
-    implementation: Literal["template", "terse-dsl"] = "template"
-    local_template_ids: tuple[str, ...] = Field(default=(), alias="localTemplateIds")
-
-    @model_validator(mode="after")
-    def valid_capability(self) -> UxBusinessComponentCapability:
-        if not self.variants:
-            raise ValueError("UX Business Component must register variants")
-        if not self.supported_layouts:
-            raise ValueError("UX Business Component must register layouts")
-        if self.implementation == "template" and not self.local_template_ids:
-            raise ValueError("UX Business Component must register local Templates")
-        if self.implementation == "terse-dsl" and self.name not in UX_DIRECT_BUSINESS_COMPONENT_IDS:
-            raise ValueError("UX Business Component has an unsupported TerseDSL implementation")
-        if set(self.enabled_variants_by_capability) != set(self.data_capability_ids):
-            raise ValueError("UX Business Component capability variant gates are incomplete")
-        if any(
-            variant not in self.variants
-            for variants in self.enabled_variants_by_capability.values()
-            for variant in variants
-        ):
-            raise ValueError("UX Business Component capability gate references unknown variant")
-        return self
-
-    def enabled_variants(self, capability_ids: set[str]) -> tuple[str, ...]:
-        """Return variants backed by at least one effective production capability."""
-        return tuple(
-            dict.fromkeys(
-                variant
-                for capability_id in self.data_capability_ids
-                if capability_id in capability_ids
-                for variant in self.enabled_variants_by_capability[capability_id]
-            )
-        )
-
-
 class UxLayoutComponentCapability(StrictModel):
     """只描述几何职责的布局高级组件，不能读取业务字段。"""
 
