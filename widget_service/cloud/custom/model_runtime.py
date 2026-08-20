@@ -61,6 +61,8 @@ class ModelExecutionRuntime:
             if llmclient_transport is not None
             else _generate_with_llmclient
         )
+        self._uses_default_llmclient = llmclient_transport is None
+        self.last_response_metadata: dict[str, object] = {}
         self._llmclient_executor = ThreadPoolExecutor(
             max_workers=self.settings.model_max_concurrency,
             thread_name_prefix="llmclient-model",
@@ -100,8 +102,17 @@ class ModelExecutionRuntime:
         )
         execution_started_at = time.perf_counter()
         execution_status = "failed"
+        self.last_response_metadata = {}
         try:
             result = await self._execute_provider(provider, messages, request_context)
+            if provider == "deepseek_platform":
+                metadata = getattr(
+                    self._deepseek_platform_transport,
+                    "last_response_metadata",
+                    {},
+                )
+                if isinstance(metadata, dict):
+                    self.last_response_metadata = dict(metadata)
             execution_status = "success"
             return result
         finally:
@@ -171,6 +182,11 @@ class ModelExecutionRuntime:
 
     async def _generate_llmclient(self, messages: list[dict[str, str]]) -> str:
         """在线程中运行同步适配器；超时后持有令牌直至真实调用结束。"""
+        if self._uses_default_llmclient and self.settings.deepseek_api_url.startswith(
+            ("http://", "https://")
+        ):
+            return await self._generate_http_llmclient(messages)
+
         loop = asyncio.get_running_loop()
         future = loop.run_in_executor(
             self._llmclient_executor,
@@ -197,6 +213,39 @@ class ModelExecutionRuntime:
             )
             await self._finish_cancelled_llmclient(future)
             raise
+
+    async def _generate_http_llmclient(self, messages: list[dict[str, str]]) -> str:
+        """Run the native async HTTP stream so timeout cancellation closes the socket."""
+        trace: dict[str, object] = {}
+        options = LLMClientOptions(
+            api_key=self.settings.deepseek_api_key,
+            api_url=self.settings.deepseek_api_url,
+            model=self.settings.deepseek_model,
+            temperature=self.settings.deepseek_temperature,
+            top_p=self.settings.deepseek_top_p,
+            max_tokens=self.settings.deepseek_max_tokens,
+            enable_thinking=self.settings.deepseek_enable_thinking,
+            include_usage=self.settings.deepseek_include_usage,
+            debug_usage=self.settings.deepseek_debug_usage,
+            recv_timeout=self.settings.deepseek_recv_timeout,
+        )
+        try:
+            async with asyncio.timeout(self.settings.model_request_timeout_seconds):
+                chunks = [chunk async for chunk in stream_genui(options, messages, trace=trace)]
+        except TimeoutError as exc:
+            logger.error(
+                f"{_MODULE} request_timeout provider=llmclient "
+                f"timeout_seconds={self.settings.model_request_timeout_seconds} "
+                "http_stream_cancelled=true"
+            )
+            raise ModelTransportError(
+                f"model request timed out after {self.settings.model_request_timeout_seconds}s",
+                code="MODEL_REQUEST_TIMEOUT",
+            ) from exc
+        result = "".join(chunks)
+        self.last_response_metadata = trace
+        logger.info(f"{_MODULE} llmclient_response_collected content_chars={len(result)}")
+        return result
 
     @staticmethod
     async def _finish_timed_out_llmclient(future: asyncio.Future[str]) -> None:

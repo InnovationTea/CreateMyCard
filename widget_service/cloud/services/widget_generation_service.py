@@ -1099,7 +1099,7 @@ class WidgetGenerationService:
             model_profile_id=TERSE_DSL_NESTED2_PROFILE_ID,
             model_format=TERSE_DSL_NESTED2_PROFILE_ID,
             design_profile_id=TERSE_DSL_NESTED2_PROFILE_ID,
-            supports_dynamic_capabilities=False,
+            supports_dynamic_capabilities=True,
             validation_failure_blocking=True,
             stores_design_token=True,
         )

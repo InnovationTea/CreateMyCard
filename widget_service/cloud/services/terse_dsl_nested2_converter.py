@@ -83,12 +83,16 @@ def convert_terse_dsl_nested2_to_a2ui(
     *,
     size: str,
     protocol_profile: dict[str, Any],
+    task_spec: dict[str, Any] | None = None,
 ) -> str:
     """Convert one literal-only Nested-2 component tree to three A2UI messages."""
     root = parse_terse_dsl_nested2(source)
     compact_rows: list[list[Any]] = []
     _append_compact_rows(root, "root", size, compact_rows)
-    compact_rows.append(["/ui/state", "ready"])
+    if task_spec is not None:
+        compact_rows.append(["/", _task_spec_sample_data(task_spec)])
+    else:
+        compact_rows.append(["/ui/state", "ready"])
     compact_dsl = "\n".join(
         json.dumps(row, ensure_ascii=False, separators=(",", ":"))
         for row in compact_rows
@@ -385,3 +389,22 @@ def _container_props(
             f'Unsupported {node.component_type} layout "{layout}".'
         )
     return {**preset, **props}
+
+
+def _task_spec_sample_data(task_spec: dict[str, Any]) -> Any:
+    """Extract sample data from task_spec dataModelSchema for data binding."""
+
+    def sample(value: Any) -> Any:
+        if isinstance(value, dict) and "type" in value:
+            return value.get("sampleValue")
+        if isinstance(value, dict):
+            return {
+                key: sample(child)
+                for key, child in value.items()
+                if key != "_advancedSelectors"
+            }
+        if isinstance(value, list):
+            return [sample(child) for child in value]
+        return value
+
+    return sample(task_spec.get("dataModelSchema", {}))
