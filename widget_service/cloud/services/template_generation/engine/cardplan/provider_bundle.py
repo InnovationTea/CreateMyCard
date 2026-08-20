@@ -136,6 +136,7 @@ class ProviderTemplateEntry(StrictModel):
     )
     required_data: tuple[str, ...] = Field(default=(), alias="requiredData")
     optional_data: tuple[str, ...] = Field(default=(), alias="optionalData")
+    requires_layout_action: bool = Field(default=False, alias="requiresLayoutAction")
     entry: str = Field(min_length=1)
 
     @model_validator(mode="after")
@@ -311,6 +312,9 @@ def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
             optional_data=entry.optional_data,
             output_schema=output_schema,
             bundle_digest=bundle_digest,
+        )
+        definition = definition.model_copy(
+            update={"requires_layout_action": entry.requires_layout_action}
         )
         _validate_provider_template_data_contract(definition, entry)
         definitions.append(definition)
@@ -1907,6 +1911,9 @@ def provider_template_admission(
     task_spec: TaskSpec,
     card_spec: dict[str, Any] | None,
 ) -> ProviderTemplateAdmission:
+    context_admission = provider_template_context_admission(definition, task_spec)
+    if not context_admission.admitted:
+        return context_admission
     if definition.source_format != "cardtpl/1":
         return ProviderTemplateAdmission(True)
     if not definition.bindings:
@@ -1939,6 +1946,9 @@ def provider_template_variant_admission(
     task_spec: TaskSpec,
     card_spec: dict[str, Any] | None,
 ) -> ProviderTemplateAdmission:
+    context_admission = provider_template_context_admission(definition, task_spec)
+    if not context_admission.admitted:
+        return context_admission
     if definition.source_format != "cardtpl/1":
         return ProviderTemplateAdmission(True)
     if not definition.bindings:
@@ -1952,6 +1962,16 @@ def provider_template_variant_admission(
     if definition.data_domain is not None and root != definition.data_domain:
         return ProviderTemplateAdmission(False, "data-domain-mismatch", path=root)
     return _provider_variant_binding_admission(definition, variant, task_spec, root)
+
+
+def provider_template_context_admission(
+    definition: TemplateDefinition,
+    task_spec: TaskSpec,
+) -> ProviderTemplateAdmission:
+    """Apply Provider-owned constraints that depend on the selected generation context."""
+    if definition.requires_layout_action and not task_spec.eventCandidates:
+        return ProviderTemplateAdmission(False, "layout-action-required")
+    return ProviderTemplateAdmission(True)
 
 
 def _provider_variant_binding_admission(
