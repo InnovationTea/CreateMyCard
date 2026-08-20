@@ -338,6 +338,23 @@ def test_app_usage_templates_use_compact_duration_and_labeled_update_time():
         assert "minFontSize" not in update_options
 
 
+def test_activity_daily_summary_stacks_supporting_metrics():
+    registry = get_cardplan_registry()
+    root = registry.require_variant("ActivityOverviewDailySummary@1", "default").root
+    supporting_metrics = root.children[2]
+
+    assert supporting_metrics.component == "Column"
+    supporting_options = _template_node_options(supporting_metrics)
+    assert supporting_options["justifyContent"] == "spaceBetween"
+    assert supporting_options["alignItems"] == "center"
+    assert len(supporting_metrics.children) == 2
+    assert all(child.component == "Row" for child in supporting_metrics.children)
+    assert all(
+        _template_node_options(child)["alignItems"] == "center"
+        for child in supporting_metrics.children
+    )
+
+
 def test_workout_template_requires_one_complete_training_session():
     registry = get_cardplan_registry()
     definition = registry.require_template("WorkoutOverview@1")
