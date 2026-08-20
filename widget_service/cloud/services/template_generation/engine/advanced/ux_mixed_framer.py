@@ -6,11 +6,9 @@ import json
 from typing import Any
 
 from models.generation import WidgetSize
-from services.template_generation.engine.advanced.models import UX_LAYOUT_COMPONENT_IDS
 from services.template_generation.engine.cardplan.parser import (
     ParsedCall,
     normalize_hybrid_source,
-    parse_hybrid_card,
     parse_ux_layout_card,
 )
 from services.template_generation.engine.cardplan.registry import CardPlanRegistry
@@ -93,7 +91,7 @@ def frame_ux_layout_root_children(
         )
         return _serialize_call(framed_root) + ";", True
     retained = content[: max(maximum - 1, 0)]
-    overflow = content[max(maximum - 1, 0) :]
+    overflow = content[slice(max(maximum - 1, 0), None)]
     grouped = ParsedCall(
         kind="component",
         name="Column",
@@ -125,7 +123,7 @@ def _reparent_wrapped_layout_call(
     capability = registry.ux_business_components.get(component_id)
     if capability is None or capability.implementation != "terse-dsl":
         return None
-    arguments = _split_top_level_calls(stripped[open_index + 1 : -1])
+    arguments = _split_top_level_calls(stripped[slice(open_index + 1, -1)])
     if len(arguments) != 2:
         return None
     try:
@@ -271,51 +269,6 @@ def _split_top_level_calls(source: str) -> tuple[str, ...]:
             start = index + 1
     parts.append(source[start:])
     return tuple(parts)
-
-
-def frame_ux_layout_children(
-    source: str,
-    *,
-    size: WidgetSize,
-    registry: CardPlanRegistry,
-) -> tuple[str, bool]:
-    """Group layout overflow into a standard Column without changing any facts."""
-    normalized = normalize_hybrid_source(source)
-    normalized, trailing_delimiters_repaired = _close_trailing_delimiters(normalized)
-    root = parse_hybrid_card(normalized)
-    layout = root.children[0]
-    if not (
-        (layout.kind == "component" and layout.name in UX_LAYOUT_COMPONENT_IDS)
-        or (layout.kind == "template" and _layout_id(layout) in UX_LAYOUT_COMPONENT_IDS)
-    ):
-        return normalized, trailing_delimiters_repaired
-    maximum = registry.require_ux_layout_component(_layout_id(layout)).max_children_by_size[size]
-    if len(layout.children) <= maximum:
-        return normalized, trailing_delimiters_repaired
-    retained = layout.children[: max(maximum - 1, 0)]
-    overflow = layout.children[max(maximum - 1, 0) :]
-    grouped = ParsedCall(
-        kind="component",
-        name="Column",
-        values=("section",),
-        children=overflow,
-        span=layout.span,
-    )
-    framed_layout = ParsedCall(
-        kind=layout.kind,
-        name=layout.name,
-        values=layout.values,
-        children=(*retained, grouped),
-        span=layout.span,
-    )
-    framed_root = ParsedCall(
-        kind=root.kind,
-        name=root.name,
-        values=root.values,
-        children=(framed_layout,),
-        span=root.span,
-    )
-    return _serialize_call(framed_root) + ";", True
 
 
 def _close_trailing_delimiters(source: str) -> tuple[str, bool]:

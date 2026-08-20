@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import inspect
-import json
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any
 
-from app.logger import logger
+from app.logger import json_for_log, logger
 from models.generation import CandidateDataBinding, TaskSpec
 from services.card_validation.base import expression_references
 from services.protocol_registry import (
@@ -79,13 +78,10 @@ async def generate_template_a2ui(
     model_client: Any,
 ) -> TemplateEngineOutput:
     """先做 LLM 全量覆盖判断，再用受信模板确定性展开为 A2UI。"""
-    task_spec_payload = task_spec.model_dump(mode="json")
-    task_spec_message = (
+    logger.info(
         f"{_MODULE} task_spec_received "
-        f"payload={json.dumps(task_spec_payload, ensure_ascii=False, separators=(',', ':'))}"
+        f"summary={json_for_log(_task_spec_log_summary(task_spec))}"
     )
-    print(task_spec_message, flush=True)
-    logger.info(task_spec_message)
     try:
         registry = get_cardplan_registry()
         controls = load_template_controls()
@@ -97,17 +93,10 @@ async def generate_template_a2ui(
         )
         selected_task_spec = apply_content_selectors(task_spec, effective_capability_ids)
         data_shape = extract_data_shape(selected_task_spec)
-        selected_task_spec_payload = json.dumps(
-            selected_task_spec.model_dump(mode="json"),
-            ensure_ascii=False,
-            separators=(",", ":"),
-        )
-        selected_task_spec_message = (
+        logger.info(
             f"{_MODULE} task_spec_after_content_selectors "
-            f"payload={selected_task_spec_payload}"
+            f"summary={json_for_log(_task_spec_log_summary(selected_task_spec))}"
         )
-        print(selected_task_spec_message, flush=True)
-        logger.info(selected_task_spec_message)
     except ValueError as exc:
         raise TemplateRouteNotApplicable("template registry is unavailable") from exc
 
@@ -177,6 +166,16 @@ async def generate_template_a2ui(
         raise
     except (RuntimeError, ValueError) as exc:
         raise TemplateGenerationError("selected template generation failed") from exc
+
+
+def _task_spec_log_summary(task_spec: TaskSpec) -> dict[str, Any]:
+    """只记录模板路由所需结构摘要，避免输出用户原始请求和完整数据结构。"""
+    return {
+        "size": task_spec.size,
+        "dataModelRootKeys": sorted(task_spec.dataModelSchema),
+        "eventCandidateCount": len(task_spec.eventCandidates),
+        "assetCandidateCount": len(task_spec.assetCandidates),
+    }
 
 
 async def _generate_selected_templates(

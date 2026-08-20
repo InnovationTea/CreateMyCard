@@ -21,7 +21,6 @@ from services.template_generation.engine.advanced.content_selectors import (
     ResourceUsageOverviewFacts,
     ScheduleOverviewFacts,
     SleepOverviewFacts,
-    WorkoutCountdownFacts,
     WorkoutLatestFacts,
     activity_overview_variants,
     advanced_component_data_admission_is_relaxed,
@@ -37,7 +36,6 @@ from services.template_generation.engine.advanced.content_selectors import (
     extract_schedule_overview_facts,
     extract_sleep_overview_facts,
     extract_weather_overview_facts,
-    extract_workout_countdown_facts,
     extract_workout_latest_facts,
     heart_rate_overview_is_eligible,
     relaxed_activity_overview_variants,
@@ -68,7 +66,7 @@ from .models import (
     TemplateVariant,
 )
 from .parser import ParsedCall, parse_hybrid_card, parse_ux_layout_card
-from .provider_bundle import provider_template_legacy_identity
+from .provider_bundle import provider_template_family_identity
 from .registry import CardPlanRegistry
 
 _STANDARD_CONTAINERS = frozenset({"Row", "Column", "List", "Stack"})
@@ -513,13 +511,15 @@ def _normalize_resource_cleanup_layout_source(
     contract: HybridBodyContract,
 ) -> str:
     """Recover the unique approved root when the model places it after its content."""
-    if (
+    matches_contract = (
         set(contract.allowed_business_component_ids) == {"ResourceUsageOverview"}
         and set(contract.content_action_ids) == {"event.clean.memory"}
-        and "ResourceUsageOverview" in source
-        and "PillAction" in source
-        and not source.lstrip().startswith("HeroActionLayout")
-    ):
+    )
+    has_required_children = all(
+        component in source for component in ("ResourceUsageOverview", "PillAction")
+    )
+    has_expected_root = source.lstrip().startswith("HeroActionLayout")
+    if matches_contract and has_required_children and not has_expected_root:
         return 'HeroActionLayout(ResourceUsageOverview({"variant":"memory","role":"hero"}),' + (
             'PillAction({"actionId":"event.clean.memory"}));'
         )
@@ -563,13 +563,13 @@ def _normalize_single_resource_usage_title(
         _normalize_single_resource_usage_title(child, contract) for child in call.children
     )
     normalized = ParsedCall(call.kind, call.name, call.values, children, call.span)
-    if (
-        set(contract.required_business_component_ids) != {"ResourceUsageOverview"}
-        or call.name != "ResourceUsageOverview"
-        or len(call.values) != 1
-        or not isinstance(call.values[0], dict)
-        or call.values[0].get("showTitle") is not False
-    ):
+    requires_resource_usage = set(contract.required_business_component_ids) == {
+        "ResourceUsageOverview"
+    }
+    is_resource_call = call.name == "ResourceUsageOverview" and len(call.values) == 1
+    has_parameters = is_resource_call and isinstance(call.values[0], dict)
+    hides_title = has_parameters and call.values[0].get("showTitle") is False
+    if not requires_resource_usage or not hides_title:
         return normalized
     params = dict(call.values[0])
     params.pop("showTitle", None)
@@ -596,16 +596,18 @@ def _normalize_trusted_composite_text_calls(
         _normalize_trusted_composite_text_calls(child, contract) for child in call.children
     )
     normalized = ParsedCall(call.kind, call.name, call.values, children, call.span)
+    is_text_call = call.kind == "component" and call.name == "Text"
+    has_two_values = len(call.values) == 2
+    if not is_text_call or not has_two_values:
+        return normalized
+    text, design_token = call.values
     if (
-        call.kind != "component"
-        or call.name != "Text"
-        or len(call.values) != 2
-        or not isinstance(call.values[0], str)
-        or call.values[0] in contract.trusted_literals
-        or not isinstance(call.values[1], str)
+        not isinstance(text, str)
+        or text in contract.trusted_literals
+        or not isinstance(design_token, str)
     ):
         return normalized
-    parts = tuple(part.strip() for part in re.split(r"[|｜/·•]+", call.values[0]))
+    parts = tuple(part.strip() for part in re.split(r"[|｜/·•]+", text))
     if not 2 <= len(parts) <= 4 or any(
         not part or part not in contract.trusted_literals for part in parts
     ):
@@ -615,7 +617,7 @@ def _normalize_trusted_composite_text_calls(
         "Row",
         ("between",),
         tuple(
-            ParsedCall("component", "Text", (part, call.values[1]), (), call.span) for part in parts
+            ParsedCall("component", "Text", (part, design_token), (), call.span) for part in parts
         ),
         call.span,
     )
@@ -898,7 +900,7 @@ def _validate_provider_template_state(
     *,
     business_names: set[str],
 ) -> None:
-    identity = provider_template_legacy_identity(wire_id)
+    identity = provider_template_family_identity(wire_id)
     if identity is not None:
         wire_id, variant_name = identity
     if wire_id == "BatteryOverview@1":
@@ -1274,7 +1276,7 @@ def _expand_workout_overview_call(
     allowed_variants = set(
         variant_selector(
             task_spec,
-            {"GetHealthAndSportSummary", "GetCountdownDays"},
+            {"GetHealthAndSportSummary"},
         )
     )
     if variant not in allowed_variants:
@@ -1283,19 +1285,12 @@ def _expand_workout_overview_call(
         )
     source_icon = parameters.get("sourceIcon")
     calorie_icon = parameters.get("caloriesIcon")
-    if variant == "latest":
-        facts = extract_workout_latest_facts(task_spec.dataModelSchema)
-        if facts is None:
-            raise TerseDslNested2ConversionError(
-                "WorkoutOverview latest requires four trusted non-empty exercise fields."
-            )
-        return _workout_latest_overview(facts, source_icon, calorie_icon, registry)
-    facts = extract_workout_countdown_facts(task_spec.dataModelSchema)
+    facts = extract_workout_latest_facts(task_spec.dataModelSchema)
     if facts is None:
         raise TerseDslNested2ConversionError(
-            "WorkoutOverview countdown requires a trusted non-negative integer day count."
+            "WorkoutOverview latest requires four trusted non-empty exercise fields."
         )
-    return _workout_countdown_overview(facts, source_icon, registry)
+    return _workout_latest_overview(facts, source_icon, calorie_icon, registry)
 
 
 def _workout_latest_overview(
@@ -1328,38 +1323,6 @@ def _workout_latest_overview(
                 hero=True,
             ),
             _overview_fact_row(facts.calorie_text, calorie_icon, registry),
-        ),
-    )
-    return _mark_advanced_component(root, "WorkoutOverview")
-
-
-def _workout_countdown_overview(
-    facts: WorkoutCountdownFacts,
-    source_icon: Any,
-    registry: CardPlanRegistry,
-) -> Nested2Node:
-    root = Nested2Node(
-        "Column",
-        (
-            "compact",
-            {
-                "width": "matchParent",
-                "height": "matchParent",
-                "itemMargin": registry.ux_tokens["denseInnerGap"],
-                "justifyContent": "spaceBetween",
-                "alignItems": "start",
-                "constraintSize": {"minWidth": 0, "minHeight": 0},
-            },
-        ),
-        (
-            _overview_header("运动倒计时", source_icon, registry),
-            _overview_value_row(
-                str(facts.countdown_days),
-                "天",
-                accent="#FFFFFFFF",
-                registry=registry,
-                hero=True,
-            ),
         ),
     )
     return _mark_advanced_component(root, "WorkoutOverview")
@@ -2189,16 +2152,6 @@ def _battery_compact_overview(
     )
 
 
-def _battery_compact_description(facts: BatteryOverviewFacts) -> str:
-    return "，".join(
-        (
-            f"电量 {facts.level_text}",
-            facts.capacity_level,
-            facts.charging_status,
-        )
-    )
-
-
 def _battery_wide_overview(
     facts: BatteryOverviewFacts,
     battery_icon: Any,
@@ -2855,11 +2808,6 @@ def _bluetooth_text(
     return Nested2Node("Text", (value, design, options), ())
 
 
-def _percent_text(value: int | float) -> str:
-    number = float(value)
-    return f"{int(number)}%" if number.is_integer() else f"{number:g}%"
-
-
 def _expand_app_usage_overview_call(
     call: ParsedCall,
     *,
@@ -3376,66 +3324,6 @@ def _resource_usage_percent_row(
                 font_weight=600,
             ),
             _resource_usage_text("%", "subtitle", font_size=10, font_weight=400),
-        ),
-    )
-
-
-def _resource_usage_capacity_row(facts: ResourceUsageOverviewFacts) -> Nested2Node:
-    return Nested2Node(
-        "Row",
-        (
-            "between",
-            {
-                "width": "matchParent",
-                "itemMargin": 2,
-                "justifyContent": "spaceBetween",
-                "alignItems": "center",
-                "constraintSize": {"minWidth": 0, "minHeight": 0},
-            },
-        ),
-        (
-            _resource_usage_text(
-                facts.available_mem_text,
-                "subtitle",
-                font_size=10,
-                font_weight=400,
-            ),
-            _resource_usage_text(
-                facts.total_mem_text,
-                "subtitle",
-                font_size=10,
-                font_weight=400,
-            ),
-        ),
-    )
-
-
-def _resource_usage_capacity_column(facts: ResourceUsageOverviewFacts) -> Nested2Node:
-    return Nested2Node(
-        "Column",
-        (
-            "compact",
-            {
-                "width": "matchParent",
-                "itemMargin": 2,
-                "justifyContent": "center",
-                "alignItems": "center",
-                "constraintSize": {"minWidth": 0, "minHeight": 0},
-            },
-        ),
-        (
-            _resource_usage_text(
-                facts.available_mem_text,
-                "subtitle",
-                font_size=10,
-                font_weight=400,
-            ),
-            _resource_usage_text(
-                facts.total_mem_text,
-                "subtitle",
-                font_size=10,
-                font_weight=400,
-            ),
         ),
     )
 
@@ -4156,16 +4044,6 @@ def _weather_text(
     return Nested2Node("Text", (value, design, options), ())
 
 
-def _weather_temperature(value: str) -> str:
-    """Remove the trailing Celsius marker from a current temperature fact."""
-    return re.sub(r"\s*[℃Cc]\s*$", "", value).strip()
-
-
-def _weather_temperature_range(value: str) -> str:
-    """Remove Celsius markers from each side of a trusted temperature range."""
-    return re.sub(r"\s*[℃Cc](?=\s*(?:/|至|-|~|～|$))", "", value).strip()
-
-
 def _validate_template_params(
     params: dict[str, Any],
     asset_tags: dict[str, tuple[str, ...]],
@@ -4627,12 +4505,9 @@ def _runtime_binding_placeholder(path: str) -> str | None:
 
 
 def _normalize_blueprint_values(component: str, values: list[Any]) -> list[Any]:
-    if (
-        component == "Text"
-        and values
-        and isinstance(values[0], (int, float))
-        and not isinstance(values[0], bool)
-    ):
+    is_text_with_value = component == "Text" and bool(values)
+    has_numeric_value = is_text_with_value and isinstance(values[0], (int, float))
+    if has_numeric_value and not isinstance(values[0], bool):
         values[0] = str(values[0])
     normalized: list[Any] = []
     for value in values:
@@ -4688,12 +4563,12 @@ def _template_action_placeholder(value: dict[str, Any]) -> str | None:
         handler = handlers[0]
         args = handler.get("args") if isinstance(handler, dict) else None
         action_id = args.get("eventName") if isinstance(args, dict) else None
-        if (
-            not isinstance(args, dict)
-            or not isinstance(action_id, str)
-            or set(args) != {"eventName"}
-            or handler.get("call") != "sendToAssistant"
-        ):
+        has_event_name_argument = isinstance(args, dict) and set(args) == {"eventName"}
+        has_supported_handler = (
+            isinstance(handler, dict) and handler.get("call") == "sendToAssistant"
+        )
+        has_valid_action_id = isinstance(action_id, str)
+        if not has_event_name_argument or not has_supported_handler or not has_valid_action_id:
             raise TerseDslNested2ConversionError("Template Action ID is invalid.")
         return action_id
     if "action" not in value:
@@ -4701,13 +4576,9 @@ def _template_action_placeholder(value: dict[str, Any]) -> str | None:
     action = value["action"]
     event = action.get("event") if isinstance(action, dict) else None
     action_id = event.get("name") if isinstance(event, dict) else None
-    if (
-        not isinstance(action, dict)
-        or set(action) != {"event"}
-        or not isinstance(event, dict)
-        or set(event) != {"name"}
-        or not isinstance(action_id, str)
-    ):
+    has_event_wrapper = isinstance(action, dict) and set(action) == {"event"}
+    has_name_wrapper = isinstance(event, dict) and set(event) == {"name"}
+    if not has_event_wrapper or not has_name_wrapper or not isinstance(action_id, str):
         raise TerseDslNested2ConversionError("Template Action ID is invalid.")
     return action_id
 
@@ -4871,24 +4742,14 @@ def _strip_direct_card_chrome_from_call(
     def visit(current: ParsedCall) -> ParsedCall | None:
         if current.kind == "template":
             return current
-        text_fragment = (
-            _semantic_text_fragment(current.values[0])
-            if current.name == "Text" and current.values and isinstance(current.values[0], str)
-            else ""
-        )
-        if (
-            current.name == "Text"
-            and current.values
-            and isinstance(current.values[0], str)
-            and (
-                current.values[0] in chrome_literals
-                or (
-                    len(text_fragment) >= 2
-                    and bool(title_fragment)
-                    and text_fragment in title_fragment
-                )
-            )
-        ):
+        is_text = current.name == "Text" and bool(current.values)
+        has_text_value = is_text and isinstance(current.values[0], str)
+        text_value = current.values[0] if has_text_value else ""
+        text_fragment = _semantic_text_fragment(text_value)
+        duplicates_chrome = has_text_value and text_value in chrome_literals
+        duplicates_title = len(text_fragment) >= 2 and bool(title_fragment)
+        duplicates_title = duplicates_title and text_fragment in title_fragment
+        if duplicates_chrome or duplicates_title:
             return None
         children = tuple(child for item in current.children if (child := visit(item)) is not None)
         if current.children and not children and current.name in _CONTAINERS:
@@ -4928,11 +4789,15 @@ def _drop_redundant_card_chrome(
             for item in re.findall(r"[a-z0-9]+|[\u4e00-\u9fff]+|[%°]", value.casefold())
             if _semantic_text_fragment(item)
         )
+        trusted_literal_is_visible = _is_trusted_template_literal(value, visible)
+        whole_fragment_is_visible = _semantic_text_fragment(value) in visible_blob
+        all_fragments_are_visible = bool(fragments) and all(
+            fragment in visible_blob for fragment in fragments
+        )
         covered = (
-            _is_trusted_template_literal(value, visible)
-            or _semantic_text_fragment(value) in visible_blob
-            or bool(fragments)
-            and all(fragment in visible_blob for fragment in fragments)
+            trusted_literal_is_visible
+            or whole_fragment_is_visible
+            or all_fragments_are_visible
         )
         if covered:
             normalized.pop(key, None)
@@ -4957,13 +4822,10 @@ def _deduplicate_visible_text(node: Nested2Node, task_spec: TaskSpec) -> Nested2
             isinstance(value, dict) and isinstance(value.get("_advancedComponent"), str)
             for value in current.values
         )
-        if (
-            not is_advanced_component
-            and current.component_type == "Text"
-            and current.values
-            and isinstance(current.values[0], str)
-            and current.values[0].strip()
-        ):
+        is_text = current.component_type == "Text" and bool(current.values)
+        has_text_value = is_text and isinstance(current.values[0], str)
+        has_visible_text = has_text_value and bool(current.values[0].strip())
+        if not is_advanced_component and has_visible_text:
             literal = current.values[0]
             limit = max(1, allowed[literal])
             seen[literal] += 1
@@ -5304,7 +5166,7 @@ def _validate_raw_ux_business_component(
         "ResourceUsageOverview": {"memory"},
         "AppUsageOverview": {"singleApp"},
         "WeatherOverview": {"current", "commute"},
-        "WorkoutOverview": {"latest", "countdown"},
+        "WorkoutOverview": {"latest"},
     }[node.name]
     roles = {
         "ActivityOverview": {"hero", "support"},
@@ -5599,7 +5461,7 @@ def _provider_template_business_validation_proxy(
 ) -> ParsedCall:
     if node.kind != "template":
         return node
-    identity = provider_template_legacy_identity(node.name)
+    identity = provider_template_family_identity(node.name)
     base_wire_id = identity[0] if identity is not None else node.name
     variant = identity[1] if identity is not None else (node.values[0] if node.values else None)
     if base_wire_id not in _PROVIDER_TEMPLATE_DIRECT_VARIANTS:
@@ -5970,7 +5832,7 @@ def _validate_heart_rate_overview_placement(
     if heart_rate.kind == "component" and isinstance(heart_rate.values[0], dict):
         role = heart_rate.values[0].get("role")
     elif heart_rate.kind == "template":
-        identity = provider_template_legacy_identity(heart_rate.name)
+        identity = provider_template_family_identity(heart_rate.name)
         shape = identity[1] if identity is not None else (
             heart_rate.values[0]
             if heart_rate.values and isinstance(heart_rate.values[0], str)
@@ -6074,7 +5936,7 @@ def _validate_weather_overview_placement(
         role = None
         variant = weather.values[0]
     elif weather.kind == "template":
-        identity = provider_template_legacy_identity(weather.name)
+        identity = provider_template_family_identity(weather.name)
         role = None
         variant = identity[1] if identity is not None else None
     else:
@@ -6494,7 +6356,8 @@ def _validate_ux_layout_action_slot(
         raise TerseDslNested2ConversionError(
             f"UX Layout Action count is invalid: {layout.name}/{len(action_children)}"
         )
-    if action_children and node.children[-len(action_children) :] != action_children:
+    trailing_children = node.children[slice(-len(action_children), None)]
+    if action_children and trailing_children != action_children:
         raise TerseDslNested2ConversionError("UX Layout Actions must be contiguous final children.")
     action_ids = tuple(
         child.values[0].get("actionId")
@@ -6784,12 +6647,9 @@ def _deduplicate_ux_business_title_fragments(
         return node
 
     def visit(current: Nested2Node) -> Nested2Node | None:
-        if (
-            current.component_type == "Text"
-            and current.values
-            and isinstance(current.values[0], str)
-            and current.values[0] != title
-        ):
+        is_text = current.component_type == "Text" and bool(current.values)
+        has_text_value = is_text and isinstance(current.values[0], str)
+        if has_text_value and current.values[0] != title:
             fragment = _semantic_text_fragment(current.values[0])
             if len(fragment) >= 2 and fragment in title_fragment:
                 return None
@@ -7453,7 +7313,7 @@ def _equal_grid(
 ) -> Nested2Node:
     rows: list[Nested2Node] = []
     for start in range(0, len(children), columns):
-        row_children = children[start : start + columns]
+        row_children = children[slice(start, start + columns)]
         weights = tuple(1 for _item in row_children)
         rows.append(_weighted_row(row_children, weights, registry))
     if len(rows) == 1:
@@ -7710,12 +7570,13 @@ def _is_date_region(node: Nested2Node) -> bool:
 def _strip_advanced_component_markers(node: Nested2Node) -> Nested2Node:
     children = tuple(_strip_advanced_component_markers(child) for child in node.children)
     values: list[Any] = []
+    marker_keys = {
+        "_advancedComponent",
+        "_preserveOriginalColor",
+        "_layoutActionBackgroundOpacity",
+    }
     for value in node.values:
-        if isinstance(value, dict) and (
-            "_advancedComponent" in value
-            or "_preserveOriginalColor" in value
-            or "_layoutActionBackgroundOpacity" in value
-        ):
+        if isinstance(value, dict) and not marker_keys.isdisjoint(value):
             cleaned = dict(value)
             cleaned.pop("_advancedComponent", None)
             cleaned.pop("_preserveOriginalColor", None)
@@ -7780,6 +7641,36 @@ def _with_flex_weight(
     return Nested2Node(node.component_type, tuple(values), node.children)
 
 
+def _is_numeric_text_node(node: Nested2Node) -> bool:
+    is_text = node.component_type == "Text" and bool(node.values)
+    if not is_text or not isinstance(node.values[0], str):
+        return False
+    return re.fullmatch(r"[+-]?\d+(?:\.\d+)?", node.values[0].strip()) is not None
+
+
+def _is_short_unit_text_node(node: Nested2Node) -> bool:
+    is_text = node.component_type == "Text" and bool(node.values)
+    has_design_token = len(node.values) > 1 and node.values[1] in {"body", "subtitle"}
+    if not is_text or not has_design_token or not isinstance(node.values[0], str):
+        return False
+    fragment = _semantic_text_fragment(node.values[0])
+    return re.search(r"\d", node.values[0]) is None and 1 <= len(fragment) <= 3
+
+
+def _is_compact_text_row(node: Nested2Node) -> bool:
+    is_short_row = node.component_type == "Row" and 1 <= len(node.children) <= 3
+    if not is_short_row:
+        return False
+    return all(_is_short_compact_text(item) for item in node.children)
+
+
+def _is_short_compact_text(node: Nested2Node) -> bool:
+    is_text = node.component_type == "Text" and bool(node.values)
+    if not is_text or not isinstance(node.values[0], str):
+        return False
+    return len(_semantic_text_fragment(node.values[0])) <= 6
+
+
 def _compact_2x2_action_content(
     node: Nested2Node,
     registry: CardPlanRegistry,
@@ -7797,25 +7688,14 @@ def _compact_2x2_action_content(
         return current
     normalized_children = list(current.children)
     for index, child in enumerate(normalized_children):
-        if (
-            child.component_type != "Text"
-            or not child.values
-            or not isinstance(child.values[0], str)
-            or re.fullmatch(r"[+-]?\d+(?:\.\d+)?", child.values[0].strip()) is None
-        ):
+        if not _is_numeric_text_node(child):
             continue
         unit_index = next(
             (
                 candidate_index
                 for candidate_index in range(index + 1, len(normalized_children))
                 for candidate in (normalized_children[candidate_index],)
-                if candidate.component_type == "Text"
-                and candidate.values
-                and isinstance(candidate.values[0], str)
-                and not re.search(r"\d", candidate.values[0])
-                and 1 <= len(_semantic_text_fragment(candidate.values[0])) <= 3
-                and len(candidate.values) > 1
-                and candidate.values[1] in {"body", "subtitle"}
+                if _is_short_unit_text_node(candidate)
             ),
             None,
         )
@@ -7861,18 +7741,7 @@ def _compact_2x2_action_content(
         pending_rows.clear()
 
     for child in normalized_children:
-        is_short_text_row = (
-            child.component_type == "Row"
-            and 1 <= len(child.children) <= 3
-            and all(
-                item.component_type == "Text"
-                and item.values
-                and isinstance(item.values[0], str)
-                and len(_semantic_text_fragment(item.values[0])) <= 6
-                for item in child.children
-            )
-        )
-        if is_short_text_row:
+        if _is_compact_text_row(child):
             pending_rows.append(child)
             continue
         flush_rows()
@@ -8507,10 +8376,6 @@ def _validate_required_numbers(
             facts = extract_activity_overview_facts(task_spec.dataModelSchema)
             if facts is not None:
                 actual[facts.daily_steps] += 1
-        elif call.name == "WorkoutOverview":
-            facts = extract_workout_countdown_facts(task_spec.dataModelSchema)
-            if facts is not None:
-                actual[facts.countdown_days] += 1
         elif call.name == "HeartRateOverview":
             facts = extract_heart_rate_overview_facts(task_spec.dataModelSchema)
             if facts is not None:

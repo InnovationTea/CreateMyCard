@@ -1,4 +1,4 @@
-"""Project UIBrief and TaskSpec into a bounded Hybrid Body prompt."""
+"""Project trusted scope and TaskSpec data into a bounded Hybrid Body prompt."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from .generated.prompts import BODY_SYSTEM_PROMPT_KERNEL, UX_MIXED_SYSTEM_PROMPT
 from .models import ActionBinding, Fact, HybridBodyContract, HybridLimits
 from .provider_bundle import (
     provider_template_admission,
-    provider_template_legacy_identity,
+    provider_template_family_identity,
     provider_template_variant_admission,
 )
 from .registry import CardPlanRegistry
@@ -371,71 +371,6 @@ def _card_composition_payload(
     }
 
 
-def selection_candidates(
-    task_spec: TaskSpec,
-    registry: CardPlanRegistry,
-    card_spec: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    semantic_text = _semantic_text(task_spec, None)
-    ranked = _eligible_ranked_templates(
-        semantic_text,
-        registry,
-        task_spec,
-        card_spec,
-    )
-    if task_spec.eventCandidates:
-        action_templates = [item for item in ranked if item.action_policy != "none"][:6]
-        content_templates = [item for item in ranked if item.action_policy == "none"]
-        templates = [*action_templates, *content_templates[: 12 - len(action_templates)]]
-        templates.sort(key=ranked.index)
-    else:
-        templates = ranked[:12]
-    return {
-        "themes": [
-            {
-                "id": theme.theme_profile_id,
-                "description": theme.description,
-                "density": theme.density,
-            }
-            for theme in registry.themes.values()
-        ],
-        "localTemplates": [
-            {
-                "id": definition.wire_id,
-                "description": definition.description,
-                "domainTags": definition.domain_tags,
-                "supportedSizes": definition.supported_sizes,
-                "compatibleThemeIds": definition.compatible_theme_profile_ids,
-                "actionPolicy": definition.action_policy,
-                "variants": [
-                    {
-                        "size": variant.size,
-                        "requiredParameters": [
-                            {
-                                "name": name,
-                                "description": variant.parameters_schema.get("properties", {})
-                                .get(name, {})
-                                .get("description", ""),
-                                "valueKind": _parameter_value_kind(
-                                    name,
-                                    variant.parameters_schema.get("properties", {}).get(name, {}),
-                                ),
-                            }
-                            for name in variant.parameters_schema.get("required", [])
-                        ],
-                    }
-                    for variant in admitted_provider_template_variants(
-                        definition,
-                        task_spec,
-                        card_spec,
-                    )
-                ],
-            }
-            for definition in templates
-        ],
-    }
-
-
 def _system_prompt(
     contract: HybridBodyContract,
     requested: tuple[str, ...],
@@ -479,11 +414,11 @@ def _system_prompt(
                         contract,
                     )
                 params[name] = parameter
-            call = (
-                f"Template({wire_id!r}, props)"
-                if definition.source_format == "cardtpl/1" and variant.size == "default"
-                else f"Template({wire_id!r}, {variant.size!r}, params)"
-            )
+            if definition.source_format != "cardtpl/1" or variant.size != "default":
+                raise ValueError(
+                    f"Template is outside the supported cardtpl/1 contract: {wire_id}"
+                )
+            call = f"Template({wire_id!r}, props)"
             signatures.append(
                 f"- {call}: "
                 f"{definition.description}; params={json.dumps(params, ensure_ascii=False)}; "
@@ -938,7 +873,7 @@ def _provider_variant_matches_trusted_state(
     task_spec: TaskSpec,
     card_spec: dict[str, Any] | None,
 ) -> bool:
-    identity = provider_template_legacy_identity(wire_id)
+    identity = provider_template_family_identity(wire_id)
     if identity is not None:
         wire_id, variant_name = identity
     capabilities = {
@@ -1029,7 +964,9 @@ def _semantic_tokens(value: str) -> set[str]:
     tokens = set(re.findall(r"[a-z0-9]+", normalized))
     for run in re.findall(r"[\u4e00-\u9fff]+", normalized):
         for width in range(2, min(4, len(run)) + 1):
-            tokens.update(run[index : index + width] for index in range(len(run) - width + 1))
+            tokens.update(
+                run[slice(index, index + width)] for index in range(len(run) - width + 1)
+            )
     return tokens
 
 
