@@ -25,10 +25,14 @@ MAX_COLLECTION_ITEMS = 256
 MAX_OBJECT_FIELDS = 128
 
 _FORBIDDEN_KEYS = frozenset({"__proto__", "prototype", "constructor"})
+_INTERNAL_DATA_KEYS = frozenset({"_advancedSelectors", "_templateProjection"})
 _CONTAINERS = frozenset({"Row", "Column", "List", "Stack"})
 _LEAVES = frozenset({"Text", "Image", "Divider", "Progress", "Button", "Checkbox"})
 _COMPONENTS = _CONTAINERS | _LEAVES
 _DATA_PLACEHOLDER = re.compile(r"^\$\{(data(?:\.[A-Za-z_][A-Za-z0-9_]*|\.\d+)+)\}$")
+_A2UI_DATA_REFERENCE = re.compile(
+    r"\$\{(/data(?:/[A-Za-z_][A-Za-z0-9_]*|/\d+)+)\}"
+)
 _TEXT_DESIGNS = {
     "title": {"fontSize": 20, "fontWeight": 700, "fontColor": "font_primary"},
     "compact-title": {"fontSize": 14, "fontWeight": 700, "fontColor": "font_primary"},
@@ -93,6 +97,17 @@ def convert_terse_dsl_nested2_to_a2ui(
     """Convert one literal-only Nested-2 component tree to three A2UI messages."""
     root, data_model = _parse_terse_dsl_nested2_document(source)
     allowed_binding_paths = _task_spec_leaf_paths(task_spec)
+    if data_model is not None:
+        data_paths = _validate_data_model(
+            data_model,
+            allowed_binding_paths,
+            task_spec is not None,
+        )
+        missing_paths = _node_binding_paths(root) - data_paths
+        if missing_paths:
+            raise TerseDslNested2ConversionError(
+                f"Data document is missing component binding paths: {sorted(missing_paths)}."
+            )
     compact_rows: list[list[Any]] = []
     _append_compact_rows(root, "root", size, compact_rows, allowed_binding_paths)
     if data_model is not None:
@@ -303,117 +318,6 @@ def _append_compact_rows(
         _append_compact_rows(child, child_id, size, rows, allowed_binding_paths)
 
 
-def bind_task_spec_values(root: Nested2Node, task_spec: dict[str, Any]) -> Nested2Node:
-    """Bind exact advanced-component facts to their declared TaskSpec leaf paths."""
-    bindings = _unique_task_spec_sample_bindings(task_spec)
-    counters: dict[str, int] = {}
-
-    def consume(key: str) -> str | None:
-        paths = bindings.get(key)
-        if not paths:
-            return None
-        if len(paths) == 1:
-            return paths[0]
-        idx = counters.get(key, 0)
-        if idx >= len(paths):
-            return None
-        counters[key] = idx + 1
-        return paths[idx]
-
-    def bind(node: Nested2Node) -> Nested2Node:
-        children = tuple(bind(child) for child in node.children)
-        values = list(node.values)
-        if node.component_type == "Text" and values:
-            placeholder = consume(_stable_sample_key(values[0]))
-            if placeholder is None:
-                placeholder = _coerced_consume(values[0], consume)
-            if placeholder is not None:
-                values[0] = placeholder
-        if node.component_type in {"Progress", "Checkbox"}:
-            values = [_bind_numeric_semantic_fields(value, consume) for value in values]
-        return Nested2Node(node.component_type, tuple(values), children)
-
-    return bind(root)
-
-
-def _coerced_consume(value: Any, consume) -> str | None:
-    """Try numeric coercion so templates that str() an integer can still bind."""
-    if not isinstance(value, str):
-        return None
-    try:
-        coerced = json.loads(value)
-    except (json.JSONDecodeError, ValueError):
-        return None
-    if isinstance(coerced, bool) or not isinstance(coerced, (int, float)):
-        return None
-    return consume(_stable_sample_key(coerced))
-
-
-def _bind_numeric_semantic_fields(value: Any, consume) -> Any:
-    if not isinstance(value, dict):
-        return value
-    result = dict(value)
-    for field in ("value", "total", "select"):
-        if field not in result:
-            continue
-        placeholder = consume(_stable_sample_key(result[field]))
-        if placeholder is None:
-            placeholder = _coerced_consume(result[field], consume)
-        if placeholder is not None:
-            result[field] = placeholder
-    return result
-
-
-def _unique_task_spec_sample_bindings(task_spec: dict[str, Any]) -> dict[str, list[str]]:
-    candidates: dict[str, list[str]] = {}
-    _collect_task_spec_samples(task_spec.get("dataModelSchema"), "", candidates)
-    bindings: dict[str, list[str]] = {}
-    for key, paths in candidates.items():
-        bound: list[str] = []
-        for path in paths:
-            placeholder = _pointer_to_placeholder(path)
-            if placeholder is not None:
-                bound.append(placeholder)
-        if bound:
-            bindings[key] = bound
-    return bindings
-
-
-def _collect_task_spec_samples(
-    value: Any,
-    path: str,
-    candidates: dict[str, list[str]],
-) -> None:
-    if isinstance(value, dict) and "type" in value:
-        is_runtime_path = path.startswith("/data/")
-        is_internal_selector = "/_advancedSelectors/" in path
-        if is_runtime_path and not is_internal_selector and "sampleValue" in value:
-            candidates.setdefault(_stable_sample_key(value["sampleValue"]), []).append(path)
-        return
-    if isinstance(value, dict):
-        for key, child in value.items():
-            _collect_task_spec_samples(child, f"{path}/{key}", candidates)
-        return
-    if isinstance(value, list) and value:
-        for index, item in enumerate(value):
-            _collect_task_spec_samples(item, f"{path}/{index}", candidates)
-
-
-def _stable_sample_key(value: Any) -> str:
-    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-
-
-def _pointer_to_placeholder(path: str) -> str | None:
-    parts = path.removeprefix("/").split("/")
-    valid_parts = all(
-        part.isdigit() or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", part)
-        for part in parts
-    )
-    if not parts or parts[0] != "data" or not valid_parts:
-        return None
-    return "${" + ".".join(parts) + "}"
-
-
 def _convert_data_placeholders(value: Any, allowed_paths: frozenset[str]) -> Any:
     if isinstance(value, str):
         match = _DATA_PLACEHOLDER.fullmatch(value)
@@ -446,7 +350,7 @@ def _task_spec_leaf_paths(task_spec: dict[str, Any] | None) -> frozenset[str]:
             return
         if isinstance(value, dict):
             for key, child in value.items():
-                if key == "_advancedSelectors":
+                if key in _INTERNAL_DATA_KEYS:
                     continue
                 visit(child, f"{path}/{key}")
         elif isinstance(value, list) and value:
@@ -465,13 +369,96 @@ def _task_spec_sample_data(task_spec: dict[str, Any]) -> Any:
             return {
                 key: sample(child)
                 for key, child in value.items()
-                if key != "_advancedSelectors"
+                if key not in _INTERNAL_DATA_KEYS
             }
         if isinstance(value, list):
             return [sample(child) for child in value]
         return value
 
     return sample(task_spec.get("dataModelSchema", {}))
+
+
+def serialize_task_spec_data(task_spec: dict[str, Any]) -> str:
+    """Serialize only the public ``/data`` preview object for a full Nested-2 document."""
+    sample_data = _task_spec_sample_data(task_spec)
+    data = sample_data.get("data", {}) if isinstance(sample_data, dict) else {}
+    if not isinstance(data, dict):
+        raise TerseDslNested2ConversionError("TaskSpec dataModelSchema.data must be one object.")
+    _reject_internal_data_keys(data)
+    return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+
+
+def _validate_data_model(
+    data_model: dict[str, Any],
+    allowed_paths: frozenset[str],
+    validate_paths: bool,
+) -> frozenset[str]:
+    _reject_internal_data_keys(data_model)
+    data_paths: set[str] = set()
+
+    def visit(value: Any, path: str) -> None:
+        if path in allowed_paths:
+            data_paths.add(path)
+            return
+        if isinstance(value, dict):
+            for key, child in value.items():
+                visit(child, f"{path}/{key}")
+            return
+        if isinstance(value, list):
+            for index, child in enumerate(value):
+                visit(child, f"{path}/{index}")
+            return
+        if validate_paths:
+            raise TerseDslNested2ConversionError(
+                f"Data document path is not a TaskSpec leaf: {path}."
+            )
+        data_paths.add(path)
+
+    visit(data_model, "/data")
+    return frozenset(data_paths)
+
+
+def _node_binding_paths(root: Nested2Node) -> frozenset[str]:
+    paths: set[str] = set()
+
+    def visit_value(value: Any) -> None:
+        if isinstance(value, str):
+            placeholder = _DATA_PLACEHOLDER.fullmatch(value)
+            if placeholder is not None:
+                paths.add("/" + placeholder.group(1).replace(".", "/"))
+            paths.update(match.group(1) for match in _A2UI_DATA_REFERENCE.finditer(value))
+        elif isinstance(value, dict):
+            binding_path = value.get("path") if set(value) == {"path"} else None
+            if isinstance(binding_path, str) and binding_path.startswith("/data/"):
+                paths.add(binding_path)
+            for child in value.values():
+                visit_value(child)
+        elif isinstance(value, list):
+            for child in value:
+                visit_value(child)
+
+    def visit_node(node: Nested2Node) -> None:
+        for value in node.values:
+            visit_value(value)
+        for child in node.children:
+            visit_node(child)
+
+    visit_node(root)
+    return frozenset(paths)
+
+
+def _reject_internal_data_keys(value: Any) -> None:
+    if isinstance(value, dict):
+        internal = _INTERNAL_DATA_KEYS.intersection(value)
+        if internal:
+            raise TerseDslNested2ConversionError(
+                f"Data document contains internal projection keys: {sorted(internal)}."
+            )
+        for child in value.values():
+            _reject_internal_data_keys(child)
+    elif isinstance(value, list):
+        for child in value:
+            _reject_internal_data_keys(child)
 
 
 def _explicit_component_id(node: Nested2Node) -> str | None:

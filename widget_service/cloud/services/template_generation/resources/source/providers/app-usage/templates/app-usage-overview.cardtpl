@@ -1,6 +1,7 @@
-#Template AppUsageOverviewSingleApp@1(props: { durationPrimaryValueText: string, durationPrimaryUnitText: string, appIcon?: asset })
+#Template AppUsageOverviewSingleApp@1(props: { appIcon?: asset })
 data = {
     appName: $path("/appUsage/appName"),
+    duration: $path("/appUsage/durationText"),
     updatedAt: $optionalPath("/updatedAt")
 }
 
@@ -31,14 +32,9 @@ Column(
             "between",
             {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
             Text(
-                    props.durationPrimaryValueText,
+                    data.duration,
                     "title",
                     {"fontSize": 30, "minFontSize": 30, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  ),
-            Text(
-                    props.durationPrimaryUnitText,
-                    "subtitle",
-                    {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   )
           )
     ),
@@ -53,9 +49,10 @@ Column(
 )
 #End
 
-#Template AppUsageOverviewSingleAppDetailed@1(props: { durationPrimaryValueText: string, durationPrimaryUnitText: string, durationSecondaryValueText: string, durationSecondaryUnitText: string, appIcon?: asset })
+#Template AppUsageOverviewSingleAppDetailed@1(props: { appIcon?: asset })
 data = {
     appName: $path("/appUsage/appName"),
+    duration: $path("/appUsage/durationText"),
     updatedAt: $optionalPath("/updatedAt")
 }
 
@@ -86,24 +83,9 @@ Column(
             "between",
             {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
             Text(
-                    props.durationPrimaryValueText,
+                    data.duration,
                     "title",
                     {"fontSize": 30, "minFontSize": 30, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  ),
-            Text(
-                    props.durationPrimaryUnitText,
-                    "subtitle",
-                    {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  ),
-            Text(
-                    props.durationSecondaryValueText,
-                    "title",
-                    {"fontSize": 30, "minFontSize": 30, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  ),
-            Text(
-                    props.durationSecondaryUnitText,
-                    "subtitle",
-                    {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   )
           )
     ),
@@ -118,9 +100,10 @@ Column(
 )
 #End
 
-#Template AppUsageOverviewSingleAppWide@1(props: { durationPrimaryValueText: string, durationPrimaryUnitText: string, appIcon?: asset })
+#Template AppUsageOverviewSingleAppWide@1(props: { appIcon?: asset })
 data = {
     appName: $path("/appUsage/appName"),
+    duration: $path("/appUsage/durationText"),
     updatedAt: $optionalPath("/updatedAt")
 }
 
@@ -154,14 +137,9 @@ Row(
                     "between",
                     {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
                     Text(
-                              props.durationPrimaryValueText,
+                              data.duration,
                               "title",
                               {"fontSize": 30, "minFontSize": 30, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            ),
-                    Text(
-                              props.durationPrimaryUnitText,
-                              "subtitle",
-                              {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                             )
                   )
           )
@@ -181,9 +159,10 @@ Row(
 )
 #End
 
-#Template AppUsageOverviewSingleAppDetailedWide@1(props: { durationPrimaryValueText: string, durationPrimaryUnitText: string, durationSecondaryValueText: string, durationSecondaryUnitText: string, appIcon?: asset })
+#Template AppUsageOverviewSingleAppDetailedWide@1(props: { appIcon?: asset })
 data = {
     appName: $path("/appUsage/appName"),
+    duration: $path("/appUsage/durationText"),
     updatedAt: $optionalPath("/updatedAt")
 }
 
@@ -217,24 +196,9 @@ Row(
                     "between",
                     {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
                     Text(
-                              props.durationPrimaryValueText,
+                              data.duration,
                               "title",
                               {"fontSize": 30, "minFontSize": 30, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            ),
-                    Text(
-                              props.durationPrimaryUnitText,
-                              "subtitle",
-                              {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            ),
-                    Text(
-                              props.durationSecondaryValueText,
-                              "title",
-                              {"fontSize": 30, "minFontSize": 30, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            ),
-                    Text(
-                              props.durationSecondaryUnitText,
-                              "subtitle",
-                              {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                             )
                   )
           )

@@ -69,8 +69,10 @@ Column("compact",
 - `$path` 声明模板展开必需的数据，必须进入 `requiredData`。
 - `$optionalPath` 声明可选数据，引用必须位于 `IfPresent(data.xxx, ...)` 或
   `IfAbsent(data.xxx, ...)` 内，并进入 `optionalData`。
-- `props.xxx` 是第二层传入的可信字面量或素材；`data.xxx` 由服务端根据
-  `dataDomain + 相对路径` 绑定为端侧表达式。
+- Provider 全局路径中已经存在的值必须使用 `data.xxx`，由服务端根据 `dataDomain + 相对路径`
+  绑定为端侧表达式，不得在 `props` 中重复传递。没有对应全局路径的受控派生展示值，以及素材、
+  排版等模板参数，
+  可以由第二层通过 `props.xxx` 传入，但仍须满足本轮可信文本、数值和素材白名单。
 - 每个 `asset` prop 必须在 Provider 的第二层规则中描述业务语义和省略条件。描述不得枚举或假定固定
   素材全集；第二层只从本轮 TaskSpec 实际下发的素材候选中按 description 匹配，没有合适候选时省略
   可选参数，或选择不依赖该素材的模板。
@@ -100,6 +102,12 @@ Template("HeroSupportLayout@1", {},
 
 模板文件不是可执行 Python。解析器只接受受限声明、白名单组件、字面量、受控引用和条件节点；模板展开后
 仍执行 Catalog、节点数量、深度、素材、Action、TaskSpec 路径和最终 A2UI 校验。
+
+可信展开后的最终 TerseDSL-Nested-2 产物包含组件树和 `data = {...}` 两条语句。组件动态值使用
+现有 `"${data...}"` 字符串占位语法，`data` 初值由服务端从 TaskSpec 真实路径确定性生成；
+`$path` 只属于
+Provider 模板作者侧声明，不进入最终 Nested-2 语法。最终产物不得包含 `_advancedSelectors` 或
+`_templateProjection`。
 
 ## 两层 LLM 规则
 

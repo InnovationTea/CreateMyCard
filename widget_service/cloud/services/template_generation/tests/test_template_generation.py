@@ -61,7 +61,11 @@ from services.template_generation.engine.pipeline import (
     TemplateGenerationError,
     generate_template_a2ui,
 )
-from services.template_generation.engine.terse_dsl_nested2_converter import Nested2Node
+from services.template_generation.engine.terse_dsl_nested2_converter import (
+    Nested2Node,
+    TerseDslNested2ConversionError,
+    convert_terse_dsl_nested2_to_a2ui,
+)
 from services.widget_generation_service import WidgetGenerationService
 
 _WEATHER_BODY = (
@@ -99,7 +103,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 86
+    assert len(registry.provider_template_ids) == 87
     assert {
         "ActivityOverviewSteps@1",
         "AppUsageOverviewSingleApp@1",
@@ -167,6 +171,75 @@ def test_every_provider_asset_prop_has_second_layer_semantic_description():
         missing = sorted(name for name in asset_props if name not in rule_text)
         assert not missing, f"{provider_root.name} asset props lack descriptions: {missing}"
 
+
+def test_nested2_full_document_converts_component_binding_and_data_model():
+    profile = A2UIProtocolRegistry.read_design_protocol_profile(
+        TERSE_DSL_NESTED2_PROFILE_ID
+    )
+    task_spec = {
+        "dataModelSchema": {
+            "data": {
+                "weather": {
+                    "current": {
+                        "temperature": _provider_field("38℃", "string"),
+                    }
+                }
+            }
+        }
+    }
+    source = (
+        'Column("card",Text("${data.weather.current.temperature}","body"));\n'
+        'data = {"weather":{"current":{"temperature":"38℃"}}}'
+    )
+
+    a2ui = convert_terse_dsl_nested2_to_a2ui(
+        source,
+        size="2x2",
+        protocol_profile=profile,
+        task_spec=task_spec,
+    )
+    messages = [json.loads(line) for line in a2ui.splitlines()]
+    text_component = messages[1]["updateComponents"]["components"][1]
+    assert text_component["content"] == (
+        "{{ ${/data/weather/current/temperature} }}"
+    )
+    assert messages[2]["updateDataModel"]["value"] == {
+        "data": {"weather": {"current": {"temperature": "38℃"}}}
+    }
+
+
+def test_nested2_full_document_rejects_internal_projection_data():
+    profile = A2UIProtocolRegistry.read_design_protocol_profile(
+        TERSE_DSL_NESTED2_PROFILE_ID
+    )
+    source = 'Column("card",Text("天气","body")); data={"_templateProjection":{}}'
+
+    with pytest.raises(TerseDslNested2ConversionError, match="internal projection"):
+        convert_terse_dsl_nested2_to_a2ui(
+            source,
+            size="2x2",
+            protocol_profile=profile,
+        )
+
+
+def test_nested2_full_document_requires_data_for_every_component_binding():
+    profile = A2UIProtocolRegistry.read_design_protocol_profile(
+        TERSE_DSL_NESTED2_PROFILE_ID
+    )
+    task_spec = {
+        "dataModelSchema": {
+            "data": {"weather": {"temperature": _provider_field("38℃", "string")}}
+        }
+    }
+    source = 'Column("card",Text("${data.weather.temperature}","body")); data={}'
+
+    with pytest.raises(TerseDslNested2ConversionError, match="missing component binding"):
+        convert_terse_dsl_nested2_to_a2ui(
+            source,
+            size="2x2",
+            protocol_profile=profile,
+            task_spec=task_spec,
+        )
 
 def test_workout_template_requires_one_complete_training_session():
     registry = get_cardplan_registry()
@@ -785,11 +858,32 @@ async def test_derived_parameter_source_field_is_counted_as_template_coverage():
     )
     projected_data = output.projected_task_spec.dataModelSchema["data"]
     assert "AppUsageOverview" not in projected_data
-    assert (
-        projected_data["appUsageStats"]["_templateProjection"]["AppUsageOverview"]
-        ["durationPrimaryValueText"]["sampleValue"]
-        == "1"
+    assert "_templateProjection" not in output.terse_dsl_nested2
+    assert "_advancedSelectors" not in output.terse_dsl_nested2
+    assert projected_data["appUsageStats"]["appUsage"]["durationText"]["sampleValue"] == (
+        "1小时20分钟"
     )
+    assert "data = " in output.terse_dsl_nested2
+    messages = [json.loads(line) for line in output.a2ui.splitlines()]
+    components = messages[1]["updateComponents"]["components"]
+    component_source = json.dumps(components, ensure_ascii=False)
+    duration_path = "/data/appUsageStats/appUsage/durationText"
+    assert f"${{{duration_path}}}" in component_source
+    assert "_templateProjection" not in component_source
+    runtime_data = {
+        "data": {
+            "appUsageStats": {
+                "appUsage": {
+                    "appName": "示例应用",
+                    "durationText": "2小时5分钟",
+                }
+            }
+        }
+    }
+    runtime_value: Any = runtime_data
+    for part in duration_path.removeprefix("/").split("/"):
+        runtime_value = runtime_value[part]
+    assert runtime_value == "2小时5分钟"
     assert "/updatedAt" not in output.a2ui
 
 
@@ -904,10 +998,16 @@ async def test_q094_sleep_duration_score_and_steps_are_all_preserved():
         "SleepOverviewDurationScoreSupport@1",
         "HeroSupportLayout@1",
     )
+    messages = [json.loads(line) for line in output.a2ui.splitlines()]
+    component_source = json.dumps(
+        messages[1]["updateComponents"]["components"],
+        ensure_ascii=False,
+    )
     assert all(
-        field in output.a2ui
+        f"${{/data/healthSport/{field}}}" in component_source
         for field in ("dailySteps", "nightSleepDurationText", "sleepScore")
     )
+    assert "_templateProjection" not in output.a2ui
     assert "#FFED6F21" in output.a2ui
     assert model.first_layer_prompt is not None
     first_layer_payload = json.loads(model.first_layer_prompt[1]["content"])
@@ -1703,6 +1803,9 @@ async def test_weather_template_generates_a2ui_and_terse_artifact(monkeypatch):
     assert captured["terse"]
     assert "Column(" in captured["terse"]
     assert "Template(" not in captured["terse"]
+    assert "data = " in captured["terse"]
+    assert "_templateProjection" not in captured["terse"]
+    assert "_advancedSelectors" not in captured["terse"]
     messages = [json.loads(line) for line in captured["artifact"].genui.splitlines()]
     protocol_profile = A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile()
     assert messages[0]["createSurface"]["catalogId"] == protocol_profile["catalogId"]

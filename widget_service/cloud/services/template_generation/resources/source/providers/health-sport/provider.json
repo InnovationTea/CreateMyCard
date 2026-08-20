@@ -196,7 +196,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
+      "digest": "sha256:c62cf0428113370b0bf60cd9b73826aadfe5f4cd34034cb691923dd19a37b355"
     },
     {
       "templateId": "SleepOverviewDurationDetailed@1",
@@ -206,7 +206,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
+      "digest": "sha256:c62cf0428113370b0bf60cd9b73826aadfe5f4cd34034cb691923dd19a37b355"
     },
     {
       "templateId": "SleepOverviewDurationScore@1",
@@ -217,7 +217,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
+      "digest": "sha256:c62cf0428113370b0bf60cd9b73826aadfe5f4cd34034cb691923dd19a37b355"
     },
     {
       "templateId": "SleepOverviewDurationScoreDetailed@1",
@@ -229,7 +229,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
+      "digest": "sha256:c62cf0428113370b0bf60cd9b73826aadfe5f4cd34034cb691923dd19a37b355"
     },
     {
       "templateId": "SleepOverviewDurationScoreSupport@1",
@@ -240,7 +240,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
+      "digest": "sha256:c62cf0428113370b0bf60cd9b73826aadfe5f4cd34034cb691923dd19a37b355"
     },
     {
       "templateId": "SleepOverviewInsufficient@1",
@@ -251,7 +251,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
+      "digest": "sha256:c62cf0428113370b0bf60cd9b73826aadfe5f4cd34034cb691923dd19a37b355"
     },
     {
       "templateId": "SleepOverviewInsufficientDetailed@1",
@@ -262,7 +262,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
+      "digest": "sha256:c62cf0428113370b0bf60cd9b73826aadfe5f4cd34034cb691923dd19a37b355"
     },
     {
       "templateId": "SleepOverviewSchedule@1",
@@ -274,7 +274,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
+      "digest": "sha256:c62cf0428113370b0bf60cd9b73826aadfe5f4cd34034cb691923dd19a37b355"
     },
     {
       "templateId": "SleepOverviewScheduleDetailed@1",
@@ -286,7 +286,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
+      "digest": "sha256:c62cf0428113370b0bf60cd9b73826aadfe5f4cd34034cb691923dd19a37b355"
     },
     {
       "templateId": "SleepOverviewScheduleStatus@1",
@@ -299,7 +299,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
+      "digest": "sha256:c62cf0428113370b0bf60cd9b73826aadfe5f4cd34034cb691923dd19a37b355"
     },
     {
       "templateId": "SleepOverviewScheduleDetailedStatus@1",
@@ -312,7 +312,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
+      "digest": "sha256:c62cf0428113370b0bf60cd9b73826aadfe5f4cd34034cb691923dd19a37b355"
     },
     {
       "templateId": "SleepOverviewDurationSupport@1",
@@ -322,7 +322,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
+      "digest": "sha256:c62cf0428113370b0bf60cd9b73826aadfe5f4cd34034cb691923dd19a37b355"
     },
     {
       "templateId": "SleepOverviewDurationDetailedSupport@1",
@@ -332,7 +332,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
+      "digest": "sha256:c62cf0428113370b0bf60cd9b73826aadfe5f4cd34034cb691923dd19a37b355"
     }
   ],
   "compatibility": {

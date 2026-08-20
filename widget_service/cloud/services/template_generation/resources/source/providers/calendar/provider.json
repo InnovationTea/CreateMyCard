@@ -40,7 +40,7 @@
       ],
       "optionalData": [],
       "entry": "templates/date-overview.cardtpl",
-      "digest": "sha256:8f4ac69f1464d697599c5812d916fa5a4e21fcb700aed3b680cec8f2e2db101a"
+      "digest": "sha256:4d226963bae814e0a95a0f137bbeb8f5cc66a6dbaee3ed9ffb28b1c6a4ba21e8"
     },
     {
       "templateId": "DateOverviewDateHero@1",
@@ -51,7 +51,7 @@
       ],
       "optionalData": [],
       "entry": "templates/date-overview.cardtpl",
-      "digest": "sha256:8f4ac69f1464d697599c5812d916fa5a4e21fcb700aed3b680cec8f2e2db101a"
+      "digest": "sha256:4d226963bae814e0a95a0f137bbeb8f5cc66a6dbaee3ed9ffb28b1c6a4ba21e8"
     },
     {
       "templateId": "ScheduleOverviewNextEvent@1",
@@ -63,7 +63,7 @@
       ],
       "optionalData": [],
       "entry": "templates/schedule-overview.cardtpl",
-      "digest": "sha256:7fe4dd3e5479e43a4692df5792e8f862c50cabb38149d7c4ccf3d30b298fe94f"
+      "digest": "sha256:69cf1412c84aeb1ec0c25527d472731d02f6c6a60fd28240dcb5dee988d096e8"
     },
     {
       "templateId": "ScheduleOverviewNextEventLocation@1",
@@ -76,7 +76,7 @@
       ],
       "optionalData": [],
       "entry": "templates/schedule-overview.cardtpl",
-      "digest": "sha256:7fe4dd3e5479e43a4692df5792e8f862c50cabb38149d7c4ccf3d30b298fe94f"
+      "digest": "sha256:69cf1412c84aeb1ec0c25527d472731d02f6c6a60fd28240dcb5dee988d096e8"
     },
     {
       "templateId": "ScheduleOverviewMeetingCompact@1",
@@ -88,7 +88,7 @@
       ],
       "optionalData": [],
       "entry": "templates/schedule-overview.cardtpl",
-      "digest": "sha256:7fe4dd3e5479e43a4692df5792e8f862c50cabb38149d7c4ccf3d30b298fe94f"
+      "digest": "sha256:69cf1412c84aeb1ec0c25527d472731d02f6c6a60fd28240dcb5dee988d096e8"
     },
     {
       "templateId": "ScheduleOverviewMeetingCompactLocation@1",
@@ -101,7 +101,7 @@
       ],
       "optionalData": [],
       "entry": "templates/schedule-overview.cardtpl",
-      "digest": "sha256:7fe4dd3e5479e43a4692df5792e8f862c50cabb38149d7c4ccf3d30b298fe94f"
+      "digest": "sha256:69cf1412c84aeb1ec0c25527d472731d02f6c6a60fd28240dcb5dee988d096e8"
     },
     {
       "templateId": "ScheduleOverviewMeetingExpanded@1",
@@ -114,7 +114,7 @@
       ],
       "optionalData": [],
       "entry": "templates/schedule-overview.cardtpl",
-      "digest": "sha256:7fe4dd3e5479e43a4692df5792e8f862c50cabb38149d7c4ccf3d30b298fe94f"
+      "digest": "sha256:69cf1412c84aeb1ec0c25527d472731d02f6c6a60fd28240dcb5dee988d096e8"
     },
     {
       "templateId": "ScheduleOverviewMeetingCompactSource@1",
@@ -126,7 +126,7 @@
       ],
       "optionalData": [],
       "entry": "templates/schedule-overview.cardtpl",
-      "digest": "sha256:7fe4dd3e5479e43a4692df5792e8f862c50cabb38149d7c4ccf3d30b298fe94f"
+      "digest": "sha256:69cf1412c84aeb1ec0c25527d472731d02f6c6a60fd28240dcb5dee988d096e8"
     },
     {
       "templateId": "ScheduleOverviewMeetingCompactLocationSource@1",
@@ -139,7 +139,7 @@
       ],
       "optionalData": [],
       "entry": "templates/schedule-overview.cardtpl",
-      "digest": "sha256:7fe4dd3e5479e43a4692df5792e8f862c50cabb38149d7c4ccf3d30b298fe94f"
+      "digest": "sha256:69cf1412c84aeb1ec0c25527d472731d02f6c6a60fd28240dcb5dee988d096e8"
     },
     {
       "templateId": "ScheduleOverviewMeetingExpandedSource@1",
@@ -152,7 +152,7 @@
       ],
       "optionalData": [],
       "entry": "templates/schedule-overview.cardtpl",
-      "digest": "sha256:7fe4dd3e5479e43a4692df5792e8f862c50cabb38149d7c4ccf3d30b298fe94f"
+      "digest": "sha256:69cf1412c84aeb1ec0c25527d472731d02f6c6a60fd28240dcb5dee988d096e8"
     }
   ],
   "compatibility": {

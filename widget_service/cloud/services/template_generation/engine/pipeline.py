@@ -195,11 +195,12 @@ async def _generate_selected_templates(
         effective_capability_ids,
         scope.advanced_component_ids,
     )
-    projected_task_spec = _with_provider_template_binding_projection(
+    projected_task_spec = _with_provider_template_runtime_data(
         source_task_spec,
         projected_task_spec,
         card_spec,
         scope.advanced_component_ids,
+        component_candidates,
         registry,
     )
     projection = build_ux_mixed_prompt(
@@ -295,20 +296,26 @@ async def _generate_hybrid_body(
     return result
 
 
-def _with_provider_template_binding_projection(
+def _with_provider_template_runtime_data(
     source: TaskSpec,
     projected: TaskSpec,
     card_spec: dict[str, Any],
     component_ids: tuple[str, ...],
+    component_candidates: tuple[TemplateComponentCandidate, ...],
     registry: CardPlanRegistry,
 ) -> TaskSpec:
     schema = deepcopy(projected.dataModelSchema)
+    template_ids_by_component = {
+        candidate.component_id: candidate.available_template_ids
+        for candidate in component_candidates
+    }
     changed = False
     for component_id in component_ids:
         capability = registry.require_ux_business_component(component_id)
         if capability.implementation != "template":
             continue
-        for template_id in registry.enabled_template_ids(capability.local_template_ids):
+        template_ids = template_ids_by_component.get(component_id, ())
+        for template_id in registry.enabled_template_ids(template_ids):
             definition = registry.require_template(template_id)
             if definition.source_format != "cardtpl/1" or not definition.capability_id:
                 continue
@@ -316,14 +323,13 @@ def _with_provider_template_binding_projection(
             if root is None:
                 continue
             data = schema.get("data")
-            component_projection = (
-                data.pop(component_id, None) if isinstance(data, dict) else None
-            )
-            if isinstance(component_projection, dict):
-                projection_path = (
-                    f"{root.rstrip('/')}/_templateProjection/{component_id}"
-                )
-                _set_pointer_value(schema, projection_path, component_projection)
+            component_projection = data.pop(component_id, None) if isinstance(data, dict) else None
+            if isinstance(data, dict) and isinstance(component_projection, dict):
+                selectors = data.setdefault("_advancedSelectors", {})
+                if isinstance(selectors, dict):
+                    validation = selectors.setdefault("templateValidation", {})
+                    if isinstance(validation, dict):
+                        validation[component_id] = component_projection
                 changed = True
             provider_paths = tuple(
                 dict.fromkeys(

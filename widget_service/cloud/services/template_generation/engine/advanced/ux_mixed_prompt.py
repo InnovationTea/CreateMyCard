@@ -383,7 +383,9 @@ def build_ux_mixed_prompt(
             "Action 与业务组件解耦；selectedActionEventId 非空时，只能在布局根末尾输出唯一的 "
             'PillAction({"actionId":"<selectedActionEventId>"})；为空时不得输出 Action。',
             "业务高级组件字段由服务端绑定到 TaskSpec.dataModelSchema 的端侧数据路径；"
-            "最终有效 TerseDSL 使用完整 `${data.weather.temperature}` 占位值，模型不得编造路径。",
+            "最终有效 TerseDSL 使用完整 `${data.weather.temperature}` 占位值，"
+            "并由服务端附加确定性的 `data = {...}`；"
+            "模型不得编造路径，已有全局路径的值不得改用 props。",
             "只输出混合 DSL，不输出说明。",
         )
     )

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import math
 import re
 from collections import Counter
 from collections.abc import Iterator
@@ -55,8 +54,8 @@ from services.template_generation.engine.advanced.models import (
 from services.template_generation.engine.terse_dsl_nested2_converter import (
     Nested2Node,
     TerseDslNested2ConversionError,
-    bind_task_spec_values,
     convert_terse_dsl_nested2_to_a2ui,
+    serialize_task_spec_data,
 )
 
 from .models import (
@@ -278,9 +277,7 @@ def compile_hybrid_card(
         root = _compile_card_shell(card_params, content, task_spec, contract, registry)
         root = _apply_theme_text_role(root, text_role)
         root = _apply_theme_icon_role(root, text_role)
-    if enable_data_bindings:
-        root = bind_task_spec_values(root, task_spec.model_dump(mode="json"))
-    effective = _serialize_node(root) + ";"
+    effective = _serialize_effective_document(root, task_spec, enable_data_bindings)
     a2ui = convert_terse_dsl_nested2_to_a2ui(
         effective,
         size=task_spec.size,
@@ -434,9 +431,7 @@ def compile_ux_layout_card(
     if depth > contract.limits.max_nesting_depth:
         raise TerseDslNested2ConversionError("Hybrid component depth budget exceeded.")
     _validate_expanded_tree(root, contract)
-    if enable_data_bindings:
-        root = bind_task_spec_values(root, task_spec.model_dump(mode="json"))
-    effective = _serialize_node(root) + ";"
+    effective = _serialize_effective_document(root, task_spec, enable_data_bindings)
     a2ui = convert_terse_dsl_nested2_to_a2ui(
         effective,
         size=task_spec.size,
@@ -8236,12 +8231,11 @@ def _parsed_template_shape_params(call: ParsedCall) -> tuple[str, dict[str, Any]
 
 def _normalize_template_provider_params(
     content: ParsedCall,
-    task_spec: TaskSpec,
+    _task_spec: TaskSpec,
     contract: HybridBodyContract,
     registry: CardPlanRegistry,
 ) -> tuple[ParsedCall, int]:
-    """Fill only missing params on an already selected trusted Template."""
-    values_by_field = _provider_sample_values_by_field(task_spec.dataModelSchema)
+    """Fill only missing asset params on an already selected trusted Template."""
 
     def visit(call: ParsedCall) -> tuple[ParsedCall, int]:
         children: list[ParsedCall] = []
@@ -8280,11 +8274,7 @@ def _normalize_template_provider_params(
                     )
                 ]
             else:
-                candidates = [
-                    value
-                    for value in values_by_field.get(parameter_name, ())
-                    if _trusted_provider_parameter(value, contract)
-                ]
+                continue
             unique_candidates = list(dict.fromkeys(candidates))
             if len(unique_candidates) != 1:
                 continue
@@ -8302,36 +8292,6 @@ def _normalize_template_provider_params(
         )
 
     return visit(content)
-
-
-def _provider_sample_values_by_field(value: object) -> dict[str, tuple[object, ...]]:
-    collected: dict[str, list[object]] = {}
-
-    def visit(current: object, field_name: str | None = None) -> None:
-        if isinstance(current, dict) and "sampleValue" in current and field_name:
-            sample = current["sampleValue"]
-            if sample is None or isinstance(sample, (str, int, float, bool)):
-                collected.setdefault(field_name, []).append(sample)
-            return
-        if isinstance(current, dict):
-            for key, child in current.items():
-                visit(child, key)
-        elif isinstance(current, list):
-            for child in current[:1]:
-                visit(child, field_name)
-
-    visit(value)
-    return {key: tuple(values) for key, values in collected.items()}
-
-
-def _trusted_provider_parameter(value: object, contract: HybridBodyContract) -> bool:
-    if isinstance(value, str):
-        return value in contract.trusted_literals
-    if isinstance(value, bool) or value is None:
-        return False
-    if isinstance(value, (int, float)):
-        return value in contract.trusted_numbers
-    return False
 
 
 def _normalize_template_relation_numbers(
@@ -8680,6 +8640,18 @@ def _column_align_items(value: Any) -> Any:
     if value in {"top", "center", "bottom"}:
         return "center"
     return value
+
+
+def _serialize_effective_document(
+    root: Nested2Node,
+    task_spec: TaskSpec,
+    enable_data_bindings: bool,
+) -> str:
+    component_tree = _serialize_node(root) + ";"
+    if not enable_data_bindings:
+        return component_tree
+    data = serialize_task_spec_data(task_spec.model_dump(mode="json"))
+    return f"{component_tree}\ndata = {data}"
 
 
 def _serialize_node(node: Nested2Node) -> str:
