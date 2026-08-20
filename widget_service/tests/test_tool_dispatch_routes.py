@@ -1240,6 +1240,50 @@ def test_compact_route_rejects_stringified_tool_arguments(monkeypatch):
     assert "content" not in details["agentInstruction"]
 
 
+def test_compact_route_infers_stringified_arguments_from_transport_only_content(
+    monkeypatch,
+):
+    """工具层未展开业务字段时，应按字符串化 arguments 提示主 Agent。"""
+    def unexpected_generate(*_args, **_kwargs):
+        raise AssertionError("missing tool arguments must not call the model")
+
+    monkeypatch.setattr(A2UIModelClient, "generate", unexpected_generate)
+    interaction_id = "inferred-stringified-tool-arguments"
+    request_id = _request_id(interaction_id)
+    content = {
+        "uid": "tool-user",
+        "romVersion": "NJL-AL20 6.0.0.105",
+        "bundleName": "com.omega_w_0823.hmservice",
+    }
+    client = TestClient(app)
+
+    with client.websocket_connect(
+        "/api/v1/ws/tools/generateWidgetCardCompactDsl"
+    ) as websocket:
+        websocket.send_json(_tool_payload(content, interaction_id))
+        response = websocket.receive_json()
+
+    assert response["errorCode"] == "0"
+    assert response["errorMessage"] == ""
+    stream_info = response["reply"]["streamInfo"]
+    assert stream_info["streamType"] == "final"
+    assert stream_info["streamingTextId"] == request_id
+    legacy_message = parse_legacy_stream_content(stream_info["streamContent"])
+    assert legacy_message["type"] == "error"
+    assert legacy_message["errorCode"] == "INVALID_ARGUMENTS"
+    details = legacy_message["error"]["details"]
+    assert details["stage"] == "requestEnvelope"
+    assert details["modelCalled"] is False
+    assert details["issues"][0]["code"] == "STRINGIFIED_TOOL_ARGUMENTS"
+    assert details["issues"][0]["path"] == "/arguments"
+    assert details["issues"][0]["actualType"] == "string"
+    assert "arguments 必须直接传合法的 JSON 对象" in details["agentInstruction"]
+    assert "content" not in details["agentInstruction"]
+    assert "uid" not in details["agentInstruction"]
+    assert "odid" not in details["agentInstruction"]
+    assert "romVersion" not in details["agentInstruction"]
+
+
 def test_generation_model_error_sends_start_and_failure_commands(monkeypatch):
     """验证模型调用失败时已发送开始指令，并以失败结束指令收口。"""
     monkeypatch.setattr(get_settings(), "enable_widget_directive_commands", True)

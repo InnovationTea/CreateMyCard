@@ -1266,6 +1266,24 @@ def test_create_request_defaults_to_2x2_when_size_is_omitted():
     assert normalized.size == "2x2"
 
 
+def test_compact_payload_with_edit_field_is_not_treated_as_missing_arguments():
+    payload = {
+        "content": {
+            "uid": "tool-user",
+            "odid": "tool-device",
+            "romVersion": ROM_VERSION_6,
+            "bundleName": "com.omega_w_0823.hmservice",
+            "sourceArtifactUrl": "https://artifact.invalid/source.md",
+        },
+        "deviceInfo": {"romVersion": ROM_VERSION_6},
+        "session": {},
+    }
+
+    _, arguments = _normalize_payload(payload, "generateWidgetCardCompactDsl")
+
+    assert arguments["sourceArtifactUrl"] == "https://artifact.invalid/source.md"
+
+
 def test_data_capability_schema_request_rejects_empty_ids():
     with pytest.raises(ValidationError):
         DataCapabilitySchemasRequest(

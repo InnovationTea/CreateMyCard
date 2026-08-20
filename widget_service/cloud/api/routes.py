@@ -45,6 +45,14 @@ _MODULE = "[WS Router]"
 router = APIRouter(prefix="/api/v1")
 
 COMPACT_DSL_OPERATION = "generateWidgetCardCompactDsl"
+COMPACT_DSL_TRANSPORT_CONTENT_KEYS = frozenset(
+    {
+        "uid",
+        "odid",
+        "romVersion",
+        "bundleName",
+    }
+)
 GENERATION_OPERATIONS = frozenset(
     {
         "generateWidgetCard",
@@ -323,6 +331,9 @@ def _validate_compact_dsl_content(
     if not isinstance(content, dict):
         return
     if isinstance(content.get("arguments"), str):
+        raise StringifiedToolArgumentsError()
+    if set(content) == COMPACT_DSL_TRANSPORT_CONTENT_KEYS:
+        # arguments 为字符串时，部分工具层不会展开业务字段，只保留自动透传字段。
         raise StringifiedToolArgumentsError()
 
 
