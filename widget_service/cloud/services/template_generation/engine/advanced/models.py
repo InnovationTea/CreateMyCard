@@ -273,11 +273,43 @@ class AdvancedScopeBrief(StrictModel):
         return values
 
 
+class TemplateComponentCandidate(StrictModel):
+    """首层批准交给第二层的单个业务组件模板候选集。"""
+
+    component_id: str = Field(alias="componentId", min_length=1)
+    available_template_ids: tuple[str, ...] = Field(
+        alias="availableTemplateIds",
+        min_length=1,
+        max_length=12,
+    )
+
+    @field_validator("component_id")
+    @classmethod
+    def normalized_component_id(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("componentId must not be empty")
+        return normalized
+
+    @field_validator("available_template_ids")
+    @classmethod
+    def unique_non_empty_template_ids(cls, values: tuple[str, ...]) -> tuple[str, ...]:
+        normalized = tuple(value.strip() for value in values)
+        if any(not value for value in normalized):
+            raise ValueError("availableTemplateIds must not contain empty IDs")
+        if len(normalized) != len(set(normalized)):
+            raise ValueError("availableTemplateIds must be unique")
+        return normalized
+
+
 class TemplateRouteDecision(StrictModel):
     """第四接口 create 路由的首层模板完整覆盖判断。"""
 
     theme: str = Field(min_length=1)
-    component: tuple[str, ...] = Field(max_length=4)
+    component_candidates: tuple[TemplateComponentCandidate, ...] = Field(
+        alias="componentCandidates",
+        max_length=4,
+    )
     action: str | None
 
     @field_validator("theme")
@@ -288,13 +320,15 @@ class TemplateRouteDecision(StrictModel):
             raise ValueError("theme must be a non-empty candidate ID")
         return normalized
 
-    @field_validator("component")
+    @field_validator("component_candidates")
     @classmethod
-    def unique_non_empty_ids(cls, values: tuple[str, ...]) -> tuple[str, ...]:
-        if any(not value.strip() for value in values):
-            raise ValueError("component IDs must not be empty")
-        if len(values) != len(set(values)):
-            raise ValueError("component IDs must be unique")
+    def unique_component_ids(
+        cls,
+        values: tuple[TemplateComponentCandidate, ...],
+    ) -> tuple[TemplateComponentCandidate, ...]:
+        component_ids = tuple(value.component_id for value in values)
+        if len(component_ids) != len(set(component_ids)):
+            raise ValueError("componentCandidates componentId values must be unique")
         return values
 
     @field_validator("action")
@@ -309,15 +343,27 @@ class TemplateRouteDecision(StrictModel):
 
     @model_validator(mode="after")
     def route_fields_match_decision(self) -> TemplateRouteDecision:
-        if not self.component and self.action is not None:
+        if not self.component_candidates and self.action is not None:
             raise ValueError("rejected Template route must clear action and retain theme")
+        template_count = sum(
+            len(candidate.available_template_ids) for candidate in self.component_candidates
+        )
+        if template_count > 12:
+            raise ValueError("componentCandidates may expose at most 12 Templates")
         return self
+
+    @property
+    def component_ids(self) -> tuple[str, ...]:
+        return tuple(item.component_id for item in self.component_candidates)
 
 
 class TemplateRouteSelection(StrictModel):
     """服务端校验后的模板范围，不直接暴露为首层 LLM 输出。"""
 
     scope: AdvancedScopeBrief
+    component_candidates: tuple[TemplateComponentCandidate, ...] = Field(
+        alias="componentCandidates"
+    )
     action_id: str | None = None
 
 

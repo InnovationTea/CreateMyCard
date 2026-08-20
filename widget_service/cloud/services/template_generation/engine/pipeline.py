@@ -10,6 +10,7 @@ from typing import Any
 
 from app.logger import logger
 from models.generation import CandidateDataBinding, TaskSpec
+from services.card_validation.base import expression_references
 from services.protocol_registry import (
     TERSE_DSL_NESTED2_PROFILE_ID,
     A2UIProtocolRegistry,
@@ -19,6 +20,10 @@ from services.template_generation.engine.advanced.content_selectors import (
     project_content_component_facts,
 )
 from services.template_generation.engine.advanced.data_shape import extract_data_shape
+from services.template_generation.engine.advanced.models import (
+    AdvancedScopeBrief,
+    TemplateComponentCandidate,
+)
 from services.template_generation.engine.advanced.scope_planner import (
     TemplateRouteNotApplicable,
     plan_template_route_with_llm,
@@ -132,6 +137,7 @@ async def generate_template_a2ui(
             card_spec=card_spec,
             effective_capability_ids=effective_capability_ids,
             scope=scope,
+            component_candidates=selection.component_candidates,
             registry=registry,
             model_client=model_client,
         )
@@ -146,7 +152,8 @@ async def _generate_selected_templates(
     source_task_spec: TaskSpec,
     card_spec: dict[str, Any],
     effective_capability_ids: set[str],
-    scope: Any,
+    scope: AdvancedScopeBrief,
+    component_candidates: tuple[TemplateComponentCandidate, ...],
     registry: CardPlanRegistry,
     model_client: Any,
 ) -> TemplateEngineOutput:
@@ -166,6 +173,7 @@ async def _generate_selected_templates(
         task_spec=projected_task_spec,
         card_spec=card_spec,
         scope=scope,
+        component_candidates=component_candidates,
         registry=registry,
     )
     protocol_profile = A2UIProtocolRegistry.read_design_protocol_profile(
@@ -299,9 +307,42 @@ def _with_provider_template_binding_projection(
                     continue
                 _set_pointer_value(schema, path, deepcopy(value))
                 changed = True
+    for path in _event_binding_paths(source):
+        value = _pointer_value(source.dataModelSchema, path)
+        if value is None:
+            continue
+        _set_pointer_value(schema, path, deepcopy(value))
+        changed = True
     if not changed:
         return projected
     return projected.model_copy(update={"dataModelSchema": schema})
+
+
+def _event_binding_paths(task_spec: TaskSpec) -> tuple[str, ...]:
+    return tuple(
+        dict.fromkeys(
+            path
+            for event in task_spec.eventCandidates
+            for path in _value_binding_paths(event.args)
+            if path == "/data" or path.startswith("/data/")
+        )
+    )
+
+
+def _value_binding_paths(value: Any) -> tuple[str, ...]:
+    if isinstance(value, str):
+        return tuple(expression_references(value))
+    if isinstance(value, dict):
+        if set(value) == {"path"} and isinstance(value.get("path"), str):
+            return (value["path"],)
+        return tuple(
+            path
+            for child in value.values()
+            for path in _value_binding_paths(child)
+        )
+    if isinstance(value, list):
+        return tuple(path for child in value for path in _value_binding_paths(child))
+    return ()
 
 
 def _provider_binding_root(

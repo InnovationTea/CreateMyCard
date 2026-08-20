@@ -21,7 +21,11 @@ from .content_selectors import (
     extract_sleep_overview_facts,
     extract_weather_overview_facts,
 )
-from .models import AdvancedScopeBrief, UxBusinessComponentCapability
+from .models import (
+    AdvancedScopeBrief,
+    TemplateComponentCandidate,
+    UxBusinessComponentCapability,
+)
 from .scope_planner import (
     resolve_available_capability_ids,
     resolve_scope_layout_ids,
@@ -87,6 +91,7 @@ def build_ux_mixed_prompt(
     task_spec: TaskSpec,
     card_spec: dict[str, Any],
     scope: AdvancedScopeBrief,
+    component_candidates: tuple[TemplateComponentCandidate, ...],
     registry: CardPlanRegistry,
 ) -> UxMixedPromptProjection:
     """复用事实、Action 和 Template 安全契约，替换旧候选与布局决策入口。"""
@@ -99,6 +104,20 @@ def build_ux_mixed_prompt(
     components = tuple(
         registry.require_ux_business_component(item) for item in scope.advanced_component_ids
     )
+    candidate_ids_by_component = {
+        candidate.component_id: candidate.available_template_ids
+        for candidate in component_candidates
+    }
+    if tuple(candidate_ids_by_component) != scope.advanced_component_ids:
+        raise ValueError("Template candidates do not match Advanced Scope")
+    satisfiable_template_ids = set(scope_template_ids(scope, registry, task_spec))
+    selected_template_ids = tuple(
+        template_id
+        for component_id in scope.advanced_component_ids
+        for template_id in candidate_ids_by_component[component_id]
+    )
+    if not set(selected_template_ids).issubset(satisfiable_template_ids):
+        raise ValueError("Template candidates include an unsatisfiable Template")
     selected_action_id = next(
         (event.id for event in task_spec.eventCandidates if event.id is not None),
         None,
@@ -114,7 +133,7 @@ def build_ux_mixed_prompt(
             raise ValueError(f"UX Layout Template contract is invalid: {template_id}")
     bridge = _ScopePromptBridge(
         theme_id=scope.theme_id,
-        local_template_ids=scope_template_ids(scope, registry, task_spec),
+        local_template_ids=selected_template_ids,
         primary_domain=components[0].domain_id,
         advanced_component_ids=scope.advanced_component_ids,
     )
@@ -134,7 +153,10 @@ def build_ux_mixed_prompt(
     has_weather = any(component.name == "WeatherOverview" for component in components)
     has_heart_rate = any(component.name == "HeartRateOverview" for component in components)
     required_template_groups = tuple(
-        _required_template_group(component.local_template_ids, base.requested_template_ids)
+        _required_template_group(
+            candidate_ids_by_component[component.name],
+            base.requested_template_ids,
+        )
         for component in template_components
     )
     if any(not group for group in required_template_groups):
@@ -246,6 +268,7 @@ def build_ux_mixed_prompt(
             card_spec,
             template_components,
             registry,
+            set(selected_template_ids),
         )
     )
     required_literals = tuple(
@@ -294,6 +317,7 @@ def build_ux_mixed_prompt(
             effective_capability_ids,
             task_spec.size,
             base.requested_template_ids,
+            candidate_ids_by_component[component.name],
         )
         for component in components
     ]
@@ -316,12 +340,19 @@ def build_ux_mixed_prompt(
             "trustedStringLiterals=" + json.dumps(contract.trusted_literals, ensure_ascii=False),
             "trustedAssetSources=" + json.dumps(contract.allowed_asset_sources, ensure_ascii=False),
             "uxAdvancedScope=" + json.dumps(scope.model_dump(by_alias=True), ensure_ascii=False),
+            "componentCandidates="
+            + json.dumps(
+                [candidate.model_dump(by_alias=True) for candidate in component_candidates],
+                ensure_ascii=False,
+            ),
             "allowedUxLayouts=" + json.dumps(allowed_layout_ids, ensure_ascii=False),
             "requiredLocalTemplateGroups="
             + json.dumps(required_template_groups, ensure_ascii=False),
             "directBusinessComponents=" + json.dumps(direct_components, ensure_ascii=False),
             "providerSecondLayerRules="
             + json.dumps(provider_second_layer_rules, ensure_ascii=False),
+            "只能从 componentCandidates 中同一 componentId 的 availableTemplateIds "
+            "选择最终业务模板；不得使用 Provider 文档中的其他模板。",
             "selectedActionEventId=" + json.dumps(selected_action_id, ensure_ascii=False),
             "Action 与业务组件解耦；selectedActionEventId 非空时，只能在布局根末尾输出唯一的 "
             'PillAction({"actionId":"<selectedActionEventId>"})；为空时不得输出 Action。',
@@ -373,9 +404,10 @@ def _business_component_line(
     capability_ids: set[str],
     size: str,
     requested_template_ids: tuple[str, ...],
+    selected_template_ids: tuple[str, ...],
 ) -> str:
     templates = tuple(
-        item for item in component.local_template_ids if item in requested_template_ids
+        item for item in selected_template_ids if item in requested_template_ids
     )
     return (
         f"- {component.name}: variants={list(component.enabled_variants(capability_ids))}; "
@@ -404,12 +436,14 @@ def _provider_component_server_owned_values(
     card_spec: dict[str, Any],
     components: tuple[UxBusinessComponentCapability, ...],
     registry: CardPlanRegistry,
+    allowed_template_ids: set[str],
 ) -> tuple[str | int | float, ...]:
     values: list[str | int | float] = []
     for component in components:
         definitions = tuple(
             registry.require_template(template_id)
             for template_id in component.local_template_ids
+            if template_id in allowed_template_ids
             if registry.require_template(template_id).source_format == "cardtpl/1"
         )
         if not definitions:

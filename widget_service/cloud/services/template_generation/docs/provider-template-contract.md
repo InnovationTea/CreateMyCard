@@ -100,27 +100,38 @@ Template("HeroSupportLayout@1", {},
 
 ## 两层 LLM 规则
 
-第一层顶层只能输出 `theme`、`component`、`action`：
+第一层顶层只能输出 `theme`、`componentCandidates`、`action`：
 
 1. 从 `userQuery` 和 `taskSpecDataFields` 标定用户显式要求显示的字段；
 2. 所选一个或多个组件的模板覆盖并集必须承载全部显式字段，任一字段全部或部分不能承载即失败；
-3. 显式字段满足后，再检查所选模板自身 `requiredData` 在 TaskSpec 中全部存在；
-4. `candidateOutputFields` 只是候选数据投影，不直接等于强制显示集合；
-5. `action` 只输出显式动作对应的 `eventId`，不属于组件，也不参与数据覆盖。
+3. 每个所选组件输出 `componentId` 与非空 `availableTemplateIds`，模板 ID 必须来自该组件；
+4. 显式字段满足后，再检查候选模板自身 `requiredData` 在 TaskSpec 中全部存在；
+5. `candidateOutputFields` 只是候选数据投影，不直接等于强制显示集合；
+6. `action` 只输出显式动作对应的 `eventId`，不属于组件，也不参与数据覆盖。
 
 成功示例：
 
 ```json
-{"theme":"family-weather-care-blue","component":["WeatherOverview"],"action":null}
+{
+  "theme": "family-weather-care-blue",
+  "componentCandidates": [
+    {
+      "componentId": "WeatherOverview",
+      "availableTemplateIds": ["WeatherOverviewHero@1", "WeatherOverviewCompact@1"]
+    }
+  ],
+  "action": null
+}
 ```
 
-失败时仍必须保留最匹配的候选 Theme，以空 `component` 作为唯一失败标志，并清空 Action：
+失败时仍必须保留最匹配的候选 Theme，以空 `componentCandidates` 作为唯一失败标志，并清空 Action：
 
 ```json
-{"theme":"family-weather-care-blue","component":[],"action":null}
+{"theme":"family-weather-care-blue","componentCandidates":[],"action":null}
 ```
 
-第二层只读取已选业务 Provider 的 `secondLayerRule`，选择具体 UI 模板和 props；根布局也必须从 Layout
+第二层只读取已选业务 Provider 的 `secondLayerRule`，从首层 `availableTemplateIds` 选择最终 UI 模板和
+props；根布局也必须从 Layout
 Provider 选择模板。若第一层输出了 `action`，第二层只可在布局模板末尾生成唯一
 `PillAction({"actionId":"event.id"})`。
 
