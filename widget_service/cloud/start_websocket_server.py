@@ -7,6 +7,7 @@ import uvicorn
 from anyio import to_thread
 from fastapi import FastAPI, Request, Response
 
+from api.artifact_routes import router as artifact_router
 from api.routes import router
 from app.logger import logger
 from app.websocket_metrics import report_websocket_metrics, websocket_metrics
@@ -56,6 +57,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     fastapi_app.include_router(router)
+    fastapi_app.include_router(artifact_router)
 
     @fastapi_app.middleware("http")
     async def request_logging_middleware(request: Request, call_next) -> Response:

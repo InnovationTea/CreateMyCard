@@ -182,11 +182,10 @@
       }
     },
     "CandidateEventCandidate": {
-      "required": ["capabilityId", "action"],
+      "required": ["action"],
       "properties": {
-        "capabilityId": "string，事件能力 ID。",
         "action.call": "string，事件调用名，例如 clickToDeeplink、clickToIntent、clickToApi。",
-        "action.args": "object，事件参数对象。"
+        "action.args": "object，完整复制事件 actionTemplate.args，仅修改 dynamicArguments 声明的路径；服务端据此唯一解析事件能力。"
       }
     },
     "DeviceInfo": {

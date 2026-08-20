@@ -3,18 +3,19 @@
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
+from pydantic.json_schema import SkipJsonSchema
 
 from core.errors import GenerationStatus
 from models.capability import (
     AssetCapabilityOverview,
     DataCapability,
+    EventActionTemplate,
     EventCapabilityOverview,
     RemovedCapability,
 )
 from models.generation import (
     CandidateDataBinding,
     DeviceContext,
-    EventAction,
     GenerationOptions,
     ModelRequestContext,
     WidgetSize,
@@ -193,15 +194,15 @@ class CandidateEventCandidate(BaseModel):
     """主 Agent 推荐的候选事件单项。
 
     入参：
-    - capabilityId：来自能力概述的事件能力 ID。
     - action：候选事件动作，包含 call 和 args。
     出参：Pydantic 模型对象。
     """
 
     model_config = ConfigDict(extra="forbid")
 
-    capabilityId: str
-    action: EventAction
+    action: EventActionTemplate
+    # 仅兼容旧客户端和旧 artifact；不进入公开 Schema，也不写回新 artifact。
+    capabilityId: SkipJsonSchema[str | None] = Field(default=None, exclude=True)
 
 
 class GenerateWidgetCardRequest(VersionedToolRequest):

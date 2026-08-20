@@ -7,15 +7,14 @@ OpenAI 兼容的流式 LLM 客户端。
 以 async generator 形式逐 token 返回生成文本。
 """
 
-import asyncio
 import json
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 
 import websockets
 
-from config.config import get_settings
 from app.logger import json_for_log, logger
+from config.config import get_settings
 
 _MODULE = "[LLMClient]"
 
@@ -80,7 +79,7 @@ async def stream_genui(
 
     logger.info(
         f"{_MODULE} stream_started ws_url={options.ws_url} "
-        f"model={options.model} body_preview={json_for_log(json.dumps(body, ensure_ascii=False)[:500])}"
+        f"model={options.model} message_count={len(messages)}"
     )
 
     usage = None

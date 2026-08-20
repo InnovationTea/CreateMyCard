@@ -84,7 +84,6 @@ def test_preflight_accepts_weather_without_district_and_builds_specs():
         candidateDataBindings=[_weather_binding()],
         candidateEventCandidates=[
             {
-                "capabilityId": event.id,
                 "action": event.actionTemplate.model_dump(mode="json"),
             }
         ],
@@ -103,6 +102,30 @@ def test_preflight_accepts_weather_without_district_and_builds_specs():
     weather_schema = result.task_spec.dataModelSchema["data"]["weather"]
     assert weather_schema["current"]["condition"]
     assert weather_schema["location"]["cityCode"]
+
+
+def test_candidate_event_public_schema_is_action_only_but_accepts_legacy_id():
+    properties = GenerateWidgetCardRequest.model_json_schema()["$defs"][
+        "CandidateEventCandidate"
+    ]["properties"]
+    assert set(properties) == {"action"}
+
+    registry = CapabilityRegistry(version=REGISTRY_VERSION)
+    event = registry.get_event_capability("event.open.settings.battery")
+    assert event is not None
+    request = _request(
+        candidateEventCandidates=[
+            {
+                "capabilityId": event.id,
+                "action": event.actionTemplate.model_dump(mode="json"),
+            }
+        ]
+    )
+
+    result = _run(request)
+
+    assert result.blocking_issues == ()
+    assert [item.id for item in result.effective_events] == [event.id]
 
 
 def test_preflight_reports_exact_missing_weather_argument_path():

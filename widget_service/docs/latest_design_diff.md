@@ -22,7 +22,7 @@
 分歧点：
 
 - 旧实现：事件候选支持 `candidateEventCapabilityIds`、`candidateEventActions`、`candidateEventCapabilities`。
-- 最新方案：只使用 `candidateEventCandidates`，每项同时携带 `capabilityId` 和 `action`。
+- 最新方案：只使用 `candidateEventCandidates`，每项仅携带完整 `action`；服务端据此唯一解析事件能力。
 
 当前处理：
 
@@ -153,7 +153,6 @@
   ],
   "candidateEventCandidates": [
     {
-      "capabilityId": "event.open.weather",
       "action": {
         "call": "clickToDeeplink",
         "args": {

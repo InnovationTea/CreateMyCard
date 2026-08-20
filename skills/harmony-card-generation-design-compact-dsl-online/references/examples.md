@@ -254,7 +254,6 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 
 ```json
 {
-  "capabilityId": "event.open.weather",
   "action": {
     "call": "clickToDeeplink",
     "args": {
@@ -270,7 +269,6 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 
 ```json
 {
-  "capabilityId": "event.open.weather",
   "call": "clickToDeeplink",
   "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
 }

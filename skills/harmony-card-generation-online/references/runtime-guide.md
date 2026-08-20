@@ -126,10 +126,10 @@ overview 前仅检查卡片形态、静态范围和最小语义歧义。用户 q
 
 事件与素材候选：
 
-- `candidateEventCandidates` 每项同时包含 overview 返回的 `capabilityId`，并将同项 `actionTemplate` 完整
-  深拷贝为 `action`。不得删除、重排或改写模板中的固定字段；`intentName` 以及值为空字符串的字段也必须
+- `candidateEventCandidates` 每项只包含 `action`，并将 overview 中所选事件的 `actionTemplate` 完整
+  深拷贝为该字段。不得删除、重排或改写模板中的固定字段；`intentName` 以及值为空字符串的字段也必须
   保留。`dynamicArguments[].path` 是相对 `actionTemplate.args` 的 JSON Pointer，只允许按这些路径替换动态
-  值；必要业务值缺失且用户可回答时只追问一个最小问题，不编造 deeplink、intent、包名、ability、号码或参数名。模板中的动态占位符无法
+  值；服务端根据 `call + 固定参数` 唯一解析事件能力。必要业务值缺失且用户可回答时只追问一个最小问题，不编造 deeplink、intent、包名、ability、号码或参数名。模板中的动态占位符无法
   按说明安全解析且模板默认值也不合法时，移除整个候选；核心动作因此缺失时重新决策。
 - 高风险或不可逆动作仅在用户明确要求且 overview 明确支持时选择。候选 action 不是最终 DSL `onClick`，最终过滤和写入由微服务负责。
 - `candidateAssetIds` 只用 overview 返回的 ID；没有语义匹配时传空数组，不自造路径。

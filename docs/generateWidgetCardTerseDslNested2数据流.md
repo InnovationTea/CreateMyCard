@@ -125,7 +125,7 @@ model_profile_id = terse-dsl-nested-2
 model_format = terse-dsl-nested-2
 design_profile_id = terse-dsl-nested-2
 supports_edit = true
-supports_dynamic_capabilities = false
+supports_dynamic_capabilities = true
 validation_failure_blocking = true
 stores_design_token = true
 ```

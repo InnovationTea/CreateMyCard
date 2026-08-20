@@ -83,10 +83,9 @@ generate_widget_card_ws
         ]
       }
     ],
-    "candidateEventCandidates": [
-      {
-        "capabilityId": "event.open.weather",
-        "action": {
+  "candidateEventCandidates": [
+    {
+      "action": {
           "call": "clickToDeeplink",
           "args": {
             "intentName": "Weather_CityCode",

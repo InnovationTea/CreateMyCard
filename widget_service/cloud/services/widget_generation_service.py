@@ -58,7 +58,10 @@ from services.source_artifact_repository import (
     SourceArtifactLoadResult,
     SourceArtifactRepository,
 )
-from services.template_generation import generate_template_artifact
+from services.template_generation import (
+    generate_strict_terse_template_artifact,
+    generate_template_artifact,
+)
 from services.validator import ArtifactValidator
 
 _MODULE = "[Generation Service]"
@@ -957,7 +960,7 @@ class WidgetGenerationService:
         candidate_capabilities = {
             "data": [item.capabilityId for item in request.candidateDataBindings or []],
             "event": [
-                item.capabilityId for item in request.candidateEventCandidates or []
+                item.action.call for item in request.candidateEventCandidates or []
             ],
             "asset": list(request.candidateAssetIds or []),
         }
@@ -1099,29 +1102,19 @@ class WidgetGenerationService:
             model_profile_id=TERSE_DSL_NESTED2_PROFILE_ID,
             model_format=TERSE_DSL_NESTED2_PROFILE_ID,
             design_profile_id=TERSE_DSL_NESTED2_PROFILE_ID,
-            supports_dynamic_capabilities=False,
+            supports_dynamic_capabilities=True,
             validation_failure_blocking=True,
             stores_design_token=True,
         )
-        try:
-            return await generate_template_artifact(
-                request,
-                policy,
-                registry=self._capability_registry(request),
-                model_runtime=self.model_runtime,
-                model_request_context=self._resolve_model_request_context(request),
-                before_model_call=before_model_call,
-            )
-        except Exception as exc:
-            logger.info(
-                f"{_MODULE} template_route_fallback operation={policy.operation} "
-                f"reason={type(exc).__name__} detail={json_for_log(str(exc))}"
-            )
-        if before_model_call is None:
-            return await self._generate_widget_card_with_policy(request, policy)
-        return await self._generate_widget_card_with_policy(
+        # 问题定位时可显式调用
+        # services.template_generation.route_legacy_python_terse_generation(...)；
+        # 生产默认严格限定为模板路线，edit 或任一模板失败均直接返回失败。
+        return await generate_strict_terse_template_artifact(
             request,
             policy,
+            registry=self._capability_registry(request),
+            model_runtime=self.model_runtime,
+            model_request_context=self._resolve_model_request_context(request),
             before_model_call=before_model_call,
         )
 
@@ -1365,7 +1358,6 @@ class WidgetGenerationService:
                 candidateDataBindings=data_bindings or [],
                 candidateEventCandidates=[
                     {
-                        "capabilityId": item.id,
                         "action": {
                             "call": item.call,
                             "args": item.args,

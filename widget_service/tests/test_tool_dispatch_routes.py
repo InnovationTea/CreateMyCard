@@ -567,7 +567,6 @@ def test_widget_card_service_complete_flow(monkeypatch):
         ],
         "candidateEventCandidates": [
             {
-                "capabilityId": "event.open.weather",
                 "action": {
                     "call": "clickToDeeplink",
                     "args": {
@@ -625,6 +624,9 @@ def test_widget_card_service_complete_flow(monkeypatch):
         assert task_spec["dataModelSchema"]["data"]["weather"]["current"][
             "temperatureText"
         ]["sampleValue"] == "29°C"
+        assert set(
+            saved_artifacts[0]["generationPlan"]["candidateEventCandidates"][0]
+        ) == {"action"}
         assert task_spec["assetCandidates"] == [
             {
                 "id": "asset.drop_1",
@@ -999,8 +1001,8 @@ def test_compact_route_mock_converts_design_dsl_before_saving(monkeypatch):
     assert rows[2]["updateDataModel"]["value"]["ui"]["state"] == "ready"
 
 
-def test_terse_nested2_route_mock_converts_local_dsl_before_saving(monkeypatch):
-    """验证第五接口使用本地 prompt、mock 和 DSL 转换器保存标准 A2UI。"""
+def test_terse_nested2_route_mock_without_template_returns_failed(monkeypatch):
+    """验证第五接口不再使用旧 mock DSL 路线生成无模板静态卡片。"""
     monkeypatch.setattr(get_settings(), "enable_a2ui_model_mock", True)
     saved_artifacts = []
 
@@ -1036,19 +1038,13 @@ def test_terse_nested2_route_mock_converts_local_dsl_before_saving(monkeypatch):
             request_id,
         )
 
-    assert message["data"]["status"] == "success"
-    assert len(saved_artifacts) == 1
-    artifact = saved_artifacts[0]
-    rows = [json.loads(line) for line in artifact["genui"].splitlines()]
-    assert artifact["meta"]["protocolProfileId"] == "a2ui-form-rom6.0-v1"
-    assert "width" not in rows[0]["createSurface"]
-    assert "height" not in rows[0]["createSurface"]
-    assert rows[1]["updateComponents"]["root"] == "root"
-    assert rows[2]["updateDataModel"]["value"]["ui"]["state"] == "ready"
+    assert message["data"]["status"] == "failed"
+    assert message["data"]["errorCode"] == "A2UI_GENERATION_FAILED"
+    assert saved_artifacts == []
 
 
 def test_generation_routes_send_start_and_success_commands(monkeypatch):
-    """验证三个生成入口在模型前和上传后发送 command 帧。"""
+    """验证标准 A2UI 和 Compact 成功入口在模型前后发送 command 帧。"""
     settings = get_settings()
     monkeypatch.setattr(settings, "enable_widget_directive_commands", True)
     monkeypatch.setattr(A2UIModelClient, "generate", _valid_model_output)
@@ -1063,7 +1059,6 @@ def test_generation_routes_send_start_and_success_commands(monkeypatch):
     routes = (
         ("generateWidgetCard", "directive-a2ui"),
         ("generateWidgetCardCompactDsl", "directive-compact"),
-        ("generateWidgetCardTerseDslNested2", "directive-terse"),
     )
     content = {
         "userQuery": "生成静态天气卡片",
