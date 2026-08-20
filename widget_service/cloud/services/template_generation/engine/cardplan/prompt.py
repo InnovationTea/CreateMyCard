@@ -608,6 +608,10 @@ def _ux_layout_action_rule(contract: HybridBodyContract) -> str:
 
 def _resolve_theme(task_spec: TaskSpec, ui_brief: Any, registry: CardPlanRegistry) -> str:
     requested = getattr(ui_brief, "theme_id", None)
+    if getattr(ui_brief, "preserve_search_candidates", False):
+        if isinstance(requested, str) and requested in registry.themes:
+            return requested
+        raise ValueError("Search route requires a first-layer Theme")
     requested_templates = [
         registry.templates[item]
         for item in (getattr(ui_brief, "local_template_ids", []) or [])
@@ -647,6 +651,11 @@ def _resolve_templates(
     registry: CardPlanRegistry,
 ) -> tuple[str, ...]:
     requested = getattr(ui_brief, "local_template_ids", []) or []
+    if getattr(ui_brief, "preserve_search_candidates", False):
+        unknown = [wire_id for wire_id in requested if wire_id not in registry.templates]
+        if unknown:
+            raise ValueError("Search route contains an unknown Template candidate")
+        return tuple(dict.fromkeys(requested))
     allowed: list[str] = []
     for wire_id in requested:
         definition = registry.templates.get(wire_id)

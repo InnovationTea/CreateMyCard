@@ -25,6 +25,10 @@ from services.template_generation.engine.advanced.models import (
 
 from .models import TemplateDefinition, TemplateVariant, ThemeDefinition
 from .provider_bundle import LoadedProviderBundle, load_provider_bundles
+from .retrieval_index import (
+    TemplateVariantSearchRecord,
+    build_template_variant_search_records,
+)
 
 _WIRE_ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9-]{0,63}@[1-9][0-9]*$")
 _DATA_ROOT_TOKEN_RE = re.compile(r"\{\{dataRoot:([A-Za-z][A-Za-z0-9._-]{0,127})\}\}")
@@ -74,6 +78,9 @@ class CardPlanRegistry:
             ThemeDefinition.model_validate(item) for item in theme_payload.get("themes", [])
         )
         self.templates = self._unique_by_wire_id((*templates, *provider_templates))
+        self.template_variant_search_records: tuple[TemplateVariantSearchRecord, ...] = (
+            build_template_variant_search_records(self.templates)
+        )
         self.provider_template_ids = tuple(item.wire_id for item in provider_templates)
         self.provider_bundles = self._provider_bundles_by_id(provider_bundles)
         self._validate_template_controls()

@@ -187,6 +187,21 @@ class _CompiledParameters:
     required_names: tuple[str, ...]
 
 
+def _required_data_fields(
+    paths: tuple[str, ...],
+    output_schema: dict[str, Any],
+) -> tuple[dict[str, str], ...]:
+    """Preserve the Provider schema type for retrieval without changing requiredData."""
+    fields: list[dict[str, str]] = []
+    for path in paths:
+        leaf = _schema_leaf(output_schema, path)
+        data_type = leaf.get("type") if isinstance(leaf, dict) else None
+        if not isinstance(data_type, str):
+            raise ValueError(f"Provider Template requiredData has no schema type: {path}")
+        fields.append({"path": path, "type": data_type})
+    return tuple(fields)
+
+
 def load_provider_templates(providers_root: Path) -> tuple[TemplateDefinition, ...]:
     """Compile every registered Provider Bundle below one trusted source root."""
     return tuple(
@@ -409,7 +424,9 @@ def _compile_legacy_card_template(
             "capabilityId": capability_id,
             "dataDomain": data_domain,
             "requiredData": required_data,
+            "requiredDataFields": _required_data_fields(required_data, output_schema),
             "optionalData": optional_data,
+            "optionalDataFields": _required_data_fields(optional_data, output_schema),
             "bindings": {
                 name: binding.model_dump(by_alias=True) for name, binding in bindings.items()
             },
@@ -533,7 +550,9 @@ def _compile_ui_card_template(
             "capabilityId": expected_capability_id,
             "dataDomain": data_domain,
             "requiredData": required_data,
+            "requiredDataFields": _required_data_fields(required_data, output_schema),
             "optionalData": optional_data,
+            "optionalDataFields": _required_data_fields(optional_data, output_schema),
             "acceptsChildren": accepts_children,
             "bindings": {
                 name: binding.model_dump(by_alias=True) for name, binding in bindings.items()

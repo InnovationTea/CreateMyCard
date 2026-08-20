@@ -163,7 +163,15 @@ class TemplateDefinition(StrictModel):
     capability_id: str | None = Field(default=None, alias="capabilityId")
     data_domain: str | None = Field(default=None, alias="dataDomain")
     required_data: tuple[str, ...] = Field(default=(), alias="requiredData")
+    required_data_fields: tuple[TemplateBinding, ...] = Field(
+        default=(),
+        alias="requiredDataFields",
+    )
     optional_data: tuple[str, ...] = Field(default=(), alias="optionalData")
+    optional_data_fields: tuple[TemplateBinding, ...] = Field(
+        default=(),
+        alias="optionalDataFields",
+    )
     accepts_children: bool = Field(default=False, alias="acceptsChildren")
     bindings: dict[str, TemplateBinding] = Field(default_factory=dict)
     bundle_digest: str | None = Field(default=None, alias="bundleDigest")

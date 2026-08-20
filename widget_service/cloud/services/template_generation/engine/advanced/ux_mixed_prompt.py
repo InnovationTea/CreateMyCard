@@ -92,6 +92,7 @@ def build_ux_mixed_prompt(
     card_spec: dict[str, Any],
     scope: AdvancedScopeBrief,
     component_candidates: tuple[TemplateComponentCandidate, ...],
+    required_template_groups: tuple[tuple[str, ...], ...] = (),
     registry: CardPlanRegistry,
 ) -> UxMixedPromptProjection:
     """复用事实、Action 和 Template 安全契约，替换旧候选与布局决策入口。"""
@@ -104,20 +105,35 @@ def build_ux_mixed_prompt(
     components = tuple(
         registry.require_ux_business_component(item) for item in scope.advanced_component_ids
     )
-    candidate_ids_by_component = {
+    requested_candidate_ids = {
         candidate.component_id: candidate.available_template_ids
         for candidate in component_candidates
     }
-    if tuple(candidate_ids_by_component) != scope.advanced_component_ids:
+    if tuple(requested_candidate_ids) != scope.advanced_component_ids:
         raise ValueError("Template candidates do not match Advanced Scope")
     satisfiable_template_ids = set(scope_template_ids(scope, registry, task_spec))
+    candidate_ids_by_component = {
+        component_id: tuple(
+            template_id
+            for template_id in template_ids
+            if template_id in satisfiable_template_ids
+        )
+        for component_id, template_ids in requested_candidate_ids.items()
+    }
+    if any(not template_ids for template_ids in candidate_ids_by_component.values()):
+        raise ValueError("Advanced Scope component has no satisfiable candidate Template")
     selected_template_ids = tuple(
         template_id
         for component_id in scope.advanced_component_ids
         for template_id in candidate_ids_by_component[component_id]
     )
-    if not set(selected_template_ids).issubset(satisfiable_template_ids):
-        raise ValueError("Template candidates include an unsatisfiable Template")
+    effective_component_candidates = tuple(
+        TemplateComponentCandidate(
+            componentId=component_id,
+            availableTemplateIds=template_ids,
+        )
+        for component_id, template_ids in candidate_ids_by_component.items()
+    )
     selected_action_id = next(
         (event.id for event in task_spec.eventCandidates if event.id is not None),
         None,
@@ -152,15 +168,22 @@ def build_ux_mixed_prompt(
     )
     has_weather = any(component.name == "WeatherOverview" for component in components)
     has_heart_rate = any(component.name == "HeartRateOverview" for component in components)
-    required_template_groups = tuple(
-        _required_template_group(
-            candidate_ids_by_component[component.name],
-            base.requested_template_ids,
+    effective_required_template_groups = (
+        tuple(
+            tuple(template_id for template_id in group if template_id in selected_template_ids)
+            for group in required_template_groups
         )
-        for component in template_components
+        if required_template_groups
+        else tuple(
+            _required_template_group(
+                candidate_ids_by_component[component.name],
+                base.requested_template_ids,
+            )
+            for component in template_components
+        )
     )
-    if any(not group for group in required_template_groups):
-        raise ValueError("Advanced Scope component has no satisfiable trusted Template")
+    if any(not group for group in effective_required_template_groups):
+        raise ValueError("An explicit output field has no satisfiable candidate Template")
     allowed_assets = tuple(
         dict.fromkeys(
             (
@@ -280,7 +303,7 @@ def build_ux_mixed_prompt(
     required_numbers = tuple(item for item in required_numbers if item not in provider_owned_values)
     contract = base.contract.model_copy(
         update={
-            "required_template_groups": required_template_groups,
+            "required_template_groups": effective_required_template_groups,
             "allowed_template_ids": tuple(
                 dict.fromkeys(
                     (*base.contract.allowed_template_ids, *allowed_layout_template_ids)
@@ -342,12 +365,15 @@ def build_ux_mixed_prompt(
             "uxAdvancedScope=" + json.dumps(scope.model_dump(by_alias=True), ensure_ascii=False),
             "componentCandidates="
             + json.dumps(
-                [candidate.model_dump(by_alias=True) for candidate in component_candidates],
+                [
+                    candidate.model_dump(by_alias=True)
+                    for candidate in effective_component_candidates
+                ],
                 ensure_ascii=False,
             ),
             "allowedUxLayouts=" + json.dumps(allowed_layout_ids, ensure_ascii=False),
             "requiredLocalTemplateGroups="
-            + json.dumps(required_template_groups, ensure_ascii=False),
+            + json.dumps(effective_required_template_groups, ensure_ascii=False),
             "directBusinessComponents=" + json.dumps(direct_components, ensure_ascii=False),
             "providerSecondLayerRules="
             + json.dumps(provider_second_layer_rules, ensure_ascii=False),

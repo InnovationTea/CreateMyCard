@@ -26,6 +26,10 @@ class TemplateControls(BaseModel):
         default=(),
         alias="disabledTemplateIds",
     )
+    first_layer_component_selector: Literal["search", "llm"] = Field(
+        default="search",
+        alias="firstLayerComponentSelector",
+    )
 
     @model_validator(mode="after")
     def disabled_ids_are_unique(self) -> TemplateControls:
