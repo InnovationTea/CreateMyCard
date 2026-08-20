@@ -386,6 +386,7 @@ curl http://127.0.0.1:8855/health
     ],
     "candidateEventCandidates": [
       {
+        "capabilityId": "event.open.weather",
         "action": {
           "call": "clickToDeeplink",
           "args": {
@@ -465,6 +466,7 @@ failed       系统异常、模型失败、OBS 失败等工程失败
 {
   "candidateEventCandidates": [
     {
+      "capabilityId": "event.open.weather",
       "action": {
         "call": "clickToDeeplink",
         "args": {

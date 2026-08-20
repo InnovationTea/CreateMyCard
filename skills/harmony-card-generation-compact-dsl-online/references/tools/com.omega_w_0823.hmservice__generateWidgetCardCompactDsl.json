@@ -54,7 +54,7 @@
         "properties": {
           "ArrayItem": {
             "type": "Object",
-            "description": "事件候选，仅包含完整 action:{call,args}；服务端根据动作唯一解析事件能力"
+            "description": "事件候选，包含 capabilityId 和 action:{call,args}"
           }
         }
       },

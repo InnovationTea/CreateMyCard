@@ -1326,21 +1326,20 @@ async def test_first_layer_rejection_falls_back_to_original(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_terse_template_mismatch_falls_back_to_original_at_entry(monkeypatch):
+async def test_terse_template_mismatch_returns_failed_without_original_flow(monkeypatch):
     original_called = False
-    original_response = object()
 
     async def original_generation(*_args: Any, **_kwargs: Any) -> Any:
         nonlocal original_called
         original_called = True
-        return original_response
+        return object()
 
     async def rejected(*_args: Any, **_kwargs: Any) -> Any:
         raise TemplateRouteNotApplicable("LLM rejected template route")
 
     service = WidgetGenerationService()
     monkeypatch.setattr(
-        widget_generation_service_module,
+        facade,
         "generate_template_artifact",
         rejected,
     )
@@ -1351,23 +1350,54 @@ async def test_terse_template_mismatch_falls_back_to_original_at_entry(monkeypat
     )
     response = await service.generate_widget_card_terse_dsl_nested2(_weather_request())
 
-    assert response is original_response
-    assert original_called is True
+    assert response.status == GenerationStatus.FAILED
+    assert response.errorCode == "A2UI_GENERATION_FAILED"
+    assert original_called is False
 
 
 @pytest.mark.asyncio
-async def test_terse_edit_rejection_uses_original_flow(monkeypatch):
+async def test_terse_selected_template_failure_returns_failed_without_original_flow(
+    monkeypatch,
+):
+    original_called = False
+
+    async def original_generation(*_args: Any, **_kwargs: Any) -> Any:
+        nonlocal original_called
+        original_called = True
+        return object()
+
+    async def failed(*_args: Any, **_kwargs: Any) -> Any:
+        raise TemplateGenerationError("template body validation failed")
+
+    service = WidgetGenerationService()
+    monkeypatch.setattr(facade, "generate_template_artifact", failed)
+    monkeypatch.setattr(
+        service,
+        "_generate_widget_card_with_policy",
+        original_generation,
+    )
+    response = await service.generate_widget_card_terse_dsl_nested2(_weather_request())
+
+    assert response.status == GenerationStatus.FAILED
+    assert response.errorCode == "A2UI_GENERATION_FAILED"
+    assert original_called is False
+
+
+@pytest.mark.asyncio
+async def test_terse_edit_returns_failed_without_template_or_original_flow(monkeypatch):
     request = _weather_request().model_copy(
         update={"sourceArtifactUrl": "https://artifact.test/source.md"}
     )
     request.model_fields_set.add("sourceArtifactUrl")
 
-    original_response = object()
-
     async def original_generation(*_args: Any, **_kwargs: Any) -> Any:
-        return original_response
+        pytest.fail("Terse edit must not enter the original flow")
+
+    async def unexpected_template(*_args: Any, **_kwargs: Any) -> Any:
+        pytest.fail("Terse edit must not attempt template generation")
 
     service = WidgetGenerationService()
+    monkeypatch.setattr(facade, "generate_template_artifact", unexpected_template)
     monkeypatch.setattr(
         service,
         "_generate_widget_card_with_policy",
@@ -1375,7 +1405,8 @@ async def test_terse_edit_rejection_uses_original_flow(monkeypatch):
     )
     response = await service.generate_widget_card_terse_dsl_nested2(request)
 
-    assert response is original_response
+    assert response.status == GenerationStatus.FAILED
+    assert response.errorCode == "A2UI_GENERATION_FAILED"
 
 
 @pytest.mark.asyncio

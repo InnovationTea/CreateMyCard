@@ -178,12 +178,14 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `action` | `EventAction` | 是 | 包含 `call` 和 `args`；完整复制 overview 的 `actionTemplate`，仅修改动态参数。 |
+| `capabilityId` | `string` | 是 | 事件能力 ID，必须来自 overview。 |
+| `action` | `EventAction` | 是 | 包含 `call` 和 `args`；只能来自 overview 返回的事件能力说明。 |
 
 `CandidateEventCandidate` / `EventAction` 结构模板：
 
 ```json
 {
+  "capabilityId": "event.open.weather",
   "action": {
     "call": "clickToDeeplink",
     "args": {
@@ -197,7 +199,7 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{bundleName:"com.omega
 
 结构规则：
 
-- `candidateEventCandidates` 必须是数组；数组元素只包含 `action`，服务端根据动作唯一解析事件能力。
+- `candidateEventCandidates` 必须是数组；数组元素必须同时包含 `capabilityId` 和 `action`。
 - `action` 必须是对象，且必须包含 `call` 和 `args`；不要把 `call`、`args` 平铺到事件候选顶层。
 - `args` 必须是对象；不要传字符串化 JSON。
 - `action.call/action.args` 只能来自 overview 返回的事件能力说明或用户明确输入；无法安全填齐时移除整个事件候选。
@@ -253,7 +255,7 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{bundleName:"com.o
 - `candidateDataBindings` 是候选，不是最终 CardSpec。
 - 无需字段投影时省略 `candidateOutputFields`；需要投影时只传可由对应 `outputSchema` 推导的 JSON Pointer 字符串数组。
 - 不传 `updateModel`。
-- `candidateEventCandidates` 每项只包含完整 `action`。
+- `candidateEventCandidates` 每项必须同时包含 `capabilityId` 和完整 `action`。
 - 如果事件 `action.call/args` 无法从 overview 返回内容或用户明确输入中安全填齐，不传该事件候选。
 - `candidateAssetIds` 只传 overview 返回的素材 ID，不传自造资源路径。
 - 纯视觉、布局、文案或尺寸编辑不重新调用 overview/schema，也不重复传未修改的候选数组。

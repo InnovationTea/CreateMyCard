@@ -960,7 +960,7 @@ class WidgetGenerationService:
         candidate_capabilities = {
             "data": [item.capabilityId for item in request.candidateDataBindings or []],
             "event": [
-                item.action.call for item in request.candidateEventCandidates or []
+                item.capabilityId for item in request.candidateEventCandidates or []
             ],
             "asset": list(request.candidateAssetIds or []),
         }
@@ -1358,6 +1358,7 @@ class WidgetGenerationService:
                 candidateDataBindings=data_bindings or [],
                 candidateEventCandidates=[
                     {
+                        "capabilityId": item.id,
                         "action": {
                             "call": item.call,
                             "args": item.args,

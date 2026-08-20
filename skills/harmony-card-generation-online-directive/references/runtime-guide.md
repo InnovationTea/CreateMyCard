@@ -107,7 +107,7 @@
 
 事件与素材候选：
 
-- `candidateEventCandidates` 每项只包含完整 `action.call/action.args`。函数和参数结构来自 overview 的 `actionTemplate`，只修改 `dynamicArguments` 声明的业务值；服务端根据动作唯一解析事件能力。参数无法补齐时移除整个候选，核心动作因此缺失时重新决策。
+- `candidateEventCandidates` 每项同时包含 `capabilityId` 和完整 `action.call/action.args`。ID、函数和参数结构来自 overview 的事件描述或 `actionTemplate`；用户只补业务值，不编造 deeplink、intent、包名、ability、号码或参数名。参数无法补齐时移除整个候选，核心动作因此缺失时重新决策。
 - 高风险或不可逆动作仅在用户明确要求且 overview 明确支持时选择。候选 action 不是最终 DSL `onClick`，最终过滤和写入由微服务负责。
 - `candidateAssetIds` 只用 overview 返回的 ID；没有语义匹配时传空数组，不自造路径。
 - 不传 `slots`、`options`、`locale`、`uid`、`device` 或运行时 schema 未声明的字段。

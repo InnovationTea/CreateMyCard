@@ -190,9 +190,9 @@ async def test_create_then_visual_edit_inherits_generation_plan(editable_artifac
     assert updated.artifact.generationPlan.candidateDataBindings[
         0
     ].candidateOutputFields == ["/current/condition"]
-    archived_event = updated.artifact.generationPlan.candidateEventCandidates[0]
-    assert set(archived_event) == {"action"}
-    assert archived_event["action"]["call"] == "clickToDeeplink"
+    assert updated.artifact.generationPlan.candidateEventCandidates[0][
+        "capabilityId"
+    ] == "event.open.weather"
     assert updated.artifact.generationPlan.candidateAssetIds == ["asset.drop_1"]
     assert len(list(editable_artifact_storage.glob("artifact_*.md"))) == 2
 

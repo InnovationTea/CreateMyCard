@@ -567,6 +567,7 @@ def test_widget_card_service_complete_flow(monkeypatch):
         ],
         "candidateEventCandidates": [
             {
+                "capabilityId": "event.open.weather",
                 "action": {
                     "call": "clickToDeeplink",
                     "args": {
@@ -624,9 +625,6 @@ def test_widget_card_service_complete_flow(monkeypatch):
         assert task_spec["dataModelSchema"]["data"]["weather"]["current"][
             "temperatureText"
         ]["sampleValue"] == "29°C"
-        assert set(
-            saved_artifacts[0]["generationPlan"]["candidateEventCandidates"][0]
-        ) == {"action"}
         assert task_spec["assetCandidates"] == [
             {
                 "id": "asset.drop_1",
@@ -1381,6 +1379,51 @@ def test_invalid_arguments_keep_plugin_envelope_successful():
     assert legacy_message["explanation"].startswith("工具参数传入有误")
     assert legacy_message["explanation"].endswith("报错信息如下")
     assert legacy_message["error"]["details"]
+
+
+def test_generation_routes_require_event_capability_id_before_template_routing():
+    """第四、第五生成接口都把缺失事件 capabilityId 视为端侧参数错误。"""
+    client = TestClient(app)
+    routes = (
+        "/api/v1/ws/tools/generateWidgetCardCompactDsl",
+        "/api/v1/ws/tools/generateWidgetCardTerseDslNested2",
+    )
+    for index, route in enumerate(routes):
+        interaction_id = f"missing-event-capability-id-{index}"
+        with client.websocket_connect(route) as websocket:
+            websocket.send_json(
+                _tool_payload(
+                    {
+                        "userQuery": "生成天气卡片",
+                        "size": "2x2",
+                        "title": "天气卡片",
+                        "description": "天气信息",
+                        "candidateDataBindings": [],
+                        "candidateEventCandidates": [
+                            {
+                                "action": {
+                                    "call": "clickToDeeplink",
+                                    "args": {"uri": "hww://example"},
+                                }
+                            }
+                        ],
+                        "candidateAssetIds": [],
+                    },
+                    interaction_id,
+                )
+            )
+            response = websocket.receive_json()
+
+        legacy_message = parse_legacy_stream_content(
+            response["reply"]["streamInfo"]["streamContent"]
+        )
+        assert legacy_message["type"] == "error"
+        assert legacy_message["errorCode"] == "INVALID_ARGUMENTS"
+        assert legacy_message["error"]["details"][0]["loc"] == (
+            "candidateEventCandidates",
+            0,
+            "capabilityId",
+        )
 
 
 def test_generation_preflight_error_keeps_plugin_format_and_actionable_details(

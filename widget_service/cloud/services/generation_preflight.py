@@ -11,12 +11,7 @@ from api.schemas import CandidateEventCandidate, GenerateWidgetCardRequest
 from app.logger import json_for_log, logger
 from core.errors import ErrorCode
 from core.json_pointer import parse_json_pointer
-from models.capability import (
-    AssetCapability,
-    DataCapability,
-    EventCapability,
-    RemovedCapability,
-)
+from models.capability import AssetCapability, DataCapability, RemovedCapability
 from models.generation import CandidateDataBinding, EventAction
 from models.preflight import (
     AgentAction,
@@ -37,77 +32,6 @@ _ASSET_SOURCE = "getWidgetCapabilityOverview.assetCandidates[]"
 _LEGACY_WEATHER_URI = (
     "hww://www.huawei.com/totemweather?enterType=share&cityCode="
 )
-
-
-def resolve_event_candidate_capabilities(
-    registry: CapabilityRegistry,
-    candidate: CandidateEventCandidate,
-) -> tuple[EventCapability, ...]:
-    """Resolve an external action to one trusted event capability.
-
-    New requests identify events only through ``action``.  The optional hidden
-    ``capabilityId`` remains a legacy hint so archived plans and older clients
-    can still receive the previous field-level validation behavior.
-    """
-    if candidate.capabilityId:
-        capability = registry.get_event_capability(candidate.capabilityId)
-        return (capability,) if capability is not None else ()
-
-    matches = []
-    for capability in registry.list_event_capabilities():
-        if candidate.action.call != capability.actionTemplate.call:
-            continue
-        dynamic_paths = {
-            path
-            for item in capability.dynamicArguments
-            if (path := parse_json_pointer(item.path)) is not None
-        }
-        if _event_fixed_arguments_match(
-            candidate.action.args,
-            capability.actionTemplate.args,
-            dynamic_paths,
-        ):
-            matches.append(capability)
-    return tuple(matches)
-
-
-def _event_fixed_arguments_match(
-    actual: Any,
-    template: Any,
-    dynamic_paths: set[tuple[str, ...]],
-    path: tuple[str, ...] = (),
-) -> bool:
-    """Compare immutable actionTemplate fields while ignoring dynamic paths."""
-    if path in dynamic_paths:
-        return True
-    if isinstance(template, dict):
-        if not isinstance(actual, dict):
-            return False
-        return all(
-            key in actual
-            and _event_fixed_arguments_match(
-                actual[key],
-                value,
-                dynamic_paths,
-                (*path, key),
-            )
-            for key, value in template.items()
-        )
-    if isinstance(template, list):
-        if not isinstance(actual, list) or len(actual) != len(template):
-            return False
-        return all(
-            _event_fixed_arguments_match(
-                actual_value,
-                template_value,
-                dynamic_paths,
-                (*path, str(index)),
-            )
-            for index, (actual_value, template_value) in enumerate(
-                zip(actual, template, strict=True)
-            )
-        )
-    return actual == template
 
 
 class GenerationPreflight:
@@ -334,12 +258,13 @@ class GenerationPreflight:
             capability_by_root[binding.writeResultTo] = capability
         for index, candidate in enumerate(candidate_events):
             base_path = f"/candidateEventCandidates/{index}"
-            capabilities = resolve_event_candidate_capabilities(self.registry, candidate)
-            if candidate.capabilityId and not capabilities:
+            capability_id = candidate.capabilityId
+            capability = self.registry.get_event_capability(capability_id)
+            if capability is None:
                 issues.append(
                     self._unknown_issue(
                         f"{base_path}/capabilityId",
-                        candidate.capabilityId,
+                        capability_id,
                         "事件能力未在当前注册表中声明。",
                         reference_source=(
                             "getWidgetCapabilityOverview.eventCapabilities[]"
@@ -347,35 +272,6 @@ class GenerationPreflight:
                     )
                 )
                 continue
-            if len(capabilities) != 1:
-                issue_code = (
-                    "EVENT_ACTION_AMBIGUOUS"
-                    if capabilities
-                    else "EVENT_ACTION_UNRECOGNIZED"
-                )
-                issues.append(
-                    self._invalid_issue(
-                        issue_code,
-                        f"{base_path}/action",
-                        (
-                            "事件动作同时匹配多个注册事件。"
-                            if capabilities
-                            else "事件动作无法匹配本轮注册表中的可信事件。"
-                        ),
-                        "完整复制一个 eventCapabilities[].actionTemplate，"
-                        "只修改 dynamicArguments 明确允许的参数",
-                        "",
-                        actual_value=candidate.action.model_dump(mode="json"),
-                        repair_instruction=(
-                            "重新获取能力概述并完整复制所需事件的 actionTemplate；"
-                            "不要传 capabilityId，也不要改写固定动作字段。"
-                        ),
-                        reference_source=_EVENT_SOURCE,
-                    )
-                )
-                continue
-            capability = capabilities[0]
-            capability_id = capability.id
             event_issue_count = len(issues)
             action = candidate.action
             if action.call != capability.actionTemplate.call:

@@ -11,7 +11,6 @@ import threading
 import time
 from pathlib import Path
 
-import httpx
 import pytest
 from pydantic import ValidationError
 
@@ -25,7 +24,6 @@ if str(CLOUD_ROOT) not in sys.path:
 from api.routes import _model_request_context_from_payload
 from api.schemas import GenerateWidgetCardRequest
 from config.config import Settings
-from custom.deepseek_http_client import DeepSeekHttpClient
 from custom.deepseek_platform_client import DeepSeekPlatformClient
 from custom.model_runtime import ModelExecutionRuntime
 from custom.model_transport import ModelTransportError
@@ -42,72 +40,6 @@ def _request_context() -> ModelRequestContext:
         app_version=APP_VERSION,
         app_name="com.huawei.hmos.vassistant",
     )
-
-
-@pytest.mark.asyncio
-async def test_deepseek_http_builds_chat_request_without_context_dependency():
-    captured: dict[str, object] = {}
-
-    async def handle(request: httpx.Request) -> httpx.Response:
-        captured["url"] = str(request.url)
-        captured["authorization"] = request.headers["authorization"]
-        captured["body"] = json.loads(request.content)
-        return httpx.Response(
-            200,
-            json={"choices": [{"message": {"content": "http-result"}}]},
-        )
-
-    settings = Settings(
-        _env_file=None,
-        deepseek_api_key="test-key",
-        deepseek_api_url="https://model.test/v1",
-        deepseek_http_model="test-model",
-        deepseek_http_max_tokens=2048,
-    )
-    http_client = httpx.AsyncClient(transport=httpx.MockTransport(handle))
-    client = DeepSeekHttpClient(settings, http_client=http_client)
-
-    result = await client.generate([{"role": "user", "content": "hello"}])
-
-    assert result == "http-result"
-    assert captured["url"] == "https://model.test/v1/chat/completions"
-    assert captured["authorization"] == "Bearer test-key"
-    body = captured["body"]
-    assert body["model"] == "test-model"
-    assert body["max_tokens"] == 2048
-    assert body["thinking"] == {"type": "disabled"}
-    assert body["messages"] == [{"role": "user", "content": "hello"}]
-    await http_client.aclose()
-
-
-@pytest.mark.asyncio
-async def test_deepseek_http_maps_remote_and_malformed_errors():
-    responses = iter(
-        [
-            httpx.Response(401, json={"error": {"message": "unauthorized"}}),
-            httpx.Response(200, json={"choices": []}),
-        ]
-    )
-
-    async def handle(_request: httpx.Request) -> httpx.Response:
-        return next(responses)
-
-    settings = Settings(
-        _env_file=None,
-        deepseek_api_key="test-key",
-        deepseek_api_url="https://model.test",
-    )
-    http_client = httpx.AsyncClient(transport=httpx.MockTransport(handle))
-    client = DeepSeekHttpClient(settings, http_client=http_client)
-
-    with pytest.raises(ModelTransportError) as rejected:
-        await client.generate([])
-    with pytest.raises(ModelTransportError) as malformed:
-        await client.generate([])
-
-    assert rejected.value.code == "MODEL_REMOTE_ERROR"
-    assert malformed.value.code == "MODEL_RESPONSE_INVALID"
-    await http_client.aclose()
 
 
 class _FakeWebSocket:

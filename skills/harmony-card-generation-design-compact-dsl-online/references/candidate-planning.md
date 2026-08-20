@@ -151,7 +151,7 @@ edit 模式额外传 `sourceArtifactUrl`，但前提是当前运行时 schema �
 
 - 使用单数组 `candidateEventCandidates`，不要使用并行的 ID 数组和 action 数组。
 - 先确认当前运行时 `generateWidgetCardCompactDsl` schema 已声明 `candidateEventCandidates`；未声明时不传。schema 将数组项写成 `Object` 时，每一项按内部 `CandidateEventCandidate` 类结构传入，但该内部结构不得用于扩展工具 `arguments` 顶层字段。
-- 每个候选项只包含完整 `action`；服务端依据 `call + 固定参数` 唯一解析事件能力。
+- 每个候选项必须包含 `capabilityId` 和完整 `action`，且 `capabilityId` 必须来自 overview。
 - `action` 必须是对象，内部包含 `call` 和 `args`；不要把 `call`、`args` 平铺到事件候选顶层。
 - `args` 必须是对象，不要传字符串化 JSON。
 - `action` 必须来自 overview 给出的 `actionTemplate` 或完整事件描述；只有参数可以安全填齐时才传该事件候选。
@@ -161,7 +161,7 @@ edit 模式额外传 `sourceArtifactUrl`，但前提是当前运行时 schema �
 - 涉及高风险或不可逆动作时，只选 overview 中明确支持且用户明确要求的能力；用户未明确要求时先追问确认，不得根据场景自行补充。
 - 不编造 `call`、`args` 字段名、deeplink、intentName、bundleName、abilityName 或拨号号码。
 - 事件参数可以来自静态安全值、用户明确输入或候选数据能力可推导路径；如果路径依赖最终 CardSpec 或列表项上下文且当前无法确定，不传该事件候选。
-- 微服务无法唯一解析事件能力时删除整个候选项。
+- 微服务过滤事件能力时删除整个候选项；不存在 ID 和 action 下标错配问题。
 
 候选动作示例：
 
@@ -169,13 +169,13 @@ edit 模式额外传 `sourceArtifactUrl`，但前提是当前运行时 schema �
 {
   "candidateEventCandidates": [
     {
+      "capabilityId": "event.open.weather",
       "action": {
         "call": "clickToDeeplink",
         "args": {
-          "intentName": "Weather_CityCode",
           "bundleName": "",
           "abilityName": "",
-          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          "uri": "hww://www.huawei.com/totemweather?enterType=share&cityCode="
         }
       }
     }
