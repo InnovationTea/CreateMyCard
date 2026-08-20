@@ -20,7 +20,7 @@
 
 ## SleepOverview
 
-- 支持路径：`{{dataRoot:GetHealthAndSportSummary}}/nightSleepDurationText`、`{{dataRoot:GetHealthAndSportSummary}}/sleepStatus`、`{{dataRoot:GetHealthAndSportSummary}}/fallAsleepTimeText`、`{{dataRoot:GetHealthAndSportSummary}}/wakeupTimeText`。
-- 支持睡眠总时长、可信状态和 2x4 完整作息；不支持得分、阶段、午睡、目标、趋势或建议。
+- 支持路径：`{{dataRoot:GetHealthAndSportSummary}}/nightSleepDurationText`、`{{dataRoot:GetHealthAndSportSummary}}/sleepScore`、`{{dataRoot:GetHealthAndSportSummary}}/sleepStatus`、`{{dataRoot:GetHealthAndSportSummary}}/fallAsleepTimeText`、`{{dataRoot:GetHealthAndSportSummary}}/wakeupTimeText`。
+- 支持睡眠总时长、0 到 100 的可信睡眠得分、可信状态和 2x4 完整作息；不支持阶段、午睡、目标、趋势或建议。
 
 根据 `userQuery` 判断出的任一必须显示字段不能由所选一个或多个组件的支持路径完整覆盖时，不得选择模板路线。

@@ -1248,6 +1248,9 @@ def _theme_ids_for_components(
     components: tuple[UxBusinessComponentCapability, ...],
     registry: CardPlanRegistry,
 ) -> tuple[str, ...]:
+    component_names = {component.name for component in components}
+    if component_names == {"ActivityOverview", "SleepOverview"}:
+        return tuple(registry.palette_scene_theme_ids["sport.action"])
     if len(components) == 1 and components[0].name == "SleepOverview":
         return tuple(registry.palette_scene_theme_ids["sleep.violet"])
     per_component = [

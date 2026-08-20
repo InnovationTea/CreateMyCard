@@ -79,6 +79,7 @@ _PROVIDER_COMPONENT_FIELDS: dict[str, tuple[str, ...]] = {
     "ActivityOverview": ("dailySteps", "dailyTotalCaloriesText", "dailyDistanceText"),
     "HeartRateOverview": ("exerciseHeartRateAvg", "updatedAt"),
     "SleepOverview": (
+        "sleepScore",
         "sleepStatus",
         "nightSleepDurationText",
         "fallAsleepTimeText",
@@ -362,6 +363,7 @@ class HeartRateOverviewFacts:
 class SleepOverviewFacts:
     duration_text: str
     duration: DurationSegments
+    score: int | float | None = None
     status: str | None = None
     fall_asleep_time: str | None = None
     wakeup_time: str | None = None
@@ -407,6 +409,12 @@ class SleepOverviewFacts:
             )
         if self.status is not None:
             selected["sleepStatus"] = _field(self.status, "可信睡眠状态原文")
+        if self.score is not None:
+            selected["sleepScore"] = {
+                "type": "integer" if isinstance(self.score, int) else "number",
+                "description": "可信睡眠得分",
+                "sampleValue": self.score,
+            }
         if self.fall_asleep_time is not None:
             selected["fallAsleepTimeText"] = _field(
                 self.fall_asleep_time,
@@ -964,7 +972,6 @@ _EXPLICIT_INSUFFICIENT_SLEEP_STATUS_TERMS = (
     "缺觉",
 )
 _EXTENDED_SLEEP_QUERY_TERMS = (
-    "sleep score",
     "deep sleep",
     "light sleep",
     "rem sleep",
@@ -978,8 +985,6 @@ _EXTENDED_SLEEP_QUERY_TERMS = (
     "sleep advice",
     "sleep recommendation",
     "sleep stage",
-    "睡眠得分",
-    "睡眠评分",
     "深睡",
     "浅睡",
     "快速眼动",
@@ -994,6 +999,11 @@ _EXTENDED_SLEEP_QUERY_TERMS = (
     "改善建议",
     "睡眠阶段",
     "分期",
+)
+_SLEEP_SCORE_QUERY_TERMS = (
+    "sleep score",
+    "睡眠得分",
+    "睡眠评分",
 )
 _SLEEP_ACTION_QUERY_TERMS = (
     "set sleep reminder",
@@ -1790,11 +1800,18 @@ def sleep_overview_variants(
     )
     if requests_extended_projection and not relaxed:
         return ()
-    sleep_terms = (*_SLEEP_QUERY_TERMS, *_EXTENDED_SLEEP_QUERY_TERMS)
+    sleep_terms = (*_SLEEP_QUERY_TERMS, *_SLEEP_SCORE_QUERY_TERMS, *_EXTENDED_SLEEP_QUERY_TERMS)
     if not _contains_query_term(normalized, compact, sleep_terms):
         return ()
     facts = extract_sleep_overview_facts(task_spec.dataModelSchema)
     if facts is None:
+        return ()
+    requests_score = _contains_query_term(
+        normalized,
+        compact,
+        _SLEEP_SCORE_QUERY_TERMS,
+    )
+    if requests_score and facts.score is None:
         return ()
     requests_schedule = _contains_query_term(
         normalized,
@@ -1819,6 +1836,8 @@ def sleep_overview_variants(
         if requests_insufficient and not facts.explicitly_insufficient:
             return ()
     variants = ["duration"]
+    if requests_score:
+        variants.append("score")
     if facts.explicitly_insufficient:
         variants.append("insufficient")
     if requests_schedule and task_spec.size == "2x4" and facts.has_schedule:
@@ -2802,6 +2821,7 @@ def extract_sleep_overview_facts(
         return SleepOverviewFacts(
             duration_text=duration_text,
             duration=_normalize_sleep_duration(duration),
+            score=_trusted_percentage_number(candidate.get("sleepScore")),
             status=_trusted_string(candidate.get("sleepStatus")),
             fall_asleep_time=_trusted_clock_text(candidate.get("fallAsleepTimeText")),
             wakeup_time=_trusted_clock_text(candidate.get("wakeupTimeText")),

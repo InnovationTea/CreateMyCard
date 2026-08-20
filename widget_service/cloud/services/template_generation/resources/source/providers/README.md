@@ -14,7 +14,7 @@
 - `battery`：`GetPhoneBatteryInfo` → 15 个电量 UI 模板
 - `system-memory`：`GetSystemMemInfo` → 2 个内存 UI 模板
 - `app-usage`：`GetAppUsageDuration` → 4 个应用时长 UI 模板
-- `health-sport`：`GetHealthAndSportSummary` → 23 个活动、运动、心率和睡眠 UI 模板
+- `health-sport`：`GetHealthAndSportSummary` → 25 个活动、运动、心率和睡眠 UI 模板
 - `countdown`：`GetCountdownDays` → `CountdownOverview@1`
 - `earphone`：`GetEarphoneInfo` → 14 个耳机状态/电量 UI 模板
 - `layout`：无数据能力 → 10 个支持 `...children` 的布局模板
