@@ -15,6 +15,10 @@
     "message": "当前 Form 配置不允许使用未声明或位置不合法的函数绑定。",
     "fixHint": "改成完整表达式，例如 \"{{ ${/meeting/time} }}\"。"
   },
+  "EVENT_ITEM_INDEX_MISMATCH": {
+    "message": "点击事件引用的数组项与当前组件展示的数组项不一致。",
+    "fixHint": "将点击参数中的数组下标改为当前展示项下标。"
+  },
   "ASSET_PATH_NOT_DECLARED": {
     "message": "资源路径未在素材库 allowlist 中声明。",
     "fixHint": "使用 rules/config/asset.json.allowlist 中声明的素材，或删除 Image。"
