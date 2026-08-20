@@ -16,13 +16,19 @@
         {
           "data": {
             "appName": "天气",
-            "bundleName": "com.huawei.hmos.weather"
+            "bundleName": "com.huawei.hmsapp.totemweather"
           }
         },
         {
           "data": {
-            "appName": "运动健康服务",
-            "bundleName": "com.huawei.hmos.health.core"
+            "appName": "运动健康",
+            "bundleName": "com.huawei.hmos.health"
+          }
+        },
+        {
+          "data": {
+            "appName": "日历",
+            "bundleName": "com.huawei.hmos.calendar"
           }
         }
       ]

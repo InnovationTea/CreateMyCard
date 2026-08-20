@@ -27,7 +27,6 @@ DATA_CAPABILITY_IDS = (
     "ViewWeather",
     "GetCalendarEvents",
     "GetCountdownDays",
-    "GetAppUsageDuration",
     "GetEarphoneInfo",
     "GetPhoneBatteryInfo",
     "GetHealthAndSportSummary",

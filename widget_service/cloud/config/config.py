@@ -28,7 +28,9 @@ class Settings(BaseSettings):
     capability_registry_version: str = _DEFAULT_CAPABILITY_REGISTRY_VERSION
     enable_default_capability_registry_fallback: bool = True
     ids_installation_filter_package_names: tuple[str, ...] = (
-        "com.huawei.hmos.health.core",
+        "com.huawei.hmsapp.totemweather",
+        "com.huawei.hmos.health",
+        "com.huawei.hmos.calendar",
     )
     protocol_profile_id: str = "a2ui-form-rom6.0-v1"
     design_compact_profile_id: str = "design-compact-dsl"

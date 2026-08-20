@@ -40,6 +40,8 @@ class Dependencies(BaseModel):
 class DataCapability(BaseModel):
     id: str
     type: Literal["data"] = "data"
+    # 仅用于注册表内部控制临时上下线，不下发给主 Agent。
+    enabled: bool = Field(default=True, exclude=True)
     description: str
     descriptionForLLM: str = ""
     inputSchema: dict[str, Any] = Field(default_factory=dict)

@@ -477,7 +477,11 @@
       "additionalProperties": false
     },
     "dependencies": {
-      "requiredPackages": []
+      "requiredPackages": [
+        {
+          "packageName": "com.huawei.hmsapp.totemweather"
+        }
+      ]
     },
     "targetApp": "天气"
   },
@@ -691,7 +695,7 @@
     "dependencies": {
       "requiredPackages": [
         {
-          "packageName": "com.huawei.hmos.health.core"
+          "packageName": "com.huawei.hmos.health"
         }
       ]
     },
@@ -748,7 +752,7 @@
     "dependencies": {
       "requiredPackages": [
         {
-          "packageName": "com.huawei.hmos.health.core"
+          "packageName": "com.huawei.hmos.health"
         }
       ]
     },

@@ -669,8 +669,9 @@ def test_ids_mock_is_enabled_by_default():
     assert '"uid"' not in serialized.lower()
     assert IDSClient()._parse_ids_payload(payload).installed_apps == {
         "com.android.bluetooth",
-        "com.huawei.hmos.weather",
-        "com.huawei.hmos.health.core",
+        "com.huawei.hmsapp.totemweather",
+        "com.huawei.hmos.health",
+        "com.huawei.hmos.calendar",
     }
 
 
@@ -804,7 +805,7 @@ def test_ids_mock_enabled_reads_existing_file_without_remote(tmp_path, monkeypat
     mock_path = tmp_path / "ids_mock.json"
     mock_path.write_text(
         json_module.dumps(
-            _ids_installed_apps_payload("com.huawei.hmos.health.core")
+            _ids_installed_apps_payload("com.huawei.hmos.health")
         ),
         encoding="utf-8",
     )
@@ -819,7 +820,7 @@ def test_ids_mock_enabled_reads_existing_file_without_remote(tmp_path, monkeypat
 
     state = client.get_device_capability_state(_device(), "ids-mock-unit-1")
 
-    assert state.installed_apps == {"com.huawei.hmos.health.core"}
+    assert state.installed_apps == {"com.huawei.hmos.health"}
 
 
 def test_ids_mock_enabled_returns_empty_state_when_file_missing(tmp_path, monkeypatch):
@@ -880,11 +881,11 @@ def test_ids_mock_disabled_ignores_existing_file_and_queries_remote(
     monkeypatch,
 ):
     captured_request: dict = {}
-    remote_payload = _ids_installed_apps_payload("com.huawei.hmos.weather")
+    remote_payload = _ids_installed_apps_payload("com.huawei.hmsapp.totemweather")
     mock_path = tmp_path / "ids_mock.json"
     mock_path.write_text(
         json_module.dumps(
-            _ids_installed_apps_payload("com.huawei.hmos.health.core")
+            _ids_installed_apps_payload("com.huawei.hmos.health")
         ),
         encoding="utf-8",
     )
@@ -926,7 +927,7 @@ def test_ids_mock_disabled_ignores_existing_file_and_queries_remote(
     assert captured_request["stream"] is False
     assert captured_request["verify"] is False
     assert captured_request["allow_redirects"] is False
-    assert state.installed_apps == {"com.huawei.hmos.weather"}
+    assert state.installed_apps == {"com.huawei.hmsapp.totemweather"}
 
 
 def test_ids_parser_ignores_provider_intent_and_permission_namespaces():
@@ -1274,6 +1275,20 @@ def test_data_capability_schema_request_rejects_empty_ids():
         )
 
 
+def test_disabled_data_capability_schema_is_reported_as_missing():
+    request = DataCapabilitySchemasRequest(
+        uid="test-user",
+        prdVer=APP_VERSION,
+        device={"romVersion": ROM_VERSION_6},
+        dataCapabilityIds=["GetAppUsageDuration"],
+    )
+
+    response = WidgetGenerationService().get_data_capability_schemas(request)
+
+    assert response.dataCapabilities == []
+    assert response.missingCapabilityIds == ["GetAppUsageDuration"]
+
+
 def _out_of_range_requests():
     common = {
         "uid": "test-user",
@@ -1362,7 +1377,6 @@ def test_data_capability_registry_declares_leaf_samples_and_known_package_depend
         "ViewWeather",
         "GetCalendarEvents",
         "GetCountdownDays",
-        "GetAppUsageDuration",
         "GetEarphoneInfo",
         "GetPhoneBatteryInfo",
         "GetHealthAndSportSummary",
@@ -1378,7 +1392,7 @@ def test_data_capability_registry_declares_leaf_samples_and_known_package_depend
 
     assert weather is not None
     assert weather.dependencies.requiredPackages == [
-        RequiredPackage(packageName="com.huawei.hmos.weather")
+        RequiredPackage(packageName="com.huawei.hmsapp.totemweather")
     ]
     assert weather.outputSchema["properties"]["current"]["properties"][
         "temperatureText"
@@ -1399,10 +1413,18 @@ def test_data_capability_registry_declares_leaf_samples_and_known_package_depend
     )
     assert health is not None
     assert health.dependencies.requiredPackages == [
-        RequiredPackage(packageName="com.huawei.hmos.health.core")
+        RequiredPackage(packageName="com.huawei.hmos.health")
     ]
     assert "计划" in health.description
     assert health.outputSchema["properties"]["sleepScore"]["sampleValue"] == 82
+
+    disabled_app_usage = registry.get_disabled_data_capability(
+        "GetAppUsageDuration"
+    )
+    assert registry.get_data_capability("GetAppUsageDuration") is None
+    assert disabled_app_usage is not None
+    assert disabled_app_usage.enabled is False
+    assert "enabled" not in disabled_app_usage.model_dump(mode="json")
     assert registry.get_data_capability("GetSystemMemInfo") is None
 
 
@@ -1457,10 +1479,13 @@ def test_event_capability_registry_uses_package_dependencies_only():
     }
     assert all(
         item.dependencies.requiredPackages
-        == [RequiredPackage(packageName="com.huawei.hmos.health.core")]
+        == [RequiredPackage(packageName="com.huawei.hmos.health")]
         for item in health_events.values()
     )
     capability_by_id = {item.id: item for item in capabilities}
+    assert capability_by_id["event.open.weather"].dependencies.requiredPackages == [
+        RequiredPackage(packageName="com.huawei.hmsapp.totemweather")
+    ]
     serialized = [item.model_dump(mode="json") for item in capabilities]
     assert all("argsDescription" not in item for item in serialized)
     assert all("call" not in item and "argsTemplate" not in item for item in serialized)
@@ -1878,14 +1903,18 @@ def test_validation_error_details_are_json_safe_and_exclude_input():
 @pytest.mark.parametrize(
     ("capability_id", "installed_apps", "is_available"),
     [
-        ("ViewWeather", set(), True),
-        ("GetCalendarEvents", set(), True),
+        ("ViewWeather", set(), False),
+        ("ViewWeather", {"com.huawei.hmsapp.totemweather"}, True),
+        ("ViewWeather", {"com.huawei.hmos.weather"}, False),
+        ("GetCalendarEvents", set(), False),
+        ("GetCalendarEvents", {"com.huawei.hmos.calendar"}, True),
         ("GetHealthAndSportSummary", set(), False),
         ("GetHealthAndSportSummary", {"COM.HUAWEI.HMOS.HEALTH.CORE"}, False),
-        ("GetHealthAndSportSummary", {"com.huawei.hmos.health.core"}, True),
+        ("GetHealthAndSportSummary", {"com.huawei.hmos.health.core"}, False),
+        ("GetHealthAndSportSummary", {"com.huawei.hmos.health"}, True),
     ],
 )
-def test_ids_installation_filter_only_applies_to_configured_health_package(
+def test_ids_installation_filter_matches_default_package_whitelist(
     capability_id,
     installed_apps,
     is_available,
@@ -1911,7 +1940,7 @@ def test_package_dependency_filter_ignores_rom_version():
     registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
     resolver = DeviceCapabilityResolver(registry)
     ids_state = IDSDeviceCapabilityState(
-        installed_apps={"com.huawei.hmos.health.core"}
+        installed_apps={"com.huawei.hmos.health"}
     )
     available, _, _, removed = resolver.resolve_capability_overview(
         DeviceContext(romVersion="1"),
@@ -1922,11 +1951,13 @@ def test_package_dependency_filter_ignores_rom_version():
     assert "GetHealthAndSportSummary" not in {item.id for item in removed}
 
 
-def test_ids_installation_filter_default_scope_is_health_only():
+def test_ids_installation_filter_default_scope_contains_three_packages():
     settings = Settings()
 
     assert settings.ids_installation_filter_package_names == (
-        "com.huawei.hmos.health.core",
+        "com.huawei.hmsapp.totemweather",
+        "com.huawei.hmos.health",
+        "com.huawei.hmos.calendar",
     )
 
 
@@ -1989,17 +2020,55 @@ def test_dependency_filter_logs_one_json_result(monkeypatch):
     result = json_module.loads(dependency_logs[0].split("result=", 1)[1])
     assert result["idsSource"] == "provided"
     assert result["idsQueryStatus"] == "provided"
-    assert result["filterPackages"] == ["com.huawei.hmos.health.core"]
+    assert result["filterPackages"] == [
+        "com.huawei.hmos.calendar",
+        "com.huawei.hmos.health",
+        "com.huawei.hmsapp.totemweather",
+    ]
+    assert result["dataCapabilityPackageStatuses"] == [
+        {
+            "capabilityId": "ViewWeather",
+            "requiredPackages": ["com.huawei.hmsapp.totemweather"],
+            "matchedPackages": [],
+            "missingPackages": ["com.huawei.hmsapp.totemweather"],
+            "isInstalled": False,
+        },
+        {
+            "capabilityId": "GetCalendarEvents",
+            "requiredPackages": ["com.huawei.hmos.calendar"],
+            "matchedPackages": [],
+            "missingPackages": ["com.huawei.hmos.calendar"],
+            "isInstalled": False,
+        },
+        {
+            "capabilityId": "GetHealthAndSportSummary",
+            "requiredPackages": ["com.huawei.hmos.health"],
+            "matchedPackages": [],
+            "missingPackages": ["com.huawei.hmos.health"],
+            "isInstalled": False,
+        },
+    ]
     assert set(result["checkedCapabilityIds"]) == {
+        "ViewWeather",
+        "GetCalendarEvents",
         "GetHealthAndSportSummary",
+        "event.open.weather",
         "event.open.health.sport",
         "event.open.health.sleep",
     }
-    assert result["checkedPackages"] == ["com.huawei.hmos.health.core"]
+    assert result["checkedPackages"] == [
+        "com.huawei.hmos.calendar",
+        "com.huawei.hmos.health",
+        "com.huawei.hmsapp.totemweather",
+    ]
     assert result["matchedPackages"] == []
-    assert result["missingPackages"] == ["com.huawei.hmos.health.core"]
+    assert result["missingPackages"] == [
+        "com.huawei.hmos.calendar",
+        "com.huawei.hmos.health",
+        "com.huawei.hmsapp.totemweather",
+    ]
     assert result["installedPackageCount"] == 0
-    assert result["availableDataCapabilityCount"] == 6
+    assert result["availableDataCapabilityCount"] == 3
     assert result["availableEventCapabilityCount"] > 0
     assert result["availableAssetCapabilityCount"] > 0
     assert {
@@ -2013,6 +2082,40 @@ def test_dependency_filter_logs_one_json_result(monkeypatch):
         ("event", ErrorCode.PACKAGE_NOT_INSTALLED.value),
     }
     assert "capability_id=" not in dependency_logs[0]
+
+
+def test_dependency_filter_log_marks_installed_data_capability_package(monkeypatch):
+    log_messages: list[str] = []
+    monkeypatch.setattr(
+        "services.device_capability_resolver.logger",
+        type("CapturedLogger", (), {"info": staticmethod(log_messages.append)})(),
+    )
+    registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    resolver = DeviceCapabilityResolver(registry)
+    ids_state = IDSDeviceCapabilityState(
+        installed_apps={"com.huawei.hmsapp.totemweather"}
+    )
+
+    resolver.resolve_capability_overview(_device(), ids_state)
+
+    dependency_log = next(
+        message
+        for message in log_messages
+        if message.startswith("[Device Resolver] capability_package_dependency_checked ")
+    )
+    result = json_module.loads(dependency_log.split("result=", 1)[1])
+    statuses = {
+        item["capabilityId"]: item
+        for item in result["dataCapabilityPackageStatuses"]
+    }
+    weather_status = statuses["ViewWeather"]
+    assert weather_status["matchedPackages"] == [
+        "com.huawei.hmsapp.totemweather"
+    ]
+    assert weather_status["missingPackages"] == []
+    assert weather_status["isInstalled"] is True
+    assert statuses["GetCalendarEvents"]["isInstalled"] is False
+    assert statuses["GetHealthAndSportSummary"]["isInstalled"] is False
 
 
 def test_card_spec_builder_keeps_only_data_bindings():
