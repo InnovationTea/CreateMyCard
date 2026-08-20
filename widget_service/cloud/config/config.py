@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     deepseek_platform_default_app_name: str = "com.huawei.hmos.vassistant"
     # llmclient 使用的 DeepSeek 兼容 WebSocket 请求参数；默认值保持原客户端行为。
     deepseek_api_key: str = "AccessService"
+    deepseek_api_url: str = ""
     deepseek_model: str = "deepseek-ai/DeepSeek-V4-Flash"
     deepseek_ws_url: str = _DEFAULT_LLMCLIENT_WS_URL
     deepseek_user: str = "genui_user"
@@ -124,7 +125,7 @@ class Settings(BaseSettings):
             raise ValueError("OpenAI master and fallback clients must be different")
         return self
 
-    if platform.system() == "Windows":
+    if platform.system() in ("Windows", "Darwin"):
         LOCAL_FLAG: bool = True
         HTTP_SERVER_URL: str = "http://localhost:8080"
     else:

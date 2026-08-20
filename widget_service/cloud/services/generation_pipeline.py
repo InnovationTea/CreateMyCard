@@ -174,6 +174,7 @@ class TerseNested2Processor:
                 source_dsl,
                 size=context.size,
                 protocol_profile=context.protocol_profile,
+                task_spec=context.task_spec,
             )
             return DslProcessingResult(
                 source_dsl=source_dsl,
