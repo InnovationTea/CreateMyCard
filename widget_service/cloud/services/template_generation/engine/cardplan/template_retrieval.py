@@ -1,4 +1,8 @@
-"""Deterministic CardTpl Variant retrieval from LLM-extracted field requirements."""
+"""Search CardTpl candidates from first-layer LLM field requirements.
+
+Search deliberately does not select a final template, layout, component composition,
+card size, or theme compatibility.  Those are second-layer responsibilities.
+"""
 
 from __future__ import annotations
 
@@ -10,92 +14,75 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from models.generation import CandidateDataBinding, TaskSpec
-from services.template_generation.engine.advanced.data_shape import DataShape
-from services.template_generation.engine.advanced.models import AdvancedScopeBrief
+from services.template_generation.engine.advanced.data_shape import extract_data_shape
 
-from .provider_bundle import provider_template_variant_admission
 from .registry import CardPlanRegistry
 from .retrieval_index import FieldToken, TemplateVariantSearchRecord
 
 
 class TemplateRetrievalMiss(ValueError):
-    """No single CardTpl Variant can satisfy the extracted requirement set."""
+    """No provider-backed component can cover the first-layer request."""
 
 
 class TemplateRetrievalQuery(BaseModel):
+    """The first-layer decision: theme, display demands, and explicit Action."""
+
     model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
 
-    route_version: str = Field(default="template-retrieval-query/1", alias="routeVersion")
     theme_id: str = Field(alias="themeId", min_length=1)
     required_output_fields_by_capability: dict[str, tuple[str, ...]] = Field(
         alias="requiredOutputFieldsByCapability",
     )
+    action_id: str | None = Field(default=None, alias="action")
 
     @field_validator("required_output_fields_by_capability")
     @classmethod
     def valid_fields(cls, values: dict[str, tuple[str, ...]]) -> dict[str, tuple[str, ...]]:
         pattern = re.compile(r"^/(?:[^/~]|~[01])+(?:/(?:[^/~]|~[01])+)*$")
         for capability_id, paths in values.items():
-            if not capability_id.strip() or not paths or len(paths) != len(set(paths)):
-                raise ValueError("required output field groups must be non-empty and unique")
+            if not capability_id.strip() or len(paths) != len(set(paths)):
+                raise ValueError("capability IDs and output fields must be unique")
             if any(pattern.fullmatch(path) is None for path in paths):
                 raise ValueError("required output fields must be JSON Pointers")
         return values
 
+    @field_validator("action_id")
+    @classmethod
+    def normalized_action(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("action must be null or a non-empty eventId")
+        return normalized
+
 
 @dataclass(frozen=True)
-class TemplateMatch:
+class TemplateComponentCandidate:
+    component_id: str
+    available_template_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class TemplateRetrievalResult:
     theme_id: str
-    template_id: str
-    variant_name: str
+    action_id: str | None
+    component_candidates: tuple[TemplateComponentCandidate, ...]
+    required_template_groups: tuple[tuple[str, ...], ...]
 
+    @property
+    def component_ids(self) -> tuple[str, ...]:
+        return tuple(candidate.component_id for candidate in self.component_candidates)
 
-def adapt_template_match_to_scope(
-    match: TemplateMatch,
-    task_spec: TaskSpec,
-    data_shape: DataShape,
-    registry: CardPlanRegistry,
-    available_capability_ids: tuple[str, ...] | None,
-) -> AdvancedScopeBrief:
-    """Adapt retrieval output to the target branch's existing trusted scope contract."""
-    from services.template_generation.engine.advanced.scope_planner import (
-        resolve_available_capability_ids,
-        validate_advanced_scope,
-    )
-
-    effective_ids = resolve_available_capability_ids(
-        task_spec, registry, available_capability_ids
-    )
-    components = tuple(
-        component
-        for component in registry.ux_business_components.values()
-        if match.template_id in component.local_template_ids
-    )
-    if len(components) != 1:
-        raise TemplateRetrievalMiss("matched Template has no unique component adapter")
-    component = components[0]
-    compatible_themes = tuple(
-        dict.fromkeys(
-            theme_id
-            for scene in component.palette_scenes
-            for theme_id in registry.palette_scene_theme_ids[scene]
+    @property
+    def allowed_template_ids(self) -> tuple[str, ...]:
+        return tuple(
+            dict.fromkeys(
+                template_id
+                for candidate in self.component_candidates
+                for template_id in candidate.available_template_ids
+            )
         )
-    )
-    if not compatible_themes:
-        raise TemplateRetrievalMiss("matched component has no compatible Theme")
-    theme_id = match.theme_id if match.theme_id in compatible_themes else compatible_themes[0]
-    scope = AdvancedScopeBrief(
-        themeId=theme_id,
-        advancedComponentIds=(component.name,),
-    )
-    validate_advanced_scope(
-        scope,
-        task_spec,
-        data_shape,
-        registry,
-        tuple(effective_ids),
-    )
-    return scope
 
 
 def build_template_retrieval_prompt(
@@ -103,40 +90,53 @@ def build_template_retrieval_prompt(
     registry: CardPlanRegistry,
     coverage_bindings: tuple[CandidateDataBinding, ...],
 ) -> list[dict[str, str]]:
-    candidate_fields = {
-        item.capabilityId: tuple(item.candidateOutputFields) for item in coverage_bindings
-    }
+    """Build the first-layer marker prompt without exposing final UI choices."""
+    data_shape = extract_data_shape(task_spec)
+    capability_ids = tuple(binding.capabilityId for binding in coverage_bindings)
+    component_ids = _component_ids_for_capabilities(registry, capability_ids)
+    data_roots = {binding.capabilityId: binding.writeResultTo for binding in coverage_bindings}
     payload = {
         "userQuery": task_spec.userQuery,
-        "size": task_spec.size,
-        "candidateOutputFieldsByCapability": candidate_fields,
+        "taskSpec": task_spec.model_dump(mode="json"),
+        "taskSpecDataFields": [
+            {
+                "path": field.path,
+                "name": field.name,
+                "dataType": field.data_type,
+                "description": field.description,
+                "roles": field.roles,
+            }
+            for field in data_shape.fields
+        ],
+        "candidateDataBindings": [binding.model_dump(mode="json") for binding in coverage_bindings],
+        "candidateOutputFieldsByCapability": {
+            binding.capabilityId: tuple(binding.candidateOutputFields)
+            for binding in coverage_bindings
+        },
         "themes": tuple(registry.themes),
+        "actionCandidates": [
+            {"eventId": event.id, "call": event.call}
+            for event in task_spec.eventCandidates
+            if event.id
+        ],
+        "providerFirstLayerRules": registry.provider_first_layer_rules(component_ids, data_roots),
+        "themeFirstLayerRules": registry.theme_first_layer_rule_documents(tuple(registry.themes)),
     }
     schema = TemplateRetrievalQuery.model_json_schema(by_alias=True)
+    system = (
+        "你是模板生成第一层。只输出 template-retrieval-query/1 JSON。"
+        "themeId 必须从 themes 选择；requiredOutputFieldsByCapability 的 key 必须来自 "
+        "candidateDataBindings。每个 value 仅保留用户明确要求展示的字段，字段必须逐字来自 "
+        "candidateOutputFieldsByCapability；不得按模板反推字段，也不得补全用户未要求展示的字段。"
+        "用户只要求某领域卡片、未明确字段时，该 capability 输出空数组。"
+        "action 仅当用户明确要求点击、跳转或操作时才选择 actionCandidates 中语义一致的 eventId；"
+        "不能因候选事件存在而默认选择。不得输出组件、模板、Variant、尺寸、布局、Props 或理由。\n"
+        + json.dumps(schema, ensure_ascii=False)
+    )
     return [
-        {
-            "role": "system",
-            "content": (
-                "只输出 template-retrieval-query/1 JSON。themeId 从 themes 选择；"
-                "requiredOutputFieldsByCapability 只保留用户明确要求展示的字段，"
-                "字段必须逐字来自 candidateOutputFieldsByCapability。不得按模板反推字段。\n"
-                + json.dumps(schema, ensure_ascii=False)
-            ),
-        },
+        {"role": "system", "content": system},
         {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
     ]
-
-
-def retrieve_template_variant(
-    query: TemplateRetrievalQuery,
-    task_spec: TaskSpec,
-    registry: CardPlanRegistry,
-    coverage_bindings: tuple[CandidateDataBinding, ...],
-    card_spec: dict[str, Any],
-) -> TemplateMatch:
-    return retrieve_template_variants(
-        query, task_spec, registry, coverage_bindings, card_spec
-    )[0]
 
 
 def retrieve_template_variants(
@@ -145,48 +145,109 @@ def retrieve_template_variants(
     registry: CardPlanRegistry,
     coverage_bindings: tuple[CandidateDataBinding, ...],
     card_spec: dict[str, Any],
-) -> tuple[TemplateMatch, ...]:
+) -> TemplateRetrievalResult:
+    """Return component candidate sets; never choose a final CardTpl variant."""
     registry.require_theme(query.theme_id)
-    groups = query.required_output_fields_by_capability
-    if len(groups) != 1:
-        raise TemplateRetrievalMiss("template retrieval requires exactly one capability")
-    capability_id, paths = next(iter(groups.items()))
-    if not paths:
-        raise TemplateRetrievalMiss("template retrieval requires non-empty output fields")
-    if not set(paths).issubset(_candidate_paths(coverage_bindings, capability_id)):
-        raise TemplateRetrievalMiss("required output fields must come from candidates")
-    data_root = _capability_data_root(card_spec, capability_id)
-    query_tokens = frozenset(
-        _task_spec_field_token(task_spec, data_root, capability_id, path) for path in paths
-    )
-    preferred_template_ids = _preferred_template_ids(registry, capability_id, task_spec)
-    matches = [
-        record
-        for record in registry.template_variant_search_records
-        if _record_matches(
-            record,
+    _validate_selected_action(query, task_spec)
+    if not query.required_output_fields_by_capability:
+        raise TemplateRetrievalMiss("template retrieval has no requested capability")
+    candidate_ids = {binding.capabilityId for binding in coverage_bindings}
+    if not set(query.required_output_fields_by_capability).issubset(candidate_ids):
+        raise TemplateRetrievalMiss("requested capability is outside candidate data bindings")
+
+    by_component: dict[str, set[str]] = {}
+    required_groups: list[tuple[str, ...]] = []
+    for capability_id, paths in query.required_output_fields_by_capability.items():
+        candidate_paths = _candidate_paths(coverage_bindings, capability_id)
+        if not set(paths).issubset(candidate_paths):
+            raise TemplateRetrievalMiss("required output fields must come from candidates")
+        data_root = _capability_data_root(card_spec, capability_id)
+        query_tokens = frozenset(
+            _task_spec_field_token(task_spec, data_root, capability_id, path) for path in paths
+        )
+        component_templates = _component_templates_for_capability(
+            registry,
+            capability_id,
             query_tokens,
             task_spec,
-            registry,
             card_spec,
-            preferred_template_ids,
         )
-    ]
-    if not matches:
-        raise TemplateRetrievalMiss("no CardTpl Variant contains every required output field")
-    ordered = sorted(
-        matches,
-        key=lambda record: (
-            len(record.required_paths - {token.path for token in query_tokens}),
-            record.required_parameter_count,
-            _template_preference_rank(preferred_template_ids, record.template_id),
-            record.template_id,
-            record.variant_name,
-        ),
+        if not component_templates:
+            raise TemplateRetrievalMiss(
+                f"no provider template covers capability {capability_id} and its requested fields"
+            )
+        required_groups.extend(_required_field_template_groups(query_tokens, component_templates))
+        for component_id, template_paths in component_templates.items():
+            by_component.setdefault(component_id, set()).update(template_paths)
+
+    candidates = tuple(
+        TemplateComponentCandidate(component_id, tuple(sorted(template_ids)))
+        for component_id, template_ids in sorted(by_component.items())
     )
+    return TemplateRetrievalResult(
+        theme_id=query.theme_id,
+        action_id=query.action_id,
+        component_candidates=candidates,
+        required_template_groups=tuple(required_groups),
+    )
+
+
+def _component_templates_for_capability(
+    registry: CardPlanRegistry,
+    capability_id: str,
+    query_tokens: frozenset[FieldToken],
+    task_spec: TaskSpec,
+    card_spec: dict[str, Any],
+) -> dict[str, dict[str, frozenset[str]]]:
+    result: dict[str, dict[str, frozenset[str]]] = {}
+    for component in registry.ux_business_components.values():
+        template_ids = set(component.local_template_ids)
+        matches = {
+            record.template_id: _record_available_query_paths(record, query_tokens)
+            for record in registry.template_variant_search_records
+            if record.capability_id == capability_id
+            and record.template_id in template_ids
+            and _template_required_fields_are_available(record, task_spec, card_spec)
+        }
+        if query_tokens:
+            matches = {template_id: paths for template_id, paths in matches.items() if paths}
+        covered_paths = set().union(*matches.values()) if matches else set()
+        if {token.path for token in query_tokens}.issubset(covered_paths):
+            result[component.name] = matches
+    return result
+
+
+def _required_field_template_groups(
+    query_tokens: frozenset[FieldToken],
+    component_templates: dict[str, dict[str, frozenset[str]]],
+) -> tuple[tuple[str, ...], ...]:
+    if not query_tokens:
+        template_ids = {
+            template_id for templates in component_templates.values() for template_id in templates
+        }
+        return (tuple(sorted(template_ids)),)
     return tuple(
-        TemplateMatch(query.theme_id, record.template_id, record.variant_name)
-        for record in ordered
+        tuple(
+            sorted(
+                template_id
+                for templates in component_templates.values()
+                for template_id, paths in templates.items()
+                if token.path in paths
+            )
+        )
+        for token in sorted(query_tokens)
+    )
+
+
+def _component_ids_for_capabilities(
+    registry: CardPlanRegistry,
+    capability_ids: tuple[str, ...],
+) -> tuple[str, ...]:
+    wanted = set(capability_ids)
+    return tuple(
+        component.name
+        for component in registry.ux_business_components.values()
+        if wanted.intersection(component.data_capability_ids)
     )
 
 
@@ -217,9 +278,8 @@ def _capability_data_root(card_spec: dict[str, Any], capability_id: str) -> str:
 def _task_spec_field_token(
     task_spec: TaskSpec, data_root: str, capability_id: str, relative_path: str
 ) -> FieldToken:
-    leaf = _task_spec_schema_leaf(
-        task_spec.dataModelSchema, f"{data_root.rstrip('/')}{relative_path}"
-    )
+    pointer = f"{data_root.rstrip('/')}{relative_path}"
+    leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, pointer)
     if leaf is None or not isinstance(leaf.get("type"), str):
         raise TemplateRetrievalMiss(
             f"required output field is absent or untyped in TaskSpec: {relative_path}"
@@ -240,37 +300,25 @@ def _task_spec_schema_leaf(schema: dict[str, Any], pointer: str) -> dict[str, An
     return current if isinstance(current, dict) else None
 
 
-def _record_matches(
+def _record_available_query_paths(
     record: TemplateVariantSearchRecord,
     query_tokens: frozenset[FieldToken],
-    task_spec: TaskSpec,
-    registry: CardPlanRegistry,
-    card_spec: dict[str, Any],
-    preferred_template_ids: tuple[str, ...],
-) -> bool:
-    capability_matches = all(token.capability_id == record.capability_id for token in query_tokens)
-    if not capability_matches or record.template_id not in preferred_template_ids:
-        return False
-    if record.supported_card_sizes and task_spec.size not in record.supported_card_sizes:
-        return False
-    if record.supported_roles and "hero" not in record.supported_roles:
-        return False
-    if not {token.path for token in query_tokens}.issubset(record.available_paths):
-        return False
+) -> frozenset[str]:
     typed_by_path = {token.path: token.data_type for token in record.field_tokens}
-    query_type_mismatch = any(
-        typed_by_path.get(token.path, token.data_type) != token.data_type
+    return frozenset(
+        token.path
         for token in query_tokens
+        if token.path in record.available_paths
+        and typed_by_path.get(token.path, token.data_type) == token.data_type
     )
-    if query_type_mismatch:
-        return False
-    if not _template_required_fields_are_available(record, task_spec, card_spec):
-        return False
-    definition = registry.require_template(record.template_id)
-    variant = registry.require_variant(record.template_id, record.variant_name)
-    return provider_template_variant_admission(
-        definition, variant, task_spec, card_spec
-    ).admitted
+
+
+def _validate_selected_action(query: TemplateRetrievalQuery, task_spec: TaskSpec) -> None:
+    if query.action_id is None:
+        return
+    action_ids = {event.id for event in task_spec.eventCandidates if event.id}
+    if query.action_id not in action_ids:
+        raise TemplateRetrievalMiss("selected Action is outside TaskSpec.eventCandidates")
 
 
 def _template_required_fields_are_available(
@@ -280,67 +328,12 @@ def _template_required_fields_are_available(
 ) -> bool:
     data_root = _capability_data_root(card_spec, record.capability_id)
     for path in record.required_paths:
-        leaf = _task_spec_schema_leaf(
-            task_spec.dataModelSchema, f"{data_root.rstrip('/')}{path}"
-        )
-        if leaf is None:
+        pointer = f"{data_root.rstrip('/')}{path}"
+        if _task_spec_schema_leaf(task_spec.dataModelSchema, pointer) is None:
             return False
     for token in record.required_field_tokens:
-        leaf = _task_spec_schema_leaf(
-            task_spec.dataModelSchema, f"{data_root.rstrip('/')}{token.path}"
-        )
+        pointer = f"{data_root.rstrip('/')}{token.path}"
+        leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, pointer)
         if leaf is None or leaf.get("type") != token.data_type:
             return False
     return True
-
-
-def _preferred_template_ids(
-    registry: CardPlanRegistry,
-    capability_id: str,
-    task_spec: TaskSpec,
-) -> tuple[str, ...]:
-    from services.template_generation.engine.advanced.scope_planner import scope_template_ids
-
-    components = tuple(
-        component
-        for component in registry.ux_business_components.values()
-        if any(
-            registry.require_template(template_id).capability_id == capability_id
-            for template_id in component.local_template_ids
-        )
-    )
-    # A provider capability may legitimately back several business components:
-    # GetCalendarEvents powers both date and schedule cards, for example.  The
-    # retrieval gate must consider the scoped templates of every such component;
-    # the selected template is later adapted back to exactly one component.
-    return tuple(
-        dict.fromkeys(
-            template_id
-            for component in components
-            for theme_id in _component_theme_ids(component, registry)
-            for template_id in scope_template_ids(
-                AdvancedScopeBrief(
-                    themeId=theme_id,
-                    advancedComponentIds=(component.name,),
-                ),
-                registry,
-                task_spec,
-            )
-        )
-    )
-
-
-def _component_theme_ids(component: Any, registry: CardPlanRegistry) -> tuple[str, ...]:
-    return tuple(
-        dict.fromkeys(
-            theme_id
-            for scene in component.palette_scenes
-            for theme_id in registry.palette_scene_theme_ids[scene]
-        )
-    )
-
-
-def _template_preference_rank(
-    preferred_template_ids: tuple[str, ...], template_id: str
-) -> int:
-    return preferred_template_ids.index(template_id)
