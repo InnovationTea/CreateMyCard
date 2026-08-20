@@ -96,9 +96,10 @@ Action 不参与数据字段覆盖。
 
 ## 对原始 dev 的修改边界
 
-`widget_generation_service.py` 只新增模板接口 import，并在 Compact、Terse 两个公开入口各增加一段简单的
-`try/except`：尝试模板，任一异常后继续调用原协议流程。edit 判断由模板接口内部完成。模板 artifact 在隔离
-模块内部组装，不修改主服务原有 `_build_artifact`。
+`widget_generation_service.py` 只新增一个模板接口 import；Compact、Terse 两个公开入口均调用
+`generate_template_artifact`。两者只在捕获异常后的接口策略不同：Compact 继续调用原协议流程，Terse 直接
+返回失败。edit 判断由公共模板接口完成并以异常表达。模板 artifact 在隔离模块内部组装，不修改主服务原有
+`_build_artifact`。
 
 模板渲染需要的附加候选字段由 `binding_dependencies.py` 在模板路由内补齐，不修改通用能力模型、能力注册表
 或 `DeviceCapabilityResolver`。

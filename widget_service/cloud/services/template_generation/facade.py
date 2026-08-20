@@ -8,9 +8,8 @@ from typing import Any
 
 from api.schemas import GenerateWidgetCardRequest, GenerateWidgetCardResponse
 from app.logger import json_for_log, logger
-from core.errors import ErrorCode, GenerationStatus
 from custom.model_runtime import ModelExecutionRuntime
-from models.generation import DEFAULT_WIDGET_SIZE, ModelRequestContext, WidgetSize
+from models.generation import ModelRequestContext, WidgetSize
 from services.artifact_store import ArtifactStore
 from services.capability_registry import CapabilityRegistry
 from services.card_spec_builder import CardSpecBuilder
@@ -41,55 +40,6 @@ from services.validator import ArtifactValidator
 
 _MODULE = "[Template Generation]"
 ModelStartCallback = Callable[[WidgetSize], Awaitable[None]]
-
-
-async def generate_strict_terse_template_artifact(
-    request: GenerateWidgetCardRequest,
-    policy: GenerationRoutePolicy,
-    *,
-    registry: CapabilityRegistry,
-    model_runtime: ModelExecutionRuntime | None,
-    model_request_context: ModelRequestContext,
-    before_model_call: ModelStartCallback | None = None,
-) -> GenerateWidgetCardResponse:
-    """Terse create 只允许模板成功；edit 或任一模板失败均不回退旧流程。"""
-    if "sourceArtifactUrl" in request.model_fields_set:
-        logger.info(f"{_MODULE} terse_route_rejected reason=edit_not_supported fallback=disabled")
-        return _template_failure_response(request, "模板路线暂不支持二次更新。")
-
-    try:
-        return await generate_template_artifact(
-            request,
-            policy,
-            registry=registry,
-            model_runtime=model_runtime,
-            model_request_context=model_request_context,
-            before_model_call=before_model_call,
-        )
-    except TemplateRouteNotApplicable as exc:
-        logger.info(
-            f"{_MODULE} terse_route_rejected reason={type(exc).__name__} "
-            f"fallback=disabled detail={json_for_log(str(exc))}"
-        )
-        return _template_failure_response(request, "当前需求没有可完整呈现的模板。")
-    except Exception as exc:
-        logger.error(
-            f"{_MODULE} terse_route_failed reason={type(exc).__name__} "
-            f"fallback=disabled detail={json_for_log(str(exc))}"
-        )
-        return _template_failure_response(request, "卡片模板生成失败，请稍后再试。")
-
-
-def _template_failure_response(
-    request: GenerateWidgetCardRequest,
-    message: str,
-) -> GenerateWidgetCardResponse:
-    return GenerateWidgetCardResponse(
-        status=GenerationStatus.FAILED,
-        suggestSize=request.size or DEFAULT_WIDGET_SIZE,
-        message=message,
-        errorCode=ErrorCode.A2UI_GENERATION_FAILED.value,
-    )
 
 
 async def generate_template_artifact(

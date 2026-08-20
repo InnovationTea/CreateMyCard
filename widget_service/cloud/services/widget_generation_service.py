@@ -1099,10 +1099,14 @@ class WidgetGenerationService:
             model_profile_id=TERSE_DSL_NESTED2_PROFILE_ID,
             model_format=TERSE_DSL_NESTED2_PROFILE_ID,
             design_profile_id=TERSE_DSL_NESTED2_PROFILE_ID,
-            supports_dynamic_capabilities=False,
+            supports_dynamic_capabilities=True,
             validation_failure_blocking=True,
             stores_design_token=True,
         )
+        # 问题定位时可显式调用
+        # services.template_generation.route_legacy_python_terse_generation(...)；
+        # 第四、第五接口共用模板生成入口，区别只在调用方的失败策略：
+        # Compact 失败后回退原流程，Terse 失败后直接返回 failed。
         try:
             return await generate_template_artifact(
                 request,
@@ -1114,16 +1118,20 @@ class WidgetGenerationService:
             )
         except Exception as exc:
             logger.info(
-                f"{_MODULE} template_route_fallback operation={policy.operation} "
-                f"reason={type(exc).__name__} detail={json_for_log(str(exc))}"
+                f"{_MODULE} template_route_failed operation={policy.operation} "
+                f"fallback=disabled reason={type(exc).__name__} "
+                f"detail={json_for_log(str(exc))}"
             )
-        if before_model_call is None:
-            return await self._generate_widget_card_with_policy(request, policy)
-        return await self._generate_widget_card_with_policy(
-            request,
-            policy,
-            before_model_call=before_model_call,
-        )
+            return GenerateWidgetCardResponse(
+                status=GenerationStatus.FAILED,
+                suggestSize=request.size or DEFAULT_WIDGET_SIZE,
+                message=(
+                    "模板路线暂不支持二次更新。"
+                    if "sourceArtifactUrl" in request.model_fields_set
+                    else "当前需求无法通过模板完整生成卡片。"
+                ),
+                errorCode=ErrorCode.A2UI_GENERATION_FAILED.value,
+            )
 
     async def _generate_widget_card_with_policy(
         self,

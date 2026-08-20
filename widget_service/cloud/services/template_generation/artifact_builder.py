@@ -50,6 +50,7 @@ def build_template_artifact(
             candidateDataBindings=data_bindings or [],
             candidateEventCandidates=[
                 {
+                    "capabilityId": item.id,
                     "action": {
                         "call": item.call,
                         "args": item.args,

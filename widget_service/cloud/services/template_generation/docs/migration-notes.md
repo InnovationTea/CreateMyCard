@@ -6,8 +6,8 @@
 新的变更分类只有两类：
 
 1. `cloud/services/template_generation/`：模板功能的全部代码、资源、测试和文档。
-2. `cloud/services/widget_generation_service.py`：一个模板接口 import，以及 Compact、Terse 两个主入口各一段
-   简单的 `try/except` 模板尝试和旧链路回退。
+2. `cloud/services/widget_generation_service.py`：一个公共模板接口 import；Compact、Terse 两个主入口都尝试
+   同一个模板入口，Compact 异常后回退旧链路，Terse 异常后直接返回失败。
 
 本阶段在模板模块内部完成第二次资产升级：
 
