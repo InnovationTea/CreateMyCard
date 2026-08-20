@@ -2,43 +2,299 @@
   "bundleFormat": "card-provider-bundle/1",
   "providerId": "com.huawei.health-sport.cli",
   "providerVersion": "1.0.0-poc",
-  "firstLayerRule": {"path": "layer-docs/first-layer.md"},
-  "secondLayerRule": {"path": "layer-docs/second-layer.md"},
+  "firstLayerRule": {
+    "path": "layer-docs/first-layer.md"
+  },
+  "secondLayerRule": {
+    "path": "layer-docs/second-layer.md"
+  },
   "capabilities": [
     {
       "capabilityId": "GetHealthAndSportSummary",
+      "dataDomain": "/data/healthSport",
       "dataSchema": {
         "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
         "version": "app-11.7.5.205_rom-6.0"
       },
       "templates": [
-        "ActivityOverview@1",
+        "ActivityOverviewSteps@1",
+        "ActivityOverviewStepsSupport@1",
+        "ActivityOverviewDailySummary@1",
+        "ActivityOverviewDailySummaryWide@1",
         "WorkoutOverview@1",
-        "HeartRateOverview@1",
-        "SleepOverview@1"
+        "HeartRateOverviewHero@1",
+        "HeartRateOverviewHeroUpdated@1",
+        "HeartRateOverviewHeroIcon@1",
+        "HeartRateOverviewHeroUpdatedIcon@1",
+        "HeartRateOverviewSupport@1",
+        "HeartRateOverviewSupportUpdated@1",
+        "HeartRateOverviewSupportIcon@1",
+        "HeartRateOverviewSupportUpdatedIcon@1",
+        "SleepOverviewDuration@1",
+        "SleepOverviewDurationDetailed@1",
+        "SleepOverviewInsufficient@1",
+        "SleepOverviewInsufficientDetailed@1",
+        "SleepOverviewSchedule@1",
+        "SleepOverviewScheduleDetailed@1",
+        "SleepOverviewScheduleStatus@1",
+        "SleepOverviewScheduleDetailedStatus@1",
+        "SleepOverviewDurationSupport@1",
+        "SleepOverviewDurationDetailedSupport@1"
       ]
     }
   ],
   "templates": [
     {
-      "templateId": "ActivityOverview@1",
+      "templateId": "ActivityOverviewSteps@1",
+      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：steps。",
+      "requiredData": [
+        "/dailySteps"
+      ],
+      "optionalData": [],
       "entry": "templates/activity-overview.cardtpl",
-      "digest": "sha256:12268d05542021bcb6da5af19618626a656edcd483c53f9917adb2c6c5a7d42b"
+      "digest": "sha256:52228b63698d177b35dcf35d7068216845e0bc53c1ba81b4b926e82b4c8aa452"
+    },
+    {
+      "templateId": "ActivityOverviewStepsSupport@1",
+      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：stepsSupport。",
+      "requiredData": [
+        "/dailySteps"
+      ],
+      "optionalData": [],
+      "entry": "templates/activity-overview.cardtpl",
+      "digest": "sha256:52228b63698d177b35dcf35d7068216845e0bc53c1ba81b4b926e82b4c8aa452"
+    },
+    {
+      "templateId": "ActivityOverviewDailySummary@1",
+      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：dailySummary。",
+      "requiredData": [
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText"
+      ],
+      "optionalData": [],
+      "entry": "templates/activity-overview.cardtpl",
+      "digest": "sha256:52228b63698d177b35dcf35d7068216845e0bc53c1ba81b4b926e82b4c8aa452"
+    },
+    {
+      "templateId": "ActivityOverviewDailySummaryWide@1",
+      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：dailySummaryWide。",
+      "requiredData": [
+        "/dailySteps",
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText"
+      ],
+      "optionalData": [],
+      "entry": "templates/activity-overview.cardtpl",
+      "digest": "sha256:52228b63698d177b35dcf35d7068216845e0bc53c1ba81b4b926e82b4c8aa452"
     },
     {
       "templateId": "WorkoutOverview@1",
+      "description": "最近一次运动摘要，展示运动类型、时长和热量。 组件形态：latest。",
+      "requiredData": [
+        "/exerciseTypeName",
+        "/exerciseDurationText",
+        "/exerciseCalorieText"
+      ],
+      "optionalData": [],
       "entry": "templates/workout-overview.cardtpl",
-      "digest": "sha256:f649f82ae9b7f415143ad9c80e417f068dc043a948c601d9ce68436eac002e4b"
+      "digest": "sha256:cc41052e56c37cc8a8eab9ea5902385beb02f56e00f8d4c4b8feb3612fdd9d75"
     },
     {
-      "templateId": "HeartRateOverview@1",
+      "templateId": "HeartRateOverviewHero@1",
+      "description": "运动平均心率摘要，可补充更新时间。 组件形态：hero。",
+      "requiredData": [
+        "/exerciseHeartRateAvg"
+      ],
+      "optionalData": [],
       "entry": "templates/heart-rate-overview.cardtpl",
-      "digest": "sha256:d09096b3144523b77b5e72169cb29c6ee4e30b3e34d5ce6f58007ae28876375e"
+      "digest": "sha256:28164619fe7c4273da9b21e9f4c4ec3181ff2d3583807ff4d18fe7a6ee9730da"
     },
     {
-      "templateId": "SleepOverview@1",
+      "templateId": "HeartRateOverviewHeroUpdated@1",
+      "description": "运动平均心率摘要，可补充更新时间。 组件形态：heroUpdated。",
+      "requiredData": [
+        "/exerciseHeartRateAvg",
+        "/updatedAt"
+      ],
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "digest": "sha256:28164619fe7c4273da9b21e9f4c4ec3181ff2d3583807ff4d18fe7a6ee9730da"
+    },
+    {
+      "templateId": "HeartRateOverviewHeroIcon@1",
+      "description": "运动平均心率摘要，可补充更新时间。 组件形态：heroIcon。",
+      "requiredData": [
+        "/exerciseHeartRateAvg"
+      ],
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "digest": "sha256:28164619fe7c4273da9b21e9f4c4ec3181ff2d3583807ff4d18fe7a6ee9730da"
+    },
+    {
+      "templateId": "HeartRateOverviewHeroUpdatedIcon@1",
+      "description": "运动平均心率摘要，可补充更新时间。 组件形态：heroUpdatedIcon。",
+      "requiredData": [
+        "/exerciseHeartRateAvg",
+        "/updatedAt"
+      ],
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "digest": "sha256:28164619fe7c4273da9b21e9f4c4ec3181ff2d3583807ff4d18fe7a6ee9730da"
+    },
+    {
+      "templateId": "HeartRateOverviewSupport@1",
+      "description": "运动平均心率摘要，可补充更新时间。 组件形态：support。",
+      "requiredData": [
+        "/exerciseHeartRateAvg"
+      ],
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "digest": "sha256:28164619fe7c4273da9b21e9f4c4ec3181ff2d3583807ff4d18fe7a6ee9730da"
+    },
+    {
+      "templateId": "HeartRateOverviewSupportUpdated@1",
+      "description": "运动平均心率摘要，可补充更新时间。 组件形态：supportUpdated。",
+      "requiredData": [
+        "/exerciseHeartRateAvg",
+        "/updatedAt"
+      ],
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "digest": "sha256:28164619fe7c4273da9b21e9f4c4ec3181ff2d3583807ff4d18fe7a6ee9730da"
+    },
+    {
+      "templateId": "HeartRateOverviewSupportIcon@1",
+      "description": "运动平均心率摘要，可补充更新时间。 组件形态：supportIcon。",
+      "requiredData": [
+        "/exerciseHeartRateAvg"
+      ],
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "digest": "sha256:28164619fe7c4273da9b21e9f4c4ec3181ff2d3583807ff4d18fe7a6ee9730da"
+    },
+    {
+      "templateId": "HeartRateOverviewSupportUpdatedIcon@1",
+      "description": "运动平均心率摘要，可补充更新时间。 组件形态：supportUpdatedIcon。",
+      "requiredData": [
+        "/exerciseHeartRateAvg",
+        "/updatedAt"
+      ],
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "digest": "sha256:28164619fe7c4273da9b21e9f4c4ec3181ff2d3583807ff4d18fe7a6ee9730da"
+    },
+    {
+      "templateId": "SleepOverviewDuration@1",
+      "description": "睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：duration。",
+      "requiredData": [
+        "/nightSleepDurationText"
+      ],
+      "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:5d8453a3051d8e2b6cec03b1f07aa130b343e62937c40d4c1f8984882c374236"
+      "digest": "sha256:92368498bb941b5499117b203a19678d5ff7a7bd007dbcaecaac08ba57387996"
+    },
+    {
+      "templateId": "SleepOverviewDurationDetailed@1",
+      "description": "睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：durationDetailed。",
+      "requiredData": [
+        "/nightSleepDurationText"
+      ],
+      "optionalData": [],
+      "entry": "templates/sleep-overview.cardtpl",
+      "digest": "sha256:92368498bb941b5499117b203a19678d5ff7a7bd007dbcaecaac08ba57387996"
+    },
+    {
+      "templateId": "SleepOverviewInsufficient@1",
+      "description": "睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：insufficient。",
+      "requiredData": [
+        "/sleepStatus",
+        "/nightSleepDurationText"
+      ],
+      "optionalData": [],
+      "entry": "templates/sleep-overview.cardtpl",
+      "digest": "sha256:92368498bb941b5499117b203a19678d5ff7a7bd007dbcaecaac08ba57387996"
+    },
+    {
+      "templateId": "SleepOverviewInsufficientDetailed@1",
+      "description": "睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：insufficientDetailed。",
+      "requiredData": [
+        "/sleepStatus",
+        "/nightSleepDurationText"
+      ],
+      "optionalData": [],
+      "entry": "templates/sleep-overview.cardtpl",
+      "digest": "sha256:92368498bb941b5499117b203a19678d5ff7a7bd007dbcaecaac08ba57387996"
+    },
+    {
+      "templateId": "SleepOverviewSchedule@1",
+      "description": "睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：schedule。",
+      "requiredData": [
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/nightSleepDurationText"
+      ],
+      "optionalData": [],
+      "entry": "templates/sleep-overview.cardtpl",
+      "digest": "sha256:92368498bb941b5499117b203a19678d5ff7a7bd007dbcaecaac08ba57387996"
+    },
+    {
+      "templateId": "SleepOverviewScheduleDetailed@1",
+      "description": "睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：scheduleDetailed。",
+      "requiredData": [
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/nightSleepDurationText"
+      ],
+      "optionalData": [],
+      "entry": "templates/sleep-overview.cardtpl",
+      "digest": "sha256:92368498bb941b5499117b203a19678d5ff7a7bd007dbcaecaac08ba57387996"
+    },
+    {
+      "templateId": "SleepOverviewScheduleStatus@1",
+      "description": "睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：scheduleStatus。",
+      "requiredData": [
+        "/sleepStatus",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/nightSleepDurationText"
+      ],
+      "optionalData": [],
+      "entry": "templates/sleep-overview.cardtpl",
+      "digest": "sha256:92368498bb941b5499117b203a19678d5ff7a7bd007dbcaecaac08ba57387996"
+    },
+    {
+      "templateId": "SleepOverviewScheduleDetailedStatus@1",
+      "description": "睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：scheduleDetailedStatus。",
+      "requiredData": [
+        "/sleepStatus",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText",
+        "/nightSleepDurationText"
+      ],
+      "optionalData": [],
+      "entry": "templates/sleep-overview.cardtpl",
+      "digest": "sha256:92368498bb941b5499117b203a19678d5ff7a7bd007dbcaecaac08ba57387996"
+    },
+    {
+      "templateId": "SleepOverviewDurationSupport@1",
+      "description": "睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：durationSupport。",
+      "requiredData": [
+        "/nightSleepDurationText"
+      ],
+      "optionalData": [],
+      "entry": "templates/sleep-overview.cardtpl",
+      "digest": "sha256:92368498bb941b5499117b203a19678d5ff7a7bd007dbcaecaac08ba57387996"
+    },
+    {
+      "templateId": "SleepOverviewDurationDetailedSupport@1",
+      "description": "睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：durationDetailedSupport。",
+      "requiredData": [
+        "/nightSleepDurationText"
+      ],
+      "optionalData": [],
+      "entry": "templates/sleep-overview.cardtpl",
+      "digest": "sha256:92368498bb941b5499117b203a19678d5ff7a7bd007dbcaecaac08ba57387996"
     }
   ],
   "compatibility": {

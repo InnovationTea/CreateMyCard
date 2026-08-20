@@ -2,23 +2,80 @@
   "bundleFormat": "card-provider-bundle/1",
   "providerId": "com.huawei.app-usage.cli",
   "providerVersion": "1.0.0-poc",
-  "firstLayerRule": {"path": "layer-docs/first-layer.md"},
-  "secondLayerRule": {"path": "layer-docs/second-layer.md"},
+  "firstLayerRule": {
+    "path": "layer-docs/first-layer.md"
+  },
+  "secondLayerRule": {
+    "path": "layer-docs/second-layer.md"
+  },
   "capabilities": [
     {
       "capabilityId": "GetAppUsageDuration",
+      "dataDomain": "/data/appUsageStats",
       "dataSchema": {
         "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
         "version": "app-11.7.5.205_rom-6.0"
       },
-      "templates": ["AppUsageOverview@1"]
+      "templates": [
+        "AppUsageOverviewSingleApp@1",
+        "AppUsageOverviewSingleAppDetailed@1",
+        "AppUsageOverviewSingleAppWide@1",
+        "AppUsageOverviewSingleAppDetailedWide@1"
+      ]
     }
   ],
   "templates": [
     {
-      "templateId": "AppUsageOverview@1",
+      "templateId": "AppUsageOverviewSingleApp@1",
+      "description": "单个应用的当日使用时长摘要，可补充更新时间。 组件形态：singleApp。",
+      "requiredData": [
+        "/appUsage/appName",
+        "/appUsage/durationText"
+      ],
+      "optionalData": [
+        "/updatedAt"
+      ],
       "entry": "templates/app-usage-overview.cardtpl",
-      "digest": "sha256:7e4925a06e28818c6f96786c4df07abd912c7c1b103102f967bad4849c99a991"
+      "digest": "sha256:835cc867699c36cfc72155488e02ed4ec0eff693a8a75454efd35e395e29eecb"
+    },
+    {
+      "templateId": "AppUsageOverviewSingleAppDetailed@1",
+      "description": "单个应用的当日使用时长摘要，可补充更新时间。 组件形态：singleAppDetailed。",
+      "requiredData": [
+        "/appUsage/appName",
+        "/appUsage/durationText"
+      ],
+      "optionalData": [
+        "/updatedAt"
+      ],
+      "entry": "templates/app-usage-overview.cardtpl",
+      "digest": "sha256:835cc867699c36cfc72155488e02ed4ec0eff693a8a75454efd35e395e29eecb"
+    },
+    {
+      "templateId": "AppUsageOverviewSingleAppWide@1",
+      "description": "单个应用的当日使用时长摘要，可补充更新时间。 组件形态：singleAppWide。",
+      "requiredData": [
+        "/appUsage/appName",
+        "/appUsage/durationText"
+      ],
+      "optionalData": [
+        "/updatedAt"
+      ],
+      "entry": "templates/app-usage-overview.cardtpl",
+      "digest": "sha256:835cc867699c36cfc72155488e02ed4ec0eff693a8a75454efd35e395e29eecb"
+    },
+    {
+      "templateId": "AppUsageOverviewSingleAppDetailedWide@1",
+      "description": "单个应用的当日使用时长摘要，可补充更新时间。 组件形态：singleAppDetailedWide。",
+      "requiredData": [
+        "/appUsage/appName",
+        "/appUsage/durationText"
+      ],
+      "optionalData": [
+        "/updatedAt"
+      ],
+      "entry": "templates/app-usage-overview.cardtpl",
+      "digest": "sha256:835cc867699c36cfc72155488e02ed4ec0eff693a8a75454efd35e395e29eecb"
     }
   ],
   "compatibility": {

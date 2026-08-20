@@ -24,6 +24,8 @@ await generate_template_artifact(
 - 模板模块只负责模板生成结果，不接收主服务对象，也不调用原始生成逻辑。
 - 模板接口内部识别 edit 请求并抛出不适用异常，由 Compact 或 Terse 公开入口执行原协议流程。
 - create 请求先由第一层 LLM 只选择 `theme`、`component`、`action`，再判断一个或多个模板能否覆盖完整需求。
+- 第一层失败时仍返回最匹配的候选 Theme，以空 `component` 和空 `action` 表示模板不适用。
+- 第二层的业务 UI 和布局骨架都使用 `Template` 调用；模板 ID 直接表达形态，不再输出 Variant。
 - 第一层拒绝、输出非法、调用失败、确定性覆盖检查不通过，以及后续生成、转换、校验或保存异常，均向公开
   入口抛出异常。
 - Compact 与 Terse 公开入口捕获异常后，分别执行各自原协议流程。
@@ -52,7 +54,8 @@ template_generation/
 能力注册表、模型运行时和请求上下文由公开入口显式提供。模板模块自行组装完整 artifact，不得通过主服务对象
 调用私有能力或反向调用原协议逻辑。
 
-领域选择规则不直接写入 Python SystemPrompt。每个 Provider 通过 `provider.json` 显式登记首层和二层 MD；
+领域选择规则不直接写入 Python SystemPrompt。每个业务 Provider 通过 `provider.json` 显式登记
+`dataDomain`、首层和二层 MD；布局 Provider 只登记可接收 `...children` 的布局模板。
 Theme 通过 `theme-profiles.json` 登记只供首层使用的 MD。首层只加载候选 Provider/Theme 文档，二层只加载
 已选 Provider 文档。
 

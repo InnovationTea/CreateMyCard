@@ -298,6 +298,25 @@ class CardPlanRegistry:
             for bundle in self._provider_bundles_for_components(component_ids)
         )
 
+    def provider_data_domains_for_components(
+        self,
+        component_ids: tuple[str, ...],
+    ) -> dict[str, str]:
+        """Return Provider-owned absolute TaskSpec roots for candidate components."""
+        domains: dict[str, str] = {}
+        for bundle in self._provider_bundles_for_components(component_ids):
+            for capability in bundle.manifest.capabilities:
+                if capability.capability_id is None or capability.data_domain is None:
+                    continue
+                existing = domains.get(capability.capability_id)
+                if existing is not None and existing != capability.data_domain:
+                    raise ValueError(
+                        "Provider capability has conflicting dataDomain declarations: "
+                        f"{capability.capability_id}"
+                    )
+                domains[capability.capability_id] = capability.data_domain
+        return domains
+
     def theme_first_layer_rule_documents(
         self,
         theme_ids: tuple[str, ...],

@@ -1,0 +1,88 @@
+{
+  "bundleFormat": "card-provider-bundle/1",
+  "providerId": "com.huawei.layout.cli",
+  "providerVersion": "1.0.0-poc",
+  "capabilities": [
+    {
+      "templates": [
+        "SingleFocusLayout@1",
+        "HeroActionLayout@1",
+        "HeroSupportLayout@1",
+        "HeroSupportActionLayout@1",
+        "PeerPairLayout@1",
+        "SequentialSummaryLayout@1",
+        "EqualItemsLayout@1",
+        "ListActionLayout@1",
+        "ActionMatrixLayout@1",
+        "WeatherNowForecastLayout@1"
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "templateId": "SingleFocusLayout@1",
+      "description": "单一焦点纵向骨架，承载一个主要业务区域。",
+      "entry": "templates/layout.cardtpl",
+      "digest": "sha256:e114153e98228cc2778ec624ed155b154708bb9a2e63530ef478e92f26e415ac"
+    },
+    {
+      "templateId": "HeroActionLayout@1",
+      "description": "主内容与底部动作组合骨架。",
+      "entry": "templates/layout.cardtpl",
+      "digest": "sha256:e114153e98228cc2778ec624ed155b154708bb9a2e63530ef478e92f26e415ac"
+    },
+    {
+      "templateId": "HeroSupportLayout@1",
+      "description": "主内容与辅助内容双区域骨架。",
+      "entry": "templates/layout.cardtpl",
+      "digest": "sha256:e114153e98228cc2778ec624ed155b154708bb9a2e63530ef478e92f26e415ac"
+    },
+    {
+      "templateId": "HeroSupportActionLayout@1",
+      "description": "主内容、辅助内容和底部动作组合骨架。",
+      "entry": "templates/layout.cardtpl",
+      "digest": "sha256:e114153e98228cc2778ec624ed155b154708bb9a2e63530ef478e92f26e415ac"
+    },
+    {
+      "templateId": "PeerPairLayout@1",
+      "description": "两个同级业务区域并列骨架。",
+      "entry": "templates/layout.cardtpl",
+      "digest": "sha256:e114153e98228cc2778ec624ed155b154708bb9a2e63530ef478e92f26e415ac"
+    },
+    {
+      "templateId": "SequentialSummaryLayout@1",
+      "description": "多个摘要区域顺序排列骨架。",
+      "entry": "templates/layout.cardtpl",
+      "digest": "sha256:e114153e98228cc2778ec624ed155b154708bb9a2e63530ef478e92f26e415ac"
+    },
+    {
+      "templateId": "EqualItemsLayout@1",
+      "description": "多个同等权重业务区域排列骨架。",
+      "entry": "templates/layout.cardtpl",
+      "digest": "sha256:e114153e98228cc2778ec624ed155b154708bb9a2e63530ef478e92f26e415ac"
+    },
+    {
+      "templateId": "ListActionLayout@1",
+      "description": "列表内容与动作组合骨架。",
+      "entry": "templates/layout.cardtpl",
+      "digest": "sha256:e114153e98228cc2778ec624ed155b154708bb9a2e63530ef478e92f26e415ac"
+    },
+    {
+      "templateId": "ActionMatrixLayout@1",
+      "description": "内容与多个动作矩阵组合骨架。",
+      "entry": "templates/layout.cardtpl",
+      "digest": "sha256:e114153e98228cc2778ec624ed155b154708bb9a2e63530ef478e92f26e415ac"
+    },
+    {
+      "templateId": "WeatherNowForecastLayout@1",
+      "description": "当前天气与预报组合骨架。",
+      "entry": "templates/layout.cardtpl",
+      "digest": "sha256:e114153e98228cc2778ec624ed155b154708bb9a2e63530ef478e92f26e415ac"
+    }
+  ],
+  "compatibility": {
+    "templateLanguage": "cardtpl/1",
+    "catalogId": "ohos.a2ui.extended.catalog.form",
+    "a2uiWireVersion": "v0.9"
+  }
+}

@@ -1,16 +1,18 @@
-# 日历高级组件二层规则
+# 第二层业务模板使用规则
 
-## DateOverview
+- Provider：`com.huawei.calendar.cli`。
+- 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
+- 可用模板：
+  - `DateOverviewCompactDate@1`：首个日程的日期和星期摘要。 组件形态：compactDate。 必需数据：/events/0/startDate, /updatedAt；可选数据：无。
+  - `DateOverviewDateHero@1`：首个日程的日期和星期摘要。 组件形态：dateHero。 必需数据：/events/0/startDate, /updatedAt；可选数据：无。
+  - `ScheduleOverviewNextEvent@1`：首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：nextEvent。 必需数据：/events/0/title, /events/0/dtStart, /events/0/dtEnd；可选数据：无。
+  - `ScheduleOverviewNextEventLocation@1`：首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：nextEventLocation。 必需数据：/events/0/title, /events/0/eventLocation, /events/0/dtStart, /events/0/dtEnd；可选数据：无。
+  - `ScheduleOverviewMeetingCompact@1`：首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：meetingCompact。 必需数据：/events/0/title, /events/0/dtStart, /events/0/dtEnd；可选数据：无。
+  - `ScheduleOverviewMeetingCompactLocation@1`：首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：meetingCompactLocation。 必需数据：/events/0/title, /events/0/eventLocation, /events/0/dtStart, /events/0/dtEnd；可选数据：无。
+  - `ScheduleOverviewMeetingExpanded@1`：首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：meetingExpanded。 必需数据：/events/0/title, /events/0/eventLocation, /events/0/dtStart, /events/0/dtEnd；可选数据：无。
+  - `ScheduleOverviewMeetingCompactSource@1`：首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：meetingCompactSource。 必需数据：/events/0/title, /events/0/dtStart, /events/0/dtEnd；可选数据：无。
+  - `ScheduleOverviewMeetingCompactLocationSource@1`：首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：meetingCompactLocationSource。 必需数据：/events/0/title, /events/0/eventLocation, /events/0/dtStart, /events/0/dtEnd；可选数据：无。
+  - `ScheduleOverviewMeetingExpandedSource@1`：首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：meetingExpandedSource。 必需数据：/events/0/title, /events/0/eventLocation, /events/0/dtStart, /events/0/dtEnd；可选数据：无。
 
-- 调用：`Template("DateOverview@1", "compactDate|dateHero", {})`。
-- 单业务使用 `dateHero`；日期与日程组合时，2x2 使用 `compactDate`，2x4 使用 `dateHero`。
-- 日期和星期由服务端可信投影补齐；不得输出旧 `DateOverview(...)` 构造器。
-
-## ScheduleOverview
-
-- 调用：`Template("ScheduleOverview@1", variant, params)`。
-- 单业务使用 `nextEvent`，有可信地点时使用 `nextEventLocation`。
-- 日期组合在 2x2 使用 `meetingCompact` 或 `meetingCompactLocation`；2x4 有地点时使用 `meetingExpanded`。
-- 需要来源图标时使用对应 `Source` 后缀。
-- `params` 只允许 Variant 签名声明且语义匹配的 `sourceIcon`、`timeIcon`、`locationIcon`；缺失时使用 `{}`。
-- `timeText` 由服务端可信投影补齐；不得输出旧 `ScheduleOverview(...)` 构造器。
+- props 只能使用本次 Prompt 下发的可信文本、数值或素材；不得输出数据路径。
+- 选择能够完整表达用户显式要求字段且自身 requiredData 全部可用的模板。

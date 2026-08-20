@@ -1,128 +1,259 @@
-#Template("ActivityOverview@1", {
-  capability: "GetHealthAndSportSummary",
-  description: "运动健康数据提供方交付的活动概览",
-  domainTags: ["activity", "steps", "health"],
-  compatibleThemeProfileIds: ["race-sunrise-action", "race-night-violet", "sleep-night-violet", "meeting-paper-neutral"],
-  allowedParentComponents: ["Column", "Row", "List", "Stack"],
-  bindings: {
-    steps: { path: "/dailySteps", type: "integer" },
-    calories: { path: "/dailyTotalCaloriesText", type: "string" },
-    distance: { path: "/dailyDistanceText", type: "string" }
-  },
-  params: {
-    stepsIcon: { type: "string", kind: "asset", semanticTags: ["steps"] },
-    caloriesIcon: { type: "string", kind: "asset", semanticTags: ["calories"] },
-    distanceIcon: { type: "string", kind: "asset", semanticTags: ["distance"] }
-  },
-  limits: { maxNodes: 20, maxDepth: 6 }
-})
+#Template ActivityOverviewSteps@1(props: { stepsIcon?: asset })
+data = {
+    steps: $path("/dailySteps")
+}
 
-#Variant("steps", { sizes: ["2x2", "2x4"], roles: ["hero"], requires: ["steps"] })
-Column("compact", {
-  _advancedComponent: "ActivityOverview", width: "matchParent", height: "matchParent",
-  itemMargin: 4, justifyContent: "spaceBetween", alignItems: "start",
-  constraintSize: { minWidth: 0, minHeight: 0 }
-},
-  Row("between", { width: "matchParent", itemMargin: 4, justifyContent: "start", alignItems: "top", constraintSize: { minWidth: 0, minHeight: 0 } },
-    IfParam("stepsIcon",
-      Image(Asset("stepsIcon"), "icon", { width: 20, height: 20, objectFit: "contain", flexShrink: 0 })
+Column(
+  "compact",
+  {"_advancedComponent": "ActivityOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      IfPresent(
+            props.stepsIcon,
+            Image(
+                    props.stepsIcon,
+                    "icon",
+                    {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+                  )
+          ),
+      Text(
+            "今日活动",
+            "subtitle",
+            {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
     ),
-    Text("今日活动", "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
-  ),
-  Row("between", { width: "matchParent", itemMargin: 4, justifyContent: "start", alignItems: "bottom", constraintSize: { minWidth: 0, minHeight: 0 } },
-    Text(Bind("steps"), "title", { fontSize: 38, fontWeight: 800, fontColor: "#FFFF7A45", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } }),
-    Text("步", "subtitle", { fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
-  )
-)
-#EndVariant
-
-#Variant("stepsSupport", { sizes: ["2x2", "2x4"], roles: ["support"], requires: ["steps"] })
-Column("compact", {
-  _advancedComponent: "ActivityOverview", width: "matchParent", height: "matchParent",
-  itemMargin: 4, justifyContent: "start", alignItems: "start",
-  constraintSize: { minWidth: 0, minHeight: 0 }
-},
-  Row("between", { width: "matchParent", itemMargin: 4, justifyContent: "start", alignItems: "top", constraintSize: { minWidth: 0, minHeight: 0 } },
-    IfParam("stepsIcon",
-      Image(Asset("stepsIcon"), "icon", { width: 16, height: 16, objectFit: "contain", flexShrink: 0 })
-    ),
-    Text("今日步数", "subtitle", { width: "matchParent", fontSize: 10, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
-  ),
-  Row("between", { width: "matchParent", itemMargin: 4, justifyContent: "start", alignItems: "bottom", constraintSize: { minWidth: 0, minHeight: 0 } },
-    Text(Bind("steps"), "compact-title", { fontSize: 20, fontWeight: 700, fontColor: "#FFFF7A45", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } }),
-    Text("步", "subtitle", { fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
-  )
-)
-#EndVariant
-
-#Variant("dailySummary", { sizes: ["2x2"], roles: ["hero"], requires: ["steps", "calories", "distance"] })
-Column("compact", {
-  _advancedComponent: "ActivityOverview", width: "matchParent", height: "matchParent",
-  itemMargin: 8, justifyContent: "spaceBetween", alignItems: "start",
-  constraintSize: { minWidth: 0, minHeight: 0 }
-},
-  Row("between", { width: "matchParent", itemMargin: 4, justifyContent: "start", alignItems: "top", constraintSize: { minWidth: 0, minHeight: 0 } },
-    IfParam("stepsIcon",
-      Image(Asset("stepsIcon"), "icon", { width: 20, height: 20, objectFit: "contain", flexShrink: 0 })
-    ),
-    Text("今日活动", "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
-  ),
-  Row("between", { width: "matchParent", itemMargin: 4, justifyContent: "start", alignItems: "bottom", constraintSize: { minWidth: 0, minHeight: 0 } },
-    Text(Bind("steps"), "title", { fontSize: 38, fontWeight: 800, fontColor: "#FFFF7A45", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } }),
-    Text("步", "subtitle", { fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
-  ),
-  Row("between", { width: "matchParent", itemMargin: 8, justifyContent: "spaceBetween", alignItems: "center", constraintSize: { minWidth: 0, minHeight: 0 } },
-    Row("between", { width: "matchParent", layoutWeight: 1, itemMargin: 4, justifyContent: "start", alignItems: "top", clip: true, constraintSize: { minWidth: 0, minHeight: 0 } },
-      IfParam("caloriesIcon",
-        Image(Asset("caloriesIcon"), "icon", { width: 16, height: 16, objectFit: "contain", flexShrink: 0 })
-      ),
-      Text(Bind("calories"), "body", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
-    ),
-    Row("between", { width: "matchParent", layoutWeight: 1, itemMargin: 4, justifyContent: "start", alignItems: "top", clip: true, constraintSize: { minWidth: 0, minHeight: 0 } },
-      IfParam("distanceIcon",
-        Image(Asset("distanceIcon"), "icon", { width: 16, height: 16, objectFit: "contain", flexShrink: 0 })
-      ),
-      Text(Bind("distance"), "body", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+            data.steps,
+            "title",
+            {"fontSize": 38, "fontWeight": 800, "fontColor": "#FFFF7A45", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      Text(
+            "步",
+            "subtitle",
+            {"fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
     )
-  )
 )
-#EndVariant
+#End
 
-#Variant("dailySummaryWide", { sizes: ["2x4"], roles: ["hero"], requires: ["steps", "calories", "distance"] })
-Row("between", {
-  _advancedComponent: "ActivityOverview", width: "100%", height: "100%",
-  itemMargin: 8, alignItems: "center"
-},
-  Column("compact", { layoutWeight: 58, itemMargin: 0, clip: true, constraintSize: { minWidth: 0, minHeight: 0 } },
-    Column("compact", { width: "matchParent", height: "matchParent", itemMargin: 4, justifyContent: "spaceBetween", alignItems: "start", constraintSize: { minWidth: 0, minHeight: 0 } },
-      Row("between", { width: "matchParent", itemMargin: 4, justifyContent: "start", alignItems: "top", constraintSize: { minWidth: 0, minHeight: 0 } },
-        IfParam("stepsIcon",
-          Image(Asset("stepsIcon"), "icon", { width: 20, height: 20, objectFit: "contain", flexShrink: 0 })
-        ),
-        Text("今日活动", "subtitle", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
-      ),
-      Row("between", { width: "matchParent", itemMargin: 4, justifyContent: "start", alignItems: "bottom", constraintSize: { minWidth: 0, minHeight: 0 } },
-        Text(Bind("steps"), "title", { fontSize: 38, fontWeight: 800, fontColor: "#FFFF7A45", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } }),
-        Text("步", "subtitle", { fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
-      )
+#Template ActivityOverviewStepsSupport@1(props: { stepsIcon?: asset })
+data = {
+    steps: $path("/dailySteps")
+}
+
+Column(
+  "compact",
+  {"_advancedComponent": "ActivityOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      IfPresent(
+            props.stepsIcon,
+            Image(
+                    props.stepsIcon,
+                    "icon",
+                    {"width": 16, "height": 16, "objectFit": "contain", "flexShrink": 0}
+                  )
+          ),
+      Text(
+            "今日步数",
+            "subtitle",
+            {"width": "matchParent", "fontSize": 10, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
+    ),
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+            data.steps,
+            "compact-title",
+            {"fontSize": 20, "fontWeight": 700, "fontColor": "#FFFF7A45", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      Text(
+            "步",
+            "subtitle",
+            {"fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
     )
-  ),
-  Column("compact", { layoutWeight: 42, itemMargin: 0, clip: true, constraintSize: { minWidth: 0, minHeight: 0 } },
-    Column("compact", { width: "matchParent", height: "matchParent", itemMargin: 8, justifyContent: "center", alignItems: "start", constraintSize: { minWidth: 0, minHeight: 0 } },
-      Row("between", { width: "matchParent", itemMargin: 4, justifyContent: "start", alignItems: "top", constraintSize: { minWidth: 0, minHeight: 0 } },
-        IfParam("caloriesIcon",
-          Image(Asset("caloriesIcon"), "icon", { width: 16, height: 16, objectFit: "contain", flexShrink: 0 })
-        ),
-        Text(Bind("calories"), "body", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
-      ),
-      Row("between", { width: "matchParent", itemMargin: 4, justifyContent: "start", alignItems: "top", constraintSize: { minWidth: 0, minHeight: 0 } },
-        IfParam("distanceIcon",
-          Image(Asset("distanceIcon"), "icon", { width: 16, height: 16, objectFit: "contain", flexShrink: 0 })
-        ),
-        Text(Bind("distance"), "body", { width: "matchParent", fontSize: 12, fontWeight: 500, fontColor: "#E6000000", maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 } })
-      )
-    )
-  )
 )
-#EndVariant
-#EndTemplate
+#End
+
+#Template ActivityOverviewDailySummary@1(props: { stepsIcon?: asset, caloriesIcon?: asset, distanceIcon?: asset })
+data = {
+    steps: $path("/dailySteps"),
+    calories: $path("/dailyTotalCaloriesText"),
+    distance: $path("/dailyDistanceText")
+}
+
+Column(
+  "compact",
+  {"_advancedComponent": "ActivityOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 8, "justifyContent": "spaceBetween", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      IfPresent(
+            props.stepsIcon,
+            Image(
+                    props.stepsIcon,
+                    "icon",
+                    {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+                  )
+          ),
+      Text(
+            "今日活动",
+            "subtitle",
+            {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
+    ),
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+            data.steps,
+            "title",
+            {"fontSize": 38, "fontWeight": 800, "fontColor": "#FFFF7A45", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      Text(
+            "步",
+            "subtitle",
+            {"fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
+    ),
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 8, "justifyContent": "spaceBetween", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Row(
+            "between",
+            {"width": "matchParent", "layoutWeight": 1, "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            IfPresent(
+                    props.caloriesIcon,
+                    Image(
+                              props.caloriesIcon,
+                              "icon",
+                              {"width": 16, "height": 16, "objectFit": "contain", "flexShrink": 0}
+                            )
+                  ),
+            Text(
+                    data.calories,
+                    "body",
+                    {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                  )
+          ),
+      Row(
+            "between",
+            {"width": "matchParent", "layoutWeight": 1, "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            IfPresent(
+                    props.distanceIcon,
+                    Image(
+                              props.distanceIcon,
+                              "icon",
+                              {"width": 16, "height": 16, "objectFit": "contain", "flexShrink": 0}
+                            )
+                  ),
+            Text(
+                    data.distance,
+                    "body",
+                    {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                  )
+          )
+    )
+)
+#End
+
+#Template ActivityOverviewDailySummaryWide@1(props: { stepsIcon?: asset, caloriesIcon?: asset, distanceIcon?: asset })
+data = {
+    steps: $path("/dailySteps"),
+    calories: $path("/dailyTotalCaloriesText"),
+    distance: $path("/dailyDistanceText")
+}
+
+Row(
+  "between",
+  {"_advancedComponent": "ActivityOverview", "width": "100%", "height": "100%", "itemMargin": 8, "alignItems": "center"},
+  Column(
+      "compact",
+      {"layoutWeight": 58, "itemMargin": 0, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Column(
+            "compact",
+            {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            Row(
+                    "between",
+                    {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+                    IfPresent(
+                              props.stepsIcon,
+                              Image(
+                                          props.stepsIcon,
+                                          "icon",
+                                          {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+                                        )
+                            ),
+                    Text(
+                              "今日活动",
+                              "subtitle",
+                              {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                            )
+                  ),
+            Row(
+                    "between",
+                    {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+                    Text(
+                              data.steps,
+                              "title",
+                              {"fontSize": 38, "fontWeight": 800, "fontColor": "#FFFF7A45", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                            ),
+                    Text(
+                              "步",
+                              "subtitle",
+                              {"fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                            )
+                  )
+          )
+    ),
+  Column(
+      "compact",
+      {"layoutWeight": 42, "itemMargin": 0, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Column(
+            "compact",
+            {"width": "matchParent", "height": "matchParent", "itemMargin": 8, "justifyContent": "center", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            Row(
+                    "between",
+                    {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+                    IfPresent(
+                              props.caloriesIcon,
+                              Image(
+                                          props.caloriesIcon,
+                                          "icon",
+                                          {"width": 16, "height": 16, "objectFit": "contain", "flexShrink": 0}
+                                        )
+                            ),
+                    Text(
+                              data.calories,
+                              "body",
+                              {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                            )
+                  ),
+            Row(
+                    "between",
+                    {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+                    IfPresent(
+                              props.distanceIcon,
+                              Image(
+                                          props.distanceIcon,
+                                          "icon",
+                                          {"width": 16, "height": 16, "objectFit": "contain", "flexShrink": 0}
+                                        )
+                            ),
+                    Text(
+                              data.distance,
+                              "body",
+                              {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                            )
+                  )
+          )
+    )
+)
+#End

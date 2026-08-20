@@ -16,9 +16,9 @@ generateWidgetCardCompactDsl
        │    ├─ 准备 dev 能力裁决、CardSpec、TaskSpec
        │    ├─ 第一层 LLM：从 TaskSpec 全量字段中判断 query 必显字段，只输出 theme/component/action
        │    ├─ 服务端完整覆盖校验
-       │    │    ├─ 所选组件无可展开 Provider Variant 或缺少可信字段 → 抛出异常
+       │    │    ├─ 显式字段未完整覆盖、模板 requiredData 不完整或 dataDomain 不一致 → 抛出异常
        │    │    └─ 全部覆盖 → 锁定模板路由
-       │    ├─ 第二层 LLM：只生成受限布局和模板调用
+       │    ├─ 第二层 LLM：只生成 Layout Template、业务 Template 和可选 PillAction
        │    ├─ 服务端解析、参数校验、模板展开
        │    ├─ 内部 A2UI 适配当前 dev Form profile
        │    ├─ A2UI → A2UI-Compact
@@ -71,8 +71,9 @@ generateWidgetCardTerseDslNested2
 
 `candidateOutputFields` 只负责形成 TaskSpec 的候选数据投影，不等于本轮全部必须显示字段。第一层结合
 `userQuery` 与 TaskSpec 中的全量字段说明，在模型内部选出必须显示字段，再用 Provider 首层 MD 中的
-“高级组件 → TaskSpec 绝对路径”映射选择能够完整覆盖这些字段的组件。中间字段集合不回传，服务端继续
-确定性复核所选组件存在可从本轮 TaskSpec/CardSpec 展开的 Provider Variant。
+“高级组件 → TaskSpec 绝对路径”映射选择能够完整覆盖这些字段的组件。任一显式字段无法承载即失败；
+显式字段满足后，还必须检查模板 `requiredData` 在 TaskSpec 中全部存在。中间字段集合不回传，服务端继续
+确定性复核所选组件存在可从本轮 TaskSpec/CardSpec 展开的 Provider Template。
 
 第一层输出严格限制为：
 
@@ -80,14 +81,16 @@ generateWidgetCardTerseDslNested2
 {"theme":"theme.id","component":["ComponentId"],"action":"event.id"}
 ```
 
-不匹配时固定输出 `{"theme":null,"component":[],"action":null}`。`action` 是批准的事件 ID，不是
+不匹配时保留最匹配的候选 Theme，并固定输出
+`{"theme":"theme.id","component":[],"action":null}`。空 `component` 是模板失败标志；`action` 是批准的事件 ID，不是
 数据项；SystemPrompt 只保留这一通用语义和输出约束。Provider 首层 MD 描述“高级组件 → TaskSpec 数据
 路径”，Theme 首层 MD 描述主题适用场景；两类文档都只按本轮候选动态加载。第一层根据用户动作意图
 从 TaskSpec 事件候选中输出对应 `eventId`，不判断 Action 属于哪个组件；没有动作时输出 `null`。
 Action 不参与数据字段覆盖。
 
-第二层从所选 Provider 的二层 MD 读取 Variant、参数和素材使用规则。选中的 `eventId` 与业务组件解耦，
-统一生成布局根末尾唯一的 `PillAction`。Python 只保留候选过滤、可信事实投影、事件 ID 校验、模板签名
+第二层从所选 Provider 的二层 MD 读取具体业务模板、props 和素材使用规则。业务模板 ID 已表达 UI 形态，
+不再输出 Variant；组件骨架也通过 Layout Provider 的 `Template("...Layout@1", {}, ...children)` 表达。
+选中的 `eventId` 与业务组件解耦，统一生成布局模板末尾唯一的 `PillAction`。Python 只保留候选过滤、可信事实投影、事件 ID 校验、模板签名
 与编译校验，不再把全部领域规则拼入 SystemPrompt。
 
 旧 Python 模板流水线仅通过 `legacy_python.route_legacy_python_terse_generation(...)` 作为问题定位入口保留；

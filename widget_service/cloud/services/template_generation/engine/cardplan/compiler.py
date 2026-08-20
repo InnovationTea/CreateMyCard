@@ -69,6 +69,7 @@ from .models import (
     TemplateVariant,
 )
 from .parser import ParsedCall, parse_hybrid_card, parse_ux_layout_card
+from .provider_bundle import provider_template_legacy_identity
 from .registry import CardPlanRegistry
 
 _STANDARD_CONTAINERS = frozenset({"Row", "Column", "List", "Stack"})
@@ -793,18 +794,28 @@ def _expand_call(
     if wire_id not in contract.allowed_template_ids:
         raise TerseDslNested2ConversionError(f"Template is not allowed: {wire_id}")
     definition = registry.require_template(wire_id)
-    if parent not in definition.allowed_parent_components:
+    if definition.allowed_parent_components and parent not in definition.allowed_parent_components:
         raise TerseDslNested2ConversionError(f"Template parent is not allowed: {wire_id}/{parent}")
-    size, params = call.values
-    try:
-        variant = registry.require_variant(wire_id, str(size))
-    except ValueError as exc:
-        if len(definition.variants) != 1:
-            raise TerseDslNested2ConversionError(
-                f"Template variant is not allowed: {wire_id}/{size}"
-            ) from exc
+    if len(call.values) == 1 and isinstance(call.values[0], dict):
+        size = "default"
+        params = call.values[0]
         variant = definition.variants[0]
-        state.template_variant_normalizations += 1
+    elif len(call.values) == 2 and isinstance(call.values[1], dict):
+        size, params = call.values
+        try:
+            variant = registry.require_variant(wire_id, str(size))
+        except ValueError as exc:
+            if len(definition.variants) != 1:
+                raise TerseDslNested2ConversionError(
+                    f"Template variant is not allowed: {wire_id}/{size}"
+                ) from exc
+            variant = definition.variants[0]
+            state.template_variant_normalizations += 1
+    else:
+        raise TerseDslNested2ConversionError(f"Template props are invalid: {wire_id}")
+    if bool(call.children) != definition.accepts_children:
+        expected = "with children" if definition.accepts_children else "without children"
+        raise TerseDslNested2ConversionError(f"Template must be called {expected}: {wire_id}")
     errors = sorted(Draft202012Validator(variant.parameters_schema).iter_errors(params), key=str)
     if errors:
         raise TerseDslNested2ConversionError(
@@ -829,6 +840,7 @@ def _expand_call(
     )
     if (
         definition.source_format == "cardtpl/1"
+        and definition.compatible_theme_profile_ids
         and contract.theme_profile_id not in definition.compatible_theme_profile_ids
     ):
         raise TerseDslNested2ConversionError(
@@ -840,13 +852,37 @@ def _expand_call(
         task_spec,
         provider_binding_roots,
     )
+    spread_parent = _template_spread_parent(variant.root)
+    expanded_children = tuple(
+        _expand_call(
+            child,
+            parent=spread_parent or parent,
+            contract=contract,
+            registry=registry,
+            state=state,
+            task_spec=task_spec,
+            provider_binding_roots=provider_binding_roots,
+            ux_layout_id=(
+                spread_parent if spread_parent in UX_LAYOUT_COMPONENT_IDS else ux_layout_id
+            ),
+        )
+        for child in call.children
+    )
     if wire_id == "ux-bluetooth-overview@2" and ux_layout_id == "PeerPairLayout":
         root = _expand_bluetooth_battery_peer(params, registry)
     else:
-        root = _instantiate_blueprint(variant.root, params, binding_values)
+        root = _instantiate_blueprint(
+            variant.root,
+            params,
+            binding_values,
+            spread_children=expanded_children,
+        )
     root, action_ids = _bind_template_actions(root, contract)
     node_count, depth = _shape(root)
-    if node_count > variant.expanded_node_budget or depth > variant.expanded_depth_budget:
+    if (
+        not definition.accepts_children
+        and (node_count > variant.expanded_node_budget or depth > variant.expanded_depth_budget)
+    ):
         raise TerseDslNested2ConversionError(f"Template blueprint budget drift: {wire_id}/{size}")
     state.template_calls += 1
     state.expanded_components += node_count
@@ -866,6 +902,9 @@ def _validate_provider_template_state(
     *,
     business_names: set[str],
 ) -> None:
+    identity = provider_template_legacy_identity(wire_id)
+    if identity is not None:
+        wire_id, variant_name = identity
     if wire_id == "BatteryOverview@1":
         facts = extract_battery_overview_facts(task_spec.dataModelSchema)
         if facts is None or not variant_name.startswith(facts.state):
@@ -4251,6 +4290,8 @@ def _instantiate_blueprint(
     node: TemplateNode,
     params: dict[str, Any],
     bindings: dict[str, str] | None = None,
+    *,
+    spread_children: tuple[Nested2Node, ...] = (),
 ) -> Nested2Node:
     binding_values = bindings or {}
     if node.component in {"IfParam", "IfMissingParam", "IfBind", "IfMissingBind"}:
@@ -4264,7 +4305,15 @@ def _instantiate_blueprint(
     return Nested2Node(
         component_type=node.component,
         values=tuple(normalized),
-        children=_instantiate_blueprint_children(node.children, params, binding_values),
+        children=(
+            *_instantiate_blueprint_children(
+                node.children,
+                params,
+                binding_values,
+                spread_children=spread_children,
+            ),
+            *(spread_children if node.spread_children else ()),
+        ),
     )
 
 
@@ -4272,6 +4321,8 @@ def _instantiate_blueprint_children(
     children: tuple[TemplateNode, ...],
     params: dict[str, Any],
     bindings: dict[str, str],
+    *,
+    spread_children: tuple[Nested2Node, ...] = (),
 ) -> tuple[Nested2Node, ...]:
     instantiated: list[Nested2Node] = []
     for child in children:
@@ -4292,13 +4343,47 @@ def _instantiate_blueprint_children(
                     "IfMissingBind",
                 }:
                     instantiated.extend(
-                        _instantiate_blueprint_children((selected,), params, bindings)
+                        _instantiate_blueprint_children(
+                            (selected,),
+                            params,
+                            bindings,
+                            spread_children=spread_children,
+                        )
                     )
                 else:
-                    instantiated.append(_instantiate_blueprint(selected, params, bindings))
+                    instantiated.append(
+                        _instantiate_blueprint(
+                            selected,
+                            params,
+                            bindings,
+                            spread_children=spread_children,
+                        )
+                    )
             continue
-        instantiated.append(_instantiate_blueprint(child, params, bindings))
+        instantiated.append(
+            _instantiate_blueprint(
+                child,
+                params,
+                bindings,
+                spread_children=spread_children,
+            )
+        )
     return tuple(instantiated)
+
+
+def _template_spread_parent(root: TemplateNode) -> str | None:
+    matches: list[str] = []
+
+    def visit(node: TemplateNode) -> None:
+        if node.spread_children:
+            matches.append(node.component)
+        for child in node.children:
+            visit(child)
+
+    visit(root)
+    if len(matches) > 1:
+        raise TerseDslNested2ConversionError("Template may contain only one children slot.")
+    return matches[0] if matches else None
 
 
 def _template_value(
@@ -4332,7 +4417,7 @@ def _instantiate_interpolated_text(
 ) -> Nested2Node:
     if node.children:
         raise TerseDslNested2ConversionError("Template interpolation Text cannot contain children.")
-    expression = _provider_interpolation_expression(node.values[0], bindings)
+    expression = _provider_interpolation_expression(node.values[0], params, bindings)
     shared_values = [_template_value(item, params, bindings) for item in node.values[1:]]
     return Nested2Node(
         "Text",
@@ -4343,6 +4428,7 @@ def _instantiate_interpolated_text(
 
 def _provider_interpolation_expression(
     value: TemplateValue,
+    params: dict[str, Any],
     bindings: dict[str, str],
 ) -> str:
     operands: list[str] = []
@@ -4353,11 +4439,19 @@ def _provider_interpolation_expression(
                 raise TerseDslNested2ConversionError(f"Template binding is missing: {item.name}")
             operands.append(_a2ui_expression_reference(placeholder))
             continue
+        if item.kind == "parameter":
+            parameter = params.get(item.name or "")
+            if not isinstance(parameter, str):
+                raise TerseDslNested2ConversionError(
+                    f"Template interpolation prop must be a string: {item.name}"
+                )
+            operands.append(_a2ui_expression_string(parameter))
+            continue
         if item.kind == "literal" and isinstance(item.value, str):
             operands.append(_a2ui_expression_string(item.value))
             continue
         raise TerseDslNested2ConversionError(
-            "Template interpolation only supports string bindings and literals."
+            "Template interpolation only supports string data, props and literals."
         )
     if not operands:
         raise TerseDslNested2ConversionError("Template interpolation cannot be empty.")
@@ -4445,12 +4539,18 @@ def _provider_template_binding_values(
 ) -> dict[str, str]:
     if definition.source_format != "cardtpl/1":
         return {}
+    if not definition.bindings:
+        return {}
     capability_id = definition.capability_id
     if not capability_id or capability_id not in binding_roots:
         raise TerseDslNested2ConversionError(
             f"Provider Template requires CardSpec.dataBindings: {definition.wire_id}"
         )
     root = binding_roots[capability_id]
+    if definition.data_domain is not None and root != definition.data_domain:
+        raise TerseDslNested2ConversionError(
+            f"Provider Template dataDomain does not match CardSpec: {definition.wire_id}"
+        )
     values: dict[str, str] = {}
     for name in (*variant.required_bindings, *variant.optional_bindings):
         binding = definition.bindings[name]
@@ -5101,6 +5201,10 @@ def _reject_direct_events(node: ParsedCall) -> None:
 
 def _validate_raw_components(node: ParsedCall, contract: HybridBodyContract) -> None:
     if node.kind == "template":
+        if node.name not in contract.allowed_template_ids:
+            raise TerseDslNested2ConversionError(f"Template is not allowed: {node.name}")
+        for child in node.children:
+            _validate_raw_components(child, contract)
         return
     if node.name not in contract.allowed_components:
         raise TerseDslNested2ConversionError(f"Raw component is not allowed: {node.name}")
@@ -5482,13 +5586,17 @@ def _provider_template_business_validation_proxy(
     registry: CardPlanRegistry,
     contract: HybridBodyContract,
 ) -> ParsedCall:
-    if node.kind != "template" or node.name not in _PROVIDER_TEMPLATE_DIRECT_VARIANTS:
+    if node.kind != "template":
+        return node
+    identity = provider_template_legacy_identity(node.name)
+    base_wire_id = identity[0] if identity is not None else node.name
+    variant = identity[1] if identity is not None else (node.values[0] if node.values else None)
+    if base_wire_id not in _PROVIDER_TEMPLATE_DIRECT_VARIANTS:
         return node
     component_name = _ux_business_component_name(node, registry, contract)
-    variant = node.values[0] if node.values else None
     if component_name is None or not isinstance(variant, str):
         return node
-    direct_variant = _PROVIDER_TEMPLATE_DIRECT_VARIANTS[node.name].get(variant)
+    direct_variant = _PROVIDER_TEMPLATE_DIRECT_VARIANTS[base_wire_id].get(variant)
     if direct_variant is None:
         return node
     role = _provider_template_validation_role(
@@ -5499,7 +5607,10 @@ def _provider_template_business_validation_proxy(
         size=size,
         business_names=business_names,
     )
-    template_variant = registry.require_variant(node.name, variant)
+    template_variant = registry.require_variant(
+        node.name,
+        "default" if identity is not None else variant,
+    )
     if template_variant.supported_roles and role not in template_variant.supported_roles:
         raise TerseDslNested2ConversionError(
             f"Provider Template does not support the placement role: {node.name}/{variant}/{role}"
@@ -5555,11 +5666,12 @@ def _validate_ux_layout_root(
     allowed = set(contract.allowed_layout_component_ids)
     if not allowed:
         return
-    if node.kind != "component" or node.name not in allowed:
+    layout_id = _parsed_layout_template_id(node, registry)
+    if layout_id not in allowed:
         raise TerseDslNested2ConversionError(
-            "UX Mixed content root must be one approved Layout Component."
+            "UX Mixed content root must be one approved Layout Template."
         )
-    layout = registry.require_ux_layout_component(node.name)
+    layout = registry.require_ux_layout_component(layout_id)
     if len(node.values) > 1 or (node.values and not isinstance(node.values[0], dict)):
         raise TerseDslNested2ConversionError(
             "UX Layout configuration must be one optional object argument."
@@ -5571,7 +5683,7 @@ def _validate_ux_layout_root(
     )
     if parameter_errors:
         raise TerseDslNested2ConversionError(
-            f"UX Layout parameters are invalid for {node.name}: {parameter_errors[0].message}"
+            f"UX Layout parameters are invalid for {layout_id}: {parameter_errors[0].message}"
         )
     maximum = layout.max_children_by_size[size]
     action_children = tuple(
@@ -5584,12 +5696,12 @@ def _validate_ux_layout_root(
     minimum = layout.minimum_children(size)
     if not minimum <= len(counted_children) <= maximum:
         raise TerseDslNested2ConversionError(
-            f"UX Layout child count is invalid: {node.name}/{len(counted_children)}"
+            f"UX Layout child count is invalid: {layout_id}/{len(counted_children)}"
         )
     if embedded_actions:
         _validate_ux_layout_action_slot(node, layout, size, action_children)
     _validate_ux_business_component_placement(
-        node.name,
+        layout_id,
         content_children,
         size=size,
         contract=contract,
@@ -5605,6 +5717,23 @@ def _validate_ux_layout_root(
             reject_nested_layout(child)
 
     reject_nested_layout(node)
+
+
+def _parsed_layout_template_id(
+    node: ParsedCall,
+    registry: CardPlanRegistry,
+) -> str:
+    if node.kind == "component" and node.name in UX_LAYOUT_COMPONENT_IDS:
+        return node.name
+    if node.kind != "template" or not node.name.endswith("@1"):
+        return ""
+    layout_id = node.name.removesuffix("@1")
+    if layout_id not in UX_LAYOUT_COMPONENT_IDS:
+        return ""
+    definition = registry.require_template(node.name)
+    if not definition.accepts_children or definition.provider_id != "com.huawei.layout.cli":
+        return ""
+    return layout_id
 
 
 def _validate_ux_business_component_placement(
@@ -5806,8 +5935,14 @@ def _validate_heart_rate_overview_placement(
     heart_rate = content[index]
     if heart_rate.kind == "component" and isinstance(heart_rate.values[0], dict):
         role = heart_rate.values[0].get("role")
-    elif heart_rate.kind == "template" and isinstance(heart_rate.values[0], str):
-        role = "hero" if heart_rate.values[0].startswith("hero") else "support"
+    elif heart_rate.kind == "template":
+        identity = provider_template_legacy_identity(heart_rate.name)
+        shape = identity[1] if identity is not None else (
+            heart_rate.values[0]
+            if heart_rate.values and isinstance(heart_rate.values[0], str)
+            else ""
+        )
+        role = "hero" if shape.startswith("hero") else "support"
     else:
         raise TerseDslNested2ConversionError("HeartRateOverview must be a direct layout child.")
     business_ids = _contract_ux_business_component_names(contract, registry)
@@ -5904,6 +6039,10 @@ def _validate_weather_overview_placement(
     elif weather.kind == "template" and isinstance(weather.values[0], str):
         role = None
         variant = weather.values[0]
+    elif weather.kind == "template":
+        identity = provider_template_legacy_identity(weather.name)
+        role = None
+        variant = identity[1] if identity is not None else None
     else:
         raise TerseDslNested2ConversionError("WeatherOverview must be a direct layout child.")
     if layout_id == "WeatherNowForecastLayout":
@@ -6319,7 +6458,7 @@ def _validate_ux_layout_action_slot(
         if maximum == 0 and action_children:
             raise TerseDslNested2ConversionError("UX Layout does not accept an Action.")
         raise TerseDslNested2ConversionError(
-            f"UX Layout Action count is invalid: {node.name}/{len(action_children)}"
+            f"UX Layout Action count is invalid: {layout.name}/{len(action_children)}"
         )
     if action_children and node.children[-len(action_children) :] != action_children:
         raise TerseDslNested2ConversionError("UX Layout Actions must be contiguous final children.")
@@ -6330,7 +6469,7 @@ def _validate_ux_layout_action_slot(
     )
     if len(action_ids) != len(set(action_ids)):
         raise TerseDslNested2ConversionError("UX Layout cannot repeat the same Action.")
-    matrix_has_non_tiles = node.name == "ActionMatrixLayout" and any(
+    matrix_has_non_tiles = layout.name == "ActionMatrixLayout" and any(
         child.name != "ActionTile" for child in action_children
     )
     if matrix_has_non_tiles:
@@ -7491,11 +7630,14 @@ def _strip_advanced_component_markers(node: Nested2Node) -> Nested2Node:
     values: list[Any] = []
     for value in node.values:
         if isinstance(value, dict) and (
-            "_advancedComponent" in value or "_preserveOriginalColor" in value
+            "_advancedComponent" in value
+            or "_preserveOriginalColor" in value
+            or "_layoutActionBackgroundOpacity" in value
         ):
             cleaned = dict(value)
             cleaned.pop("_advancedComponent", None)
             cleaned.pop("_preserveOriginalColor", None)
+            cleaned.pop("_layoutActionBackgroundOpacity", None)
             values.append(cleaned)
         else:
             values.append(value)
@@ -7825,18 +7967,18 @@ def _provider_layout_action_background(
     """Resolve a single-business Provider Template Action background override."""
     if len(_contract_ux_business_component_names(contract, registry)) != 1:
         return default
-    styles = tuple(
-        definition.layout_action_style
+    opacities = {
+        definition.layout_action_style.background_opacity
         for wire_id in contract.allowed_template_ids
         if (definition := registry.templates.get(wire_id)) is not None
         and definition.source_format == "cardtpl/1"
         and definition.layout_action_style is not None
-    )
-    if len(styles) != 1:
+    }
+    if len(opacities) != 1:
         return default
     if not foreground.startswith("#") or len(foreground) != 9:
         return "#1A000000"
-    alpha = int(255 * styles[0].background_opacity)
+    alpha = int(255 * opacities.pop())
     return f"#{alpha:02X}{foreground[-6:]}"
 
 
@@ -8065,6 +8207,18 @@ def _count_calls(node: ParsedCall) -> int:
     return 1 + sum(_count_calls(child) for child in node.children)
 
 
+def _parsed_template_shape_params(call: ParsedCall) -> tuple[str, dict[str, Any], bool]:
+    if len(call.values) == 1 and isinstance(call.values[0], dict):
+        return "default", call.values[0], True
+    if (
+        len(call.values) == 2
+        and isinstance(call.values[0], str)
+        and isinstance(call.values[1], dict)
+    ):
+        return call.values[0], call.values[1], False
+    raise TerseDslNested2ConversionError(f"Template props are invalid: {call.name}")
+
+
 def _normalize_template_provider_params(
     content: ParsedCall,
     task_spec: TaskSpec,
@@ -8086,7 +8240,7 @@ def _normalize_template_provider_params(
                 ParsedCall(call.kind, call.name, call.values, tuple(children), call.span),
                 normalization_count,
             )
-        size, raw_params = call.values
+        size, raw_params, ui_syntax = _parsed_template_shape_params(call)
         params = dict(raw_params)
         definition = registry.require_template(call.name)
         try:
@@ -8125,7 +8279,7 @@ def _normalize_template_provider_params(
             ParsedCall(
                 call.kind,
                 call.name,
-                (size, params),
+                (params,) if ui_syntax else (size, params),
                 tuple(children),
                 call.span,
             ),
@@ -8198,7 +8352,7 @@ def _normalize_template_relation_numbers(
             normalization_count,
         )
 
-    size, raw_params = content.values
+    size, raw_params, ui_syntax = _parsed_template_shape_params(content)
     params = dict(raw_params)
     if content.name not in contract.allowed_template_ids:
         return (
@@ -8243,7 +8397,7 @@ def _normalize_template_relation_numbers(
         ParsedCall(
             content.kind,
             content.name,
-            (size, params),
+            (params,) if ui_syntax else (size, params),
             tuple(children),
             content.span,
         ),
@@ -8267,7 +8421,7 @@ def _validate_required_numbers(
 
     def visit(call: ParsedCall) -> None:
         if call.kind == "template":
-            _size, params = call.values
+            _size, params, _ui_syntax = _parsed_template_shape_params(call)
             actual.update(
                 item
                 for item in _primitive_values(params)

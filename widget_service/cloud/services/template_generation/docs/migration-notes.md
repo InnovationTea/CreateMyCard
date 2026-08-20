@@ -9,6 +9,14 @@
 2. `cloud/services/widget_generation_service.py`：一个模板接口 import，以及 Compact、Terse 两个主入口各一段
    简单的 `try/except` 模板尝试和旧链路回退。
 
+本阶段在模板模块内部完成第二次资产升级：
+
+- 12 个旧业务模板族拆分为 73 个“模板 ID 即 UI 形态”的 `.cardtpl` 定义。
+- 删除作者语法中的 `Variant`、`allowedParentComponents` 和 `limits`。
+- `provider.json` 增加 `dataDomain`、`description`、`requiredData`、`optionalData`。
+- 新增独立 Layout Provider，第二层根组件改为支持 `...children` 的布局模板。
+- 第一层拒绝语义改为 Theme 有值、`component=[]`、`action=null`。
+
 明确不纳入本次 PR：
 
 - 批量生成和批量结果存储。

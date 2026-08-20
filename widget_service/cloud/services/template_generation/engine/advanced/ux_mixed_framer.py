@@ -50,7 +50,8 @@ def frame_ux_layout_root_children(
         normalized = framed
         root = parse_ux_layout_card(normalized)
         trailing_delimiters_repaired = True
-    maximum = registry.require_ux_layout_component(root.name).max_children_by_size[size]
+    layout_id = _layout_id(root)
+    maximum = registry.require_ux_layout_component(layout_id).max_children_by_size[size]
     actions = tuple(
         child
         for child in root.children
@@ -59,7 +60,7 @@ def frame_ux_layout_root_children(
     content = tuple(child for child in root.children if child not in actions)
     if len(content) <= maximum:
         return normalized, trailing_delimiters_repaired
-    if root.name in {"SingleFocusLayout", "HeroActionLayout"}:
+    if layout_id in {"SingleFocusLayout", "HeroActionLayout"}:
         expanded_layout_id = (
             "HeroSupportActionLayout" if actions else "HeroSupportLayout"
         )
@@ -70,9 +71,9 @@ def frame_ux_layout_root_children(
             and len(content) <= expanded_maximum
         ):
             framed_root = ParsedCall(
-                kind=root.kind,
-                name=expanded_layout_id,
-                values=(),
+                kind="template",
+                name=expanded_layout_id + "@1",
+                values=({},),
                 children=(*content, *actions),
                 span=root.span,
             )
@@ -137,7 +138,7 @@ def _reparent_wrapped_layout_call(
         layout = parse_ux_layout_card(arguments[1].strip() + ";")
     except TerseDslNested2ConversionError:
         return None
-    if allowed_layout_ids is not None and layout.name not in allowed_layout_ids:
+    if allowed_layout_ids is not None and _layout_id(layout) not in allowed_layout_ids:
         return None
     actions = tuple(
         child
@@ -196,7 +197,7 @@ def _select_single_top_level_layout_call(
                     business_candidates.append(wrapper.children[0])
                 break
             continue
-        if allowed_layout_ids is None or root.name in allowed_layout_ids:
+        if allowed_layout_ids is None or _layout_id(root) in allowed_layout_ids:
             layout_candidates.append(root)
     if len(layout_candidates) != 1:
         return None
@@ -283,9 +284,12 @@ def frame_ux_layout_children(
     normalized, trailing_delimiters_repaired = _close_trailing_delimiters(normalized)
     root = parse_hybrid_card(normalized)
     layout = root.children[0]
-    if layout.kind != "component" or layout.name not in UX_LAYOUT_COMPONENT_IDS:
+    if not (
+        (layout.kind == "component" and layout.name in UX_LAYOUT_COMPONENT_IDS)
+        or (layout.kind == "template" and _layout_id(layout) in UX_LAYOUT_COMPONENT_IDS)
+    ):
         return normalized, trailing_delimiters_repaired
-    maximum = registry.require_ux_layout_component(layout.name).max_children_by_size[size]
+    maximum = registry.require_ux_layout_component(_layout_id(layout)).max_children_by_size[size]
     if len(layout.children) <= maximum:
         return normalized, trailing_delimiters_repaired
     retained = layout.children[: max(maximum - 1, 0)]
@@ -358,6 +362,10 @@ def _serialize_call(call: ParsedCall) -> str:
     values = [_literal(value) for value in call.values]
     values.extend(_serialize_call(child) for child in call.children)
     return f"{call.name}({', '.join(values)})"
+
+
+def _layout_id(call: ParsedCall) -> str:
+    return call.name.removesuffix("@1") if call.kind == "template" else call.name
 
 
 def _literal(value: Any) -> str:

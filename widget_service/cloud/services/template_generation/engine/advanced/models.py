@@ -276,18 +276,16 @@ class AdvancedScopeBrief(StrictModel):
 class TemplateRouteDecision(StrictModel):
     """第四接口 create 路由的首层模板完整覆盖判断。"""
 
-    theme: str | None
+    theme: str = Field(min_length=1)
     component: tuple[str, ...] = Field(max_length=4)
     action: str | None
 
     @field_validator("theme")
     @classmethod
-    def normalized_theme(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
+    def normalized_theme(cls, value: str) -> str:
         normalized = value.strip()
         if not normalized:
-            raise ValueError("theme must be null or a non-empty candidate ID")
+            raise ValueError("theme must be a non-empty candidate ID")
         return normalized
 
     @field_validator("component")
@@ -311,11 +309,8 @@ class TemplateRouteDecision(StrictModel):
 
     @model_validator(mode="after")
     def route_fields_match_decision(self) -> TemplateRouteDecision:
-        has_scope = bool(self.theme and self.component)
-        if has_scope:
-            return self
-        if self.theme is not None or self.component or self.action is not None:
-            raise ValueError("rejected Template route must clear theme, component and action")
+        if not self.component and self.action is not None:
+            raise ValueError("rejected Template route must clear action and retain theme")
         return self
 
 

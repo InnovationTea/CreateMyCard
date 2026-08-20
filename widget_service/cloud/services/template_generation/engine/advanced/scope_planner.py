@@ -167,8 +167,16 @@ def _build_template_route_prompt(
     coverage_bindings: tuple[CandidateDataBinding, ...],
     card_spec: dict[str, Any] | None,
 ) -> list[dict[str, str]]:
-    data_roots = _data_roots_by_capability(coverage_bindings)
     candidate_ids = tuple(item.name for item in component_candidates)
+    task_spec_roots = _data_roots_by_capability(coverage_bindings)
+    data_roots = registry.provider_data_domains_for_components(candidate_ids)
+    for capability_id, data_domain in data_roots.items():
+        task_spec_root = task_spec_roots.get(capability_id)
+        if task_spec_root is not None and task_spec_root != data_domain:
+            raise ValueError(
+                "TaskSpec data binding root does not match Provider dataDomain: "
+                f"{capability_id}"
+            )
     candidate_id_set = set(candidate_ids)
     theme_ids = tuple(
         dict.fromkeys(
@@ -192,6 +200,11 @@ def _build_template_route_prompt(
                 for path in paths
             ),
             "theme": _theme_ids_for_components((capability,), registry),
+            "templates": _component_template_prompt_contracts(
+                capability,
+                registry,
+                effective_ids,
+            ),
             "compatibleComponent": _compatible_component_ids(
                 capability,
                 candidate_id_set,
@@ -239,14 +252,19 @@ def _build_template_route_prompt(
         "当作数据路径，"
         "不得把动作放进 component，也不得判断 Action 属于哪个 component。只有 userQuery 明确"
         "要求某个交互时，才在 action 中逐字输出对应 eventId；没有明确交互请求时输出 null。"
+        "即使模板路线失败，也必须从 theme 候选中选择最匹配用户意图的 theme；失败仅以"
+        "component 为空数组表示，并把 action 置为 null。"
         "如果 userQuery 明确要求交互但 action 候选中没有语义匹配的 eventId，必须拒绝模板路线并"
-        '输出 {"theme":null,"component":[],"action":null}。'
-        "先根据 userQuery 从 taskSpecDataFields 的全量内容中判断本轮必须显示的数据字段，再用"
-        "Provider 第一层规则选择能够完整覆盖这些字段的一个或多个 component；"
-        "这个中间字段集合"
+        '输出 {"theme":"<最匹配的候选 theme>","component":[],"action":null}。'
+        "第一步，根据 userQuery 从 taskSpecDataFields 的全量内容中标定本轮显式要求显示的数据字段；"
+        "第二步，只能选择 supportedTaskSpecPaths 的并集能够完整覆盖全部显式字段的一个或多个"
+        "component，任意一个显式字段全部或部分不能承载都必须失败；第三步，逐个检查所选模板"
+        "自身 requiredData 对应的数据字段是否在 taskSpecDataFields 中真实存在，缺少任意必需字段"
+        "也必须失败。这个中间字段集合"
         "只用于判断，不得出现在输出中。candidateOutputFields 不是本层的强制完整展示集合。"
         "任一必须显示字段无法呈现、组件不兼容、主题不适用或存在歧义时，输出"
-        '{"theme":null,"component":[],"action":null}。不得输出数据路径、Variant、参数、布局、'
+        '{"theme":"<最匹配的候选 theme>","component":[],"action":null}。'
+        "不得输出数据路径、参数、布局、"
         "理由、置信度或额外字段。\n" + json.dumps(schema, ensure_ascii=False)
     )
     return [
@@ -321,21 +339,12 @@ def _component_template_coverage_options(
         capability_id = definition.capability_id
         if capability_id is None or capability_id not in effective_ids:
             continue
-        for variant in admitted_provider_template_variants(
+        for _variant in admitted_provider_template_variants(
             definition,
             task_spec,
             card_spec,
         ):
-            binding_names = (*variant.required_bindings, *variant.optional_bindings)
-            paths = {
-                definition.bindings[name].path
-                for name in binding_names
-                if name in definition.bindings
-            }
-            for parameter_schema in variant.parameters_schema.get("properties", {}).values():
-                if not isinstance(parameter_schema, dict):
-                    continue
-                paths.update(parameter_schema.get("sourcePaths", ()))
+            paths = set(definition.required_data) | set(definition.optional_data)
             options.append({capability_id: frozenset(paths)})
     return tuple(options)
 
@@ -358,6 +367,37 @@ def _component_template_coverage_union(
         for capability_id, paths in option.items():
             coverage.setdefault(capability_id, set()).update(paths)
     return coverage
+
+
+def _component_template_prompt_contracts(
+    capability: UxBusinessComponentCapability,
+    registry: CardPlanRegistry,
+    effective_ids: set[str],
+) -> tuple[dict[str, Any], ...]:
+    contracts: list[dict[str, Any]] = []
+    for template_id in capability.local_template_ids:
+        definition = registry.require_template(template_id)
+        if (
+            definition.capability_id is None
+            or definition.capability_id not in effective_ids
+            or definition.data_domain is None
+        ):
+            continue
+        contracts.append(
+            {
+                "templateId": template_id,
+                "description": definition.description,
+                "requiredTaskSpecPaths": [
+                    _absolute_task_spec_path(definition.data_domain, path)
+                    for path in definition.required_data
+                ],
+                "optionalTaskSpecPaths": [
+                    _absolute_task_spec_path(definition.data_domain, path)
+                    for path in definition.optional_data
+                ],
+            }
+        )
+    return tuple(contracts)
 
 
 def validate_template_request_coverage(
@@ -473,7 +513,7 @@ async def plan_template_route_with_llm(
         decision = TemplateRouteDecision.model_validate(raw)
     except ValidationError as exc:
         raise TemplateRouteNotApplicable("invalid TemplateRouteDecision") from exc
-    if decision.theme is None or not decision.component:
+    if not decision.component:
         raise TemplateRouteNotApplicable("first-layer LLM rejected the Template route")
     scope = AdvancedScopeBrief(
         themeId=decision.theme,

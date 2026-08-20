@@ -53,7 +53,7 @@ from services.template_generation.engine.terse_dsl_nested2_converter import Nest
 from services.widget_generation_service import WidgetGenerationService
 
 _WEATHER_BODY = (
-    'SingleFocusLayout(Template("WeatherOverview@1","heroIcon",'
+    'Template("SingleFocusLayout@1",{},Template("WeatherOverviewHeroIcon@1",'
     '{"conditionIcon":"resources/base/media/icon_weather1.svg"}));'
 )
 _WEATHER_TEMPLATE_FIELDS = (
@@ -73,20 +73,22 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert set(registry.provider_template_ids) == {
-        "ActivityOverview@1",
-        "AppUsageOverview@1",
-        "BatteryOverview@1",
-        "BluetoothDeviceOverview@1",
+    assert len(registry.provider_template_ids) == 83
+    assert {
+        "ActivityOverviewSteps@1",
+        "AppUsageOverviewSingleApp@1",
+        "BatteryOverviewNormal@1",
+        "BluetoothDeviceOverviewEarbuds@1",
         "CountdownOverview@1",
-        "DateOverview@1",
-        "HeartRateOverview@1",
-        "ResourceUsageOverview@1",
-        "ScheduleOverview@1",
-        "SleepOverview@1",
-        "WeatherOverview@1",
+        "DateOverviewDateHero@1",
+        "HeartRateOverviewHero@1",
+        "ResourceUsageOverviewMemory@1",
+        "ScheduleOverviewNextEvent@1",
+        "SleepOverviewDuration@1",
+        "WeatherOverviewHero@1",
         "WorkoutOverview@1",
-    }
+        "SingleFocusLayout@1",
+    }.issubset(registry.provider_template_ids)
     assert provider_directories == {
         "app-usage",
         "battery",
@@ -94,9 +96,23 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "countdown",
         "earphone",
         "health-sport",
+        "layout",
         "system-memory",
         "weather",
     }
+    provider_sources = tuple((registry.source_root / "providers").glob("*/templates/*.cardtpl"))
+    assert provider_sources
+    provider_source_texts = tuple(path.read_text(encoding="utf-8") for path in provider_sources)
+    assert all("#Variant" not in source for source in provider_source_texts)
+    assert all("IfParam" not in source for source in provider_source_texts)
+    assert all("IfMissingParam" not in source for source in provider_source_texts)
+    assert any("IfPresent" in source for source in provider_source_texts)
+    assert any("IfAbsent" in source for source in provider_source_texts)
+    assert all(
+        definition.variants[0].size == "default"
+        for template_id in registry.provider_template_ids
+        for definition in (registry.require_template(template_id),)
+    )
 
 
 def test_first_layer_uses_candidate_provider_and_theme_documents_with_task_spec_paths():
@@ -139,11 +155,19 @@ def test_first_layer_uses_candidate_provider_and_theme_documents_with_task_spec_
     assert "requiredOutputFieldsByCapability" not in system
     assert "不得判断 Action 属于哪个 component" in system
     assert "明确要求交互但 action 候选中没有语义匹配的 eventId" in system
+    assert '"component":[]' in system
+    assert '"theme":null' not in system
     assert payload["action"] == [
         {"eventId": "event.open.weather", "call": "clickToDeeplink"}
     ]
     assert (
         "/data/weather/current/temperatureText" in payload["component"][0]["supportedTaskSpecPaths"]
+    )
+    weather_templates = payload["component"][0]["templates"]
+    assert any(
+        item["templateId"] == "WeatherOverviewHero@1"
+        and "/data/weather/current/temperatureText" in item["requiredTaskSpecPaths"]
+        for item in weather_templates
     )
     provider_rules = json.dumps(payload["providerFirstLayerRules"], ensure_ascii=False)
     theme_rules = json.dumps(payload["themeFirstLayerRules"], ensure_ascii=False)
@@ -170,6 +194,30 @@ def test_phone_battery_binding_auto_includes_numeric_soc_for_template_rendering(
     ]
 
 
+def test_provider_data_domain_must_match_card_spec_write_root():
+    registry = get_cardplan_registry()
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/customWeather",
+        candidateOutputFields=list(_WEATHER_TEMPLATE_FIELDS),
+    )
+    card_spec = _weather_card_spec()
+    card_spec["dataBindings"][0]["writeResultTo"] = "/data/customWeather"
+    scope = AdvancedScopeBrief(
+        themeId="family-weather-care-blue",
+        advancedComponentIds=["WeatherOverview"],
+    )
+
+    with pytest.raises(ValueError, match="no applicable Provider Template"):
+        validate_template_request_coverage(
+            scope,
+            _weather_task_spec(),
+            registry,
+            (binding,),
+            card_spec,
+        )
+
+
 def _template_node_options(node: Any) -> dict[str, Any]:
     value = node.values[-1]
     assert value.kind == "object"
@@ -189,7 +237,7 @@ def _template_nodes(node: Any, component: str) -> list[Any]:
 
 def test_pr6_bluetooth_action_background_is_owned_by_cardtpl_metadata():
     registry = get_cardplan_registry()
-    definition = registry.require_template("BluetoothDeviceOverview@1")
+    definition = registry.require_template("BluetoothDeviceOverviewEarbuds@1")
     assert definition.layout_action_style is not None
     assert definition.layout_action_style.background_opacity == 0.1
     contract = HybridBodyContract(
@@ -197,8 +245,8 @@ def test_pr6_bluetooth_action_background_is_owned_by_cardtpl_metadata():
         allowed_components=(),
         allowed_design_tokens=(),
         allowed_layout_tokens=(),
-        allowed_template_ids=("BluetoothDeviceOverview@1",),
-        required_template_groups=(("BluetoothDeviceOverview@1",),),
+        allowed_template_ids=("BluetoothDeviceOverviewEarbuds@1",),
+        required_template_groups=(("BluetoothDeviceOverviewEarbuds@1",),),
         allowed_asset_sources=(),
         trusted_literals=(),
         trusted_numbers=(),
@@ -223,26 +271,26 @@ def test_pr6_bluetooth_action_background_is_owned_by_cardtpl_metadata():
 def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
     registry = get_cardplan_registry()
 
-    countdown = registry.require_variant("CountdownOverview@1", "countdown").root
+    countdown = registry.require_variant("CountdownOverview@1", "default").root
     assert _template_node_options(countdown)["justifyContent"] == "start"
     assert _template_node_options(countdown.children[1])["justifyContent"] == "center"
     assert _template_node_options(countdown.children[1].children[0])["justifyContent"] == "center"
 
-    app_usage = registry.require_variant("AppUsageOverview@1", "singleApp").root
+    app_usage = registry.require_variant("AppUsageOverviewSingleApp@1", "default").root
     assert _template_node_options(app_usage)["justifyContent"] == "start"
     duration_region = app_usage.children[1]
     assert _template_node_options(duration_region)["justifyContent"] == "end"
     assert "itemMargin" not in _template_node_options(duration_region)
 
-    battery = registry.require_variant("BatteryOverview@1", "normal").root
+    battery = registry.require_variant("BatteryOverviewNormal@1", "default").root
     assert _template_node_options(battery.children[1])["fontColor"] == "#99000000"
-    battery_peer = registry.require_variant("BatteryOverview@1", "normalPeer").root
+    battery_peer = registry.require_variant("BatteryOverviewNormalPeer@1", "default").root
     assert _template_node_options(battery_peer)["justifyContent"] == "end"
     assert _template_node_options(_template_nodes(battery_peer, "Image")[0])["width"] == 20
 
     resource_peer = registry.require_variant(
-        "ResourceUsageOverview@1",
-        "memoryPeer",
+        "ResourceUsageOverviewMemoryPeer@1",
+        "default",
     ).root
     assert _template_node_options(resource_peer)["justifyContent"] == "end"
     assert _template_node_options(_template_nodes(resource_peer, "Image")[0])["width"] == 20
@@ -258,10 +306,13 @@ def test_pr7_resource_battery_outer_title_keeps_the_reviewed_subtext_style():
         allowed_components=(),
         allowed_design_tokens=(),
         allowed_layout_tokens=(),
-        allowed_template_ids=("BatteryOverview@1", "ResourceUsageOverview@1"),
+        allowed_template_ids=(
+            "BatteryOverviewNormalPeer@1",
+            "ResourceUsageOverviewMemoryPeer@1",
+        ),
         required_template_groups=(
-            ("BatteryOverview@1",),
-            ("ResourceUsageOverview@1",),
+            ("BatteryOverviewNormalPeer@1",),
+            ("ResourceUsageOverviewMemoryPeer@1",),
         ),
         allowed_asset_sources=(),
         trusted_literals=("设备资源",),
@@ -367,7 +418,10 @@ async def test_derived_parameter_source_field_is_counted_as_template_coverage():
             }
 
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
-            return 'SingleFocusLayout(Template("AppUsageOverview@1","singleApp",{}));'
+            return (
+                'Template("SingleFocusLayout@1",{},'
+                'Template("AppUsageOverviewSingleApp@1",{}));'
+            )
 
     output = await generate_template_a2ui(
         task_spec,
@@ -493,9 +547,8 @@ async def test_bluetooth_connection_and_case_queries_have_honest_template_covera
         theme_id="audio-product-neutral-violet",
         component_id="BluetoothDeviceOverview",
         body=(
-            'SingleFocusLayout(Template("BluetoothDeviceOverview@1","'
-            + variant
-            + '",{}));'
+            'Template("SingleFocusLayout@1",{},Template('
+            f'"BluetoothDeviceOverview{variant[:1].upper() + variant[1:]}@1",{{}}));'
         ),
     )
 
@@ -506,7 +559,8 @@ async def test_bluetooth_connection_and_case_queries_have_honest_template_covera
         model,
     )
 
-    assert output.template_ids == ("BluetoothDeviceOverview@1",)
+    expected_template = f"BluetoothDeviceOverview{variant[:1].upper() + variant[1:]}@1"
+    assert output.template_ids == (expected_template, "SingleFocusLayout@1")
     assert "isConnected" in output.a2ui
     assert expected_path in output.a2ui
     assert "已连接" in output.a2ui and "未连接" in output.a2ui
@@ -544,7 +598,8 @@ async def test_bluetooth_layout_action_uses_cardtpl_foreground_opacity():
         component_id="BluetoothDeviceOverview",
         action_id="event.open.music.daily",
         body=(
-            'HeroActionLayout(Template("BluetoothDeviceOverview@1","earbuds",{}),'
+            'Template("HeroActionLayout@1",{},'
+            'Template("BluetoothDeviceOverviewEarbuds@1",{}),'
             'PillAction({"actionId":"event.open.music.daily"}));'
         ),
     )
@@ -635,12 +690,12 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
     model = _FixedTemplateModel(
         theme_id="meeting-paper-neutral",
         component_id="CountdownOverview",
-        body='SingleFocusLayout(Template("CountdownOverview@1","countdown",{}));',
+        body='Template("SingleFocusLayout@1",{},Template("CountdownOverview@1",{}));',
     )
 
     output = await generate_template_a2ui(task_spec, card_spec, (binding,), model)
 
-    assert output.template_ids == ("CountdownOverview@1",)
+    assert output.template_ids == ("CountdownOverview@1", "SingleFocusLayout@1")
     assert "countdownDays" in output.a2ui
     assert "倒计时" in output.a2ui
     assert "运动倒计时" not in output.a2ui
@@ -664,7 +719,7 @@ class WeatherTemplateModel:
     async def generate_json(self, prompt: list[dict[str, str]], **_kwargs: Any) -> dict[str, Any]:
         self.first_layer_prompt = prompt
         return {
-            "theme": "family-weather-care-blue" if self.route_usable else None,
+            "theme": "family-weather-care-blue",
             "component": ["WeatherOverview"] if self.route_usable else [],
             "action": self.action_id if self.route_usable else None,
         }
@@ -868,7 +923,7 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
     assert "providerSecondLayerRules=" in second_layer_user
     assert "selectedActionEventId=null" in second_layer_user
     assert 'PillAction({"actionId":"<selectedActionEventId>"})' in second_layer_user
-    assert "天气高级组件二层规则" in second_layer_user
+    assert "第二层业务模板使用规则" in second_layer_user
     assert "手机电量高级组件二层规则" not in second_layer_user
     assert captured["compact"]
     assert "{{ ${/data/weather/current/condition}" in captured["compact"]
@@ -965,7 +1020,7 @@ async def test_unused_candidate_fields_do_not_block_query_required_weather_field
         model,
     )
 
-    assert output.template_ids == ("WeatherOverview@1",)
+    assert output.template_ids == ("WeatherOverviewHeroIcon@1", "SingleFocusLayout@1")
     assert model.body_called is True
 
 
@@ -974,7 +1029,7 @@ async def test_first_layer_action_is_independent_from_selected_components():
     model = WeatherTemplateModel(
         action_id="event.open.weather",
         body=(
-            'SingleFocusLayout(Template("WeatherOverview@1","heroIcon",'
+            'Template("SingleFocusLayout@1",{},Template("WeatherOverviewHeroIcon@1",'
             '{"conditionIcon":"resources/base/media/icon_weather1.svg"}),'
             'PillAction({"actionId":"event.open.weather"}));'
         ),
@@ -1025,7 +1080,7 @@ async def test_second_layer_rejects_non_pill_or_decorated_actions(action_call: s
     model = WeatherTemplateModel(
         action_id="event.open.weather",
         body=(
-            'SingleFocusLayout(Template("WeatherOverview@1","heroIcon",'
+            'Template("SingleFocusLayout@1",{},Template("WeatherOverviewHeroIcon@1",'
             '{"conditionIcon":"resources/base/media/icon_weather1.svg"}),' + action_call + ");"
         ),
     )

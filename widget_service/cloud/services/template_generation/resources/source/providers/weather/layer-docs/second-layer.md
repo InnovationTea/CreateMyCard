@@ -1,9 +1,12 @@
-# 天气高级组件二层规则
+# 第二层业务模板使用规则
 
-## WeatherOverview
+- Provider：`com.huawei.weather.cli`。
+- 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
+- 可用模板：
+  - `WeatherOverviewCompact@1`：当前天气摘要，展示地点、温度和天气状态，可补充空气质量与温度范围。 组件形态：compact。 必需数据：/location/districtName, /current/temperatureText, /current/condition, /current/airQuality, /daily/0/temperatureRangeText；可选数据：无。
+  - `WeatherOverviewCompactIcon@1`：当前天气摘要，展示地点、温度和天气状态，可补充空气质量与温度范围。 组件形态：compactIcon。 必需数据：/location/districtName, /current/temperatureText, /current/condition, /current/airQuality, /daily/0/temperatureRangeText；可选数据：无。
+  - `WeatherOverviewHero@1`：当前天气摘要，展示地点、温度和天气状态，可补充空气质量与温度范围。 组件形态：hero。 必需数据：/location/districtName, /current/temperatureText, /current/condition, /current/airQuality, /daily/0/temperatureRangeText；可选数据：无。
+  - `WeatherOverviewHeroIcon@1`：当前天气摘要，展示地点、温度和天气状态，可补充空气质量与温度范围。 组件形态：heroIcon。 必需数据：/location/districtName, /current/temperatureText, /current/condition, /current/airQuality, /daily/0/temperatureRangeText；可选数据：无。
 
-- 调用：`Template("WeatherOverview@1", "heroIcon|compactIcon", params)`。
-- 单业务或 2x4 主视觉使用 `heroIcon`；2x2 多业务、support 或 peer 使用 `compactIcon`。
-- `params` 只允许 `conditionIcon`，必须逐字复制与天气状态语义匹配的 `trustedAssetSources` 项。
-- `conditionIcon` 不得省略或自行生成路径；不得输出旧 `WeatherOverview(...)` 构造器。
-- 城市、温度、天气状态、空气质量和温度范围由服务端从可信路径绑定，模型不得重复传参或改写。
+- props 只能使用本次 Prompt 下发的可信文本、数值或素材；不得输出数据路径。
+- 选择能够完整表达用户显式要求字段且自身 requiredData 全部可用的模板。

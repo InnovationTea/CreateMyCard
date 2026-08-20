@@ -107,6 +107,11 @@ def build_ux_mixed_prompt(
     allowed_layout_ids = resolve_scope_layout_ids(scope, task_spec, registry)
     if not allowed_layout_ids:
         raise ValueError("Advanced Scope has no compatible UX layout")
+    allowed_layout_template_ids = tuple(f"{layout_id}@1" for layout_id in allowed_layout_ids)
+    for template_id in allowed_layout_template_ids:
+        definition = registry.require_template(template_id)
+        if not definition.accepts_children or definition.provider_id != "com.huawei.layout.cli":
+            raise ValueError(f"UX Layout Template contract is invalid: {template_id}")
     bridge = _ScopePromptBridge(
         theme_id=scope.theme_id,
         local_template_ids=scope_template_ids(scope, registry, task_spec),
@@ -253,6 +258,11 @@ def build_ux_mixed_prompt(
     contract = base.contract.model_copy(
         update={
             "required_template_groups": required_template_groups,
+            "allowed_template_ids": tuple(
+                dict.fromkeys(
+                    (*base.contract.allowed_template_ids, *allowed_layout_template_ids)
+                )
+            ),
             "allowed_components": tuple(
                 dict.fromkeys((*base.contract.allowed_components, *direct_components))
             ),
@@ -267,7 +277,7 @@ def build_ux_mixed_prompt(
     )
     layout_lines = [
         (
-            f"- {layout.name}([config], child1, ...): {layout.description}; "
+            f'- Template("{layout.name}@1", {{}}, child1, ...): {layout.description}; '
             f"businessChildren={layout.minimum_children(task_spec.size)}.."
             f"{layout.max_children_by_size[task_spec.size]}（不含 Action）; "
             f"actions={layout.min_action_children_by_size[task_spec.size]}.."
@@ -298,7 +308,7 @@ def build_ux_mixed_prompt(
             *business_lines,
             "template 实现的业务高级组件必须逐组使用 requiredLocalTemplateGroups；"
             "terse-dsl 实现必须使用对应的 directBusinessComponents 调用，不能改用 JSON Template。",
-            "最终输出必须直接以唯一批准的布局高级组件为根并以分号结束；禁止 card@1。",
+            "最终输出必须直接以唯一批准的布局 Template 为根并以分号结束；禁止 card@1。",
         )
     )
     user_suffix = "\n".join(

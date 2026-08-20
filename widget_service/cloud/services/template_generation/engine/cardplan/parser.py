@@ -83,8 +83,11 @@ def parse_hybrid_card(source: str) -> ParsedCall:
 def parse_ux_layout_card(source: str) -> ParsedCall:
     """Parse the fifth-interface layout-root program without a ``card@1`` wrapper."""
     _source, root, _state = _parse_program(source)
-    if root.kind != "component" or root.name not in UX_LAYOUT_COMPONENT_IDS:
-        raise TerseDslNested2ConversionError("UX Mixed root must be one Layout Component.")
+    if not (
+        (root.kind == "component" and root.name in UX_LAYOUT_COMPONENT_IDS)
+        or (root.kind == "template" and root.name.endswith("Layout@1"))
+    ):
+        raise TerseDslNested2ConversionError("UX Mixed root must be one Layout Template.")
     if len(root.values) > 1 or (root.values and not isinstance(root.values[0], dict)):
         raise TerseDslNested2ConversionError(
             "UX Layout configuration must be one optional object argument."
@@ -202,13 +205,24 @@ def _parse_template_call(
         params = _literal_value(node.args[1], depth + 1)
         content = _parse_call(node.args[2], source, depth + 1, state)
         return ParsedCall("template", template_id, (params,), (content,), span)
-    if len(node.args) != 3:
-        raise TerseDslNested2ConversionError("Local Template requires ID, size, and params.")
-    size = _literal_value(node.args[1], depth + 1)
-    params = _literal_value(node.args[2], depth + 1)
-    if not isinstance(size, str) or not isinstance(params, dict):
-        raise TerseDslNested2ConversionError("Local Template size/params are invalid.")
-    return ParsedCall("template", template_id, (size, params), (), span)
+    second = _literal_value(node.args[1], depth + 1) if len(node.args) >= 2 else None
+    if isinstance(second, dict):
+        children: list[ParsedCall] = []
+        for child in node.args[2:]:
+            if not isinstance(child, ast.Call):
+                raise TerseDslNested2ConversionError(
+                    "UI Template children must be direct component or Template calls."
+                )
+            children.append(_parse_call(child, source, depth + 1, state))
+        return ParsedCall("template", template_id, (second,), tuple(children), span)
+    if len(node.args) == 3:
+        size = second
+        params = _literal_value(node.args[2], depth + 1)
+        if isinstance(size, str) and isinstance(params, dict):
+            return ParsedCall("template", template_id, (size, params), (), span)
+    raise TerseDslNested2ConversionError(
+        "Local Template requires ID and props; legacy ID, variant and params is also accepted."
+    )
 
 
 def _literal_value(node: ast.AST, depth: int) -> Any:

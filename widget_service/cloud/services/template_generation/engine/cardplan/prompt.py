@@ -17,7 +17,11 @@ from services.template_generation.engine.advanced.content_selectors import (
 
 from .generated.prompts import BODY_SYSTEM_PROMPT_KERNEL, UX_MIXED_SYSTEM_PROMPT_KERNEL
 from .models import ActionBinding, Fact, HybridBodyContract, HybridLimits
-from .provider_bundle import provider_template_admission, provider_template_variant_admission
+from .provider_bundle import (
+    provider_template_admission,
+    provider_template_legacy_identity,
+    provider_template_variant_admission,
+)
 from .registry import CardPlanRegistry
 
 _PLAIN_DESIGNS = (
@@ -475,8 +479,13 @@ def _system_prompt(
                         contract,
                     )
                 params[name] = parameter
+            call = (
+                f"Template({wire_id!r}, props)"
+                if definition.source_format == "cardtpl/1" and variant.size == "default"
+                else f"Template({wire_id!r}, {variant.size!r}, params)"
+            )
             signatures.append(
-                f"- Template({wire_id!r}, {variant.size!r}, params): "
+                f"- {call}: "
                 f"{definition.description}; params={json.dumps(params, ensure_ascii=False)}; "
                 "parameterRelations="
                 + json.dumps(
@@ -920,6 +929,9 @@ def _provider_variant_matches_trusted_state(
     task_spec: TaskSpec,
     card_spec: dict[str, Any] | None,
 ) -> bool:
+    identity = provider_template_legacy_identity(wire_id)
+    if identity is not None:
+        wire_id, variant_name = identity
     capabilities = {
         item.get("capabilityId")
         for item in (card_spec or {}).get("dataBindings", ())

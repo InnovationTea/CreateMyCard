@@ -2,23 +2,35 @@
   "bundleFormat": "card-provider-bundle/1",
   "providerId": "com.huawei.countdown.cli",
   "providerVersion": "1.0.0-poc",
-  "firstLayerRule": {"path": "layer-docs/first-layer.md"},
-  "secondLayerRule": {"path": "layer-docs/second-layer.md"},
+  "firstLayerRule": {
+    "path": "layer-docs/first-layer.md"
+  },
+  "secondLayerRule": {
+    "path": "layer-docs/second-layer.md"
+  },
   "capabilities": [
     {
       "capabilityId": "GetCountdownDays",
+      "dataDomain": "/data/countdown",
       "dataSchema": {
         "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
         "version": "app-11.7.5.205_rom-6.0"
       },
-      "templates": ["CountdownOverview@1"]
+      "templates": [
+        "CountdownOverview@1"
+      ]
     }
   ],
   "templates": [
     {
       "templateId": "CountdownOverview@1",
+      "description": "通用事件的剩余天数摘要。 组件形态：countdown。",
+      "requiredData": [
+        "/countdownDays"
+      ],
+      "optionalData": [],
       "entry": "templates/countdown-overview.cardtpl",
-      "digest": "sha256:8ac73f6d8dd1a23ffa1aa4556a41c32d31fe2d581f961d86398e2464868a8a76"
+      "digest": "sha256:2a2b8d532605d0b00562825adfb04e2d4c0b7e1fb571f5ce372805176d130fc6"
     }
   ],
   "compatibility": {

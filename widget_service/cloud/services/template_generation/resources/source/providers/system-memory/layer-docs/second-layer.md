@@ -1,9 +1,10 @@
-# 系统内存高级组件二层规则
+# 第二层业务模板使用规则
 
-## ResourceUsageOverview
+- Provider：`com.huawei.system-memory.cli`。
+- 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
+- 可用模板：
+  - `ResourceUsageOverviewMemory@1`：系统内存占用摘要，展示占用率、可用内存和总内存。 组件形态：memory。 必需数据：/usagePercent, /availableMemText, /totalMemText；可选数据：无。
+  - `ResourceUsageOverviewMemoryPeer@1`：系统内存占用摘要，展示占用率、可用内存和总内存。 组件形态：memoryPeer。 必需数据：/usagePercent, /availableMemText, /totalMemText；可选数据：无。
 
-- 调用：`Template("ResourceUsageOverview@1", "memory|memoryPeer", params)`。
-- 单业务使用 `memory`；2x2 与手机电量对等组合使用 `memoryPeer`。
-- `params` 只允许可选 `icon`，且只能复制 memory/resource 语义匹配的 `trustedAssetSources`；无素材时使用 `{}`。
-- 禁止 storage 变体和推断内存压力状态。
-- 不得输出旧 `ResourceUsageOverview(...)` 构造器。
+- props 只能使用本次 Prompt 下发的可信文本、数值或素材；不得输出数据路径。
+- 选择能够完整表达用户显式要求字段且自身 requiredData 全部可用的模板。

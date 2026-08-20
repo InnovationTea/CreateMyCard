@@ -2,23 +2,225 @@
   "bundleFormat": "card-provider-bundle/1",
   "providerId": "com.huawei.battery.cli",
   "providerVersion": "1.0.0-poc",
-  "firstLayerRule": {"path": "layer-docs/first-layer.md"},
-  "secondLayerRule": {"path": "layer-docs/second-layer.md"},
+  "firstLayerRule": {
+    "path": "layer-docs/first-layer.md"
+  },
+  "secondLayerRule": {
+    "path": "layer-docs/second-layer.md"
+  },
   "capabilities": [
     {
       "capabilityId": "GetPhoneBatteryInfo",
+      "dataDomain": "/data/phoneBattery",
       "dataSchema": {
         "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
         "version": "app-11.7.5.205_rom-6.0"
       },
-      "templates": ["BatteryOverview@1"]
+      "templates": [
+        "BatteryOverviewNormal@1",
+        "BatteryOverviewCharging@1",
+        "BatteryOverviewLow@1",
+        "BatteryOverviewNormalWide@1",
+        "BatteryOverviewChargingWide@1",
+        "BatteryOverviewLowWide@1",
+        "BatteryOverviewNormalPeer@1",
+        "BatteryOverviewChargingPeer@1",
+        "BatteryOverviewLowPeer@1",
+        "BatteryOverviewNormalPhone@1",
+        "BatteryOverviewChargingPhone@1",
+        "BatteryOverviewLowPhone@1",
+        "BatteryOverviewNormalWeather@1",
+        "BatteryOverviewChargingWeather@1",
+        "BatteryOverviewLowWeather@1"
+      ]
     }
   ],
   "templates": [
     {
-      "templateId": "BatteryOverview@1",
+      "templateId": "BatteryOverviewNormal@1",
+      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normal。",
+      "requiredData": [
+        "/batterySOC",
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ],
+      "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:091b8a04edc20253b78a96462699ab4765d0b0e1ea5da00ade7c8b713421710a"
+      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+    },
+    {
+      "templateId": "BatteryOverviewCharging@1",
+      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：charging。",
+      "requiredData": [
+        "/batterySOC",
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ],
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+    },
+    {
+      "templateId": "BatteryOverviewLow@1",
+      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：low。",
+      "requiredData": [
+        "/batterySOC",
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ],
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+    },
+    {
+      "templateId": "BatteryOverviewNormalWide@1",
+      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normalWide。",
+      "requiredData": [
+        "/batterySOC",
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ],
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+    },
+    {
+      "templateId": "BatteryOverviewChargingWide@1",
+      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：chargingWide。",
+      "requiredData": [
+        "/batterySOC",
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ],
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+    },
+    {
+      "templateId": "BatteryOverviewLowWide@1",
+      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：lowWide。",
+      "requiredData": [
+        "/batterySOC",
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ],
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+    },
+    {
+      "templateId": "BatteryOverviewNormalPeer@1",
+      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normalPeer。",
+      "requiredData": [
+        "/batterySOC",
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ],
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+    },
+    {
+      "templateId": "BatteryOverviewChargingPeer@1",
+      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：chargingPeer。",
+      "requiredData": [
+        "/batterySOC",
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ],
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+    },
+    {
+      "templateId": "BatteryOverviewLowPeer@1",
+      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：lowPeer。",
+      "requiredData": [
+        "/batterySOC",
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ],
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+    },
+    {
+      "templateId": "BatteryOverviewNormalPhone@1",
+      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normalPhone。",
+      "requiredData": [
+        "/batterySOC",
+        "/batterySOCText"
+      ],
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+    },
+    {
+      "templateId": "BatteryOverviewChargingPhone@1",
+      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：chargingPhone。",
+      "requiredData": [
+        "/batterySOC",
+        "/batterySOCText"
+      ],
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+    },
+    {
+      "templateId": "BatteryOverviewLowPhone@1",
+      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：lowPhone。",
+      "requiredData": [
+        "/batterySOC",
+        "/batterySOCText"
+      ],
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+    },
+    {
+      "templateId": "BatteryOverviewNormalWeather@1",
+      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normalWeather。",
+      "requiredData": [
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ],
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+    },
+    {
+      "templateId": "BatteryOverviewChargingWeather@1",
+      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：chargingWeather。",
+      "requiredData": [
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ],
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+    },
+    {
+      "templateId": "BatteryOverviewLowWeather@1",
+      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：lowWeather。",
+      "requiredData": [
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ],
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
     }
   ],
   "compatibility": {

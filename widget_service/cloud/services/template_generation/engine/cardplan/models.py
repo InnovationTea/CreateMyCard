@@ -76,6 +76,7 @@ class TemplateNode(StrictModel):
     component: str
     values: tuple[TemplateValue, ...] = ()
     children: tuple[TemplateNode, ...] = ()
+    spread_children: bool = Field(default=False, alias="spreadChildren")
 
 
 class TemplateParameterRelation(StrictModel):
@@ -160,6 +161,10 @@ class TemplateDefinition(StrictModel):
     )
     provider_id: str | None = Field(default=None, alias="providerId")
     capability_id: str | None = Field(default=None, alias="capabilityId")
+    data_domain: str | None = Field(default=None, alias="dataDomain")
+    required_data: tuple[str, ...] = Field(default=(), alias="requiredData")
+    optional_data: tuple[str, ...] = Field(default=(), alias="optionalData")
+    accepts_children: bool = Field(default=False, alias="acceptsChildren")
     bindings: dict[str, TemplateBinding] = Field(default_factory=dict)
     bundle_digest: str | None = Field(default=None, alias="bundleDigest")
     source_format: Literal["registry-json", "cardtpl/1"] = Field(

@@ -1,52 +1,41 @@
-#Template("DateOverview@1", {
-  capability: "GetCalendarEvents",
-  description: "日程数据提供方交付的日期概览",
-  domainTags: ["date", "calendar", "schedule"],
-  compatibleThemeProfileIds: ["meeting-paper-neutral", "focus-warm-amber"],
-  allowedParentComponents: ["Column", "Row", "List", "Stack"],
-  bindings: {},
-  params: {
-    date: {
-      type: "string", required: true, sourcePaths: ["/events/0/startDate", "/updatedAt"]
-    },
-    weekday: {
-      type: "string", required: true, sourcePaths: ["/events/0/startDate", "/updatedAt"]
-    }
-  },
-  limits: { maxNodes: 6, maxDepth: 3 }
-})
+#Template DateOverviewCompactDate@1(props: { date: string, weekday: string })
+data = {
 
-#Variant("compactDate", { sizes: ["2x2"], roles: ["support"], requires: [], requiresParams: ["date", "weekday"] })
-Row("between", {
-  _advancedComponent: "DateOverview", width: "100%", height: 20, itemMargin: 6,
-  justifyContent: "start", alignItems: "center", clip: true,
-  constraintSize: { minWidth: 0, minHeight: 0 }
-},
-  Text(Param("date"), "compact-title", {
-    fontSize: 14, fontWeight: 700, fontColor: "#FFFF3B30", maxLines: 1,
-    textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 }
-  }),
-  Text(Param("weekday"), "subtitle", {
-    fontSize: 12, fontWeight: 500, fontColor: "#99000000", maxLines: 1,
-    textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 }
-  })
-)
-#EndVariant
+}
 
-#Variant("dateHero", { sizes: ["2x2", "2x4"], roles: ["hero"], requires: [], requiresParams: ["date", "weekday"] })
-Column("compact", {
-  _advancedComponent: "DateOverview", width: "100%", height: "100%", itemMargin: 4,
-  justifyContent: "center", alignItems: "start", clip: true,
-  constraintSize: { minWidth: 0, minHeight: 0 }
-},
-  Text(Param("date"), "title", {
-    fontSize: 30, minFontSize: 30, fontWeight: 800, fontColor: "#FFFF3B30",
-    maxLines: 1, textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 }
-  }),
-  Text(Param("weekday"), "body", {
-    fontSize: 14, fontWeight: 500, fontColor: "#99000000", maxLines: 1,
-    textOverflow: "ellipsis", constraintSize: { minWidth: 0, minHeight: 0 }
-  })
+Row(
+  "between",
+  {"_advancedComponent": "DateOverview", "width": "100%", "height": 20, "itemMargin": 6, "justifyContent": "start", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Text(
+      props.date,
+      "compact-title",
+      {"fontSize": 14, "fontWeight": 700, "fontColor": "#FFFF3B30", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    ),
+  Text(
+      props.weekday,
+      "subtitle",
+      {"fontSize": 12, "fontWeight": 500, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    )
 )
-#EndVariant
-#EndTemplate
+#End
+
+#Template DateOverviewDateHero@1(props: { date: string, weekday: string })
+data = {
+
+}
+
+Column(
+  "compact",
+  {"_advancedComponent": "DateOverview", "width": "100%", "height": "100%", "itemMargin": 4, "justifyContent": "center", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Text(
+      props.date,
+      "title",
+      {"fontSize": 30, "minFontSize": 30, "fontWeight": 800, "fontColor": "#FFFF3B30", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    ),
+  Text(
+      props.weekday,
+      "body",
+      {"fontSize": 14, "fontWeight": 500, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    )
+)
+#End

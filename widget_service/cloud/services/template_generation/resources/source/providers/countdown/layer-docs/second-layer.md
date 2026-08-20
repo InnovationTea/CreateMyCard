@@ -1,7 +1,9 @@
-# 倒计时高级组件二层规则
+# 第二层业务模板使用规则
 
-## CountdownOverview
+- Provider：`com.huawei.countdown.cli`。
+- 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
+- 可用模板：
+  - `CountdownOverview@1`：通用事件的剩余天数摘要。 组件形态：countdown。 必需数据：/countdownDays；可选数据：无。
 
-- 调用：`Template("CountdownOverview@1", "countdown", {})`。
-- 只展示可信 `countdownDays` 与模板内置通用标签。
-- 不得补造事件名、目标日期、进度或运动语义；不得输出旧构造器。
+- props 只能使用本次 Prompt 下发的可信文本、数值或素材；不得输出数据路径。
+- 选择能够完整表达用户显式要求字段且自身 requiredData 全部可用的模板。

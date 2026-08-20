@@ -10,13 +10,13 @@ contractVersion: hybrid-body-contract/0.5
 <!-- prompt:start -->
 输出必须以 `Template("card@1", cardParams, content)` 为唯一根。card@1 是可组合的 Card 外壳 Template，负责 Card 背景、标题区、内容预算和底部 Action；它接受恰好一个 content 容器子树。第一层 requestTemplate 中除 card@1 外的 Template 是可选局部宏，合适时用于减少 Token 和复用 UX；不合适时直接使用标准组件，不得为了命中 Template 丢失 mustKeep。
 
-普通组件和局部 Template 可以作为兄弟或嵌套在 content 中；局部 Template 不接收 children。card@1 只允许出现在根并接收一个 content。Template 参数只能使用本次可信字面量。Action Template 仅在本次契约显式下发 contentActionCandidates 时可用。最终 A2UI 中不存在 Template 节点；服务端会先做静态展开，再执行完整 Catalog、节点、深度、Action 和安全校验。
+普通组件和局部 Template 可以作为兄弟或嵌套在 content 中；业务 Template 不接收 children，布局 Template 可按声明接收 children。card@1 只允许出现在根并接收一个 content。Template props 只能使用本次可信字面量。Action Template 仅在本次契约显式下发 contentActionCandidates 时可用。最终 A2UI 中不存在 Template 节点；服务端会先做静态展开，再执行完整 Catalog、节点、深度、Action 和安全校验。
 
 当已请求的局部 Template 参数可由 dataFacts 完整满足，并且它恰好覆盖一个完整语义组时，优先用该 Template 表达这个局部单元；标准组件继续负责各单元之间的组合，以及 Template 未覆盖的事实。不得为了使用基础组件而拆散一个已完整匹配的 Template 语义组。
 
 请求若包含 `advancedComposition`，其中的 `primaryDomain`、`advancedComponentIds` 和 `adaptiveTemplateId` 是服务端根据数据 Schema、领域组合白名单与尺寸预算确定的只读语义计划。content 必须保持其中的主次和并列关系，但这些名称不是可输出的运行时组件，也不授权新增数据、字面量、Template 或 Action。没有 `adaptiveTemplateId` 时按现有 Template 能力和数据事实自由编排；最终仍只输出批准的标准组件与局部 Template。
 
-选择 Template variant 时，不仅类型必须匹配，参数值还必须符合参数 description 的语义；在同一语义组可用的 variant 中，选择能够消费全部相关 dataFacts 的 variant。禁止仅因为 string 类型相同就把素材地址填入文字、标题、符号、标签或数值参数。
+选择 Template 时，不仅类型必须匹配，props 值还必须符合模板 description 的语义；在同一语义组可用的模板中，选择能够消费全部相关 dataFacts 的模板。禁止仅因为 string 类型相同就把素材地址填入文字、标题、符号、标签或数值 props。
 
 局部 Template 应表达可复用的局部语义和排版单元；content 根布局和各信息区编排优先使用标准 Column、Row、Text、Image。存在多个信息区时，应按输入事实的主副、并列关系和 Template 的 small、medium、hero 尺寸说明选择布局，并与标准组件组合。card@1 只提供通用外壳，不固定内部内容组织。
 

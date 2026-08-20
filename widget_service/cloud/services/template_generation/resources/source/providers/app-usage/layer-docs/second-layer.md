@@ -1,9 +1,12 @@
-# 应用使用时长高级组件二层规则
+# 第二层业务模板使用规则
 
-## AppUsageOverview
+- Provider：`com.huawei.app-usage.cli`。
+- 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
+- 可用模板：
+  - `AppUsageOverviewSingleApp@1`：单个应用的当日使用时长摘要，可补充更新时间。 组件形态：singleApp。 必需数据：/appUsage/appName, /appUsage/durationText；可选数据：/updatedAt。
+  - `AppUsageOverviewSingleAppDetailed@1`：单个应用的当日使用时长摘要，可补充更新时间。 组件形态：singleAppDetailed。 必需数据：/appUsage/appName, /appUsage/durationText；可选数据：/updatedAt。
+  - `AppUsageOverviewSingleAppWide@1`：单个应用的当日使用时长摘要，可补充更新时间。 组件形态：singleAppWide。 必需数据：/appUsage/appName, /appUsage/durationText；可选数据：/updatedAt。
+  - `AppUsageOverviewSingleAppDetailedWide@1`：单个应用的当日使用时长摘要，可补充更新时间。 组件形态：singleAppDetailedWide。 必需数据：/appUsage/appName, /appUsage/durationText；可选数据：/updatedAt。
 
-- 调用：`Template("AppUsageOverview@1", variant, params)`。
-- 2x2/2x4 分别使用 `singleApp`/`singleAppWide`；存在可信次数值和单位时使用对应 `Detailed` 后缀。
-- `params` 只允许可选 `appIcon`，且只能复制 app/application 语义匹配的 `trustedAssetSources`；无素材时使用 `{}`。
-- 时长分段由服务端可信投影自动补齐。
-- 不得输出旧 `AppUsageOverview(...)` 构造器。
+- props 只能使用本次 Prompt 下发的可信文本、数值或素材；不得输出数据路径。
+- 选择能够完整表达用户显式要求字段且自身 requiredData 全部可用的模板。

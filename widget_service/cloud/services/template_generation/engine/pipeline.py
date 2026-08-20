@@ -283,8 +283,17 @@ def _with_provider_template_binding_projection(
                 )
                 _set_pointer_value(schema, projection_path, component_projection)
                 changed = True
-            for binding in definition.bindings.values():
-                path = f"{root.rstrip('/')}{binding.path}"
+            provider_paths = tuple(
+                dict.fromkeys(
+                    (
+                        *definition.required_data,
+                        *definition.optional_data,
+                        *(binding.path for binding in definition.bindings.values()),
+                    )
+                )
+            )
+            for relative_path in provider_paths:
+                path = f"{root.rstrip('/')}{relative_path}"
                 value = _pointer_value(source.dataModelSchema, path)
                 if value is None:
                     continue

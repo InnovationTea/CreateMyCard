@@ -227,7 +227,12 @@
       "detectionTerms": ["weather", "temperature", "forecast", "rain", "天气", "温度", "预报", "降雨", "通勤"],
       "dataCapabilityIds": ["ViewWeather"],
       "enabledVariantsByCapability": {"ViewWeather": ["current", "commute"]},
-      "localTemplateIds": ["WeatherOverview@1"]
+      "localTemplateIds": [
+        "WeatherOverviewCompact@1",
+        "WeatherOverviewCompactIcon@1",
+        "WeatherOverviewHero@1",
+        "WeatherOverviewHeroIcon@1"
+      ]
     },
     {
       "name": "DateOverview",
@@ -244,7 +249,10 @@
       "detectionTerms": ["event date", "schedule date", "weekday", "会议日期", "日程日期", "星期", "周几"],
       "dataCapabilityIds": ["GetCalendarEvents"],
       "enabledVariantsByCapability": {"GetCalendarEvents": ["compactDate", "dateHero"]},
-      "localTemplateIds": ["DateOverview@1"]
+      "localTemplateIds": [
+        "DateOverviewCompactDate@1",
+        "DateOverviewDateHero@1"
+      ]
     },
     {
       "name": "ScheduleOverview",
@@ -261,7 +269,16 @@
       "detectionTerms": ["schedule", "meeting", "agenda", "event", "日程", "会议", "议程", "事项", "倒计时"],
       "dataCapabilityIds": ["GetCalendarEvents"],
       "enabledVariantsByCapability": {"GetCalendarEvents": ["nextEvent", "meetingCompact", "meetingExpanded", "focusContext"]},
-      "localTemplateIds": ["ScheduleOverview@1"]
+      "localTemplateIds": [
+        "ScheduleOverviewNextEvent@1",
+        "ScheduleOverviewNextEventLocation@1",
+        "ScheduleOverviewMeetingCompact@1",
+        "ScheduleOverviewMeetingCompactLocation@1",
+        "ScheduleOverviewMeetingExpanded@1",
+        "ScheduleOverviewMeetingCompactSource@1",
+        "ScheduleOverviewMeetingCompactLocationSource@1",
+        "ScheduleOverviewMeetingExpandedSource@1"
+      ]
     },
     {
       "name": "TaskOverview",
@@ -330,7 +347,23 @@
       "detectionTerms": ["battery level", "battery percentage", "charging status", "low battery", "电量", "充电状态", "低电", "省电"],
       "dataCapabilityIds": ["GetPhoneBatteryInfo"],
       "enabledVariantsByCapability": {"GetPhoneBatteryInfo": ["normal", "charging", "low"]},
-      "localTemplateIds": ["BatteryOverview@1"]
+      "localTemplateIds": [
+        "BatteryOverviewNormal@1",
+        "BatteryOverviewCharging@1",
+        "BatteryOverviewLow@1",
+        "BatteryOverviewNormalWide@1",
+        "BatteryOverviewChargingWide@1",
+        "BatteryOverviewLowWide@1",
+        "BatteryOverviewNormalPeer@1",
+        "BatteryOverviewChargingPeer@1",
+        "BatteryOverviewLowPeer@1",
+        "BatteryOverviewNormalPhone@1",
+        "BatteryOverviewChargingPhone@1",
+        "BatteryOverviewLowPhone@1",
+        "BatteryOverviewNormalWeather@1",
+        "BatteryOverviewChargingWeather@1",
+        "BatteryOverviewLowWeather@1"
+      ]
     },
     {
       "name": "ResourceUsageOverview",
@@ -347,7 +380,10 @@
       "detectionTerms": ["memory", "resource usage", "内存", "资源占用", "清理内存"],
       "dataCapabilityIds": ["GetSystemMemInfo"],
       "enabledVariantsByCapability": {"GetSystemMemInfo": ["memory"]},
-      "localTemplateIds": ["ResourceUsageOverview@1"]
+      "localTemplateIds": [
+        "ResourceUsageOverviewMemory@1",
+        "ResourceUsageOverviewMemoryPeer@1"
+      ]
     },
     {
       "name": "AppUsageOverview",
@@ -364,7 +400,12 @@
       "detectionTerms": ["app usage duration", "usage time", "应用使用时长", "使用时长"],
       "dataCapabilityIds": ["GetAppUsageDuration"],
       "enabledVariantsByCapability": {"GetAppUsageDuration": ["singleApp"]},
-      "localTemplateIds": ["AppUsageOverview@1"]
+      "localTemplateIds": [
+        "AppUsageOverviewSingleApp@1",
+        "AppUsageOverviewSingleAppDetailed@1",
+        "AppUsageOverviewSingleAppWide@1",
+        "AppUsageOverviewSingleAppDetailedWide@1"
+      ]
     },
     {
       "name": "ActivityOverview",
@@ -381,7 +422,12 @@
       "detectionTerms": ["activity overview", "daily activity", "steps", "calories", "distance", "活动概览", "今日活动", "步数", "热量", "距离"],
       "dataCapabilityIds": ["GetHealthAndSportSummary"],
       "enabledVariantsByCapability": {"GetHealthAndSportSummary": ["steps", "dailySummary"]},
-      "localTemplateIds": ["ActivityOverview@1"]
+      "localTemplateIds": [
+        "ActivityOverviewSteps@1",
+        "ActivityOverviewStepsSupport@1",
+        "ActivityOverviewDailySummary@1",
+        "ActivityOverviewDailySummaryWide@1"
+      ]
     },
     {
       "name": "WorkoutOverview",
@@ -432,7 +478,16 @@
       "detectionTerms": ["heart rate", "bpm", "pulse", "心率", "脉搏", "平均心率"],
       "dataCapabilityIds": ["GetHealthAndSportSummary"],
       "enabledVariantsByCapability": {"GetHealthAndSportSummary": ["average"]},
-      "localTemplateIds": ["HeartRateOverview@1"]
+      "localTemplateIds": [
+        "HeartRateOverviewHero@1",
+        "HeartRateOverviewHeroUpdated@1",
+        "HeartRateOverviewHeroIcon@1",
+        "HeartRateOverviewHeroUpdatedIcon@1",
+        "HeartRateOverviewSupport@1",
+        "HeartRateOverviewSupportUpdated@1",
+        "HeartRateOverviewSupportIcon@1",
+        "HeartRateOverviewSupportUpdatedIcon@1"
+      ]
     },
     {
       "name": "SleepOverview",
@@ -449,7 +504,18 @@
       "detectionTerms": ["sleep", "bedtime", "wake", "睡眠", "入睡", "起床", "作息", "睡眠不足"],
       "dataCapabilityIds": ["GetHealthAndSportSummary"],
       "enabledVariantsByCapability": {"GetHealthAndSportSummary": ["duration", "insufficient", "schedule"]},
-      "localTemplateIds": ["SleepOverview@1"]
+      "localTemplateIds": [
+        "SleepOverviewDuration@1",
+        "SleepOverviewDurationDetailed@1",
+        "SleepOverviewInsufficient@1",
+        "SleepOverviewInsufficientDetailed@1",
+        "SleepOverviewSchedule@1",
+        "SleepOverviewScheduleDetailed@1",
+        "SleepOverviewScheduleStatus@1",
+        "SleepOverviewScheduleDetailedStatus@1",
+        "SleepOverviewDurationSupport@1",
+        "SleepOverviewDurationDetailedSupport@1"
+      ]
     },
     {
       "name": "LocationOverview",
@@ -501,7 +567,22 @@
       "detectionTerms": ["bluetooth earbuds", "bluetooth earphones", "wireless earbuds", "earbuds", "headphones", "蓝牙耳机", "无线耳机", "耳塞", "左右耳", "充电盒"],
       "dataCapabilityIds": ["GetEarphoneInfo"],
       "enabledVariantsByCapability": {"GetEarphoneInfo": ["earbuds"]},
-      "localTemplateIds": ["BluetoothDeviceOverview@1"]
+      "localTemplateIds": [
+        "BluetoothDeviceOverviewDisconnected@1",
+        "BluetoothDeviceOverviewConnection@1",
+        "BluetoothDeviceOverviewDisconnectedPhone@1",
+        "BluetoothDeviceOverviewEarbudsPhone@1",
+        "BluetoothDeviceOverviewEarbudsPhoneWide@1",
+        "BluetoothDeviceOverviewEarbudsDynamicWide@1",
+        "BluetoothDeviceOverviewEarbuds@1",
+        "BluetoothDeviceOverviewLeftEarbud@1",
+        "BluetoothDeviceOverviewRightEarbud@1",
+        "BluetoothDeviceOverviewEarbudPair@1",
+        "BluetoothDeviceOverviewEarbudsFull@1",
+        "BluetoothDeviceOverviewEarbudsFullWide@1",
+        "BluetoothDeviceOverviewEarbudPairPhone@1",
+        "BluetoothDeviceOverviewEarbudsFullPhoneWide@1"
+      ]
     },
     {
       "name": "SettingsOverview",
