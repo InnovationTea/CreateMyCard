@@ -74,11 +74,12 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 83
+    assert len(registry.provider_template_ids) == 84
     assert {
         "ActivityOverviewSteps@1",
         "AppUsageOverviewSingleApp@1",
         "BatteryOverviewNormal@1",
+        "BatteryOverviewNormalHero@1",
         "BluetoothDeviceOverviewEarbuds@1",
         "CountdownOverview@1",
         "DateOverviewDateHero@1",
@@ -398,6 +399,13 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
 
     battery = registry.require_variant("BatteryOverviewNormal@1", "default").root
     assert _template_node_options(battery.children[1])["fontColor"] == "#99000000"
+    battery_hero = registry.require_variant("BatteryOverviewNormalHero@1", "default").root
+    battery_wide = registry.require_variant("BatteryOverviewNormalWide@1", "default").root
+    assert battery_hero == battery_wide
+    assert _template_node_options(battery_hero)["justifyContent"] == "start"
+    assert battery_hero.children[1].component == "Row"
+    assert _template_node_options(battery_hero.children[1])["layoutWeight"] == 1
+    assert _template_node_options(_template_nodes(battery_hero, "Progress")[0])["width"] == 52
     battery_peer = registry.require_variant("BatteryOverviewNormalPeer@1", "default").root
     assert _template_node_options(battery_peer)["justifyContent"] == "end"
     assert _template_node_options(_template_nodes(battery_peer, "Image")[0])["width"] == 20
@@ -581,6 +589,7 @@ class _FixedTemplateModel:
         self.component_id = component_id
         self.action_id = action_id
         self.body = body
+        self.second_layer_prompt: list[dict[str, str]] | None = None
 
     async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
         return {
@@ -589,7 +598,13 @@ class _FixedTemplateModel:
             "action": self.action_id,
         }
 
-    async def generate(self, *_args: Any, **_kwargs: Any) -> str:
+    async def generate(
+        self,
+        prompt: list[dict[str, str]],
+        *_args: Any,
+        **_kwargs: Any,
+    ) -> str:
+        self.second_layer_prompt = prompt
         return self.body
 
 
@@ -623,6 +638,59 @@ def _bluetooth_card_spec() -> dict[str, Any]:
                 "capabilityId": "GetEarphoneInfo",
                 "arguments": {},
                 "writeResultTo": "/data/earphone",
+            }
+        ],
+    }
+
+
+def _battery_task() -> TaskSpec:
+    return TaskSpec(
+        userQuery="显示设备电量、正常电量和充电状态，支持开启省电模式",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.setPowerSavingMode",
+                call="clickToIntent",
+                args={
+                    "intentName": "SetSettingSwitch",
+                    "params": {
+                        "appBundleName": "com.huawei.hmos.settings",
+                        "itemName": "battery_saving_mode",
+                        "switchFlag": 0,
+                    },
+                },
+            )
+        ],
+        assetCandidates=[
+            {
+                "src": "resources/base/media/battery_leaf_fill.svg",
+                "description": "省电模式电池图标",
+                "sceneTags": ["battery", "power-saving"],
+            }
+        ],
+        dataModelSchema={
+            "data": {
+                "phoneBattery": {
+                    "batterySOC": _provider_field(68, "integer"),
+                    "batterySOCText": _provider_field("68%", "string"),
+                    "batteryCapacityLevelDesc": _provider_field("正常电量", "string"),
+                    "chargingStatusDesc": _provider_field("未充电", "string"),
+                }
+            }
+        },
+    )
+
+
+def _battery_card_spec() -> dict[str, Any]:
+    return {
+        "title": "设备电量",
+        "description": "设备电量与省电模式",
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {
+                "capabilityId": "GetPhoneBatteryInfo",
+                "arguments": {},
+                "writeResultTo": "/data/phoneBattery",
             }
         ],
     }
@@ -726,6 +794,48 @@ async def test_bluetooth_layout_action_uses_cardtpl_foreground_opacity():
     )
 
     assert "#1964BB5C" in output.a2ui
+
+
+@pytest.mark.asyncio
+async def test_2x2_battery_pill_action_uses_normal_hero_template():
+    binding = CandidateDataBinding(
+        capabilityId="GetPhoneBatteryInfo",
+        writeResultTo="/data/phoneBattery",
+        candidateOutputFields=[
+            "/batterySOC",
+            "/batterySOCText",
+            "/batteryCapacityLevelDesc",
+            "/chargingStatusDesc",
+        ],
+    )
+    model = _FixedTemplateModel(
+        theme_id="system-low-power-blue",
+        component_id="BatteryOverview",
+        action_id="event.setPowerSavingMode",
+        body=(
+            'Template("HeroActionLayout@1",{},'
+            'Template("BatteryOverviewNormalHero@1",'
+            '{"batteryIcon":"resources/base/media/battery_leaf_fill.svg"}),'
+            'PillAction({"actionId":"event.setPowerSavingMode"}));'
+        ),
+    )
+
+    output = await generate_template_a2ui(
+        _battery_task(),
+        _battery_card_spec(),
+        (binding,),
+        model,
+    )
+
+    assert output.template_ids == ("BatteryOverviewNormalHero@1", "HeroActionLayout@1")
+    assert model.second_layer_prompt is not None
+    second_layer_user = model.second_layer_prompt[1]["content"]
+    assert "2x2 手机电量摘要，为底部 PillAction 预留空间" in second_layer_user
+    assert "selectedActionEventId` 非空且电量状态为 normal" in second_layer_user
+    assert '"height":36' in output.a2ui
+    assert "省电模式" in output.a2ui
+    assert "batterySOC" in output.a2ui
+    assert "chargingStatusDesc" in output.a2ui
 
 
 def test_first_layer_action_candidate_exposes_only_event_identity():

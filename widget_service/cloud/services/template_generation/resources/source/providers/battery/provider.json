@@ -18,6 +18,7 @@
       },
       "templates": [
         "BatteryOverviewNormal@1",
+        "BatteryOverviewNormalHero@1",
         "BatteryOverviewCharging@1",
         "BatteryOverviewLow@1",
         "BatteryOverviewNormalWide@1",
@@ -47,7 +48,20 @@
       ],
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
+    },
+    {
+      "templateId": "BatteryOverviewNormalHero@1",
+      "description": "手机电量摘要，面向 2x2 底部 PillAction 预留空间，使用 normalWide 横向信息排版。 组件形态：normalHero。",
+      "requiredData": [
+        "/batterySOC",
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ],
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
     },
     {
       "templateId": "BatteryOverviewCharging@1",
@@ -60,7 +74,7 @@
       ],
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
     },
     {
       "templateId": "BatteryOverviewLow@1",
@@ -73,7 +87,7 @@
       ],
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
     },
     {
       "templateId": "BatteryOverviewNormalWide@1",
@@ -86,7 +100,7 @@
       ],
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
     },
     {
       "templateId": "BatteryOverviewChargingWide@1",
@@ -99,7 +113,7 @@
       ],
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
     },
     {
       "templateId": "BatteryOverviewLowWide@1",
@@ -112,7 +126,7 @@
       ],
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
     },
     {
       "templateId": "BatteryOverviewNormalPeer@1",
@@ -125,7 +139,7 @@
       ],
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
     },
     {
       "templateId": "BatteryOverviewChargingPeer@1",
@@ -138,7 +152,7 @@
       ],
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
     },
     {
       "templateId": "BatteryOverviewLowPeer@1",
@@ -151,7 +165,7 @@
       ],
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
     },
     {
       "templateId": "BatteryOverviewNormalPhone@1",
@@ -162,7 +176,7 @@
       ],
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
     },
     {
       "templateId": "BatteryOverviewChargingPhone@1",
@@ -173,7 +187,7 @@
       ],
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
     },
     {
       "templateId": "BatteryOverviewLowPhone@1",
@@ -184,7 +198,7 @@
       ],
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
     },
     {
       "templateId": "BatteryOverviewNormalWeather@1",
@@ -196,7 +210,7 @@
       ],
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
     },
     {
       "templateId": "BatteryOverviewChargingWeather@1",
@@ -208,7 +222,7 @@
       ],
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
     },
     {
       "templateId": "BatteryOverviewLowWeather@1",
@@ -220,7 +234,7 @@
       ],
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
-      "digest": "sha256:338f58d6cf6e4b46739de7bfc933fded4685b342e29adc6e08a91093e0026664"
+      "digest": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55"
     }
   ],
   "compatibility": {
