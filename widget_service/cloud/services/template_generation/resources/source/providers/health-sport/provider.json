@@ -33,6 +33,7 @@
         "SleepOverviewDuration@1",
         "SleepOverviewDurationDetailed@1",
         "SleepOverviewDurationScore@1",
+        "SleepOverviewDurationScoreDetailed@1",
         "SleepOverviewDurationScoreSupport@1",
         "SleepOverviewInsufficient@1",
         "SleepOverviewInsufficientDetailed@1",
@@ -195,7 +196,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:af26e634064a51df08be2f472c4ff3193fef4c87f708ce0d98f1b679c3b9cc8f"
+      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
     },
     {
       "templateId": "SleepOverviewDurationDetailed@1",
@@ -205,7 +206,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:af26e634064a51df08be2f472c4ff3193fef4c87f708ce0d98f1b679c3b9cc8f"
+      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
     },
     {
       "templateId": "SleepOverviewDurationScore@1",
@@ -216,7 +217,19 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:af26e634064a51df08be2f472c4ff3193fef4c87f708ce0d98f1b679c3b9cc8f"
+      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
+    },
+    {
+      "templateId": "SleepOverviewDurationScoreDetailed@1",
+      "description": "睡眠详细时长与睡眠得分及状态摘要。 组件形态：durationScoreDetailed。",
+      "requiredData": [
+        "/nightSleepDurationText",
+        "/sleepScore",
+        "/sleepStatus"
+      ],
+      "optionalData": [],
+      "entry": "templates/sleep-overview.cardtpl",
+      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
     },
     {
       "templateId": "SleepOverviewDurationScoreSupport@1",
@@ -227,7 +240,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:af26e634064a51df08be2f472c4ff3193fef4c87f708ce0d98f1b679c3b9cc8f"
+      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
     },
     {
       "templateId": "SleepOverviewInsufficient@1",
@@ -238,7 +251,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:af26e634064a51df08be2f472c4ff3193fef4c87f708ce0d98f1b679c3b9cc8f"
+      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
     },
     {
       "templateId": "SleepOverviewInsufficientDetailed@1",
@@ -249,7 +262,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:af26e634064a51df08be2f472c4ff3193fef4c87f708ce0d98f1b679c3b9cc8f"
+      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
     },
     {
       "templateId": "SleepOverviewSchedule@1",
@@ -261,7 +274,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:af26e634064a51df08be2f472c4ff3193fef4c87f708ce0d98f1b679c3b9cc8f"
+      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
     },
     {
       "templateId": "SleepOverviewScheduleDetailed@1",
@@ -273,7 +286,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:af26e634064a51df08be2f472c4ff3193fef4c87f708ce0d98f1b679c3b9cc8f"
+      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
     },
     {
       "templateId": "SleepOverviewScheduleStatus@1",
@@ -286,7 +299,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:af26e634064a51df08be2f472c4ff3193fef4c87f708ce0d98f1b679c3b9cc8f"
+      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
     },
     {
       "templateId": "SleepOverviewScheduleDetailedStatus@1",
@@ -299,7 +312,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:af26e634064a51df08be2f472c4ff3193fef4c87f708ce0d98f1b679c3b9cc8f"
+      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
     },
     {
       "templateId": "SleepOverviewDurationSupport@1",
@@ -309,7 +322,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:af26e634064a51df08be2f472c4ff3193fef4c87f708ce0d98f1b679c3b9cc8f"
+      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
     },
     {
       "templateId": "SleepOverviewDurationDetailedSupport@1",
@@ -319,7 +332,7 @@
       ],
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
-      "digest": "sha256:af26e634064a51df08be2f472c4ff3193fef4c87f708ce0d98f1b679c3b9cc8f"
+      "digest": "sha256:29ca3801e1d0267c1f7fe67bb91f8241b94913b4225cfc4130c1c866642a0100"
     }
   ],
   "compatibility": {

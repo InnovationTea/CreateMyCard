@@ -4,42 +4,53 @@ data = {
 }
 
 Column(
-  "compact",
-  {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Row(
-      "between",
-      {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "middle", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Text(
-            "睡眠",
-            "compact-title",
-            {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          ),
-      IfPresent(
-            props.sourceIcon,
-            Image(
-                    props.sourceIcon,
-                    "icon",
-                    {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
-                  )
-          )
-    ),
-  Row(
-      "between",
-      {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Row(
-            "between",
-            {"itemMargin": 0, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Text(
-                    props.sleepDurationPrimaryValueText,
-                    "title",
-                    {"fontSize": 30, "minFontSize": 30, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  ),
-            Text(
-                    props.sleepDurationPrimaryUnitText,
-                    "subtitle",
-                    {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  )
-          )
+    "compact",
+    {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Column(
+        "compact",
+        {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+        Column(
+            "compact",
+            {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+            Column(
+                "compact",
+                {"itemMargin": 4, "justifyContent": "spaceBetween", "width": "matchParent", "height": "matchParent"},
+                Column(
+                    "compact",
+                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
+                        IfPresent(
+                            props.sourceIcon,
+                            Image(
+                                props.sourceIcon,
+                                "icon",
+                                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+                            )
+                        ),
+                        Text(
+                            "睡眠",
+                            "compact-title",
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        )
+                    ),
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom"},
+                        Text(
+                            props.sleepDurationPrimaryValueText,
+                            "title",
+                            {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
+                        ),
+                        Text(
+                            props.sleepDurationPrimaryUnitText,
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        )
+                    )
+                )
+            )
+        )
     )
 )
 #End
@@ -51,48 +62,174 @@ data = {
 }
 
 Column(
-  "compact",
-  {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 6, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Row(
-      "between",
-      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "middle", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      IfPresent(
-            props.sourceIcon,
-            Image(
-                    props.sourceIcon,
-                    "icon",
-                    {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
-                  )
-          ),
-      Text(
-            "睡眠",
-            "subtitle",
-            {"width": "matchParent", "fontSize": 12, "minFontSize": 10, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          )
-    ),
-  Text(
-      data.duration,
-      "title",
-      {"width": "matchParent", "fontSize": 28, "minFontSize": 22, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    ),
-  Row(
-      "between",
-      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Text(
-            "睡眠得分",
-            "subtitle",
-            {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#CCFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          ),
-      Text(
-            data.score,
-            "body",
-            {"fontSize": 16, "minFontSize": 14, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          ),
-      Text(
-            "分",
-            "subtitle",
-            {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#CCFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          )
+    "compact",
+    {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Column(
+        "compact",
+        {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+        Column(
+            "compact",
+            {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+            Column(
+                "compact",
+                {"itemMargin": 4, "justifyContent": "spaceBetween", "width": "matchParent", "height": "matchParent"},
+                Column(
+                    "compact",
+                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
+                        IfPresent(
+                            props.sourceIcon,
+                            Image(
+                                props.sourceIcon,
+                                "icon",
+                                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+                            )
+                        ),
+                        Text(
+                            "睡眠",
+                            "compact-title",
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        )
+                    ),
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom"},
+                        Text(
+                            data.duration,
+                            "title",
+                            {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
+                        )
+                    ),
+                    Progress(
+                        {"value": data.score, "total": 100, "strokeWidth": 8, "color": "#FFFFFFFF", "backgroundColor": "#1AFFFFFF", "height": 12, "width": "matchParent"}
+                    )
+                ),
+                Column(
+                    "compact",
+                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
+                        Text(
+                            "睡眠评分",
+                            "subtitle",
+                            {"fontSize": 12, "maxLines": 1}
+                        ),
+                        Text(
+                            data.score,
+                            {"fontSize": 12, "fontWeight": 800, "maxLines": 1}
+                        ),
+                        Text(
+                            "分",
+                            "subtitle",
+                            {"fontSize": 12, "maxLines": 1}
+                        )
+                    )
+                )
+            )
+        )
+    )
+)
+#End
+
+#Template SleepOverviewDurationScoreDetailed@1(props: { sleepDurationPrimaryValueText: string, sleepDurationPrimaryUnitText: string, sleepDurationSecondaryValueText: string, sleepDurationSecondaryUnitText: string, sourceIcon?: asset })
+data = {
+    status: $path("/sleepStatus"),
+    score: $path("/sleepScore")
+}
+
+Column(
+    "compact",
+    {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Column(
+        "compact",
+        {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+        Column(
+            "compact",
+            {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+            Column(
+                "compact",
+                {"itemMargin": 4, "justifyContent": "spaceBetween", "width": "matchParent", "height": "matchParent"},
+                Column(
+                    "compact",
+                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
+                        IfPresent(
+                            props.sourceIcon,
+                            Image(
+                                props.sourceIcon,
+                                "icon",
+                                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+                            )
+                        ),
+                        Text(
+                            "睡眠",
+                            "compact-title",
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        )
+                    ),
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom"},
+                        Text(
+                            props.sleepDurationPrimaryValueText,
+                            "title",
+                            {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
+                        ),
+                        Text(
+                            props.sleepDurationPrimaryUnitText,
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        ),
+                        Text(
+                            props.sleepDurationSecondaryValueText,
+                            "title",
+                            {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
+                        ),
+                        Text(
+                            props.sleepDurationSecondaryUnitText,
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        )
+                    ),
+                    Progress(
+                        {"value": data.score, "total": 100, "strokeWidth": 8, "color": "#FFFFFFFF", "backgroundColor": "#1AFFFFFF", "height": 12, "width": "matchParent"}
+                    )
+                ),
+                Column(
+                    "compact",
+                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
+                        Text(
+                            "睡眠评分",
+                            "subtitle",
+                            {"fontSize": 12, "maxLines": 1}
+                        ),
+                        Text(
+                            data.score,
+                            {"fontSize": 12, "fontWeight": 800, "maxLines": 1}
+                        ),
+                        Text(
+                            "分",
+                            "subtitle",
+                            {"fontSize": 12, "maxLines": 1}
+                        )
+                    ),
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
+                        Text(
+                            data.status,
+                            {"fontSize": 12, "maxLines": 1}
+                        )
+                    )
+                )
+            )
+        )
     )
 )
 #End
@@ -104,35 +241,46 @@ data = {
 }
 
 Column(
-  "compact",
-  {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Text(
-      "睡眠",
-      "subtitle",
-      {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#CCFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    ),
-  Row(
-      "between",
-      {"width": "matchParent", "itemMargin": 8, "justifyContent": "spaceBetween", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Text(
-            data.duration,
-            "compact-title",
-            {"width": "matchParent", "layoutWeight": 1, "fontSize": 16, "minFontSize": 12, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          ),
-      Row(
-            "between",
-            {"itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Text(
-                    "得分",
-                    "subtitle",
-                    {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#CCFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  ),
-            Text(
-                    data.score,
-                    "body",
-                    {"fontSize": 14, "minFontSize": 12, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  )
-          )
+    "compact",
+    {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Column(
+        "compact",
+        {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+        Column(
+            "compact",
+            {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+            Column(
+                "compact",
+                {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
+                Text(
+                    "睡眠",
+                    "compact-title",
+                    {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                ),
+                Row(
+                    "between",
+                    {"width": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "bottom"},
+                    Text(
+                        data.duration,
+                        "title",
+                        {"fontSize": 24, "fontWeight": 800, "maxLines": 1}
+                    ),
+                    Row(
+                        "between",
+                        {"itemMargin": 2, "justifyContent": "end", "alignItems": "bottom"},
+                        Text(
+                            "得分",
+                            "subtitle",
+                            {"fontSize": 12, "maxLines": 1}
+                        ),
+                        Text(
+                            data.score,
+                            {"fontSize": 14, "fontWeight": 800, "maxLines": 1}
+                        )
+                    )
+                )
+            )
+        )
     )
 )
 #End
@@ -143,56 +291,62 @@ data = {
 }
 
 Column(
-  "compact",
-  {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Row(
-      "between",
-      {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "middle", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Text(
-            "睡眠",
-            "compact-title",
-            {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          ),
-      IfPresent(
-            props.sourceIcon,
-            Image(
-                    props.sourceIcon,
-                    "icon",
-                    {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
-                  )
-          )
-    ),
-  Row(
-      "between",
-      {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Row(
-            "between",
-            {"itemMargin": 0, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Text(
-                    props.sleepDurationPrimaryValueText,
-                    "title",
-                    {"fontSize": 30, "minFontSize": 30, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  ),
-            Text(
-                    props.sleepDurationPrimaryUnitText,
-                    "subtitle",
-                    {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  )
-          ),
-      Row(
-            "between",
-            {"itemMargin": 0, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Text(
-                    props.sleepDurationSecondaryValueText,
-                    "title",
-                    {"fontSize": 30, "minFontSize": 30, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  ),
-            Text(
-                    props.sleepDurationSecondaryUnitText,
-                    "subtitle",
-                    {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  )
-          )
+    "compact",
+    {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Column(
+        "compact",
+        {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+        Column(
+            "compact",
+            {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+            Column(
+                "compact",
+                {"itemMargin": 4, "justifyContent": "spaceBetween", "width": "matchParent", "height": "matchParent"},
+                Column(
+                    "compact",
+                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
+                        IfPresent(
+                            props.sourceIcon,
+                            Image(
+                                props.sourceIcon,
+                                "icon",
+                                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+                            )
+                        ),
+                        Text(
+                            "睡眠",
+                            "compact-title",
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        )
+                    ),
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom"},
+                        Text(
+                            props.sleepDurationPrimaryValueText,
+                            "title",
+                            {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
+                        ),
+                        Text(
+                            props.sleepDurationPrimaryUnitText,
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        ),
+                        Text(
+                            props.sleepDurationSecondaryValueText,
+                            "title",
+                            {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
+                        ),
+                        Text(
+                            props.sleepDurationSecondaryUnitText,
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        )
+                    )
+                )
+            )
+        )
     )
 )
 #End
@@ -203,51 +357,62 @@ data = {
 }
 
 Column(
-  "compact",
-  {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Row(
-      "between",
-      {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "middle", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Text(
-            "睡眠",
-            "compact-title",
-            {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          ),
-      IfPresent(
-            props.sourceIcon,
-            Image(
-                    props.sourceIcon,
-                    "icon",
-                    {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
-                  )
-          )
-    ),
-  Column(
-      "compact",
-      {"width": "matchParent", "itemMargin": 4, "justifyContent": "end", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Row(
-            "between",
-            {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Row(
-                    "between",
-                    {"itemMargin": 0, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                    Text(
-                              props.sleepDurationPrimaryValueText,
-                              "title",
-                              {"fontSize": 30, "minFontSize": 30, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            ),
-                    Text(
-                              props.sleepDurationPrimaryUnitText,
-                              "subtitle",
-                              {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    "compact",
+    {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Column(
+        "compact",
+        {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+        Column(
+            "compact",
+            {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+            Column(
+                "compact",
+                {"itemMargin": 4, "justifyContent": "spaceBetween", "width": "matchParent", "height": "matchParent"},
+                Column(
+                    "compact",
+                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
+                        IfPresent(
+                            props.sourceIcon,
+                            Image(
+                                props.sourceIcon,
+                                "icon",
+                                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
                             )
-                  )
-          ),
-      Text(
-            data.status,
-            "subtitle",
-            {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          )
+                        ),
+                        Text(
+                            "睡眠",
+                            "compact-title",
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        )
+                    ),
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom"},
+                        Text(
+                            props.sleepDurationPrimaryValueText,
+                            "title",
+                            {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
+                        ),
+                        Text(
+                            props.sleepDurationPrimaryUnitText,
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        )
+                    )
+                ),
+                Column(
+                    "compact",
+                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
+                    Text(
+                        data.status,
+                        "subtitle",
+                        {"fontSize": 12, "maxLines": 1}
+                    )
+                )
+            )
+        )
     )
 )
 #End
@@ -258,65 +423,71 @@ data = {
 }
 
 Column(
-  "compact",
-  {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Row(
-      "between",
-      {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "middle", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Text(
-            "睡眠",
-            "compact-title",
-            {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          ),
-      IfPresent(
-            props.sourceIcon,
-            Image(
-                    props.sourceIcon,
-                    "icon",
-                    {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
-                  )
-          )
-    ),
-  Column(
-      "compact",
-      {"width": "matchParent", "itemMargin": 4, "justifyContent": "end", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Row(
-            "between",
-            {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Row(
-                    "between",
-                    {"itemMargin": 0, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                    Text(
-                              props.sleepDurationPrimaryValueText,
-                              "title",
-                              {"fontSize": 30, "minFontSize": 30, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            ),
-                    Text(
-                              props.sleepDurationPrimaryUnitText,
-                              "subtitle",
-                              {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    "compact",
+    {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Column(
+        "compact",
+        {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+        Column(
+            "compact",
+            {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+            Column(
+                "compact",
+                {"itemMargin": 4, "justifyContent": "spaceBetween", "width": "matchParent", "height": "matchParent"},
+                Column(
+                    "compact",
+                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
+                        IfPresent(
+                            props.sourceIcon,
+                            Image(
+                                props.sourceIcon,
+                                "icon",
+                                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
                             )
-                  ),
-            Row(
-                    "between",
-                    {"itemMargin": 0, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+                        ),
+                        Text(
+                            "睡眠",
+                            "compact-title",
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        )
+                    ),
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom"},
+                        Text(
+                            props.sleepDurationPrimaryValueText,
+                            "title",
+                            {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
+                        ),
+                        Text(
+                            props.sleepDurationPrimaryUnitText,
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        ),
+                        Text(
+                            props.sleepDurationSecondaryValueText,
+                            "title",
+                            {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
+                        ),
+                        Text(
+                            props.sleepDurationSecondaryUnitText,
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        )
+                    )
+                ),
+                Column(
+                    "compact",
+                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
                     Text(
-                              props.sleepDurationSecondaryValueText,
-                              "title",
-                              {"fontSize": 30, "minFontSize": 30, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            ),
-                    Text(
-                              props.sleepDurationSecondaryUnitText,
-                              "subtitle",
-                              {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            )
-                  )
-          ),
-      Text(
-            data.status,
-            "subtitle",
-            {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          )
+                        data.status,
+                        "subtitle",
+                        {"fontSize": 12, "maxLines": 1}
+                    )
+                )
+            )
+        )
     )
 )
 #End
@@ -327,87 +498,88 @@ data = {
     wakeup: $path("/wakeupTimeText")
 }
 
-Row(
-  "between",
-  {"_advancedComponent": "SleepOverview", "width": "100%", "height": "100%", "itemMargin": 8, "alignItems": "center"},
-  Column(
-      "compact",
-      {"layoutWeight": 56, "itemMargin": 0, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Column(
+Column(
+    "compact",
+    {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Column(
+        "compact",
+        {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+        Column(
             "compact",
-            {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Row(
-                    "between",
-                    {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "middle", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                    Text(
-                              "睡眠",
-                              "compact-title",
-                              {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            ),
-                    IfPresent(
-                              props.sourceIcon,
-                              Image(
-                                          props.sourceIcon,
-                                          "icon",
-                                          {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
-                                        )
-                            )
-                  ),
-            Row(
-                    "between",
-                    {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+            Column(
+                "compact",
+                {"itemMargin": 4, "justifyContent": "spaceBetween", "width": "matchParent", "height": "matchParent"},
+                Column(
+                    "compact",
+                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
                     Row(
-                              "between",
-                              {"itemMargin": 0, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                              Text(
-                                          props.sleepDurationPrimaryValueText,
-                                          "title",
-                                          {"fontSize": 30, "minFontSize": 30, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                        ),
-                              Text(
-                                          props.sleepDurationPrimaryUnitText,
-                                          "subtitle",
-                                          {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                        )
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
+                        IfPresent(
+                            props.sourceIcon,
+                            Image(
+                                props.sourceIcon,
+                                "icon",
+                                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
                             )
-                  )
-          )
-    ),
-  Column(
-      "compact",
-      {"layoutWeight": 44, "itemMargin": 0, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Column(
-            "compact",
-            {"width": "matchParent", "height": "matchParent", "padding": 8, "borderRadius": 8, "backgroundColor": "#24FFFFFF", "itemMargin": 8, "justifyContent": "center", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Column(
+                        ),
+                        Text(
+                            "睡眠",
+                            "compact-title",
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        )
+                    ),
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom"},
+                        Text(
+                            props.sleepDurationPrimaryValueText,
+                            "title",
+                            {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
+                        ),
+                        Text(
+                            props.sleepDurationPrimaryUnitText,
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        )
+                    )
+                ),
+                Column(
                     "compact",
-                    {"width": "matchParent", "itemMargin": 4, "alignItems": "start"},
-                    Text(
-                              "入睡",
-                              "subtitle",
-                              {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "center"},
+                        Column(
+                            "compact",
+                            {"itemMargin": 4, "alignItems": "start"},
+                            Text(
+                                "入睡",
+                                "subtitle",
+                                {"fontSize": 12, "maxLines": 1}
                             ),
-                    Text(
-                              data.asleep,
-                              "body",
-                              {"fontSize": 14, "minFontSize": 14, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                            Text(
+                                data.asleep,
+                                {"fontSize": 14, "fontWeight": 600, "maxLines": 1}
                             )
-                  ),
-            Column(
-                    "compact",
-                    {"width": "matchParent", "itemMargin": 4, "alignItems": "start"},
-                    Text(
-                              "醒来",
-                              "subtitle",
-                              {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                        ),
+                        Column(
+                            "compact",
+                            {"itemMargin": 4, "alignItems": "end"},
+                            Text(
+                                "醒来",
+                                "subtitle",
+                                {"fontSize": 12, "maxLines": 1}
                             ),
-                    Text(
-                              data.wakeup,
-                              "body",
-                              {"fontSize": 14, "minFontSize": 14, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                            Text(
+                                data.wakeup,
+                                {"fontSize": 14, "fontWeight": 600, "maxLines": 1}
                             )
-                  )
-          )
+                        )
+                    )
+                )
+            )
+        )
     )
 )
 #End
@@ -418,101 +590,97 @@ data = {
     wakeup: $path("/wakeupTimeText")
 }
 
-Row(
-  "between",
-  {"_advancedComponent": "SleepOverview", "width": "100%", "height": "100%", "itemMargin": 8, "alignItems": "center"},
-  Column(
-      "compact",
-      {"layoutWeight": 56, "itemMargin": 0, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Column(
+Column(
+    "compact",
+    {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Column(
+        "compact",
+        {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+        Column(
             "compact",
-            {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Row(
-                    "between",
-                    {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "middle", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                    Text(
-                              "睡眠",
-                              "compact-title",
-                              {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            ),
-                    IfPresent(
-                              props.sourceIcon,
-                              Image(
-                                          props.sourceIcon,
-                                          "icon",
-                                          {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
-                                        )
-                            )
-                  ),
-            Row(
-                    "between",
-                    {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                    Row(
-                              "between",
-                              {"itemMargin": 0, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                              Text(
-                                          props.sleepDurationPrimaryValueText,
-                                          "title",
-                                          {"fontSize": 30, "minFontSize": 30, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                        ),
-                              Text(
-                                          props.sleepDurationPrimaryUnitText,
-                                          "subtitle",
-                                          {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                        )
-                            ),
-                    Row(
-                              "between",
-                              {"itemMargin": 0, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                              Text(
-                                          props.sleepDurationSecondaryValueText,
-                                          "title",
-                                          {"fontSize": 30, "minFontSize": 30, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                        ),
-                              Text(
-                                          props.sleepDurationSecondaryUnitText,
-                                          "subtitle",
-                                          {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                        )
-                            )
-                  )
-          )
-    ),
-  Column(
-      "compact",
-      {"layoutWeight": 44, "itemMargin": 0, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Column(
-            "compact",
-            {"width": "matchParent", "height": "matchParent", "padding": 8, "borderRadius": 8, "backgroundColor": "#24FFFFFF", "itemMargin": 8, "justifyContent": "center", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
             Column(
+                "compact",
+                {"itemMargin": 4, "justifyContent": "spaceBetween", "width": "matchParent", "height": "matchParent"},
+                Column(
                     "compact",
-                    {"width": "matchParent", "itemMargin": 4, "alignItems": "start"},
-                    Text(
-                              "入睡",
-                              "subtitle",
-                              {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            ),
-                    Text(
-                              data.asleep,
-                              "body",
-                              {"fontSize": 14, "minFontSize": 14, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
+                        IfPresent(
+                            props.sourceIcon,
+                            Image(
+                                props.sourceIcon,
+                                "icon",
+                                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
                             )
-                  ),
-            Column(
+                        ),
+                        Text(
+                            "睡眠",
+                            "compact-title",
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        )
+                    ),
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom"},
+                        Text(
+                            props.sleepDurationPrimaryValueText,
+                            "title",
+                            {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
+                        ),
+                        Text(
+                            props.sleepDurationPrimaryUnitText,
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        ),
+                        Text(
+                            props.sleepDurationSecondaryValueText,
+                            "title",
+                            {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
+                        ),
+                        Text(
+                            props.sleepDurationSecondaryUnitText,
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        )
+                    )
+                ),
+                Column(
                     "compact",
-                    {"width": "matchParent", "itemMargin": 4, "alignItems": "start"},
-                    Text(
-                              "醒来",
-                              "subtitle",
-                              {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "center"},
+                        Column(
+                            "compact",
+                            {"itemMargin": 4, "alignItems": "start"},
+                            Text(
+                                "入睡",
+                                "subtitle",
+                                {"fontSize": 12, "maxLines": 1}
                             ),
-                    Text(
-                              data.wakeup,
-                              "body",
-                              {"fontSize": 14, "minFontSize": 14, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                            Text(
+                                data.asleep,
+                                {"fontSize": 14, "fontWeight": 600, "maxLines": 1}
                             )
-                  )
-          )
+                        ),
+                        Column(
+                            "compact",
+                            {"itemMargin": 4, "alignItems": "end"},
+                            Text(
+                                "醒来",
+                                "subtitle",
+                                {"fontSize": 12, "maxLines": 1}
+                            ),
+                            Text(
+                                data.wakeup,
+                                {"fontSize": 14, "fontWeight": 600, "maxLines": 1}
+                            )
+                        )
+                    )
+                )
+            )
+        )
     )
 )
 #End
@@ -524,96 +692,93 @@ data = {
     wakeup: $path("/wakeupTimeText")
 }
 
-Row(
-  "between",
-  {"_advancedComponent": "SleepOverview", "width": "100%", "height": "100%", "itemMargin": 8, "alignItems": "center"},
-  Column(
-      "compact",
-      {"layoutWeight": 56, "itemMargin": 0, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Column(
+Column(
+    "compact",
+    {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Column(
+        "compact",
+        {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+        Column(
             "compact",
-            {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Row(
-                    "between",
-                    {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "middle", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                    Text(
-                              "睡眠",
-                              "compact-title",
-                              {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            ),
-                    IfPresent(
-                              props.sourceIcon,
-                              Image(
-                                          props.sourceIcon,
-                                          "icon",
-                                          {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
-                                        )
-                            )
-                  ),
+            {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
             Column(
+                "compact",
+                {"itemMargin": 4, "justifyContent": "spaceBetween", "width": "matchParent", "height": "matchParent"},
+                Column(
                     "compact",
-                    {"width": "matchParent", "itemMargin": 4, "justifyContent": "end", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
                     Row(
-                              "between",
-                              {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                              Row(
-                                          "between",
-                                          {"itemMargin": 0, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                                          Text(
-                                                        props.sleepDurationPrimaryValueText,
-                                                        "title",
-                                                        {"fontSize": 30, "minFontSize": 30, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                                      ),
-                                          Text(
-                                                        props.sleepDurationPrimaryUnitText,
-                                                        "subtitle",
-                                                        {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                                      )
-                                        )
-                            ),
-                    Text(
-                              data.status,
-                              "subtitle",
-                              {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
+                        IfPresent(
+                            props.sourceIcon,
+                            Image(
+                                props.sourceIcon,
+                                "icon",
+                                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
                             )
-                  )
-          )
-    ),
-  Column(
-      "compact",
-      {"layoutWeight": 44, "itemMargin": 0, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Column(
-            "compact",
-            {"width": "matchParent", "height": "matchParent", "padding": 8, "borderRadius": 8, "backgroundColor": "#24FFFFFF", "itemMargin": 8, "justifyContent": "center", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Column(
+                        ),
+                        Text(
+                            "睡眠",
+                            "compact-title",
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        )
+                    ),
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom"},
+                        Text(
+                            props.sleepDurationPrimaryValueText,
+                            "title",
+                            {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
+                        ),
+                        Text(
+                            props.sleepDurationPrimaryUnitText,
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        )
+                    )
+                ),
+                Column(
                     "compact",
-                    {"width": "matchParent", "itemMargin": 4, "alignItems": "start"},
-                    Text(
-                              "入睡",
-                              "subtitle",
-                              {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "center"},
+                        Column(
+                            "compact",
+                            {"itemMargin": 4, "alignItems": "start"},
+                            Text(
+                                "入睡",
+                                "subtitle",
+                                {"fontSize": 12, "maxLines": 1}
                             ),
-                    Text(
-                              data.asleep,
-                              "body",
-                              {"fontSize": 14, "minFontSize": 14, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                            Text(
+                                data.asleep,
+                                {"fontSize": 14, "fontWeight": 600, "maxLines": 1}
                             )
-                  ),
-            Column(
-                    "compact",
-                    {"width": "matchParent", "itemMargin": 4, "alignItems": "start"},
-                    Text(
-                              "醒来",
-                              "subtitle",
-                              {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                        ),
+                        Column(
+                            "compact",
+                            {"itemMargin": 4, "alignItems": "end"},
+                            Text(
+                                "醒来",
+                                "subtitle",
+                                {"fontSize": 12, "maxLines": 1}
                             ),
-                    Text(
-                              data.wakeup,
-                              "body",
-                              {"fontSize": 14, "minFontSize": 14, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                            Text(
+                                data.wakeup,
+                                {"fontSize": 14, "fontWeight": 600, "maxLines": 1}
                             )
-                  )
-          )
+                        )
+                    ),
+                    Text(
+                        data.status,
+                        "subtitle",
+                        {"fontSize": 12, "maxLines": 1}
+                    )
+                )
+            )
+        )
     )
 )
 #End
@@ -625,110 +790,102 @@ data = {
     wakeup: $path("/wakeupTimeText")
 }
 
-Row(
-  "between",
-  {"_advancedComponent": "SleepOverview", "width": "100%", "height": "100%", "itemMargin": 8, "alignItems": "center"},
-  Column(
-      "compact",
-      {"layoutWeight": 56, "itemMargin": 0, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Column(
+Column(
+    "compact",
+    {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Column(
+        "compact",
+        {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+        Column(
             "compact",
-            {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Row(
-                    "between",
-                    {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "middle", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                    Text(
-                              "睡眠",
-                              "compact-title",
-                              {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            ),
-                    IfPresent(
-                              props.sourceIcon,
-                              Image(
-                                          props.sourceIcon,
-                                          "icon",
-                                          {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
-                                        )
-                            )
-                  ),
+            {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
             Column(
+                "compact",
+                {"itemMargin": 4, "justifyContent": "spaceBetween", "width": "matchParent", "height": "matchParent"},
+                Column(
                     "compact",
-                    {"width": "matchParent", "itemMargin": 4, "justifyContent": "end", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
                     Row(
-                              "between",
-                              {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                              Row(
-                                          "between",
-                                          {"itemMargin": 0, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                                          Text(
-                                                        props.sleepDurationPrimaryValueText,
-                                                        "title",
-                                                        {"fontSize": 30, "minFontSize": 30, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                                      ),
-                                          Text(
-                                                        props.sleepDurationPrimaryUnitText,
-                                                        "subtitle",
-                                                        {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                                      )
-                                        ),
-                              Row(
-                                          "between",
-                                          {"itemMargin": 0, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                                          Text(
-                                                        props.sleepDurationSecondaryValueText,
-                                                        "title",
-                                                        {"fontSize": 30, "minFontSize": 30, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                                      ),
-                                          Text(
-                                                        props.sleepDurationSecondaryUnitText,
-                                                        "subtitle",
-                                                        {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                                      )
-                                        )
-                            ),
-                    Text(
-                              data.status,
-                              "subtitle",
-                              {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
+                        IfPresent(
+                            props.sourceIcon,
+                            Image(
+                                props.sourceIcon,
+                                "icon",
+                                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
                             )
-                  )
-          )
-    ),
-  Column(
-      "compact",
-      {"layoutWeight": 44, "itemMargin": 0, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Column(
-            "compact",
-            {"width": "matchParent", "height": "matchParent", "padding": 8, "borderRadius": 8, "backgroundColor": "#24FFFFFF", "itemMargin": 8, "justifyContent": "center", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Column(
+                        ),
+                        Text(
+                            "睡眠",
+                            "compact-title",
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        )
+                    ),
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom"},
+                        Text(
+                            props.sleepDurationPrimaryValueText,
+                            "title",
+                            {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
+                        ),
+                        Text(
+                            props.sleepDurationPrimaryUnitText,
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        ),
+                        Text(
+                            props.sleepDurationSecondaryValueText,
+                            "title",
+                            {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
+                        ),
+                        Text(
+                            props.sleepDurationSecondaryUnitText,
+                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                        )
+                    )
+                ),
+                Column(
                     "compact",
-                    {"width": "matchParent", "itemMargin": 4, "alignItems": "start"},
-                    Text(
-                              "入睡",
-                              "subtitle",
-                              {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
+                    Row(
+                        "between",
+                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "center"},
+                        Column(
+                            "compact",
+                            {"itemMargin": 4, "alignItems": "start"},
+                            Text(
+                                "入睡",
+                                "subtitle",
+                                {"fontSize": 12, "maxLines": 1}
                             ),
-                    Text(
-                              data.asleep,
-                              "body",
-                              {"fontSize": 14, "minFontSize": 14, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                            Text(
+                                data.asleep,
+                                {"fontSize": 14, "fontWeight": 600, "maxLines": 1}
                             )
-                  ),
-            Column(
-                    "compact",
-                    {"width": "matchParent", "itemMargin": 4, "alignItems": "start"},
-                    Text(
-                              "醒来",
-                              "subtitle",
-                              {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                        ),
+                        Column(
+                            "compact",
+                            {"itemMargin": 4, "alignItems": "end"},
+                            Text(
+                                "醒来",
+                                "subtitle",
+                                {"fontSize": 12, "maxLines": 1}
                             ),
-                    Text(
-                              data.wakeup,
-                              "body",
-                              {"fontSize": 14, "minFontSize": 14, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                            Text(
+                                data.wakeup,
+                                {"fontSize": 14, "fontWeight": 600, "maxLines": 1}
                             )
-                  )
-          )
+                        )
+                    ),
+                    Text(
+                        data.status,
+                        "subtitle",
+                        {"fontSize": 12, "maxLines": 1}
+                    )
+                )
+            )
+        )
     )
 )
 #End
@@ -739,30 +896,37 @@ data = {
 }
 
 Column(
-  "compact",
-  {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Text(
-      "睡眠",
-      "subtitle",
-      {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    ),
-  Row(
-      "between",
-      {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Row(
-            "between",
-            {"itemMargin": 0, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Text(
-                    props.sleepDurationPrimaryValueText,
-                    "title",
-                    {"fontSize": 20, "minFontSize": 20, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  ),
-            Text(
-                    props.sleepDurationPrimaryUnitText,
-                    "subtitle",
-                    {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  )
-          )
+    "compact",
+    {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Column(
+        "compact",
+        {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+        Column(
+            "compact",
+            {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+            Column(
+                "compact",
+                {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
+                Text(
+                    "睡眠",
+                    "compact-title",
+                    {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                ),
+                Row(
+                    "between",
+                    {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom"},
+                    Text(
+                        props.sleepDurationPrimaryValueText,
+                        "title",
+                        {"fontSize": 24, "fontWeight": 800, "maxLines": 1}
+                    ),
+                    Text(
+                        props.sleepDurationPrimaryUnitText,
+                        {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                    )
+                )
+            )
+        )
     )
 )
 #End
@@ -773,44 +937,46 @@ data = {
 }
 
 Column(
-  "compact",
-  {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Text(
-      "睡眠",
-      "subtitle",
-      {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    ),
-  Row(
-      "between",
-      {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Row(
-            "between",
-            {"itemMargin": 0, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Text(
-                    props.sleepDurationPrimaryValueText,
-                    "title",
-                    {"fontSize": 20, "minFontSize": 20, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  ),
-            Text(
-                    props.sleepDurationPrimaryUnitText,
-                    "subtitle",
-                    {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  )
-          ),
-      Row(
-            "between",
-            {"itemMargin": 0, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Text(
-                    props.sleepDurationSecondaryValueText,
-                    "title",
-                    {"fontSize": 20, "minFontSize": 20, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  ),
-            Text(
-                    props.sleepDurationSecondaryUnitText,
-                    "subtitle",
-                    {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99FFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  )
-          )
+    "compact",
+    {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Column(
+        "compact",
+        {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+        Column(
+            "compact",
+            {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
+            Column(
+                "compact",
+                {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
+                Text(
+                    "睡眠",
+                    "compact-title",
+                    {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                ),
+                Row(
+                    "between",
+                    {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom"},
+                    Text(
+                        props.sleepDurationPrimaryValueText,
+                        "title",
+                        {"fontSize": 24, "fontWeight": 800, "maxLines": 1}
+                    ),
+                    Text(
+                        props.sleepDurationPrimaryUnitText,
+                        {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                    ),
+                    Text(
+                        props.sleepDurationSecondaryValueText,
+                        "title",
+                        {"fontSize": 24, "fontWeight": 800, "maxLines": 1}
+                    ),
+                    Text(
+                        props.sleepDurationSecondaryUnitText,
+                        {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                    )
+                )
+            )
+        )
     )
 )
 #End
