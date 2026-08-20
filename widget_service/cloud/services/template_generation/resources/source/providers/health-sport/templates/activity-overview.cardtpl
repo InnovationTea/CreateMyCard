@@ -20,7 +20,7 @@ Column(
       Text(
             "今日活动",
             "subtitle",
-            {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           )
     ),
   Row(
@@ -29,12 +29,12 @@ Column(
       Text(
             data.steps,
             "title",
-            {"fontSize": 38, "fontWeight": 800, "fontColor": "#FFFF7A45", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            {"fontSize": 38, "fontWeight": 800, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           ),
       Text(
             "步",
             "subtitle",
-            {"fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            {"fontSize": 12, "fontWeight": 500, "fontColor": "#CCFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           )
     )
 )
@@ -62,7 +62,7 @@ Column(
       Text(
             "今日步数",
             "subtitle",
-            {"width": "matchParent", "fontSize": 10, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            {"width": "matchParent", "fontSize": 10, "fontWeight": 500, "fontColor": "#CCFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           )
     ),
   Row(
@@ -71,12 +71,12 @@ Column(
       Text(
             data.steps,
             "compact-title",
-            {"fontSize": 20, "fontWeight": 700, "fontColor": "#FFFF7A45", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            {"fontSize": 20, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           ),
       Text(
             "步",
             "subtitle",
-            {"fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            {"fontSize": 12, "fontWeight": 500, "fontColor": "#CCFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           )
     )
 )
@@ -106,7 +106,7 @@ Column(
       Text(
             "今日活动",
             "subtitle",
-            {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           )
     ),
   Row(
@@ -115,12 +115,12 @@ Column(
       Text(
             data.steps,
             "title",
-            {"fontSize": 38, "fontWeight": 800, "fontColor": "#FFFF7A45", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            {"fontSize": 38, "fontWeight": 800, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           ),
       Text(
             "步",
             "subtitle",
-            {"fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            {"fontSize": 12, "fontWeight": 500, "fontColor": "#CCFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           )
     ),
   Row(
@@ -140,7 +140,7 @@ Column(
             Text(
                     data.calories,
                     "body",
-                    {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                    {"width": "matchParent", "fontSize": 12, "minFontSize": 10, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   )
           ),
       Row(
@@ -157,7 +157,7 @@ Column(
             Text(
                     data.distance,
                     "body",
-                    {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                    {"width": "matchParent", "fontSize": 12, "minFontSize": 10, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   )
           )
     )
@@ -194,7 +194,7 @@ Row(
                     Text(
                               "今日活动",
                               "subtitle",
-                              {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                              {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                             )
                   ),
             Row(
@@ -203,12 +203,12 @@ Row(
                     Text(
                               data.steps,
                               "title",
-                              {"fontSize": 38, "fontWeight": 800, "fontColor": "#FFFF7A45", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                              {"fontSize": 38, "fontWeight": 800, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                             ),
                     Text(
                               "步",
                               "subtitle",
-                              {"fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                              {"fontSize": 12, "fontWeight": 500, "fontColor": "#CCFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                             )
                   )
           )
@@ -233,7 +233,7 @@ Row(
                     Text(
                               data.calories,
                               "body",
-                              {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                              {"width": "matchParent", "fontSize": 12, "minFontSize": 10, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                             )
                   ),
             Row(
@@ -250,7 +250,7 @@ Row(
                     Text(
                               data.distance,
                               "body",
-                              {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                              {"width": "matchParent", "fontSize": 12, "minFontSize": 10, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                             )
                   )
           )

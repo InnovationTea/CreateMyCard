@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 import pytest
@@ -77,7 +78,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 84
+    assert len(registry.provider_template_ids) == 86
     assert {
         "ActivityOverviewSteps@1",
         "AppUsageOverviewSingleApp@1",
@@ -90,6 +91,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "ResourceUsageOverviewMemory@1",
         "ScheduleOverviewNextEvent@1",
         "SleepOverviewDuration@1",
+        "SleepOverviewDurationScore@1",
         "WeatherOverviewHero@1",
         "WorkoutOverview@1",
         "SingleFocusLayout@1",
@@ -118,6 +120,31 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         for template_id in registry.provider_template_ids
         for definition in (registry.require_template(template_id),)
     )
+
+
+def test_every_provider_asset_prop_has_second_layer_semantic_description():
+    registry = get_cardplan_registry()
+    providers_root = registry.source_root / "providers"
+    for provider_root in sorted(path for path in providers_root.iterdir() if path.is_dir()):
+        manifest = json.loads((provider_root / "provider.json").read_text(encoding="utf-8"))
+        rule = manifest.get("secondLayerRule")
+        if not isinstance(rule, dict):
+            continue
+        rule_text = (provider_root / rule["path"]).read_text(encoding="utf-8")
+        template_paths = {
+            item["entry"]
+            for item in manifest["templates"]
+            if isinstance(item.get("entry"), str)
+        }
+        source = "\n".join(
+            (provider_root / path).read_text(encoding="utf-8")
+            for path in sorted(template_paths)
+        )
+        asset_props = set(
+            re.findall(r"([A-Za-z_][A-Za-z0-9_]*)\??\s*:\s*asset", source)
+        )
+        missing = sorted(name for name in asset_props if name not in rule_text)
+        assert not missing, f"{provider_root.name} asset props lack descriptions: {missing}"
 
 
 def test_workout_template_requires_one_complete_training_session():
@@ -465,6 +492,13 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
     assert _template_node_options(percent_row.children[0])["fontWeight"] == 700
     assert not _template_nodes(resource_peer.children[0], "Text")
 
+    activity = registry.require_variant("ActivityOverviewDailySummary@1", "default").root
+    activity_text_options = [
+        _template_node_options(node) for node in _template_nodes(activity, "Text")
+    ]
+    assert all(options["fontColor"] != "#E6000000" for options in activity_text_options)
+    assert sum(options.get("minFontSize") == 10 for options in activity_text_options) == 2
+
 
 def test_pr7_resource_battery_outer_title_keeps_the_reviewed_subtext_style():
     registry = get_cardplan_registry()
@@ -624,6 +658,124 @@ def _provider_field(value: Any, field_type: str) -> dict[str, Any]:
         "description": "trusted provider field",
         "sampleValue": value,
     }
+
+
+@pytest.mark.asyncio
+async def test_q094_sleep_duration_score_and_steps_are_all_preserved():
+    task_spec = TaskSpec(
+        userQuery="刚睡醒，看看昨晚睡了多久、睡眠得分和今天走了多少步",
+        size="2x2",
+        eventCandidates=[],
+        assetCandidates=[
+            {
+                "src": "resources/base/media/moon_z_fill_1.svg",
+                "description": "睡眠和夜间月亮图标",
+                "sceneTags": ["sleep", "night"],
+            },
+            {
+                "src": "resources/base/media/figure_run.svg",
+                "description": "跑步、步数和日常活动图标",
+                "sceneTags": ["health", "sport"],
+            },
+        ],
+        dataModelSchema={
+            "data": {
+                "healthSport": {
+                    "sleepScore": _provider_field(82, "integer"),
+                    "nightSleepDurationText": _provider_field("7小时1分", "string"),
+                    "dailySteps": _provider_field(6200, "integer"),
+                    "dailyTotalCaloriesText": _provider_field("420 千卡", "string"),
+                    "dailyDistanceText": _provider_field("4.60 公里", "string"),
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetHealthAndSportSummary",
+        writeResultTo="/data/healthSport",
+        candidateOutputFields=[
+            "/sleepScore",
+            "/nightSleepDurationText",
+            "/dailySteps",
+        ],
+    )
+    card_spec = {
+        "title": "晨间健康",
+        "description": "睡眠健康速览",
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {
+                "capabilityId": "GetHealthAndSportSummary",
+                "arguments": {"targetDayOffset": 0},
+                "writeResultTo": "/data/healthSport",
+            }
+        ],
+    }
+
+    class Q094TemplateModel:
+        first_layer_prompt: list[dict[str, str]] | None = None
+        second_layer_prompt: list[dict[str, str]] | None = None
+
+        async def generate_json(
+            self,
+            prompt: list[dict[str, str]],
+            **_kwargs: Any,
+        ) -> dict[str, Any]:
+            self.first_layer_prompt = prompt
+            return {
+                "theme": "race-sunrise-action",
+                "componentCandidates": [
+                    {
+                        "componentId": "ActivityOverview",
+                        "availableTemplateIds": ["ActivityOverviewSteps@1"],
+                    },
+                    {
+                        "componentId": "SleepOverview",
+                        "availableTemplateIds": ["SleepOverviewDurationScoreSupport@1"],
+                    },
+                ],
+                "action": None,
+            }
+
+        async def generate(
+            self,
+            prompt: list[dict[str, str]],
+            *_args: Any,
+            **_kwargs: Any,
+        ) -> str:
+            self.second_layer_prompt = prompt
+            return (
+                'Template("HeroSupportLayout@1",{},'
+                'Template("ActivityOverviewSteps@1",'
+                '{"stepsIcon":"resources/base/media/figure_run.svg"}),'
+                'Template("SleepOverviewDurationScoreSupport@1",{}));'
+            )
+
+    model = Q094TemplateModel()
+    output = await generate_template_a2ui(task_spec, card_spec, (binding,), model)
+
+    assert output.template_ids == (
+        "ActivityOverviewSteps@1",
+        "SleepOverviewDurationScoreSupport@1",
+        "HeroSupportLayout@1",
+    )
+    assert all(
+        field in output.a2ui
+        for field in ("dailySteps", "nightSleepDurationText", "sleepScore")
+    )
+    assert "#FFED6F21" in output.a2ui
+    assert model.first_layer_prompt is not None
+    first_layer_payload = json.loads(model.first_layer_prompt[1]["content"])
+    sleep_component = next(
+        item
+        for item in first_layer_payload["componentCatalog"]
+        if item["componentId"] == "SleepOverview"
+    )
+    assert "/data/healthSport/sleepScore" in sleep_component["supportedTaskSpecPaths"]
+    assert model.second_layer_prompt is not None
+    second_layer_user = model.second_layer_prompt[1]["content"]
+    assert "没有合适候选时省略可选参数" in second_layer_user
+    assert "caloriesIcon" in second_layer_user and "distanceIcon" in second_layer_user
 
 
 class _FixedTemplateModel:

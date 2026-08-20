@@ -44,6 +44,99 @@ Column(
 )
 #End
 
+#Template SleepOverviewDurationScore@1(props: { sourceIcon?: asset })
+data = {
+    duration: $path("/nightSleepDurationText"),
+    score: $path("/sleepScore")
+}
+
+Column(
+  "compact",
+  {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 6, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "middle", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      IfPresent(
+            props.sourceIcon,
+            Image(
+                    props.sourceIcon,
+                    "icon",
+                    {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+                  )
+          ),
+      Text(
+            "睡眠",
+            "subtitle",
+            {"width": "matchParent", "fontSize": 12, "minFontSize": 10, "fontWeight": 500, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
+    ),
+  Text(
+      data.duration,
+      "title",
+      {"width": "matchParent", "fontSize": 28, "minFontSize": 22, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    ),
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+            "睡眠得分",
+            "subtitle",
+            {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#CCFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      Text(
+            data.score,
+            "body",
+            {"fontSize": 16, "minFontSize": 14, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      Text(
+            "分",
+            "subtitle",
+            {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#CCFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
+    )
+)
+#End
+
+#Template SleepOverviewDurationScoreSupport@1(props: {  })
+data = {
+    duration: $path("/nightSleepDurationText"),
+    score: $path("/sleepScore")
+}
+
+Column(
+  "compact",
+  {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Text(
+      "睡眠",
+      "subtitle",
+      {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#CCFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    ),
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 8, "justifyContent": "spaceBetween", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+            data.duration,
+            "compact-title",
+            {"width": "matchParent", "layoutWeight": 1, "fontSize": 16, "minFontSize": 12, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      Row(
+            "between",
+            {"itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            Text(
+                    "得分",
+                    "subtitle",
+                    {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#CCFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                  ),
+            Text(
+                    data.score,
+                    "body",
+                    {"fontSize": 14, "minFontSize": 12, "fontWeight": 700, "fontColor": "#FFFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                  )
+          )
+    )
+)
+#End
+
 #Template SleepOverviewDurationDetailed@1(props: { sleepDurationPrimaryValueText: string, sleepDurationPrimaryUnitText: string, sleepDurationSecondaryValueText: string, sleepDurationSecondaryUnitText: string, sourceIcon?: asset })
 data = {
 

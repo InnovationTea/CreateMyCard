@@ -71,6 +71,9 @@ Column("compact",
   `IfAbsent(data.xxx, ...)` 内，并进入 `optionalData`。
 - `props.xxx` 是第二层传入的可信字面量或素材；`data.xxx` 由服务端根据
   `dataDomain + 相对路径` 绑定为端侧表达式。
+- 每个 `asset` prop 必须在 Provider 的第二层规则中描述业务语义和省略条件。描述不得枚举或假定固定
+  素材全集；第二层只从本轮 TaskSpec 实际下发的素材候选中按 description 匹配，没有合适候选时省略
+  可选参数，或选择不依赖该素材的模板。
 - 反引号 `${...}` 可混合 `props`、`data` 和静态分隔符；云侧保留为 A2UI 表达式，不投影样例值。
 - 同一个 `.cardtpl` 可以包含多个 `#Template ... #End`，`provider.json` 中每个模板条目都指向同一文件
   并校验相同文件摘要。
