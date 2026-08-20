@@ -45,6 +45,7 @@
         "/batteryCapacityLevelDesc"
       ],
       "optionalData": [],
+      "requiresLayoutAction": true,
       "entry": "templates/battery-overview.cardtpl"
     },
     {

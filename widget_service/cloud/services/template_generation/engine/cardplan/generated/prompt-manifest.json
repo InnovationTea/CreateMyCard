@@ -22,7 +22,7 @@
     "providers/app-usage/templates/app-usage-overview.cardtpl": "sha256:092d3e7d9ec334ddb87bc3360c795820b4abef15a58a0d98716916b8939bec2a",
     "providers/battery/layer-docs/first-layer.md": "sha256:a8abb1e4e7ddb7dca95c93663fb66931e9198cbbcc2766c18899e13e4fdab675",
     "providers/battery/layer-docs/second-layer.md": "sha256:c24f17664aaa36f64be2200b87e3f9fb86f6bdd32c9c306013f73b0615dc06fc",
-    "providers/battery/provider.json": "sha256:7eead5a902a0590b36e4d826ee5528d58be730b8d2f5d9e40e16f53e40c1c1de",
+    "providers/battery/provider.json": "sha256:31d67edab682a9bdbede5385501afcf7b40da32c8fc72c5faf060b5ad0d1ae41",
     "providers/battery/templates/battery-overview.cardtpl": "sha256:27c9b067a1cd6a7f125f42b6eabc33e246acf4cdc94b989e9994528f13ccfc55",
     "providers/calendar/layer-docs/first-layer.md": "sha256:3eed77fd0fd267997282fb132e2008bbebbb939b7d6c14900f9035f834d0c77e",
     "providers/calendar/layer-docs/second-layer.md": "sha256:ca41636db5a59e3bbdd6347fc1b1996f3ec660f4dd2efe3d382e080f09c6d28d",

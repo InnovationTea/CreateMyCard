@@ -5703,6 +5703,11 @@ def _validate_ux_layout_root(
         if child.kind == "component" and child.name in _UX_ACTION_COMPONENTS
     )
     content_children = tuple(child for child in node.children if child not in action_children)
+    _validate_provider_template_layout_action_requirements(
+        content_children,
+        action_children,
+        registry,
+    )
     counted_children = content_children if embedded_actions else node.children
     minimum = layout.minimum_children(size)
     if not minimum <= len(counted_children) <= maximum:
@@ -5728,6 +5733,24 @@ def _validate_ux_layout_root(
             reject_nested_layout(child)
 
     reject_nested_layout(node)
+
+
+def _validate_provider_template_layout_action_requirements(
+    content_children: tuple[ParsedCall, ...],
+    action_children: tuple[ParsedCall, ...],
+    registry: CardPlanRegistry,
+) -> None:
+    if action_children:
+        return
+    for child in content_children:
+        for call in _walk_calls(child):
+            if call.kind != "template":
+                continue
+            definition = registry.templates.get(call.name)
+            if definition is not None and definition.requires_layout_action:
+                raise TerseDslNested2ConversionError(
+                    f"Provider Template requires a layout PillAction: {call.name}"
+                )
 
 
 def _parsed_layout_template_id(

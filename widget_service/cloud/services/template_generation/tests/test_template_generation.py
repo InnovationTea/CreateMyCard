@@ -45,6 +45,7 @@ from services.template_generation.engine.advanced.models import (
 from services.template_generation.engine.advanced.scope_planner import (
     TemplateRouteNotApplicable,
     build_advanced_scope_prompt,
+    scope_template_ids,
     validate_template_request_coverage,
 )
 from services.template_generation.engine.cardplan import registry as cardplan_registry_module
@@ -1339,6 +1340,95 @@ async def test_2x2_battery_pill_action_uses_normal_hero_template():
     assert "省电模式" in output.a2ui
     assert "batterySOC" in output.a2ui
     assert "chargingStatusDesc" in output.a2ui
+
+
+def test_battery_normal_hero_requires_a_selected_layout_action():
+    registry = get_cardplan_registry()
+    definition = registry.require_template("BatteryOverviewNormalHero@1")
+    scope = AdvancedScopeBrief(
+        themeId="system-low-power-blue",
+        advancedComponentIds=["BatteryOverview"],
+    )
+    no_action_task = _battery_task().model_copy(update={"eventCandidates": []})
+
+    assert definition.requires_layout_action is True
+    assert "BatteryOverviewNormalHero@1" not in scope_template_ids(
+        scope,
+        registry,
+        no_action_task,
+    )
+    assert "BatteryOverviewNormal@1" in scope_template_ids(scope, registry, no_action_task)
+    assert "BatteryOverviewNormalHero@1" in scope_template_ids(
+        scope,
+        registry,
+        _battery_task(),
+    )
+
+
+@pytest.mark.asyncio
+async def test_battery_normal_hero_without_pill_action_is_repaired_to_normal_template():
+    binding = CandidateDataBinding(
+        capabilityId="GetPhoneBatteryInfo",
+        writeResultTo="/data/phoneBattery",
+        candidateOutputFields=[
+            "/batterySOC",
+            "/batterySOCText",
+            "/batteryCapacityLevelDesc",
+            "/chargingStatusDesc",
+        ],
+    )
+
+    class RepairingBatteryModel(_FixedTemplateModel):
+        def __init__(self) -> None:
+            super().__init__(
+                theme_id="system-low-power-blue",
+                component_id="BatteryOverview",
+                available_template_ids=(
+                    "BatteryOverviewNormal@1",
+                    "BatteryOverviewNormalHero@1",
+                ),
+                capability_id="GetPhoneBatteryInfo",
+                required_fields=("/batterySOC", "/chargingStatusDesc"),
+                action_id=None,
+                body="",
+            )
+            self.body_calls = 0
+
+        async def generate(
+            self,
+            prompt: list[dict[str, str]],
+            *_args: Any,
+            **_kwargs: Any,
+        ) -> str:
+            self.second_layer_prompt = prompt
+            self.body_calls += 1
+            layout = 'Template("SingleFocusLayout@1",{},'
+            if self.body_calls == 1:
+                return layout + 'Template("BatteryOverviewNormalHero@1",{}));'
+            return layout + 'Template("BatteryOverviewNormal@1",{}));'
+
+    model = RepairingBatteryModel()
+    output = await generate_template_a2ui(
+        _battery_task(),
+        _battery_card_spec(),
+        (binding,),
+        model,
+    )
+
+    assert model.body_calls == 2
+    assert output.template_ids == ("BatteryOverviewNormal@1", "SingleFocusLayout@1")
+    assert model.second_layer_prompt is not None
+    candidate_line = next(
+        line
+        for line in model.second_layer_prompt[1]["content"].splitlines()
+        if line.startswith("componentCandidates=")
+    )
+    candidates = json.loads(candidate_line.removeprefix("componentCandidates="))
+    assert len(candidates) == 1
+    assert candidates[0]["componentId"] == "BatteryOverview"
+    assert "BatteryOverviewNormal@1" in candidates[0]["availableTemplateIds"]
+    assert "BatteryOverviewNormalHero@1" not in candidates[0]["availableTemplateIds"]
+    assert "PillAction" not in output.terse_dsl_nested2
 
 
 def test_first_layer_action_candidate_exposes_only_event_identity():

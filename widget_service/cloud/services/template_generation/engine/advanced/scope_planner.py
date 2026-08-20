@@ -15,6 +15,9 @@ from services.template_generation.engine.cardplan.models import BusinessTemplate
 from services.template_generation.engine.cardplan.prompt import (
     admitted_provider_template_variants,
 )
+from services.template_generation.engine.cardplan.provider_bundle import (
+    provider_template_context_admission,
+)
 from services.template_generation.engine.cardplan.registry import CardPlanRegistry
 
 from . import content_selectors as _content_selectors
@@ -964,6 +967,8 @@ def _template_has_satisfiable_variant(
     registry: CardPlanRegistry,
 ) -> bool:
     definition = registry.require_template(template_id)
+    if not provider_template_context_admission(definition, task_spec).admitted:
+        return False
     field_names = _schema_field_names(task_spec.dataModelSchema)
     has_assets = any(item.get("src") for item in task_spec.assetCandidates)
     has_actions = bool(task_spec.eventCandidates)

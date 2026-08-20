@@ -149,6 +149,7 @@ class TemplateDefinition(StrictModel):
     )
     allowed_parent_components: tuple[str, ...] = Field(alias="allowedParentComponents")
     action_policy: Literal["none", "optional", "required"] = Field(alias="actionPolicy")
+    requires_layout_action: bool = Field(default=False, alias="requiresLayoutAction")
     layout_action_style: TemplateLayoutActionStyle | None = Field(
         default=None,
         alias="layoutActionStyle",
