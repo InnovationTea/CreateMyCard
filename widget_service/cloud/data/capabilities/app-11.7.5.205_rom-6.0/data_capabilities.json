@@ -1,7 +1,7 @@
 [
   {
     "id": "ViewWeather",
-    "description": "查询指定地区的当前天气与未来数日天气预报。如果不能推断出用户的地区名，则需要追问用户提供。",
+    "description": "查询指定地区的当前天气与未来数日天气预报。如果不能推断出用户的地区名，则需要追问用户提供。注意，当前不支持查询国外的天气。",
     "defaultWriteResultTo": "/data/weather",
     "dependencies": {
       "requiredPackages": [
