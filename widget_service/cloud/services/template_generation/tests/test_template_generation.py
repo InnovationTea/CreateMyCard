@@ -34,7 +34,10 @@ from services.template_generation.engine.advanced.content_selectors import (
     extract_workout_latest_facts,
 )
 from services.template_generation.engine.advanced.data_shape import extract_data_shape
-from services.template_generation.engine.advanced.models import AdvancedScopeBrief
+from services.template_generation.engine.advanced.models import (
+    AdvancedScopeBrief,
+    TemplateRouteDecision,
+)
 from services.template_generation.engine.advanced.scope_planner import (
     TemplateRouteNotApplicable,
     build_advanced_scope_prompt,
@@ -215,7 +218,11 @@ def test_first_layer_receives_workout_session_routing_rules_and_four_required_pa
     )
 
     payload = json.loads(messages[1]["content"])
-    workout = next(item for item in payload["component"] if item["id"] == "WorkoutOverview")
+    workout = next(
+        item
+        for item in payload["componentCatalog"]
+        if item["componentId"] == "WorkoutOverview"
+    )
     template = next(
         item for item in workout["templates"] if item["templateId"] == "WorkoutOverview@1"
     )
@@ -238,7 +245,13 @@ def test_first_layer_uses_candidate_provider_and_theme_documents_with_task_spec_
                 EventAction(
                     id="event.open.weather",
                     call="clickToDeeplink",
-                    args={"intentName": "Weather_CityCode"},
+                    args={
+                        "intentName": "Weather_CityCode",
+                        "uri": (
+                            "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' "
+                            "+ ${/data/weather/location/cityCode} }}"
+                        ),
+                    },
                 )
             ]
         }
@@ -263,22 +276,26 @@ def test_first_layer_uses_candidate_provider_and_theme_documents_with_task_spec_
     payload = json.loads(messages[1]["content"])
     assert set(json.loads(system.splitlines()[-1])["properties"]) == {
         "theme",
-        "component",
+        "componentCandidates",
         "action",
     }
     assert "Action 是点击或跳转动作，不是数据项" in system
     assert "requiredOutputFieldsByCapability" not in system
     assert "不得判断 Action 属于哪个 component" in system
     assert "明确要求交互但 action 候选中没有语义匹配的 eventId" in system
-    assert '"component":[]' in system
+    assert '"componentCandidates":[]' in system
     assert '"theme":null' not in system
     assert payload["action"] == [
         {"eventId": "event.open.weather", "call": "clickToDeeplink"}
     ]
     assert (
-        "/data/weather/current/temperatureText" in payload["component"][0]["supportedTaskSpecPaths"]
+        "/data/weather/current/temperatureText"
+        in payload["componentCatalog"][0]["supportedTaskSpecPaths"]
     )
-    weather_templates = payload["component"][0]["templates"]
+    weather_candidate = payload["componentCatalog"][0]
+    assert weather_candidate["componentId"] == "WeatherOverview"
+    assert "WeatherOverviewHero@1" in weather_candidate["availableTemplateIds"]
+    weather_templates = weather_candidate["templates"]
     assert any(
         item["templateId"] == "WeatherOverviewHero@1"
         and "/data/weather/current/temperatureText" in item["requiredTaskSpecPaths"]
@@ -290,6 +307,34 @@ def test_first_layer_uses_candidate_provider_and_theme_documents_with_task_spec_
     assert "手机电量高级组件首层规则" not in provider_rules
     assert "family-weather-care-blue" in theme_rules
     assert "system-low-power-blue" not in theme_rules
+
+
+def test_first_layer_decision_contract_carries_component_template_candidates():
+    payload = {
+        "theme": "family-weather-care-blue",
+        "componentCandidates": [
+            {
+                "componentId": "WeatherOverview",
+                "availableTemplateIds": [
+                    "WeatherOverviewHero@1",
+                    "WeatherOverviewCompact@1",
+                ],
+            },
+            {
+                "componentId": "ScheduleOverview",
+                "availableTemplateIds": [
+                    "ScheduleOverviewNextEvent@1",
+                    "ScheduleOverviewNextEventLocation@1",
+                ],
+            },
+        ],
+        "action": "event.open.weather",
+    }
+
+    decision = TemplateRouteDecision.model_validate(payload)
+
+    assert decision.component_ids == ("WeatherOverview", "ScheduleOverview")
+    assert decision.model_dump(mode="json", by_alias=True) == payload
 
 
 def test_phone_battery_binding_auto_includes_numeric_soc_for_template_rendering():
@@ -535,7 +580,12 @@ async def test_derived_parameter_source_field_is_counted_as_template_coverage():
         async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
             return {
                 "theme": "digital-wellbeing-neutral-dark",
-                "component": ["AppUsageOverview"],
+                "componentCandidates": [
+                    {
+                        "componentId": "AppUsageOverview",
+                        "availableTemplateIds": ["AppUsageOverviewSingleApp@1"],
+                    }
+                ],
                 "action": None,
             }
 
@@ -582,11 +632,13 @@ class _FixedTemplateModel:
         *,
         theme_id: str,
         component_id: str,
+        available_template_ids: tuple[str, ...],
         body: str,
         action_id: str | None = None,
     ) -> None:
         self.theme_id = theme_id
         self.component_id = component_id
+        self.available_template_ids = available_template_ids
         self.action_id = action_id
         self.body = body
         self.second_layer_prompt: list[dict[str, str]] | None = None
@@ -594,7 +646,12 @@ class _FixedTemplateModel:
     async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
         return {
             "theme": self.theme_id,
-            "component": [self.component_id],
+            "componentCandidates": [
+                {
+                    "componentId": self.component_id,
+                    "availableTemplateIds": self.available_template_ids,
+                }
+            ],
             "action": self.action_id,
         }
 
@@ -728,6 +785,9 @@ async def test_bluetooth_connection_and_case_queries_have_honest_template_covera
     model = _FixedTemplateModel(
         theme_id="audio-product-neutral-violet",
         component_id="BluetoothDeviceOverview",
+        available_template_ids=(
+            f"BluetoothDeviceOverview{variant[:1].upper() + variant[1:]}@1",
+        ),
         body=(
             'Template("SingleFocusLayout@1",{},Template('
             f'"BluetoothDeviceOverview{variant[:1].upper() + variant[1:]}@1",{{}}));'
@@ -778,6 +838,7 @@ async def test_bluetooth_layout_action_uses_cardtpl_foreground_opacity():
     model = _FixedTemplateModel(
         theme_id="audio-product-neutral-violet",
         component_id="BluetoothDeviceOverview",
+        available_template_ids=("BluetoothDeviceOverviewEarbuds@1",),
         action_id="event.open.music.daily",
         body=(
             'Template("HeroActionLayout@1",{},'
@@ -811,6 +872,7 @@ async def test_2x2_battery_pill_action_uses_normal_hero_template():
     model = _FixedTemplateModel(
         theme_id="system-low-power-blue",
         component_id="BatteryOverview",
+        available_template_ids=("BatteryOverviewNormalHero@1",),
         action_id="event.setPowerSavingMode",
         body=(
             'Template("HeroActionLayout@1",{},'
@@ -914,6 +976,7 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
     model = _FixedTemplateModel(
         theme_id="meeting-paper-neutral",
         component_id="CountdownOverview",
+        available_template_ids=("CountdownOverview@1",),
         body='Template("SingleFocusLayout@1",{},Template("CountdownOverview@1",{}));',
     )
 
@@ -932,11 +995,16 @@ class WeatherTemplateModel:
         route_usable: bool = True,
         action_id: str | None = None,
         body: str = _WEATHER_BODY,
+        available_template_ids: tuple[str, ...] = (
+            "WeatherOverviewHero@1",
+            "WeatherOverviewHeroIcon@1",
+        ),
     ) -> None:
         self.body_called = False
         self.route_usable = route_usable
         self.action_id = action_id
         self.body = body
+        self.available_template_ids = available_template_ids
         self.first_layer_prompt: list[dict[str, str]] | None = None
         self.second_layer_prompt: list[dict[str, str]] | None = None
 
@@ -944,7 +1012,14 @@ class WeatherTemplateModel:
         self.first_layer_prompt = prompt
         return {
             "theme": "family-weather-care-blue",
-            "component": ["WeatherOverview"] if self.route_usable else [],
+            "componentCandidates": [
+                {
+                    "componentId": "WeatherOverview",
+                    "availableTemplateIds": self.available_template_ids,
+                }
+            ]
+            if self.route_usable
+            else [],
             "action": self.action_id if self.route_usable else None,
         }
 
@@ -1098,7 +1173,11 @@ def test_template_route_prompt_exposes_exact_task_spec_paths_from_bindings():
     )
 
     payload = json.loads(prompt[1]["content"])
-    weather = next(item for item in payload["component"] if item["id"] == "WeatherOverview")
+    weather = next(
+        item
+        for item in payload["componentCatalog"]
+        if item["componentId"] == "WeatherOverview"
+    )
     assert "/data/weather/current/condition" in weather["supportedTaskSpecPaths"]
     assert "/data/weather/current/temperatureText" in weather["supportedTaskSpecPaths"]
     assert all("/_advancedSelectors/" not in path for path in weather["supportedTaskSpecPaths"])
@@ -1145,6 +1224,26 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
     assert model.second_layer_prompt is not None
     second_layer_user = model.second_layer_prompt[1]["content"]
     assert "providerSecondLayerRules=" in second_layer_user
+    candidate_line = next(
+        line for line in second_layer_user.splitlines() if line.startswith("componentCandidates=")
+    )
+    assert json.loads(candidate_line.removeprefix("componentCandidates=")) == [
+        {
+            "componentId": "WeatherOverview",
+            "availableTemplateIds": [
+                "WeatherOverviewHero@1",
+                "WeatherOverviewHeroIcon@1",
+            ],
+        }
+    ]
+    required_group_line = next(
+        line
+        for line in second_layer_user.splitlines()
+        if line.startswith("requiredLocalTemplateGroups=")
+    )
+    assert json.loads(required_group_line.removeprefix("requiredLocalTemplateGroups=")) == [
+        ["WeatherOverviewHero@1", "WeatherOverviewHeroIcon@1"]
+    ]
     assert "selectedActionEventId=null" in second_layer_user
     assert 'PillAction({"actionId":"<selectedActionEventId>"})' in second_layer_user
     assert "第二层业务模板使用规则" in second_layer_user
@@ -1211,7 +1310,7 @@ async def test_first_layer_no_match_rejects_template_before_body_generation():
         ],
     )
 
-    with pytest.raises(TemplateRouteNotApplicable, match="first-layer LLM rejected"):
+    with pytest.raises(TemplateRouteNotApplicable, match="first-layer decision rejected"):
         await generate_template_a2ui(
             _weather_task_spec(),
             _weather_card_spec(),
@@ -1220,6 +1319,46 @@ async def test_first_layer_no_match_rejects_template_before_body_generation():
         )
 
     assert model.body_called is False
+
+
+@pytest.mark.asyncio
+async def test_first_layer_rejects_template_candidate_outside_component_catalog():
+    model = WeatherTemplateModel(available_template_ids=("ScheduleOverviewNextEvent@1",))
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=list(_WEATHER_TEMPLATE_FIELDS),
+    )
+
+    with pytest.raises(TemplateRouteNotApplicable, match="unavailable Provider Template"):
+        await generate_template_a2ui(
+            _weather_task_spec(),
+            _weather_card_spec(),
+            (binding,),
+            model,
+        )
+
+    assert model.body_called is False
+
+
+@pytest.mark.asyncio
+async def test_second_layer_rejects_provider_template_outside_first_layer_candidates():
+    model = WeatherTemplateModel(available_template_ids=("WeatherOverviewHero@1",))
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=list(_WEATHER_TEMPLATE_FIELDS),
+    )
+
+    with pytest.raises(TemplateGenerationError, match="template body validation failed"):
+        await generate_template_a2ui(
+            _weather_task_spec(),
+            _weather_card_spec(),
+            (binding,),
+            model,
+        )
+
+    assert model.body_called is True
 
 
 @pytest.mark.asyncio
@@ -1258,13 +1397,25 @@ async def test_first_layer_action_is_independent_from_selected_components():
             'PillAction({"actionId":"event.open.weather"}));'
         ),
     )
-    task_spec = _weather_task_spec().model_copy(
+    task_spec = _weather_task_spec()
+    task_spec.dataModelSchema["data"]["weather"]["location"]["cityCode"] = {
+        "type": "string",
+        "description": "weather city code",
+        "sampleValue": "60814",
+    }
+    task_spec = task_spec.model_copy(
         update={
             "eventCandidates": [
                 EventAction(
                     id="event.open.weather",
                     call="clickToDeeplink",
-                    args={"intentName": "Weather_CityCode"},
+                    args={
+                        "intentName": "Weather_CityCode",
+                        "uri": (
+                            "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' "
+                            "+ ${/data/weather/location/cityCode} }}"
+                        ),
+                    },
                 )
             ]
         }
@@ -1286,6 +1437,7 @@ async def test_first_layer_action_is_independent_from_selected_components():
     assert model.body_called is True
     assert '"call":"clickToDeeplink"' in output.a2ui
     assert "天气详情" in output.a2ui
+    assert "cityCode" in output.projected_task_spec.dataModelSchema["data"]["weather"]["location"]
 
 
 @pytest.mark.asyncio

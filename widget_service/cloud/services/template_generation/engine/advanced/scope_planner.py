@@ -41,6 +41,7 @@ from .content_selectors import (
 from .models import (
     AdvancedScopeBrief,
     DataShape,
+    TemplateComponentCandidate,
     TemplateRouteDecision,
     TemplateRouteSelection,
     UxBusinessComponentCapability,
@@ -185,34 +186,16 @@ def _build_template_route_prompt(
             for theme_id in _theme_ids_for_components((component,), registry)
         )
     )
-    components = [
-        {
-            "id": capability.name,
-            "supportedTaskSpecPaths": sorted(
-                _absolute_task_spec_path(data_roots[capability_id], path)
-                for capability_id, paths in _component_template_coverage_union(
-                    capability,
-                    task_spec,
-                    registry,
-                    effective_ids,
-                    card_spec,
-                ).items()
-                for path in paths
-            ),
-            "theme": _theme_ids_for_components((capability,), registry),
-            "templates": _component_template_prompt_contracts(
-                capability,
-                registry,
-                effective_ids,
-            ),
-            "compatibleComponent": _compatible_component_ids(
-                capability,
-                candidate_id_set,
-                task_spec.size,
-                task_spec.userQuery,
-                registry,
-            ),
-        }
+    component_catalog = [
+        _template_route_component_payload(
+            capability,
+            task_spec,
+            registry,
+            effective_ids,
+            candidate_id_set,
+            data_roots,
+            card_spec,
+        )
         for capability in component_candidates
     ]
     payload = {
@@ -228,7 +211,7 @@ def _build_template_route_prompt(
             }
             for field in data_shape.fields
         ],
-        "component": components,
+        "componentCatalog": component_catalog,
         "theme": theme_ids,
         "action": [
             {"eventId": event.id, "call": event.call}
@@ -245,25 +228,30 @@ def _build_template_route_prompt(
     schema = TemplateRouteDecision.model_json_schema(by_alias=True)
     system = (
         "你是模板生成的第一层选择器。只输出一个 JSON 对象，且顶层只能有 "
-        "theme、component、action "
+        "theme、componentCandidates、action "
         "三个字段，字段类型必须符合末尾 JSON Schema。theme 只能是 theme 候选中的一个 ID；"
-        "component 只能由 component 候选 ID 组成；action 只能是 action 候选中的 eventId 或 null。"
+        "componentCandidates 中每个 componentId 只能来自 componentCatalog，"
+        "availableTemplateIds 只能从同一 componentCatalog 项的同名字段中选择，"
+        "且必须非空；action 只能是 action 候选中的 eventId 或 null。"
         "Action 是点击或跳转动作，不是数据项：不得把 eventId、call 或动作参数"
         "当作数据路径，"
-        "不得把动作放进 component，也不得判断 Action 属于哪个 component。只有 userQuery 明确"
+        "不得把动作放进 componentCandidates，也不得判断 Action 属于哪个 component。"
+        "只有 userQuery 明确"
         "要求某个交互时，才在 action 中逐字输出对应 eventId；没有明确交互请求时输出 null。"
         "即使模板路线失败，也必须从 theme 候选中选择最匹配用户意图的 theme；失败仅以"
-        "component 为空数组表示，并把 action 置为 null。"
+        "componentCandidates 为空数组表示，并把 action 置为 null。"
         "如果 userQuery 明确要求交互但 action 候选中没有语义匹配的 eventId，必须拒绝模板路线并"
-        '输出 {"theme":"<最匹配的候选 theme>","component":[],"action":null}。'
+        '输出 {"theme":"<最匹配的候选 theme>","componentCandidates":[],"action":null}。'
         "第一步，根据 userQuery 从 taskSpecDataFields 的全量内容中标定本轮显式要求显示的数据字段；"
         "第二步，只能选择 supportedTaskSpecPaths 的并集能够完整覆盖全部显式字段的一个或多个"
-        "component，任意一个显式字段全部或部分不能承载都必须失败；第三步，逐个检查所选模板"
+        "componentId，任意一个显式字段全部或部分不能承载都必须失败；第三步，"
+        "为每个组件保留能承载本轮显式字段的 availableTemplateIds，并逐个检查候选模板"
         "自身 requiredData 对应的数据字段是否在 taskSpecDataFields 中真实存在，缺少任意必需字段"
-        "也必须失败。这个中间字段集合"
+        "也必须失败。availableTemplateIds 是第二层可以继续选择的候选集，不是最终模板结果。"
+        "这个中间字段集合"
         "只用于判断，不得出现在输出中。candidateOutputFields 不是本层的强制完整展示集合。"
         "任一必须显示字段无法呈现、组件不兼容、主题不适用或存在歧义时，输出"
-        '{"theme":"<最匹配的候选 theme>","component":[],"action":null}。'
+        '{"theme":"<最匹配的候选 theme>","componentCandidates":[],"action":null}。'
         "不得输出数据路径、参数、布局、"
         "理由、置信度或额外字段。\n" + json.dumps(schema, ensure_ascii=False)
     )
@@ -271,6 +259,49 @@ def _build_template_route_prompt(
         {"role": "system", "content": system},
         {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
     ]
+
+
+def _template_route_component_payload(
+    capability: UxBusinessComponentCapability,
+    task_spec: TaskSpec,
+    registry: CardPlanRegistry,
+    effective_ids: set[str],
+    candidate_ids: set[str],
+    data_roots: dict[str, str],
+    card_spec: dict[str, Any] | None,
+) -> dict[str, Any]:
+    contracts = _component_template_prompt_contracts(
+        capability,
+        task_spec,
+        registry,
+        effective_ids,
+        card_spec,
+    )
+    coverage = _component_template_coverage_union(
+        capability,
+        task_spec,
+        registry,
+        effective_ids,
+        card_spec,
+    )
+    return {
+        "componentId": capability.name,
+        "availableTemplateIds": [item["templateId"] for item in contracts],
+        "supportedTaskSpecPaths": sorted(
+            _absolute_task_spec_path(data_roots[capability_id], path)
+            for capability_id, paths in coverage.items()
+            for path in paths
+        ),
+        "themeIds": _theme_ids_for_components((capability,), registry),
+        "templates": contracts,
+        "compatibleComponentIds": _compatible_component_ids(
+            capability,
+            candidate_ids,
+            task_spec.size,
+            task_spec.userQuery,
+            registry,
+        ),
+    }
 
 
 def _data_roots_by_capability(
@@ -371,8 +402,10 @@ def _component_template_coverage_union(
 
 def _component_template_prompt_contracts(
     capability: UxBusinessComponentCapability,
+    task_spec: TaskSpec,
     registry: CardPlanRegistry,
     effective_ids: set[str],
+    card_spec: dict[str, Any] | None,
 ) -> tuple[dict[str, Any], ...]:
     contracts: list[dict[str, Any]] = []
     for template_id in capability.local_template_ids:
@@ -382,6 +415,8 @@ def _component_template_prompt_contracts(
             or definition.capability_id not in effective_ids
             or definition.data_domain is None
         ):
+            continue
+        if not admitted_provider_template_variants(definition, task_spec, card_spec):
             continue
         contracts.append(
             {
@@ -406,6 +441,7 @@ def validate_template_request_coverage(
     registry: CardPlanRegistry,
     coverage_bindings: tuple[CandidateDataBinding, ...],
     card_spec: dict[str, Any] | None,
+    component_candidates: tuple[TemplateComponentCandidate, ...] | None = None,
 ) -> None:
     """证明每个首层所选组件都有能从本轮 TaskSpec 展开的 Provider 模板。"""
     if not coverage_bindings:
@@ -414,6 +450,13 @@ def validate_template_request_coverage(
     if len(capability_ids) != len(set(capability_ids)):
         raise ValueError("Template route requires one binding root per data capability")
     effective_ids = resolve_available_capability_ids(task_spec, registry, tuple(capability_ids))
+    candidates_by_component = {
+        candidate.component_id: candidate.available_template_ids
+        for candidate in component_candidates or ()
+    }
+    if component_candidates is not None:
+        if tuple(candidates_by_component) != scope.advanced_component_ids:
+            raise ValueError("Template route componentCandidates do not match selected Scope")
     for component_id in scope.advanced_component_ids:
         capability = registry.require_ux_business_component(component_id)
         options = _component_template_coverage_options(
@@ -426,6 +469,24 @@ def validate_template_request_coverage(
         if not options:
             raise ValueError(
                 f"Template route component has no applicable Provider Template: {component_id}"
+            )
+        if component_candidates is None:
+            continue
+        allowed_template_ids = {
+            item["templateId"]
+            for item in _component_template_prompt_contracts(
+                capability,
+                task_spec,
+                registry,
+                effective_ids,
+                card_spec,
+            )
+        }
+        selected_template_ids = candidates_by_component[component_id]
+        if not set(selected_template_ids).issubset(allowed_template_ids):
+            raise ValueError(
+                "Template route selected an unavailable Provider Template: "
+                f"{component_id}"
             )
 
 
@@ -513,13 +574,40 @@ async def plan_template_route_with_llm(
         decision = TemplateRouteDecision.model_validate(raw)
     except ValidationError as exc:
         raise TemplateRouteNotApplicable("invalid TemplateRouteDecision") from exc
-    if not decision.component:
-        raise TemplateRouteNotApplicable("first-layer LLM rejected the Template route")
+    return validate_template_route_decision(
+        decision,
+        task_spec,
+        data_shape,
+        registry,
+        coverage_bindings,
+        available_capability_ids,
+        card_spec,
+    )
+
+
+def validate_template_route_decision(
+    decision: TemplateRouteDecision,
+    task_spec: TaskSpec,
+    data_shape: DataShape,
+    registry: CardPlanRegistry,
+    coverage_bindings: tuple[CandidateDataBinding, ...],
+    available_capability_ids: tuple[str, ...] | None = None,
+    card_spec: dict[str, Any] | None = None,
+) -> TemplateRouteSelection:
+    """让 LLM 或 Search 的同构结果复用同一套确定性模板路由门禁。"""
+    if not decision.component_candidates:
+        raise TemplateRouteNotApplicable("first-layer decision rejected the Template route")
     scope = AdvancedScopeBrief(
         themeId=decision.theme,
-        advancedComponentIds=decision.component,
+        advancedComponentIds=decision.component_ids,
     )
     scope = _normalize_redundant_2x2_support(scope, task_spec)
+    selected_component_ids = set(scope.advanced_component_ids)
+    component_candidates = tuple(
+        candidate
+        for candidate in decision.component_candidates
+        if candidate.component_id in selected_component_ids
+    )
     try:
         selected_task_spec = task_spec_with_selected_action(
             task_spec,
@@ -538,10 +626,15 @@ async def plan_template_route_with_llm(
             registry,
             coverage_bindings,
             card_spec,
+            component_candidates,
         )
     except ValueError as exc:
         raise TemplateRouteNotApplicable(str(exc)) from exc
-    return TemplateRouteSelection(scope=scope, action_id=decision.action)
+    return TemplateRouteSelection(
+        scope=scope,
+        componentCandidates=component_candidates,
+        action_id=decision.action,
+    )
 
 
 def _normalize_scope_to_shared_theme(

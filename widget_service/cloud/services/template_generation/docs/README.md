@@ -23,8 +23,9 @@ await generate_template_artifact(
 
 - 模板模块只负责模板生成结果，不接收主服务对象，也不调用原始生成逻辑。
 - edit 由同一个模板入口判定为不适用并抛出异常；Compact 调用方随后执行原协议流程，Terse 调用方直接返回失败。
-- create 请求先由第一层 LLM 只选择 `theme`、`component`、`action`，再判断一个或多个模板能否覆盖完整需求。
-- 第一层失败时仍返回最匹配的候选 Theme，以空 `component` 和空 `action` 表示模板不适用。
+- create 请求先由第一层 LLM 只输出 `theme`、`componentCandidates`、`action`；每个组件候选同时给出
+  当前可交给第二层继续选择的 `availableTemplateIds`。
+- 第一层失败时仍返回最匹配的候选 Theme，以空 `componentCandidates` 和空 `action` 表示模板不适用。
 - 第二层的业务 UI 和布局骨架都使用 `Template` 调用；模板 ID 直接表达形态，不再输出 Variant。
 - 第一层拒绝、输出非法、调用失败、确定性覆盖检查不通过，以及后续生成、转换、校验或保存异常，均向公开
   入口抛出异常。

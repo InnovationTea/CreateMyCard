@@ -76,17 +76,30 @@ generateWidgetCardTerseDslNested2
 第一层输出严格限制为：
 
 ```json
-{"theme":"theme.id","component":["ComponentId"],"action":"event.id"}
+{
+  "theme": "theme.id",
+  "componentCandidates": [
+    {
+      "componentId": "ComponentId",
+      "availableTemplateIds": ["BusinessTemplate@1"]
+    }
+  ],
+  "action": "event.id"
+}
 ```
 
 不匹配时保留最匹配的候选 Theme，并固定输出
-`{"theme":"theme.id","component":[],"action":null}`。空 `component` 是模板失败标志；`action` 是批准的事件 ID，不是
+`{"theme":"theme.id","componentCandidates":[],"action":null}`。空 `componentCandidates` 是模板失败标志；
+`availableTemplateIds` 是交给第二层的非空业务模板候选集，必须属于同一 `componentId` 且在当前
+TaskSpec/CardSpec 下可展开。`action` 是批准的事件 ID，不是
 数据项；SystemPrompt 只保留这一通用语义和输出约束。Provider 首层 MD 描述“高级组件 → TaskSpec 数据
 路径”，Theme 首层 MD 描述主题适用场景；两类文档都只按本轮候选动态加载。第一层根据用户动作意图
 从 TaskSpec 事件候选中输出对应 `eventId`，不判断 Action 属于哪个组件；没有动作时输出 `null`。
-Action 不参与数据字段覆盖。
+Action 不参与数据字段覆盖。首层 LLM 与后续 Search 都必须生成同一 `TemplateRouteDecision`，并共用
+同一个确定性路由门禁，不得各自实现 Provider、事件或模板可用性校验。
 
-第二层从所选 Provider 的二层 MD 读取具体业务模板、props 和素材使用规则。业务模板 ID 已表达 UI 形态，
+第二层从所选 Provider 的二层 MD 读取规则，只能在首层的 `availableTemplateIds` 中选择最终业务模板，
+并生成 props、Layout 与 Action。业务模板 ID 已表达 UI 形态，
 不再输出 Variant；组件骨架也通过 Layout Provider 的 `Template("...Layout@1", {}, ...children)` 表达。
 选中的 `eventId` 与业务组件解耦，统一生成布局模板末尾唯一的 `PillAction`。Python 只保留候选过滤、可信事实投影、事件 ID 校验、模板签名
 与编译校验，不再把全部领域规则拼入 SystemPrompt。
