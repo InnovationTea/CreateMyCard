@@ -335,7 +335,7 @@
     {
       "name": "BatteryOverview",
       "domainId": "battery",
-      "description": "由可信 TerseDSL 构造器展开的手机本机电量。仅当 GetPhoneBatteryInfo 提供 0..100 的 batterySOC，或可从 batterySOCText 解析出一致百分比，并且 batteryCapacityLevelDesc、chargingStatusDesc 均为可信非空字符串时可选；0% 合法。只投影这四个字段，不表达续航、预计充满时间、健康度、温度、电压、电流、充电器类型或外设电量。2x2 单业务使用标题、状态建议与 52vp Ring；2x4 单业务左图右文；与 ResourceUsageOverview 的 2x2 对等组合必须显式 showTitle=false，由外层写独立业务标题并统一两列基线；与 BluetoothDeviceOverview 组合时手机使用 56vp 主 Ring，耳机使用更小的支持 Ring。Action 由第二层作为布局根末尾独立 PillAction 处理。",
+      "description": "由可信 TerseDSL 构造器展开的手机本机电量。仅当 GetPhoneBatteryInfo 提供 0..100 的 batterySOC，或可从 batterySOCText 解析出一致百分比，并且 batteryCapacityLevelDesc、chargingStatusDesc 均为可信非空字符串时可选；0% 合法。只投影这四个字段，不表达续航、预计充满时间、健康度、温度、电压、电流、充电器类型或外设电量。2x2 单业务无动作时使用标题、状态建议与 52vp Ring；2x2 带 PillAction 时使用 normalHero 横向紧凑排版；2x4 单业务左图右文；与 ResourceUsageOverview 的 2x2 对等组合必须显式 showTitle=false，由外层写独立业务标题并统一两列基线；与 BluetoothDeviceOverview 组合时手机使用 56vp 主 Ring，耳机使用更小的支持 Ring。Action 由第二层作为布局根末尾独立 PillAction 处理。",
       "variants": ["normal", "charging", "low"],
       "supportedCardSizes": ["2x2", "2x4"],
       "minRegion": "compact",
@@ -349,6 +349,7 @@
       "enabledVariantsByCapability": {"GetPhoneBatteryInfo": ["normal", "charging", "low"]},
       "localTemplateIds": [
         "BatteryOverviewNormal@1",
+        "BatteryOverviewNormalHero@1",
         "BatteryOverviewCharging@1",
         "BatteryOverviewLow@1",
         "BatteryOverviewNormalWide@1",
