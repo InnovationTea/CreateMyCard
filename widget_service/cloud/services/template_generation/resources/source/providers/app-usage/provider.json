@@ -36,7 +36,7 @@
         "/updatedAt"
       ],
       "entry": "templates/app-usage-overview.cardtpl",
-      "digest": "sha256:835cc867699c36cfc72155488e02ed4ec0eff693a8a75454efd35e395e29eecb"
+      "digest": "sha256:092d3e7d9ec334ddb87bc3360c795820b4abef15a58a0d98716916b8939bec2a"
     },
     {
       "templateId": "AppUsageOverviewSingleAppDetailed@1",
@@ -49,7 +49,7 @@
         "/updatedAt"
       ],
       "entry": "templates/app-usage-overview.cardtpl",
-      "digest": "sha256:835cc867699c36cfc72155488e02ed4ec0eff693a8a75454efd35e395e29eecb"
+      "digest": "sha256:092d3e7d9ec334ddb87bc3360c795820b4abef15a58a0d98716916b8939bec2a"
     },
     {
       "templateId": "AppUsageOverviewSingleAppWide@1",
@@ -62,7 +62,7 @@
         "/updatedAt"
       ],
       "entry": "templates/app-usage-overview.cardtpl",
-      "digest": "sha256:835cc867699c36cfc72155488e02ed4ec0eff693a8a75454efd35e395e29eecb"
+      "digest": "sha256:092d3e7d9ec334ddb87bc3360c795820b4abef15a58a0d98716916b8939bec2a"
     },
     {
       "templateId": "AppUsageOverviewSingleAppDetailedWide@1",
@@ -75,7 +75,7 @@
         "/updatedAt"
       ],
       "entry": "templates/app-usage-overview.cardtpl",
-      "digest": "sha256:835cc867699c36cfc72155488e02ed4ec0eff693a8a75454efd35e395e29eecb"
+      "digest": "sha256:092d3e7d9ec334ddb87bc3360c795820b4abef15a58a0d98716916b8939bec2a"
     }
   ],
   "compatibility": {

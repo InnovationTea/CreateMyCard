@@ -29,7 +29,8 @@
   - `SleepOverviewDurationSupport@1`：睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：durationSupport。 必需数据：/nightSleepDurationText；可选数据：无。
   - `SleepOverviewDurationDetailedSupport@1`：睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：durationDetailedSupport。 必需数据：/nightSleepDurationText；可选数据：无。
 
-- props 只能使用本次 Prompt 下发的可信文本、数值或素材；不得输出数据路径。
+- 已有 Provider 全局路径的值必须由模板 `data` 绑定；props 可传无全局路径的受控派生值、排版参数和
+  素材。
 - 选择能够完整表达用户显式要求字段且自身 requiredData 全部可用的模板。
 - 用户同时要求睡眠时长、睡眠得分和今日步数时，必须组合 `SleepOverviewDurationScoreSupport@1` 与只展示步数的 Activity 模板；不得用热量、距离替代睡眠字段。
 - 素材参数描述的是槽位语义，不代表固定素材清单；只在本轮素材候选中匹配，没有合适候选时省略可选参数：
