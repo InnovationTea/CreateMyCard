@@ -7,6 +7,7 @@
 - [场景矩阵](#场景矩阵)
 - [动态 create：天气与下一场日程](#动态-create天气与下一场日程)
 - [静态入口 create](#静态入口-create)
+- [部分支持：改写有效需求或确认替代](#部分支持改写有效需求或确认替代)
 - [权限未通过](#权限未通过)
 - [权限 invoke 报错](#权限-invoke-报错)
 - [连续编辑](#连续编辑)
@@ -20,10 +21,11 @@
 | 卡片创建页面要求撰写长报告 | 结束并引导 | 零调用 |
 | 外卖实时配送卡，overview 无相关核心能力 | 结束并引导 | overview |
 | 天气和股票都要，股票没有就不生成 | 结束并引导 | overview |
-| 天气是核心、股票是次要补充，股票不可用但天气可用 | 降级生成并说明差异 | overview → schema → permission → generate |
+| 天气是核心、股票是次要补充，股票不可用但天气可用 | 告知移除股票，以仅含天气的有效 `userQuery` 降级生成 | overview → schema → permission → generate |
 | 股票是核心、天气是次要补充，股票不可用但天气可用 | 结束并引导 | overview |
 | 天气卡片，点击详情是次要诉求但事件不可用 | 调整后生成 | overview → schema → permission → generate |
 | 打开天气详情是唯一核心动作但事件不可用 | 结束并引导 | overview |
+| 一键打车去公司，只有导航能力可用 | 追问是否改为导航，不自行替代打车 | overview → 追问 |
 | 最后一个核心数据能力进入 `missingCapabilityIds` | 结束并引导 | overview → schema |
 | 查询日程但未说明日期范围，overview 确认日程可用且 schema 将其列为必填参数 | 追问日期范围 | overview → schema → 追问 |
 | 用户明确要求不支持的静态形态，例如在卡片内撰写长报告 | 结束并说明 | 零调用 |
@@ -207,6 +209,62 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 ```
 
 事件 action 必须来自本轮 overview；示例值不能替代实际返回。
+
+## 部分支持：改写有效需求或确认替代
+
+用户：
+
+```text
+做一张通勤卡片，显示今天天气和股票行情，股票没有也可以。
+```
+
+overview 确认天气可用、股票不可用。天气仍是核心，股票可直接移除。先回复：
+
+```text
+当前暂无法提供股票行情，我会移除该内容并基于其余可用内容继续为你生成卡片。
+```
+
+随后只为天气加载 schema、检查天气权限。调用生成工具时，`userQuery` 不能保留“股票”“行情”或将其作为背景说明：
+
+```text
+invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
+  userQuery:"做一张通勤卡片，显示今天的天气。",
+  title:"通勤天气",
+  description:"今日天气速览",
+  size:"2x2",
+  candidateDataBindings:[
+    {
+      "capabilityId":"ViewWeather",
+      "arguments":{
+        "districtName":"青浦区",
+        "forecastDays":1
+      },
+      "writeResultTo":"/data/weather",
+      "candidateOutputFields":[
+        "/current/temperatureText",
+        "/current/condition"
+      ]
+    }
+  ],
+  candidateEventCandidates:[],
+  candidateAssetIds:[]
+},"skillName":"harmony-card-generation-online")
+```
+
+用户：
+
+```text
+做一张一键打车去公司的卡片。
+```
+
+overview 没有打车事件，但有一键导航到公司的事件。打车是核心动作，导航会改变主要动作，不能调用生成工具或把 `userQuery` 改成导航后直接生成。只追问：
+
+```text
+当前暂无法提供一键打车去公司。是否改为一键导航到公司？
+```
+
+只有用户确认后，重新执行 create，并将确认后的“一键导航到公司”作为有效 `userQuery`；标题、说明和按钮文字均不得出现“打车”“叫车”或“派车”。
 
 ## 权限未通过
 
