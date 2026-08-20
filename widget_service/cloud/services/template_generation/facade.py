@@ -8,14 +8,15 @@ from typing import Any
 
 from api.schemas import GenerateWidgetCardRequest, GenerateWidgetCardResponse
 from app.logger import json_for_log, logger
+from core.errors import ErrorCode, GenerationStatus
 from custom.model_runtime import ModelExecutionRuntime
-from models.generation import EventAction, ModelRequestContext, WidgetSize
+from models.generation import DEFAULT_WIDGET_SIZE, ModelRequestContext, WidgetSize
 from services.artifact_store import ArtifactStore
 from services.capability_registry import CapabilityRegistry
 from services.card_spec_builder import CardSpecBuilder
-from services.device_capability_resolver import DeviceCapabilityResolver
 from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_pipeline import DslProcessorKind, GenerationRoutePolicy
+from services.generation_preflight import GenerationPreflight
 from services.protocol_registry import A2UIProtocolRegistry
 from services.response_planner import ResponsePlanner
 from services.task_spec_builder import TaskSpecBuilder
@@ -42,6 +43,55 @@ _MODULE = "[Template Generation]"
 ModelStartCallback = Callable[[WidgetSize], Awaitable[None]]
 
 
+async def generate_strict_terse_template_artifact(
+    request: GenerateWidgetCardRequest,
+    policy: GenerationRoutePolicy,
+    *,
+    registry: CapabilityRegistry,
+    model_runtime: ModelExecutionRuntime | None,
+    model_request_context: ModelRequestContext,
+    before_model_call: ModelStartCallback | None = None,
+) -> GenerateWidgetCardResponse:
+    """Terse create 只允许模板成功；edit 或任一模板失败均不回退旧流程。"""
+    if "sourceArtifactUrl" in request.model_fields_set:
+        logger.info(f"{_MODULE} terse_route_rejected reason=edit_not_supported fallback=disabled")
+        return _template_failure_response(request, "模板路线暂不支持二次更新。")
+
+    try:
+        return await generate_template_artifact(
+            request,
+            policy,
+            registry=registry,
+            model_runtime=model_runtime,
+            model_request_context=model_request_context,
+            before_model_call=before_model_call,
+        )
+    except TemplateRouteNotApplicable as exc:
+        logger.info(
+            f"{_MODULE} terse_route_rejected reason={type(exc).__name__} "
+            f"fallback=disabled detail={json_for_log(str(exc))}"
+        )
+        return _template_failure_response(request, "当前需求没有可完整呈现的模板。")
+    except Exception as exc:
+        logger.error(
+            f"{_MODULE} terse_route_failed reason={type(exc).__name__} "
+            f"fallback=disabled detail={json_for_log(str(exc))}"
+        )
+        return _template_failure_response(request, "卡片模板生成失败，请稍后再试。")
+
+
+def _template_failure_response(
+    request: GenerateWidgetCardRequest,
+    message: str,
+) -> GenerateWidgetCardResponse:
+    return GenerateWidgetCardResponse(
+        status=GenerationStatus.FAILED,
+        suggestSize=request.size or DEFAULT_WIDGET_SIZE,
+        message=message,
+        errorCode=ErrorCode.A2UI_GENERATION_FAILED.value,
+    )
+
+
 async def generate_template_artifact(
     request: GenerateWidgetCardRequest,
     policy: GenerationRoutePolicy,
@@ -55,27 +105,13 @@ async def generate_template_artifact(
     if "sourceArtifactUrl" in request.model_fields_set:
         raise TemplateRouteNotApplicable("template generation does not support edit mode")
     normalized_request = EditRequestNormalizer.normalize_create(request)
-    resolver = DeviceCapabilityResolver(registry)
-    effective_bindings, data_capabilities, removed_data = (
-        resolver.resolve_generation_data_bindings(normalized_request.candidateDataBindings)
-    )
-    if removed_data or not effective_bindings:
-        raise TemplateRouteNotApplicable("template data bindings are not applicable")
-    effective_bindings = enrich_template_bindings(effective_bindings)
-
-    event_candidates = _normalize_event_candidates(normalized_request)
-    effective_events = []
-    for event in event_candidates:
-        if not event.id or registry.get_event_capability(event.id) is None:
-            raise TemplateRouteNotApplicable("template event candidate is not applicable")
-        effective_events.append(event)
-
-    asset_candidates = []
-    for asset_id in normalized_request.candidateAssetIds:
-        asset = registry.get_asset_capability(asset_id)
-        if asset is None:
-            raise TemplateRouteNotApplicable("template asset candidate is not applicable")
-        asset_candidates.append(asset)
+    preflight = GenerationPreflight(registry).run(normalized_request)
+    if preflight.blocking_issues or not preflight.effective_bindings:
+        raise TemplateRouteNotApplicable("template candidate plan is not applicable")
+    effective_bindings = enrich_template_bindings(list(preflight.effective_bindings))
+    data_capabilities = list(preflight.effective_data_capabilities)
+    effective_events = list(preflight.effective_events)
+    asset_candidates = list(preflight.effective_assets)
 
     try:
         protocol_profile = A2UIProtocolRegistry(policy.protocol_profile_id).get_profile()
@@ -182,18 +218,6 @@ async def generate_template_artifact(
         errorCode=plan.errorCode,
         effectiveCapabilities=artifact.effectiveCapabilities,
     )
-
-
-def _normalize_event_candidates(request: Any) -> list[EventAction]:
-    """在隔离模块内转换生成接口事件结构，避免依赖主服务私有方法。"""
-    return [
-        EventAction(
-            id=candidate.capabilityId,
-            call=candidate.action.call,
-            args=candidate.action.args,
-        )
-        for candidate in request.candidateEventCandidates
-    ]
 
 
 async def _build_route_archive(
