@@ -118,7 +118,9 @@ overview 前仅检查卡片形态、静态范围和最小语义歧义。用户 q
 - 仅在运行时 schema 声明 `candidateDataBindings` 时传。`capabilityId` 必须来自本轮完整数据 schema。
 - `arguments` 只含对应 `inputSchema.properties` 字段；核心必填值缺失且用户可回答时先追问。
 - `writeResultTo` 优先使用 schema 默认值，否则使用不冲突的 `/data/{semanticKey}`；多个路径不得相同、互为父子或覆盖。
-- `candidateOutputFields` 可省略；传入时只能是从 `outputSchema` 推导的叶子 JSON Pointer，数组元素用 `/0`，去重后所有候选合计不超过 4 项。
+- `candidateOutputFields` 可省略；传入时只能是从 `outputSchema` 推导的叶子 JSON Pointer。数组
+  元素使用 `/0`、`/1`、`/2` 等安全非负数下标，不按布局主区域数量设置入口级字段上限；
+  仍应只选择与用户需求相关的字段。
 - 不传 `required`、`inputSchema`、`outputSchema`、`updateModel` 或未声明字段。
 
 ```json
@@ -137,6 +139,9 @@ overview 前仅检查卡片形态、静态范围和最小语义歧义。用户 q
   保留。`dynamicArguments[].path` 是相对 `actionTemplate.args` 的 JSON Pointer，只允许按这些路径替换动态
   值；必要业务值缺失且用户可回答时只追问一个最小问题，不编造 deeplink、intent、包名、ability、号码或参数名。模板中的动态占位符无法
   按说明安全解析且模板默认值也不合法时，移除整个候选；核心动作因此缺失时重新决策。
+- 当同一数组的多个具体下标都会展示并可点击时，必须为每个实际下标分别构造事件候选。
+  例如展示日程 `events/0`、`events/1`、`events/2` 时，分别将动态参数中的 `i` 替换为 `0`、`1`、`2`；
+  不得让后续项复用第 `0` 项的数据路径。
 - 高风险或不可逆动作仅在用户明确要求且 overview 明确支持时选择。候选 action 不是最终 DSL `onClick`，最终过滤和写入由微服务负责。
 - `candidateAssetIds` 只用 overview 返回的 ID；没有语义匹配时传空数组，不自造路径。
 - 不传 `slots`、`options`、`locale`、`uid`、`device` 或运行时 schema 未声明的字段。
