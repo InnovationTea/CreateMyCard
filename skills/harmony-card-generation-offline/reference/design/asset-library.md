@@ -86,6 +86,10 @@
 | `resources/base/media/icon_allergy.svg` | 样式：默认黑色的单色侧面人头轮廓，面部周围分布颗粒点，表现过敏原或空气刺激；适用：过敏、花粉、空气刺激、呼吸道敏感提示。 |
 | `resources/base/media/icon_high_temperature.svg` | 样式：默认黑色的单色线框温度计，内部温度柱较高，源文件语义指向体温；适用：体温偏高、发热、人体温度提醒。 |
 | `resources/base/media/icon_weather1.svg` | 样式：黄、白、浅灰多组渐变的彩色天气图标，太阳从云层右上方露出，表示多云或晴间多云，保留原色；适用：多云、晴间多云、天气概览或天气入口。 |
+| `resources/base/media/icon_weather_temperature1.svg` | 样式：淡黄色外壳与粉红色温度柱组成的彩色温度计，右侧带刻度，原始尺寸为 128×128，保留原色；适用：当前气温、最高最低温、体感温度或天气温度概览。 |
+| `resources/base/media/icon_weather_thermometer_medium.svg` | 样式：默认黑色的单色温度计图标，内部温度柱处于中档，管身右侧带三组刻度；适用：中等温度、舒适温度区间、当前气温或温度等级。 |
+| `resources/base/media/icon_weather_thermometer.svg` | 样式：默认黑色的单色温度计图标，底部为实心感温泡，管身内侧带三段刻度；适用：天气温度、温度指标、温差变化或冷热趋势。 |
+| `resources/base/media/icon_weather_wind.svg` | 样式：默认黑色的单色线面结合风力图标，主体为水滴状轮廓并带两组横向波浪气流；适用：风速、风向、风力等级或大风提醒。 |
 | `resources/base/media/icon_tiktok.png` | 样式：黑色圆形底上的抖音品牌音符，包含青色、红色和白色叠色，64×64 PNG，PNG 位图需保留品牌原色；适用：抖音应用、抖音使用时长或防沉迷统计。 |
 | `resources/base/media/icon_timing.svg` | 样式：白色实心秒表配黑色指针，顶部有按钮，属于高对比双色图标，建议保留原色；适用：计时、使用时长、倒计时或时限。 |
 | `resources/base/media/icon_earphone.svg` | 样式：黑色实心左右分体式开放耳机，局部有白色高光与分隔，建议保留原色；适用：无线耳机本体、耳机连接、左右耳设备状态。 |
