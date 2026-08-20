@@ -2632,8 +2632,6 @@ def _matching_event_handler(
         candidate_args = candidate.get("args")
         if isinstance(candidate_args, dict) and _event_args_match(args, candidate_args):
             return candidate
-    if len(same_call_handlers) == 1:
-        return same_call_handlers[0]
     return None
 
 
@@ -2643,13 +2641,7 @@ def _event_args_match(
 ) -> bool:
     if _dict_subset(model_args, candidate_args):
         return True
-    if _dict_subset(candidate_args, model_args):
-        return True
-    return _same_string_arg(model_args, candidate_args, "uri") or _same_string_arg(
-        model_args,
-        candidate_args,
-        "intentName",
-    )
+    return _dict_subset(candidate_args, model_args)
 
 
 def _dict_subset(left: dict[str, Any], right: dict[str, Any]) -> bool:
@@ -2664,16 +2656,6 @@ def _dict_subset(left: dict[str, Any], right: dict[str, Any]) -> bool:
         if value != right_value:
             return False
     return True
-
-
-def _same_string_arg(
-    left: dict[str, Any],
-    right: dict[str, Any],
-    key: str,
-) -> bool:
-    left_value = left.get(key)
-    right_value = right.get(key)
-    return isinstance(left_value, str) and left_value == right_value
 
 
 def _replace_event_handlers(

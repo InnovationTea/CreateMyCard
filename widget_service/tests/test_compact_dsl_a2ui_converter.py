@@ -1215,6 +1215,74 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             compact_dsl,
         )
 
+    def test_does_not_replace_different_event_item_index(self) -> None:
+        event_handler = {
+            "call": "clickToIntent",
+            "args": {
+                "intentName": "ViewCalendarEvent",
+                "params": {
+                    "entityId": {
+                        "path": "/data/calendar/events/1/entityId",
+                    },
+                },
+            },
+        }
+        rows = [
+            ["root", "Column", {"width": 160, "height": 160}, ["event1"]],
+            [
+                "event1",
+                "Column",
+                {"onClick": [event_handler]},
+                ["event1_title"],
+            ],
+            [
+                "event1_title",
+                "Text",
+                {"content": {"path": "/data/calendar/events/1/title"}},
+            ],
+        ]
+        task_spec = {
+            "dataModelSchema": {
+                "data": {
+                    "calendar": {
+                        "events": [
+                            {"entityId": {"type": "string"}},
+                            {
+                                "title": {"type": "string"},
+                                "entityId": {"type": "string"},
+                            },
+                        ],
+                    },
+                },
+            },
+            "eventCandidates": [
+                {
+                    "call": "clickToIntent",
+                    "args": {
+                        "intentName": "ViewCalendarEvent",
+                        "params": {
+                            "entityId": {
+                                "path": "/data/calendar/events/0/entityId",
+                            },
+                        },
+                    },
+                },
+            ],
+        }
+        compact_dsl = _serialize(rows)
+
+        repaired = repair_compact_dsl_binding_paths(
+            compact_dsl,
+            task_spec=task_spec,
+            card_spec={"dataBindings": [{"writeResultTo": "/data/calendar"}]},
+        )
+
+        repaired_handler = json.loads(repaired.splitlines()[1])[2]["onClick"][0]
+        self.assertEqual(
+            repaired_handler["args"]["params"]["entityId"]["path"],
+            "/data/calendar/events/1/entityId",
+        )
+
     def test_inlines_local_values_without_data_capabilities(self) -> None:
         rows = [
             [
