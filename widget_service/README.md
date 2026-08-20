@@ -22,6 +22,9 @@ The service follows `docs/AGENTS.md`:
   literal-only parser. It never executes model output and deterministically converts the nested component tree to
   standard A2UI. It supports static create/edit requests and shares the edit switch with the other generation
   routes; dynamic data bindings and events remain unsupported.
+- `cloud/services/template_generation/config/template_controls.json` owns the Template Provider and individual
+  Template denylists. Filtering happens before the first-layer prompt, and the same filtered set constrains
+  second-layer Provider rules, layout candidates, and deterministic output validation.
 - Temporary route `generateWidgetCardCompactDslWithDirective` directly reuses the fourth route's generation service
   and schema, but always emits widget directive command frames even when the global directive switch is disabled.
   Its forced behavior is isolated in the router so the route can be removed without changing the generation pipeline.

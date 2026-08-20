@@ -21,6 +21,10 @@ await generate_template_artifact(
 
 返回规则：
 
+- `config/template_controls.json` 是模板模块内的唯一管控配置。`disabledProviderIds` 按 Provider 关闭
+  整个业务模板集合，`disabledTemplateIds` 只关闭指定完整模板 ID。
+- 禁用项在首层 Prompt 构造前过滤，二层 Provider 规则和布局候选也应用同一结果；服务端契约会再次拒绝
+  被禁用的模板。
 - 模板模块只负责模板生成结果，不接收主服务对象，也不调用原始生成逻辑。
 - edit 由同一个模板入口判定为不适用并抛出异常；Compact 调用方随后执行原协议流程，Terse 调用方直接返回失败。
 - create 请求先由第一层 LLM 只输出 `theme`、`componentCandidates`、`action`；每个组件候选同时给出

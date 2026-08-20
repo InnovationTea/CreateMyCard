@@ -28,6 +28,7 @@ from services.template_generation import (
     route_legacy_python_terse_generation,
 )
 from services.template_generation.binding_dependencies import enrich_template_bindings
+from services.template_generation.controls import TemplateControls, load_template_controls
 from services.template_generation.engine.advanced.content_selectors import (
     app_usage_overview_is_eligible,
     app_usage_overview_query_is_supported,
@@ -37,6 +38,7 @@ from services.template_generation.engine.advanced.content_selectors import (
 from services.template_generation.engine.advanced.data_shape import extract_data_shape
 from services.template_generation.engine.advanced.models import (
     AdvancedScopeBrief,
+    TemplateComponentCandidate,
     TemplateRouteDecision,
 )
 from services.template_generation.engine.advanced.scope_planner import (
@@ -44,12 +46,16 @@ from services.template_generation.engine.advanced.scope_planner import (
     build_advanced_scope_prompt,
     validate_template_request_coverage,
 )
+from services.template_generation.engine.cardplan import registry as cardplan_registry_module
 from services.template_generation.engine.cardplan.compiler import (
     _inject_resource_battery_title,
     _provider_layout_action_background,
 )
 from services.template_generation.engine.cardplan.models import HybridBodyContract, HybridLimits
-from services.template_generation.engine.cardplan.registry import get_cardplan_registry
+from services.template_generation.engine.cardplan.registry import (
+    CardPlanRegistry,
+    get_cardplan_registry,
+)
 from services.template_generation.engine.pipeline import (
     TemplateGenerationError,
     generate_template_a2ui,
@@ -68,6 +74,20 @@ _WEATHER_TEMPLATE_FIELDS = (
     "/current/airQuality",
     "/daily/0/temperatureRangeText",
 )
+
+
+@pytest.fixture(autouse=True)
+def enable_all_templates_for_isolated_unit_tests(monkeypatch):
+    """Keep capability tests independent from the checked-in operational denylist."""
+    controls = TemplateControls(schemaVersion="template-controls/1")
+    monkeypatch.setattr(
+        cardplan_registry_module,
+        "load_template_controls",
+        lambda: controls,
+    )
+    get_cardplan_registry.cache_clear()
+    yield
+    get_cardplan_registry.cache_clear()
 
 
 def test_all_provider_templates_are_loaded_from_the_isolated_directory():
@@ -334,6 +354,125 @@ def test_first_layer_uses_candidate_provider_and_theme_documents_with_task_spec_
     assert "手机电量高级组件首层规则" not in provider_rules
     assert "family-weather-care-blue" in theme_rules
     assert "system-low-power-blue" not in theme_rules
+
+
+def test_disabled_weather_provider_is_not_exposed_to_first_layer():
+    registry = CardPlanRegistry(
+        disabled_provider_ids=("com.huawei.weather.cli",),
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=list(_WEATHER_TEMPLATE_FIELDS),
+    )
+
+    with pytest.raises(ValueError, match="no provider-backed UX Business Component candidate"):
+        build_advanced_scope_prompt(
+            _weather_task_spec(),
+            extract_data_shape(_weather_task_spec()),
+            registry,
+            ("ViewWeather",),
+            template_route_decision=True,
+            coverage_bindings=(binding,),
+            card_spec=_weather_card_spec(),
+        )
+
+
+def test_disabled_weather_template_is_hidden_from_both_llm_layers():
+    disabled_template_id = "WeatherOverviewHero@1"
+    registry = CardPlanRegistry(
+        disabled_template_ids=(disabled_template_id,),
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=list(_WEATHER_TEMPLATE_FIELDS),
+    )
+    messages = build_advanced_scope_prompt(
+        _weather_task_spec(),
+        extract_data_shape(_weather_task_spec()),
+        registry,
+        ("ViewWeather",),
+        template_route_decision=True,
+        coverage_bindings=(binding,),
+        card_spec=_weather_card_spec(),
+    )
+    first_layer_content = json.dumps(messages, ensure_ascii=False)
+    second_layer_rules = json.dumps(
+        registry.provider_second_layer_rules(("WeatherOverview",)),
+        ensure_ascii=False,
+    )
+
+    assert disabled_template_id not in first_layer_content
+    assert disabled_template_id not in second_layer_rules
+    assert "WeatherOverviewHeroIcon@1" in first_layer_content
+    assert "WeatherOverviewHeroIcon@1" in second_layer_rules
+
+
+def test_disabled_template_cannot_be_restored_by_first_layer_output():
+    registry = CardPlanRegistry(
+        disabled_template_ids=("WeatherOverviewHero@1",),
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=list(_WEATHER_TEMPLATE_FIELDS),
+    )
+    scope = AdvancedScopeBrief(
+        themeId="family-weather-care-blue",
+        advancedComponentIds=("WeatherOverview",),
+    )
+    component_candidates = (
+        TemplateComponentCandidate(
+            componentId="WeatherOverview",
+            availableTemplateIds=("WeatherOverviewHero@1",),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="selected an unavailable Provider Template"):
+        validate_template_request_coverage(
+            scope,
+            _weather_task_spec(),
+            registry,
+            (binding,),
+            _weather_card_spec(),
+            component_candidates,
+        )
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        (
+            {"disabled_provider_ids": ("com.huawei.unknown.cli",)},
+            "disabled Template Provider IDs are unknown",
+        ),
+        (
+            {"disabled_template_ids": ("UnknownTemplate@1",)},
+            "disabled Template IDs are unknown",
+        ),
+    ],
+)
+def test_unknown_template_controls_fail_closed(kwargs, message):
+    with pytest.raises(ValueError, match=message):
+        CardPlanRegistry(**kwargs)
+
+
+def test_checked_in_template_controls_disable_calendar_and_earphone():
+    controls = load_template_controls()
+    registry = CardPlanRegistry(
+        disabled_provider_ids=controls.disabled_provider_ids,
+        disabled_template_ids=controls.disabled_template_ids,
+    )
+
+    assert controls.disabled_provider_ids == (
+        "com.huawei.calendar.cli",
+        "com.huawei.earphone.cli",
+    )
+    assert controls.disabled_template_ids == ()
+    assert not registry.template_is_enabled("ScheduleOverviewNextEvent@1")
+    assert not registry.template_is_enabled("BluetoothDeviceOverviewEarbuds@1")
+    assert registry.template_is_enabled("WeatherOverviewHero@1")
 
 
 def test_first_layer_decision_contract_carries_component_template_candidates():

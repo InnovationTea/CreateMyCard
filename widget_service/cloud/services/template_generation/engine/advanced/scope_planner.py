@@ -365,7 +365,7 @@ def _component_template_coverage_options(
     card_spec: dict[str, Any] | None,
 ) -> tuple[dict[str, frozenset[str]], ...]:
     options: list[dict[str, frozenset[str]]] = []
-    for template_id in capability.local_template_ids:
+    for template_id in registry.enabled_template_ids(capability.local_template_ids):
         definition = registry.require_template(template_id)
         capability_id = definition.capability_id
         if capability_id is None or capability_id not in effective_ids:
@@ -408,7 +408,7 @@ def _component_template_prompt_contracts(
     card_spec: dict[str, Any] | None,
 ) -> tuple[dict[str, Any], ...]:
     contracts: list[dict[str, Any]] = []
-    for template_id in capability.local_template_ids:
+    for template_id in registry.enabled_template_ids(capability.local_template_ids):
         definition = registry.require_template(template_id)
         if (
             definition.capability_id is None
@@ -879,6 +879,8 @@ def resolve_scope_layout_ids(
         common &= set(capability.supported_layouts)
     allowed: list[str] = []
     for layout_id in common:
+        if not registry.template_is_enabled(f"{layout_id}@1"):
+            continue
         layout = registry.require_ux_layout_component(layout_id)
         if task_spec.size not in layout.supported_card_sizes:
             continue
@@ -948,7 +950,7 @@ def scope_template_ids(
             for component_id in scope.advanced_component_ids
             for capability in (registry.require_ux_business_component(component_id),)
             if capability.implementation == "template"
-            for template_id in capability.local_template_ids
+            for template_id in registry.enabled_template_ids(capability.local_template_ids)
         )
     )[:12]
     if task_spec is None or advanced_component_data_admission_is_bypassed():

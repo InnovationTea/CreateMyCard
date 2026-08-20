@@ -8,6 +8,12 @@
 
 ## 路由状态机
 
+进入以下状态机前，Registry 先读取 `config/template_controls.json` 并应用 Provider 和模板两级
+禁用清单。
+Provider 被禁用时，它拥有的业务模板都不参与路由；
+单个模板被禁用时，只从对应业务组件候选中移除该 ID。首层 Provider 文档、二层 Provider 文档和布局
+候选中也会删除禁用模板的引用。
+
 ```text
 generateWidgetCardCompactDsl
   ├─ edit → 模板接口抛出异常 → 原始 Compact 流程

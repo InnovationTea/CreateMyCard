@@ -12,6 +12,7 @@ from typing import Any, TypeVar
 from jsonschema import Draft202012Validator
 
 from app.logger import logger
+from services.template_generation.controls import load_template_controls
 from services.template_generation.engine.advanced.models import (
     UX_LAYOUT_COMPONENT_IDS,
     AdaptiveTemplateFamily,
@@ -40,9 +41,17 @@ _NamedCapability = TypeVar(
 class CardPlanRegistry:
     """Load the generated TypeScript baseline and fail closed on drift."""
 
-    def __init__(self, source_root: Path | None = None) -> None:
+    def __init__(
+        self,
+        source_root: Path | None = None,
+        *,
+        disabled_provider_ids: tuple[str, ...] = (),
+        disabled_template_ids: tuple[str, ...] = (),
+    ) -> None:
         bundled_source_root = Path(__file__).resolve().parents[2] / "resources" / "source"
         self.source_root = source_root or bundled_source_root
+        self.disabled_provider_ids = frozenset(disabled_provider_ids)
+        self.disabled_template_ids = frozenset(disabled_template_ids)
         generated_root = Path(__file__).with_name("generated")
         self.manifest_path = generated_root / "prompt-manifest.json"
         self.manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
@@ -67,6 +76,13 @@ class CardPlanRegistry:
         self.templates = self._unique_by_wire_id((*templates, *provider_templates))
         self.provider_template_ids = tuple(item.wire_id for item in provider_templates)
         self.provider_bundles = self._provider_bundles_by_id(provider_bundles)
+        self._validate_template_controls()
+        if self.disabled_provider_ids or self.disabled_template_ids:
+            logger.info(
+                "[Template Control] registry_filter_loaded "
+                f"disabled_provider_ids={json.dumps(sorted(self.disabled_provider_ids))} "
+                f"disabled_template_ids={json.dumps(sorted(self.disabled_template_ids))}"
+            )
         self.themes = self._unique_themes(themes)
         self.theme_first_layer_rules = {
             theme_id: self._load_markdown_rule(theme.first_layer_rule.path, "Theme first-layer")
@@ -250,6 +266,31 @@ class CardPlanRegistry:
             result[provider_id] = bundle
         return result
 
+    def _validate_template_controls(self) -> None:
+        unknown_provider_ids = self.disabled_provider_ids - set(self.provider_bundles)
+        if unknown_provider_ids:
+            raise ValueError(
+                "disabled Template Provider IDs are unknown: "
+                + ", ".join(sorted(unknown_provider_ids))
+            )
+        unknown_template_ids = self.disabled_template_ids - set(self.templates)
+        if unknown_template_ids:
+            raise ValueError(
+                "disabled Template IDs are unknown: "
+                + ", ".join(sorted(unknown_template_ids))
+            )
+
+    def template_is_enabled(self, wire_id: str) -> bool:
+        """Return whether one trusted Template remains eligible for LLM exposure."""
+        definition = self.require_template(wire_id)
+        provider_disabled = definition.provider_id in self.disabled_provider_ids
+        template_disabled = wire_id in self.disabled_template_ids
+        return not provider_disabled and not template_disabled
+
+    def enabled_template_ids(self, wire_ids: tuple[str, ...]) -> tuple[str, ...]:
+        """Filter trusted Template IDs while preserving their declared order."""
+        return tuple(wire_id for wire_id in wire_ids if self.template_is_enabled(wire_id))
+
     def require_template(self, wire_id: str) -> TemplateDefinition:
         if not _WIRE_ID_RE.fullmatch(wire_id):
             raise ValueError(f"invalid Template wire ID: {wire_id}")
@@ -280,7 +321,10 @@ class CardPlanRegistry:
         return tuple(
             {
                 "providerId": bundle.manifest.provider_id,
-                "content": self._render_provider_data_roots(bundle.first_layer_rule, data_roots),
+                "content": self._render_provider_data_roots(
+                    self._without_disabled_template_references(bundle, bundle.first_layer_rule),
+                    data_roots,
+                ),
             }
             for bundle in self._provider_bundles_for_components(component_ids)
         )
@@ -293,7 +337,10 @@ class CardPlanRegistry:
         return tuple(
             {
                 "providerId": bundle.manifest.provider_id,
-                "content": bundle.second_layer_rule,
+                "content": self._without_disabled_template_references(
+                    bundle,
+                    bundle.second_layer_rule,
+                ),
             }
             for bundle in self._provider_bundles_for_components(component_ids)
         )
@@ -334,13 +381,32 @@ class CardPlanRegistry:
         provider_ids: list[str] = []
         for component_id in component_ids:
             component = self.require_ux_business_component(component_id)
-            for template_id in component.local_template_ids:
+            for template_id in self.enabled_template_ids(component.local_template_ids):
                 definition = self.require_template(template_id)
                 if definition.provider_id is not None:
                     provider_ids.append(definition.provider_id)
         return tuple(
             self.provider_bundles[provider_id] for provider_id in dict.fromkeys(provider_ids)
         )
+
+    def _without_disabled_template_references(
+        self,
+        bundle: LoadedProviderBundle,
+        content: str,
+    ) -> str:
+        disabled_ids = tuple(
+            definition.wire_id
+            for definition in bundle.templates
+            if not self.template_is_enabled(definition.wire_id)
+        )
+        if not disabled_ids:
+            return content
+        visible_lines = (
+            line
+            for line in content.splitlines()
+            if not any(template_id in line for template_id in disabled_ids)
+        )
+        return "\n".join(visible_lines).strip()
 
     @staticmethod
     def _render_provider_data_roots(content: str, data_roots: dict[str, str]) -> str:
@@ -498,4 +564,8 @@ class CardPlanRegistry:
 
 @lru_cache(maxsize=1)
 def get_cardplan_registry() -> CardPlanRegistry:
-    return CardPlanRegistry()
+    controls = load_template_controls()
+    return CardPlanRegistry(
+        disabled_provider_ids=controls.disabled_provider_ids,
+        disabled_template_ids=controls.disabled_template_ids,
+    )
