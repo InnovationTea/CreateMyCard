@@ -306,44 +306,76 @@ def _append_compact_rows(
 def bind_task_spec_values(root: Nested2Node, task_spec: dict[str, Any]) -> Nested2Node:
     """Bind exact advanced-component facts to their declared TaskSpec leaf paths."""
     bindings = _unique_task_spec_sample_bindings(task_spec)
+    counters: dict[str, int] = {}
+
+    def consume(key: str) -> str | None:
+        paths = bindings.get(key)
+        if not paths:
+            return None
+        if len(paths) == 1:
+            return paths[0]
+        idx = counters.get(key, 0)
+        if idx >= len(paths):
+            return None
+        counters[key] = idx + 1
+        return paths[idx]
 
     def bind(node: Nested2Node) -> Nested2Node:
         children = tuple(bind(child) for child in node.children)
         values = list(node.values)
         if node.component_type == "Text" and values:
-            placeholder = bindings.get(_stable_sample_key(values[0]))
+            placeholder = consume(_stable_sample_key(values[0]))
+            if placeholder is None:
+                placeholder = _coerced_consume(values[0], consume)
             if placeholder is not None:
                 values[0] = placeholder
         if node.component_type in {"Progress", "Checkbox"}:
-            values = [_bind_numeric_semantic_fields(value, bindings) for value in values]
+            values = [_bind_numeric_semantic_fields(value, consume) for value in values]
         return Nested2Node(node.component_type, tuple(values), children)
 
     return bind(root)
 
 
-def _bind_numeric_semantic_fields(value: Any, bindings: dict[str, str]) -> Any:
+def _coerced_consume(value: Any, consume) -> str | None:
+    """Try numeric coercion so templates that str() an integer can still bind."""
+    if not isinstance(value, str):
+        return None
+    try:
+        coerced = json.loads(value)
+    except (json.JSONDecodeError, ValueError):
+        return None
+    if isinstance(coerced, bool) or not isinstance(coerced, (int, float)):
+        return None
+    return consume(_stable_sample_key(coerced))
+
+
+def _bind_numeric_semantic_fields(value: Any, consume) -> Any:
     if not isinstance(value, dict):
         return value
     result = dict(value)
     for field in ("value", "total", "select"):
         if field not in result:
             continue
-        placeholder = bindings.get(_stable_sample_key(result[field]))
+        placeholder = consume(_stable_sample_key(result[field]))
+        if placeholder is None:
+            placeholder = _coerced_consume(result[field], consume)
         if placeholder is not None:
             result[field] = placeholder
     return result
 
 
-def _unique_task_spec_sample_bindings(task_spec: dict[str, Any]) -> dict[str, str]:
+def _unique_task_spec_sample_bindings(task_spec: dict[str, Any]) -> dict[str, list[str]]:
     candidates: dict[str, list[str]] = {}
     _collect_task_spec_samples(task_spec.get("dataModelSchema"), "", candidates)
-    bindings: dict[str, str] = {}
+    bindings: dict[str, list[str]] = {}
     for key, paths in candidates.items():
-        if len(paths) != 1:
-            continue
-        placeholder = _pointer_to_placeholder(paths[0])
-        if placeholder is not None:
-            bindings[key] = placeholder
+        bound: list[str] = []
+        for path in paths:
+            placeholder = _pointer_to_placeholder(path)
+            if placeholder is not None:
+                bound.append(placeholder)
+        if bound:
+            bindings[key] = bound
     return bindings
 
 
@@ -363,7 +395,8 @@ def _collect_task_spec_samples(
             _collect_task_spec_samples(child, f"{path}/{key}", candidates)
         return
     if isinstance(value, list) and value:
-        _collect_task_spec_samples(value[0], f"{path}/0", candidates)
+        for index, item in enumerate(value):
+            _collect_task_spec_samples(item, f"{path}/{index}", candidates)
 
 
 def _stable_sample_key(value: Any) -> str:
@@ -417,7 +450,8 @@ def _task_spec_leaf_paths(task_spec: dict[str, Any] | None) -> frozenset[str]:
                     continue
                 visit(child, f"{path}/{key}")
         elif isinstance(value, list) and value:
-            visit(value[0], f"{path}/0")
+            for index, item in enumerate(value):
+                visit(item, f"{path}/{index}")
 
     visit(task_spec.get("dataModelSchema"), "")
     return frozenset(paths)

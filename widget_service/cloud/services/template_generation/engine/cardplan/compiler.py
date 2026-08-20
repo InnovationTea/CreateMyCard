@@ -2182,7 +2182,7 @@ def _battery_compact_overview(
         (
             _battery_text("设备电量", "subtitle", 12, 500),
             _battery_text(
-                _battery_compact_description(facts),
+                facts.level_text,
                 "body",
                 12,
                 400,
@@ -2564,7 +2564,7 @@ def _bluetooth_single_overview(
     if size == "2x4" and facts.case_battery_level is not None:
         children.append(
             _bluetooth_text(
-                "充电盒 " + _percent_text(facts.case_battery_level),
+                "充电盒 " + str(facts.case_battery_level) + "%",
                 "subtitle",
                 11,
                 400,
@@ -2624,7 +2624,7 @@ def _bluetooth_device_support_overview(
     children: list[Nested2Node] = [metrics]
     if not compact:
         case_text = (
-            " · 充电盒 " + _percent_text(facts.case_battery_level)
+            " · 充电盒 " + str(facts.case_battery_level) + "%"
             if facts.case_battery_level is not None
             else ""
         )
@@ -2815,7 +2815,22 @@ def _bluetooth_metric(
         ),
         (
             ring,
-            _bluetooth_text(_percent_text(value), "subtitle", 12, 500, align="center"),
+            Nested2Node(
+                "Row",
+                (
+                    "between",
+                    {
+                        "itemMargin": 1,
+                        "justifyContent": "center",
+                        "alignItems": "bottom",
+                        "constraintSize": {"minWidth": 0, "minHeight": 0},
+                    },
+                ),
+                (
+                    _bluetooth_text(str(value), "subtitle", 12, 500, align="center"),
+                    _bluetooth_text("%", "subtitle", 10, 400, align="center"),
+                ),
+            ),
         ),
     )
 
@@ -3342,7 +3357,7 @@ def _resource_usage_percent_row(
     width: int | str | None = None,
     justify_content: str = "start",
 ) -> Nested2Node:
-    number = str(math.floor(float(facts.usage_percent) + 0.5))
+    number = str(facts.usage_percent)
     options: dict[str, Any] = {
         "itemMargin": 1,
         "justifyContent": justify_content,
@@ -3955,14 +3970,14 @@ def _expand_weather_overview_call(
     )
     if task_spec.size == "2x2" and layout_id == "SingleFocusLayout" and role == "hero":
         temperature = _weather_text(
-            _weather_temperature(facts.temperature),
+            facts.temperature,
             "title",
             font_size=temperature_size,
             font_weight=800,
             min_font_size=temperature_size,
         )
         range_text = _weather_text(
-            _weather_temperature_range(facts.temperature_range),
+            facts.temperature_range,
             "subtitle",
             font_size=range_size,
             font_weight=400,
@@ -4010,7 +4025,7 @@ def _expand_weather_overview_call(
             (
                 title,
                 _weather_text(
-                    _weather_temperature(facts.temperature),
+                    facts.temperature,
                     "title",
                     font_size=temperature_size,
                     font_weight=800,
@@ -4045,7 +4060,7 @@ def _expand_weather_overview_call(
             (
                 wide_primary,
                 _weather_text(
-                    _weather_temperature_range(facts.temperature_range),
+                    facts.temperature_range,
                     "subtitle",
                     font_size=range_size,
                     font_weight=400,
@@ -4086,7 +4101,7 @@ def _expand_weather_overview_call(
         (
             title,
             _weather_text(
-                _weather_temperature(facts.temperature),
+                facts.temperature,
                 "title",
                 font_size=temperature_size,
                 font_weight=800,
@@ -4094,7 +4109,7 @@ def _expand_weather_overview_call(
             ),
             primary,
             _weather_text(
-                _weather_temperature_range(facts.temperature_range),
+                facts.temperature_range,
                 "subtitle",
                 font_size=range_size,
                 font_weight=400,
