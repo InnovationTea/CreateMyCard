@@ -15,60 +15,49 @@
       "dataSchema": {
         "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
         "version": "app-11.7.5.205_rom-6.0"
-      },
-      "templates": [
-        "BluetoothDeviceOverviewDisconnected@1",
-        "BluetoothDeviceOverviewConnection@1",
-        "BluetoothDeviceOverviewDisconnectedPhone@1",
-        "BluetoothDeviceOverviewEarbudsPhone@1",
-        "BluetoothDeviceOverviewEarbudsPhoneWide@1",
-        "BluetoothDeviceOverviewEarbudsDynamicWide@1",
-        "BluetoothDeviceOverviewEarbuds@1",
-        "BluetoothDeviceOverviewLeftEarbud@1",
-        "BluetoothDeviceOverviewRightEarbud@1",
-        "BluetoothDeviceOverviewEarbudPair@1",
-        "BluetoothDeviceOverviewEarbudsFull@1",
-        "BluetoothDeviceOverviewEarbudsFullWide@1",
-        "BluetoothDeviceOverviewEarbudPairPhone@1",
-        "BluetoothDeviceOverviewEarbudsFullPhoneWide@1"
-      ]
+      }
     }
   ],
   "templates": [
     {
       "templateId": "BluetoothDeviceOverviewDisconnected@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
       "description": "蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：disconnected。",
       "requiredData": [
         "/isConnected",
         "/earphoneName"
       ],
       "optionalData": [],
-      "entry": "templates/bluetooth-device-overview.cardtpl",
-      "digest": "sha256:9583842671a710c4d43e45af0c49fe3ef213100d3bb6392d5de971dc937a728f"
+      "entry": "templates/bluetooth-device-overview.cardtpl"
     },
     {
       "templateId": "BluetoothDeviceOverviewConnection@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
       "description": "蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：connection。",
       "requiredData": [
         "/isConnected",
         "/earphoneName"
       ],
       "optionalData": [],
-      "entry": "templates/bluetooth-device-overview.cardtpl",
-      "digest": "sha256:9583842671a710c4d43e45af0c49fe3ef213100d3bb6392d5de971dc937a728f"
+      "entry": "templates/bluetooth-device-overview.cardtpl"
     },
     {
       "templateId": "BluetoothDeviceOverviewDisconnectedPhone@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
       "description": "蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：disconnectedPhone。",
       "requiredData": [
         "/isConnected"
       ],
       "optionalData": [],
-      "entry": "templates/bluetooth-device-overview.cardtpl",
-      "digest": "sha256:9583842671a710c4d43e45af0c49fe3ef213100d3bb6392d5de971dc937a728f"
+      "entry": "templates/bluetooth-device-overview.cardtpl"
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudsPhone@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
       "description": "蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbudsPhone。",
       "requiredData": [
         "/isConnected"
@@ -78,11 +67,12 @@
         "/leftBatteryLevel",
         "/rightBatteryLevel"
       ],
-      "entry": "templates/bluetooth-device-overview.cardtpl",
-      "digest": "sha256:9583842671a710c4d43e45af0c49fe3ef213100d3bb6392d5de971dc937a728f"
+      "entry": "templates/bluetooth-device-overview.cardtpl"
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudsPhoneWide@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
       "description": "蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbudsPhoneWide。",
       "requiredData": [
         "/isConnected",
@@ -93,11 +83,12 @@
         "/leftBatteryLevel",
         "/rightBatteryLevel"
       ],
-      "entry": "templates/bluetooth-device-overview.cardtpl",
-      "digest": "sha256:9583842671a710c4d43e45af0c49fe3ef213100d3bb6392d5de971dc937a728f"
+      "entry": "templates/bluetooth-device-overview.cardtpl"
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudsDynamicWide@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
       "description": "蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbudsDynamicWide。",
       "requiredData": [
         "/isConnected",
@@ -108,11 +99,12 @@
         "/leftBatteryLevel",
         "/rightBatteryLevel"
       ],
-      "entry": "templates/bluetooth-device-overview.cardtpl",
-      "digest": "sha256:9583842671a710c4d43e45af0c49fe3ef213100d3bb6392d5de971dc937a728f"
+      "entry": "templates/bluetooth-device-overview.cardtpl"
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbuds@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
       "description": "蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbuds。",
       "requiredData": [
         "/isConnected",
@@ -120,11 +112,12 @@
         "/batteryLevel"
       ],
       "optionalData": [],
-      "entry": "templates/bluetooth-device-overview.cardtpl",
-      "digest": "sha256:9583842671a710c4d43e45af0c49fe3ef213100d3bb6392d5de971dc937a728f"
+      "entry": "templates/bluetooth-device-overview.cardtpl"
     },
     {
       "templateId": "BluetoothDeviceOverviewLeftEarbud@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
       "description": "蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：leftEarbud。",
       "requiredData": [
         "/isConnected",
@@ -132,11 +125,12 @@
         "/leftBatteryLevel"
       ],
       "optionalData": [],
-      "entry": "templates/bluetooth-device-overview.cardtpl",
-      "digest": "sha256:9583842671a710c4d43e45af0c49fe3ef213100d3bb6392d5de971dc937a728f"
+      "entry": "templates/bluetooth-device-overview.cardtpl"
     },
     {
       "templateId": "BluetoothDeviceOverviewRightEarbud@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
       "description": "蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：rightEarbud。",
       "requiredData": [
         "/isConnected",
@@ -144,11 +138,12 @@
         "/rightBatteryLevel"
       ],
       "optionalData": [],
-      "entry": "templates/bluetooth-device-overview.cardtpl",
-      "digest": "sha256:9583842671a710c4d43e45af0c49fe3ef213100d3bb6392d5de971dc937a728f"
+      "entry": "templates/bluetooth-device-overview.cardtpl"
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudPair@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
       "description": "蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbudPair。",
       "requiredData": [
         "/isConnected",
@@ -157,11 +152,12 @@
         "/rightBatteryLevel"
       ],
       "optionalData": [],
-      "entry": "templates/bluetooth-device-overview.cardtpl",
-      "digest": "sha256:9583842671a710c4d43e45af0c49fe3ef213100d3bb6392d5de971dc937a728f"
+      "entry": "templates/bluetooth-device-overview.cardtpl"
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudsFull@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
       "description": "蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbudsFull。",
       "requiredData": [
         "/isConnected",
@@ -170,11 +166,12 @@
         "/rightBatteryLevel"
       ],
       "optionalData": [],
-      "entry": "templates/bluetooth-device-overview.cardtpl",
-      "digest": "sha256:9583842671a710c4d43e45af0c49fe3ef213100d3bb6392d5de971dc937a728f"
+      "entry": "templates/bluetooth-device-overview.cardtpl"
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudsFullWide@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
       "description": "蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbudsFullWide。",
       "requiredData": [
         "/isConnected",
@@ -184,11 +181,12 @@
         "/rightBatteryLevel"
       ],
       "optionalData": [],
-      "entry": "templates/bluetooth-device-overview.cardtpl",
-      "digest": "sha256:9583842671a710c4d43e45af0c49fe3ef213100d3bb6392d5de971dc937a728f"
+      "entry": "templates/bluetooth-device-overview.cardtpl"
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudPairPhone@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
       "description": "蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbudPairPhone。",
       "requiredData": [
         "/isConnected",
@@ -196,11 +194,12 @@
         "/rightBatteryLevel"
       ],
       "optionalData": [],
-      "entry": "templates/bluetooth-device-overview.cardtpl",
-      "digest": "sha256:9583842671a710c4d43e45af0c49fe3ef213100d3bb6392d5de971dc937a728f"
+      "entry": "templates/bluetooth-device-overview.cardtpl"
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudsFullPhoneWide@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
       "description": "蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbudsFullPhoneWide。",
       "requiredData": [
         "/isConnected",
@@ -210,8 +209,7 @@
         "/rightBatteryLevel"
       ],
       "optionalData": [],
-      "entry": "templates/bluetooth-device-overview.cardtpl",
-      "digest": "sha256:9583842671a710c4d43e45af0c49fe3ef213100d3bb6392d5de971dc937a728f"
+      "entry": "templates/bluetooth-device-overview.cardtpl"
     }
   ],
   "compatibility": {

@@ -23,6 +23,9 @@ await generate_template_artifact(
 
 - `config/template_controls.json` 是模板模块内的唯一管控配置。`disabledProviderIds` 按 Provider 关闭
   整个业务模板集合，`disabledTemplateIds` 只关闭指定完整模板 ID。
+- 业务模板在对应 Provider 的 `templates` 条目中直接声明 `businessId` 与 `capabilityId`，Registry 按模板
+  派生业务分组；布局组件由 Layout Provider 的 `provider.json#layoutComponents` 定义。中央 UX 配置不重复
+  维护组件和模板归属。
 - 禁用项在首层 Prompt 构造前过滤，二层 Provider 规则和布局候选也应用同一结果；服务端契约会再次拒绝
   被禁用的模板。
 - 模板模块只负责模板生成结果，不接收主服务对象，也不调用原始生成逻辑。
@@ -30,6 +33,8 @@ await generate_template_artifact(
 - create 请求先由第一层 LLM 只输出 `theme`、`componentCandidates`、`action`；每个组件候选同时给出
   当前可交给第二层继续选择的 `availableTemplateIds`。
 - 第一层失败时仍返回最匹配的候选 Theme，以空 `componentCandidates` 和空 `action` 表示模板不适用。
+- Search 模板路由仅支持一个数据业务组件，以及一个数据业务组件加可选 Action；多个数据能力或必须联合
+  多个业务组件覆盖字段时，在调用第二层前判定模板不适用。
 - 第二层的业务 UI 和布局骨架都使用 `Template` 调用；模板 ID 直接表达形态，不再输出 Variant。
 - 第一层拒绝、输出非法、调用失败、确定性覆盖检查不通过，以及后续生成、转换、校验或保存异常，均向公开
   入口抛出异常。

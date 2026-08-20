@@ -15,18 +15,14 @@
       "dataSchema": {
         "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
         "version": "app-11.7.5.205_rom-6.0"
-      },
-      "templates": [
-        "WeatherOverviewCompact@1",
-        "WeatherOverviewCompactIcon@1",
-        "WeatherOverviewHero@1",
-        "WeatherOverviewHeroIcon@1"
-      ]
+      }
     }
   ],
   "templates": [
     {
       "templateId": "WeatherOverviewCompact@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
       "description": "当前天气摘要，展示地点、温度和天气状态，可补充空气质量与温度范围。 组件形态：compact。",
       "requiredData": [
         "/location/districtName",
@@ -36,11 +32,12 @@
         "/daily/0/temperatureRangeText"
       ],
       "optionalData": [],
-      "entry": "templates/weather-overview.cardtpl",
-      "digest": "sha256:0f220d72aa082816857211b7a596fc223bfe27a91c4bc164ee2803898c52cf1a"
+      "entry": "templates/weather-overview.cardtpl"
     },
     {
       "templateId": "WeatherOverviewCompactIcon@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
       "description": "当前天气摘要，展示地点、温度和天气状态，可补充空气质量与温度范围。 组件形态：compactIcon。",
       "requiredData": [
         "/location/districtName",
@@ -50,11 +47,12 @@
         "/daily/0/temperatureRangeText"
       ],
       "optionalData": [],
-      "entry": "templates/weather-overview.cardtpl",
-      "digest": "sha256:0f220d72aa082816857211b7a596fc223bfe27a91c4bc164ee2803898c52cf1a"
+      "entry": "templates/weather-overview.cardtpl"
     },
     {
       "templateId": "WeatherOverviewHero@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
       "description": "当前天气摘要，展示地点、温度和天气状态，可补充空气质量与温度范围。 组件形态：hero。",
       "requiredData": [
         "/location/districtName",
@@ -64,11 +62,12 @@
         "/daily/0/temperatureRangeText"
       ],
       "optionalData": [],
-      "entry": "templates/weather-overview.cardtpl",
-      "digest": "sha256:0f220d72aa082816857211b7a596fc223bfe27a91c4bc164ee2803898c52cf1a"
+      "entry": "templates/weather-overview.cardtpl"
     },
     {
       "templateId": "WeatherOverviewHeroIcon@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
       "description": "当前天气摘要，展示地点、温度和天气状态，可补充空气质量与温度范围。 组件形态：heroIcon。",
       "requiredData": [
         "/location/districtName",
@@ -78,8 +77,7 @@
         "/daily/0/temperatureRangeText"
       ],
       "optionalData": [],
-      "entry": "templates/weather-overview.cardtpl",
-      "digest": "sha256:0f220d72aa082816857211b7a596fc223bfe27a91c4bc164ee2803898c52cf1a"
+      "entry": "templates/weather-overview.cardtpl"
     }
   ],
   "compatibility": {

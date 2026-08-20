@@ -430,6 +430,8 @@ def test_llmclient_settings_are_complete_and_keep_previous_defaults():
     options = LLMClientOptions()
 
     assert settings.deepseek_api_key == "AccessService"
+    assert settings.deepseek_http_model == "deepseek-v4-flash"
+    assert settings.deepseek_http_max_tokens == 16_384
     assert settings.deepseek_model == "deepseek-ai/DeepSeek-V4-Flash"
     assert settings.deepseek_ws_url.endswith("/llm/websocket/openai/chat/completions")
     assert settings.deepseek_user == "genui_user"

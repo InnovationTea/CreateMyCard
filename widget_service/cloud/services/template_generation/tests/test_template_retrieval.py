@@ -220,7 +220,7 @@ def test_first_layer_prompt_includes_task_fields_rules_and_action_candidates() -
     ]
 
 
-def test_multiple_capabilities_return_multiple_component_candidate_sets() -> None:
+def test_search_rejects_multiple_data_capabilities() -> None:
     task = _task()
     task.dataModelSchema["data"]["calendar"] = {
         "events": [
@@ -236,31 +236,53 @@ def test_multiple_capabilities_return_multiple_component_candidate_sets() -> Non
         writeResultTo="/data/calendar",
         candidateOutputFields=["/events/0/title", "/events/0/dtStart"],
     )
-    result = retrieve_template_variants(
-        TemplateRetrievalQuery(
-            themeId="family-weather-care-blue",
-            requiredOutputFieldsByCapability={
-                "ViewWeather": ("/current/condition",),
-                "GetCalendarEvents": ("/events/0/title", "/events/0/dtStart"),
+    with pytest.raises(TemplateRetrievalMiss, match="one data business"):
+        retrieve_template_variants(
+            TemplateRetrievalQuery(
+                themeId="family-weather-care-blue",
+                requiredOutputFieldsByCapability={
+                    "ViewWeather": ("/current/condition",),
+                    "GetCalendarEvents": ("/events/0/title", "/events/0/dtStart"),
+                },
+            ),
+            task,
+            CardPlanRegistry(),
+            (_binding(), calendar),
+            {
+                "dataBindings": [
+                    {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"},
+                    {"capabilityId": "GetCalendarEvents", "writeResultTo": "/data/calendar"},
+                ]
             },
-        ),
-        task,
-        CardPlanRegistry(),
-        (_binding(), calendar),
-        {
-            "dataBindings": [
-                {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"},
-                {"capabilityId": "GetCalendarEvents", "writeResultTo": "/data/calendar"},
+        )
+
+
+def test_search_allows_one_data_business_with_action() -> None:
+    task = _task().model_copy(
+        update={
+            "eventCandidates": [
+                EventAction(
+                    id="event.open.weather",
+                    call="clickToDeeplink",
+                    args={"intentName": "Weather_CityCode"},
+                )
             ]
-        },
+        }
+    )
+    query = _query("/current/condition").model_copy(
+        update={"action_id": "event.open.weather"}
     )
 
-    assert {candidate.component_id for candidate in result.component_candidates} >= {
-        "WeatherOverview",
-        "ScheduleOverview",
-    }
-    # 每个显式字段都对应一个「可覆盖它的候选模板」组；日程有 title、dtStart 两个字段。
-    assert len(result.required_template_groups) == 3
+    result = retrieve_template_variants(
+        query,
+        task,
+        CardPlanRegistry(),
+        (_binding(),),
+        _card_spec(),
+    )
+
+    assert len(result.component_candidates) == 1
+    assert result.action_id == "event.open.weather"
 
 
 def test_one_component_may_use_multiple_templates_to_cover_requested_fields() -> None:
@@ -271,6 +293,7 @@ def test_one_component_may_use_multiple_templates_to_cover_requested_fields() ->
     def record(template_id: str, token: FieldToken) -> TemplateVariantSearchRecord:
         return TemplateVariantSearchRecord(
             capability_id="ViewWeather",
+            business_id="WeatherOverview",
             compatible_theme_ids=frozenset(),
             template_id=template_id,
             variant_name="default",
@@ -314,6 +337,50 @@ def test_one_component_may_use_multiple_templates_to_cover_requested_fields() ->
         ("WeatherCondition@1",),
         ("WeatherTemperature@1",),
     )
+
+
+def test_search_filters_provider_templates_by_card_size() -> None:
+    token = FieldToken("ViewWeather", "/current/condition", "string")
+
+    def record(template_id: str, sizes: frozenset[str]) -> TemplateVariantSearchRecord:
+        return TemplateVariantSearchRecord(
+            capability_id="ViewWeather",
+            business_id="WeatherOverview",
+            compatible_theme_ids=frozenset(),
+            template_id=template_id,
+            variant_name="default",
+            supported_card_sizes=sizes,
+            supported_roles=frozenset(),
+            available_paths=frozenset({token.path}),
+            required_paths=frozenset(),
+            field_tokens=frozenset({token}),
+            required_field_tokens=frozenset(),
+            required_parameter_count=0,
+        )
+
+    registry = SimpleNamespace(
+        ux_business_components={
+            "WeatherOverview": SimpleNamespace(
+                name="WeatherOverview",
+                local_template_ids=("WeatherCompact@1", "WeatherWide@1"),
+            )
+        },
+        template_variant_search_records=(
+            record("WeatherCompact@1", frozenset({"2x2"})),
+            record("WeatherWide@1", frozenset({"2x4"})),
+        ),
+        enabled_template_ids=lambda template_ids: template_ids,
+    )
+
+    candidates = _component_templates_for_capability(
+        registry,  # type: ignore[arg-type]
+        "ViewWeather",
+        frozenset({token}),
+        _task(),
+        _card_spec(),
+    )
+
+    assert tuple(candidates["WeatherOverview"]) == ("WeatherCompact@1",)
 
 
 def test_selected_action_must_belong_to_task_spec() -> None:

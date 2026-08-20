@@ -32,7 +32,6 @@
 - 已有 Provider 全局路径的值必须由模板 `data` 绑定；props 可传无全局路径的受控派生值、排版参数和
   素材。
 - 选择能够完整表达用户显式要求字段且自身 requiredData 全部可用的模板。
-- 用户同时要求睡眠时长、睡眠得分和今日步数时，必须组合 `SleepOverviewDurationScoreSupport@1` 与只展示步数的 Activity 模板；不得用热量、距离替代睡眠字段。
 - 素材参数描述的是槽位语义，不代表固定素材清单；只在本轮素材候选中匹配，没有合适候选时省略可选参数：
   - `stepsIcon`：步行、步数或日常活动语义；`caloriesIcon`：热量、能量消耗或火焰语义；`distanceIcon`：距离、里程或路线语义。
   - `WorkoutOverview.sourceIcon`：与本轮运动类型一致的训练或运动项目语义。

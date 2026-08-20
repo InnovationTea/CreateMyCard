@@ -103,10 +103,12 @@ def build_template_retrieval_prompt(
         "你是模板生成第一层。只输出 template-retrieval-query/1 JSON。"
         "themeId 必须从 themes 选择；requiredOutputFieldsByCapability 的 key 必须来自 "
         "candidateDataBindings。每个 value 仅保留用户明确要求展示的字段，字段必须逐字来自 "
-        "candidateOutputFieldsByCapability；不得按模板反推字段，也不得补全用户未要求展示的字段。"
+        "candidateOutputFieldsByCapability；不得按模板反推字段，"
+        "也不得补全用户未要求展示的字段。"
         "用户只要求某领域卡片、未明确字段时，该 capability 输出空数组。"
-        "action 仅当用户明确要求点击、跳转或操作时才选择 actionCandidates 中语义一致的 eventId；"
-        "不能因候选事件存在而默认选择。不得输出组件、模板、Variant、尺寸、布局、Props 或理由。\n"
+        "action 仅当用户明确要求点击、跳转或操作时才选择 actionCandidates 中"
+        "语义一致的 eventId；不能因候选事件存在而默认选择。"
+        "不得输出组件、模板、Variant、尺寸、布局、Props 或理由。\n"
         + json.dumps(schema, ensure_ascii=False)
     )
     return [
@@ -127,6 +129,10 @@ def retrieve_template_variants(
     _validate_selected_action(query, task_spec)
     if not query.required_output_fields_by_capability:
         raise TemplateRetrievalMiss("template retrieval has no requested capability")
+    if len(query.required_output_fields_by_capability) > 1:
+        raise TemplateRetrievalMiss(
+            "template Search supports one data business with an optional Action"
+        )
     candidate_ids = {binding.capabilityId for binding in coverage_bindings}
     if not set(query.required_output_fields_by_capability).issubset(candidate_ids):
         raise TemplateRetrievalMiss("requested capability is outside candidate data bindings")
@@ -163,6 +169,10 @@ def retrieve_template_variants(
         )
         for component_id, template_ids in sorted(by_component.items())
     )
+    if len(candidates) > 1:
+        raise TemplateRetrievalMiss(
+            "template Search requires requested fields to fit one business component"
+        )
     scope = AdvancedScopeBrief(
         themeId=query.theme_id,
         advancedComponentIds=tuple(candidate.component_id for candidate in candidates),
@@ -183,21 +193,32 @@ def _component_templates_for_capability(
     card_spec: dict[str, Any],
 ) -> dict[str, dict[str, frozenset[str]]]:
     result: dict[str, dict[str, frozenset[str]]] = {}
-    for component in registry.ux_business_components.values():
-        template_ids = set(registry.enabled_template_ids(component.local_template_ids))
+    business_ids = {
+        record.business_id
+        for record in registry.template_variant_search_records
+        if record.capability_id == capability_id
+    }
+    for business_id in sorted(business_ids):
+        group = registry.ux_business_components[business_id]
+        template_ids = set(registry.enabled_template_ids(group.local_template_ids))
         matches = {
             record.template_id: _record_available_query_paths(record, query_tokens)
             for record in registry.template_variant_search_records
             if record.capability_id == capability_id
+            and record.business_id == business_id
             and record.template_id in template_ids
+            and (
+                not record.supported_card_sizes
+                or task_spec.size in record.supported_card_sizes
+            )
             and _template_required_fields_are_available(record, task_spec, card_spec)
         }
         if query_tokens:
             matches = {template_id: paths for template_id, paths in matches.items() if paths}
         if matches:
-            result[component.name] = _limit_component_templates(
+            result[business_id] = _limit_component_templates(
                 matches,
-                registry.enabled_template_ids(component.local_template_ids),
+                registry.enabled_template_ids(group.local_template_ids),
                 query_tokens,
             )
     covered_paths = {
@@ -262,8 +283,8 @@ def _component_ids_for_capabilities(
 ) -> tuple[str, ...]:
     wanted = set(capability_ids)
     return tuple(
-        component.name
-        for component in registry.ux_business_components.values()
+        business_id
+        for business_id, component in registry.ux_business_components.items()
         if wanted.intersection(component.data_capability_ids)
     )
 

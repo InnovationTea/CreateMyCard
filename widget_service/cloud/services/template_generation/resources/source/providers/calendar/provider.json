@@ -15,46 +15,38 @@
       "dataSchema": {
         "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
         "version": "app-11.7.5.205_rom-6.0"
-      },
-      "templates": [
-        "DateOverviewCompactDate@1",
-        "DateOverviewDateHero@1",
-        "ScheduleOverviewNextEvent@1",
-        "ScheduleOverviewNextEventLocation@1",
-        "ScheduleOverviewMeetingCompact@1",
-        "ScheduleOverviewMeetingCompactLocation@1",
-        "ScheduleOverviewMeetingExpanded@1",
-        "ScheduleOverviewMeetingCompactSource@1",
-        "ScheduleOverviewMeetingCompactLocationSource@1",
-        "ScheduleOverviewMeetingExpandedSource@1"
-      ]
+      }
     }
   ],
   "templates": [
     {
       "templateId": "DateOverviewCompactDate@1",
+      "businessId": "DateOverview",
+      "capabilityId": "GetCalendarEvents",
       "description": "首个日程的日期和星期摘要。 组件形态：compactDate。",
       "requiredData": [
         "/events/0/startDate",
         "/updatedAt"
       ],
       "optionalData": [],
-      "entry": "templates/date-overview.cardtpl",
-      "digest": "sha256:4d226963bae814e0a95a0f137bbeb8f5cc66a6dbaee3ed9ffb28b1c6a4ba21e8"
+      "entry": "templates/date-overview.cardtpl"
     },
     {
       "templateId": "DateOverviewDateHero@1",
+      "businessId": "DateOverview",
+      "capabilityId": "GetCalendarEvents",
       "description": "首个日程的日期和星期摘要。 组件形态：dateHero。",
       "requiredData": [
         "/events/0/startDate",
         "/updatedAt"
       ],
       "optionalData": [],
-      "entry": "templates/date-overview.cardtpl",
-      "digest": "sha256:4d226963bae814e0a95a0f137bbeb8f5cc66a6dbaee3ed9ffb28b1c6a4ba21e8"
+      "entry": "templates/date-overview.cardtpl"
     },
     {
       "templateId": "ScheduleOverviewNextEvent@1",
+      "businessId": "ScheduleOverview",
+      "capabilityId": "GetCalendarEvents",
       "description": "首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：nextEvent。",
       "requiredData": [
         "/events/0/title",
@@ -62,11 +54,12 @@
         "/events/0/dtEnd"
       ],
       "optionalData": [],
-      "entry": "templates/schedule-overview.cardtpl",
-      "digest": "sha256:69cf1412c84aeb1ec0c25527d472731d02f6c6a60fd28240dcb5dee988d096e8"
+      "entry": "templates/schedule-overview.cardtpl"
     },
     {
       "templateId": "ScheduleOverviewNextEventLocation@1",
+      "businessId": "ScheduleOverview",
+      "capabilityId": "GetCalendarEvents",
       "description": "首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：nextEventLocation。",
       "requiredData": [
         "/events/0/title",
@@ -75,11 +68,12 @@
         "/events/0/dtEnd"
       ],
       "optionalData": [],
-      "entry": "templates/schedule-overview.cardtpl",
-      "digest": "sha256:69cf1412c84aeb1ec0c25527d472731d02f6c6a60fd28240dcb5dee988d096e8"
+      "entry": "templates/schedule-overview.cardtpl"
     },
     {
       "templateId": "ScheduleOverviewMeetingCompact@1",
+      "businessId": "ScheduleOverview",
+      "capabilityId": "GetCalendarEvents",
       "description": "首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：meetingCompact。",
       "requiredData": [
         "/events/0/title",
@@ -87,11 +81,12 @@
         "/events/0/dtEnd"
       ],
       "optionalData": [],
-      "entry": "templates/schedule-overview.cardtpl",
-      "digest": "sha256:69cf1412c84aeb1ec0c25527d472731d02f6c6a60fd28240dcb5dee988d096e8"
+      "entry": "templates/schedule-overview.cardtpl"
     },
     {
       "templateId": "ScheduleOverviewMeetingCompactLocation@1",
+      "businessId": "ScheduleOverview",
+      "capabilityId": "GetCalendarEvents",
       "description": "首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：meetingCompactLocation。",
       "requiredData": [
         "/events/0/title",
@@ -100,11 +95,12 @@
         "/events/0/dtEnd"
       ],
       "optionalData": [],
-      "entry": "templates/schedule-overview.cardtpl",
-      "digest": "sha256:69cf1412c84aeb1ec0c25527d472731d02f6c6a60fd28240dcb5dee988d096e8"
+      "entry": "templates/schedule-overview.cardtpl"
     },
     {
       "templateId": "ScheduleOverviewMeetingExpanded@1",
+      "businessId": "ScheduleOverview",
+      "capabilityId": "GetCalendarEvents",
       "description": "首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：meetingExpanded。",
       "requiredData": [
         "/events/0/title",
@@ -113,11 +109,12 @@
         "/events/0/dtEnd"
       ],
       "optionalData": [],
-      "entry": "templates/schedule-overview.cardtpl",
-      "digest": "sha256:69cf1412c84aeb1ec0c25527d472731d02f6c6a60fd28240dcb5dee988d096e8"
+      "entry": "templates/schedule-overview.cardtpl"
     },
     {
       "templateId": "ScheduleOverviewMeetingCompactSource@1",
+      "businessId": "ScheduleOverview",
+      "capabilityId": "GetCalendarEvents",
       "description": "首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：meetingCompactSource。",
       "requiredData": [
         "/events/0/title",
@@ -125,11 +122,12 @@
         "/events/0/dtEnd"
       ],
       "optionalData": [],
-      "entry": "templates/schedule-overview.cardtpl",
-      "digest": "sha256:69cf1412c84aeb1ec0c25527d472731d02f6c6a60fd28240dcb5dee988d096e8"
+      "entry": "templates/schedule-overview.cardtpl"
     },
     {
       "templateId": "ScheduleOverviewMeetingCompactLocationSource@1",
+      "businessId": "ScheduleOverview",
+      "capabilityId": "GetCalendarEvents",
       "description": "首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：meetingCompactLocationSource。",
       "requiredData": [
         "/events/0/title",
@@ -138,11 +136,12 @@
         "/events/0/dtEnd"
       ],
       "optionalData": [],
-      "entry": "templates/schedule-overview.cardtpl",
-      "digest": "sha256:69cf1412c84aeb1ec0c25527d472731d02f6c6a60fd28240dcb5dee988d096e8"
+      "entry": "templates/schedule-overview.cardtpl"
     },
     {
       "templateId": "ScheduleOverviewMeetingExpandedSource@1",
+      "businessId": "ScheduleOverview",
+      "capabilityId": "GetCalendarEvents",
       "description": "首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：meetingExpandedSource。",
       "requiredData": [
         "/events/0/title",
@@ -151,8 +150,7 @@
         "/events/0/dtEnd"
       ],
       "optionalData": [],
-      "entry": "templates/schedule-overview.cardtpl",
-      "digest": "sha256:69cf1412c84aeb1ec0c25527d472731d02f6c6a60fd28240dcb5dee988d096e8"
+      "entry": "templates/schedule-overview.cardtpl"
     }
   ],
   "compatibility": {

@@ -15,22 +15,20 @@
       "dataSchema": {
         "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
         "version": "app-11.7.5.205_rom-6.0"
-      },
-      "templates": [
-        "CountdownOverview@1"
-      ]
+      }
     }
   ],
   "templates": [
     {
       "templateId": "CountdownOverview@1",
+      "businessId": "CountdownOverview",
+      "capabilityId": "GetCountdownDays",
       "description": "通用事件的剩余天数摘要。 组件形态：countdown。",
       "requiredData": [
         "/countdownDays"
       ],
       "optionalData": [],
-      "entry": "templates/countdown-overview.cardtpl",
-      "digest": "sha256:2a2b8d532605d0b00562825adfb04e2d4c0b7e1fb571f5ce372805176d130fc6"
+      "entry": "templates/countdown-overview.cardtpl"
     }
   ],
   "compatibility": {

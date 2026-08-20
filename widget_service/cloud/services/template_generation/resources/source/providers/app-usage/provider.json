@@ -15,19 +15,18 @@
       "dataSchema": {
         "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
         "version": "app-11.7.5.205_rom-6.0"
-      },
-      "templates": [
-        "AppUsageOverviewSingleApp@1",
-        "AppUsageOverviewSingleAppDetailed@1",
-        "AppUsageOverviewSingleAppWide@1",
-        "AppUsageOverviewSingleAppDetailedWide@1"
-      ]
+      }
     }
   ],
   "templates": [
     {
       "templateId": "AppUsageOverviewSingleApp@1",
+      "businessId": "AppUsageOverview",
+      "capabilityId": "GetAppUsageDuration",
       "description": "单个应用的当日使用时长摘要，可补充更新时间。 组件形态：singleApp。",
+      "supportedCardSizes": [
+        "2x2"
+      ],
       "requiredData": [
         "/appUsage/appName",
         "/appUsage/durationText"
@@ -35,12 +34,16 @@
       "optionalData": [
         "/updatedAt"
       ],
-      "entry": "templates/app-usage-overview.cardtpl",
-      "digest": "sha256:092d3e7d9ec334ddb87bc3360c795820b4abef15a58a0d98716916b8939bec2a"
+      "entry": "templates/app-usage-overview.cardtpl"
     },
     {
       "templateId": "AppUsageOverviewSingleAppDetailed@1",
+      "businessId": "AppUsageOverview",
+      "capabilityId": "GetAppUsageDuration",
       "description": "单个应用的当日使用时长摘要，可补充更新时间。 组件形态：singleAppDetailed。",
+      "supportedCardSizes": [
+        "2x2"
+      ],
       "requiredData": [
         "/appUsage/appName",
         "/appUsage/durationText"
@@ -48,12 +51,16 @@
       "optionalData": [
         "/updatedAt"
       ],
-      "entry": "templates/app-usage-overview.cardtpl",
-      "digest": "sha256:092d3e7d9ec334ddb87bc3360c795820b4abef15a58a0d98716916b8939bec2a"
+      "entry": "templates/app-usage-overview.cardtpl"
     },
     {
       "templateId": "AppUsageOverviewSingleAppWide@1",
+      "businessId": "AppUsageOverview",
+      "capabilityId": "GetAppUsageDuration",
       "description": "单个应用的当日使用时长摘要，可补充更新时间。 组件形态：singleAppWide。",
+      "supportedCardSizes": [
+        "2x4"
+      ],
       "requiredData": [
         "/appUsage/appName",
         "/appUsage/durationText"
@@ -61,12 +68,16 @@
       "optionalData": [
         "/updatedAt"
       ],
-      "entry": "templates/app-usage-overview.cardtpl",
-      "digest": "sha256:092d3e7d9ec334ddb87bc3360c795820b4abef15a58a0d98716916b8939bec2a"
+      "entry": "templates/app-usage-overview.cardtpl"
     },
     {
       "templateId": "AppUsageOverviewSingleAppDetailedWide@1",
+      "businessId": "AppUsageOverview",
+      "capabilityId": "GetAppUsageDuration",
       "description": "单个应用的当日使用时长摘要，可补充更新时间。 组件形态：singleAppDetailedWide。",
+      "supportedCardSizes": [
+        "2x4"
+      ],
       "requiredData": [
         "/appUsage/appName",
         "/appUsage/durationText"
@@ -74,8 +85,7 @@
       "optionalData": [
         "/updatedAt"
       ],
-      "entry": "templates/app-usage-overview.cardtpl",
-      "digest": "sha256:092d3e7d9ec334ddb87bc3360c795820b4abef15a58a0d98716916b8939bec2a"
+      "entry": "templates/app-usage-overview.cardtpl"
     }
   ],
   "compatibility": {

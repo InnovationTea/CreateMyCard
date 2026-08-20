@@ -14,6 +14,10 @@ Provider 被禁用时，它拥有的业务模板都不参与路由；
 单个模板被禁用时，只从对应业务组件候选中移除该 ID。首层 Provider 文档、二层 Provider 文档和布局
 候选中也会删除禁用模板的引用。
 
+业务模板与布局组件的定义由各 Provider Bundle 自有。业务模板直接声明 `businessId` 与 `capabilityId`，
+Registry 据此派生业务分组；布局约束继续来自 `layoutComponents`。中央 UX 配置只提供跨 Provider 的 Token、
+Theme 场景映射与尺寸预算，不再维护第二份组件到模板映射。
+
 ```text
 generateWidgetCardCompactDsl
   ├─ edit → 模板接口抛出异常 → 原始 Compact 流程
@@ -103,6 +107,10 @@ TaskSpec/CardSpec 下可展开。`action` 是批准的事件 ID，不是
 从 TaskSpec 事件候选中输出对应 `eventId`，不判断 Action 属于哪个组件；没有动作时输出 `null`。
 Action 不参与数据字段覆盖。首层 LLM 与后续 Search 都必须生成同一 `TemplateRouteDecision`，并共用
 同一个确定性路由门禁，不得各自实现 Provider、事件或模板可用性校验。
+
+Search 路由只接受一个数据业务组件，允许该组件内部由多个业务模板共同覆盖显式字段，也允许额外选择一个
+Action。显式请求包含多个数据能力，或完整字段覆盖必须联合多个 `componentId` 时，Search 在进入第二层前
+直接判定模板不适用。Action 不计入业务数量。
 
 第二层从所选 Provider 的二层 MD 读取规则，只能在首层的 `availableTemplateIds` 中选择最终业务模板，
 并生成 props、Layout 与 Action。业务模板 ID 已表达 UI 形态，

@@ -17,6 +17,7 @@ class FieldToken:
 @dataclass(frozen=True)
 class TemplateVariantSearchRecord:
     capability_id: str
+    business_id: str
     compatible_theme_ids: frozenset[str]
     template_id: str
     variant_name: str
@@ -35,10 +36,15 @@ def build_template_variant_search_records(
     records: list[TemplateVariantSearchRecord] = []
     for definition in templates.values():
         capability_id = definition.capability_id
-        if definition.source_format != "cardtpl/1" or capability_id is None:
+        business_id = definition.business_id
+        if (
+            definition.source_format != "cardtpl/1"
+            or capability_id is None
+            or business_id is None
+        ):
             continue
         for variant in definition.variants:
-            records.append(_build_record(definition, variant, capability_id))
+            records.append(_build_record(definition, variant, capability_id, business_id))
     return tuple(records)
 
 
@@ -46,6 +52,7 @@ def _build_record(
     definition: TemplateDefinition,
     variant: TemplateVariant,
     capability_id: str,
+    business_id: str,
 ) -> TemplateVariantSearchRecord:
     required_paths = set(definition.required_data)
     required_paths.update(
@@ -60,6 +67,7 @@ def _build_record(
     all_fields = (*definition.required_data_fields, *definition.optional_data_fields)
     return TemplateVariantSearchRecord(
         capability_id=capability_id,
+        business_id=business_id,
         compatible_theme_ids=frozenset(definition.compatible_theme_profile_ids),
         template_id=definition.wire_id,
         variant_name=variant.size,
