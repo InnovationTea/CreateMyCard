@@ -300,6 +300,61 @@ def test_app_usage_template_sizes_separate_compact_and_wide_variants():
         )
 
 
+def test_app_usage_templates_use_compact_duration_and_labeled_update_time():
+    registry = get_cardplan_registry()
+    template_ids = (
+        "AppUsageOverviewSingleApp@1",
+        "AppUsageOverviewSingleAppDetailed@1",
+        "AppUsageOverviewSingleAppWide@1",
+        "AppUsageOverviewSingleAppDetailedWide@1",
+    )
+
+    for template_id in template_ids:
+        root = registry.require_variant(template_id, "default").root
+        text_nodes = _template_nodes(root, "Text")
+        duration = next(
+            node
+            for node in text_nodes
+            if node.values[0].kind == "binding" and node.values[0].name == "duration"
+        )
+        duration_options = _template_node_options(duration)
+        assert duration_options["fontSize"] == 18
+        assert "minFontSize" not in duration_options
+
+        update_time = next(
+            node
+            for node in text_nodes
+            if node.values[0].kind == "interpolation"
+            and any(item.name == "updatedAt" for item in node.values[0].items)
+        )
+        assert tuple(
+            (item.kind, item.value, item.name) for item in update_time.values[0].items
+        ) == (
+            ("literal", "更新于 ", None),
+            ("binding", None, "updatedAt"),
+        )
+        update_options = _template_node_options(update_time)
+        assert update_options["fontSize"] == 10
+        assert "minFontSize" not in update_options
+
+
+def test_activity_daily_summary_stacks_supporting_metrics():
+    registry = get_cardplan_registry()
+    root = registry.require_variant("ActivityOverviewDailySummary@1", "default").root
+    supporting_metrics = root.children[2]
+
+    assert supporting_metrics.component == "Column"
+    supporting_options = _template_node_options(supporting_metrics)
+    assert supporting_options["justifyContent"] == "spaceBetween"
+    assert supporting_options["alignItems"] == "center"
+    assert len(supporting_metrics.children) == 2
+    assert all(child.component == "Row" for child in supporting_metrics.children)
+    assert all(
+        _template_node_options(child)["alignItems"] == "center"
+        for child in supporting_metrics.children
+    )
+
+
 def test_workout_template_requires_one_complete_training_session():
     registry = get_cardplan_registry()
     definition = registry.require_template("WorkoutOverview@1")

@@ -123,12 +123,12 @@ Column(
             {"fontSize": 12, "fontWeight": 500, "fontColor": "#CCFFFFFF", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           )
     ),
-  Row(
+  Column(
       "between",
       {"width": "matchParent", "itemMargin": 8, "justifyContent": "spaceBetween", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Row(
             "between",
-            {"width": "matchParent", "layoutWeight": 1, "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            {"width": "matchParent", "layoutWeight": 1, "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
             IfPresent(
                     props.caloriesIcon,
                     Image(
@@ -145,7 +145,7 @@ Column(
           ),
       Row(
             "between",
-            {"width": "matchParent", "layoutWeight": 1, "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            {"width": "matchParent", "layoutWeight": 1, "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
             IfPresent(
                     props.distanceIcon,
                     Image(
