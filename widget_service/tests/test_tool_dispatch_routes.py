@@ -458,7 +458,6 @@ def test_widget_card_service_complete_flow(monkeypatch):
             "ViewWeather",
             "GetCalendarEvents",
             "GetCountdownDays",
-            "GetAppUsageDuration",
             "GetEarphoneInfo",
             "GetPhoneBatteryInfo",
             "GetHealthAndSportSummary",
@@ -691,6 +690,32 @@ def test_overview_interface_filters_default_package_whitelist(monkeypatch):
         "event.open.health.sport",
         "event.open.health.sleep",
     }
+
+
+def test_schema_interface_treats_disabled_data_capability_as_missing():
+    client = TestClient(app)
+    with client.websocket_connect(
+        "/api/v1/ws/tools/getDataCapabilitySchemas"
+    ) as websocket:
+        websocket.send_json(
+            _tool_payload(
+                {"dataCapabilityIds": ["GetAppUsageDuration"]},
+                "disabled-schema",
+            )
+        )
+        message = _assert_success_envelope(
+            _receive_final_frame(
+                websocket,
+                _request_id("disabled-schema"),
+            ),
+            "getDataCapabilitySchemas",
+            _request_id("disabled-schema"),
+        )
+
+    assert message["data"]["dataCapabilities"] == []
+    assert message["data"]["missingCapabilityIds"] == [
+        "GetAppUsageDuration"
+    ]
 
 
 def test_overview_logs_do_not_include_user_or_device_identifiers(monkeypatch):

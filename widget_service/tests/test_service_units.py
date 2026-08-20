@@ -1275,6 +1275,20 @@ def test_data_capability_schema_request_rejects_empty_ids():
         )
 
 
+def test_disabled_data_capability_schema_is_reported_as_missing():
+    request = DataCapabilitySchemasRequest(
+        uid="test-user",
+        prdVer=APP_VERSION,
+        device={"romVersion": ROM_VERSION_6},
+        dataCapabilityIds=["GetAppUsageDuration"],
+    )
+
+    response = WidgetGenerationService().get_data_capability_schemas(request)
+
+    assert response.dataCapabilities == []
+    assert response.missingCapabilityIds == ["GetAppUsageDuration"]
+
+
 def _out_of_range_requests():
     common = {
         "uid": "test-user",
@@ -1363,7 +1377,6 @@ def test_data_capability_registry_declares_leaf_samples_and_known_package_depend
         "ViewWeather",
         "GetCalendarEvents",
         "GetCountdownDays",
-        "GetAppUsageDuration",
         "GetEarphoneInfo",
         "GetPhoneBatteryInfo",
         "GetHealthAndSportSummary",
@@ -1404,6 +1417,14 @@ def test_data_capability_registry_declares_leaf_samples_and_known_package_depend
     ]
     assert "计划" in health.description
     assert health.outputSchema["properties"]["sleepScore"]["sampleValue"] == 82
+
+    disabled_app_usage = registry.get_disabled_data_capability(
+        "GetAppUsageDuration"
+    )
+    assert registry.get_data_capability("GetAppUsageDuration") is None
+    assert disabled_app_usage is not None
+    assert disabled_app_usage.enabled is False
+    assert "enabled" not in disabled_app_usage.model_dump(mode="json")
     assert registry.get_data_capability("GetSystemMemInfo") is None
 
 
@@ -2047,7 +2068,7 @@ def test_dependency_filter_logs_one_json_result(monkeypatch):
         "com.huawei.hmsapp.totemweather",
     ]
     assert result["installedPackageCount"] == 0
-    assert result["availableDataCapabilityCount"] == 4
+    assert result["availableDataCapabilityCount"] == 3
     assert result["availableEventCapabilityCount"] > 0
     assert result["availableAssetCapabilityCount"] > 0
     assert {

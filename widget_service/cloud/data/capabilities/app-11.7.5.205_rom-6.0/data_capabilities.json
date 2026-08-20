@@ -368,6 +368,7 @@
   },
   {
     "id": "GetAppUsageDuration",
+    "enabled": false,
     "description": "获取指定应用的使用时长数据",
     "defaultWriteResultTo": "/data/appUsageStats",
     "dependencies": {

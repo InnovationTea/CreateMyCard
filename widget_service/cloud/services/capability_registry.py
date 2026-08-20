@@ -179,8 +179,15 @@ class CapabilityRegistry:
     def _path(self, name: str) -> Path:
         return self.version_dir / name
 
+    def _load_data_capabilities(self) -> list[DataCapability]:
+        """加载并校验全部数据能力，包括已停用记录。"""
+        return [
+            DataCapability(**item)
+            for item in load_json(self._path("data_capabilities.json"))
+        ]
+
     def list_data_capabilities(self) -> list[DataCapability]:
-        return [DataCapability(**item) for item in load_json(self._path("data_capabilities.json"))]
+        return [item for item in self._load_data_capabilities() if item.enabled]
 
     def list_event_capabilities(self) -> list[EventCapability]:
         return [
@@ -196,6 +203,14 @@ class CapabilityRegistry:
         return next(
             (item for item in self.list_data_capabilities() if item.id == capability_id), None
         )
+
+    def get_disabled_data_capability(self, capability_id: str) -> DataCapability | None:
+        """返回指定的已停用数据能力，供前置校验生成明确提示。"""
+        for item in self._load_data_capabilities():
+            matches_disabled = item.id == capability_id and not item.enabled
+            if matches_disabled:
+                return item
+        return None
 
     def get_event_capability(self, capability_id: str) -> EventCapability | None:
         return next(

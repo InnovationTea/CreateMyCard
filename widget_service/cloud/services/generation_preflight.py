@@ -113,11 +113,20 @@ class GenerationPreflight:
             base_path = f"/candidateDataBindings/{index}"
             capability = self.registry.get_data_capability(binding.capabilityId)
             if capability is None:
+                message = "数据能力未在当前注册表中声明。"
+                disabled_capability = self.registry.get_disabled_data_capability(
+                    binding.capabilityId
+                )
+                if disabled_capability is not None:
+                    message = (
+                        "数据能力当前已停用，不得继续作为候选；"
+                        "请重新获取能力概述并移除该候选。"
+                    )
                 issues.append(
                     self._unknown_issue(
                         f"{base_path}/capabilityId",
                         binding.capabilityId,
-                        "数据能力未在当前注册表中声明。",
+                        message,
                         reference_source="getWidgetCapabilityOverview.dataCapabilities[]",
                     )
                 )
