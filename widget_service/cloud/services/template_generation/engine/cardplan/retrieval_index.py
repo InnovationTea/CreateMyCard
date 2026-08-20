@@ -65,9 +65,7 @@ def _build_record(
         variant_name=variant.size,
         supported_card_sizes=frozenset(variant.supported_card_sizes),
         supported_roles=frozenset(variant.supported_roles),
-        available_paths=frozenset(
-            (*definition.required_data, *definition.optional_data)
-        ),
+        available_paths=frozenset((*definition.required_data, *definition.optional_data)),
         required_paths=frozenset(required_paths),
         field_tokens=frozenset(
             FieldToken(capability_id, field.path, field.data_type) for field in all_fields

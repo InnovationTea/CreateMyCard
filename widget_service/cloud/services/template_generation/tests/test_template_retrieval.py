@@ -10,7 +10,10 @@ from models.generation import CandidateDataBinding, EventAction, TaskSpec
 from services.template_generation.engine.advanced.content_selectors import (
     apply_content_selectors,
 )
-from services.template_generation.engine.cardplan.registry import get_cardplan_registry
+from services.template_generation.engine.cardplan.registry import (
+    CardPlanRegistry,
+    get_cardplan_registry,
+)
 from services.template_generation.engine.cardplan.retrieval_index import (
     FieldToken,
     TemplateVariantSearchRecord,
@@ -167,7 +170,7 @@ def test_shared_capability_keeps_each_component_scoped_templates() -> None:
     result = retrieve_template_variants(
         query,
         selected_task,
-        get_cardplan_registry(),
+        CardPlanRegistry(),
         (binding,),
         {
             "suggestSize": "2x2",
@@ -184,7 +187,7 @@ def test_domain_only_query_returns_candidates_when_required_data_is_available() 
     result = retrieve_template_variants(
         _query(),
         _task(),
-        get_cardplan_registry(),
+        CardPlanRegistry(),
         (_binding(),),
         _card_spec(),
     )
@@ -242,7 +245,7 @@ def test_multiple_capabilities_return_multiple_component_candidate_sets() -> Non
             },
         ),
         task,
-        get_cardplan_registry(),
+        CardPlanRegistry(),
         (_binding(), calendar),
         {
             "dataBindings": [
@@ -291,6 +294,7 @@ def test_one_component_may_use_multiple_templates_to_cover_requested_fields() ->
             record("WeatherTemperature@1", temperature),
             record("WeatherCondition@1", condition),
         ),
+        enabled_template_ids=lambda template_ids: template_ids,
     )
     query_tokens = frozenset({temperature, condition})
 
@@ -318,6 +322,21 @@ def test_selected_action_must_belong_to_task_spec() -> None:
     with pytest.raises(TemplateRetrievalMiss, match="selected Action"):
         retrieve_template_variants(
             query, _task(), get_cardplan_registry(), (_binding(),), _card_spec()
+        )
+
+
+def test_disabled_provider_templates_never_enter_search_candidates() -> None:
+    registry = CardPlanRegistry(
+        disabled_provider_ids=("com.huawei.weather.cli",),
+    )
+
+    with pytest.raises(TemplateRetrievalMiss, match="no provider template"):
+        retrieve_template_variants(
+            _query("/current/condition"),
+            _task(),
+            registry,
+            (_binding(),),
+            _card_spec(),
         )
 
 

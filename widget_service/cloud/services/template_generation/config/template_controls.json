@@ -4,5 +4,6 @@
     "com.huawei.calendar.cli",
     "com.huawei.earphone.cli"
   ],
-  "disabledTemplateIds": []
+  "disabledTemplateIds": [],
+  "firstLayerComponentSelector": "search"
 }

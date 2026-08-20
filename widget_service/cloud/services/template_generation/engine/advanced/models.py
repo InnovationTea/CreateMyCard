@@ -365,6 +365,20 @@ class TemplateRouteSelection(StrictModel):
         alias="componentCandidates"
     )
     action_id: str | None = None
+    required_template_groups: tuple[tuple[str, ...], ...] = Field(
+        default=(),
+        alias="requiredTemplateGroups",
+    )
+
+    @property
+    def allowed_template_ids(self) -> tuple[str, ...]:
+        return tuple(
+            dict.fromkeys(
+                template_id
+                for candidate in self.component_candidates
+                for template_id in candidate.available_template_ids
+            )
+        )
 
 
 class AdaptiveTemplateSlot(StrictModel):

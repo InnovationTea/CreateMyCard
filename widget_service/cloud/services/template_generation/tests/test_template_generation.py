@@ -29,6 +29,7 @@ from services.template_generation import (
 )
 from services.template_generation.binding_dependencies import enrich_template_bindings
 from services.template_generation.controls import TemplateControls, load_template_controls
+from services.template_generation.engine import pipeline as template_pipeline_module
 from services.template_generation.engine.advanced.content_selectors import (
     app_usage_overview_is_eligible,
     app_usage_overview_query_is_supported,
@@ -475,6 +476,14 @@ def test_checked_in_template_controls_disable_calendar_and_earphone():
     assert registry.template_is_enabled("WeatherOverviewHero@1")
 
 
+def test_invalid_first_layer_component_selector_fails_closed():
+    with pytest.raises(ValueError, match="firstLayerComponentSelector"):
+        TemplateControls(
+            schemaVersion="template-controls/1",
+            firstLayerComponentSelector="invalid",
+        )
+
+
 def test_first_layer_decision_contract_carries_component_template_candidates():
     payload = {
         "theme": "family-weather-care-blue",
@@ -752,13 +761,13 @@ async def test_derived_parameter_source_field_is_counted_as_template_coverage():
     class AppUsageTemplateModel:
         async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
             return {
-                "theme": "digital-wellbeing-neutral-dark",
-                "componentCandidates": [
-                    {
-                        "componentId": "AppUsageOverview",
-                        "availableTemplateIds": ["AppUsageOverviewSingleApp@1"],
-                    }
-                ],
+                "themeId": "digital-wellbeing-neutral-dark",
+                "requiredOutputFieldsByCapability": {
+                    "GetAppUsageDuration": [
+                        "/appUsage/appName",
+                        "/appUsage/durationText",
+                    ]
+                },
                 "action": None,
             }
 
@@ -862,17 +871,14 @@ async def test_q094_sleep_duration_score_and_steps_are_all_preserved():
         ) -> dict[str, Any]:
             self.first_layer_prompt = prompt
             return {
-                "theme": "race-sunrise-action",
-                "componentCandidates": [
-                    {
-                        "componentId": "ActivityOverview",
-                        "availableTemplateIds": ["ActivityOverviewSteps@1"],
-                    },
-                    {
-                        "componentId": "SleepOverview",
-                        "availableTemplateIds": ["SleepOverviewDurationScoreSupport@1"],
-                    },
-                ],
+                "themeId": "race-sunrise-action",
+                "requiredOutputFieldsByCapability": {
+                    "GetHealthAndSportSummary": [
+                        "/sleepScore",
+                        "/nightSleepDurationText",
+                        "/dailySteps",
+                    ]
+                },
                 "action": None,
             }
 
@@ -905,12 +911,14 @@ async def test_q094_sleep_duration_score_and_steps_are_all_preserved():
     assert "#FFED6F21" in output.a2ui
     assert model.first_layer_prompt is not None
     first_layer_payload = json.loads(model.first_layer_prompt[1]["content"])
-    sleep_component = next(
-        item
-        for item in first_layer_payload["componentCatalog"]
-        if item["componentId"] == "SleepOverview"
-    )
-    assert "/data/healthSport/sleepScore" in sleep_component["supportedTaskSpecPaths"]
+    assert first_layer_payload["candidateOutputFieldsByCapability"] == {
+        "GetHealthAndSportSummary": [
+            "/sleepScore",
+            "/nightSleepDurationText",
+            "/dailySteps",
+        ]
+    }
+    assert first_layer_payload["providerFirstLayerRules"]
     assert model.second_layer_prompt is not None
     second_layer_user = model.second_layer_prompt[1]["content"]
     assert "没有合适候选时省略可选参数" in second_layer_user
@@ -924,25 +932,26 @@ class _FixedTemplateModel:
         theme_id: str,
         component_id: str,
         available_template_ids: tuple[str, ...],
+        capability_id: str,
+        required_fields: tuple[str, ...],
         body: str,
         action_id: str | None = None,
     ) -> None:
         self.theme_id = theme_id
         self.component_id = component_id
         self.available_template_ids = available_template_ids
+        self.capability_id = capability_id
+        self.required_fields = required_fields
         self.action_id = action_id
         self.body = body
         self.second_layer_prompt: list[dict[str, str]] | None = None
 
     async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
         return {
-            "theme": self.theme_id,
-            "componentCandidates": [
-                {
-                    "componentId": self.component_id,
-                    "availableTemplateIds": self.available_template_ids,
-                }
-            ],
+            "themeId": self.theme_id,
+            "requiredOutputFieldsByCapability": {
+                self.capability_id: list(self.required_fields)
+            },
             "action": self.action_id,
         }
 
@@ -1079,6 +1088,8 @@ async def test_bluetooth_connection_and_case_queries_have_honest_template_covera
         available_template_ids=(
             f"BluetoothDeviceOverview{variant[:1].upper() + variant[1:]}@1",
         ),
+        capability_id="GetEarphoneInfo",
+        required_fields=required_fields,
         body=(
             'Template("SingleFocusLayout@1",{},Template('
             f'"BluetoothDeviceOverview{variant[:1].upper() + variant[1:]}@1",{{}}));'
@@ -1130,6 +1141,8 @@ async def test_bluetooth_layout_action_uses_cardtpl_foreground_opacity():
         theme_id="audio-product-neutral-violet",
         component_id="BluetoothDeviceOverview",
         available_template_ids=("BluetoothDeviceOverviewEarbuds@1",),
+        capability_id="GetEarphoneInfo",
+        required_fields=("/isConnected", "/batteryLevel"),
         action_id="event.open.music.daily",
         body=(
             'Template("HeroActionLayout@1",{},'
@@ -1164,6 +1177,8 @@ async def test_2x2_battery_pill_action_uses_normal_hero_template():
         theme_id="system-low-power-blue",
         component_id="BatteryOverview",
         available_template_ids=("BatteryOverviewNormalHero@1",),
+        capability_id="GetPhoneBatteryInfo",
+        required_fields=("/batterySOC", "/chargingStatusDesc"),
         action_id="event.setPowerSavingMode",
         body=(
             'Template("HeroActionLayout@1",{},'
@@ -1268,6 +1283,8 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
         theme_id="meeting-paper-neutral",
         component_id="CountdownOverview",
         available_template_ids=("CountdownOverview@1",),
+        capability_id="GetCountdownDays",
+        required_fields=("/countdownDays",),
         body='Template("SingleFocusLayout@1",{},Template("CountdownOverview@1",{}));',
     )
 
@@ -1301,16 +1318,23 @@ class WeatherTemplateModel:
 
     async def generate_json(self, prompt: list[dict[str, str]], **_kwargs: Any) -> dict[str, Any]:
         self.first_layer_prompt = prompt
+        payload = json.loads(prompt[1]["content"])
+        candidate_fields = payload["candidateOutputFieldsByCapability"].get(
+            "ViewWeather",
+            [],
+        )
+        required_fields = [
+            field
+            for field in ("/current/temperatureText", "/current/condition")
+            if field in candidate_fields
+        ]
         return {
-            "theme": "family-weather-care-blue",
-            "componentCandidates": [
-                {
-                    "componentId": "WeatherOverview",
-                    "availableTemplateIds": self.available_template_ids,
-                }
-            ]
-            if self.route_usable
-            else [],
+            "themeId": "family-weather-care-blue",
+            "requiredOutputFieldsByCapability": (
+                {"ViewWeather": required_fields}
+                if self.route_usable
+                else {}
+            ),
             "action": self.action_id if self.route_usable else None,
         }
 
@@ -1323,6 +1347,90 @@ class WeatherTemplateModel:
         self.body_called = True
         self.second_layer_prompt = prompt
         return self.body
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("selector", "expected_phase"),
+    [
+        ("search", "template-retrieval-query"),
+        ("llm", "template-route-decision"),
+    ],
+)
+async def test_first_layer_selector_routes_and_preserves_action(
+    monkeypatch,
+    selector: str,
+    expected_phase: str,
+):
+    class SelectorModel:
+        phases: list[str] = []
+
+        async def generate_json(
+            self,
+            _prompt: list[dict[str, str]],
+            *,
+            phase: str,
+        ) -> dict[str, Any]:
+            self.phases.append(phase)
+            if selector == "llm":
+                return {
+                    "theme": "family-weather-care-blue",
+                    "componentCandidates": [
+                        {
+                            "componentId": "WeatherOverview",
+                            "availableTemplateIds": ["WeatherOverviewHeroIcon@1"],
+                        }
+                    ],
+                    "action": "event.open.weather",
+                }
+            return {
+                "themeId": "family-weather-care-blue",
+                "requiredOutputFieldsByCapability": {
+                    "ViewWeather": ["/current/condition"]
+                },
+                "action": "event.open.weather",
+            }
+
+        async def generate(self, *_args: Any, **_kwargs: Any) -> str:
+            return (
+                'Template("SingleFocusLayout@1",{},'
+                'Template("WeatherOverviewHeroIcon@1",'
+                '{"conditionIcon":"resources/base/media/icon_weather1.svg"}),'
+                'PillAction({"actionId":"event.open.weather"}));'
+            )
+
+    controls = TemplateControls(
+        schemaVersion="template-controls/1",
+        firstLayerComponentSelector=selector,
+    )
+    monkeypatch.setattr(template_pipeline_module, "load_template_controls", lambda: controls)
+    task_spec = _weather_task_spec().model_copy(
+        update={
+            "eventCandidates": [
+                EventAction(
+                    id="event.open.weather",
+                    call="clickToDeeplink",
+                    args={"intentName": "Weather_CityCode"},
+                )
+            ]
+        }
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=["/current/condition"],
+    )
+    model = SelectorModel()
+
+    output = await generate_template_a2ui(
+        task_spec,
+        _weather_card_spec(),
+        (binding,),
+        model,
+    )
+
+    assert model.phases == [expected_phase]
+    assert '"call":"clickToDeeplink"' in output.a2ui
 
 
 def _policy() -> GenerationRoutePolicy:
@@ -1522,6 +1630,8 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
         {
             "componentId": "WeatherOverview",
             "availableTemplateIds": [
+                "WeatherOverviewCompact@1",
+                "WeatherOverviewCompactIcon@1",
                 "WeatherOverviewHero@1",
                 "WeatherOverviewHeroIcon@1",
             ],
@@ -1533,7 +1643,18 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
         if line.startswith("requiredLocalTemplateGroups=")
     )
     assert json.loads(required_group_line.removeprefix("requiredLocalTemplateGroups=")) == [
-        ["WeatherOverviewHero@1", "WeatherOverviewHeroIcon@1"]
+        [
+            "WeatherOverviewCompact@1",
+            "WeatherOverviewCompactIcon@1",
+            "WeatherOverviewHero@1",
+            "WeatherOverviewHeroIcon@1",
+        ],
+        [
+            "WeatherOverviewCompact@1",
+            "WeatherOverviewCompactIcon@1",
+            "WeatherOverviewHero@1",
+            "WeatherOverviewHeroIcon@1",
+        ],
     ]
     assert "selectedActionEventId=null" in second_layer_user
     assert 'PillAction({"actionId":"<selectedActionEventId>"})' in second_layer_user
@@ -1601,7 +1722,7 @@ async def test_first_layer_no_match_rejects_template_before_body_generation():
         ],
     )
 
-    with pytest.raises(TemplateRouteNotApplicable, match="first-layer decision rejected"):
+    with pytest.raises(TemplateRouteNotApplicable, match="no requested capability"):
         await generate_template_a2ui(
             _weather_task_spec(),
             _weather_card_spec(),
@@ -1613,7 +1734,7 @@ async def test_first_layer_no_match_rejects_template_before_body_generation():
 
 
 @pytest.mark.asyncio
-async def test_first_layer_rejects_template_candidate_outside_component_catalog():
+async def test_search_candidates_are_derived_from_registry_not_model_template_ids():
     model = WeatherTemplateModel(available_template_ids=("ScheduleOverviewNextEvent@1",))
     binding = CandidateDataBinding(
         capabilityId="ViewWeather",
@@ -1621,20 +1742,25 @@ async def test_first_layer_rejects_template_candidate_outside_component_catalog(
         candidateOutputFields=list(_WEATHER_TEMPLATE_FIELDS),
     )
 
-    with pytest.raises(TemplateRouteNotApplicable, match="unavailable Provider Template"):
-        await generate_template_a2ui(
-            _weather_task_spec(),
-            _weather_card_spec(),
-            (binding,),
-            model,
-        )
+    output = await generate_template_a2ui(
+        _weather_task_spec(),
+        _weather_card_spec(),
+        (binding,),
+        model,
+    )
 
-    assert model.body_called is False
+    assert model.body_called is True
+    assert "ScheduleOverviewNextEvent@1" not in output.template_ids
 
 
 @pytest.mark.asyncio
 async def test_second_layer_rejects_provider_template_outside_first_layer_candidates():
-    model = WeatherTemplateModel(available_template_ids=("WeatherOverviewHero@1",))
+    model = WeatherTemplateModel(
+        body=(
+            'Template("SingleFocusLayout@1",{},'
+            'Template("ScheduleOverviewNextEvent@1",{}));'
+        )
+    )
     binding = CandidateDataBinding(
         capabilityId="ViewWeather",
         writeResultTo="/data/weather",

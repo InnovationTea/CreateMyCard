@@ -8,13 +8,17 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from models.generation import CandidateDataBinding, TaskSpec
 from services.template_generation.engine.advanced.data_shape import extract_data_shape
+from services.template_generation.engine.advanced.models import (
+    AdvancedScopeBrief,
+    TemplateComponentCandidate,
+    TemplateRouteSelection,
+)
 
 from .registry import CardPlanRegistry
 from .retrieval_index import FieldToken, TemplateVariantSearchRecord
@@ -55,34 +59,6 @@ class TemplateRetrievalQuery(BaseModel):
         if not normalized:
             raise ValueError("action must be null or a non-empty eventId")
         return normalized
-
-
-@dataclass(frozen=True)
-class TemplateComponentCandidate:
-    component_id: str
-    available_template_ids: tuple[str, ...]
-
-
-@dataclass(frozen=True)
-class TemplateRetrievalResult:
-    theme_id: str
-    action_id: str | None
-    component_candidates: tuple[TemplateComponentCandidate, ...]
-    required_template_groups: tuple[tuple[str, ...], ...]
-
-    @property
-    def component_ids(self) -> tuple[str, ...]:
-        return tuple(candidate.component_id for candidate in self.component_candidates)
-
-    @property
-    def allowed_template_ids(self) -> tuple[str, ...]:
-        return tuple(
-            dict.fromkeys(
-                template_id
-                for candidate in self.component_candidates
-                for template_id in candidate.available_template_ids
-            )
-        )
 
 
 def build_template_retrieval_prompt(
@@ -145,7 +121,7 @@ def retrieve_template_variants(
     registry: CardPlanRegistry,
     coverage_bindings: tuple[CandidateDataBinding, ...],
     card_spec: dict[str, Any],
-) -> TemplateRetrievalResult:
+) -> TemplateRouteSelection:
     """Return component candidate sets; never choose a final CardTpl variant."""
     registry.require_theme(query.theme_id)
     _validate_selected_action(query, task_spec)
@@ -181,14 +157,21 @@ def retrieve_template_variants(
             by_component.setdefault(component_id, set()).update(template_paths)
 
     candidates = tuple(
-        TemplateComponentCandidate(component_id, tuple(sorted(template_ids)))
+        TemplateComponentCandidate(
+            componentId=component_id,
+            availableTemplateIds=tuple(sorted(template_ids)),
+        )
         for component_id, template_ids in sorted(by_component.items())
     )
-    return TemplateRetrievalResult(
-        theme_id=query.theme_id,
+    scope = AdvancedScopeBrief(
+        themeId=query.theme_id,
+        advancedComponentIds=tuple(candidate.component_id for candidate in candidates),
+    )
+    return TemplateRouteSelection(
+        scope=scope,
+        componentCandidates=candidates,
         action_id=query.action_id,
-        component_candidates=candidates,
-        required_template_groups=tuple(required_groups),
+        requiredTemplateGroups=tuple(required_groups),
     )
 
 
@@ -201,7 +184,7 @@ def _component_templates_for_capability(
 ) -> dict[str, dict[str, frozenset[str]]]:
     result: dict[str, dict[str, frozenset[str]]] = {}
     for component in registry.ux_business_components.values():
-        template_ids = set(component.local_template_ids)
+        template_ids = set(registry.enabled_template_ids(component.local_template_ids))
         matches = {
             record.template_id: _record_available_query_paths(record, query_tokens)
             for record in registry.template_variant_search_records
@@ -211,10 +194,44 @@ def _component_templates_for_capability(
         }
         if query_tokens:
             matches = {template_id: paths for template_id, paths in matches.items() if paths}
-        covered_paths = set().union(*matches.values()) if matches else set()
-        if {token.path for token in query_tokens}.issubset(covered_paths):
-            result[component.name] = matches
+        if matches:
+            result[component.name] = _limit_component_templates(
+                matches,
+                registry.enabled_template_ids(component.local_template_ids),
+                query_tokens,
+            )
+    covered_paths = {
+        path for templates in result.values() for paths in templates.values() for path in paths
+    }
+    if not {token.path for token in query_tokens}.issubset(covered_paths):
+        return {}
     return result
+
+
+def _limit_component_templates(
+    matches: dict[str, frozenset[str]],
+    declared_template_ids: tuple[str, ...],
+    query_tokens: frozenset[FieldToken],
+) -> dict[str, frozenset[str]]:
+    """Keep the upstream candidate bound without dropping field coverage."""
+    selected: list[str] = []
+    for token in sorted(query_tokens):
+        template_id = next(
+            (
+                item
+                for item in declared_template_ids
+                if item in matches and token.path in matches[item]
+            ),
+            None,
+        )
+        if template_id is not None and template_id not in selected:
+            selected.append(template_id)
+    selected.extend(
+        template_id
+        for template_id in declared_template_ids
+        if template_id in matches and template_id not in selected
+    )
+    return {template_id: matches[template_id] for template_id in selected[:12]}
 
 
 def _required_field_template_groups(

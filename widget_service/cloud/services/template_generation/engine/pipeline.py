@@ -15,6 +15,7 @@ from services.protocol_registry import (
     TERSE_DSL_NESTED2_PROFILE_ID,
     A2UIProtocolRegistry,
 )
+from services.template_generation.controls import load_template_controls
 from services.template_generation.engine.advanced.content_selectors import (
     apply_content_selectors,
     project_content_component_facts,
@@ -41,6 +42,12 @@ from services.template_generation.engine.cardplan.compiler import compile_ux_lay
 from services.template_generation.engine.cardplan.registry import (
     CardPlanRegistry,
     get_cardplan_registry,
+)
+from services.template_generation.engine.cardplan.template_retrieval import (
+    TemplateRetrievalMiss,
+    TemplateRetrievalQuery,
+    build_template_retrieval_prompt,
+    retrieve_template_variants,
 )
 from services.template_generation.engine.terse_dsl_nested2_converter import (
     TerseDslNested2ConversionError,
@@ -81,6 +88,7 @@ async def generate_template_a2ui(
     logger.info(task_spec_message)
     try:
         registry = get_cardplan_registry()
+        controls = load_template_controls()
         available_capability_ids = _card_spec_capability_ids(card_spec)
         effective_capability_ids = resolve_available_capability_ids(
             task_spec,
@@ -110,17 +118,40 @@ async def generate_template_a2ui(
         return await model_client.generate_json(prompt, phase=phase)
 
     try:
-        selection = await plan_template_route_with_llm(
-            selected_task_spec,
-            data_shape,
-            generate_json,
-            registry,
-            coverage_bindings,
-            available_capability_ids,
-            card_spec,
-        )
+        if controls.first_layer_component_selector == "llm":
+            selection = await plan_template_route_with_llm(
+                selected_task_spec,
+                data_shape,
+                generate_json,
+                registry,
+                coverage_bindings,
+                available_capability_ids,
+                card_spec,
+            )
+        else:
+            prompt = build_template_retrieval_prompt(
+                selected_task_spec,
+                registry,
+                coverage_bindings,
+            )
+            raw_query = await generate_json(prompt, "template-retrieval-query")
+            query = TemplateRetrievalQuery.model_validate(raw_query)
+            selection = retrieve_template_variants(
+                query,
+                selected_task_spec,
+                registry,
+                coverage_bindings,
+                card_spec,
+            )
+            logger.info(
+                f"{_MODULE} template_retrieval matched=True "
+                f"component_count={len(selection.component_candidates)}"
+            )
     except TemplateRouteNotApplicable:
         raise
+    except TemplateRetrievalMiss as exc:
+        logger.info(f"{_MODULE} template_retrieval matched=False reason={exc}")
+        raise TemplateRouteNotApplicable(str(exc)) from exc
     except (RuntimeError, ValueError) as exc:
         raise TemplateRouteNotApplicable(
             f"template first-layer decision failed: {exc}"
@@ -138,6 +169,7 @@ async def generate_template_a2ui(
             effective_capability_ids=effective_capability_ids,
             scope=scope,
             component_candidates=selection.component_candidates,
+            required_template_groups=selection.required_template_groups,
             registry=registry,
             model_client=model_client,
         )
@@ -154,6 +186,7 @@ async def _generate_selected_templates(
     effective_capability_ids: set[str],
     scope: AdvancedScopeBrief,
     component_candidates: tuple[TemplateComponentCandidate, ...],
+    required_template_groups: tuple[tuple[str, ...], ...],
     registry: CardPlanRegistry,
     model_client: Any,
 ) -> TemplateEngineOutput:
@@ -174,6 +207,7 @@ async def _generate_selected_templates(
         card_spec=card_spec,
         scope=scope,
         component_candidates=component_candidates,
+        required_template_groups=required_template_groups,
         registry=registry,
     )
     protocol_profile = A2UIProtocolRegistry.read_design_protocol_profile(
