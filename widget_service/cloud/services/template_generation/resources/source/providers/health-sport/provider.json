@@ -90,15 +90,16 @@
     },
     {
       "templateId": "WorkoutOverview@1",
-      "description": "最近一次运动摘要，展示运动类型、时长和热量。 组件形态：latest。",
+      "description": "最近一次单次运动训练摘要，展示运动类型、该次热量、时长和结束时间。 组件形态：latest。",
       "requiredData": [
         "/exerciseTypeName",
+        "/exerciseCalorieText",
         "/exerciseDurationText",
-        "/exerciseCalorieText"
+        "/exerciseEndTimeText"
       ],
       "optionalData": [],
       "entry": "templates/workout-overview.cardtpl",
-      "digest": "sha256:cc41052e56c37cc8a8eab9ea5902385beb02f56e00f8d4c4b8feb3612fdd9d75"
+      "digest": "sha256:dcd420f96b314e38c814f1bc30512e92aa328d1db363ffcd1bfc5c5415fbced8"
     },
     {
       "templateId": "HeartRateOverviewHero@1",

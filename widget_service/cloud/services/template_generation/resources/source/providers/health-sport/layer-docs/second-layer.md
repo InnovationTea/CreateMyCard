@@ -7,7 +7,7 @@
   - `ActivityOverviewStepsSupport@1`：每日活动摘要，展示步数，可补充热量和距离。 组件形态：stepsSupport。 必需数据：/dailySteps；可选数据：无。
   - `ActivityOverviewDailySummary@1`：每日活动摘要，展示步数，可补充热量和距离。 组件形态：dailySummary。 必需数据：/dailySteps, /dailyTotalCaloriesText, /dailyDistanceText；可选数据：无。
   - `ActivityOverviewDailySummaryWide@1`：每日活动摘要，展示步数，可补充热量和距离。 组件形态：dailySummaryWide。 必需数据：/dailySteps, /dailyTotalCaloriesText, /dailyDistanceText；可选数据：无。
-  - `WorkoutOverview@1`：最近一次运动摘要，展示运动类型、时长和热量。 组件形态：latest。 必需数据：/exerciseTypeName, /exerciseDurationText, /exerciseCalorieText；可选数据：无。
+  - `WorkoutOverview@1`：最近一次单次运动训练摘要，展示运动类型、该次热量、时长和结束时间。 组件形态：latest。 必需数据：/exerciseTypeName, /exerciseCalorieText, /exerciseDurationText, /exerciseEndTimeText；可选数据：无。props 只允许语义匹配的可选 `sourceIcon`，不得传入 `caloriesIcon`。
   - `HeartRateOverviewHero@1`：运动平均心率摘要，可补充更新时间。 组件形态：hero。 必需数据：/exerciseHeartRateAvg；可选数据：无。
   - `HeartRateOverviewHeroUpdated@1`：运动平均心率摘要，可补充更新时间。 组件形态：heroUpdated。 必需数据：/exerciseHeartRateAvg, /updatedAt；可选数据：无。
   - `HeartRateOverviewHeroIcon@1`：运动平均心率摘要，可补充更新时间。 组件形态：heroIcon。 必需数据：/exerciseHeartRateAvg；可选数据：无。

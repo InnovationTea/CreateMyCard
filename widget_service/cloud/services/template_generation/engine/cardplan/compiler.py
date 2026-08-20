@@ -1291,7 +1291,7 @@ def _expand_workout_overview_call(
         facts = extract_workout_latest_facts(task_spec.dataModelSchema)
         if facts is None:
             raise TerseDslNested2ConversionError(
-                "WorkoutOverview latest requires three trusted non-empty exercise fields."
+                "WorkoutOverview latest requires four trusted non-empty exercise fields."
             )
         return _workout_latest_overview(facts, source_icon, calorie_icon, registry)
     facts = extract_workout_countdown_facts(task_spec.dataModelSchema)

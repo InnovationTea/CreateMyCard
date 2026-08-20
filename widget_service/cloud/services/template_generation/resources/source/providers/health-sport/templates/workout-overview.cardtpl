@@ -1,59 +1,67 @@
-#Template WorkoutOverview@1(props: { sourceIcon?: asset, caloriesIcon?: asset })
+#Template WorkoutOverview@1(props: { sourceIcon?: asset })
 data = {
-    type: $path("/exerciseTypeName"),
+    workoutType: $path("/exerciseTypeName"),
+    workoutCalories: $path("/exerciseCalorieText"),
     duration: $path("/exerciseDurationText"),
-    calories: $path("/exerciseCalorieText")
+    endTime: $path("/exerciseEndTimeText")
 }
 
 Column(
   "compact",
   {"_advancedComponent": "WorkoutOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Row(
-      "between",
-      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      IfPresent(
-            props.sourceIcon,
-            Image(
+  Column(
+      "compact",
+      {"itemMargin": 4, "justifyContent": "start", "width": "matchParent", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Row(
+            "between",
+            {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            IfPresent(
                     props.sourceIcon,
-                    "icon",
-                    {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+                    Image(
+                              props.sourceIcon,
+                              "icon",
+                              {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+                            )
+                  ),
+            Text(
+                    data.workoutType,
+                    "subtitle",
+                    {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   )
           ),
-      Text(
-            "最近锻炼",
-            "subtitle",
-            {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          )
-    ),
-  Text(
-      data.type,
-      "compact-title",
-      {"width": "matchParent", "fontSize": 20, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    ),
-  Row(
-      "between",
-      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Text(
-            data.duration,
-            "title",
-            {"fontSize": 38, "fontWeight": 800, "fontColor": "#FFFF7A45", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          )
-    ),
-  Row(
-      "between",
-      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      IfPresent(
-            props.caloriesIcon,
-            Image(
-                    props.caloriesIcon,
-                    "icon",
-                    {"width": 16, "height": 16, "objectFit": "contain", "flexShrink": 0}
+      Row(
+            "between",
+            {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            Text(
+                    data.workoutCalories,
+                    "title",
+                    {"fontSize": 30, "fontWeight": 800, "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   )
           ),
-      Text(
-            data.calories,
-            "body",
-            {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      Progress(
+            {"value": 20, "total": 100, "color": "#FFFFFFFF", "backgroundColor": "#1AFFFFFF", "strokeWidth": 8, "height": 12, "width": "matchParent"}
+          )
+    ),
+  Column(
+      "compact",
+      {"itemMargin": 4, "justifyContent": "start", "width": "matchParent", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Row(
+            "between",
+            {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            Text(
+                    data.duration,
+                    "body",
+                    {"fontSize": 12, "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                  )
+          ),
+      Row(
+            "between",
+            {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            Text(
+                    data.endTime,
+                    "body",
+                    {"fontSize": 12, "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                  )
           )
     )
 )

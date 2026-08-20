@@ -7,8 +7,11 @@
 
 ## WorkoutOverview
 
-- 支持路径：`{{dataRoot:GetHealthAndSportSummary}}/exerciseTypeName`、`{{dataRoot:GetHealthAndSportSummary}}/exerciseDurationText`、`{{dataRoot:GetHealthAndSportSummary}}/exerciseCalorieText`。
-- 只支持最近一次运动；不支持计划/实时状态、距离、配速、轨迹、心率区间或完成率。
+- 支持路径：`{{dataRoot:GetHealthAndSportSummary}}/exerciseTypeName`、`{{dataRoot:GetHealthAndSportSummary}}/exerciseCalorieText`、`{{dataRoot:GetHealthAndSportSummary}}/exerciseDurationText`、`{{dataRoot:GetHealthAndSportSummary}}/exerciseEndTimeText`。
+- 表达最近一次特定运动训练会话，而不是全天累计活动；模板自身要求运动类型、该次运动热量、时长和结束时间四项完整。
+- 用户明确请求运动记录、锻炼数据、训练信息、运动时长、热量消耗或特定运动类型时，可以选择 `WorkoutOverview`；四个 requiredData 是模板准入条件，不要求 userQuery 逐项点名。
+- 与 `ActivityOverview` 默认互斥。只有 userQuery 明确要求今日综合活动概览，并同时要求全天步数与热量或距离等全天累计数据时，才允许两者组合。
+- 不支持计划/实时状态、距离、配速、轨迹、心率区间、赛事名、训练计划、总里程或完成率。
 
 ## HeartRateOverview
 

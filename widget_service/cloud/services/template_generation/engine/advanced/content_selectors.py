@@ -313,14 +313,16 @@ class ActivityOverviewFacts:
 @dataclass(frozen=True)
 class WorkoutLatestFacts:
     exercise_type_name: str
-    duration_text: str
     calorie_text: str
+    duration_text: str
+    end_time_text: str
 
     def as_selector(self) -> dict[str, dict[str, Any]]:
         return {
             "exerciseTypeName": _field(self.exercise_type_name, "可信最近运动类型"),
-            "exerciseDurationText": _field(self.duration_text, "可信最近运动时长文本"),
             "exerciseCalorieText": _field(self.calorie_text, "可信最近运动热量文本"),
+            "exerciseDurationText": _field(self.duration_text, "可信最近运动时长文本"),
+            "exerciseEndTimeText": _field(self.end_time_text, "可信最近运动结束时刻"),
         }
 
 
@@ -783,6 +785,18 @@ _WORKOUT_LATEST_QUERY_TERMS = (
     "运动记录",
     "锻炼记录",
     "最近训练",
+    "运动时长",
+    "锻炼时长",
+    "训练时长",
+    "运动热量",
+    "锻炼热量",
+    "训练热量",
+    "热量消耗",
+    "workout duration",
+    "exercise duration",
+    "training duration",
+    "calories burned",
+    "calorie burn",
 )
 _WORKOUT_GENERIC_QUERY_TERMS = (
     "workout",
@@ -1472,7 +1486,14 @@ def _provider_fields(component_id: str, capability_ids: set[str]) -> tuple[str, 
         return _PROVIDER_COMPONENT_FIELDS.get(component_id, ())
     fields: list[str] = []
     if "GetHealthAndSportSummary" in capability_ids:
-        fields.extend(("exerciseTypeName", "exerciseDurationText", "exerciseCalorieText"))
+        fields.extend(
+            (
+                "exerciseTypeName",
+                "exerciseCalorieText",
+                "exerciseDurationText",
+                "exerciseEndTimeText",
+            )
+        )
     return tuple(fields)
 
 
@@ -1661,9 +1682,16 @@ def workout_overview_variants(
             compact,
             _WORKOUT_GENERIC_QUERY_TERMS,
         )
+    facts = extract_workout_latest_facts(task_spec.dataModelSchema)
+    if not requests_latest and facts is not None:
+        requests_latest = _contains_query_term(
+            normalized,
+            compact,
+            (facts.exercise_type_name,),
+        )
     variants: list[str] = []
     if requests_latest and "GetHealthAndSportSummary" in capability_ids:
-        if extract_workout_latest_facts(task_spec.dataModelSchema) is not None:
+        if facts is not None:
             variants.append("latest")
     return tuple(variants)
 
@@ -2680,23 +2708,30 @@ def extract_activity_overview_facts(
 def extract_workout_latest_facts(
     schema: dict[str, Any],
 ) -> WorkoutLatestFacts | None:
-    """Extract the complete latest-workout triple from one health subtree."""
+    """Extract one complete latest-workout session from one health subtree."""
     for candidate in _direct_or_provider_candidates(
         schema,
         "WorkoutOverview",
         "GetHealthAndSportSummary",
     ):
         exercise_type_name = _trusted_string(candidate.get("exerciseTypeName"))
-        duration_text = _trusted_string(candidate.get("exerciseDurationText"))
         calorie_text = _trusted_string(candidate.get("exerciseCalorieText"))
+        duration_text = _trusted_string(candidate.get("exerciseDurationText"))
+        end_time_text = _trusted_string(candidate.get("exerciseEndTimeText"))
         if exercise_type_name == "暂无运动":
             continue
-        if exercise_type_name is None or duration_text is None or calorie_text is None:
+        if (
+            exercise_type_name is None
+            or calorie_text is None
+            or duration_text is None
+            or end_time_text is None
+        ):
             continue
         return WorkoutLatestFacts(
             exercise_type_name=exercise_type_name,
-            duration_text=duration_text,
             calorie_text=calorie_text,
+            duration_text=duration_text,
+            end_time_text=end_time_text,
         )
     return None
 
@@ -2821,7 +2856,12 @@ def _direct_or_provider_candidates(
     required_fields = {
         "ActivityOverview": ("dailySteps",),
         "WorkoutOverview": (
-            ("exerciseTypeName", "exerciseDurationText", "exerciseCalorieText")
+            (
+                "exerciseTypeName",
+                "exerciseCalorieText",
+                "exerciseDurationText",
+                "exerciseEndTimeText",
+            )
             if provider_id == "GetHealthAndSportSummary"
             else ("countdownDays",)
         ),
