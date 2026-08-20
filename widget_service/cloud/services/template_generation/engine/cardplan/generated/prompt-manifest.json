@@ -42,7 +42,7 @@
     "providers/health-sport/provider.json": "sha256:55891f18e19c860853858fd32101b4545c44ec640f1f5a326c394d3149275b41",
     "providers/health-sport/templates/activity-overview.cardtpl": "sha256:099c66f8ff642c71b4559e04a938dbf48c0ceefa9d449e4acc8709d572cb7a07",
     "providers/health-sport/templates/heart-rate-overview.cardtpl": "sha256:28164619fe7c4273da9b21e9f4c4ec3181ff2d3583807ff4d18fe7a6ee9730da",
-    "providers/health-sport/templates/sleep-overview.cardtpl": "sha256:c62cf0428113370b0bf60cd9b73826aadfe5f4cd34034cb691923dd19a37b355",
+    "providers/health-sport/templates/sleep-overview.cardtpl": "sha256:4c00f736d0401490cd243377862bdc71eb4965ed0f02f1ef81c46fd35e82404f",
     "providers/health-sport/templates/workout-overview.cardtpl": "sha256:dcd420f96b314e38c814f1bc30512e92aa328d1db363ffcd1bfc5c5415fbced8",
     "providers/layout/provider.json": "sha256:6f828ff5d12b7b03dd0b7d9abe3ea33d044dd3afde3ea142762497f1795019d1",
     "providers/layout/templates/layout.cardtpl": "sha256:e114153e98228cc2778ec624ed155b154708bb9a2e63530ef478e92f26e415ac",

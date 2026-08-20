@@ -63,72 +63,71 @@ data = {
 
 Column(
     "compact",
-    {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    {"_advancedComponent": "SleepOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
     Column(
         "compact",
-        {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
-        Column(
-            "compact",
-            {"width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true},
-            Column(
-                "compact",
-                {"itemMargin": 4, "justifyContent": "spaceBetween", "width": "matchParent", "height": "matchParent"},
-                Column(
-                    "compact",
-                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
-                    Row(
-                        "between",
-                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
-                        IfPresent(
-                            props.sourceIcon,
-                            Image(
-                                props.sourceIcon,
-                                "icon",
-                                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
-                            )
-                        ),
-                        Text(
-                            "睡眠",
-                            "compact-title",
-                            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
-                        )
-                    ),
-                    Row(
-                        "between",
-                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom"},
-                        Text(
-                            data.duration,
-                            "title",
-                            {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
-                        )
-                    ),
-                    Progress(
-                        {"value": data.score, "total": 100, "strokeWidth": 8, "color": "#FFFFFFFF", "backgroundColor": "#1AFFFFFF", "height": 12, "width": "matchParent"}
-                    )
+        {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
+        Row(
+            "between",
+            {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
+            IfPresent(
+                props.sourceIcon,
+                Image(
+                    props.sourceIcon,
+                    "icon",
+                    {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+                )
+            ),
+            Text(
+                "睡眠",
+                "compact-title",
+                {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+            )
+        ),
+        Row(
+            "between",
+            {"margin": {"left": 0, "top": 8, "right": 0, "bottom": 0}, "width": "matchParent", "itemMargin": 4, "justifyContent": "end", "alignItems": "center"},
+            Stack(
+                "overlay",
+                {"width": 60, "height": 60, "alignContent": "center", "flexShrink": 0},
+                Progress(
+                    {"value": data.score, "total": 100, "type": "ring", "color": Expr(`${data.score} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1AFFFFFF", "width": 60, "height": 60, "strokeWidth": 7}
                 ),
-                Column(
-                    "compact",
-                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
-                    Row(
-                        "between",
-                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
-                        Text(
-                            "睡眠评分",
-                            "subtitle",
-                            {"fontSize": 12, "maxLines": 1}
-                        ),
-                        Text(
-                            data.score,
-                            {"fontSize": 12, "fontWeight": 800, "maxLines": 1}
-                        ),
-                        Text(
-                            "分",
-                            "subtitle",
-                            {"fontSize": 12, "maxLines": 1}
-                        )
+                IfPresent(
+                    props.sourceIcon,
+                    Image(
+                        props.sourceIcon,
+                        "icon",
+                        {"width": 24, "height": 24, "objectFit": "contain"}
                     )
                 )
+            ),
+            Column(
+                "compact",
+                {"margin": {"left": 8, "top": 0, "right": 0, "bottom": 0}, "itemMargin": 2, "justifyContent": "center"},
+                Text(
+                    data.score,
+                    "title",
+                    {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
+                ),
+                Text(
+                    "睡眠得分",
+                    {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                ),
             )
+        )
+    ),
+    Row(
+        "between",
+        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
+        Text(
+            "睡眠时长",
+            "subtitle",
+            {"fontSize": 12, "maxLines": 1}
+        ),
+        Text(
+            data.duration,
+            {"fontSize": 12, "fontWeight": 800, "maxLines": 1}
         )
     )
 )
