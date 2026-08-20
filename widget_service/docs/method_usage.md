@@ -1314,6 +1314,12 @@ WIDGET_SERVICE_ANYIO_THREAD_POOL_TOKENS
 默认线程限制器，仅控制第一、第二接口和短时同步 IO/校验任务的并发容量。第三至第五接口直接等待
 异步生成 Service，不让完整模型链路占用该线程池。
 
+模板管控不使用环境变量，统一读取
+`cloud/services/template_generation/config/template_controls.json`。`disabledProviderIds` 按 Provider ID
+关闭整个业务的全部模板，`disabledTemplateIds` 按完整模板 ID 关闭单个模板。禁用项不会进入第一层模板选择或
+第二层模板排版；
+配置修改后需要重启服务以重建只读 Registry。
+
 `WIDGET_SERVICE_ENABLE_MODEL_FAILURE_RETRY` 默认值为 `false`。关闭时每个模型阶段只调用 master 一次，
 不重试且不切换 fallback。开启后，首次生成或 repair 模型调用边界内发生任意异常或空 DSL 时，master
 使用同一提示词进行异步指数退避重试。`WIDGET_SERVICE_ENABLE_OPENAI_FALLBACK=true` 时，master 耗尽后

@@ -274,7 +274,7 @@ def _with_provider_template_binding_projection(
         capability = registry.require_ux_business_component(component_id)
         if capability.implementation != "template":
             continue
-        for template_id in capability.local_template_ids:
+        for template_id in registry.enabled_template_ids(capability.local_template_ids):
             definition = registry.require_template(template_id)
             if definition.source_format != "cardtpl/1" or not definition.capability_id:
                 continue
