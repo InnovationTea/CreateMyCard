@@ -4,7 +4,7 @@
 
 模板是 Compact 和 TerseDSL-Nested-2 create 场景的内部生成方式，不新增外部协议。原始入口构造既有
 `GenerationRoutePolicy`，显式提供模板所需依赖并接收模板生成结果。模板模块不持有主服务对象，也不具备
-调用原协议生成链的能力；两种协议的回退都由公开入口负责。
+调用原协议生成链的能力。Compact 的回退由公开入口负责；Terse 生产入口不允许回退。
 
 ## 路由状态机
 
@@ -30,7 +30,7 @@ generateWidgetCardCompactDsl
 
 ```text
 generateWidgetCardTerseDslNested2
-  ├─ edit → 模板接口抛出异常 → 原始 TerseDSL-Nested-2 流程
+  ├─ edit → failed
   └─ create
        ├─ generate_template_artifact
        │    ├─ 第一层 LLM 只输出 theme/component/action，并执行服务端完整覆盖校验
@@ -40,7 +40,7 @@ generateWidgetCardTerseDslNested2
        │    ├─ 展开后的 TerseDSL-Nested-2 → 模块内隔离转换器 → 最终 A2UI
        │    ├─ dev ArtifactValidator
        │    └─ ArtifactStore 保存 genui + 展开后的 TerseDSL-Nested-2
-       └─ 任一异常 → 原始 TerseDSL-Nested-2 流程
+       └─ 任一异常 → failed（禁止回退旧 TerseDSL-Nested-2 流程）
 ```
 
 ## 为什么先归档 Compact 再确定最终 A2UI
@@ -60,14 +60,12 @@ generateWidgetCardTerseDslNested2
 
 ## 失败与回退边界
 
-| 阶段 | 行为 | 原因 |
+| 阶段 | Compact | TerseDSL-Nested-2 |
 |---|---|---|
-| edit 请求 | 公开入口执行原协议流程 | 二次更新不重新选择模板 |
-| 无真实模型运行时 | 公开入口执行原协议流程 | 保持 dev mock 和既有测试行为 |
-| 第一层拒绝或异常 | 公开入口执行原协议流程 | 模板无法证明完整表达时保留原能力 |
-| 确定性覆盖失败 | 公开入口执行原协议流程 | 任一用户选定字段无法由模板表达 |
-| 第二层或模板编译失败 | 公开入口执行原协议流程 | 模板异常不阻断既有协议能力 |
-| 归档、Validator 或保存失败 | 公开入口执行原协议流程 | 不保存半成品，改走原协议重新生成 |
+| edit 请求 | 执行原 Compact 流程 | 返回 `failed` |
+| 无真实模型运行时 | 执行原 Compact 流程 | 返回 `failed` |
+| 第一层拒绝或确定性覆盖失败 | 执行原 Compact 流程 | 返回 `failed` |
+| 第二层、模板编译、归档、Validator 或保存失败 | 执行原 Compact 流程 | 返回 `failed` |
 
 `candidateOutputFields` 只负责形成 TaskSpec 的候选数据投影，不等于本轮全部必须显示字段。第一层结合
 `userQuery` 与 TaskSpec 中的全量字段说明，在模型内部选出必须显示字段，再用 Provider 首层 MD 中的

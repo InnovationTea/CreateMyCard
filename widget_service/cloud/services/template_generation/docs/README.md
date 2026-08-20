@@ -22,13 +22,14 @@ await generate_template_artifact(
 返回规则：
 
 - 模板模块只负责模板生成结果，不接收主服务对象，也不调用原始生成逻辑。
-- 模板接口内部识别 edit 请求并抛出不适用异常，由 Compact 或 Terse 公开入口执行原协议流程。
+- Compact edit 执行原协议流程；Terse edit 直接返回模板失败。
 - create 请求先由第一层 LLM 只选择 `theme`、`component`、`action`，再判断一个或多个模板能否覆盖完整需求。
 - 第一层失败时仍返回最匹配的候选 Theme，以空 `component` 和空 `action` 表示模板不适用。
 - 第二层的业务 UI 和布局骨架都使用 `Template` 调用；模板 ID 直接表达形态，不再输出 Variant。
 - 第一层拒绝、输出非法、调用失败、确定性覆盖检查不通过，以及后续生成、转换、校验或保存异常，均向公开
   入口抛出异常。
-- Compact 与 Terse 公开入口捕获异常后，分别执行各自原协议流程。
+- Compact 在模板不适用时执行原协议流程；Terse 的第一层拒绝、第二层失败或归档失败均直接返回失败，
+  不得进入旧 Terse 生成流程。
 - 模板成功时直接保存包含 `genui` 和 `designcompactdsl` 的标准 artifact。
 
 旧 Python Terse 模板流水线只保留
