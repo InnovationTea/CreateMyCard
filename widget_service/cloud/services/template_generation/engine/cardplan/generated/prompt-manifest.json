@@ -40,7 +40,7 @@
     "providers/health-sport/layer-docs/first-layer.md": "sha256:7ab02d6401f94ea0b4af36134b7b46afc6f956d33deb005e8b1026a159c652c4",
     "providers/health-sport/layer-docs/second-layer.md": "sha256:ee9946d235b9dde472cfe8760a5c78a73455b6dad85fefb6afc3b5cf679c8c09",
     "providers/health-sport/provider.json": "sha256:55891f18e19c860853858fd32101b4545c44ec640f1f5a326c394d3149275b41",
-    "providers/health-sport/templates/activity-overview.cardtpl": "sha256:099c66f8ff642c71b4559e04a938dbf48c0ceefa9d449e4acc8709d572cb7a07",
+    "providers/health-sport/templates/activity-overview.cardtpl": "sha256:98e8dad1b2b87ac3fbff1f367cf2772f99aa5bb9d22db1a73a823823038bf82c",
     "providers/health-sport/templates/heart-rate-overview.cardtpl": "sha256:28164619fe7c4273da9b21e9f4c4ec3181ff2d3583807ff4d18fe7a6ee9730da",
     "providers/health-sport/templates/sleep-overview.cardtpl": "sha256:4c00f736d0401490cd243377862bdc71eb4965ed0f02f1ef81c46fd35e82404f",
     "providers/health-sport/templates/workout-overview.cardtpl": "sha256:dcd420f96b314e38c814f1bc30512e92aa328d1db363ffcd1bfc5c5415fbced8",
