@@ -29,7 +29,13 @@ from custom.a2ui_model_client import (
 )
 from custom.model_runtime import ModelExecutionRuntime
 from models.artifact import ArtifactMeta, GenerationPlan, WidgetArtifact
-from models.generation import DEFAULT_WIDGET_SIZE, ModelRequestContext, WidgetSize
+from models.generation import (
+    DEFAULT_WIDGET_SIZE,
+    CandidateDataBinding,
+    ModelRequestContext,
+    TaskSpec,
+    WidgetSize,
+)
 from models.preflight import GenerationPreflightError
 from services.artifact_store import ArtifactStore
 from services.capability_registry import CapabilityRegistry
@@ -58,10 +64,33 @@ from services.source_artifact_repository import (
     SourceArtifactLoadResult,
     SourceArtifactRepository,
 )
-from services.template_generation import generate_template_artifact
+from services.template_a2ui_adapter import prepare_template_a2ui
+from services.template_generation import request_template_a2ui
+from services.template_generation.binding_dependencies import enrich_template_bindings
 from services.validator import ArtifactValidator
 
 _MODULE = "[Generation Service]"
+TemplateA2UIGenerator = Callable[
+    [TaskSpec, dict, tuple[CandidateDataBinding, ...]],
+    Awaitable[str],
+]
+
+
+class _ModelStartOnce:
+    """在模板尝试与 Compact 回退之间共享一次模型开始通知。"""
+
+    def __init__(
+        self,
+        callback: Callable[[WidgetSize], Awaitable[None]] | None,
+    ) -> None:
+        self._callback = callback
+        self._notified = False
+
+    async def __call__(self, size: WidgetSize) -> None:
+        if self._callback is None or self._notified:
+            return
+        await self._callback(size)
+        self._notified = True
 
 
 class WidgetGenerationService:
@@ -255,14 +284,15 @@ class WidgetGenerationService:
         *,
         policy: GenerationRoutePolicy,
         before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
+        template_a2ui_generator: TemplateA2UIGenerator | None = None,
     ) -> GenerateWidgetCardResponse:
         """生成卡片。
 
         主流程顺序：
         1. 加载并归一化可选的上一版 artifact。
         2. 选择能力注册表和协议 Profile，裁决数据、事件与素材候选。
-        3. 构造 CardSpec、TaskSpec 以及新建或编辑提示词。
-        4. 调用模型；模型异常重试和 DSL error 修复分别由独立开关控制。
+        3. 构造 CardSpec、TaskSpec，再请求模板 A2UI 或构造原协议提示词。
+        4. 调用生成器；原协议模型异常重试和 DSL error 修复分别由独立开关控制。
         5. 校验最终 DSL，保存 artifact，并生成面向主 Agent 的状态响应。
 
         入参：
@@ -355,7 +385,8 @@ class WidgetGenerationService:
         else:
             request = EditRequestNormalizer.normalize_create(request)
 
-        # 主流程：解析能力、生成 CardSpec/TaskSpec、生成 genui、校验 artifact、返回结构化状态。
+        # 主流程依次解析能力、构造 CardSpec/TaskSpec、生成 genui，
+        # 然后校验 artifact 并返回结构化状态。
         logger.info(
             f"{_MODULE} generate_widget_card_started generation_mode={generation_mode} "
             f"size={request.size} "
@@ -490,7 +521,11 @@ class WidgetGenerationService:
             response = GenerateWidgetCardResponse(
                 status=GenerationStatus.UNSUPPORTED,
                 suggestSize=request.size,
-                message="当前设备上没有可用的数据能力或入口能力，暂时不能生成这类实时卡片。你可以试试天气、日历或系统状态类卡片。",
+                message=(
+                    "当前设备上没有可用的数据能力或入口能力，"
+                    "暂时不能生成这类实时卡片。"
+                    "你可以试试天气、日历或系统状态类卡片。"
+                ),
                 removedCapabilities=removed,
                 errorCode=ErrorCode.NO_EFFECTIVE_CAPABILITY.value,
             )
@@ -515,43 +550,52 @@ class WidgetGenerationService:
             "task_data_model_schema_keys="
             f"{json_for_log(list(task_spec.dataModelSchema))}"
         )
-        # Prompt 约束模型生成源 DSL；Processor 和 Validator 依次产出统一质量问题，再由策略决定门禁。
-        if policy.stores_design_token:
-            design_system_prompt = A2UIProtocolRegistry.read_design_prompt(
-                policy.model_profile_id
-            )
-            prompt = PromptBuilder().build_design_token(
-                task_spec,
-                design_system_prompt,
-                policy.source_format,
-                previous_design_token=previous_design_token,
+        # 模板入口只消费已构造的规格并返回 A2UI；原协议路线仍由 Prompt 约束模型源 DSL。
+        is_template_generation = template_a2ui_generator is not None
+        prompt: list[dict[str, str]] = []
+        model_client: A2UIModelClient | None = None
+        if is_template_generation:
+            logger.info(
+                f"{_MODULE} template_a2ui_generation_selected "
+                f"operation={policy.operation}"
             )
         else:
-            prompt = PromptBuilder().build(
-                task_spec,
-                protocol_profile,
-                "；".join(f"{item.id}:{item.reason}" for item in removed),
-                previous_genui=(
-                    source_load_result.artifact.genui if source_load_result else None
-                ),
+            if policy.stores_design_token:
+                design_system_prompt = A2UIProtocolRegistry.read_design_prompt(
+                    policy.model_profile_id
+                )
+                prompt = PromptBuilder().build_design_token(
+                    task_spec,
+                    design_system_prompt,
+                    policy.source_format,
+                    previous_design_token=previous_design_token,
+                )
+            else:
+                prompt = PromptBuilder().build(
+                    task_spec,
+                    protocol_profile,
+                    "；".join(f"{item.id}:{item.reason}" for item in removed),
+                    previous_genui=(
+                        source_load_result.artifact.genui if source_load_result else None
+                    ),
+                )
+            prompt_log_summary = build_prompt_log_summary(
+                prompt,
+                settings.model_prompt_log_preview_chars,
             )
-        prompt_log_summary = build_prompt_log_summary(
-            prompt,
-            settings.model_prompt_log_preview_chars,
-        )
-        logger.info(
-            f"{_MODULE} a2ui_prompt_built "
-            f"prompt_summary={json_for_log(prompt_log_summary)}"
-        )
+            logger.info(
+                f"{_MODULE} a2ui_prompt_built "
+                f"prompt_summary={json_for_log(prompt_log_summary)}"
+            )
+            model_client = A2UIModelClient(
+                backend=policy.backend,
+                runtime=self.model_runtime,
+                request_context=self._resolve_model_request_context(request),
+                operation_name=policy.operation,
+            )
         latency_by_stage["specAndPrompt"] = self._elapsed_ms(stage_started_at)
         stage_started_at = time.perf_counter()
 
-        model_client = A2UIModelClient(
-            backend=policy.backend,
-            runtime=self.model_runtime,
-            request_context=self._resolve_model_request_context(request),
-            operation_name=policy.operation,
-        )
         model_protocol_profile = {
             "id": policy.model_profile_id,
             "format": policy.model_format,
@@ -560,7 +604,9 @@ class WidgetGenerationService:
         artifact_id = str(uuid.uuid4())
         model_call_phase = "initial"
         quality_repair_attempt_count = 0
-        if policy.processor_kind == DslProcessorKind.TERSE_NESTED2:
+        if is_template_generation:
+            repair_prompt_type = "template-a2ui"
+        elif policy.processor_kind == DslProcessorKind.TERSE_NESTED2:
             design_mode = "edit" if source_load_result else "create"
             repair_prompt_type = f"terse-dsl-nested-2-{design_mode}"
         elif policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
@@ -582,13 +628,27 @@ class WidgetGenerationService:
             event_candidates=effective_events,
         )
         latest_processing_result = DslProcessingResult(source_dsl="")
+        template_design_token: str | None = None
 
         async def generate_source_dsl() -> str:
+            if template_a2ui_generator is not None:
+                logger.info(
+                    f"{_MODULE} template_a2ui_generation_started "
+                    f"operation={policy.operation}"
+                )
+                result = await template_a2ui_generator(
+                    task_spec,
+                    processing_context.card_spec,
+                    tuple(effective_bindings),
+                )
+                return require_generated_dsl(result)
             if before_model_call is not None:
                 await before_model_call(card_spec.suggestSize)
             logger.info(
                 f"{_MODULE} model_source_generation_started operation={policy.operation}"
             )
+            if model_client is None:
+                raise RuntimeError("model client is unavailable for original generation")
             result = await self._resolve_model_result(
                 model_client.generate(prompt, model_protocol_profile)
             )
@@ -599,6 +659,8 @@ class WidgetGenerationService:
             quality_errors: list[str],
         ) -> str:
             nonlocal model_call_phase, quality_repair_attempt_count
+            if model_client is None:
+                raise RuntimeError("template A2UI does not use the original repair model")
             quality_repair_attempt_count += 1
             quality_error_payloads = [
                 item.to_prompt_payload() for item in latest_processing_result.errors
@@ -633,8 +695,18 @@ class WidgetGenerationService:
             return require_generated_dsl(result)
 
         def evaluate_source_dsl_sync(source_dsl: str) -> list[str]:
-            nonlocal latest_processing_result
-            processing_result = processor.process(source_dsl, processing_context)
+            nonlocal latest_processing_result, template_design_token
+            if is_template_generation:
+                prepared = prepare_template_a2ui(
+                    source_dsl,
+                    policy,
+                    processing_context,
+                    protocol_profile,
+                )
+                processing_result = prepared.processing_result
+                template_design_token = prepared.design_token
+            else:
+                processing_result = processor.process(source_dsl, processing_context)
             latest_processing_result = processing_result
             warnings = [
                 item.repair_message()
@@ -710,7 +782,9 @@ class WidgetGenerationService:
         async def evaluate_source_dsl(source_dsl: str) -> list[str]:
             return await to_thread.run_sync(evaluate_source_dsl_sync, source_dsl)
 
-        retry_on_validation_failure = settings.enable_validation_failure_retry
+        retry_on_validation_failure = (
+            settings.enable_validation_failure_retry and not is_template_generation
+        )
         try:
             retry_result = await retry_controller.run(
                 generate_source_dsl,
@@ -720,7 +794,11 @@ class WidgetGenerationService:
                 repair=repair_source_dsl,
             )
         except A2UIModelGenerationError as exc:
+            if is_template_generation:
+                raise
             quality_repair_count = quality_repair_attempt_count
+            if model_client is None:
+                raise RuntimeError("model client state is inconsistent") from exc
             model_failure_retry_count = model_client.model_failure_retry_count
             total_retry_count = model_failure_retry_count + quality_repair_count
             latency_by_stage["modelAndValidation"] = self._elapsed_ms(stage_started_at)
@@ -771,7 +849,9 @@ class WidgetGenerationService:
         source_dsl = retry_result.result
         genui = latest_processing_result.standard_dsl
         errors = retry_result.errors
-        model_failure_retry_count = model_client.model_failure_retry_count
+        model_failure_retry_count = (
+            model_client.model_failure_retry_count if model_client is not None else 0
+        )
         total_retry_count = model_failure_retry_count + retry_result.retryCount
         latency_by_stage["modelAndValidation"] = self._elapsed_ms(stage_started_at)
 
@@ -789,6 +869,14 @@ class WidgetGenerationService:
             f"quality_error_count={len(errors)}"
         )
         conversion_failed = not genui.strip()
+        template_generation_failed = is_template_generation and (
+            conversion_failed or bool(errors)
+        )
+        if template_generation_failed:
+            raise RuntimeError(
+                "template A2UI failed conversion or artifact validation: "
+                + "; ".join(errors)
+            )
         validation_failed_blocking = policy.validation_failure_blocking and bool(errors)
         if conversion_failed or validation_failed_blocking:
             failure_category = "conversion" if conversion_failed else "validation"
@@ -831,8 +919,10 @@ class WidgetGenerationService:
         stage_started_at = time.perf_counter()
 
         # 工具3沿用非阻断校验；工具4、5仅在转换和严格校验策略通过后组装 artifact。
-        design_token = None
-        if policy.stores_design_token:
+        design_token = template_design_token
+        if policy.stores_design_token and not is_template_generation:
+            if model_client is None:
+                raise RuntimeError("model client state is inconsistent")
             design_token = model_client.extract_genui_payload(source_dsl)
         artifact = self._build_artifact(
             genui,
@@ -1048,26 +1138,11 @@ class WidgetGenerationService:
             validation_failure_blocking=True,
             stores_design_token=True,
         )
-        try:
-            return await generate_template_artifact(
-                request,
-                policy,
-                registry=self._capability_registry(request),
-                model_runtime=self.model_runtime,
-                model_request_context=self._resolve_model_request_context(request),
-                before_model_call=before_model_call,
-            )
-        except Exception as exc:
-            logger.info(
-                f"{_MODULE} template_route_fallback operation={policy.operation} "
-                f"reason={type(exc).__name__} detail={json_for_log(str(exc))}"
-            )
-        if before_model_call is None:
-            return await self._generate_widget_card_with_policy(request, policy)
         return await self._generate_widget_card_with_policy(
             request,
             policy,
             before_model_call=before_model_call,
+            try_template=True,
         )
 
     async def generate_widget_card_terse_dsl_nested2(
@@ -1104,34 +1179,13 @@ class WidgetGenerationService:
             stores_design_token=True,
         )
         # 问题定位时可显式调用
-        # services.template_generation.route_legacy_python_terse_generation(...)；
-        # 第四、第五接口共用模板生成入口，区别只在调用方的失败策略：
-        # Compact 失败后回退原流程，Terse 失败后直接返回 failed。
-        try:
-            return await generate_template_artifact(
-                request,
-                policy,
-                registry=self._capability_registry(request),
-                model_runtime=self.model_runtime,
-                model_request_context=self._resolve_model_request_context(request),
-                before_model_call=before_model_call,
-            )
-        except Exception as exc:
-            logger.info(
-                f"{_MODULE} template_route_failed operation={policy.operation} "
-                f"fallback=disabled reason={type(exc).__name__} "
-                f"detail={json_for_log(str(exc))}"
-            )
-            return GenerateWidgetCardResponse(
-                status=GenerationStatus.FAILED,
-                suggestSize=request.size or DEFAULT_WIDGET_SIZE,
-                message=(
-                    "模板路线暂不支持二次更新。"
-                    if "sourceArtifactUrl" in request.model_fields_set
-                    else "当前需求无法通过模板完整生成卡片。"
-                ),
-                errorCode=ErrorCode.A2UI_GENERATION_FAILED.value,
-            )
+        # services.template_generation.route_legacy_python_terse_generation(...)。
+        return await self._generate_widget_card_with_policy(
+            request,
+            policy,
+            before_model_call=before_model_call,
+            try_template=True,
+        )
 
     async def _generate_widget_card_with_policy(
         self,
@@ -1139,8 +1193,9 @@ class WidgetGenerationService:
         policy: GenerationRoutePolicy,
         *,
         before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
+        try_template: bool = False,
     ) -> GenerateWidgetCardResponse:
-        """复制请求并锁定路由对应的协议 profile。"""
+        """锁定协议并统一处理模板尝试、主生成链与接口回退。"""
         unsupported_response = self._policy_unsupported_response(request, policy)
         if unsupported_response is not None:
             return unsupported_response
@@ -1148,10 +1203,82 @@ class WidgetGenerationService:
             update={"protocolProfileId": policy.protocol_profile_id}
         )
         profiled_request._model_request_context = request._model_request_context
+        is_edit = "sourceArtifactUrl" in request.model_fields_set
+        template_required = policy.processor_kind == DslProcessorKind.TERSE_NESTED2
+        if try_template and is_edit and template_required:
+            return self._template_generation_failure_response(request, is_edit=True)
+        if not try_template or is_edit:
+            return await self.generate_widget_card(
+                profiled_request,
+                policy=policy,
+                before_model_call=before_model_call,
+            )
+
+        template_request = self._with_template_binding_dependencies(profiled_request)
+        model_request_context = self._resolve_model_request_context(template_request)
+        notify_model_start = _ModelStartOnce(before_model_call)
+
+        async def generate_a2ui(
+            task_spec: TaskSpec,
+            card_spec: dict,
+            effective_bindings: tuple[CandidateDataBinding, ...],
+        ) -> str:
+            return await request_template_a2ui(
+                task_spec,
+                card_spec,
+                effective_bindings,
+                model_runtime=self.model_runtime,
+                model_request_context=model_request_context,
+                before_model_call=notify_model_start,
+            )
+
+        try:
+            return await self.generate_widget_card(
+                template_request,
+                policy=policy,
+                template_a2ui_generator=generate_a2ui,
+            )
+        except Exception as exc:
+            fallback = "disabled" if template_required else "original_protocol_flow"
+            logger.info(
+                f"{_MODULE} template_route_failed operation={policy.operation} "
+                f"fallback={fallback} reason={type(exc).__name__} "
+                f"detail={json_for_log(str(exc))}"
+            )
+            if template_required:
+                return self._template_generation_failure_response(request)
         return await self.generate_widget_card(
             profiled_request,
             policy=policy,
-            before_model_call=before_model_call,
+            before_model_call=notify_model_start,
+        )
+
+    @staticmethod
+    def _with_template_binding_dependencies(
+        request: GenerateWidgetCardRequest,
+    ) -> GenerateWidgetCardRequest:
+        """只在模板尝试中补齐确定性渲染依赖，不污染原协议回退请求。"""
+        bindings = enrich_template_bindings(list(request.candidateDataBindings or []))
+        template_request = request.model_copy(update={"candidateDataBindings": bindings})
+        template_request._model_request_context = request._model_request_context
+        return template_request
+
+    @staticmethod
+    def _template_generation_failure_response(
+        request: GenerateWidgetCardRequest,
+        *,
+        is_edit: bool = False,
+    ) -> GenerateWidgetCardResponse:
+        message = (
+            "模板路线暂不支持二次更新。"
+            if is_edit
+            else "当前需求无法通过模板完整生成卡片。"
+        )
+        return GenerateWidgetCardResponse(
+            status=GenerationStatus.FAILED,
+            suggestSize=request.size or DEFAULT_WIDGET_SIZE,
+            message=message,
+            errorCode=ErrorCode.A2UI_GENERATION_FAILED.value,
         )
 
     @staticmethod
@@ -1344,7 +1471,8 @@ class WidgetGenerationService:
         - source_artifact_digest：编辑来源摘要；首次生成为空。
         出参：完整 WidgetArtifact。
         """
-        # artifact 是端侧下载后的唯一交付物，里面同时包含 DSL、CardSpec、TaskSpec 和能力裁决结果。
+        # artifact 是端侧下载后的唯一交付物，
+        # 同时包含 DSL、CardSpec、TaskSpec 和能力裁决结果。
         logger.info(
             f"{_MODULE} artifact_building protocol_profile_id={protocol_profile_id} "
             f"protocol_profile_version={protocol_profile_version} "

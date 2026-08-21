@@ -276,17 +276,17 @@ def test_terse_dsl_nested2_prompt_builder_uses_terse_system_prompt():
 @pytest.mark.asyncio
 async def test_terse_dsl_nested2_supports_dynamic_requests(monkeypatch):
     observed_policy = None
+    observed_try_template = False
     expected_response = object()
 
-    async def template_route(_request, policy, **_kwargs):
-        nonlocal observed_policy
+    async def capture_route(_request, policy, **kwargs):
+        nonlocal observed_policy, observed_try_template
         observed_policy = policy
+        observed_try_template = kwargs.get("try_template", False)
         return expected_response
 
-    monkeypatch.setattr(
-        "services.widget_generation_service.generate_template_artifact",
-        template_route,
-    )
+    service = WidgetGenerationService()
+    monkeypatch.setattr(service, "_generate_widget_card_with_policy", capture_route)
     dynamic_request = GenerateWidgetCardRequest(
         uid="test-user",
         prdVer=APP_VERSION,
@@ -302,8 +302,6 @@ async def test_terse_dsl_nested2_supports_dynamic_requests(monkeypatch):
             }
         ],
     )
-    service = WidgetGenerationService()
-
     dynamic_response = await service.generate_widget_card_terse_dsl_nested2(
         dynamic_request
     )
@@ -311,6 +309,7 @@ async def test_terse_dsl_nested2_supports_dynamic_requests(monkeypatch):
     assert dynamic_response is expected_response
     assert observed_policy is not None
     assert observed_policy.supports_dynamic_capabilities is True
+    assert observed_try_template is True
 
 
 def test_websocket_handler_runs_sync_service_in_threadpool():
@@ -344,7 +343,8 @@ def test_websocket_handler_runs_sync_service_in_threadpool():
                 error={"message": "failed"},
             ),
             (
-                "工具执行过程中发生未分类的服务异常，本次调用未成功完成，建议稍后重试。"
+                "工具执行过程中发生未分类的服务异常，"
+                "本次调用未成功完成，建议稍后重试。"
                 "报错信息如下"
             ),
         ),
@@ -3602,34 +3602,13 @@ async def test_generation_routes_accept_each_configured_model_backend(
     captured: dict[str, object] = {}
     sentinel = object()
 
-    async def capture_route(_request, policy):
+    async def capture_route(_request, policy, **kwargs):
         captured["model_backend"] = policy.backend
         captured["design_profile_id"] = policy.design_profile_id
+        captured["try_template"] = kwargs.get("try_template", False)
         return sentinel
 
-    if generation_method == "generate_widget_card_terse_dsl_nested2":
-
-        async def capture_terse_route(
-            _request,
-            policy,
-            *,
-            registry,
-            model_runtime,
-            model_request_context,
-            before_model_call=None,
-        ):
-            assert registry is not None
-            assert model_runtime is service.model_runtime
-            assert model_request_context is not None
-            assert before_model_call is None
-            return await capture_route(_request, policy)
-
-        monkeypatch.setattr(
-            "services.widget_generation_service.generate_template_artifact",
-            capture_terse_route,
-        )
-    else:
-        monkeypatch.setattr(service, "_generate_widget_card_with_policy", capture_route)
+    monkeypatch.setattr(service, "_generate_widget_card_with_policy", capture_route)
 
     result = await getattr(service, generation_method)(_model_failure_request())
 
@@ -3637,8 +3616,10 @@ async def test_generation_routes_accept_each_configured_model_backend(
     assert captured["model_backend"] == backend
     if generation_method == "generate_widget_card_compact_dsl":
         assert captured["design_profile_id"] == "design-compact-dsl"
+        assert captured["try_template"] is True
     if generation_method == "generate_widget_card_terse_dsl_nested2":
         assert captured["design_profile_id"] == "terse-dsl-nested-2"
+        assert captured["try_template"] is True
 
 
 @pytest.mark.parametrize(

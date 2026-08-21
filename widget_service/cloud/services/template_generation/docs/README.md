@@ -1,21 +1,20 @@
 # 模板生成模块
 
-本目录是 `generateWidgetCardCompactDsl` 和 `generateWidgetCardTerseDslNested2` 的独立模板能力边界。
-模板判断、模板展开、Provider 资源、A2UI/设计 Token 双产物归档、测试和设计文档都位于
-`cloud/services/template_generation/`，原始 dev 生成链不承载模板实现细节。
+本目录是 `generateWidgetCardCompactDsl` 和 `generateWidgetCardTerseDslNested2` 共用的模板 A2UI 生成能力边界。
+模板判断、模板展开、Provider 资源、测试和设计文档位于 `cloud/services/template_generation/`；通用
+生成编排仍由 `WidgetGenerationService` 统一负责。
 
 ## 对外接口
 
-外部只调用模板生成接口，并显式提供模板所需依赖：
+外部只调用 A2UI 字符串生成接口，并显式提供主生成流程已构造的依赖：
 
 ```python
-await generate_template_artifact(
-    request,
-    policy,
-    registry=registry,
+await request_template_a2ui(
+    task_spec,
+    card_spec,
+    effective_bindings,
     model_runtime=model_runtime,
     model_request_context=model_request_context,
-    before_model_call=before_model_call,
 )
 ```
 
@@ -28,19 +27,18 @@ await generate_template_artifact(
   维护组件和模板归属。
 - 禁用项在首层 Prompt 构造前过滤，二层 Provider 规则和布局候选也应用同一结果；服务端契约会再次拒绝
   被禁用的模板。
-- 模板模块只负责模板生成结果，不接收主服务对象，也不调用原始生成逻辑。
-- edit 由同一个模板入口判定为不适用并抛出异常；Compact 调用方随后执行原协议流程，Terse 调用方直接返回失败。
+- 模板模块只返回三行 A2UI JSONL 字符串，不接收主服务对象，也不调用原始生成逻辑。
+- 能力前置裁决以及 CardSpec、TaskSpec、artifact、`GenerateWidgetCardResponse` 的组装不属于模板模块。
+- edit 是否尝试模板、模板异常后是否回退，统一由 `_generate_widget_card_with_policy` 判定。
 - create 请求先由第一层 LLM 只输出 `theme`、`componentCandidates`、`action`；每个组件候选同时给出
   当前可交给第二层继续选择的 `availableTemplateIds`。
 - 第一层失败时仍返回最匹配的候选 Theme，以空 `componentCandidates` 和空 `action` 表示模板不适用。
 - Search 模板路由仅支持一个数据业务组件，以及一个数据业务组件加可选 Action；多个数据能力或必须联合
   多个业务组件覆盖字段时，在调用第二层前判定模板不适用。
 - 第二层的业务 UI 和布局骨架都使用 `Template` 调用；模板 ID 直接表达形态，不再输出 Variant。
-- 第一层拒绝、输出非法、调用失败、确定性覆盖检查不通过，以及后续生成、转换、校验或保存异常，均向公开
-  入口抛出异常。
-- Compact 与 Terse 共用 `generate_template_artifact`；Compact 调用方在模板异常后执行原协议流程，Terse 调用方
-  将同类异常转换为失败响应，不得进入旧 Terse 生成流程。
-- 模板成功时直接保存包含 `genui` 和 `designcompactdsl` 的标准 artifact。
+- 第一层拒绝、输出非法、调用失败、确定性覆盖检查不通过，以及后续生成异常，由字符串接口直接抛出。
+- Compact 与 Terse 共用 `request_template_a2ui`；Compact 在模板异常后执行原协议流程，Terse 将同类异常转换为失败响应。
+- 模板成功后的 Profile 适配、Compact 归档、最终校验、artifact 保存和响应组装全部复用主生成链。
 
 旧 Python Terse 模板流水线只保留
 `route_legacy_python_terse_generation(...)` 诊断入口，用于临时对比定位，不属于生产默认路由。
@@ -49,21 +47,19 @@ await generate_template_artifact(
 
 ```text
 template_generation/
-├── facade.py                 Compact/Terse 模板结果与 artifact 编排
-├── artifact_builder.py       模板模块内部的 artifact 组装
+├── facade.py                 仅对外提供 A2UI 字符串生成接口
 ├── binding_dependencies.py   仅供模板渲染使用的字段依赖补齐
 ├── legacy_python.py          旧 Python Terse 流水线诊断入口
 ├── model_client.py           第一层/第二层模型窄适配器
-├── archive.py                A2UI 与 A2UI-Compact 双产物归档
 ├── engine/                   受限 DSL、模板匹配和确定性编译
 ├── resources/source/         Provider 清单、Schema、模板和主题资源
 ├── tests/                    模板能力独立测试
 └── docs/                     本功能设计与接入文档
 ```
 
-模块允许复用 dev 已有的 CardSpec/TaskSpec Builder、Compact Processor、Validator 和 ArtifactStore；
-能力注册表、模型运行时和请求上下文由公开入口显式提供。模板模块自行组装完整 artifact，不得通过主服务对象
-调用私有能力或反向调用原协议逻辑。
+模块只复用已构造的 TaskSpec、CardSpec 和有效数据绑定；模型运行时和请求上下文由调用方显式提供。
+模板模块不依赖通用 Builder、Validator、ArtifactStore 或 API Response，不得通过主服务对象调用私有能力或
+反向调用原协议逻辑。
 
 领域选择规则不直接写入 Python SystemPrompt。每个业务 Provider 通过 `provider.json` 显式登记
 `dataDomain`、首层和二层 MD；布局 Provider 只登记可接收 `...children` 的布局模板。

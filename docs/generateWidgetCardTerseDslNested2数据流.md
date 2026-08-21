@@ -11,8 +11,8 @@
 - 最终 `genui`：由本地受限转换器生成的标准三段 A2UI JSONL
 - 默认模型后端：`design_compact_model_backend`，当前默认值为 `openai`
 - 支持创建：是
-- 支持多轮编辑：是，由 `enable_widget_edit` 控制
-- 当前代码是否允许动态数据和事件入参：否
+- 支持多轮编辑：否，当前生产入口严格限定为模板 create 路线
+- 当前代码是否允许动态数据和事件入参：是
 - 转换或最终校验错误是否阻断保存：是
 
 ## 2. 方法调用链
@@ -28,15 +28,11 @@ generate_widget_card_terse_dsl_nested2_ws
 → WidgetGenerationService._generate_widget_card_with_policy
 → WidgetGenerationService._policy_unsupported_response
 → WidgetGenerationService.generate_widget_card
-→ EditRequestNormalizer.normalize_create / normalize_edit
+→ EditRequestNormalizer.normalize_create
 → WidgetGenerationService._capability_registry
-→ DeviceCapabilityResolver.resolve_generation_data_bindings
-→ CardSpecBuilder.build
-→ TaskSpecBuilder.build
-→ PromptBuilder.build_terse_dsl_nested2
-→ A2UIModelClient.generate
-→ TerseNested2Processor.process
-→ convert_terse_dsl_nested2_to_a2ui
+→ GenerationPreflight.run 统一构造 CardSpec / TaskSpec
+→ request_template_a2ui 返回 A2UI 字符串
+→ prepare_template_a2ui 适配最终 Form Profile
 → ArtifactValidator.validate
 → RetryController.run
 → WidgetGenerationService._build_artifact
@@ -44,6 +40,9 @@ generate_widget_card_terse_dsl_nested2_ws
 → ResponsePlanner.plan
 → _build_plugin_stream_response
 ```
+
+edit 或模板不匹配、生成、适配、校验、保存异常由 `_generate_widget_card_with_policy` 直接转换为 failed，
+不进入旧 `PromptBuilder.build_terse_dsl_nested2 → A2UIModelClient.generate` 流程。
 
 主要代码位置：
 
@@ -54,6 +53,8 @@ generate_widget_card_terse_dsl_nested2_ws
 - Prompt：`../widget_service/cloud/services/prompt_builder.py`
 - Artifact 校验：`../widget_service/cloud/services/validator.py`
 - Artifact 保存：`../widget_service/cloud/services/artifact_store.py`
+- 模板 A2UI 窄接口：`../widget_service/cloud/services/template_generation/facade.py`
+- 模板 A2UI 主链适配：`../widget_service/cloud/services/template_a2ui_adapter.py`
 
 ## 3. WebSocket 请求
 

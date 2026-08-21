@@ -42,15 +42,13 @@ generate_widget_card_compact_dsl_ws
 → WidgetGenerationService.generate_widget_card_compact_dsl
 → WidgetGenerationService._compact_protocol_selection
 → WidgetGenerationService._generate_widget_card_with_policy
+→ create 先使用 _with_template_binding_dependencies 准备模板尝试请求
 → WidgetGenerationService.generate_widget_card
 → EditRequestNormalizer.normalize_create / normalize_edit
 → WidgetGenerationService._capability_registry
-→ DeviceCapabilityResolver.resolve_generation_data_bindings
-→ CardSpecBuilder.build
-→ TaskSpecBuilder.build
-→ PromptBuilder.build_design_compact
-→ A2UIModelClient.generate
-→ DesignCompactProcessor.process
+→ GenerationPreflight.run 统一构造 CardSpec / TaskSpec
+→ request_template_a2ui 返回 A2UI 字符串
+→ prepare_template_a2ui 适配 Profile 并回转 Compact Token
 → validate_compact_dsl_context
 → convert_compact_dsl_to_a2ui
 → ArtifactValidator.validate
@@ -61,6 +59,10 @@ generate_widget_card_compact_dsl_ws
 → _build_plugin_stream_response
 ```
 
+模板不匹配、生成、适配、校验或保存异常时，`_generate_widget_card_with_policy` 重新使用原请求进入
+`generate_widget_card`，此时才执行 `PromptBuilder.build_design_token → A2UIModelClient.generate →
+DesignCompactProcessor.process`。edit 请求不尝试模板，直接执行原 Compact 流程。
+
 主要代码位置：
 
 - 路由入口：`../widget_service/cloud/api/routes.py`
@@ -70,6 +72,8 @@ generate_widget_card_compact_dsl_ws
 - Prompt：`../widget_service/cloud/services/prompt_builder.py`
 - Artifact 校验：`../widget_service/cloud/services/validator.py`
 - Artifact 保存：`../widget_service/cloud/services/artifact_store.py`
+- 模板 A2UI 窄接口：`../widget_service/cloud/services/template_generation/facade.py`
+- 模板 A2UI 主链适配：`../widget_service/cloud/services/template_a2ui_adapter.py`
 
 ## 3. WebSocket 请求和归一化
 
