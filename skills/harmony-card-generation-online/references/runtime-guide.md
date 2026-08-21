@@ -182,8 +182,12 @@ invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmserv
 仅在 overview 后保留至少一个可用数据候选时调用，并传非空 `dataCapabilityIds`；ID 只能来自本轮 overview 的
 `dataCapabilities`。没有数据候选时跳过本接口，不传空数组。payload 包含完整 `dataCapabilities` 和
 `missingCapabilityIds:string[]`；移除 missing 候选后重新执行满足度门禁，最后一个核心能力被移除时不生成。
-仅在此处读取 `inputSchema.required`：用户可回答的必填参数缺失时追问最小必要信息，技术缺口则终止。完整
-schema 不向用户展示。
+返回结果必须是合法对象，且 `dataCapabilities` 必须为非空数组；每个保留能力都必须包含可读取的有效
+`inputSchema`。如果已请求数据候选但 `dataCapabilities` 为空、所有候选均出现在 `missingCapabilityIds`、或没有
+任何能力带有效 `inputSchema`，则判定 Schema 加载失败，立即终止本轮，不调用 `RequestDataPermission` 或
+`generateWidgetCardCompactDsl`，按核心能力不足或其它异常的既有固定话术回复，不得编造成功结果。只有在移除
+`missingCapabilityIds` 后仍保留有效候选时，才重新执行满足度门禁并进入后续步骤。仅在此处读取 `inputSchema.required`：
+用户可回答的必填参数缺失时追问最小必要信息，技术缺口则终止。完整 schema 不向用户展示。
 
 ### RequestDataPermission
 

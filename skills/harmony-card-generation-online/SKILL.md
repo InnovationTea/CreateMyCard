@@ -27,6 +27,18 @@ metadata:
 - 示例和快照不能授权额外字段，也不能覆盖当前运行时工具 schema。
 
 ## 执行流程
+
+### ⛔ 本轮状态追踪（create / 数据类 edit）
+
+每一轮需要生成卡片的任务都必须重新建立以下状态数组，并在上下文中逐项更新；不得依据历史对话、上一轮工具调用、旧能力概述、旧 Schema 或既往权限结果标记当前步骤已完成。状态数组只用于内部门禁，不向用户展示。
+
+- [ ] Step 1：本轮已调用 `getWidgetCapabilityOverview`，并取得合法能力概述？
+- [ ] Step 2：本轮已调用 `getDataCapabilitySchemas`，且返回的 `dataCapabilities` 非空、每个保留项都包含有效 `inputSchema`？无数据候选的静态路径标记为 `N/A`，不得传空数组调用 Schema 工具。
+- [ ] Step 3：最终数据能力集合非空时，本轮已实际调用 `RequestDataPermission`？最终集合为空时标记为 `N/A`。
+- [ ] Step 4：生成前 FINAL CHECK 已逐项通过，或已按权限 invoke 级异常规则放行？
+
+权限门禁未完成时，除方案规定的首个工具调用前一次性 create/edit 开始处理话术外，不得发送其它用户可见回复，也不得调用 `generateWidgetCardCompactDsl`。纯视觉 edit 按运行指南的分支规则执行，不套用 create 专属的 Step 1/Step 2。
+
 主流程固定为：先明确区分 create/edit，并仅检查卡片形态、静态边界和最小语义歧义；确认本轮将调用工具后，在首个工具调用前立即发送一次开始处理回复，create 使用“好的，我现在为你创建卡片。”，edit 使用“好的，我现在按你的要求修改卡片。”；随后获取能力概述，基于本轮概述判断动态数据能力满足度，选择可用候选并按需加载 schema，依据 schema 的必填参数追问，再检查最终数据权限、改写生成工具使用的有效 `userQuery`、调用生成工具，最后记录编辑来源并组织自然语言回复。不得在 `getWidgetCapabilityOverview` 前根据 query、历史或经验判断动态数据能力是否满足，也不得因此追问数据参数。对已有卡片提出改颜色、背景、布局、文案或尺寸等修改时，必须判定为 edit，不得改走 create。create 不得携带 `sourceArtifactUrl`；edit 必须携带目标卡片最近一次有效生成业务 payload 中的真实 `artifactUrl` 作为 `sourceArtifactUrl`，不得使用回复文本、示例、缓存或猜测的 URL。
 
 四个工具按以下顺序和职责使用：
@@ -37,8 +49,10 @@ metadata:
    素材只按 `id/description` 选择并传 ID。
 2. `getDataCapabilitySchemas`：有数据候选的 create 必须调用，并且只为已选且实际可用的数据能力加载完整
    schema；无数据候选时跳过，不传空数组。数据类 edit 存在本轮数据候选时也必须调用，不能因历史
-   schema 跳过。
-3. `RequestDataPermission`：生成前检查本轮最终、完整、去重后的数据能力集合；集合非空时必须调用，只有集合为空时才能不调用。纯视觉 edit 若来源含动态数据，仍须检查继承的数据权限。
+   schema 跳过。调用后必须校验返回对象、`dataCapabilities` 数组及每个保留项的有效 `inputSchema`，并处理
+   `missingCapabilityIds`；若请求过数据候选但返回为空、所有候选缺失或没有任何有效 Schema，立即停止后续
+   权限和生成调用，按运行指南既有的核心能力不足或其它异常固定话术结束，不得模拟成功。
+3. `RequestDataPermission`：生成前检查本轮最终、完整、去重后的数据能力集合；集合非空时必须调用，只有集合为空时才能不调用。Schema 加载成功只代表数据定义已加载，不代表数据访问已授权。集合非空时必须实际调用本工具；正常返回仅在 `stateOfPermission:true`、没有有效未授权明细且不存在 `authorized:false` 时放行，明确拒绝或正常结果非法都必须阻断，只有 invoke 级调用失败才按既有规则默认放行。纯视觉 edit 若来源含动态数据，仍须检查继承的数据权限。
 4. `generateWidgetCardCompactDsl`：只有前置门禁通过，或权限工具发生 invoke 级异常时默认放行才调用；主 Agent 不补做微服务负责的 DSL、CardSpec、校验、重试或上传。生成工具内部负责向端侧交付卡片，主 Agent 不重复下发 URL。
 
 ```text
@@ -48,6 +62,19 @@ getDataCapabilitySchemas → 基于 schema 的 required 参数追问（如有）
 generateWidgetCardCompactDsl。无数据候选时跳过 schema 和 permission；edit 按纯视觉或数据类分支执行，
 不得套用 create。仅次要需求不可用时，先告知用户将移除该内容，再把仅含保留内容的有效 `userQuery` 传给生成工具；替代会改变用户主要动作或用途时，先追问是否接受替代，不调用生成工具。
 ```
+
+### 生成前 FINAL CHECK
+
+调用 `generateWidgetCardCompactDsl` 前，必须在本轮状态数组中完成最后一次自检。下表中的每项都必须为“是”或按条件标记为 `N/A`；任一必需项未完成都不得调用生成工具。
+
+| 检查项 | 状态 |
+| --- | --- |
+| 1. 本轮已调用 `getWidgetCapabilityOverview` 并成功取得合法能力概述？ | 是 / 否 |
+| 2. 有数据候选时，`getDataCapabilitySchemas` 返回的 `dataCapabilities` 非空且每项 Schema 有效；无数据候选时为 `N/A`？ | 是 / 否 / N/A |
+| 3. 最终数据能力集合非空时，本轮已实际调用 `RequestDataPermission`；集合为空时为 `N/A`？ | 是 / 否 / N/A |
+| 4. 权限工具已明确判定通过，或已记录 invoke 级异常并按规则默认放行；未调用时仅因集合为空？ | 是 / 否 / N/A |
+
+只有上述检查全部满足，才允许调用生成工具或发送额外的生成进度说明。Schema 加载成功不代表权限已通过；权限工具未调用也不得默认放行。
 
 ## 工具定义
 
