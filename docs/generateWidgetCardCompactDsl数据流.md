@@ -42,7 +42,7 @@ generate_widget_card_compact_dsl_ws
 → WidgetGenerationService.generate_widget_card_compact_dsl
 → WidgetGenerationService._compact_protocol_selection
 → WidgetGenerationService._generate_widget_card_with_policy
-→ create 先使用 _with_template_binding_dependencies 准备模板尝试请求
+→ create 先使用 enrich_template_bindings 准备模板尝试请求
 → WidgetGenerationService.generate_widget_card
 → EditRequestNormalizer.normalize_create / normalize_edit
 → WidgetGenerationService._capability_registry
