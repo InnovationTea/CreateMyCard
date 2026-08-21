@@ -177,7 +177,6 @@ class TemplateDefinition(StrictModel):
     )
     accepts_children: bool = Field(default=False, alias="acceptsChildren")
     bindings: dict[str, TemplateBinding] = Field(default_factory=dict)
-    bundle_digest: str | None = Field(default=None, alias="bundleDigest")
     source_format: Literal["registry-json", "cardtpl/1"] = Field(
         default="registry-json",
         alias="sourceFormat",

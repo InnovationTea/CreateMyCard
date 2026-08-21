@@ -35,7 +35,6 @@ Column(\"section\")
             required_data=(),
             optional_data=(),
             output_schema={"type": "object", "properties": {}},
-            bundle_digest="sha256:test",
         )
 
 
