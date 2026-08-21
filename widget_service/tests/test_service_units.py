@@ -3618,7 +3618,7 @@ async def test_generation_routes_accept_each_configured_model_backend(
         assert captured["design_profile_id"] == "design-compact-dsl"
         assert captured["try_template"] is True
     if generation_method == "generate_widget_card_terse_dsl_nested2":
-        assert captured["design_profile_id"] == "terse-dsl-nested-2"
+        assert captured["design_profile_id"] == "design-compact-dsl"
         assert captured["try_template"] is True
 
 

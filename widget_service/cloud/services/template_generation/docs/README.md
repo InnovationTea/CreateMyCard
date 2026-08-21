@@ -32,8 +32,8 @@ await request_template_source_dsl(
 - 模板模块只返回当前 Processor 可直接消费的源 DSL 字符串，不接收主服务对象，也不调用
   原始生成逻辑。
 - 能力前置裁决以及 CardSpec、TaskSpec、artifact、`GenerateWidgetCardResponse` 的组装不属于模板模块。
-- Compact/Terse 入口负责各自的 edit 策略；create 的模板异常由公共
-  `generate_source_dsl` 在同一次调用内回退原协议模型。
+- Compact/Terse 入口负责各自的 edit 策略；Compact create 的模板异常由公共
+  `generate_source_dsl` 在同一次调用内回退原 Compact 模型，Terse create 的模板异常直接返回失败。
 - create 请求先由第一层 LLM 只输出 `theme`、`componentCandidates`、`action`；每个组件候选同时给出
   当前可交给第二层继续选择的 `availableTemplateIds`。
 - 第一层失败时仍返回最匹配的候选 Theme，以空 `componentCandidates` 和空 `action` 表示模板不适用。
@@ -41,10 +41,10 @@ await request_template_source_dsl(
   多个业务组件覆盖字段时，在调用第二层前判定模板不适用。
 - 第二层的业务 UI 和布局骨架都使用 `Template` 调用；模板 ID 直接表达形态，不再输出 Variant。
 - 第一层拒绝、输出非法、调用失败、确定性覆盖检查不通过，以及后续生成异常，由字符串接口直接抛出。
-- Compact 与 Terse 共用 `request_template_source_dsl`；模板内部把 A2UI 或模板 Terse 中间产物
-  转为当前 Processor 的源格式。
-- Compact 和 Terse create 的模板 source generator 任意异常都回退原协议首次生成。模板源 DSL 已
-  返回后的 Processor 或 Validator 错误只走公共 repair，不重试模板。
+- Compact 与 Terse 共用 `request_template_source_dsl`；模板内部统一把 A2UI 转为 Design Compact DSL。
+- Compact create 的模板 source generator 异常回退原 Compact 首次生成；Terse create 的模板 source
+  generator 异常直接失败。模板源 DSL 已返回后的 Processor 或 Validator 错误只走公共 Compact repair，
+  不重试模板。
 - 模板成功后的 Processor、最终校验、artifact 保存和响应组装全部复用主生成链。
 
 旧 Python Terse 模板流水线只保留
