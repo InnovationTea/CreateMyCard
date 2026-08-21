@@ -3604,8 +3604,10 @@ async def test_generation_routes_accept_each_configured_model_backend(
 
     async def capture_route(_request, policy, **kwargs):
         captured["model_backend"] = policy.backend
+        captured["processor_kind"] = policy.processor_kind
         captured["design_profile_id"] = policy.design_profile_id
         captured["try_template"] = kwargs.get("try_template", False)
+        captured["need_fallback"] = kwargs.get("need_fallback", True)
         return sentinel
 
     monkeypatch.setattr(service, "_generate_widget_card_with_policy", capture_route)
@@ -3615,11 +3617,15 @@ async def test_generation_routes_accept_each_configured_model_backend(
     assert result is sentinel
     assert captured["model_backend"] == backend
     if generation_method == "generate_widget_card_compact_dsl":
+        assert captured["processor_kind"] == DslProcessorKind.DESIGN_COMPACT
         assert captured["design_profile_id"] == "design-compact-dsl"
         assert captured["try_template"] is True
+        assert captured["need_fallback"] is True
     if generation_method == "generate_widget_card_terse_dsl_nested2":
+        assert captured["processor_kind"] == DslProcessorKind.DESIGN_COMPACT
         assert captured["design_profile_id"] == "design-compact-dsl"
         assert captured["try_template"] is True
+        assert captured["need_fallback"] is False
 
 
 @pytest.mark.parametrize(

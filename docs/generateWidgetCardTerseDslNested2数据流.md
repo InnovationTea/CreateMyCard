@@ -118,8 +118,9 @@ device._source_rom_version = CLS-AL30 6.0.0.328
 }
 ```
 
-路由仍使用 `TERSE_NESTED2` 标识第五接口，以便 `generate_source_dsl` 对模板失败执行终止策略；模板
-成功后的实际源格式和 Processor 使用选择结果中的 `designProfileId`。
+第五接口保留独立 operation 名称，但生成策略直接切换为原 Design Compact 逻辑。调用
+`_generate_widget_card_with_policy` 时在 `try_template=true` 之外传入 `need_fallback=false`，仅用该参数
+控制模板失败后是否继续原模型生成。
 
 路由标识与模板有效处理策略：
 
@@ -127,12 +128,13 @@ device._source_rom_version = CLS-AL30 6.0.0.328
 operation = generateWidgetCardTerseDslNested2
 protocol_profile_id = a2ui-form-rom6.0-v1
 backend = design_compact_model_backend
-processor_kind = TERSE_NESTED2
-template_source_processor = DESIGN_COMPACT
-template_source_format = design-compact-dsl
-template_model_profile_id = design-compact-dsl
-template_model_format = compact-dsl
+processor_kind = DESIGN_COMPACT
+source_format = design-compact-dsl
+model_profile_id = design-compact-dsl
+model_format = compact-dsl
 design_profile_id = design-compact-dsl
+try_template = true
+need_fallback = false
 supports_edit = false
 supports_dynamic_capabilities = true
 validation_failure_blocking = true
@@ -142,8 +144,8 @@ stores_design_token = true
 其中：
 
 - 最终标准 A2UI 按 `a2ui-form-rom6.0-v1` 校验和保存。
-- 公共 repair Prompt 和确定性转换参数从选中的 Design Compact Profile 读取。
-- `TERSE_NESTED2` 只用于路由身份和模板失败策略，不处理模板成功产物。
+- 公共首次生成、repair Prompt 和确定性转换参数都从选中的 Design Compact Profile 读取。
+- 第五接口只通过 operation 名称和 `need_fallback=false` 保留独立路由语义。
 - 请求中的 `protocolProfileId` 不能覆盖路由策略。
 
 ## 5. 创建和编辑请求
@@ -276,8 +278,7 @@ Compact Prompt 和 `A2UIModelClient`，用于模板源 DSL 返回后的公共 re
 ```
 
 模板不匹配、模板模型失败、可信展开失败或 A2UI 回转 Compact 失败都会从模板 source generator 抛出；
-`generate_source_dsl` 检测当前路由的 `processor_kind` 为 `TERSE_NESTED2` 后直接转换为生成失败，不调用
-原 Terse 模型。
+`generate_source_dsl` 根据入口传入的 `need_fallback=false` 直接转换为生成失败，不调用原 Compact 模型。
 
 ## 9. 公共模型调用
 
