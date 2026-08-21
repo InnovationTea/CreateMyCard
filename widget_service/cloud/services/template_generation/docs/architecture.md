@@ -46,7 +46,7 @@ generateWidgetCardCompactDsl
 
 ```text
 generateWidgetCardTerseDslNested2
-  ├─ edit → _generate_widget_card_with_policy 返回 failed
+  ├─ edit → generate_widget_card_terse_dsl_nested2 入口返回 failed
   └─ create
        ├─ 公共生成链：能力前置裁决 → CardSpec → TaskSpec → 原协议 Prompt/Client
        ├─ generate_source_dsl → request_template_source_dsl → 单组件树 TerseDSL-Nested-2
@@ -78,9 +78,9 @@ generateWidgetCardTerseDslNested2
 | repair 最终失败 | `failed` | `failed` |
 | ArtifactStore 失败 | 异常上抛 | 异常上抛 |
 
-`before_model_call` 在 `_generate_widget_card_with_policy` 中包装为单次通知。模板尝试已下发开始事件时，
-Compact 或 Terse 回退到原模型都不会重复下发。模板 source generator 一旦返回，后续质量失败不再
-重试模板。
+`generate_source_dsl` 在选择模板或原协议模型之前统一调用 `before_model_call`。模板尝试和异常后的
+原模型回退共用同一次开始通知，不在 `_generate_widget_card_with_policy` 或模板模块中新增去重状态。
+模板 source generator 一旦返回，后续质量失败不再重试模板。
 
 ## 模板资源边界
 
@@ -91,6 +91,6 @@ Provider 和 Layout 资源仍由模板 Registry 管理：
 - 中央 UX Registry 只保留跨 Provider 的 UX Token、场景、Theme 映射和尺寸预算。
 - `config/template_controls.json` 在首层 Prompt 前过滤禁用 Provider 和模板，受信展开前再做确定性检查。
 
-模板渲染需要的附加候选字段由 `binding_dependencies.py` 在主生成服务准备模板尝试请求时补齐，
-再由公共前置裁决统一构造 TaskSpec。同一次调用中的模板尝试和原协议回退共用该 TaskSpec，
-不在模板模块内另行组装或替换。
+模板渲染需要的附加候选字段由 `binding_dependencies.py` 在 `request_template_source_dsl` 内部补齐，
+只影响传给模板引擎的 bindings 副本。公共前置裁决、TaskSpec、CardSpec 以及原协议回退仍使用调用方
+原始有效绑定，模板模块不另行组装或替换这些公共对象。

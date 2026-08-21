@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
 from typing import Any
 
 from app.logger import json_for_log, logger
@@ -11,9 +10,9 @@ from models.generation import (
     CandidateDataBinding,
     ModelRequestContext,
     TaskSpec,
-    WidgetSize,
 )
 from services.generation_pipeline import DslProcessorKind
+from services.template_generation.binding_dependencies import enrich_template_bindings
 from services.template_generation.engine.pipeline import (
     generate_template_a2ui as generate_template_engine_a2ui,
 )
@@ -21,7 +20,6 @@ from services.template_generation.model_client import create_template_model_clie
 from services.template_generation.source_adapter import prepare_template_source_dsl
 
 _MODULE = "[Template Generation]"
-ModelStartCallback = Callable[[WidgetSize], Awaitable[None]]
 
 
 async def request_template_source_dsl(
@@ -33,19 +31,17 @@ async def request_template_source_dsl(
     protocol_profile: dict[str, Any],
     model_runtime: ModelExecutionRuntime | None,
     model_request_context: ModelRequestContext,
-    before_model_call: ModelStartCallback | None = None,
 ) -> str:
     """请求模板引擎并返回当前 Processor 可直接消费的源 DSL。"""
     model_client = create_template_model_client(
         model_runtime,
         model_request_context,
     )
-    if before_model_call is not None:
-        await before_model_call(task_spec.size)
+    template_bindings = tuple(enrich_template_bindings(list(effective_bindings)))
     output = await generate_template_engine_a2ui(
         task_spec,
         card_spec,
-        effective_bindings,
+        template_bindings,
         model_client,
     )
     source_dsl = prepare_template_source_dsl(

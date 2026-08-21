@@ -25,6 +25,7 @@ generate_widget_card_terse_dsl_nested2_ws
 → GenerateWidgetCardRequest
 → WidgetGenerationService.generate_widget_card_terse_dsl_nested2
 → WidgetGenerationService._compact_protocol_selection
+→ edit 请求在 Terse 入口直接返回 failed
 → WidgetGenerationService._generate_widget_card_with_policy
 → WidgetGenerationService._policy_unsupported_response
 → WidgetGenerationService.generate_widget_card
@@ -32,8 +33,9 @@ generate_widget_card_terse_dsl_nested2_ws
 → WidgetGenerationService._capability_registry
 → GenerationPreflight.run 统一构造 CardSpec / TaskSpec
 → PromptBuilder.build_terse_dsl_nested2 与 A2UIModelClient 始终按原协议构造
+→ generate_source_dsl 统一发送模型开始通知
 → generate_source_dsl 先调用 request_template_source_dsl
-→ 模板内部将中间 Terse 产物收敛为公共 Processor 支持的单组件树
+→ 模板内部补齐自身绑定依赖，并将中间 Terse 产物收敛为公共 Processor 支持的单组件树
 → 模板 source generator 任意异常时，同一 generate_source_dsl 调用 A2UIModelClient.generate
 → TerseNested2Processor.process
 → ArtifactValidator.validate
@@ -44,7 +46,7 @@ generate_widget_card_terse_dsl_nested2_ws
 → _build_plugin_stream_response
 ```
 
-edit 仍由 `_generate_widget_card_with_policy` 在入口返回 failed。create 的模板不匹配、生成或模板内部
+edit 由 `generate_widget_card_terse_dsl_nested2` 入口直接返回 failed。create 的模板不匹配、生成或模板内部
 源格式转换异常，会在同一次公共生成链内回退到原 Terse 模型首次生成。模板 source DSL 已
 返回后的转换或 Validator 错误只进入公共 repair，不重试模板，也不重新执行通用首次生成。
 保存异常不触发生成路由回退。

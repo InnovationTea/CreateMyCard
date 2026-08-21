@@ -32,7 +32,7 @@ await request_template_source_dsl(
 - 模板模块只返回当前 Processor 可直接消费的源 DSL 字符串，不接收主服务对象，也不调用
   原始生成逻辑。
 - 能力前置裁决以及 CardSpec、TaskSpec、artifact、`GenerateWidgetCardResponse` 的组装不属于模板模块。
-- edit 是否尝试模板由 `_generate_widget_card_with_policy` 判定；create 的模板异常由公共
+- Compact/Terse 入口负责各自的 edit 策略；create 的模板异常由公共
   `generate_source_dsl` 在同一次调用内回退原协议模型。
 - create 请求先由第一层 LLM 只输出 `theme`、`componentCandidates`、`action`；每个组件候选同时给出
   当前可交给第二层继续选择的 `availableTemplateIds`。
@@ -65,7 +65,8 @@ template_generation/
 └── docs/                     本功能设计与接入文档
 ```
 
-模块只复用已构造的 TaskSpec、CardSpec 和有效数据绑定；模型运行时和请求上下文由调用方显式提供。
+模块只复用已构造的 TaskSpec、CardSpec 和有效数据绑定，并在内部复制 bindings 后补齐模板渲染依赖；
+模型运行时和请求上下文由调用方显式提供。
 模板模块不依赖通用 Builder、Validator、ArtifactStore 或 API Response，不得通过主服务对象调用私有能力或
 反向调用原协议逻辑。
 

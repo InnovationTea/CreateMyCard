@@ -42,14 +42,14 @@ generate_widget_card_compact_dsl_ws
 → WidgetGenerationService.generate_widget_card_compact_dsl
 → WidgetGenerationService._compact_protocol_selection
 → WidgetGenerationService._generate_widget_card_with_policy
-→ create 先使用 enrich_template_bindings 准备模板尝试请求
 → WidgetGenerationService.generate_widget_card
 → EditRequestNormalizer.normalize_create / normalize_edit
 → WidgetGenerationService._capability_registry
 → GenerationPreflight.run 统一构造 CardSpec / TaskSpec
 → PromptBuilder.build_design_token 与 A2UIModelClient 始终按原协议构造
+→ generate_source_dsl 统一发送模型开始通知
 → generate_source_dsl 先调用 request_template_source_dsl
-→ 模板内部生成 A2UI，适配 Profile 并回转 Design Compact DSL
+→ 模板内部补齐自身绑定依赖，生成 A2UI，适配 Profile 并回转 Design Compact DSL
 → 模板 source generator 任意异常时，同一 generate_source_dsl 调用 A2UIModelClient.generate
 → validate_compact_dsl_context
 → convert_compact_dsl_to_a2ui

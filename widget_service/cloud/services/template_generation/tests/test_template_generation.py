@@ -1839,7 +1839,6 @@ def _weather_card_spec() -> dict[str, Any]:
 @pytest.mark.asyncio
 async def test_template_facade_returns_only_source_dsl_string(monkeypatch):
     expected = "Column('root')"
-    callback_sizes: list[str] = []
 
     class Output:
         a2ui = "unused for Terse source"
@@ -1849,9 +1848,6 @@ async def test_template_facade_returns_only_source_dsl_string(monkeypatch):
 
     async def generate(*_args: Any) -> Output:
         return Output()
-
-    async def notify(size: str) -> None:
-        callback_sizes.append(size)
 
     monkeypatch.setattr(facade, "create_template_model_client", lambda *_args: object())
     monkeypatch.setattr(facade, "generate_template_engine_a2ui", generate)
@@ -1872,12 +1868,68 @@ async def test_template_facade_returns_only_source_dsl_string(monkeypatch):
             app_version="11.7.5.205",
             app_name="CreateMyCard",
         ),
-        before_model_call=notify,
     )
 
     assert result == expected
     assert isinstance(result, str)
-    assert callback_sizes == ["2x2"]
+
+
+@pytest.mark.asyncio
+async def test_template_facade_enriches_bindings_inside_template_boundary(monkeypatch):
+    observed_fields: list[str] = []
+
+    class Output:
+        a2ui = "unused for Terse source"
+        terse_dsl_nested2 = 'Column("root");\ndata = {};'
+        template_ids = ("DeviceStatusBattery@1",)
+        expanded_component_count = 2
+
+    async def generate(
+        _task_spec: TaskSpec,
+        _card_spec: dict,
+        bindings: tuple[CandidateDataBinding, ...],
+        _model_client: Any,
+    ) -> Output:
+        observed_fields.extend(bindings[0].candidateOutputFields)
+        return Output()
+
+    binding = CandidateDataBinding(
+        capabilityId="GetPhoneBatteryInfo",
+        arguments={},
+        writeResultTo="/data/phoneBattery",
+        candidateOutputFields=["/batterySOCText", "/chargingStatusDesc"],
+    )
+    monkeypatch.setattr(facade, "create_template_model_client", lambda *_args: object())
+    monkeypatch.setattr(facade, "generate_template_engine_a2ui", generate)
+
+    await facade.request_template_source_dsl(
+        _weather_task_spec(),
+        _weather_card_spec(),
+        (binding,),
+        processor_kind=DslProcessorKind.TERSE_NESTED2,
+        protocol_profile=A2UIProtocolRegistry(
+            A2UI_FORM_PROTOCOL_PROFILE_ID
+        ).get_profile(),
+        model_runtime=object(),
+        model_request_context=ModelRequestContext(
+            session_id="session",
+            interaction_id="interaction",
+            device_id="device",
+            country_code="CN",
+            app_version="11.7.5.205",
+            app_name="CreateMyCard",
+        ),
+    )
+
+    assert observed_fields == [
+        "/batterySOCText",
+        "/chargingStatusDesc",
+        "/batterySOC",
+    ]
+    assert binding.candidateOutputFields == [
+        "/batterySOCText",
+        "/chargingStatusDesc",
+    ]
 
 
 def test_template_route_prompt_exposes_exact_task_spec_paths_from_bindings():
@@ -2328,14 +2380,12 @@ async def test_template_exception_falls_back_inside_common_source_generation(
             )
 
     async def failed_template(
-        task_spec: TaskSpec,
+        _task_spec: TaskSpec,
         *_args: Any,
         processor_kind: DslProcessorKind,
-        before_model_call: Any,
         **_kwargs: Any,
     ) -> str:
         template_processors.append(processor_kind)
-        await before_model_call(task_spec.size)
         raise template_error
 
     async def save(_store: ArtifactStore, _artifact: Any) -> ArtifactSaveResult:

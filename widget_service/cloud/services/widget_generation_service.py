@@ -59,7 +59,6 @@ from services.source_artifact_repository import (
     SourceArtifactRepository,
 )
 from services.template_generation import request_template_source_dsl
-from services.template_generation.binding_dependencies import enrich_template_bindings
 from services.validator import ArtifactValidator
 
 _MODULE = "[Generation Service]"
@@ -593,6 +592,8 @@ class WidgetGenerationService:
         latest_processing_result = DslProcessingResult(source_dsl="")
 
         async def generate_source_dsl() -> str:
+            if before_model_call is not None:
+                await before_model_call(card_spec.suggestSize)
             if template_source_generator is not None:
                 try:
                     logger.info(
@@ -612,8 +613,6 @@ class WidgetGenerationService:
                         f"reason={type(exc).__name__} "
                         f"detail={json_for_log(str(exc))}"
                     )
-            if before_model_call is not None:
-                await before_model_call(card_spec.suggestSize)
             logger.info(
                 f"{_MODULE} model_source_generation_started operation={policy.operation}"
             )
@@ -1116,6 +1115,13 @@ class WidgetGenerationService:
             validation_failure_blocking=True,
             stores_design_token=True,
         )
+        if "sourceArtifactUrl" in request.model_fields_set:
+            return GenerateWidgetCardResponse(
+                status=GenerationStatus.FAILED,
+                suggestSize=request.size or DEFAULT_WIDGET_SIZE,
+                message="模板路线暂不支持二次更新。",
+                errorCode=ErrorCode.A2UI_GENERATION_FAILED.value,
+            )
         # 问题定位时可显式调用
         # services.template_generation.route_legacy_python_terse_generation(...)。
         return await self._generate_widget_card_with_policy(
@@ -1142,41 +1148,12 @@ class WidgetGenerationService:
         )
         profiled_request._model_request_context = request._model_request_context
         is_edit = "sourceArtifactUrl" in request.model_fields_set
-        if (
-            try_template
-            and is_edit
-            and policy.processor_kind == DslProcessorKind.TERSE_NESTED2
-        ):
-            return GenerateWidgetCardResponse(
-                status=GenerationStatus.FAILED,
-                suggestSize=request.size or DEFAULT_WIDGET_SIZE,
-                message="模板路线暂不支持二次更新。",
-                errorCode=ErrorCode.A2UI_GENERATION_FAILED.value,
-            )
         if not try_template or is_edit:
             return await self.generate_widget_card(
                 profiled_request,
                 policy=policy,
                 before_model_call=before_model_call,
             )
-
-        template_bindings = enrich_template_bindings(
-            list(profiled_request.candidateDataBindings or [])
-        )
-        template_request = profiled_request.model_copy(
-            update={"candidateDataBindings": template_bindings}
-        )
-        template_request._model_request_context = request._model_request_context
-        model_request_context = self._resolve_model_request_context(template_request)
-        protocol_profile = A2UIProtocolRegistry(policy.protocol_profile_id).get_profile()
-        model_start_notified = False
-
-        async def notify_model_start(size: WidgetSize) -> None:
-            nonlocal model_start_notified
-            if before_model_call is None or model_start_notified:
-                return
-            await before_model_call(size)
-            model_start_notified = True
 
         async def generate_template_source(
             task_spec,
@@ -1188,16 +1165,19 @@ class WidgetGenerationService:
                 card_spec,
                 effective_bindings,
                 processor_kind=policy.processor_kind,
-                protocol_profile=protocol_profile,
+                protocol_profile=A2UIProtocolRegistry(
+                    policy.protocol_profile_id
+                ).get_profile(),
                 model_runtime=self.model_runtime,
-                model_request_context=model_request_context,
-                before_model_call=notify_model_start,
+                model_request_context=self._resolve_model_request_context(
+                    profiled_request
+                ),
             )
 
         return await self.generate_widget_card(
-            template_request,
+            profiled_request,
             policy=policy,
-            before_model_call=notify_model_start,
+            before_model_call=before_model_call,
             template_source_generator=generate_template_source,
         )
 
