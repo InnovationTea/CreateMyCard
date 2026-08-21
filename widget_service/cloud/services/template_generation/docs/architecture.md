@@ -47,9 +47,9 @@ generateWidgetCardCompactDsl
 generateWidgetCardTerseDslNested2
   ├─ edit → generate_widget_card_terse_dsl_nested2 入口返回 failed
   └─ create
-       ├─ 公共生成链：能力前置裁决 → CardSpec → TaskSpec → 原协议 Prompt/Client
+       ├─ Design Compact 原始策略：能力前置裁决 → CardSpec → TaskSpec → Compact Prompt/Client
        ├─ generate_source_dsl → request_template_source_dsl → Design Compact DSL
-       ├─ 模板 source generator 异常 → generate_source_dsl 直接返回失败
+       ├─ try_template=true、need_fallback=false → 模板异常直接返回失败
        └─ 公共生成链：DesignCompactProcessor → Validator → RetryController
                             → ArtifactStore → ResponsePlanner → GenerateWidgetCardResponse
 ```

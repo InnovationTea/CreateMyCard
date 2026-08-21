@@ -1741,10 +1741,26 @@ def _terse_policy() -> GenerationRoutePolicy:
         protocol_profile_id=A2UI_FORM_PROTOCOL_PROFILE_ID,
         backend="openai",
         processor_kind=DslProcessorKind.DESIGN_COMPACT,
+        source_format="design-compact-dsl",
+        model_profile_id="design-compact-dsl",
+        model_format="compact-dsl",
+        design_profile_id="design-compact-dsl",
+        supports_dynamic_capabilities=True,
+        validation_failure_blocking=True,
+        stores_design_token=True,
+    )
+
+
+def _legacy_terse_policy() -> GenerationRoutePolicy:
+    return GenerationRoutePolicy(
+        operation="generateWidgetCardTerseDslNested2",
+        protocol_profile_id=A2UI_FORM_PROTOCOL_PROFILE_ID,
+        backend="openai",
+        processor_kind=DslProcessorKind.TERSE_NESTED2,
         source_format=TERSE_DSL_NESTED2_PROFILE_ID,
         model_profile_id=TERSE_DSL_NESTED2_PROFILE_ID,
         model_format=TERSE_DSL_NESTED2_PROFILE_ID,
-        design_profile_id="design-compact-dsl",
+        design_profile_id=TERSE_DSL_NESTED2_PROFILE_ID,
         supports_dynamic_capabilities=True,
         validation_failure_blocking=True,
         stores_design_token=True,
@@ -2666,7 +2682,7 @@ async def test_legacy_python_terse_entry_is_explicit_and_delegates_to_original()
     response = await route_legacy_python_terse_generation(
         Host(),
         _weather_request(),
-        _terse_policy(),
+        _legacy_terse_policy(),
         before_model_call=notify,
     )
 
