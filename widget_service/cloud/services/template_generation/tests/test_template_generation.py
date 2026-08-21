@@ -1740,11 +1740,11 @@ def _terse_policy() -> GenerationRoutePolicy:
         operation="generateWidgetCardTerseDslNested2",
         protocol_profile_id=A2UI_FORM_PROTOCOL_PROFILE_ID,
         backend="openai",
-        processor_kind=DslProcessorKind.TERSE_NESTED2,
+        processor_kind=DslProcessorKind.DESIGN_COMPACT,
         source_format=TERSE_DSL_NESTED2_PROFILE_ID,
         model_profile_id=TERSE_DSL_NESTED2_PROFILE_ID,
         model_format=TERSE_DSL_NESTED2_PROFILE_ID,
-        design_profile_id=TERSE_DSL_NESTED2_PROFILE_ID,
+        design_profile_id="design-compact-dsl",
         supports_dynamic_capabilities=True,
         validation_failure_blocking=True,
         stores_design_token=True,
@@ -1836,13 +1836,58 @@ def _weather_card_spec() -> dict[str, Any]:
     }
 
 
-@pytest.mark.asyncio
-async def test_template_facade_returns_only_source_dsl_string(monkeypatch):
-    expected = "Column('root')"
+def _minimal_template_a2ui() -> str:
+    messages = [
+        {
+            "version": "v0.9",
+            "createSurface": {
+                "surfaceId": "surface_card",
+                "catalogId": "ohos.a2ui.extended.catalog.form",
+            },
+        },
+        {
+            "version": "v0.9",
+            "updateComponents": {
+                "surfaceId": "surface_card",
+                "root": "root",
+                "components": [
+                    {
+                        "id": "root",
+                        "component": "Column",
+                        "children": [],
+                        "styles": {
+                            "backgroundColor": "#FF317AF7",
+                            "linearGradient": {
+                                "direction": "Bottom",
+                                "colors": [
+                                    ["#FF317AF7", 0],
+                                    ["#FF46B1E3", 1],
+                                ],
+                            },
+                        },
+                    }
+                ],
+            },
+        },
+        {
+            "version": "v0.9",
+            "updateDataModel": {
+                "surfaceId": "surface_card",
+                "path": "/",
+                "value": {"data": {}},
+            },
+        },
+    ]
+    return "\n".join(
+        json.dumps(item, ensure_ascii=False, separators=(",", ":"))
+        for item in messages
+    )
 
+
+@pytest.mark.asyncio
+async def test_template_facade_returns_only_compact_source_dsl_string(monkeypatch):
     class Output:
-        a2ui = "unused for Terse source"
-        terse_dsl_nested2 = 'Column("root");\ndata = {};'
+        a2ui = _minimal_template_a2ui()
         template_ids = ("WeatherOverviewHero@1",)
         expanded_component_count = 3
 
@@ -1855,7 +1900,7 @@ async def test_template_facade_returns_only_source_dsl_string(monkeypatch):
         _weather_task_spec(),
         _weather_card_spec(),
         (),
-        processor_kind=DslProcessorKind.TERSE_NESTED2,
+        processor_kind=DslProcessorKind.DESIGN_COMPACT,
         protocol_profile=A2UIProtocolRegistry(
             A2UI_FORM_PROTOCOL_PROFILE_ID
         ).get_profile(),
@@ -1870,8 +1915,15 @@ async def test_template_facade_returns_only_source_dsl_string(monkeypatch):
         ),
     )
 
-    assert result == expected
     assert isinstance(result, str)
+    rows = [json.loads(line) for line in result.splitlines()]
+    assert rows[0][0:2] == ["root", "Column"]
+    assert rows[0][2]["backgroundColor"] == "#FF317AF7"
+    assert rows[0][2]["linearGradient"]["colors"] == [
+        ["#FF317AF7", 0],
+        ["#FF46B1E3", 1],
+    ]
+    assert rows[-1] == ["/", {"data": {}}]
 
 
 @pytest.mark.asyncio
@@ -1879,8 +1931,7 @@ async def test_template_facade_enriches_bindings_inside_template_boundary(monkey
     observed_fields: list[str] = []
 
     class Output:
-        a2ui = "unused for Terse source"
-        terse_dsl_nested2 = 'Column("root");\ndata = {};'
+        a2ui = _minimal_template_a2ui()
         template_ids = ("DeviceStatusBattery@1",)
         expanded_component_count = 2
 
@@ -1906,7 +1957,7 @@ async def test_template_facade_enriches_bindings_inside_template_boundary(monkey
         _weather_task_spec(),
         _weather_card_spec(),
         (binding,),
-        processor_kind=DslProcessorKind.TERSE_NESTED2,
+        processor_kind=DslProcessorKind.DESIGN_COMPACT,
         protocol_profile=A2UIProtocolRegistry(
             A2UI_FORM_PROTOCOL_PROFILE_ID
         ).get_profile(),
@@ -2058,7 +2109,7 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
 
 
 @pytest.mark.asyncio
-async def test_weather_template_generates_a2ui_and_common_terse_artifact(monkeypatch):
+async def test_terse_entry_uses_compact_template_source_and_keeps_theme(monkeypatch):
     model = WeatherTemplateModel()
     captured: dict[str, Any] = {}
 
@@ -2070,7 +2121,7 @@ async def test_weather_template_generates_a2ui_and_common_terse_artifact(monkeyp
 
     async def save(store: ArtifactStore, artifact: Any) -> ArtifactSaveResult:
         captured["artifact"] = artifact
-        captured["terse"] = store.design_token
+        captured["compact"] = store.design_token
         return ArtifactSaveResult(
             artifactUrl="https://artifact.test/weather-template-terse",
             artifactDigest="sha256:weather-template-terse",
@@ -2083,12 +2134,26 @@ async def test_weather_template_generates_a2ui_and_common_terse_artifact(monkeyp
 
     assert response.status == GenerationStatus.SUCCESS
     assert response.artifactUrl == "https://artifact.test/weather-template-terse"
-    assert "data =" not in captured["terse"]
-    assert "compact-title" not in captured["terse"]
-    assert "{{ ${/data/weather/current/temperatureText} }}" in captured["terse"]
+    compact_rows = [json.loads(line) for line in captured["compact"].splitlines()]
+    assert compact_rows[0][0:2] == ["root", "Column"]
+    assert compact_rows[0][2]["backgroundColor"] == "#FF317AF7"
+    assert compact_rows[0][2]["linearGradient"]["colors"] == [
+        ["#FF317AF7", 0],
+        ["#FF46B1E3", 1],
+    ]
     messages = [json.loads(line) for line in captured["artifact"].genui.splitlines()]
     protocol_profile = A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile()
     assert messages[0]["createSurface"]["catalogId"] == protocol_profile["catalogId"]
+    root = next(
+        item
+        for item in messages[1]["updateComponents"]["components"]
+        if item["id"] == "root"
+    )
+    assert root["styles"]["backgroundColor"] == "#FF317AF7"
+    assert root["styles"]["linearGradient"]["colors"] == [
+        ["#FF317AF7", 0],
+        ["#FF46B1E3", 1],
+    ]
     assert captured["artifact"].effectiveCapabilities["data"] == ["ViewWeather"]
 
 
@@ -2330,12 +2395,11 @@ async def test_compact_edit_rejection_uses_original_flow(monkeypatch):
 
 
 @pytest.mark.asyncio
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "entry_name",
+    ("entry_name", "template_failure_is_terminal"),
     [
-        "generate_widget_card_compact_dsl",
-        "generate_widget_card_terse_dsl_nested2",
+        ("generate_widget_card_compact_dsl", False),
+        ("generate_widget_card_terse_dsl_nested2", True),
     ],
 )
 @pytest.mark.parametrize(
@@ -2346,9 +2410,10 @@ async def test_compact_edit_rejection_uses_original_flow(monkeypatch):
     ],
     ids=["generation-error", "route-not-applicable"],
 )
-async def test_template_exception_falls_back_inside_common_source_generation(
+async def test_template_exception_obeys_route_failure_policy(
     monkeypatch,
     entry_name: str,
+    template_failure_is_terminal: bool,
     template_error: Exception,
 ):
     generated_sources: list[str] = []
@@ -2426,17 +2491,29 @@ async def test_template_exception_falls_back_inside_common_source_generation(
         before_model_call=before_model_call,
     )
 
-    assert response.status == GenerationStatus.SUCCESS
-    assert response.artifactUrl == "https://artifact.test/template-fallback"
-    assert model_generate_calls == 1
-    assert generated_sources == ["generic-source"]
-    assert len(template_processors) == 1
+    if template_failure_is_terminal:
+        assert response.status == GenerationStatus.FAILED
+        assert response.errorCode == "A2UI_GENERATION_FAILED"
+        assert response.artifactUrl == ""
+        assert model_generate_calls == 0
+        assert generated_sources == []
+    else:
+        assert response.status == GenerationStatus.SUCCESS
+        assert response.artifactUrl == "https://artifact.test/template-fallback"
+        assert model_generate_calls == 1
+        assert generated_sources == ["generic-source"]
+    assert template_processors == [DslProcessorKind.DESIGN_COMPACT]
     assert callback_sizes == ["2x2"]
 
 
 @pytest.mark.asyncio
-async def test_template_source_quality_failure_uses_common_repair_once(monkeypatch):
+@pytest.mark.parametrize("policy_factory", [_policy, _terse_policy], ids=["compact", "terse"])
+async def test_template_source_quality_failure_uses_common_compact_repair_once(
+    monkeypatch,
+    policy_factory,
+):
     processed_sources: list[str] = []
+    processor_kinds: list[DslProcessorKind] = []
     template_call_count = 0
     model_generate_calls = 0
     model_repair_calls = 0
@@ -2509,7 +2586,7 @@ async def test_template_source_quality_failure_uses_common_repair_once(monkeypat
     monkeypatch.setattr(
         widget_generation_service_module,
         "get_dsl_processor",
-        lambda _kind: Processor(),
+        lambda kind: processor_kinds.append(kind) or Processor(),
     )
     monkeypatch.setattr(
         widget_generation_service_module.ArtifactValidator,
@@ -2520,7 +2597,7 @@ async def test_template_source_quality_failure_uses_common_repair_once(monkeypat
 
     response = await WidgetGenerationService().generate_widget_card(
         _weather_request(),
-        policy=_policy(),
+        policy=policy_factory(),
         template_source_generator=template_source_generator,
     )
 
@@ -2532,6 +2609,7 @@ async def test_template_source_quality_failure_uses_common_repair_once(monkeypat
         "template-invalid-source",
         "generic-repaired-source",
     ]
+    assert processor_kinds == [DslProcessorKind.DESIGN_COMPACT]
     assert saved_design_tokens == ["generic-repaired-source"]
 
 

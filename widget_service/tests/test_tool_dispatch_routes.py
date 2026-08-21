@@ -999,8 +999,8 @@ def test_compact_route_mock_converts_design_dsl_before_saving(monkeypatch):
     assert rows[2]["updateDataModel"]["value"]["ui"]["state"] == "ready"
 
 
-def test_terse_nested2_route_mock_without_template_falls_back(monkeypatch):
-    """验证模板不可用时，第五接口回退到通用 Terse 生成。"""
+def test_terse_nested2_route_without_template_returns_failed(monkeypatch):
+    """验证模板不可用时，第五接口直接失败且不保存 artifact。"""
     monkeypatch.setattr(get_settings(), "enable_a2ui_model_mock", True)
     saved_artifacts = []
 
@@ -1036,12 +1036,9 @@ def test_terse_nested2_route_mock_without_template_falls_back(monkeypatch):
             request_id,
         )
 
-    assert message["data"]["status"] == "success"
-    assert message["data"]["errorCode"] == ""
-    assert len(saved_artifacts) == 1
-    artifact = saved_artifacts[0]
-    assert artifact["meta"]["protocolProfileId"] == "a2ui-form-rom6.0-v1"
-    assert len(artifact["genui"].splitlines()) == 3
+    assert message["data"]["status"] == "failed"
+    assert message["data"]["errorCode"] == "A2UI_GENERATION_FAILED"
+    assert saved_artifacts == []
 
 
 def test_generation_routes_send_start_and_success_commands(monkeypatch):

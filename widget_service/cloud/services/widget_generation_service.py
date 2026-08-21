@@ -432,10 +432,26 @@ class WidgetGenerationService:
         # 协议 profile 决定 A2UI 组件白名单、DSL 行数要求和校验规则。
         protocol_registry = A2UIProtocolRegistry(policy.protocol_profile_id)
         protocol_profile = protocol_registry.get_profile()
+        uses_compact_template_source = (
+            template_source_generator is not None
+            and policy.processor_kind == DslProcessorKind.TERSE_NESTED2
+        )
+        source_processor_kind = policy.processor_kind
+        source_format = policy.source_format
+        source_model_profile_id = policy.model_profile_id
+        source_model_format = policy.model_format
+        source_design_profile_id = policy.design_profile_id
+        if uses_compact_template_source:
+            if not source_design_profile_id:
+                raise RuntimeError("Terse template route requires a Design Compact profile")
+            source_processor_kind = DslProcessorKind.DESIGN_COMPACT
+            source_format = source_design_profile_id
+            source_model_profile_id = source_design_profile_id
+            source_model_format = "compact-dsl"
         conversion_protocol_profile = protocol_profile
-        if policy.processor_kind == DslProcessorKind.TERSE_NESTED2:
+        if source_processor_kind == DslProcessorKind.TERSE_NESTED2:
             conversion_protocol_profile = A2UIProtocolRegistry.read_design_protocol_profile(
-                policy.model_profile_id
+                source_model_profile_id
             )
         if previous_design_token is not None:
             token_is_valid = await self._validate_source_design_token(
@@ -461,8 +477,9 @@ class WidgetGenerationService:
             f"protocol_profile_id={protocol_profile['id']} "
             f"protocol_version={protocol_profile['version']} "
             f"operation={policy.operation} processor={policy.processor_kind} "
+            f"source_processor={source_processor_kind} "
             f"model_backend={policy.backend} "
-            f"design_profile_id={policy.design_profile_id or ''}"
+            f"design_profile_id={source_design_profile_id or ''}"
         )
         latency_by_stage["protocol"] = self._elapsed_ms(stage_started_at)
         stage_started_at = time.perf_counter()
@@ -522,16 +539,16 @@ class WidgetGenerationService:
             "task_data_model_schema_keys="
             f"{json_for_log(list(task_spec.dataModelSchema))}"
         )
-        # Prompt 和通用模型客户端始终按原协议构造，
-        # 模板失败时可直接复用并生成同格式源 DSL。
+        # Prompt 和通用模型客户端始终构造；Terse 模板路线使用 Compact 源格式，
+        # 模板失败时直接结束，不调用原 Terse 模型。
         if policy.stores_design_token:
             design_system_prompt = A2UIProtocolRegistry.read_design_prompt(
-                policy.model_profile_id
+                source_model_profile_id
             )
             prompt = PromptBuilder().build_design_token(
                 task_spec,
                 design_system_prompt,
-                policy.source_format,
+                source_format,
                 previous_design_token=previous_design_token,
             )
         else:
@@ -561,17 +578,17 @@ class WidgetGenerationService:
             operation_name=policy.operation,
         )
         model_protocol_profile = {
-            "id": policy.model_profile_id,
-            "format": policy.model_format,
+            "id": source_model_profile_id,
+            "format": source_model_format,
         }
         retry_controller = RetryController()
         artifact_id = str(uuid.uuid4())
         model_call_phase = "initial"
         quality_repair_attempt_count = 0
-        if policy.processor_kind == DslProcessorKind.TERSE_NESTED2:
+        if source_processor_kind == DslProcessorKind.TERSE_NESTED2:
             design_mode = "edit" if source_load_result else "create"
             repair_prompt_type = f"terse-dsl-nested-2-{design_mode}"
-        elif policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
+        elif source_processor_kind == DslProcessorKind.DESIGN_COMPACT:
             design_mode = "edit" if source_load_result else "create"
             repair_prompt_type = f"design-compact-{design_mode}"
         elif source_load_result:
@@ -579,13 +596,13 @@ class WidgetGenerationService:
         else:
             repair_prompt_type = "create"
 
-        processor = get_dsl_processor(policy.processor_kind)
+        processor = get_dsl_processor(source_processor_kind)
         processing_context = DslProcessingContext(
             size=card_spec.suggestSize,
             card_spec=card_spec.model_dump(mode="json", exclude_none=True),
             task_spec=task_spec.model_dump(mode="json", exclude_none=True),
             protocol_profile=conversion_protocol_profile,
-            design_profile_id=policy.design_profile_id,
+            design_profile_id=source_design_profile_id,
             data_capabilities=effective_data_capabilities,
             event_candidates=effective_events,
         )
@@ -607,12 +624,20 @@ class WidgetGenerationService:
                     )
                     return require_generated_dsl(result)
                 except Exception as exc:
+                    terminal_failure = (
+                        policy.processor_kind == DslProcessorKind.TERSE_NESTED2
+                    )
+                    fallback = "none" if terminal_failure else "original_protocol_flow"
                     logger.info(
                         f"{_MODULE} template_source_generation_failed "
-                        f"operation={policy.operation} fallback=original_protocol_flow "
+                        f"operation={policy.operation} fallback={fallback} "
                         f"reason={type(exc).__name__} "
                         f"detail={json_for_log(str(exc))}"
                     )
+                    if terminal_failure:
+                        raise A2UIModelGenerationError(
+                            "Terse template source generation failed"
+                        ) from exc
             logger.info(
                 f"{_MODULE} model_source_generation_started operation={policy.operation}"
             )
@@ -639,12 +664,12 @@ class WidgetGenerationService:
                 prompt,
                 invalid_source_dsl,
                 quality_error_payloads,
-                dsl_format=policy.source_format,
+                dsl_format=source_format,
             )
             logger.info(
                 f"{_MODULE} a2ui_repair_started repair_prompt_type={repair_prompt_type} "
                 f"operation={policy.operation} model_backend={policy.backend} "
-                f"source_format={policy.source_format} "
+                f"source_format={source_format} "
                 f"quality_error_stages={json_for_log(quality_error_stages)} "
                 f"repair_attempt={quality_repair_attempt_count} "
                 f"max_repair_attempts={settings.validation_failure_max_repair_attempts} "
@@ -1088,7 +1113,7 @@ class WidgetGenerationService:
         *,
         before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
     ) -> GenerateWidgetCardResponse:
-        """使用本地 TerseDSL-Nested-2 Prompt 和转换器生成标准 A2UI。"""
+        """使用模板 A2UI 回转的 Design Compact DSL 生成标准 A2UI。"""
         try:
             selection = self._compact_protocol_selection(request)
         except ValueError as exc:
@@ -1110,7 +1135,7 @@ class WidgetGenerationService:
             source_format=TERSE_DSL_NESTED2_PROFILE_ID,
             model_profile_id=TERSE_DSL_NESTED2_PROFILE_ID,
             model_format=TERSE_DSL_NESTED2_PROFILE_ID,
-            design_profile_id=TERSE_DSL_NESTED2_PROFILE_ID,
+            design_profile_id=selection.design_profile_id,
             supports_dynamic_capabilities=True,
             validation_failure_blocking=True,
             stores_design_token=True,
@@ -1160,11 +1185,14 @@ class WidgetGenerationService:
             card_spec: dict,
             effective_bindings: tuple,
         ) -> str:
+            template_processor_kind = policy.processor_kind
+            if template_processor_kind == DslProcessorKind.TERSE_NESTED2:
+                template_processor_kind = DslProcessorKind.DESIGN_COMPACT
             return await request_template_source_dsl(
                 task_spec,
                 card_spec,
                 effective_bindings,
-                processor_kind=policy.processor_kind,
+                processor_kind=template_processor_kind,
                 protocol_profile=A2UIProtocolRegistry(
                     policy.protocol_profile_id
                 ).get_profile(),

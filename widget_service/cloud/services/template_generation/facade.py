@@ -46,7 +46,6 @@ async def request_template_source_dsl(
     )
     source_dsl = prepare_template_source_dsl(
         output.a2ui,
-        output.terse_dsl_nested2,
         processor_kind=processor_kind,
         size=task_spec.size,
         protocol_profile=protocol_profile,
