@@ -79,11 +79,11 @@ def create_template_model_client(
 
 def _parse_json_object(raw: str) -> dict[str, Any]:
     candidate = _strip_markdown_fence(raw)
-    start = candidate.find("{")
-    end = candidate.rfind("}")
-    if start < 0 or end < start:
+    _prefix, opening, remainder = candidate.partition("{")
+    body, closing, _suffix = remainder.rpartition("}")
+    if not opening or not closing:
         raise ValueError("template decision response does not contain a JSON object")
-    candidate = candidate[start : end + 1]
+    candidate = opening + body + closing
     try:
         value = json.loads(candidate)
     except json.JSONDecodeError:

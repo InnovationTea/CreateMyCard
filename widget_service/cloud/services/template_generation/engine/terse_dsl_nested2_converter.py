@@ -162,15 +162,14 @@ def _parse_terse_dsl_nested2_document(
     data_model = None
     if len(module.body) == 2:
         assignment = module.body[1]
-        if (
-            not isinstance(assignment, ast.Assign)
-            or len(assignment.targets) != 1
-            or not isinstance(assignment.targets[0], ast.Name)
-            or assignment.targets[0].id != "data"
-        ):
+        is_single_assignment = isinstance(assignment, ast.Assign) and len(assignment.targets) == 1
+        target = assignment.targets[0] if is_single_assignment else None
+        is_data_target = isinstance(target, ast.Name) and target.id == "data"
+        if not is_single_assignment or not is_data_target:
             raise TerseDslNested2ConversionError(
                 "The optional second statement must assign one object to data."
             )
+        assert isinstance(assignment, ast.Assign)
         parsed_data = _literal_value(assignment.value, 1)
         if not isinstance(parsed_data, dict):
             raise TerseDslNested2ConversionError("data must be one object.")
@@ -218,7 +217,7 @@ def _next_token_is_colon(
         tokenize.NEWLINE,
         tokenize.COMMENT,
     }
-    for candidate in tokens[index + 1 :]:
+    for candidate in tokens[slice(index + 1, None)]:
         if candidate.type in ignored:
             continue
         return candidate.type == tokenize.OP and candidate.string == ":"

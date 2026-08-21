@@ -500,7 +500,7 @@ def repair_compact_dsl_binding_paths(
             continue
         suffix = path
         if path == "/data" or path.startswith("/data/"):
-            suffix = path[len("/data") :]
+            suffix = path.removeprefix("/data")
         candidates: set[str] = set()
         for root in roots:
             candidate = f"{root.rstrip('/')}{suffix}"
@@ -777,11 +777,11 @@ def _strip_optional_genui_fence(compact_dsl: str) -> str:
 
     closing_index = _find_fence_closing(lines, opening_index + 1)
     body_end = closing_index if closing_index is not None else len(lines)
-    body = "\n".join(lines[opening_index + 1 : body_end]).strip()
+    body = "\n".join(lines[slice(opening_index + 1, body_end)]).strip()
     if "```" in body:
         raise CompactDslConversionError("Compact DSL must contain exactly one genui fence.")
     if closing_index is not None:
-        _validate_no_additional_fence(lines[closing_index + 1 :])
+        _validate_no_additional_fence(lines[slice(closing_index + 1, None)])
     return body
 
 
@@ -1546,12 +1546,9 @@ def _parse_binding_expression(
     context: str,
 ) -> tuple[tuple[str, str], ...]:
     stripped = value.strip()
-    if (
-        not stripped.startswith("{{")
-        or not stripped.endswith("}}")
-        or stripped.count("{{") != 1
-        or stripped.count("}}") != 1
-    ):
+    has_expression_bounds = stripped.startswith("{{") and stripped.endswith("}}")
+    has_single_markers = stripped.count("{{") == 1 and stripped.count("}}") == 1
+    if not has_expression_bounds or not has_single_markers:
         raise CompactDslConversionError(
             f"{context}: a binding expression must occupy the full string."
         )
@@ -1591,7 +1588,7 @@ def _tokenize_binding_expression(
                 raise CompactDslConversionError(
                     f"{context}: binding expression has an unclosed reference."
                 )
-            path = body[index + 2 : end]
+            path = body[slice(index + 2, end)]
             if not path.startswith("/"):
                 raise CompactDslConversionError(
                     f"{context}: expression bindings must use JSON Pointer paths."
@@ -1763,7 +1760,7 @@ def _read_expression_string(
         elif char == "\\":
             escaped = True
         elif char == "'":
-            return value[index : cursor + 1], cursor + 1
+            return value[slice(index, cursor + 1)], cursor + 1
         cursor += 1
     raise CompactDslConversionError(f"{context}: expression string literal is not closed.")
 
@@ -2539,9 +2536,9 @@ def _rewrite_binding_expression(
     pieces: list[str] = []
     cursor = 0
     for token in tokens:
-        pieces.append(body[cursor : token.start])
+        pieces.append(body[slice(cursor, token.start)])
         if token.kind != "binding":
-            pieces.append(body[token.start : token.end])
+            pieces.append(body[slice(token.start, token.end)])
         elif token.value in literal_replacements:
             pieces.append(_expression_literal(literal_replacements[token.value]))
         else:

@@ -71,12 +71,11 @@ _REFERENCE_CALLS = frozenset({"Bind", "Param", "Asset", "Expr", "_CardTplInterpo
 _FORBIDDEN_KEYS = frozenset({"__proto__", "prototype", "constructor"})
 _TEMPLATE_ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9-]{0,63}$")
 _REFERENCE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
-_VARIANT_RE = re.compile(r"^[A-Za-z][A-Za-z0-9-]{0,31}$")
 _PROVIDER_ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:\.[a-z][a-z0-9-]*)+$")
 _PROVIDER_VERSION_RE = re.compile(r"^[1-9][0-9]*\.[0-9]+\.[0-9]+(?:-[a-z0-9.-]+)?$")
 _MAX_BUNDLE_FILE_BYTES = 1_048_576
 _MAX_TEMPLATE_SOURCE_CHARS = 262_144
-_MIGRATED_TEMPLATE_BASES = (
+_PROVIDER_TEMPLATE_FAMILIES = (
     "BluetoothDeviceOverview",
     "ResourceUsageOverview",
     "AppUsageOverview",
@@ -209,10 +208,19 @@ class ProviderTemplateAdmission:
 
 
 @dataclass(frozen=True)
-class _CompiledParameters:
-    schema: dict[str, Any]
-    asset_semantic_tags: dict[str, tuple[str, ...]]
-    required_names: tuple[str, ...]
+class _UiTemplateSignature:
+    properties: dict[str, dict[str, Any]]
+    required_params: tuple[str, ...]
+    asset_tags: dict[str, tuple[str, ...]]
+    accepts_children: bool
+
+
+@dataclass(frozen=True)
+class _UiTemplateData:
+    bindings: dict[str, TemplateBinding]
+    required_bindings: dict[str, TemplateBinding]
+    optional_bindings: dict[str, TemplateBinding]
+    body: str
 
 
 def _required_data_fields(
@@ -356,22 +364,9 @@ def compile_card_template(
     """Compile one non-executable ``cardtpl/1`` source into the trusted Template IR."""
     if len(source) > _MAX_TEMPLATE_SOURCE_CHARS:
         raise ValueError("Provider Template source exceeds the size limit")
-    if re.search(r"(?m)^\s*#Template\s+[A-Za-z]", source):
-        return _compile_ui_card_template(
-            source,
-            provider_id=provider_id,
-            business_id=business_id,
-            expected_wire_id=expected_wire_id,
-            expected_capability_id=expected_capability_id,
-            data_domain=data_domain,
-            description=description,
-            supported_card_sizes=supported_card_sizes,
-            required_data=required_data,
-            optional_data=optional_data,
-            output_schema=output_schema,
-            bundle_digest=bundle_digest,
-        )
-    return _compile_legacy_card_template(
+    if re.search(r"(?m)^\s*#Template\s+[A-Za-z]", source) is None:
+        raise ValueError("Provider Template must use the cardtpl/1 UI syntax")
+    return _compile_ui_card_template(
         source,
         provider_id=provider_id,
         business_id=business_id,
@@ -379,111 +374,11 @@ def compile_card_template(
         expected_capability_id=expected_capability_id,
         data_domain=data_domain,
         description=description,
+        supported_card_sizes=supported_card_sizes,
         required_data=required_data,
         optional_data=optional_data,
         output_schema=output_schema,
         bundle_digest=bundle_digest,
-    )
-
-
-def _compile_legacy_card_template(
-    source: str,
-    *,
-    provider_id: str,
-    business_id: str | None,
-    expected_wire_id: str,
-    expected_capability_id: str | None,
-    data_domain: str | None,
-    description: str,
-    required_data: tuple[str, ...],
-    optional_data: tuple[str, ...],
-    output_schema: dict[str, Any],
-    bundle_digest: str,
-) -> TemplateDefinition:
-    header_call, offset = _marker_call(source, 0, "#Template")
-    wire_id, header = _template_header(header_call)
-    if wire_id != expected_wire_id:
-        raise ValueError(f"Provider Template ID mismatch: {wire_id}")
-    _validate_header_keys(header)
-    capability_id = _required_string(header, "capability")
-    if capability_id != expected_capability_id:
-        raise ValueError(f"Provider Template capability mismatch: {wire_id}")
-
-    bindings = _compile_bindings(header.get("bindings"), output_schema)
-    parameters = _compile_parameters(header.get("params", {}), output_schema)
-    name_overlap = set(bindings) & set(parameters.schema["properties"])
-    if name_overlap:
-        raise ValueError(
-            f"Provider Template binding/parameter names overlap: {sorted(name_overlap)}"
-        )
-    default_limits = _limits(header.get("limits"))
-    variants: list[TemplateVariant] = []
-    variants_by_name: dict[str, TemplateVariant] = {}
-    while True:
-        offset = _skip_whitespace(source, offset)
-        if source.startswith("#EndTemplate", offset):
-            offset += len("#EndTemplate")
-            break
-        variant_call, body_start = _marker_call(source, offset, "#Variant")
-        end_match = re.search(r"(?m)^[ \t]*#EndVariant[ \t]*$", source[body_start:])
-        if end_match is None:
-            raise ValueError("Provider Template Variant is not closed")
-        body_end = body_start + end_match.start()
-        body = source[body_start:body_end].strip()
-        variant = _compile_variant(
-            variant_call,
-            body,
-            bindings=bindings,
-            parameters_schema=parameters.schema,
-            globally_required=parameters.required_names,
-            default_limits=default_limits,
-            previous_variants=variants_by_name,
-        )
-        variants.append(variant)
-        variants_by_name[variant.size] = variant
-        offset = body_start + end_match.end()
-
-    if source[offset:].strip():
-        raise ValueError("Provider Template contains content after #EndTemplate")
-    if not variants:
-        raise ValueError("Provider Template must contain at least one Variant")
-    variant_names = [variant.size for variant in variants]
-    if len(variant_names) != len(set(variant_names)):
-        raise ValueError(f"Provider Template has duplicate Variants: {wire_id}")
-
-    template_id, version = _split_wire_id(wire_id)
-    compatible_themes = _string_tuple(header, "compatibleThemeProfileIds")
-    domain_tags = _string_tuple(header, "domainTags")
-    allowed_parents = _string_tuple(header, "allowedParentComponents")
-    return TemplateDefinition.model_validate(
-        {
-            "templateId": template_id,
-            "version": version,
-            "description": description,
-            "domainTags": domain_tags,
-            "compatibleThemeProfileIds": compatible_themes,
-            "allowedParentComponents": allowed_parents,
-            "actionPolicy": "none",
-            "layoutActionStyle": header.get("layoutActionStyle"),
-            "supportedSizes": tuple(variant_names),
-            "allowedDesignTokens": [],
-            "allowedLayoutTokens": [],
-            "assetParameterSemanticTags": parameters.asset_semantic_tags,
-            "providerId": provider_id,
-            "businessId": business_id,
-            "capabilityId": capability_id,
-            "dataDomain": data_domain,
-            "requiredData": required_data,
-            "requiredDataFields": _required_data_fields(required_data, output_schema),
-            "optionalData": optional_data,
-            "optionalDataFields": _required_data_fields(optional_data, output_schema),
-            "bindings": {
-                name: binding.model_dump(by_alias=True) for name, binding in bindings.items()
-            },
-            "bundleDigest": bundle_digest,
-            "sourceFormat": "cardtpl/1",
-            "variants": [variant.model_dump(by_alias=True) for variant in variants],
-        }
     )
 
 
@@ -504,13 +399,16 @@ def _compile_ui_card_template(
 ) -> TemplateDefinition:
     """Compile the UI-oriented ``#Template Id(props, ...children)`` syntax."""
     signature, block = _ui_template_block(source, expected_wire_id)
-    properties, required_params, asset_tags, accepts_children = _ui_template_signature(
-        signature
-    )
-    bindings, required_bindings, optional_bindings, body = _ui_template_data(
-        block,
-        output_schema,
-    )
+    signature_contract = _ui_template_signature(signature)
+    properties = signature_contract.properties
+    required_params = signature_contract.required_params
+    asset_tags = signature_contract.asset_tags
+    accepts_children = signature_contract.accepts_children
+    template_data = _ui_template_data(block, output_schema)
+    bindings = template_data.bindings
+    required_bindings = template_data.required_bindings
+    optional_bindings = template_data.optional_bindings
+    body = template_data.body
     if not {binding.path for binding in required_bindings.values()} <= set(required_data):
         raise ValueError(
             f"Provider Template requiredData does not match $path declarations: {expected_wire_id}"
@@ -649,7 +547,8 @@ def _ui_template_block(source: str, expected_wire_id: str) -> tuple[str, str]:
             end += 1
         if end == len(lines):
             raise ValueError(f"Provider Template is not closed: {wire_id}")
-        blocks[wire_id] = (signature.strip(), "\n".join(lines[index + 1 : end]).strip())
+        body_lines = lines[slice(index + 1, end)]
+        blocks[wire_id] = (signature.strip(), "\n".join(body_lines).strip())
         index = end + 1
     try:
         return blocks[expected_wire_id]
@@ -659,7 +558,7 @@ def _ui_template_block(source: str, expected_wire_id: str) -> tuple[str, str]:
 
 def _ui_template_signature(
     signature: str,
-) -> tuple[dict[str, dict[str, Any]], tuple[str, ...], dict[str, tuple[str, ...]], bool]:
+) -> _UiTemplateSignature:
     match = re.fullmatch(r"props\s*:\s*\{(.*)\}\s*(,\s*\.\.\.children\s*)?", signature)
     if match is None:
         raise ValueError("Provider Template signature must declare props and optional ...children")
@@ -691,25 +590,25 @@ def _ui_template_signature(
             asset_tags[name] = ()
         if optional is None:
             required.append(name)
-    return properties, tuple(required), asset_tags, raw_children is not None
+    return _UiTemplateSignature(
+        properties=properties,
+        required_params=tuple(required),
+        asset_tags=asset_tags,
+        accepts_children=raw_children is not None,
+    )
 
 
 def _ui_template_data(
     block: str,
     output_schema: dict[str, Any],
-) -> tuple[
-    dict[str, TemplateBinding],
-    dict[str, TemplateBinding],
-    dict[str, TemplateBinding],
-    str,
-]:
+) -> _UiTemplateData:
     match = re.match(r"\s*data\s*=\s*\{", block)
     if match is None:
         raise ValueError("Provider Template must declare one data object")
     open_index = block.find("{", match.start())
     close_index = _matching_delimiter(block, open_index, "{", "}")
-    source = block[open_index + 1 : close_index]
-    body = block[close_index + 1 :].strip()
+    source = block[slice(open_index + 1, close_index)]
+    body = block[slice(close_index + 1, None)].strip()
     bindings: dict[str, TemplateBinding] = {}
     required: dict[str, TemplateBinding] = {}
     optional: dict[str, TemplateBinding] = {}
@@ -720,7 +619,7 @@ def _ui_template_data(
     )
     cursor = 0
     for item in entry_re.finditer(source):
-        if source[cursor : item.start()].strip():
+        if source[slice(cursor, item.start())].strip():
             raise ValueError("invalid Provider Template data declaration")
         name, function_name, raw_path = item.groups()
         path = ast.literal_eval(raw_path)
@@ -743,7 +642,12 @@ def _ui_template_data(
         raise ValueError("invalid Provider Template data declaration")
     if not body:
         raise ValueError("Provider Template body is empty")
-    return bindings, required, optional, body
+    return _UiTemplateData(
+        bindings=bindings,
+        required_bindings=required,
+        optional_bindings=optional,
+        body=body,
+    )
 
 
 def _matching_delimiter(
@@ -822,160 +726,26 @@ def _provider_relative_data_path(value: str) -> bool:
     )
 
 
-def provider_template_legacy_identity(wire_id: str) -> tuple[str, str] | None:
-    """Map one migrated UI Template ID to its former family/shape for safety checks."""
+def provider_template_family_identity(wire_id: str) -> tuple[str, str] | None:
+    """Resolve one UI-specific Template ID to its business family and shape."""
     template_id, separator, raw_version = wire_id.rpartition("@")
     if not separator:
         return None
-    for base in _MIGRATED_TEMPLATE_BASES:
+    for base in _PROVIDER_TEMPLATE_FAMILIES:
         if template_id == base:
             singleton = {"CountdownOverview": "countdown", "WorkoutOverview": "latest"}
             shape = singleton.get(base)
             return (f"{base}@{raw_version}", shape) if shape is not None else None
         if template_id.startswith(base):
-            suffix = template_id[len(base) :]
+            suffix = template_id.removeprefix(base)
             if suffix:
                 return f"{base}@{raw_version}", suffix[:1].lower() + suffix[1:]
     return None
 
 
-def _compile_variant(
-    call: ast.Call,
-    body: str,
-    *,
-    bindings: dict[str, TemplateBinding],
-    parameters_schema: dict[str, Any],
-    globally_required: tuple[str, ...],
-    default_limits: tuple[int, int],
-    previous_variants: dict[str, TemplateVariant],
-) -> TemplateVariant:
-    args = _call_literal_args(call, "Variant")
-    if len(args) != 2 or not isinstance(args[0], str) or not isinstance(args[1], dict):
-        raise ValueError("#Variant requires a name and one metadata object")
-    name = args[0]
-    metadata = args[1]
-    if _VARIANT_RE.fullmatch(name) is None:
-        raise ValueError(f"invalid Provider Template Variant: {name}")
-    allowed_keys = {
-        "sizes",
-        "roles",
-        "requires",
-        "requiresParams",
-        "maxNodes",
-        "maxDepth",
-        "extends",
-    }
-    unknown = set(metadata) - allowed_keys
-    if unknown:
-        raise ValueError(f"unknown Provider Template Variant fields: {sorted(unknown)}")
-    base_name = metadata.get("extends")
-    if base_name is not None:
-        if not isinstance(base_name, str) or base_name not in previous_variants:
-            raise ValueError(f"unknown Provider Template base Variant: {base_name}")
-        if body:
-            raise ValueError("Provider Template inherited Variant body must be empty")
-        if set(metadata) - {"extends", "sizes", "roles", "maxNodes", "maxDepth"}:
-            raise ValueError("Provider Template inherited Variant cannot replace references")
-        base = previous_variants[base_name]
-        supported_sizes = (
-            _metadata_strings(metadata, "sizes")
-            if "sizes" in metadata
-            else base.supported_card_sizes
-        )
-        supported_roles = (
-            _metadata_strings(metadata, "roles") if "roles" in metadata else base.supported_roles
-        )
-        node_count, depth = _template_shape(base.root)
-        max_nodes = _positive_int(
-            metadata.get("maxNodes"),
-            base.expanded_node_budget,
-            "maxNodes",
-        )
-        max_depth = _positive_int(
-            metadata.get("maxDepth"),
-            base.expanded_depth_budget,
-            "maxDepth",
-        )
-        if node_count > max_nodes or depth > max_depth:
-            raise ValueError(f"Provider Template Variant budget exceeded: {name}")
-        return base.model_copy(
-            update={
-                "size": name,
-                "supported_card_sizes": supported_sizes,
-                "supported_roles": supported_roles,
-                "expanded_node_budget": max_nodes,
-                "expanded_depth_budget": max_depth,
-            }
-        )
-    required_bindings = _metadata_strings(metadata, "requires")
-    unknown_bindings = set(required_bindings) - set(bindings)
-    if unknown_bindings:
-        raise ValueError(f"unknown Provider Template bindings: {sorted(unknown_bindings)}")
-    required_params = tuple(
-        dict.fromkeys((*globally_required, *_metadata_strings(metadata, "requiresParams")))
-    )
-    properties = parameters_schema.get("properties", {})
-    unknown_params = set(required_params) - set(properties)
-    if unknown_params:
-        raise ValueError(f"unknown Provider Template params: {sorted(unknown_params)}")
-    root = _parse_component_body(body)
-    if root.component in _CONDITIONAL_COMPONENTS:
-        raise ValueError("Provider Template conditional cannot be the Variant root")
-    _validate_interpolation_bindings(root, bindings)
-    binding_references, parameter_references = _template_references(root)
-    unknown_references = binding_references - set(bindings)
-    if unknown_references:
-        raise ValueError(f"unknown Provider Template bindings: {sorted(unknown_references)}")
-    unknown_references = parameter_references - set(properties)
-    if unknown_references:
-        raise ValueError(f"unknown Provider Template params: {sorted(unknown_references)}")
-    guarded_params, guarded_bindings = _validate_conditional_guards(
-        root,
-        properties,
-        bindings,
-        set(required_params),
-        set(required_bindings),
-    )
-    allowed_binding_references = set(required_bindings) | guarded_bindings
-    if not set(required_bindings) <= binding_references:
-        raise ValueError(f"Provider Template requires must be referenced: {name}")
-    if not binding_references <= allowed_binding_references:
-        raise ValueError(f"Provider Template optional binding is not guarded: {name}")
-    allowed_parameter_references = set(required_params) | guarded_params
-    if not set(required_params) <= parameter_references:
-        raise ValueError(f"Provider Template requiresParams must be referenced: {name}")
-    if not parameter_references <= allowed_parameter_references:
-        raise ValueError(f"Provider Template optional parameter is not guarded: {name}")
-    variant_schema = dict(parameters_schema)
-    variant_schema["properties"] = {
-        parameter_name: properties[parameter_name]
-        for parameter_name in properties
-        if parameter_name in allowed_parameter_references
-    }
-    variant_schema["required"] = list(required_params)
-    node_count, depth = _template_shape(root)
-    max_nodes = _positive_int(metadata.get("maxNodes"), default_limits[0], "maxNodes")
-    max_depth = _positive_int(metadata.get("maxDepth"), default_limits[1], "maxDepth")
-    if node_count > max_nodes or depth > max_depth:
-        raise ValueError(f"Provider Template Variant budget exceeded: {name}")
-    return TemplateVariant.model_validate(
-        {
-            "size": name,
-            "parametersSchema": variant_schema,
-            "supportedCardSizes": _metadata_strings(metadata, "sizes"),
-            "supportedRoles": _metadata_strings(metadata, "roles"),
-            "requiredBindings": required_bindings,
-            "optionalBindings": tuple(sorted(guarded_bindings - set(required_bindings))),
-            "root": root.model_dump(by_alias=True),
-            "expandedNodeBudget": max_nodes,
-            "expandedDepthBudget": max_depth,
-        }
-    )
-
-
 def _parse_component_body(body: str) -> TemplateNode:
     if not body:
-        raise ValueError("Provider Template Variant body is empty")
+        raise ValueError("Provider Template body is empty")
     if re.search(r"\b_CardTplInterpolation\s*\(", body):
         raise ValueError("Provider Template uses a reserved internal name")
     translated = _python_compatible_source(_translate_template_strings(body))
@@ -984,7 +754,7 @@ def _parse_component_body(body: str) -> TemplateNode:
     except SyntaxError as exc:
         raise ValueError(f"Provider Template body syntax error: {exc.msg}") from exc
     if len(module.body) != 1 or not isinstance(module.body[0], ast.Expr):
-        raise ValueError("Provider Template Variant must contain exactly one component")
+        raise ValueError("Provider Template body must contain exactly one component")
     return _component_node(module.body[0].value)
 
 
@@ -1020,12 +790,10 @@ def _component_node(node: ast.AST) -> TemplateNode:
     if spread_children and component not in _CONTAINERS:
         raise ValueError(f"Provider Template leaf cannot spread children: {component}")
     if component in _CONDITIONAL_COMPONENTS:
-        if (
-            len(values) != 1
-            or values[0].kind != "literal"
-            or not isinstance(values[0].value, str)
-            or len(children) != 1
-        ):
+        has_single_value = len(values) == 1
+        has_literal_name = has_single_value and values[0].kind == "literal"
+        has_string_name = has_literal_name and isinstance(values[0].value, str)
+        if not has_string_name or len(children) != 1:
             raise ValueError(
                 f"Provider Template {component} requires one parameter name and one child"
             )
@@ -1038,14 +806,14 @@ def _component_node(node: ast.AST) -> TemplateNode:
 
 
 def _template_value(node: ast.AST) -> TemplateValue:
-    if (
-        isinstance(node, ast.Attribute)
-        and isinstance(node.value, ast.Name)
-        and node.value.id in {"props", "data"}
-        and _REFERENCE_NAME_RE.fullmatch(node.attr)
-    ):
+    owner = node.value if isinstance(node, ast.Attribute) else None
+    has_supported_owner = isinstance(owner, ast.Name) and owner.id in {"props", "data"}
+    has_valid_name = isinstance(node, ast.Attribute) and _REFERENCE_NAME_RE.fullmatch(node.attr)
+    if has_supported_owner and has_valid_name:
+        assert isinstance(owner, ast.Name)
+        assert isinstance(node, ast.Attribute)
         return TemplateValue(
-            kind="parameter" if node.value.id == "props" else "binding",
+            kind="parameter" if owner.id == "props" else "binding",
             name=node.attr,
         )
     if _is_reference_call(node):
@@ -1135,93 +903,6 @@ def _interpolation_value(call: ast.Call) -> TemplateValue:
     return TemplateValue(kind="interpolation", items=tuple(parts))
 
 
-def _compile_bindings(
-    payload: Any,
-    output_schema: dict[str, Any],
-) -> dict[str, TemplateBinding]:
-    if not isinstance(payload, dict):
-        raise ValueError("Provider Template bindings must be an object")
-    result: dict[str, TemplateBinding] = {}
-    for name, raw_binding in payload.items():
-        if not isinstance(name, str) or not isinstance(raw_binding, dict):
-            raise ValueError("Provider Template binding is invalid")
-        if _REFERENCE_NAME_RE.fullmatch(name) is None:
-            raise ValueError(f"invalid Provider Template binding name: {name}")
-        binding = TemplateBinding.model_validate(raw_binding)
-        if not _binding_pointer_is_encodable(binding.path):
-            raise ValueError(f"Provider Template binding path cannot be encoded: {name}")
-        leaf = _schema_leaf(output_schema, binding.path)
-        if leaf is None or leaf.get("type") != binding.data_type:
-            raise ValueError(f"Provider Template binding does not match outputSchema: {name}")
-        result[name] = binding
-    return result
-
-
-def _compile_parameters(
-    payload: Any,
-    output_schema: dict[str, Any],
-) -> _CompiledParameters:
-    if not isinstance(payload, dict):
-        raise ValueError("Provider Template params must be an object")
-    properties: dict[str, dict[str, Any]] = {}
-    asset_tags: dict[str, tuple[str, ...]] = {}
-    required: list[str] = []
-    for name, raw_parameter in payload.items():
-        if not isinstance(name, str) or not isinstance(raw_parameter, dict):
-            raise ValueError("Provider Template parameter is invalid")
-        if _REFERENCE_NAME_RE.fullmatch(name) is None:
-            raise ValueError(f"invalid Provider Template parameter name: {name}")
-        parameter = dict(raw_parameter)
-        kind = parameter.pop("kind", "value")
-        tags = parameter.pop("semanticTags", [])
-        is_required = parameter.pop("required", False)
-        source_paths = parameter.get("sourcePaths")
-        if kind not in {"value", "asset"}:
-            raise ValueError(f"unsupported Provider Template parameter kind: {kind}")
-        if kind == "asset":
-            if source_paths is not None:
-                raise ValueError(f"Provider Template asset cannot declare sourcePaths: {name}")
-            parameter["type"] = "string"
-            if not isinstance(tags, list) or any(not isinstance(tag, str) for tag in tags):
-                raise ValueError(f"invalid Provider Template asset tags: {name}")
-            asset_tags[name] = tuple(tags)
-        elif source_paths is not None:
-            _validate_parameter_source_paths(name, source_paths, output_schema)
-        if parameter.get("type") not in {"string", "integer", "number", "boolean"}:
-            raise ValueError(f"invalid Provider Template parameter type: {name}")
-        properties[name] = parameter
-        if is_required is True:
-            required.append(name)
-        elif is_required is not False:
-            raise ValueError(f"invalid Provider Template required flag: {name}")
-    schema = {
-        "type": "object",
-        "properties": properties,
-        "required": required,
-        "additionalProperties": False,
-    }
-    Draft202012Validator.check_schema(schema)
-    return _CompiledParameters(schema, asset_tags, tuple(required))
-
-
-def _validate_parameter_source_paths(
-    name: str,
-    source_paths: Any,
-    output_schema: dict[str, Any],
-) -> None:
-    if not isinstance(source_paths, list) or not source_paths:
-        raise ValueError(f"Provider Template parameter sourcePaths must be non-empty: {name}")
-    if any(not isinstance(source_path, str) for source_path in source_paths):
-        raise ValueError(f"Provider Template parameter sourcePaths must be strings: {name}")
-    if len(source_paths) != len(set(source_paths)):
-        raise ValueError(f"Provider Template parameter sourcePaths must be unique: {name}")
-    for source_path in source_paths:
-        if not _binding_pointer_is_encodable(source_path):
-            raise ValueError(f"Provider Template parameter sourcePath is invalid: {name}")
-        if _schema_leaf(output_schema, source_path) is None:
-            raise ValueError(f"Provider Template parameter sourcePath is invalid: {name}")
-
-
 def _binding_pointer_is_encodable(pointer: str) -> bool:
     parts = pointer.removeprefix("/").split("/")
     return all(part.isdigit() or _REFERENCE_NAME_RE.fullmatch(part) is not None for part in parts)
@@ -1243,60 +924,6 @@ def _schema_leaf(schema: dict[str, Any], pointer: str) -> dict[str, Any] | None:
             return None
         current = properties[part]
     return current if isinstance(current, dict) else None
-
-
-def _marker_call(source: str, offset: int, marker: str) -> tuple[ast.Call, int]:
-    offset = _skip_whitespace(source, offset)
-    if not source.startswith(marker, offset):
-        raise ValueError(f"expected {marker}")
-    open_index = offset + len(marker)
-    if open_index >= len(source) or source[open_index] != "(":
-        raise ValueError(f"{marker} must be followed by (")
-    close_index = _matching_parenthesis(source, open_index)
-    call_source = source[offset + 1 : close_index + 1]
-    translated = _python_compatible_source(call_source)
-    try:
-        expression = ast.parse(translated, mode="eval").body
-    except SyntaxError as exc:
-        raise ValueError(f"{marker} syntax error: {exc.msg}") from exc
-    if not isinstance(expression, ast.Call) or not isinstance(expression.func, ast.Name):
-        raise ValueError(f"{marker} is invalid")
-    if expression.func.id != marker.removeprefix("#") or expression.keywords:
-        raise ValueError(f"{marker} is invalid")
-    return expression, close_index + 1
-
-
-def _matching_parenthesis(source: str, open_index: int) -> int:
-    depth = 0
-    quote: str | None = None
-    escaped = False
-    for index in range(open_index, len(source)):
-        char = source[index]
-        if quote is not None:
-            if escaped:
-                escaped = False
-            elif char == "\\":
-                escaped = True
-            elif char == quote:
-                quote = None
-            continue
-        if char in {'"', "'"}:
-            quote = char
-        elif char == "(":
-            depth += 1
-        elif char == ")":
-            depth -= 1
-            if depth == 0:
-                return index
-    raise ValueError("Provider Template directive is not closed")
-
-
-def _template_header(call: ast.Call) -> tuple[str, dict[str, Any]]:
-    args = _call_literal_args(call, "Template")
-    if len(args) != 2 or not isinstance(args[0], str) or not isinstance(args[1], dict):
-        raise ValueError("#Template requires a versioned ID and one metadata object")
-    _split_wire_id(args[0])
-    return args[0], args[1]
 
 
 def _call_literal_args(call: ast.Call, label: str) -> list[Any]:
@@ -1419,7 +1046,7 @@ def _next_token_is_colon(tokens: list[tokenize.TokenInfo], index: int) -> bool:
         tokenize.NEWLINE,
         tokenize.COMMENT,
     }
-    for candidate in tokens[index + 1 :]:
+    for candidate in tokens[slice(index + 1, None)]:
         if candidate.type in ignored:
             continue
         return candidate.type == tokenize.OP and candidate.string == ":"
@@ -1432,69 +1059,6 @@ def _is_reference_call(node: ast.AST) -> bool:
         and isinstance(node.func, ast.Name)
         and node.func.id in _REFERENCE_CALLS
     )
-
-
-def _validate_header_keys(header: dict[str, Any]) -> None:
-    allowed = {
-        "capability",
-        "description",
-        "domainTags",
-        "compatibleThemeProfileIds",
-        "allowedParentComponents",
-        "layoutActionStyle",
-        "bindings",
-        "params",
-        "limits",
-    }
-    unknown = set(header) - allowed
-    if unknown:
-        raise ValueError(f"unknown Provider Template fields: {sorted(unknown)}")
-
-
-def _limits(value: Any) -> tuple[int, int]:
-    if not isinstance(value, dict):
-        raise ValueError("Provider Template limits must be an object")
-    unknown = set(value) - {"maxNodes", "maxDepth"}
-    if unknown:
-        raise ValueError(f"unknown Provider Template limits: {sorted(unknown)}")
-    return (
-        _positive_int(value.get("maxNodes"), 32, "maxNodes"),
-        _positive_int(value.get("maxDepth"), 8, "maxDepth"),
-    )
-
-
-def _positive_int(value: Any, default: int, label: str) -> int:
-    candidate = default if value is None else value
-    if isinstance(candidate, bool) or not isinstance(candidate, int) or candidate <= 0:
-        raise ValueError(f"Provider Template {label} must be a positive integer")
-    return candidate
-
-
-def _required_string(payload: dict[str, Any], key: str) -> str:
-    value = payload.get(key)
-    if not isinstance(value, str) or not value.strip():
-        raise ValueError(f"Provider Template {key} must be a non-empty string")
-    return value
-
-
-def _string_tuple(payload: dict[str, Any], key: str) -> tuple[str, ...]:
-    value = payload.get(key)
-    if not isinstance(value, list) or not value:
-        raise ValueError(f"Provider Template {key} must be a non-empty string array")
-    if any(not isinstance(item, str) or not item for item in value):
-        raise ValueError(f"Provider Template {key} must be a non-empty string array")
-    if len(value) != len(set(value)):
-        raise ValueError(f"Provider Template {key} must not contain duplicates")
-    return tuple(value)
-
-
-def _metadata_strings(payload: dict[str, Any], key: str) -> tuple[str, ...]:
-    value = payload.get(key, [])
-    if not isinstance(value, list) or any(not isinstance(item, str) or not item for item in value):
-        raise ValueError(f"Provider Template Variant {key} must be a string array")
-    if len(value) != len(set(value)):
-        raise ValueError(f"Provider Template Variant {key} must not contain duplicates")
-    return tuple(value)
 
 
 def _split_wire_id(wire_id: str) -> tuple[str, int]:
@@ -2125,5 +1689,5 @@ __all__ = [
     "load_provider_templates",
     "provider_template_admission",
     "provider_template_variant_admission",
-    "provider_template_legacy_identity",
+    "provider_template_family_identity",
 ]

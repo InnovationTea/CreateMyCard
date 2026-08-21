@@ -660,37 +660,6 @@ def _normalize_scope_to_shared_theme(
     return scope.model_copy(update={"theme_id": theme_ids[0]})
 
 
-def plan_advanced_scope_offline(
-    task_spec: TaskSpec,
-    data_shape: DataShape,
-    registry: CardPlanRegistry,
-    available_capability_ids: tuple[str, ...] | None = None,
-) -> AdvancedScopeBrief:
-    """仅供显式离线兼容测试；第五接口生产主链路默认不启用。"""
-    effective_ids = resolve_available_capability_ids(
-        task_spec,
-        registry,
-        available_capability_ids,
-    )
-    candidates = _component_candidates(task_spec, data_shape, registry, effective_ids)
-    if not candidates:
-        raise ValueError("no provider-backed UX Business Component candidate")
-    primary = candidates[0]
-    theme_ids = _theme_ids_for_components((primary,), registry)
-    scope = AdvancedScopeBrief(
-        themeId=theme_ids[0],
-        advancedComponentIds=(primary.name,),
-    )
-    validate_advanced_scope(
-        scope,
-        task_spec,
-        data_shape,
-        registry,
-        available_capability_ids,
-    )
-    return scope
-
-
 def validate_advanced_scope(
     scope: AdvancedScopeBrief,
     task_spec: TaskSpec,
@@ -929,7 +898,8 @@ def resolve_scope_layout_ids(
         has_weather = any(item.name == "WeatherOverview" for item in components)
         if has_weather and layout_id == "WeatherNowForecastLayout":
             continue
-        if has_weather and count > 1 and task_spec.size == "2x2" and layout_id not in {
+        is_compact_weather_composition = has_weather and count > 1 and task_spec.size == "2x2"
+        if is_compact_weather_composition and layout_id not in {
             "HeroSupportLayout",
             "HeroSupportActionLayout",
         }:

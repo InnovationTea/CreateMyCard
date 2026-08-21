@@ -201,23 +201,18 @@ class CardPlanRegistry:
         for relative_path, expected in files.items():
             path = self.source_root / relative_path
             if not path.is_file():
-                message = (
+                logger.error(
                     "[CardPlan Registry] bundle_file_missing "
-                    f"relative_path={relative_path!r} absolute_path={str(path)!r} "
-                    f"source_root={str(self.source_root)!r}"
+                    f"relative_path={relative_path!r}"
                 )
-                print(message, flush=True)
-                logger.error(message)
                 raise ValueError(f"CardPlan bundle file is missing: {relative_path}")
             actual = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
             if actual != expected:
-                message = (
+                logger.error(
                     "[CardPlan Registry] bundle_file_drift "
-                    f"relative_path={relative_path!r} absolute_path={str(path)!r} "
+                    f"relative_path={relative_path!r} "
                     f"expected_sha256={expected!r} actual_sha256={actual!r}"
                 )
-                print(message, flush=True)
-                logger.error(message)
                 raise ValueError(f"CardPlan bundle file drift: {relative_path}")
 
     @staticmethod

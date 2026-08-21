@@ -328,7 +328,7 @@ class WorkoutLatestFacts:
 
 
 @dataclass(frozen=True)
-class WorkoutCountdownFacts:
+class CountdownOverviewFacts:
     countdown_days: int
 
     def as_selector(self) -> dict[str, dict[str, Any]]:
@@ -827,18 +827,6 @@ _COUNTDOWN_QUERY_TERMS = (
     "还有几天",
     "多少天",
 )
-_WORKOUT_ACTION_QUERY_TERMS = (
-    "start workout",
-    "open workout",
-    "view workout",
-    "train today",
-    "开始运动",
-    "开始锻炼",
-    "打开运动",
-    "查看训练",
-    "今日训练",
-    "去锻炼",
-)
 _UNSUPPORTED_WORKOUT_QUERY_TERMS = (
     "live workout",
     "real-time workout",
@@ -1005,18 +993,6 @@ _SLEEP_SCORE_QUERY_TERMS = (
     "睡眠得分",
     "睡眠评分",
 )
-_SLEEP_ACTION_QUERY_TERMS = (
-    "set sleep reminder",
-    "set bedtime reminder",
-    "set alarm",
-    "sleep alarm",
-    "设置睡眠提醒",
-    "设置早睡提醒",
-    "设置闹钟",
-    "睡眠闹钟",
-    "早睡提醒",
-)
-
 _BATTERY_QUERY_TERMS = (
     "battery",
     "battery level",
@@ -1082,16 +1058,6 @@ _BATTERY_POWER_SAVING_QUERY_TERMS = (
     "power saving",
     "low power mode",
     "save power",
-    "省电",
-    "节电",
-    "低电量模式",
-)
-_BATTERY_POWER_SAVING_ACTION_TERMS = (
-    "battery saver",
-    "power saving",
-    "low power",
-    "save power",
-    "powersaving",
     "省电",
     "节电",
     "低电量模式",
@@ -1178,14 +1144,6 @@ _BLUETOOTH_CONNECTION_QUERY_TERMS = (
     "是否连接",
 )
 _BLUETOOTH_BATTERY_QUERY_TERMS = ("battery", "电量", "剩余电")
-_BLUETOOTH_DAILY_MUSIC_QUERY_TERMS = ("daily recommendation", "每日推荐")
-_BLUETOOTH_FAVORITE_MUSIC_QUERY_TERMS = (
-    "favorite playlist",
-    "favorites",
-    "心动歌单",
-    "收藏歌单",
-)
-
 _UNSUPPORTED_RESOURCE_USAGE_QUERY_TERMS = (
     "storage",
     "disk",
@@ -1239,17 +1197,6 @@ _SUPPORTED_RESOURCE_USAGE_QUERY_TERMS = (
     "释放内存",
     "内存",
 )
-_MEMORY_CLEAN_QUERY_TERMS = (
-    "memory cleanup",
-    "clean memory",
-    "clear memory",
-    "free up memory",
-    "内存清理",
-    "清理内存",
-    "释放内存",
-    "一键清理",
-)
-
 _APP_USAGE_DURATION_QUERY_TERMS = (
     "app usage duration",
     "usage duration",
@@ -1306,21 +1253,6 @@ _UNSUPPORTED_APP_USAGE_QUERY_TERMS = (
     "历史",
     "分类汇总",
     "分类统计",
-)
-_APP_USAGE_CONTROL_QUERY_TERMS = (
-    "parental control",
-    "parent control",
-    "manage usage time",
-    "control usage time",
-    "管控时间",
-    "管控使用时间",
-    "设置使用时长",
-    "设置限制",
-    "限制设置",
-    "设限时间",
-    "进入健康使用",
-    "家长控制",
-    "健康使用app",
 )
 _APP_USAGE_PLACEHOLDER_NAMES = frozenset(
     {
@@ -1735,20 +1667,6 @@ def countdown_overview_variants(
     return relaxed_countdown_overview_variants(task_spec, capability_ids)
 
 
-def approved_workout_action_ids(task_spec: TaskSpec) -> tuple[str, ...]:
-    """Return the formal sport entry only when the user asks for that action."""
-    normalized, compact = _normalized_query(task_spec.userQuery)
-    if not _contains_query_term(normalized, compact, _WORKOUT_ACTION_QUERY_TERMS):
-        return ()
-    return tuple(
-        dict.fromkeys(
-            event.id
-            for event in task_spec.eventCandidates
-            if event.id == "event.open.health.sport"
-        )
-    )
-
-
 def heart_rate_overview_is_eligible(
     task_spec: TaskSpec,
     capability_ids: set[str],
@@ -1845,20 +1763,6 @@ def sleep_overview_variants(
     return tuple(variants)
 
 
-def approved_sleep_action_ids(task_spec: TaskSpec) -> tuple[str, ...]:
-    """Return only the approved alarm action for an explicit sleep reminder request."""
-    normalized, compact = _normalized_query(task_spec.userQuery)
-    if not _contains_query_term(normalized, compact, _SLEEP_ACTION_QUERY_TERMS):
-        return ()
-    return tuple(
-        dict.fromkeys(
-            event.id
-            for event in task_spec.eventCandidates
-            if event.id == "event.open.clock.alarm"
-        )
-    )
-
-
 def battery_overview_is_eligible(
     task_spec: TaskSpec,
     capability_ids: set[str],
@@ -1932,36 +1836,6 @@ def bluetooth_device_overview_template_focus(query: str) -> Literal["connection"
     return "all"
 
 
-def approved_bluetooth_music_action_ids(task_spec: TaskSpec) -> tuple[str, ...]:
-    """Return only real music-content events available to this earphone card."""
-    normalized, compact = _normalized_query(task_spec.userQuery)
-    requests_daily = _contains_query_term(
-        normalized,
-        compact,
-        _BLUETOOTH_DAILY_MUSIC_QUERY_TERMS,
-    )
-    requests_favorite = _contains_query_term(
-        normalized,
-        compact,
-        _BLUETOOTH_FAVORITE_MUSIC_QUERY_TERMS,
-    )
-    requested_ids: set[str]
-    if requests_daily or requests_favorite:
-        requested_ids = set()
-        if requests_daily:
-            requested_ids.add("event.open.music.daily")
-        if requests_favorite:
-            requested_ids.add("event.open.music.favorite")
-    else:
-        requested_ids = {"event.open.music.daily", "event.open.music.favorite"}
-    approved = tuple(
-        event.id
-        for event in task_spec.eventCandidates
-        if event.id in requested_ids
-    )
-    return approved[:1] if task_spec.size == "2x2" else approved[:2]
-
-
 def battery_overview_query_is_supported(query: str) -> bool:
     """Accept current phone charge facts, never unsupported detail-only requests."""
     normalized, compact = _normalized_query(query)
@@ -2016,34 +1890,6 @@ def battery_query_requests_power_saving(query: str) -> bool:
     )
 
 
-def approved_battery_power_action_ids(task_spec: TaskSpec) -> tuple[str, ...]:
-    """Return only approved events that close the requested power-saving action."""
-    if not battery_query_requests_power_saving(task_spec.userQuery):
-        return ()
-    if task_spec.size == "2x2" and not _battery_power_action_asset_sources(task_spec):
-        return ()
-    selected: list[str] = []
-    for event in task_spec.eventCandidates:
-        if not isinstance(event.id, str) or not event.id.strip():
-            continue
-        searchable = " ".join(
-            (
-                event.id,
-                getattr(event, "displayLabel", None) or "",
-                event.call,
-                json.dumps(event.args, ensure_ascii=False, sort_keys=True),
-            )
-        )
-        normalized, compact = _normalized_query(searchable)
-        if _contains_query_term(
-            normalized,
-            compact,
-            _BATTERY_POWER_SAVING_ACTION_TERMS,
-        ):
-            selected.append(event.id)
-    return tuple(dict.fromkeys(selected))
-
-
 def battery_asset_tags(asset: dict[str, Any]) -> set[str]:
     """Normalize TaskSpec asset semantics for battery content and actions."""
     explicit = {
@@ -2060,17 +1906,6 @@ def battery_asset_tags(asset: dict[str, Any]) -> set[str]:
         if any(term in searchable for term in terms)
     }
     return explicit | inferred
-
-
-def _battery_power_action_asset_sources(task_spec: TaskSpec) -> tuple[str, ...]:
-    return tuple(
-        source
-        for asset in task_spec.assetCandidates
-        if isinstance(asset, dict)
-        and "power-saving" in battery_asset_tags(asset)
-        for source in (asset.get("src"),)
-        if isinstance(source, str) and source.strip()
-    )
 
 
 def weather_overview_is_eligible(
@@ -2180,20 +2015,6 @@ def resource_usage_overview_query_is_supported(query: str) -> bool:
     return _contains_query_term(normalized, compact, supported_without_generic_memory)
 
 
-def approved_memory_cleanup_action_ids(task_spec: TaskSpec) -> tuple[str, ...]:
-    """Return the registered cleanup event only when the query requests that action."""
-    normalized, compact = _normalized_query(task_spec.userQuery)
-    if not _contains_query_term(normalized, compact, _MEMORY_CLEAN_QUERY_TERMS):
-        return ()
-    return tuple(
-        dict.fromkeys(
-            event.id
-            for event in task_spec.eventCandidates
-            if event.id == "event.clean.memory"
-        )
-    )
-
-
 def app_usage_overview_is_eligible(
     task_spec: TaskSpec,
     capability_ids: set[str],
@@ -2228,20 +2049,6 @@ def app_usage_overview_query_is_supported(query: str, app_name: str) -> bool:
             return False
         return not _query_names_multiple_apps_without_reference(compact)
     return not _query_names_multiple_apps(compact, normalized_app)
-
-
-def approved_app_usage_action_ids(task_spec: TaskSpec) -> tuple[str, ...]:
-    """Expose only the registered parental-control action when the query requests it."""
-    normalized, compact = _normalized_query(task_spec.userQuery)
-    if not _contains_query_term(normalized, compact, _APP_USAGE_CONTROL_QUERY_TERMS):
-        return ()
-    return tuple(
-        dict.fromkeys(
-            event.id
-            for event in task_spec.eventCandidates
-            if event.id == "event.open.settings.parentControl"
-        )
-    )
 
 
 def _query_names_multiple_apps(compact_query: str, compact_app_name: str) -> bool:
@@ -2739,13 +2546,13 @@ def extract_workout_latest_facts(
         end_time_text = _trusted_string(candidate.get("exerciseEndTimeText"))
         if exercise_type_name == "暂无运动":
             continue
-        if (
-            exercise_type_name is None
-            or calorie_text is None
-            or duration_text is None
-            or end_time_text is None
-        ):
+        required_values = (exercise_type_name, calorie_text, duration_text, end_time_text)
+        if any(value is None for value in required_values):
             continue
+        assert exercise_type_name is not None
+        assert calorie_text is not None
+        assert duration_text is not None
+        assert end_time_text is not None
         return WorkoutLatestFacts(
             exercise_type_name=exercise_type_name,
             calorie_text=calorie_text,
@@ -2755,16 +2562,9 @@ def extract_workout_latest_facts(
     return None
 
 
-def extract_workout_countdown_facts(
-    schema: dict[str, Any],
-) -> WorkoutCountdownFacts | None:
-    """Compatibility entry for legacy diagnostics; new routing uses CountdownOverview."""
-    return extract_countdown_overview_facts(schema)
-
-
 def extract_countdown_overview_facts(
     schema: dict[str, Any],
-) -> WorkoutCountdownFacts | None:
+) -> CountdownOverviewFacts | None:
     """Extract a generic non-negative countdown; zero is a valid boundary value."""
     for candidate in _direct_or_provider_candidates(
         schema,
@@ -2773,14 +2573,7 @@ def extract_countdown_overview_facts(
     ):
         countdown_days = _trusted_nonnegative_integer(candidate.get("countdownDays"))
         if countdown_days is not None:
-            return WorkoutCountdownFacts(countdown_days=countdown_days)
-    data = schema.get("data")
-    if isinstance(data, dict):
-        legacy = data.get("WorkoutOverview")
-        if isinstance(legacy, dict):
-            countdown_days = _trusted_nonnegative_integer(legacy.get("countdownDays"))
-            if countdown_days is not None:
-                return WorkoutCountdownFacts(countdown_days=countdown_days)
+            return CountdownOverviewFacts(countdown_days=countdown_days)
     return None
 
 
@@ -3244,58 +3037,6 @@ def _sample_value(value: Any) -> Any:
     if isinstance(value, list) and value:
         return _sample_value(value[0])
     return None
-
-
-def _percentage_number_field(value: Any) -> dict[str, Any] | None:
-    """Derive one trusted numeric percentage from its provider display text."""
-    sample = _sample_value(value)
-    if not isinstance(sample, str):
-        return None
-    match = re.fullmatch(r"\s*(\d+(?:\.\d+)?)\s*[%％]\s*", sample)
-    if match is None:
-        return None
-    number = float(match.group(1))
-    if not 0.0 <= number <= 100.0:
-        return None
-    normalized: int | float = int(number) if number.is_integer() else number
-    return {
-        "type": "number",
-        "description": "从可信电量百分比文本派生的数值",
-        "sampleValue": normalized,
-    }
-
-
-def _duration_segments(
-    duration_field: Any,
-    *,
-    prefix: str,
-    description_subject: str,
-) -> dict[str, dict[str, Any]]:
-    """Split one trusted provider duration into the UX 30fp value/12fp unit pairs."""
-    duration = _sample_value(duration_field)
-    if not isinstance(duration, str) or not duration.strip():
-        return {}
-    parsed = parse_duration_text(duration)
-    if parsed is None:
-        return {}
-    return {
-        f"{prefix}PrimaryValueText": _field(
-            parsed.primary_value,
-            f"从可信{description_subject}解析的主数值",
-        ),
-        f"{prefix}PrimaryUnitText": _field(
-            parsed.primary_unit,
-            f"从可信{description_subject}解析的主单位",
-        ),
-        f"{prefix}SecondaryValueText": _field(
-            parsed.secondary_value or "",
-            f"从可信{description_subject}解析的次数值",
-        ),
-        f"{prefix}SecondaryUnitText": _field(
-            parsed.secondary_unit or "",
-            f"从可信{description_subject}解析的次单位",
-        ),
-    }
 
 
 def _field(value: str, description: str) -> dict[str, Any]:

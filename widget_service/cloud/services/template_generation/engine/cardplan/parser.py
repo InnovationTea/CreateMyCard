@@ -215,13 +215,8 @@ def _parse_template_call(
                 )
             children.append(_parse_call(child, source, depth + 1, state))
         return ParsedCall("template", template_id, (second,), tuple(children), span)
-    if len(node.args) == 3:
-        size = second
-        params = _literal_value(node.args[2], depth + 1)
-        if isinstance(size, str) and isinstance(params, dict):
-            return ParsedCall("template", template_id, (size, params), (), span)
     raise TerseDslNested2ConversionError(
-        "Local Template requires ID and props; legacy ID, variant and params is also accepted."
+        "Local Template requires a versioned ID, one props object and optional children."
     )
 
 
@@ -288,7 +283,7 @@ def _next_token_is_colon(tokens: list[tokenize.TokenInfo], index: int) -> bool:
         tokenize.NEWLINE,
         tokenize.COMMENT,
     }
-    for candidate in tokens[index + 1 :]:
+    for candidate in tokens[slice(index + 1, None)]:
         if candidate.type in ignored:
             continue
         return candidate.type == tokenize.OP and candidate.string == ":"

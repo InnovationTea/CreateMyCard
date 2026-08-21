@@ -263,19 +263,6 @@ class ThemeDefinition(StrictModel):
     first_layer_rule: MarkdownRuleReference = Field(alias="firstLayerRule")
 
 
-class TemplateCall(StrictModel):
-    template_id: str
-    size: str
-    params: dict[str, Any]
-    span: SourceSpan
-
-
-class CardComposition(StrictModel):
-    card_params: dict[str, Any]
-    content: Any
-    span: SourceSpan
-
-
 class ExpansionStats(StrictModel):
     template_call_count: int = 0
     template_used_ids: tuple[str, ...] = ()
