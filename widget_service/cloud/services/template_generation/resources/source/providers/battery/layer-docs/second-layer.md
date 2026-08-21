@@ -4,7 +4,7 @@
 - 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
 - 可用模板：
   - `BatteryOverviewNormal@1`：手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normal。 必需数据：/batterySOC, /batterySOCText, /chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
-  - `BatteryOverviewNormalHero@1`：2x2 手机电量摘要，为底部 PillAction 预留空间，使用 normalWide 的横向信息排版。 组件形态：normalHero。 必需数据：/batterySOC, /batterySOCText, /chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
+  - `BatteryOverviewNormalHero@1`：2x2 手机电量摘要，为底部 PillAction 预留空间。 组件形态：normalHero。 必需数据：/batterySOC, /batteryCapacityLevelDesc；可选数据：/batterySOCText, /chargingStatusDesc。
   - `BatteryOverviewCharging@1`：手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：charging。 必需数据：/batterySOC, /batterySOCText, /chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
   - `BatteryOverviewLow@1`：手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：low。 必需数据：/batterySOC, /batterySOCText, /chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
   - `BatteryOverviewNormalWide@1`：手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normalWide。 必需数据：/batterySOC, /batterySOCText, /chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。

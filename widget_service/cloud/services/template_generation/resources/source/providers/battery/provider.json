@@ -37,14 +37,15 @@
       "templateId": "BatteryOverviewNormalHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量摘要，面向 2x2 底部 PillAction 预留空间，使用 normalWide 横向信息排版。 组件形态：normalHero。",
+      "description": "手机电量摘要，面向 2x2 底部 PillAction 预留空间。 组件形态：normalHero。",
       "requiredData": [
         "/batterySOC",
-        "/batterySOCText",
-        "/chargingStatusDesc",
         "/batteryCapacityLevelDesc"
       ],
-      "optionalData": [],
+      "optionalData": [
+        "/batterySOCText",
+        "/chargingStatusDesc"
+      ],
       "requiresLayoutAction": true,
       "entry": "templates/battery-overview.cardtpl"
     },
