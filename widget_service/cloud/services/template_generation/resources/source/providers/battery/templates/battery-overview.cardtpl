@@ -12,7 +12,7 @@ Column(
   Text(
       "设备电量",
       "subtitle",
-      {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      {"width": "matchParent", "fontSize": 16, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     ),
   Text(
       `电量 ${data.percentText}，${data.level}，${data.charging}`,
@@ -44,9 +44,9 @@ Column(
 #Template BatteryOverviewNormalHero@1(props: { batteryIcon?: asset })
 data = {
     percent: $path("/batterySOC"),
-    percentText: $path("/batterySOCText"),
-    charging: $path("/chargingStatusDesc"),
-    level: $path("/batteryCapacityLevelDesc")
+    level: $path("/batteryCapacityLevelDesc"),
+    percentText: $optionalPath("/batterySOCText"),
+    charging: $optionalPath("/chargingStatusDesc"),
 }
 
 Column(
@@ -61,30 +61,15 @@ Column(
     "clip": true,
     "constraintSize": {"minWidth": 0, "minHeight": 0}
   },
-  Text(
-      "设备电量",
-      "subtitle",
-      {
-        "width": "matchParent",
-        "fontSize": 12,
-        "fontWeight": 500,
-        "fontColor": "#E6000000",
-        "maxLines": 1,
-        "textOverflow": "ellipsis",
-        "constraintSize": {"minWidth": 0, "minHeight": 0}
-      }
-    ),
-  Row(
-      "between",
-      {
-        "width": "matchParent",
+  Column(
+    "compact",
+    {
+        "height": "matchParent",
         "layoutWeight": 1,
-        "itemMargin": 8,
-        "justifyContent": "start",
+        "justifyContent": "center",
         "alignItems": "center",
-        "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0}
-      },
+    },
       Stack(
             "overlay",
             {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
@@ -112,52 +97,26 @@ Column(
       Column(
             "compact",
             {
-              "layoutWeight": 1,
-              "itemMargin": 4,
-              "justifyContent": "center",
-              "alignItems": "start",
-              "constraintSize": {"minWidth": 0, "minHeight": 0}
+                "width": "matchParent",
+                "margin": {"left": 0, "top": 4, "right": 0, "bottom": 0},
+                "justifyContent": "center",
+                "alignItems": "center",
+                "constraintSize": {"minWidth": 0, "minHeight": 0}
             },
             Text(
-                    data.percentText,
-                    "compact-title",
-                    {
-                      "width": "matchParent",
-                      "fontSize": 14,
-                      "fontWeight": 700,
-                      "fontColor": "#E6000000",
-                      "maxLines": 1,
-                      "textOverflow": "ellipsis",
-                      "constraintSize": {"minWidth": 0, "minHeight": 0}
-                    }
-                  ),
-            Text(
-                    data.level,
-                    "body",
-                    {
-                      "width": "matchParent",
-                      "fontSize": 14,
-                      "fontWeight": 400,
-                      "fontColor": "#E6000000",
-                      "maxLines": 1,
-                      "textOverflow": "ellipsis",
-                      "constraintSize": {"minWidth": 0, "minHeight": 0}
-                    }
-                  ),
-            Text(
-                    data.charging,
-                    "subtitle",
-                    {
-                      "width": "matchParent",
-                      "fontSize": 10,
-                      "fontWeight": 400,
-                      "fontColor": "#99000000",
-                      "maxLines": 1,
-                      "textOverflow": "ellipsis",
-                      "constraintSize": {"minWidth": 0, "minHeight": 0}
-                    }
-                  )
-          )
+                data.level,
+                "body",
+                {
+                    "fontSize": 14,
+                    "fontWeight": 400,
+                    "fontColor": "#E6000000",
+                    "maxLines": 1,
+                    "textOverflow": "ellipsis",
+                    "textAlign": "center",
+                    "constraintSize": {"minWidth": 0, "minHeight": 0}
+                }
+            )
+        )
     )
 )
 #End
@@ -176,7 +135,7 @@ Column(
   Text(
       "设备电量",
       "subtitle",
-      {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      {"width": "matchParent", "fontSize": 16, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     ),
   Text(
       `电量 ${data.percentText}，${data.level}，${data.charging}`,
@@ -219,7 +178,7 @@ Column(
   Text(
       "设备电量",
       "subtitle",
-      {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      {"width": "matchParent", "fontSize": 16, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     ),
   Text(
       `电量 ${data.percentText}，${data.level}，${data.charging}`,
@@ -262,7 +221,7 @@ Column(
   Text(
       "设备电量",
       "subtitle",
-      {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      {"width": "matchParent", "fontSize": 16, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     ),
   Row(
       "between",
@@ -319,7 +278,7 @@ Column(
   Text(
       "设备电量",
       "subtitle",
-      {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      {"width": "matchParent", "fontSize": 16, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     ),
   Row(
       "between",
@@ -376,7 +335,7 @@ Column(
   Text(
       "设备电量",
       "subtitle",
-      {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      {"width": "matchParent", "fontSize": 16, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     ),
   Row(
       "between",
