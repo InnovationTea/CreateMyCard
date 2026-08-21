@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 from typing import Any
 
 import pytest
@@ -154,6 +155,23 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         for template_id in registry.provider_template_ids
         for definition in (registry.require_template(template_id),)
     )
+
+
+def test_cardplan_registry_does_not_require_source_hashes(tmp_path):
+    source_root = tmp_path / "source"
+    bundled_source_root = get_cardplan_registry().source_root
+    shutil.copytree(bundled_source_root, source_root)
+    rule_path = source_root / "themes/family-weather-care-blue/first-layer.md"
+    rule_path.write_text(
+        rule_path.read_text(encoding="utf-8") + "\n<!-- local update -->\n",
+        encoding="utf-8",
+    )
+
+    registry = CardPlanRegistry(source_root=source_root)
+
+    assert registry.require_theme("family-weather-care-blue") is not None
+    assert "files" not in registry.manifest
+    assert "promptSha256" not in registry.manifest
 
 
 def test_business_groups_are_derived_from_provider_templates() -> None:

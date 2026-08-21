@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Build immutable Template Generation prompt constants and source hashes."""
+"""Build immutable Template Generation prompt constants and protocol metadata."""
 
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 
@@ -30,10 +29,6 @@ PROMPT_GROUPS = {
 }
 
 
-def _sha256(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
-
-
 def _prompt_body(path: Path) -> tuple[int, str]:
     text = path.read_text(encoding="utf-8")
     try:
@@ -47,13 +42,7 @@ def _prompt_body(path: Path) -> tuple[int, str]:
 
 
 def _build() -> tuple[str, str]:
-    source_files = sorted(path for path in SOURCE_ROOT.rglob("*") if path.is_file())
-    file_hashes = {
-        path.relative_to(SOURCE_ROOT).as_posix(): f"sha256:{_sha256(path.read_bytes())}"
-        for path in source_files
-    }
     prompt_values: dict[str, str] = {}
-    prompt_hashes: dict[str, str] = {}
     for key, (_prompt_version, _protocol_version, directory) in PROMPT_GROUPS.items():
         fragments = sorted(
             (_prompt_body(path) for path in (SOURCE_ROOT / "prompts" / directory).glob("*.md")),
@@ -61,7 +50,6 @@ def _build() -> tuple[str, str]:
         )
         prompt = "\n\n".join(body for _order, body in fragments)
         prompt_values[key] = prompt
-        prompt_hashes[key] = _sha256(prompt.encode("utf-8"))
 
     manifest = {
         "bundleVersion": "cardplan-template-python-bundle/1",
@@ -75,8 +63,6 @@ def _build() -> tuple[str, str]:
         "a2uiWireVersion": "v0.9",
         "a2uiTargetSpecVersion": "v0.9.1",
         "catalogId": "ohos.a2ui.extended.catalog.form",
-        "promptSha256": prompt_hashes,
-        "files": file_hashes,
     }
     manifest_text = json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     prompts_text = (
@@ -84,16 +70,13 @@ def _build() -> tuple[str, str]:
         "# ruff: noqa: E501\n\n"
         f"SELECTION_PROMPT_VERSION = {PROMPT_GROUPS['selection'][0]!r}\n"
         f"SELECTION_PROTOCOL_VERSION = {PROMPT_GROUPS['selection'][1]!r}\n"
-        f"SELECTION_PROMPT_SHA256 = {prompt_hashes['selection']!r}\n"
         f"SELECTION_SYSTEM_PROMPT = {prompt_values['selection']!r}\n\n"
         f"BODY_PROMPT_VERSION = {PROMPT_GROUPS['body'][0]!r}\n"
         f"BODY_PROTOCOL_VERSION = {PROMPT_GROUPS['body'][1]!r}\n"
         'BODY_CONTRACT_VERSION = "hybrid-body-contract/0.5"\n'
-        f"BODY_PROMPT_SHA256 = {prompt_hashes['body']!r}\n"
         f"BODY_SYSTEM_PROMPT_KERNEL = {prompt_values['body']!r}\n"
         f"\nUX_MIXED_PROMPT_VERSION = {PROMPT_GROUPS['ux_mixed'][0]!r}\n"
         f"UX_MIXED_PROTOCOL_VERSION = {PROMPT_GROUPS['ux_mixed'][1]!r}\n"
-        f"UX_MIXED_PROMPT_SHA256 = {prompt_hashes['ux_mixed']!r}\n"
         f"UX_MIXED_SYSTEM_PROMPT_KERNEL = {prompt_values['ux_mixed']!r}\n"
     )
     return manifest_text, prompts_text
