@@ -31,8 +31,11 @@ generate_widget_card_terse_dsl_nested2_ws
 → EditRequestNormalizer.normalize_create
 → WidgetGenerationService._capability_registry
 → GenerationPreflight.run 统一构造 CardSpec / TaskSpec
-→ request_template_a2ui 返回 A2UI 字符串
-→ prepare_template_a2ui 适配最终 Form Profile
+→ PromptBuilder.build_terse_dsl_nested2 与 A2UIModelClient 始终按原协议构造
+→ generate_source_dsl 先调用 request_template_source_dsl
+→ 模板内部将中间 Terse 产物收敛为公共 Processor 支持的单组件树
+→ 模板 source generator 任意异常时，同一 generate_source_dsl 调用 A2UIModelClient.generate
+→ TerseNested2Processor.process
 → ArtifactValidator.validate
 → RetryController.run
 → WidgetGenerationService._build_artifact
@@ -41,8 +44,10 @@ generate_widget_card_terse_dsl_nested2_ws
 → _build_plugin_stream_response
 ```
 
-edit 或模板不匹配、生成、适配、校验、保存异常由 `_generate_widget_card_with_policy` 直接转换为 failed，
-不进入旧 `PromptBuilder.build_terse_dsl_nested2 → A2UIModelClient.generate` 流程。
+edit 仍由 `_generate_widget_card_with_policy` 在入口返回 failed。create 的模板不匹配、生成或模板内部
+源格式转换异常，会在同一次公共生成链内回退到原 Terse 模型首次生成。模板 source DSL 已
+返回后的转换或 Validator 错误只进入公共 repair，不重试模板，也不重新执行通用首次生成。
+保存异常不触发生成路由回退。
 
 主要代码位置：
 
@@ -53,8 +58,8 @@ edit 或模板不匹配、生成、适配、校验、保存异常由 `_generate_
 - Prompt：`../widget_service/cloud/services/prompt_builder.py`
 - Artifact 校验：`../widget_service/cloud/services/validator.py`
 - Artifact 保存：`../widget_service/cloud/services/artifact_store.py`
-- 模板 A2UI 窄接口：`../widget_service/cloud/services/template_generation/facade.py`
-- 模板 A2UI 主链适配：`../widget_service/cloud/services/template_a2ui_adapter.py`
+- 模板 source DSL 窄接口：`../widget_service/cloud/services/template_generation/facade.py`
+- 模板源格式适配：`../widget_service/cloud/services/template_generation/source_adapter.py`
 
 ## 3. WebSocket 请求
 
