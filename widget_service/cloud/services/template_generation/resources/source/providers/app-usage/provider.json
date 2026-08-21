@@ -23,7 +23,7 @@
       "templateId": "AppUsageOverviewSingleApp@1",
       "businessId": "AppUsageOverview",
       "capabilityId": "GetAppUsageDuration",
-      "description": "单个应用的当日使用时长摘要，可补充更新时间。 组件形态：singleApp。",
+      "description": "单个应用的当日使用时长摘要，无动作时使用。 组件形态：singleApp。",
       "supportedCardSizes": [
         "2x2"
       ],
@@ -40,7 +40,7 @@
       "templateId": "AppUsageOverviewSingleAppDetailed@1",
       "businessId": "AppUsageOverview",
       "capabilityId": "GetAppUsageDuration",
-      "description": "单个应用的当日使用时长摘要，可补充更新时间。 组件形态：singleAppDetailed。",
+      "description": "单个应用的当日使用时长摘要，为底部 PillAction 预留空间。 组件形态：singleAppDetailed。",
       "supportedCardSizes": [
         "2x2"
       ],
@@ -51,6 +51,7 @@
       "optionalData": [
         "/updatedAt"
       ],
+      "requiresLayoutAction": true,
       "entry": "templates/app-usage-overview.cardtpl"
     },
     {

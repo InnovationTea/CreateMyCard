@@ -895,6 +895,14 @@ def resolve_scope_layout_ids(
             )
             if layout_id not in expected_bluetooth_layouts:
                 continue
+        if component_names == {"AppUsageOverview"}:
+            expected_app_usage_layouts = (
+                {"HeroActionLayout", "SingleFocusLayout"}
+                if has_action
+                else {"SingleFocusLayout"}
+            )
+            if layout_id not in expected_app_usage_layouts:
+                continue
         has_weather = any(item.name == "WeatherOverview" for item in components)
         if has_weather and layout_id == "WeatherNowForecastLayout":
             continue
