@@ -45,12 +45,12 @@ generate_widget_card_compact_dsl_ws
 → WidgetGenerationService.generate_widget_card
 → EditRequestNormalizer.normalize_create / normalize_edit
 → WidgetGenerationService._capability_registry
-→ DeviceCapabilityResolver.resolve_generation_data_bindings
-→ CardSpecBuilder.build
-→ TaskSpecBuilder.build
-→ PromptBuilder.build_design_compact
-→ A2UIModelClient.generate
-→ DesignCompactProcessor.process
+→ GenerationPreflight.run 统一构造 CardSpec / TaskSpec
+→ PromptBuilder.build_design_token 与 A2UIModelClient 始终按原协议构造
+→ generate_source_dsl 统一发送模型开始通知
+→ generate_source_dsl 先调用 request_template_source_dsl
+→ 模板内部补齐自身绑定依赖，生成 A2UI，适配 Profile 并回转 Design Compact DSL
+→ 模板 source generator 任意异常时，同一 generate_source_dsl 调用 A2UIModelClient.generate
 → validate_compact_dsl_context
 → convert_compact_dsl_to_a2ui
 → ArtifactValidator.validate
@@ -61,6 +61,12 @@ generate_widget_card_compact_dsl_ws
 → _build_plugin_stream_response
 ```
 
+模板不匹配、模板生成或模板内部源格式转换异常时，`generate_source_dsl` 在同一次
+`generate_widget_card` 中回退到已构造的原 Compact 模型。模板已返回 Compact DSL 后，该源 DSL
+和通用模型产物一样进入 `DesignCompactProcessor.process`、Validator 和 `RetryController`；转换或校验
+失败只调用原协议 repair，不重试模板，也不重新执行通用首次生成。artifact 保存异常不触发
+生成路由回退。edit 请求不尝试模板，直接执行原 Compact 流程。
+
 主要代码位置：
 
 - 路由入口：`../widget_service/cloud/api/routes.py`
@@ -70,6 +76,8 @@ generate_widget_card_compact_dsl_ws
 - Prompt：`../widget_service/cloud/services/prompt_builder.py`
 - Artifact 校验：`../widget_service/cloud/services/validator.py`
 - Artifact 保存：`../widget_service/cloud/services/artifact_store.py`
+- 模板 source DSL 窄接口：`../widget_service/cloud/services/template_generation/facade.py`
+- 模板源格式适配：`../widget_service/cloud/services/template_generation/source_adapter.py`
 
 ## 3. WebSocket 请求和归一化
 

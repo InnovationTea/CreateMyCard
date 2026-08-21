@@ -5,9 +5,9 @@
 
 新的变更分类只有两类：
 
-1. `cloud/services/template_generation/`：模板功能的全部代码、资源、测试和文档。
-2. `cloud/services/widget_generation_service.py`：一个公共模板接口 import；Compact、Terse 两个主入口都尝试
-   同一个模板入口，Compact 异常后回退旧链路，Terse 异常后直接返回失败。
+1. `cloud/services/template_generation/`：模板匹配、展开、A2UI 字符串接口、资源、测试和文档。
+2. `cloud/services/widget_generation_service.py`：在 `_generate_widget_card_with_policy` 内负责模板路由、回退策略，并复用
+   主生成链组装 TaskSpec、CardSpec、artifact 和 `GenerateWidgetCardResponse`。
 
 本阶段在模板模块内部完成第二次资产升级：
 

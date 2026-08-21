@@ -1,132 +1,96 @@
-# Compact/Terse 模板路由与双产物设计
+# Compact/Terse 模板 source DSL 路由设计
 
 ## 设计目标
 
-模板是 Compact 和 TerseDSL-Nested-2 create 场景的内部生成方式，不新增外部协议。原始入口构造既有
-`GenerationRoutePolicy`，显式提供模板所需依赖并接收模板生成结果。模板模块不持有主服务对象，也不具备
-调用原协议生成链的能力。Compact 的回退由公开入口负责；Terse 生产入口不允许回退。
+模板是 Compact 和 TerseDSL-Nested-2 create 场景的内部生成方式，不新增外部协议。
+`_generate_widget_card_with_policy` 只负责向单次公共生成链注入模板 source generator。公共生成链负责
+前置裁决、CardSpec、TaskSpec、原协议 Prompt 和模型客户端、Processor、校验、保存和响应组装。
+模板模块不持有主服务对象，对外只返回当前 Processor 可直接消费的源 DSL 字符串。
+
+## 公共入口契约
+
+```python
+await request_template_source_dsl(
+    task_spec,
+    card_spec,
+    effective_bindings,
+    processor_kind=processor_kind,
+    protocol_profile=protocol_profile,
+    model_runtime=model_runtime,
+    model_request_context=model_request_context,
+)
+```
+
+输入中的 TaskSpec、CardSpec 和有效数据绑定均由主生成链构造。输出是与 `processor_kind` 匹配的
+源 DSL 字符串：Compact 为 Design Compact DSL，Terse 为单组件树 TerseDSL-Nested-2，标准路由为
+三行 A2UI JSONL。
+模板模块不得导入 `GenerateWidgetCardResponse`、ArtifactStore、Validator 或通用 CardSpec/TaskSpec Builder。
 
 ## 路由状态机
 
-进入以下状态机前，Registry 先读取 `config/template_controls.json` 并应用 Provider 和模板两级
-禁用清单。
-Provider 被禁用时，它拥有的业务模板都不参与路由；
-单个模板被禁用时，只从对应业务组件候选中移除该 ID。首层 Provider 文档、二层 Provider 文档和布局
-候选中也会删除禁用模板的引用。
-
-业务模板与布局组件的定义由各 Provider Bundle 自有。业务模板直接声明 `businessId` 与 `capabilityId`，
-Registry 据此派生业务分组；布局约束继续来自 `layoutComponents`。中央 UX 配置只提供跨 Provider 的 Token、
-Theme 场景映射与尺寸预算，不再维护第二份组件到模板映射。
-
 ```text
 generateWidgetCardCompactDsl
-  ├─ edit → 模板接口抛出异常 → 原始 Compact 流程
+  ├─ edit → _generate_widget_card_with_policy 直接进入原 Compact 流程
   └─ create
-       ├─ generate_template_artifact
-       │    ├─ 准备 dev 能力裁决、CardSpec、TaskSpec
-       │    ├─ 第一层 LLM：从 TaskSpec 全量字段中判断 query 必显字段，只输出 theme/component/action
+       ├─ 公共生成链：能力前置裁决 → CardSpec → TaskSpec → 原协议 Prompt/Client
+       ├─ generate_source_dsl → request_template_source_dsl
+       │    ├─ 第一层 LLM：选择 Theme、业务模板候选和 Action
        │    ├─ 服务端完整覆盖校验
-       │    │    ├─ 显式字段未完整覆盖、模板 requiredData 不完整或 dataDomain 不一致 → 抛出异常
-       │    │    └─ 全部覆盖 → 锁定模板路由
-       │    ├─ 第二层 LLM：只生成 Layout Template、业务 Template 和可选 PillAction
-       │    ├─ 服务端解析、参数校验、模板展开
-       │    ├─ 内部 A2UI 适配当前 dev Form profile
-       │    ├─ A2UI → A2UI-Compact
-       │    ├─ dev Compact Processor → 最终 A2UI
-       │    ├─ dev ArtifactValidator
-       │    └─ ArtifactStore 保存 genui + designcompactdsl
-       └─ 任一异常 → 原始 Compact 流程
+       │    ├─ 第二层 LLM：只选择受控 Layout、Template 和可选 PillAction
+       │    ├─ 受信解析、参数校验与模板展开
+       │    └─ A2UI 适配当前 Profile 后回转 Design Compact DSL
+       ├─ 模板 source generator 异常 → 同一 generate_source_dsl 调用原 Compact 模型
+       └─ 公共生成链：DesignCompactProcessor → Validator → RetryController
+                            → ArtifactStore → ResponsePlanner → GenerateWidgetCardResponse
 ```
 
 ```text
 generateWidgetCardTerseDslNested2
-  ├─ edit → failed
+  ├─ edit → generate_widget_card_terse_dsl_nested2 入口返回 failed
   └─ create
-       ├─ generate_template_artifact
-       │    ├─ 第一层 LLM 只输出 theme/component/action，并执行服务端完整覆盖校验
-       │    │    └─ 未匹配、字段未完整覆盖或模型不可用 → 抛出异常
-       │    ├─ 第二层 LLM、参数校验和模板展开
-       │    │    └─ 任一失败 → 抛出异常
-       │    ├─ 展开后的 TerseDSL-Nested-2 → 模块内隔离转换器 → 最终 A2UI
-       │    ├─ dev ArtifactValidator
-       │    └─ ArtifactStore 保存 genui + 展开后的 TerseDSL-Nested-2
-       └─ 任一异常 → failed（禁止回退旧 TerseDSL-Nested-2 流程）
+       ├─ 公共生成链：能力前置裁决 → CardSpec → TaskSpec → 原协议 Prompt/Client
+       ├─ generate_source_dsl → request_template_source_dsl → 单组件树 TerseDSL-Nested-2
+       ├─ 模板 source generator 异常 → 同一 generate_source_dsl 调用原 Terse 模型
+       └─ 公共生成链：TerseNested2Processor → Validator → RetryController
+                            → ArtifactStore → ResponsePlanner → GenerateWidgetCardResponse
 ```
 
-## 为什么先归档 Compact 再确定最终 A2UI
+## Compact 归档一致性
 
-模板编译器先产生内部 A2UI，但 artifact 中的 A2UI-Compact 会在后续 edit 中由原始 dev Processor 读取。
-如果首次展示直接保存模板编译器输出，后续 Processor 的规范化可能造成视觉或逻辑漂移。
+模板引擎先产生 A2UI，模板 source adapter 再执行以下闭环：
 
-因此本模块执行以下闭环：
+1. 适配当前 Form Profile 的 `catalogId`、root 尺寸、圆角和裁剪约束。
+2. 确定性生成 A2UI-Compact Token。
+3. 使用原 Compact Processor 将 Token 转回最终 A2UI。
+4. 使用同一 Token 写入 `designcompactdsl`，保持后续 edit 转换一致。
 
-1. 模板内部 A2UI 仅作为中间结果。
-2. 适配当前 dev 的 `catalogId`、root 尺寸、圆角和裁剪约束。
-3. 确定性生成 A2UI-Compact。
-4. 使用原始 dev Compact Processor 将该 Token 转回标准 A2UI。
-5. 将回转结果作为首次展示的最终 A2UI，并将同一个 Token 写入 `designcompactdsl`。
-
-这样首次展示和二次更新共享同一条 Compact 转换链。
+源 DSL 转换位于 `template_generation/source_adapter.py`，最终转换、校验和归档仍由公共生成链
+负责。Terse 模板路线当前不支持 edit，但成功的模板 Terse 源 DSL 与通用模型源 DSL 使用相同
+`designcompactdsl` 归档逻辑。
 
 ## 失败与回退边界
 
 | 阶段 | Compact | TerseDSL-Nested-2 |
 |---|---|---|
-| edit 请求 | 执行原 Compact 流程 | 返回 `failed` |
-| 无真实模型运行时 | 执行原 Compact 流程 | 返回 `failed` |
-| 第一层拒绝或确定性覆盖失败 | 执行原 Compact 流程 | 返回 `failed` |
-| 第二层、模板编译、归档、Validator 或保存失败 | 执行原 Compact 流程 | 返回 `failed` |
+| edit 请求 | 原 Compact 流程 | `failed` |
+| 模板首层拒绝、模板生成或源格式转换异常 | 同次调用回退原 Compact 生成 | 同次调用回退原 Terse 生成 |
+| 模板源 DSL 的 Processor/Validator 失败 | 公共 Compact repair | 公共 Terse repair |
+| repair 最终失败 | `failed` | `failed` |
+| ArtifactStore 失败 | 异常上抛 | 异常上抛 |
 
-`candidateOutputFields` 只负责形成 TaskSpec 的候选数据投影，不等于本轮全部必须显示字段。第一层结合
-`userQuery` 与 TaskSpec 中的全量字段说明，在模型内部选出必须显示字段，再用 Provider 首层 MD 中的
-“高级组件 → TaskSpec 绝对路径”映射选择能够完整覆盖这些字段的组件。任一显式字段无法承载即失败；
-显式字段满足后，还必须检查模板 `requiredData` 在 TaskSpec 中全部存在。中间字段集合不回传，服务端继续
-确定性复核所选组件存在可从本轮 TaskSpec/CardSpec 展开的 Provider Template。
+`generate_source_dsl` 在选择模板或原协议模型之前统一调用 `before_model_call`。模板尝试和异常后的
+原模型回退共用同一次开始通知，不在 `_generate_widget_card_with_policy` 或模板模块中新增去重状态。
+模板 source generator 一旦返回，后续质量失败不再重试模板。
 
-第一层输出严格限制为：
+## 模板资源边界
 
-```json
-{
-  "theme": "theme.id",
-  "componentCandidates": [
-    {
-      "componentId": "ComponentId",
-      "availableTemplateIds": ["BusinessTemplate@1"]
-    }
-  ],
-  "action": "event.id"
-}
-```
+Provider 和 Layout 资源仍由模板 Registry 管理：
 
-不匹配时保留最匹配的候选 Theme，并固定输出
-`{"theme":"theme.id","componentCandidates":[],"action":null}`。空 `componentCandidates` 是模板失败标志；
-`availableTemplateIds` 是交给第二层的非空业务模板候选集，必须属于同一 `componentId` 且在当前
-TaskSpec/CardSpec 下可展开。`action` 是批准的事件 ID，不是
-数据项；SystemPrompt 只保留这一通用语义和输出约束。Provider 首层 MD 描述“高级组件 → TaskSpec 数据
-路径”，Theme 首层 MD 描述主题适用场景；两类文档都只按本轮候选动态加载。第一层根据用户动作意图
-从 TaskSpec 事件候选中输出对应 `eventId`，不判断 Action 属于哪个组件；没有动作时输出 `null`。
-Action 不参与数据字段覆盖。首层 LLM 与后续 Search 都必须生成同一 `TemplateRouteDecision`，并共用
-同一个确定性路由门禁，不得各自实现 Provider、事件或模板可用性校验。
+- 业务模板在 Provider 中声明 `businessId`、`capabilityId`、数据域和受控参数。
+- Layout Provider 声明尺寸、子节点、Action 和 Lowering 约束。
+- 中央 UX Registry 只保留跨 Provider 的 UX Token、场景、Theme 映射和尺寸预算。
+- `config/template_controls.json` 在首层 Prompt 前过滤禁用 Provider 和模板，受信展开前再做确定性检查。
 
-Search 路由只接受一个数据业务组件，允许该组件内部由多个业务模板共同覆盖显式字段，也允许额外选择一个
-Action。显式请求包含多个数据能力，或完整字段覆盖必须联合多个 `componentId` 时，Search 在进入第二层前
-直接判定模板不适用。Action 不计入业务数量。
-
-第二层从所选 Provider 的二层 MD 读取规则，只能在首层的 `availableTemplateIds` 中选择最终业务模板，
-并生成 props、Layout 与 Action。业务模板 ID 已表达 UI 形态，
-不再输出 Variant；组件骨架也通过 Layout Provider 的 `Template("...Layout@1", {}, ...children)` 表达。
-选中的 `eventId` 与业务组件解耦，统一生成布局模板末尾唯一的 `PillAction`。Python 只保留候选过滤、可信事实投影、事件 ID 校验、模板签名
-与编译校验，不再把全部领域规则拼入 SystemPrompt。
-
-旧 Python 模板流水线仅通过 `legacy_python.route_legacy_python_terse_generation(...)` 作为问题定位入口保留；
-生产默认入口不引用该函数。
-
-## 对原始 dev 的修改边界
-
-`widget_generation_service.py` 只新增一个模板接口 import；Compact、Terse 两个公开入口均调用
-`generate_template_artifact`。两者只在捕获异常后的接口策略不同：Compact 继续调用原协议流程，Terse 直接
-返回失败。edit 判断由公共模板接口完成并以异常表达。模板 artifact 在隔离模块内部组装，不修改主服务原有
-`_build_artifact`。
-
-模板渲染需要的附加候选字段由 `binding_dependencies.py` 在模板路由内补齐，不修改通用能力模型、能力注册表
-或 `DeviceCapabilityResolver`。
+模板渲染需要的附加候选字段由 `binding_dependencies.py` 在 `request_template_source_dsl` 内部补齐，
+只影响传给模板引擎的 bindings 副本。公共前置裁决、TaskSpec、CardSpec 以及原协议回退仍使用调用方
+原始有效绑定，模板模块不另行组装或替换这些公共对象。

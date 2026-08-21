@@ -11,8 +11,8 @@
 - 最终 `genui`：由本地受限转换器生成的标准三段 A2UI JSONL
 - 默认模型后端：`design_compact_model_backend`，当前默认值为 `openai`
 - 支持创建：是
-- 支持多轮编辑：是，由 `enable_widget_edit` 控制
-- 当前代码是否允许动态数据和事件入参：否
+- 支持多轮编辑：否，当前生产入口严格限定为模板 create 路线
+- 当前代码是否允许动态数据和事件入参：是
 - 转换或最终校验错误是否阻断保存：是
 
 ## 2. 方法调用链
@@ -25,18 +25,19 @@ generate_widget_card_terse_dsl_nested2_ws
 → GenerateWidgetCardRequest
 → WidgetGenerationService.generate_widget_card_terse_dsl_nested2
 → WidgetGenerationService._compact_protocol_selection
+→ edit 请求在 Terse 入口直接返回 failed
 → WidgetGenerationService._generate_widget_card_with_policy
 → WidgetGenerationService._policy_unsupported_response
 → WidgetGenerationService.generate_widget_card
-→ EditRequestNormalizer.normalize_create / normalize_edit
+→ EditRequestNormalizer.normalize_create
 → WidgetGenerationService._capability_registry
-→ DeviceCapabilityResolver.resolve_generation_data_bindings
-→ CardSpecBuilder.build
-→ TaskSpecBuilder.build
-→ PromptBuilder.build_terse_dsl_nested2
-→ A2UIModelClient.generate
+→ GenerationPreflight.run 统一构造 CardSpec / TaskSpec
+→ PromptBuilder.build_terse_dsl_nested2 与 A2UIModelClient 始终按原协议构造
+→ generate_source_dsl 统一发送模型开始通知
+→ generate_source_dsl 先调用 request_template_source_dsl
+→ 模板内部补齐自身绑定依赖，并将中间 Terse 产物收敛为公共 Processor 支持的单组件树
+→ 模板 source generator 任意异常时，同一 generate_source_dsl 调用 A2UIModelClient.generate
 → TerseNested2Processor.process
-→ convert_terse_dsl_nested2_to_a2ui
 → ArtifactValidator.validate
 → RetryController.run
 → WidgetGenerationService._build_artifact
@@ -44,6 +45,11 @@ generate_widget_card_terse_dsl_nested2_ws
 → ResponsePlanner.plan
 → _build_plugin_stream_response
 ```
+
+edit 由 `generate_widget_card_terse_dsl_nested2` 入口直接返回 failed。create 的模板不匹配、生成或模板内部
+源格式转换异常，会在同一次公共生成链内回退到原 Terse 模型首次生成。模板 source DSL 已
+返回后的转换或 Validator 错误只进入公共 repair，不重试模板，也不重新执行通用首次生成。
+保存异常不触发生成路由回退。
 
 主要代码位置：
 
@@ -54,6 +60,8 @@ generate_widget_card_terse_dsl_nested2_ws
 - Prompt：`../widget_service/cloud/services/prompt_builder.py`
 - Artifact 校验：`../widget_service/cloud/services/validator.py`
 - Artifact 保存：`../widget_service/cloud/services/artifact_store.py`
+- 模板 source DSL 窄接口：`../widget_service/cloud/services/template_generation/facade.py`
+- 模板源格式适配：`../widget_service/cloud/services/template_generation/source_adapter.py`
 
 ## 3. WebSocket 请求
 

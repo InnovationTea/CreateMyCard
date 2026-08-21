@@ -58,10 +58,11 @@ from services.source_artifact_repository import (
     SourceArtifactLoadResult,
     SourceArtifactRepository,
 )
-from services.template_generation import generate_template_artifact
+from services.template_generation import request_template_source_dsl
 from services.validator import ArtifactValidator
 
 _MODULE = "[Generation Service]"
+TemplateSourceGenerator = Callable[..., Awaitable[str]]
 
 
 class WidgetGenerationService:
@@ -255,6 +256,7 @@ class WidgetGenerationService:
         *,
         policy: GenerationRoutePolicy,
         before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
+        template_source_generator: TemplateSourceGenerator | None = None,
     ) -> GenerateWidgetCardResponse:
         """生成卡片。
 
@@ -355,7 +357,8 @@ class WidgetGenerationService:
         else:
             request = EditRequestNormalizer.normalize_create(request)
 
-        # 主流程：解析能力、生成 CardSpec/TaskSpec、生成 genui、校验 artifact、返回结构化状态。
+        # 主流程依次解析能力、构造 CardSpec/TaskSpec、生成 genui，
+        # 然后校验 artifact 并返回结构化状态。
         logger.info(
             f"{_MODULE} generate_widget_card_started generation_mode={generation_mode} "
             f"size={request.size} "
@@ -490,7 +493,11 @@ class WidgetGenerationService:
             response = GenerateWidgetCardResponse(
                 status=GenerationStatus.UNSUPPORTED,
                 suggestSize=request.size,
-                message="当前设备上没有可用的数据能力或入口能力，暂时不能生成这类实时卡片。你可以试试天气、日历或系统状态类卡片。",
+                message=(
+                    "当前设备上没有可用的数据能力或入口能力，"
+                    "暂时不能生成这类实时卡片。"
+                    "你可以试试天气、日历或系统状态类卡片。"
+                ),
                 removedCapabilities=removed,
                 errorCode=ErrorCode.NO_EFFECTIVE_CAPABILITY.value,
             )
@@ -515,7 +522,8 @@ class WidgetGenerationService:
             "task_data_model_schema_keys="
             f"{json_for_log(list(task_spec.dataModelSchema))}"
         )
-        # Prompt 约束模型生成源 DSL；Processor 和 Validator 依次产出统一质量问题，再由策略决定门禁。
+        # Prompt 和通用模型客户端始终按原协议构造，
+        # 模板失败时可直接复用并生成同格式源 DSL。
         if policy.stores_design_token:
             design_system_prompt = A2UIProtocolRegistry.read_design_prompt(
                 policy.model_profile_id
@@ -586,6 +594,25 @@ class WidgetGenerationService:
         async def generate_source_dsl() -> str:
             if before_model_call is not None:
                 await before_model_call(card_spec.suggestSize)
+            if template_source_generator is not None:
+                try:
+                    logger.info(
+                        f"{_MODULE} template_source_generation_started "
+                        f"operation={policy.operation}"
+                    )
+                    result = await template_source_generator(
+                        task_spec,
+                        processing_context.card_spec,
+                        tuple(effective_bindings),
+                    )
+                    return require_generated_dsl(result)
+                except Exception as exc:
+                    logger.info(
+                        f"{_MODULE} template_source_generation_failed "
+                        f"operation={policy.operation} fallback=original_protocol_flow "
+                        f"reason={type(exc).__name__} "
+                        f"detail={json_for_log(str(exc))}"
+                    )
             logger.info(
                 f"{_MODULE} model_source_generation_started operation={policy.operation}"
             )
@@ -1048,26 +1075,11 @@ class WidgetGenerationService:
             validation_failure_blocking=True,
             stores_design_token=True,
         )
-        try:
-            return await generate_template_artifact(
-                request,
-                policy,
-                registry=self._capability_registry(request),
-                model_runtime=self.model_runtime,
-                model_request_context=self._resolve_model_request_context(request),
-                before_model_call=before_model_call,
-            )
-        except Exception as exc:
-            logger.info(
-                f"{_MODULE} template_route_fallback operation={policy.operation} "
-                f"reason={type(exc).__name__} detail={json_for_log(str(exc))}"
-            )
-        if before_model_call is None:
-            return await self._generate_widget_card_with_policy(request, policy)
         return await self._generate_widget_card_with_policy(
             request,
             policy,
             before_model_call=before_model_call,
+            try_template=True,
         )
 
     async def generate_widget_card_terse_dsl_nested2(
@@ -1103,35 +1115,21 @@ class WidgetGenerationService:
             validation_failure_blocking=True,
             stores_design_token=True,
         )
-        # 问题定位时可显式调用
-        # services.template_generation.route_legacy_python_terse_generation(...)；
-        # 第四、第五接口共用模板生成入口，区别只在调用方的失败策略：
-        # Compact 失败后回退原流程，Terse 失败后直接返回 failed。
-        try:
-            return await generate_template_artifact(
-                request,
-                policy,
-                registry=self._capability_registry(request),
-                model_runtime=self.model_runtime,
-                model_request_context=self._resolve_model_request_context(request),
-                before_model_call=before_model_call,
-            )
-        except Exception as exc:
-            logger.info(
-                f"{_MODULE} template_route_failed operation={policy.operation} "
-                f"fallback=disabled reason={type(exc).__name__} "
-                f"detail={json_for_log(str(exc))}"
-            )
+        if "sourceArtifactUrl" in request.model_fields_set:
             return GenerateWidgetCardResponse(
                 status=GenerationStatus.FAILED,
                 suggestSize=request.size or DEFAULT_WIDGET_SIZE,
-                message=(
-                    "模板路线暂不支持二次更新。"
-                    if "sourceArtifactUrl" in request.model_fields_set
-                    else "当前需求无法通过模板完整生成卡片。"
-                ),
+                message="模板路线暂不支持二次更新。",
                 errorCode=ErrorCode.A2UI_GENERATION_FAILED.value,
             )
+        # 问题定位时可显式调用
+        # services.template_generation.route_legacy_python_terse_generation(...)。
+        return await self._generate_widget_card_with_policy(
+            request,
+            policy,
+            before_model_call=before_model_call,
+            try_template=True,
+        )
 
     async def _generate_widget_card_with_policy(
         self,
@@ -1139,8 +1137,9 @@ class WidgetGenerationService:
         policy: GenerationRoutePolicy,
         *,
         before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
+        try_template: bool = False,
     ) -> GenerateWidgetCardResponse:
-        """复制请求并锁定路由对应的协议 profile。"""
+        """复制请求并锁定协议 Profile，按需注入模板 source generator。"""
         unsupported_response = self._policy_unsupported_response(request, policy)
         if unsupported_response is not None:
             return unsupported_response
@@ -1148,10 +1147,38 @@ class WidgetGenerationService:
             update={"protocolProfileId": policy.protocol_profile_id}
         )
         profiled_request._model_request_context = request._model_request_context
+        is_edit = "sourceArtifactUrl" in request.model_fields_set
+        if not try_template or is_edit:
+            return await self.generate_widget_card(
+                profiled_request,
+                policy=policy,
+                before_model_call=before_model_call,
+            )
+
+        async def generate_template_source(
+            task_spec,
+            card_spec: dict,
+            effective_bindings: tuple,
+        ) -> str:
+            return await request_template_source_dsl(
+                task_spec,
+                card_spec,
+                effective_bindings,
+                processor_kind=policy.processor_kind,
+                protocol_profile=A2UIProtocolRegistry(
+                    policy.protocol_profile_id
+                ).get_profile(),
+                model_runtime=self.model_runtime,
+                model_request_context=self._resolve_model_request_context(
+                    profiled_request
+                ),
+            )
+
         return await self.generate_widget_card(
             profiled_request,
             policy=policy,
             before_model_call=before_model_call,
+            template_source_generator=generate_template_source,
         )
 
     @staticmethod
@@ -1344,7 +1371,8 @@ class WidgetGenerationService:
         - source_artifact_digest：编辑来源摘要；首次生成为空。
         出参：完整 WidgetArtifact。
         """
-        # artifact 是端侧下载后的唯一交付物，里面同时包含 DSL、CardSpec、TaskSpec 和能力裁决结果。
+        # artifact 是端侧下载后的唯一交付物，
+        # 同时包含 DSL、CardSpec、TaskSpec 和能力裁决结果。
         logger.info(
             f"{_MODULE} artifact_building protocol_profile_id={protocol_profile_id} "
             f"protocol_profile_version={protocol_profile_version} "
