@@ -28,7 +28,7 @@
 请求运行时若缺少对应能力根或 TaskSpec 字段，只关闭该 Provider Template，
 并继续使用正式能力和通用生成链路。
 
-修改 `.cardtpl` 后必须同步更新 `provider.json` 中对应文件的 `sha256:` 摘要，再执行：
+修改 `.cardtpl` 后无需维护源码摘要，直接重新生成 Prompt 常量并执行 Provider 测试：
 
 ```bash
 .venv/bin/python scripts/build_cardplan_bundle.py

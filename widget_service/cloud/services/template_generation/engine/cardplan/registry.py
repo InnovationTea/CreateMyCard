@@ -1,8 +1,7 @@
-"""Read-only registry and manifest validation for trusted CardPlan assets."""
+"""Read-only registry and metadata validation for trusted CardPlan assets."""
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from functools import lru_cache
@@ -42,7 +41,7 @@ _NamedCapability = TypeVar(
 
 
 class CardPlanRegistry:
-    """Load the generated TypeScript baseline and fail closed on drift."""
+    """Load CardPlan sources and validate generated protocol metadata."""
 
     def __init__(
         self,
@@ -58,7 +57,7 @@ class CardPlanRegistry:
         generated_root = Path(__file__).with_name("generated")
         self.manifest_path = generated_root / "prompt-manifest.json"
         self.manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
-        self._verify_manifest()
+        self._validate_manifest_metadata()
         template_payload = self._load_json("template-registry.json")
         theme_payload = self._load_json("theme-profiles.json")
         advanced_payload = self._load_json("advanced-component-registry.json")
@@ -190,30 +189,11 @@ class CardPlanRegistry:
             raise ValueError(f"{label} rule must not be empty: {relative_path}")
         return content
 
-    def _verify_manifest(self) -> None:
+    def _validate_manifest_metadata(self) -> None:
         if self.manifest.get("catalogId") != "ohos.a2ui.extended.catalog.form":
             raise ValueError("CardPlan bundle Catalog mismatch")
         if self.manifest.get("a2uiWireVersion") != "v0.9":
             raise ValueError("CardPlan bundle wire version mismatch")
-        files = self.manifest.get("files")
-        if not isinstance(files, dict):
-            raise ValueError("CardPlan bundle file manifest is missing")
-        for relative_path, expected in files.items():
-            path = self.source_root / relative_path
-            if not path.is_file():
-                logger.error(
-                    "[CardPlan Registry] bundle_file_missing "
-                    f"relative_path={relative_path!r}"
-                )
-                raise ValueError(f"CardPlan bundle file is missing: {relative_path}")
-            actual = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
-            if actual != expected:
-                logger.error(
-                    "[CardPlan Registry] bundle_file_drift "
-                    f"relative_path={relative_path!r} "
-                    f"expected_sha256={expected!r} actual_sha256={actual!r}"
-                )
-                raise ValueError(f"CardPlan bundle file drift: {relative_path}")
 
     @staticmethod
     def _reject_forbidden_keys(value: Any) -> None:

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import ast
-import hashlib
 import io
 import json
 import re
@@ -194,7 +193,6 @@ class LoadedProviderBundle:
     business_groups: tuple[BusinessTemplateGroup, ...]
     first_layer_rule: str
     second_layer_rule: str
-    bundle_digest: str
 
 
 @dataclass(frozen=True)
@@ -291,7 +289,6 @@ def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
         if manifest.second_layer_rule is not None
         else ""
     )
-    bundle_digest = _bundle_digest(root, manifest)
     definitions: list[TemplateDefinition] = []
     for wire_id, entry in template_entries.items():
         capability = (
@@ -319,7 +316,6 @@ def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
             required_data=entry.required_data,
             optional_data=entry.optional_data,
             output_schema=output_schema,
-            bundle_digest=bundle_digest,
         )
         definition = definition.model_copy(
             update={"requires_layout_action": entry.requires_layout_action}
@@ -342,7 +338,6 @@ def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
         business_groups,
         first_layer_rule,
         second_layer_rule,
-        bundle_digest,
     )
 
 
@@ -359,7 +354,6 @@ def compile_card_template(
     required_data: tuple[str, ...],
     optional_data: tuple[str, ...],
     output_schema: dict[str, Any],
-    bundle_digest: str,
 ) -> TemplateDefinition:
     """Compile one non-executable ``cardtpl/1`` source into the trusted Template IR."""
     if len(source) > _MAX_TEMPLATE_SOURCE_CHARS:
@@ -378,7 +372,6 @@ def compile_card_template(
         required_data=required_data,
         optional_data=optional_data,
         output_schema=output_schema,
-        bundle_digest=bundle_digest,
     )
 
 
@@ -395,7 +388,6 @@ def _compile_ui_card_template(
     required_data: tuple[str, ...],
     optional_data: tuple[str, ...],
     output_schema: dict[str, Any],
-    bundle_digest: str,
 ) -> TemplateDefinition:
     """Compile the UI-oriented ``#Template Id(props, ...children)`` syntax."""
     signature, block = _ui_template_block(source, expected_wire_id)
@@ -508,7 +500,6 @@ def _compile_ui_card_template(
             "bindings": {
                 name: binding.model_dump(by_alias=True) for name, binding in bindings.items()
             },
-            "bundleDigest": bundle_digest,
             "sourceFormat": "cardtpl/1",
             "variants": [variant.model_dump(by_alias=True)],
         }
@@ -1437,37 +1428,6 @@ def _resolve_data_schema(
             raise ValueError("Provider upstream dataSchema version does not match its path")
         return upstream_path
     return _bundle_file(root, data_schema.path)
-
-
-def _bundle_digest(root: Path, manifest: ProviderManifest) -> str:
-    paths = {
-        "provider.json": _bundle_file(root, "provider.json"),
-        **{entry.entry: _bundle_file(root, entry.entry) for entry in manifest.templates},
-    }
-    if manifest.first_layer_rule is not None:
-        paths[f"firstLayerRule:{manifest.first_layer_rule.path}"] = _bundle_file(
-            root, manifest.first_layer_rule.path
-        )
-    if manifest.second_layer_rule is not None:
-        paths[f"secondLayerRule:{manifest.second_layer_rule.path}"] = _bundle_file(
-            root, manifest.second_layer_rule.path
-        )
-    for capability in manifest.capabilities:
-        if capability.data_schema is None or capability.capability_id is None:
-            continue
-        schema_path = _resolve_data_schema(root, capability.data_schema)
-        label = (
-            f"dataSchema:{capability.capability_id}:"
-            f"{capability.data_schema.version}:{capability.data_schema.path}"
-        )
-        paths[label] = schema_path
-    digest = hashlib.sha256()
-    for label, path in sorted(paths.items()):
-        digest.update(label.encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(_bounded_file_bytes(path))
-        digest.update(b"\0")
-    return "sha256:" + digest.hexdigest()
 
 
 def provider_template_admission(
