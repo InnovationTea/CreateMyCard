@@ -272,28 +272,28 @@ _COLOR_TOKENS = {
     "comp_divider": "#33000000",
     "container40": "#66000000",
     "primary50": "#7F000000",
-    "multi_color_01": "#FF564AF7",
-    "multi_color_02": "#FF46B1E3",
-    "multi_color_03": "#FF61CFBE",
-    "multi_color_04": "#FF64BB5C",
-    "multi_color_05": "#FFA5D61D",
-    "multi_color_06": "#FFAC49F5",
-    "multi_color_07": "#FFE64566",
-    "multi_color_08": "#FFE84026",
-    "multi_color_09": "#FFED6F21",
-    "multi_color_10": "#FFF9A01E",
-    "multi_color_11": "#FFF7CE00",
-    "multi_color_aux_01": "#FF8981F7",
-    "multi_color_aux_02": "#FF86C5E3",
-    "multi_color_aux_03": "#FF92D6CC",
-    "multi_color_aux_04": "#FF92C48D",
-    "multi_color_aux_05": "#FFBDDB69",
-    "multi_color_aux_06": "#FFC386F0",
-    "multi_color_aux_07": "#FFE67C92",
-    "multi_color_aux_08": "#FFE87361",
-    "multi_color_aux_09": "#FFED955F",
-    "multi_color_aux_10": "#FFF9BC64",
-    "multi_color_aux_11": "#FFF5DC62",
+    "palette_purple_primary": "#FF564AF7",
+    "palette_blue_primary": "#FF46B1E3",
+    "palette_mint_primary": "#FF61CFBE",
+    "palette_green_success": "#FF64BB5C",
+    "palette_lime_success": "#FFA5D61D",
+    "palette_violet_primary": "#FFAC49F5",
+    "palette_rose_alert": "#FFE64566",
+    "palette_red_warning": "#FFE84026",
+    "palette_orange_alert": "#FFED6F21",
+    "palette_amber_warning": "#FFF9A01E",
+    "palette_yellow_sun": "#FFF7CE00",
+    "palette_purple_soft": "#FF8981F7",
+    "palette_blue_soft": "#FF86C5E3",
+    "palette_mint_soft": "#FF92D6CC",
+    "palette_green_soft": "#FF92C48D",
+    "palette_lime_soft": "#FFBDDB69",
+    "palette_violet_soft": "#FFC386F0",
+    "palette_rose_soft": "#FFE67C92",
+    "palette_red_soft": "#FFE87361",
+    "palette_orange_soft": "#FFED955F",
+    "palette_amber_soft": "#FFF9BC64",
+    "palette_yellow_soft": "#FFF5DC62",
     "mask_primary": "#CC000000",
     "mask_secondary": "#99000000",
     "mask_tertiary": "#66000000",
@@ -405,27 +405,27 @@ _SHALLOW_ROOT_GRADIENTS = {
     frozenset({"#FFF1E8FF", "#FFFAF6FF", "#FFFFFFFF"}): _ROOT_LINEAR_GRADIENT_PALETTES[5],
 }
 _TEXT_DESIGNS: dict[str, dict[str, Any]] = {
-    "display-l": {"fontSize": 56, "fontWeight": 300},
-    "display-m": {"fontSize": 48, "fontWeight": 300},
-    "display-s": {"fontSize": 36, "fontWeight": 700},
-    "title-l": {"fontSize": 30, "fontWeight": 700},
-    "title-m": {"fontSize": 24, "fontWeight": 700},
-    "title-s": {"fontSize": 20, "fontWeight": 700},
-    "subtitle-l": {"fontSize": 18, "fontWeight": 500},
-    "subtitle-m": {"fontSize": 16, "fontWeight": 500},
-    "subtitle-s": {"fontSize": 14, "fontWeight": 500},
-    "body-l": {"fontSize": 16, "fontWeight": 500},
-    "body-m": {"fontSize": 14, "fontWeight": 400},
-    "body-s": {"fontSize": 12, "fontWeight": 400},
-    "caption-l": {"fontSize": 12, "fontWeight": 500},
-    "caption-m": {"fontSize": 10, "fontWeight": 500},
-    "card-title": {"fontSize": 14, "fontWeight": 500},
-    "hero-value": {"fontSize": 28, "fontWeight": 700},
-    "hero-label": {"fontSize": 12, "fontWeight": 400},
-    "meta-text": {"fontSize": 12, "fontWeight": 400},
+    "metric-display-xl": {"fontSize": 56, "fontWeight": 300},
+    "metric-display-lg": {"fontSize": 48, "fontWeight": 300},
+    "metric-display-md": {"fontSize": 36, "fontWeight": 700},
+    "heading-primary-lg": {"fontSize": 30, "fontWeight": 700},
+    "heading-primary-md": {"fontSize": 24, "fontWeight": 700},
+    "heading-primary-sm": {"fontSize": 20, "fontWeight": 700},
+    "heading-secondary-lg": {"fontSize": 18, "fontWeight": 500},
+    "heading-secondary-md": {"fontSize": 16, "fontWeight": 500},
+    "heading-secondary-sm": {"fontSize": 14, "fontWeight": 500},
+    "body-emphasis-md": {"fontSize": 16, "fontWeight": 500},
+    "body-regular-md": {"fontSize": 14, "fontWeight": 400},
+    "body-regular-sm": {"fontSize": 12, "fontWeight": 400},
+    "caption-emphasis": {"fontSize": 12, "fontWeight": 500},
+    "caption-regular": {"fontSize": 10, "fontWeight": 500},
+    "card-header-title": {"fontSize": 14, "fontWeight": 500},
+    "metric-hero-value": {"fontSize": 28, "fontWeight": 700},
+    "metric-hero-unit": {"fontSize": 12, "fontWeight": 400},
+    "metadata-secondary": {"fontSize": 12, "fontWeight": 400},
 }
 _BUTTON_DESIGNS: dict[str, dict[str, Any]] = {
-    "capsule": {
+    "action-capsule-primary": {
         "width": "matchParent",
         "height": 30,
         "borderRadius": 15,
@@ -439,7 +439,7 @@ _BUTTON_DESIGNS: dict[str, dict[str, Any]] = {
         "maxLines": 1,
         "flexShrink": 0,
     },
-    "icon-round": {
+    "action-icon-round": {
         "width": 30,
         "height": 30,
         "borderRadius": 15,
@@ -449,7 +449,7 @@ _BUTTON_DESIGNS: dict[str, dict[str, Any]] = {
     },
 }
 _IMAGE_DESIGNS: dict[str, dict[str, Any]] = {
-    "icon-lg": {
+    "media-cover-square": {
         "width": "matchParent",
         "height": "matchParent",
         "aspectRatio": 1.0,
@@ -458,13 +458,13 @@ _IMAGE_DESIGNS: dict[str, dict[str, Any]] = {
         "clip": True,
         "flexShrink": 0,
     },
-    "source-icon": {
+    "icon-source-small": {
         "width": 20,
         "height": 20,
         "objectFit": "contain",
         "flexShrink": 0,
     },
-    "hero-icon": {
+    "icon-hero-large": {
         "width": 36,
         "height": 36,
         "objectFit": "contain",
@@ -472,28 +472,28 @@ _IMAGE_DESIGNS: dict[str, dict[str, Any]] = {
     },
 }
 _PROGRESS_DESIGNS: dict[str, dict[str, Any]] = {
-    "linear-bar": {
+    "progress-linear-primary": {
         "type": "linear",
         "width": "matchParent",
         "height": 8,
         "borderRadius": 4,
         "backgroundColor": "comp_background_secondary",
     },
-    "linear-bar-small": {
+    "progress-linear-thin": {
         "type": "linear",
         "width": "matchParent",
         "height": 4,
         "borderRadius": 2,
         "backgroundColor": "comp_background_secondary",
     },
-    "segmented-bar": {
+    "progress-linear-segmented": {
         "type": "linear",
         "width": "matchParent",
         "height": 8,
         "borderRadius": 4,
         "backgroundColor": "comp_background_secondary",
     },
-    "threshold-bar": {
+    "progress-linear-threshold": {
         "type": "linear",
         "width": "matchParent",
         "height": 20,
@@ -501,29 +501,29 @@ _PROGRESS_DESIGNS: dict[str, dict[str, Any]] = {
         "backgroundColor": "#6B7F91",
         "color": "#C8F000",
     },
-    "ring": {
+    "progress-ring-primary": {
         "type": "ring",
         "width": "matchParent",
         "height": "matchParent",
         "strokeWidth": 6,
         "backgroundColor": "comp_background_secondary",
-        "color": "multi_color_10",
+        "color": "palette_amber_warning",
     },
 }
 _DIVIDER_DESIGNS: dict[str, dict[str, Any]] = {
-    "line": {
+    "divider-hairline": {
         "strokeWidth": 1,
         "vertical": False,
         "color": "comp_divider",
     },
-    "bar": {
+    "divider-thick": {
         "strokeWidth": 8,
         "vertical": False,
         "color": "comp_background_tertiary",
     },
 }
 _CHECKBOX_DESIGNS: dict[str, dict[str, Any]] = {
-    "default": {
+    "checkbox-circle-default": {
         "width": 20,
         "height": 20,
         "borderRadius": 10,
@@ -536,7 +536,7 @@ _CHECKBOX_DESIGNS: dict[str, dict[str, Any]] = {
         },
         "shape": "circle",
     },
-    "check": {
+    "checkbox-rounded-check": {
         "width": 16,
         "height": 16,
         "borderRadius": 4,
@@ -558,15 +558,7 @@ _COMPONENT_DESIGNS = {
     "Divider": _DIVIDER_DESIGNS,
     "Checkbox": _CHECKBOX_DESIGNS,
 }
-_DESIGN_ALIASES = {
-    "Text": {
-        "title": "card-title",
-        "hero": "hero-value",
-        "body": "body-m",
-        "caption": "caption-m",
-        "button": "body-m",
-    },
-}
+_DESIGN_ALIASES: dict[str, dict[str, str]] = {}
 
 
 class CompactDslConversionError(ValueError):
@@ -749,7 +741,7 @@ def convert_compact_dsl_to_a2ui(
     normalized_components = _normalize_ring_stack_children(normalized_components)
     data_model = _build_data_model(data_rows)
 
-    icon_round_button_ids = _button_ids_with_design(components, "icon-round")
+    icon_round_button_ids = _button_ids_with_design(components, "action-icon-round")
     fallback_root_gradient = _fallback_root_linear_gradient(compact_dsl)
     converted_components = []
     for component in normalized_components:
@@ -1429,7 +1421,7 @@ def _repair_legacy_component_props(
         _repair_progress_alias_props(repaired_props)
     if repaired_type == "Ring":
         repaired_type = "Progress"
-        _repair_progress_alias_props(repaired_props, default_design="ring")
+        _repair_progress_alias_props(repaired_props, default_design="progress-ring-primary")
     if repaired_type == "ActionUnit":
         _repair_action_unit_props(repaired_props)
     _repair_on_click_aliases(repaired_props)
@@ -1935,7 +1927,10 @@ def _convert_action_unit_capsule(component: ComponentRow) -> list[dict[str, Any]
     }
     if "enabled" in component.props:
         converted["enabled"] = _convert_path_bindings(component.props["enabled"])
-    styles = _resolved_design_styles(component.component_id, _BUTTON_DESIGNS["capsule"])
+    styles = _resolved_design_styles(
+        component.component_id,
+        _BUTTON_DESIGNS["action-capsule-primary"],
+    )
     _apply_action_background(styles, component.props)
     action_ink = component.props.get("actionInk")
     if action_ink is not None:
@@ -1950,7 +1945,10 @@ def _convert_action_unit_capsule_with_icon(
 ) -> list[dict[str, Any]]:
     icon_id = f"{component.component_id}_icon"
     text_id = f"{component.component_id}_text"
-    styles = _resolved_design_styles(component.component_id, _BUTTON_DESIGNS["capsule"])
+    styles = _resolved_design_styles(
+        component.component_id,
+        _BUTTON_DESIGNS["action-capsule-primary"],
+    )
     _apply_action_background(styles, component.props)
     text_styles = _capsule_text_styles(styles, component.props.get("actionInk"))
     row_styles = _capsule_row_styles(styles)
@@ -2047,7 +2045,7 @@ def _capsule_text_styles(
 
 def _convert_action_unit_icon_round(component: ComponentRow) -> list[dict[str, Any]]:
     icon_id = f"{component.component_id}_icon"
-    styles = _resolved_design_styles(component.component_id, _BUTTON_DESIGNS["icon-round"])
+    styles = _resolved_design_styles(component.component_id, _BUTTON_DESIGNS["action-icon-round"])
     _normalize_icon_button_stack(styles)
     _apply_action_background(styles, component.props)
     icon_color = _resolve_tokens(

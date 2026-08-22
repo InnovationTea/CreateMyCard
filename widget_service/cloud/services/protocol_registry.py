@@ -20,6 +20,8 @@ DESIGN_COMPACT_PROFILE_ID = "design-compact-dsl"
 TERSE_DSL_NESTED2_PROFILE_ID = "terse-dsl-nested-2"
 _RANGE_INDEX_FILE = "registry_ranges.json"
 _DESIGN_PROMPT_FILE = "PROMPT.md"
+_REFERENCE_TEMPLATE_PROMPT_2X2_FILE = "PROMPT22.md"
+_DESIGN_PROMPT_2X4_FILE = "PROMPT24.md"
 _DESIGN_PROTOCOL_FILE = "protocol.json"
 
 
@@ -31,6 +33,18 @@ class ProtocolProfileSelection:
     design_profile_id: str
     normalized_app_version: str
     normalized_rom_version: str
+
+
+def _design_prompt_file(
+    size: str | None,
+    *,
+    use_reference_template_compact_route: bool,
+) -> str:
+    if not use_reference_template_compact_route:
+        return _DESIGN_PROMPT_FILE
+    if size in {"2x4", "4x2"}:
+        return _DESIGN_PROMPT_2X4_FILE
+    return _REFERENCE_TEMPLATE_PROMPT_2X2_FILE
 
 
 @dataclass(frozen=True)
@@ -169,10 +183,15 @@ class A2UIProtocolRegistry:
         cls,
         design_profile_id: str,
         profiles_root: Path | None = None,
+        size: str | None = None,
+        use_reference_template_compact_route: bool = False,
     ) -> str:
         """读取版本选择结果对应的 Design Compact 完整系统提示词。"""
         root = profiles_root or get_settings().data_root / "protocol_profiles"
-        prompt_path = root / design_profile_id / _DESIGN_PROMPT_FILE
+        prompt_path = root / design_profile_id / _design_prompt_file(
+            size,
+            use_reference_template_compact_route=use_reference_template_compact_route,
+        )
         if not prompt_path.is_file():
             raise ValueError(f"Design Compact prompt not found: {prompt_path}")
         return prompt_path.read_text(encoding="utf-8")

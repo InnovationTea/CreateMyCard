@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import asyncio
+import importlib
 import inspect
 import json
 import sys
@@ -35,6 +36,20 @@ from services.protocol_registry import (
 )
 
 _MODULE = "[A2UI Model]"
+
+
+def _design_compact_converter(size: str, use_reference_template_compact_route: bool):
+    if use_reference_template_compact_route:
+        if size in {"2x4", "4x2"}:
+            converter_module = importlib.import_module(
+                "services.reference_template_compact_dsl_a2ui_converter_2x4"
+            )
+            return converter_module.convert_compact_dsl_2x4_to_a2ui
+        converter_module = importlib.import_module(
+            "services.reference_template_compact_dsl_a2ui_converter"
+        )
+        return converter_module.convert_compact_dsl_to_a2ui
+    return convert_compact_dsl_to_a2ui
 
 
 class A2UIModelGenerationError(RuntimeError):
@@ -358,6 +373,7 @@ class A2UIModelClient:
         design_profile_id: str = DESIGN_COMPACT_PROFILE_ID,
         theme: ThemeMode = "light",
         surface_id: str = "surface_card",
+        use_reference_template_compact_route: bool = False,
     ) -> str:
         """使用 Design profile 自带的协议文件把 Design Compact DSL 转为标准 A2UI。"""
         compact_dsl = self.extract_genui_payload(design_dsl)
@@ -365,7 +381,11 @@ class A2UIModelClient:
             protocol_profile = A2UIProtocolRegistry.read_design_protocol_profile(
                 design_profile_id
             )
-            converted_dsl = convert_compact_dsl_to_a2ui(
+            converter = _design_compact_converter(
+                size,
+                use_reference_template_compact_route,
+            )
+            converted_dsl = converter(
                 compact_dsl,
                 size=size,
                 protocol_profile=protocol_profile,

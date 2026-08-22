@@ -39,6 +39,7 @@ from api.schemas import (
     CapabilityOverviewRequest,
     DataCapabilitySchemasRequest,
     GenerateWidgetCardRequest,
+    GenerateWidgetCardResponse,
 )
 from api.routes import (
     _build_plugin_stream_response,
@@ -101,7 +102,10 @@ from services.generation_pipeline import (
 )
 from services.ids_client import IDSClient, IDSDeviceCapabilityState
 from services.prompt_builder import PromptBuilder
-from services.protocol_registry import A2UIProtocolRegistry
+from services.protocol_registry import (
+    A2UIProtocolRegistry,
+    ProtocolProfileSelection,
+)
 from services.response_planner import ResponsePlanner
 from services.retry_controller import RetryController
 from services.task_spec_builder import TaskSpecBuilder
@@ -369,6 +373,7 @@ def test_anyio_thread_pool_uses_configured_capacity(monkeypatch):
     assert Settings(_env_file=None).enable_sensitive_log_fields is True
     assert Settings(_env_file=None).a2ui_form_model_backend == "mep"
     assert Settings(_env_file=None).design_compact_model_backend == "openai"
+    assert Settings(_env_file=None).enable_reference_template_compact_dsl_route is False
     assert Settings(_env_file=None).openai_master_client == "deepseek_platform"
     assert Settings(_env_file=None).openai_fallback_client == "llmclient"
     assert Settings(_env_file=None).enable_default_protocol_profile_fallback is True
@@ -577,6 +582,110 @@ def test_generation_summary_contains_required_observability_fields(monkeypatch):
     ):
         assert field in summary
     assert request.uid not in summary
+
+
+@pytest.mark.asyncio
+async def test_compact_dsl_route_defaults_to_repo_design_profile(monkeypatch):
+    settings = get_settings()
+    captured_profiles: list[str] = []
+    captured_reference_flags: list[bool] = []
+
+    monkeypatch.setattr(
+        settings,
+        "enable_reference_template_compact_dsl_route",
+        False,
+    )
+    monkeypatch.setattr(
+        WidgetGenerationService,
+        "_compact_protocol_selection",
+        lambda _service, _request: ProtocolProfileSelection(
+            protocol_profile_id="a2ui-form-rom6.0-v1",
+            design_profile_id="design-compact-dsl",
+            normalized_app_version=APP_VERSION,
+            normalized_rom_version="6.0",
+        ),
+    )
+
+    async def capture_policy(_service, request, policy, **_kwargs):
+        captured_profiles.append(policy.model_profile_id)
+        captured_reference_flags.append(policy.use_reference_template_compact_route)
+        return GenerateWidgetCardResponse(
+            status=GenerationStatus.SUCCESS,
+            suggestSize=request.size or "2x2",
+            message="ok",
+        )
+
+    monkeypatch.setattr(
+        WidgetGenerationService,
+        "_generate_widget_card_with_policy",
+        capture_policy,
+    )
+
+    await WidgetGenerationService().generate_widget_card_compact_dsl(
+        GenerateWidgetCardRequest(
+            uid="test-user",
+            device={"romVersion": ROM_VERSION_6},
+            userQuery="生成天气卡片",
+            size="2x2",
+            title="天气",
+            description="天气卡片",
+        )
+    )
+
+    assert captured_profiles == ["design-compact-dsl"]
+    assert captured_reference_flags == [False]
+
+
+@pytest.mark.asyncio
+async def test_compact_dsl_route_uses_reference_mode_when_switch_enabled(monkeypatch):
+    settings = get_settings()
+    captured_profiles: list[str] = []
+    captured_reference_flags: list[bool] = []
+
+    monkeypatch.setattr(
+        settings,
+        "enable_reference_template_compact_dsl_route",
+        True,
+    )
+    monkeypatch.setattr(
+        WidgetGenerationService,
+        "_compact_protocol_selection",
+        lambda _service, _request: ProtocolProfileSelection(
+            protocol_profile_id="a2ui-form-rom6.0-v1",
+            design_profile_id="design-compact-dsl",
+            normalized_app_version=APP_VERSION,
+            normalized_rom_version="6.0",
+        ),
+    )
+
+    async def capture_policy(_service, request, policy, **_kwargs):
+        captured_profiles.append(policy.model_profile_id)
+        captured_reference_flags.append(policy.use_reference_template_compact_route)
+        return GenerateWidgetCardResponse(
+            status=GenerationStatus.SUCCESS,
+            suggestSize=request.size or "2x2",
+            message="ok",
+        )
+
+    monkeypatch.setattr(
+        WidgetGenerationService,
+        "_generate_widget_card_with_policy",
+        capture_policy,
+    )
+
+    await WidgetGenerationService().generate_widget_card_compact_dsl(
+        GenerateWidgetCardRequest(
+            uid="test-user",
+            device={"romVersion": ROM_VERSION_6},
+            userQuery="生成天气卡片",
+            size="2x2",
+            title="天气",
+            description="天气卡片",
+        )
+    )
+
+    assert captured_profiles == ["design-compact-dsl"]
+    assert captured_reference_flags == [True]
 
 
 def test_json_for_log_keeps_sensitive_fields_when_enabled(monkeypatch):
@@ -1126,6 +1235,42 @@ def test_protocol_registry_rejects_missing_design_prompt(tmp_path):
 
     with pytest.raises(ValueError, match="Design Compact prompt not found"):
         A2UIProtocolRegistry.from_app_rom_versions("11.8", "6.5", root)
+
+
+def test_design_prompt_file_selection_keeps_default_profile_unchanged(tmp_path):
+    root = tmp_path / "protocol_profiles"
+    design_dir = root / "design-compact-dsl"
+    design_dir.mkdir(parents=True)
+    (design_dir / "PROMPT.md").write_text("default prompt", encoding="utf-8")
+    (design_dir / "PROMPT22.md").write_text("reference 22", encoding="utf-8")
+    (design_dir / "PROMPT24.md").write_text("reference 24", encoding="utf-8")
+
+    assert (
+        A2UIProtocolRegistry.read_design_prompt(
+            "design-compact-dsl",
+            profiles_root=root,
+            size="2x4",
+        )
+        == "default prompt"
+    )
+    assert (
+        A2UIProtocolRegistry.read_design_prompt(
+            "design-compact-dsl",
+            profiles_root=root,
+            size="2x2",
+            use_reference_template_compact_route=True,
+        )
+        == "reference 22"
+    )
+    assert (
+        A2UIProtocolRegistry.read_design_prompt(
+            "design-compact-dsl",
+            profiles_root=root,
+            size="2x4",
+            use_reference_template_compact_route=True,
+        )
+        == "reference 24"
+    )
 
 
 def test_protocol_registry_rejects_missing_design_protocol_file(tmp_path):

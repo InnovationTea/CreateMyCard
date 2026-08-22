@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+import importlib
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Literal, Protocol
@@ -61,6 +62,7 @@ class DslProcessingContext:
     design_profile_id: str | None = None
     data_capabilities: list = field(default_factory=list)
     event_candidates: list = field(default_factory=list)
+    use_reference_template_compact_route: bool = False
 
 
 @dataclass(frozen=True)
@@ -92,6 +94,7 @@ class GenerationRoutePolicy:
     supports_dynamic_capabilities: bool = True
     validation_failure_blocking: bool = False
     stores_design_token: bool = False
+    use_reference_template_compact_route: bool = False
 
 
 class DslProcessor(Protocol):
@@ -121,25 +124,44 @@ class DesignCompactProcessor:
         context: DslProcessingContext,
     ) -> DslProcessingResult:
         try:
-            source_dsl = repair_compact_dsl_binding_paths(
-                source_dsl,
-                task_spec=context.task_spec,
-                card_spec=context.card_spec,
-            )
-            context_result = validate_compact_dsl_context(
-                source_dsl,
-                task_spec=context.task_spec,
-                card_spec=context.card_spec,
-            )
+            context_warnings: tuple[str, ...] = ()
             design_profile_id = context.design_profile_id or "design-compact-dsl"
+            is_reference_template_route = context.use_reference_template_compact_route
+            is_wide_card = context.size in {"2x4", "4x2"}
+            if not (is_reference_template_route and is_wide_card):
+                source_dsl = repair_compact_dsl_binding_paths(
+                    source_dsl,
+                    task_spec=context.task_spec,
+                    card_spec=context.card_spec,
+                )
+                context_result = validate_compact_dsl_context(
+                    source_dsl,
+                    task_spec=context.task_spec,
+                    card_spec=context.card_spec,
+                )
+                context_warnings = context_result.warnings
             design_protocol = A2UIProtocolRegistry.read_design_protocol_profile(
                 design_profile_id
             )
-            standard_dsl = convert_compact_dsl_to_a2ui(
-                source_dsl,
-                size=context.size,
-                protocol_profile=design_protocol,
+            converter = _design_compact_converter(
+                context.size,
+                context.use_reference_template_compact_route,
             )
+            if is_reference_template_route and is_wide_card:
+                standard_dsl = converter(
+                    source_dsl,
+                    size=context.size,
+                    protocol_profile=design_protocol,
+                    allow_actions=bool(context.event_candidates),
+                    allow_bindings=bool(context.data_capabilities),
+                    event_candidates=context.event_candidates,
+                )
+            else:
+                standard_dsl = converter(
+                    source_dsl,
+                    size=context.size,
+                    protocol_profile=design_protocol,
+                )
             warnings = tuple(
                 QualityIssue(
                     stage="conversion",
@@ -147,7 +169,7 @@ class DesignCompactProcessor:
                     message=message,
                     severity="warning",
                 )
-                for message in context_result.warnings
+                for message in context_warnings
             )
             return DslProcessingResult(
                 source_dsl=source_dsl,
@@ -193,6 +215,20 @@ _PROCESSORS: dict[DslProcessorKind, DslProcessor] = {
     DslProcessorKind.DESIGN_COMPACT: DesignCompactProcessor(),
     DslProcessorKind.TERSE_NESTED2: TerseNested2Processor(),
 }
+
+
+def _design_compact_converter(size: str, use_reference_template_compact_route: bool):
+    if use_reference_template_compact_route:
+        if size in {"2x4", "4x2"}:
+            converter_module = importlib.import_module(
+                "services.reference_template_compact_dsl_a2ui_converter_2x4"
+            )
+            return converter_module.convert_compact_dsl_2x4_to_a2ui
+        converter_module = importlib.import_module(
+            "services.reference_template_compact_dsl_a2ui_converter"
+        )
+        return converter_module.convert_compact_dsl_to_a2ui
+    return convert_compact_dsl_to_a2ui
 
 
 def get_dsl_processor(kind: DslProcessorKind) -> DslProcessor:

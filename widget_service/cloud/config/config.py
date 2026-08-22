@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     )
     protocol_profile_id: str = "a2ui-form-rom6.0-v1"
     design_compact_profile_id: str = "design-compact-dsl"
+    enable_reference_template_compact_dsl_route: bool = False
     enable_default_protocol_profile_fallback: bool = True
     enable_ids_mock: bool = True
     mock_ids_response_path: str = "data/mock/ids_res.json"

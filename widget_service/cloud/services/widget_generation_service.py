@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import hashlib
+import importlib
 import inspect
 import time
 import uuid
@@ -515,9 +516,33 @@ class WidgetGenerationService:
         )
         # Prompt 约束模型生成源 DSL；Processor 和 Validator 依次产出统一质量问题，再由策略决定门禁。
         if policy.stores_design_token:
-            design_system_prompt = A2UIProtocolRegistry.read_design_prompt(
-                policy.model_profile_id
+            is_reference_template_route = (
+                policy.use_reference_template_compact_route
             )
+            prompt_size = (
+                card_spec.suggestSize
+                if is_reference_template_route
+                else None
+            )
+            design_system_prompt = A2UIProtocolRegistry.read_design_prompt(
+                policy.model_profile_id,
+                size=prompt_size,
+                use_reference_template_compact_route=is_reference_template_route,
+            )
+            if (
+                is_reference_template_route
+                and previous_design_token is None
+            ):
+                reference_guidance = importlib.import_module(
+                    "services.reference_template_guidance"
+                )
+                reference_template_prefix = (
+                    reference_guidance.build_reference_template_system_prefix(task_spec)
+                )
+                if reference_template_prefix:
+                    design_system_prompt = (
+                        reference_template_prefix + "\n\n" + design_system_prompt
+                    )
             prompt = PromptBuilder().build_design_token(
                 task_spec,
                 design_system_prompt,
@@ -579,6 +604,9 @@ class WidgetGenerationService:
             design_profile_id=policy.design_profile_id,
             data_capabilities=effective_data_capabilities,
             event_candidates=effective_events,
+            use_reference_template_compact_route=(
+                policy.use_reference_template_compact_route
+            ),
         )
         latest_processing_result = DslProcessingResult(source_dsl="")
 
@@ -1060,10 +1088,11 @@ class WidgetGenerationService:
                 message="当前 App/ROM 版本暂无可用的卡片协议，暂时不能生成卡片。",
                 errorCode=ErrorCode.APP_VERSION_UNSUPPORTED.value,
             )
+        settings = get_settings()
         policy = GenerationRoutePolicy(
             operation="generateWidgetCardCompactDsl",
             protocol_profile_id=selection.protocol_profile_id,
-            backend=get_settings().design_compact_model_backend,
+            backend=settings.design_compact_model_backend,
             processor_kind=DslProcessorKind.DESIGN_COMPACT,
             source_format=selection.design_profile_id,
             model_profile_id=selection.design_profile_id,
@@ -1071,6 +1100,9 @@ class WidgetGenerationService:
             design_profile_id=selection.design_profile_id,
             validation_failure_blocking=True,
             stores_design_token=True,
+            use_reference_template_compact_route=(
+                settings.enable_reference_template_compact_dsl_route
+            ),
         )
         if before_model_call is None:
             return await self._generate_widget_card_with_policy(request, policy)
@@ -1207,6 +1239,9 @@ class WidgetGenerationService:
             task_spec=source.artifact.taskSpec,
             protocol_profile=conversion_protocol_profile,
             design_profile_id=policy.design_profile_id,
+            use_reference_template_compact_route=(
+                policy.use_reference_template_compact_route
+            ),
         )
         processor = get_dsl_processor(policy.processor_kind)
         result = await to_thread.run_sync(processor.process, design_token, context)
