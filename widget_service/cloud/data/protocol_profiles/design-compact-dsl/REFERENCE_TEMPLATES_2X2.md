@@ -25,7 +25,7 @@
 ["title_text","Text",{"content":"手机电量","design":"card-title","width":136,"fontColor":"#E5000000","maxLines":1,"textOverflow":"clip"}]
 ["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","itemMargin":4,"flexShrink":1},["status_text"]]
 ["status_text","Text",{"content":"电量偏低，建议开启省电","design":"body-m","width":136,"fontColor":"#99000000","maxLines":1,"textOverflow":"clip"}]
-["bottom_area","Row",{"width":136,"height":66,"itemMargin":8,"justifyContent":"spaceBetween","alignItems":"bottom","flexShrink":0},["ring_icon_stack","action_area"]]
+["bottom_area","Row",{"width":136,"height":52,"itemMargin":8,"justifyContent":"spaceBetween","alignItems":"bottom","flexShrink":0},["ring_icon_stack","action_area"]]
 ["ring_icon_stack","Stack",{"width":52,"height":52,"alignContent":"center","flexShrink":0},["ring_progress","ring_icon"]]
 ["ring_progress","Progress",{"design":"ring","width":52,"height":52,"strokeWidth":6,"value":{"path":"/data/battery/level"},"total":100,"color":"#FFF9A01E","backgroundColor":"#19000000"}]
 ["ring_icon","Image",{"src":"resources/base/media/battery_leaf_fill.svg","width":24,"height":24,"objectFit":"contain","fillColor":"#FFF9A01E","flexShrink":0}]
@@ -66,10 +66,9 @@
 ```
 ### assistant
 ```genui
-["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"design":"Surface.redSoft","justifyContent":"start","itemMargin":8},["date_badge_area","meeting_area","action_area"]]
-["date_badge_area","Row",{"width":136,"height":20,"alignItems":"top","justifyContent":"spaceBetween","flexShrink":0},["title_text","date_badge"]]
-["title_text","Text",{"content":"今日日程","design":"card-title","width":92,"fontSize":14,"fontWeight":500,"fontColor":"#E5000000","maxLines":1,"textOverflow":"clip"}]
-["date_badge","Text",{"content":"22","width":28,"height":24,"borderRadius":6,"backgroundColor":"#FFFFFFFF","fontSize":16,"fontWeight":700,"fontColor":"#E5000000","textAlign":"center","maxLines":1,"textOverflow":"clip","shadow":{"radius":4,"color":"#1A000000","offsetX":0,"offsetY":1}}]
+["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"design":"Surface.redSoft","justifyContent":"start","itemMargin":8},["title_area","meeting_area","action_area"]]
+["title_area","Row",{"width":136,"height":20,"alignItems":"center","justifyContent":"start","flexShrink":0},["title_text"]]
+["title_text","Text",{"content":"今日日程","design":"card-title","width":136,"fontSize":14,"fontWeight":500,"fontColor":"#E5000000","maxLines":1,"textOverflow":"clip"}]
 ["meeting_area","Row",{"width":136,"layoutWeight":1,"itemMargin":6,"alignItems":"center","justifyContent":"start","flexShrink":1},["timeline","meeting_texts"]]
 ["timeline","TimelineUnit",{"height":48,"color":"#FFE84026","lineColor":"#1A000000","flexShrink":0}]
 ["meeting_texts","Column",{"width":"matchParent","layoutWeight":1,"itemMargin":2,"justifyContent":"start","alignItems":"start","flexShrink":1},["event_title","event_time","event_place"]]

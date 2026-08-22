@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass
 from typing import Any, Literal
 
-import services.compact_dsl_design_tokens as design_tokens
+from services import compact_dsl_design_tokens as design_tokens
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError as BaseCompactDslConversionError,
 )
@@ -25,6 +25,12 @@ _BOTTOM_RING_ACTION_EQUIVALENT_ICON_GROUPS = (
 )
 _GRADIENT_ACTION_BACKGROUNDS = design_tokens.GRADIENT_ACTION_BACKGROUNDS
 _GRADIENT_ACTION_INKS = design_tokens.GRADIENT_ACTION_INKS
+_CARD_2X2_INNER_SIZE = getattr(design_tokens, "CARD_2X2_INNER_SIZE", 136)
+_BOTTOM_RING_ACTION_AREA_HEIGHT = getattr(
+    design_tokens,
+    "BOTTOM_RING_ACTION_AREA_HEIGHT",
+    52,
+)
 _ICON_ROUND_SIZE = design_tokens.ICON_ROUND_SIZE
 _ROOT_LINEAR_GRADIENT_PALETTES = design_tokens.ROOT_LINEAR_GRADIENT_PALETTES
 _SEMANTIC_REPAIRABLE_ROOT_GRADIENT_COLOR_SETS = (
@@ -36,7 +42,9 @@ _TITLE_ICON_SIZE = design_tokens.TITLE_ICON_SIZE
 _WEATHER_ROOT_GRADIENT_COLOR_SETS = design_tokens.WEATHER_ROOT_GRADIENT_COLOR_SETS
 DesignTokenConversionError = design_tokens.DesignTokenConversionError
 _design_token_convert_action_unit = design_tokens.convert_action_unit
+_design_token_expand_high_level_components = design_tokens.expand_high_level_components
 _design_token_expand_component_design = design_tokens.expand_component_design
+_design_token_normalize_ring_stack_children = design_tokens.normalize_ring_stack_children
 _design_token_resolve_tokens = design_tokens.resolve_tokens
 _normalize_icon_button_stack = design_tokens.normalize_icon_button_stack
 _should_preserve_original_icon_color = design_tokens.should_preserve_original_icon_color
@@ -246,21 +254,6 @@ _RING_UNIT_STATES = frozenset(
     }
 )
 _RING_UNIT_SIZES = frozenset({44, 52})
-_RING_READING_NUMBER_TEXT = {
-    "fontSize": 16,
-    "fontWeight": 700,
-    "maxLines": 1,
-    "flexShrink": 0,
-}
-_RING_READING_UNIT_TEXT = {
-    "fontSize": 10,
-    "fontWeight": 400,
-    "opacity": 0.6,
-    "maxLines": 1,
-    "flexShrink": 0,
-}
-_TIMELINE_UNIT_DEFAULT_COLOR = "#FFE84026"
-_TIMELINE_UNIT_DEFAULT_LINE_COLOR = "#1A000000"
 _COMPACT_ROOT_DIMENSIONS = {
     "2x2": {"width": 160, "height": 160},
     "2x4": {"width": 320, "height": 160},
@@ -473,7 +466,10 @@ def validate_compact_dsl_context(
     )
     normalized_components = _normalize_special_action_units(normalized_components)
     normalized_components = _normalize_2x2_text_palette(normalized_components)
-    normalized_components = _normalize_ring_stack_children(normalized_components)
+    normalized_components = _design_token_normalize_ring_stack_children(
+        normalized_components,
+        component_row_type=ComponentRow,
+    )
     _validate_2x2_icon_round_layout(normalized_components)
     _validate_binding_paths(normalized_components, data_model)
 
@@ -519,7 +515,10 @@ def convert_compact_dsl_to_a2ui(
     )
     normalized_components = _normalize_special_action_units(normalized_components)
     normalized_components = _normalize_2x2_text_palette(normalized_components)
-    normalized_components = _normalize_ring_stack_children(normalized_components)
+    normalized_components = _design_token_normalize_ring_stack_children(
+        normalized_components,
+        component_row_type=ComponentRow,
+    )
     _validate_2x2_icon_round_layout(normalized_components)
     _validate_binding_paths(normalized_components, data_model)
 
@@ -714,72 +713,6 @@ def _action_style_for_root_gradient(
     if action_ink is None or action_background is None:
         return None
     return action_ink, action_background
-
-
-def _normalize_ring_stack_children(
-    components: list[ComponentRow],
-) -> list[ComponentRow]:
-    component_types = {
-        component.component_id: component.component_type
-        for component in components
-    }
-    ring_center_ids: set[str] = set()
-    normalized: list[ComponentRow] = []
-    for component in components:
-        if component.component_type != "Stack":
-            normalized.append(_normalize_ring_center_component(component, ring_center_ids))
-            continue
-        children = list(component.children)
-        progress_ids = [
-            child for child in children if component_types.get(child) == "Progress"
-        ]
-        image_ids = [
-            child for child in children if component_types.get(child) == "Image"
-        ]
-        text_ids = [
-            child for child in children if component_types.get(child) == "Text"
-        ]
-        center_ids = image_ids + text_ids
-        if not progress_ids or not center_ids:
-            normalized.append(component)
-            continue
-        reordered_ids = set(progress_ids)
-        reordered_ids.update(center_ids)
-        remaining_ids = [
-            child
-            for child in children
-            if child not in reordered_ids
-        ]
-        ring_center_ids.update(center_ids)
-        normalized.append(
-            ComponentRow(
-                component.component_id,
-                component.component_type,
-                component.props,
-                tuple(progress_ids + center_ids + remaining_ids),
-            )
-        )
-    return normalized
-
-
-def _normalize_ring_center_component(
-    component: ComponentRow,
-    ring_center_ids: set[str],
-) -> ComponentRow:
-    if component.component_id not in ring_center_ids:
-        return component
-    props = copy.deepcopy(component.props)
-    if component.component_type == "Image":
-        props["width"] = 24
-        props["height"] = 24
-    if component.component_type == "Text":
-        props["fontSize"] = 16
-    return ComponentRow(
-        component.component_id,
-        component.component_type,
-        props,
-        component.children,
-    )
 
 
 def _root_gradient_color_set(components: list[ComponentRow]) -> frozenset[str] | None:
@@ -1022,8 +955,10 @@ def _parse_compact_rows(compact_dsl: str) -> list[CompactRow]:
     _validate_button_image_children(rows)
     visible_rows = _drop_empty_image_components(rows)
     ordered_rows = _canonicalize_component_order(visible_rows)
-    expanded_ring_rows = _expand_ring_units(ordered_rows)
-    return _expand_timeline_units(expanded_ring_rows)
+    return _design_token_expand_high_level_components(
+        ordered_rows,
+        component_row_type=ComponentRow,
+    )
 
 
 def _repair_model_generated_component_tree_values(
@@ -1185,284 +1120,6 @@ def _ring_center_reading_fits(preview: Any) -> bool:
     return False
 
 
-def _expand_ring_units(rows: list[CompactRow]) -> list[CompactRow]:
-    expanded_rows: list[CompactRow] = []
-    for row in rows:
-        if not isinstance(row, ComponentRow) or row.component_type != "RingUnit":
-            expanded_rows.append(row)
-            continue
-        expanded_rows.extend(_expand_ring_unit(row))
-    return expanded_rows
-
-
-def _expand_ring_unit(component: ComponentRow) -> list[ComponentRow]:
-    state = component.props["state"]
-    size = component.props["size"]
-    ring_bar = _ring_unit_bar(component.component_id, component.props)
-    if state in _RING_UNIT_CENTER_ICON_STATES:
-        return _expand_ring_without_reading(component, ring_bar, size)
-    if state in _RING_UNIT_CENTER_TEXT_STATES:
-        return _expand_ring_center_reading(component, ring_bar, size)
-    return _expand_ring_with_reading(component, ring_bar, size)
-
-
-def _expand_ring_without_reading(
-    component: ComponentRow,
-    ring_bar: ComponentRow,
-    size: int,
-) -> list[ComponentRow]:
-    children = [ring_bar.component_id]
-    rows = [
-        ComponentRow(
-            component.component_id,
-            "Stack",
-            _ring_stack_props(size),
-            tuple(children),
-        ),
-        ring_bar,
-    ]
-    center_icon = component.props.get("centerIcon")
-    if center_icon is None:
-        return rows
-    icon = _ring_center_icon(component.component_id, center_icon, size)
-    children.append(icon.component_id)
-    rows[0] = ComponentRow(
-        rows[0].component_id,
-        rows[0].component_type,
-        rows[0].props,
-        tuple(children),
-    )
-    rows.append(icon)
-    return rows
-
-
-def _expand_ring_center_reading(
-    component: ComponentRow,
-    ring_bar: ComponentRow,
-    size: int,
-) -> list[ComponentRow]:
-    reading_id = _ring_child_id(component.component_id, "center_reading")
-    rows = [
-        ComponentRow(
-            component.component_id,
-            "Stack",
-            _ring_stack_props(size),
-            (ring_bar.component_id, reading_id),
-        ),
-        ring_bar,
-    ]
-    rows.extend(
-        _ring_reading_rows(
-            reading_id,
-            component.props["reading"],
-            id_prefix=component.component_id,
-            font_color=component.props.get("color"),
-        )
-    )
-    return rows
-
-
-def _expand_ring_with_reading(
-    component: ComponentRow,
-    ring_bar: ComponentRow,
-    size: int,
-) -> list[ComponentRow]:
-    stack_id = _ring_child_id(component.component_id, "ring_stack")
-    reading_id = _ring_child_id(component.component_id, "reading_below")
-    stack_children = [ring_bar.component_id]
-    rows = [
-        ComponentRow(
-            component.component_id,
-            "Column",
-            {"itemMargin": 4, "alignItems": "center", "flexShrink": 0},
-            (stack_id, reading_id),
-        ),
-        ComponentRow(
-            stack_id,
-            "Stack",
-            _ring_stack_props(size),
-            tuple(stack_children),
-        ),
-        ring_bar,
-    ]
-    center_icon = component.props.get("centerIcon")
-    if center_icon is not None:
-        icon = _ring_center_icon(component.component_id, center_icon, size)
-        stack_children.append(icon.component_id)
-        rows[1] = ComponentRow(
-            rows[1].component_id,
-            rows[1].component_type,
-            rows[1].props,
-            tuple(stack_children),
-        )
-        rows.append(icon)
-    rows.extend(
-        _ring_reading_rows(
-            reading_id,
-            component.props["reading"],
-            id_prefix=component.component_id,
-            font_color=component.props.get("color"),
-        )
-    )
-    return rows
-
-
-def _ring_unit_bar(component_id: str, props: dict[str, Any]) -> ComponentRow:
-    bar_props = {
-        "design": "ring",
-        "width": "matchParent",
-        "height": "matchParent",
-        "value": copy.deepcopy(props["value"]),
-        "total": copy.deepcopy(props["total"]),
-    }
-    for color_name in ("color", "backgroundColor"):
-        if color_name in props:
-            bar_props[color_name] = copy.deepcopy(props[color_name])
-    return ComponentRow(
-        _ring_child_id(component_id, "ring_bar"),
-        "Progress",
-        bar_props,
-    )
-
-
-def _ring_stack_props(size: int) -> dict[str, Any]:
-    return {
-        "width": size,
-        "height": size,
-        "alignContent": "center",
-        "flexShrink": 0,
-    }
-
-
-def _ring_center_icon(
-    component_id: str,
-    source: str,
-    size: int,
-) -> ComponentRow:
-    icon_size = 24 if size >= 52 else 20
-    return ComponentRow(
-        _ring_child_id(component_id, "center_icon"),
-        "Image",
-        {
-            "src": source,
-            "width": icon_size,
-            "height": icon_size,
-            "flexShrink": 0,
-        },
-    )
-
-
-def _ring_reading_rows(
-    reading_id: str,
-    reading: dict[str, Any],
-    *,
-    id_prefix: str,
-    font_color: Any = None,
-) -> list[ComponentRow]:
-    content = {"path": reading["path"]}
-    unit = reading.get("unit")
-    number_props = {"content": content, **copy.deepcopy(_RING_READING_NUMBER_TEXT)}
-    unit_props = {"content": unit, **copy.deepcopy(_RING_READING_UNIT_TEXT)}
-    if isinstance(font_color, str) and font_color:
-        number_props["fontColor"] = font_color
-        unit_props["fontColor"] = font_color
-    if unit is None or unit == "":
-        return [
-            ComponentRow(
-                reading_id,
-                "Text",
-                number_props,
-            )
-        ]
-
-    num_id = _ring_child_id(id_prefix, "reading_num")
-    unit_id = _ring_child_id(id_prefix, "reading_unit")
-    return [
-        ComponentRow(
-            reading_id,
-            "Row",
-            {"alignItems": "bottom", "flexShrink": 0, "itemMargin": 0},
-            (num_id, unit_id),
-        ),
-        ComponentRow(
-            num_id,
-            "Text",
-            number_props,
-        ),
-        ComponentRow(
-            unit_id,
-            "Text",
-            unit_props,
-        ),
-    ]
-
-
-def _ring_child_id(component_id: str, suffix: str) -> str:
-    return f"{component_id}_{suffix}"
-
-
-def _expand_timeline_units(rows: list[CompactRow]) -> list[CompactRow]:
-    expanded_rows: list[CompactRow] = []
-    for row in rows:
-        if not isinstance(row, ComponentRow) or row.component_type != "TimelineUnit":
-            expanded_rows.append(row)
-            continue
-        expanded_rows.extend(_expand_timeline_unit(row))
-    return expanded_rows
-
-
-def _expand_timeline_unit(component: ComponentRow) -> list[ComponentRow]:
-    height = _numeric_prop(component.props.get("height"), default=68)
-    line_height = max(height - 16, 1)
-    color = component.props.get("color", _TIMELINE_UNIT_DEFAULT_COLOR)
-    line_color = component.props.get(
-        "lineColor",
-        _TIMELINE_UNIT_DEFAULT_LINE_COLOR,
-    )
-    dot_id = f"{component.component_id}_dot"
-    line_id = f"{component.component_id}_line"
-    return [
-        ComponentRow(
-            component.component_id,
-            "Column",
-            {
-                "width": component.props.get("width", 16),
-                "height": height,
-                "alignItems": "center",
-                "justifyContent": "start",
-                "flexShrink": component.props.get("flexShrink", 0),
-            },
-            (dot_id, line_id),
-        ),
-        ComponentRow(
-            dot_id,
-            "Text",
-            {
-                "content": "",
-                "width": 14,
-                "height": 14,
-                "borderRadius": 7,
-                "borderWidth": 4,
-                "borderColor": color,
-                "backgroundColor": "#00FFFFFF",
-                "flexShrink": 0,
-            },
-        ),
-        ComponentRow(
-            line_id,
-            "Divider",
-            {
-                "width": 1,
-                "height": line_height,
-                "vertical": True,
-                "color": line_color,
-                "strokeWidth": 1,
-                "flexShrink": 0,
-            },
-        ),
-    ]
-
-
 def _normalize_2x2_components(
     components: list[ComponentRow],
     data_model: dict[str, Any] | None = None,
@@ -1483,21 +1140,24 @@ def _normalize_2x2_components(
         normalized_bottom_visuals,
         data_model,
     )
+    contracted_skeletons = _apply_2x2_gold_skeleton_contracts(metric_texts)
 
     # Layout policies below are intentionally narrow. Prefer deleting or
     # weakening these before changing protocol validation.
-    flattened_content = _flatten_2x2_content_panels(metric_texts)
+    flattened_content = _flatten_2x2_content_panels(contracted_skeletons)
     fixed_weather = _normalize_weather_fixed_layout(flattened_content)
     compact_spacing = _normalize_2x2_gold_spacing(fixed_weather)
     compact_meetings = _compact_meeting_action_layout(compact_spacing)
     compact_app_usage = _compact_app_usage_layout(compact_meetings)
-    text_pair_centered = _normalize_2x2_text_pair_centered_layout(compact_app_usage)
+    single_prominent = _normalize_single_prominent_content_line(compact_app_usage)
+    text_pair_centered = _normalize_2x2_text_pair_centered_layout(single_prominent)
     positioned_actions = _right_align_root_icon_round_actions(text_pair_centered)
 
     # Final typography pass: cap unsafe non-numeric hero text and align rows.
     compact_text = _cap_non_numeric_hero_text(positioned_actions, data_model)
     weather_units = _normalize_weather_temperature_units(compact_text, data_model)
-    bottom_aligned = _bottom_align_text_rows(weather_units)
+    semantic_units = _normalize_metric_unit_semantics(weather_units, data_model)
+    bottom_aligned = _bottom_align_text_rows(semantic_units)
     return _normalize_value_row_text_widths(bottom_aligned, data_model)
 
 
@@ -1516,6 +1176,10 @@ def _normalize_2x2_gold_spacing(
     """Apply fixed 2x2 gold spacing that should not be model-controlled."""
     title_icon_ids = _title_area_icon_ids(components)
     has_bottom_ring = _has_bottom_ring_image_stack(components)
+    components_by_id = {
+        component.component_id: component
+        for component in components
+    }
     replacements: dict[str, dict[str, Any]] = {}
     for component in components:
         props = copy.deepcopy(component.props)
@@ -1525,7 +1189,7 @@ def _normalize_2x2_gold_spacing(
             props["itemMargin"] = 8
             props["justifyContent"] = "start"
         elif component_id == "title_area" and component.component_type == "Row":
-            props["width"] = 136
+            props["width"] = _CARD_2X2_INNER_SIZE
             props["height"] = _TITLE_ICON_SIZE
             props["alignItems"] = "center"
             props["justifyContent"] = (
@@ -1545,9 +1209,13 @@ def _normalize_2x2_gold_spacing(
         elif component_id in {"bottom_area", "bottom_row"} and (
             _has_icon_round_descendant(component, components)
         ):
-            props["height"] = max(
-                _numeric_prop(props.get("height"), default=_ICON_ROUND_SIZE),
-                _ICON_ROUND_SIZE,
+            props["height"] = (
+                _BOTTOM_RING_ACTION_AREA_HEIGHT
+                if _row_has_ring_image_stack_child(component, components_by_id)
+                else max(
+                    _numeric_prop(props.get("height"), default=_ICON_ROUND_SIZE),
+                    _ICON_ROUND_SIZE,
+                )
             )
             props["alignItems"] = "bottom"
             props["justifyContent"] = (
@@ -1572,6 +1240,105 @@ def _normalize_2x2_gold_spacing(
     return _replace_component_props(components, replacements)
 
 
+def _apply_2x2_gold_skeleton_contracts(
+    components: list[ComponentRow],
+) -> list[ComponentRow]:
+    """Apply code-owned contracts for fixed 2x2 gold skeletons.
+
+    Prompt examples are only retrieval references. Once the model chooses a
+    known skeleton shape, the converter owns dimensions and slots so critical
+    layout cannot drift across generations.
+    """
+    components = _apply_bottom_ring_action_skeleton_contract(components)
+    return components
+
+
+def _apply_bottom_ring_action_skeleton_contract(
+    components: list[ComponentRow],
+) -> list[ComponentRow]:
+    """Lock Want/q9/A03 bottom-ring + right icon-round geometry."""
+    components_by_id = {
+        component.component_id: component
+        for component in components
+    }
+    bottom_rows = [
+        component
+        for component in components
+        if component.component_id in {"bottom_area", "bottom_row"}
+        and component.component_type == "Row"
+        and _row_has_ring_image_stack_child(component, components_by_id)
+        and _has_icon_round_descendant(component, components)
+    ]
+    if not bottom_rows:
+        return components
+
+    bottom_row_ids = {component.component_id for component in bottom_rows}
+    ring_stack_ids = {
+        child_id
+        for bottom_row in bottom_rows
+        for child_id in bottom_row.children
+        if _subtree_has_ring_image_stack(child_id, components_by_id)
+    }
+    replacements: dict[str, dict[str, Any]] = {}
+    for component in components:
+        props = copy.deepcopy(component.props)
+        component_id = component.component_id
+
+        if component_id == "root" and component.component_type == "Column":
+            props["padding"] = 12
+            props["itemMargin"] = 8
+            props["justifyContent"] = "start"
+        elif component_id == "title_area" and component.component_type == "Row":
+            props["width"] = _CARD_2X2_INNER_SIZE
+            props["height"] = _TITLE_ICON_SIZE
+            props["alignItems"] = "center"
+            props["flexShrink"] = 0
+        elif component_id == "content_area" and component.component_type == "Column":
+            props["width"] = _CARD_2X2_INNER_SIZE
+            props["layoutWeight"] = 1
+            props["justifyContent"] = props.get("justifyContent", "center")
+            props["alignItems"] = "start"
+            props["itemMargin"] = 4
+            props["flexShrink"] = 1
+        elif component_id in bottom_row_ids:
+            props["width"] = _CARD_2X2_INNER_SIZE
+            props["height"] = _BOTTOM_RING_ACTION_AREA_HEIGHT
+            props["itemMargin"] = 8
+            props["justifyContent"] = (
+                "end" if len(component.children) == 1 else "spaceBetween"
+            )
+            props["alignItems"] = "bottom"
+            props["flexShrink"] = 0
+        elif component_id in ring_stack_ids:
+            if component.component_type == "Stack":
+                props["width"] = _BOTTOM_RING_ACTION_AREA_HEIGHT
+                props["height"] = _BOTTOM_RING_ACTION_AREA_HEIGHT
+                props["alignContent"] = "center"
+                props["flexShrink"] = 0
+        elif component_id == "action_area" and _has_single_icon_round_child(
+            component,
+            components,
+        ):
+            props["width"] = _ICON_ROUND_SIZE
+            props["height"] = _ICON_ROUND_SIZE
+            props["flexShrink"] = 0
+
+        if props != component.props:
+            replacements[component_id] = props
+
+    return _replace_component_props(components, replacements)
+
+
+def _row_has_ring_image_stack_child(
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+) -> bool:
+    return any(
+        _subtree_has_ring_image_stack(child_id, components_by_id)
+        for child_id in component.children
+    )
+
+
 def _has_bottom_ring_image_stack(components: list[ComponentRow]) -> bool:
     components_by_id = {
         component.component_id: component
@@ -1579,10 +1346,7 @@ def _has_bottom_ring_image_stack(components: list[ComponentRow]) -> bool:
     }
     return any(
         component.component_id in {"bottom_area", "bottom_row"}
-        and any(
-            _subtree_has_ring_image_stack(child_id, components_by_id)
-            for child_id in component.children
-        )
+        and _row_has_ring_image_stack_child(component, components_by_id)
         for component in components
     )
 
@@ -1759,6 +1523,183 @@ def _compact_app_usage_layout(
         if props != component.props:
             replacements[component_id] = props
     return _replace_component_props(components, replacements)
+
+
+def _normalize_single_prominent_content_line(
+    components: list[ComponentRow],
+) -> list[ComponentRow]:
+    """With a bottom CTA, only one content row may use hero-size typography."""
+    components_by_id = {
+        component.component_id: component
+        for component in components
+    }
+    content_area = components_by_id.get("content_area")
+    if content_area is None or content_area.component_type != "Column":
+        return components
+    if not _has_bottom_capsule_action(components_by_id):
+        return components
+
+    prominent_children = [
+        child_id
+        for child_id in content_area.children
+        if _is_prominent_content_child(child_id, components_by_id)
+    ]
+    if len(prominent_children) <= 1:
+        return components
+
+    keep_id = next(
+        (
+            child_id
+            for child_id in prominent_children
+            if _is_metric_content_child(child_id, components_by_id)
+        ),
+        prominent_children[0],
+    )
+    replacements: dict[str, dict[str, Any]] = {}
+    content_props = copy.deepcopy(content_area.props)
+    if len(content_area.children) >= 3:
+        content_props["itemMargin"] = min(
+            _numeric_prop(content_props.get("itemMargin"), default=2),
+            2,
+        )
+    else:
+        content_props["itemMargin"] = min(
+            _numeric_prop(content_props.get("itemMargin"), default=4),
+            4,
+        )
+    content_props["justifyContent"] = "center"
+    content_props["alignItems"] = "start"
+    replacements["content_area"] = content_props
+
+    for child_id in prominent_children:
+        if child_id == keep_id:
+            _compact_kept_metric_child(child_id, components_by_id, replacements)
+            continue
+        _downgrade_content_child_typography(child_id, components_by_id, replacements)
+
+    return _replace_component_props(components, replacements)
+
+
+def _has_bottom_capsule_action(components_by_id: dict[str, ComponentRow]) -> bool:
+    bottom = components_by_id.get("bottom_area") or components_by_id.get("action_area")
+    if bottom is None:
+        return False
+    return _subtree_has_capsule_action(bottom.component_id, components_by_id)
+
+
+def _subtree_has_capsule_action(
+    component_id: str,
+    components_by_id: dict[str, ComponentRow],
+) -> bool:
+    component = components_by_id.get(component_id)
+    if component is None:
+        return False
+    if (
+        component.component_type in {"ActionUnit", "Button", "Row"}
+        and component.props.get("state") == "capsule"
+    ):
+        return True
+    if component.component_type == "Button":
+        return True
+    return any(
+        _subtree_has_capsule_action(child_id, components_by_id)
+        for child_id in component.children
+    )
+
+
+def _is_prominent_content_child(
+    child_id: str,
+    components_by_id: dict[str, ComponentRow],
+) -> bool:
+    component = components_by_id.get(child_id)
+    if component is None:
+        return False
+    if component.component_type == "Text":
+        return _numeric_prop(component.props.get("fontSize"), default=0) >= 20
+    if component.component_type == "Row":
+        return any(
+            child.component_type == "Text"
+            and _numeric_prop(child.props.get("fontSize"), default=0) >= 20
+            for text_id in component.children
+            if (child := components_by_id.get(text_id)) is not None
+        )
+    return False
+
+
+def _is_metric_content_child(
+    child_id: str,
+    components_by_id: dict[str, ComponentRow],
+) -> bool:
+    component = components_by_id.get(child_id)
+    if component is None:
+        return False
+    if component.component_type == "Row" and _is_metric_row_id(component.component_id):
+        return True
+    return component.component_type == "Text" and _is_numeric_hero_preview(
+        component.props.get("content"),
+    )
+
+
+def _compact_kept_metric_child(
+    child_id: str,
+    components_by_id: dict[str, ComponentRow],
+    replacements: dict[str, dict[str, Any]],
+) -> None:
+    component = components_by_id.get(child_id)
+    if component is None or component.component_type != "Row":
+        return
+    props = copy.deepcopy(component.props)
+    props["height"] = min(_numeric_prop(props.get("height"), default=28), 28)
+    props["alignItems"] = "bottom"
+    props["justifyContent"] = "start"
+    props["itemMargin"] = min(_numeric_prop(props.get("itemMargin"), default=1), 1)
+    replacements[child_id] = props
+    for text_id in component.children:
+        text = components_by_id.get(text_id)
+        if text is None or text.component_type != "Text":
+            continue
+        text_props = copy.deepcopy(text.props)
+        font_size = _numeric_prop(text_props.get("fontSize"), default=0)
+        if font_size >= 24:
+            text_props["fontSize"] = min(font_size, 24)
+            if "height" in text_props:
+                text_props["height"] = min(
+                    _numeric_prop(text_props.get("height"), default=28),
+                    28,
+                )
+        elif font_size >= 14:
+            text_props["fontSize"] = min(font_size, 12)
+            text_props["padding"] = {"bottom": 2}
+        replacements[text_id] = text_props
+
+
+def _downgrade_content_child_typography(
+    child_id: str,
+    components_by_id: dict[str, ComponentRow],
+    replacements: dict[str, dict[str, Any]],
+) -> None:
+    component = components_by_id.get(child_id)
+    if component is None:
+        return
+    if component.component_type == "Text":
+        props = copy.deepcopy(component.props)
+        props["fontSize"] = min(_numeric_prop(props.get("fontSize"), default=14), 14)
+        props["fontWeight"] = min(_numeric_prop(props.get("fontWeight"), default=600), 600)
+        props["height"] = min(_numeric_prop(props.get("height"), default=18), 18)
+        props["maxLines"] = 1
+        replacements[child_id] = props
+        return
+    if component.component_type != "Row":
+        return
+    for text_id in component.children:
+        text = components_by_id.get(text_id)
+        if text is None or text.component_type != "Text":
+            continue
+        props = copy.deepcopy(text.props)
+        props["fontSize"] = min(_numeric_prop(props.get("fontSize"), default=14), 14)
+        props["fontWeight"] = min(_numeric_prop(props.get("fontWeight"), default=600), 600)
+        props["height"] = min(_numeric_prop(props.get("height"), default=18), 18)
+        replacements[text_id] = props
 
 
 def _normalize_2x2_text_pair_centered_layout(
@@ -2125,6 +2066,72 @@ def _is_temperature_unit_preview(value: Any) -> bool:
     return value.strip() in {"°", "℃", "°C", "°c"}
 
 
+def _normalize_metric_unit_semantics(
+    components: list[ComponentRow],
+    data_model: dict[str, Any],
+) -> list[ComponentRow]:
+    """Keep metric unit slots for real units, not status or description text."""
+    components_by_id = {
+        component.component_id: component
+        for component in components
+    }
+    child_updates: dict[str, tuple[str, ...]] = {}
+    replacements: dict[str, dict[str, Any]] = {}
+    removed_ids: set[str] = set()
+
+    for component in components:
+        if component.component_type != "Row" or not _is_metric_row_id(
+            component.component_id,
+        ):
+            continue
+        direct_text_ids = [
+            child_id
+            for child_id in component.children
+            if components_by_id.get(child_id) is not None
+            and components_by_id[child_id].component_type == "Text"
+        ]
+        if len(direct_text_ids) < 2:
+            continue
+        unit_id = direct_text_ids[1]
+        unit = components_by_id[unit_id]
+        preview = _text_component_preview(unit.props.get("content"), data_model)
+        if preview is None:
+            preview = unit.props.get("content")
+        if _is_metric_unit_value(preview):
+            continue
+        sanitized = _sanitize_metric_unit_value(preview)
+        if sanitized:
+            props = copy.deepcopy(unit.props)
+            props["content"] = sanitized
+            replacements[unit_id] = props
+            continue
+        child_updates[component.component_id] = tuple(
+            child_id for child_id in component.children if child_id != unit_id
+        )
+        removed_ids.add(unit_id)
+
+    if not child_updates and not replacements:
+        return components
+    return _replace_component_props(
+        components,
+        replacements,
+        child_updates=child_updates,
+        removed_ids=removed_ids,
+    )
+
+
+def _sanitize_metric_unit_value(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    for unit in sorted(_METRIC_UNIT_VALUES, key=len, reverse=True):
+        if normalized == unit:
+            return unit
+        if normalized.startswith(unit) and normalized[len(unit):].strip():
+            return unit
+    return None
+
+
 def _is_prominent_object_text(component_id: str, font_size: float) -> bool:
     if font_size < 22:
         return False
@@ -2204,14 +2211,12 @@ def _normalize_value_row_text_widths(
     }
     metric_pairs_by_row: dict[str, list[tuple[str, str]]] = {}
     metric_row_ids: set[str] = set()
+    single_metric_text_ids: set[str] = set()
     for component in components:
         normalized_id = component.component_id.lower()
         if component.component_type != "Row":
             continue
-        is_metric_row = any(
-            token in normalized_id
-            for token in ("value_row", "metric_row", "duration_row", "temperature_row")
-        )
+        is_metric_row = _is_metric_row_id(normalized_id)
         if is_metric_row:
             metric_row_ids.add(component.component_id)
         direct_text_ids = [
@@ -2225,20 +2230,26 @@ def _normalize_value_row_text_widths(
             metric_pairs_by_row[component.component_id] = metric_pairs or [
                 (direct_text_ids[0], direct_text_ids[1])
             ]
+        elif (
+            is_metric_row
+            and len(direct_text_ids) == 1
+            and _looks_like_metric_number(components_by_id[direct_text_ids[0]])
+        ):
+            single_metric_text_ids.add(direct_text_ids[0])
 
-    if not metric_pairs_by_row and not metric_row_ids:
+    if not metric_pairs_by_row and not metric_row_ids and not single_metric_text_ids:
         return components
     value_text_ids = {
         text_id
         for pairs in metric_pairs_by_row.values()
         for pair in pairs
         for text_id in pair
-    }
+    } | single_metric_text_ids
     number_text_ids = {
         number_id
         for pairs in metric_pairs_by_row.values()
         for number_id, _unit_id in pairs
-    }
+    } | single_metric_text_ids
     unit_text_ids = {
         unit_id
         for pairs in metric_pairs_by_row.values()
@@ -2402,7 +2413,20 @@ def _looks_like_metric_unit(component: ComponentRow) -> bool:
 def _is_metric_unit_value(value: Any) -> bool:
     if not isinstance(value, str):
         return False
-    return value.strip() in {"%", "°", "°C", "℃", "分", "分钟", "小时", "时", "天", "步"}
+    return value.strip() in _METRIC_UNIT_VALUES
+
+
+_METRIC_UNIT_VALUES = frozenset(
+    {"%", "°", "°C", "℃", "分", "分钟", "小时", "时", "天", "步", "GB", "MB"}
+)
+
+
+def _is_metric_row_id(component_id: str) -> bool:
+    normalized_id = component_id.lower()
+    return any(
+        token in normalized_id
+        for token in ("value_row", "metric_row", "duration_row", "temperature_row")
+    )
 
 
 def _metric_number_text_width(
@@ -2418,7 +2442,9 @@ def _metric_number_text_width(
     length = max(len(digits), 2)
     if "." in text:
         length += 1
-    return max(34, min(82, int(font_size * length * 0.62) + 4))
+    suffix = re.sub(r"[\d\s.+-]", "", text)
+    suffix_width = font_size * len(suffix) * 0.45
+    return max(34, min(82, int(font_size * length * 0.62 + suffix_width) + 6))
 
 
 def _metric_unit_text_width(

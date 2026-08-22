@@ -10,11 +10,31 @@ from collections.abc import Callable
 from typing import Any
 
 A2UI_ICON_BUTTON_LABEL = "\u200B"
+CARD_2X2_INNER_SIZE = 136
 ICON_ROUND_SIZE = 40
 ICON_ROUND_ICON_SIZE = 20
 TITLE_ICON_SIZE = 20
+BOTTOM_RING_ACTION_AREA_HEIGHT = 52
 CAPSULE_ICON_SIZE = 18
 CAPSULE_ICON_TEXT_GAP = 12
+
+_RING_UNIT_CENTER_ICON_STATES = frozenset({"center-icon", "without-reading"})
+_RING_UNIT_CENTER_TEXT_STATES = frozenset({"center-text", "center-reading"})
+_RING_READING_NUMBER_TEXT = {
+    "fontSize": 16,
+    "fontWeight": 700,
+    "maxLines": 1,
+    "flexShrink": 0,
+}
+_RING_READING_UNIT_TEXT = {
+    "fontSize": 10,
+    "fontWeight": 400,
+    "opacity": 0.6,
+    "maxLines": 1,
+    "flexShrink": 0,
+}
+_TIMELINE_UNIT_DEFAULT_COLOR = "#FFE84026"
+_TIMELINE_UNIT_DEFAULT_LINE_COLOR = "#1A000000"
 
 
 class DesignTokenConversionError(ValueError):
@@ -565,6 +585,425 @@ def expand_component_design(component: Any) -> dict[str, Any]:
     for property_name, value in explicit_props.items():
         expanded[property_name] = copy.deepcopy(value)
     return expanded
+
+
+def expand_high_level_components(
+    rows: list[Any],
+    *,
+    component_row_type: Callable[..., Any],
+) -> list[Any]:
+    """Expand high-level Compact DSL components into primitive component rows."""
+    expanded_rows: list[Any] = []
+    for row in rows:
+        component_type = getattr(row, "component_type", None)
+        if component_type == "RingUnit":
+            expanded_rows.extend(
+                _expand_ring_unit(row, component_row_type=component_row_type)
+            )
+            continue
+        if component_type == "TimelineUnit":
+            expanded_rows.extend(
+                _expand_timeline_unit(row, component_row_type=component_row_type)
+            )
+            continue
+        expanded_rows.append(row)
+    return expanded_rows
+
+
+def normalize_ring_stack_children(
+    components: list[Any],
+    *,
+    component_row_type: Callable[..., Any],
+) -> list[Any]:
+    """Normalize explicit Progress-ring stacks and center visual sizing."""
+    component_types = {
+        component.component_id: component.component_type
+        for component in components
+    }
+    ring_center_ids: set[str] = set()
+    normalized: list[Any] = []
+    for component in components:
+        if component.component_type != "Stack":
+            normalized.append(
+                _normalize_ring_center_component(
+                    component,
+                    ring_center_ids,
+                    component_row_type=component_row_type,
+                )
+            )
+            continue
+        children = list(component.children)
+        progress_ids = [
+            child for child in children if component_types.get(child) == "Progress"
+        ]
+        image_ids = [
+            child for child in children if component_types.get(child) == "Image"
+        ]
+        text_ids = [
+            child for child in children if component_types.get(child) == "Text"
+        ]
+        center_ids = image_ids + text_ids
+        if not progress_ids or not center_ids:
+            normalized.append(component)
+            continue
+        reordered_ids = set(progress_ids)
+        reordered_ids.update(center_ids)
+        remaining_ids = [
+            child
+            for child in children
+            if child not in reordered_ids
+        ]
+        ring_center_ids.update(center_ids)
+        normalized.append(
+            component_row_type(
+                component.component_id,
+                component.component_type,
+                component.props,
+                tuple(progress_ids + center_ids + remaining_ids),
+            )
+        )
+    return normalized
+
+
+def _normalize_ring_center_component(
+    component: Any,
+    ring_center_ids: set[str],
+    *,
+    component_row_type: Callable[..., Any],
+) -> Any:
+    if component.component_id not in ring_center_ids:
+        return component
+    props = copy.deepcopy(component.props)
+    if component.component_type == "Image":
+        props["width"] = 24
+        props["height"] = 24
+    if component.component_type == "Text":
+        props["fontSize"] = 16
+    return component_row_type(
+        component.component_id,
+        component.component_type,
+        props,
+        component.children,
+    )
+
+
+def _expand_ring_unit(
+    component: Any,
+    *,
+    component_row_type: Callable[..., Any],
+) -> list[Any]:
+    state = component.props["state"]
+    size = component.props["size"]
+    ring_bar = _ring_unit_bar(
+        component.component_id,
+        component.props,
+        component_row_type=component_row_type,
+    )
+    if state in _RING_UNIT_CENTER_ICON_STATES:
+        return _expand_ring_without_reading(
+            component,
+            ring_bar,
+            size,
+            component_row_type=component_row_type,
+        )
+    if state in _RING_UNIT_CENTER_TEXT_STATES:
+        return _expand_ring_center_reading(
+            component,
+            ring_bar,
+            size,
+            component_row_type=component_row_type,
+        )
+    return _expand_ring_with_reading(
+        component,
+        ring_bar,
+        size,
+        component_row_type=component_row_type,
+    )
+
+
+def _expand_ring_without_reading(
+    component: Any,
+    ring_bar: Any,
+    size: int,
+    *,
+    component_row_type: Callable[..., Any],
+) -> list[Any]:
+    children = [ring_bar.component_id]
+    rows = [
+        component_row_type(
+            component.component_id,
+            "Stack",
+            _ring_stack_props(size),
+            tuple(children),
+        ),
+        ring_bar,
+    ]
+    center_icon = component.props.get("centerIcon")
+    if center_icon is None:
+        return rows
+    icon = _ring_center_icon(
+        component.component_id,
+        center_icon,
+        size,
+        component_row_type=component_row_type,
+    )
+    children.append(icon.component_id)
+    rows[0] = component_row_type(
+        rows[0].component_id,
+        rows[0].component_type,
+        rows[0].props,
+        tuple(children),
+    )
+    rows.append(icon)
+    return rows
+
+
+def _expand_ring_center_reading(
+    component: Any,
+    ring_bar: Any,
+    size: int,
+    *,
+    component_row_type: Callable[..., Any],
+) -> list[Any]:
+    reading_id = _ring_child_id(component.component_id, "center_reading")
+    rows = [
+        component_row_type(
+            component.component_id,
+            "Stack",
+            _ring_stack_props(size),
+            (ring_bar.component_id, reading_id),
+        ),
+        ring_bar,
+    ]
+    rows.extend(
+        _ring_reading_rows(
+            reading_id,
+            component.props["reading"],
+            id_prefix=component.component_id,
+            font_color=component.props.get("color"),
+            component_row_type=component_row_type,
+        )
+    )
+    return rows
+
+
+def _expand_ring_with_reading(
+    component: Any,
+    ring_bar: Any,
+    size: int,
+    *,
+    component_row_type: Callable[..., Any],
+) -> list[Any]:
+    stack_id = _ring_child_id(component.component_id, "ring_stack")
+    reading_id = _ring_child_id(component.component_id, "reading_below")
+    stack_children = [ring_bar.component_id]
+    rows = [
+        component_row_type(
+            component.component_id,
+            "Column",
+            {"itemMargin": 4, "alignItems": "center", "flexShrink": 0},
+            (stack_id, reading_id),
+        ),
+        component_row_type(
+            stack_id,
+            "Stack",
+            _ring_stack_props(size),
+            tuple(stack_children),
+        ),
+        ring_bar,
+    ]
+    center_icon = component.props.get("centerIcon")
+    if center_icon is not None:
+        icon = _ring_center_icon(
+            component.component_id,
+            center_icon,
+            size,
+            component_row_type=component_row_type,
+        )
+        stack_children.append(icon.component_id)
+        rows[1] = component_row_type(
+            rows[1].component_id,
+            rows[1].component_type,
+            rows[1].props,
+            tuple(stack_children),
+        )
+        rows.append(icon)
+    rows.extend(
+        _ring_reading_rows(
+            reading_id,
+            component.props["reading"],
+            id_prefix=component.component_id,
+            font_color=component.props.get("color"),
+            component_row_type=component_row_type,
+        )
+    )
+    return rows
+
+
+def _ring_unit_bar(
+    component_id: str,
+    props: dict[str, Any],
+    *,
+    component_row_type: Callable[..., Any],
+) -> Any:
+    bar_props = {
+        "design": "ring",
+        "width": "matchParent",
+        "height": "matchParent",
+        "value": copy.deepcopy(props["value"]),
+        "total": copy.deepcopy(props["total"]),
+    }
+    for color_name in ("color", "backgroundColor"):
+        if color_name in props:
+            bar_props[color_name] = copy.deepcopy(props[color_name])
+    return component_row_type(
+        _ring_child_id(component_id, "ring_bar"),
+        "Progress",
+        bar_props,
+    )
+
+
+def _ring_stack_props(size: int) -> dict[str, Any]:
+    return {
+        "width": size,
+        "height": size,
+        "alignContent": "center",
+        "flexShrink": 0,
+    }
+
+
+def _ring_center_icon(
+    component_id: str,
+    source: str,
+    size: int,
+    *,
+    component_row_type: Callable[..., Any],
+) -> Any:
+    icon_size = 24 if size >= 52 else 20
+    return component_row_type(
+        _ring_child_id(component_id, "center_icon"),
+        "Image",
+        {
+            "src": source,
+            "width": icon_size,
+            "height": icon_size,
+            "flexShrink": 0,
+        },
+    )
+
+
+def _ring_reading_rows(
+    reading_id: str,
+    reading: dict[str, Any],
+    *,
+    id_prefix: str,
+    component_row_type: Callable[..., Any],
+    font_color: Any = None,
+) -> list[Any]:
+    content = {"path": reading["path"]}
+    unit = reading.get("unit")
+    number_props = {"content": content, **copy.deepcopy(_RING_READING_NUMBER_TEXT)}
+    unit_props = {"content": unit, **copy.deepcopy(_RING_READING_UNIT_TEXT)}
+    if isinstance(font_color, str) and font_color:
+        number_props["fontColor"] = font_color
+        unit_props["fontColor"] = font_color
+    if unit is None or unit == "":
+        return [
+            component_row_type(
+                reading_id,
+                "Text",
+                number_props,
+            )
+        ]
+
+    num_id = _ring_child_id(id_prefix, "reading_num")
+    unit_id = _ring_child_id(id_prefix, "reading_unit")
+    return [
+        component_row_type(
+            reading_id,
+            "Row",
+            {"alignItems": "bottom", "flexShrink": 0, "itemMargin": 0},
+            (num_id, unit_id),
+        ),
+        component_row_type(
+            num_id,
+            "Text",
+            number_props,
+        ),
+        component_row_type(
+            unit_id,
+            "Text",
+            unit_props,
+        ),
+    ]
+
+
+def _ring_child_id(component_id: str, suffix: str) -> str:
+    return f"{component_id}_{suffix}"
+
+
+def _expand_timeline_unit(
+    component: Any,
+    *,
+    component_row_type: Callable[..., Any],
+) -> list[Any]:
+    height = _numeric_prop(component.props.get("height"), default=68)
+    line_height = max(height - 16, 1)
+    color = component.props.get("color", _TIMELINE_UNIT_DEFAULT_COLOR)
+    line_color = component.props.get(
+        "lineColor",
+        _TIMELINE_UNIT_DEFAULT_LINE_COLOR,
+    )
+    dot_id = f"{component.component_id}_dot"
+    line_id = f"{component.component_id}_line"
+    return [
+        component_row_type(
+            component.component_id,
+            "Column",
+            {
+                "width": component.props.get("width", 16),
+                "height": height,
+                "alignItems": "center",
+                "justifyContent": "start",
+                "flexShrink": component.props.get("flexShrink", 0),
+            },
+            (dot_id, line_id),
+        ),
+        component_row_type(
+            dot_id,
+            "Text",
+            {
+                "content": "",
+                "width": 14,
+                "height": 14,
+                "borderRadius": 7,
+                "borderWidth": 4,
+                "borderColor": color,
+                "backgroundColor": "#00FFFFFF",
+                "flexShrink": 0,
+            },
+        ),
+        component_row_type(
+            line_id,
+            "Divider",
+            {
+                "width": 1,
+                "height": line_height,
+                "vertical": True,
+                "color": line_color,
+                "strokeWidth": 1,
+                "flexShrink": 0,
+            },
+        ),
+    ]
+
+
+def _numeric_prop(value: Any, *, default: int) -> int:
+    if isinstance(value, bool):
+        return default
+    if isinstance(value, (int, float)):
+        return int(value)
+    return default
 
 
 def resolve_tokens(

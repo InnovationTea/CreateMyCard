@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import re
 from dataclasses import dataclass
@@ -21,6 +22,22 @@ _REFERENCE_TEMPLATE_2X4_FILE = "REFERENCE_TEMPLATES_2X4.md"
 _DEFAULT_CANDIDATE_COUNT = 3
 _MAX_CANDIDATES = 3
 _MAX_ASSISTANT_CHARS = 2600
+_SKELETON_LOCKED_PROPS = frozenset(
+    {
+        "alignContent",
+        "alignItems",
+        "borderRadius",
+        "clip",
+        "flexShrink",
+        "height",
+        "itemMargin",
+        "justifyContent",
+        "layoutWeight",
+        "margin",
+        "padding",
+        "width",
+    }
+)
 _MARKER_USER = re.compile(r"^(?:#+\s*)?user\s*$", re.IGNORECASE)
 _MARKER_ASSISTANT = re.compile(r"^(?:#+\s*)?assistant\s*$", re.IGNORECASE)
 _LATIN_TOKEN = re.compile(r"[a-z0-9]{2,}", re.IGNORECASE)
@@ -80,27 +97,27 @@ def build_reference_template_system_prefix(
         f"{_MODULE} selected size={task_spec.size} "
         f"candidate_count={len(selected)} source_path={json_for_log(str(path))}"
     )
-    is_2x2 = task_spec.size == "2x2"
+    has_skeleton_contract = task_spec.size in {"2x2", "2x4"}
     blocks = [
         "# 前置参考最优模板\n"
         "以下参考示例由服务端在进入通用 PROMPT 前按当前 TaskSpec 自动选择。"
-        "2x2 候选库只包含 8 个 gold 标准样例，服务端只从这 8 个里推荐 Top 3。"
+        f"{task_spec.size} 候选库只包含 8 个 gold 标准样例，服务端只从这 8 个里推荐 Top 3。"
         + (
-            "【2x2 骨架选择硬约束】：本次生成必须从以下 Top 3 中选择 1 个作为 selectedTemplateId，"
-            "并保持该模板的组件树骨架。允许填充/替换的只有 slot 内容：Text.content、"
+            "【骨架选择硬约束】：本次生成必须从以下 Top 3 中选择 1 个作为 selectedTemplateId，"
+            "并保持该模板的组件树骨架和 lockedProps。允许填充/替换的只有 slot 内容：Text.content、"
             "Image.src/fillColor、ActionUnit.label/icon/onClick/actionInk/actionSurface、"
             "绑定 path、data 行和 root.design。"
             "不得新增布局结构、不得重排 root children、不得把 capsule/icon-round 换位置；"
             "可删除的 optional slot 仅限模板里本来就是可选的标题图标、辅助文本或 action。"
-            if is_2x2
+            if has_skeleton_contract
             else "它们只用于学习相近卡片的信息取舍、层级、布局骨架、动作位置和色彩方向；"
         )
         + "后续 PROMPT 正文、当前 TaskSpec、候选能力、素材和转换器约束优先级更高。"
         "不得复制示例里的旧组件、旧属性、演示事件或当前 TaskSpec 未声明字段。\n"
         "PROMPT 内置 canonical examples 只用于协议合法性，不是风格库。"
         + (
-            "本次 2x2 输出必须先内部选择一个前置骨架，再只做 slot 填充。"
-            if is_2x2
+            f"本次 {task_spec.size} 输出必须先内部选择一个前置骨架，再只做 slot 填充。"
+            if has_skeleton_contract
             else (
                 "本次生成优先参考以下 Top 3；其余 gold few-shot 只作为标准边界，"
                 "不覆盖本次前置推荐。"
@@ -111,7 +128,7 @@ def build_reference_template_system_prefix(
         block_lines = [
             f"## 参考模板 {rank}：{example.title}",
         ]
-        if is_2x2:
+        if has_skeleton_contract:
             template_id = _template_id(example, rank=rank)
             skeleton_contract = _template_skeleton_contract(
                 example,
@@ -393,14 +410,24 @@ def _container_contracts(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         children = row.get("children", [])
         if not children:
             continue
+        locked_props = _locked_container_props(row.get("props", {}))
         containers.append(
             {
                 "id": row["id"],
                 "component": row["component"],
                 "children": children,
+                **({"lockedProps": locked_props} if locked_props else {}),
             }
         )
     return containers[:24]
+
+
+def _locked_container_props(props: dict[str, Any]) -> dict[str, Any]:
+    return {
+        name: copy.deepcopy(value)
+        for name, value in props.items()
+        if name in _SKELETON_LOCKED_PROPS
+    }
 
 
 def _fillable_slot_contracts(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:

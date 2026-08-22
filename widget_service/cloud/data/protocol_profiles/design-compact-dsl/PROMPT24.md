@@ -160,8 +160,8 @@ onClick args 中每个 path 也必须补同路径 data 样例行，即使按钮�
 
 #### TimelineUnit
 
-用于会议、日程、日历安排的左侧空心圆点 + 竖线。所有 2x4 的会议/日程卡都优先用
-`meeting-timeline` 骨架，不再用大号纯时间、玻璃信息托盘、右下 icon 或普通列表块表达主日程。
+协议仍支持左侧空心圆点 + 竖线，但当前 2x4 gold 八骨架不主动使用 `TimelineUnit`。
+会议、日程、日历安排也必须先映射到第九节 8 个 gold 骨架之一，不能回退到旧会议时间线。
 
 ```designcompactdsl
 ["event_timeline","TimelineUnit",{"height":72,"color":"#FFE84026","lineColor":"#1A000000","flexShrink":0}]
@@ -312,7 +312,7 @@ Row 实占高度 = top padding + bottom padding + 最高子项高度
 标题行有 `24x24` 图标时，296vp 标题行推荐 `title_text width:240`、图标 `24`，至少保留 8vp 隔离空间；
 标题文字不得延伸到图标下方。内容指标列的子 Text 宽度不能大于父列宽度，例如父列 54vp 时子 Text 也最多 54vp。
 
-`single-event`、`todo-list`、`event-with-action`、`linear-progress` 允许使用全宽单列，但主内容或背板必须使用
+`todo-list`、`linear-progress` 允许使用全宽单列，但主内容或背板必须使用
 完整的 288/296vp 安全宽度，不能把所有信息挤在左半边后让右半边空白。其它骨架优先使用左右分区，右区放真实的
 辅助指标、状态、时间地点、二级列表、`RingUnit`、`ProgressUnit` 或 `ActionUnit`；没有真实信息时不要编造右区。
 
@@ -326,218 +326,130 @@ Row 实占高度 = top padding + bottom padding + 最高子项高度
 
 ### 高阶布局 token 与组合骨架
 
-高阶布局 token 不是新组件名；输出时仍落到 Row、Column、Text、Image、TimelineUnit、ActionUnit：
+高阶布局 token 不是新组件名；输出时仍落到 Row、Column、Text、Image、RingUnit、ProgressUnit、ActionUnit 等白名单组件。2x4 只能从 8 个 gold 骨架中选择，不允许自由组合出第 9 种布局。
 
-- `TitleBar`：顶部标题栏，24vp 高，包含标题和可选右侧状态 icon；标题 14-16fp。
-- `HeroMetric`：大数字区，数字和单位必须拆到同一个 Row，底部对齐，间距 1-2vp；数字 28-36fp，
-  单位 12-16fp，禁止给数字或单位写过大的固定宽度。
-- `BottomDescription`：底部文字描述，最多两行；多字段用 `" | "` 拼接。
-- `ActionSlot`：按钮区，只能是底部/侧栏 `capsule` 或右下 `icon-round` 二选一。
-- `LeadVisual`：左侧视觉，允许 Image、TimelineUnit、RingUnit、ProgressUnit；不能和按钮图标重复。
-- `DescriptionBlock`：文字说明块，固定为“加粗标题 + 两行小字以内”，标题 14-18fp，小字 10-12fp。
-
-常用组合骨架：
-
-```text
-HeroDescriptionAction:
-TitleBar + HeroMetric + BottomDescription + ActionSlot
-适合睡眠评分、倒计时、步数、天气温度、单个进度值。若 ActionSlot 是 icon-round，
-BottomDescription 与按钮同置底部 Row；若 ActionSlot 是 capsule，按钮必须是独立末尾子项。
-
-IconDescriptionCapsuleAction:
-TitleBar + LeadVisual + DescriptionBlock + capsule
-适合会议/日程、专注模式、设备/设置入口、推荐入口。LeadVisual 是会议时间线时必须用 TimelineUnit；
-不要手写圆点竖线，不要把胶囊按钮塞进描述 Row。
-```
+- `TitleBar`：顶部标题栏，固定使用 12fp 标题，标题区高度 17-20vp；可带一个 16vp 右侧 icon。
+- `TodoList`：标题栏 + 三个 33vp 待办 Row；每项左侧圆形 check，右侧单行任务文本。
+- `LargeRingInfo`：标题栏 + 左侧 92vp RingUnit + 右侧三行说明。
+- `StrongFocusPlan`：强色背景；左侧主数字/进度，右侧半透明说明面板。
+- `SplitTwoColumn`：标题栏 + 左侧主值/描述 + 右侧两个同构信息卡。
+- `PrimaryActionPair`：标题栏 + 左侧主状态 + 右侧两个 tile ActionUnit。
+- `LinearProgressDetail`：标题栏 + ProgressUnit + 底部两个详情背板。
+- `MetricSeries`：标题 + 三个同构指标卡，常用于三项天气/设备指标。
+- `QuadRings`：标题 + 2x2 网格，每项为 40vp RingUnit + 两行文字。
 
 # 九、固定布局骨架路由
 ### 布局类型
 
-只从下面 10 类中选择。不要自由发明复杂布局。
+只从下面 8 类中选择。不要自由发明复杂布局，不要继续使用旧的会议时间线或带底部按钮的旧 2x4 骨架。
 
-#### 1. meeting-timeline / single-event
+#### 1. todo-list
 
-适合：日程、会议、提醒。
-
-结构：
-
-```text
-root Stack
-  content_root Column padding 16 itemMargin 8
-    title_area Row
-    content_area Row
-      event_timeline TimelineUnit
-      event_texts Column
-    action_area Column 可选
-```
-
-内容：
-
-- title：小标题 + 日期/图标。
-- content：左侧 `TimelineUnit`，右侧事件标题 + 时间 + 地点/会议室。
-- 标题区到内容区固定 8vp；有底部按钮时内容区到 action 区用 4vp。
-- 事件标题不要超过 20fp；时间/地点用 14-16fp，避免把会议名或地点放成超大字。
-- 没有操作时不要生成按钮；有操作时按钮放独立 `action_area`。
-
-#### 2. todo-list
-
-适合：待办事项、任务清单。
+适合：待办事项、任务清单、三条同类任务。
 
 结构：
 
 ```text
-content_root Column padding 12 itemMargin 8
-  title_area Row
-  todo_list Column
-    todo_item_1 Row
-    todo_item_2 Row
-    todo_item_3 Row
+root Stack 320x160
+  content_root Column padding 12 itemMargin 4
+    title_area Row width 296 height 17
+    todo_list Column width 296 height 115 itemMargin 8
+      todo_item_1 Row width 296 height 33
+      todo_item_2 Row width 296 height 33
+      todo_item_3 Row width 296 height 33
 ```
 
-每个 item：
+每个 item 固定：圆角 8、浅遮罩背景、左侧 14x14 空心圆、右侧 12fp 单行文字。
 
-- 高度 32。
-- 圆角 8。
-- 浅灰背景。
-- 左侧圆形 check 占位。
-- 右侧单行文字。
+#### 2. large-ring
 
-#### 3. event-with-action
-
-适合：下一日程、会议、操作入口。
+适合：内存、睡眠、百分比、单个占比总览。
 
 结构：
 
 ```text
-content_root Column padding 16 itemMargin 4
-  title_area Row
-  content_area Column height 64
-  action_area Column width 136 height 32
-    cta ActionUnit capsule
+content_root Column padding 12 itemMargin 4
+  title_area Row width 296 height 17
+  content_row Row width 296 height 115 itemMargin 8
+    ring_area Column width 144
+      RingUnit size 92
+    info_area Column width 144 itemMargin 4
 ```
 
-`content_area` 放三行时使用 `24 + 4 + 16 + 4 + 16 = 64`；只有一至两行时才允许使用 48-56。
-按钮靠左或靠右都可以，但必须固定在底部安全区内，不拉满 320 宽卡。
+左侧只放一个大环；右侧最多标题、数值、说明三行。环内读数不要在右侧重复。
 
-#### 4. large-ring
+#### 3. strong-focus
 
-适合：内存占用、睡眠评分、百分比总览。
+适合：运动倒计时、训练计划、强提醒、状态突出。
 
 结构：
 
 ```text
-content_root Row padding 16 itemMargin 16
-  visual_area Column width 112
-    visual_ring RingUnit size 92
-  info_area Column width 160 height 128 itemMargin 4
+content_root Column padding 12 itemMargin 4
+  title_area Row width 296 height 17
+  content_row Row width 296 height 115 itemMargin 8
+    focus_area Column width 144
+    plan_panel Column width 144 height 115
 ```
 
-左侧大环下方最多保留一行说明，不能同时堆“预计可用”和“低于 20% 提醒”。右侧如带 action，使用闭合式：
-`title 20 + gap 4 + main 30 + gap 4 + quality 18 + gap 4 + status 16 + gap 4 + action 32 = 132`；
-padding 12 时右列可用 136vp。环内读数不能在右侧再重复一遍；睡眠卡选择“环内评分”或“环内时长”之一。
+强色背景使用白字；右侧面板使用 15%-20% 白色透明背板。大数字和单位必须在同一 Row 底部对齐。
 
-#### 5. strong-focus
+#### 4. split-two-column
 
-适合：运动倒计时、省电状态、睡眠状态等强情绪卡。
+适合：左主信息 + 右侧两个同构短事项/状态块。
 
 结构：
 
 ```text
-content_root Row padding 12 itemMargin 12
-  focus_area Column width 132
-    title / value / ProgressUnit
-  info_panel Column width 152 height 112
+content_root Column padding 12 itemMargin 4
+  title_area Row width 296 height 17
+  content_row Row width 296 height 115 itemMargin 8
+    left_col Column width 144
+    right_col Column width 144 itemMargin 8
+      side_card_1 Column width 144 height 53.5
+      side_card_2 Column width 144 height 53.5
 ```
 
-强背景可以不用面板；需要说明文字时，右侧使用 15%-20% 白色透明背板，文字用白色。主数字、进度和说明形成
-清晰的左右分区，不把所有文字堆成左对齐通栏。
-浅色 `strong-focus` 的右侧必须使用当前主题色包的 panel，`borderRadius:12`、`padding:12`；训练进度、容量或
-完成度存在真实比例时，在 panel 内加入 8vp 的 `ProgressUnit`，不要退化成四行无背板的普通文字。
+右侧两个卡片必须同尺寸、同色、同结构；不能塞按钮。
 
-#### 6. split-two-column
+#### 5. primary-action-pair
 
-适合：左侧日期或主信息 + 右侧两个日程/状态块。
+适合：同一服务对象下两个并列操作，例如导航/省电、家居双操作。
 
 结构：
 
 ```text
-content_root Row padding 12 itemMargin 12
-  left_col Column width 190
-  right_col Column width 86
+content_root Column padding 12 itemMargin 4
+  title_area Row width 296 height 17
+  content_row Row width 296 height 115 itemMargin 8
+    primary_panel Column width 144
+    action_group Row width 144 itemMargin 8
+      action_1 ActionUnit tile width 68 height 115
+      action_2 ActionUnit tile width 68 height 115
 ```
 
-右侧两个小卡片：
+右侧两个操作必须都有真实事件和匹配图标；没有两个真实事件时不要伪造 tile。
 
-- `width:86`
-- `height:48` 或 `56`
-- `borderRadius:12`
-- 使用当前主题色包的 `panel`，两个小卡保持同色、同尺寸、同结构。
-- 86vp 右栏只用于无按钮的短指标，不能放 `ActionUnit`。
-- 48vp 小卡使用 `padding:6`，内部只能是 `label 14 + gap 2 + value_row 20 = 36`。
-- 动态值和 `%`、`°C` 等单位必须放在同一个 Row，不能把单位作为第三行 Text。
-- 如果需要按钮、三行文字或两行文字再加单位，改用 `132 + 12 + 152` 的宽分栏。
-- “天气 + 日程”优先使用标题下方两个 140/144vp 并列面板，不要纵向堆成天气 48vp 加会议 32vp 的窄条。
+#### 6. linear-progress
 
-#### 7. primary-action-pair
-
-适合：智能家居、导航和同一服务对象下两个并列操作。
-
-结构：
-
-```text
-content_root Row padding 12 itemMargin 12
-  primary_panel Column width 132
-  action_group Row width 152 itemMargin 8
-    action_1 ActionUnit tile width 72 height 112
-    action_2 ActionUnit tile width 72 height 112
-```
-
-左侧必须有主状态或主读数；右侧两个操作必须属于同一服务对象、都有真实事件和匹配图标。没有两个真实事件时改用
-`split-two-column` 或单个 `capsule`，禁止伪造操作。
-
-#### 8. linear-progress
-
-适合：应用时长、今日进度、防沉迷。
+适合：存储、应用时长、进度监控、防沉迷。
 
 结构：
 
 ```text
 content_root Column padding 12 itemMargin 8
-  title_area Row height 24
-  content_area Column height 104 itemMargin 8
-    progress_area ProgressUnit state numeric-single height 48
-    detail_row Row height 48
-      detail_card_1 Column width 144 height 48
-      detail_card_2 Column width 144 height 48
+  title_area Row width 296 height 20
+  content_area Column width 296 height 108 itemMargin 8
+    progress_slot Column height 50
+      ProgressUnit state plain
+    detail_row Row height 50
+      detail_card_1 Column width 144 height 50
+      detail_card_2 Column width 144 height 50
 ```
 
-用 `ProgressUnit`，不要自己写 `Progress`。有两个容量分类或对比值时，进度条下方使用两个同色背板；只有一个
-补充事实时才使用单行 `detail_area`，不要把两项信息散落在卡片两端。
+必须使用 ProgressUnit，不要手写基础 Progress。底部两个详情背板必须同色、同尺寸。
 
-高级组件展开后的真实高度也要计入父容器：`ProgressUnit state:"plain"` 是 36vp，`numeric-single` 是 48vp，
-`numeric-single-caption` 是 74vp。若在 plain 外再放一个 16vp caption，外层 `progress_area` 至少是
-`36 + gap 4 + 16 = 56vp`，禁止只声明 40vp。
-
-如果只使用 `ProgressUnit state:"bar"` 加两条全宽详情 Row，必须使用下面的闭合式，不能让三项都挤在卡片上半部：
-
-```text
-content_area Column height 96 itemMargin 12
-  progress bar 8
-  usage_row Row height 32
-  sleep_row Row height 32
-```
-
-即 `8 + 12 + 32 + 12 + 32 = 96`；配合 `title 24 + gap 8 + content 96 = 128`，在 padding 12 的
-136vp 安全区内保留 8vp 底部呼吸空间。两条 Row 内文字垂直居中，不要继续使用 `height:20` 的紧缩行。
-
-进度卡按补充信息数量选择状态：
-
-- 没有其它详情：可以使用 `numeric-single-caption`。
-- 还要显示 1-2 行详情：必须使用 `numeric-single`，不要再生成 caption；固定
-  `title 24 + gap 8 + content 104`，content 内使用 `progress 48 + gap 8 + detail 20 + gap 8 + detail 20 = 104`。
-- `numeric-single-caption` 展开后约 74vp，禁止再与两个 20vp 详情行一起塞进 `height:72` 的内容区。
-
-#### 9. metric-series
+#### 7. metric-series
 
 适合：三个城市天气、三个同构设备状态、三个短指标。
 
@@ -545,54 +457,42 @@ content_area Column height 96 itemMargin 12
 
 ```text
 content_root Column padding 12 itemMargin 8
-  title_area Row
-  metrics_row Row width 296 itemMargin 8
-    metric_card_1 Column width 93
-    metric_card_2 Column width 93
-    metric_card_3 Column width 93
+  title_text Text width 296 height 20
+  metrics_row Row width 296 height 108 itemMargin 12
+    metric_card_1 Column width 90.67
+    metric_card_2 Column width 90.67
+    metric_card_3 Column width 90.67
 ```
 
-2 项时使用 `144 + 8 + 144`，3 项时使用 `93 + 8 + 93 + 8 + 93 = 295`。每项必须严格同构，使用当前主题
-色包的同一种 `panel`；每项最多图标、主值、短标签三层。耳机左右电量可以使用 2 项模式，设备名放在标题区。
+三项必须严格同构；每项最多图标、主值、短标签三层。
 
-#### 10. quad-rings
+#### 8. quad-rings
 
 适合：四个设备电量、四个同类占比。
 
 结构：
 
 ```text
-content_root Column padding 12 itemMargin 10
-  title_text Text
-  grid Column
-    grid_row_1 Row
-    grid_row_2 Row
+content_root Column padding 12 itemMargin 8
+  title_text Text width 296 height 20
+  battery_grid Column width 296 height 108 itemMargin 8
+    grid_row_1 Row height 50
+    grid_row_2 Row height 50
 ```
 
-每个卡片：
-
-```text
-battery_card Row width 144 height 48
-  ring RingUnit size 40
-  texts Column
-```
-
-最多 4 个，不要超过。
+每个卡片固定为 `Row width 144 height 50`，左侧 RingUnit size 40，右侧两行文字。最多 4 个，不要超过。
 
 ### 选择规则
 
-- 有 3 个待办：选 `todo-list`。
-- 单个日程无按钮：选 `meeting-timeline / single-event`。
-- 单个日程有按钮：选 `meeting-timeline / event-with-action`。
-- 有百分比主指标：优先 `large-ring`。
-- 四个同类百分比：选 `quad-rings`。
-- 有线性进度语义：选 `linear-progress`。
-- 两个并列操作且有两个真实事件：选 `primary-action-pair`。
-- 左主右双事项：选 `split-two-column`。
-- 强提醒、倒计时、状态突出：选 `strong-focus`。
-- 2-3 个同构天气/设备指标：选 `metric-series`。
-- 设置、蓝牙、网络、系统入口这类无真实数值主指标的卡，选信息卡/设备卡骨架：小标题 +
-  1-2 个浅色信息面板 + capsule；禁止把 `点击查看`、`当前设置项`、`调整设置`、`选项` 作为 30 号以上主标题。
+- 三条同类待办：选 `todo-list`。
+- 单个百分比/占比总览：选 `large-ring`。
+- 强提醒、倒计时、运动训练计划：选 `strong-focus`。
+- 左侧主信息 + 右侧两个短事项：选 `split-two-column`。
+- 两个并列操作且都有真实事件：选 `primary-action-pair`。
+- 线性进度 + 两个详情项：选 `linear-progress`。
+- 三个同构天气/设备/指标：选 `metric-series`。
+- 四个同类电量/占比：选 `quad-rings`。
+- 日程/会议类 2x4 若没有完全匹配的独立 gold 骨架，优先改写为 `split-two-column` 或 `todo-list`，不要生成旧 2x4 会议时间线。
 
 # 十、文字与信息适配
 ### 文字规则
@@ -675,8 +575,8 @@ onClick args 中每个 path 也必须补同路径 data 样例行，即使按钮�
 
 #### TimelineUnit
 
-用于会议、日程、日历安排的左侧空心圆点 + 竖线。所有 2x4 的会议/日程卡都优先用
-`meeting-timeline` 骨架，不再用大号纯时间、玻璃信息托盘、右下 icon 或普通列表块表达主日程。
+协议仍支持左侧空心圆点 + 竖线，但当前 2x4 gold 八骨架不主动使用 `TimelineUnit`。
+会议、日程、日历安排也必须先映射到第九节 8 个 gold 骨架之一，不能回退到旧会议时间线。
 
 ```designcompactdsl
 ["event_timeline","TimelineUnit",{"height":72,"color":"#FFE84026","lineColor":"#1A000000","flexShrink":0}]
@@ -861,8 +761,8 @@ onClick args 中每个 path 也必须补同路径 data 样例行，即使按钮�
 17. onClick 是否为数组，动态参数是否使用 `{"path":"/..."}`，且没有 `{{` 或 `${` 字符串。
 18. 每个嵌套 Row/Column 是否把自身上下 padding 和高级组件展开高度计入预算。
 19. 带 action 的卡片是否采用独立末尾 action 区，且三行内容区使用 64vp 与 4vp 根间距。
-20. 若是会议/日程/日历安排，是否使用 `meeting-timeline` 和 `TimelineUnit`，没有使用大号纯时间、
-    玻璃托盘、右下图标或普通列表块。
+20. 若是会议/日程/日历安排，是否已经映射到 8 个 2x4 gold 骨架之一，没有回退到旧会议时间线、
+    大号纯时间、玻璃托盘、右下图标或普通列表块。
 21. 是否没有 P0：渲染失败、裁切/出界、重叠、低对比、图文不一致、用户内容缺失/无关、意图不清、
     留白明显失衡。
 22. 是否没有 P1：错位、间距过小、三层以上无必要嵌套、结构不合理、前景强调色超过两种、重复信息、
@@ -871,75 +771,33 @@ onClick args 中每个 path 也必须补同路径 data 样例行，即使按钮�
 24. 一行多个短文本是否统一用 ` | ` 分隔，并且同一行 Text 底部对齐。
 
 # ==================== BEGIN MAINTAINABLE FEW-SHOT ====================
-以下是少量 canonical examples，只用于说明协议格式、动态绑定、事件写法和基础骨架。它们不是风格库；真实生成时的具体风格优先参考服务端前置的“参考最优模板”，并必须替换成当前 TaskSpec 里的真实 path、icon 和 onClick。
+以下是 2x4 canonical examples，只用于说明协议格式、动态绑定、事件写法和 8 个 gold 骨架中的基础形态。它们不是风格库；真实生成时只允许从服务端前置的 8 个 2x4 参考最优模板中选择，并必须替换成当前 TaskSpec 里的真实 path、icon 和 onClick。
 
-## 示例一：meeting-timeline，纯日程详情，无 action
+## 示例二（2x4-A02）：todo-list，三条待办清单
 ### user
 ```json
-{"userQuery":"生成meeting-timeline，纯日程详情，无 action","size":"2x4","eventCandidates":[],"dataModelSchema":{},"assetCandidates":[]}
-```
-### assistant
-```genui
-["root","Stack",{"width":320,"height":160,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFEDE4FF",0],["#FFF8F4FF",0.58],["#FFFFFFFF",1]]}},["content_root"]]
-["content_root","Column",{"width":"matchParent","height":"matchParent","padding":16,"itemMargin":8,"justifyContent":"start","alignItems":"center"},["title_area","content_area"]]
-["title_area","Row",{"width":288,"height":24,"justifyContent":"spaceBetween","alignItems":"center","flexShrink":0},["title_text","date_badge"]]
-["title_text","Text",{"content":"日程安排","width":220,"height":20,"fontSize":12,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"textOverflow":"ellipsis"}]
-["date_badge","Text",{"content":"今","width":22,"height":20,"fontSize":12,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"textOverflow":"clip","textAlign":"center"}]
-["content_area","Row",{"width":288,"height":72,"itemMargin":10,"justifyContent":"start","alignItems":"start","flexShrink":0},["event_timeline","event_texts"]]
-["event_timeline","TimelineUnit",{"height":72,"color":"#FFE84026","lineColor":"#1A000000","flexShrink":0}]
-["event_texts","Column",{"width":262,"height":72,"itemMargin":4,"justifyContent":"start","alignItems":"start","flexShrink":1},["event_title","event_time","event_place"]]
-["event_title","Text",{"content":"需求评审会","width":262,"height":28,"fontSize":20,"fontWeight":800,"fontColor":"#E5000000","maxLines":1,"textOverflow":"ellipsis"}]
-["event_time","Text",{"content":"14:00 - 15:30","width":262,"height":20,"fontSize":16,"fontWeight":400,"fontColor":"#99000000","maxLines":1,"textOverflow":"clip"}]
-["event_place","Text",{"content":"会议室 A302","width":262,"height":16,"fontSize":12,"fontWeight":400,"fontColor":"#66000000","maxLines":1,"textOverflow":"ellipsis"}]
-```
-
-## 示例二：todo-list，三条待办清单
-### user
-```json
-{"userQuery":"生成todo-list，三条待办清单","size":"2x4","eventCandidates":[],"dataModelSchema":{},"assetCandidates":[{"src":"resources/base/media/icon_task.svg","description":"当前示例使用的本地素材"}]}
+{"userQuery":"生成todo-list，三条待办清单","size":"2x4","eventCandidates":[],"dataModelSchema":{},"assetCandidates":[{"src":"resources/base/media/checkmark_calendar_fill.svg","description":"当前示例使用的本地素材"}]}
 ```
 ### assistant
 ```genui
 ["root","Stack",{"width":320,"height":160,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFFFF1C7",0],["#FFFFF9E6",0.58],["#FFFFFFFF",1]]}},["content_root"]]
-["content_root","Column",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":8,"justifyContent":"start","alignItems":"center"},["title_area","todo_list"]]
-["title_area","Row",{"width":296,"height":24,"justifyContent":"spaceBetween","alignItems":"center","flexShrink":0},["title_text","title_icon"]]
-["title_text","Text",{"content":"待处理事项","width":240,"height":20,"fontSize":12,"fontWeight":700,"fontColor":"#99000000","maxLines":1,"textOverflow":"ellipsis"}]
-["title_icon","Image",{"src":"resources/base/media/icon_task.svg","width":24,"height":24,"objectFit":"contain","flexShrink":0}]
-["todo_list","Column",{"width":296,"height":112,"itemMargin":8,"justifyContent":"start","alignItems":"center","flexShrink":0},["todo_item_1","todo_item_2","todo_item_3"]]
-["todo_item_1","Row",{"width":296,"height":32,"padding":{"left":10,"right":12,"top":0,"bottom":0},"borderRadius":8,"backgroundColor":"#FFF5F1E6","itemMargin":12,"alignItems":"center","flexShrink":0},["check_1","todo_text_1"]]
+["content_root","Column",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":4,"justifyContent":"start","alignItems":"start"},["title_area","todo_list"]]
+["title_area","Row",{"width":296,"height":17,"justifyContent":"spaceBetween","alignItems":"center","flexShrink":0},["title_text","title_icon"]]
+["title_text","Text",{"content":"待处理事项","width":240,"height":17,"fontSize":12,"fontWeight":700,"fontColor":"#99000000","maxLines":1,"textOverflow":"ellipsis"}]
+["title_icon","Image",{"src":"resources/base/media/checkmark_calendar_fill.svg","width":16,"height":16,"objectFit":"contain","flexShrink":0}]
+["todo_list","Column",{"width":296,"height":115,"itemMargin":8,"justifyContent":"start","alignItems":"center","flexShrink":0},["todo_item_1","todo_item_2","todo_item_3"]]
+["todo_item_1","Row",{"width":296,"height":33,"padding":{"left":10,"right":12,"top":0,"bottom":0},"borderRadius":8,"backgroundColor":"#0C000000","itemMargin":12,"alignItems":"center","flexShrink":0},["check_1","todo_text_1"]]
 ["check_1","Text",{"content":"","width":14,"height":14,"borderRadius":7,"borderWidth":1,"borderColor":"#99000000","backgroundColor":"#00FFFFFF","flexShrink":0}]
-["todo_text_1","Text",{"content":"项目阶段性汇报","width":240,"height":20,"fontSize":14,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"textOverflow":"ellipsis"}]
-["todo_item_2","Row",{"width":296,"height":32,"padding":{"left":10,"right":12,"top":0,"bottom":0},"borderRadius":8,"backgroundColor":"#FFF5F1E6","itemMargin":12,"alignItems":"center","flexShrink":0},["check_2","todo_text_2"]]
+["todo_text_1","Text",{"content":"项目阶段性汇报","width":240,"height":20,"fontSize":12,"fontWeight":400,"fontColor":"#E5000000","maxLines":1,"textOverflow":"ellipsis"}]
+["todo_item_2","Row",{"width":296,"height":33,"padding":{"left":10,"right":12,"top":0,"bottom":0},"borderRadius":8,"backgroundColor":"#0C000000","itemMargin":12,"alignItems":"center","flexShrink":0},["check_2","todo_text_2"]]
 ["check_2","Text",{"content":"","width":14,"height":14,"borderRadius":7,"borderWidth":1,"borderColor":"#99000000","backgroundColor":"#00FFFFFF","flexShrink":0}]
-["todo_text_2","Text",{"content":"确认Q3设计需求","width":240,"height":20,"fontSize":14,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"textOverflow":"ellipsis"}]
-["todo_item_3","Row",{"width":296,"height":32,"padding":{"left":10,"right":12,"top":0,"bottom":0},"borderRadius":8,"backgroundColor":"#FFF5F1E6","itemMargin":12,"alignItems":"center","flexShrink":0},["check_3","todo_text_3"]]
+["todo_text_2","Text",{"content":"确认Q3设计需求","width":240,"height":20,"fontSize":12,"fontWeight":400,"fontColor":"#E5000000","maxLines":1,"textOverflow":"ellipsis"}]
+["todo_item_3","Row",{"width":296,"height":33,"padding":{"left":10,"right":12,"top":0,"bottom":0},"borderRadius":8,"backgroundColor":"#0C000000","itemMargin":12,"alignItems":"center","flexShrink":0},["check_3","todo_text_3"]]
 ["check_3","Text",{"content":"","width":14,"height":14,"borderRadius":7,"borderWidth":1,"borderColor":"#99000000","backgroundColor":"#00FFFFFF","flexShrink":0}]
-["todo_text_3","Text",{"content":"申请下周出差","width":240,"height":20,"fontSize":14,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"textOverflow":"ellipsis"}]
+["todo_text_3","Text",{"content":"申请下周出差","width":240,"height":20,"fontSize":12,"fontWeight":400,"fontColor":"#E5000000","maxLines":1,"textOverflow":"ellipsis"}]
 ```
 
-## 示例三：meeting-timeline，日程 + 左下胶囊按钮
-### user
-```json
-{"userQuery":"生成meeting-timeline，日程 + 左下胶囊按钮","size":"2x4","eventCandidates":[],"dataModelSchema":{},"assetCandidates":[{"src":"resources/base/media/calendar_fill.svg","description":"当前示例使用的本地素材"}]}
-```
-### assistant
-```genui
-["root","Stack",{"width":320,"height":160,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFEDE4FF",0],["#FFF8F4FF",0.58],["#FFFFFFFF",1]]}},["content_root"]]
-["content_root","Column",{"width":"matchParent","height":"matchParent","padding":16,"itemMargin":4,"justifyContent":"start","alignItems":"start"},["title_area","content_area","action_area"]]
-["title_area","Row",{"width":288,"height":24,"justifyContent":"spaceBetween","alignItems":"center","flexShrink":0},["title_text","title_icon"]]
-["title_text","Text",{"content":"下一个日程","width":238,"height":20,"fontSize":12,"fontWeight":700,"fontColor":"#99000000","maxLines":1,"textOverflow":"ellipsis"}]
-["title_icon","Image",{"src":"resources/base/media/calendar_fill.svg","width":24,"height":24,"objectFit":"contain","flexShrink":0}]
-["content_area","Row",{"width":288,"height":64,"itemMargin":10,"justifyContent":"start","alignItems":"start","flexShrink":0},["event_timeline","event_texts"]]
-["event_timeline","TimelineUnit",{"height":64,"color":"#FFE84026","lineColor":"#1A000000","flexShrink":0}]
-["event_texts","Column",{"width":262,"height":64,"itemMargin":4,"justifyContent":"start","alignItems":"start","flexShrink":1},["event_title","event_time","event_place"]]
-["event_title","Text",{"content":"需求评审会","width":262,"height":26,"fontSize":20,"fontWeight":800,"fontColor":"#E5000000","maxLines":1,"textOverflow":"ellipsis"}]
-["event_time","Text",{"content":"14:00 - 15:30","width":262,"height":18,"fontSize":14,"fontWeight":400,"fontColor":"#99000000","maxLines":1,"textOverflow":"clip"}]
-["event_place","Text",{"content":"会议室 A302","width":262,"height":16,"fontSize":12,"fontWeight":400,"fontColor":"#66000000","maxLines":1,"textOverflow":"ellipsis"}]
-["action_area","Column",{"width":136,"height":32,"flexShrink":0},["cta"]]
-["cta","ActionUnit",{"state":"capsule","label":"专注模式","onClick":[...],"actionInk":"#FF8B5CF6","actionSurface":"#1A8B5CF6","flexShrink":0}]
-```
-
-## 示例四：large-ring，大环 + 右侧说明
+## 示例四（2x4-A04）：large-ring，大环 + 右侧说明
 ### user
 ```json
 {"userQuery":"生成large-ring，大环 + 右侧说明","size":"2x4","eventCandidates":[],"dataModelSchema":{"data":{"memory":{"usedPercent":{"type":"number","description":"示例字段","sampleValue":43.75}}}},"assetCandidates":[]}
@@ -947,13 +805,67 @@ onClick args 中每个 path 也必须补同路径 data 样例行，即使按钮�
 ### assistant
 ```genui
 ["root","Stack",{"width":320,"height":160,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFFFE4D2",0],["#FFFFF5EC",0.58],["#FFFFFFFF",1]]}},["content_root"]]
-["content_root","Row",{"width":"matchParent","height":"matchParent","padding":16,"itemMargin":16,"alignItems":"center","justifyContent":"start"},["visual_area","info_area"]]
-["visual_area","Column",{"width":112,"height":128,"justifyContent":"center","alignItems":"center","flexShrink":0},["memory_ring"]]
-["memory_ring","RingUnit",{"state":"center-text","size":92,"value":{"path":"/data/memory/usedPercent"},"total":100,"reading":{"path":"/data/memory/usedPercent","unit":"%"},"color":"orange","flexShrink":0}]
-["info_area","Column",{"width":160,"height":100,"itemMargin":4,"justifyContent":"center","alignItems":"start","flexShrink":1},["info_title","info_value","info_desc"]]
-["info_title","Text",{"content":"可用内存","width":160,"height":22,"fontSize":16,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"textOverflow":"ellipsis"}]
-["info_value","Text",{"content":"4.50 GB","width":160,"height":22,"fontSize":14,"fontWeight":400,"fontColor":"#99000000","maxLines":1,"textOverflow":"ellipsis"}]
-["info_desc","Text",{"content":"总容量 8.00 GB","width":160,"height":18,"fontSize":12,"fontWeight":400,"fontColor":"#66000000","maxLines":1,"textOverflow":"ellipsis"}]
+["content_root","Column",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":4,"justifyContent":"start","alignItems":"start"},["title_area","content_row"]]
+["title_area","Row",{"width":296,"height":17,"justifyContent":"start","alignItems":"center","flexShrink":0},["title_text"]]
+["title_text","Text",{"content":"内存使用","width":240,"height":17,"fontSize":12,"fontWeight":700,"fontColor":"#99000000","maxLines":1,"textOverflow":"ellipsis"}]
+["content_row","Row",{"width":296,"height":115,"itemMargin":8,"justifyContent":"start","alignItems":"center","flexShrink":0},["ring_area","info_area"]]
+["ring_area","Column",{"width":144,"height":115,"justifyContent":"center","alignItems":"center","flexShrink":0},["memory_ring"]]
+["memory_ring","RingUnit",{"state":"center-text","size":92,"value":{"path":"/data/memory/usedPercent"},"total":100,"reading":{"path":"/data/memory/usedPercent","unit":"%"},"color":"#FFF9A01E","flexShrink":0}]
+["info_area","Column",{"width":144,"height":115,"itemMargin":4,"justifyContent":"center","alignItems":"start","flexShrink":1},["info_title","info_value","info_desc"]]
+["info_title","Text",{"content":"可用内存","width":144,"height":22,"fontSize":16,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"textOverflow":"ellipsis"}]
+["info_value","Text",{"content":"4.50 GB","width":144,"height":22,"fontSize":14,"fontWeight":400,"fontColor":"#99000000","maxLines":1,"textOverflow":"ellipsis"}]
+["info_desc","Text",{"content":"总容量 8.00 GB","width":144,"height":18,"fontSize":12,"fontWeight":400,"fontColor":"#66000000","maxLines":1,"textOverflow":"ellipsis"}]
 ["/data/memory/usedPercent",43.75]
+```
+
+## 示例五（2x4-A05）：strong-focus，橙色强背景 + 左进度右计划
+### user
+```json
+{"userQuery":"生成strong-focus，橙色强背景 + 左进度右计划","size":"2x4","eventCandidates":[],"dataModelSchema":{"data":{"countdown":{"days":{"type":"integer","description":"示例字段","sampleValue":7}}}},"assetCandidates":[]}
+```
+### assistant
+```genui
+["root","Stack",{"width":320,"height":160,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFED6F21",0],["#FFF9A01E",1]]}},["content_root"]]
+["content_root","Column",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":4,"justifyContent":"start","alignItems":"start"},["title_area","content_row"]]
+["title_area","Row",{"width":296,"height":17,"justifyContent":"start","alignItems":"center","flexShrink":0},["title_text"]]
+["title_text","Text",{"content":"距越野赛","width":240,"height":17,"fontSize":12,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1,"textOverflow":"ellipsis"}]
+["content_row","Row",{"width":296,"height":115,"itemMargin":8,"justifyContent":"start","alignItems":"center","flexShrink":0},["focus_area","plan_panel"]]
+["focus_area","Column",{"width":144,"height":115,"itemMargin":6,"justifyContent":"center","alignItems":"start","flexShrink":0},["days_row","distance_progress","range_row"]]
+["days_row","Row",{"width":144,"height":48,"itemMargin":4,"alignItems":"bottom","flexShrink":0},["days_text","days_unit"]]
+["days_text","Text",{"content":{"path":"/data/countdown/days"},"height":48,"fontSize":44,"fontWeight":800,"fontColor":"#FFFFFFFF","maxLines":1,"textOverflow":"clip"}]
+["days_unit","Text",{"content":"天剩余","width":60,"height":20,"fontSize":12,"fontWeight":400,"fontColor":"#CCFFFFFF","padding":{"bottom":6},"maxLines":1,"textOverflow":"ellipsis"}]
+["distance_progress","ProgressUnit",{"state":"bar","value":32,"total":103,"color":"#FFFFFFFF","flexShrink":0}]
+["range_row","Text",{"content":"0km | 103km","width":144,"height":16,"fontSize":10,"fontWeight":500,"fontColor":"#CCFFFFFF","maxLines":1,"textOverflow":"clip"}]
+["plan_panel","Column",{"width":144,"height":115,"padding":12,"borderRadius":12,"backgroundColor":"#26FFFFFF","itemMargin":8,"justifyContent":"center","alignItems":"start","flexShrink":0},["plan_title","plan_desc"]]
+["plan_title","Text",{"content":"越野赛训练计划","width":120,"height":22,"fontSize":16,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1,"textOverflow":"ellipsis"}]
+["plan_desc","Text",{"content":"从本周一开始每天晨跑，配速训练30分钟以上","width":120,"height":54,"fontSize":12,"fontWeight":400,"fontColor":"#CCFFFFFF","maxLines":3,"textOverflow":"ellipsis"}]
+["/data/countdown/days",7]
+```
+
+## 示例六（2x4-A06）：split-two-column，左主信息 + 右双卡片
+### user
+```json
+{"userQuery":"生成split-two-column，左主信息 + 右双卡片","size":"2x4","eventCandidates":[],"dataModelSchema":{},"assetCandidates":[{"src":"resources/base/media/calendar_fill.svg","description":"当前示例使用的本地素材"}]}
+```
+### assistant
+```genui
+["root","Stack",{"width":320,"height":160,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFFFE2E9",0],["#FFFFF4F7",0.58],["#FFFFFFFF",1]]}},["content_root"]]
+["content_root","Column",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":4,"justifyContent":"start","alignItems":"start"},["title_area","content_row"]]
+["title_area","Row",{"width":296,"height":17,"justifyContent":"spaceBetween","alignItems":"center","flexShrink":0},["title_text","title_icon"]]
+["title_text","Text",{"content":"8月","width":240,"height":17,"fontSize":12,"fontWeight":700,"fontColor":"#99000000","maxLines":1,"textOverflow":"ellipsis"}]
+["title_icon","Image",{"src":"resources/base/media/calendar_fill.svg","width":16,"height":16,"objectFit":"contain","flexShrink":0}]
+["content_row","Row",{"width":296,"height":115,"itemMargin":8,"justifyContent":"start","alignItems":"center","flexShrink":0},["left_col","right_col"]]
+["left_col","Column",{"width":144,"height":115,"justifyContent":"spaceBetween","alignItems":"start","flexShrink":0},["main_value","desc_col"]]
+["main_value","Text",{"content":"27","width":144,"height":44,"fontSize":40,"fontWeight":800,"fontColor":"#FFE84026","maxLines":1,"textOverflow":"clip"}]
+["desc_col","Column",{"width":144,"itemMargin":2,"justifyContent":"end","alignItems":"start","flexShrink":0},["desc_1","desc_2"]]
+["desc_1","Text",{"content":"妈妈生日","width":144,"height":20,"fontSize":14,"fontWeight":400,"fontColor":"#99000000","maxLines":1,"textOverflow":"clip"}]
+["desc_2","Text",{"content":"农历七月二日","width":144,"height":18,"fontSize":12,"fontWeight":400,"fontColor":"#99000000","maxLines":1,"textOverflow":"clip"}]
+["right_col","Column",{"width":144,"height":115,"itemMargin":8,"justifyContent":"center","alignItems":"center","flexShrink":0},["side_card_1","side_card_2"]]
+["side_card_1","Column",{"width":144,"height":53.5,"borderRadius":12,"backgroundColor":"#0C000000","padding":8,"itemMargin":2,"justifyContent":"center","alignItems":"start","flexShrink":0},["side_title_1","side_time_1"]]
+["side_title_1","Text",{"content":"取妈妈的蛋糕","width":128,"height":18,"fontSize":12,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"textOverflow":"ellipsis"}]
+["side_time_1","Text",{"content":"12:00","width":128,"height":16,"fontSize":12,"fontWeight":400,"fontColor":"#99000000","maxLines":1,"textOverflow":"clip"}]
+["side_card_2","Column",{"width":144,"height":53.5,"borderRadius":12,"backgroundColor":"#0C000000","padding":8,"itemMargin":2,"justifyContent":"center","alignItems":"start","flexShrink":0},["side_title_2","side_time_2"]]
+["side_title_2","Text",{"content":"晚上聚餐","width":128,"height":18,"fontSize":12,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"textOverflow":"ellipsis"}]
+["side_time_2","Text",{"content":"19:00","width":128,"height":16,"fontSize":12,"fontWeight":400,"fontColor":"#99000000","maxLines":1,"textOverflow":"clip"}]
 ```
 # ===================== END MAINTAINABLE FEW-SHOT =====================

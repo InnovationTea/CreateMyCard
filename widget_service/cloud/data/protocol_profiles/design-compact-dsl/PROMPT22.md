@@ -281,7 +281,7 @@ HeroMetric.value: design:"HeroMetric.value" 转成 30/700
 - `IconDescriptionCapsuleAction`：从上到下固定为 `TitleBar + LeadVisual + DescriptionBlock + capsule`。
   日程会议、专注模式、推荐入口、设备/设置入口这类“左视觉 + 文本说明 + 明确文字动作”优先用它。
   `LeadVisual` 是时间线时必须使用 `TimelineUnit`，不要手写圆点和竖线。
-- `TimelineMeeting`：所有 2x2 会议/日程使用 `meeting-timeline`。标题/日期 20vp、日期说明 16vp、
+- `TimelineMeeting`：所有 2x2 会议/日程使用 `meeting-timeline`。标题栏 20vp，不生成右上日期角标小卡；
   会议主体 48vp、底部 capsule 32-36vp；事件标题 20fp 以内，时间 14fp，地点 12fp。
 - `AppUsageCompact`：应用时长、应用管理、防沉迷、设置入口类卡片优先使用 q81/q89 的直接文字布局；
   内容区不要套 `app_usage_block` 竖向堆叠，不要在中间放大 app icon。主数值不超过 30fp，
@@ -308,11 +308,14 @@ bottom_area Row -> [bottom_visual?, action_area?]
 上方 content_area 靠左。若环内图片与右下 `icon-round` 图标重复/同语义，或上方内容区已有 3 行文字，
 删除左下 `ring_icon_stack`，只保留右下 `icon-round`。
 只要保留左下 `ring_icon_stack`，上方 `content_area` 的文字行间距固定 `itemMargin:4`，不要使用 8。
+保留左下 `ring_icon_stack` 时，`bottom_area.height` 固定 52，`ring_icon_stack` 固定 52x52，右下 `action_area`
+固定 40x40。
 睡眠监督：禁止任何 ring；content_area 靠左显示睡眠评分和状态，bottom_visual 只能是普通睡眠图片或省略。
 bottom_area 必须 `justifyContent:"spaceBetween"`；只有 action 时写 `justifyContent:"end"`。
 
 2. meeting-timeline（日程/会议必选）
-root -> [date_badge_area, meeting_head, meeting_area, action_area?]
+root -> [title_area, meeting_area, action_area?]
+title_area Row -> [title_text]
 meeting_area Row -> [timeline, meeting_texts]
 timeline TimelineUnit
 meeting_texts Column -> [event_title, event_time, event_place?]
@@ -320,6 +323,7 @@ meeting_texts Column -> [event_title, event_time, event_place?]
 圆点颜色必须跟随 root 背景 Surface 主色，不要固定红色；竖线保持弱灰。
 不要用玻璃托盘、纯大字时间、右下 icon-round 或日程列表卡。只有多条事项且用户明确要求列表时，最多展示 2 条，
 每条仍使用 `TimelineUnit + 文字列` 的小型结构。
+不要在右上角生成 `06`、`22`、星期几这类日期角标小卡；日程日期若必须展示，放进普通标题/辅助文本，不做白底小卡。
 如果有底部 `ActionUnit capsule`，`meeting_area` 必须使用 `layoutWeight:1` 占据标题和按钮之间的弹性空间；
 `action_area` 必须是 root 最后一个子节点，固定 `height:36`、`flexShrink:0`，让按钮贴底。不要把 capsule
 紧跟在会议文字下方。
@@ -465,18 +469,23 @@ text_block Column -> [primary_text, primary_label?, support_text?]
 - `support_text` 最多一条，用 `design:"DescriptionBlock.meta"`；有底部 capsule 时默认删除，只保留一行小字。
 - 有底部 capsule 时，`primary_label` 和 `support_text` 二选一；不要同时生成两行辅助文字。
 - 强背景 + 底部 capsule 时，中间只能有主读数/主状态 + 一行小字，禁止第三行说明。
-- 数字和单位能拆开时必须拆开，用同一个 Row 底对齐：`value_row -> [value_num, value_unit]`。
+- 只要卡片底部有 capsule/button，内容区最多一行使用 20fp 以上放大字体；如果有应用名/对象名 + 数值两行，
+  只保留数值行为主放大字体，应用名/对象名降为 14fp 以内说明文字。三行内容区 `itemMargin` 不超过 2vp。
+- 只有 schema 提供纯 number/integer 数值字段，或同时提供独立数值字段与独立单位字段时，才拆成数字和单位；
+  用同一个 Row 底对齐：`value_row -> [value_num, value_unit]`。
 - `value_row`、`duration_row`、`temperature_row` 都按 `MetricRow` 处理；`value_num`、`value_unit`
   禁止写 `width:"matchParent"` 或大宽度占位，两者按内容自然宽度并写 `flexShrink:0`，避免单位被挤出或距离数字过远。
+- `value_unit` 只能放真实短单位：`%`、`°C`、`℃`、`°`、`GB`、`MB`、`分`、`分钟`、`小时`、`天`、`步`。
+  禁止放天气/状态/描述词，例如 `小雨`、`多云`、`剩余`、`电量`、`正常`、`良`、`空气良`。
 - 内容区同一 Row 内有两个或更多 Text 时统一写 `alignItems:"bottom"`，不要使用 `center` 或 `baseline`。
 - 内容区把多个独立文本字段合成一行时，中间固定使用 ASCII `" | "`；不要使用 `·`、全角 `｜` 或无分隔
   直接拼接。数值与自身单位、日期范围、时间范围不属于独立字段，不插入 `|`。
 - `value_num` 用 `design:"HeroMetric.value"`；`value_unit` 用 `design:"HeroMetric.unit"` 或显式 `fontSize:16`，单位不能用 30 号字。
-- 不要把 `4.50GB`、`29°C`、`25分钟`、`68%` 整段放进一个 `HeroMetric.value` Text。
+- 如果 schema 只有 `temperatureText:"29°C"`、`batterySOCText:"68%"`、`durationText:"25分钟"`、
+  `availableMemText:"4.50GB"` 这类已格式化字符串，必须整串作为一个主 Text 展示，不再人为拆单位。
 - 时长类主读数必须优先绑定纯数字 path，例如 minutes/duration/seconds 这类 number 字段；数字用
   `design:"HeroMetric.value"`，单位 `分`、`分钟`、`小时` 另放 `value_unit`，`fontSize:12-16`。
-- 如果 schema 只有 `durationText:"25分钟"` 或 `exerciseDurationText:"40分"` 这种带单位字符串，禁止放进
-  `HeroMetric.value`；改用 20-24 号 Text，或把它放到普通正文/托盘小字里。
+- 如果已格式化字符串超过 4 个中文或宽度压力过大，降到 20-24fp，或改放到普通正文/托盘小字里。
 - 动态长名称、会议名、设备名不要放进 `HeroMetric.value`；改成短静态主文案或放小字。
 - 内容区 Text 的 `fontColor` 不跟功能色走：浅底统一黑色系，强/特殊背景统一白色系。
 
@@ -769,7 +778,8 @@ ring_icon 固定 24x24，完整数值放环外，不再生成 RingUnit。
 30. `icon_weather1.svg` 是否始终保留多色原图、没有 fillColor，也没有被 actionInk 染成纯色方块。
 31. onClick 是否为数组，动态事件参数是否全部使用 `{"path":"/..."}`，且完全没有 `{{` 或 `${` 字符串。
 32. 设置/蓝牙/网络/系统入口是否使用 q81/q89 类“直接文字 + 底部 capsule”，没有把操作文案放成 30fp 大字。
-33. `分`、`分钟`、`小时` 等单位是否是小号单位 Text；若只有带单位字符串 path，是否没有使用 30fp。
+33. `value_unit` 是否只放真实短单位；若只有 `temperatureText`、`batterySOCText` 等已带单位字符串 path，
+    是否整串展示且没有再拆出状态/描述词作为单位。
 34. 浅色背景是否来自 brand/red/cyan/green/orange/purple-soft，且完全没有灰色渐变。
 35. 若是睡眠监督，是否完全没有 RingUnit/ring Progress，评分和状态是否在 content_area 靠左，
     icon-round 是否位于右下。
@@ -809,7 +819,7 @@ ring_icon 固定 24x24，完整数值放环外，不再生成 RingUnit。
 ["title_text","Text",{"content":"手机电量","design":"card-title","width":136,"fontColor":"#E5000000","maxLines":1,"textOverflow":"clip"}]
 ["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","itemMargin":4,"flexShrink":1},["status_text"]]
 ["status_text","Text",{"content":"电量偏低，建议开启省电","design":"body-m","width":136,"fontColor":"#99000000","maxLines":1,"textOverflow":"clip"}]
-["bottom_area","Row",{"width":136,"height":66,"itemMargin":8,"justifyContent":"spaceBetween","alignItems":"bottom","flexShrink":0},["ring_icon_stack","action_area"]]
+["bottom_area","Row",{"width":136,"height":52,"itemMargin":8,"justifyContent":"spaceBetween","alignItems":"bottom","flexShrink":0},["ring_icon_stack","action_area"]]
 ["ring_icon_stack","Stack",{"width":52,"height":52,"alignContent":"center","flexShrink":0},["ring_progress","ring_icon"]]
 ["ring_progress","Progress",{"design":"ring","width":52,"height":52,"strokeWidth":6,"value":{"path":"/data/battery/level"},"total":100,"color":"#FFF9A01E","backgroundColor":"#19000000"}]
 ["ring_icon","Image",{"src":"resources/base/media/battery_leaf_fill.svg","width":24,"height":24,"objectFit":"contain","fillColor":"#FFF9A01E","flexShrink":0}]
@@ -850,10 +860,9 @@ ring_icon 固定 24x24，完整数值放环外，不再生成 RingUnit。
 ```
 ### assistant
 ```genui
-["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"design":"Surface.redSoft","justifyContent":"start","itemMargin":8},["date_badge_area","meeting_area","action_area"]]
-["date_badge_area","Row",{"width":136,"height":20,"alignItems":"top","justifyContent":"spaceBetween","flexShrink":0},["title_text","date_badge"]]
-["title_text","Text",{"content":"今日日程","design":"card-title","width":92,"fontSize":14,"fontWeight":500,"fontColor":"#E5000000","maxLines":1,"textOverflow":"clip"}]
-["date_badge","Text",{"content":"22","width":28,"height":24,"borderRadius":6,"backgroundColor":"#FFFFFFFF","fontSize":16,"fontWeight":700,"fontColor":"#E5000000","textAlign":"center","maxLines":1,"textOverflow":"clip","shadow":{"radius":4,"color":"#1A000000","offsetX":0,"offsetY":1}}]
+["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"design":"Surface.redSoft","justifyContent":"start","itemMargin":8},["title_area","meeting_area","action_area"]]
+["title_area","Row",{"width":136,"height":20,"alignItems":"center","justifyContent":"start","flexShrink":0},["title_text"]]
+["title_text","Text",{"content":"今日日程","design":"card-title","width":136,"fontSize":14,"fontWeight":500,"fontColor":"#E5000000","maxLines":1,"textOverflow":"clip"}]
 ["meeting_area","Row",{"width":136,"layoutWeight":1,"itemMargin":6,"alignItems":"center","justifyContent":"start","flexShrink":1},["timeline","meeting_texts"]]
 ["timeline","TimelineUnit",{"height":48,"color":"#FFE84026","lineColor":"#1A000000","flexShrink":0}]
 ["meeting_texts","Column",{"width":"matchParent","layoutWeight":1,"itemMargin":2,"justifyContent":"start","alignItems":"start","flexShrink":1},["event_title","event_time","event_place"]]
