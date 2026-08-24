@@ -495,12 +495,13 @@ def _provider_component_server_owned_values(
 ) -> tuple[str | int | float, ...]:
     values: list[str | int | float] = []
     for component in components:
-        definitions = tuple(
-            registry.require_template(template_id)
-            for template_id in component.local_template_ids
-            if template_id in allowed_template_ids
-            if registry.require_template(template_id).source_format == "cardtpl/1"
-        )
+        definitions = []
+        for template_id in component.local_template_ids:
+            if template_id not in allowed_template_ids:
+                continue
+            definition = registry.require_template(template_id)
+            if definition.source_format == "cardtpl/1":
+                definitions.append(definition)
         if not definitions:
             continue
         for subtree in _schema_values_for_key(task_spec.dataModelSchema, component.name):

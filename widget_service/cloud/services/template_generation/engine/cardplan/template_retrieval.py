@@ -204,18 +204,19 @@ def _component_templates_for_capability(
     for business_id in sorted(business_ids):
         group = registry.ux_business_components[business_id]
         template_ids = set(registry.enabled_template_ids(group.local_template_ids))
-        matches = {
-            record.template_id: _record_available_query_paths(record, query_tokens)
-            for record in registry.template_variant_search_records
-            if record.capability_id == capability_id
-            and record.business_id == business_id
-            and record.template_id in template_ids
-            and (
-                not record.supported_card_sizes
-                or task_spec.size in record.supported_card_sizes
-            )
-            and _template_required_fields_are_available(record, task_spec, card_spec)
-        }
+        matches: dict[str, frozenset[str]] = {}
+        for record in registry.template_variant_search_records:
+            if record.capability_id != capability_id or record.business_id != business_id:
+                continue
+            if record.template_id not in template_ids:
+                continue
+            size_is_supported = not record.supported_card_sizes
+            size_is_supported = size_is_supported or task_spec.size in record.supported_card_sizes
+            if not size_is_supported:
+                continue
+            if not _template_required_fields_are_available(record, task_spec, card_spec):
+                continue
+            matches[record.template_id] = _record_available_query_paths(record, query_tokens)
         if query_tokens:
             matches = {template_id: paths for template_id, paths in matches.items() if paths}
         if matches:
@@ -224,9 +225,10 @@ def _component_templates_for_capability(
                 registry.enabled_template_ids(group.local_template_ids),
                 query_tokens,
             )
-    covered_paths = {
-        path for templates in result.values() for paths in templates.values() for path in paths
-    }
+    covered_paths: set[str] = set()
+    for templates in result.values():
+        for paths in templates.values():
+            covered_paths.update(paths)
     if not {token.path for token in query_tokens}.issubset(covered_paths):
         return {}
     return result
@@ -263,21 +265,19 @@ def _required_field_template_groups(
     component_templates: dict[str, dict[str, frozenset[str]]],
 ) -> tuple[tuple[str, ...], ...]:
     if not query_tokens:
-        template_ids = {
-            template_id for templates in component_templates.values() for template_id in templates
-        }
+        template_ids: set[str] = set()
+        for templates in component_templates.values():
+            template_ids.update(templates)
         return (tuple(sorted(template_ids)),)
-    return tuple(
-        tuple(
-            sorted(
-                template_id
-                for templates in component_templates.values()
-                for template_id, paths in templates.items()
-                if token.path in paths
-            )
-        )
-        for token in sorted(query_tokens)
-    )
+    groups: list[tuple[str, ...]] = []
+    for token in sorted(query_tokens):
+        matching_template_ids: list[str] = []
+        for templates in component_templates.values():
+            for template_id, paths in templates.items():
+                if token.path in paths:
+                    matching_template_ids.append(template_id)
+        groups.append(tuple(sorted(matching_template_ids)))
+    return tuple(groups)
 
 
 def _component_ids_for_capabilities(
@@ -346,12 +346,14 @@ def _record_available_query_paths(
     query_tokens: frozenset[FieldToken],
 ) -> frozenset[str]:
     typed_by_path = {token.path: token.data_type for token in record.field_tokens}
-    return frozenset(
-        token.path
-        for token in query_tokens
-        if token.path in record.available_paths
-        and typed_by_path.get(token.path, token.data_type) == token.data_type
-    )
+    available_paths: set[str] = set()
+    for token in query_tokens:
+        if token.path not in record.available_paths:
+            continue
+        expected_type = typed_by_path.get(token.path, token.data_type)
+        if expected_type == token.data_type:
+            available_paths.add(token.path)
+    return frozenset(available_paths)
 
 
 def _validate_selected_actions(query: TemplateRetrievalQuery, task_spec: TaskSpec) -> None:

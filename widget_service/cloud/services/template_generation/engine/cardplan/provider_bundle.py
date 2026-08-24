@@ -114,6 +114,7 @@ class ProviderCapabilityEntry(StrictModel):
         pattern=r"^/data(?:/[^/~]+(?:~[01][^/~]*)*)*$",
     )
     data_schema: ProviderDataSchema | None = Field(default=None, alias="dataSchema")
+
     @model_validator(mode="after")
     def data_contract_is_all_or_none(self) -> ProviderCapabilityEntry:
         values = (self.capability_id, self.data_domain, self.data_schema)
@@ -767,19 +768,22 @@ def _provider_template_layout_kind(wire_id: str) -> str:
 
 def provider_template_family_identity(wire_id: str) -> tuple[str, str] | None:
     """Resolve one UI-specific Template ID to its business family and shape."""
+    identity: tuple[str, str] | None = None
     template_id, separator, raw_version = wire_id.rpartition("@")
-    if not separator:
-        return None
-    for base in _PROVIDER_TEMPLATE_FAMILIES:
-        if template_id == base:
-            singleton = {"CountdownOverview": "countdown", "WorkoutOverview": "latest"}
-            shape = singleton.get(base)
-            return (f"{base}@{raw_version}", shape) if shape is not None else None
-        if template_id.startswith(base):
-            suffix = template_id.removeprefix(base)
-            if suffix:
-                return f"{base}@{raw_version}", suffix[:1].lower() + suffix[1:]
-    return None
+    if separator:
+        for base in _PROVIDER_TEMPLATE_FAMILIES:
+            if template_id == base:
+                singleton = {"CountdownOverview": "countdown", "WorkoutOverview": "latest"}
+                shape = singleton.get(base)
+                if shape is not None:
+                    identity = (f"{base}@{raw_version}", shape)
+                break
+            if template_id.startswith(base):
+                suffix = template_id.removeprefix(base)
+                if suffix:
+                    identity = (f"{base}@{raw_version}", suffix[:1].lower() + suffix[1:])
+                    break
+    return identity
 
 
 def provider_template_layout_kind(wire_id: str) -> str | None:
@@ -1428,13 +1432,14 @@ def _derive_business_groups(
 def _business_supported_sizes(
     definitions: tuple[TemplateDefinition, ...],
 ) -> tuple[Literal["2x2", "2x4"], ...]:
-    declared = {
-        size
-        for definition in definitions
-        for variant in definition.variants
-        for size in variant.supported_card_sizes
-    }
-    if any(not variant.supported_card_sizes for item in definitions for variant in item.variants):
+    declared: set[Literal["2x2", "2x4"]] = set()
+    has_unrestricted_variant = False
+    for definition in definitions:
+        for variant in definition.variants:
+            declared.update(variant.supported_card_sizes)
+            if not variant.supported_card_sizes:
+                has_unrestricted_variant = True
+    if has_unrestricted_variant:
         return ("2x2", "2x4")
     return tuple(size for size in ("2x2", "2x4") if size in declared)
 

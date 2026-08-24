@@ -480,16 +480,14 @@ def validate_template_request_coverage(
             )
         if component_candidates is None:
             continue
-        allowed_template_ids = {
-            item["templateId"]
-            for item in _component_template_prompt_contracts(
-                capability,
-                task_spec,
-                registry,
-                effective_ids,
-                card_spec,
-            )
-        }
+        prompt_contracts = _component_template_prompt_contracts(
+            capability,
+            task_spec,
+            registry,
+            effective_ids,
+            card_spec,
+        )
+        allowed_template_ids = {item["templateId"] for item in prompt_contracts}
         selected_template_ids = candidates_by_component[component_id]
         if not set(selected_template_ids).issubset(allowed_template_ids):
             raise ValueError(
