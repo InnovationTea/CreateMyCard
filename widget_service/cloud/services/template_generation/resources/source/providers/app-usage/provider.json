@@ -20,72 +20,64 @@
   ],
   "templates": [
     {
-      "templateId": "AppUsageOverviewSingleApp@1",
+      "templateId": "AppUsageOverviewFull@1",
       "businessId": "AppUsageOverview",
       "capabilityId": "GetAppUsageDuration",
-      "description": "单个应用的当日使用时长摘要，可补充更新时间。 组件形态：singleApp。",
-      "supportedCardSizes": [
-        "2x2"
-      ],
-      "requiredData": [
-        "/appUsage/appName",
-        "/appUsage/durationText"
-      ],
+      "description": "单个应用的当日使用时长摘要，无动作时使用。 组件形态：singleApp。",
       "optionalData": [
         "/updatedAt"
       ],
-      "entry": "templates/app-usage-overview.cardtpl"
-    },
-    {
-      "templateId": "AppUsageOverviewSingleAppDetailed@1",
-      "businessId": "AppUsageOverview",
-      "capabilityId": "GetAppUsageDuration",
-      "description": "单个应用的当日使用时长摘要，可补充更新时间。 组件形态：singleAppDetailed。",
-      "supportedCardSizes": [
-        "2x2"
-      ],
-      "requiredData": [
+      "entry": "templates/app-usage-overview.cardtpl",
+      "primaryData": [
         "/appUsage/appName",
         "/appUsage/durationText"
       ],
+      "secondaryData": []
+    },
+    {
+      "templateId": "AppUsageOverviewHero@1",
+      "businessId": "AppUsageOverview",
+      "capabilityId": "GetAppUsageDuration",
+      "description": "单个应用的当日使用时长摘要，为底部 PillAction 预留空间。 组件形态：singleAppDetailed。",
       "optionalData": [
         "/updatedAt"
       ],
-      "entry": "templates/app-usage-overview.cardtpl"
+      "entry": "templates/app-usage-overview.cardtpl",
+      "primaryData": [
+        "/appUsage/appName",
+        "/appUsage/durationText"
+      ],
+      "secondaryData": []
     },
     {
-      "templateId": "AppUsageOverviewSingleAppWide@1",
+      "templateId": "AppUsageOverviewWideFull@1",
       "businessId": "AppUsageOverview",
       "capabilityId": "GetAppUsageDuration",
       "description": "单个应用的当日使用时长摘要，可补充更新时间。 组件形态：singleAppWide。",
-      "supportedCardSizes": [
-        "2x4"
-      ],
-      "requiredData": [
-        "/appUsage/appName",
-        "/appUsage/durationText"
-      ],
       "optionalData": [
         "/updatedAt"
       ],
-      "entry": "templates/app-usage-overview.cardtpl"
+      "entry": "templates/app-usage-overview.cardtpl",
+      "primaryData": [
+        "/appUsage/appName",
+        "/appUsage/durationText"
+      ],
+      "secondaryData": []
     },
     {
-      "templateId": "AppUsageOverviewSingleAppDetailedWide@1",
+      "templateId": "AppUsageOverviewWideHero@1",
       "businessId": "AppUsageOverview",
       "capabilityId": "GetAppUsageDuration",
       "description": "单个应用的当日使用时长摘要，可补充更新时间。 组件形态：singleAppDetailedWide。",
-      "supportedCardSizes": [
-        "2x4"
-      ],
-      "requiredData": [
-        "/appUsage/appName",
-        "/appUsage/durationText"
-      ],
       "optionalData": [
         "/updatedAt"
       ],
-      "entry": "templates/app-usage-overview.cardtpl"
+      "entry": "templates/app-usage-overview.cardtpl",
+      "primaryData": [
+        "/appUsage/appName",
+        "/appUsage/durationText"
+      ],
+      "secondaryData": []
     }
   ],
   "compatibility": {

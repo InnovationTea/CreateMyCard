@@ -1,4 +1,4 @@
-#Template BatteryOverviewNormal@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewNormalFull@1(props: { batteryIcon?: asset })
 data = {
     percent: $path("/batterySOC"),
     percentText: $path("/batterySOCText"),
@@ -121,7 +121,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewCharging@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewChargingFull@1(props: { batteryIcon?: asset })
 data = {
     percent: $path("/batterySOC"),
     percentText: $path("/batterySOCText"),
@@ -164,7 +164,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewLow@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewLowFull@1(props: { batteryIcon?: asset })
 data = {
     percent: $path("/batterySOC"),
     percentText: $path("/batterySOCText"),
@@ -207,7 +207,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewNormalWide@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewNormalWideFull@1(props: { batteryIcon?: asset })
 data = {
     percent: $path("/batterySOC"),
     percentText: $path("/batterySOCText"),
@@ -264,7 +264,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewChargingWide@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewChargingWideFull@1(props: { batteryIcon?: asset })
 data = {
     percent: $path("/batterySOC"),
     percentText: $path("/batterySOCText"),
@@ -321,7 +321,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewLowWide@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewLowWideFull@1(props: { batteryIcon?: asset })
 data = {
     percent: $path("/batterySOC"),
     percentText: $path("/batterySOCText"),
@@ -378,7 +378,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewNormalPeer@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewNormalCompact@1(props: { batteryIcon?: asset })
 data = {
     percent: $path("/batterySOC"),
     percentText: $path("/batterySOCText"),
@@ -422,7 +422,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewChargingPeer@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewChargingCompact@1(props: { batteryIcon?: asset })
 data = {
     percent: $path("/batterySOC"),
     percentText: $path("/batterySOCText"),
@@ -466,7 +466,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewLowPeer@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewLowCompact@1(props: { batteryIcon?: asset })
 data = {
     percent: $path("/batterySOC"),
     percentText: $path("/batterySOCText"),
@@ -510,7 +510,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewNormalPhone@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewNormalPhoneCompact@1(props: { batteryIcon?: asset })
 data = {
     percent: $path("/batterySOC"),
     percentText: $path("/batterySOCText")
@@ -547,7 +547,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewChargingPhone@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewChargingPhoneCompact@1(props: { batteryIcon?: asset })
 data = {
     percent: $path("/batterySOC"),
     percentText: $path("/batterySOCText")
@@ -584,7 +584,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewLowPhone@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewLowPhoneCompact@1(props: { batteryIcon?: asset })
 data = {
     percent: $path("/batterySOC"),
     percentText: $path("/batterySOCText")
@@ -621,7 +621,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewNormalWeather@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewNormalWeatherCompact@1(props: { batteryIcon?: asset })
 data = {
     percentText: $path("/batterySOCText"),
     charging: $path("/chargingStatusDesc"),
@@ -661,7 +661,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewChargingWeather@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewChargingWeatherCompact@1(props: { batteryIcon?: asset })
 data = {
     percentText: $path("/batterySOCText"),
     charging: $path("/chargingStatusDesc"),
@@ -701,7 +701,7 @@ Column(
 )
 #End
 
-#Template BatteryOverviewLowWeather@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewLowWeatherCompact@1(props: { batteryIcon?: asset })
 data = {
     percentText: $path("/batterySOCText"),
     charging: $path("/chargingStatusDesc"),

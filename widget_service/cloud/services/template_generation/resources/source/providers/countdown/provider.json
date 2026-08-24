@@ -20,15 +20,16 @@
   ],
   "templates": [
     {
-      "templateId": "CountdownOverview@1",
+      "templateId": "CountdownOverviewFull@1",
       "businessId": "CountdownOverview",
       "capabilityId": "GetCountdownDays",
       "description": "通用事件的剩余天数摘要。 组件形态：countdown。",
-      "requiredData": [
+      "optionalData": [],
+      "entry": "templates/countdown-overview.cardtpl",
+      "primaryData": [
         "/countdownDays"
       ],
-      "optionalData": [],
-      "entry": "templates/countdown-overview.cardtpl"
+      "secondaryData": []
     }
   ],
   "compatibility": {

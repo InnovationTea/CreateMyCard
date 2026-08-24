@@ -150,7 +150,7 @@ async def generate_template_a2ui(
         scope = selection.scope
         selected_task_spec = task_spec_with_selected_action(
             selected_task_spec,
-            selection.action_id,
+            selection.action_ids,
         )
         return await _generate_selected_templates(
             source_task_spec=selected_task_spec,

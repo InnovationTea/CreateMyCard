@@ -74,6 +74,13 @@ _PROVIDER_ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:\.[a-z][a-z0-9-]*)+$")
 _PROVIDER_VERSION_RE = re.compile(r"^[1-9][0-9]*\.[0-9]+\.[0-9]+(?:-[a-z0-9.-]+)?$")
 _MAX_BUNDLE_FILE_BYTES = 1_048_576
 _MAX_TEMPLATE_SOURCE_CHARS = 262_144
+_PROVIDER_TEMPLATE_LAYOUT_KINDS = (
+    "WideHero",
+    "WideFull",
+    "Compact",
+    "Hero",
+    "Full",
+)
 _PROVIDER_TEMPLATE_FAMILIES = (
     "BluetoothDeviceOverview",
     "ResourceUsageOverview",
@@ -129,31 +136,51 @@ class ProviderTemplateEntry(StrictModel):
     )
     capability_id: str | None = Field(default=None, alias="capabilityId", min_length=1)
     description: str = Field(min_length=1)
-    supported_card_sizes: tuple[Literal["2x2", "2x4"], ...] = Field(
-        default=(),
-        alias="supportedCardSizes",
-    )
-    required_data: tuple[str, ...] = Field(default=(), alias="requiredData")
+    primary_data: tuple[str, ...] = Field(default=(), alias="primaryData")
+    secondary_data: tuple[str, ...] = Field(default=(), alias="secondaryData")
     optional_data: tuple[str, ...] = Field(default=(), alias="optionalData")
-    requires_layout_action: bool = Field(default=False, alias="requiresLayoutAction")
     entry: str = Field(min_length=1)
 
     @model_validator(mode="after")
     def data_paths_are_disjoint(self) -> ProviderTemplateEntry:
-        required = set(self.required_data)
+        primary = set(self.primary_data)
+        secondary = set(self.secondary_data)
         optional = set(self.optional_data)
-        if len(required) != len(self.required_data) or len(optional) != len(self.optional_data):
+        paths_are_unique = (
+            len(primary) == len(self.primary_data)
+            and len(secondary) == len(self.secondary_data)
+            and len(optional) == len(self.optional_data)
+        )
+        if not paths_are_unique:
             raise ValueError("Provider Template data paths must be unique")
-        if required & optional:
-            raise ValueError("Provider Template requiredData and optionalData must be disjoint")
-        for path in (*self.required_data, *self.optional_data):
+        if primary & secondary or primary & optional or secondary & optional:
+            raise ValueError(
+                "Provider Template primaryData, secondaryData and optionalData must be disjoint"
+            )
+        for path in (*self.primary_data, *self.secondary_data, *self.optional_data):
             if not _provider_relative_data_path(path):
                 raise ValueError(f"Provider Template data path is invalid: {path}")
-        if (self.required_data or self.optional_data) and self.capability_id is None:
+        has_data = bool(self.primary_data or self.secondary_data or self.optional_data)
+        if has_data and self.capability_id is None:
             raise ValueError("Provider data Template must declare capabilityId")
         if self.capability_id is not None and self.business_id is None:
             raise ValueError("Provider data Template must declare businessId")
+        if self.capability_id is not None:
+            _provider_template_layout_kind(self.template_id)
         return self
+
+    @property
+    def supported_card_sizes(self) -> tuple[Literal["2x2", "2x4"], ...]:
+        if self.capability_id is None:
+            return ()
+        layout_kind = _provider_template_layout_kind(self.template_id)
+        return ("2x4",) if layout_kind in {"WideHero", "WideFull"} else ("2x2",)
+
+    @property
+    def requires_layout_action(self) -> bool:
+        if self.capability_id is None:
+            return False
+        return _provider_template_layout_kind(self.template_id) in {"Hero", "WideHero"}
 
 
 class ProviderCompatibility(StrictModel):
@@ -222,17 +249,17 @@ class _UiTemplateData:
     body: str
 
 
-def _required_data_fields(
+def _data_fields(
     paths: tuple[str, ...],
     output_schema: dict[str, Any],
 ) -> tuple[dict[str, str], ...]:
-    """Preserve the Provider schema type for retrieval without changing requiredData."""
+    """Preserve the Provider schema type for retrieval across all declared data tiers."""
     fields: list[dict[str, str]] = []
     for path in paths:
         leaf = _schema_leaf(output_schema, path)
         data_type = leaf.get("type") if isinstance(leaf, dict) else None
         if not isinstance(data_type, str):
-            raise ValueError(f"Provider Template requiredData has no schema type: {path}")
+            raise ValueError(f"Provider Template data path has no schema type: {path}")
         fields.append({"path": path, "type": data_type})
     return tuple(fields)
 
@@ -314,7 +341,8 @@ def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
             data_domain=capability.data_domain if capability is not None else None,
             description=entry.description,
             supported_card_sizes=entry.supported_card_sizes,
-            required_data=entry.required_data,
+            primary_data=entry.primary_data,
+            secondary_data=entry.secondary_data,
             optional_data=entry.optional_data,
             output_schema=output_schema,
         )
@@ -352,7 +380,8 @@ def compile_card_template(
     data_domain: str | None,
     description: str,
     supported_card_sizes: tuple[Literal["2x2", "2x4"], ...],
-    required_data: tuple[str, ...],
+    primary_data: tuple[str, ...],
+    secondary_data: tuple[str, ...],
     optional_data: tuple[str, ...],
     output_schema: dict[str, Any],
 ) -> TemplateDefinition:
@@ -370,7 +399,8 @@ def compile_card_template(
         data_domain=data_domain,
         description=description,
         supported_card_sizes=supported_card_sizes,
-        required_data=required_data,
+        primary_data=primary_data,
+        secondary_data=secondary_data,
         optional_data=optional_data,
         output_schema=output_schema,
     )
@@ -386,7 +416,8 @@ def _compile_ui_card_template(
     data_domain: str | None,
     description: str,
     supported_card_sizes: tuple[Literal["2x2", "2x4"], ...],
-    required_data: tuple[str, ...],
+    primary_data: tuple[str, ...],
+    secondary_data: tuple[str, ...],
     optional_data: tuple[str, ...],
     output_schema: dict[str, Any],
 ) -> TemplateDefinition:
@@ -402,9 +433,11 @@ def _compile_ui_card_template(
     required_bindings = template_data.required_bindings
     optional_bindings = template_data.optional_bindings
     body = template_data.body
+    required_data = (*primary_data, *secondary_data)
     if not {binding.path for binding in required_bindings.values()} <= set(required_data):
         raise ValueError(
-            f"Provider Template requiredData does not match $path declarations: {expected_wire_id}"
+            "Provider Template primaryData/secondaryData do not match $path declarations: "
+            f"{expected_wire_id}"
         )
     if not {binding.path for binding in optional_bindings.values()} <= set(optional_data):
         raise ValueError(
@@ -493,10 +526,12 @@ def _compile_ui_card_template(
             "businessId": business_id,
             "capabilityId": expected_capability_id,
             "dataDomain": data_domain,
-            "requiredData": required_data,
-            "requiredDataFields": _required_data_fields(required_data, output_schema),
+            "primaryData": primary_data,
+            "primaryDataFields": _data_fields(primary_data, output_schema),
+            "secondaryData": secondary_data,
+            "secondaryDataFields": _data_fields(secondary_data, output_schema),
             "optionalData": optional_data,
-            "optionalDataFields": _required_data_fields(optional_data, output_schema),
+            "optionalDataFields": _data_fields(optional_data, output_schema),
             "acceptsChildren": accepts_children,
             "bindings": {
                 name: binding.model_dump(by_alias=True) for name, binding in bindings.items()
@@ -699,7 +734,7 @@ def _validate_provider_template_data_contract(
         for parameter in properties.values():
             if isinstance(parameter, dict):
                 referenced.update(parameter.get("sourcePaths", ()))
-    declared = set(entry.required_data) | set(entry.optional_data)
+    declared = set(entry.primary_data) | set(entry.secondary_data) | set(entry.optional_data)
     if referenced <= declared:
         return
     missing = sorted(referenced - declared)
@@ -715,6 +750,19 @@ def _provider_relative_data_path(value: str) -> bool:
         and value.startswith("/")
         and not value.startswith("/data/")
         and _binding_pointer_is_encodable(value)
+    )
+
+
+def _provider_template_layout_kind(wire_id: str) -> str:
+    template_id, separator, _version = wire_id.rpartition("@")
+    if not separator:
+        raise ValueError(f"Provider Template ID must include a version: {wire_id}")
+    for layout_kind in _PROVIDER_TEMPLATE_LAYOUT_KINDS:
+        if template_id.endswith(layout_kind):
+            return layout_kind
+    allowed = ", ".join(_PROVIDER_TEMPLATE_LAYOUT_KINDS)
+    raise ValueError(
+        f"Provider Template ID must end with one layout kind ({allowed}): {wire_id}"
     )
 
 
@@ -736,6 +784,17 @@ def provider_template_family_identity(wire_id: str) -> tuple[str, str] | None:
                     identity = (f"{base}@{raw_version}", suffix[:1].lower() + suffix[1:])
                     break
     return identity
+
+
+def provider_template_layout_kind(wire_id: str) -> str | None:
+    """Return the normalized layout suffix for one Provider business Template."""
+    template_id, separator, _version = wire_id.rpartition("@")
+    if not separator:
+        return None
+    for base in _PROVIDER_TEMPLATE_FAMILIES:
+        if template_id.startswith(base):
+            return _provider_template_layout_kind(wire_id)
+    return None
 
 
 def _parse_component_body(body: str) -> TemplateNode:
@@ -1655,4 +1714,5 @@ __all__ = [
     "provider_template_admission",
     "provider_template_variant_admission",
     "provider_template_family_identity",
+    "provider_template_layout_kind",
 ]

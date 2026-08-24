@@ -11,9 +11,10 @@
 
 本阶段在模板模块内部完成第二次资产升级：
 
-- 12 个旧业务模板族拆分为 73 个“模板 ID 即 UI 形态”的 `.cardtpl` 定义。
+- 12 个旧模板前缀拆分为 82 个“模板 ID 即 UI 形态”的 `.cardtpl` 定义；日期与日程归并后，
+  Provider 业务索引为 11 个业务领域。
 - 删除作者语法中的 `Variant`、`allowedParentComponents` 和 `limits`。
-- `provider.json` 增加 `dataDomain`、`description`、`requiredData`、`optionalData`。
+- `provider.json` 使用 `dataDomain`、`description`、`primaryData`、`secondaryData`、`optionalData`。
 - 新增独立 Layout Provider，第二层根组件改为支持 `...children` 的布局模板。
 - 第一层拒绝语义改为 Theme 有值、`component=[]`、`action=null`。
 

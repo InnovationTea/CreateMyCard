@@ -1,4 +1,4 @@
-#Template ResourceUsageOverviewMemory@1(props: { icon?: asset })
+#Template ResourceUsageOverviewFull@1(props: { icon?: asset })
 data = {
     usage: $path("/usagePercent"),
     available: $path("/availableMemText"),
@@ -66,7 +66,7 @@ Column(
 )
 #End
 
-#Template ResourceUsageOverviewMemoryPeer@1(props: { icon?: asset })
+#Template ResourceUsageOverviewCompact@1(props: { icon?: asset })
 data = {
     usage: $path("/usagePercent"),
     available: $path("/availableMemText"),

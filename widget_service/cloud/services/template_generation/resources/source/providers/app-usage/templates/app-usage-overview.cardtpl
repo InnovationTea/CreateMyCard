@@ -1,4 +1,4 @@
-#Template AppUsageOverviewSingleApp@1(props: { appIcon?: asset })
+#Template AppUsageOverviewFull@1(props: { appIcon?: asset })
 data = {
     appName: $path("/appUsage/appName"),
     duration: $path("/appUsage/durationText"),
@@ -6,50 +6,50 @@ data = {
 }
 
 Column(
-  "compact",
-  {"_advancedComponent": "AppUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Row(
-      "between",
-      {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Text(
+    "compact",
+    {"_advancedComponent": "AppUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Row(
+        "between",
+        {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+        Text(
             data.appName,
             "compact-title",
             {"fontSize": 12, "minFontSize": 12, "fontWeight": 600, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          ),
-      IfPresent(
+        ),
+        IfPresent(
             props.appIcon,
             Image(
-                    props.appIcon,
-                    "icon",
-                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "flexShrink": 0}
-                  )
-          )
+                props.appIcon,
+                "icon",
+                {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "flexShrink": 0}
+            )
+        )
     ),
-  Column(
-      "compact",
-      {"layoutWeight": 1, "justifyContent": "end", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Row(
+    Column(
+        "compact",
+        {"layoutWeight": 1, "justifyContent": "end", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+        Row(
             "between",
             {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
             Text(
-                    data.duration,
-                    "title",
-                    {"fontSize": 18, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  )
-          )
-    ),
-  IfPresent(
-      data.updatedAt,
-      Text(
-            `更新于 ${data.updatedAt}`,
-            "subtitle",
-            {"fontSize": 10, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          )
+                data.duration,
+                "title",
+                {"fontSize": 18, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            )
+        ),
+        IfPresent(
+            data.updatedAt,
+            Text(
+                `更新于 ${data.updatedAt}`,
+                "subtitle",
+                {"fontSize": 10, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            )
+        )
     )
 )
 #End
 
-#Template AppUsageOverviewSingleAppDetailed@1(props: { appIcon?: asset })
+#Template AppUsageOverviewHero@1(props: { appIcon?: asset })
 data = {
     appName: $path("/appUsage/appName"),
     duration: $path("/appUsage/durationText"),
@@ -57,50 +57,50 @@ data = {
 }
 
 Column(
-  "compact",
-  {"_advancedComponent": "AppUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Row(
-      "between",
-      {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Text(
+    "compact",
+    {"_advancedComponent": "AppUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Row(
+        "between",
+        {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+        Text(
             data.appName,
             "compact-title",
             {"fontSize": 12, "minFontSize": 12, "fontWeight": 600, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          ),
-      IfPresent(
+        ),
+        IfPresent(
             props.appIcon,
             Image(
-                    props.appIcon,
-                    "icon",
-                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "flexShrink": 0}
-                  )
-          )
+                props.appIcon,
+                "icon",
+                {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "flexShrink": 0}
+            )
+        )
     ),
-  Column(
-      "compact",
-      {"layoutWeight": 1, "justifyContent": "end", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Row(
+    Column(
+        "compact",
+        {"layoutWeight": 1, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+        Row(
             "between",
             {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
             Text(
-                    data.duration,
-                    "title",
-                    {"fontSize": 18, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  )
-          )
-    ),
-  IfPresent(
-      data.updatedAt,
-      Text(
-            `更新于 ${data.updatedAt}`,
-            "subtitle",
-            {"fontSize": 10, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          )
+                data.duration,
+                "title",
+                {"fontSize": 18, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            )
+        ),
+        IfPresent(
+            data.updatedAt,
+            Text(
+                `更新于 ${data.updatedAt}`,
+                "subtitle",
+                {"fontSize": 10, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            )
+        )
     )
 )
 #End
 
-#Template AppUsageOverviewSingleAppWide@1(props: { appIcon?: asset })
+#Template AppUsageOverviewWideFull@1(props: { appIcon?: asset })
 data = {
     appName: $path("/appUsage/appName"),
     duration: $path("/appUsage/durationText"),
@@ -159,7 +159,7 @@ Row(
 )
 #End
 
-#Template AppUsageOverviewSingleAppDetailedWide@1(props: { appIcon?: asset })
+#Template AppUsageOverviewWideHero@1(props: { appIcon?: asset })
 data = {
     appName: $path("/appUsage/appName"),
     duration: $path("/appUsage/durationText"),
