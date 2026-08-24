@@ -126,7 +126,6 @@ _NUMBER_PROPERTIES = frozenset(
     {
         "borderRadius",
         "borderWidth",
-        "backdropBlur",
         "flexShrink",
         "fontSize",
         "layoutWeight",
@@ -1219,6 +1218,9 @@ def _validate_component_property_types(
     props: dict[str, Any],
 ) -> None:
     for property_name, value in props.items():
+        if property_name == "backdropBlur":
+            _validate_backdrop_blur_property(component_id, value)
+            continue
         if property_name in _NUMBER_PROPERTIES:
             _validate_number_property(component_id, property_name, value)
             continue
@@ -1240,6 +1242,23 @@ def _validate_component_property_types(
             continue
         if property_name in {"width", "height"}:
             _validate_dimension_property(component_id, property_name, value)
+
+
+def _validate_backdrop_blur_property(component_id: str, value: Any) -> None:
+    if not isinstance(value, dict):
+        raise CompactDslConversionError(
+            f"{component_id}: backdropBlur must be an object containing radius."
+        )
+    if set(value) != {"radius"}:
+        raise CompactDslConversionError(
+            f"{component_id}: backdropBlur must contain only the required radius field."
+        )
+    radius = value["radius"]
+    _validate_number_property(component_id, "backdropBlur.radius", radius)
+    if radius < 0:
+        raise CompactDslConversionError(
+            f"{component_id}: backdropBlur.radius must be non-negative."
+        )
 
 
 def _validate_number_property(

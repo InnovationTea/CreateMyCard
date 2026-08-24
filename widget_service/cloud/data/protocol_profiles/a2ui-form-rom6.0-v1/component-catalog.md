@@ -57,14 +57,15 @@
 - 尺寸与约束：`width`、`height`、`constraintSize`
 - 间距与形状：`margin`、`padding`、`borderRadius`
 - 边框与表面：`borderWidth`、`borderColor`、`backgroundColor`、`backgroundImage`、`backgroundImageSizeWithStyle`、`linearGradient`
-- 布局与效果：`layoutWeight`、`flexShrink`、`shadow`、`backdropBlur`、`visibility`、`clip` boolean
+- 布局与效果：`layoutWeight`、`flexShrink`、`shadow`、`backdropBlur`、`visibility`、`clip`
 
 取值说明：
 
 - 尺寸数字默认是 vp。
 - 字符串可使用 `vp`、`fp`、`%`，以及文档允许时的 `px`。
 - 颜色使用 `#RRGGBB` 或 `#AARRGGBB`。
-- `backdropBlur` 使用不小于 `0` 的数值表示背景模糊半径；融球玻璃层固定使用 `120`。
+- `backdropBlur` 使用对象 `{"radius": number}`，`radius` 必填且不小于 `0`，单位为 vp；融球玻璃层固定使用
+  `{"radius": 120}`。
 - 卡片背景样式放在 root 组件的 `styles` 中；新卡片默认省略 `createSurface.styles`，只有宿主明确要求外层形状/裁切时才可写 `borderRadius`、`clip`。
 - `linearGradient` 固定写成对象并包含 `direction` 与 `colors`，例如 `{"direction":"RightBottom","colors":[["#RRGGBB",0],["#RRGGBB",1]]}`；`colors` 是嵌套 stop 对数组，不写成扁平数组，颜色可用 `#RRGGBB` 或 `#AARRGGBB`。
 

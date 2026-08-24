@@ -1,16 +1,15 @@
-"""Convert one complete 2x2 A2UI card to the fusion-ball surface form."""
+"""Convert complete A2UI to the fusion-ball form using only Python's standard library.
+
+This file is intentionally self-contained so it can be copied into another project.
+"""
 
 from __future__ import annotations
 
+import colorsys
 import copy
 import json
+import re
 from typing import Any
-
-from .cardplan.fusion_ball_background import (
-    build_fusion_ball_background,
-    theme_color_from_root_styles,
-)
-from .terse_dsl_nested2_converter import Nested2Node
 
 _FUSION_COMPONENT_IDS = frozenset(
     {
@@ -26,19 +25,17 @@ _FUSION_COMPONENT_IDS = frozenset(
     }
 )
 _BACKGROUND_STYLE_KEYS = ("backgroundColor", "linearGradient")
+_HEX_COLOR = re.compile(r"^#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?$")
+
+__all__ = ["FusionBallA2UIConversionError", "convert_a2ui_with_fusion_ball"]
 
 
 class FusionBallA2UIConversionError(ValueError):
     """Raised when the input is not a supported complete A2UI card."""
 
 
-def convert_a2ui_with_fusion_ball(a2ui: str, *, size: str) -> str:
-    """Replace a 2x2 Stack root's solid or gradient background with fusion balls."""
-    if size == "2x4":
-        return a2ui
-    if size != "2x2":
-        raise FusionBallA2UIConversionError('size must be "2x2" or "2x4".')
-
+def convert_a2ui_with_fusion_ball(a2ui: str, base_color: str) -> str:
+    """Replace a Stack root's solid or gradient background using ``base_color``."""
     messages = _parse_complete_a2ui(a2ui)
     update_components = messages[1]["updateComponents"]
     components = update_components.get("components")
@@ -77,15 +74,11 @@ def convert_a2ui_with_fusion_ball(a2ui: str, *, size: str) -> str:
             f"Fusion-ball component ids already exist: {', '.join(conflicts)}."
         )
 
-    try:
-        theme_color = theme_color_from_root_styles(root_styles)
-    except ValueError as exc:
-        raise FusionBallA2UIConversionError(
-            "The Stack root background does not contain a supported hex color."
-        ) from exc
-
     outer_root, card_content = _split_root(root)
-    fusion_components = _build_fusion_components(theme_color)
+    try:
+        fusion_components = _build_fusion_components(base_color)
+    except ValueError as exc:
+        raise FusionBallA2UIConversionError("base_color must use #RRGGBB or #AARRGGBB.") from exc
     components[root_index : root_index + 1] = [
         outer_root,
         *fusion_components,
@@ -182,27 +175,135 @@ def _split_root(root: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     return outer_root, card_content
 
 
-def _build_fusion_components(theme_color: str) -> list[dict[str, Any]]:
-    background = build_fusion_ball_background(theme_color)
-    components: list[dict[str, Any]] = []
-    _lower_fusion_node(background, components)
-    return components
+def _build_fusion_components(base_color: str) -> list[dict[str, Any]]:
+    large_color, medium_color, small_color = _build_fusion_palette(base_color)
+    return [
+        _stack(
+            "fusionBallBackground",
+            [
+                "fusionBallLargeSlot",
+                "fusionBallMediumSlot",
+                "fusionBallSmallSlot",
+                "fusionBallGlassLayer",
+            ],
+            width=160,
+            height=160,
+            borderRadius=18,
+            alignContent="topStart",
+            clip=True,
+        ),
+        _stack(
+            "fusionBallLargeSlot",
+            ["fusionBallLarge"],
+            width=180,
+            height=44,
+            alignContent="center",
+        ),
+        _stack(
+            "fusionBallLarge",
+            [],
+            width=210,
+            height=210,
+            borderRadius=105,
+            backgroundColor=large_color,
+            clip=True,
+        ),
+        _stack(
+            "fusionBallMediumSlot",
+            ["fusionBallMedium"],
+            width=80,
+            height=220,
+            alignContent="bottom",
+        ),
+        _stack(
+            "fusionBallMedium",
+            [],
+            width=160,
+            height=160,
+            borderRadius=80,
+            backgroundColor=medium_color,
+            clip=True,
+        ),
+        _stack(
+            "fusionBallSmallSlot",
+            ["fusionBallSmall"],
+            width=195,
+            height=190,
+            alignContent="bottomEnd",
+        ),
+        _stack(
+            "fusionBallSmall",
+            [],
+            width=100,
+            height=100,
+            borderRadius=50,
+            backgroundColor=small_color,
+            clip=True,
+        ),
+        _stack(
+            "fusionBallGlassLayer",
+            [],
+            width=160,
+            height=160,
+            backgroundColor="#0DFFFFFF",
+            backdropBlur={"radius": 120},
+        ),
+    ]
 
 
-def _lower_fusion_node(
-    node: Nested2Node,
-    components: list[dict[str, Any]],
-) -> None:
-    styles = dict(node.values[-1])
-    component_id = styles.pop("_id")
-    child_ids = [child.values[-1]["_id"] for child in node.children]
-    components.append(
-        {
-            "id": component_id,
-            "component": node.component_type,
-            "children": child_ids,
-            "styles": styles,
-        }
+def _build_fusion_palette(base_color: str) -> tuple[str, str, str]:
+    red, green, blue = _parse_base_color(base_color)
+    hue, saturation, brightness = colorsys.rgb_to_hsv(
+        red / 255,
+        green / 255,
+        blue / 255,
     )
-    for child in node.children:
-        _lower_fusion_node(child, components)
+    hue_degrees = hue * 360
+    large_color = _hsb_color(
+        hue_degrees + 25,
+        saturation * 100,
+        brightness * 100 - 40,
+    )
+    medium_color = _rgb_color(red, green, blue)
+    small_color = _hsb_color(
+        hue_degrees - 25,
+        saturation * 100 + 25,
+        brightness * 100,
+    )
+    return large_color, medium_color, small_color
+
+
+def _parse_base_color(value: str) -> tuple[int, int, int]:
+    if not isinstance(value, str) or not _HEX_COLOR.fullmatch(value):
+        raise ValueError("base_color must use #RRGGBB or #AARRGGBB.")
+    rgb = value[3:] if len(value) == 9 else value[1:]
+    return int(rgb[0:2], 16), int(rgb[2:4], 16), int(rgb[4:6], 16)
+
+
+def _hsb_color(hue: float, saturation: float, brightness: float) -> str:
+    normalized_hue = hue % 360 / 360
+    normalized_saturation = _clamp_percentage(saturation) / 100
+    normalized_brightness = _clamp_percentage(brightness) / 100
+    channels = colorsys.hsv_to_rgb(
+        normalized_hue,
+        normalized_saturation,
+        normalized_brightness,
+    )
+    return _rgb_color(*(round(channel * 255) for channel in channels))
+
+
+def _rgb_color(red: int, green: int, blue: int) -> str:
+    return f"#FF{red:02X}{green:02X}{blue:02X}"
+
+
+def _clamp_percentage(value: float) -> float:
+    return max(0.0, min(100.0, value))
+
+
+def _stack(component_id: str, children: list[str], **styles: Any) -> dict[str, Any]:
+    return {
+        "id": component_id,
+        "component": "Stack",
+        "children": children,
+        "styles": styles,
+    }

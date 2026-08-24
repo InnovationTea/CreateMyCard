@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import re
+import runpy
 import shutil
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -422,6 +425,7 @@ def test_fusion_ball_background_builds_the_supported_160vp_terse_tree():
     assert background_options["_id"] == "fusionBallBackground"
     assert background_options["width"] == 160
     assert background_options["height"] == 160
+    assert "backgroundColor" not in background_options
     assert [slot.values[-1]["alignContent"] for slot in slots] == [
         "center",
         "bottom",
@@ -441,7 +445,7 @@ def test_fusion_ball_background_builds_the_supported_160vp_terse_tree():
     assert glass.component_type == "Stack"
     assert glass.children == ()
     assert glass.values[-1]["backgroundColor"] == "#0DFFFFFF"
-    assert glass.values[-1]["backdropBlur"] == 120
+    assert glass.values[-1]["backdropBlur"] == {"radius": 120}
 
 
 def test_fusion_ball_wraps_only_2x2_and_replaces_the_card_gradient():
@@ -493,29 +497,25 @@ def test_fusion_ball_theme_color_prefers_the_existing_gradient_accent():
 
 
 @pytest.mark.parametrize(
-    ("root_background", "expected_medium"),
+    "root_background",
     [
-        ({"backgroundColor": "#FF008FBF"}, "#FF008FBF"),
-        (
-            {
-                "backgroundColor": "#FFFFFFFF",
-                "linearGradient": {
-                    "direction": "Bottom",
-                    "colors": [["#FF008FBF", 0], ["#FF46B1E3", 1]],
-                },
+        {"backgroundColor": "#FF123456"},
+        {
+            "backgroundColor": "#FF112233",
+            "linearGradient": {
+                "direction": "Bottom",
+                "colors": [["#FFFF0000", 0], ["#FF00FF00", 1]],
             },
-            "#FF008FBF",
-        ),
+        },
     ],
 )
 def test_complete_a2ui_converter_replaces_stack_background_with_fusion_balls(
     root_background: dict[str, Any],
-    expected_medium: str,
 ):
     source = _complete_stack_a2ui(root_background)
     source_messages = [json.loads(line) for line in source.splitlines()]
 
-    converted = convert_a2ui_with_fusion_ball(source, size="2x2")
+    converted = convert_a2ui_with_fusion_ball(source, base_color="#008FBF")
     messages = [json.loads(line) for line in converted.splitlines()]
     update = messages[1]["updateComponents"]
     components = {component["id"]: component for component in update["components"]}
@@ -539,18 +539,52 @@ def test_complete_a2ui_converter_replaces_stack_background_with_fusion_balls(
     assert "backgroundColor" not in content["styles"]
     assert "linearGradient" not in content["styles"]
     assert components["fusionBallLarge"]["styles"]["backgroundColor"] == "#FF001E59"
-    assert components["fusionBallMedium"]["styles"]["backgroundColor"] == expected_medium
+    assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#FF008FBF"
     assert components["fusionBallSmall"]["styles"]["backgroundColor"] == "#FF00BF9F"
+    assert "backgroundColor" not in components["fusionBallBackground"]["styles"]
     assert components["fusionBallGlassLayer"]["children"] == []
-    assert components["fusionBallGlassLayer"]["styles"]["backdropBlur"] == 120
+    assert components["fusionBallGlassLayer"]["styles"]["backdropBlur"] == {
+        "radius": 120
+    }
     assert validate_card(dsl_text=converted).diagnostics == []
-    assert convert_a2ui_with_fusion_ball(converted, size="2x2") == converted
+    assert convert_a2ui_with_fusion_ball(converted, base_color="#008FBF") == converted
 
 
-def test_complete_a2ui_converter_leaves_2x4_unchanged():
+def test_complete_a2ui_converter_rejects_invalid_base_color():
     source = _complete_stack_a2ui({"backgroundColor": "#FF008FBF"})
 
-    assert convert_a2ui_with_fusion_ball(source, size="2x4") == source
+    with pytest.raises(FusionBallA2UIConversionError, match="base_color"):
+        convert_a2ui_with_fusion_ball(source, base_color="blue")
+
+
+def test_complete_a2ui_converter_file_is_self_contained(tmp_path):
+    source_path = Path(convert_a2ui_with_fusion_ball.__code__.co_filename)
+    module = ast.parse(source_path.read_text(encoding="utf-8"))
+    imported_roots = {
+        imported_root
+        for node in ast.walk(module)
+        if isinstance(node, (ast.Import, ast.ImportFrom))
+        for imported_root in (
+            [alias.name.split(".", 1)[0] for alias in node.names]
+            if isinstance(node, ast.Import)
+            else [(node.module or "").split(".", 1)[0]]
+        )
+    }
+
+    assert imported_roots <= {"__future__", "colorsys", "copy", "json", "re", "typing"}
+    copied_path = tmp_path / "fusion_ball_a2ui_converter.py"
+    shutil.copyfile(source_path, copied_path)
+    copied_module = runpy.run_path(str(copied_path))
+    source = _complete_stack_a2ui({"backgroundColor": "#FF123456"})
+    converted = copied_module["convert_a2ui_with_fusion_ball"](source, "#008FBF")
+    components = {
+        component["id"]: component
+        for component in json.loads(converted.splitlines()[1])["updateComponents"][
+            "components"
+        ]
+    }
+
+    assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#FF008FBF"
 
 
 @pytest.mark.parametrize(
@@ -582,7 +616,7 @@ def test_complete_a2ui_converter_rejects_unsupported_root_backgrounds(
     source = "\n".join(json.dumps(message) for message in source_messages)
 
     with pytest.raises(FusionBallA2UIConversionError, match=error):
-        convert_a2ui_with_fusion_ball(source, size="2x2")
+        convert_a2ui_with_fusion_ball(source, base_color="#008FBF")
 
 
 def test_form_validator_allows_empty_stack_children_but_rejects_empty_column_children():
@@ -2655,7 +2689,7 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
     assert "linearGradient" not in root["styles"]
     assert medium_ball["children"] == []
     assert medium_ball["styles"]["backgroundColor"] == "#FF317AF7"
-    assert glass_layer["styles"]["backdropBlur"] == 120
+    assert glass_layer["styles"]["backdropBlur"] == {"radius": 120}
     assert captured["artifact"].effectiveCapabilities["data"] == ["ViewWeather"]
 
 
@@ -2708,7 +2742,9 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     assert components["fusionBallMedium"]["children"] == []
     assert components["fusionBallSmall"]["children"] == []
     assert components["fusionBallGlassLayer"]["children"] == []
-    assert components["fusionBallGlassLayer"]["styles"]["backdropBlur"] == 120
+    assert components["fusionBallGlassLayer"]["styles"]["backdropBlur"] == {
+        "radius": 120
+    }
     assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#FF317AF7"
     assert "linearGradient" not in components["cardContent"]["styles"]
     assert captured["artifact"].effectiveCapabilities["data"] == ["ViewWeather"]
