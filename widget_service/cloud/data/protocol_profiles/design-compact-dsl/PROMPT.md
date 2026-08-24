@@ -245,7 +245,7 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 
 以下字段直接写在组件行第三项 `props`，不得嵌套 `styles`：
 
-`width`、`height`、`constraintSize`、`aspectRatio`、`margin`、`padding`、`borderRadius`、`borderWidth`、`borderColor`、`backgroundColor`、`backgroundImage`、`backgroundImageSizeWithStyle`、`linearGradient`、`shadow`、`layoutWeight`、`flexShrink`、`visibility`、`clip`
+`width`、`height`、`constraintSize`、`aspectRatio`、`margin`、`padding`、`borderRadius`、`borderWidth`、`borderColor`、`backgroundColor`、`backgroundImage`、`backgroundImageSizeWithStyle`、`linearGradient`、`shadow`、`backdropBlur`、`layoutWeight`、`flexShrink`、`visibility`、`clip`
 
 规则：
 
@@ -258,6 +258,7 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 - `flexShrink` 只使用 `[0,1]` 范围内的静态数值；`0` 表示不参与主轴压缩，值越大越优先被压缩。受保护文本或 CTA 可设为 `0`，但仍须按完整内容预留空间，不能把 `flexShrink` 当作布局预算替代品。
 - `aspectRatio` 必须是大于 `0` 的静态数值。关键组件优先显式写 `width/height` 并省略 `aspectRatio`；`constraintSize` 的约束优先级高于 `aspectRatio`。
 - `shadow` 只允许静态字符串枚举 `outerDefaultXS|outerDefaultSM|outerDefaultMD|outerDefaultLG|outerFloatingSM|outerFloatingMD`，或对象 `{offsetX,offsetY,radius,color,fill,type}`；对象中的 `radius` 必填且不小于 `0`，`type` 只取 `color|blur`。
+- `backdropBlur` 使用不小于 `0` 的静态数值表示背景模糊半径；仅在明确需要背景模糊的覆盖层使用。
 - 不使用 catalog 未声明的 `gap`、`position`、`top`、`left`、`zIndex`、`opacity`、`transform`、`display` 或 CSS 字段。
 ## 5.3 Text
 

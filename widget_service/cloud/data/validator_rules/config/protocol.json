@@ -26,6 +26,9 @@
   "commonTopLevelFields": ["id", "component", "styles", "onClick", "accessibility"],
   "componentCommonRequiredFields": ["id", "component"],
   "componentNonEmptyRequiredFields": ["id", "component", "src", "label", "children"],
+  "componentAllowEmptyCollectionFields": {
+    "Stack": ["children"]
+  },
   "componentTopLevelFields": {
     "Text": ["content"],
     "Image": ["src"],

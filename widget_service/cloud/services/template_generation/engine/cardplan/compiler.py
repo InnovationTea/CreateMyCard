@@ -56,6 +56,10 @@ from services.template_generation.engine.terse_dsl_nested2_converter import (
     serialize_task_spec_data,
 )
 
+from .fusion_ball_background import (
+    apply_fusion_ball_background,
+    theme_color_from_root_styles,
+)
 from .models import (
     ExpansionStats,
     HybridBodyContract,
@@ -275,6 +279,7 @@ def compile_hybrid_card(
         root = _compile_card_shell(card_params, content, task_spec, contract, registry)
         root = _apply_theme_text_role(root, text_role)
         root = _apply_theme_icon_role(root, text_role)
+    root = _apply_template_background(root, task_spec.size, contract, registry)
     effective = _serialize_effective_document(root, task_spec, enable_data_bindings)
     a2ui = convert_terse_dsl_nested2_to_a2ui(
         effective,
@@ -430,6 +435,7 @@ def compile_ux_layout_card(
     if depth > contract.limits.max_nesting_depth:
         raise TerseDslNested2ConversionError("Hybrid component depth budget exceeded.")
     _validate_expanded_tree(root, contract)
+    root = _apply_template_background(root, task_spec.size, contract, registry)
     effective = _serialize_effective_document(root, task_spec, enable_data_bindings)
     a2ui = convert_terse_dsl_nested2_to_a2ui(
         effective,
@@ -4731,6 +4737,20 @@ def _compile_ux_layout_shell(
     root_options.pop("height", None)
     root_options["_id"] = "root"
     return Nested2Node("Column", ("card", root_options), (content,))
+
+
+def _apply_template_background(
+    root: Nested2Node,
+    size: str,
+    contract: HybridBodyContract,
+    registry: CardPlanRegistry,
+) -> Nested2Node:
+    """Apply deterministic shell decoration outside the model expansion budget."""
+    if size != "2x2":
+        return root
+    theme = registry.require_theme(contract.theme_profile_id)
+    theme_color = theme_color_from_root_styles(theme.root_styles)
+    return apply_fusion_ball_background(root, size=size, theme_color=theme_color)
 
 
 def _strip_direct_card_chrome_from_call(

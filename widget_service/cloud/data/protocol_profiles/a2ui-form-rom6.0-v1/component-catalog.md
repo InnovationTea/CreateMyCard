@@ -41,7 +41,7 @@
 
 - `Column`：竖向容器；必需 `children`；`children` 为字符串数组或 `{ "componentId": "...", "path": "/items" }`；`itemMargin` 数字 vp；`styles.justifyContent` 取 `start|center|end|spaceAround|spaceBetween|spaceEvenly`；`styles.alignItems` 取 `start|center|end`。
 - `Row`：横向容器；必需 `children`；`children` 为字符串数组或模板循环对象；`itemMargin` 数字 vp；`wrap` 取 `noWrap|wrap`；`styles.justifyContent` 取 `start|center|end|spaceAround|spaceBetween|spaceEvenly`；`styles.alignItems` 取 `top|center|bottom`。
-- `Stack`：层叠容器，用于光晕、图片背景、叠加内容和进度环；必需 `children`；`children` 为字符串数组；`styles.alignContent` 取 `topStart|top|topEnd|start|center|end|bottomStart|bottom|bottomEnd`。
+- `Stack`：层叠容器，用于光晕、图片背景、叠加内容和进度环；必需 `children`；`children` 为字符串数组且允许空数组，纯背景或形状层可写 `[]`；`styles.alignContent` 取 `topStart|top|topEnd|start|center|end|bottomStart|bottom|bottomEnd`。
 - `Text`：文本展示；必需 `content`；`fontSize` 数字 fp；`fontWeight` 数字 `100..900`；`fontColor` 取 `#RRGGBB` 或 `#AARRGGBB`；`maxLines`、`minFontSize`、`maxFontSize` 为数字；`textOverflow` 取 `none|clip|ellipsis|marquee`；`textAlign` 取 `start|center|end|justify`；`wordBreak` 取 `normal|breakAll|breakWord|hyphenation`；`decoration` 为文本装饰对象。
 - `Image`：图片展示；必需 `src`；`objectFit` 取 `fill|contain|cover|auto|none|scaleDown|topStart|top|topEnd|start|center|end|bottomStart|bottom|bottomEnd|matrix`；`aspectRatio` 为数字。
 - `Divider`：分隔线；无额外必需字段；属性位于 `styles`：`strokeWidth` 为数字或带单位字符串，`vertical` 为 boolean，`color` 为颜色字符串。
@@ -57,13 +57,14 @@
 - 尺寸与约束：`width`、`height`、`constraintSize`
 - 间距与形状：`margin`、`padding`、`borderRadius`
 - 边框与表面：`borderWidth`、`borderColor`、`backgroundColor`、`backgroundImage`、`backgroundImageSizeWithStyle`、`linearGradient`
-- 布局与效果：`layoutWeight`、`flexShrink`、`shadow`、`visibility`、`clip` boolean
+- 布局与效果：`layoutWeight`、`flexShrink`、`shadow`、`backdropBlur`、`visibility`、`clip` boolean
 
 取值说明：
 
 - 尺寸数字默认是 vp。
 - 字符串可使用 `vp`、`fp`、`%`，以及文档允许时的 `px`。
 - 颜色使用 `#RRGGBB` 或 `#AARRGGBB`。
+- `backdropBlur` 使用不小于 `0` 的数值表示背景模糊半径；融球玻璃层固定使用 `120`。
 - 卡片背景样式放在 root 组件的 `styles` 中；新卡片默认省略 `createSurface.styles`，只有宿主明确要求外层形状/裁切时才可写 `borderRadius`、`clip`。
 - `linearGradient` 固定写成对象并包含 `direction` 与 `colors`，例如 `{"direction":"RightBottom","colors":[["#RRGGBB",0],["#RRGGBB",1]]}`；`colors` 是嵌套 stop 对数组，不写成扁平数组，颜色可用 `#RRGGBB` 或 `#AARRGGBB`。
 
@@ -80,7 +81,7 @@
 
 ## 特殊规则
 
-- `children`：普通组件树只写组件 id 字符串数组；模板循环对象只用于 `Row`、`Column`、`List` 的 `children`，对象只能包含 `componentId` 和 `path`；`Stack.children` 只用字符串数组。
+- `children`：普通组件树只写组件 id 字符串数组；模板循环对象只用于 `Row`、`Column`、`List` 的 `children`，对象只能包含 `componentId` 和 `path`；`Stack.children` 只用字符串数组并允许空数组。
 - `Image.src` 和 `styles.backgroundImage` 只使用用户提供或素材库声明的本地/资源路径；不支持网络 URL、内联/base64 SVG、未声明 SVG 或占位图；没有真实资源时省略 `Image`。
 - `backgroundColor`、`linearGradient`、`backgroundImage` 等卡片背景字段写在 root 组件或 root 下真实背景组件，不写进 `createSurface.styles`。
 - `Button`：CTA 文本是受保护内容，避免窄固定宽度和省略；可点击按钮必须有已声明的 `onClick` EventHandler，动作能力不明时删除点击行为。

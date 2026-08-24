@@ -155,10 +155,12 @@ def _parse_terse_dsl_nested2_document(
         )
     state = {"components": 0}
     root = _parse_component(module.body[0].value, 1, state)
-    if root.component_type != "Column":
-        raise TerseDslNested2ConversionError("The root component must be Column.")
+    if root.component_type not in {"Column", "Stack"}:
+        raise TerseDslNested2ConversionError("The root component must be Column or Stack.")
     if not root.values or root.values[0] != "card":
-        raise TerseDslNested2ConversionError('The root must use Column("card", ...).')
+        raise TerseDslNested2ConversionError(
+            'The root must use Column("card", ...) or Stack("card", ...).'
+        )
     data_model = None
     if len(module.body) == 2:
         assignment = module.body[1]
@@ -563,18 +565,19 @@ def _container_props(
             "2x2": {"width": 160, "height": 160},
             "2x4": {"width": 320, "height": 160},
         }.get(size)
-        if node.component_type != "Column" or layout != "card" or dimensions is None:
+        if node.component_type not in {"Column", "Stack"} or layout != "card" or dimensions is None:
             raise TerseDslNested2ConversionError(
-                'Root must be Column("card", ...) with a supported size.'
+                'Root must be Column("card", ...) or Stack("card", ...) with a supported size.'
             )
         locked = {
             **dimensions,
             "padding": 12,
             "borderRadius": 20,
             "clip": True,
-            "backgroundColor": "background_primary",
-            "itemMargin": 8,
         }
+        if node.component_type == "Column":
+            locked["itemMargin"] = 8
+            locked["backgroundColor"] = "background_primary"
         if "width" in props or "height" in props:
             raise TerseDslNested2ConversionError(
                 "Root options cannot override the size-locked width or height."

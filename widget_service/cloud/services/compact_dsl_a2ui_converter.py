@@ -53,6 +53,7 @@ _COMMON_STYLE_PROPERTIES = frozenset(
         "backgroundColor",
         "backgroundImage",
         "backgroundImageSizeWithStyle",
+        "backdropBlur",
         "borderColor",
         "borderRadius",
         "borderWidth",
@@ -149,6 +150,7 @@ _NUMBER_PROPERTIES = frozenset(
     {
         "borderRadius",
         "borderWidth",
+        "backdropBlur",
         "flexShrink",
         "fontSize",
         "layoutWeight",
@@ -2177,8 +2179,20 @@ def _normalize_root_component(
 ) -> None:
     styles["width"] = "matchParent"
     styles["height"] = "matchParent"
+    if _is_fusion_ball_root(component):
+        for property_name in ("backgroundColor", "linearGradient", "backgroundImage"):
+            styles.pop(property_name, None)
+        return
     _normalize_root_linear_gradient(styles)
     _ensure_root_background(styles, fallback_gradient)
+
+
+def _is_fusion_ball_root(component: ComponentRow) -> bool:
+    return (
+        component.component_id == "root"
+        and component.component_type == "Stack"
+        and component.children[:1] == ("fusionBallBackground",)
+    )
 
 
 def _normalize_root_linear_gradient(styles: dict[str, Any]) -> None:

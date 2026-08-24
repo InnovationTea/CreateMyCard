@@ -56,6 +56,12 @@ class ComponentValidator(BaseValidator):
         top_fields = rules.protocol.get("componentTopLevelFields", {})
         required_fields = rules.protocol.get("componentRequiredFields", {})
         non_empty_required = set(rules.protocol.get("componentNonEmptyRequiredFields", []))
+        allow_empty_collections = {
+            name: set(fields)
+            for name, fields in rules.protocol.get(
+                "componentAllowEmptyCollectionFields", {}
+            ).items()
+        }
         forbidden_global = set(rules.protocol.get("forbiddenComponentFields", {}).get("*", []))
         forbidden_by_component = rules.protocol.get("forbiddenComponentFields", {})
         template_components = set(rules.protocol.get("templateComponents", []))
@@ -169,10 +175,13 @@ class ComponentValidator(BaseValidator):
                                 message="Form EventHandler 不支持 condition/as。",
                             )
             for field in required_fields.get(component_type, []):
+                empty_collections = field in non_empty_required
+                if field in allow_empty_collections.get(component_type, set()):
+                    empty_collections = False
                 if field not in component or is_empty_required_value(
                     component.get(field),
                     empty_strings=field in non_empty_required,
-                    empty_collections=field in non_empty_required,
+                    empty_collections=empty_collections,
                 ):
                     reporter.add(
                         "error",

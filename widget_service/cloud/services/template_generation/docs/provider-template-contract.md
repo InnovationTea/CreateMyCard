@@ -139,6 +139,32 @@ Template("HeroSupportLayout@1", {},
 Provider 模板作者侧声明，不进入最终 Nested-2 语法。最终产物不得包含 `_advancedSelectors` 或
 `_templateProjection`。
 
+## 2x2 融球背景
+
+融球背景是模板可信展开后的微服务装饰模板，不属于业务 Provider，也不交给两层模型选择。它接收当前
+Theme 的颜色并输出一棵独立 Terse 结构树：中球直接使用基准色；大球使用 `H + 25`、`B - 40`；小球
+使用 `H - 25`、`S + 25`。H 按 360 度循环，S/B 收敛到 `0..100`。
+
+`2x2` 最终根节点使用 `Stack("card", ...)`，子节点顺序固定为“融球背景、原卡片内容”；原卡片内容移除
+`backgroundColor`、`linearGradient` 和背景图片字段后作为前景层。Form Catalog 不支持 ArkUI 的
+`position`，因此模板使用嵌套 `Stack` 的尺寸与对齐复现三球位置；玻璃层使用 5% 白色覆盖和
+`backdropBlur: 120`。最外层 `Stack("card", ...)` 不设置 `backgroundColor`，背景完全由第一个子节点
+提供。球体和覆盖层使用 A2UI 允许 `children: []` 的空 `Stack`，不添加占位文本。`2x4` 不应用该装饰
+模板，继续使用 Theme 原有线性渐变。
+
+### 完整 A2UI 转换
+
+模板模块同时提供确定性的完整 A2UI 转换入口
+`convert_a2ui_with_fusion_ball(a2ui, size=...)`。输入必须是 `v0.9` 的三行完整 JSONL，依次包含
+`createSurface`、`updateComponents` 和 `updateDataModel`。`2x2` 转换只接受根组件为 `Stack` 且根样式包含
+纯色或线性渐变背景的卡片：线性渐变存在时取首个有效十六进制色标作为基准色，否则取
+`backgroundColor`；背景图片不参与转换。
+
+转换保留 surface、DataModel、原业务组件和根组件 ID。原根节点改为无背景的外层 `Stack`，其第一个
+子节点是固定融球结构，第二个子节点是改名为 `cardContent`、移除纯色和线性渐变后的原根组件。
+转换器拒绝保留 ID 与融球固定 ID 冲突的输入，对已经完整转换的输入原样返回。`2x4` 输入严格原样返回，
+不解析或改写协议。
+
 ## 两层 LLM 规则
 
 第一层顶层只能输出 `theme`、`componentCandidates`、`action`：

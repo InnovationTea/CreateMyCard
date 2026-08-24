@@ -20,6 +20,7 @@ from models.generation import (
 from models.service import ArtifactSaveResult
 from services import widget_generation_service as widget_generation_service_module
 from services.artifact_store import ArtifactStore
+from services.card_validation import validate_card
 from services.generation_pipeline import (
     DslProcessingResult,
     DslProcessorKind,
@@ -32,6 +33,8 @@ from services.protocol_registry import (
     A2UIProtocolRegistry,
 )
 from services.template_generation import (
+    FusionBallA2UIConversionError,
+    convert_a2ui_with_fusion_ball,
     facade,
     route_legacy_python_terse_generation,
 )
@@ -60,6 +63,13 @@ from services.template_generation.engine.cardplan import registry as cardplan_re
 from services.template_generation.engine.cardplan.compiler import (
     _inject_resource_battery_title,
     _provider_layout_action_background,
+)
+from services.template_generation.engine.cardplan.fusion_ball_background import (
+    FusionBallPalette,
+    apply_fusion_ball_background,
+    build_fusion_ball_background,
+    build_fusion_ball_palette,
+    theme_color_from_root_styles,
 )
 from services.template_generation.engine.cardplan.models import HybridBodyContract, HybridLimits
 from services.template_generation.engine.cardplan.provider_bundle import (
@@ -92,6 +102,56 @@ _WEATHER_TEMPLATE_FIELDS = (
     "/current/coldLevel",
     "/daily/0/temperatureRangeText",
 )
+
+
+def _complete_stack_a2ui(root_styles: dict[str, Any]) -> str:
+    messages = [
+        {
+            "version": "v0.9",
+            "createSurface": {
+                "surfaceId": "weather-card",
+                "catalogId": "ohos.a2ui.extended.catalog.form",
+            },
+        },
+        {
+            "version": "v0.9",
+            "updateComponents": {
+                "surfaceId": "weather-card",
+                "root": "root",
+                "components": [
+                    {
+                        "id": "root",
+                        "component": "Stack",
+                        "children": ["weatherTitle"],
+                        "styles": {
+                            "width": "matchParent",
+                            "height": "matchParent",
+                            "padding": 12,
+                            "borderRadius": 18,
+                            "alignContent": "center",
+                            "clip": True,
+                            **root_styles,
+                        },
+                    },
+                    {
+                        "id": "weatherTitle",
+                        "component": "Text",
+                        "content": "{{ ${/data/weather/title} }}",
+                        "styles": {"fontSize": 16, "fontColor": "#FFFFFFFF"},
+                    },
+                ],
+            },
+        },
+        {
+            "version": "v0.9",
+            "updateDataModel": {
+                "surfaceId": "weather-card",
+                "path": "/",
+                "value": {"data": {"weather": {"title": "深圳 25℃"}}},
+            },
+        },
+    ]
+    return "\n".join(json.dumps(message, ensure_ascii=False) for message in messages)
 
 
 @pytest.fixture(autouse=True)
@@ -339,6 +399,218 @@ def test_nested2_full_document_requires_data_for_every_component_binding():
             protocol_profile=profile,
             task_spec=task_spec,
         )
+
+
+def test_fusion_ball_palette_applies_hsb_deltas_and_ignores_input_alpha():
+    expected = FusionBallPalette(
+        large="#FF001E59",
+        medium="#FF008FBF",
+        small="#FF00BF9F",
+    )
+
+    assert build_fusion_ball_palette("#008FBF") == expected
+    assert build_fusion_ball_palette("#1A008FBF") == expected
+
+
+def test_fusion_ball_background_builds_the_supported_160vp_terse_tree():
+    background = build_fusion_ball_background("#008FBF")
+    background_options = background.values[-1]
+    slots = background.children[0:3]
+    glass = background.children[3]
+
+    assert background.component_type == "Stack"
+    assert background_options["_id"] == "fusionBallBackground"
+    assert background_options["width"] == 160
+    assert background_options["height"] == 160
+    assert [slot.values[-1]["alignContent"] for slot in slots] == [
+        "center",
+        "bottom",
+        "bottomEnd",
+    ]
+    assert [
+        (slot.values[-1]["width"], slot.values[-1]["height"]) for slot in slots
+    ] == [(180, 44), (80, 220), (195, 190)]
+    assert [slot.children[0].values[-1]["backgroundColor"] for slot in slots] == [
+        "#FF001E59",
+        "#FF008FBF",
+        "#FF00BF9F",
+    ]
+    assert [slot.children[0].values[-1]["width"] for slot in slots] == [210, 160, 100]
+    assert [slot.children[0].component_type for slot in slots] == ["Stack"] * 3
+    assert [slot.children[0].children for slot in slots] == [()] * 3
+    assert glass.component_type == "Stack"
+    assert glass.children == ()
+    assert glass.values[-1]["backgroundColor"] == "#0DFFFFFF"
+    assert glass.values[-1]["backdropBlur"] == 120
+
+
+def test_fusion_ball_wraps_only_2x2_and_replaces_the_card_gradient():
+    card = Nested2Node(
+        "Column",
+        (
+            "card",
+            {
+                "_id": "root",
+                "padding": 12,
+                "backgroundColor": "#FF008FBF",
+                "linearGradient": {
+                    "direction": "Bottom",
+                    "colors": [["#FF008FBF", 0], ["#FF46B1E3", 1]],
+                },
+                "clip": True,
+            },
+        ),
+        (Nested2Node("Text", ("天气", "body"), ()),),
+    )
+
+    wrapped = apply_fusion_ball_background(card, size="2x2", theme_color="#008FBF")
+    foreground_options = wrapped.children[1].values[-1]
+
+    assert wrapped.component_type == "Stack"
+    assert wrapped.values[0] == "card"
+    assert [child.values[-1]["_id"] for child in wrapped.children] == [
+        "fusionBallBackground",
+        "cardContent",
+    ]
+    assert "backgroundColor" not in foreground_options
+    assert "linearGradient" not in foreground_options
+    assert "backgroundColor" not in wrapped.values[-1]
+    assert foreground_options["width"] == 160
+    assert foreground_options["height"] == 160
+    assert apply_fusion_ball_background(card, size="2x4", theme_color="#008FBF") is card
+
+
+def test_fusion_ball_theme_color_prefers_the_existing_gradient_accent():
+    root_styles = {
+        "backgroundColor": "#FFFFFFFF",
+        "linearGradient": {
+            "direction": "Bottom",
+            "colors": [["#1A0A59F7", 0], ["#00FFFFFF", 1]],
+        },
+    }
+
+    assert theme_color_from_root_styles(root_styles) == "#FF0A59F7"
+
+
+@pytest.mark.parametrize(
+    ("root_background", "expected_medium"),
+    [
+        ({"backgroundColor": "#FF008FBF"}, "#FF008FBF"),
+        (
+            {
+                "backgroundColor": "#FFFFFFFF",
+                "linearGradient": {
+                    "direction": "Bottom",
+                    "colors": [["#FF008FBF", 0], ["#FF46B1E3", 1]],
+                },
+            },
+            "#FF008FBF",
+        ),
+    ],
+)
+def test_complete_a2ui_converter_replaces_stack_background_with_fusion_balls(
+    root_background: dict[str, Any],
+    expected_medium: str,
+):
+    source = _complete_stack_a2ui(root_background)
+    source_messages = [json.loads(line) for line in source.splitlines()]
+
+    converted = convert_a2ui_with_fusion_ball(source, size="2x2")
+    messages = [json.loads(line) for line in converted.splitlines()]
+    update = messages[1]["updateComponents"]
+    components = {component["id"]: component for component in update["components"]}
+    root = components["root"]
+    content = components["cardContent"]
+
+    assert len(messages) == 3
+    assert messages[0] == source_messages[0]
+    assert messages[2] == source_messages[2]
+    assert update["root"] == "root"
+    assert root["component"] == "Stack"
+    assert root["children"] == ["fusionBallBackground", "cardContent"]
+    assert root["styles"]["padding"] == 0
+    assert root["styles"]["alignContent"] == "topStart"
+    assert "backgroundColor" not in root["styles"]
+    assert "linearGradient" not in root["styles"]
+    assert content["component"] == "Stack"
+    assert content["children"] == ["weatherTitle"]
+    assert content["styles"]["padding"] == 12
+    assert content["styles"]["alignContent"] == "center"
+    assert "backgroundColor" not in content["styles"]
+    assert "linearGradient" not in content["styles"]
+    assert components["fusionBallLarge"]["styles"]["backgroundColor"] == "#FF001E59"
+    assert components["fusionBallMedium"]["styles"]["backgroundColor"] == expected_medium
+    assert components["fusionBallSmall"]["styles"]["backgroundColor"] == "#FF00BF9F"
+    assert components["fusionBallGlassLayer"]["children"] == []
+    assert components["fusionBallGlassLayer"]["styles"]["backdropBlur"] == 120
+    assert validate_card(dsl_text=converted).diagnostics == []
+    assert convert_a2ui_with_fusion_ball(converted, size="2x2") == converted
+
+
+def test_complete_a2ui_converter_leaves_2x4_unchanged():
+    source = _complete_stack_a2ui({"backgroundColor": "#FF008FBF"})
+
+    assert convert_a2ui_with_fusion_ball(source, size="2x4") == source
+
+
+@pytest.mark.parametrize(
+    ("root_update", "error"),
+    [
+        ({"component": "Column"}, "root component must be Stack"),
+        ({"styles": {}}, "must contain backgroundColor or linearGradient"),
+        (
+            {
+                "styles": {
+                    "backgroundColor": "#FF008FBF",
+                    "backgroundImage": "resources/base/media/weather.png",
+                }
+            },
+            "does not replace a backgroundImage",
+        ),
+    ],
+)
+def test_complete_a2ui_converter_rejects_unsupported_root_backgrounds(
+    root_update: dict[str, Any],
+    error: str,
+):
+    source_messages = [
+        json.loads(line)
+        for line in _complete_stack_a2ui({"backgroundColor": "#FF008FBF"}).splitlines()
+    ]
+    root = source_messages[1]["updateComponents"]["components"][0]
+    root.update(root_update)
+    source = "\n".join(json.dumps(message) for message in source_messages)
+
+    with pytest.raises(FusionBallA2UIConversionError, match=error):
+        convert_a2ui_with_fusion_ball(source, size="2x2")
+
+
+def test_form_validator_allows_empty_stack_children_but_rejects_empty_column_children():
+    profile = A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile()
+    reports = {}
+    for component_type in ("Stack", "Column"):
+        source = f'{component_type}("card",{{"backgroundColor":"#FF008FBF"}});'
+        dsl = convert_terse_dsl_nested2_to_a2ui(
+            source,
+            size="2x2",
+            protocol_profile=profile,
+        )
+        reports[component_type] = validate_card(dsl_text=dsl)
+
+    stack_children_errors = [
+        diagnostic
+        for diagnostic in reports["Stack"].diagnostics
+        if diagnostic.code == "DSL_COMPONENT_REQUIRED_FIELD"
+        and diagnostic.json_pointer.endswith("/children")
+    ]
+    column_children_errors = [
+        diagnostic
+        for diagnostic in reports["Column"].diagnostics
+        if diagnostic.code == "DSL_COMPONENT_REQUIRED_FIELD"
+        and diagnostic.json_pointer.endswith("/children")
+    ]
+    assert stack_children_errors == []
+    assert len(column_children_errors) == 1
 
 
 def test_app_usage_template_sizes_separate_compact_and_wide_variants():
@@ -2366,12 +2638,29 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
         for item in messages[1]["updateComponents"]["components"]
         if item["id"] == "root"
     )
+    medium_ball = next(
+        item
+        for item in messages[1]["updateComponents"]["components"]
+        if item["id"] == "fusionBallMedium"
+    )
+    glass_layer = next(
+        item
+        for item in messages[1]["updateComponents"]["components"]
+        if item["id"] == "fusionBallGlassLayer"
+    )
+    assert root["component"] == "Stack"
+    assert root["children"] == ["fusionBallBackground", "cardContent"]
     assert root["styles"]["borderRadius"] == 18
+    assert "backgroundColor" not in root["styles"]
+    assert "linearGradient" not in root["styles"]
+    assert medium_ball["children"] == []
+    assert medium_ball["styles"]["backgroundColor"] == "#FF317AF7"
+    assert glass_layer["styles"]["backdropBlur"] == 120
     assert captured["artifact"].effectiveCapabilities["data"] == ["ViewWeather"]
 
 
 @pytest.mark.asyncio
-async def test_terse_entry_uses_compact_template_source_and_keeps_theme(monkeypatch):
+async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(monkeypatch):
     model = WeatherTemplateModel()
     captured: dict[str, Any] = {}
 
@@ -2397,25 +2686,31 @@ async def test_terse_entry_uses_compact_template_source_and_keeps_theme(monkeypa
     assert response.status == GenerationStatus.SUCCESS
     assert response.artifactUrl == "https://artifact.test/weather-template-terse"
     compact_rows = [json.loads(line) for line in captured["compact"].splitlines()]
-    assert compact_rows[0][0:2] == ["root", "Column"]
-    assert compact_rows[0][2]["backgroundColor"] == "#FF317AF7"
-    assert compact_rows[0][2]["linearGradient"]["colors"] == [
-        ["#FF317AF7", 0],
-        ["#FF46B1E3", 1],
-    ]
+    compact_components = {
+        row[0]: row for row in compact_rows if len(row) >= 3 and isinstance(row[0], str)
+    }
+    assert compact_rows[0][0:2] == ["root", "Stack"]
+    assert compact_rows[0][3] == ["fusionBallBackground", "cardContent"]
+    assert "backgroundColor" not in compact_rows[0][2]
+    assert "linearGradient" not in compact_rows[0][2]
+    assert compact_components["fusionBallLarge"][2]["backgroundColor"] == "#FF221D91"
+    assert compact_components["fusionBallMedium"][2]["backgroundColor"] == "#FF317AF7"
+    assert compact_components["fusionBallSmall"][2]["backgroundColor"] == "#FF00C2F7"
+    assert "linearGradient" not in compact_components["cardContent"][2]
     messages = [json.loads(line) for line in captured["artifact"].genui.splitlines()]
     protocol_profile = A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile()
     assert messages[0]["createSurface"]["catalogId"] == protocol_profile["catalogId"]
-    root = next(
-        item
-        for item in messages[1]["updateComponents"]["components"]
-        if item["id"] == "root"
-    )
-    assert root["styles"]["backgroundColor"] == "#FF317AF7"
-    assert root["styles"]["linearGradient"]["colors"] == [
-        ["#FF317AF7", 0],
-        ["#FF46B1E3", 1],
-    ]
+    components = {item["id"]: item for item in messages[1]["updateComponents"]["components"]}
+    assert components["root"]["component"] == "Stack"
+    assert components["root"]["children"] == ["fusionBallBackground", "cardContent"]
+    assert "backgroundColor" not in components["root"]["styles"]
+    assert components["fusionBallLarge"]["children"] == []
+    assert components["fusionBallMedium"]["children"] == []
+    assert components["fusionBallSmall"]["children"] == []
+    assert components["fusionBallGlassLayer"]["children"] == []
+    assert components["fusionBallGlassLayer"]["styles"]["backdropBlur"] == 120
+    assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#FF317AF7"
+    assert "linearGradient" not in components["cardContent"]["styles"]
     assert captured["artifact"].effectiveCapabilities["data"] == ["ViewWeather"]
 
 

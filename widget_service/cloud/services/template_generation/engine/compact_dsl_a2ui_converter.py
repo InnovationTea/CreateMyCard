@@ -58,6 +58,7 @@ _COMMON_STYLE_PROPERTIES = frozenset(
         "backgroundColor",
         "backgroundImage",
         "backgroundImageSizeWithStyle",
+        "backdropBlur",
         "borderColor",
         "borderRadius",
         "borderWidth",
@@ -125,6 +126,7 @@ _NUMBER_PROPERTIES = frozenset(
     {
         "borderRadius",
         "borderWidth",
+        "backdropBlur",
         "flexShrink",
         "fontSize",
         "layoutWeight",
@@ -651,10 +653,7 @@ def convert_a2ui_to_compact_dsl(
     components = update_components.get("components")
     if not isinstance(components, list) or not components:
         raise CompactDslConversionError("A2UI updateComponents.components must be non-empty.")
-    rows = [
-        _a2ui_component_to_compact_row(component, dimensions)
-        for component in components
-    ]
+    rows = [_a2ui_component_to_compact_row(component, dimensions) for component in components]
     data_path = update_data_model.get("path")
     data_value = update_data_model.get("value")
     if not isinstance(data_path, str) or not data_path.startswith("/"):
@@ -686,9 +685,7 @@ def _parse_standard_a2ui_messages(a2ui: str) -> list[dict[str, Any]]:
                 f"A2UI archive line {line_number} is invalid JSON: {exc.msg}."
             ) from exc
         if not isinstance(message, dict):
-            raise CompactDslConversionError(
-                f"A2UI archive line {line_number} must be an object."
-            )
+            raise CompactDslConversionError(f"A2UI archive line {line_number} must be an object.")
         messages.append(message)
     expected_keys = ("createSurface", "updateComponents", "updateDataModel")
     for message, expected_key in zip(messages, expected_keys, strict=True):
@@ -734,7 +731,7 @@ def _a2ui_component_to_compact_row(
     if not isinstance(component_id, str) or not component_id:
         raise CompactDslConversionError("A2UI component id must be a non-empty string.")
     if not isinstance(component_type, str) or component_type not in _COMPONENT_TYPES:
-        raise CompactDslConversionError(f'{component_id}: unsupported A2UI component type.')
+        raise CompactDslConversionError(f"{component_id}: unsupported A2UI component type.")
     if not isinstance(styles, dict):
         raise CompactDslConversionError(f"{component_id}: A2UI styles must be an object.")
     props = copy.deepcopy(styles)
