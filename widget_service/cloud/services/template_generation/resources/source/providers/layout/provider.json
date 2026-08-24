@@ -62,7 +62,7 @@
   "layoutComponents": [
     {
       "name": "SingleFocusLayout",
-      "description": "单一主内容布局；可在最后一个 child 承载一个 PillAction，业务区不得侵入底部动作预留区。",
+      "description": "单一主内容布局；Full 可在最后一个 child 承载一个 IconAction，业务区不得侵入动作热区。",
       "supportedCardSizes": [
         "2x2",
         "2x4"

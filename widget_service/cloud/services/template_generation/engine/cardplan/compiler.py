@@ -66,7 +66,7 @@ from .models import (
     TemplateVariant,
 )
 from .parser import ParsedCall, parse_hybrid_card, parse_ux_layout_card
-from .provider_bundle import provider_template_family_identity
+from .provider_bundle import provider_template_family_identity, provider_template_layout_kind
 from .registry import CardPlanRegistry
 
 _STANDARD_CONTAINERS = frozenset({"Row", "Column", "List", "Stack"})
@@ -910,7 +910,7 @@ def _validate_provider_template_state(
                 "Battery Provider Template variant does not match the trusted state."
             )
         if business_names == {"BatteryOverview", "BluetoothDeviceOverview"}:
-            expected = f"{facts.state}Phone"
+            expected = f"{facts.state}PhoneCompact"
             if variant_name != expected:
                 raise TerseDslNested2ConversionError(
                     "Battery Provider Template variant does not match the phone-earphone layout."
@@ -929,23 +929,31 @@ def _validate_provider_template_state(
             "BluetoothDeviceOverview",
         }
         if not facts.is_connected:
-            expected = "disconnectedPhone" if paired_with_phone else "disconnected"
+            expected = "disconnectedPhoneCompact" if paired_with_phone else "disconnectedFull"
         elif paired_with_phone:
-            expected = "earbudsPhone" if task_spec.size == "2x2" else "earbudsPhoneWide"
+            expected = (
+                "earbudsPhoneCompact"
+                if task_spec.size == "2x2"
+                else "earbudsPhoneWideFull"
+            )
         elif task_spec.size == "2x4":
-            expected = "earbudsDynamicWide"
+            expected = "earbudsDynamicWideFull"
         elif bluetooth_device_overview_template_focus(task_spec.userQuery) == "connection":
-            expected = "connection"
+            expected = "connectionFull"
         elif bluetooth_device_overview_template_focus(task_spec.userQuery) == "case":
-            expected = "earbuds"
+            expected = "caseFull"
         elif facts.left_battery_level is not None and facts.right_battery_level is not None:
-            expected = "earbudsFull" if facts.case_battery_level is not None else "earbudPair"
+            expected = (
+                "pairVisualFull"
+                if facts.case_battery_level is not None
+                else "earbudPairFull"
+            )
         elif facts.left_battery_level is not None:
-            expected = "leftEarbud"
+            expected = "leftEarbudCompact"
         elif facts.right_battery_level is not None:
-            expected = "rightEarbud"
+            expected = "rightEarbudCompact"
         else:
-            expected = "earbuds"
+            expected = "caseFull"
         if variant_name != expected:
             raise TerseDslNested2ConversionError(
                 "Bluetooth Provider Template variant does not match the trusted data shape."
@@ -957,12 +965,13 @@ def _expand_ux_action_call(
     contract: HybridBodyContract,
     state: _ExpansionState,
 ) -> Nested2Node:
-    if call.name != "PillAction":
-        raise TerseDslNested2ConversionError("UX template route only accepts PillAction.")
+    if call.name not in {"PillAction", "IconAction"}:
+        raise TerseDslNested2ConversionError("UX template route Action type is not supported.")
     if len(call.values) != 1 or not isinstance(call.values[0], dict):
         raise TerseDslNested2ConversionError(f"{call.name} requires one object argument.")
     params = dict(call.values[0])
-    if set(params) != {"actionId"}:
+    expected_fields = {"actionId"} if call.name == "PillAction" else {"actionId", "icon"}
+    if set(params) != expected_fields:
         raise TerseDslNested2ConversionError(f"{call.name} contains unknown fields.")
     action_id = params.get("actionId")
     if not isinstance(action_id, str):
@@ -973,10 +982,15 @@ def _expand_ux_action_call(
     )
     if binding is None or action_id not in contract.content_action_ids:
         raise TerseDslNested2ConversionError(f"{call.name} Action is not approved.")
+    icon = params.get("icon")
+    if call.name == "IconAction" and (
+        not isinstance(icon, str) or icon not in contract.allowed_asset_sources
+    ):
+        raise TerseDslNested2ConversionError("IconAction icon is not approved.")
     if action_id not in state.action_ids:
         state.action_ids.append(action_id)
     state.action_occurrences.append(action_id)
-    return Nested2Node("PillAction", ({"actionId": action_id},), ())
+    return Nested2Node(call.name, (params,), ())
 
 
 def _expand_date_overview_call(
@@ -5308,17 +5322,23 @@ def _validate_optional_semantic_assets(
 
 
 def _validate_raw_ux_action(node: ParsedCall, contract: HybridBodyContract) -> None:
-    if node.name != "PillAction":
-        raise TerseDslNested2ConversionError("UX template route only accepts PillAction.")
+    if node.name not in {"PillAction", "IconAction"}:
+        raise TerseDslNested2ConversionError("UX template route Action type is not supported.")
     if node.children or len(node.values) != 1 or not isinstance(node.values[0], dict):
         raise TerseDslNested2ConversionError(f"{node.name} must be one leaf object call.")
     params = node.values[0]
-    if set(params) != {"actionId"}:
+    expected_fields = {"actionId"} if node.name == "PillAction" else {"actionId", "icon"}
+    if set(params) != expected_fields:
         raise TerseDslNested2ConversionError(f"{node.name} contains unknown fields.")
     action_id = params.get("actionId")
     approved_ids = set(contract.content_action_ids)
     if not isinstance(action_id, str) or action_id not in approved_ids:
         raise TerseDslNested2ConversionError(f"{node.name} Action is not approved.")
+    icon = params.get("icon")
+    if node.name == "IconAction" and (
+        not isinstance(icon, str) or icon not in contract.allowed_asset_sources
+    ):
+        raise TerseDslNested2ConversionError("IconAction icon is not approved.")
 
 
 def _ux_business_component_name(
@@ -5372,78 +5392,79 @@ def _contains_ux_business_component(
 
 
 _PROVIDER_TEMPLATE_DIRECT_VARIANTS = {
-    "DateOverview@1": {"compactDate": "compactDate", "dateHero": "dateHero"},
+    "DateOverview@1": {"compact": "compactDate", "full": "dateHero"},
     "ScheduleOverview@1": {
-        "nextEvent": "nextEvent",
-        "nextEventLocation": "nextEvent",
+        "nextEventFull": "nextEvent",
+        "nextEventLocationFull": "nextEvent",
         "meetingCompact": "meetingCompact",
-        "meetingCompactLocation": "meetingCompact",
-        "meetingCompactSource": "meetingCompact",
-        "meetingCompactLocationSource": "meetingCompact",
-        "meetingExpanded": "meetingExpanded",
-        "meetingExpandedSource": "meetingExpanded",
+        "meetingLocationCompact": "meetingCompact",
+        "meetingSourceCompact": "meetingCompact",
+        "meetingLocationSourceCompact": "meetingCompact",
+        "meetingWideFull": "meetingExpanded",
+        "meetingSourceWideFull": "meetingExpanded",
     },
     "BatteryOverview@1": {
-        "normal": "normal",
-        "charging": "charging",
-        "low": "low",
-        "normalWide": "normal",
-        "chargingWide": "charging",
-        "lowWide": "low",
-        "normalPeer": "normal",
-        "chargingPeer": "charging",
-        "lowPeer": "low",
-        "normalPhone": "normal",
-        "chargingPhone": "charging",
-        "lowPhone": "low",
-        "normalWeather": "normal",
-        "chargingWeather": "charging",
-        "lowWeather": "low",
+        "normalFull": "normal",
+        "normalHero": "normal",
+        "chargingFull": "charging",
+        "lowFull": "low",
+        "normalWideFull": "normal",
+        "chargingWideFull": "charging",
+        "lowWideFull": "low",
+        "normalCompact": "normal",
+        "chargingCompact": "charging",
+        "lowCompact": "low",
+        "normalPhoneCompact": "normal",
+        "chargingPhoneCompact": "charging",
+        "lowPhoneCompact": "low",
+        "normalWeatherCompact": "normal",
+        "chargingWeatherCompact": "charging",
+        "lowWeatherCompact": "low",
     },
-    "ResourceUsageOverview@1": {
-        "memory": "memory",
-        "memoryPeer": "memory",
-    },
+    "ResourceUsageOverview@1": {"full": "memory", "compact": "memory"},
     "AppUsageOverview@1": {
-        "singleApp": "singleApp",
-        "singleAppDetailed": "singleApp",
-        "singleAppWide": "singleApp",
-        "singleAppDetailedWide": "singleApp",
+        "full": "singleApp",
+        "hero": "singleApp",
+        "wideFull": "singleApp",
+        "wideHero": "singleApp",
     },
     "ActivityOverview@1": {
-        "steps": "steps",
-        "stepsSupport": "steps",
-        "dailySummary": "dailySummary",
-        "dailySummaryWide": "dailySummary",
+        "stepsFull": "steps",
+        "stepsCompact": "steps",
+        "dailySummaryFull": "dailySummary",
+        "dailySummaryWideFull": "dailySummary",
     },
-    "WorkoutOverview@1": {"latest": "latest"},
+    "WorkoutOverview@1": {"full": "latest"},
     "SleepOverview@1": {
-        "duration": "duration",
-        "durationDetailed": "duration",
-        "durationSupport": "duration",
-        "durationDetailedSupport": "duration",
-        "insufficient": "insufficient",
-        "insufficientDetailed": "insufficient",
-        "schedule": "schedule",
-        "scheduleDetailed": "schedule",
-        "scheduleStatus": "schedule",
-        "scheduleDetailedStatus": "schedule",
+        "durationFull": "duration",
+        "durationDetailedFull": "duration",
+        "durationCompact": "duration",
+        "durationDetailedCompact": "duration",
+        "durationScoreFull": "duration",
+        "durationScoreDetailedFull": "duration",
+        "durationScoreCompact": "duration",
+        "insufficientFull": "insufficient",
+        "insufficientDetailedFull": "insufficient",
+        "scheduleWideFull": "schedule",
+        "scheduleDetailedWideFull": "schedule",
+        "scheduleStatusWideFull": "schedule",
+        "scheduleDetailedStatusWideFull": "schedule",
     },
     "BluetoothDeviceOverview@1": {
-        "connection": "earbuds",
-        "disconnected": "earbuds",
-        "disconnectedPhone": "earbuds",
-        "earbuds": "earbuds",
-        "earbudsDynamicWide": "earbuds",
-        "leftEarbud": "earbuds",
-        "rightEarbud": "earbuds",
-        "earbudPair": "earbuds",
-        "earbudsFull": "earbuds",
-        "earbudsFullWide": "earbuds",
-        "earbudsPhone": "earbuds",
-        "earbudsPhoneWide": "earbuds",
-        "earbudPairPhone": "earbuds",
-        "earbudsFullPhoneWide": "earbuds",
+        "connectionFull": "earbuds",
+        "disconnectedFull": "earbuds",
+        "disconnectedPhoneCompact": "earbuds",
+        "caseFull": "earbuds",
+        "earbudsDynamicWideFull": "earbuds",
+        "leftEarbudCompact": "earbuds",
+        "rightEarbudCompact": "earbuds",
+        "earbudPairFull": "earbuds",
+        "pairVisualFull": "earbuds",
+        "completeWideFull": "earbuds",
+        "earbudsPhoneCompact": "earbuds",
+        "earbudsPhoneWideFull": "earbuds",
+        "earbudPairPhoneCompact": "earbuds",
+        "completePhoneWideFull": "earbuds",
     },
 }
 
@@ -5568,7 +5589,7 @@ def _validate_ux_layout_root(
     _validate_provider_template_layout_action_requirements(
         content_children,
         action_children,
-        registry,
+        size,
     )
     counted_children = content_children if embedded_actions else node.children
     minimum = layout.minimum_children(size)
@@ -5585,9 +5606,6 @@ def _validate_ux_layout_root(
         contract=contract,
         registry=registry,
     )
-    if any(child.name != "PillAction" for child in action_children):
-        raise TerseDslNested2ConversionError("UX template route only accepts PillAction.")
-
     def reject_nested_layout(current: ParsedCall) -> None:
         for child in current.children:
             if child.kind == "component" and child.name in UX_LAYOUT_COMPONENT_IDS:
@@ -5600,19 +5618,42 @@ def _validate_ux_layout_root(
 def _validate_provider_template_layout_action_requirements(
     content_children: tuple[ParsedCall, ...],
     action_children: tuple[ParsedCall, ...],
-    registry: CardPlanRegistry,
+    size: Literal["2x2", "2x4"],
 ) -> None:
-    if action_children:
+    layout_kinds = tuple(
+        kind
+        for child in content_children
+        for call in _walk_calls(child)
+        if call.kind == "template"
+        for kind in (provider_template_layout_kind(call.name),)
+        if kind is not None
+    )
+    if not layout_kinds:
         return
-    for child in content_children:
-        for call in _walk_calls(child):
-            if call.kind != "template":
-                continue
-            definition = registry.templates.get(call.name)
-            if definition is not None and definition.requires_layout_action:
-                raise TerseDslNested2ConversionError(
-                    f"Provider Template requires a layout PillAction: {call.name}"
-                )
+    wide = any(kind.startswith("Wide") for kind in layout_kinds)
+    if wide != (size == "2x4"):
+        raise TerseDslNested2ConversionError(
+            "Provider Template layout suffix mismatches card size."
+        )
+    action_names = tuple(child.name for child in action_children)
+    if len(layout_kinds) == 2 and set(layout_kinds) == {"Compact"} and not action_names:
+        return
+    if len(layout_kinds) != 1:
+        raise TerseDslNested2ConversionError("Provider Template layout combination is invalid.")
+    layout_kind = layout_kinds[0]
+    expected_actions = {
+        "Compact": ("PillAction", "PillAction"),
+        "Hero": ("PillAction",),
+        "Full": action_names,
+        "WideHero": ("PillAction",),
+        "WideFull": (),
+    }[layout_kind]
+    if layout_kind == "Full" and action_names not in {(), ("IconAction",)}:
+        raise TerseDslNested2ConversionError("Full Provider Template only accepts one IconAction.")
+    if layout_kind != "Full" and action_names != expected_actions:
+        raise TerseDslNested2ConversionError(
+            f"{layout_kind} Provider Template Action combination is invalid."
+        )
 
 
 def _parsed_layout_template_id(
@@ -5832,13 +5873,8 @@ def _validate_heart_rate_overview_placement(
     if heart_rate.kind == "component" and isinstance(heart_rate.values[0], dict):
         role = heart_rate.values[0].get("role")
     elif heart_rate.kind == "template":
-        identity = provider_template_family_identity(heart_rate.name)
-        shape = identity[1] if identity is not None else (
-            heart_rate.values[0]
-            if heart_rate.values and isinstance(heart_rate.values[0], str)
-            else ""
-        )
-        role = "hero" if shape.startswith("hero") else "support"
+        layout_kind = provider_template_layout_kind(heart_rate.name)
+        role = "support" if layout_kind == "Compact" else "hero"
     else:
         raise TerseDslNested2ConversionError("HeartRateOverview must be a direct layout child.")
     business_ids = _contract_ux_business_component_names(contract, registry)
@@ -5936,9 +5972,8 @@ def _validate_weather_overview_placement(
         role = None
         variant = weather.values[0]
     elif weather.kind == "template":
-        identity = provider_template_family_identity(weather.name)
         role = None
-        variant = identity[1] if identity is not None else None
+        variant = provider_template_layout_kind(weather.name)
     else:
         raise TerseDslNested2ConversionError("WeatherOverview must be a direct layout child.")
     if layout_id == "WeatherNowForecastLayout":
@@ -5957,13 +5992,11 @@ def _validate_weather_overview_placement(
             raise TerseDslNested2ConversionError(
                 "WeatherOverview multi-business 2x2 requires a HeroSupport layout."
             )
+        uses_compact_action_matrix = layout_id == "ActionMatrixLayout"
         expected_variants = (
-            {"hero", "heroIcon"}
-            if len(content) == 1
-            else {
-                "compact",
-                "compactIcon",
-            }
+            {"Compact"}
+            if len(content) > 1 or uses_compact_action_matrix
+            else {"Full", "Hero"}
         )
         if variant is not None and variant not in expected_variants:
             raise TerseDslNested2ConversionError(
@@ -5980,7 +6013,9 @@ def _validate_weather_overview_placement(
             f"WeatherOverview role does not match {layout_id}: expected {expected_role}."
         )
     expected_variants = (
-        {"hero", "heroIcon"} if expected_role == "hero" else {"compact", "compactIcon"}
+        {"Full", "Hero", "WideFull", "WideHero"}
+        if expected_role == "hero"
+        else {"Compact"}
     )
     if variant is not None and variant not in expected_variants:
         raise TerseDslNested2ConversionError(
@@ -6366,11 +6401,13 @@ def _validate_ux_layout_action_slot(
     )
     if len(action_ids) != len(set(action_ids)):
         raise TerseDslNested2ConversionError("UX Layout cannot repeat the same Action.")
-    matrix_has_non_tiles = layout.name == "ActionMatrixLayout" and any(
-        child.name != "ActionTile" for child in action_children
+    matrix_has_invalid_action = layout.name == "ActionMatrixLayout" and any(
+        child.name not in {"ActionTile", "PillAction"} for child in action_children
     )
-    if matrix_has_non_tiles:
-        raise TerseDslNested2ConversionError("ActionMatrixLayout requires ActionTile controls.")
+    if matrix_has_invalid_action:
+        raise TerseDslNested2ConversionError(
+            "ActionMatrixLayout requires ActionTile or PillAction controls."
+        )
 
 
 def _lower_ux_layouts(

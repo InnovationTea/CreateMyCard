@@ -32,6 +32,7 @@ _WEATHER_FIELDS = (
     "/current/temperatureText",
     "/current/condition",
     "/current/airQuality",
+    "/current/coldLevel",
     "/daily/0/temperatureRangeText",
 )
 
@@ -52,6 +53,7 @@ def _task() -> TaskSpec:
                         "temperatureText": _field("29°C"),
                         "condition": _field("多云"),
                         "airQuality": _field("良"),
+                        "coldLevel": _field("低"),
                     },
                     "daily": [{"temperatureRangeText": _field("25° / 32°")}],
                 }
@@ -82,12 +84,12 @@ def _query(*paths: str) -> TemplateRetrievalQuery:
     )
 
 
-def test_match_requires_query_fields_to_be_contained_by_template() -> None:
-    query = _query("/current/humidityPercent")
+def test_match_rejects_query_fields_not_contained_by_any_template() -> None:
+    query = _query("/current/windDirection")
     task = _task()
-    task.dataModelSchema["data"]["weather"]["current"]["humidityPercent"] = _field("60%")
+    task.dataModelSchema["data"]["weather"]["current"]["windDirection"] = _field("东南风")
     binding = _binding().model_copy(
-        update={"candidateOutputFields": [*_WEATHER_FIELDS, "/current/humidityPercent"]}
+        update={"candidateOutputFields": [*_WEATHER_FIELDS, "/current/windDirection"]}
     )
 
     with pytest.raises(TemplateRetrievalMiss, match="no provider template"):
@@ -132,8 +134,47 @@ def test_cross_theme_query_keeps_field_compatible_candidates() -> None:
     assert result.component_candidates
     assert set(result.allowed_template_ids) >= {
         "WeatherOverviewCompact@1",
-        "WeatherOverviewHero@1",
+        "WeatherOverviewFull@1",
     }
+
+
+@pytest.mark.parametrize(
+    ("path", "value", "data_type", "expected_template"),
+    [
+        (
+            "/current/humidityPercent",
+            70.0,
+            "number",
+            "WeatherOverviewHumidityFull@1",
+        ),
+        ("/current/uvIndex", "中等", "string", "WeatherOverviewUvFull@1"),
+    ],
+)
+def test_specialized_weather_focus_routes_to_ux_template(
+    path: str,
+    value: Any,
+    data_type: str,
+    expected_template: str,
+) -> None:
+    task = _task()
+    field_name = path.rsplit("/", 1)[-1]
+    task.dataModelSchema["data"]["weather"]["current"][field_name] = _field(
+        value,
+        data_type,
+    )
+    binding = _binding().model_copy(
+        update={"candidateOutputFields": [*_WEATHER_FIELDS, path]}
+    )
+
+    result = retrieve_template_variants(
+        _query(path),
+        task,
+        get_cardplan_registry(),
+        (binding,),
+        _card_spec(),
+    )
+
+    assert expected_template in result.allowed_template_ids
 
 
 def test_shared_capability_keeps_each_component_scoped_templates() -> None:
@@ -180,7 +221,79 @@ def test_shared_capability_keeps_each_component_scoped_templates() -> None:
         },
     )
 
-    assert "ScheduleOverviewNextEvent@1" in result.allowed_template_ids
+    assert "ScheduleOverviewNextEventFull@1" in result.allowed_template_ids
+
+
+def test_calendar_date_and_schedule_share_one_business_component() -> None:
+    task = TaskSpec(
+        userQuery="显示日期和下一场会议的标题、时间",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "calendar": {
+                    "events": [
+                        {
+                            "startDate": _field("2026-08-19"),
+                            "title": _field("UI需求评审会"),
+                            "dtStart": _field("14:00"),
+                            "dtEnd": _field("15:30"),
+                        }
+                    ],
+                    "updatedAt": _field("2026-08-19 09:00"),
+                }
+            }
+        },
+    )
+    fields = (
+        "/events/0/startDate",
+        "/events/0/title",
+        "/events/0/dtStart",
+        "/events/0/dtEnd",
+        "/updatedAt",
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetCalendarEvents",
+        writeResultTo="/data/calendar",
+        candidateOutputFields=list(fields),
+    )
+    query = TemplateRetrievalQuery(
+        themeId="meeting-paper-neutral",
+        requiredOutputFieldsByCapability={
+            "GetCalendarEvents": (
+                "/events/0/startDate",
+                "/events/0/title",
+                "/events/0/dtStart",
+            )
+        },
+    )
+
+    result = retrieve_template_variants(
+        query,
+        task,
+        CardPlanRegistry(),
+        (binding,),
+        {
+            "suggestSize": "2x2",
+            "dataBindings": [
+                {
+                    "capabilityId": "GetCalendarEvents",
+                    "writeResultTo": "/data/calendar",
+                }
+            ],
+        },
+    )
+
+    assert result.scope.advanced_component_ids == ("CalendarOverview",)
+    assert len(result.component_candidates) == 1
+    assert set(result.allowed_template_ids) >= {
+        "DateOverviewCompact@1",
+        "ScheduleOverviewMeetingCompact@1",
+    }
+    assert any("DateOverviewCompact@1" in group for group in result.required_template_groups)
+    assert any(
+        "ScheduleOverviewMeetingCompact@1" in group
+        for group in result.required_template_groups
+    )
 
 
 def test_domain_only_query_returns_candidates_when_required_data_is_available() -> None:
@@ -270,7 +383,7 @@ def test_search_allows_one_data_business_with_action() -> None:
         }
     )
     query = _query("/current/condition").model_copy(
-        update={"action_id": "event.open.weather"}
+        update={"action_ids": ("event.open.weather",)}
     )
 
     result = retrieve_template_variants(
@@ -384,7 +497,9 @@ def test_search_filters_provider_templates_by_card_size() -> None:
 
 
 def test_selected_action_must_belong_to_task_spec() -> None:
-    query = _query("/current/condition").model_copy(update={"action_id": "event.unknown"})
+    query = _query("/current/condition").model_copy(
+        update={"action_ids": ("event.unknown",)}
+    )
 
     with pytest.raises(TemplateRetrievalMiss, match="selected Action"):
         retrieve_template_variants(
@@ -411,7 +526,7 @@ def test_optional_data_is_available_but_not_required_for_second_containment() ->
     record = next(
         item
         for item in get_cardplan_registry().template_variant_search_records
-        if item.template_id == "AppUsageOverviewSingleApp@1"
+        if item.template_id == "AppUsageOverviewFull@1"
     )
 
     assert "/updatedAt" in record.available_paths

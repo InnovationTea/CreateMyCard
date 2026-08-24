@@ -1,5 +1,8 @@
 # Provider 模板接入约定
 
+全部业务模板的主数据、次要数据、可选数据、布局场景和运行状态见
+[`provider-template-capability-checklist.md`](provider-template-capability-checklist.md)。
+
 ## 两类 Provider
 
 业务 Provider 同时提供数据能力、第一层/第二层规则和 UI 模板。`dataDomain` 明确能力数据写入
@@ -29,11 +32,12 @@ TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路�
     }
   }],
   "templates": [{
-    "templateId": "WeatherOverviewHero@1",
+    "templateId": "WeatherOverviewFull@1",
     "businessId": "WeatherOverview",
     "capabilityId": "ViewWeather",
     "description": "天气主视觉摘要。",
-    "requiredData": ["/current/temperatureText", "/current/condition"],
+    "primaryData": ["/current/temperatureText"],
+    "secondaryData": ["/current/condition"],
     "optionalData": ["/current/airQuality"],
     "entry": "templates/weather-overview.cardtpl"
   }]
@@ -59,6 +63,17 @@ TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路�
 
 ## UI 模板语法
 
+业务模板 ID 必须以 `Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 之一结束。五类后缀分别表示：
+
+- `Compact`：约 `2x1`，用于两个 Compact 拼成 `2x2`，或一个 Compact 加两个 PillAction；
+- `Hero`：约 `2x1.7`，用于 `2x2` 的 Hero 加一个 PillAction；
+- `Full`：完整 `2x2`，单独使用或加一个 IconAction；
+- `WideHero`：约 `4x1.7`，用于 `2x4` 的 WideHero 加一个 PillAction；
+- `WideFull`：完整 `4x2`，单独使用。
+
+业务模板不再重复声明 `supportedCardSizes` 和 `requiresLayoutAction`，Registry 直接从后缀推导。业务语义或
+状态写在后缀前，例如 `BatteryOverviewChargingCompact@1`。布局 Provider 不受此后缀约束。
+
 模板 ID 直接表达 UI 形态，不再声明 `Variant`、`allowedParentComponents` 或 `limits`。模板头只定义外部
 `props`；`?` 表示可选，支持 `string`、`asset`、`number`、`integer` 和 `boolean`：
 
@@ -80,7 +95,8 @@ Column("compact",
 #End
 ```
 
-- `$path` 声明模板展开必需的数据，必须进入 `requiredData`。
+- `$path` 声明模板展开必需的数据，必须按视觉层级进入 `primaryData` 或 `secondaryData`；两组数据都必须
+  在 TaskSpec 中存在，只有 `optionalData` 可以缺省。
 - `$optionalPath` 声明可选数据，引用必须位于 `IfPresent(data.xxx, ...)` 或
   `IfAbsent(data.xxx, ...)` 内，并进入 `optionalData`。
 - Provider 全局路径中已经存在的值必须使用 `data.xxx`，由服务端根据 `dataDomain + 相对路径`
@@ -109,8 +125,8 @@ HeroSupportLayout(children)
 
 ```text
 Template("HeroSupportLayout@1", {},
-  Template("WeatherOverviewHero@1", {}),
-  Template("BatteryOverviewNormalWeather@1", {})
+  Template("WeatherOverviewFull@1", {}),
+  Template("BatteryOverviewNormalWeatherCompact@1", {})
 )
 ```
 
@@ -131,9 +147,9 @@ Provider 模板作者侧声明，不进入最终 Nested-2 语法。最终产物�
 2. Search 只允许选择一个业务组件；该组件下一个或多个模板的覆盖并集必须承载全部显式字段，任一字段全部
    或部分不能承载即失败；
 3. 每个所选组件输出 `componentId` 与非空 `availableTemplateIds`，模板 ID 必须来自该组件；
-4. 显式字段满足后，再检查候选模板自身 `requiredData` 在 TaskSpec 中全部存在；
+4. 显式字段满足后，再检查候选模板自身 `primaryData` 与 `secondaryData` 在 TaskSpec 中全部存在；
 5. `candidateOutputFields` 只是候选数据投影，不直接等于强制显示集合；
-6. `action` 只输出显式动作对应的 `eventId`，不属于组件，也不参与数据覆盖。
+6. `action` 输出零到两个不重复、显式动作对应的 `eventId`，不属于组件，也不参与数据覆盖。
 
 显式请求包含多个数据能力，或必须联合多个业务组件才能覆盖字段时，Search 直接返回模板不匹配；单业务加
 Action 仍属于支持范围。
@@ -146,28 +162,30 @@ Action 仍属于支持范围。
   "componentCandidates": [
     {
       "componentId": "WeatherOverview",
-      "availableTemplateIds": ["WeatherOverviewHero@1", "WeatherOverviewCompact@1"]
+      "availableTemplateIds": ["WeatherOverviewFull@1", "WeatherOverviewCompact@1"]
     }
   ],
-  "action": null
+  "action": []
 }
 ```
 
 失败时仍必须保留最匹配的候选 Theme，以空 `componentCandidates` 作为唯一失败标志，并清空 Action：
 
 ```json
-{"theme":"family-weather-care-blue","componentCandidates":[],"action":null}
+{"theme":"family-weather-care-blue","componentCandidates":[],"action":[]}
 ```
 
 第二层只读取已选业务 Provider 的 `secondLayerRule`，从首层 `availableTemplateIds` 选择最终 UI 模板和
 props；根布局也必须从 Layout
-Provider 选择模板。若第一层输出了 `action`，第二层只可在布局模板末尾生成唯一
-`PillAction({"actionId":"event.id"})`。
+Provider 选择模板。若第一层输出了 `action`，第二层按最终模板后缀在布局模板末尾生成对应 Action：
+Hero/WideHero 使用一个 PillAction，单 Compact 使用两个 PillAction，Full 最多使用一个带可信素材的
+IconAction；WideFull 和双 Compact 不生成 Action。
 
 ## 当前迁移范围
 
-天气、日历、手机电量、耳机、健康运动、应用使用时长、倒计时和系统内存的 12 个旧模板族已拆成
-73 个无 Variant 的业务 UI 模板；Layout Provider 另提供 10 个支持 `...children` 的布局模板。
+天气、日历、手机电量、耳机、健康运动、应用使用时长、倒计时和系统内存的 12 个旧模板前缀已拆成
+82 个无 Variant 的业务 UI 模板；日期与日程归并后形成 11 个 Provider 业务领域。Layout Provider
+另提供 10 个支持 `...children` 的布局模板。
 新增或修改资源后执行：
 
 ```bash

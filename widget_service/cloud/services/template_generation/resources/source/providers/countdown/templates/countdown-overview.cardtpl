@@ -1,4 +1,4 @@
-#Template CountdownOverview@1(props: {})
+#Template CountdownOverviewFull@1(props: {})
 data = {
     days: $path("/countdownDays")
 }

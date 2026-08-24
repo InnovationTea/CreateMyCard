@@ -1,4 +1,4 @@
-#Template ActivityOverviewSteps@1(props: { stepsIcon?: asset })
+#Template ActivityOverviewStepsFull@1(props: { stepsIcon?: asset })
 data = {
     steps: $path("/dailySteps")
 }
@@ -40,7 +40,7 @@ Column(
 )
 #End
 
-#Template ActivityOverviewStepsSupport@1(props: { stepsIcon?: asset })
+#Template ActivityOverviewStepsCompact@1(props: { stepsIcon?: asset })
 data = {
     steps: $path("/dailySteps")
 }
@@ -82,7 +82,7 @@ Column(
 )
 #End
 
-#Template ActivityOverviewDailySummary@1(props: { stepsIcon?: asset, caloriesIcon?: asset, distanceIcon?: asset })
+#Template ActivityOverviewDailySummaryFull@1(props: { stepsIcon?: asset, caloriesIcon?: asset, distanceIcon?: asset })
 data = {
     steps: $path("/dailySteps"),
     calories: $path("/dailyTotalCaloriesText"),
@@ -183,7 +183,7 @@ Column(
 )
 #End
 
-#Template ActivityOverviewDailySummaryWide@1(props: { stepsIcon?: asset, caloriesIcon?: asset, distanceIcon?: asset })
+#Template ActivityOverviewDailySummaryWideFull@1(props: { stepsIcon?: asset, caloriesIcon?: asset, distanceIcon?: asset })
 data = {
     steps: $path("/dailySteps"),
     calories: $path("/dailyTotalCaloriesText"),

@@ -1,4 +1,4 @@
-#Template ScheduleOverviewNextEvent@1(props: { sourceIcon?: asset, timeIcon?: asset })
+#Template ScheduleOverviewNextEventFull@1(props: { sourceIcon?: asset, timeIcon?: asset })
 data = {
     title: $path("/events/0/title"),
     start: $path("/events/0/dtStart"),
@@ -10,7 +10,7 @@ Column(
   {"_advancedComponent": "ScheduleOverview", "width": "100%", "height": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
   Row(
       "between",
-      {"width": "100%", "height": 12, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "clip": true},
+      {"width": "100%", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "clip": true},
       Text(
             "下一个日程",
             "subtitle",
@@ -48,14 +48,14 @@ Column(
             Text(
                     data.title,
                     "title",
-                    {"width": "100%", "fontSize": 20, "minFontSize": 20, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                    {"width": "100%", "height": 28, "fontSize": 20, "minFontSize": 20, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   ),
             IfAbsent(
                     props.timeIcon,
                     Text(
                               `${data.start} - ${data.end}`,
                               "subtitle",
-                              {"width": "100%", "fontSize": 14, "minFontSize": 14, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                              {"width": "100%", "height": 14, "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                             )
                   ),
             IfPresent(
@@ -71,7 +71,7 @@ Column(
                               Text(
                                           `${data.start} - ${data.end}`,
                                           "subtitle",
-                                          {"width": "100%", "fontSize": 14, "minFontSize": 14, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                                          {"width": "100%", "height": 14, "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
                                         )
                             )
                   )
@@ -80,7 +80,7 @@ Column(
 )
 #End
 
-#Template ScheduleOverviewNextEventLocation@1(props: { sourceIcon?: asset, timeIcon?: asset, locationIcon?: asset })
+#Template ScheduleOverviewNextEventLocationFull@1(props: { sourceIcon?: asset, timeIcon?: asset, locationIcon?: asset })
 data = {
     title: $path("/events/0/title"),
     location: $path("/events/0/eventLocation"),
@@ -93,7 +93,7 @@ Column(
   {"_advancedComponent": "ScheduleOverview", "width": "100%", "height": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
   Row(
       "between",
-      {"width": "100%", "height": 12, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "clip": true},
+      {"width": "100%", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "clip": true},
       Text(
             "下一个日程",
             "subtitle",
@@ -131,14 +131,14 @@ Column(
             Text(
                     data.title,
                     "title",
-                    {"width": "100%", "fontSize": 20, "minFontSize": 20, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                    {"width": "100%", "height": 28, "fontSize": 20, "minFontSize": 20, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   ),
             IfAbsent(
                     props.timeIcon,
                     Text(
                               `${data.start} - ${data.end}`,
                               "subtitle",
-                              {"width": "100%", "fontSize": 14, "minFontSize": 14, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                              {"width": "100%", "height": 14, "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                             )
                   ),
             IfPresent(
@@ -154,7 +154,7 @@ Column(
                               Text(
                                           `${data.start} - ${data.end}`,
                                           "subtitle",
-                                          {"width": "100%", "fontSize": 14, "minFontSize": 14, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                                          {"width": "100%", "height": 14, "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
                                         )
                             )
                   ),
@@ -163,7 +163,7 @@ Column(
                     Text(
                               data.location,
                               "subtitle",
-                              {"width": "100%", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#66000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                              {"width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#66000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                             )
                   ),
             IfPresent(
@@ -179,7 +179,7 @@ Column(
                               Text(
                                           data.location,
                                           "subtitle",
-                                          {"width": "100%", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#66000000", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                                          {"width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#66000000", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
                                         )
                             )
                   )
@@ -218,14 +218,14 @@ Row(
       Text(
             data.title,
             "title",
-            {"width": "100%", "fontSize": 14, "minFontSize": 14, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            {"width": "100%", "height": 20, "fontSize": 14, "minFontSize": 14, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           ),
       IfAbsent(
             props.timeIcon,
             Text(
                     `${data.start} - ${data.end}`,
                     "subtitle",
-                    {"width": "100%", "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                    {"width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   )
           ),
       IfPresent(
@@ -241,7 +241,7 @@ Row(
                     Text(
                               `${data.start} - ${data.end}`,
                               "subtitle",
-                              {"width": "100%", "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                              {"width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
                             )
                   )
           )
@@ -249,7 +249,7 @@ Row(
 )
 #End
 
-#Template ScheduleOverviewMeetingCompactLocation@1(props: { timeIcon?: asset, locationIcon?: asset })
+#Template ScheduleOverviewMeetingLocationCompact@1(props: { timeIcon?: asset, locationIcon?: asset })
 data = {
     title: $path("/events/0/title"),
     location: $path("/events/0/eventLocation"),
@@ -271,23 +271,23 @@ Row(
                   )
           ),
       Divider(
-            {"width": 1, "height": 34, "strokeWidth": 1, "vertical": true, "color": "#1F000000"}
+            {"width": 1, "height": 36, "strokeWidth": 1, "vertical": true, "color": "#1F000000"}
           )
     ),
   Column(
       "compact",
-      {"width": "100%", "height": "100%", "layoutWeight": 1, "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      {"width": "100%", "height": "100%", "layoutWeight": 1, "itemMargin": 2, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Text(
             data.title,
             "title",
-            {"width": "100%", "fontSize": 14, "minFontSize": 14, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            {"width": "100%", "height": 20, "fontSize": 14, "minFontSize": 14, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           ),
       IfAbsent(
             props.timeIcon,
             Text(
                     `${data.start} - ${data.end}`,
                     "subtitle",
-                    {"width": "100%", "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                    {"width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   )
           ),
       IfPresent(
@@ -303,7 +303,7 @@ Row(
                     Text(
                               `${data.start} - ${data.end}`,
                               "subtitle",
-                              {"width": "100%", "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                              {"width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
                             )
                   )
           ),
@@ -312,7 +312,7 @@ Row(
             Text(
                     data.location,
                     "subtitle",
-                    {"width": "100%", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#66000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                    {"width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#66000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   )
           ),
       IfPresent(
@@ -328,7 +328,7 @@ Row(
                     Text(
                               data.location,
                               "subtitle",
-                              {"width": "100%", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#66000000", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                              {"width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#66000000", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
                             )
                   )
           )
@@ -336,7 +336,7 @@ Row(
 )
 #End
 
-#Template ScheduleOverviewMeetingExpanded@1(props: { timeIcon?: asset, locationIcon?: asset })
+#Template ScheduleOverviewMeetingWideFull@1(props: { timeIcon?: asset, locationIcon?: asset })
 data = {
     title: $path("/events/0/title"),
     location: $path("/events/0/eventLocation"),
@@ -423,7 +423,7 @@ Row(
 )
 #End
 
-#Template ScheduleOverviewMeetingCompactSource@1(props: { sourceIcon: asset, timeIcon?: asset })
+#Template ScheduleOverviewMeetingSourceCompact@1(props: { sourceIcon: asset, timeIcon?: asset })
 data = {
     title: $path("/events/0/title"),
     start: $path("/events/0/dtStart"),
@@ -435,7 +435,7 @@ Column(
   {"_advancedComponent": "ScheduleOverview", "width": "100%", "height": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
   Row(
       "between",
-      {"width": "100%", "height": 12, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "clip": true},
+      {"width": "100%", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "clip": true},
       Text(
             "下一个日程",
             "subtitle",
@@ -502,7 +502,7 @@ Column(
 )
 #End
 
-#Template ScheduleOverviewMeetingCompactLocationSource@1(props:{sourceIcon:asset,timeIcon?:asset,locationIcon?:asset})
+#Template ScheduleOverviewMeetingLocationSourceCompact@1(props:{sourceIcon:asset,timeIcon?:asset,locationIcon?:asset})
 data = {
     title: $path("/events/0/title"),
     location: $path("/events/0/eventLocation"),
@@ -515,7 +515,7 @@ Column(
   {"_advancedComponent": "ScheduleOverview", "width": "100%", "height": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
   Row(
       "between",
-      {"width": "100%", "height": 12, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "clip": true},
+      {"width": "100%", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "clip": true},
       Text(
             "下一个日程",
             "subtitle",
@@ -541,7 +541,7 @@ Column(
                             )
                   ),
             Divider(
-                    {"width": 1, "height": 34, "strokeWidth": 1, "vertical": true, "color": "#1F000000"}
+                    {"width": 1, "height": 36, "strokeWidth": 1, "vertical": true, "color": "#1F000000"}
                   )
           ),
       Column(
@@ -607,7 +607,7 @@ Column(
 )
 #End
 
-#Template ScheduleOverviewMeetingExpandedSource@1(props: { sourceIcon: asset, timeIcon?: asset, locationIcon?: asset })
+#Template ScheduleOverviewMeetingSourceWideFull@1(props: { sourceIcon: asset, timeIcon?: asset, locationIcon?: asset })
 data = {
     title: $path("/events/0/title"),
     location: $path("/events/0/eventLocation"),
@@ -620,7 +620,7 @@ Column(
   {"_advancedComponent": "ScheduleOverview", "width": "100%", "height": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
   Row(
       "between",
-      {"width": "100%", "height": 12, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "clip": true},
+      {"width": "100%", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "clip": true},
       Text(
             "下一个日程",
             "subtitle",

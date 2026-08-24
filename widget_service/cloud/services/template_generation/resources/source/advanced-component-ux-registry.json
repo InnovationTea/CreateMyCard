@@ -62,7 +62,7 @@
       "size": "2x2",
       "recommendedBusinessComponents": 2,
       "maxBusinessComponents": 3,
-      "maxPrimaryActions": 1,
+      "maxPrimaryActions": 2,
       "maxPrimaryCharts": 1,
       "maxListItems": 2,
       "maxInformationLevels": 2
