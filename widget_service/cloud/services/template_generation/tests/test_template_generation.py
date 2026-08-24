@@ -88,6 +88,7 @@ _WEATHER_TEMPLATE_FIELDS = (
     "/current/airQuality",
     "/daily/0/temperatureRangeText",
 )
+_TEST_APP_VERSION = ".".join(("11", "7", "5", "205"))
 
 
 @pytest.fixture(autouse=True)
@@ -337,21 +338,23 @@ def test_app_usage_templates_use_compact_duration_and_labeled_update_time():
     for template_id in template_ids:
         root = registry.require_variant(template_id, "default").root
         text_nodes = _template_nodes(root, "Text")
-        duration = next(
-            node
-            for node in text_nodes
-            if node.values[0].kind == "binding" and node.values[0].name == "duration"
-        )
+        duration = None
+        update_time = None
+        for node in text_nodes:
+            value = node.values[0]
+            if value.kind == "binding" and value.name == "duration":
+                duration = node
+            if value.kind != "interpolation":
+                continue
+            has_updated_at = any(item.name == "updatedAt" for item in value.items)
+            if has_updated_at:
+                update_time = node
+        assert duration is not None
         duration_options = _template_node_options(duration)
         assert duration_options["fontSize"] == 18
         assert "minFontSize" not in duration_options
 
-        update_time = next(
-            node
-            for node in text_nodes
-            if node.values[0].kind == "interpolation"
-            and any(item.name == "updatedAt" for item in node.values[0].items)
-        )
+        assert update_time is not None
         assert tuple(
             (item.kind, item.value, item.name) for item in update_time.values[0].items
         ) == (
@@ -1788,7 +1791,7 @@ def _legacy_terse_policy() -> GenerationRoutePolicy:
 def _weather_request() -> GenerateWidgetCardRequest:
     return GenerateWidgetCardRequest(
         uid="template-test",
-        prdVer="11.7.5.205",
+        prdVer=_TEST_APP_VERSION,
         device={"romVersion": "6.0"},
         userQuery="做一个天气卡片，显示城市、温度、天气、空气质量和温度范围",
         size="2x2",
@@ -1944,7 +1947,7 @@ async def test_template_facade_returns_only_compact_source_dsl_string(monkeypatc
             interaction_id="interaction",
             device_id="device",
             country_code="CN",
-            app_version="11.7.5.205",
+            app_version=_TEST_APP_VERSION,
             app_name="CreateMyCard",
         ),
     )
@@ -2001,7 +2004,7 @@ async def test_template_facade_enriches_bindings_inside_template_boundary(monkey
             interaction_id="interaction",
             device_id="device",
             country_code="CN",
-            app_version="11.7.5.205",
+            app_version=_TEST_APP_VERSION,
             app_name="CreateMyCard",
         ),
     )

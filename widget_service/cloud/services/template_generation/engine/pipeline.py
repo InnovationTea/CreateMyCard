@@ -358,14 +358,16 @@ def _with_provider_template_runtime_data(
 
 
 def _event_binding_paths(task_spec: TaskSpec) -> tuple[str, ...]:
-    return tuple(
-        dict.fromkeys(
-            path
-            for event in task_spec.eventCandidates
-            for path in _value_binding_paths(event.args)
-            if path == "/data" or path.startswith("/data/")
-        )
-    )
+    paths: list[str] = []
+    seen: set[str] = set()
+    for event in task_spec.eventCandidates:
+        for path in _value_binding_paths(event.args):
+            is_data_path = path == "/data" or path.startswith("/data/")
+            if not is_data_path or path in seen:
+                continue
+            seen.add(path)
+            paths.append(path)
+    return tuple(paths)
 
 
 def _value_binding_paths(value: Any) -> tuple[str, ...]:

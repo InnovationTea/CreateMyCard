@@ -375,12 +375,11 @@ class CardPlanRegistry:
         self,
         component_ids: tuple[str, ...],
     ) -> tuple[LoadedProviderBundle, ...]:
-        provider_ids = [
-            self.ux_business_component_provider_ids[component_id]
-            for component_id in component_ids
-            if self.ux_business_component_provider_ids[component_id]
-            not in self.disabled_provider_ids
-        ]
+        provider_ids = []
+        for component_id in component_ids:
+            provider_id = self.ux_business_component_provider_ids[component_id]
+            if provider_id not in self.disabled_provider_ids:
+                provider_ids.append(provider_id)
         return tuple(
             self.provider_bundles[provider_id] for provider_id in dict.fromkeys(provider_ids)
         )
