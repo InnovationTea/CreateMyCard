@@ -6,8 +6,11 @@
   - `{{dataRoot:ViewWeather}}/location/districtName`
   - `{{dataRoot:ViewWeather}}/current/temperatureText`
   - `{{dataRoot:ViewWeather}}/current/condition`
+  - `{{dataRoot:ViewWeather}}/current/humidityPercent`
   - `{{dataRoot:ViewWeather}}/current/airQuality`
-  - `{{dataRoot:ViewWeather}}/daily/0/temperatureRangeText`
-- 适用于当前天气、天气卡片和天气通勤摘要。
-- 不支持小时/多日预报、湿度、风力、紫外线、预警、AQI 数值、日出日落、气压或能见度。
+  - `{{dataRoot:ViewWeather}}/current/uvIndex`
+  - `{{dataRoot:ViewWeather}}/current/coldLevel`
+- 适用于以温度、天气现象、湿度、紫外线或空气质量等级为主焦点的天气卡片。
+- 用户只要求天气概览时，优先以温度为主焦点；用户明确要求湿度、紫外线或空气质量时，切换到对应主数据模板。
+- 不支持小时/多日预报、风力、预警、AQI 数值、日出日落、气压或能见度。
 - 根据 `userQuery` 判断出的必须显示天气字段存在上述支持集合之外的路径时，不得选择。

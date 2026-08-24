@@ -33,7 +33,14 @@ _BATCH_DATA_ADMISSION_ENABLED: ContextVar[bool] = ContextVar(
 _SELECTOR_COMPONENT_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     "WeatherOverview": (
         "weather",
-        ("city", "temperature", "condition", "airQuality", "temperatureRange"),
+        (
+            "city",
+            "temperature",
+            "condition",
+            "airQuality",
+            "coldLevel",
+            "temperatureRange",
+        ),
     ),
     "DateOverview": ("date", ("date", "weekday")),
     "ScheduleOverview": ("schedule", ("title", "timeText", "location")),
@@ -47,6 +54,7 @@ _SELECTOR_FALLBACK_FIELDS: dict[str, tuple[str, ...]] = {
         "districtName",
         "prefectureName",
         "airQuality",
+        "coldLevel",
         "temperatureRangeText",
     ),
     "DateOverview": ("startDate", "weekday"),
@@ -102,16 +110,24 @@ class WeatherOverviewFacts:
     temperature: str
     condition: str
     air_quality: str
-    temperature_range: str
+    cold_level: str = ""
+    temperature_range: str = ""
 
     def as_selector(self) -> dict[str, dict[str, Any]]:
-        return {
+        selector = {
             "city": _field(self.city, "可信天气查询城市或地区"),
             "temperature": _field(self.temperature, "可信当前温度文本"),
             "condition": _field(self.condition, "可信当前天气状态"),
             "airQuality": _field(self.air_quality, "可信当前空气质量"),
-            "temperatureRange": _field(self.temperature_range, "可信当日温度范围"),
         }
+        if self.cold_level:
+            selector["coldLevel"] = _field(self.cold_level, "可信感冒指数")
+        if self.temperature_range:
+            selector["temperatureRange"] = _field(
+                self.temperature_range,
+                "可信当日温度范围",
+            )
+        return selector
 
 
 @dataclass(frozen=True)
@@ -1384,6 +1400,13 @@ def project_content_component_facts(
             app_usage_facts = extract_app_usage_overview_facts(schema)
             if app_usage_facts is not None:
                 selected = app_usage_facts.as_selector()
+        elif component_id == "CalendarOverview":
+            date_facts = extract_date_overview_facts(schema)
+            schedule_facts = extract_schedule_overview_facts(schema)
+            if date_facts is not None:
+                selected.update(date_facts.as_selector())
+            if schedule_facts is not None:
+                selected.update(schedule_facts.as_selector())
         elif component_id == "ScheduleOverview":
             schedule_facts = extract_schedule_overview_facts(schema)
             if schedule_facts is not None:
@@ -2836,7 +2859,7 @@ def _projected_date_candidates(schema: dict[str, Any]):
 
 
 def extract_weather_overview_facts(schema: dict[str, Any]) -> WeatherOverviewFacts | None:
-    """Return the five complete string facts from one coherent weather subtree."""
+    """Return one coherent weather fact set with a trusted supporting index."""
     for candidate in _dict_nodes(schema):
         projected = _projected_weather_facts(candidate)
         if projected is not None:
@@ -2857,32 +2880,39 @@ def extract_weather_overview_facts(schema: dict[str, Any]) -> WeatherOverviewFac
         temperature = _trusted_string(current.get("temperatureText"))
         condition = _trusted_string(current.get("condition"))
         air_quality = _trusted_string(current.get("airQuality"))
+        cold_level = _trusted_string(current.get("coldLevel"))
         temperature_range = _first_trusted_string(candidate, "temperatureRangeText")
-        values = (city, temperature, condition, air_quality, temperature_range)
-        if all(value is not None for value in values):
+        core_values = (city, temperature, condition, air_quality)
+        has_supporting_index = cold_level is not None or temperature_range is not None
+        if all(value is not None for value in core_values) and has_supporting_index:
             return WeatherOverviewFacts(
                 city=city or "",
                 temperature=temperature or "",
                 condition=condition or "",
                 air_quality=air_quality or "",
+                cold_level=cold_level or "",
                 temperature_range=temperature_range or "",
             )
     return None
 
 
 def _projected_weather_facts(value: dict[str, Any]) -> WeatherOverviewFacts | None:
-    names = ("city", "temperature", "condition", "airQuality", "temperatureRange")
-    if not all(name in value for name in names):
+    core_names = ("city", "temperature", "condition", "airQuality")
+    if not all(name in value for name in core_names):
         return None
-    selected = tuple(_trusted_string(value.get(name)) for name in names)
-    if any(item is None for item in selected):
+    selected = tuple(_trusted_string(value.get(name)) for name in core_names)
+    cold_level = _trusted_string(value.get("coldLevel"))
+    temperature_range = _trusted_string(value.get("temperatureRange"))
+    has_supporting_index = cold_level is not None or temperature_range is not None
+    if any(item is None for item in selected) or not has_supporting_index:
         return None
     return WeatherOverviewFacts(
         city=selected[0] or "",
         temperature=selected[1] or "",
         condition=selected[2] or "",
         air_quality=selected[3] or "",
-        temperature_range=selected[4] or "",
+        cold_level=cold_level or "",
+        temperature_range=temperature_range or "",
     )
 
 

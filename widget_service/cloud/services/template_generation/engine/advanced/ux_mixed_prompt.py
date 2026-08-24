@@ -137,12 +137,15 @@ def build_ux_mixed_prompt(
         )
         for component_id, template_ids in candidate_ids_by_component.items()
     )
-    selected_action_id = next(
-        (event.id for event in task_spec.eventCandidates if event.id is not None),
-        None,
+    selected_action_ids = tuple(
+        event.id for event in task_spec.eventCandidates if event.id is not None
     )
-    task_spec = task_spec_with_selected_action(task_spec, selected_action_id)
+    task_spec = task_spec_with_selected_action(task_spec, selected_action_ids)
     allowed_layout_ids = resolve_scope_layout_ids(scope, task_spec, registry)
+    if _calendar_date_schedule_pair_is_required(scope, required_template_groups):
+        if selected_action_ids:
+            raise ValueError("Calendar date-schedule Compact pair cannot include an Action")
+        allowed_layout_ids = ("PeerPairLayout",)
     if not allowed_layout_ids:
         raise ValueError("Advanced Scope has no compatible UX layout")
     allowed_layout_template_ids = tuple(f"{layout_id}@1" for layout_id in allowed_layout_ids)
@@ -216,8 +219,10 @@ def build_ux_mixed_prompt(
             weather_facts.temperature,
             weather_facts.condition,
             weather_facts.air_quality,
+            weather_facts.cold_level,
             weather_facts.temperature_range,
         }
+        server_owned_weather_literals.discard("")
         required_literals = tuple(
             item for item in required_literals if item not in server_owned_weather_literals
         )
@@ -238,7 +243,8 @@ def build_ux_mixed_prompt(
             protected_literals = tuple(
                 item for item in protected_literals if item != heart_rate_facts.updated_at
             )
-    if "ScheduleOverview" in direct_components:
+    calendar_component_ids = {"CalendarOverview", "ScheduleOverview"}
+    if calendar_component_ids.intersection(scope.advanced_component_ids):
         schedule_facts = extract_schedule_overview_facts(task_spec.dataModelSchema)
         optional_literals = {
             schedule_facts.location
@@ -382,9 +388,9 @@ def build_ux_mixed_prompt(
             + json.dumps(provider_second_layer_rules, ensure_ascii=False),
             "只能从 componentCandidates 中同一 componentId 的 availableTemplateIds "
             "选择最终业务模板；不得使用 Provider 文档中的其他模板。",
-            "selectedActionEventId=" + json.dumps(selected_action_id, ensure_ascii=False),
-            "Action 与业务组件解耦；selectedActionEventId 非空时，只能在布局根末尾输出唯一的 "
-            'PillAction({"actionId":"<selectedActionEventId>"})；为空时不得输出 Action。',
+            "selectedActionEventIds=" + json.dumps(selected_action_ids, ensure_ascii=False),
+            "Action 与业务组件解耦；只能按模板布局后缀使用 selectedActionEventIds，"
+            "并作为布局根连续的末尾直接 child；不得使用未选择的 Action。",
             "业务高级组件字段由服务端绑定到 TaskSpec.dataModelSchema 的端侧数据路径；"
             "最终有效 TerseDSL 使用完整 `${data.weather.temperature}` 占位值，"
             "并由服务端附加确定性的 `data = {...}`；"
@@ -414,6 +420,24 @@ def build_ux_mixed_prompt(
         allowed_layout_ids=allowed_layout_ids,
         theme_id=base.theme_id,
     )
+
+
+def _calendar_date_schedule_pair_is_required(
+    scope: AdvancedScopeBrief,
+    required_template_groups: tuple[tuple[str, ...], ...],
+) -> bool:
+    if scope.advanced_component_ids != ("CalendarOverview",):
+        return False
+    candidate_ids = {
+        template_id
+        for group in required_template_groups
+        for template_id in group
+    }
+    has_date = any(template_id.startswith("DateOverview") for template_id in candidate_ids)
+    has_schedule = any(
+        template_id.startswith("ScheduleOverview") for template_id in candidate_ids
+    )
+    return has_date and has_schedule
 
 
 def _required_template_group(

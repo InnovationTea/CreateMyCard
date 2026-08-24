@@ -1,4 +1,4 @@
-#Template HeartRateOverviewHero@1(props: {})
+#Template HeartRateOverviewFull@1(props: {})
 data = {
     average: $path("/exerciseHeartRateAvg")
 }
@@ -32,7 +32,7 @@ Column(
 )
 #End
 
-#Template HeartRateOverviewHeroUpdated@1(props: {})
+#Template HeartRateOverviewUpdatedFull@1(props: {})
 data = {
     average: $path("/exerciseHeartRateAvg"),
     updatedAt: $path("/updatedAt")
@@ -72,7 +72,7 @@ Column(
 )
 #End
 
-#Template HeartRateOverviewHeroIcon@1(props: { sourceIcon: asset })
+#Template HeartRateOverviewIconFull@1(props: { sourceIcon: asset })
 data = {
     average: $path("/exerciseHeartRateAvg")
 }
@@ -111,7 +111,7 @@ Column(
 )
 #End
 
-#Template HeartRateOverviewHeroUpdatedIcon@1(props: { sourceIcon: asset })
+#Template HeartRateOverviewUpdatedIconFull@1(props: { sourceIcon: asset })
 data = {
     average: $path("/exerciseHeartRateAvg"),
     updatedAt: $path("/updatedAt")
@@ -156,7 +156,7 @@ Column(
 )
 #End
 
-#Template HeartRateOverviewSupport@1(props: {})
+#Template HeartRateOverviewCompact@1(props: {})
 data = {
     average: $path("/exerciseHeartRateAvg")
 }
@@ -190,7 +190,7 @@ Column(
 )
 #End
 
-#Template HeartRateOverviewSupportUpdated@1(props: {})
+#Template HeartRateOverviewUpdatedCompact@1(props: {})
 data = {
     average: $path("/exerciseHeartRateAvg"),
     updatedAt: $path("/updatedAt")
@@ -230,7 +230,7 @@ Column(
 )
 #End
 
-#Template HeartRateOverviewSupportIcon@1(props: { sourceIcon: asset })
+#Template HeartRateOverviewIconCompact@1(props: { sourceIcon: asset })
 data = {
     average: $path("/exerciseHeartRateAvg")
 }
@@ -269,7 +269,7 @@ Column(
 )
 #End
 
-#Template HeartRateOverviewSupportUpdatedIcon@1(props: { sourceIcon: asset })
+#Template HeartRateOverviewUpdatedIconCompact@1(props: { sourceIcon: asset })
 data = {
     average: $path("/exerciseHeartRateAvg"),
     updatedAt: $path("/updatedAt")

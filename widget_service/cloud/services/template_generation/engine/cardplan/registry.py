@@ -511,8 +511,8 @@ class CardPlanRegistry:
             raise ValueError("UX Advanced Component size budgets are incomplete")
         if len(self.ux_layout_components) != 10:
             raise ValueError("UX Advanced Component layout registry must contain 10 families")
-        if len(self.ux_business_components) != 12:
-            raise ValueError("Provider Template business index must contain 12 families")
+        if not self.ux_business_components:
+            raise ValueError("Provider Template business index must not be empty")
         known_layouts = set(self.ux_layout_components)
         if known_layouts != set(UX_LAYOUT_COMPONENT_IDS):
             raise ValueError("UX Advanced Component layout registry IDs are incomplete")

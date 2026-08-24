@@ -37,7 +37,7 @@ class TemplateRetrievalQuery(BaseModel):
     required_output_fields_by_capability: dict[str, tuple[str, ...]] = Field(
         alias="requiredOutputFieldsByCapability",
     )
-    action_id: str | None = Field(default=None, alias="action")
+    action_ids: tuple[str, ...] = Field(default=(), alias="action", max_length=2)
 
     @field_validator("required_output_fields_by_capability")
     @classmethod
@@ -50,14 +50,17 @@ class TemplateRetrievalQuery(BaseModel):
                 raise ValueError("required output fields must be JSON Pointers")
         return values
 
-    @field_validator("action_id")
+    @field_validator("action_ids", mode="before")
     @classmethod
-    def normalized_action(cls, value: str | None) -> str | None:
+    def normalized_actions(cls, value: Any) -> tuple[str, ...]:
         if value is None:
-            return None
-        normalized = value.strip()
-        if not normalized:
-            raise ValueError("action must be null or a non-empty eventId")
+            return ()
+        values = (value,) if isinstance(value, str) else tuple(value)
+        normalized = tuple(item.strip() for item in values if isinstance(item, str))
+        if len(normalized) != len(values) or any(not item for item in normalized):
+            raise ValueError("action must contain only non-empty eventIds")
+        if len(normalized) != len(set(normalized)):
+            raise ValueError("action eventIds must be unique")
         return normalized
 
 
@@ -107,7 +110,7 @@ def build_template_retrieval_prompt(
         "也不得补全用户未要求展示的字段。"
         "用户只要求某领域卡片、未明确字段时，该 capability 输出空数组。"
         "action 仅当用户明确要求点击、跳转或操作时才选择 actionCandidates 中"
-        "语义一致的 eventId；不能因候选事件存在而默认选择。"
+        "语义一致的零到两个不重复 eventId；不能因候选事件存在而默认选择。"
         "不得输出组件、模板、Variant、尺寸、布局、Props 或理由。\n"
         + json.dumps(schema, ensure_ascii=False)
     )
@@ -126,7 +129,7 @@ def retrieve_template_variants(
 ) -> TemplateRouteSelection:
     """Return component candidate sets; never choose a final CardTpl variant."""
     registry.require_theme(query.theme_id)
-    _validate_selected_action(query, task_spec)
+    _validate_selected_actions(query, task_spec)
     if not query.required_output_fields_by_capability:
         raise TemplateRetrievalMiss("template retrieval has no requested capability")
     if len(query.required_output_fields_by_capability) > 1:
@@ -180,7 +183,7 @@ def retrieve_template_variants(
     return TemplateRouteSelection(
         scope=scope,
         componentCandidates=candidates,
-        action_id=query.action_id,
+        actionIds=query.action_ids,
         requiredTemplateGroups=tuple(required_groups),
     )
 
@@ -351,11 +354,11 @@ def _record_available_query_paths(
     )
 
 
-def _validate_selected_action(query: TemplateRetrievalQuery, task_spec: TaskSpec) -> None:
-    if query.action_id is None:
+def _validate_selected_actions(query: TemplateRetrievalQuery, task_spec: TaskSpec) -> None:
+    if not query.action_ids:
         return
     action_ids = {event.id for event in task_spec.eventCandidates if event.id}
-    if query.action_id not in action_ids:
+    if not set(query.action_ids).issubset(action_ids):
         raise TemplateRetrievalMiss("selected Action is outside TaskSpec.eventCandidates")
 
 

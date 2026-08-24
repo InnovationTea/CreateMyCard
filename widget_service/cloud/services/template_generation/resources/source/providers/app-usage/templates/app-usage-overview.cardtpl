@@ -1,4 +1,4 @@
-#Template AppUsageOverviewSingleApp@1(props: { appIcon?: asset })
+#Template AppUsageOverviewFull@1(props: { appIcon?: asset })
 data = {
     appName: $path("/appUsage/appName"),
     duration: $path("/appUsage/durationText"),
@@ -49,7 +49,7 @@ Column(
 )
 #End
 
-#Template AppUsageOverviewSingleAppDetailed@1(props: { appIcon?: asset })
+#Template AppUsageOverviewHero@1(props: { appIcon?: asset })
 data = {
     appName: $path("/appUsage/appName"),
     duration: $path("/appUsage/durationText"),
@@ -100,7 +100,7 @@ Column(
 )
 #End
 
-#Template AppUsageOverviewSingleAppWide@1(props: { appIcon?: asset })
+#Template AppUsageOverviewWideFull@1(props: { appIcon?: asset })
 data = {
     appName: $path("/appUsage/appName"),
     duration: $path("/appUsage/durationText"),
@@ -159,7 +159,7 @@ Row(
 )
 #End
 
-#Template AppUsageOverviewSingleAppDetailedWide@1(props: { appIcon?: asset })
+#Template AppUsageOverviewWideHero@1(props: { appIcon?: asset })
 data = {
     appName: $path("/appUsage/appName"),
     duration: $path("/appUsage/durationText"),

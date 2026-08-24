@@ -5,7 +5,11 @@ from __future__ import annotations
 import pytest
 
 from models.generation import TaskSpec
-from services.template_generation.engine.cardplan.parser import parse_hybrid_card
+from services.template_generation.engine.cardplan.compiler import (
+    _validate_provider_template_layout_action_requirements,
+)
+from services.template_generation.engine.cardplan.models import SourceSpan
+from services.template_generation.engine.cardplan.parser import ParsedCall, parse_hybrid_card
 from services.template_generation.engine.cardplan.provider_bundle import compile_card_template
 from services.template_generation.engine.pipeline import _task_spec_log_summary
 from services.template_generation.engine.terse_dsl_nested2_converter import (
@@ -32,9 +36,68 @@ Column(\"section\")
             data_domain="/data/legacy",
             description="legacy syntax must be rejected",
             supported_card_sizes=("2x2",),
-            required_data=(),
+            primary_data=(),
+            secondary_data=(),
             optional_data=(),
             output_schema={"type": "object", "properties": {}},
+        )
+
+
+def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
+    span = SourceSpan(start=0, end=1)
+
+    def template(template_id: str) -> ParsedCall:
+        return ParsedCall("template", template_id, ({},), (), span)
+
+    def action(name: str, action_id: str) -> ParsedCall:
+        return ParsedCall("component", name, ({"actionId": action_id},), (), span)
+
+    pill_one = action("PillAction", "event.one")
+    pill_two = action("PillAction", "event.two")
+    icon = action("IconAction", "event.icon")
+
+    _validate_provider_template_layout_action_requirements(
+        (template("WeatherOverviewCompact@1"),),
+        (pill_one, pill_two),
+        "2x2",
+    )
+    _validate_provider_template_layout_action_requirements(
+        (template("WeatherOverviewCompact@1"), template("BatteryOverviewNormalCompact@1")),
+        (),
+        "2x2",
+    )
+    _validate_provider_template_layout_action_requirements(
+        (template("BatteryOverviewNormalHero@1"),),
+        (pill_one,),
+        "2x2",
+    )
+    _validate_provider_template_layout_action_requirements(
+        (template("WeatherOverviewFull@1"),),
+        (icon,),
+        "2x2",
+    )
+    _validate_provider_template_layout_action_requirements(
+        (template("AppUsageOverviewWideHero@1"),),
+        (pill_one,),
+        "2x4",
+    )
+    _validate_provider_template_layout_action_requirements(
+        (template("AppUsageOverviewWideFull@1"),),
+        (),
+        "2x4",
+    )
+
+    with pytest.raises(TerseDslNested2ConversionError, match="Hero.*Action combination"):
+        _validate_provider_template_layout_action_requirements(
+            (template("BatteryOverviewNormalHero@1"),),
+            (),
+            "2x2",
+        )
+    with pytest.raises(TerseDslNested2ConversionError, match="only accepts one IconAction"):
+        _validate_provider_template_layout_action_requirements(
+            (template("WeatherOverviewFull@1"),),
+            (pill_one,),
+            "2x2",
         )
 
 

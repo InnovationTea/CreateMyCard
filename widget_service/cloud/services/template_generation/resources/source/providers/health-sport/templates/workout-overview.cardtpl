@@ -1,4 +1,4 @@
-#Template WorkoutOverview@1(props: { sourceIcon?: asset })
+#Template WorkoutOverviewFull@1(props: { sourceIcon?: asset })
 data = {
     workoutType: $path("/exerciseTypeName"),
     workoutCalories: $path("/exerciseCalorieText"),

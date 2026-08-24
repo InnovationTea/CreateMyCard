@@ -235,31 +235,31 @@ def _build_template_route_prompt(
         "三个字段，字段类型必须符合末尾 JSON Schema。theme 只能是 theme 候选中的一个 ID；"
         "componentCandidates 中每个 componentId 只能来自 componentCatalog，"
         "availableTemplateIds 只能从同一 componentCatalog 项的同名字段中选择，"
-        "且必须非空；action 只能是 action 候选中的 eventId 或 null。"
+        "且必须非空；action 只能是 action 候选中的零到两个不重复 eventId 数组。"
         "Action 是点击或跳转动作，不是数据项：不得把 eventId、call 或动作参数"
         "当作数据路径，"
         "不得把动作放进 componentCandidates，也不得判断 Action 属于哪个 component。"
         "只有 userQuery 明确"
-        "要求某个交互时，才在 action 中逐字输出对应 eventId；"
-        "没有明确交互请求时输出 null。"
+        "要求交互时，才在 action 中逐字输出对应 eventId；"
+        "没有明确交互请求时输出空数组。"
         "即使模板路线失败，也必须从 theme 候选中选择最匹配用户意图的 theme；失败仅以"
-        "componentCandidates 为空数组表示，并把 action 置为 null。"
+        "componentCandidates 为空数组表示，并把 action 置为空数组。"
         "如果 userQuery 明确要求交互但 action 候选中没有语义匹配的 eventId，"
         "必须拒绝模板路线并"
-        '输出 {"theme":"<最匹配的候选 theme>","componentCandidates":[],"action":null}。'
+        '输出 {"theme":"<最匹配的候选 theme>","componentCandidates":[],"action":[]}。'
         "第一步，根据 userQuery 从 taskSpecDataFields 的全量内容中"
         "标定本轮显式要求显示的数据字段；"
         "第二步，只能选择 supportedTaskSpecPaths 的并集能够完整覆盖"
         "全部显式字段的一个或多个"
         "componentId，任意一个显式字段全部或部分不能承载都必须失败；第三步，"
         "为每个组件保留能承载本轮显式字段的 availableTemplateIds，并逐个检查候选模板"
-        "自身 requiredData 对应的数据字段是否在 taskSpecDataFields 中真实存在，"
+        "自身 primaryData 与 secondaryData 对应的数据字段是否在 taskSpecDataFields 中真实存在，"
         "缺少任意必需字段也必须失败。availableTemplateIds 是第二层可以继续"
         "选择的候选集，不是最终模板结果。"
         "这个中间字段集合"
         "只用于判断，不得出现在输出中。candidateOutputFields 不是本层的强制完整展示集合。"
         "任一必须显示字段无法呈现、组件不兼容、主题不适用或存在歧义时，输出"
-        '{"theme":"<最匹配的候选 theme>","componentCandidates":[],"action":null}。'
+        '{"theme":"<最匹配的候选 theme>","componentCandidates":[],"action":[]}。'
         "不得输出数据路径、参数、布局、"
         "理由、置信度或额外字段。\n" + json.dumps(schema, ensure_ascii=False)
     )
@@ -619,7 +619,7 @@ def validate_template_route_decision(
     try:
         selected_task_spec = task_spec_with_selected_action(
             task_spec,
-            decision.action,
+            decision.action_ids,
         )
         validate_advanced_scope(
             scope,
@@ -641,7 +641,7 @@ def validate_template_route_decision(
     return TemplateRouteSelection(
         scope=scope,
         componentCandidates=component_candidates,
-        action_id=decision.action,
+        actionIds=decision.action_ids,
     )
 
 
@@ -793,16 +793,22 @@ def _normalize_empty_component_scope(
 
 def task_spec_with_selected_action(
     task_spec: TaskSpec,
-    action_id: str | None,
+    action_ids: tuple[str, ...] | str | None,
 ) -> TaskSpec:
-    """Keep only the eventId independently selected by the first-layer LLM."""
+    """Keep only the eventIds independently selected by the first-layer LLM."""
+    if action_ids is None:
+        selected_ids = ()
+    elif isinstance(action_ids, str):
+        selected_ids = (action_ids,)
+    else:
+        selected_ids = action_ids
     available_ids = {event.id for event in task_spec.eventCandidates if event.id}
-    if action_id is not None and action_id not in available_ids:
+    if not set(selected_ids).issubset(available_ids):
         raise ValueError("Template route selected an Action outside TaskSpec.eventCandidates")
     return task_spec.model_copy(
         update={
             "eventCandidates": [
-                event for event in task_spec.eventCandidates if event.id == action_id
+                event for event in task_spec.eventCandidates if event.id in selected_ids
             ]
         }
     )
@@ -888,19 +894,21 @@ def resolve_scope_layout_ids(
             if layout_id != expected_layout:
                 continue
         if component_names == {"BluetoothDeviceOverview"}:
-            expected_bluetooth_layouts = (
-                {"SingleFocusLayout", "HeroActionLayout"}
-                if has_action
-                else {"SingleFocusLayout"}
-            )
+            if action_count == 2:
+                expected_bluetooth_layouts = {"ActionMatrixLayout"}
+            elif has_action:
+                expected_bluetooth_layouts = {"SingleFocusLayout", "HeroActionLayout"}
+            else:
+                expected_bluetooth_layouts = {"SingleFocusLayout"}
             if layout_id not in expected_bluetooth_layouts:
                 continue
         if component_names == {"AppUsageOverview"}:
-            expected_app_usage_layouts = (
-                {"HeroActionLayout", "SingleFocusLayout"}
-                if has_action
-                else {"SingleFocusLayout"}
-            )
+            if action_count == 2:
+                expected_app_usage_layouts = {"ActionMatrixLayout"}
+            elif has_action:
+                expected_app_usage_layouts = {"HeroActionLayout", "SingleFocusLayout"}
+            else:
+                expected_app_usage_layouts = {"SingleFocusLayout"}
             if layout_id not in expected_app_usage_layouts:
                 continue
         has_weather = any(item.name == "WeatherOverview" for item in components)
@@ -1112,6 +1120,11 @@ def _component_candidates(
                 )
                 and (
                     item.name != "ScheduleOverview"
+                    or schedule_overview_is_eligible(task_spec, available_capability_ids)
+                )
+                and (
+                    item.name != "CalendarOverview"
+                    or date_overview_is_eligible(task_spec, available_capability_ids)
                     or schedule_overview_is_eligible(task_spec, available_capability_ids)
                 )
                 and (

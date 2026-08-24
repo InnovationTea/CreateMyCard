@@ -23,61 +23,152 @@
       "templateId": "WeatherOverviewCompact@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "当前天气摘要，展示地点、温度和天气状态，可补充空气质量与温度范围。 组件形态：compact。",
-      "requiredData": [
-        "/location/districtName",
-        "/current/temperatureText",
-        "/current/condition",
-        "/current/airQuality",
-        "/daily/0/temperatureRangeText"
-      ],
+      "description": "温度紧凑版；辅助显示城市、天气和感冒指数。形态：temperatureCompact。",
       "optionalData": [],
-      "entry": "templates/weather-overview.cardtpl"
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/temperatureText"
+      ],
+      "secondaryData": [
+        "/location/districtName",
+        "/current/condition",
+        "/current/coldLevel"
+      ]
     },
     {
-      "templateId": "WeatherOverviewCompactIcon@1",
+      "templateId": "WeatherOverviewIconCompact@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "当前天气摘要，展示地点、温度和天气状态，可补充空气质量与温度范围。 组件形态：compactIcon。",
-      "requiredData": [
-        "/location/districtName",
-        "/current/temperatureText",
-        "/current/condition",
-        "/current/airQuality",
-        "/daily/0/temperatureRangeText"
-      ],
+      "description": "图标温度紧凑版；辅助显示城市、天气和感冒指数。",
       "optionalData": [],
-      "entry": "templates/weather-overview.cardtpl"
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/temperatureText"
+      ],
+      "secondaryData": [
+        "/location/districtName",
+        "/current/condition",
+        "/current/coldLevel"
+      ]
     },
     {
       "templateId": "WeatherOverviewHero@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "当前天气摘要，展示地点、温度和天气状态，可补充空气质量与温度范围。 组件形态：hero。",
-      "requiredData": [
-        "/location/districtName",
-        "/current/temperatureText",
-        "/current/condition",
-        "/current/airQuality",
-        "/daily/0/temperatureRangeText"
-      ],
+      "description": "温度 Hero；辅助显示城市、天气和感冒指数。形态：temperatureHero。",
       "optionalData": [],
-      "entry": "templates/weather-overview.cardtpl"
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/temperatureText"
+      ],
+      "secondaryData": [
+        "/location/districtName",
+        "/current/condition",
+        "/current/coldLevel"
+      ]
     },
     {
-      "templateId": "WeatherOverviewHeroIcon@1",
+      "templateId": "WeatherOverviewFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "当前天气摘要，展示地点、温度和天气状态，可补充空气质量与温度范围。 组件形态：heroIcon。",
-      "requiredData": [
+      "description": "温度 Full；辅助显示城市、天气、空气质量和感冒指数。",
+      "optionalData": [],
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/temperatureText"
+      ],
+      "secondaryData": [
         "/location/districtName",
-        "/current/temperatureText",
         "/current/condition",
         "/current/airQuality",
-        "/daily/0/temperatureRangeText"
-      ],
+        "/current/coldLevel"
+      ]
+    },
+    {
+      "templateId": "WeatherOverviewIconFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "图标温度 Full；辅助显示城市、天气、空气质量和感冒指数。",
       "optionalData": [],
-      "entry": "templates/weather-overview.cardtpl"
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/temperatureText"
+      ],
+      "secondaryData": [
+        "/location/districtName",
+        "/current/condition",
+        "/current/airQuality",
+        "/current/coldLevel"
+      ]
+    },
+    {
+      "templateId": "WeatherOverviewConditionFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "天气现象 Full；辅助显示城市、温度、空气质量和感冒指数。",
+      "optionalData": [],
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/condition"
+      ],
+      "secondaryData": [
+        "/location/districtName",
+        "/current/temperatureText",
+        "/current/airQuality",
+        "/current/coldLevel"
+      ]
+    },
+    {
+      "templateId": "WeatherOverviewHumidityFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "湿度 Full；辅助显示城市、天气、温度、空气质量和感冒指数。",
+      "optionalData": [],
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/humidityPercent"
+      ],
+      "secondaryData": [
+        "/location/districtName",
+        "/current/condition",
+        "/current/temperatureText",
+        "/current/airQuality",
+        "/current/coldLevel"
+      ]
+    },
+    {
+      "templateId": "WeatherOverviewUvFull@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "紫外线 Full；辅助显示城市、天气、温度、空气质量和感冒指数。",
+      "optionalData": [],
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/uvIndex"
+      ],
+      "secondaryData": [
+        "/location/districtName",
+        "/current/condition",
+        "/current/temperatureText",
+        "/current/airQuality",
+        "/current/coldLevel"
+      ]
+    },
+    {
+      "templateId": "WeatherOverviewAirQualityHero@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "空气质量 Hero；辅助显示城市、天气和感冒指数。",
+      "optionalData": [],
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [
+        "/current/airQuality"
+      ],
+      "secondaryData": [
+        "/location/districtName",
+        "/current/condition",
+        "/current/coldLevel"
+      ]
     }
   ],
   "compatibility": {

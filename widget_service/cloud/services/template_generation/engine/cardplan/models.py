@@ -165,10 +165,15 @@ class TemplateDefinition(StrictModel):
     business_id: str | None = Field(default=None, alias="businessId")
     capability_id: str | None = Field(default=None, alias="capabilityId")
     data_domain: str | None = Field(default=None, alias="dataDomain")
-    required_data: tuple[str, ...] = Field(default=(), alias="requiredData")
-    required_data_fields: tuple[TemplateBinding, ...] = Field(
+    primary_data: tuple[str, ...] = Field(default=(), alias="primaryData")
+    primary_data_fields: tuple[TemplateBinding, ...] = Field(
         default=(),
-        alias="requiredDataFields",
+        alias="primaryDataFields",
+    )
+    secondary_data: tuple[str, ...] = Field(default=(), alias="secondaryData")
+    secondary_data_fields: tuple[TemplateBinding, ...] = Field(
+        default=(),
+        alias="secondaryDataFields",
     )
     optional_data: tuple[str, ...] = Field(default=(), alias="optionalData")
     optional_data_fields: tuple[TemplateBinding, ...] = Field(
@@ -186,6 +191,15 @@ class TemplateDefinition(StrictModel):
     @property
     def wire_id(self) -> str:
         return f"{self.template_id}@{self.version}"
+
+    @property
+    def required_data(self) -> tuple[str, ...]:
+        """All hard-gated data, ordered as primary data before secondary data."""
+        return (*self.primary_data, *self.secondary_data)
+
+    @property
+    def required_data_fields(self) -> tuple[TemplateBinding, ...]:
+        return (*self.primary_data_fields, *self.secondary_data_fields)
 
 
 @dataclass(frozen=True)
@@ -217,7 +231,12 @@ class BusinessTemplateGroup:
 
     @property
     def supported_layouts(self) -> tuple[str, ...]:
-        return ("SingleFocusLayout", "HeroActionLayout")
+        return (
+            "SingleFocusLayout",
+            "HeroActionLayout",
+            "PeerPairLayout",
+            "ActionMatrixLayout",
+        )
 
     @property
     def detection_terms(self) -> tuple[str, ...]:
