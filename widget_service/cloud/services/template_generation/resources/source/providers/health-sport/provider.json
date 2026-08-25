@@ -59,10 +59,10 @@
       ]
     },
     {
-      "templateId": "ActivityOverviewDailySummaryWideFull@1",
+      "templateId": "ActivityOverviewWideFull@1",
       "businessId": "ActivityOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：dailySummaryWide。",
+      "description": "每日活动摘要，展示步数，可补充热量、距离和目标日期。 组件形态：wideFull。",
       "optionalData": [],
       "entry": "templates/activity-overview.cardtpl",
       "primaryData": [
@@ -70,7 +70,8 @@
       ],
       "secondaryData": [
         "/dailyTotalCaloriesText",
-        "/dailyDistanceText"
+        "/dailyDistanceText",
+        "/targetDateText"
       ]
     },
     {
