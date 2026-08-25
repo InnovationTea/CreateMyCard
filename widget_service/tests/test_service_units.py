@@ -156,6 +156,58 @@ Column("card",
     assert components[4]["styles"]["fontColor"] == "#FF64BB5C"
 
 
+def test_terse_dsl_nested2_converts_expr_to_a2ui_expression():
+    source = """
+Column("card",
+  Text(Expr("${data.connected} ? '已连接' : '未连接'"), "body"),
+  Progress({value: Expr("${data.score} * 2"), total: 100})
+);
+"""
+    task_spec = {
+        "dataModelSchema": {
+            "data": {
+                "connected": {"type": "boolean", "sampleValue": True},
+                "score": {"type": "number", "sampleValue": 18},
+            }
+        }
+    }
+    profile = A2UIProtocolRegistry("a2ui-form-rom6.0-v1").get_profile()
+
+    genui = convert_terse_dsl_nested2_to_a2ui(
+        source,
+        size="2x2",
+        protocol_profile=profile,
+        task_spec=task_spec,
+    )
+    messages = [json_module.loads(line) for line in genui.splitlines()]
+    components = messages[1]["updateComponents"]["components"]
+
+    assert components[1]["content"] == "{{ ${/data/connected} ? '已连接' : '未连接' }}"
+    assert components[2]["value"] == "{{ ${/data/score} * 2 }}"
+    assert messages[2]["updateDataModel"]["value"]["data"] == {
+        "connected": True,
+        "score": 18,
+    }
+
+
+def test_terse_dsl_nested2_rejects_expr_path_outside_task_spec():
+    source = 'Column("card", Text(Expr("${data.missing} + 1"), "body"));'
+    task_spec = {
+        "dataModelSchema": {
+            "data": {"score": {"type": "number", "sampleValue": 18}}
+        }
+    }
+    profile = A2UIProtocolRegistry("a2ui-form-rom6.0-v1").get_profile()
+
+    with pytest.raises(TerseDslNested2ConversionError, match="outside TaskSpec"):
+        convert_terse_dsl_nested2_to_a2ui(
+            source,
+            size="2x2",
+            protocol_profile=profile,
+            task_spec=task_spec,
+        )
+
+
 @pytest.mark.parametrize(
     "source",
     [

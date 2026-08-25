@@ -89,7 +89,8 @@ a2ui-form-rom6.0-v1
 ## 3. WebSocket 接口
 
 当前微服务提供五个正式工具能力和一个临时指令验证接口，其中第四个是 Design Compact DSL 生成变体，
-第五个是 TerseDSL-Nested-2 静态生成变体。客户端连接目标 path 后，
+第五个是 TerseDSL-Nested-2 受限生成变体，支持完整路径绑定与 `Expr("...")` 复合表达式。
+客户端连接目标 path 后，
 消息体只需要传该能力自己的参数，不需要再传 `operation`。新协议中的 `odid` 位于 `content.odid`，
 字段可选；服务会将其映射到内部设备上下文，缺失或为空时 IDS 查询继续使用固定兜底值，且不从
 `deviceInfo` 读取同名字段。用户和设备上下文由工具层自动注入，本地测试时可以显式传入。

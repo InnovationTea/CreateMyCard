@@ -1630,6 +1630,15 @@ def _tokenize_binding_expression(
                     raise CompactDslConversionError(f"{context}: expression number is invalid.")
             tokens.append(_BindingExpressionToken("number", body[start:index], start, index))
             continue
+        function_end = index + len("size")
+        has_function_boundary = function_end == len(body)
+        if not has_function_boundary and function_end < len(body):
+            next_character = body[function_end]
+            has_function_boundary = not next_character.isalnum() and next_character != "_"
+        if body.startswith("size", index) and has_function_boundary:
+            index = function_end
+            tokens.append(_BindingExpressionToken("function", "size", start, index))
+            continue
         keyword = next(
             (
                 candidate
@@ -1718,6 +1727,12 @@ class _BindingExpressionParser:
             self._invalid("missing operand")
         if token.kind in {"binding", "literal", "number", "atom"}:
             self.index += 1
+            return
+        if token.kind == "function":
+            self.index += 1
+            self._expect("(")
+            self._conditional()
+            self._expect(")")
             return
         if self._accept("("):
             self._conditional()
