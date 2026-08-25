@@ -10,6 +10,7 @@ from typing import Any
 from services.template_generation.engine.terse_dsl_nested2_converter import Nested2Node
 
 _HEX_COLOR = re.compile(r"^#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?$")
+_CARD_CONTENT_ID = "__genui_render_component__cardContent"
 _BACKGROUND_STYLE_KEYS = frozenset(
     {
         "backgroundColor",
@@ -103,7 +104,7 @@ def apply_fusion_ball_background(
     }
     foreground_options.update(
         {
-            "_id": "cardContent",
+            "_id": _CARD_CONTENT_ID,
             "width": 160,
             "height": 160,
         }

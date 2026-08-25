@@ -474,7 +474,7 @@ def test_fusion_ball_wraps_only_2x2_and_replaces_the_card_gradient():
     assert wrapped.values[0] == "card"
     assert [child.values[-1]["_id"] for child in wrapped.children] == [
         "fusionBallBackground",
-        "cardContent",
+        "__genui_render_component__cardContent",
     ]
     assert "backgroundColor" not in foreground_options
     assert "linearGradient" not in foreground_options
@@ -520,14 +520,15 @@ def test_complete_a2ui_converter_replaces_stack_background_with_fusion_balls(
     update = messages[1]["updateComponents"]
     components = {component["id"]: component for component in update["components"]}
     root = components["root"]
-    content = components["cardContent"]
+    content_id = "__genui_render_component__cardContent"
+    content = components[content_id]
 
     assert len(messages) == 3
     assert messages[0] == source_messages[0]
     assert messages[2] == source_messages[2]
     assert update["root"] == "root"
     assert root["component"] == "Stack"
-    assert root["children"] == ["fusionBallBackground", "cardContent"]
+    assert root["children"] == ["fusionBallBackground", content_id]
     assert root["styles"]["padding"] == 0
     assert root["styles"]["alignContent"] == "topStart"
     assert "backgroundColor" not in root["styles"]
@@ -542,12 +543,32 @@ def test_complete_a2ui_converter_replaces_stack_background_with_fusion_balls(
     assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#FF008FBF"
     assert components["fusionBallSmall"]["styles"]["backgroundColor"] == "#FF00BF9F"
     assert "backgroundColor" not in components["fusionBallBackground"]["styles"]
+    assert not components["fusionBallBackground"]["id"].startswith(
+        "__genui_render_component__"
+    )
     assert components["fusionBallGlassLayer"]["children"] == []
     assert components["fusionBallGlassLayer"]["styles"]["backdropBlur"] == {
         "radius": 120
     }
     assert validate_card(dsl_text=converted).diagnostics == []
     assert convert_a2ui_with_fusion_ball(converted, base_color="#008FBF") == converted
+
+
+def test_complete_a2ui_converter_upgrades_legacy_fusion_content_marker():
+    source = _complete_stack_a2ui({"backgroundColor": "#FF008FBF"})
+    converted = convert_a2ui_with_fusion_ball(source, base_color="#008FBF")
+    legacy = converted.replace("__genui_render_component__cardContent", "cardContent")
+
+    upgraded = convert_a2ui_with_fusion_ball(legacy, base_color="#008FBF")
+    update = json.loads(upgraded.splitlines()[1])["updateComponents"]
+    component_ids = {component["id"] for component in update["components"]}
+
+    assert update["components"][0]["children"] == [
+        "fusionBallBackground",
+        "__genui_render_component__cardContent",
+    ]
+    assert "__genui_render_component__cardContent" in component_ids
+    assert "cardContent" not in component_ids
 
 
 def test_complete_a2ui_converter_rejects_invalid_base_color():
@@ -2683,7 +2704,10 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
         if item["id"] == "fusionBallGlassLayer"
     )
     assert root["component"] == "Stack"
-    assert root["children"] == ["fusionBallBackground", "cardContent"]
+    assert root["children"] == [
+        "fusionBallBackground",
+        "__genui_render_component__cardContent",
+    ]
     assert root["styles"]["borderRadius"] == 18
     assert "backgroundColor" not in root["styles"]
     assert "linearGradient" not in root["styles"]
@@ -2724,19 +2748,20 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
         row[0]: row for row in compact_rows if len(row) >= 3 and isinstance(row[0], str)
     }
     assert compact_rows[0][0:2] == ["root", "Stack"]
-    assert compact_rows[0][3] == ["fusionBallBackground", "cardContent"]
+    content_id = "__genui_render_component__cardContent"
+    assert compact_rows[0][3] == ["fusionBallBackground", content_id]
     assert "backgroundColor" not in compact_rows[0][2]
     assert "linearGradient" not in compact_rows[0][2]
     assert compact_components["fusionBallLarge"][2]["backgroundColor"] == "#FF221D91"
     assert compact_components["fusionBallMedium"][2]["backgroundColor"] == "#FF317AF7"
     assert compact_components["fusionBallSmall"][2]["backgroundColor"] == "#FF00C2F7"
-    assert "linearGradient" not in compact_components["cardContent"][2]
+    assert "linearGradient" not in compact_components[content_id][2]
     messages = [json.loads(line) for line in captured["artifact"].genui.splitlines()]
     protocol_profile = A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile()
     assert messages[0]["createSurface"]["catalogId"] == protocol_profile["catalogId"]
     components = {item["id"]: item for item in messages[1]["updateComponents"]["components"]}
     assert components["root"]["component"] == "Stack"
-    assert components["root"]["children"] == ["fusionBallBackground", "cardContent"]
+    assert components["root"]["children"] == ["fusionBallBackground", content_id]
     assert "backgroundColor" not in components["root"]["styles"]
     assert components["fusionBallLarge"]["children"] == []
     assert components["fusionBallMedium"]["children"] == []
@@ -2746,7 +2771,7 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
         "radius": 120
     }
     assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#FF317AF7"
-    assert "linearGradient" not in components["cardContent"]["styles"]
+    assert "linearGradient" not in components[content_id]["styles"]
     assert captured["artifact"].effectiveCapabilities["data"] == ["ViewWeather"]
 
 

@@ -11,7 +11,10 @@ import json
 import re
 from typing import Any
 
-_FUSION_COMPONENT_IDS = frozenset(
+_RENDER_COMPONENT_ID_PREFIX = "__genui_render_component__"
+_CARD_CONTENT_ID = f"{_RENDER_COMPONENT_ID_PREFIX}cardContent"
+_LEGACY_CARD_CONTENT_ID = "cardContent"
+_FUSION_BACKGROUND_COMPONENT_IDS = frozenset(
     {
         "fusionBallBackground",
         "fusionBallLargeSlot",
@@ -21,9 +24,13 @@ _FUSION_COMPONENT_IDS = frozenset(
         "fusionBallSmallSlot",
         "fusionBallSmall",
         "fusionBallGlassLayer",
-        "cardContent",
     }
 )
+_FUSION_COMPONENT_IDS = _FUSION_BACKGROUND_COMPONENT_IDS | {_CARD_CONTENT_ID}
+_LEGACY_FUSION_COMPONENT_IDS = _FUSION_BACKGROUND_COMPONENT_IDS | {
+    _LEGACY_CARD_CONTENT_ID
+}
+_RESERVED_FUSION_COMPONENT_IDS = _FUSION_COMPONENT_IDS | {_LEGACY_CARD_CONTENT_ID}
 _BACKGROUND_STYLE_KEYS = ("backgroundColor", "linearGradient")
 _HEX_COLOR = re.compile(r"^#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?$")
 
@@ -48,6 +55,9 @@ def convert_a2ui_with_fusion_ball(a2ui: str, base_color: str) -> str:
     root_index, root = _find_root(components, root_id)
     if _already_has_fusion_background(root, components):
         return a2ui
+    if _has_legacy_fusion_background(root, components):
+        _upgrade_legacy_card_content_id(root, components)
+        return _serialize_messages(messages)
     if root.get("component") != "Stack":
         raise FusionBallA2UIConversionError("The A2UI root component must be Stack.")
     root_styles = root.get("styles")
@@ -68,7 +78,7 @@ def convert_a2ui_with_fusion_ball(a2ui: str, base_color: str) -> str:
         )
 
     component_ids = _component_ids(components)
-    conflicts = sorted(component_ids & _FUSION_COMPONENT_IDS)
+    conflicts = sorted(component_ids & _RESERVED_FUSION_COMPONENT_IDS)
     if conflicts:
         raise FusionBallA2UIConversionError(
             f"Fusion-ball component ids already exist: {', '.join(conflicts)}."
@@ -84,9 +94,7 @@ def convert_a2ui_with_fusion_ball(a2ui: str, base_color: str) -> str:
         *fusion_components,
         card_content,
     ]
-    return "\n".join(
-        json.dumps(message, ensure_ascii=False, separators=(",", ":")) for message in messages
-    )
+    return _serialize_messages(messages)
 
 
 def _parse_complete_a2ui(a2ui: str) -> list[dict[str, Any]]:
@@ -136,12 +144,50 @@ def _already_has_fusion_background(
     root: dict[str, Any],
     components: list[Any],
 ) -> bool:
+    return _has_fusion_background(root, components, _CARD_CONTENT_ID, _FUSION_COMPONENT_IDS)
+
+
+def _has_legacy_fusion_background(
+    root: dict[str, Any],
+    components: list[Any],
+) -> bool:
+    return _has_fusion_background(
+        root,
+        components,
+        _LEGACY_CARD_CONTENT_ID,
+        _LEGACY_FUSION_COMPONENT_IDS,
+    )
+
+
+def _has_fusion_background(
+    root: dict[str, Any],
+    components: list[Any],
+    content_id: str,
+    expected_component_ids: frozenset[str],
+) -> bool:
     children = root.get("children")
     component_ids = _component_ids(components)
     return (
         isinstance(children, list)
-        and children[:1] == ["fusionBallBackground"]
-        and _FUSION_COMPONENT_IDS <= component_ids
+        and children == ["fusionBallBackground", content_id]
+        and expected_component_ids <= component_ids
+    )
+
+
+def _upgrade_legacy_card_content_id(
+    root: dict[str, Any],
+    components: list[Any],
+) -> None:
+    root["children"] = ["fusionBallBackground", _CARD_CONTENT_ID]
+    for component in components:
+        if isinstance(component, dict) and component.get("id") == _LEGACY_CARD_CONTENT_ID:
+            component["id"] = _CARD_CONTENT_ID
+            return
+
+
+def _serialize_messages(messages: list[dict[str, Any]]) -> str:
+    return "\n".join(
+        json.dumps(message, ensure_ascii=False, separators=(",", ":")) for message in messages
     )
 
 
@@ -165,9 +211,9 @@ def _split_root(root: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
         content_styles.pop(key, None)
     outer_styles["padding"] = 0
     outer_styles["alignContent"] = "topStart"
-    outer_root["children"] = ["fusionBallBackground", "cardContent"]
+    outer_root["children"] = ["fusionBallBackground", _CARD_CONTENT_ID]
 
-    card_content["id"] = "cardContent"
+    card_content["id"] = _CARD_CONTENT_ID
     card_content.pop("onClick", None)
     card_content.pop("accessibility", None)
     content_styles.setdefault("width", "matchParent")
