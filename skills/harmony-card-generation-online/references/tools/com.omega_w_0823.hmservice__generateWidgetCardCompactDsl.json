@@ -34,7 +34,7 @@
       },
       "userQuery": {
         "type": "String",
-        "description": "用户原始卡片需求"
+        "description": "能力裁决后的本轮有效卡片需求；调整后生成时不得保留已移除或未经确认替代的内容"
       },
       "candidateDataBindings": {
         "type": "Array",
