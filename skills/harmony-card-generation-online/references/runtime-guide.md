@@ -20,7 +20,7 @@
 
 ### 编辑链
 
-主 Agent 不创建独立状态，只从当前对话中的真实工具调用参数和合法业务结果追溯：
+你不创建独立状态，只从当前对话中的真实工具调用参数和合法业务结果追溯：
 
 - 仅本会话中目标卡片最近一次 `success` / `degraded` 生成结果的真实 `artifactUrl` 标识有效结果，并且
   必须原样作为下一轮 edit 的 `sourceArtifactUrl`；不能使用用户可见回复、示例、缓存或普通文本中的
@@ -299,7 +299,7 @@ payload 常用字段为 `status`、`message`、可选 `artifactUrl/suggestSize/r
 
 ### URL 留存与保密不变量
 
-- 卡片展示由生成工具内部将 URL 交给端侧，主 Agent 不重复承担交付职责。
+- 卡片展示由生成工具内部将 URL 交给端侧，你不重复承担交付职责。
 - 只有当前业务 payload 中带全新合法 `artifactUrl` 的 `success` / `degraded` 结果才形成有效编辑节点。
 - create 的有效 URL 作为该卡片后续 edit 的初始 `sourceArtifactUrl`；edit 的有效新 URL 替换该卡片此前的来源。
 - `unsupported`、`failed`、非法 payload、缺失 URL 或 edit 返回来源 URL 都不更新编辑来源。
