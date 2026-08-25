@@ -12,6 +12,11 @@ import tokenize
 from dataclasses import dataclass
 from typing import Any
 
+from services.a2ui_expression import (
+    A2UIExpressionError,
+    normalize_terse_expression,
+    normalize_wrapped_expression,
+)
 from services.template_generation.engine.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     convert_compact_dsl_to_a2ui,
@@ -94,22 +99,38 @@ def convert_terse_dsl_nested2_to_a2ui(
     protocol_profile: dict[str, Any],
     task_spec: dict[str, Any] | None = None,
 ) -> str:
-    """Convert one literal-only Nested-2 component tree to three A2UI messages."""
+    """Convert one restricted Nested-2 component tree to three A2UI messages."""
     root, data_model = _parse_terse_dsl_nested2_document(source)
     allowed_binding_paths = _task_spec_leaf_paths(task_spec)
+    allowed_expression_paths = _task_spec_paths(task_spec)
+    referenced_paths = _node_binding_paths(root)
+    if task_spec is not None:
+        unknown_paths = referenced_paths - allowed_expression_paths
+        if unknown_paths:
+            raise TerseDslNested2ConversionError(
+                f"Expression references paths outside TaskSpec: {sorted(unknown_paths)}."
+            )
     if data_model is not None:
         data_paths = _validate_data_model(
             data_model,
+            allowed_expression_paths,
             allowed_binding_paths,
             task_spec is not None,
         )
-        missing_paths = _node_binding_paths(root) - data_paths
+        missing_paths = referenced_paths - data_paths
         if missing_paths:
             raise TerseDslNested2ConversionError(
                 f"Data document is missing component binding paths: {sorted(missing_paths)}."
             )
     compact_rows: list[list[Any]] = []
-    _append_compact_rows(root, "root", size, compact_rows, allowed_binding_paths)
+    _append_compact_rows(
+        root,
+        "root",
+        size,
+        compact_rows,
+        allowed_binding_paths,
+        allowed_expression_paths,
+    )
     if data_model is not None:
         compact_rows.append(["/data", data_model])
     elif task_spec is not None:
@@ -244,6 +265,13 @@ def _parse_component(node: ast.AST, depth: int, state: dict[str, int]) -> Nested
     children: list[Nested2Node] = []
     child_started = False
     for argument in node.args:
+        if _is_expression_call(argument):
+            if child_started:
+                raise TerseDslNested2ConversionError(
+                    "Value arguments must appear before the first child."
+                )
+            values.append(_literal_value(argument, depth, allow_expression=True))
+            continue
         if isinstance(argument, ast.Call):
             child_started = True
             children.append(_parse_component(argument, depth + 1, state))
@@ -252,15 +280,22 @@ def _parse_component(node: ast.AST, depth: int, state: dict[str, int]) -> Nested
             raise TerseDslNested2ConversionError(
                 "Value arguments must appear before the first child."
             )
-        values.append(_literal_value(argument, depth))
+        values.append(_literal_value(argument, depth, allow_expression=True))
     if children and component_type not in _CONTAINERS:
         raise TerseDslNested2ConversionError(f"{component_type} cannot contain child components.")
     return Nested2Node(component_type, tuple(values), tuple(children))
 
 
-def _literal_value(node: ast.AST, depth: int) -> Any:
+def _literal_value(
+    node: ast.AST,
+    depth: int,
+    *,
+    allow_expression: bool = False,
+) -> Any:
     if depth > MAX_NESTING_DEPTH:
         raise TerseDslNested2ConversionError("Literal nesting exceeds 32 levels.")
+    if allow_expression and _is_expression_call(node):
+        return _parse_expression_call(node)
     if isinstance(node, ast.Constant):
         if isinstance(node.value, str) and len(node.value) > MAX_STRING_LENGTH:
             raise TerseDslNested2ConversionError("String literal exceeds the size limit.")
@@ -269,9 +304,16 @@ def _literal_value(node: ast.AST, depth: int) -> Any:
     if isinstance(node, ast.List):
         if len(node.elts) > MAX_COLLECTION_ITEMS:
             raise TerseDslNested2ConversionError("Array literal exceeds the item limit.")
-        return [_literal_value(item, depth + 1) for item in node.elts]
+        return [
+            _literal_value(item, depth + 1, allow_expression=allow_expression)
+            for item in node.elts
+        ]
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
-        operand = _literal_value(node.operand, depth + 1)
+        operand = _literal_value(
+            node.operand,
+            depth + 1,
+            allow_expression=allow_expression,
+        )
         if isinstance(operand, bool) or not isinstance(operand, (int, float)):
             raise TerseDslNested2ConversionError(
                 "Unary signs are only allowed on numeric literals."
@@ -289,11 +331,37 @@ def _literal_value(node: ast.AST, depth: int) -> Any:
                 raise TerseDslNested2ConversionError(f'Forbidden object key "{key}".')
             if key in result:
                 raise TerseDslNested2ConversionError(f'Duplicate object key "{key}".')
-            result[key] = _literal_value(value_node, depth + 1)
+            result[key] = _literal_value(
+                value_node,
+                depth + 1,
+                allow_expression=allow_expression,
+            )
         return result
     raise TerseDslNested2ConversionError(
         "Only string, number, boolean, null, array, and object literals are allowed."
     )
+
+
+def _is_expression_call(node: ast.AST) -> bool:
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "Expr"
+    )
+
+
+def _parse_expression_call(node: ast.AST) -> str:
+    assert isinstance(node, ast.Call)
+    valid_argument = len(node.args) == 1 and isinstance(node.args[0], ast.Constant)
+    body = node.args[0].value if valid_argument else None
+    if node.keywords or not isinstance(body, str):
+        raise TerseDslNested2ConversionError(
+            "Expr requires exactly one string argument and no keyword arguments."
+        )
+    try:
+        return normalize_terse_expression(body).value
+    except A2UIExpressionError as exc:
+        raise TerseDslNested2ConversionError(f"Invalid Expr: {exc}") from exc
 
 
 def _append_compact_rows(
@@ -302,6 +370,7 @@ def _append_compact_rows(
     size: str,
     rows: list[list[Any]],
     allowed_binding_paths: frozenset[str],
+    allowed_expression_paths: frozenset[str],
 ) -> None:
     child_ids = [
         _explicit_component_id(child) or f"{component_id}_{index}"
@@ -310,33 +379,71 @@ def _append_compact_rows(
     props = _convert_data_placeholders(
         _component_props(node, component_id, size),
         allowed_binding_paths,
+        allowed_expression_paths,
     )
     row: list[Any] = [component_id, node.component_type, props]
     if node.component_type in _CONTAINERS:
         row.append(child_ids)
     rows.append(row)
     for child, child_id in zip(node.children, child_ids, strict=True):
-        _append_compact_rows(child, child_id, size, rows, allowed_binding_paths)
+        _append_compact_rows(
+            child,
+            child_id,
+            size,
+            rows,
+            allowed_binding_paths,
+            allowed_expression_paths,
+        )
 
 
-def _convert_data_placeholders(value: Any, allowed_paths: frozenset[str]) -> Any:
+def _convert_data_placeholders(
+    value: Any,
+    allowed_binding_paths: frozenset[str],
+    allowed_expression_paths: frozenset[str],
+) -> Any:
     if isinstance(value, str):
         match = _DATA_PLACEHOLDER.fullmatch(value)
-        if match is None:
-            return value
-        path = "/" + match.group(1).replace(".", "/")
-        if path not in allowed_paths:
+        if match is not None:
+            path = "/" + match.group(1).replace(".", "/")
+            if path not in allowed_binding_paths:
+                raise TerseDslNested2ConversionError(
+                    f"Data binding path is not a TaskSpec leaf: {path}."
+                )
+            return {"path": path}
+        if "{{" in value or "}}" in value:
+            try:
+                normalized = normalize_wrapped_expression(value)
+            except A2UIExpressionError as exc:
+                raise TerseDslNested2ConversionError(f"Invalid A2UI expression: {exc}") from exc
+            unknown_paths = set(normalized.references) - allowed_expression_paths
+            if unknown_paths:
+                raise TerseDslNested2ConversionError(
+                    f"Expression references paths outside TaskSpec: {sorted(unknown_paths)}."
+                )
+            return normalized.value
+        if "${" in value:
             raise TerseDslNested2ConversionError(
-                f"Data binding path is not a TaskSpec leaf: {path}."
+                "Data binding references must be one complete path or appear inside Expr."
             )
-        return {"path": path}
+        return value
     if isinstance(value, dict):
         return {
-            key: _convert_data_placeholders(child, allowed_paths)
+            key: _convert_data_placeholders(
+                child,
+                allowed_binding_paths,
+                allowed_expression_paths,
+            )
             for key, child in value.items()
         }
     if isinstance(value, list):
-        return [_convert_data_placeholders(child, allowed_paths) for child in value]
+        return [
+            _convert_data_placeholders(
+                child,
+                allowed_binding_paths,
+                allowed_expression_paths,
+            )
+            for child in value
+        ]
     return value
 
 
@@ -355,6 +462,27 @@ def _task_spec_leaf_paths(task_spec: dict[str, Any] | None) -> frozenset[str]:
                     continue
                 visit(child, f"{path}/{key}")
         elif isinstance(value, list) and value:
+            for index, item in enumerate(value):
+                visit(item, f"{path}/{index}")
+
+    visit(task_spec.get("dataModelSchema"), "")
+    return frozenset(paths)
+
+
+def _task_spec_paths(task_spec: dict[str, Any] | None) -> frozenset[str]:
+    if task_spec is None:
+        return frozenset()
+    paths: set[str] = set()
+
+    def visit(value: Any, path: str) -> None:
+        if path:
+            paths.add(path)
+        if isinstance(value, dict) and "type" not in value:
+            for key, child in value.items():
+                if key in _INTERNAL_DATA_KEYS:
+                    continue
+                visit(child, f"{path}/{key}")
+        elif isinstance(value, list):
             for index, item in enumerate(value):
                 visit(item, f"{path}/{index}")
 
@@ -392,14 +520,19 @@ def serialize_task_spec_data(task_spec: dict[str, Any]) -> str:
 def _validate_data_model(
     data_model: dict[str, Any],
     allowed_paths: frozenset[str],
+    leaf_paths: frozenset[str],
     validate_paths: bool,
 ) -> frozenset[str]:
     _reject_internal_data_keys(data_model)
     data_paths: set[str] = set()
 
     def visit(value: Any, path: str) -> None:
-        if path in allowed_paths:
-            data_paths.add(path)
+        if validate_paths and path not in allowed_paths:
+            raise TerseDslNested2ConversionError(
+                f"Data document path is not declared by TaskSpec: {path}."
+            )
+        data_paths.add(path)
+        if path in leaf_paths:
             return
         if isinstance(value, dict):
             for key, child in value.items():
@@ -409,11 +542,6 @@ def _validate_data_model(
             for index, child in enumerate(value):
                 visit(child, f"{path}/{index}")
             return
-        if validate_paths:
-            raise TerseDslNested2ConversionError(
-                f"Data document path is not a TaskSpec leaf: {path}."
-            )
-        data_paths.add(path)
 
     visit(data_model, "/data")
     return frozenset(data_paths)

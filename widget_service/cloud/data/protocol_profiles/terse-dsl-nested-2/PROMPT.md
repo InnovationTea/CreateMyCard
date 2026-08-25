@@ -65,8 +65,21 @@ Design/LayoutPreset 没有合适值时应直接省略，不要用空字符串、
 - List: "list" | "dense"
 - Stack: "overlay"
 
-禁止 Data Path、Data Model、PathBinding、动态表达式、函数调用、回调、事件处理代码、网络请求和
-任意 JavaScript 表达式；所有内容与状态直接写字面量。
+动态标量值优先使用以下两种受限数据语法；它们只是声明式数据，不是可执行 JavaScript：
+
+- 单路径值使用字符串占位，例如 `Text("${data.weather.current.condition}", "body")`。
+- 拼接、算术、比较、逻辑或三元条件使用 `Expr("...")`，例如
+  `Text(Expr("${data.connected} ? '已连接' : '未连接'"), "body")`、
+  `Progress({value: Expr("${data.score} * 1"), total: 100})`。
+- `Expr` 恰好接收一个字符串参数，字符串内不写外层 `{{ }}`，并且至少引用一个 DataModel 路径。
+- 路径推荐写 `${data.weather.current.temperature}`；也接受 A2UI JSON Pointer
+  `${/data/weather/current/temperature}`。转换器会统一输出完整 A2UI `{{ ... }}` 表达式。
+- 支持 `+ - * / %`、`< > <= >=`、`== !=`、`&& || !`、一元负号、括号和嵌套三元 `?:`；
+  内置函数只允许 `size()`。表达式内字符串只用单引号。
+- `size()` 可以读取 TaskSpec 中存在的数组路径；普通单路径占位仍只绑定叶子字段。
+- 禁止对象字面量、嵌套 `{{ }}`、裸 identifier、未知函数、赋值、成员方法、回调、事件处理代码、
+  网络请求和任意可执行调用。
+- Expr 和单路径占位只能引用 TaskSpec.dataModelSchema 中存在的路径，且首帧 DataModel 必须提供该路径。
 
 不得生成 Catalog 未声明的组件或字段，不得使用 __proto__、prototype、constructor 对象键。
 当前服务只允许下列组件；禁止生成 Grid、Tabs、TabContent、TextInput、Toggle、Radio、
@@ -79,8 +92,8 @@ Catalog：ohos-a2ui-extended（ohos.a2ui.extended.catalog）的当前服务子�
 - Text(text, design?) — 扩展文本
 - Image(source, design?) — 扩展图片
 - Divider() — 扩展分隔线
-- Progress({ value, total }) — 进度条
-- Button(label, design?, options?) — 扩展按钮
+- Progress({ value, total }) — 进度条；value 可为数字、单路径占位或 Expr
+- Button(label, design?, options?) — 扩展按钮；label/enabled 可使用单路径占位或 Expr
 - Checkbox(options?) — 扩展复选框
 - Row(layout?, ...children) — 扩展水平布局
 - Column(layout?, ...children) — 扩展垂直布局
@@ -89,16 +102,17 @@ Catalog：ohos-a2ui-extended（ohos.a2ui.extended.catalog）的当前服务子�
 
 可选参数字段（只能使用以下字段名；? 表示可省略）：
 
-- Button options: { enabled?: boolean }
+- Button options: { enabled?: boolean | Expr }
 - Checkbox options: { label?: string; select?: boolean; value?: string; group?: string }
 - Text、Image、Divider、Row、Column、List、Stack 没有可选字段，不得输出 options。
-- Progress 必须同时提供有限数字 value 与 total，且 total 大于 0。
+- Progress 必须同时提供 value 与 total；total 是大于 0 的有限静态数字，value 是有限数字、单路径占位
+  或返回 number 的 Expr。
 
 Image.source 只能使用 TaskSpec assetCandidates 中提供的 resources/base/media/ 本地资源路径，不得
 臆造路径、使用网络 URL 或 data URI。
 
-数据路径：禁用（literal-only）。当前协议只支持 Create + external lifecycle，不支持 Patch、动态
-数据绑定和事件。
+数据路径：只允许读取 TaskSpec/DataModel，不允许写路径、Patch 或自行扩展数据字段。当前协议支持
+Create + external lifecycle 下的 PathBinding 与 Expr 响应式读取，不支持事件。
 
 只有在容器既不承载业务分组，也不承担对齐、间距、层叠、背景、边框、阅读顺序或视觉层级等布局/
 样式作用，且移除后界面语义与视觉结构不变时，才可省略该冗余包装层。

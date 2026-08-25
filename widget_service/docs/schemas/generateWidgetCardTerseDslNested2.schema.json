@@ -2,7 +2,7 @@
   "name": "generateWidgetCardTerseDslNested2",
   "transport": "websocket",
   "path": "/api/v1/ws/tools/generateWidgetCardTerseDslNested2",
-  "description": "使用本地 TerseDSL-Nested-2 Prompt 和受限转换器生成静态标准 A2UI 卡片 artifact。",
+  "description": "使用本地 TerseDSL-Nested-2 Prompt 和受限转换器生成支持数据绑定与 Expr 的标准 A2UI 卡片 artifact。",
   "messageEnvelope": {
     "type": "object",
     "required": ["content", "deviceInfo", "session"],

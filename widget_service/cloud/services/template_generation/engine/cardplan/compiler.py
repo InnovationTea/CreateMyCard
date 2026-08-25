@@ -12,6 +12,7 @@ from typing import Any, Literal
 from jsonschema import Draft202012Validator
 
 from models.generation import TaskSpec
+from services.a2ui_expression import A2UIExpressionError, normalize_terse_expression
 from services.template_generation.engine.advanced.content_selectors import (
     ActivityOverviewFacts,
     AppUsageOverviewFacts,
@@ -4364,7 +4365,12 @@ def _provider_interpolation_expression(
         )
     if not operands:
         raise TerseDslNested2ConversionError("Template interpolation cannot be empty.")
-    return "{{ " + " + ".join(operands) + " }}"
+    try:
+        return normalize_terse_expression(" + ".join(operands)).value
+    except A2UIExpressionError as exc:
+        raise TerseDslNested2ConversionError(
+            f"Template interpolation is not a valid A2UI expression: {exc}"
+        ) from exc
 
 
 def _provider_runtime_expression(
@@ -4372,14 +4378,12 @@ def _provider_runtime_expression(
     bindings: dict[str, str],
 ) -> str:
     parts: list[str] = []
-    has_binding = False
     for item in value.items:
         if item.kind == "binding":
             placeholder = bindings.get(item.name or "")
             if placeholder is None:
                 raise TerseDslNested2ConversionError(f"Template binding is missing: {item.name}")
             parts.append(_a2ui_expression_reference(placeholder))
-            has_binding = True
             continue
         if item.kind == "literal" and isinstance(item.value, str):
             parts.append(item.value)
@@ -4388,9 +4392,14 @@ def _provider_runtime_expression(
             "Template Expr only supports binding placeholders and expression syntax."
         )
     body = "".join(parts).strip()
-    if not has_binding or not body:
+    if not body:
         raise TerseDslNested2ConversionError("Template Expr must contain a runtime data binding.")
-    return "{{ " + body + " }}"
+    try:
+        return normalize_terse_expression(body).value
+    except A2UIExpressionError as exc:
+        raise TerseDslNested2ConversionError(
+            f"Template Expr is not a valid A2UI expression: {exc}"
+        ) from exc
 
 
 def _a2ui_expression_reference(placeholder: str) -> str:

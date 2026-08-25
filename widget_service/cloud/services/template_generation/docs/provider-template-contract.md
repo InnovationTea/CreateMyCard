@@ -107,6 +107,11 @@ Column("compact",
   素材全集；第二层只从本轮 TaskSpec 实际下发的素材候选中按 description 匹配，没有合适候选时省略
   可选参数，或选择不依赖该素材的模板。
 - 反引号 `${...}` 可混合 `props`、`data` 和静态分隔符；云侧保留为 A2UI 表达式，不投影样例值。
+- 需要算术、比较、逻辑、三元条件或 `size()` 时使用 ``Expr(`...`)``，例如
+  ``Expr(`${data.score} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`)``。`Expr` 至少引用一个 `data` binding，
+  不接受 `props`、对象字面量、裸 identifier、未知函数或任意可执行调用；纯静态值继续写字面量。
+- `Expr` 与普通反引号插值最终都归一化为完整 A2UI `{{ ... }}` 属性值，并按本轮 TaskSpec 路径、
+  A2UI Form 表达式语法、2048 字符长度和 20 层嵌套限制校验。
 - 同一个 `.cardtpl` 可以包含多个 `#Template ... #End`，`provider.json` 中每个模板条目可指向同一文件；
   文件完整性由 CardPlan bundle 清单统一校验，不在模板条目重复维护摘要。
 
@@ -134,7 +139,8 @@ Template("HeroSupportLayout@1", {},
 仍执行 Catalog、节点数量、深度、素材、Action、TaskSpec 路径和最终 A2UI 校验。
 
 可信展开后的最终 TerseDSL-Nested-2 产物包含组件树和 `data = {...}` 两条语句。组件动态值使用
-现有 `"${data...}"` 字符串占位语法，`data` 初值由服务端从 TaskSpec 真实路径确定性生成；
+现有 `"${data...}"` 字符串占位语法；需要复合运行时计算时使用 `Expr("...")`，并与 Provider
+作者侧的 ``Expr(`...`)`` 归一化到相同 A2UI 表达式。`data` 初值由服务端从 TaskSpec 真实路径确定性生成；
 `$path` 只属于
 Provider 模板作者侧声明，不进入最终 Nested-2 语法。最终产物不得包含 `_advancedSelectors` 或
 `_templateProjection`。
