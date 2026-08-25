@@ -13,7 +13,7 @@ Column(
     "width": "matchParent",
     "height": "matchParent",
     "itemMargin": 4,
-    "justifyContent": "center",
+    "justifyContent": "start",
     "alignItems": "start",
     "clip": true,
     "constraintSize": {"minWidth": 0, "minHeight": 0}
@@ -22,9 +22,10 @@ Column(
       "between",
       {
         "width": "matchParent",
+        "height": 24,
         "itemMargin": 4,
         "justifyContent": "start",
-        "alignItems": "bottom",
+        "alignItems": "center",
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0}
       },
@@ -32,7 +33,7 @@ Column(
             data.city,
             "compact-title",
             {
-              "fontSize": 14,
+              "fontSize": 16,
               "fontWeight": 700,
               "maxLines": 1,
               "textOverflow": "ellipsis",
@@ -42,7 +43,7 @@ Column(
       Text(
             data.temperature,
             "title",
-            {"fontSize": 20, "fontWeight": 800, "maxLines": 1, "flexShrink": 0}
+            {"fontSize": 16, "fontWeight": 800, "maxLines": 1, "flexShrink": 0}
           )
     ),
   Text(
@@ -50,7 +51,8 @@ Column(
       "subtitle",
       {
         "width": "matchParent",
-        "fontSize": 12,
+        "height": 14,
+        "fontSize": 14,
         "fontWeight": 400,
         "maxLines": 1,
         "textOverflow": "ellipsis",
@@ -158,29 +160,40 @@ Column(
     "_advancedComponent": "WeatherOverview",
     "width": "matchParent",
     "height": "matchParent",
-    "itemMargin": 4,
-    "justifyContent": "center",
+    "itemMargin": 2,
+    "justifyContent": "start",
     "alignItems": "start",
     "clip": true,
     "constraintSize": {"minWidth": 0, "minHeight": 0}
   },
-  Text(
-      data.city,
-      "compact-title",
-      {
-        "width": "matchParent",
-        "fontSize": 12,
-        "fontWeight": 400,
-        "maxLines": 1,
-        "textOverflow": "ellipsis",
-        "constraintSize": {"minWidth": 0, "minHeight": 0}
-      }
-    ),
-  Text(
-      data.temperature,
-      "title",
-      {"fontSize": 40, "fontWeight": 800, "maxLines": 1}
-    ),
+  Column(
+    "compact",
+    {
+      "width": "matchParent",
+      "itemMargin": 10,
+      "justifyContent": "start",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+    Text(
+        data.city,
+        "compact-title",
+        {
+          "width": "matchParent",
+          "fontSize": 12,
+          "fontWeight": 400,
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      ),
+    Text(
+        data.temperature,
+        "title",
+        {"fontSize": 38, "fontWeight": 800, "maxLines": 1}
+      )
+  ),
   Text(
       `${data.condition}｜感冒风险${data.coldLevel}`,
       "subtitle",
@@ -212,35 +225,47 @@ Column(
     "width": "matchParent",
     "height": "matchParent",
     "itemMargin": 4,
-    "justifyContent": "center",
+    "justifyContent": "start",
     "alignItems": "start",
     "clip": true,
     "constraintSize": {"minWidth": 0, "minHeight": 0}
   },
-  Text(
-      data.city,
-      "compact-title",
-      {
-        "width": "matchParent",
-        "fontSize": 12,
-        "fontWeight": 400,
-        "maxLines": 1,
-        "textOverflow": "ellipsis",
-        "constraintSize": {"minWidth": 0, "minHeight": 0}
-      }
-    ),
-  Text(
-      data.temperature,
-      "title",
-      {"fontSize": 40, "fontWeight": 800, "maxLines": 1}
-    ),
+  Column(
+    "compact",
+    {
+      "width": "matchParent",
+      "height": 92,
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+    Text(
+        data.city,
+        "compact-title",
+        {
+          "width": "matchParent",
+          "fontSize": 12,
+          "fontWeight": 400,
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      ),
+    Text(
+        data.temperature,
+        "title",
+        {"fontSize": 38, "fontWeight": 800, "maxLines": 1}
+      )
+  ),
   Text(
       `${data.condition}｜空气${data.airQuality}`,
       "body",
       {
         "width": "matchParent",
         "fontSize": 12,
-        "fontWeight": 500,
+        "fontWeight": 400,
         "maxLines": 1,
         "textOverflow": "ellipsis",
         "constraintSize": {"minWidth": 0, "minHeight": 0}
