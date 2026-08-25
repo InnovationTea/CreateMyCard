@@ -496,7 +496,31 @@ def test_fusion_ball_wraps_only_2x2_and_replaces_the_card_gradient():
                 "clip": True,
             },
         ),
-        (Nested2Node("Text", ("天气", "body"), ()),),
+        (
+            Nested2Node("Text", ("天气", "body"), ()),
+            Nested2Node(
+                "Image",
+                (
+                    "resources/base/media/icon_weather1.svg",
+                    {"fillColor": "#FF000000"},
+                ),
+                (),
+            ),
+            Nested2Node(
+                "Stack",
+                ("action", {"onClick": [{"call": "openWeather"}]}),
+                (
+                    Nested2Node(
+                        "Image",
+                        (
+                            "resources/base/media/phone_fill.svg",
+                            {"fillColor": "#FF64BB5C"},
+                        ),
+                        (),
+                    ),
+                ),
+            ),
+        ),
     )
 
     palette = FusionBallPalette("#003399", "#0089BF", "#4174D9")
@@ -514,6 +538,11 @@ def test_fusion_ball_wraps_only_2x2_and_replaces_the_card_gradient():
     assert "backgroundColor" not in wrapped.values[-1]
     assert foreground_options["width"] == 160
     assert foreground_options["height"] == 160
+    content_icon = wrapped.children[1].children[1]
+    action_icon = wrapped.children[1].children[2].children[0]
+    assert content_icon.values[0] == "resources/base/media/icon_weather1_foreground.svg"
+    assert content_icon.values[-1]["fillColor"] == "#FFFFFFFF"
+    assert action_icon.values[-1]["fillColor"] == "#FF64BB5C"
     assert apply_fusion_ball_background(card, size="2x4", palette=palette) is card
     assert apply_fusion_ball_background(card, size="2x2", palette=None) is card
 
@@ -621,6 +650,54 @@ def test_complete_a2ui_converter_upgrades_legacy_fusion_content_marker():
     ]
     assert "__genui_render_component__cardContent" in component_ids
     assert "cardContent" not in component_ids
+
+
+def test_complete_a2ui_converter_uses_white_content_icons_and_preserves_actions():
+    messages = [
+        json.loads(line)
+        for line in _complete_stack_a2ui({"backgroundColor": "#FF008FBF"}).splitlines()
+    ]
+    update = messages[1]["updateComponents"]
+    update["components"][0]["children"].extend(["weatherIcon", "pillAction"])
+    update["components"].extend(
+        [
+            {
+                "id": "weatherIcon",
+                "component": "Image",
+                "src": "resources/base/media/icon_weather1.svg",
+                "styles": {"width": 20, "height": 20, "fillColor": "#FF000000"},
+            },
+            {
+                "id": "pillAction",
+                "component": "Stack",
+                "children": ["pillActionIcon"],
+                "onClick": [{"call": "openWeather"}],
+                "styles": {"backgroundColor": "#FFFFFFFF"},
+            },
+            {
+                "id": "pillActionIcon",
+                "component": "Image",
+                "src": "resources/base/media/phone_fill.svg",
+                "styles": {"fillColor": "#FF64BB5C"},
+            },
+        ]
+    )
+    source = "\n".join(
+        json.dumps(message, ensure_ascii=False, separators=(",", ":"))
+        for message in messages
+    )
+
+    converted = convert_a2ui_with_fusion_ball(source, scene="weather")
+    converted_update = json.loads(converted.splitlines()[1])["updateComponents"]
+    components = {
+        component["id"]: component for component in converted_update["components"]
+    }
+
+    assert components["weatherIcon"]["src"] == (
+        "resources/base/media/icon_weather1_foreground.svg"
+    )
+    assert components["weatherIcon"]["styles"]["fillColor"] == "#FFFFFFFF"
+    assert components["pillActionIcon"]["styles"]["fillColor"] == "#FF64BB5C"
 
 
 def test_complete_a2ui_converter_rejects_unsupported_scene():
@@ -2852,6 +2929,14 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     }
     assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#0089BF"
     assert "linearGradient" not in components[content_id]["styles"]
+    weather_icons = [
+        item
+        for item in components.values()
+        if item.get("component") == "Image"
+        and item.get("src") == "resources/base/media/icon_weather1_foreground.svg"
+    ]
+    assert len(weather_icons) == 1
+    assert weather_icons[0]["styles"]["fillColor"] == "#FFFFFFFF"
     assert captured["artifact"].effectiveCapabilities["data"] == ["ViewWeather"]
 
 

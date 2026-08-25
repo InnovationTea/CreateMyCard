@@ -86,6 +86,7 @@
 | `resources/base/media/icon_allergy.svg` | 样式：默认黑色的单色侧面人头轮廓，面部周围分布颗粒点，表现过敏原或空气刺激；适用：过敏、花粉、空气刺激、呼吸道敏感提示。 |
 | `resources/base/media/icon_high_temperature.svg` | 样式：默认黑色的单色线框温度计，内部温度柱较高，源文件语义指向体温；适用：体温偏高、发热、人体温度提醒。 |
 | `resources/base/media/icon_weather1.svg` | 样式：黄、白、浅灰多组渐变的彩色天气图标，太阳从云层右上方露出，表示多云或晴间多云，保留原色；适用：多云、晴间多云、天气概览或天气入口。 |
+| `resources/base/media/icon_weather1_foreground.svg` | 样式：纯白单色的太阳与云层组合图标；适用：融球等高饱和背景上的多云、晴间多云或天气概览前景。 |
 | `resources/base/media/icon_tiktok.png` | 样式：黑色圆形底上的抖音品牌音符，包含青色、红色和白色叠色，64×64 PNG，PNG 位图需保留品牌原色；适用：抖音应用、抖音使用时长或防沉迷统计。 |
 | `resources/base/media/icon_timing.svg` | 样式：白色实心秒表配黑色指针，顶部有按钮，属于高对比双色图标，建议保留原色；适用：计时、使用时长、倒计时或时限。 |
 | `resources/base/media/icon_earphone.svg` | 样式：黑色实心左右分体式开放耳机，局部有白色高光与分隔，建议保留原色；适用：无线耳机本体、耳机连接、左右耳设备状态。 |

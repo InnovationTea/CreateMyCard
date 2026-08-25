@@ -8,6 +8,10 @@ from typing import Any
 from services.template_generation.engine.terse_dsl_nested2_converter import Nested2Node
 
 _CARD_CONTENT_ID = "__genui_render_component__cardContent"
+_FUSION_FOREGROUND_COLOR = "#FFFFFFFF"
+_FUSION_ICON_REPLACEMENTS = {
+    "resources/base/media/icon_weather1.svg": "resources/base/media/icon_weather1_foreground.svg",
+}
 _BACKGROUND_STYLE_KEYS = frozenset(
     {
         "backgroundColor",
@@ -101,7 +105,10 @@ def apply_fusion_ball_background(
             "height": 160,
         }
     )
-    foreground = Nested2Node(card.component_type, (foreground_options,), card.children)
+    foreground_children = tuple(
+        _apply_fusion_content_icon_foreground(child) for child in card.children
+    )
+    foreground = Nested2Node(card.component_type, (foreground_options,), foreground_children)
     root_options = {
         "_id": "root",
         "padding": 0,
@@ -114,6 +121,37 @@ def apply_fusion_ball_background(
         ("card", root_options),
         (build_fusion_ball_background(palette), foreground),
     )
+
+
+def _apply_fusion_content_icon_foreground(
+    node: Nested2Node,
+    preserve_action_foreground: bool = False,
+) -> Nested2Node:
+    """Use white semantic icons inside fusion content while preserving PillAction."""
+    preserve_here = preserve_action_foreground or (
+        node.component_type == "Stack"
+        and any(isinstance(value, dict) and bool(value.get("onClick")) for value in node.values)
+    )
+    children = tuple(
+        _apply_fusion_content_icon_foreground(child, preserve_here) for child in node.children
+    )
+    if node.component_type != "Image" or preserve_here or not node.values:
+        return Nested2Node(node.component_type, node.values, children)
+
+    values = list(node.values)
+    if isinstance(values[0], str):
+        values[0] = _FUSION_ICON_REPLACEMENTS.get(values[0], values[0])
+    options_index = next(
+        (index for index in range(len(values) - 1, -1, -1) if isinstance(values[index], dict)),
+        None,
+    )
+    if options_index is None:
+        values.append({"fillColor": _FUSION_FOREGROUND_COLOR})
+    else:
+        options = dict(values[options_index])
+        options["fillColor"] = _FUSION_FOREGROUND_COLOR
+        values[options_index] = options
+    return Nested2Node(node.component_type, tuple(values), children)
 
 
 def _ball(component_id: str, diameter: int, color: str) -> Nested2Node:

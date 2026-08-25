@@ -20,6 +20,12 @@ import json
 from pathlib import Path
 from typing import Any
 
+_EFFECTIVE_ASSET_SOURCE_DERIVATIVES = {
+    "resources/base/media/icon_weather1.svg": frozenset(
+        {"resources/base/media/icon_weather1_foreground.svg"}
+    ),
+}
+
 
 def attach_effective_capabilities(
     context,
@@ -119,6 +125,9 @@ def _resolve_effective_asset_sources(
             sources.add(src)
             resolved_ids.add(item_id)
 
+    selected_sources = tuple(sources)
+    for source in selected_sources:
+        sources.update(_EFFECTIVE_ASSET_SOURCE_DERIVATIVES.get(source, ()))
     return sources, ids - resolved_ids
 
 

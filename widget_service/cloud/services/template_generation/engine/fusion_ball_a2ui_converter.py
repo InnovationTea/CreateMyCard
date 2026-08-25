@@ -25,11 +25,13 @@ _FUSION_BACKGROUND_COMPONENT_IDS = frozenset(
     }
 )
 _FUSION_COMPONENT_IDS = _FUSION_BACKGROUND_COMPONENT_IDS | {_CARD_CONTENT_ID}
-_LEGACY_FUSION_COMPONENT_IDS = _FUSION_BACKGROUND_COMPONENT_IDS | {
-    _LEGACY_CARD_CONTENT_ID
-}
+_LEGACY_FUSION_COMPONENT_IDS = _FUSION_BACKGROUND_COMPONENT_IDS | {_LEGACY_CARD_CONTENT_ID}
 _RESERVED_FUSION_COMPONENT_IDS = _FUSION_COMPONENT_IDS | {_LEGACY_CARD_CONTENT_ID}
 _BACKGROUND_STYLE_KEYS = ("backgroundColor", "linearGradient")
+_FUSION_FOREGROUND_COLOR = "#FFFFFFFF"
+_FUSION_ICON_REPLACEMENTS = {
+    "resources/base/media/icon_weather1.svg": "resources/base/media/icon_weather1_foreground.svg",
+}
 _FUSION_BALL_PALETTES = {
     "weather": ("#003399", "#0089BF", "#4174D9"),
     "health-sport": ("#B33C24", "#FF8833", "#F7E6C3"),
@@ -87,6 +89,7 @@ def convert_a2ui_with_fusion_ball(a2ui: str, scene: str) -> str:
             f"Fusion-ball component ids already exist: {', '.join(conflicts)}."
         )
 
+    _apply_fusion_content_icon_foreground(components, root_children)
     outer_root, card_content = _split_root(root)
     fusion_components = _build_fusion_components(palette)
     components[root_index : root_index + 1] = [
@@ -199,6 +202,45 @@ def _component_ids(components: list[Any]) -> set[str]:
         for component_id in (component.get("id"),)
         if isinstance(component_id, str) and component_id
     }
+
+
+def _apply_fusion_content_icon_foreground(
+    components: list[Any],
+    root_children: list[str],
+) -> None:
+    """Tint reachable content icons white without overriding interactive actions."""
+    component_by_id = {
+        component["id"]: component
+        for component in components
+        if isinstance(component, dict) and isinstance(component.get("id"), str)
+    }
+    visited: set[str] = set()
+
+    def visit(component_id: str, preserve_action_foreground: bool = False) -> None:
+        if component_id in visited:
+            return
+        visited.add(component_id)
+        component = component_by_id.get(component_id)
+        if component is None:
+            return
+        preserve_here = preserve_action_foreground or bool(component.get("onClick"))
+        if component.get("component") == "Image" and not preserve_here:
+            source = component.get("src")
+            if isinstance(source, str):
+                component["src"] = _FUSION_ICON_REPLACEMENTS.get(source, source)
+            styles = component.get("styles")
+            if not isinstance(styles, dict):
+                styles = {}
+                component["styles"] = styles
+            styles["fillColor"] = _FUSION_FOREGROUND_COLOR
+        children = component.get("children")
+        if isinstance(children, list):
+            for child_id in children:
+                if isinstance(child_id, str):
+                    visit(child_id, preserve_here)
+
+    for child_id in root_children:
+        visit(child_id)
 
 
 def _split_root(root: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
