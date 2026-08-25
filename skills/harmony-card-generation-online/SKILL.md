@@ -39,7 +39,7 @@ metadata:
    schema；无数据候选时跳过，不传空数组。数据类 edit 存在本轮数据候选时也必须调用，不能因历史
    schema 跳过。
 3. `RequestDataPermission`：生成前检查本轮最终、完整、去重后的数据能力集合；集合非空时必须调用，只有集合为空时才能不调用。纯视觉 edit 若来源含动态数据，仍须检查继承的数据权限。
-4. `generateWidgetCardCompactDsl`：只有前置门禁通过，或权限工具发生 invoke 级异常时默认放行才调用；主 Agent 不补做微服务负责的 DSL、CardSpec、校验、重试或上传。生成工具内部负责向端侧交付卡片，主 Agent 不重复下发 URL。
+4. `generateWidgetCardCompactDsl`：只有前置门禁通过，或权限工具发生 invoke 级异常时默认放行才调用；你不补做微服务负责的 DSL、CardSpec、校验、重试或上传。生成工具内部负责向端侧交付卡片，你不重复下发 URL。
 
 ```text
 create：严格执行 getWidgetCapabilityOverview → 基于 overview 裁决动态数据能力 → 有数据候选时调用
@@ -69,7 +69,7 @@ generateWidgetCardCompactDsl。无数据候选时跳过 schema 和 permission；
 ### Function: generateWidgetCardCompactDsl
 - **toolName**: generateWidgetCardCompactDsl
 - **description**: 生成极简协议版本的鸿蒙卡片
-- **参数**: {"type":"object","properties":{"candidateEventCandidates":{"type":"Array","description":"候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明","required":[],"properties":{"ArrayItem":{"type":"Object","description":"事件 action"}}},"description":{"type":"String","description":"建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"},"candidateAssetIds":{"type":"Array<String>","description":"候选素材 ID 列表","required":[],"properties":{"ArrayItem":{"type":"String","description":"候选素材 ID"}}},"userQuery":{"type":"String","description":"用户原始卡片需求"},"candidateDataBindings":{"type":"Array","description":"已通过能力概述裁决的候选数据能力调用列表","required":[],"properties":{"ArrayItem":{"type":"Object","description":"候选数据能力","required":[],"properties":{"writeResultTo":{"type":"String","description":"结果写入路径"},"arguments":{"type":"Object","description":"参数"},"capabilityId":{"type":"String","description":"能力ID"},"candidateOutputFields":{"type":"Array<String>","description":"可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导","required":[],"properties":{"ArrayItem":{"type":"String","description":"可选候选展示字段 JSON Pointer"}}}}}}},"title":{"type":"String","description":"建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"},"size":{"type":"String","description":"主 Agent 建议尺寸"},"sourceArtifactUrl":{"type":"String","description":"上一版完整 artifact 的真实 URL；缺失表示首次生成，合法非空值表示编辑"}},"required":["userQuery"]}
+- **参数**: {"type":"object","properties":{"candidateEventCandidates":{"type":"Array","description":"候选点击事件列表；事件 action 只能来自能力概述返回的事件能力说明","required":[],"properties":{"ArrayItem":{"type":"Object","description":"事件 action"}}},"description":{"type":"String","description":"建议写入最终 CardSpec 的静态短概述，尽量不超过 12 个字"},"candidateAssetIds":{"type":"Array<String>","description":"候选素材 ID 列表","required":[],"properties":{"ArrayItem":{"type":"String","description":"候选素材 ID"}}},"userQuery":{"type":"String","description":"用户原始卡片需求"},"candidateDataBindings":{"type":"Array","description":"已通过能力概述裁决的候选数据能力调用列表","required":[],"properties":{"ArrayItem":{"type":"Object","description":"候选数据能力","required":[],"properties":{"writeResultTo":{"type":"String","description":"结果写入路径"},"arguments":{"type":"Object","description":"参数"},"capabilityId":{"type":"String","description":"能力ID"},"candidateOutputFields":{"type":"Array<String>","description":"可选候选展示字段 JSON Pointer；必须能从对应能力 outputSchema 推导","required":[],"properties":{"ArrayItem":{"type":"String","description":"可选候选展示字段 JSON Pointer"}}}}}}},"title":{"type":"String","description":"建议写入最终 CardSpec 的静态短标题，尽量不超过 8 个字"},"size":{"type":"String","description":"你建议的尺寸"},"sourceArtifactUrl":{"type":"String","description":"上一版完整 artifact 的真实 URL；缺失表示首次生成，合法非空值表示编辑"}},"required":["userQuery"]}
 
 ## 工具调用
 
@@ -82,14 +82,14 @@ invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmserv
 ## 不可绕过的重要约束
 
 1. 当前运行时 schema 是工具入参的唯一依据。
-2. 主 Agent 不下载或解析来源 artifact，不自行生成最终 DSL、CardSpec 或替代 artifact。
+2. 你不下载或解析来源 artifact，不自行生成最终 DSL、CardSpec 或替代 artifact。
 3. 权限工具正常返回时，只有 `stateOfPermission:true`、`nonAuthStatus` 缺失或为空，且任一权限项都没有 `authorized:false` 才允许生成。任一授权不通过、存在未授权明细或正常返回结果非法时，必须立即终止，不调用 `generateWidgetCardCompactDsl`，并且只能按运行指南的预置权限话术回复用户。
 4. 唯一的权限放行例外是本次 `RequestDataPermission` 工具调用失败，包括工具不可用、invoke 抛错或工具层明确执行失败；仅在此条件下按权限默认开启静默放行并继续调用生成工具。不重试、不伪造权限结果、不改变数据集合，也不向用户说明权限异常。
 5. 除上述权限 invoke 级异常外，任一必要工具失败或结果非法都终止本轮，不模拟成功。
 6. 工具展示的内容就是本次完整结果，按当前运行时 schema 直接读取。生成工具返回后，从当前结果读取
    合法真实 `artifactUrl`，仅在内部工具调用轨迹中保留，用于后续 edit 的 `sourceArtifactUrl`；历史回复
    或普通文本中的 URL 不算产物 URL。
-7. 卡片展示由生成工具内部把 URL 交给端侧完成。主 Agent 不得在用户可见回复中输出、转述或链接 `artifactUrl`，也不得输出 `genWidgetResult`、`genuiResult` 或任何替代结果代码块。
+7. 卡片展示由生成工具内部把 URL 交给端侧完成。你不得在用户可见回复中输出、转述或链接 `artifactUrl`，也不得输出 `genWidgetResult`、`genuiResult` 或任何替代结果代码块。
 8. 只有带全新合法 URL 的 `success` / `degraded` 结果形成有效编辑节点；失败、非法结果、无新 URL 或 edit 返回来源 URL 都不更新编辑来源。
 9. 用户可见回复不暴露能力 ID、schema、provider、TaskSpec、OBS、IDS、错误码、请求 ID、工具包络、内部草稿或产物 URL。
 10. 严格执行工具返回字段闭环：下一步工具调用所需的必填字段，必须从上一步合法返回的字段、模板或 schema 中读取并传入；不得因示例、历史结果或经验省略、改名、改类型或猜测必填值。
