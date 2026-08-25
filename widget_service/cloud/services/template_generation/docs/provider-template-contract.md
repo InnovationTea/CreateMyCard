@@ -139,6 +139,49 @@ Template("HeroSupportLayout@1", {},
 Provider 模板作者侧声明，不进入最终 Nested-2 语法。最终产物不得包含 `_advancedSelectors` 或
 `_templateProjection`。
 
+## 2x2 融球背景
+
+融球背景是模板可信展开后的微服务装饰模板，不属于业务 Provider，也不交给两层模型选择。它只对天气、
+运动健康和睡眠三类高饱和场景生效，并根据已选 Theme 使用固定色板：
+
+- 天气：大、中、小球依次为 `#003399`、`#0089BF`、`#4174D9`；
+- 运动健康：大、中、小球依次为 `#B33C24`、`#FF8833`、`#F7E6C3`；
+- 睡眠：大、中、小球依次为 `#43388C`、`#5761D9`、`#B398D9`。
+
+Theme 是否命中场景由 `theme-profiles.json` 的内部 `fusionBallScene` 配置声明；该字段不进入 A2UI 协议或
+模型输出。其它 Theme 不应用融球背景，也不从 Theme 的原颜色动态派生融球色板。
+
+`2x2` 最终根节点使用 `Stack("card", ...)`，子节点顺序固定为“融球背景、原卡片内容”；原卡片内容移除
+`backgroundColor`、`linearGradient` 和背景图片字段后作为前景层。Form Catalog 不支持 ArkUI 的
+`position`，因此模板使用嵌套 `Stack` 的尺寸与对齐复现三球位置；玻璃层使用 5% 白色覆盖和
+`backdropBlur: {"radius": 120}`。最外层 `Stack("card", ...)` 不设置 `backgroundColor`，融球背景容器也不
+铺设额外底色，背景由三个球体组合提供。球体和覆盖层使用 A2UI 允许 `children: []` 的空 `Stack`，不添加占位文本。
+`2x4` 不应用该装饰模板；其它场景的 `2x2` 与全部 `2x4` 都继续使用 Theme 原有纯色或线性渐变。
+
+### 完整 A2UI 转换
+
+模板模块同时提供确定性的完整 A2UI 转换入口
+`convert_a2ui_with_fusion_ball(a2ui, scene)`。A2UI 输入必须是 `v0.9` 的三行完整 JSONL，依次包含
+`createSurface`、`updateComponents` 和 `updateDataModel`；`scene` 只接受 `weather`、`health-sport` 或
+`sleep`。转换只接受根组件为 `Stack` 且根样式包含纯色或线性渐变背景的卡片；融球颜色由场景固定色板
+决定，不读取原背景色或渐变色。背景图片不参与转换。
+
+入口实现位于 `engine/fusion_ball_a2ui_converter.py`，该文件只使用 Python 标准库，不依赖模板引擎、
+CardPlan、Terse 节点或项目配置，可以单文件复制到其他项目直接调用：
+
+```python
+from fusion_ball_a2ui_converter import convert_a2ui_with_fusion_ball
+
+converted = convert_a2ui_with_fusion_ball(a2ui, "weather")
+```
+
+转换保留 surface、DataModel、原业务组件和根组件 ID。原根节点改为无背景的外层 `Stack`，其第一个
+子节点是固定融球结构，第二个子节点是改名为 `__genui_render_component__cardContent`、移除纯色和
+线性渐变后的原根组件。该前缀复用端侧已有的内容防溢出标记，不扩展 A2UI 协议；融球背景节点不携带
+前缀。端侧应按任意组件 ID 的前缀独立解析，不能与融球节点名或云侧层级强耦合。转换器拒绝保留 ID 与
+融球固定 ID 冲突的输入，对已经完整转换的输入原样返回；旧版 `cardContent` 融球产物再次转换时只升级
+内容 ID 标记。
+
 ## 两层 LLM 规则
 
 第一层顶层只能输出 `theme`、`componentCandidates`、`action`：

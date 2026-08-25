@@ -267,6 +267,10 @@ class MarkdownRuleReference(StrictModel):
 
 class ThemeDefinition(StrictModel):
     theme_profile_id: str = Field(alias="themeProfileId")
+    fusion_ball_scene: Literal["weather", "health-sport", "sleep"] | None = Field(
+        default=None,
+        alias="fusionBallScene",
+    )
     description: str
     supported_capability_ids: tuple[str, ...] = Field(alias="supportedCapabilityIds")
     surface_role: str = Field(alias="surfaceRole")

@@ -88,6 +88,7 @@
 | `resources/base/media/icon_call.svg` | 电话图标，适用场景：亲人关怀 |
 | `resources/base/media/icon_high_temperature.svg` | 高温/温度计图标，适用场景：亲人关怀 |
 | `resources/base/media/icon_weather1.svg` | 天气/雨伞图标，适用场景：亲人关怀 |
+| `resources/base/media/icon_weather1_foreground.svg` | 白色单色多云图标，适用场景：融球等高饱和天气背景 |
 | `resources/base/media/icon_tiktok.png` | 抖音图标，适用场景：防沉迷 |
 | `resources/base/media/icon_timing.svg` | 计时图标，适用场景：防沉迷 |
 | `resources/base/media/icon_charge.svg` | 充电/闪电图标，适用场景：低电模式 |

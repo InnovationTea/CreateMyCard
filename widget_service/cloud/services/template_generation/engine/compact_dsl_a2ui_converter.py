@@ -58,6 +58,7 @@ _COMMON_STYLE_PROPERTIES = frozenset(
         "backgroundColor",
         "backgroundImage",
         "backgroundImageSizeWithStyle",
+        "backdropBlur",
         "borderColor",
         "borderRadius",
         "borderWidth",
@@ -651,10 +652,7 @@ def convert_a2ui_to_compact_dsl(
     components = update_components.get("components")
     if not isinstance(components, list) or not components:
         raise CompactDslConversionError("A2UI updateComponents.components must be non-empty.")
-    rows = [
-        _a2ui_component_to_compact_row(component, dimensions)
-        for component in components
-    ]
+    rows = [_a2ui_component_to_compact_row(component, dimensions) for component in components]
     data_path = update_data_model.get("path")
     data_value = update_data_model.get("value")
     if not isinstance(data_path, str) or not data_path.startswith("/"):
@@ -686,9 +684,7 @@ def _parse_standard_a2ui_messages(a2ui: str) -> list[dict[str, Any]]:
                 f"A2UI archive line {line_number} is invalid JSON: {exc.msg}."
             ) from exc
         if not isinstance(message, dict):
-            raise CompactDslConversionError(
-                f"A2UI archive line {line_number} must be an object."
-            )
+            raise CompactDslConversionError(f"A2UI archive line {line_number} must be an object.")
         messages.append(message)
     expected_keys = ("createSurface", "updateComponents", "updateDataModel")
     for message, expected_key in zip(messages, expected_keys, strict=True):
@@ -734,7 +730,7 @@ def _a2ui_component_to_compact_row(
     if not isinstance(component_id, str) or not component_id:
         raise CompactDslConversionError("A2UI component id must be a non-empty string.")
     if not isinstance(component_type, str) or component_type not in _COMPONENT_TYPES:
-        raise CompactDslConversionError(f'{component_id}: unsupported A2UI component type.')
+        raise CompactDslConversionError(f"{component_id}: unsupported A2UI component type.")
     if not isinstance(styles, dict):
         raise CompactDslConversionError(f"{component_id}: A2UI styles must be an object.")
     props = copy.deepcopy(styles)
@@ -1222,6 +1218,9 @@ def _validate_component_property_types(
     props: dict[str, Any],
 ) -> None:
     for property_name, value in props.items():
+        if property_name == "backdropBlur":
+            _validate_backdrop_blur_property(component_id, value)
+            continue
         if property_name in _NUMBER_PROPERTIES:
             _validate_number_property(component_id, property_name, value)
             continue
@@ -1243,6 +1242,23 @@ def _validate_component_property_types(
             continue
         if property_name in {"width", "height"}:
             _validate_dimension_property(component_id, property_name, value)
+
+
+def _validate_backdrop_blur_property(component_id: str, value: Any) -> None:
+    if not isinstance(value, dict):
+        raise CompactDslConversionError(
+            f"{component_id}: backdropBlur must be an object containing radius."
+        )
+    if set(value) != {"radius"}:
+        raise CompactDslConversionError(
+            f"{component_id}: backdropBlur must contain only the required radius field."
+        )
+    radius = value["radius"]
+    _validate_number_property(component_id, "backdropBlur.radius", radius)
+    if radius < 0:
+        raise CompactDslConversionError(
+            f"{component_id}: backdropBlur.radius must be non-negative."
+        )
 
 
 def _validate_number_property(

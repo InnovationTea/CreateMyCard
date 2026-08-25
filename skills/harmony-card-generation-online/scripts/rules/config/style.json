@@ -4,7 +4,7 @@
   "commonStyleFields": [
     "width", "height", "aspectRatio", "constraintSize", "margin", "padding", "borderRadius",
     "borderWidth", "borderColor", "backgroundColor", "backgroundImage",
-    "backgroundImageSizeWithStyle", "linearGradient", "layoutWeight",
+    "backgroundImageSizeWithStyle", "linearGradient", "backdropBlur", "layoutWeight",
     "flexShrink", "shadow", "visibility", "clip"
   ],
   "componentStyleFields": {

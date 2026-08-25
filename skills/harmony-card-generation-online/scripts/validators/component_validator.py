@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from .base import BaseValidator, expression_like, is_empty_required_value, is_json_pointer
+from .base import (
+    BaseValidator,
+    expression_like,
+    is_empty_required_value,
+    is_json_pointer,
+)
 
 
 class ComponentValidator(BaseValidator):
@@ -50,11 +55,23 @@ class ComponentValidator(BaseValidator):
             )
 
         common_top = set(rules.protocol.get("commonTopLevelFields", []))
-        common_required = rules.protocol.get("componentCommonRequiredFields", ["id", "component"])
+        common_required = rules.protocol.get(
+            "componentCommonRequiredFields", ["id", "component"]
+        )
         top_fields = rules.protocol.get("componentTopLevelFields", {})
         required_fields = rules.protocol.get("componentRequiredFields", {})
-        non_empty_required = set(rules.protocol.get("componentNonEmptyRequiredFields", []))
-        forbidden_global = set(rules.protocol.get("forbiddenComponentFields", {}).get("*", []))
+        non_empty_required = set(
+            rules.protocol.get("componentNonEmptyRequiredFields", [])
+        )
+        allow_empty_collections = {
+            name: set(fields)
+            for name, fields in rules.protocol.get(
+                "componentAllowEmptyCollectionFields", {}
+            ).items()
+        }
+        forbidden_global = set(
+            rules.protocol.get("forbiddenComponentFields", {}).get("*", [])
+        )
         forbidden_by_component = rules.protocol.get("forbiddenComponentFields", {})
         template_components = set(rules.protocol.get("templateComponents", []))
         template_children_rules = rules.protocol.get("templateChildren", {})
@@ -154,7 +171,9 @@ class ComponentValidator(BaseValidator):
                     )
                 for handler_index, handler in enumerate(handlers):
                     if isinstance(handler, dict):
-                        forbidden_handler = sorted(set(handler.keys()) & event_handler_forbidden)
+                        forbidden_handler = sorted(
+                            set(handler.keys()) & event_handler_forbidden
+                        )
                         if forbidden_handler:
                             reporter.add(
                                 "error",
@@ -167,10 +186,13 @@ class ComponentValidator(BaseValidator):
                                 message="Form EventHandler 不支持 condition/as。",
                             )
             for field in required_fields.get(component_type, []):
+                empty_collections = field in non_empty_required
+                if field in allow_empty_collections.get(component_type, set()):
+                    empty_collections = False
                 if field not in component or is_empty_required_value(
                     component.get(field),
                     empty_strings=field in non_empty_required,
-                    empty_collections=field in non_empty_required,
+                    empty_collections=empty_collections,
                 ):
                     reporter.add(
                         "error",
