@@ -58,7 +58,7 @@ from services.template_generation.engine.terse_dsl_nested2_converter import (
 
 from .fusion_ball_background import (
     apply_fusion_ball_background,
-    theme_color_from_root_styles,
+    fusion_ball_palette_for_scene,
 )
 from .models import (
     ExpansionStats,
@@ -4749,8 +4749,8 @@ def _apply_template_background(
     if size != "2x2":
         return root
     theme = registry.require_theme(contract.theme_profile_id)
-    theme_color = theme_color_from_root_styles(theme.root_styles)
-    return apply_fusion_ball_background(root, size=size, theme_color=theme_color)
+    palette = fusion_ball_palette_for_scene(theme.fusion_ball_scene)
+    return apply_fusion_ball_background(root, size=size, palette=palette)
 
 
 def _strip_direct_card_chrome_from_call(

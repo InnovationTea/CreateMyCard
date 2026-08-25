@@ -141,25 +141,30 @@ Provider 模板作者侧声明，不进入最终 Nested-2 语法。最终产物�
 
 ## 2x2 融球背景
 
-融球背景是模板可信展开后的微服务装饰模板，不属于业务 Provider，也不交给两层模型选择。它接收当前
-Theme 的颜色并输出一棵独立 Terse 结构树：中球直接使用基准色；大球使用 `H + 25`、`B - 40`；小球
-使用 `H - 25`、`S + 25`。H 按 360 度循环，S/B 收敛到 `0..100`。
+融球背景是模板可信展开后的微服务装饰模板，不属于业务 Provider，也不交给两层模型选择。它只对天气、
+运动健康和睡眠三类高饱和场景生效，并根据已选 Theme 使用固定色板：
+
+- 天气：大、中、小球依次为 `#003399`、`#0089BF`、`#4174D9`；
+- 运动健康：大、中、小球依次为 `#B33C24`、`#FF8833`、`#F7E6C3`；
+- 睡眠：大、中、小球依次为 `#43388C`、`#5761D9`、`#B398D9`。
+
+Theme 是否命中场景由 `theme-profiles.json` 的内部 `fusionBallScene` 配置声明；该字段不进入 A2UI 协议或
+模型输出。其它 Theme 不应用融球背景，也不从 Theme 的原颜色动态派生融球色板。
 
 `2x2` 最终根节点使用 `Stack("card", ...)`，子节点顺序固定为“融球背景、原卡片内容”；原卡片内容移除
 `backgroundColor`、`linearGradient` 和背景图片字段后作为前景层。Form Catalog 不支持 ArkUI 的
 `position`，因此模板使用嵌套 `Stack` 的尺寸与对齐复现三球位置；玻璃层使用 5% 白色覆盖和
 `backdropBlur: {"radius": 120}`。最外层 `Stack("card", ...)` 不设置 `backgroundColor`，融球背景容器也不
 铺设额外底色，背景由三个球体组合提供。球体和覆盖层使用 A2UI 允许 `children: []` 的空 `Stack`，不添加占位文本。
-`2x4` 不应用该装饰
-模板，继续使用 Theme 原有线性渐变。
+`2x4` 不应用该装饰模板；其它场景的 `2x2` 与全部 `2x4` 都继续使用 Theme 原有纯色或线性渐变。
 
 ### 完整 A2UI 转换
 
 模板模块同时提供确定性的完整 A2UI 转换入口
-`convert_a2ui_with_fusion_ball(a2ui, base_color)`。A2UI 输入必须是 `v0.9` 的三行完整 JSONL，依次包含
-`createSurface`、`updateComponents` 和 `updateDataModel`；`base_color` 必须使用 `#RRGGBB` 或
-`#AARRGGBB`。转换只接受根组件为 `Stack` 且根样式包含纯色或线性渐变背景的卡片；融球颜色完全由
-`base_color` 派生，不读取原背景色或渐变色作为基准色。背景图片不参与转换。
+`convert_a2ui_with_fusion_ball(a2ui, scene)`。A2UI 输入必须是 `v0.9` 的三行完整 JSONL，依次包含
+`createSurface`、`updateComponents` 和 `updateDataModel`；`scene` 只接受 `weather`、`health-sport` 或
+`sleep`。转换只接受根组件为 `Stack` 且根样式包含纯色或线性渐变背景的卡片；融球颜色由场景固定色板
+决定，不读取原背景色或渐变色。背景图片不参与转换。
 
 入口实现位于 `engine/fusion_ball_a2ui_converter.py`，该文件只使用 Python 标准库，不依赖模板引擎、
 CardPlan、Terse 节点或项目配置，可以单文件复制到其他项目直接调用：
@@ -167,7 +172,7 @@ CardPlan、Terse 节点或项目配置，可以单文件复制到其他项目直
 ```python
 from fusion_ball_a2ui_converter import convert_a2ui_with_fusion_ball
 
-converted = convert_a2ui_with_fusion_ball(a2ui, "#008FBF")
+converted = convert_a2ui_with_fusion_ball(a2ui, "weather")
 ```
 
 转换保留 surface、DataModel、原业务组件和根组件 ID。原根节点改为无背景的外层 `Stack`，其第一个

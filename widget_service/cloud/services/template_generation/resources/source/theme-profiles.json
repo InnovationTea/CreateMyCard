@@ -3,6 +3,7 @@
   "themes": [
     {
       "themeProfileId": "family-weather-care-blue",
+      "fusionBallScene": "weather",
       "description": "家庭天气关怀蓝",
       "firstLayerRule": {"path": "themes/family-weather-care-blue/first-layer.md"},
       "supportedCapabilityIds": [
@@ -89,6 +90,7 @@
     },
     {
       "themeProfileId": "rainy-commute-gray-blue",
+      "fusionBallScene": "weather",
       "description": "雨天通勤灰蓝",
       "firstLayerRule": {"path": "themes/rainy-commute-gray-blue/first-layer.md"},
       "supportedCapabilityIds": [
@@ -220,6 +222,7 @@
     },
     {
       "themeProfileId": "sleep-night-violet",
+      "fusionBallScene": "sleep",
       "description": "睡眠夜间紫",
       "firstLayerRule": {"path": "themes/sleep-night-violet/first-layer.md"},
       "supportedCapabilityIds": [
@@ -264,6 +267,7 @@
     },
     {
       "themeProfileId": "race-night-violet",
+      "fusionBallScene": "health-sport",
       "description": "赛事活力橙（兼容历史主题标识）",
       "firstLayerRule": {"path": "themes/race-night-violet/first-layer.md"},
       "supportedCapabilityIds": [
@@ -308,6 +312,7 @@
     },
     {
       "themeProfileId": "race-sunrise-action",
+      "fusionBallScene": "health-sport",
       "description": "赛事日出行动橙",
       "firstLayerRule": {"path": "themes/race-sunrise-action/first-layer.md"},
       "supportedCapabilityIds": [

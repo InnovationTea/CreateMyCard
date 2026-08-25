@@ -5,10 +5,8 @@ This file is intentionally self-contained so it can be copied into another proje
 
 from __future__ import annotations
 
-import colorsys
 import copy
 import json
-import re
 from typing import Any
 
 _RENDER_COMPONENT_ID_PREFIX = "__genui_render_component__"
@@ -32,7 +30,11 @@ _LEGACY_FUSION_COMPONENT_IDS = _FUSION_BACKGROUND_COMPONENT_IDS | {
 }
 _RESERVED_FUSION_COMPONENT_IDS = _FUSION_COMPONENT_IDS | {_LEGACY_CARD_CONTENT_ID}
 _BACKGROUND_STYLE_KEYS = ("backgroundColor", "linearGradient")
-_HEX_COLOR = re.compile(r"^#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?$")
+_FUSION_BALL_PALETTES = {
+    "weather": ("#003399", "#0089BF", "#4174D9"),
+    "health-sport": ("#B33C24", "#FF8833", "#F7E6C3"),
+    "sleep": ("#43388C", "#5761D9", "#B398D9"),
+}
 
 __all__ = ["FusionBallA2UIConversionError", "convert_a2ui_with_fusion_ball"]
 
@@ -41,8 +43,9 @@ class FusionBallA2UIConversionError(ValueError):
     """Raised when the input is not a supported complete A2UI card."""
 
 
-def convert_a2ui_with_fusion_ball(a2ui: str, base_color: str) -> str:
-    """Replace a Stack root's solid or gradient background using ``base_color``."""
+def convert_a2ui_with_fusion_ball(a2ui: str, scene: str) -> str:
+    """Replace a Stack root background using one approved scene palette."""
+    palette = _fusion_palette(scene)
     messages = _parse_complete_a2ui(a2ui)
     update_components = messages[1]["updateComponents"]
     components = update_components.get("components")
@@ -85,10 +88,7 @@ def convert_a2ui_with_fusion_ball(a2ui: str, base_color: str) -> str:
         )
 
     outer_root, card_content = _split_root(root)
-    try:
-        fusion_components = _build_fusion_components(base_color)
-    except ValueError as exc:
-        raise FusionBallA2UIConversionError("base_color must use #RRGGBB or #AARRGGBB.") from exc
+    fusion_components = _build_fusion_components(palette)
     components[root_index : root_index + 1] = [
         outer_root,
         *fusion_components,
@@ -221,8 +221,17 @@ def _split_root(root: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     return outer_root, card_content
 
 
-def _build_fusion_components(base_color: str) -> list[dict[str, Any]]:
-    large_color, medium_color, small_color = _build_fusion_palette(base_color)
+def _fusion_palette(scene: str) -> tuple[str, str, str]:
+    try:
+        return _FUSION_BALL_PALETTES[scene]
+    except (KeyError, TypeError) as exc:
+        raise FusionBallA2UIConversionError(
+            "scene must be weather, health-sport, or sleep."
+        ) from exc
+
+
+def _build_fusion_components(palette: tuple[str, str, str]) -> list[dict[str, Any]]:
+    large_color, medium_color, small_color = palette
     return [
         _stack(
             "fusionBallBackground",
@@ -295,55 +304,6 @@ def _build_fusion_components(base_color: str) -> list[dict[str, Any]]:
             backdropBlur={"radius": 120},
         ),
     ]
-
-
-def _build_fusion_palette(base_color: str) -> tuple[str, str, str]:
-    red, green, blue = _parse_base_color(base_color)
-    hue, saturation, brightness = colorsys.rgb_to_hsv(
-        red / 255,
-        green / 255,
-        blue / 255,
-    )
-    hue_degrees = hue * 360
-    large_color = _hsb_color(
-        hue_degrees + 25,
-        saturation * 100,
-        brightness * 100 - 40,
-    )
-    medium_color = _rgb_color(red, green, blue)
-    small_color = _hsb_color(
-        hue_degrees - 25,
-        saturation * 100 + 25,
-        brightness * 100,
-    )
-    return large_color, medium_color, small_color
-
-
-def _parse_base_color(value: str) -> tuple[int, int, int]:
-    if not isinstance(value, str) or not _HEX_COLOR.fullmatch(value):
-        raise ValueError("base_color must use #RRGGBB or #AARRGGBB.")
-    rgb = value[3:] if len(value) == 9 else value[1:]
-    return int(rgb[0:2], 16), int(rgb[2:4], 16), int(rgb[4:6], 16)
-
-
-def _hsb_color(hue: float, saturation: float, brightness: float) -> str:
-    normalized_hue = hue % 360 / 360
-    normalized_saturation = _clamp_percentage(saturation) / 100
-    normalized_brightness = _clamp_percentage(brightness) / 100
-    channels = colorsys.hsv_to_rgb(
-        normalized_hue,
-        normalized_saturation,
-        normalized_brightness,
-    )
-    return _rgb_color(*(round(channel * 255) for channel in channels))
-
-
-def _rgb_color(red: int, green: int, blue: int) -> str:
-    return f"#FF{red:02X}{green:02X}{blue:02X}"
-
-
-def _clamp_percentage(value: float) -> float:
-    return max(0.0, min(100.0, value))
 
 
 def _stack(component_id: str, children: list[str], **styles: Any) -> dict[str, Any]:
