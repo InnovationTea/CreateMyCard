@@ -3,9 +3,9 @@
 - Provider：`com.huawei.health-sport.cli`。
 - 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
 - 可用模板：
-  - `ActivityOverviewStepsFull@1`：每日活动摘要，展示步数，可补充热量和距离。 组件形态：steps。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/dailySteps；次要数据：无；可选数据：无。
-  - `ActivityOverviewStepsCompact@1`：每日活动摘要，展示步数，可补充热量和距离。 组件形态：stepsSupport。 布局场景：约 2x1；用于双 Compact 组合，或单 Compact 加两个 PillAction。主数据：/dailySteps；次要数据：无；可选数据：无。
-  - `ActivityOverviewDailySummaryFull@1`：每日活动摘要，展示步数，可补充热量和距离。 组件形态：dailySummary。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/dailySteps；次要数据：/dailyTotalCaloriesText, /dailyDistanceText；可选数据：无。
+  - `ActivityOverviewCompact@1`：每日活动摘要，展示步数，可补充热量和距离。 组件形态：compact。 布局场景：约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction。主数据：/dailySteps；次要数据：无；可选数据：无。
+  - `ActivityOverviewFull@1`：每日活动摘要，展示步数，可补充热量和距离。 组件形态：full。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/dailySteps；次要数据：/dailyTotalCaloriesText, /dailyDistanceText；可选数据：无。
+  - `ActivityOverviewHero@1`：每日活动摘要，展示步数，可补充热量和距离。 组件形态：hero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/dailySteps；次要数据：无；可选数据：无。
   - `ActivityOverviewDailySummaryWideFull@1`：每日活动摘要，展示步数，可补充热量和距离。 组件形态：dailySummaryWide。 布局场景：完整 4x2；单独使用。主数据：/dailySteps；次要数据：/dailyTotalCaloriesText, /dailyDistanceText；可选数据：无。
   - `WorkoutOverviewFull@1`：最近一次单次运动训练摘要，展示运动类型、该次热量、时长和结束时间。 组件形态：latest。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/exerciseTypeName, /exerciseDurationText；次要数据：/exerciseCalorieText, /exerciseEndTimeText；可选数据：无。
   - `HeartRateOverviewFull@1`：运动平均心率摘要，可补充更新时间。 组件形态：hero。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。

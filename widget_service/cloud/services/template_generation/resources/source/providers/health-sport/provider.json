@@ -20,10 +20,10 @@
   ],
   "templates": [
     {
-      "templateId": "ActivityOverviewStepsFull@1",
+      "templateId": "ActivityOverviewCompact@1",
       "businessId": "ActivityOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：steps。",
+      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：compact。",
       "optionalData": [],
       "entry": "templates/activity-overview.cardtpl",
       "primaryData": [
@@ -32,10 +32,10 @@
       "secondaryData": []
     },
     {
-      "templateId": "ActivityOverviewStepsCompact@1",
+      "templateId": "ActivityOverviewHero@1",
       "businessId": "ActivityOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：stepsSupport。",
+      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：hero。",
       "optionalData": [],
       "entry": "templates/activity-overview.cardtpl",
       "primaryData": [
@@ -44,10 +44,10 @@
       "secondaryData": []
     },
     {
-      "templateId": "ActivityOverviewDailySummaryFull@1",
+      "templateId": "ActivityOverviewFull@1",
       "businessId": "ActivityOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：dailySummary。",
+      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：full。",
       "optionalData": [],
       "entry": "templates/activity-overview.cardtpl",
       "primaryData": [

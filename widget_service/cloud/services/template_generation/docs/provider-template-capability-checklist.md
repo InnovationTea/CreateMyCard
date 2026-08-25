@@ -130,8 +130,8 @@
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
 | ✅ | `ActivityOverviewStepsFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/dailySteps` | 无 | 无 |
-| ✅ | `ActivityOverviewStepsCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/dailySteps` | 无 | 无 |
-| ✅ | `ActivityOverviewDailySummaryFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/dailySteps` | `/dailyTotalCaloriesText`<br>`/dailyDistanceText` | 无 |
+| ✅ | `ActivityOverviewHero@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/dailySteps` | 无 | 无 |
+| ✅ | `ActivityOverviewFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/dailySteps` | `/dailyTotalCaloriesText`<br>`/dailyDistanceText` | 无 |
 | ✅ | `ActivityOverviewDailySummaryWideFull@1` | 完整 4x2；单 WideFull | `/dailySteps` | `/dailyTotalCaloriesText`<br>`/dailyDistanceText` | 无 |
 
 ## WorkoutOverview
