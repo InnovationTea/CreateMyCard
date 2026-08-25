@@ -9,5 +9,5 @@
   "selectionProtocolVersion": "card-plan-template/0.2",
   "templateRegistryVersion": "terse-template-registry/0.7",
   "uxAdvancedComponentRegistryVersion": "advanced-component-ux-registry/2",
-  "uxMixedProtocolVersion": "tersedsl-nested-2-ux-mixed/0.2"
+  "uxMixedProtocolVersion": "tersedsl-nested-2-ux-mixed/0.3"
 }

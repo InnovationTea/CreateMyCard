@@ -16,19 +16,9 @@
   - `HeartRateOverviewUpdatedCompact@1`：运动平均心率摘要，可补充更新时间。 组件形态：supportUpdated。 布局场景：约 2x1；用于双 Compact 组合，或单 Compact 加两个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：/updatedAt；可选数据：无。
   - `HeartRateOverviewIconCompact@1`：运动平均心率摘要，可补充更新时间。 组件形态：supportIcon。 布局场景：约 2x1；用于双 Compact 组合，或单 Compact 加两个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
   - `HeartRateOverviewUpdatedIconCompact@1`：运动平均心率摘要，可补充更新时间。 组件形态：supportUpdatedIcon。 布局场景：约 2x1；用于双 Compact 组合，或单 Compact 加两个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：/updatedAt；可选数据：无。
-  - `SleepOverviewDurationFull@1`：睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：duration。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/nightSleepDurationText；次要数据：无；可选数据：无。
-  - `SleepOverviewDurationDetailedFull@1`：睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：durationDetailed。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/nightSleepDurationText；次要数据：无；可选数据：无。
-  - `SleepOverviewDurationScoreFull@1`：睡眠总时长与睡眠得分摘要。 组件形态：durationScore。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/nightSleepDurationText；次要数据：/sleepScore；可选数据：无。
-  - `SleepOverviewDurationScoreDetailedFull@1`：睡眠详细时长与睡眠得分及状态摘要。 组件形态：durationScoreDetailed。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/nightSleepDurationText；次要数据：/sleepScore, /sleepStatus；可选数据：无。
-  - `SleepOverviewDurationScoreCompact@1`：睡眠总时长与睡眠得分的紧凑辅助摘要。 组件形态：durationScoreSupport。 布局场景：约 2x1；用于双 Compact 组合，或单 Compact 加两个 PillAction。主数据：/nightSleepDurationText；次要数据：/sleepScore；可选数据：无。
-  - `SleepOverviewInsufficientFull@1`：睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：insufficient。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/nightSleepDurationText；次要数据：/sleepStatus；可选数据：无。
-  - `SleepOverviewInsufficientDetailedFull@1`：睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：insufficientDetailed。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/nightSleepDurationText；次要数据：/sleepStatus；可选数据：无。
-  - `SleepOverviewScheduleWideFull@1`：睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：schedule。 布局场景：完整 4x2；单独使用。主数据：/nightSleepDurationText；次要数据：/fallAsleepTimeText, /wakeupTimeText；可选数据：无。
-  - `SleepOverviewScheduleDetailedWideFull@1`：睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：scheduleDetailed。 布局场景：完整 4x2；单独使用。主数据：/nightSleepDurationText；次要数据：/fallAsleepTimeText, /wakeupTimeText；可选数据：无。
-  - `SleepOverviewScheduleStatusWideFull@1`：睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：scheduleStatus。 布局场景：完整 4x2；单独使用。主数据：/nightSleepDurationText；次要数据：/sleepStatus, /fallAsleepTimeText, /wakeupTimeText；可选数据：无。
-  - `SleepOverviewScheduleDetailedStatusWideFull@1`：睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：scheduleDetailedStatus。 布局场景：完整 4x2；单独使用。主数据：/nightSleepDurationText；次要数据：/sleepStatus, /fallAsleepTimeText, /wakeupTimeText；可选数据：无。
-  - `SleepOverviewDurationCompact@1`：睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：durationSupport。 布局场景：约 2x1；用于双 Compact 组合，或单 Compact 加两个 PillAction。主数据：/nightSleepDurationText；次要数据：无；可选数据：无。
-  - `SleepOverviewDurationDetailedCompact@1`：睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：durationDetailedSupport。 布局场景：约 2x1；用于双 Compact 组合，或单 Compact 加两个 PillAction。主数据：/nightSleepDurationText；次要数据：无；可选数据：无。
+  - `SleepOverviewFull@1`：睡眠摘要，展示时长、得分和状态。 组件形态：full。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/nightSleepDurationText；次要数据：/sleepScore, /sleepStatus；可选数据：无。
+  - `SleepOverviewHero@1`：睡眠摘要，展示时长和得分。 组件形态：hero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/nightSleepDurationText；次要数据：/sleepScore；可选数据：无。
+  - `SleepOverviewCompact@1`：睡眠摘要，展示时长和得分。 组件形态：compact。 布局场景：约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction。主数据：/nightSleepDurationText；次要数据：/sleepScore；可选数据：无。
 - 已有 Provider 全局路径的值必须由模板 `data` 绑定；props 可传无全局路径的受控派生值、排版参数和
   素材。
 - 选择能够完整表达用户显式要求字段且自身 `primaryData` 与 `secondaryData` 全部可用的模板。

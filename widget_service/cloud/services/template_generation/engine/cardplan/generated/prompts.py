@@ -168,8 +168,8 @@ BODY_SYSTEM_PROMPT_KERNEL = (
     '不得发明输入中不存在的业务事实。'
 )
 
-UX_MIXED_PROMPT_VERSION = 'ux-mixed-prompt/0.4'
-UX_MIXED_PROTOCOL_VERSION = 'tersedsl-nested-2-ux-mixed/0.2'
+UX_MIXED_PROMPT_VERSION = 'ux-mixed-prompt/0.8'
+UX_MIXED_PROTOCOL_VERSION = 'tersedsl-nested-2-ux-mixed/0.3'
 UX_MIXED_SYSTEM_PROMPT_KERNEL = (
     '第五接口 UX 混合模式覆盖规则：\n\n1. 这是第二层生成。第一层已经确'
     '定 Theme、业务高级组件和零到两个 Action eventId；不得重'
@@ -199,11 +199,12 @@ UX_MIXED_SYSTEM_PROMPT_KERNEL = (
     '形态，禁止输出 Variant。\n11. 每条 mustKeep/must'
     'KeepNumbers 必须由一个标准组件或局部 Template 消费；素'
     '材按 description 与参数语义匹配。\n12. Action 只能'
-    '使用 selectedActionEventIds。PillAction 只'
-    '写 actionId；IconAction 只写 actionId 和本轮'
-    '\n    trustedAssetSources 中语义匹配的 icon。'
-    '不得输出 label、call、args、onClick、ActionTil'
-    'e、标准 Button 或\n    Action Template；可见文'
+    '使用 selectedActionEventIds。PillAction 必'
+    '须写成 PillAction({ actionId: "event.id" '
+    '})；\n    IconAction 必须写成 IconAction({ '
+    'actionId: "event.id", icon: "src" })。不'
+    '得输出 label、call、args、onClick、\n    Acti'
+    'onTile、标准 Button 或 Action Template；可见文'
     '案与事件由服务端根据 Contract 注入。\n13. providerS'
     'econdLayerRules 是业务模板、props 和素材使用规则的唯一'
     '垂域来源；只应用其中与已选组件对应的规则。'
