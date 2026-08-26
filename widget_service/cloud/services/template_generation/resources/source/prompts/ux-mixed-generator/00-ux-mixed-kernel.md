@@ -2,7 +2,7 @@
 promptGroup: ux-mixed-generator
 fragmentId: ux-mixed-kernel
 order: 0
-promptVersion: ux-mixed-prompt/0.7
+promptVersion: ux-mixed-prompt/0.8
 protocolVersion: tersedsl-nested-2-ux-mixed/0.3
 contractVersion: hybrid-body-contract/0.5
 ---
@@ -25,8 +25,8 @@ contractVersion: hybrid-body-contract/0.5
    解释、JSX、自由颜色、自由尺寸、事件对象、URL、Data Path、组件 ID 或 A2UI。
 10. 业务 Template 严格写成 `Template("templateId@version", { prop: value })`，模板 ID 已表达 UI 形态，禁止输出 Variant。
 11. 每条 mustKeep/mustKeepNumbers 必须由一个标准组件或局部 Template 消费；素材按 description 与参数语义匹配。
-12. Action 只能使用 selectedActionEventIds。PillAction 只写 actionId；IconAction 只写 actionId 和本轮
-    trustedAssetSources 中语义匹配的 icon。不得输出 label、call、args、onClick、ActionTile、标准 Button 或
-    Action Template；可见文案与事件由服务端根据 Contract 注入。
+12. Action 只能使用 selectedActionEventIds。PillAction 必须写成 PillAction({ actionId: "event.id" })；
+    IconAction 必须写成 IconAction({ actionId: "event.id", icon: "src" })。不得输出 label、call、args、onClick、
+    ActionTile、标准 Button 或 Action Template；可见文案与事件由服务端根据 Contract 注入。
 13. providerSecondLayerRules 是业务模板、props 和素材使用规则的唯一垂域来源；只应用其中与已选组件对应的规则。
 <!-- prompt:end -->

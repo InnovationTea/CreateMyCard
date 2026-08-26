@@ -4,7 +4,7 @@
 
 ## 整改总览
 
-- [x] 82 个业务模板全部使用 `Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
+- [x] 72 个业务模板全部使用 `Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
 - [x] 业务模板尺寸和动作组合由后缀推导，不再由 Provider 重复声明。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
 - [x] `primaryData` 与 `secondaryData` 均参与模板准入硬校验。
@@ -31,7 +31,7 @@
 | calendar | `GetCalendarEvents` | `/data/calendar` | 10 | 配置禁用 |
 | countdown | `GetCountdownDays` | `/data/countdown` | 1 | 启用 |
 | earphone | `GetEarphoneInfo` | `/data/earphone` | 14 | 配置禁用 |
-| health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 26 | 启用 |
+| health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 16 | 启用 |
 | system-memory | `GetSystemMemInfo` | `/data/systemMem` | 2 | 启用 |
 | weather | `ViewWeather` | `/data/weather` | 9 | 启用 |
 
@@ -130,8 +130,8 @@
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
 | ✅ | `ActivityOverviewStepsFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/dailySteps` | 无 | 无 |
-| ✅ | `ActivityOverviewStepsCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/dailySteps` | 无 | 无 |
-| ✅ | `ActivityOverviewDailySummaryFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/dailySteps` | `/dailyTotalCaloriesText`<br>`/dailyDistanceText` | 无 |
+| ✅ | `ActivityOverviewHero@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/dailySteps` | 无 | 无 |
+| ✅ | `ActivityOverviewFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/dailySteps` | `/dailyTotalCaloriesText`<br>`/dailyDistanceText` | 无 |
 | ✅ | `ActivityOverviewDailySummaryWideFull@1` | 完整 4x2；单 WideFull | `/dailySteps` | `/dailyTotalCaloriesText`<br>`/dailyDistanceText` | 无 |
 
 ## WorkoutOverview
@@ -162,23 +162,13 @@
 ## SleepOverview
 
 - Provider：`com.huawei.health-sport.cli`；运行状态：启用。
-- 数据能力：`GetHealthAndSportSummary`；模板数：13。
+- 数据能力：`GetHealthAndSportSummary`；模板数：3。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
-| ✅ | `SleepOverviewDurationFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/nightSleepDurationText` | 无 | 无 |
-| ✅ | `SleepOverviewDurationDetailedFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/nightSleepDurationText` | 无 | 无 |
-| ✅ | `SleepOverviewDurationScoreFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/nightSleepDurationText` | `/sleepScore` | 无 |
-| ✅ | `SleepOverviewDurationScoreDetailedFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/nightSleepDurationText` | `/sleepScore`<br>`/sleepStatus` | 无 |
-| ✅ | `SleepOverviewDurationScoreCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/nightSleepDurationText` | `/sleepScore` | 无 |
-| ✅ | `SleepOverviewInsufficientFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/nightSleepDurationText` | `/sleepStatus` | 无 |
-| ✅ | `SleepOverviewInsufficientDetailedFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/nightSleepDurationText` | `/sleepStatus` | 无 |
-| ✅ | `SleepOverviewScheduleWideFull@1` | 完整 4x2；单 WideFull | `/nightSleepDurationText` | `/fallAsleepTimeText`<br>`/wakeupTimeText` | 无 |
-| ✅ | `SleepOverviewScheduleDetailedWideFull@1` | 完整 4x2；单 WideFull | `/nightSleepDurationText` | `/fallAsleepTimeText`<br>`/wakeupTimeText` | 无 |
-| ✅ | `SleepOverviewScheduleStatusWideFull@1` | 完整 4x2；单 WideFull | `/nightSleepDurationText` | `/sleepStatus`<br>`/fallAsleepTimeText`<br>`/wakeupTimeText` | 无 |
-| ✅ | `SleepOverviewScheduleDetailedStatusWideFull@1` | 完整 4x2；单 WideFull | `/nightSleepDurationText` | `/sleepStatus`<br>`/fallAsleepTimeText`<br>`/wakeupTimeText` | 无 |
-| ✅ | `SleepOverviewDurationCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/nightSleepDurationText` | 无 | 无 |
-| ✅ | `SleepOverviewDurationDetailedCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/nightSleepDurationText` | 无 | 无 |
+| ✅ | `SleepOverviewFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/nightSleepDurationText` | `/sleepScore`<br>`/sleepStatus` | 无 |
+| ✅ | `SleepOverviewHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/nightSleepDurationText` | `/sleepScore` | 无 |
+| ✅ | `SleepOverviewCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/nightSleepDurationText` | `/sleepScore` | 无 |
 
 ## ResourceUsageOverview
 

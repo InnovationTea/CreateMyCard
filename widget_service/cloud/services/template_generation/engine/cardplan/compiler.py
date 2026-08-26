@@ -7286,7 +7286,7 @@ def _lower_action_matrix_layout(
     summary = _single_region(content[0], justify="end", registry=registry)
     if size == "2x2":
         summary = _with_flex_weight(summary, 1, axis="vertical")
-        matrix = _with_flex_weight(matrix, 1, axis="vertical")
+        matrix = _with_flex_weight(matrix, 2, axis="vertical")
         return Nested2Node(
             "Column",
             (
@@ -7294,7 +7294,7 @@ def _lower_action_matrix_layout(
                 {
                     "width": "100%",
                     "height": "100%",
-                    "itemMargin": registry.ux_tokens["moduleGap"],
+                    "itemMargin": registry.ux_tokens["denseInnerGap"],
                 },
             ),
             (summary, matrix),
@@ -7535,7 +7535,8 @@ def _action_matrix_grid(
         )
     columns = 2 if len(actions) == 4 else len(actions)
     if size == "2x2":
-        columns = 2
+        # For 2x2 with 2 actions, use vertical layout (columns=1) instead of horizontal
+        columns = 1 if len(actions) == 2 else 2
     return _equal_grid(actions, columns=columns, registry=registry)
 
 
