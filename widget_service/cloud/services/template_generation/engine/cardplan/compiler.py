@@ -979,13 +979,12 @@ def _wrap_action_template(
         raise TerseDslNested2ConversionError(f"{action_component} icon is not approved.")
     if action_component == "IconAction" and not isinstance(icon, str):
         raise TerseDslNested2ConversionError("IconAction requires an approved icon.")
-    root_options = next((value for value in root.values if isinstance(value, dict)), None)
-    if root_options is None or root_options.get("_actionId") != action_id:
+    bound_root, action_ids = _bind_template_actions(root, contract)
+    if action_ids != (action_id,):
         raise TerseDslNested2ConversionError(
-            f"Action Provider Template action marker is invalid: {wire_id}"
+            f"Action Provider Template event declaration is invalid: {wire_id}"
         )
-    clean_root = _remove_node_option(root, "_actionId")
-    return Nested2Node(action_component, (dict(params),), (clean_root,)), (action_id,)
+    return Nested2Node(action_component, (dict(params),), (bound_root,)), action_ids
 
 
 def _validate_provider_template_state(
@@ -4439,6 +4438,13 @@ def _template_value(
         raise TerseDslNested2ConversionError("Template interpolation must be the first Text value.")
     if value.kind == "expression":
         return _provider_runtime_expression(value, bindings)
+    if value.kind == "event-action":
+        if len(value.items) != 1 or value.items[0].kind != "parameter":
+            raise TerseDslNested2ConversionError("Template EventAction is invalid.")
+        action_id = _template_value(value.items[0], params, bindings)
+        if not isinstance(action_id, str):
+            raise TerseDslNested2ConversionError("Template EventAction ID is invalid.")
+        return [{"call": "sendToAssistant", "args": {"eventName": action_id}}]
     if value.kind == "array":
         return [_template_value(item, params, bindings) for item in value.items]
     return {key: _template_value(item, params, bindings) for key, item in value.properties.items()}
@@ -4682,6 +4688,10 @@ def _bind_template_actions(
     for index, value in enumerate(values):
         if not isinstance(value, dict):
             continue
+        bound_action_id = value.get("_boundTemplateAction")
+        if bound_action_id is not None:
+            _validate_bound_template_action(value, bound_action_id, contract)
+            continue
         action_id = _template_action_placeholder(value)
         if action_id is None:
             continue
@@ -4698,6 +4708,7 @@ def _bind_template_actions(
         bound = dict(value)
         bound.pop("action", None)
         bound["onClick"] = [{"call": binding.call, "args": binding.args}]
+        bound["_boundTemplateAction"] = action_id
         values[index] = bound
         used.append(action_id)
     children: list[Nested2Node] = []
@@ -4706,6 +4717,26 @@ def _bind_template_actions(
         children.append(bound_child)
         used.extend(child_ids)
     return Nested2Node(node.component_type, tuple(values), tuple(children)), tuple(used)
+
+
+def _validate_bound_template_action(
+    value: dict[str, Any],
+    action_id: Any,
+    contract: HybridBodyContract,
+) -> None:
+    if not isinstance(action_id, str):
+        raise TerseDslNested2ConversionError("Bound Template Action ID is invalid.")
+    binding = next(
+        (
+            item
+            for item in contract.action_bindings
+            if item.action_id == action_id and item.action_id in contract.content_action_ids
+        ),
+        None,
+    )
+    expected = [{"call": binding.call, "args": binding.args}] if binding is not None else None
+    if expected is None or value.get("onClick") != expected:
+        raise TerseDslNested2ConversionError("Bound Template Action is invalid.")
 
 
 def _template_action_placeholder(value: dict[str, Any]) -> str | None:
@@ -7824,7 +7855,7 @@ def _strip_advanced_component_markers(node: Nested2Node) -> Nested2Node:
     children = tuple(_strip_advanced_component_markers(child) for child in node.children)
     values: list[Any] = []
     marker_keys = {
-        "_actionId",
+        "_boundTemplateAction",
         "_advancedComponent",
         "_preserveOriginalColor",
         "_layoutActionBackgroundOpacity",
@@ -7832,7 +7863,7 @@ def _strip_advanced_component_markers(node: Nested2Node) -> Nested2Node:
     for value in node.values:
         if isinstance(value, dict) and not marker_keys.isdisjoint(value):
             cleaned = dict(value)
-            cleaned.pop("_actionId", None)
+            cleaned.pop("_boundTemplateAction", None)
             cleaned.pop("_advancedComponent", None)
             cleaned.pop("_preserveOriginalColor", None)
             cleaned.pop("_layoutActionBackgroundOpacity", None)
@@ -7866,18 +7897,6 @@ def _merge_node_options(node: Nested2Node, additions: dict[str, Any]) -> Nested2
         values.append(options)
     else:
         values[options_index] = options
-    return Nested2Node(node.component_type, tuple(values), node.children)
-
-
-def _remove_node_option(node: Nested2Node, key: str) -> Nested2Node:
-    values: list[Any] = []
-    for value in node.values:
-        if isinstance(value, dict) and key in value:
-            cleaned = dict(value)
-            cleaned.pop(key, None)
-            values.append(cleaned)
-        else:
-            values.append(value)
     return Nested2Node(node.component_type, tuple(values), node.children)
 
 
@@ -8150,7 +8169,6 @@ def _lower_ux_action(
         foreground=foreground,
         default=background,
     )
-    event = [{"call": binding.call, "args": binding.args}]
     icon = params.get("icon")
     if node.component_type == "IconAction":
         if not isinstance(icon, str):
@@ -8161,7 +8179,6 @@ def _lower_ux_action(
             node,
             background=background,
             foreground=foreground,
-            event=event,
         )
     if node.component_type == "ActionTile":
         if size != "2x4" and not allow_action_tile_2x2:
@@ -8171,14 +8188,13 @@ def _lower_ux_action(
             icon,
             background,
             foreground,
-            event,
+            [{"call": binding.call, "args": binding.args}],
             orientation=action_tile_orientation,
         )
     return _lower_action_template_tree(
         node,
         background=background,
         foreground=foreground,
-        event=event,
     )
 
 
@@ -8212,7 +8228,6 @@ def _lower_action_template_tree(
     *,
     background: str,
     foreground: str,
-    event: list[dict[str, Any]],
 ) -> Nested2Node:
     if len(node.children) != 1 or node.children[0].component_type != "Stack":
         raise TerseDslNested2ConversionError("UX Action must contain one trusted Action Template.")
@@ -8227,13 +8242,10 @@ def _lower_action_template_tree(
         return styled
 
     content = apply_foreground(node.children[0])
-    return _merge_node_options(
-        content,
-        {
-            "backgroundColor": background,
-            "onClick": event,
-        },
-    )
+    root_options = next((value for value in content.values if isinstance(value, dict)), None)
+    if root_options is None or "onClick" not in root_options:
+        raise TerseDslNested2ConversionError("UX Action Template must declare onClick.")
+    return _merge_node_options(content, {"backgroundColor": background})
 
 
 def _lower_action_tile(

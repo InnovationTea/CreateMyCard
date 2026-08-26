@@ -2145,7 +2145,22 @@ async def test_2x2_battery_pill_action_uses_normal_hero_template():
     hero_slot, action_slot = (components[child_id] for child_id in layout["children"])
     assert hero_slot["styles"] == {"width": "matchParent", "layoutWeight": 1}
     assert action_slot["styles"] == {"width": "matchParent", "height": 36}
-    assert components[action_slot["children"][0]]["component"] == "Stack"
+    action = components[action_slot["children"][0]]
+    assert action["component"] == "Stack"
+    assert action["onClick"] == [
+        {
+            "call": "clickToIntent",
+            "args": {
+                "intentName": "SetSettingSwitch",
+                "params": {
+                    "appBundleName": "com.huawei.hmos.settings",
+                    "itemName": "battery_saving_mode",
+                    "switchFlag": 0,
+                },
+            },
+        }
+    ]
+    assert "_boundTemplateAction" not in output.a2ui
 
 
 @pytest.mark.asyncio

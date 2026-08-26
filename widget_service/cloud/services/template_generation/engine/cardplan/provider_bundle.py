@@ -67,7 +67,9 @@ _CONTAINERS = (
     | _LAYOUT_COMPONENTS
     | _CONDITIONAL_COMPONENTS
 )
-_REFERENCE_CALLS = frozenset({"Bind", "Param", "Asset", "Expr", "_CardTplInterpolation"})
+_REFERENCE_CALLS = frozenset(
+    {"Bind", "Param", "Asset", "Expr", "EventAction", "_CardTplInterpolation"}
+)
 _FORBIDDEN_KEYS = frozenset({"__proto__", "prototype", "constructor"})
 _TEMPLATE_ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9-]{0,63}$")
 _REFERENCE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
@@ -463,6 +465,7 @@ def _compile_ui_card_template(
         raise ValueError("Provider Template cannot mix children and children[index] slots")
     _validate_template_child_slot_indexes(indexed_children)
     _validate_interpolation_bindings(root, bindings)
+    _validate_event_action_placement(root)
     binding_references, parameter_references = _template_references(root)
     if not binding_references <= set(bindings):
         unknown_data = sorted(binding_references - set(bindings))
@@ -931,6 +934,8 @@ def _template_value(node: ast.AST) -> TemplateValue:
     if _is_reference_call(node):
         assert isinstance(node, ast.Call)
         assert isinstance(node.func, ast.Name)
+        if node.func.id == "EventAction":
+            return _event_action_value(node)
         if node.func.id == "_CardTplInterpolation":
             return _interpolation_value(node)
         if node.func.id == "Expr":
@@ -974,7 +979,25 @@ def _template_value(node: ast.AST) -> TemplateValue:
         return TemplateValue(kind="object", properties=properties)
     raise ValueError(
         "Provider Template values must be literals, bindings, template strings, "
-        "Expr, Param or Asset"
+        "Expr, EventAction, Param or Asset"
+    )
+
+
+def _event_action_value(call: ast.Call) -> TemplateValue:
+    if call.keywords or len(call.args) != 1:
+        raise ValueError("EventAction requires one props parameter")
+    argument = call.args[0]
+    owner = argument.value if isinstance(argument, ast.Attribute) else None
+    valid_owner = isinstance(owner, ast.Name) and owner.id == "props"
+    valid_name = isinstance(argument, ast.Attribute) and _REFERENCE_NAME_RE.fullmatch(
+        argument.attr
+    )
+    if not valid_owner or not valid_name:
+        raise ValueError("EventAction requires one props parameter")
+    assert isinstance(argument, ast.Attribute)
+    return TemplateValue(
+        kind="event-action",
+        items=(TemplateValue(kind="parameter", name=argument.attr),),
     )
 
 
@@ -1311,6 +1334,27 @@ def _validate_interpolation_bindings(
             if value.kind == "interpolation" and (node.component != "Text" or index != 0):
                 raise ValueError("CardTemplate interpolation must be the first Text value")
             _validate_dynamic_template_value(value, bindings, direct=True)
+
+
+def _validate_event_action_placement(root: TemplateNode) -> None:
+    for node in _walk_template_nodes(root):
+        for value in node.values:
+            if not _contains_template_value_kind(value, "event-action"):
+                continue
+            event_action = value.properties.get("onClick") if value.kind == "object" else None
+            has_direct_event_action = (
+                event_action is not None and event_action.kind == "event-action"
+            )
+            other_values = (
+                item
+                for key, item in value.properties.items()
+                if key != "onClick"
+            )
+            nested_elsewhere = any(
+                _contains_template_value_kind(item, "event-action") for item in other_values
+            )
+            if not has_direct_event_action or nested_elsewhere:
+                raise ValueError("EventAction must be the direct onClick option")
 
 
 def _validate_dynamic_template_value(

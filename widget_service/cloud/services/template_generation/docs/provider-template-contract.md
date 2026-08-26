@@ -237,7 +237,8 @@ Provider 选择模板。若第一层输出了 `action`，第二层按最终模�
 Hero/WideHero 使用一个 `Template("PillAction@1", props)`，单 Compact 使用两个 PillAction 模板，Full
 最多使用一个 `Template("IconAction@1", props)`；WideFull 和双 Compact 不生成 Action。PillAction Props
 包含 `actionId`、`label` 和可选 `icon`，IconAction Props 包含 `actionId`、`icon`。第二层只决定展示内容，
-微服务校验候选配对并注入主题色和可信事件，模型不得输出 `call`、`args`、`onClick`。
+Action CardTpl 必须在交互组件样式中写入 `onClick: EventAction(props.actionId)`；微服务校验候选配对，
+将该模板声明绑定为可信事件并注入主题色。模型不得输出 `call`、`args`、`onClick`。
 
 ## 当前迁移范围
 

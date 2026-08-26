@@ -3,12 +3,12 @@ data = {
 }
 
 Stack({
-  "_actionId": props.actionId,
   "width": "matchParent",
   "height": 36,
   "padding": 8,
   "borderRadius": 18,
-  "alignContent": "center"
+  "alignContent": "center",
+  "onClick": EventAction(props.actionId)
 },
   Row({
     "itemMargin": 8,
@@ -38,11 +38,11 @@ data = {
 }
 
 Stack({
-  "_actionId": props.actionId,
   "width": 30,
   "height": 30,
   "borderRadius": 15,
-  "alignContent": "center"
+  "alignContent": "center",
+  "onClick": EventAction(props.actionId)
 },
   Image(props.icon, "icon", {
     "width": 16,

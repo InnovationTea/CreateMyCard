@@ -38,4 +38,4 @@ PYTHONPATH=cloud .venv/bin/pytest -q tests/test_provider_template_bundle.py
 CardSpec `writeResultTo` 和 TaskSpec 字段进行准入，并在 Compiler 中继续复用原业务组件的组合顺序、
 角色校验。Action 使用第一层独立选择的零到两个 `eventId`，由第二层按业务模板后缀调用布局末尾的
 `PillAction@1` 或 `IconAction@1` 并填写 Props；Action Provider 拥有组件结构，微服务只注入主题色和
-可信事件。
+将模板内 `EventAction(props.actionId)` 声明实体化后的可信事件。

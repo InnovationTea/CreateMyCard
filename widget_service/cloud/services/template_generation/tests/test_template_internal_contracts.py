@@ -196,8 +196,52 @@ def test_checked_in_action_templates_expose_second_layer_props() -> None:
     assert set(pill_schema["properties"]) == {"actionId", "label", "icon"}
     assert icon_schema["required"] == ["actionId", "icon"]
     assert set(icon_schema["properties"]) == {"actionId", "icon"}
-    assert pill.variants[0].root.component == "Stack"
-    assert icon.variants[0].root.component == "Stack"
+    for definition in (pill, icon):
+        root = definition.variants[0].root
+        assert root.component == "Stack"
+        options = root.values[0].properties
+        assert options["onClick"].kind == "event-action"
+        assert options["onClick"].items[0].kind == "parameter"
+        assert options["onClick"].items[0].name == "actionId"
+        assert "_actionId" not in options
+
+
+@pytest.mark.parametrize(
+    ("event_value", "message"),
+    (
+        ('EventAction("event.open.weather")', "requires one props parameter"),
+        ("EventAction(props.actionId)", "must be the direct onClick option"),
+    ),
+)
+def test_provider_compiler_rejects_invalid_event_action_usage(
+    event_value: str,
+    message: str,
+) -> None:
+    option_name = "onClick" if event_value.startswith('EventAction("') else "width"
+    source = f"""#Template InvalidAction@1(props: {{ actionId: string }})
+data = {{
+}}
+
+Stack({{
+  "{option_name}": {event_value}
+}}, Text("动作", "body"))
+#End
+"""
+    with pytest.raises(ValueError, match=message):
+        compile_card_template(
+            source,
+            provider_id="example.action",
+            business_id=None,
+            expected_wire_id="InvalidAction@1",
+            expected_capability_id=None,
+            data_domain=None,
+            description="invalid EventAction",
+            supported_card_sizes=(),
+            primary_data=(),
+            secondary_data=(),
+            optional_data=(),
+            output_schema={"type": "object", "properties": {}},
+        )
 
 
 def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
