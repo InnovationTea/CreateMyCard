@@ -1,0 +1,119 @@
+#Template ResourceUsageOverviewMemory@1(props: { icon?: asset })
+data = {
+    usage: $path("/usagePercent"),
+    available: $path("/availableMemText"),
+    total: $path("/totalMemText")
+}
+
+Column(
+  "compact",
+  {"_advancedComponent": "ResourceUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 8, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Text(
+      "内存占用",
+      "compact-title",
+      {"fontSize": 12, "minFontSize": 12, "fontWeight": 600, "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    ),
+  Row(
+      "between",
+      {"width": "matchParent", "layoutWeight": 1, "itemMargin": 8, "justifyContent": "start", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Stack(
+            "overlay",
+            {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
+            Progress(
+                    {"value": data.usage, "total": 100, "type": "ring", "width": 52, "height": 52, "strokeWidth": 6, "color": "#FF64BB5C", "backgroundColor": "#1A000000"}
+                  ),
+            IfPresent(
+                    props.icon,
+                    Image(
+                              props.icon,
+                              "icon",
+                              {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
+                            )
+                  ),
+            IfAbsent(
+                    props.icon,
+                    Row(
+                              "between",
+                              {"itemMargin": 1, "justifyContent": "center", "alignItems": "bottom", "width": 52, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+                              Text(
+                                          Expr(`'' + ((${data.usage} + 0.5) - ((${data.usage} + 0.5) % 1))`),
+                                          "body",
+                                          {"fontSize": 14, "minFontSize": 14, "fontWeight": 600, "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                                        ),
+                              Text(
+                                          "%",
+                                          "subtitle",
+                                          {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                                        )
+                            )
+                  )
+          ),
+      Column(
+            "compact",
+            {"layoutWeight": 1, "itemMargin": 4, "justifyContent": "center", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            Text(
+                    data.available,
+                    "body",
+                    {"fontSize": 14, "minFontSize": 14, "fontWeight": 500, "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                  ),
+            Text(
+                    data.total,
+                    "subtitle",
+                    {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                  )
+          )
+    )
+)
+#End
+
+#Template ResourceUsageOverviewMemoryPeer@1(props: { icon?: asset })
+data = {
+    usage: $path("/usagePercent"),
+    available: $path("/availableMemText"),
+    total: $path("/totalMemText")
+}
+
+Column(
+  "compact",
+  {"_advancedComponent": "ResourceUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 2, "justifyContent": "end", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Stack(
+      "overlay",
+      {"width": 44, "height": 44, "alignContent": "center", "flexShrink": 0},
+      Progress(
+            {"value": data.usage, "total": 100, "type": "ring", "width": 44, "height": 44, "strokeWidth": 6, "color": "#FF64BB5C", "backgroundColor": "#1A000000"}
+          ),
+      IfPresent(
+            props.icon,
+            Image(
+                    props.icon,
+                    "icon",
+                    {"width": 20, "height": 20, "objectFit": "contain", "fillColor": "#99000000"}
+                  )
+          )
+    ),
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 1, "justifyContent": "center", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+            Expr(`'' + ((${data.usage} + 0.5) - ((${data.usage} + 0.5) % 1))`),
+            "body",
+            {"fontSize": 14, "minFontSize": 14, "fontWeight": 700, "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      Text(
+            "%",
+            "subtitle",
+            {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
+    ),
+  Text(
+      data.available,
+      "subtitle",
+      {"width": "matchParent", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    ),
+  Text(
+      data.total,
+      "subtitle",
+      {"width": "matchParent", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    )
+)
+#End
