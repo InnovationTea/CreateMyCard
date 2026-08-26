@@ -78,6 +78,11 @@ from .registry import CardPlanRegistry
 _STANDARD_CONTAINERS = frozenset({"Row", "Column", "List", "Stack"})
 _CONTAINERS = _STANDARD_CONTAINERS | UX_LAYOUT_COMPONENT_IDS
 _UX_ACTION_COMPONENTS = frozenset({"PillAction", "IconAction", "ActionTile"})
+_ACTION_TEMPLATE_COMPONENTS = {
+    "PillAction@1": "PillAction",
+    "IconAction@1": "IconAction",
+}
+_ACTION_PROVIDER_ID = "com.huawei.action.cli"
 _UX_DIRECT_BUSINESS_COMPONENTS = UX_DIRECT_BUSINESS_COMPONENT_IDS
 _DANGEROUS_EVENT_KEYS = frozenset({"onClick", "call", "args", "action"})
 _SUNNY_WEATHER_ICON_COLOR = "#FFFFC300"
@@ -385,8 +390,7 @@ def compile_ux_layout_card(
     )
     _validate_required_template_groups(state, contract)
     embedded_action_count = sum(
-        child.kind == "component" and child.name in _UX_ACTION_COMPONENTS
-        for child in composition.children
+        _parsed_ux_action_component(child) is not None for child in composition.children
     )
     if len(state.action_occurrences) != embedded_action_count:
         raise TerseDslNested2ConversionError(
@@ -524,12 +528,13 @@ def _normalize_resource_cleanup_layout_source(
         and set(contract.content_action_ids) == {"event.clean.memory"}
     )
     has_required_children = all(
-        component in source for component in ("ResourceUsageOverview", "PillAction")
+        component in source for component in ("ResourceUsageOverview", "PillAction@1")
     )
     has_expected_root = source.lstrip().startswith("HeroActionLayout")
     if matches_contract and has_required_children and not has_expected_root:
         return 'HeroActionLayout(ResourceUsageOverview({"variant":"memory","role":"hero"}),' + (
-            'PillAction({"actionId":"event.clean.memory"}));'
+            'Template("PillAction@1",{"actionId":"event.clean.memory",'
+            '"label":"一键清理"}));'
         )
     return source
 
@@ -588,6 +593,14 @@ def _walk_calls(root: ParsedCall) -> Iterator[ParsedCall]:
     yield root
     for child in root.children:
         yield from _walk_calls(child)
+
+
+def _parsed_ux_action_component(node: ParsedCall) -> str | None:
+    if node.kind == "component" and node.name in _UX_ACTION_COMPONENTS:
+        return node.name
+    if node.kind == "template":
+        return _ACTION_TEMPLATE_COMPONENTS.get(node.name)
+    return None
 
 
 def _normalize_trusted_composite_text_calls(
@@ -901,13 +914,26 @@ def _expand_call(
             binding_values,
             spread_children=expanded_children,
         )
-    root, action_ids = _bind_template_actions(root, contract)
-    node_count, depth = _shape(root)
+    budget_root = root
+    if definition.provider_id == _ACTION_PROVIDER_ID:
+        root, action_ids = _wrap_action_template(
+            root,
+            wire_id=wire_id,
+            params=params,
+            contract=contract,
+        )
+    else:
+        root, action_ids = _bind_template_actions(root, contract)
+    budget_node_count, budget_depth = _shape(budget_root)
     if (
         not definition.accepts_children
-        and (node_count > variant.expanded_node_budget or depth > variant.expanded_depth_budget)
+        and (
+            budget_node_count > variant.expanded_node_budget
+            or budget_depth > variant.expanded_depth_budget
+        )
     ):
         raise TerseDslNested2ConversionError(f"Template blueprint budget drift: {wire_id}/{size}")
+    node_count, _ = _shape(root)
     state.template_calls += 1
     state.expanded_components += node_count
     if wire_id not in state.template_ids:
@@ -917,6 +943,49 @@ def _expand_call(
         if action_id not in state.action_ids:
             state.action_ids.append(action_id)
     return root
+
+
+def _wrap_action_template(
+    root: Nested2Node,
+    *,
+    wire_id: str,
+    params: dict[str, Any],
+    contract: HybridBodyContract,
+) -> tuple[Nested2Node, tuple[str, ...]]:
+    action_component = _ACTION_TEMPLATE_COMPONENTS.get(wire_id)
+    if action_component is None:
+        raise TerseDslNested2ConversionError(f"Action Provider Template is unsupported: {wire_id}")
+    if root.component_type != "Stack":
+        raise TerseDslNested2ConversionError(
+            f"Action Provider Template root must be Stack: {wire_id}"
+        )
+    action_id = params.get("actionId")
+    if not isinstance(action_id, str):
+        raise TerseDslNested2ConversionError(
+            f"Action Provider Template actionId is invalid: {wire_id}"
+        )
+    binding = next(
+        (item for item in contract.action_bindings if item.action_id == action_id),
+        None,
+    )
+    if binding is None or action_id not in contract.content_action_ids:
+        raise TerseDslNested2ConversionError(f"Action Provider Template is not approved: {wire_id}")
+    if action_component == "PillAction" and params.get("label") != binding.display_label:
+        raise TerseDslNested2ConversionError("PillAction label/actionId pair is not approved.")
+    icon = params.get("icon")
+    if icon is not None and (
+        not isinstance(icon, str) or icon not in contract.allowed_asset_sources
+    ):
+        raise TerseDslNested2ConversionError(f"{action_component} icon is not approved.")
+    if action_component == "IconAction" and not isinstance(icon, str):
+        raise TerseDslNested2ConversionError("IconAction requires an approved icon.")
+    root_options = next((value for value in root.values if isinstance(value, dict)), None)
+    if root_options is None or root_options.get("_actionId") != action_id:
+        raise TerseDslNested2ConversionError(
+            f"Action Provider Template action marker is invalid: {wire_id}"
+        )
+    clean_root = _remove_node_option(root, "_actionId")
+    return Nested2Node(action_component, (dict(params),), (clean_root,)), (action_id,)
 
 
 def _validate_provider_template_state(
@@ -5672,7 +5741,7 @@ def _validate_ux_layout_root(
     action_children = tuple(
         child
         for child in node.children
-        if child.kind == "component" and child.name in _UX_ACTION_COMPONENTS
+        if _parsed_ux_action_component(child) is not None
     )
     content_children = tuple(child for child in node.children if child not in action_children)
     _validate_provider_template_layout_action_requirements(
@@ -5724,7 +5793,11 @@ def _validate_provider_template_layout_action_requirements(
         raise TerseDslNested2ConversionError(
             "Provider Template layout suffix mismatches card size."
         )
-    action_names = tuple(child.name for child in action_children)
+    action_names = tuple(
+        action_name
+        for child in action_children
+        if (action_name := _parsed_ux_action_component(child)) is not None
+    )
     if len(layout_kinds) == 2 and set(layout_kinds) == {"Compact"} and not action_names:
         return
     if len(layout_kinds) != 1:
@@ -5741,7 +5814,7 @@ def _validate_provider_template_layout_action_requirements(
         raise TerseDslNested2ConversionError("Full Provider Template only accepts one IconAction.")
     if layout_kind != "Full" and action_names != expected_actions:
         raise TerseDslNested2ConversionError(
-            f"{layout_kind} Provider Template Action combination is invalid."
+            f"{layout_kind} Provider Template Action combination is invalid: {action_names}."
         )
 
 
@@ -6491,7 +6564,8 @@ def _validate_ux_layout_action_slot(
     if len(action_ids) != len(set(action_ids)):
         raise TerseDslNested2ConversionError("UX Layout cannot repeat the same Action.")
     matrix_has_invalid_action = layout.name == "ActionMatrixLayout" and any(
-        child.name not in {"ActionTile", "PillAction"} for child in action_children
+        _parsed_ux_action_component(child) not in {"ActionTile", "PillAction"}
+        for child in action_children
     )
     if matrix_has_invalid_action:
         raise TerseDslNested2ConversionError(
@@ -7750,6 +7824,7 @@ def _strip_advanced_component_markers(node: Nested2Node) -> Nested2Node:
     children = tuple(_strip_advanced_component_markers(child) for child in node.children)
     values: list[Any] = []
     marker_keys = {
+        "_actionId",
         "_advancedComponent",
         "_preserveOriginalColor",
         "_layoutActionBackgroundOpacity",
@@ -7757,6 +7832,7 @@ def _strip_advanced_component_markers(node: Nested2Node) -> Nested2Node:
     for value in node.values:
         if isinstance(value, dict) and not marker_keys.isdisjoint(value):
             cleaned = dict(value)
+            cleaned.pop("_actionId", None)
             cleaned.pop("_advancedComponent", None)
             cleaned.pop("_preserveOriginalColor", None)
             cleaned.pop("_layoutActionBackgroundOpacity", None)
@@ -7790,6 +7866,18 @@ def _merge_node_options(node: Nested2Node, additions: dict[str, Any]) -> Nested2
         values.append(options)
     else:
         values[options_index] = options
+    return Nested2Node(node.component_type, tuple(values), node.children)
+
+
+def _remove_node_option(node: Nested2Node, key: str) -> Nested2Node:
+    values: list[Any] = []
+    for value in node.values:
+        if isinstance(value, dict) and key in value:
+            cleaned = dict(value)
+            cleaned.pop(key, None)
+            values.append(cleaned)
+        else:
+            values.append(value)
     return Nested2Node(node.component_type, tuple(values), node.children)
 
 
@@ -8065,7 +8153,16 @@ def _lower_ux_action(
     event = [{"call": binding.call, "args": binding.args}]
     icon = params.get("icon")
     if node.component_type == "IconAction":
-        return _lower_icon_action(icon, background, foreground, event, registry)
+        if not isinstance(icon, str):
+            raise TerseDslNested2ConversionError("IconAction requires an approved icon.")
+        if re.search(r"(?:^|[_-])white(?:[_.-]|$)", icon.casefold()):
+            background, foreground = foreground, "#FFFFFFFF"
+        return _lower_action_template_tree(
+            node,
+            background=background,
+            foreground=foreground,
+            event=event,
+        )
     if node.component_type == "ActionTile":
         if size != "2x4" and not allow_action_tile_2x2:
             raise TerseDslNested2ConversionError("ActionTile is only available for 2x4.")
@@ -8077,13 +8174,11 @@ def _lower_ux_action(
             event,
             orientation=action_tile_orientation,
         )
-    return _lower_pill_action(
-        binding.display_label,
-        icon,
-        background,
-        foreground,
-        event,
-        registry,
+    return _lower_action_template_tree(
+        node,
+        background=background,
+        foreground=foreground,
+        event=event,
     )
 
 
@@ -8112,109 +8207,32 @@ def _provider_layout_action_background(
     return f"#{alpha:02X}{foreground[-6:]}"
 
 
-def _lower_pill_action(
-    label: str,
-    icon: Any,
+def _lower_action_template_tree(
+    node: Nested2Node,
+    *,
     background: str,
     foreground: str,
     event: list[dict[str, Any]],
-    registry: CardPlanRegistry,
 ) -> Nested2Node:
-    height = registry.ux_tokens["pillActionHeight"]
-    action_children: list[Nested2Node] = []
-    if isinstance(icon, str):
-        icon_size = registry.ux_tokens["pillActionIconSize"]
-        action_children.append(
-            Nested2Node(
-                "Image",
-                (
-                    icon,
-                    "icon",
-                    {
-                        "width": icon_size,
-                        "height": icon_size,
-                        "objectFit": "contain",
-                        "fillColor": foreground,
-                    },
-                ),
-                (),
-            )
-        )
-    action_children.append(
-        Nested2Node(
-            "Text",
-            (
-                label,
-                "compact-action",
-                {"fontColor": foreground, "fontSize": 14, "fontWeight": 500},
-            ),
-            (),
-        )
-    )
-    row = Nested2Node(
-        "Row",
-        ("actions", {"itemMargin": 8, "justifyContent": "center"}),
-        tuple(action_children),
-    )
-    return Nested2Node(
-        "Stack",
-        (
-            "overlay",
-            {
-                "width": "100%",
-                "height": height,
-                "padding": 8,
-                "borderRadius": height / 2,
-                "backgroundColor": background,
-                "alignContent": "center",
-                "onClick": event,
-            },
-        ),
-        (row,),
-    )
+    if len(node.children) != 1 or node.children[0].component_type != "Stack":
+        raise TerseDslNested2ConversionError("UX Action must contain one trusted Action Template.")
 
+    def apply_foreground(current: Nested2Node) -> Nested2Node:
+        children = tuple(apply_foreground(child) for child in current.children)
+        styled = Nested2Node(current.component_type, current.values, children)
+        if current.component_type == "Text":
+            return _merge_node_options(styled, {"fontColor": foreground})
+        if current.component_type == "Image":
+            return _merge_node_options(styled, {"fillColor": foreground})
+        return styled
 
-def _lower_icon_action(
-    icon: Any,
-    background: str,
-    foreground: str,
-    event: list[dict[str, Any]],
-    registry: CardPlanRegistry,
-) -> Nested2Node:
-    if not isinstance(icon, str):
-        raise TerseDslNested2ConversionError("IconAction requires an approved icon.")
-    if re.search(r"(?:^|[_-])white(?:[_.-]|$)", icon.casefold()):
-        background, foreground = foreground, "#FFFFFFFF"
-    size = registry.ux_tokens["iconActionSize"]
-    icon_size = registry.ux_tokens["iconActionIconSize"]
-    image = Nested2Node(
-        "Image",
-        (
-            icon,
-            "icon",
-            {
-                "width": icon_size,
-                "height": icon_size,
-                "objectFit": "contain",
-                "fillColor": foreground,
-            },
-        ),
-        (),
-    )
-    return Nested2Node(
-        "Stack",
-        (
-            "overlay",
-            {
-                "width": size,
-                "height": size,
-                "borderRadius": size / 2,
-                "backgroundColor": background,
-                "alignContent": "center",
-                "onClick": event,
-            },
-        ),
-        (image,),
+    content = apply_foreground(node.children[0])
+    return _merge_node_options(
+        content,
+        {
+            "backgroundColor": background,
+            "onClick": event,
+        },
     )
 
 

@@ -17,6 +17,13 @@ from services.template_generation.engine.terse_dsl_nested2_converter import (
 )
 
 _UX_ACTION_COMPONENTS = frozenset({"PillAction", "IconAction", "ActionTile"})
+_UX_ACTION_TEMPLATE_IDS = frozenset({"PillAction@1", "IconAction@1"})
+
+
+def _is_ux_action_call(call: ParsedCall) -> bool:
+    return (
+        call.kind == "component" and call.name in _UX_ACTION_COMPONENTS
+    ) or (call.kind == "template" and call.name in _UX_ACTION_TEMPLATE_IDS)
 
 
 def frame_ux_layout_root_children(
@@ -53,7 +60,7 @@ def frame_ux_layout_root_children(
     actions = tuple(
         child
         for child in root.children
-        if child.kind == "component" and child.name in _UX_ACTION_COMPONENTS
+        if _is_ux_action_call(child)
     )
     content = tuple(child for child in root.children if child not in actions)
     if len(content) <= maximum:
@@ -141,7 +148,7 @@ def _reparent_wrapped_layout_call(
     actions = tuple(
         child
         for child in layout.children
-        if child.kind == "component" and child.name in _UX_ACTION_COMPONENTS
+        if _is_ux_action_call(child)
     )
     business = ParsedCall(
         kind="component",
@@ -208,7 +215,7 @@ def _select_single_top_level_layout_call(
     actions = tuple(
         child
         for child in layout.children
-        if child.kind == "component" and child.name in _UX_ACTION_COMPONENTS
+        if _is_ux_action_call(child)
     )
     framed = ParsedCall(
         kind=layout.kind,

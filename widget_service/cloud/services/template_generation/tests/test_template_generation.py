@@ -2067,7 +2067,7 @@ async def test_bluetooth_layout_action_uses_cardtpl_foreground_opacity():
         body=(
             'Template("SingleFocusLayout@1",{},'
             'Template("BluetoothDeviceOverviewCaseFull@1",{}),'
-            'IconAction({"actionId":"event.open.music.daily",'
+            'Template("IconAction@1",{"actionId":"event.open.music.daily",'
             '"icon":"resources/base/media/icon_music.svg"}));'
         ),
     )
@@ -2105,7 +2105,8 @@ async def test_2x2_battery_pill_action_uses_normal_hero_template():
             'Template("HeroActionLayout@1",{},'
             'Template("BatteryOverviewNormalHero@1",'
             '{"batteryIcon":"resources/base/media/battery_leaf_fill.svg"}),'
-            'PillAction({"actionId":"event.setPowerSavingMode"}));'
+            'Template("PillAction@1",{"actionId":"event.setPowerSavingMode",'
+            '"label":"省电模式"}));'
         ),
     )
 
@@ -2116,9 +2117,17 @@ async def test_2x2_battery_pill_action_uses_normal_hero_template():
         model,
     )
 
-    assert output.template_ids == ("BatteryOverviewNormalHero@1", "HeroActionLayout@1")
+    assert output.template_ids == (
+        "BatteryOverviewNormalHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1",
+    )
     assert model.second_layer_prompt is not None
+    second_layer_system = model.second_layer_prompt[0]["content"]
     second_layer_user = model.second_layer_prompt[1]["content"]
+    assert "Template('PillAction@1', props)" in second_layer_system
+    assert '"actionId": "event.setPowerSavingMode"' in second_layer_system
+    assert '"label": "省电模式"' in second_layer_system
     assert "约 2x1.7；用于 2x2 主内容加一个 PillAction" in second_layer_user
     assert "selectedActionEventIds` 恰好一个且电量状态为 normal" in second_layer_user
     assert '"height":36' in output.a2ui
@@ -2137,6 +2146,37 @@ async def test_2x2_battery_pill_action_uses_normal_hero_template():
     assert hero_slot["styles"] == {"width": "matchParent", "layoutWeight": 1}
     assert action_slot["styles"] == {"width": "matchParent", "height": 36}
     assert components[action_slot["children"][0]]["component"] == "Stack"
+
+
+@pytest.mark.asyncio
+async def test_pill_action_template_rejects_mismatched_label_props():
+    binding = CandidateDataBinding(
+        capabilityId="GetPhoneBatteryInfo",
+        writeResultTo="/data/phoneBattery",
+        candidateOutputFields=["/batterySOC", "/chargingStatusDesc"],
+    )
+    model = _FixedTemplateModel(
+        theme_id="system-low-power-blue",
+        component_id="BatteryOverview",
+        available_template_ids=("BatteryOverviewNormalHero@1",),
+        capability_id="GetPhoneBatteryInfo",
+        required_fields=("/batterySOC", "/chargingStatusDesc"),
+        action_id="event.setPowerSavingMode",
+        body=(
+            'Template("HeroActionLayout@1",{},'
+            'Template("BatteryOverviewNormalHero@1",{}),'
+            'Template("PillAction@1",{"actionId":"event.setPowerSavingMode",'
+            '"label":"天气详情"}));'
+        ),
+    )
+
+    with pytest.raises(TemplateGenerationError, match="template body validation failed"):
+        await generate_template_a2ui(
+            _battery_task(),
+            _battery_card_spec(),
+            (binding,),
+            model,
+        )
 
 
 def test_battery_normal_hero_requires_a_selected_layout_action():
@@ -2416,7 +2456,7 @@ async def test_first_layer_selector_routes_and_preserves_action(
                     'Template("SingleFocusLayout@1",{},'
                     'Template("WeatherOverviewIconFull@1",'
                     '{"conditionIcon":"resources/base/media/icon_weather1.svg"}),'
-                    'IconAction({"actionId":"event.open.weather",'
+                    'Template("IconAction@1",{"actionId":"event.open.weather",'
                     '"icon":"resources/base/media/icon_weather1.svg"}));'
             )
 
@@ -2478,8 +2518,10 @@ async def test_compact_template_accepts_two_independently_selected_pill_actions(
             return (
                 'Template("ActionMatrixLayout@1",{},'
                 'Template("WeatherOverviewCompact@1",{}),'
-                'PillAction({"actionId":"event.open.weather"}),'
-                'PillAction({"actionId":"event.open.music.daily"}));'
+                'Template("PillAction@1",{"actionId":"event.open.weather",'
+                '"label":"天气详情"}),'
+                'Template("PillAction@1",{"actionId":"event.open.music.daily",'
+                '"label":"每日推荐"}));'
             )
 
     task_spec = _weather_task_spec().model_copy(
@@ -2510,7 +2552,11 @@ async def test_compact_template_accepts_two_independently_selected_pill_actions(
 
     assert output.a2ui.count('"call":"clickToIntent"') == 2
     assert "天气详情" in output.a2ui and "每日推荐" in output.a2ui
-    assert output.template_ids == ("WeatherOverviewCompact@1", "ActionMatrixLayout@1")
+    assert output.template_ids == (
+        "WeatherOverviewCompact@1",
+        "PillAction@1",
+        "ActionMatrixLayout@1",
+    )
 
 
 def _policy() -> GenerationRoutePolicy:
@@ -2904,7 +2950,7 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
         ],
     ]
     assert "selectedActionEventIds=[]" in second_layer_user
-    assert "只能按模板布局后缀使用 selectedActionEventIds" in second_layer_user
+    assert "只能按业务模板布局后缀选择 PillAction@1 或 IconAction@1" in second_layer_user
     assert "第二层业务模板使用规则" in second_layer_user
     assert "手机电量高级组件二层规则" not in second_layer_user
     assert captured["compact"]
@@ -3116,7 +3162,7 @@ async def test_first_layer_action_is_independent_from_selected_components():
         body=(
             'Template("SingleFocusLayout@1",{},Template("WeatherOverviewIconFull@1",'
             '{"conditionIcon":"resources/base/media/icon_weather1.svg"}),'
-            'IconAction({"actionId":"event.open.weather",'
+            'Template("IconAction@1",{"actionId":"event.open.weather",'
             '"icon":"resources/base/media/icon_weather1.svg"}));'
         ),
     )
@@ -3168,14 +3214,19 @@ async def test_first_layer_action_is_independent_from_selected_components():
     "action_call",
     [
         'IconAction({"actionId":"event.open.weather"})',
+        (
+            'IconAction({"actionId":"event.open.weather",'
+            '"icon":"resources/base/media/icon_weather1.svg"})'
+        ),
         'ActionTile({"actionId":"event.open.weather"})',
+        'PillAction({"actionId":"event.open.weather"})',
         (
             'PillAction({"actionId":"event.open.weather",'
             '"icon":"resources/base/media/icon_weather1.svg"})'
         ),
     ],
 )
-async def test_second_layer_rejects_non_pill_or_decorated_actions(action_call: str):
+async def test_second_layer_rejects_direct_action_components(action_call: str):
     model = WeatherTemplateModel(
         action_id="event.open.weather",
         body=(

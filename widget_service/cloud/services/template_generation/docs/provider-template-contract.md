@@ -233,9 +233,11 @@ Action 仍属于支持范围。
 
 第二层只读取已选业务 Provider 的 `secondLayerRule`，从首层 `availableTemplateIds` 选择最终 UI 模板和
 props；根布局也必须从 Layout
-Provider 选择模板。若第一层输出了 `action`，第二层按最终模板后缀在布局模板末尾生成对应 Action：
-Hero/WideHero 使用一个 PillAction，单 Compact 使用两个 PillAction，Full 最多使用一个带可信素材的
-IconAction；WideFull 和双 Compact 不生成 Action。
+Provider 选择模板。若第一层输出了 `action`，第二层按最终模板后缀在布局模板末尾调用 Action Provider：
+Hero/WideHero 使用一个 `Template("PillAction@1", props)`，单 Compact 使用两个 PillAction 模板，Full
+最多使用一个 `Template("IconAction@1", props)`；WideFull 和双 Compact 不生成 Action。PillAction Props
+包含 `actionId`、`label` 和可选 `icon`，IconAction Props 包含 `actionId`、`icon`。第二层只决定展示内容，
+微服务校验候选配对并注入主题色和可信事件，模型不得输出 `call`、`args`、`onClick`。
 
 ## 当前迁移范围
 

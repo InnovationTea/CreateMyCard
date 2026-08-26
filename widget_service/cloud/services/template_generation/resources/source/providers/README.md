@@ -18,6 +18,7 @@
 - `countdown`：`GetCountdownDays` → `CountdownOverviewFull@1`
 - `earphone`：`GetEarphoneInfo` → 14 个耳机状态/电量 UI 模板
 - `layout`：无数据能力 → 10 个支持 `...children` 的布局模板
+- `action`：无数据能力 → `PillAction@1`、`IconAction@1` 两个 Props 驱动的动作模板
 
 除 `GetSystemMemInfo` 使用 Bundle 本地 Schema 外，
 其余能力均只读引用正式能力注册表。新增或修改 `.cardtpl` 后必须重新加载 Provider Bundle，
@@ -35,6 +36,6 @@ PYTHONPATH=cloud .venv/bin/pytest -q tests/test_provider_template_bundle.py
 上述 Provider CardTemplate 均已接入 UX Registry 默认实现。运行时按 `primaryData`、`secondaryData`、
 `optionalData`、`dataDomain`、
 CardSpec `writeResultTo` 和 TaskSpec 字段进行准入，并在 Compiler 中继续复用原业务组件的组合顺序、
-角色校验。Action 使用第一层独立选择的零到两个 `eventId`，由第二层按模板后缀生成布局末尾的
-`PillAction` 或 `IconAction`；可信 Python
-构造器仅作为代码级回滚和影子测试基线，不再出现在默认 Prompt。
+角色校验。Action 使用第一层独立选择的零到两个 `eventId`，由第二层按业务模板后缀调用布局末尾的
+`PillAction@1` 或 `IconAction@1` 并填写 Props；Action Provider 拥有组件结构，微服务只注入主题色和
+可信事件。

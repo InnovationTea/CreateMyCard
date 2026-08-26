@@ -184,18 +184,34 @@ def test_checked_in_layout_templates_use_concrete_container_blueprints() -> None
             assert root.spread_children
 
 
+def test_checked_in_action_templates_expose_second_layer_props() -> None:
+    registry = get_cardplan_registry()
+    pill = registry.require_template("PillAction@1")
+    icon = registry.require_template("IconAction@1")
+
+    pill_schema = pill.variants[0].parameters_schema
+    icon_schema = icon.variants[0].parameters_schema
+    assert pill.provider_id == "com.huawei.action.cli"
+    assert pill_schema["required"] == ["actionId", "label"]
+    assert set(pill_schema["properties"]) == {"actionId", "label", "icon"}
+    assert icon_schema["required"] == ["actionId", "icon"]
+    assert set(icon_schema["properties"]) == {"actionId", "icon"}
+    assert pill.variants[0].root.component == "Stack"
+    assert icon.variants[0].root.component == "Stack"
+
+
 def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
     span = SourceSpan(start=0, end=1)
 
     def template(template_id: str) -> ParsedCall:
         return ParsedCall("template", template_id, ({},), (), span)
 
-    def action(name: str, action_id: str) -> ParsedCall:
-        return ParsedCall("component", name, ({"actionId": action_id},), (), span)
+    def action(template_id: str, action_id: str) -> ParsedCall:
+        return ParsedCall("template", template_id, ({"actionId": action_id},), (), span)
 
-    pill_one = action("PillAction", "event.one")
-    pill_two = action("PillAction", "event.two")
-    icon = action("IconAction", "event.icon")
+    pill_one = action("PillAction@1", "event.one")
+    pill_two = action("PillAction@1", "event.two")
+    icon = action("IconAction@1", "event.icon")
 
     _validate_provider_template_layout_action_requirements(
         (template("WeatherOverviewCompact@1"),),

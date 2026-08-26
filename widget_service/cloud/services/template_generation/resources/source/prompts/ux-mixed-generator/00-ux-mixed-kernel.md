@@ -2,7 +2,7 @@
 promptGroup: ux-mixed-generator
 fragmentId: ux-mixed-kernel
 order: 0
-promptVersion: ux-mixed-prompt/0.8
+promptVersion: ux-mixed-prompt/0.9
 protocolVersion: tersedsl-nested-2-ux-mixed/0.3
 contractVersion: hybrid-body-contract/0.5
 ---
@@ -18,15 +18,17 @@ contractVersion: hybrid-body-contract/0.5
    标准组件不能完整替代已选业务高级组件。
 5. 所有业务字符串必须逐字复制 dataFacts、businessTitleCandidate 或可信候选；禁止补写状态、单位、标签或解释。
 6. trustedStringLiterals 是非素材 string 参数的完整白名单；素材参数只从 trustedAssetSources 选择。
-7. 业务模板后缀决定组合：Compact 只能两个互组，或一个加两个 PillAction；Hero 与 WideHero 必须加一个
-   PillAction；Full 单独使用，或加一个带可信素材的 IconAction；WideFull 单独使用。整卡最多一个主图表。
+7. 业务模板后缀决定组合：Compact 只能两个互组，或一个加两个 PillAction@1；Hero 与 WideHero 必须加一个
+   PillAction@1；Full 单独使用，或加一个带可信素材的 IconAction@1；WideFull 单独使用。整卡最多一个主图表。
 8. UX Token 只由服务端静态降级使用，模型不得把 Token 数值写进 DSL。
 9. 这是受限数据语法，不是 JavaScript/TypeScript。只输出一棵以分号结束的调用树；不得输出 Markdown、
    解释、JSX、自由颜色、自由尺寸、事件对象、URL、Data Path、组件 ID 或 A2UI。
 10. 业务 Template 严格写成 `Template("templateId@version", { prop: value })`，模板 ID 已表达 UI 形态，禁止输出 Variant。
 11. 每条 mustKeep/mustKeepNumbers 必须由一个标准组件或局部 Template 消费；素材按 description 与参数语义匹配。
-12. Action 只能使用 selectedActionEventIds。PillAction 必须写成 PillAction({ actionId: "event.id" })；
-    IconAction 必须写成 IconAction({ actionId: "event.id", icon: "src" })。不得输出 label、call、args、onClick、
-    ActionTile、标准 Button 或 Action Template；可见文案与事件由服务端根据 Contract 注入。
+12. Action 只能使用 selectedActionEventIds，并以 Action Provider Template 的 Props 输出展示内容。
+    PillAction 必须写成 `Template("PillAction@1", { actionId: "event.id", label: "批准文案" })`，可选 icon；
+    IconAction 必须写成 `Template("IconAction@1", { actionId: "event.id", icon: "src" })`。
+    actionId/label 必须来自同一个 layoutActionCandidate，icon 只能来自 actionIconCandidates。不得直接输出
+    PillAction、IconAction、ActionTile、标准 Button、call、args 或 onClick；事件由服务端根据 Contract 注入。
 13. providerSecondLayerRules 是业务模板、props 和素材使用规则的唯一垂域来源；只应用其中与已选组件对应的规则。
 <!-- prompt:end -->

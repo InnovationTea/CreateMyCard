@@ -389,8 +389,9 @@ def build_ux_mixed_prompt(
             "只能从 componentCandidates 中同一 componentId 的 availableTemplateIds "
             "选择最终业务模板；不得使用 Provider 文档中的其他模板。",
             "selectedActionEventIds=" + json.dumps(selected_action_ids, ensure_ascii=False),
-            "Action 与业务组件解耦；只能按模板布局后缀使用 selectedActionEventIds，"
-            "并作为布局根连续的末尾直接 child；不得使用未选择的 Action。",
+            "Action 与业务组件解耦；只能按业务模板布局后缀选择 PillAction@1 或 IconAction@1，"
+            "通过 Props 输出批准的 actionId/label/icon，并作为布局根连续的末尾直接 child；"
+            "不得使用未选择的 Action，也不得输出事件执行字段。",
             "业务高级组件字段由服务端绑定到 TaskSpec.dataModelSchema 的端侧数据路径；"
             "最终有效 TerseDSL 使用完整 `${data.weather.temperature}` 占位值，"
             "并由服务端附加确定性的 `data = {...}`；"
