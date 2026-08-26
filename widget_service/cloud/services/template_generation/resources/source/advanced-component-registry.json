@@ -1,0 +1,1341 @@
+{
+  "registryVersion": "advanced-component-registry/1",
+  "components": [
+    {
+      "name": "WeatherOverview",
+      "domainId": "weather",
+      "description": "当前天气、温度、预警和未来预报摘要。",
+      "supportedRoles": [
+        "hero",
+        "support",
+        "micro"
+      ],
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minArea": "compact",
+      "variants": [
+        "current",
+        "alert",
+        "forecast"
+      ],
+      "defaultVariant": "current",
+      "fieldPriorities": {
+        "mustShow": [
+          "conditionText"
+        ],
+        "preferShow": [
+          "temperature",
+          "city"
+        ],
+        "expandedOnly": [
+          "high",
+          "low",
+          "alert"
+        ]
+      },
+      "supportsPrimaryAction": true,
+      "supportsPrimaryChart": false,
+      "sensitiveFields": [
+        "city"
+      ],
+      "detectionTerms": [
+        "weather",
+        "temperature",
+        "condition",
+        "forecast",
+        "天气",
+        "温度",
+        "预报"
+      ],
+      "variantTerms": {
+        "alert": [
+          "alert",
+          "warning",
+          "预警"
+        ],
+        "forecast": [
+          "forecast",
+          "daily",
+          "high",
+          "low",
+          "预报",
+          "最高",
+          "最低"
+        ]
+      },
+      "localTemplateIds": [
+        "ux-weather-hero@1",
+        "ux-condition-index@1",
+        "weather-summary@1"
+      ]
+    },
+    {
+      "name": "ScheduleOverview",
+      "domainId": "schedule",
+      "description": "日期、下一日程、议程和会议信息。",
+      "supportedRoles": [
+        "hero",
+        "support"
+      ],
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minArea": "standard",
+      "variants": [
+        "date",
+        "nextEvent",
+        "agenda",
+        "meeting"
+      ],
+      "defaultVariant": "nextEvent",
+      "fieldPriorities": {
+        "mustShow": [
+          "events.title",
+          "events.startAt"
+        ],
+        "preferShow": [
+          "events.endAt",
+          "countdown"
+        ],
+        "expandedOnly": [
+          "events.content",
+          "events.meetingId",
+          "events.location"
+        ]
+      },
+      "maxItemsByPresentation": {
+        "compact": 1,
+        "standard": 2,
+        "expanded": 3
+      },
+      "supportsPrimaryAction": true,
+      "supportsPrimaryChart": false,
+      "sensitiveFields": [
+        "events.content",
+        "events.meetingId",
+        "events.location"
+      ],
+      "detectionTerms": [
+        "calendar",
+        "schedule",
+        "meeting",
+        "event",
+        "日程",
+        "会议",
+        "安排",
+        "日期"
+      ],
+      "variantTerms": {
+        "meeting": [
+          "meeting",
+          "join",
+          "会议",
+          "加入"
+        ],
+        "agenda": [
+          "agenda",
+          "events",
+          "议程",
+          "日程列表"
+        ]
+      },
+      "localTemplateIds": [
+        "ux-calendar-content@1",
+        "ux-meeting-metadata@1",
+        "ux-context-summary@1",
+        "calendar-event@1",
+        "ux-countdown@1"
+      ]
+    },
+    {
+      "name": "TaskOverview",
+      "domainId": "task",
+      "description": "待办数量、最近待办、列表和完成状态。",
+      "supportedRoles": [
+        "hero",
+        "support"
+      ],
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minArea": "standard",
+      "variants": [
+        "count",
+        "nextTask",
+        "list",
+        "completed"
+      ],
+      "defaultVariant": "nextTask",
+      "fieldPriorities": {
+        "mustShow": [
+          "items.title",
+          "items.status"
+        ],
+        "preferShow": [
+          "items.dueAt",
+          "items.remindAt"
+        ],
+        "expandedOnly": [
+          "items.body",
+          "items.location"
+        ]
+      },
+      "maxItemsByPresentation": {
+        "compact": 1,
+        "standard": 2,
+        "expanded": 3
+      },
+      "supportsPrimaryAction": true,
+      "supportsPrimaryChart": true,
+      "sensitiveFields": [
+        "items.body",
+        "items.location"
+      ],
+      "detectionTerms": [
+        "task",
+        "todo",
+        "due",
+        "待办",
+        "任务",
+        "截止",
+        "完成"
+      ],
+      "variantTerms": {
+        "completed": [
+          "completed",
+          "completion",
+          "已完成",
+          "完成率"
+        ],
+        "list": [
+          "items",
+          "list",
+          "列表"
+        ]
+      },
+      "localTemplateIds": [
+        "text-stack@1",
+        "status-action@1",
+        "metric-summary@1"
+      ]
+    },
+    {
+      "name": "MemoPreview",
+      "domainId": "memo",
+      "description": "最近或重要备忘录的正文和提醒摘要。",
+      "supportedRoles": [
+        "hero",
+        "support"
+      ],
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minArea": "standard",
+      "variants": [
+        "plain",
+        "reminder",
+        "updated"
+      ],
+      "defaultVariant": "plain",
+      "fieldPriorities": {
+        "mustShow": [
+          "body"
+        ],
+        "preferShow": [
+          "title",
+          "remindAt"
+        ],
+        "expandedOnly": [
+          "updatedAt",
+          "createdAt"
+        ]
+      },
+      "maxItemsByPresentation": {
+        "compact": 1,
+        "standard": 1,
+        "expanded": 2
+      },
+      "supportsPrimaryAction": true,
+      "supportsPrimaryChart": false,
+      "sensitiveFields": [
+        "body"
+      ],
+      "detectionTerms": [
+        "memo",
+        "note",
+        "remind",
+        "备忘录",
+        "便签",
+        "提醒"
+      ],
+      "variantTerms": {
+        "reminder": [
+          "remind",
+          "提醒"
+        ],
+        "updated": [
+          "updated",
+          "最近更新",
+          "更新时间"
+        ]
+      },
+      "localTemplateIds": [
+        "text-stack@1",
+        "ux-context-summary@1"
+      ]
+    },
+    {
+      "name": "CallOverview",
+      "domainId": "call",
+      "description": "最近通话、未接来电和回拨入口。",
+      "supportedRoles": [
+        "hero",
+        "support"
+      ],
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minArea": "standard",
+      "variants": [
+        "latest",
+        "missed",
+        "log"
+      ],
+      "defaultVariant": "latest",
+      "fieldPriorities": {
+        "mustShow": [
+          "status",
+          "startedAt"
+        ],
+        "preferShow": [
+          "contact.name"
+        ],
+        "expandedOnly": [
+          "phoneNumber",
+          "durationSeconds"
+        ]
+      },
+      "maxItemsByPresentation": {
+        "compact": 1,
+        "standard": 2,
+        "expanded": 3
+      },
+      "supportsPrimaryAction": true,
+      "supportsPrimaryChart": false,
+      "sensitiveFields": [
+        "contact",
+        "phoneNumber"
+      ],
+      "detectionTerms": [
+        "call",
+        "phone",
+        "contact",
+        "missed",
+        "通话",
+        "电话",
+        "联系人",
+        "未接"
+      ],
+      "variantTerms": {
+        "missed": [
+          "missed",
+          "未接"
+        ],
+        "log": [
+          "records",
+          "log",
+          "记录"
+        ]
+      },
+      "localTemplateIds": [
+        "ux-icon-action@1",
+        "ux-action-summary@1",
+        "text-stack@1"
+      ]
+    },
+    {
+      "name": "BatteryOverview",
+      "domainId": "battery",
+      "description": "电量、充电状态、可信预计时长和设备存储/内存资源用量。",
+      "supportedRoles": [
+        "hero",
+        "support",
+        "micro"
+      ],
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minArea": "compact",
+      "variants": [
+        "normal",
+        "charging",
+        "low",
+        "runtime",
+        "resourceUsage"
+      ],
+      "defaultVariant": "normal",
+      "fieldPriorities": {
+        "mustShow": [
+          "levelPercent",
+          "chargeState"
+        ],
+        "preferShow": [
+          "estimatedRemainingMinutes",
+          "estimatedFullChargeMinutes"
+        ],
+        "expandedOnly": []
+      },
+      "supportsPrimaryAction": true,
+      "supportsPrimaryChart": true,
+      "sensitiveFields": [],
+      "detectionTerms": [
+        "battery",
+        "charge",
+        "power",
+        "soc",
+        "memory",
+        "storage",
+        "电量",
+        "充电",
+        "省电",
+        "内存",
+        "存储",
+        "清理"
+      ],
+      "variantTerms": {
+        "charging": [
+          "charging",
+          "chargeState",
+          "充电"
+        ],
+        "low": [
+          "low",
+          "warning",
+          "低电量"
+        ],
+        "runtime": [
+          "remaining",
+          "runtime",
+          "剩余时间"
+        ],
+        "resourceUsage": [
+          "memory",
+          "storage",
+          "内存",
+          "存储",
+          "清理"
+        ]
+      },
+      "localTemplateIds": [
+        "ux-battery-status@1",
+        "ux-device-metric@1",
+        "status-action@1"
+      ]
+    },
+    {
+      "name": "AppUsageOverview",
+      "domainId": "app-usage",
+      "description": "应用使用时长、限制和超时状态。",
+      "supportedRoles": [
+        "hero",
+        "support",
+        "micro"
+      ],
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minArea": "compact",
+      "variants": [
+        "singleApp",
+        "dailyLimit",
+        "overLimit"
+      ],
+      "defaultVariant": "singleApp",
+      "fieldPriorities": {
+        "mustShow": [
+          "appName",
+          "usedSeconds"
+        ],
+        "preferShow": [
+          "window",
+          "limitSeconds"
+        ],
+        "expandedOnly": [
+          "overSeconds"
+        ]
+      },
+      "supportsPrimaryAction": true,
+      "supportsPrimaryChart": true,
+      "sensitiveFields": [
+        "appName"
+      ],
+      "detectionTerms": [
+        "appusage",
+        "usage",
+        "screen time",
+        "usedseconds",
+        "应用使用",
+        "使用时长",
+        "屏幕时间"
+      ],
+      "variantTerms": {
+        "dailyLimit": [
+          "limit",
+          "限额",
+          "限制"
+        ],
+        "overLimit": [
+          "over",
+          "超时",
+          "超出"
+        ]
+      },
+      "localTemplateIds": [
+        "ux-segmented-limit@1",
+        "ux-dual-metric@1",
+        "metric-summary@1"
+      ]
+    },
+    {
+      "name": "ActivityOverview",
+      "domainId": "activity",
+      "description": "步数、活动热量和锻炼时长。",
+      "supportedRoles": [
+        "hero",
+        "support",
+        "micro"
+      ],
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minArea": "compact",
+      "variants": [
+        "steps",
+        "calories",
+        "combined"
+      ],
+      "defaultVariant": "combined",
+      "fieldPriorities": {
+        "mustShow": [
+          "primaryMetric"
+        ],
+        "preferShow": [
+          "steps",
+          "activeCaloriesKcal"
+        ],
+        "expandedOnly": [
+          "exerciseSeconds"
+        ]
+      },
+      "supportsPrimaryAction": true,
+      "supportsPrimaryChart": true,
+      "sensitiveFields": [],
+      "detectionTerms": [
+        "steps",
+        "activecalories",
+        "exercise",
+        "步数",
+        "活动热量",
+        "锻炼时长"
+      ],
+      "variantTerms": {
+        "steps": [
+          "steps",
+          "步数"
+        ],
+        "calories": [
+          "calories",
+          "热量"
+        ]
+      },
+      "localTemplateIds": [
+        "metric-cluster@1",
+        "ux-dual-metric@1",
+        "ux-action-summary@1"
+      ]
+    },
+    {
+      "name": "WorkoutOverview",
+      "domainId": "workout",
+      "description": "当前、最近或计划中的运动记录。",
+      "supportedRoles": [
+        "hero",
+        "support"
+      ],
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minArea": "standard",
+      "variants": [
+        "current",
+        "latest",
+        "planned"
+      ],
+      "defaultVariant": "latest",
+      "fieldPriorities": {
+        "mustShow": [
+          "type",
+          "durationSeconds"
+        ],
+        "preferShow": [
+          "startAt",
+          "caloriesKcal"
+        ],
+        "expandedOnly": [
+          "summary"
+        ]
+      },
+      "supportsPrimaryAction": true,
+      "supportsPrimaryChart": true,
+      "sensitiveFields": [],
+      "detectionTerms": [
+        "workout",
+        "training",
+        "sport",
+        "运动记录",
+        "训练",
+        "跑步",
+        "锻炼"
+      ],
+      "variantTerms": {
+        "current": [
+          "current",
+          "ongoing",
+          "进行中"
+        ],
+        "planned": [
+          "planned",
+          "plan",
+          "计划"
+        ]
+      },
+      "localTemplateIds": [
+        "ux-action-summary@1",
+        "ux-countdown@1",
+        "metric-summary@1"
+      ]
+    },
+    {
+      "name": "HeartRateOverview",
+      "domainId": "heart-rate",
+      "description": "当前心率、测量时间和关注状态。",
+      "supportedRoles": [
+        "hero",
+        "support",
+        "micro"
+      ],
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minArea": "compact",
+      "variants": [
+        "current",
+        "average",
+        "attention"
+      ],
+      "defaultVariant": "current",
+      "fieldPriorities": {
+        "mustShow": [
+          "bpm"
+        ],
+        "preferShow": [
+          "state",
+          "measuredAt"
+        ],
+        "expandedOnly": [
+          "range"
+        ]
+      },
+      "supportsPrimaryAction": true,
+      "supportsPrimaryChart": true,
+      "sensitiveFields": [
+        "bpm",
+        "measuredAt"
+      ],
+      "detectionTerms": [
+        "heartrate",
+        "heart rate",
+        "bpm",
+        "心率",
+        "心跳"
+      ],
+      "variantTerms": {
+        "average": [
+          "average",
+          "平均"
+        ],
+        "attention": [
+          "attention",
+          "warning",
+          "关注",
+          "异常"
+        ]
+      },
+      "localTemplateIds": [
+        "metric-ring@1",
+        "metric-summary@1",
+        "status-action@1"
+      ]
+    },
+    {
+      "name": "SleepOverview",
+      "domainId": "sleep",
+      "description": "昨夜睡眠时长、窗口和不足提醒。",
+      "supportedRoles": [
+        "hero",
+        "support",
+        "micro"
+      ],
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minArea": "compact",
+      "variants": [
+        "lastNight",
+        "insufficient",
+        "schedule"
+      ],
+      "defaultVariant": "lastNight",
+      "fieldPriorities": {
+        "mustShow": [
+          "durationSeconds"
+        ],
+        "preferShow": [
+          "sleepAt",
+          "wakeAt",
+          "state"
+        ],
+        "expandedOnly": [
+          "stages"
+        ]
+      },
+      "supportsPrimaryAction": true,
+      "supportsPrimaryChart": true,
+      "sensitiveFields": [
+        "sleepAt",
+        "wakeAt"
+      ],
+      "detectionTerms": [
+        "sleep",
+        "wake",
+        "bedtime",
+        "睡眠",
+        "入睡",
+        "起床",
+        "昨晚"
+      ],
+      "variantTerms": {
+        "insufficient": [
+          "insufficient",
+          "不足"
+        ],
+        "schedule": [
+          "schedule",
+          "bedtime",
+          "作息"
+        ]
+      },
+      "localTemplateIds": [
+        "ux-sleep-metric@1",
+        "ux-action-summary@1"
+      ]
+    },
+    {
+      "name": "LocationOverview",
+      "domainId": "location",
+      "description": "当前位置、常驻地和位置新鲜度。",
+      "supportedRoles": [
+        "hero",
+        "support"
+      ],
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minArea": "standard",
+      "variants": [
+        "current",
+        "home",
+        "pair"
+      ],
+      "defaultVariant": "current",
+      "fieldPriorities": {
+        "mustShow": [
+          "label"
+        ],
+        "preferShow": [
+          "updatedAt",
+          "accuracyMeters"
+        ],
+        "expandedOnly": [
+          "latitude",
+          "longitude"
+        ]
+      },
+      "supportsPrimaryAction": true,
+      "supportsPrimaryChart": false,
+      "sensitiveFields": [
+        "label",
+        "latitude",
+        "longitude"
+      ],
+      "detectionTerms": [
+        "location",
+        "latitude",
+        "longitude",
+        "address",
+        "位置",
+        "地点",
+        "经度",
+        "纬度"
+      ],
+      "variantTerms": {
+        "home": [
+          "home",
+          "常驻",
+          "家"
+        ],
+        "pair": [
+          "pair",
+          "distance",
+          "距离"
+        ]
+      },
+      "localTemplateIds": [
+        "ux-context-summary@1",
+        "text-stack@1",
+        "status-action@1"
+      ]
+    },
+    {
+      "name": "SystemModeOverview",
+      "domainId": "system-mode",
+      "description": "专注、免打扰和音频模式状态。",
+      "supportedRoles": [
+        "hero",
+        "support",
+        "micro"
+      ],
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minArea": "compact",
+      "variants": [
+        "focus",
+        "dnd",
+        "audio",
+        "combined"
+      ],
+      "defaultVariant": "combined",
+      "fieldPriorities": {
+        "mustShow": [
+          "primaryMode"
+        ],
+        "preferShow": [
+          "focus.endAt",
+          "doNotDisturb",
+          "audioMode"
+        ],
+        "expandedOnly": []
+      },
+      "supportsPrimaryAction": true,
+      "supportsPrimaryChart": false,
+      "sensitiveFields": [],
+      "detectionTerms": [
+        "focus",
+        "donotdisturb",
+        "dnd",
+        "audiomode",
+        "专注",
+        "免打扰",
+        "静音",
+        "振动",
+        "响铃"
+      ],
+      "variantTerms": {
+        "focus": [
+          "focus",
+          "专注"
+        ],
+        "dnd": [
+          "dnd",
+          "donotdisturb",
+          "免打扰"
+        ],
+        "audio": [
+          "audio",
+          "silent",
+          "ring",
+          "vibrate",
+          "静音",
+          "响铃",
+          "振动"
+        ]
+      },
+      "localTemplateIds": [
+        "status-action@1",
+        "ux-icon-action@1",
+        "text-stack@1"
+      ]
+    },
+    {
+      "name": "BluetoothDeviceOverview",
+      "domainId": "bluetooth",
+      "description": "蓝牙设备连接态和整机或分部件电量。",
+      "supportedRoles": [
+        "hero",
+        "support",
+        "micro"
+      ],
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minArea": "compact",
+      "variants": [
+        "generic",
+        "earbuds",
+        "multiDevice"
+      ],
+      "defaultVariant": "generic",
+      "fieldPriorities": {
+        "mustShow": [
+          "name",
+          "connectionState"
+        ],
+        "preferShow": [
+          "batteryPercent",
+          "batteryParts"
+        ],
+        "expandedOnly": [
+          "id"
+        ]
+      },
+      "maxItemsByPresentation": {
+        "compact": 1,
+        "standard": 2,
+        "expanded": 3
+      },
+      "supportsPrimaryAction": true,
+      "supportsPrimaryChart": true,
+      "sensitiveFields": [
+        "name",
+        "id"
+      ],
+      "detectionTerms": [
+        "bluetooth",
+        "earbuds",
+        "headphones",
+        "batteryParts",
+        "蓝牙",
+        "耳机",
+        "连接"
+      ],
+      "variantTerms": {
+        "earbuds": [
+          "earbuds",
+          "left",
+          "right",
+          "case",
+          "耳机",
+          "左耳",
+          "右耳",
+          "充电盒"
+        ],
+        "multiDevice": [
+          "devices",
+          "multiple",
+          "设备列表"
+        ]
+      },
+      "localTemplateIds": [
+        "ux-audio-device-status@1",
+        "ux-action-metric@1",
+        "ux-device-metric@1"
+      ]
+    },
+    {
+      "name": "SettingsOverview",
+      "domainId": "settings",
+      "description": "设置项当前值、开关和设置组。",
+      "supportedRoles": [
+        "hero",
+        "support"
+      ],
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minArea": "standard",
+      "variants": [
+        "toggle",
+        "value",
+        "group"
+      ],
+      "defaultVariant": "value",
+      "fieldPriorities": {
+        "mustShow": [
+          "items.label",
+          "items.value"
+        ],
+        "preferShow": [
+          "items.detail",
+          "items.enabled"
+        ],
+        "expandedOnly": [
+          "items.options"
+        ]
+      },
+      "maxItemsByPresentation": {
+        "compact": 1,
+        "standard": 2,
+        "expanded": 3
+      },
+      "supportsPrimaryAction": true,
+      "supportsPrimaryChart": false,
+      "sensitiveFields": [],
+      "detectionTerms": [
+        "setting",
+        "toggle",
+        "enabled",
+        "设置",
+        "开关",
+        "选项"
+      ],
+      "variantTerms": {
+        "toggle": [
+          "toggle",
+          "boolean",
+          "开关"
+        ],
+        "group": [
+          "items",
+          "group",
+          "设置组"
+        ]
+      },
+      "localTemplateIds": [
+        "status-action@1",
+        "ux-icon-action@1",
+        "text-stack@1"
+      ]
+    }
+  ],
+  "adaptiveTemplates": [
+    {
+      "templateId": "hero-action",
+      "description": "一个主组件和一个主动作。",
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "slots": [
+        {
+          "name": "hero",
+          "kind": "advanced",
+          "required": true,
+          "role": "hero"
+        },
+        {
+          "name": "action",
+          "kind": "action",
+          "required": true
+        }
+      ],
+      "maxComponentsBySize": {
+        "2x2": 1,
+        "2x4": 1
+      },
+      "supportsPrimaryAction": true,
+      "supportsPrimaryChart": true,
+      "requiredDataSignals": []
+    },
+    {
+      "templateId": "hero-support",
+      "description": "一个主组件和一个支持组件。",
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "slots": [
+        {
+          "name": "hero",
+          "kind": "advanced",
+          "required": true,
+          "role": "hero"
+        },
+        {
+          "name": "support",
+          "kind": "advanced",
+          "required": true,
+          "role": "support"
+        }
+      ],
+      "maxComponentsBySize": {
+        "2x2": 2,
+        "2x4": 2
+      },
+      "supportsPrimaryAction": false,
+      "supportsPrimaryChart": true,
+      "requiredDataSignals": []
+    },
+    {
+      "templateId": "hero-support-action",
+      "description": "主组件、支持组件和主动作。",
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "slots": [
+        {
+          "name": "hero",
+          "kind": "advanced",
+          "required": true,
+          "role": "hero"
+        },
+        {
+          "name": "support",
+          "kind": "advanced",
+          "required": true,
+          "role": "support"
+        },
+        {
+          "name": "action",
+          "kind": "action",
+          "required": true
+        }
+      ],
+      "maxComponentsBySize": {
+        "2x2": 2,
+        "2x4": 2
+      },
+      "supportsPrimaryAction": true,
+      "supportsPrimaryChart": true,
+      "requiredDataSignals": []
+    },
+    {
+      "templateId": "hero-two-support",
+      "description": "主组件和两个支持组件。",
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "slots": [
+        {
+          "name": "hero",
+          "kind": "advanced",
+          "required": true,
+          "role": "hero"
+        },
+        {
+          "name": "support1",
+          "kind": "advanced",
+          "required": true,
+          "role": "support"
+        },
+        {
+          "name": "support2",
+          "kind": "advanced",
+          "required": true,
+          "role": "support"
+        }
+      ],
+      "maxComponentsBySize": {
+        "2x2": 3,
+        "2x4": 3
+      },
+      "supportsPrimaryAction": false,
+      "supportsPrimaryChart": true,
+      "requiredDataSignals": []
+    },
+    {
+      "templateId": "two-content",
+      "description": "两个同等重要的内容组件。",
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "slots": [
+        {
+          "name": "primary",
+          "kind": "advanced",
+          "required": true,
+          "role": "hero"
+        },
+        {
+          "name": "secondary",
+          "kind": "advanced",
+          "required": true,
+          "role": "hero"
+        }
+      ],
+      "maxComponentsBySize": {
+        "2x2": 2,
+        "2x4": 2
+      },
+      "supportsPrimaryAction": false,
+      "supportsPrimaryChart": true,
+      "requiredDataSignals": []
+    },
+    {
+      "templateId": "list-action",
+      "description": "列表组件和一个主动作。",
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "slots": [
+        {
+          "name": "list",
+          "kind": "advanced",
+          "required": true,
+          "role": "hero"
+        },
+        {
+          "name": "action",
+          "kind": "action",
+          "required": true
+        }
+      ],
+      "maxComponentsBySize": {
+        "2x2": 1,
+        "2x4": 2
+      },
+      "supportsPrimaryAction": true,
+      "supportsPrimaryChart": false,
+      "requiredDataSignals": [
+        "list"
+      ]
+    },
+    {
+      "templateId": "metric-grid",
+      "description": "一个可选主指标和多个紧凑指标。",
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "slots": [
+        {
+          "name": "hero",
+          "kind": "advanced",
+          "required": false,
+          "role": "hero"
+        },
+        {
+          "name": "metrics",
+          "kind": "advanced",
+          "required": true,
+          "role": "micro"
+        }
+      ],
+      "maxComponentsBySize": {
+        "2x2": 3,
+        "2x4": 4
+      },
+      "supportsPrimaryAction": false,
+      "supportsPrimaryChart": true,
+      "requiredDataSignals": [
+        "metrics"
+      ]
+    },
+    {
+      "templateId": "weather-forecast",
+      "description": "当前天气和未来预报。",
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "slots": [
+        {
+          "name": "hero",
+          "kind": "advanced",
+          "required": true,
+          "role": "hero"
+        },
+        {
+          "name": "forecast",
+          "kind": "advanced",
+          "required": true,
+          "role": "support"
+        }
+      ],
+      "maxComponentsBySize": {
+        "2x2": 2,
+        "2x4": 3
+      },
+      "supportsPrimaryAction": false,
+      "supportsPrimaryChart": false,
+      "requiredDataSignals": [
+        "weather",
+        "forecast"
+      ]
+    }
+  ],
+  "sizeBudgets": [
+    {
+      "size": "2x2",
+      "recommendedAdvancedComponents": 2,
+      "maxAdvancedComponents": 3,
+      "maxPrimaryActions": 1,
+      "maxActionHitZones": 1,
+      "maxPrimaryCharts": 1,
+      "maxListItems": 2,
+      "maxInformationLevels": 3
+    },
+    {
+      "size": "2x4",
+      "recommendedAdvancedComponents": 3,
+      "maxAdvancedComponents": 4,
+      "maxPrimaryActions": 1,
+      "maxActionHitZones": 2,
+      "maxPrimaryCharts": 1,
+      "maxListItems": 3,
+      "maxInformationLevels": 3
+    }
+  ],
+  "domainGroups": {
+    "time-productivity": [
+      "schedule",
+      "task",
+      "memo"
+    ],
+    "commute": [
+      "weather",
+      "location",
+      "schedule"
+    ],
+    "device": [
+      "battery",
+      "bluetooth",
+      "settings",
+      "system-mode"
+    ],
+    "digital-wellbeing": [
+      "app-usage",
+      "system-mode",
+      "settings"
+    ],
+    "health": [
+      "activity",
+      "workout",
+      "heart-rate",
+      "sleep"
+    ],
+    "communication": [
+      "call"
+    ]
+  }
+}

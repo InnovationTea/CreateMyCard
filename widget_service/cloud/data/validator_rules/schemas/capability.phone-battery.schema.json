@@ -1,0 +1,26 @@
+{
+  "capabilityId": "GetPhoneBatteryInfo",
+  "preferredWriteResultTo": "/data/phoneBattery",
+  "inputSchema": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "batterySOC": {"type": "integer"},
+      "batterySOCText": {"type": "string"},
+      "chargingStatusDesc": {"type": "string"},
+      "batteryCapacityLevelDesc": {"type": "string"},
+      "healthStatusDesc": {"type": "string"},
+      "pluggedTypeDesc": {"type": "string"},
+      "batteryTemperatureText": {"type": "string"},
+      "nowCurrentText": {"type": "string"},
+      "voltageText": {"type": "string"},
+      "isBatteryPresentText": {"type": "string"},
+      "updatedAt": {"type": "string"}
+    }
+  }
+}

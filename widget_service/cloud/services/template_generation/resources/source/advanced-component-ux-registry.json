@@ -1,0 +1,80 @@
+{
+  "registryVersion": "advanced-component-ux-registry/2",
+  "sourceContract": "harmonyos-a2ui-advanced-components-design/advanced-component-contracts.ts",
+  "uxTokens": {
+    "radius": 20,
+    "safeInset": 12,
+    "sectionGap": 8,
+    "moduleGap": 8,
+    "denseInnerGap": 4,
+    "pillActionHeight": 36,
+    "pillActionIconSize": 20,
+    "iconActionSize": 30,
+    "iconActionIconSize": 16,
+    "titleSourceIconSize": 20,
+    "businessIconSize": 20,
+    "ringDefaultSize": 52,
+    "ringMinimumSize": 44,
+    "ringContentIconSize": 20,
+    "ringHeroIconSize": 24,
+    "weatherIconCompactSize": 48,
+    "weatherIconHeroSize": 56
+  },
+  "paletteSceneThemeIds": {
+    "generic": [
+      "meeting-paper-neutral",
+      "digital-wellbeing-neutral-dark"
+    ],
+    "office.focus": [
+      "focus-warm-amber"
+    ],
+    "office.schedule": [
+      "meeting-paper-neutral",
+      "focus-warm-amber"
+    ],
+    "weather.sunnyCare": [
+      "family-weather-care-blue"
+    ],
+    "weather.rainyCommute": [
+      "rainy-commute-gray-blue"
+    ],
+    "sport.action": [
+      "race-sunrise-action"
+    ],
+    "sleep.violet": [
+      "sleep-night-violet"
+    ],
+    "device.earbuds": [
+      "audio-product-neutral-violet"
+    ],
+    "device.lowPower": [
+      "system-low-power-blue"
+    ],
+    "device.cleanup": [
+      "device-clean-blue-teal"
+    ],
+    "digitalWellbeing": [
+      "digital-wellbeing-neutral-dark"
+    ]
+  },
+  "sizeBudgets": [
+    {
+      "size": "2x2",
+      "recommendedBusinessComponents": 2,
+      "maxBusinessComponents": 3,
+      "maxPrimaryActions": 1,
+      "maxPrimaryCharts": 1,
+      "maxListItems": 2,
+      "maxInformationLevels": 2
+    },
+    {
+      "size": "2x4",
+      "recommendedBusinessComponents": 3,
+      "maxBusinessComponents": 4,
+      "maxPrimaryActions": 1,
+      "maxPrimaryCharts": 1,
+      "maxListItems": 3,
+      "maxInformationLevels": 3
+    }
+  ]
+}
