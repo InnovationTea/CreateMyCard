@@ -56,7 +56,7 @@ await request_template_source_dsl(
 template_generation/
 ├── facade.py                 仅对外提供源 DSL 字符串生成接口
 ├── source_adapter.py          将模板产物转为当前 Processor 的源格式
-├── binding_dependencies.py   仅供模板渲染使用的字段依赖补齐
+├── binding_dependencies.py   模板路由使用的有效绑定边界
 ├── legacy_python.py          旧 Python Terse 流水线诊断入口
 ├── model_client.py           第一层/第二层模型窄适配器
 ├── engine/                   受限 DSL、模板匹配和确定性编译
@@ -65,7 +65,7 @@ template_generation/
 └── docs/                     本功能设计与接入文档
 ```
 
-模块只复用已构造的 TaskSpec、CardSpec 和有效数据绑定，并在内部复制 bindings 后补齐模板渲染依赖；
+模块只复用已构造的 TaskSpec、CardSpec 和有效数据绑定，不在模板侧派生或补齐缺失字段；
 模型运行时和请求上下文由调用方显式提供。
 模板模块不依赖通用 Builder、Validator、ArtifactStore 或 API Response，不得通过主服务对象调用私有能力或
 反向调用原协议逻辑。

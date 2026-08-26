@@ -90,6 +90,5 @@ Provider 和 Layout 资源仍由模板 Registry 管理：
 - 中央 UX Registry 只保留跨 Provider 的 UX Token、场景、Theme 映射和尺寸预算。
 - `config/template_controls.json` 在首层 Prompt 前过滤禁用 Provider 和模板，受信展开前再做确定性检查。
 
-模板渲染需要的附加候选字段由 `binding_dependencies.py` 在 `request_template_source_dsl` 内部补齐，
-只影响传给模板引擎的 bindings 副本。公共前置裁决、TaskSpec、CardSpec 以及原协议回退仍使用调用方
-原始有效绑定，模板模块不另行组装或替换这些公共对象。
+模板模块只使用调用方已经裁决出的有效数据绑定和 TaskSpec。Provider 模板需要的路径必须同时存在于
+`candidateOutputFields` 与 `TaskSpec.dataModelSchema`；缺字段时该模板不匹配，不在模板侧派生或补齐字段。

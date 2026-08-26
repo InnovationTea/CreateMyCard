@@ -999,7 +999,13 @@ def _validate_provider_template_state(
         wire_id, variant_name = identity
     if wire_id == "BatteryOverview@1":
         facts = extract_battery_overview_facts(task_spec.dataModelSchema)
-        if facts is None or not variant_name.startswith(facts.state):
+        if facts is None:
+            raise TerseDslNested2ConversionError(
+                "Battery Provider Template variant does not match the trusted state."
+            )
+        if variant_name == "percentRingHero":
+            return
+        if not variant_name.startswith(facts.state):
             raise TerseDslNested2ConversionError(
                 "Battery Provider Template variant does not match the trusted state."
             )
@@ -5609,6 +5615,7 @@ _PROVIDER_TEMPLATE_DIRECT_VARIANTS = {
         "normalWeatherCompact": "normal",
         "chargingWeatherCompact": "charging",
         "lowWeatherCompact": "low",
+        "percentRingHero": "percentRing",
     },
     "ResourceUsageOverview@1": {"full": "memory", "compact": "memory"},
     "AppUsageOverview@1": {
