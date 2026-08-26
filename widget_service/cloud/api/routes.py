@@ -364,8 +364,8 @@ def _request_trace_hashes(payload: dict[str, Any]) -> dict[str, str]:
     user = _mapping(user_auth.get("user"))
     legacy_device = _mapping(arguments.get("device"))
     user_value = _first_text(
-        user.get("userId"),
         content.get("uid"),
+        user.get("userId"),
         arguments.get("uid"),
         payload.get("uid"),
     )
