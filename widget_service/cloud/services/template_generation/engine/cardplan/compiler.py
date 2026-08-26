@@ -4759,7 +4759,12 @@ def _apply_template_background(
         return root
     theme = registry.require_theme(contract.theme_profile_id)
     palette = fusion_ball_palette_for_scene(theme.fusion_ball_scene)
-    return apply_fusion_ball_background(root, size=size, palette=palette)
+    return apply_fusion_ball_background(
+        root,
+        size=size,
+        palette=palette,
+        scene=theme.fusion_ball_scene,
+    )
 
 
 def _strip_direct_card_chrome_from_call(

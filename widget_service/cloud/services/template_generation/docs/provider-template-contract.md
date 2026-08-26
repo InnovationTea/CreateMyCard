@@ -163,6 +163,9 @@ Theme 是否命中场景由 `theme-profiles.json` 的内部 `fusionBallScene` �
 `backdropBlur: {"radius": 120}`。最外层 `Stack("card", ...)` 不设置 `backgroundColor`，融球背景容器也不
 铺设额外底色，背景由三个球体组合提供。球体和覆盖层使用 A2UI 允许 `children: []` 的空 `Stack`，不添加占位文本。
 `2x4` 不应用该装饰模板；其它场景的 `2x2` 与全部 `2x4` 都继续使用 Theme 原有纯色或线性渐变。
+融球内容层中非 PillAction 的 `Text` 统一使用 `fontColor: "#CCFFFFFF"`，即 80% 白色。
+天气图标保留原始多色素材和原有 `fillColor`；运动健康与睡眠场景的可染色语义图标继续使用白色前景。
+PillAction 的背景色、图标和文本均保留自身 Theme 原色，不应用融球内容前景色规则。
 
 ### 完整 A2UI 转换
 
@@ -182,11 +185,10 @@ converted = convert_a2ui_with_fusion_ball(a2ui, "weather")
 ```
 
 转换保留 surface、DataModel、原业务组件和根组件 ID。原根节点改为无背景的外层 `Stack`，其第一个
-子节点是固定融球结构，第二个子节点是改名为 `__genui_render_component__cardContent`、移除纯色和
-线性渐变后的原根组件。该前缀复用端侧已有的内容防溢出标记，不扩展 A2UI 协议；融球背景节点不携带
-前缀。端侧应按任意组件 ID 的前缀独立解析，不能与融球节点名或云侧层级强耦合。转换器拒绝保留 ID 与
-融球固定 ID 冲突的输入，对已经完整转换的输入原样返回；旧版 `cardContent` 融球产物再次转换时只升级
-内容 ID 标记。
+子节点是固定融球结构，第二个子节点是改名为 `cardContent`、移除纯色和线性渐变后的原根组件。
+`cardContent` 不携带端侧内容防溢出前缀，融球产物不启用内容层防溢出能力，也不扩展 A2UI 协议。
+转换器拒绝保留 ID 与融球固定 ID 冲突的输入，对已经完整转换的输入原样返回；旧版
+`__genui_render_component__cardContent` 融球产物再次转换时只移除内容 ID 标记。
 
 ## 两层 LLM 规则
 
