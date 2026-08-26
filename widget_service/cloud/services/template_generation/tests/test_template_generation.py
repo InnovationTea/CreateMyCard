@@ -519,20 +519,30 @@ def test_fusion_ball_wraps_only_2x2_and_replaces_the_card_gradient():
                         ),
                         (),
                     ),
+                    Nested2Node(
+                        "Text",
+                        ("详情", {"fontColor": "#FF64BB5C"}),
+                        (),
+                    ),
                 ),
             ),
         ),
     )
 
     palette = FusionBallPalette("#003399", "#0089BF", "#4174D9")
-    wrapped = apply_fusion_ball_background(card, size="2x2", palette=palette)
+    wrapped = apply_fusion_ball_background(
+        card,
+        size="2x2",
+        palette=palette,
+        scene="weather",
+    )
     foreground_options = wrapped.children[1].values[-1]
 
     assert wrapped.component_type == "Stack"
     assert wrapped.values[0] == "card"
     assert [child.values[-1]["_id"] for child in wrapped.children] == [
         "fusionBallBackground",
-        "__genui_render_component__cardContent",
+        "cardContent",
     ]
     assert "backgroundColor" not in foreground_options
     assert "linearGradient" not in foreground_options
@@ -541,11 +551,35 @@ def test_fusion_ball_wraps_only_2x2_and_replaces_the_card_gradient():
     assert foreground_options["height"] == 160
     content_icon = wrapped.children[1].children[1]
     action_icon = wrapped.children[1].children[2].children[0]
-    assert content_icon.values[0] == "resources/base/media/icon_weather1_foreground.svg"
-    assert content_icon.values[-1]["fillColor"] == "#FFFFFFFF"
+    action_text = wrapped.children[1].children[2].children[1]
+    content_text = wrapped.children[1].children[0]
+    assert content_text.values[-1]["fontColor"] == "#CCFFFFFF"
+    assert content_icon.values[0] == "resources/base/media/icon_weather1.svg"
+    assert content_icon.values[-1]["fillColor"] == "#FF000000"
     assert action_icon.values[-1]["fillColor"] == "#FF64BB5C"
-    assert apply_fusion_ball_background(card, size="2x4", palette=palette) is card
-    assert apply_fusion_ball_background(card, size="2x2", palette=None) is card
+    assert action_text.values[-1]["fontColor"] == "#FF64BB5C"
+
+    sport = apply_fusion_ball_background(
+        card,
+        size="2x2",
+        palette=palette,
+        scene="health-sport",
+    )
+    sport_icon = sport.children[1].children[1]
+    assert sport_icon.values[0] == "resources/base/media/icon_weather1_foreground.svg"
+    assert sport_icon.values[-1]["fillColor"] == "#FFFFFFFF"
+    assert apply_fusion_ball_background(
+        card,
+        size="2x4",
+        palette=palette,
+        scene="weather",
+    ) is card
+    assert apply_fusion_ball_background(
+        card,
+        size="2x2",
+        palette=None,
+        scene=None,
+    ) is card
 
 
 def test_template_compiler_keeps_non_fusion_2x2_theme_background():
@@ -602,7 +636,7 @@ def test_complete_a2ui_converter_replaces_stack_background_with_fusion_balls(
     update = messages[1]["updateComponents"]
     components = {component["id"]: component for component in update["components"]}
     root = components["root"]
-    content_id = "__genui_render_component__cardContent"
+    content_id = "cardContent"
     content = components[content_id]
 
     assert len(messages) == 3
@@ -632,14 +666,16 @@ def test_complete_a2ui_converter_replaces_stack_background_with_fusion_balls(
     assert components["fusionBallGlassLayer"]["styles"]["backdropBlur"] == {
         "radius": 120
     }
+    assert components["weatherTitle"]["styles"]["fontColor"] == "#CCFFFFFF"
     assert validate_card(dsl_text=converted).diagnostics == []
     assert convert_a2ui_with_fusion_ball(converted, scene="weather") == converted
 
 
-def test_complete_a2ui_converter_upgrades_legacy_fusion_content_marker():
+def test_complete_a2ui_converter_removes_legacy_fusion_content_marker():
     source = _complete_stack_a2ui({"backgroundColor": "#FF008FBF"})
     converted = convert_a2ui_with_fusion_ball(source, scene="weather")
-    legacy = converted.replace("__genui_render_component__cardContent", "cardContent")
+    legacy_content_id = "__genui_render_component__cardContent"
+    legacy = converted.replace("cardContent", legacy_content_id)
 
     upgraded = convert_a2ui_with_fusion_ball(legacy, scene="weather")
     update = json.loads(upgraded.splitlines()[1])["updateComponents"]
@@ -647,13 +683,13 @@ def test_complete_a2ui_converter_upgrades_legacy_fusion_content_marker():
 
     assert update["components"][0]["children"] == [
         "fusionBallBackground",
-        "__genui_render_component__cardContent",
+        "cardContent",
     ]
-    assert "__genui_render_component__cardContent" in component_ids
-    assert "cardContent" not in component_ids
+    assert "cardContent" in component_ids
+    assert legacy_content_id not in component_ids
 
 
-def test_complete_a2ui_converter_uses_white_content_icons_and_preserves_actions():
+def test_complete_a2ui_converter_styles_content_and_preserves_actions():
     messages = [
         json.loads(line)
         for line in _complete_stack_a2ui({"backgroundColor": "#FF008FBF"}).splitlines()
@@ -671,7 +707,7 @@ def test_complete_a2ui_converter_uses_white_content_icons_and_preserves_actions(
             {
                 "id": "pillAction",
                 "component": "Stack",
-                "children": ["pillActionIcon"],
+                "children": ["pillActionIcon", "pillActionLabel"],
                 "onClick": [{"call": "openWeather"}],
                 "styles": {"backgroundColor": "#FFFFFFFF"},
             },
@@ -680,6 +716,12 @@ def test_complete_a2ui_converter_uses_white_content_icons_and_preserves_actions(
                 "component": "Image",
                 "src": "resources/base/media/phone_fill.svg",
                 "styles": {"fillColor": "#FF64BB5C"},
+            },
+            {
+                "id": "pillActionLabel",
+                "component": "Text",
+                "content": "详情",
+                "styles": {"fontColor": "#FF64BB5C"},
             },
         ]
     )
@@ -694,11 +736,21 @@ def test_complete_a2ui_converter_uses_white_content_icons_and_preserves_actions(
         component["id"]: component for component in converted_update["components"]
     }
 
-    assert components["weatherIcon"]["src"] == (
+    assert components["weatherTitle"]["styles"]["fontColor"] == "#CCFFFFFF"
+    assert components["weatherIcon"]["src"] == "resources/base/media/icon_weather1.svg"
+    assert components["weatherIcon"]["styles"]["fillColor"] == "#FF000000"
+    assert components["pillActionIcon"]["styles"]["fillColor"] == "#FF64BB5C"
+    assert components["pillActionLabel"]["styles"]["fontColor"] == "#FF64BB5C"
+
+    sport = convert_a2ui_with_fusion_ball(source, scene="health-sport")
+    sport_update = json.loads(sport.splitlines()[1])["updateComponents"]
+    sport_components = {
+        component["id"]: component for component in sport_update["components"]
+    }
+    assert sport_components["weatherIcon"]["src"] == (
         "resources/base/media/icon_weather1_foreground.svg"
     )
-    assert components["weatherIcon"]["styles"]["fillColor"] == "#FFFFFFFF"
-    assert components["pillActionIcon"]["styles"]["fillColor"] == "#FF64BB5C"
+    assert sport_components["weatherIcon"]["styles"]["fillColor"] == "#FFFFFFFF"
 
 
 def test_complete_a2ui_converter_rejects_unsupported_scene():
@@ -2866,7 +2918,7 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
     assert root["component"] == "Stack"
     assert root["children"] == [
         "fusionBallBackground",
-        "__genui_render_component__cardContent",
+        "cardContent",
     ]
     assert root["styles"]["borderRadius"] == 18
     assert "backgroundColor" not in root["styles"]
@@ -2908,7 +2960,7 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
         row[0]: row for row in compact_rows if len(row) >= 3 and isinstance(row[0], str)
     }
     assert compact_rows[0][0:2] == ["root", "Stack"]
-    content_id = "__genui_render_component__cardContent"
+    content_id = "cardContent"
     assert compact_rows[0][3] == ["fusionBallBackground", content_id]
     assert "backgroundColor" not in compact_rows[0][2]
     assert "linearGradient" not in compact_rows[0][2]
@@ -2936,10 +2988,17 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
         item
         for item in components.values()
         if item.get("component") == "Image"
-        and item.get("src") == "resources/base/media/icon_weather1_foreground.svg"
+        and item.get("src") == "resources/base/media/icon_weather1.svg"
     ]
     assert len(weather_icons) == 1
-    assert weather_icons[0]["styles"]["fillColor"] == "#FFFFFFFF"
+    assert weather_icons[0]["styles"].get("fillColor") != "#FFFFFFFF"
+    text_components = [
+        item for item in components.values() if item.get("component") == "Text"
+    ]
+    assert text_components
+    assert all(
+        item["styles"]["fontColor"] == "#CCFFFFFF" for item in text_components
+    )
     assert captured["artifact"].effectiveCapabilities["data"] == ["ViewWeather"]
 
 

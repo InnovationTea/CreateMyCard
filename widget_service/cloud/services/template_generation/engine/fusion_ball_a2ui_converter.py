@@ -9,9 +9,8 @@ import copy
 import json
 from typing import Any
 
-_RENDER_COMPONENT_ID_PREFIX = "__genui_render_component__"
-_CARD_CONTENT_ID = f"{_RENDER_COMPONENT_ID_PREFIX}cardContent"
-_LEGACY_CARD_CONTENT_ID = "cardContent"
+_CARD_CONTENT_ID = "cardContent"
+_LEGACY_CARD_CONTENT_ID = "__genui_render_component__cardContent"
 _FUSION_BACKGROUND_COMPONENT_IDS = frozenset(
     {
         "fusionBallBackground",
@@ -29,6 +28,7 @@ _LEGACY_FUSION_COMPONENT_IDS = _FUSION_BACKGROUND_COMPONENT_IDS | {_LEGACY_CARD_
 _RESERVED_FUSION_COMPONENT_IDS = _FUSION_COMPONENT_IDS | {_LEGACY_CARD_CONTENT_ID}
 _BACKGROUND_STYLE_KEYS = ("backgroundColor", "linearGradient")
 _FUSION_FOREGROUND_COLOR = "#FFFFFFFF"
+_FUSION_TEXT_COLOR = "#CCFFFFFF"
 _FUSION_ICON_REPLACEMENTS = {
     "resources/base/media/icon_weather1.svg": "resources/base/media/icon_weather1_foreground.svg",
 }
@@ -89,7 +89,11 @@ def convert_a2ui_with_fusion_ball(a2ui: str, scene: str) -> str:
             f"Fusion-ball component ids already exist: {', '.join(conflicts)}."
         )
 
-    _apply_fusion_content_icon_foreground(components, root_children)
+    _apply_fusion_content_foreground(
+        components,
+        root_children,
+        preserve_image_foreground=scene == "weather",
+    )
     outer_root, card_content = _split_root(root)
     fusion_components = _build_fusion_components(palette)
     components[root_index : root_index + 1] = [
@@ -204,11 +208,13 @@ def _component_ids(components: list[Any]) -> set[str]:
     }
 
 
-def _apply_fusion_content_icon_foreground(
+def _apply_fusion_content_foreground(
     components: list[Any],
     root_children: list[str],
+    *,
+    preserve_image_foreground: bool,
 ) -> None:
-    """Tint reachable content icons white without overriding interactive actions."""
+    """Apply fusion text color and the scene-specific content icon treatment."""
     component_by_id = {
         component["id"]: component
         for component in components
@@ -224,7 +230,19 @@ def _apply_fusion_content_icon_foreground(
         if component is None:
             return
         preserve_here = preserve_action_foreground or bool(component.get("onClick"))
-        if component.get("component") == "Image" and not preserve_here:
+        component_type = component.get("component")
+        if component_type == "Text" and not preserve_here:
+            styles = component.get("styles")
+            if not isinstance(styles, dict):
+                styles = {}
+                component["styles"] = styles
+            styles["fontColor"] = _FUSION_TEXT_COLOR
+        should_tint_image = (
+            component_type == "Image"
+            and not preserve_here
+            and not preserve_image_foreground
+        )
+        if should_tint_image:
             source = component.get("src")
             if isinstance(source, str):
                 component["src"] = _FUSION_ICON_REPLACEMENTS.get(source, source)
