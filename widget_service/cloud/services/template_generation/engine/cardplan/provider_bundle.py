@@ -20,6 +20,7 @@ from models.generation import TaskSpec
 from services.template_generation.engine.advanced.models import UxLayoutComponentCapability
 
 from .models import (
+    TEMPLATE_CHILD_SLOT_COMPONENT,
     BusinessTemplateGroup,
     StrictModel,
     TemplateBinding,
@@ -74,6 +75,7 @@ _PROVIDER_ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:\.[a-z][a-z0-9-]*)+$")
 _PROVIDER_VERSION_RE = re.compile(r"^[1-9][0-9]*\.[0-9]+\.[0-9]+(?:-[a-z0-9.-]+)?$")
 _MAX_BUNDLE_FILE_BYTES = 1_048_576
 _MAX_TEMPLATE_SOURCE_CHARS = 262_144
+_MAX_INDEXED_TEMPLATE_CHILDREN = 256
 _PROVIDER_TEMPLATE_LAYOUT_KINDS = (
     "WideHero",
     "WideFull",
@@ -450,10 +452,16 @@ def _compile_ui_card_template(
     root = _parse_component_body(transformed)
     if root.component in _CONDITIONAL_COMPONENTS:
         raise ValueError("Provider Template conditional cannot be the Template root")
-    if root.spread_children and not accepts_children:
+    spreads_children = any(node.spread_children for node in _walk_template_nodes(root))
+    indexed_children = _template_child_slot_indexes(root)
+    uses_children = spreads_children or bool(indexed_children)
+    if uses_children and not accepts_children:
         raise ValueError("Provider Template body uses children without ...children")
-    if accepts_children and not any(node.spread_children for node in _walk_template_nodes(root)):
+    if accepts_children and not uses_children:
         raise ValueError("Provider Template declares ...children but does not place children")
+    if spreads_children and indexed_children:
+        raise ValueError("Provider Template cannot mix children and children[index] slots")
+    _validate_template_child_slot_indexes(indexed_children)
     _validate_interpolation_bindings(root, bindings)
     binding_references, parameter_references = _template_references(root)
     if not binding_references <= set(bindings):
@@ -831,6 +839,13 @@ def _component_node(node: ast.AST) -> TemplateNode:
             child_started = True
             spread_children = True
             continue
+        child_index = _indexed_template_child(argument)
+        if child_index is not None:
+            if component not in _CONTAINERS:
+                raise ValueError("Provider Template leaf cannot contain children[index]")
+            child_started = True
+            children.append(_template_child_slot(child_index))
+            continue
         is_reference = _is_reference_call(argument)
         if isinstance(argument, ast.Call) and not is_reference:
             child_started = True
@@ -857,6 +872,49 @@ def _component_node(node: ast.AST) -> TemplateNode:
         children=tuple(children),
         spreadChildren=spread_children,
     )
+
+
+def _indexed_template_child(node: ast.AST) -> int | None:
+    if not isinstance(node, ast.Subscript):
+        return None
+    if not isinstance(node.value, ast.Name) or node.value.id != "children":
+        return None
+    index_node = node.slice
+    is_integer = isinstance(index_node, ast.Constant) and isinstance(index_node.value, int)
+    if not is_integer or isinstance(index_node.value, bool):
+        raise ValueError("Provider Template children index must be a non-negative integer literal")
+    index = index_node.value
+    if index < 0 or index >= _MAX_INDEXED_TEMPLATE_CHILDREN:
+        raise ValueError("Provider Template children index is outside the supported range")
+    return index
+
+
+def _template_child_slot(index: int) -> TemplateNode:
+    return TemplateNode(
+        component=TEMPLATE_CHILD_SLOT_COMPONENT,
+        values=(TemplateValue(kind="literal", value=index),),
+    )
+
+
+def _template_child_slot_indexes(root: TemplateNode) -> tuple[int, ...]:
+    indexes: list[int] = []
+    for node in _walk_template_nodes(root):
+        if node.component != TEMPLATE_CHILD_SLOT_COMPONENT:
+            continue
+        value = node.values[0].value if len(node.values) == 1 else None
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise ValueError("Provider Template contains an invalid children slot")
+        indexes.append(value)
+    return tuple(indexes)
+
+
+def _validate_template_child_slot_indexes(indexes: tuple[int, ...]) -> None:
+    if not indexes:
+        return
+    if len(indexes) != len(set(indexes)):
+        raise ValueError("Provider Template children indexes must be unique")
+    if sorted(indexes) != list(range(len(indexes))):
+        raise ValueError("Provider Template children indexes must be contiguous from zero")
 
 
 def _template_value(node: ast.AST) -> TemplateValue:
@@ -1127,6 +1185,8 @@ def _split_wire_id(wire_id: str) -> tuple[str, int]:
 
 
 def _template_shape(root: TemplateNode) -> tuple[int, int]:
+    if root.component == TEMPLATE_CHILD_SLOT_COMPONENT:
+        return 0, 0
     if root.component in _CONDITIONAL_COMPONENTS:
         return _template_shape(root.children[0])
     if root.component == "Text" and root.values and root.values[0].kind == "interpolation":

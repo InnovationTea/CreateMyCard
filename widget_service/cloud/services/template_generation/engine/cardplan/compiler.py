@@ -62,6 +62,7 @@ from .fusion_ball_background import (
     fusion_ball_palette_for_scene,
 )
 from .models import (
+    TEMPLATE_CHILD_SLOT_COMPONENT,
     ExpansionStats,
     HybridBodyContract,
     TemplateDefinition,
@@ -858,23 +859,41 @@ def _expand_call(
         provider_binding_roots,
     )
     spread_parent = _template_spread_parent(variant.root)
+    layout_template_id = (
+        definition.template_id
+        if definition.template_id in UX_LAYOUT_COMPONENT_IDS
+        else None
+    )
+    child_parent = layout_template_id or spread_parent or parent
+    child_layout_id = layout_template_id or (
+        spread_parent if spread_parent in UX_LAYOUT_COMPONENT_IDS else ux_layout_id
+    )
     expanded_children = tuple(
         _expand_call(
             child,
-            parent=spread_parent or parent,
+            parent=child_parent,
             contract=contract,
             registry=registry,
             state=state,
             task_spec=task_spec,
             provider_binding_roots=provider_binding_roots,
-            ux_layout_id=(
-                spread_parent if spread_parent in UX_LAYOUT_COMPONENT_IDS else ux_layout_id
-            ),
+            ux_layout_id=child_layout_id,
         )
         for child in call.children
     )
+    indexed_child_slots = _template_child_slot_indexes(variant.root)
+    if indexed_child_slots and len(expanded_children) != len(indexed_child_slots):
+        raise TerseDslNested2ConversionError(
+            f"Template indexed child count is invalid: {wire_id}/{len(expanded_children)}"
+        )
     if wire_id == "ux-bluetooth-overview@2" and ux_layout_id == "PeerPairLayout":
         root = _expand_bluetooth_battery_peer(params, registry)
+    elif layout_template_id and variant.root.component not in UX_LAYOUT_COMPONENT_IDS:
+        root = Nested2Node(
+            layout_template_id,
+            (dict(params),) if params else (),
+            expanded_children,
+        )
     else:
         root = _instantiate_blueprint(
             variant.root,
@@ -4204,6 +4223,10 @@ def _instantiate_blueprint(
     spread_children: tuple[Nested2Node, ...] = (),
 ) -> Nested2Node:
     binding_values = bindings or {}
+    if node.component == TEMPLATE_CHILD_SLOT_COMPONENT:
+        raise TerseDslNested2ConversionError(
+            "Template child slot cannot be instantiated as a component root."
+        )
     if node.component in {"IfParam", "IfMissingParam", "IfBind", "IfMissingBind"}:
         raise TerseDslNested2ConversionError(
             "Template conditional cannot be instantiated as a component root."
@@ -4236,6 +4259,14 @@ def _instantiate_blueprint_children(
 ) -> tuple[Nested2Node, ...]:
     instantiated: list[Nested2Node] = []
     for child in children:
+        child_slot_index = _template_child_slot_index(child)
+        if child_slot_index is not None:
+            if child_slot_index >= len(spread_children):
+                raise TerseDslNested2ConversionError(
+                    f"Template child slot is missing: children[{child_slot_index}]"
+                )
+            instantiated.append(spread_children[child_slot_index])
+            continue
         if child.component in {"IfParam", "IfMissingParam", "IfBind", "IfMissingBind"}:
             guard_name = child.values[0].value
             assert isinstance(guard_name, str)
@@ -4279,6 +4310,30 @@ def _instantiate_blueprint_children(
             )
         )
     return tuple(instantiated)
+
+
+def _template_child_slot_index(node: TemplateNode) -> int | None:
+    if node.component != TEMPLATE_CHILD_SLOT_COMPONENT:
+        return None
+    value = node.values[0].value if len(node.values) == 1 else None
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise TerseDslNested2ConversionError("Template contains an invalid child slot.")
+    return value
+
+
+def _template_child_slot_indexes(root: TemplateNode) -> tuple[int, ...]:
+    indexes: list[int] = []
+
+    def visit(node: TemplateNode) -> None:
+        child_slot_index = _template_child_slot_index(node)
+        if child_slot_index is not None:
+            indexes.append(child_slot_index)
+            return
+        for child in node.children:
+            visit(child)
+
+    visit(root)
+    return tuple(indexes)
 
 
 def _template_spread_parent(root: TemplateNode) -> str | None:
@@ -6796,6 +6851,16 @@ def _lower_registered_ux_layout(
     contract: HybridBodyContract,
     registry: CardPlanRegistry,
 ) -> Nested2Node:
+    provider_layout = _instantiate_provider_layout_blueprint(
+        layout_id,
+        content,
+        actions,
+        params=configuration,
+        contract=contract,
+        registry=registry,
+    )
+    if provider_layout is not None:
+        return provider_layout
     if layout_id == "SingleFocusLayout":
         return _lower_single_focus_layout(content, actions, configuration, size, registry)
     if layout_id == "HeroActionLayout":
@@ -6843,6 +6908,48 @@ def _lower_registered_ux_layout(
             registry,
         )
     raise TerseDslNested2ConversionError(f"Unsupported UX Layout lowering: {layout_id}")
+
+
+def _instantiate_provider_layout_blueprint(
+    layout_id: str,
+    content: tuple[Nested2Node, ...],
+    actions: tuple[Nested2Node, ...],
+    *,
+    params: dict[str, Any],
+    contract: HybridBodyContract,
+    registry: CardPlanRegistry,
+) -> Nested2Node | None:
+    definitions = tuple(
+        definition
+        for wire_id in contract.allowed_template_ids
+        if (definition := registry.require_template(wire_id)).template_id == layout_id
+        and definition.source_format == "cardtpl/1"
+    )
+    if not definitions:
+        return None
+    if len(definitions) > 1:
+        raise TerseDslNested2ConversionError(
+            f"Provider Layout Template is ambiguous: {layout_id}"
+        )
+    definition = definitions[0]
+    variant = definition.variants[0]
+    if variant.root.component in UX_LAYOUT_COMPONENT_IDS:
+        return None
+    if definition.bindings:
+        raise TerseDslNested2ConversionError(
+            "Provider Layout Template cannot declare data bindings."
+        )
+    children = (*content, *actions)
+    indexed_child_slots = _template_child_slot_indexes(variant.root)
+    if indexed_child_slots and len(children) != len(indexed_child_slots):
+        raise TerseDslNested2ConversionError(
+            f"Provider Layout Template child count is invalid: {definition.wire_id}"
+        )
+    return _instantiate_blueprint(
+        variant.root,
+        params,
+        spread_children=children,
+    )
 
 
 def _lower_single_focus_layout(

@@ -95,6 +95,11 @@ Column("compact",
 #End
 ```
 
+声明 `...children` 的模板有两种互斥放置方式：可变数量容器使用 `children` 展开；固定槽位布局使用
+`children[0]`、`children[1]` 等索引。索引必须为从 `0` 开始的连续整数字面量，每个索引只出现一次，
+调用时 child 数量必须和槽位数一致。布局模板应直接写出需要保留到最终 A2UI 的容器、尺寸和间距；
+不得只放一个同名内部布局组件，再依赖编译器硬编码重建骨架。
+
 - `$path` 声明模板展开必需的数据，必须按视觉层级进入 `primaryData` 或 `secondaryData`；两组数据都必须
   在 TaskSpec 中存在，只有 `optionalData` 可以缺省。
 - `$optionalPath` 声明可选数据，引用必须位于 `IfPresent(data.xxx, ...)` 或
