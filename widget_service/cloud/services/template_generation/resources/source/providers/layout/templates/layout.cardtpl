@@ -9,7 +9,20 @@ SingleFocusLayout(children)
 data = {
 }
 
-HeroActionLayout(children)
+Column({
+  "width": 'matchParent',
+  "height": 'matchParent',
+  "itemMargin": 8
+},
+  Column({
+    "width": 'matchParent',
+    "layoutWeight": 1,
+  }, children[0]),
+  Column({
+    "width": 'matchParent',
+    "height": 36,
+  }, children[1])
+)
 #End
 
 #Template HeroSupportLayout@1(props: {}, ...children)

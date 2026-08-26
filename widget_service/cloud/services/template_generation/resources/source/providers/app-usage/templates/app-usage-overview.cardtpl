@@ -7,7 +7,7 @@ data = {
 
 Column(
     "compact",
-    {"_advancedComponent": "AppUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    {"_advancedComponent": "AppUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
     Row(
         "between",
         {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
@@ -27,7 +27,7 @@ Column(
     ),
     Column(
         "compact",
-        {"layoutWeight": 1, "justifyContent": "end", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+        {"justifyContent": "end", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
         Row(
             "between",
             {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
@@ -58,7 +58,7 @@ data = {
 
 Column(
     "compact",
-    {"_advancedComponent": "AppUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    {"_advancedComponent": "AppUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 10, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
     Row(
         "between",
         {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
@@ -78,7 +78,7 @@ Column(
     ),
     Column(
         "compact",
-        {"layoutWeight": 1, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+        {"justifyContent": "start", "alignItems": "start", "clip": true, "itemMargin": 4, "constraintSize": {"minWidth": 0, "minHeight": 0}},
         Row(
             "between",
             {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
@@ -93,7 +93,7 @@ Column(
             Text(
                 `更新于 ${data.updatedAt}`,
                 "subtitle",
-                {"fontSize": 10, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                {"fontSize": 10, "fontWeight": 500, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
             )
         )
     )
