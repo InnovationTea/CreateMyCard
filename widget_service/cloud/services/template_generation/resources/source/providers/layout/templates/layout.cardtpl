@@ -2,7 +2,11 @@
 data = {
 }
 
-SingleFocusLayout(children)
+Stack({
+  "width": "matchParent",
+  "height": "matchParent",
+  "alignContent": "topStart"
+}, children)
 #End
 
 #Template HeroActionLayout@1(props: {}, ...children)
@@ -10,17 +14,17 @@ data = {
 }
 
 Column({
-  "width": 'matchParent',
-  "height": 'matchParent',
+  "width": "matchParent",
+  "height": "matchParent",
   "itemMargin": 8
 },
   Column({
-    "width": 'matchParent',
-    "layoutWeight": 1,
+    "width": "matchParent",
+    "layoutWeight": 1
   }, children[0]),
   Column({
-    "width": 'matchParent',
-    "height": 36,
+    "width": "matchParent",
+    "height": 36
   }, children[1])
 )
 #End
@@ -29,54 +33,108 @@ Column({
 data = {
 }
 
-HeroSupportLayout(children)
+Column({
+  "width": "matchParent",
+  "height": "matchParent",
+  "itemMargin": 8
+},
+  Column({
+    "width": "matchParent",
+    "layoutWeight": 1
+  }, children[0]),
+  Column({
+    "width": "matchParent",
+    "height": 36
+  }, children[1])
+)
 #End
 
 #Template HeroSupportActionLayout@1(props: {}, ...children)
 data = {
 }
 
-HeroSupportActionLayout(children)
+Column({
+  "width": "matchParent",
+  "height": "matchParent",
+  "itemMargin": 8
+},
+  Column({
+    "width": "matchParent",
+    "layoutWeight": 1
+  }, children[0]),
+  Column({
+    "width": "matchParent",
+    "height": 36
+  }, children[1]),
+  Column({
+    "width": "matchParent",
+    "height": 36
+  }, children[2])
+)
 #End
 
 #Template PeerPairLayout@1(props: {}, ...children)
 data = {
 }
 
-PeerPairLayout(children)
+Row({
+  "width": "matchParent",
+  "height": "matchParent",
+  "itemMargin": 8
+}, children)
 #End
 
 #Template SequentialSummaryLayout@1(props: {}, ...children)
 data = {
 }
 
-SequentialSummaryLayout(children)
+Column({
+  "width": "matchParent",
+  "height": "matchParent",
+  "itemMargin": 8
+}, children)
 #End
 
 #Template EqualItemsLayout@1(props: {}, ...children)
 data = {
 }
 
-EqualItemsLayout(children)
+Row({
+  "width": "matchParent",
+  "height": "matchParent",
+  "itemMargin": 8
+}, children)
 #End
 
 #Template ListActionLayout@1(props: {}, ...children)
 data = {
 }
 
-ListActionLayout(children)
+Column({
+  "width": "matchParent",
+  "height": "matchParent",
+  "itemMargin": 8
+}, children)
 #End
 
 #Template ActionMatrixLayout@1(props: {}, ...children)
 data = {
 }
 
-ActionMatrixLayout(children)
+Row({
+  "width": "matchParent",
+  "height": "matchParent",
+  "itemMargin": 8
+}, children)
 #End
 
 #Template WeatherNowForecastLayout@1(props: {}, ...children)
 data = {
 }
 
-WeatherNowForecastLayout(children)
+Column({
+  "width": "matchParent",
+  "height": "matchParent",
+  "itemMargin": 8
+}, children)
 #End

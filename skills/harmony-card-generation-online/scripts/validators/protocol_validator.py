@@ -1,11 +1,6 @@
 from __future__ import annotations
 
-from .base import (
-    BaseValidator,
-    expression_like,
-    is_empty_required_value,
-    is_json_pointer,
-)
+from .base import BaseValidator, expression_like, is_empty_required_value, is_json_pointer
 
 
 class ProtocolValidator(BaseValidator):
@@ -37,7 +32,7 @@ class ProtocolValidator(BaseValidator):
                     message="genui 每行 version 必须固定。",
                     fix_hint='把 version 改为 "v0.9"。',
                 )
-            payload_keys = [key for key in message if key != "version"]
+            payload_keys = [key for key in message.keys() if key != "version"]
             if expected not in message or len(payload_keys) != 1:
                 payload_ready = False
                 reporter.add(

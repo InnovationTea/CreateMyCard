@@ -2,18 +2,8 @@
   "schemaVersion": "template-controls/1",
   "disabledProviderIds": [
     "com.huawei.calendar.cli",
-    "com.huawei.earphone.cli",
-    "com.huawei.system-memory.cli",
-    "com.huawei.countdown.cli"
+    "com.huawei.earphone.cli"
   ],
-  "disabledTemplateIds": [
-    "WeatherOverviewAirQualityHero@1",
-    "WeatherOverviewUvFull@1",
-    "WeatherOverviewConditionFull@1",
-    "SleepOverviewDurationScoreFull@1",
-    "SleepOverviewDurationFull@1",
-    "SleepOverviewDurationDetailedFull@1",
-    "SleepOverviewInsufficientDetailedFull@1"
-  ],
+  "disabledTemplateIds": [],
   "firstLayerComponentSelector": "search"
 }

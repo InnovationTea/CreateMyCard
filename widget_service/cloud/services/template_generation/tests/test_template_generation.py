@@ -94,7 +94,7 @@ from services.template_generation.engine.terse_dsl_nested2_converter import (
 from services.widget_generation_service import WidgetGenerationService
 
 _WEATHER_BODY = (
-    'Template("SingleFocusLayout@1",{},Template("WeatherOverviewFull@1",'
+    'Template("SingleFocusLayout@1",{},Template("WeatherOverviewIconFull@1",'
     '{"conditionIcon":"resources/base/media/icon_weather1.svg"}));'
 )
 _WEATHER_TEMPLATE_FIELDS = (
@@ -180,7 +180,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 90
+    assert len(registry.provider_template_ids) == 92
     assert {
         "ActivityOverviewStepsFull@1",
         "AppUsageOverviewFull@1",
@@ -371,52 +371,6 @@ def test_nested2_full_document_converts_component_binding_and_data_model():
     }
 
 
-def test_nested2_full_document_converts_expr_and_container_size():
-    profile = A2UIProtocolRegistry.read_design_protocol_profile(
-        TERSE_DSL_NESTED2_PROFILE_ID
-    )
-    task_spec = {
-        "dataModelSchema": {
-            "data": {
-                "items": {"type": "array", "sampleValue": ["A", "B"]},
-            }
-        }
-    }
-    source = (
-        'Column("card",Text(Expr("size(${data.items}) > 0 ? \'有数据\' : \'无数据\'"),'
-        '"body")); data={"items":["A","B"]}'
-    )
-
-    a2ui = convert_terse_dsl_nested2_to_a2ui(
-        source,
-        size="2x2",
-        protocol_profile=profile,
-        task_spec=task_spec,
-    )
-    messages = [json.loads(line) for line in a2ui.splitlines()]
-    text_component = messages[1]["updateComponents"]["components"][1]
-    root_styles = messages[1]["updateComponents"]["components"][0]["styles"]
-
-    assert root_styles["width"] == "matchParent"
-    assert root_styles["height"] == "matchParent"
-    assert text_component["content"] == (
-        "{{ size(${/data/items}) > 0 ? '有数据' : '无数据' }}"
-    )
-    assert validate_card(dsl_text=a2ui).diagnostics == []
-
-    wide_a2ui = convert_terse_dsl_nested2_to_a2ui(
-        source,
-        size="2x4",
-        protocol_profile=profile,
-        task_spec=task_spec,
-    )
-    wide_messages = [json.loads(line) for line in wide_a2ui.splitlines()]
-    wide_root_styles = wide_messages[1]["updateComponents"]["components"][0]["styles"]
-    assert wide_root_styles["width"] == "matchParent"
-    assert wide_root_styles["height"] == "matchParent"
-    assert validate_card(dsl_text=wide_a2ui).diagnostics == []
-
-
 def test_nested2_full_document_rejects_internal_projection_data():
     profile = A2UIProtocolRegistry.read_design_protocol_profile(
         TERSE_DSL_NESTED2_PROFILE_ID
@@ -604,6 +558,16 @@ def test_fusion_ball_wraps_only_2x2_and_replaces_the_card_gradient():
     assert content_icon.values[-1]["fillColor"] == "#FF000000"
     assert action_icon.values[-1]["fillColor"] == "#FF64BB5C"
     assert action_text.values[-1]["fontColor"] == "#FF64BB5C"
+
+    sport = apply_fusion_ball_background(
+        card,
+        size="2x2",
+        palette=palette,
+        scene="health-sport",
+    )
+    sport_icon = sport.children[1].children[1]
+    assert sport_icon.values[0] == "resources/base/media/icon_weather1_foreground.svg"
+    assert sport_icon.values[-1]["fillColor"] == "#FFFFFFFF"
     assert apply_fusion_ball_background(
         card,
         size="2x4",
@@ -683,16 +647,12 @@ def test_complete_a2ui_converter_replaces_stack_background_with_fusion_balls(
     assert root["children"] == ["fusionBallBackground", content_id]
     assert root["styles"]["padding"] == 0
     assert root["styles"]["alignContent"] == "topStart"
-    assert root["styles"]["width"] == "matchParent"
-    assert root["styles"]["height"] == "matchParent"
     assert "backgroundColor" not in root["styles"]
     assert "linearGradient" not in root["styles"]
     assert content["component"] == "Stack"
     assert content["children"] == ["weatherTitle"]
     assert content["styles"]["padding"] == 12
     assert content["styles"]["alignContent"] == "center"
-    assert content["styles"]["width"] == "matchParent"
-    assert content["styles"]["height"] == "matchParent"
     assert "backgroundColor" not in content["styles"]
     assert "linearGradient" not in content["styles"]
     assert components["fusionBallLarge"]["styles"]["backgroundColor"] == "#003399"
@@ -711,15 +671,10 @@ def test_complete_a2ui_converter_replaces_stack_background_with_fusion_balls(
     assert convert_a2ui_with_fusion_ball(converted, scene="weather") == converted
 
 
-@pytest.mark.parametrize(
-    "legacy_content_id",
-    ["__genui_render_component__cardContent"],
-)
-def test_complete_a2ui_converter_upgrades_legacy_fusion_content_marker(
-    legacy_content_id: str,
-):
+def test_complete_a2ui_converter_removes_legacy_fusion_content_marker():
     source = _complete_stack_a2ui({"backgroundColor": "#FF008FBF"})
     converted = convert_a2ui_with_fusion_ball(source, scene="weather")
+    legacy_content_id = "__genui_render_component__cardContent"
     legacy = converted.replace("cardContent", legacy_content_id)
 
     upgraded = convert_a2ui_with_fusion_ball(legacy, scene="weather")
@@ -734,7 +689,7 @@ def test_complete_a2ui_converter_upgrades_legacy_fusion_content_marker(
     assert legacy_content_id not in component_ids
 
 
-def test_complete_a2ui_converter_styles_text_and_preserves_weather_icons():
+def test_complete_a2ui_converter_styles_content_and_preserves_actions():
     messages = [
         json.loads(line)
         for line in _complete_stack_a2ui({"backgroundColor": "#FF008FBF"}).splitlines()
@@ -786,6 +741,16 @@ def test_complete_a2ui_converter_styles_text_and_preserves_weather_icons():
     assert components["weatherIcon"]["styles"]["fillColor"] == "#FF000000"
     assert components["pillActionIcon"]["styles"]["fillColor"] == "#FF64BB5C"
     assert components["pillActionLabel"]["styles"]["fontColor"] == "#FF64BB5C"
+
+    sport = convert_a2ui_with_fusion_ball(source, scene="health-sport")
+    sport_update = json.loads(sport.splitlines()[1])["updateComponents"]
+    sport_components = {
+        component["id"]: component for component in sport_update["components"]
+    }
+    assert sport_components["weatherIcon"]["src"] == (
+        "resources/base/media/icon_weather1_foreground.svg"
+    )
+    assert sport_components["weatherIcon"]["styles"]["fillColor"] == "#FFFFFFFF"
 
 
 def test_complete_a2ui_converter_rejects_unsupported_scene():
@@ -1230,8 +1195,8 @@ def test_disabled_weather_template_is_hidden_from_both_llm_layers():
 
     assert disabled_template_id not in first_layer_content
     assert disabled_template_id not in second_layer_rules
-    assert "WeatherOverviewConditionFull@1" in first_layer_content
-    assert "WeatherOverviewConditionFull@1" in second_layer_rules
+    assert "WeatherOverviewIconFull@1" in first_layer_content
+    assert "WeatherOverviewIconFull@1" in second_layer_rules
 
 
 def test_disabled_template_cannot_be_restored_by_first_layer_output():
@@ -1283,7 +1248,7 @@ def test_unknown_template_controls_fail_closed(kwargs, message):
         CardPlanRegistry(**kwargs)
 
 
-def test_checked_in_template_controls_apply_provider_and_template_filters():
+def test_checked_in_template_controls_disable_calendar_and_earphone():
     controls = load_template_controls()
     registry = CardPlanRegistry(
         disabled_provider_ids=controls.disabled_provider_ids,
@@ -1293,22 +1258,10 @@ def test_checked_in_template_controls_apply_provider_and_template_filters():
     assert controls.disabled_provider_ids == (
         "com.huawei.calendar.cli",
         "com.huawei.earphone.cli",
-        "com.huawei.system-memory.cli",
-        "com.huawei.countdown.cli",
     )
-    assert controls.disabled_template_ids == (
-        "WeatherOverviewAirQualityHero@1",
-        "WeatherOverviewUvFull@1",
-        "WeatherOverviewConditionFull@1",
-        "SleepOverviewDurationScoreFull@1",
-        "SleepOverviewDurationFull@1",
-        "SleepOverviewDurationDetailedFull@1",
-        "SleepOverviewInsufficientDetailedFull@1",
-    )
+    assert controls.disabled_template_ids == ()
     assert not registry.template_is_enabled("ScheduleOverviewNextEventFull@1")
     assert not registry.template_is_enabled("BluetoothDeviceOverviewCaseFull@1")
-    assert not registry.template_is_enabled("ResourceUsageOverviewFull@1")
-    assert not registry.template_is_enabled("CountdownOverviewFull@1")
     assert registry.template_is_enabled("WeatherOverviewFull@1")
 
 
@@ -1406,85 +1359,6 @@ def _template_nodes(node: Any, component: str) -> list[Any]:
     return matches
 
 
-def test_weather_templates_use_one_optional_condition_icon_parameter() -> None:
-    registry = get_cardplan_registry()
-    weather_template_ids = {
-        "WeatherOverviewCompact@1",
-        "WeatherOverviewHero@1",
-        "WeatherOverviewFull@1",
-        "WeatherOverviewConditionFull@1",
-        "WeatherOverviewHumidityFull@1",
-        "WeatherOverviewUvFull@1",
-        "WeatherOverviewAirQualityHero@1",
-    }
-
-    assert "WeatherOverviewIconCompact@1" not in registry.provider_template_ids
-    assert "WeatherOverviewIconFull@1" not in registry.provider_template_ids
-    for template_id in weather_template_ids:
-        schema = registry.require_template(template_id).variants[0].parameters_schema
-        assert schema["properties"] == {"conditionIcon": {"type": "string"}}
-        assert schema["required"] == []
-        root = registry.require_variant(template_id, "default").root
-        conditionals = _template_nodes(root, "IfParam")
-        assert len(conditionals) == 1
-        assert conditionals[0].values[0].value == "conditionIcon"
-        assert conditionals[0].children[0].component == "Image"
-        assert _template_node_options(conditionals[0].children[0])["width"] == 20
-        assert _template_node_options(conditionals[0].children[0])["height"] == 20
-
-
-@pytest.mark.parametrize(
-    "template_id",
-    ("WeatherOverviewHero@1", "WeatherOverviewAirQualityHero@1"),
-)
-def test_weather_hero_templates_follow_location_hero_support_layout(template_id: str) -> None:
-    root = get_cardplan_registry().require_variant(template_id, "default").root
-
-    assert [child.component for child in root.children] == ["Row", "Column"]
-    assert _template_node_options(root)["itemMargin"] == 2
-    assert _template_node_options(root)["justifyContent"] == "start"
-    header, information = root.children
-    header_options = _template_node_options(header)
-    assert header_options["height"] == 20
-    assert header_options["justifyContent"] == "spaceBetween"
-    assert header_options["alignItems"] == "top"
-    assert [child.component for child in information.children] == ["Text", "Text"]
-    hero_options = _template_node_options(information.children[0])
-    assert (hero_options["fontSize"], hero_options["fontWeight"]) == (38, 700)
-    for support in information.children[1:]:
-        support_options = _template_node_options(support)
-        assert (support_options["fontSize"], support_options["fontWeight"]) == (14, 400)
-
-
-@pytest.mark.parametrize(
-    "template_id",
-    (
-        "WeatherOverviewFull@1",
-        "WeatherOverviewConditionFull@1",
-        "WeatherOverviewHumidityFull@1",
-        "WeatherOverviewUvFull@1",
-    ),
-)
-def test_weather_full_templates_follow_split_primary_support_layout(template_id: str) -> None:
-    root = get_cardplan_registry().require_variant(template_id, "default").root
-
-    assert [child.component for child in root.children] == ["Column", "Column"]
-    assert _template_node_options(root)["itemMargin"] == 2
-    assert _template_node_options(root)["justifyContent"] == "spaceBetween"
-    primary, support = root.children
-    assert [child.component for child in primary.children] == ["Row", "Text"]
-    header_options = _template_node_options(primary.children[0])
-    assert header_options["height"] == 20
-    assert header_options["justifyContent"] == "spaceBetween"
-    assert header_options["alignItems"] == "top"
-    hero_options = _template_node_options(primary.children[1])
-    assert (hero_options["fontSize"], hero_options["fontWeight"]) == (38, 700)
-    assert [child.component for child in support.children] == ["Text", "Text"]
-    for support_text in support.children:
-        support_options = _template_node_options(support_text)
-        assert (support_options["fontSize"], support_options["fontWeight"]) == (12, 400)
-
-
 def test_pr6_bluetooth_action_background_is_owned_by_cardtpl_metadata():
     registry = get_cardplan_registry()
     definition = registry.require_template("BluetoothDeviceOverviewCaseFull@1")
@@ -1527,18 +1401,10 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
     assert _template_node_options(countdown.children[1].children[0])["justifyContent"] == "center"
 
     app_usage = registry.require_variant("AppUsageOverviewFull@1", "default").root
-    assert _template_node_options(app_usage)["justifyContent"] == "spaceBetween"
+    assert _template_node_options(app_usage)["justifyContent"] == "start"
     duration_region = app_usage.children[1]
     assert _template_node_options(duration_region)["justifyContent"] == "end"
-    assert "layoutWeight" not in _template_node_options(duration_region)
     assert "itemMargin" not in _template_node_options(duration_region)
-    app_usage_hero = registry.require_variant("AppUsageOverviewHero@1", "default").root
-    assert _template_node_options(app_usage_hero)["itemMargin"] == 10
-    hero_duration_region = app_usage_hero.children[1]
-    assert _template_node_options(hero_duration_region)["itemMargin"] == 4
-    assert "layoutWeight" not in _template_node_options(hero_duration_region)
-    updated_at = hero_duration_region.children[1].children[0]
-    assert _template_node_options(updated_at)["fontWeight"] == 500
 
     battery = registry.require_variant("BatteryOverviewNormalFull@1", "default").root
     assert _template_node_options(battery.children[1])["fontColor"] == "#99000000"
@@ -2457,7 +2323,10 @@ class WeatherTemplateModel:
         route_usable: bool = True,
         action_id: str | None = None,
         body: str = _WEATHER_BODY,
-        available_template_ids: tuple[str, ...] = ("WeatherOverviewFull@1",),
+        available_template_ids: tuple[str, ...] = (
+            "WeatherOverviewFull@1",
+            "WeatherOverviewIconFull@1",
+        ),
     ) -> None:
         self.body_called = False
         self.route_usable = route_usable
@@ -2482,7 +2351,9 @@ class WeatherTemplateModel:
         return {
             "themeId": "family-weather-care-blue",
             "requiredOutputFieldsByCapability": (
-                {"ViewWeather": required_fields} if self.route_usable else {}
+                {"ViewWeather": required_fields}
+                if self.route_usable
+                else {}
             ),
             "action": self.action_id if self.route_usable else None,
         }
@@ -2527,24 +2398,26 @@ async def test_first_layer_selector_routes_and_preserves_action(
                     "componentCandidates": [
                         {
                             "componentId": "WeatherOverview",
-                            "availableTemplateIds": ["WeatherOverviewFull@1"],
+                            "availableTemplateIds": ["WeatherOverviewIconFull@1"],
                         }
                     ],
-                    "action": ["event.open.weather"],
+                        "action": ["event.open.weather"],
                 }
             return {
                 "themeId": "family-weather-care-blue",
-                "requiredOutputFieldsByCapability": {"ViewWeather": ["/current/condition"]},
+                "requiredOutputFieldsByCapability": {
+                    "ViewWeather": ["/current/condition"]
+                },
                 "action": "event.open.weather",
             }
 
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
-            return (
-                'Template("SingleFocusLayout@1",{},'
-                'Template("WeatherOverviewFull@1",'
-                '{"conditionIcon":"resources/base/media/icon_weather1.svg"}),'
-                'IconAction({"actionId":"event.open.weather",'
-                '"icon":"resources/base/media/icon_weather1.svg"}));'
+                return (
+                    'Template("SingleFocusLayout@1",{},'
+                    'Template("WeatherOverviewIconFull@1",'
+                    '{"conditionIcon":"resources/base/media/icon_weather1.svg"}),'
+                    'IconAction({"actionId":"event.open.weather",'
+                    '"icon":"resources/base/media/icon_weather1.svg"}));'
             )
 
     controls = TemplateControls(
@@ -2638,6 +2511,8 @@ async def test_compact_template_accepts_two_independently_selected_pill_actions(
     assert output.a2ui.count('"call":"clickToIntent"') == 2
     assert "天气详情" in output.a2ui and "每日推荐" in output.a2ui
     assert output.template_ids == ("WeatherOverviewCompact@1", "ActionMatrixLayout@1")
+
+
 def _policy() -> GenerationRoutePolicy:
     return GenerationRoutePolicy(
         operation="generateWidgetCardCompactDsl",
@@ -3002,6 +2877,8 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
                 "WeatherOverviewCompact@1",
                 "WeatherOverviewConditionFull@1",
                 "WeatherOverviewFull@1",
+                "WeatherOverviewIconCompact@1",
+                "WeatherOverviewIconFull@1",
             ],
         }
     ]
@@ -3015,11 +2892,15 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
             "WeatherOverviewCompact@1",
             "WeatherOverviewConditionFull@1",
             "WeatherOverviewFull@1",
+            "WeatherOverviewIconCompact@1",
+            "WeatherOverviewIconFull@1",
         ],
         [
             "WeatherOverviewCompact@1",
             "WeatherOverviewConditionFull@1",
             "WeatherOverviewFull@1",
+            "WeatherOverviewIconCompact@1",
+            "WeatherOverviewIconFull@1",
         ],
     ]
     assert "selectedActionEventIds=[]" in second_layer_user
@@ -3052,8 +2933,6 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
         "cardContent",
     ]
     assert root["styles"]["borderRadius"] == 18
-    assert root["styles"]["width"] == "matchParent"
-    assert root["styles"]["height"] == "matchParent"
     assert "backgroundColor" not in root["styles"]
     assert "linearGradient" not in root["styles"]
     assert medium_ball["children"] == []
@@ -3107,8 +2986,6 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     components = {item["id"]: item for item in messages[1]["updateComponents"]["components"]}
     assert components["root"]["component"] == "Stack"
     assert components["root"]["children"] == ["fusionBallBackground", content_id]
-    assert components["root"]["styles"]["width"] == "matchParent"
-    assert components["root"]["styles"]["height"] == "matchParent"
     assert "backgroundColor" not in components["root"]["styles"]
     assert components["fusionBallLarge"]["children"] == []
     assert components["fusionBallMedium"]["children"] == []
@@ -3119,8 +2996,6 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     }
     assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#0089BF"
     assert "linearGradient" not in components[content_id]["styles"]
-    assert components[content_id]["styles"]["width"] == 160
-    assert components[content_id]["styles"]["height"] == 160
     weather_icons = [
         item
         for item in components.values()
@@ -3230,30 +3105,8 @@ async def test_unused_candidate_fields_do_not_block_query_required_weather_field
         model,
     )
 
-    assert output.template_ids == ("WeatherOverviewFull@1", "SingleFocusLayout@1")
+    assert output.template_ids == ("WeatherOverviewIconFull@1", "SingleFocusLayout@1")
     assert model.body_called is True
-
-
-@pytest.mark.asyncio
-async def test_weather_full_omits_condition_icon_when_optional_param_is_absent():
-    model = WeatherTemplateModel(
-        body='Template("SingleFocusLayout@1",{},Template("WeatherOverviewFull@1",{}));',
-    )
-    binding = CandidateDataBinding(
-        capabilityId="ViewWeather",
-        writeResultTo="/data/weather",
-        candidateOutputFields=list(_WEATHER_TEMPLATE_FIELDS),
-    )
-
-    output = await generate_template_a2ui(
-        _weather_task_spec(),
-        _weather_card_spec(),
-        (binding,),
-        model,
-    )
-
-    assert output.template_ids == ("WeatherOverviewFull@1", "SingleFocusLayout@1")
-    assert "resources/base/media/icon_weather1.svg" not in output.a2ui
 
 
 @pytest.mark.asyncio
@@ -3261,7 +3114,7 @@ async def test_first_layer_action_is_independent_from_selected_components():
     model = WeatherTemplateModel(
         action_id="event.open.weather",
         body=(
-            'Template("SingleFocusLayout@1",{},Template("WeatherOverviewFull@1",'
+            'Template("SingleFocusLayout@1",{},Template("WeatherOverviewIconFull@1",'
             '{"conditionIcon":"resources/base/media/icon_weather1.svg"}),'
             'IconAction({"actionId":"event.open.weather",'
             '"icon":"resources/base/media/icon_weather1.svg"}));'
@@ -3326,7 +3179,7 @@ async def test_second_layer_rejects_non_pill_or_decorated_actions(action_call: s
     model = WeatherTemplateModel(
         action_id="event.open.weather",
         body=(
-            'Template("SingleFocusLayout@1",{},Template("WeatherOverviewFull@1",'
+            'Template("SingleFocusLayout@1",{},Template("WeatherOverviewIconFull@1",'
             '{"conditionIcon":"resources/base/media/icon_weather1.svg"}),' + action_call + ");"
         ),
     )

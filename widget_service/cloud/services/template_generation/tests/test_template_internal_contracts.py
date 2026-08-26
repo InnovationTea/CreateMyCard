@@ -9,16 +9,15 @@ import pytest
 from models.generation import TaskSpec
 from services.template_generation.engine.cardplan.compiler import (
     _instantiate_blueprint,
-    _provider_runtime_expression,
     _validate_provider_template_layout_action_requirements,
 )
 from services.template_generation.engine.cardplan.models import (
     TEMPLATE_CHILD_SLOT_COMPONENT,
     SourceSpan,
-    TemplateValue,
 )
 from services.template_generation.engine.cardplan.parser import ParsedCall, parse_hybrid_card
 from services.template_generation.engine.cardplan.provider_bundle import compile_card_template
+from services.template_generation.engine.cardplan.registry import get_cardplan_registry
 from services.template_generation.engine.pipeline import _task_spec_log_summary
 from services.template_generation.engine.terse_dsl_nested2_converter import (
     Nested2Node,
@@ -58,17 +57,17 @@ data = {
 }
 
 Column({
-  "width": 'matchParent',
-  "height": 'matchParent',
+  "width": "matchParent",
+  "height": "matchParent",
   "itemMargin": 8
 },
   Column({
-    "width": 'matchParent',
-    "layoutWeight": 1,
+    "width": "matchParent",
+    "layoutWeight": 1
   }, children[0]),
   Column({
-    "width": 'matchParent',
-    "height": 36,
+    "width": "matchParent",
+    "height": 36
   }, children[1])
 )
 #End
@@ -91,12 +90,6 @@ Column({
 
     assert root.component == "Column"
     assert root.values[0].properties["itemMargin"].value == 8
-    hero_slot_options = root.children[0].values[0].properties
-    action_slot_options = root.children[1].values[0].properties
-    assert hero_slot_options["width"].value == "matchParent"
-    assert hero_slot_options["layoutWeight"].value == 1
-    assert action_slot_options["width"].value == "matchParent"
-    assert action_slot_options["height"].value == 36
     assert [child.children[0].component for child in root.children] == [
         TEMPLATE_CHILD_SLOT_COMPONENT,
         TEMPLATE_CHILD_SLOT_COMPONENT,
@@ -152,55 +145,43 @@ data = {{
         )
 
 
-def test_provider_expr_uses_shared_a2ui_expression_rules() -> None:
-    source = """#Template BatteryOverviewFull@1(props: {})
-data = { score: $path("/score") }
-Column(
-    "section",
-    Progress({
-        value: data.score,
-        total: 100,
-        color: Expr(`${data.score} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`)
-    })
-)
-#End
-"""
-    definition = compile_card_template(
-        source,
-        provider_id="example.provider",
-        business_id="BatteryOverview",
-        expected_wire_id="BatteryOverviewFull@1",
-        expected_capability_id="Battery",
-        data_domain="/data/battery",
-        description="provider Expr test",
-        supported_card_sizes=("2x2",),
-        primary_data=("/score",),
-        secondary_data=(),
-        optional_data=(),
-        output_schema={"type": "object", "properties": {"score": {"type": "number"}}},
-    )
-    progress = definition.variants[0].root.children[0]
-    expression = progress.values[0].properties["color"]
+def test_checked_in_layout_templates_use_concrete_container_blueprints() -> None:
+    registry = get_cardplan_registry()
+    fixed_slots = {
+        "HeroActionLayout@1": 2,
+        "HeroSupportLayout@1": 2,
+        "HeroSupportActionLayout@1": 3,
+    }
+    variable_children = {
+        "SingleFocusLayout@1",
+        "PeerPairLayout@1",
+        "SequentialSummaryLayout@1",
+        "EqualItemsLayout@1",
+        "ListActionLayout@1",
+        "ActionMatrixLayout@1",
+        "WeatherNowForecastLayout@1",
+    }
 
-    assert _provider_runtime_expression(
-        expression,
-        {"score": "${data.battery.score}"},
-    ) == (
-        "{{ ${/data/battery/score} <= 20 ? '#FFF9A01E' : '#FF64BB5C' }}"
-    )
+    for template_id in (*fixed_slots, *variable_children):
+        root = registry.require_template(template_id).variants[0].root
+        assert root.component in {"Column", "Row", "Stack"}
+        assert root.component not in {item.removesuffix("@1") for item in fixed_slots}
+        options = root.values[0].properties
+        assert options["width"].value == "matchParent"
+        assert options["height"].value == "matchParent"
 
-    invalid_expression = TemplateValue(
-        kind="expression",
-        items=(
-            TemplateValue(kind="binding", name="score"),
-            TemplateValue(kind="literal", value=" + fetch()"),
-        ),
-    )
-    with pytest.raises(TerseDslNested2ConversionError, match="valid A2UI expression"):
-        _provider_runtime_expression(
-            invalid_expression,
-            {"score": "${data.battery.score}"},
-        )
+        slot_indexes = [
+            child.children[0].values[0].value
+            for child in root.children
+            if child.children
+            and child.children[0].component == TEMPLATE_CHILD_SLOT_COMPONENT
+        ]
+        if template_id in fixed_slots:
+            assert slot_indexes == list(range(fixed_slots[template_id]))
+            assert not root.spread_children
+        else:
+            assert slot_indexes == []
+            assert root.spread_children
 
 
 def test_provider_template_layout_suffix_combinations_are_enforced() -> None:

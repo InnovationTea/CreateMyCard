@@ -43,7 +43,7 @@ Column(
                         Text(
                             data.duration,
                             "title",
-                            {"fontSize": 24, "fontWeight": 800, "maxLines": 1}
+                            {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
                         )
                     ),
                     Progress(
@@ -127,7 +127,7 @@ Column(
                     Text(
                         data.duration,
                         "title",
-                        {"fontSize": 24, "fontWeight": 800, "maxLines": 1}
+                        {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
                     )
                 ),
                 Progress(

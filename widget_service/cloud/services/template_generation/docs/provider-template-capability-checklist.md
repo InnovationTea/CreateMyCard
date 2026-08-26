@@ -183,20 +183,19 @@
 ## WeatherOverview
 
 - Provider：`com.huawei.weather.cli`；运行状态：启用。
-- 数据能力：`ViewWeather`；模板数：7。
+- 数据能力：`ViewWeather`；模板数：9。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
 | ✅ | `WeatherOverviewCompact@1` | 约 2x1；双 Compact，或 Compact + 2 个 PillAction | `/current/temperatureText` | `/location/districtName`<br>`/current/condition`<br>`/current/coldLevel` | 无 |
+| ✅ | `WeatherOverviewIconCompact@1` | 约 2x1；双 Compact，或 Compact + 2 个 PillAction | `/current/temperatureText` | `/location/districtName`<br>`/current/condition`<br>`/current/coldLevel` | 无 |
 | ✅ | `WeatherOverviewHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/current/temperatureText` | `/location/districtName`<br>`/current/condition`<br>`/current/coldLevel` | 无 |
 | ✅ | `WeatherOverviewFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/current/temperatureText` | `/location/districtName`<br>`/current/condition`<br>`/current/airQuality`<br>`/current/coldLevel` | 无 |
+| ✅ | `WeatherOverviewIconFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/current/temperatureText` | `/location/districtName`<br>`/current/condition`<br>`/current/airQuality`<br>`/current/coldLevel` | 无 |
 | ✅ | `WeatherOverviewConditionFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/current/condition` | `/location/districtName`<br>`/current/temperatureText`<br>`/current/airQuality`<br>`/current/coldLevel` | 无 |
 | ✅ | `WeatherOverviewHumidityFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/current/humidityPercent` | `/location/districtName`<br>`/current/condition`<br>`/current/temperatureText`<br>`/current/airQuality`<br>`/current/coldLevel` | 无 |
 | ✅ | `WeatherOverviewUvFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/current/uvIndex` | `/location/districtName`<br>`/current/condition`<br>`/current/temperatureText`<br>`/current/airQuality`<br>`/current/coldLevel` | 无 |
 | ✅ | `WeatherOverviewAirQualityHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/current/airQuality` | `/location/districtName`<br>`/current/condition`<br>`/current/coldLevel` | 无 |
-
-所有天气模板统一接受可选素材参数 `conditionIcon`，并在模板内部通过 `IfPresent` 决定是否渲染图标；
-不再为有无图标维护独立模板。
 
 说明：最新天气 UX 中的日出日落与 AQI 数值不在当前 `ViewWeather` 数据契约内，本轮未生成伪数据模板。
 
