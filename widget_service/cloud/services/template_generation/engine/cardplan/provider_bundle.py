@@ -18,6 +18,11 @@ from pydantic import Field, model_validator
 from config.config import get_settings
 from models.generation import TaskSpec
 from services.template_generation.engine.advanced.models import UxLayoutComponentCapability
+from services.template_generation.engine.theme_reference import (
+    THEME_REFERENCE_PATHS,
+    ThemeReferenceSyntaxError,
+    translate_theme_reference_calls,
+)
 
 from .models import (
     TEMPLATE_CHILD_SLOT_COMPONENT,
@@ -68,7 +73,15 @@ _CONTAINERS = (
     | _CONDITIONAL_COMPONENTS
 )
 _REFERENCE_CALLS = frozenset(
-    {"Bind", "Param", "Asset", "Expr", "EventAction", "_CardTplInterpolation"}
+    {
+        "Bind",
+        "Param",
+        "Asset",
+        "Expr",
+        "EventAction",
+        "_CardTplInterpolation",
+        "_CardTplTheme",
+    }
 )
 _FORBIDDEN_KEYS = frozenset({"__proto__", "prototype", "constructor"})
 _TEMPLATE_ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9-]{0,63}$")
@@ -811,9 +824,17 @@ def provider_template_layout_kind(wire_id: str) -> str | None:
 def _parse_component_body(body: str) -> TemplateNode:
     if not body:
         raise ValueError("Provider Template body is empty")
-    if re.search(r"\b_CardTplInterpolation\s*\(", body):
+    if re.search(r"\b(?:_CardTplInterpolation|_CardTplTheme)\s*\(", body):
         raise ValueError("Provider Template uses a reserved internal name")
-    translated = _python_compatible_source(_translate_template_strings(body))
+    try:
+        with_template_strings = _translate_template_strings(body)
+        with_theme_calls = translate_theme_reference_calls(
+            with_template_strings,
+            "_CardTplTheme",
+        )
+    except ThemeReferenceSyntaxError as exc:
+        raise ValueError(str(exc)) from exc
+    translated = _python_compatible_source(with_theme_calls)
     try:
         module = ast.parse(translated, mode="exec")
     except SyntaxError as exc:
@@ -950,6 +971,12 @@ def _template_value(node: ast.AST) -> TemplateValue:
                 raise ValueError("Expr requires one backtick template string")
             interpolation = _interpolation_value(argument)
             return TemplateValue(kind="expression", items=interpolation.items)
+        if node.func.id == "_CardTplTheme":
+            args = _call_literal_args(node, "$theme")
+            path = args[0] if len(args) == 1 else None
+            if not isinstance(path, str) or path not in THEME_REFERENCE_PATHS:
+                raise ValueError("$theme requires one approved Theme path")
+            return TemplateValue(kind="theme", name=path)
         args = _call_literal_args(node, node.func.id)
         if len(args) != 1 or not isinstance(args[0], str):
             raise ValueError(f"{node.func.id} requires one string name")
@@ -979,7 +1006,7 @@ def _template_value(node: ast.AST) -> TemplateValue:
         return TemplateValue(kind="object", properties=properties)
     raise ValueError(
         "Provider Template values must be literals, bindings, template strings, "
-        "Expr, EventAction, Param or Asset"
+        "Expr, EventAction, Param, Asset or $theme"
     )
 
 

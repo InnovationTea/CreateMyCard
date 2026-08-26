@@ -12,7 +12,7 @@ from models.generation import TaskSpec
 from services.protocol_registry import A2UI_FORM_PROTOCOL_PROFILE_ID, A2UIProtocolRegistry
 from services.template_generation.engine.terse_dsl_nested2_converter import (
     Nested2Node,
-    convert_terse_dsl_nested2_to_a2ui,
+    convert_tersel_to_a2ui,
 )
 
 from .compiler import (
@@ -153,7 +153,7 @@ def build_template_preview_cases() -> tuple[TemplatePreviewCase, ...]:
     cases: list[TemplatePreviewCase] = []
     for index, definition in enumerate(definitions, start=1):
         case_id = f"T{index:03d}"
-        cases.append(_build_case(case_id, definition, profile))
+        cases.append(_build_case(case_id, definition, profile, registry))
     return tuple(cases)
 
 
@@ -186,6 +186,7 @@ def _build_case(
     case_id: str,
     definition: TemplateDefinition,
     protocol_profile: dict[str, Any],
+    registry: CardPlanRegistry,
 ) -> TemplatePreviewCase:
     layout_kind = provider_template_layout_kind(definition.wire_id)
     size = _SIZE_BY_LAYOUT[layout_kind]
@@ -207,11 +208,12 @@ def _build_case(
         variant.root,
         _template_parameters(definition),
         bindings,
+        _preview_theme_values(definition, registry),
     )
     content = _strip_advanced_component_markers(content)
     root = _preview_root(content, content_height)
     effective = _serialize_effective_document(root, task_spec, True)
-    a2ui = convert_terse_dsl_nested2_to_a2ui(
+    a2ui = convert_tersel_to_a2ui(
         effective,
         size=size,
         protocol_profile=protocol_profile,
@@ -234,6 +236,24 @@ def _build_case(
         file_name=f"{case_id}.json",
         messages=messages,
     )
+
+
+def _preview_theme_values(
+    definition: TemplateDefinition,
+    registry: CardPlanRegistry,
+) -> dict[str, str]:
+    theme = next(
+        (
+            item
+            for item in registry.themes.values()
+            if definition.capability_id in item.supported_capability_ids
+            and item.fusion_ball_style is None
+        ),
+        None,
+    )
+    if theme is None:
+        raise ValueError(f"Provider Template has no preview Theme: {definition.wire_id}")
+    return registry.theme_reference_values(theme.theme_profile_id)
 
 
 def _definition_sort_key(definition: TemplateDefinition) -> tuple[str, str, int, str]:

@@ -53,16 +53,17 @@ from services.template_generation.engine.advanced.models import (
 from services.template_generation.engine.terse_dsl_nested2_converter import (
     Nested2Node,
     TerseDslNested2ConversionError,
-    convert_terse_dsl_nested2_to_a2ui,
+    convert_tersel_to_a2ui,
     serialize_task_spec_data,
 )
 
 from .fusion_ball_background import (
-    apply_fusion_ball_background,
-    fusion_ball_palette_for_scene,
+    FusionBallPalette,
+    apply_fusion_ball_component,
 )
 from .models import (
     TEMPLATE_CHILD_SLOT_COMPONENT,
+    CardActionStyle,
     ExpansionStats,
     HybridBodyContract,
     TemplateDefinition,
@@ -258,9 +259,7 @@ def compile_hybrid_card(
     )
     content_height = _estimate_height(content)
     root = _compile_card_shell(card_params, content, task_spec, contract, registry)
-    text_role = registry.require_theme(contract.theme_profile_id).text_role
-    root = _apply_theme_text_role(root, text_role)
-    root = _apply_theme_icon_role(root, text_role)
+    root = _apply_theme_content_color(root, contract, registry)
     card_action = card_params.get("action")
     if isinstance(card_action, dict):
         if card_action["id"] not in state.action_ids:
@@ -284,11 +283,16 @@ def compile_hybrid_card(
     if space_constrained:
         content = _constrain_content_height(content, body_budget)
         root = _compile_card_shell(card_params, content, task_spec, contract, registry)
-        root = _apply_theme_text_role(root, text_role)
-        root = _apply_theme_icon_role(root, text_role)
-    root = _apply_template_background(root, task_spec.size, contract, registry)
+        root = _apply_theme_content_color(root, contract, registry)
+    root = _apply_template_background(
+        root,
+        task_spec.size,
+        contract,
+        registry,
+        tuple(state.template_ids),
+    )
     effective = _serialize_effective_document(root, task_spec, enable_data_bindings)
-    a2ui = convert_terse_dsl_nested2_to_a2ui(
+    a2ui = convert_tersel_to_a2ui(
         effective,
         size=task_spec.size,
         protocol_profile=protocol_profile,
@@ -431,9 +435,7 @@ def compile_ux_layout_card(
         contract,
         registry,
     )
-    text_role = registry.require_theme(contract.theme_profile_id).text_role
-    root = _apply_theme_text_role(root, text_role)
-    root = _apply_theme_icon_role(root, text_role)
+    root = _apply_theme_content_color(root, contract, registry)
     root = _strip_advanced_component_markers(root)
     count, depth = _shape(root)
     if count > contract.limits.max_expanded_components:
@@ -441,9 +443,15 @@ def compile_ux_layout_card(
     if depth > contract.limits.max_nesting_depth:
         raise TerseDslNested2ConversionError("Hybrid component depth budget exceeded.")
     _validate_expanded_tree(root, contract)
-    root = _apply_template_background(root, task_spec.size, contract, registry)
+    root = _apply_template_background(
+        root,
+        task_spec.size,
+        contract,
+        registry,
+        tuple(state.template_ids),
+    )
     effective = _serialize_effective_document(root, task_spec, enable_data_bindings)
-    a2ui = convert_terse_dsl_nested2_to_a2ui(
+    a2ui = convert_tersel_to_a2ui(
         effective,
         size=task_spec.size,
         protocol_profile=protocol_profile,
@@ -912,6 +920,7 @@ def _expand_call(
             variant.root,
             params,
             binding_values,
+            registry.theme_reference_values(contract.theme_profile_id),
             spread_children=expanded_children,
         )
     budget_root = root
@@ -1110,8 +1119,8 @@ def _expand_date_overview_call(
     parameters = call.values[0]
     variant = str(parameters["variant"])
     theme = registry.require_theme(contract.theme_profile_id)
-    highlight_color = "#FFFF8066" if theme.text_role == "text-on-accent" else "#FFFF3B30"
-    neutral_color = "#BFFFFFFF" if theme.text_role == "text-on-accent" else "#99000000"
+    highlight_color = theme.primary_color
+    neutral_color = theme.support_content_color
     if variant == "compactDate":
         return _compact_date_overview(facts, highlight_color, neutral_color)
     return _hero_date_overview(facts, highlight_color, neutral_color, registry)
@@ -1527,18 +1536,20 @@ def _expand_sleep_overview_call(
     multi_business = len(contract.allowed_business_component_ids) > 1
     if multi_business:
         source_icon = None
-    text_on_accent = registry.require_theme(contract.theme_profile_id).text_role == "text-on-accent"
+    theme = registry.require_theme(contract.theme_profile_id)
     if role == "support":
         return _sleep_support_overview(
             facts,
-            text_on_accent=text_on_accent,
+            primary_color=theme.primary_color,
+            support_content_color=theme.support_content_color,
             registry=registry,
         )
     return _sleep_hero_overview(
         facts,
         source_icon,
         wide=task_spec.size == "2x4",
-        text_on_accent=text_on_accent,
+        primary_color=theme.primary_color,
+        support_content_color=theme.support_content_color,
         registry=registry,
     )
 
@@ -1548,11 +1559,11 @@ def _sleep_hero_overview(
     source_icon: Any,
     *,
     wide: bool,
-    text_on_accent: bool,
+    primary_color: str,
+    support_content_color: str,
     registry: CardPlanRegistry,
 ) -> Nested2Node:
-    primary_color = "#FFFFFFFF" if text_on_accent else "#E6000000"
-    secondary_color = "#99FFFFFF" if text_on_accent else "#99000000"
+    secondary_color = support_content_color
     title = _sleep_title_row(
         source_icon,
         primary_color=primary_color,
@@ -1628,11 +1639,11 @@ def _sleep_hero_overview(
 def _sleep_support_overview(
     facts: SleepOverviewFacts,
     *,
-    text_on_accent: bool,
+    primary_color: str,
+    support_content_color: str,
     registry: CardPlanRegistry,
 ) -> Nested2Node:
-    primary_color = "#FFFFFFFF" if text_on_accent else "#E6000000"
-    secondary_color = "#99FFFFFF" if text_on_accent else "#99000000"
+    secondary_color = support_content_color
     root = Nested2Node(
         "Column",
         (
@@ -3526,9 +3537,10 @@ def _expand_schedule_overview_call(
         source_icon=parameters.get("sourceIcon"),
         time_icon=parameters.get("timeIcon"),
         location_icon=parameters.get("locationIcon"),
-        text_on_accent=(
-            registry.require_theme(contract.theme_profile_id).text_role == "text-on-accent"
-        ),
+        primary_color=registry.require_theme(contract.theme_profile_id).primary_color,
+        support_content_color=registry.require_theme(
+            contract.theme_profile_id
+        ).support_content_color,
         registry=registry,
     )
 
@@ -3589,14 +3601,14 @@ def _schedule_overview_tree(
     source_icon: Any,
     time_icon: Any,
     location_icon: Any,
-    text_on_accent: bool,
+    primary_color: str,
+    support_content_color: str,
     registry: CardPlanRegistry,
 ) -> Nested2Node:
-    primary_color = "#FFFFFFFF" if text_on_accent else "#E6000000"
-    secondary_color = "#BFFFFFFF" if text_on_accent else "#99000000"
-    metadata_color = "#99FFFFFF" if text_on_accent else "#66000000"
-    accent_color = "#FFFF8066" if text_on_accent else "#FFFF3B30"
-    rail_color = "#52FFFFFF" if text_on_accent else "#1F000000"
+    secondary_color = support_content_color
+    metadata_color = support_content_color
+    accent_color = primary_color
+    rail_color = _theme_color_with_alpha(primary_color, 0x52)
     text_column_children = [
         _schedule_text(
             facts.title,
@@ -4293,10 +4305,12 @@ def _instantiate_blueprint(
     node: TemplateNode,
     params: dict[str, Any],
     bindings: dict[str, str] | None = None,
+    theme_values: dict[str, str] | None = None,
     *,
     spread_children: tuple[Nested2Node, ...] = (),
 ) -> Nested2Node:
     binding_values = bindings or {}
+    resolved_theme_values = theme_values or {}
     if node.component == TEMPLATE_CHILD_SLOT_COMPONENT:
         raise TerseDslNested2ConversionError(
             "Template child slot cannot be instantiated as a component root."
@@ -4306,8 +4320,16 @@ def _instantiate_blueprint(
             "Template conditional cannot be instantiated as a component root."
         )
     if node.component == "Text" and node.values and node.values[0].kind == "interpolation":
-        return _instantiate_interpolated_text(node, params, binding_values)
-    values = [_template_value(item, params, binding_values) for item in node.values]
+        return _instantiate_interpolated_text(
+            node,
+            params,
+            binding_values,
+            resolved_theme_values,
+        )
+    values = [
+        _template_value(item, params, binding_values, resolved_theme_values)
+        for item in node.values
+    ]
     normalized = _normalize_blueprint_values(node.component, values)
     return Nested2Node(
         component_type=node.component,
@@ -4317,6 +4339,7 @@ def _instantiate_blueprint(
                 node.children,
                 params,
                 binding_values,
+                resolved_theme_values,
                 spread_children=spread_children,
             ),
             *(spread_children if node.spread_children else ()),
@@ -4328,6 +4351,7 @@ def _instantiate_blueprint_children(
     children: tuple[TemplateNode, ...],
     params: dict[str, Any],
     bindings: dict[str, str],
+    theme_values: dict[str, str],
     *,
     spread_children: tuple[Nested2Node, ...] = (),
 ) -> tuple[Nested2Node, ...]:
@@ -4362,6 +4386,7 @@ def _instantiate_blueprint_children(
                             (selected,),
                             params,
                             bindings,
+                            theme_values,
                             spread_children=spread_children,
                         )
                     )
@@ -4371,6 +4396,7 @@ def _instantiate_blueprint_children(
                             selected,
                             params,
                             bindings,
+                            theme_values,
                             spread_children=spread_children,
                         )
                     )
@@ -4380,6 +4406,7 @@ def _instantiate_blueprint_children(
                 child,
                 params,
                 bindings,
+                theme_values,
                 spread_children=spread_children,
             )
         )
@@ -4429,6 +4456,7 @@ def _template_value(
     value: TemplateValue,
     params: dict[str, Any],
     bindings: dict[str, str],
+    theme_values: dict[str, str],
 ) -> Any:
     if value.kind == "literal":
         return value.value
@@ -4440,6 +4468,12 @@ def _template_value(
         if value.name not in bindings:
             raise TerseDslNested2ConversionError(f"Template binding is missing: {value.name}")
         return bindings[value.name]
+    if value.kind == "theme":
+        if value.name not in theme_values:
+            raise TerseDslNested2ConversionError(
+                f"Template Theme reference is unavailable: {value.name}"
+            )
+        return theme_values[value.name]
     if value.kind == "interpolation":
         raise TerseDslNested2ConversionError("Template interpolation must be the first Text value.")
     if value.kind == "expression":
@@ -4447,24 +4481,32 @@ def _template_value(
     if value.kind == "event-action":
         if len(value.items) != 1 or value.items[0].kind != "parameter":
             raise TerseDslNested2ConversionError("Template EventAction is invalid.")
-        action_id = _template_value(value.items[0], params, bindings)
+        action_id = _template_value(value.items[0], params, bindings, theme_values)
         if not isinstance(action_id, str):
             raise TerseDslNested2ConversionError("Template EventAction ID is invalid.")
         return [{"call": "sendToAssistant", "args": {"eventName": action_id}}]
     if value.kind == "array":
-        return [_template_value(item, params, bindings) for item in value.items]
-    return {key: _template_value(item, params, bindings) for key, item in value.properties.items()}
+        return [
+            _template_value(item, params, bindings, theme_values) for item in value.items
+        ]
+    return {
+        key: _template_value(item, params, bindings, theme_values)
+        for key, item in value.properties.items()
+    }
 
 
 def _instantiate_interpolated_text(
     node: TemplateNode,
     params: dict[str, Any],
     bindings: dict[str, str],
+    theme_values: dict[str, str],
 ) -> Nested2Node:
     if node.children:
         raise TerseDslNested2ConversionError("Template interpolation Text cannot contain children.")
     expression = _provider_interpolation_expression(node.values[0], params, bindings)
-    shared_values = [_template_value(item, params, bindings) for item in node.values[1:]]
+    shared_values = [
+        _template_value(item, params, bindings, theme_values) for item in node.values[1:]
+    ]
     return Nested2Node(
         "Text",
         tuple(_normalize_blueprint_values("Text", [expression, *shared_values])),
@@ -4781,17 +4823,13 @@ def _compile_card_shell(
     registry: CardPlanRegistry,
 ) -> Nested2Node:
     theme = registry.require_theme(contract.theme_profile_id)
-    root_options = _normalize_theme_styles(theme.root_styles)
+    root_options = _normalize_theme_styles(theme.root_style)
     ux_mixed = bool(contract.allowed_layout_component_ids)
     if ux_mixed:
-        root_options.update(
-            {
-                "padding": registry.ux_tokens["safeInset"],
-                "borderRadius": registry.ux_tokens["radius"],
-                "itemMargin": registry.ux_tokens["sectionGap"],
-            }
-        )
-    if theme.root_component == "Stack" and "alignContent" in root_options:
+        root_options.setdefault("padding", registry.ux_tokens["safeInset"])
+        root_options.setdefault("borderRadius", registry.ux_tokens["radius"])
+        root_options.setdefault("itemMargin", registry.ux_tokens["sectionGap"])
+    if "alignContent" in root_options:
         alignment = root_options.pop("alignContent")
         root_options["alignItems"] = _column_align_items(alignment)
     root_options.pop("width", None)
@@ -4875,7 +4913,7 @@ def _compile_card_shell(
             label_values = (
                 *label_values,
                 {
-                    "fontColor": action_style.font_color,
+                    "fontColor": action_style.content_color,
                     "fontSize": action_style.font_size,
                     "fontWeight": action_style.font_weight,
                 },
@@ -4892,14 +4930,10 @@ def _compile_ux_layout_shell(
     registry: CardPlanRegistry,
 ) -> Nested2Node:
     theme = registry.require_theme(contract.theme_profile_id)
-    root_options = _normalize_theme_styles(theme.root_styles)
-    root_options.update(
-        {
-            "padding": registry.ux_tokens["safeInset"],
-            "borderRadius": registry.ux_tokens["radius"],
-            "itemMargin": registry.ux_tokens["sectionGap"],
-        }
-    )
+    root_options = _normalize_theme_styles(theme.root_style)
+    root_options.setdefault("padding", registry.ux_tokens["safeInset"])
+    root_options.setdefault("borderRadius", registry.ux_tokens["radius"])
+    root_options.setdefault("itemMargin", registry.ux_tokens["sectionGap"])
     if "alignContent" in root_options:
         alignment = root_options.pop("alignContent")
         root_options["alignItems"] = _column_align_items(alignment)
@@ -4914,17 +4948,38 @@ def _apply_template_background(
     size: str,
     contract: HybridBodyContract,
     registry: CardPlanRegistry,
+    selected_template_ids: tuple[str, ...] = (),
 ) -> Nested2Node:
-    """Apply deterministic shell decoration outside the model expansion budget."""
+    """Apply Theme-owned fusion balls only to one selected Full or Hero business."""
     if size != "2x2":
         return root
     theme = registry.require_theme(contract.theme_profile_id)
-    palette = fusion_ball_palette_for_scene(theme.fusion_ball_scene)
-    return apply_fusion_ball_background(
+    fusion = theme.fusion_ball_style
+    business_templates = tuple(
+        definition
+        for template_id in selected_template_ids
+        if (definition := registry.templates.get(template_id)) is not None
+        and definition.business_id is not None
+    )
+    if fusion is None or len(business_templates) != 1:
+        return root
+    business_template = business_templates[0]
+    if business_template.capability_id not in theme.supported_capability_ids:
+        return root
+    if business_template.business_id not in fusion.business_ids:
+        return root
+    layout_kind = provider_template_layout_kind(business_template.wire_id)
+    if layout_kind not in {"Full", "Hero"}:
+        return root
+    palette = FusionBallPalette(
+        fusion.large_color,
+        fusion.medium_color,
+        fusion.small_color,
+    )
+    return apply_fusion_ball_component(
         root,
         size=size,
         palette=palette,
-        scene=theme.fusion_ball_scene,
     )
 
 
@@ -5167,57 +5222,48 @@ def _reclaim_optional_chrome_for_content(
     return normalized
 
 
-def _apply_theme_text_role(
+def _apply_theme_content_color(
     node: Nested2Node,
-    text_role: str,
+    contract: HybridBodyContract,
+    registry: CardPlanRegistry,
     preserve_original: bool = False,
+    inside_action: bool = False,
 ) -> Nested2Node:
-    """Apply theme foreground semantics to standard Text without overriding alerts."""
-    preserve_here = preserve_original or (
-        node.component_type == "Stack"
-        and any(isinstance(value, dict) and bool(value.get("onClick")) for value in node.values)
-    )
+    """Fill only missing content colors while keeping Action and artwork ownership."""
+    theme = registry.require_theme(contract.theme_profile_id)
+    options = next((value for value in node.values if isinstance(value, dict)), {})
+    preserve_here = preserve_original or options.get("_preserveOriginalColor") is True
+    action_here = inside_action or isinstance(options.get("_boundTemplateAction"), str)
     children = tuple(
-        _apply_theme_text_role(child, text_role, preserve_here) for child in node.children
+        _apply_theme_content_color(
+            child,
+            contract,
+            registry,
+            preserve_here,
+            action_here,
+        )
+        for child in node.children
     )
-    if node.component_type != "Text" or text_role != "text-on-accent" or preserve_here:
+    color_property = registry.content_color_properties.get(node.component_type)
+    if preserve_here or action_here or color_property is None:
         return Nested2Node(node.component_type, node.values, children)
     values = list(node.values)
-    design = values[1] if len(values) > 1 and isinstance(values[1], str) else None
-    if design in {"warning", "success"}:
-        return Nested2Node(node.component_type, tuple(values), children)
-    if values and isinstance(values[-1], dict):
-        options = dict(values[-1])
-        options["fontColor"] = "#FFFFFFFF"
-        values[-1] = options
+    options_index = next(
+        (index for index, value in enumerate(values) if isinstance(value, dict)),
+        None,
+    )
+    if options_index is None:
+        values.append({color_property: theme.primary_color})
     else:
-        values.append({"fontColor": "#FFFFFFFF"})
+        styled = dict(values[options_index])
+        styled.setdefault(color_property, theme.primary_color)
+        values[options_index] = styled
     return Nested2Node(node.component_type, tuple(values), children)
 
 
-def _apply_theme_icon_role(
-    node: Nested2Node,
-    text_role: str,
-    preserve_original: bool = False,
-) -> Nested2Node:
-    """Tint monochrome title/content icons on strong gradients while preserving artwork."""
-    preserve_here = preserve_original or any(
-        isinstance(value, dict) and value.get("_preserveOriginalColor") is True
-        for value in node.values
-    )
-    children = tuple(
-        _apply_theme_icon_role(child, text_role, preserve_here) for child in node.children
-    )
-    if node.component_type != "Image" or text_role != "text-on-accent" or preserve_here:
-        return Nested2Node(node.component_type, node.values, children)
-    values = list(node.values)
-    if values and isinstance(values[-1], dict):
-        options = dict(values[-1])
-        options.setdefault("fillColor", "#FFFFFFFF")
-        values[-1] = options
-    else:
-        values.append({"fillColor": "#FFFFFFFF"})
-    return Nested2Node(node.component_type, tuple(values), children)
+def _theme_color_with_alpha(color: str, alpha: int) -> str:
+    """Return one trusted ``#AARRGGBB`` Theme color with a different alpha."""
+    return f"#{alpha:02X}{color[-6:]}"
 
 
 def _lower_capsule_progress(node: Nested2Node) -> Nested2Node:
@@ -7060,6 +7106,7 @@ def _instantiate_provider_layout_blueprint(
     return _instantiate_blueprint(
         variant.root,
         params,
+        theme_values=registry.theme_reference_values(contract.theme_profile_id),
         spread_children=children,
     )
 
@@ -7938,7 +7985,7 @@ def _ux_support_surface_color(
     registry: CardPlanRegistry,
 ) -> str:
     theme = registry.require_theme(contract.theme_profile_id)
-    return "#24FFFFFF" if theme.text_role == "text-on-accent" else "#14000000"
+    return _theme_color_with_alpha(theme.primary_color, 0x24)
 
 
 def _merge_node_options(node: Nested2Node, additions: dict[str, Any]) -> Nested2Node:
@@ -8218,7 +8265,7 @@ def _lower_ux_action(
         raise TerseDslNested2ConversionError("UX Action binding is unavailable.")
     theme_action = registry.require_theme(contract.theme_profile_id).action_style
     background = theme_action.background_color if theme_action else "#1A0A59F7"
-    foreground = theme_action.font_color if theme_action else "#FF0A59F7"
+    foreground = theme_action.content_color if theme_action else "#FF0A59F7"
     background = _provider_layout_action_background(
         contract,
         registry,
@@ -8235,6 +8282,7 @@ def _lower_ux_action(
             node,
             background=background,
             foreground=foreground,
+            action_style=theme_action,
         )
     if node.component_type == "ActionTile":
         if size != "2x4" and not allow_action_tile_2x2:
@@ -8251,6 +8299,7 @@ def _lower_ux_action(
         node,
         background=background,
         foreground=foreground,
+        action_style=theme_action,
     )
 
 
@@ -8284,6 +8333,7 @@ def _lower_action_template_tree(
     *,
     background: str,
     foreground: str,
+    action_style: CardActionStyle | None,
 ) -> Nested2Node:
     if len(node.children) != 1 or node.children[0].component_type != "Stack":
         raise TerseDslNested2ConversionError("UX Action must contain one trusted Action Template.")
@@ -8292,7 +8342,15 @@ def _lower_action_template_tree(
         children = tuple(apply_foreground(child) for child in current.children)
         styled = Nested2Node(current.component_type, current.values, children)
         if current.component_type == "Text":
-            return _merge_node_options(styled, {"fontColor": foreground})
+            additions: dict[str, Any] = {"fontColor": foreground}
+            if action_style is not None:
+                additions.update(
+                    {
+                        "fontSize": action_style.font_size,
+                        "fontWeight": action_style.font_weight,
+                    }
+                )
+            return _merge_node_options(styled, additions)
         if current.component_type == "Image":
             return _merge_node_options(styled, {"fillColor": foreground})
         return styled
@@ -8301,7 +8359,15 @@ def _lower_action_template_tree(
     root_options = next((value for value in content.values if isinstance(value, dict)), None)
     if root_options is None or "onClick" not in root_options:
         raise TerseDslNested2ConversionError("UX Action Template must declare onClick.")
-    return _merge_node_options(content, {"backgroundColor": background})
+    additions = {"backgroundColor": background}
+    if action_style is not None:
+        additions.update(
+            {
+                "height": action_style.height,
+                "borderRadius": action_style.border_radius,
+            }
+        )
+    return _merge_node_options(content, additions)
 
 
 def _lower_action_tile(
@@ -8724,7 +8790,7 @@ def _body_budget(
     padding = (
         registry.ux_tokens["safeInset"]
         if contract.allowed_layout_component_ids
-        else theme.root_styles.get("padding", 12)
+        else theme.root_style.get("padding", 12)
     )
     if isinstance(padding, (int, float)):
         vertical_padding = int(padding) * 2

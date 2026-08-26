@@ -76,6 +76,8 @@ async def generate_template_a2ui(
     card_spec: dict[str, Any],
     coverage_bindings: tuple[CandidateDataBinding, ...],
     model_client: Any,
+    *,
+    enable_fusion_ball: bool = True,
 ) -> TemplateEngineOutput:
     """先做 LLM 全量覆盖判断，再用受信模板确定性展开为 A2UI。"""
     logger.info(
@@ -83,7 +85,7 @@ async def generate_template_a2ui(
         f"summary={json_for_log(_task_spec_log_summary(task_spec))}"
     )
     try:
-        registry = get_cardplan_registry()
+        registry = get_cardplan_registry(enable_fusion_ball)
         controls = load_template_controls()
         available_capability_ids = _card_spec_capability_ids(card_spec)
         effective_capability_ids = resolve_available_capability_ids(

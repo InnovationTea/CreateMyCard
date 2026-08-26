@@ -15,13 +15,15 @@ The service follows `docs/AGENTS.md`:
   `WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND`.
   `generateWidgetCardCompactDsl` selects its backend through `WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND`, loads
   the Design profile from `data/protocol_profiles/registry_ranges.json`, and converts Design Compact DSL with that
-  profile's `protocol.json` before validation and storage. The three generation routes share one policy-driven
-  generation pipeline and the same model-failure, quality-repair, and validation switches. Tool callers cannot
+  profile's `protocol.json` before validation and storage. Create requests first try the controlled Template route;
+  a Template mismatch can fall back to the ordinary Design Compact model route. The generation routes share one
+  policy-driven pipeline and the same model-failure, quality-repair, and validation switches. Tool callers cannot
   select or override either backend.
-- `generateWidgetCardTerseDslNested2` uses the local `tersedsl-nested-2/0.1` Prompt and a restricted
-  literal-only parser. It never executes model output and deterministically converts the nested component tree to
-  standard A2UI. It supports static create/edit requests and shares the edit switch with the other generation
-  routes; dynamic data bindings and events remain unsupported.
+- `generateWidgetCardTerseDslNested2` is currently a strict Template-only create route. It uses the same Design
+  Compact public Processor after the Template module has compiled its internal TerseDSL-Nested-2/CardTpl result to
+  A2UI and adapted it to Design Compact source DSL. Template mismatch and edit requests fail without falling back to
+  the ordinary model route. See `cloud/services/template_generation/docs/README.md` for the current architecture and
+  module documentation.
 - `cloud/services/template_generation/config/template_controls.json` owns the Template Provider and individual
   Template denylists. Filtering happens before the first-layer prompt, and the same filtered set constrains
   second-layer Provider rules, layout candidates, and deterministic output validation.

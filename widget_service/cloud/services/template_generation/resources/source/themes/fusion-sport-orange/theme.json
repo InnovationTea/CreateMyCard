@@ -1,0 +1,35 @@
+{
+  "themeFormat": "card-theme/2",
+  "themeProfileId": "fusion-sport-orange",
+  "description": "运动活力橙融球",
+  "firstLayerRule": {"path": "first-layer.md"},
+  "supportedCapabilityIds": ["GetHealthAndSportSummary"],
+  "paletteSceneIds": ["fusion.sport"],
+  "primaryColor": "#FFFFE1CC",
+  "supportContentColor": "#99FFE1CC",
+  "rootStyle": {
+    "backgroundColor": "#FFB33C24",
+    "borderRadius": 20,
+    "padding": 11,
+    "linearGradient": {
+      "direction": "RightBottom",
+      "colors": [["#FFB33C24", 0], ["#FFFF8833", 1]]
+    },
+    "clip": true
+  },
+  "actionStyle": {
+    "backgroundColor": "#33FFFFFF",
+    "contentColor": "#FFFFE1CC",
+    "height": 30,
+    "borderRadius": 15,
+    "fontSize": 14,
+    "fontWeight": 600
+  },
+  "fusionBallStyle": {
+    "scene": "health-sport",
+    "businessIds": ["ActivityOverview", "HeartRateOverview", "WorkoutOverview"],
+    "largeColor": "#FFB33C24",
+    "mediumColor": "#FFFF8833",
+    "smallColor": "#FFFAA89E"
+  }
+}

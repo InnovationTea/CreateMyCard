@@ -65,6 +65,7 @@ class TemplateValue(StrictModel):
         "parameter",
         "binding",
         "event-action",
+        "theme",
         "interpolation",
         "expression",
         "array",
@@ -256,12 +257,27 @@ class BusinessTemplateGroup:
 
 
 class CardActionStyle(StrictModel):
-    background_color: str = Field(alias="backgroundColor", min_length=1)
-    font_color: str = Field(alias="fontColor", min_length=1)
+    background_color: str = Field(alias="backgroundColor", pattern=r"^#[0-9A-Fa-f]{8}$")
+    content_color: str = Field(alias="contentColor", pattern=r"^#[0-9A-Fa-f]{8}$")
     height: int = Field(ge=24, le=44)
     border_radius: int = Field(alias="borderRadius", ge=0, le=22)
     font_size: int = Field(alias="fontSize", ge=10, le=18)
     font_weight: Literal[400, 500, 600, 700] = Field(alias="fontWeight")
+
+
+class FusionBallStyle(StrictModel):
+    scene: Literal[
+        "weather",
+        "sleep",
+        "health-sport",
+        "schedule-warm",
+        "battery",
+        "schedule-cool",
+    ]
+    business_ids: tuple[str, ...] = Field(alias="businessIds", min_length=1)
+    large_color: str = Field(alias="largeColor", pattern=r"^#[0-9A-Fa-f]{8}$")
+    medium_color: str = Field(alias="mediumColor", pattern=r"^#[0-9A-Fa-f]{8}$")
+    small_color: str = Field(alias="smallColor", pattern=r"^#[0-9A-Fa-f]{8}$")
 
 
 class MarkdownRuleReference(StrictModel):
@@ -269,23 +285,29 @@ class MarkdownRuleReference(StrictModel):
 
 
 class ThemeDefinition(StrictModel):
+    theme_format: Literal["card-theme/2"] = Field(alias="themeFormat")
     theme_profile_id: str = Field(alias="themeProfileId")
-    fusion_ball_scene: Literal["weather", "health-sport", "sleep"] | None = Field(
-        default=None,
-        alias="fusionBallScene",
-    )
     description: str
     supported_capability_ids: tuple[str, ...] = Field(alias="supportedCapabilityIds")
-    surface_role: str = Field(alias="surfaceRole")
-    primary_color_role: str = Field(alias="primaryColorRole")
-    text_role: str = Field(alias="textRole")
-    spacing_scale: str = Field(alias="spacingScale")
-    radius_scale: str = Field(alias="radiusScale")
-    density: Literal["sparse", "normal"]
-    root_component: Literal["Column", "Stack"] = Field(alias="rootComponent")
-    root_styles: dict[str, Any] = Field(alias="rootStyles")
-    action_style: CardActionStyle | None = Field(default=None, alias="actionStyle")
+    palette_scene_ids: tuple[str, ...] = Field(default=(), alias="paletteSceneIds")
+    primary_color: str = Field(alias="primaryColor", pattern=r"^#[0-9A-Fa-f]{8}$")
+    support_content_color: str = Field(
+        alias="supportContentColor",
+        pattern=r"^#[0-9A-Fa-f]{8}$",
+    )
+    root_style: dict[str, Any] = Field(alias="rootStyle")
+    action_style: CardActionStyle = Field(alias="actionStyle")
+    fusion_ball_style: FusionBallStyle | None = Field(default=None, alias="fusionBallStyle")
     first_layer_rule: MarkdownRuleReference = Field(alias="firstLayerRule")
+
+    @property
+    def reference_values(self) -> dict[str, str]:
+        return {
+            "primaryColor": self.primary_color,
+            "supportContentColor": self.support_content_color,
+            "actionStyle.backgroundColor": self.action_style.background_color,
+            "actionStyle.contentColor": self.action_style.content_color,
+        }
 
 
 class ExpansionStats(StrictModel):

@@ -14,6 +14,7 @@ from services.template_generation.engine.cardplan.compiler import (
 from services.template_generation.engine.cardplan.models import (
     TEMPLATE_CHILD_SLOT_COMPONENT,
     SourceSpan,
+    TemplateNode,
 )
 from services.template_generation.engine.cardplan.parser import ParsedCall, parse_hybrid_card
 from services.template_generation.engine.cardplan.provider_bundle import compile_card_template
@@ -44,6 +45,75 @@ Column(\"section\")
             data_domain="/data/legacy",
             description="legacy syntax must be rejected",
             supported_card_sizes=("2x2",),
+            primary_data=(),
+            secondary_data=(),
+            optional_data=(),
+            output_schema={"type": "object", "properties": {}},
+        )
+
+
+def test_provider_cardtpl_theme_references_are_resolved_deterministically() -> None:
+    source = """#Template ThemeReference@1(props: {})
+data = {
+}
+
+Column(
+  {"backgroundColor": $theme('actionStyle.backgroundColor')},
+  Text("主内容", {"fontColor": $theme('primaryColor')}),
+  Text("辅助内容", {"fontColor": $theme('supportContentColor')})
+)
+#End
+"""
+    definition = compile_card_template(
+        source,
+        provider_id="example.theme",
+        business_id=None,
+        expected_wire_id="ThemeReference@1",
+        expected_capability_id=None,
+        data_domain=None,
+        description="theme references",
+        supported_card_sizes=(),
+        primary_data=(),
+        secondary_data=(),
+        optional_data=(),
+        output_schema={"type": "object", "properties": {}},
+    )
+    values = {
+        "primaryColor": "#FFCCDDFF",
+        "supportContentColor": "#99CCDDFF",
+        "actionStyle.backgroundColor": "#33FFFFFF",
+        "actionStyle.contentColor": "#FFCCDDFF",
+    }
+
+    root = _instantiate_blueprint(
+        definition.variants[0].root,
+        {},
+        theme_values=values,
+    )
+
+    assert root.values[-1]["backgroundColor"] == "#33FFFFFF"
+    assert root.children[0].values[-1]["fontColor"] == "#FFCCDDFF"
+    assert root.children[1].values[-1]["fontColor"] == "#99CCDDFF"
+
+
+def test_provider_cardtpl_rejects_unknown_theme_reference() -> None:
+    source = """#Template InvalidThemeReference@1(props: {})
+data = {
+}
+Column({"backgroundColor": $theme('unknownColor')})
+#End
+"""
+
+    with pytest.raises(ValueError, match="approved Theme path"):
+        compile_card_template(
+            source,
+            provider_id="example.theme",
+            business_id=None,
+            expected_wire_id="InvalidThemeReference@1",
+            expected_capability_id=None,
+            data_domain=None,
+            description="invalid theme reference",
+            supported_card_sizes=(),
             primary_data=(),
             secondary_data=(),
             optional_data=(),
@@ -107,6 +177,34 @@ Column({
 
     with pytest.raises(TerseDslNested2ConversionError, match=r"children\[1\]"):
         _instantiate_blueprint(root, {}, spread_children=(hero,))
+
+
+def test_provider_cardtpl_sources_use_inline_styles_without_design_tokens() -> None:
+    registry = get_cardplan_registry()
+
+    def assert_inline_only(node: TemplateNode) -> None:
+        component = node.component
+        values = node.values
+        if component in {"Column", "Row", "List", "Stack"}:
+            has_design_token = (
+                bool(values)
+                and values[0].kind == "literal"
+                and isinstance(values[0].value, str)
+            )
+            assert not has_design_token, component
+        if component in {"Text", "Image", "Button"}:
+            has_design_token = (
+                len(values) > 1
+                and values[1].kind == "literal"
+                and isinstance(values[1].value, str)
+            )
+            assert not has_design_token, component
+        for child in node.children:
+            assert_inline_only(child)
+
+    for definition in registry.templates.values():
+        for variant in definition.variants:
+            assert_inline_only(variant.root)
 
 
 @pytest.mark.parametrize(

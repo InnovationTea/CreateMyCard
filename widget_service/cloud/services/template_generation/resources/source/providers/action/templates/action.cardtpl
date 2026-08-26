@@ -7,6 +7,7 @@ Stack({
   "height": 36,
   "padding": 8,
   "borderRadius": 18,
+  "backgroundColor": $theme('actionStyle.backgroundColor'),
   "alignContent": "center",
   "onClick": EventAction(props.actionId)
 },
@@ -17,15 +18,17 @@ Stack({
   },
     IfPresent(
       props.icon,
-      Image(props.icon, "icon", {
+      Image(props.icon, {
         "width": 20,
         "height": 20,
-        "objectFit": "contain"
+        "objectFit": "contain",
+        "fillColor": $theme('actionStyle.contentColor')
       })
     ),
-    Text(props.label, "compact-action", {
+    Text(props.label, {
       "fontSize": 14,
       "fontWeight": 500,
+      "fontColor": $theme('actionStyle.contentColor'),
       "maxLines": 1,
       "textOverflow": "ellipsis"
     })
@@ -41,13 +44,15 @@ Stack({
   "width": 30,
   "height": 30,
   "borderRadius": 15,
+  "backgroundColor": $theme('actionStyle.backgroundColor'),
   "alignContent": "center",
   "onClick": EventAction(props.actionId)
 },
-  Image(props.icon, "icon", {
+  Image(props.icon, {
     "width": 16,
     "height": 16,
-    "objectFit": "contain"
+    "objectFit": "contain",
+    "fillColor": $theme('actionStyle.contentColor')
   })
 )
 #End

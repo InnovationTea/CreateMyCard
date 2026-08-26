@@ -1,0 +1,30 @@
+{
+  "themeFormat": "card-theme/2",
+  "themeProfileId": "system-low-power-blue",
+  "description": "系统低电蓝",
+  "firstLayerRule": {"path": "first-layer.md"},
+  "supportedCapabilityIds": ["GetPhoneBatteryInfo"],
+  "paletteSceneIds": ["device.lowPower"],
+  "primaryColor": "#FFF9A01E",
+  "supportContentColor": "#FFF9A01E",
+  "rootStyle": {
+    "backgroundColor": "#FFFFFFFF",
+    "borderRadius": 20,
+    "padding": 11,
+    "justifyContent": "spaceBetween",
+    "alignItems": "start",
+    "linearGradient": {
+      "direction": "Bottom",
+      "colors": [["#1AF9A01E", 0], ["#00FFFFFF", 1]]
+    },
+    "clip": true
+  },
+  "actionStyle": {
+    "backgroundColor": "#FFF9A01E",
+    "contentColor": "#FFFFFFFF",
+    "height": 28,
+    "borderRadius": 14,
+    "fontSize": 14,
+    "fontWeight": 600
+  }
+}

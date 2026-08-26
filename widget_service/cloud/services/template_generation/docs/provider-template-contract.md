@@ -77,6 +77,10 @@ TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路�
 模板 ID 直接表达 UI 形态，不再声明 `Variant`、`allowedParentComponents` 或 `limits`。模板头只定义外部
 `props`；`?` 表示可选，支持 `string`、`asset`、`number`、`integer` 和 `boolean`：
 
+Provider `.cardtpl` 中的组件统一采用 Tersel Option 3，只写内联样式，不写 DesignToken。模板是受信资源，
+不需要使用 DesignToken 缩短模型 Prompt；需要随 Theme 变化的颜色在内联样式值中使用受限
+`$theme('<path>')` 引用。
+
 ```text
 #Template WeatherSummaryHero@1(props: { title: string, icon?: asset })
 data = {
@@ -85,11 +89,23 @@ data = {
   airQuality: $optionalPath("/current/airQuality")
 }
 
-Column("compact",
-  Text(`${props.title}`, "title"),
-  Text(`${data.temperature}`, "body"),
+Column({"width": "matchParent", "itemMargin": 4},
+  Text(`${props.title}`, {
+    "fontSize": 20,
+    "fontWeight": 700,
+    "fontColor": $theme('primaryColor')
+  }),
+  Text(`${data.temperature}`, {
+    "fontSize": 14,
+    "fontWeight": 400,
+    "fontColor": $theme('primaryColor')
+  }),
   IfPresent(data.airQuality,
-    Text(`${data.condition}｜${data.airQuality}`, "subtitle")
+    Text(`${data.condition}｜${data.airQuality}`, {
+      "fontSize": 12,
+      "fontWeight": 500,
+      "fontColor": $theme('supportContentColor')
+    })
   )
 )
 #End
@@ -143,96 +159,92 @@ Template("HeroSupportLayout@1", {},
 模板文件不是可执行 Python。解析器只接受受限声明、白名单组件、字面量、受控引用和条件节点；模板展开后
 仍执行 Catalog、节点数量、深度、素材、Action、TaskSpec 路径和最终 A2UI 校验。
 
-可信展开后的最终 TerseDSL-Nested-2 产物包含组件树和 `data = {...}` 两条语句。组件动态值使用
+可信展开后的最终 Tersel 产物包含组件树和 `data = {...}` 两条语句。组件动态值使用
 现有 `"${data...}"` 字符串占位语法；需要复合运行时计算时使用 `Expr("...")`，并与 Provider
 作者侧的 ``Expr(`...`)`` 归一化到相同 A2UI 表达式。`data` 初值由服务端从 TaskSpec 真实路径确定性生成；
 `$path` 只属于
-Provider 模板作者侧声明，不进入最终 Nested-2 语法。最终产物不得包含 `_advancedSelectors` 或
+Provider 模板作者侧声明，不进入最终 Tersel 语法。最终产物不得包含 `_advancedSelectors` 或
 `_templateProjection`。
 
 ## 2x2 融球背景
 
-融球背景是模板可信展开后的微服务装饰模板，不属于业务 Provider，也不交给两层模型选择。它只对天气、
-运动健康和睡眠三类高饱和场景生效，并根据已选 Theme 使用固定色板：
+模板生产入口要求调用方显式传入 `enable_fusion_ball`。为 `false` 时，所有包含 `fusionBallStyle` 的 Theme
+在首层 Prompt 构造前即从请求级 Registry 视图移除，检索、二层组合和编译也不能再查找或接受这些 Theme。
 
-- 天气：大、中、小球依次为 `#003399`、`#0089BF`、`#4174D9`；
-- 运动健康：大、中、小球依次为 `#B33C24`、`#FF8833`、`#F7E6C3`；
-- 睡眠：大、中、小球依次为 `#43388C`、`#5761D9`、`#B398D9`。
+融球背景是模板可信展开后插入的微服务云侧组件，不属于业务 Provider，也不交给二层模型选择。每套融球 Theme
+在自身 `themes/<theme-id>/theme.json` 的 `fusionBallStyle` 中保存允许的 `businessIds` 以及大、中、小球真实
+`#AARRGGBB` 颜色，不得在代码中维护按场景索引的第二份固定色板。
 
-Theme 是否命中场景由 `theme-profiles.json` 的内部 `fusionBallScene` 配置声明；该字段不进入 A2UI 协议或
-模型输出。其它 Theme 不应用融球背景，也不从 Theme 的原颜色动态派生融球色板。
+融球包装仅适用于 `2x2`、单业务，且实际选中的业务模板后缀为 `Full` 或 `Hero` 的场景。主题适用能力还必须
+覆盖该业务模板的数据能力。`Compact`、`WideHero`、`WideFull`、无业务和多业务组合均不应用融球包装。
 
-`2x2` 最终根节点使用 `Stack("card", ...)`，子节点顺序固定为“融球背景、原卡片内容”；原卡片内容移除
-`backgroundColor`、`linearGradient` 和背景图片字段后作为前景层。Form Catalog 不支持 ArkUI 的
-`position`，因此模板使用嵌套 `Stack` 的尺寸与对齐复现三球位置；玻璃层使用 5% 白色覆盖和
-`backdropBlur: {"radius": 120}`。最外层 `Stack("card", ...)` 不设置 `backgroundColor`，融球背景容器也不
-铺设额外底色，背景由三个球体组合提供。球体和覆盖层使用 A2UI 允许 `children: []` 的空 `Stack`，不添加占位文本。
-`2x4` 不应用该装饰模板；其它场景的 `2x2` 与全部 `2x4` 都继续使用 Theme 原有纯色或线性渐变。
-融球内容层中非 PillAction 的 `Text` 统一使用 `fontColor: "#CCFFFFFF"`，即 80% 白色。
-天气图标保留原始多色素材和原有 `fillColor`；运动健康与睡眠场景的可染色语义图标继续使用白色前景。
-PillAction 的背景色、图标和文本均保留自身 Theme 原色，不应用融球内容前景色规则。
+`2x2` 模板中间根节点使用 `Stack("card", ...)`，子节点顺序固定为“`FusionBall`、原卡片内容”；原卡片内容
+移除 `backgroundColor`、`linearGradient` 和背景图片字段后作为前景层。模板内部不再维护或展开球体、定位
+容器和玻璃层。`FusionBall(largeColor, mediumColor, smallColor)` 只接受三个 `#AARRGGBB` 位置参数。
+不满足门禁的卡片继续使用 Theme 原有纯色或线性渐变。融球包装只替换卡片根背景，不改写业务文本、图标或
+Action 内容颜色。业务 Provider 必须显式区分主内容与辅助内容，分别使用 `$theme('primaryColor')` 和
+`$theme('supportContentColor')`；服务端只给未配置颜色的内容组件补 `primaryColor`，不得猜测主辅语义。
+PillAction 模板使用 `$theme('actionStyle.backgroundColor')` 和 `$theme('actionStyle.contentColor')`。
 
 ### 完整 A2UI 转换
 
-模板模块同时提供确定性的完整 A2UI 转换入口
-`convert_a2ui_with_fusion_ball(a2ui, scene)`。A2UI 输入必须是 `v0.9` 的三行完整 JSONL，依次包含
-`createSurface`、`updateComponents` 和 `updateDataModel`；`scene` 只接受 `weather`、`health-sport` 或
-`sleep`。转换只接受根组件为 `Stack` 且根样式包含纯色或线性渐变背景的卡片；融球颜色由场景固定色板
-决定，不读取原背景色或渐变色。背景图片不参与转换。
+Tersel 转 A2UI 后，云侧组件使用顶层 `largeColor`、`mediumColor`、`smallColor` 字段；A2UI 回转
+A2UI-Compact 时保留为同名 Props。三种源格式都先转换成完整 A2UI，再由确定性入口
+`convert_a2ui_with_fusion_ball(a2ui)` 统一展开。A2UI 输入必须是 `v0.9` 的三行完整 JSONL，依次包含
+`createSurface`、`updateComponents` 和 `updateDataModel`。颜色只从 `FusionBall` 本身读取，不再额外传 palette。
 
 入口实现位于 `engine/fusion_ball_a2ui_converter.py`，该文件只使用 Python 标准库，不依赖模板引擎、
-CardPlan、Terse 节点或项目配置，可以单文件复制到其他项目直接调用：
+CardPlan、Tersel 节点或项目配置，可以单文件复制到其他项目直接调用：
 
 ```python
 from fusion_ball_a2ui_converter import convert_a2ui_with_fusion_ball
 
-converted = convert_a2ui_with_fusion_ball(a2ui, "weather")
+converted = convert_a2ui_with_fusion_ball(a2ui)
 ```
 
-转换保留 surface、DataModel、原业务组件和根组件 ID。原根节点改为无背景的外层 `Stack`，其第一个
-子节点是固定融球结构，第二个子节点是改名为 `cardContent`、移除纯色和线性渐变后的原根组件。
-`cardContent` 不携带端侧内容防溢出前缀，融球产物不启用内容层防溢出能力，也不扩展 A2UI 协议。
-转换器拒绝保留 ID 与融球固定 ID 冲突的输入，对已经完整转换的输入原样返回；旧版
-`__genui_render_component__cardContent` 融球产物再次转换时只移除内容 ID 标记。
+转换保留 surface、DataModel、原业务组件和根组件 ID，把 `FusionBall` 替换为 Form Catalog 标准 `Stack`
+组成的三球、定位层和玻璃层；玻璃层使用 5% 白色和 `backdropBlur: {"radius": 120}`，空层显式保留
+`children: []`。与 `FusionBall` 相邻的内容组件 ID 增加 `__genui_render_component__` 前缀，父组件引用同步
+更新，以启用端侧内容层防溢出能力。转换完成后不得残留 `FusionBall`。转换器拒绝三色非法、父子关系不唯一、
+相邻内容缺失和预留 ID 冲突的输入；无 `FusionBall` 或已经展开的标准 A2UI 原样返回。
 
-## 两层 LLM 规则
+## 首层 Search、确定性检索与第二层 LLM 规则
 
-第一层顶层只能输出 `theme`、`componentCandidates`、`action`：
+当前默认配置 `firstLayerComponentSelector: "search"`。第一层模型不直接选择业务组件或模板，只输出
+`TemplateRetrievalQuery`，顶层字段为 `themeId`、`requiredOutputFieldsByCapability`、`action`：
 
-1. 从 `userQuery` 和 `taskSpecDataFields` 标定用户显式要求显示的字段；
-2. Search 只允许选择一个业务组件；该组件下一个或多个模板的覆盖并集必须承载全部显式字段，任一字段全部
-   或部分不能承载即失败；
-3. 每个所选组件输出 `componentId` 与非空 `availableTemplateIds`，模板 ID 必须来自该组件；
-4. 显式字段满足后，再检查候选模板自身 `primaryData` 与 `secondaryData` 在 TaskSpec 中全部存在；
-5. `candidateOutputFields` 只是候选数据投影，不直接等于强制显示集合；
-6. `action` 输出零到两个不重复、显式动作对应的 `eventId`，不属于组件，也不参与数据覆盖。
-
-显式请求包含多个数据能力，或必须联合多个业务组件才能覆盖字段时，Search 直接返回模板不匹配；单业务加
-Action 仍属于支持范围。
+1. `themeId` 必须来自当前可用 Theme；
+2. `requiredOutputFieldsByCapability` 按数据能力列出用户显式要求展示的字段；
+3. `action` 输出零到两个不重复、与显式动作对应的 `eventId`，不参与数据覆盖；
+4. 模型不得输出组件 ID、模板 ID、布局或最终 props。
 
 成功示例：
 
 ```json
 {
-  "theme": "family-weather-care-blue",
-  "componentCandidates": [
-    {
-      "componentId": "WeatherOverview",
-      "availableTemplateIds": ["WeatherOverviewFull@1", "WeatherOverviewCompact@1"]
-    }
-  ],
+  "themeId": "family-weather-care-blue",
+  "requiredOutputFieldsByCapability": {
+    "ViewWeather": ["currentTemperature", "weatherCondition", "hourlyForecast"]
+  },
   "action": []
 }
 ```
 
-失败时仍必须保留最匹配的候选 Theme，以空 `componentCandidates` 作为唯一失败标志，并清空 Action：
+服务随后由 `retrieve_template_variants()` 做确定性检索，结合能力字段、注册表和模板候选生成
+`TemplateRouteSelection`。只有这个内部结果才包含 `componentCandidates` 和
+`availableTemplateIds`：
 
-```json
-{"theme":"family-weather-care-blue","componentCandidates":[],"action":[]}
-```
+1. Search 只允许命中一个业务组件；该组件下一个或多个模板的覆盖并集必须承载全部显式字段；
+2. 显式字段满足后，再检查候选模板自身 `primaryData` 与 `secondaryData` 在 TaskSpec 中全部存在；
+3. `candidateOutputFields` 只是候选数据投影，不直接等于强制显示集合；
+4. 显式请求包含多个数据能力，或必须联合多个业务组件才能覆盖字段时，在进入第二层前返回模板不匹配；
+5. 单业务加 Action 仍属于支持范围。
 
-第二层只读取已选业务 Provider 的 `secondLayerRule`，从首层 `availableTemplateIds` 选择最终 UI 模板和
-props；根布局也必须从 Layout
+配置 `firstLayerComponentSelector: "llm"` 时，系统可走兼容选择器
+`plan_template_route_with_llm()`，由第一层直接产出 Theme、组件候选和 Action；该路径不是当前默认生产路径。
+
+第二层只读取确定性检索选中的业务 Provider `secondLayerRule`，从
+`availableTemplateIds` 选择最终 UI 模板和 props；根布局也必须从 Layout
 Provider 选择模板。若第一层输出了 `action`，第二层按最终模板后缀在布局模板末尾调用 Action Provider：
 Hero/WideHero 使用一个 `Template("PillAction@1", props)`，单 Compact 使用两个 PillAction 模板，Full
 最多使用一个 `Template("IconAction@1", props)`；WideFull 和双 Compact 不生成 Action。PillAction Props
@@ -242,8 +254,8 @@ Action CardTpl 必须在交互组件样式中写入 `onClick: EventAction(props.
 
 ## 当前迁移范围
 
-天气、日历、手机电量、耳机、健康运动、应用使用时长、倒计时和系统内存的 12 个旧模板前缀已拆成
-82 个无 Variant 的业务 UI 模板；日期与日程归并后形成 11 个 Provider 业务领域。Layout Provider
+天气、日历、手机电量、耳机、健康运动、应用使用时长、倒计时和系统内存当前共有
+75 个无 Variant 的业务 UI 模板；日期与日程归并后形成 11 个 Provider 业务领域。Layout Provider
 另提供 10 个支持 `...children` 的布局模板。
 新增或修改资源后执行：
 
