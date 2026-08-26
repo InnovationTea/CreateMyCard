@@ -9,6 +9,7 @@
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
 - [x] `primaryData` 与 `secondaryData` 均参与模板准入硬校验。
 - [x] Compact 支持双模板组合或双 PillAction；Full 支持可选 IconAction。
+- [x] PillAction/IconAction 使用独立 Action Provider 模板，第二层只输出批准的展示 Props。
 - [x] 第一层支持选择零到两个不重复 eventId。
 - [x] 每个业务模板均在下方按主数据、次要数据、可选数据和布局场景展开。
 

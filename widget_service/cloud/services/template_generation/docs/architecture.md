@@ -35,7 +35,7 @@ generateWidgetCardCompactDsl
        ├─ generate_source_dsl → request_template_source_dsl
        │    ├─ 第一层 LLM：选择 Theme、业务模板候选和 Action
        │    ├─ 服务端完整覆盖校验
-       │    ├─ 第二层 LLM：只选择受控 Layout、Template 和可选 PillAction
+       │    ├─ 第二层 LLM：只选择受控 Layout、业务 Template 和 Action Template，并填写 Props
        │    ├─ 受信解析、参数校验与模板展开
        │    └─ A2UI 适配当前 Profile 后回转 Design Compact DSL
        ├─ 模板 source generator 异常 → 同一 generate_source_dsl 调用原 Compact 模型

@@ -1,0 +1,22 @@
+{
+  "bundleFormat": "card-provider-bundle/1",
+  "providerId": "com.huawei.action.cli",
+  "providerVersion": "1.0.0-poc",
+  "templates": [
+    {
+      "templateId": "PillAction@1",
+      "description": "胶囊动作模板，由第二层通过 actionId、label 和可选 icon Props 填充展示内容。",
+      "entry": "templates/action.cardtpl"
+    },
+    {
+      "templateId": "IconAction@1",
+      "description": "图标动作模板，由第二层通过 actionId 和 icon Props 填充展示内容。",
+      "entry": "templates/action.cardtpl"
+    }
+  ],
+  "compatibility": {
+    "templateLanguage": "cardtpl/1",
+    "catalogId": "ohos.a2ui.extended.catalog.form",
+    "a2uiWireVersion": "v0.9"
+  }
+}

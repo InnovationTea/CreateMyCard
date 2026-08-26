@@ -64,6 +64,7 @@ class TemplateValue(StrictModel):
         "literal",
         "parameter",
         "binding",
+        "event-action",
         "interpolation",
         "expression",
         "array",

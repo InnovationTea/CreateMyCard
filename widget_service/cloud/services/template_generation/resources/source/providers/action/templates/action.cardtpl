@@ -1,0 +1,53 @@
+#Template PillAction@1(props: { actionId: string, label: string, icon?: asset })
+data = {
+}
+
+Stack({
+  "width": "matchParent",
+  "height": 36,
+  "padding": 8,
+  "borderRadius": 18,
+  "alignContent": "center",
+  "onClick": EventAction(props.actionId)
+},
+  Row({
+    "itemMargin": 8,
+    "justifyContent": "center",
+    "alignItems": "center"
+  },
+    IfPresent(
+      props.icon,
+      Image(props.icon, "icon", {
+        "width": 20,
+        "height": 20,
+        "objectFit": "contain"
+      })
+    ),
+    Text(props.label, "compact-action", {
+      "fontSize": 14,
+      "fontWeight": 500,
+      "maxLines": 1,
+      "textOverflow": "ellipsis"
+    })
+  )
+)
+#End
+
+#Template IconAction@1(props: { actionId: string, icon: asset })
+data = {
+}
+
+Stack({
+  "width": 30,
+  "height": 30,
+  "borderRadius": 15,
+  "alignContent": "center",
+  "onClick": EventAction(props.actionId)
+},
+  Image(props.icon, "icon", {
+    "width": 16,
+    "height": 16,
+    "objectFit": "contain"
+  })
+)
+#End

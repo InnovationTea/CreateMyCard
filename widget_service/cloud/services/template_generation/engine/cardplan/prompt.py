@@ -34,6 +34,8 @@ _PLAIN_DESIGNS = (
     "icon",
 )
 _PLAIN_LAYOUTS = ("card", "section", "compact", "between", "actions", "list", "dense", "overlay")
+_ACTION_TEMPLATE_IDS = ("PillAction@1", "IconAction@1")
+_ACTION_PROVIDER_ID = "com.huawei.action.cli"
 _ACTION_LABELS = {
     "event.call.phone": "联系家人",
     "event.clean.memory": "一键清理",
@@ -199,6 +201,9 @@ def build_hybrid_prompt(
             actions=actions,
             definitions=selected_definitions,
         )
+    if ux_layout_root_ids and content_action_ids:
+        requested = tuple(dict.fromkeys((*requested, *_ACTION_TEMPLATE_IDS)))
+    selected_definitions = [registry.require_template(wire_id) for wire_id in requested]
     design_tokens = _unique(
         [
             *_PLAIN_DESIGNS,
@@ -228,7 +233,6 @@ def build_hybrid_prompt(
         max_nesting_depth=9 if ux_layout_root_ids else 7,
         vertical_budget_vp=126,
     )
-    ux_action_components = ("PillAction", "IconAction") if ux_layout_root_ids else ()
     contract = HybridBodyContract(
         theme_profile_id=theme_id,
         allowed_components=tuple(
@@ -245,7 +249,6 @@ def build_hybrid_prompt(
                     "List",
                     "Stack",
                     *ux_layout_root_ids,
-                    *ux_action_components,
                 )
             )
         ),
@@ -388,7 +391,8 @@ def _system_prompt(
             task_spec,
             card_spec,
         ):
-            if ux_layout_root and _variant_requires_action(variant):
+            is_action_template = wire_id in _ACTION_TEMPLATE_IDS
+            if ux_layout_root and _variant_requires_action(variant) and not is_action_template:
                 continue
             if not _variant_has_available_required_assets(variant, definition, contract):
                 continue
@@ -512,10 +516,11 @@ def _composition_rules(ux_layout_root: bool) -> tuple[str, ...]:
             "当前业务，"
             "可在业务内容区使用；若局部 Template 或事实已表达则省略，"
             "禁止从 request 截取标题。",
-            "Action 类型由业务模板后缀决定：Compact/Hero/WideHero 使用 PillAction，"
-            "Full 只允许带可信 icon 的 IconAction，WideFull 不允许 Action。"
+            "Action 类型由业务模板后缀决定：Compact/Hero/WideHero 使用 "
+            'Template("PillAction@1", props)，Full 只允许 '
+            'Template("IconAction@1", props)，WideFull 不允许 Action。'
             "Action 与业务组件解耦，不得根据组件改写、丢弃或重新归属 eventId；"
-            "禁止 ActionTile、标准 Button、事件对象和 Action 局部 Template。",
+            "禁止直接调用 PillAction/IconAction/ActionTile、标准 Button 和事件对象。",
         )
     return (
         'Card 外壳必须是 Template("card@1", cardParams, content)。',
@@ -528,7 +533,7 @@ def _composition_rules(ux_layout_root: bool) -> tuple[str, ...]:
 
 def _ux_layout_action_rule(contract: HybridBodyContract) -> str:
     actions = [
-        item.model_dump()
+        {"actionId": item.action_id, "label": item.display_label}
         for item in contract.action_bindings
         if item.action_id in contract.content_action_ids
     ]
@@ -538,7 +543,9 @@ def _ux_layout_action_rule(contract: HybridBodyContract) -> str:
         "layoutActionCandidates="
         + json.dumps(actions, ensure_ascii=False)
         + "；按所选布局的 Action 数量范围选择且不得重复 actionId；"
-        "标签和事件由服务端可信 Lowering 注入。"
+        "PillAction@1 的 actionId/label 必须来自同一候选，icon 可从 "
+        "actionIconCandidates 选择；IconAction@1 必须填写批准的 actionId/icon。"
+        "事件由服务端可信 Lowering 注入，禁止输出 call/args/onClick。"
     )
 
 
@@ -800,6 +807,7 @@ def _eligible_ranked_templates(
     return [
         definition
         for definition in _ranked_templates(text, registry)
+        if definition.provider_id != _ACTION_PROVIDER_ID
         if _provider_template_is_admitted(
             definition,
             task_spec,
