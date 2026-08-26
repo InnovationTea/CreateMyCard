@@ -108,53 +108,57 @@ data = {
 }
 
 Row(
-  "between",
-  {"_advancedComponent": "AppUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 8, "justifyContent": "center", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Column(
-      "compact",
-      {"layoutWeight": 3, "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Row(
-            "between",
-            {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Text(
+    "between",
+    {"_advancedComponent": "AppUsageOverview", "width": "100%", "height": "100%", "itemMargin": 8, "alignItems": "center"},
+    Column(
+        "compact",
+        {"layoutWeight": 1, "height": "matchParent", "itemMargin": 8, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+        Column(
+            "compact",
+            {"width": "matchParent", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            Column(
+                "compact",
+                {"width": "matchParent", "height": 20},
+                Text(
                     data.appName,
                     "compact-title",
-                    {"fontSize": 12, "minFontSize": 12, "fontWeight": 600, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  ),
-            IfPresent(
-                    props.appIcon,
-                    Image(
-                              props.appIcon,
-                              "icon",
-                              {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "flexShrink": 0}
-                            )
-                  )
-          ),
-      Column(
-            "compact",
-            {"layoutWeight": 1, "itemMargin": 4, "justifyContent": "center", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Row(
-                    "between",
-                    {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                    Text(
-                              data.duration,
-                              "title",
-                              {"fontSize": 18, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            )
-                  )
-          )
-    ),
-  IfPresent(
-      data.updatedAt,
-      Column(
-            "compact",
-            {"layoutWeight": 2, "padding": 8, "borderRadius": 12, "backgroundColor": "#0D000000", "justifyContent": "center", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+                    {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                )
+            ),
+            Column(
+                "compact",
+                {"width": "matchParent", "justifyContent": "start", "alignItems": "start", "clip": true},
+                Text(
+                    data.duration,
+                    "title",
+                    {"fontSize": 30, "fontWeight": 700, "maxLines": 1}
+                )
+            )
+        ),
+        IfPresent(
+            data.updatedAt,
             Text(
-                    `更新于 ${data.updatedAt}`,
-                    "subtitle",
-                    {"fontSize": 10, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  )
-          )
+                `更新于 ${data.updatedAt}`,
+                "subtitle",
+                {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+            )
+        )
+    ),
+    Column(
+        "compact",
+        {"layoutWeight": 1, "itemMargin": 8, "clip": true, "height": "matchParent", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+        IfPresent(
+            props.appIcon,
+            Column(
+                "compact",
+                {"width": "matchParent", "alignItems": "end", "height": 20},
+                Image(
+                    props.appIcon,
+                    "icon",
+                    {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+                )
+            )
+        )
     )
 )
 #End
@@ -167,53 +171,98 @@ data = {
 }
 
 Row(
-  "between",
-  {"_advancedComponent": "AppUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 8, "justifyContent": "center", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Column(
-      "compact",
-      {"layoutWeight": 3, "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Row(
-            "between",
-            {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Text(
+    "between",
+    {"_advancedComponent": "AppUsageOverview", "width": "100%", "height": "100%", "itemMargin": 8, "alignItems": "center"},
+    Column(
+        "compact",
+        {"layoutWeight": 1, "height": "matchParent", "itemMargin": 8, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+        Column(
+            "compact",
+            {"width": "matchParent", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            Column(
+                "compact",
+                {"width": "matchParent", "height": 20},
+                Text(
                     data.appName,
                     "compact-title",
-                    {"fontSize": 12, "minFontSize": 12, "fontWeight": 600, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  ),
-            IfPresent(
-                    props.appIcon,
-                    Image(
-                              props.appIcon,
-                              "icon",
-                              {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "flexShrink": 0}
-                            )
-                  )
-          ),
-      Column(
-            "compact",
-            {"layoutWeight": 1, "itemMargin": 4, "justifyContent": "center", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Row(
-                    "between",
-                    {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                    Text(
-                              data.duration,
-                              "title",
-                              {"fontSize": 18, "fontWeight": 700, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            )
-                  )
-          )
-    ),
-  IfPresent(
-      data.updatedAt,
-      Column(
-            "compact",
-            {"layoutWeight": 2, "padding": 8, "borderRadius": 12, "backgroundColor": "#0D000000", "justifyContent": "center", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+                    {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                )
+            ),
+            Column(
+                "compact",
+                {"width": "matchParent", "justifyContent": "start", "alignItems": "start", "clip": true},
+                Text(
+                    data.duration,
+                    "title",
+                    {"fontSize": 30, "fontWeight": 700, "maxLines": 1}
+                )
+            )
+        ),
+        IfPresent(
+            data.updatedAt,
             Text(
-                    `更新于 ${data.updatedAt}`,
+                `更新于 ${data.updatedAt}`,
+                "subtitle",
+                {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+            )
+        )
+    ),
+    Column(
+        "compact",
+        {"layoutWeight": 1, "itemMargin": 8, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+        IfPresent(
+            props.appIcon,
+            Column(
+                "compact",
+                {"width": "matchParent", "alignItems": "end", "height": 20},
+                Image(
+                    props.appIcon,
+                    "icon",
+                    {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+                )
+            )
+        )
+    )
+)
+#End
+
+#Template AppUsageOverviewCompact@1(props: { appIcon?: asset })
+data = {
+    duration: $path("/appUsage/durationText"),
+    updatedAt: $optionalPath("/updatedAt")
+}
+
+Column(
+  "compact",
+  {"_advancedComponent": "AppUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Row(
+        "between",
+        {"width": "matchParent", "justifyContent": "start", "alignItems": "center"},
+        Column(
+            "compact",
+            {"itemMargin": 2, "justifyContent": "start", "alignItems": "start", "layoutWeight": 1},
+            Text(
+                data.duration,
+                "title",
+                {"fontSize": 20, "fontWeight": 700, "maxLines": 1}
+            ),
+            IfPresent(
+                data.updatedAt,
+                Text(
+                    data.updatedAt,
                     "subtitle",
-                    {"fontSize": 10, "fontWeight": 400, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  )
-          )
+                    {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+                )
+            )
+        ),
+        IfPresent(
+            props.appIcon,
+            Image(
+                props.appIcon,
+                "icon",
+                {"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0}
+            )
+        )
     )
 )
 #End
