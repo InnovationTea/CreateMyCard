@@ -38,8 +38,12 @@ await request_template_source_dsl(
     protocol_profile=protocol_profile,
     model_runtime=model_runtime,
     model_request_context=model_request_context,
+    enable_fusion_ball=enable_fusion_ball,
 )
 ```
+
+`enable_fusion_ball` 是无默认值的请求级布尔开关，必须由调用方显式决定。关闭时，融球 Theme 会在
+首层 Prompt 构造前从当前请求的 Registry 视图中移除，后续检索、二层组合和编译也不能选择该类 Theme。
 
 入口返回当前公共 Processor 可直接消费的字符串。当前 Compact 与
 Tersel 生产路线都使用 `DESIGN_COMPACT` Processor，因此模块最终返回 Design Compact DSL。

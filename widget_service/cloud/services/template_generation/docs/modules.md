@@ -35,7 +35,7 @@ cloud/api/routes.py
 公开导出：
 
 - `request_template_source_dsl`：生产模板 source DSL 入口。
-- `convert_a2ui_with_fusion_ball`：对完整 A2UI 执行独立融球背景转换。
+- `convert_a2ui_with_fusion_ball`：在最终完整 A2UI 中展开云侧 `FusionBall`。
 - `route_legacy_python_terse_generation`：旧路线诊断入口，不属于生产默认流程。
 
 外部调用方不应穿过该文件直接调用 `engine` 内部方法。
@@ -47,10 +47,11 @@ cloud/api/routes.py
 `request_template_source_dsl()` 是主责任边界：
 
 1. 使用调用方传入的 `ModelExecutionRuntime` 和 `ModelRequestContext` 创建模板模型客户端。
-2. 复制已裁决的 `effective_bindings`，不增加新数据能力或字段。
-3. 调用 `generate_template_a2ui()` 获得受信展开后的 A2UI 和诊断信息。
-4. 调用 `prepare_template_source_dsl()` 转成当前 Processor 要求的源格式。
-5. 只记录 Template ID 和展开节点数，返回 DSL 字符串。
+2. 要求调用方显式传入 `enable_fusion_ball: bool`，并将请求级特性决策透传给模板引擎。
+3. 复制已裁决的 `effective_bindings`，不增加新数据能力或字段。
+4. 调用 `generate_template_a2ui()` 获得受信展开后的 A2UI 和诊断信息。
+5. 调用 `prepare_template_source_dsl()` 转成当前 Processor 要求的源格式。
+6. 只记录 Template ID、融球开关和展开节点数，返回 DSL 字符串。
 
 该文件不导入业务响应、artifact 或 Validator 类型，这是防止模板模块反向接管主生成链的关键限制。
 
@@ -121,7 +122,8 @@ cloud/api/routes.py
 
 模块主编排函数：
 
-1. 加载 Registry 和 Controls，从 CardSpec 取得已批准能力 ID。
+1. 按 `enable_fusion_ball` 加载请求级 Registry 视图；关闭时先移除所有融球 Theme，再从 CardSpec
+   取得已批准能力 ID。
 2. 应用领域 content selectors，建立 `DataShape`。
 3. 根据 `firstLayerComponentSelector` 进入 Search 或旧 LLM 首层路线。
 4. 将请求转换为 `TemplateRouteSelection`。
@@ -203,9 +205,11 @@ Search 不选最终 Template、Layout 或 Props，也不改写用户尺寸。
 - 加载 Provider Bundle、Theme、UX 预算和 Template Controls。
 - 派生业务组、数据能力、Provider 和 Template 映射。
 - 提供禁用过滤后的 Template、Layout、Theme 和分层规则。
+- 按请求级 `enable_fusion_ball` 过滤融球 Theme，并让 Prompt、检索、Theme 查找和编译共享同一视图。
 - 构造 Search 索引与尺寸/组合准入。
 
-`get_cardplan_registry()` 使用缓存。测试如果修改资源或 Controls，必须清理相关缓存后再断言。
+`get_cardplan_registry()` 按融球开关分别缓存两个只读视图。测试如果修改资源或 Controls，必须清理相关
+缓存后再断言。
 
 ### `provider_bundle.py`
 
@@ -255,10 +259,10 @@ children 槽位数量。
 
 文件：[编译期背景](../engine/cardplan/fusion_ball_background.py)，[独立 A2UI 转换](../engine/fusion_ball_a2ui_converter.py)
 
-- `apply_fusion_ball_background()` 在 CardPlan 编译期使用已选 Theme 的真实融球颜色组合背景层。
-- `convert_a2ui_with_fusion_ball()` 接收 Theme 提供的三色 palette，作为独立的完整 A2UI -> A2UI 入口。
+- `apply_fusion_ball_component()` 在 CardPlan 编译期只插入携带 Theme 三色的云侧 `FusionBall` 和相邻内容层。
+- `convert_a2ui_with_fusion_ball()` 从完整 A2UI 的 `FusionBall` 读取三色，展开标准组件并标记相邻内容 ID。
 
-两者不能自行维护场景色板；业务门禁由 CardPlan 在调用背景包装前确定性执行。
+两者不能自行维护场景色板；业务门禁由 CardPlan 在插入云侧组件前确定性执行。模板内部不得提前展开球体树。
 
 ### `terse_dsl_nested2_converter.py`
 

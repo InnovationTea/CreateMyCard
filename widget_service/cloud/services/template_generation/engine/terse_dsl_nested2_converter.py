@@ -41,7 +41,9 @@ MAX_OBJECT_FIELDS = 128
 _FORBIDDEN_KEYS = frozenset({"__proto__", "prototype", "constructor"})
 _INTERNAL_DATA_KEYS = frozenset({"_advancedSelectors", "_templateProjection"})
 _CONTAINERS = frozenset({"Row", "Column", "List", "Stack"})
-_LEAVES = frozenset({"Text", "Image", "Divider", "Progress", "Button", "Checkbox"})
+_LEAVES = frozenset(
+    {"Text", "Image", "Divider", "Progress", "Button", "Checkbox", "FusionBall"}
+)
 _COMPONENTS = _CONTAINERS | _LEAVES
 _DATA_PLACEHOLDER = re.compile(r"^\$\{(data(?:\.[A-Za-z_][A-Za-z0-9_]*|\.\d+)+)\}$")
 _A2UI_DATA_REFERENCE = re.compile(
@@ -385,7 +387,20 @@ def _parse_component(
         )
     if children and component_type not in _CONTAINERS:
         raise TerseDslNested2ConversionError(f"{component_type} cannot contain child components.")
+    if component_type == "FusionBall":
+        _validate_fusion_ball_values(values)
     return Nested2Node(component_type, tuple(values), tuple(children))
+
+
+def _validate_fusion_ball_values(values: list[Any]) -> None:
+    valid_colors = len(values) == 3 and all(
+        isinstance(value, str) and _THEME_COLOR.fullmatch(value) is not None
+        for value in values
+    )
+    if not valid_colors:
+        raise TerseDslNested2ConversionError(
+            "FusionBall requires exactly three #AARRGGBB color arguments."
+        )
 
 
 def _literal_value(
@@ -745,6 +760,13 @@ def _component_props(
 ) -> dict[str, Any]:
     if node.component_type in _CONTAINERS:
         return _container_props(node, component_id, size)
+    if node.component_type == "FusionBall":
+        large_color, medium_color, small_color = node.values
+        return {
+            "largeColor": large_color,
+            "mediumColor": medium_color,
+            "smallColor": small_color,
+        }
     if node.component_type == "Text":
         return _designed_leaf_props(node, "content", _TEXT_DESIGNS)
     if node.component_type == "Image":

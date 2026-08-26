@@ -38,6 +38,16 @@ ComponentName(requiredValues..., designToken?, inlineStyles?, ...children)
 - `inlineStyles` 是可选对象，必须位于最后一个值参数位置。
 - `children` 只允许出现在 `Row`、`Column`、`List`、`Stack` 等容器中。
 
+`FusionBall` 是仅云侧感知的特殊叶子组件，签名固定为：
+
+```tersel
+FusionBall("#FF121259", "#FF2B65D9", "#FF57AED9")
+```
+
+三个位置参数依次表示大、中、小球颜色，必须是 `#AARRGGBB`；不接受 DesignToken、内联样式或 children。
+它只由受信 Theme/模板链插入，不进入端侧 Catalog，也不向通用模型 Prompt 暴露。Tersel 转换阶段仅将其保留
+为云侧 A2UI 组件，最终完整 A2UI 阶段再确定性展开为标准组件。
+
 解析器先展开 DesignToken，再合并内联样式。内联样式优先级更高；同名属性由内联值覆盖 Token 默认值。
 最终 A2UI 只包含展开后的标准属性，不保留 DesignToken。
 

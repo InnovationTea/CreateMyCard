@@ -57,11 +57,40 @@ from services.source_artifact_repository import (
     SourceArtifactLoadResult,
     SourceArtifactRepository,
 )
-from services.template_generation import request_template_source_dsl
+from services.template_generation import (
+    FusionBallA2UIConversionError,
+    convert_a2ui_with_fusion_ball,
+    request_template_source_dsl,
+)
 from services.validator import ArtifactValidator
 
 _MODULE = "[Generation Service]"
 TemplateSourceGenerator = Callable[..., Awaitable[str]]
+
+
+def _expand_cloud_a2ui_components(
+    result: DslProcessingResult,
+) -> DslProcessingResult:
+    """Expand cloud-only components after every source format becomes complete A2UI."""
+    if result.errors or not result.standard_dsl:
+        return result
+    try:
+        standard_dsl = convert_a2ui_with_fusion_ball(result.standard_dsl)
+    except FusionBallA2UIConversionError as exc:
+        issue = QualityIssue(
+            stage="conversion",
+            code="CLOUD_COMPONENT_EXPANSION_FAILED",
+            message=str(exc),
+        )
+        return DslProcessingResult(
+            source_dsl=result.source_dsl,
+            issues=result.issues + (issue,),
+        )
+    return DslProcessingResult(
+        source_dsl=result.source_dsl,
+        standard_dsl=standard_dsl,
+        issues=result.issues,
+    )
 
 
 class WidgetGenerationService:
@@ -666,6 +695,7 @@ class WidgetGenerationService:
         def evaluate_source_dsl_sync(source_dsl: str) -> list[str]:
             nonlocal latest_processing_result
             processing_result = processor.process(source_dsl, processing_context)
+            processing_result = _expand_cloud_a2ui_components(processing_result)
             latest_processing_result = processing_result
             warnings = [
                 item.repair_message()
@@ -1179,6 +1209,7 @@ class WidgetGenerationService:
                 model_request_context=self._resolve_model_request_context(
                     profiled_request
                 ),
+                enable_fusion_ball=True,
             )
 
         return await self.generate_widget_card(

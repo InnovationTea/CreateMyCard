@@ -1,16 +1,16 @@
-"""Convert complete A2UI to the fusion-ball form using only Python's standard library.
+"""Expand the cloud-only FusionBall component in complete A2UI.
 
 This file is intentionally self-contained so it can be copied into another project.
 """
 
 from __future__ import annotations
 
-import copy
 import json
-from typing import Any
+from typing import Any, cast
 
-_CARD_CONTENT_ID = "cardContent"
-_LEGACY_CARD_CONTENT_ID = "__genui_render_component__cardContent"
+_CONTENT_ID_PREFIX = "__genui_render_component__"
+_FUSION_BALL_TYPE = "FusionBall"
+_FUSION_COLOR_FIELDS = ("largeColor", "mediumColor", "smallColor")
 _FUSION_BACKGROUND_COMPONENT_IDS = frozenset(
     {
         "fusionBallBackground",
@@ -23,71 +23,50 @@ _FUSION_BACKGROUND_COMPONENT_IDS = frozenset(
         "fusionBallGlassLayer",
     }
 )
-_FUSION_COMPONENT_IDS = _FUSION_BACKGROUND_COMPONENT_IDS | {_CARD_CONTENT_ID}
-_LEGACY_FUSION_COMPONENT_IDS = _FUSION_BACKGROUND_COMPONENT_IDS | {_LEGACY_CARD_CONTENT_ID}
-_RESERVED_FUSION_COMPONENT_IDS = _FUSION_COMPONENT_IDS | {_LEGACY_CARD_CONTENT_ID}
-_BACKGROUND_STYLE_KEYS = ("backgroundColor", "linearGradient")
 __all__ = ["FusionBallA2UIConversionError", "convert_a2ui_with_fusion_ball"]
 
 
 class FusionBallA2UIConversionError(ValueError):
-    """Raised when the input is not a supported complete A2UI card."""
+    """Raised when a cloud FusionBall cannot be expanded deterministically."""
 
 
-def convert_a2ui_with_fusion_ball(
-    a2ui: str,
-    palette: tuple[str, str, str],
-) -> str:
-    """Replace a Stack root background using colors supplied by the selected Theme."""
-    palette = _validate_palette(palette)
+def convert_a2ui_with_fusion_ball(a2ui: str) -> str:
+    """Expand one cloud FusionBall and mark its adjacent card-content component."""
+    if isinstance(a2ui, str) and '"FusionBall"' not in a2ui:
+        return a2ui
     messages = _parse_complete_a2ui(a2ui)
     update_components = messages[1]["updateComponents"]
     components = update_components.get("components")
-    root_id = update_components.get("root")
     if not isinstance(components, list) or not components:
         raise FusionBallA2UIConversionError("updateComponents.components must be non-empty.")
-    if not isinstance(root_id, str) or not root_id:
-        raise FusionBallA2UIConversionError("updateComponents.root must be a component id.")
 
-    root_index, root = _find_root(components, root_id)
-    if _already_has_fusion_background(root, components):
+    fusion_matches = _find_fusion_components(components)
+    if not fusion_matches:
         return a2ui
-    if _has_legacy_fusion_background(root, components):
-        _upgrade_legacy_card_content_id(root, components)
-        return _serialize_messages(messages)
-    if root.get("component") != "Stack":
-        raise FusionBallA2UIConversionError("The A2UI root component must be Stack.")
-    root_styles = root.get("styles")
-    root_children = root.get("children")
-    if not isinstance(root_styles, dict):
-        raise FusionBallA2UIConversionError("The Stack root styles must be an object.")
-    if not isinstance(root_children, list) or not all(
-        isinstance(child_id, str) and child_id for child_id in root_children
-    ):
-        raise FusionBallA2UIConversionError("The Stack root children must be an id array.")
-    if root_styles.get("backgroundImage") not in (None, ""):
-        raise FusionBallA2UIConversionError(
-            "Fusion-ball conversion does not replace a backgroundImage."
-        )
-    if not any(root_styles.get(key) not in (None, "", {}) for key in _BACKGROUND_STYLE_KEYS):
-        raise FusionBallA2UIConversionError(
-            "The Stack root must contain backgroundColor or linearGradient."
-        )
+    if len(fusion_matches) != 1:
+        raise FusionBallA2UIConversionError("Complete A2UI must contain at most one FusionBall.")
 
-    component_ids = _component_ids(components)
-    conflicts = sorted(component_ids & _RESERVED_FUSION_COMPONENT_IDS)
-    if conflicts:
-        raise FusionBallA2UIConversionError(
-            f"Fusion-ball component ids already exist: {', '.join(conflicts)}."
-        )
+    fusion_index, fusion = fusion_matches[0]
+    fusion_id = _required_component_id(fusion, "FusionBall")
+    palette = _read_fusion_palette(fusion)
+    parent = _find_fusion_parent(components, fusion_id)
+    content_id = _adjacent_content_id(parent, fusion_id)
+    content = _find_unique_component(components, content_id, "adjacent card content")
+    _validate_content_parent(components, content_id, parent)
+    marked_content_id = _marked_content_id(content_id)
+    _validate_expansion_ids(
+        components,
+        fusion_id=fusion_id,
+        content_id=content_id,
+        marked_content_id=marked_content_id,
+    )
 
-    outer_root, card_content = _split_root(root)
-    fusion_components = _build_fusion_components(palette)
-    components[root_index : root_index + 1] = [
-        outer_root,
-        *fusion_components,
-        card_content,
+    parent["children"] = [
+        _expanded_child_id(child_id, fusion_id, content_id, marked_content_id)
+        for child_id in parent["children"]
     ]
+    content["id"] = marked_content_id
+    components[fusion_index : fusion_index + 1] = _build_fusion_components(palette)
     return _serialize_messages(messages)
 
 
@@ -120,63 +99,149 @@ def _parse_complete_a2ui(a2ui: str) -> list[dict[str, Any]]:
     return messages
 
 
-def _find_root(
+def _find_fusion_components(
     components: list[Any],
-    root_id: str,
-) -> tuple[int, dict[str, Any]]:
-    matches = [
+) -> list[tuple[int, dict[str, Any]]]:
+    return [
         (index, component)
         for index, component in enumerate(components)
-        if isinstance(component, dict) and component.get("id") == root_id
+        if isinstance(component, dict) and component.get("component") == _FUSION_BALL_TYPE
+    ]
+
+
+def _required_component_id(component: dict[str, Any], label: str) -> str:
+    component_id = component.get("id")
+    if not isinstance(component_id, str) or not component_id:
+        raise FusionBallA2UIConversionError(f"{label} id must be a non-empty string.")
+    return component_id
+
+
+def _read_fusion_palette(component: dict[str, Any]) -> tuple[str, str, str]:
+    expected_fields = {"id", "component", *_FUSION_COLOR_FIELDS}
+    if set(component) != expected_fields:
+        raise FusionBallA2UIConversionError(
+            "FusionBall must contain only id, component, largeColor, mediumColor, and smallColor."
+        )
+    large_color = component.get("largeColor")
+    medium_color = component.get("mediumColor")
+    small_color = component.get("smallColor")
+    palette = (large_color, medium_color, small_color)
+    if any(not _is_argb_color(color) for color in palette):
+        raise FusionBallA2UIConversionError("FusionBall colors must use #AARRGGBB.")
+    return cast(tuple[str, str, str], palette)
+
+
+def _find_fusion_parent(
+    components: list[Any],
+    fusion_id: str,
+) -> dict[str, Any]:
+    parents = _find_component_parents(components, fusion_id)
+    if len(parents) != 1:
+        raise FusionBallA2UIConversionError("FusionBall must have exactly one parent.")
+    parent = parents[0]
+    if parent.get("component") != "Stack":
+        raise FusionBallA2UIConversionError("FusionBall parent must be Stack.")
+    children = parent["children"]
+    if not all(isinstance(child_id, str) and child_id for child_id in children):
+        raise FusionBallA2UIConversionError("FusionBall parent children must be component ids.")
+    return parent
+
+
+def _find_component_parents(
+    components: list[Any],
+    component_id: str,
+) -> list[dict[str, Any]]:
+    return [
+        component
+        for component in components
+        if isinstance(component, dict)
+        and isinstance(component.get("children"), list)
+        and component_id in component["children"]
+    ]
+
+
+def _adjacent_content_id(parent: dict[str, Any], fusion_id: str) -> str:
+    children = parent["children"]
+    fusion_index = children.index(fusion_id)
+    content_index = fusion_index + 1
+    if content_index >= len(children):
+        raise FusionBallA2UIConversionError(
+            "FusionBall must be immediately followed by its card-content component."
+        )
+    if len(children) != 2:
+        raise FusionBallA2UIConversionError(
+            "FusionBall Stack must contain only FusionBall and adjacent card content."
+        )
+    content_id = children[content_index]
+    if content_id == fusion_id:
+        raise FusionBallA2UIConversionError("FusionBall cannot be its own adjacent content.")
+    return content_id
+
+
+def _find_unique_component(
+    components: list[Any],
+    component_id: str,
+    label: str,
+) -> dict[str, Any]:
+    matches = [
+        component
+        for component in components
+        if isinstance(component, dict) and component.get("id") == component_id
     ]
     if len(matches) != 1:
-        raise FusionBallA2UIConversionError("A2UI must contain exactly one root component.")
+        raise FusionBallA2UIConversionError(f"A2UI must contain exactly one {label} component.")
     return matches[0]
 
 
-def _already_has_fusion_background(
-    root: dict[str, Any],
-    components: list[Any],
-) -> bool:
-    return _has_fusion_background(root, components, _CARD_CONTENT_ID, _FUSION_COMPONENT_IDS)
+def _marked_content_id(component_id: str) -> str:
+    if component_id.startswith(_CONTENT_ID_PREFIX):
+        return component_id
+    return f"{_CONTENT_ID_PREFIX}{component_id}"
 
 
-def _has_legacy_fusion_background(
-    root: dict[str, Any],
-    components: list[Any],
-) -> bool:
-    return _has_fusion_background(
-        root,
-        components,
-        _LEGACY_CARD_CONTENT_ID,
-        _LEGACY_FUSION_COMPONENT_IDS,
-    )
-
-
-def _has_fusion_background(
-    root: dict[str, Any],
+def _validate_content_parent(
     components: list[Any],
     content_id: str,
-    expected_component_ids: frozenset[str],
-) -> bool:
-    children = root.get("children")
-    component_ids = _component_ids(components)
-    return (
-        isinstance(children, list)
-        and children == ["fusionBallBackground", content_id]
-        and expected_component_ids <= component_ids
-    )
-
-
-def _upgrade_legacy_card_content_id(
-    root: dict[str, Any],
-    components: list[Any],
+    fusion_parent: dict[str, Any],
 ) -> None:
-    root["children"] = ["fusionBallBackground", _CARD_CONTENT_ID]
-    for component in components:
-        if isinstance(component, dict) and component.get("id") == _LEGACY_CARD_CONTENT_ID:
-            component["id"] = _CARD_CONTENT_ID
-            return
+    parents = _find_component_parents(components, content_id)
+    if len(parents) != 1 or parents[0] is not fusion_parent:
+        raise FusionBallA2UIConversionError(
+            "Adjacent card content must belong only to the FusionBall parent."
+        )
+
+
+def _expanded_child_id(
+    child_id: str,
+    fusion_id: str,
+    content_id: str,
+    marked_content_id: str,
+) -> str:
+    if child_id == fusion_id:
+        return "fusionBallBackground"
+    if child_id == content_id:
+        return marked_content_id
+    return child_id
+
+
+def _validate_expansion_ids(
+    components: list[Any],
+    *,
+    fusion_id: str,
+    content_id: str,
+    marked_content_id: str,
+) -> None:
+    component_ids = _component_ids(components)
+    remaining_ids = component_ids - {fusion_id, content_id}
+    conflicts = sorted(remaining_ids & _FUSION_BACKGROUND_COMPONENT_IDS)
+    if conflicts:
+        raise FusionBallA2UIConversionError(
+            f"Fusion-ball component ids already exist: {', '.join(conflicts)}."
+        )
+    if marked_content_id in remaining_ids:
+        raise FusionBallA2UIConversionError(
+            f"Marked card-content id already exists: {marked_content_id}."
+        )
 
 
 def _serialize_messages(messages: list[dict[str, Any]]) -> str:
@@ -193,34 +258,6 @@ def _component_ids(components: list[Any]) -> set[str]:
         for component_id in (component.get("id"),)
         if isinstance(component_id, str) and component_id
     }
-
-
-def _split_root(root: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
-    outer_root = copy.deepcopy(root)
-    card_content = copy.deepcopy(root)
-    outer_styles = outer_root["styles"]
-    content_styles = card_content["styles"]
-    for key in _BACKGROUND_STYLE_KEYS:
-        outer_styles.pop(key, None)
-        content_styles.pop(key, None)
-    outer_styles["padding"] = 0
-    outer_styles["alignContent"] = "topStart"
-    outer_root["children"] = ["fusionBallBackground", _CARD_CONTENT_ID]
-
-    card_content["id"] = _CARD_CONTENT_ID
-    card_content.pop("onClick", None)
-    card_content.pop("accessibility", None)
-    content_styles.setdefault("width", "matchParent")
-    content_styles.setdefault("height", "matchParent")
-    return outer_root, card_content
-
-
-def _validate_palette(value: tuple[str, str, str]) -> tuple[str, str, str]:
-    if not isinstance(value, tuple) or len(value) != 3:
-        raise FusionBallA2UIConversionError("palette must contain three Theme colors.")
-    if any(not _is_argb_color(color) for color in value):
-        raise FusionBallA2UIConversionError("palette colors must use #AARRGGBB.")
-    return value
 
 
 def _is_argb_color(value: Any) -> bool:

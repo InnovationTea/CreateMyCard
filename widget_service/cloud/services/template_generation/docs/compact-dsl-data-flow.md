@@ -43,7 +43,8 @@ flowchart TD
     TEMPLATE -->|source DSL 成功| PROCESS[DesignCompactProcessor]
     TEMPLATE -->|不匹配或异常| ORIGINAL
     ORIGINAL --> PROCESS
-    PROCESS --> VALIDATE[ArtifactValidator]
+    PROCESS --> EXPAND[FusionBall 最终展开 + 内容 ID 防溢出标记]
+    EXPAND --> VALIDATE[ArtifactValidator]
     VALIDATE -->|error + 开启修复| REPAIR[Compact repair]
     REPAIR --> PROCESS
     VALIDATE -->|pass| SAVE[ArtifactStore]
@@ -136,7 +137,13 @@ repair_compact_dsl_binding_paths
   -> validate_compact_dsl_context
   -> read_design_protocol_profile
   -> convert_compact_dsl_to_a2ui
+  -> convert_a2ui_with_fusion_ball
 ```
+
+Template 命中融球 Theme 时，源 A2UI-Compact 只包含一个 `FusionBall` 行及
+`largeColor`、`mediumColor`、`smallColor` 三个 Props，不包含球体展开树。公共 Processor 先恢复完整 A2UI，
+最终展开器再生成标准组件并给相邻内容根 ID 增加 `__genui_render_component__` 前缀。最终 artifact 不得出现
+`FusionBall`。
 
 转换成功后，`ArtifactValidator` 校验完整 artifact 候选。转换或校验 error 会进入
 `RetryController`；是否修复及最大次数由公共配置控制。修复模型必须重新输出完整 Design Compact DSL。

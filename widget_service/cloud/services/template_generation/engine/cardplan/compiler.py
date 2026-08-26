@@ -59,7 +59,7 @@ from services.template_generation.engine.terse_dsl_nested2_converter import (
 
 from .fusion_ball_background import (
     FusionBallPalette,
-    apply_fusion_ball_background,
+    apply_fusion_ball_component,
 )
 from .models import (
     TEMPLATE_CHILD_SLOT_COMPONENT,
@@ -4976,7 +4976,7 @@ def _apply_template_background(
         fusion.medium_color,
         fusion.small_color,
     )
-    return apply_fusion_ball_background(
+    return apply_fusion_ball_component(
         root,
         size=size,
         palette=palette,

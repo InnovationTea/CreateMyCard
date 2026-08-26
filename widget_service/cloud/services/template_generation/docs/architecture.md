@@ -60,8 +60,11 @@ template_generation -X-> ArtifactValidator / ArtifactStore / ResponsePlanner
 
 ```mermaid
 flowchart TD
-    IN[TaskSpec + CardSpec + effective bindings] --> LOAD[加载 Controls 与 CardPlanRegistry]
-    LOAD --> SELECTOR{firstLayerComponentSelector}
+    IN[TaskSpec + CardSpec + effective bindings + 融球开关] --> LOAD[加载 Controls 与 CardPlanRegistry]
+    LOAD --> FUSION{enable_fusion_ball}
+    FUSION -->|false| FILTER[移除融球 Theme 的请求级视图]
+    FUSION -->|true| SELECTOR{firstLayerComponentSelector}
+    FILTER --> SELECTOR
     SELECTOR -->|search| MARK[首层 LLM: themeId + 显式字段 + action]
     MARK --> SEARCH[确定性 Template Search]
     SELECTOR -->|llm| LEGACY[首层 LLM: componentCandidates]
@@ -87,7 +90,9 @@ flowchart TD
 2. 编译 `.cardtpl`，校验模板 ID、Props、数据路径、children 槽位和组件闭包。
 3. 从 `provider.json#templates` 派生“业务 -> Template -> 数据能力 -> Provider”索引。
 4. 应用 `disabledProviderIds` 和 `disabledTemplateIds`，确保禁用项不进入首层和二层。
-5. 建立字段 Search 索引，供 `retrieve_template_variants()` 查找可覆盖候选。
+5. 按调用方显式传入的 `enable_fusion_ball` 构造请求级 Theme 视图；关闭时移除所有
+   `fusionBallStyle` Theme 及其首层规则和场景索引。
+6. 建立字段 Search 索引，供 `retrieve_template_variants()` 查找可覆盖候选。
 
 Provider Template 和业务分组只从各自 `provider.json` 与 `.cardtpl` 派生；Theme 只从
 `themes/<theme-id>/theme.json` 加载。`themes/base/theme-base.json` 仅保存跨主题一致的 UX Token、尺寸预算
@@ -95,6 +100,9 @@ Provider Template 和业务分组只从各自 `provider.json` 与 `.cardtpl` 派
 
 注册表或 Controls 无法严格加载时，模板路由不可用。Compact 是否继续原生成链取决于
 `need_fallback`；Tersel 不回退。
+
+融球开关关闭后，Search 和旧 LLM 首层 Prompt 均不能看到融球 Theme 的 ID、描述和首层规则；二层与
+编译阶段复用同一过滤视图，因此伪造融球 Theme ID 会按未知 Theme 拒绝，而不是在最终转换时静默忽略。
 
 ### 3.2 首层 Search
 
@@ -144,8 +152,11 @@ Search 路线的首层输出是 `TemplateRetrievalQuery`：
 5. 将 Action Template 的 `EventAction(props.actionId)` 实体化为已批准事件。
 6. 将 Theme `rootStyle` 应用到卡片根节点；为未显式着色的内容组件补 `primaryColor`；确定性展开
    CardTpl/Tersel 中的 `$theme(...)`；将 `actionStyle` 应用到受信 Action Template，然后执行布局 Lowering。
-7. 仅当实际产物为单业务 `Full` 或 `Hero` 时应用 Theme 自带的融球背景；该阶段不猜测或覆写主辅内容色。
-8. 序列化为 Tersel，再确定性转换为标准三段 A2UI。
+7. 仅当实际产物为单业务 `Full` 或 `Hero` 时插入 Theme 三色的云侧 `FusionBall`；模板内不展开球体树，
+   也不猜测或覆写主辅内容色。
+8. 序列化为 Tersel，再确定性转换为包含云侧组件的三段 A2UI。
+9. 回转 A2UI-Compact 并经公共 Processor 重新生成完整 A2UI 后，统一展开 `FusionBall` 为标准组件，给相邻
+   内容根 ID 增加 `__genui_render_component__` 前缀，再执行 artifact 校验。
 
 二层输出发生 `TerseDslNested2ConversionError` 时，模板模块最多使用两次二层修复。
 这与模块返回后的公共 Compact repair 是两套不同的质量阶段。
@@ -162,6 +173,7 @@ Search 路线的首层输出是 `TemplateRetrievalQuery`：
   -> 当前 Form Profile A2UI
   -> Design Compact DSL
   -> 公共 DesignCompactProcessor
+  -> FusionBall 最终确定性展开 + 相邻内容防溢出标记
   -> 最终标准 A2UI
 ```
 

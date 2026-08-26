@@ -1,4 +1,4 @@
-"""Build Theme-owned deterministic 2x2 fusion-ball backgrounds."""
+"""Insert the cloud-only FusionBall marker for an eligible template card."""
 
 from __future__ import annotations
 
@@ -27,53 +27,22 @@ class FusionBallPalette:
     small: str
 
 
-def build_fusion_ball_background(palette: FusionBallPalette) -> Nested2Node:
-    """Return the standalone fusion-ball Terse background tree for a 160vp card."""
-    large_ball = _ball("fusionBallLarge", 210, palette.large)
-    medium_ball = _ball("fusionBallMedium", 160, palette.medium)
-    small_ball = _ball("fusionBallSmall", 100, palette.small)
+def build_fusion_ball_component(palette: FusionBallPalette) -> Nested2Node:
+    """Return the cloud-only Tersel component carrying the Theme palette."""
     return Nested2Node(
-        "Stack",
-        (
-            "overlay",
-            {
-                "_id": "fusionBallBackground",
-                "width": 160,
-                "height": 160,
-                "borderRadius": 18,
-                "alignContent": "topStart",
-                "clip": True,
-            },
-        ),
-        (
-            _ball_slot("fusionBallLargeSlot", 180, 44, "center", large_ball),
-            _ball_slot("fusionBallMediumSlot", 80, 220, "bottom", medium_ball),
-            _ball_slot("fusionBallSmallSlot", 195, 190, "bottomEnd", small_ball),
-            Nested2Node(
-                "Stack",
-                (
-                    "overlay",
-                    {
-                        "_id": "fusionBallGlassLayer",
-                        "width": 160,
-                        "height": 160,
-                        "backgroundColor": "#0DFFFFFF",
-                        "backdropBlur": {"radius": 120},
-                    },
-                ),
-                (),
-            ),
-        ),
+        "FusionBall",
+        (palette.large, palette.medium, palette.small),
+        (),
     )
 
 
-def apply_fusion_ball_background(
+def apply_fusion_ball_component(
     card: Nested2Node,
     *,
     size: str,
     palette: FusionBallPalette | None,
 ) -> Nested2Node:
-    """Wrap an eligible 2x2 card; leave other sizes unchanged."""
+    """Wrap an eligible 2x2 card with a cloud-only FusionBall sibling."""
     if size != "2x2" or palette is None:
         return card
     card_options = _root_card_options(card)
@@ -100,47 +69,7 @@ def apply_fusion_ball_background(
     return Nested2Node(
         "Stack",
         ("card", root_options),
-        (build_fusion_ball_background(palette), foreground),
-    )
-
-
-def _ball(component_id: str, diameter: int, color: str) -> Nested2Node:
-    return Nested2Node(
-        "Stack",
-        (
-            "overlay",
-            {
-                "_id": component_id,
-                "width": diameter,
-                "height": diameter,
-                "borderRadius": diameter // 2,
-                "backgroundColor": color,
-                "clip": True,
-            },
-        ),
-        (),
-    )
-
-
-def _ball_slot(
-    component_id: str,
-    width: int,
-    height: int,
-    alignment: str,
-    ball: Nested2Node,
-) -> Nested2Node:
-    return Nested2Node(
-        "Stack",
-        (
-            "overlay",
-            {
-                "_id": component_id,
-                "width": width,
-                "height": height,
-                "alignContent": alignment,
-            },
-        ),
-        (ball,),
+        (build_fusion_ball_component(palette), foreground),
     )
 
 

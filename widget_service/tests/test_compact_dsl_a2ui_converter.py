@@ -1396,6 +1396,64 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(len(result.warnings), 1)
         self.assertIn("/data/weather", result.warnings[0])
 
+    def test_converts_cloud_fusion_ball_without_default_root_background(self) -> None:
+        compact_dsl = _serialize(
+            [
+                ["root", "Stack", {"width": 160, "height": 160}, ["fusion", "content"]],
+                [
+                    "fusion",
+                    "FusionBall",
+                    {
+                        "largeColor": "#FF121259",
+                        "mediumColor": "#FF2B65D9",
+                        "smallColor": "#FF57AED9",
+                    },
+                ],
+                ["content", "Stack", {}, []],
+            ]
+        )
+
+        a2ui = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+        components = json.loads(a2ui.splitlines()[1])["updateComponents"]["components"]
+        by_id = {component["id"]: component for component in components}
+
+        self.assertNotIn("backgroundColor", by_id["root"]["styles"])
+        self.assertNotIn("linearGradient", by_id["root"]["styles"])
+        self.assertEqual(
+            by_id["fusion"],
+            {
+                "id": "fusion",
+                "component": "FusionBall",
+                "largeColor": "#FF121259",
+                "mediumColor": "#FF2B65D9",
+                "smallColor": "#FF57AED9",
+            },
+        )
+
+    def test_rejects_invalid_cloud_fusion_ball_props(self) -> None:
+        compact_dsl = _serialize(
+            [
+                ["root", "Stack", {"width": 160, "height": 160}, ["fusion", "content"]],
+                [
+                    "fusion",
+                    "FusionBall",
+                    {"largeColor": "#121259", "mediumColor": "#FF2B65D9"},
+                ],
+                ["content", "Stack", {}, []],
+            ]
+        )
+
+        with self.assertRaisesRegex(CompactDslConversionError, "requires largeColor"):
+            convert_compact_dsl_to_a2ui(
+                compact_dsl,
+                size="2x2",
+                protocol_profile=self.profile,
+            )
+
     def test_cli_converts_files_without_model_or_network(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)

@@ -43,7 +43,10 @@ class CardPlanRegistry:
         *,
         disabled_provider_ids: tuple[str, ...] = (),
         disabled_template_ids: tuple[str, ...] = (),
+        enable_fusion_ball: bool = True,
     ) -> None:
+        if not isinstance(enable_fusion_ball, bool):
+            raise ValueError("enable_fusion_ball must be boolean")
         bundled_source_root = Path(__file__).resolve().parents[2] / "resources" / "source"
         self.source_root = source_root or bundled_source_root
         self.disabled_provider_ids = frozenset(disabled_provider_ids)
@@ -57,6 +60,11 @@ class CardPlanRegistry:
             definition for bundle in provider_bundles for definition in bundle.templates
         )
         theme_resources = load_theme_resources(self.source_root / "themes")
+        visible_themes = tuple(
+            theme
+            for theme in theme_resources.themes
+            if enable_fusion_ball or theme.fusion_ball_style is None
+        )
         self.templates = self._unique_by_wire_id(provider_templates)
         self.template_variant_search_records: tuple[TemplateVariantSearchRecord, ...] = (
             build_template_variant_search_records(self.templates)
@@ -70,8 +78,11 @@ class CardPlanRegistry:
                 f"disabled_provider_ids={json.dumps(sorted(self.disabled_provider_ids))} "
                 f"disabled_template_ids={json.dumps(sorted(self.disabled_template_ids))}"
             )
-        self.themes = self._unique_themes(theme_resources.themes)
-        self.theme_first_layer_rules = theme_resources.first_layer_rules
+        self.themes = self._unique_themes(visible_themes)
+        self.theme_first_layer_rules = {
+            theme_id: theme_resources.first_layer_rules[theme_id]
+            for theme_id in self.themes
+        }
         provider_business_components = tuple(
             component
             for bundle in provider_bundles
@@ -109,7 +120,7 @@ class CardPlanRegistry:
         )
         self.theme_reference_paths = theme_resources.base.theme_reference_paths
         self.palette_scene_theme_ids = self._palette_scene_themes(
-            theme_resources.themes
+            visible_themes
         )
         self._validate_distributed_resources()
 
@@ -446,10 +457,11 @@ class CardPlanRegistry:
             raise ValueError(f"unknown UX Layout Component: {component_id}") from exc
 
 
-@lru_cache(maxsize=1)
-def get_cardplan_registry() -> CardPlanRegistry:
+@lru_cache(maxsize=2)
+def get_cardplan_registry(enable_fusion_ball: bool = True) -> CardPlanRegistry:
     controls = load_template_controls()
     return CardPlanRegistry(
         disabled_provider_ids=controls.disabled_provider_ids,
         disabled_template_ids=controls.disabled_template_ids,
+        enable_fusion_ball=enable_fusion_ball,
     )

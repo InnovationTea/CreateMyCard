@@ -31,8 +31,11 @@ async def request_template_source_dsl(
     protocol_profile: dict[str, Any],
     model_runtime: ModelExecutionRuntime | None,
     model_request_context: ModelRequestContext,
+    enable_fusion_ball: bool,
 ) -> str:
     """请求模板引擎并返回当前 Processor 可直接消费的源 DSL。"""
+    if not isinstance(enable_fusion_ball, bool):
+        raise TypeError("enable_fusion_ball must be boolean")
     model_client = create_template_model_client(
         model_runtime,
         model_request_context,
@@ -43,6 +46,7 @@ async def request_template_source_dsl(
         card_spec,
         template_bindings,
         model_client,
+        enable_fusion_ball=enable_fusion_ball,
     )
     source_dsl = prepare_template_source_dsl(
         output.a2ui,
@@ -53,6 +57,7 @@ async def request_template_source_dsl(
     logger.info(
         f"{_MODULE} source_dsl_generated processor_kind={processor_kind} "
         f"template_ids={json_for_log(output.template_ids)} "
+        f"enable_fusion_ball={enable_fusion_ball} "
         f"expanded_component_count={output.expanded_component_count}"
     )
     return source_dsl

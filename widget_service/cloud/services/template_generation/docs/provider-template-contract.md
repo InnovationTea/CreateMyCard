@@ -168,18 +168,19 @@ Provider 模板作者侧声明，不进入最终 Tersel 语法。最终产物不
 
 ## 2x2 融球背景
 
-融球背景是模板可信展开后的微服务装饰模板，不属于业务 Provider，也不交给二层模型选择。每套融球 Theme
+模板生产入口要求调用方显式传入 `enable_fusion_ball`。为 `false` 时，所有包含 `fusionBallStyle` 的 Theme
+在首层 Prompt 构造前即从请求级 Registry 视图移除，检索、二层组合和编译也不能再查找或接受这些 Theme。
+
+融球背景是模板可信展开后插入的微服务云侧组件，不属于业务 Provider，也不交给二层模型选择。每套融球 Theme
 在自身 `themes/<theme-id>/theme.json` 的 `fusionBallStyle` 中保存允许的 `businessIds` 以及大、中、小球真实
 `#AARRGGBB` 颜色，不得在代码中维护按场景索引的第二份固定色板。
 
 融球包装仅适用于 `2x2`、单业务，且实际选中的业务模板后缀为 `Full` 或 `Hero` 的场景。主题适用能力还必须
 覆盖该业务模板的数据能力。`Compact`、`WideHero`、`WideFull`、无业务和多业务组合均不应用融球包装。
 
-`2x2` 最终根节点使用 `Stack("card", ...)`，子节点顺序固定为“融球背景、原卡片内容”；原卡片内容移除
-`backgroundColor`、`linearGradient` 和背景图片字段后作为前景层。Form Catalog 不支持 ArkUI 的
-`position`，因此模板使用嵌套 `Stack` 的尺寸与对齐复现三球位置；玻璃层使用 5% 白色覆盖和
-`backdropBlur: {"radius": 120}`。最外层 `Stack("card", ...)` 不设置 `backgroundColor`，融球背景容器也不
-铺设额外底色，背景由三个球体组合提供。球体和覆盖层使用 A2UI 允许 `children: []` 的空 `Stack`，不添加占位文本。
+`2x2` 模板中间根节点使用 `Stack("card", ...)`，子节点顺序固定为“`FusionBall`、原卡片内容”；原卡片内容
+移除 `backgroundColor`、`linearGradient` 和背景图片字段后作为前景层。模板内部不再维护或展开球体、定位
+容器和玻璃层。`FusionBall(largeColor, mediumColor, smallColor)` 只接受三个 `#AARRGGBB` 位置参数。
 不满足门禁的卡片继续使用 Theme 原有纯色或线性渐变。融球包装只替换卡片根背景，不改写业务文本、图标或
 Action 内容颜色。业务 Provider 必须显式区分主内容与辅助内容，分别使用 `$theme('primaryColor')` 和
 `$theme('supportContentColor')`；服务端只给未配置颜色的内容组件补 `primaryColor`，不得猜测主辅语义。
@@ -187,11 +188,10 @@ PillAction 模板使用 `$theme('actionStyle.backgroundColor')` 和 `$theme('act
 
 ### 完整 A2UI 转换
 
-模板模块同时提供确定性的完整 A2UI 转换入口
-`convert_a2ui_with_fusion_ball(a2ui, palette)`。A2UI 输入必须是 `v0.9` 的三行完整 JSONL，依次包含
-`createSurface`、`updateComponents` 和 `updateDataModel`；`palette` 是已选 Theme 的大、中、小球三个
-`#AARRGGBB` 真实颜色。转换只接受根组件为 `Stack` 且根样式包含纯色或线性渐变背景的卡片；调用方负责先
-完成单业务 Full/Hero 门禁。背景图片不参与转换。
+Tersel 转 A2UI 后，云侧组件使用顶层 `largeColor`、`mediumColor`、`smallColor` 字段；A2UI 回转
+A2UI-Compact 时保留为同名 Props。三种源格式都先转换成完整 A2UI，再由确定性入口
+`convert_a2ui_with_fusion_ball(a2ui)` 统一展开。A2UI 输入必须是 `v0.9` 的三行完整 JSONL，依次包含
+`createSurface`、`updateComponents` 和 `updateDataModel`。颜色只从 `FusionBall` 本身读取，不再额外传 palette。
 
 入口实现位于 `engine/fusion_ball_a2ui_converter.py`，该文件只使用 Python 标准库，不依赖模板引擎、
 CardPlan、Tersel 节点或项目配置，可以单文件复制到其他项目直接调用：
@@ -199,15 +199,14 @@ CardPlan、Tersel 节点或项目配置，可以单文件复制到其他项目�
 ```python
 from fusion_ball_a2ui_converter import convert_a2ui_with_fusion_ball
 
-palette = ("#FF121259", "#FF2B65D9", "#FF57AED9")
-converted = convert_a2ui_with_fusion_ball(a2ui, palette)
+converted = convert_a2ui_with_fusion_ball(a2ui)
 ```
 
-转换保留 surface、DataModel、原业务组件和根组件 ID。原根节点改为无背景的外层 `Stack`，其第一个
-子节点是固定融球结构，第二个子节点是改名为 `cardContent`、移除纯色和线性渐变后的原根组件。
-`cardContent` 不携带端侧内容防溢出前缀，融球产物不启用内容层防溢出能力，也不扩展 A2UI 协议。
-转换器拒绝保留 ID 与融球固定 ID 冲突的输入，对已经完整转换的输入原样返回；旧版
-`__genui_render_component__cardContent` 融球产物再次转换时只移除内容 ID 标记。
+转换保留 surface、DataModel、原业务组件和根组件 ID，把 `FusionBall` 替换为 Form Catalog 标准 `Stack`
+组成的三球、定位层和玻璃层；玻璃层使用 5% 白色和 `backdropBlur: {"radius": 120}`，空层显式保留
+`children: []`。与 `FusionBall` 相邻的内容组件 ID 增加 `__genui_render_component__` 前缀，父组件引用同步
+更新，以启用端侧内容层防溢出能力。转换完成后不得残留 `FusionBall`。转换器拒绝三色非法、父子关系不唯一、
+相邻内容缺失和预留 ID 冲突的输入；无 `FusionBall` 或已经展开的标准 A2UI 原样返回。
 
 ## 首层 Search、确定性检索与第二层 LLM 规则
 
