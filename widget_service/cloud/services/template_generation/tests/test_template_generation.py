@@ -65,14 +65,16 @@ from services.template_generation.engine.advanced.scope_planner import (
 from services.template_generation.engine.cardplan import registry as cardplan_registry_module
 from services.template_generation.engine.cardplan.compiler import (
     _apply_template_background,
+    _apply_theme_content_color,
+    _compile_ux_layout_shell,
     _inject_resource_battery_title,
+    _lower_action_template_tree,
     _provider_layout_action_background,
 )
 from services.template_generation.engine.cardplan.fusion_ball_background import (
     FusionBallPalette,
     apply_fusion_ball_background,
     build_fusion_ball_background,
-    fusion_ball_palette_for_scene,
 )
 from services.template_generation.engine.cardplan.models import HybridBodyContract, HybridLimits
 from services.template_generation.engine.cardplan.provider_bundle import (
@@ -105,6 +107,8 @@ _WEATHER_TEMPLATE_FIELDS = (
     "/current/coldLevel",
     "/daily/0/temperatureRangeText",
 )
+_WEATHER_PALETTE = ("#FF121259", "#FF2B65D9", "#FF57AED9")
+_SPORT_PALETTE = ("#FFB33C24", "#FFFF8833", "#FFFAA89E")
 _TEST_APP_VERSION = ".".join(("11", "7", "5", "205"))
 
 
@@ -180,9 +184,9 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 83
+    assert len(registry.provider_template_ids) == 87
     assert {
-        "ActivityOverviewStepsFull@1",
+        "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
         "BatteryOverviewNormalFull@1",
         "BatteryOverviewNormalHero@1",
@@ -192,9 +196,9 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "HeartRateOverviewFull@1",
         "ResourceUsageOverviewFull@1",
         "ScheduleOverviewNextEventFull@1",
-        "SleepOverviewDurationFull@1",
-        "SleepOverviewDurationScoreFull@1",
-        "SleepOverviewDurationScoreDetailedFull@1",
+        "SleepOverviewCompact@1",
+        "SleepOverviewFull@1",
+        "SleepOverviewHero@1",
         "WeatherOverviewAirQualityHero@1",
         "WeatherOverviewConditionFull@1",
         "WeatherOverviewFull@1",
@@ -205,6 +209,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "SingleFocusLayout@1",
     }.issubset(registry.provider_template_ids)
     assert provider_directories == {
+        "action",
         "app-usage",
         "battery",
         "calendar",
@@ -271,10 +276,8 @@ def test_cardplan_registry_does_not_require_source_hashes(tmp_path):
 
 def test_business_groups_are_derived_from_provider_templates() -> None:
     registry = get_cardplan_registry()
-    foundation = json.loads(
-        (registry.source_root / "advanced-component-ux-registry.json").read_text(
-            encoding="utf-8"
-        )
+    theme_base = json.loads(
+        (registry.source_root / "themes/base/theme-base.json").read_text(encoding="utf-8")
     )
     provider_business_groups = {
         component.name
@@ -287,9 +290,9 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
         for component in bundle.manifest.layout_components
     }
 
-    assert foundation["registryVersion"] == "advanced-component-ux-registry/2"
-    assert "businessComponents" not in foundation
-    assert "layoutComponents" not in foundation
+    assert theme_base["themeBaseVersion"] == "theme-base/2"
+    assert "businessComponents" not in theme_base
+    assert "layoutComponents" not in theme_base
     assert provider_business_groups == set(registry.ux_business_components)
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
@@ -308,6 +311,86 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
         )
         assert "businessComponents" not in payload
         assert all("digest" not in template for template in payload.get("templates", []))
+
+
+def test_registry_uses_only_distributed_provider_and_theme_sources() -> None:
+    registry = get_cardplan_registry()
+    central_sources = {
+        "advanced-component-registry.json",
+        "advanced-component-ux-registry.json",
+        "template-registry.json",
+        "theme-profiles.json",
+    }
+
+    assert all(not (registry.source_root / name).exists() for name in central_sources)
+    assert set(registry.templates) == set(registry.provider_template_ids)
+    assert len(registry.themes) == 17
+    assert all(
+        (registry.source_root / "themes" / theme_id / "theme.json").is_file()
+        for theme_id in registry.themes
+    )
+
+
+def test_theme_styles_have_distinct_root_content_and_action_scopes() -> None:
+    registry = get_cardplan_registry()
+    contract = HybridBodyContract.model_construct(
+        theme_profile_id="device-clean-blue-teal",
+        allowed_layout_component_ids=("SingleFocusLayout",),
+    )
+    action = Nested2Node(
+        "Stack",
+        (
+            {
+                "_boundTemplateAction": "event.open",
+                "onClick": [{"call": "open"}],
+            },
+        ),
+        (Nested2Node("Text", ("打开",), ()),),
+    )
+    content = Nested2Node(
+        "Column",
+        (),
+        (
+            Nested2Node("Text", ("默认内容色",), ()),
+            Nested2Node("Text", ("显式内容色", {"fontColor": "#FF123456"}), ()),
+            Nested2Node(
+                "Button",
+                (
+                    {
+                        "backgroundColor": "#FFFFFFFF",
+                        "onClick": [{"call": "ordinaryButton"}],
+                    },
+                ),
+                (),
+            ),
+            action,
+        ),
+    )
+
+    styled = _apply_theme_content_color(content, contract, registry)
+    root = _compile_ux_layout_shell(styled, contract, registry)
+    root_options = root.values[-1]
+    default_text, explicit_text, button, styled_action = styled.children
+
+    assert root_options["backgroundColor"] == "#FFFFFFFF"
+    assert root_options["padding"] == 11
+    assert default_text.values[-1]["fontColor"] == "#FF0A59F7"
+    assert explicit_text.values[-1]["fontColor"] == "#FF123456"
+    assert button.values[-1]["fontColor"] == "#FF0A59F7"
+    assert len(styled_action.children[0].values) == 1
+
+    action_style = registry.require_theme("device-clean-blue-teal").action_style
+    assert action_style is not None
+    action_template = Nested2Node("PillAction", (), (action,))
+    lowered_action = _lower_action_template_tree(
+        action_template,
+        background=action_style.background_color,
+        foreground=action_style.content_color,
+        action_style=action_style,
+    )
+    assert lowered_action.values[-1]["backgroundColor"] == action_style.background_color
+    assert lowered_action.values[-1]["height"] == action_style.height
+    assert lowered_action.children[0].values[-1]["fontColor"] == action_style.content_color
 
 
 def test_every_provider_asset_prop_has_second_layer_semantic_description():
@@ -409,29 +492,34 @@ def test_nested2_full_document_requires_data_for_every_component_binding():
     ("theme_profile_id", "expected_scene", "expected_palette"),
     [
         (
-            "family-weather-care-blue",
+            "fusion-weather-blue",
             "weather",
-            FusionBallPalette("#003399", "#0089BF", "#4174D9"),
+            FusionBallPalette(*_WEATHER_PALETTE),
         ),
         (
-            "rainy-commute-gray-blue",
-            "weather",
-            FusionBallPalette("#003399", "#0089BF", "#4174D9"),
-        ),
-        (
-            "race-sunrise-action",
-            "health-sport",
-            FusionBallPalette("#B33C24", "#FF8833", "#F7E6C3"),
-        ),
-        (
-            "race-night-violet",
-            "health-sport",
-            FusionBallPalette("#B33C24", "#FF8833", "#F7E6C3"),
-        ),
-        (
-            "sleep-night-violet",
+            "fusion-sleep-violet",
             "sleep",
-            FusionBallPalette("#43388C", "#5761D9", "#B398D9"),
+            FusionBallPalette("#FF2B2459", "#FF572BD9", "#FFB398D9"),
+        ),
+        (
+            "fusion-sport-orange",
+            "health-sport",
+            FusionBallPalette(*_SPORT_PALETTE),
+        ),
+        (
+            "fusion-schedule-warm",
+            "schedule-warm",
+            FusionBallPalette("#FF731D28", "#FFFF5533", "#FFE68A2E"),
+        ),
+        (
+            "fusion-battery-teal",
+            "battery",
+            FusionBallPalette("#FF17734C", "#FF26BFA6", "#FF60BF98"),
+        ),
+        (
+            "fusion-schedule-cool",
+            "schedule-cool",
+            FusionBallPalette("#FF121E59", "#FF2BA2D9", "#FF52CCCC"),
         ),
         ("meeting-paper-neutral", None, None),
     ],
@@ -443,12 +531,56 @@ def test_fusion_ball_palette_is_gated_by_selected_theme(
 ):
     theme = get_cardplan_registry().require_theme(theme_profile_id)
 
-    assert theme.fusion_ball_scene == expected_scene
-    assert fusion_ball_palette_for_scene(theme.fusion_ball_scene) == expected_palette
+    fusion_style = theme.fusion_ball_style
+    assert (fusion_style.scene if fusion_style else None) == expected_scene
+    actual_palette = (
+        FusionBallPalette(
+            fusion_style.large_color,
+            fusion_style.medium_color,
+            fusion_style.small_color,
+        )
+        if fusion_style
+        else None
+    )
+    assert actual_palette == expected_palette
+
+
+@pytest.mark.parametrize(
+    ("theme_id", "primary", "support"),
+    [
+        ("fusion-weather-blue", "#FFCCDDFF", "#99CCDDFF"),
+        ("fusion-sleep-violet", "#FFD9CCFF", "#99D9CCFF"),
+        ("fusion-sport-orange", "#FFFFE1CC", "#99FFE1CC"),
+        ("fusion-schedule-warm", "#FFFFEFE6", "#99FFEFE6"),
+        ("fusion-battery-teal", "#FFCCFFF6", "#99CCFFF6"),
+        ("fusion-schedule-cool", "#FFCCEEFF", "#99CCEEFF"),
+    ],
+)
+def test_fusion_theme_content_and_action_colors_are_exact(
+    theme_id: str,
+    primary: str,
+    support: str,
+) -> None:
+    theme = get_cardplan_registry().require_theme(theme_id)
+
+    assert theme.primary_color == primary
+    assert theme.support_content_color == support
+    assert theme.action_style.content_color == primary
+    assert theme.action_style.background_color == "#33FFFFFF"
+
+
+def test_non_fusion_themes_use_one_color_for_primary_and_support_content() -> None:
+    themes = get_cardplan_registry().themes.values()
+
+    assert all(
+        theme.primary_color == theme.support_content_color
+        for theme in themes
+        if theme.fusion_ball_style is None
+    )
 
 
 def test_fusion_ball_background_builds_the_supported_160vp_terse_tree():
-    palette = FusionBallPalette("#003399", "#0089BF", "#4174D9")
+    palette = FusionBallPalette(*_WEATHER_PALETTE)
     background = build_fusion_ball_background(palette)
     background_options = background.values[-1]
     slots = background.children[0:3]
@@ -468,9 +600,7 @@ def test_fusion_ball_background_builds_the_supported_160vp_terse_tree():
         (slot.values[-1]["width"], slot.values[-1]["height"]) for slot in slots
     ] == [(180, 44), (80, 220), (195, 190)]
     assert [slot.children[0].values[-1]["backgroundColor"] for slot in slots] == [
-        "#003399",
-        "#0089BF",
-        "#4174D9",
+        *_WEATHER_PALETTE,
     ]
     assert [slot.children[0].values[-1]["width"] for slot in slots] == [210, 160, 100]
     assert [slot.children[0].component_type for slot in slots] == ["Stack"] * 3
@@ -529,12 +659,11 @@ def test_fusion_ball_wraps_only_2x2_and_replaces_the_card_gradient():
         ),
     )
 
-    palette = FusionBallPalette("#003399", "#0089BF", "#4174D9")
+    palette = FusionBallPalette(*_WEATHER_PALETTE)
     wrapped = apply_fusion_ball_background(
         card,
         size="2x2",
         palette=palette,
-        scene="weather",
     )
     foreground_options = wrapped.children[1].values[-1]
 
@@ -553,32 +682,21 @@ def test_fusion_ball_wraps_only_2x2_and_replaces_the_card_gradient():
     action_icon = wrapped.children[1].children[2].children[0]
     action_text = wrapped.children[1].children[2].children[1]
     content_text = wrapped.children[1].children[0]
-    assert content_text.values[-1]["fontColor"] == "#CCFFFFFF"
+    assert content_text.values == ("天气", "body")
     assert content_icon.values[0] == "resources/base/media/icon_weather1.svg"
     assert content_icon.values[-1]["fillColor"] == "#FF000000"
     assert action_icon.values[-1]["fillColor"] == "#FF64BB5C"
     assert action_text.values[-1]["fontColor"] == "#FF64BB5C"
 
-    sport = apply_fusion_ball_background(
-        card,
-        size="2x2",
-        palette=palette,
-        scene="health-sport",
-    )
-    sport_icon = sport.children[1].children[1]
-    assert sport_icon.values[0] == "resources/base/media/icon_weather1_foreground.svg"
-    assert sport_icon.values[-1]["fillColor"] == "#FFFFFFFF"
     assert apply_fusion_ball_background(
         card,
         size="2x4",
         palette=palette,
-        scene="weather",
     ) is card
     assert apply_fusion_ball_background(
         card,
         size="2x2",
         palette=None,
-        scene=None,
     ) is card
 
 
@@ -613,6 +731,51 @@ def test_template_compiler_keeps_non_fusion_2x2_theme_background():
 
 
 @pytest.mark.parametrize(
+    ("theme_id", "selected_template_ids", "expect_fusion"),
+    [
+        ("fusion-weather-blue", ("WeatherOverviewFull@1",), True),
+        ("fusion-weather-blue", ("WeatherOverviewHero@1",), True),
+        ("fusion-weather-blue", ("WeatherOverviewCompact@1",), False),
+        ("fusion-weather-blue", ("ScheduleOverviewNextEventFull@1",), False),
+        (
+            "fusion-weather-blue",
+            (
+                "WeatherOverviewFull@1",
+                "ScheduleOverviewNextEventFull@1",
+            ),
+            False,
+        ),
+        ("fusion-sleep-violet", ("SleepOverviewFull@1",), True),
+        ("fusion-sleep-violet", ("ActivityOverviewFull@1",), False),
+    ],
+)
+def test_fusion_theme_requires_one_matching_full_or_hero_business(
+    theme_id: str,
+    selected_template_ids: tuple[str, ...],
+    expect_fusion: bool,
+) -> None:
+    card = Nested2Node(
+        "Column",
+        ("card", {"_id": "root", "backgroundColor": "#FF121259"}),
+        (Nested2Node("Text", ("内容", {"fontColor": "#FFCCDDFF"}), ()),),
+    )
+    contract = HybridBodyContract.model_construct(theme_profile_id=theme_id)
+
+    decorated = _apply_template_background(
+        card,
+        "2x2",
+        contract,
+        get_cardplan_registry(),
+        selected_template_ids,
+    )
+
+    assert (decorated is not card) is expect_fusion
+    if expect_fusion:
+        assert decorated.children[0].values[-1]["_id"] == "fusionBallBackground"
+        assert decorated.children[1].children[0].values[-1]["fontColor"] == "#FFCCDDFF"
+
+
+@pytest.mark.parametrize(
     "root_background",
     [
         {"backgroundColor": "#FF123456"},
@@ -631,7 +794,7 @@ def test_complete_a2ui_converter_replaces_stack_background_with_fusion_balls(
     source = _complete_stack_a2ui(root_background)
     source_messages = [json.loads(line) for line in source.splitlines()]
 
-    converted = convert_a2ui_with_fusion_ball(source, scene="weather")
+    converted = convert_a2ui_with_fusion_ball(source, palette=_WEATHER_PALETTE)
     messages = [json.loads(line) for line in converted.splitlines()]
     update = messages[1]["updateComponents"]
     components = {component["id"]: component for component in update["components"]}
@@ -655,9 +818,9 @@ def test_complete_a2ui_converter_replaces_stack_background_with_fusion_balls(
     assert content["styles"]["alignContent"] == "center"
     assert "backgroundColor" not in content["styles"]
     assert "linearGradient" not in content["styles"]
-    assert components["fusionBallLarge"]["styles"]["backgroundColor"] == "#003399"
-    assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#0089BF"
-    assert components["fusionBallSmall"]["styles"]["backgroundColor"] == "#4174D9"
+    assert components["fusionBallLarge"]["styles"]["backgroundColor"] == _WEATHER_PALETTE[0]
+    assert components["fusionBallMedium"]["styles"]["backgroundColor"] == _WEATHER_PALETTE[1]
+    assert components["fusionBallSmall"]["styles"]["backgroundColor"] == _WEATHER_PALETTE[2]
     assert "backgroundColor" not in components["fusionBallBackground"]["styles"]
     assert not components["fusionBallBackground"]["id"].startswith(
         "__genui_render_component__"
@@ -666,18 +829,18 @@ def test_complete_a2ui_converter_replaces_stack_background_with_fusion_balls(
     assert components["fusionBallGlassLayer"]["styles"]["backdropBlur"] == {
         "radius": 120
     }
-    assert components["weatherTitle"]["styles"]["fontColor"] == "#CCFFFFFF"
+    assert components["weatherTitle"]["styles"]["fontColor"] == "#FFFFFFFF"
     assert validate_card(dsl_text=converted).diagnostics == []
-    assert convert_a2ui_with_fusion_ball(converted, scene="weather") == converted
+    assert convert_a2ui_with_fusion_ball(converted, palette=_WEATHER_PALETTE) == converted
 
 
 def test_complete_a2ui_converter_removes_legacy_fusion_content_marker():
     source = _complete_stack_a2ui({"backgroundColor": "#FF008FBF"})
-    converted = convert_a2ui_with_fusion_ball(source, scene="weather")
+    converted = convert_a2ui_with_fusion_ball(source, palette=_WEATHER_PALETTE)
     legacy_content_id = "__genui_render_component__cardContent"
     legacy = converted.replace("cardContent", legacy_content_id)
 
-    upgraded = convert_a2ui_with_fusion_ball(legacy, scene="weather")
+    upgraded = convert_a2ui_with_fusion_ball(legacy, palette=_WEATHER_PALETTE)
     update = json.loads(upgraded.splitlines()[1])["updateComponents"]
     component_ids = {component["id"] for component in update["components"]}
 
@@ -689,7 +852,7 @@ def test_complete_a2ui_converter_removes_legacy_fusion_content_marker():
     assert legacy_content_id not in component_ids
 
 
-def test_complete_a2ui_converter_styles_content_and_preserves_actions():
+def test_complete_a2ui_converter_preserves_provider_content_and_actions():
     messages = [
         json.loads(line)
         for line in _complete_stack_a2ui({"backgroundColor": "#FF008FBF"}).splitlines()
@@ -730,50 +893,40 @@ def test_complete_a2ui_converter_styles_content_and_preserves_actions():
         for message in messages
     )
 
-    converted = convert_a2ui_with_fusion_ball(source, scene="weather")
+    converted = convert_a2ui_with_fusion_ball(source, palette=_WEATHER_PALETTE)
     converted_update = json.loads(converted.splitlines()[1])["updateComponents"]
     components = {
         component["id"]: component for component in converted_update["components"]
     }
 
-    assert components["weatherTitle"]["styles"]["fontColor"] == "#CCFFFFFF"
+    assert components["weatherTitle"]["styles"]["fontColor"] == "#FFFFFFFF"
     assert components["weatherIcon"]["src"] == "resources/base/media/icon_weather1.svg"
     assert components["weatherIcon"]["styles"]["fillColor"] == "#FF000000"
     assert components["pillActionIcon"]["styles"]["fillColor"] == "#FF64BB5C"
     assert components["pillActionLabel"]["styles"]["fontColor"] == "#FF64BB5C"
 
-    sport = convert_a2ui_with_fusion_ball(source, scene="health-sport")
-    sport_update = json.loads(sport.splitlines()[1])["updateComponents"]
-    sport_components = {
-        component["id"]: component for component in sport_update["components"]
-    }
-    assert sport_components["weatherIcon"]["src"] == (
-        "resources/base/media/icon_weather1_foreground.svg"
-    )
-    assert sport_components["weatherIcon"]["styles"]["fillColor"] == "#FFFFFFFF"
-
-
-def test_complete_a2ui_converter_rejects_unsupported_scene():
+def test_complete_a2ui_converter_rejects_invalid_theme_palette():
     source = _complete_stack_a2ui({"backgroundColor": "#FF008FBF"})
 
-    with pytest.raises(FusionBallA2UIConversionError, match="scene"):
-        convert_a2ui_with_fusion_ball(source, scene="calendar")
+    with pytest.raises(FusionBallA2UIConversionError, match="three Theme colors"):
+        convert_a2ui_with_fusion_ball(source, ("#FF121259",))
+    with pytest.raises(FusionBallA2UIConversionError, match="#AARRGGBB"):
+        convert_a2ui_with_fusion_ball(source, ("#121259", "#FF2B65D9", "#FF57AED9"))
 
 
 @pytest.mark.parametrize(
-    ("scene", "expected_colors"),
+    "expected_colors",
     [
-        ("weather", ("#003399", "#0089BF", "#4174D9")),
-        ("health-sport", ("#B33C24", "#FF8833", "#F7E6C3")),
-        ("sleep", ("#43388C", "#5761D9", "#B398D9")),
+        _WEATHER_PALETTE,
+        _SPORT_PALETTE,
+        ("#FF2B2459", "#FF572BD9", "#FFB398D9"),
     ],
 )
-def test_complete_a2ui_converter_uses_fixed_scene_palette(
-    scene: str,
+def test_complete_a2ui_converter_uses_theme_palette(
     expected_colors: tuple[str, str, str],
 ):
     source = _complete_stack_a2ui({"backgroundColor": "#FF123456"})
-    converted = convert_a2ui_with_fusion_ball(source, scene=scene)
+    converted = convert_a2ui_with_fusion_ball(source, expected_colors)
     components = {
         component["id"]: component
         for component in json.loads(converted.splitlines()[1])["updateComponents"][
@@ -807,7 +960,7 @@ def test_complete_a2ui_converter_file_is_self_contained(tmp_path):
     shutil.copyfile(source_path, copied_path)
     copied_module = runpy.run_path(str(copied_path))
     source = _complete_stack_a2ui({"backgroundColor": "#FF123456"})
-    converted = copied_module["convert_a2ui_with_fusion_ball"](source, "weather")
+    converted = copied_module["convert_a2ui_with_fusion_ball"](source, _WEATHER_PALETTE)
     components = {
         component["id"]: component
         for component in json.loads(converted.splitlines()[1])["updateComponents"][
@@ -815,7 +968,7 @@ def test_complete_a2ui_converter_file_is_self_contained(tmp_path):
         ]
     }
 
-    assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#0089BF"
+    assert components["fusionBallMedium"]["styles"]["backgroundColor"] == _WEATHER_PALETTE[1]
 
 
 @pytest.mark.parametrize(
@@ -847,7 +1000,7 @@ def test_complete_a2ui_converter_rejects_unsupported_root_backgrounds(
     source = "\n".join(json.dumps(message) for message in source_messages)
 
     with pytest.raises(FusionBallA2UIConversionError, match=error):
-        convert_a2ui_with_fusion_ball(source, scene="weather")
+        convert_a2ui_with_fusion_ball(source, palette=_WEATHER_PALETTE)
 
 
 def test_form_validator_allows_empty_stack_children_but_rejects_empty_column_children():
@@ -901,14 +1054,14 @@ def test_app_usage_template_sizes_separate_compact_and_wide_variants():
 
 def test_app_usage_templates_use_compact_duration_and_labeled_update_time():
     registry = get_cardplan_registry()
-    template_ids = (
-        "AppUsageOverviewFull@1",
-        "AppUsageOverviewHero@1",
-        "AppUsageOverviewWideFull@1",
-        "AppUsageOverviewWideHero@1",
-    )
+    expected_typography = {
+        "AppUsageOverviewFull@1": (18, 10),
+        "AppUsageOverviewHero@1": (18, 10),
+        "AppUsageOverviewWideFull@1": (30, 12),
+        "AppUsageOverviewWideHero@1": (30, 12),
+    }
 
-    for template_id in template_ids:
+    for template_id, (duration_size, update_size) in expected_typography.items():
         root = registry.require_variant(template_id, "default").root
         text_nodes = _template_nodes(root, "Text")
         duration = None
@@ -924,7 +1077,7 @@ def test_app_usage_templates_use_compact_duration_and_labeled_update_time():
                 update_time = node
         assert duration is not None
         duration_options = _template_node_options(duration)
-        assert duration_options["fontSize"] == 18
+        assert duration_options["fontSize"] == duration_size
         assert "minFontSize" not in duration_options
 
         assert update_time is not None
@@ -935,13 +1088,13 @@ def test_app_usage_templates_use_compact_duration_and_labeled_update_time():
             ("binding", None, "updatedAt"),
         )
         update_options = _template_node_options(update_time)
-        assert update_options["fontSize"] == 10
+        assert update_options["fontSize"] == update_size
         assert "minFontSize" not in update_options
 
 
 def test_activity_daily_summary_stacks_supporting_metrics():
     registry = get_cardplan_registry()
-    root = registry.require_variant("ActivityOverviewDailySummaryFull@1", "default").root
+    root = registry.require_variant("ActivityOverviewFull@1", "default").root
     supporting_metrics = next(
         node
         for node in reversed(_template_nodes(root, "Column"))
@@ -1403,10 +1556,12 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
     assert _template_node_options(app_usage)["justifyContent"] == "start"
     duration_region = app_usage.children[1]
     assert _template_node_options(duration_region)["justifyContent"] == "end"
-    assert "itemMargin" not in _template_node_options(duration_region)
+    assert _template_node_options(duration_region)["itemMargin"] == 4
 
     battery = registry.require_variant("BatteryOverviewNormalFull@1", "default").root
-    assert _template_node_options(battery.children[1])["fontColor"] == "#99000000"
+    battery_support_color = battery.children[1].values[-1].properties["fontColor"]
+    assert battery_support_color.kind == "theme"
+    assert battery_support_color.name == "supportContentColor"
     battery_hero = registry.require_variant("BatteryOverviewNormalHero@1", "default").root
     battery_wide = registry.require_variant("BatteryOverviewNormalWideFull@1", "default").root
     assert _template_node_options(battery_hero)["justifyContent"] == "start"
@@ -1429,7 +1584,7 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
     assert _template_node_options(percent_row.children[0])["fontWeight"] == 700
     assert not _template_nodes(resource_peer.children[0], "Text")
 
-    activity = registry.require_variant("ActivityOverviewDailySummaryFull@1", "default").root
+    activity = registry.require_variant("ActivityOverviewFull@1", "default").root
     activity_text_options = [
         _template_node_options(node) for node in _template_nodes(activity, "Text")
     ]
@@ -2219,7 +2374,8 @@ async def test_2x2_battery_percent_ring_hero_does_not_require_capacity_level():
             'Template("HeroActionLayout@1",{},'
             'Template("BatteryOverviewPercentRingHero@1",'
             '{"batteryIcon":"resources/base/media/battery_leaf_fill.svg"}),'
-            'PillAction({"actionId":"event.setPowerSavingMode"}));'
+            'Template("PillAction@1",{"actionId":"event.setPowerSavingMode",'
+            '"label":"省电模式"}));'
         ),
     )
 
@@ -2230,7 +2386,11 @@ async def test_2x2_battery_percent_ring_hero_does_not_require_capacity_level():
         model,
     )
 
-    assert output.template_ids == ("BatteryOverviewPercentRingHero@1", "HeroActionLayout@1")
+    assert output.template_ids == (
+        "BatteryOverviewPercentRingHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1",
+    )
     assert "batterySOC" in output.a2ui
     assert "batterySOCText" in output.a2ui
     assert "batteryCapacityLevelDesc" not in output.a2ui
@@ -2447,7 +2607,7 @@ class WeatherTemplateModel:
             if field in candidate_fields
         ]
         return {
-            "themeId": "family-weather-care-blue",
+            "themeId": "fusion-weather-blue",
             "requiredOutputFieldsByCapability": (
                 {"ViewWeather": required_fields}
                 if self.route_usable
@@ -3039,7 +3199,7 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
     assert "backgroundColor" not in root["styles"]
     assert "linearGradient" not in root["styles"]
     assert medium_ball["children"] == []
-    assert medium_ball["styles"]["backgroundColor"] == "#0089BF"
+    assert medium_ball["styles"]["backgroundColor"] == _WEATHER_PALETTE[1]
     assert glass_layer["styles"]["backdropBlur"] == {"radius": 120}
     assert captured["artifact"].effectiveCapabilities["data"] == ["ViewWeather"]
 
@@ -3079,9 +3239,9 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     assert compact_rows[0][3] == ["fusionBallBackground", content_id]
     assert "backgroundColor" not in compact_rows[0][2]
     assert "linearGradient" not in compact_rows[0][2]
-    assert compact_components["fusionBallLarge"][2]["backgroundColor"] == "#003399"
-    assert compact_components["fusionBallMedium"][2]["backgroundColor"] == "#0089BF"
-    assert compact_components["fusionBallSmall"][2]["backgroundColor"] == "#4174D9"
+    assert compact_components["fusionBallLarge"][2]["backgroundColor"] == _WEATHER_PALETTE[0]
+    assert compact_components["fusionBallMedium"][2]["backgroundColor"] == _WEATHER_PALETTE[1]
+    assert compact_components["fusionBallSmall"][2]["backgroundColor"] == _WEATHER_PALETTE[2]
     assert "linearGradient" not in compact_components[content_id][2]
     messages = [json.loads(line) for line in captured["artifact"].genui.splitlines()]
     protocol_profile = A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile()
@@ -3097,7 +3257,7 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     assert components["fusionBallGlassLayer"]["styles"]["backdropBlur"] == {
         "radius": 120
     }
-    assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#0089BF"
+    assert components["fusionBallMedium"]["styles"]["backgroundColor"] == _WEATHER_PALETTE[1]
     assert "linearGradient" not in components[content_id]["styles"]
     weather_icons = [
         item
@@ -3111,9 +3271,8 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
         item for item in components.values() if item.get("component") == "Text"
     ]
     assert text_components
-    assert all(
-        item["styles"]["fontColor"] == "#CCFFFFFF" for item in text_components
-    )
+    text_colors = {item["styles"]["fontColor"] for item in text_components}
+    assert text_colors == {"#FFCCDDFF", "#99CCDDFF"}
     assert captured["artifact"].effectiveCapabilities["data"] == ["ViewWeather"]
 
 

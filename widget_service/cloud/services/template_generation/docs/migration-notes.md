@@ -1,4 +1,8 @@
-# 干净 dev 合入说明
+# 历史：干净 dev 合入说明
+
+> 本文仅记录当时的合入边界，不描述当前 Template 数量、路由策略或模块契约。
+> 当前行为见 [architecture.md](architecture.md) 和
+> [provider-template-capability-checklist.md](provider-template-capability-checklist.md)。
 
 本次重新合入不沿用旧模板 PR 的整体 squash。旧分支同时修改了 API、配置、模型客户端、协议注册、批量服务、
 日志、Docker、根文档、Skill、测试报告和多个通用转换器，无法证明每项都属于模板主路径。
@@ -11,7 +15,7 @@
 
 本阶段在模板模块内部完成第二次资产升级：
 
-- 12 个旧模板前缀拆分为 82 个“模板 ID 即 UI 形态”的 `.cardtpl` 定义；日期与日程归并后，
+- 当时将旧模板前缀拆分为“模板 ID 即 UI 形态”的 `.cardtpl` 定义；日期与日程归并后，
   Provider 业务索引为 11 个业务领域。
 - 删除作者语法中的 `Variant`、`allowedParentComponents` 和 `limits`。
 - `provider.json` 使用 `dataDomain`、`description`、`primaryData`、`secondaryData`、`optionalData`。
@@ -24,7 +28,7 @@
 - DeepSeek 调用预算数据库。
 - WebSocket 鉴权和路由重构。
 - Docker、依赖清单和环境样例调整。
-- A2UI/Terse/Compact 通用转换器替换。
+- A2UI/Tersel/Compact 通用转换器替换。
 - API response 的模板诊断字段。
 - 根能力注册表、协议 profile 和 Validator 规则改版。
 - 与模板无关的 Skill、测试报告和工具页面。

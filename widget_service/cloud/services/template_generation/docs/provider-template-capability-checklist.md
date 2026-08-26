@@ -4,7 +4,7 @@
 
 ## 整改总览
 
-- [x] 72 个业务模板全部使用 `Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
+- [x] 75 个业务模板全部使用 `Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
 - [x] 业务模板尺寸和动作组合由后缀推导，不再由 Provider 重复声明。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
 - [x] `primaryData` 与 `secondaryData` 均参与模板准入硬校验。
@@ -27,34 +27,36 @@
 
 | Provider | 数据能力 | 数据根 | 模板数 | 当前状态 |
 | --- | --- | --- | ---: | --- |
-| app-usage | `GetAppUsageDuration` | `/data/appUsageStats` | 4 | 启用 |
-| battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 16 | 启用 |
+| app-usage | `GetAppUsageDuration` | `/data/appUsageStats` | 5 | 启用 |
+| battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 17 | 启用 |
 | calendar | `GetCalendarEvents` | `/data/calendar` | 10 | 配置禁用 |
 | countdown | `GetCountdownDays` | `/data/countdown` | 1 | 启用 |
 | earphone | `GetEarphoneInfo` | `/data/earphone` | 14 | 配置禁用 |
-| health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 16 | 启用 |
+| health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 17 | 启用 |
 | system-memory | `GetSystemMemInfo` | `/data/systemMem` | 2 | 启用 |
 | weather | `ViewWeather` | `/data/weather` | 9 | 启用 |
 
 ## AppUsageOverview
 
 - Provider：`com.huawei.app-usage.cli`；运行状态：启用。
-- 数据能力：`GetAppUsageDuration`；模板数：4。
+- 数据能力：`GetAppUsageDuration`；模板数：5。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
 | ✅ | `AppUsageOverviewFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | `/updatedAt` |
 | ✅ | `AppUsageOverviewHero@1` | 约 2x1.7；2x2 Hero + 1 个 PillAction | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | `/updatedAt` |
+| ✅ | `AppUsageOverviewCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | `/updatedAt` |
 | ✅ | `AppUsageOverviewWideFull@1` | 完整 4x2；单 WideFull | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | `/updatedAt` |
 | ✅ | `AppUsageOverviewWideHero@1` | 约 4x1.7；2x4 WideHero + 1 个 PillAction | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | `/updatedAt` |
 
 ## BatteryOverview
 
 - Provider：`com.huawei.battery.cli`；运行状态：启用。
-- 数据能力：`GetPhoneBatteryInfo`；模板数：16。
+- 数据能力：`GetPhoneBatteryInfo`；模板数：17。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
+| ✅ | `BatteryOverviewPercentRingHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/batterySOC`<br>`/batterySOCText` | 无 | 无 |
 | ✅ | `BatteryOverviewNormalFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewNormalHero@1` | 约 2x1.7；2x2 Hero + 1 个 PillAction | `/batterySOC` | `/batteryCapacityLevelDesc` | `/batterySOCText`<br>`/chargingStatusDesc` |
 | ✅ | `BatteryOverviewChargingFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
@@ -126,14 +128,15 @@
 ## ActivityOverview
 
 - Provider：`com.huawei.health-sport.cli`；运行状态：启用。
-- 数据能力：`GetHealthAndSportSummary`；模板数：4。
+- 数据能力：`GetHealthAndSportSummary`；模板数：5。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
-| ✅ | `ActivityOverviewStepsFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/dailySteps` | 无 | 无 |
-| ✅ | `ActivityOverviewHero@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/dailySteps` | 无 | 无 |
+| ✅ | `ActivityOverviewCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/dailySteps` | 无 | 无 |
+| ✅ | `ActivityOverviewHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/dailySteps` | 无 | 无 |
+| ✅ | `ActivityOverviewWideHero@1` | 约 4x1.7；WideHero + 1 个 PillAction | `/dailySteps` | `/dailyTotalCaloriesText`<br>`/dailyDistanceText`<br>`/targetDateText` | 无 |
 | ✅ | `ActivityOverviewFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/dailySteps` | `/dailyTotalCaloriesText`<br>`/dailyDistanceText` | 无 |
-| ✅ | `ActivityOverviewDailySummaryWideFull@1` | 完整 4x2；单 WideFull | `/dailySteps` | `/dailyTotalCaloriesText`<br>`/dailyDistanceText` | 无 |
+| ✅ | `ActivityOverviewWideFull@1` | 完整 4x2；单 WideFull | `/dailySteps` | `/dailyTotalCaloriesText`<br>`/dailyDistanceText`<br>`/targetDateText` | 无 |
 
 ## WorkoutOverview
 

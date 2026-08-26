@@ -7,14 +7,22 @@
 规则和二层具体模板/props 规则。领域规则只从这些 MD 按候选动态加载；无数据的 Layout Provider 不需要
 这两个规则文件。
 
+Provider 的业务组件索引直接由 `provider.json#templates[].businessId` 派生，Template 实现只来自对应
+`.cardtpl`。根资源目录不得再维护 `advanced-component-registry.json` 或 `template-registry.json`，也不得
+加入兼容读取形成第二份事实源；未被现有 Provider 接管的历史条目不进入运行时 Registry。
+
+所有 `.cardtpl` 组件均使用 [Tersel Option 3](../../../docs/tersel-protocol.md)，直接声明内联样式，不使用
+DesignToken。Provider 模板是受信资源，不需要用 DesignToken 缩短模型 Prompt；主题色通过受限
+`$theme('<path>')` 内联值声明，并在可信展开阶段解析。
+
 当前迁移范围：
 
-- `weather`：`ViewWeather` → `WeatherOverviewCompact@1` 等 4 个 UI 模板
+- `weather`：`ViewWeather` → 9 个 UI 模板
 - `calendar`：`GetCalendarEvents` → 10 个日期/日程 UI 模板
-- `battery`：`GetPhoneBatteryInfo` → 16 个电量 UI 模板
+- `battery`：`GetPhoneBatteryInfo` → 17 个电量 UI 模板
 - `system-memory`：`GetSystemMemInfo` → 2 个内存 UI 模板
-- `app-usage`：`GetAppUsageDuration` → 4 个应用时长 UI 模板
-- `health-sport`：`GetHealthAndSportSummary` → 26 个活动、运动、心率和睡眠 UI 模板
+- `app-usage`：`GetAppUsageDuration` → 5 个应用时长 UI 模板
+- `health-sport`：`GetHealthAndSportSummary` → 17 个活动、运动、心率和睡眠 UI 模板
 - `countdown`：`GetCountdownDays` → `CountdownOverviewFull@1`
 - `earphone`：`GetEarphoneInfo` → 14 个耳机状态/电量 UI 模板
 - `layout`：无数据能力 → 10 个支持 `...children` 的布局模板
@@ -28,9 +36,12 @@ Provider 若需要覆盖外层布局 Action 的底托透明度，可在模板根
 `_layoutActionBackgroundOpacity`。运行时仅在该 Provider Template 独占业务区时，
 以主题 Action 前景色的 RGB 和声明透明度生成底托色；多业务组合仍使用主题默认 Action 样式。
 
+在 `widget_service` 目录执行：
+
 ```bash
-.venv/bin/python scripts/build_cardplan_bundle.py
-PYTHONPATH=cloud .venv/bin/pytest -q tests/test_provider_template_bundle.py
+.venv312/bin/python scripts/build_cardplan_bundle.py
+PYTHONPATH=cloud .venv312/bin/python -m pytest -q \
+  cloud/services/template_generation/tests
 ```
 
 上述 Provider CardTemplate 均已接入 UX Registry 默认实现。运行时按 `primaryData`、`secondaryData`、

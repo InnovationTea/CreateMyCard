@@ -27,17 +27,6 @@ _FUSION_COMPONENT_IDS = _FUSION_BACKGROUND_COMPONENT_IDS | {_CARD_CONTENT_ID}
 _LEGACY_FUSION_COMPONENT_IDS = _FUSION_BACKGROUND_COMPONENT_IDS | {_LEGACY_CARD_CONTENT_ID}
 _RESERVED_FUSION_COMPONENT_IDS = _FUSION_COMPONENT_IDS | {_LEGACY_CARD_CONTENT_ID}
 _BACKGROUND_STYLE_KEYS = ("backgroundColor", "linearGradient")
-_FUSION_FOREGROUND_COLOR = "#FFFFFFFF"
-_FUSION_TEXT_COLOR = "#CCFFFFFF"
-_FUSION_ICON_REPLACEMENTS = {
-    "resources/base/media/icon_weather1.svg": "resources/base/media/icon_weather1_foreground.svg",
-}
-_FUSION_BALL_PALETTES = {
-    "weather": ("#003399", "#0089BF", "#4174D9"),
-    "health-sport": ("#B33C24", "#FF8833", "#F7E6C3"),
-    "sleep": ("#43388C", "#5761D9", "#B398D9"),
-}
-
 __all__ = ["FusionBallA2UIConversionError", "convert_a2ui_with_fusion_ball"]
 
 
@@ -45,9 +34,12 @@ class FusionBallA2UIConversionError(ValueError):
     """Raised when the input is not a supported complete A2UI card."""
 
 
-def convert_a2ui_with_fusion_ball(a2ui: str, scene: str) -> str:
-    """Replace a Stack root background using one approved scene palette."""
-    palette = _fusion_palette(scene)
+def convert_a2ui_with_fusion_ball(
+    a2ui: str,
+    palette: tuple[str, str, str],
+) -> str:
+    """Replace a Stack root background using colors supplied by the selected Theme."""
+    palette = _validate_palette(palette)
     messages = _parse_complete_a2ui(a2ui)
     update_components = messages[1]["updateComponents"]
     components = update_components.get("components")
@@ -89,11 +81,6 @@ def convert_a2ui_with_fusion_ball(a2ui: str, scene: str) -> str:
             f"Fusion-ball component ids already exist: {', '.join(conflicts)}."
         )
 
-    _apply_fusion_content_foreground(
-        components,
-        root_children,
-        preserve_image_foreground=scene == "weather",
-    )
     outer_root, card_content = _split_root(root)
     fusion_components = _build_fusion_components(palette)
     components[root_index : root_index + 1] = [
@@ -208,59 +195,6 @@ def _component_ids(components: list[Any]) -> set[str]:
     }
 
 
-def _apply_fusion_content_foreground(
-    components: list[Any],
-    root_children: list[str],
-    *,
-    preserve_image_foreground: bool,
-) -> None:
-    """Apply fusion text color and the scene-specific content icon treatment."""
-    component_by_id = {
-        component["id"]: component
-        for component in components
-        if isinstance(component, dict) and isinstance(component.get("id"), str)
-    }
-    visited: set[str] = set()
-
-    def visit(component_id: str, preserve_action_foreground: bool = False) -> None:
-        if component_id in visited:
-            return
-        visited.add(component_id)
-        component = component_by_id.get(component_id)
-        if component is None:
-            return
-        preserve_here = preserve_action_foreground or bool(component.get("onClick"))
-        component_type = component.get("component")
-        if component_type == "Text" and not preserve_here:
-            styles = component.get("styles")
-            if not isinstance(styles, dict):
-                styles = {}
-                component["styles"] = styles
-            styles["fontColor"] = _FUSION_TEXT_COLOR
-        should_tint_image = (
-            component_type == "Image"
-            and not preserve_here
-            and not preserve_image_foreground
-        )
-        if should_tint_image:
-            source = component.get("src")
-            if isinstance(source, str):
-                component["src"] = _FUSION_ICON_REPLACEMENTS.get(source, source)
-            styles = component.get("styles")
-            if not isinstance(styles, dict):
-                styles = {}
-                component["styles"] = styles
-            styles["fillColor"] = _FUSION_FOREGROUND_COLOR
-        children = component.get("children")
-        if isinstance(children, list):
-            for child_id in children:
-                if isinstance(child_id, str):
-                    visit(child_id, preserve_here)
-
-    for child_id in root_children:
-        visit(child_id)
-
-
 def _split_root(root: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     outer_root = copy.deepcopy(root)
     card_content = copy.deepcopy(root)
@@ -281,13 +215,18 @@ def _split_root(root: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     return outer_root, card_content
 
 
-def _fusion_palette(scene: str) -> tuple[str, str, str]:
-    try:
-        return _FUSION_BALL_PALETTES[scene]
-    except (KeyError, TypeError) as exc:
-        raise FusionBallA2UIConversionError(
-            "scene must be weather, health-sport, or sleep."
-        ) from exc
+def _validate_palette(value: tuple[str, str, str]) -> tuple[str, str, str]:
+    if not isinstance(value, tuple) or len(value) != 3:
+        raise FusionBallA2UIConversionError("palette must contain three Theme colors.")
+    if any(not _is_argb_color(color) for color in value):
+        raise FusionBallA2UIConversionError("palette colors must use #AARRGGBB.")
+    return value
+
+
+def _is_argb_color(value: Any) -> bool:
+    if not isinstance(value, str) or len(value) != 9 or not value.startswith("#"):
+        return False
+    return all(character in "0123456789abcdefABCDEF" for character in value[1:])
 
 
 def _build_fusion_components(palette: tuple[str, str, str]) -> list[dict[str, Any]]:

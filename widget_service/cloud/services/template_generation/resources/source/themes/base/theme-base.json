@@ -1,6 +1,19 @@
 {
-  "registryVersion": "advanced-component-ux-registry/2",
-  "sourceContract": "harmonyos-a2ui-advanced-components-design/advanced-component-contracts.ts",
+  "themeBaseVersion": "theme-base/2",
+  "contentColorProperties": {
+    "Button": "fontColor",
+    "Checkbox": "selectedColor",
+    "Divider": "color",
+    "Image": "fillColor",
+    "Progress": "color",
+    "Text": "fontColor"
+  },
+  "themeReferencePaths": [
+    "primaryColor",
+    "supportContentColor",
+    "actionStyle.backgroundColor",
+    "actionStyle.contentColor"
+  ],
   "uxTokens": {
     "radius": 20,
     "safeInset": 12,
@@ -19,43 +32,6 @@
     "ringHeroIconSize": 24,
     "weatherIconCompactSize": 48,
     "weatherIconHeroSize": 56
-  },
-  "paletteSceneThemeIds": {
-    "generic": [
-      "meeting-paper-neutral",
-      "digital-wellbeing-neutral-dark"
-    ],
-    "office.focus": [
-      "focus-warm-amber"
-    ],
-    "office.schedule": [
-      "meeting-paper-neutral",
-      "focus-warm-amber"
-    ],
-    "weather.sunnyCare": [
-      "family-weather-care-blue"
-    ],
-    "weather.rainyCommute": [
-      "rainy-commute-gray-blue"
-    ],
-    "sport.action": [
-      "race-sunrise-action"
-    ],
-    "sleep.violet": [
-      "sleep-night-violet"
-    ],
-    "device.earbuds": [
-      "audio-product-neutral-violet"
-    ],
-    "device.lowPower": [
-      "system-low-power-blue"
-    ],
-    "device.cleanup": [
-      "device-clean-blue-teal"
-    ],
-    "digitalWellbeing": [
-      "digital-wellbeing-neutral-dark"
-    ]
   },
   "sizeBudgets": [
     {

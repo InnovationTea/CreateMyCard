@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
-"""Parse TerseDSL-Nested-2 as data and convert it to standard A2UI JSONL."""
+"""Parse the restricted Tersel data protocol and convert it to A2UI JSONL.
+
+The module path and legacy public names are retained for callers that still use
+the former ``TerseDSL-Nested-2`` identifier.
+"""
 
 from __future__ import annotations
 
@@ -21,6 +25,11 @@ from services.template_generation.engine.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     convert_compact_dsl_to_a2ui,
 )
+from services.template_generation.engine.theme_reference import (
+    THEME_REFERENCE_PATHS,
+    ThemeReferenceSyntaxError,
+    translate_theme_reference_calls,
+)
 
 MAX_INPUT_LENGTH = 1_048_576
 MAX_COMPONENTS = 256
@@ -38,6 +47,8 @@ _DATA_PLACEHOLDER = re.compile(r"^\$\{(data(?:\.[A-Za-z_][A-Za-z0-9_]*|\.\d+)+)\
 _A2UI_DATA_REFERENCE = re.compile(
     r"\$\{(/data(?:/[A-Za-z_][A-Za-z0-9_]*|/\d+)+)\}"
 )
+_THEME_COLOR = re.compile(r"^#[0-9A-Fa-f]{8}$")
+_THEME_REFERENCE_CALL = "_TerselTheme"
 _TEXT_DESIGNS = {
     "title": {"fontSize": 20, "fontWeight": 700, "fontColor": "font_primary"},
     "compact-title": {"fontSize": 14, "fontWeight": 700, "fontColor": "font_primary"},
@@ -79,10 +90,50 @@ _BUTTON_DESIGNS = {
         "fontSize": 10,
     },
 }
+_CONTAINER_DESIGNS = {
+    "Column": {
+        "card": {},
+        "section": {"width": "matchParent", "itemMargin": 6},
+        "compact": {"width": "matchParent", "itemMargin": 4},
+    },
+    "Row": {
+        "between": {
+            "width": "matchParent",
+            "itemMargin": 4,
+            "justifyContent": "spaceBetween",
+            "alignItems": "center",
+        },
+        "actions": {
+            "width": "matchParent",
+            "itemMargin": 4,
+            "justifyContent": "end",
+            "alignItems": "center",
+        },
+    },
+    "List": {
+        "list": {"width": "matchParent", "space": 6},
+        "dense": {"width": "matchParent", "space": 4},
+    },
+    "Stack": {
+        "card": {},
+        "overlay": {"width": "matchParent", "height": "matchParent"},
+    },
+}
+_DESIGN_TOKEN_ALIASES = {
+    ("Column", "Card"): "card",
+    ("Column", "Section"): "section",
+    ("Column", "Compact"): "compact",
+    ("Row", "Between"): "between",
+    ("Row", "Actions"): "actions",
+    ("List", "List"): "list",
+    ("List", "Dense"): "dense",
+    ("Stack", "Card"): "card",
+    ("Stack", "Overlay"): "overlay",
+}
 
 
 class TerseDslNested2ConversionError(ValueError):
-    """Raised when Nested-2 cannot be safely converted to A2UI."""
+    """Raised when Tersel cannot be safely converted to A2UI."""
 
 
 @dataclass(frozen=True)
@@ -92,15 +143,16 @@ class Nested2Node:
     children: tuple[Nested2Node, ...]
 
 
-def convert_terse_dsl_nested2_to_a2ui(
+def convert_tersel_to_a2ui(
     source: str,
     *,
     size: str,
     protocol_profile: dict[str, Any],
     task_spec: dict[str, Any] | None = None,
+    theme_values: dict[str, str] | None = None,
 ) -> str:
-    """Convert one restricted Nested-2 component tree to three A2UI messages."""
-    root, data_model = _parse_terse_dsl_nested2_document(source)
+    """Convert one restricted Tersel component tree to three A2UI messages."""
+    root, data_model = _parse_terse_dsl_nested2_document(source, theme_values)
     allowed_binding_paths = _task_spec_leaf_paths(task_spec)
     allowed_expression_paths = _task_spec_paths(task_spec)
     referenced_paths = _node_binding_paths(root)
@@ -150,38 +202,69 @@ def convert_terse_dsl_nested2_to_a2ui(
         raise TerseDslNested2ConversionError(str(exc)) from exc
 
 
-def parse_terse_dsl_nested2(source: str) -> Nested2Node:
-    """Parse Nested-2 with Python's AST parser, then enforce a closed data grammar."""
-    root, _data_model = _parse_terse_dsl_nested2_document(source)
+def convert_terse_dsl_nested2_to_a2ui(
+    source: str,
+    *,
+    size: str,
+    protocol_profile: dict[str, Any],
+    task_spec: dict[str, Any] | None = None,
+    theme_values: dict[str, str] | None = None,
+) -> str:
+    """Compatibility alias for :func:`convert_tersel_to_a2ui`."""
+    return convert_tersel_to_a2ui(
+        source,
+        size=size,
+        protocol_profile=protocol_profile,
+        task_spec=task_spec,
+        theme_values=theme_values,
+    )
+
+
+def parse_tersel(
+    source: str,
+    *,
+    theme_values: dict[str, str] | None = None,
+) -> Nested2Node:
+    """Parse Tersel with Python's AST parser and enforce a closed data grammar."""
+    root, _data_model = _parse_terse_dsl_nested2_document(source, theme_values)
     return root
+
+
+def parse_terse_dsl_nested2(
+    source: str,
+    *,
+    theme_values: dict[str, str] | None = None,
+) -> Nested2Node:
+    """Compatibility alias for :func:`parse_tersel`."""
+    return parse_tersel(source, theme_values=theme_values)
 
 
 def _parse_terse_dsl_nested2_document(
     source: str,
+    theme_values: dict[str, str] | None = None,
 ) -> tuple[Nested2Node, dict[str, Any] | None]:
     """解析组件树以及模板可选的静态示例 ``data`` 对象。"""
     if not isinstance(source, str) or not source.strip():
-        raise TerseDslNested2ConversionError("TerseDSL-Nested-2 output is empty.")
+        raise TerseDslNested2ConversionError("Tersel output is empty.")
     if len(source) > MAX_INPUT_LENGTH:
-        raise TerseDslNested2ConversionError("TerseDSL-Nested-2 input exceeds the size limit.")
+        raise TerseDslNested2ConversionError("Tersel input exceeds the size limit.")
     try:
-        module = ast.parse(_python_compatible_source(source), mode="exec")
+        translated = translate_theme_reference_calls(source, _THEME_REFERENCE_CALL)
+        module = ast.parse(_python_compatible_source(translated), mode="exec")
+    except ThemeReferenceSyntaxError as exc:
+        raise TerseDslNested2ConversionError(str(exc)) from exc
     except SyntaxError as exc:
         raise TerseDslNested2ConversionError(
-            f"TerseDSL-Nested-2 syntax error at line {exc.lineno}: {exc.msg}."
+            f"Tersel syntax error at line {exc.lineno}: {exc.msg}."
         ) from exc
     if len(module.body) not in {1, 2} or not isinstance(module.body[0], ast.Expr):
         raise TerseDslNested2ConversionError(
-            "TerseDSL-Nested-2 must contain one component call and optional data assignment."
+            "Tersel must contain one component call and optional data assignment."
         )
     state = {"components": 0}
-    root = _parse_component(module.body[0].value, 1, state)
+    root = _parse_component(module.body[0].value, 1, state, theme_values or {})
     if root.component_type not in {"Column", "Stack"}:
         raise TerseDslNested2ConversionError("The root component must be Column or Stack.")
-    if not root.values or root.values[0] != "card":
-        raise TerseDslNested2ConversionError(
-            'The root must use Column("card", ...) or Stack("card", ...).'
-        )
     data_model = None
     if len(module.body) == 2:
         assignment = module.body[1]
@@ -201,12 +284,12 @@ def _parse_terse_dsl_nested2_document(
 
 
 def _python_compatible_source(source: str) -> str:
-    """Translate only Nested-2 literal tokens; strings and component names stay untouched."""
+    """Translate only Tersel literal tokens; strings and component names stay untouched."""
     try:
         tokens = list(tokenize.generate_tokens(io.StringIO(source).readline))
     except tokenize.TokenError as exc:
         raise TerseDslNested2ConversionError(
-            f"TerseDSL-Nested-2 tokenization failed: {exc.args[0]}."
+            f"Tersel tokenization failed: {exc.args[0]}."
         ) from exc
     translated: list[tokenize.TokenInfo] = []
     literal_names = {"true": "True", "false": "False", "null": "None"}
@@ -247,7 +330,12 @@ def _next_token_is_colon(
     return False
 
 
-def _parse_component(node: ast.AST, depth: int, state: dict[str, int]) -> Nested2Node:
+def _parse_component(
+    node: ast.AST,
+    depth: int,
+    state: dict[str, int],
+    theme_values: dict[str, str],
+) -> Nested2Node:
     if depth > MAX_NESTING_DEPTH:
         raise TerseDslNested2ConversionError("Component nesting exceeds 32 levels.")
     if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
@@ -265,22 +353,36 @@ def _parse_component(node: ast.AST, depth: int, state: dict[str, int]) -> Nested
     children: list[Nested2Node] = []
     child_started = False
     for argument in node.args:
-        if _is_expression_call(argument):
+        if _is_expression_call(argument) or _is_theme_reference_call(argument):
             if child_started:
                 raise TerseDslNested2ConversionError(
                     "Value arguments must appear before the first child."
                 )
-            values.append(_literal_value(argument, depth, allow_expression=True))
+            values.append(
+                _literal_value(
+                    argument,
+                    depth,
+                    allow_expression=True,
+                    theme_values=theme_values,
+                )
+            )
             continue
         if isinstance(argument, ast.Call):
             child_started = True
-            children.append(_parse_component(argument, depth + 1, state))
+            children.append(_parse_component(argument, depth + 1, state, theme_values))
             continue
         if child_started:
             raise TerseDslNested2ConversionError(
                 "Value arguments must appear before the first child."
             )
-        values.append(_literal_value(argument, depth, allow_expression=True))
+        values.append(
+            _literal_value(
+                argument,
+                depth,
+                allow_expression=True,
+                theme_values=theme_values,
+            )
+        )
     if children and component_type not in _CONTAINERS:
         raise TerseDslNested2ConversionError(f"{component_type} cannot contain child components.")
     return Nested2Node(component_type, tuple(values), tuple(children))
@@ -291,11 +393,14 @@ def _literal_value(
     depth: int,
     *,
     allow_expression: bool = False,
+    theme_values: dict[str, str] | None = None,
 ) -> Any:
     if depth > MAX_NESTING_DEPTH:
         raise TerseDslNested2ConversionError("Literal nesting exceeds 32 levels.")
     if allow_expression and _is_expression_call(node):
         return _parse_expression_call(node)
+    if allow_expression and _is_theme_reference_call(node):
+        return _parse_theme_reference_call(node, theme_values or {})
     if isinstance(node, ast.Constant):
         if isinstance(node.value, str) and len(node.value) > MAX_STRING_LENGTH:
             raise TerseDslNested2ConversionError("String literal exceeds the size limit.")
@@ -305,7 +410,12 @@ def _literal_value(
         if len(node.elts) > MAX_COLLECTION_ITEMS:
             raise TerseDslNested2ConversionError("Array literal exceeds the item limit.")
         return [
-            _literal_value(item, depth + 1, allow_expression=allow_expression)
+            _literal_value(
+                item,
+                depth + 1,
+                allow_expression=allow_expression,
+                theme_values=theme_values,
+            )
             for item in node.elts
         ]
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
@@ -313,6 +423,7 @@ def _literal_value(
             node.operand,
             depth + 1,
             allow_expression=allow_expression,
+            theme_values=theme_values,
         )
         if isinstance(operand, bool) or not isinstance(operand, (int, float)):
             raise TerseDslNested2ConversionError(
@@ -335,6 +446,7 @@ def _literal_value(
                 value_node,
                 depth + 1,
                 allow_expression=allow_expression,
+                theme_values=theme_values,
             )
         return result
     raise TerseDslNested2ConversionError(
@@ -348,6 +460,31 @@ def _is_expression_call(node: ast.AST) -> bool:
         and isinstance(node.func, ast.Name)
         and node.func.id == "Expr"
     )
+
+
+def _is_theme_reference_call(node: ast.AST) -> bool:
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == _THEME_REFERENCE_CALL
+    )
+
+
+def _parse_theme_reference_call(
+    node: ast.AST,
+    theme_values: dict[str, str],
+) -> str:
+    assert isinstance(node, ast.Call)
+    valid_argument = len(node.args) == 1 and isinstance(node.args[0], ast.Constant)
+    path = node.args[0].value if valid_argument else None
+    if node.keywords or not isinstance(path, str) or path not in THEME_REFERENCE_PATHS:
+        raise TerseDslNested2ConversionError(
+            "$theme requires exactly one approved Theme path."
+        )
+    value = theme_values.get(path)
+    if not isinstance(value, str) or _THEME_COLOR.fullmatch(value) is None:
+        raise TerseDslNested2ConversionError(f"Theme reference is unavailable: {path}.")
+    return value
 
 
 def _parse_expression_call(node: ast.AST) -> str:
@@ -508,7 +645,7 @@ def _task_spec_sample_data(task_spec: dict[str, Any]) -> Any:
 
 
 def serialize_task_spec_data(task_spec: dict[str, Any]) -> str:
-    """Serialize only the public ``/data`` preview object for a full Nested-2 document."""
+    """Serialize only the public ``/data`` preview object for a full Tersel document."""
     sample_data = _task_spec_sample_data(task_spec)
     data = sample_data.get("data", {}) if isinstance(sample_data, dict) else {}
     if not isinstance(data, dict):
@@ -639,23 +776,36 @@ def _designed_leaf_props(
     props = {required_name: node.values[0]}
     remaining = list(node.values[1:])
     if remaining and isinstance(remaining[0], str):
-        design = remaining.pop(0)
-        if design not in designs:
-            raise TerseDslNested2ConversionError(
-                f'Unsupported {node.component_type} design "{design}".'
-            )
-        props.update(designs[design])
+        design_token = remaining.pop(0)
+        props.update(_resolve_design_token(node.component_type, design_token, designs))
     _merge_options(props, remaining)
     return props
+
+
+def _resolve_design_token(
+    component_type: str,
+    design_token: str,
+    designs: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    normalized = _DESIGN_TOKEN_ALIASES.get(
+        (component_type, design_token),
+        design_token,
+    )
+    design = designs.get(normalized)
+    if design is None:
+        raise TerseDslNested2ConversionError(
+            f'Unsupported {component_type} designToken "{design_token}".'
+        )
+    return dict(design)
 
 
 def _merge_options(props: dict[str, Any], values: Any) -> None:
     values = list(values)
     if not values:
         return
-    if len(values) != 1 or not isinstance(values[0], dict) or not values[0]:
+    if len(values) != 1 or not isinstance(values[0], dict):
         raise TerseDslNested2ConversionError(
-            "Options must be one non-empty object in the final value position."
+            "Inline styles must be one object in the final value position."
         )
     props.update({key: value for key, value in values[0].items() if key != "_id"})
 
@@ -666,36 +816,27 @@ def _container_props(
     size: str,
 ) -> dict[str, Any]:
     values = list(node.values)
-    layout = values.pop(0) if values and isinstance(values[0], str) else None
-    props: dict[str, Any] = {}
-    _merge_options(props, values)
-    layouts = {
-        ("Column", "section"): {"width": "matchParent", "itemMargin": 6},
-        ("Column", "compact"): {"width": "matchParent", "itemMargin": 4},
-        ("Row", "between"): {
-            "width": "matchParent",
-            "itemMargin": 4,
-            "justifyContent": "spaceBetween",
-            "alignItems": "center",
-        },
-        ("Row", "actions"): {
-            "width": "matchParent",
-            "itemMargin": 4,
-            "justifyContent": "end",
-            "alignItems": "center",
-        },
-        ("List", "list"): {"width": "matchParent", "space": 6},
-        ("List", "dense"): {"width": "matchParent", "space": 4},
-        ("Stack", "overlay"): {"width": "matchParent", "height": "matchParent"},
-    }
+    design_token = values.pop(0) if values and isinstance(values[0], str) else None
+    designs = _CONTAINER_DESIGNS[node.component_type]
+    design_props = (
+        _resolve_design_token(node.component_type, design_token, designs)
+        if design_token is not None
+        else {}
+    )
+    inline_props: dict[str, Any] = {}
+    _merge_options(inline_props, values)
     if component_id == "root":
         dimensions = {
             "2x2": {"width": 160, "height": 160},
             "2x4": {"width": 320, "height": 160},
         }.get(size)
-        if node.component_type not in {"Column", "Stack"} or layout != "card" or dimensions is None:
+        if node.component_type not in {"Column", "Stack"} or dimensions is None:
             raise TerseDslNested2ConversionError(
-                'Root must be Column("card", ...) or Stack("card", ...) with a supported size.'
+                "Tersel root must be Column or Stack with a supported size."
+            )
+        if "width" in inline_props or "height" in inline_props:
+            raise TerseDslNested2ConversionError(
+                "Root inline styles cannot override the size-locked width or height."
             )
         locked = {
             **dimensions,
@@ -706,16 +847,31 @@ def _container_props(
         if node.component_type == "Column":
             locked["itemMargin"] = 8
             locked["backgroundColor"] = "background_primary"
-        if "width" in props or "height" in props:
-            raise TerseDslNested2ConversionError(
-                "Root options cannot override the size-locked width or height."
-            )
-        return {**locked, **props}
-    if layout is None:
-        return props
-    preset = layouts.get((node.component_type, layout))
-    if preset is None:
-        raise TerseDslNested2ConversionError(
-            f'Unsupported {node.component_type} layout "{layout}".'
-        )
-    return {**preset, **props}
+        root_design_props = {
+            key: value
+            for key, value in design_props.items()
+            if key not in {"width", "height"}
+        }
+        return {**locked, **root_design_props, **inline_props}
+    return {**design_props, **inline_props}
+
+
+TerselConversionError = TerseDslNested2ConversionError
+TerselNode = Nested2Node
+
+__all__ = [
+    "MAX_COMPONENTS",
+    "MAX_INPUT_LENGTH",
+    "MAX_NESTING_DEPTH",
+    "MAX_OBJECT_FIELDS",
+    "MAX_STRING_LENGTH",
+    "Nested2Node",
+    "TerseDslNested2ConversionError",
+    "TerselConversionError",
+    "TerselNode",
+    "convert_terse_dsl_nested2_to_a2ui",
+    "convert_tersel_to_a2ui",
+    "parse_terse_dsl_nested2",
+    "parse_tersel",
+    "serialize_task_spec_data",
+]

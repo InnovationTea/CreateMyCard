@@ -1,12 +1,33 @@
-# 模板生成模块
+# Template Generation 文档中心
 
-本目录是 `generateWidgetCardCompactDsl` 和 `generateWidgetCardTerseDslNested2` 共用的模板 source DSL 生成能力边界。
-模板判断、模板展开、Provider 资源、测试和设计文档位于 `cloud/services/template_generation/`；通用
-生成编排仍由 `WidgetGenerationService` 统一负责。
+本目录维护 `template_generation` 模块的实现说明。模块为
+`generateWidgetCardCompactDsl` 和 `generateWidgetCardTerseDslNested2` 的 create 请求提供受控
+Template source DSL，但不负责能力裁决、CardSpec/TaskSpec 构造、最终校验、artifact 保存或业务响应。
 
-## 对外接口
+> 本目录统一使用协议名 `Tersel`。`Tersel-Nest2`、`TerseDSL-Nested-2`、`Nested-2` 和 `Terse`
+> 只作为兼容代码名或历史名称保留。
 
-外部只调用源 DSL 字符串生成接口，并显式提供主生成流程已构造的依赖：
+## 文档层级
+
+| 文档 | 用途 | 是否权威契约 |
+| --- | --- | --- |
+| [云侧方案设计](../../../../../docs/云侧方案设计.md) | 系统边界、对外接口、协议、校验和降级规则 | 是，唯一权威来源 |
+| [architecture.md](architecture.md) | 当前代码的路由、Template 生成流程和失败边界 | 否，实现说明 |
+| [modules.md](modules.md) | 目录、类、函数和代码责任索引 | 否，实现说明 |
+| [tersel-protocol.md](tersel-protocol.md) | Tersel 语法、DesignToken、内联样式和安全边界 | 否，模块内协议说明 |
+| [compact-dsl-data-flow.md](compact-dsl-data-flow.md) | Compact 入口的数据流和回退策略 | 否，接口实现说明 |
+| [tersel-data-flow.md](tersel-data-flow.md) | Tersel 入口的数据流和严格失败策略 | 否，接口实现说明 |
+| [provider-template-contract.md](provider-template-contract.md) | Provider Bundle、CardTpl、Layout 与 Action 接入规则 | 否，模块内契约 |
+| [provider-template-capability-checklist.md](provider-template-capability-checklist.md) | 业务模板、数据分层和运行状态清单 | 否，从 Provider 事实源派生 |
+| [provider-template-preview-gallery.md](provider-template-preview-gallery.md) | 确定性 A2UI 预览数据集的生成与验证 | 否，开发辅助 |
+| [migration-notes.md](migration-notes.md) | 历史合入边界和决策背景 | 否，仅供追溯 |
+
+Provider 的 `first-layer.md` 和 `second-layer.md` 是模型输入资源，不是开发者总体设计文档；
+它们应与对应 `provider.json` 和 `.cardtpl` 一起修改。
+
+## 生产入口
+
+模块对生产调用方只暴露一个源 DSL 生成入口：
 
 ```python
 await request_template_source_dsl(
@@ -20,60 +41,53 @@ await request_template_source_dsl(
 )
 ```
 
-返回规则：
+入口返回当前公共 Processor 可直接消费的字符串。当前 Compact 与
+Tersel 生产路线都使用 `DESIGN_COMPACT` Processor，因此模块最终返回 Design Compact DSL。
+模块内部仍使用受限 Tersel 和 CardTpl 表达布局与模板，但这些不是对外产物。
 
-- `config/template_controls.json` 是模板模块内的唯一管控配置。`disabledProviderIds` 按 Provider 关闭
-  整个业务模板集合，`disabledTemplateIds` 只关闭指定完整模板 ID。
-- 业务模板在对应 Provider 的 `templates` 条目中直接声明 `businessId` 与 `capabilityId`，Registry 按模板
-  派生业务分组；布局组件由 Layout Provider 的 `provider.json#layoutComponents` 定义。中央 UX 配置不重复
-  维护组件和模板归属。
-- 禁用项在首层 Prompt 构造前过滤，二层 Provider 规则和布局候选也应用同一结果；服务端契约会再次拒绝
-  被禁用的模板。
-- 模板模块只返回当前 Processor 可直接消费的源 DSL 字符串，不接收主服务对象，也不调用
-  原始生成逻辑。
-- 能力前置裁决以及 CardSpec、TaskSpec、artifact、`GenerateWidgetCardResponse` 的组装不属于模板模块。
-- Compact/Terse 入口负责各自的 edit 策略；Compact create 的模板异常由公共
-  `generate_source_dsl` 在同一次调用内回退原 Compact 模型，Terse create 的模板异常直接返回失败。
-- create 请求先由第一层 LLM 只输出 `theme`、`componentCandidates`、`action`；每个组件候选同时给出
-  当前可交给第二层继续选择的 `availableTemplateIds`。
-- 第一层失败时仍返回最匹配的候选 Theme，以空 `componentCandidates` 和空 `action` 表示模板不适用。
-- Search 模板路由仅支持一个数据业务组件，以及一个数据业务组件加可选 Action；多个数据能力或必须联合
-  多个业务组件覆盖字段时，在调用第二层前判定模板不适用。
-- 第二层的业务 UI 和布局骨架都使用 `Template` 调用；模板 ID 直接表达形态，不再输出 Variant。
-- 第一层拒绝、输出非法、调用失败、确定性覆盖检查不通过，以及后续生成异常，由字符串接口直接抛出。
-- Compact 与 Terse 共用 `request_template_source_dsl`；模板内部统一把 A2UI 转为 Design Compact DSL。
-- Compact create 的模板 source generator 异常回退原 Compact 首次生成；Terse create 的模板 source
-  generator 异常直接失败。模板源 DSL 已返回后的 Processor 或 Validator 错误只走公共 Compact repair，
-  不重试模板。
-- 模板成功后的 Processor、最终校验、artifact 保存和响应组装全部复用主生成链。
+## 边界速查
 
-旧 Python Terse 模板流水线只保留
-`route_legacy_python_terse_generation(...)` 诊断入口，用于临时对比定位，不属于生产默认路由。
+模块负责：
 
-## 目录边界
+- 加载并校验 Template Controls、Provider Bundle、Theme、Layout 和 CardTpl。
+- 从已裁决的 TaskSpec、CardSpec 和有效数据绑定中判断模板是否可完整覆盖需求。
+- 让模型只做受控的字段标定、Theme/Action 选择、Layout/Template 组合和 Props 填充。
+- 确定性执行语法校验、数据准入、布局约束、Action 绑定和 CardTpl 展开。
+- 生成标准 A2UI，并适配为当前 Processor 的源 DSL。
+
+模块不负责：
+
+- 不查询 IDS，不执行设备能力或权限裁决。
+- 不生成 CardSpec、TaskSpec、artifact 或 `GenerateWidgetCardResponse`。
+- 不调用 `ArtifactValidator`、`ArtifactStore` 或 `ResponsePlanner`。
+- 不持有 `WidgetGenerationService` 实例，不反向调用原协议生成链。
+- 不决定 Compact 和 Tersel 入口的回退、edit 和业务响应策略。
+
+## 开发入口
+
+修改前建议按以下顺序定位：
+
+1. 路由差异：阅读 [architecture.md](architecture.md) 和对应接口数据流。
+2. 函数职责：阅读 [modules.md](modules.md)。
+3. Provider 或 CardTpl：阅读 [provider-template-contract.md](provider-template-contract.md)。
+4. 新增或修改资源：同时检查 `provider.json`、分层规则、`.cardtpl` 和能力清单。
+5. 回归：运行模块测试和预览数据集校验，具体命令见预览文档。
+
+## 目录概览
 
 ```text
 template_generation/
-├── facade.py                 仅对外提供源 DSL 字符串生成接口
-├── source_adapter.py          将模板产物转为当前 Processor 的源格式
-├── binding_dependencies.py   模板路由使用的有效绑定边界
-├── legacy_python.py          旧 Python Terse 流水线诊断入口
-├── model_client.py           第一层/第二层模型窄适配器
-├── engine/                   受限 DSL、模板匹配和确定性编译
-├── resources/source/         Provider 清单、Schema、模板和主题资源
-├── tests/                    模板能力独立测试
-└── docs/                     本功能设计与接入文档
+├── facade.py                  生产窄入口
+├── controls.py                模板细粒度开关
+├── binding_dependencies.py    有效绑定隔离
+├── model_client.py            共享模型运行时窄适配
+├── source_adapter.py          A2UI 到公共 Processor 源格式的适配
+├── legacy_python.py           旧路线诊断入口
+├── engine/
+│   ├── pipeline.py            模板生成主编排
+│   ├── advanced/              数据轮廓、首层选择和二层 Prompt
+│   └── cardplan/              Provider Registry、Search、CardTpl 编译与展开
+├── resources/source/          受信 Provider、Theme、Prompt 和 CardTpl 资源
+├── tests/                     模块回归测试
+└── docs/                      实现文档
 ```
-
-模块只复用已构造的 TaskSpec、CardSpec 和有效数据绑定，不在模板侧派生或补齐缺失字段；
-模型运行时和请求上下文由调用方显式提供。
-模板模块不依赖通用 Builder、Validator、ArtifactStore 或 API Response，不得通过主服务对象调用私有能力或
-反向调用原协议逻辑。
-
-领域选择规则不直接写入 Python SystemPrompt。每个业务 Provider 通过 `provider.json` 显式登记
-`dataDomain`、首层和二层 MD；布局 Provider 只登记可接收 `...children` 的布局模板。
-Theme 通过 `theme-profiles.json` 登记只供首层使用的 MD。首层只加载候选 Provider/Theme 文档，二层只加载
-已选 Provider 文档。
-
-详细流程见 [architecture.md](architecture.md)，Provider 接入见
-[provider-template-contract.md](provider-template-contract.md)。

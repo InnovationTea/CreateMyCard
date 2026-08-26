@@ -4,28 +4,22 @@ data = {
 }
 
 Column(
-  "compact",
   {"_advancedComponent": "CountdownOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
   Text(
       "倒计时",
-      "subtitle",
-      {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     ),
   Column(
-      "compact",
-      {"width": "matchParent", "layoutWeight": 1, "justifyContent": "center", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      {"itemMargin":4,"width": "matchParent", "layoutWeight": 1, "justifyContent": "center", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Row(
-            "between",
             {"width": "matchParent", "itemMargin": 4, "justifyContent": "center", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
             Text(
                     data.days,
-                    "title",
-                    {"fontSize": 38, "fontWeight": 800, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                    {"fontSize": 38, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   ),
             Text(
                     "天",
-                    "subtitle",
-                    {"fontSize": 12, "fontWeight": 500, "fontColor": "#99000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                    {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   )
           )
     )
