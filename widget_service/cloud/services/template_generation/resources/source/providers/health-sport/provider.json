@@ -44,6 +44,22 @@
       "secondaryData": []
     },
     {
+      "templateId": "ActivityOverviewWideHero@1",
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "每日活动摘要，展示步数，可补充热量、距离和目标日期。 组件形态：wideHero。",
+      "optionalData": [],
+      "entry": "templates/activity-overview.cardtpl",
+      "primaryData": [
+        "/dailySteps"
+      ],
+      "secondaryData": [
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText",
+        "/targetDateText"
+      ]
+    },
+    {
       "templateId": "ActivityOverviewFull@1",
       "businessId": "ActivityOverview",
       "capabilityId": "GetHealthAndSportSummary",
