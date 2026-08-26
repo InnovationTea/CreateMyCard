@@ -6879,6 +6879,30 @@ def _lower_hero_action_layout(
         raise TerseDslNested2ConversionError(
             "HeroActionLayout actionPlacement=end is only available for 2x4."
         )
+
+    # For 2x4 layouts with wide hero split structure (Row with hero+support columns),
+    # place the PillAction in the right half at bottom instead of full width at bottom
+    # This applies to all WideHero layouts, not just specific component types
+    if size == "2x4" and actions and _is_wide_hero_split_structure(content[0]):
+        hero = content[0].children[0]
+        support = content[0].children[1]
+        # Create support+action column (stacked vertically, right half)
+        support_action = Nested2Node(
+            "Column",
+            (
+                "section",
+                {
+                    "width": "100%",
+                    "height": "100%",
+                    "itemMargin": registry.ux_tokens["moduleGap"],
+                    "justifyContent": "spaceBetween",
+                },
+            ),
+            (support, actions[0]),
+        )
+        # Create weighted row with hero (left 50%) and support+action (right 50%)
+        return _weighted_row((hero, support_action), (50, 50), registry)
+
     base = _single_region(content[0], justify="start", registry=registry)
     return _place_optional_layout_action(
         base,
@@ -7011,7 +7035,8 @@ def _lower_hero_support_action_layout(
         )
         return _place_optional_layout_action(base, actions, size=size, registry=registry)
     ratio = configuration.get("heroRatio", "wide")
-    weights = (56, 44) if ratio == "wide" else (50, 50)
+    # For 2x4 layouts, use 50/50 weights to give the PillAction 50% width at the bottom right
+    weights = (50, 50) if size == "2x4" else ((56, 44) if ratio == "wide" else (50, 50))
     support = content[1]
     if _is_resource_usage_region(content[0]):
         support = _normalize_ring_geometry(support, ring_size=44)
@@ -7493,6 +7518,30 @@ def _auto_peer_orientation(children: tuple[Nested2Node, ...]) -> str:
 def _contains_visual_region(node: Nested2Node) -> bool:
     return any(item.component_type in {"Image", "Progress"} for item in _walk_nodes(node))
 
+
+def _has_layout_weight(node: Nested2Node) -> bool:
+    """Check if a node has layoutWeight property (used for weighted row/column layouts)."""
+    return any(
+        isinstance(value, dict) and "layoutWeight" in value
+        for value in node.values
+    )
+
+
+def _is_wide_hero_split_structure(node: Nested2Node) -> bool:
+    """Check if node is a wide hero split structure: a split structure with/without title"""
+    if node.component_type == "Column" and len(node.children) == 2:
+        return _is_split_structure(node.children[1])
+    return _is_split_structure(node)
+
+
+def _is_split_structure(node: Nested2Node) -> bool:
+    """Check if node is a split structure: Row with 2 Column children, each with layoutWeight."""
+    if node.component_type != "Row" or len(node.children) != 2:
+        return False
+    if not all(child.component_type == "Column" for child in node.children):
+        return False
+    # Both columns should have layoutWeight for proper 50/50 split
+    return all(_has_layout_weight(child) for child in node.children)
 
 def _is_weather_region(node: Nested2Node) -> bool:
     return any(
