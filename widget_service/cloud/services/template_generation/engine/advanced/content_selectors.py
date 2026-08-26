@@ -162,27 +162,38 @@ class ScheduleOverviewFacts:
 class BatteryOverviewFacts:
     level_percent: int | float
     level_text: str
-    capacity_level: str
-    charging_status: str
+    capacity_level: str | None = None
+    charging_status: str | None = None
 
     def as_selector(self) -> dict[str, dict[str, Any]]:
         number_type = "integer" if isinstance(self.level_percent, int) else "number"
-        return {
+        selected = {
             "batterySOC": {
                 "type": number_type,
                 "description": "可信手机本机电量百分比数值",
                 "sampleValue": self.level_percent,
             },
             "batterySOCText": _field(self.level_text, "可信手机本机电量百分比文本"),
-            "batteryCapacityLevelDesc": _field(self.capacity_level, "可信电量等级描述"),
-            "chargingStatusDesc": _field(self.charging_status, "可信充电状态描述"),
         }
+        if self.capacity_level is not None:
+            selected["batteryCapacityLevelDesc"] = _field(
+                self.capacity_level,
+                "可信电量等级描述",
+            )
+        if self.charging_status is not None:
+            selected["chargingStatusDesc"] = _field(
+                self.charging_status,
+                "可信充电状态描述",
+            )
+        return selected
 
     @property
     def state(self) -> str:
         if self.level_percent <= 20:
             return "low"
-        if _charging_status_is_active(self.charging_status):
+        if self.charging_status is not None and _charging_status_is_active(
+            self.charging_status
+        ):
             return "charging"
         return "normal"
 
@@ -2310,7 +2321,7 @@ def _projected_battery_candidates(schema: dict[str, Any]):
             yield provider
     yield from _direct_field_objects(
         schema.get("data", {}),
-        ("batterySOCText", "batteryCapacityLevelDesc", "chargingStatusDesc"),
+        ("batterySOC", "batterySOCText"),
     )
 
 
@@ -2323,7 +2334,7 @@ def _battery_facts_from_candidate(candidate: dict[str, Any]) -> BatteryOverviewF
     capacity_level = _trusted_string(capacity_field)
     charging_status = _trusted_string(charging_field)
     text_percent = _percentage_number_value(level_text_field)
-    if level_text is None or capacity_level is None or charging_status is None:
+    if level_text is None:
         return None
     if text_percent is None:
         return None

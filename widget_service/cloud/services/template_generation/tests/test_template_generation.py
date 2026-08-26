@@ -180,7 +180,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 92
+    assert len(registry.provider_template_ids) == 83
     assert {
         "ActivityOverviewStepsFull@1",
         "AppUsageOverviewFull@1",
@@ -1249,7 +1249,7 @@ def test_first_layer_decision_contract_carries_component_template_candidates():
     assert decision.model_dump(mode="json", by_alias=True) == payload
 
 
-def test_phone_battery_binding_auto_includes_numeric_soc_for_template_rendering():
+def test_phone_battery_binding_does_not_auto_include_numeric_soc():
     binding = CandidateDataBinding(
         capabilityId="GetPhoneBatteryInfo",
         arguments={},
@@ -1262,7 +1262,6 @@ def test_phone_battery_binding_auto_includes_numeric_soc_for_template_rendering(
     assert effective[0].candidateOutputFields == [
         "/batterySOCText",
         "/chargingStatusDesc",
-        "/batterySOC",
     ]
 
 
@@ -2068,11 +2067,55 @@ async def test_2x2_battery_pill_action_uses_normal_hero_template():
     assert model.second_layer_prompt is not None
     second_layer_user = model.second_layer_prompt[1]["content"]
     assert "约 2x1.7；用于 2x2 主内容加一个 PillAction" in second_layer_user
-    assert "selectedActionEventIds` 恰好一个且电量状态为 normal" in second_layer_user
+    assert "业务模板本身不得携带按钮" in second_layer_user
+    assert "PillAction@1" in second_layer_user
     assert '"height":36' in output.a2ui
     assert "省电模式" in output.a2ui
     assert "batterySOC" in output.a2ui
     assert "chargingStatusDesc" in output.a2ui
+
+
+@pytest.mark.asyncio
+async def test_2x2_battery_percent_ring_hero_does_not_require_capacity_level():
+    binding = CandidateDataBinding(
+        capabilityId="GetPhoneBatteryInfo",
+        writeResultTo="/data/phoneBattery",
+        candidateOutputFields=[
+            "/batterySOC",
+            "/batterySOCText",
+            "/chargingStatusDesc",
+        ],
+    )
+    task_spec = _battery_task()
+    phone_battery = task_spec.dataModelSchema["data"]["phoneBattery"]
+    del phone_battery["batteryCapacityLevelDesc"]
+    model = _FixedTemplateModel(
+        theme_id="system-low-power-blue",
+        component_id="BatteryOverview",
+        available_template_ids=("BatteryOverviewPercentRingHero@1",),
+        capability_id="GetPhoneBatteryInfo",
+        required_fields=("/batterySOC", "/batterySOCText"),
+        action_id="event.setPowerSavingMode",
+        body=(
+            'Template("HeroActionLayout@1",{},'
+            'Template("BatteryOverviewPercentRingHero@1",'
+            '{"batteryIcon":"resources/base/media/battery_leaf_fill.svg"}),'
+            'PillAction({"actionId":"event.setPowerSavingMode"}));'
+        ),
+    )
+
+    output = await generate_template_a2ui(
+        task_spec,
+        _battery_card_spec(),
+        (binding,),
+        model,
+    )
+
+    assert output.template_ids == ("BatteryOverviewPercentRingHero@1", "HeroActionLayout@1")
+    assert "batterySOC" in output.a2ui
+    assert "batterySOCText" in output.a2ui
+    assert "batteryCapacityLevelDesc" not in output.a2ui
+    assert "省电模式" in output.a2ui
 
 
 def test_battery_normal_hero_requires_a_selected_layout_action():
@@ -2673,7 +2716,7 @@ async def test_template_facade_returns_only_compact_source_dsl_string(monkeypatc
 
 
 @pytest.mark.asyncio
-async def test_template_facade_enriches_bindings_inside_template_boundary(monkeypatch):
+async def test_template_facade_preserves_effective_bindings(monkeypatch):
     observed_fields: list[str] = []
 
     class Output:
@@ -2721,7 +2764,6 @@ async def test_template_facade_enriches_bindings_inside_template_boundary(monkey
     assert observed_fields == [
         "/batterySOCText",
         "/chargingStatusDesc",
-        "/batterySOC",
     ]
     assert binding.candidateOutputFields == [
         "/batterySOCText",
