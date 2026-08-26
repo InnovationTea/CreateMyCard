@@ -20,6 +20,7 @@ Template source DSL，但不负责能力裁决、CardSpec/TaskSpec 构造、最�
 | [provider-template-contract.md](provider-template-contract.md) | Provider Bundle、CardTpl、Layout 与 Action 接入规则 | 否，模块内契约 |
 | [provider-template-capability-checklist.md](provider-template-capability-checklist.md) | 业务模板、数据分层和运行状态清单 | 否，从 Provider 事实源派生 |
 | [provider-template-preview-gallery.md](provider-template-preview-gallery.md) | 确定性 A2UI 预览数据集的生成与验证 | 否，开发辅助 |
+| [provider-template-e2e-gallery.md](provider-template-e2e-gallery.md) | 经正式服务入口批跑 Provider 场景画廊 | 否，测试辅助 |
 | [migration-notes.md](migration-notes.md) | 历史合入边界和决策背景 | 否，仅供追溯 |
 
 Provider 的 `first-layer.md` 和 `second-layer.md` 是模型输入资源，不是开发者总体设计文档；
@@ -59,12 +60,12 @@ Tersel 生产路线都使用 `DESIGN_COMPACT` Processor，因此模块最终返�
 - 确定性执行语法校验、数据准入、布局约束、Action 绑定和 CardTpl 展开。
 - 生成标准 A2UI，并适配为当前 Processor 的源 DSL。
 
-模块不负责：
+生产模块不负责（`test_support/` 中的开发测试工具不属于生产依赖图）：
 
 - 不查询 IDS，不执行设备能力或权限裁决。
 - 不生成 CardSpec、TaskSpec、artifact 或 `GenerateWidgetCardResponse`。
 - 不调用 `ArtifactValidator`、`ArtifactStore` 或 `ResponsePlanner`。
-- 不持有 `WidgetGenerationService` 实例，不反向调用原协议生成链。
+- 生产路径不持有 `WidgetGenerationService` 实例，不反向调用原协议生成链。
 - 不决定 Compact 和 Tersel 入口的回退、edit 和业务响应策略。
 
 ## 开发入口
@@ -92,6 +93,7 @@ template_generation/
 │   ├── advanced/              数据轮廓、首层选择和二层 Prompt
 │   └── cardplan/              Provider Registry、Search、CardTpl 编译与展开
 ├── resources/source/          受信 Provider、Theme、Prompt 和 CardTpl 资源
+├── test_support/              不进入生产依赖图的端到端画廊辅助工具
 ├── tests/                     模块回归测试
 └── docs/                      实现文档
 ```
