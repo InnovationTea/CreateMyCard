@@ -814,7 +814,7 @@ def test_two_business_compact_can_cover_weather_alert_uv_and_battery_temperature
     )
 
 
-def test_countdown_weather_compact_recovers_weather_from_card_description() -> None:
+def test_countdown_weather_compact_uses_explicit_weather_fields() -> None:
     task = TaskSpec(
         userQuery="使用2*2规格，做个马拉松赛事倒计时卡片。",
         size="2x2",
@@ -850,7 +850,14 @@ def test_countdown_weather_compact_recovers_weather_from_card_description() -> N
     result = retrieve_template_variants(
         TemplateRetrievalQuery(
             themeId="race-sunrise-action",
-            requiredOutputFieldsByCapability={"GetCountdownDays": ("/countdownDays",)},
+            requiredOutputFieldsByCapability={
+                "GetCountdownDays": ("/countdownDays",),
+                "ViewWeather": (
+                    "/current/temperatureText",
+                    "/current/condition",
+                    "/current/uvIndex",
+                ),
+            },
         ),
         task,
         get_cardplan_registry(),

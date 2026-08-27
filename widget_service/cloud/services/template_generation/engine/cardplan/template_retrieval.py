@@ -253,6 +253,46 @@ def _apply_2x2_combination_policy(
     return filtered_candidates, filtered_groups
 
 
+def _candidate_with_layout_suffix(
+    candidate: TemplateComponentCandidate,
+    layout_suffix: str,
+) -> TemplateComponentCandidate:
+    template_ids = tuple(
+        template_id
+        for template_id in candidate.available_template_ids
+        if _template_has_layout_suffix(template_id, layout_suffix)
+    )
+    if not template_ids:
+        raise TemplateRetrievalMiss(
+            f"2x2 business {candidate.component_id} has no {layout_suffix} template"
+        )
+    return candidate.model_copy(update={"available_template_ids": template_ids})
+
+
+def _require_single_template_coverage(
+    candidate: TemplateComponentCandidate,
+    required_groups: list[tuple[str, ...]],
+    layout_suffix: str,
+) -> None:
+    """A 2x2 business slot must use one layout-compatible business template."""
+    candidate_ids = set(candidate.available_template_ids)
+    component_groups = [
+        set(group).intersection(candidate_ids)
+        for group in required_groups
+        if set(group).intersection(candidate_ids)
+    ]
+    if component_groups and not set.intersection(*component_groups):
+        raise TemplateRetrievalMiss(
+            f"2x2 {layout_suffix} templates cannot cover one {candidate.component_id} slot"
+        )
+
+
+def _template_has_layout_suffix(template_id: str, layout_suffix: str) -> bool:
+    """Match the declared business-template layout before its version suffix."""
+    template_name, separator, version = template_id.rpartition("@")
+    return bool(separator and version and template_name.endswith(layout_suffix))
+
+
 def _candidate_with_complete_field_coverage(
     candidate: TemplateComponentCandidate,
     required_groups: list[tuple[str, ...]],
