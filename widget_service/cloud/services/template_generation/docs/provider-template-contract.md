@@ -243,7 +243,9 @@ converted = convert_a2ui_with_fusion_ball(a2ui)
 2. 显式字段满足后，再检查候选模板自身 `primaryData` 与 `secondaryData` 在 TaskSpec 中全部存在；
 3. `candidateOutputFields` 只是候选数据投影，不直接等于强制显示集合；
 4. 显式请求包含三个及以上数据业务，或任一字段无法在自己的业务组件内覆盖时，在进入第二层前返回模板不匹配；
-5. Action 独立于数据业务计数；Search 不按 Action 数量过滤模板后缀，最终形态由第二层处理。
+5. Search 保留字段匹配、模板准入、候选排序和数量上限能力；同一业务可同时返回多个 Hero、多个 Compact
+   等同形态候选，不能退化为无序枚举；
+6. Action 独立于数据业务计数；Search 不按 Action 数量过滤模板后缀，最终形态由第二层处理。
 
 配置 `firstLayerComponentSelector: "llm"` 时，系统可走兼容选择器
 `plan_template_route_with_llm()`，由第一层直接产出 Theme、组件候选和 Action；该路径不是当前默认生产路径。

@@ -4117,6 +4117,16 @@ async def test_first_layer_action_is_independent_from_selected_components():
     assert "dataFacts=" not in second_layer_prompt
     assert "mustKeep=" not in second_layer_prompt
     assert "60814" not in second_layer_prompt
+    candidate_line = next(
+        line
+        for line in model.second_layer_prompt[1]["content"].splitlines()
+        if line.startswith("componentCandidates=")
+    )
+    candidates = json.loads(candidate_line.removeprefix("componentCandidates="))
+    assert set(candidates[0]["availableTemplateIds"]) == {
+        "WeatherOverviewAirQualityHero@1",
+        "WeatherOverviewHero@1",
+    }
     messages = [json.loads(line) for line in output.a2ui.splitlines()]
     visible_text = {
         component.get("content")

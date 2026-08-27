@@ -551,8 +551,7 @@ def _composition_rules(ux_layout_root: bool) -> tuple[str, ...]:
             "可在业务内容区使用；若局部 Template 或事实已表达则省略，"
             "禁止从 request 截取标题。",
             "Action 类型由业务模板后缀决定：Compact/Hero/WideHero 使用 "
-            'Template("PillAction@1", props)，Full 只允许 '
-            'Template("IconAction@1", props)，WideFull 不允许 Action。'
+            'Template("PillAction@1", props)，Full/WideFull 不允许 Action。'
             "Action 与业务组件解耦，不得根据组件改写、丢弃或重新归属 eventId；"
             "禁止直接调用 PillAction/IconAction/ActionTile、标准 Button 和事件对象。",
         )

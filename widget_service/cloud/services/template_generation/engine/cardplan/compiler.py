@@ -5917,13 +5917,11 @@ def _validate_provider_template_layout_action_requirements(
     expected_actions = {
         "Compact": ("PillAction", "PillAction"),
         "Hero": ("PillAction",),
-        "Full": action_names,
+        "Full": (),
         "WideHero": ("PillAction",),
         "WideFull": (),
     }[layout_kind]
-    if layout_kind == "Full" and action_names not in {(), ("IconAction",)}:
-        raise TerseDslNested2ConversionError("Full Provider Template only accepts one IconAction.")
-    if layout_kind != "Full" and action_names != expected_actions:
+    if action_names != expected_actions:
         raise TerseDslNested2ConversionError(
             f"{layout_kind} Provider Template Action combination is invalid: {action_names}."
         )

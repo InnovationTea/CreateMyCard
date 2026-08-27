@@ -404,7 +404,7 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
     _validate_provider_template_layout_action_requirements(
         "SingleFocusLayout",
         (template("WeatherOverviewFull@1"),),
-        (icon,),
+        (),
         "2x2",
     )
     _validate_provider_template_layout_action_requirements(
@@ -427,11 +427,11 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
             (),
             "2x2",
         )
-    with pytest.raises(TerseDslNested2ConversionError, match="only accepts one IconAction"):
+    with pytest.raises(TerseDslNested2ConversionError, match="Full.*Action combination"):
         _validate_provider_template_layout_action_requirements(
             "SingleFocusLayout",
             (template("WeatherOverviewFull@1"),),
-            (pill_one,),
+            (icon,),
             "2x2",
         )
     with pytest.raises(TerseDslNested2ConversionError, match="Wide marker"):
