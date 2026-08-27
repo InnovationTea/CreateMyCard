@@ -14,6 +14,7 @@ from models.artifact import WidgetArtifact
 from services.artifact_store import ArtifactStore
 from services.template_generation.test_support.provider_gallery import (
     ProviderGalleryBatchRunner,
+    _request_from_envelope,
     load_gallery_input_manifest,
     write_gallery_input_dataset,
 )
@@ -178,6 +179,43 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         "WeatherOverviewCompact@1",
     )
     assert not weather_pair.partnerTemplateId.startswith(("Date", "Schedule", "Bluetooth"))
+
+
+def test_profile_copy_preserves_gallery_private_attributes(tmp_path: Path) -> None:
+    input_root = tmp_path / "inputs"
+    manifest = write_gallery_input_dataset(input_root)
+    battery_charging = _find_case(
+        manifest,
+        "BatteryOverview",
+        "single-two-actions",
+        "BatteryOverviewChargingCompact@1",
+    )
+    payload = json.loads(
+        (input_root / battery_charging.requestFile).read_text(encoding="utf-8")
+    )
+    request = _request_from_envelope(payload)
+    request._trusted_template_candidate_ids = (battery_charging.targetTemplateId,)
+    request._trusted_template_action_ids = tuple(
+        candidate.capabilityId for candidate in request.candidateEventCandidates or []
+    )
+
+    profiled_request = request.model_copy(
+        update={"protocolProfileId": "a2ui-form-rom6.0-v1"}
+    )
+
+    assert profiled_request._trusted_template_candidate_ids == (
+        "BatteryOverviewChargingCompact@1",
+    )
+    assert profiled_request._trusted_template_action_ids == (
+        "event.open.settings.battery",
+        "event.setPowerSavingMode",
+    )
+    assert profiled_request._trusted_template_sample_overrides == {
+        "/data/phoneBattery/batterySOC": 68,
+        "/data/phoneBattery/batterySOCText": "68%",
+        "/data/phoneBattery/chargingStatusDesc": "正在充电",
+        "/data/phoneBattery/batteryCapacityLevelDesc": "正常电量",
+    }
 
 
 def test_gallery_inputs_mark_missing_layout_families(tmp_path: Path) -> None:
