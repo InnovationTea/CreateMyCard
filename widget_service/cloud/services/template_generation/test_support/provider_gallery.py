@@ -306,7 +306,8 @@ class GalleryGenerationService(Protocol):
         trusted_template_candidate_ids: tuple[str, ...] = (),
         trusted_template_action_ids: tuple[str, ...] = (),
         trusted_template_sample_overrides: dict[str, object] | None = None,
-    ) -> GenerateWidgetCardResponse: ...
+    ) -> GenerateWidgetCardResponse:
+        ...
 
 
 class _ArtifactCapture:
@@ -478,14 +479,16 @@ def _compact_partners(
     available_capability_ids: set[str],
 ) -> tuple[tuple[BusinessDefinition, ProviderTemplateDefinition], ...]:
     controls = load_template_controls()
-    return tuple(
-        (definition, template)
-        for definition in definitions
-        for template in _templates_for_suffix(definition, "Compact")
-        if definition.capability_id in available_capability_ids
-        if definition.provider_id not in controls.disabled_provider_ids
-        and template.template_id not in controls.disabled_template_ids
-    )
+    partners: list[tuple[BusinessDefinition, ProviderTemplateDefinition]] = []
+    for definition in definitions:
+        if definition.capability_id not in available_capability_ids:
+            continue
+        if definition.provider_id in controls.disabled_provider_ids:
+            continue
+        for template in _templates_for_suffix(definition, "Compact"):
+            if template.template_id not in controls.disabled_template_ids:
+                partners.append((definition, template))
+    return tuple(partners)
 
 
 def _candidate_asset_ids(
@@ -497,15 +500,12 @@ def _candidate_asset_ids(
         for template in (target_template, partner_template)
         if template is not None
     ]
-    return list(
-        dict.fromkeys(
-            asset_id
-            for template_id in template_ids
-            for prefix, asset_ids in _ASSET_IDS_BY_TEMPLATE_PREFIX.items()
-            if template_id.startswith(prefix)
-            for asset_id in asset_ids
-        )
-    )
+    candidate_asset_ids: list[str] = []
+    for template_id in template_ids:
+        for prefix, asset_ids in _ASSET_IDS_BY_TEMPLATE_PREFIX.items():
+            if template_id.startswith(prefix):
+                candidate_asset_ids.extend(asset_ids)
+    return list(dict.fromkeys(candidate_asset_ids))
 
 
 def _partner_for_template(
@@ -671,7 +671,10 @@ def _scenario_metadata(scenario_id: str) -> tuple[str, str, str]:
         ),
         "single-content": ("单内容", "Full", "Full"),
     }
-    return metadata[scenario_id]
+    scenario_metadata = metadata.get(scenario_id)
+    if scenario_metadata is None:
+        raise ValueError(f"unknown gallery scenario: {scenario_id}")
+    return scenario_metadata
 
 
 def _missing_reason(

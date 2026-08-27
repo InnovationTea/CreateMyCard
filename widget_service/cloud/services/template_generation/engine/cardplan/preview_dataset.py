@@ -105,6 +105,12 @@ _SAMPLE_BY_BUSINESS_BINDING: dict[tuple[str, str], Any] = {
     ("WorkoutOverview", "workoutCalories"): "260 千卡",
     ("WorkoutOverview", "workoutType"): "户外跑步",
 }
+_FALLBACK_SAMPLE_BY_TYPE: dict[str, Any] = {
+    "string": "示例数据",
+    "integer": 68,
+    "number": 68.0,
+    "boolean": True,
+}
 
 
 @dataclass(frozen=True)
@@ -342,15 +348,7 @@ def _battery_sample(template_id: str, name: str, data_type: str) -> Any:
 
 
 def _fallback_sample(data_type: str) -> Any:
-    if data_type == "string":
-        return "示例数据"
-    if data_type == "integer":
-        return 68
-    if data_type == "number":
-        return 68.0
-    if data_type == "boolean":
-        return True
-    return None
+    return _FALLBACK_SAMPLE_BY_TYPE.get(data_type)
 
 
 def _set_path(root: dict[str, Any], path: str, value: dict[str, Any]) -> None:

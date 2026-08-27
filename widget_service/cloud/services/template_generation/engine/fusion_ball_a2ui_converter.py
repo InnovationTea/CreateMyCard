@@ -66,7 +66,9 @@ def convert_a2ui_with_fusion_ball(a2ui: str) -> str:
         for child_id in parent["children"]
     ]
     content["id"] = marked_content_id
-    components[fusion_index : fusion_index + 1] = _build_fusion_components(palette)
+    components.pop(fusion_index)
+    for offset, component in enumerate(_build_fusion_components(palette)):
+        components.insert(fusion_index + offset, component)
     return _serialize_messages(messages)
 
 
@@ -151,13 +153,14 @@ def _find_component_parents(
     components: list[Any],
     component_id: str,
 ) -> list[dict[str, Any]]:
-    return [
-        component
-        for component in components
-        if isinstance(component, dict)
-        and isinstance(component.get("children"), list)
-        and component_id in component["children"]
-    ]
+    parents: list[dict[str, Any]] = []
+    for component in components:
+        if not isinstance(component, dict):
+            continue
+        children = component.get("children")
+        if isinstance(children, list) and component_id in children:
+            parents.append(component)
+    return parents
 
 
 def _adjacent_content_id(parent: dict[str, Any], fusion_id: str) -> str:
@@ -251,13 +254,14 @@ def _serialize_messages(messages: list[dict[str, Any]]) -> str:
 
 
 def _component_ids(components: list[Any]) -> set[str]:
-    return {
-        component_id
-        for component in components
-        if isinstance(component, dict)
-        for component_id in (component.get("id"),)
-        if isinstance(component_id, str) and component_id
-    }
+    component_ids: set[str] = set()
+    for component in components:
+        if not isinstance(component, dict):
+            continue
+        component_id = component.get("id")
+        if isinstance(component_id, str) and component_id:
+            component_ids.add(component_id)
+    return component_ids
 
 
 def _is_argb_color(value: Any) -> bool:

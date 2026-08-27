@@ -114,7 +114,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     manifest = write_gallery_input_dataset(input_root)
 
     assert len(manifest.providers) == 8
-    assert sum(len(provider.cases) for provider in manifest.providers) == 92
+    assert sum(len(provider.cases) for provider in manifest.providers) == 103
     scenario_ids = {
         case.scenarioId
         for provider in manifest.providers
@@ -160,13 +160,12 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         "candidateOutputFields"
     ] == ["/events/0/title", "/events/0/dtStart"]
 
-    targeted_cases = [
-        case
-        for provider in manifest.providers
-        for case in provider.cases
-        if case.targetTemplateId
-    ]
-    assert len(targeted_cases) == 83
+    targeted_cases = []
+    for provider in manifest.providers:
+        for case in provider.cases:
+            if case.targetTemplateId:
+                targeted_cases.append(case)
+    assert len(targeted_cases) == 96
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -269,17 +268,18 @@ def test_gallery_inputs_mark_missing_layout_families(tmp_path: Path) -> None:
         "CountdownOverview",
         "single-two-actions",
     )
-    assert countdown_compact.missingReason == "缺失 Compact 模板"
-    calendar_hero_ids = {
-        case.targetTemplateId
-        for provider in manifest.providers
-        for case in provider.cases
-        if case.businessId == "CalendarOverview"
-        and case.scenarioId == "single-one-action"
-    }
+    assert countdown_compact.missingReason == ""
+    calendar_hero_ids = set()
+    for provider in manifest.providers:
+        for case in provider.cases:
+            is_calendar = case.businessId == "CalendarOverview"
+            is_hero = case.scenarioId == "single-one-action"
+            if is_calendar and is_hero:
+                calendar_hero_ids.add(case.targetTemplateId)
     assert calendar_hero_ids == {
         "ScheduleOverviewDatedMeetingHero@1",
         "ScheduleOverviewNextEventHero@1",
+        "ScheduleOverviewReminderHero@1",
     }
     calendar_full = _find_case(
         manifest,
@@ -360,10 +360,10 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 92
-    assert summary.failed == 27
-    assert summary.missing == 19
-    assert summary.not_generated == 46
+    assert summary.total == 103
+    assert summary.failed == 32
+    assert summary.missing == 18
+    assert summary.not_generated == 53
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 8

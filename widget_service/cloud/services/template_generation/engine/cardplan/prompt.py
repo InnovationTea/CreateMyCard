@@ -559,16 +559,17 @@ def build_template_prompt_contracts(
             # Search has already selected a trusted concrete Template ID. Avoid
             # rejecting it by guessing the business state again while building
             # the signature; data-binding admission still remains mandatory.
-            variants = tuple(
-                variant
-                for variant in definition.variants
-                if provider_template_variant_admission(
+            admitted_variants = []
+            for variant in definition.variants:
+                admission = provider_template_variant_admission(
                     definition,
                     variant,
                     task_spec,
                     card_spec,
-                ).admitted
-            )
+                )
+                if admission.admitted:
+                    admitted_variants.append(variant)
+            variants = tuple(admitted_variants)
         for variant in variants:
             is_action_template = wire_id in _ACTION_TEMPLATE_IDS
             if ux_layout_root and _variant_requires_action(variant) and not is_action_template:
@@ -911,17 +912,19 @@ def _eligible_ranked_templates(
     task_spec: TaskSpec,
     card_spec: dict[str, Any] | None,
 ):
-    return [
-        definition
-        for definition in _ranked_templates(text, registry)
-        if definition.provider_id != _ACTION_PROVIDER_ID
-        if _provider_template_is_admitted(
+    eligible_templates = []
+    for definition in _ranked_templates(text, registry):
+        if definition.provider_id == _ACTION_PROVIDER_ID:
+            continue
+        admitted = _provider_template_is_admitted(
             definition,
             task_spec,
             card_spec,
             log_mismatch=False,
         )
-    ]
+        if admitted:
+            eligible_templates.append(definition)
+    return eligible_templates
 
 
 def _provider_template_is_admitted(
