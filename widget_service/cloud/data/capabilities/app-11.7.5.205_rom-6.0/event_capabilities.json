@@ -2,23 +2,17 @@
   {
     "id": "event.call.phone",
     "type": "event",
-    "description": "点击跳转至指定号码的拨号界面，给某个亲人打电话",
+    "description": "点击跳转至指定号码的拨号界面",
     "actionTemplate": {
       "call": "clickToApi",
       "args": {
         "intentName": "CallPhone",
         "params": {
-          "relationship": "",
           "phoneNumber": ""
         }
       }
     },
     "dynamicArguments": [
-      {
-        "path": "/params/relationship",
-        "description": "填写亲属关系，例如父亲、母亲、妻子或孩子。",
-        "type": "string"
-      },
       {
         "path": "/params/phoneNumber",
         "description": "填写用户提供的电话号码；未提供时填写空字符串。",
@@ -39,17 +33,12 @@
           "type": "object",
           "description": "拨号所需参数。",
           "properties": {
-            "relationship": {
-              "type": "string",
-              "description": "填写亲属关系，例如父亲、母亲、妻子或孩子。"
-            },
             "phoneNumber": {
               "type": "string",
               "description": "填写用户提供的电话号码；未提供时填写空字符串。"
             }
           },
           "required": [
-            "relationship",
             "phoneNumber"
           ],
           "additionalProperties": false
