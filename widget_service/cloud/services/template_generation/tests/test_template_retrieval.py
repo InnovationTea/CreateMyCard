@@ -812,3 +812,67 @@ def test_two_business_compact_can_cover_weather_alert_uv_and_battery_temperature
     assert "BatteryOverviewNormalPowerTemperatureIconCompact@1" in (
         battery_candidate.available_template_ids
     )
+
+
+def test_countdown_weather_compact_recovers_weather_from_card_description() -> None:
+    task = TaskSpec(
+        userQuery="使用2*2规格，做个马拉松赛事倒计时卡片。",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "countdown": {"countdownDays": _field(30, "integer")},
+                "weather": {
+                    "current": {
+                        "temperatureText": _field("29°C"),
+                        "condition": _field("多云"),
+                        "uvIndex": _field("中等"),
+                    }
+                },
+            }
+        },
+    )
+    bindings = (
+        CandidateDataBinding(
+            capabilityId="GetCountdownDays",
+            writeResultTo="/data/countdown",
+            candidateOutputFields=["/countdownDays"],
+        ),
+        CandidateDataBinding(
+            capabilityId="ViewWeather",
+            writeResultTo="/data/weather",
+            candidateOutputFields=[
+                "/current/temperatureText",
+                "/current/condition",
+                "/current/uvIndex",
+            ],
+        ),
+    )
+    result = retrieve_template_variants(
+        TemplateRetrievalQuery(
+            themeId="race-sunrise-action",
+            requiredOutputFieldsByCapability={"GetCountdownDays": ("/countdownDays",)},
+        ),
+        task,
+        get_cardplan_registry(),
+        bindings,
+        {
+            "suggestSize": "2x2",
+            "title": "马拉松倒计时",
+            "description": "底部显示赛事当日紫外线强度",
+            "dataBindings": [
+                {"capabilityId": "GetCountdownDays", "writeResultTo": "/data/countdown"},
+                {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"},
+            ],
+        },
+    )
+
+    assert {item.component_id for item in result.component_candidates} == {
+        "CountdownOverview",
+        "WeatherOverview",
+    }
+    weather_candidate = next(
+        item for item in result.component_candidates if item.component_id == "WeatherOverview"
+    )
+    assert "WeatherOverviewTemperatureUvCompact@1" in (
+        weather_candidate.available_template_ids
+    )

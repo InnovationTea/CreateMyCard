@@ -148,6 +148,151 @@ Row(
 )
 #End
 
+#Template WeatherOverviewTemperatureUvCompact@1(props: {})
+data = {
+    condition: $path("/current/condition"),
+    districtName: $optionalPath("/location/districtName"),
+    cityCode: $optionalPath("/location/cityCode"),
+    temperature: $path("/current/temperatureText"),
+    uvIndex: $path("/current/uvIndex")
+}
+
+Column(
+  {
+    "_advancedComponent": "WeatherOverview",
+    "width": "matchParent",
+    "height": 64,
+    "backgroundColor": $theme('actionStyle.backgroundColor'),
+    "borderRadius": 16,
+    "padding": {"left": 12, "top": 0, "right": 12, "bottom": 0},
+    "justifyContent": "center",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0, "minHeight": 0}
+  },
+  Text(
+        data.temperature,
+        {"fontSize": 19, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      ),
+  Row(
+      {
+        "width": "matchParent",
+        "itemMargin": 0,
+        "justifyContent": "start",
+        "alignItems": "center",
+        "clip": true,
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+      },
+      Text(
+            data.condition,
+            {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      IfPresent(
+            data.districtName,
+            Text(
+                  ` | ${data.districtName}`,
+                  {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                )
+          ),
+      IfPresent(
+            data.cityCode,
+            Text(
+                  data.cityCode,
+                  {"width": 0, "height": 0, "fontSize": 1, "fontColor": "#00FFFFFF", "maxLines": 1, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                )
+          ),
+      Text(
+            data.uvIndex,
+            {"width": 0, "height": 0, "fontSize": 1, "fontColor": "#00FFFFFF", "maxLines": 1, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
+      )
+)
+#End
+
+#Template WeatherOverviewTemperatureUvIconCompact@1(props: { conditionIcon: asset })
+data = {
+    condition: $path("/current/condition"),
+    districtName: $optionalPath("/location/districtName"),
+    cityCode: $optionalPath("/location/cityCode"),
+    temperature: $path("/current/temperatureText"),
+    uvIndex: $path("/current/uvIndex")
+}
+
+Row(
+  {
+    "_advancedComponent": "WeatherOverview",
+    "width": "matchParent",
+    "height": 64,
+    "backgroundColor": $theme('actionStyle.backgroundColor'),
+    "borderRadius": 16,
+    "padding": {"left": 12, "top": 0, "right": 22, "bottom": 0},
+    "justifyContent": "spaceBetween",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0, "minHeight": 0}
+  },
+  Column(
+      {
+        "width": 84,
+        "margin": {"left": 0, "top": 12, "right": 0, "bottom": 0},
+        "itemMargin": 2,
+        "justifyContent": "start",
+        "alignItems": "start",
+        "clip": true,
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+      },
+      Text(
+            data.temperature,
+            {"fontSize": 19, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      Row(
+          {
+            "width": "matchParent",
+            "itemMargin": 0,
+            "justifyContent": "start",
+            "alignItems": "center",
+            "clip": true,
+            "constraintSize": {"minWidth": 0, "minHeight": 0}
+          },
+          Text(
+                data.condition,
+                {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+              ),
+          IfPresent(
+                data.districtName,
+                Text(
+                      ` | ${data.districtName}`,
+                      {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                    )
+              ),
+          IfPresent(
+                data.cityCode,
+                Text(
+                      data.cityCode,
+                      {"width": 0, "height": 0, "fontSize": 1, "fontColor": "#00FFFFFF", "maxLines": 1, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                    )
+              ),
+          Text(
+                data.uvIndex,
+                {"width": 0, "height": 0, "fontSize": 1, "fontColor": "#00FFFFFF", "maxLines": 1, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+              )
+          )
+    ),
+  Image(
+      props.conditionIcon,
+      {
+        "width": 20,
+        "height": 20,
+        "margin": {"left": 0, "top": 22, "right": 0, "bottom": 22},
+        "objectFit": "contain",
+        "fillColor": $theme('primaryColor'),
+        "flexShrink": 0,
+        "_preserveOriginalColor": true
+      }
+    )
+)
+#End
+
 #Template WeatherOverviewTemperatureAlertUvIconCompact@1(props: { conditionIcon: asset })
 data = {
     condition: $path("/current/condition"),

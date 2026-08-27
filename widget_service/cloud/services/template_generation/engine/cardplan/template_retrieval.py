@@ -107,7 +107,8 @@ def build_template_retrieval_prompt(
     system = (
         "你是模板生成第一层。只输出 template-retrieval-query/1 JSON。"
         "themeId 必须从 themes 选择；requiredOutputFieldsByCapability 的 key 必须来自 "
-        "candidateDataBindings。每个 value 仅保留用户明确要求展示的字段，字段必须逐字来自 "
+        "candidateDataBindings。每个 value 仅保留 userQuery、title、description 或 taskSpec "
+        "明确要求展示的字段，字段必须逐字来自 "
         "candidateOutputFieldsByCapability；不得按模板反推字段，"
         "也不得补全用户未要求展示的字段。"
         "不得为了迁就单业务限制而省略用户明确要求的其他业务字段；"
@@ -176,15 +177,22 @@ def retrieve_template_variants(
         )
         for component_id, template_ids in sorted(by_component.items())
     )
-    if len(candidates) > 1:
-        raise TemplateRetrievalMiss(
-            "template Search supports one data business with optional Actions"
+    if task_spec.size == "2x2":
+        candidates, required_groups = _apply_2x2_combination_policy(
+            candidates,
+            query.action_ids,
+            required_groups,
         )
-    candidates = tuple(
-        _candidate_with_complete_field_coverage(candidate, required_groups)
-        for candidate in candidates
-    )
-    required_groups = [candidate.available_template_ids for candidate in candidates]
+    else:
+        if len(candidates) > 1:
+            raise TemplateRetrievalMiss(
+                "template Search supports one data business with optional Actions"
+            )
+        candidates = tuple(
+            _candidate_with_complete_field_coverage(candidate, required_groups)
+            for candidate in candidates
+        )
+        required_groups = [candidate.available_template_ids for candidate in candidates]
     scope = AdvancedScopeBrief(
         themeId=query.theme_id,
         advancedComponentIds=tuple(candidate.component_id for candidate in candidates),
@@ -201,6 +209,48 @@ def _require_supported_search_size(task_spec: TaskSpec) -> None:
     """Reject card sizes that are not yet supported by Provider Template Search."""
     if task_spec.size == "2x4":
         raise TemplateRetrievalMiss("template Search does not support 2x4 cards")
+
+
+def _apply_2x2_combination_policy(
+    candidates: tuple[TemplateComponentCandidate, ...],
+    action_ids: tuple[str, ...],
+    required_groups: list[tuple[str, ...]],
+) -> tuple[tuple[TemplateComponentCandidate, ...], list[tuple[str, ...]]]:
+    """Restrict 2x2 candidates to the business and Action capacity contract."""
+    component_count = len(candidates)
+    action_count = len(action_ids)
+    if component_count >= 3:
+        raise TemplateRetrievalMiss("2x2 template Search supports at most two businesses")
+    if action_count >= 3:
+        raise TemplateRetrievalMiss("2x2 template Search supports at most two Actions")
+    if component_count == 2:
+        if action_count:
+            raise TemplateRetrievalMiss("2x2 two-business templates do not support Actions")
+        layout_suffix = "Compact"
+    elif component_count == 1:
+        layout_suffix = {0: "Full", 1: "Hero", 2: "Compact"}[action_count]
+    else:
+        raise TemplateRetrievalMiss("template Search found no business component")
+
+    filtered_candidates = tuple(
+        _candidate_with_layout_suffix(candidate, layout_suffix) for candidate in candidates
+    )
+    allowed_template_ids = {
+        template_id
+        for candidate in filtered_candidates
+        for template_id in candidate.available_template_ids
+    }
+    filtered_groups = [
+        tuple(template_id for template_id in group if template_id in allowed_template_ids)
+        for group in required_groups
+    ]
+    if any(not group for group in filtered_groups):
+        raise TemplateRetrievalMiss(
+            f"2x2 {layout_suffix} templates cannot cover all requested fields"
+        )
+    for candidate in filtered_candidates:
+        _require_single_template_coverage(candidate, filtered_groups, layout_suffix)
+    return filtered_candidates, filtered_groups
 
 
 def _candidate_with_complete_field_coverage(

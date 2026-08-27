@@ -1,27 +1,34 @@
-#Template CountdownOverviewFull@1(props: {})
+#Template CountdownOverviewFull@1(props: { title?: string })
 data = {
     days: $path("/countdownDays")
 }
 
 Column(
-  {"_advancedComponent": "CountdownOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Text(
-      "倒计时",
-      {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+  {"_advancedComponent": "CountdownOverview", "width": "matchParent", "height": "matchParent", "justifyContent": "start", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  IfPresent(
+    props.title,
+    Text(
+        props.title,
+        {"width": "matchParent", "margin": {"top": 13}, "fontSize": 16, "minFontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      )
     ),
-  Column(
-      {"itemMargin":4,"width": "matchParent", "layoutWeight": 1, "justifyContent": "center", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Row(
-            {"width": "matchParent", "itemMargin": 4, "justifyContent": "center", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Text(
-                    data.days,
-                    {"fontSize": 38, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  ),
-            Text(
-                    "天",
-                    {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  )
-          )
+  IfAbsent(
+    props.title,
+    Text(
+        "倒计时",
+        {"width": "matchParent", "margin": {"top": 13}, "fontSize": 16, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      )
+    ),
+  Row(
+      {"width": "matchParent", "margin": {"top": 9}, "itemMargin": 4, "justifyContent": "center", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+              data.days,
+              {"fontSize": 56, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            ),
+      Text(
+              "天",
+              {"fontSize": 16, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "margin": {"bottom": 8}, "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            )
     )
 )
 #End

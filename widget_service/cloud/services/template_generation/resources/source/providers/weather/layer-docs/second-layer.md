@@ -17,6 +17,14 @@
   右侧为 `conditionIcon` 天气 SVG 占位；同时要求
   `/current/condition`、`/current/alertLevel`、`/current/uvIndex`；可选数据：
   `/location/districtName`。
+- `WeatherOverviewTemperatureUvIconCompact@1`：天气温度图标紧凑行；布局与
+  `WeatherOverviewTemperatureIconCompact@1` 相同。左侧展示 `/current/temperatureText`，下一行展示
+  `/current/condition`、可选 `/location/districtName` 和 `/current/uvIndex`，右侧为 `conditionIcon` 天气 SVG 占位；同时要求
+  `/current/condition`、`/current/uvIndex`；可选数据：`/location/districtName`。
+- `WeatherOverviewTemperatureUvCompact@1`：天气温度紧凑行；用于 2x2 双层 Compact 组合。左侧展示
+  `/current/temperatureText`，下一行展示 `/current/condition`、可选 `/location/districtName` 和 `/current/uvIndex`；同时要求
+  `/current/condition`、`/current/uvIndex`；可选数据：`/location/districtName`。没有
+  业务 Action 或没有合适天气图标素材时，优先使用这个无图标模板，不得用时钟、日历、秒表等非天气图标冒充天气。
 - `WeatherOverviewHero@1`：温度 Hero 摘要；约 2x1.7，只用于一个 Hero 加一个 PillAction。
   主数据：`/current/temperatureText`；次要数据：`/location/districtName`、
   `/current/condition`、`/current/coldLevel`；可选数据：无。
