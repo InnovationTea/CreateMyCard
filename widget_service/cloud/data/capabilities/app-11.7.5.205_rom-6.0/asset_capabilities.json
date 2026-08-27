@@ -691,15 +691,15 @@
     "id": "asset.icon_weather_temperature1",
     "type": "asset",
     "src": "resources/base/media/icon_weather_temperature1.svg",
-    "description": "样式：淡黄色外壳与粉红色温度柱组成的彩色温度计，右侧带刻度，建议保留原色；适用：当前气温、最高最低温、体感温度或天气温度概览",
+    "description": "样式：淡黄色外壳与粉红色温度柱组成的彩色温度计，右侧带刻度，建议保留原色；适用：当前温度、最高最低温、体感温度或天气温度概览。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
-  },  
+  },
   {
     "id": "asset.icon_weather_thermometer_medium",
     "type": "asset",
     "src": "resources/base/media/icon_weather_thermometer_medium.svg",
-    "description": "样式：黑色的单色温度计图标，内部温度柱处于中档，管身右侧带三组刻度；适用：中等温度、舒适温度区间、当前气温或温度等级。",
+    "description": "样式：黑色的温度计图标，内部温度柱处于中档，管身右侧带三组刻度；适用：中等温度、舒适温度区间、当前气温或温度等级。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -707,7 +707,7 @@
     "id": "asset.icon_weather_thermometer",
     "type": "asset",
     "src": "resources/base/media/icon_weather_thermometer.svg",
-    "description": "样式：黑色的单色温度计图标，底部为实心感温泡，管身内侧带三段刻度；适用：天气温度、温度指标、温差变化或冷热趋势。",
+    "description": "样式：黑色的温度计图标，底部为实心感揾泡，管身内测带三段刻度；适用：天气温度、温度指标、温差变化或冷热趋势。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   },
@@ -715,7 +715,7 @@
     "id": "asset.icon_weather_wind",
     "type": "asset",
     "src": "resources/base/media/icon_weather_wind.svg",
-    "description": "样式：黑色的单色线面结合风力图标，主体为水滴状轮廓并带两组横向波浪气流；适用：风速、风向、风力等级或大风提醒。",
+    "description": "样式：黑色的线面结合风力图标，主体为水滴状轮廓并带两组横向波浪气流；适用：风速、风向、风力等级或大风提醒。",
     "sceneTags": [],
     "minXiaoyiVersion": "1.0.0"
   }
