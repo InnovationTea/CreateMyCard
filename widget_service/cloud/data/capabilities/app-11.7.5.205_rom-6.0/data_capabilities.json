@@ -419,7 +419,7 @@
   },
   {
     "id": "GetEarphoneInfo",
-    "description": "查询当前手机连接的蓝牙耳机状态，包括耳机名称、主盒与左右耳的当前独立剩余电量百分比，以及它们各自的充电状态。",
+    "description": "查询当前手机连接的蓝牙耳机状态，包括耳机名称、主盒与左右耳的当前独立剩余电量百分比，以及它们各自的充电状态。注意，当前对于非华为耳机设备，只能查询到名称，其它信息均查询不到，返回为\"--\"，可在适当时机告诉用户这个事项。",
     "defaultWriteResultTo": "/data/earphone",
     "dependencies": {
       "requiredPackages": []
