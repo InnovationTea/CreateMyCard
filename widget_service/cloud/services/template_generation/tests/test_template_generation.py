@@ -38,10 +38,12 @@ from services.protocol_registry import (
 )
 from services.template_generation import (
     FusionBallA2UIConversionError,
+    TemplateSourceGenerator,
     convert_a2ui_with_fusion_ball,
     facade,
     route_legacy_python_terse_generation,
 )
+from services.template_generation import source_generator as template_source_generator_module
 from services.template_generation.binding_dependencies import enrich_template_bindings
 from services.template_generation.controls import TemplateControls, load_template_controls
 from services.template_generation.engine import pipeline as template_pipeline_module
@@ -49,6 +51,7 @@ from services.template_generation.engine.advanced.content_selectors import (
     app_usage_overview_is_eligible,
     app_usage_overview_query_is_supported,
     apply_content_selectors,
+    extract_battery_overview_facts,
     extract_workout_latest_facts,
 )
 from services.template_generation.engine.advanced.data_shape import extract_data_shape
@@ -212,7 +215,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 87
+    assert len(registry.provider_template_ids) == 92
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -223,7 +226,9 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "DateOverviewFull@1",
         "HeartRateOverviewFull@1",
         "ResourceUsageOverviewFull@1",
+        "ScheduleOverviewDatedMeetingHero@1",
         "ScheduleOverviewNextEventFull@1",
+        "ScheduleOverviewNextEventHero@1",
         "SleepOverviewCompact@1",
         "SleepOverviewFull@1",
         "SleepOverviewHero@1",
@@ -325,7 +330,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 10
+    assert len(calendar.local_template_ids) == 12
     assert set(calendar.local_template_ids) >= {
         "DateOverviewCompact@1",
         "ScheduleOverviewMeetingCompact@1",
@@ -1390,19 +1395,17 @@ def test_unknown_template_controls_fail_closed(kwargs, message):
         CardPlanRegistry(**kwargs)
 
 
-def test_checked_in_template_controls_disable_calendar_and_earphone():
+def test_checked_in_template_controls_enable_calendar_and_disable_earphone():
     controls = load_template_controls()
     registry = CardPlanRegistry(
         disabled_provider_ids=controls.disabled_provider_ids,
         disabled_template_ids=controls.disabled_template_ids,
     )
 
-    assert controls.disabled_provider_ids == (
-        "com.huawei.calendar.cli",
-        "com.huawei.earphone.cli",
-    )
+    assert controls.disabled_provider_ids == ("com.huawei.earphone.cli",)
     assert controls.disabled_template_ids == ()
-    assert not registry.template_is_enabled("ScheduleOverviewNextEventFull@1")
+    assert registry.template_is_enabled("ScheduleOverviewNextEventFull@1")
+    assert registry.template_is_enabled("ScheduleOverviewNextEventHero@1")
     assert not registry.template_is_enabled("BluetoothDeviceOverviewCaseFull@1")
     assert registry.template_is_enabled("WeatherOverviewFull@1")
 
@@ -1610,7 +1613,7 @@ def test_calendar_templates_follow_latest_date_schedule_ux_geometry():
 
 
 @pytest.mark.asyncio
-async def test_calendar_date_and_schedule_reject_without_one_full_template():
+async def test_calendar_date_and_schedule_compacts_generate_one_vertical_card():
     class CalendarTemplateModel:
         async def generate_json(
             self,
@@ -1635,7 +1638,11 @@ async def test_calendar_date_and_schedule_reject_without_one_full_template():
             *_args: Any,
             **_kwargs: Any,
         ) -> str:
-            raise AssertionError("Search miss must skip the second layer")
+            return (
+                'Template("PeerPairLayout@1",{},'
+                'Template("DateOverviewCompact@1",{}),'
+                'Template("ScheduleOverviewMeetingCompact@1",{}));'
+            )
 
     task = TaskSpec(
         userQuery="显示日期和下一场会议的标题、时间",
@@ -1685,6 +1692,122 @@ async def test_calendar_date_and_schedule_reject_without_one_full_template():
             (binding,),
             CalendarTemplateModel(),
         )
+
+
+@pytest.mark.asyncio
+async def test_calendar_dnd_action_restores_label_icon_and_scene_header():
+    task = TaskSpec(
+        userQuery="显示下一场会议的完整信息，点击进入免打扰设置",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.open.settings.dnd",
+                call="clickToDeeplink",
+                args={
+                    "intentName": "Settings",
+                    "bundleName": "com.huawei.hmos.settings",
+                    "abilityName": "com.huawei.hmos.settings.MainAbility",
+                    "uri": "intelligent_scene_entry",
+                },
+            )
+        ],
+        assetCandidates=[
+            {
+                "src": "resources/base/media/icon_schedule.svg",
+                "description": "日历日程图标",
+                "sceneTags": ["calendar", "schedule"],
+            },
+            {
+                "src": "resources/base/media/icon_focus.svg",
+                "description": "免打扰和专注模式的月亮图标",
+                "sceneTags": ["focus"],
+            },
+        ],
+        dataModelSchema={
+            "data": {
+                "calendar": {
+                    "eventCount": _provider_field(1, "integer"),
+                    "events": [
+                        {
+                            "title": _provider_field("项目例会", "string"),
+                            "description": _provider_field("评审本周进度", "string"),
+                            "dtStart": _provider_field("14:00", "string"),
+                            "dtEnd": _provider_field("15:00", "string"),
+                            "eventLocation": _provider_field("会议室 A", "string"),
+                        }
+                    ]
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetCalendarEvents",
+        writeResultTo="/data/calendar",
+        candidateOutputFields=[
+            "/eventCount",
+            "/events/0/title",
+            "/events/0/description",
+            "/events/0/dtStart",
+            "/events/0/dtEnd",
+            "/events/0/eventLocation",
+        ],
+    )
+    card_spec = {
+        "title": "下一场日程",
+        "description": "会议详情和免打扰设置",
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {
+                "capabilityId": "GetCalendarEvents",
+                "writeResultTo": "/data/calendar",
+            }
+        ],
+    }
+    model = _FixedTemplateModel(
+        theme_id="meeting-paper-neutral",
+        component_id="CalendarOverview",
+        available_template_ids=("ScheduleOverviewNextEventHero@1",),
+        capability_id="GetCalendarEvents",
+        required_fields=("/events/0/title", "/events/0/dtStart"),
+        action_id="event.open.settings.dnd",
+        body=(
+            'Template("HeroActionLayout@1",{},'
+            'Template("ScheduleOverviewNextEventHero@1",'
+            '{"headerLabel":"下一场日程"}),'
+            'Template("PillAction@1",{"actionId":"event.open.settings.dnd",'
+            '"label":"免打扰","icon":"resources/base/media/icon_focus.svg"}));'
+        ),
+    )
+
+    output = await generate_template_a2ui(task, card_spec, (binding,), model)
+
+    assert "下一场日程" in output.a2ui
+    assert "下一个日程" not in output.a2ui
+    assert "eventCount" in output.a2ui
+    assert "events/0/description" in output.a2ui
+    assert "events/0/eventLocation" in output.a2ui
+    assert "免打扰" in output.a2ui
+    assert "专注模式" not in output.a2ui
+    assert "resources/base/media/icon_focus.svg" in output.a2ui
+    assert "resources/base/media/icon_schedule.svg" not in output.a2ui
+    messages = [json.loads(line) for line in output.a2ui.splitlines()]
+    components = messages[1]["updateComponents"]["components"]
+    assert components[0]["styles"]["backgroundColor"] == "#FFE5EDFE"
+    assert "linearGradient" not in components[0]["styles"]
+    action = next(component for component in components if component.get("onClick"))
+    assert action["styles"]["backgroundColor"] == "#331F4799"
+    focus_icon = next(
+        component
+        for component in components
+        if component.get("src") == "resources/base/media/icon_focus.svg"
+    )
+    assert focus_icon["styles"]["fillColor"] == "#FF1F4799"
+    assert model.second_layer_prompt is not None
+    second_layer_rule = model.second_layer_prompt[1]["content"]
+    assert "HeroActionLayout@1" in second_layer_rule
+    assert "headerLabel" in second_layer_rule
+    assert "免打扰" in second_layer_rule
+    assert "月亮语义素材" in second_layer_rule
 
 
 def test_pr7_resource_battery_outer_title_keeps_the_reviewed_subtext_style():
@@ -1956,7 +2079,16 @@ async def test_q094_multi_business_fields_use_compact_template_search():
             )
 
     model = Q094TemplateModel()
-    output = await generate_template_a2ui(task_spec, card_spec, (binding,), model)
+    output = await generate_template_a2ui(
+        task_spec,
+        card_spec,
+        (binding,),
+        model,
+        trusted_template_candidate_ids=(
+            "SleepOverviewCompact@1",
+            "ActivityOverviewCompact@1",
+        ),
+    )
 
     assert model.first_layer_prompt is not None
     first_layer_payload = json.loads(model.first_layer_prompt[1]["content"])
@@ -2089,6 +2221,25 @@ def _battery_task() -> TaskSpec:
     )
 
 
+@pytest.mark.parametrize(
+    ("fields", "expected_percent", "expected_text"),
+    [
+        ({"batterySOC": _provider_field(68, "integer")}, 68, "68%"),
+        ({"batterySOCText": _provider_field("15%", "string")}, 15, "15%"),
+    ],
+)
+def test_battery_facts_accept_numeric_or_text_soc(
+    fields: dict[str, Any],
+    expected_percent: int,
+    expected_text: str,
+) -> None:
+    facts = extract_battery_overview_facts({"data": {"phoneBattery": fields}})
+
+    assert facts is not None
+    assert facts.level_percent == expected_percent
+    assert facts.level_text == expected_text
+
+
 def _battery_card_spec() -> dict[str, Any]:
     return {
         "title": "设备电量",
@@ -2164,7 +2315,7 @@ async def test_bluetooth_connection_and_case_queries_have_honest_template_covera
 
 
 @pytest.mark.asyncio
-async def test_bluetooth_action_rejects_when_no_hero_template_is_available():
+async def test_bluetooth_layout_action_uses_cardtpl_foreground_opacity():
     binding = CandidateDataBinding(
         capabilityId="GetEarphoneInfo",
         writeResultTo="/data/earphone",
@@ -2212,13 +2363,14 @@ async def test_bluetooth_action_rejects_when_no_hero_template_is_available():
         ),
     )
 
-    with pytest.raises(TemplateRouteNotApplicable, match="no Hero template"):
-        await generate_template_a2ui(
-            task_spec,
-            _bluetooth_card_spec(),
-            (binding,),
-            model,
-        )
+    output = await generate_template_a2ui(
+        task_spec,
+        _bluetooth_card_spec(),
+        (binding,),
+        model,
+    )
+
+    assert "#1964BB5C" in output.a2ui
 
 
 @pytest.mark.asyncio
@@ -2757,19 +2909,12 @@ async def test_first_layer_selector_routes_and_preserves_action(
             }
 
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
-            if selector == "search":
                 return (
-                    'Template("HeroActionLayout@1",{},'
-                    'Template("WeatherOverviewHero@1",{}),'
-                    'Template("PillAction@1",{"actionId":"event.open.weather",'
-                    '"label":"天气详情"}));'
-                )
-            return (
-                'Template("SingleFocusLayout@1",{},'
-                'Template("WeatherOverviewIconFull@1",'
-                '{"conditionIcon":"resources/base/media/icon_weather1.svg"}),'
-                'Template("IconAction@1",{"actionId":"event.open.weather",'
-                '"icon":"resources/base/media/icon_weather1.svg"}));'
+                    'Template("SingleFocusLayout@1",{},'
+                    'Template("WeatherOverviewIconFull@1",'
+                    '{"conditionIcon":"resources/base/media/icon_weather1.svg"}),'
+                    'Template("IconAction@1",{"actionId":"event.open.weather",'
+                    '"icon":"resources/base/media/icon_weather1.svg"}));'
             )
 
     controls = TemplateControls(
@@ -3243,9 +3388,12 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
         {
             "componentId": "WeatherOverview",
             "availableTemplateIds": [
+                "WeatherOverviewCompact@1",
                 "WeatherOverviewConditionFull@1",
                 "WeatherOverviewFull@1",
+                "WeatherOverviewIconCompact@1",
                 "WeatherOverviewIconFull@1",
+                "WeatherOverviewTemperatureIconCompact@1",
             ],
         }
     ]
@@ -3256,14 +3404,19 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
     )
     assert json.loads(required_group_line.removeprefix("requiredLocalTemplateGroups=")) == [
         [
+            "WeatherOverviewCompact@1",
             "WeatherOverviewConditionFull@1",
             "WeatherOverviewFull@1",
+            "WeatherOverviewIconCompact@1",
             "WeatherOverviewIconFull@1",
         ],
         [
+            "WeatherOverviewCompact@1",
             "WeatherOverviewConditionFull@1",
             "WeatherOverviewFull@1",
+            "WeatherOverviewIconCompact@1",
             "WeatherOverviewIconFull@1",
+            "WeatherOverviewTemperatureIconCompact@1",
         ],
     ]
     assert "selectedActionEventIds=[]" in second_layer_user
@@ -3481,9 +3634,10 @@ async def test_first_layer_action_is_independent_from_selected_components():
     model = WeatherTemplateModel(
         action_id="event.open.weather",
         body=(
-            'Template("HeroActionLayout@1",{},Template("WeatherOverviewHero@1",{}),'
-            'Template("PillAction@1",{"actionId":"event.open.weather",'
-            '"label":"天气详情","icon":"resources/base/media/icon_weather1.svg"}));'
+            'Template("SingleFocusLayout@1",{},Template("WeatherOverviewIconFull@1",'
+            '{"conditionIcon":"resources/base/media/icon_weather1.svg"}),'
+            'Template("IconAction@1",{"actionId":"event.open.weather",'
+            '"icon":"resources/base/media/icon_weather1.svg"}));'
         ),
     )
     task_spec = _weather_task_spec()
@@ -3692,7 +3846,7 @@ async def test_template_exception_obeys_route_failure_policy(
         callback_sizes.append(size)
 
     monkeypatch.setattr(
-        widget_generation_service_module,
+        template_source_generator_module,
         "request_template_source_dsl",
         failed_template,
     )
@@ -3860,7 +4014,7 @@ async def test_terse_edit_is_rejected_before_template_source_request(monkeypatch
 
     service = WidgetGenerationService()
     monkeypatch.setattr(
-        widget_generation_service_module,
+        template_source_generator_module,
         "request_template_source_dsl",
         rejected_template,
     )
@@ -3870,6 +4024,76 @@ async def test_terse_edit_is_rejected_before_template_source_request(monkeypatch
     assert response.status == GenerationStatus.FAILED
     assert response.errorCode == "A2UI_GENERATION_FAILED"
     assert template_called is False
+
+
+@pytest.mark.asyncio
+async def test_terse_entry_forwards_gallery_template_overrides(monkeypatch):
+    expected = object()
+    observed: dict[str, Any] = {}
+
+    async def capture_generation(
+        _request: Any,
+        _policy: Any,
+        **options: Any,
+    ) -> Any:
+        observed.update(options)
+        return expected
+
+    service = WidgetGenerationService()
+    monkeypatch.setattr(service, "_generate_widget_card_with_policy", capture_generation)
+    response = await service.generate_widget_card_terse_dsl_nested2(
+        _weather_request(),
+        trusted_template_candidate_ids=("WeatherOverviewCompact@1",),
+        trusted_template_action_ids=("event.open.weather",),
+        trusted_template_sample_overrides={"/data/weather/current/condition": "晴"},
+    )
+
+    assert response is expected
+    generator = observed["template_source_generator"]
+    assert isinstance(generator, TemplateSourceGenerator)
+    assert generator.trusted_template_candidate_ids == (
+        "WeatherOverviewCompact@1",
+    )
+    assert generator.trusted_template_action_ids == ("event.open.weather",)
+    assert generator.trusted_template_sample_overrides == {
+        "/data/weather/current/condition": "晴"
+    }
+    assert generator.processor_kind is None
+    assert generator.protocol_profile is None
+
+
+@pytest.mark.asyncio
+async def test_policy_layer_configures_template_source_generator(monkeypatch):
+    expected = object()
+    captured: dict[str, Any] = {}
+
+    async def capture_generation(
+        _request: Any,
+        **options: Any,
+    ) -> Any:
+        captured.update(options)
+        return expected
+
+    service = WidgetGenerationService(model_runtime=object())
+    monkeypatch.setattr(service, "generate_widget_card", capture_generation)
+    generator = TemplateSourceGenerator(
+        trusted_template_candidate_ids=("WeatherOverviewCompact@1",),
+    )
+    response = await service._generate_widget_card_with_policy(
+        _weather_request(),
+        _terse_policy(),
+        template_source_generator=generator,
+        need_fallback=False,
+    )
+
+    assert response is expected
+    assert captured["template_source_generator"] is generator
+    assert captured["need_fallback"] is False
+    assert generator.processor_kind == DslProcessorKind.DESIGN_COMPACT
+    assert generator.protocol_profile is not None
+    assert generator.protocol_profile["id"] == A2UI_FORM_PROTOCOL_PROFILE_ID
+    assert generator.model_runtime is service.model_runtime
+    assert isinstance(generator.model_request_context, ModelRequestContext)
 
 
 @pytest.mark.asyncio

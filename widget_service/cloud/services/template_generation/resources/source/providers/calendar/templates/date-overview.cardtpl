@@ -7,11 +7,11 @@ Column(
   {"_advancedComponent": "DateOverview", "width": "100%", "height": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
   Text(
       "日程日期",
-      {"width": "100%", "height": 12, "fontSize": 12, "minFontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      {"width": "100%", "height": 12, "fontSize": 12, "minFontSize": 12, "fontWeight": 500, "fontColor": "#991F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     ),
   Text(
       data.startDate,
-      {"width": "100%", "height": 44, "fontSize": 38, "minFontSize": 30, "fontWeight": 800, "fontColor": "#FFFF3B30", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      {"width": "100%", "height": 44, "fontSize": 38, "minFontSize": 30, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     )
 )
 #End
@@ -28,11 +28,11 @@ Column(
       {"width": "100%", "height": 64, "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Text(
             "日程日期",
-            {"width": "100%", "height": 12, "fontSize": 12, "minFontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            {"width": "100%", "height": 12, "fontSize": 12, "minFontSize": 12, "fontWeight": 500, "fontColor": "#991F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           ),
       Text(
             data.startDate,
-            {"width": "100%", "height": 44, "fontSize": 38, "minFontSize": 30, "fontWeight": 800, "fontColor": "#FFFF3B30", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            {"width": "100%", "height": 44, "fontSize": 38, "minFontSize": 30, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           )
     ),
   Column(
@@ -43,7 +43,7 @@ Column(
           ),
       Text(
             "日历数据更新时间",
-            {"width": "100%", "height": 20, "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            {"width": "100%", "height": 20, "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#991F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           )
     )
 )

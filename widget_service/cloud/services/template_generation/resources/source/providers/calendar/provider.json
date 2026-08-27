@@ -51,7 +51,47 @@
       "templateId": "ScheduleOverviewNextEventFull@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
-      "description": "首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：nextEvent。",
+      "description": "无底部动作的首个日程摘要；标题必需，时间槽支持时间范围、开始时间、提前提醒或全天/时区，并可补充地点。 组件形态：nextEvent。",
+      "optionalData": [
+        "/events/0/dtStart",
+        "/events/0/dtEnd",
+        "/events/0/remindTime/0",
+        "/events/0/timeZone",
+        "/events/0/isAllDay",
+        "/events/0/eventLocation"
+      ],
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/events/0/title"
+      ],
+      "secondaryData": []
+    },
+    {
+      "templateId": "ScheduleOverviewNextEventHero@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "2x2 日历摘要的 Hero 主内容；标题必需，时间槽支持时间范围、开始时间、提前提醒或全天/时区，并可补充日程数量、备注与地点；底部动作由 HeroActionLayout 承载。 组件形态：nextEventAction。",
+      "optionalData": [
+        "/events/0/dtStart",
+        "/events/0/dtEnd",
+        "/events/0/remindTime/0",
+        "/eventCount",
+        "/events/0/description",
+        "/events/0/timeZone",
+        "/events/0/isAllDay",
+        "/events/0/eventLocation"
+      ],
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/events/0/title"
+      ],
+      "secondaryData": []
+    },
+    {
+      "templateId": "ScheduleOverviewDatedMeetingHero@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "2x2 带日期的会议 Hero 主内容；展示真实日期、标题、时间范围与地点，底部动作由 HeroActionLayout 承载。 组件形态：datedMeetingAction。",
       "optionalData": [],
       "entry": "templates/schedule-overview.cardtpl",
       "primaryData": [
@@ -59,7 +99,9 @@
         "/events/0/dtStart"
       ],
       "secondaryData": [
-        "/events/0/dtEnd"
+        "/events/0/startDate",
+        "/events/0/dtEnd",
+        "/events/0/eventLocation"
       ]
     },
     {

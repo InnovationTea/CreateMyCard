@@ -32,6 +32,9 @@ async def request_template_source_dsl(
     model_runtime: ModelExecutionRuntime | None,
     model_request_context: ModelRequestContext,
     enable_fusion_ball: bool,
+    trusted_template_candidate_ids: tuple[str, ...] = (),
+    trusted_template_action_ids: tuple[str, ...] = (),
+    trusted_template_sample_overrides: dict[str, Any] | None = None,
 ) -> str:
     """请求模板引擎并返回当前 Processor 可直接消费的源 DSL。"""
     if not isinstance(enable_fusion_ball, bool):
@@ -41,12 +44,21 @@ async def request_template_source_dsl(
         model_request_context,
     )
     template_bindings = tuple(enrich_template_bindings(list(effective_bindings)))
+    engine_options: dict[str, Any] = {"enable_fusion_ball": enable_fusion_ball}
+    if trusted_template_candidate_ids:
+        engine_options["trusted_template_candidate_ids"] = trusted_template_candidate_ids
+    if trusted_template_action_ids:
+        engine_options["trusted_template_action_ids"] = trusted_template_action_ids
+    if trusted_template_sample_overrides:
+        engine_options["trusted_template_sample_overrides"] = (
+            trusted_template_sample_overrides
+        )
     output = await generate_template_engine_a2ui(
         task_spec,
         card_spec,
         template_bindings,
         model_client,
-        enable_fusion_ball=enable_fusion_ball,
+        **engine_options,
     )
     source_dsl = prepare_template_source_dsl(
         output.a2ui,

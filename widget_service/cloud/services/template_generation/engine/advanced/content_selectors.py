@@ -2319,10 +2319,11 @@ def _projected_battery_candidates(schema: dict[str, Any]):
         provider = candidate.get("GetPhoneBatteryInfo")
         if isinstance(provider, dict):
             yield provider
-    yield from _direct_field_objects(
-        schema.get("data", {}),
-        ("batterySOC", "batterySOCText"),
-    )
+    for candidate in _dict_nodes(schema.get("data", {})):
+        has_numeric_level = "batterySOC" in candidate
+        has_text_level = "batterySOCText" in candidate
+        if has_numeric_level or has_text_level:
+            yield candidate
 
 
 def _battery_facts_from_candidate(candidate: dict[str, Any]) -> BatteryOverviewFacts | None:
@@ -2330,22 +2331,20 @@ def _battery_facts_from_candidate(candidate: dict[str, Any]) -> BatteryOverviewF
     level_text_field = _first_field(candidate, "batterySOCText")
     capacity_field = _first_field(candidate, "batteryCapacityLevelDesc")
     charging_field = _first_field(candidate, "chargingStatusDesc")
+    level_percent = _trusted_percentage_number(level_field)
     level_text = _trusted_string(level_text_field)
     capacity_level = _trusted_string(capacity_field)
     charging_status = _trusted_string(charging_field)
     text_percent = _percentage_number_value(level_text_field)
-    if level_text is None:
+    if level_text is None and level_percent is not None:
+        level_text = f"{level_percent:g}%"
+        text_percent = level_percent
+    if level_text is None or text_percent is None:
         return None
-    if text_percent is None:
-        return None
-    if level_field is None:
+    if level_percent is None:
         level_percent = text_percent
-    else:
-        level_percent = _trusted_percentage_number(level_field)
-        if level_percent is None:
-            return None
-        if abs(float(level_percent) - float(text_percent)) > 1e-9:
-            return None
+    elif abs(float(level_percent) - float(text_percent)) > 1e-9:
+        return None
     return BatteryOverviewFacts(
         level_percent=level_percent,
         level_text=level_text,

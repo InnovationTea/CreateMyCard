@@ -6,9 +6,11 @@ from .engine.fusion_ball_a2ui_converter import (
 )
 from .facade import request_template_source_dsl
 from .legacy_python import route_legacy_python_terse_generation
+from .source_generator import TemplateSourceGenerator
 
 __all__ = [
     "FusionBallA2UIConversionError",
+    "TemplateSourceGenerator",
     "convert_a2ui_with_fusion_ball",
     "request_template_source_dsl",
     "route_legacy_python_terse_generation",

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import os
 import sys
 from pathlib import Path
 
@@ -61,34 +62,42 @@ def parse_args() -> argparse.Namespace:
 
 
 async def run(args: argparse.Namespace) -> int:
-    from services.template_generation.test_support.provider_gallery import (
-        generate_provider_gallery,
-        write_gallery_input_dataset,
-    )
-
     input_root = args.input_root.resolve()
     output_root = args.output_root.resolve()
-    if args.refresh_inputs or not (input_root / "manifest.json").is_file():
-        manifest = write_gallery_input_dataset(input_root)
-        case_count = sum(len(provider.cases) for provider in manifest.providers)
-        print(f"画廊模拟输入已生成：Provider={len(manifest.providers)}，用例={case_count}")
-    provider_ids = set(args.provider) or None
-    summary = await generate_provider_gallery(
-        input_root,
-        output_root,
-        concurrency=args.concurrency,
-        provider_ids=provider_ids,
-        dry_run=args.dry_run,
-    )
-    print(
-        "Provider 画廊批跑完成："
-        f"total={summary.total} success={summary.success} "
-        f"failed={summary.failed} missing={summary.missing} "
-        f"not_generated={summary.not_generated} output={summary.manifest_path}"
-    )
-    if args.strict and summary.failed > 0:
-        return 1
-    return 0
+    original_working_directory = Path.cwd()
+    os.chdir(_WIDGET_SERVICE_ROOT)
+    try:
+        from services.template_generation.test_support.provider_gallery import (
+            generate_provider_gallery,
+            write_gallery_input_dataset,
+        )
+
+        if args.refresh_inputs or not (input_root / "manifest.json").is_file():
+            manifest = write_gallery_input_dataset(input_root)
+            case_count = sum(len(provider.cases) for provider in manifest.providers)
+            print(
+                f"画廊模拟输入已生成：Provider={len(manifest.providers)}，"
+                f"用例={case_count}"
+            )
+        provider_ids = set(args.provider) or None
+        summary = await generate_provider_gallery(
+            input_root,
+            output_root,
+            concurrency=args.concurrency,
+            provider_ids=provider_ids,
+            dry_run=args.dry_run,
+        )
+        print(
+            "Provider 画廊批跑完成："
+            f"total={summary.total} success={summary.success} "
+            f"failed={summary.failed} missing={summary.missing} "
+            f"not_generated={summary.not_generated} output={summary.manifest_path}"
+        )
+        if args.strict and summary.failed > 0:
+            return 1
+        return 0
+    finally:
+        os.chdir(original_working_directory)
 
 
 def main() -> int:

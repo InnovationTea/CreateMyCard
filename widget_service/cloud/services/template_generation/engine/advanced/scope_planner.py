@@ -823,28 +823,6 @@ def resolve_scope_layout_ids(
     count = len(components)
     action_count = len(task_spec.eventCandidates)
     component_names = {item.name for item in components}
-    if (
-        "BluetoothDeviceOverview" in component_names
-        and count > 1
-        and component_names != {"BatteryOverview", "BluetoothDeviceOverview"}
-    ):
-        return ()
-    health_component_names = component_names & {
-        "ActivityOverview",
-        "HeartRateOverview",
-        "WorkoutOverview",
-    }
-    approved_health_compositions = (
-        {"ActivityOverview", "SleepOverview"},
-        {"ActivityOverview", "HeartRateOverview"},
-        {"ActivityOverview", "WorkoutOverview"},
-    )
-    if (
-        health_component_names
-        and count > 1
-        and component_names not in approved_health_compositions
-    ):
-        return ()
     has_action = action_count > 0
     common = set(registry.ux_layout_components)
     for capability in components:
@@ -866,31 +844,6 @@ def resolve_scope_layout_ids(
             continue
         if action_count > layout.max_action_children_by_size[task_spec.size]:
             continue
-        if "ResourceUsageOverview" in component_names and count > 1:
-            resource_battery = component_names == {
-                "BatteryOverview",
-                "ResourceUsageOverview",
-            }
-            if not resource_battery:
-                continue
-            expected_layouts = (
-                {"PeerPairLayout"}
-                if task_spec.size == "2x2"
-                else {"HeroSupportLayout", "HeroSupportActionLayout"}
-            )
-            if layout_id not in expected_layouts:
-                continue
-        if "AppUsageOverview" in component_names and count > 1:
-            if component_names != {"AppUsageOverview", "SystemModeOverview"}:
-                continue
-            if layout_id not in {"HeroSupportLayout", "HeroSupportActionLayout"}:
-                continue
-        if component_names == {"BatteryOverview", "BluetoothDeviceOverview"}:
-            expected_layout = (
-                "PeerPairLayout" if task_spec.size == "2x2" else "HeroSupportLayout"
-            )
-            if layout_id != expected_layout:
-                continue
         if component_names == {"BluetoothDeviceOverview"}:
             if action_count == 2:
                 expected_bluetooth_layouts = {"ActionMatrixLayout"}
@@ -909,14 +862,8 @@ def resolve_scope_layout_ids(
                 expected_app_usage_layouts = {"SingleFocusLayout"}
             if layout_id not in expected_app_usage_layouts:
                 continue
-        has_weather = any(item.name == "WeatherOverview" for item in components)
+        has_weather = "WeatherOverview" in component_names
         if has_weather and layout_id == "WeatherNowForecastLayout":
-            continue
-        is_compact_weather_composition = has_weather and count > 1 and task_spec.size == "2x2"
-        if is_compact_weather_composition and layout_id not in {
-            "HeroSupportLayout",
-            "HeroSupportActionLayout",
-        }:
             continue
         allowed.append(layout_id)
     return tuple(sorted(allowed, key=lambda item: _layout_rank(item, count, has_action)))
@@ -926,8 +873,10 @@ def scope_template_ids(
     scope: AdvancedScopeBrief,
     registry: CardPlanRegistry,
     task_spec: TaskSpec | None = None,
+    *,
+    preferred_template_ids: tuple[str, ...] = (),
 ) -> tuple[str, ...]:
-    template_ids = tuple(
+    declared_template_ids = tuple(
         dict.fromkeys(
             template_id
             for component_id in scope.advanced_component_ids
@@ -935,7 +884,13 @@ def scope_template_ids(
             if capability.implementation == "template"
             for template_id in registry.enabled_template_ids(capability.local_template_ids)
         )
-    )[:12]
+    )
+    preferred = tuple(
+        template_id
+        for template_id in preferred_template_ids
+        if template_id in declared_template_ids
+    )
+    template_ids = tuple(dict.fromkeys((*preferred, *declared_template_ids)))[:12]
     if task_spec is None or advanced_component_data_admission_is_bypassed():
         return template_ids
     return tuple(

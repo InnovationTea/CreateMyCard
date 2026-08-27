@@ -40,7 +40,7 @@ _ACTION_LABELS = {
     "event.call.phone": "联系家人",
     "event.clean.memory": "一键清理",
     "event.enter.meeting": "加入会议",
-    "event.open.settings.dnd": "专注模式",
+    "event.open.settings.dnd": "免打扰",
     "event.open.settings.bluetooth": "蓝牙设置",
     "event.open.settings.battery": "电池设置",
     "event.open.settings.batteryHealth": "电池健康",
