@@ -1210,16 +1210,13 @@ def test_complete_a2ui_converter_reads_palette_from_fusion_component(
 def test_complete_a2ui_converter_file_is_self_contained(tmp_path):
     source_path = Path(convert_a2ui_with_fusion_ball.__code__.co_filename)
     module = ast.parse(source_path.read_text(encoding="utf-8"))
-    imported_roots = {
-        imported_root
-        for node in ast.walk(module)
-        if isinstance(node, (ast.Import, ast.ImportFrom))
-        for imported_root in (
-            [alias.name.split(".", 1)[0] for alias in node.names]
-            if isinstance(node, ast.Import)
-            else [(node.module or "").split(".", 1)[0]]
-        )
-    }
+    imported_roots = set()
+    for node in ast.walk(module):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                imported_roots.add(alias.name.split(".", 1)[0])
+        elif isinstance(node, ast.ImportFrom):
+            imported_roots.add((node.module or "").split(".", 1)[0])
 
     assert imported_roots <= {"__future__", "json", "typing"}
     copied_path = tmp_path / "fusion_ball_a2ui_converter.py"
@@ -1227,11 +1224,10 @@ def test_complete_a2ui_converter_file_is_self_contained(tmp_path):
     copied_module = runpy.run_path(str(copied_path))
     source = _complete_stack_a2ui({"backgroundColor": "#FF123456"})
     converted = copied_module["convert_a2ui_with_fusion_ball"](source)
+    update_message = json.loads(converted.splitlines()[1])
+    component_rows = update_message["updateComponents"]["components"]
     components = {
-        component["id"]: component
-        for component in json.loads(converted.splitlines()[1])["updateComponents"][
-            "components"
-        ]
+        component["id"]: component for component in component_rows
     }
 
     assert components["fusionBallMedium"]["styles"]["backgroundColor"] == _WEATHER_PALETTE[1]
@@ -1271,18 +1267,22 @@ def test_form_validator_allows_empty_stack_children_but_rejects_empty_column_chi
         )
         reports[component_type] = validate_card(dsl_text=dsl)
 
-    stack_children_errors = [
-        diagnostic
-        for diagnostic in reports["Stack"].diagnostics
-        if diagnostic.code == "DSL_COMPONENT_REQUIRED_FIELD"
-        and diagnostic.json_pointer.endswith("/children")
-    ]
-    column_children_errors = [
-        diagnostic
-        for diagnostic in reports["Column"].diagnostics
-        if diagnostic.code == "DSL_COMPONENT_REQUIRED_FIELD"
-        and diagnostic.json_pointer.endswith("/children")
-    ]
+    stack_report = reports.get("Stack")
+    column_report = reports.get("Column")
+    assert stack_report is not None
+    assert column_report is not None
+    stack_children_errors = []
+    for diagnostic in stack_report.diagnostics:
+        is_required_field = diagnostic.code == "DSL_COMPONENT_REQUIRED_FIELD"
+        is_children_field = diagnostic.json_pointer.endswith("/children")
+        if is_required_field and is_children_field:
+            stack_children_errors.append(diagnostic)
+    column_children_errors = []
+    for diagnostic in column_report.diagnostics:
+        is_required_field = diagnostic.code == "DSL_COMPONENT_REQUIRED_FIELD"
+        is_children_field = diagnostic.json_pointer.endswith("/children")
+        if is_required_field and is_children_field:
+            column_children_errors.append(diagnostic)
     assert stack_children_errors == []
     assert len(column_children_errors) == 1
 
@@ -2924,7 +2924,8 @@ async def test_bluetooth_connection_and_case_queries_have_honest_template_covera
         "connection": "BluetoothDeviceOverviewConnectionFull@1",
         "earbuds": "BluetoothDeviceOverviewCaseFull@1",
     }
-    template_id = template_ids[variant]
+    template_id = template_ids.get(variant)
+    assert template_id is not None
     binding = CandidateDataBinding(
         capabilityId="GetEarphoneInfo",
         writeResultTo="/data/earphone",
@@ -3771,7 +3772,7 @@ async def test_first_layer_selector_routes_and_preserves_action(
                             "availableTemplateIds": ["WeatherOverviewHero@1"],
                         }
                     ],
-                        "action": ["event.open.weather"],
+                    "action": ["event.open.weather"],
                 }
             return {
                 "themeId": "family-weather-care-blue",
@@ -3782,11 +3783,11 @@ async def test_first_layer_selector_routes_and_preserves_action(
             }
 
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
-                return (
-                    'Template("HeroActionLayout@1",{},'
-                    'Template("WeatherOverviewHero@1",{}),'
-                    'Template("PillAction@1",{"actionId":"event.open.weather",'
-                    '"label":"天气详情"}));'
+            return (
+                'Template("HeroActionLayout@1",{},'
+                'Template("WeatherOverviewHero@1",{}),'
+                'Template("PillAction@1",{"actionId":"event.open.weather",'
+                '"label":"天气详情"}));'
             )
 
     controls = TemplateControls(
@@ -4301,11 +4302,7 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     assert json.loads(candidate_line.removeprefix("componentCandidates=")) == [
         {
             "componentId": "WeatherOverview",
-            "availableTemplateIds": [
-                "WeatherOverviewConditionFull@1",
-                "WeatherOverviewFull@1",
-                "WeatherOverviewIconFull@1",
-            ],
+            "availableTemplateIds": weather_full_candidates,
         }
     ]
     required_group_line = next(
@@ -4314,16 +4311,8 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
         if line.startswith("requiredLocalTemplateGroups=")
     )
     assert json.loads(required_group_line.removeprefix("requiredLocalTemplateGroups=")) == [
-        [
-            "WeatherOverviewConditionFull@1",
-            "WeatherOverviewFull@1",
-            "WeatherOverviewIconFull@1",
-        ],
-        [
-            "WeatherOverviewConditionFull@1",
-            "WeatherOverviewFull@1",
-            "WeatherOverviewIconFull@1",
-        ],
+        weather_full_candidates,
+        weather_full_candidates,
     ]
     assert "selectedActionEventIds=[]" in second_layer_user
     template_contract_line = next(
@@ -4441,12 +4430,12 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     }
     assert components["fusionBallMedium"]["styles"]["backgroundColor"] == _WEATHER_PALETTE[1]
     assert "linearGradient" not in components[marked_content_id]["styles"]
-    weather_icons = [
-        item
-        for item in components.values()
-        if item.get("component") == "Image"
-        and item.get("src") == "resources/base/media/icon_weather1.svg"
-    ]
+    weather_icons = []
+    for item in components.values():
+        is_image = item.get("component") == "Image"
+        is_weather_asset = item.get("src") == "resources/base/media/icon_weather1.svg"
+        if is_image and is_weather_asset:
+            weather_icons.append(item)
     assert len(weather_icons) == 1
     assert weather_icons[0]["styles"].get("fillColor") != "#FFFFFFFF"
     text_components = [

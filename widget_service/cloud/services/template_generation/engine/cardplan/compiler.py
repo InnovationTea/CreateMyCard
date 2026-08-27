@@ -4966,12 +4966,13 @@ def _apply_template_background(
         return root
     theme = registry.require_theme(contract.theme_profile_id)
     fusion = theme.fusion_ball_style
-    business_templates = tuple(
-        definition
-        for template_id in selected_template_ids
-        if (definition := registry.templates.get(template_id)) is not None
-        and definition.business_id is not None
-    )
+    business_template_items = []
+    for template_id in selected_template_ids:
+        definition = registry.templates.get(template_id)
+        if definition is None or definition.business_id is None:
+            continue
+        business_template_items.append(definition)
+    business_templates = tuple(business_template_items)
     if fusion is None or len(business_templates) != 1:
         return root
     business_template = business_templates[0]
@@ -5866,6 +5867,7 @@ def _validate_ux_layout_root(
         contract=contract,
         registry=registry,
     )
+
     def reject_nested_layout(current: ParsedCall) -> None:
         for child in current.children:
             if child.kind == "component" and child.name in UX_LAYOUT_COMPONENT_IDS:
@@ -5881,14 +5883,15 @@ def _validate_provider_template_layout_action_requirements(
     action_children: tuple[ParsedCall, ...],
     size: Literal["2x2", "2x4"],
 ) -> None:
-    layout_kinds = tuple(
-        kind
-        for child in content_children
-        for call in _walk_calls(child)
-        if call.kind == "template"
-        for kind in (provider_template_layout_kind(call.name),)
-        if kind is not None
-    )
+    layout_kind_items: list[str] = []
+    for child in content_children:
+        for call in _walk_calls(child):
+            if call.kind != "template":
+                continue
+            layout_kind = provider_template_layout_kind(call.name)
+            if layout_kind is not None:
+                layout_kind_items.append(layout_kind)
+    layout_kinds = tuple(layout_kind_items)
     if not layout_kinds:
         return
     layout_is_wide = layout_id.startswith("Wide")
@@ -7121,12 +7124,13 @@ def _instantiate_provider_layout_blueprint(
     contract: HybridBodyContract,
     registry: CardPlanRegistry,
 ) -> Nested2Node | None:
-    definitions = tuple(
-        definition
-        for wire_id in contract.allowed_template_ids
-        if (definition := registry.require_template(wire_id)).template_id == layout_id
-        and definition.source_format == "cardtpl/1"
-    )
+    definition_items = []
+    for wire_id in contract.allowed_template_ids:
+        definition = registry.require_template(wire_id)
+        if definition.template_id != layout_id or definition.source_format != "cardtpl/1":
+            continue
+        definition_items.append(definition)
+    definitions = tuple(definition_items)
     if not definitions:
         return None
     if len(definitions) > 1:
@@ -7857,6 +7861,7 @@ def _is_split_structure(node: Nested2Node) -> bool:
         return False
     # Both columns should have layoutWeight for proper 50/50 split
     return all(_has_layout_weight(child) for child in node.children)
+
 
 def _is_weather_region(node: Nested2Node) -> bool:
     return any(
