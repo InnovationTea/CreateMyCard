@@ -25,16 +25,19 @@ class _GalleryService:
         self.template_candidate_ids: list[tuple[str, ...]] = []
         self.template_action_ids: list[tuple[str, ...]] = []
         self.template_sample_overrides: list[dict[str, object]] = []
+        self.fusion_ball_flags: list[bool] = []
 
     async def generate_widget_card_terse_dsl_nested2(
         self,
         request: Any,
         *,
+        enable_fusion_ball: bool = True,
         trusted_template_candidate_ids: tuple[str, ...] = (),
         trusted_template_action_ids: tuple[str, ...] = (),
         trusted_template_sample_overrides: dict[str, object] | None = None,
     ) -> GenerateWidgetCardResponse:
         self.requests.append(request)
+        self.fusion_ball_flags.append(enable_fusion_ball)
         self.template_candidate_ids.append(trusted_template_candidate_ids)
         self.template_action_ids.append(trusted_template_action_ids)
         self.template_sample_overrides.append(
@@ -109,7 +112,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     manifest = write_gallery_input_dataset(input_root)
 
     assert len(manifest.providers) == 8
-    assert sum(len(provider.cases) for provider in manifest.providers) == 101
+    assert sum(len(provider.cases) for provider in manifest.providers) == 108
     scenario_ids = {
         case.scenarioId
         for provider in manifest.providers
@@ -139,13 +142,29 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     assert "打开电池设置" in request["content"]["userQuery"]
     assert "开启省电模式" in request["content"]["userQuery"]
 
+    calendar_hero_case = _find_case(
+        manifest,
+        "CalendarOverview",
+        "single-one-action",
+        "ScheduleOverviewNextEventHero@1",
+    )
+    calendar_hero_request = json.loads(
+        (input_root / calendar_hero_case.requestFile).read_text(encoding="utf-8")
+    )
+    assert calendar_hero_request["content"]["candidateAssetIds"] == [
+        "asset.calendar_fill"
+    ]
+    assert calendar_hero_request["content"]["candidateDataBindings"][0][
+        "candidateOutputFields"
+    ] == ["/events/0/title", "/events/0/dtStart"]
+
     targeted_cases = [
         case
         for provider in manifest.providers
         for case in provider.cases
         if case.targetTemplateId
     ]
-    assert len(targeted_cases) == 91
+    assert len(targeted_cases) == 99
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -183,6 +202,54 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     assert weather_request["content"]["candidateAssetIds"] == [
         "asset.icon_weather1"
     ]
+    weather_temperature_icon = _find_case(
+        manifest,
+        "WeatherOverview",
+        "single-two-actions",
+        "WeatherOverviewTemperatureIconCompact@1",
+    )
+    weather_temperature_request = json.loads(
+        (input_root / weather_temperature_icon.requestFile).read_text(encoding="utf-8")
+    )
+    assert weather_temperature_request["content"]["candidateAssetIds"] == [
+        "asset.icon_weather1"
+    ]
+    calendar_location_source = _find_case(
+        manifest,
+        "CalendarOverview",
+        "single-two-actions",
+        "ScheduleOverviewMeetingLocationSourceCompact@1",
+    )
+    calendar_location_request = json.loads(
+        (input_root / calendar_location_source.requestFile).read_text(encoding="utf-8")
+    )
+    assert calendar_location_request["content"]["candidateAssetIds"] == [
+        "asset.calendar_fill",
+        "asset.clock",
+        "asset.location_north_up_right_fill",
+        "asset.icon_meeting",
+    ]
+    calendar_meeting_source = _find_case(
+        manifest,
+        "CalendarOverview",
+        "single-two-actions",
+        "ScheduleOverviewMeetingSourceCompact@1",
+    )
+    calendar_meeting_request = json.loads(
+        (input_root / calendar_meeting_source.requestFile).read_text(encoding="utf-8")
+    )
+    assert calendar_meeting_request["content"]["candidateAssetIds"] == [
+        "asset.calendar_fill",
+        "asset.clock",
+        "asset.icon_meeting",
+    ]
+    calendar_pair = _find_case(
+        manifest,
+        "CalendarOverview",
+        "two-contents",
+        "ScheduleOverviewMeetingLocationSourceCompact@1",
+    )
+    assert calendar_pair.partnerTemplateId == "WeatherOverviewCompact@1"
     weather_pair = _find_case(
         manifest,
         "WeatherOverview",
@@ -200,20 +267,25 @@ def test_gallery_inputs_mark_missing_layout_families(tmp_path: Path) -> None:
         "CountdownOverview",
         "single-two-actions",
     )
-    calendar_hero = _find_case(
-        manifest,
-        "CalendarOverview",
-        "single-one-action",
-    )
     assert countdown_compact.missingReason == "缺失 Compact 模板"
-    assert calendar_hero.missingReason == "缺失 Hero 模板"
+    calendar_hero_ids = {
+        case.targetTemplateId
+        for provider in manifest.providers
+        for case in provider.cases
+        if case.businessId == "CalendarOverview"
+        and case.scenarioId == "single-one-action"
+    }
+    assert calendar_hero_ids == {
+        "ScheduleOverviewDatedMeetingHero@1",
+        "ScheduleOverviewNextEventHero@1",
+    }
     calendar_full = _find_case(
         manifest,
         "CalendarOverview",
         "single-content",
         "DateOverviewFull@1",
     )
-    assert calendar_full.missingReason == "Provider 当前已禁用"
+    assert calendar_full.missingReason == ""
     system_memory = _find_case(
         manifest,
         "ResourceUsageOverview",
@@ -236,7 +308,7 @@ async def test_gallery_runner_calls_public_service_and_groups_a2ui_by_provider(
         if provider.providerSlug == "app-usage"
     )
     service = _GalleryService()
-    runner = ProviderGalleryBatchRunner(service)
+    runner = ProviderGalleryBatchRunner(service, enable_fusion_ball=False)
 
     summary = await runner.run(
         input_root,
@@ -249,6 +321,7 @@ async def test_gallery_runner_calls_public_service_and_groups_a2ui_by_provider(
     assert summary.success == 4
     assert summary.failed == 0
     assert len(service.requests) == 4
+    assert service.fusion_ball_flags == [False] * 4
     assert all(service.template_candidate_ids)
     assert all(isinstance(item, dict) for item in service.template_sample_overrides)
     assert sorted(len(item) for item in service.template_action_ids) == [0, 0, 1, 2]
@@ -280,9 +353,9 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 101
-    assert summary.missing == 41
-    assert summary.not_generated == 60
+    assert summary.total == 108
+    assert summary.missing == 27
+    assert summary.not_generated == 81
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 8

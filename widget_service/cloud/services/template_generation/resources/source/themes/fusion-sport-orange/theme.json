@@ -10,7 +10,7 @@
   "rootStyle": {
     "backgroundColor": "#FFB33C24",
     "borderRadius": 20,
-    "padding": 11,
+    "padding": 12,
     "linearGradient": {
       "direction": "RightBottom",
       "colors": [["#FFB33C24", 0], ["#FFFF8833", 1]]
@@ -19,11 +19,7 @@
   },
   "actionStyle": {
     "backgroundColor": "#33FFFFFF",
-    "contentColor": "#FFFFE1CC",
-    "height": 30,
-    "borderRadius": 15,
-    "fontSize": 14,
-    "fontWeight": 600
+    "contentColor": "#FFFFE1CC"
   },
   "fusionBallStyle": {
     "scene": "health-sport",

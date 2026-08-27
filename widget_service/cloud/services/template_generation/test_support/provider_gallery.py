@@ -125,13 +125,63 @@ _ACTION_QUERIES_BY_BUSINESS = {
     "WorkoutOverview": ("查看运动健康详情", "打开免打扰设置"),
 }
 
-_ASSET_ID_BY_TEMPLATE_PREFIX = {
-    "BatteryOverview": "asset.battery_leaf_fill",
-    "HeartRateOverviewIcon": "asset.heart_fill",
-    "HeartRateOverviewUpdatedIcon": "asset.heart_fill",
-    "ScheduleOverviewMeetingSource": "asset.icon_meeting",
-    "WeatherOverviewConditionFull": "asset.icon_weather1",
-    "WeatherOverviewIcon": "asset.icon_weather1",
+_ASSET_IDS_BY_TEMPLATE_PREFIX = {
+    "BatteryOverview": ("asset.battery_leaf_fill",),
+    "HeartRateOverviewIcon": ("asset.heart_fill",),
+    "HeartRateOverviewUpdatedIcon": ("asset.heart_fill",),
+    "DateOverviewCompact": ("asset.calendar_fill", "asset.icon_meeting"),
+    "DateOverviewFull": ("asset.calendar_fill", "asset.icon_meeting"),
+    "ScheduleOverviewNextEventHero": ("asset.calendar_fill",),
+    "ScheduleOverviewDatedMeetingHero": (
+        "asset.calendar_fill",
+        "asset.icon_meeting",
+    ),
+    "ScheduleOverviewNextEventFull": (
+        "asset.calendar_fill",
+    ),
+    "ScheduleOverviewNextEventLocationFull": (
+        "asset.calendar_fill",
+        "asset.clock",
+        "asset.location_north_up_right_fill",
+        "asset.icon_meeting",
+    ),
+    "ScheduleOverviewMeetingCompact": (
+        "asset.calendar_fill",
+        "asset.clock",
+        "asset.icon_meeting",
+    ),
+    "ScheduleOverviewMeetingLocationCompact": (
+        "asset.calendar_fill",
+        "asset.clock",
+        "asset.location_north_up_right_fill",
+        "asset.icon_meeting",
+    ),
+    "ScheduleOverviewMeetingLocationSourceCompact": (
+        "asset.calendar_fill",
+        "asset.clock",
+        "asset.location_north_up_right_fill",
+        "asset.icon_meeting",
+    ),
+    "ScheduleOverviewMeetingSourceCompact": (
+        "asset.calendar_fill",
+        "asset.clock",
+        "asset.icon_meeting",
+    ),
+    "ScheduleOverviewMeetingSourceWideFull": (
+        "asset.calendar_fill",
+        "asset.clock",
+        "asset.location_north_up_right_fill",
+        "asset.icon_meeting",
+    ),
+    "ScheduleOverviewMeetingWideFull": (
+        "asset.calendar_fill",
+        "asset.clock",
+        "asset.location_north_up_right_fill",
+        "asset.icon_meeting",
+    ),
+    "WeatherOverviewConditionFull": ("asset.icon_weather1",),
+    "WeatherOverviewIcon": ("asset.icon_weather1",),
+    "WeatherOverviewTemperatureIcon": ("asset.icon_weather1",),
 }
 
 _BATTERY_RUNTIME_FIELDS = (
@@ -141,12 +191,19 @@ _BATTERY_RUNTIME_FIELDS = (
     "/batteryCapacityLevelDesc",
 )
 
+_CALENDAR_NEXT_EVENT_RUNTIME_FIELDS = ("/events/0/dtStart",)
+
 _COMPACT_PARTNER_PRIORITY = (
     "AppUsageOverviewCompact@1",
     "ActivityOverviewCompact@1",
     "ResourceUsageOverviewCompact@1",
     "WeatherOverviewCompact@1",
     "BatteryOverviewNormalCompact@1",
+)
+
+_CALENDAR_COMPACT_PARTNER_PRIORITY = (
+    "WeatherOverviewCompact@1",
+    *_COMPACT_PARTNER_PRIORITY,
 )
 
 
@@ -242,6 +299,7 @@ class GalleryGenerationService(Protocol):
         self,
         request: GenerateWidgetCardRequest,
         *,
+        enable_fusion_ball: bool = True,
         trusted_template_candidate_ids: tuple[str, ...] = (),
         trusted_template_action_ids: tuple[str, ...] = (),
         trusted_template_sample_overrides: dict[str, object] | None = None,
@@ -402,6 +460,8 @@ def _data_binding(
     fields = configured_fields
     if definition.business_id == "BatteryOverview":
         fields = _ordered_unique([*configured_fields, *_BATTERY_RUNTIME_FIELDS])
+    if template is not None and template.template_id.startswith("ScheduleOverviewNextEvent"):
+        fields = _ordered_unique([*configured_fields, *_CALENDAR_NEXT_EVENT_RUNTIME_FIELDS])
     return {
         "arguments": deepcopy(_CAPABILITY_ARGUMENTS[definition.capability_id]),
         "candidateOutputFields": list(fields),
@@ -438,8 +498,9 @@ def _candidate_asset_ids(
         dict.fromkeys(
             asset_id
             for template_id in template_ids
-            for prefix, asset_id in _ASSET_ID_BY_TEMPLATE_PREFIX.items()
+            for prefix, asset_ids in _ASSET_IDS_BY_TEMPLATE_PREFIX.items()
             if template_id.startswith(prefix)
+            for asset_id in asset_ids
         )
     )
 
@@ -455,7 +516,12 @@ def _partner_for_template(
     if not candidates:
         raise ValueError(f"business {definition.business_id} has no cross-provider Compact partner")
     by_template_id = {item[1].template_id: item for item in candidates}
-    for template_id in _COMPACT_PARTNER_PRIORITY:
+    priority = (
+        _CALENDAR_COMPACT_PARTNER_PRIORITY
+        if definition.business_id == "CalendarOverview"
+        else _COMPACT_PARTNER_PRIORITY
+    )
+    for template_id in priority:
         if template_id in by_template_id:
             return by_template_id[template_id]
     return candidates[0]
@@ -869,8 +935,14 @@ def _expected_action_count(scenario_id: str) -> int:
 class ProviderGalleryBatchRunner:
     """通过正式 Terse DSL Nested-2 服务入口生成 Provider 画廊数据。"""
 
-    def __init__(self, service: GalleryGenerationService) -> None:
+    def __init__(
+        self,
+        service: GalleryGenerationService,
+        *,
+        enable_fusion_ball: bool = True,
+    ) -> None:
         self.service = service
+        self.enable_fusion_ball = enable_fusion_ball
 
     async def run(
         self,
@@ -964,6 +1036,7 @@ class ProviderGalleryBatchRunner:
         try:
             response = await self.service.generate_widget_card_terse_dsl_nested2(
                 request,
+                enable_fusion_ball=self.enable_fusion_ball,
                 trusted_template_candidate_ids=trusted_template_candidate_ids,
                 trusted_template_action_ids=trusted_template_action_ids,
                 trusted_template_sample_overrides=trusted_template_sample_overrides,
@@ -1105,12 +1178,16 @@ async def generate_provider_gallery(
     concurrency: int = 1,
     provider_ids: set[str] | None = None,
     dry_run: bool = False,
+    enable_fusion_ball: bool = True,
 ) -> GalleryRunSummary:
     """创建共享模型运行时并执行一次完整 Provider 画廊批跑。"""
     runtime = ModelExecutionRuntime()
     try:
         service = WidgetGenerationService(model_runtime=runtime)
-        runner = ProviderGalleryBatchRunner(service)
+        runner = ProviderGalleryBatchRunner(
+            service,
+            enable_fusion_ball=enable_fusion_ball,
+        )
         return await runner.run(
             input_root,
             output_root,

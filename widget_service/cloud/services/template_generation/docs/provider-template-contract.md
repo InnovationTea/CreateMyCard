@@ -139,20 +139,24 @@ Column({"width": "matchParent", "itemMargin": 4},
 允许接收子组件的布局模板显式声明 `...children`，且正文只能放置一次 `children`：
 
 ```text
-#Template HeroSupportLayout@1(props: {  }, ...children)
+#Template TwoCompactLayout@1(props: {  }, ...children)
 data = {
 }
 
-HeroSupportLayout(children)
+Column({
+  "width": "matchParent",
+  "height": "matchParent",
+  "itemMargin": 8
+}, children)
 #End
 ```
 
 第二层调用统一为：
 
 ```text
-Template("HeroSupportLayout@1", {},
-  Template("WeatherOverviewFull@1", {}),
-  Template("BatteryOverviewNormalWeatherCompact@1", {})
+Template("TwoCompactLayout@1", {},
+  Template("DateOverviewCompact@1", {}),
+  Template("ScheduleOverviewMeetingCompact@1", {})
 )
 ```
 
@@ -184,7 +188,8 @@ Provider 模板作者侧声明，不进入最终 Tersel 语法。最终产物不
 不满足门禁的卡片继续使用 Theme 原有纯色或线性渐变。融球包装只替换卡片根背景，不改写业务文本、图标或
 Action 内容颜色。业务 Provider 必须显式区分主内容与辅助内容，分别使用 `$theme('primaryColor')` 和
 `$theme('supportContentColor')`；服务端只给未配置颜色的内容组件补 `primaryColor`，不得猜测主辅语义。
-PillAction 模板使用 `$theme('actionStyle.backgroundColor')` 和 `$theme('actionStyle.contentColor')`。
+PillAction 模板使用 `$theme('actionStyle.backgroundColor')` 和 `$theme('actionStyle.contentColor')`；Theme 不得
+覆盖 Action Template 节点已经显式声明的高度、圆角、字号和字重。
 
 ### 完整 A2UI 转换
 
@@ -222,7 +227,7 @@ converted = convert_a2ui_with_fusion_ball(a2ui)
 
 ```json
 {
-  "themeId": "family-weather-care-blue",
+  "themeId": "fusion-weather-blue",
   "requiredOutputFieldsByCapability": {
     "ViewWeather": ["currentTemperature", "weatherCondition", "hourlyForecast"]
   },
@@ -256,7 +261,8 @@ Action CardTpl 必须在交互组件样式中写入 `onClick: EventAction(props.
 
 天气、日历、手机电量、耳机、健康运动、应用使用时长、倒计时和系统内存当前共有
 75 个无 Variant 的业务 UI 模板；日期与日程归并后形成 11 个 Provider 业务领域。Layout Provider
-另提供 10 个支持 `...children` 的布局模板。
+另提供 5 个支持 `...children` 的布局模板：名称包含 `Wide` 的布局只用于 `2x4`，其余布局只用于
+`2x2`，两类布局不得混用。
 新增或修改资源后执行：
 
 ```bash

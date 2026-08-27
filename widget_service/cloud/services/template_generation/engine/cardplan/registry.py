@@ -386,8 +386,8 @@ class CardPlanRegistry:
     def _validate_distributed_resources(self) -> None:
         if set(self.ux_size_budgets) != {"2x2", "2x4"}:
             raise ValueError("Theme base size budgets are incomplete")
-        if len(self.ux_layout_components) != 10:
-            raise ValueError("Layout Provider must contain 10 families")
+        if len(self.ux_layout_components) != 5:
+            raise ValueError("Layout Provider must contain 5 families")
         if not self.ux_business_components:
             raise ValueError("Provider Template business index must not be empty")
         known_layouts = set(self.ux_layout_components)

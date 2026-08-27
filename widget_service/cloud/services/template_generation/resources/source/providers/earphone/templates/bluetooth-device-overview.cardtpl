@@ -5,7 +5,15 @@ data = {
 }
 
 Column(
-  {"_advancedComponent": "BluetoothDeviceOverview", "_layoutActionBackgroundOpacity": 0.1, "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  {"_advancedComponent": "BluetoothDeviceOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 4,
+    "justifyContent": "spaceBetween",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0,
+    "minHeight": 0}},
   Row(
       {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Text(
@@ -16,7 +24,7 @@ Column(
             props.sourceIcon,
             Image(
                     props.sourceIcon,
-                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "fillColor": "#99000000", "flexShrink": 0}
+                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "_preserveOriginalColor": true, "flexShrink": 0}
                   )
           )
     ),
@@ -34,7 +42,15 @@ data = {
 }
 
 Column(
-  {"_advancedComponent": "BluetoothDeviceOverview", "_layoutActionBackgroundOpacity": 0.1, "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  {"_advancedComponent": "BluetoothDeviceOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 4,
+    "justifyContent": "spaceBetween",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0,
+    "minHeight": 0}},
   Row(
       {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Text(
@@ -45,7 +61,7 @@ Column(
             props.sourceIcon,
             Image(
                     props.sourceIcon,
-                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "fillColor": "#99000000", "flexShrink": 0}
+                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "_preserveOriginalColor": true, "flexShrink": 0}
                   )
           )
     ),
@@ -62,7 +78,14 @@ data = {
 }
 
 Column(
-  {"itemMargin":4,"_advancedComponent": "BluetoothDeviceOverview", "_layoutActionBackgroundOpacity": 0.1, "width": "matchParent", "height": "matchParent", "justifyContent": "center", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  {"itemMargin":4,"_advancedComponent": "BluetoothDeviceOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "justifyContent": "center",
+    "alignItems": "center",
+    "clip": true,
+    "constraintSize": {"minWidth": 0,
+    "minHeight": 0}},
   Text(
       Expr(`${data.connected} ? '已连接' : '未连接'`),
       {"width": "matchParent", "fontSize": 11, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
@@ -79,7 +102,18 @@ data = {
 }
 
 Column(
-  {"_advancedComponent": "BluetoothDeviceOverview", "_layoutActionBackgroundOpacity": 0.1, "width": "matchParent", "height": "matchParent", "padding": 0, "borderRadius": 0, "backgroundColor": "#00000000", "itemMargin": 2, "justifyContent": "center", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  {"_advancedComponent": "BluetoothDeviceOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "padding": 0,
+    "borderRadius": 0,
+    "backgroundColor": "#00000000",
+    "itemMargin": 2,
+    "justifyContent": "center",
+    "alignItems": "center",
+    "clip": true,
+    "constraintSize": {"minWidth": 0,
+    "minHeight": 0}},
   Column(
       {"width": "matchParent", "height": "matchParent", "itemMargin": 2, "justifyContent": "center", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       IfPresent(
@@ -89,13 +123,20 @@ Column(
                     Stack(
                               {"width": 32, "height": 32, "alignContent": "center", "flexShrink": 0},
                               Progress(
-                                          {"value": data.left, "total": 100, "type": "ring", "color": Expr(`${data.left} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 32, "height": 32, "strokeWidth": 6}
+                                          {"value": data.left,
+                                            "total": 100,
+                                            "type": "ring",
+                                            "color": $theme('supportContentColor'),
+                                            "backgroundColor": "#1A000000",
+                                            "width": 32,
+                                            "height": 32,
+                                            "strokeWidth": 6}
                                         ),
                               IfPresent(
                                           props.leftEarIcon,
                                           Image(
                                                         props.leftEarIcon,
-                                                        {"width": 14, "height": 14, "objectFit": "contain", "fillColor": "#99000000"}
+                                                        {"width": 14, "height": 14, "objectFit": "contain", "_preserveOriginalColor": true}
                                                       )
                                         )
                             ),
@@ -112,13 +153,20 @@ Column(
                     Stack(
                               {"width": 32, "height": 32, "alignContent": "center", "flexShrink": 0},
                               Progress(
-                                          {"value": data.right, "total": 100, "type": "ring", "color": Expr(`${data.right} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 32, "height": 32, "strokeWidth": 6}
+                                          {"value": data.right,
+                                            "total": 100,
+                                            "type": "ring",
+                                            "color": $theme('supportContentColor'),
+                                            "backgroundColor": "#1A000000",
+                                            "width": 32,
+                                            "height": 32,
+                                            "strokeWidth": 6}
                                         ),
                               IfPresent(
                                           props.rightEarIcon,
                                           Image(
                                                         props.rightEarIcon,
-                                                        {"width": 14, "height": 14, "objectFit": "contain", "fillColor": "#99000000"}
+                                                        {"width": 14, "height": 14, "objectFit": "contain", "_preserveOriginalColor": true}
                                                       )
                                         )
                             ),
@@ -139,13 +187,20 @@ Column(
                                           Stack(
                                                         {"width": 32, "height": 32, "alignContent": "center", "flexShrink": 0},
                                                         Progress(
-                                                                        {"value": data.battery, "total": 100, "type": "ring", "color": Expr(`${data.battery} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 32, "height": 32, "strokeWidth": 6}
+                                                                        {"value": data.battery,
+                                                                          "total": 100,
+                                                                          "type": "ring",
+                                                                          "color": $theme('supportContentColor'),
+                                                                          "backgroundColor": "#1A000000",
+                                                                          "width": 32,
+                                                                          "height": 32,
+                                                                          "strokeWidth": 6}
                                                                       ),
                                                         IfPresent(
                                                                         props.sourceIcon,
                                                                         Image(
                                                                                           props.sourceIcon,
-                                                                                          {"width": 14, "height": 14, "objectFit": "contain", "fillColor": "#99000000"}
+                                                                                          {"width": 14, "height": 14, "objectFit": "contain", "_preserveOriginalColor": true}
                                                                                         )
                                                                       )
                                                       ),
@@ -175,7 +230,21 @@ data = {
 }
 
 Column(
-  {"_advancedComponent": "BluetoothDeviceOverview", "_layoutActionBackgroundOpacity": 0.1, "width": "matchParent", "height": "matchParent", "padding": {"left": 8, "top": 6, "right": 8, "bottom": 6}, "borderRadius": 8, "backgroundColor": "#1A64BB5C", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  {"_advancedComponent": "BluetoothDeviceOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "padding": {"left": 8,
+    "top": 6,
+    "right": 8,
+    "bottom": 6},
+    "borderRadius": 8,
+    "backgroundColor": "#1A64BB5C",
+    "itemMargin": 4,
+    "justifyContent": "start",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0,
+    "minHeight": 0}},
   IfAbsent(
       data.battery,
       Text(
@@ -199,13 +268,20 @@ Column(
                     Stack(
                               {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
                               Progress(
-                                          {"value": data.left, "total": 100, "type": "ring", "color": Expr(`${data.left} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 40, "height": 40, "strokeWidth": 6}
+                                          {"value": data.left,
+                                            "total": 100,
+                                            "type": "ring",
+                                            "color": $theme('supportContentColor'),
+                                            "backgroundColor": "#1A000000",
+                                            "width": 40,
+                                            "height": 40,
+                                            "strokeWidth": 6}
                                         ),
                               IfPresent(
                                           props.leftEarIcon,
                                           Image(
                                                         props.leftEarIcon,
-                                                        {"width": 18, "height": 18, "objectFit": "contain", "fillColor": "#99000000"}
+                                                        {"width": 18, "height": 18, "objectFit": "contain", "_preserveOriginalColor": true}
                                                       )
                                         )
                             ),
@@ -222,13 +298,20 @@ Column(
                     Stack(
                               {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
                               Progress(
-                                          {"value": data.right, "total": 100, "type": "ring", "color": Expr(`${data.right} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 40, "height": 40, "strokeWidth": 6}
+                                          {"value": data.right,
+                                            "total": 100,
+                                            "type": "ring",
+                                            "color": $theme('supportContentColor'),
+                                            "backgroundColor": "#1A000000",
+                                            "width": 40,
+                                            "height": 40,
+                                            "strokeWidth": 6}
                                         ),
                               IfPresent(
                                           props.rightEarIcon,
                                           Image(
                                                         props.rightEarIcon,
-                                                        {"width": 18, "height": 18, "objectFit": "contain", "fillColor": "#99000000"}
+                                                        {"width": 18, "height": 18, "objectFit": "contain", "_preserveOriginalColor": true}
                                                       )
                                         )
                             ),
@@ -249,13 +332,20 @@ Column(
                                           Stack(
                                                         {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
                                                         Progress(
-                                                                        {"value": data.battery, "total": 100, "type": "ring", "color": Expr(`${data.battery} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 40, "height": 40, "strokeWidth": 6}
+                                                                        {"value": data.battery,
+                                                                          "total": 100,
+                                                                          "type": "ring",
+                                                                          "color": $theme('supportContentColor'),
+                                                                          "backgroundColor": "#1A000000",
+                                                                          "width": 40,
+                                                                          "height": 40,
+                                                                          "strokeWidth": 6}
                                                                       ),
                                                         IfPresent(
                                                                         props.sourceIcon,
                                                                         Image(
                                                                                           props.sourceIcon,
-                                                                                          {"width": 18, "height": 18, "objectFit": "contain", "fillColor": "#99000000"}
+                                                                                          {"width": 18, "height": 18, "objectFit": "contain", "_preserveOriginalColor": true}
                                                                                         )
                                                                       )
                                                       ),
@@ -281,7 +371,15 @@ data = {
 }
 
 Column(
-  {"_advancedComponent": "BluetoothDeviceOverview", "_layoutActionBackgroundOpacity": 0.1, "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  {"_advancedComponent": "BluetoothDeviceOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 4,
+    "justifyContent": "spaceBetween",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0,
+    "minHeight": 0}},
   Row(
       {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Text(
@@ -292,7 +390,7 @@ Column(
             props.sourceIcon,
             Image(
                     props.sourceIcon,
-                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "fillColor": "#99000000", "flexShrink": 0}
+                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "_preserveOriginalColor": true, "flexShrink": 0}
                   )
           )
     ),
@@ -305,13 +403,20 @@ Column(
                     Stack(
                               {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
                               Progress(
-                                          {"value": data.left, "total": 100, "type": "ring", "color": Expr(`${data.left} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 40, "height": 40, "strokeWidth": 6}
+                                          {"value": data.left,
+                                            "total": 100,
+                                            "type": "ring",
+                                            "color": $theme('supportContentColor'),
+                                            "backgroundColor": "#1A000000",
+                                            "width": 40,
+                                            "height": 40,
+                                            "strokeWidth": 6}
                                         ),
                               IfPresent(
                                           props.leftEarIcon,
                                           Image(
                                                         props.leftEarIcon,
-                                                        {"width": 18, "height": 18, "objectFit": "contain", "fillColor": "#99000000"}
+                                                        {"width": 18, "height": 18, "objectFit": "contain", "_preserveOriginalColor": true}
                                                       )
                                         )
                             ),
@@ -328,13 +433,20 @@ Column(
                     Stack(
                               {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
                               Progress(
-                                          {"value": data.right, "total": 100, "type": "ring", "color": Expr(`${data.right} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 40, "height": 40, "strokeWidth": 6}
+                                          {"value": data.right,
+                                            "total": 100,
+                                            "type": "ring",
+                                            "color": $theme('supportContentColor'),
+                                            "backgroundColor": "#1A000000",
+                                            "width": 40,
+                                            "height": 40,
+                                            "strokeWidth": 6}
                                         ),
                               IfPresent(
                                           props.rightEarIcon,
                                           Image(
                                                         props.rightEarIcon,
-                                                        {"width": 18, "height": 18, "objectFit": "contain", "fillColor": "#99000000"}
+                                                        {"width": 18, "height": 18, "objectFit": "contain", "_preserveOriginalColor": true}
                                                       )
                                         )
                             ),
@@ -355,13 +467,20 @@ Column(
                                           Stack(
                                                         {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
                                                         Progress(
-                                                                        {"value": data.battery, "total": 100, "type": "ring", "color": Expr(`${data.battery} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 40, "height": 40, "strokeWidth": 6}
+                                                                        {"value": data.battery,
+                                                                          "total": 100,
+                                                                          "type": "ring",
+                                                                          "color": $theme('supportContentColor'),
+                                                                          "backgroundColor": "#1A000000",
+                                                                          "width": 40,
+                                                                          "height": 40,
+                                                                          "strokeWidth": 6}
                                                                       ),
                                                         IfPresent(
                                                                         props.sourceIcon,
                                                                         Image(
                                                                                           props.sourceIcon,
-                                                                                          {"width": 18, "height": 18, "objectFit": "contain", "fillColor": "#99000000"}
+                                                                                          {"width": 18, "height": 18, "objectFit": "contain", "_preserveOriginalColor": true}
                                                                                         )
                                                                       )
                                                       ),
@@ -392,7 +511,15 @@ data = {
 }
 
 Column(
-  {"_advancedComponent": "BluetoothDeviceOverview", "_layoutActionBackgroundOpacity": 0.1, "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  {"_advancedComponent": "BluetoothDeviceOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 4,
+    "justifyContent": "spaceBetween",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0,
+    "minHeight": 0}},
   Row(
       {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Text(
@@ -403,7 +530,7 @@ Column(
             props.sourceIcon,
             Image(
                     props.sourceIcon,
-                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "fillColor": "#99000000", "flexShrink": 0}
+                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "_preserveOriginalColor": true, "flexShrink": 0}
                   )
           )
     ),
@@ -414,13 +541,20 @@ Column(
             Stack(
                     {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
                     Progress(
-                              {"value": data.battery, "total": 100, "type": "ring", "color": Expr(`${data.battery} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 40, "height": 40, "strokeWidth": 6}
+                              {"value": data.battery,
+                                "total": 100,
+                                "type": "ring",
+                                "color": $theme('supportContentColor'),
+                                "backgroundColor": "#1A000000",
+                                "width": 40,
+                                "height": 40,
+                                "strokeWidth": 6}
                             ),
                     IfPresent(
                               props.sourceIcon,
                               Image(
                                           props.sourceIcon,
-                                          {"width": 18, "height": 18, "objectFit": "contain", "fillColor": "#99000000"}
+                                          {"width": 18, "height": 18, "objectFit": "contain", "_preserveOriginalColor": true}
                                         )
                             )
                   ),
@@ -441,7 +575,15 @@ data = {
 }
 
 Column(
-  {"_advancedComponent": "BluetoothDeviceOverview", "_layoutActionBackgroundOpacity": 0.1, "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  {"_advancedComponent": "BluetoothDeviceOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 4,
+    "justifyContent": "spaceBetween",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0,
+    "minHeight": 0}},
   Row(
       {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Text(
@@ -452,7 +594,7 @@ Column(
             props.sourceIcon,
             Image(
                     props.sourceIcon,
-                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "fillColor": "#99000000", "flexShrink": 0}
+                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "_preserveOriginalColor": true, "flexShrink": 0}
                   )
           )
     ),
@@ -463,13 +605,20 @@ Column(
             Stack(
                     {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
                     Progress(
-                              {"value": data.left, "total": 100, "type": "ring", "color": Expr(`${data.left} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 40, "height": 40, "strokeWidth": 6}
+                              {"value": data.left,
+                                "total": 100,
+                                "type": "ring",
+                                "color": $theme('supportContentColor'),
+                                "backgroundColor": "#1A000000",
+                                "width": 40,
+                                "height": 40,
+                                "strokeWidth": 6}
                             ),
                     IfPresent(
                               props.leftEarIcon,
                               Image(
                                           props.leftEarIcon,
-                                          {"width": 18, "height": 18, "objectFit": "contain", "fillColor": "#99000000"}
+                                          {"width": 18, "height": 18, "objectFit": "contain", "_preserveOriginalColor": true}
                                         )
                             )
                   ),
@@ -490,7 +639,15 @@ data = {
 }
 
 Column(
-  {"_advancedComponent": "BluetoothDeviceOverview", "_layoutActionBackgroundOpacity": 0.1, "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  {"_advancedComponent": "BluetoothDeviceOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 4,
+    "justifyContent": "spaceBetween",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0,
+    "minHeight": 0}},
   Row(
       {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Text(
@@ -501,7 +658,7 @@ Column(
             props.sourceIcon,
             Image(
                     props.sourceIcon,
-                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "fillColor": "#99000000", "flexShrink": 0}
+                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "_preserveOriginalColor": true, "flexShrink": 0}
                   )
           )
     ),
@@ -512,13 +669,20 @@ Column(
             Stack(
                     {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
                     Progress(
-                              {"value": data.right, "total": 100, "type": "ring", "color": Expr(`${data.right} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 40, "height": 40, "strokeWidth": 6}
+                              {"value": data.right,
+                                "total": 100,
+                                "type": "ring",
+                                "color": $theme('supportContentColor'),
+                                "backgroundColor": "#1A000000",
+                                "width": 40,
+                                "height": 40,
+                                "strokeWidth": 6}
                             ),
                     IfPresent(
                               props.rightEarIcon,
                               Image(
                                           props.rightEarIcon,
-                                          {"width": 18, "height": 18, "objectFit": "contain", "fillColor": "#99000000"}
+                                          {"width": 18, "height": 18, "objectFit": "contain", "_preserveOriginalColor": true}
                                         )
                             )
                   ),
@@ -540,7 +704,15 @@ data = {
 }
 
 Column(
-  {"_advancedComponent": "BluetoothDeviceOverview", "_layoutActionBackgroundOpacity": 0.1, "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  {"_advancedComponent": "BluetoothDeviceOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 4,
+    "justifyContent": "spaceBetween",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0,
+    "minHeight": 0}},
   Row(
       {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Text(
@@ -551,7 +723,7 @@ Column(
             props.sourceIcon,
             Image(
                     props.sourceIcon,
-                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "fillColor": "#99000000", "flexShrink": 0}
+                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "_preserveOriginalColor": true, "flexShrink": 0}
                   )
           )
     ),
@@ -562,13 +734,20 @@ Column(
             Stack(
                     {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
                     Progress(
-                              {"value": data.left, "total": 100, "type": "ring", "color": Expr(`${data.left} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 40, "height": 40, "strokeWidth": 6}
+                              {"value": data.left,
+                                "total": 100,
+                                "type": "ring",
+                                "color": $theme('supportContentColor'),
+                                "backgroundColor": "#1A000000",
+                                "width": 40,
+                                "height": 40,
+                                "strokeWidth": 6}
                             ),
                     IfPresent(
                               props.leftEarIcon,
                               Image(
                                           props.leftEarIcon,
-                                          {"width": 18, "height": 18, "objectFit": "contain", "fillColor": "#99000000"}
+                                          {"width": 18, "height": 18, "objectFit": "contain", "_preserveOriginalColor": true}
                                         )
                             )
                   ),
@@ -582,13 +761,20 @@ Column(
             Stack(
                     {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
                     Progress(
-                              {"value": data.right, "total": 100, "type": "ring", "color": Expr(`${data.right} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 40, "height": 40, "strokeWidth": 6}
+                              {"value": data.right,
+                                "total": 100,
+                                "type": "ring",
+                                "color": $theme('supportContentColor'),
+                                "backgroundColor": "#1A000000",
+                                "width": 40,
+                                "height": 40,
+                                "strokeWidth": 6}
                             ),
                     IfPresent(
                               props.rightEarIcon,
                               Image(
                                           props.rightEarIcon,
-                                          {"width": 18, "height": 18, "objectFit": "contain", "fillColor": "#99000000"}
+                                          {"width": 18, "height": 18, "objectFit": "contain", "_preserveOriginalColor": true}
                                         )
                             )
                   ),
@@ -610,7 +796,15 @@ data = {
 }
 
 Column(
-  {"_advancedComponent": "BluetoothDeviceOverview", "_layoutActionBackgroundOpacity": 0.1, "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  {"_advancedComponent": "BluetoothDeviceOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 4,
+    "justifyContent": "spaceBetween",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0,
+    "minHeight": 0}},
   Row(
       {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Text(
@@ -621,7 +815,7 @@ Column(
             props.sourceIcon,
             Image(
                     props.sourceIcon,
-                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "fillColor": "#99000000", "flexShrink": 0}
+                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "_preserveOriginalColor": true, "flexShrink": 0}
                   )
           )
     ),
@@ -632,13 +826,20 @@ Column(
             Stack(
                     {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
                     Progress(
-                              {"value": data.left, "total": 100, "type": "ring", "color": Expr(`${data.left} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 40, "height": 40, "strokeWidth": 6}
+                              {"value": data.left,
+                                "total": 100,
+                                "type": "ring",
+                                "color": $theme('supportContentColor'),
+                                "backgroundColor": "#1A000000",
+                                "width": 40,
+                                "height": 40,
+                                "strokeWidth": 6}
                             ),
                     IfPresent(
                               props.leftEarIcon,
                               Image(
                                           props.leftEarIcon,
-                                          {"width": 18, "height": 18, "objectFit": "contain", "fillColor": "#99000000"}
+                                          {"width": 18, "height": 18, "objectFit": "contain", "_preserveOriginalColor": true}
                                         )
                             )
                   ),
@@ -652,13 +853,20 @@ Column(
             Stack(
                     {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
                     Progress(
-                              {"value": data.right, "total": 100, "type": "ring", "color": Expr(`${data.right} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 40, "height": 40, "strokeWidth": 6}
+                              {"value": data.right,
+                                "total": 100,
+                                "type": "ring",
+                                "color": $theme('supportContentColor'),
+                                "backgroundColor": "#1A000000",
+                                "width": 40,
+                                "height": 40,
+                                "strokeWidth": 6}
                             ),
                     IfPresent(
                               props.rightEarIcon,
                               Image(
                                           props.rightEarIcon,
-                                          {"width": 18, "height": 18, "objectFit": "contain", "fillColor": "#99000000"}
+                                          {"width": 18, "height": 18, "objectFit": "contain", "_preserveOriginalColor": true}
                                         )
                             )
                   ),
@@ -681,7 +889,15 @@ data = {
 }
 
 Column(
-  {"_advancedComponent": "BluetoothDeviceOverview", "_layoutActionBackgroundOpacity": 0.1, "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  {"_advancedComponent": "BluetoothDeviceOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 4,
+    "justifyContent": "spaceBetween",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0,
+    "minHeight": 0}},
   Row(
       {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Text(
@@ -692,7 +908,7 @@ Column(
             props.sourceIcon,
             Image(
                     props.sourceIcon,
-                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "fillColor": "#99000000", "flexShrink": 0}
+                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "_preserveOriginalColor": true, "flexShrink": 0}
                   )
           )
     ),
@@ -703,13 +919,20 @@ Column(
             Stack(
                     {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
                     Progress(
-                              {"value": data.left, "total": 100, "type": "ring", "color": Expr(`${data.left} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 40, "height": 40, "strokeWidth": 6}
+                              {"value": data.left,
+                                "total": 100,
+                                "type": "ring",
+                                "color": $theme('supportContentColor'),
+                                "backgroundColor": "#1A000000",
+                                "width": 40,
+                                "height": 40,
+                                "strokeWidth": 6}
                             ),
                     IfPresent(
                               props.leftEarIcon,
                               Image(
                                           props.leftEarIcon,
-                                          {"width": 18, "height": 18, "objectFit": "contain", "fillColor": "#99000000"}
+                                          {"width": 18, "height": 18, "objectFit": "contain", "_preserveOriginalColor": true}
                                         )
                             )
                   ),
@@ -723,13 +946,20 @@ Column(
             Stack(
                     {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
                     Progress(
-                              {"value": data.right, "total": 100, "type": "ring", "color": Expr(`${data.right} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 40, "height": 40, "strokeWidth": 6}
+                              {"value": data.right,
+                                "total": 100,
+                                "type": "ring",
+                                "color": $theme('supportContentColor'),
+                                "backgroundColor": "#1A000000",
+                                "width": 40,
+                                "height": 40,
+                                "strokeWidth": 6}
                             ),
                     IfPresent(
                               props.rightEarIcon,
                               Image(
                                           props.rightEarIcon,
-                                          {"width": 18, "height": 18, "objectFit": "contain", "fillColor": "#99000000"}
+                                          {"width": 18, "height": 18, "objectFit": "contain", "_preserveOriginalColor": true}
                                         )
                             )
                   ),
@@ -754,7 +984,18 @@ data = {
 }
 
 Column(
-  {"_advancedComponent": "BluetoothDeviceOverview", "_layoutActionBackgroundOpacity": 0.1, "width": "matchParent", "height": "matchParent", "padding": 0, "borderRadius": 0, "backgroundColor": "#00000000", "itemMargin": 2, "justifyContent": "center", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  {"_advancedComponent": "BluetoothDeviceOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "padding": 0,
+    "borderRadius": 0,
+    "backgroundColor": "#00000000",
+    "itemMargin": 2,
+    "justifyContent": "center",
+    "alignItems": "center",
+    "clip": true,
+    "constraintSize": {"minWidth": 0,
+    "minHeight": 0}},
   Column(
       {"width": "matchParent", "height": "matchParent", "itemMargin": 2, "justifyContent": "center", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Column(
@@ -762,13 +1003,20 @@ Column(
             Stack(
                     {"width": 32, "height": 32, "alignContent": "center", "flexShrink": 0},
                     Progress(
-                              {"value": data.left, "total": 100, "type": "ring", "color": Expr(`${data.left} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 32, "height": 32, "strokeWidth": 6}
+                              {"value": data.left,
+                                "total": 100,
+                                "type": "ring",
+                                "color": $theme('supportContentColor'),
+                                "backgroundColor": "#1A000000",
+                                "width": 32,
+                                "height": 32,
+                                "strokeWidth": 6}
                             ),
                     IfPresent(
                               props.leftEarIcon,
                               Image(
                                           props.leftEarIcon,
-                                          {"width": 14, "height": 14, "objectFit": "contain", "fillColor": "#99000000"}
+                                          {"width": 14, "height": 14, "objectFit": "contain", "_preserveOriginalColor": true}
                                         )
                             )
                   ),
@@ -782,13 +1030,20 @@ Column(
             Stack(
                     {"width": 32, "height": 32, "alignContent": "center", "flexShrink": 0},
                     Progress(
-                              {"value": data.right, "total": 100, "type": "ring", "color": Expr(`${data.right} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 32, "height": 32, "strokeWidth": 6}
+                              {"value": data.right,
+                                "total": 100,
+                                "type": "ring",
+                                "color": $theme('supportContentColor'),
+                                "backgroundColor": "#1A000000",
+                                "width": 32,
+                                "height": 32,
+                                "strokeWidth": 6}
                             ),
                     IfPresent(
                               props.rightEarIcon,
                               Image(
                                           props.rightEarIcon,
-                                          {"width": 14, "height": 14, "objectFit": "contain", "fillColor": "#99000000"}
+                                          {"width": 14, "height": 14, "objectFit": "contain", "_preserveOriginalColor": true}
                                         )
                             )
                   ),
@@ -815,7 +1070,21 @@ data = {
 }
 
 Column(
-  {"_advancedComponent": "BluetoothDeviceOverview", "_layoutActionBackgroundOpacity": 0.1, "width": "matchParent", "height": "matchParent", "padding": {"left": 8, "top": 6, "right": 8, "bottom": 6}, "borderRadius": 8, "backgroundColor": "#1A64BB5C", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  {"_advancedComponent": "BluetoothDeviceOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "padding": {"left": 8,
+    "top": 6,
+    "right": 8,
+    "bottom": 6},
+    "borderRadius": 8,
+    "backgroundColor": "#1A64BB5C",
+    "itemMargin": 4,
+    "justifyContent": "start",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0,
+    "minHeight": 0}},
   Text(
       Expr(`${data.connected} ? ${data.name} + ' · 已连接 · 充电盒 ' + ${data.battery} + '%' : ${data.name} + ' · 未连接 · 充电盒 ' + ${data.battery} + '%'`),
       {"width": "matchParent", "fontSize": 11, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "start", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
@@ -827,13 +1096,20 @@ Column(
             Stack(
                     {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
                     Progress(
-                              {"value": data.left, "total": 100, "type": "ring", "color": Expr(`${data.left} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 40, "height": 40, "strokeWidth": 6}
+                              {"value": data.left,
+                                "total": 100,
+                                "type": "ring",
+                                "color": $theme('supportContentColor'),
+                                "backgroundColor": "#1A000000",
+                                "width": 40,
+                                "height": 40,
+                                "strokeWidth": 6}
                             ),
                     IfPresent(
                               props.leftEarIcon,
                               Image(
                                           props.leftEarIcon,
-                                          {"width": 18, "height": 18, "objectFit": "contain", "fillColor": "#99000000"}
+                                          {"width": 18, "height": 18, "objectFit": "contain", "_preserveOriginalColor": true}
                                         )
                             )
                   ),
@@ -847,13 +1123,20 @@ Column(
             Stack(
                     {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
                     Progress(
-                              {"value": data.right, "total": 100, "type": "ring", "color": Expr(`${data.right} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`), "backgroundColor": "#1A000000", "width": 40, "height": 40, "strokeWidth": 6}
+                              {"value": data.right,
+                                "total": 100,
+                                "type": "ring",
+                                "color": $theme('supportContentColor'),
+                                "backgroundColor": "#1A000000",
+                                "width": 40,
+                                "height": 40,
+                                "strokeWidth": 6}
                             ),
                     IfPresent(
                               props.rightEarIcon,
                               Image(
                                           props.rightEarIcon,
-                                          {"width": 18, "height": 18, "objectFit": "contain", "fillColor": "#99000000"}
+                                          {"width": 18, "height": 18, "objectFit": "contain", "_preserveOriginalColor": true}
                                         )
                             )
                   ),

@@ -1,29 +1,21 @@
 {
   "themeFormat": "card-theme/2",
   "themeProfileId": "audio-product-neutral-violet",
-  "description": "音频产品中性紫",
+  "description": "耳机音乐浅绿",
   "firstLayerRule": {"path": "first-layer.md"},
   "supportedCapabilityIds": ["GetEarphoneInfo"],
   "paletteSceneIds": ["device.earbuds"],
-  "primaryColor": "#FF64BB5C",
-  "supportContentColor": "#FF64BB5C",
+  "primaryColor": "#FF52991F",
+  "supportContentColor": "#9952991F",
   "rootStyle": {
-    "backgroundColor": "#FFFFFFFF",
+    "backgroundColor": "#FFF0FFE6",
     "borderRadius": 20,
-    "padding": 11,
+    "padding": 12,
     "alignContent": "topStart",
-    "linearGradient": {
-      "direction": "RightBottom",
-      "colors": [["#1A64BB5C", 0], ["#00FFFFFF", 1]]
-    },
     "clip": true
   },
   "actionStyle": {
-    "backgroundColor": "#FFFFFFFF",
-    "contentColor": "#FF64BB5C",
-    "height": 30,
-    "borderRadius": 15,
-    "fontSize": 14,
-    "fontWeight": 600
+    "backgroundColor": "#3364BB5C",
+    "contentColor": "#FF52991F"
   }
 }

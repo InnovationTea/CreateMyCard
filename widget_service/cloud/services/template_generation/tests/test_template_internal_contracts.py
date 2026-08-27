@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import re
+from types import SimpleNamespace
 
 import pytest
 
 from models.generation import TaskSpec
+from services.template_generation.engine.advanced.ux_mixed_prompt import (
+    _weather_builtin_assets_for_components,
+)
 from services.template_generation.engine.cardplan.compiler import (
     _instantiate_blueprint,
     _validate_provider_template_layout_action_requirements,
@@ -25,6 +29,24 @@ from services.template_generation.engine.terse_dsl_nested2_converter import (
     TerseDslNested2ConversionError,
 )
 from services.template_generation.model_client import _parse_json_object
+
+
+def test_weather_builtin_assets_are_scoped_to_direct_weather_components() -> None:
+    template_weather = SimpleNamespace(
+        name="WeatherOverview",
+        implementation="template",
+    )
+    direct_weather = SimpleNamespace(
+        name="WeatherOverview",
+        implementation="terse-dsl",
+    )
+
+    assert _weather_builtin_assets_for_components((template_weather,)) == ()
+    assert _weather_builtin_assets_for_components((direct_weather,)) == (
+        "resources/base/media/icon_weather1.svg",
+        "resources/base/media/sun_max.svg",
+        "resources/base/media/cold.svg",
+    )
 
 
 def test_provider_compiler_rejects_deprecated_variant_syntax() -> None:
@@ -60,7 +82,8 @@ data = {
 Column(
   {"backgroundColor": $theme('actionStyle.backgroundColor')},
   Text("主内容", {"fontColor": $theme('primaryColor')}),
-  Text("辅助内容", {"fontColor": $theme('supportContentColor')})
+  Text("辅助内容", {"fontColor": $theme('supportContentColor')}),
+  Progress({"value": 50, "total": 100, "color": $theme('progressColor')})
 )
 #End
 """
@@ -81,6 +104,7 @@ Column(
     values = {
         "primaryColor": "#FFCCDDFF",
         "supportContentColor": "#99CCDDFF",
+        "progressColor": "#FF445566",
         "actionStyle.backgroundColor": "#33FFFFFF",
         "actionStyle.contentColor": "#FFCCDDFF",
     }
@@ -94,6 +118,7 @@ Column(
     assert root.values[-1]["backgroundColor"] == "#33FFFFFF"
     assert root.children[0].values[-1]["fontColor"] == "#FFCCDDFF"
     assert root.children[1].values[-1]["fontColor"] == "#99CCDDFF"
+    assert root.children[2].values[-1]["color"] == "#FF445566"
 
 
 def test_provider_cardtpl_rejects_unknown_theme_reference() -> None:
@@ -243,21 +268,29 @@ data = {{
         )
 
 
+def _layout_child_slot_indexes(root: TemplateNode) -> list[int]:
+    slot_indexes: list[int] = []
+    pending = [root]
+    while pending:
+        node = pending.pop()
+        if node.component == TEMPLATE_CHILD_SLOT_COMPONENT:
+            slot_index = node.values[0].value
+            assert isinstance(slot_index, int)
+            slot_indexes.append(slot_index)
+        pending.extend(reversed(node.children))
+    return slot_indexes
+
+
 def test_checked_in_layout_templates_use_concrete_container_blueprints() -> None:
     registry = get_cardplan_registry()
     fixed_slots = {
         "HeroActionLayout@1": 2,
-        "HeroSupportLayout@1": 2,
-        "HeroSupportActionLayout@1": 3,
+        "CompactTwoActionLayout@1": 3,
+        "TwoCompactLayout@1": 2,
     }
     variable_children = {
         "SingleFocusLayout@1",
-        "PeerPairLayout@1",
-        "SequentialSummaryLayout@1",
-        "EqualItemsLayout@1",
-        "ListActionLayout@1",
-        "ActionMatrixLayout@1",
-        "WeatherNowForecastLayout@1",
+        "WideSingleFocusLayout@1",
     }
 
     for template_id in (*fixed_slots, *variable_children):
@@ -268,12 +301,7 @@ def test_checked_in_layout_templates_use_concrete_container_blueprints() -> None
         assert options["width"].value == "matchParent"
         assert options["height"].value == "matchParent"
 
-        slot_indexes = [
-            child.children[0].values[0].value
-            for child in root.children
-            if child.children
-            and child.children[0].component == TEMPLATE_CHILD_SLOT_COMPONENT
-        ]
+        slot_indexes = _layout_child_slot_indexes(root)
         if template_id in fixed_slots:
             assert slot_indexes == list(range(fixed_slots[template_id]))
             assert not root.spread_children
@@ -356,31 +384,37 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
     icon = action("IconAction@1", "event.icon")
 
     _validate_provider_template_layout_action_requirements(
+        "CompactTwoActionLayout",
         (template("WeatherOverviewCompact@1"),),
         (pill_one, pill_two),
         "2x2",
     )
     _validate_provider_template_layout_action_requirements(
+        "TwoCompactLayout",
         (template("WeatherOverviewCompact@1"), template("BatteryOverviewNormalCompact@1")),
         (),
         "2x2",
     )
     _validate_provider_template_layout_action_requirements(
+        "HeroActionLayout",
         (template("BatteryOverviewNormalHero@1"),),
         (pill_one,),
         "2x2",
     )
     _validate_provider_template_layout_action_requirements(
+        "SingleFocusLayout",
         (template("WeatherOverviewFull@1"),),
         (icon,),
         "2x2",
     )
     _validate_provider_template_layout_action_requirements(
+        "WideSingleFocusLayout",
         (template("AppUsageOverviewWideHero@1"),),
         (pill_one,),
         "2x4",
     )
     _validate_provider_template_layout_action_requirements(
+        "WideSingleFocusLayout",
         (template("AppUsageOverviewWideFull@1"),),
         (),
         "2x4",
@@ -388,13 +422,36 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
 
     with pytest.raises(TerseDslNested2ConversionError, match="Hero.*Action combination"):
         _validate_provider_template_layout_action_requirements(
+            "HeroActionLayout",
             (template("BatteryOverviewNormalHero@1"),),
             (),
             "2x2",
         )
     with pytest.raises(TerseDslNested2ConversionError, match="only accepts one IconAction"):
         _validate_provider_template_layout_action_requirements(
+            "SingleFocusLayout",
             (template("WeatherOverviewFull@1"),),
+            (pill_one,),
+            "2x2",
+        )
+    with pytest.raises(TerseDslNested2ConversionError, match="Wide marker"):
+        _validate_provider_template_layout_action_requirements(
+            "SingleFocusLayout",
+            (template("AppUsageOverviewWideFull@1"),),
+            (),
+            "2x4",
+        )
+    with pytest.raises(TerseDslNested2ConversionError, match="suffix mismatches"):
+        _validate_provider_template_layout_action_requirements(
+            "WideSingleFocusLayout",
+            (template("AppUsageOverviewFull@1"),),
+            (),
+            "2x4",
+        )
+    with pytest.raises(TerseDslNested2ConversionError, match="requires HeroActionLayout"):
+        _validate_provider_template_layout_action_requirements(
+            "SingleFocusLayout",
+            (template("BatteryOverviewNormalHero@1"),),
             (pill_one,),
             "2x2",
         )

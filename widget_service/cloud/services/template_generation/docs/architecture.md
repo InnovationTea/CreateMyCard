@@ -112,7 +112,7 @@ Search 路线的首层输出是 `TemplateRetrievalQuery`：
 
 ```json
 {
-  "themeId": "family-weather-care-blue",
+  "themeId": "fusion-weather-blue",
   "requiredOutputFieldsByCapability": {
     "ViewWeather": ["/current/temperatureText", "/current/condition"]
   },
@@ -132,6 +132,7 @@ Search 路线的首层输出是 `TemplateRetrievalQuery`：
   `Compact`；三项及以上业务、双业务带 Action 或三项及以上 Action 均拒绝。
 - 用户显式字段必须在后缀过滤后的候选 Template 中完整覆盖；每个 `2x2` 业务槽必须由同一张
   兼容后缀的模板完整覆盖。
+- 两个 Provider Compact 在 `2x2` 下统一使用 `TwoCompactLayout`，不设置业务组合白名单。
 
 结果是 `TemplateRouteSelection`，其 `availableTemplateIds` 仍是二层候选集，不是最终选择。
 
@@ -157,7 +158,8 @@ Search 路线的首层输出是 `TemplateRetrievalQuery`：
 4. 展开 CardTpl，处理 `Bind`、`Param`、`Asset`、`Expr`、条件节点和 children 槽位。
 5. 将 Action Template 的 `EventAction(props.actionId)` 实体化为已批准事件。
 6. 将 Theme `rootStyle` 应用到卡片根节点；为未显式着色的内容组件补 `primaryColor`；确定性展开
-   CardTpl/Tersel 中的 `$theme(...)`；将 `actionStyle` 应用到受信 Action Template，然后执行布局 Lowering。
+   CardTpl/Tersel 中的 `$theme(...)`；将 `actionStyle` 的背景色和内容色应用到受信 Action Template，保留
+   模板节点已经显式声明的高度、圆角、字号和字重，然后执行布局 Lowering。
 7. 仅当实际产物为单业务 `Full` 或 `Hero` 时插入 Theme 三色的云侧 `FusionBall`；模板内不展开球体树，
    也不猜测或覆写主辅内容色。
 8. 序列化为 Tersel，再确定性转换为包含云侧组件的三段 A2UI。

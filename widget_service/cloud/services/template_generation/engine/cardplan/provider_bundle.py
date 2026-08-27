@@ -53,14 +53,9 @@ _LAYOUT_COMPONENTS = frozenset(
     {
         "SingleFocusLayout",
         "HeroActionLayout",
-        "HeroSupportLayout",
-        "HeroSupportActionLayout",
-        "PeerPairLayout",
-        "SequentialSummaryLayout",
-        "EqualItemsLayout",
-        "ListActionLayout",
-        "ActionMatrixLayout",
-        "WeatherNowForecastLayout",
+        "CompactTwoActionLayout",
+        "TwoCompactLayout",
+        "WideSingleFocusLayout",
     }
 )
 _CONDITIONAL_PARAMETER_COMPONENTS = frozenset({"IfParam", "IfMissingParam"})

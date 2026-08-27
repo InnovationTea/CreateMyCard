@@ -43,6 +43,14 @@ _WEATHER_BUILTIN_ASSETS = (
 )
 
 
+def _weather_builtin_assets_for_components(components: tuple[Any, ...]) -> tuple[str, ...]:
+    has_direct_weather = any(
+        component.name == "WeatherOverview" and component.implementation == "terse-dsl"
+        for component in components
+    )
+    return _WEATHER_BUILTIN_ASSETS if has_direct_weather else ()
+
+
 class _ScopePromptBridge(BaseModel):
     """仅把新 Scope 投影给现有可信 Contract 构造器，不触发旧 UI Planner。"""
 
@@ -157,7 +165,7 @@ def build_ux_mixed_prompt(
     if _calendar_date_schedule_pair_is_required(scope, required_template_groups):
         if selected_action_ids:
             raise ValueError("Calendar date-schedule Compact pair cannot include an Action")
-        allowed_layout_ids = ("PeerPairLayout",)
+        allowed_layout_ids = ("TwoCompactLayout",)
     if not allowed_layout_ids:
         raise ValueError("Advanced Scope has no compatible UX layout")
     allowed_layout_template_ids = tuple(f"{layout_id}@1" for layout_id in allowed_layout_ids)
@@ -185,6 +193,7 @@ def build_ux_mixed_prompt(
         component.name for component in components if component.implementation == "terse-dsl"
     )
     has_weather = any(component.name == "WeatherOverview" for component in components)
+    weather_builtin_assets = _weather_builtin_assets_for_components(components)
     has_heart_rate = any(component.name == "HeartRateOverview" for component in components)
     effective_required_template_groups = (
         tuple(
@@ -206,12 +215,12 @@ def build_ux_mixed_prompt(
         dict.fromkeys(
             (
                 *base.contract.allowed_asset_sources,
-                *(_WEATHER_BUILTIN_ASSETS if has_weather else ()),
+                *weather_builtin_assets,
             )
         )
     )
     asset_tags = dict(base.contract.asset_semantic_tags_by_source)
-    if has_weather:
+    if weather_builtin_assets:
         asset_tags.update(
             {
                 _WEATHER_BUILTIN_ASSETS[0]: ("weather", "condition", "rain"),

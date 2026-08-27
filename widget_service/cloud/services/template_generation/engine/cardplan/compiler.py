@@ -63,7 +63,6 @@ from .fusion_ball_background import (
 )
 from .models import (
     TEMPLATE_CHILD_SLOT_COMPONENT,
-    CardActionStyle,
     ExpansionStats,
     HybridBodyContract,
     TemplateDefinition,
@@ -852,6 +851,9 @@ def _expand_call(
         params,
         definition.asset_parameter_semantic_tags,
         contract,
+        required_parameters=frozenset(
+            str(item) for item in variant.parameters_schema.get("required", ())
+        ),
     )
     _validate_template_params(params, definition.asset_parameter_semantic_tags, contract)
     _validate_template_parameter_relations(params, variant.parameter_relations)
@@ -1012,7 +1014,12 @@ def _validate_provider_template_state(
             raise TerseDslNested2ConversionError(
                 "Battery Provider Template variant does not match the trusted state."
             )
-        if variant_name == "percentRingHero":
+        state_independent_variants = {
+            "percentRingHero",
+            "statusIconCompact",
+            "temperatureIconCompact",
+        }
+        if variant_name in state_independent_variants:
             return
         if not variant_name.startswith(facts.state):
             raise TerseDslNested2ConversionError(
@@ -4260,13 +4267,22 @@ def _normalize_template_asset_params(
     params: dict[str, Any],
     asset_tags: dict[str, tuple[str, ...]],
     contract: HybridBodyContract,
+    *,
+    required_parameters: frozenset[str],
 ) -> dict[str, Any]:
     normalized = dict(params)
     for key, value in params.items():
         is_asset_parameter = any(
             token in key.casefold() for token in ("icon", "image", "asset", "source", "src")
         )
-        if not is_asset_parameter or not isinstance(value, str) or value == "":
+        if not is_asset_parameter or not isinstance(value, str):
+            continue
+        if value == "":
+            if key in required_parameters:
+                raise TerseDslNested2ConversionError(
+                    f"Required Template asset cannot be empty: {key}"
+                )
+            normalized.pop(key, None)
             continue
         if value not in contract.allowed_asset_sources:
             raise TerseDslNested2ConversionError(f"Template asset is not approved: {value}")
@@ -4889,9 +4905,7 @@ def _compile_card_shell(
         event = next(item for item in task_spec.eventCandidates if item.id == binding.action_id)
         action_style = theme.action_style
         action_height = (
-            action_style.height
-            if action_style is not None
-            else registry.ux_tokens["pillActionHeight"]
+            registry.ux_tokens["pillActionHeight"]
             if ux_mixed
             else 30
         )
@@ -4899,9 +4913,7 @@ def _compile_card_shell(
             "width": "100%",
             "height": action_height,
             "padding": 2,
-            "borderRadius": (
-                action_style.border_radius if action_style is not None else action_height / 2
-            ),
+            "borderRadius": action_height / 2,
             "backgroundColor": (
                 action_style.background_color if action_style is not None else "#24FFFFFF"
             ),
@@ -4914,8 +4926,6 @@ def _compile_card_shell(
                 *label_values,
                 {
                     "fontColor": action_style.content_color,
-                    "fontSize": action_style.font_size,
-                    "fontWeight": action_style.font_weight,
                 },
             )
         label = Nested2Node("Text", label_values, ())
@@ -5808,6 +5818,8 @@ def _validate_ux_layout_root(
             "UX Mixed content root must be one approved Layout Template."
         )
     layout = registry.require_ux_layout_component(layout_id)
+    if size not in layout.supported_card_sizes:
+        raise TerseDslNested2ConversionError("UX Layout does not support the target card size.")
     if len(node.values) > 1 or (node.values and not isinstance(node.values[0], dict)):
         raise TerseDslNested2ConversionError(
             "UX Layout configuration must be one optional object argument."
@@ -5829,6 +5841,7 @@ def _validate_ux_layout_root(
     )
     content_children = tuple(child for child in node.children if child not in action_children)
     _validate_provider_template_layout_action_requirements(
+        layout_id,
         content_children,
         action_children,
         size,
@@ -5858,6 +5871,7 @@ def _validate_ux_layout_root(
 
 
 def _validate_provider_template_layout_action_requirements(
+    layout_id: str,
     content_children: tuple[ParsedCall, ...],
     action_children: tuple[ParsedCall, ...],
     size: Literal["2x2", "2x4"],
@@ -5872,6 +5886,11 @@ def _validate_provider_template_layout_action_requirements(
     )
     if not layout_kinds:
         return
+    layout_is_wide = layout_id.startswith("Wide")
+    if layout_is_wide != (size == "2x4"):
+        raise TerseDslNested2ConversionError(
+            "UX Layout Wide marker does not match the target card size."
+        )
     wide = any(kind.startswith("Wide") for kind in layout_kinds)
     if wide != (size == "2x4"):
         raise TerseDslNested2ConversionError(
@@ -5883,6 +5902,10 @@ def _validate_provider_template_layout_action_requirements(
         if (action_name := _parsed_ux_action_component(child)) is not None
     )
     if len(layout_kinds) == 2 and set(layout_kinds) == {"Compact"} and not action_names:
+        if layout_id != "TwoCompactLayout":
+            raise TerseDslNested2ConversionError(
+                "Two Compact Provider Templates require TwoCompactLayout."
+            )
         return
     if len(layout_kinds) != 1:
         raise TerseDslNested2ConversionError("Provider Template layout combination is invalid.")
@@ -5899,6 +5922,17 @@ def _validate_provider_template_layout_action_requirements(
     if layout_kind != "Full" and action_names != expected_actions:
         raise TerseDslNested2ConversionError(
             f"{layout_kind} Provider Template Action combination is invalid: {action_names}."
+        )
+    expected_layout_id = {
+        "Compact": "CompactTwoActionLayout",
+        "Hero": "HeroActionLayout",
+        "Full": "SingleFocusLayout",
+        "WideHero": "WideSingleFocusLayout",
+        "WideFull": "WideSingleFocusLayout",
+    }[layout_kind]
+    if layout_id != expected_layout_id:
+        raise TerseDslNested2ConversionError(
+            f"{layout_kind} Provider Template requires {expected_layout_id}."
         )
 
 
@@ -5927,26 +5961,12 @@ def _validate_ux_business_component_placement(
     contract: HybridBodyContract,
     registry: CardPlanRegistry,
 ) -> None:
-    is_compact_peer_pair = (
-        size == "2x2"
-        and layout_id == "PeerPairLayout"
-        and len(content) == 2
-        and all(
-            child.kind == "template"
-            and provider_template_layout_kind(child.name) == "Compact"
-            for child in content
-        )
+    contains_provider_template = any(
+        call.kind == "template" and provider_template_layout_kind(call.name) is not None
+        for child in content
+        for call in _walk_calls(child)
     )
-    if is_compact_peer_pair:
-        return
-    is_compact_action_matrix = (
-        size == "2x2"
-        and layout_id == "ActionMatrixLayout"
-        and len(content) == 1
-        and content[0].kind == "template"
-        and provider_template_layout_kind(content[0].name) == "Compact"
-    )
-    if is_compact_action_matrix:
+    if contains_provider_template:
         return
     business_names = _contract_ux_business_component_names(contract, registry)
     validation_content = tuple(
@@ -8303,7 +8323,6 @@ def _lower_ux_action(
             node,
             background=background,
             foreground=foreground,
-            action_style=theme_action,
         )
     if node.component_type == "ActionTile":
         if size != "2x4" and not allow_action_tile_2x2:
@@ -8320,7 +8339,6 @@ def _lower_ux_action(
         node,
         background=background,
         foreground=foreground,
-        action_style=theme_action,
     )
 
 
@@ -8354,7 +8372,6 @@ def _lower_action_template_tree(
     *,
     background: str,
     foreground: str,
-    action_style: CardActionStyle | None,
 ) -> Nested2Node:
     if len(node.children) != 1 or node.children[0].component_type != "Stack":
         raise TerseDslNested2ConversionError("UX Action must contain one trusted Action Template.")
@@ -8363,15 +8380,7 @@ def _lower_action_template_tree(
         children = tuple(apply_foreground(child) for child in current.children)
         styled = Nested2Node(current.component_type, current.values, children)
         if current.component_type == "Text":
-            additions: dict[str, Any] = {"fontColor": foreground}
-            if action_style is not None:
-                additions.update(
-                    {
-                        "fontSize": action_style.font_size,
-                        "fontWeight": action_style.font_weight,
-                    }
-                )
-            return _merge_node_options(styled, additions)
+            return _merge_node_options(styled, {"fontColor": foreground})
         if current.component_type == "Image":
             return _merge_node_options(styled, {"fillColor": foreground})
         return styled
@@ -8380,15 +8389,7 @@ def _lower_action_template_tree(
     root_options = next((value for value in content.values if isinstance(value, dict)), None)
     if root_options is None or "onClick" not in root_options:
         raise TerseDslNested2ConversionError("UX Action Template must declare onClick.")
-    additions = {"backgroundColor": background}
-    if action_style is not None:
-        additions.update(
-            {
-                "height": action_style.height,
-                "borderRadius": action_style.border_radius,
-            }
-        )
-    return _merge_node_options(content, additions)
+    return _merge_node_options(content, {"backgroundColor": background})
 
 
 def _lower_action_tile(

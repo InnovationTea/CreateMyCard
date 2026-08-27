@@ -79,7 +79,7 @@ def _card_spec() -> dict[str, Any]:
 
 def _query(*paths: str) -> TemplateRetrievalQuery:
     return TemplateRetrievalQuery(
-        themeId="family-weather-care-blue",
+        themeId="fusion-weather-blue",
         requiredOutputFieldsByCapability={"ViewWeather": paths},
     )
 
@@ -125,7 +125,7 @@ def test_provider_required_data_types_are_checked_when_known() -> None:
 
 
 def test_cross_theme_query_keeps_field_compatible_candidates() -> None:
-    query = _query("/current/condition").model_copy(update={"theme_id": "meeting-paper-neutral"})
+    query = _query("/current/condition").model_copy(update={"theme_id": "fusion-schedule-cool"})
 
     result = retrieve_template_variants(
         query, _task(), get_cardplan_registry(), (_binding(),), _card_spec()
@@ -198,7 +198,7 @@ def test_shared_capability_keeps_each_component_scoped_templates() -> None:
         candidateOutputFields=["/events/0/title", "/events/0/dtStart", "/events/0/dtEnd"],
     )
     query = TemplateRetrievalQuery(
-        themeId="meeting-paper-neutral",
+        themeId="fusion-schedule-cool",
         requiredOutputFieldsByCapability={
             "GetCalendarEvents": ("/events/0/title", "/events/0/dtStart")
         },
@@ -221,7 +221,7 @@ def test_shared_capability_keeps_each_component_scoped_templates() -> None:
     assert "ScheduleOverviewNextEventFull@1" in result.allowed_template_ids
 
 
-def test_calendar_date_and_schedule_share_one_business_component() -> None:
+def test_calendar_date_and_schedule_require_one_covering_business_template() -> None:
     task = TaskSpec(
         userQuery="显示日期和下一场会议的标题、时间",
         size="2x2",
@@ -254,7 +254,7 @@ def test_calendar_date_and_schedule_share_one_business_component() -> None:
         candidateOutputFields=list(fields),
     )
     query = TemplateRetrievalQuery(
-        themeId="meeting-paper-neutral",
+        themeId="fusion-schedule-cool",
         requiredOutputFieldsByCapability={
             "GetCalendarEvents": (
                 "/events/0/startDate",
@@ -264,33 +264,22 @@ def test_calendar_date_and_schedule_share_one_business_component() -> None:
         },
     )
 
-    result = retrieve_template_variants(
-        query,
-        task,
-        CardPlanRegistry(),
-        (binding,),
-        {
-            "suggestSize": "2x2",
-            "dataBindings": [
-                {
-                    "capabilityId": "GetCalendarEvents",
-                    "writeResultTo": "/data/calendar",
-                }
-            ],
-        },
-    )
-
-    assert result.scope.advanced_component_ids == ("CalendarOverview",)
-    assert len(result.component_candidates) == 1
-    assert set(result.allowed_template_ids) >= {
-        "DateOverviewCompact@1",
-        "ScheduleOverviewMeetingCompact@1",
-    }
-    assert any("DateOverviewCompact@1" in group for group in result.required_template_groups)
-    assert any(
-        "ScheduleOverviewMeetingCompact@1" in group
-        for group in result.required_template_groups
-    )
+    with pytest.raises(TemplateRetrievalMiss, match="cannot cover one CalendarOverview slot"):
+        retrieve_template_variants(
+            query,
+            task,
+            CardPlanRegistry(),
+            (binding,),
+            {
+                "suggestSize": "2x2",
+                "dataBindings": [
+                    {
+                        "capabilityId": "GetCalendarEvents",
+                        "writeResultTo": "/data/calendar",
+                    }
+                ],
+            },
+        )
 
 
 def test_domain_only_query_returns_candidates_when_required_data_is_available() -> None:
@@ -348,7 +337,7 @@ def test_search_allows_two_businesses_without_actions_only_with_compact_template
     )
     result = retrieve_template_variants(
         TemplateRetrievalQuery(
-            themeId="family-weather-care-blue",
+            themeId="fusion-weather-blue",
             requiredOutputFieldsByCapability={
                 "ViewWeather": ("/current/condition",),
                 "GetCalendarEvents": ("/events/0/title", "/events/0/dtStart"),
@@ -377,7 +366,7 @@ def test_search_allows_two_businesses_without_actions_only_with_compact_template
 
 def test_search_still_rejects_more_than_two_data_businesses() -> None:
     query = TemplateRetrievalQuery(
-        themeId="family-weather-care-blue",
+        themeId="fusion-weather-blue",
         requiredOutputFieldsByCapability={
             "CapabilityA": ("/value",),
             "CapabilityB": ("/value",),

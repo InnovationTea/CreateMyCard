@@ -285,7 +285,9 @@ TaskSpec 数据序列化。它用于受信模板编译，不等同于公共生�
 文件：[../engine/cardplan/preview_dataset.py](../engine/cardplan/preview_dataset.py)
 
 `build_template_preview_cases()` 和 `write_template_preview_dataset()` 不调用 LLM，直接从 Registry 展开所有
-业务 Template，用于视觉预览、资产路径检查和统计回归。
+业务 Template，用于视觉预览、资产路径检查和统计回归。预览颜色优先使用能力匹配的非融球 Theme，其次使用
+能力匹配的融球 Theme；某业务没有生产 Theme 时，仅在开发预览中使用应用时长中性主题解析 `$theme`。
+该回退不参与生产 Registry 候选、Prompt 或模板路由。
 
 ## 6. `resources/source/`
 

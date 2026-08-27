@@ -56,7 +56,10 @@ def frame_ux_layout_root_children(
         root = parse_ux_layout_card(normalized)
         trailing_delimiters_repaired = True
     layout_id = _layout_id(root)
-    maximum = registry.require_ux_layout_component(layout_id).max_children_by_size[size]
+    layout = registry.require_ux_layout_component(layout_id)
+    if size not in layout.supported_card_sizes:
+        raise TerseDslNested2ConversionError("UX Layout does not support the target card size.")
+    maximum = layout.max_children_by_size[size]
     actions = tuple(
         child
         for child in root.children
@@ -65,10 +68,8 @@ def frame_ux_layout_root_children(
     content = tuple(child for child in root.children if child not in actions)
     if len(content) <= maximum:
         return normalized, trailing_delimiters_repaired
-    if layout_id in {"SingleFocusLayout", "HeroActionLayout"}:
-        expanded_layout_id = (
-            "HeroSupportActionLayout" if actions else "HeroSupportLayout"
-        )
+    if layout_id in {"SingleFocusLayout", "HeroActionLayout"} and not actions:
+        expanded_layout_id = "TwoCompactLayout"
         expanded_layout = registry.require_ux_layout_component(expanded_layout_id)
         expanded_maximum = expanded_layout.max_children_by_size[size]
         if (

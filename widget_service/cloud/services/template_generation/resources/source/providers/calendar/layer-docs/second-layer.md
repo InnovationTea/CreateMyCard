@@ -3,7 +3,7 @@
 - Provider：`com.huawei.calendar.cli`。
 - 业务领域统一为 `CalendarOverview`；日期模板与日程模板是同一业务下的不同内容形态。
 - 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
-- 用户同时要求日期和日程时，在 2x2 中优先使用 `PeerPairLayout@1({}, ...)`，先放
+- 用户同时要求日期和日程时，在 2x2 中使用 `TwoCompactLayout@1({}, ...)`，先放
   `DateOverviewCompact@1`，再放不带素材 props 且满足字段要求的 `ScheduleOverview*Compact@1`；
   两个纯文本 Compact 会自动纵向排列，不得拆成两个业务组件。
 - 组合后的日期区占上半区，日程区占下半区；沿用 12vp 卡片安全边距，日期标签与主日期分别使用 12vp、
@@ -34,7 +34,12 @@
   `focus`/`dnd`/月亮语义素材；不得把业务模板的 `calendarIcon` 当作动作图标。
 - 选择能够完整表达用户显式要求字段且自身 `primaryData` 与 `secondaryData` 全部可用的模板。
 - 素材参数不绑定固定素材 ID，只在本轮素材候选中匹配；没有合适候选时省略可选参数，并避免选择依赖必需素材的模板：
-  - `sourceIcon`：日历应用、日程来源或会议来源语义，不是时间或地点图标。
+  - `sourceIcon`：只选择日历应用、日程来源或会议来源语义，不得使用时钟、时间、地点或导航素材。
+    当前 Calendar 来源素材为单色图标，由主题主内容色着色；不得按多色素材保留原始白色。
   - `calendarIcon`：日历本或日程管理语义；没有语义匹配素材时省略。
-  - `timeIcon`：时钟、时间或日程时刻语义。
-  - `locationIcon`：地点、位置、会议室或地图标记语义。
+  - `timeIcon`：只选择时钟、时间或日程时刻语义，不得复用来源、地点或 Action 素材。
+  - `locationIcon`：只选择地点、位置、会议室或地图标记语义，不得复用来源、时间或 Action 素材。
+- 同一业务模板同时填写多个素材参数时，各槽位必须选择各自语义匹配的不同素材，不得把同一个素材同时填入
+  `sourceIcon`、`timeIcon` 和 `locationIcon`。
+- Action 图标必须与动作语义一致：查看日程使用日历或日程入口语义，进入会议使用会议语义；不得复用时间或
+  地点素材。`PillAction@1` 没有匹配素材时省略 `icon`，不得为了显示图标而复用业务内容素材。

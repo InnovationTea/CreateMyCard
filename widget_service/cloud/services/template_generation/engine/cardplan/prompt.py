@@ -191,10 +191,9 @@ def build_hybrid_prompt(
         actions = ()
     selected_definitions = [registry.require_template(wire_id) for wire_id in requested]
     if ux_layout_root_ids:
-        # Layout contracts select the exact cardinality. Most layouts consume
-        # zero or one primary Action; ActionMatrixLayout may consume up to four
-        # independently approved controls.
-        content_action_ids = tuple(action.action_id for action in actions[:4])
+        # Layout contracts select the exact cardinality. The compact two-action
+        # layout is the only family that consumes both approved controls.
+        content_action_ids = tuple(action.action_id for action in actions[:2])
     else:
         content_action_ids = _resolve_content_action_ids(
             ui_brief=ui_brief,

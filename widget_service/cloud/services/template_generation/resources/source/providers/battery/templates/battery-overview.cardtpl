@@ -21,13 +21,23 @@ Column(
       Stack(
             {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
             Progress(
-                    {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 52, "height": 52, "strokeWidth": 6}
+                    {"value": data.percent,
+                      "total": 100,
+                      "type": "ring",
+                      "color": $theme('progressColor'),
+                      "backgroundColor": "#1A000000",
+                      "width": 52,
+                      "height": 52,
+                      "strokeWidth": 6}
                   ),
             IfPresent(
                     props.batteryIcon,
                     Image(
                               props.batteryIcon,
-                              {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
+                              {"width": 24,
+                                "height": 24,
+                                "objectFit": "contain",
+                                "fillColor": $theme('supportContentColor')}
                             )
                   )
           )
@@ -69,7 +79,7 @@ Column(
                       "value": data.percent,
                       "total": 100,
                       "type": "ring",
-                      "color": "#FFF9A01E",
+                      "color": $theme('progressColor'),
                       "backgroundColor": "#1A000000",
                       "width": 52,
                       "height": 52,
@@ -80,7 +90,10 @@ Column(
                     props.batteryIcon,
                     Image(
                               props.batteryIcon,
-                              {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
+                              {"width": 24,
+                                "height": 24,
+                                "objectFit": "contain",
+                                "fillColor": $theme('supportContentColor')}
                             )
                   )
           ),
@@ -132,13 +145,23 @@ Column(
       Stack(
             {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
             Progress(
-                    {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 52, "height": 52, "strokeWidth": 6}
+                    {"value": data.percent,
+                      "total": 100,
+                      "type": "ring",
+                      "color": $theme('progressColor'),
+                      "backgroundColor": "#1A000000",
+                      "width": 52,
+                      "height": 52,
+                      "strokeWidth": 6}
                   ),
             IfPresent(
                     props.batteryIcon,
                     Image(
                               props.batteryIcon,
-                              {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
+                              {"width": 24,
+                                "height": 24,
+                                "objectFit": "contain",
+                                "fillColor": $theme('supportContentColor')}
                             )
                   )
           )
@@ -169,13 +192,23 @@ Column(
       Stack(
             {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
             Progress(
-                    {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 52, "height": 52, "strokeWidth": 6}
+                    {"value": data.percent,
+                      "total": 100,
+                      "type": "ring",
+                      "color": $theme('progressColor'),
+                      "backgroundColor": "#1A000000",
+                      "width": 52,
+                      "height": 52,
+                      "strokeWidth": 6}
                   ),
             IfPresent(
                     props.batteryIcon,
                     Image(
                               props.batteryIcon,
-                              {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
+                              {"width": 24,
+                                "height": 24,
+                                "objectFit": "contain",
+                                "fillColor": $theme('supportContentColor')}
                             )
                   )
           )
@@ -202,13 +235,23 @@ Column(
       Stack(
             {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
             Progress(
-                    {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 52, "height": 52, "strokeWidth": 6}
+                    {"value": data.percent,
+                      "total": 100,
+                      "type": "ring",
+                      "color": $theme('progressColor'),
+                      "backgroundColor": "#1A000000",
+                      "width": 52,
+                      "height": 52,
+                      "strokeWidth": 6}
                   ),
             IfPresent(
                     props.batteryIcon,
                     Image(
                               props.batteryIcon,
-                              {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
+                              {"width": 24,
+                                "height": 24,
+                                "objectFit": "contain",
+                                "fillColor": $theme('supportContentColor')}
                             )
                   )
           ),
@@ -250,13 +293,23 @@ Column(
       Stack(
             {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
             Progress(
-                    {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 52, "height": 52, "strokeWidth": 6}
+                    {"value": data.percent,
+                      "total": 100,
+                      "type": "ring",
+                      "color": $theme('progressColor'),
+                      "backgroundColor": "#1A000000",
+                      "width": 52,
+                      "height": 52,
+                      "strokeWidth": 6}
                   ),
             IfPresent(
                     props.batteryIcon,
                     Image(
                               props.batteryIcon,
-                              {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
+                              {"width": 24,
+                                "height": 24,
+                                "objectFit": "contain",
+                                "fillColor": $theme('supportContentColor')}
                             )
                   )
           ),
@@ -298,13 +351,23 @@ Column(
       Stack(
             {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
             Progress(
-                    {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 52, "height": 52, "strokeWidth": 6}
+                    {"value": data.percent,
+                      "total": 100,
+                      "type": "ring",
+                      "color": $theme('progressColor'),
+                      "backgroundColor": "#1A000000",
+                      "width": 52,
+                      "height": 52,
+                      "strokeWidth": 6}
                   ),
             IfPresent(
                     props.batteryIcon,
                     Image(
                               props.batteryIcon,
-                              {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
+                              {"width": 24,
+                                "height": 24,
+                                "objectFit": "contain",
+                                "fillColor": $theme('supportContentColor')}
                             )
                   )
           ),
@@ -340,13 +403,23 @@ Column(
   Stack(
       {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
       Progress(
-            {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 52, "height": 52, "strokeWidth": 6}
+            {"value": data.percent,
+              "total": 100,
+              "type": "ring",
+              "color": $theme('progressColor'),
+              "backgroundColor": "#1A000000",
+              "width": 52,
+              "height": 52,
+              "strokeWidth": 6}
           ),
       IfPresent(
             props.batteryIcon,
             Image(
                     props.batteryIcon,
-                    {"width": 20, "height": 20, "objectFit": "contain", "fillColor": "#99000000"}
+                    {"width": 20,
+                      "height": 20,
+                      "objectFit": "contain",
+                      "fillColor": $theme('supportContentColor')}
                   )
           )
     ),
@@ -378,13 +451,23 @@ Column(
   Stack(
       {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
       Progress(
-            {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 52, "height": 52, "strokeWidth": 6}
+            {"value": data.percent,
+              "total": 100,
+              "type": "ring",
+              "color": $theme('progressColor'),
+              "backgroundColor": "#1A000000",
+              "width": 52,
+              "height": 52,
+              "strokeWidth": 6}
           ),
       IfPresent(
             props.batteryIcon,
             Image(
                     props.batteryIcon,
-                    {"width": 20, "height": 20, "objectFit": "contain", "fillColor": "#99000000"}
+                    {"width": 20,
+                      "height": 20,
+                      "objectFit": "contain",
+                      "fillColor": $theme('supportContentColor')}
                   )
           )
     ),
@@ -416,13 +499,23 @@ Column(
   Stack(
       {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
       Progress(
-            {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 52, "height": 52, "strokeWidth": 6}
+            {"value": data.percent,
+              "total": 100,
+              "type": "ring",
+              "color": $theme('progressColor'),
+              "backgroundColor": "#1A000000",
+              "width": 52,
+              "height": 52,
+              "strokeWidth": 6}
           ),
       IfPresent(
             props.batteryIcon,
             Image(
                     props.batteryIcon,
-                    {"width": 20, "height": 20, "objectFit": "contain", "fillColor": "#99000000"}
+                    {"width": 20,
+                      "height": 20,
+                      "objectFit": "contain",
+                      "fillColor": $theme('supportContentColor')}
                   )
           )
     ),
@@ -452,13 +545,23 @@ Column(
   Stack(
       {"width": 56, "height": 56, "alignContent": "center", "flexShrink": 0},
       Progress(
-            {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 56, "height": 56, "strokeWidth": 6}
+            {"value": data.percent,
+              "total": 100,
+              "type": "ring",
+              "color": $theme('progressColor'),
+              "backgroundColor": "#1A000000",
+              "width": 56,
+              "height": 56,
+              "strokeWidth": 6}
           ),
       IfPresent(
             props.batteryIcon,
             Image(
                     props.batteryIcon,
-                    {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
+                    {"width": 24,
+                      "height": 24,
+                      "objectFit": "contain",
+                      "fillColor": $theme('supportContentColor')}
                   )
           )
     ),
@@ -484,13 +587,23 @@ Column(
   Stack(
       {"width": 56, "height": 56, "alignContent": "center", "flexShrink": 0},
       Progress(
-            {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 56, "height": 56, "strokeWidth": 6}
+            {"value": data.percent,
+              "total": 100,
+              "type": "ring",
+              "color": $theme('progressColor'),
+              "backgroundColor": "#1A000000",
+              "width": 56,
+              "height": 56,
+              "strokeWidth": 6}
           ),
       IfPresent(
             props.batteryIcon,
             Image(
                     props.batteryIcon,
-                    {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
+                    {"width": 24,
+                      "height": 24,
+                      "objectFit": "contain",
+                      "fillColor": $theme('supportContentColor')}
                   )
           )
     ),
@@ -516,13 +629,23 @@ Column(
   Stack(
       {"width": 56, "height": 56, "alignContent": "center", "flexShrink": 0},
       Progress(
-            {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 56, "height": 56, "strokeWidth": 6}
+            {"value": data.percent,
+              "total": 100,
+              "type": "ring",
+              "color": $theme('progressColor'),
+              "backgroundColor": "#1A000000",
+              "width": 56,
+              "height": 56,
+              "strokeWidth": 6}
           ),
       IfPresent(
             props.batteryIcon,
             Image(
                     props.batteryIcon,
-                    {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
+                    {"width": 24,
+                      "height": 24,
+                      "objectFit": "contain",
+                      "fillColor": $theme('supportContentColor')}
                   )
           )
     ),
@@ -766,13 +889,23 @@ Column(
   Stack(
       {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
       Progress(
-            {"value": data.percent, "total": 100, "type": "ring", "color": $theme('primaryColor'), "backgroundColor": "#3399661F", "width": 52, "height": 52, "strokeWidth": 6}
+            {"value": data.percent,
+              "total": 100,
+              "type": "ring",
+              "color": $theme('progressColor'),
+              "backgroundColor": "#3399661F",
+              "width": 52,
+              "height": 52,
+              "strokeWidth": 6}
           ),
       IfPresent(
             props.batteryIcon,
             Image(
                     props.batteryIcon,
-                    {"width": 20, "height": 20, "objectFit": "contain", "fillColor": $theme('primaryColor')}
+                    {"width": 20,
+                      "height": 20,
+                      "objectFit": "contain",
+                      "fillColor": $theme('supportContentColor')}
                   )
           )
     ),

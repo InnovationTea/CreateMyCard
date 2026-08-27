@@ -94,19 +94,22 @@ def test_tersel_theme_reference_is_resolved_inside_inline_styles() -> None:
     values = {
         "primaryColor": "#FF112233",
         "supportContentColor": "#99112233",
+        "progressColor": "#FF445566",
         "actionStyle.backgroundColor": "#33FFFFFF",
         "actionStyle.contentColor": "#FFCCDDEE",
     }
     root = parse_tersel(
         'Column({"backgroundColor":$theme("actionStyle.backgroundColor")},'
         'Text("主内容",{"fontColor":$theme("primaryColor")}),'
-        'Text("辅助内容",{"fontColor":$theme("supportContentColor")}))',
+        'Text("辅助内容",{"fontColor":$theme("supportContentColor")}),'
+        'Progress({"value":50,"total":100,"color":$theme("progressColor")}))',
         theme_values=values,
     )
 
     assert root.values == ({"backgroundColor": "#33FFFFFF"},)
     assert root.children[0].values[-1]["fontColor"] == "#FF112233"
     assert root.children[1].values[-1]["fontColor"] == "#99112233"
+    assert root.children[2].values[-1]["color"] == "#FF445566"
 
 
 @pytest.mark.parametrize(

@@ -14,4 +14,5 @@
 - `appIcon` 表达本轮目标应用自身的应用图标或品牌标识，不得使用其他应用或通用计时图标替代；它不绑定固定素材 ID，只在本轮素材候选中匹配，没有合适候选时省略。
 - 当目标尺寸为 `2x2` 且 `selectedActionEventIds` 恰好一个时，必须选择 `AppUsageOverviewHero@1`，并放入
   带末尾 `PillAction` 的 `HeroActionLayout@1`；无动作的 2x2 选择 `AppUsageOverviewFull@1`，2x4 按动作
-  情况选择 `AppUsageOverviewWideHero@1` 或 `AppUsageOverviewWideFull@1`。
+  情况选择 `AppUsageOverviewWideHero@1` 或 `AppUsageOverviewWideFull@1`，并统一放入
+  `WideSingleFocusLayout@1`，不得使用任何不含 `Wide` 的布局。
