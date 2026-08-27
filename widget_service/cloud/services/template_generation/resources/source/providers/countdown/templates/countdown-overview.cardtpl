@@ -25,3 +25,58 @@ Column(
     )
 )
 #End
+
+#Template CountdownOverviewCompact@1(props: { title?: string })
+data = {
+    days: $path("/countdownDays")
+}
+
+Column(
+  {
+    "_advancedComponent": "CountdownOverview",
+    "width": "matchParent",
+    "height": 64,
+    "backgroundColor": $theme('actionStyle.backgroundColor'),
+    "borderRadius": 16,
+    "padding": {"left": 12, "top": 6, "right": 12, "bottom": 6},
+    "itemMargin": 2,
+    "justifyContent": "center",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0, "minHeight": 0}
+  },
+  Row(
+      {
+        "width": "matchParent",
+        "height": 32,
+        "itemMargin": 4,
+        "justifyContent": "start",
+        "alignItems": "bottom",
+        "clip": true,
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+      },
+      Text(
+            data.days,
+            {"fontSize": 30, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      Text(
+            "天",
+            {"fontSize": 18, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "margin": {"left": 0, "top": 0, "right": 0, "bottom": 3}, "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
+    ),
+  IfPresent(
+        props.title,
+        Text(
+              props.title,
+              {"width": "matchParent", "fontSize": 16, "minFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            )
+      ),
+  IfAbsent(
+        props.title,
+        Text(
+              "倒计时",
+              {"width": "matchParent", "fontSize": 16, "minFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            )
+      )
+)
+#End
