@@ -88,6 +88,21 @@
       "secondaryData": []
     },
     {
+      "templateId": "ScheduleOverviewReminderHero@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "2x2 日程提醒 Hero 主内容；以时间轴展示标题、开始时间和提前提醒，底部动作由 HeroActionLayout 承载。 组件形态：reminderAction。",
+      "optionalData": [],
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/events/0/title"
+      ],
+      "secondaryData": [
+        "/events/0/dtStart",
+        "/events/0/remindTime/0"
+      ]
+    },
+    {
       "templateId": "ScheduleOverviewDatedMeetingHero@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
