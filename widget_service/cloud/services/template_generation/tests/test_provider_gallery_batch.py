@@ -13,6 +13,8 @@ from core.errors import GenerationStatus
 from models.artifact import WidgetArtifact
 from services.artifact_store import ArtifactStore
 from services.template_generation.test_support.provider_gallery import (
+    MULTI_BUSINESS_UNSUPPORTED_ERROR,
+    MULTI_BUSINESS_UNSUPPORTED_REASON,
     ProviderGalleryBatchRunner,
     load_gallery_input_manifest,
     write_gallery_input_dataset,
@@ -318,15 +320,14 @@ async def test_gallery_runner_calls_public_service_and_groups_a2ui_by_provider(
     )
 
     assert summary.total == 4
-    assert summary.success == 4
-    assert summary.failed == 0
-    assert len(service.requests) == 4
-    assert service.fusion_ball_flags == [False] * 4
+    assert summary.success == 3
+    assert summary.failed == 1
+    assert len(service.requests) == 3
+    assert service.fusion_ball_flags == [False] * 3
     assert all(service.template_candidate_ids)
     assert all(isinstance(item, dict) for item in service.template_sample_overrides)
-    assert sorted(len(item) for item in service.template_action_ids) == [0, 0, 1, 2]
+    assert sorted(len(item) for item in service.template_action_ids) == [0, 1, 2]
     assert sorted(len(request.candidateEventCandidates or []) for request in service.requests) == [
-        0,
         0,
         1,
         2,
@@ -334,8 +335,14 @@ async def test_gallery_runner_calls_public_service_and_groups_a2ui_by_provider(
     output_manifest = json.loads(summary.manifest_path.read_text(encoding="utf-8"))
     assert len(output_manifest["providers"]) == 1
     cases = output_manifest["providers"][0]["cases"]
-    assert {case["status"] for case in cases} == {"success"}
+    assert {case["status"] for case in cases} == {"failed", "success"}
+    multi_business = next(case for case in cases if case["scenarioId"] == "two-contents")
+    assert multi_business["errorCode"] == MULTI_BUSINESS_UNSUPPORTED_ERROR
+    assert multi_business["errorMessage"] == MULTI_BUSINESS_UNSUPPORTED_REASON
     for case in cases:
+        if case["status"] == "failed":
+            assert case["a2uiFile"] == ""
+            continue
         a2ui_path = output_root / case["a2uiFile"]
         assert a2ui_path.is_file()
         assert len(json.loads(a2ui_path.read_text(encoding="utf-8"))) == 3
@@ -354,8 +361,9 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
     summary = await runner.run(input_root, output_root, dry_run=True)
 
     assert summary.total == 92
-    assert summary.missing == 27
-    assert summary.not_generated == 65
+    assert summary.failed == 27
+    assert summary.missing == 19
+    assert summary.not_generated == 46
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 8

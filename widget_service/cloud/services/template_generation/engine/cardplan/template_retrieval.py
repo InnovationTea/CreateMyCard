@@ -1,7 +1,8 @@
 """Search CardTpl candidates from first-layer LLM field requirements.
 
 Search deliberately does not select a final template, layout, component composition,
-card size, or theme compatibility.  Those are second-layer responsibilities.
+card size, or theme compatibility. Those are second-layer responsibilities. The current
+route only admits one data business, optionally combined with explicit Actions.
 """
 
 from __future__ import annotations
@@ -109,6 +110,8 @@ def build_template_retrieval_prompt(
         "candidateDataBindings。每个 value 仅保留用户明确要求展示的字段，字段必须逐字来自 "
         "candidateOutputFieldsByCapability；不得按模板反推字段，"
         "也不得补全用户未要求展示的字段。"
+        "不得为了迁就单业务限制而省略用户明确要求的其他业务字段；"
+        "多业务请求由服务端确定性判定模板不适用。"
         "用户只要求某领域卡片、未明确字段时，该 capability 输出空数组。"
         "action 仅当用户明确要求点击、跳转或操作时才选择 actionCandidates 中"
         "语义一致的零到两个不重复 eventId；不能因候选事件存在而默认选择。"
@@ -136,10 +139,6 @@ def retrieve_template_variants(
     _validate_selected_actions(query, task_spec)
     if not query.required_output_fields_by_capability:
         raise TemplateRetrievalMiss("template retrieval has no requested capability")
-    if len(query.required_output_fields_by_capability) > 2:
-        raise TemplateRetrievalMiss(
-            "template Search supports at most two data businesses with optional Actions"
-        )
     candidate_ids = {binding.capabilityId for binding in coverage_bindings}
     if not set(query.required_output_fields_by_capability).issubset(candidate_ids):
         raise TemplateRetrievalMiss("requested capability is outside candidate data bindings")
@@ -177,9 +176,9 @@ def retrieve_template_variants(
         )
         for component_id, template_ids in sorted(by_component.items())
     )
-    if len(candidates) > 2:
+    if len(candidates) > 1:
         raise TemplateRetrievalMiss(
-            "template Search requires requested fields to fit at most two business components"
+            "template Search supports one data business with optional Actions"
         )
     candidates = tuple(
         _candidate_with_complete_field_coverage(candidate, required_groups)

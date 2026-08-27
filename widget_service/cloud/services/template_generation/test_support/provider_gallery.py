@@ -34,6 +34,8 @@ OUTPUT_SCHEMA_VERSION = "provider-template-gallery-output/2"
 DEFAULT_APP_VERSION = "11.7.5.205"
 DEFAULT_ROM_VERSION = "6.0"
 DEFAULT_BUNDLE_NAME = "com.huawei.genui.evaluation"
+MULTI_BUSINESS_UNSUPPORTED_ERROR = "TEMPLATE_SEARCH_MULTI_BUSINESS_UNSUPPORTED"
+MULTI_BUSINESS_UNSUPPORTED_REASON = "模板 Search 暂不支持多业务组合"
 
 _TEMPLATE_GENERATION_ROOT = Path(__file__).resolve().parents[1]
 _PROVIDER_ROOT = _TEMPLATE_GENERATION_ROOT / "resources" / "source" / "providers"
@@ -969,6 +971,13 @@ class ProviderGalleryBatchRunner:
         }
 
         async def execute_case(case: GalleryInputCase) -> dict[str, Any]:
+            if case.scenarioId == "two-contents":
+                return self._base_result(
+                    case,
+                    "failed",
+                    MULTI_BUSINESS_UNSUPPORTED_REASON,
+                    error_code=MULTI_BUSINESS_UNSUPPORTED_ERROR,
+                )
             if case.missingReason:
                 return self._base_result(case, "missing", case.missingReason)
             if dry_run:

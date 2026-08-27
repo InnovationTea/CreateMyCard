@@ -22,12 +22,14 @@ JSON 或公开 Schema。Search 通过后，二层候选才会收窄到目标模�
 | 场景 | 预期模板组合 |
 | --- | --- |
 | 单内容 + 2 个 Action | Compact + 2 × PillAction |
-| 2 个内容 | 当前业务 Compact + 另一 Provider 的 Compact |
+| 2 个内容 | 负向场景：固定标记为 `failed`，不调用模型 |
 | 单内容 + 1 个 Action | Hero + PillAction |
 | 单内容 | Full |
 
-因此每个 Compact 分别生成“单内容 + 2 个 Action”和“2 个内容”两个用例，每个 Hero 生成一个
-“单内容 + 1 个 Action”用例，每个 Full 生成一个“单内容”用例。业务缺少某个后缀时仍保留一张缺失占位卡。
+因此每个 Compact 仍生成“单内容 + 2 个 Action”和“2 个内容”两个用例，每个 Hero 生成一个
+“单内容 + 1 个 Action”用例，每个 Full 生成一个“单内容”用例。当前 Search 暂不支持多业务组合，
+“2 个内容”作为能力边界负向用例保留，批跑器确定性记录错误码
+`TEMPLATE_SEARCH_MULTI_BUSINESS_UNSUPPORTED`，不调用服务或模型。业务缺少某个后缀时仍保留一张缺失占位卡。
 
 模拟输入从当前 `provider.json` 读取 Provider、业务、能力写入根，以及目标模板自己的主数据和次要数据；
 这些必选数据全部进入 `candidateOutputFields`。数据能力参数和 Action 内容来自当前能力注册表，用户 query
@@ -70,9 +72,9 @@ widget_service/.venv312/bin/python \
   --refresh-inputs --dry-run --concurrency 2
 ```
 
-以 2026-08-27 当前资源为基线，应生成 8 个 Provider、92 个用例；其中 65 个状态为 `not_generated`，
-27 个状态为 `missing`。Provider 或模板调整后数量可以变化，应以重新生成的输入 manifest 为准，不能继续
-复用旧结果目录中的数量。
+以 2026-08-27 当前资源为基线，应生成 8 个 Provider、92 个用例；其中 27 个多业务负向用例为 `failed`，
+19 个状态为 `missing`，46 个状态为 `not_generated`。Provider 或模板调整后数量可以变化，应以重新生成的
+输入 manifest 为准，不能继续复用旧结果目录中的数量。
 
 ### 真实批跑
 
