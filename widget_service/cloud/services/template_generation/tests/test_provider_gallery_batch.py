@@ -138,7 +138,6 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         "/batterySOCText",
         "/chargingStatusDesc",
         "/batteryCapacityLevelDesc",
-        "/batterySOC",
     ]
     assert len(request["content"]["candidateEventCandidates"]) == 2
     assert "打开电池设置" in request["content"]["userQuery"]
@@ -186,10 +185,38 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         (input_root / battery_charging.requestFile).read_text(encoding="utf-8")
     )
     assert charging_request["galleryTest"]["sampleOverrides"] == {
-        "/data/phoneBattery/batterySOC": 68,
         "/data/phoneBattery/batterySOCText": "68%",
         "/data/phoneBattery/chargingStatusDesc": "正在充电",
         "/data/phoneBattery/batteryCapacityLevelDesc": "正常电量",
+    }
+    battery_low = _find_case(
+        manifest,
+        "BatteryOverview",
+        "single-two-actions",
+        "BatteryOverviewLowWeatherCompact@1",
+    )
+    low_request = json.loads(
+        (input_root / battery_low.requestFile).read_text(encoding="utf-8")
+    )
+    assert low_request["galleryTest"]["sampleOverrides"] == {
+        "/data/phoneBattery/batterySOCText": "15%",
+        "/data/phoneBattery/chargingStatusDesc": "未充电",
+        "/data/phoneBattery/batteryCapacityLevelDesc": "低电量",
+    }
+    battery_low_full = _find_case(
+        manifest,
+        "BatteryOverview",
+        "single-content",
+        "BatteryOverviewLowFull@1",
+    )
+    low_full_request = json.loads(
+        (input_root / battery_low_full.requestFile).read_text(encoding="utf-8")
+    )
+    assert low_full_request["galleryTest"]["sampleOverrides"] == {
+        "/data/phoneBattery/batterySOC": 15,
+        "/data/phoneBattery/batterySOCText": "15%",
+        "/data/phoneBattery/chargingStatusDesc": "未充电",
+        "/data/phoneBattery/batteryCapacityLevelDesc": "低电量",
     }
     weather_icon = _find_case(
         manifest,
@@ -215,6 +242,46 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     assert weather_temperature_request["content"]["candidateAssetIds"] == [
         "asset.icon_weather1"
     ]
+    for template_id in (
+        "WeatherOverviewTemperatureAlertUvIconCompact@1",
+        "WeatherOverviewTemperatureUvIconCompact@1",
+    ):
+        weather_uv_icon = _find_case(
+            manifest,
+            "WeatherOverview",
+            "single-two-actions",
+            template_id,
+        )
+        weather_uv_icon_request = json.loads(
+            (input_root / weather_uv_icon.requestFile).read_text(encoding="utf-8")
+        )
+        assert weather_uv_icon_request["content"]["candidateAssetIds"] == [
+            "asset.icon_weather1"
+        ]
+    battery_temperature_icon = _find_case(
+        manifest,
+        "BatteryOverview",
+        "single-two-actions",
+        "BatteryOverviewNormalPowerTemperatureIconCompact@1",
+    )
+    battery_temperature_icon_request = json.loads(
+        (input_root / battery_temperature_icon.requestFile).read_text(encoding="utf-8")
+    )
+    assert battery_temperature_icon_request["content"]["candidateDataBindings"][0][
+        "candidateOutputFields"
+    ] == ["/batterySOC", "/batteryTemperatureText"]
+    battery_icon = _find_case(
+        manifest,
+        "BatteryOverview",
+        "single-two-actions",
+        "BatteryOverviewTemperatureIconCompact@1",
+    )
+    battery_icon_request = json.loads(
+        (input_root / battery_icon.requestFile).read_text(encoding="utf-8")
+    )
+    assert battery_icon_request["content"]["candidateDataBindings"][0][
+        "candidateOutputFields"
+    ] == ["/batteryTemperatureText", "/batterySOCText"]
     calendar_location_source = _find_case(
         manifest,
         "CalendarOverview",

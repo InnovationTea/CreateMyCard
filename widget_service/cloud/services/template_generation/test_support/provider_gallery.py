@@ -185,16 +185,12 @@ _ASSET_IDS_BY_TEMPLATE_PREFIX = {
     "WeatherOverviewFull": ("asset.icon_weather1",),
     "WeatherOverviewHero": ("asset.icon_weather1",),
     "WeatherOverviewTemperatureIcon": ("asset.icon_weather1",),
+    "WeatherOverviewTemperatureAlertUvIcon": ("asset.icon_weather1",),
+    "WeatherOverviewTemperatureUvIcon": ("asset.icon_weather1",),
 }
 
-_BATTERY_RUNTIME_FIELDS = (
-    "/batterySOC",
-    "/batterySOCText",
-    "/chargingStatusDesc",
-    "/batteryCapacityLevelDesc",
-)
-
 _CALENDAR_NEXT_EVENT_RUNTIME_FIELDS = ("/events/0/dtStart",)
+_BATTERY_FACT_FIELDS = frozenset(("/batterySOC", "/batterySOCText"))
 
 _COMPACT_PARTNER_PRIORITY = (
     "AppUsageOverviewCompact@1",
@@ -462,8 +458,9 @@ def _data_binding(
 ) -> dict[str, Any]:
     configured_fields = template.fields if template is not None else definition.fallback_fields
     fields = configured_fields
-    if definition.business_id == "BatteryOverview":
-        fields = _ordered_unique([*configured_fields, *_BATTERY_RUNTIME_FIELDS])
+    has_battery_fact = bool(_BATTERY_FACT_FIELDS.intersection(configured_fields))
+    if definition.business_id == "BatteryOverview" and not has_battery_fact:
+        fields = _ordered_unique([*configured_fields, "/batterySOCText"])
     if template is not None and template.template_id.startswith("ScheduleOverviewNextEvent"):
         fields = _ordered_unique([*configured_fields, *_CALENDAR_NEXT_EVENT_RUNTIME_FIELDS])
     return {
@@ -534,26 +531,45 @@ def _gallery_sample_overrides(
     target_template: ProviderTemplateDefinition | None,
     partner_template: ProviderTemplateDefinition | None,
 ) -> dict[str, Any]:
-    template_ids = {
-        template.template_id
+    templates = tuple(
+        template
         for template in (target_template, partner_template)
         if template is not None
-    }
-    if any("BatteryOverviewCharging" in template_id for template_id in template_ids):
-        return {
+    )
+    battery_template = next(
+        (
+            template
+            for template in templates
+            if template.template_id.startswith("BatteryOverview")
+        ),
+        None,
+    )
+    if battery_template is None:
+        return {}
+    template_id = battery_template.template_id
+    sample_overrides: dict[str, Any] = {}
+    if "BatteryOverviewCharging" in template_id:
+        sample_overrides = {
             "/data/phoneBattery/batterySOC": 68,
             "/data/phoneBattery/batterySOCText": "68%",
             "/data/phoneBattery/chargingStatusDesc": "正在充电",
             "/data/phoneBattery/batteryCapacityLevelDesc": "正常电量",
         }
-    if any("BatteryOverviewLow" in template_id for template_id in template_ids):
-        return {
+    elif "BatteryOverviewLow" in template_id:
+        sample_overrides = {
             "/data/phoneBattery/batterySOC": 15,
             "/data/phoneBattery/batterySOCText": "15%",
             "/data/phoneBattery/chargingStatusDesc": "未充电",
             "/data/phoneBattery/batteryCapacityLevelDesc": "低电量",
         }
-    return {}
+    available_fields = set(battery_template.fields)
+    if not _BATTERY_FACT_FIELDS.intersection(available_fields):
+        available_fields.add("/batterySOCText")
+    return {
+        path: value
+        for path, value in sample_overrides.items()
+        if path.removeprefix("/data/phoneBattery") in available_fields
+    }
 
 
 def _request_envelope(
