@@ -56,12 +56,12 @@
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
       "description": "天气温度图标紧凑行；用于 2x2 双层 Compact 组合，上层展示温度、城市和天气图标。 组件形态：temperatureIconCompact。",
-      "optionalData": [],
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/current/temperatureText"
       ],
-      "secondaryData": [
+      "secondaryData": [],
+      "optionalData": [
         "/location/districtName"
       ]
     },

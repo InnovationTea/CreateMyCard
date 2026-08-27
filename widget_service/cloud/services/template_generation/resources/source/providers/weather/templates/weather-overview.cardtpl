@@ -136,7 +136,7 @@ Column(
 
 #Template WeatherOverviewTemperatureIconCompact@1(props: { conditionIcon: asset })
 data = {
-    city: $path("/location/districtName"),
+    city: $optionalPath("/location/districtName"),
     temperature: $path("/current/temperatureText")
 }
 
@@ -144,7 +144,9 @@ Row(
   {
     "_advancedComponent": "WeatherOverview",
     "width": "matchParent",
-    "height": "matchParent",
+    "height": 64,
+    "backgroundColor": $theme('actionStyle.backgroundColor'),
+    "borderRadius": 16,
     "padding": {"left": 12, "top": 0, "right": 22, "bottom": 0},
     "justifyContent": "spaceBetween",
     "alignItems": "start",
@@ -165,9 +167,12 @@ Row(
             data.temperature,
             {"fontSize": 19, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           ),
-      Text(
+      IfPresent(
             data.city,
-            {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            Text(
+                  data.city,
+                  {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                )
           )
     ),
   Image(
@@ -177,6 +182,7 @@ Row(
         "height": 20,
         "margin": {"left": 0, "top": 22, "right": 0, "bottom": 22},
         "objectFit": "contain",
+        "fillColor": $theme('primaryColor'),
         "flexShrink": 0,
         "_preserveOriginalColor": true
       }

@@ -24,7 +24,9 @@
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量百分比环形 Hero；居中展示电量进度环和剩余电量百分比文本，用于第二层组合一个 PillAction。 组件形态：percentRingHero。",
-      "optionalData": [],
+      "optionalData": [
+        "/chargingStatusDesc"
+      ],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
         "/batterySOC",
