@@ -16,17 +16,17 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     manifest = write_template_preview_dataset(tmp_path)
     cases = manifest["cases"]
 
-    assert manifest["templateCount"] == 75
+    assert manifest["templateCount"] == 78
     assert manifest["countsByLayout"] == {
-        "Compact": 29,
+        "Compact": 32,
         "Hero": 7,
         "Full": 26,
         "WideHero": 2,
         "WideFull": 11,
     }
-    assert manifest["countsBySize"] == {"2x2": 62, "2x4": 13}
-    assert len(cases) == 75
-    assert len({case["templateId"] for case in cases}) == 75
+    assert manifest["countsBySize"] == {"2x2": 65, "2x4": 13}
+    assert len(cases) == 78
+    assert len({case["templateId"] for case in cases}) == 78
     assert all((tmp_path / case["file"]).is_file() for case in cases)
 
 

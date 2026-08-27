@@ -77,7 +77,7 @@ Column({
 data = {
 }
 
-Row({
+Column({
   "width": "matchParent",
   "height": "matchParent",
   "itemMargin": 8

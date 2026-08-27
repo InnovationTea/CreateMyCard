@@ -20,6 +20,8 @@
   - `BatteryOverviewNormalWeatherCompact@1`：手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normalWeather。 布局场景：约 2x1；用于双 Compact 组合，或单 Compact 加两个 PillAction。主数据：/batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
   - `BatteryOverviewChargingWeatherCompact@1`：手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：chargingWeather。 布局场景：约 2x1；用于双 Compact 组合，或单 Compact 加两个 PillAction。主数据：/batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
   - `BatteryOverviewLowWeatherCompact@1`：手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：lowWeather。 布局场景：约 2x1；用于双 Compact 组合，或单 Compact 加两个 PillAction。主数据：/batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
+  - `BatteryOverviewTemperatureIconCompact@1`：手机电池温度图标紧凑行；约 2x1，用于 2x2 双层 Compact 组合的下层。左侧固定展示 `/batteryTemperatureText` 和“手机温度”，右侧为 `batteryIcon` SVG 占位。主数据：/batteryTemperatureText；次要数据：无；可选数据：无。
+  - `BatteryOverviewStatusIconCompact@1`：手机电量状态图标紧凑行；约 2x1，用于 2x2 双层 Compact 组合。左侧固定展示 `/batterySOCText` 和可选 `/batteryCapacityLevelDesc`，右侧为 `batteryIcon` SVG 占位。主数据：/batterySOCText；次要数据：无；可选数据：/batteryCapacityLevelDesc。
 - props 只能使用本次 Prompt 下发的可信文本、数值或素材；不得输出数据路径。
 - 选择能够完整表达用户显式要求字段且自身 `primaryData` 与 `secondaryData` 全部可用的模板。
 - `batteryIcon` 表达电池、电量或当前充电状态，不得使用动作图标或其他设备品类图标替代；它不绑定固定素材 ID，只在本轮素材候选中匹配，没有合适候选时省略。

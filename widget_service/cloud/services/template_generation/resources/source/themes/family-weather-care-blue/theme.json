@@ -5,21 +5,17 @@
   "firstLayerRule": {"path": "first-layer.md"},
   "supportedCapabilityIds": ["ViewWeather"],
   "paletteSceneIds": ["weather.sunnyCare"],
-  "primaryColor": "#FFFFFFFF",
-  "supportContentColor": "#FFFFFFFF",
+  "primaryColor": "#FF1F4594",
+  "supportContentColor": "#FF1F4594",
   "rootStyle": {
-    "backgroundColor": "#FF317AF7",
-    "borderRadius": 20,
-    "padding": 10,
-    "linearGradient": {
-      "direction": "Bottom",
-      "colors": [["#FF317AF7", 0], ["#FF46B1E3", 1]]
-    },
+    "backgroundColor": "#FFE5EDFE",
+    "borderRadius": 18,
+    "padding": 12,
     "clip": true
   },
   "actionStyle": {
-    "backgroundColor": "#FFFFFFFF",
-    "contentColor": "#FF64BB5C",
+    "backgroundColor": "#1A2E529E",
+    "contentColor": "#FF1F4594",
     "height": 28,
     "borderRadius": 14,
     "fontSize": 14,

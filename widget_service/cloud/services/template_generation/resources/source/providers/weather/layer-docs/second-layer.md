@@ -8,6 +8,10 @@
   `/current/condition`、`/current/coldLevel`；可选数据：无。
 - `WeatherOverviewIconCompact@1`：带天气图标的温度紧凑摘要；布局和数据分级与
   `WeatherOverviewCompact@1` 相同。
+- `WeatherOverviewTemperatureIconCompact@1`：天气温度图标紧凑行；约 2x1，用于 2x2 双层 Compact
+  组合的上层。左侧固定展示 `/current/temperatureText` 和 `/location/districtName`，右侧为
+  `conditionIcon` 天气 SVG 占位。主数据：`/current/temperatureText`；次要数据：
+  `/location/districtName`；可选数据：无。
 - `WeatherOverviewHero@1`：温度 Hero 摘要；约 2x1.7，只用于一个 Hero 加一个 PillAction。
   主数据：`/current/temperatureText`；次要数据：`/location/districtName`、
   `/current/condition`、`/current/coldLevel`；可选数据：无。
