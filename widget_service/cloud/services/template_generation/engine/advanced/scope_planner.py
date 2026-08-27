@@ -890,7 +890,7 @@ def scope_template_ids(
         for template_id in preferred_template_ids
         if template_id in declared_template_ids
     )
-    template_ids = tuple(dict.fromkeys((*preferred, *declared_template_ids)))[:12]
+    template_ids = tuple(dict.fromkeys((*preferred, *declared_template_ids)))
     if task_spec is None or advanced_component_data_admission_is_bypassed():
         return template_ids
     return tuple(
