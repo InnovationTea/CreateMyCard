@@ -2388,7 +2388,7 @@ def _provider_field(value: Any, field_type: str) -> dict[str, Any]:
 
 
 @pytest.mark.asyncio
-async def test_q094_multi_business_fields_use_compact_template_search():
+async def test_q094_multi_business_fields_are_rejected_before_the_second_layer():
     task_spec = TaskSpec(
         userQuery="刚睡醒，看看昨晚睡了多久、睡眠得分和今天走了多少步",
         size="2x2",
@@ -2475,16 +2475,17 @@ async def test_q094_multi_business_fields_use_compact_template_search():
             )
 
     model = Q094TemplateModel()
-    output = await generate_template_a2ui(
-        task_spec,
-        card_spec,
-        (binding,),
-        model,
-        trusted_template_candidate_ids=(
-            "SleepOverviewCompact@1",
-            "ActivityOverviewCompact@1",
-        ),
-    )
+    with pytest.raises(TemplateRouteNotApplicable, match="one data business"):
+        await generate_template_a2ui(
+            task_spec,
+            card_spec,
+            (binding,),
+            model,
+            trusted_template_candidate_ids=(
+                "SleepOverviewCompact@1",
+                "ActivityOverviewCompact@1",
+            ),
+        )
 
     assert model.first_layer_prompt is not None
     first_layer_payload = json.loads(model.first_layer_prompt[1]["content"])
@@ -2496,15 +2497,7 @@ async def test_q094_multi_business_fields_use_compact_template_search():
         ]
     }
     assert first_layer_payload["providerFirstLayerRules"]
-    assert model.second_layer_prompt is not None
-    second_layer_text = model.second_layer_prompt[1]["content"]
-    assert '"availableTemplateIds": ["ActivityOverviewCompact@1"]' in second_layer_text
-    assert '"availableTemplateIds": ["SleepOverviewCompact@1"]' in second_layer_text
-    assert set(output.template_ids) == {
-        "TwoCompactLayout@1",
-        "SleepOverviewCompact@1",
-        "ActivityOverviewCompact@1",
-    }
+    assert model.second_layer_prompt is None
 
 
 class _FixedTemplateModel:

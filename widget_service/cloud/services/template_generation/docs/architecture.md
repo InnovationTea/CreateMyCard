@@ -131,11 +131,13 @@ Search 路线的首层输出是 `TemplateRetrievalQuery`：
 - 字段必须逐字来自对应 `candidateOutputFields`。
 - CardSpec 写入根必须与 Provider `dataDomain` 一致。
 - 模板的 `primaryData` 和 `secondaryData` 必须都能从 TaskSpec 中取得。
-- Search 最多接受两个数据业务，可外加最多两个显式 Action。
+- Search 只接受一个数据业务，可外加最多两个属于该业务场景的显式 Action。
+- 首层必须完整标定用户显式字段，不得为了迁就单业务限制而省略其他业务；Search 一旦映射出两个或以上
+  业务组件，立即在二层模型调用前返回模板不适用。
 - Search 不按 Action 数量或布局后缀筛选候选；每个保留的 Template 必须独立完整覆盖所属业务的
   用户显式字段。
 - `2x2`/`2x4` 的 `Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀筛选由第二层完成。
-- 两个 Provider Compact 在 `2x2` 下统一使用 `TwoCompactLayout`，不设置业务组合白名单。
+- `TwoCompactLayout` 作为兼容资源保留，当前默认 Search 路线不会为多业务请求下发该布局。
 
 结果是 `TemplateRouteSelection`，其 `availableTemplateIds` 仍是二层候选集，不是最终选择。
 

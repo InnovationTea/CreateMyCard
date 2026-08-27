@@ -317,6 +317,7 @@ def test_first_layer_prompt_includes_task_fields_rules_and_action_candidates() -
     assert payload["actionCandidates"] == [
         {"eventId": "event.open.weather", "call": "clickToDeeplink"}
     ]
+    assert "不得为了迁就单业务限制而省略" in messages[0]["content"]
 
 
 def test_search_rejects_2x4_before_prompt_or_retrieval() -> None:
@@ -336,7 +337,7 @@ def test_search_rejects_2x4_before_prompt_or_retrieval() -> None:
         )
 
 
-def test_search_defers_two_business_layout_suffix_filtering_to_the_second_layer() -> None:
+def test_search_rejects_two_data_businesses_before_the_second_layer() -> None:
     task = _task()
     task.dataModelSchema["data"]["calendar"] = {
         "events": [
@@ -352,47 +353,78 @@ def test_search_defers_two_business_layout_suffix_filtering_to_the_second_layer(
         writeResultTo="/data/calendar",
         candidateOutputFields=["/events/0/title", "/events/0/dtStart"],
     )
-    result = retrieve_template_variants(
-        TemplateRetrievalQuery(
-            themeId="family-weather-care-blue",
-            requiredOutputFieldsByCapability={
-                "ViewWeather": ("/current/condition",),
-                "GetCalendarEvents": ("/events/0/title", "/events/0/dtStart"),
+    with pytest.raises(TemplateRetrievalMiss, match="one data business"):
+        retrieve_template_variants(
+            TemplateRetrievalQuery(
+                themeId="family-weather-care-blue",
+                requiredOutputFieldsByCapability={
+                    "ViewWeather": ("/current/condition",),
+                    "GetCalendarEvents": ("/events/0/title", "/events/0/dtStart"),
+                },
+            ),
+            task,
+            CardPlanRegistry(),
+            (_binding(), calendar),
+            {
+                "dataBindings": [
+                    {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"},
+                    {
+                        "capabilityId": "GetCalendarEvents",
+                        "writeResultTo": "/data/calendar",
+                    },
+                ]
             },
-        ),
-        task,
-        CardPlanRegistry(),
-        (_binding(), calendar),
-        {
-            "dataBindings": [
-                {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"},
-                {"capabilityId": "GetCalendarEvents", "writeResultTo": "/data/calendar"},
-            ]
+        )
+
+
+def test_search_rejects_two_businesses_backed_by_one_capability() -> None:
+    task = TaskSpec(
+        userQuery="显示昨晚睡眠时长和今天步数",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "healthSport": {
+                    "nightSleepDurationText": _field("7小时1分"),
+                    "sleepScore": _field(82, "integer"),
+                    "dailySteps": _field(6200, "integer"),
+                }
+            }
         },
     )
-
-    assert {item.component_id for item in result.component_candidates} == {
-        "CalendarOverview",
-        "WeatherOverview",
-    }
-    assert "WeatherOverviewCompact@1" in result.allowed_template_ids
-    assert "WeatherOverviewFull@1" in result.allowed_template_ids
-    assert "ScheduleOverviewMeetingCompact@1" in result.allowed_template_ids
-    assert "ScheduleOverviewNextEventFull@1" in result.allowed_template_ids
-
-
-def test_search_still_rejects_more_than_two_data_businesses() -> None:
+    binding = CandidateDataBinding(
+        capabilityId="GetHealthAndSportSummary",
+        writeResultTo="/data/healthSport",
+        candidateOutputFields=[
+            "/nightSleepDurationText",
+            "/sleepScore",
+            "/dailySteps",
+        ],
+    )
     query = TemplateRetrievalQuery(
-        themeId="family-weather-care-blue",
+        themeId="race-sunrise-action",
         requiredOutputFieldsByCapability={
-            "CapabilityA": ("/value",),
-            "CapabilityB": ("/value",),
-            "CapabilityC": ("/value",),
+            "GetHealthAndSportSummary": (
+                "/nightSleepDurationText",
+                "/dailySteps",
+            )
         },
     )
 
-    with pytest.raises(TemplateRetrievalMiss, match="at most two data businesses"):
-        retrieve_template_variants(query, _task(), CardPlanRegistry(), (), {})
+    with pytest.raises(TemplateRetrievalMiss, match="one data business"):
+        retrieve_template_variants(
+            query,
+            task,
+            CardPlanRegistry(),
+            (binding,),
+            {
+                "dataBindings": [
+                    {
+                        "capabilityId": "GetHealthAndSportSummary",
+                        "writeResultTo": "/data/healthSport",
+                    }
+                ]
+            },
+        )
 
 
 def test_search_allows_one_data_business_with_action() -> None:
@@ -421,6 +453,47 @@ def test_search_allows_one_data_business_with_action() -> None:
 
     assert len(result.component_candidates) == 1
     assert result.action_id == "event.open.weather"
+
+
+def test_search_allows_one_data_business_with_two_actions() -> None:
+    task = _task().model_copy(
+        update={
+            "eventCandidates": [
+                EventAction(
+                    id="event.open.weather",
+                    call="clickToDeeplink",
+                    args={"intentName": "Weather_CityCode"},
+                ),
+                EventAction(
+                    id="event.start.navigate",
+                    call="clickToDeeplink",
+                    args={"intentName": "Navigation"},
+                ),
+            ]
+        }
+    )
+    query = _query("/current/condition").model_copy(
+        update={
+            "action_ids": (
+                "event.open.weather",
+                "event.start.navigate",
+            )
+        }
+    )
+
+    result = retrieve_template_variants(
+        query,
+        task,
+        CardPlanRegistry(),
+        (_binding(),),
+        _card_spec(),
+    )
+
+    assert len(result.component_candidates) == 1
+    assert result.action_ids == (
+        "event.open.weather",
+        "event.start.navigate",
+    )
 
 
 def test_search_keeps_multiple_candidates_for_each_layout_kind() -> None:
