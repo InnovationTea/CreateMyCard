@@ -648,3 +648,66 @@ def test_optional_data_is_available_but_not_required_for_second_containment() ->
     assert "/updatedAt" in record.available_paths
     assert "/updatedAt" not in record.required_paths
     assert any(token.path == "/updatedAt" for token in record.field_tokens)
+
+
+def test_two_business_compact_can_cover_battery_soc_and_temperature() -> None:
+    task = TaskSpec(
+        userQuery="显示天气、电量和手机温度",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "location": {"districtName": _field("福田区")},
+                    "current": {
+                        "temperatureText": _field("29°C"),
+                        "condition": _field("多云"),
+                    },
+                },
+                "phoneBattery": {
+                    "batterySOC": _field(68, "integer"),
+                    "batteryTemperatureText": _field("29.0 ℃"),
+                },
+            }
+        },
+    )
+    query = TemplateRetrievalQuery(
+        themeId="family-weather-care-blue",
+        requiredOutputFieldsByCapability={
+            "ViewWeather": ("/current/temperatureText",),
+            "GetPhoneBatteryInfo": ("/batterySOC", "/batteryTemperatureText"),
+        },
+    )
+    bindings = (
+        CandidateDataBinding(
+            capabilityId="ViewWeather",
+            writeResultTo="/data/weather",
+            candidateOutputFields=["/current/temperatureText"],
+        ),
+        CandidateDataBinding(
+            capabilityId="GetPhoneBatteryInfo",
+            writeResultTo="/data/phoneBattery",
+            candidateOutputFields=["/batterySOC", "/batteryTemperatureText"],
+        ),
+    )
+    card_spec = {
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"},
+            {"capabilityId": "GetPhoneBatteryInfo", "writeResultTo": "/data/phoneBattery"},
+        ],
+    }
+
+    result = retrieve_template_variants(
+        query,
+        task,
+        get_cardplan_registry(),
+        bindings,
+        card_spec,
+    )
+
+    battery_candidate = next(
+        item for item in result.component_candidates if item.component_id == "BatteryOverview"
+    )
+    assert "BatteryOverviewPowerTemperatureIconCompact@1" in (
+        battery_candidate.available_template_ids
+    )

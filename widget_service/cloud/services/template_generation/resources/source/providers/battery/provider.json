@@ -217,6 +217,19 @@
         "/batterySOCText"
       ],
       "secondaryData": []
+    },
+    {
+      "templateId": "BatteryOverviewPowerTemperatureIconCompact@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量与电池温度图标紧凑行；用于 2x2 双层 Compact 组合，左侧两行展示电量百分比和手机温度，右侧为电池图标。 组件形态：powerTemperatureIconCompact。",
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/batterySOC",
+        "/batteryTemperatureText"
+      ],
+      "secondaryData": []
     }
   ],
   "compatibility": {
