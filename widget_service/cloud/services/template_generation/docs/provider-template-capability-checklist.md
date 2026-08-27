@@ -4,7 +4,7 @@
 
 ## 整改总览
 
-- [x] 75 个业务模板全部使用 `Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
+- [x] 80 个业务模板全部使用 `Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
 - [x] 业务模板尺寸和动作组合由后缀推导，不再由 Provider 重复声明。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
 - [x] `primaryData` 与 `secondaryData` 均参与模板准入硬校验。
@@ -29,7 +29,7 @@
 | --- | --- | --- | ---: | --- |
 | app-usage | `GetAppUsageDuration` | `/data/appUsageStats` | 5 | 启用 |
 | battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 17 | 启用 |
-| calendar | `GetCalendarEvents` | `/data/calendar` | 10 | 配置禁用 |
+| calendar | `GetCalendarEvents` | `/data/calendar` | 12 | 启用 |
 | countdown | `GetCountdownDays` | `/data/countdown` | 1 | 启用 |
 | earphone | `GetEarphoneInfo` | `/data/earphone` | 14 | 配置禁用 |
 | health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 17 | 启用 |
@@ -76,8 +76,8 @@
 
 ## CalendarOverview
 
-- Provider：`com.huawei.calendar.cli`；运行状态：配置禁用。
-- 数据能力：`GetCalendarEvents`；模板数：10。
+- Provider：`com.huawei.calendar.cli`；运行状态：启用。
+- 数据能力：`GetCalendarEvents`；模板数：12。
 - 日期与日程已合并为同一业务领域；日期日程组合场景使用
   `DateOverviewCompact@1` + 一个 `ScheduleOverview*Compact@1` 组成 2x2。
 
@@ -86,6 +86,8 @@
 | ✅ | `DateOverviewCompact@1` | 约 2x1；优先与一个日程 Compact 纵向组成 2x2 | `/events/0/startDate` | `/updatedAt` | 无 |
 | ✅ | `DateOverviewFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/events/0/startDate` | `/updatedAt` | 无 |
 | ✅ | `ScheduleOverviewNextEventFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd` | 无 |
+| ✅ | `ScheduleOverviewNextEventHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/events/0/title` | 无 | `/events/0/dtStart`<br>`/events/0/dtEnd`<br>`/events/0/remindTime/0`<br>`/eventCount`<br>`/events/0/description`<br>`/events/0/timeZone`<br>`/events/0/isAllDay`<br>`/events/0/eventLocation` |
+| ✅ | `ScheduleOverviewDatedMeetingHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/startDate`<br>`/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewNextEventLocationFull@1` | 完整 2x2；单 Full，或 Full + 1 个 IconAction | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/eventLocation`<br>`/events/0/dtEnd` | 无 |
 | ✅ | `ScheduleOverviewMeetingCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd` | 无 |
 | ✅ | `ScheduleOverviewMeetingLocationCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/eventLocation`<br>`/events/0/dtEnd` | 无 |
@@ -211,4 +213,4 @@
 - 三组数据路径必须分别唯一且互不重叠。
 - 模板 `$path` 只能引用主数据或次要数据；`$optionalPath` 只能引用可选数据。
 - 模板展开前确定性校验布局尺寸、业务模板数量、Action 数量和 Action 类型。
-- Calendar 与 Earphone 当前仍受运行配置禁用；本次已完成资源整改，但不会进入线上候选。
+- Earphone 当前仍受运行配置禁用；Calendar 已启用并进入线上候选。

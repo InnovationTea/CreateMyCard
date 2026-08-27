@@ -215,7 +215,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 90
+    assert len(registry.provider_template_ids) == 92
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -226,7 +226,9 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "DateOverviewFull@1",
         "HeartRateOverviewFull@1",
         "ResourceUsageOverviewFull@1",
+        "ScheduleOverviewDatedMeetingHero@1",
         "ScheduleOverviewNextEventFull@1",
+        "ScheduleOverviewNextEventHero@1",
         "SleepOverviewCompact@1",
         "SleepOverviewFull@1",
         "SleepOverviewHero@1",
@@ -328,7 +330,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 10
+    assert len(calendar.local_template_ids) == 12
     assert set(calendar.local_template_ids) >= {
         "DateOverviewCompact@1",
         "ScheduleOverviewMeetingCompact@1",
@@ -1393,19 +1395,17 @@ def test_unknown_template_controls_fail_closed(kwargs, message):
         CardPlanRegistry(**kwargs)
 
 
-def test_checked_in_template_controls_disable_calendar_and_earphone():
+def test_checked_in_template_controls_enable_calendar_and_disable_earphone():
     controls = load_template_controls()
     registry = CardPlanRegistry(
         disabled_provider_ids=controls.disabled_provider_ids,
         disabled_template_ids=controls.disabled_template_ids,
     )
 
-    assert controls.disabled_provider_ids == (
-        "com.huawei.calendar.cli",
-        "com.huawei.earphone.cli",
-    )
+    assert controls.disabled_provider_ids == ("com.huawei.earphone.cli",)
     assert controls.disabled_template_ids == ()
-    assert not registry.template_is_enabled("ScheduleOverviewNextEventFull@1")
+    assert registry.template_is_enabled("ScheduleOverviewNextEventFull@1")
+    assert registry.template_is_enabled("ScheduleOverviewNextEventHero@1")
     assert not registry.template_is_enabled("BluetoothDeviceOverviewCaseFull@1")
     assert registry.template_is_enabled("WeatherOverviewFull@1")
 
@@ -1699,6 +1699,122 @@ async def test_calendar_date_and_schedule_compacts_generate_one_vertical_card():
     )
     assert "UI需求评审会" in output.a2ui
     assert "2026-08-19" in output.a2ui
+
+
+@pytest.mark.asyncio
+async def test_calendar_dnd_action_restores_label_icon_and_scene_header():
+    task = TaskSpec(
+        userQuery="显示下一场会议的完整信息，点击进入免打扰设置",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.open.settings.dnd",
+                call="clickToDeeplink",
+                args={
+                    "intentName": "Settings",
+                    "bundleName": "com.huawei.hmos.settings",
+                    "abilityName": "com.huawei.hmos.settings.MainAbility",
+                    "uri": "intelligent_scene_entry",
+                },
+            )
+        ],
+        assetCandidates=[
+            {
+                "src": "resources/base/media/icon_schedule.svg",
+                "description": "日历日程图标",
+                "sceneTags": ["calendar", "schedule"],
+            },
+            {
+                "src": "resources/base/media/icon_focus.svg",
+                "description": "免打扰和专注模式的月亮图标",
+                "sceneTags": ["focus"],
+            },
+        ],
+        dataModelSchema={
+            "data": {
+                "calendar": {
+                    "eventCount": _provider_field(1, "integer"),
+                    "events": [
+                        {
+                            "title": _provider_field("项目例会", "string"),
+                            "description": _provider_field("评审本周进度", "string"),
+                            "dtStart": _provider_field("14:00", "string"),
+                            "dtEnd": _provider_field("15:00", "string"),
+                            "eventLocation": _provider_field("会议室 A", "string"),
+                        }
+                    ]
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetCalendarEvents",
+        writeResultTo="/data/calendar",
+        candidateOutputFields=[
+            "/eventCount",
+            "/events/0/title",
+            "/events/0/description",
+            "/events/0/dtStart",
+            "/events/0/dtEnd",
+            "/events/0/eventLocation",
+        ],
+    )
+    card_spec = {
+        "title": "下一场日程",
+        "description": "会议详情和免打扰设置",
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {
+                "capabilityId": "GetCalendarEvents",
+                "writeResultTo": "/data/calendar",
+            }
+        ],
+    }
+    model = _FixedTemplateModel(
+        theme_id="meeting-paper-neutral",
+        component_id="CalendarOverview",
+        available_template_ids=("ScheduleOverviewNextEventHero@1",),
+        capability_id="GetCalendarEvents",
+        required_fields=("/events/0/title", "/events/0/dtStart"),
+        action_id="event.open.settings.dnd",
+        body=(
+            'Template("HeroActionLayout@1",{},'
+            'Template("ScheduleOverviewNextEventHero@1",'
+            '{"headerLabel":"下一场日程"}),'
+            'Template("PillAction@1",{"actionId":"event.open.settings.dnd",'
+            '"label":"免打扰","icon":"resources/base/media/icon_focus.svg"}));'
+        ),
+    )
+
+    output = await generate_template_a2ui(task, card_spec, (binding,), model)
+
+    assert "下一场日程" in output.a2ui
+    assert "下一个日程" not in output.a2ui
+    assert "eventCount" in output.a2ui
+    assert "events/0/description" in output.a2ui
+    assert "events/0/eventLocation" in output.a2ui
+    assert "免打扰" in output.a2ui
+    assert "专注模式" not in output.a2ui
+    assert "resources/base/media/icon_focus.svg" in output.a2ui
+    assert "resources/base/media/icon_schedule.svg" not in output.a2ui
+    messages = [json.loads(line) for line in output.a2ui.splitlines()]
+    components = messages[1]["updateComponents"]["components"]
+    assert components[0]["styles"]["backgroundColor"] == "#FFE5EDFE"
+    assert "linearGradient" not in components[0]["styles"]
+    action = next(component for component in components if component.get("onClick"))
+    assert action["styles"]["backgroundColor"] == "#331F4799"
+    focus_icon = next(
+        component
+        for component in components
+        if component.get("src") == "resources/base/media/icon_focus.svg"
+    )
+    assert focus_icon["styles"]["fillColor"] == "#FF1F4799"
+    assert model.second_layer_prompt is not None
+    second_layer_rule = model.second_layer_prompt[1]["content"]
+    assert "HeroActionLayout@1" in second_layer_rule
+    assert "headerLabel" in second_layer_rule
+    assert "免打扰" in second_layer_rule
+    assert "月亮语义素材" in second_layer_rule
 
 
 def test_pr7_resource_battery_outer_title_keeps_the_reviewed_subtext_style():
