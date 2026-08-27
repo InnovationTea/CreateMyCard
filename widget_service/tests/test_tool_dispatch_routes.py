@@ -625,7 +625,7 @@ def test_widget_card_service_complete_flow(monkeypatch):
         }
         assert task_spec["dataModelSchema"]["data"]["weather"]["current"][
             "temperatureText"
-        ]["sampleValue"] == "29°C"
+        ]["sampleValue"] == "29℃"
         assert task_spec["assetCandidates"] == [
             {
                 "id": "asset.drop_1",

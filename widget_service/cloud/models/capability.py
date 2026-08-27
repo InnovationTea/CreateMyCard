@@ -110,6 +110,17 @@ class DataCapability(BaseModel):
             schema["sampleValue"], schema_type
         ):
             return [f"{pointer}: sampleValue does not match type {schema_type}"], 1
+        display_units = schema.get("displayUnits")
+        unit_included = schema.get("unitIncluded")
+        if display_units is not None or unit_included is not None:
+            if (
+                not isinstance(display_units, list)
+                or not display_units
+                or any(not isinstance(item, str) or not item.strip() for item in display_units)
+            ):
+                return [f"{pointer}: displayUnits must be a non-empty string array"], 1
+            if not isinstance(unit_included, bool):
+                return [f"{pointer}: unitIncluded must be a boolean"], 1
         return [], 1
 
 

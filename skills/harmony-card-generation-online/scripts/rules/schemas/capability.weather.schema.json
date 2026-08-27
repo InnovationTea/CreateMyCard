@@ -3,13 +3,15 @@
   "preferredWriteResultTo": "/data/weather",
   "inputSchema": {
     "type": "object",
-    "required": ["districtName"],
+    "required": ["prefectureName"],
     "properties": {
       "districtName": {
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       },
       "prefectureName": {
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       },
       "forecastDays": {
         "type": "integer",

@@ -25,12 +25,8 @@
       "supportedTargets": [
         {
           "intentName": "CallPhone",
-          "description": "点击跳转至指定号码的拨号界面，给某个亲人打电话",
+          "description": "点击跳转至指定号码的拨号界面",
           "params": {
-            "relationship": {
-              "type": "string",
-              "description": "根据用户想给打电话的亲人，返回和亲人的关系，比如返回父亲，母亲，妻子，孩子。"
-            },
             "phoneNumber": {
               "type": "string",
               "description": "需要拨打的电话号码，如果用户提供了填入，没有提供传空字符串''。"
@@ -247,7 +243,7 @@
 - `args` 只能包含该能力 `parameters` 中声明的参数。跳转类能力必须使用 `supportedTargets` 中列出的合法目标和值组合。
 - `clickToDeeplink.args` 必须包含 manifest `parameters` 声明的 `intentName`、`bundleName`、`abilityName`、`uri`，其中 `intentName` 必须严格复制所选 `supportedTargets` 的值；页面级 `uri` 也必须从所选 target 的 `pages[]` 复制，允许按 target 传空字符串。
 - `clickToApi.args.params` 和 `clickToIntent.args.params` 必须严格匹配所选 `supportedTargets` 里的 `params` 结构。不同 `intentName` 的参数不同，不要把某个示例参数当成通用字段。
-- 拨号使用 `clickToApi` 中 `intentName: "CallPhone"` 的 target；`relationship` 和 `phoneNumber` 都放在 `params` 内，参数名必须严格使用 manifest 中声明的大小写。用户未提供电话号码时，按 manifest 传空字符串。
+- 拨号使用 `clickToApi` 中 `intentName: "CallPhone"` 的 target；`params` 只包含 `phoneNumber`，参数名必须严格使用 manifest 中声明的大小写。用户未提供电话号码时，按 manifest 传空字符串。
 - 当所选 target 的 `params` 是空对象时，`args.params` 也传空对象，不要补造字段。
 - 当 `supportedTargets.params` 的叶子节点是 `type`、`description` 等 schema 说明时，生成 `onClick.args.params` 只保留参数 key 和实际运行时值；不要把 schema 元数据复制到 DSL。若说明中声明固定值，使用该固定值；若说明中要求由用户意图或 DataModel 推导，则填入安全静态值或 `{ "path": "..." }` 绑定。
 - 事件参数可以来自安全静态值、DataModel 绝对路径，或模板列表项的相对路径。来自 data capability 输出的字段，必须能从 `writeResultTo + outputSchema` 推导。

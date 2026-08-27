@@ -19,6 +19,14 @@
     "message": "点击事件引用的数组项与当前组件展示的数组项不一致。",
     "fixHint": "将点击参数中的数组下标改为当前展示项下标。"
   },
+  "DISPLAY_UNIT_MISSING": {
+    "message": "动态数值字段缺少展示单位。",
+    "fixHint": "按最终数据绑定对应的能力定义追加一次声明单位。"
+  },
+  "DISPLAY_UNIT_DUPLICATED": {
+    "message": "动态字段的展示单位重复。",
+    "fixHint": "删除重复单位；unitIncluded=true 时不要再追加单位。"
+  },
   "ASSET_PATH_NOT_DECLARED": {
     "message": "资源路径未在素材库 allowlist 中声明。",
     "fixHint": "使用 rules/config/asset.json.allowlist 中声明的素材，或删除 Image。"
