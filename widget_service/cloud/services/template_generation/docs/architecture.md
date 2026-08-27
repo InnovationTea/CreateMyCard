@@ -36,8 +36,10 @@ template_generation -X-> ArtifactValidator / ArtifactStore / ResponsePlanner
 
 ## 2. 入口路由差异
 
-`WidgetGenerationService._generate_widget_card_with_policy()` 只负责是否注入 Template source generator。
-回退策略仍在公共 `generate_source_dsl()` 中执行，不进入模板模块。
+Compact 和 Tersel 入口分别构造 `TemplateSourceGenerator` 对象，并设置各自的模板候选、Action、样例覆盖等
+差异属性。`WidgetGenerationService._generate_widget_card_with_policy()` 只负责向对象绑定当前 Processor、
+Form Profile、模型运行时和请求上下文，再将其注入公共生成链。回退策略仍在公共 `generate_source_dsl()` 中
+执行，不进入模板模块。
 
 | 场景 | Compact | Tersel |
 | --- | --- | --- |
@@ -124,8 +126,9 @@ Search 路线的首层输出是 `TemplateRetrievalQuery`：
 - 字段必须逐字来自对应 `candidateOutputFields`。
 - CardSpec 写入根必须与 Provider `dataDomain` 一致。
 - 模板的 `primaryData` 和 `secondaryData` 必须都能从 TaskSpec 中取得。
-- 当前 Search 只接受一个数据业务，可外加最多两个显式 Action。
-- 用户显式字段必须能在同一业务组内被候选 Template 完整覆盖。
+- Search 最多接受两个数据业务，可外加最多两个显式 Action。
+- 用户显式字段必须分别在所属业务组内被候选 Template 完整覆盖。
+- 两个 Provider Compact 在 `2x2` 下统一使用 `PeerPairLayout`，不设置业务组合白名单。
 
 结果是 `TemplateRouteSelection`，其 `availableTemplateIds` 仍是二层候选集，不是最终选择。
 

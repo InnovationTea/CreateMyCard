@@ -59,13 +59,12 @@ from services.source_artifact_repository import (
 )
 from services.template_generation import (
     FusionBallA2UIConversionError,
+    TemplateSourceGenerator,
     convert_a2ui_with_fusion_ball,
-    request_template_source_dsl,
 )
 from services.validator import ArtifactValidator
 
 _MODULE = "[Generation Service]"
-TemplateSourceGenerator = Callable[..., Awaitable[str]]
 
 
 def _expand_cloud_a2ui_components(
@@ -1113,7 +1112,7 @@ class WidgetGenerationService:
             request,
             policy,
             before_model_call=before_model_call,
-            try_template=True,
+            template_source_generator=TemplateSourceGenerator(),
             need_fallback=True,
         )
 
@@ -1122,6 +1121,9 @@ class WidgetGenerationService:
         request: GenerateWidgetCardRequest,
         *,
         before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
+        trusted_template_candidate_ids: tuple[str, ...] = (),
+        trusted_template_action_ids: tuple[str, ...] = (),
+        trusted_template_sample_overrides: dict[str, object] | None = None,
     ) -> GenerateWidgetCardResponse:
         """复用 Design Compact 原始生成链处理 Terse 模板入口。"""
         try:
@@ -1159,11 +1161,18 @@ class WidgetGenerationService:
             )
         # 问题定位时可显式调用
         # services.template_generation.route_legacy_python_terse_generation(...)。
+        template_source_generator = TemplateSourceGenerator(
+            trusted_template_candidate_ids=trusted_template_candidate_ids,
+            trusted_template_action_ids=trusted_template_action_ids,
+            trusted_template_sample_overrides=dict(
+                trusted_template_sample_overrides or {}
+            ),
+        )
         return await self._generate_widget_card_with_policy(
             request,
             policy,
             before_model_call=before_model_call,
-            try_template=True,
+            template_source_generator=template_source_generator,
             need_fallback=False,
         )
 
@@ -1173,7 +1182,7 @@ class WidgetGenerationService:
         policy: GenerationRoutePolicy,
         *,
         before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
-        try_template: bool = False,
+        template_source_generator: TemplateSourceGenerator | None = None,
         need_fallback: bool = True,
     ) -> GenerateWidgetCardResponse:
         """复制请求并锁定协议 Profile，按需注入模板 source generator。"""
@@ -1185,38 +1194,26 @@ class WidgetGenerationService:
         )
         profiled_request._model_request_context = request._model_request_context
         is_edit = "sourceArtifactUrl" in request.model_fields_set
-        if not try_template or is_edit:
+        if template_source_generator is None or is_edit:
             return await self.generate_widget_card(
                 profiled_request,
                 policy=policy,
                 before_model_call=before_model_call,
             )
-
-        async def generate_template_source(
-            task_spec,
-            card_spec: dict,
-            effective_bindings: tuple,
-        ) -> str:
-            return await request_template_source_dsl(
-                task_spec,
-                card_spec,
-                effective_bindings,
-                processor_kind=policy.processor_kind,
-                protocol_profile=A2UIProtocolRegistry(
-                    policy.protocol_profile_id
-                ).get_profile(),
-                model_runtime=self.model_runtime,
-                model_request_context=self._resolve_model_request_context(
-                    profiled_request
-                ),
-                enable_fusion_ball=True,
-            )
+        template_source_generator.processor_kind = policy.processor_kind
+        template_source_generator.protocol_profile = A2UIProtocolRegistry(
+            policy.protocol_profile_id
+        ).get_profile()
+        template_source_generator.model_runtime = self.model_runtime
+        template_source_generator.model_request_context = (
+            self._resolve_model_request_context(profiled_request)
+        )
 
         return await self.generate_widget_card(
             profiled_request,
             policy=policy,
             before_model_call=before_model_call,
-            template_source_generator=generate_template_source,
+            template_source_generator=template_source_generator,
             need_fallback=need_fallback,
         )
 

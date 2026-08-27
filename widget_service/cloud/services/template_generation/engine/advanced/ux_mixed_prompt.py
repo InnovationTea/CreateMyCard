@@ -114,7 +114,19 @@ def build_ux_mixed_prompt(
     }
     if tuple(requested_candidate_ids) != scope.advanced_component_ids:
         raise ValueError("Template candidates do not match Advanced Scope")
-    satisfiable_template_ids = set(scope_template_ids(scope, registry, task_spec))
+    preferred_template_ids = tuple(
+        template_id
+        for template_ids in requested_candidate_ids.values()
+        for template_id in template_ids
+    )
+    satisfiable_template_ids = set(
+        scope_template_ids(
+            scope,
+            registry,
+            task_spec,
+            preferred_template_ids=preferred_template_ids,
+        )
+    )
     candidate_ids_by_component = {
         component_id: tuple(
             template_id
@@ -212,23 +224,22 @@ def build_ux_mixed_prompt(
     required_numbers = base.contract.required_numbers
     if has_weather:
         weather_facts = extract_weather_overview_facts(task_spec.dataModelSchema)
-        if weather_facts is None:
-            raise ValueError("WeatherOverview has no complete trusted weather facts")
-        server_owned_weather_literals = {
-            weather_facts.city,
-            weather_facts.temperature,
-            weather_facts.condition,
-            weather_facts.air_quality,
-            weather_facts.cold_level,
-            weather_facts.temperature_range,
-        }
-        server_owned_weather_literals.discard("")
-        required_literals = tuple(
-            item for item in required_literals if item not in server_owned_weather_literals
-        )
-        protected_literals = tuple(
-            item for item in protected_literals if item not in server_owned_weather_literals
-        )
+        if weather_facts is not None:
+            server_owned_weather_literals = {
+                weather_facts.city,
+                weather_facts.temperature,
+                weather_facts.condition,
+                weather_facts.air_quality,
+                weather_facts.cold_level,
+                weather_facts.temperature_range,
+            }
+            server_owned_weather_literals.discard("")
+            required_literals = tuple(
+                item for item in required_literals if item not in server_owned_weather_literals
+            )
+            protected_literals = tuple(
+                item for item in protected_literals if item not in server_owned_weather_literals
+            )
     if has_heart_rate:
         heart_rate_facts = extract_heart_rate_overview_facts(task_spec.dataModelSchema)
         if heart_rate_facts is None:

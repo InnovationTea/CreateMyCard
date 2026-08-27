@@ -22,18 +22,47 @@ from services.template_generation.test_support.provider_gallery import (
 class _GalleryService:
     def __init__(self) -> None:
         self.requests: list[Any] = []
+        self.template_candidate_ids: list[tuple[str, ...]] = []
+        self.template_action_ids: list[tuple[str, ...]] = []
+        self.template_sample_overrides: list[dict[str, object]] = []
 
     async def generate_widget_card_terse_dsl_nested2(
         self,
         request: Any,
+        *,
+        trusted_template_candidate_ids: tuple[str, ...] = (),
+        trusted_template_action_ids: tuple[str, ...] = (),
+        trusted_template_sample_overrides: dict[str, object] | None = None,
     ) -> GenerateWidgetCardResponse:
         self.requests.append(request)
+        self.template_candidate_ids.append(trusted_template_candidate_ids)
+        self.template_action_ids.append(trusted_template_action_ids)
+        self.template_sample_overrides.append(
+            dict(trusted_template_sample_overrides or {})
+        )
+        action_count = len(request.candidateEventCandidates or [])
+        components = [
+            {
+                "id": f"action-{index}",
+                "component": "Text",
+                "onClick": [{"call": "testAction", "args": {}}],
+            }
+            for index in range(action_count)
+        ]
         artifact = WidgetArtifact(
             genui=(
                 '{"createSurface":{"surfaceId":"main","catalogId":'
                 '"ohos.a2ui.extended.catalog.form"}}\n'
-                '{"updateComponents":{"surfaceId":"main","components":[]}}\n'
-                '{"updateDataModel":{"surfaceId":"main","path":"/","value":{}}}'
+                + json.dumps(
+                    {
+                        "updateComponents": {
+                            "surfaceId": "main",
+                            "components": components,
+                        }
+                    }
+                )
+                + "\n"
+                + '{"updateDataModel":{"surfaceId":"main","path":"/","value":{}}}'
             ),
             cardSpec={"title": request.title, "suggestSize": "2x2"},
             taskSpec={"userQuery": request.userQuery, "size": "2x2"},
@@ -55,12 +84,24 @@ class _GalleryService:
         )
 
 
-def _find_case(manifest: Any, business_id: str, scenario_id: str) -> Any:
+def _find_case(
+    manifest: Any,
+    business_id: str,
+    scenario_id: str,
+    target_template_id: str | None = None,
+) -> Any:
     for provider in manifest.providers:
         for case in provider.cases:
-            if case.businessId == business_id and case.scenarioId == scenario_id:
+            matches_business = case.businessId == business_id
+            matches_scenario = case.scenarioId == scenario_id
+            matches_template = (
+                target_template_id is None or case.targetTemplateId == target_template_id
+            )
+            if matches_business and matches_scenario and matches_template:
                 return case
-    raise AssertionError(f"case not found: {business_id}/{scenario_id}")
+    raise AssertionError(
+        f"case not found: {business_id}/{scenario_id}/{target_template_id or '*'}"
+    )
 
 
 def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) -> None:
@@ -68,7 +109,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     manifest = write_gallery_input_dataset(input_root)
 
     assert len(manifest.providers) == 8
-    assert sum(len(provider.cases) for provider in manifest.providers) == 44
+    assert sum(len(provider.cases) for provider in manifest.providers) == 101
     scenario_ids = {
         case.scenarioId
         for provider in manifest.providers
@@ -80,7 +121,12 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         "single-one-action",
         "single-content",
     }
-    battery_case = _find_case(manifest, "BatteryOverview", "single-two-actions")
+    battery_case = _find_case(
+        manifest,
+        "BatteryOverview",
+        "single-two-actions",
+        "BatteryOverviewNormalCompact@1",
+    )
     request = json.loads((input_root / battery_case.requestFile).read_text(encoding="utf-8"))
     binding = request["content"]["candidateDataBindings"][0]
     assert binding["candidateOutputFields"] == [
@@ -90,6 +136,60 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         "/batteryCapacityLevelDesc",
     ]
     assert len(request["content"]["candidateEventCandidates"]) == 2
+    assert "打开电池设置" in request["content"]["userQuery"]
+    assert "开启省电模式" in request["content"]["userQuery"]
+
+    targeted_cases = [
+        case
+        for provider in manifest.providers
+        for case in provider.cases
+        if case.targetTemplateId
+    ]
+    assert len(targeted_cases) == 91
+    battery_full_ids = {
+        case.targetTemplateId
+        for case in targeted_cases
+        if case.businessId == "BatteryOverview" and case.scenarioId == "single-content"
+    }
+    assert battery_full_ids == {
+        "BatteryOverviewNormalFull@1",
+        "BatteryOverviewChargingFull@1",
+        "BatteryOverviewLowFull@1",
+    }
+    battery_charging = _find_case(
+        manifest,
+        "BatteryOverview",
+        "single-two-actions",
+        "BatteryOverviewChargingCompact@1",
+    )
+    charging_request = json.loads(
+        (input_root / battery_charging.requestFile).read_text(encoding="utf-8")
+    )
+    assert charging_request["galleryTest"]["sampleOverrides"] == {
+        "/data/phoneBattery/batterySOC": 68,
+        "/data/phoneBattery/batterySOCText": "68%",
+        "/data/phoneBattery/chargingStatusDesc": "正在充电",
+        "/data/phoneBattery/batteryCapacityLevelDesc": "正常电量",
+    }
+    weather_icon = _find_case(
+        manifest,
+        "WeatherOverview",
+        "single-two-actions",
+        "WeatherOverviewIconCompact@1",
+    )
+    weather_request = json.loads(
+        (input_root / weather_icon.requestFile).read_text(encoding="utf-8")
+    )
+    assert weather_request["content"]["candidateAssetIds"] == [
+        "asset.icon_weather1"
+    ]
+    weather_pair = _find_case(
+        manifest,
+        "WeatherOverview",
+        "two-contents",
+        "WeatherOverviewCompact@1",
+    )
+    assert not weather_pair.partnerTemplateId.startswith(("Date", "Schedule", "Bluetooth"))
 
 
 def test_gallery_inputs_mark_missing_layout_families(tmp_path: Path) -> None:
@@ -107,6 +207,20 @@ def test_gallery_inputs_mark_missing_layout_families(tmp_path: Path) -> None:
     )
     assert countdown_compact.missingReason == "缺失 Compact 模板"
     assert calendar_hero.missingReason == "缺失 Hero 模板"
+    calendar_full = _find_case(
+        manifest,
+        "CalendarOverview",
+        "single-content",
+        "DateOverviewFull@1",
+    )
+    assert calendar_full.missingReason == "Provider 当前已禁用"
+    system_memory = _find_case(
+        manifest,
+        "ResourceUsageOverview",
+        "single-content",
+        "ResourceUsageOverviewFull@1",
+    )
+    assert system_memory.missingReason == "数据能力当前未注册"
 
 
 @pytest.mark.asyncio
@@ -135,6 +249,9 @@ async def test_gallery_runner_calls_public_service_and_groups_a2ui_by_provider(
     assert summary.success == 4
     assert summary.failed == 0
     assert len(service.requests) == 4
+    assert all(service.template_candidate_ids)
+    assert all(isinstance(item, dict) for item in service.template_sample_overrides)
+    assert sorted(len(item) for item in service.template_action_ids) == [0, 0, 1, 2]
     assert sorted(len(request.candidateEventCandidates or []) for request in service.requests) == [
         0,
         0,
@@ -163,9 +280,9 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 44
-    assert summary.missing == 10
-    assert summary.not_generated == 34
+    assert summary.total == 101
+    assert summary.missing == 41
+    assert summary.not_generated == 60
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 8

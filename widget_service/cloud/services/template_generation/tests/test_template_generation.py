@@ -38,10 +38,12 @@ from services.protocol_registry import (
 )
 from services.template_generation import (
     FusionBallA2UIConversionError,
+    TemplateSourceGenerator,
     convert_a2ui_with_fusion_ball,
     facade,
     route_legacy_python_terse_generation,
 )
+from services.template_generation import source_generator as template_source_generator_module
 from services.template_generation.binding_dependencies import enrich_template_bindings
 from services.template_generation.controls import TemplateControls, load_template_controls
 from services.template_generation.engine import pipeline as template_pipeline_module
@@ -49,6 +51,7 @@ from services.template_generation.engine.advanced.content_selectors import (
     app_usage_overview_is_eligible,
     app_usage_overview_query_is_supported,
     apply_content_selectors,
+    extract_battery_overview_facts,
     extract_workout_latest_facts,
 )
 from services.template_generation.engine.advanced.data_shape import extract_data_shape
@@ -1880,7 +1883,7 @@ def _provider_field(value: Any, field_type: str) -> dict[str, Any]:
 
 
 @pytest.mark.asyncio
-async def test_q094_multi_business_fields_reject_template_search():
+async def test_q094_multi_business_fields_use_two_compact_templates():
     task_spec = TaskSpec(
         userQuery="刚睡醒，看看昨晚睡了多久、睡眠得分和今天走了多少步",
         size="2x2",
@@ -1960,11 +1963,23 @@ async def test_q094_multi_business_fields_reject_template_search():
             **_kwargs: Any,
         ) -> str:
             self.second_layer_prompt = prompt
-            raise AssertionError("multi-business Search miss must skip the second layer")
+            return (
+                'Template("PeerPairLayout@1",{},'
+                'Template("SleepOverviewCompact@1",{}),'
+                'Template("ActivityOverviewCompact@1",{}));'
+            )
 
     model = Q094TemplateModel()
-    with pytest.raises(TemplateRouteNotApplicable, match="one business component"):
-        await generate_template_a2ui(task_spec, card_spec, (binding,), model)
+    output = await generate_template_a2ui(
+        task_spec,
+        card_spec,
+        (binding,),
+        model,
+        trusted_template_candidate_ids=(
+            "SleepOverviewCompact@1",
+            "ActivityOverviewCompact@1",
+        ),
+    )
 
     assert model.first_layer_prompt is not None
     first_layer_payload = json.loads(model.first_layer_prompt[1]["content"])
@@ -1976,7 +1991,16 @@ async def test_q094_multi_business_fields_reject_template_search():
         ]
     }
     assert first_layer_payload["providerFirstLayerRules"]
-    assert model.second_layer_prompt is None
+    assert model.second_layer_prompt is not None
+    second_layer_text = model.second_layer_prompt[1]["content"]
+    assert '"availableTemplateIds": ["ActivityOverviewCompact@1"]' in second_layer_text
+    assert '"availableTemplateIds": ["SleepOverviewCompact@1"]' in second_layer_text
+    assert set(output.template_ids) == {
+        "PeerPairLayout@1",
+        "SleepOverviewCompact@1",
+        "ActivityOverviewCompact@1",
+    }
+    assert len(output.template_ids) == 3
 
 
 class _FixedTemplateModel:
@@ -2090,6 +2114,25 @@ def _battery_task() -> TaskSpec:
             }
         },
     )
+
+
+@pytest.mark.parametrize(
+    ("fields", "expected_percent", "expected_text"),
+    [
+        ({"batterySOC": _provider_field(68, "integer")}, 68, "68%"),
+        ({"batterySOCText": _provider_field("15%", "string")}, 15, "15%"),
+    ],
+)
+def test_battery_facts_accept_numeric_or_text_soc(
+    fields: dict[str, Any],
+    expected_percent: int,
+    expected_text: str,
+) -> None:
+    facts = extract_battery_overview_facts({"data": {"phoneBattery": fields}})
+
+    assert facts is not None
+    assert facts.level_percent == expected_percent
+    assert facts.level_text == expected_text
 
 
 def _battery_card_spec() -> dict[str, Any]:
@@ -3698,7 +3741,7 @@ async def test_template_exception_obeys_route_failure_policy(
         callback_sizes.append(size)
 
     monkeypatch.setattr(
-        widget_generation_service_module,
+        template_source_generator_module,
         "request_template_source_dsl",
         failed_template,
     )
@@ -3866,7 +3909,7 @@ async def test_terse_edit_is_rejected_before_template_source_request(monkeypatch
 
     service = WidgetGenerationService()
     monkeypatch.setattr(
-        widget_generation_service_module,
+        template_source_generator_module,
         "request_template_source_dsl",
         rejected_template,
     )
@@ -3876,6 +3919,76 @@ async def test_terse_edit_is_rejected_before_template_source_request(monkeypatch
     assert response.status == GenerationStatus.FAILED
     assert response.errorCode == "A2UI_GENERATION_FAILED"
     assert template_called is False
+
+
+@pytest.mark.asyncio
+async def test_terse_entry_forwards_gallery_template_overrides(monkeypatch):
+    expected = object()
+    observed: dict[str, Any] = {}
+
+    async def capture_generation(
+        _request: Any,
+        _policy: Any,
+        **options: Any,
+    ) -> Any:
+        observed.update(options)
+        return expected
+
+    service = WidgetGenerationService()
+    monkeypatch.setattr(service, "_generate_widget_card_with_policy", capture_generation)
+    response = await service.generate_widget_card_terse_dsl_nested2(
+        _weather_request(),
+        trusted_template_candidate_ids=("WeatherOverviewCompact@1",),
+        trusted_template_action_ids=("event.open.weather",),
+        trusted_template_sample_overrides={"/data/weather/current/condition": "晴"},
+    )
+
+    assert response is expected
+    generator = observed["template_source_generator"]
+    assert isinstance(generator, TemplateSourceGenerator)
+    assert generator.trusted_template_candidate_ids == (
+        "WeatherOverviewCompact@1",
+    )
+    assert generator.trusted_template_action_ids == ("event.open.weather",)
+    assert generator.trusted_template_sample_overrides == {
+        "/data/weather/current/condition": "晴"
+    }
+    assert generator.processor_kind is None
+    assert generator.protocol_profile is None
+
+
+@pytest.mark.asyncio
+async def test_policy_layer_configures_template_source_generator(monkeypatch):
+    expected = object()
+    captured: dict[str, Any] = {}
+
+    async def capture_generation(
+        _request: Any,
+        **options: Any,
+    ) -> Any:
+        captured.update(options)
+        return expected
+
+    service = WidgetGenerationService(model_runtime=object())
+    monkeypatch.setattr(service, "generate_widget_card", capture_generation)
+    generator = TemplateSourceGenerator(
+        trusted_template_candidate_ids=("WeatherOverviewCompact@1",),
+    )
+    response = await service._generate_widget_card_with_policy(
+        _weather_request(),
+        _terse_policy(),
+        template_source_generator=generator,
+        need_fallback=False,
+    )
+
+    assert response is expected
+    assert captured["template_source_generator"] is generator
+    assert captured["need_fallback"] is False
+    assert generator.processor_kind == DslProcessorKind.DESIGN_COMPACT
+    assert generator.protocol_profile is not None
+    assert generator.protocol_profile["id"] == A2UI_FORM_PROTOCOL_PROFILE_ID
+    assert generator.model_runtime is service.model_runtime
+    assert isinstance(generator.model_request_context, ModelRequestContext)
 
 
 @pytest.mark.asyncio

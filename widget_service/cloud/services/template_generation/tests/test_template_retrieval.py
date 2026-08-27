@@ -333,7 +333,7 @@ def test_first_layer_prompt_includes_task_fields_rules_and_action_candidates() -
     ]
 
 
-def test_search_rejects_multiple_data_capabilities() -> None:
+def test_search_allows_two_data_businesses() -> None:
     task = _task()
     task.dataModelSchema["data"]["calendar"] = {
         "events": [
@@ -349,25 +349,43 @@ def test_search_rejects_multiple_data_capabilities() -> None:
         writeResultTo="/data/calendar",
         candidateOutputFields=["/events/0/title", "/events/0/dtStart"],
     )
-    with pytest.raises(TemplateRetrievalMiss, match="one data business"):
-        retrieve_template_variants(
-            TemplateRetrievalQuery(
-                themeId="family-weather-care-blue",
-                requiredOutputFieldsByCapability={
-                    "ViewWeather": ("/current/condition",),
-                    "GetCalendarEvents": ("/events/0/title", "/events/0/dtStart"),
-                },
-            ),
-            task,
-            CardPlanRegistry(),
-            (_binding(), calendar),
-            {
-                "dataBindings": [
-                    {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"},
-                    {"capabilityId": "GetCalendarEvents", "writeResultTo": "/data/calendar"},
-                ]
+    result = retrieve_template_variants(
+        TemplateRetrievalQuery(
+            themeId="family-weather-care-blue",
+            requiredOutputFieldsByCapability={
+                "ViewWeather": ("/current/condition",),
+                "GetCalendarEvents": ("/events/0/title", "/events/0/dtStart"),
             },
-        )
+        ),
+        task,
+        CardPlanRegistry(),
+        (_binding(), calendar),
+        {
+            "dataBindings": [
+                {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"},
+                {"capabilityId": "GetCalendarEvents", "writeResultTo": "/data/calendar"},
+            ]
+        },
+    )
+
+    assert {item.component_id for item in result.component_candidates} == {
+        "CalendarOverview",
+        "WeatherOverview",
+    }
+
+
+def test_search_still_rejects_more_than_two_data_businesses() -> None:
+    query = TemplateRetrievalQuery(
+        themeId="family-weather-care-blue",
+        requiredOutputFieldsByCapability={
+            "CapabilityA": ("/value",),
+            "CapabilityB": ("/value",),
+            "CapabilityC": ("/value",),
+        },
+    )
+
+    with pytest.raises(TemplateRetrievalMiss, match="at most two data businesses"):
+        retrieve_template_variants(query, _task(), CardPlanRegistry(), (), {})
 
 
 def test_search_allows_one_data_business_with_action() -> None:

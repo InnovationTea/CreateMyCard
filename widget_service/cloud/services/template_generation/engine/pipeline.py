@@ -23,6 +23,7 @@ from services.template_generation.engine.advanced.data_shape import extract_data
 from services.template_generation.engine.advanced.models import (
     AdvancedScopeBrief,
     TemplateComponentCandidate,
+    TemplateRouteSelection,
 )
 from services.template_generation.engine.advanced.scope_planner import (
     TemplateRouteNotApplicable,
@@ -78,6 +79,9 @@ async def generate_template_a2ui(
     model_client: Any,
     *,
     enable_fusion_ball: bool = True,
+    trusted_template_candidate_ids: tuple[str, ...] = (),
+    trusted_template_action_ids: tuple[str, ...] = (),
+    trusted_template_sample_overrides: dict[str, Any] | None = None,
 ) -> TemplateEngineOutput:
     """先做 LLM 全量覆盖判断，再用受信模板确定性展开为 A2UI。"""
     logger.info(
@@ -85,6 +89,10 @@ async def generate_template_a2ui(
         f"summary={json_for_log(_task_spec_log_summary(task_spec))}"
     )
     try:
+        selected_task_spec = _with_trusted_sample_overrides(
+            task_spec,
+            trusted_template_sample_overrides or {},
+        )
         registry = get_cardplan_registry(enable_fusion_ball)
         controls = load_template_controls()
         available_capability_ids = _card_spec_capability_ids(card_spec)
@@ -93,7 +101,10 @@ async def generate_template_a2ui(
             registry,
             available_capability_ids,
         )
-        selected_task_spec = apply_content_selectors(task_spec, effective_capability_ids)
+        selected_task_spec = apply_content_selectors(
+            selected_task_spec,
+            effective_capability_ids,
+        )
         data_shape = extract_data_shape(selected_task_spec)
         logger.info(
             f"{_MODULE} task_spec_after_content_selectors "
@@ -133,6 +144,16 @@ async def generate_template_a2ui(
                 registry,
                 coverage_bindings,
                 card_spec,
+                preferred_template_ids=trusted_template_candidate_ids,
+            )
+            selection = _restrict_template_candidates(
+                selection,
+                trusted_template_candidate_ids,
+            )
+            selection = _restrict_template_actions(
+                selection,
+                trusted_template_action_ids,
+                selected_task_spec,
             )
             logger.info(
                 f"{_MODULE} template_retrieval matched=True "
@@ -167,7 +188,100 @@ async def generate_template_a2ui(
     except TemplateGenerationError:
         raise
     except (RuntimeError, ValueError) as exc:
+        logger.info(
+            f"{_MODULE} selected_template_generation_failed "
+            f"error_type={type(exc).__name__} detail={exc}"
+        )
         raise TemplateGenerationError("selected template generation failed") from exc
+
+
+def _with_trusted_sample_overrides(
+    task_spec: TaskSpec,
+    sample_overrides: dict[str, Any],
+) -> TaskSpec:
+    """应用开发测试画廊声明的受信数据样例，不改变公开请求协议。"""
+    if not sample_overrides:
+        return task_spec
+    schema = deepcopy(task_spec.dataModelSchema)
+    for pointer, sample_value in sample_overrides.items():
+        if not isinstance(pointer, str) or not pointer.startswith("/data/"):
+            raise ValueError("trusted sample override path must stay under /data")
+        current: Any = schema
+        for raw_part in pointer.removeprefix("/").split("/"):
+            part = raw_part.replace("~1", "/").replace("~0", "~")
+            if not isinstance(current, dict) or part not in current:
+                raise ValueError(f"trusted sample override path is unavailable: {pointer}")
+            current = current[part]
+        if not isinstance(current, dict) or "sampleValue" not in current:
+            raise ValueError(f"trusted sample override target is not a field: {pointer}")
+        if sample_value is None or not isinstance(sample_value, (str, int, float, bool)):
+            raise ValueError(f"trusted sample override value is invalid: {pointer}")
+        current["sampleValue"] = sample_value
+    return task_spec.model_copy(update={"dataModelSchema": schema})
+
+
+def _restrict_template_candidates(
+    selection: TemplateRouteSelection,
+    trusted_template_candidate_ids: tuple[str, ...],
+) -> TemplateRouteSelection:
+    """将开发测试画廊的受信目标收窄到已通过 Search 的候选模板。"""
+    if not trusted_template_candidate_ids:
+        return selection
+    target_ids = tuple(dict.fromkeys(trusted_template_candidate_ids))
+    if len(target_ids) != len(trusted_template_candidate_ids):
+        raise TemplateRetrievalMiss("trusted template candidates must be unique")
+    if not set(target_ids).issubset(selection.allowed_template_ids):
+        raise TemplateRetrievalMiss("trusted template candidate is outside Search results")
+    candidates = tuple(
+        TemplateComponentCandidate(
+            componentId=candidate.component_id,
+            availableTemplateIds=tuple(
+                template_id
+                for template_id in candidate.available_template_ids
+                if template_id in target_ids
+            ),
+        )
+        for candidate in selection.component_candidates
+        if set(candidate.available_template_ids).intersection(target_ids)
+    )
+    selected_ids = tuple(
+        template_id
+        for candidate in candidates
+        for template_id in candidate.available_template_ids
+    )
+    if set(selected_ids) != set(target_ids):
+        raise TemplateRetrievalMiss("trusted template candidates are ambiguous")
+    scope = selection.scope.model_copy(
+        update={
+            "advanced_component_ids": tuple(
+                candidate.component_id for candidate in candidates
+            )
+        }
+    )
+    return selection.model_copy(
+        update={
+            "scope": scope,
+            "component_candidates": candidates,
+            "required_template_groups": tuple((template_id,) for template_id in target_ids),
+        }
+    )
+
+
+def _restrict_template_actions(
+    selection: TemplateRouteSelection,
+    trusted_template_action_ids: tuple[str, ...],
+    task_spec: TaskSpec,
+) -> TemplateRouteSelection:
+    """将开发测试画廊的 Action 选择收窄到请求中明确指定的事件。"""
+    if not trusted_template_action_ids:
+        return selection
+    action_ids = tuple(dict.fromkeys(trusted_template_action_ids))
+    if len(action_ids) != len(trusted_template_action_ids):
+        raise TemplateRetrievalMiss("trusted template Actions must be unique")
+    candidate_ids = {event.id for event in task_spec.eventCandidates if event.id}
+    if not set(action_ids).issubset(candidate_ids):
+        raise TemplateRetrievalMiss("trusted template Action is outside TaskSpec")
+    return selection.model_copy(update={"action_ids": action_ids})
 
 
 def _task_spec_log_summary(task_spec: TaskSpec) -> dict[str, Any]:
@@ -239,6 +353,10 @@ async def _generate_selected_templates(
             )
             break
         except TerseDslNested2ConversionError as exc:
+            logger.info(
+                f"{_MODULE} template_body_validation_failed "
+                f"repair_count={repair_count} detail={exc}"
+            )
             if repair_count >= _MAX_BODY_REPAIRS:
                 raise TemplateGenerationError("template body validation failed") from exc
             repair_count += 1

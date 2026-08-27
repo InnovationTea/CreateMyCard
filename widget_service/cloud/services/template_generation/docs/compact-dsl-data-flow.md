@@ -69,12 +69,15 @@ flowchart TD
 ### Create
 
 `EditRequestNormalizer.normalize_create()` 补齐默认尺寸和候选数组。
-`_generate_widget_card_with_policy()` 对 create 注入 `generate_template_source()`，并传入：
+入口先为 create 构造 `TemplateSourceGenerator`，`_generate_widget_card_with_policy()` 再补齐：
 
 - 已构造的 TaskSpec。
 - 已构造的 CardSpec JSON。
 - 前置门禁通过的数据绑定。
 - 当前 Processor、Form Profile、模型运行时和请求上下文。
+
+对象配置完成后作为可调用的 template source generator 注入公共 `generate_widget_card()`；公共策略函数不再
+接收 `try_template` 或画廊专用参数。
 
 ### Edit
 

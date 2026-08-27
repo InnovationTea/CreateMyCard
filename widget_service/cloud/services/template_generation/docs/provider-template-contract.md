@@ -234,11 +234,11 @@ converted = convert_a2ui_with_fusion_ball(a2ui)
 `TemplateRouteSelection`。只有这个内部结果才包含 `componentCandidates` 和
 `availableTemplateIds`：
 
-1. Search 只允许命中一个业务组件；该组件下一个或多个模板的覆盖并集必须承载全部显式字段；
+1. Search 最多允许命中两个业务组件；每个组件下一个或多个模板的覆盖并集必须承载该业务显式字段；
 2. 显式字段满足后，再检查候选模板自身 `primaryData` 与 `secondaryData` 在 TaskSpec 中全部存在；
 3. `candidateOutputFields` 只是候选数据投影，不直接等于强制显示集合；
-4. 显式请求包含多个数据能力，或必须联合多个业务组件才能覆盖字段时，在进入第二层前返回模板不匹配；
-5. 单业务加 Action 仍属于支持范围。
+4. 显式请求包含三个及以上数据业务，或任一字段无法在自己的业务组件内覆盖时，在进入第二层前返回模板不匹配；
+5. Action 独立于数据业务计数，最终数量由尺寸、模板后缀与布局契约继续校验。
 
 配置 `firstLayerComponentSelector: "llm"` 时，系统可走兼容选择器
 `plan_template_route_with_llm()`，由第一层直接产出 Theme、组件候选和 Action；该路径不是当前默认生产路径。
