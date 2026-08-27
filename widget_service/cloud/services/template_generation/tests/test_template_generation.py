@@ -217,7 +217,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 87
+    assert len(registry.provider_template_ids) == 81
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -1228,8 +1228,8 @@ def test_app_usage_template_sizes_separate_compact_and_wide_variants():
 def test_app_usage_templates_use_compact_duration_and_labeled_update_time():
     registry = get_cardplan_registry()
     expected_typography = {
-        "AppUsageOverviewFull@1": (18, 10),
-        "AppUsageOverviewHero@1": (18, 10),
+        "AppUsageOverviewFull@1": (24, 10),
+        "AppUsageOverviewHero@1": (24, 10),
         "AppUsageOverviewWideFull@1": (30, 12),
         "AppUsageOverviewWideHero@1": (30, 12),
     }
@@ -1816,8 +1816,8 @@ def test_device_ring_progress_and_icons_bind_to_distinct_theme_colors() -> None:
                 assert fill_color.kind == "theme"
                 assert fill_color.name == "supportContentColor"
 
-    assert progress_count == 16
-    assert ring_icon_count == 16
+    assert progress_count == 10
+    assert ring_icon_count == 10
 
 
 def test_earphone_action_background_is_owned_by_the_theme():
@@ -1878,9 +1878,12 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
     assert battery_wide.children[1].component == "Row"
     assert _template_node_options(battery_wide.children[1])["layoutWeight"] == 1
     assert _template_node_options(_template_nodes(battery_hero, "Progress")[0])["width"] == 52
-    battery_peer = registry.require_variant("BatteryOverviewNormalCompact@1", "default").root
-    assert _template_node_options(battery_peer)["justifyContent"] == "end"
-    assert _template_node_options(_template_nodes(battery_peer, "Image")[0])["width"] == 20
+    battery_peer = registry.require_variant(
+        "BatteryOverviewNormalWeatherCompact@1",
+        "default",
+    ).root
+    assert _template_node_options(battery_peer)["justifyContent"] == "center"
+    assert _template_node_options(_template_nodes(battery_peer, "Image")[0])["width"] == 14
 
     resource_peer = registry.require_variant(
         "ResourceUsageOverviewCompact@1",
@@ -2134,11 +2137,11 @@ def test_pr7_resource_battery_outer_title_keeps_the_reviewed_subtext_style():
         allowed_design_tokens=(),
         allowed_layout_tokens=(),
         allowed_template_ids=(
-            "BatteryOverviewNormalCompact@1",
+            "BatteryOverviewStatusIconCompact@1",
             "ResourceUsageOverviewCompact@1",
         ),
         required_template_groups=(
-            ("BatteryOverviewNormalCompact@1",),
+            ("BatteryOverviewStatusIconCompact@1",),
             ("ResourceUsageOverviewCompact@1",),
         ),
         allowed_asset_sources=(),
@@ -2623,7 +2626,7 @@ def test_state_specific_battery_compact_still_requires_matching_state() -> None:
         match="variant does not match the trusted state",
     ):
         _validate_provider_template_state(
-            "BatteryOverviewChargingCompact@1",
+            "BatteryOverviewChargingWeatherCompact@1",
             "default",
             _battery_task(),
             business_names={"BatteryOverview"},

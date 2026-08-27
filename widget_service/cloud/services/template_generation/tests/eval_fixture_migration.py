@@ -43,7 +43,7 @@ _TEMPLATE_IDS = {
     ("BluetoothDeviceOverview@1", "earbuds"): "BluetoothDeviceOverviewCaseFull@1",
     ("BluetoothDeviceOverview@1", "earbudPair"): "BluetoothDeviceOverviewEarbudPairFull@1",
     ("BluetoothDeviceOverview@1", "earbudsFullWide"): "BluetoothDeviceOverviewCompleteWideFull@1",
-    ("BatteryOverview@1", "chargingPhone"): "BatteryOverviewChargingPhoneCompact@1",
+    ("BatteryOverview@1", "chargingPhone"): "BatteryOverviewChargingWeatherCompact@1",
     ("BatteryOverview@1", "charging"): "BatteryOverviewChargingFull@1",
     ("BatteryOverview@1", "chargingWide"): "BatteryOverviewChargingWideFull@1",
     ("CountdownOverviewFull@1", "countdown"): "CountdownOverviewFull@1",

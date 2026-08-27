@@ -4,7 +4,7 @@
 
 ## 整改总览
 
-- [x] 80 个业务模板全部使用 `Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
+- [x] 74 个业务模板全部使用 `Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
 - [x] 业务模板尺寸和动作组合由后缀推导，不再由 Provider 重复声明。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
 - [x] `primaryData` 与 `secondaryData` 均参与模板准入硬校验。
@@ -52,7 +52,7 @@
 ## BatteryOverview
 
 - Provider：`com.huawei.battery.cli`；运行状态：启用。
-- 数据能力：`GetPhoneBatteryInfo`；模板数：17。
+- 数据能力：`GetPhoneBatteryInfo`；模板数：13。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
@@ -64,15 +64,11 @@
 | ✅ | `BatteryOverviewNormalWideFull@1` | 完整 4x2；单 WideFull | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewChargingWideFull@1` | 完整 4x2；单 WideFull | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewLowWideFull@1` | 完整 4x2；单 WideFull | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
-| ✅ | `BatteryOverviewNormalCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
-| ✅ | `BatteryOverviewChargingCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
-| ✅ | `BatteryOverviewLowCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
-| ✅ | `BatteryOverviewNormalPhoneCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/batterySOC`<br>`/batterySOCText` | 无 | 无 |
-| ✅ | `BatteryOverviewChargingPhoneCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/batterySOC`<br>`/batterySOCText` | 无 | 无 |
-| ✅ | `BatteryOverviewLowPhoneCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/batterySOC`<br>`/batterySOCText` | 无 | 无 |
 | ✅ | `BatteryOverviewNormalWeatherCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewChargingWeatherCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewLowWeatherCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
+| ✅ | `BatteryOverviewTemperatureIconCompact@1` | 约 2x1；双 Compact 组成 2x2 | `/batteryTemperatureText` | 无 | 无 |
+| ✅ | `BatteryOverviewStatusIconCompact@1` | 约 2x1；双 Compact 组成 2x2 | `/batterySOCText` | 无 | `/batteryCapacityLevelDesc` |
 
 ## CalendarOverview
 

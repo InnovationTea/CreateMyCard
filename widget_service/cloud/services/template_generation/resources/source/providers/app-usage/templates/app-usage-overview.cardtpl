@@ -27,7 +27,7 @@ Column(
             {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
             Text(
                 data.duration,
-                {"fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                {"fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
             )
         ),
         IfPresent(
@@ -70,7 +70,7 @@ Column(
             {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
             Text(
                 data.duration,
-                {"fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                {"fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
             )
         ),
         IfPresent(

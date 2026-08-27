@@ -72,7 +72,7 @@ TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路�
 - `WideFull`：完整 `4x2`，单独使用。
 
 业务模板不再重复声明 `supportedCardSizes` 和 `requiresLayoutAction`，Registry 直接从后缀推导。业务语义或
-状态写在后缀前，例如 `BatteryOverviewChargingCompact@1`。布局 Provider 不受此后缀约束。
+状态写在后缀前，例如 `BatteryOverviewChargingWeatherCompact@1`。布局 Provider 不受此后缀约束。
 
 模板 ID 直接表达 UI 形态，不再声明 `Variant`、`allowedParentComponents` 或 `limits`。模板头只定义外部
 `props`；`?` 表示可选，支持 `string`、`asset`、`number`、`integer` 和 `boolean`：

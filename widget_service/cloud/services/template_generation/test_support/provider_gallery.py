@@ -198,7 +198,7 @@ _COMPACT_PARTNER_PRIORITY = (
     "ActivityOverviewCompact@1",
     "ResourceUsageOverviewCompact@1",
     "WeatherOverviewCompact@1",
-    "BatteryOverviewNormalCompact@1",
+    "BatteryOverviewNormalWeatherCompact@1",
 )
 
 _CALENDAR_COMPACT_PARTNER_PRIORITY = (

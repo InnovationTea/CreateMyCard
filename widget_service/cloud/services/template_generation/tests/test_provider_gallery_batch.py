@@ -112,7 +112,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     manifest = write_gallery_input_dataset(input_root)
 
     assert len(manifest.providers) == 8
-    assert sum(len(provider.cases) for provider in manifest.providers) == 108
+    assert sum(len(provider.cases) for provider in manifest.providers) == 96
     scenario_ids = {
         case.scenarioId
         for provider in manifest.providers
@@ -128,15 +128,15 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         manifest,
         "BatteryOverview",
         "single-two-actions",
-        "BatteryOverviewNormalCompact@1",
+        "BatteryOverviewNormalWeatherCompact@1",
     )
     request = json.loads((input_root / battery_case.requestFile).read_text(encoding="utf-8"))
     binding = request["content"]["candidateDataBindings"][0]
     assert binding["candidateOutputFields"] == [
-        "/batterySOC",
         "/batterySOCText",
         "/chargingStatusDesc",
         "/batteryCapacityLevelDesc",
+        "/batterySOC",
     ]
     assert len(request["content"]["candidateEventCandidates"]) == 2
     assert "打开电池设置" in request["content"]["userQuery"]
@@ -164,7 +164,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases
         if case.targetTemplateId
     ]
-    assert len(targeted_cases) == 99
+    assert len(targeted_cases) == 87
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -179,7 +179,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         manifest,
         "BatteryOverview",
         "single-two-actions",
-        "BatteryOverviewChargingCompact@1",
+        "BatteryOverviewChargingWeatherCompact@1",
     )
     charging_request = json.loads(
         (input_root / battery_charging.requestFile).read_text(encoding="utf-8")
@@ -353,9 +353,9 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 108
+    assert summary.total == 96
     assert summary.missing == 27
-    assert summary.not_generated == 81
+    assert summary.not_generated == 69
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 8

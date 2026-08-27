@@ -391,7 +391,10 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
     )
     _validate_provider_template_layout_action_requirements(
         "TwoCompactLayout",
-        (template("WeatherOverviewCompact@1"), template("BatteryOverviewNormalCompact@1")),
+        (
+            template("WeatherOverviewCompact@1"),
+            template("BatteryOverviewNormalWeatherCompact@1"),
+        ),
         (),
         "2x2",
     )
