@@ -4,7 +4,7 @@
 
 ## 整改总览
 
-- [x] 74 个业务模板全部使用 `Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
+- [x] 71 个业务模板全部使用 `Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
 - [x] 业务模板尺寸和动作组合由后缀推导，不再由 Provider 重复声明。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
 - [x] `primaryData` 与 `secondaryData` 均参与模板准入硬校验。
@@ -28,13 +28,13 @@
 | Provider | 数据能力 | 数据根 | 模板数 | 当前状态 |
 | --- | --- | --- | ---: | --- |
 | app-usage | `GetAppUsageDuration` | `/data/appUsageStats` | 5 | 启用 |
-| battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 17 | 启用 |
+| battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 13 | 启用 |
 | calendar | `GetCalendarEvents` | `/data/calendar` | 12 | 启用 |
 | countdown | `GetCountdownDays` | `/data/countdown` | 1 | 启用 |
 | earphone | `GetEarphoneInfo` | `/data/earphone` | 14 | 配置禁用 |
 | health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 17 | 启用 |
 | system-memory | `GetSystemMemInfo` | `/data/systemMem` | 2 | 启用 |
-| weather | `ViewWeather` | `/data/weather` | 9 | 启用 |
+| weather | `ViewWeather` | `/data/weather` | 7 | 启用 |
 
 ## AppUsageOverview
 
@@ -45,7 +45,7 @@
 | --- | --- | --- | --- | --- | --- |
 | ✅ | `AppUsageOverviewFull@1` | 完整 2x2；无 Action 的单 Full | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | `/updatedAt` |
 | ✅ | `AppUsageOverviewHero@1` | 约 2x1.7；2x2 Hero + 1 个 PillAction | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | `/updatedAt` |
-| ✅ | `AppUsageOverviewCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | `/updatedAt` |
+| ✅ | `AppUsageOverviewCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | 无 |
 | ✅ | `AppUsageOverviewWideFull@1` | 完整 4x2；单 WideFull | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | `/updatedAt` |
 | ✅ | `AppUsageOverviewWideHero@1` | 约 4x1.7；2x4 WideHero + 1 个 PillAction | `/appUsage/appName`<br>`/appUsage/durationText` | 无 | `/updatedAt` |
 
@@ -185,16 +185,14 @@
 ## WeatherOverview
 
 - Provider：`com.huawei.weather.cli`；运行状态：启用。
-- 数据能力：`ViewWeather`；模板数：9。
+- 数据能力：`ViewWeather`；模板数：7。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
-| ✅ | `WeatherOverviewCompact@1` | 约 2x1；双 Compact，或 Compact + 2 个 PillAction | `/current/temperatureText` | `/location/districtName`<br>`/current/condition`<br>`/current/coldLevel` | 无 |
-| ✅ | `WeatherOverviewIconCompact@1` | 约 2x1；双 Compact，或 Compact + 2 个 PillAction | `/current/temperatureText` | `/location/districtName`<br>`/current/condition`<br>`/current/coldLevel` | 无 |
-| ✅ | `WeatherOverviewHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/current/temperatureText` | `/location/districtName`<br>`/current/condition`<br>`/current/coldLevel` | 无 |
-| ✅ | `WeatherOverviewFull@1` | 完整 2x2；无 Action 的单 Full | `/current/temperatureText` | `/location/districtName`<br>`/current/condition`<br>`/current/airQuality`<br>`/current/coldLevel` | 无 |
-| ✅ | `WeatherOverviewIconFull@1` | 完整 2x2；无 Action 的单 Full | `/current/temperatureText` | `/location/districtName`<br>`/current/condition`<br>`/current/airQuality`<br>`/current/coldLevel` | 无 |
-| ✅ | `WeatherOverviewConditionFull@1` | 完整 2x2；无 Action 的单 Full | `/current/condition` | `/location/districtName`<br>`/current/temperatureText`<br>`/current/airQuality`<br>`/current/coldLevel` | 无 |
+| ✅ | `WeatherOverviewCompact@1` | 约 2x1；可选天气图标；双 Compact，或 Compact + 2 个 PillAction | `/current/temperatureText` | `/location/districtName`<br>`/current/condition`<br>`/current/coldLevel` | 无 |
+| ✅ | `WeatherOverviewTemperatureIconCompact@1` | 约 2x1；温度、城市与天气图标；双 Compact | `/current/temperatureText` | `/location/districtName` | 无 |
+| ✅ | `WeatherOverviewHero@1` | 约 2x1.7；可选天气图标；Hero + 1 个 PillAction | `/current/temperatureText` | `/location/districtName`<br>`/current/condition`<br>`/current/coldLevel` | 无 |
+| ✅ | `WeatherOverviewFull@1` | 完整 2x2；可选天气图标；无 Action 的单 Full | `/current/temperatureText` | `/location/districtName`<br>`/current/condition`<br>`/current/airQuality`<br>`/current/coldLevel` | 无 |
 | ✅ | `WeatherOverviewHumidityFull@1` | 完整 2x2；无 Action 的单 Full | `/current/humidityPercent` | `/location/districtName`<br>`/current/condition`<br>`/current/temperatureText`<br>`/current/airQuality`<br>`/current/coldLevel` | 无 |
 | ✅ | `WeatherOverviewUvFull@1` | 完整 2x2；无 Action 的单 Full | `/current/uvIndex` | `/location/districtName`<br>`/current/condition`<br>`/current/temperatureText`<br>`/current/airQuality`<br>`/current/coldLevel` | 无 |
 | ✅ | `WeatherOverviewAirQualityHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/current/airQuality` | `/location/districtName`<br>`/current/condition`<br>`/current/coldLevel` | 无 |

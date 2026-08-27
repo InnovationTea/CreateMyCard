@@ -5,7 +5,7 @@
 - 可用模板：
   - `AppUsageOverviewFull@1`：单个应用的当日使用时长摘要，无动作时使用。 组件形态：full。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/appUsage/appName, /appUsage/durationText；次要数据：无；可选数据：/updatedAt。
   - `AppUsageOverviewHero@1`：单个应用的当日使用时长摘要，为底部 PillAction 预留空间。 组件形态：hero。 布局场景：约 2x1.7；用于 2x2 主内容加一个 PillAction。主数据：/appUsage/appName, /appUsage/durationText；次要数据：无；可选数据：/updatedAt。
-  - `AppUsageOverviewCompact@1`：单个应用的当日使用时长摘要，展示时长。 组件形态：compact。 布局场景：约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction。主数据：/appUsage/appName, /appUsage/durationText；次要数据：无；可选数据：/updatedAt。
+  - `AppUsageOverviewCompact@1`：单个应用的当日使用时长摘要，展示应用名称和时长。 组件形态：compact。 布局场景：约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction。主数据：/appUsage/appName, /appUsage/durationText；次要数据：无；可选数据：无。
   - `AppUsageOverviewWideFull@1`：单个应用的当日使用时长摘要，可补充更新时间。 组件形态：wideFull。 布局场景：完整 4x2；单独使用。主数据：/appUsage/appName, /appUsage/durationText；次要数据：无；可选数据：/updatedAt。
   - `AppUsageOverviewWideHero@1`：单个应用的当日使用时长摘要，可补充更新时间。 组件形态：wideHero。 布局场景：约 4x1.7；用于 2x4 主内容加一个 PillAction。主数据：/appUsage/appName, /appUsage/durationText；次要数据：无；可选数据：/updatedAt。
 - 已有 Provider 全局路径的值必须由模板 `data` 绑定；props 可传无全局路径的受控派生值、排版参数和

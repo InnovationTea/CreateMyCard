@@ -179,8 +179,9 @@ _ASSET_IDS_BY_TEMPLATE_PREFIX = {
         "asset.location_north_up_right_fill",
         "asset.icon_meeting",
     ),
-    "WeatherOverviewConditionFull": ("asset.icon_weather1",),
-    "WeatherOverviewIcon": ("asset.icon_weather1",),
+    "WeatherOverviewCompact": ("asset.icon_weather1",),
+    "WeatherOverviewFull": ("asset.icon_weather1",),
+    "WeatherOverviewHero": ("asset.icon_weather1",),
     "WeatherOverviewTemperatureIcon": ("asset.icon_weather1",),
 }
 
@@ -299,7 +300,7 @@ class GalleryGenerationService(Protocol):
         self,
         request: GenerateWidgetCardRequest,
         *,
-        enable_fusion_ball: bool = True,
+        enable_fusion_ball: bool = False,
         trusted_template_candidate_ids: tuple[str, ...] = (),
         trusted_template_action_ids: tuple[str, ...] = (),
         trusted_template_sample_overrides: dict[str, object] | None = None,
@@ -939,7 +940,7 @@ class ProviderGalleryBatchRunner:
         self,
         service: GalleryGenerationService,
         *,
-        enable_fusion_ball: bool = True,
+        enable_fusion_ball: bool = False,
     ) -> None:
         self.service = service
         self.enable_fusion_ball = enable_fusion_ball
@@ -1178,7 +1179,7 @@ async def generate_provider_gallery(
     concurrency: int = 1,
     provider_ids: set[str] | None = None,
     dry_run: bool = False,
-    enable_fusion_ball: bool = True,
+    enable_fusion_ball: bool = False,
 ) -> GalleryRunSummary:
     """创建共享模型运行时并执行一次完整 Provider 画廊批跑。"""
     runtime = ModelExecutionRuntime()

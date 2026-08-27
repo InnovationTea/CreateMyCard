@@ -43,8 +43,12 @@ await request_template_source_dsl(
 )
 ```
 
-`enable_fusion_ball` 是无默认值的请求级布尔开关，必须由调用方显式决定。关闭时，融球 Theme 会在
-首层 Prompt 构造前从当前请求的 Registry 视图中移除，后续检索、二层组合和编译也不能选择该类 Theme。
+生产服务入口和开发验证入口默认传入 `enable_fusion_ball=False`；只有调用方显式开启时才使用融球。
+本模块责任边界内的 `request_template_source_dsl` 仍要求显式布尔值。关闭时，融球 Theme 会在首层 Prompt
+构造前从当前请求的 Registry 视图中移除，后续检索、二层组合和编译也不能选择该类 Theme。
+
+Provider Template Search 当前整体只支持 `2x2`。`2x4` 在首层 Prompt 和模型调用前直接判定模板不适用；
+Compact create 回退原 Compact 生成，Tersel 模板入口直接失败。
 
 入口返回当前公共 Processor 可直接消费的字符串。当前 Compact 与
 Tersel 生产路线都使用 `DESIGN_COMPACT` Processor，因此模块最终返回 Design Compact DSL。

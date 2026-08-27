@@ -102,7 +102,7 @@ from services.template_generation.engine.terse_dsl_nested2_converter import (
 from services.widget_generation_service import WidgetGenerationService
 
 _WEATHER_BODY = (
-    'Template("SingleFocusLayout@1",{},Template("WeatherOverviewIconFull@1",'
+    'Template("SingleFocusLayout@1",{},Template("WeatherOverviewFull@1",'
     '{"conditionIcon":"resources/base/media/icon_weather1.svg"}));'
 )
 _WEATHER_TEMPLATE_FIELDS = (
@@ -217,7 +217,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 81
+    assert len(registry.provider_template_ids) == 78
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -235,7 +235,6 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "SleepOverviewFull@1",
         "SleepOverviewHero@1",
         "WeatherOverviewAirQualityHero@1",
-        "WeatherOverviewConditionFull@1",
         "WeatherOverviewFull@1",
         "WeatherOverviewHero@1",
         "WeatherOverviewHumidityFull@1",
@@ -293,6 +292,17 @@ def test_business_template_suffix_drives_size_and_provider_data_tiers():
         assert set(definition.primary_data).isdisjoint(definition.optional_data)
         assert set(definition.secondary_data).isdisjoint(definition.optional_data)
         assert definition.required_data == (*definition.primary_data, *definition.secondary_data)
+
+
+def test_app_usage_compact_data_contract_matches_visible_content() -> None:
+    definition = get_cardplan_registry().require_template("AppUsageOverviewCompact@1")
+
+    assert definition.primary_data == (
+        "/appUsage/appName",
+        "/appUsage/durationText",
+    )
+    assert definition.secondary_data == ()
+    assert definition.optional_data == ()
 
 
 def test_layout_template_wide_marker_drives_exclusive_card_size() -> None:
@@ -373,7 +383,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
 
 
 def test_registry_uses_only_distributed_provider_and_theme_sources() -> None:
-    registry = get_cardplan_registry()
+    registry = get_cardplan_registry(True)
     central_sources = {
         "advanced-component-registry.json",
         "advanced-component-ux-registry.json",
@@ -402,6 +412,18 @@ def test_registry_uses_only_distributed_provider_and_theme_sources() -> None:
     assert all(
         (registry.source_root / "themes" / theme_id / "theme.json").is_file()
         for theme_id in registry.themes
+    )
+
+
+def test_registry_hides_fusion_themes_by_default() -> None:
+    default_registry = get_cardplan_registry()
+    enabled_registry = get_cardplan_registry(True)
+
+    assert all(
+        theme.fusion_ball_style is None for theme in default_registry.themes.values()
+    )
+    assert any(
+        theme.fusion_ball_style is not None for theme in enabled_registry.themes.values()
     )
 
 
@@ -629,7 +651,7 @@ def test_fusion_ball_palette_is_gated_by_selected_theme(
     expected_scene: str | None,
     expected_palette: FusionBallPalette | None,
 ):
-    theme = get_cardplan_registry().require_theme(theme_profile_id)
+    theme = get_cardplan_registry(True).require_theme(theme_profile_id)
 
     fusion_style = theme.fusion_ball_style
     assert (fusion_style.scene if fusion_style else None) == expected_scene
@@ -661,7 +683,7 @@ def test_fusion_theme_content_and_action_colors_are_exact(
     primary: str,
     support: str,
 ) -> None:
-    theme = get_cardplan_registry().require_theme(theme_id)
+    theme = get_cardplan_registry(True).require_theme(theme_id)
 
     assert theme.primary_color == primary
     assert theme.support_content_color == support
@@ -975,7 +997,7 @@ def test_fusion_theme_requires_one_matching_full_or_hero_business(
         card,
         "2x2",
         contract,
-        get_cardplan_registry(),
+        get_cardplan_registry(True),
         selected_template_ids,
     )
 
@@ -1468,8 +1490,8 @@ def test_first_layer_uses_candidate_provider_and_theme_documents_with_task_spec_
     theme_rules = json.dumps(payload["themeFirstLayerRules"], ensure_ascii=False)
     assert "天气高级组件首层规则" in provider_rules
     assert "手机电量高级组件首层规则" not in provider_rules
-    assert "fusion-weather-blue" in theme_rules
-    assert "fusion-battery-teal" not in theme_rules
+    assert "family-weather-care-blue" in theme_rules
+    assert "fusion-weather-blue" not in theme_rules
 
 
 def test_disabled_weather_provider_is_not_exposed_to_first_layer():
@@ -1521,8 +1543,21 @@ def test_disabled_weather_template_is_hidden_from_both_llm_layers():
 
     assert disabled_template_id not in first_layer_content
     assert disabled_template_id not in second_layer_rules
-    assert "WeatherOverviewIconFull@1" in first_layer_content
-    assert "WeatherOverviewIconFull@1" in second_layer_rules
+    assert "WeatherOverviewCompact@1" in first_layer_content
+    assert "WeatherOverviewCompact@1" in second_layer_rules
+
+
+def test_provider_second_layer_guidance_omits_the_full_template_catalog() -> None:
+    registry = get_cardplan_registry()
+
+    guidance = registry.provider_second_layer_guidance(("WeatherOverview",))
+    serialized = json.dumps(guidance, ensure_ascii=False)
+
+    assert "第二层业务模板使用规则" in serialized
+    assert "conditionIcon" in serialized
+    assert "- 可用模板：" not in serialized
+    assert "WeatherOverviewFull@1" not in serialized
+    assert "WeatherOverviewCompact@1" not in serialized
 
 
 def test_disabled_template_cannot_be_restored_by_first_layer_output():
@@ -1535,7 +1570,7 @@ def test_disabled_template_cannot_be_restored_by_first_layer_output():
         candidateOutputFields=list(_WEATHER_TEMPLATE_FIELDS),
     )
     scope = AdvancedScopeBrief(
-        themeId="fusion-weather-blue",
+        themeId="family-weather-care-blue",
         advancedComponentIds=("WeatherOverview",),
     )
     component_candidates = (
@@ -1651,7 +1686,7 @@ def test_provider_data_domain_must_match_card_spec_write_root():
     card_spec = _weather_card_spec()
     card_spec["dataBindings"][0]["writeResultTo"] = "/data/customWeather"
     scope = AdvancedScopeBrief(
-        themeId="fusion-weather-blue",
+        themeId="family-weather-care-blue",
         advancedComponentIds=["WeatherOverview"],
     )
 
@@ -1862,9 +1897,11 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
 
     app_usage = registry.require_variant("AppUsageOverviewFull@1", "default").root
     assert _template_node_options(app_usage)["justifyContent"] == "start"
-    duration_region = app_usage.children[1]
-    assert _template_node_options(duration_region)["justifyContent"] == "end"
-    assert _template_node_options(duration_region)["itemMargin"] == 4
+    updated_at_branch = app_usage.children[1]
+    assert updated_at_branch.component == "IfBind"
+    updated_at_region = updated_at_branch.children[0]
+    assert _template_node_options(updated_at_region)["justifyContent"] == "end"
+    assert _template_node_options(updated_at_region)["itemMargin"] == 4
 
     battery = registry.require_variant("BatteryOverviewNormalFull@1", "default").root
     battery_support_color = battery.children[1].values[-1].properties["fontColor"]
@@ -1940,7 +1977,7 @@ async def test_calendar_date_and_schedule_compacts_generate_one_vertical_card():
             **_kwargs: Any,
         ) -> dict[str, Any]:
             return {
-                "themeId": "fusion-schedule-cool",
+                "themeId": "meeting-paper-neutral",
                 "requiredOutputFieldsByCapability": {
                     "GetCalendarEvents": [
                         "/events/0/startDate",
@@ -2413,7 +2450,7 @@ async def test_q094_multi_business_fields_use_compact_template_search():
         ) -> dict[str, Any]:
             self.first_layer_prompt = prompt
             return {
-                "themeId": "fusion-sport-orange",
+                "themeId": "race-sunrise-action",
                 "requiredOutputFieldsByCapability": {
                     "GetHealthAndSportSummary": [
                         "/sleepScore",
@@ -2798,6 +2835,7 @@ async def test_2x2_battery_pill_action_uses_normal_hero_template():
         _battery_card_spec(),
         (binding,),
         model,
+        enable_fusion_ball=True,
     )
 
     assert output.template_ids == (
@@ -2808,14 +2846,44 @@ async def test_2x2_battery_pill_action_uses_normal_hero_template():
     assert model.second_layer_prompt is not None
     second_layer_system = model.second_layer_prompt[0]["content"]
     second_layer_user = model.second_layer_prompt[1]["content"]
-    assert "Template('PillAction@1', props)" in second_layer_system
-    assert '"actionId": "event.setPowerSavingMode"' in second_layer_system
-    assert '"label": "省电模式"' in second_layer_system
-    assert "目标尺寸为 2x4 时，布局 Template ID 必须显式包含 `Wide`" in second_layer_system
-    assert "禁止把 WideHero/WideFull 放入非 Wide 布局" in second_layer_system
-    assert "约 2x1.7；用于 2x2 主内容加一个 PillAction" in second_layer_user
-    assert "业务模板本身不得携带按钮" in second_layer_user
-    assert "PillAction@1" in second_layer_user
+    assert "类 Tersel 调用树" in second_layer_system
+    assert "完整签名" in second_layer_system
+    action_contract_line = next(
+        line for line in second_layer_user.splitlines() if line.startswith("actionContracts=")
+    )
+    action_contracts = json.loads(action_contract_line.removeprefix("actionContracts="))
+    assert action_contracts[0]["templateId"] == "PillAction@1"
+    assert action_contracts[0]["callSyntax"] == (
+        'Template("PillAction@1", <props matching propsSchema>)'
+    )
+    assert action_contracts[0]["propsSchema"]["required"] == ["actionId", "label"]
+    assert action_contracts[0]["propsSchema"]["additionalProperties"] is False
+    action_candidate_line = next(
+        line
+        for line in second_layer_user.splitlines()
+        if line.startswith("selectedActionCandidates=")
+    )
+    action_candidates = json.loads(
+        action_candidate_line.removeprefix("selectedActionCandidates=")
+    )
+    assert action_candidates[0]["actionId"] == "event.setPowerSavingMode"
+    assert action_candidates[0]["label"] == "省电模式"
+    layout_contract_line = next(
+        line for line in second_layer_user.splitlines() if line.startswith("layoutContracts=")
+    )
+    layout_contracts = json.loads(layout_contract_line.removeprefix("layoutContracts="))
+    assert layout_contracts[0]["templateId"] == "HeroActionLayout@1"
+    template_contract_line = next(
+        line for line in second_layer_user.splitlines() if line.startswith("templateContracts=")
+    )
+    template_contracts = json.loads(
+        template_contract_line.removeprefix("templateContracts=")
+    )
+    assert template_contracts[0]["templateId"] == "BatteryOverviewNormalHero@1"
+    assert template_contracts[0]["callSyntax"] == (
+        'Template("BatteryOverviewNormalHero@1", <props matching propsSchema>)'
+    )
+    assert template_contracts[0]["propsSchema"]["additionalProperties"] is False
     assert '"height":36' in output.a2ui
     assert "省电模式" in output.a2ui
     assert "batterySOC" in output.a2ui
@@ -2885,6 +2953,7 @@ async def test_pill_action_template_rejects_mismatched_label_props():
             _battery_card_spec(),
             (binding,),
             model,
+            enable_fusion_ball=True,
         )
 
 
@@ -2923,6 +2992,7 @@ async def test_2x2_battery_percent_ring_hero_does_not_require_capacity_level():
         _battery_card_spec(),
         (binding,),
         model,
+        enable_fusion_ball=True,
     )
 
     assert output.template_ids == (
@@ -2937,7 +3007,7 @@ async def test_2x2_battery_percent_ring_hero_does_not_require_capacity_level():
 
 
 def test_battery_normal_hero_requires_a_selected_layout_action():
-    registry = get_cardplan_registry()
+    registry = get_cardplan_registry(True)
     definition = registry.require_template("BatteryOverviewNormalHero@1")
     scope = AdvancedScopeBrief(
         themeId="fusion-battery-teal",
@@ -3007,6 +3077,7 @@ async def test_battery_normal_hero_without_pill_action_is_repaired_to_normal_tem
         _battery_card_spec(),
         (binding,),
         model,
+        enable_fusion_ball=True,
     )
 
     assert model.body_calls == 2
@@ -3023,6 +3094,69 @@ async def test_battery_normal_hero_without_pill_action_is_repaired_to_normal_tem
     assert "BatteryOverviewNormalFull@1" in candidates[0]["availableTemplateIds"]
     assert "BatteryOverviewNormalHero@1" not in candidates[0]["availableTemplateIds"]
     assert "PillAction" not in output.terse_dsl_nested2
+
+
+@pytest.mark.asyncio
+async def test_second_layer_invalid_direct_calls_are_retried_exactly_twice() -> None:
+    binding = CandidateDataBinding(
+        capabilityId="GetPhoneBatteryInfo",
+        writeResultTo="/data/phoneBattery",
+        candidateOutputFields=[
+            "/batterySOC",
+            "/batterySOCText",
+            "/batteryCapacityLevelDesc",
+            "/chargingStatusDesc",
+        ],
+    )
+
+    class InvalidDirectCallModel(_FixedTemplateModel):
+        def __init__(self) -> None:
+            super().__init__(
+                theme_id="device-clean-blue-teal",
+                component_id="BatteryOverview",
+                available_template_ids=("BatteryOverviewNormalFull@1",),
+                capability_id="GetPhoneBatteryInfo",
+                required_fields=(
+                    "/batterySOC",
+                    "/batterySOCText",
+                    "/batteryCapacityLevelDesc",
+                    "/chargingStatusDesc",
+                ),
+                action_id=None,
+                body="",
+            )
+            self.body_calls = 0
+
+        async def generate(
+            self,
+            prompt: list[dict[str, str]],
+            *_args: Any,
+            **_kwargs: Any,
+        ) -> str:
+            self.second_layer_prompt = prompt
+            self.body_calls += 1
+            return (
+                'Template(layout="SingleFocusLayout@1", props={}, '
+                'children=[Template("BatteryOverviewNormalFull@1", {})]);'
+            )
+
+    model = InvalidDirectCallModel()
+
+    with pytest.raises(TemplateGenerationError, match="template body validation failed"):
+        await generate_template_a2ui(
+            _battery_task(),
+            _battery_card_spec(),
+            (binding,),
+            model,
+        )
+
+    assert model.body_calls == 3
+    assert model.second_layer_prompt is not None
+    assert len(model.second_layer_prompt) == 4
+    retry_instruction = model.second_layer_prompt[-1]["content"]
+    assert "不含关键字参数的直接位置调用" in retry_instruction
+    assert "props=" in retry_instruction
+    assert "只输出类 Tersel 调用树" in retry_instruction
 
 
 def test_first_layer_action_candidate_exposes_only_event_identity():
@@ -3119,15 +3253,14 @@ class WeatherTemplateModel:
         *,
         route_usable: bool = True,
         action_id: str | None = None,
+        theme_id: str = "family-weather-care-blue",
         body: str = _WEATHER_BODY,
-        available_template_ids: tuple[str, ...] = (
-            "WeatherOverviewFull@1",
-            "WeatherOverviewIconFull@1",
-        ),
+        available_template_ids: tuple[str, ...] = ("WeatherOverviewFull@1",),
     ) -> None:
         self.body_called = False
         self.route_usable = route_usable
         self.action_id = action_id
+        self.theme_id = theme_id
         self.body = body
         self.available_template_ids = available_template_ids
         self.first_layer_prompt: list[dict[str, str]] | None = None
@@ -3146,7 +3279,7 @@ class WeatherTemplateModel:
             if field in candidate_fields
         ]
         return {
-            "themeId": "fusion-weather-blue",
+            "themeId": self.theme_id,
             "requiredOutputFieldsByCapability": (
                 {"ViewWeather": required_fields}
                 if self.route_usable
@@ -3258,7 +3391,7 @@ async def test_disabled_fusion_feature_hides_themes_from_first_layer_prompt(
 
 @pytest.mark.asyncio
 async def test_disabled_fusion_feature_rejects_forged_fusion_theme() -> None:
-    model = WeatherTemplateModel()
+    model = WeatherTemplateModel(theme_id="fusion-weather-blue")
     binding = CandidateDataBinding(
         capabilityId="ViewWeather",
         writeResultTo="/data/weather",
@@ -3275,6 +3408,33 @@ async def test_disabled_fusion_feature_rejects_forged_fusion_theme() -> None:
         )
 
     assert model.body_called is False
+
+
+@pytest.mark.asyncio
+async def test_template_pipeline_rejects_2x4_before_any_model_call() -> None:
+    class NoModelCall:
+        async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
+            pytest.fail("2x4 template Search must not call the model")
+
+        async def generate(self, *_args: Any, **_kwargs: Any) -> str:
+            pytest.fail("2x4 template Search must not call the model")
+
+    task_spec = _weather_task_spec().model_copy(update={"size": "2x4"})
+    card_spec = _weather_card_spec() | {"suggestSize": "2x4"}
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=["/current/temperatureText", "/current/condition"],
+    )
+
+    with pytest.raises(TemplateRouteNotApplicable, match="does not support 2x4"):
+        await generate_template_a2ui(
+            task_spec,
+            card_spec,
+            (binding,),
+            NoModelCall(),
+            enable_fusion_ball=True,
+        )
 
 
 @pytest.mark.asyncio
@@ -3302,7 +3462,7 @@ async def test_first_layer_selector_routes_and_preserves_action(
             self.phases.append(phase)
             if selector == "llm":
                 return {
-                    "theme": "fusion-weather-blue",
+                    "theme": "family-weather-care-blue",
                     "componentCandidates": [
                         {
                             "componentId": "WeatherOverview",
@@ -3312,7 +3472,7 @@ async def test_first_layer_selector_routes_and_preserves_action(
                         "action": ["event.open.weather"],
                 }
             return {
-                "themeId": "fusion-weather-blue",
+                "themeId": "family-weather-care-blue",
                 "requiredOutputFieldsByCapability": {
                     "ViewWeather": ["/current/condition"]
                 },
@@ -3374,7 +3534,7 @@ async def test_compact_template_accepts_two_independently_selected_pill_actions(
         ) -> dict[str, Any]:
             assert phase == "template-retrieval-query"
             return {
-                "themeId": "fusion-weather-blue",
+                "themeId": "family-weather-care-blue",
                 "requiredOutputFieldsByCapability": {
                     "ViewWeather": ["/current/condition"]
                 },
@@ -3793,7 +3953,7 @@ def test_template_route_prompt_exposes_exact_task_spec_paths_from_bindings():
 
 
 @pytest.mark.asyncio
-async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch):
+async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact(monkeypatch):
     model = WeatherTemplateModel()
     captured: dict[str, Any] = {}
 
@@ -3835,11 +3995,7 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
     candidate_line = next(
         line for line in second_layer_user.splitlines() if line.startswith("componentCandidates=")
     )
-    weather_full_candidates = [
-        "WeatherOverviewConditionFull@1",
-        "WeatherOverviewFull@1",
-        "WeatherOverviewIconFull@1",
-    ]
+    weather_full_candidates = ["WeatherOverviewFull@1"]
     assert json.loads(candidate_line.removeprefix("componentCandidates=")) == [
         {
             "componentId": "WeatherOverview",
@@ -3855,9 +4011,36 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
         weather_full_candidates
     ]
     assert "selectedActionEventIds=[]" in second_layer_user
-    assert "只能按业务模板布局后缀选择 PillAction@1 或 IconAction@1" in second_layer_user
+    template_contract_line = next(
+        line
+        for line in second_layer_user.splitlines()
+        if line.startswith("templateContracts=")
+    )
+    template_contracts = json.loads(
+        template_contract_line.removeprefix("templateContracts=")
+    )
+    assert template_contracts[0]["templateId"] == "WeatherOverviewFull@1"
+    assert template_contracts[0]["callSyntax"] == (
+        'Template("WeatherOverviewFull@1", <props matching propsSchema>)'
+    )
+    assert template_contracts[0]["propsSchema"] == {
+        "type": "object",
+        "properties": {"conditionIcon": {"type": "string"}},
+        "required": [],
+        "additionalProperties": False,
+    }
+    assert template_contracts[0]["parameterSources"]["conditionIcon"] == {
+        "valueKind": "asset-source",
+        "allowedSources": ["resources/base/media/icon_weather1.svg"],
+    }
+    assert "layoutContracts=" in second_layer_user
+    assert "actionContracts=[]" in second_layer_user
     assert "第二层业务模板使用规则" in second_layer_user
     assert "手机电量高级组件二层规则" not in second_layer_user
+    assert "- 可用模板：" not in second_layer_user
+    assert "WeatherOverviewCompact@1" not in second_layer_user
+    assert sum(len(item["content"]) for item in model.second_layer_prompt) < 8_000
+    assert "标准组件投影" not in model.second_layer_prompt[0]["content"]
     assert captured["compact"]
     assert "{{ ${/data/weather/current/condition}" in captured["compact"]
     messages = [json.loads(line) for line in captured["artifact"].genui.splitlines()]
@@ -3868,33 +4051,21 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
         for item in messages[1]["updateComponents"]["components"]
         if item["id"] == "root"
     )
-    medium_ball = next(
-        item
-        for item in messages[1]["updateComponents"]["components"]
-        if item["id"] == "fusionBallMedium"
-    )
-    glass_layer = next(
-        item
-        for item in messages[1]["updateComponents"]["components"]
-        if item["id"] == "fusionBallGlassLayer"
-    )
-    assert root["component"] == "Stack"
-    assert root["children"] == [
-        "fusionBallBackground",
-        "__genui_render_component__cardContent",
-    ]
+    component_ids = {
+        item["id"] for item in messages[1]["updateComponents"]["components"]
+    }
+    assert root["component"] == "Column"
     assert root["styles"]["borderRadius"] == 18
-    assert "backgroundColor" not in root["styles"]
+    assert root["styles"]["backgroundColor"] == "#FFE5EDFE"
     assert "linearGradient" not in root["styles"]
-    assert medium_ball["children"] == []
-    assert medium_ball["styles"]["backgroundColor"] == _WEATHER_PALETTE[1]
-    assert glass_layer["styles"]["backdropBlur"] == {"radius": 120}
+    assert "fusionBallBackground" not in component_ids
+    assert all(not component_id.startswith("fusionBall") for component_id in component_ids)
     assert captured["artifact"].effectiveCapabilities["data"] == ["ViewWeather"]
 
 
 @pytest.mark.asyncio
 async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(monkeypatch):
-    model = WeatherTemplateModel()
+    model = WeatherTemplateModel(theme_id="fusion-weather-blue")
     captured: dict[str, Any] = {}
 
     monkeypatch.setattr(
@@ -3914,7 +4085,10 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     monkeypatch.setattr(ArtifactStore, "save", save)
     response = await WidgetGenerationService(
         model_runtime=object(),
-    ).generate_widget_card_terse_dsl_nested2(_weather_request())
+    ).generate_widget_card_terse_dsl_nested2(
+        _weather_request(),
+        enable_fusion_ball=True,
+    )
 
     assert response.status == GenerationStatus.SUCCESS
     assert response.artifactUrl == "https://artifact.test/weather-template-terse"
@@ -4060,7 +4234,7 @@ async def test_unused_candidate_fields_do_not_block_query_required_weather_field
         model,
     )
 
-    assert output.template_ids == ("WeatherOverviewIconFull@1", "SingleFocusLayout@1")
+    assert output.template_ids == ("WeatherOverviewFull@1", "SingleFocusLayout@1")
     assert model.body_called is True
 
 
@@ -4207,6 +4381,24 @@ async def test_calendar_event_entity_id_stays_out_of_second_layer_and_visible_te
     assert model.second_layer_prompt is not None
     second_layer_prompt = json.dumps(model.second_layer_prompt, ensure_ascii=False)
     assert "example-event-001" not in second_layer_prompt
+    second_layer_user = model.second_layer_prompt[1]["content"]
+    action_contract_line = next(
+        line
+        for line in second_layer_user.splitlines()
+        if line.startswith("actionContracts=")
+    )
+    action_contracts = json.loads(action_contract_line.removeprefix("actionContracts="))
+    assert action_contracts[0]["templateId"] == "PillAction@1"
+    assert action_contracts[0]["callSyntax"] == (
+        'Template("PillAction@1", <props matching propsSchema>)'
+    )
+    assert action_contracts[0]["propsSchema"]["required"] == ["actionId", "label"]
+    assert set(action_contracts[0]["propsSchema"]["properties"]) == {
+        "actionId",
+        "label",
+        "icon",
+    }
+    assert "IconAction@1" not in second_layer_prompt
     messages = [json.loads(line) for line in output.a2ui.splitlines()]
     visible_text = {
         component.get("content")
@@ -4240,7 +4432,7 @@ async def test_second_layer_rejects_direct_action_components(action_call: str):
     model = WeatherTemplateModel(
         action_id="event.open.weather",
         body=(
-            'Template("SingleFocusLayout@1",{},Template("WeatherOverviewIconFull@1",'
+            'Template("SingleFocusLayout@1",{},Template("WeatherOverviewFull@1",'
             '{"conditionIcon":"resources/base/media/icon_weather1.svg"}),' + action_call + ");"
         ),
     )
@@ -4632,6 +4824,7 @@ async def test_policy_layer_configures_template_source_generator(monkeypatch):
     assert generator.protocol_profile["id"] == A2UI_FORM_PROTOCOL_PROFILE_ID
     assert generator.model_runtime is service.model_runtime
     assert isinstance(generator.model_request_context, ModelRequestContext)
+    assert generator.enable_fusion_ball is False
 
 
 @pytest.mark.asyncio

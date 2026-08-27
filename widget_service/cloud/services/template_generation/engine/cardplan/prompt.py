@@ -537,6 +537,80 @@ def _system_prompt(
     )
 
 
+def build_template_prompt_contracts(
+    requested: tuple[str, ...],
+    contract: HybridBodyContract,
+    registry: CardPlanRegistry,
+    *,
+    task_spec: TaskSpec,
+    card_spec: dict[str, Any],
+    ux_layout_root: bool,
+) -> tuple[dict[str, Any], ...]:
+    """Build complete dynamic Template signatures for the active model candidates."""
+    prompt_contracts: list[dict[str, Any]] = []
+    for wire_id in dict.fromkeys(requested):
+        definition = registry.require_template(wire_id)
+        variants = admitted_provider_template_variants(
+            definition,
+            task_spec,
+            card_spec,
+        )
+        if not variants:
+            # Search has already selected a trusted concrete Template ID. Avoid
+            # rejecting it by guessing the business state again while building
+            # the signature; data-binding admission still remains mandatory.
+            variants = tuple(
+                variant
+                for variant in definition.variants
+                if provider_template_variant_admission(
+                    definition,
+                    variant,
+                    task_spec,
+                    card_spec,
+                ).admitted
+            )
+        for variant in variants:
+            is_action_template = wire_id in _ACTION_TEMPLATE_IDS
+            if ux_layout_root and _variant_requires_action(variant) and not is_action_template:
+                continue
+            if not _variant_has_available_required_assets(variant, definition, contract):
+                continue
+            if definition.source_format != "cardtpl/1" or variant.size != "default":
+                raise ValueError(
+                    f"Template is outside the supported cardtpl/1 contract: {wire_id}"
+                )
+            properties = variant.parameters_schema.get("properties", {})
+            parameter_sources: dict[str, dict[str, Any]] = {}
+            for name, schema in properties.items():
+                value_kind = _parameter_value_kind(name, schema)
+                source_contract: dict[str, Any] = {"valueKind": value_kind}
+                if value_kind == "asset-source":
+                    source_contract["allowedSources"] = _parameter_allowed_asset_sources(
+                        name,
+                        definition,
+                        contract,
+                    )
+                parameter_sources[name] = source_contract
+            prompt_contracts.append(
+                {
+                    "templateId": wire_id,
+                    "callSyntax": (
+                        f'Template("{wire_id}", <props matching propsSchema>)'
+                    ),
+                    "description": definition.description,
+                    "layoutKind": (
+                        provider_template_layout_kind(wire_id) if ux_layout_root else None
+                    ),
+                    "propsSchema": variant.parameters_schema,
+                    "parameterSources": parameter_sources,
+                    "parameterRelations": [
+                        item.model_dump(by_alias=True) for item in variant.parameter_relations
+                    ],
+                }
+            )
+    return tuple(prompt_contracts)
+
+
 def _composition_rules(ux_layout_root: bool) -> tuple[str, ...]:
     if ux_layout_root:
         return (

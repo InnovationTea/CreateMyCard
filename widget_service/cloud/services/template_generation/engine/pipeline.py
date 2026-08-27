@@ -78,7 +78,7 @@ async def generate_template_a2ui(
     coverage_bindings: tuple[CandidateDataBinding, ...],
     model_client: Any,
     *,
-    enable_fusion_ball: bool = True,
+    enable_fusion_ball: bool = False,
     trusted_template_candidate_ids: tuple[str, ...] = (),
     trusted_template_action_ids: tuple[str, ...] = (),
     trusted_template_sample_overrides: dict[str, Any] | None = None,
@@ -88,6 +88,9 @@ async def generate_template_a2ui(
         f"{_MODULE} task_spec_received "
         f"summary={json_for_log(_task_spec_log_summary(task_spec))}"
     )
+    if task_spec.size == "2x4":
+        logger.info(f"{_MODULE} template_search_disabled_for_card_size size=2x4")
+        raise TemplateRouteNotApplicable("template Search does not support 2x4 cards")
     try:
         selected_task_spec = _with_trusted_sample_overrides(
             task_spec,
@@ -294,6 +297,25 @@ def _task_spec_log_summary(task_spec: TaskSpec) -> dict[str, Any]:
     }
 
 
+def _prompt_size_summary(messages: list[dict[str, str]]) -> dict[str, int]:
+    system_chars = sum(
+        len(item["content"])
+        for item in messages
+        if item.get("role") == "system"
+    )
+    user_chars = sum(
+        len(item["content"])
+        for item in messages
+        if item.get("role") == "user"
+    )
+    return {
+        "messageCount": len(messages),
+        "systemPromptChars": system_chars,
+        "userPromptChars": user_chars,
+        "totalPromptChars": sum(len(item["content"]) for item in messages),
+    }
+
+
 async def _generate_selected_templates(
     *,
     source_task_spec: TaskSpec,
@@ -325,6 +347,10 @@ async def _generate_selected_templates(
         component_candidates=component_candidates,
         required_template_groups=required_template_groups,
         registry=registry,
+    )
+    logger.info(
+        f"{_MODULE} second_layer_prompt_built "
+        f"summary={json_for_log(_prompt_size_summary(projection.messages))}"
     )
     protocol_profile = A2UIProtocolRegistry.read_design_protocol_profile(
         TERSE_DSL_NESTED2_PROFILE_ID

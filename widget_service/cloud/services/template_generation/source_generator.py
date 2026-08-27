@@ -15,7 +15,7 @@ from services.template_generation.facade import request_template_source_dsl
 class TemplateSourceGenerator:
     """保存入口差异，并由策略层补齐模板源生成所需的运行时上下文。"""
 
-    enable_fusion_ball: bool = True
+    enable_fusion_ball: bool = False
     trusted_template_candidate_ids: tuple[str, ...] = ()
     trusted_template_action_ids: tuple[str, ...] = ()
     trusted_template_sample_overrides: dict[str, Any] = field(default_factory=dict)
