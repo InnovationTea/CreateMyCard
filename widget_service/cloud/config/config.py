@@ -5,7 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import AliasChoices, Field, model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _DEFAULT_APP_VERSION = ".".join(("11", "7", "5", "205"))
@@ -65,20 +65,8 @@ class Settings(BaseSettings):
     deepseek_platform_default_country_code: str = "CN"
     deepseek_platform_default_app_name: str = "com.huawei.hmos.vassistant"
     # llmclient 使用的 DeepSeek 兼容 WebSocket 请求参数；默认值保持原客户端行为。
-    deepseek_api_key: str = Field(
-        default="AccessService",
-        validation_alias=AliasChoices(
-            "WIDGET_SERVICE_DEEPSEEK_API_KEY",
-            "WIDGET_SERVICE_DEEPSEEK_HTTP_API_KEY",
-        ),
-    )
-    deepseek_api_url: str = Field(
-        default="",
-        validation_alias=AliasChoices(
-            "WIDGET_SERVICE_DEEPSEEK_API_URL",
-            "WIDGET_SERVICE_DEEPSEEK_HTTP_API_URL",
-        ),
-    )
+    deepseek_api_key: str = "AccessService"
+    deepseek_api_url: str = ""
     deepseek_http_model: str = "deepseek-v4-flash"
     deepseek_http_max_tokens: int = Field(default=16_384, ge=1)
     deepseek_model: str = "deepseek-ai/DeepSeek-V4-Flash"
@@ -229,13 +217,7 @@ def get_settings() -> Settings:
     入参：无。
     出参：缓存后的 Settings 对象。
     """
-    package_root = Path(__file__).resolve().parents[1]
-    service_root = package_root.parent
-    env_files = (
-        service_root / ".env",
-        package_root / ".env",
-    )
-    return Settings(_env_file=env_files)
+    return Settings()
 
 
 class LoggingConfig:
