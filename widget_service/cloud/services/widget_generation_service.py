@@ -1184,6 +1184,13 @@ class WidgetGenerationService:
             update={"protocolProfileId": policy.protocol_profile_id}
         )
         profiled_request._model_request_context = request._model_request_context
+        profiled_request._trusted_template_candidate_ids = (
+            request._trusted_template_candidate_ids
+        )
+        profiled_request._trusted_template_action_ids = request._trusted_template_action_ids
+        profiled_request._trusted_template_sample_overrides = dict(
+            request._trusted_template_sample_overrides
+        )
         is_edit = "sourceArtifactUrl" in request.model_fields_set
         if not try_template or is_edit:
             return await self.generate_widget_card(
@@ -1210,6 +1217,13 @@ class WidgetGenerationService:
                     profiled_request
                 ),
                 enable_fusion_ball=True,
+                trusted_template_candidate_ids=(
+                    profiled_request._trusted_template_candidate_ids
+                ),
+                trusted_template_action_ids=profiled_request._trusted_template_action_ids,
+                trusted_template_sample_overrides=(
+                    profiled_request._trusted_template_sample_overrides
+                ),
             )
 
         return await self.generate_widget_card(

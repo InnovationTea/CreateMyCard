@@ -49,6 +49,7 @@ from services.template_generation.engine.advanced.content_selectors import (
     app_usage_overview_is_eligible,
     app_usage_overview_query_is_supported,
     apply_content_selectors,
+    extract_battery_overview_facts,
     extract_workout_latest_facts,
 )
 from services.template_generation.engine.advanced.data_shape import extract_data_shape
@@ -1880,7 +1881,7 @@ def _provider_field(value: Any, field_type: str) -> dict[str, Any]:
 
 
 @pytest.mark.asyncio
-async def test_q094_multi_business_fields_reject_template_search():
+async def test_q094_multi_business_fields_use_two_compact_templates():
     task_spec = TaskSpec(
         userQuery="刚睡醒，看看昨晚睡了多久、睡眠得分和今天走了多少步",
         size="2x2",
@@ -1960,11 +1961,23 @@ async def test_q094_multi_business_fields_reject_template_search():
             **_kwargs: Any,
         ) -> str:
             self.second_layer_prompt = prompt
-            raise AssertionError("multi-business Search miss must skip the second layer")
+            return (
+                'Template("PeerPairLayout@1",{},'
+                'Template("SleepOverviewCompact@1",{}),'
+                'Template("ActivityOverviewCompact@1",{}));'
+            )
 
     model = Q094TemplateModel()
-    with pytest.raises(TemplateRouteNotApplicable, match="one business component"):
-        await generate_template_a2ui(task_spec, card_spec, (binding,), model)
+    output = await generate_template_a2ui(
+        task_spec,
+        card_spec,
+        (binding,),
+        model,
+        trusted_template_candidate_ids=(
+            "SleepOverviewCompact@1",
+            "ActivityOverviewCompact@1",
+        ),
+    )
 
     assert model.first_layer_prompt is not None
     first_layer_payload = json.loads(model.first_layer_prompt[1]["content"])
@@ -1976,7 +1989,16 @@ async def test_q094_multi_business_fields_reject_template_search():
         ]
     }
     assert first_layer_payload["providerFirstLayerRules"]
-    assert model.second_layer_prompt is None
+    assert model.second_layer_prompt is not None
+    second_layer_text = model.second_layer_prompt[1]["content"]
+    assert '"availableTemplateIds": ["ActivityOverviewCompact@1"]' in second_layer_text
+    assert '"availableTemplateIds": ["SleepOverviewCompact@1"]' in second_layer_text
+    assert set(output.template_ids) == {
+        "PeerPairLayout@1",
+        "SleepOverviewCompact@1",
+        "ActivityOverviewCompact@1",
+    }
+    assert len(output.template_ids) == 3
 
 
 class _FixedTemplateModel:
@@ -2090,6 +2112,25 @@ def _battery_task() -> TaskSpec:
             }
         },
     )
+
+
+@pytest.mark.parametrize(
+    ("fields", "expected_percent", "expected_text"),
+    [
+        ({"batterySOC": _provider_field(68, "integer")}, 68, "68%"),
+        ({"batterySOCText": _provider_field("15%", "string")}, 15, "15%"),
+    ],
+)
+def test_battery_facts_accept_numeric_or_text_soc(
+    fields: dict[str, Any],
+    expected_percent: int,
+    expected_text: str,
+) -> None:
+    facts = extract_battery_overview_facts({"data": {"phoneBattery": fields}})
+
+    assert facts is not None
+    assert facts.level_percent == expected_percent
+    assert facts.level_text == expected_text
 
 
 def _battery_card_spec() -> dict[str, Any]:

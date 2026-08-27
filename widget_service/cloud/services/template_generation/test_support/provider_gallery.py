@@ -26,10 +26,11 @@ from models.artifact import WidgetArtifact
 from models.generation import ModelRequestContext
 from models.service import ArtifactSaveResult
 from services.artifact_store import ArtifactStore
+from services.template_generation.controls import load_template_controls
 from services.widget_generation_service import WidgetGenerationService
 
-INPUT_SCHEMA_VERSION = "provider-template-gallery-input/1"
-OUTPUT_SCHEMA_VERSION = "provider-template-gallery-output/1"
+INPUT_SCHEMA_VERSION = "provider-template-gallery-input/2"
+OUTPUT_SCHEMA_VERSION = "provider-template-gallery-output/2"
 DEFAULT_APP_VERSION = "11.7.5.205"
 DEFAULT_ROM_VERSION = "6.0"
 DEFAULT_BUNDLE_NAME = "com.huawei.genui.evaluation"
@@ -110,6 +111,44 @@ _ACTION_IDS_BY_BUSINESS = {
     "WorkoutOverview": ("event.open.health.sport", "event.open.settings.dnd"),
 }
 
+_ACTION_QUERIES_BY_BUSINESS = {
+    "ActivityOverview": ("查看运动健康详情", "打开免打扰设置"),
+    "AppUsageOverview": ("打开家长控制设置", "打开免打扰设置"),
+    "BatteryOverview": ("打开电池设置", "开启省电模式"),
+    "BluetoothDeviceOverview": ("打开蓝牙设置", "打开每日音乐"),
+    "CalendarOverview": ("查看日程详情", "进入会议"),
+    "CountdownOverview": ("打开闹钟", "打开免打扰设置"),
+    "HeartRateOverview": ("查看运动健康详情", "打开免打扰设置"),
+    "ResourceUsageOverview": ("一键清理内存", "打开存储设置"),
+    "SleepOverview": ("查看睡眠详情", "打开免打扰设置"),
+    "WeatherOverview": ("打开当前城市天气详情", "导航回家"),
+    "WorkoutOverview": ("查看运动健康详情", "打开免打扰设置"),
+}
+
+_ASSET_ID_BY_TEMPLATE_PREFIX = {
+    "BatteryOverview": "asset.battery_leaf_fill",
+    "HeartRateOverviewIcon": "asset.heart_fill",
+    "HeartRateOverviewUpdatedIcon": "asset.heart_fill",
+    "ScheduleOverviewMeetingSource": "asset.icon_meeting",
+    "WeatherOverviewConditionFull": "asset.icon_weather1",
+    "WeatherOverviewIcon": "asset.icon_weather1",
+}
+
+_BATTERY_RUNTIME_FIELDS = (
+    "/batterySOC",
+    "/batterySOCText",
+    "/chargingStatusDesc",
+    "/batteryCapacityLevelDesc",
+)
+
+_COMPACT_PARTNER_PRIORITY = (
+    "AppUsageOverviewCompact@1",
+    "ActivityOverviewCompact@1",
+    "ResourceUsageOverviewCompact@1",
+    "WeatherOverviewCompact@1",
+    "BatteryOverviewNormalCompact@1",
+)
+
 
 class GalleryInputCase(BaseModel):
     """输入清单中的一个业务场景。"""
@@ -126,6 +165,9 @@ class GalleryInputCase(BaseModel):
     scenarioName: str
     expectedLayout: str
     expectedTemplateSuffix: str
+    targetTemplateId: str = ""
+    targetTemplateDescription: str = ""
+    partnerTemplateId: str = ""
     requestFile: str
     missingReason: str = ""
 
@@ -153,8 +195,18 @@ class GalleryInputManifest(BaseModel):
 
 
 @dataclass(frozen=True)
+class ProviderTemplateDefinition:
+    """Provider 中一个可单独检查的业务模板。"""
+
+    template_id: str
+    description: str
+    suffix: str
+    fields: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class BusinessDefinition:
-    """从 Provider 配置派生的业务模板组。"""
+    """从 Provider 配置派生的业务及其全部模板。"""
 
     provider_id: str
     provider_name: str
@@ -163,7 +215,12 @@ class BusinessDefinition:
     business_name: str
     capability_id: str
     data_domain: str
-    fields_by_suffix: dict[str, tuple[str, ...]]
+    templates: tuple[ProviderTemplateDefinition, ...]
+
+    @property
+    def fallback_fields(self) -> tuple[str, ...]:
+        values = [field for template in self.templates for field in template.fields]
+        return _ordered_unique(values)
 
 
 @dataclass(frozen=True)
@@ -260,7 +317,6 @@ def _load_business_definitions(provider_root: Path) -> list[BusinessDefinition]:
             if business_meta is None:
                 continue
             capability_id = str(templates[0]["capabilityId"])
-            fields_by_suffix = _fields_by_suffix(templates)
             definitions.append(
                 BusinessDefinition(
                     provider_id=provider_id,
@@ -270,33 +326,43 @@ def _load_business_definitions(provider_root: Path) -> list[BusinessDefinition]:
                     business_name=business_meta[0],
                     capability_id=capability_id,
                     data_domain=data_domains[capability_id],
-                    fields_by_suffix=fields_by_suffix,
+                    templates=tuple(_template_definition(item) for item in templates),
                 )
             )
     return definitions
 
 
-def _fields_by_suffix(templates: list[dict[str, Any]]) -> dict[str, tuple[str, ...]]:
-    fields: dict[str, list[str]] = {}
-    fallback_fields: list[str] = []
-    for template in templates:
-        template_fields = [
-            *template.get("primaryData", []),
-            *template.get("secondaryData", []),
-        ]
-        fallback_fields.extend(str(item) for item in template_fields)
-        suffix = _template_suffix(str(template["templateId"]))
-        if suffix:
-            fields.setdefault(suffix, []).extend(str(item) for item in template_fields)
-    result = {key: _ordered_unique(value) for key, value in fields.items()}
-    result["fallback"] = _ordered_unique(fallback_fields)
-    return result
+def _template_definition(template: dict[str, Any]) -> ProviderTemplateDefinition:
+    template_id = str(template["templateId"])
+    fields = [
+        *template.get("primaryData", []),
+        *template.get("secondaryData", []),
+    ]
+    return ProviderTemplateDefinition(
+        template_id=template_id,
+        description=str(template.get("description") or "").strip(),
+        suffix=_template_suffix(template_id),
+        fields=_ordered_unique([str(item) for item in fields]),
+    )
+
+
+def _templates_for_suffix(
+    definition: BusinessDefinition,
+    suffix: str,
+) -> tuple[ProviderTemplateDefinition, ...]:
+    return tuple(template for template in definition.templates if template.suffix == suffix)
 
 
 def _load_event_capabilities(capability_root: Path) -> dict[str, dict[str, Any]]:
     path = capability_root / "event_capabilities.json"
     payload = json.loads(path.read_text(encoding="utf-8"))
     return {str(item["id"]): item for item in payload}
+
+
+def _load_data_capability_ids(capability_root: Path) -> set[str]:
+    path = capability_root / "data_capabilities.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return {str(item["id"]) for item in payload}
 
 
 def _normalize_action_value(value: Any) -> Any:
@@ -326,11 +392,12 @@ def _event_candidate(
 
 def _data_binding(
     definition: BusinessDefinition,
-    suffix: str,
+    template: ProviderTemplateDefinition | None,
 ) -> dict[str, Any]:
-    fields = definition.fields_by_suffix.get(suffix)
-    if not fields:
-        fields = definition.fields_by_suffix["fallback"]
+    configured_fields = template.fields if template is not None else definition.fallback_fields
+    fields = configured_fields
+    if definition.business_id == "BatteryOverview":
+        fields = _ordered_unique([*configured_fields, *_BATTERY_RUNTIME_FIELDS])
     return {
         "arguments": deepcopy(_CAPABILITY_ARGUMENTS[definition.capability_id]),
         "candidateOutputFields": list(fields),
@@ -339,68 +406,134 @@ def _data_binding(
     }
 
 
-def _partner_by_business(
+def _compact_partners(
     definitions: list[BusinessDefinition],
-) -> dict[str, BusinessDefinition]:
-    compact_definitions = [
-        item for item in definitions if "Compact" in item.fields_by_suffix
+    available_capability_ids: set[str],
+) -> tuple[tuple[BusinessDefinition, ProviderTemplateDefinition], ...]:
+    controls = load_template_controls()
+    return tuple(
+        (definition, template)
+        for definition in definitions
+        for template in _templates_for_suffix(definition, "Compact")
+        if definition.capability_id in available_capability_ids
+        if definition.provider_id not in controls.disabled_provider_ids
+        and template.template_id not in controls.disabled_template_ids
+    )
+
+
+def _candidate_asset_ids(
+    target_template: ProviderTemplateDefinition | None,
+    partner_template: ProviderTemplateDefinition | None,
+) -> list[str]:
+    template_ids = [
+        template.template_id
+        for template in (target_template, partner_template)
+        if template is not None
     ]
-    partners: dict[str, BusinessDefinition] = {}
-    for definition in definitions:
-        different_providers = [
-            item
-            for item in compact_definitions
-            if item.provider_id != definition.provider_id
-        ]
-        if different_providers:
-            offset = definitions.index(definition) % len(different_providers)
-            partners[definition.business_id] = different_providers[offset]
-    return partners
+    return list(
+        dict.fromkeys(
+            asset_id
+            for template_id in template_ids
+            for prefix, asset_id in _ASSET_ID_BY_TEMPLATE_PREFIX.items()
+            if template_id.startswith(prefix)
+        )
+    )
+
+
+def _partner_for_template(
+    definition: BusinessDefinition,
+    target_template: ProviderTemplateDefinition | None,
+    compact_partners: tuple[tuple[BusinessDefinition, ProviderTemplateDefinition], ...],
+) -> tuple[BusinessDefinition, ProviderTemplateDefinition]:
+    candidates = tuple(
+        item for item in compact_partners if item[0].provider_id != definition.provider_id
+    )
+    if not candidates:
+        raise ValueError(f"business {definition.business_id} has no cross-provider Compact partner")
+    by_template_id = {item[1].template_id: item for item in candidates}
+    for template_id in _COMPACT_PARTNER_PRIORITY:
+        if template_id in by_template_id:
+            return by_template_id[template_id]
+    return candidates[0]
+
+
+def _gallery_sample_overrides(
+    target_template: ProviderTemplateDefinition | None,
+    partner_template: ProviderTemplateDefinition | None,
+) -> dict[str, Any]:
+    template_ids = {
+        template.template_id
+        for template in (target_template, partner_template)
+        if template is not None
+    }
+    if any("BatteryOverviewCharging" in template_id for template_id in template_ids):
+        return {
+            "/data/phoneBattery/batterySOC": 68,
+            "/data/phoneBattery/batterySOCText": "68%",
+            "/data/phoneBattery/chargingStatusDesc": "正在充电",
+            "/data/phoneBattery/batteryCapacityLevelDesc": "正常电量",
+        }
+    if any("BatteryOverviewLow" in template_id for template_id in template_ids):
+        return {
+            "/data/phoneBattery/batterySOC": 15,
+            "/data/phoneBattery/batterySOCText": "15%",
+            "/data/phoneBattery/chargingStatusDesc": "未充电",
+            "/data/phoneBattery/batteryCapacityLevelDesc": "低电量",
+        }
+    return {}
 
 
 def _request_envelope(
     definition: BusinessDefinition,
+    target_template: ProviderTemplateDefinition | None,
     partner: BusinessDefinition,
+    partner_template: ProviderTemplateDefinition,
     scenario_id: str,
     event_capabilities: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     business_description = _BUSINESS_DESCRIPTIONS[definition.business_id][1]
     partner_description = _BUSINESS_DESCRIPTIONS[partner.business_id][1]
-    suffix = {
-        "single-two-actions": "Compact",
-        "two-contents": "Compact",
-        "single-one-action": "Hero",
-        "single-content": "Full",
-    }[scenario_id]
-    data_bindings = [_data_binding(definition, suffix)]
+    template_description = (
+        target_template.description if target_template is not None else business_description
+    )
+    data_bindings = [_data_binding(definition, target_template)]
     action_count = 0
     if scenario_id == "two-contents":
-        data_bindings.append(_data_binding(partner, "Compact"))
+        data_bindings.append(_data_binding(partner, partner_template))
         user_query = (
-            f"生成一个2×2组合卡片，一块内容{business_description}，"
-            f"另一块内容{partner_description}，两块内容同等重要，不显示操作按钮。"
+            f"生成一个2×2组合卡片，第一块紧凑内容按“{template_description}”展示；"
+            f"第二块紧凑内容按“{partner_template.description or partner_description}”展示。"
+            "两块内容同等重要，不显示操作按钮。"
         )
     elif scenario_id == "single-two-actions":
         action_count = 2
+        action_queries = _ACTION_QUERIES_BY_BUSINESS[definition.business_id]
         user_query = (
-            f"生成一个2×2卡片，只用一块紧凑内容{business_description}，"
-            "底部提供两个可点击操作。"
+            f"生成一个2×2卡片，只用一块紧凑内容按“{template_description}”展示，"
+            f"并提供两个独立按钮，分别用于“{action_queries[0]}”和“{action_queries[1]}”。"
         )
     elif scenario_id == "single-one-action":
         action_count = 1
+        action_query = _ACTION_QUERIES_BY_BUSINESS[definition.business_id][0]
         user_query = (
-            f"生成一个2×2卡片，用主视觉内容{business_description}，"
-            "底部提供一个可点击操作。"
+            f"生成一个2×2卡片，主视觉内容按“{template_description}”展示，"
+            f"底部提供一个用于“{action_query}”的按钮。"
         )
     else:
-        user_query = f"生成一个2×2完整信息卡片，{business_description}，不显示操作按钮。"
+        user_query = (
+            f"生成一个2×2完整信息卡片，按“{template_description}”展示，"
+            "不显示操作按钮。"
+        )
     action_ids = _ACTION_IDS_BY_BUSINESS[definition.business_id][:action_count]
     event_candidates = [
         _event_candidate(event_capabilities, action_id) for action_id in action_ids
     ]
     content = {
         "bundleName": DEFAULT_BUNDLE_NAME,
-        "candidateAssetIds": [],
+        "candidateAssetIds": _candidate_asset_ids(
+            target_template,
+            partner_template if scenario_id == "two-contents" else None,
+        ),
         "candidateDataBindings": data_bindings,
         "candidateEventCandidates": event_candidates,
         "description": f"{definition.business_name}模板画廊端到端验证",
@@ -408,6 +541,12 @@ def _request_envelope(
         "title": f"{definition.business_name}模板画廊",
         "userQuery": user_query,
     }
+    target_name = (
+        target_template.template_id.split("@", maxsplit=1)[0]
+        if target_template is not None
+        else f"Missing{_scenario_metadata(scenario_id)[2]}"
+    )
+    target_slug = _kebab_case(target_name)
     case_suffix = scenario_id.replace("-", "_")
     return {
         "bundleName": DEFAULT_BUNDLE_NAME,
@@ -424,12 +563,18 @@ def _request_envelope(
             "time": "20260826000000000",
         },
         "pagination": {"limit": 5, "start": ""},
+        "galleryTest": {
+            "sampleOverrides": _gallery_sample_overrides(
+                target_template,
+                partner_template if scenario_id == "two-contents" else None,
+            )
+        },
         "session": {
             "interactionId": "1",
             "isNew": True,
             "sessionId": (
                 f"gallery-{definition.provider_slug}-"
-                f"{_kebab_case(definition.business_id)}-{case_suffix}"
+                f"{_kebab_case(definition.business_id)}-{target_slug}-{case_suffix}"
             ),
         },
         "userAuth": {"user": {"userId": "template-gallery"}},
@@ -457,16 +602,25 @@ def _scenario_metadata(scenario_id: str) -> tuple[str, str, str]:
 
 
 def _missing_reason(
-    definition: BusinessDefinition,
-    partner: BusinessDefinition,
+    target_template: ProviderTemplateDefinition | None,
+    partner_template: ProviderTemplateDefinition | None,
     scenario_id: str,
+    *,
+    capability_available: bool,
+    provider_disabled: bool,
+    template_disabled: bool,
 ) -> str:
     suffix = _scenario_metadata(scenario_id)[2]
-    if suffix not in definition.fields_by_suffix:
+    if target_template is None:
         return f"缺失 {suffix} 模板"
-    partner_has_compact = "Compact" in partner.fields_by_suffix
-    if scenario_id == "two-contents" and not partner_has_compact:
+    if scenario_id == "two-contents" and partner_template is None:
         return "缺失可配对的 Compact 模板"
+    if provider_disabled:
+        return "Provider 当前已禁用"
+    if not capability_available:
+        return "数据能力当前未注册"
+    if template_disabled:
+        return "模板当前已禁用"
     return ""
 
 
@@ -476,9 +630,11 @@ def write_gallery_input_dataset(
     provider_root: Path = _PROVIDER_ROOT,
     capability_root: Path = _CAPABILITY_ROOT,
 ) -> GalleryInputManifest:
-    """根据当前 Provider 和能力注册表构建四类 2x2 模拟输入。"""
+    """根据当前 Provider 和能力注册表为每个模板构建适用的 2x2 模拟输入。"""
     definitions = _load_business_definitions(provider_root)
-    partners = _partner_by_business(definitions)
+    data_capability_ids = _load_data_capability_ids(capability_root)
+    compact_partners = _compact_partners(definitions, data_capability_ids)
+    controls = load_template_controls()
     event_capabilities = _load_event_capabilities(capability_root)
     providers: list[GalleryInputProvider] = []
     for provider_slug in sorted({item.provider_slug for item in definitions}):
@@ -488,7 +644,6 @@ def write_gallery_input_dataset(
         first = provider_definitions[0]
         cases: list[GalleryInputCase] = []
         for definition in provider_definitions:
-            partner = partners[definition.business_id]
             for scenario_id in (
                 "single-two-actions",
                 "two-contents",
@@ -498,46 +653,94 @@ def write_gallery_input_dataset(
                 scenario_name, expected_layout, expected_suffix = _scenario_metadata(
                     scenario_id
                 )
-                business_slug = _kebab_case(definition.business_id)
-                case_id = f"{provider_slug}__{business_slug}__{scenario_id}"
-                request_relative_path = (
-                    Path("providers")
-                    / provider_slug
-                    / business_slug
-                    / f"{scenario_id}.json"
+                templates = _templates_for_suffix(definition, expected_suffix)
+                targets: tuple[ProviderTemplateDefinition | None, ...] = (
+                    templates if templates else (None,)
                 )
-                request_payload = _request_envelope(
-                    definition,
-                    partner,
-                    scenario_id,
-                    event_capabilities,
-                )
-                request_path = output_root / request_relative_path
-                request_path.parent.mkdir(parents=True, exist_ok=True)
-                request_path.write_text(
-                    json.dumps(request_payload, ensure_ascii=False, indent=2) + "\n",
-                    encoding="utf-8",
-                )
-                cases.append(
-                    GalleryInputCase(
-                        caseId=case_id,
-                        providerId=definition.provider_id,
-                        providerName=definition.provider_name,
-                        providerSlug=provider_slug,
-                        businessId=definition.business_id,
-                        businessName=definition.business_name,
-                        scenarioId=scenario_id,
-                        scenarioName=scenario_name,
-                        expectedLayout=expected_layout,
-                        expectedTemplateSuffix=expected_suffix,
-                        requestFile=request_relative_path.as_posix(),
-                        missingReason=_missing_reason(
-                            definition,
-                            partner,
-                            scenario_id,
-                        ),
+                for target_template in targets:
+                    partner, partner_template = _partner_for_template(
+                        definition,
+                        target_template,
+                        compact_partners,
                     )
-                )
+                    target_name = (
+                        target_template.template_id.split("@", maxsplit=1)[0]
+                        if target_template is not None
+                        else f"Missing{expected_suffix}"
+                    )
+                    target_slug = _kebab_case(target_name)
+                    business_slug = _kebab_case(definition.business_id)
+                    case_id = (
+                        f"{provider_slug}__{business_slug}__{target_slug}__{scenario_id}"
+                    )
+                    request_relative_path = (
+                        Path("providers")
+                        / provider_slug
+                        / business_slug
+                        / target_slug
+                        / f"{scenario_id}.json"
+                    )
+                    request_payload = _request_envelope(
+                        definition,
+                        target_template,
+                        partner,
+                        partner_template,
+                        scenario_id,
+                        event_capabilities,
+                    )
+                    request_path = output_root / request_relative_path
+                    request_path.parent.mkdir(parents=True, exist_ok=True)
+                    request_path.write_text(
+                        json.dumps(request_payload, ensure_ascii=False, indent=2) + "\n",
+                        encoding="utf-8",
+                    )
+                    cases.append(
+                        GalleryInputCase(
+                            caseId=case_id,
+                            providerId=definition.provider_id,
+                            providerName=definition.provider_name,
+                            providerSlug=provider_slug,
+                            businessId=definition.business_id,
+                            businessName=definition.business_name,
+                            scenarioId=scenario_id,
+                            scenarioName=scenario_name,
+                            expectedLayout=expected_layout,
+                            expectedTemplateSuffix=expected_suffix,
+                            targetTemplateId=(
+                                target_template.template_id
+                                if target_template is not None
+                                else ""
+                            ),
+                            targetTemplateDescription=(
+                                target_template.description
+                                if target_template is not None
+                                else ""
+                            ),
+                            partnerTemplateId=(
+                                partner_template.template_id
+                                if scenario_id == "two-contents"
+                                else ""
+                            ),
+                            requestFile=request_relative_path.as_posix(),
+                            missingReason=_missing_reason(
+                                target_template,
+                                partner_template,
+                                scenario_id,
+                                capability_available=(
+                                    definition.capability_id in data_capability_ids
+                                ),
+                                provider_disabled=(
+                                    definition.provider_id
+                                    in controls.disabled_provider_ids
+                                ),
+                                template_disabled=(
+                                    target_template is not None
+                                    and target_template.template_id
+                                    in controls.disabled_template_ids
+                                ),
+                            ),
+                        )
+                    )
         providers.append(
             GalleryInputProvider(
                 providerId=first.provider_id,
@@ -595,6 +798,14 @@ def _request_from_envelope(payload: dict[str, Any]) -> GenerateWidgetCardRequest
         app_version=device_info.prdVer or DEFAULT_APP_VERSION,
         app_name=envelope.bundleName or DEFAULT_BUNDLE_NAME,
     )
+    gallery_test = payload.get("galleryTest")
+    if gallery_test is not None:
+        if not isinstance(gallery_test, dict):
+            raise ValueError("galleryTest must be an object")
+        sample_overrides = gallery_test.get("sampleOverrides", {})
+        if not isinstance(sample_overrides, dict):
+            raise ValueError("galleryTest.sampleOverrides must be an object")
+        request._trusted_template_sample_overrides = dict(sample_overrides)
     return request
 
 
@@ -618,6 +829,33 @@ def _parse_genui_messages(genui: str) -> list[dict[str, Any]]:
     if not messages:
         raise ValueError("generated genui is empty")
     return messages
+
+
+def _count_a2ui_actions(messages: list[dict[str, Any]]) -> int:
+    count = 0
+    for message in messages:
+        update = message.get("updateComponents")
+        if not isinstance(update, dict):
+            continue
+        components = update.get("components")
+        if not isinstance(components, list):
+            continue
+        count += sum(
+            isinstance(component, dict)
+            and isinstance(component.get("onClick"), list)
+            and bool(component["onClick"])
+            for component in components
+        )
+    return count
+
+
+def _expected_action_count(scenario_id: str) -> int:
+    return {
+        "single-two-actions": 2,
+        "two-contents": 0,
+        "single-one-action": 1,
+        "single-content": 0,
+    }[scenario_id]
 
 
 class ProviderGalleryBatchRunner:
@@ -702,6 +940,15 @@ class ProviderGalleryBatchRunner:
         request_path = _safe_request_path(input_root, case.requestFile)
         payload = json.loads(request_path.read_text(encoding="utf-8"))
         request = _request_from_envelope(payload)
+        target_ids = [case.targetTemplateId]
+        if case.partnerTemplateId:
+            target_ids.append(case.partnerTemplateId)
+        request._trusted_template_candidate_ids = tuple(
+            template_id for template_id in target_ids if template_id
+        )
+        request._trusted_template_action_ids = tuple(
+            candidate.capabilityId for candidate in request.candidateEventCandidates or []
+        )
         token = _CURRENT_CASE_ID.set(case.caseId)
         try:
             response = await self.service.generate_widget_card_terse_dsl_nested2(request)
@@ -728,10 +975,26 @@ class ProviderGalleryBatchRunner:
                 generation_status=response.status.value,
             )
         messages = _parse_genui_messages(artifact.genui)
+        expected_action_count = _expected_action_count(case.scenarioId)
+        actual_action_count = _count_a2ui_actions(messages)
+        if actual_action_count != expected_action_count:
+            return self._base_result(
+                case,
+                "failed",
+                (
+                    "布局校验失败："
+                    f"期望 {expected_action_count} 个 Action，实际 {actual_action_count} 个"
+                ),
+                generation_status=response.status.value,
+            )
+        target_slug = _kebab_case(
+            case.targetTemplateId.split("@", maxsplit=1)[0] or "missing-template"
+        )
         relative_path = (
             Path("providers")
             / case.providerSlug
             / _kebab_case(case.businessId)
+            / target_slug
             / f"{case.scenarioId}.json"
         )
         output_path = output_root / relative_path
@@ -771,6 +1034,9 @@ class ProviderGalleryBatchRunner:
             "scenarioName": case.scenarioName,
             "expectedLayout": case.expectedLayout,
             "expectedTemplateSuffix": case.expectedTemplateSuffix,
+            "targetTemplateId": case.targetTemplateId,
+            "targetTemplateDescription": case.targetTemplateDescription,
+            "partnerTemplateId": case.partnerTemplateId,
             "requestFile": case.requestFile,
             "status": status,
             "generationStatus": generation_status,

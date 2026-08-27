@@ -9,13 +9,13 @@
 检查 `.cardtpl`；本工具调用正式生成服务，适合检查真实组合是否可用。批跑时只在本地截获最终 Artifact，
 不会把画廊测试产物上传到 OBS。
 
-该能力位于 `template_generation/test_support/`，不进入 `facade.py`、生产请求路径或模板生成依赖图。它只通过
-`WidgetGenerationService` 的公开入口发起测试请求，不在 Template 模块内构造 TaskSpec、CardSpec 或最终
-Artifact。
+该能力位于 `template_generation/test_support/`，只通过 `WidgetGenerationService` 的公开入口发起测试请求，
+不在 Template 模块内构造 TaskSpec、CardSpec 或最终 Artifact。批跑器会在请求对象的不可序列化私有属性中
+携带本用例目标模板，Search 通过后将二层候选收窄到该模板；外部工具请求不能设置这个开发测试约束。
 
 ## 场景矩阵
 
-每个业务模板组固定生成四个 2×2 场景：
+每个业务按模板实例展开适用的 2×2 场景，而不是把同后缀模板的字段合并成一个用例：
 
 | 场景 | 预期模板组合 |
 | --- | --- |
@@ -24,9 +24,15 @@ Artifact。
 | 单内容 + 1 个 Action | Hero + PillAction |
 | 单内容 | Full |
 
-模拟输入从当前 `provider.json` 读取 Provider、业务、能力写入根、主数据和次要数据；主数据和次要数据全部进入
-`candidateOutputFields`。数据能力参数和 Action 内容来自当前能力注册表。缺少对应后缀时仍保留请求文件，但
-结果直接记录为“缺失 Compact/Hero/Full 模板”，供端侧显示异常卡片。
+因此每个 Compact 分别生成“单内容 + 2 个 Action”和“2 个内容”两个用例，每个 Hero 生成一个
+“单内容 + 1 个 Action”用例，每个 Full 生成一个“单内容”用例。业务缺少某个后缀时仍保留一张缺失占位卡。
+
+模拟输入从当前 `provider.json` 读取 Provider、业务、能力写入根，以及目标模板自己的主数据和次要数据；
+这些必选数据全部进入 `candidateOutputFields`。数据能力参数和 Action 内容来自当前能力注册表，用户 query
+明确描述每一个按钮的操作语义。缺少对应后缀时仍保留请求文件，但结果直接记录为“缺失
+Compact/Hero/Full 模板”，供端侧显示异常卡片。生成完成后还会检查 A2UI 的 Action 数量，不符合场景预期的
+结果按失败记录。Provider 或单模板被当前管控配置禁用时，用例仍会出现在清单中，但直接标记为禁用，不调用
+模型。
 
 ## 生成
 
@@ -53,8 +59,9 @@ template_generation/test/provider_gallery_output/
 ```
 
 输入请求是与工具调用一致的 `content + deviceInfo + session + userAuth` 包络；每个请求按
-`providers/<provider>/<business>/<scenario>.json` 存放。输出按同样的 Provider/业务层级保存 A2UI 消息数组，
-根目录 `manifest.json` 记录 `success`、`failed`、`missing` 和 `not_generated` 状态。
+`providers/<provider>/<business>/<template>/<scenario>.json` 存放。输出按同样的
+Provider/业务/模板层级保存 A2UI 消息数组，根目录 `manifest.json` 记录目标模板、搭配模板以及 `success`、
+`failed`、`missing` 和 `not_generated` 状态。
 
 本地配置若仍为 `enable_a2ui_model_mock=true`，请先使用 `--dry-run`。真实批跑可在模型运行时已配置的环境中
 通过 `WIDGET_SERVICE_ENABLE_A2UI_MODEL_MOCK=false` 启用；不要把凭据写入输入文件、命令行或仓库。
@@ -68,7 +75,8 @@ python3 scripts/sync_provider_scenario_gallery.py
 ```
 
 导入脚本只复制状态为 `success` 的 A2UI 文件，同时完整保留失败和缺失记录。端侧首页进入
-“Provider 场景画廊”后，可按 Provider 页签检查每个业务的四类布局；没有 A2UI 的场景显示错误卡片和具体原因。
+“Provider 场景画廊”后，可按 Provider 页签检查每个业务的全部模板实例和适用布局；没有 A2UI 的场景显示
+错误卡片和具体原因。
 
 ## 验证
 

@@ -126,15 +126,17 @@ def retrieve_template_variants(
     registry: CardPlanRegistry,
     coverage_bindings: tuple[CandidateDataBinding, ...],
     card_spec: dict[str, Any],
+    *,
+    preferred_template_ids: tuple[str, ...] = (),
 ) -> TemplateRouteSelection:
     """Return component candidate sets; never choose a final CardTpl variant."""
     registry.require_theme(query.theme_id)
     _validate_selected_actions(query, task_spec)
     if not query.required_output_fields_by_capability:
         raise TemplateRetrievalMiss("template retrieval has no requested capability")
-    if len(query.required_output_fields_by_capability) > 1:
+    if len(query.required_output_fields_by_capability) > 2:
         raise TemplateRetrievalMiss(
-            "template Search supports one data business with an optional Action"
+            "template Search supports at most two data businesses with optional Actions"
         )
     candidate_ids = {binding.capabilityId for binding in coverage_bindings}
     if not set(query.required_output_fields_by_capability).issubset(candidate_ids):
@@ -156,6 +158,7 @@ def retrieve_template_variants(
             query_tokens,
             task_spec,
             card_spec,
+            preferred_template_ids,
         )
         if not component_templates:
             raise TemplateRetrievalMiss(
@@ -172,9 +175,9 @@ def retrieve_template_variants(
         )
         for component_id, template_ids in sorted(by_component.items())
     )
-    if len(candidates) > 1:
+    if len(candidates) > 2:
         raise TemplateRetrievalMiss(
-            "template Search requires requested fields to fit one business component"
+            "template Search requires requested fields to fit at most two business components"
         )
     scope = AdvancedScopeBrief(
         themeId=query.theme_id,
@@ -194,6 +197,7 @@ def _component_templates_for_capability(
     query_tokens: frozenset[FieldToken],
     task_spec: TaskSpec,
     card_spec: dict[str, Any],
+    preferred_template_ids: tuple[str, ...] = (),
 ) -> dict[str, dict[str, frozenset[str]]]:
     result: dict[str, dict[str, frozenset[str]]] = {}
     business_ids = {
@@ -224,6 +228,7 @@ def _component_templates_for_capability(
                 matches,
                 registry.enabled_template_ids(group.local_template_ids),
                 query_tokens,
+                preferred_template_ids,
             )
     covered_paths: set[str] = set()
     for templates in result.values():
@@ -238,9 +243,14 @@ def _limit_component_templates(
     matches: dict[str, frozenset[str]],
     declared_template_ids: tuple[str, ...],
     query_tokens: frozenset[FieldToken],
+    preferred_template_ids: tuple[str, ...] = (),
 ) -> dict[str, frozenset[str]]:
     """Keep the upstream candidate bound without dropping field coverage."""
-    selected: list[str] = []
+    selected = [
+        template_id
+        for template_id in preferred_template_ids
+        if template_id in matches
+    ]
     for token in sorted(query_tokens):
         template_id = next(
             (

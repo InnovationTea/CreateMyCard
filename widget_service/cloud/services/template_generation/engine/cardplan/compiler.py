@@ -5927,6 +5927,27 @@ def _validate_ux_business_component_placement(
     contract: HybridBodyContract,
     registry: CardPlanRegistry,
 ) -> None:
+    is_compact_peer_pair = (
+        size == "2x2"
+        and layout_id == "PeerPairLayout"
+        and len(content) == 2
+        and all(
+            child.kind == "template"
+            and provider_template_layout_kind(child.name) == "Compact"
+            for child in content
+        )
+    )
+    if is_compact_peer_pair:
+        return
+    is_compact_action_matrix = (
+        size == "2x2"
+        and layout_id == "ActionMatrixLayout"
+        and len(content) == 1
+        and content[0].kind == "template"
+        and provider_template_layout_kind(content[0].name) == "Compact"
+    )
+    if is_compact_action_matrix:
+        return
     business_names = _contract_ux_business_component_names(contract, registry)
     validation_content = tuple(
         _provider_template_business_validation_proxy(
