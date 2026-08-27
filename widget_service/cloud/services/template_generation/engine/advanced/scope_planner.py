@@ -822,8 +822,6 @@ def resolve_scope_layout_ids(
     )
     count = len(components)
     action_count = len(task_spec.eventCandidates)
-    component_names = {item.name for item in components}
-    has_action = action_count > 0
     common = set(registry.ux_layout_components)
     for capability in components:
         common &= set(capability.supported_layouts)
@@ -844,29 +842,8 @@ def resolve_scope_layout_ids(
             continue
         if action_count > layout.max_action_children_by_size[task_spec.size]:
             continue
-        if component_names == {"BluetoothDeviceOverview"}:
-            if action_count == 2:
-                expected_bluetooth_layouts = {"ActionMatrixLayout"}
-            elif has_action:
-                expected_bluetooth_layouts = {"SingleFocusLayout", "HeroActionLayout"}
-            else:
-                expected_bluetooth_layouts = {"SingleFocusLayout"}
-            if layout_id not in expected_bluetooth_layouts:
-                continue
-        if component_names == {"AppUsageOverview"}:
-            if action_count == 2:
-                expected_app_usage_layouts = {"ActionMatrixLayout"}
-            elif has_action:
-                expected_app_usage_layouts = {"HeroActionLayout", "SingleFocusLayout"}
-            else:
-                expected_app_usage_layouts = {"SingleFocusLayout"}
-            if layout_id not in expected_app_usage_layouts:
-                continue
-        has_weather = "WeatherOverview" in component_names
-        if has_weather and layout_id == "WeatherNowForecastLayout":
-            continue
         allowed.append(layout_id)
-    return tuple(sorted(allowed, key=lambda item: _layout_rank(item, count, has_action)))
+    return tuple(sorted(allowed, key=lambda item: _layout_rank(item, count, action_count)))
 
 
 def scope_template_ids(
@@ -1209,14 +1186,14 @@ def _theme_ids_for_components(
     )
 
 
-def _layout_rank(layout_id: str, count: int, has_action: bool) -> tuple[int, str]:
-    preferred: dict[tuple[int, bool], tuple[str, ...]] = {
-        (1, False): ("SingleFocusLayout", "ListActionLayout"),
-        (1, True): ("HeroActionLayout", "ListActionLayout", "SingleFocusLayout"),
-        (2, False): ("HeroSupportLayout", "PeerPairLayout", "EqualItemsLayout"),
-        (2, True): ("HeroSupportActionLayout", "HeroSupportLayout", "PeerPairLayout"),
+def _layout_rank(layout_id: str, count: int, action_count: int) -> tuple[int, str]:
+    preferred: dict[tuple[int, int], tuple[str, ...]] = {
+        (1, 0): ("SingleFocusLayout", "WideSingleFocusLayout"),
+        (1, 1): ("HeroActionLayout", "SingleFocusLayout", "WideSingleFocusLayout"),
+        (1, 2): ("CompactTwoActionLayout",),
+        (2, 0): ("TwoCompactLayout",),
     }
-    order = preferred.get((count, has_action), ("SequentialSummaryLayout", "EqualItemsLayout"))
+    order = preferred.get((count, action_count), ())
     return (order.index(layout_id) if layout_id in order else len(order), layout_id)
 
 

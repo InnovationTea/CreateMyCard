@@ -17,7 +17,7 @@ Column(
             props.appIcon,
             Image(
                 props.appIcon,
-                {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "flexShrink": 0}
+                {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
             )
         )
     ),
@@ -27,7 +27,7 @@ Column(
             {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
             Text(
                 data.duration,
-                {"fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                {"fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
             )
         ),
         IfPresent(
@@ -60,7 +60,7 @@ Column(
             props.appIcon,
             Image(
                 props.appIcon,
-                {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "flexShrink": 0}
+                {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
             )
         )
     ),
@@ -70,7 +70,7 @@ Column(
             {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
             Text(
                 data.duration,
-                {"fontSize": 18, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                {"fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
             )
         ),
         IfPresent(
@@ -128,7 +128,7 @@ Row(
                 {"itemMargin":4,"width": "matchParent", "alignItems": "end", "height": 20},
                 Image(
                     props.appIcon,
-                    {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+                    {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
                 )
             )
         )
@@ -180,7 +180,7 @@ Row(
                 {"itemMargin":4,"width": "matchParent", "alignItems": "end", "height": 20},
                 Image(
                     props.appIcon,
-                    {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+                    {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
                 )
             )
         )
@@ -216,7 +216,7 @@ Column(
             props.appIcon,
             Image(
                 props.appIcon,
-                {"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0}
+                {"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
             )
         )
     )

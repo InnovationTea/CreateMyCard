@@ -1,30 +1,27 @@
 {
   "themeFormat": "card-theme/2",
   "themeProfileId": "device-clean-blue-teal",
-  "description": "设备清理蓝青",
+  "description": "设备资源暖橙渐变",
   "firstLayerRule": {"path": "first-layer.md"},
-  "supportedCapabilityIds": ["GetSystemMemInfo"],
-  "paletteSceneIds": ["device.cleanup"],
-  "primaryColor": "#FF0A59F7",
-  "supportContentColor": "#FF0A59F7",
+  "supportedCapabilityIds": ["GetPhoneBatteryInfo", "GetSystemMemInfo"],
+  "paletteSceneIds": ["device.cleanup", "device.resource"],
+  "primaryColor": "#E6000000",
+  "supportContentColor": "#99000000",
+  "progressColor": "#FFF9A01E",
   "rootStyle": {
     "backgroundColor": "#FFFFFFFF",
     "borderRadius": 20,
-    "padding": 11,
+    "padding": 12,
     "justifyContent": "spaceBetween",
     "alignItems": "start",
     "linearGradient": {
       "direction": "Bottom",
-      "colors": [["#1A0A59F7", 0], ["#00FFFFFF", 1]]
+      "colors": [["#1AF9A01E", 0], ["#00FFFFFF", 1]]
     },
     "clip": true
   },
   "actionStyle": {
     "backgroundColor": "#1A0A59F7",
-    "contentColor": "#FF0A59F7",
-    "height": 28,
-    "borderRadius": 14,
-    "fontSize": 14,
-    "fontWeight": 600
+    "contentColor": "#FF0A59F7"
   }
 }

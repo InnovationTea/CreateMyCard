@@ -1121,6 +1121,7 @@ class WidgetGenerationService:
         request: GenerateWidgetCardRequest,
         *,
         before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
+        enable_fusion_ball: bool = True,
         trusted_template_candidate_ids: tuple[str, ...] = (),
         trusted_template_action_ids: tuple[str, ...] = (),
         trusted_template_sample_overrides: dict[str, object] | None = None,
@@ -1162,6 +1163,7 @@ class WidgetGenerationService:
         # 问题定位时可显式调用
         # services.template_generation.route_legacy_python_terse_generation(...)。
         template_source_generator = TemplateSourceGenerator(
+            enable_fusion_ball=enable_fusion_ball,
             trusted_template_candidate_ids=trusted_template_candidate_ids,
             trusted_template_action_ids=trusted_template_action_ids,
             trusted_template_sample_overrides=dict(

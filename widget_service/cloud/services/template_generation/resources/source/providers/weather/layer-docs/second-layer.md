@@ -15,19 +15,19 @@
 - `WeatherOverviewHero@1`：温度 Hero 摘要；约 2x1.7，只用于一个 Hero 加一个 PillAction。
   主数据：`/current/temperatureText`；次要数据：`/location/districtName`、
   `/current/condition`、`/current/coldLevel`；可选数据：无。
-- `WeatherOverviewFull@1`：完整温度摘要；完整 2x2，可单独使用或加一个 IconAction。
+- `WeatherOverviewFull@1`：完整温度摘要；完整 2x2，无 Action 时单独使用。
   主数据：`/current/temperatureText`；次要数据：`/location/districtName`、
   `/current/condition`、`/current/airQuality`、`/current/coldLevel`；可选数据：无。
 - `WeatherOverviewIconFull@1`：带天气图标的完整温度摘要；布局和数据分级与
   `WeatherOverviewFull@1` 相同。
-- `WeatherOverviewConditionFull@1`：天气现象摘要；完整 2x2，可单独使用或加一个 IconAction。
+- `WeatherOverviewConditionFull@1`：天气现象摘要；完整 2x2，无 Action 时单独使用。
   主数据：`/current/condition`；次要数据：`/location/districtName`、
   `/current/temperatureText`、`/current/airQuality`、`/current/coldLevel`；可选数据：无。
-- `WeatherOverviewHumidityFull@1`：湿度摘要；完整 2x2，可单独使用或加一个 IconAction。
+- `WeatherOverviewHumidityFull@1`：湿度摘要；完整 2x2，无 Action 时单独使用。
   主数据：`/current/humidityPercent`；次要数据：`/location/districtName`、
   `/current/condition`、`/current/temperatureText`、`/current/airQuality`、
   `/current/coldLevel`；可选数据：无。
-- `WeatherOverviewUvFull@1`：紫外线摘要；完整 2x2，可单独使用或加一个 IconAction。
+- `WeatherOverviewUvFull@1`：紫外线摘要；完整 2x2，无 Action 时单独使用。
   主数据：`/current/uvIndex`；次要数据：`/location/districtName`、`/current/condition`、
   `/current/temperatureText`、`/current/airQuality`、`/current/coldLevel`；可选数据：无。
 - `WeatherOverviewAirQualityHero@1`：空气质量 Hero 摘要；约 2x1.7，只用于一个 Hero 加一个

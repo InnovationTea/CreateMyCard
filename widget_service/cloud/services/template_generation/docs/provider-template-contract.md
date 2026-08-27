@@ -67,12 +67,12 @@ TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路�
 
 - `Compact`：约 `2x1`，用于两个 Compact 拼成 `2x2`，或一个 Compact 加两个 PillAction；
 - `Hero`：约 `2x1.7`，用于 `2x2` 的 Hero 加一个 PillAction；
-- `Full`：完整 `2x2`，单独使用或加一个 IconAction；
+- `Full`：完整 `2x2`，无 Action 时单独使用；
 - `WideHero`：约 `4x1.7`，用于 `2x4` 的 WideHero 加一个 PillAction；
 - `WideFull`：完整 `4x2`，单独使用。
 
 业务模板不再重复声明 `supportedCardSizes` 和 `requiresLayoutAction`，Registry 直接从后缀推导。业务语义或
-状态写在后缀前，例如 `BatteryOverviewChargingCompact@1`。布局 Provider 不受此后缀约束。
+状态写在后缀前，例如 `BatteryOverviewChargingWeatherCompact@1`。布局 Provider 不受此后缀约束。
 
 模板 ID 直接表达 UI 形态，不再声明 `Variant`、`allowedParentComponents` 或 `limits`。模板头只定义外部
 `props`；`?` 表示可选，支持 `string`、`asset`、`number`、`integer` 和 `boolean`：
@@ -139,20 +139,24 @@ Column({"width": "matchParent", "itemMargin": 4},
 允许接收子组件的布局模板显式声明 `...children`，且正文只能放置一次 `children`：
 
 ```text
-#Template HeroSupportLayout@1(props: {  }, ...children)
+#Template TwoCompactLayout@1(props: {  }, ...children)
 data = {
 }
 
-HeroSupportLayout(children)
+Column({
+  "width": "matchParent",
+  "height": "matchParent",
+  "itemMargin": 8
+}, children)
 #End
 ```
 
 第二层调用统一为：
 
 ```text
-Template("HeroSupportLayout@1", {},
-  Template("WeatherOverviewFull@1", {}),
-  Template("BatteryOverviewNormalWeatherCompact@1", {})
+Template("TwoCompactLayout@1", {},
+  Template("DateOverviewCompact@1", {}),
+  Template("ScheduleOverviewMeetingCompact@1", {})
 )
 ```
 
@@ -184,7 +188,8 @@ Provider 模板作者侧声明，不进入最终 Tersel 语法。最终产物不
 不满足门禁的卡片继续使用 Theme 原有纯色或线性渐变。融球包装只替换卡片根背景，不改写业务文本、图标或
 Action 内容颜色。业务 Provider 必须显式区分主内容与辅助内容，分别使用 `$theme('primaryColor')` 和
 `$theme('supportContentColor')`；服务端只给未配置颜色的内容组件补 `primaryColor`，不得猜测主辅语义。
-PillAction 模板使用 `$theme('actionStyle.backgroundColor')` 和 `$theme('actionStyle.contentColor')`。
+PillAction 模板使用 `$theme('actionStyle.backgroundColor')` 和 `$theme('actionStyle.contentColor')`；Theme 不得
+覆盖 Action Template 节点已经显式声明的高度、圆角、字号和字重。
 
 ### 完整 A2UI 转换
 
@@ -222,7 +227,7 @@ converted = convert_a2ui_with_fusion_ball(a2ui)
 
 ```json
 {
-  "themeId": "family-weather-care-blue",
+  "themeId": "fusion-weather-blue",
   "requiredOutputFieldsByCapability": {
     "ViewWeather": ["currentTemperature", "weatherCondition", "hourlyForecast"]
   },
@@ -234,20 +239,24 @@ converted = convert_a2ui_with_fusion_ball(a2ui)
 `TemplateRouteSelection`。只有这个内部结果才包含 `componentCandidates` 和
 `availableTemplateIds`：
 
-1. Search 最多允许命中两个业务组件；每个组件下一个或多个模板的覆盖并集必须承载该业务显式字段；
+1. Search 最多允许命中两个业务组件；每个保留模板必须独立完整承载所属业务的显式字段；
 2. 显式字段满足后，再检查候选模板自身 `primaryData` 与 `secondaryData` 在 TaskSpec 中全部存在；
 3. `candidateOutputFields` 只是候选数据投影，不直接等于强制显示集合；
 4. 显式请求包含三个及以上数据业务，或任一字段无法在自己的业务组件内覆盖时，在进入第二层前返回模板不匹配；
-5. Action 独立于数据业务计数，最终数量由尺寸、模板后缀与布局契约继续校验。
+5. Search 保留字段匹配、模板准入、候选排序和数量上限能力；同一业务可同时返回多个 Hero、多个 Compact
+   等同形态候选，不能退化为无序枚举；
+6. Action 独立于数据业务计数；Search 不按 Action 数量过滤模板后缀，最终形态由第二层处理。
 
 配置 `firstLayerComponentSelector: "llm"` 时，系统可走兼容选择器
 `plan_template_route_with_llm()`，由第一层直接产出 Theme、组件候选和 Action；该路径不是当前默认生产路径。
 
 第二层只读取确定性检索选中的业务 Provider `secondLayerRule`，从
-`availableTemplateIds` 选择最终 UI 模板和 props；根布局也必须从 Layout
-Provider 选择模板。若第一层输出了 `action`，第二层按最终模板后缀在布局模板末尾调用 Action Provider：
-Hero/WideHero 使用一个 `Template("PillAction@1", props)`，单 Compact 使用两个 PillAction 模板，Full
-最多使用一个 `Template("IconAction@1", props)`；WideFull 和双 Compact 不生成 Action。PillAction Props
+`availableTemplateIds` 按尺寸、布局和 Action 数量选择最终 UI 模板及展示 props；根布局也必须从 Layout
+Provider 选择模板。第二层不接收 TaskSpec、`dataFacts`、`mustKeep` 或数据样例，不重新判断展示字段，
+不得用基础组件补充业务内容。候选筛选后为空或必需 props 无法满足时直接失败。若第一层输出了 `action`，
+第二层按最终模板后缀在布局模板末尾调用 Action Provider：Hero/WideHero 使用一个
+`Template("PillAction@1", props)`，单 Compact 使用两个 PillAction 模板；Full、WideFull 和双 Compact
+不生成 Action。PillAction Props
 包含 `actionId`、`label` 和可选 `icon`，IconAction Props 包含 `actionId`、`icon`。第二层只决定展示内容，
 Action CardTpl 必须在交互组件样式中写入 `onClick: EventAction(props.actionId)`；微服务校验候选配对，
 将该模板声明绑定为可信事件并注入主题色。模型不得输出 `call`、`args`、`onClick`。
@@ -256,7 +265,8 @@ Action CardTpl 必须在交互组件样式中写入 `onClick: EventAction(props.
 
 天气、日历、手机电量、耳机、健康运动、应用使用时长、倒计时和系统内存当前共有
 75 个无 Variant 的业务 UI 模板；日期与日程归并后形成 11 个 Provider 业务领域。Layout Provider
-另提供 10 个支持 `...children` 的布局模板。
+另提供 5 个支持 `...children` 的布局模板：名称包含 `Wide` 的布局只用于 `2x4`，其余布局只用于
+`2x2`，两类布局不得混用。
 新增或修改资源后执行：
 
 ```bash

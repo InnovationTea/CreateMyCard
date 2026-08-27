@@ -244,17 +244,23 @@ def _preview_theme_values(
     definition: TemplateDefinition,
     registry: CardPlanRegistry,
 ) -> dict[str, str]:
+    compatible_themes = tuple(
+        item
+        for item in registry.themes.values()
+        if definition.capability_id in item.supported_capability_ids
+    )
     theme = next(
         (
             item
-            for item in registry.themes.values()
-            if definition.capability_id in item.supported_capability_ids
-            and item.fusion_ball_style is None
+            for item in compatible_themes
+            if item.fusion_ball_style is None
         ),
         None,
     )
     if theme is None:
-        raise ValueError(f"Provider Template has no preview Theme: {definition.wire_id}")
+        theme = next(iter(compatible_themes), None)
+    if theme is None:
+        theme = registry.require_theme("digital-wellbeing-neutral-dark")
     return registry.theme_reference_values(theme.theme_profile_id)
 
 

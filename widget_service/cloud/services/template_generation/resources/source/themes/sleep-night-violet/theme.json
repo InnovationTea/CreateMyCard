@@ -1,30 +1,22 @@
 {
   "themeFormat": "card-theme/2",
   "themeProfileId": "sleep-night-violet",
-  "description": "睡眠夜间紫",
+  "description": "睡眠柔和浅紫",
   "firstLayerRule": {"path": "first-layer.md"},
   "supportedCapabilityIds": ["GetHealthAndSportSummary"],
   "paletteSceneIds": ["sleep.violet"],
-  "primaryColor": "#FFFFFFFF",
-  "supportContentColor": "#FFFFFFFF",
+  "primaryColor": "#FF401F99",
+  "supportContentColor": "#991F4799",
   "rootStyle": {
-    "backgroundColor": "#FFAC49F5",
+    "backgroundColor": "#FFEDE6FF",
     "borderRadius": 20,
-    "padding": 11,
+    "padding": 12,
     "justifyContent": "spaceBetween",
     "alignItems": "start",
-    "linearGradient": {
-      "direction": "RightBottom",
-      "colors": [["#FFAC49F5", 0], ["#FFC386F0", 1]]
-    },
     "clip": true
   },
   "actionStyle": {
-    "backgroundColor": "#FFFFFFFF",
-    "contentColor": "#FFAC49F5",
-    "height": 30,
-    "borderRadius": 15,
-    "fontSize": 14,
-    "fontWeight": 600
+    "backgroundColor": "#33564AF7",
+    "contentColor": "#FF401F99"
   }
 }

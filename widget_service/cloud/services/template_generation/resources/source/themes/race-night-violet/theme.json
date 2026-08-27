@@ -1,16 +1,16 @@
 {
   "themeFormat": "card-theme/2",
   "themeProfileId": "race-night-violet",
-  "description": "赛事活力橙（兼容历史主题标识）",
+  "description": "赛事倒计时渐变橙",
   "firstLayerRule": {"path": "first-layer.md"},
-  "supportedCapabilityIds": ["GetCountdownDays", "GetHealthAndSportSummary"],
-  "paletteSceneIds": [],
+  "supportedCapabilityIds": ["GetCountdownDays"],
+  "paletteSceneIds": ["event.countdown"],
   "primaryColor": "#FFFFFFFF",
-  "supportContentColor": "#FFFFFFFF",
+  "supportContentColor": "#99FFFFFF",
   "rootStyle": {
     "backgroundColor": "#FFED6F21",
     "borderRadius": 20,
-    "padding": 11,
+    "padding": 12,
     "justifyContent": "spaceBetween",
     "linearGradient": {
       "direction": "RightBottom",
@@ -20,10 +20,6 @@
   },
   "actionStyle": {
     "backgroundColor": "#FFFFFFFF",
-    "contentColor": "#FFED6F21",
-    "height": 30,
-    "borderRadius": 15,
-    "fontSize": 14,
-    "fontWeight": 600
+    "contentColor": "#FFED6F21"
   }
 }

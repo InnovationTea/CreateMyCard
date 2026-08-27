@@ -20,7 +20,7 @@ Column({
 },
   Column({
     "width": "matchParent",
-    "layoutWeight": 1
+    "height": 92
   }, children[0]),
   Column({
     "width": "matchParent",
@@ -29,7 +29,8 @@ Column({
 )
 #End
 
-#Template HeroSupportLayout@1(props: {}, ...children)
+
+#Template CompactTwoActionLayout@1(props: {}, ...children)
 data = {
 }
 
@@ -40,16 +41,26 @@ Column({
 },
   Column({
     "width": "matchParent",
-    "layoutWeight": 1
+    "height": 48
   }, children[0]),
   Column({
     "width": "matchParent",
-    "height": 36
-  }, children[1])
+    "itemMargin": 8,
+    "height": 80,
+  },
+    Column({
+      "width": "matchParent",
+      "height": 36
+    }, children[1]),
+    Column({
+      "width": "matchParent",
+      "height": 36
+    }, children[2])
+  )
 )
 #End
 
-#Template HeroSupportActionLayout@1(props: {}, ...children)
+#Template TwoCompactLayout@1(props: {}, ...children)
 data = {
 }
 
@@ -60,81 +71,22 @@ Column({
 },
   Column({
     "width": "matchParent",
-    "layoutWeight": 1
+    "height": 64
   }, children[0]),
   Column({
     "width": "matchParent",
-    "height": 36
-  }, children[1]),
-  Column({
-    "width": "matchParent",
-    "height": 36
-  }, children[2])
+    "height": 64
+  }, children[1])
 )
 #End
 
-#Template PeerPairLayout@1(props: {}, ...children)
+#Template WideSingleFocusLayout@1(props: {}, ...children)
 data = {
 }
 
-Column({
+Stack({
   "width": "matchParent",
   "height": "matchParent",
-  "itemMargin": 8
-}, children)
-#End
-
-#Template SequentialSummaryLayout@1(props: {}, ...children)
-data = {
-}
-
-Column({
-  "width": "matchParent",
-  "height": "matchParent",
-  "itemMargin": 8
-}, children)
-#End
-
-#Template EqualItemsLayout@1(props: {}, ...children)
-data = {
-}
-
-Row({
-  "width": "matchParent",
-  "height": "matchParent",
-  "itemMargin": 8
-}, children)
-#End
-
-#Template ListActionLayout@1(props: {}, ...children)
-data = {
-}
-
-Column({
-  "width": "matchParent",
-  "height": "matchParent",
-  "itemMargin": 8
-}, children)
-#End
-
-#Template ActionMatrixLayout@1(props: {}, ...children)
-data = {
-}
-
-Row({
-  "width": "matchParent",
-  "height": "matchParent",
-  "itemMargin": 8
-}, children)
-#End
-
-#Template WeatherNowForecastLayout@1(props: {}, ...children)
-data = {
-}
-
-Column({
-  "width": "matchParent",
-  "height": "matchParent",
-  "itemMargin": 8
+  "alignContent": "topStart"
 }, children)
 #End

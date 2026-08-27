@@ -2205,8 +2205,8 @@ def _normalize_icon_button_stack(styles: dict[str, Any]) -> None:
 
 
 def _normalize_text_component(styles: dict[str, Any]) -> None:
-    styles["maxLines"] = 1
-    styles["textOverflow"] = "clip"
+    styles.setdefault("maxLines", 1)
+    styles.setdefault("textOverflow", "clip")
 
 
 def _normalize_root_component(

@@ -51,6 +51,7 @@ widget_service/.venv/bin/python \
 - `--provider com.huawei.weather.cli`：只批跑一个 Provider，可重复指定。
 - `--dry-run`：不调用模型，仅生成“待批跑/缺失”结果清单，适合先验证输入和端侧导入。
 - `--strict`：存在真实生成失败时返回非零退出码；模板后缀缺失仍作为画廊检查结果保留。
+- `--disable-fusion-ball`：显式传入请求级关闭开关；融球 Theme 不进入模型 Prompt、检索或服务端模板编译。
 - `--input-root`、`--output-root`：覆盖默认临时目录。
 
 默认临时目录为：

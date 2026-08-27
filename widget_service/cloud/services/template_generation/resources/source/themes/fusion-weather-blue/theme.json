@@ -10,7 +10,7 @@
   "rootStyle": {
     "backgroundColor": "#FF121259",
     "borderRadius": 20,
-    "padding": 11,
+    "padding": 12,
     "linearGradient": {
       "direction": "RightBottom",
       "colors": [["#FF121259", 0], ["#FF2B65D9", 1]]
@@ -19,11 +19,7 @@
   },
   "actionStyle": {
     "backgroundColor": "#33FFFFFF",
-    "contentColor": "#FFCCDDFF",
-    "height": 30,
-    "borderRadius": 15,
-    "fontSize": 14,
-    "fontWeight": 600
+    "contentColor": "#FFCCDDFF"
   },
   "fusionBallStyle": {
     "scene": "weather",

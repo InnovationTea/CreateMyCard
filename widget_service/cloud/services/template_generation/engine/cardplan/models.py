@@ -56,6 +56,7 @@ class HybridBodyContract(StrictModel):
     allowed_layout_component_ids: tuple[str, ...] = ()
     allowed_business_component_ids: tuple[str, ...] = ()
     required_business_component_ids: tuple[str, ...] = ()
+    template_only_composition: bool = False
     limits: HybridLimits
 
 
@@ -238,8 +239,9 @@ class BusinessTemplateGroup:
         return (
             "SingleFocusLayout",
             "HeroActionLayout",
-            "PeerPairLayout",
-            "ActionMatrixLayout",
+            "CompactTwoActionLayout",
+            "TwoCompactLayout",
+            "WideSingleFocusLayout",
         )
 
     @property
@@ -259,10 +261,6 @@ class BusinessTemplateGroup:
 class CardActionStyle(StrictModel):
     background_color: str = Field(alias="backgroundColor", pattern=r"^#[0-9A-Fa-f]{8}$")
     content_color: str = Field(alias="contentColor", pattern=r"^#[0-9A-Fa-f]{8}$")
-    height: int = Field(ge=24, le=44)
-    border_radius: int = Field(alias="borderRadius", ge=0, le=22)
-    font_size: int = Field(alias="fontSize", ge=10, le=18)
-    font_weight: Literal[400, 500, 600, 700] = Field(alias="fontWeight")
 
 
 class FusionBallStyle(StrictModel):
@@ -295,6 +293,11 @@ class ThemeDefinition(StrictModel):
         alias="supportContentColor",
         pattern=r"^#[0-9A-Fa-f]{8}$",
     )
+    progress_color: str | None = Field(
+        default=None,
+        alias="progressColor",
+        pattern=r"^#[0-9A-Fa-f]{8}$",
+    )
     root_style: dict[str, Any] = Field(alias="rootStyle")
     action_style: CardActionStyle = Field(alias="actionStyle")
     fusion_ball_style: FusionBallStyle | None = Field(default=None, alias="fusionBallStyle")
@@ -305,6 +308,7 @@ class ThemeDefinition(StrictModel):
         return {
             "primaryColor": self.primary_color,
             "supportContentColor": self.support_content_color,
+            "progressColor": self.progress_color or self.primary_color,
             "actionStyle.backgroundColor": self.action_style.background_color,
             "actionStyle.contentColor": self.action_style.content_color,
         }

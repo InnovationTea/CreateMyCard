@@ -12,14 +12,9 @@ UX_LAYOUT_COMPONENT_IDS = frozenset(
     {
         "SingleFocusLayout",
         "HeroActionLayout",
-        "HeroSupportLayout",
-        "HeroSupportActionLayout",
-        "PeerPairLayout",
-        "SequentialSummaryLayout",
-        "EqualItemsLayout",
-        "ListActionLayout",
-        "ActionMatrixLayout",
-        "WeatherNowForecastLayout",
+        "CompactTwoActionLayout",
+        "TwoCompactLayout",
+        "WideSingleFocusLayout",
     }
 )
 UX_DIRECT_BUSINESS_COMPONENT_IDS = frozenset(
@@ -99,14 +94,20 @@ class UxLayoutComponentCapability(StrictModel):
 
     @model_validator(mode="after")
     def valid_child_budget(self) -> UxLayoutComponentCapability:
-        sizes: tuple[Literal["2x2", "2x4"], ...] = ("2x2", "2x4")
+        sizes = self.supported_card_sizes
+        if not sizes:
+            raise ValueError("UX Layout must support at least one card size")
         expected_sizes = set(sizes)
         if set(self.max_children_by_size) != expected_sizes:
-            raise ValueError("UX Layout child budget is incomplete")
+            raise ValueError("UX Layout child budget must match supportedCardSizes")
+        if not set(self.min_children_by_size).issubset(expected_sizes):
+            raise ValueError("UX Layout minimum child budget has an unsupported card size")
         if set(self.min_action_children_by_size) != expected_sizes:
-            raise ValueError("UX Layout minimum Action budget is incomplete")
+            raise ValueError("UX Layout minimum Action budget must match supportedCardSizes")
         if set(self.max_action_children_by_size) != expected_sizes:
-            raise ValueError("UX Layout maximum Action budget is incomplete")
+            raise ValueError("UX Layout maximum Action budget must match supportedCardSizes")
+        if set(self.lowering_by_size) != expected_sizes:
+            raise ValueError("UX Layout lowering must match supportedCardSizes")
         minimums = {size: self.min_children_by_size.get(size, self.min_children) for size in sizes}
         if any(self.max_children_by_size[size] < minimums[size] for size in sizes):
             raise ValueError("UX Layout child budget is invalid")

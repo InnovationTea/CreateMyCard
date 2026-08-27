@@ -14,20 +14,30 @@ Column(
     ),
   Text(
       `电量 ${data.percentText}，${data.level}，${data.charging}`,
-      {"width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 2, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      {"width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 3, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     ),
   Stack(
       {"width": "matchParent", "height": "matchParent", "layoutWeight": 1, "alignContent": "bottomStart", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Stack(
             {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
             Progress(
-                    {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 52, "height": 52, "strokeWidth": 6}
+                    {"value": data.percent,
+                      "total": 100,
+                      "type": "ring",
+                      "color": $theme('progressColor'),
+                      "backgroundColor": "#1A000000",
+                      "width": 52,
+                      "height": 52,
+                      "strokeWidth": 6}
                   ),
             IfPresent(
                     props.batteryIcon,
                     Image(
                               props.batteryIcon,
-                              {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
+                              {"width": 24,
+                                "height": 24,
+                                "objectFit": "contain",
+                                "fillColor": $theme('supportContentColor')}
                             )
                   )
           )
@@ -69,7 +79,7 @@ Column(
                       "value": data.percent,
                       "total": 100,
                       "type": "ring",
-                      "color": "#FFF9A01E",
+                      "color": $theme('progressColor'),
                       "backgroundColor": "#1A000000",
                       "width": 52,
                       "height": 52,
@@ -80,7 +90,10 @@ Column(
                     props.batteryIcon,
                     Image(
                               props.batteryIcon,
-                              {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
+                              {"width": 24,
+                                "height": 24,
+                                "objectFit": "contain",
+                                "fillColor": $theme('supportContentColor')}
                             )
                   )
           ),
@@ -125,20 +138,30 @@ Column(
     ),
   Text(
       `电量 ${data.percentText}，${data.level}，${data.charging}`,
-      {"width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 2, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      {"width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 3, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     ),
   Stack(
       {"width": "matchParent", "height": "matchParent", "layoutWeight": 1, "alignContent": "bottomStart", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Stack(
             {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
             Progress(
-                    {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 52, "height": 52, "strokeWidth": 6}
+                    {"value": data.percent,
+                      "total": 100,
+                      "type": "ring",
+                      "color": $theme('progressColor'),
+                      "backgroundColor": "#1A000000",
+                      "width": 52,
+                      "height": 52,
+                      "strokeWidth": 6}
                   ),
             IfPresent(
                     props.batteryIcon,
                     Image(
                               props.batteryIcon,
-                              {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
+                              {"width": 24,
+                                "height": 24,
+                                "objectFit": "contain",
+                                "fillColor": $theme('supportContentColor')}
                             )
                   )
           )
@@ -162,20 +185,30 @@ Column(
     ),
   Text(
       `电量 ${data.percentText}，${data.level}，${data.charging}`,
-      {"width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 2, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      {"width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 3, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     ),
   Stack(
       {"width": "matchParent", "height": "matchParent", "layoutWeight": 1, "alignContent": "bottomStart", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Stack(
             {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
             Progress(
-                    {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 52, "height": 52, "strokeWidth": 6}
+                    {"value": data.percent,
+                      "total": 100,
+                      "type": "ring",
+                      "color": $theme('progressColor'),
+                      "backgroundColor": "#1A000000",
+                      "width": 52,
+                      "height": 52,
+                      "strokeWidth": 6}
                   ),
             IfPresent(
                     props.batteryIcon,
                     Image(
                               props.batteryIcon,
-                              {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
+                              {"width": 24,
+                                "height": 24,
+                                "objectFit": "contain",
+                                "fillColor": $theme('supportContentColor')}
                             )
                   )
           )
@@ -202,13 +235,23 @@ Column(
       Stack(
             {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
             Progress(
-                    {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 52, "height": 52, "strokeWidth": 6}
+                    {"value": data.percent,
+                      "total": 100,
+                      "type": "ring",
+                      "color": $theme('progressColor'),
+                      "backgroundColor": "#1A000000",
+                      "width": 52,
+                      "height": 52,
+                      "strokeWidth": 6}
                   ),
             IfPresent(
                     props.batteryIcon,
                     Image(
                               props.batteryIcon,
-                              {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
+                              {"width": 24,
+                                "height": 24,
+                                "objectFit": "contain",
+                                "fillColor": $theme('supportContentColor')}
                             )
                   )
           ),
@@ -250,13 +293,23 @@ Column(
       Stack(
             {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
             Progress(
-                    {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 52, "height": 52, "strokeWidth": 6}
+                    {"value": data.percent,
+                      "total": 100,
+                      "type": "ring",
+                      "color": $theme('progressColor'),
+                      "backgroundColor": "#1A000000",
+                      "width": 52,
+                      "height": 52,
+                      "strokeWidth": 6}
                   ),
             IfPresent(
                     props.batteryIcon,
                     Image(
                               props.batteryIcon,
-                              {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
+                              {"width": 24,
+                                "height": 24,
+                                "objectFit": "contain",
+                                "fillColor": $theme('supportContentColor')}
                             )
                   )
           ),
@@ -298,13 +351,23 @@ Column(
       Stack(
             {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
             Progress(
-                    {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 52, "height": 52, "strokeWidth": 6}
+                    {"value": data.percent,
+                      "total": 100,
+                      "type": "ring",
+                      "color": $theme('progressColor'),
+                      "backgroundColor": "#1A000000",
+                      "width": 52,
+                      "height": 52,
+                      "strokeWidth": 6}
                   ),
             IfPresent(
                     props.batteryIcon,
                     Image(
                               props.batteryIcon,
-                              {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
+                              {"width": 24,
+                                "height": 24,
+                                "objectFit": "contain",
+                                "fillColor": $theme('supportContentColor')}
                             )
                   )
           ),
@@ -323,216 +386,6 @@ Column(
                     {"width": "matchParent", "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   )
           )
-    )
-)
-#End
-
-#Template BatteryOverviewNormalCompact@1(props: { batteryIcon?: asset })
-data = {
-    percent: $path("/batterySOC"),
-    percentText: $path("/batterySOCText"),
-    charging: $path("/chargingStatusDesc"),
-    level: $path("/batteryCapacityLevelDesc")
-}
-
-Column(
-  {"_advancedComponent": "BatteryOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 2, "justifyContent": "end", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Stack(
-      {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
-      Progress(
-            {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 52, "height": 52, "strokeWidth": 6}
-          ),
-      IfPresent(
-            props.batteryIcon,
-            Image(
-                    props.batteryIcon,
-                    {"width": 20, "height": 20, "objectFit": "contain", "fillColor": "#99000000"}
-                  )
-          )
-    ),
-  Text(
-      data.percentText,
-      {"width": "matchParent", "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    ),
-  Text(
-      data.level,
-      {"width": "matchParent", "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    ),
-  Text(
-      data.charging,
-      {"width": "matchParent", "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    )
-)
-#End
-
-#Template BatteryOverviewChargingCompact@1(props: { batteryIcon?: asset })
-data = {
-    percent: $path("/batterySOC"),
-    percentText: $path("/batterySOCText"),
-    charging: $path("/chargingStatusDesc"),
-    level: $path("/batteryCapacityLevelDesc")
-}
-
-Column(
-  {"_advancedComponent": "BatteryOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 2, "justifyContent": "end", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Stack(
-      {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
-      Progress(
-            {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 52, "height": 52, "strokeWidth": 6}
-          ),
-      IfPresent(
-            props.batteryIcon,
-            Image(
-                    props.batteryIcon,
-                    {"width": 20, "height": 20, "objectFit": "contain", "fillColor": "#99000000"}
-                  )
-          )
-    ),
-  Text(
-      data.percentText,
-      {"width": "matchParent", "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    ),
-  Text(
-      data.level,
-      {"width": "matchParent", "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    ),
-  Text(
-      data.charging,
-      {"width": "matchParent", "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    )
-)
-#End
-
-#Template BatteryOverviewLowCompact@1(props: { batteryIcon?: asset })
-data = {
-    percent: $path("/batterySOC"),
-    percentText: $path("/batterySOCText"),
-    charging: $path("/chargingStatusDesc"),
-    level: $path("/batteryCapacityLevelDesc")
-}
-
-Column(
-  {"_advancedComponent": "BatteryOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 2, "justifyContent": "end", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Stack(
-      {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
-      Progress(
-            {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 52, "height": 52, "strokeWidth": 6}
-          ),
-      IfPresent(
-            props.batteryIcon,
-            Image(
-                    props.batteryIcon,
-                    {"width": 20, "height": 20, "objectFit": "contain", "fillColor": "#99000000"}
-                  )
-          )
-    ),
-  Text(
-      data.percentText,
-      {"width": "matchParent", "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    ),
-  Text(
-      data.level,
-      {"width": "matchParent", "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    ),
-  Text(
-      data.charging,
-      {"width": "matchParent", "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    )
-)
-#End
-
-#Template BatteryOverviewNormalPhoneCompact@1(props: { batteryIcon?: asset })
-data = {
-    percent: $path("/batterySOC"),
-    percentText: $path("/batterySOCText")
-}
-
-Column(
-  {"_advancedComponent": "BatteryOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 2, "justifyContent": "center", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Stack(
-      {"width": 56, "height": 56, "alignContent": "center", "flexShrink": 0},
-      Progress(
-            {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 56, "height": 56, "strokeWidth": 6}
-          ),
-      IfPresent(
-            props.batteryIcon,
-            Image(
-                    props.batteryIcon,
-                    {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
-                  )
-          )
-    ),
-  Text(
-      data.percentText,
-      {"width": "matchParent", "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    ),
-  Text(
-      "手机",
-      {"width": "matchParent", "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    )
-)
-#End
-
-#Template BatteryOverviewChargingPhoneCompact@1(props: { batteryIcon?: asset })
-data = {
-    percent: $path("/batterySOC"),
-    percentText: $path("/batterySOCText")
-}
-
-Column(
-  {"_advancedComponent": "BatteryOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 2, "justifyContent": "center", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Stack(
-      {"width": 56, "height": 56, "alignContent": "center", "flexShrink": 0},
-      Progress(
-            {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 56, "height": 56, "strokeWidth": 6}
-          ),
-      IfPresent(
-            props.batteryIcon,
-            Image(
-                    props.batteryIcon,
-                    {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
-                  )
-          )
-    ),
-  Text(
-      data.percentText,
-      {"width": "matchParent", "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    ),
-  Text(
-      "手机",
-      {"width": "matchParent", "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    )
-)
-#End
-
-#Template BatteryOverviewLowPhoneCompact@1(props: { batteryIcon?: asset })
-data = {
-    percent: $path("/batterySOC"),
-    percentText: $path("/batterySOCText")
-}
-
-Column(
-  {"_advancedComponent": "BatteryOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 2, "justifyContent": "center", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-  Stack(
-      {"width": 56, "height": 56, "alignContent": "center", "flexShrink": 0},
-      Progress(
-            {"value": data.percent, "total": 100, "type": "ring", "color": "#FFF9A01E", "backgroundColor": "#1A000000", "width": 56, "height": 56, "strokeWidth": 6}
-          ),
-      IfPresent(
-            props.batteryIcon,
-            Image(
-                    props.batteryIcon,
-                    {"width": 24, "height": 24, "objectFit": "contain", "fillColor": "#99000000"}
-                  )
-          )
-    ),
-  Text(
-      data.percentText,
-      {"width": "matchParent", "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    ),
-  Text(
-      "手机",
-      {"width": "matchParent", "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     )
 )
 #End
@@ -648,12 +501,12 @@ Row(
   {
     "_advancedComponent": "BatteryOverview",
     "width": "matchParent",
-    "height": 64,
+    "height": "matchParent",
     "backgroundColor": $theme('actionStyle.backgroundColor'),
     "borderRadius": 16,
     "padding": {"left": 12, "top": 0, "right": 22, "bottom": 0},
     "justifyContent": "spaceBetween",
-    "alignItems": "start",
+    "alignItems": "center",
     "clip": true,
     "constraintSize": {"minWidth": 0, "minHeight": 0}
   },
@@ -669,7 +522,7 @@ Row(
       },
       Text(
             data.temperature,
-            {"fontSize": 19, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            {"fontSize": 18, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           ),
       Text(
             "手机温度",
@@ -766,13 +619,23 @@ Column(
   Stack(
       {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
       Progress(
-            {"value": data.percent, "total": 100, "type": "ring", "color": $theme('primaryColor'), "backgroundColor": "#3399661F", "width": 52, "height": 52, "strokeWidth": 6}
+            {"value": data.percent,
+              "total": 100,
+              "type": "ring",
+              "color": $theme('progressColor'),
+              "backgroundColor": "#3399661F",
+              "width": 52,
+              "height": 52,
+              "strokeWidth": 6}
           ),
       IfPresent(
             props.batteryIcon,
             Image(
                     props.batteryIcon,
-                    {"width": 20, "height": 20, "objectFit": "contain", "fillColor": $theme('primaryColor')}
+                    {"width": 20,
+                      "height": 20,
+                      "objectFit": "contain",
+                      "fillColor": $theme('supportContentColor')}
                   )
           )
     ),

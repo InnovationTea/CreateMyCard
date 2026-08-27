@@ -3,17 +3,17 @@
 - Provider：`com.huawei.earphone.cli`。
 - 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
 - 可用模板：
-  - `BluetoothDeviceOverviewDisconnectedFull@1`：蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：disconnected。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/isConnected；次要数据：/earphoneName；可选数据：无。
-  - `BluetoothDeviceOverviewConnectionFull@1`：蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：connection。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/isConnected；次要数据：/earphoneName；可选数据：无。
+  - `BluetoothDeviceOverviewDisconnectedFull@1`：蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：disconnected。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/isConnected；次要数据：/earphoneName；可选数据：无。
+  - `BluetoothDeviceOverviewConnectionFull@1`：蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：connection。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/isConnected；次要数据：/earphoneName；可选数据：无。
   - `BluetoothDeviceOverviewDisconnectedPhoneCompact@1`：蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：disconnectedPhone。 布局场景：约 2x1；用于双 Compact 组合，或单 Compact 加两个 PillAction。主数据：/isConnected；次要数据：无；可选数据：无。
   - `BluetoothDeviceOverviewEarbudsPhoneCompact@1`：蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbudsPhone。 布局场景：约 2x1；用于双 Compact 组合，或单 Compact 加两个 PillAction。主数据：/isConnected；次要数据：无；可选数据：/batteryLevel, /leftBatteryLevel, /rightBatteryLevel。
   - `BluetoothDeviceOverviewEarbudsPhoneWideFull@1`：蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbudsPhoneWide。 布局场景：完整 4x2；单独使用。主数据：/isConnected；次要数据：/earphoneName；可选数据：/batteryLevel, /leftBatteryLevel, /rightBatteryLevel。
   - `BluetoothDeviceOverviewEarbudsDynamicWideFull@1`：蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbudsDynamicWide。 布局场景：完整 4x2；单独使用。主数据：/isConnected；次要数据：/earphoneName；可选数据：/batteryLevel, /leftBatteryLevel, /rightBatteryLevel。
-  - `BluetoothDeviceOverviewCaseFull@1`：蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbuds。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/isConnected；次要数据：/earphoneName, /batteryLevel；可选数据：无。
+  - `BluetoothDeviceOverviewCaseFull@1`：蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbuds。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/isConnected；次要数据：/earphoneName, /batteryLevel；可选数据：无。
   - `BluetoothDeviceOverviewLeftEarbudCompact@1`：蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：leftEarbud。 布局场景：约 2x1；用于双 Compact 组合，或单 Compact 加两个 PillAction。主数据：/isConnected；次要数据：/earphoneName, /leftBatteryLevel；可选数据：无。
   - `BluetoothDeviceOverviewRightEarbudCompact@1`：蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：rightEarbud。 布局场景：约 2x1；用于双 Compact 组合，或单 Compact 加两个 PillAction。主数据：/isConnected；次要数据：/earphoneName, /rightBatteryLevel；可选数据：无。
-  - `BluetoothDeviceOverviewEarbudPairFull@1`：蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbudPair。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/isConnected；次要数据：/earphoneName, /leftBatteryLevel, /rightBatteryLevel；可选数据：无。
-  - `BluetoothDeviceOverviewPairVisualFull@1`：蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbudsFull。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/isConnected；次要数据：/earphoneName, /leftBatteryLevel, /rightBatteryLevel；可选数据：无。
+  - `BluetoothDeviceOverviewEarbudPairFull@1`：蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbudPair。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/isConnected；次要数据：/earphoneName, /leftBatteryLevel, /rightBatteryLevel；可选数据：无。
+  - `BluetoothDeviceOverviewPairVisualFull@1`：蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbudsFull。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/isConnected；次要数据：/earphoneName, /leftBatteryLevel, /rightBatteryLevel；可选数据：无。
   - `BluetoothDeviceOverviewCompleteWideFull@1`：蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbudsFullWide。 布局场景：完整 4x2；单独使用。主数据：/isConnected；次要数据：/earphoneName, /batteryLevel, /leftBatteryLevel, /rightBatteryLevel；可选数据：无。
   - `BluetoothDeviceOverviewEarbudPairPhoneCompact@1`：蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbudPairPhone。 布局场景：约 2x1；用于双 Compact 组合，或单 Compact 加两个 PillAction。主数据：/isConnected；次要数据：/leftBatteryLevel, /rightBatteryLevel；可选数据：无。
   - `BluetoothDeviceOverviewCompletePhoneWideFull@1`：蓝牙耳机连接与电量摘要，可展示设备名、盒电量和左右耳电量。 组件形态：earbudsFullPhoneWide。 布局场景：完整 4x2；单独使用。主数据：/isConnected；次要数据：/earphoneName, /batteryLevel, /leftBatteryLevel, /rightBatteryLevel；可选数据：无。

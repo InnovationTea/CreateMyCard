@@ -8,6 +8,7 @@ import tokenize
 THEME_REFERENCE_PATHS = (
     "primaryColor",
     "supportContentColor",
+    "progressColor",
     "actionStyle.backgroundColor",
     "actionStyle.contentColor",
 )

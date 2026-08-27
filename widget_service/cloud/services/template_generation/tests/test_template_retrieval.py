@@ -79,7 +79,7 @@ def _card_spec() -> dict[str, Any]:
 
 def _query(*paths: str) -> TemplateRetrievalQuery:
     return TemplateRetrievalQuery(
-        themeId="family-weather-care-blue",
+        themeId="fusion-weather-blue",
         requiredOutputFieldsByCapability={"ViewWeather": paths},
     )
 
@@ -125,7 +125,7 @@ def test_provider_required_data_types_are_checked_when_known() -> None:
 
 
 def test_cross_theme_query_keeps_field_compatible_candidates() -> None:
-    query = _query("/current/condition").model_copy(update={"theme_id": "meeting-paper-neutral"})
+    query = _query("/current/condition").model_copy(update={"theme_id": "fusion-schedule-cool"})
 
     result = retrieve_template_variants(
         query, _task(), get_cardplan_registry(), (_binding(),), _card_spec()
@@ -198,7 +198,7 @@ def test_shared_capability_keeps_each_component_scoped_templates() -> None:
         candidateOutputFields=["/events/0/title", "/events/0/dtStart", "/events/0/dtEnd"],
     )
     query = TemplateRetrievalQuery(
-        themeId="meeting-paper-neutral",
+        themeId="fusion-schedule-cool",
         requiredOutputFieldsByCapability={
             "GetCalendarEvents": ("/events/0/title", "/events/0/dtStart")
         },
@@ -221,7 +221,7 @@ def test_shared_capability_keeps_each_component_scoped_templates() -> None:
     assert "ScheduleOverviewNextEventFull@1" in result.allowed_template_ids
 
 
-def test_calendar_date_and_schedule_share_one_business_component() -> None:
+def test_calendar_date_and_schedule_require_one_covering_business_template() -> None:
     task = TaskSpec(
         userQuery="显示日期和下一场会议的标题、时间",
         size="2x2",
@@ -254,7 +254,7 @@ def test_calendar_date_and_schedule_share_one_business_component() -> None:
         candidateOutputFields=list(fields),
     )
     query = TemplateRetrievalQuery(
-        themeId="meeting-paper-neutral",
+        themeId="fusion-schedule-cool",
         requiredOutputFieldsByCapability={
             "GetCalendarEvents": (
                 "/events/0/startDate",
@@ -264,33 +264,22 @@ def test_calendar_date_and_schedule_share_one_business_component() -> None:
         },
     )
 
-    result = retrieve_template_variants(
-        query,
-        task,
-        CardPlanRegistry(),
-        (binding,),
-        {
-            "suggestSize": "2x2",
-            "dataBindings": [
-                {
-                    "capabilityId": "GetCalendarEvents",
-                    "writeResultTo": "/data/calendar",
-                }
-            ],
-        },
-    )
-
-    assert result.scope.advanced_component_ids == ("CalendarOverview",)
-    assert len(result.component_candidates) == 1
-    assert set(result.allowed_template_ids) >= {
-        "DateOverviewCompact@1",
-        "ScheduleOverviewMeetingCompact@1",
-    }
-    assert any("DateOverviewCompact@1" in group for group in result.required_template_groups)
-    assert any(
-        "ScheduleOverviewMeetingCompact@1" in group
-        for group in result.required_template_groups
-    )
+    with pytest.raises(TemplateRetrievalMiss, match="cannot cover one CalendarOverview slot"):
+        retrieve_template_variants(
+            query,
+            task,
+            CardPlanRegistry(),
+            (binding,),
+            {
+                "suggestSize": "2x2",
+                "dataBindings": [
+                    {
+                        "capabilityId": "GetCalendarEvents",
+                        "writeResultTo": "/data/calendar",
+                    }
+                ],
+            },
+        )
 
 
 def test_domain_only_query_returns_candidates_when_required_data_is_available() -> None:
@@ -330,7 +319,7 @@ def test_first_layer_prompt_includes_task_fields_rules_and_action_candidates() -
     ]
 
 
-def test_search_allows_two_businesses_without_actions_only_with_compact_templates() -> None:
+def test_search_defers_two_business_layout_suffix_filtering_to_the_second_layer() -> None:
     task = _task()
     task.dataModelSchema["data"]["calendar"] = {
         "events": [
@@ -348,7 +337,7 @@ def test_search_allows_two_businesses_without_actions_only_with_compact_template
     )
     result = retrieve_template_variants(
         TemplateRetrievalQuery(
-            themeId="family-weather-care-blue",
+            themeId="fusion-weather-blue",
             requiredOutputFieldsByCapability={
                 "ViewWeather": ("/current/condition",),
                 "GetCalendarEvents": ("/events/0/title", "/events/0/dtStart"),
@@ -369,15 +358,15 @@ def test_search_allows_two_businesses_without_actions_only_with_compact_template
         "CalendarOverview",
         "WeatherOverview",
     }
-    assert all(
-        template_id.removesuffix("@1").endswith("Compact")
-        for template_id in result.allowed_template_ids
-    )
+    assert "WeatherOverviewCompact@1" in result.allowed_template_ids
+    assert "WeatherOverviewFull@1" in result.allowed_template_ids
+    assert "ScheduleOverviewMeetingCompact@1" in result.allowed_template_ids
+    assert "ScheduleOverviewNextEventFull@1" in result.allowed_template_ids
 
 
 def test_search_still_rejects_more_than_two_data_businesses() -> None:
     query = TemplateRetrievalQuery(
-        themeId="family-weather-care-blue",
+        themeId="fusion-weather-blue",
         requiredOutputFieldsByCapability={
             "CapabilityA": ("/value",),
             "CapabilityB": ("/value",),
@@ -417,8 +406,29 @@ def test_search_allows_one_data_business_with_action() -> None:
     assert result.action_id == "event.open.weather"
 
 
-def test_one_component_may_use_multiple_templates_to_cover_requested_fields() -> None:
-    """Search 不把同一组件的字段错误地限制在单个 CardTpl 中。"""
+def test_search_keeps_multiple_candidates_for_each_layout_kind() -> None:
+    """Search 保留同形态的多个候选，第二层再按布局选择最终模板。"""
+    result = retrieve_template_variants(
+        _query("/current/condition"),
+        _task(),
+        get_cardplan_registry(),
+        (_binding(),),
+        _card_spec(),
+    )
+
+    template_ids = set(result.component_candidates[0].available_template_ids)
+    assert {
+        "WeatherOverviewHero@1",
+        "WeatherOverviewAirQualityHero@1",
+    }.issubset(template_ids)
+    assert {
+        "WeatherOverviewCompact@1",
+        "WeatherOverviewIconCompact@1",
+    }.issubset(template_ids)
+
+
+def test_search_index_reports_per_field_matches_before_route_intersection() -> None:
+    """索引先保留逐字段匹配；路由层随后会拒绝不能独立完整覆盖的模板。"""
     temperature = FieldToken("ViewWeather", "/current/temperatureText", "string")
     condition = FieldToken("ViewWeather", "/current/condition", "string")
 
