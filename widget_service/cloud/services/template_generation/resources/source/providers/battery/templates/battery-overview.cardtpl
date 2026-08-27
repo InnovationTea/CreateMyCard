@@ -596,7 +596,7 @@ Row(
 )
 #End
 
-#Template BatteryOverviewPercentRingHero@1(props: { batteryIcon?: asset })
+#Template BatteryOverviewPercentRingHero@1(props: { batteryIcon: asset })
 data = {
     percent: $path("/batterySOC"),
     percentText: $path("/batterySOCText"),
@@ -628,15 +628,12 @@ Column(
               "height": 52,
               "strokeWidth": 6}
           ),
-      IfPresent(
+      Image(
             props.batteryIcon,
-            Image(
-                    props.batteryIcon,
-                    {"width": 20,
-                      "height": 20,
-                      "objectFit": "contain",
-                      "fillColor": $theme('supportContentColor')}
-                  )
+            {"width": 20,
+              "height": 20,
+              "objectFit": "contain",
+              "fillColor": $theme('supportContentColor')}
           )
     ),
   Text(
