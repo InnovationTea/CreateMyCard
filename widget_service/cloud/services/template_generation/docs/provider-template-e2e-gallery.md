@@ -10,8 +10,10 @@
 不会把画廊测试产物上传到 OBS。
 
 该能力位于 `template_generation/test_support/`，只通过 `WidgetGenerationService` 的公开入口发起测试请求，
-不在 Template 模块内构造 TaskSpec、CardSpec 或最终 Artifact。批跑器会在请求对象的不可序列化私有属性中
-携带本用例目标模板，Search 通过后将二层候选收窄到该模板；外部工具请求不能设置这个开发测试约束。
+不在 Template 模块内构造 TaskSpec、CardSpec 或最终 Artifact。批跑器调用
+`generate_widget_card_terse_dsl_nested2` 时，通过仅供 Python 服务调用的关键字参数携带目标模板、目标 Action
+和样例覆盖；它们不进入 `GenerateWidgetCardRequest`、工具请求 JSON 或公开 Schema。Search 通过后，二层候选
+才会收窄到目标模板，外部工具请求不能设置这些开发测试约束。
 
 ## 场景矩阵
 

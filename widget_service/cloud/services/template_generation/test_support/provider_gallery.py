@@ -241,6 +241,10 @@ class GalleryGenerationService(Protocol):
     async def generate_widget_card_terse_dsl_nested2(
         self,
         request: GenerateWidgetCardRequest,
+        *,
+        trusted_template_candidate_ids: tuple[str, ...] = (),
+        trusted_template_action_ids: tuple[str, ...] = (),
+        trusted_template_sample_overrides: dict[str, object] | None = None,
     ) -> GenerateWidgetCardResponse: ...
 
 
@@ -798,15 +802,19 @@ def _request_from_envelope(payload: dict[str, Any]) -> GenerateWidgetCardRequest
         app_version=device_info.prdVer or DEFAULT_APP_VERSION,
         app_name=envelope.bundleName or DEFAULT_BUNDLE_NAME,
     )
-    gallery_test = payload.get("galleryTest")
-    if gallery_test is not None:
-        if not isinstance(gallery_test, dict):
-            raise ValueError("galleryTest must be an object")
-        sample_overrides = gallery_test.get("sampleOverrides", {})
-        if not isinstance(sample_overrides, dict):
-            raise ValueError("galleryTest.sampleOverrides must be an object")
-        request._trusted_template_sample_overrides = dict(sample_overrides)
     return request
+
+
+def _gallery_sample_overrides_from_envelope(payload: dict[str, Any]) -> dict[str, object]:
+    gallery_test = payload.get("galleryTest")
+    if gallery_test is None:
+        return {}
+    if not isinstance(gallery_test, dict):
+        raise ValueError("galleryTest must be an object")
+    sample_overrides = gallery_test.get("sampleOverrides", {})
+    if not isinstance(sample_overrides, dict):
+        raise ValueError("galleryTest.sampleOverrides must be an object")
+    return dict(sample_overrides)
 
 
 def _safe_request_path(input_root: Path, request_file: str) -> Path:
@@ -943,15 +951,23 @@ class ProviderGalleryBatchRunner:
         target_ids = [case.targetTemplateId]
         if case.partnerTemplateId:
             target_ids.append(case.partnerTemplateId)
-        request._trusted_template_candidate_ids = tuple(
+        trusted_template_candidate_ids = tuple(
             template_id for template_id in target_ids if template_id
         )
-        request._trusted_template_action_ids = tuple(
+        trusted_template_action_ids = tuple(
             candidate.capabilityId for candidate in request.candidateEventCandidates or []
+        )
+        trusted_template_sample_overrides = _gallery_sample_overrides_from_envelope(
+            payload
         )
         token = _CURRENT_CASE_ID.set(case.caseId)
         try:
-            response = await self.service.generate_widget_card_terse_dsl_nested2(request)
+            response = await self.service.generate_widget_card_terse_dsl_nested2(
+                request,
+                trusted_template_candidate_ids=trusted_template_candidate_ids,
+                trusted_template_action_ids=trusted_template_action_ids,
+                trusted_template_sample_overrides=trusted_template_sample_overrides,
+            )
         except Exception as exc:
             return self._base_result(
                 case,

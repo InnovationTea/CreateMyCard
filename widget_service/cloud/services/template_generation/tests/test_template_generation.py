@@ -3918,6 +3918,38 @@ async def test_terse_edit_is_rejected_before_template_source_request(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_terse_entry_forwards_gallery_template_overrides(monkeypatch):
+    expected = object()
+    observed: dict[str, Any] = {}
+
+    async def capture_generation(
+        _request: Any,
+        _policy: Any,
+        **options: Any,
+    ) -> Any:
+        observed.update(options)
+        return expected
+
+    service = WidgetGenerationService()
+    monkeypatch.setattr(service, "_generate_widget_card_with_policy", capture_generation)
+    response = await service.generate_widget_card_terse_dsl_nested2(
+        _weather_request(),
+        trusted_template_candidate_ids=("WeatherOverviewCompact@1",),
+        trusted_template_action_ids=("event.open.weather",),
+        trusted_template_sample_overrides={"/data/weather/current/condition": "晴"},
+    )
+
+    assert response is expected
+    assert observed["trusted_template_candidate_ids"] == (
+        "WeatherOverviewCompact@1",
+    )
+    assert observed["trusted_template_action_ids"] == ("event.open.weather",)
+    assert observed["trusted_template_sample_overrides"] == {
+        "/data/weather/current/condition": "晴"
+    }
+
+
+@pytest.mark.asyncio
 async def test_legacy_python_terse_entry_is_explicit_and_delegates_to_original():
     expected = object()
     observed_callback: Any = None

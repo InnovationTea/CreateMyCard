@@ -154,9 +154,6 @@ class ToolRequestEnvelope(BaseModel):
 
 class VersionedToolRequest(BaseModel):
     _model_request_context: ModelRequestContext | None = PrivateAttr(default=None)
-    _trusted_template_candidate_ids: tuple[str, ...] = PrivateAttr(default=())
-    _trusted_template_action_ids: tuple[str, ...] = PrivateAttr(default=())
-    _trusted_template_sample_overrides: dict[str, Any] = PrivateAttr(default_factory=dict)
 
     locale: str = "zh-CN"
     uid: str

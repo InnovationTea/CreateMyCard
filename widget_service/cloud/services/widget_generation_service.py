@@ -1122,6 +1122,9 @@ class WidgetGenerationService:
         request: GenerateWidgetCardRequest,
         *,
         before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
+        trusted_template_candidate_ids: tuple[str, ...] = (),
+        trusted_template_action_ids: tuple[str, ...] = (),
+        trusted_template_sample_overrides: dict[str, object] | None = None,
     ) -> GenerateWidgetCardResponse:
         """复用 Design Compact 原始生成链处理 Terse 模板入口。"""
         try:
@@ -1165,6 +1168,9 @@ class WidgetGenerationService:
             before_model_call=before_model_call,
             try_template=True,
             need_fallback=False,
+            trusted_template_candidate_ids=trusted_template_candidate_ids,
+            trusted_template_action_ids=trusted_template_action_ids,
+            trusted_template_sample_overrides=trusted_template_sample_overrides,
         )
 
     async def _generate_widget_card_with_policy(
@@ -1175,6 +1181,9 @@ class WidgetGenerationService:
         before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
         try_template: bool = False,
         need_fallback: bool = True,
+        trusted_template_candidate_ids: tuple[str, ...] = (),
+        trusted_template_action_ids: tuple[str, ...] = (),
+        trusted_template_sample_overrides: dict[str, object] | None = None,
     ) -> GenerateWidgetCardResponse:
         """复制请求并锁定协议 Profile，按需注入模板 source generator。"""
         unsupported_response = self._policy_unsupported_response(request, policy)
@@ -1210,13 +1219,9 @@ class WidgetGenerationService:
                     profiled_request
                 ),
                 enable_fusion_ball=True,
-                trusted_template_candidate_ids=(
-                    profiled_request._trusted_template_candidate_ids
-                ),
-                trusted_template_action_ids=profiled_request._trusted_template_action_ids,
-                trusted_template_sample_overrides=(
-                    profiled_request._trusted_template_sample_overrides
-                ),
+                trusted_template_candidate_ids=trusted_template_candidate_ids,
+                trusted_template_action_ids=trusted_template_action_ids,
+                trusted_template_sample_overrides=trusted_template_sample_overrides,
             )
 
         return await self.generate_widget_card(
