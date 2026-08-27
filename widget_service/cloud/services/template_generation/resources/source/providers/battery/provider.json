@@ -51,6 +51,21 @@
       ]
     },
     {
+      "templateId": "BatteryOverviewProgressCompact@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量进度条紧凑区；用于 2x2 单 Compact 加两个 PillAction 的组合，上半区展示手机电量标题、剩余百分比和横向进度条，按钮由第二层组合。 组件形态：progressCompact。",
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/batterySOC",
+        "/batterySOCText"
+      ],
+      "secondaryData": [
+        "/batteryCapacityLevelDesc"
+      ]
+    },
+    {
       "templateId": "BatteryOverviewNormalHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
@@ -219,10 +234,10 @@
       "secondaryData": []
     },
     {
-      "templateId": "BatteryOverviewPowerTemperatureIconCompact@1",
+      "templateId": "BatteryOverviewNormalPowerTemperatureIconCompact@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量与电池温度图标紧凑行；用于 2x2 双层 Compact 组合，左侧两行展示电量百分比和手机温度，右侧为电池图标。 组件形态：powerTemperatureIconCompact。",
+      "description": "正常电量状态下的手机电量与电池温度图标紧凑行；用于 2x2 双层 Compact 组合，左侧两行展示电量百分比和手机温度，右侧为电池图标。 组件形态：normalPowerTemperatureIconCompact。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [

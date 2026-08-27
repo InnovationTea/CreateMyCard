@@ -1016,6 +1016,7 @@ def _validate_provider_template_state(
             )
         state_independent_variants = {
             "percentRingHero",
+            "progressCompact",
             "statusIconCompact",
             "temperatureIconCompact",
         }
@@ -3919,7 +3920,7 @@ def _expand_weather_overview_call(
         elif icon_tags & {"water", "rain", "drop", "cloud", "storm", "snow"}:
             condition_icon_options["fillColor"] = "#FFFFFFFF"
         else:
-            condition_icon_options["_preserveOriginalColor"] = True
+            condition_icon_options["fillColor"] = "#FFFFFFFF"
     title = Nested2Node(
         "Row",
         (
@@ -7977,8 +7978,8 @@ def _normalize_weather_condition_icons(
         options.pop("_preserveOriginalColor", None)
         options["fillColor"] = "#FFFFFFFF"
     else:
-        options.pop("fillColor", None)
-        options["_preserveOriginalColor"] = True
+        options.pop("_preserveOriginalColor", None)
+        options.setdefault("fillColor", "#FFFFFFFF")
     values = list(node.values)
     if options_index is None:
         values.append(options)

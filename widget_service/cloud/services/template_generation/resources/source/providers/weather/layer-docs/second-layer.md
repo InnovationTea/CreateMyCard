@@ -7,10 +7,17 @@
   PillAction。主数据：`/current/temperatureText`；次要数据：`/location/districtName`、
   `/current/condition`、`/current/coldLevel`；可选数据：无。
 - `WeatherOverviewTemperatureIconCompact@1`：天气温度图标紧凑行；约 2x1，用于 2x2 双层 Compact
-  组合的上层。左侧固定展示 `/current/temperatureText` 和 `/location/districtName`，右侧为
+  组合的上层。左侧固定展示 `/current/temperatureText`，下一行展示 `/current/condition` 和可选
+  `/location/districtName`，右侧为
   `conditionIcon` 天气 SVG 占位。主数据：`/current/temperatureText`；次要数据：
-  `/location/districtName`；可选数据：无。
-- `WeatherOverviewHero@1`：可选天气图标的温度 Hero 摘要；约 2x1.7，只用于一个 Hero 加一个 PillAction。
+  `/current/condition`；可选数据：`/location/districtName`。
+- `WeatherOverviewTemperatureAlertUvIconCompact@1`：天气温度图标紧凑行；布局与
+  `WeatherOverviewTemperatureIconCompact@1` 相同。左侧展示 `/current/temperatureText`，下一行展示
+  `/current/condition`、可选 `/location/districtName`、`/current/alertLevel` 和 `/current/uvIndex`，
+  右侧为 `conditionIcon` 天气 SVG 占位；同时要求
+  `/current/condition`、`/current/alertLevel`、`/current/uvIndex`；可选数据：
+  `/location/districtName`。
+- `WeatherOverviewHero@1`：温度 Hero 摘要；约 2x1.7，只用于一个 Hero 加一个 PillAction。
   主数据：`/current/temperatureText`；次要数据：`/location/districtName`、
   `/current/condition`、`/current/coldLevel`；可选数据：无。
 - `WeatherOverviewFull@1`：可选天气图标的完整温度摘要；完整 2x2，无 Action 时单独使用。

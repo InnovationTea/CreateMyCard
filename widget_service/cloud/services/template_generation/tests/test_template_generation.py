@@ -73,6 +73,7 @@ from services.template_generation.engine.cardplan.compiler import (
     _compile_ux_layout_shell,
     _inject_resource_battery_title,
     _lower_action_template_tree,
+    _normalize_weather_condition_icons,
     _provider_layout_action_background,
     _validate_provider_template_state,
 )
@@ -116,6 +117,65 @@ _WEATHER_TEMPLATE_FIELDS = (
 _WEATHER_PALETTE = ("#FF121259", "#FF2B65D9", "#FF57AED9")
 _SPORT_PALETTE = ("#FFB33C24", "#FFFF8833", "#FFFAA89E")
 _TEST_APP_VERSION = ".".join(("11", "7", "5", "205"))
+
+
+def test_weather_single_color_template_icon_uses_provided_fill_color() -> None:
+    contract = HybridBodyContract.model_construct(asset_semantic_tags_by_source={})
+    source = "resources/base/media/icon_high_temperature.svg"
+    root = Nested2Node(
+        "Row",
+        ({"_advancedComponent": "WeatherOverview"},),
+        (
+            Nested2Node(
+                "Image",
+                (
+                    source,
+                    {
+                        "width": 20,
+                        "height": 20,
+                        "fillColor": "#FF1F4594",
+                        "_preserveOriginalColor": True,
+                    },
+                ),
+                (),
+            ),
+        ),
+    )
+
+    normalized = _normalize_weather_condition_icons(root, contract)
+
+    icon_options = normalized.children[0].values[1]
+    assert icon_options["fillColor"] == "#FF1F4594"
+    assert "_preserveOriginalColor" not in icon_options
+
+
+def test_weather_multicolor_template_icon_preserves_original_color() -> None:
+    contract = HybridBodyContract.model_construct(asset_semantic_tags_by_source={})
+    source = "resources/base/media/icon_weather1.svg"
+    root = Nested2Node(
+        "Row",
+        ({"_advancedComponent": "WeatherOverview"},),
+        (
+            Nested2Node(
+                "Image",
+                (
+                    source,
+                    {
+                        "width": 20,
+                        "height": 20,
+                        "fillColor": "#FF1F4594",
+                    },
+                ),
+                (),
+            ),
+        ),
+    )
+
+    normalized = _normalize_weather_condition_icons(root, contract)
+
+    icon_options = normalized.children[0].values[1]
+    assert icon_options["_preserveOriginalColor"] is True
+    assert "fillColor" not in icon_options
 
 
 def test_template_facade_requires_explicit_fusion_feature_switch() -> None:
@@ -217,7 +277,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 79
+    assert len(registry.provider_template_ids) == 95
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -3157,6 +3217,97 @@ async def test_2x2_battery_percent_ring_hero_does_not_require_capacity_level():
     assert "省电模式" in output.a2ui
 
 
+@pytest.mark.asyncio
+async def test_2x2_battery_progress_compact_accepts_two_pill_actions():
+    action_ids = ("event.setPowerSavingMode", "event.startNavigate")
+
+    class TwoActionBatteryModel:
+        second_layer_prompt: list[dict[str, str]] | None = None
+
+        async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
+            return {
+                "themeId": "system-low-power-blue",
+                "requiredOutputFieldsByCapability": {
+                    "GetPhoneBatteryInfo": [
+                        "/batterySOC",
+                        "/batterySOCText",
+                        "/batteryCapacityLevelDesc",
+                    ]
+                },
+                "action": list(action_ids),
+            }
+
+        async def generate(
+            self,
+            prompt: list[dict[str, str]],
+            *_args: Any,
+            **_kwargs: Any,
+        ) -> str:
+            self.second_layer_prompt = prompt
+            return (
+                'Template("ActionMatrixLayout@1",{},'
+                'Template("BatteryOverviewProgressCompact@1",{}),'
+                'Template("PillAction@1",{"actionId":"event.setPowerSavingMode",'
+                '"label":"省电模式"}),'
+                'Template("PillAction@1",{"actionId":"event.startNavigate",'
+                '"label":"开始导航"}));'
+            )
+
+    binding = CandidateDataBinding(
+        capabilityId="GetPhoneBatteryInfo",
+        writeResultTo="/data/phoneBattery",
+        candidateOutputFields=[
+            "/batterySOC",
+            "/batterySOCText",
+            "/chargingStatusDesc",
+            "/batteryCapacityLevelDesc",
+            "/batteryTemperatureText",
+        ],
+    )
+    task_spec = _battery_task().model_copy(
+        update={
+            "userQuery": "下班要开车回家，手机剩12%电，带电量进度条，不够开省电，能导航回家。",
+            "eventCandidates": [
+                EventAction(
+                    id="event.setPowerSavingMode",
+                    displayLabel="省电模式",
+                    call="clickToIntent",
+                    args={"intentName": "SetSettingSwitch"},
+                ),
+                EventAction(
+                    id="event.startNavigate",
+                    displayLabel="导航回家",
+                    call="clickToIntent",
+                    args={"intentName": "StartNavigate"},
+                ),
+            ],
+        }
+    )
+    model = TwoActionBatteryModel()
+
+    output = await generate_template_a2ui(
+        task_spec,
+        _battery_card_spec(),
+        (binding,),
+        model,
+    )
+
+    assert output.template_ids == (
+        "BatteryOverviewProgressCompact@1",
+        "PillAction@1",
+        "ActionMatrixLayout@1",
+    )
+    assert model.second_layer_prompt is not None
+    second_layer_user = model.second_layer_prompt[1]["content"]
+    assert "BatteryOverviewProgressCompact@1" in second_layer_user
+    assert "ActionMatrixLayout@1" in output.template_ids
+    assert output.a2ui.count('"call":"clickToIntent"') == 2
+    assert "手机电量" in output.a2ui
+    assert "batterySOCText" in output.a2ui
+    assert "batterySOC" in output.a2ui
+    assert "省电模式" in output.a2ui and "开始导航" in output.a2ui
+
+
 def test_battery_normal_hero_requires_a_selected_layout_action():
     registry = get_cardplan_registry(True)
     definition = registry.require_template("BatteryOverviewNormalHero@1")
@@ -4150,7 +4301,11 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     assert json.loads(candidate_line.removeprefix("componentCandidates=")) == [
         {
             "componentId": "WeatherOverview",
-            "availableTemplateIds": weather_full_candidates,
+            "availableTemplateIds": [
+                "WeatherOverviewConditionFull@1",
+                "WeatherOverviewFull@1",
+                "WeatherOverviewIconFull@1",
+            ],
         }
     ]
     required_group_line = next(
@@ -4159,7 +4314,16 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
         if line.startswith("requiredLocalTemplateGroups=")
     )
     assert json.loads(required_group_line.removeprefix("requiredLocalTemplateGroups=")) == [
-        weather_full_candidates
+        [
+            "WeatherOverviewConditionFull@1",
+            "WeatherOverviewFull@1",
+            "WeatherOverviewIconFull@1",
+        ],
+        [
+            "WeatherOverviewConditionFull@1",
+            "WeatherOverviewFull@1",
+            "WeatherOverviewIconFull@1",
+        ],
     ]
     assert "selectedActionEventIds=[]" in second_layer_user
     template_contract_line = next(
