@@ -30,6 +30,18 @@
         "/countdownDays"
       ],
       "secondaryData": []
+    },
+    {
+      "templateId": "CountdownOverviewCompact@1",
+      "businessId": "CountdownOverview",
+      "capabilityId": "GetCountdownDays",
+      "description": "倒计时紧凑摘要；用于 2x2 双层 Compact 组合。可通过 title 文本属性补充业务标题。",
+      "optionalData": [],
+      "entry": "templates/countdown-overview.cardtpl",
+      "primaryData": [
+        "/countdownDays"
+      ],
+      "secondaryData": []
     }
   ],
   "compatibility": {
