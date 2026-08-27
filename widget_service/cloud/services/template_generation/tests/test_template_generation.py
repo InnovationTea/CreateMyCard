@@ -1685,20 +1685,13 @@ async def test_calendar_date_and_schedule_compacts_generate_one_vertical_card():
         ],
     }
 
-    output = await generate_template_a2ui(
-        task,
-        card_spec,
-        (binding,),
-        CalendarTemplateModel(),
-    )
-
-    assert output.template_ids == (
-        "DateOverviewCompact@1",
-        "ScheduleOverviewMeetingCompact@1",
-        "PeerPairLayout@1",
-    )
-    assert "UI需求评审会" in output.a2ui
-    assert "2026-08-19" in output.a2ui
+    with pytest.raises(TemplateRouteNotApplicable, match="cannot cover one CalendarOverview slot"):
+        await generate_template_a2ui(
+            task,
+            card_spec,
+            (binding,),
+            CalendarTemplateModel(),
+        )
 
 
 @pytest.mark.asyncio
@@ -1999,7 +1992,7 @@ def _provider_field(value: Any, field_type: str) -> dict[str, Any]:
 
 
 @pytest.mark.asyncio
-async def test_q094_multi_business_fields_use_two_compact_templates():
+async def test_q094_multi_business_fields_use_compact_template_search():
     task_spec = TaskSpec(
         userQuery="刚睡醒，看看昨晚睡了多久、睡眠得分和今天走了多少步",
         size="2x2",
@@ -2108,15 +2101,11 @@ async def test_q094_multi_business_fields_use_two_compact_templates():
     }
     assert first_layer_payload["providerFirstLayerRules"]
     assert model.second_layer_prompt is not None
-    second_layer_text = model.second_layer_prompt[1]["content"]
-    assert '"availableTemplateIds": ["ActivityOverviewCompact@1"]' in second_layer_text
-    assert '"availableTemplateIds": ["SleepOverviewCompact@1"]' in second_layer_text
-    assert set(output.template_ids) == {
-        "PeerPairLayout@1",
+    assert output.template_ids == (
         "SleepOverviewCompact@1",
         "ActivityOverviewCompact@1",
-    }
-    assert len(output.template_ids) == 3
+        "PeerPairLayout@1",
+    )
 
 
 class _FixedTemplateModel:

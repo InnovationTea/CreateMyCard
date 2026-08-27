@@ -132,10 +132,7 @@ def test_cross_theme_query_keeps_field_compatible_candidates() -> None:
     )
 
     assert result.component_candidates
-    assert set(result.allowed_template_ids) >= {
-        "WeatherOverviewCompact@1",
-        "WeatherOverviewFull@1",
-    }
+    assert "WeatherOverviewFull@1" in result.allowed_template_ids
 
 
 @pytest.mark.parametrize(
@@ -333,7 +330,7 @@ def test_first_layer_prompt_includes_task_fields_rules_and_action_candidates() -
     ]
 
 
-def test_search_allows_two_data_businesses() -> None:
+def test_search_allows_two_businesses_without_actions_only_with_compact_templates() -> None:
     task = _task()
     task.dataModelSchema["data"]["calendar"] = {
         "events": [
@@ -372,6 +369,10 @@ def test_search_allows_two_data_businesses() -> None:
         "CalendarOverview",
         "WeatherOverview",
     }
+    assert all(
+        template_id.removesuffix("@1").endswith("Compact")
+        for template_id in result.allowed_template_ids
+    )
 
 
 def test_search_still_rejects_more_than_two_data_businesses() -> None:
