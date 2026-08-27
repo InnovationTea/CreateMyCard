@@ -15,6 +15,9 @@ from services.template_generation.engine.cardplan.models import (
     HybridBodyContract,
 )
 from services.template_generation.engine.cardplan.prompt import build_hybrid_prompt
+from services.template_generation.engine.cardplan.provider_bundle import (
+    provider_template_layout_kind,
+)
 from services.template_generation.engine.cardplan.registry import CardPlanRegistry
 
 from .content_selectors import (
@@ -89,9 +92,10 @@ def build_ux_mixed_validation_retry_prompt(
             "content": (
                 "上一输出未通过服务端严格契约校验："
                 f"{error}。不要解释；保持同一个 uxAdvancedScope，重新输出完整布局根 DSL。"
-                "只能逐字使用原请求 trustedStringLiterals/trustedAssetSources，"
-                "不得新增标签、单位、颜色、尺寸、Action 或未批准 Template；"
-                "必须逐组补齐 requiredLocalTemplateGroups，并保留 directBusinessComponents。"
+                "只能使用原请求 componentCandidates、selectedActionEventIds "
+                "和 trustedAssetSources；"
+                "不得新增基础组件、业务文本、Action 或未批准 Template；"
+                "必须逐组补齐 requiredLocalTemplateGroups。"
             ),
         },
     ]
@@ -145,6 +149,23 @@ def build_ux_mixed_prompt(
     }
     if any(not template_ids for template_ids in candidate_ids_by_component.values()):
         raise ValueError("Advanced Scope component has no satisfiable candidate Template")
+    selected_action_ids = tuple(
+        event.id for event in task_spec.eventCandidates if event.id is not None
+    )
+    task_spec = task_spec_with_selected_action(task_spec, selected_action_ids)
+    allowed_layout_ids, layout_kind = _second_layer_layout_selection(
+        scope,
+        task_spec,
+        required_template_groups,
+        registry,
+    )
+    candidate_ids_by_component, effective_required_template_groups = (
+        _filter_second_layer_template_candidates(
+            candidate_ids_by_component,
+            required_template_groups,
+            layout_kind,
+        )
+    )
     selected_template_ids = tuple(
         template_id
         for component_id in scope.advanced_component_ids
@@ -157,17 +178,6 @@ def build_ux_mixed_prompt(
         )
         for component_id, template_ids in candidate_ids_by_component.items()
     )
-    selected_action_ids = tuple(
-        event.id for event in task_spec.eventCandidates if event.id is not None
-    )
-    task_spec = task_spec_with_selected_action(task_spec, selected_action_ids)
-    allowed_layout_ids = resolve_scope_layout_ids(scope, task_spec, registry)
-    if _calendar_date_schedule_pair_is_required(scope, required_template_groups):
-        if selected_action_ids:
-            raise ValueError("Calendar date-schedule Compact pair cannot include an Action")
-        allowed_layout_ids = ("TwoCompactLayout",)
-    if not allowed_layout_ids:
-        raise ValueError("Advanced Scope has no compatible UX layout")
     allowed_layout_template_ids = tuple(f"{layout_id}@1" for layout_id in allowed_layout_ids)
     for template_id in allowed_layout_template_ids:
         definition = registry.require_template(template_id)
@@ -185,6 +195,7 @@ def build_ux_mixed_prompt(
         ui_brief=bridge,
         registry=registry,
         ux_layout_root_ids=allowed_layout_ids,
+        expose_data_facts=False,
     )
     template_components = tuple(
         component for component in components if component.implementation == "template"
@@ -195,19 +206,9 @@ def build_ux_mixed_prompt(
     has_weather = any(component.name == "WeatherOverview" for component in components)
     weather_builtin_assets = _weather_builtin_assets_for_components(components)
     has_heart_rate = any(component.name == "HeartRateOverview" for component in components)
-    effective_required_template_groups = (
-        tuple(
-            tuple(template_id for template_id in group if template_id in selected_template_ids)
-            for group in required_template_groups
-        )
-        if required_template_groups
-        else tuple(
-            _required_template_group(
-                candidate_ids_by_component[component.name],
-                base.requested_template_ids,
-            )
-            for component in template_components
-        )
+    effective_required_template_groups = tuple(
+        _required_template_group(group, base.requested_template_ids)
+        for group in effective_required_template_groups
     )
     if any(not group for group in effective_required_template_groups):
         raise ValueError("An explicit output field has no satisfiable candidate Template")
@@ -343,6 +344,7 @@ def build_ux_mixed_prompt(
             ),
             "allowed_business_component_ids": direct_components,
             "required_business_component_ids": direct_components,
+            "template_only_composition": True,
             "allowed_asset_sources": allowed_assets,
             "asset_semantic_tags_by_source": asset_tags,
             "required_literals": required_literals,
@@ -407,15 +409,18 @@ def build_ux_mixed_prompt(
             "providerSecondLayerRules="
             + json.dumps(provider_second_layer_rules, ensure_ascii=False),
             "只能从 componentCandidates 中同一 componentId 的 availableTemplateIds "
-            "选择最终业务模板；不得使用 Provider 文档中的其他模板。",
+            "按布局后缀、Action 数量和素材条件选择最终业务模板；"
+            "不得使用 Provider 文档中的其他模板。",
+            "第一层已经完成展示字段与候选模板覆盖判断。"
+            "第二层不接收 TaskSpec、dataFacts 或 mustKeep，"
+            "不得重新选择展示字段、补充业务 Text，或根据 Provider 文档中的数据说明改写候选集合。",
             "selectedActionEventIds=" + json.dumps(selected_action_ids, ensure_ascii=False),
             "Action 与业务组件解耦；只能按业务模板布局后缀选择 PillAction@1 或 IconAction@1，"
             "通过 Props 输出批准的 actionId/label/icon，并作为布局根连续的末尾直接 child；"
             "不得使用未选择的 Action，也不得输出事件执行字段。",
             "业务高级组件字段由服务端绑定到 TaskSpec.dataModelSchema 的端侧数据路径；"
-            "最终有效 TerseDSL 使用完整 `${data.weather.temperature}` 占位值，"
-            "并由服务端附加确定性的 `data = {...}`；"
-            "模型不得编造路径，已有全局路径的值不得改用 props。",
+            "模型只把业务 Template 视为原子节点；绑定与 `data = {...}` 由服务端确定性附加。"
+            "模型不得编造路径，也不得用 props 或基础组件承载业务数据。",
             "只输出混合 DSL，不输出说明。",
         )
     )
@@ -459,6 +464,82 @@ def _calendar_date_schedule_pair_is_required(
         template_id.startswith("ScheduleOverview") for template_id in candidate_ids
     )
     return has_date and has_schedule
+
+
+def _second_layer_layout_selection(
+    scope: AdvancedScopeBrief,
+    task_spec: TaskSpec,
+    required_template_groups: tuple[tuple[str, ...], ...],
+    registry: CardPlanRegistry,
+) -> tuple[tuple[str, ...], str]:
+    """Resolve only layout capacity and Action shape in the second layer."""
+    action_count = len(task_spec.eventCandidates)
+    component_count = len(scope.advanced_component_ids)
+    calendar_pair = _calendar_date_schedule_pair_is_required(
+        scope,
+        required_template_groups,
+    )
+    if calendar_pair:
+        if action_count:
+            raise ValueError("Calendar date-schedule Compact pair cannot include an Action")
+        expected_layout = "TwoCompactLayout"
+        layout_kind = "Compact"
+    elif task_spec.size == "2x2":
+        layout_policy = {
+            (1, 0): ("SingleFocusLayout", "Full"),
+            (1, 1): ("HeroActionLayout", "Hero"),
+            (1, 2): ("CompactTwoActionLayout", "Compact"),
+            (2, 0): ("TwoCompactLayout", "Compact"),
+        }
+        selected = layout_policy.get((component_count, action_count))
+        if selected is None:
+            raise ValueError("2x2 Template candidates do not fit one supported layout")
+        expected_layout, layout_kind = selected
+    elif task_spec.size == "2x4" and component_count == 1 and action_count <= 1:
+        expected_layout = "WideSingleFocusLayout"
+        layout_kind = "WideHero" if action_count else "WideFull"
+    else:
+        raise ValueError("Template candidates do not fit one supported layout")
+    allowed_layout_ids = resolve_scope_layout_ids(scope, task_spec, registry)
+    if expected_layout not in allowed_layout_ids:
+        raise ValueError("Advanced Scope has no compatible UX layout")
+    return (expected_layout,), layout_kind
+
+
+def _filter_second_layer_template_candidates(
+    candidates_by_component: dict[str, tuple[str, ...]],
+    required_template_groups: tuple[tuple[str, ...], ...],
+    layout_kind: str,
+) -> tuple[dict[str, tuple[str, ...]], tuple[tuple[str, ...], ...]]:
+    """Filter first-layer candidates by layout without inspecting business data."""
+    filtered = {
+        component_id: tuple(
+            template_id
+            for template_id in template_ids
+            if provider_template_layout_kind(template_id) == layout_kind
+        )
+        for component_id, template_ids in candidates_by_component.items()
+    }
+    for component_id, template_ids in filtered.items():
+        if not template_ids:
+            raise ValueError(
+                f"Advanced Scope component {component_id} has no {layout_kind} template"
+            )
+    allowed_ids = {
+        template_id
+        for template_ids in filtered.values()
+        for template_id in template_ids
+    }
+    groups = required_template_groups or tuple(filtered.values())
+    filtered_groups = tuple(
+        tuple(template_id for template_id in group if template_id in allowed_ids)
+        for group in groups
+    )
+    if any(not group for group in filtered_groups):
+        raise ValueError(
+            f"First-layer Template candidates have no complete {layout_kind} coverage"
+        )
+    return filtered, filtered_groups
 
 
 def _required_template_group(

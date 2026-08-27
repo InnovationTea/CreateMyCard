@@ -5344,6 +5344,10 @@ def _validate_raw_components(node: ParsedCall, contract: HybridBodyContract) -> 
         for child in node.children:
             _validate_raw_components(child, contract)
         return
+    if contract.template_only_composition:
+        raise TerseDslNested2ConversionError(
+            "Second-layer composition accepts only approved Template calls."
+        )
     if node.name not in contract.allowed_components:
         raise TerseDslNested2ConversionError(f"Raw component is not allowed: {node.name}")
     if node.name in _UX_ACTION_COMPONENTS:

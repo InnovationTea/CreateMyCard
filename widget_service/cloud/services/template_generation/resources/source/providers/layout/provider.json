@@ -5,7 +5,7 @@
   "templates": [
     {
       "templateId": "SingleFocusLayout@1",
-      "description": "2x2 单一焦点布局，承载一个 Full 业务模板和可选的 IconAction。",
+      "description": "2x2 单一焦点布局，仅承载一个无 Action 的 Full 业务模板。",
       "entry": "templates/layout.cardtpl"
     },
     {
@@ -37,7 +37,7 @@
   "layoutComponents": [
     {
       "name": "SingleFocusLayout",
-      "description": "仅用于 2x2；一个 Full 业务 child，可选一个末尾 IconAction child。",
+      "description": "仅用于 2x2；一个 Full 业务 child，不接受 Action。",
       "supportedCardSizes": [
         "2x2"
       ],
@@ -45,12 +45,12 @@
       "maxChildrenBySize": {
         "2x2": 1
       },
-      "actionPolicy": "optional",
+      "actionPolicy": "none",
       "minActionChildrenBySize": {
         "2x2": 0
       },
       "maxActionChildrenBySize": {
-        "2x2": 1
+        "2x2": 0
       },
       "parametersSchema": {
         "type": "object",

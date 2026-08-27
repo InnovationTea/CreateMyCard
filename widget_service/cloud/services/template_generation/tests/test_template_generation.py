@@ -2753,7 +2753,7 @@ async def test_bluetooth_music_action_requires_a_hero_template():
         ),
     )
 
-    with pytest.raises(TemplateRouteNotApplicable, match="has no Hero template"):
+    with pytest.raises(TemplateGenerationError, match="selected template generation failed"):
         await generate_template_a2ui(
             task_spec,
             _bluetooth_card_spec(),
@@ -3832,15 +3832,16 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
     candidate_line = next(
         line for line in second_layer_user.splitlines() if line.startswith("componentCandidates=")
     )
+    weather_full_candidates = [
+        "WeatherOverviewConditionFull@1",
+        "WeatherOverviewFull@1",
+        "WeatherOverviewIconFull@1",
+    ]
     assert json.loads(candidate_line.removeprefix("componentCandidates=")) == [
-            {
-                "componentId": "WeatherOverview",
-                "availableTemplateIds": [
-                    "WeatherOverviewConditionFull@1",
-                    "WeatherOverviewFull@1",
-                    "WeatherOverviewIconFull@1",
-                ],
-            }
+        {
+            "componentId": "WeatherOverview",
+            "availableTemplateIds": weather_full_candidates,
+        }
     ]
     required_group_line = next(
         line
@@ -3848,16 +3849,7 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
         if line.startswith("requiredLocalTemplateGroups=")
     )
     assert json.loads(required_group_line.removeprefix("requiredLocalTemplateGroups=")) == [
-        [
-            "WeatherOverviewConditionFull@1",
-            "WeatherOverviewFull@1",
-            "WeatherOverviewIconFull@1",
-        ],
-        [
-            "WeatherOverviewConditionFull@1",
-            "WeatherOverviewFull@1",
-            "WeatherOverviewIconFull@1",
-        ],
+        weather_full_candidates
     ]
     assert "selectedActionEventIds=[]" in second_layer_user
     assert "只能按业务模板布局后缀选择 PillAction@1 或 IconAction@1" in second_layer_user
@@ -4120,6 +4112,98 @@ async def test_first_layer_action_is_independent_from_selected_components():
     assert '"call":"clickToDeeplink"' in output.a2ui
     assert "天气详情" in output.a2ui
     assert "cityCode" in output.projected_task_spec.dataModelSchema["data"]["weather"]["location"]
+    assert model.second_layer_prompt is not None
+    second_layer_prompt = json.dumps(model.second_layer_prompt, ensure_ascii=False)
+    assert "dataFacts=" not in second_layer_prompt
+    assert "mustKeep=" not in second_layer_prompt
+    assert "60814" not in second_layer_prompt
+    messages = [json.loads(line) for line in output.a2ui.splitlines()]
+    visible_text = {
+        component.get("content")
+        for component in messages[1]["updateComponents"]["components"]
+        if component.get("component") == "Text"
+    }
+    assert "60814" not in visible_text
+
+
+@pytest.mark.asyncio
+async def test_calendar_event_entity_id_stays_out_of_second_layer_and_visible_text():
+    task_spec = TaskSpec(
+        userQuery="显示下一场日程并支持点击查看",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.viewCalendarEvent",
+                displayLabel="查看日程",
+                call="clickToIntent",
+                args={
+                    "intentName": "ViewCalendarEvent",
+                    "params": {
+                        "entityId": "{{ ${/data/calendar/events/0/entityId} }}",
+                    },
+                },
+            )
+        ],
+        dataModelSchema={
+            "data": {
+                "calendar": {
+                    "events": [
+                        {
+                            "title": _provider_field("项目例会", "string"),
+                            "dtStart": _provider_field("14:00", "string"),
+                            "entityId": _provider_field("example-event-001", "string"),
+                        }
+                    ]
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetCalendarEvents",
+        writeResultTo="/data/calendar",
+        candidateOutputFields=["/events/0/title", "/events/0/dtStart"],
+    )
+    card_spec = {
+        "title": "下一场日程",
+        "description": "日程速览",
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {
+                "capabilityId": "GetCalendarEvents",
+                "writeResultTo": "/data/calendar",
+            }
+        ],
+    }
+    model = _FixedTemplateModel(
+        theme_id="meeting-paper-neutral",
+        component_id="CalendarOverview",
+        available_template_ids=("ScheduleOverviewNextEventHero@1",),
+        capability_id="GetCalendarEvents",
+        required_fields=("/events/0/title", "/events/0/dtStart"),
+        action_id="event.viewCalendarEvent",
+        body=(
+            'Template("HeroActionLayout@1",{},'
+            'Template("ScheduleOverviewNextEventHero@1",{}),'
+            'Template("PillAction@1",{"actionId":"event.viewCalendarEvent",'
+            '"label":"查看日程"}));'
+        ),
+    )
+
+    output = await generate_template_a2ui(task_spec, card_spec, (binding,), model)
+
+    assert model.second_layer_prompt is not None
+    second_layer_prompt = json.dumps(model.second_layer_prompt, ensure_ascii=False)
+    assert "example-event-001" not in second_layer_prompt
+    messages = [json.loads(line) for line in output.a2ui.splitlines()]
+    visible_text = {
+        component.get("content")
+        for component in messages[1]["updateComponents"]["components"]
+        if component.get("component") == "Text"
+    }
+    assert "example-event-001" not in visible_text
+    assert messages[2]["updateDataModel"]["value"]["data"]["calendar"]["events"][0][
+        "entityId"
+    ] == "example-event-001"
 
 
 @pytest.mark.asyncio

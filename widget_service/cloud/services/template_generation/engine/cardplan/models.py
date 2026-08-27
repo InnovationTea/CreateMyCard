@@ -56,6 +56,7 @@ class HybridBodyContract(StrictModel):
     allowed_layout_component_ids: tuple[str, ...] = ()
     allowed_business_component_ids: tuple[str, ...] = ()
     required_business_component_ids: tuple[str, ...] = ()
+    template_only_composition: bool = False
     limits: HybridLimits
 
 

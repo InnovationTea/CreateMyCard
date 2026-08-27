@@ -10,9 +10,9 @@
   38vp 字阶，日程时间轴使用 8vp 圆点、1vp 竖线和 14/10/10vp 文本层级。
 - 可用模板：
   - `DateOverviewCompact@1`：首个日程日期的上半区主视觉。 组件形态：compactDate。 布局场景：约 2x1；优先与一个日程 Compact 纵向组合，也可与另一 Compact 组合。主数据：/events/0/startDate；次要数据：/updatedAt；可选数据：无。
-  - `DateOverviewFull@1`：首个日程日期主视觉与数据更新时间。 组件形态：dateHero。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/events/0/startDate；次要数据：/updatedAt；可选数据：无。
-  - `ScheduleOverviewNextEventFull@1`：无底部动作的首个日程摘要；日程标题必需，时间槽支持时间范围、开始时间、提前提醒或全天/时区，并可补充地点。 组件形态：nextEvent。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/events/0/title；次要数据：无；可选数据：/events/0/dtStart, /events/0/dtEnd, /events/0/remindTime/0, /events/0/timeZone, /events/0/isAllDay, /events/0/eventLocation。
-  - `ScheduleOverviewNextEventLocationFull@1`：首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：nextEventLocation。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/events/0/title, /events/0/dtStart；次要数据：/events/0/eventLocation, /events/0/dtEnd；可选数据：无。
+  - `DateOverviewFull@1`：首个日程日期主视觉与数据更新时间。 组件形态：dateHero。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/events/0/startDate；次要数据：/updatedAt；可选数据：无。
+  - `ScheduleOverviewNextEventFull@1`：无底部动作的首个日程摘要；日程标题必需，时间槽支持时间范围、开始时间、提前提醒或全天/时区，并可补充地点。 组件形态：nextEvent。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/events/0/title；次要数据：无；可选数据：/events/0/dtStart, /events/0/dtEnd, /events/0/remindTime/0, /events/0/timeZone, /events/0/isAllDay, /events/0/eventLocation。
+  - `ScheduleOverviewNextEventLocationFull@1`：首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：nextEventLocation。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/events/0/title, /events/0/dtStart；次要数据：/events/0/eventLocation, /events/0/dtEnd；可选数据：无。
   - `ScheduleOverviewMeetingCompact@1`：首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：meetingCompact。 布局场景：约 2x1；用于双 Compact 组合，或单 Compact 加两个 PillAction。主数据：/events/0/title, /events/0/dtStart；次要数据：/events/0/dtEnd；可选数据：无。
   - `ScheduleOverviewMeetingLocationCompact@1`：首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：meetingCompactLocation。 布局场景：约 2x1；用于双 Compact 组合，或单 Compact 加两个 PillAction。主数据：/events/0/title, /events/0/dtStart；次要数据：/events/0/eventLocation, /events/0/dtEnd；可选数据：无。
   - `ScheduleOverviewMeetingWideFull@1`：首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：meetingExpanded。 布局场景：完整 4x2；单独使用。主数据：/events/0/title, /events/0/dtStart；次要数据：/events/0/eventLocation, /events/0/dtEnd；可选数据：无。

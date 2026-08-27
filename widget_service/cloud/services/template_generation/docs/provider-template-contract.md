@@ -67,7 +67,7 @@ TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路�
 
 - `Compact`：约 `2x1`，用于两个 Compact 拼成 `2x2`，或一个 Compact 加两个 PillAction；
 - `Hero`：约 `2x1.7`，用于 `2x2` 的 Hero 加一个 PillAction；
-- `Full`：完整 `2x2`，单独使用或加一个 IconAction；
+- `Full`：完整 `2x2`，无 Action 时单独使用；
 - `WideHero`：约 `4x1.7`，用于 `2x4` 的 WideHero 加一个 PillAction；
 - `WideFull`：完整 `4x2`，单独使用。
 
@@ -239,20 +239,22 @@ converted = convert_a2ui_with_fusion_ball(a2ui)
 `TemplateRouteSelection`。只有这个内部结果才包含 `componentCandidates` 和
 `availableTemplateIds`：
 
-1. Search 最多允许命中两个业务组件；每个组件下一个或多个模板的覆盖并集必须承载该业务显式字段；
+1. Search 最多允许命中两个业务组件；每个保留模板必须独立完整承载所属业务的显式字段；
 2. 显式字段满足后，再检查候选模板自身 `primaryData` 与 `secondaryData` 在 TaskSpec 中全部存在；
 3. `candidateOutputFields` 只是候选数据投影，不直接等于强制显示集合；
 4. 显式请求包含三个及以上数据业务，或任一字段无法在自己的业务组件内覆盖时，在进入第二层前返回模板不匹配；
-5. Action 独立于数据业务计数，最终数量由尺寸、模板后缀与布局契约继续校验。
+5. Action 独立于数据业务计数；Search 不按 Action 数量过滤模板后缀，最终形态由第二层处理。
 
 配置 `firstLayerComponentSelector: "llm"` 时，系统可走兼容选择器
 `plan_template_route_with_llm()`，由第一层直接产出 Theme、组件候选和 Action；该路径不是当前默认生产路径。
 
 第二层只读取确定性检索选中的业务 Provider `secondLayerRule`，从
-`availableTemplateIds` 选择最终 UI 模板和 props；根布局也必须从 Layout
-Provider 选择模板。若第一层输出了 `action`，第二层按最终模板后缀在布局模板末尾调用 Action Provider：
-Hero/WideHero 使用一个 `Template("PillAction@1", props)`，单 Compact 使用两个 PillAction 模板，Full
-最多使用一个 `Template("IconAction@1", props)`；WideFull 和双 Compact 不生成 Action。PillAction Props
+`availableTemplateIds` 按尺寸、布局和 Action 数量选择最终 UI 模板及展示 props；根布局也必须从 Layout
+Provider 选择模板。第二层不接收 TaskSpec、`dataFacts`、`mustKeep` 或数据样例，不重新判断展示字段，
+不得用基础组件补充业务内容。候选筛选后为空或必需 props 无法满足时直接失败。若第一层输出了 `action`，
+第二层按最终模板后缀在布局模板末尾调用 Action Provider：Hero/WideHero 使用一个
+`Template("PillAction@1", props)`，单 Compact 使用两个 PillAction 模板；Full、WideFull 和双 Compact
+不生成 Action。PillAction Props
 包含 `actionId`、`label` 和可选 `icon`，IconAction Props 包含 `actionId`、`icon`。第二层只决定展示内容，
 Action CardTpl 必须在交互组件样式中写入 `onClick: EventAction(props.actionId)`；微服务校验候选配对，
 将该模板声明绑定为可信事件并注入主题色。模型不得输出 `call`、`args`、`onClick`。

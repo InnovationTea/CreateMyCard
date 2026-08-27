@@ -3,10 +3,10 @@
 - Provider：`com.huawei.battery.cli`。
 - 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
 - 可用模板：
-  - `BatteryOverviewNormalFull@1`：手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normal。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/batterySOC, /batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
+  - `BatteryOverviewNormalFull@1`：手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normal。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/batterySOC, /batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
   - `BatteryOverviewNormalHero@1`：手机电量摘要，面向 2x2 底部 PillAction 预留空间。 组件形态：normalHero。 布局场景：约 2x1.7；用于 2x2 主内容加一个 PillAction。主数据：/batterySOC；次要数据：/batteryCapacityLevelDesc；可选数据：/batterySOCText, /chargingStatusDesc。
-  - `BatteryOverviewChargingFull@1`：手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：charging。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/batterySOC, /batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
-  - `BatteryOverviewLowFull@1`：手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：low。 布局场景：完整 2x2；单独使用，或加一个 IconAction。主数据：/batterySOC, /batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
+  - `BatteryOverviewChargingFull@1`：手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：charging。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/batterySOC, /batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
+  - `BatteryOverviewLowFull@1`：手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：low。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/batterySOC, /batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
   - `BatteryOverviewPercentRingHero@1`：手机电量百分比环形 Hero，只表达顶部英雄内容，居中展示电量进度环和剩余电量百分比文本；底部按钮必须由第二层组合 `PillAction@1`。 组件形态：percentRingHero。 布局场景：约 2x1.7；主数据：/batterySOC, /batterySOCText；次要数据：无；可选数据：无。
   - `BatteryOverviewNormalWideFull@1`：手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normalWide。 布局场景：完整 4x2；单独使用。主数据：/batterySOC, /batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
   - `BatteryOverviewChargingWideFull@1`：手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：chargingWide。 布局场景：完整 4x2；单独使用。主数据：/batterySOC, /batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。

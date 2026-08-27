@@ -20,6 +20,7 @@ from .models import ActionBinding, Fact, HybridBodyContract, HybridLimits
 from .provider_bundle import (
     provider_template_admission,
     provider_template_family_identity,
+    provider_template_layout_kind,
     provider_template_variant_admission,
 )
 from .registry import CardPlanRegistry
@@ -132,8 +133,13 @@ def build_hybrid_prompt(
     ui_brief: Any,
     registry: CardPlanRegistry,
     ux_layout_root_ids: tuple[str, ...] = (),
+    expose_data_facts: bool = True,
 ) -> HybridPromptProjection:
-    facts = tuple(_collect_facts(task_spec.dataModelSchema))
+    facts = (
+        tuple(_collect_facts(task_spec.dataModelSchema))
+        if expose_data_facts
+        else ()
+    )
     theme_id = _resolve_theme(task_spec, ui_brief, registry)
     requested = _resolve_templates(
         task_spec,
@@ -159,7 +165,7 @@ def build_hybrid_prompt(
     )
     trusted_literals = _unique(
         [
-            task_spec.userQuery,
+            *((task_spec.userQuery,) if expose_data_facts else ()),
             *card_literals,
             *(str(fact.value) for fact in facts if isinstance(fact.value, str)),
             *(_action_label(event) for event in task_spec.eventCandidates),
@@ -281,31 +287,39 @@ def build_hybrid_prompt(
         content_action_ids=content_action_ids,
         ux_layout_root=bool(ux_layout_root_ids),
     )
-    user = "\n".join(
-        (
-            f"request={json.dumps(task_spec.userQuery, ensure_ascii=False)}",
-            f"card={json.dumps({'size': task_spec.size, 'theme': theme_id}, ensure_ascii=False)}",
-            f"requestedTemplate={json.dumps(requested, ensure_ascii=False)}",
-            f"cardComposition={json.dumps(card_composition, ensure_ascii=False)}",
-            f"dataFacts={json.dumps([fact.model_dump() for fact in facts], ensure_ascii=False)}",
-            f"mustKeep={json.dumps(contract.required_literals, ensure_ascii=False)}",
-            f"mustKeepNumbers={json.dumps(contract.required_numbers, ensure_ascii=False)}",
-            "advancedComposition="
-            + json.dumps(
-                {
-                    "primaryDomain": getattr(ui_brief, "primary_domain", None),
-                    "adaptiveTemplateId": getattr(ui_brief, "adaptive_template_id", None),
-                    "advancedComponentIds": getattr(ui_brief, "advanced_component_ids", []),
-                },
-                ensure_ascii=False,
-            ),
+    user_lines = [
+        f"card={json.dumps({'size': task_spec.size, 'theme': theme_id}, ensure_ascii=False)}",
+        f"requestedTemplate={json.dumps(requested, ensure_ascii=False)}",
+        f"cardComposition={json.dumps(card_composition, ensure_ascii=False)}",
+    ]
+    if expose_data_facts:
+        user_lines[:0] = [f"request={json.dumps(task_spec.userQuery, ensure_ascii=False)}"]
+        user_lines.extend(
             (
-                "只输出一个以分号结束、以批准布局高级组件为根的完整 Card。"
-                if ux_layout_root_ids
-                else '只输出一个以分号结束、以 Template("card@1", ...) 为根的完整 Card。'
-            ),
+                "dataFacts="
+                + json.dumps(
+                    [fact.model_dump() for fact in facts],
+                    ensure_ascii=False,
+                ),
+                f"mustKeep={json.dumps(contract.required_literals, ensure_ascii=False)}",
+                f"mustKeepNumbers={json.dumps(contract.required_numbers, ensure_ascii=False)}",
+                "advancedComposition="
+                + json.dumps(
+                    {
+                        "primaryDomain": getattr(ui_brief, "primary_domain", None),
+                        "adaptiveTemplateId": getattr(ui_brief, "adaptive_template_id", None),
+                        "advancedComponentIds": getattr(ui_brief, "advanced_component_ids", []),
+                    },
+                    ensure_ascii=False,
+                ),
+            )
         )
+    user_lines.append(
+        "只输出一个以分号结束、以批准布局高级组件为根的完整 Card。"
+        if ux_layout_root_ids
+        else '只输出一个以分号结束、以 Template("card@1", ...) 为根的完整 Card。'
     )
+    user = "\n".join(user_lines)
     if len(system) + len(user) > 80_000:
         raise ValueError("Hybrid Body Prompt exceeds the service input budget")
     return HybridPromptProjection(
@@ -422,9 +436,14 @@ def _system_prompt(
                     f"Template is outside the supported cardtpl/1 contract: {wire_id}"
                 )
             call = f"Template({wire_id!r}, props)"
+            if ux_layout_root:
+                layout_kind = provider_template_layout_kind(wire_id)
+                template_summary = f"layoutKind={layout_kind or 'control'}"
+            else:
+                template_summary = definition.description
             signatures.append(
                 f"- {call}: "
-                f"{definition.description}; params={json.dumps(params, ensure_ascii=False)}; "
+                f"{template_summary}; params={json.dumps(params, ensure_ascii=False)}; "
                 "parameterRelations="
                 + json.dumps(
                     [item.model_dump(by_alias=True) for item in variant.parameter_relations],
@@ -461,11 +480,27 @@ def _system_prompt(
         )
     else:
         action_rule = "本次没有批准 Action；card params 省略 action，content 禁止 Button 和事件。"
+    if ux_layout_root:
+        return "\n".join(
+            (
+                UX_MIXED_SYSTEM_PROMPT_KERNEL,
+                "",
+                f"允许素材 src={json.dumps(contract.allowed_asset_sources, ensure_ascii=False)}",
+                "素材语义标签="
+                + json.dumps(contract.asset_semantic_tags_by_source, ensure_ascii=False),
+                action_rule,
+                "批准的布局、业务与 Action Template：",
+                *signatures,
+                f"预算：raw<={contract.limits.max_raw_components}, "
+                f"expanded<={contract.limits.max_expanded_components}, "
+                f"depth<={contract.limits.max_nesting_depth}, "
+                f"body<={contract.limits.vertical_budget_vp}vp。",
+            )
+        )
     composition_rules = _composition_rules(ux_layout_root)
-    kernel = UX_MIXED_SYSTEM_PROMPT_KERNEL if ux_layout_root else BODY_SYSTEM_PROMPT_KERNEL
     return "\n".join(
         (
-            kernel,
+            BODY_SYSTEM_PROMPT_KERNEL,
             "",
             "标准组件投影：Text/Image/Button 使用批准 DesignToken；"
             "Column/Row/List/Stack 使用批准 LayoutToken；Progress 使用字面量对象。",

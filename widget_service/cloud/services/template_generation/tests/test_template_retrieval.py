@@ -319,7 +319,7 @@ def test_first_layer_prompt_includes_task_fields_rules_and_action_candidates() -
     ]
 
 
-def test_search_allows_two_businesses_without_actions_only_with_compact_templates() -> None:
+def test_search_defers_two_business_layout_suffix_filtering_to_the_second_layer() -> None:
     task = _task()
     task.dataModelSchema["data"]["calendar"] = {
         "events": [
@@ -358,10 +358,10 @@ def test_search_allows_two_businesses_without_actions_only_with_compact_template
         "CalendarOverview",
         "WeatherOverview",
     }
-    assert all(
-        template_id.removesuffix("@1").endswith("Compact")
-        for template_id in result.allowed_template_ids
-    )
+    assert "WeatherOverviewCompact@1" in result.allowed_template_ids
+    assert "WeatherOverviewFull@1" in result.allowed_template_ids
+    assert "ScheduleOverviewMeetingCompact@1" in result.allowed_template_ids
+    assert "ScheduleOverviewNextEventFull@1" in result.allowed_template_ids
 
 
 def test_search_still_rejects_more_than_two_data_businesses() -> None:

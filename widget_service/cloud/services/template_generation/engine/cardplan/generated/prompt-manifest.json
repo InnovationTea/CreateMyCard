@@ -9,5 +9,5 @@
   "selectionProtocolVersion": "card-plan-template/0.2",
   "themeBaseVersion": "theme-base/2",
   "themeBundleVersion": "card-theme/2",
-  "uxMixedProtocolVersion": "tersedsl-nested-2-ux-mixed/0.3"
+  "uxMixedProtocolVersion": "tersedsl-nested-2-ux-mixed/0.4"
 }
