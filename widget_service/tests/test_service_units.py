@@ -328,13 +328,13 @@ def test_terse_dsl_nested2_prompt_builder_uses_terse_system_prompt():
 @pytest.mark.asyncio
 async def test_terse_dsl_nested2_supports_dynamic_requests(monkeypatch):
     observed_policy = None
-    observed_try_template = False
+    observed_template_source_generator = None
     expected_response = object()
 
     async def capture_route(_request, policy, **kwargs):
-        nonlocal observed_policy, observed_try_template
+        nonlocal observed_policy, observed_template_source_generator
         observed_policy = policy
-        observed_try_template = kwargs.get("try_template", False)
+        observed_template_source_generator = kwargs.get("template_source_generator")
         return expected_response
 
     service = WidgetGenerationService()
@@ -361,7 +361,8 @@ async def test_terse_dsl_nested2_supports_dynamic_requests(monkeypatch):
     assert dynamic_response is expected_response
     assert observed_policy is not None
     assert observed_policy.supports_dynamic_capabilities is True
-    assert observed_try_template is True
+    assert observed_template_source_generator is not None
+    assert observed_template_source_generator.enable_fusion_ball is False
 
 
 def test_websocket_handler_runs_sync_service_in_threadpool():
@@ -3658,7 +3659,9 @@ async def test_generation_routes_accept_each_configured_model_backend(
         captured["model_backend"] = policy.backend
         captured["processor_kind"] = policy.processor_kind
         captured["design_profile_id"] = policy.design_profile_id
-        captured["try_template"] = kwargs.get("try_template", False)
+        captured["template_source_generator"] = kwargs.get(
+            "template_source_generator"
+        )
         captured["need_fallback"] = kwargs.get("need_fallback", True)
         return sentinel
 
@@ -3671,12 +3674,14 @@ async def test_generation_routes_accept_each_configured_model_backend(
     if generation_method == "generate_widget_card_compact_dsl":
         assert captured["processor_kind"] == DslProcessorKind.DESIGN_COMPACT
         assert captured["design_profile_id"] == "design-compact-dsl"
-        assert captured["try_template"] is True
+        assert captured["template_source_generator"] is not None
+        assert captured["template_source_generator"].enable_fusion_ball is False
         assert captured["need_fallback"] is True
     if generation_method == "generate_widget_card_terse_dsl_nested2":
         assert captured["processor_kind"] == DslProcessorKind.DESIGN_COMPACT
         assert captured["design_profile_id"] == "design-compact-dsl"
-        assert captured["try_template"] is True
+        assert captured["template_source_generator"] is not None
+        assert captured["template_source_generator"].enable_fusion_ball is False
         assert captured["need_fallback"] is False
 
 

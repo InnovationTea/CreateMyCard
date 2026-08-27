@@ -574,8 +574,16 @@ class WidgetGenerationService:
             prompt,
             settings.model_prompt_log_preview_chars,
         )
+        prompt_purpose = "primary"
+        if template_source_generator is not None:
+            prompt_purpose = (
+                "template_fallback_or_quality_repair"
+                if need_fallback
+                else "template_quality_repair"
+            )
         logger.info(
             f"{_MODULE} a2ui_prompt_built "
+            f"prompt_purpose={prompt_purpose} "
             f"prompt_summary={json_for_log(prompt_log_summary)}"
         )
         latency_by_stage["specAndPrompt"] = self._elapsed_ms(stage_started_at)
@@ -1121,7 +1129,7 @@ class WidgetGenerationService:
         request: GenerateWidgetCardRequest,
         *,
         before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
-        enable_fusion_ball: bool = True,
+        enable_fusion_ball: bool = False,
         trusted_template_candidate_ids: tuple[str, ...] = (),
         trusted_template_action_ids: tuple[str, ...] = (),
         trusted_template_sample_overrides: dict[str, object] | None = None,
