@@ -1,7 +1,6 @@
 {
   "schemaVersion": "template-controls/1",
   "disabledProviderIds": [
-    "com.huawei.calendar.cli",
     "com.huawei.earphone.cli"
   ],
   "disabledTemplateIds": [],

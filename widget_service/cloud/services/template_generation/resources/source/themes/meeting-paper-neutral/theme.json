@@ -5,23 +5,19 @@
   "firstLayerRule": {"path": "first-layer.md"},
   "supportedCapabilityIds": ["GetCalendarEvents"],
   "paletteSceneIds": ["generic", "office.schedule"],
-  "primaryColor": "#FFE84026",
-  "supportContentColor": "#FFE84026",
+  "primaryColor": "#FF1F4799",
+  "supportContentColor": "#FF1F4799",
   "rootStyle": {
-    "backgroundColor": "#FFFFFFFF",
+    "backgroundColor": "#FFE5EDFE",
     "borderRadius": 20,
     "padding": 11,
     "justifyContent": "spaceBetween",
     "alignItems": "start",
-    "linearGradient": {
-      "direction": "Bottom",
-      "colors": [["#1AE84026", 0], ["#00FFFFFF", 1]]
-    },
     "clip": true
   },
   "actionStyle": {
-    "backgroundColor": "#1AE84026",
-    "contentColor": "#FFE84026",
+    "backgroundColor": "#331F4799",
+    "contentColor": "#FF1F4799",
     "height": 28,
     "borderRadius": 14,
     "fontSize": 14,
