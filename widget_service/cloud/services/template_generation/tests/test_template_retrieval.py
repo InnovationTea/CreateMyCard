@@ -658,7 +658,7 @@ def test_two_business_compact_can_cover_battery_soc_and_temperature() -> None:
             "data": {
                 "weather": {
                     "location": {
-                        "cityCode": _field("60814"),
+                        "districtName": _field("福田区"),
                     },
                     "current": {
                         "temperatureText": _field("29°C"),
@@ -678,7 +678,7 @@ def test_two_business_compact_can_cover_battery_soc_and_temperature() -> None:
             "ViewWeather": (
                 "/current/condition",
                 "/current/temperatureText",
-                "/location/cityCode",
+                "/location/districtName",
             ),
             "GetPhoneBatteryInfo": ("/batterySOC", "/batteryTemperatureText"),
         },
@@ -690,7 +690,7 @@ def test_two_business_compact_can_cover_battery_soc_and_temperature() -> None:
             candidateOutputFields=[
                 "/current/condition",
                 "/current/temperatureText",
-                "/location/cityCode",
+                "/location/districtName",
             ],
         ),
         CandidateDataBinding(
@@ -737,7 +737,7 @@ def test_two_business_compact_can_cover_weather_alert_uv_and_battery_temperature
             "data": {
                 "weather": {
                     "location": {
-                        "cityCode": _field("60814"),
+                        "districtName": _field("福田区"),
                     },
                     "current": {
                         "temperatureText": _field("29°C"),
@@ -759,7 +759,7 @@ def test_two_business_compact_can_cover_weather_alert_uv_and_battery_temperature
             "ViewWeather": (
                 "/current/condition",
                 "/current/temperatureText",
-                "/location/cityCode",
+                "/location/districtName",
                 "/current/alertLevel",
                 "/current/uvIndex",
             ),
@@ -773,7 +773,7 @@ def test_two_business_compact_can_cover_weather_alert_uv_and_battery_temperature
             candidateOutputFields=[
                 "/current/condition",
                 "/current/temperatureText",
-                "/location/cityCode",
+                "/location/districtName",
                 "/current/alertLevel",
                 "/current/uvIndex",
             ],

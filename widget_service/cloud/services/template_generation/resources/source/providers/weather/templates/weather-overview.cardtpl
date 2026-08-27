@@ -124,7 +124,7 @@ Row(
                 data.condition,
                 {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
               ),
-          IfPresent(
+              IfPresent(
                 data.districtName,
                 Text(
                       ` | ${data.districtName}`,
@@ -152,7 +152,6 @@ Row(
 data = {
     condition: $path("/current/condition"),
     districtName: $optionalPath("/location/districtName"),
-    cityCode: $optionalPath("/location/cityCode"),
     temperature: $path("/current/temperatureText"),
     uvIndex: $path("/current/uvIndex")
 }
@@ -172,7 +171,7 @@ Column(
   },
   Text(
         data.temperature,
-        {"fontSize": 19, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        {"fontSize": 14, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
       ),
   Row(
       {
@@ -194,16 +193,9 @@ Column(
                   {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                 )
           ),
-      IfPresent(
-            data.cityCode,
-            Text(
-                  data.cityCode,
-                  {"width": 0, "height": 0, "fontSize": 1, "fontColor": "#00FFFFFF", "maxLines": 1, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                )
-          ),
       Text(
-            data.uvIndex,
-            {"width": 0, "height": 0, "fontSize": 1, "fontColor": "#00FFFFFF", "maxLines": 1, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            ` | UV ${data.uvIndex}`,
+            {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           )
       )
 )
@@ -213,7 +205,6 @@ Column(
 data = {
     condition: $path("/current/condition"),
     districtName: $optionalPath("/location/districtName"),
-    cityCode: $optionalPath("/location/cityCode"),
     temperature: $path("/current/temperatureText"),
     uvIndex: $path("/current/uvIndex")
 }
@@ -258,23 +249,16 @@ Row(
                 data.condition,
                 {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
               ),
-          IfPresent(
+              IfPresent(
                 data.districtName,
                 Text(
                       ` | ${data.districtName}`,
                       {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                     )
               ),
-          IfPresent(
-                data.cityCode,
-                Text(
-                      data.cityCode,
-                      {"width": 0, "height": 0, "fontSize": 1, "fontColor": "#00FFFFFF", "maxLines": 1, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                    )
-              ),
           Text(
-                data.uvIndex,
-                {"width": 0, "height": 0, "fontSize": 1, "fontColor": "#00FFFFFF", "maxLines": 1, "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                ` | UV ${data.uvIndex}`,
+                {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
               )
           )
     ),
@@ -348,7 +332,7 @@ Row(
                       ` | ${data.districtName}`,
                       {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                     )
-              ),
+          ),
           Text(
                 ` | ${data.alertLevel} | UV ${data.uvIndex}`,
                 {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}

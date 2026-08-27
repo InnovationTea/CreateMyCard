@@ -83,8 +83,7 @@
         "/current/uvIndex"
       ],
       "optionalData": [
-        "/location/districtName",
-        "/location/cityCode"
+        "/location/districtName"
       ]
     },
     {
@@ -101,8 +100,7 @@
         "/current/uvIndex"
       ],
       "optionalData": [
-        "/location/districtName",
-        "/location/cityCode"
+        "/location/districtName"
       ]
     },
     {
