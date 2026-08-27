@@ -144,7 +144,7 @@ Row(
   {
     "_advancedComponent": "WeatherOverview",
     "width": "matchParent",
-    "height": 64,
+    "height": "matchParent",
     "backgroundColor": $theme('actionStyle.backgroundColor'),
     "borderRadius": 16,
     "padding": {"left": 12, "top": 0, "right": 22, "bottom": 0},
