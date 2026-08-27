@@ -406,6 +406,66 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         self.assertEqual(len(title), 3)
 
+    def test_preserves_explicit_text_overflow_styles(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": 160, "height": 160},
+                    ["description"],
+                ],
+                [
+                    "description",
+                    "Text",
+                    {
+                        "content": "这是一段允许显示三行的辅助说明",
+                        "maxLines": 3,
+                        "textOverflow": "ellipsis",
+                    },
+                ],
+            ]
+        )
+
+        a2ui = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+        components = json.loads(a2ui.splitlines()[1])["updateComponents"]["components"]
+        description = next(
+            component
+            for component in components
+            if component["id"] == "description"
+        )
+
+        self.assertEqual(description["styles"]["maxLines"], 3)
+        self.assertEqual(description["styles"]["textOverflow"], "ellipsis")
+
+    def test_applies_text_overflow_defaults_when_styles_are_missing(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": 160, "height": 160},
+                    ["title"],
+                ],
+                ["title", "Text", {"content": "标题"}],
+            ]
+        )
+
+        a2ui = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+        components = json.loads(a2ui.splitlines()[1])["updateComponents"]["components"]
+        title = next(component for component in components if component["id"] == "title")
+
+        self.assertEqual(title["styles"]["maxLines"], 1)
+        self.assertEqual(title["styles"]["textOverflow"], "clip")
+
     def test_rejects_non_image_button_child(self) -> None:
         compact_dsl = _serialize(
             [
