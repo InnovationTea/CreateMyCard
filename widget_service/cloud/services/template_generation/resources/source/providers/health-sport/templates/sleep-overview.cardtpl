@@ -70,7 +70,7 @@ Column(
                             "total": 100,
                             "strokeWidth": 8,
                             "color": $theme('supportContentColor'),
-                            "backgroundColor": "#1AFFFFFF",
+                            "backgroundColor": "#FF564AF7",
                             "height": 12,
                             "width": "matchParent"
                         }
@@ -175,7 +175,7 @@ Column(
                         "total": 100,
                         "strokeWidth": 8,
                         "color": $theme('supportContentColor'),
-                        "backgroundColor": "#1AFFFFFF",
+                        "backgroundColor": "#FF564AF7",
                         "height": 12,
                         "width": "matchParent"
                     }
@@ -230,7 +230,7 @@ Column(
                     "total": 100,
                     "type": "ring",
                     "color": $theme('supportContentColor'),
-                    "backgroundColor": "#1AFFFFFF",
+                    "backgroundColor": "#FF564AF7",
                     "width": 44,
                     "height": 44,
                     "strokeWidth": 6

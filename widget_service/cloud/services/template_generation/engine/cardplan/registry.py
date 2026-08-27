@@ -43,7 +43,7 @@ class CardPlanRegistry:
         *,
         disabled_provider_ids: tuple[str, ...] = (),
         disabled_template_ids: tuple[str, ...] = (),
-        enable_fusion_ball: bool = True,
+        enable_fusion_ball: bool = False,
     ) -> None:
         if not isinstance(enable_fusion_ball, bool):
             raise ValueError("enable_fusion_ball must be boolean")
@@ -281,6 +281,24 @@ class CardPlanRegistry:
             for bundle in self._provider_bundles_for_components(component_ids)
         )
 
+    def provider_second_layer_guidance(
+        self,
+        component_ids: tuple[str, ...],
+    ) -> tuple[dict[str, str], ...]:
+        """Return Provider guidance without repeating the full Template catalog."""
+        return tuple(
+            {
+                "providerId": bundle.manifest.provider_id,
+                "content": self._without_template_catalog(
+                    self._without_disabled_template_references(
+                        bundle,
+                        bundle.second_layer_rule,
+                    )
+                ),
+            }
+            for bundle in self._provider_bundles_for_components(component_ids)
+        )
+
     def provider_data_domains_for_components(
         self,
         component_ids: tuple[str, ...],
@@ -340,6 +358,24 @@ class CardPlanRegistry:
             for line in content.splitlines()
             if not any(template_id in line for template_id in disabled_ids)
         )
+        return "\n".join(visible_lines).strip()
+
+    @staticmethod
+    def _without_template_catalog(content: str) -> str:
+        """Remove the generated available-Template list from second-layer Markdown."""
+        visible_lines: list[str] = []
+        skipping_catalog = False
+        for line in content.splitlines():
+            if line.strip() == "- 可用模板：":
+                skipping_catalog = True
+                continue
+            if skipping_catalog:
+                if re.match(r"^- `[^`]+@\d+`", line):
+                    continue
+                if not line.startswith("- "):
+                    continue
+                skipping_catalog = False
+            visible_lines.append(line)
         return "\n".join(visible_lines).strip()
 
     @staticmethod
@@ -458,7 +494,7 @@ class CardPlanRegistry:
 
 
 @lru_cache(maxsize=2)
-def get_cardplan_registry(enable_fusion_ball: bool = True) -> CardPlanRegistry:
+def get_cardplan_registry(enable_fusion_ball: bool = False) -> CardPlanRegistry:
     controls = load_template_controls()
     return CardPlanRegistry(
         disabled_provider_ids=controls.disabled_provider_ids,

@@ -23,7 +23,10 @@ from services.template_generation.engine.cardplan.models import (
 from services.template_generation.engine.cardplan.parser import ParsedCall, parse_hybrid_card
 from services.template_generation.engine.cardplan.provider_bundle import compile_card_template
 from services.template_generation.engine.cardplan.registry import get_cardplan_registry
-from services.template_generation.engine.pipeline import _task_spec_log_summary
+from services.template_generation.engine.pipeline import (
+    _prompt_size_summary,
+    _task_spec_log_summary,
+)
 from services.template_generation.engine.terse_dsl_nested2_converter import (
     Nested2Node,
     TerseDslNested2ConversionError,
@@ -47,6 +50,23 @@ def test_weather_builtin_assets_are_scoped_to_direct_weather_components() -> Non
         "resources/base/media/sun_max.svg",
         "resources/base/media/cold.svg",
     )
+
+
+def test_second_layer_prompt_size_summary_does_not_log_prompt_content() -> None:
+    messages = [
+        {"role": "system", "content": "system-contract"},
+        {"role": "user", "content": "private-dynamic-contract"},
+    ]
+
+    summary = _prompt_size_summary(messages)
+
+    assert summary == {
+        "messageCount": 2,
+        "systemPromptChars": len("system-contract"),
+        "userPromptChars": len("private-dynamic-contract"),
+        "totalPromptChars": len("system-contractprivate-dynamic-contract"),
+    }
+    assert "private-dynamic-contract" not in str(summary)
 
 
 def test_provider_compiler_rejects_deprecated_variant_syntax() -> None:

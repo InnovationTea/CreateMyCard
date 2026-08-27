@@ -31,7 +31,7 @@ class _GalleryService:
         self,
         request: Any,
         *,
-        enable_fusion_ball: bool = True,
+        enable_fusion_ball: bool = False,
         trusted_template_candidate_ids: tuple[str, ...] = (),
         trusted_template_action_ids: tuple[str, ...] = (),
         trusted_template_sample_overrides: dict[str, object] | None = None,
@@ -112,7 +112,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     manifest = write_gallery_input_dataset(input_root)
 
     assert len(manifest.providers) == 8
-    assert sum(len(provider.cases) for provider in manifest.providers) == 96
+    assert sum(len(provider.cases) for provider in manifest.providers) == 92
     scenario_ids = {
         case.scenarioId
         for provider in manifest.providers
@@ -164,7 +164,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases
         if case.targetTemplateId
     ]
-    assert len(targeted_cases) == 87
+    assert len(targeted_cases) == 83
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -194,7 +194,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         manifest,
         "WeatherOverview",
         "single-two-actions",
-        "WeatherOverviewIconCompact@1",
+        "WeatherOverviewCompact@1",
     )
     weather_request = json.loads(
         (input_root / weather_icon.requestFile).read_text(encoding="utf-8")
@@ -308,7 +308,7 @@ async def test_gallery_runner_calls_public_service_and_groups_a2ui_by_provider(
         if provider.providerSlug == "app-usage"
     )
     service = _GalleryService()
-    runner = ProviderGalleryBatchRunner(service, enable_fusion_ball=False)
+    runner = ProviderGalleryBatchRunner(service)
 
     summary = await runner.run(
         input_root,
@@ -353,9 +353,9 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 96
+    assert summary.total == 92
     assert summary.missing == 27
-    assert summary.not_generated == 69
+    assert summary.not_generated == 65
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 8

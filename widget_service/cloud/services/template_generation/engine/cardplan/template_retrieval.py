@@ -70,6 +70,7 @@ def build_template_retrieval_prompt(
     coverage_bindings: tuple[CandidateDataBinding, ...],
 ) -> list[dict[str, str]]:
     """Build the first-layer marker prompt without exposing final UI choices."""
+    _require_supported_search_size(task_spec)
     data_shape = extract_data_shape(task_spec)
     capability_ids = tuple(binding.capabilityId for binding in coverage_bindings)
     component_ids = _component_ids_for_capabilities(registry, capability_ids)
@@ -130,6 +131,7 @@ def retrieve_template_variants(
     preferred_template_ids: tuple[str, ...] = (),
 ) -> TemplateRouteSelection:
     """Return component candidate sets; never choose a final CardTpl variant."""
+    _require_supported_search_size(task_spec)
     registry.require_theme(query.theme_id)
     _validate_selected_actions(query, task_spec)
     if not query.required_output_fields_by_capability:
@@ -194,6 +196,12 @@ def retrieve_template_variants(
         actionIds=query.action_ids,
         requiredTemplateGroups=tuple(required_groups),
     )
+
+
+def _require_supported_search_size(task_spec: TaskSpec) -> None:
+    """Reject card sizes that are not yet supported by Provider Template Search."""
+    if task_spec.size == "2x4":
+        raise TemplateRetrievalMiss("template Search does not support 2x4 cards")
 
 
 def _candidate_with_complete_field_coverage(

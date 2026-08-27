@@ -7,31 +7,39 @@ data = {
 
 Column(
     {"_advancedComponent": "AppUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-    Row(
-        {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-        Text(
-            data.appName,
-            {"fontSize": 12, "minFontSize": 12, "fontWeight": 600, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-        ),
-        IfPresent(
-            props.appIcon,
-            Image(
-                props.appIcon,
-                {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
-            )
-        )
-    ),
     Column(
-        {"width":"matchParent","itemMargin":4,"layoutWeight": 1, "justifyContent": "end", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+        {
+            "width": "matchParent",
+            "itemMargin": 8,
+            "justifyContent": "start",
+            "alignItems": "start",
+        },
         Row(
-            {"width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            Text(
+                data.appName,
+                {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            ),
+            IfPresent(
+                props.appIcon,
+                Image(
+                    props.appIcon,
+                    {"width": 20, "height": 20, "borderRadius": 4, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
+                )
+            )
+        ),
+        Row(
+            {"height": 32, "width": "matchParent", "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
             Text(
                 data.duration,
                 {"fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
             )
         ),
-        IfPresent(
-            data.updatedAt,
+    ),
+    IfPresent(
+        data.updatedAt,
+        Column(
+            {"width":"matchParent","itemMargin":4,"layoutWeight": 1, "justifyContent": "end", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
             Text(
                 `更新于 ${data.updatedAt}`,
                 {"fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
@@ -54,7 +62,7 @@ Column(
         {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
         Text(
             data.appName,
-            {"fontSize": 12, "minFontSize": 12, "fontWeight": 600, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            {"fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
         ),
         IfPresent(
             props.appIcon,
@@ -153,7 +161,7 @@ Row(
                 {"itemMargin":4,"width": "matchParent", "height": 20},
                 Text(
                     data.appName,
-                    {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1}
+                    {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1}
                 )
             ),
             Column(
@@ -190,8 +198,8 @@ Row(
 
 #Template AppUsageOverviewCompact@1(props: { appIcon?: asset })
 data = {
+    appName: $path("/appUsage/appName"),
     duration: $path("/appUsage/durationText"),
-    updatedAt: $optionalPath("/updatedAt")
 }
 
 Column(
@@ -201,16 +209,13 @@ Column(
         Column(
             {"width":"matchParent","itemMargin": 2, "justifyContent": "start", "alignItems": "start", "layoutWeight": 1},
             Text(
+                data.appName,
+                {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1}
+            ),
+            Text(
                 data.duration,
                 {"fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
             ),
-            IfPresent(
-                data.updatedAt,
-                Text(
-                    data.updatedAt,
-                    {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1}
-                )
-            )
         ),
         IfPresent(
             props.appIcon,

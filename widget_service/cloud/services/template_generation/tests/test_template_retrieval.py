@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -79,7 +79,7 @@ def _card_spec() -> dict[str, Any]:
 
 def _query(*paths: str) -> TemplateRetrievalQuery:
     return TemplateRetrievalQuery(
-        themeId="fusion-weather-blue",
+        themeId="family-weather-care-blue",
         requiredOutputFieldsByCapability={"ViewWeather": paths},
     )
 
@@ -125,7 +125,7 @@ def test_provider_required_data_types_are_checked_when_known() -> None:
 
 
 def test_cross_theme_query_keeps_field_compatible_candidates() -> None:
-    query = _query("/current/condition").model_copy(update={"theme_id": "fusion-schedule-cool"})
+    query = _query("/current/condition").model_copy(update={"theme_id": "meeting-paper-neutral"})
 
     result = retrieve_template_variants(
         query, _task(), get_cardplan_registry(), (_binding(),), _card_spec()
@@ -198,7 +198,7 @@ def test_shared_capability_keeps_each_component_scoped_templates() -> None:
         candidateOutputFields=["/events/0/title", "/events/0/dtStart", "/events/0/dtEnd"],
     )
     query = TemplateRetrievalQuery(
-        themeId="fusion-schedule-cool",
+        themeId="meeting-paper-neutral",
         requiredOutputFieldsByCapability={
             "GetCalendarEvents": ("/events/0/title", "/events/0/dtStart")
         },
@@ -254,7 +254,7 @@ def test_calendar_date_and_schedule_require_one_covering_business_template() -> 
         candidateOutputFields=list(fields),
     )
     query = TemplateRetrievalQuery(
-        themeId="fusion-schedule-cool",
+        themeId="meeting-paper-neutral",
         requiredOutputFieldsByCapability={
             "GetCalendarEvents": (
                 "/events/0/startDate",
@@ -319,6 +319,23 @@ def test_first_layer_prompt_includes_task_fields_rules_and_action_candidates() -
     ]
 
 
+def test_search_rejects_2x4_before_prompt_or_retrieval() -> None:
+    task = _task().model_copy(update={"size": "2x4"})
+    card_spec = _card_spec() | {"suggestSize": "2x4"}
+    inaccessible_registry = cast(CardPlanRegistry, object())
+
+    with pytest.raises(TemplateRetrievalMiss, match="does not support 2x4"):
+        build_template_retrieval_prompt(task, inaccessible_registry, (_binding(),))
+    with pytest.raises(TemplateRetrievalMiss, match="does not support 2x4"):
+        retrieve_template_variants(
+            _query("/current/condition"),
+            task,
+            inaccessible_registry,
+            (_binding(),),
+            card_spec,
+        )
+
+
 def test_search_defers_two_business_layout_suffix_filtering_to_the_second_layer() -> None:
     task = _task()
     task.dataModelSchema["data"]["calendar"] = {
@@ -337,7 +354,7 @@ def test_search_defers_two_business_layout_suffix_filtering_to_the_second_layer(
     )
     result = retrieve_template_variants(
         TemplateRetrievalQuery(
-            themeId="fusion-weather-blue",
+            themeId="family-weather-care-blue",
             requiredOutputFieldsByCapability={
                 "ViewWeather": ("/current/condition",),
                 "GetCalendarEvents": ("/events/0/title", "/events/0/dtStart"),
@@ -366,7 +383,7 @@ def test_search_defers_two_business_layout_suffix_filtering_to_the_second_layer(
 
 def test_search_still_rejects_more_than_two_data_businesses() -> None:
     query = TemplateRetrievalQuery(
-        themeId="fusion-weather-blue",
+        themeId="family-weather-care-blue",
         requiredOutputFieldsByCapability={
             "CapabilityA": ("/value",),
             "CapabilityB": ("/value",),
@@ -421,10 +438,7 @@ def test_search_keeps_multiple_candidates_for_each_layout_kind() -> None:
         "WeatherOverviewHero@1",
         "WeatherOverviewAirQualityHero@1",
     }.issubset(template_ids)
-    assert {
-        "WeatherOverviewCompact@1",
-        "WeatherOverviewIconCompact@1",
-    }.issubset(template_ids)
+    assert "WeatherOverviewCompact@1" in template_ids
 
 
 def test_search_index_reports_per_field_matches_before_route_intersection() -> None:

@@ -38,27 +38,71 @@ Compact/Hero/Full 模板”，供端侧显示异常卡片。生成完成后还�
 
 ## 生成
 
-在 `CreateMyCard` 根目录运行：
+### 环境准备
+
+复现时建议将两个工程放在同一个父目录下，端侧同步脚本会按该结构解析默认路径：
+
+```text
+GenerateUI/
+├── CreateMyCard/
+└── genui_evaluation/
+```
+
+服务要求 Python 3.12。在 `CreateMyCard` 根目录创建独立环境并安装依赖：
 
 ```bash
-widget_service/.venv/bin/python \
-  widget_service/scripts/generate_provider_template_gallery.py \
-  --refresh-inputs --concurrency 2
+python3.12 -m venv widget_service/.venv312
+widget_service/.venv312/bin/python -m pip install -r widget_service/requirements.txt
 ```
+
+首次配置时，以 `widget_service/.env.example` 为模板创建 `widget_service/.env`，不要覆盖已经存在的本地
+配置。真实批跑必须设置 `WIDGET_SERVICE_ENABLE_A2UI_MODEL_MOCK=false`，并按
+[Widget Service README](../../../../README.md) 配置当前选择的模型后端。凭据必须通过本地环境或受控密钥
+服务提供，不得写入输入文件、命令行、日志或仓库。
+
+### 无模型预检
+
+先在 `CreateMyCard` 根目录执行无模型预检，确认当前 Provider、模板控制配置、输入生成和结果清单均可用：
+
+```bash
+widget_service/.venv312/bin/python \
+  widget_service/scripts/generate_provider_template_gallery.py \
+  --refresh-inputs --dry-run --concurrency 2
+```
+
+以 2026-08-27 当前资源为基线，应生成 8 个 Provider、92 个用例；其中 65 个状态为 `not_generated`，
+27 个状态为 `missing`。Provider 或模板调整后数量可以变化，应以重新生成的输入 manifest 为准，不能继续
+复用旧结果目录中的数量。
+
+### 真实批跑
+
+无模型预检通过后，确认本地真实模型配置可用，再执行：
+
+```bash
+WIDGET_SERVICE_ENABLE_A2UI_MODEL_MOCK=false \
+widget_service/.venv312/bin/python \
+  widget_service/scripts/generate_provider_template_gallery.py \
+  --refresh-inputs --concurrency 2 --strict
+```
+
+`--strict` 会在存在真实生成失败时返回非零退出码；声明缺少对应模板的 `missing` 场景不计为生成失败。
+命令结束后必须核对控制台的 `total/success/failed/missing/not_generated` 汇总，并确认输出 manifest 中
+`failed` 和 `notGenerated` 均为 `0`，再进入端侧同步。
 
 常用参数：
 
 - `--provider com.huawei.weather.cli`：只批跑一个 Provider，可重复指定。
-- `--dry-run`：不调用模型，仅生成“待批跑/缺失”结果清单，适合先验证输入和端侧导入。
+- `--dry-run`：不调用模型，仅生成“待批跑/缺失”结果清单，适合验证输入和端侧导入。
 - `--strict`：存在真实生成失败时返回非零退出码；模板后缀缺失仍作为画廊检查结果保留。
-- `--disable-fusion-ball`：显式传入请求级关闭开关；融球 Theme 不进入模型 Prompt、检索或服务端模板编译。
+- 融球默认关闭；常规画廊验证不传任何融球参数，Theme 不进入模型 Prompt、检索或服务端模板编译。
+- `--enable-fusion-ball`：仅用于 `2x2` 融球专项验证时显式开启。
 - `--input-root`、`--output-root`：覆盖默认临时目录。
 
-默认临时目录为：
+默认输入和输出目录为：
 
 ```text
-template_generation/test/provider_gallery_inputs/
-template_generation/test/provider_gallery_output/
+widget_service/cloud/services/template_generation/test/provider_gallery_inputs/
+widget_service/cloud/services/template_generation/test/provider_gallery_output/
 ```
 
 输入请求是与工具调用一致的 `content + deviceInfo + session + userAuth` 包络；每个请求按
@@ -66,14 +110,12 @@ template_generation/test/provider_gallery_output/
 Provider/业务/模板层级保存 A2UI 消息数组，根目录 `manifest.json` 记录目标模板、搭配模板以及 `success`、
 `failed`、`missing` 和 `not_generated` 状态。
 
-本地配置若仍为 `enable_a2ui_model_mock=true`，请先使用 `--dry-run`。真实批跑可在模型运行时已配置的环境中
-通过 `WIDGET_SERVICE_ENABLE_A2UI_MODEL_MOCK=false` 启用；不要把凭据写入输入文件、命令行或仓库。
-
 ## 端侧导入
 
-批跑结束后，在 `genui_evaluation` 根目录执行：
+批跑结束后，从 `CreateMyCard` 切换到同级 `genui_evaluation` 根目录执行：
 
 ```bash
+cd ../genui_evaluation
 python3 scripts/sync_provider_scenario_gallery.py
 ```
 
@@ -81,14 +123,47 @@ python3 scripts/sync_provider_scenario_gallery.py
 “Provider 场景画廊”后，可按 Provider 页签检查每个业务的全部模板实例和适用布局；没有 A2UI 的场景显示
 错误卡片和具体原因。
 
+同步脚本默认读取：
+
+```text
+../CreateMyCard/widget_service/cloud/services/template_generation/test/provider_gallery_output/
+```
+
+如果两个工程不是同级目录，使用 `--source` 和 `--target` 显式指定来源与目标。同步完成后，脚本打印的
+用例数必须与云侧输出 manifest 的 `counts.total` 一致，A2UI 数必须与 `counts.success` 一致。
+
+## 构建与安装
+
+在 `genui_evaluation` 根目录使用本机 DevEco Studio 的 JBR、SDK 和 Hvigor 重新构建签名 HAP；以下是 macOS
+默认安装路径，非默认安装位置需要替换为实际路径：
+
+```bash
+JAVA_HOME=/Applications/DevEco-Studio.app/Contents/jbr/Contents/Home \
+DEVECO_SDK_HOME=/Applications/DevEco-Studio.app/Contents/sdk \
+  /Applications/DevEco-Studio.app/Contents/tools/hvigor/bin/hvigorw \
+  assembleHap --no-daemon
+```
+
+安装前必须先确认目标设备，只对明确的连接标识执行安装：
+
+```bash
+hdc list targets -v
+hdc -t <connect-key> shell echo ok
+hdc -t <connect-key> install -r \
+  entry/build/default/outputs/default/entry-default-signed.hap
+```
+
+启动应用后，在首页进入“Provider 场景画廊”，按 Provider 页签检查成功场景；`missing`、`failed` 或
+`not_generated` 场景会在相同卡片位置显示明确原因，不应被当成端侧渲染成功。
+
 ## 验证
 
 ```bash
 cd widget_service
-.venv/bin/ruff check \
+.venv312/bin/ruff check \
   cloud/services/template_generation/test_support/provider_gallery.py \
   cloud/services/template_generation/tests/test_provider_gallery_batch.py \
   scripts/generate_provider_template_gallery.py
-PYTHONPATH=cloud .venv/bin/pytest -q \
+PYTHONPATH=cloud .venv312/bin/pytest -q \
   cloud/services/template_generation/tests/test_provider_gallery_batch.py
 ```

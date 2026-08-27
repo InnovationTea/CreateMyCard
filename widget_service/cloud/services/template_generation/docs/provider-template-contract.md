@@ -172,8 +172,12 @@ Provider 模板作者侧声明，不进入最终 Tersel 语法。最终产物不
 
 ## 2x2 融球背景
 
-模板生产入口要求调用方显式传入 `enable_fusion_ball`。为 `false` 时，所有包含 `fusionBallStyle` 的 Theme
-在首层 Prompt 构造前即从请求级 Registry 视图移除，检索、二层组合和编译也不能再查找或接受这些 Theme。
+生产服务和验证入口默认关闭融球；内部模板入口要求调用方显式传入 `enable_fusion_ball`。为 `false` 时，
+所有包含 `fusionBallStyle` 的 Theme 在首层 Prompt 构造前即从请求级 Registry 视图移除，检索、二层组合和
+编译也不能再查找或接受这些 Theme。
+
+模板 Search 当前整体不支持 `2x4`，此尺寸在任何首层 Prompt 或模型调用前直接判定模板不适用。Wide
+Provider 和 Layout 资源只作后续能力预留，当前不进入生产模板链。
 
 融球背景是模板可信展开后插入的微服务云侧组件，不属于业务 Provider，也不交给二层模型选择。每套融球 Theme
 在自身 `themes/<theme-id>/theme.json` 的 `fusionBallStyle` 中保存允许的 `businessIds` 以及大、中、小球真实

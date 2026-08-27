@@ -47,7 +47,7 @@ cloud/api/routes.py
 `request_template_source_dsl()` 是主责任边界：
 
 1. 使用调用方传入的 `ModelExecutionRuntime` 和 `ModelRequestContext` 创建模板模型客户端。
-2. 要求调用方显式传入 `enable_fusion_ball: bool`，并将请求级特性决策透传给模板引擎。
+2. 要求调用方显式传入 `enable_fusion_ball: bool`，并将上层默认关闭后的请求级特性决策透传给模板引擎。
 3. 复制已裁决的 `effective_bindings`，不增加新数据能力或字段。
 4. 调用 `generate_template_a2ui()` 获得受信展开后的 A2UI 和诊断信息。
 5. 调用 `prepare_template_source_dsl()` 转成当前 Processor 要求的源格式。
@@ -122,18 +122,20 @@ cloud/api/routes.py
 
 模块主编排函数：
 
-1. 按 `enable_fusion_ball` 加载请求级 Registry 视图；关闭时先移除所有融球 Theme，再从 CardSpec
+1. `2x4` 在 Registry、首层 Prompt 和模型调用前直接返回模板不适用；当前模板 Search 只支持 `2x2`。
+2. 按 `enable_fusion_ball` 加载请求级 Registry 视图；默认关闭时先移除所有融球 Theme，再从 CardSpec
    取得已批准能力 ID。
-2. 应用领域 content selectors，建立 `DataShape`。
-3. 根据 `firstLayerComponentSelector` 进入 Search 或旧 LLM 首层路线。
-4. 将请求转换为 `TemplateRouteSelection`。
-5. 调用 `_generate_selected_templates()` 完成二层生成、受信编译和 A2UI 产出。
+3. 应用领域 content selectors，建立 `DataShape`。
+4. 根据 `firstLayerComponentSelector` 进入 Search 或旧 LLM 首层路线。
+5. 将请求转换为 `TemplateRouteSelection`。
+6. 调用 `_generate_selected_templates()` 完成二层生成、受信编译和 A2UI 产出。
 
 ### `_generate_selected_templates()`
 
 - `project_content_component_facts()` 保留已选业务所需的事实。
 - `_with_provider_template_runtime_data()` 补回 Provider 必需路径和事件表达式依赖。
-- `build_ux_mixed_prompt()` 生成二层 Prompt 和硬契约。
+- `build_ux_mixed_prompt()` 生成二层专用轻量 Prompt 和硬契约；静态部分只保留类 Tersel 语法，
+  布局、候选模板、Action 和完整 Props 签名均按本轮 Search 结果动态下发。
 - `_generate_hybrid_body()` 调用共享模型生成受限布局/Template 调用。
 - `frame_ux_layout_root_children()` 补全根布局包装。
 - `compile_ux_layout_card()` 完成硬校验和展开；质量错误最多进行两次二层修复。
@@ -173,8 +175,10 @@ Search 默认路线仍复用该文件的能力和 Action 边界函数，但不�
 
 文件：[Prompt](../engine/advanced/ux_mixed_prompt.py)，[Framer](../engine/advanced/ux_mixed_framer.py)
 
-- `build_ux_mixed_prompt()` 将首层候选、Layout、Action、Theme、业务事实和资产组合为二层契约。
-- `build_ux_mixed_validation_retry_prompt()` 只针对二层受限输出的校验错误构造修复消息。
+- `build_ux_mixed_prompt()` 将首层候选、唯一 Layout、Action、Theme ID、可信素材和相关
+  Provider 指导组合为二层契约，不再拼接通用 Hybrid Prompt。
+- `build_ux_mixed_validation_retry_prompt()` 针对二层受限输出的具体校验错误构造修复消息，
+  首次失败后最多重试两次。
 - `frame_ux_layout_root_children()` 确保二层产物只在已批准 Layout 根内组合。
 
 ### `models.py`
@@ -228,8 +232,9 @@ children 槽位数量。
 
 文件：[../engine/cardplan/prompt.py](../engine/cardplan/prompt.py)
 
-`build_hybrid_prompt()` 构造二层基础事实、素材、Action 和 Hybrid Contract。
-`build_ux_mixed_prompt()` 在其上叠加当前首层候选和 Layout 约束。
+`build_hybrid_prompt()` 仍用于构造可信素材、Action 和 Hybrid Contract，但它的通用消息文本不进入
+第二层模型。`build_template_prompt_contracts()` 只为本轮候选动态生成完整 Props 签名；
+`build_ux_mixed_prompt()` 把这些签名与唯一 Layout 和 Action 契约组合成最终轻量 Prompt。
 
 ### `parser.py`
 

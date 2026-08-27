@@ -62,7 +62,9 @@ Form Profile、模型运行时和请求上下文，再将其注入公共生成�
 
 ```mermaid
 flowchart TD
-    IN[TaskSpec + CardSpec + effective bindings + 融球开关] --> LOAD[加载 Controls 与 CardPlanRegistry]
+    IN[TaskSpec + CardSpec + effective bindings + 融球开关] --> SIZE{size == 2x4?}
+    SIZE -->|是| MISS[模板路由不适用]
+    SIZE -->|否| LOAD[加载 Controls 与 CardPlanRegistry]
     LOAD --> FUSION{enable_fusion_ball}
     FUSION -->|false| FILTER[移除融球 Theme 的请求级视图]
     FUSION -->|true| SELECTOR{firstLayerComponentSelector}
@@ -92,8 +94,8 @@ flowchart TD
 2. 编译 `.cardtpl`，校验模板 ID、Props、数据路径、children 槽位和组件闭包。
 3. 从 `provider.json#templates` 派生“业务 -> Template -> 数据能力 -> Provider”索引。
 4. 应用 `disabledProviderIds` 和 `disabledTemplateIds`，确保禁用项不进入首层和二层。
-5. 按调用方显式传入的 `enable_fusion_ball` 构造请求级 Theme 视图；关闭时移除所有
-   `fusionBallStyle` Theme 及其首层规则和场景索引。
+5. 生产与验证入口默认关闭融球；只有调用方显式传入 `enable_fusion_ball=true` 时才构造包含融球 Theme
+   的请求级视图。关闭时移除所有 `fusionBallStyle` Theme 及其首层规则和场景索引。
 6. 建立字段 Search 索引，供 `retrieve_template_variants()` 查找可覆盖候选。
 
 Provider Template 和业务分组只从各自 `provider.json` 与 `.cardtpl` 派生；Theme 只从
@@ -105,6 +107,9 @@ Provider Template 和业务分组只从各自 `provider.json` 与 `.cardtpl` 派
 
 融球开关关闭后，Search 和旧 LLM 首层 Prompt 均不能看到融球 Theme 的 ID、描述和首层规则；二层与
 编译阶段复用同一过滤视图，因此伪造融球 Theme ID 会按未知 Theme 拒绝，而不是在最终转换时静默忽略。
+
+模板 Search 当前整体不支持 `2x4`。这类请求在 Registry、首层 Prompt 和模型调用前直接返回模板不适用；
+Compact create 进入原 Compact 回退，Tersel 模板入口直接失败。Wide 资源当前只作后续能力预留。
 
 ### 3.2 首层 Search
 
@@ -138,12 +143,15 @@ Search 路线的首层输出是 `TemplateRetrievalQuery`：
 
 `build_ux_mixed_prompt()` 只向二层暴露：
 
-- 首层通过的业务 Template 候选。
-- 与当前尺寸、业务数量和 Action 数量相容的 Layout Template。
-- 已批准的 Action ID、素材和 Theme。
-- Provider 二层规则与当前 Theme 规则。
+- 首层通过的业务 Template 候选，以及每个候选的用途描述、完整 Props Schema、必填/可选关系、
+  参数关系和素材参数可用源。
+- 根据当前尺寸、业务数量和 Action 数量确定的唯一 Layout Template 完整契约。
+- 已批准的 Action ID/文案、当前 Action Template 完整签名、可用素材和 Theme ID。
+- 删除未候选模板目录后的 Provider 二层业务指导。
 
-二层不接收 TaskSpec、`dataFacts`、`mustKeep` 或数据样例，只输出受限的 Layout/Template 调用和
+二层 system Prompt 不复用通用 Hybrid/Design Compact 规则，只保留类 Tersel 直接
+`Template(...)` 调用语法和安全禁止项。二层不接收 TaskSpec、`dataFacts`、`mustKeep` 或数据样例，
+只输出受限的 Layout/Template 调用和
 展示 Props。业务 Template 是不可拆分的原子节点，禁止用基础组件补业务内容。候选经布局后缀、Action
 数量或必需参数筛选后为空时直接失败。二层不能输出原始 `call/args`，也不能绕过
 `EventAction(props.actionId)` 生成交互。
@@ -166,7 +174,7 @@ Search 路线的首层输出是 `TemplateRetrievalQuery`：
 9. 回转 A2UI-Compact 并经公共 Processor 重新生成完整 A2UI 后，统一展开 `FusionBall` 为标准组件，给相邻
    内容根 ID 增加 `__genui_render_component__` 前缀，再执行 artifact 校验。
 
-二层输出发生 `TerseDslNested2ConversionError` 时，模板模块最多使用两次二层修复。
+二层输出发生 `TerseDslNested2ConversionError` 时，模板模块在首次生成后最多使用两次二层修复。
 这与模块返回后的公共 Compact repair 是两套不同的质量阶段。
 
 ## 4. 数据形态变换

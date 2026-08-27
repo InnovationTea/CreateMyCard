@@ -9,12 +9,18 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict
 
 from models.generation import TaskSpec
+from services.template_generation.engine.cardplan.generated.prompts import (
+    UX_MIXED_SYSTEM_PROMPT_KERNEL,
+)
 from services.template_generation.engine.cardplan.models import (
     BusinessTemplateGroup,
     Fact,
     HybridBodyContract,
 )
-from services.template_generation.engine.cardplan.prompt import build_hybrid_prompt
+from services.template_generation.engine.cardplan.prompt import (
+    build_hybrid_prompt,
+    build_template_prompt_contracts,
+)
 from services.template_generation.engine.cardplan.provider_bundle import (
     provider_template_layout_kind,
 )
@@ -33,7 +39,6 @@ from .models import (
     TemplateComponentCandidate,
 )
 from .scope_planner import (
-    resolve_available_capability_ids,
     resolve_scope_layout_ids,
     scope_template_ids,
     task_spec_with_selected_action,
@@ -44,6 +49,8 @@ _WEATHER_BUILTIN_ASSETS = (
     "resources/base/media/sun_max.svg",
     "resources/base/media/cold.svg",
 )
+_MAX_UX_MIXED_PROMPT_CHARS = 24_000
+_UX_ACTION_TEMPLATE_ID = "PillAction@1"
 
 
 def _weather_builtin_assets_for_components(components: tuple[Any, ...]) -> tuple[str, ...]:
@@ -91,11 +98,14 @@ def build_ux_mixed_validation_retry_prompt(
             "role": "user",
             "content": (
                 "上一输出未通过服务端严格契约校验："
-                f"{error}。不要解释；保持同一个 uxAdvancedScope，重新输出完整布局根 DSL。"
-                "只能使用原请求 componentCandidates、selectedActionEventIds "
-                "和 trustedAssetSources；"
-                "不得新增基础组件、业务文本、Action 或未批准 Template；"
-                "必须逐组补齐 requiredLocalTemplateGroups。"
+                f"{error}。严格使用原动态契约，重新输出完整调用树。"
+                "输出必须以 Template( 开头并以 ); 结束；"
+                "所有 Template 都必须是不含关键字参数的直接位置调用。"
+                "禁止变量赋值、return、props=、children=、对象方法、"
+                "数组 children、Markdown 或解释。"
+                "每个 requiredLocalTemplateGroups 恰好选择一个业务 Template；"
+                "不得新增基础组件、业务文本、Action 或候选外 Template。"
+                "只输出类 Tersel 调用树，不要解释。"
             ),
         },
     ]
@@ -111,12 +121,6 @@ def build_ux_mixed_prompt(
     registry: CardPlanRegistry,
 ) -> UxMixedPromptProjection:
     """复用事实、Action 和 Template 安全契约，替换旧候选与布局决策入口。"""
-    available_capability_ids = _card_spec_capability_ids(card_spec)
-    effective_capability_ids = resolve_available_capability_ids(
-        task_spec,
-        registry,
-        available_capability_ids,
-    )
     components = tuple(
         registry.require_ux_business_component(item) for item in scope.advanced_component_ids
     )
@@ -170,13 +174,6 @@ def build_ux_mixed_prompt(
         template_id
         for component_id in scope.advanced_component_ids
         for template_id in candidate_ids_by_component[component_id]
-    )
-    effective_component_candidates = tuple(
-        TemplateComponentCandidate(
-            componentId=component_id,
-            availableTemplateIds=template_ids,
-        )
-        for component_id, template_ids in candidate_ids_by_component.items()
     )
     allowed_layout_template_ids = tuple(f"{layout_id}@1" for layout_id in allowed_layout_ids)
     for template_id in allowed_layout_template_ids:
@@ -352,48 +349,96 @@ def build_ux_mixed_prompt(
             "protected_literals": protected_literals,
         }
     )
-    layout_lines = [
-        (
-            f'- Template("{layout.name}@1", {{}}, child1, ...): {layout.description}; '
-            f"businessChildren={layout.minimum_children(task_spec.size)}.."
-            f"{layout.max_children_by_size[task_spec.size]}（不含 Action）; "
-            f"actions={layout.min_action_children_by_size[task_spec.size]}.."
-            f"{layout.max_action_children_by_size[task_spec.size]}; "
-            "Action 必须是连续末尾直接 children；configSchema="
-            + json.dumps(layout.parameters_schema, ensure_ascii=False)
+    business_template_contracts = build_template_prompt_contracts(
+        selected_template_ids,
+        contract,
+        registry,
+        task_spec=task_spec,
+        card_spec=card_spec,
+        ux_layout_root=True,
+    )
+    available_business_template_ids = tuple(
+        item["templateId"] for item in business_template_contracts
+    )
+    available_business_ids = set(available_business_template_ids)
+    candidate_ids_by_component = {
+        component_id: tuple(
+            template_id
+            for template_id in template_ids
+            if template_id in available_business_ids
         )
-        for layout_id in allowed_layout_ids
-        for layout in (registry.require_ux_layout_component(layout_id),)
-    ]
-    business_lines = [
-        _business_component_line(
-            component,
-            effective_capability_ids,
-            task_spec.size,
-            base.requested_template_ids,
-            candidate_ids_by_component[component.name],
+        for component_id, template_ids in candidate_ids_by_component.items()
+    }
+    if any(not template_ids for template_ids in candidate_ids_by_component.values()):
+        raise ValueError("Second-layer component has no complete Template signature")
+    effective_required_template_groups = tuple(
+        tuple(
+            template_id
+            for template_id in group
+            if template_id in available_business_ids
         )
-        for component in components
-    ]
-    provider_second_layer_rules = registry.provider_second_layer_rules(scope.advanced_component_ids)
-    ux_override = "\n".join(
-        (
-            "",
-            "UX Token=" + json.dumps(registry.ux_tokens, ensure_ascii=False),
-            "允许的布局高级组件：",
-            *layout_lines,
-            "已批准的业务高级组件范围：",
-            *business_lines,
-            "template 实现的业务高级组件必须逐组使用 requiredLocalTemplateGroups；"
-            "terse-dsl 实现必须使用对应的 directBusinessComponents 调用，不能改用 JSON Template。",
-            "最终输出必须直接以唯一批准的布局 Template 为根并以分号结束；禁止 card@1。",
+        for group in effective_required_template_groups
+    )
+    if any(not group for group in effective_required_template_groups):
+        raise ValueError("Second-layer required Template group has no complete signature")
+    effective_component_candidates = tuple(
+        TemplateComponentCandidate(
+            componentId=component_id,
+            availableTemplateIds=template_ids,
+        )
+        for component_id, template_ids in candidate_ids_by_component.items()
+    )
+    action_template_ids = (
+        (_UX_ACTION_TEMPLATE_ID,) if selected_action_ids else ()
+    )
+    action_template_contracts = build_template_prompt_contracts(
+        action_template_ids,
+        contract,
+        registry,
+        task_spec=task_spec,
+        card_spec=card_spec,
+        ux_layout_root=True,
+    )
+    layout_template_contracts = build_template_prompt_contracts(
+        allowed_layout_template_ids,
+        contract,
+        registry,
+        task_spec=task_spec,
+        card_spec=card_spec,
+        ux_layout_root=True,
+    )
+    layout_contracts = _layout_prompt_contracts(
+        layout_template_contracts,
+        allowed_layout_ids,
+        task_spec,
+        registry,
+    )
+    allowed_template_ids = tuple(
+        dict.fromkeys(
+            (
+                *available_business_template_ids,
+                *action_template_ids,
+                *allowed_layout_template_ids,
+            )
         )
     )
-    user_suffix = "\n".join(
+    contract = contract.model_copy(
+        update={
+            "required_template_groups": effective_required_template_groups,
+            "allowed_template_ids": allowed_template_ids,
+        }
+    )
+    provider_second_layer_rules = registry.provider_second_layer_guidance(
+        scope.advanced_component_ids
+    )
+    selected_actions = _selected_action_candidates(contract)
+    asset_candidates = _asset_prompt_candidates(task_spec, contract)
+    user = "\n".join(
         (
+            "themeId=" + json.dumps(base.theme_id, ensure_ascii=False),
             "trustedStringLiterals=" + json.dumps(contract.trusted_literals, ensure_ascii=False),
             "trustedAssetSources=" + json.dumps(contract.allowed_asset_sources, ensure_ascii=False),
-            "uxAdvancedScope=" + json.dumps(scope.model_dump(by_alias=True), ensure_ascii=False),
+            "trustedAssetCandidates=" + json.dumps(asset_candidates, ensure_ascii=False),
             "componentCandidates="
             + json.dumps(
                 [
@@ -402,50 +447,148 @@ def build_ux_mixed_prompt(
                 ],
                 ensure_ascii=False,
             ),
+            "templateContracts="
+            + json.dumps(business_template_contracts, ensure_ascii=False),
             "allowedUxLayouts=" + json.dumps(allowed_layout_ids, ensure_ascii=False),
+            "layoutContracts=" + json.dumps(layout_contracts, ensure_ascii=False),
             "requiredLocalTemplateGroups="
             + json.dumps(effective_required_template_groups, ensure_ascii=False),
             "directBusinessComponents=" + json.dumps(direct_components, ensure_ascii=False),
+            "selectedActionCandidates=" + json.dumps(selected_actions, ensure_ascii=False),
+            "selectedActionEventIds=" + json.dumps(selected_action_ids, ensure_ascii=False),
+            "actionContracts="
+            + json.dumps(action_template_contracts, ensure_ascii=False),
             "providerSecondLayerRules="
             + json.dumps(provider_second_layer_rules, ensure_ascii=False),
-            "只能从 componentCandidates 中同一 componentId 的 availableTemplateIds "
-            "按布局后缀、Action 数量和素材条件选择最终业务模板；"
-            "不得使用 Provider 文档中的其他模板。",
-            "第一层已经完成展示字段与候选模板覆盖判断。"
-            "第二层不接收 TaskSpec、dataFacts 或 mustKeep，"
-            "不得重新选择展示字段、补充业务 Text，或根据 Provider 文档中的数据说明改写候选集合。",
-            "selectedActionEventIds=" + json.dumps(selected_action_ids, ensure_ascii=False),
-            "Action 与业务组件解耦；只能按业务模板布局后缀选择 PillAction@1 或 IconAction@1，"
-            "通过 Props 输出批准的 actionId/label/icon，并作为布局根连续的末尾直接 child；"
-            "不得使用未选择的 Action，也不得输出事件执行字段。",
-            "业务高级组件字段由服务端绑定到 TaskSpec.dataModelSchema 的端侧数据路径；"
-            "模型只把业务 Template 视为原子节点；绑定与 `data = {...}` 由服务端确定性附加。"
-            "模型不得编造路径，也不得用 props 或基础组件承载业务数据。",
-            "只输出混合 DSL，不输出说明。",
+            "outputGrammar="
+            + json.dumps(
+                _output_grammar(
+                    allowed_layout_template_ids[0],
+                    effective_required_template_groups,
+                    selected_actions,
+                ),
+                ensure_ascii=False,
+            ),
+            "第一层已完成展示覆盖。从每个 requiredLocalTemplateGroups 恰好选择一个"
+            " Template，按完整签名设置 Props，并严格使用唯一布局根。",
+            "只输出一棵以分号结束的类 Tersel Template 调用树，不输出说明。",
         )
-    )
-    base_user_message = "\n".join(
-        (
-            "mustKeep=" + json.dumps(contract.required_literals, ensure_ascii=False)
-            if line.startswith("mustKeep=")
-            else line
-        )
-        for line in base.messages[1]["content"].splitlines()
     )
     messages = [
-        {"role": "system", "content": base.messages[0]["content"] + ux_override},
-        {"role": "user", "content": base_user_message + "\n" + user_suffix},
+        {"role": "system", "content": UX_MIXED_SYSTEM_PROMPT_KERNEL},
+        {"role": "user", "content": user},
     ]
-    if sum(len(item["content"]) for item in messages) > 80_000:
+    if sum(len(item["content"]) for item in messages) > _MAX_UX_MIXED_PROMPT_CHARS:
         raise ValueError("UX Mixed Prompt exceeds the service input budget")
     return UxMixedPromptProjection(
         messages=messages,
         contract=contract,
         facts=base.facts,
-        requested_template_ids=base.requested_template_ids,
+        requested_template_ids=allowed_template_ids,
         allowed_layout_ids=allowed_layout_ids,
         theme_id=base.theme_id,
     )
+
+
+def _layout_prompt_contracts(
+    template_contracts: tuple[dict[str, Any], ...],
+    allowed_layout_ids: tuple[str, ...],
+    task_spec: TaskSpec,
+    registry: CardPlanRegistry,
+) -> tuple[dict[str, Any], ...]:
+    contracts_by_id = {
+        item["templateId"]: item for item in template_contracts
+    }
+    result: list[dict[str, Any]] = []
+    for layout_id in allowed_layout_ids:
+        template_id = f"{layout_id}@1"
+        template_contract = contracts_by_id.get(template_id)
+        if template_contract is None:
+            raise ValueError(f"UX Layout has no complete Template signature: {template_id}")
+        layout = registry.require_ux_layout_component(layout_id)
+        result.append(
+            {
+                **template_contract,
+                "businessChildren": {
+                    "minimum": layout.minimum_children(task_spec.size),
+                    "maximum": layout.max_children_by_size[task_spec.size],
+                },
+                "actionChildren": {
+                    "minimum": layout.min_action_children_by_size[task_spec.size],
+                    "maximum": layout.max_action_children_by_size[task_spec.size],
+                    "placement": "contiguous trailing direct children",
+                },
+                "callSyntax": f'Template("{template_id}", props, ...children)',
+            }
+        )
+    return tuple(result)
+
+
+def _selected_action_candidates(
+    contract: HybridBodyContract,
+) -> tuple[dict[str, str], ...]:
+    selected_ids = set(contract.content_action_ids)
+    return tuple(
+        {
+            "actionId": action.action_id,
+            "label": action.display_label,
+        }
+        for action in contract.action_bindings
+        if action.action_id in selected_ids
+    )
+
+
+def _asset_prompt_candidates(
+    task_spec: TaskSpec,
+    contract: HybridBodyContract,
+) -> tuple[dict[str, Any], ...]:
+    requested_by_source = {
+        str(item["src"]): item
+        for item in task_spec.assetCandidates
+        if isinstance(item, dict) and isinstance(item.get("src"), str)
+    }
+    return tuple(
+        {
+            "src": source,
+            "id": requested_by_source.get(source, {}).get("id"),
+            "description": requested_by_source.get(source, {}).get("description", ""),
+            "semanticTags": contract.asset_semantic_tags_by_source.get(source, ()),
+        }
+        for source in contract.allowed_asset_sources
+    )
+
+
+def _output_grammar(
+    layout_template_id: str,
+    required_template_groups: tuple[tuple[str, ...], ...],
+    selected_actions: tuple[dict[str, str], ...],
+) -> dict[str, Any]:
+    business_children = [
+        {
+            "position": index,
+            "templateIds": template_ids,
+            "syntax": 'Template("<one templateId from templateIds>", <matching props>)',
+        }
+        for index, template_ids in enumerate(required_template_groups)
+    ]
+    action_children = [
+        {
+            "position": len(required_template_groups) + index,
+            "templateId": _UX_ACTION_TEMPLATE_ID,
+            "syntax": (
+                f'Template("{_UX_ACTION_TEMPLATE_ID}",'
+                + json.dumps(action, ensure_ascii=False, separators=(",", ":"))
+                + ")"
+            ),
+        }
+        for index, action in enumerate(selected_actions)
+    ]
+    return {
+        "root": f'Template("{layout_template_id}", {{}}, ...children);',
+        "businessChildren": business_children,
+        "actionChildren": action_children,
+        "childOrder": "businessChildren first, then actionChildren",
+    }
 
 
 def _calendar_date_schedule_pair_is_required(
@@ -554,38 +697,6 @@ def _required_template_group(
     )
     current = tuple(template_id for template_id in eligible if template_id.endswith("@2"))
     return current or eligible
-
-
-def _business_component_line(
-    component: BusinessTemplateGroup,
-    capability_ids: set[str],
-    size: str,
-    requested_template_ids: tuple[str, ...],
-    selected_template_ids: tuple[str, ...],
-) -> str:
-    templates = tuple(
-        item for item in selected_template_ids if item in requested_template_ids
-    )
-    return (
-        f"- {component.name}: variants={list(component.enabled_variants(capability_ids))}; "
-        f"roles={list(component.roles)}; maxItems={component.max_items_by_size[size]}; "
-        f"availableTemplateIds={list(templates)}"
-    )
-
-
-def _card_spec_capability_ids(card_spec: dict[str, Any]) -> tuple[str, ...] | None:
-    bindings = card_spec.get("dataBindings")
-    if bindings is None:
-        return None
-    if not isinstance(bindings, list):
-        return ()
-    return tuple(
-        capability_id
-        for binding in bindings
-        if isinstance(binding, dict)
-        for capability_id in (binding.get("capabilityId"),)
-        if isinstance(capability_id, str)
-    )
 
 
 def _provider_component_server_owned_values(

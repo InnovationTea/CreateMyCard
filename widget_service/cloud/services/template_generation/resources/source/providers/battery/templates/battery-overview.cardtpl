@@ -17,7 +17,7 @@ Column(
       {"width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 3, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     ),
   Stack(
-      {"width": "matchParent", "height": "matchParent", "layoutWeight": 1, "alignContent": "bottomStart", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      {"width": "matchParent", "layoutWeight": 1, "alignContent": "bottomStart", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Stack(
             {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
             Progress(
@@ -141,7 +141,7 @@ Column(
       {"width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 3, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     ),
   Stack(
-      {"width": "matchParent", "height": "matchParent", "layoutWeight": 1, "alignContent": "bottomStart", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      {"width": "matchParent", "layoutWeight": 1, "alignContent": "bottomStart", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Stack(
             {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
             Progress(
@@ -188,7 +188,7 @@ Column(
       {"width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 3, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     ),
   Stack(
-      {"width": "matchParent", "height": "matchParent", "layoutWeight": 1, "alignContent": "bottomStart", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      {"width": "matchParent", "layoutWeight": 1, "alignContent": "bottomStart", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Stack(
             {"width": 52, "height": 52, "alignContent": "center", "flexShrink": 0},
             Progress(
