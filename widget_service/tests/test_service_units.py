@@ -1447,7 +1447,7 @@ def test_data_capability_registry_declares_leaf_samples_and_known_package_depend
     ]
     assert weather.outputSchema["properties"]["current"]["properties"][
         "temperatureText"
-    ]["sampleValue"] == "29°C"
+    ]["sampleValue"] == "29℃"
 
     assert calendar is not None
     assert calendar.dependencies.requiredPackages == [

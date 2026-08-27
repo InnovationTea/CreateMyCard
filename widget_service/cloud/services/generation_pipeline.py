@@ -9,6 +9,7 @@ from services.card_validation import (
     CompactDslValidationError,
     validate_compact_dsl,
 )
+from services.card_validation.display_unit_rules import repair_repeated_display_units
 from services.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     convert_compact_dsl_to_a2ui,
@@ -113,8 +114,12 @@ class StandardA2UIProcessor:
         source_dsl: str,
         context: DslProcessingContext,
     ) -> DslProcessingResult:
-        del context
-        return DslProcessingResult(source_dsl=source_dsl, standard_dsl=source_dsl)
+        standard_dsl = repair_repeated_display_units(
+            source_dsl,
+            context.card_spec,
+            context.data_capabilities,
+        )
+        return DslProcessingResult(source_dsl=source_dsl, standard_dsl=standard_dsl)
 
 
 class DesignCompactProcessor:
@@ -150,6 +155,11 @@ class DesignCompactProcessor:
                 source_dsl,
                 size=context.size,
                 protocol_profile=design_protocol,
+            )
+            standard_dsl = repair_repeated_display_units(
+                standard_dsl,
+                context.card_spec,
+                context.data_capabilities,
             )
             warnings = tuple(
                 QualityIssue(
@@ -200,6 +210,11 @@ class TerseNested2Processor:
                 source_dsl,
                 size=context.size,
                 protocol_profile=context.protocol_profile,
+            )
+            standard_dsl = repair_repeated_display_units(
+                standard_dsl,
+                context.card_spec,
+                context.data_capabilities,
             )
             return DslProcessingResult(
                 source_dsl=source_dsl,

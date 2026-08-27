@@ -65,13 +65,21 @@
           "properties": {
             "temperatureC": {
               "type": "number",
-              "description": "当前摄氏温度。",
-              "sampleValue": 29
+              "description": "当前温度的纯数值，单位为摄氏度，返回值不包含单位。若直接用于文本展示，必须在数值后追加“℃”；优先使用 temperatureText。",
+              "sampleValue": 29,
+              "displayUnits": [
+                "℃"
+              ],
+              "unitIncluded": false
             },
             "temperatureText": {
               "type": "string",
-              "description": "适合直接显示的温度文本，例如“29°C”。",
-              "sampleValue": "29°C"
+              "description": "可直接显示的当前温度文本，已包含“℃”单位；展示时不得再次追加温度单位。例如“29℃”。",
+              "sampleValue": "29℃",
+              "displayUnits": [
+                "℃"
+              ],
+              "unitIncluded": true
             },
             "condition": {
               "type": "string",
@@ -80,15 +88,23 @@
             },
             "feelsLikeC": {
               "type": "number",
-              "description": "当前体感摄氏温度。",
-              "sampleValue": 31
+              "description": "当前体感温度的纯数值，单位为摄氏度，返回值不包含单位。若直接用于文本展示，必须在数值后追加“℃”。",
+              "sampleValue": 31,
+              "displayUnits": [
+                "℃"
+              ],
+              "unitIncluded": false
             },
             "humidityPercent": {
               "type": "number",
               "minimum": 0,
               "maximum": 100,
-              "description": "当前相对湿度百分比。",
-              "sampleValue": 68
+              "description": "当前相对湿度的纯数值百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”。",
+              "sampleValue": 68,
+              "displayUnits": [
+                "%"
+              ],
+              "unitIncluded": false
             },
             "airQuality": {
               "type": "string",
@@ -103,8 +119,12 @@
             "windLevel": {
               "type": "integer",
               "minimum": 0,
-              "description": "当前风力等级。",
-              "sampleValue": 2
+              "description": "当前风力等级的纯整数，返回值不包含“级”。若直接用于文本展示，必须在数值后追加“级”。",
+              "sampleValue": 2,
+              "displayUnits": [
+                "级"
+              ],
+              "unitIncluded": false
             },
             "uvIndex": {
               "type": "string",
@@ -146,13 +166,21 @@
               },
               "temperatureRangeText": {
                 "type": "string",
-                "description": "适合直接显示的温度范围，例如“24° / 32°”。",
-                "sampleValue": "25° / 32°"
+                "description": "可直接显示的最低温与最高温范围文本，每个温度值均已包含“℃”单位；展示时不得再次追加温度单位。例如“25℃ / 32℃”。",
+                "sampleValue": "25℃ / 32℃",
+                "displayUnits": [
+                  "℃"
+                ],
+                "unitIncluded": true
               },
               "rainProbabilityPercent": {
                 "type": "string",
-                "description": "白天降雨概率百分比。如：73%",
-                "sampleValue": "20%"
+                "description": "可直接显示的白天降雨概率文本，已包含“%”单位；展示时不得再次追加“%”。例如“20%”。",
+                "sampleValue": "20%",
+                "displayUnits": [
+                  "%"
+                ],
+                "unitIncluded": true
               },
               "airQuality": {
                 "type": "string",
@@ -311,8 +339,12 @@
               },
               "countdownDays": {
                 "type": "integer",
-                "description": "纯数字的倒数日天数。0代表今天发生（或已发生），正整数代表距离日程开始还有多少天。",
-                "sampleValue": 0
+                "description": "距离日程开始的自然日天数纯整数，返回值不包含“天”。0 表示今天发生或已经发生，正整数表示距离开始还有多少天；若直接用于文本展示，必须在数值后追加“天”。",
+                "sampleValue": 0,
+                "displayUnits": [
+                  "天"
+                ],
+                "unitIncluded": false
               },
               "isAllDay": {
                 "type": "boolean",
@@ -358,8 +390,12 @@
       "properties": {
         "countdownDays": {
           "type": "integer",
-          "description": "距离目标日期的自然日天数；正数表示未来，0 表示今天，负数表示已经过去。",
-          "sampleValue": 30
+          "description": "距离目标日期的自然日天数纯整数，返回值不包含“天”。正数表示未来，0 表示今天，负数表示已经过去；若直接用于文本展示，必须在数值后追加“天”。",
+          "sampleValue": 30,
+          "displayUnits": [
+            "天"
+          ],
+          "unitIncluded": false
         }
       }
     },
@@ -402,8 +438,14 @@
             },
             "durationText": {
               "type": "string",
-              "description": "应用今日运行总时间文本（自带单位），例如：“25 秒”或“1 分钟 21 秒”",
-              "sampleValue": "25 分钟"
+              "description": "可直接显示的应用今日运行总时长文本，已包含“小时”“分钟”或“秒”等时间单位；展示时不得再次追加时间单位。例如“25 分钟”或“1 小时 21 分钟”。",
+              "sampleValue": "25 分钟",
+              "displayUnits": [
+                "小时",
+                "分钟",
+                "秒"
+              ],
+              "unitIncluded": true
             }
           }
         },
@@ -445,8 +487,12 @@
         },
         "batteryLevel": {
           "type": "integer",
-          "description": "耳机盒（或整体）的当前电量百分比，取值范围 0-100。",
-          "sampleValue": 80
+          "description": "耳机盒（或整体）当前剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”。",
+          "sampleValue": 80,
+          "displayUnits": [
+            "%"
+          ],
+          "unitIncluded": false
         },
         "chargingStatusDesc": {
           "type": "string",
@@ -455,8 +501,12 @@
         },
         "leftBatteryLevel": {
           "type": "integer",
-          "description": "左耳机的当前电量百分比，取值范围 0-100。若未连接则为 0。",
-          "sampleValue": 76
+          "description": "左耳机当前剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”；未连接时为 0。若直接用于文本展示，必须在数值后追加“%”。",
+          "sampleValue": 76,
+          "displayUnits": [
+            "%"
+          ],
+          "unitIncluded": false
         },
         "leftChargingStatusDesc": {
           "type": "string",
@@ -465,8 +515,12 @@
         },
         "rightBatteryLevel": {
           "type": "integer",
-          "description": "右耳机的当前电量百分比，取值范围 0-100。若未连接则为 0。",
-          "sampleValue": 78
+          "description": "右耳机当前剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”；未连接时为 0。若直接用于文本展示，必须在数值后追加“%”。",
+          "sampleValue": 78,
+          "displayUnits": [
+            "%"
+          ],
+          "unitIncluded": false
         },
         "rightChargingStatusDesc": {
           "type": "string",
@@ -501,13 +555,21 @@
       "properties": {
         "batterySOC": {
           "type": "integer",
-          "description": "当前手机设备剩余电池电量百分比纯数字，取值范围为 0 到 100。",
-          "sampleValue": 68
+          "description": "当前手机设备剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”；优先使用 batterySOCText。",
+          "sampleValue": 68,
+          "displayUnits": [
+            "%"
+          ],
+          "unitIncluded": false
         },
         "batterySOCText": {
           "type": "string",
-          "description": "当前手机设备剩余电池电量百分比格式化文本。",
-          "sampleValue": "68%"
+          "description": "可直接显示的当前手机设备剩余电量文本，已包含“%”单位；展示时不得再次追加“%”。",
+          "sampleValue": "68%",
+          "displayUnits": [
+            "%"
+          ],
+          "unitIncluded": true
         },
         "chargingStatusDesc": {
           "type": "string",
@@ -531,18 +593,30 @@
         },
         "batteryTemperatureText": {
           "type": "string",
-          "description": "当前设备电池的实时温度文本，带有摄氏度单位。",
-          "sampleValue": "29.0 ℃"
+          "description": "可直接显示的当前设备电池实时温度文本，已包含“℃”单位；展示时不得再次追加温度单位。",
+          "sampleValue": "29.0 ℃",
+          "displayUnits": [
+            "℃"
+          ],
+          "unitIncluded": true
         },
         "nowCurrentText": {
           "type": "string",
-          "description": "当前设备电池的实时电流文本，带有毫安单位。",
-          "sampleValue": "-151 mA"
+          "description": "可直接显示的当前设备电池实时电流文本，已包含“mA”单位；展示时不得再次追加电流单位。",
+          "sampleValue": "-151 mA",
+          "displayUnits": [
+            "mA"
+          ],
+          "unitIncluded": true
         },
         "voltageText": {
           "type": "string",
-          "description": "当前设备电池的实时电压文本，带有伏特单位。",
-          "sampleValue": "4 V"
+          "description": "可直接显示的当前设备电池实时电压文本，已包含“V”单位；展示时不得再次追加电压单位。",
+          "sampleValue": "4 V",
+          "displayUnits": [
+            "V"
+          ],
+          "unitIncluded": true
         },
         "isBatteryPresentText": {
           "type": "string",
@@ -606,18 +680,33 @@
         },
         "nightSleepDurationText": {
           "type": "string",
-          "description": "夜间正式睡眠的总时长文本，例如“7小时1分”。",
-          "sampleValue": "7小时1分"
+          "description": "可直接显示的夜间正式睡眠总时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“7小时1分”。",
+          "sampleValue": "7小时1分",
+          "displayUnits": [
+            "小时",
+            "分"
+          ],
+          "unitIncluded": true
         },
         "deepSleepDurationText": {
           "type": "string",
-          "description": "夜间正式睡眠中的深睡总时长文本，例如“2小时15分”。",
-          "sampleValue": "2小时15分"
+          "description": "可直接显示的夜间正式睡眠深睡总时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“2小时15分”。",
+          "sampleValue": "2小时15分",
+          "displayUnits": [
+            "小时",
+            "分"
+          ],
+          "unitIncluded": true
         },
         "totalNapDurationText": {
           "type": "string",
-          "description": "白天零星小睡（午休）的累计总时长文本，例如“45分”或“0分”。",
-          "sampleValue": "0分"
+          "description": "可直接显示的白天零星小睡累计总时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“45分”或“0分”。",
+          "sampleValue": "0分",
+          "displayUnits": [
+            "小时",
+            "分"
+          ],
+          "unitIncluded": true
         },
         "fallAsleepTimeText": {
           "type": "string",
@@ -631,18 +720,31 @@
         },
         "dailySteps": {
           "type": "integer",
-          "description": "与最新睡眠同属一天的日常全天累计活动总步数，例如 1070。",
-          "sampleValue": 6200
+          "description": "与最新睡眠同属一天的日常全天累计活动总步数纯整数，返回值不包含“步”。若直接用于文本展示，必须在数值后追加“步”。",
+          "sampleValue": 6200,
+          "displayUnits": [
+            "步"
+          ],
+          "unitIncluded": false
         },
         "dailyTotalCaloriesText": {
           "type": "string",
-          "description": "与最新睡眠同属一天的日常活动及总消耗热量文本（已完成千分位归一化换算），例如“998 千卡”。",
-          "sampleValue": "420 千卡"
+          "description": "可直接显示的日常活动总消耗热量文本，已完成千分位归一化并包含“千卡”单位；展示时不得再次追加热量单位。例如“998 千卡”。",
+          "sampleValue": "420 千卡",
+          "displayUnits": [
+            "千卡"
+          ],
+          "unitIncluded": true
         },
         "dailyDistanceText": {
           "type": "string",
-          "description": "与最新睡眠同属一天的日常活动总距离文本。端侧已根据数值大小自动变换米或公里后缀，例如“5.42 公里”或“755 米”。",
-          "sampleValue": "4.60 公里"
+          "description": "可直接显示的日常活动总距离文本，端侧已根据数值大小换算并包含“米”或“公里”单位；展示时不得再次追加距离单位。例如“5.42 公里”或“755 米”。",
+          "sampleValue": "4.60 公里",
+          "displayUnits": [
+            "公里",
+            "米"
+          ],
+          "unitIncluded": true
         },
         "exerciseTypeName": {
           "type": "string",
@@ -661,28 +763,49 @@
         },
         "exerciseDurationText": {
           "type": "string",
-          "description": "该单次专业运动的实际持续时长文本，例如“1小时40分”。",
-          "sampleValue": "40分"
+          "description": "可直接显示的单次专业运动实际持续时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“1小时40分”。",
+          "sampleValue": "40分",
+          "displayUnits": [
+            "小时",
+            "分"
+          ],
+          "unitIncluded": true
         },
         "exerciseCalorieText": {
           "type": "string",
-          "description": "该单次专业运动所产生的净热量消耗文本（已转换千卡），例如“98 千卡”。",
-          "sampleValue": "260 千卡"
+          "description": "可直接显示的单次专业运动净热量消耗文本，已换算并包含“千卡”单位；展示时不得再次追加热量单位。例如“98 千卡”。",
+          "sampleValue": "260 千卡",
+          "displayUnits": [
+            "千卡"
+          ],
+          "unitIncluded": true
         },
         "exerciseHeartRateAvg": {
           "type": "integer",
-          "description": "专业运动期间的平均心率（次/分钟）。",
-          "sampleValue": 135
+          "description": "专业运动期间平均心率的纯整数，单位为次/分钟，返回值不包含单位。若直接用于文本展示，必须在数值后追加“次/分钟”。",
+          "sampleValue": 135,
+          "displayUnits": [
+            "次/分钟"
+          ],
+          "unitIncluded": false
         },
         "exerciseHeartRateMax": {
           "type": "integer",
-          "description": "专业运动期间录得的最大极限心率（次/分钟）。",
-          "sampleValue": 168
+          "description": "专业运动期间最大心率的纯整数，单位为次/分钟，返回值不包含单位。若直接用于文本展示，必须在数值后追加“次/分钟”。",
+          "sampleValue": 168,
+          "displayUnits": [
+            "次/分钟"
+          ],
+          "unitIncluded": false
         },
         "exerciseHeartRateMin": {
           "type": "integer",
-          "description": "专业运动期间录得的最低心率（次/分钟）。",
-          "sampleValue": 96
+          "description": "专业运动期间最低心率的纯整数，单位为次/分钟，返回值不包含单位。若直接用于文本展示，必须在数值后追加“次/分钟”。",
+          "sampleValue": 96,
+          "displayUnits": [
+            "次/分钟"
+          ],
+          "unitIncluded": false
         },
         "updatedAt": {
           "type": "string",

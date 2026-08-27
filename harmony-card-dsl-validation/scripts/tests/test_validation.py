@@ -174,7 +174,7 @@ class ValidationTests(unittest.TestCase):
                         "call": "clickToApi",
                         "args": {
                             "intentName": "CallPhone",
-                            "params": {"relationship": "母亲", "phoneNumber": ""},
+                            "params": {"phoneNumber": ""},
                         },
                     }
                 ],

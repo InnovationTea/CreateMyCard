@@ -58,7 +58,7 @@
   "dataBindings": [
     {
       "capabilityId": "ViewWeather",
-      "arguments": { "districtName": "青浦区", "forecastDays": 1 },
+      "arguments": { "prefectureName": "上海市", "districtName": "青浦区", "forecastDays": 1 },
       "writeResultTo": "/data/weather"
     }
   ]

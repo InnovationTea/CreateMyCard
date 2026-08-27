@@ -18,6 +18,7 @@ from .cardspec_validator import CardSpecValidator
 from .component_validator import ComponentValidator
 from .cross_validator import CrossValidator
 from .diagnostics import Reporter
+from .display_unit_validator import DisplayUnitValidator
 from .effective_capability_validator import EffectiveCapabilityValidator
 from .expression_validator import ExpressionValidator
 from .protocol_validator import ProtocolValidator
@@ -29,6 +30,7 @@ STATIC_VALIDATORS = [
     ExpressionValidator(),
     AssetValidator(),
     BindingValidator(),
+    DisplayUnitValidator(),
     CrossValidator(),
 ]
 

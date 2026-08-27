@@ -136,7 +136,7 @@ overview 前仅检查卡片形态、静态范围和最小语义歧义。用户 q
 ```json
 {
   "capabilityId": "ViewWeather",
-  "arguments": {"districtName": "青浦区", "forecastDays": 1},
+  "arguments": {"prefectureName": "上海市", "districtName": "青浦区", "forecastDays": 1},
   "writeResultTo": "/data/weather",
   "candidateOutputFields": ["/location/districtName", "/current/temperatureText"]
 }

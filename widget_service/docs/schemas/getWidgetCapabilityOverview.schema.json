@@ -2,7 +2,7 @@
   "name": "getWidgetCapabilityOverview",
   "transport": "websocket",
   "path": "/api/v1/ws/tools/getWidgetCapabilityOverview",
-  "description": "按 ROM、prdVer 选择注册表，再仅将服务端配置范围内的能力依赖包名与 IDS 已安装应用 bundleName 精确匹配（当前默认仅运动健康），返回可用能力及不可用能力 ID。content 对应业务入参。",
+  "description": "按 ROM、prdVer 选择注册表，再仅将服务端配置范围内的能力依赖包名与 IDS 已安装应用 bundleName 精确匹配（当前默认包含天气、运动健康和日历），返回可用能力及不可用能力 ID。content 对应业务入参。",
   "messageEnvelope": {
     "type": "object",
     "required": ["content", "deviceInfo", "session"],
