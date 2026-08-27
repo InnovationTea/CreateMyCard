@@ -276,6 +276,32 @@
         "/chargingStatusDesc",
         "/batteryCapacityLevelDesc"
       ]
+    },
+    {
+      "templateId": "BatteryOverviewTemperatureIconCompact@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电池温度图标紧凑行；用于 2x2 双层 Compact 组合，下层展示电池温度和图标。 组件形态：temperatureIconCompact。",
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/batteryTemperatureText"
+      ],
+      "secondaryData": []
+    },
+    {
+      "templateId": "BatteryOverviewStatusIconCompact@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量状态图标紧凑行；用于 2x2 双层 Compact 组合，展示电量百分比、状态文本和图标。 组件形态：statusIconCompact。",
+      "optionalData": [
+        "/batteryCapacityLevelDesc"
+      ],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/batterySOCText"
+      ],
+      "secondaryData": []
     }
   ],
   "compatibility": {

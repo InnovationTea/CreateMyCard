@@ -212,7 +212,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 87
+    assert len(registry.provider_template_ids) == 90
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -3245,6 +3245,7 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
                 "WeatherOverviewFull@1",
                 "WeatherOverviewIconCompact@1",
                 "WeatherOverviewIconFull@1",
+                "WeatherOverviewTemperatureIconCompact@1",
             ],
         }
     ]
@@ -3267,6 +3268,7 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
             "WeatherOverviewFull@1",
             "WeatherOverviewIconCompact@1",
             "WeatherOverviewIconFull@1",
+            "WeatherOverviewTemperatureIconCompact@1",
         ],
     ]
     assert "selectedActionEventIds=[]" in second_layer_user
