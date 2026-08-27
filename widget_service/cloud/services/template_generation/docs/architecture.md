@@ -124,8 +124,11 @@ Search 路线的首层输出是 `TemplateRetrievalQuery`：
 - 字段必须逐字来自对应 `candidateOutputFields`。
 - CardSpec 写入根必须与 Provider `dataDomain` 一致。
 - 模板的 `primaryData` 和 `secondaryData` 必须都能从 TaskSpec 中取得。
-- 当前 Search 只接受一个数据业务，可外加最多两个显式 Action。
-- 用户显式字段必须能在同一业务组内被候选 Template 完整覆盖。
+- 对 `2x2`，Search 按业务组件数和显式 Action 数确定候选形态：单业务 0/1/2 个
+  Action 只保留 `Full`/`Hero`/`Compact`；双业务只允许 0 个 Action，且两个业务都只保留
+  `Compact`；三项及以上业务、双业务带 Action 或三项及以上 Action 均拒绝。
+- 非 `2x2` 仍只接受一个业务组件，可外加最多两个显式 Action。
+- 用户显式字段必须在后缀过滤后的候选 Template 中完整覆盖。
 
 结果是 `TemplateRouteSelection`，其 `availableTemplateIds` 仍是二层候选集，不是最终选择。
 

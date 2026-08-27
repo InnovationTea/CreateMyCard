@@ -37,7 +37,7 @@ class TemplateRetrievalQuery(BaseModel):
     required_output_fields_by_capability: dict[str, tuple[str, ...]] = Field(
         alias="requiredOutputFieldsByCapability",
     )
-    action_ids: tuple[str, ...] = Field(default=(), alias="action", max_length=2)
+    action_ids: tuple[str, ...] = Field(default=(), alias="action")
 
     @field_validator("required_output_fields_by_capability")
     @classmethod
@@ -132,10 +132,6 @@ def retrieve_template_variants(
     _validate_selected_actions(query, task_spec)
     if not query.required_output_fields_by_capability:
         raise TemplateRetrievalMiss("template retrieval has no requested capability")
-    if len(query.required_output_fields_by_capability) > 1:
-        raise TemplateRetrievalMiss(
-            "template Search supports one data business with an optional Action"
-        )
     candidate_ids = {binding.capabilityId for binding in coverage_bindings}
     if not set(query.required_output_fields_by_capability).issubset(candidate_ids):
         raise TemplateRetrievalMiss("requested capability is outside candidate data bindings")
@@ -172,7 +168,13 @@ def retrieve_template_variants(
         )
         for component_id, template_ids in sorted(by_component.items())
     )
-    if len(candidates) > 1:
+    if task_spec.size == "2x2":
+        candidates, required_groups = _apply_2x2_combination_policy(
+            candidates,
+            query.action_ids,
+            required_groups,
+        )
+    elif len(candidates) > 1:
         raise TemplateRetrievalMiss(
             "template Search requires requested fields to fit one business component"
         )
@@ -186,6 +188,88 @@ def retrieve_template_variants(
         actionIds=query.action_ids,
         requiredTemplateGroups=tuple(required_groups),
     )
+
+
+def _apply_2x2_combination_policy(
+    candidates: tuple[TemplateComponentCandidate, ...],
+    action_ids: tuple[str, ...],
+    required_groups: list[tuple[str, ...]],
+) -> tuple[tuple[TemplateComponentCandidate, ...], list[tuple[str, ...]]]:
+    """Restrict 2x2 candidates to the business and Action capacity contract."""
+    component_count = len(candidates)
+    action_count = len(action_ids)
+    if component_count >= 3:
+        raise TemplateRetrievalMiss("2x2 template Search supports at most two businesses")
+    if action_count >= 3:
+        raise TemplateRetrievalMiss("2x2 template Search supports at most two Actions")
+    if component_count == 2:
+        if action_count:
+            raise TemplateRetrievalMiss("2x2 two-business templates do not support Actions")
+        layout_suffix = "Compact"
+    elif component_count == 1:
+        layout_suffix = {0: "Full", 1: "Hero", 2: "Compact"}[action_count]
+    else:
+        raise TemplateRetrievalMiss("template Search found no business component")
+
+    filtered_candidates = tuple(
+        _candidate_with_layout_suffix(candidate, layout_suffix) for candidate in candidates
+    )
+    allowed_template_ids = {
+        template_id
+        for candidate in filtered_candidates
+        for template_id in candidate.available_template_ids
+    }
+    filtered_groups = [
+        tuple(template_id for template_id in group if template_id in allowed_template_ids)
+        for group in required_groups
+    ]
+    if any(not group for group in filtered_groups):
+        raise TemplateRetrievalMiss(
+            f"2x2 {layout_suffix} templates cannot cover all requested fields"
+        )
+    for candidate in filtered_candidates:
+        _require_single_template_coverage(candidate, filtered_groups, layout_suffix)
+    return filtered_candidates, filtered_groups
+
+
+def _candidate_with_layout_suffix(
+    candidate: TemplateComponentCandidate,
+    layout_suffix: str,
+) -> TemplateComponentCandidate:
+    template_ids = tuple(
+        template_id
+        for template_id in candidate.available_template_ids
+        if _template_has_layout_suffix(template_id, layout_suffix)
+    )
+    if not template_ids:
+        raise TemplateRetrievalMiss(
+            f"2x2 business {candidate.component_id} has no {layout_suffix} template"
+        )
+    return candidate.model_copy(update={"available_template_ids": template_ids})
+
+
+def _require_single_template_coverage(
+    candidate: TemplateComponentCandidate,
+    required_groups: list[tuple[str, ...]],
+    layout_suffix: str,
+) -> None:
+    """A 2x2 business slot must use one layout-compatible business template."""
+    candidate_ids = set(candidate.available_template_ids)
+    component_groups = [
+        set(group).intersection(candidate_ids)
+        for group in required_groups
+        if set(group).intersection(candidate_ids)
+    ]
+    if component_groups and not set.intersection(*component_groups):
+        raise TemplateRetrievalMiss(
+            f"2x2 {layout_suffix} templates cannot cover one {candidate.component_id} slot"
+        )
+
+
+def _template_has_layout_suffix(template_id: str, layout_suffix: str) -> bool:
+    """Match the declared business-template layout before its version suffix."""
+    template_name, separator, version = template_id.rpartition("@")
+    return bool(separator and version and template_name.endswith(layout_suffix))
 
 
 def _component_templates_for_capability(

@@ -1610,7 +1610,7 @@ def test_calendar_templates_follow_latest_date_schedule_ux_geometry():
 
 
 @pytest.mark.asyncio
-async def test_calendar_date_and_schedule_compacts_generate_one_vertical_card():
+async def test_calendar_date_and_schedule_reject_without_one_full_template():
     class CalendarTemplateModel:
         async def generate_json(
             self,
@@ -1635,11 +1635,7 @@ async def test_calendar_date_and_schedule_compacts_generate_one_vertical_card():
             *_args: Any,
             **_kwargs: Any,
         ) -> str:
-            return (
-                'Template("PeerPairLayout@1",{},'
-                'Template("DateOverviewCompact@1",{}),'
-                'Template("ScheduleOverviewMeetingCompact@1",{}));'
-            )
+            raise AssertionError("Search miss must skip the second layer")
 
     task = TaskSpec(
         userQuery="显示日期和下一场会议的标题、时间",
@@ -1682,20 +1678,13 @@ async def test_calendar_date_and_schedule_compacts_generate_one_vertical_card():
         ],
     }
 
-    output = await generate_template_a2ui(
-        task,
-        card_spec,
-        (binding,),
-        CalendarTemplateModel(),
-    )
-
-    assert output.template_ids == (
-        "DateOverviewCompact@1",
-        "ScheduleOverviewMeetingCompact@1",
-        "PeerPairLayout@1",
-    )
-    assert "UI需求评审会" in output.a2ui
-    assert "2026-08-19" in output.a2ui
+    with pytest.raises(TemplateRouteNotApplicable, match="cannot cover one CalendarOverview slot"):
+        await generate_template_a2ui(
+            task,
+            card_spec,
+            (binding,),
+            CalendarTemplateModel(),
+        )
 
 
 def test_pr7_resource_battery_outer_title_keeps_the_reviewed_subtext_style():
@@ -1880,7 +1869,7 @@ def _provider_field(value: Any, field_type: str) -> dict[str, Any]:
 
 
 @pytest.mark.asyncio
-async def test_q094_multi_business_fields_reject_template_search():
+async def test_q094_multi_business_fields_use_compact_template_search():
     task_spec = TaskSpec(
         userQuery="刚睡醒，看看昨晚睡了多久、睡眠得分和今天走了多少步",
         size="2x2",
@@ -1960,11 +1949,14 @@ async def test_q094_multi_business_fields_reject_template_search():
             **_kwargs: Any,
         ) -> str:
             self.second_layer_prompt = prompt
-            raise AssertionError("multi-business Search miss must skip the second layer")
+            return (
+                'Template("PeerPairLayout@1",{},'
+                'Template("SleepOverviewCompact@1",{}),'
+                'Template("ActivityOverviewCompact@1",{}));'
+            )
 
     model = Q094TemplateModel()
-    with pytest.raises(TemplateRouteNotApplicable, match="one business component"):
-        await generate_template_a2ui(task_spec, card_spec, (binding,), model)
+    output = await generate_template_a2ui(task_spec, card_spec, (binding,), model)
 
     assert model.first_layer_prompt is not None
     first_layer_payload = json.loads(model.first_layer_prompt[1]["content"])
@@ -1976,7 +1968,12 @@ async def test_q094_multi_business_fields_reject_template_search():
         ]
     }
     assert first_layer_payload["providerFirstLayerRules"]
-    assert model.second_layer_prompt is None
+    assert model.second_layer_prompt is not None
+    assert output.template_ids == (
+        "SleepOverviewCompact@1",
+        "ActivityOverviewCompact@1",
+        "PeerPairLayout@1",
+    )
 
 
 class _FixedTemplateModel:
@@ -2167,7 +2164,7 @@ async def test_bluetooth_connection_and_case_queries_have_honest_template_covera
 
 
 @pytest.mark.asyncio
-async def test_bluetooth_layout_action_uses_cardtpl_foreground_opacity():
+async def test_bluetooth_action_rejects_when_no_hero_template_is_available():
     binding = CandidateDataBinding(
         capabilityId="GetEarphoneInfo",
         writeResultTo="/data/earphone",
@@ -2215,14 +2212,13 @@ async def test_bluetooth_layout_action_uses_cardtpl_foreground_opacity():
         ),
     )
 
-    output = await generate_template_a2ui(
-        task_spec,
-        _bluetooth_card_spec(),
-        (binding,),
-        model,
-    )
-
-    assert "#1964BB5C" in output.a2ui
+    with pytest.raises(TemplateRouteNotApplicable, match="no Hero template"):
+        await generate_template_a2ui(
+            task_spec,
+            _bluetooth_card_spec(),
+            (binding,),
+            model,
+        )
 
 
 @pytest.mark.asyncio
@@ -2761,12 +2757,19 @@ async def test_first_layer_selector_routes_and_preserves_action(
             }
 
         async def generate(self, *_args: Any, **_kwargs: Any) -> str:
+            if selector == "search":
                 return (
-                    'Template("SingleFocusLayout@1",{},'
-                    'Template("WeatherOverviewIconFull@1",'
-                    '{"conditionIcon":"resources/base/media/icon_weather1.svg"}),'
-                    'Template("IconAction@1",{"actionId":"event.open.weather",'
-                    '"icon":"resources/base/media/icon_weather1.svg"}));'
+                    'Template("HeroActionLayout@1",{},'
+                    'Template("WeatherOverviewHero@1",{}),'
+                    'Template("PillAction@1",{"actionId":"event.open.weather",'
+                    '"label":"天气详情"}));'
+                )
+            return (
+                'Template("SingleFocusLayout@1",{},'
+                'Template("WeatherOverviewIconFull@1",'
+                '{"conditionIcon":"resources/base/media/icon_weather1.svg"}),'
+                'Template("IconAction@1",{"actionId":"event.open.weather",'
+                '"icon":"resources/base/media/icon_weather1.svg"}));'
             )
 
     controls = TemplateControls(
@@ -3240,10 +3243,8 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
         {
             "componentId": "WeatherOverview",
             "availableTemplateIds": [
-                "WeatherOverviewCompact@1",
                 "WeatherOverviewConditionFull@1",
                 "WeatherOverviewFull@1",
-                "WeatherOverviewIconCompact@1",
                 "WeatherOverviewIconFull@1",
             ],
         }
@@ -3255,17 +3256,13 @@ async def test_weather_template_generates_a2ui_and_compact_artifact(monkeypatch)
     )
     assert json.loads(required_group_line.removeprefix("requiredLocalTemplateGroups=")) == [
         [
-            "WeatherOverviewCompact@1",
             "WeatherOverviewConditionFull@1",
             "WeatherOverviewFull@1",
-            "WeatherOverviewIconCompact@1",
             "WeatherOverviewIconFull@1",
         ],
         [
-            "WeatherOverviewCompact@1",
             "WeatherOverviewConditionFull@1",
             "WeatherOverviewFull@1",
-            "WeatherOverviewIconCompact@1",
             "WeatherOverviewIconFull@1",
         ],
     ]
@@ -3484,10 +3481,9 @@ async def test_first_layer_action_is_independent_from_selected_components():
     model = WeatherTemplateModel(
         action_id="event.open.weather",
         body=(
-            'Template("SingleFocusLayout@1",{},Template("WeatherOverviewIconFull@1",'
-            '{"conditionIcon":"resources/base/media/icon_weather1.svg"}),'
-            'Template("IconAction@1",{"actionId":"event.open.weather",'
-            '"icon":"resources/base/media/icon_weather1.svg"}));'
+            'Template("HeroActionLayout@1",{},Template("WeatherOverviewHero@1",{}),'
+            'Template("PillAction@1",{"actionId":"event.open.weather",'
+            '"label":"天气详情","icon":"resources/base/media/icon_weather1.svg"}));'
         ),
     )
     task_spec = _weather_task_spec()

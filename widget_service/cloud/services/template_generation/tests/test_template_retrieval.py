@@ -10,6 +10,7 @@ from models.generation import CandidateDataBinding, EventAction, TaskSpec
 from services.template_generation.engine.advanced.content_selectors import (
     apply_content_selectors,
 )
+from services.template_generation.engine.advanced.models import TemplateComponentCandidate
 from services.template_generation.engine.cardplan.registry import (
     CardPlanRegistry,
     get_cardplan_registry,
@@ -21,6 +22,7 @@ from services.template_generation.engine.cardplan.retrieval_index import (
 from services.template_generation.engine.cardplan.template_retrieval import (
     TemplateRetrievalMiss,
     TemplateRetrievalQuery,
+    _apply_2x2_combination_policy,
     _component_templates_for_capability,
     _required_field_template_groups,
     build_template_retrieval_prompt,
@@ -132,10 +134,11 @@ def test_cross_theme_query_keeps_field_compatible_candidates() -> None:
     )
 
     assert result.component_candidates
-    assert set(result.allowed_template_ids) >= {
-        "WeatherOverviewCompact@1",
-        "WeatherOverviewFull@1",
-    }
+    assert result.allowed_template_ids
+    assert all(
+        template_id.removesuffix("@1").endswith("Full")
+        for template_id in result.allowed_template_ids
+    )
 
 
 @pytest.mark.parametrize(
@@ -224,7 +227,7 @@ def test_shared_capability_keeps_each_component_scoped_templates() -> None:
     assert "ScheduleOverviewNextEventFull@1" in result.allowed_template_ids
 
 
-def test_calendar_date_and_schedule_share_one_business_component() -> None:
+def test_2x2_single_business_rejects_fields_without_one_full_template() -> None:
     task = TaskSpec(
         userQuery="显示日期和下一场会议的标题、时间",
         size="2x2",
@@ -267,33 +270,22 @@ def test_calendar_date_and_schedule_share_one_business_component() -> None:
         },
     )
 
-    result = retrieve_template_variants(
-        query,
-        task,
-        CardPlanRegistry(),
-        (binding,),
-        {
-            "suggestSize": "2x2",
-            "dataBindings": [
-                {
-                    "capabilityId": "GetCalendarEvents",
-                    "writeResultTo": "/data/calendar",
-                }
-            ],
-        },
-    )
-
-    assert result.scope.advanced_component_ids == ("CalendarOverview",)
-    assert len(result.component_candidates) == 1
-    assert set(result.allowed_template_ids) >= {
-        "DateOverviewCompact@1",
-        "ScheduleOverviewMeetingCompact@1",
-    }
-    assert any("DateOverviewCompact@1" in group for group in result.required_template_groups)
-    assert any(
-        "ScheduleOverviewMeetingCompact@1" in group
-        for group in result.required_template_groups
-    )
+    with pytest.raises(TemplateRetrievalMiss, match="cannot cover one CalendarOverview slot"):
+        retrieve_template_variants(
+            query,
+            task,
+            CardPlanRegistry(),
+            (binding,),
+            {
+                "suggestSize": "2x2",
+                "dataBindings": [
+                    {
+                        "capabilityId": "GetCalendarEvents",
+                        "writeResultTo": "/data/calendar",
+                    }
+                ],
+            },
+        )
 
 
 def test_domain_only_query_returns_candidates_when_required_data_is_available() -> None:
@@ -333,7 +325,7 @@ def test_first_layer_prompt_includes_task_fields_rules_and_action_candidates() -
     ]
 
 
-def test_search_rejects_multiple_data_capabilities() -> None:
+def test_search_allows_two_businesses_without_actions_only_with_compact_templates() -> None:
     task = _task()
     task.dataModelSchema["data"]["calendar"] = {
         "events": [
@@ -349,25 +341,30 @@ def test_search_rejects_multiple_data_capabilities() -> None:
         writeResultTo="/data/calendar",
         candidateOutputFields=["/events/0/title", "/events/0/dtStart"],
     )
-    with pytest.raises(TemplateRetrievalMiss, match="one data business"):
-        retrieve_template_variants(
-            TemplateRetrievalQuery(
-                themeId="family-weather-care-blue",
-                requiredOutputFieldsByCapability={
-                    "ViewWeather": ("/current/condition",),
-                    "GetCalendarEvents": ("/events/0/title", "/events/0/dtStart"),
-                },
-            ),
-            task,
-            CardPlanRegistry(),
-            (_binding(), calendar),
-            {
-                "dataBindings": [
-                    {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"},
-                    {"capabilityId": "GetCalendarEvents", "writeResultTo": "/data/calendar"},
-                ]
+    result = retrieve_template_variants(
+        TemplateRetrievalQuery(
+            themeId="family-weather-care-blue",
+            requiredOutputFieldsByCapability={
+                "ViewWeather": ("/current/condition",),
+                "GetCalendarEvents": ("/events/0/title", "/events/0/dtStart"),
             },
-        )
+        ),
+        task,
+        CardPlanRegistry(),
+        (_binding(), calendar),
+        {
+            "dataBindings": [
+                {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"},
+                {"capabilityId": "GetCalendarEvents", "writeResultTo": "/data/calendar"},
+            ]
+        },
+    )
+
+    assert len(result.component_candidates) == 2
+    assert all(
+        template_id.removesuffix("@1").endswith("Compact")
+        for template_id in result.allowed_template_ids
+    )
 
 
 def test_search_allows_one_data_business_with_action() -> None:
@@ -396,6 +393,142 @@ def test_search_allows_one_data_business_with_action() -> None:
 
     assert len(result.component_candidates) == 1
     assert result.action_id == "event.open.weather"
+    assert all(
+        template_id.removesuffix("@1").endswith("Hero")
+        for template_id in result.allowed_template_ids
+    )
+
+
+def test_2x2_single_business_two_actions_only_keeps_compact_templates() -> None:
+    action_ids = ("event.open.weather", "event.refresh.weather")
+    task = _task().model_copy(
+        update={
+            "eventCandidates": [
+                EventAction(
+                    id=action_id,
+                    call="clickToDeeplink",
+                    args={"intentName": action_id},
+                )
+                for action_id in action_ids
+            ]
+        }
+    )
+    result = retrieve_template_variants(
+        _query("/current/condition").model_copy(update={"action_ids": action_ids}),
+        task,
+        CardPlanRegistry(),
+        (_binding(),),
+        _card_spec(),
+    )
+
+    assert result.action_ids == action_ids
+    assert all(
+        template_id.removesuffix("@1").endswith("Compact")
+        for template_id in result.allowed_template_ids
+    )
+
+
+def test_2x2_single_business_rejects_when_required_layout_suffix_is_missing() -> None:
+    registry = CardPlanRegistry()
+    disabled_template_ids = tuple(
+        record.template_id
+        for record in registry.template_variant_search_records
+        if record.business_id == "WeatherOverview"
+        and record.template_id.removesuffix("@1").endswith("Hero")
+    )
+    task = _task().model_copy(
+        update={
+            "eventCandidates": [
+                EventAction(
+                    id="event.open.weather",
+                    call="clickToDeeplink",
+                    args={"intentName": "Weather_CityCode"},
+                )
+            ]
+        }
+    )
+    query = _query("/current/condition").model_copy(
+        update={"action_ids": ("event.open.weather",)}
+    )
+
+    with pytest.raises(TemplateRetrievalMiss, match="no Hero template"):
+        retrieve_template_variants(
+            query,
+            task,
+            CardPlanRegistry(disabled_template_ids=disabled_template_ids),
+            (_binding(),),
+            _card_spec(),
+        )
+
+
+@pytest.mark.parametrize(
+    ("candidates", "action_ids", "message"),
+    [
+        (
+            (
+                TemplateComponentCandidate(
+                    componentId="WeatherOverview",
+                    availableTemplateIds=("WeatherOverviewCompact@1",),
+                ),
+                TemplateComponentCandidate(
+                    componentId="CalendarOverview",
+                    availableTemplateIds=("DateOverviewCompact@1",),
+                ),
+            ),
+            ("event.open.weather",),
+            "two-business templates do not support Actions",
+        ),
+        (
+            (
+                TemplateComponentCandidate(
+                    componentId="WeatherOverview",
+                    availableTemplateIds=("WeatherOverviewCompact@1",),
+                ),
+                TemplateComponentCandidate(
+                    componentId="CalendarOverview",
+                    availableTemplateIds=("DateOverviewFull@1",),
+                ),
+            ),
+            (),
+            "CalendarOverview has no Compact template",
+        ),
+        (
+            (
+                TemplateComponentCandidate(
+                    componentId="WeatherOverview",
+                    availableTemplateIds=("WeatherOverviewCompact@1",),
+                ),
+                TemplateComponentCandidate(
+                    componentId="CalendarOverview",
+                    availableTemplateIds=("DateOverviewCompact@1",),
+                ),
+                TemplateComponentCandidate(
+                    componentId="ActivityOverview",
+                    availableTemplateIds=("ActivityOverviewCompact@1",),
+                ),
+            ),
+            (),
+            "at most two businesses",
+        ),
+        (
+            (
+                TemplateComponentCandidate(
+                    componentId="WeatherOverview",
+                    availableTemplateIds=("WeatherOverviewCompact@1",),
+                ),
+            ),
+            ("event.one", "event.two", "event.three"),
+            "at most two Actions",
+        ),
+    ],
+)
+def test_2x2_combination_policy_rejects_disallowed_combinations(
+    candidates: tuple[TemplateComponentCandidate, ...],
+    action_ids: tuple[str, ...],
+    message: str,
+) -> None:
+    with pytest.raises(TemplateRetrievalMiss, match=message):
+        _apply_2x2_combination_policy(candidates, action_ids, [("WeatherOverviewCompact@1",)])
 
 
 def test_one_component_may_use_multiple_templates_to_cover_requested_fields() -> None:
