@@ -217,7 +217,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 78
+    assert len(registry.provider_template_ids) == 79
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -231,6 +231,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "ScheduleOverviewDatedMeetingHero@1",
         "ScheduleOverviewNextEventFull@1",
         "ScheduleOverviewNextEventHero@1",
+        "ScheduleOverviewReminderHero@1",
         "SleepOverviewCompact@1",
         "SleepOverviewFull@1",
         "SleepOverviewHero@1",
@@ -366,7 +367,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 12
+    assert len(calendar.local_template_ids) == 13
     assert set(calendar.local_template_ids) >= {
         "DateOverviewCompact@1",
         "ScheduleOverviewMeetingCompact@1",
@@ -2150,6 +2151,21 @@ async def test_calendar_dnd_action_restores_label_icon_and_scene_header():
     components = messages[1]["updateComponents"]["components"]
     assert components[0]["styles"]["backgroundColor"] == "#FFFFEAE6"
     assert "linearGradient" not in components[0]["styles"]
+    header_label = next(
+        component for component in components if component.get("content") == "下一场日程"
+    )
+    header_row = next(
+        component
+        for component in components
+        if header_label["id"] in component.get("children", ())
+    )
+    hero_content = next(
+        component
+        for component in components
+        if header_row["id"] in component.get("children", ())
+    )
+    assert header_row["styles"]["alignItems"] == "start"
+    assert hero_content["itemMargin"] == 0
     action = next(component for component in components if component.get("onClick"))
     assert action["styles"]["backgroundColor"] == "#3399331F"
     focus_icon = next(
@@ -2164,6 +2180,148 @@ async def test_calendar_dnd_action_restores_label_icon_and_scene_header():
     assert "headerLabel" in second_layer_rule
     assert "免打扰" in second_layer_rule
     assert "月亮语义素材" in second_layer_rule
+
+
+@pytest.mark.asyncio
+async def test_calendar_reminder_hero_keeps_start_and_advance_notice():
+    task = TaskSpec(
+        userQuery="明天上午10点去医院复查，显示时间和提前提醒，点击进入闹钟",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.open.clock.alarm",
+                call="clickToDeeplink",
+                args={
+                    "intentName": "Clock",
+                    "bundleName": "com.huawei.hmos.clock",
+                    "abilityName": "com.huawei.hmos.clock.phone",
+                    "uri": "",
+                },
+            )
+        ],
+        assetCandidates=[
+            {
+                "src": "resources/base/media/icon_schedule.svg",
+                "description": "日历日程图标",
+                "sceneTags": ["calendar", "schedule"],
+            },
+            {
+                "src": "resources/base/media/alarm_fill_1.svg",
+                "description": "闹钟和定时提醒图标",
+                "sceneTags": ["alarm", "reminder"],
+            },
+        ],
+        dataModelSchema={
+            "data": {
+                "calendar": {
+                    "events": [
+                        {
+                            "title": _provider_field("医院复查", "string"),
+                            "dtStart": _provider_field("10:00", "string"),
+                            "remindTime": [_provider_field("15", "string")],
+                        }
+                    ]
+                }
+            }
+        },
+    )
+    fields = (
+        "/events/0/title",
+        "/events/0/dtStart",
+        "/events/0/remindTime/0",
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetCalendarEvents",
+        writeResultTo="/data/calendar",
+        candidateOutputFields=list(fields),
+    )
+    card_spec = {
+        "title": "明天提醒",
+        "description": "日程时间和提前提醒",
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {
+                "capabilityId": "GetCalendarEvents",
+                "writeResultTo": "/data/calendar",
+            }
+        ],
+    }
+    model = _FixedTemplateModel(
+        theme_id="meeting-paper-neutral",
+        component_id="CalendarOverview",
+        available_template_ids=("ScheduleOverviewReminderHero@1",),
+        capability_id="GetCalendarEvents",
+        required_fields=fields,
+        action_id="event.open.clock.alarm",
+        body=(
+            'Template("HeroActionLayout@1",{},'
+            'Template("ScheduleOverviewReminderHero@1",'
+            '{"headerLabel":"明天提醒"}),'
+            'Template("PillAction@1",{"actionId":"event.open.clock.alarm",'
+            '"label":"设置闹钟",'
+            '"icon":"resources/base/media/alarm_fill_1.svg"}));'
+        ),
+    )
+
+    output = await generate_template_a2ui(task, card_spec, (binding,), model)
+
+    assert output.template_ids == (
+        "ScheduleOverviewReminderHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1",
+    )
+    assert "明天提醒" in output.a2ui
+    assert "events/0/title" in output.a2ui
+    assert "events/0/dtStart" in output.a2ui
+    assert "events/0/remindTime/0" in output.a2ui
+    assert "提前" in output.a2ui
+    assert "分钟提醒" in output.a2ui
+    assert "设置闹钟" in output.a2ui
+    assert "resources/base/media/alarm_fill_1.svg" in output.a2ui
+    assert "resources/base/media/icon_schedule.svg" not in output.a2ui
+    messages = [json.loads(line) for line in output.a2ui.splitlines()]
+    components = messages[1]["updateComponents"]["components"]
+    timeline_dot = next(
+        component
+        for component in components
+        if component.get("component") == "Stack"
+        and component.get("styles", {}).get("width") == 8
+        and component.get("styles", {}).get("height") == 8
+    )
+    event_title = next(
+        component
+        for component in components
+        if "events/0/title" in str(component.get("content", ""))
+    )
+    timeline_column = next(
+        component
+        for component in components
+        if timeline_dot["id"] in component.get("children", ())
+    )
+    assert timeline_column["styles"]["padding"] == {
+        "left": 0,
+        "top": 4,
+        "right": 0,
+        "bottom": 0,
+    }
+    assert timeline_column["itemMargin"] == 4
+    assert timeline_dot["styles"]["borderWidth"] == 1.5
+    assert timeline_dot["styles"]["borderColor"] == event_title["styles"]["fontColor"]
+    assert timeline_dot["styles"]["backgroundColor"] == "#00FFFFFF"
+    definition = get_cardplan_registry().require_template(
+        "ScheduleOverviewReminderHero@1"
+    )
+    assert definition.primary_data == ("/events/0/title",)
+    assert definition.secondary_data == (
+        "/events/0/dtStart",
+        "/events/0/remindTime/0",
+    )
+    assert model.second_layer_prompt is not None
+    second_layer_rule = model.second_layer_prompt[1]["content"]
+    assert "ScheduleOverviewReminderHero@1" in second_layer_rule
+    assert "设置闹钟" in second_layer_rule
+    assert "闹钟或提醒语义素材" in second_layer_rule
+    assert "标题栏不接收素材" in second_layer_rule
 
 
 def test_pr7_resource_battery_outer_title_keeps_the_reviewed_subtext_style():
