@@ -36,8 +36,10 @@ template_generation -X-> ArtifactValidator / ArtifactStore / ResponsePlanner
 
 ## 2. 入口路由差异
 
-`WidgetGenerationService._generate_widget_card_with_policy()` 只负责是否注入 Template source generator。
-回退策略仍在公共 `generate_source_dsl()` 中执行，不进入模板模块。
+Compact 和 Tersel 入口分别构造 `TemplateSourceGenerator` 对象，并设置各自的模板候选、Action、样例覆盖等
+差异属性。`WidgetGenerationService._generate_widget_card_with_policy()` 只负责向对象绑定当前 Processor、
+Form Profile、模型运行时和请求上下文，再将其注入公共生成链。回退策略仍在公共 `generate_source_dsl()` 中
+执行，不进入模板模块。
 
 | 场景 | Compact | Tersel |
 | --- | --- | --- |

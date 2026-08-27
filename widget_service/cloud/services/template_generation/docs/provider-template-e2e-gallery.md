@@ -12,8 +12,8 @@
 该能力位于 `template_generation/test_support/`，只通过 `WidgetGenerationService` 的公开入口发起测试请求，
 不在 Template 模块内构造 TaskSpec、CardSpec 或最终 Artifact。批跑器调用
 `generate_widget_card_terse_dsl_nested2` 时，通过仅供 Python 服务调用的关键字参数携带目标模板、目标 Action
-和样例覆盖；它们不进入 `GenerateWidgetCardRequest`、工具请求 JSON 或公开 Schema。Search 通过后，二层候选
-才会收窄到目标模板，外部工具请求不能设置这些开发测试约束。
+和样例覆盖；该入口据此构造 `TemplateSourceGenerator`，它们不进入 `GenerateWidgetCardRequest`、工具请求
+JSON 或公开 Schema。Search 通过后，二层候选才会收窄到目标模板，外部工具请求不能设置这些开发测试约束。
 
 ## 场景矩阵
 

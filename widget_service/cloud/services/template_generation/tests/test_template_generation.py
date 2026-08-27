@@ -38,10 +38,12 @@ from services.protocol_registry import (
 )
 from services.template_generation import (
     FusionBallA2UIConversionError,
+    TemplateSourceGenerator,
     convert_a2ui_with_fusion_ball,
     facade,
     route_legacy_python_terse_generation,
 )
+from services.template_generation import source_generator as template_source_generator_module
 from services.template_generation.binding_dependencies import enrich_template_bindings
 from services.template_generation.controls import TemplateControls, load_template_controls
 from services.template_generation.engine import pipeline as template_pipeline_module
@@ -3737,7 +3739,7 @@ async def test_template_exception_obeys_route_failure_policy(
         callback_sizes.append(size)
 
     monkeypatch.setattr(
-        widget_generation_service_module,
+        template_source_generator_module,
         "request_template_source_dsl",
         failed_template,
     )
@@ -3905,7 +3907,7 @@ async def test_terse_edit_is_rejected_before_template_source_request(monkeypatch
 
     service = WidgetGenerationService()
     monkeypatch.setattr(
-        widget_generation_service_module,
+        template_source_generator_module,
         "request_template_source_dsl",
         rejected_template,
     )
@@ -3940,13 +3942,51 @@ async def test_terse_entry_forwards_gallery_template_overrides(monkeypatch):
     )
 
     assert response is expected
-    assert observed["trusted_template_candidate_ids"] == (
+    generator = observed["template_source_generator"]
+    assert isinstance(generator, TemplateSourceGenerator)
+    assert generator.trusted_template_candidate_ids == (
         "WeatherOverviewCompact@1",
     )
-    assert observed["trusted_template_action_ids"] == ("event.open.weather",)
-    assert observed["trusted_template_sample_overrides"] == {
+    assert generator.trusted_template_action_ids == ("event.open.weather",)
+    assert generator.trusted_template_sample_overrides == {
         "/data/weather/current/condition": "晴"
     }
+    assert generator.processor_kind is None
+    assert generator.protocol_profile is None
+
+
+@pytest.mark.asyncio
+async def test_policy_layer_configures_template_source_generator(monkeypatch):
+    expected = object()
+    captured: dict[str, Any] = {}
+
+    async def capture_generation(
+        _request: Any,
+        **options: Any,
+    ) -> Any:
+        captured.update(options)
+        return expected
+
+    service = WidgetGenerationService(model_runtime=object())
+    monkeypatch.setattr(service, "generate_widget_card", capture_generation)
+    generator = TemplateSourceGenerator(
+        trusted_template_candidate_ids=("WeatherOverviewCompact@1",),
+    )
+    response = await service._generate_widget_card_with_policy(
+        _weather_request(),
+        _terse_policy(),
+        template_source_generator=generator,
+        need_fallback=False,
+    )
+
+    assert response is expected
+    assert captured["template_source_generator"] is generator
+    assert captured["need_fallback"] is False
+    assert generator.processor_kind == DslProcessorKind.DESIGN_COMPACT
+    assert generator.protocol_profile is not None
+    assert generator.protocol_profile["id"] == A2UI_FORM_PROTOCOL_PROFILE_ID
+    assert generator.model_runtime is service.model_runtime
+    assert isinstance(generator.model_request_context, ModelRequestContext)
 
 
 @pytest.mark.asyncio
