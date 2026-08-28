@@ -2,6 +2,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import hashlib
 import inspect
+import json
 import time
 import uuid
 from collections.abc import Awaitable, Callable
@@ -44,6 +45,7 @@ from services.generation_pipeline import (
     get_dsl_processor,
 )
 from services.generation_preflight import GenerationPreflight
+from services.multi_step_generation.core.bridge import JsxA2UIBridge
 from services.prompt_builder import PromptBuilder
 from services.protocol_registry import (
     A2UI_FORM_PROTOCOL_PROFILE_ID,
@@ -57,11 +59,39 @@ from services.source_artifact_repository import (
     SourceArtifactLoadResult,
     SourceArtifactRepository,
 )
-from services.template_generation import request_template_source_dsl
+from services.template_generation import (
+    FusionBallA2UIConversionError,
+    TemplateSourceGenerator,
+    convert_a2ui_with_fusion_ball,
+)
 from services.validator import ArtifactValidator
 
 _MODULE = "[Generation Service]"
-TemplateSourceGenerator = Callable[..., Awaitable[str]]
+
+
+def _expand_cloud_a2ui_components(
+    result: DslProcessingResult,
+) -> DslProcessingResult:
+    """Expand cloud-only components after every source format becomes complete A2UI."""
+    if result.errors or not result.standard_dsl:
+        return result
+    try:
+        standard_dsl = convert_a2ui_with_fusion_ball(result.standard_dsl)
+    except FusionBallA2UIConversionError as exc:
+        issue = QualityIssue(
+            stage="conversion",
+            code="CLOUD_COMPONENT_EXPANSION_FAILED",
+            message=str(exc),
+        )
+        return DslProcessingResult(
+            source_dsl=result.source_dsl,
+            issues=result.issues + (issue,),
+        )
+    return DslProcessingResult(
+        source_dsl=result.source_dsl,
+        standard_dsl=standard_dsl,
+        issues=result.issues,
+    )
 
 
 class WidgetGenerationService:
@@ -253,6 +283,7 @@ class WidgetGenerationService:
         *,
         policy: GenerationRoutePolicy,
         before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
+        try_jsx: bool = False,
         template_source_generator: TemplateSourceGenerator | None = None,
         need_fallback: bool = True,
     ) -> GenerateWidgetCardResponse:
@@ -588,6 +619,35 @@ class WidgetGenerationService:
         async def generate_source_dsl() -> str:
             if before_model_call is not None:
                 await before_model_call(card_spec.suggestSize)
+            if try_jsx:
+                try:
+                    logger.info(
+                        f"{_MODULE} jsx_generation_started operation={policy.operation}"
+                    )
+                    bridge = JsxA2UIBridge()
+                    bridge_result = await bridge.generate(task_spec, card_spec.suggestSize)
+                    a2ui_jsonl = "\n".join(
+                        json.dumps(msg, ensure_ascii=False, separators=(",", ":"))
+                        for msg in bridge_result.a2ui_messages
+                    )
+                    logger.info(
+                        f"{_MODULE} jsx_generation_completed operation={policy.operation} "
+                        f"component={bridge_result.component_name} "
+                        f"turns={bridge_result.turns} elapsed={bridge_result.elapsed_seconds}s"
+                    )
+                    return require_generated_dsl(a2ui_jsonl)
+                except Exception as exc:
+                    fallback = "original_protocol_flow" if need_fallback else "none"
+                    logger.info(
+                        f"{_MODULE} jsx_generation_failed "
+                        f"operation={policy.operation} fallback={fallback} "
+                        f"reason={type(exc).__name__} "
+                        f"detail={json_for_log(str(exc))}"
+                    )
+                    if not need_fallback:
+                        raise A2UIModelGenerationError(
+                            "JSX generation failed without fallback"
+                        ) from exc
             if template_source_generator is not None:
                 try:
                     logger.info(
@@ -660,7 +720,19 @@ class WidgetGenerationService:
 
         def evaluate_source_dsl_sync(source_dsl: str) -> list[str]:
             nonlocal latest_processing_result
+            # JSX 路径：agent 内部已有编译+验证+重试，跳过工程 processor 和 validator
+            if try_jsx:
+                logger.info(
+                    f"{_MODULE} artifact_validation_skipped operation={policy.operation} "
+                    "reason=jsx_internal_validation"
+                )
+                latest_processing_result = DslProcessingResult(
+                    source_dsl=source_dsl, standard_dsl=source_dsl,
+                )
+                return []
             processing_result = processor.process(source_dsl, processing_context)
+            if self._enable_fusion_ball():
+                processing_result = _expand_cloud_a2ui_components(processing_result)
             latest_processing_result = processing_result
             warnings = [
                 item.repair_message()
@@ -1059,12 +1131,24 @@ class WidgetGenerationService:
             model_profile_id=A2UI_FORM_PROTOCOL_PROFILE_ID,
             model_format="a2ui-form",
         )
+        # 优先级：enable_card_template > enable_jsx_generation > 默认模型
+        # 模板方案开了走模板；否则 JSX 方案开了走 JSX（失败不 fallback）；否则走默认模型
+        try_template = self._enable_card_template()
+        try_jsx = (not try_template) and self._enable_jsx_generation()
+        # JSX 路径失败不 fallback 到默认模型
+        need_fallback = not try_jsx
         if before_model_call is None:
-            return await self._generate_widget_card_with_policy(request, policy)
+            return await self._generate_widget_card_with_policy(
+                request, policy, try_jsx=try_jsx, try_template=try_template,
+                need_fallback=need_fallback,
+            )
         return await self._generate_widget_card_with_policy(
             request,
             policy,
             before_model_call=before_model_call,
+            try_jsx=try_jsx,
+            try_template=try_template,
+            need_fallback=need_fallback,
         )
 
     async def generate_widget_card_compact_dsl(
@@ -1103,7 +1187,7 @@ class WidgetGenerationService:
             request,
             policy,
             before_model_call=before_model_call,
-            try_template=True,
+            template_source_generator=TemplateSourceGenerator() if self._enable_card_template() else None,
             need_fallback=True,
         )
 
@@ -1112,8 +1196,11 @@ class WidgetGenerationService:
         request: GenerateWidgetCardRequest,
         *,
         before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
+        trusted_template_candidate_ids: tuple[str, ...] = (),
+        trusted_template_action_ids: tuple[str, ...] = (),
+        trusted_template_sample_overrides: dict[str, object] | None = None,
     ) -> GenerateWidgetCardResponse:
-        """复用 Design Compact 原始生成链处理 Terse 模板入口。"""
+        """使用本地 TerseDSL-Nested-2 Prompt 和转换器生成标准 A2UI。"""
         try:
             selection = self._compact_protocol_selection(request)
         except ValueError as exc:
@@ -1149,11 +1236,19 @@ class WidgetGenerationService:
             )
         # 问题定位时可显式调用
         # services.template_generation.route_legacy_python_terse_generation(...)。
+        template_source_generator = TemplateSourceGenerator(
+            enable_fusion_ball=self._enable_fusion_ball(),
+            trusted_template_candidate_ids=trusted_template_candidate_ids,
+            trusted_template_action_ids=trusted_template_action_ids,
+            trusted_template_sample_overrides=dict(
+                trusted_template_sample_overrides or {}
+            ),
+        )
         return await self._generate_widget_card_with_policy(
             request,
             policy,
             before_model_call=before_model_call,
-            try_template=True,
+            template_source_generator=template_source_generator,
             need_fallback=False,
         )
 
@@ -1163,10 +1258,11 @@ class WidgetGenerationService:
         policy: GenerationRoutePolicy,
         *,
         before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
-        try_template: bool = False,
+        try_jsx: bool = False,
+        template_source_generator: TemplateSourceGenerator | None = None,
         need_fallback: bool = True,
     ) -> GenerateWidgetCardResponse:
-        """复制请求并锁定协议 Profile，按需注入模板 source generator。"""
+        """复制请求并锁定路由对应的协议 profile。"""
         unsupported_response = self._policy_unsupported_response(request, policy)
         if unsupported_response is not None:
             return unsupported_response
@@ -1176,37 +1272,30 @@ class WidgetGenerationService:
         profiled_request._model_request_context = request._model_request_context
         profiled_request._raw_request_body = request._raw_request_body
         is_edit = "sourceArtifactUrl" in request.model_fields_set
-        if not try_template or is_edit:
+        if template_source_generator is None or is_edit:
             return await self.generate_widget_card(
                 profiled_request,
                 policy=policy,
                 before_model_call=before_model_call,
+                try_jsx=try_jsx,
+                need_fallback=need_fallback,
             )
-
-        async def generate_template_source(
-            task_spec,
-            card_spec: dict,
-            effective_bindings: tuple,
-        ) -> str:
-            return await request_template_source_dsl(
-                task_spec,
-                card_spec,
-                effective_bindings,
-                processor_kind=policy.processor_kind,
-                protocol_profile=A2UIProtocolRegistry(
-                    policy.protocol_profile_id
-                ).get_profile(),
-                model_runtime=self.model_runtime,
-                model_request_context=self._resolve_model_request_context(
-                    profiled_request
-                ),
-            )
+        template_source_generator.enable_fusion_ball = self._enable_fusion_ball()
+        template_source_generator.processor_kind = policy.processor_kind
+        template_source_generator.protocol_profile = A2UIProtocolRegistry(
+            policy.protocol_profile_id
+        ).get_profile()
+        template_source_generator.model_runtime = self.model_runtime
+        template_source_generator.model_request_context = (
+            self._resolve_model_request_context(profiled_request)
+        )
 
         return await self.generate_widget_card(
             profiled_request,
             policy=policy,
             before_model_call=before_model_call,
-            template_source_generator=generate_template_source,
+            try_jsx=try_jsx,
+            template_source_generator=template_source_generator,
             need_fallback=need_fallback,
         )
 
@@ -1480,3 +1569,18 @@ class WidgetGenerationService:
                 createdAt=int(time.time() * 1000),
             ),
         )
+
+    def _enable_jsx_generation(self) -> bool:
+        """是否启用 JSX-to-A2UI 生成式路径（由 spec_records.yaml 的 enable_jsx_generation 开关控制）。"""
+        settings = get_settings()
+        return settings.CONFIG.get("enable_jsx_generation") == "true"
+
+    def _enable_card_template(self) -> bool:
+        """Whether use template for UI generation."""
+        settings = get_settings()
+        return bool(getattr(settings, "enable_card_template", False))
+
+    def _enable_fusion_ball(self) -> bool:
+        """Whether use fusion ball for UI generation."""
+        settings = get_settings()
+        return bool(getattr(settings, "enable_fusion_ball", False))
