@@ -50,7 +50,10 @@ from services.template_generation.engine.advanced.content_selectors import (
     app_usage_overview_query_is_supported,
     apply_content_selectors,
     extract_battery_overview_facts,
+    extract_schedule_overview_facts,
+    extract_schedule_timezone_facts,
     extract_workout_latest_facts,
+    schedule_overview_is_eligible,
 )
 from services.template_generation.engine.advanced.data_shape import extract_data_shape
 from services.template_generation.engine.advanced.models import (
@@ -276,21 +279,25 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 85
+    assert len(registry.provider_template_ids) == 88
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
         "BatteryOverviewNormalFull@1",
         "BatteryOverviewNormalHero@1",
+        "BatteryOverviewChargingProgressHero@1",
+        "BatteryOverviewHealthLevelHero@1",
+        "BatteryOverviewChargingDiagnosticsHero@1",
         "BluetoothDeviceOverviewCaseFull@1",
         "CountdownOverviewFull@1",
-        "DateOverviewFull@1",
         "HeartRateOverviewFull@1",
         "ResourceUsageOverviewFull@1",
         "ScheduleOverviewDatedMeetingHero@1",
         "ScheduleOverviewNextEventFull@1",
         "ScheduleOverviewNextEventHero@1",
+        "ScheduleOverviewEventCountHero@1",
         "ScheduleOverviewReminderHero@1",
+        "ScheduleOverviewTimezoneFull@1",
         "SleepOverviewCompact@1",
         "SleepOverviewFull@1",
         "SleepOverviewHero@1",
@@ -427,10 +434,11 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
     assert len(calendar.local_template_ids) == 13
-    assert set(calendar.local_template_ids) >= {
-        "DateOverviewCompact@1",
-        "ScheduleOverviewMeetingCompact@1",
-    }
+    assert "ScheduleOverviewMeetingCompact@1" in calendar.local_template_ids
+    assert not any(
+        template_id.startswith("DateOverview")
+        for template_id in calendar.local_template_ids
+    )
     assert len(registry.ux_layout_component_provider_ids) == 5
     for bundle in registry.provider_bundles.values():
         payload = json.loads(
@@ -455,6 +463,7 @@ def test_registry_uses_only_distributed_provider_and_theme_sources() -> None:
     assert set(registry.templates) == set(registry.provider_template_ids)
     assert set(registry.themes) == {
         "audio-product-neutral-violet",
+        "battery-yellow",
         "device-clean-blue-teal",
         "digital-wellbeing-neutral-dark",
         "family-weather-care-blue",
@@ -855,6 +864,19 @@ def test_non_fusion_device_theme_uses_the_reviewed_resource_palette() -> None:
     assert theme.action_style.background_color == "#1A0A59F7"
 
 
+def test_non_fusion_battery_theme_uses_the_yellow_palette() -> None:
+    theme = get_cardplan_registry().require_theme("battery-yellow")
+
+    assert theme.supported_capability_ids == ("GetPhoneBatteryInfo",)
+    assert theme.primary_color == "#FF99661F"
+    assert theme.support_content_color == "#CC99661F"
+    assert theme.progress_color == "#FF99661F"
+    assert theme.root_style["backgroundColor"] == "#FFFFF3E6"
+    assert "linearGradient" not in theme.root_style
+    assert theme.action_style.content_color == "#FF99661F"
+    assert theme.action_style.background_color == "#3399661F"
+
+
 def test_disabled_fusion_feature_removes_themes_from_server_registry_view() -> None:
     enabled_registry = get_cardplan_registry(True)
     disabled_registry = get_cardplan_registry(False)
@@ -868,6 +890,7 @@ def test_disabled_fusion_feature_removes_themes_from_server_registry_view() -> N
     assert fusion_theme_ids.isdisjoint(disabled_registry.themes)
     assert set(disabled_registry.themes) == {
         "audio-product-neutral-violet",
+        "battery-yellow",
         "device-clean-blue-teal",
         "digital-wellbeing-neutral-dark",
         "family-weather-care-blue",
@@ -1807,6 +1830,75 @@ def test_sport_templates_bind_progress_color_to_theme_support_content() -> None:
         assert color.name == "supportContentColor"
 
 
+def test_health_sport_templates_follow_latest_display_contract() -> None:
+    registry = get_cardplan_registry()
+    expected_descriptions = {
+        "ActivityOverviewCompact@1": (
+            "每日步数紧凑摘要，展示步数，可使用步数图标。 组件形态：compact。"
+        ),
+        "ActivityOverviewHero@1": (
+            "今日活动步数主视觉，展示步数和固定万步基准进度，可使用步数图标。 "
+            "组件形态：hero。"
+        ),
+        "ActivityOverviewFull@1": (
+            "今日活动完整摘要，展示步数、固定万步基准进度、消耗热量和运动距离，"
+            "可使用步数图标。 组件形态：full。"
+        ),
+        "SleepOverviewFull@1": (
+            "睡眠情况完整摘要，展示时长、得分进度和状态，可使用睡眠图标。 "
+            "组件形态：full。"
+        ),
+        "SleepOverviewHero@1": (
+            "睡眠情况主视觉，展示时长和得分进度，可使用睡眠图标。 组件形态：hero。"
+        ),
+        "SleepOverviewCompact@1": (
+            "睡眠情况紧凑摘要，展示时长和得分环，可使用睡眠图标。 组件形态：compact。"
+        ),
+    }
+    provider_rules = "\n".join(
+        item["content"]
+        for item in registry.provider_second_layer_rules(
+            ("ActivityOverview", "SleepOverview")
+        )
+    )
+
+    for template_id, description in expected_descriptions.items():
+        definition = registry.require_template(template_id)
+        assert definition.description == description
+        assert description in provider_rules
+
+    for template_id in (
+        "ActivityOverviewCompact@1",
+        "ActivityOverviewHero@1",
+        "ActivityOverviewFull@1",
+    ):
+        definition = registry.require_template(template_id)
+        assert set(definition.variants[0].parameters_schema["properties"]) == {
+            "stepsIcon"
+        }
+
+    for template_id in ("ActivityOverviewHero@1", "ActivityOverviewFull@1"):
+        root = registry.require_variant(template_id, "default").root
+        progress_options = _template_nodes(root, "Progress")[0].values[-1]
+        assert progress_options.properties["total"].value == 10000
+
+    sleep_labels = {
+        "SleepOverviewFull@1": {"睡眠情况", "睡眠情况评分"},
+        "SleepOverviewHero@1": {"睡眠情况"},
+        "SleepOverviewCompact@1": {"睡眠情况时长"},
+    }
+    for template_id, expected_labels in sleep_labels.items():
+        root = registry.require_variant(template_id, "default").root
+        literal_labels = {
+            node.values[0].value
+            for node in _template_nodes(root, "Text")
+            if node.values[0].kind == "literal"
+        }
+        assert expected_labels <= literal_labels
+        progress_options = _template_nodes(root, "Progress")[0].values[-1]
+        assert progress_options.properties["backgroundColor"].value == "#33564AF7"
+
+
 def test_earphone_templates_bind_progress_color_to_theme_support_content() -> None:
     registry = get_cardplan_registry()
     progress_count = 0
@@ -1994,21 +2086,15 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
     assert sum(options.get("minFontSize") == 10 for options in activity_text_options) == 2
 
 
-def test_calendar_templates_follow_latest_date_schedule_ux_geometry():
+def test_calendar_templates_follow_latest_schedule_contract() -> None:
     registry = get_cardplan_registry()
-
-    date_compact = registry.require_variant("DateOverviewCompact@1", "default").root
-    assert date_compact.component == "Column"
-    assert _template_node_options(date_compact)["height"] == "100%"
-    assert _template_node_options(date_compact.children[0])["height"] == 12
-    compact_date_options = _template_node_options(date_compact.children[1])
-    assert compact_date_options["height"] == 44
-    assert compact_date_options["fontSize"] == 38
-
-    date_full = registry.require_variant("DateOverviewFull@1", "default").root
-    assert _template_node_options(date_full)["justifyContent"] == "spaceBetween"
-    assert _template_node_options(date_full.children[0])["height"] == 64
-    assert _template_node_options(date_full.children[1])["height"] == 40
+    calendar = registry.require_ux_business_component("CalendarOverview")
+    assert len(calendar.local_template_ids) == 13
+    assert "ScheduleOverviewDatedMeetingHero@1" in calendar.local_template_ids
+    assert not any(
+        template_id.startswith("DateOverview")
+        for template_id in calendar.local_template_ids
+    )
 
     schedule = registry.require_variant(
         "ScheduleOverviewMeetingLocationCompact@1",
@@ -2020,88 +2106,27 @@ def test_calendar_templates_follow_latest_date_schedule_ux_geometry():
     text_options = [_template_node_options(node) for node in _template_nodes(schedule, "Text")]
     assert text_options[0]["height"] == 20
     assert all(options["height"] == 14 for options in text_options[1:])
+    support_content_text_count = 0
+    for template_id in calendar.local_template_ids:
+        root = registry.require_variant(template_id, "default").root
+        for text_node in _template_nodes(root, "Text"):
+            options = text_node.values[-1]
+            assert options.kind == "object"
+            font_color = options.properties.get("fontColor")
+            if font_color is None:
+                continue
+            if font_color.kind == "literal":
+                assert font_color.value != "#991F4799"
+            if font_color.kind == "theme" and font_color.name == "supportContentColor":
+                support_content_text_count += 1
+    assert support_content_text_count == 50
 
-
-@pytest.mark.asyncio
-async def test_calendar_date_and_schedule_compacts_generate_one_vertical_card():
-    class CalendarTemplateModel:
-        async def generate_json(
-            self,
-            _prompt: list[dict[str, str]],
-            **_kwargs: Any,
-        ) -> dict[str, Any]:
-            return {
-                "themeId": "meeting-paper-neutral",
-                "requiredOutputFieldsByCapability": {
-                    "GetCalendarEvents": [
-                        "/events/0/startDate",
-                        "/events/0/title",
-                        "/events/0/dtStart",
-                    ]
-                },
-                "action": [],
-            }
-
-        async def generate(
-            self,
-            _prompt: list[dict[str, str]],
-            *_args: Any,
-            **_kwargs: Any,
-        ) -> str:
-            return (
-                'Template("TwoCompactLayout@1",{},'
-                'Template("DateOverviewCompact@1",{}),'
-                'Template("ScheduleOverviewMeetingCompact@1",{}));'
-            )
-
-    task = TaskSpec(
-        userQuery="显示日期和下一场会议的标题、时间",
-        size="2x2",
-        dataModelSchema={
-            "data": {
-                "calendar": {
-                    "events": [
-                        {
-                            "startDate": _provider_field("2026-08-19", "string"),
-                            "title": _provider_field("UI需求评审会", "string"),
-                            "dtStart": _provider_field("14:00", "string"),
-                            "dtEnd": _provider_field("15:30", "string"),
-                        }
-                    ],
-                    "updatedAt": _provider_field("2026-08-19 09:00", "string"),
-                }
-            }
-        },
-    )
-    fields = [
-        "/events/0/startDate",
-        "/events/0/title",
-        "/events/0/dtStart",
-        "/events/0/dtEnd",
-        "/updatedAt",
-    ]
-    binding = CandidateDataBinding(
-        capabilityId="GetCalendarEvents",
-        writeResultTo="/data/calendar",
-        candidateOutputFields=fields,
-    )
-    card_spec = {
-        "suggestSize": "2x2",
-        "dataBindings": [
-            {
-                "capabilityId": "GetCalendarEvents",
-                "writeResultTo": "/data/calendar",
-            }
-        ],
-    }
-
-    with pytest.raises(TemplateRouteNotApplicable, match="cannot cover one CalendarOverview slot"):
-        await generate_template_a2ui(
-            task,
-            card_spec,
-            (binding,),
-            CalendarTemplateModel(),
-        )
+    second_layer_rules = registry.provider_second_layer_rules(("CalendarOverview",))
+    assert len(second_layer_rules) == 1
+    rule_content = second_layer_rules[0].get("content")
+    assert isinstance(rule_content, str)
+    assert "DateOverview" not in rule_content
+    assert "supportContentColor" in rule_content
 
 
 @pytest.mark.asyncio
@@ -2375,6 +2400,380 @@ async def test_calendar_reminder_hero_keeps_start_and_advance_notice():
     assert "设置闹钟" in second_layer_rule
     assert "闹钟或提醒语义素材" in second_layer_rule
     assert "标题栏不接收素材" in second_layer_rule
+
+
+def test_calendar_timezone_full_keeps_reference_geometry():
+    registry = get_cardplan_registry()
+    definition = registry.require_template("ScheduleOverviewTimezoneFull@1")
+    timezone = registry.require_variant(
+        "ScheduleOverviewTimezoneFull@1",
+        "default",
+    ).root
+    timezone_text_options = _template_node_options(timezone.children[1])
+    timezone_timeline = timezone.children[2]
+    timezone_dot_column = timezone_timeline.children[0]
+    timezone_dot = timezone_dot_column.children[0]
+
+    assert timezone_text_options["height"] == 44
+    assert timezone_text_options["fontSize"] == 16
+    assert timezone_text_options["maxLines"] == 1
+    timeline_padding = timezone_timeline.values[-1].properties["padding"].properties
+    dot_padding = timezone_dot_column.values[-1].properties["padding"].properties
+    assert timeline_padding["top"].value == 10
+    assert dot_padding["top"].value == 4
+    assert _template_node_options(timezone_dot)["borderWidth"] == 1.5
+    assert _template_node_options(timezone_dot)["backgroundColor"] == "#00FFFFFF"
+    assert definition.primary_data == (
+        "/events/0/timeZone",
+        "/events/0/title",
+    )
+    assert definition.secondary_data == (
+        "/events/0/isAllDay",
+        "/events/0/eventLocation",
+    )
+
+
+def test_calendar_existing_v1_templates_keep_their_optional_data_contracts():
+    registry = get_cardplan_registry()
+    full = registry.require_template("ScheduleOverviewNextEventFull@1")
+    hero = registry.require_template("ScheduleOverviewNextEventHero@1")
+
+    assert full.optional_data == (
+        "/events/0/dtStart",
+        "/events/0/dtEnd",
+        "/events/0/remindTime/0",
+        "/events/0/timeZone",
+        "/events/0/isAllDay",
+        "/events/0/eventLocation",
+    )
+    assert hero.optional_data == (
+        "/events/0/dtStart",
+        "/events/0/dtEnd",
+        "/events/0/remindTime/0",
+        "/eventCount",
+        "/events/0/description",
+        "/events/0/timeZone",
+        "/events/0/isAllDay",
+        "/events/0/eventLocation",
+    )
+
+
+def test_calendar_timezone_has_dedicated_facts_without_becoming_time_text():
+    task = TaskSpec(
+        userQuery="展示跨区会议的标题、时区、全天状态和地点",
+        size="2x2",
+        eventCandidates=[],
+        dataModelSchema={
+            "data": {
+                "calendar": {
+                    "events": [
+                        {
+                            "title": _provider_field("跨区视频会议", "string"),
+                            "timeZone": _provider_field(
+                                "America/Los_Angeles", "string"
+                            ),
+                            "isAllDay": _provider_field(False, "boolean"),
+                            "eventLocation": _provider_field("线上会议室", "string"),
+                        }
+                    ]
+                }
+            }
+        },
+    )
+
+    assert extract_schedule_overview_facts(task.dataModelSchema) is None
+    timezone_facts = extract_schedule_timezone_facts(task.dataModelSchema)
+    assert timezone_facts is not None
+    assert timezone_facts.time_zone == "America/Los_Angeles"
+    assert schedule_overview_is_eligible(task, {"GetCalendarEvents"})
+
+    selected = apply_content_selectors(task, {"GetCalendarEvents"})
+    data = selected.dataModelSchema.get("data")
+    assert isinstance(data, dict)
+    selectors = data.get("_advancedSelectors")
+    assert isinstance(selectors, dict)
+    schedule = selectors.get("schedule")
+    assert isinstance(schedule, dict)
+    assert "timeText" not in schedule
+    time_zone = schedule.get("timeZone")
+    is_all_day = schedule.get("isAllDay")
+    assert isinstance(time_zone, dict)
+    assert isinstance(is_all_day, dict)
+    assert time_zone.get("sampleValue") == "America/Los_Angeles"
+    assert is_all_day.get("sampleValue") is False
+
+
+@pytest.mark.asyncio
+async def test_calendar_timezone_full_accepts_timezone_without_start_time():
+    timezone_fields = (
+        "/events/0/title",
+        "/events/0/timeZone",
+        "/events/0/isAllDay",
+        "/events/0/eventLocation",
+    )
+    timezone_task = TaskSpec(
+        userQuery="下周一和美国团队开会，展示标题、时区、全天状态和地点",
+        size="2x2",
+        eventCandidates=[],
+        dataModelSchema={
+            "data": {
+                "calendar": {
+                    "events": [
+                        {
+                            "title": _provider_field("跨区视频会议", "string"),
+                            "timeZone": _provider_field(
+                                "America/Los_Angeles", "string"
+                            ),
+                            "isAllDay": _provider_field(False, "boolean"),
+                            "eventLocation": _provider_field("线上会议室", "string"),
+                        }
+                    ]
+                }
+            }
+        },
+    )
+    timezone_binding = CandidateDataBinding(
+        capabilityId="GetCalendarEvents",
+        writeResultTo="/data/calendar",
+        candidateOutputFields=list(timezone_fields),
+    )
+    timezone_spec = {
+        "title": "日程详情",
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {
+                "capabilityId": "GetCalendarEvents",
+                "writeResultTo": "/data/calendar",
+            }
+        ],
+    }
+    timezone_model = _FixedTemplateModel(
+        theme_id="meeting-paper-neutral",
+        component_id="CalendarOverview",
+        available_template_ids=("ScheduleOverviewTimezoneFull@1",),
+        capability_id="GetCalendarEvents",
+        required_fields=timezone_fields,
+        body=(
+            'Template("SingleFocusLayout@1",{},'
+            'Template("ScheduleOverviewTimezoneFull@1",'
+            '{"headerLabel":"日程详情"}));'
+        ),
+    )
+
+    timezone_output = await generate_template_a2ui(
+        timezone_task,
+        timezone_spec,
+        (timezone_binding,),
+        timezone_model,
+    )
+
+    assert timezone_output.template_ids == (
+        "ScheduleOverviewTimezoneFull@1",
+        "SingleFocusLayout@1",
+    )
+    assert "America/Los_Angeles" in timezone_output.a2ui
+    assert "非全天" in timezone_output.a2ui
+    assert "线上会议室" in timezone_output.a2ui
+    assert timezone_model.second_layer_prompt is not None
+    timezone_rule = timezone_model.second_layer_prompt[1]["content"]
+    timezone_candidate_line = next(
+        line
+        for line in timezone_rule.splitlines()
+        if line.startswith("componentCandidates=")
+    )
+    timezone_candidates = json.loads(
+        timezone_candidate_line.removeprefix("componentCandidates=")
+    )
+    assert set(timezone_candidates[0]["availableTemplateIds"]) == {
+        "ScheduleOverviewNextEventFull@1",
+        "ScheduleOverviewTimezoneFull@1",
+    }
+    timezone_group_line = next(
+        line
+        for line in timezone_rule.splitlines()
+        if line.startswith("requiredLocalTemplateGroups=")
+    )
+    timezone_groups = json.loads(
+        timezone_group_line.removeprefix("requiredLocalTemplateGroups=")
+    )
+    timezone_coverage = set.intersection(*(set(group) for group in timezone_groups))
+    assert "ScheduleOverviewTimezoneFull@1" in timezone_coverage
+    assert "ScheduleOverviewTimezoneFull@1" in timezone_rule
+
+
+@pytest.mark.asyncio
+async def test_calendar_event_count_hero_uses_total_without_progress_semantics():
+    progress_fields = (
+        "/eventCount",
+        "/events/0/title",
+        "/events/0/dtStart",
+        "/events/0/description",
+    )
+    progress_task = TaskSpec(
+        userQuery="今天排了5件事，显示进度、剩余件数和最近日程，点一下进详情",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.viewCalendarEvent",
+                call="clickToIntent",
+                args={
+                    "intentName": "ViewCalendarEvent",
+                    "params": {"entityId": "event-1"},
+                },
+            )
+        ],
+        dataModelSchema={
+            "data": {
+                "calendar": {
+                    "eventCount": _provider_field(7, "integer"),
+                    "events": [
+                        {
+                            "title": _provider_field("项目例会", "string"),
+                            "dtStart": _provider_field("14:00", "string"),
+                            "description": _provider_field("评审本周进度", "string"),
+                        }
+                    ],
+                }
+            }
+        },
+    )
+    progress_binding = CandidateDataBinding(
+        capabilityId="GetCalendarEvents",
+        writeResultTo="/data/calendar",
+        candidateOutputFields=list(progress_fields),
+    )
+    progress_spec = {
+        "title": "今日日程清点",
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {
+                "capabilityId": "GetCalendarEvents",
+                "writeResultTo": "/data/calendar",
+            }
+        ],
+    }
+    progress_model = _FixedTemplateModel(
+        theme_id="meeting-paper-neutral",
+        component_id="CalendarOverview",
+        available_template_ids=("ScheduleOverviewEventCountHero@1",),
+        capability_id="GetCalendarEvents",
+        required_fields=progress_fields,
+        action_id="event.viewCalendarEvent",
+        body=(
+            'Template("HeroActionLayout@1",{},'
+            'Template("ScheduleOverviewEventCountHero@1",'
+            '{"headerLabel":"今日日程清点"}),'
+            'Template("PillAction@1",{"actionId":"event.viewCalendarEvent",'
+            '"label":"查看日程"}));'
+        ),
+    )
+
+    progress_output = await generate_template_a2ui(
+        progress_task,
+        progress_spec,
+        (progress_binding,),
+        progress_model,
+    )
+
+    assert progress_output.template_ids == (
+        "ScheduleOverviewEventCountHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1",
+    )
+    progress_messages = [json.loads(line) for line in progress_output.a2ui.splitlines()]
+    progress_components = progress_messages[1]["updateComponents"]["components"]
+    progress_dot = next(
+        component
+        for component in progress_components
+        if component.get("component") == "Stack"
+        and component.get("styles", {}).get("width") == 8
+        and component.get("styles", {}).get("borderWidth") == 1.5
+    )
+    progress_dot_column = next(
+        component
+        for component in progress_components
+        if progress_dot["id"] in component.get("children", ())
+    )
+    progress_components_by_id = {
+        component["id"]: component for component in progress_components
+    }
+    progress_event_row = next(
+        component
+        for component in progress_components
+        if progress_dot_column["id"] in component.get("children", ())
+    )
+    progress_content = next(
+        component
+        for component in progress_components
+        if progress_event_row["id"] in component.get("children", ())
+    )
+    progress_content_slot = next(
+        component
+        for component in progress_components
+        if progress_content["id"] in component.get("children", ())
+    )
+    progress_content_children = [
+        progress_components_by_id[child_id]
+        for child_id in progress_content.get("children", ())
+    ]
+    progress_content_height = sum(
+        child["styles"]["height"] for child in progress_content_children
+    ) + progress_content.get("itemMargin", 0) * max(
+        len(progress_content_children) - 1, 0
+    )
+    progress_detail_column = next(
+        progress_components_by_id[child_id]
+        for child_id in progress_event_row.get("children", ())
+        if child_id != progress_dot_column["id"]
+    )
+    progress_detail_children = [
+        progress_components_by_id[child_id]
+        for child_id in progress_detail_column.get("children", ())
+    ]
+    progress_detail_height = sum(
+        child["styles"]["height"] for child in progress_detail_children
+    ) + progress_detail_column.get("itemMargin", 0) * max(
+        len(progress_detail_children) - 1, 0
+    )
+    assert all(
+        component.get("component") != "Progress" for component in progress_components
+    )
+    assert progress_content_height <= progress_content_slot["styles"]["height"]
+    assert progress_detail_height <= progress_detail_column["styles"]["height"]
+    assert progress_dot_column["styles"]["padding"]["top"] == 4
+    assert progress_dot["styles"]["backgroundColor"] == "#00FFFFFF"
+    assert "已查询 " in progress_output.a2ui
+    assert " 项日程" in progress_output.a2ui
+    assert "今日还剩" not in progress_output.a2ui
+    assert "5 -" not in progress_output.a2ui
+    assert "查看日程" in progress_output.a2ui
+    assert progress_model.second_layer_prompt is not None
+    progress_candidate_line = next(
+        line
+        for line in progress_model.second_layer_prompt[1]["content"].splitlines()
+        if line.startswith("componentCandidates=")
+    )
+    progress_candidates = json.loads(
+        progress_candidate_line.removeprefix("componentCandidates=")
+    )
+    assert set(progress_candidates[0]["availableTemplateIds"]) == {
+        "ScheduleOverviewNextEventHero@1",
+        "ScheduleOverviewEventCountHero@1",
+    }
+    progress_group_line = next(
+        line
+        for line in progress_model.second_layer_prompt[1]["content"].splitlines()
+        if line.startswith("requiredLocalTemplateGroups=")
+    )
+    progress_groups = json.loads(
+        progress_group_line.removeprefix("requiredLocalTemplateGroups=")
+    )
+    event_count_coverage = set.intersection(*(set(group) for group in progress_groups))
+    assert "ScheduleOverviewEventCountHero@1" in event_count_coverage
+    progress_rule = progress_model.second_layer_prompt[1]["content"]
+    assert "ScheduleOverviewEventCountHero@1" in progress_rule
+    assert "查询返回的日程记录总数" in progress_rule
+    assert "进度总数为 5" not in progress_rule
 
 
 def test_pr7_resource_battery_outer_title_keeps_the_reviewed_subtext_style():
@@ -2924,16 +3323,17 @@ async def test_bluetooth_connection_and_case_queries_have_honest_template_covera
         writeResultTo="/data/earphone",
         candidateOutputFields=list(required_fields),
     )
+    body = (
+        'Template("SingleFocusLayout@1",{},Template('
+        f'"{template_id}",{{}}));'
+    )
     model = _FixedTemplateModel(
         theme_id="audio-product-neutral-violet",
         component_id="BluetoothDeviceOverview",
         available_template_ids=(template_id,),
         capability_id="GetEarphoneInfo",
         required_fields=required_fields,
-        body=(
-            'Template("SingleFocusLayout@1",{},Template('
-            f'"{template_id}",{{}}));'
-        ),
+        body=body,
     )
 
     output = await generate_template_a2ui(
@@ -3209,6 +3609,176 @@ async def test_2x2_battery_percent_ring_hero_does_not_require_capacity_level():
     assert "batterySOCText" in output.a2ui
     assert "batteryCapacityLevelDesc" not in output.a2ui
     assert "省电模式" in output.a2ui
+
+
+@pytest.mark.asyncio
+async def test_2x2_battery_charging_progress_hero_uses_status_fields():
+    binding = CandidateDataBinding(
+        capabilityId="GetPhoneBatteryInfo",
+        writeResultTo="/data/phoneBattery",
+        candidateOutputFields=[
+            "/batterySOC",
+            "/chargingStatusDesc",
+            "/healthStatusDesc",
+            "/pluggedTypeDesc",
+        ],
+    )
+    task_spec = _battery_task()
+    task_spec.userQuery = "睡前想把手机充满，看看充上没、电池健康咋样、插的什么充电器。"
+    phone_battery = task_spec.dataModelSchema["data"]["phoneBattery"]
+    del phone_battery["batterySOCText"]
+    del phone_battery["batteryCapacityLevelDesc"]
+    phone_battery["healthStatusDesc"] = _provider_field("正常", "string")
+    phone_battery["pluggedTypeDesc"] = _provider_field("未连接充电器", "string")
+    model = _FixedTemplateModel(
+        theme_id="battery-yellow",
+        component_id="BatteryOverview",
+        available_template_ids=("BatteryOverviewChargingProgressHero@1",),
+        capability_id="GetPhoneBatteryInfo",
+        required_fields=(
+            "/batterySOC",
+            "/chargingStatusDesc",
+            "/healthStatusDesc",
+            "/pluggedTypeDesc",
+        ),
+        action_id="event.setPowerSavingMode",
+        body=(
+            'Template("HeroActionLayout@1",{},'
+            'Template("BatteryOverviewChargingProgressHero@1",{}),'
+            'Template("PillAction@1",{"actionId":"event.setPowerSavingMode",'
+            '"label":"省电模式"}));'
+        ),
+    )
+
+    output = await generate_template_a2ui(
+        task_spec,
+        _battery_card_spec(),
+        (binding,),
+        model,
+        enable_fusion_ball=True,
+    )
+
+    assert output.template_ids == (
+        "BatteryOverviewChargingProgressHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1",
+    )
+    assert "batterySOC" in output.a2ui
+    assert "chargingStatusDesc" in output.a2ui
+    assert "healthStatusDesc" in output.a2ui
+    assert "pluggedTypeDesc" in output.a2ui
+
+
+@pytest.mark.asyncio
+async def test_2x2_battery_health_level_hero_uses_health_fields():
+    binding = CandidateDataBinding(
+        capabilityId="GetPhoneBatteryInfo",
+        writeResultTo="/data/phoneBattery",
+        candidateOutputFields=[
+            "/healthStatusDesc",
+            "/batteryCapacityLevelDesc",
+        ],
+    )
+    task_spec = _battery_task()
+    task_spec.userQuery = "手机用了两年，想确认电池健康和当前电量等级，点击查看电池健康设置。"
+    task_spec.dataModelSchema["data"]["phoneBattery"] = {
+        "healthStatusDesc": _provider_field("电池健康 正常", "string"),
+        "batteryCapacityLevelDesc": _provider_field("正常电量", "string"),
+    }
+    model = _FixedTemplateModel(
+        theme_id="battery-yellow",
+        component_id="BatteryOverview",
+        available_template_ids=("BatteryOverviewHealthLevelHero@1",),
+        capability_id="GetPhoneBatteryInfo",
+        required_fields=(
+            "/healthStatusDesc",
+            "/batteryCapacityLevelDesc",
+        ),
+        action_id="event.setPowerSavingMode",
+        body=(
+            'Template("HeroActionLayout@1",{},'
+            'Template("BatteryOverviewHealthLevelHero@1",{}),'
+            'Template("PillAction@1",{"actionId":"event.setPowerSavingMode",'
+            '"label":"省电模式"}));'
+        ),
+    )
+
+    output = await generate_template_a2ui(
+        task_spec,
+        _battery_card_spec(),
+        (binding,),
+        model,
+        enable_fusion_ball=True,
+    )
+
+    assert output.template_ids == (
+        "BatteryOverviewHealthLevelHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1",
+    )
+    assert "healthStatusDesc" in output.a2ui
+    assert "batteryCapacityLevelDesc" in output.a2ui
+    assert "batterySOC" not in output.a2ui
+
+
+@pytest.mark.asyncio
+async def test_2x2_battery_charging_diagnostics_hero_uses_key_value_fields():
+    binding = CandidateDataBinding(
+        capabilityId="GetPhoneBatteryInfo",
+        writeResultTo="/data/phoneBattery",
+        candidateOutputFields=[
+            "/chargingStatusDesc",
+            "/nowCurrentText",
+            "/voltageText",
+            "/isBatteryPresentText",
+        ],
+    )
+    task_spec = _battery_task()
+    task_spec.userQuery = "手机充电越来越慢，看看充电电流、电压、电池是否正常，点一下检查电池设置。"
+    task_spec.dataModelSchema["data"]["phoneBattery"] = {
+        "chargingStatusDesc": _provider_field("未充电", "string"),
+        "nowCurrentText": _provider_field("0 mA", "string"),
+        "voltageText": _provider_field("4.1 V", "string"),
+        "isBatteryPresentText": _provider_field("正常", "string"),
+    }
+    model = _FixedTemplateModel(
+        theme_id="battery-yellow",
+        component_id="BatteryOverview",
+        available_template_ids=("BatteryOverviewChargingDiagnosticsHero@1",),
+        capability_id="GetPhoneBatteryInfo",
+        required_fields=(
+            "/chargingStatusDesc",
+            "/nowCurrentText",
+            "/voltageText",
+            "/isBatteryPresentText",
+        ),
+        action_id="event.setPowerSavingMode",
+        body=(
+            'Template("HeroActionLayout@1",{},'
+            'Template("BatteryOverviewChargingDiagnosticsHero@1",{}),'
+            'Template("PillAction@1",{"actionId":"event.setPowerSavingMode",'
+            '"label":"省电模式"}));'
+        ),
+    )
+
+    output = await generate_template_a2ui(
+        task_spec,
+        _battery_card_spec(),
+        (binding,),
+        model,
+        enable_fusion_ball=True,
+    )
+
+    assert output.template_ids == (
+        "BatteryOverviewChargingDiagnosticsHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1",
+    )
+    assert "chargingStatusDesc" in output.a2ui
+    assert "nowCurrentText" in output.a2ui
+    assert "voltageText" in output.a2ui
+    assert "isBatteryPresentText" in output.a2ui
+    assert "batterySOC" not in output.a2ui
 
 
 @pytest.mark.asyncio

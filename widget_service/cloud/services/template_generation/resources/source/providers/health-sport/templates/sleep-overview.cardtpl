@@ -11,100 +11,78 @@ Column(
         "width": "matchParent",
         "height": "matchParent",
         "itemMargin": 4,
-        "justifyContent": "start",
+        "justifyContent": "spaceBetween",
         "alignItems": "start",
         "clip": true,
-        "constraintSize": {"minWidth": 0, "minHeight": 0}
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
     },
     Column(
-        {
-            "width": "matchParent",
-            "height": "matchParent",
-            "itemMargin": 4,
-            "justifyContent": "start",
-            "alignItems": "start",
-            "clip": true
-        },
-        Column(
-            {
-                "width": "matchParent",
-                "height": "matchParent",
-                "itemMargin": 4,
-                "justifyContent": "start",
-                "alignItems": "start",
-                "clip": true
-            },
-            Column(
-                {"itemMargin": 4, "justifyContent": "spaceBetween", "width": "matchParent", "height": "matchParent"},
-                Column(
-                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
-                    Row(
-                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
-                        IfPresent(
-                            props.sourceIcon,
-                            Image(
-                                props.sourceIcon,
-                                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
-                            )
-                        ),
-                        Text(
-                            "睡眠",
-                            {
-                                "fontSize": 12,
-                                "fontWeight": 500,
-                                "fontColor": $theme('supportContentColor'),
-                                "maxLines": 1
-                            }
-                        )
-                    ),
-                    Row(
-                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom"},
-                        Text(
-                            data.duration,
-                            {"fontSize": 30, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1}
-                        )
-                    ),
-                    Progress(
-                        {
-                            "value": data.score,
-                            "total": 100,
-                            "strokeWidth": 8,
-                            "color": $theme('supportContentColor'),
-                            "backgroundColor": "#FF564AF7",
-                            "height": 12,
-                            "width": "matchParent"
-                        }
-                    )
-                ),
-                Column(
-                    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
-                    Row(
-                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
-                        Text(
-                            "睡眠评分",
-                            {"fontWeight":500,"fontColor": $theme('supportContentColor'),"fontSize": 12, "maxLines": 1}
-                        ),
-                        Text(
-                            data.score,
-                            {"fontSize": 12, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1}
-                        ),
-                        Text(
-                            "分",
-                            {"fontWeight":500,"fontColor": $theme('supportContentColor'),"fontSize": 12, "maxLines": 1}
-                        )
-                    ),
-                    Row(
-                        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
-                        Text(
-                            data.status,
-                            {
-                                "fontSize": 12,
-                                "fontColor": $theme('supportContentColor'),
-                                "maxLines": 1
-                            }
-                        )
-                    )
+        { "itemMargin": 8, "justifyContent": "start", "width": "matchParent" },
+        Row(
+            { "width": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top" },
+            Text(
+                "睡眠情况",
+                {
+                    "fontSize": 12,
+                    "fontWeight": 500,
+                    "fontColor": $theme('supportContentColor'),
+                    "maxLines": 1
+                }
+            ),
+            IfPresent(
+                props.sourceIcon,
+                Image(
+                    props.sourceIcon,
+                    { "width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true }
                 )
+            ),
+        ),
+        Row(
+            { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "margin": {"top": 4} },
+            Text(
+                data.duration,
+                { "fontSize": 24, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+            )
+        ),
+        Progress(
+            {
+                "value": data.score,
+                "total": 100,
+                "strokeWidth": 8,
+                "color": $theme('supportContentColor'),
+                "backgroundColor": "#33564AF7",
+                "height": 12,
+                "width": "matchParent"
+            }
+        )
+    ),
+    Column(
+        { "itemMargin": 4, "justifyContent": "start", "width": "matchParent" },
+        Row(
+            { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
+            Text(
+                "睡眠情况评分",
+                { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+            ),
+            Text(
+                data.score,
+                { "fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+            ),
+            Text(
+                "分",
+                { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+            )
+        ),
+        Row(
+            { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
+            Text(
+                data.status,
+                {
+                    "fontSize": 12,
+                    "fontColor": $theme('supportContentColor'),
+                    "maxLines": 1,
+                    "fontWeight": 400,
+                }
             )
         )
     )
@@ -122,66 +100,43 @@ Column(
         "_advancedComponent": "SleepOverview",
         "width": "matchParent",
         "height": "matchParent",
-        "itemMargin": 4,
-        "justifyContent": "spaceBetween",
+        "itemMargin": 8,
+        "justifyContent": "start",
         "alignItems": "start",
         "clip": true,
-        "constraintSize": {"minWidth": 0, "minHeight": 0}
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
     },
-    Column(
-        {
-            "width": "matchParent",
-            "height": "matchParent",
-            "itemMargin": 4,
-            "justifyContent": "start",
-            "alignItems": "start",
-            "clip": true
-        },
-        Column(
-            {
-                "width": "matchParent",
-                "height": "matchParent",
-                "itemMargin": 4,
-                "justifyContent": "start",
-                "alignItems": "start",
-                "clip": true
-            },
-            Column(
-                {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
-                Row(
-                    {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center"},
-                    IfPresent(
-                        props.sourceIcon,
-                        Image(
-                            props.sourceIcon,
-                            {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
-                        )
-                    ),
-                    Text(
-                        "睡眠",
-                        {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1}
-                    )
-                ),
-                Row(
-                    {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom"},
-                    Text(
-                        data.duration,
-                        {"fontSize": 30, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1}
-                    )
-                ),
-                Progress(
-                    {
-                        "value": data.score,
-                        "total": 100,
-                        "strokeWidth": 8,
-                        "color": $theme('supportContentColor'),
-                        "backgroundColor": "#FF564AF7",
-                        "height": 12,
-                        "width": "matchParent"
-                    }
-                )
+    Row(
+        { "width": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top" },
+        Text(
+            "睡眠情况",
+            { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+        ),
+        IfPresent(
+            props.sourceIcon,
+            Image(
+                props.sourceIcon,
+                { "width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true }
             )
+        ),
+    ),
+    Row(
+        { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "margin": {"top": 4} },
+        Text(
+            data.duration,
+            { "fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
         )
+    ),
+    Progress(
+        {
+            "value": data.score,
+            "total": 100,
+            "strokeWidth": 8,
+            "color": $theme('supportContentColor'),
+            "backgroundColor": "#33564AF7",
+            "height": 12,
+            "width": "matchParent"
+        }
     )
 )
 #End
@@ -201,10 +156,10 @@ Column(
         "justifyContent": "start",
         "alignItems": "start",
         "clip": true,
-        "constraintSize": {"minWidth": 0, "minHeight": 0}
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
     },
     Row(
-        {"itemMargin":4,"width": "matchParent", "justifyContent": "start", "alignItems": "center"},
+        { "itemMargin": 4, "width": "matchParent", "justifyContent": "start", "alignItems": "top" },
         Column(
             {
                 "width": "matchParent",
@@ -215,22 +170,22 @@ Column(
             },
             Text(
                 data.duration,
-                {"fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
+                { "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
             ),
             Text(
-                "睡眠时长",
-                {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1}
+                "睡眠情况时长",
+                { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
             ),
         ),
         Stack(
-            {"width": 44, "height": 44, "alignContent": "center", "flexShrink": 0},
+            { "width": 44, "height": 44, "alignContent": "center", "flexShrink": 0 },
             Progress(
                 {
                     "value": data.score,
                     "total": 100,
                     "type": "ring",
                     "color": $theme('supportContentColor'),
-                    "backgroundColor": "#FF564AF7",
+                    "backgroundColor": "#33564AF7",
                     "width": 44,
                     "height": 44,
                     "strokeWidth": 6
@@ -240,7 +195,7 @@ Column(
                 props.sourceIcon,
                 Image(
                     props.sourceIcon,
-                    {"width": 20, "height": 20, "objectFit": "contain", "_preserveOriginalColor": true}
+                    { "width": 20, "height": 20, "objectFit": "contain", "_preserveOriginalColor": true }
                 )
             )
         )

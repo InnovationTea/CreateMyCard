@@ -34,11 +34,11 @@ _PREFLIGHT_REJECT_CASE_IDS = frozenset(
 _UNSUPPORTED_CAPABILITY_CASE_IDS = frozenset({"TRE-081", "TRE-082", "TRE-086"})
 _WORKOUT_END_TIME_CASE_IDS = frozenset({"TRE-066", "TRE-079"})
 _WORKOUT_END_TIME = "/exerciseEndTimeText"
+_REMOVED_TEMPLATE_VARIANTS = frozenset({("DateOverview@1", "dateHero")})
 _TEMPLATE_IDS = {
     ("WeatherOverview@1", "hero"): "WeatherOverviewFull@1",
     ("ScheduleOverview@1", "nextEvent"): "ScheduleOverviewNextEventFull@1",
     ("ScheduleOverview@1", "nextEventLocation"): "ScheduleOverviewNextEventLocationFull@1",
-    ("DateOverview@1", "dateHero"): "DateOverviewFull@1",
     ("BluetoothDeviceOverview@1", "connection"): "BluetoothDeviceOverviewConnectionFull@1",
     ("BluetoothDeviceOverview@1", "earbuds"): "BluetoothDeviceOverviewCaseFull@1",
     ("BluetoothDeviceOverview@1", "earbudPair"): "BluetoothDeviceOverviewEarbudPairFull@1",
@@ -89,11 +89,15 @@ def migrate_case(case: dict[str, Any]) -> dict[str, Any]:
         migrated["expectedPipelineStage"] = "retrieval"
         legacy_template_id = migrated.get("expectedTemplateId")
         legacy_variant_name = migrated.get("expectedVariantName")
-        template_id = (
-            _TEMPLATE_IDS.get((legacy_template_id, legacy_variant_name))
-            if isinstance(legacy_template_id, str) and isinstance(legacy_variant_name, str)
-            else None
-        )
+        legacy_template_variant: tuple[str, str] | None = None
+        if isinstance(legacy_template_id, str) and isinstance(legacy_variant_name, str):
+            legacy_template_variant = (legacy_template_id, legacy_variant_name)
+        if legacy_template_variant in _REMOVED_TEMPLATE_VARIANTS:
+            migrated["expectedMatched"] = False
+            migrated["expectedTemplateId"] = None
+            migrated["expectedVariantName"] = None
+            return migrated
+        template_id = _TEMPLATE_IDS.get(legacy_template_variant)
         if template_id is not None:
             migrated["expectedTemplateId"] = template_id
             migrated["expectedVariantName"] = "default"

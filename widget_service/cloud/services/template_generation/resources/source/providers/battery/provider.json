@@ -66,6 +66,52 @@
       ]
     },
     {
+      "templateId": "BatteryOverviewChargingProgressHero@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量充电进度 Hero；用于 2x2 Hero 加一个 PillAction 的组合，展示手机电量标题、电量数字、横向进度条、充电状态、电池健康和充电器类型。 组件形态：chargingProgressHero。",
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/batterySOC"
+      ],
+      "secondaryData": [
+        "/chargingStatusDesc",
+        "/healthStatusDesc",
+        "/pluggedTypeDesc"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewHealthLevelHero@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "电池健康与当前电量等级 Hero；用于 2x2 Hero 加一个 PillAction 的组合，展示电池体检标题、电池健康状态和当前电量等级。 组件形态：healthLevelHero。",
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/healthStatusDesc"
+      ],
+      "secondaryData": [
+        "/batteryCapacityLevelDesc"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewChargingDiagnosticsHero@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "充电诊断 Hero；用于 2x2 Hero 加一个 PillAction 的组合，标题下竖排展示充电状态、充电电流、电压和电池状态四个 key-value。 组件形态：chargingDiagnosticsHero。",
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/chargingStatusDesc"
+      ],
+      "secondaryData": [
+        "/nowCurrentText",
+        "/voltageText",
+        "/isBatteryPresentText"
+      ]
+    },
+    {
       "templateId": "BatteryOverviewNormalHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",

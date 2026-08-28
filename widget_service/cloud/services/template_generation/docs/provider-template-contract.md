@@ -154,9 +154,12 @@ Column({
 第二层调用统一为：
 
 ```text
-Template("TwoCompactLayout@1", {},
-  Template("DateOverviewCompact@1", {}),
-  Template("ScheduleOverviewMeetingCompact@1", {})
+Template("HeroActionLayout@1", {},
+  Template("ScheduleOverviewNextEventHero@1", {}),
+  Template("PillAction@1", {
+    "actionId": "event.viewCalendarEvent",
+    "label": "查看日程"
+  })
 )
 ```
 
@@ -271,7 +274,7 @@ Action CardTpl 必须在交互组件样式中写入 `onClick: EventAction(props.
 ## 当前迁移范围
 
 天气、日历、手机电量、耳机、健康运动、应用使用时长、倒计时和系统内存当前共有
-75 个无 Variant 的业务 UI 模板；日期与日程归并后形成 11 个 Provider 业务领域。Layout Provider
+81 个无 Variant 的业务 UI 模板；当前形成 11 个 Provider 业务领域。Layout Provider
 另提供 5 个支持 `...children` 的布局模板：名称包含 `Wide` 的布局只用于 `2x4`，其余布局只用于
 `2x2`，两类布局不得混用。
 新增或修改资源后执行：
