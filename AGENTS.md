@@ -11,6 +11,31 @@
 - 不要在 `AGENTS.md` 中新增或复制接口字段、协议细节、状态码、CardSpec、TaskSpec、Artifact、校验项等方案内容。
 - 方案变更应先同步 `docs/云侧方案设计.md`，再同步代码、Skill、测试和相关配置。
 
+## widget_service CodeCheck 约束
+
+以下约束只适用于 `widget_service/`，该目录内的代码提交前必须满足对应静态检查要求：
+
+- 单行代码不得超过 120 个字符；新增或同步代码后必须重新检查。Python 代码还需遵守
+  `widget_service/pyproject.toml` 中 Ruff 的 100 字符行宽限制。
+- `if`、`while` 等条件控制语句最多包含 3 个布尔表达式。超过时先拆成有语义的中间变量、状态元组
+  或独立辅助方法，再由控制语句使用结果。
+- 遵守 `G.FMT.04`。避免产生冒号前空格告警；已经确认字符串具有目标前缀时，优先使用
+  `removeprefix()`，不要使用会被格式化为 `value[index :]` 的计算切片。
+- 从 Skill 批量同步 `widget_service/cloud/services/card_validation/` 后，不得直接以覆盖后的源码作为最终
+  结果。必须重新执行 CodeCheck，并恢复微服务侧为满足上述规则所做的等价改写。
+- 当前校验器需要重点复查：`binding_validator.py` 的前缀截取、`component_validator.py` 的模板变量判断、
+  `protocol_validator.py` 的入口状态判断，以及 `source_parser.py` 的表达式标记判断。
+- 遵守 `G.VAR.01`。带类型标注的变量和数据类字段应使用同类型初始值，例如 `float` 字段使用 `0.0`，
+  避免在生命周期内由 `int` 隐式变为 `float`。
+- 遵守 `G.ERR.09`。同一个 `except` 元组不得同时捕获父异常和子异常；例如已捕获 `OSError` 时，不再
+  重复列出其子类 `TimeoutError`。
+- 遵守 `G.ERR.07`。不得使用 `except` 后直接 `pass`；可选流程发生异常时也必须记录异常类型和原因，
+  必要时转换为明确的业务失败。
+- 遵守 `G.FNM.05`。函数需要返回较多数据时，应使用数据类、具名元组等具名结构封装，避免依赖位置
+  解包难以辨认的长元组。
+- 修改 Python 代码后至少运行 Ruff、相关单元测试和差异空白检查；不得用 `noqa`、屏蔽规则或申请豁免
+  代替可读的代码修复。
+
 ## 项目背景
 
 本项目服务于小艺 App 的 AI 卡片生成功能。小艺 App 已具备对话式 Agent 能力，用户可以通过自然语言让 Agent 完成任务。本项目要在现有对话链路上扩展“创建桌面卡片”能力：用户输入需求描述后，云侧生成可在端侧预览和添加到桌面的 HarmonyOS A2UI Form 卡片。
