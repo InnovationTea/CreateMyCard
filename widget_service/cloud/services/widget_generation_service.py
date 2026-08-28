@@ -1187,7 +1187,9 @@ class WidgetGenerationService:
             request,
             policy,
             before_model_call=before_model_call,
-            template_source_generator=TemplateSourceGenerator() if self._enable_card_template() else None,
+            template_source_generator=(
+                TemplateSourceGenerator() if self._enable_card_template() else None
+            ),
             need_fallback=True,
         )
 
@@ -1571,9 +1573,10 @@ class WidgetGenerationService:
         )
 
     def _enable_jsx_generation(self) -> bool:
-        """是否启用 JSX-to-A2UI 生成式路径（由 spec_records.yaml 的 enable_jsx_generation 开关控制）。"""
+        """读取 spec_records.yaml 中的 JSX-to-A2UI 生成开关。"""
         settings = get_settings()
-        return settings.CONFIG.get("enable_jsx_generation") == "true"
+        config = getattr(settings, "CONFIG", {})
+        return isinstance(config, dict) and config.get("enable_jsx_generation") == "true"
 
     def _enable_card_template(self) -> bool:
         """Whether use template for UI generation."""
