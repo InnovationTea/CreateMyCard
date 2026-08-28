@@ -31,6 +31,7 @@ _COMPONENT_TYPES = frozenset(
         "Progress",
         "Button",
         "Checkbox",
+        "FusionBall",
     }
 )
 _CONTAINER_TYPES = frozenset({"Row", "Column", "List", "Stack"})
@@ -41,7 +42,9 @@ _SEMANTIC_FIELDS = {
     "Progress": frozenset({"value", "total"}),
     "Button": frozenset({"label", "enabled"}),
     "Checkbox": frozenset({"label", "value", "select"}),
+    "FusionBall": frozenset({"largeColor", "mediumColor", "smallColor"}),
 }
+_FUSION_BALL_FIELDS = frozenset({"largeColor", "mediumColor", "smallColor"})
 _COMPACT_ONLY_FIELDS = {
     "Progress": frozenset({"threshold"}),
 }
@@ -58,6 +61,7 @@ _COMMON_STYLE_PROPERTIES = frozenset(
         "backgroundColor",
         "backgroundImage",
         "backgroundImageSizeWithStyle",
+        "backdropBlur",
         "borderColor",
         "borderRadius",
         "borderWidth",
@@ -651,10 +655,7 @@ def convert_a2ui_to_compact_dsl(
     components = update_components.get("components")
     if not isinstance(components, list) or not components:
         raise CompactDslConversionError("A2UI updateComponents.components must be non-empty.")
-    rows = [
-        _a2ui_component_to_compact_row(component, dimensions)
-        for component in components
-    ]
+    rows = [_a2ui_component_to_compact_row(component, dimensions) for component in components]
     data_path = update_data_model.get("path")
     data_value = update_data_model.get("value")
     if not isinstance(data_path, str) or not data_path.startswith("/"):
@@ -686,9 +687,7 @@ def _parse_standard_a2ui_messages(a2ui: str) -> list[dict[str, Any]]:
                 f"A2UI archive line {line_number} is invalid JSON: {exc.msg}."
             ) from exc
         if not isinstance(message, dict):
-            raise CompactDslConversionError(
-                f"A2UI archive line {line_number} must be an object."
-            )
+            raise CompactDslConversionError(f"A2UI archive line {line_number} must be an object.")
         messages.append(message)
     expected_keys = ("createSurface", "updateComponents", "updateDataModel")
     for message, expected_key in zip(messages, expected_keys, strict=True):
@@ -734,7 +733,7 @@ def _a2ui_component_to_compact_row(
     if not isinstance(component_id, str) or not component_id:
         raise CompactDslConversionError("A2UI component id must be a non-empty string.")
     if not isinstance(component_type, str) or component_type not in _COMPONENT_TYPES:
-        raise CompactDslConversionError(f'{component_id}: unsupported A2UI component type.')
+        raise CompactDslConversionError(f"{component_id}: unsupported A2UI component type.")
     if not isinstance(styles, dict):
         raise CompactDslConversionError(f"{component_id}: A2UI styles must be an object.")
     props = copy.deepcopy(styles)
@@ -1050,6 +1049,8 @@ def _parse_component_row(value: list[Any], line_number: int) -> ComponentRow:
         props,
         line_number,
     )
+    if component_type == "FusionBall" and len(value) != 3:
+        raise CompactDslConversionError(f"{component_id}: FusionBall cannot have children.")
     props = _repair_button_label(component_id, component_type, props)
     children = _parse_children(value, component_id, component_type)
     _validate_component_props(component_id, component_type, props)
@@ -1222,6 +1223,9 @@ def _validate_component_property_types(
     props: dict[str, Any],
 ) -> None:
     for property_name, value in props.items():
+        if property_name == "backdropBlur":
+            _validate_backdrop_blur_property(component_id, value)
+            continue
         if property_name in _NUMBER_PROPERTIES:
             _validate_number_property(component_id, property_name, value)
             continue
@@ -1243,6 +1247,23 @@ def _validate_component_property_types(
             continue
         if property_name in {"width", "height"}:
             _validate_dimension_property(component_id, property_name, value)
+
+
+def _validate_backdrop_blur_property(component_id: str, value: Any) -> None:
+    if not isinstance(value, dict):
+        raise CompactDslConversionError(
+            f"{component_id}: backdropBlur must be an object containing radius."
+        )
+    if set(value) != {"radius"}:
+        raise CompactDslConversionError(
+            f"{component_id}: backdropBlur must contain only the required radius field."
+        )
+    radius = value["radius"]
+    _validate_number_property(component_id, "backdropBlur.radius", radius)
+    if radius < 0:
+        raise CompactDslConversionError(
+            f"{component_id}: backdropBlur.radius must be non-negative."
+        )
 
 
 def _validate_number_property(
@@ -1358,6 +1379,9 @@ def _validate_semantic_props(
     component_type: str,
     props: dict[str, Any],
 ) -> None:
+    if component_type == "FusionBall":
+        _validate_fusion_ball_props(component_id, props)
+        return
     if component_type == "Text":
         _require_literal_or_binding(
             component_id,
@@ -1377,6 +1401,23 @@ def _validate_semantic_props(
         return
     if component_type == "Checkbox":
         _validate_checkbox_props(component_id, props)
+
+
+def _validate_fusion_ball_props(component_id: str, props: dict[str, Any]) -> None:
+    if set(props) != _FUSION_BALL_FIELDS:
+        raise CompactDslConversionError(
+            f"{component_id}: FusionBall requires largeColor, mediumColor, and smallColor."
+        )
+    if any(not _is_argb_color(value) for value in props.values()):
+        raise CompactDslConversionError(
+            f"{component_id}: FusionBall colors must use #AARRGGBB."
+        )
+
+
+def _is_argb_color(value: Any) -> bool:
+    if not isinstance(value, str) or len(value) != 9 or not value.startswith("#"):
+        return False
+    return all(character in "0123456789abcdefABCDEF" for character in value[1:])
 
 
 def _require_literal_or_binding(
@@ -1614,6 +1655,15 @@ def _tokenize_binding_expression(
                     raise CompactDslConversionError(f"{context}: expression number is invalid.")
             tokens.append(_BindingExpressionToken("number", body[start:index], start, index))
             continue
+        function_end = index + len("size")
+        has_function_boundary = function_end == len(body)
+        if not has_function_boundary and function_end < len(body):
+            next_character = body[function_end]
+            has_function_boundary = not next_character.isalnum() and next_character != "_"
+        if body.startswith("size", index) and has_function_boundary:
+            index = function_end
+            tokens.append(_BindingExpressionToken("function", "size", start, index))
+            continue
         keyword = next(
             (
                 candidate
@@ -1702,6 +1752,12 @@ class _BindingExpressionParser:
             self._invalid("missing operand")
         if token.kind in {"binding", "literal", "number", "atom"}:
             self.index += 1
+            return
+        if token.kind == "function":
+            self.index += 1
+            self._expect("(")
+            self._conditional()
+            self._expect(")")
             return
         if self._accept("("):
             self._conditional()

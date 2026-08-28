@@ -15,15 +15,21 @@ The service follows `docs/AGENTS.md`:
   `WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND`.
   `generateWidgetCardCompactDsl` selects its backend through `WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND`, loads
   the Design profile from `data/protocol_profiles/registry_ranges.json`, and converts Design Compact DSL with that
-  profile's `protocol.json` before validation and storage. The three generation routes share one policy-driven
-  generation pipeline and the same model-failure, quality-repair, and validation switches. Tool callers cannot
+  profile's `protocol.json` before validation and storage. Create requests first try the controlled Template route;
+  a Template mismatch can fall back to the ordinary Design Compact model route. The generation routes share one
+  policy-driven pipeline and the same model-failure, quality-repair, and validation switches. Tool callers cannot
   select or override either backend.
-- `generateWidgetCardTerseDslNested2` uses the local `tersedsl-nested-2/0.1` Prompt and a restricted
-  literal-only parser. It never executes model output and deterministically converts the nested component tree to
-  standard A2UI. It supports static create/edit requests and shares the edit switch with the other generation
-  routes; dynamic data bindings and events remain unsupported.
-- `generateWidgetCardCompactDsl` rejects a stringified tool `arguments` value before model invocation. Main Agent
-  calls keep `arguments`, `functionName`, and `skillName` at the same level, with `arguments` passed as a JSON object.
+- `generateWidgetCardTerseDslNested2` is currently a strict Template-only create route. It uses the same Design
+  Compact public Processor after the Template module has compiled its internal TerseDSL-Nested-2/CardTpl result to
+  A2UI and adapted it to Design Compact source DSL. Template mismatch and edit requests fail without falling back to
+  the ordinary model route. See `cloud/services/template_generation/docs/README.md` for the current architecture and
+  module documentation.
+- `cloud/services/template_generation/config/template_controls.json` owns the Template Provider and individual
+  Template denylists. Filtering happens before the first-layer prompt, and the same filtered set constrains
+  second-layer Provider rules, layout candidates, and deterministic output validation.
+- Temporary route `generateWidgetCardCompactDslWithDirective` directly reuses the fourth route's generation service
+  and schema, but always emits widget directive command frames even when the global directive switch is disabled.
+  Its forced behavior is isolated in the router so the route can be removed without changing the generation pipeline.
 - `WIDGET_SERVICE_ENABLE_IDS_MOCK=true` by default. In this mode the service reads only `WIDGET_SERVICE_MOCK_IDS_RESPONSE_PATH`, whose default path is the service-internal `cloud/data/mock/ids_res.json`; a missing or invalid mock produces an empty IDS result and never falls back to remote IDS. When set to `false`, the service ignores the mock and queries only the real remote IDS; remote failure produces an empty result and never falls back to mock.
 - `WIDGET_SERVICE_ENABLE_VALIDATION_FAILURE_RETRY=false` by default. It controls targeted repair for both source
   DSL conversion errors and Validator errors. `WIDGET_SERVICE_VALIDATION_FAILURE_MAX_REPAIR_ATTEMPTS=1` limits

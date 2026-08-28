@@ -1,40 +1,37 @@
-# Weather Provider Template PoC
+# Weather Provider Template
 
-本目录是 `card-provider-bundle/1` 的最小可运行样例：
+本目录是天气业务的 `card-provider-bundle/1` 资源。当前 Provider ID 为
+`com.huawei.weather.cli`，通过 `ViewWeather` 读取 `/data/weather`，并声明 7 个
+`WeatherOverview*` 业务模板。
 
-- `provider.json`：Provider、两层规则 MD、能力、数据 Schema 位置和模板入口；
-- `layer-docs/first-layer.md`：高级组件到本轮 TaskSpec 数据路径的首层规则；
-- `layer-docs/second-layer.md`：Variant、参数和素材的二层规则；
-- `schemas/`：上游没有可用 Schema 路径时的本地兜底示例；
-- `templates/`：只含闭合声明式语法的 `.cardtpl`。
+## 文件职责
 
-`dataSchema.path` 优先按云侧 `data` 根目录下的上游路径解析；上游文件不存在时，
-再按 Bundle 内相对路径解析。`dataSchema.version` 标识 Schema 版本，
-上游路径中必须包含该版本。
-正式能力注册表仅被读取，不要求其他团队为 Provider Template 修改注册内容。
+- `provider.json`：Provider、数据能力、数据根、Template 清单和分层规则入口。
+- `layer-docs/first-layer.md`：天气字段和业务组件的首层规则。
+- `layer-docs/second-layer.md`：二层 Template 与 Props 选择规则。
+- `templates/weather-overview.cardtpl`：7 个天气模板的受信 CardTpl 源码。
+- `samples/sunny.json`：本地展开和调试样例。
+- `schemas/view-weather.output.schema.json`：历史或离线对照 Schema；生产优先读取正式能力注册表。
 
-单字段使用 `Bind("city")`；同一行拼接多个 string binding 时使用受限的 TypeScript 风格
-反引号语法，例如 `` `${condition}｜${airQuality}` ``。
-`${...}` 内只能写本模板声明的 binding 名称。
+Template 的主数据、次要数据和可选数据以 `provider.json#templates` 为准。`.cardtpl` 只能引用当前
+Template 声明的数据路径；缺少任一主数据或次要数据时，该 Template 不进入候选。
 
-从 `widget_service` 目录验证：
+Provider 资源、Search、CardTpl 和预览数据集的通用规则见：
 
-```bash
-.venv/bin/python scripts/validate_provider_bundle.py \
-  cloud/services/template_generation/resources/source/providers/weather
-```
+- [Template 文档中心](../../../../docs/README.md)
+- [Provider Template 契约](../../../../docs/provider-template-contract.md)
+- [天气模板能力清单](../../../../docs/provider-template-capability-checklist.md#weatheroverview)
 
-校验器只读取解析出的 Schema，检查 `.cardtpl` 使用的相对字段路径和类型。
-请求运行时若缺少对应能力根或 TaskSpec 字段，只关闭该 Provider Template，
-并继续使用正式能力和通用生成链路。
+## 验证
 
-修改 `.cardtpl` 后无需维护源码摘要，直接重新生成 Prompt 常量并执行 Provider 测试：
+在 `widget_service` 的父目录执行：
 
 ```bash
-.venv/bin/python scripts/build_cardplan_bundle.py
-PYTHONPATH=cloud .venv/bin/pytest -q tests/test_provider_template_bundle.py
+PYTHONPATH=widget_service/cloud widget_service/.venv312/bin/python -m pytest -q \
+  widget_service/cloud/services/template_generation/tests
 ```
 
-`WeatherOverview@1` 已完成首轮 Python 影子对比并切换为默认生产路由。运行时只把 CardSpec
-`writeResultTo` 下被模板声明的绑定叶子补回模型 TaskSpec；缺失、歧义或类型不符时仍在准入阶段关闭
-该模板，保留正式能力和通用生成链路。
+如需检查确定性预览，按
+[Provider Template A2UI 预览数据集](../../../../docs/provider-template-preview-gallery.md)
+生成全部模板样例。当前没有单独的 `validate_provider_bundle.py`；Provider Bundle 的严格加载和 CardTpl
+编译由模块测试覆盖。

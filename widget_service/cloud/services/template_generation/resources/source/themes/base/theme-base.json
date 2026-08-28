@@ -1,0 +1,57 @@
+{
+  "themeBaseVersion": "theme-base/2",
+  "contentColorProperties": {
+    "Button": "fontColor",
+    "Checkbox": "selectedColor",
+    "Divider": "color",
+    "Image": "fillColor",
+    "Progress": "color",
+    "Text": "fontColor"
+  },
+  "themeReferencePaths": [
+    "primaryColor",
+    "supportContentColor",
+    "progressColor",
+    "actionStyle.backgroundColor",
+    "actionStyle.contentColor"
+  ],
+  "uxTokens": {
+    "radius": 20,
+    "safeInset": 12,
+    "sectionGap": 8,
+    "moduleGap": 8,
+    "denseInnerGap": 4,
+    "pillActionHeight": 36,
+    "pillActionIconSize": 20,
+    "iconActionSize": 30,
+    "iconActionIconSize": 16,
+    "titleSourceIconSize": 20,
+    "businessIconSize": 20,
+    "ringDefaultSize": 52,
+    "ringMinimumSize": 44,
+    "ringContentIconSize": 20,
+    "ringHeroIconSize": 24,
+    "weatherIconCompactSize": 48,
+    "weatherIconHeroSize": 56
+  },
+  "sizeBudgets": [
+    {
+      "size": "2x2",
+      "recommendedBusinessComponents": 2,
+      "maxBusinessComponents": 3,
+      "maxPrimaryActions": 2,
+      "maxPrimaryCharts": 1,
+      "maxListItems": 2,
+      "maxInformationLevels": 2
+    },
+    {
+      "size": "2x4",
+      "recommendedBusinessComponents": 3,
+      "maxBusinessComponents": 4,
+      "maxPrimaryActions": 1,
+      "maxPrimaryCharts": 1,
+      "maxListItems": 3,
+      "maxInformationLevels": 3
+    }
+  ]
+}

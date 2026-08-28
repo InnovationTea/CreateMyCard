@@ -20,6 +20,7 @@ from .models import ActionBinding, Fact, HybridBodyContract, HybridLimits
 from .provider_bundle import (
     provider_template_admission,
     provider_template_family_identity,
+    provider_template_layout_kind,
     provider_template_variant_admission,
 )
 from .registry import CardPlanRegistry
@@ -34,11 +35,13 @@ _PLAIN_DESIGNS = (
     "icon",
 )
 _PLAIN_LAYOUTS = ("card", "section", "compact", "between", "actions", "list", "dense", "overlay")
+_ACTION_TEMPLATE_IDS = ("PillAction@1", "IconAction@1")
+_ACTION_PROVIDER_ID = "com.huawei.action.cli"
 _ACTION_LABELS = {
     "event.call.phone": "联系家人",
     "event.clean.memory": "一键清理",
     "event.enter.meeting": "加入会议",
-    "event.open.settings.dnd": "专注模式",
+    "event.open.settings.dnd": "免打扰",
     "event.open.settings.bluetooth": "蓝牙设置",
     "event.open.settings.battery": "电池设置",
     "event.open.settings.batteryHealth": "电池健康",
@@ -130,8 +133,13 @@ def build_hybrid_prompt(
     ui_brief: Any,
     registry: CardPlanRegistry,
     ux_layout_root_ids: tuple[str, ...] = (),
+    expose_data_facts: bool = True,
 ) -> HybridPromptProjection:
-    facts = tuple(_collect_facts(task_spec.dataModelSchema))
+    facts = (
+        tuple(_collect_facts(task_spec.dataModelSchema))
+        if expose_data_facts
+        else ()
+    )
     theme_id = _resolve_theme(task_spec, ui_brief, registry)
     requested = _resolve_templates(
         task_spec,
@@ -157,7 +165,7 @@ def build_hybrid_prompt(
     )
     trusted_literals = _unique(
         [
-            task_spec.userQuery,
+            *((task_spec.userQuery,) if expose_data_facts else ()),
             *card_literals,
             *(str(fact.value) for fact in facts if isinstance(fact.value, str)),
             *(_action_label(event) for event in task_spec.eventCandidates),
@@ -189,16 +197,18 @@ def build_hybrid_prompt(
         actions = ()
     selected_definitions = [registry.require_template(wire_id) for wire_id in requested]
     if ux_layout_root_ids:
-        # Layout contracts select the exact cardinality. Most layouts consume
-        # zero or one primary Action; ActionMatrixLayout may consume up to four
-        # independently approved controls.
-        content_action_ids = tuple(action.action_id for action in actions[:4])
+        # Layout contracts select the exact cardinality. The compact two-action
+        # layout is the only family that consumes both approved controls.
+        content_action_ids = tuple(action.action_id for action in actions[:2])
     else:
         content_action_ids = _resolve_content_action_ids(
             ui_brief=ui_brief,
             actions=actions,
             definitions=selected_definitions,
         )
+    if ux_layout_root_ids and content_action_ids:
+        requested = tuple(dict.fromkeys((*requested, *_ACTION_TEMPLATE_IDS)))
+    selected_definitions = [registry.require_template(wire_id) for wire_id in requested]
     design_tokens = _unique(
         [
             *_PLAIN_DESIGNS,
@@ -228,7 +238,6 @@ def build_hybrid_prompt(
         max_nesting_depth=9 if ux_layout_root_ids else 7,
         vertical_budget_vp=126,
     )
-    ux_action_components = ("PillAction",) if ux_layout_root_ids else ()
     contract = HybridBodyContract(
         theme_profile_id=theme_id,
         allowed_components=tuple(
@@ -245,7 +254,6 @@ def build_hybrid_prompt(
                     "List",
                     "Stack",
                     *ux_layout_root_ids,
-                    *ux_action_components,
                 )
             )
         ),
@@ -279,31 +287,39 @@ def build_hybrid_prompt(
         content_action_ids=content_action_ids,
         ux_layout_root=bool(ux_layout_root_ids),
     )
-    user = "\n".join(
-        (
-            f"request={json.dumps(task_spec.userQuery, ensure_ascii=False)}",
-            f"card={json.dumps({'size': task_spec.size, 'theme': theme_id}, ensure_ascii=False)}",
-            f"requestedTemplate={json.dumps(requested, ensure_ascii=False)}",
-            f"cardComposition={json.dumps(card_composition, ensure_ascii=False)}",
-            f"dataFacts={json.dumps([fact.model_dump() for fact in facts], ensure_ascii=False)}",
-            f"mustKeep={json.dumps(contract.required_literals, ensure_ascii=False)}",
-            f"mustKeepNumbers={json.dumps(contract.required_numbers, ensure_ascii=False)}",
-            "advancedComposition="
-            + json.dumps(
-                {
-                    "primaryDomain": getattr(ui_brief, "primary_domain", None),
-                    "adaptiveTemplateId": getattr(ui_brief, "adaptive_template_id", None),
-                    "advancedComponentIds": getattr(ui_brief, "advanced_component_ids", []),
-                },
-                ensure_ascii=False,
-            ),
+    user_lines = [
+        f"card={json.dumps({'size': task_spec.size, 'theme': theme_id}, ensure_ascii=False)}",
+        f"requestedTemplate={json.dumps(requested, ensure_ascii=False)}",
+        f"cardComposition={json.dumps(card_composition, ensure_ascii=False)}",
+    ]
+    if expose_data_facts:
+        user_lines[:0] = [f"request={json.dumps(task_spec.userQuery, ensure_ascii=False)}"]
+        user_lines.extend(
             (
-                "只输出一个以分号结束、以批准布局高级组件为根的完整 Card。"
-                if ux_layout_root_ids
-                else '只输出一个以分号结束、以 Template("card@1", ...) 为根的完整 Card。'
-            ),
+                "dataFacts="
+                + json.dumps(
+                    [fact.model_dump() for fact in facts],
+                    ensure_ascii=False,
+                ),
+                f"mustKeep={json.dumps(contract.required_literals, ensure_ascii=False)}",
+                f"mustKeepNumbers={json.dumps(contract.required_numbers, ensure_ascii=False)}",
+                "advancedComposition="
+                + json.dumps(
+                    {
+                        "primaryDomain": getattr(ui_brief, "primary_domain", None),
+                        "adaptiveTemplateId": getattr(ui_brief, "adaptive_template_id", None),
+                        "advancedComponentIds": getattr(ui_brief, "advanced_component_ids", []),
+                    },
+                    ensure_ascii=False,
+                ),
+            )
         )
+    user_lines.append(
+        "只输出一个以分号结束、以批准布局高级组件为根的完整 Card。"
+        if ux_layout_root_ids
+        else '只输出一个以分号结束、以 Template("card@1", ...) 为根的完整 Card。'
     )
+    user = "\n".join(user_lines)
     if len(system) + len(user) > 80_000:
         raise ValueError("Hybrid Body Prompt exceeds the service input budget")
     return HybridPromptProjection(
@@ -388,7 +404,8 @@ def _system_prompt(
             task_spec,
             card_spec,
         ):
-            if ux_layout_root and _variant_requires_action(variant):
+            is_action_template = wire_id in _ACTION_TEMPLATE_IDS
+            if ux_layout_root and _variant_requires_action(variant) and not is_action_template:
                 continue
             if not _variant_has_available_required_assets(variant, definition, contract):
                 continue
@@ -419,9 +436,14 @@ def _system_prompt(
                     f"Template is outside the supported cardtpl/1 contract: {wire_id}"
                 )
             call = f"Template({wire_id!r}, props)"
+            if ux_layout_root:
+                layout_kind = provider_template_layout_kind(wire_id)
+                template_summary = f"layoutKind={layout_kind or 'control'}"
+            else:
+                template_summary = definition.description
             signatures.append(
                 f"- {call}: "
-                f"{definition.description}; params={json.dumps(params, ensure_ascii=False)}; "
+                f"{template_summary}; params={json.dumps(params, ensure_ascii=False)}; "
                 "parameterRelations="
                 + json.dumps(
                     [item.model_dump(by_alias=True) for item in variant.parameter_relations],
@@ -458,11 +480,27 @@ def _system_prompt(
         )
     else:
         action_rule = "本次没有批准 Action；card params 省略 action，content 禁止 Button 和事件。"
+    if ux_layout_root:
+        return "\n".join(
+            (
+                UX_MIXED_SYSTEM_PROMPT_KERNEL,
+                "",
+                f"允许素材 src={json.dumps(contract.allowed_asset_sources, ensure_ascii=False)}",
+                "素材语义标签="
+                + json.dumps(contract.asset_semantic_tags_by_source, ensure_ascii=False),
+                action_rule,
+                "批准的布局、业务与 Action Template：",
+                *signatures,
+                f"预算：raw<={contract.limits.max_raw_components}, "
+                f"expanded<={contract.limits.max_expanded_components}, "
+                f"depth<={contract.limits.max_nesting_depth}, "
+                f"body<={contract.limits.vertical_budget_vp}vp。",
+            )
+        )
     composition_rules = _composition_rules(ux_layout_root)
-    kernel = UX_MIXED_SYSTEM_PROMPT_KERNEL if ux_layout_root else BODY_SYSTEM_PROMPT_KERNEL
     return "\n".join(
         (
-            kernel,
+            BODY_SYSTEM_PROMPT_KERNEL,
             "",
             "标准组件投影：Text/Image/Button 使用批准 DesignToken；"
             "Column/Row/List/Stack 使用批准 LayoutToken；Progress 使用字面量对象。",
@@ -499,6 +537,81 @@ def _system_prompt(
     )
 
 
+def build_template_prompt_contracts(
+    requested: tuple[str, ...],
+    contract: HybridBodyContract,
+    registry: CardPlanRegistry,
+    *,
+    task_spec: TaskSpec,
+    card_spec: dict[str, Any],
+    ux_layout_root: bool,
+) -> tuple[dict[str, Any], ...]:
+    """Build complete dynamic Template signatures for the active model candidates."""
+    prompt_contracts: list[dict[str, Any]] = []
+    for wire_id in dict.fromkeys(requested):
+        definition = registry.require_template(wire_id)
+        variants = admitted_provider_template_variants(
+            definition,
+            task_spec,
+            card_spec,
+        )
+        if not variants:
+            # Search has already selected a trusted concrete Template ID. Avoid
+            # rejecting it by guessing the business state again while building
+            # the signature; data-binding admission still remains mandatory.
+            admitted_variants = []
+            for variant in definition.variants:
+                admission = provider_template_variant_admission(
+                    definition,
+                    variant,
+                    task_spec,
+                    card_spec,
+                )
+                if admission.admitted:
+                    admitted_variants.append(variant)
+            variants = tuple(admitted_variants)
+        for variant in variants:
+            is_action_template = wire_id in _ACTION_TEMPLATE_IDS
+            if ux_layout_root and _variant_requires_action(variant) and not is_action_template:
+                continue
+            if not _variant_has_available_required_assets(variant, definition, contract):
+                continue
+            if definition.source_format != "cardtpl/1" or variant.size != "default":
+                raise ValueError(
+                    f"Template is outside the supported cardtpl/1 contract: {wire_id}"
+                )
+            properties = variant.parameters_schema.get("properties", {})
+            parameter_sources: dict[str, dict[str, Any]] = {}
+            for name, schema in properties.items():
+                value_kind = _parameter_value_kind(name, schema)
+                source_contract: dict[str, Any] = {"valueKind": value_kind}
+                if value_kind == "asset-source":
+                    source_contract["allowedSources"] = _parameter_allowed_asset_sources(
+                        name,
+                        definition,
+                        contract,
+                    )
+                parameter_sources[name] = source_contract
+            prompt_contracts.append(
+                {
+                    "templateId": wire_id,
+                    "callSyntax": (
+                        f'Template("{wire_id}", <props matching propsSchema>)'
+                    ),
+                    "description": definition.description,
+                    "layoutKind": (
+                        provider_template_layout_kind(wire_id) if ux_layout_root else None
+                    ),
+                    "propsSchema": variant.parameters_schema,
+                    "parameterSources": parameter_sources,
+                    "parameterRelations": [
+                        item.model_dump(by_alias=True) for item in variant.parameter_relations
+                    ],
+                }
+            )
+    return tuple(prompt_contracts)
+
+
 def _composition_rules(ux_layout_root: bool) -> tuple[str, ...]:
     if ux_layout_root:
         return (
@@ -507,14 +620,15 @@ def _composition_rules(ux_layout_root: bool) -> tuple[str, ...]:
             "只能把 Contract 声明的一个闭合配置对象"
             "放在第一个 child 前。布局的 businessChildren 数量不含 Action；"
             "所有 Action 必须是布局根的连续末尾直接 children，"
-            "禁止放进 Column/Row/Stack/List/Template；整卡最多一个 Action。",
+            "禁止放进 Column/Row/Stack/List/Template；整卡最多两个 Action。",
             "禁止独立整卡 Header。若 cardComposition.businessTitleCandidate 能准确命名"
             "当前业务，"
             "可在业务内容区使用；若局部 Template 或事实已表达则省略，"
             "禁止从 request 截取标题。",
-            'Action 只允许 PillAction({"actionId":"批准eventId"})。'
+            "Action 类型由业务模板后缀决定：Compact/Hero/WideHero 使用 "
+            'Template("PillAction@1", props)，Full/WideFull 不允许 Action。'
             "Action 与业务组件解耦，不得根据组件改写、丢弃或重新归属 eventId；"
-            "禁止 IconAction、ActionTile、标准 Button、事件对象和 Action 局部 Template。",
+            "禁止直接调用 PillAction/IconAction/ActionTile、标准 Button 和事件对象。",
         )
     return (
         'Card 外壳必须是 Template("card@1", cardParams, content)。',
@@ -527,7 +641,7 @@ def _composition_rules(ux_layout_root: bool) -> tuple[str, ...]:
 
 def _ux_layout_action_rule(contract: HybridBodyContract) -> str:
     actions = [
-        item.model_dump()
+        {"actionId": item.action_id, "label": item.display_label}
         for item in contract.action_bindings
         if item.action_id in contract.content_action_ids
     ]
@@ -537,7 +651,9 @@ def _ux_layout_action_rule(contract: HybridBodyContract) -> str:
         "layoutActionCandidates="
         + json.dumps(actions, ensure_ascii=False)
         + "；按所选布局的 Action 数量范围选择且不得重复 actionId；"
-        "标签和事件由服务端可信 Lowering 注入。"
+        "PillAction@1 的 actionId/label 必须来自同一候选，icon 可从 "
+        "actionIconCandidates 选择；IconAction@1 必须填写批准的 actionId/icon。"
+        "事件由服务端可信 Lowering 注入，禁止输出 call/args/onClick。"
     )
 
 
@@ -796,16 +912,19 @@ def _eligible_ranked_templates(
     task_spec: TaskSpec,
     card_spec: dict[str, Any] | None,
 ):
-    return [
-        definition
-        for definition in _ranked_templates(text, registry)
-        if _provider_template_is_admitted(
+    eligible_templates = []
+    for definition in _ranked_templates(text, registry):
+        if definition.provider_id == _ACTION_PROVIDER_ID:
+            continue
+        admitted = _provider_template_is_admitted(
             definition,
             task_spec,
             card_spec,
             log_mismatch=False,
         )
-    ]
+        if admitted:
+            eligible_templates.append(definition)
+    return eligible_templates
 
 
 def _provider_template_is_admitted(

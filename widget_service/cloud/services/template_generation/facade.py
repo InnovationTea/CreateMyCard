@@ -31,18 +31,34 @@ async def request_template_source_dsl(
     protocol_profile: dict[str, Any],
     model_runtime: ModelExecutionRuntime | None,
     model_request_context: ModelRequestContext,
+    enable_fusion_ball: bool,
+    trusted_template_candidate_ids: tuple[str, ...] = (),
+    trusted_template_action_ids: tuple[str, ...] = (),
+    trusted_template_sample_overrides: dict[str, Any] | None = None,
 ) -> str:
     """请求模板引擎并返回当前 Processor 可直接消费的源 DSL。"""
+    if not isinstance(enable_fusion_ball, bool):
+        raise TypeError("enable_fusion_ball must be boolean")
     model_client = create_template_model_client(
         model_runtime,
         model_request_context,
     )
     template_bindings = tuple(enrich_template_bindings(list(effective_bindings)))
+    engine_options: dict[str, Any] = {"enable_fusion_ball": enable_fusion_ball}
+    if trusted_template_candidate_ids:
+        engine_options["trusted_template_candidate_ids"] = trusted_template_candidate_ids
+    if trusted_template_action_ids:
+        engine_options["trusted_template_action_ids"] = trusted_template_action_ids
+    if trusted_template_sample_overrides:
+        engine_options["trusted_template_sample_overrides"] = (
+            trusted_template_sample_overrides
+        )
     output = await generate_template_engine_a2ui(
         task_spec,
         card_spec,
         template_bindings,
         model_client,
+        **engine_options,
     )
     source_dsl = prepare_template_source_dsl(
         output.a2ui,
@@ -53,6 +69,7 @@ async def request_template_source_dsl(
     logger.info(
         f"{_MODULE} source_dsl_generated processor_kind={processor_kind} "
         f"template_ids={json_for_log(output.template_ids)} "
+        f"enable_fusion_ball={enable_fusion_ball} "
         f"expanded_component_count={output.expanded_component_count}"
     )
     return source_dsl

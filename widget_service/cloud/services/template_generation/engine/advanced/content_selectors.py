@@ -33,7 +33,14 @@ _BATCH_DATA_ADMISSION_ENABLED: ContextVar[bool] = ContextVar(
 _SELECTOR_COMPONENT_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     "WeatherOverview": (
         "weather",
-        ("city", "temperature", "condition", "airQuality", "temperatureRange"),
+        (
+            "city",
+            "temperature",
+            "condition",
+            "airQuality",
+            "coldLevel",
+            "temperatureRange",
+        ),
     ),
     "DateOverview": ("date", ("date", "weekday")),
     "ScheduleOverview": ("schedule", ("title", "timeText", "location")),
@@ -47,6 +54,7 @@ _SELECTOR_FALLBACK_FIELDS: dict[str, tuple[str, ...]] = {
         "districtName",
         "prefectureName",
         "airQuality",
+        "coldLevel",
         "temperatureRangeText",
     ),
     "DateOverview": ("startDate", "weekday"),
@@ -102,16 +110,24 @@ class WeatherOverviewFacts:
     temperature: str
     condition: str
     air_quality: str
-    temperature_range: str
+    cold_level: str = ""
+    temperature_range: str = ""
 
     def as_selector(self) -> dict[str, dict[str, Any]]:
-        return {
+        selector = {
             "city": _field(self.city, "可信天气查询城市或地区"),
             "temperature": _field(self.temperature, "可信当前温度文本"),
             "condition": _field(self.condition, "可信当前天气状态"),
             "airQuality": _field(self.air_quality, "可信当前空气质量"),
-            "temperatureRange": _field(self.temperature_range, "可信当日温度范围"),
         }
+        if self.cold_level:
+            selector["coldLevel"] = _field(self.cold_level, "可信感冒指数")
+        if self.temperature_range:
+            selector["temperatureRange"] = _field(
+                self.temperature_range,
+                "可信当日温度范围",
+            )
+        return selector
 
 
 @dataclass(frozen=True)
@@ -146,27 +162,38 @@ class ScheduleOverviewFacts:
 class BatteryOverviewFacts:
     level_percent: int | float
     level_text: str
-    capacity_level: str
-    charging_status: str
+    capacity_level: str | None = None
+    charging_status: str | None = None
 
     def as_selector(self) -> dict[str, dict[str, Any]]:
         number_type = "integer" if isinstance(self.level_percent, int) else "number"
-        return {
+        selected = {
             "batterySOC": {
                 "type": number_type,
                 "description": "可信手机本机电量百分比数值",
                 "sampleValue": self.level_percent,
             },
             "batterySOCText": _field(self.level_text, "可信手机本机电量百分比文本"),
-            "batteryCapacityLevelDesc": _field(self.capacity_level, "可信电量等级描述"),
-            "chargingStatusDesc": _field(self.charging_status, "可信充电状态描述"),
         }
+        if self.capacity_level is not None:
+            selected["batteryCapacityLevelDesc"] = _field(
+                self.capacity_level,
+                "可信电量等级描述",
+            )
+        if self.charging_status is not None:
+            selected["chargingStatusDesc"] = _field(
+                self.charging_status,
+                "可信充电状态描述",
+            )
+        return selected
 
     @property
     def state(self) -> str:
         if self.level_percent <= 20:
             return "low"
-        if _charging_status_is_active(self.charging_status):
+        if self.charging_status is not None and _charging_status_is_active(
+            self.charging_status
+        ):
             return "charging"
         return "normal"
 
@@ -1384,6 +1411,13 @@ def project_content_component_facts(
             app_usage_facts = extract_app_usage_overview_facts(schema)
             if app_usage_facts is not None:
                 selected = app_usage_facts.as_selector()
+        elif component_id == "CalendarOverview":
+            date_facts = extract_date_overview_facts(schema)
+            schedule_facts = extract_schedule_overview_facts(schema)
+            if date_facts is not None:
+                selected.update(date_facts.as_selector())
+            if schedule_facts is not None:
+                selected.update(schedule_facts.as_selector())
         elif component_id == "ScheduleOverview":
             schedule_facts = extract_schedule_overview_facts(schema)
             if schedule_facts is not None:
@@ -2285,10 +2319,11 @@ def _projected_battery_candidates(schema: dict[str, Any]):
         provider = candidate.get("GetPhoneBatteryInfo")
         if isinstance(provider, dict):
             yield provider
-    yield from _direct_field_objects(
-        schema.get("data", {}),
-        ("batterySOCText", "batteryCapacityLevelDesc", "chargingStatusDesc"),
-    )
+    for candidate in _dict_nodes(schema.get("data", {})):
+        has_numeric_level = "batterySOC" in candidate
+        has_text_level = "batterySOCText" in candidate
+        if has_numeric_level or has_text_level:
+            yield candidate
 
 
 def _battery_facts_from_candidate(candidate: dict[str, Any]) -> BatteryOverviewFacts | None:
@@ -2296,22 +2331,20 @@ def _battery_facts_from_candidate(candidate: dict[str, Any]) -> BatteryOverviewF
     level_text_field = _first_field(candidate, "batterySOCText")
     capacity_field = _first_field(candidate, "batteryCapacityLevelDesc")
     charging_field = _first_field(candidate, "chargingStatusDesc")
+    level_percent = _trusted_percentage_number(level_field)
     level_text = _trusted_string(level_text_field)
     capacity_level = _trusted_string(capacity_field)
     charging_status = _trusted_string(charging_field)
     text_percent = _percentage_number_value(level_text_field)
-    if level_text is None or capacity_level is None or charging_status is None:
+    if level_text is None and level_percent is not None:
+        level_text = f"{level_percent:g}%"
+        text_percent = level_percent
+    if level_text is None or text_percent is None:
         return None
-    if text_percent is None:
-        return None
-    if level_field is None:
+    if level_percent is None:
         level_percent = text_percent
-    else:
-        level_percent = _trusted_percentage_number(level_field)
-        if level_percent is None:
-            return None
-        if abs(float(level_percent) - float(text_percent)) > 1e-9:
-            return None
+    elif abs(float(level_percent) - float(text_percent)) > 1e-9:
+        return None
     return BatteryOverviewFacts(
         level_percent=level_percent,
         level_text=level_text,
@@ -2546,13 +2579,10 @@ def extract_workout_latest_facts(
         end_time_text = _trusted_string(candidate.get("exerciseEndTimeText"))
         if exercise_type_name == "暂无运动":
             continue
-        required_values = (exercise_type_name, calorie_text, duration_text, end_time_text)
-        if any(value is None for value in required_values):
+        if exercise_type_name is None or calorie_text is None:
             continue
-        assert exercise_type_name is not None
-        assert calorie_text is not None
-        assert duration_text is not None
-        assert end_time_text is not None
+        if duration_text is None or end_time_text is None:
+            continue
         return WorkoutLatestFacts(
             exercise_type_name=exercise_type_name,
             calorie_text=calorie_text,
@@ -2836,7 +2866,7 @@ def _projected_date_candidates(schema: dict[str, Any]):
 
 
 def extract_weather_overview_facts(schema: dict[str, Any]) -> WeatherOverviewFacts | None:
-    """Return the five complete string facts from one coherent weather subtree."""
+    """Return one coherent weather fact set with a trusted supporting index."""
     for candidate in _dict_nodes(schema):
         projected = _projected_weather_facts(candidate)
         if projected is not None:
@@ -2857,32 +2887,39 @@ def extract_weather_overview_facts(schema: dict[str, Any]) -> WeatherOverviewFac
         temperature = _trusted_string(current.get("temperatureText"))
         condition = _trusted_string(current.get("condition"))
         air_quality = _trusted_string(current.get("airQuality"))
+        cold_level = _trusted_string(current.get("coldLevel"))
         temperature_range = _first_trusted_string(candidate, "temperatureRangeText")
-        values = (city, temperature, condition, air_quality, temperature_range)
-        if all(value is not None for value in values):
+        core_values = (city, temperature, condition, air_quality)
+        has_supporting_index = cold_level is not None or temperature_range is not None
+        if all(value is not None for value in core_values) and has_supporting_index:
             return WeatherOverviewFacts(
                 city=city or "",
                 temperature=temperature or "",
                 condition=condition or "",
                 air_quality=air_quality or "",
+                cold_level=cold_level or "",
                 temperature_range=temperature_range or "",
             )
     return None
 
 
 def _projected_weather_facts(value: dict[str, Any]) -> WeatherOverviewFacts | None:
-    names = ("city", "temperature", "condition", "airQuality", "temperatureRange")
-    if not all(name in value for name in names):
+    core_names = ("city", "temperature", "condition", "airQuality")
+    if not all(name in value for name in core_names):
         return None
-    selected = tuple(_trusted_string(value.get(name)) for name in names)
-    if any(item is None for item in selected):
+    selected = tuple(_trusted_string(value.get(name)) for name in core_names)
+    cold_level = _trusted_string(value.get("coldLevel"))
+    temperature_range = _trusted_string(value.get("temperatureRange"))
+    has_supporting_index = cold_level is not None or temperature_range is not None
+    if any(item is None for item in selected) or not has_supporting_index:
         return None
     return WeatherOverviewFacts(
         city=selected[0] or "",
         temperature=selected[1] or "",
         condition=selected[2] or "",
         air_quality=selected[3] or "",
-        temperature_range=selected[4] or "",
+        cold_level=cold_level or "",
+        temperature_range=temperature_range or "",
     )
 
 

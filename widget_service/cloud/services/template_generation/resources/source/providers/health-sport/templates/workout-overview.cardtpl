@@ -1,4 +1,4 @@
-#Template WorkoutOverview@1(props: { sourceIcon?: asset })
+#Template WorkoutOverviewFull@1(props: { sourceIcon?: asset })
 data = {
     workoutType: $path("/exerciseTypeName"),
     workoutCalories: $path("/exerciseCalorieText"),
@@ -7,60 +7,127 @@ data = {
 }
 
 Column(
-  "compact",
-  {"_advancedComponent": "WorkoutOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  {
+    "_advancedComponent": "WorkoutOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 4,
+    "justifyContent": "spaceBetween",
+    "alignItems": "start",
+    "constraintSize": {"minWidth": 0, "minHeight": 0}
+  },
   Column(
-      "compact",
-      {"itemMargin": 4, "justifyContent": "start", "width": "matchParent", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      {
+        "itemMargin": 4,
+        "justifyContent": "start",
+        "width": "matchParent",
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+      },
       Row(
-            "between",
-            {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            {
+              "width": "matchParent",
+              "itemMargin": 4,
+              "justifyContent": "start",
+              "alignItems": "center",
+              "constraintSize": {"minWidth": 0, "minHeight": 0}
+            },
             IfPresent(
                     props.sourceIcon,
                     Image(
                               props.sourceIcon,
-                              "icon",
-                              {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+                              {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
                             )
                   ),
             Text(
                     data.workoutType,
-                    "subtitle",
-                    {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                    {
+                      "width": "matchParent",
+                      "fontSize": 12,
+                      "fontWeight": 500,
+                      "fontColor": $theme('supportContentColor'),
+                      "maxLines": 1,
+                      "textOverflow": "ellipsis",
+                      "constraintSize": {"minWidth": 0, "minHeight": 0}
+                    }
                   )
           ),
       Row(
-            "between",
-            {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            {
+              "width": "matchParent",
+              "itemMargin": 4,
+              "justifyContent": "start",
+              "alignItems": "bottom",
+              "constraintSize": {"minWidth": 0, "minHeight": 0}
+            },
             Text(
                     data.workoutCalories,
-                    "title",
-                    {"fontSize": 30, "fontWeight": 800, "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                    {
+                      "fontSize": 30,
+                      "fontWeight": 800,
+                      "fontColor": $theme('primaryColor'),
+                      "maxLines": 1,
+                      "textOverflow": "ellipsis",
+                      "constraintSize": {"minWidth": 0, "minHeight": 0}
+                    }
                   )
           ),
       Progress(
-            {"value": 20, "total": 100, "color": "#FFFFFFFF", "backgroundColor": "#1AFFFFFF", "strokeWidth": 8, "height": 12, "width": "matchParent"}
+            {
+              "value": 20,
+              "total": 100,
+              "color": $theme('supportContentColor'),
+              "backgroundColor": "#1AFFFFFF",
+              "strokeWidth": 8,
+              "height": 12,
+              "width": "matchParent"
+            }
           )
     ),
   Column(
-      "compact",
-      {"itemMargin": 4, "justifyContent": "start", "width": "matchParent", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      {
+        "itemMargin": 4,
+        "justifyContent": "start",
+        "width": "matchParent",
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+      },
       Row(
-            "between",
-            {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            {
+              "width": "matchParent",
+              "itemMargin": 4,
+              "justifyContent": "start",
+              "alignItems": "center",
+              "constraintSize": {"minWidth": 0, "minHeight": 0}
+            },
             Text(
                     data.duration,
-                    "body",
-                    {"fontSize": 12, "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                    {
+                      "fontWeight": 400,
+                      "fontColor": $theme('supportContentColor'),
+                      "fontSize": 12,
+                      "maxLines": 1,
+                      "textOverflow": "ellipsis",
+                      "constraintSize": {"minWidth": 0, "minHeight": 0}
+                    }
                   )
           ),
       Row(
-            "between",
-            {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+            {
+              "width": "matchParent",
+              "itemMargin": 4,
+              "justifyContent": "start",
+              "alignItems": "center",
+              "constraintSize": {"minWidth": 0, "minHeight": 0}
+            },
             Text(
                     data.endTime,
-                    "body",
-                    {"fontSize": 12, "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                    {
+                      "fontWeight": 400,
+                      "fontColor": $theme('supportContentColor'),
+                      "fontSize": 12,
+                      "maxLines": 1,
+                      "textOverflow": "ellipsis",
+                      "constraintSize": {"minWidth": 0, "minHeight": 0}
+                    }
                   )
           )
     )

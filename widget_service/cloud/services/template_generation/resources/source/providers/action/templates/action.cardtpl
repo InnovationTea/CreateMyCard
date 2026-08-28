@@ -1,0 +1,56 @@
+#Template PillAction@1(props: { actionId: string, label: string, icon?: asset })
+data = {
+}
+
+Stack({
+  "width": "matchParent",
+  "height": 36,
+  "borderRadius": 18,
+  "backgroundColor": $theme('actionStyle.backgroundColor'),
+  "alignContent": "center",
+  "onClick": EventAction(props.actionId)
+},
+  Row({
+    "justifyContent": "center",
+    "alignItems": "center"
+  },
+    IfPresent(
+      props.icon,
+      Image(props.icon, {
+        "width": 20,
+        "height": 20,
+        "objectFit": "contain",
+        "fillColor": $theme('actionStyle.contentColor')
+      })
+    ),
+    Text(props.label, {
+      "fontSize": 14,
+      "fontWeight": 500,
+      "fontColor": $theme('actionStyle.contentColor'),
+      "maxLines": 1,
+      "textOverflow": "ellipsis"
+    })
+  )
+)
+#End
+
+#Template IconAction@1(props: { actionId: string, icon: asset })
+data = {
+}
+
+Stack({
+  "width": 30,
+  "height": 30,
+  "borderRadius": 15,
+  "backgroundColor": $theme('actionStyle.backgroundColor'),
+  "alignContent": "center",
+  "onClick": EventAction(props.actionId)
+},
+  Image(props.icon, {
+    "width": 16,
+    "height": 16,
+    "objectFit": "contain",
+    "fillColor": $theme('actionStyle.contentColor')
+  })
+)
+#End

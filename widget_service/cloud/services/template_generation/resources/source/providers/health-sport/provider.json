@@ -20,317 +20,238 @@
   ],
   "templates": [
     {
-      "templateId": "ActivityOverviewSteps@1",
+      "templateId": "ActivityOverviewCompact@1",
       "businessId": "ActivityOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：steps。",
-      "requiredData": [
+      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：compact。",
+      "optionalData": [],
+      "entry": "templates/activity-overview.cardtpl",
+      "primaryData": [
         "/dailySteps"
       ],
-      "optionalData": [],
-      "entry": "templates/activity-overview.cardtpl"
+      "secondaryData": []
     },
     {
-      "templateId": "ActivityOverviewStepsSupport@1",
+      "templateId": "ActivityOverviewHero@1",
       "businessId": "ActivityOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：stepsSupport。",
-      "requiredData": [
+      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：hero。",
+      "optionalData": [],
+      "entry": "templates/activity-overview.cardtpl",
+      "primaryData": [
         "/dailySteps"
       ],
-      "optionalData": [],
-      "entry": "templates/activity-overview.cardtpl"
+      "secondaryData": []
     },
     {
-      "templateId": "ActivityOverviewDailySummary@1",
+      "templateId": "ActivityOverviewWideHero@1",
       "businessId": "ActivityOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：dailySummary。",
-      "requiredData": [
-        "/dailySteps",
-        "/dailyTotalCaloriesText",
-        "/dailyDistanceText"
-      ],
+      "description": "每日活动摘要，展示步数，可补充热量、距离和目标日期。 组件形态：wideHero。",
       "optionalData": [],
-      "entry": "templates/activity-overview.cardtpl"
+      "entry": "templates/activity-overview.cardtpl",
+      "primaryData": [
+        "/dailySteps"
+      ],
+      "secondaryData": [
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText",
+        "/targetDateText"
+      ]
     },
     {
-      "templateId": "ActivityOverviewDailySummaryWide@1",
+      "templateId": "ActivityOverviewFull@1",
       "businessId": "ActivityOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：dailySummaryWide。",
-      "requiredData": [
-        "/dailySteps",
+      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：full。",
+      "optionalData": [],
+      "entry": "templates/activity-overview.cardtpl",
+      "primaryData": [
+        "/dailySteps"
+      ],
+      "secondaryData": [
         "/dailyTotalCaloriesText",
         "/dailyDistanceText"
-      ],
-      "optionalData": [],
-      "entry": "templates/activity-overview.cardtpl"
+      ]
     },
     {
-      "templateId": "WorkoutOverview@1",
+      "templateId": "ActivityOverviewWideFull@1",
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "每日活动摘要，展示步数，可补充热量、距离和目标日期。 组件形态：wideFull。",
+      "optionalData": [],
+      "entry": "templates/activity-overview.cardtpl",
+      "primaryData": [
+        "/dailySteps"
+      ],
+      "secondaryData": [
+        "/dailyTotalCaloriesText",
+        "/dailyDistanceText",
+        "/targetDateText"
+      ]
+    },
+    {
+      "templateId": "WorkoutOverviewFull@1",
       "businessId": "WorkoutOverview",
       "capabilityId": "GetHealthAndSportSummary",
       "description": "最近一次单次运动训练摘要，展示运动类型、该次热量、时长和结束时间。 组件形态：latest。",
-      "requiredData": [
-        "/exerciseTypeName",
-        "/exerciseCalorieText",
-        "/exerciseDurationText",
-        "/exerciseEndTimeText"
-      ],
       "optionalData": [],
-      "entry": "templates/workout-overview.cardtpl"
+      "entry": "templates/workout-overview.cardtpl",
+      "primaryData": [
+        "/exerciseTypeName",
+        "/exerciseDurationText"
+      ],
+      "secondaryData": [
+        "/exerciseCalorieText",
+        "/exerciseEndTimeText"
+      ]
     },
     {
-      "templateId": "HeartRateOverviewHero@1",
+      "templateId": "HeartRateOverviewFull@1",
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
       "description": "运动平均心率摘要，可补充更新时间。 组件形态：hero。",
-      "requiredData": [
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "primaryData": [
         "/exerciseHeartRateAvg"
       ],
-      "optionalData": [],
-      "entry": "templates/heart-rate-overview.cardtpl"
+      "secondaryData": []
     },
     {
-      "templateId": "HeartRateOverviewHeroUpdated@1",
+      "templateId": "HeartRateOverviewUpdatedFull@1",
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
       "description": "运动平均心率摘要，可补充更新时间。 组件形态：heroUpdated。",
-      "requiredData": [
-        "/exerciseHeartRateAvg",
-        "/updatedAt"
-      ],
       "optionalData": [],
-      "entry": "templates/heart-rate-overview.cardtpl"
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "primaryData": [
+        "/exerciseHeartRateAvg"
+      ],
+      "secondaryData": [
+        "/updatedAt"
+      ]
     },
     {
-      "templateId": "HeartRateOverviewHeroIcon@1",
+      "templateId": "HeartRateOverviewIconFull@1",
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
       "description": "运动平均心率摘要，可补充更新时间。 组件形态：heroIcon。",
-      "requiredData": [
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "primaryData": [
         "/exerciseHeartRateAvg"
       ],
-      "optionalData": [],
-      "entry": "templates/heart-rate-overview.cardtpl"
+      "secondaryData": []
     },
     {
-      "templateId": "HeartRateOverviewHeroUpdatedIcon@1",
+      "templateId": "HeartRateOverviewUpdatedIconFull@1",
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
       "description": "运动平均心率摘要，可补充更新时间。 组件形态：heroUpdatedIcon。",
-      "requiredData": [
-        "/exerciseHeartRateAvg",
-        "/updatedAt"
-      ],
       "optionalData": [],
-      "entry": "templates/heart-rate-overview.cardtpl"
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "primaryData": [
+        "/exerciseHeartRateAvg"
+      ],
+      "secondaryData": [
+        "/updatedAt"
+      ]
     },
     {
-      "templateId": "HeartRateOverviewSupport@1",
+      "templateId": "HeartRateOverviewCompact@1",
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
       "description": "运动平均心率摘要，可补充更新时间。 组件形态：support。",
-      "requiredData": [
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "primaryData": [
         "/exerciseHeartRateAvg"
       ],
-      "optionalData": [],
-      "entry": "templates/heart-rate-overview.cardtpl"
+      "secondaryData": []
     },
     {
-      "templateId": "HeartRateOverviewSupportUpdated@1",
+      "templateId": "HeartRateOverviewUpdatedCompact@1",
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
       "description": "运动平均心率摘要，可补充更新时间。 组件形态：supportUpdated。",
-      "requiredData": [
-        "/exerciseHeartRateAvg",
-        "/updatedAt"
-      ],
       "optionalData": [],
-      "entry": "templates/heart-rate-overview.cardtpl"
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "primaryData": [
+        "/exerciseHeartRateAvg"
+      ],
+      "secondaryData": [
+        "/updatedAt"
+      ]
     },
     {
-      "templateId": "HeartRateOverviewSupportIcon@1",
+      "templateId": "HeartRateOverviewIconCompact@1",
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
       "description": "运动平均心率摘要，可补充更新时间。 组件形态：supportIcon。",
-      "requiredData": [
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "primaryData": [
         "/exerciseHeartRateAvg"
       ],
-      "optionalData": [],
-      "entry": "templates/heart-rate-overview.cardtpl"
+      "secondaryData": []
     },
     {
-      "templateId": "HeartRateOverviewSupportUpdatedIcon@1",
+      "templateId": "HeartRateOverviewUpdatedIconCompact@1",
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
       "description": "运动平均心率摘要，可补充更新时间。 组件形态：supportUpdatedIcon。",
-      "requiredData": [
-        "/exerciseHeartRateAvg",
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "primaryData": [
+        "/exerciseHeartRateAvg"
+      ],
+      "secondaryData": [
         "/updatedAt"
-      ],
-      "optionalData": [],
-      "entry": "templates/heart-rate-overview.cardtpl"
+      ]
     },
     {
-      "templateId": "SleepOverviewDuration@1",
+      "templateId": "SleepOverviewFull@1",
       "businessId": "SleepOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：duration。",
-      "requiredData": [
+      "description": "睡眠摘要，展示时长、得分和状态。 组件形态：full。",
+      "optionalData": [],
+      "entry": "templates/sleep-overview.cardtpl",
+      "primaryData": [
         "/nightSleepDurationText"
       ],
-      "optionalData": [],
-      "entry": "templates/sleep-overview.cardtpl"
-    },
-    {
-      "templateId": "SleepOverviewDurationDetailed@1",
-      "businessId": "SleepOverview",
-      "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：durationDetailed。",
-      "requiredData": [
-        "/nightSleepDurationText"
-      ],
-      "optionalData": [],
-      "entry": "templates/sleep-overview.cardtpl"
-    },
-    {
-      "templateId": "SleepOverviewDurationScore@1",
-      "businessId": "SleepOverview",
-      "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠总时长与睡眠得分摘要。 组件形态：durationScore。",
-      "requiredData": [
-        "/nightSleepDurationText",
-        "/sleepScore"
-      ],
-      "optionalData": [],
-      "entry": "templates/sleep-overview.cardtpl"
-    },
-    {
-      "templateId": "SleepOverviewDurationScoreDetailed@1",
-      "businessId": "SleepOverview",
-      "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠详细时长与睡眠得分及状态摘要。 组件形态：durationScoreDetailed。",
-      "requiredData": [
-        "/nightSleepDurationText",
+      "secondaryData": [
         "/sleepScore",
         "/sleepStatus"
-      ],
-      "optionalData": [],
-      "entry": "templates/sleep-overview.cardtpl"
+      ]
     },
     {
-      "templateId": "SleepOverviewDurationScoreSupport@1",
+      "templateId": "SleepOverviewHero@1",
       "businessId": "SleepOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠总时长与睡眠得分的紧凑辅助摘要。 组件形态：durationScoreSupport。",
-      "requiredData": [
-        "/nightSleepDurationText",
+      "description": "睡眠摘要，展示时长和得分。 组件形态：hero。",
+      "optionalData": [],
+      "entry": "templates/sleep-overview.cardtpl",
+      "primaryData": [
+        "/nightSleepDurationText"
+      ],
+      "secondaryData": [
         "/sleepScore"
-      ],
-      "optionalData": [],
-      "entry": "templates/sleep-overview.cardtpl"
+      ]
     },
     {
-      "templateId": "SleepOverviewInsufficient@1",
+      "templateId": "SleepOverviewCompact@1",
       "businessId": "SleepOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：insufficient。",
-      "requiredData": [
-        "/sleepStatus",
+      "description": "睡眠摘要，展示时长和得分。 组件形态：compact。",
+      "optionalData": [],
+      "entry": "templates/sleep-overview.cardtpl",
+      "primaryData": [
         "/nightSleepDurationText"
       ],
-      "optionalData": [],
-      "entry": "templates/sleep-overview.cardtpl"
-    },
-    {
-      "templateId": "SleepOverviewInsufficientDetailed@1",
-      "businessId": "SleepOverview",
-      "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：insufficientDetailed。",
-      "requiredData": [
-        "/sleepStatus",
-        "/nightSleepDurationText"
-      ],
-      "optionalData": [],
-      "entry": "templates/sleep-overview.cardtpl"
-    },
-    {
-      "templateId": "SleepOverviewSchedule@1",
-      "businessId": "SleepOverview",
-      "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：schedule。",
-      "requiredData": [
-        "/fallAsleepTimeText",
-        "/wakeupTimeText",
-        "/nightSleepDurationText"
-      ],
-      "optionalData": [],
-      "entry": "templates/sleep-overview.cardtpl"
-    },
-    {
-      "templateId": "SleepOverviewScheduleDetailed@1",
-      "businessId": "SleepOverview",
-      "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：scheduleDetailed。",
-      "requiredData": [
-        "/fallAsleepTimeText",
-        "/wakeupTimeText",
-        "/nightSleepDurationText"
-      ],
-      "optionalData": [],
-      "entry": "templates/sleep-overview.cardtpl"
-    },
-    {
-      "templateId": "SleepOverviewScheduleStatus@1",
-      "businessId": "SleepOverview",
-      "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：scheduleStatus。",
-      "requiredData": [
-        "/sleepStatus",
-        "/fallAsleepTimeText",
-        "/wakeupTimeText",
-        "/nightSleepDurationText"
-      ],
-      "optionalData": [],
-      "entry": "templates/sleep-overview.cardtpl"
-    },
-    {
-      "templateId": "SleepOverviewScheduleDetailedStatus@1",
-      "businessId": "SleepOverview",
-      "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：scheduleDetailedStatus。",
-      "requiredData": [
-        "/sleepStatus",
-        "/fallAsleepTimeText",
-        "/wakeupTimeText",
-        "/nightSleepDurationText"
-      ],
-      "optionalData": [],
-      "entry": "templates/sleep-overview.cardtpl"
-    },
-    {
-      "templateId": "SleepOverviewDurationSupport@1",
-      "businessId": "SleepOverview",
-      "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：durationSupport。",
-      "requiredData": [
-        "/nightSleepDurationText"
-      ],
-      "optionalData": [],
-      "entry": "templates/sleep-overview.cardtpl"
-    },
-    {
-      "templateId": "SleepOverviewDurationDetailedSupport@1",
-      "businessId": "SleepOverview",
-      "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠时长摘要，可补充睡眠状态和入睡、醒来时间。 组件形态：durationDetailedSupport。",
-      "requiredData": [
-        "/nightSleepDurationText"
-      ],
-      "optionalData": [],
-      "entry": "templates/sleep-overview.cardtpl"
+      "secondaryData": [
+        "/sleepScore"
+      ]
     }
   ],
   "compatibility": {

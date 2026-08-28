@@ -60,5 +60,5 @@ def test_migration_translates_legacy_template_variant_to_current_template_id() -
 
     migrated = migrate_case(case)
 
-    assert migrated["expectedTemplateId"] == "WeatherOverviewHero@1"
+    assert migrated["expectedTemplateId"] == "WeatherOverviewFull@1"
     assert migrated["expectedVariantName"] == "default"
