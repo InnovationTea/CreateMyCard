@@ -11,6 +11,7 @@ import threading
 import time
 from pathlib import Path
 
+import httpx
 import pytest
 from pydantic import ValidationError
 
@@ -24,6 +25,7 @@ if str(CLOUD_ROOT) not in sys.path:
 from api.routes import _model_request_context_from_payload
 from api.schemas import GenerateWidgetCardRequest
 from config.config import Settings
+from custom.deepseek_http_client import DeepSeekHttpClient
 from custom.deepseek_platform_client import DeepSeekPlatformClient
 from custom.model_runtime import ModelExecutionRuntime
 from custom.model_transport import ModelTransportError
@@ -40,6 +42,47 @@ def _request_context() -> ModelRequestContext:
         app_version=APP_VERSION,
         app_name="com.huawei.hmos.vassistant",
     )
+
+
+@pytest.mark.asyncio
+async def test_deepseek_http_uses_dedicated_model_settings():
+    captured: dict[str, object] = {}
+
+    async def handle_request(request: httpx.Request) -> httpx.Response:
+        captured["url"] = str(request.url)
+        captured["authorization"] = request.headers["Authorization"]
+        captured["payload"] = json.loads(request.content)
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": "http-result"}}]},
+        )
+
+    settings = Settings(
+        _env_file=None,
+        deepseek_api_key="test-key",
+        deepseek_api_url="https://model.test/v1/",
+        deepseek_http_model="http-model",
+        deepseek_http_max_tokens=4096,
+    )
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(handle_request)
+    ) as http_client:
+        client = DeepSeekHttpClient(settings, http_client)
+        result = await client.generate([{"role": "user", "content": "hello"}])
+        await client.aclose()
+
+    assert result == "http-result"
+    assert captured["url"] == "https://model.test/v1/chat/completions"
+    assert captured["authorization"] == "Bearer test-key"
+    assert captured["payload"] == {
+        "model": "http-model",
+        "messages": [{"role": "user", "content": "hello"}],
+        "stream": False,
+        "thinking": {"type": "disabled"},
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens": 4096,
+    }
 
 
 class _FakeWebSocket:
@@ -495,6 +538,20 @@ async def test_all_physical_model_clients_share_one_concurrency_limit():
             finally:
                 leave_call()
 
+    class FakeDeepSeekHttpTransport:
+        @staticmethod
+        async def generate(_messages, _request_context):
+            enter_call()
+            try:
+                await asyncio.sleep(0.01)
+                return "deepseek-http"
+            finally:
+                leave_call()
+
+        @staticmethod
+        async def aclose():
+            return None
+
     class FakeLlmClientTransport:
         @staticmethod
         def generate(_messages):
@@ -508,17 +565,19 @@ async def test_all_physical_model_clients_share_one_concurrency_limit():
     runtime = ModelExecutionRuntime(
         settings,
         mep_transport=FakeMepTransport(),
+        deepseek_http_transport=FakeDeepSeekHttpTransport(),
         deepseek_platform_transport=FakeDeepSeekPlatformTransport(),
         llmclient_transport=FakeLlmClientTransport(),
     )
     try:
         results = await asyncio.gather(
             runtime.generate_once("mep", [], _request_context()),
+            runtime.generate_once("deepseek_http", [], _request_context()),
             runtime.generate_once("deepseek_platform", [], _request_context()),
             runtime.generate_once("llmclient", [], _request_context()),
         )
     finally:
         await runtime.aclose()
 
-    assert results == ["mep", "deepseek-platform", "llmclient"]
+    assert results == ["mep", "deepseek-http", "deepseek-platform", "llmclient"]
     assert max_active_calls == 1

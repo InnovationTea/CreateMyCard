@@ -50,10 +50,15 @@ The service follows `docs/AGENTS.md`:
   Conversion and Validator errors still trigger immediate targeted repair through the separate validation retry switch.
   Final model failures never enter validation or artifact persistence.
 - With model mock disabled, all three generation routes use `A2UIModelClient.generate()` and the internal
-  `UnifiedModelClient.generate()` entry. The `openai` route uses DeepSeek Platform as master and the existing
-  `cloud/custom/llmclient.py` as fallback by default. Configure them with `WIDGET_SERVICE_OPENAI_MASTER_CLIENT` and
-  `WIDGET_SERVICE_OPENAI_FALLBACK_CLIENT`, and control fallback with `WIDGET_SERVICE_ENABLE_OPENAI_FALLBACK`; tool
-  callers cannot select a backend or physical client directly.
+  `UnifiedModelClient.generate()` entry. The `openai` route supports `deepseek_http`, DeepSeek Platform, and the
+  existing `cloud/custom/llmclient.py`; DeepSeek Platform and llmclient remain the default master/fallback pair.
+  Configure them with `WIDGET_SERVICE_OPENAI_MASTER_CLIENT` and `WIDGET_SERVICE_OPENAI_FALLBACK_CLIENT`, and control
+  fallback with `WIDGET_SERVICE_ENABLE_OPENAI_FALLBACK`; tool callers cannot select a backend or physical client
+  directly.
+- `deepseek_http` calls an OpenAI-compatible HTTPS `chat/completions` endpoint with the dedicated
+  `WIDGET_SERVICE_DEEPSEEK_API_URL`, `WIDGET_SERVICE_DEEPSEEK_HTTP_MODEL`, and
+  `WIDGET_SERVICE_DEEPSEEK_HTTP_MAX_TOKENS` settings. It reuses the configured DeepSeek API key and sampling options,
+  and never writes authentication values or full request bodies to logs.
 - DeepSeek Platform reads its SK only from the STS key configured by
   `WIDGET_SERVICE_DEEPSEEK_PLATFORM_SECRET_KEY_STS_CONFIG_KEY`, whose default is
   `genui.deepseek.platform.secret.key`. Its remaining static request fields use the
@@ -62,9 +67,9 @@ The service follows `docs/AGENTS.md`:
 - The llmclient WebSocket request is configured by the `WIDGET_SERVICE_DEEPSEEK_*` settings in `.env.example`,
   covering credentials, endpoint, model/user/request identifiers, sampling, maximum tokens, thinking/usage flags,
   and receive timeout. These fields have defaults matching the client behavior before configuration extraction.
-- All real model calls share one application-lifetime runtime and one process-level concurrency limit. MEP uses a
-  shared async `httpx.AsyncClient`, DeepSeek Platform uses async WebSocket, and the unchanged synchronous llmclient
-  runs in a dedicated executor. Configure the
+- All real model calls share one application-lifetime runtime and one process-level concurrency limit. MEP and
+  `deepseek_http` use shared async `httpx.AsyncClient` instances, DeepSeek Platform uses async WebSocket, and the
+  unchanged synchronous llmclient runs in a dedicated executor. Configure the
   shared limit with `WIDGET_SERVICE_MODEL_MAX_CONCURRENCY`, queue timeout with
   `WIDGET_SERVICE_MODEL_QUEUE_TIMEOUT_SECONDS`, and execution timeout with
   `WIDGET_SERVICE_MODEL_REQUEST_TIMEOUT_SECONDS`. Queue waits are coroutine waits and do not occupy worker threads.
