@@ -1441,8 +1441,10 @@ load_json(path: Path) -> Any
 
 `AssetCapability`：素材能力定义，用于 TaskSpec 的素材白名单。
 
-`EventCapabilityOverview`：第一接口的精简事件定义，包含事件 ID、描述、可直接复制的完整动作模板，以及
-允许替换的动态参数路径；不暴露依赖和完整参数 schema。
+`EventCapabilityOverview`：第一接口的精简事件定义，包含事件 ID、用途描述、可直接复制的完整动作模板，以及
+允许替换的动态参数路径和填写规则；不暴露依赖和完整参数 schema。顶层 `description` 只描述事件用途和
+用户可感知结果，固定值由 `actionTemplate` 承载，数据路径、索引替换和枚举映射由 `dynamicArguments` 承载；
+动态值来自数据能力输出时，参数说明同时写明来源数据能力 ID 和输出字段路径。
 
 `AssetCapabilityOverview`：第一接口的精简素材定义，只包含素材 ID 和描述；素材路径和版本信息由微服务
 内部保留并在生成阶段按 ID 还原。
@@ -1509,7 +1511,7 @@ meta
 
 新增事件能力：
 
-1. 直接更新当前版本目录中的 `event_capabilities.json`，保持事件 ID 稳定；只有事件确实需要按安装包过滤时才在对应目标项声明仅含包名的 `dependencies.requiredPackages`，缺省按空依赖处理。
+1. 直接更新当前版本目录中的 `event_capabilities.json`，保持事件 ID 稳定；顶层 `description` 只写用途，不混入 URI、字段路径、索引替换或模型操作指令；固定动作写入 `actionTemplate`，允许替换的参数规则写入 `dynamicArguments`，并与内部 `parametersSchema` 保持一致。动态值来自数据能力输出时，参数说明必须包含来源数据能力 ID 和输出字段路径。只有事件确实需要按安装包过滤时才在对应目标项声明仅含包名的 `dependencies.requiredPackages`，缺省按空依赖处理。
 2. 第一接口确认可用后，在第三接口里通过 `candidateEventCandidates` 传入。
 
 新增素材：

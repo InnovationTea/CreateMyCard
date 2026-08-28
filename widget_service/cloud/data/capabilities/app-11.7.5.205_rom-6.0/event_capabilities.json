@@ -2,7 +2,7 @@
   {
     "id": "event.call.phone",
     "type": "event",
-    "description": "点击跳转至指定号码的拨号界面",
+    "description": "打开拨号界面；提供电话号码时预填该号码。",
     "actionTemplate": {
       "call": "clickToApi",
       "args": {
@@ -15,7 +15,7 @@
     "dynamicArguments": [
       {
         "path": "/params/phoneNumber",
-        "description": "填写用户提供的电话号码；未提供时填写空字符串。",
+        "description": "用户提供电话号码时填写；未提供时填写空字符串。",
         "type": "string"
       }
     ],
@@ -35,7 +35,7 @@
           "properties": {
             "phoneNumber": {
               "type": "string",
-              "description": "填写用户提供的电话号码；未提供时填写空字符串。"
+              "description": "用户提供电话号码时填写；未提供时填写空字符串。"
             }
           },
           "required": [
@@ -57,7 +57,7 @@
   {
     "id": "event.clean.memory",
     "type": "event",
-    "description": "点击清理手机运行时内存，释放系统资源",
+    "description": "立即清理手机运行内存并释放系统资源。",
     "actionTemplate": {
       "call": "clickToApi",
       "args": {
@@ -97,7 +97,7 @@
   {
     "id": "event.open.settings.dnd",
     "type": "event",
-    "description": "打开系统设置中的情景模式，用户可以打开免打扰或专注模式",
+    "description": "打开系统设置的情景模式页，可配置免打扰或专注模式。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -150,7 +150,7 @@
   {
     "id": "event.open.settings.bluetooth",
     "type": "event",
-    "description": "打开系统设置中的蓝牙设置页",
+    "description": "打开系统设置的蓝牙设置页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -203,7 +203,7 @@
   {
     "id": "event.open.settings.battery",
     "type": "event",
-    "description": "打开系统设置中的电池页",
+    "description": "打开系统设置的电池页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -256,7 +256,7 @@
   {
     "id": "event.open.settings.batteryHealth",
     "type": "event",
-    "description": "打开系统设置中的电池健康页",
+    "description": "打开系统设置的电池健康页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -309,7 +309,7 @@
   {
     "id": "event.open.settings.parentControl",
     "type": "event",
-    "description": "打开系统设置中的健康使用App页面，为了设置应用使用时长",
+    "description": "打开系统设置的健康使用设备页，可设置应用使用时长。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -362,7 +362,7 @@
   {
     "id": "event.open.settings.storage",
     "type": "event",
-    "description": "打开系统设置中的存储空间页",
+    "description": "打开系统设置的存储空间页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -415,7 +415,7 @@
   {
     "id": "event.open.weather",
     "type": "event",
-    "description": "打开手机天气应用某城市页，uri为固定值勿更改。cityCode来自于数据能力中ViewWeather出参cityCode字段，进行动态拼接，表示跳转到指定城市天气页。",
+    "description": "打开天气应用中与当前卡片城市对应的天气详情页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -428,7 +428,7 @@
     "dynamicArguments": [
       {
         "path": "/uri",
-        "description": "cityCode 取自 ViewWeather 的 /location/cityCode，保留完整 URI 模板。",
+        "description": "将 ViewWeather 的 /location/cityCode 拼接到 actionTemplate 中的固定 URI 模板；不得改写模板的其他部分。",
         "type": "string"
       }
     ],
@@ -454,7 +454,7 @@
         },
         "uri": {
           "type": "string",
-          "description": "cityCode 取自 ViewWeather 的 /location/cityCode，保留完整 URI 模板。"
+          "description": "将 ViewWeather 的 /location/cityCode 拼接到 actionTemplate 中的固定 URI 模板；不得改写模板的其他部分。"
         }
       },
       "required": [
@@ -477,7 +477,7 @@
   {
     "id": "event.open.clock.alarm",
     "type": "event",
-    "description": "打开闹钟应用首页",
+    "description": "打开时钟应用的闹钟首页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -530,7 +530,7 @@
   {
     "id": "event.open.music.daily",
     "type": "event",
-    "description": "打开音乐app的每日30首歌单，uri为固定值勿更改",
+    "description": "打开音乐应用的“每日30首”歌单。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -583,7 +583,7 @@
   {
     "id": "event.open.music.favorite",
     "type": "event",
-    "description": "打开音乐app的收藏歌单/心动歌单，uri为固定值勿更改",
+    "description": "打开音乐应用的收藏歌单（心动歌单）。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -636,7 +636,7 @@
   {
     "id": "event.open.health.sport",
     "type": "event",
-    "description": "打开运动健康应用的锻炼Tab页",
+    "description": "打开运动健康应用的锻炼页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -693,7 +693,7 @@
   {
     "id": "event.open.health.sleep",
     "type": "event",
-    "description": "打开运动健康应用的睡眠详情页",
+    "description": "打开运动健康应用的睡眠详情页。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -750,7 +750,7 @@
   {
     "id": "event.enter.meeting",
     "type": "event",
-    "description": "点击一键加入下一个日程对应的Welink会议。uri取自数据能力GetCalendarEvents返回结果中event的oneClickServiceLink字段。注意：模板中events/i的i需替换为当前事件的实际索引，如events/0、events/1等。",
+    "description": "打开所选日程关联的会议链接。",
     "actionTemplate": {
       "call": "clickToDeeplink",
       "args": {
@@ -763,7 +763,7 @@
     "dynamicArguments": [
       {
         "path": "/uri",
-        "description": "取自 GetCalendarEvents 的 events[i].oneClickServiceLink，i 替换为实际索引。",
+        "description": "值取自 GetCalendarEvents 返回的 events[i].oneClickServiceLink；将 i 替换为所选日程在 events 数组中的实际索引。",
         "type": "string"
       }
     ],
@@ -789,7 +789,7 @@
         },
         "uri": {
           "type": "string",
-          "description": "取自 GetCalendarEvents 的 events[i].oneClickServiceLink，i 替换为实际索引。"
+          "description": "值取自 GetCalendarEvents 返回的 events[i].oneClickServiceLink；将 i 替换为所选日程在 events 数组中的实际索引。"
         }
       },
       "required": [
@@ -808,7 +808,7 @@
   {
     "id": "event.viewCalendarEvent",
     "type": "event",
-    "description": "点击日程卡片 or 日程按钮，跳转到日程 App 查看该日程的详情",
+    "description": "打开所选日程的详情页。",
     "actionTemplate": {
       "call": "clickToIntent",
       "args": {
@@ -821,7 +821,7 @@
     "dynamicArguments": [
       {
         "path": "/params/entityId",
-        "description": "取自 GetCalendarEvents 的 events[i].entityId，i 替换为实际索引。",
+        "description": "值取自 GetCalendarEvents 返回的 events[i].entityId；将 i 替换为所选日程在 events 数组中的实际索引。",
         "type": "string"
       }
     ],
@@ -841,7 +841,7 @@
           "properties": {
             "entityId": {
               "type": "string",
-              "description": "取自 GetCalendarEvents 的 events[i].entityId，i 替换为实际索引。"
+              "description": "值取自 GetCalendarEvents 返回的 events[i].entityId；将 i 替换为所选日程在 events 数组中的实际索引。"
             }
           },
           "required": [
@@ -863,7 +863,7 @@
   {
     "id": "event.startNavigate",
     "type": "event",
-    "description": "点击导航按钮，跳转到地图应用进行导航。大模型需根据用户说的目的地选择location的值，只支持回家和去公司的导航",
+    "description": "打开地图应用，导航回家或前往公司。",
     "actionTemplate": {
       "call": "clickToIntent",
       "args": {
@@ -880,7 +880,7 @@
     "dynamicArguments": [
       {
         "path": "/params/dstLocation/location",
-        "description": "用户要求回家时填写 home，去公司时填写 company。",
+        "description": "根据用户目的地填写：回家为 home，前往公司为 company。",
         "type": "string",
         "enum": [
           "home",
@@ -908,7 +908,7 @@
               "properties": {
                 "location": {
                   "type": "string",
-                  "description": "用户要求回家时填写 home，去公司时填写 company。",
+                  "description": "根据用户目的地填写：回家为 home，前往公司为 company。",
                   "enum": [
                     "home",
                     "company"
@@ -952,7 +952,7 @@
   {
     "id": "event.setPowerSavingMode",
     "type": "event",
-    "description": "点击一键开启/关闭省电模式。大模型根据用户表达确定是开启还是关闭，然后传对应的switchFlag值",
+    "description": "开启或关闭系统省电模式。",
     "actionTemplate": {
       "call": "clickToIntent",
       "args": {
@@ -967,7 +967,7 @@
     "dynamicArguments": [
       {
         "path": "/params/switchFlag",
-        "description": "开启省电模式填写 0，关闭省电模式填写 1。",
+        "description": "根据用户要求填写：开启为 0，关闭为 1。",
         "type": "integer",
         "enum": [
           0,
@@ -1001,7 +1001,7 @@
             },
             "switchFlag": {
               "type": "integer",
-              "description": "开启省电模式填写 0，关闭省电模式填写 1。",
+              "description": "根据用户要求填写：开启为 0，关闭为 1。",
               "enum": [
                 0,
                 1
