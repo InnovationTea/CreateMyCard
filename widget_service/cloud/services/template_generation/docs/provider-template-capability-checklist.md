@@ -85,7 +85,7 @@
 | ✅ | `ScheduleOverviewNextEventHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/events/0/title` | 无 | `/events/0/dtStart`<br>`/events/0/dtEnd`<br>`/events/0/remindTime/0`<br>`/eventCount`<br>`/events/0/description`<br>`/events/0/timeZone`<br>`/events/0/isAllDay`<br>`/events/0/eventLocation` |
 | ✅ | `ScheduleOverviewReminderHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/events/0/title` | `/events/0/dtStart`<br>`/events/0/remindTime/0` | 无 |
 | ✅ | `ScheduleOverviewTimezoneFull@1` | 完整 2x2；无 Action 的单 Full | `/events/0/timeZone`<br>`/events/0/title` | `/events/0/isAllDay`<br>`/events/0/eventLocation` | 无 |
-| ✅ | `ScheduleOverviewProgressHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/eventCount`<br>`/events/0/title` | `/events/0/dtStart`<br>`/events/0/description` | 无 |
+| ✅ | `ScheduleOverviewEventCountHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/eventCount`<br>`/events/0/title` | `/events/0/dtStart`<br>`/events/0/description` | 无 |
 | ✅ | `ScheduleOverviewDatedMeetingHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/startDate`<br>`/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewNextEventLocationFull@1` | 完整 2x2；无 Action 的单 Full | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/eventLocation`<br>`/events/0/dtEnd` | 无 |
 | ✅ | `ScheduleOverviewMeetingCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd` | 无 |
