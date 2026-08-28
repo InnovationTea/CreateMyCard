@@ -2840,7 +2840,7 @@ def extract_schedule_timezone_facts(
     time_zone = _trusted_string(fields.get("timeZone"))
     is_all_day = _trusted_boolean(fields.get("isAllDay"))
     location = _trusted_string(fields.get("eventLocation"))
-    if title is None or time_zone is None or is_all_day is None or location is None:
+    if any(param is None for param in (title, time_zone, is_all_day, location)):
         return None
     return ScheduleTimezoneFacts(
         title=title,
