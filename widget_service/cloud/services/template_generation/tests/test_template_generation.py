@@ -279,7 +279,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 90
+    assert len(registry.provider_template_ids) == 88
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -290,7 +290,6 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "BatteryOverviewChargingDiagnosticsHero@1",
         "BluetoothDeviceOverviewCaseFull@1",
         "CountdownOverviewFull@1",
-        "DateOverviewFull@1",
         "HeartRateOverviewFull@1",
         "ResourceUsageOverviewFull@1",
         "ScheduleOverviewDatedMeetingHero@1",
@@ -434,11 +433,12 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 15
-    assert set(calendar.local_template_ids) >= {
-        "DateOverviewCompact@1",
-        "ScheduleOverviewMeetingCompact@1",
-    }
+    assert len(calendar.local_template_ids) == 13
+    assert "ScheduleOverviewMeetingCompact@1" in calendar.local_template_ids
+    assert not any(
+        template_id.startswith("DateOverview")
+        for template_id in calendar.local_template_ids
+    )
     assert len(registry.ux_layout_component_provider_ids) == 5
     for bundle in registry.provider_bundles.values():
         payload = json.loads(
@@ -1830,6 +1830,75 @@ def test_sport_templates_bind_progress_color_to_theme_support_content() -> None:
         assert color.name == "supportContentColor"
 
 
+def test_health_sport_templates_follow_latest_display_contract() -> None:
+    registry = get_cardplan_registry()
+    expected_descriptions = {
+        "ActivityOverviewCompact@1": (
+            "每日步数紧凑摘要，展示步数，可使用步数图标。 组件形态：compact。"
+        ),
+        "ActivityOverviewHero@1": (
+            "今日活动步数主视觉，展示步数和固定万步基准进度，可使用步数图标。 "
+            "组件形态：hero。"
+        ),
+        "ActivityOverviewFull@1": (
+            "今日活动完整摘要，展示步数、固定万步基准进度、消耗热量和运动距离，"
+            "可使用步数图标。 组件形态：full。"
+        ),
+        "SleepOverviewFull@1": (
+            "睡眠情况完整摘要，展示时长、得分进度和状态，可使用睡眠图标。 "
+            "组件形态：full。"
+        ),
+        "SleepOverviewHero@1": (
+            "睡眠情况主视觉，展示时长和得分进度，可使用睡眠图标。 组件形态：hero。"
+        ),
+        "SleepOverviewCompact@1": (
+            "睡眠情况紧凑摘要，展示时长和得分环，可使用睡眠图标。 组件形态：compact。"
+        ),
+    }
+    provider_rules = "\n".join(
+        item["content"]
+        for item in registry.provider_second_layer_rules(
+            ("ActivityOverview", "SleepOverview")
+        )
+    )
+
+    for template_id, description in expected_descriptions.items():
+        definition = registry.require_template(template_id)
+        assert definition.description == description
+        assert description in provider_rules
+
+    for template_id in (
+        "ActivityOverviewCompact@1",
+        "ActivityOverviewHero@1",
+        "ActivityOverviewFull@1",
+    ):
+        definition = registry.require_template(template_id)
+        assert set(definition.variants[0].parameters_schema["properties"]) == {
+            "stepsIcon"
+        }
+
+    for template_id in ("ActivityOverviewHero@1", "ActivityOverviewFull@1"):
+        root = registry.require_variant(template_id, "default").root
+        progress_options = _template_nodes(root, "Progress")[0].values[-1]
+        assert progress_options.properties["total"].value == 10000
+
+    sleep_labels = {
+        "SleepOverviewFull@1": {"睡眠情况", "睡眠情况评分"},
+        "SleepOverviewHero@1": {"睡眠情况"},
+        "SleepOverviewCompact@1": {"睡眠情况时长"},
+    }
+    for template_id, expected_labels in sleep_labels.items():
+        root = registry.require_variant(template_id, "default").root
+        literal_labels = {
+            node.values[0].value
+            for node in _template_nodes(root, "Text")
+            if node.values[0].kind == "literal"
+        }
+        assert expected_labels <= literal_labels
+        progress_options = _template_nodes(root, "Progress")[0].values[-1]
+        assert progress_options.properties["backgroundColor"].value == "#33564AF7"
+
+
 def test_earphone_templates_bind_progress_color_to_theme_support_content() -> None:
     registry = get_cardplan_registry()
     progress_count = 0
@@ -2017,21 +2086,15 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
     assert sum(options.get("minFontSize") == 10 for options in activity_text_options) == 2
 
 
-def test_calendar_templates_follow_latest_date_schedule_ux_geometry():
+def test_calendar_templates_follow_latest_schedule_contract() -> None:
     registry = get_cardplan_registry()
-
-    date_compact = registry.require_variant("DateOverviewCompact@1", "default").root
-    assert date_compact.component == "Column"
-    assert _template_node_options(date_compact)["height"] == "100%"
-    assert _template_node_options(date_compact.children[0])["height"] == 12
-    compact_date_options = _template_node_options(date_compact.children[1])
-    assert compact_date_options["height"] == 44
-    assert compact_date_options["fontSize"] == 38
-
-    date_full = registry.require_variant("DateOverviewFull@1", "default").root
-    assert _template_node_options(date_full)["justifyContent"] == "spaceBetween"
-    assert _template_node_options(date_full.children[0])["height"] == 64
-    assert _template_node_options(date_full.children[1])["height"] == 40
+    calendar = registry.require_ux_business_component("CalendarOverview")
+    assert len(calendar.local_template_ids) == 13
+    assert "ScheduleOverviewDatedMeetingHero@1" in calendar.local_template_ids
+    assert not any(
+        template_id.startswith("DateOverview")
+        for template_id in calendar.local_template_ids
+    )
 
     schedule = registry.require_variant(
         "ScheduleOverviewMeetingLocationCompact@1",
@@ -2043,88 +2106,27 @@ def test_calendar_templates_follow_latest_date_schedule_ux_geometry():
     text_options = [_template_node_options(node) for node in _template_nodes(schedule, "Text")]
     assert text_options[0]["height"] == 20
     assert all(options["height"] == 14 for options in text_options[1:])
+    support_content_text_count = 0
+    for template_id in calendar.local_template_ids:
+        root = registry.require_variant(template_id, "default").root
+        for text_node in _template_nodes(root, "Text"):
+            options = text_node.values[-1]
+            assert options.kind == "object"
+            font_color = options.properties.get("fontColor")
+            if font_color is None:
+                continue
+            if font_color.kind == "literal":
+                assert font_color.value != "#991F4799"
+            if font_color.kind == "theme" and font_color.name == "supportContentColor":
+                support_content_text_count += 1
+    assert support_content_text_count == 50
 
-
-@pytest.mark.asyncio
-async def test_calendar_date_and_schedule_compacts_generate_one_vertical_card():
-    class CalendarTemplateModel:
-        async def generate_json(
-            self,
-            _prompt: list[dict[str, str]],
-            **_kwargs: Any,
-        ) -> dict[str, Any]:
-            return {
-                "themeId": "meeting-paper-neutral",
-                "requiredOutputFieldsByCapability": {
-                    "GetCalendarEvents": [
-                        "/events/0/startDate",
-                        "/events/0/title",
-                        "/events/0/dtStart",
-                    ]
-                },
-                "action": [],
-            }
-
-        async def generate(
-            self,
-            _prompt: list[dict[str, str]],
-            *_args: Any,
-            **_kwargs: Any,
-        ) -> str:
-            return (
-                'Template("TwoCompactLayout@1",{},'
-                'Template("DateOverviewCompact@1",{}),'
-                'Template("ScheduleOverviewMeetingCompact@1",{}));'
-            )
-
-    task = TaskSpec(
-        userQuery="显示日期和下一场会议的标题、时间",
-        size="2x2",
-        dataModelSchema={
-            "data": {
-                "calendar": {
-                    "events": [
-                        {
-                            "startDate": _provider_field("2026-08-19", "string"),
-                            "title": _provider_field("UI需求评审会", "string"),
-                            "dtStart": _provider_field("14:00", "string"),
-                            "dtEnd": _provider_field("15:30", "string"),
-                        }
-                    ],
-                    "updatedAt": _provider_field("2026-08-19 09:00", "string"),
-                }
-            }
-        },
-    )
-    fields = [
-        "/events/0/startDate",
-        "/events/0/title",
-        "/events/0/dtStart",
-        "/events/0/dtEnd",
-        "/updatedAt",
-    ]
-    binding = CandidateDataBinding(
-        capabilityId="GetCalendarEvents",
-        writeResultTo="/data/calendar",
-        candidateOutputFields=fields,
-    )
-    card_spec = {
-        "suggestSize": "2x2",
-        "dataBindings": [
-            {
-                "capabilityId": "GetCalendarEvents",
-                "writeResultTo": "/data/calendar",
-            }
-        ],
-    }
-
-    with pytest.raises(TemplateRouteNotApplicable, match="cannot cover one CalendarOverview slot"):
-        await generate_template_a2ui(
-            task,
-            card_spec,
-            (binding,),
-            CalendarTemplateModel(),
-        )
+    second_layer_rules = registry.provider_second_layer_rules(("CalendarOverview",))
+    assert len(second_layer_rules) == 1
+    rule_content = second_layer_rules[0].get("content")
+    assert isinstance(rule_content, str)
+    assert "DateOverview" not in rule_content
+    assert "supportContentColor" in rule_content
 
 
 @pytest.mark.asyncio
