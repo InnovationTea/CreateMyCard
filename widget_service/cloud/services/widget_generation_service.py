@@ -46,7 +46,6 @@ from services.generation_pipeline import (
 )
 from services.generation_preflight import GenerationPreflight
 from services.multi_step_generation.core.bridge import JsxA2UIBridge
-from services.prompt_builder import PromptBuilder
 from services.protocol_registry import (
     A2UI_FORM_PROTOCOL_PROFILE_ID,
     A2UIProtocolRegistry,
@@ -462,10 +461,6 @@ class WidgetGenerationService:
         protocol_registry = A2UIProtocolRegistry(policy.protocol_profile_id)
         protocol_profile = protocol_registry.get_profile()
         conversion_protocol_profile = protocol_profile
-        if policy.processor_kind == DslProcessorKind.TERSE_NESTED2:
-            conversion_protocol_profile = A2UIProtocolRegistry.read_design_protocol_profile(
-                policy.model_profile_id
-            )
         if previous_design_token is not None:
             token_is_valid = await self._validate_source_design_token(
                 previous_design_token,
@@ -547,34 +542,39 @@ class WidgetGenerationService:
             "task_data_model_schema_keys="
             f"{json_for_log(list(task_spec.dataModelSchema))}"
         )
-        # Prompt 约束模型生成源 DSL；Processor 和 Validator 依次产出统一质量问题，再由策略决定门禁。
-        if policy.stores_design_token:
-            design_system_prompt = A2UIProtocolRegistry.read_design_prompt(
-                policy.model_profile_id
+        # 纯模板入口不依赖通用生成 Prompt；仅原始协议或允许 fallback 时按需加载。
+        needs_model_prompt = template_source_generator is None or need_fallback
+        prompt: list[dict[str, str]] = []
+        if needs_model_prompt:
+            from services.prompt_builder import PromptBuilder
+
+            if policy.stores_design_token:
+                design_system_prompt = A2UIProtocolRegistry.read_design_prompt(
+                    policy.model_profile_id
+                )
+                prompt = PromptBuilder().build_design_token(
+                    task_spec,
+                    design_system_prompt,
+                    policy.source_format,
+                    previous_design_token=previous_design_token,
+                )
+            else:
+                prompt = PromptBuilder().build(
+                    task_spec,
+                    protocol_profile,
+                    "；".join(f"{item.id}:{item.reason}" for item in removed),
+                    previous_genui=(
+                        source_load_result.artifact.genui if source_load_result else None
+                    ),
+                )
+            prompt_log_summary = build_prompt_log_summary(
+                prompt,
+                settings.model_prompt_log_preview_chars,
             )
-            prompt = PromptBuilder().build_design_token(
-                task_spec,
-                design_system_prompt,
-                policy.source_format,
-                previous_design_token=previous_design_token,
+            logger.info(
+                f"{_MODULE} a2ui_prompt_built "
+                f"prompt_summary={json_for_log(prompt_log_summary)}"
             )
-        else:
-            prompt = PromptBuilder().build(
-                task_spec,
-                protocol_profile,
-                "；".join(f"{item.id}:{item.reason}" for item in removed),
-                previous_genui=(
-                    source_load_result.artifact.genui if source_load_result else None
-                ),
-            )
-        prompt_log_summary = build_prompt_log_summary(
-            prompt,
-            settings.model_prompt_log_preview_chars,
-        )
-        logger.info(
-            f"{_MODULE} a2ui_prompt_built "
-            f"prompt_summary={json_for_log(prompt_log_summary)}"
-        )
         latency_by_stage["specAndPrompt"] = self._elapsed_ms(stage_started_at)
         stage_started_at = time.perf_counter()
 
@@ -593,10 +593,7 @@ class WidgetGenerationService:
         model_call_phase = "initial"
         quality_repair_attempt_count = 0
         repair_records: list[RepairArtifactRecord] = []
-        if policy.processor_kind == DslProcessorKind.TERSE_NESTED2:
-            design_mode = "edit" if source_load_result else "create"
-            repair_prompt_type = f"terse-dsl-nested-2-{design_mode}"
-        elif policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
+        if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
             design_mode = "edit" if source_load_result else "create"
             repair_prompt_type = f"design-compact-{design_mode}"
         elif source_load_result:
@@ -615,39 +612,13 @@ class WidgetGenerationService:
             event_candidates=effective_events,
         )
         latest_processing_result = DslProcessingResult(source_dsl="")
+        source_generated_by_jsx = False
 
         async def generate_source_dsl() -> str:
+            nonlocal source_generated_by_jsx
+            source_generated_by_jsx = False
             if before_model_call is not None:
                 await before_model_call(card_spec.suggestSize)
-            if try_jsx:
-                try:
-                    logger.info(
-                        f"{_MODULE} jsx_generation_started operation={policy.operation}"
-                    )
-                    bridge = JsxA2UIBridge()
-                    bridge_result = await bridge.generate(task_spec, card_spec.suggestSize)
-                    a2ui_jsonl = "\n".join(
-                        json.dumps(msg, ensure_ascii=False, separators=(",", ":"))
-                        for msg in bridge_result.a2ui_messages
-                    )
-                    logger.info(
-                        f"{_MODULE} jsx_generation_completed operation={policy.operation} "
-                        f"component={bridge_result.component_name} "
-                        f"turns={bridge_result.turns} elapsed={bridge_result.elapsed_seconds}s"
-                    )
-                    return require_generated_dsl(a2ui_jsonl)
-                except Exception as exc:
-                    fallback = "original_protocol_flow" if need_fallback else "none"
-                    logger.info(
-                        f"{_MODULE} jsx_generation_failed "
-                        f"operation={policy.operation} fallback={fallback} "
-                        f"reason={type(exc).__name__} "
-                        f"detail={json_for_log(str(exc))}"
-                    )
-                    if not need_fallback:
-                        raise A2UIModelGenerationError(
-                            "JSX generation failed without fallback"
-                        ) from exc
             if template_source_generator is not None:
                 try:
                     logger.info(
@@ -672,6 +643,37 @@ class WidgetGenerationService:
                         raise A2UIModelGenerationError(
                             "Template source generation failed without fallback"
                         ) from exc
+            if try_jsx:
+                try:
+                    logger.info(
+                        f"{_MODULE} jsx_generation_started operation={policy.operation}"
+                    )
+                    bridge = JsxA2UIBridge()
+                    bridge_result = await bridge.generate(task_spec, card_spec.suggestSize)
+                    a2ui_jsonl = "\n".join(
+                        json.dumps(msg, ensure_ascii=False, separators=(",", ":"))
+                        for msg in bridge_result.a2ui_messages
+                    )
+                    generated_dsl = require_generated_dsl(a2ui_jsonl)
+                    source_generated_by_jsx = True
+                    logger.info(
+                        f"{_MODULE} jsx_generation_completed operation={policy.operation} "
+                        f"component={bridge_result.component_name} "
+                        f"turns={bridge_result.turns} elapsed={bridge_result.elapsed_seconds}s"
+                    )
+                    return generated_dsl
+                except Exception as exc:
+                    fallback = "original_protocol_flow" if need_fallback else "none"
+                    logger.info(
+                        f"{_MODULE} jsx_generation_failed "
+                        f"operation={policy.operation} fallback={fallback} "
+                        f"reason={type(exc).__name__} "
+                        f"detail={json_for_log(str(exc))}"
+                    )
+                    if not need_fallback:
+                        raise A2UIModelGenerationError(
+                            "JSX generation failed without fallback"
+                        ) from exc
             logger.info(
                 f"{_MODULE} model_source_generation_started operation={policy.operation}"
             )
@@ -684,6 +686,8 @@ class WidgetGenerationService:
             invalid_source_dsl: str,
             quality_errors: list[str],
         ) -> str:
+            from services.prompt_builder import PromptBuilder
+
             nonlocal model_call_phase, quality_repair_attempt_count
             quality_repair_attempt_count += 1
             quality_error_payloads = [
@@ -721,7 +725,7 @@ class WidgetGenerationService:
         def evaluate_source_dsl_sync(source_dsl: str) -> list[str]:
             nonlocal latest_processing_result
             # JSX 路径：agent 内部已有编译+验证+重试，跳过工程 processor 和 validator
-            if try_jsx:
+            if source_generated_by_jsx:
                 logger.info(
                     f"{_MODULE} artifact_validation_skipped operation={policy.operation} "
                     "reason=jsx_internal_validation"
@@ -829,7 +833,9 @@ class WidgetGenerationService:
         async def evaluate_source_dsl(source_dsl: str) -> list[str]:
             return await to_thread.run_sync(evaluate_source_dsl_sync, source_dsl)
 
-        retry_on_validation_failure = settings.enable_validation_failure_retry
+        retry_on_validation_failure = (
+            settings.enable_validation_failure_retry and needs_model_prompt
+        )
         try:
             retry_result = await retry_controller.run(
                 generate_source_dsl,
@@ -1137,9 +1143,17 @@ class WidgetGenerationService:
         try_jsx = (not try_template) and self._enable_jsx_generation()
         # JSX 路径失败不 fallback 到默认模型
         need_fallback = not try_jsx
+        template_source_generator = (
+            TemplateSourceGenerator(enable_fusion_ball=self._enable_fusion_ball())
+            if try_template
+            else None
+        )
         if before_model_call is None:
             return await self._generate_widget_card_with_policy(
-                request, policy, try_jsx=try_jsx, try_template=try_template,
+                request,
+                policy,
+                try_jsx=try_jsx,
+                template_source_generator=template_source_generator,
                 need_fallback=need_fallback,
             )
         return await self._generate_widget_card_with_policy(
@@ -1147,7 +1161,7 @@ class WidgetGenerationService:
             policy,
             before_model_call=before_model_call,
             try_jsx=try_jsx,
-            try_template=try_template,
+            template_source_generator=template_source_generator,
             need_fallback=need_fallback,
         )
 
@@ -1188,7 +1202,9 @@ class WidgetGenerationService:
             policy,
             before_model_call=before_model_call,
             template_source_generator=(
-                TemplateSourceGenerator() if self._enable_card_template() else None
+                TemplateSourceGenerator(enable_fusion_ball=self._enable_fusion_ball())
+                if self._enable_card_template()
+                else None
             ),
             need_fallback=True,
         )
@@ -1198,11 +1214,12 @@ class WidgetGenerationService:
         request: GenerateWidgetCardRequest,
         *,
         before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
+        enable_fusion_ball: bool = False,
         trusted_template_candidate_ids: tuple[str, ...] = (),
         trusted_template_action_ids: tuple[str, ...] = (),
         trusted_template_sample_overrides: dict[str, object] | None = None,
     ) -> GenerateWidgetCardResponse:
-        """使用本地 TerseDSL-Nested-2 Prompt 和转换器生成标准 A2UI。"""
+        """复用 Design Compact 原始生成链处理 Terse 模板入口。"""
         try:
             selection = self._compact_protocol_selection(request)
         except ValueError as exc:
@@ -1236,10 +1253,8 @@ class WidgetGenerationService:
                 message="模板路线暂不支持二次更新。",
                 errorCode=ErrorCode.A2UI_GENERATION_FAILED.value,
             )
-        # 问题定位时可显式调用
-        # services.template_generation.route_legacy_python_terse_generation(...)。
         template_source_generator = TemplateSourceGenerator(
-            enable_fusion_ball=self._enable_fusion_ball(),
+            enable_fusion_ball=enable_fusion_ball or self._enable_fusion_ball(),
             trusted_template_candidate_ids=trusted_template_candidate_ids,
             trusted_template_action_ids=trusted_template_action_ids,
             trusted_template_sample_overrides=dict(
@@ -1282,7 +1297,6 @@ class WidgetGenerationService:
                 try_jsx=try_jsx,
                 need_fallback=need_fallback,
             )
-        template_source_generator.enable_fusion_ball = self._enable_fusion_ball()
         template_source_generator.processor_kind = policy.processor_kind
         template_source_generator.protocol_profile = A2UIProtocolRegistry(
             policy.protocol_profile_id

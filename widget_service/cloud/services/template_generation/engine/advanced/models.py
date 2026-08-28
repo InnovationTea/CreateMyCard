@@ -12,14 +12,9 @@ UX_LAYOUT_COMPONENT_IDS = frozenset(
     {
         "SingleFocusLayout",
         "HeroActionLayout",
-        "HeroSupportLayout",
-        "HeroSupportActionLayout",
-        "PeerPairLayout",
-        "SequentialSummaryLayout",
-        "EqualItemsLayout",
-        "ListActionLayout",
-        "ActionMatrixLayout",
-        "WeatherNowForecastLayout",
+        "CompactTwoActionLayout",
+        "TwoCompactLayout",
+        "WideSingleFocusLayout",
     }
 )
 UX_DIRECT_BUSINESS_COMPONENT_IDS = frozenset(
@@ -99,14 +94,20 @@ class UxLayoutComponentCapability(StrictModel):
 
     @model_validator(mode="after")
     def valid_child_budget(self) -> UxLayoutComponentCapability:
-        sizes: tuple[Literal["2x2", "2x4"], ...] = ("2x2", "2x4")
+        sizes = self.supported_card_sizes
+        if not sizes:
+            raise ValueError("UX Layout must support at least one card size")
         expected_sizes = set(sizes)
         if set(self.max_children_by_size) != expected_sizes:
-            raise ValueError("UX Layout child budget is incomplete")
+            raise ValueError("UX Layout child budget must match supportedCardSizes")
+        if not set(self.min_children_by_size).issubset(expected_sizes):
+            raise ValueError("UX Layout minimum child budget has an unsupported card size")
         if set(self.min_action_children_by_size) != expected_sizes:
-            raise ValueError("UX Layout minimum Action budget is incomplete")
+            raise ValueError("UX Layout minimum Action budget must match supportedCardSizes")
         if set(self.max_action_children_by_size) != expected_sizes:
-            raise ValueError("UX Layout maximum Action budget is incomplete")
+            raise ValueError("UX Layout maximum Action budget must match supportedCardSizes")
+        if set(self.lowering_by_size) != expected_sizes:
+            raise ValueError("UX Layout lowering must match supportedCardSizes")
         minimums = {size: self.min_children_by_size.get(size, self.min_children) for size in sizes}
         if any(self.max_children_by_size[size] < minimums[size] for size in sizes):
             raise ValueError("UX Layout child budget is invalid")
@@ -207,7 +208,7 @@ class TemplateRouteDecision(StrictModel):
         alias="componentCandidates",
         max_length=4,
     )
-    action: str | None
+    action_ids: tuple[str, ...] = Field(default=(), alias="action", max_length=2)
 
     @field_validator("theme")
     @classmethod
@@ -228,19 +229,22 @@ class TemplateRouteDecision(StrictModel):
             raise ValueError("componentCandidates componentId values must be unique")
         return values
 
-    @field_validator("action")
+    @field_validator("action_ids", mode="before")
     @classmethod
-    def normalized_action(cls, value: str | None) -> str | None:
+    def normalized_actions(cls, value: Any) -> tuple[str, ...]:
         if value is None:
-            return None
-        normalized = value.strip()
-        if not normalized:
-            raise ValueError("action must be null or a non-empty eventId")
+            return ()
+        values = (value,) if isinstance(value, str) else tuple(value)
+        normalized = tuple(item.strip() for item in values if isinstance(item, str))
+        if len(normalized) != len(values) or any(not item for item in normalized):
+            raise ValueError("action must contain only non-empty eventIds")
+        if len(normalized) != len(set(normalized)):
+            raise ValueError("action eventIds must be unique")
         return normalized
 
     @model_validator(mode="after")
     def route_fields_match_decision(self) -> TemplateRouteDecision:
-        if not self.component_candidates and self.action is not None:
+        if not self.component_candidates and self.action_ids:
             raise ValueError("rejected Template route must clear action and retain theme")
         template_count = sum(
             len(candidate.available_template_ids) for candidate in self.component_candidates
@@ -261,11 +265,16 @@ class TemplateRouteSelection(StrictModel):
     component_candidates: tuple[TemplateComponentCandidate, ...] = Field(
         alias="componentCandidates"
     )
-    action_id: str | None = None
+    action_ids: tuple[str, ...] = Field(default=(), alias="actionIds", max_length=2)
     required_template_groups: tuple[tuple[str, ...], ...] = Field(
         default=(),
         alias="requiredTemplateGroups",
     )
+
+    @property
+    def action_id(self) -> str | None:
+        """Compatibility view for callers that only inspect the first selected Action."""
+        return self.action_ids[0] if self.action_ids else None
 
     @property
     def allowed_template_ids(self) -> tuple[str, ...]:

@@ -4,10 +4,7 @@ import json
 
 from config.config import get_settings
 from models.generation import TaskSpec
-from services.protocol_registry import (
-    DESIGN_COMPACT_PROFILE_ID,
-    TERSE_DSL_NESTED2_PROFILE_ID,
-)
+from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID
 
 _MODULE = "[Prompt Builder]"
 
@@ -17,20 +14,6 @@ REPAIR_SYSTEM_PROMPT = get_settings().repair_system_prompt
 
 
 class PromptBuilder:
-    def build_terse_dsl_nested2(
-        self,
-        task_spec: TaskSpec,
-        system_prompt: str,
-        previous_design_token: str | None = None,
-    ) -> list[dict[str, str]]:
-        """构造 TerseDSL-Nested-2 新建或编辑模型输入。"""
-        return self.build_design_token(
-            task_spec,
-            system_prompt,
-            TERSE_DSL_NESTED2_PROFILE_ID,
-            previous_design_token=previous_design_token,
-        )
-
     def build_design_compact(
         self,
         task_spec: TaskSpec,

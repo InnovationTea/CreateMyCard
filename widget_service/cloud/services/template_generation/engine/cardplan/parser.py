@@ -12,14 +12,14 @@ from services.template_generation.engine.advanced.models import (
     UX_DIRECT_BUSINESS_COMPONENT_IDS,
     UX_LAYOUT_COMPONENT_IDS,
 )
-from services.template_generation.engine.terse_dsl_nested2_converter import (
+from services.template_generation.engine.tersel_converter import (
     MAX_COMPONENTS,
     MAX_INPUT_LENGTH,
     MAX_NESTING_DEPTH,
     MAX_OBJECT_FIELDS,
     MAX_STRING_LENGTH,
     Nested2Node,
-    TerseDslNested2ConversionError,
+    TerselConversionError,
 )
 
 from .models import SourceSpan
@@ -50,23 +50,23 @@ def normalize_hybrid_source(source: str) -> str:
         return value
     lines = value.splitlines()
     if len(lines) < 3 or lines[-1].strip() != "```":
-        raise TerseDslNested2ConversionError("CardPlan Markdown fence is not closed.")
+        raise TerselConversionError("CardPlan Markdown fence is not closed.")
     return "\n".join(lines[1:-1]).strip()
 
 
 def parse_hybrid_card(source: str) -> ParsedCall:
     source, root, state = _parse_program(source)
     if root.kind != "template" or root.name != "card@1":
-        raise TerseDslNested2ConversionError('CardPlan root must be Template("card@1", ...).')
+        raise TerselConversionError('CardPlan root must be Template("card@1", ...).')
     if len(root.values) != 1 or len(root.children) != 1:
-        raise TerseDslNested2ConversionError("card@1 requires params and one content child.")
+        raise TerselConversionError("card@1 requires params and one content child.")
     if not isinstance(root.values[0], dict):
-        raise TerseDslNested2ConversionError("card@1 params must be one object.")
+        raise TerselConversionError("card@1 params must be one object.")
     content = root.children[0]
     if content.kind == "template":
         state["components"] += 1
         if state["components"] > MAX_COMPONENTS:
-            raise TerseDslNested2ConversionError("CardPlan component count exceeds 256.")
+            raise TerselConversionError("CardPlan component count exceeds 256.")
         content = ParsedCall(
             "component",
             "Column",
@@ -76,7 +76,7 @@ def parse_hybrid_card(source: str) -> ParsedCall:
         )
         root = ParsedCall(root.kind, root.name, root.values, (content,), root.span)
     if content.kind != "component" or content.name not in _CONTAINERS:
-        raise TerseDslNested2ConversionError("card@1 content must be one Catalog container.")
+        raise TerselConversionError("card@1 content must be one Catalog container.")
     return root
 
 
@@ -87,9 +87,9 @@ def parse_ux_layout_card(source: str) -> ParsedCall:
         (root.kind == "component" and root.name in UX_LAYOUT_COMPONENT_IDS)
         or (root.kind == "template" and root.name.endswith("Layout@1"))
     ):
-        raise TerseDslNested2ConversionError("UX Mixed root must be one Layout Template.")
+        raise TerselConversionError("UX Mixed root must be one Layout Template.")
     if len(root.values) > 1 or (root.values and not isinstance(root.values[0], dict)):
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "UX Layout configuration must be one optional object argument."
         )
     return root
@@ -98,18 +98,18 @@ def parse_ux_layout_card(source: str) -> ParsedCall:
 def _parse_program(source: str) -> tuple[str, ParsedCall, dict[str, int]]:
     source = normalize_hybrid_source(source)
     if not source:
-        raise TerseDslNested2ConversionError("CardPlan output is empty.")
+        raise TerselConversionError("CardPlan output is empty.")
     if len(source) > MAX_INPUT_LENGTH:
-        raise TerseDslNested2ConversionError("CardPlan output exceeds the size limit.")
+        raise TerselConversionError("CardPlan output exceeds the size limit.")
     translated = _python_compatible_source(source)
     try:
         module = ast.parse(translated, mode="exec")
     except SyntaxError as exc:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"CardPlan syntax error at line {exc.lineno}: {exc.msg}."
         ) from exc
     if len(module.body) != 1 or not isinstance(module.body[0], ast.Expr):
-        raise TerseDslNested2ConversionError("CardPlan must contain exactly one call.")
+        raise TerselConversionError("CardPlan must contain exactly one call.")
     state = {"components": 0}
     root = _parse_call(module.body[0].value, source, 1, state)
     return source, root, state
@@ -117,7 +117,7 @@ def _parse_program(source: str) -> tuple[str, ParsedCall, dict[str, int]]:
 
 def parsed_component_to_nested(node: ParsedCall) -> Nested2Node:
     if node.kind != "component":
-        raise TerseDslNested2ConversionError("Template must be expanded before Catalog lowering.")
+        raise TerselConversionError("Template must be expanded before Catalog lowering.")
     return Nested2Node(
         component_type=node.name,
         values=node.values,
@@ -132,18 +132,18 @@ def _parse_call(
     state: dict[str, int],
 ) -> ParsedCall:
     if depth > MAX_NESTING_DEPTH:
-        raise TerseDslNested2ConversionError("CardPlan nesting exceeds 32 levels.")
+        raise TerselConversionError("CardPlan nesting exceeds 32 levels.")
     if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name) or node.keywords:
-        raise TerseDslNested2ConversionError("Only direct CardPlan calls are allowed.")
+        raise TerselConversionError("Only direct CardPlan calls are allowed.")
     name = node.func.id
     span = _span(node, source)
     if name == "Template":
         return _parse_template_call(node, source, depth, state, span)
     if name not in _COMPONENTS:
-        raise TerseDslNested2ConversionError(f'Unsupported component type "{name}".')
+        raise TerselConversionError(f'Unsupported component type "{name}".')
     state["components"] += 1
     if state["components"] > MAX_COMPONENTS:
-        raise TerseDslNested2ConversionError("CardPlan component count exceeds 256.")
+        raise TerselConversionError("CardPlan component count exceeds 256.")
     values: list[Any] = []
     children: list[ParsedCall] = []
     child_started = False
@@ -155,19 +155,19 @@ def _parse_call(
             values.append(_literal_value(argument.elts[0], depth + 1))
         elif isinstance(argument, ast.List) and argument.elts:
             if not all(isinstance(child, ast.Call) for child in argument.elts):
-                raise TerseDslNested2ConversionError(
+                raise TerselConversionError(
                     "Component child arrays may contain calls only."
                 )
             child_started = True
             children.extend(_parse_call(child, source, depth + 1, state) for child in argument.elts)
         else:
             if child_started:
-                raise TerseDslNested2ConversionError(
+                raise TerselConversionError(
                     "Value arguments must appear before the first child."
                 )
             values.append(_literal_value(argument, depth + 1))
     if children and name not in _CONTAINERS:
-        raise TerseDslNested2ConversionError(f"{name} cannot contain child components.")
+        raise TerselConversionError(f"{name} cannot contain child components.")
     return ParsedCall("component", name, tuple(values), tuple(children), span)
 
 
@@ -195,13 +195,13 @@ def _parse_template_call(
     span: SourceSpan,
 ) -> ParsedCall:
     if not node.args:
-        raise TerseDslNested2ConversionError("Template requires a versioned ID.")
+        raise TerselConversionError("Template requires a versioned ID.")
     template_id = _literal_value(node.args[0], depth + 1)
     if not isinstance(template_id, str):
-        raise TerseDslNested2ConversionError("Template ID must be a string.")
+        raise TerselConversionError("Template ID must be a string.")
     if template_id == "card@1":
         if len(node.args) != 3 or not isinstance(node.args[2], ast.Call):
-            raise TerseDslNested2ConversionError("card@1 requires params and one content child.")
+            raise TerselConversionError("card@1 requires params and one content child.")
         params = _literal_value(node.args[1], depth + 1)
         content = _parse_call(node.args[2], source, depth + 1, state)
         return ParsedCall("template", template_id, (params,), (content,), span)
@@ -210,22 +210,22 @@ def _parse_template_call(
         children: list[ParsedCall] = []
         for child in node.args[2:]:
             if not isinstance(child, ast.Call):
-                raise TerseDslNested2ConversionError(
+                raise TerselConversionError(
                     "UI Template children must be direct component or Template calls."
                 )
             children.append(_parse_call(child, source, depth + 1, state))
         return ParsedCall("template", template_id, (second,), tuple(children), span)
-    raise TerseDslNested2ConversionError(
+    raise TerselConversionError(
         "Local Template requires a versioned ID, one props object and optional children."
     )
 
 
 def _literal_value(node: ast.AST, depth: int) -> Any:
     if depth > MAX_NESTING_DEPTH:
-        raise TerseDslNested2ConversionError("CardPlan literal nesting exceeds 32 levels.")
+        raise TerselConversionError("CardPlan literal nesting exceeds 32 levels.")
     if isinstance(node, ast.Constant):
         if isinstance(node.value, str) and len(node.value) > MAX_STRING_LENGTH:
-            raise TerseDslNested2ConversionError("CardPlan string exceeds the size limit.")
+            raise TerselConversionError("CardPlan string exceeds the size limit.")
         if node.value is None or isinstance(node.value, (str, int, float, bool)):
             return node.value
     if isinstance(node, ast.List):
@@ -233,34 +233,34 @@ def _literal_value(node: ast.AST, depth: int) -> Any:
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
         operand = _literal_value(node.operand, depth + 1)
         if isinstance(operand, bool) or not isinstance(operand, (int, float)):
-            raise TerseDslNested2ConversionError("Unary signs require numeric literals.")
+            raise TerselConversionError("Unary signs require numeric literals.")
         return operand if isinstance(node.op, ast.UAdd) else -operand
     if isinstance(node, ast.Dict):
         if len(node.keys) > MAX_OBJECT_FIELDS:
-            raise TerseDslNested2ConversionError("CardPlan object exceeds the field limit.")
+            raise TerselConversionError("CardPlan object exceeds the field limit.")
         result: dict[str, Any] = {}
         for key_node, value_node in zip(node.keys, node.values, strict=True):
             if key_node is None:
-                raise TerseDslNested2ConversionError(
+                raise TerselConversionError(
                     "CardPlan does not allow dictionary unpacking."
                 )
             key = _literal_value(key_node, depth + 1)
             if not isinstance(key, str):
-                raise TerseDslNested2ConversionError("CardPlan object keys must be strings.")
+                raise TerselConversionError("CardPlan object keys must be strings.")
             if key in _FORBIDDEN_KEYS:
-                raise TerseDslNested2ConversionError(f'Forbidden object key "{key}".')
+                raise TerselConversionError(f'Forbidden object key "{key}".')
             if key in result:
-                raise TerseDslNested2ConversionError(f'Duplicate object key "{key}".')
+                raise TerselConversionError(f'Duplicate object key "{key}".')
             result[key] = _literal_value(value_node, depth + 1)
         return result
-    raise TerseDslNested2ConversionError("CardPlan accepts literal data only.")
+    raise TerselConversionError("CardPlan accepts literal data only.")
 
 
 def _python_compatible_source(source: str) -> str:
     try:
         tokens = list(tokenize.generate_tokens(io.StringIO(source).readline))
     except tokenize.TokenError as exc:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"CardPlan tokenization failed: {exc.args[0]}."
         ) from exc
     translated: list[tokenize.TokenInfo] = []

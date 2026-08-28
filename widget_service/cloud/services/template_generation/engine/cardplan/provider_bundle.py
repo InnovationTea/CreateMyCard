@@ -18,8 +18,14 @@ from pydantic import Field, model_validator
 from config.config import get_settings
 from models.generation import TaskSpec
 from services.template_generation.engine.advanced.models import UxLayoutComponentCapability
+from services.template_generation.engine.theme_reference import (
+    THEME_REFERENCE_PATHS,
+    ThemeReferenceSyntaxError,
+    translate_theme_reference_calls,
+)
 
 from .models import (
+    TEMPLATE_CHILD_SLOT_COMPONENT,
     BusinessTemplateGroup,
     StrictModel,
     TemplateBinding,
@@ -47,14 +53,9 @@ _LAYOUT_COMPONENTS = frozenset(
     {
         "SingleFocusLayout",
         "HeroActionLayout",
-        "HeroSupportLayout",
-        "HeroSupportActionLayout",
-        "PeerPairLayout",
-        "SequentialSummaryLayout",
-        "EqualItemsLayout",
-        "ListActionLayout",
-        "ActionMatrixLayout",
-        "WeatherNowForecastLayout",
+        "CompactTwoActionLayout",
+        "TwoCompactLayout",
+        "WideSingleFocusLayout",
     }
 )
 _CONDITIONAL_PARAMETER_COMPONENTS = frozenset({"IfParam", "IfMissingParam"})
@@ -66,7 +67,17 @@ _CONTAINERS = (
     | _LAYOUT_COMPONENTS
     | _CONDITIONAL_COMPONENTS
 )
-_REFERENCE_CALLS = frozenset({"Bind", "Param", "Asset", "Expr", "_CardTplInterpolation"})
+_REFERENCE_CALLS = frozenset(
+    {
+        "Bind",
+        "Param",
+        "Asset",
+        "Expr",
+        "EventAction",
+        "_CardTplInterpolation",
+        "_CardTplTheme",
+    }
+)
 _FORBIDDEN_KEYS = frozenset({"__proto__", "prototype", "constructor"})
 _TEMPLATE_ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9-]{0,63}$")
 _REFERENCE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
@@ -74,6 +85,14 @@ _PROVIDER_ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:\.[a-z][a-z0-9-]*)+$")
 _PROVIDER_VERSION_RE = re.compile(r"^[1-9][0-9]*\.[0-9]+\.[0-9]+(?:-[a-z0-9.-]+)?$")
 _MAX_BUNDLE_FILE_BYTES = 1_048_576
 _MAX_TEMPLATE_SOURCE_CHARS = 262_144
+_MAX_INDEXED_TEMPLATE_CHILDREN = 256
+_PROVIDER_TEMPLATE_LAYOUT_KINDS = (
+    "WideHero",
+    "WideFull",
+    "Compact",
+    "Hero",
+    "Full",
+)
 _PROVIDER_TEMPLATE_FAMILIES = (
     "BluetoothDeviceOverview",
     "ResourceUsageOverview",
@@ -129,31 +148,51 @@ class ProviderTemplateEntry(StrictModel):
     )
     capability_id: str | None = Field(default=None, alias="capabilityId", min_length=1)
     description: str = Field(min_length=1)
-    supported_card_sizes: tuple[Literal["2x2", "2x4"], ...] = Field(
-        default=(),
-        alias="supportedCardSizes",
-    )
-    required_data: tuple[str, ...] = Field(default=(), alias="requiredData")
+    primary_data: tuple[str, ...] = Field(default=(), alias="primaryData")
+    secondary_data: tuple[str, ...] = Field(default=(), alias="secondaryData")
     optional_data: tuple[str, ...] = Field(default=(), alias="optionalData")
-    requires_layout_action: bool = Field(default=False, alias="requiresLayoutAction")
     entry: str = Field(min_length=1)
 
     @model_validator(mode="after")
     def data_paths_are_disjoint(self) -> ProviderTemplateEntry:
-        required = set(self.required_data)
+        primary = set(self.primary_data)
+        secondary = set(self.secondary_data)
         optional = set(self.optional_data)
-        if len(required) != len(self.required_data) or len(optional) != len(self.optional_data):
+        paths_are_unique = (
+            len(primary) == len(self.primary_data)
+            and len(secondary) == len(self.secondary_data)
+            and len(optional) == len(self.optional_data)
+        )
+        if not paths_are_unique:
             raise ValueError("Provider Template data paths must be unique")
-        if required & optional:
-            raise ValueError("Provider Template requiredData and optionalData must be disjoint")
-        for path in (*self.required_data, *self.optional_data):
+        if primary & secondary or primary & optional or secondary & optional:
+            raise ValueError(
+                "Provider Template primaryData, secondaryData and optionalData must be disjoint"
+            )
+        for path in (*self.primary_data, *self.secondary_data, *self.optional_data):
             if not _provider_relative_data_path(path):
                 raise ValueError(f"Provider Template data path is invalid: {path}")
-        if (self.required_data or self.optional_data) and self.capability_id is None:
+        has_data = bool(self.primary_data or self.secondary_data or self.optional_data)
+        if has_data and self.capability_id is None:
             raise ValueError("Provider data Template must declare capabilityId")
         if self.capability_id is not None and self.business_id is None:
             raise ValueError("Provider data Template must declare businessId")
+        if self.capability_id is not None:
+            _provider_template_layout_kind(self.template_id)
         return self
+
+    @property
+    def supported_card_sizes(self) -> tuple[Literal["2x2", "2x4"], ...]:
+        if self.capability_id is None:
+            return ()
+        layout_kind = _provider_template_layout_kind(self.template_id)
+        return ("2x4",) if layout_kind in {"WideHero", "WideFull"} else ("2x2",)
+
+    @property
+    def requires_layout_action(self) -> bool:
+        if self.capability_id is None:
+            return False
+        return _provider_template_layout_kind(self.template_id) in {"Hero", "WideHero"}
 
 
 class ProviderCompatibility(StrictModel):
@@ -222,17 +261,17 @@ class _UiTemplateData:
     body: str
 
 
-def _required_data_fields(
+def _data_fields(
     paths: tuple[str, ...],
     output_schema: dict[str, Any],
 ) -> tuple[dict[str, str], ...]:
-    """Preserve the Provider schema type for retrieval without changing requiredData."""
+    """Preserve the Provider schema type for retrieval across all declared data tiers."""
     fields: list[dict[str, str]] = []
     for path in paths:
         leaf = _schema_leaf(output_schema, path)
         data_type = leaf.get("type") if isinstance(leaf, dict) else None
         if not isinstance(data_type, str):
-            raise ValueError(f"Provider Template requiredData has no schema type: {path}")
+            raise ValueError(f"Provider Template data path has no schema type: {path}")
         fields.append({"path": path, "type": data_type})
     return tuple(fields)
 
@@ -314,7 +353,8 @@ def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
             data_domain=capability.data_domain if capability is not None else None,
             description=entry.description,
             supported_card_sizes=entry.supported_card_sizes,
-            required_data=entry.required_data,
+            primary_data=entry.primary_data,
+            secondary_data=entry.secondary_data,
             optional_data=entry.optional_data,
             output_schema=output_schema,
         )
@@ -352,7 +392,8 @@ def compile_card_template(
     data_domain: str | None,
     description: str,
     supported_card_sizes: tuple[Literal["2x2", "2x4"], ...],
-    required_data: tuple[str, ...],
+    primary_data: tuple[str, ...],
+    secondary_data: tuple[str, ...],
     optional_data: tuple[str, ...],
     output_schema: dict[str, Any],
 ) -> TemplateDefinition:
@@ -370,7 +411,8 @@ def compile_card_template(
         data_domain=data_domain,
         description=description,
         supported_card_sizes=supported_card_sizes,
-        required_data=required_data,
+        primary_data=primary_data,
+        secondary_data=secondary_data,
         optional_data=optional_data,
         output_schema=output_schema,
     )
@@ -386,7 +428,8 @@ def _compile_ui_card_template(
     data_domain: str | None,
     description: str,
     supported_card_sizes: tuple[Literal["2x2", "2x4"], ...],
-    required_data: tuple[str, ...],
+    primary_data: tuple[str, ...],
+    secondary_data: tuple[str, ...],
     optional_data: tuple[str, ...],
     output_schema: dict[str, Any],
 ) -> TemplateDefinition:
@@ -402,9 +445,11 @@ def _compile_ui_card_template(
     required_bindings = template_data.required_bindings
     optional_bindings = template_data.optional_bindings
     body = template_data.body
+    required_data = (*primary_data, *secondary_data)
     if not {binding.path for binding in required_bindings.values()} <= set(required_data):
         raise ValueError(
-            f"Provider Template requiredData does not match $path declarations: {expected_wire_id}"
+            "Provider Template primaryData/secondaryData do not match $path declarations: "
+            f"{expected_wire_id}"
         )
     if not {binding.path for binding in optional_bindings.values()} <= set(optional_data):
         raise ValueError(
@@ -417,11 +462,18 @@ def _compile_ui_card_template(
     root = _parse_component_body(transformed)
     if root.component in _CONDITIONAL_COMPONENTS:
         raise ValueError("Provider Template conditional cannot be the Template root")
-    if root.spread_children and not accepts_children:
+    spreads_children = any(node.spread_children for node in _walk_template_nodes(root))
+    indexed_children = _template_child_slot_indexes(root)
+    uses_children = spreads_children or bool(indexed_children)
+    if uses_children and not accepts_children:
         raise ValueError("Provider Template body uses children without ...children")
-    if accepts_children and not any(node.spread_children for node in _walk_template_nodes(root)):
+    if accepts_children and not uses_children:
         raise ValueError("Provider Template declares ...children but does not place children")
+    if spreads_children and indexed_children:
+        raise ValueError("Provider Template cannot mix children and children[index] slots")
+    _validate_template_child_slot_indexes(indexed_children)
     _validate_interpolation_bindings(root, bindings)
+    _validate_event_action_placement(root)
     binding_references, parameter_references = _template_references(root)
     if not binding_references <= set(bindings):
         unknown_data = sorted(binding_references - set(bindings))
@@ -493,10 +545,12 @@ def _compile_ui_card_template(
             "businessId": business_id,
             "capabilityId": expected_capability_id,
             "dataDomain": data_domain,
-            "requiredData": required_data,
-            "requiredDataFields": _required_data_fields(required_data, output_schema),
+            "primaryData": primary_data,
+            "primaryDataFields": _data_fields(primary_data, output_schema),
+            "secondaryData": secondary_data,
+            "secondaryDataFields": _data_fields(secondary_data, output_schema),
             "optionalData": optional_data,
-            "optionalDataFields": _required_data_fields(optional_data, output_schema),
+            "optionalDataFields": _data_fields(optional_data, output_schema),
             "acceptsChildren": accepts_children,
             "bindings": {
                 name: binding.model_dump(by_alias=True) for name, binding in bindings.items()
@@ -699,7 +753,7 @@ def _validate_provider_template_data_contract(
         for parameter in properties.values():
             if isinstance(parameter, dict):
                 referenced.update(parameter.get("sourcePaths", ()))
-    declared = set(entry.required_data) | set(entry.optional_data)
+    declared = set(entry.primary_data) | set(entry.secondary_data) | set(entry.optional_data)
     if referenced <= declared:
         return
     missing = sorted(referenced - declared)
@@ -715,6 +769,19 @@ def _provider_relative_data_path(value: str) -> bool:
         and value.startswith("/")
         and not value.startswith("/data/")
         and _binding_pointer_is_encodable(value)
+    )
+
+
+def _provider_template_layout_kind(wire_id: str) -> str:
+    template_id, separator, _version = wire_id.rpartition("@")
+    if not separator:
+        raise ValueError(f"Provider Template ID must include a version: {wire_id}")
+    for layout_kind in _PROVIDER_TEMPLATE_LAYOUT_KINDS:
+        if template_id.endswith(layout_kind):
+            return layout_kind
+    allowed = ", ".join(_PROVIDER_TEMPLATE_LAYOUT_KINDS)
+    raise ValueError(
+        f"Provider Template ID must end with one layout kind ({allowed}): {wire_id}"
     )
 
 
@@ -738,12 +805,31 @@ def provider_template_family_identity(wire_id: str) -> tuple[str, str] | None:
     return identity
 
 
+def provider_template_layout_kind(wire_id: str) -> str | None:
+    """Return the normalized layout suffix for one Provider business Template."""
+    template_id, separator, _version = wire_id.rpartition("@")
+    if not separator:
+        return None
+    for base in _PROVIDER_TEMPLATE_FAMILIES:
+        if template_id.startswith(base):
+            return _provider_template_layout_kind(wire_id)
+    return None
+
+
 def _parse_component_body(body: str) -> TemplateNode:
     if not body:
         raise ValueError("Provider Template body is empty")
-    if re.search(r"\b_CardTplInterpolation\s*\(", body):
+    if re.search(r"\b(?:_CardTplInterpolation|_CardTplTheme)\s*\(", body):
         raise ValueError("Provider Template uses a reserved internal name")
-    translated = _python_compatible_source(_translate_template_strings(body))
+    try:
+        with_template_strings = _translate_template_strings(body)
+        with_theme_calls = translate_theme_reference_calls(
+            with_template_strings,
+            "_CardTplTheme",
+        )
+    except ThemeReferenceSyntaxError as exc:
+        raise ValueError(str(exc)) from exc
+    translated = _python_compatible_source(with_theme_calls)
     try:
         module = ast.parse(translated, mode="exec")
     except SyntaxError as exc:
@@ -771,6 +857,13 @@ def _component_node(node: ast.AST) -> TemplateNode:
                 raise ValueError("Provider Template children may appear once in a container")
             child_started = True
             spread_children = True
+            continue
+        child_index = _indexed_template_child(argument)
+        if child_index is not None:
+            if component not in _CONTAINERS:
+                raise ValueError("Provider Template leaf cannot contain children[index]")
+            child_started = True
+            children.append(_template_child_slot(child_index))
             continue
         is_reference = _is_reference_call(argument)
         if isinstance(argument, ast.Call) and not is_reference:
@@ -800,20 +893,65 @@ def _component_node(node: ast.AST) -> TemplateNode:
     )
 
 
+def _indexed_template_child(node: ast.AST) -> int | None:
+    if not isinstance(node, ast.Subscript):
+        return None
+    if not isinstance(node.value, ast.Name) or node.value.id != "children":
+        return None
+    index_node = node.slice
+    is_integer = isinstance(index_node, ast.Constant) and isinstance(index_node.value, int)
+    if not is_integer or isinstance(index_node.value, bool):
+        raise ValueError("Provider Template children index must be a non-negative integer literal")
+    index = index_node.value
+    if index < 0 or index >= _MAX_INDEXED_TEMPLATE_CHILDREN:
+        raise ValueError("Provider Template children index is outside the supported range")
+    return index
+
+
+def _template_child_slot(index: int) -> TemplateNode:
+    return TemplateNode(
+        component=TEMPLATE_CHILD_SLOT_COMPONENT,
+        values=(TemplateValue(kind="literal", value=index),),
+    )
+
+
+def _template_child_slot_indexes(root: TemplateNode) -> tuple[int, ...]:
+    indexes: list[int] = []
+    for node in _walk_template_nodes(root):
+        if node.component != TEMPLATE_CHILD_SLOT_COMPONENT:
+            continue
+        value = node.values[0].value if len(node.values) == 1 else None
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise ValueError("Provider Template contains an invalid children slot")
+        indexes.append(value)
+    return tuple(indexes)
+
+
+def _validate_template_child_slot_indexes(indexes: tuple[int, ...]) -> None:
+    if not indexes:
+        return
+    if len(indexes) != len(set(indexes)):
+        raise ValueError("Provider Template children indexes must be unique")
+    if sorted(indexes) != list(range(len(indexes))):
+        raise ValueError("Provider Template children indexes must be contiguous from zero")
+
+
 def _template_value(node: ast.AST) -> TemplateValue:
     owner = node.value if isinstance(node, ast.Attribute) else None
     has_supported_owner = isinstance(owner, ast.Name) and owner.id in {"props", "data"}
     has_valid_name = isinstance(node, ast.Attribute) and _REFERENCE_NAME_RE.fullmatch(node.attr)
     if has_supported_owner and has_valid_name:
-        assert isinstance(owner, ast.Name)
-        assert isinstance(node, ast.Attribute)
+        if not isinstance(owner, ast.Name) or not isinstance(node, ast.Attribute):
+            raise ValueError("Provider Template reference is invalid")
         return TemplateValue(
             kind="parameter" if owner.id == "props" else "binding",
             name=node.attr,
         )
     if _is_reference_call(node):
-        assert isinstance(node, ast.Call)
-        assert isinstance(node.func, ast.Name)
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
+            raise ValueError("Provider Template reference call is invalid")
+        if node.func.id == "EventAction":
+            return _event_action_value(node)
         if node.func.id == "_CardTplInterpolation":
             return _interpolation_value(node)
         if node.func.id == "Expr":
@@ -828,6 +966,12 @@ def _template_value(node: ast.AST) -> TemplateValue:
                 raise ValueError("Expr requires one backtick template string")
             interpolation = _interpolation_value(argument)
             return TemplateValue(kind="expression", items=interpolation.items)
+        if node.func.id == "_CardTplTheme":
+            args = _call_literal_args(node, "$theme")
+            path = args[0] if len(args) == 1 else None
+            if not isinstance(path, str) or path not in THEME_REFERENCE_PATHS:
+                raise ValueError("$theme requires one approved Theme path")
+            return TemplateValue(kind="theme", name=path)
         args = _call_literal_args(node, node.func.id)
         if len(args) != 1 or not isinstance(args[0], str):
             raise ValueError(f"{node.func.id} requires one string name")
@@ -857,7 +1001,26 @@ def _template_value(node: ast.AST) -> TemplateValue:
         return TemplateValue(kind="object", properties=properties)
     raise ValueError(
         "Provider Template values must be literals, bindings, template strings, "
-        "Expr, Param or Asset"
+        "Expr, EventAction, Param, Asset or $theme"
+    )
+
+
+def _event_action_value(call: ast.Call) -> TemplateValue:
+    if call.keywords or len(call.args) != 1:
+        raise ValueError("EventAction requires one props parameter")
+    argument = call.args[0]
+    owner = argument.value if isinstance(argument, ast.Attribute) else None
+    valid_owner = isinstance(owner, ast.Name) and owner.id == "props"
+    valid_name = isinstance(argument, ast.Attribute) and _REFERENCE_NAME_RE.fullmatch(
+        argument.attr
+    )
+    if not valid_owner or not valid_name:
+        raise ValueError("EventAction requires one props parameter")
+    if not isinstance(argument, ast.Attribute):
+        raise ValueError("EventAction requires one props parameter")
+    return TemplateValue(
+        kind="event-action",
+        items=(TemplateValue(kind="parameter", name=argument.attr),),
     )
 
 
@@ -1068,6 +1231,8 @@ def _split_wire_id(wire_id: str) -> tuple[str, int]:
 
 
 def _template_shape(root: TemplateNode) -> tuple[int, int]:
+    if root.component == TEMPLATE_CHILD_SLOT_COMPONENT:
+        return 0, 0
     if root.component in _CONDITIONAL_COMPONENTS:
         return _template_shape(root.children[0])
     if root.component == "Text" and root.values and root.values[0].kind == "interpolation":
@@ -1135,7 +1300,8 @@ def _validate_conditional_guards(
     ) -> None:
         if node.component in _CONDITIONAL_PARAMETER_COMPONENTS:
             parameter_name = node.values[0].value
-            assert isinstance(parameter_name, str)
+            if not isinstance(parameter_name, str):
+                raise ValueError("Provider Template conditional parameter must be a string")
             if parameter_name not in properties:
                 raise ValueError(
                     f"unknown Provider Template conditional parameter: {parameter_name}"
@@ -1148,7 +1314,8 @@ def _validate_conditional_guards(
             return
         if node.component in _CONDITIONAL_BINDING_COMPONENTS:
             binding_name = node.values[0].value
-            assert isinstance(binding_name, str)
+            if not isinstance(binding_name, str):
+                raise ValueError("Provider Template conditional binding must be a string")
             if binding_name not in bindings:
                 raise ValueError(f"unknown Provider Template conditional binding: {binding_name}")
             guarded_bindings.add(binding_name)
@@ -1192,6 +1359,27 @@ def _validate_interpolation_bindings(
             if value.kind == "interpolation" and (node.component != "Text" or index != 0):
                 raise ValueError("CardTemplate interpolation must be the first Text value")
             _validate_dynamic_template_value(value, bindings, direct=True)
+
+
+def _validate_event_action_placement(root: TemplateNode) -> None:
+    for node in _walk_template_nodes(root):
+        for value in node.values:
+            if not _contains_template_value_kind(value, "event-action"):
+                continue
+            event_action = value.properties.get("onClick") if value.kind == "object" else None
+            has_direct_event_action = (
+                event_action is not None and event_action.kind == "event-action"
+            )
+            other_values = (
+                item
+                for key, item in value.properties.items()
+                if key != "onClick"
+            )
+            nested_elsewhere = any(
+                _contains_template_value_kind(item, "event-action") for item in other_values
+            )
+            if not has_direct_event_action or nested_elsewhere:
+                raise ValueError("EventAction must be the direct onClick option")
 
 
 def _validate_dynamic_template_value(
@@ -1655,4 +1843,5 @@ __all__ = [
     "provider_template_admission",
     "provider_template_variant_admission",
     "provider_template_family_identity",
+    "provider_template_layout_kind",
 ]

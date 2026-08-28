@@ -6,7 +6,7 @@ import json
 import re
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import TypeVar
 
 from jsonschema import Draft202012Validator
 
@@ -14,10 +14,6 @@ from app.logger import logger
 from services.template_generation.controls import load_template_controls
 from services.template_generation.engine.advanced.models import (
     UX_LAYOUT_COMPONENT_IDS,
-    AdaptiveTemplateFamily,
-    AdvancedComponentCapability,
-    CardSizeContentBudget,
-    UxCardSizeBudget,
     UxLayoutComponentCapability,
 )
 
@@ -27,14 +23,12 @@ from .retrieval_index import (
     TemplateVariantSearchRecord,
     build_template_variant_search_records,
 )
+from .theme_bundle import load_theme_resources
 
 _WIRE_ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9-]{0,63}@[1-9][0-9]*$")
 _DATA_ROOT_TOKEN_RE = re.compile(r"\{\{dataRoot:([A-Za-z][A-Za-z0-9._-]{0,127})\}\}")
-_FORBIDDEN_KEYS = frozenset({"__proto__", "prototype", "constructor"})
-_MAX_RULE_DOCUMENT_BYTES = 262_144
 _NamedCapability = TypeVar(
     "_NamedCapability",
-    AdvancedComponentCapability,
     BusinessTemplateGroup,
     UxLayoutComponentCapability,
 )
@@ -49,7 +43,10 @@ class CardPlanRegistry:
         *,
         disabled_provider_ids: tuple[str, ...] = (),
         disabled_template_ids: tuple[str, ...] = (),
+        enable_fusion_ball: bool = False,
     ) -> None:
+        if not isinstance(enable_fusion_ball, bool):
+            raise ValueError("enable_fusion_ball must be boolean")
         bundled_source_root = Path(__file__).resolve().parents[2] / "resources" / "source"
         self.source_root = source_root or bundled_source_root
         self.disabled_provider_ids = frozenset(disabled_provider_ids)
@@ -58,24 +55,17 @@ class CardPlanRegistry:
         self.manifest_path = generated_root / "prompt-manifest.json"
         self.manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
         self._validate_manifest_metadata()
-        template_payload = self._load_json("template-registry.json")
-        theme_payload = self._load_json("theme-profiles.json")
-        advanced_payload = self._load_json("advanced-component-registry.json")
-        ux_advanced_payload = self._load_json("advanced-component-ux-registry.json")
-        if template_payload.get("registryVersion") != "terse-template-registry/0.7":
-            raise ValueError("unsupported CardPlan Template Registry version")
-        templates = tuple(
-            TemplateDefinition.model_validate(item)
-            for item in template_payload.get("templates", [])
-        )
         provider_bundles = load_provider_bundles(self.source_root / "providers")
         provider_templates = tuple(
             definition for bundle in provider_bundles for definition in bundle.templates
         )
-        themes = tuple(
-            ThemeDefinition.model_validate(item) for item in theme_payload.get("themes", [])
+        theme_resources = load_theme_resources(self.source_root / "themes")
+        visible_themes = tuple(
+            theme
+            for theme in theme_resources.themes
+            if enable_fusion_ball or theme.fusion_ball_style is None
         )
-        self.templates = self._unique_by_wire_id((*templates, *provider_templates))
+        self.templates = self._unique_by_wire_id(provider_templates)
         self.template_variant_search_records: tuple[TemplateVariantSearchRecord, ...] = (
             build_template_variant_search_records(self.templates)
         )
@@ -88,43 +78,11 @@ class CardPlanRegistry:
                 f"disabled_provider_ids={json.dumps(sorted(self.disabled_provider_ids))} "
                 f"disabled_template_ids={json.dumps(sorted(self.disabled_template_ids))}"
             )
-        self.themes = self._unique_themes(themes)
+        self.themes = self._unique_themes(visible_themes)
         self.theme_first_layer_rules = {
-            theme_id: self._load_markdown_rule(theme.first_layer_rule.path, "Theme first-layer")
-            for theme_id, theme in self.themes.items()
+            theme_id: theme_resources.first_layer_rules[theme_id]
+            for theme_id in self.themes
         }
-        advanced_version = "advanced-component-registry/1"
-        if self.manifest.get("advancedComponentRegistryVersion") != advanced_version:
-            raise ValueError("Advanced Component Manifest version mismatch")
-        if advanced_payload.get("registryVersion") != advanced_version:
-            raise ValueError("unsupported Advanced Component Registry version")
-        components = tuple(
-            AdvancedComponentCapability.model_validate(item)
-            for item in advanced_payload.get("components", [])
-        )
-        adaptive_templates = tuple(
-            AdaptiveTemplateFamily.model_validate(item)
-            for item in advanced_payload.get("adaptiveTemplates", [])
-        )
-        size_budgets = tuple(
-            CardSizeContentBudget.model_validate(item)
-            for item in advanced_payload.get("sizeBudgets", [])
-        )
-        self.advanced_registry_version = str(advanced_payload["registryVersion"])
-        self.advanced_components = self._unique_by_name(components, "Advanced Component")
-        self.adaptive_templates = self._unique_by_template_id(adaptive_templates)
-        self.size_budgets = {item.size: item for item in size_budgets}
-        self.domain_groups = self._domain_groups(advanced_payload.get("domainGroups"))
-        self._validate_advanced_registry()
-        ux_version = "advanced-component-ux-registry/2"
-        if self.manifest.get("uxAdvancedComponentRegistryVersion") != ux_version:
-            raise ValueError("UX Advanced Component Manifest version mismatch")
-        if ux_advanced_payload.get("registryVersion") != ux_version:
-            raise ValueError("unsupported UX Advanced Component Registry version")
-        if "businessComponents" in ux_advanced_payload or "layoutComponents" in ux_advanced_payload:
-            raise ValueError(
-                "UX Advanced Component Registry must not duplicate Provider Components"
-            )
         provider_business_components = tuple(
             component
             for bundle in provider_bundles
@@ -137,11 +95,6 @@ class CardPlanRegistry:
         )
         ux_business_components = provider_business_components
         ux_layout_components = tuple(item[0] for item in provider_layout_components)
-        ux_size_budgets = tuple(
-            UxCardSizeBudget.model_validate(item)
-            for item in ux_advanced_payload.get("sizeBudgets", [])
-        )
-        self.ux_advanced_registry_version = ux_version
         self.ux_business_components = self._unique_by_name(
             ux_business_components,
             "UX Business Component",
@@ -158,53 +111,32 @@ class CardPlanRegistry:
             component.name: provider_id
             for component, provider_id in provider_layout_components
         }
-        self.ux_size_budgets = {item.size: item for item in ux_size_budgets}
-        self.ux_tokens = self._ux_tokens(ux_advanced_payload.get("uxTokens"))
-        self.palette_scene_theme_ids = self._palette_scene_themes(
-            ux_advanced_payload.get("paletteSceneThemeIds")
+        self.ux_size_budgets = {
+            item.size: item for item in theme_resources.base.size_budgets
+        }
+        self.ux_tokens = dict(theme_resources.base.ux_tokens)
+        self.content_color_properties = dict(
+            theme_resources.base.content_color_properties
         )
-        self._validate_ux_advanced_registry()
-
-    def _load_json(self, relative_path: str) -> dict[str, Any]:
-        value = json.loads((self.source_root / relative_path).read_text(encoding="utf-8"))
-        if not isinstance(value, dict):
-            raise ValueError(f"CardPlan source must be an object: {relative_path}")
-        self._reject_forbidden_keys(value)
-        return value
-
-    def _load_markdown_rule(self, relative_path: str, label: str) -> str:
-        relative = Path(relative_path)
-        if relative.is_absolute() or ".." in relative.parts:
-            raise ValueError(f"{label} rule path must be relative")
-        if relative.suffix.lower() != ".md":
-            raise ValueError(f"{label} rule must be a Markdown file")
-        path = (self.source_root / relative).resolve()
-        source_root = self.source_root.resolve()
-        if source_root not in path.parents or not path.is_file():
-            raise ValueError(f"{label} rule file is unavailable: {relative_path}")
-        if path.stat().st_size > _MAX_RULE_DOCUMENT_BYTES:
-            raise ValueError(f"{label} rule exceeds the size limit: {relative_path}")
-        content = path.read_text(encoding="utf-8").strip()
-        if not content:
-            raise ValueError(f"{label} rule must not be empty: {relative_path}")
-        return content
+        self.theme_reference_paths = theme_resources.base.theme_reference_paths
+        self.palette_scene_theme_ids = self._palette_scene_themes(
+            visible_themes
+        )
+        self._validate_distributed_resources()
 
     def _validate_manifest_metadata(self) -> None:
         if self.manifest.get("catalogId") != "ohos.a2ui.extended.catalog.form":
             raise ValueError("CardPlan bundle Catalog mismatch")
         if self.manifest.get("a2uiWireVersion") != "v0.9":
             raise ValueError("CardPlan bundle wire version mismatch")
-
-    @staticmethod
-    def _reject_forbidden_keys(value: Any) -> None:
-        if isinstance(value, dict):
-            for key, child in value.items():
-                if key in _FORBIDDEN_KEYS:
-                    raise ValueError(f"forbidden CardPlan source key: {key}")
-                CardPlanRegistry._reject_forbidden_keys(child)
-        elif isinstance(value, list):
-            for child in value:
-                CardPlanRegistry._reject_forbidden_keys(child)
+        expected_versions = {
+            "providerBundleVersion": "card-provider-bundle/1",
+            "themeBaseVersion": "theme-base/2",
+            "themeBundleVersion": "card-theme/2",
+        }
+        for key, expected in expected_versions.items():
+            if self.manifest.get(key) != expected:
+                raise ValueError(f"CardPlan bundle {key} mismatch")
 
     @staticmethod
     def _unique_by_wire_id(
@@ -309,6 +241,13 @@ class CardPlanRegistry:
         except KeyError as exc:
             raise ValueError(f"unknown CardPlan theme: {theme_id}") from exc
 
+    def theme_reference_values(self, theme_id: str) -> dict[str, str]:
+        """Return the closed set of deterministic values available to `$theme`."""
+        values = self.require_theme(theme_id).reference_values
+        if tuple(values) != self.theme_reference_paths:
+            raise ValueError(f"Theme reference values are incomplete: {theme_id}")
+        return values
+
     def provider_first_layer_rules(
         self,
         component_ids: tuple[str, ...],
@@ -337,6 +276,24 @@ class CardPlanRegistry:
                 "content": self._without_disabled_template_references(
                     bundle,
                     bundle.second_layer_rule,
+                ),
+            }
+            for bundle in self._provider_bundles_for_components(component_ids)
+        )
+
+    def provider_second_layer_guidance(
+        self,
+        component_ids: tuple[str, ...],
+    ) -> tuple[dict[str, str], ...]:
+        """Return Provider guidance without repeating the full Template catalog."""
+        return tuple(
+            {
+                "providerId": bundle.manifest.provider_id,
+                "content": self._without_template_catalog(
+                    self._without_disabled_template_references(
+                        bundle,
+                        bundle.second_layer_rule,
+                    )
                 ),
             }
             for bundle in self._provider_bundles_for_components(component_ids)
@@ -404,6 +361,24 @@ class CardPlanRegistry:
         return "\n".join(visible_lines).strip()
 
     @staticmethod
+    def _without_template_catalog(content: str) -> str:
+        """Remove the generated available-Template list from second-layer Markdown."""
+        visible_lines: list[str] = []
+        skipping_catalog = False
+        for line in content.splitlines():
+            if line.strip() == "- 可用模板：":
+                skipping_catalog = True
+                continue
+            if skipping_catalog:
+                if re.match(r"^- `[^`]+@\d+`", line):
+                    continue
+                if not line.startswith("- "):
+                    continue
+                skipping_catalog = False
+            visible_lines.append(line)
+        return "\n".join(visible_lines).strip()
+
+    @staticmethod
     def _render_provider_data_roots(content: str, data_roots: dict[str, str]) -> str:
         missing: set[str] = set()
 
@@ -435,92 +410,46 @@ class CardPlanRegistry:
         return result
 
     @staticmethod
-    def _unique_by_template_id(
-        values: tuple[AdaptiveTemplateFamily, ...],
-    ) -> dict[str, AdaptiveTemplateFamily]:
-        result: dict[str, AdaptiveTemplateFamily] = {}
-        for value in values:
-            if value.template_id in result:
-                raise ValueError(f"duplicate Adaptive Template: {value.template_id}")
-            result[value.template_id] = value
-        return result
+    def _palette_scene_themes(
+        themes: tuple[ThemeDefinition, ...],
+    ) -> dict[str, tuple[str, ...]]:
+        result: dict[str, list[str]] = {}
+        for theme in themes:
+            for scene_id in theme.palette_scene_ids:
+                result.setdefault(scene_id, []).append(theme.theme_profile_id)
+        return {scene_id: tuple(theme_ids) for scene_id, theme_ids in result.items()}
 
-    @staticmethod
-    def _domain_groups(value: Any) -> dict[str, tuple[str, ...]]:
-        if not isinstance(value, dict):
-            raise ValueError("Advanced Component domainGroups must be an object")
-        result: dict[str, tuple[str, ...]] = {}
-        for group_id, domains in value.items():
-            if not isinstance(group_id, str) or not isinstance(domains, list):
-                raise ValueError("invalid Advanced Component domain group")
-            if any(not isinstance(domain, str) for domain in domains):
-                raise ValueError("invalid Advanced Component domain")
-            result[group_id] = tuple(domains)
-        return result
-
-    def _validate_advanced_registry(self) -> None:
-        if set(self.size_budgets) != {"2x2", "2x4"}:
-            raise ValueError("Advanced Component size budgets are incomplete")
-        domain_ids: set[str] = set()
-        for capability in self.advanced_components.values():
-            if capability.domain_id in domain_ids:
-                raise ValueError(f"duplicate Advanced Component domain: {capability.domain_id}")
-            domain_ids.add(capability.domain_id)
-            if not capability.local_template_ids:
-                raise ValueError(f"Advanced Component has no Template: {capability.name}")
-            field_groups = capability.field_priorities
-            if not field_groups.get("mustShow"):
-                raise ValueError(f"Advanced Component has no mustShow field: {capability.name}")
-            flattened = [field for group in field_groups.values() for field in group]
-            if len(flattened) != len(set(flattened)):
-                raise ValueError(f"Advanced Component field priorities overlap: {capability.name}")
-            for wire_id in capability.local_template_ids:
-                self.require_template(wire_id)
-        known_domains = {domain for domains in self.domain_groups.values() for domain in domains}
-        if not domain_ids.issubset(known_domains):
-            missing = sorted(domain_ids - known_domains)
-            raise ValueError(f"Advanced Component domains have no composition group: {missing}")
-
-    @staticmethod
-    def _ux_tokens(value: Any) -> dict[str, int]:
-        if not isinstance(value, dict) or not value:
-            raise ValueError("UX Advanced Component tokens must be a non-empty object")
-        invalid = any(
-            not isinstance(key, str) or not isinstance(item, int) for key, item in value.items()
-        )
-        if invalid:
-            raise ValueError("UX Advanced Component tokens must contain integer values")
-        return dict(value)
-
-    @staticmethod
-    def _palette_scene_themes(value: Any) -> dict[str, tuple[str, ...]]:
-        if not isinstance(value, dict):
-            raise ValueError("UX paletteSceneThemeIds must be an object")
-        result: dict[str, tuple[str, ...]] = {}
-        for scene, theme_ids in value.items():
-            if not isinstance(scene, str) or not isinstance(theme_ids, list):
-                raise ValueError("invalid UX palette scene mapping")
-            if not theme_ids or any(not isinstance(theme_id, str) for theme_id in theme_ids):
-                raise ValueError("invalid UX palette scene theme IDs")
-            result[scene] = tuple(theme_ids)
-        return result
-
-    def _validate_ux_advanced_registry(self) -> None:
+    def _validate_distributed_resources(self) -> None:
         if set(self.ux_size_budgets) != {"2x2", "2x4"}:
-            raise ValueError("UX Advanced Component size budgets are incomplete")
-        if len(self.ux_layout_components) != 10:
-            raise ValueError("UX Advanced Component layout registry must contain 10 families")
-        if len(self.ux_business_components) != 12:
-            raise ValueError("Provider Template business index must contain 12 families")
+            raise ValueError("Theme base size budgets are incomplete")
+        if len(self.ux_layout_components) != 5:
+            raise ValueError("Layout Provider must contain 5 families")
+        if not self.ux_business_components:
+            raise ValueError("Provider Template business index must not be empty")
         known_layouts = set(self.ux_layout_components)
         if known_layouts != set(UX_LAYOUT_COMPONENT_IDS):
-            raise ValueError("UX Advanced Component layout registry IDs are incomplete")
+            raise ValueError("Layout Provider registry IDs are incomplete")
         for layout in self.ux_layout_components.values():
             Draft202012Validator.check_schema(layout.parameters_schema)
-        known_themes = set(self.themes)
-        for theme_ids in self.palette_scene_theme_ids.values():
-            if not set(theme_ids).issubset(known_themes):
-                raise ValueError("UX palette scene references an unknown Theme")
+        if "generic" not in self.palette_scene_theme_ids:
+            raise ValueError("Theme bundles must provide the generic palette scene")
+        for theme in self.themes.values():
+            fusion = theme.fusion_ball_style
+            if fusion is None:
+                continue
+            if len(fusion.business_ids) != len(set(fusion.business_ids)):
+                raise ValueError(
+                    f"Fusion Theme businessIds must be unique: {theme.theme_profile_id}"
+                )
+            for business_id in fusion.business_ids:
+                business = self.ux_business_components.get(business_id)
+                if business is None:
+                    raise ValueError(f"Fusion Theme references unknown business: {business_id}")
+                if set(business.data_capability_ids).isdisjoint(theme.supported_capability_ids):
+                    raise ValueError(
+                        "Fusion Theme business is outside supported capabilities: "
+                        f"{theme.theme_profile_id}/{business_id}"
+                    )
         for capability in self.ux_business_components.values():
             provider_id = self.ux_business_component_provider_ids[capability.name]
             provider_capability_ids = {
@@ -548,18 +477,6 @@ class CardPlanRegistry:
             if definition.provider_id != provider_id:
                 raise ValueError(f"UX Layout Component is outside its Provider: {layout.name}")
 
-    def require_advanced_component(self, component_id: str) -> AdvancedComponentCapability:
-        try:
-            return self.advanced_components[component_id]
-        except KeyError as exc:
-            raise ValueError(f"unknown Advanced Component: {component_id}") from exc
-
-    def require_adaptive_template(self, template_id: str) -> AdaptiveTemplateFamily:
-        try:
-            return self.adaptive_templates[template_id]
-        except KeyError as exc:
-            raise ValueError(f"unknown Adaptive Template: {template_id}") from exc
-
     def require_ux_business_component(
         self,
         component_id: str,
@@ -576,10 +493,11 @@ class CardPlanRegistry:
             raise ValueError(f"unknown UX Layout Component: {component_id}") from exc
 
 
-@lru_cache(maxsize=1)
-def get_cardplan_registry() -> CardPlanRegistry:
+@lru_cache(maxsize=2)
+def get_cardplan_registry(enable_fusion_ball: bool = False) -> CardPlanRegistry:
     controls = load_template_controls()
     return CardPlanRegistry(
         disabled_provider_ids=controls.disabled_provider_ids,
         disabled_template_ids=controls.disabled_template_ids,
+        enable_fusion_ball=enable_fusion_ball,
     )

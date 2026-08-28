@@ -1,0 +1,31 @@
+{
+  "themeFormat": "card-theme/2",
+  "themeProfileId": "fusion-sleep-violet",
+  "description": "睡眠深紫融球",
+  "firstLayerRule": {"path": "first-layer.md"},
+  "supportedCapabilityIds": ["GetHealthAndSportSummary"],
+  "paletteSceneIds": ["fusion.sleep"],
+  "primaryColor": "#FFD9CCFF",
+  "supportContentColor": "#99D9CCFF",
+  "rootStyle": {
+    "backgroundColor": "#FF2B2459",
+    "borderRadius": 20,
+    "padding": 12,
+    "linearGradient": {
+      "direction": "RightBottom",
+      "colors": [["#FF2B2459", 0], ["#FF572BD9", 1]]
+    },
+    "clip": true
+  },
+  "actionStyle": {
+    "backgroundColor": "#33FFFFFF",
+    "contentColor": "#FFD9CCFF"
+  },
+  "fusionBallStyle": {
+    "scene": "sleep",
+    "businessIds": ["SleepOverview"],
+    "largeColor": "#FF2B2459",
+    "mediumColor": "#FF572BD9",
+    "smallColor": "#FFB398D9"
+  }
+}

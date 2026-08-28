@@ -16,10 +16,6 @@ from services.compact_dsl_a2ui_converter import (
     repair_compact_dsl_binding_paths,
 )
 from services.protocol_registry import A2UIProtocolRegistry
-from services.terse_dsl_nested2_converter import (
-    TerseDslNested2ConversionError,
-    convert_terse_dsl_nested2_to_a2ui,
-)
 
 IssueStage = Literal["conversion", "validation"]
 IssueSeverity = Literal["error", "warning"]
@@ -30,7 +26,6 @@ class DslProcessorKind(StrEnum):
 
     STANDARD_A2UI = "standard"
     DESIGN_COMPACT = "design-compact"
-    TERSE_NESTED2 = "terse-nested2"
 
 
 @dataclass(frozen=True)
@@ -198,41 +193,9 @@ class DesignCompactProcessor:
         )
         return DslProcessingResult(source_dsl=source_dsl, issues=issues)
 
-
-class TerseNested2Processor:
-    def process(
-        self,
-        source_dsl: str,
-        context: DslProcessingContext,
-    ) -> DslProcessingResult:
-        try:
-            standard_dsl = convert_terse_dsl_nested2_to_a2ui(
-                source_dsl,
-                size=context.size,
-                protocol_profile=context.protocol_profile,
-            )
-            standard_dsl = repair_repeated_display_units(
-                standard_dsl,
-                context.card_spec,
-                context.data_capabilities,
-            )
-            return DslProcessingResult(
-                source_dsl=source_dsl,
-                standard_dsl=standard_dsl,
-            )
-        except TerseDslNested2ConversionError as exc:
-            issue = QualityIssue(
-                stage="conversion",
-                code="TERSE_CONVERSION_FAILED",
-                message=str(exc),
-            )
-            return DslProcessingResult(source_dsl=source_dsl, issues=(issue,))
-
-
 _PROCESSORS: dict[DslProcessorKind, DslProcessor] = {
     DslProcessorKind.STANDARD_A2UI: StandardA2UIProcessor(),
     DslProcessorKind.DESIGN_COMPACT: DesignCompactProcessor(),
-    DslProcessorKind.TERSE_NESTED2: TerseNested2Processor(),
 }
 
 

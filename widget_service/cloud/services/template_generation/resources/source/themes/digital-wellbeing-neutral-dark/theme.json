@@ -1,0 +1,26 @@
+{
+  "themeFormat": "card-theme/2",
+  "themeProfileId": "digital-wellbeing-neutral-dark",
+  "description": "应用使用时长明亮中性",
+  "firstLayerRule": {"path": "first-layer.md"},
+  "supportedCapabilityIds": ["GetAppUsageDuration"],
+  "paletteSceneIds": ["generic", "digitalWellbeing"],
+  "primaryColor": "#E6000000",
+  "supportContentColor": "#99000000",
+  "rootStyle": {
+    "backgroundColor": "#FFFFFFFF",
+    "borderRadius": 20,
+    "padding": 12,
+    "justifyContent": "spaceBetween",
+    "alignItems": "start",
+    "linearGradient": {
+      "direction": "Bottom",
+      "colors": [["#1A000000", 0], ["#00FFFFFF", 1]]
+    },
+    "clip": true
+  },
+  "actionStyle": {
+    "backgroundColor": "#1A0A59F7",
+    "contentColor": "#FF0A59F7"
+  }
+}

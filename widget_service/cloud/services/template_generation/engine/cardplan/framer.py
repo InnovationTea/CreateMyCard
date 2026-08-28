@@ -5,9 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-from services.template_generation.engine.terse_dsl_nested2_converter import (
+from services.template_generation.engine.tersel_converter import (
     MAX_INPUT_LENGTH,
-    TerseDslNested2ConversionError,
+    TerselConversionError,
 )
 
 
@@ -38,7 +38,7 @@ class HybridCardFramer:
             raise TypeError("CardPlan stream chunks must be strings")
         self._source += chunk
         if len(self._source) > MAX_INPUT_LENGTH:
-            raise TerseDslNested2ConversionError("CardPlan stream exceeds the size limit.")
+            raise TerselConversionError("CardPlan stream exceeds the size limit.")
         emitted: list[FramedUnit] = []
         while self._scan_offset < len(self._source):
             char = self._source[self._scan_offset]
@@ -59,7 +59,7 @@ class HybridCardFramer:
                 continue
             if char in self._PAIRS.values():
                 if not self._stack or self._stack[-1] != char:
-                    raise TerseDslNested2ConversionError("CardPlan stream has crossed delimiters.")
+                    raise TerselConversionError("CardPlan stream has crossed delimiters.")
                 self._stack.pop()
                 if not self._stack and not self._child_emitted:
                     self._child_emitted = True
@@ -77,10 +77,10 @@ class HybridCardFramer:
 
     def finish(self) -> str:
         if self._in_string is not None:
-            raise TerseDslNested2ConversionError("CardPlan stream ended in a string.")
+            raise TerselConversionError("CardPlan stream ended in a string.")
         if self._stack:
-            raise TerseDslNested2ConversionError("CardPlan stream ended before delimiters closed.")
+            raise TerselConversionError("CardPlan stream ended before delimiters closed.")
         source = self._source.strip()
         if not source.endswith(";"):
-            raise TerseDslNested2ConversionError("CardPlan stream must end with a semicolon.")
+            raise TerselConversionError("CardPlan stream must end with a semicolon.")
         return source

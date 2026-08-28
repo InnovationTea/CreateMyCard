@@ -1,0 +1,25 @@
+{
+  "themeFormat": "card-theme/2",
+  "themeProfileId": "race-night-violet",
+  "description": "赛事倒计时渐变橙",
+  "firstLayerRule": {"path": "first-layer.md"},
+  "supportedCapabilityIds": ["GetCountdownDays"],
+  "paletteSceneIds": ["event.countdown"],
+  "primaryColor": "#FFFFFFFF",
+  "supportContentColor": "#99FFFFFF",
+  "rootStyle": {
+    "backgroundColor": "#FFED6F21",
+    "borderRadius": 20,
+    "padding": 12,
+    "justifyContent": "spaceBetween",
+    "linearGradient": {
+      "direction": "RightBottom",
+      "colors": [["#FFED6F21", 0], ["#FFF9A01E", 1]]
+    },
+    "clip": true
+  },
+  "actionStyle": {
+    "backgroundColor": "#FFFFFFFF",
+    "contentColor": "#FFED6F21"
+  }
+}
