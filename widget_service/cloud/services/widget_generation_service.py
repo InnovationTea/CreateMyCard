@@ -58,39 +58,10 @@ from services.source_artifact_repository import (
     SourceArtifactLoadResult,
     SourceArtifactRepository,
 )
-from services.template_generation import (
-    FusionBallA2UIConversionError,
-    TemplateSourceGenerator,
-    convert_a2ui_with_fusion_ball,
-)
+from services.template_generation import TemplateSourceGenerator
 from services.validator import ArtifactValidator
 
 _MODULE = "[Generation Service]"
-
-
-def _expand_cloud_a2ui_components(
-    result: DslProcessingResult,
-) -> DslProcessingResult:
-    """Expand cloud-only components after every source format becomes complete A2UI."""
-    if result.errors or not result.standard_dsl:
-        return result
-    try:
-        standard_dsl = convert_a2ui_with_fusion_ball(result.standard_dsl)
-    except FusionBallA2UIConversionError as exc:
-        issue = QualityIssue(
-            stage="conversion",
-            code="CLOUD_COMPONENT_EXPANSION_FAILED",
-            message=str(exc),
-        )
-        return DslProcessingResult(
-            source_dsl=result.source_dsl,
-            issues=result.issues + (issue,),
-        )
-    return DslProcessingResult(
-        source_dsl=result.source_dsl,
-        standard_dsl=standard_dsl,
-        issues=result.issues,
-    )
 
 
 class WidgetGenerationService:
@@ -735,8 +706,6 @@ class WidgetGenerationService:
                 )
                 return []
             processing_result = processor.process(source_dsl, processing_context)
-            if self._enable_fusion_ball():
-                processing_result = _expand_cloud_a2ui_components(processing_result)
             latest_processing_result = processing_result
             warnings = [
                 item.repair_message()
@@ -1144,7 +1113,7 @@ class WidgetGenerationService:
         # JSX 路径失败不 fallback 到默认模型
         need_fallback = not try_jsx
         template_source_generator = (
-            TemplateSourceGenerator(enable_fusion_ball=self._enable_fusion_ball())
+            TemplateSourceGenerator()
             if try_template
             else None
         )
@@ -1202,7 +1171,7 @@ class WidgetGenerationService:
             policy,
             before_model_call=before_model_call,
             template_source_generator=(
-                TemplateSourceGenerator(enable_fusion_ball=self._enable_fusion_ball())
+                TemplateSourceGenerator()
                 if self._enable_card_template()
                 else None
             ),
@@ -1214,7 +1183,6 @@ class WidgetGenerationService:
         request: GenerateWidgetCardRequest,
         *,
         before_model_call: Callable[[WidgetSize], Awaitable[None]] | None = None,
-        enable_fusion_ball: bool = False,
         trusted_template_candidate_ids: tuple[str, ...] = (),
         trusted_template_action_ids: tuple[str, ...] = (),
         trusted_template_sample_overrides: dict[str, object] | None = None,
@@ -1254,7 +1222,6 @@ class WidgetGenerationService:
                 errorCode=ErrorCode.A2UI_GENERATION_FAILED.value,
             )
         template_source_generator = TemplateSourceGenerator(
-            enable_fusion_ball=enable_fusion_ball or self._enable_fusion_ball(),
             trusted_template_candidate_ids=trusted_template_candidate_ids,
             trusted_template_action_ids=trusted_template_action_ids,
             trusted_template_sample_overrides=dict(
@@ -1596,8 +1563,3 @@ class WidgetGenerationService:
         """Whether use template for UI generation."""
         settings = get_settings()
         return bool(getattr(settings, "enable_card_template", False))
-
-    def _enable_fusion_ball(self) -> bool:
-        """Whether use fusion ball for UI generation."""
-        settings = get_settings()
-        return bool(getattr(settings, "enable_fusion_ball", False))

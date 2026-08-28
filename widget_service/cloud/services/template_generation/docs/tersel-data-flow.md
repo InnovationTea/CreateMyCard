@@ -53,12 +53,11 @@ flowchart TD
     SPECS --> TEMPLATE[request_template_source_dsl]
     TEMPLATE --> FIRST[首层字段标定 + Search]
     FIRST --> SECOND[二层 Layout/Template/Action Props]
-    SECOND --> COMPILE[受信编译与展开]
+    SECOND --> COMPILE[受信编译 + 标准融球树展开]
     COMPILE --> A2UI[模板 A2UI]
     A2UI --> COMPACT[A2UI -> Design Compact DSL]
     COMPACT --> PROCESS[DesignCompactProcessor]
-    PROCESS --> EXPAND[FusionBall 最终展开 + 内容 ID 防溢出标记]
-    EXPAND --> VALIDATE[ArtifactValidator]
+    PROCESS --> VALIDATE[ArtifactValidator]
     VALIDATE -->|error + 允许修复| REPAIR[Compact repair]
     REPAIR --> PROCESS
     VALIDATE -->|pass| SAVE[ArtifactStore]
@@ -111,10 +110,9 @@ Facade 只把 `a2ui` 交给 `prepare_template_source_dsl()`：
 
 因此 artifact 的 `designcompactdsl` 保存 Design Compact DSL，不保存内部 Tersel。
 
-命中融球 Theme 时，内部 Tersel 只写
-`FusionBall(largeColor, mediumColor, smallColor)`，模板不展开定位层和球体树。该组件随 A2UI 和
-A2UI-Compact 保留到公共 Processor 生成完整 A2UI 后，再由 `fusion_ball_a2ui_converter.py` 展开为标准组件；
-与其相邻的内容根 ID 同时增加 `__genui_render_component__` 前缀。最终 artifact 不得残留 `FusionBall`。
+命中融球 Theme 时，模板编译器在 Tersel 组件树中直接展开标准 `Stack` 定位层、三组球体和玻璃层，
+并给前景内容根 ID 增加 `__genui_render_component__` 前缀。Tersel、A2UI 和 A2UI-Compact 均不包含
+`FusionBall` 云端组件。
 
 ## 7. 严格失败与 repair 边界
 

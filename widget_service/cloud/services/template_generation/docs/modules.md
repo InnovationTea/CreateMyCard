@@ -35,7 +35,6 @@ cloud/api/routes.py
 公开导出：
 
 - `request_template_source_dsl`：生产模板 source DSL 入口。
-- `convert_a2ui_with_fusion_ball`：在最终完整 A2UI 中展开云侧 `FusionBall`。
 
 外部调用方不应穿过该文件直接调用 `engine` 内部方法。
 
@@ -253,14 +252,15 @@ children 槽位数量。
 定义 `TemplateDefinition`、`TemplateVariant`、`TemplateNode`、`TemplateBinding`、`HybridBodyContract`、
 `ThemeDefinition` 和 `ExpansionStats` 等受信结构。
 
-### `fusion_ball_background.py` 与 `fusion_ball_a2ui_converter.py`
+### `fusion_ball_background.py`
 
-文件：[编译期背景](../engine/cardplan/fusion_ball_background.py)，[独立 A2UI 转换](../engine/fusion_ball_a2ui_converter.py)
+文件：[编译期背景](../engine/cardplan/fusion_ball_background.py)
 
-- `apply_fusion_ball_component()` 在 CardPlan 编译期只插入携带 Theme 三色的云侧 `FusionBall` 和相邻内容层。
-- `convert_a2ui_with_fusion_ball()` 从完整 A2UI 的 `FusionBall` 读取三色，展开标准组件并标记相邻内容 ID。
+- `apply_fusion_ball_background()` 在 CardPlan 编译期读取 Theme 三色，直接展开标准 `Stack` 球体树并标记
+  相邻内容 ID。
 
-两者不能自行维护场景色板；业务门禁由 CardPlan 在插入云侧组件前确定性执行。模板内部不得提前展开球体树。
+该模块不能自行维护场景色板；业务门禁由 CardPlan 在展开前确定性执行。Tersel、A2UI-Compact 和最终 A2UI
+不允许残留 `FusionBall` 云端组件。
 
 ### `tersel_converter.py`
 
