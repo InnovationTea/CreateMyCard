@@ -2579,13 +2579,10 @@ def extract_workout_latest_facts(
         end_time_text = _trusted_string(candidate.get("exerciseEndTimeText"))
         if exercise_type_name == "暂无运动":
             continue
-        required_values = (exercise_type_name, calorie_text, duration_text, end_time_text)
-        if any(value is None for value in required_values):
+        if exercise_type_name is None or calorie_text is None:
             continue
-        assert exercise_type_name is not None
-        assert calorie_text is not None
-        assert duration_text is not None
-        assert end_time_text is not None
+        if duration_text is None or end_time_text is None:
+            continue
         return WorkoutLatestFacts(
             exercise_type_name=exercise_type_name,
             calorie_text=calorie_text,

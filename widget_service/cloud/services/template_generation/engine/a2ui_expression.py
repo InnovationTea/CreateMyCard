@@ -189,7 +189,8 @@ def _read_number(body: str, index: int) -> tuple[_ExpressionToken, int]:
 
 def _read_identifier(body: str, index: int) -> tuple[_ExpressionToken, int]:
     match = _IDENTIFIER_RE.match(body, index)
-    assert match is not None
+    if match is None:
+        raise A2UIExpressionError(f"Expression identifier is invalid at offset {index}.")
     value = match.group(0)
     kind = "atom" if value in {"true", "false"} else "function"
     if kind == "function" and value != "size":

@@ -1311,7 +1311,10 @@ def _activity_hero_overview(
     )
     if not include_summary:
         return _mark_advanced_component(primary, "ActivityOverview")
-    assert facts.calories_text is not None and facts.distance_text is not None
+    calories_text = facts.calories_text
+    distance_text = facts.distance_text
+    if calories_text is None or distance_text is None:
+        raise TerselConversionError("ActivityOverview dailySummary requires calories and distance.")
     secondary = Nested2Node(
         "Column",
         (
@@ -1327,12 +1330,12 @@ def _activity_hero_overview(
         ),
         (
             _overview_fact_row(
-                facts.calories_text,
+                calories_text,
                 icons["caloriesIcon"],
                 registry,
             ),
             _overview_fact_row(
-                facts.distance_text,
+                distance_text,
                 icons["distanceIcon"],
                 registry,
             ),
@@ -4387,7 +4390,8 @@ def _instantiate_blueprint_children(
             continue
         if child.component in {"IfParam", "IfMissingParam", "IfBind", "IfMissingBind"}:
             guard_name = child.values[0].value
-            assert isinstance(guard_name, str)
+            if not isinstance(guard_name, str):
+                raise TerselConversionError("Template conditional guard must be a string.")
             if child.component in {"IfParam", "IfMissingParam"}:
                 present = guard_name in params and params[guard_name] is not None
             else:

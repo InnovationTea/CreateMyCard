@@ -246,7 +246,10 @@ def _parse_tersel_document(
             raise TerselConversionError(
                 "The optional second statement must assign one object to data."
             )
-        assert isinstance(assignment, ast.Assign)
+        if not isinstance(assignment, ast.Assign):
+            raise TerselConversionError(
+                "The optional second statement must assign one object to data."
+            )
         parsed_data = _literal_value(assignment.value, 1)
         if not isinstance(parsed_data, dict):
             raise TerselConversionError("data must be one object.")
@@ -458,7 +461,8 @@ def _parse_theme_reference_call(
     node: ast.AST,
     theme_values: dict[str, str],
 ) -> str:
-    assert isinstance(node, ast.Call)
+    if not isinstance(node, ast.Call):
+        raise TerselConversionError("$theme requires one function call.")
     valid_argument = len(node.args) == 1 and isinstance(node.args[0], ast.Constant)
     path = node.args[0].value if valid_argument else None
     if node.keywords or not isinstance(path, str) or path not in THEME_REFERENCE_PATHS:
@@ -472,7 +476,8 @@ def _parse_theme_reference_call(
 
 
 def _parse_expression_call(node: ast.AST) -> str:
-    assert isinstance(node, ast.Call)
+    if not isinstance(node, ast.Call):
+        raise TerselConversionError("Expr requires one function call.")
     valid_argument = len(node.args) == 1 and isinstance(node.args[0], ast.Constant)
     body = node.args[0].value if valid_argument else None
     if node.keywords or not isinstance(body, str):

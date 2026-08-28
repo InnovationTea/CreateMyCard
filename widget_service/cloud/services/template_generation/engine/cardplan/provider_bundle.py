@@ -941,15 +941,15 @@ def _template_value(node: ast.AST) -> TemplateValue:
     has_supported_owner = isinstance(owner, ast.Name) and owner.id in {"props", "data"}
     has_valid_name = isinstance(node, ast.Attribute) and _REFERENCE_NAME_RE.fullmatch(node.attr)
     if has_supported_owner and has_valid_name:
-        assert isinstance(owner, ast.Name)
-        assert isinstance(node, ast.Attribute)
+        if not isinstance(owner, ast.Name) or not isinstance(node, ast.Attribute):
+            raise ValueError("Provider Template reference is invalid")
         return TemplateValue(
             kind="parameter" if owner.id == "props" else "binding",
             name=node.attr,
         )
     if _is_reference_call(node):
-        assert isinstance(node, ast.Call)
-        assert isinstance(node.func, ast.Name)
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
+            raise ValueError("Provider Template reference call is invalid")
         if node.func.id == "EventAction":
             return _event_action_value(node)
         if node.func.id == "_CardTplInterpolation":
@@ -1016,7 +1016,8 @@ def _event_action_value(call: ast.Call) -> TemplateValue:
     )
     if not valid_owner or not valid_name:
         raise ValueError("EventAction requires one props parameter")
-    assert isinstance(argument, ast.Attribute)
+    if not isinstance(argument, ast.Attribute):
+        raise ValueError("EventAction requires one props parameter")
     return TemplateValue(
         kind="event-action",
         items=(TemplateValue(kind="parameter", name=argument.attr),),
@@ -1299,7 +1300,8 @@ def _validate_conditional_guards(
     ) -> None:
         if node.component in _CONDITIONAL_PARAMETER_COMPONENTS:
             parameter_name = node.values[0].value
-            assert isinstance(parameter_name, str)
+            if not isinstance(parameter_name, str):
+                raise ValueError("Provider Template conditional parameter must be a string")
             if parameter_name not in properties:
                 raise ValueError(
                     f"unknown Provider Template conditional parameter: {parameter_name}"
@@ -1312,7 +1314,8 @@ def _validate_conditional_guards(
             return
         if node.component in _CONDITIONAL_BINDING_COMPONENTS:
             binding_name = node.values[0].value
-            assert isinstance(binding_name, str)
+            if not isinstance(binding_name, str):
+                raise ValueError("Provider Template conditional binding must be a string")
             if binding_name not in bindings:
                 raise ValueError(f"unknown Provider Template conditional binding: {binding_name}")
             guarded_bindings.add(binding_name)
