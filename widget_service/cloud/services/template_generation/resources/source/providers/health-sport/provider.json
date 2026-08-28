@@ -23,7 +23,7 @@
       "templateId": "ActivityOverviewCompact@1",
       "businessId": "ActivityOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：compact。",
+      "description": "每日步数紧凑摘要，展示步数，可使用步数图标。 组件形态：compact。",
       "optionalData": [],
       "entry": "templates/activity-overview.cardtpl",
       "primaryData": [
@@ -35,7 +35,7 @@
       "templateId": "ActivityOverviewHero@1",
       "businessId": "ActivityOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：hero。",
+      "description": "今日活动步数主视觉，展示步数和固定万步基准进度，可使用步数图标。 组件形态：hero。",
       "optionalData": [],
       "entry": "templates/activity-overview.cardtpl",
       "primaryData": [
@@ -63,7 +63,7 @@
       "templateId": "ActivityOverviewFull@1",
       "businessId": "ActivityOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "每日活动摘要，展示步数，可补充热量和距离。 组件形态：full。",
+      "description": "今日活动完整摘要，展示步数、固定万步基准进度、消耗热量和运动距离，可使用步数图标。 组件形态：full。",
       "optionalData": [],
       "entry": "templates/activity-overview.cardtpl",
       "primaryData": [
@@ -214,7 +214,7 @@
       "templateId": "SleepOverviewFull@1",
       "businessId": "SleepOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠摘要，展示时长、得分和状态。 组件形态：full。",
+      "description": "睡眠情况完整摘要，展示时长、得分进度和状态，可使用睡眠图标。 组件形态：full。",
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
       "primaryData": [
@@ -229,7 +229,7 @@
       "templateId": "SleepOverviewHero@1",
       "businessId": "SleepOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠摘要，展示时长和得分。 组件形态：hero。",
+      "description": "睡眠情况主视觉，展示时长和得分进度，可使用睡眠图标。 组件形态：hero。",
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
       "primaryData": [
@@ -243,7 +243,7 @@
       "templateId": "SleepOverviewCompact@1",
       "businessId": "SleepOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠摘要，展示时长和得分。 组件形态：compact。",
+      "description": "睡眠情况紧凑摘要，展示时长和得分环，可使用睡眠图标。 组件形态：compact。",
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
       "primaryData": [
