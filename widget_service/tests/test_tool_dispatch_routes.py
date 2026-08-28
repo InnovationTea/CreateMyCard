@@ -192,11 +192,6 @@ def test_websocket_send_disconnect_is_logged_and_not_raised(monkeypatch):
 
 def _valid_model_output(_self, _prompt, protocol_profile: dict) -> str:
     """为路由集成测试返回对应 profile 的确定性合法模型输出。"""
-    if protocol_profile.get("id") == "terse-dsl-nested-2":
-        return (
-            'Column("card", Text("Weather", "title"), '
-            'Text("Static card", "body"), Text("Ready", "success"));'
-        )
     if protocol_profile.get("format") == "compact-dsl":
         compact_rows = [
             [
@@ -626,13 +621,13 @@ def test_widget_card_service_complete_flow(monkeypatch):
         assert task_spec["dataModelSchema"]["data"]["weather"]["current"][
             "temperatureText"
         ]["sampleValue"] == "29℃"
-        assert task_spec["assetCandidates"] == [
+        assert [
+            {"id": item["id"], "src": item["src"]}
+            for item in task_spec["assetCandidates"]
+        ] == [
             {
                 "id": "asset.drop_1",
                 "src": "resources/base/media/drop_1.svg",
-                "description": (
-                    "水滴图标，黑色，图形为圆润水滴轮廓，适用场景：湿度数据展示、饮水提醒、天气降雨信息"
-                ),
             }
         ]
         card_binding = saved_artifacts[0]["cardSpec"]["dataBindings"][0]
@@ -1038,56 +1033,8 @@ def test_compact_route_mock_converts_design_dsl_before_saving(monkeypatch):
     assert rows[2]["updateDataModel"]["value"]["ui"]["state"] == "ready"
 
 
-def test_terse_nested2_route_mock_converts_local_dsl_before_saving(monkeypatch):
-    """验证第五接口使用本地 prompt、mock 和 DSL 转换器保存标准 A2UI。"""
-    monkeypatch.setattr(get_settings(), "enable_a2ui_model_mock", True)
-    saved_artifacts = []
-
-    def capture_artifact(_store, artifact):
-        saved_artifacts.append(artifact.model_dump(mode="json", exclude_none=True))
-        return ArtifactSaveResult(
-            artifactUrl="https://test.invalid/widget/terse-nested2-mock.json",
-            artifactDigest="sha256:terse-nested2-mock",
-        )
-
-    monkeypatch.setattr(ArtifactStore, "save", capture_artifact)
-    client = TestClient(app)
-    request_id = _request_id("terse-nested2-mock")
-    route = "/api/v1/ws/tools/generateWidgetCardTerseDslNested2"
-    with client.websocket_connect(route) as websocket:
-        websocket.send_json(
-            _tool_payload(
-                {
-                    "userQuery": "生成静态天气卡片",
-                    "size": "2x2",
-                    "title": "天气",
-                    "description": "TerseDSL-Nested-2 转换",
-                    "candidateDataBindings": [],
-                    "candidateEventCandidates": [],
-                    "candidateAssetIds": [],
-                },
-                "terse-nested2-mock",
-            )
-        )
-        message = _assert_success_envelope(
-            _receive_final_frame(websocket, request_id),
-            "generateWidgetCardTerseDslNested2",
-            request_id,
-        )
-
-    assert message["data"]["status"] == "success"
-    assert len(saved_artifacts) == 1
-    artifact = saved_artifacts[0]
-    rows = [json.loads(line) for line in artifact["genui"].splitlines()]
-    assert artifact["meta"]["protocolProfileId"] == "a2ui-form-rom6.0-v1"
-    assert "width" not in rows[0]["createSurface"]
-    assert "height" not in rows[0]["createSurface"]
-    assert rows[1]["updateComponents"]["root"] == "root"
-    assert rows[2]["updateDataModel"]["value"]["ui"]["state"] == "ready"
-
-
 def test_generation_routes_send_start_and_success_commands(monkeypatch):
-    """验证三个生成入口在模型前和上传后发送 command 帧。"""
+    """验证生成入口在模型前和上传后发送 command 帧。"""
     settings = get_settings()
     monkeypatch.setattr(settings, "enable_widget_directive_commands", True)
     monkeypatch.setattr(A2UIModelClient, "generate", _valid_model_output)
@@ -1102,7 +1049,6 @@ def test_generation_routes_send_start_and_success_commands(monkeypatch):
     routes = (
         ("generateWidgetCard", "directive-a2ui"),
         ("generateWidgetCardCompactDsl", "directive-compact"),
-        ("generateWidgetCardTerseDslNested2", "directive-terse"),
     )
     content = {
         "userQuery": "生成静态天气卡片",

@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>generateWidgetCardCompactDsl 流程图查看器</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body { font-family: Arial, "Microsoft YaHei", sans-serif; background: #f4f5f7; color: #172b4d; }
+    #toolbar {
+      position: fixed; z-index: 10; top: 12px; left: 12px; display: flex; gap: 8px; align-items: center;
+      padding: 8px 10px; border: 1px solid #c7ccd4; border-radius: 8px; background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 2px 10px rgba(9, 30, 66, 0.16);
+    }
+    button {
+      min-width: 38px; height: 34px; padding: 0 10px; border: 1px solid #aeb5bf; border-radius: 6px;
+      background: #fff; color: #172b4d; cursor: pointer; font-size: 14px;
+    }
+    button:hover { background: #ebf2ff; }
+    #zoom { min-width: 68px; text-align: center; font-variant-numeric: tabular-nums; }
+    #viewport { width: 100%; height: 100%; overflow: hidden; cursor: grab; touch-action: none; }
+    #viewport.dragging { cursor: grabbing; }
+    #diagram { position: absolute; left: 0; top: 0; transform-origin: 0 0; user-select: none; pointer-events: none; }
+    #help {
+      position: fixed; z-index: 10; right: 12px; bottom: 12px; padding: 6px 10px; border-radius: 6px;
+      background: rgba(255, 255, 255, 0.9); color: #44546f; font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div id="toolbar">
+    <button id="zoom-out" type="button" aria-label="缩小">−</button>
+    <span id="zoom">100%</span>
+    <button id="zoom-in" type="button" aria-label="放大">＋</button>
+    <button id="actual" type="button">100%</button>
+    <button id="fit" type="button">适应窗口</button>
+  </div>
+  <div id="viewport">
+    <img id="diagram" src="generate-widget-card-compact-dsl-detailed-flow.svg" alt="第四接口完整流程图">
+  </div>
+  <div id="help">滚轮缩放 · 鼠标拖拽 · 快捷键 + / − / 0 / F</div>
+  <script>
+    const viewport = document.getElementById("viewport");
+    const diagram = document.getElementById("diagram");
+    const zoomLabel = document.getElementById("zoom");
+    const diagramWidth = 4922.528;
+    const diagramHeight = 14110.125;
+    let scale = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+    let dragging = false;
+    let dragX = 0;
+    let dragY = 0;
+
+    function render() {
+      diagram.style.width = `${diagramWidth * scale}px`;
+      diagram.style.height = `${diagramHeight * scale}px`;
+      diagram.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+      zoomLabel.textContent = `${Math.round(scale * 100)}%`;
+    }
+
+    function zoomAt(nextScale, clientX, clientY) {
+      const bounded = Math.min(64, Math.max(0.02, nextScale));
+      const rect = viewport.getBoundingClientRect();
+      const pointX = clientX - rect.left;
+      const pointY = clientY - rect.top;
+      const imageX = (pointX - offsetX) / scale;
+      const imageY = (pointY - offsetY) / scale;
+      scale = bounded;
+      offsetX = pointX - imageX * scale;
+      offsetY = pointY - imageY * scale;
+      render();
+    }
+
+    function zoomCenter(factor) {
+      const rect = viewport.getBoundingClientRect();
+      zoomAt(scale * factor, rect.left + rect.width / 2, rect.top + rect.height / 2);
+    }
+
+    function fit() {
+      scale = Math.min(
+        viewport.clientWidth / diagramWidth,
+        viewport.clientHeight / diagramHeight,
+      ) * 0.96;
+      offsetX = (viewport.clientWidth - diagramWidth * scale) / 2;
+      offsetY = (viewport.clientHeight - diagramHeight * scale) / 2;
+      render();
+    }
+
+    function actualSize() {
+      scale = 1;
+      offsetX = 24;
+      offsetY = 24;
+      render();
+    }
+
+    viewport.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      zoomAt(scale * Math.exp(-event.deltaY * 0.0015), event.clientX, event.clientY);
+    }, { passive: false });
+
+    viewport.addEventListener("pointerdown", (event) => {
+      dragging = true;
+      dragX = event.clientX - offsetX;
+      dragY = event.clientY - offsetY;
+      viewport.classList.add("dragging");
+      viewport.setPointerCapture(event.pointerId);
+    });
+
+    viewport.addEventListener("pointermove", (event) => {
+      if (!dragging) return;
+      offsetX = event.clientX - dragX;
+      offsetY = event.clientY - dragY;
+      render();
+    });
+
+    viewport.addEventListener("pointerup", () => {
+      dragging = false;
+      viewport.classList.remove("dragging");
+    });
+
+    document.getElementById("zoom-in").addEventListener("click", () => zoomCenter(1.4));
+    document.getElementById("zoom-out").addEventListener("click", () => zoomCenter(1 / 1.4));
+    document.getElementById("actual").addEventListener("click", actualSize);
+    document.getElementById("fit").addEventListener("click", fit);
+    if (diagram.complete) {
+      fit();
+    } else {
+      diagram.addEventListener("load", fit);
+    }
+    window.addEventListener("resize", fit);
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "+" || event.key === "=") zoomCenter(1.4);
+      if (event.key === "-") zoomCenter(1 / 1.4);
+      if (event.key === "0") actualSize();
+      if (event.key.toLowerCase() === "f") fit();
+    });
+  </script>
+</body>
+</html>

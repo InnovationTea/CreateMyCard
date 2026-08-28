@@ -1,0 +1,313 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="3700" viewBox="0 0 1800 3700">
+  <title>generateWidgetCardCompactDsl 第四接口完整流程图</title>
+  <desc>
+    展示第四接口从 WebSocket 请求、版本选择、创建或编辑、能力裁决、模型并发与重试、
+    Design Compact 转换、Validator、Repair、Artifact 保存到最终响应的完整流程和异常分支。
+  </desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#475569"/>
+    </marker>
+    <marker id="arrow-purple" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#7c3aed"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#0f172a" flood-opacity="0.10"/>
+    </filter>
+    <style>
+      .title { font: 700 36px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #0f172a; }
+      .subtitle { font: 400 18px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #475569; }
+      .section-title { font: 700 23px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #0f172a; }
+      .node-title { font: 700 19px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #0f172a; }
+      .node-text { font: 400 16px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #334155; }
+      .small { font: 400 14px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #475569; }
+      .small-strong { font: 700 14px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #334155; }
+      .error-title { font: 700 17px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #991b1b; }
+      .error-text { font: 400 14px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #7f1d1d; }
+      .success-title { font: 700 18px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #166534; }
+      .section { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1.5; rx: 22; filter: url(#shadow); }
+      .step { fill: #eff6ff; stroke: #60a5fa; stroke-width: 2; rx: 14; }
+      .condition { fill: #fffbeb; stroke: #f59e0b; stroke-width: 2; rx: 14; }
+      .model { fill: #f5f3ff; stroke: #8b5cf6; stroke-width: 2; rx: 14; }
+      .success { fill: #f0fdf4; stroke: #22c55e; stroke-width: 2; rx: 14; }
+      .failure { fill: #fef2f2; stroke: #ef4444; stroke-width: 2; rx: 14; }
+      .note { fill: #f8fafc; stroke: #94a3b8; stroke-width: 1.5; rx: 12; }
+      .flow { fill: none; stroke: #475569; stroke-width: 2.5; marker-end: url(#arrow); }
+      .branch { fill: none; stroke: #64748b; stroke-width: 2; marker-end: url(#arrow); }
+      .repair-flow { fill: none; stroke: #7c3aed; stroke-width: 3; marker-end: url(#arrow-purple); }
+      .label { font: 700 14px "Microsoft YaHei", "PingFang SC", sans-serif; fill: #475569; }
+      .table-head { fill: #e2e8f0; }
+      .table-row { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <rect width="1800" height="3700" fill="#f1f5f9"/>
+
+  <text x="70" y="70" class="title">第四接口 generateWidgetCardCompactDsl 完整流程图</text>
+  <text x="70" y="108" class="subtitle">
+    WebSocket → App/ROM 版本控制 → Create/Edit → 能力裁决 → Design Token → 转换/校验/Repair → Artifact
+  </text>
+
+  <g transform="translate(70 140)">
+    <rect x="0" y="0" width="150" height="42" class="step"/>
+    <text x="75" y="27" text-anchor="middle" class="small-strong">正常步骤</text>
+    <rect x="175" y="0" width="150" height="42" class="condition"/>
+    <text x="250" y="27" text-anchor="middle" class="small-strong">条件判断</text>
+    <rect x="350" y="0" width="150" height="42" class="model"/>
+    <text x="425" y="27" text-anchor="middle" class="small-strong">模型/Repair</text>
+    <rect x="525" y="0" width="150" height="42" class="success"/>
+    <text x="600" y="27" text-anchor="middle" class="small-strong">成功/降级</text>
+    <rect x="700" y="0" width="150" height="42" class="failure"/>
+    <text x="775" y="27" text-anchor="middle" class="small-strong">终止失败</text>
+    <text x="890" y="27" class="small">MEP/DeepSeek Platform/llmclient 共用进程级模型令牌池</text>
+  </g>
+
+  <!-- 1. WebSocket -->
+  <rect x="50" y="220" width="1700" height="430" class="section"/>
+  <text x="85" y="262" class="section-title">1. WebSocket 入口与请求校验</text>
+
+  <rect x="610" y="290" width="580" height="65" class="step"/>
+  <text x="900" y="318" text-anchor="middle" class="node-title">连接 /api/v1/ws/tools/generateWidgetCardCompactDsl</text>
+  <text x="900" y="341" text-anchor="middle" class="small">accept；active_connections +1；同一连接可处理多条消息</text>
+
+  <path d="M900 355 L900 385" class="flow"/>
+  <rect x="610" y="390" width="580" height="80" class="condition"/>
+  <text x="900" y="420" text-anchor="middle" class="node-title">原始请求是合法 JSON 对象且参数有效？</text>
+  <text x="900" y="446" text-anchor="middle" class="small">归一化 content/deviceInfo/session；requestId=sessionId&amp;interactionId</text>
+
+  <path d="M610 430 L450 430" class="branch"/>
+  <text x="515" y="415" class="label">否</text>
+  <rect x="90" y="375" width="350" height="115" class="failure"/>
+  <text x="265" y="407" text-anchor="middle" class="error-title">INVALID_ARGUMENTS</text>
+  <text x="265" y="434" text-anchor="middle" class="error-text">不发送 start；可选发送 FAILURE 指令</text>
+  <text x="265" y="458" text-anchor="middle" class="error-text">final 顶层 errorCode=0，items=[]</text>
+
+  <path d="M900 470 L900 505" class="flow"/>
+  <text x="920" y="493" class="label">是</text>
+  <rect x="610" y="510" width="580" height="92" class="step"/>
+  <text x="900" y="540" text-anchor="middle" class="node-title">发送 start，启动每 6 秒一次 partial 心跳</text>
+  <text x="900" y="566" text-anchor="middle" class="small">长生成链路直接 await 异步 Service，不占 AnyIO 长任务线程</text>
+  <text x="900" y="588" text-anchor="middle" class="small">心跳发送失败只停止心跳，不取消生成、Repair 或 Artifact 保存</text>
+
+  <rect x="1280" y="375" width="390" height="150" class="note"/>
+  <text x="1475" y="407" text-anchor="middle" class="node-title">指令帧</text>
+  <text x="1475" y="435" text-anchor="middle" class="small">普通第四接口受全局指令开关控制</text>
+  <text x="1475" y="460" text-anchor="middle" class="small">模型首次调用前：AIWidgetStart</text>
+  <text x="1475" y="485" text-anchor="middle" class="small">结束：SUCCESS + URL 或 FAILURE</text>
+  <text x="1475" y="510" text-anchor="middle" class="small">临时别名接口强制开启指令</text>
+
+  <!-- 2. Versions and edit -->
+  <rect x="50" y="680" width="1700" height="690" class="section"/>
+  <text x="85" y="722" class="section-title">2. 版本选择、Create/Edit 与能力裁决</text>
+
+  <rect x="555" y="755" width="690" height="95" class="condition"/>
+  <text x="900" y="786" text-anchor="middle" class="node-title">协议区间选择</text>
+  <text x="900" y="813" text-anchor="middle" class="node-text">App 11.7.5.205 ≤ v &lt; 12.0.0.0；ROM 6.0 ≤ v &lt; 7.0</text>
+  <text x="900" y="838" text-anchor="middle" class="small">CLS-AL30 6.0.0.328 → 6.0；命中 design-compact-dsl</text>
+
+  <path d="M555 802 L450 802" class="branch"/>
+  <rect x="90" y="747" width="350" height="112" class="failure"/>
+  <text x="265" y="779" text-anchor="middle" class="error-title">协议未命中</text>
+  <text x="265" y="806" text-anchor="middle" class="error-text">回退开：使用默认 Profile</text>
+  <text x="265" y="831" text-anchor="middle" class="error-text">回退关：APP_VERSION_UNSUPPORTED</text>
+
+  <path d="M900 850 L900 884" class="flow"/>
+  <rect x="555" y="890" width="690" height="88" class="condition"/>
+  <text x="900" y="921" text-anchor="middle" class="node-title">能力清单区间选择</text>
+  <text x="900" y="949" text-anchor="middle" class="node-text">命中 app-11.7.5.205_rom-6.0；旧 capabilityRegistryVersion 不能覆盖</text>
+
+  <path d="M1245 934 L1360 934" class="branch"/>
+  <rect x="1370" y="880" width="300" height="112" class="failure"/>
+  <text x="1520" y="912" text-anchor="middle" class="error-title">能力目录不可用</text>
+  <text x="1520" y="939" text-anchor="middle" class="error-text">回退开：默认目录</text>
+  <text x="1520" y="964" text-anchor="middle" class="error-text">回退关：APP_VERSION_UNSUPPORTED</text>
+
+  <path d="M900 978 L900 1010" class="flow"/>
+  <rect x="555" y="1015" width="690" height="105" class="condition"/>
+  <text x="900" y="1047" text-anchor="middle" class="node-title">是否显式携带 sourceArtifactUrl 字段？</text>
+  <text x="900" y="1074" text-anchor="middle" class="small">未携带＝Create；只要字段出现就进入 Edit，空字符串也会按 Edit 处理</text>
+  <text x="900" y="1098" text-anchor="middle" class="small">Edit 必须开启 enable_widget_edit</text>
+
+  <path d="M555 1067 L445 1067" class="branch"/>
+  <text x="485" y="1052" class="label">Create</text>
+  <rect x="90" y="1020" width="345" height="98" class="step"/>
+  <text x="262" y="1052" text-anchor="middle" class="node-title">归一化首次生成</text>
+  <text x="262" y="1081" text-anchor="middle" class="small">默认尺寸/空候选数组</text>
+
+  <path d="M1245 1067 L1355 1067" class="branch"/>
+  <text x="1280" y="1052" class="label">Edit</text>
+  <rect x="1365" y="1008" width="305" height="125" class="step"/>
+  <text x="1517" y="1040" text-anchor="middle" class="node-title">加载来源 Artifact V2</text>
+  <text x="1517" y="1067" text-anchor="middle" class="small">必须有非空 designcompactdsl</text>
+  <text x="1517" y="1091" text-anchor="middle" class="small">禁止使用 genui 兜底</text>
+  <text x="1517" y="1115" text-anchor="middle" class="small">跨格式/过长/无效 → SOURCE_ARTIFACT_INVALID</text>
+
+  <path d="M900 1120 L900 1155" class="flow"/>
+  <rect x="555" y="1160" width="690" height="100" class="step"/>
+  <text x="900" y="1192" text-anchor="middle" class="node-title">裁决数据、事件、素材候选</text>
+  <text x="900" y="1219" text-anchor="middle" class="small">本接口不再查询 IDS；只按当前能力清单校验候选并记录 removedCapabilities</text>
+  <text x="900" y="1243" text-anchor="middle" class="small">请求过数据但有效数据为空且无有效事件 → NO_EFFECTIVE_CAPABILITY</text>
+
+  <path d="M900 1260 L900 1292" class="flow"/>
+  <rect x="555" y="1297" width="690" height="55" class="step"/>
+  <text x="900" y="1331" text-anchor="middle" class="node-title">构造 CardSpec + TaskSpec，进入模型阶段</text>
+
+  <!-- 3. Prompt and model -->
+  <rect x="50" y="1400" width="1700" height="660" class="section"/>
+  <text x="85" y="1442" class="section-title">3. Prompt、共享并发令牌与模型异常退避</text>
+
+  <rect x="555" y="1475" width="690" height="112" class="step"/>
+  <text x="900" y="1507" text-anchor="middle" class="node-title">组装两条模型消息</text>
+  <text x="900" y="1534" text-anchor="middle" class="small">system：design-compact-dsl/PROMPT.md 原文</text>
+  <text x="900" y="1558" text-anchor="middle" class="small">Create user：TaskSpec；Edit user：query + TaskSpec + previousDesignToken</text>
+  <text x="900" y="1580" text-anchor="middle" class="small">日志仅记录 system prompt 前 30 字符和总长度</text>
+
+  <path d="M900 1587 L900 1620" class="flow"/>
+  <rect x="555" y="1625" width="690" height="98" class="model"/>
+  <text x="900" y="1657" text-anchor="middle" class="node-title">一次真实模型调用</text>
+  <text x="900" y="1684" text-anchor="middle" class="small">openai：DeepSeek Platform master → llmclient fallback</text>
+  <text x="900" y="1708" text-anchor="middle" class="small">三个物理客户端共用 Semaphore；每次重试和 Repair 都重新排队</text>
+
+  <path d="M900 1723 L900 1755" class="flow"/>
+  <rect x="555" y="1760" width="690" height="95" class="condition"/>
+  <text x="900" y="1791" text-anchor="middle" class="node-title">得到非空 Design Token？</text>
+  <text x="900" y="1818" text-anchor="middle" class="small">连接/流/模型显式错误、空输出、无规范码内部异常都算模型异常</text>
+  <text x="900" y="1842" text-anchor="middle" class="small">MEP 6241 且已有非空 Design 候选：恢复部分输出并继续转换</text>
+
+  <path d="M1245 1805 L1345 1805" class="branch"/>
+  <text x="1278" y="1790" class="label">否</text>
+  <rect x="1355" y="1708" width="315" height="194" class="model"/>
+  <text x="1512" y="1740" text-anchor="middle" class="node-title">模型失败重试</text>
+  <text x="1512" y="1768" text-anchor="middle" class="small">开关关：master 仅 1 次，不用 fallback</text>
+  <text x="1512" y="1792" text-anchor="middle" class="small">开关开：master 退避重试后切 fallback</text>
+  <text x="1512" y="1816" text-anchor="middle" class="small">等待期间不持有令牌</text>
+  <text x="1512" y="1840" text-anchor="middle" class="small">每阶段最多 (1+M) + (1+F) 次</text>
+  <text x="1512" y="1864" text-anchor="middle" class="small">耗尽：A2UI_GENERATION_FAILED</text>
+  <text x="1512" y="1888" text-anchor="middle" class="small">不转换、不校验、不保存</text>
+  <path d="M1512 1708 C1512 1645 1320 1645 1245 1665" class="repair-flow"/>
+
+  <path d="M900 1855 L900 1890" class="flow"/>
+  <text x="920" y="1880" class="label">是</text>
+  <rect x="555" y="1895" width="690" height="78" class="success"/>
+  <text x="900" y="1927" text-anchor="middle" class="success-title">取得当前最新源 Design Compact DSL</text>
+  <text x="900" y="1953" text-anchor="middle" class="small">同一个 WebSocket 请求内的模型调用串行执行，不会一次占多个令牌</text>
+
+  <!-- 4. Conversion and repair -->
+  <rect x="50" y="2090" width="1700" height="810" class="section"/>
+  <text x="85" y="2132" class="section-title">4. Conversion → Validator → 有限次数 Repair</text>
+
+  <rect x="555" y="2165" width="690" height="105" class="step"/>
+  <text x="900" y="2197" text-anchor="middle" class="node-title">DesignCompactProcessor</text>
+  <text x="900" y="2224" text-anchor="middle" class="small">修正可确定绑定路径 → 检查 TaskSpec/CardSpec 上下文 → 读取 Design 协议</text>
+  <text x="900" y="2248" text-anchor="middle" class="small">将 Design Compact DSL 确定性转换为标准 A2UI</text>
+
+  <path d="M900 2270 L900 2302" class="flow"/>
+  <rect x="555" y="2307" width="690" height="82" class="condition"/>
+  <text x="900" y="2338" text-anchor="middle" class="node-title">Conversion 成功？</text>
+  <text x="900" y="2365" text-anchor="middle" class="small">失败生成 stage=conversion / DESIGN_CONVERSION_FAILED</text>
+
+  <path d="M900 2389 L900 2420" class="flow"/>
+  <text x="920" y="2410" class="label">成功</text>
+  <rect x="555" y="2425" width="690" height="90" class="condition"/>
+  <text x="900" y="2456" text-anchor="middle" class="node-title">Artifact Validator 是否开启且出现 error？</text>
+  <text x="900" y="2483" text-anchor="middle" class="small">关闭 Validator：只跳过校验，不跳过必要转换；warning 永不触发 Repair</text>
+
+  <path d="M555 2348 L445 2348" class="branch"/>
+  <text x="480" y="2333" class="label">失败</text>
+  <path d="M555 2470 L445 2470" class="branch"/>
+  <text x="480" y="2455" class="label">有 error</text>
+  <rect x="90" y="2280" width="345" height="250" class="model"/>
+  <text x="262" y="2313" text-anchor="middle" class="node-title">质量 Repair 决策</text>
+  <text x="262" y="2342" text-anchor="middle" class="small">开关关或次数耗尽</text>
+  <text x="262" y="2366" text-anchor="middle" class="error-text">→ VALIDATION_FAILED，不保存</text>
+  <text x="262" y="2400" text-anchor="middle" class="small">开关开且仍有次数</text>
+  <text x="262" y="2424" text-anchor="middle" class="small">→ 立即构造 Repair，不退避</text>
+  <text x="262" y="2458" text-anchor="middle" class="small">system = 原 PROMPT.md + repair prompt</text>
+  <text x="262" y="2482" text-anchor="middle" class="small">user = 最新源 DSL + stage/code/message</text>
+  <text x="262" y="2506" text-anchor="middle" class="small">输出仍必须是完整 Design Compact DSL</text>
+
+  <path d="M262 2530 L262 2580 L500 2580" class="repair-flow"/>
+  <rect x="510" y="2540" width="500" height="100" class="model"/>
+  <text x="760" y="2572" text-anchor="middle" class="node-title">调用模型执行本轮 Repair</text>
+  <text x="760" y="2599" text-anchor="middle" class="small">Repair 内模型异常：按模型退避重试，不额外增加 Repair 轮次</text>
+  <text x="760" y="2623" text-anchor="middle" class="small">模型最终失败：A2UI_GENERATION_FAILED，主流程结束</text>
+
+  <path d="M760 2540 C760 2505 1330 2510 1330 2240 C1330 2160 1245 2195 1245 2215" class="repair-flow"/>
+  <text x="1345" y="2380" class="label">新 Design Token 重新走完整转换和校验</text>
+
+  <path d="M900 2515 L900 2672" class="flow"/>
+  <text x="920" y="2550" class="label">无 error</text>
+  <rect x="555" y="2678" width="690" height="95" class="success"/>
+  <text x="900" y="2710" text-anchor="middle" class="success-title">第四接口严格质量门禁通过</text>
+  <text x="900" y="2737" text-anchor="middle" class="small">允许 stage 从 conversion → validation → success 逐轮变化</text>
+  <text x="900" y="2761" text-anchor="middle" class="small">最大调用数 = (1+R) × [(1+master重试M) + (1+fallback重试F)]</text>
+
+  <rect x="1310" y="2580" width="360" height="165" class="note"/>
+  <text x="1490" y="2612" text-anchor="middle" class="node-title">例：M=2，F=1，R=2</text>
+  <text x="1490" y="2641" text-anchor="middle" class="small">首次生成最多 5 次</text>
+  <text x="1490" y="2666" text-anchor="middle" class="small">Repair 1 最多 5 次</text>
+  <text x="1490" y="2691" text-anchor="middle" class="small">Repair 2 最多 5 次</text>
+  <text x="1490" y="2719" text-anchor="middle" class="small-strong">理论最多 15 次真实模型调用</text>
+
+  <!-- 5. Artifact and result -->
+  <rect x="50" y="2930" width="1700" height="430" class="section"/>
+  <text x="85" y="2972" class="section-title">5. Artifact 保存与 WebSocket 最终结果</text>
+
+  <rect x="180" y="3010" width="470" height="130" class="step"/>
+  <text x="415" y="3042" text-anchor="middle" class="node-title">构造 Widget Artifact V2</text>
+  <text x="415" y="3071" text-anchor="middle" class="small">genui：转换后的标准 A2UI</text>
+  <text x="415" y="3096" text-anchor="middle" class="small">designcompactdsl：模型最终 Design Token</text>
+  <text x="415" y="3121" text-anchor="middle" class="small">CardSpec / TaskSpec / 能力 / meta / 来源摘要</text>
+
+  <path d="M650 3075 L720 3075" class="flow"/>
+  <rect x="730" y="3010" width="350" height="130" class="condition"/>
+  <text x="905" y="3042" text-anchor="middle" class="node-title">写临时文件并上传</text>
+  <text x="905" y="3071" text-anchor="middle" class="small">成功：URL + SHA-256 摘要</text>
+  <text x="905" y="3096" text-anchor="middle" class="small">失败：路由返回 FAILED</text>
+  <text x="905" y="3121" text-anchor="middle" class="small">finally 删除本地临时文件</text>
+
+  <path d="M1080 3075 L1150 3075" class="flow"/>
+  <rect x="1160" y="3010" width="470" height="130" class="success"/>
+  <text x="1395" y="3042" text-anchor="middle" class="success-title">ResponsePlanner</text>
+  <text x="1395" y="3071" text-anchor="middle" class="small">无移除能力：success；有移除但可用：degraded</text>
+  <text x="1395" y="3096" text-anchor="middle" class="small">Edit 总是生成新 artifact URL，不覆盖上一轮</text>
+  <text x="1395" y="3121" text-anchor="middle" class="small">成功指令携带 artifactUrl</text>
+
+  <path d="M905 3140 L905 3175" class="flow"/>
+  <rect x="420" y="3180" width="970" height="120" class="step"/>
+  <text x="905" y="3212" text-anchor="middle" class="node-title">发送 final 帧</text>
+  <text x="905" y="3240" text-anchor="middle" class="small">顶层 errorCode="0"；errorMessage=""；reply.items=[]</text>
+  <text x="905" y="3265" text-anchor="middle" class="small">streamContent = 完整旧业务消息字符串；失败时前置面向主 Agent 的中文异常说明</text>
+  <text x="905" y="3289" text-anchor="middle" class="small">取消心跳任务；running_tasks -1；连接关闭时 active_connections -1</text>
+
+  <!-- 6. Case matrix -->
+  <rect x="50" y="3390" width="1700" height="250" class="section"/>
+  <text x="85" y="3432" class="section-title">6. 关键终止 Case 速查</text>
+
+  <g transform="translate(85 3460)">
+    <rect x="0" y="0" width="530" height="42" class="table-head" rx="8"/>
+    <rect x="545" y="0" width="530" height="42" class="table-head" rx="8"/>
+    <rect x="1090" y="0" width="530" height="42" class="table-head" rx="8"/>
+    <text x="265" y="27" text-anchor="middle" class="small-strong">模型前终止</text>
+    <text x="810" y="27" text-anchor="middle" class="small-strong">模型/质量终止</text>
+    <text x="1355" y="27" text-anchor="middle" class="small-strong">可保存结果</text>
+
+    <rect x="0" y="50" width="530" height="110" class="table-row" rx="8"/>
+    <text x="18" y="77" class="small">INVALID_ARGUMENTS · APP_VERSION_UNSUPPORTED</text>
+    <text x="18" y="101" class="small">WIDGET_EDIT_DISABLED · SOURCE_ARTIFACT_*</text>
+    <text x="18" y="125" class="small">NO_EFFECTIVE_CAPABILITY</text>
+    <text x="18" y="149" class="small">共同结果：不调用模型、不保存 Artifact</text>
+
+    <rect x="545" y="50" width="530" height="110" class="table-row" rx="8"/>
+    <text x="563" y="77" class="small">A2UI_GENERATION_FAILED：模型重试耗尽</text>
+    <text x="563" y="101" class="small">VALIDATION_FAILED：转换/校验 Repair 耗尽或关闭</text>
+    <text x="563" y="125" class="small">FAILED：Artifact 写入/上传或未知服务异常</text>
+    <text x="563" y="149" class="small">共同结果：第四接口严格不保存不可用 Artifact</text>
+
+    <rect x="1090" y="50" width="530" height="110" class="table-row" rx="8"/>
+    <text x="1108" y="77" class="small">success：通过质量门禁且无能力移除</text>
+    <text x="1108" y="101" class="small">degraded：部分候选被移除但仍生成可用卡片</text>
+    <text x="1108" y="125" class="small">warning：记录但不触发 Repair</text>
+    <text x="1108" y="149" class="small">Validator 关闭：转换仍必须成功</text>
+  </g>
+</svg>

@@ -76,9 +76,9 @@ class Settings(BaseSettings):
     deepseek_include_usage: bool = True
     deepseek_debug_usage: bool = True
     deepseek_recv_timeout: int = Field(default=120, ge=1)
-    system_prompt_file: str = "docs/system_prompt.txt"
-    edit_system_prompt_file: str = "docs/edit_system_prompt.txt"
-    repair_system_prompt_file: str = "docs/repair_system_prompt.txt"
+    system_prompt_file: str = "widget_service/docs/system_prompt.txt"
+    edit_system_prompt_file: str = "widget_service/docs/edit_system_prompt.txt"
+    repair_system_prompt_file: str = "widget_service/docs/repair_system_prompt.txt"
     model_prompt_log_preview_chars: int = Field(default=30, ge=0, le=1000)
     model_appid: str = ""
     model_url: str = ""
