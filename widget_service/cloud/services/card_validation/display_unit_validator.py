@@ -115,18 +115,13 @@ class DisplayUnitValidator(BaseValidator):
             if not isinstance(children, list):
                 continue
             value_index = children.index(component_id)
-            for child_id in children[value_index + 1 :]:
+            following_indexes = range(value_index + 1, len(children))
+            for child_index in following_indexes:
+                child_id = children[child_index]
                 if not isinstance(child_id, str) or not static_text_matches_rule(
                     components_by_id.get(child_id, {}).get("content"),
                     rule,
                 ):
                     break
                 sibling_ids.add(child_id)
-        return sum(
-            1
-            for sibling_id in sibling_ids
-            if static_text_matches_rule(
-                components_by_id.get(sibling_id, {}).get("content"),
-                rule,
-            )
-        )
+        return len(sibling_ids)

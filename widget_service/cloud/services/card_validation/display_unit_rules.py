@@ -49,12 +49,12 @@ def collect_bound_display_unit_rules(
             return
         units = schema.get("displayUnits")
         included = schema.get("unitIncluded")
-        if (
+        valid_units = (
             isinstance(units, list)
-            and units
+            and bool(units)
             and all(isinstance(item, str) and item.strip() for item in units)
-            and isinstance(included, bool)
-        ):
+        )
+        if valid_units and isinstance(included, bool):
             result["/" + "/".join(parts)] = DisplayUnitRule(
                 units=tuple(item.strip() for item in units),
                 unit_included=included,
@@ -171,7 +171,9 @@ def repair_repeated_display_units(
                 continue
             value_index = repaired_children.index(component_id)
             matching_siblings = []
-            for sibling_id in repaired_children[value_index + 1 :]:
+            following_indexes = range(value_index + 1, len(repaired_children))
+            for sibling_index in following_indexes:
+                sibling_id = repaired_children[sibling_index]
                 if not static_text_matches_rule(
                     by_id.get(sibling_id, {}).get("content"),
                     rule,
@@ -185,24 +187,23 @@ def repair_repeated_display_units(
         parent["children"] = repaired_children
 
     if removed_child_ids:
-        still_referenced = {
-            child_id
-            for component in by_id.values()
-            for child_id in (
-                component.get("children")
-                if isinstance(component.get("children"), list)
-                else []
-            )
-            if isinstance(child_id, str)
-        }
-        messages[1]["updateComponents"]["components"] = [
-            component
-            for component in components
-            if not (
-                isinstance(component, dict)
-                and component.get("id") in removed_child_ids - still_referenced
-            )
-        ]
+        still_referenced: set[str] = set()
+        for component in by_id.values():
+            children = component.get("children")
+            if not isinstance(children, list):
+                continue
+            for child_id in children:
+                if isinstance(child_id, str):
+                    still_referenced.add(child_id)
+
+        unreferenced_ids = removed_child_ids - still_referenced
+        remaining_components = []
+        for component in components:
+            is_component = isinstance(component, dict)
+            is_unreferenced = is_component and component.get("id") in unreferenced_ids
+            if not is_unreferenced:
+                remaining_components.append(component)
+        messages[1]["updateComponents"]["components"] = remaining_components
     return "\n".join(
         json.dumps(message, ensure_ascii=False, separators=(",", ":"))
         for message in messages
