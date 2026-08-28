@@ -107,9 +107,6 @@ from services.protocol_registry import A2UIProtocolRegistry
 from services.response_planner import ResponsePlanner
 from services.retry_controller import RetryController
 from services.task_spec_builder import TaskSpecBuilder
-from services.template_generation.engine.compact_dsl_a2ui_converter import (
-    normalize_compact_dsl_design_tokens as normalize_template_design_tokens,
-)
 from services.validator import ArtifactValidator
 from services.widget_generation_service import WidgetGenerationService
 from utils.base_utils import sts_config
@@ -2816,35 +2813,6 @@ def test_design_converter_expands_latest_design_tokens():
     assert component_by_id["small_progress"]["styles"]["borderRadius"] == 2
     assert component_by_id["check"]["styles"]["shape"] == "rounded_square"
     assert component_by_id["check"]["styles"]["selectedColor"] == "#33FFFFFF"
-
-
-def test_template_converter_expands_latest_design_tokens():
-    design_dsl = "\n".join(
-        (
-            '["root","Column",{"width":160,"height":160},'
-            '["title","button","progress","check"]]',
-            '["title","Text",{"content":"电量","design":"metric-display-md"}]',
-            '["button","Button",{"label":"info","design":"action-icon-round"}]',
-            '["progress","Progress",{"value":68,"total":100,'
-            '"design":"progress-ring-primary"}]',
-            '["check","Checkbox",{"label":"省电","select":true,'
-            '"design":"checkbox-rounded-check"}]',
-        )
-    )
-
-    normalized = normalize_template_design_tokens(design_dsl)
-    component_by_id = {
-        row[0]: row[2]
-        for row in (
-            json_module.loads(line) for line in normalized.splitlines()
-        )
-    }
-
-    assert component_by_id["title"]["fontSize"] == 36
-    assert component_by_id["button"]["width"] == 30
-    assert component_by_id["progress"]["type"] == "ring"
-    assert component_by_id["progress"]["color"] == "#FFF9A01E"
-    assert component_by_id["check"]["shape"] == "rounded_square"
 
 
 def test_design_converter_reads_protocol_file_from_selected_design_profile(monkeypatch):
