@@ -1,16 +1,10 @@
 # 第二层业务模板使用规则
 
 - Provider：`com.huawei.calendar.cli`。
-- 业务领域统一为 `CalendarOverview`；日期模板与日程模板是同一业务下的不同内容形态。
+- 业务领域统一为 `CalendarOverview`；当前只提供日程模板，不再提供独立日期模板。
 - 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
-- 用户同时要求日期和日程时，在 2x2 中使用 `TwoCompactLayout@1({}, ...)`，先放
-  `DateOverviewCompact@1`，再放不带素材 props 且满足字段要求的 `ScheduleOverview*Compact@1`；
-  两个纯文本 Compact 会自动纵向排列，不得拆成两个业务组件。
-- 组合后的日期区占上半区，日程区占下半区；沿用 12vp 卡片安全边距，日期标签与主日期分别使用 12vp、
-  38vp 字阶，日程时间轴使用 8vp 圆点、1vp 竖线和 14/10/10vp 文本层级。
+- 所有辅助说明、时间、地点和状态文字均使用当前 Theme 的 `supportContentColor`，不得回退为固定色值。
 - 可用模板：
-  - `DateOverviewCompact@1`：首个日程日期的上半区主视觉。 组件形态：compactDate。 布局场景：约 2x1；优先与一个日程 Compact 纵向组合，也可与另一 Compact 组合。主数据：/events/0/startDate；次要数据：/updatedAt；可选数据：无。
-  - `DateOverviewFull@1`：首个日程日期主视觉与数据更新时间。 组件形态：dateHero。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/events/0/startDate；次要数据：/updatedAt；可选数据：无。
   - `ScheduleOverviewNextEventFull@1`：无底部动作的首个日程摘要；日程标题必需，时间槽支持时间范围、开始时间、提前提醒或全天/时区，并可补充地点。 组件形态：nextEvent。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/events/0/title；次要数据：无；可选数据：/events/0/dtStart, /events/0/dtEnd, /events/0/remindTime/0, /events/0/timeZone, /events/0/isAllDay, /events/0/eventLocation。
   - `ScheduleOverviewNextEventLocationFull@1`：首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：nextEventLocation。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/events/0/title, /events/0/dtStart；次要数据：/events/0/eventLocation, /events/0/dtEnd；可选数据：无。
   - `ScheduleOverviewMeetingCompact@1`：首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：meetingCompact。 布局场景：约 2x1；用于双 Compact 组合，或单 Compact 加两个 PillAction。主数据：/events/0/title, /events/0/dtStart；次要数据：/events/0/dtEnd；可选数据：无。

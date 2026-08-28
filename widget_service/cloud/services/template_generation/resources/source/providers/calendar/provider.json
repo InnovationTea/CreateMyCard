@@ -20,34 +20,6 @@
   ],
   "templates": [
     {
-      "templateId": "DateOverviewCompact@1",
-      "businessId": "CalendarOverview",
-      "capabilityId": "GetCalendarEvents",
-      "description": "日历日期主视觉；可与日程 Compact 纵向组合为日期日程卡。 组件形态：compactDate。",
-      "optionalData": [],
-      "entry": "templates/date-overview.cardtpl",
-      "primaryData": [
-        "/events/0/startDate"
-      ],
-      "secondaryData": [
-        "/updatedAt"
-      ]
-    },
-    {
-      "templateId": "DateOverviewFull@1",
-      "businessId": "CalendarOverview",
-      "capabilityId": "GetCalendarEvents",
-      "description": "日历日期主视觉与数据更新时间。 组件形态：dateHero。",
-      "optionalData": [],
-      "entry": "templates/date-overview.cardtpl",
-      "primaryData": [
-        "/events/0/startDate"
-      ],
-      "secondaryData": [
-        "/updatedAt"
-      ]
-    },
-    {
       "templateId": "ScheduleOverviewNextEventFull@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
