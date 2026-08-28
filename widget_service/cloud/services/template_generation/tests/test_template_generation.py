@@ -276,12 +276,15 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 85
+    assert len(registry.provider_template_ids) == 88
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
         "BatteryOverviewNormalFull@1",
         "BatteryOverviewNormalHero@1",
+        "BatteryOverviewChargingProgressHero@1",
+        "BatteryOverviewHealthLevelHero@1",
+        "BatteryOverviewChargingDiagnosticsHero@1",
         "BluetoothDeviceOverviewCaseFull@1",
         "CountdownOverviewFull@1",
         "DateOverviewFull@1",
@@ -455,6 +458,7 @@ def test_registry_uses_only_distributed_provider_and_theme_sources() -> None:
     assert set(registry.templates) == set(registry.provider_template_ids)
     assert set(registry.themes) == {
         "audio-product-neutral-violet",
+        "battery-yellow",
         "device-clean-blue-teal",
         "digital-wellbeing-neutral-dark",
         "family-weather-care-blue",
@@ -855,6 +859,19 @@ def test_non_fusion_device_theme_uses_the_reviewed_resource_palette() -> None:
     assert theme.action_style.background_color == "#1A0A59F7"
 
 
+def test_non_fusion_battery_theme_uses_the_yellow_palette() -> None:
+    theme = get_cardplan_registry().require_theme("battery-yellow")
+
+    assert theme.supported_capability_ids == ("GetPhoneBatteryInfo",)
+    assert theme.primary_color == "#FF99661F"
+    assert theme.support_content_color == "#CC99661F"
+    assert theme.progress_color == "#FF99661F"
+    assert theme.root_style["backgroundColor"] == "#FFFFF3E6"
+    assert "linearGradient" not in theme.root_style
+    assert theme.action_style.content_color == "#FF99661F"
+    assert theme.action_style.background_color == "#3399661F"
+
+
 def test_disabled_fusion_feature_removes_themes_from_server_registry_view() -> None:
     enabled_registry = get_cardplan_registry(True)
     disabled_registry = get_cardplan_registry(False)
@@ -868,6 +885,7 @@ def test_disabled_fusion_feature_removes_themes_from_server_registry_view() -> N
     assert fusion_theme_ids.isdisjoint(disabled_registry.themes)
     assert set(disabled_registry.themes) == {
         "audio-product-neutral-violet",
+        "battery-yellow",
         "device-clean-blue-teal",
         "digital-wellbeing-neutral-dark",
         "family-weather-care-blue",
@@ -2923,16 +2941,17 @@ async def test_bluetooth_connection_and_case_queries_have_honest_template_covera
         writeResultTo="/data/earphone",
         candidateOutputFields=list(required_fields),
     )
+    body = (
+        'Template("SingleFocusLayout@1",{},Template('
+        f'"{template_id}",{{}}));'
+    )
     model = _FixedTemplateModel(
         theme_id="audio-product-neutral-violet",
         component_id="BluetoothDeviceOverview",
         available_template_ids=(template_id,),
         capability_id="GetEarphoneInfo",
         required_fields=required_fields,
-        body=(
-            'Template("SingleFocusLayout@1",{},Template('
-            f'"{template_id}",{{}}));'
-        ),
+        body=body,
     )
 
     output = await generate_template_a2ui(
@@ -3208,6 +3227,176 @@ async def test_2x2_battery_percent_ring_hero_does_not_require_capacity_level():
     assert "batterySOCText" in output.a2ui
     assert "batteryCapacityLevelDesc" not in output.a2ui
     assert "省电模式" in output.a2ui
+
+
+@pytest.mark.asyncio
+async def test_2x2_battery_charging_progress_hero_uses_status_fields():
+    binding = CandidateDataBinding(
+        capabilityId="GetPhoneBatteryInfo",
+        writeResultTo="/data/phoneBattery",
+        candidateOutputFields=[
+            "/batterySOC",
+            "/chargingStatusDesc",
+            "/healthStatusDesc",
+            "/pluggedTypeDesc",
+        ],
+    )
+    task_spec = _battery_task()
+    task_spec.userQuery = "睡前想把手机充满，看看充上没、电池健康咋样、插的什么充电器。"
+    phone_battery = task_spec.dataModelSchema["data"]["phoneBattery"]
+    del phone_battery["batterySOCText"]
+    del phone_battery["batteryCapacityLevelDesc"]
+    phone_battery["healthStatusDesc"] = _provider_field("正常", "string")
+    phone_battery["pluggedTypeDesc"] = _provider_field("未连接充电器", "string")
+    model = _FixedTemplateModel(
+        theme_id="battery-yellow",
+        component_id="BatteryOverview",
+        available_template_ids=("BatteryOverviewChargingProgressHero@1",),
+        capability_id="GetPhoneBatteryInfo",
+        required_fields=(
+            "/batterySOC",
+            "/chargingStatusDesc",
+            "/healthStatusDesc",
+            "/pluggedTypeDesc",
+        ),
+        action_id="event.setPowerSavingMode",
+        body=(
+            'Template("HeroActionLayout@1",{},'
+            'Template("BatteryOverviewChargingProgressHero@1",{}),'
+            'Template("PillAction@1",{"actionId":"event.setPowerSavingMode",'
+            '"label":"省电模式"}));'
+        ),
+    )
+
+    output = await generate_template_a2ui(
+        task_spec,
+        _battery_card_spec(),
+        (binding,),
+        model,
+        enable_fusion_ball=True,
+    )
+
+    assert output.template_ids == (
+        "BatteryOverviewChargingProgressHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1",
+    )
+    assert "batterySOC" in output.a2ui
+    assert "chargingStatusDesc" in output.a2ui
+    assert "healthStatusDesc" in output.a2ui
+    assert "pluggedTypeDesc" in output.a2ui
+
+
+@pytest.mark.asyncio
+async def test_2x2_battery_health_level_hero_uses_health_fields():
+    binding = CandidateDataBinding(
+        capabilityId="GetPhoneBatteryInfo",
+        writeResultTo="/data/phoneBattery",
+        candidateOutputFields=[
+            "/healthStatusDesc",
+            "/batteryCapacityLevelDesc",
+        ],
+    )
+    task_spec = _battery_task()
+    task_spec.userQuery = "手机用了两年，想确认电池健康和当前电量等级，点击查看电池健康设置。"
+    task_spec.dataModelSchema["data"]["phoneBattery"] = {
+        "healthStatusDesc": _provider_field("电池健康 正常", "string"),
+        "batteryCapacityLevelDesc": _provider_field("正常电量", "string"),
+    }
+    model = _FixedTemplateModel(
+        theme_id="battery-yellow",
+        component_id="BatteryOverview",
+        available_template_ids=("BatteryOverviewHealthLevelHero@1",),
+        capability_id="GetPhoneBatteryInfo",
+        required_fields=(
+            "/healthStatusDesc",
+            "/batteryCapacityLevelDesc",
+        ),
+        action_id="event.setPowerSavingMode",
+        body=(
+            'Template("HeroActionLayout@1",{},'
+            'Template("BatteryOverviewHealthLevelHero@1",{}),'
+            'Template("PillAction@1",{"actionId":"event.setPowerSavingMode",'
+            '"label":"省电模式"}));'
+        ),
+    )
+
+    output = await generate_template_a2ui(
+        task_spec,
+        _battery_card_spec(),
+        (binding,),
+        model,
+        enable_fusion_ball=True,
+    )
+
+    assert output.template_ids == (
+        "BatteryOverviewHealthLevelHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1",
+    )
+    assert "healthStatusDesc" in output.a2ui
+    assert "batteryCapacityLevelDesc" in output.a2ui
+    assert "batterySOC" not in output.a2ui
+
+
+@pytest.mark.asyncio
+async def test_2x2_battery_charging_diagnostics_hero_uses_key_value_fields():
+    binding = CandidateDataBinding(
+        capabilityId="GetPhoneBatteryInfo",
+        writeResultTo="/data/phoneBattery",
+        candidateOutputFields=[
+            "/chargingStatusDesc",
+            "/nowCurrentText",
+            "/voltageText",
+            "/isBatteryPresentText",
+        ],
+    )
+    task_spec = _battery_task()
+    task_spec.userQuery = "手机充电越来越慢，看看充电电流、电压、电池是否正常，点一下检查电池设置。"
+    task_spec.dataModelSchema["data"]["phoneBattery"] = {
+        "chargingStatusDesc": _provider_field("未充电", "string"),
+        "nowCurrentText": _provider_field("0 mA", "string"),
+        "voltageText": _provider_field("4.1 V", "string"),
+        "isBatteryPresentText": _provider_field("正常", "string"),
+    }
+    model = _FixedTemplateModel(
+        theme_id="battery-yellow",
+        component_id="BatteryOverview",
+        available_template_ids=("BatteryOverviewChargingDiagnosticsHero@1",),
+        capability_id="GetPhoneBatteryInfo",
+        required_fields=(
+            "/chargingStatusDesc",
+            "/nowCurrentText",
+            "/voltageText",
+            "/isBatteryPresentText",
+        ),
+        action_id="event.setPowerSavingMode",
+        body=(
+            'Template("HeroActionLayout@1",{},'
+            'Template("BatteryOverviewChargingDiagnosticsHero@1",{}),'
+            'Template("PillAction@1",{"actionId":"event.setPowerSavingMode",'
+            '"label":"省电模式"}));'
+        ),
+    )
+
+    output = await generate_template_a2ui(
+        task_spec,
+        _battery_card_spec(),
+        (binding,),
+        model,
+        enable_fusion_ball=True,
+    )
+
+    assert output.template_ids == (
+        "BatteryOverviewChargingDiagnosticsHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1",
+    )
+    assert "chargingStatusDesc" in output.a2ui
+    assert "nowCurrentText" in output.a2ui
+    assert "voltageText" in output.a2ui
+    assert "isBatteryPresentText" in output.a2ui
+    assert "batterySOC" not in output.a2ui
 
 
 @pytest.mark.asyncio

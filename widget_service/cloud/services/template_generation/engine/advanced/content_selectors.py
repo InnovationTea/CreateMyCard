@@ -68,6 +68,11 @@ _PROVIDER_COMPONENT_FIELDS: dict[str, tuple[str, ...]] = {
         "batterySOCText",
         "batteryCapacityLevelDesc",
         "chargingStatusDesc",
+        "healthStatusDesc",
+        "pluggedTypeDesc",
+        "nowCurrentText",
+        "voltageText",
+        "isBatteryPresentText",
     ),
     "ResourceUsageOverview": ("usagePercent", "availableMemText", "totalMemText"),
     "AppUsageOverview": (
@@ -164,6 +169,8 @@ class BatteryOverviewFacts:
     level_text: str
     capacity_level: str | None = None
     charging_status: str | None = None
+    health_status: str | None = None
+    plugged_type: str | None = None
 
     def as_selector(self) -> dict[str, dict[str, Any]]:
         number_type = "integer" if isinstance(self.level_percent, int) else "number"
@@ -184,6 +191,16 @@ class BatteryOverviewFacts:
             selected["chargingStatusDesc"] = _field(
                 self.charging_status,
                 "可信充电状态描述",
+            )
+        if self.health_status is not None:
+            selected["healthStatusDesc"] = _field(
+                self.health_status,
+                "可信电池健康状态描述",
+            )
+        if self.plugged_type is not None:
+            selected["pluggedTypeDesc"] = _field(
+                self.plugged_type,
+                "可信充电器类型描述",
             )
         return selected
 
@@ -1403,6 +1420,14 @@ def project_content_component_facts(
             battery_facts = extract_battery_overview_facts(schema)
             if battery_facts is not None:
                 selected = battery_facts.as_selector()
+            else:
+                field_names = _provider_fields(component_id, capability_ids)
+                source = _best_source_object(schema, field_names)
+                selected = {}
+                for field_name in field_names:
+                    field = _first_field(source, field_name)
+                    if field is not None:
+                        selected[field_name] = deepcopy(field)
         elif component_id == "BluetoothDeviceOverview":
             bluetooth_facts = extract_bluetooth_device_overview_facts(schema)
             if bluetooth_facts is not None:
@@ -2331,10 +2356,14 @@ def _battery_facts_from_candidate(candidate: dict[str, Any]) -> BatteryOverviewF
     level_text_field = _first_field(candidate, "batterySOCText")
     capacity_field = _first_field(candidate, "batteryCapacityLevelDesc")
     charging_field = _first_field(candidate, "chargingStatusDesc")
+    health_field = _first_field(candidate, "healthStatusDesc")
+    plugged_field = _first_field(candidate, "pluggedTypeDesc")
     level_percent = _trusted_percentage_number(level_field)
     level_text = _trusted_string(level_text_field)
     capacity_level = _trusted_string(capacity_field)
     charging_status = _trusted_string(charging_field)
+    health_status = _trusted_string(health_field)
+    plugged_type = _trusted_string(plugged_field)
     text_percent = _percentage_number_value(level_text_field)
     if level_text is None and level_percent is not None:
         level_text = f"{level_percent:g}%"
@@ -2350,6 +2379,8 @@ def _battery_facts_from_candidate(candidate: dict[str, Any]) -> BatteryOverviewF
         level_text=level_text,
         capacity_level=capacity_level,
         charging_status=charging_status,
+        health_status=health_status,
+        plugged_type=plugged_type,
     )
 
 
