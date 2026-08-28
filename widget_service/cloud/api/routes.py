@@ -384,10 +384,9 @@ def _request_trace_hashes(payload: dict[str, Any]) -> dict[str, str]:
 def _combined_request_trace_hash(trace_hashes: dict[str, str]) -> str:
     """使用 & 拼接用户和设备的脱敏排障摘要。"""
     user_trace_hash = trace_hashes.get("user_trace_hash", "")
-    device_trace_hash = trace_hashes.get("device_trace_hash", "")
-    if not user_trace_hash and not device_trace_hash:
+    if not user_trace_hash:
         return "None"
-    return f"{user_trace_hash}&{device_trace_hash}"
+    return f"{user_trace_hash}"
 
 
 def _sha256_trace_value(value: Any) -> str:
