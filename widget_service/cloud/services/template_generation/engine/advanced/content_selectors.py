@@ -43,7 +43,10 @@ _SELECTOR_COMPONENT_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
         ),
     ),
     "DateOverview": ("date", ("date", "weekday")),
-    "ScheduleOverview": ("schedule", ("title", "timeText", "location")),
+    "ScheduleOverview": (
+        "schedule",
+        ("title", "timeText", "timeZone", "isAllDay", "location"),
+    ),
     "LocationOverview": ("location", ("label", "city", "updatedText")),
 }
 
@@ -161,6 +164,26 @@ class ScheduleOverviewFacts:
         if self.location is not None:
             selected["location"] = _field(self.location, "可信首项日程地点")
         return selected
+
+
+@dataclass(frozen=True)
+class ScheduleTimezoneFacts:
+    title: str
+    time_zone: str
+    is_all_day: bool
+    location: str
+
+    def as_selector(self) -> dict[str, dict[str, Any]]:
+        return {
+            "title": _field(self.title, "可信首项日程标题"),
+            "timeZone": _field(self.time_zone, "可信首项日程时区"),
+            "isAllDay": {
+                "type": "boolean",
+                "description": "可信首项日程全天状态",
+                "sampleValue": self.is_all_day,
+            },
+            "location": _field(self.location, "可信首项日程地点"),
+        }
 
 
 @dataclass(frozen=True)
@@ -1439,14 +1462,20 @@ def project_content_component_facts(
         elif component_id == "CalendarOverview":
             date_facts = extract_date_overview_facts(schema)
             schedule_facts = extract_schedule_overview_facts(schema)
+            timezone_facts = extract_schedule_timezone_facts(schema)
             if date_facts is not None:
                 selected.update(date_facts.as_selector())
             if schedule_facts is not None:
                 selected.update(schedule_facts.as_selector())
+            if timezone_facts is not None:
+                selected.update(timezone_facts.as_selector())
         elif component_id == "ScheduleOverview":
             schedule_facts = extract_schedule_overview_facts(schema)
+            timezone_facts = extract_schedule_timezone_facts(schema)
             if schedule_facts is not None:
-                selected = schedule_facts.as_selector()
+                selected.update(schedule_facts.as_selector())
+            if timezone_facts is not None:
+                selected.update(timezone_facts.as_selector())
         elif component_id == "DateOverview":
             date_facts = extract_date_overview_facts(schema)
             if date_facts is not None:
@@ -2030,9 +2059,13 @@ def schedule_overview_is_eligible(
     if "GetCalendarEvents" not in capability_ids:
         return False
     facts = extract_schedule_overview_facts(task_spec.dataModelSchema)
-    if facts is None or not schedule_overview_query_is_supported(task_spec.userQuery):
+    timezone_facts = extract_schedule_timezone_facts(task_spec.dataModelSchema)
+    if facts is None and timezone_facts is None:
         return False
-    if schedule_query_requests_location(task_spec.userQuery) and facts.location is None:
+    if not schedule_overview_query_is_supported(task_spec.userQuery):
+        return False
+    location = facts.location if facts is not None else timezone_facts.location
+    if schedule_query_requests_location(task_spec.userQuery) and location is None:
         return False
     return _requested_schedule_assets_are_available(task_spec)
 
@@ -2780,17 +2813,41 @@ def extract_schedule_overview_facts(schema: dict[str, Any]) -> ScheduleOverviewF
     fields = event.get("properties") if isinstance(event.get("properties"), dict) else event
     title = _trusted_string(fields.get("title"))
     start = _trusted_string(fields.get("dtStart"))
-    time_zone = _trusted_string(fields.get("timeZone"))
-    if title is None or (start is None and time_zone is None):
+    if title is None or start is None:
         return None
     end = _trusted_string(fields.get("dtEnd"))
     location = _trusted_string(fields.get("eventLocation"))
-    if start is not None:
-        time_text = f"{start} - {end}" if end is not None else start
-    else:
-        assert time_zone is not None
-        time_text = time_zone
+    time_text = f"{start} - {end}" if end is not None else start
     return ScheduleOverviewFacts(title=title, time_text=time_text, location=location)
+
+
+def extract_schedule_timezone_facts(
+    schema: dict[str, Any],
+) -> ScheduleTimezoneFacts | None:
+    """Extract the raw fields required by the dedicated timezone schedule template."""
+    provider = _calendar_schedule_provider(schema)
+    if provider is None:
+        return None
+    event_count = _sample_value(provider.get("eventCount"))
+    if isinstance(event_count, (int, float)) and not isinstance(event_count, bool):
+        if event_count <= 0:
+            return None
+    event = _first_event_object(provider.get("events"))
+    if event is None:
+        return None
+    fields = event.get("properties") if isinstance(event.get("properties"), dict) else event
+    title = _trusted_string(fields.get("title"))
+    time_zone = _trusted_string(fields.get("timeZone"))
+    is_all_day = _trusted_boolean(fields.get("isAllDay"))
+    location = _trusted_string(fields.get("eventLocation"))
+    if title is None or time_zone is None or is_all_day is None or location is None:
+        return None
+    return ScheduleTimezoneFacts(
+        title=title,
+        time_zone=time_zone,
+        is_all_day=is_all_day,
+        location=location,
+    )
 
 
 def _projected_schedule_candidates(schema: dict[str, Any]):
@@ -3020,6 +3077,9 @@ def _calendar_selectors(
 ) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
     schedule_facts = extract_schedule_overview_facts(schema)
     schedule = schedule_facts.as_selector() if schedule_facts is not None else {}
+    timezone_facts = extract_schedule_timezone_facts(schema)
+    if timezone_facts is not None:
+        schedule.update(timezone_facts.as_selector())
     date_facts = extract_date_overview_facts(schema)
     return schedule, date_facts.as_selector() if date_facts is not None else {}
 

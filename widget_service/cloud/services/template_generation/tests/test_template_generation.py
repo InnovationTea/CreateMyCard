@@ -50,7 +50,10 @@ from services.template_generation.engine.advanced.content_selectors import (
     app_usage_overview_query_is_supported,
     apply_content_selectors,
     extract_battery_overview_facts,
+    extract_schedule_overview_facts,
+    extract_schedule_timezone_facts,
     extract_workout_latest_facts,
+    schedule_overview_is_eligible,
 )
 from services.template_generation.engine.advanced.data_shape import extract_data_shape
 from services.template_generation.engine.advanced.models import (
@@ -293,7 +296,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "ScheduleOverviewDatedMeetingHero@1",
         "ScheduleOverviewNextEventFull@1",
         "ScheduleOverviewNextEventHero@1",
-        "ScheduleOverviewProgressHero@1",
+        "ScheduleOverviewEventCountHero@1",
         "ScheduleOverviewReminderHero@1",
         "ScheduleOverviewTimezoneFull@1",
         "SleepOverviewCompact@1",
@@ -2214,7 +2217,7 @@ async def test_calendar_dnd_action_restores_label_icon_and_scene_header():
     assert "下一场日程" in output.a2ui
     assert "下一个日程" not in output.a2ui
     assert "eventCount" in output.a2ui
-    assert "events/0/description" not in output.a2ui
+    assert "events/0/description" in output.a2ui
     assert "events/0/eventLocation" in output.a2ui
     assert "免打扰" in output.a2ui
     assert "专注模式" not in output.a2ui
@@ -2427,6 +2430,76 @@ def test_calendar_timezone_full_keeps_reference_geometry():
     )
 
 
+def test_calendar_existing_v1_templates_keep_their_optional_data_contracts():
+    registry = get_cardplan_registry()
+    full = registry.require_template("ScheduleOverviewNextEventFull@1")
+    hero = registry.require_template("ScheduleOverviewNextEventHero@1")
+
+    assert full.optional_data == (
+        "/events/0/dtStart",
+        "/events/0/dtEnd",
+        "/events/0/remindTime/0",
+        "/events/0/timeZone",
+        "/events/0/isAllDay",
+        "/events/0/eventLocation",
+    )
+    assert hero.optional_data == (
+        "/events/0/dtStart",
+        "/events/0/dtEnd",
+        "/events/0/remindTime/0",
+        "/eventCount",
+        "/events/0/description",
+        "/events/0/timeZone",
+        "/events/0/isAllDay",
+        "/events/0/eventLocation",
+    )
+
+
+def test_calendar_timezone_has_dedicated_facts_without_becoming_time_text():
+    task = TaskSpec(
+        userQuery="展示跨区会议的标题、时区、全天状态和地点",
+        size="2x2",
+        eventCandidates=[],
+        dataModelSchema={
+            "data": {
+                "calendar": {
+                    "events": [
+                        {
+                            "title": _provider_field("跨区视频会议", "string"),
+                            "timeZone": _provider_field(
+                                "America/Los_Angeles", "string"
+                            ),
+                            "isAllDay": _provider_field(False, "boolean"),
+                            "eventLocation": _provider_field("线上会议室", "string"),
+                        }
+                    ]
+                }
+            }
+        },
+    )
+
+    assert extract_schedule_overview_facts(task.dataModelSchema) is None
+    timezone_facts = extract_schedule_timezone_facts(task.dataModelSchema)
+    assert timezone_facts is not None
+    assert timezone_facts.time_zone == "America/Los_Angeles"
+    assert schedule_overview_is_eligible(task, {"GetCalendarEvents"})
+
+    selected = apply_content_selectors(task, {"GetCalendarEvents"})
+    data = selected.dataModelSchema.get("data")
+    assert isinstance(data, dict)
+    selectors = data.get("_advancedSelectors")
+    assert isinstance(selectors, dict)
+    schedule = selectors.get("schedule")
+    assert isinstance(schedule, dict)
+    assert "timeText" not in schedule
+    time_zone = schedule.get("timeZone")
+    is_all_day = schedule.get("isAllDay")
+    assert isinstance(time_zone, dict)
+    assert isinstance(is_all_day, dict)
+    assert time_zone.get("sampleValue") == "America/Los_Angeles"
+    assert is_all_day.get("sampleValue") is False
+
+
 @pytest.mark.asyncio
 async def test_calendar_timezone_full_accepts_timezone_without_start_time():
     timezone_fields = (
@@ -2500,6 +2573,18 @@ async def test_calendar_timezone_full_accepts_timezone_without_start_time():
     assert "线上会议室" in timezone_output.a2ui
     assert timezone_model.second_layer_prompt is not None
     timezone_rule = timezone_model.second_layer_prompt[1]["content"]
+    timezone_candidate_line = next(
+        line
+        for line in timezone_rule.splitlines()
+        if line.startswith("componentCandidates=")
+    )
+    timezone_candidates = json.loads(
+        timezone_candidate_line.removeprefix("componentCandidates=")
+    )
+    assert set(timezone_candidates[0]["availableTemplateIds"]) == {
+        "ScheduleOverviewNextEventFull@1",
+        "ScheduleOverviewTimezoneFull@1",
+    }
     timezone_group_line = next(
         line
         for line in timezone_rule.splitlines()
@@ -2508,14 +2593,13 @@ async def test_calendar_timezone_full_accepts_timezone_without_start_time():
     timezone_groups = json.loads(
         timezone_group_line.removeprefix("requiredLocalTemplateGroups=")
     )
-    assert set.intersection(*(set(group) for group in timezone_groups)) == {
-        "ScheduleOverviewTimezoneFull@1"
-    }
+    timezone_coverage = set.intersection(*(set(group) for group in timezone_groups))
+    assert "ScheduleOverviewTimezoneFull@1" in timezone_coverage
     assert "ScheduleOverviewTimezoneFull@1" in timezone_rule
 
 
 @pytest.mark.asyncio
-async def test_calendar_progress_hero_keeps_reference_geometry():
+async def test_calendar_event_count_hero_uses_total_without_progress_semantics():
     progress_fields = (
         "/eventCount",
         "/events/0/title",
@@ -2538,7 +2622,7 @@ async def test_calendar_progress_hero_keeps_reference_geometry():
         dataModelSchema={
             "data": {
                 "calendar": {
-                    "eventCount": _provider_field(1, "integer"),
+                    "eventCount": _provider_field(7, "integer"),
                     "events": [
                         {
                             "title": _provider_field("项目例会", "string"),
@@ -2568,13 +2652,13 @@ async def test_calendar_progress_hero_keeps_reference_geometry():
     progress_model = _FixedTemplateModel(
         theme_id="meeting-paper-neutral",
         component_id="CalendarOverview",
-        available_template_ids=("ScheduleOverviewProgressHero@1",),
+        available_template_ids=("ScheduleOverviewEventCountHero@1",),
         capability_id="GetCalendarEvents",
         required_fields=progress_fields,
         action_id="event.viewCalendarEvent",
         body=(
             'Template("HeroActionLayout@1",{},'
-            'Template("ScheduleOverviewProgressHero@1",'
+            'Template("ScheduleOverviewEventCountHero@1",'
             '{"headerLabel":"今日日程清点"}),'
             'Template("PillAction@1",{"actionId":"event.viewCalendarEvent",'
             '"label":"查看日程"}));'
@@ -2589,17 +2673,12 @@ async def test_calendar_progress_hero_keeps_reference_geometry():
     )
 
     assert progress_output.template_ids == (
-        "ScheduleOverviewProgressHero@1",
+        "ScheduleOverviewEventCountHero@1",
         "PillAction@1",
         "HeroActionLayout@1",
     )
     progress_messages = [json.loads(line) for line in progress_output.a2ui.splitlines()]
     progress_components = progress_messages[1]["updateComponents"]["components"]
-    progress = next(
-        component
-        for component in progress_components
-        if component.get("component") == "Progress"
-    )
     progress_dot = next(
         component
         for component in progress_components
@@ -2612,11 +2691,58 @@ async def test_calendar_progress_hero_keeps_reference_geometry():
         for component in progress_components
         if progress_dot["id"] in component.get("children", ())
     )
-    assert progress["total"] == 5
-    assert progress["styles"]["height"] == 8
+    progress_components_by_id = {
+        component["id"]: component for component in progress_components
+    }
+    progress_event_row = next(
+        component
+        for component in progress_components
+        if progress_dot_column["id"] in component.get("children", ())
+    )
+    progress_content = next(
+        component
+        for component in progress_components
+        if progress_event_row["id"] in component.get("children", ())
+    )
+    progress_content_slot = next(
+        component
+        for component in progress_components
+        if progress_content["id"] in component.get("children", ())
+    )
+    progress_content_children = [
+        progress_components_by_id[child_id]
+        for child_id in progress_content.get("children", ())
+    ]
+    progress_content_height = sum(
+        child["styles"]["height"] for child in progress_content_children
+    ) + progress_content.get("itemMargin", 0) * max(
+        len(progress_content_children) - 1, 0
+    )
+    progress_detail_column = next(
+        progress_components_by_id[child_id]
+        for child_id in progress_event_row.get("children", ())
+        if child_id != progress_dot_column["id"]
+    )
+    progress_detail_children = [
+        progress_components_by_id[child_id]
+        for child_id in progress_detail_column.get("children", ())
+    ]
+    progress_detail_height = sum(
+        child["styles"]["height"] for child in progress_detail_children
+    ) + progress_detail_column.get("itemMargin", 0) * max(
+        len(progress_detail_children) - 1, 0
+    )
+    assert all(
+        component.get("component") != "Progress" for component in progress_components
+    )
+    assert progress_content_height <= progress_content_slot["styles"]["height"]
+    assert progress_detail_height <= progress_detail_column["styles"]["height"]
     assert progress_dot_column["styles"]["padding"]["top"] == 4
     assert progress_dot["styles"]["backgroundColor"] == "#00FFFFFF"
-    assert "今日还剩" in progress_output.a2ui
+    assert "已查询 " in progress_output.a2ui
+    assert " 项日程" in progress_output.a2ui
+    assert "今日还剩" not in progress_output.a2ui
+    assert "5 -" not in progress_output.a2ui
     assert "查看日程" in progress_output.a2ui
     assert progress_model.second_layer_prompt is not None
     progress_candidate_line = next(
@@ -2629,7 +2755,7 @@ async def test_calendar_progress_hero_keeps_reference_geometry():
     )
     assert set(progress_candidates[0]["availableTemplateIds"]) == {
         "ScheduleOverviewNextEventHero@1",
-        "ScheduleOverviewProgressHero@1",
+        "ScheduleOverviewEventCountHero@1",
     }
     progress_group_line = next(
         line
@@ -2639,12 +2765,12 @@ async def test_calendar_progress_hero_keeps_reference_geometry():
     progress_groups = json.loads(
         progress_group_line.removeprefix("requiredLocalTemplateGroups=")
     )
-    assert set.intersection(*(set(group) for group in progress_groups)) == {
-        "ScheduleOverviewProgressHero@1"
-    }
+    event_count_coverage = set.intersection(*(set(group) for group in progress_groups))
+    assert "ScheduleOverviewEventCountHero@1" in event_count_coverage
     progress_rule = progress_model.second_layer_prompt[1]["content"]
-    assert "ScheduleOverviewProgressHero@1" in progress_rule
-    assert "今日计划 5 件事" in progress_rule
+    assert "ScheduleOverviewEventCountHero@1" in progress_rule
+    assert "查询返回的日程记录总数" in progress_rule
+    assert "进度总数为 5" not in progress_rule
 
 
 def test_pr7_resource_battery_outer_title_keeps_the_reviewed_subtext_style():
