@@ -50,7 +50,10 @@ from services.template_generation.engine.advanced.content_selectors import (
     app_usage_overview_query_is_supported,
     apply_content_selectors,
     extract_battery_overview_facts,
+    extract_schedule_overview_facts,
+    extract_schedule_timezone_facts,
     extract_workout_latest_facts,
+    schedule_overview_is_eligible,
 )
 from services.template_generation.engine.advanced.data_shape import extract_data_shape
 from services.template_generation.engine.advanced.models import (
@@ -276,7 +279,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 88
+    assert len(registry.provider_template_ids) == 90
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -293,7 +296,9 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "ScheduleOverviewDatedMeetingHero@1",
         "ScheduleOverviewNextEventFull@1",
         "ScheduleOverviewNextEventHero@1",
+        "ScheduleOverviewEventCountHero@1",
         "ScheduleOverviewReminderHero@1",
+        "ScheduleOverviewTimezoneFull@1",
         "SleepOverviewCompact@1",
         "SleepOverviewFull@1",
         "SleepOverviewHero@1",
@@ -429,7 +434,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 13
+    assert len(calendar.local_template_ids) == 15
     assert set(calendar.local_template_ids) >= {
         "DateOverviewCompact@1",
         "ScheduleOverviewMeetingCompact@1",
@@ -2393,6 +2398,380 @@ async def test_calendar_reminder_hero_keeps_start_and_advance_notice():
     assert "设置闹钟" in second_layer_rule
     assert "闹钟或提醒语义素材" in second_layer_rule
     assert "标题栏不接收素材" in second_layer_rule
+
+
+def test_calendar_timezone_full_keeps_reference_geometry():
+    registry = get_cardplan_registry()
+    definition = registry.require_template("ScheduleOverviewTimezoneFull@1")
+    timezone = registry.require_variant(
+        "ScheduleOverviewTimezoneFull@1",
+        "default",
+    ).root
+    timezone_text_options = _template_node_options(timezone.children[1])
+    timezone_timeline = timezone.children[2]
+    timezone_dot_column = timezone_timeline.children[0]
+    timezone_dot = timezone_dot_column.children[0]
+
+    assert timezone_text_options["height"] == 44
+    assert timezone_text_options["fontSize"] == 16
+    assert timezone_text_options["maxLines"] == 1
+    timeline_padding = timezone_timeline.values[-1].properties["padding"].properties
+    dot_padding = timezone_dot_column.values[-1].properties["padding"].properties
+    assert timeline_padding["top"].value == 10
+    assert dot_padding["top"].value == 4
+    assert _template_node_options(timezone_dot)["borderWidth"] == 1.5
+    assert _template_node_options(timezone_dot)["backgroundColor"] == "#00FFFFFF"
+    assert definition.primary_data == (
+        "/events/0/timeZone",
+        "/events/0/title",
+    )
+    assert definition.secondary_data == (
+        "/events/0/isAllDay",
+        "/events/0/eventLocation",
+    )
+
+
+def test_calendar_existing_v1_templates_keep_their_optional_data_contracts():
+    registry = get_cardplan_registry()
+    full = registry.require_template("ScheduleOverviewNextEventFull@1")
+    hero = registry.require_template("ScheduleOverviewNextEventHero@1")
+
+    assert full.optional_data == (
+        "/events/0/dtStart",
+        "/events/0/dtEnd",
+        "/events/0/remindTime/0",
+        "/events/0/timeZone",
+        "/events/0/isAllDay",
+        "/events/0/eventLocation",
+    )
+    assert hero.optional_data == (
+        "/events/0/dtStart",
+        "/events/0/dtEnd",
+        "/events/0/remindTime/0",
+        "/eventCount",
+        "/events/0/description",
+        "/events/0/timeZone",
+        "/events/0/isAllDay",
+        "/events/0/eventLocation",
+    )
+
+
+def test_calendar_timezone_has_dedicated_facts_without_becoming_time_text():
+    task = TaskSpec(
+        userQuery="展示跨区会议的标题、时区、全天状态和地点",
+        size="2x2",
+        eventCandidates=[],
+        dataModelSchema={
+            "data": {
+                "calendar": {
+                    "events": [
+                        {
+                            "title": _provider_field("跨区视频会议", "string"),
+                            "timeZone": _provider_field(
+                                "America/Los_Angeles", "string"
+                            ),
+                            "isAllDay": _provider_field(False, "boolean"),
+                            "eventLocation": _provider_field("线上会议室", "string"),
+                        }
+                    ]
+                }
+            }
+        },
+    )
+
+    assert extract_schedule_overview_facts(task.dataModelSchema) is None
+    timezone_facts = extract_schedule_timezone_facts(task.dataModelSchema)
+    assert timezone_facts is not None
+    assert timezone_facts.time_zone == "America/Los_Angeles"
+    assert schedule_overview_is_eligible(task, {"GetCalendarEvents"})
+
+    selected = apply_content_selectors(task, {"GetCalendarEvents"})
+    data = selected.dataModelSchema.get("data")
+    assert isinstance(data, dict)
+    selectors = data.get("_advancedSelectors")
+    assert isinstance(selectors, dict)
+    schedule = selectors.get("schedule")
+    assert isinstance(schedule, dict)
+    assert "timeText" not in schedule
+    time_zone = schedule.get("timeZone")
+    is_all_day = schedule.get("isAllDay")
+    assert isinstance(time_zone, dict)
+    assert isinstance(is_all_day, dict)
+    assert time_zone.get("sampleValue") == "America/Los_Angeles"
+    assert is_all_day.get("sampleValue") is False
+
+
+@pytest.mark.asyncio
+async def test_calendar_timezone_full_accepts_timezone_without_start_time():
+    timezone_fields = (
+        "/events/0/title",
+        "/events/0/timeZone",
+        "/events/0/isAllDay",
+        "/events/0/eventLocation",
+    )
+    timezone_task = TaskSpec(
+        userQuery="下周一和美国团队开会，展示标题、时区、全天状态和地点",
+        size="2x2",
+        eventCandidates=[],
+        dataModelSchema={
+            "data": {
+                "calendar": {
+                    "events": [
+                        {
+                            "title": _provider_field("跨区视频会议", "string"),
+                            "timeZone": _provider_field(
+                                "America/Los_Angeles", "string"
+                            ),
+                            "isAllDay": _provider_field(False, "boolean"),
+                            "eventLocation": _provider_field("线上会议室", "string"),
+                        }
+                    ]
+                }
+            }
+        },
+    )
+    timezone_binding = CandidateDataBinding(
+        capabilityId="GetCalendarEvents",
+        writeResultTo="/data/calendar",
+        candidateOutputFields=list(timezone_fields),
+    )
+    timezone_spec = {
+        "title": "日程详情",
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {
+                "capabilityId": "GetCalendarEvents",
+                "writeResultTo": "/data/calendar",
+            }
+        ],
+    }
+    timezone_model = _FixedTemplateModel(
+        theme_id="meeting-paper-neutral",
+        component_id="CalendarOverview",
+        available_template_ids=("ScheduleOverviewTimezoneFull@1",),
+        capability_id="GetCalendarEvents",
+        required_fields=timezone_fields,
+        body=(
+            'Template("SingleFocusLayout@1",{},'
+            'Template("ScheduleOverviewTimezoneFull@1",'
+            '{"headerLabel":"日程详情"}));'
+        ),
+    )
+
+    timezone_output = await generate_template_a2ui(
+        timezone_task,
+        timezone_spec,
+        (timezone_binding,),
+        timezone_model,
+    )
+
+    assert timezone_output.template_ids == (
+        "ScheduleOverviewTimezoneFull@1",
+        "SingleFocusLayout@1",
+    )
+    assert "America/Los_Angeles" in timezone_output.a2ui
+    assert "非全天" in timezone_output.a2ui
+    assert "线上会议室" in timezone_output.a2ui
+    assert timezone_model.second_layer_prompt is not None
+    timezone_rule = timezone_model.second_layer_prompt[1]["content"]
+    timezone_candidate_line = next(
+        line
+        for line in timezone_rule.splitlines()
+        if line.startswith("componentCandidates=")
+    )
+    timezone_candidates = json.loads(
+        timezone_candidate_line.removeprefix("componentCandidates=")
+    )
+    assert set(timezone_candidates[0]["availableTemplateIds"]) == {
+        "ScheduleOverviewNextEventFull@1",
+        "ScheduleOverviewTimezoneFull@1",
+    }
+    timezone_group_line = next(
+        line
+        for line in timezone_rule.splitlines()
+        if line.startswith("requiredLocalTemplateGroups=")
+    )
+    timezone_groups = json.loads(
+        timezone_group_line.removeprefix("requiredLocalTemplateGroups=")
+    )
+    timezone_coverage = set.intersection(*(set(group) for group in timezone_groups))
+    assert "ScheduleOverviewTimezoneFull@1" in timezone_coverage
+    assert "ScheduleOverviewTimezoneFull@1" in timezone_rule
+
+
+@pytest.mark.asyncio
+async def test_calendar_event_count_hero_uses_total_without_progress_semantics():
+    progress_fields = (
+        "/eventCount",
+        "/events/0/title",
+        "/events/0/dtStart",
+        "/events/0/description",
+    )
+    progress_task = TaskSpec(
+        userQuery="今天排了5件事，显示进度、剩余件数和最近日程，点一下进详情",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.viewCalendarEvent",
+                call="clickToIntent",
+                args={
+                    "intentName": "ViewCalendarEvent",
+                    "params": {"entityId": "event-1"},
+                },
+            )
+        ],
+        dataModelSchema={
+            "data": {
+                "calendar": {
+                    "eventCount": _provider_field(7, "integer"),
+                    "events": [
+                        {
+                            "title": _provider_field("项目例会", "string"),
+                            "dtStart": _provider_field("14:00", "string"),
+                            "description": _provider_field("评审本周进度", "string"),
+                        }
+                    ],
+                }
+            }
+        },
+    )
+    progress_binding = CandidateDataBinding(
+        capabilityId="GetCalendarEvents",
+        writeResultTo="/data/calendar",
+        candidateOutputFields=list(progress_fields),
+    )
+    progress_spec = {
+        "title": "今日日程清点",
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {
+                "capabilityId": "GetCalendarEvents",
+                "writeResultTo": "/data/calendar",
+            }
+        ],
+    }
+    progress_model = _FixedTemplateModel(
+        theme_id="meeting-paper-neutral",
+        component_id="CalendarOverview",
+        available_template_ids=("ScheduleOverviewEventCountHero@1",),
+        capability_id="GetCalendarEvents",
+        required_fields=progress_fields,
+        action_id="event.viewCalendarEvent",
+        body=(
+            'Template("HeroActionLayout@1",{},'
+            'Template("ScheduleOverviewEventCountHero@1",'
+            '{"headerLabel":"今日日程清点"}),'
+            'Template("PillAction@1",{"actionId":"event.viewCalendarEvent",'
+            '"label":"查看日程"}));'
+        ),
+    )
+
+    progress_output = await generate_template_a2ui(
+        progress_task,
+        progress_spec,
+        (progress_binding,),
+        progress_model,
+    )
+
+    assert progress_output.template_ids == (
+        "ScheduleOverviewEventCountHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1",
+    )
+    progress_messages = [json.loads(line) for line in progress_output.a2ui.splitlines()]
+    progress_components = progress_messages[1]["updateComponents"]["components"]
+    progress_dot = next(
+        component
+        for component in progress_components
+        if component.get("component") == "Stack"
+        and component.get("styles", {}).get("width") == 8
+        and component.get("styles", {}).get("borderWidth") == 1.5
+    )
+    progress_dot_column = next(
+        component
+        for component in progress_components
+        if progress_dot["id"] in component.get("children", ())
+    )
+    progress_components_by_id = {
+        component["id"]: component for component in progress_components
+    }
+    progress_event_row = next(
+        component
+        for component in progress_components
+        if progress_dot_column["id"] in component.get("children", ())
+    )
+    progress_content = next(
+        component
+        for component in progress_components
+        if progress_event_row["id"] in component.get("children", ())
+    )
+    progress_content_slot = next(
+        component
+        for component in progress_components
+        if progress_content["id"] in component.get("children", ())
+    )
+    progress_content_children = [
+        progress_components_by_id[child_id]
+        for child_id in progress_content.get("children", ())
+    ]
+    progress_content_height = sum(
+        child["styles"]["height"] for child in progress_content_children
+    ) + progress_content.get("itemMargin", 0) * max(
+        len(progress_content_children) - 1, 0
+    )
+    progress_detail_column = next(
+        progress_components_by_id[child_id]
+        for child_id in progress_event_row.get("children", ())
+        if child_id != progress_dot_column["id"]
+    )
+    progress_detail_children = [
+        progress_components_by_id[child_id]
+        for child_id in progress_detail_column.get("children", ())
+    ]
+    progress_detail_height = sum(
+        child["styles"]["height"] for child in progress_detail_children
+    ) + progress_detail_column.get("itemMargin", 0) * max(
+        len(progress_detail_children) - 1, 0
+    )
+    assert all(
+        component.get("component") != "Progress" for component in progress_components
+    )
+    assert progress_content_height <= progress_content_slot["styles"]["height"]
+    assert progress_detail_height <= progress_detail_column["styles"]["height"]
+    assert progress_dot_column["styles"]["padding"]["top"] == 4
+    assert progress_dot["styles"]["backgroundColor"] == "#00FFFFFF"
+    assert "已查询 " in progress_output.a2ui
+    assert " 项日程" in progress_output.a2ui
+    assert "今日还剩" not in progress_output.a2ui
+    assert "5 -" not in progress_output.a2ui
+    assert "查看日程" in progress_output.a2ui
+    assert progress_model.second_layer_prompt is not None
+    progress_candidate_line = next(
+        line
+        for line in progress_model.second_layer_prompt[1]["content"].splitlines()
+        if line.startswith("componentCandidates=")
+    )
+    progress_candidates = json.loads(
+        progress_candidate_line.removeprefix("componentCandidates=")
+    )
+    assert set(progress_candidates[0]["availableTemplateIds"]) == {
+        "ScheduleOverviewNextEventHero@1",
+        "ScheduleOverviewEventCountHero@1",
+    }
+    progress_group_line = next(
+        line
+        for line in progress_model.second_layer_prompt[1]["content"].splitlines()
+        if line.startswith("requiredLocalTemplateGroups=")
+    )
+    progress_groups = json.loads(
+        progress_group_line.removeprefix("requiredLocalTemplateGroups=")
+    )
+    event_count_coverage = set.intersection(*(set(group) for group in progress_groups))
+    assert "ScheduleOverviewEventCountHero@1" in event_count_coverage
+    progress_rule = progress_model.second_layer_prompt[1]["content"]
+    assert "ScheduleOverviewEventCountHero@1" in progress_rule
+    assert "查询返回的日程记录总数" in progress_rule
+    assert "进度总数为 5" not in progress_rule
 
 
 def test_pr7_resource_battery_outer_title_keeps_the_reviewed_subtext_style():

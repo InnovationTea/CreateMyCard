@@ -103,6 +103,38 @@
       ]
     },
     {
+      "templateId": "ScheduleOverviewTimezoneFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "2x2 时区日程详情；以时区为主视觉，时间轴展示标题、全天状态与会议地点。 组件形态：timezoneDetail。",
+      "optionalData": [],
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/events/0/timeZone",
+        "/events/0/title"
+      ],
+      "secondaryData": [
+        "/events/0/isAllDay",
+        "/events/0/eventLocation"
+      ]
+    },
+    {
+      "templateId": "ScheduleOverviewEventCountHero@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "2x2 日程查询总量 Hero；准确展示本次查询返回的日程总数，以及最近日程的标题、开始时间和备注；底部动作由 HeroActionLayout 承载。 组件形态：eventCountAction。",
+      "optionalData": [],
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/eventCount",
+        "/events/0/title"
+      ],
+      "secondaryData": [
+        "/events/0/dtStart",
+        "/events/0/description"
+      ]
+    },
+    {
       "templateId": "ScheduleOverviewDatedMeetingHero@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
