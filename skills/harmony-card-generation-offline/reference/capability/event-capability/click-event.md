@@ -7,7 +7,7 @@
   "capabilities": [
     {
       "functionCall": "clickToApi",
-      "description": "点击执行特定的系统或业务API能力。只能使用 supportedTargets 中列出的合法 intentName 和 params，不要自行编造参数。",
+      "description": "执行注册表声明的系统或业务 API 动作。",
       "parameters": {
         "intentName": {
           "type": "string",
@@ -25,24 +25,24 @@
       "supportedTargets": [
         {
           "intentName": "CallPhone",
-          "description": "点击跳转至指定号码的拨号界面",
+          "description": "打开拨号界面；提供电话号码时预填该号码。",
           "params": {
             "phoneNumber": {
               "type": "string",
-              "description": "需要拨打的电话号码，如果用户提供了填入，没有提供传空字符串''。"
+              "description": "用户提供电话号码时填写；未提供时填写空字符串。"
             }
           }
         },
         {
           "intentName": "CleanRAMMemory",
-          "description": "点击清理手机运行时内存，释放系统资源",
+          "description": "立即清理手机运行内存并释放系统资源。",
           "params": {}
         }
       ]
     },
     {
       "functionCall": "clickToDeeplink",
-      "description": "点击可跳转到指定某应用的某页面。大模型需根据用户意图，从 supportedTargets 中匹配出合法的 intentName、bundleName、abilityName 和 uri 组合进行输出，不要自行编造参数。",
+      "description": "打开注册表声明的应用或页面。",
       "parameters": {
         "intentName": {
           "type": "string",
@@ -75,27 +75,27 @@
           "pages": [
             {
               "uri": "intelligent_scene_entry",
-              "description": "打开系统设置中的情景模式，用户可以打开免打扰或专注模式"
+              "description": "打开系统设置的情景模式页，可配置免打扰或专注模式。"
             },
             {
               "uri": "bluetooth_entry",
-              "description": "打开系统设置中的蓝牙设置页"
+              "description": "打开系统设置的蓝牙设置页。"
             },
             {
               "uri": "battery",
-              "description": "打开系统设置中的电池页"
+              "description": "打开系统设置的电池页。"
             },
             {
               "uri": "smart_charge_battery_health",
-              "description": "打开系统设置中的电池健康页"
+              "description": "打开系统设置的电池健康页。"
             },
             {
               "uri": "parent_control",
-              "description": "打开系统设置中的健康使用App页面，为了设置应用使用时长"
+              "description": "打开系统设置的健康使用设备页，可设置应用使用时长。"
             },
             {
               "uri": "storage_settings",
-              "description": "打开系统设置中的存储空间页"
+              "description": "打开系统设置的存储空间页。"
             }
           ]
         },
@@ -108,20 +108,20 @@
           "pages": [
             {
               "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}",
-              "description": "打开手机天气应用某城市页，uri为固定值勿更改。cityCode来自于数据能力中ViewWeather出参cityCode字段，进行动态拼接，表示跳转到指定城市天气页。"
+              "description": "打开天气应用中与当前卡片城市对应的天气详情页。"
             }
           ]
         },
         {
           "appName": "闹钟",
           "intentName": "Clock",
-          "description": "打开闹钟应用首页",
+          "description": "打开时钟应用的闹钟首页。",
           "bundleName": "com.huawei.hmos.clock",
           "abilityName": "com.huawei.hmos.clock.phone",
           "pages": [
             {
               "uri": "",
-              "description": "打开闹钟应用首页"
+              "description": "打开时钟应用的闹钟首页。"
             }
           ]
         },
@@ -134,11 +134,11 @@
           "pages": [
             {
               "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4",
-              "description": "打开音乐app的每日30首歌单，uri为固定值勿更改"
+              "description": "打开音乐应用的“每日30首”歌单。"
             },
             {
               "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412",
-              "description": "打开音乐app的收藏歌单/心动歌单，uri为固定值勿更改"
+              "description": "打开音乐应用的收藏歌单（心动歌单）。"
             }
           ]
         },
@@ -151,11 +151,11 @@
           "pages": [
             {
               "uri": "huaweischeme://healthapp/home/sport?sportType=2",
-              "description": "打开运动健康应用的锻炼Tab页"
+              "description": "打开运动健康应用的锻炼页。"
             },
             {
               "uri": "huaweischeme://healthapp/router/sleepDetail",
-              "description": "打开运动健康应用的睡眠详情页"
+              "description": "打开运动健康应用的睡眠详情页。"
             }
           ]
         },
@@ -168,7 +168,7 @@
           "pages": [
             {
               "uri": "{{ ${/data/calendar/events/i/oneClickServiceLink} }}",
-              "description": "点击一键加入下一个日程对应的Welink会议。uri取自数据能力GetCalendarEvents返回结果中event的oneClickServiceLink字段。注意：模板中events/i的i需替换为当前事件的实际索引，如events/0、events/1等。"
+              "description": "打开所选日程关联的会议链接。"
             }
           ]
         }
@@ -176,7 +176,7 @@
     },
     {
       "functionCall": "clickToIntent",
-      "description": "点击跳转到指定应用或页面。只能使用 supportedTargets 中列出的合法intentName和params不要自行编造参数。",
+      "description": "执行注册表声明的应用或页面意图。",
       "parameters": {
         "intentName": {
           "type": "string",
@@ -194,47 +194,47 @@
       "supportedTargets": [
         {
           "intentName": "ViewCalendarEvent",
-          "description": "点击日程卡片 or 日程按钮，跳转到日程 App 查看该日程的详情",
+          "description": "打开所选日程的详情页。",
           "params": {
             "entityId": "{{ ${/data/calendar/events/i/entityId} }}",
-            "description": "entityId取自数据能力GetCalendarEvents返回结果中event的entityId字段。"
+            "description": "值取自 GetCalendarEvents 返回的 events[i].entityId；将 i 替换为所选日程在 events 数组中的实际索引。"
           }
         },
         {
           "intentName": "StartNavigate",
-          "description": "点击导航按钮，跳转到地图应用进行导航。大模型需根据用户说的目的地选择location的值，只支持回家和去公司的导航",
+          "description": "打开地图应用，导航回家或前往公司。",
           "params": {
             "dstLocation": {
               "location": {
                 "type": "string",
-                "description": "根据用户意图判断，用户说'导航回家'传home,'导航去公司'传company。"
+                "description": "根据用户目的地填写：回家为 home，前往公司为 company。"
               },
               "latitude": {
                 "type": "string",
-                "description": "目标地点的纬度坐标，返回空字符串''即可"
+                "description": "当前能力不接收纬度，固定填写空字符串。"
               },
               "longitude": {
                 "type": "string",
-                "description": "目标地点的经度坐标，返回空字符串''即可"
+                "description": "当前能力不接收经度，固定填写空字符串。"
               }
             }
           }
         },
         {
           "intentName": "SetSettingSwitch",
-          "description": "点击一键开启/关闭省电模式。大模型根据用户表达确定是开启还是关闭，然后传对应的switchFlag值",
+          "description": "开启或关闭系统省电模式。",
           "params": {
             "appBundleName": {
               "type": "string",
-              "description": "固定值：com.huawei.hmos.settings（设置应用包名）"
+              "description": "固定填写设置应用包名 com.huawei.hmos.settings。"
             },
             "itemName": {
               "type": "string",
-              "description": "固定值：battery_saving_mode（省电模式配置项名称）"
+              "description": "固定填写省电模式配置项 battery_saving_mode。"
             },
             "switchFlag": {
               "type": "number",
-              "description": "开关状态：0表示开启省电模式，1表示关闭省电模式。大模型根据用户意图判断，用户说'开启省电模式'传0，'关闭省电模式'传1"
+              "description": "根据用户要求填写：开启为 0，关闭为 1。"
             }
           }
         }
@@ -256,6 +256,7 @@
 - 当所选 target 的 `params` 是空对象时，`args.params` 也传空对象，不要补造字段。
 - 当 `supportedTargets.params` 的叶子节点是 `type`、`description` 等 schema 说明时，生成 `onClick.args.params` 只保留参数 key 和实际运行时值；不要把 schema 元数据复制到 DSL。若说明中声明固定值，使用该固定值；若说明中要求由用户意图或 DataModel 推导，则填入安全静态值或 `{ "path": "..." }` 绑定。
 - 事件参数可以来自安全静态值、DataModel 绝对路径，或模板列表项的相对路径。来自 data capability 输出的字段，必须能从 `writeResultTo + outputSchema` 推导。
+- 日程会议链接和日程详情标识分别取自 `GetCalendarEvents` 的 `events[i].oneClickServiceLink` 与 `events[i].entityId`；`i` 必须替换为所选日程的实际数组索引。
 
 下面仅示例 `ViewCalendarEvent` 这个 supported target 的映射方式；其它 intent 必须按各自 target 的 `params` 结构生成。
 

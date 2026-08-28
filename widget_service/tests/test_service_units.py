@@ -1363,7 +1363,7 @@ def test_event_capability_registry_uses_package_dependencies_only():
     assert destination["properties"]["location"]["enum"] == ["home", "company"]
     power_schema = capability_by_id["event.setPowerSavingMode"].parametersSchema
     switch_flag = power_schema["properties"]["params"]["properties"]["switchFlag"]
-    assert "开启省电模式填写 0" in switch_flag["description"]
+    assert switch_flag["description"] == "根据用户要求填写：开启为 0，关闭为 1。"
     weather = capability_by_id["event.open.weather"]
     assert "/location/cityCode" in weather.parametersSchema["properties"]["uri"]["description"]
     meeting = capability_by_id["event.enter.meeting"]
@@ -1371,6 +1371,22 @@ def test_event_capability_registry_uses_package_dependencies_only():
     assert "oneClickServiceLink" in meeting.actionTemplate.args["uri"]
     calendar = capability_by_id["event.viewCalendarEvent"]
     assert "events/i/entityId" in calendar.actionTemplate.args["params"]["entityId"]
+    assert "心动歌单" in capability_by_id["event.open.music.favorite"].description
+    assert "ViewWeather" in weather.dynamicArguments[0].description
+    assert "GetCalendarEvents" in meeting.dynamicArguments[0].description
+    assert "GetCalendarEvents" in calendar.dynamicArguments[0].description
+    forbidden_description_phrases = (
+        "URI 为固定值勿更改",
+        "uri为固定值勿更改",
+        "i 替换为实际索引",
+        "大模型需",
+        "大模型根据",
+    )
+    assert all(
+        phrase not in capability.description
+        for capability in capabilities
+        for phrase in forbidden_description_phrases
+    )
 
 
 def test_first_interface_keeps_complete_event_action_and_only_dynamic_metadata():
@@ -1396,7 +1412,8 @@ def test_first_interface_keeps_complete_event_action_and_only_dynamic_metadata()
         {
             "path": "/uri",
             "description": (
-                "取自 GetCalendarEvents 的 events[i].oneClickServiceLink，i 替换为实际索引。"
+                "值取自 GetCalendarEvents 返回的 events[i].oneClickServiceLink；"
+                "将 i 替换为所选日程在 events 数组中的实际索引。"
             ),
             "type": "string",
         }
