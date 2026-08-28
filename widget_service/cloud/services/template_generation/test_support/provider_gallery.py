@@ -296,7 +296,6 @@ class GalleryGenerationService(Protocol):
         self,
         request: GenerateWidgetCardRequest,
         *,
-        enable_fusion_ball: bool = False,
         trusted_template_candidate_ids: tuple[str, ...] = (),
         trusted_template_action_ids: tuple[str, ...] = (),
         trusted_template_sample_overrides: dict[str, object] | None = None,
@@ -1005,14 +1004,8 @@ def _expected_action_count(scenario_id: str) -> int:
 class ProviderGalleryBatchRunner:
     """通过正式 Terse DSL Nested-2 服务入口生成 Provider 画廊数据。"""
 
-    def __init__(
-        self,
-        service: GalleryGenerationService,
-        *,
-        enable_fusion_ball: bool = False,
-    ) -> None:
+    def __init__(self, service: GalleryGenerationService) -> None:
         self.service = service
-        self.enable_fusion_ball = enable_fusion_ball
 
     async def run(
         self,
@@ -1113,7 +1106,6 @@ class ProviderGalleryBatchRunner:
         try:
             response = await self.service.generate_widget_card_terse_dsl_nested2(
                 request,
-                enable_fusion_ball=self.enable_fusion_ball,
                 trusted_template_candidate_ids=trusted_template_candidate_ids,
                 trusted_template_action_ids=trusted_template_action_ids,
                 trusted_template_sample_overrides=trusted_template_sample_overrides,
@@ -1255,16 +1247,12 @@ async def generate_provider_gallery(
     concurrency: int = 1,
     provider_ids: set[str] | None = None,
     dry_run: bool = False,
-    enable_fusion_ball: bool = False,
 ) -> GalleryRunSummary:
     """创建共享模型运行时并执行一次完整 Provider 画廊批跑。"""
     runtime = ModelExecutionRuntime()
     try:
         service = WidgetGenerationService(model_runtime=runtime)
-        runner = ProviderGalleryBatchRunner(
-            service,
-            enable_fusion_ball=enable_fusion_ball,
-        )
+        runner = ProviderGalleryBatchRunner(service)
         return await runner.run(
             input_root,
             output_root,

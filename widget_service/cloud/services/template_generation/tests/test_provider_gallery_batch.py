@@ -37,19 +37,16 @@ class _GalleryService:
         self.template_candidate_ids: list[tuple[str, ...]] = []
         self.template_action_ids: list[tuple[str, ...]] = []
         self.template_sample_overrides: list[dict[str, object]] = []
-        self.fusion_ball_flags: list[bool] = []
 
     async def generate_widget_card_terse_dsl_nested2(
         self,
         request: Any,
         *,
-        enable_fusion_ball: bool = False,
         trusted_template_candidate_ids: tuple[str, ...] = (),
         trusted_template_action_ids: tuple[str, ...] = (),
         trusted_template_sample_overrides: dict[str, object] | None = None,
     ) -> GenerateWidgetCardResponse:
         self.requests.append(request)
-        self.fusion_ball_flags.append(enable_fusion_ball)
         self.template_candidate_ids.append(trusted_template_candidate_ids)
         self.template_action_ids.append(trusted_template_action_ids)
         self.template_sample_overrides.append(
@@ -401,7 +398,6 @@ async def test_gallery_runner_calls_public_service_and_groups_a2ui_by_provider(
     assert summary.failed == 1
     assert summary.missing == 1
     assert len(service.requests) == 2
-    assert service.fusion_ball_flags == [False] * 2
     assert all(service.template_candidate_ids)
     assert all(isinstance(item, dict) for item in service.template_sample_overrides)
     assert sorted(len(item) for item in service.template_action_ids) == [0, 2]
