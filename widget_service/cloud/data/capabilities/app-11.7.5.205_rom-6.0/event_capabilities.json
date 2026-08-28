@@ -1,0 +1,1029 @@
+[
+  {
+    "id": "event.call.phone",
+    "type": "event",
+    "description": "点击跳转至指定号码的拨号界面",
+    "actionTemplate": {
+      "call": "clickToApi",
+      "args": {
+        "intentName": "CallPhone",
+        "params": {
+          "phoneNumber": ""
+        }
+      }
+    },
+    "dynamicArguments": [
+      {
+        "path": "/params/phoneNumber",
+        "description": "填写用户提供的电话号码；未提供时填写空字符串。",
+        "type": "string"
+      }
+    ],
+    "targetScene": "CallPhone",
+    "parametersSchema": {
+      "type": "object",
+      "description": "拨号事件的完整 args 对象。",
+      "properties": {
+        "intentName": {
+          "type": "string",
+          "description": "固定填写 CallPhone，不得改写。",
+          "const": "CallPhone"
+        },
+        "params": {
+          "type": "object",
+          "description": "拨号所需参数。",
+          "properties": {
+            "phoneNumber": {
+              "type": "string",
+              "description": "填写用户提供的电话号码；未提供时填写空字符串。"
+            }
+          },
+          "required": [
+            "phoneNumber"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "intentName",
+        "params"
+      ],
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "requiredPackages": []
+    }
+  },
+  {
+    "id": "event.clean.memory",
+    "type": "event",
+    "description": "点击清理手机运行时内存，释放系统资源",
+    "actionTemplate": {
+      "call": "clickToApi",
+      "args": {
+        "intentName": "CleanRAMMemory",
+        "params": {}
+      }
+    },
+    "dynamicArguments": [],
+    "targetScene": "CleanRAMMemory",
+    "parametersSchema": {
+      "type": "object",
+      "description": "内存清理事件的完整 args 对象。",
+      "properties": {
+        "intentName": {
+          "type": "string",
+          "description": "固定填写 CleanRAMMemory，不得改写。",
+          "const": "CleanRAMMemory"
+        },
+        "params": {
+          "type": "object",
+          "description": "固定填写空对象，不得添加参数。",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "intentName",
+        "params"
+      ],
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "requiredPackages": []
+    }
+  },
+  {
+    "id": "event.open.settings.dnd",
+    "type": "event",
+    "description": "打开系统设置中的情景模式，用户可以打开免打扰或专注模式",
+    "actionTemplate": {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Settings",
+        "bundleName": "com.huawei.hmos.settings",
+        "abilityName": "com.huawei.hmos.settings.MainAbility",
+        "uri": "intelligent_scene_entry"
+      }
+    },
+    "dynamicArguments": [],
+    "targetScene": "Settings",
+    "parametersSchema": {
+      "type": "object",
+      "description": "点击事件的完整 args 对象。",
+      "properties": {
+        "intentName": {
+          "type": "string",
+          "description": "固定填写 Settings，不得改写。",
+          "const": "Settings"
+        },
+        "bundleName": {
+          "type": "string",
+          "description": "固定填写目标应用包名，不得改写。",
+          "const": "com.huawei.hmos.settings"
+        },
+        "abilityName": {
+          "type": "string",
+          "description": "固定填写目标 Ability 名称，不得改写。",
+          "const": "com.huawei.hmos.settings.MainAbility"
+        },
+        "uri": {
+          "type": "string",
+          "description": "固定填写 intelligent_scene_entry，打开情景模式页面。",
+          "const": "intelligent_scene_entry"
+        }
+      },
+      "required": [
+        "intentName",
+        "bundleName",
+        "abilityName",
+        "uri"
+      ],
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "requiredPackages": []
+    },
+    "targetApp": "设置"
+  },
+  {
+    "id": "event.open.settings.bluetooth",
+    "type": "event",
+    "description": "打开系统设置中的蓝牙设置页",
+    "actionTemplate": {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Settings",
+        "bundleName": "com.huawei.hmos.settings",
+        "abilityName": "com.huawei.hmos.settings.MainAbility",
+        "uri": "bluetooth_entry"
+      }
+    },
+    "dynamicArguments": [],
+    "targetScene": "Settings",
+    "parametersSchema": {
+      "type": "object",
+      "description": "点击事件的完整 args 对象。",
+      "properties": {
+        "intentName": {
+          "type": "string",
+          "description": "固定填写 Settings，不得改写。",
+          "const": "Settings"
+        },
+        "bundleName": {
+          "type": "string",
+          "description": "固定填写目标应用包名，不得改写。",
+          "const": "com.huawei.hmos.settings"
+        },
+        "abilityName": {
+          "type": "string",
+          "description": "固定填写目标 Ability 名称，不得改写。",
+          "const": "com.huawei.hmos.settings.MainAbility"
+        },
+        "uri": {
+          "type": "string",
+          "description": "固定填写 bluetooth_entry，打开蓝牙设置页。",
+          "const": "bluetooth_entry"
+        }
+      },
+      "required": [
+        "intentName",
+        "bundleName",
+        "abilityName",
+        "uri"
+      ],
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "requiredPackages": []
+    },
+    "targetApp": "设置"
+  },
+  {
+    "id": "event.open.settings.battery",
+    "type": "event",
+    "description": "打开系统设置中的电池页",
+    "actionTemplate": {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Settings",
+        "bundleName": "com.huawei.hmos.settings",
+        "abilityName": "com.huawei.hmos.settings.MainAbility",
+        "uri": "battery"
+      }
+    },
+    "dynamicArguments": [],
+    "targetScene": "Settings",
+    "parametersSchema": {
+      "type": "object",
+      "description": "点击事件的完整 args 对象。",
+      "properties": {
+        "intentName": {
+          "type": "string",
+          "description": "固定填写 Settings，不得改写。",
+          "const": "Settings"
+        },
+        "bundleName": {
+          "type": "string",
+          "description": "固定填写目标应用包名，不得改写。",
+          "const": "com.huawei.hmos.settings"
+        },
+        "abilityName": {
+          "type": "string",
+          "description": "固定填写目标 Ability 名称，不得改写。",
+          "const": "com.huawei.hmos.settings.MainAbility"
+        },
+        "uri": {
+          "type": "string",
+          "description": "固定填写 battery，打开电池设置页。",
+          "const": "battery"
+        }
+      },
+      "required": [
+        "intentName",
+        "bundleName",
+        "abilityName",
+        "uri"
+      ],
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "requiredPackages": []
+    },
+    "targetApp": "设置"
+  },
+  {
+    "id": "event.open.settings.batteryHealth",
+    "type": "event",
+    "description": "打开系统设置中的电池健康页",
+    "actionTemplate": {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Settings",
+        "bundleName": "com.huawei.hmos.settings",
+        "abilityName": "com.huawei.hmos.settings.MainAbility",
+        "uri": "smart_charge_battery_health"
+      }
+    },
+    "dynamicArguments": [],
+    "targetScene": "Settings",
+    "parametersSchema": {
+      "type": "object",
+      "description": "点击事件的完整 args 对象。",
+      "properties": {
+        "intentName": {
+          "type": "string",
+          "description": "固定填写 Settings，不得改写。",
+          "const": "Settings"
+        },
+        "bundleName": {
+          "type": "string",
+          "description": "固定填写目标应用包名，不得改写。",
+          "const": "com.huawei.hmos.settings"
+        },
+        "abilityName": {
+          "type": "string",
+          "description": "固定填写目标 Ability 名称，不得改写。",
+          "const": "com.huawei.hmos.settings.MainAbility"
+        },
+        "uri": {
+          "type": "string",
+          "description": "固定填写 smart_charge_battery_health，打开电池健康页。",
+          "const": "smart_charge_battery_health"
+        }
+      },
+      "required": [
+        "intentName",
+        "bundleName",
+        "abilityName",
+        "uri"
+      ],
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "requiredPackages": []
+    },
+    "targetApp": "设置"
+  },
+  {
+    "id": "event.open.settings.parentControl",
+    "type": "event",
+    "description": "打开系统设置中的健康使用App页面，为了设置应用使用时长",
+    "actionTemplate": {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Settings",
+        "bundleName": "com.huawei.hmos.settings",
+        "abilityName": "com.huawei.hmos.settings.MainAbility",
+        "uri": "parent_control"
+      }
+    },
+    "dynamicArguments": [],
+    "targetScene": "Settings",
+    "parametersSchema": {
+      "type": "object",
+      "description": "点击事件的完整 args 对象。",
+      "properties": {
+        "intentName": {
+          "type": "string",
+          "description": "固定填写 Settings，不得改写。",
+          "const": "Settings"
+        },
+        "bundleName": {
+          "type": "string",
+          "description": "固定填写目标应用包名，不得改写。",
+          "const": "com.huawei.hmos.settings"
+        },
+        "abilityName": {
+          "type": "string",
+          "description": "固定填写目标 Ability 名称，不得改写。",
+          "const": "com.huawei.hmos.settings.MainAbility"
+        },
+        "uri": {
+          "type": "string",
+          "description": "固定填写 parent_control，打开健康使用 App 页面。",
+          "const": "parent_control"
+        }
+      },
+      "required": [
+        "intentName",
+        "bundleName",
+        "abilityName",
+        "uri"
+      ],
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "requiredPackages": []
+    },
+    "targetApp": "设置"
+  },
+  {
+    "id": "event.open.settings.storage",
+    "type": "event",
+    "description": "打开系统设置中的存储空间页",
+    "actionTemplate": {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Settings",
+        "bundleName": "com.huawei.hmos.settings",
+        "abilityName": "com.huawei.hmos.settings.MainAbility",
+        "uri": "storage_settings"
+      }
+    },
+    "dynamicArguments": [],
+    "targetScene": "Settings",
+    "parametersSchema": {
+      "type": "object",
+      "description": "点击事件的完整 args 对象。",
+      "properties": {
+        "intentName": {
+          "type": "string",
+          "description": "固定填写 Settings，不得改写。",
+          "const": "Settings"
+        },
+        "bundleName": {
+          "type": "string",
+          "description": "固定填写目标应用包名，不得改写。",
+          "const": "com.huawei.hmos.settings"
+        },
+        "abilityName": {
+          "type": "string",
+          "description": "固定填写目标 Ability 名称，不得改写。",
+          "const": "com.huawei.hmos.settings.MainAbility"
+        },
+        "uri": {
+          "type": "string",
+          "description": "固定填写 storage_settings，打开存储空间页。",
+          "const": "storage_settings"
+        }
+      },
+      "required": [
+        "intentName",
+        "bundleName",
+        "abilityName",
+        "uri"
+      ],
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "requiredPackages": []
+    },
+    "targetApp": "设置"
+  },
+  {
+    "id": "event.open.weather",
+    "type": "event",
+    "description": "打开手机天气应用某城市页，uri为固定值勿更改。cityCode来自于数据能力中ViewWeather出参cityCode字段，进行动态拼接，表示跳转到指定城市天气页。",
+    "actionTemplate": {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Weather_CityCode",
+        "bundleName": "",
+        "abilityName": "",
+        "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+      }
+    },
+    "dynamicArguments": [
+      {
+        "path": "/uri",
+        "description": "cityCode 取自 ViewWeather 的 /location/cityCode，保留完整 URI 模板。",
+        "type": "string"
+      }
+    ],
+    "targetScene": "Weather_CityCode",
+    "parametersSchema": {
+      "type": "object",
+      "description": "点击事件的完整 args 对象。",
+      "properties": {
+        "intentName": {
+          "type": "string",
+          "description": "固定填写 Weather_CityCode，不得改写。",
+          "const": "Weather_CityCode"
+        },
+        "bundleName": {
+          "type": "string",
+          "description": "该跳转不需要包名，固定填写空字符串。",
+          "const": ""
+        },
+        "abilityName": {
+          "type": "string",
+          "description": "该跳转不需要 Ability，固定填写空字符串。",
+          "const": ""
+        },
+        "uri": {
+          "type": "string",
+          "description": "cityCode 取自 ViewWeather 的 /location/cityCode，保留完整 URI 模板。"
+        }
+      },
+      "required": [
+        "intentName",
+        "bundleName",
+        "abilityName",
+        "uri"
+      ],
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "requiredPackages": [
+        {
+          "packageName": "com.huawei.hmsapp.totemweather"
+        }
+      ]
+    },
+    "targetApp": "天气"
+  },
+  {
+    "id": "event.open.clock.alarm",
+    "type": "event",
+    "description": "打开闹钟应用首页",
+    "actionTemplate": {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Clock",
+        "bundleName": "com.huawei.hmos.clock",
+        "abilityName": "com.huawei.hmos.clock.phone",
+        "uri": ""
+      }
+    },
+    "dynamicArguments": [],
+    "targetScene": "Clock",
+    "parametersSchema": {
+      "type": "object",
+      "description": "点击事件的完整 args 对象。",
+      "properties": {
+        "intentName": {
+          "type": "string",
+          "description": "固定填写 Clock，不得改写。",
+          "const": "Clock"
+        },
+        "bundleName": {
+          "type": "string",
+          "description": "固定填写目标应用包名，不得改写。",
+          "const": "com.huawei.hmos.clock"
+        },
+        "abilityName": {
+          "type": "string",
+          "description": "固定填写目标 Ability 名称，不得改写。",
+          "const": "com.huawei.hmos.clock.phone"
+        },
+        "uri": {
+          "type": "string",
+          "description": "打开闹钟首页，固定填写空字符串。",
+          "const": ""
+        }
+      },
+      "required": [
+        "intentName",
+        "bundleName",
+        "abilityName",
+        "uri"
+      ],
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "requiredPackages": []
+    },
+    "targetApp": "闹钟"
+  },
+  {
+    "id": "event.open.music.daily",
+    "type": "event",
+    "description": "打开音乐app的每日30首歌单，uri为固定值勿更改",
+    "actionTemplate": {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Music",
+        "bundleName": "",
+        "abilityName": "",
+        "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+      }
+    },
+    "dynamicArguments": [],
+    "targetScene": "Music",
+    "parametersSchema": {
+      "type": "object",
+      "description": "点击事件的完整 args 对象。",
+      "properties": {
+        "intentName": {
+          "type": "string",
+          "description": "固定填写 Music，不得改写。",
+          "const": "Music"
+        },
+        "bundleName": {
+          "type": "string",
+          "description": "该跳转不需要包名，固定填写空字符串。",
+          "const": ""
+        },
+        "abilityName": {
+          "type": "string",
+          "description": "该跳转不需要 Ability，固定填写空字符串。",
+          "const": ""
+        },
+        "uri": {
+          "type": "string",
+          "description": "固定填写每日 30 首歌单的完整 Scheme URI。",
+          "const": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"
+        }
+      },
+      "required": [
+        "intentName",
+        "bundleName",
+        "abilityName",
+        "uri"
+      ],
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "requiredPackages": []
+    },
+    "targetApp": "音乐"
+  },
+  {
+    "id": "event.open.music.favorite",
+    "type": "event",
+    "description": "打开音乐app的收藏歌单/心动歌单，uri为固定值勿更改",
+    "actionTemplate": {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Music",
+        "bundleName": "",
+        "abilityName": "",
+        "uri": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"
+      }
+    },
+    "dynamicArguments": [],
+    "targetScene": "Music",
+    "parametersSchema": {
+      "type": "object",
+      "description": "点击事件的完整 args 对象。",
+      "properties": {
+        "intentName": {
+          "type": "string",
+          "description": "固定填写 Music，不得改写。",
+          "const": "Music"
+        },
+        "bundleName": {
+          "type": "string",
+          "description": "该跳转不需要包名，固定填写空字符串。",
+          "const": ""
+        },
+        "abilityName": {
+          "type": "string",
+          "description": "该跳转不需要 Ability，固定填写空字符串。",
+          "const": ""
+        },
+        "uri": {
+          "type": "string",
+          "description": "固定填写收藏歌单的完整 Scheme URI。",
+          "const": "hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"
+        }
+      },
+      "required": [
+        "intentName",
+        "bundleName",
+        "abilityName",
+        "uri"
+      ],
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "requiredPackages": []
+    },
+    "targetApp": "音乐"
+  },
+  {
+    "id": "event.open.health.sport",
+    "type": "event",
+    "description": "打开运动健康应用的锻炼Tab页",
+    "actionTemplate": {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Health",
+        "bundleName": "",
+        "abilityName": "",
+        "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+      }
+    },
+    "dynamicArguments": [],
+    "targetScene": "Health",
+    "parametersSchema": {
+      "type": "object",
+      "description": "点击事件的完整 args 对象。",
+      "properties": {
+        "intentName": {
+          "type": "string",
+          "description": "固定填写 Health，不得改写。",
+          "const": "Health"
+        },
+        "bundleName": {
+          "type": "string",
+          "description": "该跳转不需要包名，固定填写空字符串。",
+          "const": ""
+        },
+        "abilityName": {
+          "type": "string",
+          "description": "该跳转不需要 Ability，固定填写空字符串。",
+          "const": ""
+        },
+        "uri": {
+          "type": "string",
+          "description": "固定填写锻炼 Tab 页的完整 Scheme URI。",
+          "const": "huaweischeme://healthapp/home/sport?sportType=2"
+        }
+      },
+      "required": [
+        "intentName",
+        "bundleName",
+        "abilityName",
+        "uri"
+      ],
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "requiredPackages": [
+        {
+          "packageName": "com.huawei.hmos.health"
+        }
+      ]
+    },
+    "targetApp": "运动健康"
+  },
+  {
+    "id": "event.open.health.sleep",
+    "type": "event",
+    "description": "打开运动健康应用的睡眠详情页",
+    "actionTemplate": {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Health",
+        "bundleName": "",
+        "abilityName": "",
+        "uri": "huaweischeme://healthapp/router/sleepDetail"
+      }
+    },
+    "dynamicArguments": [],
+    "targetScene": "Health",
+    "parametersSchema": {
+      "type": "object",
+      "description": "点击事件的完整 args 对象。",
+      "properties": {
+        "intentName": {
+          "type": "string",
+          "description": "固定填写 Health，不得改写。",
+          "const": "Health"
+        },
+        "bundleName": {
+          "type": "string",
+          "description": "该跳转不需要包名，固定填写空字符串。",
+          "const": ""
+        },
+        "abilityName": {
+          "type": "string",
+          "description": "该跳转不需要 Ability，固定填写空字符串。",
+          "const": ""
+        },
+        "uri": {
+          "type": "string",
+          "description": "固定填写睡眠详情页的完整 Scheme URI。",
+          "const": "huaweischeme://healthapp/router/sleepDetail"
+        }
+      },
+      "required": [
+        "intentName",
+        "bundleName",
+        "abilityName",
+        "uri"
+      ],
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "requiredPackages": [
+        {
+          "packageName": "com.huawei.hmos.health"
+        }
+      ]
+    },
+    "targetApp": "运动健康"
+  },
+  {
+    "id": "event.enter.meeting",
+    "type": "event",
+    "description": "点击一键加入下一个日程对应的Welink会议。uri取自数据能力GetCalendarEvents返回结果中event的oneClickServiceLink字段。注意：模板中events/i的i需替换为当前事件的实际索引，如events/0、events/1等。",
+    "actionTemplate": {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "EnterMeeting",
+        "bundleName": "",
+        "abilityName": "",
+        "uri": "{{ ${/data/calendar/events/i/oneClickServiceLink} }}"
+      }
+    },
+    "dynamicArguments": [
+      {
+        "path": "/uri",
+        "description": "取自 GetCalendarEvents 的 events[i].oneClickServiceLink，i 替换为实际索引。",
+        "type": "string"
+      }
+    ],
+    "targetScene": "EnterMeeting",
+    "parametersSchema": {
+      "type": "object",
+      "description": "点击事件的完整 args 对象。",
+      "properties": {
+        "intentName": {
+          "type": "string",
+          "description": "固定填写 EnterMeeting，不得改写。",
+          "const": "EnterMeeting"
+        },
+        "bundleName": {
+          "type": "string",
+          "description": "该跳转不需要包名，固定填写空字符串。",
+          "const": ""
+        },
+        "abilityName": {
+          "type": "string",
+          "description": "该跳转不需要 Ability，固定填写空字符串。",
+          "const": ""
+        },
+        "uri": {
+          "type": "string",
+          "description": "取自 GetCalendarEvents 的 events[i].oneClickServiceLink，i 替换为实际索引。"
+        }
+      },
+      "required": [
+        "intentName",
+        "bundleName",
+        "abilityName",
+        "uri"
+      ],
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "requiredPackages": []
+    },
+    "targetApp": "日程"
+  },
+  {
+    "id": "event.viewCalendarEvent",
+    "type": "event",
+    "description": "点击日程卡片 or 日程按钮，跳转到日程 App 查看该日程的详情",
+    "actionTemplate": {
+      "call": "clickToIntent",
+      "args": {
+        "intentName": "ViewCalendarEvent",
+        "params": {
+          "entityId": "{{ ${/data/calendar/events/i/entityId} }}"
+        }
+      }
+    },
+    "dynamicArguments": [
+      {
+        "path": "/params/entityId",
+        "description": "取自 GetCalendarEvents 的 events[i].entityId，i 替换为实际索引。",
+        "type": "string"
+      }
+    ],
+    "targetScene": "ViewCalendarEvent",
+    "parametersSchema": {
+      "type": "object",
+      "description": "查看日程详情事件的完整 args 对象。",
+      "properties": {
+        "intentName": {
+          "type": "string",
+          "description": "固定填写 ViewCalendarEvent，不得改写。",
+          "const": "ViewCalendarEvent"
+        },
+        "params": {
+          "type": "object",
+          "description": "查看日程详情所需参数。",
+          "properties": {
+            "entityId": {
+              "type": "string",
+              "description": "取自 GetCalendarEvents 的 events[i].entityId，i 替换为实际索引。"
+            }
+          },
+          "required": [
+            "entityId"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "intentName",
+        "params"
+      ],
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "requiredPackages": []
+    }
+  },
+  {
+    "id": "event.startNavigate",
+    "type": "event",
+    "description": "点击导航按钮，跳转到地图应用进行导航。大模型需根据用户说的目的地选择location的值，只支持回家和去公司的导航",
+    "actionTemplate": {
+      "call": "clickToIntent",
+      "args": {
+        "intentName": "StartNavigate",
+        "params": {
+          "dstLocation": {
+            "location": "",
+            "latitude": "",
+            "longitude": ""
+          }
+        }
+      }
+    },
+    "dynamicArguments": [
+      {
+        "path": "/params/dstLocation/location",
+        "description": "用户要求回家时填写 home，去公司时填写 company。",
+        "type": "string",
+        "enum": [
+          "home",
+          "company"
+        ]
+      }
+    ],
+    "targetScene": "StartNavigate",
+    "parametersSchema": {
+      "type": "object",
+      "description": "导航事件的完整 args 对象。",
+      "properties": {
+        "intentName": {
+          "type": "string",
+          "description": "固定填写 StartNavigate，不得改写。",
+          "const": "StartNavigate"
+        },
+        "params": {
+          "type": "object",
+          "description": "导航所需参数。",
+          "properties": {
+            "dstLocation": {
+              "type": "object",
+              "description": "导航目的地参数。",
+              "properties": {
+                "location": {
+                  "type": "string",
+                  "description": "用户要求回家时填写 home，去公司时填写 company。",
+                  "enum": [
+                    "home",
+                    "company"
+                  ]
+                },
+                "latitude": {
+                  "type": "string",
+                  "description": "当前能力不接收纬度，固定填写空字符串。",
+                  "const": ""
+                },
+                "longitude": {
+                  "type": "string",
+                  "description": "当前能力不接收经度，固定填写空字符串。",
+                  "const": ""
+                }
+              },
+              "required": [
+                "location",
+                "latitude",
+                "longitude"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "dstLocation"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "intentName",
+        "params"
+      ],
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "requiredPackages": []
+    }
+  },
+  {
+    "id": "event.setPowerSavingMode",
+    "type": "event",
+    "description": "点击一键开启/关闭省电模式。大模型根据用户表达确定是开启还是关闭，然后传对应的switchFlag值",
+    "actionTemplate": {
+      "call": "clickToIntent",
+      "args": {
+        "intentName": "SetSettingSwitch",
+        "params": {
+          "appBundleName": "com.huawei.hmos.settings",
+          "itemName": "battery_saving_mode",
+          "switchFlag": 0
+        }
+      }
+    },
+    "dynamicArguments": [
+      {
+        "path": "/params/switchFlag",
+        "description": "开启省电模式填写 0，关闭省电模式填写 1。",
+        "type": "integer",
+        "enum": [
+          0,
+          1
+        ]
+      }
+    ],
+    "targetScene": "SetSettingSwitch",
+    "parametersSchema": {
+      "type": "object",
+      "description": "省电模式事件的完整 args 对象。",
+      "properties": {
+        "intentName": {
+          "type": "string",
+          "description": "固定填写 SetSettingSwitch，不得改写。",
+          "const": "SetSettingSwitch"
+        },
+        "params": {
+          "type": "object",
+          "description": "省电模式开关参数。",
+          "properties": {
+            "appBundleName": {
+              "type": "string",
+              "description": "固定填写设置应用包名 com.huawei.hmos.settings。",
+              "const": "com.huawei.hmos.settings"
+            },
+            "itemName": {
+              "type": "string",
+              "description": "固定填写省电模式配置项 battery_saving_mode。",
+              "const": "battery_saving_mode"
+            },
+            "switchFlag": {
+              "type": "integer",
+              "description": "开启省电模式填写 0，关闭省电模式填写 1。",
+              "enum": [
+                0,
+                1
+              ]
+            }
+          },
+          "required": [
+            "appBundleName",
+            "itemName",
+            "switchFlag"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "intentName",
+        "params"
+      ],
+      "additionalProperties": false
+    },
+    "dependencies": {
+      "requiredPackages": []
+    }
+  }
+]

@@ -118,6 +118,7 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
     {
       "capabilityId":"ViewWeather",
       "arguments":{
+        "prefectureName":"上海市",
         "districtName":"青浦区",
         "forecastDays":1
       },
@@ -237,6 +238,7 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
     {
       "capabilityId":"ViewWeather",
       "arguments":{
+        "prefectureName":"上海市",
         "districtName":"青浦区",
         "forecastDays":1
       },
@@ -360,6 +362,7 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
     {
       "capabilityId":"ViewWeather",
       "arguments":{
+        "prefectureName":"上海市",
         "districtName":"青浦区",
         "forecastDays":1
       },
@@ -401,7 +404,7 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 
 ## URL 内部留存回归
 
-生成工具返回后，端侧展示由工具内部负责；主 Agent 仅用业务 payload 的 `artifactUrl` 维护编辑链。至少回归以下场景：
+生成工具返回后，端侧展示由工具内部负责；你仅用业务 payload 的 `artifactUrl` 维护编辑链。至少回归以下场景：
 
 | 业务 payload | 最终回复要求 |
 | --- | --- |

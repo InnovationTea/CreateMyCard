@@ -24,10 +24,9 @@
       "supportedIntents": {
         "CallPhone": {
           "params": {
-            "relationship": {"type": "string"},
             "phoneNumber": {"type": "string"}
           },
-          "required": ["relationship", "phoneNumber"]
+          "required": ["phoneNumber"]
         },
         "CleanRAMMemory": {
           "params": {},

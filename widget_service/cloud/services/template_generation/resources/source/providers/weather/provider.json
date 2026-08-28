@@ -1,0 +1,88 @@
+{
+  "bundleFormat": "card-provider-bundle/1",
+  "providerId": "com.huawei.weather.cli",
+  "providerVersion": "1.0.0-poc",
+  "firstLayerRule": {
+    "path": "layer-docs/first-layer.md"
+  },
+  "secondLayerRule": {
+    "path": "layer-docs/second-layer.md"
+  },
+  "capabilities": [
+    {
+      "capabilityId": "ViewWeather",
+      "dataDomain": "/data/weather",
+      "dataSchema": {
+        "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
+        "version": "app-11.7.5.205_rom-6.0"
+      }
+    }
+  ],
+  "templates": [
+    {
+      "templateId": "WeatherOverviewCompact@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "当前天气摘要，展示地点、温度和天气状态，可补充空气质量与温度范围。 组件形态：compact。",
+      "requiredData": [
+        "/location/districtName",
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/airQuality",
+        "/daily/0/temperatureRangeText"
+      ],
+      "optionalData": [],
+      "entry": "templates/weather-overview.cardtpl"
+    },
+    {
+      "templateId": "WeatherOverviewCompactIcon@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "当前天气摘要，展示地点、温度和天气状态，可补充空气质量与温度范围。 组件形态：compactIcon。",
+      "requiredData": [
+        "/location/districtName",
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/airQuality",
+        "/daily/0/temperatureRangeText"
+      ],
+      "optionalData": [],
+      "entry": "templates/weather-overview.cardtpl"
+    },
+    {
+      "templateId": "WeatherOverviewHero@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "当前天气摘要，展示地点、温度和天气状态，可补充空气质量与温度范围。 组件形态：hero。",
+      "requiredData": [
+        "/location/districtName",
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/airQuality",
+        "/daily/0/temperatureRangeText"
+      ],
+      "optionalData": [],
+      "entry": "templates/weather-overview.cardtpl"
+    },
+    {
+      "templateId": "WeatherOverviewHeroIcon@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "当前天气摘要，展示地点、温度和天气状态，可补充空气质量与温度范围。 组件形态：heroIcon。",
+      "requiredData": [
+        "/location/districtName",
+        "/current/temperatureText",
+        "/current/condition",
+        "/current/airQuality",
+        "/daily/0/temperatureRangeText"
+      ],
+      "optionalData": [],
+      "entry": "templates/weather-overview.cardtpl"
+    }
+  ],
+  "compatibility": {
+    "templateLanguage": "cardtpl/1",
+    "catalogId": "ohos.a2ui.extended.catalog.form",
+    "a2uiWireVersion": "v0.9"
+  }
+}

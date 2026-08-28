@@ -1,0 +1,820 @@
+[
+  {
+    "id": "ViewWeather",
+    "description": "查询指定地区的当前天气与未来数日天气预报。如果不能推断出用户的地区名，则需要追问用户提供。注意，当前不支持查询国外的天气。",
+    "defaultWriteResultTo": "/data/weather",
+    "dependencies": {
+      "requiredPackages": [
+        {
+          "packageName": "com.huawei.hmsapp.totemweather"
+        }
+      ]
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "districtName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "区县名，如'滨江区'。可选。"
+        },
+        "prefectureName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "城市名，如'杭州市'。若不能根据用户query或上下文来推断出是哪个城市，则需要向用户发起追问，明确城市名。注意，部分区县对应多个城市，此时也需要让用户明确。"
+        },
+        "forecastDays": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "description": "返回预报天数，支持1至5天；可选，不传时默认返回3天。"
+        }
+      },
+      "required": [
+        "prefectureName"
+      ]
+    },
+    "outputSchema": {
+      "type": "object",
+      "description": "适合桌面卡片展示的标准化天气概要。current 是固定对象，daily 是数量由 forecastDays 决定的数组。",
+      "properties": {
+        "location": {
+          "type": "object",
+          "description": "实际查询成功的地区。",
+          "properties": {
+            "cityCode": {
+              "type": "string",
+              "description": "城市代码，如60814代表青浦区",
+              "sampleValue": "60814"
+            },
+            "districtName": {
+              "type": "string",
+              "description": "区或县名称",
+              "sampleValue": "青浦区"
+            },
+            "prefectureName": {
+              "type": "string",
+              "description": "城市名称",
+              "sampleValue": "上海市"
+            }
+          }
+        },
+        "current": {
+          "type": "object",
+          "description": "当日天气实况",
+          "properties": {
+            "temperatureC": {
+              "type": "number",
+              "description": "当前温度的纯数值，单位为摄氏度，返回值不包含单位。若直接用于文本展示，必须在数值后追加“℃”；优先使用 temperatureText。",
+              "sampleValue": 29,
+              "displayUnits": [
+                "℃"
+              ],
+              "unitIncluded": false
+            },
+            "temperatureText": {
+              "type": "string",
+              "description": "可直接显示的当前温度文本，已包含“℃”单位；展示时不得再次追加温度单位。例如“29℃”。",
+              "sampleValue": "29℃",
+              "displayUnits": [
+                "℃"
+              ],
+              "unitIncluded": true
+            },
+            "condition": {
+              "type": "string",
+              "description": "当前天气现象，例如“阴”“多云”“小雨”。",
+              "sampleValue": "多云"
+            },
+            "feelsLikeC": {
+              "type": "number",
+              "description": "当前体感温度的纯数值，单位为摄氏度，返回值不包含单位。若直接用于文本展示，必须在数值后追加“℃”。",
+              "sampleValue": 31,
+              "displayUnits": [
+                "℃"
+              ],
+              "unitIncluded": false
+            },
+            "humidityPercent": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "当前相对湿度的纯数值百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”。",
+              "sampleValue": 68,
+              "displayUnits": [
+                "%"
+              ],
+              "unitIncluded": false
+            },
+            "airQuality": {
+              "type": "string",
+              "description": "当前空气质量等级，例如“优”“良”。",
+              "sampleValue": "良"
+            },
+            "windDirection": {
+              "type": "string",
+              "description": "当前风向。",
+              "sampleValue": "东南风"
+            },
+            "windLevel": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "当前风力等级的纯整数，返回值不包含“级”。若直接用于文本展示，必须在数值后追加“级”。",
+              "sampleValue": 2,
+              "displayUnits": [
+                "级"
+              ],
+              "unitIncluded": false
+            },
+            "uvIndex": {
+              "type": "string",
+              "description": "当前紫外线等级，例如“弱”“中等”“强”。",
+              "sampleValue": "中等"
+            },
+            "coldLevel": {
+              "type": "string",
+              "description": "感冒指数。",
+              "sampleValue": "低"
+            },
+            "alertLevel": {
+              "type": "string",
+              "description": "预警信息。",
+              "sampleValue": ""
+            }
+          }
+        },
+        "daily": {
+          "type": "array",
+          "description": "从今天开始按日期升序排列的每日预报。",
+          "items": {
+            "type": "object",
+            "properties": {
+              "date": {
+                "type": "string",
+                "description": "预报日期，来源于 day_time。",
+                "sampleValue": "2026-08-06"
+              },
+              "weekday": {
+                "type": "string",
+                "description": "星期文本，例如“星期日”。",
+                "sampleValue": "星期四"
+              },
+              "condition": {
+                "type": "string",
+                "description": "白天天气现象，来源于weather_icon。",
+                "sampleValue": "多云"
+              },
+              "temperatureRangeText": {
+                "type": "string",
+                "description": "可直接显示的最低温与最高温范围文本，每个温度值均已包含“℃”单位；展示时不得再次追加温度单位。例如“25℃ / 32℃”。",
+                "sampleValue": "25℃ / 32℃",
+                "displayUnits": [
+                  "℃"
+                ],
+                "unitIncluded": true
+              },
+              "rainProbabilityPercent": {
+                "type": "string",
+                "description": "可直接显示的白天降雨概率文本，已包含“%”单位；展示时不得再次追加“%”。例如“20%”。",
+                "sampleValue": "20%",
+                "displayUnits": [
+                  "%"
+                ],
+                "unitIncluded": true
+              },
+              "airQuality": {
+                "type": "string",
+                "description": "当天空气质量等级。",
+                "sampleValue": "良"
+              },
+              "uvIndex": {
+                "type": "string",
+                "description": "当天紫外线等级。",
+                "sampleValue": "中等"
+              },
+              "coldLevel": {
+                "type": "string",
+                "description": "感冒指数。",
+                "sampleValue": "低"
+              }
+            }
+          }
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "端侧完成天气查询和归一化的时间。如：2026-06-14 15:30",
+          "sampleValue": "2026-08-06 09:00"
+        }
+      }
+    },
+    "type": "data",
+    "dataModelSkeleton": {}
+  },
+  {
+    "id": "GetCalendarEvents",
+    "description": "查询用户系统日历中的日程安排。可返回高度精简的结构化用户日程信息，包含日程倒计时计算、日程开始/截止时间等，并支持一键拉起第三方应用（如视频会议、赛事直播）的跳转链接。返回的日程均为由近到远顺序返回，暂不支持按特定条件过滤(比如按天)。",
+    "defaultWriteResultTo": "/data/calendar",
+    "dependencies": {
+      "requiredPackages": [
+        {
+          "packageName": "com.huawei.hmos.calendar"
+        }
+      ]
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "futureDays": {
+          "type": "integer",
+          "description": "需要查询的未来时间窗口天数。例如用户想看'这周'或'未来7天'的日程则传 7。若不传，端侧默认查询未来7天。"
+        }
+      },
+      "required": []
+    },
+    "outputSchema": {
+      "type": "object",
+      "description": "经过端侧高级清洗后的系统日程概要，包含命中该时间段的日程总数以及按时间升序排列的具体日程明细列表。",
+      "properties": {
+        "eventCount": {
+          "type": "integer",
+          "description": "查询到的日程记录总数量。",
+          "sampleValue": 1
+        },
+        "events": {
+          "type": "array",
+          "description": "高密度结构化日程信息实体列表，已按开始时间由早到晚进行升序排列。",
+          "items": {
+            "type": "object",
+            "properties": {
+              "entityName": {
+                "type": "string",
+                "description": "固定为 'CalendarEvent'，用于系统底层实体识别。",
+                "sampleValue": "CalendarEvent"
+              },
+              "entityId": {
+                "type": "string",
+                "description": "系统日程的全局唯一实体ID。",
+                "sampleValue": "example-event-001"
+              },
+              "senderName": {
+                "type": "string",
+                "description": "日程数据标识符或发起方标识（如邀请人），若无则为空字符串。",
+                "sampleValue": ""
+              },
+              "title": {
+                "type": "string",
+                "description": "日程标题，例如“咪咕视频《西班牙 VS 奥地利》”或航班、车次信息。",
+                "sampleValue": "项目例会"
+              },
+              "eventLocation": {
+                "type": "string",
+                "description": "日程的具体地点描述，若未填写则为空字符串。",
+                "sampleValue": "会议室"
+              },
+              "description": {
+                "type": "string",
+                "description": "日程的备注、摘要或补充叙述文本。",
+                "sampleValue": "周例会"
+              },
+              "dtStart": {
+                "type": "string",
+                "description": "格式化后的日程开始时间短文本，如 '03:00'，若为全天日程可能为特殊标记。",
+                "sampleValue": "14:00"
+              },
+              "dtEnd": {
+                "type": "string",
+                "description": "格式化后的日程结束时间短文本，如 '05:00'。",
+                "sampleValue": "15:00"
+              },
+              "timeZone": {
+                "type": "string",
+                "description": "日程所处的时区标识，例如 'Asia/Shanghai'。",
+                "sampleValue": "Asia/Shanghai"
+              },
+              "importantEventType": {
+                "type": "integer",
+                "description": "日程事件的重要程度或分类枚举值（Type）。",
+                "sampleValue": 0
+              },
+              "remindTime": {
+                "type": "array",
+                "description": "预设的提前提醒时间跨度数组（字符串化），例如 ['15'] 代表提前15分钟提醒。",
+                "items": {
+                  "type": "string",
+                  "description": "提前提醒分钟数（字符串形式）。",
+                  "sampleValue": "15"
+                }
+              },
+              "oneClickServiceType": {
+                "type": "string",
+                "enum": [
+                  "Meeting",
+                  "Watching",
+                  "Repayment",
+                  "Live",
+                  "Shopping",
+                  "Trip",
+                  "Class",
+                  "SportsEvents",
+                  "SportsExercise",
+                  ""
+                ],
+                "description": "绑定的轻服务类型名称。大模型生成一键服务按钮时，应按照端侧能力声明的枚举选择文案。",
+                "sampleValue": "Meeting"
+              },
+              "oneClickServiceLink": {
+                "type": "string",
+                "description": "一键直达的 URI 深度跳转链接，UI 卡片可直接通过此链接拉起第三方 App 落地页。",
+                "sampleValue": ""
+              },
+              "isServiceValid": {
+                "type": "integer",
+                "description": "跳转服务连接是否有效。1代表存在有效跳转链接，0代表没有。",
+                "sampleValue": 0
+              },
+              "startDate": {
+                "type": "string",
+                "description": "日程开始日期格式化文本，例如 '07-03'。",
+                "sampleValue": "08-06"
+              },
+              "countdownDays": {
+                "type": "integer",
+                "description": "距离日程开始的自然日天数纯整数，返回值不包含“天”。0 表示今天发生或已经发生，正整数表示距离开始还有多少天；若直接用于文本展示，必须在数值后追加“天”。",
+                "sampleValue": 0,
+                "displayUnits": [
+                  "天"
+                ],
+                "unitIncluded": false
+              },
+              "isAllDay": {
+                "type": "boolean",
+                "description": "标识该日程是否为全天日程。",
+                "sampleValue": false
+              }
+            }
+          }
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "端侧完成数据组装的时间戳字符串，格式如 '2026-07-03 15:30'。",
+          "sampleValue": "2026-08-06 09:00"
+        }
+      }
+    },
+    "type": "data",
+    "dataModelSkeleton": {}
+  },
+  {
+    "id": "GetCountdownDays",
+    "description": "计算指定的日历日期距离今天还有多少天；目标日期由模型提取，实际天数差值由端侧计算。",
+    "defaultWriteResultTo": "/data/countdown",
+    "dependencies": {
+      "requiredPackages": []
+    },
+    "inputSchema": {
+      "type": "object",
+      "description": "计算倒数日需要的入参。",
+      "properties": {
+        "targetDate": {
+          "type": "string",
+          "description": "目标日期，必须是 YYYY-MM-DD 格式。"
+        }
+      },
+      "required": [
+        "targetDate"
+      ]
+    },
+    "outputSchema": {
+      "type": "object",
+      "description": "计算得出的倒数日天数结果实体。",
+      "properties": {
+        "countdownDays": {
+          "type": "integer",
+          "description": "距离目标日期的自然日天数纯整数，返回值不包含“天”。正数表示未来，0 表示今天，负数表示已经过去；若直接用于文本展示，必须在数值后追加“天”。",
+          "sampleValue": 30,
+          "displayUnits": [
+            "天"
+          ],
+          "unitIncluded": false
+        }
+      }
+    },
+    "type": "data",
+    "dataModelSkeleton": {}
+  },
+  {
+    "id": "GetAppUsageDuration",
+    "enabled": false,
+    "description": "获取指定应用的使用时长数据",
+    "defaultWriteResultTo": "/data/appUsageStats",
+    "dependencies": {
+      "requiredPackages": []
+    },
+    "inputSchema": {
+      "type": "object",
+      "description": "查询应用使用时长的输入参数",
+      "properties": {
+        "appBundleName": {
+          "type": "string",
+          "description": "目标应用的包名，例如：com.ss.hm.ugc.aweme"
+        }
+      },
+      "required": [
+        "appBundleName"
+      ]
+    },
+    "outputSchema": {
+      "type": "object",
+      "description": "适合桌面卡片展示的应用时长概要。",
+      "properties": {
+        "appUsage": {
+          "type": "object",
+          "description": "应用具体的使用时长详情",
+          "properties": {
+            "appName": {
+              "type": "string",
+              "description": "应用名称文本，例如：“抖音”",
+              "sampleValue": "示例应用"
+            },
+            "durationText": {
+              "type": "string",
+              "description": "可直接显示的应用今日运行总时长文本，已包含“小时”“分钟”或“秒”等时间单位；展示时不得再次追加时间单位。例如“25 分钟”或“1 小时 21 分钟”。",
+              "sampleValue": "25 分钟",
+              "displayUnits": [
+                "小时",
+                "分钟",
+                "秒"
+              ],
+              "unitIncluded": true
+            }
+          }
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "端侧完成数据查询和归一化的时间，格式如：2026-07-14 10:16。",
+          "sampleValue": "2026-08-06 09:00"
+        }
+      }
+    },
+    "type": "data",
+    "dataModelSkeleton": {}
+  },
+  {
+    "id": "GetEarphoneInfo",
+    "description": "查询当前手机连接的蓝牙耳机状态，包括耳机名称、主盒与左右耳的当前独立剩余电量百分比，以及它们各自的充电状态。注意，当前对于非华为耳机设备，只能查询到名称，其它信息均查询不到，返回为\"--\"，可在适当时机告诉用户这个事项。",
+    "defaultWriteResultTo": "/data/earphone",
+    "dependencies": {
+      "requiredPackages": []
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    },
+    "outputSchema": {
+      "type": "object",
+      "description": "聚合清洗后的标准化耳机状态数据，适合桌面小部件或快捷控制中心直接绑定显示。",
+      "properties": {
+        "isConnected": {
+          "type": "boolean",
+          "description": "当前是否有蓝牙耳机处于连接活跃状态。",
+          "sampleValue": true
+        },
+        "earphoneName": {
+          "type": "string",
+          "description": "耳机的设备广播名称，如果未连接则返回'未连接耳机'。如: 'FreeBuds Pro 3'。",
+          "sampleValue": "示例耳机"
+        },
+        "batteryLevel": {
+          "type": "integer",
+          "description": "耳机盒（或整体）当前剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”。",
+          "sampleValue": 80,
+          "displayUnits": [
+            "%"
+          ],
+          "unitIncluded": false
+        },
+        "chargingStatusDesc": {
+          "type": "string",
+          "description": "耳机盒（或整体）当前的充电状态中文语义描述，'充电中' 或 '未充电'。",
+          "sampleValue": "未充电"
+        },
+        "leftBatteryLevel": {
+          "type": "integer",
+          "description": "左耳机当前剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”；未连接时为 0。若直接用于文本展示，必须在数值后追加“%”。",
+          "sampleValue": 76,
+          "displayUnits": [
+            "%"
+          ],
+          "unitIncluded": false
+        },
+        "leftChargingStatusDesc": {
+          "type": "string",
+          "description": "左耳机当前的充电状态中文语义描述，'充电中' 或 '未充电'。",
+          "sampleValue": "未充电"
+        },
+        "rightBatteryLevel": {
+          "type": "integer",
+          "description": "右耳机当前剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”；未连接时为 0。若直接用于文本展示，必须在数值后追加“%”。",
+          "sampleValue": 78,
+          "displayUnits": [
+            "%"
+          ],
+          "unitIncluded": false
+        },
+        "rightChargingStatusDesc": {
+          "type": "string",
+          "description": "右耳机当前的充电状态中文语义描述，'充电中' 或 '未充电'。",
+          "sampleValue": "未充电"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "端侧完成多源数据感知和融合的时间戳字符串。如：2026-07-02 20:15",
+          "sampleValue": "2026-08-06 09:00"
+        }
+      }
+    },
+    "type": "data",
+    "dataModelSkeleton": {}
+  },
+  {
+    "id": "GetPhoneBatteryInfo",
+    "description": "获取手机本机的全量电池状态快照，返回经过端侧语义化和字符化转换的电池状态。",
+    "defaultWriteResultTo": "/data/phoneBattery",
+    "dependencies": {
+      "requiredPackages": []
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    },
+    "outputSchema": {
+      "type": "object",
+      "description": "经过中文语义化清洗后的手机本机电池物理状态。",
+      "properties": {
+        "batterySOC": {
+          "type": "integer",
+          "description": "当前手机设备剩余电量的纯整数百分比，取值范围为 0 到 100，返回值不包含“%”。若直接用于文本展示，必须在数值后追加“%”；优先使用 batterySOCText。",
+          "sampleValue": 68,
+          "displayUnits": [
+            "%"
+          ],
+          "unitIncluded": false
+        },
+        "batterySOCText": {
+          "type": "string",
+          "description": "可直接显示的当前手机设备剩余电量文本，已包含“%”单位；展示时不得再次追加“%”。",
+          "sampleValue": "68%",
+          "displayUnits": [
+            "%"
+          ],
+          "unitIncluded": true
+        },
+        "chargingStatusDesc": {
+          "type": "string",
+          "description": "当前设备电池的充电状态文本描述。",
+          "sampleValue": "未充电"
+        },
+        "batteryCapacityLevelDesc": {
+          "type": "string",
+          "description": "设备电池电量等级的语义化文本描述。",
+          "sampleValue": "正常电量"
+        },
+        "healthStatusDesc": {
+          "type": "string",
+          "description": "当前设备电池的物理健康状态文本描述。",
+          "sampleValue": "正常"
+        },
+        "pluggedTypeDesc": {
+          "type": "string",
+          "description": "当前设备连接的充电器类型文本描述。",
+          "sampleValue": "未连接充电器"
+        },
+        "batteryTemperatureText": {
+          "type": "string",
+          "description": "可直接显示的当前设备电池实时温度文本，已包含“℃”单位；展示时不得再次追加温度单位。",
+          "sampleValue": "29.0 ℃",
+          "displayUnits": [
+            "℃"
+          ],
+          "unitIncluded": true
+        },
+        "nowCurrentText": {
+          "type": "string",
+          "description": "可直接显示的当前设备电池实时电流文本，已包含“mA”单位；展示时不得再次追加电流单位。",
+          "sampleValue": "-151 mA",
+          "displayUnits": [
+            "mA"
+          ],
+          "unitIncluded": true
+        },
+        "voltageText": {
+          "type": "string",
+          "description": "可直接显示的当前设备电池实时电压文本，已包含“V”单位；展示时不得再次追加电压单位。",
+          "sampleValue": "4 V",
+          "displayUnits": [
+            "V"
+          ],
+          "unitIncluded": true
+        },
+        "isBatteryPresentText": {
+          "type": "string",
+          "description": "当前设备物理电池是否在位或受支持的状态描述。",
+          "sampleValue": "在位"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "端侧完成全量电量状态字符化转换的系统时间文本。",
+          "sampleValue": "2026-08-06 09:00"
+        }
+      }
+    },
+    "type": "data",
+    "dataModelSkeleton": {}
+  },
+  {
+    "id": "GetHealthAndSportSummary",
+    "description": "一键合并查询用户指定时间段内的大健康、日常大盘活动与单次专业运动训练指标。包含极其精细的夜间科学睡眠分析、当日全天步数/热量/距离总合大盘，以及最近一次专业运动训练的起止时间、计划与详尽的心率区间剖析。",
+    "defaultWriteResultTo": "/data/healthSport",
+    "dependencies": {
+      "requiredPackages": [
+        {
+          "packageName": "com.huawei.hmos.health"
+        }
+      ]
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "targetDayOffset": {
+          "type": "integer",
+          "description": "需要查询的目标日期相对今天的偏移天数。0 代表查询今天，-1 代表查询昨天，-2 代表前天，以此类推。支持最大历史跨度为过去30天（-30）。若不传，端侧默认查询今天（0）的大盘数据。"
+        }
+      },
+      "required": []
+    },
+    "outputSchema": {
+      "type": "object",
+      "description": "完全对齐 SleepPrunedData 数据契约的融合规整规整化健康与运动大盘字典。所有时长、热量、距离及时间表达均已在端侧完成格式化转换，适合UI卡片直接渲染或大模型播报。",
+      "properties": {
+        "targetDateText": {
+          "type": "string",
+          "description": "该组健康与运动数据所归属的确切日期文本，格式为 YYYY-MM-DD，例如 '2026-07-06'。用于明确展示当前查阅的是哪一天的数据。",
+          "sampleValue": "2026-08-06"
+        },
+        "sleepScore": {
+          "type": "integer",
+          "description": "睡眠综合得分，取值范围 0-100。",
+          "sampleValue": 82
+        },
+        "sleepStatus": {
+          "type": "string",
+          "description": "基于得分智能生成的睡眠状态语义判定，包括：'优秀'、'良好'、'一般'、'较差'。",
+          "sampleValue": "良好"
+        },
+        "sleepTypeDesc": {
+          "type": "string",
+          "description": "睡眠记录方式或类型的描述，例如“科学睡眠”、“普通睡眠”、“手动输入睡眠”、“手机记录睡眠”。",
+          "sampleValue": "科学睡眠"
+        },
+        "nightSleepDurationText": {
+          "type": "string",
+          "description": "可直接显示的夜间正式睡眠总时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“7小时1分”。",
+          "sampleValue": "7小时1分",
+          "displayUnits": [
+            "小时",
+            "分"
+          ],
+          "unitIncluded": true
+        },
+        "deepSleepDurationText": {
+          "type": "string",
+          "description": "可直接显示的夜间正式睡眠深睡总时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“2小时15分”。",
+          "sampleValue": "2小时15分",
+          "displayUnits": [
+            "小时",
+            "分"
+          ],
+          "unitIncluded": true
+        },
+        "totalNapDurationText": {
+          "type": "string",
+          "description": "可直接显示的白天零星小睡累计总时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“45分”或“0分”。",
+          "sampleValue": "0分",
+          "displayUnits": [
+            "小时",
+            "分"
+          ],
+          "unitIncluded": true
+        },
+        "fallAsleepTimeText": {
+          "type": "string",
+          "description": "格式化后的确切入睡时刻短文本（HH:mm），例如“23:15”。",
+          "sampleValue": "23:15"
+        },
+        "wakeupTimeText": {
+          "type": "string",
+          "description": "格式化后的确切醒来时刻短文本（HH:mm），例如“07:30”。",
+          "sampleValue": "07:30"
+        },
+        "dailySteps": {
+          "type": "integer",
+          "description": "与最新睡眠同属一天的日常全天累计活动总步数纯整数，返回值不包含“步”。若直接用于文本展示，必须在数值后追加“步”。",
+          "sampleValue": 6200,
+          "displayUnits": [
+            "步"
+          ],
+          "unitIncluded": false
+        },
+        "dailyTotalCaloriesText": {
+          "type": "string",
+          "description": "可直接显示的日常活动总消耗热量文本，已完成千分位归一化并包含“千卡”单位；展示时不得再次追加热量单位。例如“998 千卡”。",
+          "sampleValue": "420 千卡",
+          "displayUnits": [
+            "千卡"
+          ],
+          "unitIncluded": true
+        },
+        "dailyDistanceText": {
+          "type": "string",
+          "description": "可直接显示的日常活动总距离文本，端侧已根据数值大小换算并包含“米”或“公里”单位；展示时不得再次追加距离单位。例如“5.42 公里”或“755 米”。",
+          "sampleValue": "4.60 公里",
+          "displayUnits": [
+            "公里",
+            "米"
+          ],
+          "unitIncluded": true
+        },
+        "exerciseTypeName": {
+          "type": "string",
+          "description": "最近一次发生的单次专业运动训练类型的中文映射名称，如“羽毛球”、“自由训练”、“户外跑步”。若无记录则返回“暂无运动”。",
+          "sampleValue": "户外跑步"
+        },
+        "exerciseStartTimeText": {
+          "type": "string",
+          "description": "专业运动开始的确切时刻文本（HH:mm），例如“18:30”。",
+          "sampleValue": "18:30"
+        },
+        "exerciseEndTimeText": {
+          "type": "string",
+          "description": "专业运动结束的确切时刻文本（HH:mm），例如“19:50”。",
+          "sampleValue": "19:10"
+        },
+        "exerciseDurationText": {
+          "type": "string",
+          "description": "可直接显示的单次专业运动实际持续时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“1小时40分”。",
+          "sampleValue": "40分",
+          "displayUnits": [
+            "小时",
+            "分"
+          ],
+          "unitIncluded": true
+        },
+        "exerciseCalorieText": {
+          "type": "string",
+          "description": "可直接显示的单次专业运动净热量消耗文本，已换算并包含“千卡”单位；展示时不得再次追加热量单位。例如“98 千卡”。",
+          "sampleValue": "260 千卡",
+          "displayUnits": [
+            "千卡"
+          ],
+          "unitIncluded": true
+        },
+        "exerciseHeartRateAvg": {
+          "type": "integer",
+          "description": "专业运动期间平均心率的纯整数，单位为次/分钟，返回值不包含单位。若直接用于文本展示，必须在数值后追加“次/分钟”。",
+          "sampleValue": 135,
+          "displayUnits": [
+            "次/分钟"
+          ],
+          "unitIncluded": false
+        },
+        "exerciseHeartRateMax": {
+          "type": "integer",
+          "description": "专业运动期间最大心率的纯整数，单位为次/分钟，返回值不包含单位。若直接用于文本展示，必须在数值后追加“次/分钟”。",
+          "sampleValue": 168,
+          "displayUnits": [
+            "次/分钟"
+          ],
+          "unitIncluded": false
+        },
+        "exerciseHeartRateMin": {
+          "type": "integer",
+          "description": "专业运动期间最低心率的纯整数，单位为次/分钟，返回值不包含单位。若直接用于文本展示，必须在数值后追加“次/分钟”。",
+          "sampleValue": 96,
+          "displayUnits": [
+            "次/分钟"
+          ],
+          "unitIncluded": false
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "端侧完成多实体规整转换的系统格式化时间戳字符串，如 '2026-07-03 14:57'。",
+          "sampleValue": "2026-08-06 09:00"
+        }
+      }
+    },
+    "type": "data",
+    "dataModelSkeleton": {}
+  }
+]

@@ -1,0 +1,8 @@
+{
+  "maxLength": 2048,
+  "maxParenDepth": 20,
+  "bannedVariables": ["$__widthBreakpoint", "$__colorMode", "$context"],
+  "bannedOperators": ["===", "!==", "??", "?."],
+  "bannedKeywords": ["and", "or", "not"],
+  "allowedFunctions": ["size"]
+}

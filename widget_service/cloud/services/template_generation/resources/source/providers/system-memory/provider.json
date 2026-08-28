@@ -1,0 +1,54 @@
+{
+  "bundleFormat": "card-provider-bundle/1",
+  "providerId": "com.huawei.system-memory.cli",
+  "providerVersion": "1.0.0-poc",
+  "firstLayerRule": {
+    "path": "layer-docs/first-layer.md"
+  },
+  "secondLayerRule": {
+    "path": "layer-docs/second-layer.md"
+  },
+  "capabilities": [
+    {
+      "capabilityId": "GetSystemMemInfo",
+      "dataDomain": "/data/systemMem",
+      "dataSchema": {
+        "path": "schemas/get-system-mem-info.schema.json",
+        "version": "system-memory-local/1"
+      }
+    }
+  ],
+  "templates": [
+    {
+      "templateId": "ResourceUsageOverviewMemory@1",
+      "businessId": "ResourceUsageOverview",
+      "capabilityId": "GetSystemMemInfo",
+      "description": "系统内存占用摘要，展示占用率、可用内存和总内存。 组件形态：memory。",
+      "requiredData": [
+        "/usagePercent",
+        "/availableMemText",
+        "/totalMemText"
+      ],
+      "optionalData": [],
+      "entry": "templates/resource-usage-overview.cardtpl"
+    },
+    {
+      "templateId": "ResourceUsageOverviewMemoryPeer@1",
+      "businessId": "ResourceUsageOverview",
+      "capabilityId": "GetSystemMemInfo",
+      "description": "系统内存占用摘要，展示占用率、可用内存和总内存。 组件形态：memoryPeer。",
+      "requiredData": [
+        "/usagePercent",
+        "/availableMemText",
+        "/totalMemText"
+      ],
+      "optionalData": [],
+      "entry": "templates/resource-usage-overview.cardtpl"
+    }
+  ],
+  "compatibility": {
+    "templateLanguage": "cardtpl/1",
+    "catalogId": "ohos.a2ui.extended.catalog.form",
+    "a2uiWireVersion": "v0.9"
+  }
+}

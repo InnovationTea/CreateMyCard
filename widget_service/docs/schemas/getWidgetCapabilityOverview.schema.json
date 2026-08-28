@@ -1,0 +1,193 @@
+{
+  "name": "getWidgetCapabilityOverview",
+  "transport": "websocket",
+  "path": "/api/v1/ws/tools/getWidgetCapabilityOverview",
+  "description": "按 ROM、prdVer 选择注册表，再仅将服务端配置范围内的能力依赖包名与 IDS 已安装应用 bundleName 精确匹配（当前默认包含天气、运动健康和日历），返回可用能力及不可用能力 ID。content 对应业务入参。",
+  "messageEnvelope": {
+    "type": "object",
+    "required": ["content", "deviceInfo", "session"],
+    "properties": {
+      "content": {
+        "type": "object",
+        "required": false,
+        "description": "业务入参，对应旧协议 arguments；本接口可只传 bundleName，odid 可选。",
+        "properties": {
+          "bundleName": {
+            "type": "string",
+            "required": false,
+            "description": "宿主业务包名。"
+          },
+          "odid": {
+            "type": "string",
+            "required": false,
+            "description": "可选设备 odid；缺失或为空时 IDS 查询继续使用服务固定兜底值。"
+          }
+        }
+      },
+      "deviceInfo": {
+        "$ref": "#/nestedTypes/DeviceInfo",
+        "required": true,
+        "description": "端侧设备信息；缺少 ROM 字段时服务使用 settings.default_device_rom_version。版本目录由 prdVer + ROM 版本组成，找不到时可按配置回退默认 205/6.0 注册表。"
+      },
+      "session": {
+        "$ref": "#/nestedTypes/Session",
+        "required": true,
+        "description": "会话信息；服务端 requestId = sessionId + '&' + interactionId。"
+      },
+      "pagination": {
+        "$ref": "#/nestedTypes/Pagination",
+        "required": false,
+        "description": "分页信息，当前接口暂不消费。"
+      },
+      "userAuth": {
+        "$ref": "#/nestedTypes/UserAuth",
+        "required": false,
+        "description": "用户鉴权信息；服务从 user.userId 提取 uid。"
+      },
+      "utterance": {
+        "$ref": "#/nestedTypes/Utterance",
+        "required": false,
+        "description": "用户原始表达。"
+      },
+      "version": {
+        "type": "string",
+        "required": false,
+        "description": "外部包络协议版本。"
+      },
+      "bundleName": {
+        "type": "string",
+        "required": false,
+        "description": "外层宿主业务包名。"
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["errorCode", "errorMessage", "reply"],
+    "properties": {
+      "errorCode": {
+        "type": "string",
+        "required": true,
+        "description": "华为流处理插件顶层响应码，所有结果固定为 0；业务错误码位于 final streamContent。"
+      },
+      "errorMessage": {
+        "type": "string",
+        "required": true,
+        "description": "华为流处理插件顶层错误描述，所有结果固定为空字符串。"
+      },
+      "reply": {
+        "type": "object",
+        "required": true,
+        "description": "流处理插件响应内容。",
+        "requiredProperties": ["streamInfo", "items"],
+        "properties": {
+          "streamInfo": {
+            "$ref": "#/nestedTypes/StreamInfo",
+            "required": true,
+            "description": "答复文本结构；当前服务一次请求只发送 final 帧。"
+          },
+          "items": {
+            "type": "object[]",
+            "required": true,
+            "minItems": 0,
+            "description": "插件预留结构化列表；start、partial 和 final 帧均固定为空数组。"
+          }
+        }
+      }
+    }
+  },
+  "nestedTypes": {
+    "StreamInfo": {
+      "required": ["streamContent", "streamingTextId", "streamType", "textType"],
+      "properties": {
+        "streamContent": "string，start/partial 为空；final 为完整旧消息；异常时前置中文类型说明。",
+        "streamingTextId": "string，流式文本 ID；当前使用 requestId，缺失时生成随机 ID。",
+        "streamType": "string，支持 start、partial 和 final。",
+        "textType": "string，start/partial 使用 markdown，final 使用 plainText。"
+      }
+    },
+    "GetWidgetCapabilityOverviewResult": {
+      "required": ["type", "tool", "operation", "requestId", "data", "status", "errorCode", "error"],
+      "properties": {
+        "type": "string，旧完整出参消息类型；正常为 result，异常为 error。",
+        "tool": "string，当前工具名；本接口为 getWidgetCapabilityOverview。",
+        "operation": "string，当前 WebSocket path 对应的接口名。",
+        "requestId": "string|null，服务端根据 sessionId + '&' + interactionId 生成的请求 ID。",
+        "data.dataCapabilities": "DataCapabilityOverview[]，数据能力概述列表，只包含 id 和 description。",
+        "data.eventCapabilities": "EventCapabilityOverview[]，精简事件列表；每项包含 id、description、可直接复制的完整 actionTemplate，以及允许替换的 dynamicArguments。",
+        "data.assetCandidates": "AssetCapabilityOverview[]，精简素材列表；每项只包含 id 和 description，src 等完整注册信息由微服务在生成阶段按 ID 还原。",
+        "data.unavailableCapabilities": "string[]，因命中服务端安装过滤范围的 requiredPackages 包名未出现在 IDS 已安装应用清单而不可用的数据或事件能力 ID。",
+        "status": "string，本次调用状态；成功时为 success。",
+        "errorCode": "string，旧完整出参错误码；成功时为空字符串。",
+        "error": "object，旧完整出参错误详情；成功时为空对象。"
+      }
+    },
+    "EventCapabilityOverview": {
+      "required": ["id", "description", "actionTemplate", "dynamicArguments"],
+      "properties": {
+        "id": "string，事件能力 ID。",
+        "description": "string，供主 Agent 选择事件的简短语义说明。",
+        "actionTemplate": "object，可直接完整复制为第三接口 action 的 {call,args}；固定字段和空字符串不得省略。",
+        "dynamicArguments": "EventDynamicArgument[]，允许替换的动态参数；path 是相对 actionTemplate.args 的 JSON Pointer，空数组表示模板无需修改。"
+      }
+    },
+    "EventDynamicArgument": {
+      "required": ["path", "description", "type"],
+      "properties": {
+        "path": "string，相对 actionTemplate.args 的 JSON Pointer。",
+        "description": "string，动态值来源或填写规则。",
+        "type": "string，动态值类型。",
+        "enum": "array，可选允许值列表。"
+      }
+    },
+    "AssetCapabilityOverview": {
+      "required": ["id", "description"],
+      "properties": {
+        "id": "string，生成接口 candidateAssetIds 使用的素材 ID。",
+        "description": "string，供主 Agent 选择素材的语义说明。"
+      }
+    },
+    "DeviceInfo": {
+      "required": ["locale", "phoneType", "sysVer"],
+      "properties": {
+        "countryCode": "string，可选，国家码。",
+        "deviceFormation": "string，可选，设备形态。",
+        "deviceType": "integer|string，可选，设备类型编码。",
+        "locale": "string，推荐，语言区域。",
+        "phoneType": "string，推荐，设备型号，会映射到内部 deviceType/marketingName。",
+        "prdVer": "string，可选，端侧传入的业务 API 版本；字段名保持端侧协议原名。",
+        "sysVer": "string，推荐，系统版本，会映射到内部 sysVersion。",
+        "time": "string，可选，端侧请求时间。",
+        "romVersion": "string，可选且字段名固定；例如 CLS-AL30 6.0.0.328，服务抽取 6.0。"
+      }
+    },
+    "Session": {
+      "required": ["sessionId", "interactionId"],
+      "properties": {
+        "sessionId": "string，会话 ID。",
+        "interactionId": "string，交互 ID。",
+        "isNew": "boolean，可选，是否新会话。"
+      }
+    },
+    "UserAuth": {
+      "required": false,
+      "properties": {
+        "user.userId": "string，可选，用户 ID。"
+      }
+    },
+    "Pagination": {
+      "required": false,
+      "properties": {
+        "limit": "integer，可选，分页大小。",
+        "start": "string，可选，分页游标。"
+      }
+    },
+    "Utterance": {
+      "required": false,
+      "properties": {
+        "original": "string，可选，用户原始表达。",
+        "type": "string，可选，输入类型。"
+      }
+    }
+  }
+}

@@ -8,6 +8,7 @@ from .base import (
     is_json_pointer,
     read_pointer,
     schema_path_exists,
+    unescape_pointer,
 )
 
 
@@ -20,8 +21,126 @@ class BindingValidator(BaseValidator):
             self._check_capability_arguments(context, rules, reporter)
         self._check_template_paths(context, rules, reporter)
         self._check_expression_paths(context, rules, reporter)
+        self._check_indexed_event_alignment(context, reporter)
         if not getattr(context, "use_effective_capabilities", False):
             self._check_event_handlers(context, rules, reporter)
+
+    def _check_indexed_event_alignment(self, context, reporter) -> None:
+        """保证静态展开的数组项展示内容与点击参数引用同一项。"""
+        for component in context.components:
+            handlers = component.get("onClick")
+            component_id = component.get("id")
+            if not isinstance(component_id, str) or not isinstance(handlers, list):
+                continue
+            display_references = self._component_subtree_references(
+                component_id,
+                context.components_by_id,
+            )
+            display_slots = self._array_item_slots(display_references)
+            if len(display_slots) != 1:
+                continue
+            display_prefix, display_index = next(iter(display_slots))
+            for handler_index, handler in enumerate(handlers):
+                if not isinstance(handler, dict):
+                    continue
+                event_slots = self._array_item_slots(
+                    self._value_references(handler.get("args"))
+                )
+                mismatched = sorted(
+                    slot
+                    for slot in event_slots
+                    if slot[0] == display_prefix and slot[1] != display_index
+                )
+                if not mismatched:
+                    continue
+                pointer = (
+                    f"/updateComponents/componentsById/{component_id}/onClick/"
+                    f"{handler_index}/args"
+                )
+                reporter.add(
+                    "error",
+                    "EVENT_ITEM_INDEX_MISMATCH",
+                    "semantic",
+                    "genui",
+                    line=2,
+                    json_pointer=pointer,
+                    actual=[self._slot_text(item) for item in mismatched],
+                    expected=self._slot_text((display_prefix, display_index)),
+                    message="点击事件引用的数组项与当前组件展示的数组项不一致。",
+                    fix_hint="将点击参数中的数组下标改为当前展示项下标。",
+                )
+
+    @classmethod
+    def _component_subtree_references(
+        cls,
+        component_id: str,
+        components_by_id: dict[str, dict[str, Any]],
+        visited: set[str] | None = None,
+    ) -> list[str]:
+        visited = visited or set()
+        if component_id in visited:
+            return []
+        visited.add(component_id)
+        component = components_by_id.get(component_id)
+        if not isinstance(component, dict):
+            return []
+        visible_values = {
+            key: value
+            for key, value in component.items()
+            if key not in {"children", "onClick"}
+        }
+        references = cls._value_references(visible_values)
+        children = component.get("children")
+        if not isinstance(children, list):
+            return references
+        for child_id in children:
+            if isinstance(child_id, str):
+                references.extend(
+                    cls._component_subtree_references(
+                        child_id,
+                        components_by_id,
+                        visited,
+                    )
+                )
+        return references
+
+    @classmethod
+    def _value_references(cls, value: Any) -> list[str]:
+        if isinstance(value, str):
+            return expression_references(value)
+        if isinstance(value, dict):
+            path = value.get("path")
+            if set(value) == {"path"} and is_json_pointer(path):
+                return [path]
+            references: list[str] = []
+            for child in value.values():
+                references.extend(cls._value_references(child))
+            return references
+        if isinstance(value, list):
+            references = []
+            for child in value:
+                references.extend(cls._value_references(child))
+            return references
+        return []
+
+    @staticmethod
+    def _array_item_slots(paths: list[str]) -> set[tuple[tuple[str, ...], str]]:
+        slots: set[tuple[tuple[str, ...], str]] = set()
+        for path in paths:
+            if not is_json_pointer(path) or path == "/":
+                continue
+            parts = tuple(unescape_pointer(part) for part in path[1:].split("/"))
+            for position, part in enumerate(parts):
+                if part.isdigit():
+                    slots.add((parts[:position], part))
+                    break
+        return slots
+
+    @staticmethod
+    def _slot_text(slot: tuple[tuple[str, ...], str]) -> str:
+        prefix, index = slot
+        escaped = [part.replace("~", "~0").replace("/", "~1") for part in prefix]
+        return "/" + "/".join([*escaped, index])
 
     def _check_capability_arguments(self, context, rules, reporter) -> None:
         bindings = context.cardspec.get("dataBindings")

@@ -1,0 +1,24 @@
+{
+  "capabilityId": "GetCountdownDays",
+  "preferredWriteResultTo": "/data/countdown",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "targetDate": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "targetDate"
+    ],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "countdownDays": {
+        "type": "integer"
+      }
+    }
+  }
+}

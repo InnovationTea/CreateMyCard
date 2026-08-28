@@ -1,0 +1,3 @@
+["root","Column",{"width":320,"height":160,"padding":8,"borderRadius":16,"clip":true,"itemMargin":8,"backgroundColor":"comp_background_primary"},["title"]]
+["title","Text",{"content":"Design Compact Mock","design":"title-s","fontColor":"font_primary"}]
+["/ui/state","ready"]
