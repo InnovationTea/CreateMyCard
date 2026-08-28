@@ -181,16 +181,10 @@ _ASSET_IDS_BY_TEMPLATE_PREFIX = {
         "asset.location_north_up_right_fill",
         "asset.icon_meeting",
     ),
-    "WeatherOverviewCompact": ("asset.icon_weather1",),
-    "WeatherOverviewFull": ("asset.icon_weather1",),
-    "WeatherOverviewHero": ("asset.icon_weather1",),
-    "WeatherOverviewTemperatureIcon": ("asset.icon_weather1",),
-    "WeatherOverviewTemperatureAlertUvIcon": ("asset.icon_weather1",),
-    "WeatherOverviewTemperatureUvIcon": ("asset.icon_weather1",),
 }
 
-_DEPRECATED_ASSET_FALLBACK_TERMS = {
-    "asset.icon_weather1": ("weather", "天气"),
+_ASSET_SEARCH_TERMS_BY_TEMPLATE_PREFIX = {
+    "WeatherOverview": ("weather", "天气"),
 }
 
 _CALENDAR_NEXT_EVENT_RUNTIME_FIELDS = ("/events/0/dtStart",)
@@ -526,10 +520,10 @@ def _candidate_asset_ids(
             for asset_id in asset_ids:
                 if asset_id in asset_capabilities:
                     candidate_asset_ids.append(asset_id)
-                    continue
-                fallback_terms = _DEPRECATED_ASSET_FALLBACK_TERMS.get(asset_id, ())
+        for prefix, terms in _ASSET_SEARCH_TERMS_BY_TEMPLATE_PREFIX.items():
+            if template_id.startswith(prefix):
                 candidate_asset_ids.extend(
-                    _asset_ids_matching_terms(asset_capabilities, fallback_terms)
+                    _asset_ids_matching_terms(asset_capabilities, terms)
                 )
     return list(dict.fromkeys(candidate_asset_ids))
 

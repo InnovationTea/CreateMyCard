@@ -612,39 +612,13 @@ class WidgetGenerationService:
             event_candidates=effective_events,
         )
         latest_processing_result = DslProcessingResult(source_dsl="")
+        source_generated_by_jsx = False
 
         async def generate_source_dsl() -> str:
+            nonlocal source_generated_by_jsx
+            source_generated_by_jsx = False
             if before_model_call is not None:
                 await before_model_call(card_spec.suggestSize)
-            if try_jsx:
-                try:
-                    logger.info(
-                        f"{_MODULE} jsx_generation_started operation={policy.operation}"
-                    )
-                    bridge = JsxA2UIBridge()
-                    bridge_result = await bridge.generate(task_spec, card_spec.suggestSize)
-                    a2ui_jsonl = "\n".join(
-                        json.dumps(msg, ensure_ascii=False, separators=(",", ":"))
-                        for msg in bridge_result.a2ui_messages
-                    )
-                    logger.info(
-                        f"{_MODULE} jsx_generation_completed operation={policy.operation} "
-                        f"component={bridge_result.component_name} "
-                        f"turns={bridge_result.turns} elapsed={bridge_result.elapsed_seconds}s"
-                    )
-                    return require_generated_dsl(a2ui_jsonl)
-                except Exception as exc:
-                    fallback = "original_protocol_flow" if need_fallback else "none"
-                    logger.info(
-                        f"{_MODULE} jsx_generation_failed "
-                        f"operation={policy.operation} fallback={fallback} "
-                        f"reason={type(exc).__name__} "
-                        f"detail={json_for_log(str(exc))}"
-                    )
-                    if not need_fallback:
-                        raise A2UIModelGenerationError(
-                            "JSX generation failed without fallback"
-                        ) from exc
             if template_source_generator is not None:
                 try:
                     logger.info(
@@ -668,6 +642,37 @@ class WidgetGenerationService:
                     if not need_fallback:
                         raise A2UIModelGenerationError(
                             "Template source generation failed without fallback"
+                        ) from exc
+            if try_jsx:
+                try:
+                    logger.info(
+                        f"{_MODULE} jsx_generation_started operation={policy.operation}"
+                    )
+                    bridge = JsxA2UIBridge()
+                    bridge_result = await bridge.generate(task_spec, card_spec.suggestSize)
+                    a2ui_jsonl = "\n".join(
+                        json.dumps(msg, ensure_ascii=False, separators=(",", ":"))
+                        for msg in bridge_result.a2ui_messages
+                    )
+                    generated_dsl = require_generated_dsl(a2ui_jsonl)
+                    source_generated_by_jsx = True
+                    logger.info(
+                        f"{_MODULE} jsx_generation_completed operation={policy.operation} "
+                        f"component={bridge_result.component_name} "
+                        f"turns={bridge_result.turns} elapsed={bridge_result.elapsed_seconds}s"
+                    )
+                    return generated_dsl
+                except Exception as exc:
+                    fallback = "original_protocol_flow" if need_fallback else "none"
+                    logger.info(
+                        f"{_MODULE} jsx_generation_failed "
+                        f"operation={policy.operation} fallback={fallback} "
+                        f"reason={type(exc).__name__} "
+                        f"detail={json_for_log(str(exc))}"
+                    )
+                    if not need_fallback:
+                        raise A2UIModelGenerationError(
+                            "JSX generation failed without fallback"
                         ) from exc
             logger.info(
                 f"{_MODULE} model_source_generation_started operation={policy.operation}"
@@ -720,7 +725,7 @@ class WidgetGenerationService:
         def evaluate_source_dsl_sync(source_dsl: str) -> list[str]:
             nonlocal latest_processing_result
             # JSX 路径：agent 内部已有编译+验证+重试，跳过工程 processor 和 validator
-            if try_jsx:
+            if source_generated_by_jsx:
                 logger.info(
                     f"{_MODULE} artifact_validation_skipped operation={policy.operation} "
                     "reason=jsx_internal_validation"
@@ -730,7 +735,8 @@ class WidgetGenerationService:
                 )
                 return []
             processing_result = processor.process(source_dsl, processing_context)
-            processing_result = _expand_cloud_a2ui_components(processing_result)
+            if self._enable_fusion_ball():
+                processing_result = _expand_cloud_a2ui_components(processing_result)
             latest_processing_result = processing_result
             warnings = [
                 item.repair_message()

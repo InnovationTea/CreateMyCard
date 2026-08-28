@@ -381,10 +381,10 @@ async def test_gallery_runner_calls_public_service_and_groups_a2ui_by_provider(
     input_root = tmp_path / "inputs"
     output_root = tmp_path / "output"
     manifest = write_gallery_input_dataset(input_root)
-    app_usage_provider = next(
+    countdown_provider = next(
         provider
         for provider in manifest.providers
-        if provider.providerSlug == "app-usage"
+        if provider.providerSlug == "countdown"
     )
     service = _GalleryService()
     runner = ProviderGalleryBatchRunner(service)
@@ -393,31 +393,31 @@ async def test_gallery_runner_calls_public_service_and_groups_a2ui_by_provider(
         input_root,
         output_root,
         concurrency=2,
-        provider_ids={app_usage_provider.providerId},
+        provider_ids={countdown_provider.providerId},
     )
 
     assert summary.total == 4
-    assert summary.success == 3
+    assert summary.success == 2
     assert summary.failed == 1
-    assert len(service.requests) == 3
-    assert service.fusion_ball_flags == [False] * 3
+    assert summary.missing == 1
+    assert len(service.requests) == 2
+    assert service.fusion_ball_flags == [False] * 2
     assert all(service.template_candidate_ids)
     assert all(isinstance(item, dict) for item in service.template_sample_overrides)
-    assert sorted(len(item) for item in service.template_action_ids) == [0, 1, 2]
+    assert sorted(len(item) for item in service.template_action_ids) == [0, 2]
     assert sorted(len(request.candidateEventCandidates or []) for request in service.requests) == [
         0,
-        1,
         2,
     ]
     output_manifest = json.loads(summary.manifest_path.read_text(encoding="utf-8"))
     assert len(output_manifest["providers"]) == 1
     cases = output_manifest["providers"][0]["cases"]
-    assert {case["status"] for case in cases} == {"failed", "success"}
+    assert {case["status"] for case in cases} == {"failed", "missing", "success"}
     multi_business = next(case for case in cases if case["scenarioId"] == "two-contents")
     assert multi_business["errorCode"] == MULTI_BUSINESS_UNSUPPORTED_ERROR
     assert multi_business["errorMessage"] == MULTI_BUSINESS_UNSUPPORTED_REASON
     for case in cases:
-        if case["status"] == "failed":
+        if case["status"] != "success":
             assert case["a2uiFile"] == ""
             continue
         a2ui_path = output_root / case["a2uiFile"]

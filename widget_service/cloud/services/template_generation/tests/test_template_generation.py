@@ -3940,7 +3940,7 @@ def _weather_request() -> GenerateWidgetCardRequest:
                 ],
             }
         ],
-        candidateAssetIds=["asset.icon_weather1"],
+        candidateAssetIds=["asset.icon_weather_temperature1"],
     )
 
 
@@ -4900,7 +4900,7 @@ async def test_template_exception_obeys_route_failure_policy(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("policy_factory", [_policy, _terse_policy], ids=["compact", "terse"])
-async def test_template_source_quality_failure_uses_common_compact_repair_once(
+async def test_template_source_has_priority_over_jsx_and_uses_common_repair_once(
     monkeypatch,
     policy_factory,
 ):
@@ -4952,6 +4952,10 @@ async def test_template_source_quality_failure_uses_common_compact_repair_once(
         template_call_count += 1
         return "template-invalid-source"
 
+    class RejectedJsxBridge:
+        def __init__(self) -> None:
+            pytest.fail("template source must take priority over JSX generation")
+
     async def save(store: ArtifactStore, _artifact: Any) -> ArtifactSaveResult:
         saved_design_tokens.append(store.design_token)
         return ArtifactSaveResult(
@@ -4977,6 +4981,11 @@ async def test_template_source_quality_failure_uses_common_compact_repair_once(
     )
     monkeypatch.setattr(
         widget_generation_service_module,
+        "JsxA2UIBridge",
+        RejectedJsxBridge,
+    )
+    monkeypatch.setattr(
+        widget_generation_service_module,
         "get_dsl_processor",
         lambda kind: processor_kinds.append(kind) or Processor(),
     )
@@ -4990,6 +4999,7 @@ async def test_template_source_quality_failure_uses_common_compact_repair_once(
     response = await WidgetGenerationService().generate_widget_card(
         _weather_request(),
         policy=policy_factory(),
+        try_jsx=True,
         template_source_generator=template_source_generator,
     )
 
