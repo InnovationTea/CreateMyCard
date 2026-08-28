@@ -21,15 +21,26 @@
   - `ScheduleOverviewMeetingSourceWideFull@1`：首个日程摘要，展示标题和时间，可补充结束时间与地点。 组件形态：meetingExpandedSource。 布局场景：完整 4x2；单独使用。主数据：/events/0/title, /events/0/dtStart；次要数据：/events/0/eventLocation, /events/0/dtEnd；可选数据：无。
   - `ScheduleOverviewNextEventHero@1`：带一个日历动作的首项日程 Hero 主内容；日程标题必需，时间槽支持时间范围、开始时间、提前提醒或全天/时区，并可补充日程数量、备注与地点。主数据：/events/0/title；次要数据：无；可选数据：/events/0/dtStart, /events/0/dtEnd, /events/0/remindTime/0, /eventCount, /events/0/description, /events/0/timeZone, /events/0/isAllDay, /events/0/eventLocation。
   - `ScheduleOverviewReminderHero@1`：带一个闹钟动作的日程提醒 Hero 主内容；以时间轴同时展示标题、开始时间和提前提醒。主数据：/events/0/title；次要数据：/events/0/dtStart, /events/0/remindTime/0；可选数据：无。
+  - `ScheduleOverviewTimezoneFull@1`：时区日程详情；以时区为主视觉，时间轴依次展示标题、全天/非全天状态和会议地点。主数据：/events/0/timeZone, /events/0/title；次要数据：/events/0/isAllDay, /events/0/eventLocation；可选数据：无。
+  - `ScheduleOverviewProgressHero@1`：带一个查看日程动作的今日日程进度 Hero；展示剩余件数、进度条，以及最近日程的标题、开始时间和备注。主数据：/eventCount, /events/0/title；次要数据：/events/0/dtStart, /events/0/description；可选数据：无。
   - `ScheduleOverviewDatedMeetingHero@1`：带一个日历动作的会议 Hero 主内容；日期、标题、开始时间、结束时间与地点都来自 Provider 运行时数据。主数据：/events/0/title, /events/0/dtStart；次要数据：/events/0/startDate, /events/0/dtEnd, /events/0/eventLocation；可选数据：无。
 - 已有 Provider 全局路径的值必须由模板 `data` 绑定；props 可传无全局路径的受控派生值、排版参数和
   素材。
-- `ScheduleOverviewNextEventHero@1`、`ScheduleOverviewReminderHero@1` 与
+- `ScheduleOverviewNextEventHero@1`、`ScheduleOverviewReminderHero@1`、
+  `ScheduleOverviewProgressHero@1` 与
   `ScheduleOverviewDatedMeetingHero@1` 只用于带一个 PillAction 的
   2x2 场景：使用 `HeroActionLayout@1`，并把一个 `PillAction@1` 作为最后一个直接 child；业务模板本身
   不得携带按钮。无底部 PillAction 时选择 `ScheduleOverviewNextEventFull@1`。
 - 用户同时显式要求 `/events/0/title`、`/events/0/dtStart` 和 `/events/0/remindTime/0`，并要求进入闹钟时，
   必须选择 `ScheduleOverviewReminderHero@1`，不得选择会隐藏提前提醒信息的通用日程 Hero。
+- 用户同时显式要求 `/events/0/title`、`/events/0/timeZone`、`/events/0/isAllDay` 和
+  `/events/0/eventLocation` 时，必须选择 `ScheduleOverviewTimezoneFull@1`；`headerLabel` 逐字复用
+  `cardComposition.businessTitleCandidate`，没有可信标题时省略。
+- 用户同时显式要求 `/eventCount`、`/events/0/title`、`/events/0/dtStart` 和
+  `/events/0/description`，并要求展示日程进度和进入日程详情时，必须选择
+  `ScheduleOverviewProgressHero@1`，使用 `HeroActionLayout@1`，并把一个 `PillAction@1` 作为最后一个
+  直接 child；`headerLabel` 逐字复用 `cardComposition.businessTitleCandidate`。该模板仅用于用户明确给出
+  “今日计划 5 件事”的场景，进度总数为 5，剩余件数始终绑定 `/eventCount`。
 - `ScheduleOverviewNextEventHero@1` 不按时间来源拆分模板；`dtStart`、`dtEnd`、`remindTime/0`、
   `timeZone` 和 `isAllDay` 通过 `$optionalPath` 与条件节点复用同一时间槽。
 - `ScheduleOverviewNextEventFull@1` 和 `ScheduleOverviewNextEventHero@1` 的可选 `headerLabel` 只能逐字复用

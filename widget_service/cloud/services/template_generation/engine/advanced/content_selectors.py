@@ -2780,11 +2780,16 @@ def extract_schedule_overview_facts(schema: dict[str, Any]) -> ScheduleOverviewF
     fields = event.get("properties") if isinstance(event.get("properties"), dict) else event
     title = _trusted_string(fields.get("title"))
     start = _trusted_string(fields.get("dtStart"))
-    if title is None or start is None:
+    time_zone = _trusted_string(fields.get("timeZone"))
+    if title is None or (start is None and time_zone is None):
         return None
     end = _trusted_string(fields.get("dtEnd"))
     location = _trusted_string(fields.get("eventLocation"))
-    time_text = f"{start} - {end}" if end is not None else start
+    if start is not None:
+        time_text = f"{start} - {end}" if end is not None else start
+    else:
+        assert time_zone is not None
+        time_text = time_zone
     return ScheduleOverviewFacts(title=title, time_text=time_text, location=location)
 
 

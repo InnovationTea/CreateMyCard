@@ -4,8 +4,6 @@ data = {
     start: $optionalPath("/events/0/dtStart"),
     end: $optionalPath("/events/0/dtEnd"),
     reminder: $optionalPath("/events/0/remindTime/0"),
-    timeZone: $optionalPath("/events/0/timeZone"),
-    isAllDay: $optionalPath("/events/0/isAllDay"),
     location: $optionalPath("/events/0/eventLocation")
 }
 
@@ -85,54 +83,6 @@ Column(
                                         )
                             )
                   ),
-            IfAbsent(
-                    data.start,
-                    IfAbsent(
-                              data.reminder,
-                              IfPresent(
-                                        data.timeZone,
-                                        IfPresent(
-                                                  data.isAllDay,
-                                                  Text(
-                                                            Expr(`${data.isAllDay} ? '全天 · ' + ${data.timeZone} : '非全天 · ' + ${data.timeZone}`),
-                                                            {"width": "100%", "height": 14, "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#991F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                                          )
-                                              )
-                                    )
-                            )
-                  ),
-            IfAbsent(
-                    data.start,
-                    IfAbsent(
-                              data.reminder,
-                              IfPresent(
-                                        data.timeZone,
-                                        IfAbsent(
-                                                  data.isAllDay,
-                                                  Text(
-                                                            data.timeZone,
-                                                            {"width": "100%", "height": 14, "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#991F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                                          )
-                                              )
-                                    )
-                            )
-                  ),
-            IfAbsent(
-                    data.start,
-                    IfAbsent(
-                              data.reminder,
-                              IfAbsent(
-                                        data.timeZone,
-                                        IfPresent(
-                                                  data.isAllDay,
-                                                  Text(
-                                                            Expr(`${data.isAllDay} ? '全天日程' : '非全天日程'`),
-                                                            {"width": "100%", "height": 14, "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": "#991F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                                          )
-                                              )
-                                    )
-                            )
-                  ),
             IfPresent(
                     data.location,
                     Text(
@@ -151,8 +101,6 @@ data = {
     start: $optionalPath("/events/0/dtStart"),
     end: $optionalPath("/events/0/dtEnd"),
     reminder: $optionalPath("/events/0/remindTime/0"),
-    eventCount: $optionalPath("/eventCount"),
-    description: $optionalPath("/events/0/description"),
     timeZone: $optionalPath("/events/0/timeZone"),
     isAllDay: $optionalPath("/events/0/isAllDay"),
     location: $optionalPath("/events/0/eventLocation")
@@ -252,25 +200,9 @@ Column(
       data.start,
       IfPresent(
         data.end,
-        IfPresent(
-          data.eventCount,
-          Text(
-            Expr(`'今日' + ${data.eventCount} + '项 · ' + ${data.start} + '-' + ${data.end}`),
-            {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": "#991F4799", "maxLines": 1, "textOverflow": "ellipsis"}
-          )
-        )
-      )
-    ),
-    IfPresent(
-      data.start,
-      IfPresent(
-        data.end,
-        IfAbsent(
-          data.eventCount,
-          Text(
-            `${data.start}-${data.end}`,
-            {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": "#991F4799", "maxLines": 1, "textOverflow": "ellipsis"}
-          )
+        Text(
+          `${data.start}-${data.end}`,
+          {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": "#991F4799", "maxLines": 1, "textOverflow": "ellipsis"}
         )
       )
     ),
@@ -278,25 +210,9 @@ Column(
       data.start,
       IfAbsent(
         data.end,
-        IfPresent(
-          data.eventCount,
-          Text(
-            Expr(`'今日' + ${data.eventCount} + '项 · ' + ${data.start}`),
-            {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": "#991F4799", "maxLines": 1, "textOverflow": "ellipsis"}
-          )
-        )
-      )
-    ),
-    IfPresent(
-      data.start,
-      IfAbsent(
-        data.end,
-        IfAbsent(
-          data.eventCount,
-          Text(
-            data.start,
-            {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": "#991F4799", "maxLines": 1, "textOverflow": "ellipsis"}
-          )
+        Text(
+          data.start,
+          {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": "#991F4799", "maxLines": 1, "textOverflow": "ellipsis"}
         )
       )
     ),
@@ -359,33 +275,10 @@ Column(
       )
     ),
     IfPresent(
-      data.description,
-      IfPresent(
+      data.location,
+      Text(
         data.location,
-        Text(
-          `${data.description} · ${data.location}`,
-          {"width": "matchParent", "height": 16, "fontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis"}
-        )
-      )
-    ),
-    IfPresent(
-      data.description,
-      IfAbsent(
-        data.location,
-        Text(
-          data.description,
-          {"width": "matchParent", "height": 16, "fontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis"}
-        )
-      )
-    ),
-    IfAbsent(
-      data.description,
-      IfPresent(
-        data.location,
-        Text(
-          data.location,
-          {"width": "matchParent", "height": 16, "fontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis"}
-        )
+        {"width": "matchParent", "height": 16, "fontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis"}
       )
     )
   )
@@ -538,6 +431,365 @@ Column(
         {
           "width": "matchParent",
           "height": 14,
+          "fontSize": 10,
+          "fontWeight": 400,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      )
+    )
+  )
+)
+#End
+
+#Template ScheduleOverviewTimezoneFull@1(props: { headerLabel?: string })
+data = {
+    title: $path("/events/0/title"),
+    timeZone: $path("/events/0/timeZone"),
+    isAllDay: $path("/events/0/isAllDay"),
+    location: $path("/events/0/eventLocation")
+}
+
+Column(
+  {
+    "_advancedComponent": "ScheduleOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 8,
+    "justifyContent": "start",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0, "minHeight": 0}
+  },
+  Row(
+    {
+      "width": "matchParent",
+      "height": 12,
+      "justifyContent": "spaceBetween",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+    IfPresent(
+      props.headerLabel,
+      Text(
+        props.headerLabel,
+        {
+          "width": "matchParent",
+          "height": 12,
+          "fontSize": 12,
+          "fontWeight": 400,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      )
+    ),
+    IfAbsent(
+      props.headerLabel,
+      Text(
+        "日程提醒",
+        {
+          "width": "matchParent",
+          "height": 12,
+          "fontSize": 12,
+          "fontWeight": 400,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      )
+    )
+  ),
+  Text(
+    data.timeZone,
+    {
+      "width": "matchParent",
+      "height": 44,
+      "fontSize": 16,
+      "minFontSize": 16,
+      "fontWeight": 700,
+      "fontColor": $theme('primaryColor'),
+      "maxLines": 1,
+      "textOverflow": "ellipsis",
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    }
+  ),
+  Row(
+    {
+      "width": "matchParent",
+      "height": 64,
+      "padding": {"left": 0, "top": 10, "right": 0, "bottom": 0},
+      "itemMargin": 8,
+      "justifyContent": "start",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+    Column(
+      {
+        "width": 8,
+        "height": 54,
+        "padding": {"left": 0, "top": 4, "right": 0, "bottom": 0},
+        "itemMargin": 4,
+        "justifyContent": "start",
+        "alignItems": "center",
+        "flexShrink": 0,
+        "clip": true
+      },
+      Stack(
+        {
+          "width": 8,
+          "height": 8,
+          "borderRadius": 4,
+          "borderWidth": 1.5,
+          "borderColor": $theme('primaryColor'),
+          "backgroundColor": "#00FFFFFF",
+          "alignContent": "center",
+          "flexShrink": 0
+        },
+        Divider({"width": 0, "height": 0, "strokeWidth": 0, "color": "#00FFFFFF"})
+      ),
+      Divider(
+        {
+          "width": 1,
+          "height": 36,
+          "strokeWidth": 1,
+          "vertical": true,
+          "color": $theme('supportContentColor')
+        }
+      )
+    ),
+    Column(
+      {
+        "width": "matchParent",
+        "height": 54,
+        "layoutWeight": 1,
+        "itemMargin": 2,
+        "justifyContent": "start",
+        "alignItems": "start",
+        "clip": true,
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+      },
+      Text(
+        data.title,
+        {
+          "width": "matchParent",
+          "height": 20,
+          "fontSize": 14,
+          "fontWeight": 700,
+          "fontColor": $theme('primaryColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      ),
+      Text(
+        Expr(`${data.isAllDay} ? '全天' : '非全天'`),
+        {
+          "width": "matchParent",
+          "height": 14,
+          "fontSize": 10,
+          "fontWeight": 400,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      ),
+      Text(
+        data.location,
+        {
+          "width": "matchParent",
+          "height": 14,
+          "fontSize": 10,
+          "fontWeight": 400,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      )
+    )
+  )
+)
+#End
+
+#Template ScheduleOverviewProgressHero@1(props: { headerLabel?: string })
+data = {
+    eventCount: $path("/eventCount"),
+    title: $path("/events/0/title"),
+    start: $path("/events/0/dtStart"),
+    description: $path("/events/0/description")
+}
+
+Column(
+  {
+    "_advancedComponent": "ScheduleOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 4,
+    "justifyContent": "start",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0, "minHeight": 0}
+  },
+  Row(
+    {
+      "width": "matchParent",
+      "height": 12,
+      "justifyContent": "spaceBetween",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+    IfPresent(
+      props.headerLabel,
+      Text(
+        props.headerLabel,
+        {
+          "width": "matchParent",
+          "height": 12,
+          "fontSize": 12,
+          "fontWeight": 400,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      )
+    ),
+    IfAbsent(
+      props.headerLabel,
+      Text(
+        "今日日程",
+        {
+          "width": "matchParent",
+          "height": 12,
+          "fontSize": 12,
+          "fontWeight": 400,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      )
+    )
+  ),
+  Text(
+    Expr(`'今日还剩' + ${data.eventCount} + '件事'`),
+    {
+      "width": "matchParent",
+      "height": 18,
+      "fontSize": 14,
+      "fontWeight": 700,
+      "fontColor": $theme('primaryColor'),
+      "maxLines": 1,
+      "textOverflow": "ellipsis",
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    }
+  ),
+  Progress(
+    {
+      "value": Expr(`5 - ${data.eventCount}`),
+      "total": 5,
+      "strokeWidth": 8,
+      "color": $theme('primaryColor'),
+      "backgroundColor": $theme('actionStyle.backgroundColor'),
+      "width": "matchParent",
+      "height": 8
+    }
+  ),
+  Row(
+    {
+      "width": "matchParent",
+      "height": 44,
+      "itemMargin": 8,
+      "justifyContent": "start",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+    Column(
+      {
+        "width": 8,
+        "height": 42,
+        "padding": {"left": 0, "top": 4, "right": 0, "bottom": 0},
+        "itemMargin": 4,
+        "justifyContent": "start",
+        "alignItems": "center",
+        "flexShrink": 0,
+        "clip": true
+      },
+      Stack(
+        {
+          "width": 8,
+          "height": 8,
+          "borderRadius": 4,
+          "borderWidth": 1.5,
+          "borderColor": $theme('primaryColor'),
+          "backgroundColor": "#00FFFFFF",
+          "alignContent": "center",
+          "flexShrink": 0
+        },
+        Divider({"width": 0, "height": 0, "strokeWidth": 0, "color": "#00FFFFFF"})
+      ),
+      Divider(
+        {
+          "width": 1,
+          "height": 26,
+          "strokeWidth": 1,
+          "vertical": true,
+          "color": $theme('supportContentColor')
+        }
+      )
+    ),
+    Column(
+      {
+        "width": "matchParent",
+        "height": 42,
+        "layoutWeight": 1,
+        "itemMargin": 1,
+        "justifyContent": "start",
+        "alignItems": "start",
+        "clip": true,
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+      },
+      Text(
+        data.title,
+        {
+          "width": "matchParent",
+          "height": 16,
+          "fontSize": 14,
+          "fontWeight": 700,
+          "fontColor": $theme('primaryColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      ),
+      Text(
+        data.start,
+        {
+          "width": "matchParent",
+          "height": 12,
+          "fontSize": 10,
+          "fontWeight": 400,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      ),
+      Text(
+        data.description,
+        {
+          "width": "matchParent",
+          "height": 12,
           "fontSize": 10,
           "fontWeight": 400,
           "fontColor": $theme('supportContentColor'),
