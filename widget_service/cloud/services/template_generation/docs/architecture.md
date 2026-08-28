@@ -52,7 +52,7 @@ Form Profile、模型运行时和请求上下文，再将其注入公共生成�
 
 两个入口当前都构造 `DslProcessorKind.DESIGN_COMPACT` 策略。
 `generateWidgetCardTerseDslNested2` 的名称表达模板内部编排语义；生产路线不把 Tersel
-字符串直接交给公共 `TerseNested2Processor`。
+字符串交给公共 Processor，旧 TerseDSL 公共 Processor 已删除。
 
 ## 3. Template 内部主流程
 
@@ -176,7 +176,7 @@ Search 路线的首层输出是 `TemplateRetrievalQuery`：
 9. 回转 A2UI-Compact 并经公共 Processor 重新生成完整 A2UI 后，统一展开 `FusionBall` 为标准组件，给相邻
    内容根 ID 增加 `__genui_render_component__` 前缀，再执行 artifact 校验。
 
-二层输出发生 `TerseDslNested2ConversionError` 时，模板模块在首次生成后最多使用两次二层修复。
+二层输出发生 `TerselConversionError` 时，模板模块在首次生成后最多使用两次二层修复。
 这与模块返回后的公共 Compact repair 是两套不同的质量阶段。
 
 ## 4. 数据形态变换

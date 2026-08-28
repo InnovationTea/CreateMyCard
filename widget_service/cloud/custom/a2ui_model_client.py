@@ -30,7 +30,6 @@ from services.compact_dsl_a2ui_converter import (
 )
 from services.protocol_registry import (
     DESIGN_COMPACT_PROFILE_ID,
-    TERSE_DSL_NESTED2_PROFILE_ID,
     A2UIProtocolRegistry,
 )
 
@@ -251,13 +250,10 @@ class A2UIModelClient:
     ) -> str:
         """按目标 DSL 格式统一处理各模型后端的原始输出。"""
         dsl_text = self.extract_genui_payload(raw_output)
-        is_terse_nested2 = (
-            protocol_profile.get("id") == TERSE_DSL_NESTED2_PROFILE_ID
-        )
         is_design_compact = (
             protocol_profile.get("id") == DESIGN_COMPACT_PROFILE_ID
         )
-        if not is_design_compact and not is_terse_nested2:
+        if not is_design_compact:
             dsl_text = self.convert_dsl(dsl_text)
         logger.info(
             f"{_MODULE} dsl_processed backend={self.backend} "
@@ -313,8 +309,6 @@ class A2UIModelClient:
         if protocol_profile.get("id") == DESIGN_COMPACT_PROFILE_ID:
             size = A2UIModelClient._task_size_from_prompt(prompt)
             return f"mock.design-compact-dsl-{size}.dat"
-        if protocol_profile.get("id") == TERSE_DSL_NESTED2_PROFILE_ID:
-            return "mock.terse-dsl-nested-2.dat"
         return "mock.dat"
 
     @staticmethod

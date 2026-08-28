@@ -10,10 +10,6 @@ from typing import Any
 from app.logger import json_for_log, logger
 from models.generation import CandidateDataBinding, TaskSpec
 from services.card_validation.base import expression_references
-from services.protocol_registry import (
-    TERSE_DSL_NESTED2_PROFILE_ID,
-    A2UIProtocolRegistry,
-)
 from services.template_generation.controls import load_template_controls
 from services.template_generation.engine.advanced.content_selectors import (
     apply_content_selectors,
@@ -49,8 +45,12 @@ from services.template_generation.engine.cardplan.template_retrieval import (
     build_template_retrieval_prompt,
     retrieve_template_variants,
 )
-from services.template_generation.engine.terse_dsl_nested2_converter import (
-    TerseDslNested2ConversionError,
+from services.template_generation.engine.tersel_converter import (
+    TerselConversionError,
+)
+from services.template_generation.profile import (
+    TERSEL_PROTOCOL_PROFILE_ID,
+    read_tersel_protocol_profile,
 )
 
 _MODULE = "[Template Generation]"
@@ -64,7 +64,7 @@ class TemplateGenerationError(RuntimeError):
 @dataclass(frozen=True)
 class TemplateEngineOutput:
     a2ui: str
-    terse_dsl_nested2: str
+    tersel: str
     projected_task_spec: TaskSpec
     template_ids: tuple[str, ...]
     trusted_internal_asset_sources: tuple[str, ...]
@@ -352,9 +352,7 @@ async def _generate_selected_templates(
         f"{_MODULE} second_layer_prompt_built "
         f"summary={json_for_log(_prompt_size_summary(projection.messages))}"
     )
-    protocol_profile = A2UIProtocolRegistry.read_design_protocol_profile(
-        TERSE_DSL_NESTED2_PROFILE_ID
-    )
+    protocol_profile = read_tersel_protocol_profile()
     messages = projection.messages
     repair_count = 0
     while True:
@@ -378,7 +376,7 @@ async def _generate_selected_templates(
                 enable_data_bindings=True,
             )
             break
-        except TerseDslNested2ConversionError as exc:
+        except TerselConversionError as exc:
             logger.info(
                 f"{_MODULE} template_body_validation_failed "
                 f"repair_count={repair_count} detail={exc}"
@@ -412,7 +410,7 @@ async def _generate_selected_templates(
     )
     return TemplateEngineOutput(
         a2ui=compilation.a2ui,
-        terse_dsl_nested2=compilation.effective_output,
+        tersel=compilation.effective_output,
         projected_task_spec=projected_task_spec,
         template_ids=tuple(compilation.stats.template_used_ids),
         trusted_internal_asset_sources=trusted_sources,
@@ -427,7 +425,7 @@ async def _generate_hybrid_body(
     *,
     phase: str,
 ) -> str:
-    profile = {"id": TERSE_DSL_NESTED2_PROFILE_ID, "format": "hybrid-card"}
+    profile = {"id": TERSEL_PROTOCOL_PROFILE_ID, "format": "hybrid-card"}
     generate = model_client.generate
     parameters = inspect.signature(generate).parameters
     accepts_keywords = any(

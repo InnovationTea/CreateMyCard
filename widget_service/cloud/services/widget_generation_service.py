@@ -461,10 +461,6 @@ class WidgetGenerationService:
         protocol_registry = A2UIProtocolRegistry(policy.protocol_profile_id)
         protocol_profile = protocol_registry.get_profile()
         conversion_protocol_profile = protocol_profile
-        if policy.processor_kind == DslProcessorKind.TERSE_NESTED2:
-            conversion_protocol_profile = A2UIProtocolRegistry.read_design_protocol_profile(
-                policy.model_profile_id
-            )
         if previous_design_token is not None:
             token_is_valid = await self._validate_source_design_token(
                 previous_design_token,
@@ -603,10 +599,7 @@ class WidgetGenerationService:
         artifact_id = str(uuid.uuid4())
         model_call_phase = "initial"
         quality_repair_attempt_count = 0
-        if policy.processor_kind == DslProcessorKind.TERSE_NESTED2:
-            design_mode = "edit" if source_load_result else "create"
-            repair_prompt_type = f"terse-dsl-nested-2-{design_mode}"
-        elif policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
+        if policy.processor_kind == DslProcessorKind.DESIGN_COMPACT:
             design_mode = "edit" if source_load_result else "create"
             repair_prompt_type = f"design-compact-{design_mode}"
         elif source_load_result:
@@ -1168,8 +1161,6 @@ class WidgetGenerationService:
                 message="模板路线暂不支持二次更新。",
                 errorCode=ErrorCode.A2UI_GENERATION_FAILED.value,
             )
-        # 问题定位时可显式调用
-        # services.template_generation.route_legacy_python_terse_generation(...)。
         template_source_generator = TemplateSourceGenerator(
             enable_fusion_ball=enable_fusion_ball,
             trusted_template_candidate_ids=trusted_template_candidate_ids,

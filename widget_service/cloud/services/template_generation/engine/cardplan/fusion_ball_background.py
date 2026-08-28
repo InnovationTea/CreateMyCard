@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from services.template_generation.engine.terse_dsl_nested2_converter import Nested2Node
+from services.template_generation.engine.tersel_converter import Nested2Node
 
 _CARD_CONTENT_ID = "cardContent"
 _BACKGROUND_STYLE_KEYS = frozenset(

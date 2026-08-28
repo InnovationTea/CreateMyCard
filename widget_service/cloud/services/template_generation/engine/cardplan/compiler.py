@@ -12,7 +12,10 @@ from typing import Any, Literal
 from jsonschema import Draft202012Validator
 
 from models.generation import TaskSpec
-from services.a2ui_expression import A2UIExpressionError, normalize_terse_expression
+from services.template_generation.engine.a2ui_expression import (
+    A2UIExpressionError,
+    normalize_tersel_expression,
+)
 from services.template_generation.engine.advanced.content_selectors import (
     ActivityOverviewFacts,
     AppUsageOverviewFacts,
@@ -50,9 +53,9 @@ from services.template_generation.engine.advanced.models import (
     UX_LAYOUT_COMPONENT_IDS,
     UxLayoutComponentCapability,
 )
-from services.template_generation.engine.terse_dsl_nested2_converter import (
+from services.template_generation.engine.tersel_converter import (
     Nested2Node,
-    TerseDslNested2ConversionError,
+    TerselConversionError,
     convert_tersel_to_a2ui,
     serialize_task_spec_data,
 )
@@ -177,7 +180,7 @@ def compile_hybrid_card(
     composition = parse_hybrid_card(source)
     raw_card_params = composition.values[0]
     if not isinstance(raw_card_params, dict):
-        raise TerseDslNested2ConversionError("card@1 params must be an object.")
+        raise TerselConversionError("card@1 params must be an object.")
     card_params = _normalize_card_params(raw_card_params)
     _validate_card_params(card_params, task_spec, contract)
     _validate_ux_layout_root(
@@ -188,7 +191,7 @@ def compile_hybrid_card(
     )
     raw_count = _count_calls(composition.children[0])
     if raw_count > contract.limits.max_raw_components:
-        raise TerseDslNested2ConversionError("Hybrid raw component budget exceeded.")
+        raise TerselConversionError("Hybrid raw component budget exceeded.")
     _reject_direct_events(composition.children[0])
     _validate_raw_components(composition.children[0], contract)
     normalized_content, provider_param_normalizations = _normalize_template_provider_params(
@@ -270,12 +273,12 @@ def compile_hybrid_card(
         actual_content_actions.subtract({card_action["id"]: 1})
         actual_content_actions += Counter()
     if actual_content_actions != expected_content_actions:
-        raise TerseDslNested2ConversionError("Hybrid content Actions do not match the contract.")
+        raise TerselConversionError("Hybrid content Actions do not match the contract.")
     count, depth = _shape(root)
     if count > contract.limits.max_expanded_components:
-        raise TerseDslNested2ConversionError("Hybrid expanded component budget exceeded.")
+        raise TerselConversionError("Hybrid expanded component budget exceeded.")
     if depth > contract.limits.max_nesting_depth:
-        raise TerseDslNested2ConversionError("Hybrid component depth budget exceeded.")
+        raise TerselConversionError("Hybrid component depth budget exceeded.")
     _validate_expanded_tree(root, contract)
     body_budget = _body_budget(card_params, contract, registry)
     space_constrained = content_height > body_budget
@@ -299,9 +302,9 @@ def compile_hybrid_card(
     )
     component_types = _a2ui_component_types(a2ui)
     if "Template" in component_types:
-        raise TerseDslNested2ConversionError("Template leaked into final A2UI.")
+        raise TerselConversionError("Template leaked into final A2UI.")
     if component_types & UX_LAYOUT_COMPONENT_IDS:
-        raise TerseDslNested2ConversionError("UX Layout leaked into final A2UI.")
+        raise TerselConversionError("UX Layout leaked into final A2UI.")
     return HybridCompilation(
         raw_output=source,
         effective_output=effective,
@@ -358,7 +361,7 @@ def compile_ux_layout_card(
     )
     raw_count = _count_calls(composition)
     if raw_count > contract.limits.max_raw_components:
-        raise TerseDslNested2ConversionError("Hybrid raw component budget exceeded.")
+        raise TerselConversionError("Hybrid raw component budget exceeded.")
     _reject_direct_events(composition)
     _validate_raw_components(composition, contract)
     _validate_required_business_components(composition, contract)
@@ -396,14 +399,14 @@ def compile_ux_layout_card(
         _parsed_ux_action_component(child) is not None for child in composition.children
     )
     if len(state.action_occurrences) != embedded_action_count:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "UX Layout Actions must use the dedicated Action nodes."
         )
     if any(action_id not in contract.content_action_ids for action_id in state.action_occurrences):
-        raise TerseDslNested2ConversionError("UX Layout used an unapproved Action.")
+        raise TerselConversionError("UX Layout used an unapproved Action.")
     actual_actions = Counter(state.action_occurrences)
     if any(count != 1 for count in actual_actions.values()):
-        raise TerseDslNested2ConversionError("UX Layout cannot repeat the same Action.")
+        raise TerselConversionError("UX Layout cannot repeat the same Action.")
     expanded = _append_missing_required_literals_to_ux_layout(expanded, contract)
     expanded = _inject_ux_business_title(expanded, business_title, contract)
     expanded = _strip_2x2_composite_headers(expanded, size=task_spec.size)
@@ -438,9 +441,9 @@ def compile_ux_layout_card(
     root = _strip_advanced_component_markers(root)
     count, depth = _shape(root)
     if count > contract.limits.max_expanded_components:
-        raise TerseDslNested2ConversionError("Hybrid expanded component budget exceeded.")
+        raise TerselConversionError("Hybrid expanded component budget exceeded.")
     if depth > contract.limits.max_nesting_depth:
-        raise TerseDslNested2ConversionError("Hybrid component depth budget exceeded.")
+        raise TerselConversionError("Hybrid component depth budget exceeded.")
     _validate_expanded_tree(root, contract)
     root = _apply_template_background(
         root,
@@ -458,13 +461,13 @@ def compile_ux_layout_card(
     )
     component_types = _a2ui_component_types(a2ui)
     if "Template" in component_types:
-        raise TerseDslNested2ConversionError("Template leaked into final A2UI.")
+        raise TerselConversionError("Template leaked into final A2UI.")
     if component_types & UX_LAYOUT_COMPONENT_IDS:
-        raise TerseDslNested2ConversionError("UX Layout leaked into final A2UI.")
+        raise TerselConversionError("UX Layout leaked into final A2UI.")
     if component_types & _UX_ACTION_COMPONENTS:
-        raise TerseDslNested2ConversionError("UX Action leaked into final A2UI.")
+        raise TerselConversionError("UX Action leaked into final A2UI.")
     if component_types & _UX_DIRECT_BUSINESS_COMPONENTS:
-        raise TerseDslNested2ConversionError("UX Business Component leaked into final A2UI.")
+        raise TerselConversionError("UX Business Component leaked into final A2UI.")
     return HybridCompilation(
         raw_output=source,
         effective_output=effective,
@@ -499,7 +502,7 @@ def _validate_required_template_groups(
     for group in contract.required_template_groups:
         if not used.intersection(group):
             choices = ", ".join(group)
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 f"UX business component requires one trusted Template from: {choices}"
             )
 
@@ -515,12 +518,12 @@ def _validate_required_business_components(
     )
     allowed = set(contract.allowed_business_component_ids)
     if set(counts) - allowed:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "UX Business Component is outside the approved Advanced Scope."
         )
     for component_id in contract.required_business_component_ids:
         if counts[component_id] != 1:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 f"UX Business Component must appear exactly once: {component_id}"
             )
 
@@ -658,29 +661,29 @@ def _validate_card_params(
 ) -> None:
     unknown = set(params) - {"title", "subtitle", "titleIcon", "action"}
     if unknown:
-        raise TerseDslNested2ConversionError(f"Unknown card@1 params: {sorted(unknown)}")
+        raise TerselConversionError(f"Unknown card@1 params: {sorted(unknown)}")
     for key in ("title", "subtitle"):
         if key not in params:
             continue
         value = params[key]
         if not isinstance(value, str) or value not in contract.trusted_literals:
-            raise TerseDslNested2ConversionError(f"card@1 {key} is not trusted.")
+            raise TerselConversionError(f"card@1 {key} is not trusted.")
     if "titleIcon" in params and params["titleIcon"] not in contract.allowed_asset_sources:
-        raise TerseDslNested2ConversionError("card@1 titleIcon is not approved.")
+        raise TerselConversionError("card@1 titleIcon is not approved.")
     action = params.get("action")
     if action is None:
         return
     if not isinstance(action, dict) or set(action) != {"label", "id"}:
-        raise TerseDslNested2ConversionError("card@1 action must contain label and id.")
+        raise TerselConversionError("card@1 action must contain label and id.")
     pair = (action.get("label"), action.get("id"))
     approved = {(item.display_label, item.action_id) for item in contract.action_bindings}
     if pair not in approved:
-        raise TerseDslNested2ConversionError("card@1 action label/id pair is not approved.")
+        raise TerselConversionError("card@1 action label/id pair is not approved.")
     if action["id"] in contract.content_action_ids:
-        raise TerseDslNested2ConversionError("content Action cannot be used by card@1.")
+        raise TerselConversionError("content Action cannot be used by card@1.")
     event_ids = {item.id for item in task_spec.eventCandidates}
     if action["id"] not in event_ids:
-        raise TerseDslNested2ConversionError("card@1 action is not in TaskSpec.")
+        raise TerselConversionError("card@1 action is not in TaskSpec.")
 
 
 def _normalize_card_params(params: dict[str, Any]) -> dict[str, Any]:
@@ -688,7 +691,7 @@ def _normalize_card_params(params: dict[str, Any]) -> dict[str, Any]:
     if "icon" not in normalized:
         return normalized
     if "titleIcon" in normalized:
-        raise TerseDslNested2ConversionError("card@1 cannot contain icon and titleIcon.")
+        raise TerselConversionError("card@1 cannot contain icon and titleIcon.")
     normalized["titleIcon"] = normalized.pop("icon")
     return normalized
 
@@ -818,10 +821,10 @@ def _expand_call(
         )
     wire_id = call.name
     if wire_id not in contract.allowed_template_ids:
-        raise TerseDslNested2ConversionError(f"Template is not allowed: {wire_id}")
+        raise TerselConversionError(f"Template is not allowed: {wire_id}")
     definition = registry.require_template(wire_id)
     if definition.allowed_parent_components and parent not in definition.allowed_parent_components:
-        raise TerseDslNested2ConversionError(f"Template parent is not allowed: {wire_id}/{parent}")
+        raise TerselConversionError(f"Template parent is not allowed: {wire_id}/{parent}")
     if len(call.values) == 1 and isinstance(call.values[0], dict):
         size = "default"
         params = call.values[0]
@@ -832,19 +835,19 @@ def _expand_call(
             variant = registry.require_variant(wire_id, str(size))
         except ValueError as exc:
             if len(definition.variants) != 1:
-                raise TerseDslNested2ConversionError(
+                raise TerselConversionError(
                     f"Template variant is not allowed: {wire_id}/{size}"
                 ) from exc
             variant = definition.variants[0]
             state.template_variant_normalizations += 1
     else:
-        raise TerseDslNested2ConversionError(f"Template props are invalid: {wire_id}")
+        raise TerselConversionError(f"Template props are invalid: {wire_id}")
     if bool(call.children) != definition.accepts_children:
         expected = "with children" if definition.accepts_children else "without children"
-        raise TerseDslNested2ConversionError(f"Template must be called {expected}: {wire_id}")
+        raise TerselConversionError(f"Template must be called {expected}: {wire_id}")
     errors = sorted(Draft202012Validator(variant.parameters_schema).iter_errors(params), key=str)
     if errors:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"Template params are invalid for {wire_id}/{size}: {errors[0].message}"
         )
     params = _normalize_template_asset_params(
@@ -858,7 +861,7 @@ def _expand_call(
     _validate_template_params(params, definition.asset_parameter_semantic_tags, contract)
     _validate_template_parameter_relations(params, variant.parameter_relations)
     if variant.supported_card_sizes and task_spec.size not in variant.supported_card_sizes:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"Provider Template does not support the card size: {wire_id}/{task_spec.size}"
         )
     _validate_provider_template_state(
@@ -872,7 +875,7 @@ def _expand_call(
         and definition.compatible_theme_profile_ids
         and contract.theme_profile_id not in definition.compatible_theme_profile_ids
     ):
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"Provider Template does not support the theme: {wire_id}/{contract.theme_profile_id}"
         )
     binding_values = _provider_template_binding_values(
@@ -906,7 +909,7 @@ def _expand_call(
     )
     indexed_child_slots = _template_child_slot_indexes(variant.root)
     if indexed_child_slots and len(expanded_children) != len(indexed_child_slots):
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"Template indexed child count is invalid: {wire_id}/{len(expanded_children)}"
         )
     if wire_id == "ux-bluetooth-overview@2" and ux_layout_id == "PeerPairLayout":
@@ -943,7 +946,7 @@ def _expand_call(
             or budget_depth > variant.expanded_depth_budget
         )
     ):
-        raise TerseDslNested2ConversionError(f"Template blueprint budget drift: {wire_id}/{size}")
+        raise TerselConversionError(f"Template blueprint budget drift: {wire_id}/{size}")
     node_count, _ = _shape(root)
     state.template_calls += 1
     state.expanded_components += node_count
@@ -965,14 +968,14 @@ def _wrap_action_template(
 ) -> tuple[Nested2Node, tuple[str, ...]]:
     action_component = _ACTION_TEMPLATE_COMPONENTS.get(wire_id)
     if action_component is None:
-        raise TerseDslNested2ConversionError(f"Action Provider Template is unsupported: {wire_id}")
+        raise TerselConversionError(f"Action Provider Template is unsupported: {wire_id}")
     if root.component_type != "Stack":
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"Action Provider Template root must be Stack: {wire_id}"
         )
     action_id = params.get("actionId")
     if not isinstance(action_id, str):
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"Action Provider Template actionId is invalid: {wire_id}"
         )
     binding = next(
@@ -980,19 +983,19 @@ def _wrap_action_template(
         None,
     )
     if binding is None or action_id not in contract.content_action_ids:
-        raise TerseDslNested2ConversionError(f"Action Provider Template is not approved: {wire_id}")
+        raise TerselConversionError(f"Action Provider Template is not approved: {wire_id}")
     if action_component == "PillAction" and params.get("label") != binding.display_label:
-        raise TerseDslNested2ConversionError("PillAction label/actionId pair is not approved.")
+        raise TerselConversionError("PillAction label/actionId pair is not approved.")
     icon = params.get("icon")
     if icon is not None and (
         not isinstance(icon, str) or icon not in contract.allowed_asset_sources
     ):
-        raise TerseDslNested2ConversionError(f"{action_component} icon is not approved.")
+        raise TerselConversionError(f"{action_component} icon is not approved.")
     if action_component == "IconAction" and not isinstance(icon, str):
-        raise TerseDslNested2ConversionError("IconAction requires an approved icon.")
+        raise TerselConversionError("IconAction requires an approved icon.")
     bound_root, action_ids = _bind_template_actions(root, contract)
     if action_ids != (action_id,):
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"Action Provider Template event declaration is invalid: {wire_id}"
         )
     return Nested2Node(action_component, (dict(params),), (bound_root,)), action_ids
@@ -1011,7 +1014,7 @@ def _validate_provider_template_state(
     if wire_id == "BatteryOverview@1":
         facts = extract_battery_overview_facts(task_spec.dataModelSchema)
         if facts is None:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Battery Provider Template variant does not match the trusted state."
             )
         state_independent_variants = {
@@ -1023,20 +1026,20 @@ def _validate_provider_template_state(
         if variant_name in state_independent_variants:
             return
         if not variant_name.startswith(facts.state):
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Battery Provider Template variant does not match the trusted state."
             )
         if business_names == {"BatteryOverview", "BluetoothDeviceOverview"}:
             expected = f"{facts.state}PhoneCompact"
             if variant_name != expected:
-                raise TerseDslNested2ConversionError(
+                raise TerselConversionError(
                     "Battery Provider Template variant does not match the phone-earphone layout."
                 )
     if wire_id == "BluetoothDeviceOverview@1":
         facts = extract_bluetooth_device_overview_facts(task_spec.dataModelSchema)
         disconnected_variant = variant_name.startswith("disconnected")
         if facts is None or disconnected_variant == facts.is_connected:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Bluetooth Provider Template variant does not match the trusted connection state."
             )
         if "BluetoothDeviceOverview" not in business_names:
@@ -1072,7 +1075,7 @@ def _validate_provider_template_state(
         else:
             expected = "caseFull"
         if variant_name != expected:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Bluetooth Provider Template variant does not match the trusted data shape."
             )
 
@@ -1083,27 +1086,27 @@ def _expand_ux_action_call(
     state: _ExpansionState,
 ) -> Nested2Node:
     if call.name not in {"PillAction", "IconAction"}:
-        raise TerseDslNested2ConversionError("UX template route Action type is not supported.")
+        raise TerselConversionError("UX template route Action type is not supported.")
     if len(call.values) != 1 or not isinstance(call.values[0], dict):
-        raise TerseDslNested2ConversionError(f"{call.name} requires one object argument.")
+        raise TerselConversionError(f"{call.name} requires one object argument.")
     params = dict(call.values[0])
     expected_fields = {"actionId"} if call.name == "PillAction" else {"actionId", "icon"}
     if set(params) != expected_fields:
-        raise TerseDslNested2ConversionError(f"{call.name} contains unknown fields.")
+        raise TerselConversionError(f"{call.name} contains unknown fields.")
     action_id = params.get("actionId")
     if not isinstance(action_id, str):
-        raise TerseDslNested2ConversionError(f"{call.name} actionId is invalid.")
+        raise TerselConversionError(f"{call.name} actionId is invalid.")
     binding = next(
         (item for item in contract.action_bindings if item.action_id == action_id),
         None,
     )
     if binding is None or action_id not in contract.content_action_ids:
-        raise TerseDslNested2ConversionError(f"{call.name} Action is not approved.")
+        raise TerselConversionError(f"{call.name} Action is not approved.")
     icon = params.get("icon")
     if call.name == "IconAction" and (
         not isinstance(icon, str) or icon not in contract.allowed_asset_sources
     ):
-        raise TerseDslNested2ConversionError("IconAction icon is not approved.")
+        raise TerselConversionError("IconAction icon is not approved.")
     if action_id not in state.action_ids:
         state.action_ids.append(action_id)
     state.action_occurrences.append(action_id)
@@ -1118,10 +1121,10 @@ def _expand_date_overview_call(
     registry: CardPlanRegistry,
 ) -> Nested2Node:
     if call.name not in contract.allowed_business_component_ids:
-        raise TerseDslNested2ConversionError("DateOverview is not approved by Advanced Scope.")
+        raise TerselConversionError("DateOverview is not approved by Advanced Scope.")
     facts = extract_date_overview_facts(task_spec.dataModelSchema)
     if facts is None:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "DateOverview requires complete trusted date and weekday strings."
         )
     parameters = call.values[0]
@@ -1244,7 +1247,7 @@ def _expand_activity_overview_call(
     registry: CardPlanRegistry,
 ) -> Nested2Node:
     if call.name not in contract.allowed_business_component_ids:
-        raise TerseDslNested2ConversionError("ActivityOverview is not approved by Advanced Scope.")
+        raise TerselConversionError("ActivityOverview is not approved by Advanced Scope.")
     parameters = call.values[0]
     variant = str(parameters["variant"])
     variant_selector = (
@@ -1254,12 +1257,12 @@ def _expand_activity_overview_call(
     )
     allowed_variants = set(variant_selector(task_spec, {"GetHealthAndSportSummary"}))
     if variant not in allowed_variants:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "ActivityOverview variant is not backed by this query and trusted projection."
         )
     facts = extract_activity_overview_facts(task_spec.dataModelSchema)
     if facts is None or (variant == "dailySummary" and not facts.has_daily_summary):
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "ActivityOverview requires trusted fields for the selected variant."
         )
     role = str(parameters["role"])
@@ -1396,7 +1399,7 @@ def _expand_workout_overview_call(
     registry: CardPlanRegistry,
 ) -> Nested2Node:
     if call.name not in contract.allowed_business_component_ids:
-        raise TerseDslNested2ConversionError("WorkoutOverview is not approved by Advanced Scope.")
+        raise TerselConversionError("WorkoutOverview is not approved by Advanced Scope.")
     parameters = call.values[0]
     variant = str(parameters["variant"])
     variant_selector = (
@@ -1411,14 +1414,14 @@ def _expand_workout_overview_call(
         )
     )
     if variant not in allowed_variants:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "WorkoutOverview variant is not backed by this query and trusted projection."
         )
     source_icon = parameters.get("sourceIcon")
     calorie_icon = parameters.get("caloriesIcon")
     facts = extract_workout_latest_facts(task_spec.dataModelSchema)
     if facts is None:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "WorkoutOverview latest requires four trusted non-empty exercise fields."
         )
     return _workout_latest_overview(facts, source_icon, calorie_icon, registry)
@@ -1467,17 +1470,17 @@ def _expand_heart_rate_overview_call(
     registry: CardPlanRegistry,
 ) -> Nested2Node:
     if call.name not in contract.allowed_business_component_ids:
-        raise TerseDslNested2ConversionError("HeartRateOverview is not approved by Advanced Scope.")
+        raise TerselConversionError("HeartRateOverview is not approved by Advanced Scope.")
     if not advanced_component_data_admission_is_relaxed() and not heart_rate_overview_is_eligible(
         task_spec,
         {"GetHealthAndSportSummary"},
     ):
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "HeartRateOverview average is not backed by this query and trusted projection."
         )
     facts = extract_heart_rate_overview_facts(task_spec.dataModelSchema)
     if facts is None:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "HeartRateOverview requires a trusted positive exercise average heart rate."
         )
     parameters = call.values[0]
@@ -1526,17 +1529,17 @@ def _expand_sleep_overview_call(
     registry: CardPlanRegistry,
 ) -> Nested2Node:
     if call.name not in contract.allowed_business_component_ids:
-        raise TerseDslNested2ConversionError("SleepOverview is not approved by Advanced Scope.")
+        raise TerselConversionError("SleepOverview is not approved by Advanced Scope.")
     facts = extract_sleep_overview_facts(task_spec.dataModelSchema)
     if facts is None:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "SleepOverview requires a losslessly renderable night duration."
         )
     parameters = call.values[0]
     variant = str(parameters["variant"])
     allowed_variants = set(sleep_overview_variants(task_spec, {"GetHealthAndSportSummary"}))
     if variant not in allowed_variants:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "SleepOverview variant is not backed by this query and trusted projection."
         )
     role = str(parameters["role"])
@@ -2104,22 +2107,22 @@ def _expand_battery_overview_call(
     layout_id: str | None,
 ) -> Nested2Node:
     if call.name not in contract.allowed_business_component_ids:
-        raise TerseDslNested2ConversionError("BatteryOverview is not approved by Advanced Scope.")
+        raise TerselConversionError("BatteryOverview is not approved by Advanced Scope.")
     facts = extract_battery_overview_facts(task_spec.dataModelSchema)
     if facts is None:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "BatteryOverview requires one coherent trusted four-field phone battery projection."
         )
     parameters = call.values[0]
     if parameters.get("variant") != facts.state:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "BatteryOverview variant does not match the trusted battery state."
         )
     battery_icon = parameters.get("batteryIcon")
     if battery_icon is not None:
         actual_tags = set(contract.asset_semantic_tags_by_source.get(str(battery_icon), ()))
         if not actual_tags & {"battery", "power", "phone", "phone-device"}:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "BatteryOverview batteryIcon does not match TaskSpec battery semantics."
             )
     role = str(parameters["role"])
@@ -2588,17 +2591,17 @@ def _expand_bluetooth_device_overview_call(
     layout_id: str | None,
 ) -> Nested2Node:
     if call.name not in contract.allowed_business_component_ids:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "BluetoothDeviceOverview is not approved by Advanced Scope."
         )
     facts = extract_bluetooth_device_overview_facts(task_spec.dataModelSchema)
     if facts is None:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "BluetoothDeviceOverview requires one compatible trusted earphone entity."
         )
     parameters = call.values[0]
     if parameters.get("variant") != "earbuds":
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "BluetoothDeviceOverview currently supports the earbuds variant only."
         )
     for field in ("sourceIcon", "leftEarIcon", "rightEarIcon"):
@@ -2607,7 +2610,7 @@ def _expand_bluetooth_device_overview_call(
             continue
         tags = set(contract.asset_semantic_tags_by_source.get(str(source), ()))
         if not tags & {"audio", "earphone", "product"}:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 f"BluetoothDeviceOverview {field} does not match earphone semantics."
             )
     paired_with_phone = set(contract.allowed_business_component_ids) == {
@@ -2949,10 +2952,10 @@ def _expand_app_usage_overview_call(
     registry: CardPlanRegistry,
 ) -> Nested2Node:
     if call.name not in contract.allowed_business_component_ids:
-        raise TerseDslNested2ConversionError("AppUsageOverview is not approved by Advanced Scope.")
+        raise TerselConversionError("AppUsageOverview is not approved by Advanced Scope.")
     facts = extract_app_usage_overview_facts(task_spec.dataModelSchema)
     if facts is None:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "AppUsageOverview requires trusted single-app duration facts."
         )
     parameters = call.values[0]
@@ -3213,12 +3216,12 @@ def _expand_resource_usage_overview_call(
     layout_id: str | None,
 ) -> Nested2Node:
     if call.name not in contract.allowed_business_component_ids:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "ResourceUsageOverview is not approved by Advanced Scope."
         )
     facts = extract_resource_usage_overview_facts(task_spec.dataModelSchema)
     if facts is None:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "ResourceUsageOverview requires complete trusted memory usage facts."
         )
     parameters = call.values[0]
@@ -3505,10 +3508,10 @@ def _expand_schedule_overview_call(
     layout_id: str | None,
 ) -> Nested2Node:
     if call.name not in contract.allowed_business_component_ids:
-        raise TerseDslNested2ConversionError("ScheduleOverview is not approved by Advanced Scope.")
+        raise TerselConversionError("ScheduleOverview is not approved by Advanced Scope.")
     facts = extract_schedule_overview_facts(task_spec.dataModelSchema)
     if facts is None:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "ScheduleOverview requires one coherent trusted title and timeText."
         )
     parameters = call.values[0]
@@ -3521,7 +3524,7 @@ def _expand_schedule_overview_call(
             approved & set(contract.content_action_ids)
         )
         if not focus_is_closed:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "ScheduleOverview focusContext requires an approved focus Action."
             )
     parameters = _normalize_schedule_optional_asset_params(parameters, facts, contract)
@@ -3569,11 +3572,11 @@ def _validate_schedule_asset_params(
             continue
         actual_tags = set(contract.asset_semantic_tags_by_source.get(str(source), ()))
         if not actual_tags & expected_tags:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 f"ScheduleOverview {field} does not match TaskSpec asset semantics."
             )
     if parameters.get("locationIcon") is not None and facts.location is None:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "ScheduleOverview locationIcon requires a trusted location."
         )
 
@@ -3887,10 +3890,10 @@ def _expand_weather_overview_call(
     layout_id: str | None,
 ) -> Nested2Node:
     if call.name not in contract.allowed_business_component_ids:
-        raise TerseDslNested2ConversionError("WeatherOverview is not approved by Advanced Scope.")
+        raise TerselConversionError("WeatherOverview is not approved by Advanced Scope.")
     facts = extract_weather_overview_facts(task_spec.dataModelSchema)
     if facts is None:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "WeatherOverview requires five complete trusted string facts."
         )
     parameters = call.values[0]
@@ -4193,11 +4196,11 @@ def _validate_template_params(
                 continue
             if isinstance(item, str) and is_asset_parameter:
                 if item not in contract.allowed_asset_sources:
-                    raise TerseDslNested2ConversionError(f"Template asset is not approved: {item}")
+                    raise TerselConversionError(f"Template asset is not approved: {item}")
                 required_tags = set(asset_tags.get(key, ()))
                 actual_tags = set(contract.asset_semantic_tags_by_source.get(item, ()))
                 if required_tags and not required_tags.issubset(actual_tags):
-                    raise TerseDslNested2ConversionError(
+                    raise TerselConversionError(
                         f"Template asset semantics do not match {key}: {item}"
                     )
             elif isinstance(item, str) and not _is_trusted_template_literal(
@@ -4206,10 +4209,10 @@ def _validate_template_params(
             ):
                 action_ids = {binding.action_id for binding in contract.action_bindings}
                 if item not in action_ids:
-                    raise TerseDslNested2ConversionError(f"Template literal is not trusted: {item}")
+                    raise TerselConversionError(f"Template literal is not trusted: {item}")
             elif isinstance(item, (int, float)) and not isinstance(item, bool):
                 if item not in contract.trusted_numbers and item not in {0, 1, 100}:
-                    raise TerseDslNested2ConversionError(f"Template number is not trusted: {item}")
+                    raise TerselConversionError(f"Template number is not trusted: {item}")
 
 
 def _validate_template_parameter_relations(
@@ -4220,15 +4223,15 @@ def _validate_template_parameter_relations(
         number = params[relation.number_parameter]
         text = params[relation.text_parameter]
         if relation.kind != "number-matches-text":
-            raise TerseDslNested2ConversionError("Unknown Template parameter relation.")
+            raise TerselConversionError("Unknown Template parameter relation.")
         if not isinstance(number, (int, float)) or isinstance(number, bool):
-            raise TerseDslNested2ConversionError("Template relation number is invalid.")
+            raise TerselConversionError("Template relation number is invalid.")
         if not isinstance(text, str):
-            raise TerseDslNested2ConversionError("Template relation text is invalid.")
+            raise TerselConversionError("Template relation text is invalid.")
         canonical = str(int(number)) if float(number).is_integer() else str(number)
         candidates = {canonical + suffix for suffix in relation.allowed_suffixes}
         if text not in candidates:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Template number/text parameter relation does not match."
             )
 
@@ -4280,13 +4283,13 @@ def _normalize_template_asset_params(
             continue
         if value == "":
             if key in required_parameters:
-                raise TerseDslNested2ConversionError(
+                raise TerselConversionError(
                     f"Required Template asset cannot be empty: {key}"
                 )
             normalized.pop(key, None)
             continue
         if value not in contract.allowed_asset_sources:
-            raise TerseDslNested2ConversionError(f"Template asset is not approved: {value}")
+            raise TerselConversionError(f"Template asset is not approved: {value}")
         required_tags = set(asset_tags.get(key, ()))
         actual_tags = set(contract.asset_semantic_tags_by_source.get(value, ()))
         if not required_tags or required_tags.issubset(actual_tags):
@@ -4297,7 +4300,7 @@ def _normalize_template_asset_params(
             if required_tags.issubset(set(contract.asset_semantic_tags_by_source.get(source, ())))
         ]
         if len(candidates) != 1:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 f"Template asset semantics do not match {key}: {value}"
             )
         normalized[key] = candidates[0]
@@ -4329,11 +4332,11 @@ def _instantiate_blueprint(
     binding_values = bindings or {}
     resolved_theme_values = theme_values or {}
     if node.component == TEMPLATE_CHILD_SLOT_COMPONENT:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "Template child slot cannot be instantiated as a component root."
         )
     if node.component in {"IfParam", "IfMissingParam", "IfBind", "IfMissingBind"}:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "Template conditional cannot be instantiated as a component root."
         )
     if node.component == "Text" and node.values and node.values[0].kind == "interpolation":
@@ -4377,7 +4380,7 @@ def _instantiate_blueprint_children(
         child_slot_index = _template_child_slot_index(child)
         if child_slot_index is not None:
             if child_slot_index >= len(spread_children):
-                raise TerseDslNested2ConversionError(
+                raise TerselConversionError(
                     f"Template child slot is missing: children[{child_slot_index}]"
                 )
             instantiated.append(spread_children[child_slot_index])
@@ -4435,7 +4438,7 @@ def _template_child_slot_index(node: TemplateNode) -> int | None:
         return None
     value = node.values[0].value if len(node.values) == 1 else None
     if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-        raise TerseDslNested2ConversionError("Template contains an invalid child slot.")
+        raise TerselConversionError("Template contains an invalid child slot.")
     return value
 
 
@@ -4465,7 +4468,7 @@ def _template_spread_parent(root: TemplateNode) -> str | None:
 
     visit(root)
     if len(matches) > 1:
-        raise TerseDslNested2ConversionError("Template may contain only one children slot.")
+        raise TerselConversionError("Template may contain only one children slot.")
     return matches[0] if matches else None
 
 
@@ -4479,28 +4482,28 @@ def _template_value(
         return value.value
     if value.kind == "parameter":
         if value.name not in params:
-            raise TerseDslNested2ConversionError(f"Template parameter is missing: {value.name}")
+            raise TerselConversionError(f"Template parameter is missing: {value.name}")
         return params[value.name]
     if value.kind == "binding":
         if value.name not in bindings:
-            raise TerseDslNested2ConversionError(f"Template binding is missing: {value.name}")
+            raise TerselConversionError(f"Template binding is missing: {value.name}")
         return bindings[value.name]
     if value.kind == "theme":
         if value.name not in theme_values:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 f"Template Theme reference is unavailable: {value.name}"
             )
         return theme_values[value.name]
     if value.kind == "interpolation":
-        raise TerseDslNested2ConversionError("Template interpolation must be the first Text value.")
+        raise TerselConversionError("Template interpolation must be the first Text value.")
     if value.kind == "expression":
         return _provider_runtime_expression(value, bindings)
     if value.kind == "event-action":
         if len(value.items) != 1 or value.items[0].kind != "parameter":
-            raise TerseDslNested2ConversionError("Template EventAction is invalid.")
+            raise TerselConversionError("Template EventAction is invalid.")
         action_id = _template_value(value.items[0], params, bindings, theme_values)
         if not isinstance(action_id, str):
-            raise TerseDslNested2ConversionError("Template EventAction ID is invalid.")
+            raise TerselConversionError("Template EventAction ID is invalid.")
         return [{"call": "sendToAssistant", "args": {"eventName": action_id}}]
     if value.kind == "array":
         return [
@@ -4519,7 +4522,7 @@ def _instantiate_interpolated_text(
     theme_values: dict[str, str],
 ) -> Nested2Node:
     if node.children:
-        raise TerseDslNested2ConversionError("Template interpolation Text cannot contain children.")
+        raise TerselConversionError("Template interpolation Text cannot contain children.")
     expression = _provider_interpolation_expression(node.values[0], params, bindings)
     shared_values = [
         _template_value(item, params, bindings, theme_values) for item in node.values[1:]
@@ -4541,13 +4544,13 @@ def _provider_interpolation_expression(
         if item.kind == "binding":
             placeholder = bindings.get(item.name or "")
             if placeholder is None:
-                raise TerseDslNested2ConversionError(f"Template binding is missing: {item.name}")
+                raise TerselConversionError(f"Template binding is missing: {item.name}")
             operands.append(_a2ui_expression_reference(placeholder))
             continue
         if item.kind == "parameter":
             parameter = params.get(item.name or "")
             if not isinstance(parameter, str):
-                raise TerseDslNested2ConversionError(
+                raise TerselConversionError(
                     f"Template interpolation prop must be a string: {item.name}"
                 )
             operands.append(_a2ui_expression_string(parameter))
@@ -4555,15 +4558,15 @@ def _provider_interpolation_expression(
         if item.kind == "literal" and isinstance(item.value, str):
             operands.append(_a2ui_expression_string(item.value))
             continue
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "Template interpolation only supports string data, props and literals."
         )
     if not operands:
-        raise TerseDslNested2ConversionError("Template interpolation cannot be empty.")
+        raise TerselConversionError("Template interpolation cannot be empty.")
     try:
-        return normalize_terse_expression(" + ".join(operands)).value
+        return normalize_tersel_expression(" + ".join(operands)).value
     except A2UIExpressionError as exc:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"Template interpolation is not a valid A2UI expression: {exc}"
         ) from exc
 
@@ -4577,22 +4580,22 @@ def _provider_runtime_expression(
         if item.kind == "binding":
             placeholder = bindings.get(item.name or "")
             if placeholder is None:
-                raise TerseDslNested2ConversionError(f"Template binding is missing: {item.name}")
+                raise TerselConversionError(f"Template binding is missing: {item.name}")
             parts.append(_a2ui_expression_reference(placeholder))
             continue
         if item.kind == "literal" and isinstance(item.value, str):
             parts.append(item.value)
             continue
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "Template Expr only supports binding placeholders and expression syntax."
         )
     body = "".join(parts).strip()
     if not body:
-        raise TerseDslNested2ConversionError("Template Expr must contain a runtime data binding.")
+        raise TerselConversionError("Template Expr must contain a runtime data binding.")
     try:
-        return normalize_terse_expression(body).value
+        return normalize_tersel_expression(body).value
     except A2UIExpressionError as exc:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"Template Expr is not a valid A2UI expression: {exc}"
         ) from exc
 
@@ -4600,7 +4603,7 @@ def _provider_runtime_expression(
 def _a2ui_expression_reference(placeholder: str) -> str:
     match = re.fullmatch(r"\$\{(data(?:\.[A-Za-z_][A-Za-z0-9_]*|\.\d+)+)\}", placeholder)
     if match is None:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "Template interpolation binding is not a runtime data path."
         )
     return "${/" + match.group(1).replace(".", "/") + "}"
@@ -4633,7 +4636,7 @@ def _provider_binding_roots(card_spec: dict[str, Any] | None) -> dict[str, str]:
             continue
         existing = roots.get(capability_id)
         if existing is not None and existing != root:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 f"CardSpec has ambiguous data roots for capability: {capability_id}"
             )
         roots[capability_id] = root
@@ -4656,12 +4659,12 @@ def _provider_template_binding_values(
         return {}
     capability_id = definition.capability_id
     if not capability_id or capability_id not in binding_roots:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"Provider Template requires CardSpec.dataBindings: {definition.wire_id}"
         )
     root = binding_roots[capability_id]
     if definition.data_domain is not None and root != definition.data_domain:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"Provider Template dataDomain does not match CardSpec: {definition.wire_id}"
         )
     values: dict[str, str] = {}
@@ -4672,22 +4675,22 @@ def _provider_template_binding_values(
         if leaf is None:
             if name in variant.optional_bindings:
                 continue
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 f"Provider Template binding is not declared by TaskSpec: {name}/{path}"
             )
         if not _binding_types_match(binding.data_type, leaf.get("type")):
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 f"Provider Template binding is not declared by TaskSpec: {name}/{path}"
             )
         placeholder = _runtime_binding_placeholder(path)
         if placeholder is None:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 f"Provider Template binding path cannot be encoded: {name}/{path}"
             )
         values[name] = placeholder
     missing = set(variant.required_bindings) - set(values)
     if missing:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"Provider Template required bindings are missing: {sorted(missing)}"
         )
     return values
@@ -4769,7 +4772,7 @@ def _bind_template_actions(
             None,
         )
         if binding is None:
-            raise TerseDslNested2ConversionError(f"Template Action is not approved: {action_id}")
+            raise TerselConversionError(f"Template Action is not approved: {action_id}")
         bound = dict(value)
         bound.pop("action", None)
         bound["onClick"] = [{"call": binding.call, "args": binding.args}]
@@ -4790,7 +4793,7 @@ def _validate_bound_template_action(
     contract: HybridBodyContract,
 ) -> None:
     if not isinstance(action_id, str):
-        raise TerseDslNested2ConversionError("Bound Template Action ID is invalid.")
+        raise TerselConversionError("Bound Template Action ID is invalid.")
     binding = next(
         (
             item
@@ -4801,14 +4804,14 @@ def _validate_bound_template_action(
     )
     expected = [{"call": binding.call, "args": binding.args}] if binding is not None else None
     if expected is None or value.get("onClick") != expected:
-        raise TerseDslNested2ConversionError("Bound Template Action is invalid.")
+        raise TerselConversionError("Bound Template Action is invalid.")
 
 
 def _template_action_placeholder(value: dict[str, Any]) -> str | None:
     if "onClick" in value:
         handlers = value["onClick"]
         if not isinstance(handlers, list) or len(handlers) != 1:
-            raise TerseDslNested2ConversionError("Template Action placeholder is invalid.")
+            raise TerselConversionError("Template Action placeholder is invalid.")
         handler = handlers[0]
         args = handler.get("args") if isinstance(handler, dict) else None
         action_id = args.get("eventName") if isinstance(args, dict) else None
@@ -4818,7 +4821,7 @@ def _template_action_placeholder(value: dict[str, Any]) -> str | None:
         )
         has_valid_action_id = isinstance(action_id, str)
         if not has_event_name_argument or not has_supported_handler or not has_valid_action_id:
-            raise TerseDslNested2ConversionError("Template Action ID is invalid.")
+            raise TerselConversionError("Template Action ID is invalid.")
         return action_id
     if "action" not in value:
         return None
@@ -4828,7 +4831,7 @@ def _template_action_placeholder(value: dict[str, Any]) -> str | None:
     has_event_wrapper = isinstance(action, dict) and set(action) == {"event"}
     has_name_wrapper = isinstance(event, dict) and set(event) == {"name"}
     if not has_event_wrapper or not has_name_wrapper or not isinstance(action_id, str):
-        raise TerseDslNested2ConversionError("Template Action ID is invalid.")
+        raise TerselConversionError("Template Action ID is invalid.")
     return action_id
 
 
@@ -5334,7 +5337,7 @@ def _walk_nodes(node: Nested2Node) -> Iterator[Nested2Node]:
 def _reject_direct_events(node: ParsedCall) -> None:
     for value in node.values:
         if isinstance(value, dict) and _contains_key(value, _DANGEROUS_EVENT_KEYS):
-            raise TerseDslNested2ConversionError("Direct events are forbidden in Hybrid content.")
+            raise TerselConversionError("Direct events are forbidden in Hybrid content.")
     for child in node.children:
         _reject_direct_events(child)
 
@@ -5342,16 +5345,16 @@ def _reject_direct_events(node: ParsedCall) -> None:
 def _validate_raw_components(node: ParsedCall, contract: HybridBodyContract) -> None:
     if node.kind == "template":
         if node.name not in contract.allowed_template_ids:
-            raise TerseDslNested2ConversionError(f"Template is not allowed: {node.name}")
+            raise TerselConversionError(f"Template is not allowed: {node.name}")
         for child in node.children:
             _validate_raw_components(child, contract)
         return
     if contract.template_only_composition:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "Second-layer composition accepts only approved Template calls."
         )
     if node.name not in contract.allowed_components:
-        raise TerseDslNested2ConversionError(f"Raw component is not allowed: {node.name}")
+        raise TerselConversionError(f"Raw component is not allowed: {node.name}")
     if node.name in _UX_ACTION_COMPONENTS:
         _validate_raw_ux_action(node, contract)
         return
@@ -5359,11 +5362,11 @@ def _validate_raw_components(node: ParsedCall, contract: HybridBodyContract) -> 
         _validate_raw_ux_business_component(node, contract)
         return
     if node.name in _CONTAINERS and not node.children:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"Raw container must contain at least one child: {node.name}"
         )
     if node.name == "Button":
-        raise TerseDslNested2ConversionError("Direct Buttons are forbidden in Hybrid content.")
+        raise TerselConversionError("Direct Buttons are forbidden in Hybrid content.")
     approved_strings = {
         *contract.trusted_literals,
         *contract.allowed_design_tokens,
@@ -5378,10 +5381,10 @@ def _validate_raw_components(node: ParsedCall, contract: HybridBodyContract) -> 
     for value in values:
         for item in _primitive_values(value):
             if isinstance(item, str) and item not in approved_strings:
-                raise TerseDslNested2ConversionError(f"Raw literal is not trusted: {item}")
+                raise TerselConversionError(f"Raw literal is not trusted: {item}")
             if isinstance(item, (int, float)) and not isinstance(item, bool):
                 if item not in approved_numbers:
-                    raise TerseDslNested2ConversionError(f"Raw number is not trusted: {item}")
+                    raise TerselConversionError(f"Raw number is not trusted: {item}")
     for child in node.children:
         _validate_raw_components(child, contract)
 
@@ -5391,9 +5394,9 @@ def _validate_raw_ux_business_component(
     contract: HybridBodyContract,
 ) -> None:
     if node.name not in contract.allowed_business_component_ids:
-        raise TerseDslNested2ConversionError(f"UX Business Component is not approved: {node.name}")
+        raise TerselConversionError(f"UX Business Component is not approved: {node.name}")
     if node.children or len(node.values) != 1 or not isinstance(node.values[0], dict):
-        raise TerseDslNested2ConversionError(f"{node.name} must be one leaf configuration call.")
+        raise TerselConversionError(f"{node.name} must be one leaf configuration call.")
     parameters = node.values[0]
     required_fields = {"variant", "role"}
     optional_fields: set[str] = set()
@@ -5420,7 +5423,7 @@ def _validate_raw_ux_business_component(
     if not required_fields.issubset(parameters) or set(parameters) - (
         required_fields | optional_fields
     ):
-        raise TerseDslNested2ConversionError(f"{node.name} configuration fields are invalid.")
+        raise TerselConversionError(f"{node.name} configuration fields are invalid.")
     variants = {
         "ActivityOverview": {"steps", "dailySummary"},
         "BatteryOverview": {"normal", "charging", "low"},
@@ -5453,19 +5456,19 @@ def _validate_raw_ux_business_component(
         "WorkoutOverview": {"hero"},
     }[node.name]
     if parameters["variant"] not in variants:
-        raise TerseDslNested2ConversionError(f"{node.name} variant is not supported.")
+        raise TerselConversionError(f"{node.name} variant is not supported.")
     if parameters["role"] not in roles:
-        raise TerseDslNested2ConversionError(f"{node.name} role is not supported.")
+        raise TerselConversionError(f"{node.name} role is not supported.")
     show_title = parameters.get("showTitle")
     if show_title is not None and not isinstance(show_title, bool):
-        raise TerseDslNested2ConversionError(f"{node.name} showTitle must be a Boolean.")
+        raise TerselConversionError(f"{node.name} showTitle must be a Boolean.")
     if node.name == "WeatherOverview":
         condition_icon = parameters["conditionIcon"]
         if (
             not isinstance(condition_icon, str)
             or condition_icon not in contract.allowed_asset_sources
         ):
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "WeatherOverview conditionIcon is not an approved second-step asset input."
             )
     if node.name == "ActivityOverview":
@@ -5509,7 +5512,7 @@ def _validate_raw_ux_business_component(
             if source is not None and (
                 not isinstance(source, str) or source not in contract.allowed_asset_sources
             ):
-                raise TerseDslNested2ConversionError(
+                raise TerselConversionError(
                     f"ScheduleOverview {field} is not an approved TaskSpec asset."
                 )
     if node.name == "BatteryOverview":
@@ -5517,7 +5520,7 @@ def _validate_raw_ux_business_component(
         if source is not None and (
             not isinstance(source, str) or source not in contract.allowed_asset_sources
         ):
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "BatteryOverview batteryIcon is not an approved TaskSpec asset."
             )
     if node.name == "BluetoothDeviceOverview":
@@ -5535,24 +5538,24 @@ def _validate_raw_ux_business_component(
         source = parameters.get("icon")
         if source is not None:
             if not isinstance(source, str) or source not in contract.allowed_asset_sources:
-                raise TerseDslNested2ConversionError(
+                raise TerselConversionError(
                     "ResourceUsageOverview icon is not an approved TaskSpec asset."
                 )
             tags = set(contract.asset_semantic_tags_by_source.get(source, ()))
             if not tags & {"memory", "resource"}:
-                raise TerseDslNested2ConversionError(
+                raise TerselConversionError(
                     "ResourceUsageOverview icon does not match memory/resource semantics."
                 )
     if node.name == "AppUsageOverview":
         source = parameters.get("appIcon")
         if source is not None:
             if not isinstance(source, str) or source not in contract.allowed_asset_sources:
-                raise TerseDslNested2ConversionError(
+                raise TerselConversionError(
                     "AppUsageOverview appIcon is not an approved TaskSpec asset."
                 )
             tags = set(contract.asset_semantic_tags_by_source.get(source, ()))
             if not tags & {"app", "application"}:
-                raise TerseDslNested2ConversionError(
+                raise TerselConversionError(
                     "AppUsageOverview appIcon does not match app semantics."
                 )
 
@@ -5568,34 +5571,34 @@ def _validate_optional_semantic_assets(
         if source is None:
             continue
         if not isinstance(source, str) or source not in contract.allowed_asset_sources:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 f"{component_id} {field} is not an approved TaskSpec asset."
             )
         actual_tags = set(contract.asset_semantic_tags_by_source.get(source, ()))
         if not actual_tags & expected_tags:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 f"{component_id} {field} does not match its business semantics."
             )
 
 
 def _validate_raw_ux_action(node: ParsedCall, contract: HybridBodyContract) -> None:
     if node.name not in {"PillAction", "IconAction"}:
-        raise TerseDslNested2ConversionError("UX template route Action type is not supported.")
+        raise TerselConversionError("UX template route Action type is not supported.")
     if node.children or len(node.values) != 1 or not isinstance(node.values[0], dict):
-        raise TerseDslNested2ConversionError(f"{node.name} must be one leaf object call.")
+        raise TerselConversionError(f"{node.name} must be one leaf object call.")
     params = node.values[0]
     expected_fields = {"actionId"} if node.name == "PillAction" else {"actionId", "icon"}
     if set(params) != expected_fields:
-        raise TerseDslNested2ConversionError(f"{node.name} contains unknown fields.")
+        raise TerselConversionError(f"{node.name} contains unknown fields.")
     action_id = params.get("actionId")
     approved_ids = set(contract.content_action_ids)
     if not isinstance(action_id, str) or action_id not in approved_ids:
-        raise TerseDslNested2ConversionError(f"{node.name} Action is not approved.")
+        raise TerselConversionError(f"{node.name} Action is not approved.")
     icon = params.get("icon")
     if node.name == "IconAction" and (
         not isinstance(icon, str) or icon not in contract.allowed_asset_sources
     ):
-        raise TerseDslNested2ConversionError("IconAction icon is not approved.")
+        raise TerselConversionError("IconAction icon is not approved.")
 
 
 def _ux_business_component_name(
@@ -5764,7 +5767,7 @@ def _provider_template_business_validation_proxy(
         "default" if identity is not None else variant,
     )
     if template_variant.supported_roles and role not in template_variant.supported_roles:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"Provider Template does not support the placement role: {node.name}/{variant}/{role}"
         )
     parameters: dict[str, Any] = {"variant": direct_variant, "role": role}
@@ -5820,14 +5823,14 @@ def _validate_ux_layout_root(
         return
     layout_id = _parsed_layout_template_id(node, registry)
     if layout_id not in allowed:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "UX Mixed content root must be one approved Layout Template."
         )
     layout = registry.require_ux_layout_component(layout_id)
     if size not in layout.supported_card_sizes:
-        raise TerseDslNested2ConversionError("UX Layout does not support the target card size.")
+        raise TerselConversionError("UX Layout does not support the target card size.")
     if len(node.values) > 1 or (node.values and not isinstance(node.values[0], dict)):
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "UX Layout configuration must be one optional object argument."
         )
     parameters = node.values[0] if node.values else {}
@@ -5836,7 +5839,7 @@ def _validate_ux_layout_root(
         key=str,
     )
     if parameter_errors:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"UX Layout parameters are invalid for {layout_id}: {parameter_errors[0].message}"
         )
     maximum = layout.max_children_by_size[size]
@@ -5855,7 +5858,7 @@ def _validate_ux_layout_root(
     counted_children = content_children if embedded_actions else node.children
     minimum = layout.minimum_children(size)
     if not minimum <= len(counted_children) <= maximum:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"UX Layout child count is invalid: {layout_id}/{len(counted_children)}"
         )
     if embedded_actions:
@@ -5871,7 +5874,7 @@ def _validate_ux_layout_root(
     def reject_nested_layout(current: ParsedCall) -> None:
         for child in current.children:
             if child.kind == "component" and child.name in UX_LAYOUT_COMPONENT_IDS:
-                raise TerseDslNested2ConversionError("UX Layout Components cannot be nested.")
+                raise TerselConversionError("UX Layout Components cannot be nested.")
             reject_nested_layout(child)
 
     reject_nested_layout(node)
@@ -5896,12 +5899,12 @@ def _validate_provider_template_layout_action_requirements(
         return
     layout_is_wide = layout_id.startswith("Wide")
     if layout_is_wide != (size == "2x4"):
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "UX Layout Wide marker does not match the target card size."
         )
     wide = any(kind.startswith("Wide") for kind in layout_kinds)
     if wide != (size == "2x4"):
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "Provider Template layout suffix mismatches card size."
         )
     action_names = tuple(
@@ -5911,12 +5914,12 @@ def _validate_provider_template_layout_action_requirements(
     )
     if len(layout_kinds) == 2 and set(layout_kinds) == {"Compact"} and not action_names:
         if layout_id != "TwoCompactLayout":
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Two Compact Provider Templates require TwoCompactLayout."
             )
         return
     if len(layout_kinds) != 1:
-        raise TerseDslNested2ConversionError("Provider Template layout combination is invalid.")
+        raise TerselConversionError("Provider Template layout combination is invalid.")
     layout_kind = layout_kinds[0]
     expected_actions = {
         "Compact": ("PillAction", "PillAction"),
@@ -5926,7 +5929,7 @@ def _validate_provider_template_layout_action_requirements(
         "WideFull": (),
     }[layout_kind]
     if action_names != expected_actions:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"{layout_kind} Provider Template Action combination is invalid: {action_names}."
         )
     expected_layout_id = {
@@ -5937,7 +5940,7 @@ def _validate_provider_template_layout_action_requirements(
         "WideFull": "WideSingleFocusLayout",
     }[layout_kind]
     if layout_id != expected_layout_id:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"{layout_kind} Provider Template requires {expected_layout_id}."
         )
 
@@ -6057,32 +6060,32 @@ def _validate_activity_overview_placement(
     )
     if not indexes:
         if any(call.name == "ActivityOverview" for child in content for call in _walk_calls(child)):
-            raise TerseDslNested2ConversionError("ActivityOverview must be a direct layout child.")
+            raise TerselConversionError("ActivityOverview must be a direct layout child.")
         return
     if len(indexes) != 1:
-        raise TerseDslNested2ConversionError("ActivityOverview must appear exactly once.")
+        raise TerselConversionError("ActivityOverview must appear exactly once.")
     index = indexes[0]
     role = content[index].values[0].get("role")
     business_ids = _contract_ux_business_component_names(contract, registry)
     if business_ids == {"ActivityOverview"} and len(content) == 1:
         if layout_id != "SingleFocusLayout" or index != 0 or role != "hero":
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Single ActivityOverview requires one leading hero in SingleFocusLayout."
             )
         return
     if business_ids == {"ActivityOverview"} and len(content) == 2 and content[1].kind == "template":
         if layout_id != "HeroSupportLayout" or index != 0 or role != "hero":
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "ActivityOverview must lead its approved Sleep support composition."
             )
         return
     if business_ids == {"ActivityOverview", "WorkoutOverview"}:
         if layout_id not in {"HeroSupportLayout", "HeroSupportActionLayout"}:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Workout plus ActivityOverview requires a HeroSupport layout."
             )
         if index != 1 or role != "support":
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "ActivityOverview must be the support after WorkoutOverview."
             )
         return
@@ -6092,19 +6095,19 @@ def _validate_activity_overview_placement(
             allowed_layouts.add("SequentialSummaryLayout")
         expected_role = "hero" if index == 0 else "support"
         if layout_id not in allowed_layouts or role != expected_role:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "ActivityOverview role must match its Sleep composition position."
             )
         if size == "2x2" and index != 0:
-            raise TerseDslNested2ConversionError("ActivityOverview must lead SleepOverview on 2x2.")
+            raise TerselConversionError("ActivityOverview must lead SleepOverview on 2x2.")
         return
     if business_ids == {"ActivityOverview", "HeartRateOverview"}:
         if layout_id != "HeroSupportLayout" or index != 0 or role != "hero":
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "ActivityOverview must lead its approved health support composition."
             )
         return
-    raise TerseDslNested2ConversionError(
+    raise TerselConversionError(
         "ActivityOverview multi-business composition is not approved."
     )
 
@@ -6116,26 +6119,26 @@ def _validate_workout_overview_placement(
     indexes = tuple(index for index, child in enumerate(content) if child.name == "WorkoutOverview")
     if not indexes:
         if any(call.name == "WorkoutOverview" for child in content for call in _walk_calls(child)):
-            raise TerseDslNested2ConversionError("WorkoutOverview must be a direct layout child.")
+            raise TerselConversionError("WorkoutOverview must be a direct layout child.")
         return
     if len(indexes) != 1:
-        raise TerseDslNested2ConversionError("WorkoutOverview must appear exactly once.")
+        raise TerselConversionError("WorkoutOverview must appear exactly once.")
     index = indexes[0]
     role = content[index].values[0].get("role")
     if index != 0 or role != "hero":
-        raise TerseDslNested2ConversionError("WorkoutOverview must be the leading hero business.")
+        raise TerselConversionError("WorkoutOverview must be the leading hero business.")
     if len(content) == 1:
         if layout_id not in {"SingleFocusLayout", "HeroActionLayout"}:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Single WorkoutOverview requires SingleFocus or HeroAction layout."
             )
         return
     if len(content) != 2 or content[1].name != "ActivityOverview":
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "WorkoutOverview only supports ActivityOverview as its companion."
         )
     if layout_id not in {"HeroSupportLayout", "HeroSupportActionLayout"}:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "Workout plus ActivityOverview requires a HeroSupport layout."
         )
 
@@ -6157,10 +6160,10 @@ def _validate_heart_rate_overview_placement(
             _contains_ux_business_component(child, "HeartRateOverview", registry, contract)
             for child in content
         ):
-            raise TerseDslNested2ConversionError("HeartRateOverview must be a direct layout child.")
+            raise TerselConversionError("HeartRateOverview must be a direct layout child.")
         return
     if len(indexes) != 1:
-        raise TerseDslNested2ConversionError("HeartRateOverview must appear exactly once.")
+        raise TerselConversionError("HeartRateOverview must appear exactly once.")
     index = indexes[0]
     heart_rate = content[index]
     if heart_rate.kind == "component" and isinstance(heart_rate.values[0], dict):
@@ -6169,20 +6172,20 @@ def _validate_heart_rate_overview_placement(
         layout_kind = provider_template_layout_kind(heart_rate.name)
         role = "support" if layout_kind == "Compact" else "hero"
     else:
-        raise TerseDslNested2ConversionError("HeartRateOverview must be a direct layout child.")
+        raise TerselConversionError("HeartRateOverview must be a direct layout child.")
     business_ids = _contract_ux_business_component_names(contract, registry)
     if business_ids == {"HeartRateOverview"}:
         if layout_id != "SingleFocusLayout" or index != 0 or role != "hero":
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Single HeartRateOverview requires one leading hero."
             )
         return
     if business_ids != {"ActivityOverview", "HeartRateOverview"}:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "HeartRateOverview is only an approved support for ActivityOverview."
         )
     if layout_id != "HeroSupportLayout" or index != 1 or role != "support":
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "HeartRateOverview must be the fixed support after ActivityOverview."
         )
 
@@ -6197,10 +6200,10 @@ def _validate_sleep_overview_placement(
     indexes = tuple(index for index, child in enumerate(content) if child.name == "SleepOverview")
     if not indexes:
         if any(call.name == "SleepOverview" for child in content for call in _walk_calls(child)):
-            raise TerseDslNested2ConversionError("SleepOverview must be a direct layout child.")
+            raise TerselConversionError("SleepOverview must be a direct layout child.")
         return
     if len(indexes) != 1:
-        raise TerseDslNested2ConversionError("SleepOverview must appear exactly once.")
+        raise TerselConversionError("SleepOverview must appear exactly once.")
     index = indexes[0]
     parameters = content[index].values[0]
     role = parameters.get("role")
@@ -6208,26 +6211,26 @@ def _validate_sleep_overview_placement(
     business_ids = set(contract.allowed_business_component_ids)
     if business_ids == {"SleepOverview"} and len(content) == 1:
         if layout_id not in {"SingleFocusLayout", "HeroActionLayout"}:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Single SleepOverview requires SingleFocus or HeroAction layout."
             )
         if index != 0 or role != "hero":
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Single SleepOverview must be the leading hero business."
             )
         if size == "2x2" and variant == "schedule":
-            raise TerseDslNested2ConversionError("SleepOverview schedule is only available on 2x4.")
+            raise TerselConversionError("SleepOverview schedule is only available on 2x4.")
         return
     allowed_layouts = {"HeroSupportLayout"}
     if size == "2x4":
         allowed_layouts.add("SequentialSummaryLayout")
     expected_role = "hero" if index == 0 else "support"
     if layout_id not in allowed_layouts or role != expected_role:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "SleepOverview role must match its Activity composition position."
         )
     if size == "2x2" and index != 1:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "SleepOverview must be the compact support after ActivityOverview on 2x2."
         )
 
@@ -6250,14 +6253,14 @@ def _validate_weather_overview_placement(
             _contains_ux_business_component(child, "WeatherOverview", registry, contract)
             for child in content
         ):
-            raise TerseDslNested2ConversionError("WeatherOverview must be a direct layout child.")
+            raise TerselConversionError("WeatherOverview must be a direct layout child.")
         return
     if len(weather_indexes) != 1:
-        raise TerseDslNested2ConversionError("WeatherOverview must appear exactly once.")
+        raise TerselConversionError("WeatherOverview must appear exactly once.")
     weather_index = weather_indexes[0]
     weather = content[weather_index]
     if not weather.values:
-        raise TerseDslNested2ConversionError("WeatherOverview must be a direct layout child.")
+        raise TerselConversionError("WeatherOverview must be a direct layout child.")
     if weather.kind == "component" and isinstance(weather.values[0], dict):
         role = weather.values[0].get("role")
         variant = None
@@ -6268,21 +6271,21 @@ def _validate_weather_overview_placement(
         role = None
         variant = provider_template_layout_kind(weather.name)
     else:
-        raise TerseDslNested2ConversionError("WeatherOverview must be a direct layout child.")
+        raise TerselConversionError("WeatherOverview must be a direct layout child.")
     if layout_id == "WeatherNowForecastLayout":
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "WeatherNowForecastLayout requires a forecast business component."
         )
     if size == "2x2":
         if weather_index != 0 or (role is not None and role != "hero"):
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "WeatherOverview must be the leading hero business on 2x2."
             )
         if len(content) > 1 and layout_id not in {
             "HeroSupportLayout",
             "HeroSupportActionLayout",
         }:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "WeatherOverview multi-business 2x2 requires a HeroSupport layout."
             )
         uses_compact_action_matrix = layout_id == "ActionMatrixLayout"
@@ -6292,7 +6295,7 @@ def _validate_weather_overview_placement(
             else {"Full", "Hero"}
         )
         if variant is not None and variant not in expected_variants:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "WeatherOverview Template variant does not match the 2x2 composition."
             )
         return
@@ -6302,7 +6305,7 @@ def _validate_weather_overview_placement(
     elif layout_id == "EqualItemsLayout":
         expected_role = "peer"
     if role is not None and role != expected_role:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"WeatherOverview role does not match {layout_id}: expected {expected_role}."
         )
     expected_variants = (
@@ -6311,7 +6314,7 @@ def _validate_weather_overview_placement(
         else {"Compact"}
     )
     if variant is not None and variant not in expected_variants:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"WeatherOverview Template variant does not match {layout_id}."
         )
 
@@ -6327,33 +6330,33 @@ def _validate_date_overview_placement(
     )
     if not date_indexes:
         if any(call.name == "DateOverview" for child in content for call in _walk_calls(child)):
-            raise TerseDslNested2ConversionError("DateOverview must be a direct layout child.")
+            raise TerselConversionError("DateOverview must be a direct layout child.")
         return
     if len(date_indexes) != 1:
-        raise TerseDslNested2ConversionError("DateOverview must appear exactly once.")
+        raise TerselConversionError("DateOverview must appear exactly once.")
     date_index = date_indexes[0]
     date = content[date_index]
     if date.kind != "component" or not date.values or not isinstance(date.values[0], dict):
-        raise TerseDslNested2ConversionError("DateOverview must be a direct layout child.")
+        raise TerselConversionError("DateOverview must be a direct layout child.")
     variant = date.values[0].get("variant")
     role = date.values[0].get("role")
     if len(content) == 1:
         if layout_id != "SingleFocusLayout" or (variant, role) != ("dateHero", "hero"):
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Single-business DateOverview requires SingleFocus dateHero+hero."
             )
         return
     if layout_id not in {"HeroSupportLayout", "HeroSupportActionLayout"}:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "Multi-business DateOverview requires a HeroSupport layout."
         )
     if date_index != 0:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "DateOverview must be the leading date context in multi-business layouts."
         )
     expected = ("compactDate", "support") if size == "2x2" else ("dateHero", "hero")
     if (variant, role) != expected:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "DateOverview variant and role do not match the card size and composition."
         )
 
@@ -6369,37 +6372,37 @@ def _validate_schedule_overview_placement(
     )
     if not indexes:
         if any(call.name == "ScheduleOverview" for child in content for call in _walk_calls(child)):
-            raise TerseDslNested2ConversionError("ScheduleOverview must be a direct layout child.")
+            raise TerselConversionError("ScheduleOverview must be a direct layout child.")
         return
     if len(indexes) != 1:
-        raise TerseDslNested2ConversionError("ScheduleOverview must appear exactly once.")
+        raise TerselConversionError("ScheduleOverview must appear exactly once.")
     index = indexes[0]
     schedule = content[index]
     if not schedule.values or not isinstance(schedule.values[0], dict):
-        raise TerseDslNested2ConversionError("ScheduleOverview must be a direct layout child.")
+        raise TerselConversionError("ScheduleOverview must be a direct layout child.")
     variant = schedule.values[0].get("variant")
     role = schedule.values[0].get("role")
     if len(content) == 1:
         if layout_id not in {"SingleFocusLayout", "HeroActionLayout"} or role != "hero":
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Single-business ScheduleOverview requires a hero SingleFocus/HeroAction layout."
             )
         if size == "2x4" and variant == "nextEvent":
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Single-business 2x4 ScheduleOverview requires a meeting variant."
             )
         return
     if layout_id not in {"HeroSupportLayout", "HeroSupportActionLayout"}:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "ScheduleOverview support requires a HeroSupport layout."
         )
     if "DateOverview" in {item.name for item in content}:
         if role != "support":
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Date + Schedule requires ScheduleOverview to use the support role."
             )
         if index != 1:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "DateOverview + ScheduleOverview requires date first and schedule second."
             )
         expected = (
@@ -6411,7 +6414,7 @@ def _validate_schedule_overview_placement(
             }
         )
         if variant not in expected:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Date + Schedule variant does not match the target size."
             )
         return
@@ -6425,11 +6428,11 @@ def _validate_schedule_overview_placement(
             }
         )
         if variant not in expected:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "ScheduleOverview support variant does not match the target size."
             )
     elif role != "hero":
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "Multi-business ScheduleOverview requires a hero or support role."
         )
 
@@ -6445,25 +6448,25 @@ def _validate_battery_overview_placement(
     indexes = tuple(index for index, child in enumerate(content) if child.name == "BatteryOverview")
     if not indexes:
         if any(call.name == "BatteryOverview" for child in content for call in _walk_calls(child)):
-            raise TerseDslNested2ConversionError("BatteryOverview must be a direct layout child.")
+            raise TerselConversionError("BatteryOverview must be a direct layout child.")
         return
     if len(indexes) != 1:
-        raise TerseDslNested2ConversionError("BatteryOverview must appear exactly once.")
+        raise TerselConversionError("BatteryOverview must appear exactly once.")
     index = indexes[0]
     battery = content[index]
     if not battery.values or not isinstance(battery.values[0], dict):
-        raise TerseDslNested2ConversionError("BatteryOverview must be a direct layout child.")
+        raise TerselConversionError("BatteryOverview must be a direct layout child.")
     role = battery.values[0].get("role")
     show_title = battery.values[0].get("showTitle", True)
     if not isinstance(show_title, bool):
-        raise TerseDslNested2ConversionError("BatteryOverview showTitle must be a Boolean.")
+        raise TerselConversionError("BatteryOverview showTitle must be a Boolean.")
     if len(content) == 1:
         if layout_id not in {"SingleFocusLayout", "HeroActionLayout"} or role != "hero":
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Single-business BatteryOverview requires a hero SingleFocus/HeroAction layout."
             )
         if show_title is not True:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Single-business BatteryOverview must keep its internal title."
             )
         return
@@ -6475,7 +6478,7 @@ def _validate_battery_overview_placement(
     if "BluetoothDeviceOverview" in names:
         expected_layout = "PeerPairLayout" if size == "2x2" else "HeroSupportLayout"
         if layout_id != expected_layout or index != 0 or role != "hero":
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Phone + earphone composition requires BatteryOverview hero first in the "
                 f"{expected_layout}."
             )
@@ -6483,31 +6486,31 @@ def _validate_battery_overview_placement(
     if "ResourceUsageOverview" in names:
         if size == "2x2":
             if layout_id != "PeerPairLayout" or role != "peer" or show_title is not False:
-                raise TerseDslNested2ConversionError(
+                raise TerselConversionError(
                     "Battery + resource usage on 2x2 requires PeerPairLayout+peer+showTitle=false."
                 )
             return
         if layout_id not in {"HeroSupportLayout", "HeroSupportActionLayout"}:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Battery + resource usage on 2x4 requires a HeroSupport layout."
             )
         if index != 1 or role != "support":
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Battery must be the support business after resource usage on 2x4."
             )
         return
     if "WeatherOverview" in names:
         if layout_id not in {"HeroSupportLayout", "HeroSupportActionLayout"}:
-            raise TerseDslNested2ConversionError("Weather + Battery requires a HeroSupport layout.")
+            raise TerselConversionError("Weather + Battery requires a HeroSupport layout.")
         if index != 1 or role != "support":
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Battery must be the support business after WeatherOverview."
             )
         return
     if len(content) > 2 and layout_id == "EqualItemsLayout" and role == "peer":
         return
     if layout_id != "PeerPairLayout" or role != "peer":
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "BatteryOverview multi-business phone/device composition requires PeerPairLayout+peer."
         )
 
@@ -6527,34 +6530,34 @@ def _validate_bluetooth_device_overview_placement(
             for child in content
             for call in _walk_calls(child)
         ):
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "BluetoothDeviceOverview must be a direct layout child."
             )
         return
     if len(indexes) != 1:
-        raise TerseDslNested2ConversionError("BluetoothDeviceOverview must appear exactly once.")
+        raise TerselConversionError("BluetoothDeviceOverview must appear exactly once.")
     index = indexes[0]
     overview = content[index]
     if not overview.values or not isinstance(overview.values[0], dict):
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "BluetoothDeviceOverview must be a direct layout child."
         )
     role = overview.values[0].get("role")
     if len(content) == 1:
         allowed_layouts = {"SingleFocusLayout", "HeroActionLayout", "ActionMatrixLayout"}
         if layout_id not in allowed_layouts or role != "hero":
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Single-business BluetoothDeviceOverview requires a hero single/action layout."
             )
         return
     names = {child.name for child in content}
     if names != {"BatteryOverview", "BluetoothDeviceOverview"}:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "BluetoothDeviceOverview multi-business currently supports phone battery only."
         )
     expected_layout = "PeerPairLayout" if size == "2x2" else "HeroSupportLayout"
     if layout_id != expected_layout or index != 1 or role != "support":
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "Phone + earphone composition requires BluetoothDeviceOverview support second in "
             f"the {expected_layout}."
         )
@@ -6573,33 +6576,33 @@ def _validate_resource_usage_overview_placement(
         if any(
             call.name == "ResourceUsageOverview" for child in content for call in _walk_calls(child)
         ):
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "ResourceUsageOverview must be a direct layout child."
             )
         return
     if len(indexes) != 1:
-        raise TerseDslNested2ConversionError("ResourceUsageOverview must appear exactly once.")
+        raise TerselConversionError("ResourceUsageOverview must appear exactly once.")
     index = indexes[0]
     resource = content[index]
     if not resource.values or not isinstance(resource.values[0], dict):
-        raise TerseDslNested2ConversionError("ResourceUsageOverview must be a direct layout child.")
+        raise TerselConversionError("ResourceUsageOverview must be a direct layout child.")
     variant = resource.values[0].get("variant")
     role = resource.values[0].get("role")
     show_title = resource.values[0].get("showTitle", True)
     if not isinstance(show_title, bool):
-        raise TerseDslNested2ConversionError("ResourceUsageOverview showTitle must be a Boolean.")
+        raise TerselConversionError("ResourceUsageOverview showTitle must be a Boolean.")
     if variant != "memory":
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "ResourceUsageOverview only enables the memory variant."
         )
     if len(content) == 1:
         if layout_id not in {"SingleFocusLayout", "HeroActionLayout"} or role != "hero":
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Single-business ResourceUsageOverview requires a hero "
                 "SingleFocus/HeroAction layout."
             )
         if show_title is not True:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Single-business ResourceUsageOverview must keep its internal title."
             )
         return
@@ -6607,22 +6610,22 @@ def _validate_resource_usage_overview_placement(
         "BatteryOverview",
         "ResourceUsageOverview",
     }:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "Multi-business ResourceUsageOverview currently supports BatteryOverview only."
         )
     if size == "2x2":
         if layout_id != "PeerPairLayout" or role != "peer" or show_title is not False:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Multi-business 2x2 ResourceUsageOverview requires "
                 "PeerPairLayout+peer+showTitle=false."
             )
         return
     if layout_id not in {"HeroSupportLayout", "HeroSupportActionLayout"}:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "Multi-business 2x4 ResourceUsageOverview requires a HeroSupport layout."
         )
     if index != 0 or role != "hero":
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "Multi-business 2x4 ResourceUsageOverview must be the leading hero."
         )
 
@@ -6638,32 +6641,32 @@ def _validate_app_usage_overview_placement(
     )
     if not indexes:
         if any(call.name == "AppUsageOverview" for child in content for call in _walk_calls(child)):
-            raise TerseDslNested2ConversionError("AppUsageOverview must be a direct layout child.")
+            raise TerselConversionError("AppUsageOverview must be a direct layout child.")
         return
     if len(indexes) != 1:
-        raise TerseDslNested2ConversionError("AppUsageOverview must appear exactly once.")
+        raise TerselConversionError("AppUsageOverview must appear exactly once.")
     index = indexes[0]
     app_usage = content[index]
     if not app_usage.values or not isinstance(app_usage.values[0], dict):
-        raise TerseDslNested2ConversionError("AppUsageOverview must be a direct layout child.")
+        raise TerselConversionError("AppUsageOverview must be a direct layout child.")
     if app_usage.values[0].get("variant") != "singleApp":
-        raise TerseDslNested2ConversionError("AppUsageOverview only enables the singleApp variant.")
+        raise TerselConversionError("AppUsageOverview only enables the singleApp variant.")
     if len(content) == 1:
         if layout_id not in {"SingleFocusLayout", "HeroActionLayout"}:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Single-business AppUsageOverview requires SingleFocus/HeroAction layout."
             )
         return
     if {item.name for item in content} != {"AppUsageOverview", "SystemModeOverview"}:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "Multi-business AppUsageOverview only supports trusted SystemModeOverview."
         )
     if layout_id not in {"HeroSupportLayout", "HeroSupportActionLayout"}:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "AppUsageOverview + SystemModeOverview requires a HeroSupport layout."
         )
     if index != 0:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "AppUsageOverview must be the leading hero in multi-business layouts."
         )
 
@@ -6678,28 +6681,28 @@ def _validate_ux_layout_action_slot(
     maximum = layout.max_action_children_by_size[size]
     if not minimum <= len(action_children) <= maximum:
         if minimum == maximum == 1 and not action_children:
-            raise TerseDslNested2ConversionError("UX Layout requires one embedded Action.")
+            raise TerselConversionError("UX Layout requires one embedded Action.")
         if maximum == 0 and action_children:
-            raise TerseDslNested2ConversionError("UX Layout does not accept an Action.")
-        raise TerseDslNested2ConversionError(
+            raise TerselConversionError("UX Layout does not accept an Action.")
+        raise TerselConversionError(
             f"UX Layout Action count is invalid: {layout.name}/{len(action_children)}"
         )
     trailing_children = node.children[slice(-len(action_children), None)]
     if action_children and trailing_children != action_children:
-        raise TerseDslNested2ConversionError("UX Layout Actions must be contiguous final children.")
+        raise TerselConversionError("UX Layout Actions must be contiguous final children.")
     action_ids = tuple(
         child.values[0].get("actionId")
         for child in action_children
         if child.values and isinstance(child.values[0], dict)
     )
     if len(action_ids) != len(set(action_ids)):
-        raise TerseDslNested2ConversionError("UX Layout cannot repeat the same Action.")
+        raise TerselConversionError("UX Layout cannot repeat the same Action.")
     matrix_has_invalid_action = layout.name == "ActionMatrixLayout" and any(
         _parsed_ux_action_component(child) not in {"ActionTile", "PillAction"}
         for child in action_children
     )
     if matrix_has_invalid_action:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "ActionMatrixLayout requires ActionTile or PillAction controls."
         )
 
@@ -6724,18 +6727,18 @@ def _lower_ux_layouts(
         return Nested2Node(node.component_type, node.values, children)
     layout = registry.require_ux_layout_component(node.component_type)
     if size not in layout.supported_card_sizes:
-        raise TerseDslNested2ConversionError("UX Layout does not support the target card size.")
+        raise TerselConversionError("UX Layout does not support the target card size.")
     maximum = layout.max_children_by_size[size]
     # The raw tree already passed the strict layout contract. Trusted chrome
     # de-duplication may remove one child before lowering, but cannot add or
     # reorder business content.
     minimum = layout.minimum_children(size)
     if not minimum <= len(children) <= maximum:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"UX Layout child count is invalid: {node.component_type}/{len(children)}"
         )
     if layout.action_policy == "required" and not has_action:
-        raise TerseDslNested2ConversionError("UX Layout requires the card@1 primary Action.")
+        raise TerselConversionError("UX Layout requires the card@1 primary Action.")
     gap = registry.ux_tokens["moduleGap"]
     direction = layout.lowering_by_size[size]
     if direction == "column":
@@ -6934,7 +6937,7 @@ def _inject_resource_battery_title(
     }:
         return node
     if not isinstance(title, str) or not title.strip() or title not in contract.trusted_literals:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "Resource and battery 2x2 peer composition requires one trusted outer title."
         )
     title_node = _resource_usage_text(
@@ -7000,7 +7003,7 @@ def _lower_ux_layout_root(
     registry: CardPlanRegistry,
 ) -> Nested2Node:
     if node.component_type not in UX_LAYOUT_COMPONENT_IDS:
-        raise TerseDslNested2ConversionError("UX Mixed root is not a Layout Component.")
+        raise TerselConversionError("UX Mixed root is not a Layout Component.")
     layout = registry.require_ux_layout_component(node.component_type)
     configuration = dict(node.values[0]) if node.values else {}
     content, actions = _split_ux_layout_children(node)
@@ -7031,7 +7034,7 @@ def _lower_ux_layout_root(
         <= len(lowered_content)
         <= layout.max_children_by_size[size]
     ):
-        raise TerseDslNested2ConversionError("UX Layout content budget changed during expansion.")
+        raise TerselConversionError("UX Layout content budget changed during expansion.")
     lowered = _lower_registered_ux_layout(
         node.component_type,
         lowered_content,
@@ -7112,7 +7115,7 @@ def _lower_registered_ux_layout(
             _ux_support_surface_color(contract, registry),
             registry,
         )
-    raise TerseDslNested2ConversionError(f"Unsupported UX Layout lowering: {layout_id}")
+    raise TerselConversionError(f"Unsupported UX Layout lowering: {layout_id}")
 
 
 def _instantiate_provider_layout_blueprint(
@@ -7134,7 +7137,7 @@ def _instantiate_provider_layout_blueprint(
     if not definitions:
         return None
     if len(definitions) > 1:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"Provider Layout Template is ambiguous: {layout_id}"
         )
     definition = definitions[0]
@@ -7142,13 +7145,13 @@ def _instantiate_provider_layout_blueprint(
     if variant.root.component in UX_LAYOUT_COMPONENT_IDS:
         return None
     if definition.bindings:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "Provider Layout Template cannot declare data bindings."
         )
     children = (*content, *actions)
     indexed_child_slots = _template_child_slot_indexes(variant.root)
     if indexed_child_slots and len(children) != len(indexed_child_slots):
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"Provider Layout Template child count is invalid: {definition.wire_id}"
         )
     return _instantiate_blueprint(
@@ -7195,7 +7198,7 @@ def _lower_hero_action_layout(
 ) -> Nested2Node:
     placement = configuration.get("actionPlacement", "bottom")
     if size == "2x2" and placement == "end":
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "HeroActionLayout actionPlacement=end is only available for 2x4."
         )
 
@@ -7322,7 +7325,7 @@ def _lower_hero_support_action_layout(
                 if item.component_type == "Text" and item.values
             }
             if required & support_literals:
-                raise TerseDslNested2ConversionError(
+                raise TerselConversionError(
                     "HeroSupportActionLayout cannot drop required Support content on 2x2."
                 )
             hero = _single_region(content[0], justify="start", registry=registry)
@@ -7483,7 +7486,7 @@ def _lower_list_action_layout(
 ) -> Nested2Node:
     placement = configuration.get("actionPlacement", "bottom")
     if size == "2x2" and placement == "end":
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "ListActionLayout actionPlacement=end is only available for 2x4."
         )
     base = _single_region(content[0], justify="start", registry=registry)
@@ -7505,7 +7508,7 @@ def _lower_action_matrix_layout(
 ) -> Nested2Node:
     primary_index = configuration.get("primaryActionIndex", 0)
     if not 0 <= primary_index < len(actions):
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "ActionMatrixLayout primaryActionIndex exceeds the Action count."
         )
     ordered = actions
@@ -8303,7 +8306,7 @@ def _lower_ux_action(
     action_tile_orientation: Literal["horizontal", "vertical"] = "horizontal",
 ) -> Nested2Node:
     if len(node.values) != 1 or not isinstance(node.values[0], dict):
-        raise TerseDslNested2ConversionError("UX Action parameters are invalid.")
+        raise TerselConversionError("UX Action parameters are invalid.")
     params = node.values[0]
     action_id = params.get("actionId")
     binding = next(
@@ -8311,7 +8314,7 @@ def _lower_ux_action(
         None,
     )
     if binding is None:
-        raise TerseDslNested2ConversionError("UX Action binding is unavailable.")
+        raise TerselConversionError("UX Action binding is unavailable.")
     theme_action = registry.require_theme(contract.theme_profile_id).action_style
     background = theme_action.background_color if theme_action else "#1A0A59F7"
     foreground = theme_action.content_color if theme_action else "#FF0A59F7"
@@ -8324,7 +8327,7 @@ def _lower_ux_action(
     icon = params.get("icon")
     if node.component_type == "IconAction":
         if not isinstance(icon, str):
-            raise TerseDslNested2ConversionError("IconAction requires an approved icon.")
+            raise TerselConversionError("IconAction requires an approved icon.")
         if re.search(r"(?:^|[_-])white(?:[_.-]|$)", icon.casefold()):
             background, foreground = foreground, "#FFFFFFFF"
         return _lower_action_template_tree(
@@ -8334,7 +8337,7 @@ def _lower_ux_action(
         )
     if node.component_type == "ActionTile":
         if size != "2x4" and not allow_action_tile_2x2:
-            raise TerseDslNested2ConversionError("ActionTile is only available for 2x4.")
+            raise TerselConversionError("ActionTile is only available for 2x4.")
         return _lower_action_tile(
             binding.display_label,
             icon,
@@ -8382,7 +8385,7 @@ def _lower_action_template_tree(
     foreground: str,
 ) -> Nested2Node:
     if len(node.children) != 1 or node.children[0].component_type != "Stack":
-        raise TerseDslNested2ConversionError("UX Action must contain one trusted Action Template.")
+        raise TerselConversionError("UX Action must contain one trusted Action Template.")
 
     def apply_foreground(current: Nested2Node) -> Nested2Node:
         children = tuple(apply_foreground(child) for child in current.children)
@@ -8396,7 +8399,7 @@ def _lower_action_template_tree(
     content = apply_foreground(node.children[0])
     root_options = next((value for value in content.values if isinstance(value, dict)), None)
     if root_options is None or "onClick" not in root_options:
-        raise TerseDslNested2ConversionError("UX Action Template must declare onClick.")
+        raise TerselConversionError("UX Action Template must declare onClick.")
     return _merge_node_options(content, {"backgroundColor": background})
 
 
@@ -8479,17 +8482,17 @@ def _validate_expanded_tree(root: Nested2Node, contract: HybridBodyContract) -> 
 
     def visit(node: Nested2Node, trusted_blueprint: bool = False) -> None:
         if node.component_type not in contract.allowed_components:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 f"Expanded component is not allowed: {node.component_type}"
             )
         if node.component_type in _CONTAINERS and not node.children:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 f"Expanded container must contain at least one child: {node.component_type}"
             )
         if node.component_type == "Image" and node.values:
             source = node.values[0]
             if source not in contract.allowed_asset_sources:
-                raise TerseDslNested2ConversionError(f"Image source is not approved: {source}")
+                raise TerselConversionError(f"Image source is not approved: {source}")
             seen_assets.add(str(source))
         if node.component_type == "Text" and node.values and isinstance(node.values[0], str):
             visible_strings.append(node.values[0])
@@ -8499,7 +8502,7 @@ def _validate_expanded_tree(root: Nested2Node, contract: HybridBodyContract) -> 
     visit(root)
     missing_assets = set(contract.required_asset_sources) - seen_assets
     if missing_assets:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"Required assets are missing: {sorted(missing_assets)}"
         )
     visible = "\n".join(visible_strings)
@@ -8510,7 +8513,7 @@ def _validate_expanded_tree(root: Nested2Node, contract: HybridBodyContract) -> 
         if item not in visible and _semantic_text_fragment(item) not in visible_blob
     ]
     if missing_literals:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"Required literals are missing: {missing_literals[:3]}"
         )
 
@@ -8528,7 +8531,7 @@ def _parsed_template_shape_params(call: ParsedCall) -> tuple[str, dict[str, Any]
         and isinstance(call.values[1], dict)
     ):
         return call.values[0], call.values[1], False
-    raise TerseDslNested2ConversionError(f"Template props are invalid: {call.name}")
+    raise TerselConversionError(f"Template props are invalid: {call.name}")
 
 
 def _normalize_template_provider_params(
@@ -8747,7 +8750,7 @@ def _validate_required_numbers(
     visit(content)
     missing = required - actual
     if missing:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             f"Hybrid content is missing required numeric facts: {list(missing.elements())}"
         )
 

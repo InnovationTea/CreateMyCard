@@ -1,4 +1,4 @@
-"""Closed `$theme(...)` reference syntax shared by CardTpl and TerseDSL."""
+"""Closed `$theme(...)` reference syntax shared by CardTpl and Tersel."""
 
 from __future__ import annotations
 

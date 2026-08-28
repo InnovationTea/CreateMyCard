@@ -192,11 +192,6 @@ def test_websocket_send_disconnect_is_logged_and_not_raised(monkeypatch):
 
 def _valid_model_output(_self, _prompt, protocol_profile: dict) -> str:
     """为路由集成测试返回对应 profile 的确定性合法模型输出。"""
-    if protocol_profile.get("id") == "terse-dsl-nested-2":
-        return (
-            'Column("card", Text("Weather", "title"), '
-            'Text("Static card", "body"), Text("Ready", "success"));'
-        )
     if protocol_profile.get("format") == "compact-dsl":
         compact_rows = [
             [

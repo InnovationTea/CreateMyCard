@@ -5,7 +5,7 @@
 Template source DSL，但不负责能力裁决、CardSpec/TaskSpec 构造、最终校验、artifact 保存或业务响应。
 
 > 本目录统一使用协议名 `Tersel`。`Tersel-Nest2`、`TerseDSL-Nested-2`、`Nested-2` 和 `Terse`
-> 只作为兼容代码名或历史名称保留。
+> 只作为历史名称或现有 WebSocket operation 的组成部分保留。
 
 ## 文档层级
 
@@ -92,12 +92,13 @@ template_generation/
 ├── binding_dependencies.py    有效绑定隔离
 ├── model_client.py            共享模型运行时窄适配
 ├── source_adapter.py          A2UI 到公共 Processor 源格式的适配
-├── legacy_python.py           旧路线诊断入口
+├── profile.py                 模板内部 Tersel 协议资源入口
 ├── engine/
 │   ├── pipeline.py            模板生成主编排
 │   ├── advanced/              数据轮廓、首层选择和二层 Prompt
 │   └── cardplan/              Provider Registry、Search、CardTpl 编译与展开
 ├── resources/source/          受信 Provider、Theme、Prompt 和 CardTpl 资源
+├── tools/                     模块构建和模板画廊命令
 ├── test_support/              不进入生产依赖图的端到端画廊辅助工具
 ├── tests/                     模块回归测试
 └── docs/                      实现文档

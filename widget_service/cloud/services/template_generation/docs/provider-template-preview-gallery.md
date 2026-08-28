@@ -22,7 +22,7 @@
 
 ```bash
 PYTHONPATH=widget_service/cloud widget_service/.venv312/bin/python \
-  widget_service/scripts/generate_template_preview_dataset.py /tmp/template_gallery
+  widget_service/cloud/services/template_generation/tools/generate_template_preview_dataset.py /tmp/template_gallery
 ```
 
 输出目录包含：

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
-"""Parse TerseDSL-Nested-2 as data and convert it to standard A2UI JSONL."""
+"""Parse the template-internal Tersel protocol and convert it to A2UI JSONL."""
 
 from __future__ import annotations
 
@@ -12,14 +12,19 @@ import tokenize
 from dataclasses import dataclass
 from typing import Any
 
-from services.a2ui_expression import (
+from services.template_generation.engine.a2ui_expression import (
     A2UIExpressionError,
-    normalize_terse_expression,
+    normalize_tersel_expression,
     normalize_wrapped_expression,
 )
-from services.compact_dsl_a2ui_converter import (
+from services.template_generation.engine.compact_dsl_a2ui_converter import (
     CompactDslConversionError,
     convert_compact_dsl_to_a2ui,
+)
+from services.template_generation.engine.theme_reference import (
+    THEME_REFERENCE_PATHS,
+    ThemeReferenceSyntaxError,
+    translate_theme_reference_calls,
 )
 
 MAX_INPUT_LENGTH = 1_048_576
@@ -30,18 +35,22 @@ MAX_COLLECTION_ITEMS = 256
 MAX_OBJECT_FIELDS = 128
 
 _FORBIDDEN_KEYS = frozenset({"__proto__", "prototype", "constructor"})
+_INTERNAL_DATA_KEYS = frozenset({"_advancedSelectors", "_templateProjection"})
 _CONTAINERS = frozenset({"Row", "Column", "List", "Stack"})
 _LEAVES = frozenset(
     {"Text", "Image", "Divider", "Progress", "Button", "Checkbox", "FusionBall"}
 )
 _COMPONENTS = _CONTAINERS | _LEAVES
-_ARGB_COLOR = re.compile(r"^#[0-9A-Fa-f]{8}$")
 _DATA_PLACEHOLDER = re.compile(r"^\$\{(data(?:\.[A-Za-z_][A-Za-z0-9_]*|\.\d+)+)\}$")
 _A2UI_DATA_REFERENCE = re.compile(
     r"\$\{(/data(?:/[A-Za-z_][A-Za-z0-9_]*|/\d+)+)\}"
 )
+_THEME_COLOR = re.compile(r"^#[0-9A-Fa-f]{8}$")
+_THEME_REFERENCE_CALL = "_TerselTheme"
 _TEXT_DESIGNS = {
     "title": {"fontSize": 20, "fontWeight": 700, "fontColor": "font_primary"},
+    "compact-title": {"fontSize": 14, "fontWeight": 700, "fontColor": "font_primary"},
+    "compact-action": {"fontSize": 12, "fontWeight": 600, "fontColor": "font_primary"},
     "body": {"fontSize": 14, "fontWeight": 400, "fontColor": "font_primary"},
     "subtitle": {"fontSize": 12, "fontWeight": 500, "fontColor": "font_secondary"},
     "success": {"fontSize": 14, "fontWeight": 600, "fontColor": "confirm"},
@@ -49,6 +58,7 @@ _TEXT_DESIGNS = {
 }
 _IMAGE_DESIGNS = {
     "icon": {"width": 24, "height": 24, "objectFit": "contain"},
+    "compact-icon": {"width": 16, "height": 16, "objectFit": "contain"},
     "thumbnail": {"width": 40, "height": 40, "objectFit": "cover", "borderRadius": 10},
     "hero": {"width": 64, "height": 64, "objectFit": "contain"},
 }
@@ -78,10 +88,50 @@ _BUTTON_DESIGNS = {
         "fontSize": 10,
     },
 }
+_CONTAINER_DESIGNS = {
+    "Column": {
+        "card": {},
+        "section": {"width": "matchParent", "itemMargin": 6},
+        "compact": {"width": "matchParent", "itemMargin": 4},
+    },
+    "Row": {
+        "between": {
+            "width": "matchParent",
+            "itemMargin": 4,
+            "justifyContent": "spaceBetween",
+            "alignItems": "center",
+        },
+        "actions": {
+            "width": "matchParent",
+            "itemMargin": 4,
+            "justifyContent": "end",
+            "alignItems": "center",
+        },
+    },
+    "List": {
+        "list": {"width": "matchParent", "space": 6},
+        "dense": {"width": "matchParent", "space": 4},
+    },
+    "Stack": {
+        "card": {},
+        "overlay": {"width": "matchParent", "height": "matchParent"},
+    },
+}
+_DESIGN_TOKEN_ALIASES = {
+    ("Column", "Card"): "card",
+    ("Column", "Section"): "section",
+    ("Column", "Compact"): "compact",
+    ("Row", "Between"): "between",
+    ("Row", "Actions"): "actions",
+    ("List", "List"): "list",
+    ("List", "Dense"): "dense",
+    ("Stack", "Card"): "card",
+    ("Stack", "Overlay"): "overlay",
+}
 
 
-class TerseDslNested2ConversionError(ValueError):
-    """Raised when Nested-2 cannot be safely converted to A2UI."""
+class TerselConversionError(ValueError):
+    """Raised when Tersel cannot be safely converted to A2UI."""
 
 
 @dataclass(frozen=True)
@@ -91,23 +141,37 @@ class Nested2Node:
     children: tuple[Nested2Node, ...]
 
 
-def convert_terse_dsl_nested2_to_a2ui(
+def convert_tersel_to_a2ui(
     source: str,
     *,
     size: str,
     protocol_profile: dict[str, Any],
     task_spec: dict[str, Any] | None = None,
+    theme_values: dict[str, str] | None = None,
 ) -> str:
-    """Convert one restricted Nested-2 component tree to three A2UI messages."""
-    root = parse_terse_dsl_nested2(source)
+    """Convert one restricted Tersel component tree to three A2UI messages."""
+    root, data_model = _parse_tersel_document(source, theme_values)
     allowed_binding_paths = _task_spec_leaf_paths(task_spec)
     allowed_expression_paths = _task_spec_paths(task_spec)
     referenced_paths = _node_binding_paths(root)
-    unknown_paths = referenced_paths - allowed_expression_paths
-    if unknown_paths:
-        raise TerseDslNested2ConversionError(
-            f"Expression references paths outside TaskSpec: {sorted(unknown_paths)}."
+    if task_spec is not None:
+        unknown_paths = referenced_paths - allowed_expression_paths
+        if unknown_paths:
+            raise TerselConversionError(
+                f"Expression references paths outside TaskSpec: {sorted(unknown_paths)}."
+            )
+    if data_model is not None:
+        data_paths = _validate_data_model(
+            data_model,
+            allowed_expression_paths,
+            allowed_binding_paths,
+            task_spec is not None,
         )
+        missing_paths = referenced_paths - data_paths
+        if missing_paths:
+            raise TerselConversionError(
+                f"Data document is missing component binding paths: {sorted(missing_paths)}."
+            )
     compact_rows: list[list[Any]] = []
     _append_compact_rows(
         root,
@@ -117,13 +181,14 @@ def convert_terse_dsl_nested2_to_a2ui(
         allowed_binding_paths,
         allowed_expression_paths,
     )
-    if task_spec is not None:
+    if data_model is not None:
+        compact_rows.append(["/data", data_model])
+    elif task_spec is not None:
         compact_rows.append(["/", _task_spec_sample_data(task_spec)])
     else:
         compact_rows.append(["/ui/state", "ready"])
     compact_dsl = "\n".join(
-        json.dumps(row, ensure_ascii=False, separators=(",", ":"))
-        for row in compact_rows
+        json.dumps(row, ensure_ascii=False, separators=(",", ":")) for row in compact_rows
     )
     try:
         return convert_compact_dsl_to_a2ui(
@@ -132,41 +197,70 @@ def convert_terse_dsl_nested2_to_a2ui(
             protocol_profile=protocol_profile,
         )
     except CompactDslConversionError as exc:
-        raise TerseDslNested2ConversionError(str(exc)) from exc
+        raise TerselConversionError(str(exc)) from exc
 
 
-def parse_terse_dsl_nested2(source: str) -> Nested2Node:
-    """Parse Nested-2 with Python's AST parser, then enforce a closed data grammar."""
-    if not isinstance(source, str) or not source.strip():
-        raise TerseDslNested2ConversionError("TerseDSL-Nested-2 output is empty.")
-    if len(source) > MAX_INPUT_LENGTH:
-        raise TerseDslNested2ConversionError("TerseDSL-Nested-2 input exceeds the size limit.")
-    try:
-        module = ast.parse(_python_compatible_source(source), mode="exec")
-    except SyntaxError as exc:
-        raise TerseDslNested2ConversionError(
-            f"TerseDSL-Nested-2 syntax error at line {exc.lineno}: {exc.msg}."
-        ) from exc
-    if len(module.body) != 1 or not isinstance(module.body[0], ast.Expr):
-        raise TerseDslNested2ConversionError(
-            "TerseDSL-Nested-2 must contain exactly one component call."
-        )
-    state = {"components": 0}
-    root = _parse_component(module.body[0].value, 1, state)
-    if root.component_type != "Column":
-        raise TerseDslNested2ConversionError("The root component must be Column.")
-    if not root.values or root.values[0] != "card":
-        raise TerseDslNested2ConversionError('The root must use Column("card", ...).')
+def parse_tersel(
+    source: str,
+    *,
+    theme_values: dict[str, str] | None = None,
+) -> Nested2Node:
+    """Parse Tersel with Python's AST parser and enforce a closed data grammar."""
+    root, _data_model = _parse_tersel_document(source, theme_values)
     return root
 
 
+def _parse_tersel_document(
+    source: str,
+    theme_values: dict[str, str] | None = None,
+) -> tuple[Nested2Node, dict[str, Any] | None]:
+    """解析组件树以及模板可选的静态示例 ``data`` 对象。"""
+    if not isinstance(source, str) or not source.strip():
+        raise TerselConversionError("Tersel output is empty.")
+    if len(source) > MAX_INPUT_LENGTH:
+        raise TerselConversionError("Tersel input exceeds the size limit.")
+    try:
+        translated = translate_theme_reference_calls(source, _THEME_REFERENCE_CALL)
+        module = ast.parse(_python_compatible_source(translated), mode="exec")
+    except ThemeReferenceSyntaxError as exc:
+        raise TerselConversionError(str(exc)) from exc
+    except SyntaxError as exc:
+        raise TerselConversionError(
+            f"Tersel syntax error at line {exc.lineno}: {exc.msg}."
+        ) from exc
+    if len(module.body) not in {1, 2} or not isinstance(module.body[0], ast.Expr):
+        raise TerselConversionError(
+            "Tersel must contain one component call and optional data assignment."
+        )
+    state = {"components": 0}
+    root = _parse_component(module.body[0].value, 1, state, theme_values or {})
+    if root.component_type not in {"Column", "Stack"}:
+        raise TerselConversionError("The root component must be Column or Stack.")
+    data_model = None
+    if len(module.body) == 2:
+        assignment = module.body[1]
+        is_single_assignment = isinstance(assignment, ast.Assign) and len(assignment.targets) == 1
+        target = assignment.targets[0] if is_single_assignment else None
+        is_data_target = isinstance(target, ast.Name) and target.id == "data"
+        if not is_single_assignment or not is_data_target:
+            raise TerselConversionError(
+                "The optional second statement must assign one object to data."
+            )
+        assert isinstance(assignment, ast.Assign)
+        parsed_data = _literal_value(assignment.value, 1)
+        if not isinstance(parsed_data, dict):
+            raise TerselConversionError("data must be one object.")
+        data_model = parsed_data
+    return root, data_model
+
+
 def _python_compatible_source(source: str) -> str:
-    """Translate only Nested-2 literal tokens; strings and component names stay untouched."""
+    """Translate only Tersel literal tokens; strings and component names stay untouched."""
     try:
         tokens = list(tokenize.generate_tokens(io.StringIO(source).readline))
     except tokenize.TokenError as exc:
-        raise TerseDslNested2ConversionError(
-            f"TerseDSL-Nested-2 tokenization failed: {exc.args[0]}."
+        raise TerselConversionError(
+            f"Tersel tokenization failed: {exc.args[0]}."
         ) from exc
     translated: list[tokenize.TokenInfo] = []
     literal_names = {"true": "True", "false": "False", "null": "None"}
@@ -200,55 +294,68 @@ def _next_token_is_colon(
         tokenize.NEWLINE,
         tokenize.COMMENT,
     }
-    for candidate in tokens[index + 1:]:
+    for candidate in tokens[slice(index + 1, None)]:
         if candidate.type in ignored:
             continue
         return candidate.type == tokenize.OP and candidate.string == ":"
     return False
 
 
-def _parse_component(node: ast.AST, depth: int, state: dict[str, int]) -> Nested2Node:
+def _parse_component(
+    node: ast.AST,
+    depth: int,
+    state: dict[str, int],
+    theme_values: dict[str, str],
+) -> Nested2Node:
     if depth > MAX_NESTING_DEPTH:
-        raise TerseDslNested2ConversionError("Component nesting exceeds 32 levels.")
+        raise TerselConversionError("Component nesting exceeds 32 levels.")
     if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
-        raise TerseDslNested2ConversionError(
-            "Only direct Catalog component calls are allowed."
-        )
+        raise TerselConversionError("Only direct Catalog component calls are allowed.")
     component_type = node.func.id
     if component_type not in _COMPONENTS:
-        raise TerseDslNested2ConversionError(
-            f'Unsupported component type "{component_type}".'
-        )
+        raise TerselConversionError(f'Unsupported component type "{component_type}".')
     if node.keywords:
-        raise TerseDslNested2ConversionError("Keyword arguments are not allowed.")
+        raise TerselConversionError("Keyword arguments are not allowed.")
     state["components"] += 1
     if state["components"] > MAX_COMPONENTS:
-        raise TerseDslNested2ConversionError("Component count exceeds 256.")
+        raise TerselConversionError("Component count exceeds 256.")
 
     values: list[Any] = []
     children: list[Nested2Node] = []
     child_started = False
     for argument in node.args:
-        if _is_expression_call(argument):
+        if _is_expression_call(argument) or _is_theme_reference_call(argument):
             if child_started:
-                raise TerseDslNested2ConversionError(
+                raise TerselConversionError(
                     "Value arguments must appear before the first child."
                 )
-            values.append(_literal_value(argument, depth, allow_expression=True))
+            values.append(
+                _literal_value(
+                    argument,
+                    depth,
+                    allow_expression=True,
+                    theme_values=theme_values,
+                )
+            )
             continue
         if isinstance(argument, ast.Call):
             child_started = True
-            children.append(_parse_component(argument, depth + 1, state))
+            children.append(_parse_component(argument, depth + 1, state, theme_values))
             continue
         if child_started:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Value arguments must appear before the first child."
             )
-        values.append(_literal_value(argument, depth, allow_expression=True))
-    if children and component_type not in _CONTAINERS:
-        raise TerseDslNested2ConversionError(
-            f"{component_type} cannot contain child components."
+        values.append(
+            _literal_value(
+                argument,
+                depth,
+                allow_expression=True,
+                theme_values=theme_values,
+            )
         )
+    if children and component_type not in _CONTAINERS:
+        raise TerselConversionError(f"{component_type} cannot contain child components.")
     if component_type == "FusionBall":
         _validate_fusion_ball_values(values)
     return Nested2Node(component_type, tuple(values), tuple(children))
@@ -256,11 +363,11 @@ def _parse_component(node: ast.AST, depth: int, state: dict[str, int]) -> Nested
 
 def _validate_fusion_ball_values(values: list[Any]) -> None:
     valid_colors = len(values) == 3 and all(
-        isinstance(value, str) and _ARGB_COLOR.fullmatch(value) is not None
+        isinstance(value, str) and _THEME_COLOR.fullmatch(value) is not None
         for value in values
     )
     if not valid_colors:
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "FusionBall requires exactly three #AARRGGBB color arguments."
         )
 
@@ -270,21 +377,29 @@ def _literal_value(
     depth: int,
     *,
     allow_expression: bool = False,
+    theme_values: dict[str, str] | None = None,
 ) -> Any:
     if depth > MAX_NESTING_DEPTH:
-        raise TerseDslNested2ConversionError("Literal nesting exceeds 32 levels.")
+        raise TerselConversionError("Literal nesting exceeds 32 levels.")
     if allow_expression and _is_expression_call(node):
         return _parse_expression_call(node)
+    if allow_expression and _is_theme_reference_call(node):
+        return _parse_theme_reference_call(node, theme_values or {})
     if isinstance(node, ast.Constant):
         if isinstance(node.value, str) and len(node.value) > MAX_STRING_LENGTH:
-            raise TerseDslNested2ConversionError("String literal exceeds the size limit.")
+            raise TerselConversionError("String literal exceeds the size limit.")
         if node.value is None or isinstance(node.value, (str, int, float, bool)):
             return node.value
     if isinstance(node, ast.List):
         if len(node.elts) > MAX_COLLECTION_ITEMS:
-            raise TerseDslNested2ConversionError("Array literal exceeds the item limit.")
+            raise TerselConversionError("Array literal exceeds the item limit.")
         return [
-            _literal_value(item, depth + 1, allow_expression=allow_expression)
+            _literal_value(
+                item,
+                depth + 1,
+                allow_expression=allow_expression,
+                theme_values=theme_values,
+            )
             for item in node.elts
         ]
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
@@ -292,31 +407,33 @@ def _literal_value(
             node.operand,
             depth + 1,
             allow_expression=allow_expression,
+            theme_values=theme_values,
         )
         if isinstance(operand, bool) or not isinstance(operand, (int, float)):
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Unary signs are only allowed on numeric literals."
             )
         return operand if isinstance(node.op, ast.UAdd) else -operand
     if isinstance(node, ast.Dict):
         if len(node.keys) > MAX_OBJECT_FIELDS:
-            raise TerseDslNested2ConversionError("Object literal exceeds the field limit.")
+            raise TerselConversionError("Object literal exceeds the field limit.")
         result: dict[str, Any] = {}
         for key_node, value_node in zip(node.keys, node.values, strict=True):
             key = _literal_value(key_node, depth + 1)
             if not isinstance(key, str):
-                raise TerseDslNested2ConversionError("Object keys must be strings.")
+                raise TerselConversionError("Object keys must be strings.")
             if key in _FORBIDDEN_KEYS:
-                raise TerseDslNested2ConversionError(f'Forbidden object key "{key}".')
+                raise TerselConversionError(f'Forbidden object key "{key}".')
             if key in result:
-                raise TerseDslNested2ConversionError(f'Duplicate object key "{key}".')
+                raise TerselConversionError(f'Duplicate object key "{key}".')
             result[key] = _literal_value(
                 value_node,
                 depth + 1,
                 allow_expression=allow_expression,
+                theme_values=theme_values,
             )
         return result
-    raise TerseDslNested2ConversionError(
+    raise TerselConversionError(
         "Only string, number, boolean, null, array, and object literals are allowed."
     )
 
@@ -329,18 +446,43 @@ def _is_expression_call(node: ast.AST) -> bool:
     )
 
 
+def _is_theme_reference_call(node: ast.AST) -> bool:
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == _THEME_REFERENCE_CALL
+    )
+
+
+def _parse_theme_reference_call(
+    node: ast.AST,
+    theme_values: dict[str, str],
+) -> str:
+    assert isinstance(node, ast.Call)
+    valid_argument = len(node.args) == 1 and isinstance(node.args[0], ast.Constant)
+    path = node.args[0].value if valid_argument else None
+    if node.keywords or not isinstance(path, str) or path not in THEME_REFERENCE_PATHS:
+        raise TerselConversionError(
+            "$theme requires exactly one approved Theme path."
+        )
+    value = theme_values.get(path)
+    if not isinstance(value, str) or _THEME_COLOR.fullmatch(value) is None:
+        raise TerselConversionError(f"Theme reference is unavailable: {path}.")
+    return value
+
+
 def _parse_expression_call(node: ast.AST) -> str:
     assert isinstance(node, ast.Call)
     valid_argument = len(node.args) == 1 and isinstance(node.args[0], ast.Constant)
     body = node.args[0].value if valid_argument else None
     if node.keywords or not isinstance(body, str):
-        raise TerseDslNested2ConversionError(
+        raise TerselConversionError(
             "Expr requires exactly one string argument and no keyword arguments."
         )
     try:
-        return normalize_terse_expression(body).value
+        return normalize_tersel_expression(body).value
     except A2UIExpressionError as exc:
-        raise TerseDslNested2ConversionError(f"Invalid Expr: {exc}") from exc
+        raise TerselConversionError(f"Invalid Expr: {exc}") from exc
 
 
 def _append_compact_rows(
@@ -352,7 +494,8 @@ def _append_compact_rows(
     allowed_expression_paths: frozenset[str],
 ) -> None:
     child_ids = [
-        f"{component_id}_{index}" for index in range(len(node.children))
+        _explicit_component_id(child) or f"{component_id}_{index}"
+        for index, child in enumerate(node.children)
     ]
     props = _convert_data_placeholders(
         _component_props(node, component_id, size),
@@ -374,117 +517,6 @@ def _append_compact_rows(
         )
 
 
-def bind_task_spec_values(root: Nested2Node, task_spec: dict[str, Any]) -> Nested2Node:
-    """Bind exact advanced-component facts to their declared TaskSpec leaf paths."""
-    bindings = _unique_task_spec_sample_bindings(task_spec)
-    counters: dict[str, int] = {}
-
-    def consume(key: str) -> str | None:
-        paths = bindings.get(key)
-        if not paths:
-            return None
-        if len(paths) == 1:
-            return paths[0]
-        idx = counters.get(key, 0)
-        if idx >= len(paths):
-            return None
-        counters[key] = idx + 1
-        return paths[idx]
-
-    def bind(node: Nested2Node) -> Nested2Node:
-        children = tuple(bind(child) for child in node.children)
-        values = list(node.values)
-        if node.component_type == "Text" and values:
-            placeholder = consume(_stable_sample_key(values[0]))
-            if placeholder is None:
-                placeholder = _coerced_consume(values[0], consume)
-            if placeholder is not None:
-                values[0] = placeholder
-        if node.component_type in {"Progress", "Checkbox"}:
-            values = [_bind_numeric_semantic_fields(value, consume) for value in values]
-        return Nested2Node(node.component_type, tuple(values), children)
-
-    return bind(root)
-
-
-def _coerced_consume(value: Any, consume) -> str | None:
-    """Try numeric coercion so templates that str() an integer can still bind."""
-    if not isinstance(value, str):
-        return None
-    try:
-        coerced = json.loads(value)
-    except (json.JSONDecodeError, ValueError):
-        return None
-    if isinstance(coerced, bool) or not isinstance(coerced, (int, float)):
-        return None
-    return consume(_stable_sample_key(coerced))
-
-
-def _bind_numeric_semantic_fields(value: Any, consume) -> Any:
-    if not isinstance(value, dict):
-        return value
-    result = dict(value)
-    for field in ("value", "total", "select"):
-        if field not in result:
-            continue
-        placeholder = consume(_stable_sample_key(result[field]))
-        if placeholder is None:
-            placeholder = _coerced_consume(result[field], consume)
-        if placeholder is not None:
-            result[field] = placeholder
-    return result
-
-
-def _unique_task_spec_sample_bindings(task_spec: dict[str, Any]) -> dict[str, list[str]]:
-    candidates: dict[str, list[str]] = {}
-    _collect_task_spec_samples(task_spec.get("dataModelSchema"), "", candidates)
-    bindings: dict[str, list[str]] = {}
-    for key, paths in candidates.items():
-        bound: list[str] = []
-        for path in paths:
-            placeholder = _pointer_to_placeholder(path)
-            if placeholder is not None:
-                bound.append(placeholder)
-        if bound:
-            bindings[key] = bound
-    return bindings
-
-
-def _collect_task_spec_samples(
-    value: Any,
-    path: str,
-    candidates: dict[str, list[str]],
-) -> None:
-    if isinstance(value, dict) and "type" in value:
-        is_runtime_path = path.startswith("/data/")
-        is_internal_selector = "/_advancedSelectors/" in path
-        if is_runtime_path and not is_internal_selector and "sampleValue" in value:
-            candidates.setdefault(_stable_sample_key(value["sampleValue"]), []).append(path)
-        return
-    if isinstance(value, dict):
-        for key, child in value.items():
-            _collect_task_spec_samples(child, f"{path}/{key}", candidates)
-        return
-    if isinstance(value, list) and value:
-        for index, item in enumerate(value):
-            _collect_task_spec_samples(item, f"{path}/{index}", candidates)
-
-
-def _stable_sample_key(value: Any) -> str:
-    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-
-
-def _pointer_to_placeholder(path: str) -> str | None:
-    parts = path.removeprefix("/").split("/")
-    valid_parts = all(
-        part.isdigit() or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", part)
-        for part in parts
-    )
-    if not parts or parts[0] != "data" or not valid_parts:
-        return None
-    return "${" + ".".join(parts) + "}"
-
-
 def _convert_data_placeholders(
     value: Any,
     allowed_binding_paths: frozenset[str],
@@ -495,7 +527,7 @@ def _convert_data_placeholders(
         if match is not None:
             path = "/" + match.group(1).replace(".", "/")
             if path not in allowed_binding_paths:
-                raise TerseDslNested2ConversionError(
+                raise TerselConversionError(
                     f"Data binding path is not a TaskSpec leaf: {path}."
                 )
             return {"path": path}
@@ -503,15 +535,15 @@ def _convert_data_placeholders(
             try:
                 normalized = normalize_wrapped_expression(value)
             except A2UIExpressionError as exc:
-                raise TerseDslNested2ConversionError(f"Invalid A2UI expression: {exc}") from exc
+                raise TerselConversionError(f"Invalid A2UI expression: {exc}") from exc
             unknown_paths = set(normalized.references) - allowed_expression_paths
             if unknown_paths:
-                raise TerseDslNested2ConversionError(
+                raise TerselConversionError(
                     f"Expression references paths outside TaskSpec: {sorted(unknown_paths)}."
                 )
             return normalized.value
         if "${" in value:
-            raise TerseDslNested2ConversionError(
+            raise TerselConversionError(
                 "Data binding references must be one complete path or appear inside Expr."
             )
         return value
@@ -547,7 +579,7 @@ def _task_spec_leaf_paths(task_spec: dict[str, Any] | None) -> frozenset[str]:
             return
         if isinstance(value, dict):
             for key, child in value.items():
-                if key == "_advancedSelectors":
+                if key in _INTERNAL_DATA_KEYS:
                     continue
                 visit(child, f"{path}/{key}")
         elif isinstance(value, list) and value:
@@ -568,7 +600,7 @@ def _task_spec_paths(task_spec: dict[str, Any] | None) -> frozenset[str]:
             paths.add(path)
         if isinstance(value, dict) and "type" not in value:
             for key, child in value.items():
-                if key == "_advancedSelectors":
+                if key in _INTERNAL_DATA_KEYS:
                     continue
                 visit(child, f"{path}/{key}")
         elif isinstance(value, list):
@@ -577,6 +609,63 @@ def _task_spec_paths(task_spec: dict[str, Any] | None) -> frozenset[str]:
 
     visit(task_spec.get("dataModelSchema"), "")
     return frozenset(paths)
+
+
+def _task_spec_sample_data(task_spec: dict[str, Any]) -> Any:
+    def sample(value: Any) -> Any:
+        if isinstance(value, dict) and "type" in value:
+            return value.get("sampleValue")
+        if isinstance(value, dict):
+            return {
+                key: sample(child)
+                for key, child in value.items()
+                if key not in _INTERNAL_DATA_KEYS
+            }
+        if isinstance(value, list):
+            return [sample(child) for child in value]
+        return value
+
+    return sample(task_spec.get("dataModelSchema", {}))
+
+
+def serialize_task_spec_data(task_spec: dict[str, Any]) -> str:
+    """Serialize only the public ``/data`` preview object for a full Tersel document."""
+    sample_data = _task_spec_sample_data(task_spec)
+    data = sample_data.get("data", {}) if isinstance(sample_data, dict) else {}
+    if not isinstance(data, dict):
+        raise TerselConversionError("TaskSpec dataModelSchema.data must be one object.")
+    _reject_internal_data_keys(data)
+    return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+
+
+def _validate_data_model(
+    data_model: dict[str, Any],
+    allowed_paths: frozenset[str],
+    leaf_paths: frozenset[str],
+    validate_paths: bool,
+) -> frozenset[str]:
+    _reject_internal_data_keys(data_model)
+    data_paths: set[str] = set()
+
+    def visit(value: Any, path: str) -> None:
+        if validate_paths and path not in allowed_paths:
+            raise TerselConversionError(
+                f"Data document path is not declared by TaskSpec: {path}."
+            )
+        data_paths.add(path)
+        if path in leaf_paths:
+            return
+        if isinstance(value, dict):
+            for key, child in value.items():
+                visit(child, f"{path}/{key}")
+            return
+        if isinstance(value, list):
+            for index, child in enumerate(value):
+                visit(child, f"{path}/{index}")
+            return
+
+    visit(data_model, "/data")
+    return frozenset(data_paths)
 
 
 def _node_binding_paths(root: Nested2Node) -> frozenset[str]:
@@ -589,6 +678,9 @@ def _node_binding_paths(root: Nested2Node) -> frozenset[str]:
                 paths.add("/" + placeholder.group(1).replace(".", "/"))
             paths.update(match.group(1) for match in _A2UI_DATA_REFERENCE.finditer(value))
         elif isinstance(value, dict):
+            binding_path = value.get("path") if set(value) == {"path"} else None
+            if isinstance(binding_path, str) and binding_path.startswith("/data/"):
+                paths.add(binding_path)
             for child in value.values():
                 visit_value(child)
         elif isinstance(value, list):
@@ -605,21 +697,18 @@ def _node_binding_paths(root: Nested2Node) -> frozenset[str]:
     return frozenset(paths)
 
 
-def _task_spec_sample_data(task_spec: dict[str, Any]) -> Any:
-    def sample(value: Any) -> Any:
-        if isinstance(value, dict) and "type" in value:
-            return value.get("sampleValue")
-        if isinstance(value, dict):
-            return {
-                key: sample(child)
-                for key, child in value.items()
-                if key != "_advancedSelectors"
-            }
-        if isinstance(value, list):
-            return [sample(child) for child in value]
-        return value
-
-    return sample(task_spec.get("dataModelSchema", {}))
+def _reject_internal_data_keys(value: Any) -> None:
+    if isinstance(value, dict):
+        internal = _INTERNAL_DATA_KEYS.intersection(value)
+        if internal:
+            raise TerselConversionError(
+                f"Data document contains internal projection keys: {sorted(internal)}."
+            )
+        for child in value.values():
+            _reject_internal_data_keys(child)
+    elif isinstance(value, list):
+        for child in value:
+            _reject_internal_data_keys(child)
 
 
 def _explicit_component_id(node: Nested2Node) -> str | None:
@@ -628,7 +717,7 @@ def _explicit_component_id(node: Nested2Node) -> str | None:
             continue
         component_id = value["_id"]
         if not isinstance(component_id, str) or not component_id:
-            raise TerseDslNested2ConversionError("Internal component _id must be non-empty.")
+            raise TerselConversionError("Internal component _id must be non-empty.")
         return component_id
     return None
 
@@ -665,9 +754,7 @@ def _component_props(
         props = {"strokeWidth": 1, "vertical": False, "color": "comp_divider"}
         _merge_options(props, node.values)
         return props
-    raise TerseDslNested2ConversionError(
-        f"{component_id}: unsupported component conversion."
-    )
+    raise TerselConversionError(f"{component_id}: unsupported component conversion.")
 
 
 def _designed_leaf_props(
@@ -676,31 +763,42 @@ def _designed_leaf_props(
     designs: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     if not node.values:
-        raise TerseDslNested2ConversionError(
-            f"{node.component_type} requires {required_name}."
-        )
+        raise TerselConversionError(f"{node.component_type} requires {required_name}.")
     props = {required_name: node.values[0]}
     remaining = list(node.values[1:])
     if remaining and isinstance(remaining[0], str):
-        design = remaining.pop(0)
-        if design not in designs:
-            raise TerseDslNested2ConversionError(
-                f'Unsupported {node.component_type} design "{design}".'
-            )
-        props.update(designs[design])
+        design_token = remaining.pop(0)
+        props.update(_resolve_design_token(node.component_type, design_token, designs))
     _merge_options(props, remaining)
     return props
+
+
+def _resolve_design_token(
+    component_type: str,
+    design_token: str,
+    designs: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    normalized = _DESIGN_TOKEN_ALIASES.get(
+        (component_type, design_token),
+        design_token,
+    )
+    design = designs.get(normalized)
+    if design is None:
+        raise TerselConversionError(
+            f'Unsupported {component_type} designToken "{design_token}".'
+        )
+    return dict(design)
 
 
 def _merge_options(props: dict[str, Any], values: Any) -> None:
     values = list(values)
     if not values:
         return
-    if len(values) != 1 or not isinstance(values[0], dict) or not values[0]:
-        raise TerseDslNested2ConversionError(
-            "Options must be one non-empty object in the final value position."
+    if len(values) != 1 or not isinstance(values[0], dict):
+        raise TerselConversionError(
+            "Inline styles must be one object in the final value position."
         )
-    props.update(values[0])
+    props.update({key: value for key, value in values[0].items() if key != "_id"})
 
 
 def _container_props(
@@ -709,50 +807,58 @@ def _container_props(
     size: str,
 ) -> dict[str, Any]:
     values = list(node.values)
-    layout = values.pop(0) if values and isinstance(values[0], str) else None
-    props: dict[str, Any] = {}
-    _merge_options(props, values)
-    layouts = {
-        ("Column", "section"): {"width": "matchParent", "itemMargin": 6},
-        ("Column", "compact"): {"width": "matchParent", "itemMargin": 4},
-        ("Row", "between"): {
-            "width": "matchParent",
-            "itemMargin": 4,
-            "justifyContent": "spaceBetween",
-            "alignItems": "center",
-        },
-        ("Row", "actions"): {
-            "width": "matchParent",
-            "itemMargin": 4,
-            "justifyContent": "end",
-            "alignItems": "center",
-        },
-        ("List", "list"): {"width": "matchParent", "space": 6},
-        ("List", "dense"): {"width": "matchParent", "space": 4},
-        ("Stack", "overlay"): {"width": "matchParent", "height": "matchParent"},
-    }
+    design_token = values.pop(0) if values and isinstance(values[0], str) else None
+    designs = _CONTAINER_DESIGNS[node.component_type]
+    design_props = (
+        _resolve_design_token(node.component_type, design_token, designs)
+        if design_token is not None
+        else {}
+    )
+    inline_props: dict[str, Any] = {}
+    _merge_options(inline_props, values)
     if component_id == "root":
         dimensions = {
             "2x2": {"width": 160, "height": 160},
             "2x4": {"width": 320, "height": 160},
         }.get(size)
-        if node.component_type != "Column" or layout != "card" or dimensions is None:
-            raise TerseDslNested2ConversionError(
-                'Root must be Column("card", ...) with a supported size.'
+        if node.component_type not in {"Column", "Stack"} or dimensions is None:
+            raise TerselConversionError(
+                "Tersel root must be Column or Stack with a supported size."
             )
-        return {
+        if "width" in inline_props or "height" in inline_props:
+            raise TerselConversionError(
+                "Root inline styles cannot override the size-locked width or height."
+            )
+        locked = {
             **dimensions,
             "padding": 12,
             "borderRadius": 20,
             "clip": True,
-            "backgroundColor": "background_primary",
-            "itemMargin": 8,
         }
-    if layout is None:
-        return props
-    preset = layouts.get((node.component_type, layout))
-    if preset is None:
-        raise TerseDslNested2ConversionError(
-            f'Unsupported {node.component_type} layout "{layout}".'
-        )
-    return {**preset, **props}
+        if node.component_type == "Column":
+            locked["itemMargin"] = 8
+            locked["backgroundColor"] = "background_primary"
+        root_design_props = {
+            key: value
+            for key, value in design_props.items()
+            if key not in {"width", "height"}
+        }
+        return {**locked, **root_design_props, **inline_props}
+    return {**design_props, **inline_props}
+
+
+TerselNode = Nested2Node
+
+__all__ = [
+    "MAX_COMPONENTS",
+    "MAX_INPUT_LENGTH",
+    "MAX_NESTING_DEPTH",
+    "MAX_OBJECT_FIELDS",
+    "MAX_STRING_LENGTH",
+    "Nested2Node",
+    "TerselConversionError",
+    "TerselNode",
+    "convert_tersel_to_a2ui",
+    "parse_tersel",
+    "serialize_task_spec_data",
+]

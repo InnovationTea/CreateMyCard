@@ -39,7 +39,7 @@ Provider 若需要覆盖外层布局 Action 的底托透明度，可在模板根
 在 `widget_service` 目录执行：
 
 ```bash
-.venv312/bin/python scripts/build_cardplan_bundle.py
+.venv312/bin/python cloud/services/template_generation/tools/build_cardplan_bundle.py
 PYTHONPATH=cloud .venv312/bin/python -m pytest -q \
   cloud/services/template_generation/tests
 ```

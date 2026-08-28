@@ -33,7 +33,6 @@ from services.generation_pipeline import (
 )
 from services.protocol_registry import (
     A2UI_FORM_PROTOCOL_PROFILE_ID,
-    TERSE_DSL_NESTED2_PROFILE_ID,
     A2UIProtocolRegistry,
 )
 from services.template_generation import (
@@ -41,7 +40,6 @@ from services.template_generation import (
     TemplateSourceGenerator,
     convert_a2ui_with_fusion_ball,
     facade,
-    route_legacy_python_terse_generation,
 )
 from services.template_generation import source_generator as template_source_generator_module
 from services.template_generation.binding_dependencies import enrich_template_bindings
@@ -95,11 +93,12 @@ from services.template_generation.engine.pipeline import (
     TemplateGenerationError,
     generate_template_a2ui,
 )
-from services.template_generation.engine.terse_dsl_nested2_converter import (
+from services.template_generation.engine.tersel_converter import (
     Nested2Node,
-    TerseDslNested2ConversionError,
-    convert_terse_dsl_nested2_to_a2ui,
+    TerselConversionError,
+    convert_tersel_to_a2ui,
 )
+from services.template_generation.profile import read_tersel_protocol_profile
 from services.widget_generation_service import WidgetGenerationService
 
 _WEATHER_BODY = (
@@ -602,9 +601,7 @@ def test_every_provider_asset_prop_has_second_layer_semantic_description():
 
 
 def test_nested2_full_document_converts_component_binding_and_data_model():
-    profile = A2UIProtocolRegistry.read_design_protocol_profile(
-        TERSE_DSL_NESTED2_PROFILE_ID
-    )
+    profile = read_tersel_protocol_profile()
     task_spec = {
         "dataModelSchema": {
             "data": {
@@ -621,7 +618,7 @@ def test_nested2_full_document_converts_component_binding_and_data_model():
         'data = {"weather":{"current":{"temperature":"38℃"}}}'
     )
 
-    a2ui = convert_terse_dsl_nested2_to_a2ui(
+    a2ui = convert_tersel_to_a2ui(
         source,
         size="2x2",
         protocol_profile=profile,
@@ -638,13 +635,11 @@ def test_nested2_full_document_converts_component_binding_and_data_model():
 
 
 def test_nested2_full_document_rejects_internal_projection_data():
-    profile = A2UIProtocolRegistry.read_design_protocol_profile(
-        TERSE_DSL_NESTED2_PROFILE_ID
-    )
+    profile = read_tersel_protocol_profile()
     source = 'Column("card",Text("天气","body")); data={"_templateProjection":{}}'
 
-    with pytest.raises(TerseDslNested2ConversionError, match="internal projection"):
-        convert_terse_dsl_nested2_to_a2ui(
+    with pytest.raises(TerselConversionError, match="internal projection"):
+        convert_tersel_to_a2ui(
             source,
             size="2x2",
             protocol_profile=profile,
@@ -652,9 +647,7 @@ def test_nested2_full_document_rejects_internal_projection_data():
 
 
 def test_nested2_full_document_requires_data_for_every_component_binding():
-    profile = A2UIProtocolRegistry.read_design_protocol_profile(
-        TERSE_DSL_NESTED2_PROFILE_ID
-    )
+    profile = read_tersel_protocol_profile()
     task_spec = {
         "dataModelSchema": {
             "data": {"weather": {"temperature": _provider_field("38℃", "string")}}
@@ -662,8 +655,8 @@ def test_nested2_full_document_requires_data_for_every_component_binding():
     }
     source = 'Column("card",Text("${data.weather.temperature}","body")); data={}'
 
-    with pytest.raises(TerseDslNested2ConversionError, match="missing component binding"):
-        convert_terse_dsl_nested2_to_a2ui(
+    with pytest.raises(TerselConversionError, match="missing component binding"):
+        convert_tersel_to_a2ui(
             source,
             size="2x2",
             protocol_profile=profile,
@@ -1260,7 +1253,7 @@ def test_form_validator_allows_empty_stack_children_but_rejects_empty_column_chi
     reports = {}
     for component_type in ("Stack", "Column"):
         source = f'{component_type}("card",{{"backgroundColor":"#FF008FBF"}});'
-        dsl = convert_terse_dsl_nested2_to_a2ui(
+        dsl = convert_tersel_to_a2ui(
             source,
             size="2x2",
             protocol_profile=profile,
@@ -2521,12 +2514,12 @@ async def test_derived_parameter_source_field_is_counted_as_template_coverage():
     )
     projected_data = output.projected_task_spec.dataModelSchema["data"]
     assert "AppUsageOverview" not in projected_data
-    assert "_templateProjection" not in output.terse_dsl_nested2
-    assert "_advancedSelectors" not in output.terse_dsl_nested2
+    assert "_templateProjection" not in output.tersel
+    assert "_advancedSelectors" not in output.tersel
     assert projected_data["appUsageStats"]["appUsage"]["durationText"]["sampleValue"] == (
         "1小时20分钟"
     )
-    assert "data = " in output.terse_dsl_nested2
+    assert "data = " in output.tersel
     messages = [json.loads(line) for line in output.a2ui.splitlines()]
     components = messages[1]["updateComponents"]["components"]
     component_source = json.dumps(components, ensure_ascii=False)
@@ -2870,7 +2863,7 @@ def test_state_independent_battery_compacts_accept_normal_battery_facts(
 
 def test_state_specific_battery_compact_still_requires_matching_state() -> None:
     with pytest.raises(
-        TerseDslNested2ConversionError,
+        TerselConversionError,
         match="variant does not match the trusted state",
     ):
         _validate_provider_template_state(
@@ -3396,7 +3389,7 @@ async def test_battery_normal_hero_without_pill_action_is_repaired_to_normal_tem
     assert candidates[0]["componentId"] == "BatteryOverview"
     assert "BatteryOverviewNormalFull@1" in candidates[0]["availableTemplateIds"]
     assert "BatteryOverviewNormalHero@1" not in candidates[0]["availableTemplateIds"]
-    assert "PillAction" not in output.terse_dsl_nested2
+    assert "PillAction" not in output.tersel
 
 
 @pytest.mark.asyncio
@@ -3689,7 +3682,7 @@ async def test_disabled_fusion_feature_hides_themes_from_first_layer_prompt(
     assert model.second_layer_prompt is not None
     serialized_second_layer_prompt = json.dumps(model.second_layer_prompt, ensure_ascii=False)
     assert all(theme_id not in serialized_second_layer_prompt for theme_id in fusion_theme_ids)
-    assert "FusionBall" not in output.terse_dsl_nested2
+    assert "FusionBall" not in output.tersel
 
 
 @pytest.mark.asyncio
@@ -3914,22 +3907,6 @@ def _terse_policy() -> GenerationRoutePolicy:
         model_profile_id="design-compact-dsl",
         model_format="compact-dsl",
         design_profile_id="design-compact-dsl",
-        supports_dynamic_capabilities=True,
-        validation_failure_blocking=True,
-        stores_design_token=True,
-    )
-
-
-def _legacy_terse_policy() -> GenerationRoutePolicy:
-    return GenerationRoutePolicy(
-        operation="generateWidgetCardTerseDslNested2",
-        protocol_profile_id=A2UI_FORM_PROTOCOL_PROFILE_ID,
-        backend="openai",
-        processor_kind=DslProcessorKind.TERSE_NESTED2,
-        source_format=TERSE_DSL_NESTED2_PROFILE_ID,
-        model_profile_id=TERSE_DSL_NESTED2_PROFILE_ID,
-        model_format=TERSE_DSL_NESTED2_PROFILE_ID,
-        design_profile_id=TERSE_DSL_NESTED2_PROFILE_ID,
         supports_dynamic_capabilities=True,
         validation_failure_blocking=True,
         stores_design_token=True,
@@ -5129,34 +5106,3 @@ async def test_policy_layer_configures_template_source_generator(monkeypatch):
     assert generator.model_runtime is service.model_runtime
     assert isinstance(generator.model_request_context, ModelRequestContext)
     assert generator.enable_fusion_ball is False
-
-
-@pytest.mark.asyncio
-async def test_legacy_python_terse_entry_is_explicit_and_delegates_to_original():
-    expected = object()
-    observed_callback: Any = None
-
-    class Host:
-        async def _generate_widget_card_with_policy(
-            self,
-            _request: Any,
-            _policy_value: Any,
-            *,
-            before_model_call: Any,
-        ) -> Any:
-            nonlocal observed_callback
-            observed_callback = before_model_call
-            return expected
-
-    async def notify(_size: str) -> None:
-        return None
-
-    response = await route_legacy_python_terse_generation(
-        Host(),
-        _weather_request(),
-        _legacy_terse_policy(),
-        before_model_call=notify,
-    )
-
-    assert response is expected
-    assert observed_callback is notify

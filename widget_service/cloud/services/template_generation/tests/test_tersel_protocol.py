@@ -1,4 +1,4 @@
-"""Tersel DesignToken、内联样式和兼容入口回归测试。"""
+"""模板内部 Tersel DesignToken 与内联样式回归测试。"""
 
 from __future__ import annotations
 
@@ -7,21 +7,12 @@ from typing import Any
 
 import pytest
 
-from services.protocol_registry import (
-    TERSE_DSL_NESTED2_PROFILE_ID,
-    A2UIProtocolRegistry,
-)
-from services.template_generation.engine.terse_dsl_nested2_converter import (
-    TerseDslNested2ConversionError,
+from services.template_generation.engine.tersel_converter import (
+    TerselConversionError,
     convert_tersel_to_a2ui,
     parse_tersel,
 )
-from services.terse_dsl_nested2_converter import (
-    TerseDslNested2ConversionError as PublicTerseConversionError,
-)
-from services.terse_dsl_nested2_converter import (
-    convert_terse_dsl_nested2_to_a2ui as convert_public_tersel,
-)
+from services.template_generation.profile import read_tersel_protocol_profile
 
 
 @pytest.mark.parametrize(
@@ -58,9 +49,7 @@ def test_tersel_parser_accepts_design_token_and_inline_style_options(
 
 
 def test_tersel_converter_merges_design_token_before_inline_styles() -> None:
-    profile = A2UIProtocolRegistry.read_design_protocol_profile(
-        TERSE_DSL_NESTED2_PROFILE_ID
-    )
+    profile = read_tersel_protocol_profile()
     source = (
         'Column("card",Column("Compact",{"itemMargin":9},'
         'Text("token only","title"),'
@@ -133,16 +122,14 @@ def test_tersel_theme_reference_is_closed_and_requires_selected_theme(
     source: str,
     error: str,
 ) -> None:
-    with pytest.raises(TerseDslNested2ConversionError, match=error):
+    with pytest.raises(TerselConversionError, match=error):
         parse_tersel(source)
 
 
 def test_tersel_rejects_unknown_component_design_token() -> None:
-    profile = A2UIProtocolRegistry.read_design_protocol_profile(
-        TERSE_DSL_NESTED2_PROFILE_ID
-    )
+    profile = read_tersel_protocol_profile()
 
-    with pytest.raises(TerseDslNested2ConversionError, match="designToken"):
+    with pytest.raises(TerselConversionError, match="designToken"):
         convert_tersel_to_a2ui(
             'Column("card",Text("hello","not-a-token"))',
             size="2x2",
@@ -150,17 +137,14 @@ def test_tersel_rejects_unknown_component_design_token() -> None:
         )
 
 
-@pytest.mark.parametrize("converter", [convert_tersel_to_a2ui, convert_public_tersel])
-def test_tersel_fusion_ball_becomes_cloud_a2ui_component(converter: Any) -> None:
-    profile = A2UIProtocolRegistry.read_design_protocol_profile(
-        TERSE_DSL_NESTED2_PROFILE_ID
-    )
+def test_tersel_fusion_ball_becomes_cloud_a2ui_component() -> None:
+    profile = read_tersel_protocol_profile()
     source = (
         'Column("card",Stack(FusionBall("#FF121259","#FF2B65D9","#FF57AED9"),'
         'Stack({"_id":"cardContent"},Text("天气","body"))))'
     )
 
-    a2ui = converter(source, size="2x2", protocol_profile=profile)
+    a2ui = convert_tersel_to_a2ui(source, size="2x2", protocol_profile=profile)
     components = json.loads(a2ui.splitlines()[1])["updateComponents"]["components"]
     fusion_ball = next(item for item in components if item["component"] == "FusionBall")
 
@@ -177,23 +161,11 @@ def test_tersel_fusion_ball_becomes_cloud_a2ui_component(converter: Any) -> None
     }
 
 
-@pytest.mark.parametrize(
-    ("converter", "error_type"),
-    [
-        (convert_tersel_to_a2ui, TerseDslNested2ConversionError),
-        (convert_public_tersel, PublicTerseConversionError),
-    ],
-)
-def test_tersel_fusion_ball_requires_three_argb_colors(
-    converter: Any,
-    error_type: type[Exception],
-) -> None:
-    profile = A2UIProtocolRegistry.read_design_protocol_profile(
-        TERSE_DSL_NESTED2_PROFILE_ID
-    )
+def test_tersel_fusion_ball_requires_three_argb_colors() -> None:
+    profile = read_tersel_protocol_profile()
 
-    with pytest.raises(error_type, match="three #AARRGGBB"):
-        converter(
+    with pytest.raises(TerselConversionError, match="three #AARRGGBB"):
+        convert_tersel_to_a2ui(
             'Column("card",Stack(FusionBall("#121259","#FF2B65D9"),Stack()))',
             size="2x2",
             protocol_profile=profile,

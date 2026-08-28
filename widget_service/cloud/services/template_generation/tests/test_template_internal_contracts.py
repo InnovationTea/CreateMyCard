@@ -27,9 +27,9 @@ from services.template_generation.engine.pipeline import (
     _prompt_size_summary,
     _task_spec_log_summary,
 )
-from services.template_generation.engine.terse_dsl_nested2_converter import (
+from services.template_generation.engine.tersel_converter import (
     Nested2Node,
-    TerseDslNested2ConversionError,
+    TerselConversionError,
 )
 from services.template_generation.model_client import _parse_json_object
 
@@ -220,7 +220,7 @@ Column({
     assert instantiated.children[0].children == (hero,)
     assert instantiated.children[1].children == (action,)
 
-    with pytest.raises(TerseDslNested2ConversionError, match=r"children\[1\]"):
+    with pytest.raises(TerselConversionError, match=r"children\[1\]"):
         _instantiate_blueprint(root, {}, spread_children=(hero,))
 
 
@@ -443,35 +443,35 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
         "2x4",
     )
 
-    with pytest.raises(TerseDslNested2ConversionError, match="Hero.*Action combination"):
+    with pytest.raises(TerselConversionError, match="Hero.*Action combination"):
         _validate_provider_template_layout_action_requirements(
             "HeroActionLayout",
             (template("BatteryOverviewNormalHero@1"),),
             (),
             "2x2",
         )
-    with pytest.raises(TerseDslNested2ConversionError, match="Full.*Action combination"):
+    with pytest.raises(TerselConversionError, match="Full.*Action combination"):
         _validate_provider_template_layout_action_requirements(
             "SingleFocusLayout",
             (template("WeatherOverviewFull@1"),),
             (icon,),
             "2x2",
         )
-    with pytest.raises(TerseDslNested2ConversionError, match="Wide marker"):
+    with pytest.raises(TerselConversionError, match="Wide marker"):
         _validate_provider_template_layout_action_requirements(
             "SingleFocusLayout",
             (template("AppUsageOverviewWideFull@1"),),
             (),
             "2x4",
         )
-    with pytest.raises(TerseDslNested2ConversionError, match="suffix mismatches"):
+    with pytest.raises(TerselConversionError, match="suffix mismatches"):
         _validate_provider_template_layout_action_requirements(
             "WideSingleFocusLayout",
             (template("AppUsageOverviewFull@1"),),
             (),
             "2x4",
         )
-    with pytest.raises(TerseDslNested2ConversionError, match="requires HeroActionLayout"):
+    with pytest.raises(TerselConversionError, match="requires HeroActionLayout"):
         _validate_provider_template_layout_action_requirements(
             "SingleFocusLayout",
             (template("BatteryOverviewNormalHero@1"),),
@@ -487,7 +487,7 @@ def test_parser_rejects_deprecated_three_argument_template_call() -> None:
     )
 
     with pytest.raises(
-        TerseDslNested2ConversionError,
+        TerselConversionError,
         match="requires a versioned ID, one props object and optional children",
     ):
         parse_hybrid_card(source)

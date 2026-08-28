@@ -4,12 +4,12 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
-from services.template_generation.engine.cardplan.preview_dataset import (
-    write_template_preview_dataset,
-)
-
+_CLOUD_ROOT = Path(__file__).resolve().parents[3]
+if str(_CLOUD_ROOT) not in sys.path:
+    sys.path.insert(0, str(_CLOUD_ROOT))
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -18,6 +18,10 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    from services.template_generation.engine.cardplan.preview_dataset import (
+        write_template_preview_dataset,
+    )
+
     args = parse_args()
     output_dir = args.output_dir.resolve()
     manifest = write_template_preview_dataset(output_dir)

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
-"""Normalize the restricted Terse/CardTemplate expression syntax to A2UI."""
+"""Normalize the restricted Tersel/CardTemplate expression syntax to A2UI."""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ class _ExpressionToken:
     end: int
 
 
-def normalize_terse_expression(body: str) -> NormalizedExpression:
+def normalize_tersel_expression(body: str) -> NormalizedExpression:
     """Validate one Expr body and wrap it as a complete A2UI expression."""
     if not isinstance(body, str) or not body.strip():
         raise A2UIExpressionError("Expr requires one non-empty string body.")
@@ -66,7 +66,7 @@ def normalize_wrapped_expression(value: str) -> NormalizedExpression:
     if not has_bounds or not has_single_wrapper:
         raise A2UIExpressionError("A2UI expression must occupy the complete string value.")
     body = stripped.removeprefix("{{").removesuffix("}}")
-    return normalize_terse_expression(body)
+    return normalize_tersel_expression(body)
 
 
 def _tokenize(body: str) -> tuple[_ExpressionToken, ...]:

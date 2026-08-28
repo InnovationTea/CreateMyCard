@@ -68,7 +68,7 @@ widget_service/.venv312/bin/python -m pip install -r widget_service/requirements
 
 ```bash
 widget_service/.venv312/bin/python \
-  widget_service/scripts/generate_provider_template_gallery.py \
+  widget_service/cloud/services/template_generation/tools/generate_provider_template_gallery.py \
   --refresh-inputs --dry-run --concurrency 2
 ```
 
@@ -83,7 +83,7 @@ widget_service/.venv312/bin/python \
 ```bash
 WIDGET_SERVICE_ENABLE_A2UI_MODEL_MOCK=false \
 widget_service/.venv312/bin/python \
-  widget_service/scripts/generate_provider_template_gallery.py \
+  widget_service/cloud/services/template_generation/tools/generate_provider_template_gallery.py \
   --refresh-inputs --concurrency 2 --strict
 ```
 
@@ -165,7 +165,7 @@ cd widget_service
 .venv312/bin/ruff check \
   cloud/services/template_generation/test_support/provider_gallery.py \
   cloud/services/template_generation/tests/test_provider_gallery_batch.py \
-  scripts/generate_provider_template_gallery.py
+  cloud/services/template_generation/tools/generate_provider_template_gallery.py
 PYTHONPATH=cloud .venv312/bin/pytest -q \
   cloud/services/template_generation/tests/test_provider_gallery_batch.py
 ```

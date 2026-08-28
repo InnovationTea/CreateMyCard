@@ -10,7 +10,7 @@ from typing import Any, Literal
 
 from models.generation import TaskSpec
 from services.protocol_registry import A2UI_FORM_PROTOCOL_PROFILE_ID, A2UIProtocolRegistry
-from services.template_generation.engine.terse_dsl_nested2_converter import (
+from services.template_generation.engine.tersel_converter import (
     Nested2Node,
     convert_tersel_to_a2ui,
 )

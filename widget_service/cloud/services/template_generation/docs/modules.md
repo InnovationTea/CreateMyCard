@@ -36,7 +36,6 @@ cloud/api/routes.py
 
 - `request_template_source_dsl`：生产模板 source DSL 入口。
 - `convert_a2ui_with_fusion_ball`：在最终完整 A2UI 中展开云侧 `FusionBall`。
-- `route_legacy_python_terse_generation`：旧路线诊断入口，不属于生产默认流程。
 
 外部调用方不应穿过该文件直接调用 `engine` 内部方法。
 
@@ -100,13 +99,6 @@ cloud/api/routes.py
 
 当 Processor 为 `DESIGN_COMPACT` 时，再调用模板内部 `convert_a2ui_to_compact_dsl()` 回转源 Token。
 这一回转不替代公共 `DesignCompactProcessor`；后者仍会完成最终转换和校验。
-
-### `legacy_python.py`
-
-文件：[../legacy_python.py](../legacy_python.py)
-
-`route_legacy_python_terse_generation()` 只用于定位新旧路线差异。生产 WebSocket 路由不调用它，新功能不应
-建在该入口上。
 
 ## 3. `engine/pipeline.py`
 
@@ -270,13 +262,14 @@ children 槽位数量。
 
 两者不能自行维护场景色板；业务门禁由 CardPlan 在插入云侧组件前确定性执行。模板内部不得提前展开球体树。
 
-### `terse_dsl_nested2_converter.py`
+### `tersel_converter.py`
 
-文件：[../engine/terse_dsl_nested2_converter.py](../engine/terse_dsl_nested2_converter.py)
+文件：[../engine/tersel_converter.py](../engine/tersel_converter.py)
 
 模板内部 Tersel 解析与 A2UI 转换器，负责闭包语法、组件数、嵌套深度、表达式路径和
-TaskSpec 数据序列化。它用于受信模板编译，不等同于公共生成链的
-[兼容 Tersel Processor 转换器](../../terse_dsl_nested2_converter.py)。
+TaskSpec 数据序列化。旧 Python 诊断链和兼容 TerseDSL 转换器已删除，项目只保留这份模板内部实现；
+表达式归一化复用 [A2UI 表达式模块](../engine/a2ui_expression.py)。协议参数由
+[模板内部 Profile](../profile.py) 从 `resources/protocol_profiles/` 加载。
 
 ### `compact_dsl_a2ui_converter.py`
 
@@ -323,6 +316,8 @@ Provider 契约的唯一事实源是 `provider.json` 和它引用的资源；The
 | `test_template_retrieval.py` | 首层字段标定与确定性 Search |
 | `test_template_internal_contracts.py` | CardTpl 语法、children 槽位、Action 和布局后缀契约 |
 | `test_template_preview_dataset.py` | 预览数据集、模板统计、A2UI 结构和素材路径 |
+| `test_a2ui_expression.py` | Tersel、CardTpl 共用表达式语法与路径归一化 |
+| `test_tersel_protocol.py` | 当前模板内部 Tersel 解析与转换契约 |
 
 修改 Python 代码后还需执行 Ruff、相关单元测试和 `git diff --check`；修改 Provider 资源时还应重建
-CardPlan 清单并运行预览数据集测试。
+CardPlan 清单并运行预览数据集测试。模块构建和画廊工具统一位于 `tools/`。

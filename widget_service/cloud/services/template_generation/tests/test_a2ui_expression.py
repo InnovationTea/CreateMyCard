@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
-"""A2UI Form expression normalization tests."""
+"""Tersel/CardTemplate A2UI 表达式归一化测试。"""
 
 from __future__ import annotations
 
@@ -8,24 +8,24 @@ import json
 
 import pytest
 
-from services.a2ui_expression import A2UIExpressionError, normalize_terse_expression
 from services.card_validation import validate_card
-from services.protocol_registry import (
-    TERSE_DSL_NESTED2_PROFILE_ID,
-    A2UIProtocolRegistry,
+from services.template_generation.engine.a2ui_expression import (
+    A2UIExpressionError,
+    normalize_tersel_expression,
 )
 from services.template_generation.engine.cardplan.compiler import (
     _provider_runtime_expression,
 )
 from services.template_generation.engine.cardplan.models import TemplateValue
-from services.template_generation.engine.terse_dsl_nested2_converter import (
-    TerseDslNested2ConversionError,
-    convert_terse_dsl_nested2_to_a2ui,
+from services.template_generation.engine.tersel_converter import (
+    TerselConversionError,
+    convert_tersel_to_a2ui,
 )
+from services.template_generation.profile import read_tersel_protocol_profile
 
 
 def test_expression_normalizes_supported_data_reference_forms() -> None:
-    expression = normalize_terse_expression(
+    expression = normalize_tersel_expression(
         "size(${data.items}) > 0 && $__dataModel.data.connected ? ${/data/score} * 2 : 0"
     )
 
@@ -52,7 +52,7 @@ def test_expression_normalizes_supported_data_reference_forms() -> None:
 )
 def test_expression_rejects_static_or_executable_syntax(body: str) -> None:
     with pytest.raises(A2UIExpressionError):
-        normalize_terse_expression(body)
+        normalize_tersel_expression(body)
 
 
 def test_expression_enforces_form_length_and_nesting_limits() -> None:
@@ -60,15 +60,13 @@ def test_expression_enforces_form_length_and_nesting_limits() -> None:
     too_long = "${data.value} + '" + "x" * 2048 + "'"
 
     with pytest.raises(A2UIExpressionError, match="nesting exceeds"):
-        normalize_terse_expression(too_deep)
+        normalize_tersel_expression(too_deep)
     with pytest.raises(A2UIExpressionError, match="2048-character"):
-        normalize_terse_expression(too_long)
+        normalize_tersel_expression(too_long)
 
 
 def test_template_nested2_converts_expr_and_container_size() -> None:
-    profile = A2UIProtocolRegistry.read_design_protocol_profile(
-        TERSE_DSL_NESTED2_PROFILE_ID
-    )
+    profile = read_tersel_protocol_profile()
     task_spec = {
         "dataModelSchema": {
             "data": {
@@ -81,7 +79,7 @@ def test_template_nested2_converts_expr_and_container_size() -> None:
         '"body")); data={"items":["A","B"]}'
     )
 
-    a2ui = convert_terse_dsl_nested2_to_a2ui(
+    a2ui = convert_tersel_to_a2ui(
         source,
         size="2x2",
         protocol_profile=profile,
@@ -122,7 +120,7 @@ def test_provider_expr_uses_shared_a2ui_expression_rules() -> None:
             TemplateValue(kind="literal", value=" + fetch()"),
         ),
     )
-    with pytest.raises(TerseDslNested2ConversionError, match="valid A2UI expression"):
+    with pytest.raises(TerselConversionError, match="valid A2UI expression"):
         _provider_runtime_expression(
             invalid_expression,
             {"score": "${data.battery.score}"},

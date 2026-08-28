@@ -23,7 +23,7 @@
 - [WebSocket 路由](../../../api/routes.py)
 - [Tersel 入口与公共生成链](../../widget_generation_service.py)
 - [模板引擎](../engine/pipeline.py)
-- [模板内部 Tersel 转换](../engine/terse_dsl_nested2_converter.py)
+- [模板内部 Tersel 转换](../engine/tersel_converter.py)
 
 ## 2. 命名与实际处理器
 
@@ -39,7 +39,7 @@ need_fallback = false
 ```
 
 Tersel 用于模板模块内部表达二层布局和受信展开结果。它在模板内部先转为 A2UI，
-再回转为 Design Compact DSL 交给公共 Processor。生产入口不调用公共 `TerseNested2Processor`。
+再回转为 Design Compact DSL 交给公共 Processor。项目不再保留公共 TerseDSL Processor 或兼容转换链。
 
 ## 3. 总流程
 
@@ -95,7 +95,7 @@ Template 只消费这些已裁决结果。它不查询 IDS，不自行增加数�
 
 二层输出经受信编译后，`TemplateEngineOutput` 同时保留：
 
-- `terse_dsl_nested2`：已展开的内部 Tersel。
+- `tersel`：已展开的内部 Tersel。
 - `a2ui`：内部 Tersel 确定性转换得到的三段 A2UI。
 - `projected_task_spec`、`template_ids`、`theme_id` 和展开统计。
 
@@ -152,8 +152,3 @@ Compact repair。repair 不重跑首层、Search、二层或 CardTpl 展开。
 | Template 不匹配或异常 | `A2UI_GENERATION_FAILED`，不回退 |
 | Processor/Validator 最终失败 | `VALIDATION_FAILED`，不保存 |
 | artifact 保存或上传失败 | 路由层服务失败，不伪造成功 URL |
-
-## 9. 旧路线诊断
-
-`route_legacy_python_terse_generation()` 仅用于问题定位。它不是 WebSocket 的默认调用路径，也不应被视为
-Tersel 生产行为的事实源。

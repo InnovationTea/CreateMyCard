@@ -9,27 +9,14 @@ import os
 import sys
 from pathlib import Path
 
-_WIDGET_SERVICE_ROOT = Path(__file__).resolve().parents[1]
-_CLOUD_ROOT = _WIDGET_SERVICE_ROOT / "cloud"
+_TEMPLATE_ROOT = Path(__file__).resolve().parents[1]
+_CLOUD_ROOT = Path(__file__).resolve().parents[3]
+_WIDGET_SERVICE_ROOT = Path(__file__).resolve().parents[4]
 if str(_CLOUD_ROOT) not in sys.path:
     sys.path.insert(0, str(_CLOUD_ROOT))
 
-_DEFAULT_INPUT_ROOT = (
-    _WIDGET_SERVICE_ROOT
-    / "cloud"
-    / "services"
-    / "template_generation"
-    / "test"
-    / "provider_gallery_inputs"
-)
-_DEFAULT_OUTPUT_ROOT = (
-    _WIDGET_SERVICE_ROOT
-    / "cloud"
-    / "services"
-    / "template_generation"
-    / "test"
-    / "provider_gallery_output"
-)
+_DEFAULT_INPUT_ROOT = _TEMPLATE_ROOT / "test" / "provider_gallery_inputs"
+_DEFAULT_OUTPUT_ROOT = _TEMPLATE_ROOT / "test" / "provider_gallery_output"
 
 
 def parse_args() -> argparse.Namespace:

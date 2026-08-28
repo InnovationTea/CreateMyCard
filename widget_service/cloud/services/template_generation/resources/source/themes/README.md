@@ -20,7 +20,7 @@
 4. `fusionBallStyle` 完整保存一套融球颜色及允许的 `businessIds`，只在业务、数据能力、`Full`/`Hero` 后缀
    均匹配的单业务 `2x2` 产物中生效；多业务、Compact 和 Wide 形态不应用融球包装。
 
-CardTpl 和 TerseDSL-Nested-2 可以使用 `$theme('primaryColor')`、
+CardTpl 和 Tersel 可以使用 `$theme('primaryColor')`、
 `$theme('supportContentColor')`、`$theme('progressColor')`、`$theme('actionStyle.backgroundColor')` 和
 `$theme('actionStyle.contentColor')`。解析器只接受 `themes/base/theme-base.json` 声明的路径，并在编译时
 确定性替换为当前主题真实值；最终产物不能残留 `$theme`。Provider 负责显式区分主内容和辅助内容，服务端

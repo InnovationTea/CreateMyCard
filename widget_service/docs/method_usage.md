@@ -123,14 +123,11 @@ Design Compact DSL，再由服务内转换器读取该 Design profile 下的 `pr
 第三至第五入口共享同一策略驱动生成管线、校验和 repair 语义，
 调用方不需要传 `protocolProfileId`，旧值也不能覆盖路由选择结果。
 
-`generateWidgetCardTerseDslNested2` 从
-`cloud/data/protocol_profiles/terse-dsl-nested-2/PROMPT.md` 读取本地 Prompt。模型输出只进入
-`cloud/services/terse_dsl_nested2_converter.py` 的受限 Parser，不作为 Python 或 JavaScript 执行；
-Parser 只接受单根组件调用、字面量、白名单组件和安全对象键，再复用标准 A2UI 转换与 artifact 校验。
-该接口支持静态 create/edit；动态数据绑定和点击事件返回 `PROTOCOL_CAPABILITY_UNSUPPORTED`。edit 与
-第四接口共用 `enable_widget_edit` 和 artifact 的 `designcompactdsl` 块，但会按 TerseDSL-Nested-2
-语法验证其中的上一轮模型原始输出。第五接口沿用 Design Compact 后端配置；两项后端配置都可取
-`mep` 或 `openai`。其它配置值会在启动配置校验阶段直接报错，不做自动迁移。
+`generateWidgetCardTerseDslNested2` 当前是严格的 Template-only create 入口。模板模块使用
+`cloud/services/template_generation/engine/tersel_converter.py` 的受限 Parser 编译内部
+Tersel/CardTpl 结果，确定性生成 A2UI 后适配为 Design Compact 源 DSL，再进入公共
+`DesignCompactProcessor`、artifact 校验和保存链路。模板不匹配直接失败，不回退普通模型；edit 请求也在
+入口拒绝。旧 Python Terse 诊断链、兼容转换器和专用模型 Prompt 已删除，Tersel 只作为模板模块内部语法。
 
 第四接口的协议区间索引位于 `cloud/data/protocol_profiles/registry_ranges.json`。未命中时，只有
 `WIDGET_SERVICE_ENABLE_DEFAULT_PROTOCOL_PROFILE_FALLBACK=true` 才回退到

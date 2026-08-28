@@ -277,6 +277,6 @@ Action CardTpl 必须在交互组件样式中写入 `onClick: EventAction(props.
 新增或修改资源后执行：
 
 ```bash
-.venv312/bin/python scripts/build_cardplan_bundle.py
+.venv312/bin/python cloud/services/template_generation/tools/build_cardplan_bundle.py
 PYTHONPATH=cloud .venv312/bin/pytest -q cloud/services/template_generation/tests
 ```

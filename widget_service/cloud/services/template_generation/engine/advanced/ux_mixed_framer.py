@@ -12,8 +12,8 @@ from services.template_generation.engine.cardplan.parser import (
     parse_ux_layout_card,
 )
 from services.template_generation.engine.cardplan.registry import CardPlanRegistry
-from services.template_generation.engine.terse_dsl_nested2_converter import (
-    TerseDslNested2ConversionError,
+from services.template_generation.engine.tersel_converter import (
+    TerselConversionError,
 )
 
 _UX_ACTION_COMPONENTS = frozenset({"PillAction", "IconAction", "ActionTile"})
@@ -38,7 +38,7 @@ def frame_ux_layout_root_children(
     normalized, trailing_delimiters_repaired = _close_trailing_delimiters(normalized)
     try:
         root = parse_ux_layout_card(normalized)
-    except TerseDslNested2ConversionError:
+    except TerselConversionError:
         framed = _reparent_wrapped_layout_call(
             normalized,
             registry,
@@ -58,7 +58,7 @@ def frame_ux_layout_root_children(
     layout_id = _layout_id(root)
     layout = registry.require_ux_layout_component(layout_id)
     if size not in layout.supported_card_sizes:
-        raise TerseDslNested2ConversionError("UX Layout does not support the target card size.")
+        raise TerselConversionError("UX Layout does not support the target card size.")
     maximum = layout.max_children_by_size[size]
     actions = tuple(
         child
@@ -142,7 +142,7 @@ def _reparent_wrapped_layout_call(
         return None
     try:
         layout = parse_ux_layout_card(arguments[1].strip() + ";")
-    except TerseDslNested2ConversionError:
+    except TerselConversionError:
         return None
     if allowed_layout_ids is not None and _layout_id(layout) not in allowed_layout_ids:
         return None
@@ -182,7 +182,7 @@ def _select_single_top_level_layout_call(
             continue
         try:
             root = parse_ux_layout_card(candidate + ";")
-        except TerseDslNested2ConversionError:
+        except TerselConversionError:
             if candidate.startswith("Template("):
                 template = _parse_single_wrapped_child(candidate)
                 if template is not None and _is_ux_business_call(template, registry):
@@ -197,7 +197,7 @@ def _select_single_top_level_layout_call(
                     wrapper = parse_ux_layout_card(
                         "SingleFocusLayout(" + candidate + ");"
                     )
-                except TerseDslNested2ConversionError:
+                except TerselConversionError:
                     break
                 if len(wrapper.children) == 1:
                     business_candidates.append(wrapper.children[0])
@@ -231,7 +231,7 @@ def _select_single_top_level_layout_call(
 def _parse_single_wrapped_child(source: str) -> ParsedCall | None:
     try:
         wrapper = parse_ux_layout_card("SingleFocusLayout(" + source + ");")
-    except TerseDslNested2ConversionError:
+    except TerselConversionError:
         return None
     if len(wrapper.children) != 1:
         return None
