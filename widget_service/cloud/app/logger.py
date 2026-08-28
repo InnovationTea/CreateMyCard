@@ -8,45 +8,71 @@ import sys
 import threading
 import time
 import traceback
+from collections.abc import Callable
 from contextvars import ContextVar
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 import psutil
 from loguru import logger as _logger
 
-from config.config import get_settings, LoggingConfig
+from config.config import LoggingConfig, get_settings
 
 _MODULE = "[Logger]"
 
 # 创建上下文变量来存储task ID
-task_id_context: ContextVar[Optional[str]] = ContextVar('task_id', default=None)
-session_id_context: ContextVar[Optional[str]] = ContextVar('session_id', default=None)
-interaction_id_context: ContextVar[Optional[str]] = ContextVar('interaction_id', default=None)
-message_id_context: ContextVar[Optional[str]] = ContextVar('message_id', default=None)
-message_content_context: ContextVar[Optional[str]] = ContextVar('message_content', default=None)
-package_name_context: ContextVar[Optional[str]] = ContextVar('package_name', default=None)
-ip_address_context: ContextVar[Optional[str]] = ContextVar('ip_address', default=None)
-device_id_context: ContextVar[Optional[str]] = ContextVar('device_id', default=None)
-u_id_context: ContextVar[Optional[str]] = ContextVar('u_id', default=None)
-client_version_context: ContextVar[Optional[str]] = ContextVar('client_version', default=None)
-phone_type_context: ContextVar[Optional[str]] = ContextVar('phone_type', default=None)
-device_type_context: ContextVar[Optional[str]] = ContextVar('device_type', default=None)
-device_model_context: ContextVar[Optional[str]] = ContextVar('device_model', default=None)
-dialog_page_id_context: ContextVar[Optional[str]] = ContextVar('dialog_page_id', default="")
-deepsearch_plan_context: ContextVar[Optional[dict]] = ContextVar('deepsearch_plan', default={})
-user_confirm_plan_time_context: ContextVar[Optional[float]] = ContextVar('user_confirm_plan_time', default=None)
-session_info_content: ContextVar[Optional[dict]] = ContextVar('session_info', default={})
-system_device_content: ContextVar[Optional[dict]] = ContextVar('system_device', default={})
-country_code_content: ContextVar[Optional[str]] = ContextVar('country_code', default="")
-is_multi_rounds_succession_content: ContextVar[Optional[bool]] = ContextVar('is_multi_rounds_succession', default=False)
-historical_task_records_content: ContextVar[Optional[list]] = ContextVar('historical_task_records', default=[])
-generated_image_urls_content: ContextVar[Optional[list]] = ContextVar('generated_image_urls', default=[])
-task_info_multi_round_context: ContextVar[Optional[dict]] = ContextVar('task_info_multi_round', default={})
-task_info_mutil_round_url_context: ContextVar[Optional[str]] = ContextVar('task_info_mutil_round_url', default="")
-agent_id_content: ContextVar[Optional[str]] = ContextVar('agent_id', default=None)
-is_unmanned_context: ContextVar[Optional[bool]] = ContextVar('is_unmanned', default=False)
+task_id_context: ContextVar[str | None] = ContextVar('task_id', default=None)
+session_id_context: ContextVar[str | None] = ContextVar('session_id', default=None)
+user_device_trace_context: ContextVar[str | None] = ContextVar(
+    'user_device_trace',
+    default=None,
+)
+interaction_id_context: ContextVar[str | None] = ContextVar('interaction_id', default=None)
+message_id_context: ContextVar[str | None] = ContextVar('message_id', default=None)
+message_content_context: ContextVar[str | None] = ContextVar('message_content', default=None)
+package_name_context: ContextVar[str | None] = ContextVar('package_name', default=None)
+ip_address_context: ContextVar[str | None] = ContextVar('ip_address', default=None)
+device_id_context: ContextVar[str | None] = ContextVar('device_id', default=None)
+u_id_context: ContextVar[str | None] = ContextVar('u_id', default=None)
+client_version_context: ContextVar[str | None] = ContextVar('client_version', default=None)
+phone_type_context: ContextVar[str | None] = ContextVar('phone_type', default=None)
+device_type_context: ContextVar[str | None] = ContextVar('device_type', default=None)
+device_model_context: ContextVar[str | None] = ContextVar('device_model', default=None)
+dialog_page_id_context: ContextVar[str | None] = ContextVar('dialog_page_id', default="")
+deepsearch_plan_context: ContextVar[dict | None] = ContextVar(
+    'deepsearch_plan',
+    default=None,
+)
+user_confirm_plan_time_context: ContextVar[float | None] = ContextVar(
+    'user_confirm_plan_time',
+    default=None,
+)
+session_info_content: ContextVar[dict | None] = ContextVar('session_info', default=None)
+system_device_content: ContextVar[dict | None] = ContextVar('system_device', default=None)
+country_code_content: ContextVar[str | None] = ContextVar('country_code', default="")
+is_multi_rounds_succession_content: ContextVar[bool | None] = ContextVar(
+    'is_multi_rounds_succession',
+    default=False,
+)
+historical_task_records_content: ContextVar[list | None] = ContextVar(
+    'historical_task_records',
+    default=None,
+)
+generated_image_urls_content: ContextVar[list | None] = ContextVar(
+    'generated_image_urls',
+    default=None,
+)
+task_info_multi_round_context: ContextVar[dict | None] = ContextVar(
+    'task_info_multi_round',
+    default=None,
+)
+task_info_mutil_round_url_context: ContextVar[str | None] = ContextVar(
+    'task_info_mutil_round_url',
+    default="",
+)
+agent_id_content: ContextVar[str | None] = ContextVar('agent_id', default=None)
+is_unmanned_context: ContextVar[bool | None] = ContextVar('is_unmanned', default=False)
 
 PROJECT_ROOT = get_settings().PROJECT_ROOT
 PRINT_LEVEL = "INFO"
@@ -131,21 +157,22 @@ class TaskLogger:
 
         def format_with_task_id(record):
             session_id = session_id_context.get() or "None"
-            page_id = dialog_page_id_context.get() or "None"
+            user_device_trace = user_device_trace_context.get() or "None"
             return (
                 "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <5} | {thread.name} | "
-                f"{page_id} # {session_id} | {{message}} | {{file.name}}:{{line}}\n"
+                f"{user_device_trace} # {session_id} | {{message}} | "
+                "{file.name}:{line}\n"
             )
 
         def colorful_format_with_task_id(record):
             """彩色格式化函数"""
             session_id = session_id_context.get() or "None"
-            page_id = dialog_page_id_context.get() or "None"
+            user_device_trace = user_device_trace_context.get() or "None"
             return (
                 "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
                 "<level>{level: <5}</level> | "
                 "<cyan>{thread.name}</cyan> | "
-                f"<magenta>{page_id} # {session_id}</magenta> | "
+                f"<magenta>{user_device_trace} # {session_id}</magenta> | "
                 "<level>{message}</level> | "
                 "<blue>{file.name}:{line}</blue>\n"
             )
@@ -160,7 +187,7 @@ class TaskLogger:
         )
 
         # 文件输出 - 按大小轮转
-        current_date = datetime.now(tz=timezone.utc).strftime("%Y%m%d")
+        current_date = datetime.now(tz=UTC).strftime("%Y%m%d")
         if get_settings().LOCAL_FLAG:
             log_file = os.path.join(log_dir, f"agent_{current_date}.log")
         else:
@@ -188,6 +215,10 @@ class TaskLogger:
     def set_session_id(self, session_id: str):
         """设置当前任务 sessionID"""
         session_id_context.set(session_id)
+
+    def set_user_device_trace(self, user_device_trace: str):
+        """设置当前请求的用户与设备脱敏追踪标识。"""
+        user_device_trace_context.set(user_device_trace)
 
     def set_interaction_id(self, interaction_id: str):
         """设置当前任务 interaction ID"""
@@ -241,7 +272,7 @@ class TaskLogger:
 
     def set_deepsearch_plan(self, query, deepsearch_plan):
         """设置当前任务的  deepsearch-plan """
-        current_dict = deepsearch_plan_context.get().copy()
+        current_dict = (deepsearch_plan_context.get() or {}).copy()
         current_dict[query] = deepsearch_plan
         deepsearch_plan_context.set(current_dict)
 
@@ -284,63 +315,67 @@ class TaskLogger:
         """设置当前任务的 agent id用于存储"""
         agent_id_content.set(agent_id)
 
-    def get_deepsearch_plan(self) -> Optional[dict]:
+    def get_deepsearch_plan(self) -> dict:
         """获取当前任务的 deepsearch-plan"""
-        return deepsearch_plan_context.get().copy()
+        return (deepsearch_plan_context.get() or {}).copy()
 
-    def get_task_id(self) -> Optional[str]:
+    def get_task_id(self) -> str | None:
         """获取当前任务ID"""
         return task_id_context.get()
 
-    def get_session_id(self) -> Optional[str]:
+    def get_session_id(self) -> str | None:
         """获取当前任务 session ID"""
         return session_id_context.get()
 
-    def get_interaction_id(self) -> Optional[str]:
+    def get_user_device_trace(self) -> str | None:
+        """获取当前请求的用户与设备脱敏追踪标识。"""
+        return user_device_trace_context.get()
+
+    def get_interaction_id(self) -> str | None:
         """获取当前任务 interaction ID"""
         return interaction_id_context.get()
 
-    def get_message_id(self) -> Optional[str]:
+    def get_message_id(self) -> str | None:
         """获取当前任务 message ID"""
         return message_id_context.get()
 
-    def get_message_content(self) -> Optional[str]:
+    def get_message_content(self) -> str | None:
         """获取当前任务 message Content"""
         message_content = message_content_context.get()
         return message_content if isinstance(message_content, str) else "Default Query"
 
-    def get_package_name(self) -> Optional[str]:
+    def get_package_name(self) -> str | None:
         """获取当前用户手机的 package(包）name"""
         return package_name_context.get()
 
-    def get_ip_address(self) -> Optional[str]:
+    def get_ip_address(self) -> str | None:
         """获取当前用户手机的 ip address"""
         return ip_address_context.get()
 
-    def get_device_id(self) -> Optional[str]:
+    def get_device_id(self) -> str | None:
         """获取当前任务的 device id"""
         return device_id_context.get()
 
-    def get_u_id(self) -> Optional[str]:
+    def get_u_id(self) -> str | None:
         """获取当前设备的 uid"""
         return u_id_context.get()
 
-    def get_client_version(self) -> Optional[str]:
+    def get_client_version(self) -> str | None:
         """获取当前任务的客户端版本"""
         return client_version_context.get()
 
-    def get_phone_type(self) -> Optional[str]:
+    def get_phone_type(self) -> str | None:
         """获取当前任务的客户设备机型"""
         return phone_type_context.get()
 
-    def get_is_unmanned(self) -> Optional[bool]:
+    def get_is_unmanned(self) -> bool | None:
         return bool(is_unmanned_context.get())
 
-    def get_device_type(self) -> Optional[str]:
+    def get_device_type(self) -> str | None:
         """获取当前任务的客户设备机型"""
         return device_type_context.get()
 
-    def get_dialog_page_id(self) -> Optional[str]:
+    def get_dialog_page_id(self) -> str | None:
         """获取当前任务的页面Id"""
         return dialog_page_id_context.get()
 
@@ -353,15 +388,15 @@ class TaskLogger:
 
     def get_historical_task_records(self):
         """设置当前任务的 historical_task_records"""
-        return historical_task_records_content.get()
+        return historical_task_records_content.get() or []
 
     def get_generated_image_urls(self):
         """获取当前任务的 generated_image_urls"""
-        return generated_image_urls_content.get()
+        return generated_image_urls_content.get() or []
 
     def get_task_info_multi_round(self):
         """获取当前任务的task_info_multi_round用于存储"""
-        return task_info_multi_round_context.get()
+        return task_info_multi_round_context.get() or {}
 
     def get_task_info_mutil_round_url(self):
         """获取当前任务的task_info_mutil_round_url"""
@@ -373,11 +408,11 @@ class TaskLogger:
 
     def get_session_info(self):
         """设置当前任务 session Info """
-        return session_info_content.get()
+        return session_info_content.get() or {}
 
     def get_system_device(self):
         """设置当前任务 system_device """
-        return system_device_content.get()
+        return system_device_content.get() or {}
 
     def get_country_code(self):
         """设置当前任务 country_code"""
@@ -393,7 +428,12 @@ task_logger = TaskLogger()
 logger = task_logger.logger
 
 
-def log_func(func_name: Optional[str] = None, log_args: bool = True, log_result: bool = True, raise_err: bool = True):
+def log_func(
+    func_name: str | None = None,
+    log_args: bool = True,
+    log_result: bool = True,
+    raise_err: bool = True,
+):
     """
     任务日志装饰器, 支持同步和异步函数
 
@@ -495,7 +535,8 @@ def log_func(func_name: Optional[str] = None, log_args: bool = True, log_result:
                     "end_connections": end_connections,
                     "connection_delta": connection_delta
                 })
-                logger.info(f"{_MODULE} 函数执行成功: {json.dumps(success_data, ensure_ascii=False)}")
+                success_json = json.dumps(success_data, ensure_ascii=False)
+                logger.info(f"{_MODULE} 函数执行成功: {success_json}")
                 return result
             except Exception as e:
                 # ===== 新增：错误时的性能数据 =====
@@ -515,7 +556,8 @@ def log_func(func_name: Optional[str] = None, log_args: bool = True, log_result:
                     "memory_used_mb": round(end_memory - start_memory, 2),
                     "error_timestamp": time.time()
                 }
-                logger.error(f"{_MODULE} 函数执行失败(含性能): {json.dumps(error_perf_data, ensure_ascii=False)}")
+                error_perf_json = json.dumps(error_perf_data, ensure_ascii=False)
+                logger.error(f"{_MODULE} 函数执行失败(含性能): {error_perf_json}")
                 # ===== 新增结束 =====
                 return None
 
@@ -532,9 +574,13 @@ def log_func(func_name: Optional[str] = None, log_args: bool = True, log_result:
             try:
                 result = func(*args, **kwargs)
                 # 记录成功执行
-                success_data = _base_log_dict("function_call_success", page_id + "#" + task_id)
+                success_data = _base_log_dict(
+                    "function_call_success",
+                    page_id + "#" + task_id,
+                )
                 _process_result(success_data, result)
-                logger.info(f"{_MODULE} 函数执行成功: {json.dumps(success_data, ensure_ascii=False)}")
+                success_json = json.dumps(success_data, ensure_ascii=False)
+                logger.info(f"{_MODULE} 函数执行成功: {success_json}")
                 return result
             except Exception as e:
                 _handle_error(page_id + "#" + task_id, e)

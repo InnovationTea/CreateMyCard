@@ -42,6 +42,7 @@ from api.schemas import (
 )
 from api.routes import (
     _build_plugin_stream_response,
+    _combined_request_trace_hash,
     _error_details,
     _error_explanation,
     _heartbeat_sender,
@@ -335,11 +336,35 @@ def test_websocket_handler_sets_request_id_to_logger_context():
         "widget_operation_ws_raw_request_received"
     )
     request_log_position = routes_source.index("widget_operation_ws_payload_received")
+    trace_context_positions = [
+        position
+        for position in range(len(routes_source))
+        if routes_source.startswith(
+            "task_logger.set_user_device_trace(combined_trace_hash)",
+            position,
+        )
+    ]
 
     logger_imports = ("json_for_log", "logger", "task_logger")
     assert all(import_name in routes_source for import_name in logger_imports)
+    assert len(trace_context_positions) == 2
+    assert trace_context_positions[0] < raw_request_log_position
+    assert trace_context_positions[1] < request_log_position
     assert raw_context_position < raw_request_log_position
     assert set_context_position < request_log_position
+
+
+def test_task_logger_format_uses_user_device_trace_context():
+    logger_source = (CLOUD_ROOT / "app" / "logger.py").read_text(encoding="utf-8")
+    task_logger_source = logger_source.split("class TaskLogger:", 1)[1].split(
+        "# 创建全局任务日志实例",
+        1,
+    )[0]
+
+    assert task_logger_source.count(
+        'user_device_trace_context.get() or "None"'
+    ) == 2
+    assert "page_id = dialog_page_id_context.get()" not in task_logger_source
 
 
 def test_raw_payload_request_id_uses_session_and_interaction_id():
@@ -476,6 +501,10 @@ def test_request_trace_hashes_are_stable_and_ignore_sensitive_log_switch(monkeyp
     for enabled in (True, False):
         monkeypatch.setattr(get_settings(), "enable_sensitive_log_fields", enabled)
         assert _request_trace_hashes(payload) == expected
+    assert _combined_request_trace_hash(expected) == (
+        f"{expected['user_trace_hash']}&{expected['device_trace_hash']}"
+    )
+    assert _combined_request_trace_hash({}) == "None"
 
 
 def test_raw_request_for_log_always_removes_raw_identifiers(monkeypatch):

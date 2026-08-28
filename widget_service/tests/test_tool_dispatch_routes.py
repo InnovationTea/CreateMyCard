@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import asyncio
+import hashlib
 import importlib
 import json
 import sys
@@ -937,6 +938,7 @@ def test_websocket_request_context_reaches_deepseek_platform(monkeypatch):
 
     async def capture_deepseek_context(_client, _messages, request_context):
         captured["loggerRequestId"] = task_logger.get_session_id()
+        captured["userDeviceTrace"] = task_logger.get_user_device_trace()
         captured["modelSessionId"] = request_context.session_id
         captured["modelInteractionId"] = request_context.interaction_id
         return _valid_model_output(
@@ -977,8 +979,11 @@ def test_websocket_request_context_reaches_deepseek_platform(monkeypatch):
         )
 
     assert message["data"]["status"] == "success"
+    user_trace_hash = hashlib.sha256(b"test-user-001").hexdigest()
+    device_trace_hash = hashlib.sha256(DEVICE_ODID.encode("utf-8")).hexdigest()
     assert captured == {
         "loggerRequestId": request_id,
+        "userDeviceTrace": f"{user_trace_hash}&{device_trace_hash}",
         "modelSessionId": SESSION_ID,
         "modelInteractionId": interaction_id,
     }

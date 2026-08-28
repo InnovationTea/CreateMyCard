@@ -381,6 +381,15 @@ def _request_trace_hashes(payload: dict[str, Any]) -> dict[str, str]:
     }
 
 
+def _combined_request_trace_hash(trace_hashes: dict[str, str]) -> str:
+    """使用 & 拼接用户和设备的脱敏排障摘要。"""
+    user_trace_hash = trace_hashes.get("user_trace_hash", "")
+    device_trace_hash = trace_hashes.get("device_trace_hash", "")
+    if not user_trace_hash and not device_trace_hash:
+        return "None"
+    return f"{user_trace_hash}&{device_trace_hash}"
+
+
 def _sha256_trace_value(value: Any) -> str:
     """为非空排障标识生成稳定的 SHA-256 摘要。"""
     if value is None or not str(value).strip():
@@ -686,6 +695,8 @@ async def _serve_operation_websocket(
             raw_request_id = _request_id_from_raw_payload(payload)
             directive_size = _directive_size_from_raw_payload(payload)
             trace_hashes = _request_trace_hashes(payload)
+            combined_trace_hash = _combined_request_trace_hash(trace_hashes)
+            task_logger.set_user_device_trace(combined_trace_hash)
             task_logger.set_session_id(raw_request_id or "None")
             logger.info(
                 f"widget_operation_ws_raw_request_received operation={operation} "
@@ -704,6 +715,7 @@ async def _serve_operation_websocket(
                     raise ValueError("WebSocket request body must be a JSON object")
                 request_id, arguments = _normalize_payload(payload, operation)
                 # 解析出 requestId 后立即写入日志上下文，后续链路共用同一日志标识。
+                task_logger.set_user_device_trace(combined_trace_hash)
                 task_logger.set_session_id(request_id or "None")
                 logger.info(
                     f"{_MODULE} widget_operation_ws_payload_received request_id={request_id} "
