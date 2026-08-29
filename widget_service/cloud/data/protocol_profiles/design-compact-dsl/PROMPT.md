@@ -236,11 +236,11 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 - `src`：Image 必填；assetCandidates 中的本地资源路径、完整 Expression 或 PathBinding。
 - `label`：Button 必填；字符串、完整 Expression 或 PathBinding。
 - `value/total/enabled/select`：按对应组件规则使用。
-- `design`：可选语义化设计令牌；只能使用本节列出的有意义命名，不使用缩写、尺寸编号或颜色编号。
 - `children`：禁止写入 props；容器 children 必须写在组件行第 4 项。
 - `itemMargin`：Row、Column、List 可选数字 vp；`space` 是兼容别名，优先使用 `itemMargin`。
 - `onClick`：可选 EventHandler 数组，只在有匹配事件候选时使用。
 - `accessibility`：可选对象，只允许静态短字符串 `label` 和 `description`。
+- `design`：可选语义化设计令牌；只能使用本节列出的有意义命名，不使用缩写、尺寸编号或颜色编号。
 
 ## 5.2 通用布局与样式 props
 
@@ -263,14 +263,16 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 
 ### 5.2.1 可选 design 语义令牌
 
-当使用 `design` 简化样式时，只使用下面的语义化命名；不要使用无业务含义的缩写、尺寸编号或颜色编号。显式样式仍可直接写在 props 中，并且显式样式优先级高于 `design`。
+`design` 只用于声明组件级设计角色，由转换器展开为固定样式。不要自造 `design` 名称，也不要使用历史缩写、编号或无语义命名。
 
-- Text：`metric-display-xl`、`metric-display-lg`、`metric-display-md`、`heading-primary-lg`、`heading-primary-md`、`heading-primary-sm`、`heading-secondary-lg`、`heading-secondary-md`、`heading-secondary-sm`、`body-emphasis-md`、`body-regular-md`、`body-regular-sm`、`caption-emphasis`、`caption-regular`、`card-header-title`、`metric-hero-value`、`metric-hero-unit`、`metadata-secondary`
-- Button：`action-capsule-primary`、`action-icon-round`
-- Image：`media-cover-square`、`icon-source-small`、`icon-hero-large`
-- Progress：`progress-linear-primary`、`progress-linear-thin`、`progress-linear-segmented`、`progress-linear-threshold`、`progress-ring-primary`
-- Divider：`divider-hairline`、`divider-thick`
-- Checkbox：`checkbox-circle-default`、`checkbox-rounded-check`
+- Text：`metric-display-xl`、`metric-display-lg`、`metric-display-md`、`heading-primary-lg`、`heading-primary-md`、`heading-primary-sm`、`heading-secondary-lg`、`heading-secondary-md`、`heading-secondary-sm`、`body-emphasis-md`、`body-regular-md`、`body-regular-sm`、`caption-emphasis`、`caption-regular`、`card-header-title`、`metric-hero-value`、`metric-hero-unit`、`metadata-secondary`。
+- Button：`action-capsule-primary`、`action-icon-round`。
+- Image：`media-cover-square`、`icon-source-small`、`icon-hero-large`。
+- Progress：`progress-linear-primary`、`progress-linear-thin`、`progress-linear-segmented`、`progress-linear-threshold`、`progress-ring-primary`。
+- Divider：`divider-hairline`、`divider-thick`。
+- Checkbox：`checkbox-circle-default`、`checkbox-rounded-check`。
+- 色彩 token 可用于 `fontColor`、`fillColor`、`backgroundColor`、`borderColor`、`Divider.color`、`Progress.color/backgroundColor` 等颜色字段：`palette_purple_primary`、`palette_blue_primary`、`palette_mint_primary`、`palette_green_success`、`palette_lime_success`、`palette_violet_primary`、`palette_rose_alert`、`palette_red_warning`、`palette_orange_alert`、`palette_amber_warning`、`palette_yellow_sun`、`palette_purple_soft`、`palette_blue_soft`、`palette_mint_soft`、`palette_green_soft`、`palette_lime_soft`、`palette_violet_soft`、`palette_rose_soft`、`palette_red_soft`、`palette_orange_soft`、`palette_amber_soft`、`palette_yellow_soft`。
+
 ## 5.3 Text
 
 顶层：
