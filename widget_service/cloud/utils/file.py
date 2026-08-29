@@ -1,26 +1,227 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
-from pathlib import Path
+import os
+import aiohttp
+import pathlib
+import shutil
+import json
+import re
+
+from app.logger import logger, task_logger
 
 
-def save_txt_file(file_path: str | Path, content: str) -> None:
-    """将文本内容保存到指定文件。
+def make_empty_dir(path: str):
+    p = pathlib.Path(path)
+    if not p.exists():
+        p.mkdir()
+        return
+    clear_dir(path)
 
-    入参：
-    - file_path：目标文件路径；父目录不存在时自动创建。
-    - content：需要写入的 UTF-8 文本。
-    出参：无。
+
+def get_extension_split(filename):
+    """使用split()提取文件后缀"""
+    parts = filename.split('.')
+    if len(parts) > 1:
+        return parts[-1].lower()
+    return ""
+
+
+def clear_dir(path: str):
+    p = pathlib.Path(path)
+    if not p.exists():
+        return
+    if p.is_file():
+        logger.error(f"Error: {path} is a file, not a directory.")
+        return
+    try:
+        for file_name in p.iterdir():
+            clear_dir(file_name)
+        if p.exists():
+            p.rmdir()
+    except PermissionError:
+        logger.error(f"Error: Permission denied for {path}.")
+    except OSError as e:
+        logger.error(f"Error: {e.strerror} for {path}.")
+
+
+def contain_file(file_path: str) -> bool:
+    return True if os.path.exists(file_path) else False
+
+
+def create_dir(path: str):
+    p = pathlib.Path(path)
+    if not p.exists():
+        p.mkdir()
+
+
+def delete_file(file_path: str):
+    p = pathlib.Path(file_path)
+    if p.is_file() and p.exists():
+        p.unlink()
+
+
+def save_txt_file(path, content: str):
+    work_dir, _ = os.path.split(path)
+    if not os.path.exists(work_dir):
+        os.makedirs(work_dir, exist_ok=True)
+
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(content)
+
+
+def write_to_file(file_path, content):
+    with open(file_path, 'a', encoding='utf-8') as f:
+        f.write(content)
+
+
+def create_empty_file(path: str):
+    if os.path.exists(path):
+        return
+    f = open(path, 'w', encoding='utf-8')
+    f.close()
+
+
+def move_file(src_path: str, dst_path: str):
+    shutil.move(src_path, dst_path)
+
+
+def copy_file(src_path: str, dst_path: str):
+    shutil.copy(src_path, dst_path)
+
+
+def read_txt_file(path) -> str:
+    if not contain_file(path):
+        raise FileNotFoundError("path not found")
+    with open(path, 'r', encoding='utf-8') as f:
+        return f.read()
+
+
+def read_json_file(path):
     """
-    target_path = Path(file_path)
-    target_path.parent.mkdir(parents=True, exist_ok=True)
-    target_path.write_text(content, encoding="utf-8", newline="\n")
-
-
-def delete_file(file_path: str | Path) -> None:
-    """删除指定文件。
-
-    入参：
-    - file_path：待删除文件路径。
-    出参：无；文件不存在时按已删除处理。
+    读取json文件
     """
-    Path(file_path).unlink(missing_ok=True)
+    try:
+        with open(path, 'r', encoding='utf-8') as file:
+            data = json.load(file)
+            return data
+    except FileNotFoundError:
+        logger.error(f"错误：文件 不存在")
+        return None
+    except json.JSONDecodeError:
+        logger.error(f"错误：文件不是有效的JSON格式")
+        return None
+    except Exception as e:
+        logger.error(f"读取文件时发生错误：{type(e.__class__)}")
+        return None
+
+
+def task_id_seq_auto_increment(task_id):
+    if not task_id:
+        logger.error("task_id is None, cannot auto increment")
+
+    last_underscore_index = task_id.rfind('_')
+    if last_underscore_index == -1 or last_underscore_index == len(task_id) - 1:
+        logger.error(f"Invalid task_id format: '{task_id}' - no trailing underline with number")
+
+    num_part = task_id[last_underscore_index + 1:]
+    try:
+        num = int(num_part)
+    except ValueError:
+        logger.error(f"Invalid number format in task_id: '{task_id}' - trailing part '{num_part}' is not a number")
+
+    task_logger.set_task_id(f"{task_id[:last_underscore_index]}_{num + 1}")
+
+
+def sanitize_filename(filename: str, replace_char='_'):
+    """
+    简单的文件名清理函数
+    """
+    # 定义非法字符
+    illegal_chars = r'[<>:"/\\|?*]'
+
+    # 替换非法字符
+    safe_name = re.sub(illegal_chars, replace_char, str(filename))
+
+    # 移除首尾空白和点
+    safe_name = safe_name.strip().strip('.')
+
+    # 确保文件名非空
+    if not safe_name:
+        raise ValueError("sanitized filename is empty")
+
+    return safe_name
+
+
+def decode_text_with_bom_fallback(data: bytes) -> str:
+    # 有序的编码检测列表（BOM检测优先）
+    encoding_candidates = [
+        (b"\xef\xbb\xbf", "utf-8-sig"),
+        (b"\xff\xfe\x00\x00", "utf-32-le"),
+        (b"\x00\x00\xfe\xff", "utf-32-be"),
+        (b"\xff\xfe", "utf-16-le"),
+        (b"\xfe\xff", "utf-16-be"),
+    ]
+
+    # 1) BOM检测阶段
+    for bom, encoding in encoding_candidates:
+        if data.startswith(bom):
+            try:
+                return data.decode(encoding)
+            except UnicodeDecodeError:
+                logger.erro(f"BOM matched {encoding} but decode failed")
+                break  # BOM匹配但解码失败，继续无BOM检测
+
+    # 2) 无BOM：按常见编码依次尝试
+    for enc in ("utf-8", "gb18030"):
+        try:
+            return data.decode(enc)
+        except UnicodeDecodeError:
+            logger.error(f"Decode with {enc} failed, trying next")
+
+    # 3) 最后兜底
+    try:
+        return data.decode("gb18030", errors="replace")
+    except Exception as e:
+        logger.error(f"All decode attempts failed: {e}")
+        # 终极兜底：忽略所有错误
+        return data.decode("utf-8", errors="ignore")
+
+
+async def read_remote_file_async(url):
+    """
+    不下载到本地读取文件
+    """
+    timeout = aiohttp.ClientTimeout(total=60, connect=30)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=timeout) as response:
+                response.raise_for_status()
+
+                # 直接读取所有内容（适合小文件）
+                content = await response.read()
+                if not content:
+                    raise ValueError("文件内容为空")
+                try:
+                    content_json = json.loads(content.decode('utf-8'))
+                    return content_json
+                except json.JSONDecodeError:
+                    logger.error("文件不是JSON格式")
+                    return None
+    except Exception as e:
+        logger.error(f"读取远程文件内容失败：{str(e)}")
+        return None
+
+
+def read_md_file(file_path):
+    """
+    读取 Markdown 文件，返回字符串内容
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return content
+    except FileNotFoundError:
+        logger.error(f"错误：文件 '{file_path}' 不存在。")
+    except Exception as e:
+        logger.error(f"读取文件时发生错误：{e}")
+    return ""
