@@ -96,8 +96,7 @@ widget_service/.venv312/bin/python \
 - `--provider com.huawei.weather.cli`：只批跑一个 Provider，可重复指定。
 - `--dry-run`：不调用模型，仅生成“待批跑/缺失”结果清单，适合验证输入和端侧导入。
 - `--strict`：存在真实生成失败时返回非零退出码；模板后缀缺失仍作为画廊检查结果保留。
-- 融球默认关闭；常规画廊验证不传任何融球参数，Theme 不进入模型 Prompt、检索或服务端模板编译。
-- `--enable-fusion-ball`：仅用于 `2x2` 融球专项验证时显式开启。
+- Provider 画廊只调用融球默认关闭的正式服务入口，不提供融球命令行开关；融球专项验证改用模板内部测试。
 - `--input-root`、`--output-root`：覆盖默认临时目录。
 
 默认输入和输出目录为：

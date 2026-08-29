@@ -31,7 +31,6 @@ _COMPONENT_TYPES = frozenset(
         "Button",
         "ActionUnit",
         "Checkbox",
-        "FusionBall",
     }
 )
 _CONTAINER_TYPES = frozenset({"Row", "Column", "List", "Stack"})
@@ -42,9 +41,7 @@ _SEMANTIC_FIELDS = {
     "Button": frozenset({"label", "enabled"}),
     "ActionUnit": frozenset({"label", "enabled"}),
     "Checkbox": frozenset({"label", "value", "select"}),
-    "FusionBall": frozenset({"largeColor", "mediumColor", "smallColor"}),
 }
-_FUSION_BALL_FIELDS = frozenset({"largeColor", "mediumColor", "smallColor"})
 _COMPACT_ONLY_FIELDS = {
     "Progress": frozenset({"threshold"}),
 }
@@ -740,9 +737,6 @@ def convert_compact_dsl_to_a2ui(
 
     icon_round_button_ids = _button_ids_with_design(components, "action-icon-round")
     fallback_root_gradient = _fallback_root_linear_gradient(compact_dsl)
-    has_fusion_ball = any(
-        component.component_type == "FusionBall" for component in normalized_components
-    )
     converted_components = []
     for component in normalized_components:
         hide_label = component.component_id in icon_round_button_ids
@@ -751,7 +745,6 @@ def convert_compact_dsl_to_a2ui(
                 component,
                 hide_label=hide_label,
                 fallback_root_gradient=fallback_root_gradient,
-                has_fusion_ball=has_fusion_ball,
             )
         )
     version = str(profile.get("version") or "v0.9")
@@ -1366,40 +1359,13 @@ def _parse_component_row(value: list[Any], line_number: int) -> ComponentRow:
         props,
         line_number,
     )
-    if component_type == "FusionBall" and len(value) != 3:
-        raise CompactDslConversionError(f"{component_id}: FusionBall cannot have children.")
     children = _parse_children(value, component_id, component_type)
-    if component_type == "FusionBall":
-        _validate_fusion_ball_component(component_id, props, children)
     return ComponentRow(
         component_id=component_id,
         component_type=component_type,
         props=copy.deepcopy(props),
         children=children,
     )
-
-
-def _validate_fusion_ball_component(
-    component_id: str,
-    props: dict[str, Any],
-    children: tuple[str, ...],
-) -> None:
-    if children:
-        raise CompactDslConversionError(f"{component_id}: FusionBall cannot have children.")
-    if set(props) != _FUSION_BALL_FIELDS:
-        raise CompactDslConversionError(
-            f"{component_id}: FusionBall requires largeColor, mediumColor, and smallColor."
-        )
-    if any(not _is_argb_color(value) for value in props.values()):
-        raise CompactDslConversionError(
-            f"{component_id}: FusionBall colors must use #AARRGGBB."
-        )
-
-
-def _is_argb_color(value: Any) -> bool:
-    if not isinstance(value, str) or len(value) != 9 or not value.startswith("#"):
-        return False
-    return all(character in "0123456789abcdefABCDEF" for character in value[1:])
 
 
 def _repair_legacy_component_row(value: list[Any]) -> list[Any]:
@@ -1926,7 +1892,6 @@ def _convert_component_rows(
     *,
     hide_label: bool = False,
     fallback_root_gradient: dict[str, Any] | None = None,
-    has_fusion_ball: bool = False,
 ) -> list[dict[str, Any]]:
     if component.component_type == "ActionUnit":
         return _convert_action_unit(component)
@@ -1935,7 +1900,6 @@ def _convert_component_rows(
             component,
             hide_label=hide_label,
             fallback_root_gradient=fallback_root_gradient,
-            has_fusion_ball=has_fusion_ball,
         )
     ]
 
@@ -2126,7 +2090,6 @@ def _convert_component(
     *,
     hide_label: bool = False,
     fallback_root_gradient: dict[str, Any] | None = None,
-    has_fusion_ball: bool = False,
 ) -> dict[str, Any]:
     output_type = _output_component_type(component, hide_label)
     converted: dict[str, Any] = {
@@ -2172,7 +2135,6 @@ def _convert_component(
             converted,
             styles,
             fallback_root_gradient,
-            has_fusion_ball,
         )
     if _is_icon_button_stack(component, hide_label):
         _normalize_icon_button_stack(styles)
@@ -2210,24 +2172,11 @@ def _normalize_root_component(
     converted: dict[str, Any],
     styles: dict[str, Any],
     fallback_gradient: dict[str, Any] | None,
-    has_fusion_ball: bool,
 ) -> None:
     styles["width"] = "matchParent"
     styles["height"] = "matchParent"
-    if has_fusion_ball or _is_fusion_ball_root(component):
-        for property_name in ("backgroundColor", "linearGradient", "backgroundImage"):
-            styles.pop(property_name, None)
-        return
     _normalize_root_linear_gradient(styles)
     _ensure_root_background(styles, fallback_gradient)
-
-
-def _is_fusion_ball_root(component: ComponentRow) -> bool:
-    return (
-        component.component_id == "root"
-        and component.component_type == "Stack"
-        and component.children[:1] == ("fusionBallBackground",)
-    )
 
 
 def _normalize_root_linear_gradient(styles: dict[str, Any]) -> None:

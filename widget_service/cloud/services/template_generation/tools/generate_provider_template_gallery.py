@@ -45,11 +45,6 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="存在生成失败时返回非零退出码；模板缺失不计为生成失败",
     )
-    parser.add_argument(
-        "--enable-fusion-ball",
-        action="store_true",
-        help="显式开启融球 Theme；默认关闭，不向模型或服务端模板链暴露融球能力",
-    )
     return parser.parse_args()
 
 
@@ -78,7 +73,6 @@ async def run(args: argparse.Namespace) -> int:
             concurrency=args.concurrency,
             provider_ids=provider_ids,
             dry_run=args.dry_run,
-            enable_fusion_ball=args.enable_fusion_ball,
         )
         print(
             "Provider 画廊批跑完成："

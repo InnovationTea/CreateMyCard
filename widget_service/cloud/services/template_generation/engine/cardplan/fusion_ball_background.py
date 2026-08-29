@@ -1,4 +1,4 @@
-"""Insert the cloud-only FusionBall marker for an eligible template card."""
+"""Build Theme-owned deterministic 2x2 fusion-ball backgrounds."""
 
 from __future__ import annotations
 
@@ -7,7 +7,8 @@ from typing import Any
 
 from services.template_generation.engine.tersel_converter import Nested2Node
 
-_CARD_CONTENT_ID = "cardContent"
+_CARD_CONTENT_ID = "__genui_render_component__cardContent"
+_ROOT_ID = "root"
 _BACKGROUND_STYLE_KEYS = frozenset(
     {
         "backgroundColor",
@@ -27,22 +28,54 @@ class FusionBallPalette:
     small: str
 
 
-def build_fusion_ball_component(palette: FusionBallPalette) -> Nested2Node:
-    """Return the cloud-only Tersel component carrying the Theme palette."""
+def build_fusion_ball_background(palette: FusionBallPalette) -> Nested2Node:
+    """Return the expanded fusion-ball Tersel background tree for a 160vp card."""
+    large_ball = _ball("fusionBallLarge", 210, palette.large)
+    medium_ball = _ball("fusionBallMedium", 160, palette.medium)
+    small_ball = _ball("fusionBallSmall", 100, palette.small)
     return Nested2Node(
-        "FusionBall",
-        (palette.large, palette.medium, palette.small),
-        (),
+        "Stack",
+        (
+            "overlay",
+            {
+                "_id": "fusionBallBackground",
+                "width": 160,
+                "height": 160,
+                "borderRadius": 18,
+                "alignContent": "topStart",
+                "clip": True,
+            },
+        ),
+        (
+            _ball_slot("fusionBallLargeSlot", 180, 44, "center", large_ball),
+            _ball_slot("fusionBallMediumSlot", 80, 220, "bottom", medium_ball),
+            _ball_slot("fusionBallSmallSlot", 195, 190, "bottomEnd", small_ball),
+            Nested2Node(
+                "Divider",
+                (
+                    {
+                        "_id": "fusionBallGlassLayer",
+                        "width": 160,
+                        "height": 160,
+                        "strokeWidth": 0,
+                        "color": "#00000000",
+                        "backgroundColor": "#0DFFFFFF",
+                        "backdropBlur": {"radius": 120},
+                    },
+                ),
+                (),
+            ),
+        ),
     )
 
 
-def apply_fusion_ball_component(
+def apply_fusion_ball_background(
     card: Nested2Node,
     *,
     size: str,
     palette: FusionBallPalette | None,
 ) -> Nested2Node:
-    """Wrap an eligible 2x2 card with a cloud-only FusionBall sibling."""
+    """Expand an eligible 2x2 card into standard Tersel components."""
     if size != "2x2" or palette is None:
         return card
     card_options = _root_card_options(card)
@@ -60,16 +93,58 @@ def apply_fusion_ball_component(
     )
     foreground = Nested2Node(card.component_type, (foreground_options,), card.children)
     root_options = {
-        "_id": "root",
+        "_id": _ROOT_ID,
         "padding": 0,
         "borderRadius": 18,
         "alignContent": "topStart",
         "clip": True,
+        "backgroundColor": "#00000000",
     }
     return Nested2Node(
         "Stack",
         ("card", root_options),
-        (build_fusion_ball_component(palette), foreground),
+        (build_fusion_ball_background(palette), foreground),
+    )
+
+
+def _ball(component_id: str, diameter: int, color: str) -> Nested2Node:
+    return Nested2Node(
+        "Divider",
+        (
+            {
+                "_id": component_id,
+                "width": diameter,
+                "height": diameter,
+                "strokeWidth": 0,
+                "color": "#00000000",
+                "borderRadius": diameter // 2,
+                "backgroundColor": color,
+                "clip": True,
+            },
+        ),
+        (),
+    )
+
+
+def _ball_slot(
+    component_id: str,
+    width: int,
+    height: int,
+    alignment: str,
+    ball: Nested2Node,
+) -> Nested2Node:
+    return Nested2Node(
+        "Stack",
+        (
+            "overlay",
+            {
+                "_id": component_id,
+                "width": width,
+                "height": height,
+                "alignContent": alignment,
+            },
+        ),
+        (ball,),
     )
 
 

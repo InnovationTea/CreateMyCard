@@ -170,11 +170,11 @@ Search 路线的首层输出是 `TemplateRetrievalQuery`：
 6. 将 Theme `rootStyle` 应用到卡片根节点；为未显式着色的内容组件补 `primaryColor`；确定性展开
    CardTpl/Tersel 中的 `$theme(...)`；将 `actionStyle` 的背景色和内容色应用到受信 Action Template，保留
    模板节点已经显式声明的高度、圆角、字号和字重，然后执行布局 Lowering。
-7. 仅当实际产物为单业务 `Full` 或 `Hero` 时插入 Theme 三色的云侧 `FusionBall`；模板内不展开球体树，
-   也不猜测或覆写主辅内容色。
-8. 序列化为 Tersel，再确定性转换为包含云侧组件的三段 A2UI。
-9. 回转 A2UI-Compact 并经公共 Processor 重新生成完整 A2UI 后，统一展开 `FusionBall` 为标准组件，给相邻
-   内容根 ID 增加 `__genui_render_component__` 前缀，再执行 artifact 校验。
+7. 仅当实际产物为单业务 `Full` 或 `Hero` 时，按 Theme 三色在模板内部直接展开标准 `Stack` 球体树，
+   同时给前景内容根 ID 增加 `__genui_render_component__` 前缀；不猜测或覆写主辅内容色。
+8. 将已经展开的标准组件树序列化为 Tersel，再确定性转换为三段 A2UI。
+9. 回转 A2UI-Compact 并经公共 Processor 重新生成完整 A2UI 后执行 artifact 校验。A2UI-Compact 不接受
+   或保留 `FusionBall` 云端组件。
 
 二层输出发生 `TerselConversionError` 时，模板模块在首次生成后最多使用两次二层修复。
 这与模块返回后的公共 Compact repair 是两套不同的质量阶段。
@@ -191,7 +191,6 @@ Search 路线的首层输出是 `TemplateRetrievalQuery`：
   -> 当前 Form Profile A2UI
   -> Design Compact DSL
   -> 公共 DesignCompactProcessor
-  -> FusionBall 最终确定性展开 + 相邻内容防溢出标记
   -> 最终标准 A2UI
 ```
 
