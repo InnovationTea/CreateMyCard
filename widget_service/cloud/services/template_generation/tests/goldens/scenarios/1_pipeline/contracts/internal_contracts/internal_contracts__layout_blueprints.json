@@ -1,0 +1,68 @@
+{
+  "CompactTwoActionLayout@1": {
+    "height": "matchParent",
+    "root": "Column",
+    "slotIndexes": [
+      0,
+      1,
+      2
+    ],
+    "spreadChildren": false,
+    "width": "matchParent"
+  },
+  "FullIconActionLayout@1": {
+    "height": "matchParent",
+    "root": "Stack",
+    "slotIndexes": [
+      0,
+      1
+    ],
+    "spreadChildren": false,
+    "width": "matchParent"
+  },
+  "HeroActionLayout@1": {
+    "height": "matchParent",
+    "root": "Column",
+    "slotIndexes": [
+      0,
+      1
+    ],
+    "spreadChildren": false,
+    "width": "matchParent"
+  },
+  "HeroTitleContentActionLayout@1": {
+    "height": "matchParent",
+    "root": "Column",
+    "slotIndexes": [
+      0,
+      1,
+      2
+    ],
+    "spreadChildren": false,
+    "width": "matchParent"
+  },
+  "SingleFocusLayout@1": {
+    "height": "matchParent",
+    "root": "Stack",
+    "slotIndexes": [],
+    "spreadChildren": true,
+    "width": "matchParent"
+  },
+  "TwoSupportLayout@1": {
+    "height": "matchParent",
+    "root": "Column",
+    "slotIndexes": [
+      0,
+      1
+    ],
+    "spreadChildren": false,
+    "width": "matchParent"
+  },
+  "WideSingleFocusLayout@1": {
+    "height": "matchParent",
+    "root": "Stack",
+    "slotIndexes": [],
+    "spreadChildren": true,
+    "width": "matchParent"
+  }
+}

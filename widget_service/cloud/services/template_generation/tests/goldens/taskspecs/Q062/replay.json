@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "e1358b5e3465d3436e1077cfad7a838eb39b2c622c2db8d48638923825399d87",
+      "response": "{\"requiredOutputFieldsByCapability\": {\"ViewWeather\": [\"/current/condition\", \"/current/feelsLikeC\", \"/current/alertLevel\"], \"GetPhoneBatteryInfo\": [\"/batterySOC\"]}, \"action\": [\"event.startNavigate\"]}"
+    }
+  ]
+}

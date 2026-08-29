@@ -1,22 +1,27 @@
-"""最终产物样式枚举校验回归：非法枚举值不得进入端侧。
+"""最终产物样式枚举校验回归（已场景金样化，Layer C）。
 
 背景：日程模板曾在 ``alignItems`` 上写出 ``"Top"``（协议只允许小写
 ``top``），模板预览与公共 Compact 转换都未拦截，非法值随最终 A2UI 产物
 下发。ComponentValidator 现按 ``data/validator_rules/config/style.json``
-的 ``enumValues`` 对最终产物做硬校验（错误码 ``STYLE_ENUM_INVALID``），
-本文件保证：
-1. 全部模板预览产物不含非法样式枚举；
-2. 大小写错误的枚举值会被校验拦截，合法值放行。
+的 ``enumValues`` 对最终产物做硬校验（错误码 ``STYLE_ENUM_INVALID``）。
+
+原先 4 个独立用例全部转为场景金样：全部模板预览产物的枚举清扫结果
+（用例数 + 违例清单），以及大小写差分与 Row/Column 组件作用域差分的
+诊断码，均由 ``tests/goldens/scenarios/`` 下的快照整体冻结。校验规则或
+模板预览改动后按 golden 工作流 ``check --diff`` / ``bless --declared``
+复核；本文件不再保留独立测试函数，pytest 仅通过导入完成场景注册。
 """
 
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from services.card_validation import validate_card
 from services.template_generation.engine.cardplan.preview_dataset import (
     build_template_preview_cases,
 )
+from services.template_generation.test_support.golden_scenarios import scenario
 
 _ROOT_ROW_ID = "header_row"
 
@@ -82,31 +87,35 @@ def _minimal_genui(align_items: str, container: str = "Row") -> str:
     return "\n".join(json.dumps(line, ensure_ascii=False) for line in lines)
 
 
-def test_all_template_previews_pass_style_enum_validation() -> None:
+def _diagnostic_codes(dsl_text: str) -> list[str]:
+    return sorted({item.code for item in validate_card(dsl_text=dsl_text).diagnostics})
+
+
+@scenario("style_enum__preview_sweep")
+def _build_preview_sweep() -> dict[str, Any]:
     cases = build_template_preview_cases()
     assert cases
+    violations: dict[str, list[str]] = {}
     for case in cases:
-        a2ui = "\n".join(json.dumps(message, ensure_ascii=False) for message in case.messages)
+        a2ui = "\n".join(
+            json.dumps(message, ensure_ascii=False) for message in case.messages
+        )
         reporter = validate_card(dsl_text=a2ui)
-        assert not reporter.has_code("STYLE_ENUM_INVALID"), case.case_id
+        codes = [
+            item.code for item in reporter.diagnostics
+            if item.code == "STYLE_ENUM_INVALID"
+        ]
+        if codes:
+            violations[case.case_id] = codes
+    return {"caseCount": len(cases), "styleEnumViolations": violations}
 
 
-def test_style_enum_validation_rejects_wrong_case_value() -> None:
-    reporter = validate_card(dsl_text=_minimal_genui("Top"))
-    assert reporter.has_code("STYLE_ENUM_INVALID")
-
-
-def test_style_enum_validation_accepts_protocol_enum_value() -> None:
-    reporter = validate_card(dsl_text=_minimal_genui("top"))
-    assert not reporter.has_code("STYLE_ENUM_INVALID")
-
-
-def test_style_enum_rules_are_component_scoped() -> None:
+@scenario("style_enum__probes")
+def _build_probes() -> dict[str, Any]:
     # 枚举按组件类型区分：Column.alignItems 只允许 start|center|end，因此
     # "top" 写在 Row 上合法、写在 Column 上必须被拦截。
-    assert not validate_card(dsl_text=_minimal_genui("top")).has_code(
-        "STYLE_ENUM_INVALID"
-    )
-    assert validate_card(
-        dsl_text=_minimal_genui("top", container="Column")
-    ).has_code("STYLE_ENUM_INVALID")
+    return {
+        "row_align_top": _diagnostic_codes(_minimal_genui("top")),
+        "row_align_wrong_case": _diagnostic_codes(_minimal_genui("Top")),
+        "column_align_top": _diagnostic_codes(_minimal_genui("top", container="Column")),
+    }

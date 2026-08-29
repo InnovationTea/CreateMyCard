@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "90112836c2dc57dc32794ec35602ca4aabbc28602c36e6ce2e12753167eb73b6",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"WeatherOverviewDailyRainFull@1\", {\"rainIcon\": \"resources/base/media/drop_1.svg\"}));"
+    },
+    {
+      "key": "c8ee02d18dff873ae625cd80d4df68b380417200731a23fdf03385c0f1dc8b21",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/daily/1/rainProbabilityPercent\",\"/daily/1/temperatureRangeText\"]},\"primaryOutputFieldByCapability\":{\"ViewWeather\":\"/daily/1/rainProbabilityPercent\"},\"action\":[],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

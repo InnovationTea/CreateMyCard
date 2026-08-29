@@ -1,0 +1,144 @@
+{
+  "dual_business_more_data": {
+    "plans": [
+      {
+        "actions": [],
+        "layout": "TwoSupportLayout@1",
+        "slots": [
+          {
+            "business": "WeatherOverview",
+            "primaryMatched": [
+              "/current/condition"
+            ],
+            "template": "WeatherOverviewTemperatureSupport@1"
+          },
+          {
+            "business": "BatteryOverview",
+            "primaryMatched": [
+              "/batterySOC"
+            ],
+            "template": "BatteryOverviewSupport@1"
+          }
+        ]
+      },
+      {
+        "actions": [],
+        "layout": "TwoSupportLayout@1",
+        "slots": [
+          {
+            "business": "BatteryOverview",
+            "primaryMatched": [
+              "/batterySOC"
+            ],
+            "template": "BatteryOverviewSupport@1"
+          },
+          {
+            "business": "WeatherOverview",
+            "primaryMatched": [
+              "/current/condition"
+            ],
+            "template": "WeatherOverviewTemperatureSupport@1"
+          }
+        ]
+      },
+      {
+        "actions": [],
+        "layout": "TwoSupportLayout@1",
+        "slots": [
+          {
+            "business": "WeatherOverview",
+            "primaryMatched": [
+              "/current/temperatureText"
+            ],
+            "template": "WeatherOverviewTemperaturecoldLevelSupport@1"
+          },
+          {
+            "business": "BatteryOverview",
+            "primaryMatched": [
+              "/batterySOC"
+            ],
+            "template": "BatteryOverviewSupport@1"
+          }
+        ]
+      }
+    ]
+  },
+  "primary_focus_default": {
+    "plans": [
+      {
+        "actions": [],
+        "layout": "SingleFocusLayout@1",
+        "slots": [
+          {
+            "business": "WeatherOverview",
+            "primaryMatched": [
+              "/current/temperatureText"
+            ],
+            "template": "WeatherOverviewFull@1"
+          }
+        ]
+      },
+      {
+        "actions": [],
+        "layout": "SingleFocusLayout@1",
+        "slots": [
+          {
+            "business": "WeatherOverview",
+            "primaryMatched": [
+              "/current/temperatureText"
+            ],
+            "template": "WeatherOverviewUpdatedAtFull@1"
+          }
+        ]
+      },
+      {
+        "actions": [],
+        "layout": "SingleFocusLayout@1",
+        "slots": [
+          {
+            "business": "WeatherOverview",
+            "primaryMatched": [],
+            "template": "WeatherOverviewHumidityFull@1"
+          }
+        ]
+      }
+    ]
+  },
+  "primary_focus_temperature": {
+    "plans": [
+      {
+        "actions": [],
+        "layout": "SingleFocusLayout@1",
+        "slots": [
+          {
+            "business": "WeatherOverview",
+            "primaryMatched": [
+              "/current/temperatureText"
+            ],
+            "template": "WeatherOverviewFull@1"
+          }
+        ]
+      },
+      {
+        "actions": [],
+        "layout": "SingleFocusLayout@1",
+        "slots": [
+          {
+            "business": "WeatherOverview",
+            "primaryMatched": [
+              "/current/temperatureText"
+            ],
+            "template": "WeatherOverviewUpdatedAtFull@1"
+          }
+        ]
+      }
+    ]
+  },
+  "usage_ranking_condition": {
+    "orderedPlanTemplates": [
+      "WeatherOverviewHumidityFull@1",
+      "WeatherOverviewUvFull@1",
+      "WeatherOverviewFull@1"
+    ]
+  }
+}

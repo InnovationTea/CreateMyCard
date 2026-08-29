@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "1d7fa942669742c22b67241123b26cedc3741e71d1bf0fd1db87f4208d14b814",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/location/prefectureName\",\"/current/temperatureText\",\"/current/condition\",\"/current/windDirection\",\"/current/windLevel\",\"/updatedAt\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.open.weather\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

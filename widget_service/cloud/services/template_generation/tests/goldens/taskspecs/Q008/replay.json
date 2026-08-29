@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "0473af6946c0e146b5b01dd7f219f36d4dd271c16c5ec598735c60a85fd93a90",
+      "response": "Template(\"TwoSupportLayout@1\", {}, Template(\"CountdownOverviewSupport@1\", {\"title\": \"北京出差\", \"timerIcon\": \"resources/base/media/icon_timing.svg\"}), Template(\"WeatherOverviewDaily2TravelSupport@1\", {\"conditionIcon\": \"resources/base/media/icon_weather_temperature1.svg\"}));"
+    },
+    {
+      "key": "6519590631388f0709c1887b022464c5181cf3a61c92a3f935c054b25363407b",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCountdownDays\":[\"/countdownDays\"],\"ViewWeather\":[\"/daily/2/condition\",\"/daily/2/temperatureRangeText\"]},\"primaryOutputFieldByCapability\":{},\"action\":[],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

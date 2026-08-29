@@ -1,0 +1,14 @@
+{
+  "calendarFacts": {
+    "countdownSpanDays": 95,
+    "friday20260925Weekday": 4
+  },
+  "powerSavingActionArgs": {
+    "intentName": "SetSettingSwitch",
+    "params": {
+      "appBundleName": "com.huawei.hmos.settings",
+      "itemName": "battery_saving_mode",
+      "switchFlag": 0
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "requiredOutputFieldsByCapability": {
+    "GetPhoneBatteryInfo": [
+      "/batterySOC"
+    ]
+  }
+}

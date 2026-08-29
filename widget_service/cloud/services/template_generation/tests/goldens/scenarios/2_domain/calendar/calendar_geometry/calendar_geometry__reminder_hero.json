@@ -1,0 +1,442 @@
+{
+  "noParams": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [],
+            "component": "Text",
+            "values": [
+              "日程提醒",
+              {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#991F4595",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "height": 16,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": 112
+              }
+            ]
+          }
+        ],
+        "component": "Row",
+        "values": [
+          {
+            "alignItems": "center",
+            "clip": true,
+            "constraintSize": {
+              "minHeight": 0,
+              "minWidth": 0
+            },
+            "height": 20,
+            "justifyContent": "spaceBetween",
+            "width": "matchParent"
+          }
+        ]
+      },
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "component": "Divider",
+                    "values": [
+                      {
+                        "color": "#00FFFFFF",
+                        "height": 0,
+                        "strokeWidth": 0,
+                        "width": 0
+                      }
+                    ]
+                  }
+                ],
+                "component": "Stack",
+                "values": [
+                  {
+                    "alignContent": "center",
+                    "backgroundColor": "#00FFFFFF",
+                    "borderColor": "#E61F4595",
+                    "borderRadius": 4,
+                    "borderWidth": 1.5,
+                    "flexShrink": 0,
+                    "height": 8,
+                    "width": 8
+                  }
+                ]
+              },
+              {
+                "children": [],
+                "component": "Divider",
+                "values": [
+                  {
+                    "color": "#991F4595",
+                    "layoutWeight": 1,
+                    "strokeWidth": 1,
+                    "vertical": true,
+                    "width": 1
+                  }
+                ]
+              }
+            ],
+            "component": "Column",
+            "values": [
+              {
+                "alignItems": "center",
+                "clip": true,
+                "flexShrink": 0,
+                "height": "matchParent",
+                "itemMargin": 4,
+                "justifyContent": "start",
+                "padding": {
+                  "bottom": 2,
+                  "left": 0,
+                  "right": 0,
+                  "top": 4
+                },
+                "width": 8
+              }
+            ]
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "${data.calendar.events.0.title}",
+                  {
+                    "fontColor": "#E61F4595",
+                    "fontSize": 14,
+                    "fontWeight": 700,
+                    "height": 20,
+                    "margin": {
+                      "bottom": 2
+                    },
+                    "maxLines": 1,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              },
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "${data.calendar.events.0.dtStart}",
+                  {
+                    "constraintSize": {
+                      "minHeight": 0,
+                      "minWidth": 0
+                    },
+                    "fontColor": "#991F4595",
+                    "fontSize": 10,
+                    "fontWeight": 400,
+                    "height": 14,
+                    "maxLines": 1,
+                    "minFontSize": 10,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              },
+              {
+                "children": [],
+                "component": "Text",
+                "values": [
+                  "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('提前' + ${/data/calendar/events/0/remindTime/0} + '分钟提醒') }}",
+                  {
+                    "constraintSize": {
+                      "minHeight": 0,
+                      "minWidth": 0
+                    },
+                    "fontColor": "#991F4595",
+                    "fontSize": 10,
+                    "fontWeight": 400,
+                    "height": 14,
+                    "maxLines": 1,
+                    "minFontSize": 10,
+                    "textOverflow": "ellipsis"
+                  }
+                ]
+              }
+            ],
+            "component": "Column",
+            "values": [
+              {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "itemMargin": 2,
+                "justifyContent": "start"
+              }
+            ]
+          }
+        ],
+        "component": "Row",
+        "values": [
+          {
+            "alignItems": "top",
+            "clip": true,
+            "constraintSize": {
+              "minHeight": 0,
+              "minWidth": 0
+            },
+            "height": "{{ ${/data/calendar/events/0/dtStart} == '' ? 24 : 54 }}",
+            "itemMargin": 8,
+            "justifyContent": "start",
+            "width": "matchParent"
+          }
+        ]
+      }
+    ],
+    "component": "Column",
+    "values": [
+      {
+        "_advancedComponent": "ScheduleOverview",
+        "alignItems": "start",
+        "clip": true,
+        "constraintSize": {
+          "minHeight": 0,
+          "minWidth": 0
+        },
+        "height": "matchParent",
+        "itemMargin": 4,
+        "justifyContent": "start",
+        "width": "matchParent"
+      }
+    ]
+  },
+  "templateId": "ScheduleOverviewReminderHero@1",
+  "withParams": {
+    "appliedParams": {
+      "headerLabel": "日程安排"
+    },
+    "root": {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [],
+              "component": "Text",
+              "values": [
+                "日程安排",
+                {
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "fontColor": "#991F4595",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "height": 16,
+                  "maxLines": 1,
+                  "textOverflow": "ellipsis",
+                  "width": 112
+                }
+              ]
+            }
+          ],
+          "component": "Row",
+          "values": [
+            {
+              "alignItems": "center",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 20,
+              "justifyContent": "spaceBetween",
+              "width": "matchParent"
+            }
+          ]
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "component": "Divider",
+                      "values": [
+                        {
+                          "color": "#00FFFFFF",
+                          "height": 0,
+                          "strokeWidth": 0,
+                          "width": 0
+                        }
+                      ]
+                    }
+                  ],
+                  "component": "Stack",
+                  "values": [
+                    {
+                      "alignContent": "center",
+                      "backgroundColor": "#00FFFFFF",
+                      "borderColor": "#E61F4595",
+                      "borderRadius": 4,
+                      "borderWidth": 1.5,
+                      "flexShrink": 0,
+                      "height": 8,
+                      "width": 8
+                    }
+                  ]
+                },
+                {
+                  "children": [],
+                  "component": "Divider",
+                  "values": [
+                    {
+                      "color": "#991F4595",
+                      "layoutWeight": 1,
+                      "strokeWidth": 1,
+                      "vertical": true,
+                      "width": 1
+                    }
+                  ]
+                }
+              ],
+              "component": "Column",
+              "values": [
+                {
+                  "alignItems": "center",
+                  "clip": true,
+                  "flexShrink": 0,
+                  "height": "matchParent",
+                  "itemMargin": 4,
+                  "justifyContent": "start",
+                  "padding": {
+                    "bottom": 2,
+                    "left": 0,
+                    "right": 0,
+                    "top": 4
+                  },
+                  "width": 8
+                }
+              ]
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "component": "Text",
+                  "values": [
+                    "${data.calendar.events.0.title}",
+                    {
+                      "fontColor": "#E61F4595",
+                      "fontSize": 14,
+                      "fontWeight": 700,
+                      "height": 20,
+                      "margin": {
+                        "bottom": 2
+                      },
+                      "maxLines": 1,
+                      "textOverflow": "ellipsis"
+                    }
+                  ]
+                },
+                {
+                  "children": [],
+                  "component": "Text",
+                  "values": [
+                    "${data.calendar.events.0.dtStart}",
+                    {
+                      "constraintSize": {
+                        "minHeight": 0,
+                        "minWidth": 0
+                      },
+                      "fontColor": "#991F4595",
+                      "fontSize": 10,
+                      "fontWeight": 400,
+                      "height": 14,
+                      "maxLines": 1,
+                      "minFontSize": 10,
+                      "textOverflow": "ellipsis"
+                    }
+                  ]
+                },
+                {
+                  "children": [],
+                  "component": "Text",
+                  "values": [
+                    "{{ ${/data/calendar/events/0/dtStart} == '' ? '' : ('提前' + ${/data/calendar/events/0/remindTime/0} + '分钟提醒') }}",
+                    {
+                      "constraintSize": {
+                        "minHeight": 0,
+                        "minWidth": 0
+                      },
+                      "fontColor": "#991F4595",
+                      "fontSize": 10,
+                      "fontWeight": 400,
+                      "height": 14,
+                      "maxLines": 1,
+                      "minFontSize": 10,
+                      "textOverflow": "ellipsis"
+                    }
+                  ]
+                }
+              ],
+              "component": "Column",
+              "values": [
+                {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "itemMargin": 2,
+                  "justifyContent": "start"
+                }
+              ]
+            }
+          ],
+          "component": "Row",
+          "values": [
+            {
+              "alignItems": "top",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": "{{ ${/data/calendar/events/0/dtStart} == '' ? 24 : 54 }}",
+              "itemMargin": 8,
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          ]
+        }
+      ],
+      "component": "Column",
+      "values": [
+        {
+          "_advancedComponent": "ScheduleOverview",
+          "alignItems": "start",
+          "clip": true,
+          "constraintSize": {
+            "minHeight": 0,
+            "minWidth": 0
+          },
+          "height": "matchParent",
+          "itemMargin": 4,
+          "justifyContent": "start",
+          "width": "matchParent"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "actionRegionHeight": 36,
+  "contentRegion": {
+    "businessRegionCount": 2,
+    "businessRegions": [
+      {
+        "alignItems": "start",
+        "hasHeight": false,
+        "hasLayoutWeight": false,
+        "justifyContent": "start",
+        "width": "matchParent"
+      },
+      {
+        "alignItems": "start",
+        "hasHeight": false,
+        "hasLayoutWeight": false,
+        "justifyContent": "start",
+        "width": "matchParent"
+      }
+    ],
+    "itemMargin": 8,
+    "layoutWeight": 1
+  }
+}

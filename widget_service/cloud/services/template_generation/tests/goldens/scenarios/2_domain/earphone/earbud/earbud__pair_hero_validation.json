@@ -1,0 +1,18 @@
+{
+  "legacy_hero_requires_connection": {
+    "errorType": "TerselConversionError",
+    "message": "Bluetooth Provider Template has no trusted earphone identity."
+  },
+  "missing_earphoneName": {
+    "errorType": "TerselConversionError",
+    "message": "Bluetooth Provider Template has no trusted earphone facts."
+  },
+  "missing_leftBatteryLevel": {
+    "errorType": "TerselConversionError",
+    "message": "Bluetooth Provider Template variant does not match the trusted data shape."
+  },
+  "missing_rightBatteryLevel": {
+    "errorType": "TerselConversionError",
+    "message": "Bluetooth Provider Template variant does not match the trusted data shape."
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "3a503b1308f946ee00db6c4717fc7123e51f956d9fd9d4eb24bb86d2c5016ed6",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"CountdownOverviewHero@1\", {\"title\": \"马拉松倒计时\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.clock.alarm\", \"label\": \"设置闹钟\"}));"
+    },
+    {
+      "key": "ff561ba81870fe70bd06999524bbed8e3b8f3cab24780f85b1a5b0951343920f",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCountdownDays\":[\"/countdownDays\"]},\"action\":[\"event.open.clock.alarm\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

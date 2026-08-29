@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "0b650326235a6bc3cc3f389fe33012151134f101cb5ba861f46e64d769c35c6a",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/healthStatusDesc\",\"/batteryTemperatureText\",\"/pluggedTypeDesc\"]},\"primaryOutputFieldByCapability\":{\"GetPhoneBatteryInfo\":\"/batterySOC\"},\"action\":[\"event.open.settings.batteryHealth\"]}"
+    }
+  ]
+}

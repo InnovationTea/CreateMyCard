@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "1a49addac2eb9611545db2ad13fb250e49c4a4973e4b9616ec751869e68635e7",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"SleepOverviewNapHero@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.clock.alarm\", \"label\": \"设置闹钟\"}));"
+    },
+    {
+      "key": "45b510cf3fb1f492dfa46c8f7fd23dc75025310ac81c1ef6d2125686fd584e40",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/totalNapDurationText\",\"/fallAsleepTimeText\",\"/wakeupTimeText\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.open.clock.alarm\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

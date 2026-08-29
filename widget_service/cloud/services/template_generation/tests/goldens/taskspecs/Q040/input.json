@@ -1,0 +1,79 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我做个电池卡片，带充电进度条，看看充电状态和电池健康等信息。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "arguments": {},
+        "writeResultTo": "/data/phoneBattery",
+        "candidateOutputFields": [
+          "/batterySOC",
+          "/chargingStatusDesc",
+          "/healthStatusDesc",
+          "/pluggedTypeDesc"
+        ]
+      }
+    ],
+    "title": "充电健康",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "电量+充电+电池健康",
+    "candidateAssetIds": [
+      "asset.battery_leaf_fill",
+      "asset.bolt_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260821000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "040",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我做个电池卡片，带充电进度条，看看充电状态和电池健康等信息。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我做个电池卡片，带充电进度条，看看充电状态和电池健康等信息。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "arguments": {},
+      "writeResultTo": "/data/phoneBattery",
+      "candidateOutputFields": [
+        "/batterySOC",
+        "/chargingStatusDesc",
+        "/healthStatusDesc",
+        "/pluggedTypeDesc"
+      ]
+    }
+  ],
+  "title": "充电健康",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "电量+充电+电池健康",
+  "candidateAssetIds": [
+    "asset.battery_leaf_fill",
+    "asset.bolt_fill"
+  ]
+}

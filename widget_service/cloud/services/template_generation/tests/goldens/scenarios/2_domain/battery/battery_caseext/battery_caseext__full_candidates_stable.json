@@ -1,0 +1,9 @@
+{
+  "identical": true,
+  "withVariant": [
+    "BatteryOverviewFull@1"
+  ],
+  "withoutVariant": [
+    "BatteryOverviewFull@1"
+  ]
+}

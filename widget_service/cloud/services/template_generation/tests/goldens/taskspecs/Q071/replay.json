@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "32e250c0347e0320fc0d8a107ba548c3a1395139b9265b921f5784928946431d",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/targetDateText\",\"/exerciseTypeName\",\"/exerciseDurationText\",\"/exerciseStartTimeText\",\"/exerciseEndTimeText\",\"/exerciseHeartRateAvg\",\"/exerciseHeartRateMax\"]},\"action\":[\"event.open.health.sport\"]}"
+    }
+  ]
+}

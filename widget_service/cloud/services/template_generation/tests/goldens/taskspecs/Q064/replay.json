@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "4b07c8e52644f9f3433ef730a0e03a92644b3790e2c1265ec9b197680491de43",
+      "response": "Template(\"WideSingleFocusLayout@1\", {}, Template(\"ActivityOverviewExerciseWideHero@1\", {\"stepsIcon\": \"resources/base/media/figure_run.svg\", \"timeIcon\": \"resources/base/media/stopwatch_fill.svg\", \"caloriesIcon\": \"resources/base/media/flame_fill.svg\", \"heartIcon\": \"resources/base/media/heart_fill.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.health.sport\", \"label\": \"今日训练\"}));"
+    },
+    {
+      "key": "a51f7b4fffd42a26ef1a384a0f592347867b382ca8c98269ccddd4b671366873",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/dailySteps\",\"/dailyDistanceText\",\"/exerciseTypeName\",\"/exerciseDurationText\",\"/exerciseCalorieText\",\"/exerciseHeartRateAvg\",\"/exerciseHeartRateMin\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.open.health.sport\"]}"
+    }
+  ]
+}

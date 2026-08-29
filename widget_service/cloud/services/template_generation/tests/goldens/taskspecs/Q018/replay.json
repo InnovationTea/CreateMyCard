@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "3173217e147829bbf212c78ab0f3d9fc5e90efc54382cdb1c4b09d3a8c422bf1",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"ScheduleOverviewLocationHero@1\", {\"calendarIcon\": \"resources/base/media/clock_fill.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.startNavigate\", \"label\": \"开始导航\"}));"
+    },
+    {
+      "key": "794c411afe7e1b91bae0645f6de249afe138e2b4b66c462621e3c68191c34dc3",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/dtStart\",\"/events/0/eventLocation\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.startNavigate\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "boundSerialized": "Column(Text(\"{{ ${/data/calendar/value} + '单位' }}\"))",
+  "emptyBindingsSerialized": "Column()",
+  "unguardedError": {
+    "errorType": "ValueError",
+    "message": "Provider Template optional Bind must be nested under #if data.value or #Expr"
+  }
+}

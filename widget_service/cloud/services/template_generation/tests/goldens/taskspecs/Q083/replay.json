@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "c0c91b043a20fba98ad691f4b1f756d4b8060f26476902772655b66f7f860c0d",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/current/windLevel\",\"/daily/0/rainProbabilityPercent\"],\"GetEarphoneInfo\":[\"/isConnected\",\"/batteryLevel\"]},\"action\":[\"event.open.music.favorite\"]}"
+    }
+  ]
+}

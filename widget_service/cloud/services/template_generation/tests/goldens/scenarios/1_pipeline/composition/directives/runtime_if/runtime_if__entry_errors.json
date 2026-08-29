@@ -1,0 +1,50 @@
+{
+  "archive": {
+    "errorType": "CompactDslConversionError",
+    "message": "if: unsupported A2UI component type."
+  },
+  "compact:IF": {
+    "errorType": "CompactDslConversionError",
+    "message": "if: unsupported component type \"IF\"."
+  },
+  "compact:If": {
+    "errorType": "CompactDslConversionError",
+    "message": "if: unsupported component type \"If\"."
+  },
+  "provider:camelcase": {
+    "errorType": "ValueError",
+    "message": "unsupported Provider Template component: If"
+  },
+  "provider:directive": {
+    "errorType": "ValueError",
+    "message": "unsupported Provider Template component: IF"
+  },
+  "provider:expr_condition": {
+    "errorType": "ValueError",
+    "message": "unsupported Provider Template component: IF"
+  },
+  "provider:nested": {
+    "errorType": "ValueError",
+    "message": "unsupported Provider Template component: IF"
+  },
+  "provider:no_else": {
+    "errorType": "ValueError",
+    "message": "unsupported Provider Template component: IF"
+  },
+  "provider:ternary": {
+    "errorType": "ValueError",
+    "message": "unsupported Provider Template component: IF"
+  },
+  "source_adapter": {
+    "errorType": "TemplateSourceAdapterError",
+    "message": "template A2UI cannot be converted to Design Compact DSL"
+  },
+  "tersel:IF": {
+    "errorType": "TerselConversionError",
+    "message": "Unsupported component type \"IF\"."
+  },
+  "tersel:If": {
+    "errorType": "TerselConversionError",
+    "message": "Unsupported component type \"If\"."
+  }
+}

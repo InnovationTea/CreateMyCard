@@ -1,0 +1,115 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "准备去厦门海边航拍，帮我做个卡片，看天气定位是不是厦门、当地风向、风力和天气更新时间，点一下查看厦门天气详情。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "prefectureName": "厦门市",
+          "forecastDays": 1
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/location/prefectureName",
+          "/current/windDirection",
+          "/current/windLevel",
+          "/updatedAt",
+          "/location/cityCode"
+        ]
+      }
+    ],
+    "title": "海边航拍",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.weather",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Weather_CityCode",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+          }
+        }
+      }
+    ],
+    "description": "城市风况和更新",
+    "candidateAssetIds": [
+      "asset.icon_weather_wind",
+      "asset.clock",
+      "asset.local_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "025",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "准备去厦门海边航拍，帮我做个卡片，看天气定位是不是厦门、当地风向、风力和天气更新时间，点一下查看厦门天气详情。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "准备去厦门海边航拍，帮我做个卡片，看天气定位是不是厦门、当地风向、风力和天气更新时间，点一下查看厦门天气详情。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "prefectureName": "厦门市",
+        "forecastDays": 1
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/location/prefectureName",
+        "/current/windDirection",
+        "/current/windLevel",
+        "/updatedAt",
+        "/location/cityCode"
+      ]
+    }
+  ],
+  "title": "海边航拍",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.weather",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Weather_CityCode",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode=' + ${/data/weather/location/cityCode} }}"
+        }
+      }
+    }
+  ],
+  "description": "城市风况和更新",
+  "candidateAssetIds": [
+    "asset.icon_weather_wind",
+    "asset.clock",
+    "asset.local_fill"
+  ]
+}

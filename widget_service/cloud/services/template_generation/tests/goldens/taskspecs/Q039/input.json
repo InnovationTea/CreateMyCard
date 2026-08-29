@@ -1,0 +1,105 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我做个运动卡片，看看最近一次练了什么、练了多久，点一下打开运动健康的锻炼页。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {
+          "targetDayOffset": 0
+        },
+        "writeResultTo": "/data/healthSport",
+        "candidateOutputFields": [
+          "/exerciseTypeName",
+          "/exerciseDurationText"
+        ]
+      }
+    ],
+    "title": "今日锻炼",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.health.sport",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Health",
+            "bundleName": "",
+            "abilityName": "",
+            "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+          }
+        }
+      }
+    ],
+    "description": "最近运动类型+时长+锻炼入口",
+    "candidateAssetIds": [
+      "asset.figure_run",
+      "asset.stopwatch_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260821000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "039",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我做个运动卡片，看看最近一次练了什么、练了多久，点一下打开运动健康的锻炼页。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我做个运动卡片，看看最近一次练了什么、练了多久，点一下打开运动健康的锻炼页。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetHealthAndSportSummary",
+      "arguments": {
+        "targetDayOffset": 0
+      },
+      "writeResultTo": "/data/healthSport",
+      "candidateOutputFields": [
+        "/exerciseTypeName",
+        "/exerciseDurationText"
+      ]
+    }
+  ],
+  "title": "今日锻炼",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.health.sport",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Health",
+          "bundleName": "",
+          "abilityName": "",
+          "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+        }
+      }
+    }
+  ],
+  "description": "最近运动类型+时长+锻炼入口",
+  "candidateAssetIds": [
+    "asset.figure_run",
+    "asset.stopwatch_fill"
+  ]
+}

@@ -1,0 +1,162 @@
+{
+  "messages": [
+    {
+      "createSurface": {
+        "catalogId": "ohos.a2ui.extended.catalog.form",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateComponents": {
+        "components": [
+          {
+            "children": [
+              "template_root"
+            ],
+            "component": "Column",
+            "id": "root",
+            "itemMargin": 8,
+            "styles": {
+              "alignItems": "start",
+              "backgroundColor": "#FFFFFFFF",
+              "borderRadius": 20,
+              "clip": true,
+              "height": "matchParent",
+              "justifyContent": "start",
+              "padding": 12,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0"
+            ],
+            "component": "Column",
+            "id": "template_root",
+            "itemMargin": 6,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 68,
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0"
+            ],
+            "component": "Column",
+            "id": "template_root_0",
+            "itemMargin": 4,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": "matchParent",
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0_0",
+              "template_root_0_0_1"
+            ],
+            "component": "Row",
+            "id": "template_root_0_0",
+            "itemMargin": 4,
+            "styles": {
+              "alignItems": "top",
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "template_root_0_0_0_0",
+              "template_root_0_0_0_1"
+            ],
+            "component": "Column",
+            "id": "template_root_0_0_0",
+            "itemMargin": 2,
+            "styles": {
+              "alignItems": "start",
+              "justifyContent": "start",
+              "layoutWeight": 1,
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/healthSport/nightSleepDurationText} }}",
+            "id": "template_root_0_0_0_0",
+            "styles": {
+              "fontColor": "#E61F4595",
+              "fontSize": 18,
+              "fontWeight": 700,
+              "height": 24,
+              "maxLines": 1
+            }
+          },
+          {
+            "component": "Text",
+            "content": "睡眠监测时长",
+            "id": "template_root_0_0_0_1",
+            "styles": {
+              "fontColor": "#991F4595",
+              "fontSize": 10,
+              "fontWeight": 500,
+              "maxLines": 1
+            }
+          },
+          {
+            "component": "Image",
+            "id": "template_root_0_0_1",
+            "src": "resources/base/media/moon_z_fill_1.svg",
+            "styles": {
+              "fillColor": "#991F4595",
+              "flexShrink": 0,
+              "height": 20,
+              "objectFit": "contain",
+              "width": 20
+            }
+          }
+        ],
+        "root": "root",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateDataModel": {
+        "path": "/",
+        "surfaceId": "surface_card",
+        "value": {
+          "data": {
+            "healthSport": {
+              "nightSleepDurationText": "7小时1分"
+            }
+          }
+        }
+      },
+      "version": "v0.9"
+    }
+  ],
+  "meta": {
+    "businessId": "SleepOverview",
+    "capabilityId": "GetHealthAndSportSummary",
+    "layoutKind": "Compact",
+    "providerId": "com.huawei.health-sport.cli",
+    "size": "2x2"
+  },
+  "templateId": "SleepOverviewCompact@1"
+}

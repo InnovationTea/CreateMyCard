@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "3bce780cfa33ad99944a34764eea3167a8c639e7d9ea938836ab2b9473f4a900",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/dtStart\",\"/events/0/eventLocation\"],\"GetEarphoneInfo\":[\"/isConnected\",\"/batteryLevel\"]},\"action\":[\"event.enter.meeting\",\"event.open.settings.bluetooth\"]}"
+    },
+    {
+      "key": "821b44f39063750768a2249d40dacb25ec08947fb5647c05bdcde7769a56e1d7",
+      "response": "Template(\"WideTwoFocusTwoActionLayout@1\", {}, Template(\"ScheduleOverviewLocationHero@1\", {\"calendarIcon\": \"resources/base/media/local_fill.svg\"}), Template(\"BluetoothDeviceOverviewCaseConnectionHero@1\", {\"deviceIcon\": \"resources/base/media/earphone_case_16644.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.enter.meeting\", \"label\": \"加入会议\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.bluetooth\", \"label\": \"蓝牙设置\"}));"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "a2ui_validator": {
+    "codes": [
+      "DSL_COMPONENT_UNKNOWN"
+    ]
+  },
+  "compact:IF": {
+    "cardCodes": [
+      "DSL_COMPONENT_UNKNOWN"
+    ],
+    "compactDslWarnings": [],
+    "processorErrors": []
+  },
+  "compact:If": {
+    "cardCodes": [
+      "DSL_COMPONENT_UNKNOWN"
+    ],
+    "compactDslWarnings": [],
+    "processorErrors": []
+  }
+}

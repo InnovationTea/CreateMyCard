@@ -1,0 +1,7 @@
+{
+  "invalid": {
+    "errorType": "TerselConversionError",
+    "message": "Template Expr is not a valid A2UI expression: Expression identifier \"fetch\" is not supported."
+  },
+  "normalized": "{{ ${/data/battery/score} <= 20 ? '#FFF9A01E' : '#FF64BB5C' }}"
+}

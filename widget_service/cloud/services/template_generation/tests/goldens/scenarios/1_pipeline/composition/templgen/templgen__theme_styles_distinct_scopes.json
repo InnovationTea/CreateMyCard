@@ -1,0 +1,138 @@
+{
+  "loweredPillAction": {
+    "children": [],
+    "component": "Button",
+    "values": [
+      "打开",
+      {
+        "_boundTemplateAction": "event.open",
+        "backgroundColor": "#1A0A59F7",
+        "borderRadius": 18,
+        "fontColor": "#FF0A59F7",
+        "fontSize": 14,
+        "fontWeight": 500,
+        "height": 36,
+        "onClick": [
+          {
+            "call": "open"
+          }
+        ]
+      }
+    ]
+  },
+  "shellRoot": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [],
+            "component": "Text",
+            "values": [
+              "默认内容色",
+              {
+                "fontColor": "#E6000000"
+              }
+            ]
+          },
+          {
+            "children": [],
+            "component": "Text",
+            "values": [
+              "显式内容色",
+              {
+                "fontColor": "#FF123456"
+              }
+            ]
+          },
+          {
+            "children": [],
+            "component": "Image",
+            "values": [
+              "icon.svg",
+              {
+                "fillColor": "#FF654321"
+              }
+            ]
+          },
+          {
+            "children": [],
+            "component": "Progress",
+            "values": [
+              {
+                "color": "#FFABCDEF",
+                "value": 50
+              }
+            ]
+          },
+          {
+            "children": [],
+            "component": "Button",
+            "values": [
+              {
+                "backgroundColor": "#FFFFFFFF",
+                "fontColor": "#E6000000",
+                "onClick": [
+                  {
+                    "call": "ordinaryButton"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "children": [],
+            "component": "Button",
+            "values": [
+              "打开",
+              {
+                "_boundTemplateAction": "event.open",
+                "borderRadius": 18,
+                "fontSize": 14,
+                "fontWeight": 500,
+                "height": 36,
+                "onClick": [
+                  {
+                    "call": "open"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "component": "Column",
+        "values": [
+          {
+            "_id": "template_root"
+          }
+        ]
+      }
+    ],
+    "component": "Column",
+    "values": [
+      "card",
+      {
+        "_id": "root",
+        "alignItems": "start",
+        "backgroundColor": "#FFFFFFFF",
+        "borderRadius": 20,
+        "clip": true,
+        "itemMargin": 8,
+        "justifyContent": "spaceBetween",
+        "linearGradient": {
+          "colors": [
+            [
+              "#1AF9A01E",
+              0
+            ],
+            [
+              "#00FFFFFF",
+              1
+            ]
+          ],
+          "direction": "Bottom"
+        },
+        "padding": 12
+      }
+    ]
+  }
+}

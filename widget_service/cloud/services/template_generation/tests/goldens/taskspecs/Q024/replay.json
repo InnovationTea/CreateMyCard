@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "1ad2cc127d7a67f08ebcb12edbc09d70e8bff26876e8c575d8241e6fa1fa48f4",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"ScheduleOverviewReminderDetailsHero@1\", {}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.dnd\", \"label\": \"免打扰\"}));"
+    },
+    {
+      "key": "7dd23d880069cec9a2a1d46e63bf12c31d9bb820dacd7de2a8dfa069deb56dd2",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/senderName\",\"/events/0/importantEventType\",\"/events/0/remindTime/0\",\"/updatedAt\"]},\"action\":[\"event.open.settings.dnd\"],\"allowCalendarViewFallback\":true}"
+    }
+  ]
+}
