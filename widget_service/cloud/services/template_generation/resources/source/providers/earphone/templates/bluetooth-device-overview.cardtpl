@@ -35,6 +35,100 @@ Column(
 )
 #End
 
+#Template BluetoothDeviceOverviewHero@1(props: { title?: string })
+data = {
+    connected: $path("/isConnected"),
+    name: $path("/earphoneName")
+}
+
+Column(
+  {
+    "_advancedComponent": "BluetoothDeviceOverview",
+    "_layoutActionBackgroundOpacity": 0.1,
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 4,
+    "justifyContent": "start",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0, "minHeight": 0}
+  },
+  IfPresent(
+    props.title,
+    Text(
+      props.title,
+      {
+        "width": "matchParent",
+        "height": 20,
+        "fontSize": 12,
+        "fontWeight": 400,
+        "fontColor": $theme('supportContentColor'),
+        "maxLines": 1,
+        "textAlign": "start",
+        "textOverflow": "ellipsis",
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+      }
+    )
+  ),
+  IfAbsent(
+    props.title,
+    Text(
+      "耳机",
+      {
+        "width": "matchParent",
+        "height": 20,
+        "fontSize": 12,
+        "fontWeight": 400,
+        "fontColor": $theme('supportContentColor'),
+        "maxLines": 1,
+        "textAlign": "start",
+        "textOverflow": "ellipsis",
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+      }
+    )
+  ),
+  Column(
+    {
+      "width": "matchParent",
+      "height": 48,
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+    Text(
+      Expr(`${data.connected} ? '已连接' : '未连接'`),
+      {
+        "width": "matchParent",
+        "height": 28,
+        "fontSize": 20,
+        "fontWeight": 700,
+        "fontColor": $theme('primaryColor'),
+        "maxLines": 1,
+        "textAlign": "start",
+        "textOverflow": "ellipsis",
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+      }
+    ),
+    Text(
+      data.name,
+      {
+        "width": "matchParent",
+        "height": 16,
+        "fontSize": 12,
+        "fontWeight": 400,
+        "fontColor": $theme('supportContentColor'),
+        "maxLines": 1,
+        "textAlign": "start",
+        "textOverflow": "ellipsis",
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+      }
+    )
+  )
+)
+#End
+
 #Template BluetoothDeviceOverviewConnectionFull@1(props: { sourceIcon?: asset })
 data = {
     connected: $path("/isConnected"),
@@ -216,6 +310,75 @@ Column(
   Text(
       Expr(`${data.connected} ? '已连接' : '未连接'`),
       {"width": "matchParent", "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    )
+)
+#End
+
+#Template BluetoothDeviceOverviewCaseStatusCompact@1(props: { headerLabel?: string, deviceIcon: asset })
+data = {
+    battery: $path("/batteryLevel"),
+    chargingStatus: $path("/chargingStatusDesc"),
+    leftChargingStatus: $optionalPath("/leftChargingStatusDesc"),
+    rightChargingStatus: $optionalPath("/rightChargingStatusDesc")
+}
+
+Column(
+  {"_advancedComponent": "BluetoothDeviceOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 2,
+    "justifyContent": "start",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  IfPresent(
+      props.headerLabel,
+      Text(
+          props.headerLabel,
+          {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "start", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        )
+    ),
+  IfAbsent(
+      props.headerLabel,
+      Text(
+          "耳机设备",
+          {"width": "matchParent", "height": 16, "fontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "start", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        )
+    ),
+  Row(
+      {"width": "matchParent", "height": 14, "itemMargin": 8, "justifyContent": "start", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Row(
+          {"width": 44, "height": 14, "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+          Image(
+              props.deviceIcon,
+              {"width": 12, "height": 12, "objectFit": "contain", "_preserveOriginalColor": true, "flexShrink": 0}
+            ),
+          Text(
+              Expr(`'' + ${data.battery} + '%'`),
+              {"width": 28, "height": 14, "fontSize": 10, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "start", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            )
+        ),
+      Text(
+          data.chargingStatus,
+          {"width": 76, "height": 14, "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "start", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        )
+    ),
+  Row(
+      {"width": "matchParent", "height": 12, "itemMargin": 8, "justifyContent": "start", "alignItems": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      IfPresent(
+          data.leftChargingStatus,
+          Text(
+              `左 ${data.leftChargingStatus}`,
+              {"width": 64, "height": 12, "fontSize": 9, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "start", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            )
+        ),
+      IfPresent(
+          data.rightChargingStatus,
+          Text(
+              `右 ${data.rightChargingStatus}`,
+              {"width": 64, "height": 12, "fontSize": 9, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "start", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            )
+        )
     )
 )
 #End

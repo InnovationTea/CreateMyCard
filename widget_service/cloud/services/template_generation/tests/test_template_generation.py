@@ -45,7 +45,9 @@ from services.template_generation.engine.advanced.content_selectors import (
     app_usage_overview_is_eligible,
     app_usage_overview_query_is_supported,
     apply_content_selectors,
+    bluetooth_device_overview_is_eligible,
     extract_battery_overview_facts,
+    extract_bluetooth_device_overview_facts,
     extract_schedule_overview_facts,
     extract_schedule_timezone_facts,
     extract_workout_latest_facts,
@@ -207,7 +209,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 88
+    assert len(registry.provider_template_ids) == 90
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -217,6 +219,8 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "BatteryOverviewHealthLevelHero@1",
         "BatteryOverviewChargingDiagnosticsHero@1",
         "BluetoothDeviceOverviewCaseFull@1",
+        "BluetoothDeviceOverviewCaseStatusCompact@1",
+        "BluetoothDeviceOverviewHero@1",
         "CountdownOverviewFull@1",
         "HeartRateOverviewFull@1",
         "ResourceUsageOverviewFull@1",
@@ -535,6 +539,24 @@ def test_every_provider_asset_prop_has_second_layer_semantic_description():
         )
         missing = sorted(name for name in asset_props if name not in rule_text)
         assert not missing, f"{provider_root.name} asset props lack descriptions: {missing}"
+
+
+def test_earphone_hero_covers_music_and_connection_actions() -> None:
+    registry = get_cardplan_registry()
+    provider_root = registry.source_root / "providers/earphone"
+    manifest = json.loads((provider_root / "provider.json").read_text(encoding="utf-8"))
+    descriptions = {
+        item["templateId"]: item["description"]
+        for item in manifest["templates"]
+    }
+    hero_description = descriptions["BluetoothDeviceOverviewHero@1"]
+    rule_text = (provider_root / "layer-docs/second-layer.md").read_text(encoding="utf-8")
+
+    assert "音乐" in hero_description
+    assert "蓝牙连接与设置管理" in hero_description
+    assert "event.open.settings.bluetooth" in rule_text
+    assert "event.open.music.*" in rule_text
+    assert "不按连接或未连接状态选择不同模板" in rule_text
 
 
 def test_nested2_full_document_converts_component_binding_and_data_model():
@@ -1440,18 +1462,20 @@ def test_unknown_template_controls_fail_closed(kwargs, message):
         CardPlanRegistry(**kwargs)
 
 
-def test_checked_in_template_controls_enable_calendar_and_disable_earphone():
+def test_checked_in_template_controls_enable_calendar_and_earphone():
     controls = load_template_controls()
     registry = CardPlanRegistry(
         disabled_provider_ids=controls.disabled_provider_ids,
         disabled_template_ids=controls.disabled_template_ids,
     )
 
-    assert controls.disabled_provider_ids == ("com.huawei.earphone.cli",)
+    assert controls.disabled_provider_ids == ()
     assert controls.disabled_template_ids == ()
     assert registry.template_is_enabled("ScheduleOverviewNextEventFull@1")
     assert registry.template_is_enabled("ScheduleOverviewNextEventHero@1")
-    assert not registry.template_is_enabled("BluetoothDeviceOverviewCaseFull@1")
+    assert registry.template_is_enabled("BluetoothDeviceOverviewCaseFull@1")
+    assert registry.template_is_enabled("BluetoothDeviceOverviewCaseStatusCompact@1")
+    assert registry.template_is_enabled("BluetoothDeviceOverviewHero@1")
     assert registry.template_is_enabled("WeatherOverviewFull@1")
 
 
@@ -1676,7 +1700,12 @@ def test_business_artwork_assets_preserve_their_original_colors() -> None:
     registry = get_cardplan_registry()
     original_color_props = {
         "AppUsageOverview": {"appIcon"},
-        "BluetoothDeviceOverview": {"sourceIcon", "leftEarIcon", "rightEarIcon"},
+        "BluetoothDeviceOverview": {
+            "sourceIcon",
+            "leftEarIcon",
+            "rightEarIcon",
+            "deviceIcon",
+        },
         "HeartRateOverview": {"sourceIcon"},
         "SleepOverview": {"sourceIcon"},
         "WorkoutOverview": {"sourceIcon"},
@@ -1700,7 +1729,7 @@ def test_business_artwork_assets_preserve_their_original_colors() -> None:
             assert preserve_original.value is True
             preserved_assets.append((template_id, source.name))
 
-    assert len(preserved_assets) == 44
+    assert len(preserved_assets) == 45
 
 
 def test_calendar_monochrome_source_icons_use_the_theme_primary_color() -> None:
@@ -2878,7 +2907,7 @@ class _FixedTemplateModel:
         capability_id: str,
         required_fields: tuple[str, ...],
         body: str,
-        action_id: str | None = None,
+        action_id: str | tuple[str, ...] | None = None,
     ) -> None:
         self.theme_id = theme_id
         self.component_id = component_id
@@ -2928,10 +2957,91 @@ def _bluetooth_task(query: str) -> TaskSpec:
     )
 
 
+def _bluetooth_case_status_task(
+    device_icon: str = "resources/base/media/earphone_case_16644.svg",
+) -> TaskSpec:
+    icon_description = (
+        "耳机收纳盒实心图标"
+        if device_icon.endswith("earphone_case_16644.svg")
+        else "整副蓝牙耳机图标"
+    )
+    return TaskSpec(
+        userQuery=(
+            "睡前想听半小时歌又怕睡过头，帮我做个卡片，卡片上需要有耳机盒"
+            "充没充、电量够不够，能进歌单和闹钟。"
+        ),
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.open.music.daily",
+                call="clickToDeeplink",
+                args={
+                    "intentName": "Music",
+                    "bundleName": "",
+                    "abilityName": "",
+                    "uri": "hwmusic://daily",
+                },
+            ),
+            EventAction(
+                id="event.open.clock.alarm",
+                call="clickToDeeplink",
+                args={
+                    "intentName": "Clock",
+                    "bundleName": "com.huawei.hmos.clock",
+                    "abilityName": "com.huawei.hmos.clock.phone",
+                    "uri": "",
+                },
+            ),
+        ],
+        assetCandidates=[
+            {
+                "src": device_icon,
+                "description": icon_description,
+                "sceneTags": ["device", "audio"],
+            },
+            {
+                "src": "resources/base/media/music_fill.svg",
+                "description": "每日歌单音乐图标",
+                "sceneTags": ["music", "media"],
+            },
+            {
+                "src": "resources/base/media/alarm_fill_1.svg",
+                "description": "闹钟图标",
+                "sceneTags": ["alarm", "reminder"],
+            },
+        ],
+        dataModelSchema={
+            "data": {
+                "earphone": {
+                    "batteryLevel": _provider_field(80, "integer"),
+                    "chargingStatusDesc": _provider_field("充电中", "string"),
+                    "leftChargingStatusDesc": _provider_field("未充电", "string"),
+                    "rightChargingStatusDesc": _provider_field("充电中", "string"),
+                }
+            }
+        },
+    )
+
+
 def _bluetooth_card_spec() -> dict[str, Any]:
     return {
         "title": "耳机",
         "description": "耳机连接与电量",
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {
+                "capabilityId": "GetEarphoneInfo",
+                "arguments": {},
+                "writeResultTo": "/data/earphone",
+            }
+        ],
+    }
+
+
+def _bluetooth_case_status_card_spec() -> dict[str, Any]:
+    return {
+        "title": "助眠音乐闹钟",
+        "description": "耳机盒电量、充电状态、歌单和闹钟",
         "suggestSize": "2x2",
         "dataBindings": [
             {
@@ -3107,6 +3217,191 @@ async def test_bluetooth_connection_and_case_queries_have_honest_template_covera
     assert "已连接" in output.a2ui and "未连接" in output.a2ui
 
 
+def test_bluetooth_case_status_facts_do_not_require_device_identity() -> None:
+    task_spec = _bluetooth_case_status_task()
+
+    facts = extract_bluetooth_device_overview_facts(task_spec.dataModelSchema)
+
+    assert facts is not None
+    assert facts.is_connected is None
+    assert facts.earphone_name is None
+    assert facts.case_battery_level == 80
+    assert facts.case_charging_status == "充电中"
+    assert bluetooth_device_overview_is_eligible(task_spec, {"GetEarphoneInfo"})
+
+
+def test_bluetooth_case_status_compact_matches_e2_geometry() -> None:
+    registry = get_cardplan_registry()
+    root = registry.require_variant(
+        "BluetoothDeviceOverviewCaseStatusCompact@1",
+        "default",
+    ).root
+
+    root_options = _template_node_options(root)
+    rows = _template_nodes(root, "Row")
+    image_options = _template_node_options(_template_nodes(root, "Image")[0])
+    text_options = [
+        _template_node_options(node) for node in _template_nodes(root, "Text")
+    ]
+
+    assert root_options["width"] == "matchParent"
+    assert root_options["height"] == "matchParent"
+    assert root_options["itemMargin"] == 2
+    assert root_options["justifyContent"] == "start"
+    assert root_options["alignItems"] == "start"
+    assert _template_node_options(rows[0]) == {
+        "width": "matchParent",
+        "height": 14,
+        "itemMargin": 8,
+        "justifyContent": "start",
+        "alignItems": "center",
+    }
+    assert _template_node_options(rows[1]) == {
+        "width": 44,
+        "height": 14,
+        "itemMargin": 4,
+        "justifyContent": "start",
+        "alignItems": "center",
+    }
+    assert _template_node_options(rows[2]) == {
+        "width": "matchParent",
+        "height": 12,
+        "itemMargin": 8,
+        "justifyContent": "start",
+        "alignItems": "center",
+    }
+    assert image_options["width"] == 12
+    assert image_options["height"] == 12
+    assert image_options["objectFit"] == "contain"
+    assert [options["height"] for options in text_options] == [16, 16, 14, 14, 12, 12]
+    assert [options["fontSize"] for options in text_options] == [12, 12, 10, 10, 9, 9]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "device_icon",
+    (
+        "resources/base/media/earphone_case_16644.svg",
+        "resources/base/media/icon_earphone.svg",
+    ),
+)
+async def test_bluetooth_case_status_compact_supports_q18_two_actions(
+    device_icon: str,
+) -> None:
+    binding = CandidateDataBinding(
+        capabilityId="GetEarphoneInfo",
+        writeResultTo="/data/earphone",
+        candidateOutputFields=[
+            "/batteryLevel",
+            "/chargingStatusDesc",
+            "/leftChargingStatusDesc",
+            "/rightChargingStatusDesc",
+        ],
+    )
+    model = _FixedTemplateModel(
+        theme_id="audio-product-neutral-violet",
+        component_id="BluetoothDeviceOverview",
+        available_template_ids=("BluetoothDeviceOverviewCaseStatusCompact@1",),
+        capability_id="GetEarphoneInfo",
+        required_fields=(
+            "/batteryLevel",
+            "/chargingStatusDesc",
+            "/leftChargingStatusDesc",
+            "/rightChargingStatusDesc",
+        ),
+        action_id=("event.open.music.daily", "event.open.clock.alarm"),
+        body=(
+            'Template("CompactTwoActionLayout@1",{},'
+            'Template("BluetoothDeviceOverviewCaseStatusCompact@1",'
+            '{"headerLabel":"助眠音乐闹钟",'
+            f'"deviceIcon":"{device_icon}"}}),'
+            'Template("PillAction@1",{"actionId":"event.open.music.daily",'
+            '"label":"每日推荐","icon":"resources/base/media/music_fill.svg"}),'
+            'Template("PillAction@1",{"actionId":"event.open.clock.alarm",'
+            '"label":"设置闹钟","icon":"resources/base/media/alarm_fill_1.svg"}));'
+        ),
+    )
+
+    output = await generate_template_a2ui(
+        _bluetooth_case_status_task(device_icon),
+        _bluetooth_case_status_card_spec(),
+        (binding,),
+        model,
+    )
+
+    assert output.template_ids == (
+        "BluetoothDeviceOverviewCaseStatusCompact@1",
+        "PillAction@1",
+        "CompactTwoActionLayout@1",
+    )
+    assert "batteryLevel" in output.a2ui
+    assert "chargingStatusDesc" in output.a2ui
+    assert "leftChargingStatusDesc" in output.a2ui
+    assert "rightChargingStatusDesc" in output.a2ui
+    assert "助眠音乐闹钟" in output.a2ui
+    assert device_icon in output.a2ui
+    assert "每日推荐" in output.a2ui
+    assert "设置闹钟" in output.a2ui
+
+
+@pytest.mark.asyncio
+async def test_bluetooth_hero_supports_connection_action() -> None:
+    binding = CandidateDataBinding(
+        capabilityId="GetEarphoneInfo",
+        writeResultTo="/data/earphone",
+        candidateOutputFields=["/isConnected", "/earphoneName"],
+    )
+    task_spec = _bluetooth_task("看看耳机是否连接，并打开蓝牙设置").model_copy(
+        update={
+            "eventCandidates": [
+                EventAction(
+                    id="event.open.settings.bluetooth",
+                    displayLabel="蓝牙设置",
+                    call="clickToIntent",
+                    args={"intentName": "event.open.settings.bluetooth"},
+                )
+            ],
+            "assetCandidates": [
+                {
+                    "src": "resources/base/media/icon_earphone.svg",
+                    "description": "整副蓝牙耳机图标",
+                    "sceneTags": ["audio", "earphone", "product"],
+                }
+            ],
+        }
+    )
+    model = _FixedTemplateModel(
+        theme_id="audio-product-neutral-violet",
+        component_id="BluetoothDeviceOverview",
+        available_template_ids=("BluetoothDeviceOverviewHero@1",),
+        capability_id="GetEarphoneInfo",
+        required_fields=("/isConnected", "/earphoneName"),
+        action_id="event.open.settings.bluetooth",
+        body=(
+            'Template("HeroActionLayout@1",{},'
+            'Template("BluetoothDeviceOverviewHero@1",{"title":"耳机"}),'
+            'Template("PillAction@1",{"actionId":"event.open.settings.bluetooth",'
+            '"label":"蓝牙设置"}));'
+        ),
+    )
+
+    output = await generate_template_a2ui(
+        task_spec,
+        _bluetooth_card_spec(),
+        (binding,),
+        model,
+    )
+
+    assert output.template_ids == (
+        "BluetoothDeviceOverviewHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1",
+    )
+    assert "isConnected" in output.a2ui
+    assert "earphoneName" in output.a2ui
+    assert "耳机" in output.a2ui
+
+
 @pytest.mark.asyncio
 async def test_bluetooth_music_action_requires_a_hero_template():
     binding = CandidateDataBinding(
@@ -3156,13 +3451,112 @@ async def test_bluetooth_music_action_requires_a_hero_template():
         ),
     )
 
-    with pytest.raises(TemplateGenerationError, match="selected template generation failed"):
+    with pytest.raises(
+        TemplateRouteNotApplicable,
+        match="Hero templates cannot cover all requested fields",
+    ):
         await generate_template_a2ui(
             task_spec,
             _bluetooth_card_spec(),
             (binding,),
             model,
         )
+
+
+def test_bluetooth_identity_without_battery_is_a_complete_provider_fact():
+    facts = extract_bluetooth_device_overview_facts(
+        {
+            "data": {
+                "earphone": {
+                    "isConnected": _provider_field(True, "boolean"),
+                    "earphoneName": _provider_field("FreeBuds Pro", "string"),
+                }
+            }
+        }
+    )
+
+    assert facts is not None
+    assert facts.is_connected is True
+    assert facts.earphone_name == "FreeBuds Pro"
+    assert facts.battery_part_count == 0
+
+
+@pytest.mark.asyncio
+async def test_bluetooth_music_action_uses_hero_title_parameter():
+    binding = CandidateDataBinding(
+        capabilityId="GetEarphoneInfo",
+        writeResultTo="/data/earphone",
+        candidateOutputFields=["/isConnected", "/earphoneName"],
+    )
+    task_spec = _bluetooth_task(
+        "看看耳机连上没、叫什么名字，并打开每日推荐",
+    ).model_copy(
+        update={
+            "eventCandidates": [
+                EventAction(
+                    id="event.open.music.daily",
+                    displayLabel="每日推荐",
+                    call="clickToIntent",
+                    args={"intentName": "event.open.music.daily"},
+                )
+            ],
+            "dataModelSchema": {
+                "data": {
+                    "earphone": {
+                        "isConnected": _provider_field(True, "boolean"),
+                        "earphoneName": _provider_field("FreeBuds Pro", "string"),
+                    }
+                }
+            },
+        }
+    )
+    model = _FixedTemplateModel(
+        theme_id="audio-product-neutral-violet",
+        component_id="BluetoothDeviceOverview",
+        available_template_ids=("BluetoothDeviceOverviewHero@1",),
+        capability_id="GetEarphoneInfo",
+        required_fields=("/isConnected", "/earphoneName"),
+        action_id="event.open.music.daily",
+        body=(
+            'Template("HeroActionLayout@1",{},'
+            'Template("BluetoothDeviceOverviewHero@1",{"title":"耳机听歌入口"}),'
+            'Template("PillAction@1",{"actionId":"event.open.music.daily",'
+            '"label":"每日推荐"}));'
+        ),
+    )
+    card_spec = _bluetooth_card_spec() | {"title": "耳机听歌入口"}
+
+    output = await generate_template_a2ui(task_spec, card_spec, (binding,), model)
+
+    assert output.template_ids == (
+        "BluetoothDeviceOverviewHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1",
+    )
+    assert "耳机听歌入口" in output.a2ui
+    assert "isConnected" in output.a2ui
+    assert "earphoneName" in output.a2ui
+    assert model.second_layer_prompt is not None
+    second_layer_user = model.second_layer_prompt[1]["content"]
+    trusted_line = next(
+        line
+        for line in second_layer_user.splitlines()
+        if line.startswith("trustedStringLiterals=")
+    )
+    trusted_literals = json.loads(trusted_line.removeprefix("trustedStringLiterals="))
+    assert "耳机听歌入口" in trusted_literals
+    contracts_line = next(
+        line
+        for line in second_layer_user.splitlines()
+        if line.startswith("templateContracts=")
+    )
+    contracts = json.loads(contracts_line.removeprefix("templateContracts="))
+    hero_contract = next(
+        item
+        for item in contracts
+        if item["templateId"] == "BluetoothDeviceOverviewHero@1"
+    )
+    assert hero_contract["propsSchema"]["properties"]["title"]["type"] == "string"
 
 
 @pytest.mark.asyncio

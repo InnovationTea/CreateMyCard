@@ -305,7 +305,14 @@ def build_ux_mixed_prompt(
         bluetooth_facts = extract_bluetooth_device_overview_facts(task_spec.dataModelSchema)
         if bluetooth_facts is None:
             raise ValueError("BluetoothDeviceOverview has no compatible trusted earphone facts")
-        server_owned_bluetooth_literals = {bluetooth_facts.earphone_name}
+        server_owned_bluetooth_literals = {
+            value
+            for value in (
+                bluetooth_facts.earphone_name,
+                bluetooth_facts.case_charging_status,
+            )
+            if value is not None
+        }
         required_literals = tuple(
             item for item in required_literals if item not in server_owned_bluetooth_literals
         )

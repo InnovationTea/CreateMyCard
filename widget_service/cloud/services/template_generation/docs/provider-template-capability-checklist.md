@@ -31,7 +31,7 @@
 | battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 13 | 启用 |
 | calendar | `GetCalendarEvents` | `/data/calendar` | 13 | 启用 |
 | countdown | `GetCountdownDays` | `/data/countdown` | 1 | 启用 |
-| earphone | `GetEarphoneInfo` | `/data/earphone` | 14 | 配置禁用 |
+| earphone | `GetEarphoneInfo` | `/data/earphone` | 16 | 启用 |
 | health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 17 | 启用 |
 | system-memory | `GetSystemMemInfo` | `/data/systemMem` | 2 | 启用 |
 | weather | `ViewWeather` | `/data/weather` | 7 | 启用 |
@@ -104,8 +104,8 @@
 
 ## BluetoothDeviceOverview
 
-- Provider：`com.huawei.earphone.cli`；运行状态：配置禁用。
-- 数据能力：`GetEarphoneInfo`；模板数：14。
+- Provider：`com.huawei.earphone.cli`；运行状态：启用。
+- 数据能力：`GetEarphoneInfo`；模板数：16。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
@@ -113,6 +113,7 @@
 | ✅ | `BluetoothDeviceOverviewConnectionFull@1` | 完整 2x2；无 Action 的单 Full | `/isConnected` | `/earphoneName` | 无 |
 | ✅ | `BluetoothDeviceOverviewDisconnectedPhoneCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/isConnected` | 无 | 无 |
 | ✅ | `BluetoothDeviceOverviewEarbudsPhoneCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/isConnected` | 无 | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` |
+| ✅ | `BluetoothDeviceOverviewCaseStatusCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/batteryLevel`<br>`/chargingStatusDesc` | 无 | `/leftChargingStatusDesc`<br>`/rightChargingStatusDesc` |
 | ✅ | `BluetoothDeviceOverviewEarbudsPhoneWideFull@1` | 完整 4x2；单 WideFull | `/isConnected` | `/earphoneName` | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` |
 | ✅ | `BluetoothDeviceOverviewEarbudsDynamicWideFull@1` | 完整 4x2；单 WideFull | `/isConnected` | `/earphoneName` | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` |
 | ✅ | `BluetoothDeviceOverviewCaseFull@1` | 完整 2x2；无 Action 的单 Full | `/isConnected` | `/earphoneName`<br>`/batteryLevel` | 无 |
@@ -123,6 +124,7 @@
 | ✅ | `BluetoothDeviceOverviewCompleteWideFull@1` | 完整 4x2；单 WideFull | `/isConnected` | `/earphoneName`<br>`/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
 | ✅ | `BluetoothDeviceOverviewEarbudPairPhoneCompact@1` | 约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction | `/isConnected` | `/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
 | ✅ | `BluetoothDeviceOverviewCompletePhoneWideFull@1` | 完整 4x2；单 WideFull | `/isConnected` | `/earphoneName`<br>`/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
+| ✅ | `BluetoothDeviceOverviewHero@1` | 约 2x1.7；Hero + 1 个 PillAction；顶部展示 `title` 文本属性 | `/isConnected`<br>`/earphoneName` | 无 | 无 |
 
 ## ActivityOverview
 
@@ -212,4 +214,4 @@
 - 三组数据路径必须分别唯一且互不重叠。
 - 模板 `$path` 只能引用主数据或次要数据；`$optionalPath` 只能引用可选数据。
 - 模板展开前确定性校验布局尺寸、业务模板数量、Action 数量和 Action 类型。
-- Earphone 当前仍受运行配置禁用；Calendar 已启用并进入线上候选。
+- Earphone 与 Calendar 均已启用并进入线上候选。

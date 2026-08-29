@@ -24,7 +24,7 @@ DesignToken。Provider 模板是受信资源，不需要用 DesignToken 缩短�
 - `app-usage`：`GetAppUsageDuration` → 5 个应用时长 UI 模板
 - `health-sport`：`GetHealthAndSportSummary` → 17 个活动、运动、心率和睡眠 UI 模板
 - `countdown`：`GetCountdownDays` → `CountdownOverviewFull@1`
-- `earphone`：`GetEarphoneInfo` → 14 个耳机状态/电量 UI 模板
+- `earphone`：`GetEarphoneInfo` → 16 个耳机状态/电量 UI 模板
 - `layout`：无数据能力 → 5 个支持 `...children` 的布局模板；仅含 `Wide` 的布局用于 `2x4`
 - `action`：无数据能力 → `PillAction@1`、`IconAction@1` 两个 Props 驱动的动作模板
 

@@ -107,10 +107,40 @@
       ]
     },
     {
+      "templateId": "WorkoutOverviewCompact@1",
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "最近一次单次运动训练摘要，展示运动类型、该次热量和时长，可使用运动图标。 组件形态：latestCompact。",
+      "optionalData": [],
+      "entry": "templates/workout-overview.cardtpl",
+      "primaryData": [
+        "/exerciseTypeName",
+        "/exerciseDurationText"
+      ],
+      "secondaryData": [
+        "/exerciseCalorieText"
+      ]
+    },
+    {
+      "templateId": "WorkoutOverviewHero@1",
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "最近一次单次运动训练摘要，展示运动类型、该次热量和时长，可使用运动图标。 组件形态：latestHero。",
+      "optionalData": [],
+      "entry": "templates/workout-overview.cardtpl",
+      "primaryData": [
+        "/exerciseTypeName",
+        "/exerciseDurationText"
+      ],
+      "secondaryData": [
+        "/exerciseCalorieText"
+      ]
+    },
+    {
       "templateId": "HeartRateOverviewFull@1",
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "运动平均心率摘要，可补充更新时间。 组件形态：hero。",
+      "description": "运动平均心率摘要，可补充更新时间。 组件形态：full。",
       "optionalData": [],
       "entry": "templates/heart-rate-overview.cardtpl",
       "primaryData": [
@@ -122,7 +152,7 @@
       "templateId": "HeartRateOverviewUpdatedFull@1",
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "运动平均心率摘要，可补充更新时间。 组件形态：heroUpdated。",
+      "description": "运动平均心率摘要，可补充更新时间。 组件形态：fullUpdated。",
       "optionalData": [],
       "entry": "templates/heart-rate-overview.cardtpl",
       "primaryData": [
@@ -136,7 +166,7 @@
       "templateId": "HeartRateOverviewIconFull@1",
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "运动平均心率摘要，可补充更新时间。 组件形态：heroIcon。",
+      "description": "运动平均心率摘要，可补充更新时间。 组件形态：fullIcon。",
       "optionalData": [],
       "entry": "templates/heart-rate-overview.cardtpl",
       "primaryData": [
@@ -148,7 +178,7 @@
       "templateId": "HeartRateOverviewUpdatedIconFull@1",
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "运动平均心率摘要，可补充更新时间。 组件形态：heroUpdatedIcon。",
+      "description": "运动平均心率摘要，可补充更新时间。 组件形态：fullUpdatedIcon。",
       "optionalData": [],
       "entry": "templates/heart-rate-overview.cardtpl",
       "primaryData": [
@@ -201,6 +231,58 @@
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
       "description": "运动平均心率摘要，可补充更新时间。 组件形态：supportUpdatedIcon。",
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "primaryData": [
+        "/exerciseHeartRateAvg"
+      ],
+      "secondaryData": [
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "HeartRateOverviewIconHero@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "运动平均心率主视觉，展示平均心率，使用心率图标。 组件形态：iconHero。",
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "primaryData": [
+        "/exerciseHeartRateAvg"
+      ],
+      "secondaryData": []
+    },
+    {
+      "templateId": "HeartRateOverviewHero@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "运动平均心率主视觉，展示平均心率。 组件形态：mainHero。",
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "primaryData": [
+        "/exerciseHeartRateAvg"
+      ],
+      "secondaryData": []
+    },
+    {
+      "templateId": "HeartRateOverviewUpdatedHero@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "运动平均心率主视觉，展示平均心率，可补充更新时间。 组件形态：mainHeroUpdated。",
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "primaryData": [
+        "/exerciseHeartRateAvg"
+      ],
+      "secondaryData": [
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "HeartRateOverviewUpdatedIconHero@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "运动平均心率主视觉，展示平均心率，可补充更新时间，使用心率图标。 组件形态：mainHeroUpdatedIcon。",
       "optionalData": [],
       "entry": "templates/heart-rate-overview.cardtpl",
       "primaryData": [

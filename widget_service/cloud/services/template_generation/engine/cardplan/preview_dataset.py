@@ -44,6 +44,7 @@ _CONTENT_HEIGHT_BY_LAYOUT: dict[TemplateLayoutKind, int] = {
 _ASSET_BY_PARAMETER = {
     "appIcon": "resources/base/media/icon_tiktok.png",
     "batteryIcon": "resources/base/media/battery_leaf_fill.svg",
+    "deviceIcon": "resources/base/media/earphone_case_16644.svg",
     "caloriesIcon": "resources/base/media/flame_fill.svg",
     "conditionIcon": "resources/base/media/icon_weather1.svg",
     "distanceIcon": "resources/base/media/location_north_up_right_fill.svg",
@@ -62,6 +63,9 @@ _SOURCE_ICON_BY_BUSINESS = {
     "SleepOverview": "resources/base/media/moon_z_fill_1.svg",
     "WorkoutOverview": "resources/base/media/figure_run.svg",
 }
+_TEXT_BY_TEMPLATE_PARAMETER = {
+    ("BluetoothDeviceOverviewHero@1", "title"): "耳机听歌入口",
+}
 _SAMPLE_BY_BUSINESS_BINDING: dict[tuple[str, str], Any] = {
     ("ActivityOverview", "calories"): "420 千卡",
     ("ActivityOverview", "distance"): "4.6 公里",
@@ -70,9 +74,12 @@ _SAMPLE_BY_BUSINESS_BINDING: dict[tuple[str, str], Any] = {
     ("AppUsageOverview", "duration"): "1小时26分",
     ("AppUsageOverview", "updatedAt"): "今天 09:00",
     ("BluetoothDeviceOverview", "battery"): 80,
+    ("BluetoothDeviceOverview", "chargingStatus"): "充电中",
     ("BluetoothDeviceOverview", "left"): 76,
+    ("BluetoothDeviceOverview", "leftChargingStatus"): "未充电",
     ("BluetoothDeviceOverview", "name"): "FreeBuds Pro",
     ("BluetoothDeviceOverview", "right"): 78,
+    ("BluetoothDeviceOverview", "rightChargingStatus"): "充电中",
     ("CountdownOverview", "days"): 28,
     ("CalendarOverview", "description"): "评审本周 UI 交付方案",
     ("CalendarOverview", "end"): "15:30",
@@ -284,7 +291,10 @@ def _template_parameters(definition: TemplateDefinition) -> dict[str, str]:
     properties = definition.variants[0].parameters_schema.get("properties", {})
     parameters: dict[str, str] = {}
     for name in properties:
-        if name == "sourceIcon":
+        text = _TEXT_BY_TEMPLATE_PARAMETER.get((definition.wire_id, name))
+        if text is not None:
+            parameters[name] = text
+        elif name == "sourceIcon":
             parameters[name] = _SOURCE_ICON_BY_BUSINESS.get(
                 definition.business_id or "",
                 "resources/base/media/icon_id.svg",

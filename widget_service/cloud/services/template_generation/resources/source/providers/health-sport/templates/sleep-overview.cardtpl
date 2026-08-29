@@ -33,7 +33,7 @@ Column(
                 props.sourceIcon,
                 Image(
                     props.sourceIcon,
-                    { "width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true }
+                    { "width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0 }
                 )
             ),
         ),
@@ -116,7 +116,7 @@ Column(
             props.sourceIcon,
             Image(
                 props.sourceIcon,
-                { "width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true }
+                { "width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0 }
             )
         ),
     ),
@@ -195,7 +195,7 @@ Column(
                 props.sourceIcon,
                 Image(
                     props.sourceIcon,
-                    { "width": 20, "height": 20, "objectFit": "contain", "_preserveOriginalColor": true }
+                    { "width": 20, "height": 20, "objectFit": "contain" }
                 )
             )
         )

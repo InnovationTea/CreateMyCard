@@ -1,8 +1,6 @@
 {
   "schemaVersion": "template-controls/1",
-  "disabledProviderIds": [
-    "com.huawei.earphone.cli"
-  ],
+  "disabledProviderIds": [],
   "disabledTemplateIds": [],
   "firstLayerComponentSelector": "search"
 }

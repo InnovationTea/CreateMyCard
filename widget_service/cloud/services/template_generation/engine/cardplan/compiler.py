@@ -1040,8 +1040,27 @@ def _validate_provider_template_state(
                 )
     if wire_id == "BluetoothDeviceOverview@1":
         facts = extract_bluetooth_device_overview_facts(task_spec.dataModelSchema)
+        if facts is None:
+            raise TerselConversionError(
+                "Bluetooth Provider Template has no trusted earphone facts."
+            )
+        if variant_name == "caseStatusCompact":
+            if (
+                facts.case_battery_level is None
+                or facts.case_charging_status is None
+            ):
+                raise TerselConversionError(
+                    "Bluetooth Provider Template variant does not match the trusted case status."
+                )
+            return
+        if facts.is_connected is None or facts.earphone_name is None:
+            raise TerselConversionError(
+                "Bluetooth Provider Template has no trusted earphone identity."
+            )
+        if variant_name == "hero":
+            return
         disconnected_variant = variant_name.startswith("disconnected")
-        if facts is None or disconnected_variant == facts.is_connected:
+        if disconnected_variant == facts.is_connected:
             raise TerselConversionError(
                 "Bluetooth Provider Template variant does not match the trusted connection state."
             )

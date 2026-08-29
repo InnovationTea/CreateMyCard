@@ -72,8 +72,8 @@ widget_service/.venv312/bin/python \
   --refresh-inputs --dry-run --concurrency 2
 ```
 
-以 2026-08-29 当前资源为基线，应生成 8 个 Provider、105 个用例；其中 31 个多业务负向用例为 `failed`，
-21 个状态为 `missing`，53 个状态为 `not_generated`。Provider 或模板调整后数量可以变化，应以重新生成的
+以 2026-08-29 当前资源为基线，应生成 8 个 Provider、107 个用例；其中 32 个多业务负向用例为 `failed`，
+10 个状态为 `missing`，65 个状态为 `not_generated`。Provider 或模板调整后数量可以变化，应以重新生成的
 输入 manifest 为准，不能继续复用旧结果目录中的数量。
 
 ### 真实批跑

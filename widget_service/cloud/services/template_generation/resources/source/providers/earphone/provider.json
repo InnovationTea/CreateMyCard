@@ -76,6 +76,22 @@
       "secondaryData": []
     },
     {
+      "templateId": "BluetoothDeviceOverviewCaseStatusCompact@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "耳机设备电量和充电状态紧凑摘要，顶部标题，下方展示耳机盒电量与充电状态，并可展示左右耳机充电状态；用于 2x2 单 Compact 加两个 PillAction。",
+      "optionalData": [
+        "/leftChargingStatusDesc",
+        "/rightChargingStatusDesc"
+      ],
+      "entry": "templates/bluetooth-device-overview.cardtpl",
+      "primaryData": [
+        "/batteryLevel",
+        "/chargingStatusDesc"
+      ],
+      "secondaryData": []
+    },
+    {
       "templateId": "BluetoothDeviceOverviewEarbudsPhoneWideFull@1",
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
@@ -236,6 +252,19 @@
         "/leftBatteryLevel",
         "/rightBatteryLevel"
       ]
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewHero@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "蓝牙耳机连接状态与耳机名 Hero；居中展示由端侧数据动态刷新的连接状态和耳机名，title 文本属性展示耳机相关业务标题；用于音乐、歌单、听歌入口或蓝牙连接与设置管理场景，并与一个 PillAction 组合。",
+      "optionalData": [],
+      "entry": "templates/bluetooth-device-overview.cardtpl",
+      "primaryData": [
+        "/isConnected",
+        "/earphoneName"
+      ],
+      "secondaryData": []
     }
   ],
   "compatibility": {
