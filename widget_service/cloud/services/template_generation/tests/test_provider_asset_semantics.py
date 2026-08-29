@@ -1,9 +1,26 @@
-"""双业务素材槽位隔离、正式资源语义及缺失图标回归。"""
+"""双业务素材槽位隔离、正式资源语义及缺失图标回归。
+
+素材槽位的确定性解析结果已固化为场景金样（Layer C）：
+``provider_asset__slot_sources`` 冻结全部正式素材槽位的允许资产清单
+（含单业务 Compact 的全目录放行、倒计时 timing 专属清单，以及耳塞/充电盒
+互相排斥的隐式断言）；``provider_asset__weather_slot_union`` 冻结 7 个天气
+模板 conditionIcon 的单/双业务并集、逐资产透传归一化与仅温度目录的收敛；
+``provider_asset__slot_rejections`` 冻结温度语义资产误用、高温图标与
+clock.svg 的报错类型与文案；``provider_asset__unique_match_repair`` 冻结跨
+业务误用资产修复到唯一匹配资产的输入/输出/原输入保留与缺匹配报错（含
+IconFixture 声明槽位的强制修复）；``provider_asset__bundle_rejections``
+冻结 bundle 素材元数据校验矩阵与 legacy 无声明 bundle 的放行行为。
+保留 19 个可执行素材槽位计数钉与 61 个 gallery 用例资产钉为普通测试
+（出行 Support 不声明槽位由槽位计数钉间接钉住）。引擎改动后按 golden
+工作流 `check --diff` / `bless --declared` 复核。
+"""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import Any, Callable
 
 import pytest
 
@@ -20,7 +37,10 @@ from services.template_generation.engine.cardplan.provider_bundle import (
     load_provider_bundle,
     load_provider_templates,
 )
-from services.template_generation.engine.tersel_converter import TerselConversionError
+from services.template_generation.test_support.golden_scenarios import (
+    assert_golden_scenario,
+    scenario,
+)
 from services.template_generation.test_support.provider_gallery import write_gallery_input_dataset
 
 _ROOT = Path(__file__).resolve().parents[1]
@@ -41,16 +61,34 @@ _SLOTS = (
     ("ScheduleOverviewStartTimeSupport@1", "calendarIcon", "calendar_fill.svg"),
     ("ScheduleOverviewDateSupport@1", "calendarIcon", "calendar_fill.svg"),
 )
+# 槽位清单场景额外覆盖的单业务 Compact（全目录放行）与倒计时 timing 专属清单。
+_EXTRA_SLOTS = (
+    ("BatteryOverviewCompact@1", "batteryIcon", "icon_phone.svg"),
+    ("CountdownOverviewSupport@1", "timerIcon", "icon_timing.svg"),
+)
+_WEATHER_TEMPLATES = (
+    "WeatherOverviewCompact@1", "WeatherOverviewUvCompact@1",
+    "WeatherOverviewTemperatureSupport@1",
+    "WeatherOverviewDaily2TravelSupport@1", "WeatherOverviewTravelSupport@1",
+    "WeatherOverviewHero@1", "WeatherOverviewFull@1",
+)
+_DUAL_WEATHER_TEMPLATES = (
+    "WeatherOverviewTemperatureSupport@1",
+    "WeatherOverviewDaily2TravelSupport@1",
+    "WeatherOverviewTravelSupport@1",
+)
+_TEMPERATURE_SOURCES = (
+    _SOURCE + "heat_generation.svg", _SOURCE + "icon_weather_temperature1.svg",
+    _SOURCE + "icon_weather_thermometer_medium.svg", _SOURCE + "icon_weather_thermometer.svg",
+)
 
 
-@pytest.fixture(scope="module")
-def definitions() -> dict[str, TemplateDefinition]:
+def _definitions() -> dict[str, TemplateDefinition]:
     templates = load_provider_templates(_ROOT / "resources/source/providers")
     return {template.wire_id: template for template in templates}
 
 
-@pytest.fixture(scope="module")
-def catalog_contract() -> HybridBodyContract:
+def _catalog_contract() -> HybridBodyContract:
     assets = json.loads(_ASSETS.read_text(encoding="utf-8"))
     tags_by_source: dict[str, tuple[str, ...]] = {}
     for asset in assets:
@@ -63,185 +101,136 @@ def catalog_contract() -> HybridBodyContract:
     )
 
 
-def test_every_support_asset_slot_has_executable_semantics(
-    definitions: dict[str, TemplateDefinition],
-) -> None:
-    slot_count = 0
-    for definition in definitions.values():
-        if not definition.wire_id.endswith("Support@1"):
-            continue
-        for name, tags in definition.asset_parameter_semantic_tags.items():
-            assert tags, f"{definition.wire_id}.{name}"
-            slot_count += 1
-    # CountdownOverviewTravelSupport@1 不再声明 timerIcon 槽位（出行 Support 仅
-    # 展示主题与剩余天数），支持模板的可执行素材槽位从 20 收敛为 19。
-    assert slot_count == 19
+def _capture(build: Callable[[], Any]) -> dict[str, Any]:
+    try:
+        return {"error": "NO_ERROR", "result": build()}
+    except Exception as exc:  # noqa: BLE001 - 场景金样冻结精确错误类型与文案
+        return {"errorType": type(exc).__name__, "message": str(exc)}
 
 
-@pytest.mark.parametrize(("template_id", "parameter", "filename"), _SLOTS)
-def test_mixed_catalog_is_filtered_per_business_slot(
-    definitions: dict[str, TemplateDefinition],
-    catalog_contract: HybridBodyContract,
-    template_id: str,
-    parameter: str,
-    filename: str,
-) -> None:
-    definition = definitions.get(template_id)
-    assert definition is not None
-    allowed = _parameter_allowed_asset_sources(parameter, definition, catalog_contract)
-    assert _SOURCE + filename in allowed
-    assert _SOURCE + "drop_1.svg" not in allowed
-    assert _SOURCE + "icon_weather_temperature1.svg" not in allowed
-    if template_id == "BluetoothDeviceOverviewEarbudsSupport@1":
-        assert _SOURCE + "earphone_case_16644.svg" not in allowed
-    if template_id == "BluetoothDeviceOverviewChargeSupport@1":
-        assert _SOURCE + "icon_earphone.svg" not in allowed
-    if template_id == "BatteryOverviewSupport@1":
-        assert allowed == (_SOURCE + "icon_phone.svg",)
-
-
-def test_phone_battery_support_icon_does_not_change_single_business_asset_semantics(
-    definitions: dict[str, TemplateDefinition],
-    catalog_contract: HybridBodyContract,
-) -> None:
-    definition = definitions.get("BatteryOverviewCompact@1")
-    assert definition is not None
-    allowed = _parameter_allowed_asset_sources("batteryIcon", definition, catalog_contract)
-    assert definition.asset_parameter_semantic_tags.get("batteryIcon") == ()
-    assert allowed == catalog_contract.allowed_asset_sources
-
-
-@pytest.mark.parametrize("template_id", (
-    "WeatherOverviewCompact@1", "WeatherOverviewUvCompact@1",
-    "WeatherOverviewTemperatureSupport@1",
-    "WeatherOverviewDaily2TravelSupport@1", "WeatherOverviewTravelSupport@1",
-    "WeatherOverviewHero@1", "WeatherOverviewFull@1",
-))
-def test_weather_slot_separates_single_and_dual_business_assets(
-    definitions: dict[str, TemplateDefinition],
-    catalog_contract: HybridBodyContract,
-    template_id: str,
-) -> None:
-    definition = definitions.get(template_id)
-    assert definition is not None
-    allowed = _parameter_allowed_asset_sources("conditionIcon", definition, catalog_contract)
-    state_sources = {
-        _SOURCE + "sun_max.svg", _SOURCE + "drop_1.svg",
-        _SOURCE + "typhoon_fill.svg", _SOURCE + "icon_weather_wind.svg",
+@scenario("provider_asset__slot_sources")
+def _build_slot_sources() -> dict[str, list[str]]:
+    definitions = _definitions()
+    contract = _catalog_contract()
+    return {
+        f"{template_id}.{parameter}": list(
+            _parameter_allowed_asset_sources(parameter, definitions[template_id], contract)
+        )
+        for template_id, parameter, _filename in _SLOTS + _EXTRA_SLOTS
     }
-    temperature_sources = {
-        _SOURCE + "heat_generation.svg", _SOURCE + "icon_weather_temperature1.svg",
-        _SOURCE + "icon_weather_thermometer_medium.svg",
-        _SOURCE + "icon_weather_thermometer.svg",
-    }
-    dual_business = (
-        template_id == "WeatherOverviewTemperatureSupport@1"
-        or template_id == "WeatherOverviewDaily2TravelSupport@1"
-        or template_id == "WeatherOverviewTravelSupport@1"
+
+
+@scenario("provider_asset__weather_slot_union")
+def _build_weather_slot_union() -> dict[str, dict[str, Any]]:
+    definitions = _definitions()
+    contract = _catalog_contract()
+    temperature_only = contract.model_copy(
+        update={"allowed_asset_sources": tuple(_TEMPERATURE_SOURCES)}
     )
-    if dual_business:
-        assert set(allowed) == state_sources | temperature_sources
-    else:
-        assert set(allowed) == state_sources
-        for source in temperature_sources:
-            with pytest.raises(TerselConversionError, match="semantics"):
-                _normalize_template_asset_params(
+    payload: dict[str, dict[str, Any]] = {}
+    for template_id in _WEATHER_TEMPLATES:
+        definition = definitions[template_id]
+        allowed = _parameter_allowed_asset_sources("conditionIcon", definition, contract)
+        payload[template_id] = {
+            "dualBusiness": template_id in _DUAL_WEATHER_TEMPLATES,
+            "allowed": list(allowed),
+            "identityNormalize": {
+                source: _normalize_template_asset_params(
                     {"conditionIcon": source}, definition.asset_parameter_semantic_tags,
-                    catalog_contract, required_parameters=frozenset(),
+                    contract, required_parameters=frozenset(),
                 )
-        temperature_only = catalog_contract.model_copy(
-            update={"allowed_asset_sources": tuple(temperature_sources)}
+                for source in allowed
+            },
+            "temperatureOnlyAllowed": list(_parameter_allowed_asset_sources(
+                "conditionIcon", definition, temperature_only,
+            )),
+        }
+    return payload
+
+
+@scenario("provider_asset__slot_rejections")
+def _build_slot_rejections() -> dict[str, dict[str, Any]]:
+    definitions = _definitions()
+    contract = _catalog_contract()
+    payload: dict[str, dict[str, Any]] = {}
+    for template_id in _WEATHER_TEMPLATES:
+        definition = definitions[template_id]
+        sources = () if template_id in _DUAL_WEATHER_TEMPLATES else _TEMPERATURE_SOURCES
+        for source in sources:
+            payload[f"{template_id} conditionIcon={source.rsplit('/', 1)[-1]}"] = _capture(
+                lambda d=definition, s=source: _normalize_template_asset_params(
+                    {"conditionIcon": s}, d.asset_parameter_semantic_tags,
+                    contract, required_parameters=frozenset(),
+                )
+            )
+        payload[f"{template_id} conditionIcon=icon_high_temperature.svg"] = _capture(
+            lambda d=definition: _normalize_template_asset_params(
+                {"conditionIcon": _SOURCE + "icon_high_temperature.svg"},
+                d.asset_parameter_semantic_tags, contract,
+                required_parameters=frozenset(),
+            )
         )
-        assert _parameter_allowed_asset_sources(
-            "conditionIcon", definition, temperature_only,
-        ) == ()
-        assert _normalize_template_asset_params(
-            {}, definition.asset_parameter_semantic_tags, temperature_only,
-            required_parameters=frozenset(),
-        ) == {}
-    for source in allowed:
-        normalized = _normalize_template_asset_params(
-            {"conditionIcon": source}, definition.asset_parameter_semantic_tags,
-            catalog_contract, required_parameters=frozenset(),
+    countdown = definitions["CountdownOverviewSupport@1"]
+    payload["CountdownOverviewSupport@1 timerIcon=clock.svg"] = _capture(
+        lambda: _normalize_template_asset_params(
+            {"timerIcon": _SOURCE + "clock.svg"}, countdown.asset_parameter_semantic_tags,
+            contract, required_parameters=frozenset(),
         )
-        assert normalized == {"conditionIcon": source}
-    with pytest.raises(TerselConversionError, match="semantics"):
-        _normalize_template_asset_params(
-            {"conditionIcon": _SOURCE + "icon_high_temperature.svg"},
-            definition.asset_parameter_semantic_tags,
-            catalog_contract,
-            required_parameters=frozenset(),
-        )
-
-
-@pytest.mark.parametrize("template_id", ("CountdownOverviewSupport@1",))
-def test_countdown_slot_only_accepts_timing_assets(
-    definitions: dict[str, TemplateDefinition],
-    catalog_contract: HybridBodyContract,
-    template_id: str,
-) -> None:
-    definition = definitions.get(template_id)
-    assert definition is not None
-    allowed = _parameter_allowed_asset_sources("timerIcon", definition, catalog_contract)
-    timing_sources = {
-        _SOURCE + "hourglass_fill.svg",
-        _SOURCE + "stopwatch_fill.svg",
-        _SOURCE + "icon_timing.svg",
-    }
-    assert set(allowed) == timing_sources
-    for source in allowed:
-        normalized = _normalize_template_asset_params(
-            {"timerIcon": source}, definition.asset_parameter_semantic_tags,
-            catalog_contract, required_parameters=frozenset(),
-        )
-        assert normalized == {"timerIcon": source}
-    with pytest.raises(TerselConversionError, match="semantics"):
-        _normalize_template_asset_params(
-            {"timerIcon": _SOURCE + "clock.svg"},
-            definition.asset_parameter_semantic_tags,
-            catalog_contract,
-            required_parameters=frozenset(),
-        )
-
-
-def test_countdown_travel_support_declares_no_asset_slot(
-    definitions: dict[str, TemplateDefinition],
-) -> None:
-    """出行倒计时 Support 已删除 timerIcon 槽位，不得再声明任何素材参数。"""
-    definition = definitions.get("CountdownOverviewTravelSupport@1")
-    assert definition is not None
-    assert definition.asset_parameter_semantic_tags == {}
-
-
-@pytest.mark.parametrize(("template_id", "parameter", "filename"), _SLOTS)
-def test_cross_business_mistake_only_repairs_to_unique_matching_asset(
-    definitions: dict[str, TemplateDefinition],
-    catalog_contract: HybridBodyContract,
-    template_id: str,
-    parameter: str,
-    filename: str,
-) -> None:
-    definition = definitions.get(template_id)
-    assert definition is not None
-    expected = _SOURCE + filename
-    wrong = _SOURCE + "drop_1.svg"
-    contract = catalog_contract.model_copy(update={"allowed_asset_sources": (wrong, expected)})
-    original = {parameter: wrong}
-    result = _normalize_template_asset_params(
-        original, definition.asset_parameter_semantic_tags, contract,
-        required_parameters=frozenset(),
     )
-    assert result == {parameter: expected}
-    assert original == {parameter: wrong}
-    assert _normalize_template_asset_params(
-        {}, definition.asset_parameter_semantic_tags, contract, required_parameters=frozenset(),
-    ) == {}
-    missing = contract.model_copy(update={"allowed_asset_sources": (wrong,)})
-    with pytest.raises(TerselConversionError, match="semantics"):
-        _normalize_template_asset_params(
-            original, definition.asset_parameter_semantic_tags, missing,
+    return payload
+
+
+@scenario("provider_asset__unique_match_repair")
+def _build_unique_match_repair() -> dict[str, dict[str, Any]]:
+    definitions = _definitions()
+    contract = _catalog_contract()
+    payload: dict[str, dict[str, Any]] = {}
+    for template_id, parameter, filename in _SLOTS + _EXTRA_SLOTS:
+        definition = definitions[template_id]
+        wrong = _SOURCE + "drop_1.svg"
+        expected = _SOURCE + filename
+        pair = contract.model_copy(update={"allowed_asset_sources": (wrong, expected)})
+        original: dict[str, Any] = {parameter: wrong}
+        input_before = dict(original)
+        result = _normalize_template_asset_params(
+            original, definition.asset_parameter_semantic_tags, pair,
             required_parameters=frozenset(),
         )
+        missing = contract.model_copy(update={"allowed_asset_sources": (wrong,)})
+        payload[f"{template_id}.{parameter}"] = {
+            "input": input_before,
+            "repaired": result,
+            "inputPreserved": dict(original),
+            "emptyInput": _normalize_template_asset_params(
+                {}, definition.asset_parameter_semantic_tags, pair,
+                required_parameters=frozenset(),
+            ),
+            "missingMatch": _capture(
+                lambda d=definition, o=dict(original), m=missing:
+                    _normalize_template_asset_params(
+                        o, d.asset_parameter_semantic_tags, m,
+                        required_parameters=frozenset(),
+                    )
+            ),
+        }
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        _write_bundle(root, {"glyph": ["sleep"]})
+        definition = load_provider_bundle(root).templates[0]
+        limited = contract.model_copy(update={
+            "allowed_asset_sources": (
+                _SOURCE + "drop_1.svg", _SOURCE + "moon_z_fill_1.svg",
+            )
+        })
+        payload["IconFixture@1.glyph"] = {
+            "declaredTags": ["sleep"],
+            "allowed": list(limited.allowed_asset_sources),
+            "repaired": _normalize_template_asset_params(
+                {"glyph": _SOURCE + "drop_1.svg"}, definition.asset_parameter_semantic_tags,
+                limited, required_parameters=frozenset(),
+            ),
+        }
+    return payload
 
 
 def _write_bundle(root: Path, semantics: dict[str, list[str]] | None) -> None:
@@ -268,38 +257,67 @@ def _write_bundle(root: Path, semantics: dict[str, list[str]] | None) -> None:
     )
 
 
-@pytest.mark.parametrize("semantics", (
-    {"missing": ["steps"]}, {"label": ["steps"]}, {"glyph": []},
-    {"glyph": ["Steps"]}, {"glyph": ["steps", "steps"]},
-    {"glyph": ["bad tag"]}, {"bad name": ["steps"]},
-))
-def test_bundle_rejects_invalid_asset_slot_metadata(
-    tmp_path: Path, semantics: dict[str, list[str]],
+_BUNDLE_INVALID_CASES = (
+    ("missing_parameter", {"missing": ["steps"]}),
+    ("non_asset_parameter", {"label": ["steps"]}),
+    ("empty_tags", {"glyph": []}),
+    ("uppercase_tag", {"glyph": ["Steps"]}),
+    ("duplicate_tags", {"glyph": ["steps", "steps"]}),
+    ("tag_with_space", {"glyph": ["bad tag"]}),
+    ("bad_parameter_name", {"bad name": ["steps"]}),
+)
+
+
+@scenario("provider_asset__bundle_rejections")
+def _build_bundle_rejections() -> dict[str, dict[str, Any]]:
+    payload: dict[str, dict[str, Any]] = {}
+    for key, semantics in _BUNDLE_INVALID_CASES:
+        with TemporaryDirectory() as tmp:
+            _write_bundle(Path(tmp), semantics)
+            payload[key] = _capture(lambda p=Path(tmp): load_provider_bundle(p))
+    with TemporaryDirectory() as tmp:
+        _write_bundle(Path(tmp), None)
+        definition = load_provider_bundle(Path(tmp)).templates[0]
+        payload["legacy_unrestricted"] = {
+            "assetParameterSemanticTags": {
+                name: list(tags)
+                for name, tags in definition.asset_parameter_semantic_tags.items()
+            },
+        }
+    return payload
+
+
+def test_provider_asset_scenarios_match_goldens() -> None:
+    assert_golden_scenario("provider_asset__slot_sources")
+    assert_golden_scenario("provider_asset__weather_slot_union")
+    assert_golden_scenario("provider_asset__slot_rejections")
+    assert_golden_scenario("provider_asset__unique_match_repair")
+    assert_golden_scenario("provider_asset__bundle_rejections")
+
+
+@pytest.fixture(scope="module")
+def definitions() -> dict[str, TemplateDefinition]:
+    return _definitions()
+
+
+@pytest.fixture(scope="module")
+def catalog_contract() -> HybridBodyContract:
+    return _catalog_contract()
+
+
+def test_every_support_asset_slot_has_executable_semantics(
+    definitions: dict[str, TemplateDefinition],
 ) -> None:
-    _write_bundle(tmp_path, semantics)
-    with pytest.raises(ValueError, match="asset|semantic"):
-        load_provider_bundle(tmp_path)
-
-
-def test_declared_asset_enforced_even_without_icon_name(
-    tmp_path: Path, catalog_contract: HybridBodyContract,
-) -> None:
-    _write_bundle(tmp_path, {"glyph": ["sleep"]})
-    definition = load_provider_bundle(tmp_path).templates[0]
-    contract = catalog_contract.model_copy(update={
-        "allowed_asset_sources": (_SOURCE + "drop_1.svg", _SOURCE + "moon_z_fill_1.svg"),
-    })
-    result = _normalize_template_asset_params(
-        {"glyph": _SOURCE + "drop_1.svg"}, definition.asset_parameter_semantic_tags,
-        contract, required_parameters=frozenset(),
-    )
-    assert result == {"glyph": _SOURCE + "moon_z_fill_1.svg"}
-
-
-def test_legacy_bundle_keeps_unrestricted_asset_behavior(tmp_path: Path) -> None:
-    _write_bundle(tmp_path, None)
-    definition = load_provider_bundle(tmp_path).templates[0]
-    assert definition.asset_parameter_semantic_tags == {"glyph": ()}
+    slot_count = 0
+    for definition in definitions.values():
+        if not definition.wire_id.endswith("Support@1"):
+            continue
+        for name, tags in definition.asset_parameter_semantic_tags.items():
+            assert tags, f"{definition.wire_id}.{name}"
+            slot_count += 1
+    # CountdownOverviewTravelSupport@1 不再声明 timerIcon 槽位（出行 Support 仅
+    # 展示主题与剩余天数），支持模板的可执行素材槽位从 20 收敛为 19。
+    assert slot_count == 19
 
 
 def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_icon(

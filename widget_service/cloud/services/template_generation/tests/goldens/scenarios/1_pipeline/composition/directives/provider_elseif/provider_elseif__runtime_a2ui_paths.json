@@ -1,0 +1,37 @@
+{
+  "diagnostics": [],
+  "membership": {
+    "directiveMarkersAbsent": true,
+    "resolvedBindingPath": true,
+    "runtimeExpression": true,
+    "unmatchedElseTextAbsent": true
+  },
+  "rootChild": "Text",
+  "updateComponents": {
+    "components": [
+      {
+        "children": [
+          "root_0"
+        ],
+        "component": "Column",
+        "id": "root",
+        "itemMargin": 8,
+        "styles": {
+          "backgroundColor": "#FFFFFFFF",
+          "borderRadius": 20,
+          "clip": true,
+          "height": "matchParent",
+          "padding": 12,
+          "width": "matchParent"
+        }
+      },
+      {
+        "component": "Text",
+        "content": "{{ ${/data/context/first} == '' ? '空值' : ${/data/context/first} }}",
+        "id": "root_0"
+      }
+    ],
+    "root": "root",
+    "surfaceId": "surface_card"
+  }
+}

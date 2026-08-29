@@ -1,0 +1,6 @@
+{
+  "serialized": "Column(Text(\"{{ ${/data/context/first} ? ('说明\\\\n#elseif data.second\\\\n#end') : '' }}\"))",
+  "texts": [
+    "{{ ${/data/context/first} ? ('说明\\n#elseif data.second\\n#end') : '' }}"
+  ]
+}

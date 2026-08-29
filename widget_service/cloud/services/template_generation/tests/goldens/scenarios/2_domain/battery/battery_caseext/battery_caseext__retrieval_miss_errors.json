@@ -1,0 +1,26 @@
+{
+  "missing-level": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "required output field is absent or untyped in TaskSpec: /batteryCapacityLevelDesc"
+  },
+  "missing-text": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "required output field is absent or untyped in TaskSpec: /batterySOCText"
+  },
+  "mixed-business": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "no provider template covers capability GetPhoneBatteryInfo and its requested fields"
+  },
+  "trusted-restriction": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "no provider template covers capability GetPhoneBatteryInfo and its requested fields"
+  },
+  "variant-disabled": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "no provider template covers capability GetPhoneBatteryInfo and its requested fields"
+  },
+  "wrong-type": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "no provider template covers capability GetPhoneBatteryInfo and its requested fields"
+  }
+}

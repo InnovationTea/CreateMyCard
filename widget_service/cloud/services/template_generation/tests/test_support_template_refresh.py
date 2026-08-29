@@ -1,6 +1,15 @@
-"""用户调整后的 Support 结构、字段降级及原子预览回归。"""
+"""用户调整后的 Support 结构、字段降级及原子预览回归。
+
+主辅文本字号/字重、右侧独立图标与 onClick 的 21 模板 × 4 组合渲染矩阵
+已固化为场景金样（Layer C）：每模板一份快照，冻结有/无可选数据 ×
+有/无 actionId 的完整序列化树，取代原先逐项手维护的 padding/fontSize
+断言矩阵。模板或编译器改动后按 golden 工作流 `check --diff` /
+`bless --declared` 复核；元数据三元组与计数不变量仍由行内测试断言。
+"""
 
 from __future__ import annotations
+
+import re
 
 import pytest
 
@@ -15,6 +24,10 @@ from services.template_generation.engine.cardplan.preview_dataset import (
 )
 from services.template_generation.engine.cardplan.registry import get_cardplan_registry
 from services.template_generation.engine.tersel_converter import Nested2Node, TerselConversionError
+from services.template_generation.test_support.golden_scenarios import (
+    assert_golden_scenario,
+    scenario,
+)
 
 _CALENDAR_SUPPORTS = (
     ("ScheduleOverviewTimeSupport@1", "/events/0/dtStart", ()),
@@ -46,18 +59,6 @@ _SUPPORT_PRIMARY_TEXT_INDEXES = {
     "WeatherOverviewDaily2TravelSupport@1": (0,),
     "WeatherOverviewTravelSupport@1": (0,),
     "WorkoutOverviewSupport@1": (0,),
-}
-
-# 电量缺失时只保留一行主文本的 Support：不要求存在辅助文本行。
-_SUPPORT_OPTIONAL_SECONDARY_TEXT_TEMPLATES = {
-    "BatteryOverviewSupport@1",
-    "BluetoothDeviceOverviewChargeSupport@1",
-    "BluetoothDeviceOverviewConnectionSupport@1",
-}
-
-# 温度文本改为可选绑定的温度 Support：无可选数据时主行仅剩城市文本。
-_SUPPORT_OPTIONAL_TEMPERATURE_TEXT_TEMPLATES = {
-    "WeatherOverviewTemperatureSupport@1",
 }
 
 
@@ -114,60 +115,47 @@ def _standalone_images(root: Nested2Node) -> list[Nested2Node]:
     return images
 
 
-@pytest.mark.parametrize("template_id", tuple(_SUPPORT_PRIMARY_TEXT_INDEXES))
-@pytest.mark.parametrize("with_optional", (False, True))
-@pytest.mark.parametrize("with_action", (False, True))
-def test_support_ux_spacing_typography_and_right_icon(
+def _template_slug(template_id: str) -> str:
+    name = template_id.split("@", 1)[0]
+    return re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", name).lower()
+
+
+def _support_refresh_render(
     template_id: str, with_optional: bool, with_action: bool,
-) -> None:
-    root = _support_ux_root(template_id, with_optional, with_action)
-    options = root.values[0]
-    assert isinstance(options, dict)
-    padding = options.get("padding")
-    assert isinstance(padding, dict)
-    assert padding.get("left") == padding.get("right") == 8
+) -> str:
+    return _serialize_node(_support_ux_root(template_id, with_optional, with_action))
 
-    # 旧覆盖层中的空 Text 仅提供点击命中区域，不属于主辅信息。
-    texts = [node for node in _nodes(root, "Text") if node.values[0] != ""]
-    primary_indexes = _SUPPORT_PRIMARY_TEXT_INDEXES.get(template_id)
-    assert primary_indexes is not None
-    if not with_optional and template_id in _SUPPORT_OPTIONAL_TEMPERATURE_TEXT_TEMPLATES:
-        primary_indexes = (0,)
-    fallback_only = template_id == "WeatherOverviewTravelSupport@1" and not with_optional
-    if fallback_only:
-        assert len(texts) == 1
-        fallback_styles = texts[0].values[-1]
-        assert isinstance(fallback_styles, dict)
-        assert fallback_styles.get("fontSize") == 14
-    elif template_id not in _SUPPORT_OPTIONAL_SECONDARY_TEXT_TEMPLATES:
-        assert len(texts) > len(primary_indexes)
-    for index, node in enumerate(texts):
-        if fallback_only:
-            continue
-        styles = node.values[-1]
-        assert isinstance(styles, dict)
-        primary = index in primary_indexes
-        subtitle_size = 10 if template_id in {
-            "CountdownOverviewSupport@1",
-            "CountdownOverviewTravelSupport@1",
-            "WeatherOverviewDaily2TravelSupport@1",
-            "WeatherOverviewTravelSupport@1",
-        } else 12
-        font_size = 14 if primary else subtitle_size
-        assert styles.get("fontSize") == font_size
-        if primary:
-            assert styles.get("fontWeight") == 700
-        else:
-            # 电量/天气升级模板的辅助行已改为 500 中等字重。
-            assert styles.get("fontWeight") in (400, 500)
-        assert styles.get("minFontSize", font_size) == font_size
 
-    for node in _standalone_images(root):
-        styles = node.values[-1]
-        assert isinstance(styles, dict)
-        assert styles.get("width") == styles.get("height") == 24
-        assert styles.get("flexShrink") == 0
-    assert _serialize_node(root).count('"onClick":') == int(with_action)
+def _support_refresh_payload(template_id: str) -> dict[str, str]:
+    # 每模板 4 种组合（有/无可选数据 × 有/无 actionId）的完整序列化树。
+    return {
+        "data_action": _support_refresh_render(template_id, True, True),
+        "data_only": _support_refresh_render(template_id, True, False),
+        "nodata_action": _support_refresh_render(template_id, False, True),
+        "nodata_only": _support_refresh_render(template_id, False, False),
+    }
+
+
+def _register_support_refresh_scenarios() -> None:
+    for template_id in _SUPPORT_PRIMARY_TEXT_INDEXES:
+
+        def _build(_template_id: str = template_id) -> dict[str, str]:
+            return _support_refresh_payload(_template_id)
+
+        scenario(f"support_refresh__{_template_slug(template_id)}")(_build)
+
+
+_register_support_refresh_scenarios()
+
+_SUPPORT_REFRESH_SCENARIO_IDS = tuple(
+    f"support_refresh__{_template_slug(template_id)}"
+    for template_id in _SUPPORT_PRIMARY_TEXT_INDEXES
+)
+
+
+@pytest.mark.parametrize("scenario_id", _SUPPORT_REFRESH_SCENARIO_IDS)
+def test_support_ux_spacing_typography_and_right_icon(scenario_id: str) -> None:
+    assert_golden_scenario(scenario_id)
 
 
 def test_support_ux_contract_covers_every_registered_support() -> None:

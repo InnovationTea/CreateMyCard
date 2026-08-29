@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "0374a39c4d5874f60e3f5bf32fff13d5dfb9bb534878945df9d5b5fef7c0776d",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/current/condition\",\"/current/temperatureC\"],\"GetCalendarEvents\":[\"/events/0/dtStart\",\"/events/0/eventLocation\"]},\"action\":[\"event.open.weather\"]}"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "181e540138eda65c48e1d51210b12182b2190b05cfc846d3fa8b47afb6311c2f",
+      "response": "Template(\"WideFullTwoCompactLayout@1\", {}, Template(\"ActivityOverviewTrainingSummaryFull@1\", {\"title\": \"训练概览\"}), Template(\"ActivityOverviewCompact@1\", {\"stepsIcon\": \"resources/base/media/figure_run.svg\"}), Template(\"WorkoutOverviewCompact@1\", {\"sourceIcon\": \"resources/base/media/flame_fill.svg\"}));"
+    },
+    {
+      "key": "f92db1445622a5f5926b92b17589ee35608626f9aaf007268d135faa05dba84c",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/dailySteps\",\"/exerciseCalorieText\",\"/exerciseTypeName\",\"/exerciseDurationText\",\"/exerciseHeartRateAvg\"]}}"
+    }
+  ]
+}

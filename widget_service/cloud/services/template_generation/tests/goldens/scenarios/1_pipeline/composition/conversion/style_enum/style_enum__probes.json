@@ -1,0 +1,13 @@
+{
+  "column_align_top": [
+    "DSL_REQUIRED_FIELD",
+    "STYLE_ENUM_INVALID"
+  ],
+  "row_align_top": [
+    "DSL_REQUIRED_FIELD"
+  ],
+  "row_align_wrong_case": [
+    "DSL_REQUIRED_FIELD",
+    "STYLE_ENUM_INVALID"
+  ]
+}

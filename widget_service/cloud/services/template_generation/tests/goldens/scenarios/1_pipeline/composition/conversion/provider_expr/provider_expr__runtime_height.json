@@ -1,0 +1,10 @@
+{
+  "empty": {
+    "diagnostics": [],
+    "height": "{{ ${/data/calendar/start} == '' ? 54 : 24 }}"
+  },
+  "time": {
+    "diagnostics": [],
+    "height": "{{ ${/data/calendar/start} == '' ? 54 : 24 }}"
+  }
+}

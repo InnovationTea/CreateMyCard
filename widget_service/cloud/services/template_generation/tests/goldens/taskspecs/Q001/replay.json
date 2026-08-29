@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "7641bf3daeaa07de3ead4c1f56cf88277109a23c6e4d65661d8835a26f55f1a2",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"WeatherOverviewConditionHero@1\", {\"location\": \"杭州市\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.weather\", \"label\": \"查看详情\"}));"
+    },
+    {
+      "key": "9c53b034531ca0a8250d08eb1592904651ef4e83ac008b82e6118274273b7b80",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/location/prefectureName\",\"/current/condition\"]},\"action\":[\"event.open.weather\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

@@ -1,0 +1,910 @@
+{
+  "goldenVersion": "template-goldens/1",
+  "templateCount": 113,
+  "templates": [
+    {
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Compact",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "ActivityOverviewCompact@1"
+    },
+    {
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "ActivityOverviewFull@1"
+    },
+    {
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "ActivityOverviewHero@1"
+    },
+    {
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "ActivityOverviewSupport@1"
+    },
+    {
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "WideFull",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x4",
+      "templateId": "ActivityOverviewWideFull@1"
+    },
+    {
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "WideHero",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x4",
+      "templateId": "ActivityOverviewWideHero@1"
+    },
+    {
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.battery.cli",
+      "size": "2x2",
+      "templateId": "BatteryOverviewChargingDiagnosticsHero@1"
+    },
+    {
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.battery.cli",
+      "size": "2x2",
+      "templateId": "BatteryOverviewChargingProgressFull@1"
+    },
+    {
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.battery.cli",
+      "size": "2x2",
+      "templateId": "BatteryOverviewChargingProgressHero@1"
+    },
+    {
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.battery.cli",
+      "size": "2x2",
+      "templateId": "BatteryOverviewChargingRingHero@1"
+    },
+    {
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "layoutKind": "Compact",
+      "providerId": "com.huawei.battery.cli",
+      "size": "2x2",
+      "templateId": "BatteryOverviewCompact@1"
+    },
+    {
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.battery.cli",
+      "size": "2x2",
+      "templateId": "BatteryOverviewFull@1"
+    },
+    {
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.battery.cli",
+      "size": "2x2",
+      "templateId": "BatteryOverviewHealthLevelHero@1"
+    },
+    {
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.battery.cli",
+      "size": "2x2",
+      "templateId": "BatteryOverviewHero@1"
+    },
+    {
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.battery.cli",
+      "size": "2x2",
+      "templateId": "BatteryOverviewPercentLevelHero@1"
+    },
+    {
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.battery.cli",
+      "size": "2x2",
+      "templateId": "BatteryOverviewPercentRingHero@1"
+    },
+    {
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.battery.cli",
+      "size": "2x2",
+      "templateId": "BatteryOverviewStatusSupport@1"
+    },
+    {
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.battery.cli",
+      "size": "2x2",
+      "templateId": "BatteryOverviewSupport@1"
+    },
+    {
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.battery.cli",
+      "size": "2x2",
+      "templateId": "BatteryOverviewTemperatureFull@1"
+    },
+    {
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "layoutKind": "WideFull",
+      "providerId": "com.huawei.battery.cli",
+      "size": "2x4",
+      "templateId": "BatteryOverviewWideFull@1"
+    },
+    {
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.earphone.cli",
+      "size": "2x2",
+      "templateId": "BluetoothDeviceOverviewChargeSupport@1"
+    },
+    {
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "layoutKind": "WideFull",
+      "providerId": "com.huawei.earphone.cli",
+      "size": "2x4",
+      "templateId": "BluetoothDeviceOverviewCompletePhoneWideFull@1"
+    },
+    {
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "layoutKind": "WideFull",
+      "providerId": "com.huawei.earphone.cli",
+      "size": "2x4",
+      "templateId": "BluetoothDeviceOverviewCompleteWideFull@1"
+    },
+    {
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.earphone.cli",
+      "size": "2x2",
+      "templateId": "BluetoothDeviceOverviewConnectionSupport@1"
+    },
+    {
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "layoutKind": "Compact",
+      "providerId": "com.huawei.earphone.cli",
+      "size": "2x2",
+      "templateId": "BluetoothDeviceOverviewEarbudPairCompact@1"
+    },
+    {
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.earphone.cli",
+      "size": "2x2",
+      "templateId": "BluetoothDeviceOverviewEarbudPairFull@1"
+    },
+    {
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.earphone.cli",
+      "size": "2x2",
+      "templateId": "BluetoothDeviceOverviewEarbudPairHero@1"
+    },
+    {
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.earphone.cli",
+      "size": "2x2",
+      "templateId": "BluetoothDeviceOverviewEarbudTripleFull@1"
+    },
+    {
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.earphone.cli",
+      "size": "2x2",
+      "templateId": "BluetoothDeviceOverviewEarbudTripleHero@1"
+    },
+    {
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "layoutKind": "WideFull",
+      "providerId": "com.huawei.earphone.cli",
+      "size": "2x4",
+      "templateId": "BluetoothDeviceOverviewEarbudsDynamicWideFull@1"
+    },
+    {
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.earphone.cli",
+      "size": "2x2",
+      "templateId": "BluetoothDeviceOverviewEarbudsFull@1"
+    },
+    {
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "layoutKind": "WideFull",
+      "providerId": "com.huawei.earphone.cli",
+      "size": "2x4",
+      "templateId": "BluetoothDeviceOverviewEarbudsPhoneWideFull@1"
+    },
+    {
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.earphone.cli",
+      "size": "2x2",
+      "templateId": "BluetoothDeviceOverviewEarbudsSupport@1"
+    },
+    {
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "layoutKind": "Compact",
+      "providerId": "com.huawei.earphone.cli",
+      "size": "2x2",
+      "templateId": "BluetoothDeviceOverviewEarphoneCaseCompact@1"
+    },
+    {
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.earphone.cli",
+      "size": "2x2",
+      "templateId": "BluetoothDeviceOverviewEarphoneCaseHero@1"
+    },
+    {
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "layoutKind": "Compact",
+      "providerId": "com.huawei.earphone.cli",
+      "size": "2x2",
+      "templateId": "BluetoothDeviceOverviewEarphoneCompact@1"
+    },
+    {
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.earphone.cli",
+      "size": "2x2",
+      "templateId": "BluetoothDeviceOverviewEarphoneHero@1"
+    },
+    {
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.earphone.cli",
+      "size": "2x2",
+      "templateId": "BluetoothDeviceOverviewHero@1"
+    },
+    {
+      "businessId": "CountdownOverview",
+      "capabilityId": "GetCountdownDays",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.countdown.cli",
+      "size": "2x2",
+      "templateId": "CountdownOverviewFull@1"
+    },
+    {
+      "businessId": "CountdownOverview",
+      "capabilityId": "GetCountdownDays",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.countdown.cli",
+      "size": "2x2",
+      "templateId": "CountdownOverviewHero@1"
+    },
+    {
+      "businessId": "CountdownOverview",
+      "capabilityId": "GetCountdownDays",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.countdown.cli",
+      "size": "2x2",
+      "templateId": "CountdownOverviewSupport@1"
+    },
+    {
+      "businessId": "CountdownOverview",
+      "capabilityId": "GetCountdownDays",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.countdown.cli",
+      "size": "2x2",
+      "templateId": "CountdownOverviewTravelSupport@1"
+    },
+    {
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Compact",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "HeartRateOverviewCompact@1"
+    },
+    {
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "HeartRateOverviewFull@1"
+    },
+    {
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "HeartRateOverviewHero@1"
+    },
+    {
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Compact",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "HeartRateOverviewIconCompact@1"
+    },
+    {
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "HeartRateOverviewIconHero@1"
+    },
+    {
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "HeartRateOverviewMinMaxFull@1"
+    },
+    {
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "HeartRateOverviewSupport@1"
+    },
+    {
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "HeartRateOverviewUpdatedHero@1"
+    },
+    {
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "HeartRateOverviewUpdatedIconHero@1"
+    },
+    {
+      "businessId": "ResourceUsageOverview",
+      "capabilityId": "GetSystemMemInfo",
+      "layoutKind": "Compact",
+      "providerId": "com.huawei.system-memory.cli",
+      "size": "2x2",
+      "templateId": "ResourceUsageOverviewCompact@1"
+    },
+    {
+      "businessId": "ResourceUsageOverview",
+      "capabilityId": "GetSystemMemInfo",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.system-memory.cli",
+      "size": "2x2",
+      "templateId": "ResourceUsageOverviewFull@1"
+    },
+    {
+      "businessId": "ResourceUsageOverview",
+      "capabilityId": "GetSystemMemInfo",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.system-memory.cli",
+      "size": "2x2",
+      "templateId": "ResourceUsageOverviewSupport@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewDateFull@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewDateLocationFull@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewDateSupport@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewDatedAllDayHero@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewDatedMeetingHero@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewEventCountDetailsHero@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "HeroContent",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewHeroContent@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewLocationDescriptionEndFull@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewLocationHero@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewLocationSupport@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "WideFull",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x4",
+      "templateId": "ScheduleOverviewMeetingSourceWideFull@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "WideFull",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x4",
+      "templateId": "ScheduleOverviewMeetingWideFull@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewNextEventHero@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewNextEventLocationFull@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewReminderDetailsFull@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewReminderDetailsHero@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewReminderHero@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewStartTimeSupport@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewTimeSupport@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewTimezoneAllDayFull@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewTimezoneDateEndFull@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewTimezoneFull@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewTimezoneTimeFull@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewTitleHero@1"
+    },
+    {
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.calendar.cli",
+      "size": "2x2",
+      "templateId": "ScheduleOverviewTwoEventsFull@1"
+    },
+    {
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Compact",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "SleepOverviewCompact@1"
+    },
+    {
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "SleepOverviewFull@1"
+    },
+    {
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "SleepOverviewHero@1"
+    },
+    {
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "SleepOverviewNapFull@1"
+    },
+    {
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "SleepOverviewNapHero@1"
+    },
+    {
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "SleepOverviewSupport@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewAirQualityHero@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewAlertFull@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewCareAlertFull@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Compact",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewCompact@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewConditionHero@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewDaily2TravelSupport@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewDailyCompareFull@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewDailyDateFull@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewDailyHealthFull@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewDailyRainFull@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewDualCityFull@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewFull@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewHero@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "HeroTitle",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewHeroTitle@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewHumidityFull@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewTemperatureSupport@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewTemperatureUvSupport@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewTemperaturecoldLevelSupport@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewTravelSupport@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewUpdatedAtFull@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Compact",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewUvCompact@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewUvFull@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewWindFull@1"
+    },
+    {
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.weather.cli",
+      "size": "2x2",
+      "templateId": "WeatherOverviewWindHero@1"
+    },
+    {
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Compact",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "WorkoutOverviewCompact@1"
+    },
+    {
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Full",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "WorkoutOverviewFull@1"
+    },
+    {
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Hero",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "WorkoutOverviewHero@1"
+    },
+    {
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "layoutKind": "Support",
+      "providerId": "com.huawei.health-sport.cli",
+      "size": "2x2",
+      "templateId": "WorkoutOverviewSupport@1"
+    }
+  ]
+}

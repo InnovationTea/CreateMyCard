@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "f377086ef31acc40c197b3bb86cff117095e07dd3ba7ea8dbd7c278de3ff1eba",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/totalNapDurationText\",\"/dailySteps\"],\"ViewWeather\":[\"/current/feelsLikeC\",\"/current/alertLevel\"]},\"action\":[\"event.open.weather\",\"event.open.health.sport\"]}"
+    }
+  ]
+}

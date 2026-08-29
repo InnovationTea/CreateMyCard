@@ -1,0 +1,54 @@
+{
+  "compact_two_action_two_pills": {
+    "error": "NO_ERROR"
+  },
+  "full_icon_action_full_icon": {
+    "error": "NO_ERROR"
+  },
+  "hero_action_hero_one_pill": {
+    "error": "NO_ERROR"
+  },
+  "hero_action_without_action": {
+    "errorType": "TerselConversionError",
+    "message": "Hero Provider Template Action combination is invalid: ()."
+  },
+  "hero_title_content_reversed_order": {
+    "errorType": "TerselConversionError",
+    "message": "HeroTitle/HeroContent Provider Template order is invalid."
+  },
+  "hero_title_content_title_content_one_pill": {
+    "error": "NO_ERROR"
+  },
+  "single_focus_full_no_action": {
+    "error": "NO_ERROR"
+  },
+  "single_focus_with_action_requires_hero": {
+    "errorType": "TerselConversionError",
+    "message": "Hero Provider Template requires HeroActionLayout."
+  },
+  "single_focus_with_icon_action": {
+    "errorType": "TerselConversionError",
+    "message": "Full Provider Template Action combination is invalid: ('IconAction',)."
+  },
+  "single_focus_with_wide_template": {
+    "errorType": "TerselConversionError",
+    "message": "UX Layout Wide marker does not match the target card size."
+  },
+  "two_support_two_compacts": {
+    "errorType": "TerselConversionError",
+    "message": "Provider Template layout combination is invalid."
+  },
+  "two_support_two_supports": {
+    "error": "NO_ERROR"
+  },
+  "wide_single_focus_non_wide_template": {
+    "errorType": "TerselConversionError",
+    "message": "Provider Template layout suffix mismatches card size."
+  },
+  "wide_single_focus_wide_full_no_action": {
+    "error": "NO_ERROR"
+  },
+  "wide_single_focus_wide_hero_one_pill": {
+    "error": "NO_ERROR"
+  }
+}

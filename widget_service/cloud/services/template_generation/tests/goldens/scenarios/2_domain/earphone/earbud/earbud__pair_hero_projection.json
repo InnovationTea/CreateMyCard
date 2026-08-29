@@ -1,0 +1,97 @@
+{
+  "batteries": {
+    "0x100": {
+      "dataPaths": [
+        "/data/earphone/earphoneName",
+        "/data/earphone/leftBatteryLevel",
+        "/data/earphone/rightBatteryLevel"
+      ],
+      "projectedFields": {
+        "earphoneName": {
+          "description": "可信蓝牙耳机名称",
+          "sampleValue": "示例耳机",
+          "type": "string"
+        },
+        "leftBatteryLevel": {
+          "description": "可信左耳电量百分比",
+          "sampleValue": 0,
+          "type": "integer"
+        },
+        "rightBatteryLevel": {
+          "description": "可信右耳电量百分比",
+          "sampleValue": 100,
+          "type": "integer"
+        }
+      },
+      "taskSchemaUnchanged": true,
+      "templateId": "BluetoothDeviceOverviewEarbudPairHero@1",
+      "templateIds": [
+        "BluetoothDeviceOverviewEarbudPairHero@1",
+        "HeroActionLayout@1",
+        "PillAction@1"
+      ]
+    },
+    "100x0": {
+      "dataPaths": [
+        "/data/earphone/earphoneName",
+        "/data/earphone/leftBatteryLevel",
+        "/data/earphone/rightBatteryLevel"
+      ],
+      "projectedFields": {
+        "earphoneName": {
+          "description": "可信蓝牙耳机名称",
+          "sampleValue": "示例耳机",
+          "type": "string"
+        },
+        "leftBatteryLevel": {
+          "description": "可信左耳电量百分比",
+          "sampleValue": 100,
+          "type": "integer"
+        },
+        "rightBatteryLevel": {
+          "description": "可信右耳电量百分比",
+          "sampleValue": 0,
+          "type": "integer"
+        }
+      },
+      "taskSchemaUnchanged": true,
+      "templateId": "BluetoothDeviceOverviewEarbudPairHero@1",
+      "templateIds": [
+        "BluetoothDeviceOverviewEarbudPairHero@1",
+        "HeroActionLayout@1",
+        "PillAction@1"
+      ]
+    },
+    "76x78": {
+      "dataPaths": [
+        "/data/earphone/earphoneName",
+        "/data/earphone/leftBatteryLevel",
+        "/data/earphone/rightBatteryLevel"
+      ],
+      "projectedFields": {
+        "earphoneName": {
+          "description": "可信蓝牙耳机名称",
+          "sampleValue": "示例耳机",
+          "type": "string"
+        },
+        "leftBatteryLevel": {
+          "description": "可信左耳电量百分比",
+          "sampleValue": 76,
+          "type": "integer"
+        },
+        "rightBatteryLevel": {
+          "description": "可信右耳电量百分比",
+          "sampleValue": 78,
+          "type": "integer"
+        }
+      },
+      "taskSchemaUnchanged": true,
+      "templateId": "BluetoothDeviceOverviewEarbudPairHero@1",
+      "templateIds": [
+        "BluetoothDeviceOverviewEarbudPairHero@1",
+        "HeroActionLayout@1",
+        "PillAction@1"
+      ]
+    }
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "errorType": "TerselConversionError",
+  "message": "Business Template Action does not match supported events or data context: CountdownOverviewSupport@1/event.open.settings.battery"
+}

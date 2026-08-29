@@ -1,0 +1,42 @@
+{
+  "elseif__bind_first": [
+    "IfBind(\"first\",",
+    "IfMissingBind(\"first\","
+  ],
+  "elseif__grouped_first_second": [
+    "IfAllBind([\"first\",\"second\"],",
+    "IfAnyMissingBind([\"first\",\"second\"],"
+  ],
+  "elseif__negated_bind_first": [
+    "IfMissingBind(\"first\",",
+    "IfBind(\"first\","
+  ],
+  "elseif__negated_param_flag": [
+    "IfMissingParam(\"flag\",",
+    "IfParam(\"flag\","
+  ],
+  "elseif__param_flag": [
+    "IfParam(\"flag\",",
+    "IfMissingParam(\"flag\","
+  ],
+  "if__bind_first": [
+    "IfBind(\"first\",",
+    "IfMissingBind(\"first\","
+  ],
+  "if__grouped_first_second": [
+    "IfAllBind([\"first\",\"second\"],",
+    "IfAnyMissingBind([\"first\",\"second\"],"
+  ],
+  "if__negated_bind_first": [
+    "IfMissingBind(\"first\",",
+    "IfBind(\"first\","
+  ],
+  "if__negated_param_flag": [
+    "IfMissingParam(\"flag\",",
+    "IfParam(\"flag\","
+  ],
+  "if__param_flag": [
+    "IfParam(\"flag\",",
+    "IfMissingParam(\"flag\","
+  ]
+}

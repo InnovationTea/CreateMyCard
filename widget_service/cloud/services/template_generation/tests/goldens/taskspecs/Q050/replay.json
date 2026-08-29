@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "61947b32b6822dd1ff56c2b77668351ce347a60ccee8b384e342b7db41aa32e0",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/startDate\",\"/events/0/dtStart\",\"/events/0/countdownDays\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.open.settings.dnd\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

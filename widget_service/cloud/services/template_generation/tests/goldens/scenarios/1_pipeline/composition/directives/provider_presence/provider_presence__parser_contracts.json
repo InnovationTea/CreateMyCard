@@ -1,0 +1,30 @@
+{
+  "bare_domain": null,
+  "call_suffix": null,
+  "cjk_name": null,
+  "data_city": [
+    "data",
+    "city"
+  ],
+  "data_underscore_city2": [
+    "data",
+    "_city2"
+  ],
+  "digit_leading_name": null,
+  "empty_source": null,
+  "foreign_domain": null,
+  "leading_space": null,
+  "optional_chained": null,
+  "props_capital_label2": [
+    "props",
+    "Label2"
+  ],
+  "props_label": [
+    "props",
+    "label"
+  ],
+  "props_trailing_dot": null,
+  "three_segments": null,
+  "trailing_newline": null,
+  "trailing_space": null
+}

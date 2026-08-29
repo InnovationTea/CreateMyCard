@@ -1,0 +1,98 @@
+{
+  "end__first": {
+    "serialized": "Column(Text(\"${data.context.first}\"))",
+    "texts": [
+      "${data.context.first}"
+    ]
+  },
+  "end__first_second": {
+    "serialized": "Column(Text(\"${data.context.first}\"))",
+    "texts": [
+      "${data.context.first}"
+    ]
+  },
+  "end__first_second_third": {
+    "serialized": "Column(Text(\"${data.context.first}\"))",
+    "texts": [
+      "${data.context.first}"
+    ]
+  },
+  "end__first_third": {
+    "serialized": "Column(Text(\"${data.context.first}\"))",
+    "texts": [
+      "${data.context.first}"
+    ]
+  },
+  "end__none": {
+    "serialized": "Column(Text(\"无数据\"))",
+    "texts": [
+      "无数据"
+    ]
+  },
+  "end__second": {
+    "serialized": "Column(Text(\"${data.context.second}\"))",
+    "texts": [
+      "${data.context.second}"
+    ]
+  },
+  "end__second_third": {
+    "serialized": "Column(Text(\"${data.context.second}\"))",
+    "texts": [
+      "${data.context.second}"
+    ]
+  },
+  "end__third": {
+    "serialized": "Column(Text(\"${data.context.third}\"))",
+    "texts": [
+      "${data.context.third}"
+    ]
+  },
+  "endif__first": {
+    "serialized": "Column(Text(\"${data.context.first}\"))",
+    "texts": [
+      "${data.context.first}"
+    ]
+  },
+  "endif__first_second": {
+    "serialized": "Column(Text(\"${data.context.first}\"))",
+    "texts": [
+      "${data.context.first}"
+    ]
+  },
+  "endif__first_second_third": {
+    "serialized": "Column(Text(\"${data.context.first}\"))",
+    "texts": [
+      "${data.context.first}"
+    ]
+  },
+  "endif__first_third": {
+    "serialized": "Column(Text(\"${data.context.first}\"))",
+    "texts": [
+      "${data.context.first}"
+    ]
+  },
+  "endif__none": {
+    "serialized": "Column(Text(\"无数据\"))",
+    "texts": [
+      "无数据"
+    ]
+  },
+  "endif__second": {
+    "serialized": "Column(Text(\"${data.context.second}\"))",
+    "texts": [
+      "${data.context.second}"
+    ]
+  },
+  "endif__second_third": {
+    "serialized": "Column(Text(\"${data.context.second}\"))",
+    "texts": [
+      "${data.context.second}"
+    ]
+  },
+  "endif__third": {
+    "serialized": "Column(Text(\"${data.context.third}\"))",
+    "texts": [
+      "${data.context.third}"
+    ]
+  }
+}

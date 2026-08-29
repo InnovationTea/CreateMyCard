@@ -1,0 +1,86 @@
+{
+  "forbidden": {
+    "actionIds": [],
+    "requiredOutputFields": {
+      "GetPhoneBatteryInfo": [
+        "/healthStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ]
+    }
+  },
+  "health-duplicate": {
+    "actionIds": [],
+    "requiredOutputFields": {
+      "GetPhoneBatteryInfo": [
+        "/healthStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ]
+    }
+  },
+  "health-invalid": {
+    "actionIds": [],
+    "requiredOutputFields": {
+      "GetPhoneBatteryInfo": [
+        "/healthStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ]
+    }
+  },
+  "health-missing": {
+    "actionIds": [],
+    "requiredOutputFields": {
+      "GetPhoneBatteryInfo": [
+        "/healthStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ]
+    }
+  },
+  "health-only": {
+    "actionIds": [
+      "event.open.settings.batteryHealth"
+    ],
+    "requiredOutputFields": {
+      "GetPhoneBatteryInfo": [
+        "/healthStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ]
+    }
+  },
+  "not-requested": {
+    "actionIds": [],
+    "requiredOutputFields": {
+      "GetPhoneBatteryInfo": [
+        "/batterySOCText"
+      ]
+    }
+  },
+  "settings-duplicate": {
+    "actionIds": [],
+    "requiredOutputFields": {
+      "GetPhoneBatteryInfo": [
+        "/healthStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ]
+    }
+  },
+  "settings-first": {
+    "actionIds": [
+      "event.open.settings.battery"
+    ],
+    "requiredOutputFields": {
+      "GetPhoneBatteryInfo": [
+        "/healthStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ]
+    }
+  },
+  "settings-invalid": {
+    "actionIds": [],
+    "requiredOutputFields": {
+      "GetPhoneBatteryInfo": [
+        "/healthStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ]
+    }
+  }
+}

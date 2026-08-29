@@ -1,0 +1,1474 @@
+{
+  "combinations": {
+    "absent_firstCity": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FFE5EDFE",
+                  "borderRadius": 18,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0"
+                ],
+                "component": "Stack",
+                "id": "__genui_render_component__root_1",
+                "styles": {
+                  "alignContent": "topStart",
+                  "height": "matchParent",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0",
+                  "root_1_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "itemMargin": 6,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "end",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0"
+                ],
+                "component": "Stack",
+                "id": "root_1_0_0",
+                "styles": {
+                  "alignContent": "center",
+                  "backgroundColor": "#1A2E529E",
+                  "borderRadius": 12,
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "layoutWeight": 1,
+                  "padding": {
+                    "bottom": 7,
+                    "left": 10,
+                    "right": 10,
+                    "top": 7
+                  },
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0",
+                  "root_1_0_0_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0_0",
+                "itemMargin": 2,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "center",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0_0",
+                  "root_1_0_0_0_0_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0_0",
+                "styles": {
+                  "alignItems": "start",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0_0_0",
+                  "root_1_0_0_0_0_0_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0_0_0",
+                "itemMargin": 1,
+                "styles": {
+                  "alignItems": "end",
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "justifyContent": "start",
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather1/current/temperatureC} }}",
+                "id": "root_1_0_0_0_0_0_0",
+                "styles": {
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 18,
+                  "fontWeight": 700,
+                  "height": 24,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "°",
+                "id": "root_1_0_0_0_0_0_1",
+                "styles": {
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 18,
+                  "fontWeight": 700,
+                  "height": 24,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "城市一",
+                "id": "root_1_0_0_0_0_1",
+                "styles": {
+                  "flexShrink": 0,
+                  "fontColor": "#991F4799",
+                  "fontSize": 10,
+                  "fontWeight": 500,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather1/current/condition} }}",
+                "id": "root_1_0_0_0_1",
+                "styles": {
+                  "fontColor": "#991F4799",
+                  "fontSize": 10,
+                  "fontWeight": 400,
+                  "maxLines": 1,
+                  "textAlign": "left",
+                  "textOverflow": "ellipsis",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0"
+                ],
+                "component": "Stack",
+                "id": "root_1_0_1",
+                "styles": {
+                  "alignContent": "center",
+                  "backgroundColor": "#1A2E529E",
+                  "borderRadius": 12,
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "layoutWeight": 1,
+                  "padding": {
+                    "bottom": 7,
+                    "left": 10,
+                    "right": 10,
+                    "top": 7
+                  },
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0_0",
+                  "root_1_0_1_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_1_0",
+                "itemMargin": 2,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "center",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0_0_0",
+                  "root_1_0_1_0_0_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_1_0_0",
+                "styles": {
+                  "alignItems": "start",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0_0_0_0",
+                  "root_1_0_1_0_0_0_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_1_0_0_0",
+                "itemMargin": 1,
+                "styles": {
+                  "alignItems": "end",
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "justifyContent": "start",
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather2/current/temperatureC} }}",
+                "id": "root_1_0_1_0_0_0_0",
+                "styles": {
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 18,
+                  "fontWeight": 700,
+                  "height": 24,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "°",
+                "id": "root_1_0_1_0_0_0_1",
+                "styles": {
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 18,
+                  "fontWeight": 700,
+                  "height": 24,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather2/location/prefectureName} }}",
+                "id": "root_1_0_1_0_0_1",
+                "styles": {
+                  "flexShrink": 0,
+                  "fontColor": "#991F4799",
+                  "fontSize": 10,
+                  "fontWeight": 500,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather2/current/condition} }}",
+                "id": "root_1_0_1_0_1",
+                "styles": {
+                  "fontColor": "#991F4799",
+                  "fontSize": 10,
+                  "fontWeight": 400,
+                  "maxLines": 1,
+                  "textAlign": "left",
+                  "textOverflow": "ellipsis",
+                  "width": "matchParent"
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "weather1": {
+                  "current": {
+                    "condition": "多云",
+                    "temperatureC": 22.5
+                  }
+                },
+                "weather2": {
+                  "current": {
+                    "condition": "多云",
+                    "temperatureC": 22.5
+                  },
+                  "location": {
+                    "prefectureName": "厦门市"
+                  }
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "WeatherOverviewDualCityFull@1",
+        "SingleFocusLayout@1"
+      ]
+    },
+    "absent_secondCity": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FFE5EDFE",
+                  "borderRadius": 18,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0"
+                ],
+                "component": "Stack",
+                "id": "__genui_render_component__root_1",
+                "styles": {
+                  "alignContent": "topStart",
+                  "height": "matchParent",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0",
+                  "root_1_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "itemMargin": 6,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "end",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0"
+                ],
+                "component": "Stack",
+                "id": "root_1_0_0",
+                "styles": {
+                  "alignContent": "center",
+                  "backgroundColor": "#1A2E529E",
+                  "borderRadius": 12,
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "layoutWeight": 1,
+                  "padding": {
+                    "bottom": 7,
+                    "left": 10,
+                    "right": 10,
+                    "top": 7
+                  },
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0",
+                  "root_1_0_0_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0_0",
+                "itemMargin": 2,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "center",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0_0",
+                  "root_1_0_0_0_0_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0_0",
+                "styles": {
+                  "alignItems": "start",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0_0_0",
+                  "root_1_0_0_0_0_0_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0_0_0",
+                "itemMargin": 1,
+                "styles": {
+                  "alignItems": "end",
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "justifyContent": "start",
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather1/current/temperatureC} }}",
+                "id": "root_1_0_0_0_0_0_0",
+                "styles": {
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 18,
+                  "fontWeight": 700,
+                  "height": 24,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "°",
+                "id": "root_1_0_0_0_0_0_1",
+                "styles": {
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 18,
+                  "fontWeight": 700,
+                  "height": 24,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather1/location/prefectureName} }}",
+                "id": "root_1_0_0_0_0_1",
+                "styles": {
+                  "flexShrink": 0,
+                  "fontColor": "#991F4799",
+                  "fontSize": 10,
+                  "fontWeight": 500,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather1/current/condition} }}",
+                "id": "root_1_0_0_0_1",
+                "styles": {
+                  "fontColor": "#991F4799",
+                  "fontSize": 10,
+                  "fontWeight": 400,
+                  "maxLines": 1,
+                  "textAlign": "left",
+                  "textOverflow": "ellipsis",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0"
+                ],
+                "component": "Stack",
+                "id": "root_1_0_1",
+                "styles": {
+                  "alignContent": "center",
+                  "backgroundColor": "#1A2E529E",
+                  "borderRadius": 12,
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "layoutWeight": 1,
+                  "padding": {
+                    "bottom": 7,
+                    "left": 10,
+                    "right": 10,
+                    "top": 7
+                  },
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0_0",
+                  "root_1_0_1_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_1_0",
+                "itemMargin": 2,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "center",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0_0_0",
+                  "root_1_0_1_0_0_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_1_0_0",
+                "styles": {
+                  "alignItems": "start",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0_0_0_0",
+                  "root_1_0_1_0_0_0_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_1_0_0_0",
+                "itemMargin": 1,
+                "styles": {
+                  "alignItems": "end",
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "justifyContent": "start",
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather2/current/temperatureC} }}",
+                "id": "root_1_0_1_0_0_0_0",
+                "styles": {
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 18,
+                  "fontWeight": 700,
+                  "height": 24,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "°",
+                "id": "root_1_0_1_0_0_0_1",
+                "styles": {
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 18,
+                  "fontWeight": 700,
+                  "height": 24,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "城市二",
+                "id": "root_1_0_1_0_0_1",
+                "styles": {
+                  "flexShrink": 0,
+                  "fontColor": "#991F4799",
+                  "fontSize": 10,
+                  "fontWeight": 500,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather2/current/condition} }}",
+                "id": "root_1_0_1_0_1",
+                "styles": {
+                  "fontColor": "#991F4799",
+                  "fontSize": 10,
+                  "fontWeight": 400,
+                  "maxLines": 1,
+                  "textAlign": "left",
+                  "textOverflow": "ellipsis",
+                  "width": "matchParent"
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "weather1": {
+                  "current": {
+                    "condition": "多云",
+                    "temperatureC": 22.5
+                  },
+                  "location": {
+                    "prefectureName": "厦门市"
+                  }
+                },
+                "weather2": {
+                  "current": {
+                    "condition": "多云",
+                    "temperatureC": 22.5
+                  }
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "WeatherOverviewDualCityFull@1",
+        "SingleFocusLayout@1"
+      ]
+    },
+    "all": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FFE5EDFE",
+                  "borderRadius": 18,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0"
+                ],
+                "component": "Stack",
+                "id": "__genui_render_component__root_1",
+                "styles": {
+                  "alignContent": "topStart",
+                  "height": "matchParent",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0",
+                  "root_1_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "itemMargin": 6,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "end",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0"
+                ],
+                "component": "Stack",
+                "id": "root_1_0_0",
+                "styles": {
+                  "alignContent": "center",
+                  "backgroundColor": "#1A2E529E",
+                  "borderRadius": 12,
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "layoutWeight": 1,
+                  "padding": {
+                    "bottom": 7,
+                    "left": 10,
+                    "right": 10,
+                    "top": 7
+                  },
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0",
+                  "root_1_0_0_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0_0",
+                "itemMargin": 2,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "center",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0_0",
+                  "root_1_0_0_0_0_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0_0",
+                "styles": {
+                  "alignItems": "start",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0_0_0",
+                  "root_1_0_0_0_0_0_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0_0_0",
+                "itemMargin": 1,
+                "styles": {
+                  "alignItems": "end",
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "justifyContent": "start",
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather1/current/temperatureC} }}",
+                "id": "root_1_0_0_0_0_0_0",
+                "styles": {
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 18,
+                  "fontWeight": 700,
+                  "height": 24,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "°",
+                "id": "root_1_0_0_0_0_0_1",
+                "styles": {
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 18,
+                  "fontWeight": 700,
+                  "height": 24,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather1/location/prefectureName} }}",
+                "id": "root_1_0_0_0_0_1",
+                "styles": {
+                  "flexShrink": 0,
+                  "fontColor": "#991F4799",
+                  "fontSize": 10,
+                  "fontWeight": 500,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather1/current/condition} }}",
+                "id": "root_1_0_0_0_1",
+                "styles": {
+                  "fontColor": "#991F4799",
+                  "fontSize": 10,
+                  "fontWeight": 400,
+                  "maxLines": 1,
+                  "textAlign": "left",
+                  "textOverflow": "ellipsis",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0"
+                ],
+                "component": "Stack",
+                "id": "root_1_0_1",
+                "styles": {
+                  "alignContent": "center",
+                  "backgroundColor": "#1A2E529E",
+                  "borderRadius": 12,
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "layoutWeight": 1,
+                  "padding": {
+                    "bottom": 7,
+                    "left": 10,
+                    "right": 10,
+                    "top": 7
+                  },
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0_0",
+                  "root_1_0_1_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_1_0",
+                "itemMargin": 2,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "center",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0_0_0",
+                  "root_1_0_1_0_0_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_1_0_0",
+                "styles": {
+                  "alignItems": "start",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0_0_0_0",
+                  "root_1_0_1_0_0_0_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_1_0_0_0",
+                "itemMargin": 1,
+                "styles": {
+                  "alignItems": "end",
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "justifyContent": "start",
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather2/current/temperatureC} }}",
+                "id": "root_1_0_1_0_0_0_0",
+                "styles": {
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 18,
+                  "fontWeight": 700,
+                  "height": 24,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "°",
+                "id": "root_1_0_1_0_0_0_1",
+                "styles": {
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 18,
+                  "fontWeight": 700,
+                  "height": 24,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather2/location/prefectureName} }}",
+                "id": "root_1_0_1_0_0_1",
+                "styles": {
+                  "flexShrink": 0,
+                  "fontColor": "#991F4799",
+                  "fontSize": 10,
+                  "fontWeight": 500,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather2/current/condition} }}",
+                "id": "root_1_0_1_0_1",
+                "styles": {
+                  "fontColor": "#991F4799",
+                  "fontSize": 10,
+                  "fontWeight": 400,
+                  "maxLines": 1,
+                  "textAlign": "left",
+                  "textOverflow": "ellipsis",
+                  "width": "matchParent"
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "weather1": {
+                  "current": {
+                    "condition": "多云",
+                    "temperatureC": 22.5
+                  },
+                  "location": {
+                    "prefectureName": "厦门市"
+                  }
+                },
+                "weather2": {
+                  "current": {
+                    "condition": "多云",
+                    "temperatureC": 22.5
+                  },
+                  "location": {
+                    "prefectureName": "厦门市"
+                  }
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "WeatherOverviewDualCityFull@1",
+        "SingleFocusLayout@1"
+      ]
+    },
+    "none": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FFE5EDFE",
+                  "borderRadius": 18,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0"
+                ],
+                "component": "Stack",
+                "id": "__genui_render_component__root_1",
+                "styles": {
+                  "alignContent": "topStart",
+                  "height": "matchParent",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0",
+                  "root_1_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "itemMargin": 6,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "end",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0"
+                ],
+                "component": "Stack",
+                "id": "root_1_0_0",
+                "styles": {
+                  "alignContent": "center",
+                  "backgroundColor": "#1A2E529E",
+                  "borderRadius": 12,
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "layoutWeight": 1,
+                  "padding": {
+                    "bottom": 7,
+                    "left": 10,
+                    "right": 10,
+                    "top": 7
+                  },
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0",
+                  "root_1_0_0_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0_0",
+                "itemMargin": 2,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "center",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0_0",
+                  "root_1_0_0_0_0_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0_0",
+                "styles": {
+                  "alignItems": "start",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0_0_0",
+                  "root_1_0_0_0_0_0_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0_0_0",
+                "itemMargin": 1,
+                "styles": {
+                  "alignItems": "end",
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "justifyContent": "start",
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather1/current/temperatureC} }}",
+                "id": "root_1_0_0_0_0_0_0",
+                "styles": {
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 18,
+                  "fontWeight": 700,
+                  "height": 24,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "°",
+                "id": "root_1_0_0_0_0_0_1",
+                "styles": {
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 18,
+                  "fontWeight": 700,
+                  "height": 24,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "城市一",
+                "id": "root_1_0_0_0_0_1",
+                "styles": {
+                  "flexShrink": 0,
+                  "fontColor": "#991F4799",
+                  "fontSize": 10,
+                  "fontWeight": 500,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather1/current/condition} }}",
+                "id": "root_1_0_0_0_1",
+                "styles": {
+                  "fontColor": "#991F4799",
+                  "fontSize": 10,
+                  "fontWeight": 400,
+                  "maxLines": 1,
+                  "textAlign": "left",
+                  "textOverflow": "ellipsis",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0"
+                ],
+                "component": "Stack",
+                "id": "root_1_0_1",
+                "styles": {
+                  "alignContent": "center",
+                  "backgroundColor": "#1A2E529E",
+                  "borderRadius": 12,
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "layoutWeight": 1,
+                  "padding": {
+                    "bottom": 7,
+                    "left": 10,
+                    "right": 10,
+                    "top": 7
+                  },
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0_0",
+                  "root_1_0_1_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_1_0",
+                "itemMargin": 2,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "center",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0_0_0",
+                  "root_1_0_1_0_0_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_1_0_0",
+                "styles": {
+                  "alignItems": "start",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0_0_0_0",
+                  "root_1_0_1_0_0_0_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_1_0_0_0",
+                "itemMargin": 1,
+                "styles": {
+                  "alignItems": "end",
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "justifyContent": "start",
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather2/current/temperatureC} }}",
+                "id": "root_1_0_1_0_0_0_0",
+                "styles": {
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 18,
+                  "fontWeight": 700,
+                  "height": 24,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "°",
+                "id": "root_1_0_1_0_0_0_1",
+                "styles": {
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 18,
+                  "fontWeight": 700,
+                  "height": 24,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "城市二",
+                "id": "root_1_0_1_0_0_1",
+                "styles": {
+                  "flexShrink": 0,
+                  "fontColor": "#991F4799",
+                  "fontSize": 10,
+                  "fontWeight": 500,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/weather2/current/condition} }}",
+                "id": "root_1_0_1_0_1",
+                "styles": {
+                  "fontColor": "#991F4799",
+                  "fontSize": 10,
+                  "fontWeight": 400,
+                  "maxLines": 1,
+                  "textAlign": "left",
+                  "textOverflow": "ellipsis",
+                  "width": "matchParent"
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "weather1": {
+                  "current": {
+                    "condition": "多云",
+                    "temperatureC": 22.5
+                  }
+                },
+                "weather2": {
+                  "current": {
+                    "condition": "多云",
+                    "temperatureC": 22.5
+                  }
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "WeatherOverviewDualCityFull@1",
+        "SingleFocusLayout@1"
+      ]
+    }
+  },
+  "fusionBall": false,
+  "layout": "SingleFocusLayout@1",
+  "optionalBindings": [
+    "firstCity",
+    "secondCity"
+  ],
+  "sampleIds": {
+    "absent_firstCity": "C299",
+    "absent_secondCity": "C300",
+    "all": "C301",
+    "none": "C302"
+  },
+  "size": "2x2",
+  "templateId": "WeatherOverviewDualCityFull@1"
+}

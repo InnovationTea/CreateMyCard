@@ -1,0 +1,8 @@
+{
+  "requiredData": [
+    "/earphoneName",
+    "/leftBatteryLevel",
+    "/rightBatteryLevel"
+  ],
+  "templateId": "BluetoothDeviceOverviewEarbudPairHero@1"
+}

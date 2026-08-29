@@ -1,11 +1,24 @@
-"""模板内部商用契约的回归测试。"""
+"""模板内部商用契约回归：契约断言已固化为场景金样（Layer C）。
+
+天气内建资产范围、日志摘要脱敏、cardtpl 编译/解析拒绝矩阵（废弃 Variant
+语法、未知 Theme 引用、非法 children 槽位、非法 EventAction 用法、三参
+Template 调用）、Theme 引用解析、索引 children 槽位展开、内置 7 个布局
+蓝图骨架、HeroTitleContent 布局弹性高度、融合球主题 Compact 规则、动作
+模板 props/onClick 契约、可选 EventAction 的 onClick 缺省矩阵、布局-动作
+组合校验矩阵、双业务第二层布局选择投影与模型 JSON 提取，全部固化为
+``internal_contracts__*`` 场景金样（错误路径冻结 ``errorType`` 与完整
+message，正常路径冻结解析/实例化后的具体取值）。保留为普通测试的仅剩
+注册表全量「内联样式、无设计令牌」结构不变量——它是对 checked-in 模板
+源的结构 pin，不属于单一渲染产物契约。场景金样尚未固化时，统一门禁会
+显示为待固化新增（``golden_cli bless --declared <场景ID>``）；引擎改动
+后按 golden 工作流 ``check --diff`` / ``bless --declared`` 复核。
+"""
 
 from __future__ import annotations
 
-import re
+import json
 from types import SimpleNamespace
-
-import pytest
+from typing import Any
 
 from models.generation import EventAction, TaskSpec
 from services.template_generation.engine.advanced.models import AdvancedScopeBrief
@@ -24,82 +37,57 @@ from services.template_generation.engine.cardplan.models import (
     SourceSpan,
     TemplateNode,
 )
-from services.template_generation.engine.cardplan.parser import ParsedCall, parse_hybrid_card
-from services.template_generation.engine.cardplan.provider_bundle import compile_card_template
+from services.template_generation.engine.cardplan.parser import (
+    ParsedCall,
+    parse_hybrid_card,
+)
+from services.template_generation.engine.cardplan.provider_bundle import (
+    compile_card_template,
+)
 from services.template_generation.engine.cardplan.registry import get_cardplan_registry
 from services.template_generation.engine.pipeline import (
     _prompt_size_summary,
     _task_spec_log_summary,
 )
-from services.template_generation.engine.tersel_converter import (
-    Nested2Node,
-    TerselConversionError,
-)
+from services.template_generation.engine.tersel_converter import Nested2Node
 from services.template_generation.model_client import _parse_json_object
+from services.template_generation.test_support.golden_scenarios import scenario
 
 
-def test_weather_builtin_assets_are_scoped_to_direct_weather_components() -> None:
-    template_weather = SimpleNamespace(
-        name="WeatherOverview",
-        implementation="template",
+def _error_outcome(call: Any) -> dict[str, Any]:
+    """把一次确定性调用的结果折叠成可冻结的错误契约载荷。"""
+    try:
+        call()
+    except Exception as exc:  # 错误类型与完整 message 即契约本身
+        return {"errorType": type(exc).__name__, "message": str(exc)}
+    return {"error": "NO_ERROR"}
+
+
+def _compile_source(
+    source: str,
+    *,
+    wire_id: str,
+    provider_id: str,
+    description: str,
+    supported_card_sizes: tuple[str, ...] = (),
+) -> Any:
+    return compile_card_template(
+        source,
+        provider_id=provider_id,
+        business_id=None,
+        expected_wire_id=wire_id,
+        expected_capability_id=None,
+        data_domain=None,
+        description=description,
+        supported_card_sizes=supported_card_sizes,
+        primary_data=(),
+        secondary_data=(),
+        optional_data=(),
+        output_schema={"type": "object", "properties": {}},
     )
-    direct_weather = SimpleNamespace(
-        name="WeatherOverview",
-        implementation="terse-dsl",
-    )
-
-    assert _weather_builtin_assets_for_components((template_weather,)) == ()
-    assert _weather_builtin_assets_for_components((direct_weather,)) == (
-        "resources/base/media/icon_weather1.svg",
-        "resources/base/media/sun_max.svg",
-        "resources/base/media/cold.svg",
-    )
 
 
-def test_second_layer_prompt_size_summary_does_not_log_prompt_content() -> None:
-    messages = [
-        {"role": "system", "content": "system-contract"},
-        {"role": "user", "content": "private-dynamic-contract"},
-    ]
-
-    summary = _prompt_size_summary(messages)
-
-    assert summary == {
-        "messageCount": 2,
-        "systemPromptChars": len("system-contract"),
-        "userPromptChars": len("private-dynamic-contract"),
-        "totalPromptChars": len("system-contractprivate-dynamic-contract"),
-    }
-    assert "private-dynamic-contract" not in str(summary)
-
-
-def test_provider_compiler_rejects_deprecated_variant_syntax() -> None:
-    legacy_source = """#Template(\"Legacy@1\", {\"capability\": \"LegacyCapability\"})
-#Variant(\"2x2\", {})
-Column(\"section\")
-#EndVariant
-#EndTemplate
-"""
-
-    with pytest.raises(ValueError, match="must use the cardtpl/1 UI syntax"):
-        compile_card_template(
-            legacy_source,
-            provider_id="example.provider",
-            business_id="Legacy",
-            expected_wire_id="Legacy@1",
-            expected_capability_id="LegacyCapability",
-            data_domain="/data/legacy",
-            description="legacy syntax must be rejected",
-            supported_card_sizes=("2x2",),
-            primary_data=(),
-            secondary_data=(),
-            optional_data=(),
-            output_schema={"type": "object", "properties": {}},
-        )
-
-
-def test_provider_cardtpl_theme_references_are_resolved_deterministically() -> None:
-    source = """#Template ThemeReference@1(props: {})
+_THEME_REFERENCE_SOURCE = """#Template ThemeReference@1(props: {})
 data = {
 }
 
@@ -111,67 +99,8 @@ Column(
 )
 #End
 """
-    definition = compile_card_template(
-        source,
-        provider_id="example.theme",
-        business_id=None,
-        expected_wire_id="ThemeReference@1",
-        expected_capability_id=None,
-        data_domain=None,
-        description="theme references",
-        supported_card_sizes=(),
-        primary_data=(),
-        secondary_data=(),
-        optional_data=(),
-        output_schema={"type": "object", "properties": {}},
-    )
-    values = {
-        "primaryColor": "#FFCCDDFF",
-        "supportContentColor": "#99CCDDFF",
-        "progressColor": "#FF445566",
-        "actionStyle.backgroundColor": "#33FFFFFF",
-        "actionStyle.contentColor": "#FFCCDDFF",
-    }
 
-    root = _instantiate_blueprint(
-        definition.variants[0].root,
-        {},
-        theme_values=values,
-    )
-
-    assert root.values[-1]["backgroundColor"] == "#33FFFFFF"
-    assert root.children[0].values[-1]["fontColor"] == "#FFCCDDFF"
-    assert root.children[1].values[-1]["fontColor"] == "#99CCDDFF"
-    assert root.children[2].values[-1]["color"] == "#FF445566"
-
-
-def test_provider_cardtpl_rejects_unknown_theme_reference() -> None:
-    source = """#Template InvalidThemeReference@1(props: {})
-data = {
-}
-Column({"backgroundColor": $theme('unknownColor')})
-#End
-"""
-
-    with pytest.raises(ValueError, match="approved Theme path"):
-        compile_card_template(
-            source,
-            provider_id="example.theme",
-            business_id=None,
-            expected_wire_id="InvalidThemeReference@1",
-            expected_capability_id=None,
-            data_domain=None,
-            description="invalid theme reference",
-            supported_card_sizes=(),
-            primary_data=(),
-            secondary_data=(),
-            optional_data=(),
-            output_schema={"type": "object", "properties": {}},
-        )
-
-
-def test_provider_compiler_preserves_indexed_child_slots() -> None:
-    source = """#Template HeroActionLayout@1(props: {}, ...children)
+_HERO_ACTION_LAYOUT_SOURCE = """#Template HeroActionLayout@1(props: {}, ...children)
 data = {
 }
 
@@ -191,44 +120,626 @@ Column({
 )
 #End
 """
-    definition = compile_card_template(
-        source,
+
+_OPTIONAL_ACTION_SOURCE = """#Template OptionalAction@1(props: { actionId?: string })
+data = {
+}
+
+Stack({
+  "width": "matchParent",
+  "onClick": EventAction(props?.actionId)
+}, Text("动作", "body"))
+#End
+"""
+
+
+@scenario("internal_contracts__weather_builtin_assets")
+def _build_weather_builtin_assets() -> dict[str, Any]:
+    template_weather = SimpleNamespace(
+        name="WeatherOverview",
+        implementation="template",
+    )
+    direct_weather = SimpleNamespace(
+        name="WeatherOverview",
+        implementation="terse-dsl",
+    )
+    return {
+        "templateImplementation": list(
+            _weather_builtin_assets_for_components((template_weather,))
+        ),
+        "terseDslImplementation": list(
+            _weather_builtin_assets_for_components((direct_weather,))
+        ),
+    }
+
+
+@scenario("internal_contracts__log_summaries")
+def _build_log_summaries() -> dict[str, Any]:
+    messages = [
+        {"role": "system", "content": "system-contract"},
+        {"role": "user", "content": "private-dynamic-contract"},
+    ]
+    prompt_summary = _prompt_size_summary(messages)
+    task_spec = TaskSpec(
+        userQuery="不应进入日志的用户原始请求",
+        size="2x2",
+        dataModelSchema={"privateDomain": {"secretField": "secretValue"}},
+        eventCandidates=[],
+        assetCandidates=[],
+    )
+    task_summary = _task_spec_log_summary(task_spec)
+    prompt_text = json.dumps(prompt_summary, ensure_ascii=False)
+    task_text = json.dumps(task_summary, ensure_ascii=False)
+    return {
+        "promptSizeSummary": prompt_summary,
+        "promptSummaryLeaksContent": "private-dynamic-contract" in prompt_text,
+        "taskSpecSummary": task_summary,
+        "taskSpecSummaryLeaksQuery": "用户原始请求" in task_text,
+        "taskSpecSummaryLeaksSchema": (
+            "secretField" in task_text or "secretValue" in task_text
+        ),
+    }
+
+
+@scenario("internal_contracts__cardtpl_rejections")
+def _build_cardtpl_rejections() -> dict[str, Any]:
+    legacy_variant_source = """#Template("Legacy@1", {"capability": "LegacyCapability"})
+#Variant("2x2", {})
+Column("section")
+#EndVariant
+#EndTemplate
+"""
+    unknown_theme_source = """#Template InvalidThemeReference@1(props: {})
+data = {
+}
+Column({"backgroundColor": $theme('unknownColor')})
+#End
+"""
+    invalid_optional_action_source = """#Template InvalidOptionalAction@1(props: { actionId: string })
+data = {
+}
+
+Stack({
+  "onClick": EventAction(props?.actionId)
+}, Text("动作", "body"))
+#End
+"""
+
+    def compile_case(
+        source: str,
+        wire_id: str,
+        provider_id: str,
+        description: str,
+        sizes: tuple[str, ...] = (),
+    ) -> Any:
+        return lambda: _compile_source(
+            source,
+            wire_id=wire_id,
+            provider_id=provider_id,
+            description=description,
+            supported_card_sizes=sizes,
+        )
+
+    return {
+        "deprecated_variant_syntax": _error_outcome(
+            compile_case(
+                legacy_variant_source,
+                "Legacy@1",
+                "example.provider",
+                "legacy syntax must be rejected",
+                ("2x2",),
+            )
+        ),
+        "unknown_theme_reference": _error_outcome(
+            compile_case(
+                unknown_theme_source,
+                "InvalidThemeReference@1",
+                "example.theme",
+                "invalid theme reference",
+            )
+        ),
+        "child_slot_duplicate_index": _error_outcome(
+            compile_case(
+                "#Template HeroActionLayout@1(props: {}, ...children)\ndata = {\n}\n\n"
+                "Column(children[0], children[0])\n#End\n",
+                "HeroActionLayout@1",
+                "example.layout",
+                "invalid indexed child slots",
+            )
+        ),
+        "child_slot_non_contiguous_indexes": _error_outcome(
+            compile_case(
+                "#Template HeroActionLayout@1(props: {}, ...children)\ndata = {\n}\n\n"
+                "Column(children[1])\n#End\n",
+                "HeroActionLayout@1",
+                "example.layout",
+                "invalid indexed child slots",
+            )
+        ),
+        "child_slot_mixed_spread_and_indexed": _error_outcome(
+            compile_case(
+                "#Template HeroActionLayout@1(props: {}, ...children)\ndata = {\n}\n\n"
+                "Column(children, children[0])\n#End\n",
+                "HeroActionLayout@1",
+                "example.layout",
+                "invalid indexed child slots",
+            )
+        ),
+        "event_action_literal_event_value": _error_outcome(
+            compile_case(
+                '#Template InvalidAction@1(props: { actionId: string })\ndata = {\n}\n\n'
+                'Stack({\n  "onClick": EventAction("event.open.weather")\n}, '
+                'Text("动作", "body"))\n#End\n',
+                "InvalidAction@1",
+                "example.action",
+                "invalid EventAction",
+            )
+        ),
+        "event_action_outside_onclick_option": _error_outcome(
+            compile_case(
+                '#Template InvalidAction@1(props: { actionId: string })\ndata = {\n}\n\n'
+                'Stack({\n  "width": EventAction(props.actionId)\n}, '
+                'Text("动作", "body"))\n#End\n',
+                "InvalidAction@1",
+                "example.action",
+                "invalid EventAction",
+            )
+        ),
+        "event_action_required_prop": _error_outcome(
+            compile_case(
+                invalid_optional_action_source,
+                "InvalidOptionalAction@1",
+                "example.action",
+                "invalid optional EventAction",
+            )
+        ),
+        "parser_three_argument_template": _error_outcome(
+            lambda: parse_hybrid_card(
+                'Template("card@1",{},Column("section",'
+                'Template("Legacy@1","2x2",{})));'
+            )
+        ),
+    }
+
+
+@scenario("internal_contracts__theme_resolution")
+def _build_theme_resolution() -> dict[str, Any]:
+    definition = _compile_source(
+        _THEME_REFERENCE_SOURCE,
+        wire_id="ThemeReference@1",
+        provider_id="example.theme",
+        description="theme references",
+    )
+    values = {
+        "primaryColor": "#FFCCDDFF",
+        "supportContentColor": "#99CCDDFF",
+        "progressColor": "#FF445566",
+        "actionStyle.backgroundColor": "#33FFFFFF",
+        "actionStyle.contentColor": "#FFCCDDFF",
+    }
+    root = _instantiate_blueprint(
+        definition.variants[0].root,
+        {},
+        theme_values=values,
+    )
+    return {
+        "rootBackgroundColor": root.values[-1]["backgroundColor"],
+        "primaryTextFontColor": root.children[0].values[-1]["fontColor"],
+        "supportTextFontColor": root.children[1].values[-1]["fontColor"],
+        "progressColor": root.children[2].values[-1]["color"],
+    }
+
+
+@scenario("internal_contracts__indexed_child_slots")
+def _build_indexed_child_slots() -> dict[str, Any]:
+    definition = _compile_source(
+        _HERO_ACTION_LAYOUT_SOURCE,
+        wire_id="HeroActionLayout@1",
         provider_id="example.layout",
-        business_id=None,
-        expected_wire_id="HeroActionLayout@1",
-        expected_capability_id=None,
-        data_domain=None,
         description="indexed child slots",
-        supported_card_sizes=(),
-        primary_data=(),
-        secondary_data=(),
-        optional_data=(),
-        output_schema={"type": "object", "properties": {}},
     )
     root = definition.variants[0].root
-
-    assert root.component == "Column"
-    assert root.values[0].properties["itemMargin"].value == 8
-    assert [child.children[0].component for child in root.children] == [
-        TEMPLATE_CHILD_SLOT_COMPONENT,
-        TEMPLATE_CHILD_SLOT_COMPONENT,
-    ]
-
     hero = Nested2Node("Text", ("hero",), ())
     action = Nested2Node("Text", ("action",), ())
-    instantiated = _instantiate_blueprint(
-        root,
-        {},
-        spread_children=(hero, action),
-    )
-    assert instantiated.children[0].children == (hero,)
-    assert instantiated.children[1].children == (action,)
+    instantiated = _instantiate_blueprint(root, {}, spread_children=(hero, action))
+    return {
+        "rootComponent": root.component,
+        "rootItemMargin": root.values[0].properties["itemMargin"].value,
+        "childSlotComponents": [
+            child.children[0].component for child in root.children
+        ],
+        "instantiatedSlotChildren": [
+            [
+                {"component": node.component_type, "values": list(node.values)}
+                for node in instantiated.children[index].children
+            ]
+            for index in (0, 1)
+        ],
+        "missingSecondChildError": _error_outcome(
+            lambda: _instantiate_blueprint(root, {}, spread_children=(hero,))
+        ),
+    }
 
-    with pytest.raises(TerselConversionError, match=r"children\[1\]"):
-        _instantiate_blueprint(root, {}, spread_children=(hero,))
+
+def _layout_child_slot_indexes(root: TemplateNode) -> list[int]:
+    slot_indexes: list[int] = []
+    pending = [root]
+    while pending:
+        node = pending.pop()
+        if node.component == TEMPLATE_CHILD_SLOT_COMPONENT:
+            slot_index = node.values[0].value
+            assert isinstance(slot_index, int)
+            slot_indexes.append(slot_index)
+        pending.extend(reversed(node.children))
+    return slot_indexes
+
+
+_LAYOUT_BLUEPRINT_IDS = (
+    "HeroActionLayout@1",
+    "FullIconActionLayout@1",
+    "CompactTwoActionLayout@1",
+    "HeroTitleContentActionLayout@1",
+    "TwoSupportLayout@1",
+    "SingleFocusLayout@1",
+    "WideSingleFocusLayout@1",
+)
+
+
+@scenario("internal_contracts__layout_blueprints")
+def _build_layout_blueprints() -> dict[str, Any]:
+    registry = get_cardplan_registry()
+    payload: dict[str, Any] = {}
+    for template_id in _LAYOUT_BLUEPRINT_IDS:
+        root = registry.require_template(template_id).variants[0].root
+        options = root.values[0].properties
+        payload[template_id] = {
+            "root": root.component,
+            "width": options["width"].value,
+            "height": options["height"].value,
+            "slotIndexes": _layout_child_slot_indexes(root),
+            "spreadChildren": root.spread_children,
+        }
+    return payload
+
+
+@scenario("internal_contracts__hero_title_content_layout")
+def _build_hero_title_content_layout() -> dict[str, Any]:
+    root = get_cardplan_registry().require_template(
+        "HeroTitleContentActionLayout@1"
+    ).variants[0].root
+    content_region, action_region = root.children
+    content_options = content_region.values[0].properties
+    return {
+        "contentRegion": {
+            "itemMargin": content_options["itemMargin"].value,
+            "layoutWeight": content_options["layoutWeight"].value,
+            "businessRegionCount": len(content_region.children),
+            "businessRegions": [
+                {
+                    "width": business.values[0].properties["width"].value,
+                    "justifyContent": business.values[0].properties[
+                        "justifyContent"
+                    ].value,
+                    "alignItems": business.values[0].properties["alignItems"].value,
+                    "hasHeight": "height" in business.values[0].properties,
+                    "hasLayoutWeight": "layoutWeight" in business.values[0].properties,
+                }
+                for business in content_region.children
+            ],
+        },
+        "actionRegionHeight": action_region.values[0].properties["height"].value,
+    }
+
+
+@scenario("internal_contracts__fusion_theme_compact_rules")
+def _build_fusion_theme_compact_rules() -> dict[str, Any]:
+    registry = get_cardplan_registry(enable_fusion_ball=True)
+    compact_business_ids: set[str] = set()
+    for template_id, definition in registry.templates.items():
+        if not template_id.endswith("Compact@1"):
+            continue
+        if not registry.template_is_enabled(template_id):
+            continue
+        if definition.business_id is not None:
+            compact_business_ids.add(definition.business_id)
+    payload: dict[str, Any] = {}
+    for theme_id, theme in registry.themes.items():
+        fusion_style = theme.fusion_ball_style
+        if fusion_style is None:
+            continue
+        compact_businesses = sorted(
+            compact_business_ids.intersection(fusion_style.business_ids)
+        )
+        if not compact_businesses:
+            continue
+        payload[theme_id] = {
+            "compactBusinesses": compact_businesses,
+            "firstLayerRule": registry.theme_first_layer_rules.get(theme_id),
+        }
+    return payload
+
+
+@scenario("internal_contracts__action_template_props")
+def _build_action_template_props() -> dict[str, Any]:
+    registry = get_cardplan_registry()
+    payload: dict[str, Any] = {}
+    for template_id in ("PillAction@1", "IconAction@1"):
+        definition = registry.require_template(template_id)
+        variant = definition.variants[0]
+        schema = variant.parameters_schema
+        properties = schema.get("properties") or {}
+        root = variant.root
+        options = root.values[-1].properties
+        event = options.get("onClick")
+        payload[template_id] = {
+            "providerId": definition.provider_id,
+            "required": schema.get("required"),
+            "properties": sorted(properties),
+            "root": root.component,
+            "onClick": None
+            if event is None
+            else {
+                "kind": event.kind,
+                "parameterKind": event.items[0].kind,
+                "parameterName": event.items[0].name,
+            },
+            "hasInternalActionIdOption": "_actionId" in options,
+        }
+    support = registry.require_template("WeatherOverviewTemperatureSupport@1")
+    variant = support.variants[0]
+    schema = variant.parameters_schema
+    action_options = variant.root.values[0].properties
+    payload["WeatherOverviewTemperatureSupport@1"] = {
+        "actionIdType": schema["properties"]["actionId"]["type"],
+        "actionIdRequired": "actionId" in schema["required"],
+        "onClick": {
+            "kind": action_options["onClick"].kind,
+            "parameterKind": action_options["onClick"].items[0].kind,
+            "parameterName": action_options["onClick"].items[0].name,
+        },
+    }
+    return payload
+
+
+_OPTIONAL_ACTION_CASES: tuple[tuple[str, dict[str, object]], ...] = (
+    ("with_action_id", {"actionId": "event.open.weather"}),
+    ("without_action_id", {}),
+    ("null_action_id", {"actionId": None}),
+)
+
+
+@scenario("internal_contracts__optional_event_action")
+def _build_optional_event_action() -> dict[str, Any]:
+    definition = _compile_source(
+        _OPTIONAL_ACTION_SOURCE,
+        wire_id="OptionalAction@1",
+        provider_id="example.action",
+        description="optional EventAction",
+    )
+    blueprint = definition.variants[0].root
+    action_value = blueprint.values[0].properties["onClick"]
+    payload: dict[str, Any] = {
+        "blueprint": {
+            "onClickKind": action_value.kind,
+            "parameterKind": action_value.items[0].kind,
+        }
+    }
+    for key, params in _OPTIONAL_ACTION_CASES:
+        root = _instantiate_blueprint(blueprint, params)
+        payload[key] = root.values[0].get("onClick")
+    return payload
+
+
+@scenario("internal_contracts__layout_action_combinations")
+def _build_layout_action_combinations() -> dict[str, Any]:
+    span = SourceSpan(start=0, end=1)
+
+    def template(template_id: str) -> ParsedCall:
+        return ParsedCall("template", template_id, ({},), (), span)
+
+    def action(template_id: str, action_id: str) -> ParsedCall:
+        return ParsedCall(
+            "template", template_id, ({"actionId": action_id},), (), span
+        )
+
+    pill_one = action("PillAction@1", "event.one")
+    pill_two = action("PillAction@1", "event.two")
+    icon = action("IconAction@1", "event.icon")
+
+    cases: dict[str, tuple[Any, ...]] = {
+        "compact_two_action_two_pills": (
+            "CompactTwoActionLayout",
+            (template("WeatherOverviewCompact@1"),),
+            (pill_one, pill_two),
+            "2x2",
+        ),
+        "two_support_two_supports": (
+            "TwoSupportLayout",
+            (
+                template("WeatherOverviewTemperatureSupport@1"),
+                template("ResourceUsageOverviewSupport@1"),
+            ),
+            (),
+            "2x2",
+        ),
+        "hero_title_content_title_content_one_pill": (
+            "HeroTitleContentActionLayout",
+            (
+                template("WeatherOverviewHeroTitle@1"),
+                template("ScheduleOverviewHeroContent@1"),
+            ),
+            (pill_one,),
+            "2x2",
+        ),
+        "hero_action_hero_one_pill": (
+            "HeroActionLayout",
+            (template("BatteryOverviewHero@1"),),
+            (pill_one,),
+            "2x2",
+        ),
+        "single_focus_full_no_action": (
+            "SingleFocusLayout",
+            (template("WeatherOverviewFull@1"),),
+            (),
+            "2x2",
+        ),
+        "full_icon_action_full_icon": (
+            "FullIconActionLayout",
+            (template("WeatherOverviewFull@1"),),
+            (icon,),
+            "2x2",
+        ),
+        "wide_single_focus_wide_hero_one_pill": (
+            "WideSingleFocusLayout",
+            (template("ActivityOverviewWideHero@1"),),
+            (pill_one,),
+            "2x4",
+        ),
+        "wide_single_focus_wide_full_no_action": (
+            "WideSingleFocusLayout",
+            (template("BatteryOverviewWideFull@1"),),
+            (),
+            "2x4",
+        ),
+        "hero_title_content_reversed_order": (
+            "HeroTitleContentActionLayout",
+            (
+                template("ScheduleOverviewHeroContent@1"),
+                template("WeatherOverviewHeroTitle@1"),
+            ),
+            (pill_one,),
+            "2x2",
+        ),
+        "two_support_two_compacts": (
+            "TwoSupportLayout",
+            (
+                template("WeatherOverviewCompact@1"),
+                template("BatteryOverviewCompact@1"),
+            ),
+            (),
+            "2x2",
+        ),
+        "hero_action_without_action": (
+            "HeroActionLayout",
+            (template("BatteryOverviewHero@1"),),
+            (),
+            "2x2",
+        ),
+        "single_focus_with_icon_action": (
+            "SingleFocusLayout",
+            (template("WeatherOverviewFull@1"),),
+            (icon,),
+            "2x2",
+        ),
+        "single_focus_with_wide_template": (
+            "SingleFocusLayout",
+            (template("BatteryOverviewWideFull@1"),),
+            (),
+            "2x4",
+        ),
+        "wide_single_focus_non_wide_template": (
+            "WideSingleFocusLayout",
+            (template("BatteryOverviewFull@1"),),
+            (),
+            "2x4",
+        ),
+        "single_focus_with_action_requires_hero": (
+            "SingleFocusLayout",
+            (template("BatteryOverviewHero@1"),),
+            (pill_one,),
+            "2x2",
+        ),
+    }
+    return {
+        key: _error_outcome(
+            lambda case_args=case_args: (
+                _validate_provider_template_layout_action_requirements(*case_args)
+            )
+        )
+        for key, case_args in cases.items()
+    }
+
+
+@scenario("internal_contracts__dual_business_layout_selection")
+def _build_dual_business_layout_selection() -> dict[str, Any]:
+    registry = get_cardplan_registry()
+    task_spec = TaskSpec(
+        userQuery="显示天气和日程，并提供查看入口",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.open.details",
+                description="查看详情",
+                call="clickToDeeplink",
+                args={"uri": "example://details"},
+            )
+        ],
+        dataModelSchema={"data": {}},
+    )
+    scope = AdvancedScopeBrief(
+        themeId="family-weather-care-blue",
+        advancedComponentIds=("WeatherOverview", "CalendarOverview"),
+    )
+
+    selection = _second_layer_layout_selection(scope, task_spec, registry)
+    candidates = {
+        "WeatherOverview": (
+            "WeatherOverviewHeroTitle@1",
+            "WeatherOverviewHero@1",
+        ),
+        "CalendarOverview": (
+            "ScheduleOverviewHeroContent@1",
+            "ScheduleOverviewNextEventHero@1",
+        ),
+    }
+    filtered, groups = _filter_positional_second_layer_template_candidates(
+        candidates,
+        (
+            ("WeatherOverviewHeroTitle@1", "WeatherOverviewHero@1"),
+            (
+                "ScheduleOverviewHeroContent@1",
+                "ScheduleOverviewNextEventHero@1",
+            ),
+        ),
+        selection.business_layout_kinds_by_position,
+    )
+    option = _layout_output_option(
+        "HeroTitleContentActionLayout@1",
+        groups,
+        ({"actionId": "action-0", "label": "查看详情"},),
+        ("PillAction@1",),
+    )
+    return {
+        "layoutIds": list(selection.layout_ids),
+        "businessLayoutKindsByPosition": list(
+            selection.business_layout_kinds_by_position
+        ),
+        "filteredCandidates": {
+            component_id: list(template_ids)
+            for component_id, template_ids in filtered.items()
+        },
+        "outputOption": {
+            "root": option["root"],
+            "layoutKind": option["layoutKind"],
+            "businessTemplateIdsByPosition": [
+                list(group) for group in option["businessTemplateIdsByPosition"]
+            ],
+            "actionChildren": option["actionChildren"],
+        },
+    }
+
+
+@scenario("internal_contracts__model_json_extraction")
+def _build_model_json_extraction() -> dict[str, Any]:
+    return {
+        "outer_object_with_braces_inside_value": _parse_json_object(
+            '说明：{"decision":"use {trusted}"}。'
+        ),
+    }
 
 
 def test_provider_cardtpl_sources_use_inline_styles_without_design_tokens() -> None:
+    """注册表全量结构 pin：布局容器与媒体/文本组件不得携带设计令牌字符串。"""
     registry = get_cardplan_registry()
 
     def assert_inline_only(node: TemplateNode) -> None:
@@ -254,518 +765,3 @@ def test_provider_cardtpl_sources_use_inline_styles_without_design_tokens() -> N
     for definition in registry.templates.values():
         for variant in definition.variants:
             assert_inline_only(variant.root)
-
-
-@pytest.mark.parametrize(
-    ("body", "message"),
-    (
-        ("Column(children[0], children[0])", "indexes must be unique"),
-        ("Column(children[1])", "indexes must be contiguous from zero"),
-        ("Column(children, children[0])", "cannot mix children and children[index]"),
-    ),
-)
-def test_provider_compiler_rejects_invalid_indexed_child_slots(
-    body: str,
-    message: str,
-) -> None:
-    source = f"""#Template HeroActionLayout@1(props: {{}}, ...children)
-data = {{
-}}
-
-{body}
-#End
-"""
-    with pytest.raises(ValueError, match=re.escape(message)):
-        compile_card_template(
-            source,
-            provider_id="example.layout",
-            business_id=None,
-            expected_wire_id="HeroActionLayout@1",
-            expected_capability_id=None,
-            data_domain=None,
-            description="invalid indexed child slots",
-            supported_card_sizes=(),
-            primary_data=(),
-            secondary_data=(),
-            optional_data=(),
-            output_schema={"type": "object", "properties": {}},
-        )
-
-
-def _layout_child_slot_indexes(root: TemplateNode) -> list[int]:
-    slot_indexes: list[int] = []
-    pending = [root]
-    while pending:
-        node = pending.pop()
-        if node.component == TEMPLATE_CHILD_SLOT_COMPONENT:
-            slot_index = node.values[0].value
-            assert isinstance(slot_index, int)
-            slot_indexes.append(slot_index)
-        pending.extend(reversed(node.children))
-    return slot_indexes
-
-
-def test_checked_in_layout_templates_use_concrete_container_blueprints() -> None:
-    registry = get_cardplan_registry()
-    fixed_slots = {
-        "HeroActionLayout@1": 2,
-        "FullIconActionLayout@1": 2,
-        "CompactTwoActionLayout@1": 3,
-        "HeroTitleContentActionLayout@1": 3,
-        "TwoSupportLayout@1": 2,
-    }
-    variable_children = {
-        "SingleFocusLayout@1",
-        "WideSingleFocusLayout@1",
-    }
-
-    for template_id in (*fixed_slots, *variable_children):
-        root = registry.require_template(template_id).variants[0].root
-        assert root.component in {"Column", "Row", "Stack"}
-        assert root.component not in {item.removesuffix("@1") for item in fixed_slots}
-        options = root.values[0].properties
-        assert options["width"].value == "matchParent"
-        assert options["height"].value == "matchParent"
-
-        slot_indexes = _layout_child_slot_indexes(root)
-        if template_id in fixed_slots:
-            assert slot_indexes == list(range(fixed_slots[template_id]))
-            assert not root.spread_children
-        else:
-            assert slot_indexes == []
-            assert root.spread_children
-
-
-def test_hero_title_content_layout_keeps_flexible_business_heights() -> None:
-    root = get_cardplan_registry().require_template(
-        "HeroTitleContentActionLayout@1"
-    ).variants[0].root
-    content_region, action_region = root.children
-    content_options = content_region.values[0].properties
-
-    assert content_options["itemMargin"].value == 8
-    assert content_options["layoutWeight"].value == 1
-    assert len(content_region.children) == 2
-    for business_region in content_region.children:
-        options = business_region.values[0].properties
-        assert options["width"].value == "matchParent"
-        assert options["justifyContent"].value == "start"
-        assert options["alignItems"].value == "start"
-        assert "height" not in options
-        assert "layoutWeight" not in options
-    assert action_region.values[0].properties["height"].value == 36
-
-
-def test_fusion_theme_rules_cover_compact_eligible_businesses() -> None:
-    registry = get_cardplan_registry(enable_fusion_ball=True)
-    compact_business_ids: set[str] = set()
-    for template_id, definition in registry.templates.items():
-        if not template_id.endswith("Compact@1"):
-            continue
-        if not registry.template_is_enabled(template_id):
-            continue
-        business_id = definition.business_id
-        if business_id is not None:
-            compact_business_ids.add(business_id)
-
-    for theme_id, theme in registry.themes.items():
-        fusion_style = theme.fusion_ball_style
-        if fusion_style is None:
-            continue
-        has_compact_business = bool(
-            compact_business_ids.intersection(fusion_style.business_ids)
-        )
-        if not has_compact_business:
-            continue
-        first_layer_rule = registry.theme_first_layer_rules.get(theme_id)
-        assert first_layer_rule is not None
-        assert "Compact" in first_layer_rule, theme_id
-
-
-def test_checked_in_action_templates_expose_second_layer_props() -> None:
-    registry = get_cardplan_registry()
-    pill = registry.require_template("PillAction@1")
-    icon = registry.require_template("IconAction@1")
-
-    pill_schema = pill.variants[0].parameters_schema
-    icon_schema = icon.variants[0].parameters_schema
-    assert pill.provider_id == "com.huawei.action.cli"
-    assert pill_schema["required"] == ["actionId", "label"]
-    pill_properties = pill_schema.get("properties")
-    assert isinstance(pill_properties, dict)
-    assert set(pill_properties) == {"actionId", "label"}
-    assert icon_schema["required"] == ["actionId", "icon"]
-    assert set(icon_schema["properties"]) == {"actionId", "icon"}
-    for definition, expected_root in ((pill, "Button"), (icon, "Stack")):
-        root = definition.variants[0].root
-        assert root.component == expected_root
-        options = root.values[-1].properties
-        event = options.get("onClick")
-        assert event is not None
-        assert event.kind == "event-action"
-        assert event.items[0].kind == "parameter"
-        assert event.items[0].name == "actionId"
-        assert "_actionId" not in options
-
-
-def test_support_template_exposes_optional_internal_action_prop() -> None:
-    support = get_cardplan_registry().require_template(
-        "WeatherOverviewTemperatureSupport@1"
-    )
-    variant = support.variants[0]
-    schema = variant.parameters_schema
-
-    assert schema["properties"]["actionId"]["type"] == "string"
-    assert "actionId" not in schema["required"]
-    action_options = variant.root.values[0].properties
-    assert action_options["onClick"].kind == "event-action"
-    assert action_options["onClick"].items[0].kind == "optional-parameter"
-    assert action_options["onClick"].items[0].name == "actionId"
-
-
-@pytest.mark.parametrize(
-    ("params", "expected_event_name"),
-    (
-        ({"actionId": "event.open.weather"}, "event.open.weather"),
-        ({}, None),
-        ({"actionId": None}, None),
-    ),
-)
-def test_optional_event_action_omits_on_click_without_action_id(
-    params: dict[str, object],
-    expected_event_name: str | None,
-) -> None:
-    source = """#Template OptionalAction@1(props: { actionId?: string })
-data = {
-}
-
-Stack({
-  "width": "matchParent",
-  "onClick": EventAction(props?.actionId)
-}, Text("动作", "body"))
-#End
-"""
-    definition = compile_card_template(
-        source,
-        provider_id="example.action",
-        business_id=None,
-        expected_wire_id="OptionalAction@1",
-        expected_capability_id=None,
-        data_domain=None,
-        description="optional EventAction",
-        supported_card_sizes=(),
-        primary_data=(),
-        secondary_data=(),
-        optional_data=(),
-        output_schema={"type": "object", "properties": {}},
-    )
-    blueprint = definition.variants[0].root
-    action_value = blueprint.values[0].properties["onClick"]
-
-    assert action_value.kind == "event-action"
-    assert action_value.items[0].kind == "optional-parameter"
-    root = _instantiate_blueprint(blueprint, params)
-    options = root.values[0]
-    if expected_event_name is None:
-        assert "onClick" not in options
-    else:
-        assert options["onClick"] == [
-            {
-                "call": "sendToAssistant",
-                "args": {"eventName": expected_event_name},
-            }
-        ]
-
-
-def test_optional_event_action_rejects_required_prop() -> None:
-    source = """#Template InvalidOptionalAction@1(props: { actionId: string })
-data = {
-}
-
-Stack({
-  "onClick": EventAction(props?.actionId)
-}, Text("动作", "body"))
-#End
-"""
-
-    with pytest.raises(ValueError, match="requires an optional prop: actionId"):
-        compile_card_template(
-            source,
-            provider_id="example.action",
-            business_id=None,
-            expected_wire_id="InvalidOptionalAction@1",
-            expected_capability_id=None,
-            data_domain=None,
-            description="invalid optional EventAction",
-            supported_card_sizes=(),
-            primary_data=(),
-            secondary_data=(),
-            optional_data=(),
-            output_schema={"type": "object", "properties": {}},
-        )
-
-
-@pytest.mark.parametrize(
-    ("event_value", "message"),
-    (
-        ('EventAction("event.open.weather")', "requires one props parameter"),
-        ("EventAction(props.actionId)", "must be the direct onClick option"),
-    ),
-)
-def test_provider_compiler_rejects_invalid_event_action_usage(
-    event_value: str,
-    message: str,
-) -> None:
-    option_name = "onClick" if event_value.startswith('EventAction("') else "width"
-    source = f"""#Template InvalidAction@1(props: {{ actionId: string }})
-data = {{
-}}
-
-Stack({{
-  "{option_name}": {event_value}
-}}, Text("动作", "body"))
-#End
-"""
-    with pytest.raises(ValueError, match=message):
-        compile_card_template(
-            source,
-            provider_id="example.action",
-            business_id=None,
-            expected_wire_id="InvalidAction@1",
-            expected_capability_id=None,
-            data_domain=None,
-            description="invalid EventAction",
-            supported_card_sizes=(),
-            primary_data=(),
-            secondary_data=(),
-            optional_data=(),
-            output_schema={"type": "object", "properties": {}},
-        )
-
-
-def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
-    span = SourceSpan(start=0, end=1)
-
-    def template(template_id: str) -> ParsedCall:
-        return ParsedCall("template", template_id, ({},), (), span)
-
-    def action(template_id: str, action_id: str) -> ParsedCall:
-        return ParsedCall("template", template_id, ({"actionId": action_id},), (), span)
-
-    pill_one = action("PillAction@1", "event.one")
-    pill_two = action("PillAction@1", "event.two")
-    icon = action("IconAction@1", "event.icon")
-
-    _validate_provider_template_layout_action_requirements(
-        "CompactTwoActionLayout",
-        (template("WeatherOverviewCompact@1"),),
-        (pill_one, pill_two),
-        "2x2",
-    )
-    _validate_provider_template_layout_action_requirements(
-        "TwoSupportLayout",
-        (
-            template("WeatherOverviewTemperatureSupport@1"),
-            template("ResourceUsageOverviewSupport@1"),
-        ),
-        (),
-        "2x2",
-    )
-    _validate_provider_template_layout_action_requirements(
-        "HeroTitleContentActionLayout",
-        (
-            template("WeatherOverviewHeroTitle@1"),
-            template("ScheduleOverviewHeroContent@1"),
-        ),
-        (pill_one,),
-        "2x2",
-    )
-    with pytest.raises(TerselConversionError, match="order is invalid"):
-        _validate_provider_template_layout_action_requirements(
-            "HeroTitleContentActionLayout",
-            (
-                template("ScheduleOverviewHeroContent@1"),
-                template("WeatherOverviewHeroTitle@1"),
-            ),
-            (pill_one,),
-            "2x2",
-        )
-    with pytest.raises(TerselConversionError, match="layout combination is invalid"):
-        _validate_provider_template_layout_action_requirements(
-            "TwoSupportLayout",
-            (
-                template("WeatherOverviewCompact@1"),
-                template("BatteryOverviewCompact@1"),
-            ),
-            (),
-            "2x2",
-        )
-    _validate_provider_template_layout_action_requirements(
-        "HeroActionLayout",
-        (template("BatteryOverviewHero@1"),),
-        (pill_one,),
-        "2x2",
-    )
-    _validate_provider_template_layout_action_requirements(
-        "SingleFocusLayout",
-        (template("WeatherOverviewFull@1"),),
-        (),
-        "2x2",
-    )
-    _validate_provider_template_layout_action_requirements(
-        "FullIconActionLayout",
-        (template("WeatherOverviewFull@1"),),
-        (icon,),
-        "2x2",
-    )
-    _validate_provider_template_layout_action_requirements(
-        "WideSingleFocusLayout",
-        (template("ActivityOverviewWideHero@1"),),
-        (pill_one,),
-        "2x4",
-    )
-    _validate_provider_template_layout_action_requirements(
-        "WideSingleFocusLayout",
-        (template("BatteryOverviewWideFull@1"),),
-        (),
-        "2x4",
-    )
-
-    with pytest.raises(TerselConversionError, match="Hero.*Action combination"):
-        _validate_provider_template_layout_action_requirements(
-            "HeroActionLayout",
-            (template("BatteryOverviewHero@1"),),
-            (),
-            "2x2",
-        )
-    with pytest.raises(TerselConversionError, match="Full.*Action combination"):
-        _validate_provider_template_layout_action_requirements(
-            "SingleFocusLayout",
-            (template("WeatherOverviewFull@1"),),
-            (icon,),
-            "2x2",
-        )
-    with pytest.raises(TerselConversionError, match="Wide marker"):
-        _validate_provider_template_layout_action_requirements(
-            "SingleFocusLayout",
-            (template("BatteryOverviewWideFull@1"),),
-            (),
-            "2x4",
-        )
-    with pytest.raises(TerselConversionError, match="suffix mismatches"):
-        _validate_provider_template_layout_action_requirements(
-            "WideSingleFocusLayout",
-            (template("BatteryOverviewFull@1"),),
-            (),
-            "2x4",
-        )
-    with pytest.raises(TerselConversionError, match="requires HeroActionLayout"):
-        _validate_provider_template_layout_action_requirements(
-            "SingleFocusLayout",
-            (template("BatteryOverviewHero@1"),),
-            (pill_one,),
-            "2x2",
-        )
-
-
-def test_second_layer_projects_ordered_dual_business_layout_contract() -> None:
-    registry = get_cardplan_registry()
-    task_spec = TaskSpec(
-        userQuery="显示天气和日程，并提供查看入口",
-        size="2x2",
-        eventCandidates=[
-            EventAction(
-                id="event.open.details",
-                description="查看详情",
-                call="clickToDeeplink",
-                args={"uri": "example://details"},
-            )
-        ],
-        dataModelSchema={"data": {}},
-    )
-    scope = AdvancedScopeBrief(
-        themeId="family-weather-care-blue",
-        advancedComponentIds=("WeatherOverview", "CalendarOverview"),
-    )
-
-    selection = _second_layer_layout_selection(scope, task_spec, registry)
-    filtered, groups = _filter_positional_second_layer_template_candidates(
-        {
-            "WeatherOverview": (
-                "WeatherOverviewHeroTitle@1",
-                "WeatherOverviewHero@1",
-            ),
-            "CalendarOverview": (
-                "ScheduleOverviewHeroContent@1",
-                "ScheduleOverviewNextEventHero@1",
-            ),
-        },
-        (
-            ("WeatherOverviewHeroTitle@1", "WeatherOverviewHero@1"),
-            (
-                "ScheduleOverviewHeroContent@1",
-                "ScheduleOverviewNextEventHero@1",
-            ),
-        ),
-        selection.business_layout_kinds_by_position,
-    )
-    option = _layout_output_option(
-        "HeroTitleContentActionLayout@1",
-        groups,
-        ({"actionId": "action-0", "label": "查看详情"},),
-        ("PillAction@1",),
-    )
-
-    assert selection.layout_ids == ("HeroTitleContentActionLayout",)
-    assert selection.business_layout_kinds_by_position == (
-        "HeroTitle",
-        "HeroContent",
-    )
-    assert filtered == {
-        "WeatherOverview": ("WeatherOverviewHeroTitle@1",),
-        "CalendarOverview": ("ScheduleOverviewHeroContent@1",),
-    }
-    assert option["businessTemplateIdsByPosition"] == groups
-    assert option["actionChildren"][0]["position"] == 2
-    assert option["actionChildren"][0]["templateId"] == "PillAction@1"
-
-
-def test_parser_rejects_deprecated_three_argument_template_call() -> None:
-    source = (
-        'Template("card@1",{},Column("section",'
-        'Template("Legacy@1","2x2",{})));'
-    )
-
-    with pytest.raises(
-        TerselConversionError,
-        match="requires a versioned ID, one props object and optional children",
-    ):
-        parse_hybrid_card(source)
-
-
-def test_task_spec_log_summary_omits_user_content_and_schema_details() -> None:
-    task_spec = TaskSpec(
-        userQuery="不应进入日志的用户原始请求",
-        size="2x2",
-        dataModelSchema={"privateDomain": {"secretField": "secretValue"}},
-        eventCandidates=[],
-        assetCandidates=[],
-    )
-
-    summary = _task_spec_log_summary(task_spec)
-
-    assert summary == {
-        "size": "2x2",
-        "dataModelRootKeys": ["privateDomain"],
-        "eventCandidateCount": 0,
-        "assetCandidateCount": 0,
-    }
-    assert "用户原始请求" not in repr(summary)
-    assert "secretField" not in repr(summary)
-    assert "secretValue" not in repr(summary)
-
-
-def test_model_response_json_extraction_uses_complete_outer_object() -> None:
-    assert _parse_json_object('说明：{"decision":"use {trusted}"}。') == {
-        "decision": "use {trusted}"
-    }

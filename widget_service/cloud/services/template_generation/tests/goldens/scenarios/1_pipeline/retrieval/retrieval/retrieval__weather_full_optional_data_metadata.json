@@ -1,0 +1,15 @@
+{
+  "airQualityInFieldTokens": true,
+  "availablePaths": [
+    "/current/airQuality",
+    "/current/coldLevel",
+    "/current/condition",
+    "/current/temperatureText",
+    "/location/districtName",
+    "/location/prefectureName"
+  ],
+  "requiredPaths": [
+    "/current/condition",
+    "/current/temperatureText"
+  ]
+}

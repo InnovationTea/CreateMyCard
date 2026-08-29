@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "1c10d447f493696e03bb3545d13838df23b78799318f83c47a348c220bb0af00",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/dtStart\"]},\"action\":[\"event.open.clock.alarm\"],\"allowCalendarViewFallback\":true}"
+    },
+    {
+      "key": "45403f5a4ebcbb79eeef8b620ff7ef1cd6add88276ff578717701b5e3f7dbcae",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"ScheduleOverviewTitleHero@1\", {\"calendarIcon\": \"resources/base/media/calendar_fill.svg\", \"headerLabel\": \"就医提醒\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.clock.alarm\", \"label\": \"设置闹钟\"}));"
+    }
+  ]
+}

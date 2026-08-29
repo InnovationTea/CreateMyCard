@@ -1,0 +1,35 @@
+{
+  "bad_parameter_name": {
+    "errorType": "ValidationError",
+    "message": "1 validation error for ProviderManifest\ntemplates.0\n  Value error, Provider asset parameter name is invalid: bad name [type=value_error, input_value={'templateId': 'IconFixtu...{'bad name': ['steps']}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/value_error"
+  },
+  "duplicate_tags": {
+    "errorType": "ValidationError",
+    "message": "1 validation error for ProviderManifest\ntemplates.0\n  Value error, Provider asset semantic tags must be nonempty and unique: glyph [type=value_error, input_value={'templateId': 'IconFixtu...h': ['steps', 'steps']}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/value_error"
+  },
+  "empty_tags": {
+    "errorType": "ValidationError",
+    "message": "1 validation error for ProviderManifest\ntemplates.0\n  Value error, Provider asset semantic tags must be nonempty and unique: glyph [type=value_error, input_value={'templateId': 'IconFixtu...ticTags': {'glyph': []}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/value_error"
+  },
+  "legacy_unrestricted": {
+    "assetParameterSemanticTags": {
+      "glyph": []
+    }
+  },
+  "missing_parameter": {
+    "errorType": "ValueError",
+    "message": "Provider semantic tags reference a non-asset Prop: IconFixture@1.missing"
+  },
+  "non_asset_parameter": {
+    "errorType": "ValueError",
+    "message": "Provider semantic tags reference a non-asset Prop: IconFixture@1.label"
+  },
+  "tag_with_space": {
+    "errorType": "ValidationError",
+    "message": "1 validation error for ProviderManifest\ntemplates.0\n  Value error, Provider asset semantic tag is invalid: glyph [type=value_error, input_value={'templateId': 'IconFixtu... {'glyph': ['bad tag']}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/value_error"
+  },
+  "uppercase_tag": {
+    "errorType": "ValidationError",
+    "message": "1 validation error for ProviderManifest\ntemplates.0\n  Value error, Provider asset semantic tag is invalid: glyph [type=value_error, input_value={'templateId': 'IconFixtu...': {'glyph': ['Steps']}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/value_error"
+  }
+}

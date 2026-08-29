@@ -1,0 +1,34 @@
+{
+  "first": {
+    "serialized": "Column(Text(\"前\"), Text(\"外命中\"), Text(\"后\"))",
+    "texts": [
+      "前",
+      "外命中",
+      "后"
+    ]
+  },
+  "none": {
+    "serialized": "Column(Text(\"前\"), Text(\"外后备\"), Text(\"后\"))",
+    "texts": [
+      "前",
+      "外后备",
+      "后"
+    ]
+  },
+  "second": {
+    "serialized": "Column(Text(\"前\"), Text(\"内后备\"), Text(\"后\"))",
+    "texts": [
+      "前",
+      "内后备",
+      "后"
+    ]
+  },
+  "second_third": {
+    "serialized": "Column(Text(\"前\"), Text(\"内命中\"), Text(\"后\"))",
+    "texts": [
+      "前",
+      "内命中",
+      "后"
+    ]
+  }
+}

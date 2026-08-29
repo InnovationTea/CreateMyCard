@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "0205ffba539bd318b97b4d35fd2e190fe894bcac7c5446d135437aaed8845065",
+      "response": "Template(\"SingleFocusLayout@1\", {}, Template(\"ScheduleOverviewTwoEventsFull@1\", {}));"
+    },
+    {
+      "key": "a17a06e98a6fbb891112918111a87ad8000818d85e09393d2db15426e691c14e",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/dtStart\",\"/events/1/title\",\"/events/1/dtStart\"]},\"primaryOutputFieldByCapability\":{},\"action\":[],\"allowCalendarViewFallback\":true}"
+    }
+  ]
+}

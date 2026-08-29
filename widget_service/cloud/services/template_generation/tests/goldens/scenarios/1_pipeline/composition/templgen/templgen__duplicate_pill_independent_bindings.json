@@ -1,0 +1,285 @@
+{
+  "a2ui": [
+    {
+      "createSurface": {
+        "catalogId": "ohos.a2ui.extended.catalog.form",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateComponents": {
+        "components": [
+          {
+            "children": [
+              "template_root"
+            ],
+            "component": "Stack",
+            "id": "root",
+            "styles": {
+              "alignContent": "topStart",
+              "backgroundColor": "#FFE5EDFE",
+              "borderRadius": 18,
+              "clip": true,
+              "height": "matchParent",
+              "padding": 0,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "__genui_render_component__root_1"
+            ],
+            "component": "Stack",
+            "id": "template_root",
+            "styles": {
+              "height": "matchParent",
+              "padding": 12,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "root_1_0",
+              "root_1_1"
+            ],
+            "component": "Column",
+            "id": "__genui_render_component__root_1",
+            "itemMargin": 0,
+            "styles": {
+              "alignItems": "center",
+              "height": "matchParent",
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "root_1_0_0"
+            ],
+            "component": "Column",
+            "id": "root_1_0",
+            "itemMargin": 0,
+            "styles": {
+              "layoutWeight": 1,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "root_1_0_0_0",
+              "root_1_0_0_1"
+            ],
+            "component": "Column",
+            "id": "root_1_0_0",
+            "itemMargin": 4,
+            "styles": {
+              "alignItems": "start",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": "matchParent",
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "root_1_0_0_0_0"
+            ],
+            "component": "Row",
+            "id": "root_1_0_0_0",
+            "itemMargin": 0,
+            "styles": {
+              "alignItems": "center",
+              "height": 24,
+              "justifyContent": "spaceBetween",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "root_1_0_0_0_0_0",
+              "root_1_0_0_0_0_1"
+            ],
+            "component": "Row",
+            "id": "root_1_0_0_0_0",
+            "itemMargin": 4,
+            "styles": {
+              "alignItems": "center",
+              "clip": true,
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "height": 24,
+              "justifyContent": "start"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/weather/location/districtName} }}",
+            "id": "root_1_0_0_0_0_0",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#FF1F4799",
+              "fontSize": 16,
+              "fontWeight": 700,
+              "maxLines": 1,
+              "textOverflow": "ellipsis"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/weather/current/temperatureText} }}",
+            "id": "root_1_0_0_0_0_1",
+            "styles": {
+              "flexShrink": 0,
+              "fontColor": "#FF1F4799",
+              "fontSize": 16,
+              "fontWeight": 800,
+              "maxLines": 1
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ ${/data/weather/current/condition} + '｜感冒风险' + ${/data/weather/current/coldLevel} }}",
+            "id": "root_1_0_0_1",
+            "styles": {
+              "constraintSize": {
+                "minHeight": 0,
+                "minWidth": 0
+              },
+              "fontColor": "#991F4799",
+              "fontSize": 12,
+              "fontWeight": 400,
+              "height": 16,
+              "maxLines": 1,
+              "textOverflow": "ellipsis",
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "root_1_1_0",
+              "root_1_1_1"
+            ],
+            "component": "Column",
+            "id": "root_1_1",
+            "itemMargin": 8,
+            "styles": {
+              "height": 80,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "root_1_1_0_0"
+            ],
+            "component": "Column",
+            "id": "root_1_1_0",
+            "styles": {
+              "height": 36,
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Button",
+            "id": "root_1_1_0_0",
+            "label": "查看详情",
+            "onClick": [
+              {
+                "args": {
+                  "intentName": "OpenWeather",
+                  "params": {
+                    "target": "{{ ${/data/weather/location/districtName} }}"
+                  }
+                },
+                "call": "clickToIntent"
+              }
+            ],
+            "styles": {
+              "backgroundColor": "#332E529E",
+              "borderRadius": 18,
+              "fontColor": "#FF1F4799",
+              "fontSize": 14,
+              "fontWeight": 500,
+              "height": 36,
+              "width": "matchParent"
+            }
+          },
+          {
+            "children": [
+              "root_1_1_1_0"
+            ],
+            "component": "Column",
+            "id": "root_1_1_1",
+            "styles": {
+              "height": 36,
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Button",
+            "id": "root_1_1_1_0",
+            "label": "查看详情",
+            "onClick": [
+              {
+                "args": {
+                  "intentName": "OpenWeather",
+                  "params": {
+                    "target": "{{ ${/data/weather/current/condition} }}"
+                  }
+                },
+                "call": "clickToIntent"
+              }
+            ],
+            "styles": {
+              "backgroundColor": "#332E529E",
+              "borderRadius": 18,
+              "fontColor": "#FF1F4799",
+              "fontSize": 14,
+              "fontWeight": 500,
+              "height": 36,
+              "width": "matchParent"
+            }
+          }
+        ],
+        "root": "root",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateDataModel": {
+        "path": "/",
+        "surfaceId": "surface_card",
+        "value": {
+          "data": {
+            "weather": {
+              "current": {
+                "coldLevel": "低",
+                "condition": "小雨",
+                "temperatureText": "29°C"
+              },
+              "location": {
+                "districtName": "青浦区"
+              }
+            }
+          }
+        }
+      },
+      "version": "v0.9"
+    }
+  ],
+  "templateIds": [
+    "WeatherOverviewCompact@1",
+    "PillAction@1",
+    "CompactTwoActionLayout@1"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "a1971cc89f96435b534717d244cebb484576bc74532ba87901770935fde0f37e",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/location/prefectureName\",\"/current/temperatureText\",\"/current/condition\",\"/current/alertLevel\",\"/current/uvIndex\",\"/current/airQuality\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.call.phone\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

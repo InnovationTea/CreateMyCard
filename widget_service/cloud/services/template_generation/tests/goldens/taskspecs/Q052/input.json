@@ -1,0 +1,90 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我做个耳机排障卡片，看耳机名称、连接状态和左右耳机充电状态，点击打开蓝牙设置。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetEarphoneInfo",
+        "arguments": {},
+        "writeResultTo": "/data/earphone",
+        "candidateOutputFields": [
+          "/isConnected",
+          "/earphoneName",
+          "/leftChargingStatusDesc",
+          "/rightChargingStatusDesc"
+        ]
+      }
+    ],
+    "title": "耳机排障",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.settings.bluetooth",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "bluetooth_entry"
+          }
+        }
+      }
+    ],
+    "description": "耳机连接充电状态+蓝牙设置",
+    "candidateAssetIds": [
+      "asset.icon_earphone",
+      "asset.icon_left",
+      "asset.icon_right",
+      "asset.bolt_fill"
+    ]
+  },
+  "session": {
+    "interactionId": "052",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "utterance": {
+    "original": "帮我做个耳机排障卡片，看耳机名称、连接状态和左右耳机充电状态，点击打开蓝牙设置。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我做个耳机排障卡片，看耳机名称、连接状态和左右耳机充电状态，点击打开蓝牙设置。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetEarphoneInfo",
+      "arguments": {},
+      "writeResultTo": "/data/earphone",
+      "candidateOutputFields": [
+        "/isConnected",
+        "/earphoneName",
+        "/leftChargingStatusDesc",
+        "/rightChargingStatusDesc"
+      ]
+    }
+  ],
+  "title": "耳机排障",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.settings.bluetooth",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "bluetooth_entry"
+        }
+      }
+    }
+  ],
+  "description": "耳机连接充电状态+蓝牙设置",
+  "candidateAssetIds": [
+    "asset.icon_earphone",
+    "asset.icon_left",
+    "asset.icon_right",
+    "asset.bolt_fill"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "adb7d7efb4432bdda69dd0d5550a430474613809a85e745441ff46d0aab0df8e",
+      "response": "Template(\"TwoSupportLayout@1\", {}, Template(\"WeatherOverviewTemperatureSupport@1\", {\"location\": \"深圳市\", \"conditionIcon\": \"resources/base/media/icon_weather_thermometer.svg\"}), Template(\"ScheduleOverviewTimeSupport@1\", {\"calendarIcon\": \"resources/base/media/calendar_fill.svg\", \"actionId\": \"event.viewCalendarEvent\"}));"
+    },
+    {
+      "key": "dccd52408ca86e80eab645e5e9331e53ba0625fd3485fa68ad210169af06138a",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/current/condition\",\"/current/temperatureC\",\"/current/feelsLikeC\"],\"GetCalendarEvents\":[\"/events/0/dtStart\",\"/events/0/eventLocation\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.viewCalendarEvent\"],\"allowCalendarViewFallback\":true}"
+    }
+  ]
+}

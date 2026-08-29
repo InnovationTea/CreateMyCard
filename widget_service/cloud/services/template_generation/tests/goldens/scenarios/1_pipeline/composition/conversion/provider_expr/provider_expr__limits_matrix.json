@@ -1,0 +1,17 @@
+{
+  "acceptedAtLimit": {
+    "rendered": "{{ ((((((((((((((((((((${/data/calendar/value})))))))))))))))))))) }}"
+  },
+  "tooComplex": {
+    "errorType": "ValueError",
+    "message": "Provider Template Expr exceeds the parser complexity limit"
+  },
+  "tooDeep": {
+    "errorType": "A2UIExpressionError",
+    "message": "Expression nesting exceeds the 20-level limit."
+  },
+  "tooLong": {
+    "errorType": "A2UIExpressionError",
+    "message": "Expression exceeds the 2048-character limit."
+  }
+}

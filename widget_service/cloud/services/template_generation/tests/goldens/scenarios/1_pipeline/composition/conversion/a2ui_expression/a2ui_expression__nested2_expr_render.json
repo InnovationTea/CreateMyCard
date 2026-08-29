@@ -1,0 +1,62 @@
+{
+  "a2ui": [
+    {
+      "createSurface": {
+        "catalogId": "ohos.a2ui.extended.catalog.form",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateComponents": {
+        "components": [
+          {
+            "children": [
+              "root_0"
+            ],
+            "component": "Column",
+            "id": "root",
+            "itemMargin": 8,
+            "styles": {
+              "backgroundColor": "#FFFFFFFF",
+              "borderRadius": 20,
+              "clip": true,
+              "height": "matchParent",
+              "padding": 12,
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "{{ size(${/data/items}) > 0 ? '有数据' : '无数据' }}",
+            "id": "root_0",
+            "styles": {
+              "fontColor": "#E5000000",
+              "fontSize": 14,
+              "fontWeight": 400
+            }
+          }
+        ],
+        "root": "root",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateDataModel": {
+        "path": "/",
+        "surfaceId": "surface_card",
+        "value": {
+          "data": {
+            "items": [
+              "A",
+              "B"
+            ]
+          }
+        }
+      },
+      "version": "v0.9"
+    }
+  ],
+  "validationCodes": []
+}

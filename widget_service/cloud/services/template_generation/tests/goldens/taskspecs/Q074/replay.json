@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "70345ce219481a8f221157d7a7048b05c370e5532e2c9e0151cf1ce460af45da",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/current/condition\",\"/current/feelsLikeC\",\"/current/windLevel\",\"/current/alertLevel\",\"/current/coldLevel\"],\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/chargingStatusDesc\",\"/batteryTemperatureText\",\"/pluggedTypeDesc\"]},\"action\":[\"event.open.weather\",\"event.open.settings.battery\"]}"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "icon_weather_thermometer.svg": {
+    "finalOptions": {
+      "fillColor": "#E61F4595",
+      "flexShrink": 0,
+      "height": 20,
+      "objectFit": "contain",
+      "width": 20
+    }
+  },
+  "rain.svg": {
+    "finalOptions": {
+      "fillColor": "#E61F4595",
+      "flexShrink": 0,
+      "height": 20,
+      "objectFit": "contain",
+      "width": 20
+    }
+  },
+  "sun_max.svg": {
+    "finalOptions": {
+      "fillColor": "#E61F4595",
+      "flexShrink": 0,
+      "height": 20,
+      "objectFit": "contain",
+      "width": 20
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "optionalData": [
+    "/location/prefectureName",
+    "/location/districtName",
+    "/current/temperatureText",
+    "/current/condition"
+  ],
+  "primaryData": [],
+  "secondaryData": [],
+  "variant": {
+    "optionalBindings": [
+      "city",
+      "district",
+      "temperature",
+      "condition"
+    ],
+    "requiredBindings": []
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "elseif__disjunction": {
+    "errorType": "ValueError",
+    "message": "Provider Template #elseif target is invalid at line 23"
+  },
+  "elseif__double_negation": {
+    "errorType": "ValueError",
+    "message": "Provider Template #elseif target is invalid at line 23"
+  },
+  "elseif__duplicate_binding": {
+    "errorType": "ValueError",
+    "message": "Provider Template #elseif target is invalid at line 23"
+  },
+  "elseif__mixed_namespaces": {
+    "errorType": "ValueError",
+    "message": "Provider Template #elseif target is invalid at line 23"
+  },
+  "elseif__nested_path": {
+    "errorType": "ValueError",
+    "message": "Provider Template #elseif target is invalid at line 23"
+  },
+  "if__disjunction": {
+    "errorType": "ValueError",
+    "message": "Provider Template #if target is invalid at line 23"
+  },
+  "if__double_negation": {
+    "errorType": "ValueError",
+    "message": "Provider Template #if target is invalid at line 23"
+  },
+  "if__duplicate_binding": {
+    "errorType": "ValueError",
+    "message": "Provider Template #if target is invalid at line 23"
+  },
+  "if__mixed_namespaces": {
+    "errorType": "ValueError",
+    "message": "Provider Template #if target is invalid at line 23"
+  },
+  "if__nested_path": {
+    "errorType": "ValueError",
+    "message": "Provider Template #if target is invalid at line 23"
+  }
+}

@@ -1,0 +1,661 @@
+{
+  "artifact": {
+    "cardSpec": {
+      "dataBindings": [
+        {
+          "arguments": {
+            "futureDays": 7
+          },
+          "capabilityId": "GetCalendarEvents",
+          "writeResultTo": "/data/calendar"
+        }
+      ],
+      "description": "会议提醒和勿扰",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "suggestSize": "2x2",
+      "title": "评审会议"
+    },
+    "effectiveCapabilities": {
+      "asset": [
+        "asset.icon_meeting",
+        "asset.bell_fill",
+        "asset.icon_focus",
+        "asset.clock"
+      ],
+      "data": [
+        "GetCalendarEvents"
+      ],
+      "event": [
+        {
+          "args": {
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "bundleName": "com.huawei.hmos.settings",
+            "intentName": "Settings",
+            "uri": "intelligent_scene_entry"
+          },
+          "call": "clickToDeeplink",
+          "description": "打开系统设置的情景模式页，可配置免打扰或专注模式。",
+          "id": "event.open.settings.dnd"
+        }
+      ]
+    },
+    "generationPlan": {
+      "candidateAssetIds": [
+        "asset.icon_meeting",
+        "asset.bell_fill",
+        "asset.icon_focus",
+        "asset.clock"
+      ],
+      "candidateDataBindings": [
+        {
+          "arguments": {
+            "futureDays": 7
+          },
+          "candidateOutputFields": [
+            "/events/0/senderName",
+            "/events/0/importantEventType",
+            "/events/0/remindTime/0",
+            "/updatedAt"
+          ],
+          "capabilityId": "GetCalendarEvents",
+          "writeResultTo": "/data/calendar"
+        }
+      ],
+      "candidateEventCandidates": [
+        {
+          "action": {
+            "args": {
+              "abilityName": "com.huawei.hmos.settings.MainAbility",
+              "bundleName": "com.huawei.hmos.settings",
+              "intentName": "Settings",
+              "uri": "intelligent_scene_entry"
+            },
+            "call": "clickToDeeplink"
+          },
+          "capabilityId": "event.open.settings.dnd"
+        }
+      ]
+    },
+    "genuiMessages": [
+      {
+        "createSurface": {
+          "catalogId": "ohos.a2ui.extended.catalog.form",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "fusionBallBackground",
+                "template_root"
+              ],
+              "component": "Stack",
+              "id": "root",
+              "styles": {
+                "alignContent": "topStart",
+                "backgroundColor": "#00000000",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "padding": 0,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "fusionBallLargeSlot",
+                "fusionBallMediumSlot",
+                "fusionBallSmallSlot",
+                "fusionBallGlassLayer"
+              ],
+              "component": "Stack",
+              "id": "fusionBallBackground",
+              "styles": {
+                "alignContent": "topStart",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "fusionBallLarge"
+              ],
+              "component": "Stack",
+              "id": "fusionBallLargeSlot",
+              "styles": {
+                "alignContent": "center",
+                "height": "27.5%",
+                "width": "112.5%"
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "fusionBallLarge",
+              "styles": {
+                "backgroundColor": "#FF1F3399",
+                "borderRadius": 105,
+                "clip": true,
+                "color": "#00000000",
+                "height": "477.272727%",
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": "116.666667%"
+              }
+            },
+            {
+              "children": [
+                "fusionBallMedium"
+              ],
+              "component": "Stack",
+              "id": "fusionBallMediumSlot",
+              "styles": {
+                "alignContent": "bottom",
+                "height": "137.5%",
+                "width": "50%"
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "fusionBallMedium",
+              "styles": {
+                "backgroundColor": "#FF2385B3",
+                "borderRadius": 80,
+                "clip": true,
+                "color": "#00000000",
+                "height": "72.727273%",
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": "200%"
+              }
+            },
+            {
+              "children": [
+                "fusionBallSmall"
+              ],
+              "component": "Stack",
+              "id": "fusionBallSmallSlot",
+              "styles": {
+                "alignContent": "bottomEnd",
+                "height": "118.75%",
+                "width": "121.875%"
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "fusionBallSmall",
+              "styles": {
+                "backgroundColor": "#FF24B3B3",
+                "borderRadius": 50,
+                "clip": true,
+                "color": "#00000000",
+                "height": "52.631579%",
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": "51.282051%"
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "fusionBallGlassLayer",
+              "styles": {
+                "backdropBlur": {
+                  "radius": 210
+                },
+                "backgroundColor": "#0DFFFFFF",
+                "color": "#00000000",
+                "height": "matchParent",
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "__genui_render_component__template_root"
+              ],
+              "component": "Stack",
+              "id": "template_root",
+              "styles": {
+                "height": "matchParent",
+                "padding": 12,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1"
+              ],
+              "component": "Stack",
+              "id": "__genui_render_component__template_root",
+              "styles": {
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0",
+                "root_1_1"
+              ],
+              "component": "Column",
+              "id": "root_1",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "center",
+                "height": "matchParent",
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0"
+              ],
+              "component": "Column",
+              "id": "root_1_0",
+              "styles": {
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0",
+                "root_1_0_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "start",
+                "clip": false,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": 78,
+                "justifyContent": "start",
+                "margin": {
+                  "top": -2
+                },
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_0"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_0",
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": 16,
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/calendar/updatedAt} }}",
+              "id": "root_1_0_0_0_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#B3CCEEFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "height": 16,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": 112
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_0",
+                "root_1_0_0_1_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_1",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "top",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": 54,
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_0_0",
+                "root_1_0_0_1_0_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_1_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "center",
+                "clip": true,
+                "flexShrink": 0,
+                "height": 54,
+                "justifyContent": "start",
+                "padding": {
+                  "bottom": 2,
+                  "left": 0,
+                  "right": 0,
+                  "top": 6
+                },
+                "width": 8
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_0_0_0"
+              ],
+              "component": "Stack",
+              "id": "root_1_0_0_1_0_0",
+              "styles": {
+                "alignContent": "center",
+                "borderColor": "#FFCCEEFF",
+                "borderRadius": 4,
+                "borderWidth": 1.5,
+                "flexShrink": 0,
+                "height": 8,
+                "width": 8
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "root_1_0_0_1_0_0_0",
+              "styles": {
+                "color": "#FFCCEEFF",
+                "height": 0,
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": 0
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "root_1_0_0_1_0_1",
+              "styles": {
+                "color": "#33CCEEFF",
+                "height": 34,
+                "strokeWidth": 1,
+                "vertical": true,
+                "width": 1
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_1_0",
+                "root_1_0_0_1_1_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_1_1",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": 54,
+                "justifyContent": "start",
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ '发起人：' + ${/data/calendar/events/0/senderName} }}",
+              "id": "root_1_0_0_1_1_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#FFCCEEFF",
+                "fontSize": 14,
+                "fontWeight": 500,
+                "height": 20,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_1_1_1_0",
+                "root_1_0_0_1_1_1_1"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0_1_1_1",
+              "itemMargin": 2,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": 30,
+                "justifyContent": "start",
+                "width": 120
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/calendar/events/0/importantEventType} }}",
+              "id": "root_1_0_0_1_1_1_0",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#B3CCEEFF",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "height": 14,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": 120
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ '提前' + ${/data/calendar/events/0/remindTime/0} + '分钟提醒' }}",
+              "id": "root_1_0_0_1_1_1_1",
+              "styles": {
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "fontColor": "#B3CCEEFF",
+                "fontSize": 10,
+                "fontWeight": 400,
+                "height": 14,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "width": 120
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0"
+              ],
+              "component": "Column",
+              "id": "root_1_1",
+              "styles": {
+                "height": 36,
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Button",
+              "id": "root_1_1_0",
+              "label": "免打扰",
+              "onClick": [
+                {
+                  "args": {
+                    "abilityName": "com.huawei.hmos.settings.MainAbility",
+                    "bundleName": "com.huawei.hmos.settings",
+                    "intentName": "Settings",
+                    "uri": "intelligent_scene_entry"
+                  },
+                  "call": "clickToDeeplink"
+                }
+              ],
+              "styles": {
+                "backgroundColor": "#33CCEEFF",
+                "borderRadius": 18,
+                "fontColor": "#FFCCEEFF",
+                "fontSize": 14,
+                "fontWeight": 500,
+                "height": 36,
+                "width": "matchParent"
+              }
+            }
+          ],
+          "root": "root",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "surface_card",
+          "value": {
+            "data": {
+              "calendar": {
+                "events": [
+                  {
+                    "importantEventType": 0,
+                    "remindTime": [
+                      "15"
+                    ],
+                    "senderName": ""
+                  }
+                ],
+                "updatedAt": "2026-08-06 09:00"
+              }
+            }
+          }
+        },
+        "version": "v0.9"
+      }
+    ],
+    "meta": {
+      "apiVersion": "v1",
+      "artifactSchemaVersion": "widget-artifact-v2",
+      "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
+      "cardSpecVersion": "card-spec-v1",
+      "dslProtocolVersion": "v0.9",
+      "generationMode": "create",
+      "protocolProfileId": "a2ui-form-rom6.0-v1",
+      "skillVersion": "skill-widget-v1",
+      "sourceArtifactDigest": null,
+      "taskSpecVersion": "task-spec-v1"
+    },
+    "removedCapabilities": [],
+    "schemaVersion": "widget-artifact-v2",
+    "taskSpec": {
+      "appVersion": "11.7.5.208",
+      "assetCandidates": [
+        {
+          "description": "样式：默认白色的单色线面结合会议演示板图标，画板内有两条横线，原始尺寸为 14×14，支持通过 fillColor 与卡片配色统一；适用：会议、汇报、演示、议程。",
+          "id": "asset.icon_meeting",
+          "src": "resources/base/media/icon_meeting.svg"
+        },
+        {
+          "description": "样式：默认黑色的单色实心铃铛图标，采用经典吊铃造型，底部带铃舌，原始尺寸为 24×24；适用：通知提醒、消息提示、备忘录提醒、闹钟响铃或开启状态，以及日历事项提醒。",
+          "id": "asset.bell_fill",
+          "src": "resources/base/media/bell_fill.svg"
+        },
+        {
+          "description": "样式：默认黑色的单色实心月牙图标，无圆形底和睡眠字样；适用：专注模式、勿扰模式、夜间状态。",
+          "id": "asset.icon_focus",
+          "src": "resources/base/media/icon_focus.svg"
+        },
+        {
+          "description": "样式：时钟线框图标，默认黑色，图形为圆形表盘加指针的线性轮廓；适用：时间显示、定时功能、倒计时。",
+          "id": "asset.clock",
+          "src": "resources/base/media/clock.svg"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "calendar": {
+            "events": [
+              {
+                "importantEventType": {
+                  "description": "日程事件的重要程度或分类枚举值（Type）。",
+                  "sampleValue": 0,
+                  "type": "integer"
+                },
+                "remindTime": [
+                  {
+                    "description": "提前提醒分钟数（字符串形式）。",
+                    "sampleValue": "15",
+                    "type": "string"
+                  }
+                ],
+                "senderName": {
+                  "description": "日程数据标识符或发起方标识（如邀请人），若无则为空字符串。",
+                  "sampleValue": "",
+                  "type": "string"
+                }
+              }
+            ],
+            "updatedAt": {
+              "description": "端侧完成数据组装的时间戳字符串，格式如 '2026-07-03 15:30'。",
+              "sampleValue": "2026-08-06 09:00",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "eventCandidates": [
+        {
+          "args": {
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "bundleName": "com.huawei.hmos.settings",
+            "intentName": "Settings",
+            "uri": "intelligent_scene_entry"
+          },
+          "call": "clickToDeeplink",
+          "description": "打开系统设置的情景模式页，可配置免打扰或专注模式。",
+          "id": "event.open.settings.dnd"
+        }
+      ],
+      "size": "2x2",
+      "userQuery": "下一场日程是下午两点的需求评审会，帮我做个卡片，看会议发起人、是不是重要日程、提前提醒时间和日程信息更新时间，开会前可以打开免打扰设置。"
+    }
+  },
+  "caseId": "Q024",
+  "status": "success",
+  "suggestSize": "2x2"
+}

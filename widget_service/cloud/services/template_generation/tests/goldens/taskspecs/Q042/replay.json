@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "4af45a65d43b353265050438a2ad221537babd84c26ba810d58d06d2d5f442ce",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCountdownDays\":[\"/countdownDays\"],\"ViewWeather\":[\"/location/prefectureName\",\"/current/temperatureText\",\"/current/condition\"]},\"primaryOutputFieldByCapability\":{\"GetCountdownDays\":\"/countdownDays\"},\"action\":[\"event.open.weather\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

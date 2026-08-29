@@ -1,4 +1,13 @@
-"""Support 事件白名单、动作实例归属、Prompt 及编译防绕过回归。"""
+"""Support 事件白名单、动作实例归属、Prompt 及编译防绕过回归。
+
+真实编译器的归属正向产物（planner/direct 两条路径）已固化为场景金样
+（Layer C）：快照整体冻结 A2UI 消息与 action_used_ids，动作实例只能落
+在事件白名单归属的 Support 槽位。错误槽位与伪造 plan 的编译拒绝路径同样
+固化为错误场景金样（support_action__wrong_target_rejected /
+support_action__forged_plan_rejected，冻结 errorType 与完整报错文案）；
+检索 miss 与白名单缺失仍保留显式 pytest.raises / 规则断言。引擎改动后按
+golden 工作流 `check --diff` / `bless --declared` 复核。
+"""
 
 from __future__ import annotations
 
@@ -33,7 +42,10 @@ from services.template_generation.engine.cardplan.provider_bundle import (
     ProviderTemplateEntry,
     load_provider_bundle,
 )
-from services.template_generation.engine.cardplan.registry import get_cardplan_registry
+from services.template_generation.engine.cardplan.registry import (
+    CardPlanRegistry,
+    get_cardplan_registry,
+)
 from services.template_generation.engine.cardplan.template_plan_planner import (
     _selected_action_ids,
     plan_template_candidates,
@@ -50,6 +62,10 @@ from services.template_generation.engine.cardplan.template_retrieval import (
 )
 from services.template_generation.engine.tersel_converter import TerselConversionError
 from services.template_generation.test_support import provider_gallery
+from services.template_generation.test_support.golden_scenarios import (
+    assert_golden_scenario,
+    scenario,
+)
 
 _ROOT = Path(__file__).resolve().parents[1]
 _EVENT_PATH = _ROOT.parents[1] / "data/capabilities/app-11.7.5.205_rom-6.0/event_capabilities.json"
@@ -350,7 +366,7 @@ def test_countdown_cannot_use_alarm_as_a_related_event() -> None:
         )
 
 
-def test_compiler_rechecks_policy_even_if_the_plan_is_forged() -> None:
+def _forged_plan_error() -> dict[str, str]:
     plans = _plans(
         ("WeatherOverviewTemperatureSupport@1", "BatteryOverviewSupport@1"),
         ("event.open.weather",),
@@ -367,10 +383,18 @@ def test_compiler_rechecks_policy_even_if_the_plan_is_forged() -> None:
         children.append(f'Template("{slot.template_id}",{json.dumps(params)})')
     source = 'Template("TwoSupportLayout@1",{},' + ",".join(children) + ");"
     contract = _contract(("event.open.weather",), allowed_template_plans=(forged,))
-    with pytest.raises(TerselConversionError, match="supported events or data context"):
+    try:
         _validate_allowed_template_plan(
             parse_ux_layout_card(source), contract, get_cardplan_registry(),
         )
+    except TerselConversionError as exc:
+        return {"errorType": type(exc).__name__, "message": str(exc)}
+    return {"error": "NO_ERROR"}  # pragma: no cover - 伪造 plan 必须被拒绝
+
+
+@scenario("support_action__forged_plan_rejected")
+def _build_forged_plan_rejected() -> dict[str, str]:
+    return _forged_plan_error()
 
 
 def test_legacy_business_expansion_also_rejects_wrong_action() -> None:
@@ -429,13 +453,12 @@ def test_gallery_support_events_come_from_each_template_allowlist(tmp_path: Path
     assert set(countdown_cases) == {"dual-support-content", "dual-support-one-action"}
 
 
-@pytest.mark.parametrize(
-    ("use_planner", "wrong_target"),
-    ((True, False), (False, False), (False, True)),
-)
-def test_real_compiler_enforces_support_event_ownership(
-    use_planner: bool, wrong_target: bool,
-) -> None:
+def _ownership_compile_inputs(
+    use_planner: bool,
+) -> tuple[
+    TaskSpec, HybridBodyContract, dict[str, object],
+    CardPlanRegistry, tuple[TemplatePlan, ...], tuple[str, ...],
+]:
     template_ids = ("BatteryOverviewSupport@1", "CountdownOverviewSupport@1")
     events = ("event.open.settings.battery",)
     registry = get_cardplan_registry()
@@ -466,24 +489,67 @@ def test_real_compiler_enforces_support_event_ownership(
     contract = projection.contract
     if not use_planner:
         contract = contract.model_copy(update={"allowed_template_plans": ()})
-    event_owner = "CountdownOverview" if wrong_target else "BatteryOverview"
+    return task, contract, card_spec, registry, plans, events
+
+
+def _ownership_source(
+    plans: tuple[TemplatePlan, ...], event_owner: str, event_id: str,
+) -> str:
     children: list[str] = []
     for slot in plans[0].business_slots:
-        params = {"actionId": events[0]} if slot.business_id == event_owner else {}
+        params = {"actionId": event_id} if slot.business_id == event_owner else {}
         children.append(f'Template("{slot.template_id}",{json.dumps(params)})')
-    source = 'Template("TwoSupportLayout@1",{},' + ",".join(children) + ");"
+    return 'Template("TwoSupportLayout@1",{},' + ",".join(children) + ");"
+
+
+def _build_ownership_payload(use_planner: bool) -> dict[str, object]:
+    task, contract, card_spec, registry, plans, events = _ownership_compile_inputs(
+        use_planner,
+    )
+    source = _ownership_source(plans, "BatteryOverview", events[0])
     profile = A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile()
-    if wrong_target:
-        with pytest.raises(TerselConversionError, match="supported events or data context"):
-            compile_ux_layout_card(
-                source, task_spec=task, contract=contract, protocol_profile=profile,
-                registry=registry, card_spec=card_spec, enable_data_bindings=True,
-            )
-    else:
-        result = compile_ux_layout_card(
+    result = compile_ux_layout_card(
+        source, task_spec=task, contract=contract, protocol_profile=profile,
+        registry=registry, card_spec=card_spec, enable_data_bindings=True,
+    )
+    return {
+        "a2ui": [
+            json.loads(line) for line in result.a2ui.splitlines() if line.strip()
+        ],
+        "actionUsedIds": list(result.stats.action_used_ids),
+    }
+
+
+@scenario("support_action__ownership_planner")
+def _build_ownership_planner() -> dict[str, object]:
+    return _build_ownership_payload(use_planner=True)
+
+
+@scenario("support_action__ownership_direct")
+def _build_ownership_direct() -> dict[str, object]:
+    return _build_ownership_payload(use_planner=False)
+
+
+def test_real_compiler_ownership_matches_golden_scenarios() -> None:
+    assert_golden_scenario("support_action__ownership_planner")
+    assert_golden_scenario("support_action__ownership_direct")
+
+
+@scenario("support_action__wrong_target_rejected")
+def _build_wrong_target_rejected() -> dict[str, str]:
+    task, contract, card_spec, registry, plans, events = _ownership_compile_inputs(False)
+    source = _ownership_source(plans, "CountdownOverview", events[0])
+    profile = A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile()
+    try:
+        compile_ux_layout_card(
             source, task_spec=task, contract=contract, protocol_profile=profile,
             registry=registry, card_spec=card_spec, enable_data_bindings=True,
         )
-        messages = [json.loads(line) for line in result.a2ui.splitlines() if line.strip()]
-        assert provider_gallery._count_a2ui_actions(messages) == 1
-        assert result.stats.action_used_ids == events
+    except TerselConversionError as exc:
+        return {"errorType": type(exc).__name__, "message": str(exc)}
+    return {"error": "NO_ERROR"}  # pragma: no cover - 错误槽位必须被拒绝
+
+
+def test_support_action_rejection_paths_match_golden_scenarios() -> None:
+    assert_golden_scenario("support_action__wrong_target_rejected")
+    assert_golden_scenario("support_action__forged_plan_rejected")

@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "41a7d57db107d67f8e85de224caedc103308cb09c7b8750a36303073843baa67",
+      "response": "Template(\"TwoSupportLayout@1\", {}, Template(\"CountdownOverviewTravelSupport@1\", {\"title\": \"西安出行\", \"actionId\": \"event.open.clock.alarm\"}), Template(\"WeatherOverviewTravelSupport@1\", {\"conditionIcon\": \"resources/base/media/icon_weather_temperature1.svg\"}));"
+    },
+    {
+      "key": "e312894aafe6d458e083daa97e06051aaba07c9646a81af203a8da4e0e822075",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCountdownDays\":[\"/countdownDays\"],\"ViewWeather\":[\"/daily/4/condition\",\"/daily/4/temperatureRangeText\",\"/daily/4/rainProbabilityPercent\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.open.clock.alarm\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

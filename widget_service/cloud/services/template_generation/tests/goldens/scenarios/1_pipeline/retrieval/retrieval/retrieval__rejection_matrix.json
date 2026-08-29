@@ -1,0 +1,58 @@
+{
+  "calendar_without_covering_business": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "2x2 business CalendarOverview has no Full template"
+  },
+  "card_size_2x4_prompt": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "template Search does not support 2x4 cards"
+  },
+  "card_size_2x4_retrieval": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "template Search does not support 2x4 cards"
+  },
+  "countdown_and_weather": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "2x2 template Search does not support multiple data businesses without exactly one Action"
+  },
+  "daily_index_absent": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "required output field is absent or untyped in TaskSpec: /daily/1/condition"
+  },
+  "disabled_provider": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "no provider template covers capability ViewWeather and its requested fields"
+  },
+  "dual_business_one_capability": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "2x2 template Search does not support multiple data businesses without exactly one Action"
+  },
+  "dual_data_business": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "2x2 template Search does not support multiple data businesses without exactly one Action"
+  },
+  "provider_required_field_missing": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "required output field is absent or untyped in TaskSpec: /current/condition"
+  },
+  "provider_required_field_type_mismatch": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "no provider template covers capability ViewWeather and its requested fields"
+  },
+  "query_field_not_contained": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "no provider template covers capability ViewWeather and its requested fields"
+  },
+  "unknown_selected_action": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "selected Action is outside TaskSpec.eventCandidates"
+  },
+  "weather_and_battery": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "2x2 template Search does not support multiple data businesses without exactly one Action"
+  },
+  "weather_uv_and_battery": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "2x2 template Search does not support multiple data businesses without exactly one Action"
+  }
+}

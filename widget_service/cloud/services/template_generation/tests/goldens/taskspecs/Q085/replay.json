@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "510e4353d4c07d02a3d30cbd6eb4913dab72258642277d076ef969c28c4057b7",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/sleepScore\",\"/nightSleepDurationText\"],\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/chargingStatusDesc\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.open.clock.alarm\"]}"
+    },
+    {
+      "key": "6d1c67d1de30765ec3148d9c8772f47b76910c505744ee7370f637c088363d3b",
+      "response": "Template(\"WideFullTwoCompactLayout@1\", {}, Template(\"SleepOverviewFull@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}), Template(\"BatteryOverviewCompact@1\", {\"batteryIcon\": \"resources/base/media/battery_leaf_fill.svg\"}), Template(\"CompactAction@1\", {\"actionId\": \"event.open.clock.alarm\", \"label\": \"设置闹钟\", \"subtitle\": \"闹钟应用\", \"icon\": \"resources/base/media/alarm_fill_1.svg\"}));"
+    }
+  ]
+}

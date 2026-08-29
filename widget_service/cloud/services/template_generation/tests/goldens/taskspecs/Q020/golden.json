@@ -1,0 +1,8 @@
+{
+  "artifact": null,
+  "caseId": "Q020",
+  "errorCode": "VALIDATION_FAILED",
+  "message": "卡片生成过程中校验失败，请稍后再试。",
+  "status": "failed",
+  "suggestSize": "2x2"
+}

@@ -1,0 +1,247 @@
+{
+  "combinations": {
+    "all": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FFFFF0E6",
+                  "borderRadius": 20,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0",
+                  "root_1_1"
+                ],
+                "component": "Column",
+                "id": "__genui_render_component__root_1",
+                "itemMargin": 8,
+                "styles": {
+                  "alignItems": "center",
+                  "height": "matchParent",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "styles": {
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0",
+                  "root_1_0_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0",
+                "itemMargin": 3,
+                "styles": {
+                  "alignItems": "start",
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "top",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "今日活动",
+                "id": "root_1_0_0_0_0",
+                "styles": {
+                  "fontColor": "#9999521F",
+                  "fontSize": 12,
+                  "fontWeight": 500,
+                  "maxLines": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_1_0",
+                  "root_1_0_0_1_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0_1",
+                "itemMargin": 3,
+                "styles": {
+                  "alignItems": "start",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_1_0_0",
+                  "root_1_0_0_1_0_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_1_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "bottom",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/healthSport/dailySteps} }}",
+                "id": "root_1_0_0_1_0_0",
+                "styles": {
+                  "fontColor": "#FF99521F",
+                  "fontSize": 30,
+                  "fontWeight": 800,
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Text",
+                "content": "步",
+                "id": "root_1_0_0_1_0_1",
+                "styles": {
+                  "fontColor": "#9999521F",
+                  "fontSize": 12,
+                  "fontWeight": 500,
+                  "margin": {
+                    "bottom": 5
+                  },
+                  "maxLines": 1
+                }
+              },
+              {
+                "component": "Progress",
+                "id": "root_1_0_0_1_1",
+                "styles": {
+                  "backgroundColor": "#3399521F",
+                  "color": "#FF99521F",
+                  "height": 12,
+                  "strokeWidth": 8,
+                  "width": "matchParent"
+                },
+                "total": 10000,
+                "value": "{{ ${/data/healthSport/dailySteps} }}"
+              },
+              {
+                "children": [
+                  "root_1_1_0"
+                ],
+                "component": "Column",
+                "id": "root_1_1",
+                "styles": {
+                  "height": 36,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Button",
+                "id": "root_1_1_0",
+                "label": "今日训练",
+                "onClick": [
+                  {
+                    "args": {
+                      "intentName": "event.open.health.sport"
+                    },
+                    "call": "clickToIntent"
+                  }
+                ],
+                "styles": {
+                  "backgroundColor": "#3399521F",
+                  "borderRadius": 18,
+                  "fontColor": "#FF99521F",
+                  "fontSize": 14,
+                  "fontWeight": 500,
+                  "height": 36,
+                  "width": "matchParent"
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "healthSport": {
+                  "dailySteps": 6200
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "ActivityOverviewHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1"
+      ]
+    }
+  },
+  "fusionBall": false,
+  "layout": "HeroActionLayout@1",
+  "optionalBindings": [],
+  "sampleIds": {
+    "all": "C091"
+  },
+  "size": "2x2",
+  "templateId": "ActivityOverviewHero@1"
+}

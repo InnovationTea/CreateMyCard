@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "8709b43bc538d317f6a298b04efcf6e6f814205b58d9a0c8ecfe72d3164d9851",
+      "response": "{\"requiredOutputFieldsByCapability\": {\"GetHealthAndSportSummary\": [\"/dailySteps\", \"/dailyDistanceText\", \"/dailyTotalCaloriesText\"], \"GetPhoneBatteryInfo\": [\"/batterySOC\", \"/chargingStatusDesc\", \"/batteryTemperatureText\"]}, \"action\": [\"event.setPowerSavingMode\"]}"
+    }
+  ]
+}
