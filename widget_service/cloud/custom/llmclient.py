@@ -9,6 +9,7 @@ OpenAI 兼容的流式 LLM 客户端。
 
 import asyncio
 import json
+import time
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 
@@ -84,6 +85,8 @@ async def stream_genui(
     )
 
     usage = None
+    start = time.perf_counter()
+    first_token_at: float | None = None
     try:
         async with websockets.connect(
                 options.ws_url,
@@ -116,6 +119,8 @@ async def stream_genui(
                     )
 
                 if content_text:
+                    if first_token_at is None:
+                        first_token_at = time.perf_counter()
                     yield content_text
 
                 if choice.get("finish_reason"):
@@ -131,5 +136,26 @@ async def stream_genui(
         logger.error(f"{_MODULE} websocket_error error_type={type(e).__name__} error={e!r}")
         raise
     finally:
+        duration_ms = round((time.perf_counter() - start) * 1000, 2)
+        first_token_latency_ms = (
+            round((first_token_at - start) * 1000, 2)
+            if first_token_at is not None
+            else None
+        )
+        input_tokens = usage.get("prompt_tokens") if usage else None
+        completion_tokens = usage.get("completion_tokens") if usage else None
+        speed_str = "N/A"
+        if first_token_latency_ms is not None and completion_tokens:
+            generation_time_sec = (duration_ms - first_token_latency_ms) / 1000
+            if generation_time_sec > 0:
+                speed_str = f"{completion_tokens / generation_time_sec:.2f}"
+        logger.info(
+            f"{_MODULE} stream_metrics "
+            f"duration_ms={duration_ms}ms "
+            f"first_token_latency_ms={first_token_latency_ms}ms "
+            f"input_tokens={input_tokens} "
+            f"completion_tokens={completion_tokens} "
+            f"tokens_per_sec={speed_str} token/s"
+        )
         if usage:
             logger.info(f"{_MODULE} usage_stats usage={json_for_log(usage)}")
