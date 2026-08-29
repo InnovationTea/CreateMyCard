@@ -1,0 +1,315 @@
+#Template HeartRateOverviewHero@1(props: {})
+data = {
+    average: $path("/exerciseHeartRateAvg")
+}
+
+Column(
+  "compact",
+  {"_advancedComponent": "HeartRateOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+            "运动平均心率",
+            "subtitle",
+            {"fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}, "width": "matchParent"}
+          )
+    ),
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+            data.average,
+            "title",
+            {"fontSize": 38, "fontWeight": 800, "fontColor": "#FFE84057", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      Text(
+            "bpm",
+            "subtitle",
+            {"fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
+    )
+)
+#End
+
+#Template HeartRateOverviewHeroUpdated@1(props: {})
+data = {
+    average: $path("/exerciseHeartRateAvg"),
+    updatedAt: $path("/updatedAt")
+}
+
+Column(
+  "compact",
+  {"_advancedComponent": "HeartRateOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+            "运动平均心率",
+            "subtitle",
+            {"fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}, "width": "matchParent"}
+          )
+    ),
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+            data.average,
+            "title",
+            {"fontSize": 38, "fontWeight": 800, "fontColor": "#FFE84057", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      Text(
+            "bpm",
+            "subtitle",
+            {"fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
+    ),
+  Text(
+      data.updatedAt,
+      "subtitle",
+      {"fontSize": 10, "fontWeight": 400, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}, "width": "matchParent"}
+    )
+)
+#End
+
+#Template HeartRateOverviewHeroIcon@1(props: { sourceIcon: asset })
+data = {
+    average: $path("/exerciseHeartRateAvg")
+}
+
+Column(
+  "compact",
+  {"_advancedComponent": "HeartRateOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Image(
+            props.sourceIcon,
+            "icon",
+            {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+          ),
+      Text(
+            "运动平均心率",
+            "subtitle",
+            {"fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}, "width": "matchParent"}
+          )
+    ),
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+            data.average,
+            "title",
+            {"fontSize": 38, "fontWeight": 800, "fontColor": "#FFE84057", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      Text(
+            "bpm",
+            "subtitle",
+            {"fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
+    )
+)
+#End
+
+#Template HeartRateOverviewHeroUpdatedIcon@1(props: { sourceIcon: asset })
+data = {
+    average: $path("/exerciseHeartRateAvg"),
+    updatedAt: $path("/updatedAt")
+}
+
+Column(
+  "compact",
+  {"_advancedComponent": "HeartRateOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Image(
+            props.sourceIcon,
+            "icon",
+            {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+          ),
+      Text(
+            "运动平均心率",
+            "subtitle",
+            {"fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}, "width": "matchParent"}
+          )
+    ),
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+            data.average,
+            "title",
+            {"fontSize": 38, "fontWeight": 800, "fontColor": "#FFE84057", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      Text(
+            "bpm",
+            "subtitle",
+            {"fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
+    ),
+  Text(
+      data.updatedAt,
+      "subtitle",
+      {"fontSize": 10, "fontWeight": 400, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}, "width": "matchParent"}
+    )
+)
+#End
+
+#Template HeartRateOverviewSupport@1(props: {})
+data = {
+    average: $path("/exerciseHeartRateAvg")
+}
+
+Column(
+  "compact",
+  {"_advancedComponent": "HeartRateOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+            "运动平均心率",
+            "subtitle",
+            {"fontSize": 10, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}, "width": "matchParent"}
+          )
+    ),
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+            data.average,
+            "compact-title",
+            {"fontSize": 20, "fontWeight": 700, "fontColor": "#FFE84057", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      Text(
+            "bpm",
+            "subtitle",
+            {"fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
+    )
+)
+#End
+
+#Template HeartRateOverviewSupportUpdated@1(props: {})
+data = {
+    average: $path("/exerciseHeartRateAvg"),
+    updatedAt: $path("/updatedAt")
+}
+
+Column(
+  "compact",
+  {"_advancedComponent": "HeartRateOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+            "运动平均心率",
+            "subtitle",
+            {"fontSize": 10, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}, "width": "matchParent"}
+          )
+    ),
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+            data.average,
+            "compact-title",
+            {"fontSize": 20, "fontWeight": 700, "fontColor": "#FFE84057", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      Text(
+            "bpm",
+            "subtitle",
+            {"fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
+    ),
+  Text(
+      data.updatedAt,
+      "subtitle",
+      {"fontSize": 10, "fontWeight": 400, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}, "width": "matchParent"}
+    )
+)
+#End
+
+#Template HeartRateOverviewSupportIcon@1(props: { sourceIcon: asset })
+data = {
+    average: $path("/exerciseHeartRateAvg")
+}
+
+Column(
+  "compact",
+  {"_advancedComponent": "HeartRateOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Image(
+            props.sourceIcon,
+            "icon",
+            {"width": 16, "height": 16, "objectFit": "contain", "flexShrink": 0}
+          ),
+      Text(
+            "运动平均心率",
+            "subtitle",
+            {"fontSize": 10, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}, "width": "matchParent"}
+          )
+    ),
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+            data.average,
+            "compact-title",
+            {"fontSize": 20, "fontWeight": 700, "fontColor": "#FFE84057", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      Text(
+            "bpm",
+            "subtitle",
+            {"fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
+    )
+)
+#End
+
+#Template HeartRateOverviewSupportUpdatedIcon@1(props: { sourceIcon: asset })
+data = {
+    average: $path("/exerciseHeartRateAvg"),
+    updatedAt: $path("/updatedAt")
+}
+
+Column(
+  "compact",
+  {"_advancedComponent": "HeartRateOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Image(
+            props.sourceIcon,
+            "icon",
+            {"width": 16, "height": 16, "objectFit": "contain", "flexShrink": 0}
+          ),
+      Text(
+            "运动平均心率",
+            "subtitle",
+            {"fontSize": 10, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}, "width": "matchParent"}
+          )
+    ),
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+            data.average,
+            "compact-title",
+            {"fontSize": 20, "fontWeight": 700, "fontColor": "#FFE84057", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      Text(
+            "bpm",
+            "subtitle",
+            {"fontSize": 12, "fontWeight": 500, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          )
+    ),
+  Text(
+      data.updatedAt,
+      "subtitle",
+      {"fontSize": 10, "fontWeight": 400, "fontColor": "#E6000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}, "width": "matchParent"}
+    )
+)
+#End
