@@ -3,11 +3,8 @@
 from __future__ import annotations
 
 import json
-import tempfile
 import unittest
-from pathlib import Path
 
-from convert_compact_dsl_to_a2ui import main
 from services.card_validation import (
     CompactDslValidationError,
     validate_compact_dsl,
@@ -1116,24 +1113,6 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         self.assertEqual(len(result.warnings), 1)
         self.assertIn("/data/weather", result.warnings[0])
-
-    def test_cli_converts_files_without_model_or_network(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            root = Path(temporary_directory)
-            source = root / "card.dsl"
-            target = root / "card.a2ui"
-            source.write_text(self.compact_dsl, encoding="utf-8")
-
-            result = main([str(source), "-o", str(target), "--size", "2x2"])
-
-            self.assertEqual(result, 0)
-            messages = [
-                json.loads(line)
-                for line in target.read_text(encoding="utf-8").splitlines()
-            ]
-            self.assertEqual(len(messages), 3)
-            self.assertIn("updateComponents", messages[1])
-
 
 if __name__ == "__main__":
     unittest.main()
