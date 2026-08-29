@@ -328,6 +328,37 @@ class CardPlanRegistry:
             for theme_id in dict.fromkeys(theme_ids)
         )
 
+    def first_layer_theme_ids(
+        self,
+        component_ids: tuple[str, ...],
+    ) -> tuple[str, ...]:
+        """Return business-scoped Themes, preferring Fusion by candidate construction."""
+        components: list[BusinessTemplateGroup] = []
+        for component_id in dict.fromkeys(component_ids):
+            components.append(self.require_ux_business_component(component_id))
+        capability_ids: set[str] = set()
+        for component in components:
+            capability_ids.update(component.data_capability_ids)
+        if not capability_ids:
+            return ()
+
+        requested_business_ids = {component.name for component in components}
+        normal_theme_ids: list[str] = []
+        fusion_theme_ids: list[str] = []
+        for theme in self.themes.values():
+            if capability_ids.isdisjoint(theme.supported_capability_ids):
+                continue
+            fusion = theme.fusion_ball_style
+            if fusion is None:
+                normal_theme_ids.append(theme.theme_profile_id)
+                continue
+            if requested_business_ids.isdisjoint(fusion.business_ids):
+                continue
+            fusion_theme_ids.append(theme.theme_profile_id)
+        if fusion_theme_ids:
+            return tuple(fusion_theme_ids)
+        return tuple(normal_theme_ids)
+
     def _provider_bundles_for_components(
         self,
         component_ids: tuple[str, ...],

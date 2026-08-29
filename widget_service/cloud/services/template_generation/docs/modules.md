@@ -45,7 +45,9 @@ cloud/api/routes.py
 `request_template_source_dsl()` 是主责任边界：
 
 1. 使用调用方传入的 `ModelExecutionRuntime` 和 `ModelRequestContext` 创建模板模型客户端。
-2. 要求调用方显式传入 `enable_fusion_ball: bool`，并将上层默认关闭后的请求级特性决策透传给模板引擎。
+2. 要求调用方显式传入 `enable_fusion_ball: bool`，并将 `TemplateSourceGenerator` 已按 TaskSpec
+   `appVersion > 11.7.5.205` 完成的请求级特性决策透传给模板引擎；有融球 Theme 命中任一候选业务时，
+   第一层 LLM 只接收匹配的融球 Theme 候选。
 3. 复制已裁决的 `effective_bindings`，不增加新数据能力或字段。
 4. 调用 `generate_template_a2ui()` 获得受信展开后的 A2UI 和诊断信息。
 5. 调用 `prepare_template_source_dsl()` 转成当前 Processor 要求的源格式。
@@ -114,8 +116,8 @@ cloud/api/routes.py
 模块主编排函数：
 
 1. `2x4` 在 Registry、首层 Prompt 和模型调用前直接返回模板不适用；当前模板 Search 只支持 `2x2`。
-2. 按 `enable_fusion_ball` 加载请求级 Registry 视图；默认关闭时先移除所有融球 Theme，再从 CardSpec
-   取得已批准能力 ID。
+2. 按上层根据 TaskSpec 版本确定的 `enable_fusion_ball` 加载请求级 Registry 视图；关闭时先移除所有融球 Theme，开启时按本轮候选业务
+   过滤 Theme，只要存在融球匹配就移除全部非融球 Theme，再从 CardSpec 取得已批准能力 ID。
 3. 应用领域 content selectors，建立 `DataShape`。
 4. 根据 `firstLayerComponentSelector` 进入 Search 或旧 LLM 首层路线。
 5. 将请求转换为 `TemplateRouteSelection`；Search 结果只允许一个业务组件，多个业务在二层调用前失败，
@@ -201,7 +203,7 @@ Search 不选最终 Template、Layout 或 Props，也不改写用户尺寸。
 - 加载 Provider Bundle、Theme、UX 预算和 Template Controls。
 - 派生业务组、数据能力、Provider 和 Template 映射。
 - 提供禁用过滤后的 Template、Layout、Theme 和分层规则。
-- 按请求级 `enable_fusion_ball` 过滤融球 Theme，并让 Prompt、检索、Theme 查找和编译共享同一视图。
+- 按 TaskSpec 版本裁决后的请求级 `enable_fusion_ball` 过滤融球 Theme，并让 Prompt、检索、Theme 查找和编译共享同一视图。
 - 构造 Search 索引与尺寸/组合准入。
 
 `get_cardplan_registry()` 按融球开关分别缓存两个只读视图。测试如果修改资源或 Controls，必须清理相关

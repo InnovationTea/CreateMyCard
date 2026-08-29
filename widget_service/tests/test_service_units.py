@@ -2222,10 +2222,12 @@ def test_task_spec_builder_projects_valid_object_and_array_fields():
     assert set(task_spec.model_dump()) == {
         "userQuery",
         "size",
+        "appVersion",
         "eventCandidates",
         "dataModelSchema",
         "assetCandidates",
     }
+    assert task_spec.appVersion == "0"
     assert task_spec.assetCandidates[0]["id"] == "asset.drop_1"
 
 
@@ -2598,11 +2600,13 @@ def test_design_compact_create_prompt_is_plain_task_spec_json():
     assert set(payload) == {
         "userQuery",
         "size",
+        "appVersion",
         "eventCandidates",
         "dataModelSchema",
         "assetCandidates",
     }
     assert payload["userQuery"] == "生成天气卡片"
+    assert payload["appVersion"] == "0"
     assert payload["eventCandidates"] == [
         {
             "id": "event.open.weather",

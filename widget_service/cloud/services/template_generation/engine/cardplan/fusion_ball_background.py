@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any
 
+from services.fusion_ball_expander import (
+    FUSION_BALL_CONTENT_ID,
+    FusionBallPalette,
+)
 from services.template_generation.engine.tersel_converter import Nested2Node
 
-_CARD_CONTENT_ID = "__genui_render_component__cardContent"
 _ROOT_ID = "root"
 _BACKGROUND_STYLE_KEYS = frozenset(
     {
@@ -17,15 +19,6 @@ _BACKGROUND_STYLE_KEYS = frozenset(
         "linearGradient",
     }
 )
-
-
-@dataclass(frozen=True)
-class FusionBallPalette:
-    """Large, medium, and small ball colors read from one selected Theme."""
-
-    large: str
-    medium: str
-    small: str
 
 
 def build_fusion_ball_background(palette: FusionBallPalette) -> Nested2Node:
@@ -86,7 +79,7 @@ def apply_fusion_ball_background(
     }
     foreground_options.update(
         {
-            "_id": _CARD_CONTENT_ID,
+            "_id": FUSION_BALL_CONTENT_ID,
             "width": 160,
             "height": 160,
         }

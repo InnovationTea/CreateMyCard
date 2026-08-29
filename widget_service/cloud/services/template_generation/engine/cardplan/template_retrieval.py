@@ -75,6 +75,7 @@ def build_template_retrieval_prompt(
     data_shape = extract_data_shape(task_spec)
     capability_ids = tuple(binding.capabilityId for binding in coverage_bindings)
     component_ids = _component_ids_for_capabilities(registry, capability_ids)
+    theme_ids = registry.first_layer_theme_ids(component_ids)
     data_roots = {binding.capabilityId: binding.writeResultTo for binding in coverage_bindings}
     payload = {
         "userQuery": task_spec.userQuery,
@@ -94,19 +95,21 @@ def build_template_retrieval_prompt(
             binding.capabilityId: tuple(binding.candidateOutputFields)
             for binding in coverage_bindings
         },
-        "themes": tuple(registry.themes),
+        "themes": theme_ids,
         "actionCandidates": [
             {"eventId": event.id, "call": event.call}
             for event in task_spec.eventCandidates
             if event.id
         ],
         "providerFirstLayerRules": registry.provider_first_layer_rules(component_ids, data_roots),
-        "themeFirstLayerRules": registry.theme_first_layer_rule_documents(tuple(registry.themes)),
+        "themeFirstLayerRules": registry.theme_first_layer_rule_documents(theme_ids),
     }
     schema = TemplateRetrievalQuery.model_json_schema(by_alias=True)
     system = (
         "你是模板生成第一层。只输出 template-retrieval-query/1 JSON。"
-        "themeId 必须从 themes 选择；requiredOutputFieldsByCapability 的 key 必须来自 "
+        "themeId 必须从 themes 选择；themes 已由服务按当前业务确定性过滤，"
+        "存在融球候选时不会再包含非融球主题。"
+        "requiredOutputFieldsByCapability 的 key 必须来自 "
         "candidateDataBindings。每个 value 仅保留 userQuery、title、description 或 taskSpec "
         "明确要求展示的字段，字段必须逐字来自 "
         "candidateOutputFieldsByCapability；不得按模板反推字段，"

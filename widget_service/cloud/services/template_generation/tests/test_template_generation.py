@@ -4707,7 +4707,7 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     response = await WidgetGenerationService(
         model_runtime=object(),
     ).generate_widget_card_terse_dsl_nested2(
-        _weather_request(),
+        _weather_request().model_copy(update={"prdVer": "11.7.5.206"}),
     )
 
     assert response.status == GenerationStatus.SUCCESS
@@ -5224,6 +5224,14 @@ async def test_template_exception_obeys_route_failure_policy(
         lambda _self, _artifact, _profile: [],
     )
     monkeypatch.setattr(ArtifactStore, "save", save)
+    settings = widget_generation_service_module.get_settings().model_copy(
+        update={"CONFIG": {"enable_card_template": "true"}}
+    )
+    monkeypatch.setattr(
+        widget_generation_service_module,
+        "get_settings",
+        lambda: settings,
+    )
 
     service = WidgetGenerationService()
     entry = getattr(service, entry_name)
@@ -5419,7 +5427,6 @@ async def test_terse_entry_forwards_gallery_template_overrides(monkeypatch):
     assert response is expected
     generator = observed["template_source_generator"]
     assert isinstance(generator, TemplateSourceGenerator)
-    assert generator.enable_fusion_ball is False
     assert generator.trusted_template_candidate_ids == (
         "WeatherOverviewCompact@1",
     )
@@ -5463,4 +5470,40 @@ async def test_policy_layer_configures_template_source_generator(monkeypatch):
     assert generator.protocol_profile["id"] == A2UI_FORM_PROTOCOL_PROFILE_ID
     assert generator.model_runtime is service.model_runtime
     assert isinstance(generator.model_request_context, ModelRequestContext)
-    assert generator.enable_fusion_ball is False
+
+
+@pytest.mark.asyncio
+async def test_template_source_generator_uses_task_spec_app_version_gate(monkeypatch):
+    observed_flags: list[bool] = []
+
+    async def capture_source(
+        *_args: Any,
+        enable_fusion_ball: bool,
+        **_kwargs: Any,
+    ) -> str:
+        observed_flags.append(enable_fusion_ball)
+        return "template-source"
+
+    monkeypatch.setattr(
+        "services.template_generation.source_generator.request_template_source_dsl",
+        capture_source,
+    )
+    generator = TemplateSourceGenerator()
+    generator.processor_kind = DslProcessorKind.DESIGN_COMPACT
+    generator.protocol_profile = {"id": A2UI_FORM_PROTOCOL_PROFILE_ID}
+    generator.model_request_context = ModelRequestContext(
+        session_id="session",
+        interaction_id="interaction",
+        device_id="device",
+        country_code="CN",
+        app_version=_TEST_APP_VERSION,
+        app_name="CreateMyCard",
+    )
+
+    disabled_task = _weather_task_spec().model_copy(
+        update={"appVersion": "11.7.5.205"}
+    )
+    enabled_task = disabled_task.model_copy(update={"appVersion": "11.7.5.206"})
+    assert await generator(disabled_task, _weather_card_spec(), ()) == "template-source"
+    assert await generator(enabled_task, _weather_card_spec(), ()) == "template-source"
+    assert observed_flags == [False, True]

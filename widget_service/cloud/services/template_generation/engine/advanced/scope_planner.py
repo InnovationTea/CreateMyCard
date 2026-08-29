@@ -104,6 +104,10 @@ def build_advanced_scope_prompt(
             card_spec=card_spec,
         )
     candidate_ids = {item.name for item in component_candidates}
+    first_layer_theme_ids = registry.first_layer_theme_ids(
+        tuple(item.name for item in component_candidates)
+    )
+    first_layer_theme_id_set = set(first_layer_theme_ids)
     admission_relaxed = advanced_component_data_admission_is_bypassed()
     user_payload = {
         "userQuery": task_spec.userQuery,
@@ -121,12 +125,16 @@ def build_advanced_scope_prompt(
         ],
         "themes": [
             {
-                "id": theme.theme_profile_id,
-                "description": theme.description,
+                "id": theme_id,
+                "description": registry.themes[theme_id].description,
             }
-            for theme in registry.themes.values()
+            for theme_id in first_layer_theme_ids
         ],
-        "crossDomainThemeIds": registry.palette_scene_theme_ids["generic"],
+        "crossDomainThemeIds": tuple(
+            theme_id
+            for theme_id in registry.palette_scene_theme_ids["generic"]
+            if theme_id in first_layer_theme_id_set
+        ),
         "advancedComponents": [
             _scope_candidate_prompt_payload(
                 capability,
@@ -135,6 +143,7 @@ def build_advanced_scope_prompt(
                 candidate_ids,
                 registry,
                 card_spec,
+                first_layer_theme_ids,
                 include_template_coverage=template_route_decision,
             )
             for capability in component_candidates
@@ -182,13 +191,7 @@ def _build_template_route_prompt(
                 f"{capability_id}"
             )
     candidate_id_set = set(candidate_ids)
-    theme_ids = tuple(
-        dict.fromkeys(
-            theme_id
-            for component in component_candidates
-            for theme_id in _theme_ids_for_components((component,), registry)
-        )
-    )
+    theme_ids = registry.first_layer_theme_ids(candidate_ids)
     component_catalog = [
         _template_route_component_payload(
             capability,
@@ -198,6 +201,7 @@ def _build_template_route_prompt(
             candidate_id_set,
             data_roots,
             card_spec,
+            theme_ids,
         )
         for capability in component_candidates
     ]
@@ -277,6 +281,7 @@ def _template_route_component_payload(
     candidate_ids: set[str],
     data_roots: dict[str, str],
     card_spec: dict[str, Any] | None,
+    theme_ids: tuple[str, ...],
 ) -> dict[str, Any]:
     contracts = _component_template_prompt_contracts(
         capability,
@@ -300,7 +305,7 @@ def _template_route_component_payload(
             for capability_id, paths in coverage.items()
             for path in paths
         ),
-        "themeIds": _theme_ids_for_components((capability,), registry),
+        "themeIds": theme_ids,
         "templates": contracts,
         "compatibleComponentIds": _compatible_component_ids(
             capability,
@@ -335,6 +340,7 @@ def _scope_candidate_prompt_payload(
     candidate_ids: set[str],
     registry: CardPlanRegistry,
     card_spec: dict[str, Any] | None,
+    first_layer_theme_ids: tuple[str, ...],
     *,
     include_template_coverage: bool,
 ) -> dict[str, Any]:
@@ -342,7 +348,7 @@ def _scope_candidate_prompt_payload(
         "id": capability.name,
         "description": capability.description,
         "variants": _effective_candidate_variants(capability, task_spec, effective_ids),
-        "themeIds": _theme_ids_for_components((capability,), registry),
+        "themeIds": first_layer_theme_ids,
         "compatibleWith": _compatible_component_ids(
             capability,
             candidate_ids,
@@ -1172,18 +1178,7 @@ def _theme_ids_for_components(
     components: tuple[BusinessTemplateGroup, ...],
     registry: CardPlanRegistry,
 ) -> tuple[str, ...]:
-    capability_ids = {
-        capability_id
-        for component in components
-        for capability_id in component.data_capability_ids
-    }
-    if not capability_ids:
-        return ()
-    return tuple(
-        theme_id
-        for theme_id, theme in registry.themes.items()
-        if capability_ids.intersection(theme.supported_capability_ids)
-    )
+    return registry.first_layer_theme_ids(tuple(component.name for component in components))
 
 
 def _layout_rank(layout_id: str, count: int, action_count: int) -> tuple[int, str]:
