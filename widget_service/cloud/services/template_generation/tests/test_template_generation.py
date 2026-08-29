@@ -2334,13 +2334,12 @@ async def test_calendar_reminder_hero_keeps_start_and_advance_notice():
     assert "resources/base/media/icon_schedule.svg" not in output.a2ui
     messages = [json.loads(line) for line in output.a2ui.splitlines()]
     components = messages[1]["updateComponents"]["components"]
-    timeline_dot = next(
-        component
-        for component in components
-        if component.get("component") == "Stack"
-        and component.get("styles", {}).get("width") == 8
-        and component.get("styles", {}).get("height") == 8
-    )
+    timeline_dot = None
+    for component in components:
+        if component.get("component") == "Stack" and component.get("styles", {}).get("width") == 8:
+            if component.get("styles", {}).get("height") == 8:
+                timeline_dot = component
+                break
     event_title = next(
         component
         for component in components
