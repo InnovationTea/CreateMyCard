@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager, suppress
 import uvicorn
 from anyio import to_thread
 from fastapi import FastAPI, Request, Response
+from fastapi.staticfiles import StaticFiles
 
 from api.routes import router
 from app.logger import logger
@@ -56,6 +57,18 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     fastapi_app.include_router(router)
+
+    # Mount static file serving for mock_obs directory (artifact storage)
+    mock_obs_dir = get_settings().WORKSPACE_ROOT / "mock_obs"
+    mock_obs_dir.mkdir(parents=True, exist_ok=True)
+    fastapi_app.mount(
+        "/api/v1/artifacts",
+        StaticFiles(directory=str(mock_obs_dir)),
+        name="artifacts",
+    )
+    logger.info(
+        f"{_MODULE} static_files_mounted path=/api/v1/artifacts directory={mock_obs_dir}"
+    )
 
     @fastapi_app.middleware("http")
     async def request_logging_middleware(request: Request, call_next) -> Response:
