@@ -1609,12 +1609,12 @@ def test_health_sport_templates_follow_latest_display_contract() -> None:
             "睡眠情况紧凑摘要，展示时长和得分环，可使用睡眠图标。 组件形态：compact。"
         ),
     }
-    provider_rules = "\n".join(
-        item["content"]
-        for item in registry.provider_second_layer_rules(
-            ("ActivityOverview", "SleepOverview")
-        )
-    )
+
+    rule_keys = ("ActivityOverview", "SleepOverview")
+    rules_list = []
+    for item in registry.provider_second_layer_rules(rule_keys):
+        rules_list.append(item["content"])
+    provider_rules = "\n".join(rules_list)
 
     for template_id, description in expected_descriptions.items():
         definition = registry.require_template(template_id)
@@ -2435,13 +2435,18 @@ async def test_calendar_event_count_hero_uses_total_without_progress_semantics()
     )
     progress_messages = [json.loads(line) for line in progress_output.a2ui.splitlines()]
     progress_components = progress_messages[1]["updateComponents"]["components"]
+
+    def is_target_component(comp):
+        return (comp.get("component") == "Stack" and
+                comp.get("styles", {}).get("width") == 8 and
+                comp.get("styles", {}).get("borderWidth") == 1.5)
+
     progress_dot = next(
         component
         for component in progress_components
-        if component.get("component") == "Stack"
-        and component.get("styles", {}).get("width") == 8
-        and component.get("styles", {}).get("borderWidth") == 1.5
+        if is_target_component(component)
     )
+
     progress_dot_column = next(
         component
         for component in progress_components
@@ -4742,15 +4747,18 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     assert components["fusionBallMedium"]["component"] == "Divider"
     assert components["fusionBallSmall"]["component"] == "Divider"
     assert components["fusionBallGlassLayer"]["component"] == "Divider"
+
+    target_ids = (
+        "fusionBallLarge",
+        "fusionBallMedium",
+        "fusionBallSmall",
+        "fusionBallGlassLayer",
+    )
     assert all(
         "children" not in components[component_id]
-        for component_id in (
-            "fusionBallLarge",
-            "fusionBallMedium",
-            "fusionBallSmall",
-            "fusionBallGlassLayer",
-        )
+        for component_id in target_ids
     )
+
     assert components["fusionBallGlassLayer"]["styles"]["backdropBlur"] == {
         "radius": 120
     }
