@@ -1610,9 +1610,9 @@ def _parse_component_header(
         raise CompactDslConversionError(
             f"Compact DSL line {line_number} has an invalid component id."
         )
-    if not isinstance(component_type, str) or component_type not in _COMPONENT_TYPES:
+    if not isinstance(component_type, str) or not component_type:
         raise CompactDslConversionError(
-            f"{component_id}: unsupported component type {component_type!r}."
+            f"{component_id}: component type must be a non-empty string."
         )
     if not isinstance(props, dict):
         raise CompactDslConversionError(
@@ -2131,6 +2131,8 @@ def _convert_component(
 
     if component.component_id == "root":
         _normalize_root_component(
+            component,
+            converted,
             styles,
             fallback_root_gradient,
         )
@@ -2166,6 +2168,8 @@ def _normalize_text_component(styles: dict[str, Any]) -> None:
 
 
 def _normalize_root_component(
+    component: ComponentRow,
+    converted: dict[str, Any],
     styles: dict[str, Any],
     fallback_gradient: dict[str, Any] | None,
 ) -> None:
