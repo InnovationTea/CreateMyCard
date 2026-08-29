@@ -1,0 +1,22 @@
+{
+  "borrow_other_binding": {
+    "errorType": "ValueError",
+    "message": "Provider Template optional Bind must be nested under #if data.third or #Expr"
+  },
+  "borrow_param_reference": {
+    "errorType": "ValueError",
+    "message": "Provider Template optional Param/Asset must be nested under #if props.label or #Expr"
+  },
+  "reuse_first_binding": {
+    "errorType": "ValueError",
+    "message": "Provider Template optional Bind must be nested under #if data.first or #Expr"
+  },
+  "unknown_binding_in_elseif": {
+    "errorType": "ValueError",
+    "message": "unknown Provider Template conditional binding: unknown"
+  },
+  "unknown_param_in_elseif": {
+    "errorType": "ValueError",
+    "message": "unknown Provider Template conditional parameter: unknown"
+  }
+}

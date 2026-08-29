@@ -1,0 +1,26 @@
+{
+  "string_concat__empty": {
+    "diagnostics": [],
+    "text": "{{ ${/data/calendar/start} == '' ? '' : ${/data/calendar/start} + ' - ' + ${/data/calendar/end} }}"
+  },
+  "string_concat__other": {
+    "diagnostics": [],
+    "text": "{{ ${/data/calendar/start} == '' ? '' : ${/data/calendar/start} + ' - ' + ${/data/calendar/end} }}"
+  },
+  "string_concat__time": {
+    "diagnostics": [],
+    "text": "{{ ${/data/calendar/start} == '' ? '' : ${/data/calendar/start} + ' - ' + ${/data/calendar/end} }}"
+  },
+  "template_literal__empty": {
+    "diagnostics": [],
+    "text": "{{ ${/data/calendar/start} == '' ? '' : ('' + ${/data/calendar/start} + ' - ' + ${/data/calendar/end} + '') }}"
+  },
+  "template_literal__other": {
+    "diagnostics": [],
+    "text": "{{ ${/data/calendar/start} == '' ? '' : ('' + ${/data/calendar/start} + ' - ' + ${/data/calendar/end} + '') }}"
+  },
+  "template_literal__time": {
+    "diagnostics": [],
+    "text": "{{ ${/data/calendar/start} == '' ? '' : ('' + ${/data/calendar/start} + ' - ' + ${/data/calendar/end} + '') }}"
+  }
+}

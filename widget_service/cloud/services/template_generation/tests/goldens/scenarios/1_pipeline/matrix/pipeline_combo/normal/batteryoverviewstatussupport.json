@@ -1,0 +1,300 @@
+{
+  "combinations": {
+    "all": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#1A0A59F7",
+                  "borderRadius": 18,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0",
+                  "root_1_1"
+                ],
+                "component": "Column",
+                "id": "__genui_render_component__root_1",
+                "itemMargin": 8,
+                "styles": {
+                  "height": "matchParent",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0",
+                "styles": {
+                  "alignItems": "center",
+                  "backgroundColor": "#1A2E529E",
+                  "borderRadius": 16,
+                  "justifyContent": "start",
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0",
+                "styles": {
+                  "alignItems": "center",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "start",
+                  "padding": {
+                    "left": 8,
+                    "right": 8
+                  },
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_0",
+                "itemMargin": 8,
+                "styles": {
+                  "alignItems": "center",
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0_0_0",
+                  "root_1_0_0_0_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0_0_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "start",
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "justifyContent": "start"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/phoneBattery/chargingStatusDesc} }}",
+                "id": "root_1_0_0_0_0_0",
+                "styles": {
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "fontColor": "#E61F4595",
+                  "fontSize": 14,
+                  "fontWeight": 700,
+                  "maxLines": 1,
+                  "textOverflow": "ellipsis"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/phoneBattery/pluggedTypeDesc} }}",
+                "id": "root_1_0_0_0_0_1",
+                "styles": {
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "fontColor": "#991F4595",
+                  "fontSize": 12,
+                  "fontWeight": 500,
+                  "maxLines": 1,
+                  "textOverflow": "ellipsis"
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_0"
+                ],
+                "component": "Row",
+                "id": "root_1_1",
+                "styles": {
+                  "alignItems": "center",
+                  "backgroundColor": "#1A2E529E",
+                  "borderRadius": 16,
+                  "justifyContent": "start",
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_0_0"
+                ],
+                "component": "Row",
+                "id": "root_1_1_0",
+                "styles": {
+                  "alignItems": "center",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "justifyContent": "spaceBetween",
+                  "padding": {
+                    "left": 8,
+                    "right": 8
+                  },
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_0_0_0",
+                  "root_1_1_0_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_1_0_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "justifyContent": "start"
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_0_0_0_0"
+                ],
+                "component": "Row",
+                "id": "root_1_1_0_0_0",
+                "styles": {
+                  "alignItems": "center",
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "justifyContent": "start"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ '剩余' + ${/data/countdown/countdownDays} + '天' }}",
+                "id": "root_1_1_0_0_0_0",
+                "styles": {
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "fontColor": "#E61F4595",
+                  "fontSize": 14,
+                  "fontWeight": 700,
+                  "maxLines": 1,
+                  "textOverflow": "ellipsis"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "倒计时",
+                "id": "root_1_1_0_0_1",
+                "styles": {
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "fontColor": "#991F4595",
+                  "fontSize": 10,
+                  "fontWeight": 400,
+                  "maxLines": 1,
+                  "textOverflow": "ellipsis"
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "countdown": {
+                  "countdownDays": 3
+                },
+                "phoneBattery": {
+                  "chargingStatusDesc": "未充电",
+                  "pluggedTypeDesc": "未连接"
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "BatteryOverviewStatusSupport@1",
+        "CountdownOverviewSupport@1",
+        "TwoSupportLayout@1"
+      ]
+    }
+  },
+  "fusionBall": false,
+  "layout": "TwoSupportLayout@1",
+  "optionalBindings": [],
+  "sampleIds": {
+    "all": "C014"
+  },
+  "size": "2x2",
+  "templateId": "BatteryOverviewStatusSupport@1"
+}

@@ -1,0 +1,27 @@
+{
+  "first": {
+    "serialized": "Column(Text(\"无数据\"))",
+    "texts": [
+      "无数据"
+    ]
+  },
+  "first_second": {
+    "serialized": "Column(Text(\"${data.context.first}\"), Text(\"${data.context.second}\"))",
+    "texts": [
+      "${data.context.first}",
+      "${data.context.second}"
+    ]
+  },
+  "none": {
+    "serialized": "Column(Text(\"无数据\"))",
+    "texts": [
+      "无数据"
+    ]
+  },
+  "second": {
+    "serialized": "Column(Text(\"${data.context.second}\"))",
+    "texts": [
+      "${data.context.second}"
+    ]
+  }
+}

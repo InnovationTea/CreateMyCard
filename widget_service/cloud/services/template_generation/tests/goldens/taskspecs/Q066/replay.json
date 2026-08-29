@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "47afd73f6014d06492842244d924db1e45fd297120827eaa18a432d31633df95",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/dtStart\",\"/events/0/eventLocation\",\"/events/1/title\",\"/events/1/dtStart\",\"/events/1/eventLocation\",\"/events/2/title\",\"/events/2/dtStart\",\"/events/2/eventLocation\"],\"GetPhoneBatteryInfo\":[\"/batterySOC\",\"/chargingStatusDesc\"]},\"action\":[\"event.open.clock.alarm\"]}"
+    }
+  ]
+}

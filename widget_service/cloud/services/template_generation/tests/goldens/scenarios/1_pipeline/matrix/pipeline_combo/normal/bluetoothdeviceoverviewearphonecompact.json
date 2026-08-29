@@ -1,0 +1,251 @@
+{
+  "combinations": {
+    "all": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FFF0FFE6",
+                  "borderRadius": 20,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0",
+                  "root_1_1"
+                ],
+                "component": "Column",
+                "id": "__genui_render_component__root_1",
+                "itemMargin": 0,
+                "styles": {
+                  "alignItems": "center",
+                  "height": "matchParent",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "itemMargin": 0,
+                "styles": {
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0",
+                  "root_1_0_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ '' + ${/data/earphone/batteryLevel} + '%' }}",
+                "id": "root_1_0_0_0",
+                "styles": {
+                  "fontColor": "#FF52991F",
+                  "fontSize": 18,
+                  "fontWeight": 700,
+                  "height": 24,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_1_0",
+                  "root_1_0_0_1_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_1",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "center",
+                  "justifyContent": "start"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "耳机",
+                "id": "root_1_0_0_1_0",
+                "styles": {
+                  "fontColor": "#9952991F",
+                  "fontSize": 12,
+                  "fontWeight": 400
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/earphone/earphoneName} }}",
+                "id": "root_1_0_0_1_1",
+                "styles": {
+                  "fontColor": "#9952991F",
+                  "fontSize": 12,
+                  "fontWeight": 400
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_0",
+                  "root_1_1_1"
+                ],
+                "component": "Column",
+                "id": "root_1_1",
+                "itemMargin": 8,
+                "styles": {
+                  "height": 80,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_0_0"
+                ],
+                "component": "Column",
+                "id": "root_1_1_0",
+                "styles": {
+                  "height": 36,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Button",
+                "id": "root_1_1_0_0",
+                "label": "心动歌单",
+                "onClick": [
+                  {
+                    "args": {
+                      "intentName": "event.open.music.favorite"
+                    },
+                    "call": "clickToIntent"
+                  }
+                ],
+                "styles": {
+                  "backgroundColor": "#3364BB5C",
+                  "borderRadius": 18,
+                  "fontColor": "#FF52991F",
+                  "fontSize": 14,
+                  "fontWeight": 500,
+                  "height": 36,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_1_0"
+                ],
+                "component": "Column",
+                "id": "root_1_1_1",
+                "styles": {
+                  "height": 36,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Button",
+                "id": "root_1_1_1_0",
+                "label": "开始导航",
+                "onClick": [
+                  {
+                    "args": {
+                      "intentName": "event.startNavigate"
+                    },
+                    "call": "clickToIntent"
+                  }
+                ],
+                "styles": {
+                  "backgroundColor": "#3364BB5C",
+                  "borderRadius": 18,
+                  "fontColor": "#FF52991F",
+                  "fontSize": 14,
+                  "fontWeight": 500,
+                  "height": 36,
+                  "width": "matchParent"
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "earphone": {
+                  "batteryLevel": 80,
+                  "earphoneName": "测试耳机"
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "BluetoothDeviceOverviewEarphoneCompact@1",
+        "PillAction@1",
+        "CompactTwoActionLayout@1"
+      ]
+    }
+  },
+  "fusionBall": false,
+  "layout": "CompactTwoActionLayout@1",
+  "optionalBindings": [],
+  "sampleIds": {
+    "all": "C080"
+  },
+  "size": "2x2",
+  "templateId": "BluetoothDeviceOverviewEarphoneCompact@1"
+}

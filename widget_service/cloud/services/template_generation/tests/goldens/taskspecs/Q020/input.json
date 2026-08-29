@@ -1,0 +1,93 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "出门前帮我做个设备状态卡片，看手机剩余电量、耳机仓电量和耳机是否连接。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "arguments": {},
+        "writeResultTo": "/data/phoneBattery",
+        "candidateOutputFields": [
+          "/batterySOC"
+        ]
+      },
+      {
+        "capabilityId": "GetEarphoneInfo",
+        "arguments": {},
+        "writeResultTo": "/data/earphone",
+        "candidateOutputFields": [
+          "/batteryLevel",
+          "/isConnected"
+        ]
+      }
+    ],
+    "title": "出门设备",
+    "size": "2x2",
+    "candidateEventCandidates": [],
+    "description": "手机和耳机状态",
+    "candidateAssetIds": [
+      "asset.icon_phone",
+      "asset.earphone_case_16644",
+      "asset.icon_earphone"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "020",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "出门前帮我做个设备状态卡片，看手机剩余电量、耳机仓电量和耳机是否连接。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "出门前帮我做个设备状态卡片，看手机剩余电量、耳机仓电量和耳机是否连接。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "arguments": {},
+      "writeResultTo": "/data/phoneBattery",
+      "candidateOutputFields": [
+        "/batterySOC"
+      ]
+    },
+    {
+      "capabilityId": "GetEarphoneInfo",
+      "arguments": {},
+      "writeResultTo": "/data/earphone",
+      "candidateOutputFields": [
+        "/batteryLevel",
+        "/isConnected"
+      ]
+    }
+  ],
+  "title": "出门设备",
+  "size": "2x2",
+  "candidateEventCandidates": [],
+  "description": "手机和耳机状态",
+  "candidateAssetIds": [
+    "asset.icon_phone",
+    "asset.earphone_case_16644",
+    "asset.icon_earphone"
+  ]
+}

@@ -1,0 +1,483 @@
+{
+  "artifact": {
+    "cardSpec": {
+      "dataBindings": [
+        {
+          "arguments": {
+            "targetDayOffset": 0
+          },
+          "capabilityId": "GetHealthAndSportSummary",
+          "writeResultTo": "/data/healthSport"
+        }
+      ],
+      "description": "最近运动类型+时长+锻炼入口",
+      "imageDomainWhitelist": [
+        "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+        "lfcontentcenterdev.hwcloudtest.cn",
+        "hagres-drcn.dbankcdn.com"
+      ],
+      "suggestSize": "2x2",
+      "title": "今日锻炼"
+    },
+    "effectiveCapabilities": {
+      "asset": [
+        "asset.figure_run",
+        "asset.stopwatch_fill"
+      ],
+      "data": [
+        "GetHealthAndSportSummary"
+      ],
+      "event": [
+        {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Health",
+            "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+          },
+          "call": "clickToDeeplink",
+          "description": "打开运动健康应用的锻炼页。",
+          "id": "event.open.health.sport"
+        }
+      ]
+    },
+    "generationPlan": {
+      "candidateAssetIds": [
+        "asset.figure_run",
+        "asset.stopwatch_fill"
+      ],
+      "candidateDataBindings": [
+        {
+          "arguments": {
+            "targetDayOffset": 0
+          },
+          "candidateOutputFields": [
+            "/exerciseTypeName",
+            "/exerciseDurationText"
+          ],
+          "capabilityId": "GetHealthAndSportSummary",
+          "writeResultTo": "/data/healthSport"
+        }
+      ],
+      "candidateEventCandidates": [
+        {
+          "action": {
+            "args": {
+              "abilityName": "",
+              "bundleName": "",
+              "intentName": "Health",
+              "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+            },
+            "call": "clickToDeeplink"
+          },
+          "capabilityId": "event.open.health.sport"
+        }
+      ]
+    },
+    "genuiMessages": [
+      {
+        "createSurface": {
+          "catalogId": "ohos.a2ui.extended.catalog.form",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "fusionBallBackground",
+                "template_root"
+              ],
+              "component": "Stack",
+              "id": "root",
+              "styles": {
+                "alignContent": "topStart",
+                "backgroundColor": "#00000000",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "padding": 0,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "fusionBallLargeSlot",
+                "fusionBallMediumSlot",
+                "fusionBallSmallSlot",
+                "fusionBallGlassLayer"
+              ],
+              "component": "Stack",
+              "id": "fusionBallBackground",
+              "styles": {
+                "alignContent": "topStart",
+                "borderRadius": 18,
+                "clip": true,
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "fusionBallLarge"
+              ],
+              "component": "Stack",
+              "id": "fusionBallLargeSlot",
+              "styles": {
+                "alignContent": "center",
+                "height": "27.5%",
+                "width": "112.5%"
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "fusionBallLarge",
+              "styles": {
+                "backgroundColor": "#FFF24131",
+                "borderRadius": 105,
+                "clip": true,
+                "color": "#00000000",
+                "height": "477.272727%",
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": "116.666667%"
+              }
+            },
+            {
+              "children": [
+                "fusionBallMedium"
+              ],
+              "component": "Stack",
+              "id": "fusionBallMediumSlot",
+              "styles": {
+                "alignContent": "bottom",
+                "height": "137.5%",
+                "width": "50%"
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "fusionBallMedium",
+              "styles": {
+                "backgroundColor": "#FFFF8833",
+                "borderRadius": 80,
+                "clip": true,
+                "color": "#00000000",
+                "height": "72.727273%",
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": "200%"
+              }
+            },
+            {
+              "children": [
+                "fusionBallSmall"
+              ],
+              "component": "Stack",
+              "id": "fusionBallSmallSlot",
+              "styles": {
+                "alignContent": "bottomEnd",
+                "height": "118.75%",
+                "width": "121.875%"
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "fusionBallSmall",
+              "styles": {
+                "backgroundColor": "#FFE68073",
+                "borderRadius": 50,
+                "clip": true,
+                "color": "#00000000",
+                "height": "52.631579%",
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": "51.282051%"
+              }
+            },
+            {
+              "component": "Divider",
+              "id": "fusionBallGlassLayer",
+              "styles": {
+                "backdropBlur": {
+                  "radius": 210
+                },
+                "backgroundColor": "#0DFFFFFF",
+                "color": "#00000000",
+                "height": "matchParent",
+                "strokeWidth": 0,
+                "vertical": false,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "__genui_render_component__template_root"
+              ],
+              "component": "Stack",
+              "id": "template_root",
+              "styles": {
+                "height": "matchParent",
+                "padding": 12,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1"
+              ],
+              "component": "Stack",
+              "id": "__genui_render_component__template_root",
+              "styles": {
+                "height": "matchParent",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0",
+                "root_1_1"
+              ],
+              "component": "Column",
+              "id": "root_1",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "center",
+                "height": "matchParent",
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0"
+              ],
+              "component": "Column",
+              "id": "root_1_0",
+              "styles": {
+                "layoutWeight": 1,
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0",
+                "root_1_0_0_1",
+                "root_1_0_0_2"
+              ],
+              "component": "Column",
+              "id": "root_1_0_0",
+              "itemMargin": 8,
+              "styles": {
+                "alignItems": "start",
+                "clip": true,
+                "constraintSize": {
+                  "minHeight": 0,
+                  "minWidth": 0
+                },
+                "height": "matchParent",
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_0_0",
+                "root_1_0_0_0_1"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_0",
+              "itemMargin": 4,
+              "styles": {
+                "alignItems": "top",
+                "justifyContent": "spaceBetween",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/healthSport/exerciseTypeName} }}",
+              "id": "root_1_0_0_0_0",
+              "styles": {
+                "fontColor": "#99FFFFFF",
+                "fontSize": 12,
+                "fontWeight": 500,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "component": "Image",
+              "id": "root_1_0_0_0_1",
+              "src": "resources/base/media/figure_run.svg",
+              "styles": {
+                "fillColor": "#FFFFFFFF",
+                "flexShrink": 0,
+                "height": 20,
+                "objectFit": "contain",
+                "width": 20
+              }
+            },
+            {
+              "component": "Text",
+              "content": "{{ ${/data/healthSport/exerciseDurationText} }}",
+              "id": "root_1_0_0_1",
+              "styles": {
+                "fontColor": "#FFFFFFFF",
+                "fontSize": 24,
+                "fontWeight": 700,
+                "height": 34,
+                "maxLines": 1,
+                "textOverflow": "clip",
+                "width": "matchParent"
+              }
+            },
+            {
+              "children": [
+                "root_1_0_0_2_0"
+              ],
+              "component": "Row",
+              "id": "root_1_0_0_2",
+              "itemMargin": 4,
+              "styles": {
+                "justifyContent": "start",
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Text",
+              "content": "运动时长",
+              "id": "root_1_0_0_2_0",
+              "styles": {
+                "fontColor": "#99FFFFFF",
+                "fontSize": 12,
+                "fontWeight": 400,
+                "maxLines": 1,
+                "textOverflow": "clip"
+              }
+            },
+            {
+              "children": [
+                "root_1_1_0"
+              ],
+              "component": "Column",
+              "id": "root_1_1",
+              "styles": {
+                "height": 36,
+                "width": "matchParent"
+              }
+            },
+            {
+              "component": "Button",
+              "id": "root_1_1_0",
+              "label": "今日训练",
+              "onClick": [
+                {
+                  "args": {
+                    "abilityName": "",
+                    "bundleName": "",
+                    "intentName": "Health",
+                    "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+                  },
+                  "call": "clickToDeeplink"
+                }
+              ],
+              "styles": {
+                "backgroundColor": "#33FFFFFF",
+                "borderRadius": 18,
+                "fontColor": "#FFFFFFFF",
+                "fontSize": 14,
+                "fontWeight": 500,
+                "height": 36,
+                "width": "matchParent"
+              }
+            }
+          ],
+          "root": "root",
+          "surfaceId": "surface_card"
+        },
+        "version": "v0.9"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "surface_card",
+          "value": {
+            "data": {
+              "healthSport": {
+                "exerciseDurationText": "40分",
+                "exerciseTypeName": "户外跑步"
+              }
+            }
+          }
+        },
+        "version": "v0.9"
+      }
+    ],
+    "meta": {
+      "apiVersion": "v1",
+      "artifactSchemaVersion": "widget-artifact-v2",
+      "capabilityRegistryVersion": "app-11.7.5.205_rom-6.0",
+      "cardSpecVersion": "card-spec-v1",
+      "dslProtocolVersion": "v0.9",
+      "generationMode": "create",
+      "protocolProfileId": "a2ui-form-rom6.0-v1",
+      "skillVersion": "skill-widget-v1",
+      "sourceArtifactDigest": null,
+      "taskSpecVersion": "task-spec-v1"
+    },
+    "removedCapabilities": [],
+    "schemaVersion": "widget-artifact-v2",
+    "taskSpec": {
+      "appVersion": "11.7.5.208",
+      "assetCandidates": [
+        {
+          "description": "样式：跑步人物图标，默认黑色，图形为人体奔跑动作侧视轮廓；适用：运动记录、跑步锻炼追踪、步数统计。",
+          "id": "asset.figure_run",
+          "src": "resources/base/media/figure_run.svg"
+        },
+        {
+          "description": "样式：默认黑色的单色秒表实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：计时功能、运动计时、倒计时。",
+          "id": "asset.stopwatch_fill",
+          "src": "resources/base/media/stopwatch_fill.svg"
+        }
+      ],
+      "dataModelSchema": {
+        "data": {
+          "healthSport": {
+            "exerciseDurationText": {
+              "description": "可直接显示的单次专业运动实际持续时长文本，已包含“小时”或“分”等时间单位；展示时不得再次追加时间单位。例如“1小时40分”。",
+              "sampleValue": "40分",
+              "type": "string"
+            },
+            "exerciseTypeName": {
+              "description": "最近一次发生的单次专业运动训练类型的中文映射名称，如“羽毛球”、“自由训练”、“户外跑步”。若无记录则返回“暂无运动”。",
+              "sampleValue": "户外跑步",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "eventCandidates": [
+        {
+          "args": {
+            "abilityName": "",
+            "bundleName": "",
+            "intentName": "Health",
+            "uri": "huaweischeme://healthapp/home/sport?sportType=2"
+          },
+          "call": "clickToDeeplink",
+          "description": "打开运动健康应用的锻炼页。",
+          "id": "event.open.health.sport"
+        }
+      ],
+      "size": "2x2",
+      "userQuery": "帮我做个运动卡片，看看最近一次练了什么、练了多久，点一下打开运动健康的锻炼页。"
+    }
+  },
+  "caseId": "Q039",
+  "status": "success",
+  "suggestSize": "2x2"
+}

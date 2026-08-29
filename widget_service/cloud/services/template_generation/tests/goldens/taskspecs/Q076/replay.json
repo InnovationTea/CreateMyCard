@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "7cd6377d05ddf9f04235843253f0dbc288e146a2661ecfc469814cf28d74ae67",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/current/temperatureText\",\"/current/humidityPercent\",\"/current/windDirection\",\"/current/windLevel\",\"/current/alertLevel\"],\"GetPhoneBatteryInfo\":[\"/batteryTemperatureText\"]},\"action\":[\"event.open.weather\"]}"
+    }
+  ]
+}

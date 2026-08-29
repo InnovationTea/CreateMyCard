@@ -1,0 +1,5 @@
+{
+  "outer_object_with_braces_inside_value": {
+    "decision": "use {trusted}"
+  }
+}

@@ -1,0 +1,240 @@
+{
+  "combinations": {
+    "all": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FFF0FFE6",
+                  "borderRadius": 20,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0",
+                  "root_1_1"
+                ],
+                "component": "Column",
+                "id": "__genui_render_component__root_1",
+                "itemMargin": 8,
+                "styles": {
+                  "alignItems": "center",
+                  "height": "matchParent",
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "styles": {
+                  "layoutWeight": 1,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0",
+                  "root_1_0_0_1",
+                  "root_1_0_0_2"
+                ],
+                "component": "Column",
+                "id": "root_1_0_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "start",
+                  "padding": {
+                    "bottom": 0,
+                    "left": 0,
+                    "right": 0,
+                    "top": 0
+                  },
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "手机电量",
+                "id": "root_1_0_0_0",
+                "styles": {
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "fontColor": "#FF52991F",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "height": 16,
+                  "maxLines": 1,
+                  "minFontSize": 10,
+                  "textOverflow": "ellipsis",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_1_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0_1",
+                "itemMargin": 2,
+                "styles": {
+                  "alignItems": "center",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "justifyContent": "start",
+                  "margin": {
+                    "top": 6
+                  },
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/phoneBattery/batterySOCText} }}",
+                "id": "root_1_0_0_1_0",
+                "styles": {
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "fontColor": "#FF52991F",
+                  "fontSize": 18,
+                  "fontWeight": 700,
+                  "maxLines": 1,
+                  "textOverflow": "ellipsis"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/phoneBattery/batteryCapacityLevelDesc} }}",
+                "id": "root_1_0_0_2",
+                "styles": {
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "fontColor": "#9952991F",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "height": 16,
+                  "maxLines": 1,
+                  "textOverflow": "ellipsis",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_1_0"
+                ],
+                "component": "Column",
+                "id": "root_1_1",
+                "styles": {
+                  "height": 36,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Button",
+                "id": "root_1_1_0",
+                "label": "省电模式",
+                "onClick": [
+                  {
+                    "args": {
+                      "intentName": "event.setPowerSavingMode"
+                    },
+                    "call": "clickToIntent"
+                  }
+                ],
+                "styles": {
+                  "backgroundColor": "#3364BB5C",
+                  "borderRadius": 18,
+                  "fontColor": "#FF52991F",
+                  "fontSize": 14,
+                  "fontWeight": 500,
+                  "height": 36,
+                  "width": "matchParent"
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "phoneBattery": {
+                  "batteryCapacityLevelDesc": "正常电量",
+                  "batterySOCText": "80%"
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "BatteryOverviewPercentLevelHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1"
+      ]
+    }
+  },
+  "fusionBall": false,
+  "layout": "HeroActionLayout@1",
+  "optionalBindings": [],
+  "sampleIds": {
+    "all": "C012"
+  },
+  "size": "2x2",
+  "templateId": "BatteryOverviewPercentLevelHero@1"
+}

@@ -1,0 +1,53 @@
+{
+  "action_explicit_fill": {
+    "finalOptions": {
+      "fillColor": "#FF123456"
+    },
+    "options": {
+      "fillColor": "#FF123456"
+    }
+  },
+  "action_preserve_original": {
+    "finalOptions": {
+      "_preserveOriginalColor": true
+    },
+    "options": {
+      "_preserveOriginalColor": true
+    }
+  },
+  "action_theme_default": {
+    "finalOptions": {
+      "fillColor": "#FFABCDEF"
+    },
+    "options": {}
+  },
+  "theme_default": {
+    "finalOptions": {
+      "fillColor": "#E61F4595"
+    },
+    "options": {}
+  },
+  "theme_explicit_fill": {
+    "finalOptions": {
+      "fillColor": "#FF123456"
+    },
+    "options": {
+      "fillColor": "#FF123456"
+    }
+  },
+  "theme_explicit_fill_preserve_false": {
+    "finalOptions": {
+      "fillColor": "#FF123456"
+    },
+    "options": {
+      "_preserveOriginalColor": false,
+      "fillColor": "#FF123456"
+    }
+  },
+  "theme_preserve_original": {
+    "finalOptions": {},
+    "options": {
+      "_preserveOriginalColor": true
+    }
+  }
+}

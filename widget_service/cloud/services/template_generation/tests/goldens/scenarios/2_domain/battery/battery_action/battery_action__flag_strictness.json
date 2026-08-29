@@ -1,0 +1,23 @@
+{
+  "\"false\"": {
+    "errorType": "ValidationError",
+    "message": "1 validation error for TemplateSearchIntent\nallowBatterySettingsFallback\n  Input should be a valid boolean [type=bool_type, input_value='false', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.11/v/bool_type"
+  },
+  "\"true\"": {
+    "errorType": "ValidationError",
+    "message": "1 validation error for TemplateSearchIntent\nallowBatterySettingsFallback\n  Input should be a valid boolean [type=bool_type, input_value='true', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.11/v/bool_type"
+  },
+  "0": {
+    "errorType": "ValidationError",
+    "message": "1 validation error for TemplateSearchIntent\nallowBatterySettingsFallback\n  Input should be a valid boolean [type=bool_type, input_value=0, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.11/v/bool_type"
+  },
+  "1": {
+    "errorType": "ValidationError",
+    "message": "1 validation error for TemplateSearchIntent\nallowBatterySettingsFallback\n  Input should be a valid boolean [type=bool_type, input_value=1, input_type=int]\n    For further information visit https://errors.pydantic.dev/2.11/v/bool_type"
+  },
+  "flagAbsentDefault": false,
+  "null": {
+    "errorType": "ValidationError",
+    "message": "1 validation error for TemplateSearchIntent\nallowBatterySettingsFallback\n  Input should be a valid boolean [type=bool_type, input_value=None, input_type=NoneType]\n    For further information visit https://errors.pydantic.dev/2.11/v/bool_type"
+  }
+}

@@ -1,0 +1,195 @@
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [],
+              "component": "Text",
+              "values": [
+                "今日活动",
+                {
+                  "fontColor": "#991F4799",
+                  "fontSize": 12,
+                  "fontWeight": 500,
+                  "maxLines": 1
+                }
+              ]
+            }
+          ],
+          "component": "Row",
+          "values": [
+            {
+              "alignItems": "top",
+              "itemMargin": 4,
+              "justifyContent": "spaceBetween",
+              "width": "matchParent"
+            }
+          ]
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "component": "Text",
+                  "values": [
+                    "${data.healthSport.dailySteps}",
+                    {
+                      "fontColor": "#FF401F99",
+                      "fontSize": 30,
+                      "fontWeight": 800,
+                      "maxLines": 1
+                    }
+                  ]
+                },
+                {
+                  "children": [],
+                  "component": "Text",
+                  "values": [
+                    "步",
+                    {
+                      "fontColor": "#991F4799",
+                      "fontSize": 12,
+                      "fontWeight": 500,
+                      "margin": {
+                        "bottom": 5
+                      },
+                      "maxLines": 1
+                    }
+                  ]
+                }
+              ],
+              "component": "Row",
+              "values": [
+                {
+                  "alignItems": "bottom",
+                  "itemMargin": 4,
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              ]
+            },
+            {
+              "children": [],
+              "component": "Progress",
+              "values": [
+                {
+                  "backgroundColor": "#1F33564A",
+                  "color": "#33564AF7",
+                  "height": 12,
+                  "strokeWidth": 8,
+                  "total": 10000,
+                  "value": "${data.healthSport.dailySteps}",
+                  "width": "matchParent"
+                }
+              ]
+            }
+          ],
+          "component": "Column",
+          "values": [
+            {
+              "alignItems": "start",
+              "itemMargin": 3,
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          ]
+        }
+      ],
+      "component": "Column",
+      "values": [
+        {
+          "itemMargin": 4,
+          "justifyContent": "start",
+          "width": "matchParent"
+        }
+      ]
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [],
+              "component": "Text",
+              "values": [
+                "{{ '消耗热量 ' + ${/data/healthSport/dailyTotalCaloriesText} }}",
+                {
+                  "fontColor": "#991F4799",
+                  "fontSize": 12,
+                  "fontWeight": 500,
+                  "maxLines": 1,
+                  "minFontSize": 10
+                }
+              ]
+            }
+          ],
+          "component": "Row",
+          "values": [
+            {
+              "alignItems": "center",
+              "height": 16,
+              "itemMargin": 4,
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          ]
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "component": "Text",
+              "values": [
+                "{{ '运动距离 ' + ${/data/healthSport/dailyDistanceText} }}",
+                {
+                  "fontColor": "#991F4799",
+                  "fontSize": 12,
+                  "fontWeight": 500,
+                  "maxLines": 1,
+                  "minFontSize": 10
+                }
+              ]
+            }
+          ],
+          "component": "Row",
+          "values": [
+            {
+              "alignItems": "center",
+              "height": 16,
+              "itemMargin": 4,
+              "justifyContent": "start",
+              "width": "matchParent"
+            }
+          ]
+        }
+      ],
+      "component": "Column",
+      "values": [
+        {
+          "itemMargin": 2,
+          "justifyContent": "start",
+          "width": "matchParent"
+        }
+      ]
+    }
+  ],
+  "component": "Column",
+  "values": [
+    {
+      "_advancedComponent": "ActivityOverview",
+      "alignItems": "start",
+      "constraintSize": {
+        "minHeight": 0,
+        "minWidth": 0
+      },
+      "height": "matchParent",
+      "itemMargin": 4,
+      "justifyContent": "spaceBetween",
+      "width": "matchParent"
+    }
+  ]
+}

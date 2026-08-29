@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "6376e72b1dfcf50eb5e33b979879f0bc69d654e7c86477168a34715b7439038d",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetPhoneBatteryInfo\":[\"/batterySOCText\"],\"GetEarphoneInfo\":[\"/isConnected\",\"/batteryLevel\",\"/leftBatteryLevel\",\"/rightBatteryLevel\"]},\"action\":[\"event.open.music.daily\"]}"
+    }
+  ]
+}

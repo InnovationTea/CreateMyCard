@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "99057f5a806d68876368beb8c4fd3f6ed4a0d2b227175ee48d0cdc7ea8009814",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/dtStart\",\"/events/0/eventLocation\",\"/events/0/senderName\"]},\"action\":[\"event.open.settings.dnd\",\"event.enter.meeting\"]}"
+    }
+  ]
+}

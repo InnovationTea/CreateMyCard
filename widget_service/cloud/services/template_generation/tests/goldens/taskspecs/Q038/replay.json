@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "05cf35c364bab460e661a68cd1e8ab63e30081250d7ef43530c93bc7575c95b2",
+      "response": "Template(\"HeroActionLayout@1\", {}, Template(\"SleepOverviewHero@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}), Template(\"PillAction@1\", {\"actionId\": \"event.open.settings.parentControl\", \"label\": \"管控时间\"}));"
+    },
+    {
+      "key": "381baf548b27b36b36859647a8b618439c1462ed886a3c4348f35a4ab66604a3",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/sleepScore\",\"/sleepStatus\",\"/nightSleepDurationText\"]},\"primaryOutputFieldByCapability\":{},\"action\":[\"event.open.settings.parentControl\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

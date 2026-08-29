@@ -1,0 +1,340 @@
+{
+  "combinations": {
+    "all": {
+      "a2ui": [
+        {
+          "createSurface": {
+            "catalogId": "ohos.a2ui.extended.catalog.form",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateComponents": {
+            "components": [
+              {
+                "children": [
+                  "template_root"
+                ],
+                "component": "Stack",
+                "id": "root",
+                "styles": {
+                  "alignContent": "topStart",
+                  "backgroundColor": "#FFE5EDFE",
+                  "borderRadius": 20,
+                  "clip": true,
+                  "height": "matchParent",
+                  "padding": 0,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "__genui_render_component__root_1"
+                ],
+                "component": "Stack",
+                "id": "template_root",
+                "styles": {
+                  "height": "matchParent",
+                  "padding": 12,
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0"
+                ],
+                "component": "Stack",
+                "id": "__genui_render_component__root_1",
+                "styles": {
+                  "alignContent": "topStart",
+                  "height": "matchParent",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0",
+                  "root_1_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0",
+                "itemMargin": 0,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": "matchParent",
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_0_0"
+                ],
+                "component": "Row",
+                "id": "root_1_0_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": 20,
+                  "justifyContent": "spaceBetween",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "日程详情",
+                "id": "root_1_0_0_0",
+                "styles": {
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "fontColor": "#991F4799",
+                  "fontSize": 12,
+                  "fontWeight": 400,
+                  "height": 16,
+                  "layoutWeight": 1,
+                  "maxLines": 1,
+                  "textOverflow": "ellipsis"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0",
+                  "root_1_0_1_1"
+                ],
+                "component": "Row",
+                "id": "root_1_0_1",
+                "itemMargin": 8,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "height": 70,
+                  "justifyContent": "start",
+                  "width": "matchParent"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0_0",
+                  "root_1_0_1_0_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_1_0",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "center",
+                  "clip": true,
+                  "flexShrink": 0,
+                  "height": 70,
+                  "justifyContent": "start",
+                  "padding": {
+                    "bottom": 2,
+                    "left": 0,
+                    "right": 0,
+                    "top": 6
+                  },
+                  "width": 8
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_0_0_0"
+                ],
+                "component": "Stack",
+                "id": "root_1_0_1_0_0",
+                "styles": {
+                  "alignContent": "center",
+                  "borderColor": "#FF1F4799",
+                  "borderRadius": 4,
+                  "borderWidth": 1.5,
+                  "flexShrink": 0,
+                  "height": 8,
+                  "width": 8
+                }
+              },
+              {
+                "component": "Divider",
+                "id": "root_1_0_1_0_0_0",
+                "styles": {
+                  "color": "#FF1F4799",
+                  "height": 0,
+                  "strokeWidth": 0,
+                  "vertical": false,
+                  "width": 0
+                }
+              },
+              {
+                "component": "Divider",
+                "id": "root_1_0_1_0_1",
+                "styles": {
+                  "color": "#331F4799",
+                  "height": 50,
+                  "strokeWidth": 1,
+                  "vertical": true,
+                  "width": 1
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_1_0",
+                  "root_1_0_1_1_1"
+                ],
+                "component": "Column",
+                "id": "root_1_0_1_1",
+                "itemMargin": 4,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "justifyContent": "start"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/calendar/events/0/title} }}",
+                "id": "root_1_0_1_1_0",
+                "styles": {
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "fontColor": "#FF1F4799",
+                  "fontSize": 14,
+                  "fontWeight": 500,
+                  "height": 20,
+                  "maxLines": 1,
+                  "textOverflow": "ellipsis"
+                }
+              },
+              {
+                "children": [
+                  "root_1_0_1_1_1_0",
+                  "root_1_0_1_1_1_1",
+                  "root_1_0_1_1_1_2"
+                ],
+                "component": "Column",
+                "id": "root_1_0_1_1_1",
+                "itemMargin": 2,
+                "styles": {
+                  "alignItems": "start",
+                  "clip": true,
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "justifyContent": "start"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/calendar/events/0/isAllDay} ? '全天' : '非全天' }}",
+                "id": "root_1_0_1_1_1_0",
+                "styles": {
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "fontColor": "#991F4799",
+                  "fontSize": 10,
+                  "fontWeight": 400,
+                  "height": 14,
+                  "maxLines": 1,
+                  "textOverflow": "ellipsis"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/calendar/events/0/timeZone} }}",
+                "id": "root_1_0_1_1_1_1",
+                "styles": {
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "fontColor": "#991F4799",
+                  "fontSize": 10,
+                  "fontWeight": 400,
+                  "height": 14,
+                  "maxLines": 1,
+                  "textOverflow": "ellipsis"
+                }
+              },
+              {
+                "component": "Text",
+                "content": "{{ ${/data/calendar/events/0/eventLocation} }}",
+                "id": "root_1_0_1_1_1_2",
+                "styles": {
+                  "constraintSize": {
+                    "minHeight": 0,
+                    "minWidth": 0
+                  },
+                  "fontColor": "#991F4799",
+                  "fontSize": 10,
+                  "fontWeight": 400,
+                  "height": 14,
+                  "maxLines": 1,
+                  "textOverflow": "ellipsis"
+                }
+              }
+            ],
+            "root": "root",
+            "surfaceId": "surface_card"
+          },
+          "version": "v0.9"
+        },
+        {
+          "updateDataModel": {
+            "path": "/",
+            "surfaceId": "surface_card",
+            "value": {
+              "data": {
+                "calendar": {
+                  "events": [
+                    {
+                      "eventLocation": "会议室A",
+                      "isAllDay": false,
+                      "timeZone": "GMT+08:00",
+                      "title": "项目周会"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "version": "v0.9"
+        }
+      ],
+      "templateIds": [
+        "ScheduleOverviewTimezoneAllDayFull@1",
+        "SingleFocusLayout@1"
+      ]
+    }
+  },
+  "fusionBall": false,
+  "layout": "SingleFocusLayout@1",
+  "optionalBindings": [],
+  "sampleIds": {
+    "all": "C043"
+  },
+  "size": "2x2",
+  "templateId": "ScheduleOverviewTimezoneAllDayFull@1"
+}

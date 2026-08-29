@@ -1,0 +1,216 @@
+{
+  "batterySOCText": {
+    "bindingUnchanged": true,
+    "idempotent": true,
+    "originalIntent": {
+      "action": [],
+      "allowBatterySettingsFallback": true,
+      "allowCalendarViewFallback": false,
+      "primaryOutputFieldByCapability": {},
+      "requiredOutputFieldsByCapability": {
+        "GetPhoneBatteryInfo": [
+          "/batterySOCText"
+        ]
+      }
+    },
+    "plans": [
+      {
+        "actionIds": [
+          "event.open.settings.battery"
+        ],
+        "businessTemplateIds": [
+          "BatteryOverviewChargingProgressHero@1"
+        ],
+        "layoutTemplateId": "HeroActionLayout@1"
+      }
+    ],
+    "resolvedIntent": {
+      "action": [
+        "event.open.settings.battery"
+      ],
+      "allowBatterySettingsFallback": true,
+      "allowCalendarViewFallback": false,
+      "primaryOutputFieldByCapability": {},
+      "requiredOutputFieldsByCapability": {
+        "GetPhoneBatteryInfo": [
+          "/batterySOCText"
+        ]
+      }
+    },
+    "taskUnchanged": true
+  },
+  "batterySOCText+chargingStatusDesc": {
+    "bindingUnchanged": true,
+    "idempotent": true,
+    "originalIntent": {
+      "action": [],
+      "allowBatterySettingsFallback": true,
+      "allowCalendarViewFallback": false,
+      "primaryOutputFieldByCapability": {},
+      "requiredOutputFieldsByCapability": {
+        "GetPhoneBatteryInfo": [
+          "/batterySOCText",
+          "/chargingStatusDesc"
+        ]
+      }
+    },
+    "plans": [
+      {
+        "actionIds": [
+          "event.open.settings.battery"
+        ],
+        "businessTemplateIds": [
+          "BatteryOverviewChargingProgressHero@1"
+        ],
+        "layoutTemplateId": "HeroActionLayout@1"
+      }
+    ],
+    "resolvedIntent": {
+      "action": [
+        "event.open.settings.battery"
+      ],
+      "allowBatterySettingsFallback": true,
+      "allowCalendarViewFallback": false,
+      "primaryOutputFieldByCapability": {},
+      "requiredOutputFieldsByCapability": {
+        "GetPhoneBatteryInfo": [
+          "/batterySOCText",
+          "/chargingStatusDesc"
+        ]
+      }
+    },
+    "taskUnchanged": true
+  },
+  "batterySOCText+chargingStatusDesc+healthStatusDesc": {
+    "bindingUnchanged": true,
+    "idempotent": true,
+    "originalIntent": {
+      "action": [],
+      "allowBatterySettingsFallback": true,
+      "allowCalendarViewFallback": false,
+      "primaryOutputFieldByCapability": {},
+      "requiredOutputFieldsByCapability": {
+        "GetPhoneBatteryInfo": [
+          "/batterySOCText",
+          "/chargingStatusDesc",
+          "/healthStatusDesc"
+        ]
+      }
+    },
+    "plans": [
+      {
+        "actionIds": [
+          "event.open.settings.battery"
+        ],
+        "businessTemplateIds": [
+          "BatteryOverviewChargingProgressHero@1"
+        ],
+        "layoutTemplateId": "HeroActionLayout@1"
+      }
+    ],
+    "resolvedIntent": {
+      "action": [
+        "event.open.settings.battery"
+      ],
+      "allowBatterySettingsFallback": true,
+      "allowCalendarViewFallback": false,
+      "primaryOutputFieldByCapability": {},
+      "requiredOutputFieldsByCapability": {
+        "GetPhoneBatteryInfo": [
+          "/batterySOCText",
+          "/chargingStatusDesc",
+          "/healthStatusDesc"
+        ]
+      }
+    },
+    "taskUnchanged": true
+  },
+  "healthStatusDesc+batteryCapacityLevelDesc": {
+    "bindingUnchanged": true,
+    "idempotent": true,
+    "originalIntent": {
+      "action": [],
+      "allowBatterySettingsFallback": true,
+      "allowCalendarViewFallback": false,
+      "primaryOutputFieldByCapability": {},
+      "requiredOutputFieldsByCapability": {
+        "GetPhoneBatteryInfo": [
+          "/healthStatusDesc",
+          "/batteryCapacityLevelDesc"
+        ]
+      }
+    },
+    "plans": [
+      {
+        "actionIds": [
+          "event.open.settings.battery"
+        ],
+        "businessTemplateIds": [
+          "BatteryOverviewHealthLevelHero@1"
+        ],
+        "layoutTemplateId": "HeroActionLayout@1"
+      }
+    ],
+    "resolvedIntent": {
+      "action": [
+        "event.open.settings.battery"
+      ],
+      "allowBatterySettingsFallback": true,
+      "allowCalendarViewFallback": false,
+      "primaryOutputFieldByCapability": {},
+      "requiredOutputFieldsByCapability": {
+        "GetPhoneBatteryInfo": [
+          "/healthStatusDesc",
+          "/batteryCapacityLevelDesc"
+        ]
+      }
+    },
+    "taskUnchanged": true
+  },
+  "nowCurrentText+voltageText+batteryCapacityLevelDesc+isBatteryPresentText": {
+    "bindingUnchanged": true,
+    "idempotent": true,
+    "originalIntent": {
+      "action": [],
+      "allowBatterySettingsFallback": true,
+      "allowCalendarViewFallback": false,
+      "primaryOutputFieldByCapability": {},
+      "requiredOutputFieldsByCapability": {
+        "GetPhoneBatteryInfo": [
+          "/nowCurrentText",
+          "/voltageText",
+          "/batteryCapacityLevelDesc",
+          "/isBatteryPresentText"
+        ]
+      }
+    },
+    "plans": [
+      {
+        "actionIds": [
+          "event.open.settings.battery"
+        ],
+        "businessTemplateIds": [
+          "BatteryOverviewChargingDiagnosticsHero@1"
+        ],
+        "layoutTemplateId": "HeroActionLayout@1"
+      }
+    ],
+    "resolvedIntent": {
+      "action": [
+        "event.open.settings.battery"
+      ],
+      "allowBatterySettingsFallback": true,
+      "allowCalendarViewFallback": false,
+      "primaryOutputFieldByCapability": {},
+      "requiredOutputFieldsByCapability": {
+        "GetPhoneBatteryInfo": [
+          "/nowCurrentText",
+          "/voltageText",
+          "/batteryCapacityLevelDesc",
+          "/isBatteryPresentText"
+        ]
+      }
+    },
+    "taskUnchanged": true
+  }
+}

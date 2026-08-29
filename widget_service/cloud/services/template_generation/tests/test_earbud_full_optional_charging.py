@@ -1,17 +1,25 @@
-"""现有连接状态模板的充电状态必须整行展示。"""
+"""现有连接状态模板的充电状态必须整行展示。
 
-import json
+{mask}×{header}×主题（普通 / 融球）组合与分割线渲染的完整 A2UI 产物已固化为
+场景金样（Layer C）：``earbud__pair_full_charging__mask{0..7}__{header}__{plain|fusion}``
+（header ∈ both/name/connected/none；none = 头部字段全缺，必须路由失败，冻结
+TemplateRouteNotApplicable 的报错类型 + 消息）以及
+``earbud__divider__charging{on|off}__{plain|fusion}``。快照整体冻结电量列几何
+（高 34/50、alignItems、百分比字号字重字色）、充电状态整行样式（宽 36、字号 10、
+字色 #99FFFFFF 等）、头部字段显隐与融球/非融球主题差异。引擎或模板改动后按
+golden 工作流 ``check --diff`` / ``bless --declared`` 复核。
+"""
+
+import asyncio
 
 import pytest
 
 from models.generation import CandidateDataBinding
-from services.card_validation.compact_dsl_validator import validate_compact_dsl
-from services.template_generation.engine.compact_dsl_a2ui_converter import (
-    convert_a2ui_to_compact_dsl,
-)
-from services.template_generation.engine.pipeline import (
-    TemplateRouteNotApplicable,
-    generate_template_a2ui,
+from services.template_generation.engine.pipeline import TemplateRouteNotApplicable
+from services.template_generation.test_support.golden_scenarios import (
+    a2ui_messages,
+    assert_golden_scenario,
+    scenario,
 )
 from services.template_generation.tests.test_template_generation import (
     _bluetooth_card_spec,
@@ -20,14 +28,25 @@ from services.template_generation.tests.test_template_generation import (
     _provider_field,
 )
 
+_CHARGE_FIELDS = ("leftChargingStatusDesc", "rightChargingStatusDesc", "chargingStatusDesc")
+_HEADERS = ("both", "name", "connected", "none")
+_THEMES: tuple[tuple[str, bool], ...] = (("plain", False), ("fusion", True))
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("fusion", [False, True])
-@pytest.mark.parametrize("mask", range(8))
-@pytest.mark.parametrize("header", ["both", "name", "connected", "none"])
-async def test_full_charging_row_requires_all_three_fields(
-    mask: int, fusion: bool, header: str,
-) -> None:
+_FULL_CHARGING_SCENARIO_IDS = tuple(
+    f"earbud__pair_full_charging__mask{mask}__{header}__{theme_slug}"
+    for mask in range(8)
+    for header in _HEADERS
+    for theme_slug, _ in _THEMES
+)
+
+_DIVIDER_SCENARIO_IDS = tuple(
+    f"earbud__divider__charging{'on' if charging else 'off'}__{theme_slug}"
+    for charging in (False, True)
+    for theme_slug, _ in _THEMES
+)
+
+
+async def _render_pair_full_charging(mask: int, fusion: bool, header: str) -> dict:
     fields = {
         "earphoneName": _provider_field("测试耳机", "string"),
         "isConnected": _provider_field(False, "boolean"),
@@ -39,8 +58,7 @@ async def test_full_charging_row_requires_all_three_fields(
         fields.pop("isConnected")
     if header in {"connected", "none"}:
         fields.pop("earphoneName")
-    charge_fields = ("leftChargingStatusDesc", "rightChargingStatusDesc", "chargingStatusDesc")
-    for index, field in enumerate(charge_fields):
+    for index, field in enumerate(_CHARGE_FIELDS):
         if mask & (1 << index):
             fields[field] = _provider_field("未充电", "string")
     task = _bluetooth_task("查看耳机名称、连接状态及电量").model_copy(
@@ -52,7 +70,7 @@ async def test_full_charging_row_requires_all_three_fields(
     if header in {"connected", "none"}:
         required.remove("/earphoneName")
     if mask == 7:
-        required.extend(f"/{field}" for field in charge_fields)
+        required.extend(f"/{field}" for field in _CHARGE_FIELDS)
     template_id = "BluetoothDeviceOverviewEarbudPairFull@1"
     model = _FixedTemplateModel(
         theme_id="fusion-battery-teal" if fusion else "audio-product-neutral-violet",
@@ -68,58 +86,38 @@ async def test_full_charging_row_requires_all_three_fields(
         candidateOutputFields=[f"/{field}" for field in fields],
     )
     if header == "none":
-        with pytest.raises(TemplateRouteNotApplicable):
+        try:
             await generate_template_a2ui(
                 task, _bluetooth_card_spec(), (binding,), model, enable_fusion_ball=fusion,
                 trusted_template_candidate_ids=(template_id,),
             )
-        return
+        except TemplateRouteNotApplicable as exc:
+            return {"errorType": type(exc).__name__, "message": str(exc)}
+        raise AssertionError("header=none 必须路由失败（TemplateRouteNotApplicable）")
     result = await generate_template_a2ui(
         task, _bluetooth_card_spec(), (binding,), model, enable_fusion_ball=fusion,
     )
-    assert template_id in result.template_ids
-    assert ("蓝牙耳机" in result.a2ui) == (header != "both")
-    assert ("/isConnected" in result.a2ui) == (header != "name")
-    assert ("/earphoneName" in result.a2ui) == (header != "connected")
-    assert ("未连接" in result.a2ui) == (header != "name")
-    components = []
-    for line in result.a2ui.splitlines():
-        components.extend(json.loads(line).get("updateComponents", {}).get("components", []))
-    charge_nodes = []
-    battery_columns = []
-    for component in components:
-        styles = component.get("styles", {})
-        if component.get("component") == "Column" and styles.get("height") in (34, 50):
-            battery_columns.append(component)
-        if component.get("component") != "Text":
-            continue
-        content = json.dumps(component.get("content"))
-        if any(field in content for field in charge_fields):
-            charge_nodes.append(component)
-    assert len(battery_columns) == 3
-    for column in battery_columns:
-        assert column.get("styles", {}).get("alignItems") == "start"
-        assert column.get("styles", {}).get("height") == (50 if mask == 7 else 34)
-        children = column.get("children", [])
-        assert len(children) == (3 if mask == 7 else 2)
-        percent = next(item for item in components if item.get("id") == children[1])
-        assert percent.get("styles", {}).get("fontSize") == 12
-        assert percent.get("styles", {}).get("fontWeight") == 500
-        assert percent.get("styles", {}).get("fontColor") == "#FFFFFFFF"
-    assert len(charge_nodes) == (3 if mask == 7 else 0)
-    for component in charge_nodes:
-        styles = component.get("styles", {})
-        assert styles.get("width") == 36
-        assert styles.get("fontSize") == 10
-        assert styles.get("fontWeight") == 400
-        assert styles.get("fontColor") == "#99FFFFFF"
-        assert styles.get("textAlign") == "start"
+    return a2ui_messages(result)
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("fusion", [False, True])
-@pytest.mark.parametrize("charging", [False, True])
-async def test_earbuds_divider(fusion: bool, charging: bool) -> None:
+def _register_pair_full_charging_scenarios() -> None:
+    for mask in range(8):
+        for header in _HEADERS:
+            for theme_slug, fusion in _THEMES:
+                def _build(
+                    mask: int = mask, fusion: bool = fusion, header: str = header,
+                ) -> dict:
+                    return asyncio.run(_render_pair_full_charging(mask, fusion, header))
+
+                scenario(
+                    f"earbud__pair_full_charging__mask{mask}__{header}__{theme_slug}"
+                )(_build)
+
+
+_register_pair_full_charging_scenarios()
+
+
+async def _render_pair_divider(fusion: bool, charging: bool) -> dict:
     fields = {
         "leftBatteryLevel": _provider_field(76, "integer"),
         "rightBatteryLevel": _provider_field(78, "integer"),
@@ -146,361 +144,28 @@ async def test_earbuds_divider(fusion: bool, charging: bool) -> None:
     output = await generate_template_a2ui(
         task, _bluetooth_card_spec(), (binding,), model, enable_fusion_ball=fusion,
     )
-    components = []
-    for line in output.a2ui.splitlines():
-        components.extend(json.loads(line).get("updateComponents", {}).get("components", []))
-    dividers = []
-    for item in components:
-        if item.get("component") == "Divider" and item.get("styles", {}).get("strokeWidth") == 0.5:
-            dividers.append(item)
-    assert len(dividers) == 1
-    divider = dividers[0]
-    styles = divider.get("styles", {})
-    assert styles.get("width") == 62
-    assert styles.get("height") == 0.5
-    assert styles.get("strokeWidth") == 0.5
-    assert styles.get("color") == "#19FFFFFF"
-    row = next(item for item in components if divider.get("id") in item.get("children", []))
-    assert row.get("styles", {}).get("justifyContent") == "end"
-    stack = next(item for item in components if row.get("id") in item.get("children", []))
-    assert stack.get("component") == "Stack"
-    assert stack.get("styles", {}).get("alignContent") == "center"
-    assert len(stack.get("children", [])) == 2
-    rings = [item for item in components if item.get("component") == "Progress"]
-    assert len(rings) == 2
+    return a2ui_messages(output)
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("fusion", [False, True])
-@pytest.mark.parametrize("mask", range(4))
-async def test_pair_ring_full_renders_independent_optional_status(mask: int, fusion: bool) -> None:
-    fields = {
-        "earphoneName": _provider_field("示例耳机", "string"),
-        "leftBatteryLevel": _provider_field(0, "integer"),
-        "rightBatteryLevel": _provider_field(100, "integer"),
-    }
-    charging_fields = ("leftChargingStatusDesc", "rightChargingStatusDesc")
-    for index, field in enumerate(charging_fields):
-        if mask & (1 << index):
-            fields[field] = _provider_field("未充电", "string")
-    task = _bluetooth_task("显示耳机名称、左右耳电量和可用的充电状态").model_copy(
-        update={"dataModelSchema": {"data": {"earphone": fields}}},
-    )
-    template_id = "BluetoothDeviceOverviewEarbudPairRingFull@1"
-    model = _FixedTemplateModel(
-        theme_id="fusion-battery-teal" if fusion else "audio-product-neutral-violet",
-        component_id="BluetoothDeviceOverview", available_template_ids=(template_id,),
-        capability_id="GetEarphoneInfo", required_fields=tuple(f"/{field}" for field in fields),
-        body='Template("SingleFocusLayout@1",{},'
-        'Template("BluetoothDeviceOverviewEarbudPairRingFull@1",{}));',
-    )
-    binding = CandidateDataBinding(
-        capabilityId="GetEarphoneInfo", writeResultTo="/data/earphone",
-        candidateOutputFields=[f"/{field}" for field in fields],
-    )
-    result = await generate_template_a2ui(
-        task, _bluetooth_card_spec(), (binding,), model, enable_fusion_ball=fusion,
-    )
-    validate_compact_dsl(
-        convert_a2ui_to_compact_dsl(result.a2ui, size="2x2"),
-        task_spec=task.model_dump(mode="json"), card_spec=_bluetooth_card_spec(),
-    )
-    assert template_id in result.template_ids
-    assert not result.projected_task_spec.eventCandidates
-    for field in fields:
-        assert f"/data/earphone/{field}" in result.a2ui
-    for field in charging_fields:
-        assert (f"/data/earphone/{field}" in result.a2ui) == (field in fields)
-    assert "/data/earphone/batteryLevel" not in result.a2ui
-    assert "/data/earphone/isConnected" not in result.a2ui
-    components = []
-    for line in result.a2ui.splitlines():
-        components.extend(json.loads(line).get("updateComponents", {}).get("components", []))
-    rings = [item for item in components if item.get("component") == "Progress"]
-    assert len(rings) == 2
-    for ring in rings:
-        styles = ring.get("styles", {})
-        assert styles.get("width") == 48
-        assert styles.get("height") == 48
-        assert styles.get("strokeWidth") == 6
-    for label in ("L", "R"):
-        assert any(item.get("content") == label for item in components)
+def _register_divider_scenarios() -> None:
+    for charging in (False, True):
+        for theme_slug, fusion in _THEMES:
+            def _build(fusion: bool = fusion, charging: bool = charging) -> dict:
+                return asyncio.run(_render_pair_divider(fusion, charging))
+
+            scenario(
+                f"earbud__divider__charging{'on' if charging else 'off'}__{theme_slug}"
+            )(_build)
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("missing", ["earphoneName", "leftBatteryLevel", "rightBatteryLevel"])
-async def test_pair_ring_full_missing_required_field_stops_before_body(missing: str) -> None:
-    fields = {
-        "earphoneName": _provider_field("示例耳机", "string"),
-        "leftBatteryLevel": _provider_field(0, "integer"),
-        "rightBatteryLevel": _provider_field(100, "integer"),
-    }
-    fields.pop(missing)
-    task = _bluetooth_task("显示耳机名称和左右耳电量").model_copy(
-        update={"dataModelSchema": {"data": {"earphone": fields}}},
-    )
-    template_id = "BluetoothDeviceOverviewEarbudPairRingFull@1"
-    model = _FixedTemplateModel(
-        theme_id="audio-product-neutral-violet", component_id="BluetoothDeviceOverview",
-        available_template_ids=(template_id,), capability_id="GetEarphoneInfo",
-        required_fields=tuple(f"/{field}" for field in fields), body="",
-    )
-    binding = CandidateDataBinding(
-        capabilityId="GetEarphoneInfo", writeResultTo="/data/earphone",
-        candidateOutputFields=[f"/{field}" for field in fields],
-    )
-    with pytest.raises(TemplateRouteNotApplicable):
-        await generate_template_a2ui(
-            task, _bluetooth_card_spec(), (binding,), model,
-            trusted_template_candidate_ids=(template_id,),
-        )
-    assert model.second_layer_prompt is None
+_register_divider_scenarios()
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("fusion", [False, True])
-@pytest.mark.parametrize("battery", [0, 80, 100])
-async def test_earphone_percent_text_full_renders_without_actions(
-    fusion: bool, battery: int,
-) -> None:
-    fields = {
-        "earphoneName": _provider_field("示例耳机", "string"),
-        "batteryLevel": _provider_field(battery, "integer"),
-    }
-    task = _bluetooth_task("显示耳机名称和耳机盒剩余电量").model_copy(
-        update={"dataModelSchema": {"data": {"earphone": fields}}},
-    )
-    template_id = "BluetoothDeviceOverviewEarphonePercentTextFull@1"
-    model = _FixedTemplateModel(
-        theme_id="fusion-battery-teal" if fusion else "audio-product-neutral-violet",
-        component_id="BluetoothDeviceOverview", available_template_ids=(template_id,),
-        capability_id="GetEarphoneInfo", required_fields=("/earphoneName", "/batteryLevel"),
-        body='Template("SingleFocusLayout@1",{},'
-        'Template("BluetoothDeviceOverviewEarphonePercentTextFull@1",{}));',
-    )
-    binding = CandidateDataBinding(
-        capabilityId="GetEarphoneInfo", writeResultTo="/data/earphone",
-        candidateOutputFields=["/earphoneName", "/batteryLevel"],
-    )
-    result = await generate_template_a2ui(
-        task, _bluetooth_card_spec(), (binding,), model, enable_fusion_ball=fusion,
-    )
-    validate_compact_dsl(
-        convert_a2ui_to_compact_dsl(result.a2ui, size="2x2"),
-        task_spec=task.model_dump(mode="json"), card_spec=_bluetooth_card_spec(),
-    )
-    assert template_id in result.template_ids
-    assert not result.projected_task_spec.eventCandidates
-    assert "/data/earphone/earphoneName" in result.a2ui
-    assert "/data/earphone/batteryLevel" in result.a2ui
-    assert "isConnected" not in result.a2ui
-    assert "chargingStatusDesc" not in result.a2ui
-    components = []
-    for line in result.a2ui.splitlines():
-        components.extend(json.loads(line).get("updateComponents", {}).get("components", []))
-    name = next(item for item in components if "earphoneName" in str(item.get("content")))
-    percent = next(item for item in components if "batteryLevel" in str(item.get("content")))
-    caption = next(item for item in components if item.get("content") == "耳机状态")
-    assert name.get("styles", {}).get("fontSize") == 16
-    assert percent.get("styles", {}).get("fontSize") == 38
-    assert percent.get("styles", {}).get("height") == 60
-    assert "%" in str(percent.get("content"))
-    assert caption.get("styles", {}).get("fontSize") == 12
+@pytest.mark.parametrize("scenario_id", _FULL_CHARGING_SCENARIO_IDS)
+def test_full_charging_row_requires_all_three_fields(scenario_id: str) -> None:
+    assert_golden_scenario(scenario_id)
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("missing", ["earphoneName", "batteryLevel"])
-async def test_earphone_percent_text_full_requires_name_and_battery(missing: str) -> None:
-    fields = {
-        "earphoneName": _provider_field("示例耳机", "string"),
-        "batteryLevel": _provider_field(80, "integer"),
-    }
-    fields.pop(missing)
-    task = _bluetooth_task("显示耳机名称和耳机盒剩余电量").model_copy(
-        update={"dataModelSchema": {"data": {"earphone": fields}}},
-    )
-    template_id = "BluetoothDeviceOverviewEarphonePercentTextFull@1"
-    model = _FixedTemplateModel(
-        theme_id="audio-product-neutral-violet", component_id="BluetoothDeviceOverview",
-        available_template_ids=(template_id,), capability_id="GetEarphoneInfo",
-        required_fields=tuple(f"/{field}" for field in fields), body="",
-    )
-    binding = CandidateDataBinding(
-        capabilityId="GetEarphoneInfo", writeResultTo="/data/earphone",
-        candidateOutputFields=[f"/{field}" for field in fields],
-    )
-    with pytest.raises(TemplateRouteNotApplicable):
-        await generate_template_a2ui(
-            task, _bluetooth_card_spec(), (binding,), model,
-            trusted_template_candidate_ids=(template_id,),
-        )
-    assert model.second_layer_prompt is None
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("fusion", [False, True])
-@pytest.mark.parametrize("with_name", [False, True])
-@pytest.mark.parametrize("battery", [0, 100])
-async def test_case_percent_full_renders_optional_name_and_required_status(
-    fusion: bool, with_name: bool, battery: int,
-) -> None:
-    fields = {
-        "batteryLevel": _provider_field(battery, "integer"),
-        "chargingStatusDesc": _provider_field("未充电", "string"),
-    }
-    if with_name:
-        fields["earphoneName"] = _provider_field("示例耳机", "string")
-    task = _bluetooth_task("显示耳机盒电量和充电状态").model_copy(
-        update={"dataModelSchema": {"data": {"earphone": fields}}},
-    )
-    template_id = "BluetoothDeviceOverviewEarphoneCasePercentTextFull@1"
-    model = _FixedTemplateModel(
-        theme_id="fusion-battery-teal" if fusion else "audio-product-neutral-violet",
-        component_id="BluetoothDeviceOverview", available_template_ids=(template_id,),
-        capability_id="GetEarphoneInfo", required_fields=("/batteryLevel", "/chargingStatusDesc"),
-        body='Template("SingleFocusLayout@1",{},'
-        'Template("BluetoothDeviceOverviewEarphoneCasePercentTextFull@1",{}));',
-    )
-    binding = CandidateDataBinding(
-        capabilityId="GetEarphoneInfo", writeResultTo="/data/earphone",
-        candidateOutputFields=[f"/{field}" for field in fields],
-    )
-    result = await generate_template_a2ui(
-        task, _bluetooth_card_spec(), (binding,), model, enable_fusion_ball=fusion,
-    )
-    validate_compact_dsl(
-        convert_a2ui_to_compact_dsl(result.a2ui, size="2x2"),
-        task_spec=task.model_dump(mode="json"), card_spec=_bluetooth_card_spec(),
-    )
-    assert template_id in result.template_ids
-    assert not result.projected_task_spec.eventCandidates
-    assert "/data/earphone/batteryLevel" in result.a2ui
-    assert "/data/earphone/chargingStatusDesc" in result.a2ui
-    assert ("/data/earphone/earphoneName" in result.a2ui) == with_name
-    assert "isConnected" not in result.a2ui
-    components = []
-    for line in result.a2ui.splitlines():
-        components.extend(json.loads(line).get("updateComponents", {}).get("components", []))
-    texts = [item for item in components if item.get("component") == "Text"]
-    assert len(texts) == 3
-    if not with_name:
-        assert texts[0].get("content") == "耳机电量"
-    assert texts[0].get("styles", {}).get("fontSize") == 16
-    assert "batteryLevel" in str(texts[1].get("content"))
-    assert texts[1].get("styles", {}).get("fontSize") == 38
-    assert "chargingStatusDesc" in str(texts[2].get("content"))
-    assert texts[2].get("styles", {}).get("fontSize") == 12
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("missing", ["batteryLevel", "chargingStatusDesc"])
-async def test_case_percent_full_requires_battery_and_status(missing: str) -> None:
-    fields = {
-        "earphoneName": _provider_field("示例耳机", "string"),
-        "batteryLevel": _provider_field(80, "integer"),
-        "chargingStatusDesc": _provider_field("未充电", "string"),
-    }
-    fields.pop(missing)
-    task = _bluetooth_task("显示耳机盒电量和充电状态").model_copy(
-        update={"dataModelSchema": {"data": {"earphone": fields}}},
-    )
-    template_id = "BluetoothDeviceOverviewEarphoneCasePercentTextFull@1"
-    model = _FixedTemplateModel(
-        theme_id="audio-product-neutral-violet", component_id="BluetoothDeviceOverview",
-        available_template_ids=(template_id,), capability_id="GetEarphoneInfo",
-        required_fields=tuple(f"/{field}" for field in fields), body="",
-    )
-    binding = CandidateDataBinding(
-        capabilityId="GetEarphoneInfo", writeResultTo="/data/earphone",
-        candidateOutputFields=[f"/{field}" for field in fields],
-    )
-    with pytest.raises(TemplateRouteNotApplicable):
-        await generate_template_a2ui(
-            task, _bluetooth_card_spec(), (binding,), model,
-            trusted_template_candidate_ids=(template_id,),
-        )
-    assert model.second_layer_prompt is None
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("fusion", [False, True])
-@pytest.mark.parametrize("connected", [False, True])
-async def test_connection_text_full_renders_both_boolean_states(
-    fusion: bool, connected: bool,
-) -> None:
-    fields = {
-        "earphoneName": _provider_field("示例耳机", "string"),
-        "isConnected": _provider_field(connected, "boolean"),
-    }
-    task = _bluetooth_task("显示耳机连接状态和耳机名称").model_copy(
-        update={"dataModelSchema": {"data": {"earphone": fields}}},
-    )
-    template_id = "BluetoothDeviceOverviewConnectionTextFull@1"
-    model = _FixedTemplateModel(
-        theme_id="fusion-battery-teal" if fusion else "audio-product-neutral-violet",
-        component_id="BluetoothDeviceOverview", available_template_ids=(template_id,),
-        capability_id="GetEarphoneInfo", required_fields=("/isConnected", "/earphoneName"),
-        body='Template("SingleFocusLayout@1",{},'
-        'Template("BluetoothDeviceOverviewConnectionTextFull@1",{}));',
-    )
-    binding = CandidateDataBinding(
-        capabilityId="GetEarphoneInfo", writeResultTo="/data/earphone",
-        candidateOutputFields=["/isConnected", "/earphoneName"],
-    )
-    result = await generate_template_a2ui(
-        task, _bluetooth_card_spec(), (binding,), model, enable_fusion_ball=fusion,
-    )
-    validate_compact_dsl(
-        convert_a2ui_to_compact_dsl(result.a2ui, size="2x2"),
-        task_spec=task.model_dump(mode="json"), card_spec=_bluetooth_card_spec(),
-    )
-    assert template_id in result.template_ids
-    assert not result.projected_task_spec.eventCandidates
-    assert "/data/earphone/earphoneName" in result.a2ui
-    assert "/data/earphone/isConnected" in result.a2ui
-    assert "batteryLevel" not in result.a2ui
-    components = []
-    for line in result.a2ui.splitlines():
-        components.extend(json.loads(line).get("updateComponents", {}).get("components", []))
-    texts = [item for item in components if item.get("component") == "Text"]
-    assert len(texts) == 2
-    status = texts[1]
-    content = str(status.get("content"))
-    assert "isConnected" in content
-    assert "已连接" in content
-    assert "未连接" in content
-    for text in texts:
-        assert text.get("styles", {}).get("fontSize") == 16
-        assert text.get("styles", {}).get("textAlign") == "left"
-    layout = next(item for item in components if status.get("id") in item.get("children", []))
-    assert layout.get("styles", {}).get("justifyContent") == "spaceBetween"
-    assert layout.get("styles", {}).get("alignItems") == "start"
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("missing", ["earphoneName", "isConnected"])
-async def test_connection_text_full_requires_name_and_connection(missing: str) -> None:
-    fields = {
-        "earphoneName": _provider_field("示例耳机", "string"),
-        "isConnected": _provider_field(False, "boolean"),
-    }
-    fields.pop(missing)
-    task = _bluetooth_task("显示耳机连接状态和耳机名称").model_copy(
-        update={"dataModelSchema": {"data": {"earphone": fields}}},
-    )
-    template_id = "BluetoothDeviceOverviewConnectionTextFull@1"
-    model = _FixedTemplateModel(
-        theme_id="audio-product-neutral-violet", component_id="BluetoothDeviceOverview",
-        available_template_ids=(template_id,), capability_id="GetEarphoneInfo",
-        required_fields=tuple(f"/{field}" for field in fields), body="",
-    )
-    binding = CandidateDataBinding(
-        capabilityId="GetEarphoneInfo", writeResultTo="/data/earphone",
-        candidateOutputFields=[f"/{field}" for field in fields],
-    )
-    with pytest.raises(TemplateRouteNotApplicable):
-        await generate_template_a2ui(
-            task, _bluetooth_card_spec(), (binding,), model,
-            trusted_template_candidate_ids=(template_id,),
-        )
-    assert model.second_layer_prompt is None
+@pytest.mark.parametrize("scenario_id", _DIVIDER_SCENARIO_IDS)
+def test_earbuds_divider(scenario_id: str) -> None:
+    assert_golden_scenario(scenario_id)

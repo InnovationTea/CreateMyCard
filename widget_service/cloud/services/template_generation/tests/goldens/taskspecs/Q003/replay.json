@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "29b97cc76734a310eb2420627329b63b5bdbdca18ea6e8eca5c7c50be357c68a",
+      "response": "Template(\"TwoSupportLayout@1\", {}, Template(\"CountdownOverviewSupport@1\", {\"title\": \"发布会提醒\", \"timerIcon\": \"resources/base/media/hourglass_fill.svg\"}), Template(\"ScheduleOverviewStartTimeSupport@1\", {\"calendarIcon\": \"resources/base/media/calendar_fill.svg\", \"actionId\": \"event.viewCalendarEvent\"}));"
+    },
+    {
+      "key": "61aebbb8872b039c97c9baedd8a02fd67d6e4766ec24ee4d92ccbdbf86024478",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCountdownDays\":[\"/countdownDays\"],\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/dtStart\"]},\"action\":[\"event.viewCalendarEvent\"],\"allowCalendarViewFallback\":false}"
+    }
+  ]
+}

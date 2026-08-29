@@ -1,0 +1,147 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "出门前想检查耳机仓和手机充电，帮我做个卡片，看耳机仓充电状态、手机剩余电量、手机充电状态和充电器类型，可以打开蓝牙设置，也可以打开电池设置。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetEarphoneInfo",
+        "arguments": {},
+        "writeResultTo": "/data/earphone",
+        "candidateOutputFields": [
+          "/chargingStatusDesc"
+        ]
+      },
+      {
+        "capabilityId": "GetPhoneBatteryInfo",
+        "arguments": {},
+        "writeResultTo": "/data/phoneBattery",
+        "candidateOutputFields": [
+          "/batterySOC",
+          "/chargingStatusDesc",
+          "/pluggedTypeDesc"
+        ]
+      }
+    ],
+    "title": "设备充电",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.settings.bluetooth",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "bluetooth_entry"
+          }
+        }
+      },
+      {
+        "capabilityId": "event.open.settings.battery",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "battery"
+          }
+        }
+      }
+    ],
+    "description": "耳机手机充电状态",
+    "candidateAssetIds": [
+      "asset.earphone_case_16644",
+      "asset.battery_leaf_fill",
+      "asset.bolt_fill",
+      "asset.icon_phone"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "060",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "出门前想检查耳机仓和手机充电，帮我做个卡片，看耳机仓充电状态、手机剩余电量、手机充电状态和充电器类型，可以打开蓝牙设置，也可以打开电池设置。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "出门前想检查耳机仓和手机充电，帮我做个卡片，看耳机仓充电状态、手机剩余电量、手机充电状态和充电器类型，可以打开蓝牙设置，也可以打开电池设置。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetEarphoneInfo",
+      "arguments": {},
+      "writeResultTo": "/data/earphone",
+      "candidateOutputFields": [
+        "/chargingStatusDesc"
+      ]
+    },
+    {
+      "capabilityId": "GetPhoneBatteryInfo",
+      "arguments": {},
+      "writeResultTo": "/data/phoneBattery",
+      "candidateOutputFields": [
+        "/batterySOC",
+        "/chargingStatusDesc",
+        "/pluggedTypeDesc"
+      ]
+    }
+  ],
+  "title": "设备充电",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.settings.bluetooth",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "bluetooth_entry"
+        }
+      }
+    },
+    {
+      "capabilityId": "event.open.settings.battery",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "battery"
+        }
+      }
+    }
+  ],
+  "description": "耳机手机充电状态",
+  "candidateAssetIds": [
+    "asset.earphone_case_16644",
+    "asset.battery_leaf_fill",
+    "asset.bolt_fill",
+    "asset.icon_phone"
+  ]
+}

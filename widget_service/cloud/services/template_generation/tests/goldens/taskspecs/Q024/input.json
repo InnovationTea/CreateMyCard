@@ -1,0 +1,113 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "下一场日程是下午两点的需求评审会，帮我做个卡片，看会议发起人、是不是重要日程、提前提醒时间和日程信息更新时间，开会前可以打开免打扰设置。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {
+          "futureDays": 7
+        },
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/events/0/senderName",
+          "/events/0/importantEventType",
+          "/events/0/remindTime/0",
+          "/updatedAt"
+        ]
+      }
+    ],
+    "title": "评审会议",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.settings.dnd",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "intelligent_scene_entry"
+          }
+        }
+      }
+    ],
+    "description": "会议提醒和勿扰",
+    "candidateAssetIds": [
+      "asset.icon_meeting",
+      "asset.bell_fill",
+      "asset.icon_focus",
+      "asset.clock"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260828000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "024",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "下一场日程是下午两点的需求评审会，帮我做个卡片，看会议发起人、是不是重要日程、提前提醒时间和日程信息更新时间，开会前可以打开免打扰设置。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "下一场日程是下午两点的需求评审会，帮我做个卡片，看会议发起人、是不是重要日程、提前提醒时间和日程信息更新时间，开会前可以打开免打扰设置。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {
+        "futureDays": 7
+      },
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/events/0/senderName",
+        "/events/0/importantEventType",
+        "/events/0/remindTime/0",
+        "/updatedAt"
+      ]
+    }
+  ],
+  "title": "评审会议",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.settings.dnd",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "intelligent_scene_entry"
+        }
+      }
+    }
+  ],
+  "description": "会议提醒和勿扰",
+  "candidateAssetIds": [
+    "asset.icon_meeting",
+    "asset.bell_fill",
+    "asset.icon_focus",
+    "asset.clock"
+  ]
+}

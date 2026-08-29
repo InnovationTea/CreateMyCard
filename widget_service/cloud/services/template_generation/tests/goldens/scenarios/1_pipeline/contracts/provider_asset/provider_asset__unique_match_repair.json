@@ -1,0 +1,256 @@
+{
+  "ActivityOverviewSupport@1.stepsIcon": {
+    "emptyInput": {},
+    "input": {
+      "stepsIcon": "resources/base/media/drop_1.svg"
+    },
+    "inputPreserved": {
+      "stepsIcon": "resources/base/media/drop_1.svg"
+    },
+    "missingMatch": {
+      "errorType": "TerselConversionError",
+      "message": "Template asset semantics do not match stepsIcon: resources/base/media/drop_1.svg"
+    },
+    "repaired": {
+      "stepsIcon": "resources/base/media/figure_run.svg"
+    }
+  },
+  "BatteryOverviewCompact@1.batteryIcon": {
+    "emptyInput": {},
+    "input": {
+      "batteryIcon": "resources/base/media/drop_1.svg"
+    },
+    "inputPreserved": {
+      "batteryIcon": "resources/base/media/drop_1.svg"
+    },
+    "missingMatch": {
+      "error": "NO_ERROR",
+      "result": {
+        "batteryIcon": "resources/base/media/drop_1.svg"
+      }
+    },
+    "repaired": {
+      "batteryIcon": "resources/base/media/drop_1.svg"
+    }
+  },
+  "BatteryOverviewStatusSupport@1.batteryIcon": {
+    "emptyInput": {},
+    "input": {
+      "batteryIcon": "resources/base/media/drop_1.svg"
+    },
+    "inputPreserved": {
+      "batteryIcon": "resources/base/media/drop_1.svg"
+    },
+    "missingMatch": {
+      "errorType": "TerselConversionError",
+      "message": "Template asset semantics do not match batteryIcon: resources/base/media/drop_1.svg"
+    },
+    "repaired": {
+      "batteryIcon": "resources/base/media/bolt_fill.svg"
+    }
+  },
+  "BatteryOverviewSupport@1.batteryIcon": {
+    "emptyInput": {},
+    "input": {
+      "batteryIcon": "resources/base/media/drop_1.svg"
+    },
+    "inputPreserved": {
+      "batteryIcon": "resources/base/media/drop_1.svg"
+    },
+    "missingMatch": {
+      "errorType": "TerselConversionError",
+      "message": "Template asset semantics do not match batteryIcon: resources/base/media/drop_1.svg"
+    },
+    "repaired": {
+      "batteryIcon": "resources/base/media/icon_phone.svg"
+    }
+  },
+  "BluetoothDeviceOverviewChargeSupport@1.deviceIcon": {
+    "emptyInput": {},
+    "input": {
+      "deviceIcon": "resources/base/media/drop_1.svg"
+    },
+    "inputPreserved": {
+      "deviceIcon": "resources/base/media/drop_1.svg"
+    },
+    "missingMatch": {
+      "errorType": "TerselConversionError",
+      "message": "Template asset semantics do not match deviceIcon: resources/base/media/drop_1.svg"
+    },
+    "repaired": {
+      "deviceIcon": "resources/base/media/earphone_case_16644.svg"
+    }
+  },
+  "BluetoothDeviceOverviewConnectionSupport@1.deviceIcon": {
+    "emptyInput": {},
+    "input": {
+      "deviceIcon": "resources/base/media/drop_1.svg"
+    },
+    "inputPreserved": {
+      "deviceIcon": "resources/base/media/drop_1.svg"
+    },
+    "missingMatch": {
+      "errorType": "TerselConversionError",
+      "message": "Template asset semantics do not match deviceIcon: resources/base/media/drop_1.svg"
+    },
+    "repaired": {
+      "deviceIcon": "resources/base/media/icon_earphone.svg"
+    }
+  },
+  "BluetoothDeviceOverviewEarbudsSupport@1.deviceIcon": {
+    "emptyInput": {},
+    "input": {
+      "deviceIcon": "resources/base/media/drop_1.svg"
+    },
+    "inputPreserved": {
+      "deviceIcon": "resources/base/media/drop_1.svg"
+    },
+    "missingMatch": {
+      "errorType": "TerselConversionError",
+      "message": "Template asset semantics do not match deviceIcon: resources/base/media/drop_1.svg"
+    },
+    "repaired": {
+      "deviceIcon": "resources/base/media/icon_earphone.svg"
+    }
+  },
+  "CountdownOverviewSupport@1.timerIcon": {
+    "emptyInput": {},
+    "input": {
+      "timerIcon": "resources/base/media/drop_1.svg"
+    },
+    "inputPreserved": {
+      "timerIcon": "resources/base/media/drop_1.svg"
+    },
+    "missingMatch": {
+      "errorType": "TerselConversionError",
+      "message": "Template asset semantics do not match timerIcon: resources/base/media/drop_1.svg"
+    },
+    "repaired": {
+      "timerIcon": "resources/base/media/icon_timing.svg"
+    }
+  },
+  "HeartRateOverviewSupport@1.heartIcon": {
+    "emptyInput": {},
+    "input": {
+      "heartIcon": "resources/base/media/drop_1.svg"
+    },
+    "inputPreserved": {
+      "heartIcon": "resources/base/media/drop_1.svg"
+    },
+    "missingMatch": {
+      "errorType": "TerselConversionError",
+      "message": "Template asset semantics do not match heartIcon: resources/base/media/drop_1.svg"
+    },
+    "repaired": {
+      "heartIcon": "resources/base/media/heart_fill.svg"
+    }
+  },
+  "IconFixture@1.glyph": {
+    "allowed": [
+      "resources/base/media/drop_1.svg",
+      "resources/base/media/moon_z_fill_1.svg"
+    ],
+    "declaredTags": [
+      "sleep"
+    ],
+    "repaired": {
+      "glyph": "resources/base/media/moon_z_fill_1.svg"
+    }
+  },
+  "ScheduleOverviewDateSupport@1.calendarIcon": {
+    "emptyInput": {},
+    "input": {
+      "calendarIcon": "resources/base/media/drop_1.svg"
+    },
+    "inputPreserved": {
+      "calendarIcon": "resources/base/media/drop_1.svg"
+    },
+    "missingMatch": {
+      "errorType": "TerselConversionError",
+      "message": "Template asset semantics do not match calendarIcon: resources/base/media/drop_1.svg"
+    },
+    "repaired": {
+      "calendarIcon": "resources/base/media/calendar_fill.svg"
+    }
+  },
+  "ScheduleOverviewLocationSupport@1.calendarIcon": {
+    "emptyInput": {},
+    "input": {
+      "calendarIcon": "resources/base/media/drop_1.svg"
+    },
+    "inputPreserved": {
+      "calendarIcon": "resources/base/media/drop_1.svg"
+    },
+    "missingMatch": {
+      "errorType": "TerselConversionError",
+      "message": "Template asset semantics do not match calendarIcon: resources/base/media/drop_1.svg"
+    },
+    "repaired": {
+      "calendarIcon": "resources/base/media/calendar_fill.svg"
+    }
+  },
+  "ScheduleOverviewStartTimeSupport@1.calendarIcon": {
+    "emptyInput": {},
+    "input": {
+      "calendarIcon": "resources/base/media/drop_1.svg"
+    },
+    "inputPreserved": {
+      "calendarIcon": "resources/base/media/drop_1.svg"
+    },
+    "missingMatch": {
+      "errorType": "TerselConversionError",
+      "message": "Template asset semantics do not match calendarIcon: resources/base/media/drop_1.svg"
+    },
+    "repaired": {
+      "calendarIcon": "resources/base/media/calendar_fill.svg"
+    }
+  },
+  "ScheduleOverviewTimeSupport@1.calendarIcon": {
+    "emptyInput": {},
+    "input": {
+      "calendarIcon": "resources/base/media/drop_1.svg"
+    },
+    "inputPreserved": {
+      "calendarIcon": "resources/base/media/drop_1.svg"
+    },
+    "missingMatch": {
+      "errorType": "TerselConversionError",
+      "message": "Template asset semantics do not match calendarIcon: resources/base/media/drop_1.svg"
+    },
+    "repaired": {
+      "calendarIcon": "resources/base/media/calendar_fill.svg"
+    }
+  },
+  "SleepOverviewSupport@1.sourceIcon": {
+    "emptyInput": {},
+    "input": {
+      "sourceIcon": "resources/base/media/drop_1.svg"
+    },
+    "inputPreserved": {
+      "sourceIcon": "resources/base/media/drop_1.svg"
+    },
+    "missingMatch": {
+      "errorType": "TerselConversionError",
+      "message": "Template asset semantics do not match sourceIcon: resources/base/media/drop_1.svg"
+    },
+    "repaired": {
+      "sourceIcon": "resources/base/media/moon_z_fill_1.svg"
+    }
+  },
+  "WorkoutOverviewSupport@1.sourceIcon": {
+    "emptyInput": {},
+    "input": {
+      "sourceIcon": "resources/base/media/drop_1.svg"
+    },
+    "inputPreserved": {
+      "sourceIcon": "resources/base/media/drop_1.svg"
+    },
+    "missingMatch": {
+      "errorType": "TerselConversionError",
+      "message": "Template asset semantics do not match sourceIcon: resources/base/media/drop_1.svg"
+    },
+    "repaired": {
+      "sourceIcon": "resources/base/media/figure_run.svg"
+    }
+  }
+}

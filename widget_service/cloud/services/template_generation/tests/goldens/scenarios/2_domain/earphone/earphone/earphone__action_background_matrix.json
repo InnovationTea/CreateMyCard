@@ -1,0 +1,43 @@
+{
+  "fusion": {
+    "BluetoothDeviceOverviewChargeSupport@1": "#33FFFFFF",
+    "BluetoothDeviceOverviewCompletePhoneWideFull@1": "#33FFFFFF",
+    "BluetoothDeviceOverviewCompleteWideFull@1": "#33FFFFFF",
+    "BluetoothDeviceOverviewConnectionSupport@1": "#33FFFFFF",
+    "BluetoothDeviceOverviewEarbudPairCompact@1": "#33FFFFFF",
+    "BluetoothDeviceOverviewEarbudPairFull@1": "#33FFFFFF",
+    "BluetoothDeviceOverviewEarbudPairHero@1": "#33FFFFFF",
+    "BluetoothDeviceOverviewEarbudTripleFull@1": "#33FFFFFF",
+    "BluetoothDeviceOverviewEarbudTripleHero@1": "#33FFFFFF",
+    "BluetoothDeviceOverviewEarbudsDynamicWideFull@1": "#33FFFFFF",
+    "BluetoothDeviceOverviewEarbudsFull@1": "#33FFFFFF",
+    "BluetoothDeviceOverviewEarbudsPhoneWideFull@1": "#33FFFFFF",
+    "BluetoothDeviceOverviewEarbudsSupport@1": "#33FFFFFF",
+    "BluetoothDeviceOverviewEarphoneCaseCompact@1": "#33FFFFFF",
+    "BluetoothDeviceOverviewEarphoneCaseHero@1": "#33FFFFFF",
+    "BluetoothDeviceOverviewEarphoneCompact@1": "#33FFFFFF",
+    "BluetoothDeviceOverviewEarphoneHero@1": "#33FFFFFF",
+    "BluetoothDeviceOverviewHero@1": "#33FFFFFF"
+  },
+  "mixed_business_fusion": "#33FFFFFF",
+  "plain": {
+    "BluetoothDeviceOverviewChargeSupport@1": "#3364BB5C",
+    "BluetoothDeviceOverviewCompletePhoneWideFull@1": "#3364BB5C",
+    "BluetoothDeviceOverviewCompleteWideFull@1": "#3364BB5C",
+    "BluetoothDeviceOverviewConnectionSupport@1": "#3364BB5C",
+    "BluetoothDeviceOverviewEarbudPairCompact@1": "#3364BB5C",
+    "BluetoothDeviceOverviewEarbudPairFull@1": "#3364BB5C",
+    "BluetoothDeviceOverviewEarbudPairHero@1": "#1952991F",
+    "BluetoothDeviceOverviewEarbudTripleFull@1": "#3364BB5C",
+    "BluetoothDeviceOverviewEarbudTripleHero@1": "#1952991F",
+    "BluetoothDeviceOverviewEarbudsDynamicWideFull@1": "#3364BB5C",
+    "BluetoothDeviceOverviewEarbudsFull@1": "#1952991F",
+    "BluetoothDeviceOverviewEarbudsPhoneWideFull@1": "#3364BB5C",
+    "BluetoothDeviceOverviewEarbudsSupport@1": "#3364BB5C",
+    "BluetoothDeviceOverviewEarphoneCaseCompact@1": "#3364BB5C",
+    "BluetoothDeviceOverviewEarphoneCaseHero@1": "#1952991F",
+    "BluetoothDeviceOverviewEarphoneCompact@1": "#3364BB5C",
+    "BluetoothDeviceOverviewEarphoneHero@1": "#1952991F",
+    "BluetoothDeviceOverviewHero@1": "#1952991F"
+  }
+}

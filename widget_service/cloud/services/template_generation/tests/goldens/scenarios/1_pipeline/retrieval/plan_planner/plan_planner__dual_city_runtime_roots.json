@@ -1,0 +1,35 @@
+{
+  "missing": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "required output field is absent or untyped in TaskSpec: /current/temperatureC"
+  },
+  "number": {
+    "candidates": [
+      "WeatherOverviewDualCityFull@1"
+    ],
+    "coveredExplicitFields": [
+      "/current/temperatureC",
+      "/current/condition"
+    ],
+    "plans": [
+      {
+        "actions": [],
+        "layout": "SingleFocusLayout@1",
+        "slots": [
+          {
+            "business": "WeatherOverview",
+            "primaryMatched": [
+              "/current/condition",
+              "/current/temperatureC"
+            ],
+            "template": "WeatherOverviewDualCityFull@1"
+          }
+        ]
+      }
+    ]
+  },
+  "string": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "required output field has inconsistent types: /current/temperatureC"
+  }
+}

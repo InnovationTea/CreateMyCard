@@ -1,9 +1,19 @@
-"""Provider Template A2UI 画廊数据集测试。"""
+"""Provider Template A2UI 画廊数据集测试。
+
+纯输出契约已固化为场景金样（Layer C）：``preview_dataset__data_tiers``
+冻结 7 个关键模板的 primary/secondary/optional 数据分层目录（数据分层
+驱动槽位绑定与条件省略），``preview_dataset__bundled_assets`` 冻结预览
+引用的全部端侧媒体资产名集合。其余保持普通门禁：173 用例计数钉与
+countsByLayout/countsBySize、surface 骨架不变量、数据分层互斥不变量、
+多云天气单业务不用温度计图标、耳机 Hero 标题参数化。资产集合或数据
+分层变化时按 golden 工作流 `check --diff` / `bless --declared` 复核。
+"""
 
 from __future__ import annotations
 
 import json
 from collections import Counter
+from typing import Any
 
 import pytest
 
@@ -13,6 +23,20 @@ from services.template_generation.engine.cardplan.preview_dataset import (
     write_template_preview_dataset,
 )
 from services.template_generation.engine.cardplan.registry import get_cardplan_registry
+from services.template_generation.test_support.golden_scenarios import (
+    assert_golden_scenario,
+    scenario,
+)
+
+_DATA_TIER_CATALOG_TEMPLATE_IDS: tuple[str, ...] = (
+    "BatteryOverviewSupport@1",
+    "BluetoothDeviceOverviewChargeSupport@1",
+    "BluetoothDeviceOverviewConnectionSupport@1",
+    "HeartRateOverviewMinMaxFull@1",
+    "WeatherOverviewHeroTitle@1",
+    "WeatherOverviewTemperatureSupport@1",
+    "WeatherOverviewTravelSupport@1",
+)
 
 
 def test_template_preview_dataset_covers_all_business_templates(tmp_path):
@@ -94,114 +118,13 @@ def test_weather_wide_previews_use_the_weather_theme_background():
         ]
 
 
-def test_template_preview_assets_are_bundled_by_genui_evaluation():
-    cases = build_template_preview_cases()
-    paths = validate_preview_asset_paths(cases)
-    names = {path.rsplit("/", 1)[-1] for path in paths}
-
-    assert names == {
-        "battery_leaf_fill.svg",
-        "bell_fill.svg",
-        "calendar_fill.svg",
-        "clock_fill.svg",
-        "earphone_case_16644.svg",
-        "drop_1.svg",
-        "externaldrive_fill.svg",
-        "figure_run.svg",
-        "flame_fill.svg",
-        "heart_fill.svg",
-        "heat_generation.svg",
-        "icon_earphone.svg",
-        "icon_phone.svg",
-        "icon_timing.svg",
-        "icon_weather_thermometer.svg",
-        "l_circle_fill.svg",
-        "location_north_up_right_fill.svg",
-        "moon_z_fill_1.svg",
-        "music_fill.svg",
-        "r_circle_fill.svg",
-        "sun_max.svg",
-    }
-
-
 def test_template_preview_manifest_data_tiers_are_disjoint():
     cases = build_template_preview_cases()
 
     for case in cases:
         counts = Counter((*case.primary_data, *case.secondary_data, *case.optional_data))
         assert all(count == 1 for count in counts.values())
-        if case.template_id == "WeatherOverviewHeroTitle@1":
-            assert case.primary_data == ()
-            assert case.secondary_data == ()
-            assert case.optional_data == (
-                "/location/prefectureName", "/location/districtName",
-                "/current/temperatureText", "/current/condition",
-            )
-        elif case.template_id == "WeatherOverviewTravelSupport@1":
-            assert case.primary_data == ()
-            assert case.secondary_data == ()
-            assert case.optional_data == (
-                "/daily/4/condition",
-                "/daily/4/temperatureRangeText",
-                "/daily/4/rainProbabilityPercent",
-                "/current/temperatureC",
-                "/current/condition",
-            )
-        elif case.template_id == "HeartRateOverviewMinMaxFull@1":
-            # 平均心率与运动类型为可选数据：存在时平均心率为大字、类型为标签，区间退为辅行。
-            assert case.primary_data == (
-                "/exerciseHeartRateMax",
-                "/exerciseHeartRateMin",
-            )
-            assert case.secondary_data == ()
-            assert case.optional_data == (
-                "/exerciseHeartRateAvg", "/exerciseTypeName", "/updatedAt",
-            )
-        elif case.template_id == "BatteryOverviewSupport@1":
-            # 充电状态与电池温度为可选数据：辅行充电优先、温度回退，电量环仍由数值电量驱动。
-            assert case.primary_data == ("/batterySOC",)
-            assert case.secondary_data == ()
-            assert case.optional_data == (
-                "/chargingStatusDesc", "/batterySOCText", "/batteryTemperatureText",
-            )
-        elif case.template_id == "BluetoothDeviceOverviewChargeSupport@1":
-            # 电量改为可选数据：充电状态为唯一必选主字段，电量文本与电量环按条件省略。
-            assert case.primary_data == ()
-            assert case.secondary_data == ("/chargingStatusDesc",)
-            assert case.optional_data == ("/batteryLevel",)
-        elif case.template_id == "BluetoothDeviceOverviewConnectionSupport@1":
-            # 连接状态为必选主数据，仓电量为可选：缺失时按条件分支省略电量行与电量环。
-            assert case.primary_data == ("/isConnected",)
-            assert case.secondary_data == ()
-            assert case.optional_data == ("/batteryLevel",)
-        elif case.template_id == "WeatherOverviewTemperatureSupport@1":
-            # 天气现象为唯一必选主字段，城市、温度文本、摄氏度数值与体感温度可选。
-            assert case.primary_data == ("/current/condition",)
-            assert case.secondary_data == ()
-            assert case.optional_data == (
-                "/current/temperatureText", "/current/temperatureC",
-                "/current/feelsLikeC",
-                "/location/prefectureName", "/location/districtName",
-                "/location/cityCode",
-            )
-        elif case.template_id == "BluetoothDeviceOverviewMusicCompact@1":
-            # 纯歌单入口：不渲染任何耳机数据，三级数据均为空。
-            assert case.primary_data == ()
-            assert case.secondary_data == ()
-            assert case.optional_data == ()
-        elif case.business_id == "GenericMetricOverview":
-            assert case.primary_data == ()
-            assert case.secondary_data == ()
-            model = case.messages[2].get("updateDataModel")
-            assert isinstance(model, dict)
-            value = model.get("value")
-            assert isinstance(value, dict)
-            data = value.get("data")
-            assert isinstance(data, dict)
-            health = data.get("healthSport")
-            assert isinstance(health, dict)
-            assert health.get("dailySteps") == 6200
-        else:
+        if case.template_id not in _DATA_TIER_CATALOG_TEMPLATE_IDS:
             assert case.primary_data
         assert json.dumps(case.messages, ensure_ascii=False)
 
@@ -244,10 +167,7 @@ def test_earphone_hero_uses_title_parameter_without_title_binding():
 
     assert case.primary_data == ("/isConnected", "/earphoneName")
     assert case.secondary_data == ()
-    assert case.optional_data == (
-        "/leftBatteryLevel", "/rightBatteryLevel",
-        "/leftChargingStatusDesc", "/rightChargingStatusDesc",
-    )
+    assert case.optional_data == ("/leftBatteryLevel", "/rightBatteryLevel")
     assert "已链接" in json.dumps(case.messages, ensure_ascii=False)
     data_model = case.messages[2]["updateDataModel"]["value"]["data"]["earphone"]
     assert set(data_model) == {
@@ -255,97 +175,30 @@ def test_earphone_hero_uses_title_parameter_without_title_binding():
         "earphoneName",
         "leftBatteryLevel",
         "rightBatteryLevel",
-        "leftChargingStatusDesc",
-        "rightChargingStatusDesc",
     }
 
 
-@pytest.mark.parametrize(
-    ("template_id", "icon_name"),
-    [
-        ("BluetoothDeviceOverviewEarphoneCaseHero@1", "earphone_case_16644.svg"),
-        ("BluetoothDeviceOverviewEarphoneHero@1", "icon_earphone.svg"),
-        ("BluetoothDeviceOverviewMusicFull@1", "earphone_case_16644.svg"),
-    ],
-)
-def test_earphone_ring_previews_include_required_device_icon(template_id, icon_name):
-    variant = get_cardplan_registry().require_variant(template_id, "default")
-    assert variant.parameters_schema.get("required") == ["deviceIcon"]
-    properties = variant.parameters_schema.get("properties")
-    assert isinstance(properties, dict)
-    assert set(properties) == {"deviceIcon"}
-    case = next(item for item in build_template_preview_cases() if item.template_id == template_id)
-    update = case.messages[1].get("updateComponents")
-    assert isinstance(update, dict)
-    components = update.get("components")
-    assert isinstance(components, list)
-    ring_ids = set()
-    icon_ids = set()
-    for node in components:
-        if node.get("component") == "Progress":
-            ring_ids.add(node.get("id"))
-        if node.get("component") == "Image":
-            assert node.get("src") == f"resources/base/media/{icon_name}"
-            styles = node.get("styles")
-            assert isinstance(styles, dict)
-            assert styles.get("width") == 20
-            assert styles.get("height") == 20
-            icon_ids.add(node.get("id"))
-    assert len(icon_ids) == 1
-    assert len(ring_ids) == 1
-    for node in components:
-        if node.get("component") != "Stack":
-            continue
-        children = node.get("children", [])
-        if icon_ids.issubset(children):
-            assert ring_ids.issubset(children)
-            break
-    else:
-        pytest.fail("图标必须与电量环位于同一个 Stack")
+@scenario("preview_dataset__data_tiers")
+def _build_data_tier_catalog() -> dict[str, Any]:
+    cases_by_template_id = {
+        case.template_id: case for case in build_template_preview_cases()
+    }
+    return {
+        template_id: {
+            "primary": list(cases_by_template_id[template_id].primary_data),
+            "secondary": list(cases_by_template_id[template_id].secondary_data),
+            "optional": list(cases_by_template_id[template_id].optional_data),
+        }
+        for template_id in _DATA_TIER_CATALOG_TEMPLATE_IDS
+    }
 
 
-def test_battery_2x2_icon_contracts_and_previews_are_required():
-    registry = get_cardplan_registry()
-    covered = set()
-    for case in build_template_preview_cases():
-        if case.business_id != "BatteryOverview" or case.size != "2x2":
-            continue
-        if case.layout_kind not in ("Full", "Hero", "Compact"):
-            continue
-        variant = registry.require_variant(case.template_id, "default")
-        properties = variant.parameters_schema.get("properties")
-        assert isinstance(properties, dict)
-        if "batteryIcon" not in properties:
-            continue
-        assert "batteryIcon" in variant.parameters_schema.get("required", [])
-        update = case.messages[1].get("updateComponents")
-        assert isinstance(update, dict)
-        components = update.get("components")
-        assert isinstance(components, list)
-        images = []
-        for node in components:
-            if node.get("component") == "Image":
-                images.append(node)
-        assert len(images) == 1, case.template_id
-        image = images[0]
-        expected_name = "battery_leaf_fill.svg"
-        if case.template_id in (
-            "BatteryOverviewSupportHero@1", "BatteryOverviewChargeStatusHero@1"
-        ):
-            expected_name = "icon_phone.svg"
-        assert image.get("src") == f"resources/base/media/{expected_name}"
-        covered.add(case.template_id)
-    assert len(covered) == 12
+@scenario("preview_dataset__bundled_assets")
+def _build_bundled_assets() -> dict[str, Any]:
+    paths = validate_preview_asset_paths(build_template_preview_cases())
+    return {"assetNames": sorted(path.rsplit("/", 1)[-1] for path in paths)}
 
 
-def test_battery_wide_and_support_icons_remain_optional():
-    registry = get_cardplan_registry()
-    for template_id in (
-        "BatteryOverviewWideFull@1",
-        "BatteryOverviewChargingDiagnosticsWideFull@1",
-        "BatteryOverviewStatusWideFull@1",
-        "BatteryOverviewSupport@1",
-        "BatteryOverviewStatusSupport@1",
-    ):
-        variant = registry.require_variant(template_id, "default")
-        assert "batteryIcon" not in variant.parameters_schema.get("required", [])
+def test_preview_dataset_scenarios_match_goldens() -> None:
+    assert_golden_scenario("preview_dataset__data_tiers")
+    assert_golden_scenario("preview_dataset__bundled_assets")

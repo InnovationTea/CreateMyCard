@@ -1,0 +1,94 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我做个卡片，看昨晚睡眠得分、睡眠状态、睡了多久、深睡多久和最近一次运动最低心率，点一下进入健康使用设置。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetHealthAndSportSummary",
+        "arguments": {
+          "targetDayOffset": -1
+        },
+        "writeResultTo": "/data/healthSport",
+        "candidateOutputFields": [
+          "/sleepScore",
+          "/sleepStatus",
+          "/nightSleepDurationText",
+          "/deepSleepDurationText",
+          "/exerciseHeartRateMin"
+        ]
+      }
+    ],
+    "title": "睡眠与健康使用",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.open.settings.parentControl",
+        "action": {
+          "call": "clickToDeeplink",
+          "args": {
+            "intentName": "Settings",
+            "bundleName": "com.huawei.hmos.settings",
+            "abilityName": "com.huawei.hmos.settings.MainAbility",
+            "uri": "parent_control"
+          }
+        }
+      }
+    ],
+    "description": "睡眠心率+健康使用",
+    "candidateAssetIds": [
+      "asset.moon_z_fill_1",
+      "asset.heart_fill",
+      "asset.hourglass_fill"
+    ]
+  },
+  "session": {
+    "interactionId": "081",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "utterance": {
+    "original": "帮我做个卡片，看昨晚睡眠得分、睡眠状态、睡了多久、深睡多久和最近一次运动最低心率，点一下进入健康使用设置。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我做个卡片，看昨晚睡眠得分、睡眠状态、睡了多久、深睡多久和最近一次运动最低心率，点一下进入健康使用设置。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetHealthAndSportSummary",
+      "arguments": {
+        "targetDayOffset": -1
+      },
+      "writeResultTo": "/data/healthSport",
+      "candidateOutputFields": [
+        "/sleepScore",
+        "/sleepStatus",
+        "/nightSleepDurationText",
+        "/deepSleepDurationText",
+        "/exerciseHeartRateMin"
+      ]
+    }
+  ],
+  "title": "睡眠与健康使用",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.open.settings.parentControl",
+      "action": {
+        "call": "clickToDeeplink",
+        "args": {
+          "intentName": "Settings",
+          "bundleName": "com.huawei.hmos.settings",
+          "abilityName": "com.huawei.hmos.settings.MainAbility",
+          "uri": "parent_control"
+        }
+      }
+    }
+  ],
+  "description": "睡眠心率+健康使用",
+  "candidateAssetIds": [
+    "asset.moon_z_fill_1",
+    "asset.heart_fill",
+    "asset.hourglass_fill"
+  ]
+}

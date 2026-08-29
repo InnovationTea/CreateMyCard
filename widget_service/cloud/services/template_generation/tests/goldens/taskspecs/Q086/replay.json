@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "26b9ab8c252a7d0ba991f66389a98fbc2349a14f69c0e3caff321774abb757e8",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"ViewWeather\":[\"/current/feelsLikeC\",\"/current/windLevel\"],\"GetHealthAndSportSummary\":[\"/dailySteps\",\"/exerciseHeartRateAvg\"]},\"action\":[\"event.open.music.favorite\"]}"
+    }
+  ]
+}

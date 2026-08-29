@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "62645e438d718cbf664f3c72423d1b339b696798e54eaecbf6b117c9ec1b3189",
+      "response": "Template(\"WideFullTwoCompactLayout@1\", {}, Template(\"SleepOverviewHero@1\", {\"sourceIcon\": \"resources/base/media/moon_z_fill_1.svg\"}), Template(\"GenericMetricOverviewDualCompact@1\", {\"firstTitle\": \"深睡\", \"firstValuePath\": \"/deepSleepDurationText\", \"secondTitle\": \"最低心率\", \"secondValuePath\": \"/exerciseHeartRateMin\"}), Template(\"CompactAction@1\", {\"actionId\": \"event.open.settings.parentControl\", \"label\": \"管控时间\", \"icon\": \"resources/base/media/hourglass_fill.svg\"}));"
+    },
+    {
+      "key": "848f64debcc2056a29051655d96f6f84ec3087eeccf487973f2c4bd5ba866546",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/sleepScore\",\"/sleepStatus\",\"/nightSleepDurationText\",\"/deepSleepDurationText\",\"/exerciseHeartRateMin\"]},\"action\":[\"event.open.settings.parentControl\"]}"
+    }
+  ]
+}

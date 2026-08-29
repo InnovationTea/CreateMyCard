@@ -1,0 +1,8 @@
+{
+  "recordings": [
+    {
+      "key": "63f1e2ddacb897e7281960486ce90a2efb3d11bdd6fd436cc07a55cfc1e2b37f",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetCalendarEvents\":[\"/events/0/title\",\"/events/0/dtStart\",\"/events/0/dtEnd\",\"/events/0/eventLocation\",\"/events/0/description\"],\"ViewWeather\":[\"/current/condition\",\"/current/temperatureText\",\"/current/feelsLikeC\",\"/current/humidityPercent\",\"/current/windDirection\",\"/current/windLevel\",\"/current/alertLevel\"]}}"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "empty_string": {
+    "errorCodes": [],
+    "processorErrors": [],
+    "standardDsl": "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"surface_card\",\"catalogId\":\"ohos.a2ui.extended.catalog.form\"}}\n{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"surface_card\",\"root\":\"root\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"root_0\"],\"itemMargin\":8,\"styles\":{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":18,\"clip\":true,\"backgroundColor\":\"#FFFFFFFF\"}},{\"id\":\"root_0\",\"component\":\"Text\",\"content\":\"{{ ${/data/calendar/eventCount} > 0 ? '有日程' : '暂无日程' }}\",\"styles\":{\"maxLines\":1,\"textOverflow\":\"clip\"}}]}}\n{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"surface_card\",\"path\":\"/\",\"value\":{\"data\":{\"calendar\":{\"eventCount\":\"\"}}}}}"
+  },
+  "none": {
+    "errorCodes": [],
+    "processorErrors": [],
+    "standardDsl": "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"surface_card\",\"catalogId\":\"ohos.a2ui.extended.catalog.form\"}}\n{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"surface_card\",\"root\":\"root\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"root_0\"],\"itemMargin\":8,\"styles\":{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":18,\"clip\":true,\"backgroundColor\":\"#FFFFFFFF\"}},{\"id\":\"root_0\",\"component\":\"Text\",\"content\":\"{{ ${/data/calendar/eventCount} > 0 ? '有日程' : '暂无日程' }}\",\"styles\":{\"maxLines\":1,\"textOverflow\":\"clip\"}}]}}\n{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"surface_card\",\"path\":\"/\",\"value\":{\"data\":{\"calendar\":{\"eventCount\":null}}}}}"
+  },
+  "one": {
+    "errorCodes": [],
+    "processorErrors": [],
+    "standardDsl": "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"surface_card\",\"catalogId\":\"ohos.a2ui.extended.catalog.form\"}}\n{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"surface_card\",\"root\":\"root\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"root_0\"],\"itemMargin\":8,\"styles\":{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":18,\"clip\":true,\"backgroundColor\":\"#FFFFFFFF\"}},{\"id\":\"root_0\",\"component\":\"Text\",\"content\":\"{{ ${/data/calendar/eventCount} > 0 ? '有日程' : '暂无日程' }}\",\"styles\":{\"maxLines\":1,\"textOverflow\":\"clip\"}}]}}\n{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"surface_card\",\"path\":\"/\",\"value\":{\"data\":{\"calendar\":{\"eventCount\":1}}}}}"
+  },
+  "zero": {
+    "errorCodes": [],
+    "processorErrors": [],
+    "standardDsl": "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"surface_card\",\"catalogId\":\"ohos.a2ui.extended.catalog.form\"}}\n{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"surface_card\",\"root\":\"root\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"root_0\"],\"itemMargin\":8,\"styles\":{\"width\":\"matchParent\",\"height\":\"matchParent\",\"padding\":12,\"borderRadius\":18,\"clip\":true,\"backgroundColor\":\"#FFFFFFFF\"}},{\"id\":\"root_0\",\"component\":\"Text\",\"content\":\"{{ ${/data/calendar/eventCount} > 0 ? '有日程' : '暂无日程' }}\",\"styles\":{\"maxLines\":1,\"textOverflow\":\"clip\"}}]}}\n{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"surface_card\",\"path\":\"/\",\"value\":{\"data\":{\"calendar\":{\"eventCount\":0}}}}}"
+  }
+}

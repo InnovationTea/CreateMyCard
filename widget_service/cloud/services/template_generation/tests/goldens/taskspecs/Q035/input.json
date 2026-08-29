@@ -1,0 +1,109 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我做个日程卡片，看看未来7天一共安排了几件事和最近一件的标题、开始时间、备注，点一下进日程详情。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "GetCalendarEvents",
+        "arguments": {
+          "futureDays": 7
+        },
+        "writeResultTo": "/data/calendar",
+        "candidateOutputFields": [
+          "/eventCount",
+          "/events/0/title",
+          "/events/0/dtStart",
+          "/events/0/description",
+          "/events/0/entityId"
+        ]
+      }
+    ],
+    "title": "近期日程清点",
+    "size": "2x2",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.viewCalendarEvent",
+        "action": {
+          "call": "clickToIntent",
+          "args": {
+            "intentName": "ViewCalendarEvent",
+            "params": {
+              "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+            }
+          }
+        }
+      }
+    ],
+    "description": "日程总数+最近日程详情",
+    "candidateAssetIds": [
+      "asset.calendar_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260821000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "035",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我做个日程卡片，看看未来7天一共安排了几件事和最近一件的标题、开始时间、备注，点一下进日程详情。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我做个日程卡片，看看未来7天一共安排了几件事和最近一件的标题、开始时间、备注，点一下进日程详情。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "GetCalendarEvents",
+      "arguments": {
+        "futureDays": 7
+      },
+      "writeResultTo": "/data/calendar",
+      "candidateOutputFields": [
+        "/eventCount",
+        "/events/0/title",
+        "/events/0/dtStart",
+        "/events/0/description",
+        "/events/0/entityId"
+      ]
+    }
+  ],
+  "title": "近期日程清点",
+  "size": "2x2",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.viewCalendarEvent",
+      "action": {
+        "call": "clickToIntent",
+        "args": {
+          "intentName": "ViewCalendarEvent",
+          "params": {
+            "entityId": "{{ ${/data/calendar/events/0/entityId} }}"
+          }
+        }
+      }
+    }
+  ],
+  "description": "日程总数+最近日程详情",
+  "candidateAssetIds": [
+    "asset.calendar_fill"
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "content": {
+    "bundleName": "com.omega_w_0823.hmservice",
+    "userQuery": "帮我做个卡片，看长沙天气预警和接下来一天的空气质量、紫外线、感冒指数，展示待办事项“每天带孩子出去运动两次”，能直接给妈妈打电话。",
+    "candidateDataBindings": [
+      {
+        "capabilityId": "ViewWeather",
+        "arguments": {
+          "prefectureName": "长沙市",
+          "forecastDays": 1
+        },
+        "writeResultTo": "/data/weather",
+        "candidateOutputFields": [
+          "/current/alertLevel",
+          "/daily/0/airQuality",
+          "/daily/0/uvIndex",
+          "/daily/0/coldLevel"
+        ]
+      }
+    ],
+    "title": "居家关怀",
+    "size": "2x4",
+    "candidateEventCandidates": [
+      {
+        "capabilityId": "event.call.phone",
+        "action": {
+          "call": "clickToApi",
+          "args": {
+            "intentName": "CallPhone",
+            "params": {
+              "relationship": "母亲",
+              "phoneNumber": ""
+            }
+          }
+        }
+      }
+    ],
+    "description": "天气风险+静态待办+联系妈妈",
+    "candidateAssetIds": [
+      "asset.sun_max",
+      "asset.cold",
+      "asset.phone_fill",
+      "asset.calendar_fill"
+    ]
+  },
+  "deviceInfo": {
+    "countryCode": "CN",
+    "deviceFormation": "HDSpeaker",
+    "deviceType": 0,
+    "locale": "zh-CN",
+    "phoneType": "SGT-AL10",
+    "prdVer": "11.7.5.208",
+    "sysVer": "EmotionUI_9.0.0",
+    "time": "20260821000000000"
+  },
+  "pagination": {
+    "limit": 5,
+    "start": ""
+  },
+  "session": {
+    "interactionId": "078",
+    "isNew": true,
+    "sessionId": "taskspec-829.2"
+  },
+  "userAuth": {
+    "user": {
+      "userId": ""
+    }
+  },
+  "utterance": {
+    "original": "帮我做个卡片，看长沙天气预警和接下来一天的空气质量、紫外线、感冒指数，展示待办事项“每天带孩子出去运动两次”，能直接给妈妈打电话。",
+    "type": "text"
+  },
+  "version": "1.0",
+  "bundleName": "com.omega_w_0823.hmservice",
+  "userQuery": "帮我做个卡片，看长沙天气预警和接下来一天的空气质量、紫外线、感冒指数，展示待办事项“每天带孩子出去运动两次”，能直接给妈妈打电话。",
+  "candidateDataBindings": [
+    {
+      "capabilityId": "ViewWeather",
+      "arguments": {
+        "prefectureName": "长沙市",
+        "forecastDays": 1
+      },
+      "writeResultTo": "/data/weather",
+      "candidateOutputFields": [
+        "/current/alertLevel",
+        "/daily/0/airQuality",
+        "/daily/0/uvIndex",
+        "/daily/0/coldLevel"
+      ]
+    }
+  ],
+  "title": "居家关怀",
+  "size": "2x4",
+  "candidateEventCandidates": [
+    {
+      "capabilityId": "event.call.phone",
+      "action": {
+        "call": "clickToApi",
+        "args": {
+          "intentName": "CallPhone",
+          "params": {
+            "relationship": "母亲",
+            "phoneNumber": ""
+          }
+        }
+      }
+    }
+  ],
+  "description": "天气风险+静态待办+联系妈妈",
+  "candidateAssetIds": [
+    "asset.sun_max",
+    "asset.cold",
+    "asset.phone_fill",
+    "asset.calendar_fill"
+  ]
+}

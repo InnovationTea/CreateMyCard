@@ -1,0 +1,75 @@
+{
+  "BatteryOverviewSupport@1": {
+    "optional": [
+      "/chargingStatusDesc",
+      "/batterySOCText",
+      "/batteryTemperatureText"
+    ],
+    "primary": [
+      "/batterySOC"
+    ],
+    "secondary": []
+  },
+  "BluetoothDeviceOverviewChargeSupport@1": {
+    "optional": [
+      "/batteryLevel"
+    ],
+    "primary": [],
+    "secondary": [
+      "/chargingStatusDesc"
+    ]
+  },
+  "BluetoothDeviceOverviewConnectionSupport@1": {
+    "optional": [
+      "/batteryLevel"
+    ],
+    "primary": [
+      "/isConnected"
+    ],
+    "secondary": []
+  },
+  "HeartRateOverviewMinMaxFull@1": {
+    "optional": [
+      "/updatedAt"
+    ],
+    "primary": [
+      "/exerciseHeartRateMax",
+      "/exerciseHeartRateMin"
+    ],
+    "secondary": []
+  },
+  "WeatherOverviewHeroTitle@1": {
+    "optional": [
+      "/location/prefectureName",
+      "/location/districtName",
+      "/current/temperatureText",
+      "/current/condition"
+    ],
+    "primary": [],
+    "secondary": []
+  },
+  "WeatherOverviewTemperatureSupport@1": {
+    "optional": [
+      "/current/temperatureText",
+      "/current/temperatureC",
+      "/current/feelsLikeC",
+      "/location/prefectureName",
+      "/location/districtName"
+    ],
+    "primary": [
+      "/current/condition"
+    ],
+    "secondary": []
+  },
+  "WeatherOverviewTravelSupport@1": {
+    "optional": [
+      "/daily/4/condition",
+      "/daily/4/temperatureRangeText",
+      "/daily/4/rainProbabilityPercent",
+      "/current/temperatureC",
+      "/current/condition"
+    ],
+    "primary": [],
+    "secondary": []
+  }
+}

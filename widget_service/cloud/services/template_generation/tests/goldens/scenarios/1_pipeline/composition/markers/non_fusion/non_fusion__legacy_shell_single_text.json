@@ -1,0 +1,55 @@
+{
+  "a2uiMessages": [
+    {
+      "createSurface": {
+        "catalogId": "ohos.a2ui.extended.catalog.form",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateComponents": {
+        "components": [
+          {
+            "children": [
+              "root_0"
+            ],
+            "component": "Column",
+            "id": "root",
+            "itemMargin": 8,
+            "styles": {
+              "backgroundColor": "#FFFFFFFF",
+              "borderRadius": 20,
+              "clip": true,
+              "height": "matchParent",
+              "padding": 12,
+              "width": "matchParent"
+            }
+          },
+          {
+            "component": "Text",
+            "content": "正文",
+            "id": "root_0"
+          }
+        ],
+        "root": "root",
+        "surfaceId": "surface_card"
+      },
+      "version": "v0.9"
+    },
+    {
+      "updateDataModel": {
+        "path": "/",
+        "surfaceId": "surface_card",
+        "value": {
+          "ui": {
+            "state": "ready"
+          }
+        }
+      },
+      "version": "v0.9"
+    }
+  ],
+  "returnedSameObject": true,
+  "terselTree": "Column(\"card\", {\"_id\":\"root\",\"padding\":12}, Text(\"正文\"));"
+}

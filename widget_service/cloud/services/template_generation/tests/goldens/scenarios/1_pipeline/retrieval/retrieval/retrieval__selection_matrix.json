@@ -1,0 +1,472 @@
+{
+  "bluetooth_case_two_actions": {
+    "actionIds": [
+      "event.open.music.daily",
+      "event.open.clock.alarm"
+    ],
+    "componentIds": [
+      "BluetoothDeviceOverview"
+    ],
+    "requiredGroups": [
+      [
+        "BluetoothDeviceOverviewEarphoneCaseCompact@1"
+      ],
+      [
+        "BluetoothDeviceOverviewEarphoneCaseCompact@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "BluetoothDeviceOverviewEarphoneCaseCompact@1"
+      ]
+    ],
+    "themeId": "family-weather-care-blue"
+  },
+  "calendar_shared_capability": {
+    "actionIds": [],
+    "componentIds": [
+      "CalendarOverview"
+    ],
+    "requiredGroups": [
+      [
+        "ScheduleOverviewNextEventLocationFull@1"
+      ],
+      [
+        "ScheduleOverviewNextEventLocationFull@1"
+      ],
+      [
+        "ScheduleOverviewNextEventLocationFull@1"
+      ],
+      [
+        "ScheduleOverviewNextEventLocationFull@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "ScheduleOverviewNextEventLocationFull@1"
+      ]
+    ],
+    "themeId": "meeting-paper-neutral"
+  },
+  "cross_theme": {
+    "actionIds": [],
+    "componentIds": [
+      "WeatherOverview"
+    ],
+    "requiredGroups": [
+      [
+        "WeatherOverviewFull@1",
+        "WeatherOverviewUpdatedAtFull@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "WeatherOverviewFull@1",
+        "WeatherOverviewUpdatedAtFull@1"
+      ]
+    ],
+    "themeId": "meeting-paper-neutral"
+  },
+  "daily_compare": {
+    "actionIds": [],
+    "componentIds": [
+      "WeatherOverview"
+    ],
+    "requiredGroups": [
+      [
+        "WeatherOverviewDailyCompareFull@1"
+      ],
+      [
+        "WeatherOverviewDailyCompareFull@1"
+      ],
+      [
+        "WeatherOverviewDailyCompareFull@1"
+      ],
+      [
+        "WeatherOverviewDailyCompareFull@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "WeatherOverviewDailyCompareFull@1"
+      ]
+    ],
+    "themeId": "family-weather-care-blue"
+  },
+  "daily_date": {
+    "actionIds": [],
+    "componentIds": [
+      "WeatherOverview"
+    ],
+    "requiredGroups": [
+      [
+        "WeatherOverviewDailyDateFull@1"
+      ],
+      [
+        "WeatherOverviewDailyDateFull@1"
+      ],
+      [
+        "WeatherOverviewDailyDateFull@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "WeatherOverviewDailyDateFull@1"
+      ]
+    ],
+    "themeId": "family-weather-care-blue"
+  },
+  "daily_health": {
+    "actionIds": [],
+    "componentIds": [
+      "WeatherOverview"
+    ],
+    "requiredGroups": [
+      [
+        "WeatherOverviewDailyHealthFull@1"
+      ],
+      [
+        "WeatherOverviewDailyHealthFull@1"
+      ],
+      [
+        "WeatherOverviewDailyHealthFull@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "WeatherOverviewDailyHealthFull@1"
+      ]
+    ],
+    "themeId": "family-weather-care-blue"
+  },
+  "daily_rain": {
+    "actionIds": [],
+    "componentIds": [
+      "WeatherOverview"
+    ],
+    "requiredGroups": [
+      [
+        "WeatherOverviewDailyRainFull@1"
+      ],
+      [
+        "WeatherOverviewDailyRainFull@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "WeatherOverviewDailyRainFull@1"
+      ]
+    ],
+    "themeId": "family-weather-care-blue"
+  },
+  "domain_only": {
+    "actionIds": [],
+    "componentIds": [
+      "WeatherOverview"
+    ],
+    "requiredGroups": [
+      [
+        "WeatherOverviewFull@1",
+        "WeatherOverviewUpdatedAtFull@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "WeatherOverviewFull@1",
+        "WeatherOverviewUpdatedAtFull@1"
+      ]
+    ],
+    "themeId": "family-weather-care-blue"
+  },
+  "earphone_compact_two_actions": {
+    "actionIds": [
+      "event.open.music.daily",
+      "event.open.settings.dnd"
+    ],
+    "componentIds": [
+      "BluetoothDeviceOverview"
+    ],
+    "requiredGroups": [
+      [
+        "BluetoothDeviceOverviewEarphoneCompact@1"
+      ],
+      [
+        "BluetoothDeviceOverviewEarphoneCompact@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "BluetoothDeviceOverviewEarphoneCompact@1"
+      ]
+    ],
+    "themeId": "family-weather-care-blue"
+  },
+  "earphone_hero": {
+    "actionIds": [
+      "event.open.music.daily"
+    ],
+    "componentIds": [
+      "BluetoothDeviceOverview"
+    ],
+    "requiredGroups": [
+      [
+        "BluetoothDeviceOverviewEarphoneHero@1"
+      ],
+      [
+        "BluetoothDeviceOverviewEarphoneHero@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "BluetoothDeviceOverviewEarphoneHero@1"
+      ]
+    ],
+    "themeId": "family-weather-care-blue"
+  },
+  "one_business_one_action": {
+    "actionIds": [
+      "event.open.weather"
+    ],
+    "componentIds": [
+      "WeatherOverview"
+    ],
+    "requiredGroups": [
+      [
+        "WeatherOverviewAirQualityHero@1",
+        "WeatherOverviewConditionHero@1",
+        "WeatherOverviewFull@1",
+        "WeatherOverviewHero@1",
+        "WeatherOverviewUpdatedAtFull@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "WeatherOverviewAirQualityHero@1",
+        "WeatherOverviewConditionHero@1",
+        "WeatherOverviewFull@1",
+        "WeatherOverviewHero@1",
+        "WeatherOverviewUpdatedAtFull@1"
+      ]
+    ],
+    "themeId": "family-weather-care-blue"
+  },
+  "one_business_two_actions": {
+    "actionIds": [
+      "event.open.weather",
+      "event.start.navigate"
+    ],
+    "componentIds": [
+      "WeatherOverview"
+    ],
+    "requiredGroups": [
+      [
+        "WeatherOverviewCompact@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "WeatherOverviewCompact@1"
+      ]
+    ],
+    "themeId": "family-weather-care-blue"
+  },
+  "optional_title__condition__actions0": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "2x2 business WeatherOverview has no Full template"
+  },
+  "optional_title__condition__actions1": {
+    "actionIds": [
+      "event.open.0"
+    ],
+    "componentIds": [
+      "WeatherOverview"
+    ],
+    "requiredGroups": [
+      [
+        "WeatherOverviewConditionHero@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "WeatherOverviewConditionHero@1"
+      ]
+    ],
+    "themeId": "family-weather-care-blue"
+  },
+  "optional_title__condition__actions2": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "2x2 business WeatherOverview has no Compact template"
+  },
+  "optional_title__district__actions0": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "2x2 business WeatherOverview has no Full template"
+  },
+  "optional_title__district__actions1": {
+    "actionIds": [
+      "event.open.0"
+    ],
+    "componentIds": [
+      "WeatherOverview"
+    ],
+    "requiredGroups": [
+      [
+        "WeatherOverviewConditionHero@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "WeatherOverviewConditionHero@1"
+      ]
+    ],
+    "themeId": "family-weather-care-blue"
+  },
+  "optional_title__district__actions2": {
+    "errorType": "TemplateRetrievalMiss",
+    "message": "2x2 business WeatherOverview has no Compact template"
+  },
+  "q001_condition_hero": {
+    "actionIds": [
+      "event.open.weather"
+    ],
+    "componentIds": [
+      "WeatherOverview"
+    ],
+    "requiredGroups": [
+      [
+        "WeatherOverviewConditionHero@1"
+      ],
+      [
+        "WeatherOverviewConditionHero@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "WeatherOverviewConditionHero@1"
+      ]
+    ],
+    "themeId": "family-weather-care-blue"
+  },
+  "q001_sleep_hero": {
+    "actionIds": [
+      "event.open.clock.alarm"
+    ],
+    "componentIds": [
+      "SleepOverview"
+    ],
+    "requiredGroups": [
+      [
+        "SleepOverviewFull@1",
+        "SleepOverviewHero@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "SleepOverviewFull@1",
+        "SleepOverviewHero@1"
+      ]
+    ],
+    "themeId": "sleep-night-violet"
+  },
+  "q004_alert_full": {
+    "actionIds": [],
+    "componentIds": [
+      "WeatherOverview"
+    ],
+    "requiredGroups": [
+      [
+        "WeatherOverviewAlertFull@1"
+      ],
+      [
+        "WeatherOverviewAlertFull@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "WeatherOverviewAlertFull@1"
+      ]
+    ],
+    "themeId": "family-weather-care-blue"
+  },
+  "q034_dual_city": {
+    "actionIds": [],
+    "componentIds": [
+      "WeatherOverview"
+    ],
+    "requiredGroups": [
+      [
+        "WeatherOverviewDualCityFull@1"
+      ],
+      [
+        "WeatherOverviewDualCityFull@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "WeatherOverviewDualCityFull@1"
+      ]
+    ],
+    "themeId": "family-weather-care-blue"
+  },
+  "q043_care_alert": {
+    "actionIds": [
+      "event.call.phone"
+    ],
+    "componentIds": [
+      "WeatherOverview"
+    ],
+    "requiredGroups": [
+      [
+        "WeatherOverviewCareAlertFull@1"
+      ],
+      [
+        "WeatherOverviewCareAlertFull@1"
+      ],
+      [
+        "WeatherOverviewCareAlertFull@1"
+      ],
+      [
+        "WeatherOverviewCareAlertFull@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "WeatherOverviewCareAlertFull@1"
+      ]
+    ],
+    "themeId": "family-weather-care-blue"
+  },
+  "specialized_humidity": {
+    "actionIds": [],
+    "componentIds": [
+      "WeatherOverview"
+    ],
+    "requiredGroups": [
+      [
+        "WeatherOverviewHumidityFull@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "WeatherOverviewHumidityFull@1"
+      ]
+    ],
+    "themeId": "family-weather-care-blue"
+  },
+  "specialized_uv": {
+    "actionIds": [],
+    "componentIds": [
+      "WeatherOverview"
+    ],
+    "requiredGroups": [
+      [
+        "WeatherOverviewUvFull@1"
+      ]
+    ],
+    "templateIds": [
+      [
+        "WeatherOverviewUvFull@1"
+      ]
+    ],
+    "themeId": "family-weather-care-blue"
+  }
+}

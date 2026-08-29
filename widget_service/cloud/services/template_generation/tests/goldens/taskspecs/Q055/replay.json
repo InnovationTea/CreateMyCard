@@ -1,0 +1,12 @@
+{
+  "recordings": [
+    {
+      "key": "313e5347e143e581781ce1d87393e31107c112153affe6ec4e4f36249f04d476",
+      "response": "Template(\"WideFullTwoCompactLayout@1\", {}, Template(\"ActivityOverviewFull@1\", {\"stepsIcon\": \"resources/base/media/figure_run.svg\"}), Template(\"ActivityOverviewCompact@1\", {\"stepsIcon\": \"resources/base/media/figure_run.svg\"}), Template(\"GenericMetricOverviewCompact@1\", {\"title\": \"今日活动\", \"valuePath\": \"/updatedAt\", \"sourceIcon\": \"resources/base/media/clock.svg\"}));"
+    },
+    {
+      "key": "6c857583c189f246960cfb693654c85de42e7d01163eaf6d25ae925720514912",
+      "response": "{\"requiredOutputFieldsByCapability\":{\"GetHealthAndSportSummary\":[\"/dailySteps\",\"/dailyDistanceText\",\"/dailyTotalCaloriesText\",\"/updatedAt\"]}}"
+    }
+  ]
+}
