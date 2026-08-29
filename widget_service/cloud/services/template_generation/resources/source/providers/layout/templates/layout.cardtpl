@@ -1,0 +1,69 @@
+#Template SingleFocusLayout@1(props: {}, ...children)
+data = {
+}
+
+SingleFocusLayout(children)
+#End
+
+#Template HeroActionLayout@1(props: {}, ...children)
+data = {
+}
+
+HeroActionLayout(children)
+#End
+
+#Template HeroSupportLayout@1(props: {}, ...children)
+data = {
+}
+
+HeroSupportLayout(children)
+#End
+
+#Template HeroSupportActionLayout@1(props: {}, ...children)
+data = {
+}
+
+HeroSupportActionLayout(children)
+#End
+
+#Template PeerPairLayout@1(props: {}, ...children)
+data = {
+}
+
+PeerPairLayout(children)
+#End
+
+#Template SequentialSummaryLayout@1(props: {}, ...children)
+data = {
+}
+
+SequentialSummaryLayout(children)
+#End
+
+#Template EqualItemsLayout@1(props: {}, ...children)
+data = {
+}
+
+EqualItemsLayout(children)
+#End
+
+#Template ListActionLayout@1(props: {}, ...children)
+data = {
+}
+
+ListActionLayout(children)
+#End
+
+#Template ActionMatrixLayout@1(props: {}, ...children)
+data = {
+}
+
+ActionMatrixLayout(children)
+#End
+
+#Template WeatherNowForecastLayout@1(props: {}, ...children)
+data = {
+}
+
+WeatherNowForecastLayout(children)
+#End

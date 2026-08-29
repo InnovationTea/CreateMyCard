@@ -1,0 +1,441 @@
+{
+  "bundleFormat": "card-provider-bundle/1",
+  "providerId": "com.huawei.layout.cli",
+  "providerVersion": "1.0.0-poc",
+  "templates": [
+    {
+      "templateId": "SingleFocusLayout@1",
+      "description": "单一焦点纵向骨架，承载一个主要业务区域。",
+      "entry": "templates/layout.cardtpl"
+    },
+    {
+      "templateId": "HeroActionLayout@1",
+      "description": "主内容与底部动作组合骨架。",
+      "entry": "templates/layout.cardtpl"
+    },
+    {
+      "templateId": "HeroSupportLayout@1",
+      "description": "主内容与辅助内容双区域骨架。",
+      "entry": "templates/layout.cardtpl"
+    },
+    {
+      "templateId": "HeroSupportActionLayout@1",
+      "description": "主内容、辅助内容和底部动作组合骨架。",
+      "entry": "templates/layout.cardtpl"
+    },
+    {
+      "templateId": "PeerPairLayout@1",
+      "description": "两个同级业务区域并列骨架。",
+      "entry": "templates/layout.cardtpl"
+    },
+    {
+      "templateId": "SequentialSummaryLayout@1",
+      "description": "多个摘要区域顺序排列骨架。",
+      "entry": "templates/layout.cardtpl"
+    },
+    {
+      "templateId": "EqualItemsLayout@1",
+      "description": "多个同等权重业务区域排列骨架。",
+      "entry": "templates/layout.cardtpl"
+    },
+    {
+      "templateId": "ListActionLayout@1",
+      "description": "列表内容与动作组合骨架。",
+      "entry": "templates/layout.cardtpl"
+    },
+    {
+      "templateId": "ActionMatrixLayout@1",
+      "description": "内容与多个动作矩阵组合骨架。",
+      "entry": "templates/layout.cardtpl"
+    },
+    {
+      "templateId": "WeatherNowForecastLayout@1",
+      "description": "当前天气与预报组合骨架。",
+      "entry": "templates/layout.cardtpl"
+    }
+  ],
+  "compatibility": {
+    "templateLanguage": "cardtpl/1",
+    "catalogId": "ohos.a2ui.extended.catalog.form",
+    "a2uiWireVersion": "v0.9"
+  },
+  "layoutComponents": [
+    {
+      "name": "SingleFocusLayout",
+      "description": "单一主内容布局；可在最后一个 child 承载一个 PillAction，业务区不得侵入底部动作预留区。",
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minChildren": 1,
+      "maxChildrenBySize": {
+        "2x2": 1,
+        "2x4": 1
+      },
+      "actionPolicy": "optional",
+      "minActionChildrenBySize": {
+        "2x2": 0,
+        "2x4": 0
+      },
+      "maxActionChildrenBySize": {
+        "2x2": 1,
+        "2x4": 1
+      },
+      "parametersSchema": {
+        "type": "object",
+        "properties": {
+          "contentAlign": {
+            "type": "string",
+            "enum": [
+              "topStart",
+              "centerStart",
+              "bottomStart"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "loweringBySize": {
+        "2x2": "column",
+        "2x4": "column"
+      }
+    },
+    {
+      "name": "HeroActionLayout",
+      "description": "主业务区加一个必需的布局 Action；Action 必须是最后一个 child。2x2 主业务区使用剩余高度，PillAction 固定底部，短数值与单位横排。",
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minChildren": 1,
+      "maxChildrenBySize": {
+        "2x2": 1,
+        "2x4": 1
+      },
+      "actionPolicy": "required",
+      "minActionChildrenBySize": {
+        "2x2": 1,
+        "2x4": 1
+      },
+      "maxActionChildrenBySize": {
+        "2x2": 1,
+        "2x4": 1
+      },
+      "parametersSchema": {
+        "type": "object",
+        "properties": {
+          "actionPlacement": {
+            "type": "string",
+            "enum": [
+              "bottom",
+              "end"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "loweringBySize": {
+        "2x2": "column",
+        "2x4": "column"
+      }
+    },
+    {
+      "name": "HeroSupportLayout",
+      "description": "主业务区和辅助业务区布局；2x2 固定纵向并省略重复组件标题行，2x4 默认横向。",
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minChildren": 2,
+      "maxChildrenBySize": {
+        "2x2": 2,
+        "2x4": 2
+      },
+      "actionPolicy": "none",
+      "minActionChildrenBySize": {
+        "2x2": 0,
+        "2x4": 0
+      },
+      "maxActionChildrenBySize": {
+        "2x2": 0,
+        "2x4": 0
+      },
+      "parametersSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "loweringBySize": {
+        "2x2": "column",
+        "2x4": "row"
+      }
+    },
+    {
+      "name": "HeroSupportActionLayout",
+      "description": "主业务区、辅助业务区和一个必需的布局 Action。2x2 的 Support 仅限1到2行紧凑文本，空间不足时不得压缩或遮挡底部 Action。",
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minChildren": 2,
+      "maxChildrenBySize": {
+        "2x2": 2,
+        "2x4": 2
+      },
+      "actionPolicy": "required",
+      "minActionChildrenBySize": {
+        "2x2": 1,
+        "2x4": 1
+      },
+      "maxActionChildrenBySize": {
+        "2x2": 1,
+        "2x4": 1
+      },
+      "parametersSchema": {
+        "type": "object",
+        "properties": {
+          "heroRatio": {
+            "type": "string",
+            "enum": [
+              "wide",
+              "balanced"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "loweringBySize": {
+        "2x2": "column",
+        "2x4": "row"
+      }
+    },
+    {
+      "name": "PeerPairLayout",
+      "description": "两个同权业务区布局。",
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minChildren": 2,
+      "maxChildrenBySize": {
+        "2x2": 2,
+        "2x4": 2
+      },
+      "actionPolicy": "optional",
+      "minActionChildrenBySize": {
+        "2x2": 0,
+        "2x4": 0
+      },
+      "maxActionChildrenBySize": {
+        "2x2": 1,
+        "2x4": 1
+      },
+      "parametersSchema": {
+        "type": "object",
+        "properties": {
+          "orientation": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "rows",
+              "columns"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "loweringBySize": {
+        "2x2": "row",
+        "2x4": "row"
+      }
+    },
+    {
+      "name": "SequentialSummaryLayout",
+      "description": "主摘要与后续详情按阅读顺序排列。",
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minChildren": 2,
+      "maxChildrenBySize": {
+        "2x2": 3,
+        "2x4": 4
+      },
+      "actionPolicy": "none",
+      "minActionChildrenBySize": {
+        "2x2": 0,
+        "2x4": 0
+      },
+      "maxActionChildrenBySize": {
+        "2x2": 0,
+        "2x4": 0
+      },
+      "parametersSchema": {
+        "type": "object",
+        "properties": {
+          "detailColumns": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4
+          }
+        },
+        "additionalProperties": false
+      },
+      "loweringBySize": {
+        "2x2": "column",
+        "2x4": "column"
+      }
+    },
+    {
+      "name": "EqualItemsLayout",
+      "description": "两个或多个同权业务摘要均分空间。",
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minChildren": 2,
+      "minChildrenBySize": {
+        "2x2": 2,
+        "2x4": 3
+      },
+      "maxChildrenBySize": {
+        "2x2": 2,
+        "2x4": 4
+      },
+      "actionPolicy": "none",
+      "minActionChildrenBySize": {
+        "2x2": 0,
+        "2x4": 0
+      },
+      "maxActionChildrenBySize": {
+        "2x2": 0,
+        "2x4": 0
+      },
+      "parametersSchema": {
+        "type": "object",
+        "properties": {
+          "arrangement": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "row",
+              "grid"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "loweringBySize": {
+        "2x2": "row",
+        "2x4": "row"
+      }
+    },
+    {
+      "name": "ListActionLayout",
+      "description": "列表业务区加可选布局 Action。",
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minChildren": 1,
+      "maxChildrenBySize": {
+        "2x2": 1,
+        "2x4": 1
+      },
+      "actionPolicy": "optional",
+      "minActionChildrenBySize": {
+        "2x2": 0,
+        "2x4": 0
+      },
+      "maxActionChildrenBySize": {
+        "2x2": 1,
+        "2x4": 1
+      },
+      "parametersSchema": {
+        "type": "object",
+        "properties": {
+          "actionPlacement": {
+            "type": "string",
+            "enum": [
+              "bottom",
+              "end"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "loweringBySize": {
+        "2x2": "column",
+        "2x4": "column"
+      }
+    },
+    {
+      "name": "ActionMatrixLayout",
+      "description": "可选业务摘要与2到4个同级控制项；2x2最多2项，2x4按2项、主1+次2或2x2矩阵排布。",
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minChildren": 0,
+      "maxChildrenBySize": {
+        "2x2": 1,
+        "2x4": 1
+      },
+      "actionPolicy": "required",
+      "minActionChildrenBySize": {
+        "2x2": 2,
+        "2x4": 2
+      },
+      "maxActionChildrenBySize": {
+        "2x2": 2,
+        "2x4": 4
+      },
+      "parametersSchema": {
+        "type": "object",
+        "properties": {
+          "primaryActionIndex": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          }
+        },
+        "additionalProperties": false
+      },
+      "loweringBySize": {
+        "2x2": "row",
+        "2x4": "row"
+      }
+    },
+    {
+      "name": "WeatherNowForecastLayout",
+      "description": "当前天气、预报和可选辅助语义布局；2x2 只显示城市、主温度、天气/空气和高低温，不展示未来预报列表，不重复事实；有动作时使用布局根末尾 PillAction。",
+      "supportedCardSizes": [
+        "2x2",
+        "2x4"
+      ],
+      "minChildren": 1,
+      "maxChildrenBySize": {
+        "2x2": 1,
+        "2x4": 4
+      },
+      "actionPolicy": "optional",
+      "minActionChildrenBySize": {
+        "2x2": 0,
+        "2x4": 0
+      },
+      "maxActionChildrenBySize": {
+        "2x2": 1,
+        "2x4": 1
+      },
+      "parametersSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "loweringBySize": {
+        "2x2": "column",
+        "2x4": "row"
+      }
+    }
+  ]
+}

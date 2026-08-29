@@ -1,0 +1,39 @@
+{
+  "bundleFormat": "card-provider-bundle/1",
+  "providerId": "com.huawei.countdown.cli",
+  "providerVersion": "1.0.0-poc",
+  "firstLayerRule": {
+    "path": "layer-docs/first-layer.md"
+  },
+  "secondLayerRule": {
+    "path": "layer-docs/second-layer.md"
+  },
+  "capabilities": [
+    {
+      "capabilityId": "GetCountdownDays",
+      "dataDomain": "/data/countdown",
+      "dataSchema": {
+        "path": "capabilities/app-11.7.5.205_rom-6.0/data_capabilities.json",
+        "version": "app-11.7.5.205_rom-6.0"
+      }
+    }
+  ],
+  "templates": [
+    {
+      "templateId": "CountdownOverview@1",
+      "businessId": "CountdownOverview",
+      "capabilityId": "GetCountdownDays",
+      "description": "通用事件的剩余天数摘要。 组件形态：countdown。",
+      "requiredData": [
+        "/countdownDays"
+      ],
+      "optionalData": [],
+      "entry": "templates/countdown-overview.cardtpl"
+    }
+  ],
+  "compatibility": {
+    "templateLanguage": "cardtpl/1",
+    "catalogId": "ohos.a2ui.extended.catalog.form",
+    "a2uiWireVersion": "v0.9"
+  }
+}

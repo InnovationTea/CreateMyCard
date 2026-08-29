@@ -1,0 +1,24 @@
+{
+  "capabilityId": "GetEarphoneInfo",
+  "preferredWriteResultTo": "/data/earphone",
+  "inputSchema": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "isConnected": {"type": "boolean"},
+      "earphoneName": {"type": "string"},
+      "batteryLevel": {"type": "integer"},
+      "chargingStatusDesc": {"type": "string"},
+      "leftBatteryLevel": {"type": "integer"},
+      "leftChargingStatusDesc": {"type": "string"},
+      "rightBatteryLevel": {"type": "integer"},
+      "rightChargingStatusDesc": {"type": "string"},
+      "updatedAt": {"type": "string"}
+    }
+  }
+}

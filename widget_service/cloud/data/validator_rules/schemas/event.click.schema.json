@@ -1,0 +1,72 @@
+{
+  "functions": {
+    "clickToCallPhone": {
+      "parameters": {
+        "phoneNumber": {"type": "string"}
+      },
+      "required": ["phoneNumber"]
+    },
+    "clickToDeeplink": {
+      "parameters": {
+        "intentName": {"type": "string"},
+        "bundleName": {"type": "string"},
+        "abilityName": {"type": "string"},
+        "uri": {"type": "string"}
+      },
+      "required": ["intentName", "uri"]
+    },
+    "clickToApi": {
+      "parameters": {
+        "intentName": {"type": "string"},
+        "params": {"type": "object"}
+      },
+      "required": ["intentName", "params"],
+      "supportedIntents": {
+        "CallPhone": {
+          "params": {
+            "relationship": {"type": "string"},
+            "phoneNumber": {"type": "string"}
+          },
+          "required": ["relationship", "phoneNumber"]
+        },
+        "CleanRAMMemory": {
+          "params": {},
+          "required": []
+        },
+        "EnterMeeting": {
+          "params": {},
+          "required": []
+        }
+      }
+    },
+    "clickToIntent": {
+      "parameters": {
+        "intentName": {"type": "string"},
+        "params": {"type": "object"}
+      },
+      "required": ["intentName", "params"],
+      "supportedIntents": {
+        "ViewCalendarEvent": {
+          "params": {
+            "entityId": {"type": "string"}
+          },
+          "required": ["entityId"]
+        },
+        "StartNavigate": {
+          "params": {
+            "dstLocation": {"type": "object"}
+          },
+          "required": ["dstLocation"]
+        },
+        "SetSettingSwitch": {
+          "params": {
+            "appBundleName": {"const": "com.huawei.hmos.settings"},
+            "itemName": {"const": "battery_saving_mode"},
+            "switchFlag": {"type": "number", "enum": [0, 1]}
+          },
+          "required": ["appBundleName", "itemName", "switchFlag"]
+        }
+      }
+    }
+  }
+}

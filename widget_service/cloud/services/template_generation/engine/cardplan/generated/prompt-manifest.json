@@ -1,0 +1,13 @@
+{
+  "a2uiTargetSpecVersion": "v0.9.1",
+  "a2uiWireVersion": "v0.9",
+  "advancedComponentRegistryVersion": "advanced-component-registry/1",
+  "bodyProtocolVersion": "tersedsl-nested-2-hybrid/0.2",
+  "bundleVersion": "cardplan-template-python-bundle/1",
+  "catalogId": "ohos.a2ui.extended.catalog.form",
+  "contractVersion": "hybrid-body-contract/0.5",
+  "selectionProtocolVersion": "card-plan-template/0.2",
+  "templateRegistryVersion": "terse-template-registry/0.7",
+  "uxAdvancedComponentRegistryVersion": "advanced-component-ux-registry/2",
+  "uxMixedProtocolVersion": "tersedsl-nested-2-ux-mixed/0.2"
+}

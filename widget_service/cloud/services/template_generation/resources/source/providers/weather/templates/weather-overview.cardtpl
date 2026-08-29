@@ -1,0 +1,173 @@
+#Template WeatherOverviewCompact@1(props: {})
+data = {
+    city: $path("/location/districtName"),
+    temperature: $path("/current/temperatureText"),
+    condition: $path("/current/condition"),
+    airQuality: $path("/current/airQuality"),
+    temperatureRange: $path("/daily/0/temperatureRangeText")
+}
+
+Column(
+  "compact",
+  {"_advancedComponent": "WeatherOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start"},
+  Text(
+      data.city,
+      "compact-title",
+      {"width": "matchParent", "fontSize": 12, "fontWeight": 400, "maxLines": 1, "textOverflow": "ellipsis"}
+    ),
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "alignItems": "bottom"},
+      Text(
+            data.temperature,
+            "title",
+            {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
+          ),
+      Text(
+            `${data.condition}｜${data.airQuality}`,
+            "body",
+            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+          )
+    ),
+  Text(
+      data.temperatureRange,
+      "subtitle",
+      {"width": "matchParent", "fontSize": 10, "maxLines": 1}
+    )
+)
+#End
+
+#Template WeatherOverviewCompactIcon@1(props: { conditionIcon: asset })
+data = {
+    city: $path("/location/districtName"),
+    temperature: $path("/current/temperatureText"),
+    condition: $path("/current/condition"),
+    airQuality: $path("/current/airQuality"),
+    temperatureRange: $path("/daily/0/temperatureRangeText")
+}
+
+Column(
+  "compact",
+  {"_advancedComponent": "WeatherOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start"},
+  Row(
+      "between",
+      {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top"},
+      Text(
+            data.city,
+            "compact-title",
+            {"fontSize": 12, "fontWeight": 400, "maxLines": 1, "textOverflow": "ellipsis"}
+          ),
+      Image(
+            props.conditionIcon,
+            "icon",
+            {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
+          )
+    ),
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "alignItems": "bottom"},
+      Text(
+            data.temperature,
+            "title",
+            {"fontSize": 30, "fontWeight": 800, "maxLines": 1}
+          ),
+      Text(
+            `${data.condition}｜${data.airQuality}`,
+            "body",
+            {"fontSize": 12, "fontWeight": 500, "maxLines": 1}
+          )
+    ),
+  Text(
+      data.temperatureRange,
+      "subtitle",
+      {"width": "matchParent", "fontSize": 10, "maxLines": 1}
+    )
+)
+#End
+
+#Template WeatherOverviewHero@1(props: {})
+data = {
+    city: $path("/location/districtName"),
+    temperature: $path("/current/temperatureText"),
+    condition: $path("/current/condition"),
+    airQuality: $path("/current/airQuality"),
+    temperatureRange: $path("/daily/0/temperatureRangeText")
+}
+
+Column(
+  "compact",
+  {"_advancedComponent": "WeatherOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start"},
+  Text(
+      data.city,
+      "compact-title",
+      {"width": "matchParent", "fontSize": 12, "fontWeight": 400, "maxLines": 1, "textOverflow": "ellipsis"}
+    ),
+  Text(
+      data.temperature,
+      "title",
+      {"fontSize": 38, "fontWeight": 800, "maxLines": 1}
+    ),
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "alignItems": "center"},
+      Text(
+            `${data.condition}｜${data.airQuality}`,
+            "body",
+            {"fontSize": 14, "fontWeight": 500, "maxLines": 1}
+          ),
+      Text(
+            data.temperatureRange,
+            "subtitle",
+            {"fontSize": 12, "maxLines": 1}
+          )
+    )
+)
+#End
+
+#Template WeatherOverviewHeroIcon@1(props: { conditionIcon: asset })
+data = {
+    city: $path("/location/districtName"),
+    temperature: $path("/current/temperatureText"),
+    condition: $path("/current/condition"),
+    airQuality: $path("/current/airQuality"),
+    temperatureRange: $path("/daily/0/temperatureRangeText")
+}
+
+Column(
+  "compact",
+  {"_advancedComponent": "WeatherOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start"},
+  Row(
+      "between",
+      {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top"},
+      Text(
+            data.city,
+            "compact-title",
+            {"fontSize": 12, "fontWeight": 400, "maxLines": 1, "textOverflow": "ellipsis"}
+          ),
+      Image(
+            props.conditionIcon,
+            "icon",
+            {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
+          )
+    ),
+  Text(
+      data.temperature,
+      "title",
+      {"fontSize": 38, "fontWeight": 800, "maxLines": 1}
+    ),
+  Row(
+      "between",
+      {"width": "matchParent", "itemMargin": 4, "alignItems": "center"},
+      Text(
+            `${data.condition}｜${data.airQuality}`,
+            "body",
+            {"fontSize": 14, "fontWeight": 500, "maxLines": 1}
+          ),
+      Text(
+            data.temperatureRange,
+            "subtitle",
+            {"fontSize": 12, "maxLines": 1}
+          )
+    )
+)
+#End
