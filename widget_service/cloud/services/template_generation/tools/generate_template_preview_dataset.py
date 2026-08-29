@@ -11,6 +11,7 @@ _CLOUD_ROOT = Path(__file__).resolve().parents[3]
 if str(_CLOUD_ROOT) not in sys.path:
     sys.path.insert(0, str(_CLOUD_ROOT))
 
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output_dir", type=Path, help="输出 manifest.json 和 TNNN.json 的目录")
