@@ -6,6 +6,7 @@ import asyncio
 import hashlib
 import json
 import re
+import shutil
 from contextvars import ContextVar
 from copy import deepcopy
 from dataclasses import dataclass
@@ -47,6 +48,18 @@ _CAPABILITY_ROOT = (
 )
 _CURRENT_CASE_ID: ContextVar[str] = ContextVar("provider_gallery_case_id", default="")
 
+
+def _clear_generated_gallery_files(root: Path) -> None:
+    """移除上一次画廊运行留下的受管文件，避免失效场景继续被端侧打包。"""
+    providers_root = root / "providers"
+    if providers_root.is_symlink() or providers_root.is_file():
+        providers_root.unlink()
+    elif providers_root.is_dir():
+        shutil.rmtree(providers_root)
+    manifest_path = root / "manifest.json"
+    if manifest_path.is_symlink() or manifest_path.is_file():
+        manifest_path.unlink()
+
 _PROVIDER_NAMES = {
     "app-usage": "应用时长",
     "battery": "设备电量",
@@ -63,11 +76,11 @@ _BUSINESS_DESCRIPTIONS = {
     "AppUsageOverview": ("应用时长", "展示示例应用今天的使用时长"),
     "BatteryOverview": ("设备电量", "展示手机剩余电量和充电状态"),
     "BluetoothDeviceOverview": ("蓝牙耳机", "展示耳机连接状态和左右耳电量"),
-    "CalendarOverview": ("日历日程", "展示今天日期和下一项日程"),
+    "CalendarOverview": ("日历日程", "展示下一项日程"),
     "CountdownOverview": ("倒计时", "展示距离元旦还有多少天"),
     "HeartRateOverview": ("运动心率", "展示最近一次运动的平均心率"),
     "ResourceUsageOverview": ("系统内存", "展示内存占用率和可用内存"),
-    "SleepOverview": ("睡眠", "展示昨晚睡眠时长、得分和状态"),
+    "SleepOverview": ("睡眠情况", "展示昨晚睡眠情况的时长、得分和状态"),
     "WeatherOverview": ("天气", "展示上海青浦当前温度、天气和空气质量"),
     "WorkoutOverview": ("运动记录", "展示最近一次运动的类型、时长和热量"),
 }
@@ -131,8 +144,6 @@ _ASSET_IDS_BY_TEMPLATE_PREFIX = {
     "BatteryOverview": ("asset.battery_leaf_fill",),
     "HeartRateOverviewIcon": ("asset.heart_fill",),
     "HeartRateOverviewUpdatedIcon": ("asset.heart_fill",),
-    "DateOverviewCompact": ("asset.calendar_fill", "asset.icon_meeting"),
-    "DateOverviewFull": ("asset.calendar_fill", "asset.icon_meeting"),
     "ScheduleOverviewNextEventHero": ("asset.calendar_fill",),
     "ScheduleOverviewDatedMeetingHero": (
         "asset.calendar_fill",
@@ -189,6 +200,9 @@ _ASSET_SEARCH_TERMS_BY_TEMPLATE_PREFIX = {
 
 _CALENDAR_NEXT_EVENT_RUNTIME_FIELDS = ("/events/0/dtStart",)
 _BATTERY_FACT_FIELDS = frozenset(("/batterySOC", "/batterySOCText"))
+_BATTERY_FACT_FALLBACK_EXEMPT_TEMPLATE_IDS = frozenset(
+    {"BatteryOverviewHealthLevelHero@1"}
+)
 
 _COMPACT_PARTNER_PRIORITY = (
     "AppUsageOverviewCompact@1",
@@ -471,8 +485,13 @@ def _data_binding(
 ) -> dict[str, Any]:
     configured_fields = template.fields if template is not None else definition.fallback_fields
     fields = configured_fields
-    has_battery_fact = bool(_BATTERY_FACT_FIELDS.intersection(configured_fields))
-    if definition.business_id == "BatteryOverview" and not has_battery_fact:
+    template_id = template.template_id if template is not None else ""
+    needs_battery_fact_fallback = (
+        definition.business_id == "BatteryOverview"
+        and not _BATTERY_FACT_FIELDS.intersection(configured_fields)
+        and template_id not in _BATTERY_FACT_FALLBACK_EXEMPT_TEMPLATE_IDS
+    )
+    if needs_battery_fact_fallback:
         fields = _ordered_unique([*configured_fields, "/batterySOCText"])
     if template is not None and template.template_id.startswith("ScheduleOverviewNextEvent"):
         fields = _ordered_unique([*configured_fields, *_CALENDAR_NEXT_EVENT_RUNTIME_FIELDS])
@@ -774,6 +793,7 @@ def write_gallery_input_dataset(
     compact_partners = _compact_partners(definitions, data_capability_ids)
     controls = load_template_controls()
     event_capabilities = _load_event_capabilities(capability_root)
+    _clear_generated_gallery_files(output_root)
     providers: list[GalleryInputProvider] = []
     for provider_slug in sorted({item.provider_slug for item in definitions}):
         provider_definitions = [
@@ -1019,6 +1039,7 @@ class ProviderGalleryBatchRunner:
         if concurrency < 1:
             raise ValueError("concurrency must be at least 1")
         manifest = load_gallery_input_manifest(input_root)
+        _clear_generated_gallery_files(output_root)
         selected_providers = [
             provider
             for provider in manifest.providers

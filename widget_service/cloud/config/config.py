@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     design_compact_profile_id: str = "design-compact-dsl"
     enable_default_protocol_profile_fallback: bool = True
     enable_ids_mock: bool = True
+    CONFIG: dict[str, str] = Field(default_factory=dict)
     mock_ids_response_path: str = "data/mock/ids_res.json"
     ids_query_url: str = "http://{{ip}}:{{port}}/hiai/ids/databus/v1/kvcommondata/query"
     ids_calling_uid: str = "decisionhub"

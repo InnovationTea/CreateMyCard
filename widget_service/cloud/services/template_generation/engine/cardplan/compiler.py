@@ -1012,12 +1012,10 @@ def _validate_provider_template_state(
     if identity is not None:
         wire_id, variant_name = identity
     if wire_id == "BatteryOverview@1":
-        facts = extract_battery_overview_facts(task_spec.dataModelSchema)
-        if facts is None:
-            raise TerselConversionError(
-                "Battery Provider Template variant does not match the trusted state."
-            )
         state_independent_variants = {
+            "chargingDiagnosticsHero",
+            "chargingProgressHero",
+            "healthLevelHero",
             "percentRingHero",
             "progressCompact",
             "statusIconCompact",
@@ -1025,6 +1023,11 @@ def _validate_provider_template_state(
         }
         if variant_name in state_independent_variants:
             return
+        facts = extract_battery_overview_facts(task_spec.dataModelSchema)
+        if facts is None:
+            raise TerselConversionError(
+                "Battery Provider Template variant does not match the trusted state."
+            )
         if not variant_name.startswith(facts.state):
             raise TerselConversionError(
                 "Battery Provider Template variant does not match the trusted state."
@@ -5684,6 +5687,9 @@ _PROVIDER_TEMPLATE_DIRECT_VARIANTS = {
         "normalWeatherCompact": "normal",
         "chargingWeatherCompact": "charging",
         "lowWeatherCompact": "low",
+        "chargingDiagnosticsHero": "chargingDiagnostics",
+        "chargingProgressHero": "chargingProgress",
+        "healthLevelHero": "healthLevel",
         "percentRingHero": "percentRing",
     },
     "ResourceUsageOverview@1": {"full": "memory", "compact": "memory"},

@@ -62,3 +62,15 @@ def test_migration_translates_legacy_template_variant_to_current_template_id() -
 
     assert migrated["expectedTemplateId"] == "WeatherOverviewFull@1"
     assert migrated["expectedVariantName"] == "default"
+
+
+def test_migration_marks_removed_date_template_as_unmatched() -> None:
+    case = _case("TRE-001", "GetCalendarEvents", "/data/calendar")
+    case.update({"expectedTemplateId": "DateOverview@1", "expectedVariantName": "dateHero"})
+
+    migrated = migrate_case(case)
+
+    assert migrated.get("expectedPipelineStage") == "retrieval"
+    assert migrated.get("expectedMatched") is False
+    assert migrated.get("expectedTemplateId") is None
+    assert migrated.get("expectedVariantName") is None

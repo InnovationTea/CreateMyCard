@@ -9,6 +9,9 @@
   - `BatteryOverviewLowFull@1`：手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：low。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/batterySOC, /batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
   - `BatteryOverviewPercentRingHero@1`：手机电量百分比环形 Hero，只表达顶部英雄内容，居中展示电量进度环和剩余电量百分比文本；底部按钮必须由第二层组合 `PillAction@1`。 组件形态：percentRingHero。 布局场景：约 2x1.7；主数据：/batterySOC, /batterySOCText；次要数据：无；可选数据：无。
   - `BatteryOverviewProgressCompact@1`：手机电量进度条紧凑区；约 2x1，用于一个 Compact 加两个 `PillAction@1` 的 2x2 组合。只表达上半区，展示“手机电量”、`/batterySOCText`、基于 `/batterySOC` 的横向进度条和 `/batteryCapacityLevelDesc` 状态文案；底部两个按钮必须由第二层组合 `PillAction@1`。主数据：/batterySOC, /batterySOCText；次要数据：/batteryCapacityLevelDesc；可选数据：无。props 不允许传入数据值。
+  - `BatteryOverviewChargingProgressHero@1`：手机电量充电进度 Hero，只表达顶部英雄内容，展示“手机电量”、`/batterySOC` 数字、基于 `/batterySOC` 的横向进度条，以及 `/chargingStatusDesc`、`/healthStatusDesc`、`/pluggedTypeDesc` 状态摘要；底部按钮必须由第二层组合 `PillAction@1`。组件形态：chargingProgressHero。布局场景：约 2x1.7；主数据：/batterySOC；次要数据：/chargingStatusDesc, /healthStatusDesc, /pluggedTypeDesc；可选数据：无。props 不允许传入数据值。
+  - `BatteryOverviewHealthLevelHero@1`：电池健康与当前电量等级 Hero，只表达顶部英雄内容，展示“电池体检”、`/healthStatusDesc` 和 `/batteryCapacityLevelDesc`；底部按钮必须由第二层组合 `PillAction@1`。组件形态：healthLevelHero。布局场景：约 2x1.7；主数据：/healthStatusDesc；次要数据：/batteryCapacityLevelDesc；可选数据：无。props 不允许传入数据值。
+  - `BatteryOverviewChargingDiagnosticsHero@1`：充电诊断 Hero，只表达顶部英雄内容，展示“充电诊断”，并竖排展示 `/chargingStatusDesc`、`/nowCurrentText`、`/voltageText`、`/isBatteryPresentText` 四个 key-value；底部按钮必须由第二层组合 `PillAction@1`。组件形态：chargingDiagnosticsHero。布局场景：约 2x1.7；主数据：/chargingStatusDesc；次要数据：/nowCurrentText, /voltageText, /isBatteryPresentText；可选数据：无。props 不允许传入数据值。
   - `BatteryOverviewNormalWideFull@1`：手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normalWide。 布局场景：完整 4x2；单独使用。主数据：/batterySOC, /batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
   - `BatteryOverviewChargingWideFull@1`：手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：chargingWide。 布局场景：完整 4x2；单独使用。主数据：/batterySOC, /batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
   - `BatteryOverviewLowWideFull@1`：手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：lowWide。 布局场景：完整 4x2；单独使用。主数据：/batterySOC, /batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
@@ -26,3 +29,12 @@
 - 当目标尺寸为 `2x2` 且 `selectedActionEventIds` 恰好一个时，按钮只能由第二层输出
   `PillAction@1` 并放入 `HeroActionLayout@1`，业务模板本身不得携带按钮；如果显式要求展示电量进度环和剩余电量百分比，
   只要 `/batterySOC` 与 `/batterySOCText` 可用，就可以选择 `BatteryOverviewPercentRingHero@1`，不要根据电量高低限制使用。
+- 当目标尺寸为 `2x2` 且 `selectedActionEventIds` 恰好一个，用户显式要求充电进度条、电池健康和充电器类型，且
+  `/batterySOC`、`/chargingStatusDesc`、`/healthStatusDesc`、`/pluggedTypeDesc` 均可用时，优先选择
+  `BatteryOverviewChargingProgressHero@1`，并把动作作为末尾 `PillAction@1` 放入 `HeroActionLayout@1`。
+- 当目标尺寸为 `2x2` 且 `selectedActionEventIds` 恰好一个，用户显式要求电池健康和当前电量等级，且
+  `/healthStatusDesc`、`/batteryCapacityLevelDesc` 均可用时，优先选择
+  `BatteryOverviewHealthLevelHero@1`，并把动作作为末尾 `PillAction@1` 放入 `HeroActionLayout@1`。
+- 当目标尺寸为 `2x2` 且 `selectedActionEventIds` 恰好一个，用户显式要求充电诊断、充电电流、电压和电池状态，且
+  `/chargingStatusDesc`、`/nowCurrentText`、`/voltageText`、`/isBatteryPresentText` 均可用时，优先选择
+  `BatteryOverviewChargingDiagnosticsHero@1`，并把动作作为末尾 `PillAction@1` 放入 `HeroActionLayout@1`。

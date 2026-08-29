@@ -118,10 +118,14 @@ def _find_case(
 
 def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) -> None:
     input_root = tmp_path / "inputs"
+    stale_input = input_root / "providers" / "weather" / "stale.json"
+    stale_input.parent.mkdir(parents=True)
+    stale_input.write_text('{"asset":"asset.icon_weather1"}\n', encoding="utf-8")
     manifest = write_gallery_input_dataset(input_root)
 
+    assert not stale_input.exists()
     assert len(manifest.providers) == 8
-    assert sum(len(provider.cases) for provider in manifest.providers) == 103
+    assert sum(len(provider.cases) for provider in manifest.providers) == 105
     scenario_ids = {
         case.scenarioId
         for provider in manifest.providers
@@ -150,6 +154,19 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     assert "打开电池设置" in request["content"]["userQuery"]
     assert "开启省电模式" in request["content"]["userQuery"]
 
+    battery_health = _find_case(
+        manifest,
+        "BatteryOverview",
+        "single-one-action",
+        "BatteryOverviewHealthLevelHero@1",
+    )
+    battery_health_request = json.loads(
+        (input_root / battery_health.requestFile).read_text(encoding="utf-8")
+    )
+    assert battery_health_request["content"]["candidateDataBindings"][0][
+        "candidateOutputFields"
+    ] == ["/healthStatusDesc", "/batteryCapacityLevelDesc"]
+
     calendar_hero_case = _find_case(
         manifest,
         "CalendarOverview",
@@ -171,7 +188,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 96
+    assert len(targeted_cases) == 98
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -247,6 +264,10 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     assert (
         weather_temperature_request["content"]["candidateAssetIds"]
         == _WEATHER_ASSET_IDS
+    )
+    assert all(
+        "asset.icon_weather1" not in request_path.read_text(encoding="utf-8")
+        for request_path in input_root.glob("providers/**/*.json")
     )
     for template_id in (
         "WeatherOverviewTemperatureAlertUvIconCompact@1",
@@ -352,6 +373,7 @@ def test_gallery_inputs_mark_missing_layout_families(tmp_path: Path) -> None:
                 calendar_hero_ids.add(case.targetTemplateId)
     assert calendar_hero_ids == {
         "ScheduleOverviewDatedMeetingHero@1",
+        "ScheduleOverviewEventCountHero@1",
         "ScheduleOverviewNextEventHero@1",
         "ScheduleOverviewReminderHero@1",
     }
@@ -359,7 +381,7 @@ def test_gallery_inputs_mark_missing_layout_families(tmp_path: Path) -> None:
         manifest,
         "CalendarOverview",
         "single-content",
-        "DateOverviewFull@1",
+        "ScheduleOverviewNextEventFull@1",
     )
     assert calendar_full.missingReason == ""
     system_memory = _find_case(
@@ -385,6 +407,9 @@ async def test_gallery_runner_calls_public_service_and_groups_a2ui_by_provider(
     )
     service = _GalleryService()
     runner = ProviderGalleryBatchRunner(service)
+    stale_output = output_root / "providers" / "weather" / "stale.json"
+    stale_output.parent.mkdir(parents=True)
+    stale_output.write_text("{}\n", encoding="utf-8")
 
     summary = await runner.run(
         input_root,
@@ -393,6 +418,7 @@ async def test_gallery_runner_calls_public_service_and_groups_a2ui_by_provider(
         provider_ids={countdown_provider.providerId},
     )
 
+    assert not stale_output.exists()
     assert summary.total == 4
     assert summary.success == 2
     assert summary.failed == 1
@@ -433,10 +459,10 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 103
-    assert summary.failed == 32
+    assert summary.total == 105
+    assert summary.failed == 31
     assert summary.missing == 21
-    assert summary.not_generated == 50
+    assert summary.not_generated == 53
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 8

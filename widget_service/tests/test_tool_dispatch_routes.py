@@ -478,7 +478,8 @@ def test_widget_card_service_complete_flow(monkeypatch):
             {
                 "path": "/uri",
                 "description": (
-                    "cityCode 取自 ViewWeather 的 /location/cityCode，保留完整 URI 模板。"
+                    "将 ViewWeather 的 /location/cityCode 拼接到 actionTemplate "
+                    "中的固定 URI 模板；不得改写模板的其他部分。"
                 ),
                 "type": "string",
             }
