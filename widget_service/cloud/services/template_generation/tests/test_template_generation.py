@@ -1002,7 +1002,25 @@ def test_template_compiler_keeps_non_fusion_2x2_theme_background():
     [
         ("fusion-weather-blue", ("WeatherOverviewFull@1",), True),
         ("fusion-weather-blue", ("WeatherOverviewHero@1",), True),
-        ("fusion-weather-blue", ("WeatherOverviewCompact@1",), False),
+        ("fusion-weather-blue", ("WeatherOverviewCompact@1",), True),
+        (
+            "fusion-weather-blue",
+            (
+                "WeatherOverviewHero@1",
+                "PillAction@1",
+                "HeroActionLayout@1",
+            ),
+            True,
+        ),
+        (
+            "fusion-weather-blue",
+            (
+                "WeatherOverviewCompact@1",
+                "PillAction@1",
+                "CompactTwoActionLayout@1",
+            ),
+            True,
+        ),
         ("fusion-weather-blue", ("ScheduleOverviewNextEventFull@1",), False),
         (
             "fusion-weather-blue",
@@ -1016,7 +1034,7 @@ def test_template_compiler_keeps_non_fusion_2x2_theme_background():
         ("fusion-sleep-violet", ("ActivityOverviewFull@1",), False),
     ],
 )
-def test_fusion_theme_requires_one_matching_full_or_hero_business(
+def test_fusion_theme_requires_one_matching_business(
     theme_id: str,
     selected_template_ids: tuple[str, ...],
     expect_fusion: bool,
@@ -3582,7 +3600,7 @@ async def test_2x2_battery_progress_compact_accepts_two_pill_actions():
 
         async def generate_json(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
             return {
-                "themeId": "system-low-power-blue",
+                "themeId": "fusion-battery-teal",
                 "requiredOutputFieldsByCapability": {
                     "GetPhoneBatteryInfo": [
                         "/batterySOC",
@@ -3601,7 +3619,7 @@ async def test_2x2_battery_progress_compact_accepts_two_pill_actions():
         ) -> str:
             self.second_layer_prompt = prompt
             return (
-                'Template("ActionMatrixLayout@1",{},'
+                'Template("CompactTwoActionLayout@1",{},'
                 'Template("BatteryOverviewProgressCompact@1",{}),'
                 'Template("PillAction@1",{"actionId":"event.setPowerSavingMode",'
                 '"label":"省电模式"}),'
@@ -3646,22 +3664,33 @@ async def test_2x2_battery_progress_compact_accepts_two_pill_actions():
         _battery_card_spec(),
         (binding,),
         model,
+        enable_fusion_ball=True,
     )
 
     assert output.template_ids == (
         "BatteryOverviewProgressCompact@1",
         "PillAction@1",
-        "ActionMatrixLayout@1",
+        "CompactTwoActionLayout@1",
     )
     assert model.second_layer_prompt is not None
     second_layer_user = model.second_layer_prompt[1]["content"]
     assert "BatteryOverviewProgressCompact@1" in second_layer_user
-    assert "ActionMatrixLayout@1" in output.template_ids
+    assert "CompactTwoActionLayout@1" in output.template_ids
     assert output.a2ui.count('"call":"clickToIntent"') == 2
     assert "手机电量" in output.a2ui
     assert "batterySOCText" in output.a2ui
     assert "batterySOC" in output.a2ui
     assert "省电模式" in output.a2ui and "开始导航" in output.a2ui
+    messages = [json.loads(line) for line in output.a2ui.splitlines()]
+    components = {
+        item["id"]: item for item in messages[1]["updateComponents"]["components"]
+    }
+    assert components["root"]["children"] == ["fusionBallBackground", "root_1"]
+    assert components["fusionBallLarge"]["styles"]["backgroundColor"] == "#FF17734C"
+    assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#FF26BFA6"
+    assert components["fusionBallSmall"]["styles"]["backgroundColor"] == "#FF60BF98"
+    assert components["root_1"]["children"] == ["__genui_render_component__root_1"]
+    assert components["__genui_render_component__root_1"]["children"] == ["template_root"]
 
 
 def test_battery_normal_hero_requires_a_selected_layout_action():

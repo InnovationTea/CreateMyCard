@@ -186,8 +186,10 @@ Provider 和 Layout 资源只作后续能力预留，当前不进入生产模板
 在自身 `themes/<theme-id>/theme.json` 的 `fusionBallStyle` 中保存允许的 `businessIds` 以及大、中、小球真实
 `#AARRGGBB` 颜色，不得在代码中维护按场景索引的第二份固定色板。
 
-融球包装仅适用于 `2x2`、单业务，且实际选中的业务模板后缀为 `Full` 或 `Hero` 的场景。主题适用能力还必须
-覆盖该业务模板的数据能力。`Compact`、`WideHero`、`WideFull`、无业务和多业务组合均不应用融球包装。
+融球包装仅适用于 `2x2`、单业务，且实际选中的业务模板后缀为 `Full`、`Hero` 或 `Compact` 的场景。单业务
+可以组合零到两个显式 Action：零 Action 使用 `Full`、单 Action 使用 `Hero`、双 Action 使用 `Compact`；
+Action 和 Layout 模板不参与业务数量计算。主题适用能力还必须覆盖该业务模板的数据能力。
+`WideHero`、`WideFull`、无业务和多业务组合均不应用融球包装。
 
 `2x2` 模板中间根节点使用 `Stack("card", ...)`，ID 为 `root`，两个直接子节点依次为标准融球背景树和内容
 前景 Stack `root_1`。`root_1` 使用 `padding: 12`，其唯一子节点是防溢出 Stack
