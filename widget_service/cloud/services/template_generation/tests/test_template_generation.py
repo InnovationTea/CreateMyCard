@@ -78,7 +78,6 @@ from services.template_generation.engine.cardplan.fusion_ball_background import 
     FusionBallPalette,
     apply_fusion_ball_background,
     build_fusion_ball_background,
-    mark_fusion_ball_content_skeleton,
 )
 from services.template_generation.engine.cardplan.models import HybridBodyContract, HybridLimits
 from services.template_generation.engine.cardplan.provider_bundle import (
@@ -874,44 +873,42 @@ def test_fusion_ball_wraps_only_2x2_with_expanded_tersel_background():
             },
         ),
         (
-            Nested2Node("Text", ("天气卡片", "compact-title"), ()),
-            mark_fusion_ball_content_skeleton(
-                Nested2Node(
-                    "Column",
-                    (
-                        "compact",
-                        {
-                            "width": "100%",
-                            "height": "100%",
-                        },
-                    ),
-                    (
-                        Nested2Node("Text", ("天气", "body"), ()),
-                        Nested2Node(
-                            "Image",
-                            (
-                                "resources/base/media/icon_weather1.svg",
-                                {"fillColor": "#FF000000"},
-                            ),
-                            (),
+            Nested2Node(
+                "Column",
+                (
+                    "compact",
+                    {
+                        "width": "100%",
+                        "height": "100%",
+                    },
+                ),
+                (
+                    Nested2Node("Text", ("天气卡片", "compact-title"), ()),
+                    Nested2Node("Text", ("天气", "body"), ()),
+                    Nested2Node(
+                        "Image",
+                        (
+                            "resources/base/media/icon_weather1.svg",
+                            {"fillColor": "#FF000000"},
                         ),
-                        Nested2Node(
-                            "Stack",
-                            ("action", {"onClick": [{"call": "openWeather"}]}),
-                            (
-                                Nested2Node(
-                                    "Image",
-                                    (
-                                        "resources/base/media/phone_fill.svg",
-                                        {"fillColor": "#FF64BB5C"},
-                                    ),
-                                    (),
+                        (),
+                    ),
+                    Nested2Node(
+                        "Stack",
+                        ("action", {"onClick": [{"call": "openWeather"}]}),
+                        (
+                            Nested2Node(
+                                "Image",
+                                (
+                                    "resources/base/media/phone_fill.svg",
+                                    {"fillColor": "#FF64BB5C"},
                                 ),
-                                Nested2Node(
-                                    "Text",
-                                    ("详情", {"fontColor": "#FF64BB5C"}),
-                                    (),
-                                ),
+                                (),
+                            ),
+                            Nested2Node(
+                                "Text",
+                                ("详情", {"fontColor": "#FF64BB5C"}),
+                                (),
                             ),
                         ),
                     ),
@@ -934,19 +931,22 @@ def test_fusion_ball_wraps_only_2x2_with_expanded_tersel_background():
     assert wrapped.values[-1]["backgroundColor"] == "#00000000"
     assert wrapped.children[0].component_type == "Stack"
     assert wrapped.children[0].values[-1]["_id"] == "fusionBallBackground"
-    assert "_id" not in wrapped.children[1].values[-1]
-    assert wrapped.children[1].values[-1]["padding"] == 12
-    assert wrapped.children[1].children[0].values == ("天气卡片", "compact-title")
-    skeleton = wrapped.children[1].children[1]
-    assert skeleton.values[-1]["_id"] == "__genui_render_component__template_root"
-    assert "backgroundColor" not in foreground_options
-    assert "linearGradient" not in foreground_options
-    assert foreground_options["width"] == 160
-    assert foreground_options["height"] == 160
-    content_icon = skeleton.children[1]
-    action_icon = skeleton.children[2].children[0]
-    action_text = skeleton.children[2].children[1]
-    content_text = skeleton.children[0]
+    assert wrapped.children[1].component_type == "Stack"
+    assert foreground_options["_id"] == "root_1"
+    assert foreground_options["padding"] == 12
+    overflow_content = wrapped.children[1].children[0]
+    assert overflow_content.component_type == "Stack"
+    assert overflow_content.values[-1]["_id"] == (
+        "__genui_render_component__root_1"
+    )
+    skeleton = overflow_content.children[0]
+    assert skeleton.values[-1]["_id"] == "template_root"
+    title_text = skeleton.children[0]
+    content_text = skeleton.children[1]
+    content_icon = skeleton.children[2]
+    action_icon = skeleton.children[3].children[0]
+    action_text = skeleton.children[3].children[1]
+    assert title_text.values == ("天气卡片", "compact-title")
     assert content_text.values == ("天气", "body")
     assert content_icon.values[0] == "resources/base/media/icon_weather1.svg"
     assert content_icon.values[-1]["fillColor"] == "#FF000000"
@@ -1046,8 +1046,13 @@ def test_fusion_theme_requires_one_matching_full_or_hero_business(
     if expect_fusion:
         assert decorated.children[0].component_type == "Stack"
         assert decorated.children[0].values[-1]["_id"] == "fusionBallBackground"
-        content = decorated.children[1].children[0]
-        assert content.values[-1]["_id"] == "__genui_render_component__template_root"
+        assert decorated.children[1].values[-1]["_id"] == "root_1"
+        overflow_content = decorated.children[1].children[0]
+        assert overflow_content.values[-1]["_id"] == (
+            "__genui_render_component__root_1"
+        )
+        content = overflow_content.children[0]
+        assert content.values[-1]["_id"] == "template_root"
         assert content.children[0].values[-1]["fontColor"] == "#FFCCDDFF"
 
 
@@ -3281,15 +3286,18 @@ async def test_2x2_battery_pill_action_uses_normal_hero_template():
     components = {
         item["id"]: item for item in messages[1]["updateComponents"]["components"]
     }
-    content = components[components["root"]["children"][1]]
+    assert components["root"]["children"] == ["fusionBallBackground", "root_1"]
+    content = components["root_1"]
     assert content["styles"] == {
-        "width": 160,
-        "height": 160,
+        "width": "matchParent",
+        "height": "matchParent",
         "padding": 12,
-        "borderRadius": 20,
-        "clip": True,
     }
-    layout = components[content["children"][0]]
+    assert content["children"] == ["__genui_render_component__root_1"]
+    overflow_content = components["__genui_render_component__root_1"]
+    assert overflow_content["component"] == "Stack"
+    assert overflow_content["children"] == ["template_root"]
+    layout = components["template_root"]
     assert layout["component"] == "Column"
     assert layout["itemMargin"] == 8
     assert layout["styles"] == {"width": "matchParent", "height": "matchParent"}
@@ -4744,12 +4752,13 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     }
     assert all(row[1] != "FusionBall" for row in compact_rows if len(row) >= 2)
     assert compact_rows[0][0:2] == ["root", "Stack"]
-    content_id = "__genui_render_component__template_root"
-    foreground_id = compact_rows[0][3][1]
+    foreground_id = "root_1"
+    overflow_content_id = "__genui_render_component__root_1"
+    content_id = "template_root"
     assert compact_rows[0][3] == ["fusionBallBackground", foreground_id]
-    assert foreground_id != content_id
     assert compact_components[foreground_id][2]["padding"] == 12
-    assert compact_components[foreground_id][3] == [content_id]
+    assert compact_components[foreground_id][3] == [overflow_content_id]
+    assert compact_components[overflow_content_id][3] == [content_id]
     assert compact_rows[0][2]["backgroundColor"] == "#00000000"
     assert "linearGradient" not in compact_rows[0][2]
     assert compact_components["fusionBallLarge"][2]["backgroundColor"] == (
@@ -4767,13 +4776,13 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     assert messages[0]["createSurface"]["catalogId"] == protocol_profile["catalogId"]
     components = {item["id"]: item for item in messages[1]["updateComponents"]["components"]}
     assert components["root"]["component"] == "Stack"
-    marked_content_id = "__genui_render_component__template_root"
     assert components["root"]["children"] == [
         "fusionBallBackground",
         foreground_id,
     ]
     assert components[foreground_id]["styles"]["padding"] == 12
-    assert components[foreground_id]["children"] == [marked_content_id]
+    assert components[foreground_id]["children"] == [overflow_content_id]
+    assert components[overflow_content_id]["children"] == [content_id]
     assert components["root"]["styles"]["backgroundColor"] == "#00000000"
     assert components["fusionBallLarge"]["component"] == "Divider"
     assert components["fusionBallMedium"]["component"] == "Divider"
@@ -4795,7 +4804,7 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
         "radius": 120
     }
     assert components["fusionBallMedium"]["styles"]["backgroundColor"] == _WEATHER_PALETTE[1]
-    assert "linearGradient" not in components[marked_content_id]["styles"]
+    assert "linearGradient" not in components[content_id]["styles"]
     text_components = [
         item for item in components.values() if item.get("component") == "Text"
     ]

@@ -63,7 +63,6 @@ from services.template_generation.engine.tersel_converter import (
 from .fusion_ball_background import (
     FusionBallPalette,
     apply_fusion_ball_background,
-    mark_fusion_ball_content_skeleton,
 )
 from .models import (
     TEMPLATE_CHILD_SLOT_COMPONENT,
@@ -266,8 +265,6 @@ def compile_hybrid_card(
         registry,
         tuple(state.template_ids),
     )
-    if fusion_palette is not None:
-        content = mark_fusion_ball_content_skeleton(content)
     content_height = _estimate_height(content)
     root = _compile_card_shell(card_params, content, task_spec, contract, registry)
     root = _apply_theme_content_color(root, contract, registry)
@@ -293,8 +290,6 @@ def compile_hybrid_card(
     space_constrained = content_height > body_budget
     if space_constrained:
         content = _constrain_content_height(content, body_budget)
-        if fusion_palette is not None:
-            content = mark_fusion_ball_content_skeleton(content)
         root = _compile_card_shell(card_params, content, task_spec, contract, registry)
         root = _apply_theme_content_color(root, contract, registry)
     root = apply_fusion_ball_background(
@@ -447,8 +442,6 @@ def compile_ux_layout_card(
         registry,
         tuple(state.template_ids),
     )
-    if fusion_palette is not None:
-        content = mark_fusion_ball_content_skeleton(content)
     root = _compile_ux_layout_shell(
         content,
         contract,
@@ -5032,9 +5025,7 @@ def _apply_template_background(
         return root
     if len(root.children) != 1:
         raise ValueError("Fusion-ball template root must contain one content skeleton.")
-    marked_content = mark_fusion_ball_content_skeleton(root.children[0])
-    marked_root = Nested2Node(root.component_type, root.values, (marked_content,))
-    return apply_fusion_ball_background(marked_root, size=size, palette=palette)
+    return apply_fusion_ball_background(root, size=size, palette=palette)
 
 
 def _strip_direct_card_chrome_from_call(

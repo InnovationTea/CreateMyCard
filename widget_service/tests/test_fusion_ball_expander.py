@@ -57,8 +57,8 @@ def test_fusion_ball_palette_rejects_invalid_explicit_color() -> None:
 
 def test_fusion_ball_content_id_preserves_original_id_with_prefix() -> None:
     assert build_fusion_ball_content_id("root") == "__genui_render_component__root"
-    assert build_fusion_ball_content_id("template_root") == (
-        "__genui_render_component__template_root"
+    assert build_fusion_ball_content_id("root_1") == (
+        "__genui_render_component__root_1"
     )
 
 
