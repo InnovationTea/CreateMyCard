@@ -429,8 +429,8 @@ _TEXT_DESIGNS: dict[str, dict[str, Any]] = {
 _BUTTON_DESIGNS: dict[str, dict[str, Any]] = {
     "action-capsule-primary": {
         "width": "matchParent",
-        "height": 30,
-        "borderRadius": 15,
+        "height": 36,
+        "borderRadius": 20,
         "padding": {"left": 8, "top": 0, "right": 8, "bottom": 0},
         "backgroundColor": "#190A59F7",
         "fontColor": "font_emphasize",
