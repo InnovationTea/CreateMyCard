@@ -78,6 +78,7 @@ from services.template_generation.engine.cardplan.fusion_ball_background import 
     FusionBallPalette,
     apply_fusion_ball_background,
     build_fusion_ball_background,
+    mark_fusion_ball_content_skeleton,
 )
 from services.template_generation.engine.cardplan.models import HybridBodyContract, HybridLimits
 from services.template_generation.engine.cardplan.provider_bundle import (
@@ -873,31 +874,46 @@ def test_fusion_ball_wraps_only_2x2_with_expanded_tersel_background():
             },
         ),
         (
-            Nested2Node("Text", ("天气", "body"), ()),
-            Nested2Node(
-                "Image",
-                (
-                    "resources/base/media/icon_weather1.svg",
-                    {"fillColor": "#FF000000"},
-                ),
-                (),
-            ),
-            Nested2Node(
-                "Stack",
-                ("action", {"onClick": [{"call": "openWeather"}]}),
-                (
-                    Nested2Node(
-                        "Image",
-                        (
-                            "resources/base/media/phone_fill.svg",
-                            {"fillColor": "#FF64BB5C"},
-                        ),
-                        (),
+            Nested2Node("Text", ("天气卡片", "compact-title"), ()),
+            mark_fusion_ball_content_skeleton(
+                Nested2Node(
+                    "Column",
+                    (
+                        "compact",
+                        {
+                            "width": "100%",
+                            "height": "100%",
+                        },
                     ),
-                    Nested2Node(
-                        "Text",
-                        ("详情", {"fontColor": "#FF64BB5C"}),
-                        (),
+                    (
+                        Nested2Node("Text", ("天气", "body"), ()),
+                        Nested2Node(
+                            "Image",
+                            (
+                                "resources/base/media/icon_weather1.svg",
+                                {"fillColor": "#FF000000"},
+                            ),
+                            (),
+                        ),
+                        Nested2Node(
+                            "Stack",
+                            ("action", {"onClick": [{"call": "openWeather"}]}),
+                            (
+                                Nested2Node(
+                                    "Image",
+                                    (
+                                        "resources/base/media/phone_fill.svg",
+                                        {"fillColor": "#FF64BB5C"},
+                                    ),
+                                    (),
+                                ),
+                                Nested2Node(
+                                    "Text",
+                                    ("详情", {"fontColor": "#FF64BB5C"}),
+                                    (),
+                                ),
+                            ),
+                        ),
                     ),
                 ),
             ),
@@ -918,17 +934,21 @@ def test_fusion_ball_wraps_only_2x2_with_expanded_tersel_background():
     assert wrapped.values[-1]["backgroundColor"] == "#00000000"
     assert wrapped.children[0].component_type == "Stack"
     assert wrapped.children[0].values[-1]["_id"] == "fusionBallBackground"
-    assert wrapped.children[1].values[-1]["_id"] == (
+    assert "_id" not in wrapped.children[1].values[-1]
+    assert wrapped.children[1].values[-1]["padding"] == 12
+    assert wrapped.children[1].children[0].values == ("天气卡片", "compact-title")
+    skeleton = wrapped.children[1].children[1]
+    assert skeleton.values[-1]["_id"] == (
         "__genui_render_component__cardContent"
     )
     assert "backgroundColor" not in foreground_options
     assert "linearGradient" not in foreground_options
     assert foreground_options["width"] == 160
     assert foreground_options["height"] == 160
-    content_icon = wrapped.children[1].children[1]
-    action_icon = wrapped.children[1].children[2].children[0]
-    action_text = wrapped.children[1].children[2].children[1]
-    content_text = wrapped.children[1].children[0]
+    content_icon = skeleton.children[1]
+    action_icon = skeleton.children[2].children[0]
+    action_text = skeleton.children[2].children[1]
+    content_text = skeleton.children[0]
     assert content_text.values == ("天气", "body")
     assert content_icon.values[0] == "resources/base/media/icon_weather1.svg"
     assert content_icon.values[-1]["fillColor"] == "#FF000000"
@@ -1006,7 +1026,13 @@ def test_fusion_theme_requires_one_matching_full_or_hero_business(
     card = Nested2Node(
         "Column",
         ("card", {"_id": "root", "backgroundColor": "#FF121259"}),
-        (Nested2Node("Text", ("内容", {"fontColor": "#FFCCDDFF"}), ()),),
+        (
+            Nested2Node(
+                "Column",
+                ("compact",),
+                (Nested2Node("Text", ("内容", {"fontColor": "#FFCCDDFF"}), ()),),
+            ),
+        ),
     )
     contract = HybridBodyContract.model_construct(theme_profile_id=theme_id)
 
@@ -1022,7 +1048,9 @@ def test_fusion_theme_requires_one_matching_full_or_hero_business(
     if expect_fusion:
         assert decorated.children[0].component_type == "Stack"
         assert decorated.children[0].values[-1]["_id"] == "fusionBallBackground"
-        assert decorated.children[1].children[0].values[-1]["fontColor"] == "#FFCCDDFF"
+        content = decorated.children[1].children[0]
+        assert content.values[-1]["_id"] == "__genui_render_component__cardContent"
+        assert content.children[0].values[-1]["fontColor"] == "#FFCCDDFF"
 
 
 def test_form_validator_allows_empty_stack_children_but_rejects_empty_column_children():
@@ -4719,7 +4747,11 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     assert all(row[1] != "FusionBall" for row in compact_rows if len(row) >= 2)
     assert compact_rows[0][0:2] == ["root", "Stack"]
     content_id = "__genui_render_component__cardContent"
-    assert compact_rows[0][3] == ["fusionBallBackground", content_id]
+    foreground_id = compact_rows[0][3][1]
+    assert compact_rows[0][3] == ["fusionBallBackground", foreground_id]
+    assert foreground_id != content_id
+    assert compact_components[foreground_id][2]["padding"] == 12
+    assert compact_components[foreground_id][3] == [content_id]
     assert compact_rows[0][2]["backgroundColor"] == "#00000000"
     assert "linearGradient" not in compact_rows[0][2]
     assert compact_components["fusionBallLarge"][2]["backgroundColor"] == (
@@ -4740,8 +4772,10 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     marked_content_id = "__genui_render_component__cardContent"
     assert components["root"]["children"] == [
         "fusionBallBackground",
-        marked_content_id,
+        foreground_id,
     ]
+    assert components[foreground_id]["styles"]["padding"] == 12
+    assert components[foreground_id]["children"] == [marked_content_id]
     assert components["root"]["styles"]["backgroundColor"] == "#00000000"
     assert components["fusionBallLarge"]["component"] == "Divider"
     assert components["fusionBallMedium"]["component"] == "Divider"

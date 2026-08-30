@@ -11,6 +11,7 @@ from services.fusion_ball_expander import (
 from services.template_generation.engine.tersel_converter import Nested2Node
 
 _ROOT_ID = "root"
+_SKELETON_LAYOUT_TYPES = frozenset({"Column", "Row", "Stack"})
 _BACKGROUND_STYLE_KEYS = frozenset(
     {
         "backgroundColor",
@@ -79,12 +80,15 @@ def apply_fusion_ball_background(
     }
     foreground_options.update(
         {
-            "_id": FUSION_BALL_CONTENT_ID,
             "width": 160,
             "height": 160,
         }
     )
-    foreground = Nested2Node(card.component_type, (foreground_options,), card.children)
+    foreground = Nested2Node(
+        card.component_type,
+        (foreground_options,),
+        card.children,
+    )
     root_options = {
         "_id": _ROOT_ID,
         "padding": 0,
@@ -151,3 +155,21 @@ def _root_card_options(card: Nested2Node) -> dict[str, Any]:
     if not is_card_root:
         raise ValueError('Fusion-ball wrapping requires Column("card", options, ...).')
     return dict(card.values[1])
+
+
+def mark_fusion_ball_content_skeleton(skeleton: Nested2Node) -> Nested2Node:
+    """Place the overflow marker on the layout inside the 12vp card inset."""
+    if skeleton.component_type not in _SKELETON_LAYOUT_TYPES:
+        raise ValueError("Fusion-ball content skeleton must be Column, Row, or Stack.")
+    values = list(skeleton.values)
+    if values and isinstance(values[-1], dict):
+        options = dict(values[-1])
+        options["_id"] = FUSION_BALL_CONTENT_ID
+        values[-1] = options
+    else:
+        values.append({"_id": FUSION_BALL_CONTENT_ID})
+    return Nested2Node(
+        skeleton.component_type,
+        tuple(values),
+        skeleton.children,
+    )
