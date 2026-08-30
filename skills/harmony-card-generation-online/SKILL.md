@@ -3,13 +3,13 @@ name: harmony-card-generation-online
 description: "用于为小艺/HarmonyOS 创建或连续编辑可添加到桌面的服务卡片。仅当用户明确要求桌面卡片、服务卡片、widget、小组件、添加到桌面或修改已有桌面卡片时使用。动态数据范围仅限：天气与未来预报、日历日程与会议、指定日期倒计时、指定 App 今日使用时长、蓝牙耳机连接与电量、手机电池与充电健康、睡眠与健康运动。点击动作范围仅限：拨号、清理运行内存，打开指定设置页，打开天气城市页、闹钟、音乐歌单、运动健康锻炼或睡眠页、日程详情或会议，导航确切位置，以及开启或关闭省电模式。卡片组合需求的每项动态数据和动作都必须在上述范围内。不要用于普通对话、卡片意图不明、其他任意非华为自带 App 数据或操作、银行卡、会员卡、名片、游戏卡牌、普通网页/UI 等泛卡片语义。"
 metadata:
   tools:
-    - bundleName: "com.omega_w_0823.hmservice"
+    - bundleName: "com.huawei.genui"
       toolName: "getWidgetCapabilityOverview"
-    - bundleName: "com.omega_w_0823.hmservice"
+    - bundleName: "com.huawei.genui"
       toolName: "getDataCapabilitySchemas"
-    - bundleName: "com.omega_w_0823.hmservice"
+    - bundleName: "com.huawei.genui"
       toolName: "RequestDataPermission"
-    - bundleName: "com.omega_w_0823.hmservice"
+    - bundleName: "com.huawei.genui"
       toolName: "generateWidgetCardCompactDsl"
 ---
 
@@ -73,10 +73,42 @@ generateWidgetCardCompactDsl。无数据候选时跳过 schema 和 permission；
 
 ## 工具调用
 
-依赖 frontmatter 声明的三个微服务工具和一个端工具。使用统一调用格式；仅要求 `arguments` 内各键对应的值是合法 JSON 值，保留现有 invoke 外层和键名格式：
+依赖 frontmatter 声明的三个微服务工具和一个端工具。使用统一调用格式，保留现有
+`invoke` 外层和键名格式。`arguments` 必须是 JSON 对象；其中每个 value 必须直接使用
+JSON 原生值（对象、数组、字符串、数字、布尔值或 `null`），不得把对象或数组序列化成
+字符串，也不得把整个 `arguments` 序列化成字符串。字段类型和必填项仍以当前运行时
+schema 为唯一依据。
+
+正确示例：对象和数组作为原生 JSON 值传入，数组项中的 `arguments` 仍是对象：
 
 ```text
-invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmservice", ...},"skillName":"harmony-card-generation-online")
+invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
+  bundleName:"com.huawei.genui",
+  userQuery:"做一张显示天气的卡片。",
+  candidateDataBindings:[
+    {
+      capabilityId:"ViewWeather",
+      arguments:{forecastDays:1},
+      writeResultTo:"/data/weather"
+    }
+  ],
+  candidateEventCandidates:[]
+},"skillName":"harmony-card-generation-online")
+```
+
+错误示例：将对象、数组或整个参数对象写成字符串；这会导致工具收到错误类型，必须改为
+上面的原生 JSON 值写法：
+
+```text
+// 错误：arguments 是字符串，而不是 JSON 对象
+invoke(functionName:"generateWidgetCardCompactDsl", arguments:"{\\"bundleName\\":\\"com.huawei.genui\\",\\"userQuery\\":\\"做一张显示天气的卡片。\\"}","skillName":"harmony-card-generation-online")
+
+// 错误：candidateDataBindings 和其内部 arguments 被序列化为字符串
+invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
+  bundleName:"com.huawei.genui",
+  userQuery:"做一张显示天气的卡片。",
+  candidateDataBindings:"[{\\"capabilityId\\":\\"ViewWeather\\",\\"arguments\\":{\\"forecastDays\\":1}}]"
+},"skillName":"harmony-card-generation-online")
 ```
 
 ## 不可绕过的重要约束
