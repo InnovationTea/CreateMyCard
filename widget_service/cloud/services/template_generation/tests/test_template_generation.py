@@ -938,9 +938,7 @@ def test_fusion_ball_wraps_only_2x2_with_expanded_tersel_background():
     assert wrapped.children[1].values[-1]["padding"] == 12
     assert wrapped.children[1].children[0].values == ("天气卡片", "compact-title")
     skeleton = wrapped.children[1].children[1]
-    assert skeleton.values[-1]["_id"] == (
-        "__genui_render_component__cardContent"
-    )
+    assert skeleton.values[-1]["_id"] == "__genui_render_component__template_root"
     assert "backgroundColor" not in foreground_options
     assert "linearGradient" not in foreground_options
     assert foreground_options["width"] == 160
@@ -1049,7 +1047,7 @@ def test_fusion_theme_requires_one_matching_full_or_hero_business(
         assert decorated.children[0].component_type == "Stack"
         assert decorated.children[0].values[-1]["_id"] == "fusionBallBackground"
         content = decorated.children[1].children[0]
-        assert content.values[-1]["_id"] == "__genui_render_component__cardContent"
+        assert content.values[-1]["_id"] == "__genui_render_component__template_root"
         assert content.children[0].values[-1]["fontColor"] == "#FFCCDDFF"
 
 
@@ -4746,7 +4744,7 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     }
     assert all(row[1] != "FusionBall" for row in compact_rows if len(row) >= 2)
     assert compact_rows[0][0:2] == ["root", "Stack"]
-    content_id = "__genui_render_component__cardContent"
+    content_id = "__genui_render_component__template_root"
     foreground_id = compact_rows[0][3][1]
     assert compact_rows[0][3] == ["fusionBallBackground", foreground_id]
     assert foreground_id != content_id
@@ -4769,7 +4767,7 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     assert messages[0]["createSurface"]["catalogId"] == protocol_profile["catalogId"]
     components = {item["id"]: item for item in messages[1]["updateComponents"]["components"]}
     assert components["root"]["component"] == "Stack"
-    marked_content_id = "__genui_render_component__cardContent"
+    marked_content_id = "__genui_render_component__template_root"
     assert components["root"]["children"] == [
         "fusionBallBackground",
         foreground_id,

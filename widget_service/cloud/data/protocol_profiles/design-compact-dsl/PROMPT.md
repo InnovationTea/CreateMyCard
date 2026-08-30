@@ -276,7 +276,8 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
   `fusion-ball-schedule-cool`、`fusion-ball-schedule-warm`、`fusion-ball-sleep-violet`、
   `fusion-ball-sport-orange`。按用户场景选择且最多使用一个；版本等于阈值、低于阈值、缺失或非法时禁止使用。
   使用融球 Design Token 时，root 不再写 `backgroundColor`、`linearGradient` 或 `backgroundImage`，转换器会
-  确定性展开融球背景并注入防溢出前景标识。
+  确定性展开融球背景，并把前景根的原 ID `root` 加上 `__genui_render_component__` 前缀，生成
+  `__genui_render_component__root` 防溢出标识；展开后的外层卡片根仍使用 `root`。
 - 色彩 token 可用于 `fontColor`、`fillColor`、`backgroundColor`、`borderColor`、`Divider.color`、`Progress.color/backgroundColor` 等颜色字段：`palette_purple_primary`、`palette_blue_primary`、`palette_mint_primary`、`palette_green_success`、`palette_lime_success`、`palette_violet_primary`、`palette_rose_alert`、`palette_red_warning`、`palette_orange_alert`、`palette_amber_warning`、`palette_yellow_sun`、`palette_purple_soft`、`palette_blue_soft`、`palette_mint_soft`、`palette_green_soft`、`palette_lime_soft`、`palette_violet_soft`、`palette_rose_soft`、`palette_red_soft`、`palette_orange_soft`、`palette_amber_soft`、`palette_yellow_soft`。
 
 ## 5.3 Text

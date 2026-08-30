@@ -8,8 +8,8 @@ import pytest
 
 from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 from services.fusion_ball_expander import (
-    FUSION_BALL_CONTENT_ID,
     FusionBallExpansionError,
+    build_fusion_ball_content_id,
     build_fusion_ball_palette,
     derive_fusion_ball_palette,
     expand_fusion_ball_components,
@@ -55,8 +55,16 @@ def test_fusion_ball_palette_rejects_invalid_explicit_color() -> None:
         build_fusion_ball_palette("#121259", "#FF2B65D9", "#FF57AED9")
 
 
+def test_fusion_ball_content_id_preserves_original_id_with_prefix() -> None:
+    assert build_fusion_ball_content_id("root") == "__genui_render_component__root"
+    assert build_fusion_ball_content_id("template_root") == (
+        "__genui_render_component__template_root"
+    )
+
+
 @pytest.mark.parametrize("root_type", ["Row", "Column", "Stack"])
 def test_compact_root_fusion_design_token_expands_and_marks_content(root_type) -> None:
+    content_id = build_fusion_ball_content_id("root")
     compact_dsl = "\n".join(
         (
             json.dumps(
@@ -94,11 +102,11 @@ def test_compact_root_fusion_design_token_expands_and_marks_content(root_type) -
     assert components["root"]["component"] == "Stack"
     assert components["root"]["children"] == [
         "fusionBallBackground",
-        FUSION_BALL_CONTENT_ID,
+        content_id,
     ]
-    assert components[FUSION_BALL_CONTENT_ID]["component"] == root_type
-    assert components[FUSION_BALL_CONTENT_ID]["children"] == ["title"]
-    assert "backgroundColor" not in components[FUSION_BALL_CONTENT_ID]["styles"]
+    assert components[content_id]["component"] == root_type
+    assert components[content_id]["children"] == ["title"]
+    assert "backgroundColor" not in components[content_id]["styles"]
     assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#FF2B65D9"
 
 
@@ -106,6 +114,7 @@ def test_compact_root_fusion_design_token_expands_and_marks_content(root_type) -
 def test_compact_root_fusion_design_token_stays_off_for_unsupported_version(
     app_version,
 ) -> None:
+    content_id = build_fusion_ball_content_id("root")
     compact_dsl = "\n".join(
         (
             '["root","Column",{"width":"matchParent","height":"matchParent",'
@@ -125,7 +134,7 @@ def test_compact_root_fusion_design_token_stays_off_for_unsupported_version(
         item["id"] for item in messages[1]["updateComponents"]["components"]
     }
 
-    assert FUSION_BALL_CONTENT_ID not in component_ids
+    assert content_id not in component_ids
     assert "fusionBallBackground" not in component_ids
 
 
@@ -149,7 +158,30 @@ def test_fusion_ball_expansion_rejects_reserved_component_id() -> None:
         expand_fusion_ball_components(components, palette)
 
 
+def test_fusion_ball_expansion_rejects_prefixed_root_id_collision() -> None:
+    content_id = build_fusion_ball_content_id("root")
+    components = [
+        {
+            "id": "root",
+            "component": "Column",
+            "children": [content_id],
+            "styles": {},
+        },
+        {
+            "id": content_id,
+            "component": "Column",
+            "children": [],
+            "styles": {},
+        },
+    ]
+    palette = derive_fusion_ball_palette("#FF2B65D9")
+
+    with pytest.raises(FusionBallExpansionError, match="already exist"):
+        expand_fusion_ball_components(components, palette)
+
+
 def test_compact_fallback_processor_expands_fusion_design_token() -> None:
+    content_id = build_fusion_ball_content_id("root")
     compact_dsl = "\n".join(
         (
             '["root","Column",{"width":"matchParent","height":"matchParent",'
@@ -183,6 +215,6 @@ def test_compact_fallback_processor_expands_fusion_design_token() -> None:
     assert result.errors == ()
     assert components["root"]["children"] == [
         "fusionBallBackground",
-        FUSION_BALL_CONTENT_ID,
+        content_id,
     ]
-    assert components[FUSION_BALL_CONTENT_ID]["component"] == "Column"
+    assert components[content_id]["component"] == "Column"

@@ -191,8 +191,9 @@ Provider 和 Layout 资源只作后续能力预留，当前不进入生产模板
 
 `2x2` 模板中间根节点使用 `Stack("card", ...)`，子节点顺序固定为“标准融球背景树、原卡片内容”；原卡片内容
 移除 `backgroundColor`、`linearGradient` 和背景图片字段后作为带 `padding: 12` 的前景层。防溢出标识放在
-该前景层的直接子骨架布局节点上。模板编译器根据 Theme 中的三个 `#AARRGGBB` 颜色直接展开球体、定位容器
-和玻璃层。
+该前景层的直接子骨架布局节点上。该骨架原 ID 固定命名为 `template_root`，最终 ID 按“前缀 + 原 ID”生成
+为 `__genui_render_component__template_root`，不使用固定 ID 覆盖原 ID。模板编译器根据 Theme 中的三个
+`#AARRGGBB` 颜色直接展开球体、定位容器和玻璃层。
 不满足门禁的卡片继续使用 Theme 原有纯色或线性渐变。融球包装只替换卡片根背景，不改写业务文本、图标或
 Action 内容颜色。业务 Provider 必须显式区分主内容与辅助内容，分别使用 `$theme('primaryColor')` 和
 `$theme('supportContentColor')`；服务端只给未配置颜色的内容组件补 `primaryColor`，不得猜测主辅语义。
@@ -204,8 +205,8 @@ PillAction 模板使用 `$theme('actionStyle.backgroundColor')` 和 `$theme('act
 融球树在模板 CardPlan/Tersel 阶段已经由标准组件组成：`Stack` 承载定位层，三球和玻璃层使用无 children
 约束的 `Divider` 视觉叶节点，并在进入 A2UI-Compact 前完成。玻璃层使用 5% 白色和
 `backdropBlur: {"radius": 120}`。位于卡片 `padding: 12` 约束内的直接子骨架布局组件 ID 增加
-`__genui_render_component__` 前缀，以启用端侧内容层防溢出能力。A2UI-Compact 不声明 `FusionBall` 组件能力，
-任何残留均按不支持组件拒绝。
+`__genui_render_component__` 前缀，以启用端侧内容层防溢出能力，并保留其原 ID `template_root`。A2UI-Compact
+不声明 `FusionBall` 组件能力，任何残留均按不支持组件拒绝。
 
 ## 首层 Search、确定性检索与第二层 LLM 规则
 

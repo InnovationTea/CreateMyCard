@@ -5,12 +5,13 @@ from __future__ import annotations
 from typing import Any
 
 from services.fusion_ball_expander import (
-    FUSION_BALL_CONTENT_ID,
     FusionBallPalette,
+    build_fusion_ball_content_id,
 )
 from services.template_generation.engine.tersel_converter import Nested2Node
 
 _ROOT_ID = "root"
+_TEMPLATE_ROOT_ID = "template_root"
 _SKELETON_LAYOUT_TYPES = frozenset({"Column", "Row", "Stack"})
 _BACKGROUND_STYLE_KEYS = frozenset(
     {
@@ -158,16 +159,17 @@ def _root_card_options(card: Nested2Node) -> dict[str, Any]:
 
 
 def mark_fusion_ball_content_skeleton(skeleton: Nested2Node) -> Nested2Node:
-    """Place the overflow marker on the layout inside the 12vp card inset."""
+    """Name and mark the template layout inside the 12vp card inset."""
     if skeleton.component_type not in _SKELETON_LAYOUT_TYPES:
         raise ValueError("Fusion-ball content skeleton must be Column, Row, or Stack.")
+    content_id = build_fusion_ball_content_id(_TEMPLATE_ROOT_ID)
     values = list(skeleton.values)
     if values and isinstance(values[-1], dict):
         options = dict(values[-1])
-        options["_id"] = FUSION_BALL_CONTENT_ID
+        options["_id"] = content_id
         values[-1] = options
     else:
-        values.append({"_id": FUSION_BALL_CONTENT_ID})
+        values.append({"_id": content_id})
     return Nested2Node(
         skeleton.component_type,
         tuple(values),

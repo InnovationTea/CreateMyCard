@@ -13,7 +13,7 @@ from typing import Any
 from packaging.version import InvalidVersion, Version
 
 FUSION_BALL_MIN_APP_VERSION = "11.7.5.205"
-FUSION_BALL_CONTENT_ID = "__genui_render_component__cardContent"
+FUSION_BALL_CONTENT_ID_PREFIX = "__genui_render_component__"
 FUSION_BALL_DESIGN_TOKENS = (
     "fusion-ball-weather-blue",
     "fusion-ball-battery-teal",
@@ -94,6 +94,15 @@ def fusion_ball_enabled(app_version: Any) -> bool:
         return False
 
 
+def build_fusion_ball_content_id(original_id: str) -> str:
+    """Prefix the original content id with the renderer overflow marker."""
+    if not isinstance(original_id, str) or not original_id:
+        raise FusionBallExpansionError("Fusion-ball content id must be a non-empty string.")
+    if original_id.startswith(FUSION_BALL_CONTENT_ID_PREFIX):
+        return original_id
+    return f"{FUSION_BALL_CONTENT_ID_PREFIX}{original_id}"
+
+
 def build_fusion_ball_palette(
     large_color: str,
     medium_color: str,
@@ -163,10 +172,14 @@ def expand_fusion_ball_components(
     root = roots[0]
     if root.get("component") not in _FUSION_ROOT_TYPES:
         raise FusionBallExpansionError("Fusion-ball root must be Row, Column, or Stack.")
-    _validate_component_ids(copied)
+    original_root_id = root.get("id")
+    if not isinstance(original_root_id, str):
+        raise FusionBallExpansionError("Fusion-ball root id must be a string.")
+    content_id = build_fusion_ball_content_id(original_root_id)
+    _validate_component_ids(copied, content_id)
 
     foreground = copy.deepcopy(root)
-    foreground["id"] = FUSION_BALL_CONTENT_ID
+    foreground["id"] = content_id
     foreground_styles = foreground.get("styles")
     if not isinstance(foreground_styles, dict):
         foreground_styles = {}
@@ -179,7 +192,7 @@ def expand_fusion_ball_components(
     expanded_root = {
         "id": "root",
         "component": "Stack",
-        "children": ["fusionBallBackground", FUSION_BALL_CONTENT_ID],
+        "children": ["fusionBallBackground", content_id],
         "styles": {
             "width": "matchParent",
             "height": "matchParent",
@@ -206,7 +219,10 @@ def _component_id(component: Any) -> str | None:
     return None
 
 
-def _validate_component_ids(components: list[dict[str, Any]]) -> None:
+def _validate_component_ids(
+    components: list[dict[str, Any]],
+    content_id: str,
+) -> None:
     component_ids: list[str] = []
     for component in components:
         component_id = component.get("id")
@@ -215,7 +231,7 @@ def _validate_component_ids(components: list[dict[str, Any]]) -> None:
         component_ids.append(component_id)
     if len(component_ids) != len(set(component_ids)):
         raise FusionBallExpansionError("A2UI component ids must be unique.")
-    reserved_ids = _FUSION_COMPONENT_IDS | {FUSION_BALL_CONTENT_ID}
+    reserved_ids = _FUSION_COMPONENT_IDS | {content_id}
     conflicts = sorted(set(component_ids) & reserved_ids)
     if conflicts:
         raise FusionBallExpansionError(
