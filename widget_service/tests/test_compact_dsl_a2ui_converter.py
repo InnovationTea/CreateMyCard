@@ -179,14 +179,15 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(components["title"][2]["fontWeight"], 500)
         self.assertEqual(components["title"][2]["fontColor"], "#E5000000")
         self.assertNotIn("design", components["title"][2])
-        self.assertEqual(components["action"][2]["height"], 30)
-        self.assertEqual(components["action"][2]["borderRadius"], 15)
+        self.assertEqual(components["action"][2]["height"], 36)
+        self.assertEqual(components["action"][2]["borderRadius"], 20)
         self.assertEqual(
             components["action"][2]["padding"],
             {"left": 8, "top": 0, "right": 8, "bottom": 0},
         )
         self.assertEqual(components["action"][2]["minFontSize"], 12)
         self.assertEqual(components["action"][2]["maxFontSize"], 14)
+        self.assertEqual(components["action"][2]["fontWeight"], 500)
         self.assertEqual(
             components["action"][2]["backgroundColor"],
             "#190A59F7",
@@ -586,6 +587,113 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             create_surface["catalogId"],
             "ohos.a2ui.extended.catalog.form",
         )
+
+    def test_action_unit_capsule_uses_explicit_surface_and_text_style(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {
+                        "width": "matchParent",
+                        "height": "matchParent",
+                        "backgroundColor": "#FFFFF6E5",
+                    },
+                    ["cta"],
+                ],
+                [
+                    "cta",
+                    "ActionUnit",
+                    {
+                        "state": "capsule",
+                        "label": "导航去公司",
+                        "actionSurface": "#FFF0DCB8",
+                        "actionInk": "#FF9E6D20",
+                        "fontSize": 14,
+                        "fontWeight": 400,
+                        "onClick": [{"call": "navigate", "args": {}}],
+                    },
+                ],
+                ["/state/ready", True],
+            ]
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+        update = json.loads(result.splitlines()[1])["updateComponents"]
+        components = {item["id"]: item for item in update["components"]}
+        action_styles = components["cta"]["styles"]
+
+        self.assertEqual(components["cta"]["component"], "Button")
+        self.assertEqual(action_styles["backgroundColor"], "#FFF0DCB8")
+        self.assertEqual(action_styles["fontColor"], "#FF9E6D20")
+        self.assertEqual(action_styles["height"], 36)
+        self.assertEqual(action_styles["borderRadius"], 20)
+        self.assertEqual(action_styles["fontSize"], 14)
+        self.assertEqual(action_styles["fontWeight"], 400)
+
+    def test_icon_action_unit_keeps_explicit_colors_on_known_gradient(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {
+                        "width": "matchParent",
+                        "height": "matchParent",
+                        "linearGradient": {
+                            "angle": 180,
+                            "colors": [
+                                ["#FFFFE9E5", 0],
+                                ["#FFFFF6F3", 0.5],
+                                ["#FFFFFFFF", 1],
+                            ],
+                        },
+                    },
+                    ["cta"],
+                ],
+                [
+                    "cta",
+                    "ActionUnit",
+                    {
+                        "state": "capsule",
+                        "label": "免打扰设置",
+                        "icon": "resources/base/media/moon.svg",
+                        "actionSurface": "#FFF0DCB8",
+                        "actionInk": "#FF9E6D20",
+                        "fontSize": 14,
+                        "fontWeight": 500,
+                        "onClick": [{"call": "openSettings", "args": {}}],
+                    },
+                ],
+                ["/state/ready", True],
+            ]
+        )
+
+        result = convert_compact_dsl_to_a2ui(
+            compact_dsl,
+            size="2x2",
+            protocol_profile=self.profile,
+        )
+        update = json.loads(result.splitlines()[1])["updateComponents"]
+        components = {item["id"]: item for item in update["components"]}
+
+        self.assertEqual(
+            components["cta"]["styles"]["backgroundColor"],
+            "#FFF0DCB8",
+        )
+        self.assertEqual(
+            components["cta_icon"]["styles"]["fillColor"],
+            "#FF9E6D20",
+        )
+        self.assertEqual(
+            components["cta_text"]["styles"]["fontColor"],
+            "#FF9E6D20",
+        )
+        self.assertEqual(components["cta_text"]["styles"]["fontWeight"], 500)
 
     def test_accepts_one_genui_fence(self) -> None:
         fenced = f"```genui\n{self.compact_dsl}\n```"

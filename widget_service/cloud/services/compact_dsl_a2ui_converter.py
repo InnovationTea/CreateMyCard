@@ -126,7 +126,16 @@ _COMMON_COMPACT_PROPERTIES = frozenset(
     {"design", "onClick", "accessibility", "accessibily"}
 )
 _COMMON_COMPACT_ONLY_PROPERTIES = frozenset({"accessibility", "accessibily"})
-_ACTION_UNIT_PROPERTIES = frozenset({"state", "icon", "actionInk", "actionSurface"})
+_ACTION_UNIT_PROPERTIES = frozenset(
+    {
+        "state",
+        "icon",
+        "actionInk",
+        "actionSurface",
+        "fontSize",
+        "fontWeight",
+    }
+)
 _ACTION_UNIT_FORBIDDEN_SKIN_PROPERTIES = frozenset(
     {
         "backgroundColor",
@@ -137,8 +146,6 @@ _ACTION_UNIT_FORBIDDEN_SKIN_PROPERTIES = frozenset(
         "design",
         "fillColor",
         "fontColor",
-        "fontSize",
-        "fontWeight",
         "height",
         "layoutWeight",
         "linearGradient",
@@ -441,7 +448,7 @@ _BUTTON_DESIGNS: dict[str, dict[str, Any]] = {
         "backgroundColor": "#190A59F7",
         "fontColor": "font_emphasize",
         "fontSize": 14,
-        "fontWeight": 700,
+        "fontWeight": 500,
         "maxFontSize": 14,
         "minFontSize": 12,
         "maxLines": 1,
@@ -810,10 +817,11 @@ def _normalize_special_action_units(
             normalized.append(component)
             continue
         props = copy.deepcopy(component.props)
-        props["actionInk"] = action_ink
-        props["_actionBackground"] = action_background
-        if action_background == "#FFFFFFFF":
-            props["actionSurface"] = "white"
+        props.setdefault("actionInk", action_ink)
+        if "actionSurface" not in props:
+            props["_actionBackground"] = action_background
+            if action_background == "#FFFFFFFF":
+                props["actionSurface"] = "white"
         normalized.append(
             ComponentRow(
                 component.component_id,
@@ -1947,6 +1955,7 @@ def _convert_action_unit_capsule(component: ComponentRow) -> list[dict[str, Any]
         component.component_id,
         _BUTTON_DESIGNS["action-capsule-primary"],
     )
+    _apply_action_text_styles(styles, component.props)
     _apply_action_background(styles, component.props)
     action_ink = component.props.get("actionInk")
     if action_ink is not None:
@@ -1965,6 +1974,7 @@ def _convert_action_unit_capsule_with_icon(
         component.component_id,
         _BUTTON_DESIGNS["action-capsule-primary"],
     )
+    _apply_action_text_styles(styles, component.props)
     _apply_action_background(styles, component.props)
     text_styles = _capsule_text_styles(styles, component.props.get("actionInk"))
     row_styles = _capsule_row_styles(styles)
@@ -2005,8 +2015,22 @@ def _apply_action_background(
     if isinstance(action_background, str):
         styles["backgroundColor"] = action_background
         return
-    if props.get("actionSurface") == "white":
+    action_surface = props.get("actionSurface")
+    if action_surface == "white":
         styles["backgroundColor"] = "#FFFFFFFF"
+        return
+    if isinstance(action_surface, str) and action_surface:
+        styles["backgroundColor"] = action_surface
+
+
+def _apply_action_text_styles(
+    styles: dict[str, Any],
+    props: dict[str, Any],
+) -> None:
+    for property_name in ("fontSize", "fontWeight"):
+        value = props.get(property_name)
+        if value is not None:
+            styles[property_name] = copy.deepcopy(value)
 
 
 def _capsule_row_styles(styles: dict[str, Any]) -> dict[str, Any]:
