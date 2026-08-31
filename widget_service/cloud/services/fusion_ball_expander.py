@@ -99,9 +99,13 @@ def build_fusion_ball_content_id(original_id: str) -> str:
     return f"{FUSION_BALL_CONTENT_ID_PREFIX}{original_id}"
 
 
-def fusion_ball_relative_size(size: int) -> str:
-    """Convert one 160vp-baseline fusion-ball dimension to a percentage."""
-    return f"{size * 100 / FUSION_BALL_BASE_SIZE:g}%"
+def fusion_ball_relative_size(
+    size: int,
+    parent_size: int = FUSION_BALL_BASE_SIZE,
+) -> str:
+    """Convert one fusion-ball dimension to a percentage of its direct parent."""
+    percentage = f"{size * 100 / parent_size:.6f}".rstrip("0").rstrip(".")
+    return f"{percentage}%"
 
 
 def build_fusion_ball_palette(
@@ -339,7 +343,13 @@ def _build_fusion_ball_components(palette: FusionBallPalette) -> list[dict[str, 
             height=fusion_ball_relative_size(44),
             alignContent="center",
         ),
-        _ball("fusionBallLarge", 210, palette.large),
+        _ball(
+            "fusionBallLarge",
+            210,
+            palette.large,
+            parent_width=180,
+            parent_height=44,
+        ),
         _stack(
             "fusionBallMediumSlot",
             ["fusionBallMedium"],
@@ -347,7 +357,13 @@ def _build_fusion_ball_components(palette: FusionBallPalette) -> list[dict[str, 
             height=fusion_ball_relative_size(220),
             alignContent="bottom",
         ),
-        _ball("fusionBallMedium", 160, palette.medium),
+        _ball(
+            "fusionBallMedium",
+            160,
+            palette.medium,
+            parent_width=80,
+            parent_height=220,
+        ),
         _stack(
             "fusionBallSmallSlot",
             ["fusionBallSmall"],
@@ -355,7 +371,13 @@ def _build_fusion_ball_components(palette: FusionBallPalette) -> list[dict[str, 
             height=fusion_ball_relative_size(190),
             alignContent="bottomEnd",
         ),
-        _ball("fusionBallSmall", 100, palette.small),
+        _ball(
+            "fusionBallSmall",
+            100,
+            palette.small,
+            parent_width=195,
+            parent_height=190,
+        ),
         {
             "id": "fusionBallGlassLayer",
             "component": "Divider",
@@ -384,14 +406,20 @@ def _stack(
     }
 
 
-def _ball(component_id: str, diameter: int, color: str) -> dict[str, Any]:
-    relative_diameter = fusion_ball_relative_size(diameter)
+def _ball(
+    component_id: str,
+    diameter: int,
+    color: str,
+    *,
+    parent_width: int,
+    parent_height: int,
+) -> dict[str, Any]:
     return {
         "id": component_id,
         "component": "Divider",
         "styles": {
-            "width": relative_diameter,
-            "height": relative_diameter,
+            "width": fusion_ball_relative_size(diameter, parent_width),
+            "height": fusion_ball_relative_size(diameter, parent_height),
             "strokeWidth": 0,
             "color": "#00000000",
             "borderRadius": diameter // 2,

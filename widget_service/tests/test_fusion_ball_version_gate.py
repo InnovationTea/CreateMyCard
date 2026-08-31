@@ -143,11 +143,11 @@ def test_converter_expands_fusion_ball_with_relative_dimensions(
     expected_dimensions = {
         "fusionBallBackground": ("100%", "100%"),
         "fusionBallLargeSlot": ("112.5%", "27.5%"),
-        "fusionBallLarge": ("131.25%", "131.25%"),
+        "fusionBallLarge": ("116.666667%", "477.272727%"),
         "fusionBallMediumSlot": ("50%", "137.5%"),
-        "fusionBallMedium": ("100%", "100%"),
+        "fusionBallMedium": ("200%", "72.727273%"),
         "fusionBallSmallSlot": ("121.875%", "118.75%"),
-        "fusionBallSmall": ("62.5%", "62.5%"),
+        "fusionBallSmall": ("51.282051%", "52.631579%"),
         "fusionBallGlassLayer": ("100%", "100%"),
     }
 

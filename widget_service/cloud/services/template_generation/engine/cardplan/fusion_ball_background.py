@@ -17,9 +17,27 @@ _SKELETON_LAYOUT_TYPES = frozenset({"Column", "Row", "Stack"})
 
 def build_fusion_ball_background(palette: FusionBallPalette) -> Nested2Node:
     """Return the expanded fusion-ball Tersel background tree for a 160vp card."""
-    large_ball = _ball("fusionBallLarge", 210, palette.large)
-    medium_ball = _ball("fusionBallMedium", 160, palette.medium)
-    small_ball = _ball("fusionBallSmall", 100, palette.small)
+    large_ball = _ball(
+        "fusionBallLarge",
+        210,
+        palette.large,
+        parent_width=180,
+        parent_height=44,
+    )
+    medium_ball = _ball(
+        "fusionBallMedium",
+        160,
+        palette.medium,
+        parent_width=80,
+        parent_height=220,
+    )
+    small_ball = _ball(
+        "fusionBallSmall",
+        100,
+        palette.small,
+        parent_width=195,
+        parent_height=190,
+    )
     return Nested2Node(
         "Stack",
         (
@@ -105,15 +123,21 @@ def apply_fusion_ball_background(
     )
 
 
-def _ball(component_id: str, diameter: int, color: str) -> Nested2Node:
-    relative_diameter = fusion_ball_relative_size(diameter)
+def _ball(
+    component_id: str,
+    diameter: int,
+    color: str,
+    *,
+    parent_width: int,
+    parent_height: int,
+) -> Nested2Node:
     return Nested2Node(
         "Divider",
         (
             {
                 "_id": component_id,
-                "width": relative_diameter,
-                "height": relative_diameter,
+                "width": fusion_ball_relative_size(diameter, parent_width),
+                "height": fusion_ball_relative_size(diameter, parent_height),
                 "strokeWidth": 0,
                 "color": "#00000000",
                 "borderRadius": diameter // 2,
