@@ -24,6 +24,9 @@ from models.service import ArtifactSaveResult
 from services import widget_generation_service as widget_generation_service_module
 from services.artifact_store import ArtifactStore
 from services.card_validation import validate_card
+from services.fusion_ball_expander import (
+    FUSION_BALL_MIN_PRD_VERSION_CONFIG,
+)
 from services.generation_pipeline import (
     DslProcessingResult,
     DslProcessorKind,
@@ -110,9 +113,6 @@ from services.template_generation.engine.tersel_converter import (
     Nested2Node,
     TerselConversionError,
     convert_tersel_to_a2ui,
-)
-from services.template_generation.feature_gates import (
-    FUSION_BALL_MIN_PRD_VERSION_CONFIG,
 )
 from services.template_generation.profile import read_tersel_protocol_profile
 from services.widget_generation_service import WidgetGenerationService

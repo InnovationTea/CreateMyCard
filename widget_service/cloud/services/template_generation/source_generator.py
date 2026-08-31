@@ -7,9 +7,9 @@ from typing import Any
 
 from custom.model_runtime import ModelExecutionRuntime
 from models.generation import CandidateDataBinding, ModelRequestContext, TaskSpec
+from services.fusion_ball_expander import fusion_ball_enabled
 from services.generation_pipeline import DslProcessorKind
 from services.template_generation.facade import request_template_source_dsl
-from services.template_generation.feature_gates import fusion_ball_enabled
 
 
 @dataclass

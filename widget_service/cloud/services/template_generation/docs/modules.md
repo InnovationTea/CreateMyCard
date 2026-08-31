@@ -38,13 +38,14 @@ cloud/api/routes.py
 
 外部调用方不应穿过该文件直接调用 `engine` 内部方法。
 
-### `source_generator.py` 与 `feature_gates.py`
+### `source_generator.py` 与公共融球门控
 
-文件：[../source_generator.py](../source_generator.py)、[../feature_gates.py](../feature_gates.py)
+文件：[../source_generator.py](../source_generator.py)、
+[../../fusion_ball_expander.py](../../fusion_ball_expander.py)
 
 `TemplateSourceGenerator` 从公共生成链接收已构造的 `TaskSpec`，直接使用其中已有的 `appVersion`。
-`fusion_ball_enabled()` 将该值与 `CONFIG.fusion_ball_min_prd_version` 比较；任一值缺失、类型错误、版本非法或
-低于最低版本时均关闭。模板模块不重新读取接口请求，也不复制或规范化版本字段。
+公共 `fusion_ball_enabled()` 将该值与 `CONFIG.fusion_ball_min_prd_version` 比较；任一值缺失、类型错误、
+版本非法或低于最低版本时均关闭。模板模块不重新实现门控，不重新读取接口请求，也不复制或规范化版本字段。
 
 ### `facade.py`
 
