@@ -359,6 +359,9 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         (input_root / weather_icon.requestFile).read_text(encoding="utf-8")
     )
     assert weather_request["content"]["candidateAssetIds"] == _WEATHER_ASSET_IDS
+    assert weather_request["galleryTest"]["sampleOverrides"] == {
+        "/data/weather/current/temperatureText": "29°"
+    }
     weather_uv = _find_case(
         manifest,
         "WeatherOverview",

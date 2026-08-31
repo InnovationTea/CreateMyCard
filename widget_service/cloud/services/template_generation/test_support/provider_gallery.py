@@ -607,6 +607,16 @@ def _gallery_sample_overrides(
         sample_overrides["/data/earphone/isConnected"] = (
             "Disconnected" not in earphone_template.template_id
         )
+    weather_template = next(
+        (
+            template
+            for template in templates
+            if template.template_id.startswith("WeatherOverview")
+        ),
+        None,
+    )
+    if weather_template is not None:
+        sample_overrides["/data/weather/current/temperatureText"] = "29°"
     battery_template = next(
         (
             template
