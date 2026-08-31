@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
-"""Version gating, palette calculation, and A2UI expansion for fusion balls."""
+"""Palette calculation and A2UI expansion for fusion balls."""
 
 from __future__ import annotations
 
@@ -12,30 +12,31 @@ from typing import Any
 
 from packaging.version import InvalidVersion, Version
 
-from config.config import get_settings
-
-FUSION_BALL_MIN_PRD_VERSION_CONFIG = "fusion_ball_min_prd_version"
 FUSION_BALL_CONTENT_ID_PREFIX = "__genui_render_component__"
 FUSION_BALL_DESIGN_TOKENS = (
-    "fusion-ball-weather-blue",
-    "fusion-ball-battery-teal",
     "fusion-ball-schedule-cool",
     "fusion-ball-schedule-warm",
     "fusion-ball-sleep-violet",
     "fusion-ball-sport-orange",
 )
 
+_VERSION_PATTERN = re.compile(r"\d+(?:\.\d+)*")
 _BASE_COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?$")
 _ARGB_COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{8}$")
 _FUSION_ROOT_TYPES = frozenset({"Row", "Column", "Stack"})
 _DESIGN_TOKEN_BASE_COLORS = {
-    "fusion-ball-weather-blue": "#FF2B65D9",
-    "fusion-ball-battery-teal": "#FF26BFA6",
     "fusion-ball-schedule-cool": "#FF2BA2D9",
     "fusion-ball-schedule-warm": "#FFFF5533",
-    "fusion-ball-sleep-violet": "#FF572BD9",
     "fusion-ball-sport-orange": "#FFFF8833",
 }
+_DESIGN_TOKEN_FIXED_PALETTES = {
+    "fusion-ball-sleep-violet": ("#FF121E59", "#FF2BA2D9", "#FF52CCCC"),
+}
+_FUSION_CAPSULE_BACKGROUND = "#33FFFFFF"
+_FUSION_CAPSULE_TEXT = "#E6FFFFFF"
+_FUSION_CAPSULE_ICON = "#99FFFFFF"
+_FUSION_CAPSULE_HEIGHT = 36
+_FUSION_CAPSULE_BORDER_RADII = frozenset({18, 20})
 _BACKGROUND_STYLE_KEYS = frozenset(
     {
         "backgroundColor",
@@ -71,19 +72,19 @@ class FusionBallPalette:
     small: str
 
 
-def fusion_ball_enabled(prd_ver: Any) -> bool:
-    """按配置最低版本和请求 prdVer 以失效关闭方式裁决融球。"""
-    minimum = get_settings().CONFIG.get(FUSION_BALL_MIN_PRD_VERSION_CONFIG)
-    if not isinstance(prd_ver, str) or not isinstance(minimum, str):
-        return False
-    if not prd_ver or not minimum:
-        return False
+def normalize_app_version(app_version: Any) -> str:
+    """Extract the numeric client version used by the internal TaskSpec."""
+    if not isinstance(app_version, str):
+        return "0"
+    match = _VERSION_PATTERN.search(app_version)
+    if match is None:
+        return "0"
+    normalized = match.group(0)
     try:
-        requested_version = Version(prd_ver)
-        minimum_version = Version(minimum)
+        Version(normalized)
     except InvalidVersion:
-        return False
-    return requested_version >= minimum_version
+        return "0"
+    return normalized
 
 
 def build_fusion_ball_content_id(original_id: str) -> str:
@@ -127,10 +128,11 @@ def fusion_ball_palette_for_root(
     components: list[Any],
     *,
     size: str,
-    enable_fusion_ball: bool,
+    app_version: Any,
 ) -> FusionBallPalette | None:
-    """Resolve a root fusion Style Design Token under the request version gate."""
-    if size != "2x2" or not enable_fusion_ball:
+    """Resolve a root fusion Style Design Token for supported 2x2 cards."""
+    del app_version
+    if size != "2x2":
         return None
     roots = [item for item in components if _component_id(item) == "root"]
     if len(roots) != 1:
@@ -146,6 +148,9 @@ def fusion_ball_palette_for_root(
     design_token = props.get("design")
     if not isinstance(design_token, str):
         return None
+    fixed_palette = _DESIGN_TOKEN_FIXED_PALETTES.get(design_token)
+    if fixed_palette is not None:
+        return build_fusion_ball_palette(*fixed_palette)
     base_color = _DESIGN_TOKEN_BASE_COLORS.get(design_token)
     if base_color is None:
         return None
@@ -181,6 +186,9 @@ def expand_fusion_ball_components(
     foreground_styles["width"] = 160
     foreground_styles["height"] = 160
 
+    content_components = [foreground, *(item for item in copied if item is not root)]
+    _apply_fusion_capsule_styles(content_components, content_id)
+
     expanded_root = {
         "id": "root",
         "component": "Stack",
@@ -189,15 +197,85 @@ def expand_fusion_ball_components(
             "width": "matchParent",
             "height": "matchParent",
             "padding": 0,
-            "borderRadius": 18,
+            "borderRadius": 20,
             "clip": True,
             "backgroundColor": "#00000000",
             "alignContent": "topStart",
         },
     }
     background = _build_fusion_ball_components(palette)
-    remaining = [item for item in copied if item is not root]
+    remaining = content_components[1:]
     return [expanded_root, *background, foreground, *remaining]
+
+
+def _apply_fusion_capsule_styles(
+    components: list[dict[str, Any]],
+    content_id: str,
+) -> None:
+    components_by_id = {
+        item.get("id"): item for item in components if isinstance(item.get("id"), str)
+    }
+    content_ids = _collect_descendant_ids(components_by_id, content_id)
+    for component_id in content_ids:
+        component = components_by_id.get(component_id)
+        if not isinstance(component, dict) or not _is_capsule_action_component(component):
+            continue
+        styles = component.setdefault("styles", {})
+        if not isinstance(styles, dict):
+            continue
+        component_type = component.get("component")
+        if component_type == "Button":
+            styles["backgroundColor"] = _FUSION_CAPSULE_BACKGROUND
+            styles["fontColor"] = _FUSION_CAPSULE_TEXT
+            continue
+        if component_type != "Row":
+            continue
+        styles["backgroundColor"] = _FUSION_CAPSULE_BACKGROUND
+        for child_id in component.get("children") or []:
+            child = components_by_id.get(child_id)
+            if not isinstance(child, dict):
+                continue
+            child_styles = child.setdefault("styles", {})
+            if not isinstance(child_styles, dict):
+                continue
+            if child.get("component") == "Text":
+                child_styles["fontColor"] = _FUSION_CAPSULE_TEXT
+            elif child.get("component") == "Image":
+                child_styles["fillColor"] = _FUSION_CAPSULE_ICON
+
+
+def _collect_descendant_ids(
+    components_by_id: dict[str, dict[str, Any]],
+    root_id: str,
+) -> set[str]:
+    visited: set[str] = set()
+    stack = [root_id]
+    while stack:
+        component_id = stack.pop()
+        if component_id in visited:
+            continue
+        visited.add(component_id)
+        component = components_by_id.get(component_id)
+        if not isinstance(component, dict):
+            continue
+        children = component.get("children")
+        if isinstance(children, list):
+            stack.extend(child_id for child_id in children if isinstance(child_id, str))
+    return visited
+
+
+def _is_capsule_action_component(component: dict[str, Any]) -> bool:
+    if "onClick" not in component:
+        return False
+    if component.get("component") not in {"Button", "Row"}:
+        return False
+    styles = component.get("styles")
+    if not isinstance(styles, dict):
+        return False
+    return (
+        styles.get("height") == _FUSION_CAPSULE_HEIGHT
+        and styles.get("borderRadius") in _FUSION_CAPSULE_BORDER_RADII
+    )
 
 
 def _component_id(component: Any) -> str | None:
@@ -243,7 +321,7 @@ def _build_fusion_ball_components(palette: FusionBallPalette) -> list[dict[str, 
             ],
             width=160,
             height=160,
-            borderRadius=18,
+            borderRadius=20,
             alignContent="topStart",
             clip=True,
         ),

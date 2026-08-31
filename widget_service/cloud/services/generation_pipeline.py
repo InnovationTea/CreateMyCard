@@ -58,7 +58,6 @@ class DslProcessingContext:
     task_spec: dict
     protocol_profile: dict
     design_profile_id: str | None = None
-    enable_fusion_ball: bool = False
     data_capabilities: list = field(default_factory=list)
     event_candidates: list = field(default_factory=list)
 
@@ -151,7 +150,7 @@ class DesignCompactProcessor:
                 source_dsl,
                 size=context.size,
                 protocol_profile=design_protocol,
-                enable_fusion_ball=context.enable_fusion_ball,
+                app_version=str(context.task_spec.get("appVersion") or "0"),
             )
             standard_dsl = repair_repeated_display_units(
                 standard_dsl,

@@ -8,6 +8,7 @@ from core.json_pointer import parse_json_pointer
 from models.capability import AssetCapability, DataCapability
 from models.generation import CandidateDataBinding, EventAction, TaskSpec, WidgetSize
 from services.card_validation.base import expression_references
+from services.fusion_ball_expander import normalize_app_version
 
 PathPart = str | int
 
@@ -32,6 +33,7 @@ class TaskSpecBuilder:
         effective_data_capabilities: list[DataCapability],
         event_candidates: list[EventAction],
         asset_candidates: list[AssetCapability],
+        app_version: str = "0",
     ) -> TaskSpec:
         """按有效能力 outputSchema 构造传给 A2UI 模型的 TaskSpec。"""
         data_model_schema: dict[str, Any] = {"data": {}}
@@ -115,6 +117,7 @@ class TaskSpecBuilder:
         return TaskSpec(
             userQuery=user_query,
             size=size,
+            appVersion=normalize_app_version(app_version),
             eventCandidates=event_candidates,
             dataModelSchema=data_model_schema,
             assetCandidates=[
