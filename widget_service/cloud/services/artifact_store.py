@@ -26,7 +26,7 @@ class RepairArtifactRecord:
 
     model_generated_compact_dsl: str
     generated_dsl: str
-    validation_errors: tuple[dict[str, str], ...]
+    validation_errors: tuple[dict[str, Any], ...]
 
     def to_payload(self) -> dict[str, Any]:
         return {

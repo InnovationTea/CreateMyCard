@@ -92,6 +92,7 @@ from custom.model_runtime import ModelExecutionRuntime, _generate_with_llmclient
 from services.card_spec_builder import CardSpecBuilder
 from services.card_validator import validate_card
 from services.card_validation import validate_card as validate_card_api
+from services.card_validation.diagnostics import Diagnostic
 from services.card_validation.rule_registry import RuleRegistry
 from services.capability_registry import CapabilityRegistry
 from services.device_capability_resolver import DeviceCapabilityResolver
@@ -2611,6 +2612,70 @@ def test_design_compact_create_prompt_is_plain_task_spec_json():
             "args": {"uri": "weather://detail"},
         }
     ]
+
+
+def test_artifact_diagnostic_is_preserved_in_repair_prompt():
+    validator = ArtifactValidator()
+    validator.error_diagnostics = [
+        Diagnostic(
+            severity="error",
+            code="DISPLAY_UNIT_MISSING",
+            stage="semantic",
+            file_kind="genui",
+            line=2,
+            json_pointer=(
+                "/updateComponents/componentsById/countdown_num/content"
+            ),
+            message="动态数值字段未展示声明的单位。",
+            actual="{{ ${/data/countdown/countdownDays} }}",
+            expected={"unitIncluded": False, "displayUnits": ["天"]},
+            fix_hint="在数值后准确追加单位“天”，且只追加一次。",
+        )
+    ]
+    issues = WidgetGenerationService._artifact_validation_quality_issues(
+        validator,
+        ["legacy validation message"],
+    )
+
+    repair_prompt = PromptBuilder().build_repair(
+        [
+            {"role": "system", "content": "design rules"},
+            {"role": "user", "content": '{"size":"2x2"}'},
+        ],
+        "invalid compact dsl",
+        [item.to_prompt_payload() for item in issues],
+        dsl_format="design-compact-dsl",
+    )
+    payload = json_module.loads(repair_prompt[1]["content"])
+    error = payload["qualityErrors"][0]
+
+    assert error["code"] == "DISPLAY_UNIT_MISSING"
+    assert error["message"] == "动态数值字段未展示声明的单位。"
+    assert error["details"] == {
+        "validatorStage": "semantic",
+        "location": {
+            "fileKind": "genui",
+            "line": 2,
+            "jsonPointer": (
+                "/updateComponents/componentsById/countdown_num/content"
+            ),
+        },
+        "actual": "{{ ${/data/countdown/countdownDays} }}",
+        "fixHint": "在数值后准确追加单位“天”，且只追加一次。",
+    }
+    assert "unitIncluded" not in repair_prompt[1]["content"]
+    assert "displayUnits" not in repair_prompt[1]["content"]
+    assert payload["invalidSourceDsl"] == "invalid compact dsl"
+    assert "actual 是当前错误值" in repair_prompt[0]["content"]
+
+
+def test_design_compact_prompt_allows_separate_numeric_display_unit():
+    prompt = A2UIProtocolRegistry.read_design_prompt("design-compact-dsl")
+
+    assert "允许把单位拆成同一 Row 内紧邻数值 Text 的独立静态 Text" in prompt
+    assert "单位 Text 的 `content` 必须且只能是该单位" in prompt
+    assert "额外说明必须放在后续独立 Text" in prompt
+    assert "不要从已经格式化的动态字符串中剥离单位另造静态 Text" not in prompt
 
 
 @pytest.mark.asyncio

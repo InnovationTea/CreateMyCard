@@ -777,13 +777,9 @@ class WidgetGenerationService:
                         validation_errors.append(
                             f"removed data path remains in edited genui: {removed_root}"
                         )
-            validation_issues = tuple(
-                QualityIssue(
-                    stage="validation",
-                    code="ARTIFACT_VALIDATION_FAILED",
-                    message=message,
-                )
-                for message in validation_errors
+            validation_issues = self._artifact_validation_quality_issues(
+                artifact_validator,
+                validation_errors,
             )
             latest_processing_result = DslProcessingResult(
                 source_dsl=processing_result.source_dsl,
@@ -1312,6 +1308,63 @@ class WidgetGenerationService:
                 validation_errors=validation_errors,
             )
         )
+
+    @staticmethod
+    def _artifact_validation_quality_issues(
+        artifact_validator: ArtifactValidator,
+        validation_errors: list[str],
+    ) -> tuple[QualityIssue, ...]:
+        """优先保留校验器结构化诊断，测试注入和异常路径回退为稳定字符串。"""
+        diagnostics = artifact_validator.error_diagnostics
+        if not diagnostics:
+            return tuple(
+                QualityIssue(
+                    stage="validation",
+                    code="ARTIFACT_VALIDATION_FAILED",
+                    message=message,
+                )
+                for message in validation_errors
+            )
+
+        issues: list[QualityIssue] = []
+        for diagnostic in diagnostics:
+            location: dict[str, object] = {"fileKind": diagnostic.file_kind}
+            if diagnostic.line is not None:
+                location["line"] = diagnostic.line
+            if diagnostic.json_pointer:
+                location["jsonPointer"] = diagnostic.json_pointer
+
+            details: dict[str, object] = {
+                "validatorStage": diagnostic.stage,
+                "location": location,
+            }
+            if diagnostic.actual is not None:
+                details["actual"] = diagnostic.actual
+            expected = diagnostic.expected
+            contains_unit_metadata = isinstance(expected, dict) and (
+                "unitIncluded" in expected or "displayUnits" in expected
+            )
+            if expected is not None and not contains_unit_metadata:
+                details["expected"] = diagnostic.expected
+            if diagnostic.fix_hint:
+                details["fixHint"] = diagnostic.fix_hint
+            issues.append(
+                QualityIssue(
+                    stage="validation",
+                    code=diagnostic.code,
+                    message=diagnostic.message,
+                    details=details,
+                )
+            )
+        for message in validation_errors[len(diagnostics):]:
+            issues.append(
+                QualityIssue(
+                    stage="validation",
+                    code="ARTIFACT_VALIDATION_FAILED",
+                    message=message,
+                )
+            )
+        return tuple(issues)
 
     @staticmethod
     def _require_source_design_token(

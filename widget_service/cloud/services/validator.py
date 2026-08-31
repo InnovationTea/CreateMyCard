@@ -14,6 +14,7 @@ _MODULE = "[Validator]"
 class ArtifactValidator:
     def __init__(self) -> None:
         self.error_categories: list[str] = []
+        self.error_diagnostics: list[Diagnostic] = []
 
     def validate(
         self,
@@ -34,6 +35,7 @@ class ArtifactValidator:
             f"validator_module={validator_name}"
         )
         self.error_categories = []
+        self.error_diagnostics = []
         try:
             settings = get_settings()
             reporter = validate_card(
@@ -48,6 +50,9 @@ class ArtifactValidator:
             )
             errors = self._normalize_diagnostics(reporter.diagnostics, "error")
             warnings = self._normalize_diagnostics(reporter.diagnostics, "warning")
+            self.error_diagnostics = [
+                item for item in reporter.diagnostics if item.severity == "error"
+            ]
         except Exception as exc:
             # 校验模块异常转成错误列表，供生成服务记录，并按配置决定是否重试。
             errors = [f"validator execution failed: {exc}"]
