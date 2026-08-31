@@ -10,6 +10,7 @@ from models.generation import CandidateDataBinding, EventAction, TaskSpec
 from services.template_generation.engine.advanced.content_selectors import (
     apply_content_selectors,
 )
+from services.template_generation.engine.cardplan import template_retrieval as retrieval_module
 from services.template_generation.engine.cardplan.registry import (
     CardPlanRegistry,
     get_cardplan_registry,
@@ -146,6 +147,133 @@ def test_provider_required_data_types_are_checked_when_known() -> None:
             (_binding(),),
             _card_spec(),
         )
+
+
+def test_candidate_diagnostics_distinguish_user_and_template_field_failures(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user_field = FieldToken("ViewWeather", "/current/condition", "string")
+    template_field = FieldToken("ViewWeather", "/templateRequired", "string")
+
+    missing_template_input = TemplateVariantSearchRecord(
+        capability_id="ViewWeather",
+        business_id="WeatherOverview",
+        compatible_theme_ids=frozenset(),
+        template_id="WeatherMissingInputFull@1",
+        variant_name="2x2",
+        supported_card_sizes=frozenset({"2x2"}),
+        supported_roles=frozenset(),
+        available_paths=frozenset({user_field.path, template_field.path}),
+        required_paths=frozenset({template_field.path}),
+        field_tokens=frozenset({user_field, template_field}),
+        required_field_tokens=frozenset({template_field}),
+        required_parameter_count=0,
+    )
+    missing_user_requirement = TemplateVariantSearchRecord(
+        capability_id="ViewWeather",
+        business_id="WeatherOverview",
+        compatible_theme_ids=frozenset(),
+        template_id="WeatherOtherFieldFull@1",
+        variant_name="2x2",
+        supported_card_sizes=frozenset({"2x2"}),
+        supported_roles=frozenset(),
+        available_paths=frozenset({"/current/airQuality"}),
+        required_paths=frozenset(),
+        field_tokens=frozenset(
+            {FieldToken("ViewWeather", "/current/airQuality", "string")}
+        ),
+        required_field_tokens=frozenset(),
+        required_parameter_count=0,
+    )
+    template_ids = (
+        missing_template_input.template_id,
+        missing_user_requirement.template_id,
+    )
+    registry = SimpleNamespace(
+        ux_business_components={
+            "WeatherOverview": SimpleNamespace(local_template_ids=template_ids)
+        },
+        template_variant_search_records=(
+            missing_template_input,
+            missing_user_requirement,
+        ),
+        enabled_template_ids=lambda values: values,
+    )
+    info_logs: list[str] = []
+    monkeypatch.setattr(
+        retrieval_module,
+        "logger",
+        SimpleNamespace(info=info_logs.append),
+    )
+
+    candidates = _component_templates_for_capability(
+        registry,  # type: ignore[arg-type]
+        "ViewWeather",
+        frozenset({user_field}),
+        _task(),
+        _card_spec(),
+        candidate_output_fields=set(_WEATHER_FIELDS),
+    )
+
+    assert candidates == {}
+    message = next(item for item in info_logs if "candidate_evaluation" in item)
+    diagnostics = json.loads(message.partition("diagnostics=")[2])
+    templates = {item["templateId"]: item for item in diagnostics["templates"]}
+    missing_input = templates[missing_template_input.template_id]
+    missing_requirement = templates[missing_user_requirement.template_id]
+
+    assert diagnostics["userRequiredFields"] == [
+        {"path": "/current/condition", "type": "string"}
+    ]
+    assert diagnostics["candidateOutputFields"] == sorted(_WEATHER_FIELDS)
+    assert "templateRequiredFields" not in missing_input
+    assert "templateAvailableFields" not in missing_input
+    assert missing_input["userRequiredDataFullyCovered"] is True
+    assert missing_input["userProvidedDataSatisfiesTemplateRequirements"] is False
+    assert missing_input["missingTemplateRequiredFields"] == ["/templateRequired"]
+    assert (
+        "user_provided_data_missing_template_required_fields"
+        in missing_input["rejectionReasons"]
+    )
+    assert missing_requirement["userRequiredDataFullyCovered"] is False
+    assert missing_requirement["userProvidedDataSatisfiesTemplateRequirements"] is True
+    assert "user_required_data_not_covered" in missing_requirement["rejectionReasons"]
+
+
+def test_layout_suffix_mismatch_logs_required_layout_and_candidates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    info_logs: list[str] = []
+    monkeypatch.setattr(
+        retrieval_module,
+        "logger",
+        SimpleNamespace(info=info_logs.append),
+    )
+    candidate = retrieval_module.TemplateComponentCandidate(
+        componentId="BluetoothDeviceOverview",
+        availableTemplateIds=("BluetoothDeviceOverviewCompact@1",),
+    )
+
+    with pytest.raises(TemplateRetrievalMiss, match="has no Hero/Full template"):
+        retrieval_module._apply_2x2_combination_policy(
+            (candidate,),
+            1,
+            [("BluetoothDeviceOverviewCompact@1",)],
+        )
+
+    policy_message = next(item for item in info_logs if "layout_policy_selected" in item)
+    policy = json.loads(policy_message.partition("diagnostics=")[2])
+    mismatch_message = next(item for item in info_logs if "layout_suffix_mismatch" in item)
+    mismatch = json.loads(mismatch_message.partition("diagnostics=")[2])
+
+    assert policy["actionCount"] == 1
+    assert policy["requiredLayoutSuffixes"] == ["Hero", "Full"]
+    assert mismatch == {
+        "businessId": "BluetoothDeviceOverview",
+        "requiredLayoutSuffixes": ["Hero", "Full"],
+        "requiredLayoutLabel": "Hero/Full",
+        "availableTemplateIds": ["BluetoothDeviceOverviewCompact@1"],
+    }
 
 
 def test_cross_theme_query_keeps_field_compatible_candidates() -> None:
