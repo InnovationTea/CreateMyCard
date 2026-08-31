@@ -31,6 +31,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--concurrency", type=int, default=1)
     parser.add_argument(
+        "--model-failure-attempts",
+        type=int,
+        default=2,
+        help="仅对 A2UI_GENERATION_FAILED 执行的单用例最大尝试次数",
+    )
+    parser.add_argument(
         "--refresh-inputs",
         action="store_true",
         help="先按当前 Provider 配置重建模拟输入",
@@ -73,6 +79,7 @@ async def run(args: argparse.Namespace) -> int:
             concurrency=args.concurrency,
             provider_ids=provider_ids,
             dry_run=args.dry_run,
+            model_failure_attempts=args.model_failure_attempts,
         )
         print(
             "Provider 画廊批跑完成："

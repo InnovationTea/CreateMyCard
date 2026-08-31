@@ -73,9 +73,6 @@ _PROVIDER_COMPONENT_FIELDS: dict[str, tuple[str, ...]] = {
         "chargingStatusDesc",
         "healthStatusDesc",
         "pluggedTypeDesc",
-        "nowCurrentText",
-        "voltageText",
-        "isBatteryPresentText",
     ),
     "ResourceUsageOverview": ("usagePercent", "availableMemText", "totalMemText"),
     "AppUsageOverview": (
@@ -107,6 +104,7 @@ _PROVIDER_COMPONENT_FIELDS: dict[str, tuple[str, ...]] = {
         "leftBatteryLevel",
         "rightBatteryLevel",
         "batteryLevel",
+        "chargingStatusDesc",
     ),
     "CountdownOverview": ("countdownDays",),
 }
@@ -240,21 +238,23 @@ class BatteryOverviewFacts:
 
 @dataclass(frozen=True)
 class BluetoothDeviceOverviewFacts:
-    is_connected: bool
-    earphone_name: str
+    is_connected: bool | None = None
+    earphone_name: str | None = None
     left_battery_level: int | float | None = None
     right_battery_level: int | float | None = None
     case_battery_level: int | float | None = None
+    case_charging_status: str | None = None
 
     def as_selector(self) -> dict[str, dict[str, Any]]:
-        selected: dict[str, dict[str, Any]] = {
-            "isConnected": {
+        selected: dict[str, dict[str, Any]] = {}
+        if self.is_connected is not None:
+            selected["isConnected"] = {
                 "type": "boolean",
                 "description": "可信蓝牙耳机连接状态",
                 "sampleValue": self.is_connected,
-            },
-            "earphoneName": _field(self.earphone_name, "可信蓝牙耳机名称"),
-        }
+            }
+        if self.earphone_name is not None:
+            selected["earphoneName"] = _field(self.earphone_name, "可信蓝牙耳机名称")
         for name, value, description in (
             ("leftBatteryLevel", self.left_battery_level, "可信左耳电量百分比"),
             ("rightBatteryLevel", self.right_battery_level, "可信右耳电量百分比"),
@@ -267,6 +267,11 @@ class BluetoothDeviceOverviewFacts:
                 "description": description,
                 "sampleValue": value,
             }
+        if self.case_charging_status is not None:
+            selected["chargingStatusDesc"] = _field(
+                self.case_charging_status,
+                "可信充电盒充电状态",
+            )
         return selected
 
     @property
@@ -1211,6 +1216,15 @@ _BLUETOOTH_CONNECTION_QUERY_TERMS = (
     "是否连接",
 )
 _BLUETOOTH_BATTERY_QUERY_TERMS = ("battery", "电量", "剩余电")
+_BLUETOOTH_CHARGING_QUERY_TERMS = (
+    "charging status",
+    "charging",
+    "充电状态",
+    "充没充",
+    "是否充电",
+    "在充电",
+    "未充电",
+)
 _UNSUPPORTED_RESOURCE_USAGE_QUERY_TERMS = (
     "storage",
     "disk",
@@ -1891,6 +1905,11 @@ def bluetooth_device_overview_variants(
     requests_right = _contains_query_term(normalized, compact, _BLUETOOTH_RIGHT_QUERY_TERMS)
     requests_both = _contains_query_term(normalized, compact, _BLUETOOTH_BOTH_EARS_QUERY_TERMS)
     requests_case = _contains_query_term(normalized, compact, _BLUETOOTH_CASE_QUERY_TERMS)
+    requests_charging = _contains_query_term(
+        normalized,
+        compact,
+        _BLUETOOTH_CHARGING_QUERY_TERMS,
+    )
     if requests_left and facts.left_battery_level is None:
         return ()
     if requests_right and facts.right_battery_level is None:
@@ -1901,7 +1920,9 @@ def bluetooth_device_overview_variants(
         return ()
     if requests_case and facts.case_battery_level is None:
         return ()
-    return ("earbuds",)
+    if requests_charging and facts.case_charging_status is None:
+        return ()
+    return ("template",)
 
 
 def bluetooth_device_overview_template_focus(query: str) -> Literal["connection", "case", "all"]:
@@ -2319,7 +2340,7 @@ def extract_battery_overview_facts(schema: dict[str, Any]) -> BatteryOverviewFac
 def extract_bluetooth_device_overview_facts(
     schema: dict[str, Any],
 ) -> BluetoothDeviceOverviewFacts | None:
-    """Extract one coherent earphone entity with at least one valid battery part."""
+    """Extract one coherent earphone entity with optional battery facts."""
     data = schema.get("data")
     if isinstance(data, dict):
         projected = data.get("BluetoothDeviceOverview")
@@ -2333,9 +2354,11 @@ def extract_bluetooth_device_overview_facts(
             if facts is not None:
                 return facts
     required_identity = {"isConnected", "earphoneName"}
-    battery_fields = {"leftBatteryLevel", "rightBatteryLevel", "batteryLevel"}
+    required_case_status = {"batteryLevel", "chargingStatusDesc"}
     for candidate in _dict_nodes(schema):
-        if not required_identity.issubset(candidate) or not battery_fields.intersection(candidate):
+        has_complete_identity = required_identity.issubset(candidate)
+        has_complete_case_status = required_case_status.issubset(candidate)
+        if not has_complete_identity and not has_complete_case_status:
             continue
         facts = _bluetooth_facts_from_candidate(candidate)
         if facts is not None:
@@ -2348,7 +2371,8 @@ def _bluetooth_facts_from_candidate(
 ) -> BluetoothDeviceOverviewFacts | None:
     is_connected = _trusted_boolean(_first_field(candidate, "isConnected"))
     earphone_name = _trusted_string(_first_field(candidate, "earphoneName"))
-    if is_connected is None or earphone_name is None:
+    has_complete_identity = is_connected is not None and earphone_name is not None
+    if (is_connected is None) != (earphone_name is None):
         return None
     facts = BluetoothDeviceOverviewFacts(
         is_connected=is_connected,
@@ -2360,8 +2384,14 @@ def _bluetooth_facts_from_candidate(
             _first_field(candidate, "rightBatteryLevel")
         ),
         case_battery_level=_trusted_percentage_number(_first_field(candidate, "batteryLevel")),
+        case_charging_status=_trusted_string(
+            _first_field(candidate, "chargingStatusDesc")
+        ),
     )
-    return facts if facts.battery_part_count else None
+    has_complete_case_status = (
+        facts.case_battery_level is not None and facts.case_charging_status is not None
+    )
+    return facts if has_complete_identity or has_complete_case_status else None
 
 
 def _projected_battery_candidates(schema: dict[str, Any]):

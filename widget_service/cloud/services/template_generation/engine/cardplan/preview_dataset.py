@@ -24,10 +24,25 @@ from .models import TemplateBinding, TemplateDefinition
 from .provider_bundle import provider_template_layout_kind
 from .registry import CardPlanRegistry
 
-TemplateLayoutKind = Literal["Compact", "Hero", "Full", "WideHero", "WideFull"]
+TemplateLayoutKind = Literal[
+    "Support",
+    "Compact",
+    "Hero",
+    "Full",
+    "WideHero",
+    "WideFull",
+]
 
-_LAYOUT_ORDER = {"Compact": 0, "Hero": 1, "Full": 2, "WideHero": 3, "WideFull": 4}
+_LAYOUT_ORDER = {
+    "Support": 0,
+    "Compact": 1,
+    "Hero": 2,
+    "Full": 3,
+    "WideHero": 4,
+    "WideFull": 5,
+}
 _SIZE_BY_LAYOUT: dict[TemplateLayoutKind, Literal["2x2", "2x4"]] = {
+    "Support": "2x2",
     "Compact": "2x2",
     "Hero": "2x2",
     "Full": "2x2",
@@ -35,6 +50,7 @@ _SIZE_BY_LAYOUT: dict[TemplateLayoutKind, Literal["2x2", "2x4"]] = {
     "WideFull": "2x4",
 }
 _CONTENT_HEIGHT_BY_LAYOUT: dict[TemplateLayoutKind, int] = {
+    "Support": 68,
     "Compact": 68,
     "Hero": 124,
     "Full": 136,
@@ -44,6 +60,7 @@ _CONTENT_HEIGHT_BY_LAYOUT: dict[TemplateLayoutKind, int] = {
 _ASSET_BY_PARAMETER = {
     "appIcon": "resources/base/media/icon_tiktok.png",
     "batteryIcon": "resources/base/media/battery_leaf_fill.svg",
+    "deviceIcon": "resources/base/media/earphone_case_16644.svg",
     "caloriesIcon": "resources/base/media/flame_fill.svg",
     "conditionIcon": "resources/base/media/icon_weather1.svg",
     "distanceIcon": "resources/base/media/location_north_up_right_fill.svg",
@@ -62,6 +79,9 @@ _SOURCE_ICON_BY_BUSINESS = {
     "SleepOverview": "resources/base/media/moon_z_fill_1.svg",
     "WorkoutOverview": "resources/base/media/figure_run.svg",
 }
+_TEXT_BY_TEMPLATE_PARAMETER = {
+    ("BluetoothDeviceOverviewHero@1", "title"): "耳机听歌入口",
+}
 _SAMPLE_BY_BUSINESS_BINDING: dict[tuple[str, str], Any] = {
     ("ActivityOverview", "calories"): "420 千卡",
     ("ActivityOverview", "distance"): "4.6 公里",
@@ -70,9 +90,12 @@ _SAMPLE_BY_BUSINESS_BINDING: dict[tuple[str, str], Any] = {
     ("AppUsageOverview", "duration"): "1小时26分",
     ("AppUsageOverview", "updatedAt"): "今天 09:00",
     ("BluetoothDeviceOverview", "battery"): 80,
+    ("BluetoothDeviceOverview", "chargingStatus"): "充电中",
     ("BluetoothDeviceOverview", "left"): 76,
+    ("BluetoothDeviceOverview", "leftChargingStatus"): "未充电",
     ("BluetoothDeviceOverview", "name"): "FreeBuds Pro",
     ("BluetoothDeviceOverview", "right"): 78,
+    ("BluetoothDeviceOverview", "rightChargingStatus"): "充电中",
     ("CountdownOverview", "days"): 28,
     ("CalendarOverview", "description"): "评审本周 UI 交付方案",
     ("CalendarOverview", "end"): "15:30",
@@ -284,7 +307,10 @@ def _template_parameters(definition: TemplateDefinition) -> dict[str, str]:
     properties = definition.variants[0].parameters_schema.get("properties", {})
     parameters: dict[str, str] = {}
     for name in properties:
-        if name == "sourceIcon":
+        text = _TEXT_BY_TEMPLATE_PARAMETER.get((definition.wire_id, name))
+        if text is not None:
+            parameters[name] = text
+        elif name == "sourceIcon":
             parameters[name] = _SOURCE_ICON_BY_BUSINESS.get(
                 definition.business_id or "",
                 "resources/base/media/icon_id.svg",

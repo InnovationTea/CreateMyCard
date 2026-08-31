@@ -492,57 +492,6 @@ Column(
 )
 #End
 
-#Template BatteryOverviewTemperatureIconCompact@1(props: { batteryIcon: asset })
-data = {
-    temperature: $path("/batteryTemperatureText")
-}
-
-Row(
-  {
-    "_advancedComponent": "BatteryOverview",
-    "width": "matchParent",
-    "height": "matchParent",
-    "backgroundColor": $theme('actionStyle.backgroundColor'),
-    "borderRadius": 16,
-    "padding": {"left": 12, "top": 0, "right": 22, "bottom": 0},
-    "justifyContent": "spaceBetween",
-    "alignItems": "center",
-    "clip": true,
-    "constraintSize": {"minWidth": 0, "minHeight": 0}
-  },
-  Column(
-      {
-        "width": 84,
-        "margin": {"left": 0, "top": 11, "right": 0, "bottom": 0},
-        "itemMargin": 2,
-        "justifyContent": "start",
-        "alignItems": "start",
-        "clip": true,
-        "constraintSize": {"minWidth": 0, "minHeight": 0}
-      },
-      Text(
-            data.temperature,
-            {"fontSize": 14, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          ),
-      Text(
-            "手机温度",
-            {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          )
-    ),
-  Image(
-      props.batteryIcon,
-      {
-        "width": 20,
-        "height": 20,
-        "margin": {"left": 0, "top": 22, "right": 0, "bottom": 22},
-        "objectFit": "contain",
-        "fillColor": $theme('primaryColor'),
-        "flexShrink": 0
-      }
-    )
-)
-#End
-
 #Template BatteryOverviewStatusIconCompact@1(props: { batteryIcon: asset })
 data = {
     percentText: $path("/batterySOCText"),
@@ -592,190 +541,6 @@ Row(
         "fillColor": "#E6000000",
         "flexShrink": 0
       }
-    )
-)
-#End
-
-#Template BatteryOverviewNormalPowerTemperatureIconCompact@1(props: { batteryIcon: asset })
-data = {
-    percent: $path("/batterySOC"),
-    temperature: $path("/batteryTemperatureText")
-}
-
-Row(
-  {
-    "_advancedComponent": "BatteryOverview",
-    "width": "matchParent",
-    "height": 64,
-    "backgroundColor": $theme('actionStyle.backgroundColor'),
-    "borderRadius": 16,
-    "padding": {"left": 12, "top": 0, "right": 22, "bottom": 0},
-    "justifyContent": "spaceBetween",
-    "alignItems": "center",
-    "clip": true,
-    "constraintSize": {"minWidth": 0, "minHeight": 0}
-  },
-  Column(
-      {
-        "width": 84,
-        "height": "matchParent",
-        "margin": {"left": 0, "top": 0, "right": 0, "bottom": 0},
-        "itemMargin": 2,
-        "justifyContent": "center",
-        "alignItems": "start",
-        "clip": true,
-        "constraintSize": {"minWidth": 0, "minHeight": 0}
-      },
-      Row(
-            {"width": "matchParent", "itemMargin": 0, "justifyContent": "start", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Text(
-                  "手机电量 ",
-                  {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                ),
-            Text(
-                  data.percent,
-                  {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                ),
-            Text(
-                  "%",
-                  {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                )
-          ),
-      Text(
-            `手机温度 ${data.temperature}`,
-            {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          )
-    ),
-  Image(
-      props.batteryIcon,
-      {
-        "width": 20,
-        "height": 20,
-        "margin": {"left": 0, "top": 22, "right": 0, "bottom": 22},
-        "objectFit": "contain",
-        "fillColor": $theme('primaryColor'),
-        "flexShrink": 0
-      }
-    )
-)
-#End
-
-#Template BatteryOverviewProgressCompact@1(props: {})
-data = {
-    percent: $path("/batterySOC"),
-    percentText: $path("/batterySOCText"),
-    level: $path("/batteryCapacityLevelDesc")
-}
-
-Column(
-  {
-    "_advancedComponent": "BatteryOverview",
-    "width": "matchParent",
-    "height": 60,
-    "padding": {"left": 8, "top": 0, "right": 8, "bottom": 0},
-    "itemMargin": 2,
-    "justifyContent": "start",
-    "alignItems": "start",
-    "clip": true,
-    "constraintSize": {"minWidth": 0, "minHeight": 0}
-  },
-  Row(
-      {
-        "width": "matchParent",
-        "height": 22,
-        "itemMargin": 0,
-        "justifyContent": "start",
-        "alignItems": "center",
-        "clip": true,
-        "constraintSize": {"minWidth": 0, "minHeight": 0}
-      },
-      Text(
-            "手机电量",
-            {"width": 80, "fontSize": 16, "minFontSize": 12, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          ),
-      Text(
-            data.percentText,
-            {"width": 40, "fontSize": 16, "minFontSize": 12, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "right", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          )
-    ),
-  Progress(
-      {"value": data.percent, "total": 100, "strokeWidth": 8, "color": $theme('primaryColor'), "backgroundColor": $theme('actionStyle.backgroundColor'), "height": 8, "width": "matchParent"}
-    ),
-  Text(
-      data.level,
-      {"width": "matchParent", "height": 14, "fontSize": 12, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    )
-)
-#End
-
-#Template BatteryOverviewChargingDiagnosticsHero@1(props: {})
-data = {
-    charging: $path("/chargingStatusDesc"),
-    current: $path("/nowCurrentText"),
-    voltage: $path("/voltageText"),
-    present: $path("/isBatteryPresentText")
-}
-
-Column(
-  {
-    "_advancedComponent": "BatteryOverview",
-    "_layoutActionBackgroundOpacity": 0.2,
-    "width": "matchParent",
-    "height": "matchParent",
-    "padding": {"left": 12, "top": 0, "right": 12, "bottom": 0},
-    "itemMargin": 1,
-    "justifyContent": "start",
-    "alignItems": "start",
-    "clip": true,
-    "constraintSize": {"minWidth": 0, "minHeight": 0}
-  },
-  Text(
-      "充电诊断",
-      {"width": "matchParent", "height": 16, "fontSize": 12, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    ),
-  Row(
-      {"width": "matchParent", "height": 16, "itemMargin": 2, "justifyContent": "start", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Text(
-          "充电状态",
-          {"width": 56, "fontSize": 12, "minFontSize": 10, "fontWeight": 700, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-        ),
-      Text(
-          data.charging,
-          {"width": "matchParent", "layoutWeight": 1, "fontSize": 12, "minFontSize": 10, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "right", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-        )
-    ),
-  Row(
-      {"width": "matchParent", "height": 16, "itemMargin": 2, "justifyContent": "start", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Text(
-          "充电电流",
-          {"width": 56, "fontSize": 12, "minFontSize": 10, "fontWeight": 700, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-        ),
-      Text(
-          data.current,
-          {"width": "matchParent", "layoutWeight": 1, "fontSize": 12, "minFontSize": 10, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "right", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-        )
-    ),
-  Row(
-      {"width": "matchParent", "height": 16, "itemMargin": 2, "justifyContent": "start", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Text(
-          "电压",
-          {"width": 56, "fontSize": 12, "minFontSize": 10, "fontWeight": 700, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-        ),
-      Text(
-          data.voltage,
-          {"width": "matchParent", "layoutWeight": 1, "fontSize": 12, "minFontSize": 10, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "right", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-        )
-    ),
-  Row(
-      {"width": "matchParent", "height": 16, "itemMargin": 2, "justifyContent": "start", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Text(
-          "电池状态",
-          {"width": 56, "fontSize": 12, "minFontSize": 10, "fontWeight": 700, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-        ),
-      Text(
-          data.present,
-          {"width": "matchParent", "layoutWeight": 1, "fontSize": 12, "minFontSize": 10, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "right", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-        )
     )
 )
 #End
@@ -916,5 +681,456 @@ Column(
       `手机电量剩余${data.percentText}`,
       {"width": "matchParent", "height": 28, "fontSize": 14, "minFontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     )
+)
+#End
+
+#Template BatteryOverviewNormalWeatherSupport@1(props: { batteryIcon?: asset, actionId?: string })
+data = {
+    percentText: $path("/batterySOCText"),
+    charging: $path("/chargingStatusDesc"),
+    level: $path("/batteryCapacityLevelDesc")
+}
+
+Stack({
+  "width": "matchParent",
+  "height": "matchParent",
+  "alignContent": "topStart"
+},
+  Column(
+    {"_advancedComponent": "BatteryOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 2, "justifyContent": "center", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Row(
+        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+        IfPresent(
+              props.batteryIcon,
+              Image(
+                      props.batteryIcon,
+                      {"width": 14, "height": 14, "objectFit": "contain", "flexShrink": 0}
+                    )
+            ),
+        Text(
+              data.percentText,
+              {"fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            ),
+        Text(
+              data.level,
+              {"fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            )
+      ),
+    Text(
+        data.charging,
+        {"fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      )
+  ),
+  IfPresent(props.actionId,
+    Stack({
+      "width": "matchParent",
+      "height": "matchParent",
+      "alignContent": "center",
+      "onClick": EventAction(props.actionId)
+    },
+      Text("", {
+        "width": "matchParent",
+        "height": "matchParent"
+      })
+    )
+  )
+)
+#End
+
+#Template BatteryOverviewChargingWeatherSupport@1(props: { batteryIcon?: asset, actionId?: string })
+data = {
+    percentText: $path("/batterySOCText"),
+    charging: $path("/chargingStatusDesc"),
+    level: $path("/batteryCapacityLevelDesc")
+}
+
+Stack({
+  "width": "matchParent",
+  "height": "matchParent",
+  "alignContent": "topStart"
+},
+  Column(
+    {"_advancedComponent": "BatteryOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 2, "justifyContent": "center", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Row(
+        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+        IfPresent(
+              props.batteryIcon,
+              Image(
+                      props.batteryIcon,
+                      {"width": 14, "height": 14, "objectFit": "contain", "flexShrink": 0}
+                    )
+            ),
+        Text(
+              data.percentText,
+              {"fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            ),
+        Text(
+              data.level,
+              {"fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            )
+      ),
+    Text(
+        data.charging,
+        {"fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      )
+  ),
+  IfPresent(props.actionId,
+    Stack({
+      "width": "matchParent",
+      "height": "matchParent",
+      "alignContent": "center",
+      "onClick": EventAction(props.actionId)
+    },
+      Text("", {
+        "width": "matchParent",
+        "height": "matchParent"
+      })
+    )
+  )
+)
+#End
+
+#Template BatteryOverviewLowWeatherSupport@1(props: { batteryIcon?: asset, actionId?: string })
+data = {
+    percentText: $path("/batterySOCText"),
+    charging: $path("/chargingStatusDesc"),
+    level: $path("/batteryCapacityLevelDesc")
+}
+
+Stack({
+  "width": "matchParent",
+  "height": "matchParent",
+  "alignContent": "topStart"
+},
+  Column(
+    {"_advancedComponent": "BatteryOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 2, "justifyContent": "center", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Row(
+        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+        IfPresent(
+              props.batteryIcon,
+              Image(
+                      props.batteryIcon,
+                      {"width": 14, "height": 14, "objectFit": "contain", "flexShrink": 0}
+                    )
+            ),
+        Text(
+              data.percentText,
+              {"fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            ),
+        Text(
+              data.level,
+              {"fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            )
+      ),
+    Text(
+        data.charging,
+        {"fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      )
+  ),
+  IfPresent(props.actionId,
+    Stack({
+      "width": "matchParent",
+      "height": "matchParent",
+      "alignContent": "center",
+      "onClick": EventAction(props.actionId)
+    },
+      Text("", {
+        "width": "matchParent",
+        "height": "matchParent"
+      })
+    )
+  )
+)
+#End
+
+#Template BatteryOverviewTemperatureIconSupport@1(props: { batteryIcon: asset, actionId?: string })
+data = {
+    temperature: $path("/batteryTemperatureText")
+}
+
+Stack({
+  "width": "matchParent",
+  "height": "matchParent",
+  "alignContent": "topStart"
+},
+  Row(
+    {
+      "_advancedComponent": "BatteryOverview",
+      "width": "matchParent",
+      "height": "matchParent",
+      "backgroundColor": $theme('actionStyle.backgroundColor'),
+      "borderRadius": 16,
+      "padding": {"left": 12, "top": 0, "right": 22, "bottom": 0},
+      "justifyContent": "spaceBetween",
+      "alignItems": "center",
+      "clip": true,
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+    Column(
+        {
+          "width": 84,
+          "margin": {"left": 0, "top": 11, "right": 0, "bottom": 0},
+          "itemMargin": 2,
+          "justifyContent": "start",
+          "alignItems": "start",
+          "clip": true,
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        },
+        Text(
+              data.temperature,
+              {"fontSize": 14, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            ),
+        Text(
+              "手机温度",
+              {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            )
+      ),
+    Image(
+        props.batteryIcon,
+        {
+          "width": 20,
+          "height": 20,
+          "margin": {"left": 0, "top": 22, "right": 0, "bottom": 22},
+          "objectFit": "contain",
+          "fillColor": $theme('primaryColor'),
+          "flexShrink": 0
+        }
+      )
+  ),
+  IfPresent(props.actionId,
+    Stack({
+      "width": "matchParent",
+      "height": "matchParent",
+      "alignContent": "center",
+      "onClick": EventAction(props.actionId)
+    },
+      Text("", {
+        "width": "matchParent",
+        "height": "matchParent"
+      })
+    )
+  )
+)
+#End
+
+#Template BatteryOverviewStatusIconSupport@1(props: { batteryIcon: asset, actionId?: string })
+data = {
+    percentText: $path("/batterySOCText"),
+    level: $optionalPath("/batteryCapacityLevelDesc")
+}
+
+Stack({
+  "width": "matchParent",
+  "height": "matchParent",
+  "alignContent": "topStart"
+},
+  Row(
+    {
+      "_advancedComponent": "BatteryOverview",
+      "width": "matchParent",
+      "height": "matchParent",
+      "padding": {"left": 12, "top": 0, "right": 22, "bottom": 0},
+      "justifyContent": "spaceBetween",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+    Column(
+        {
+          "width": 84,
+          "margin": {"left": 0, "top": 11, "right": 0, "bottom": 0},
+          "itemMargin": 2,
+          "justifyContent": "start",
+          "alignItems": "start",
+          "clip": true,
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        },
+        Text(
+              data.percentText,
+              {"fontSize": 14, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            ),
+        IfPresent(
+              data.level,
+              Text(
+                    data.level,
+                    {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                  )
+            )
+      ),
+    Image(
+        props.batteryIcon,
+        {
+          "width": 20,
+          "height": 20,
+          "margin": {"left": 0, "top": 22, "right": 0, "bottom": 22},
+          "objectFit": "contain",
+          "fillColor": "#E6000000",
+          "flexShrink": 0
+        }
+      )
+  ),
+  IfPresent(props.actionId,
+    Stack({
+      "width": "matchParent",
+      "height": "matchParent",
+      "alignContent": "center",
+      "onClick": EventAction(props.actionId)
+    },
+      Text("", {
+        "width": "matchParent",
+        "height": "matchParent"
+      })
+    )
+  )
+)
+#End
+
+#Template BatteryOverviewNormalPowerTemperatureIconSupport@1(props: { batteryIcon: asset, actionId?: string })
+data = {
+    percent: $path("/batterySOC"),
+    temperature: $path("/batteryTemperatureText")
+}
+
+Stack({
+  "width": "matchParent",
+  "height": "matchParent",
+  "alignContent": "topStart"
+},
+  Row(
+    {
+      "_advancedComponent": "BatteryOverview",
+      "width": "matchParent",
+      "height": 64,
+      "backgroundColor": $theme('actionStyle.backgroundColor'),
+      "borderRadius": 16,
+      "padding": {"left": 12, "top": 0, "right": 22, "bottom": 0},
+      "justifyContent": "spaceBetween",
+      "alignItems": "center",
+      "clip": true,
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+    Column(
+        {
+          "width": 84,
+          "height": "matchParent",
+          "margin": {"left": 0, "top": 0, "right": 0, "bottom": 0},
+          "itemMargin": 2,
+          "justifyContent": "center",
+          "alignItems": "start",
+          "clip": true,
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        },
+        Row(
+              {"width": "matchParent", "itemMargin": 0, "justifyContent": "start", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+              Text(
+                    "手机电量 ",
+                    {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                  ),
+              Text(
+                    data.percent,
+                    {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                  ),
+              Text(
+                    "%",
+                    {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                  )
+            ),
+        Text(
+              `手机温度 ${data.temperature}`,
+              {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            )
+      ),
+    Image(
+        props.batteryIcon,
+        {
+          "width": 20,
+          "height": 20,
+          "margin": {"left": 0, "top": 22, "right": 0, "bottom": 22},
+          "objectFit": "contain",
+          "fillColor": $theme('primaryColor'),
+          "flexShrink": 0
+        }
+      )
+  ),
+  IfPresent(props.actionId,
+    Stack({
+      "width": "matchParent",
+      "height": "matchParent",
+      "alignContent": "center",
+      "onClick": EventAction(props.actionId)
+    },
+      Text("", {
+        "width": "matchParent",
+        "height": "matchParent"
+      })
+    )
+  )
+)
+#End
+
+#Template BatteryOverviewProgressSupport@1(props: { actionId?: string })
+data = {
+    percent: $path("/batterySOC"),
+    percentText: $path("/batterySOCText"),
+    level: $path("/batteryCapacityLevelDesc")
+}
+
+Stack({
+  "width": "matchParent",
+  "height": "matchParent",
+  "alignContent": "topStart"
+},
+  Column(
+    {
+      "_advancedComponent": "BatteryOverview",
+      "width": "matchParent",
+      "height": 60,
+      "padding": {"left": 8, "top": 0, "right": 8, "bottom": 0},
+      "itemMargin": 2,
+      "justifyContent": "start",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+    Row(
+        {
+          "width": "matchParent",
+          "height": 22,
+          "itemMargin": 0,
+          "justifyContent": "start",
+          "alignItems": "center",
+          "clip": true,
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        },
+        Text(
+              "手机电量",
+              {"width": 80, "fontSize": 16, "minFontSize": 12, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            ),
+        Text(
+              data.percentText,
+              {"width": 40, "fontSize": 16, "minFontSize": 12, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "right", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            )
+      ),
+    Progress(
+        {"value": data.percent, "total": 100, "strokeWidth": 8, "color": $theme('primaryColor'), "backgroundColor": $theme('actionStyle.backgroundColor'), "height": 8, "width": "matchParent"}
+      ),
+    Text(
+        data.level,
+        {"width": "matchParent", "height": 14, "fontSize": 12, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      )
+  ),
+  IfPresent(props.actionId,
+    Stack({
+      "width": "matchParent",
+      "height": "matchParent",
+      "alignContent": "center",
+      "onClick": EventAction(props.actionId)
+    },
+      Text("", {
+        "width": "matchParent",
+        "height": "matchParent"
+      })
+    )
+  )
 )
 #End

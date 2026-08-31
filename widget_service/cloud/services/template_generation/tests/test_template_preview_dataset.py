@@ -16,17 +16,18 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     manifest = write_template_preview_dataset(tmp_path)
     cases = manifest["cases"]
 
-    assert manifest["templateCount"] == 81
+    assert manifest["templateCount"] == 87
     assert manifest["countsByLayout"] == {
-        "Compact": 30,
-        "Hero": 14,
-        "Full": 24,
+        "Support": 19,
+        "Compact": 17,
+        "Hero": 18,
+        "Full": 20,
         "WideHero": 2,
         "WideFull": 11,
     }
-    assert manifest["countsBySize"] == {"2x2": 68, "2x4": 13}
-    assert len(cases) == 81
-    assert len({case["templateId"] for case in cases}) == 81
+    assert manifest["countsBySize"] == {"2x2": 74, "2x4": 13}
+    assert len(cases) == 87
+    assert len({case["templateId"] for case in cases}) == 87
     assert all((tmp_path / case["file"]).is_file() for case in cases)
 
 
@@ -54,6 +55,7 @@ def test_template_preview_assets_are_bundled_by_genui_evaluation():
         "battery_leaf_fill.svg",
         "calendar_fill.svg",
         "clock_fill.svg",
+        "earphone_case_16644.svg",
         "externaldrive_fill.svg",
         "figure_run.svg",
         "flame_fill.svg",
@@ -76,3 +78,23 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
         assert all(count == 1 for count in counts.values())
         assert case.primary_data
         assert json.dumps(case.messages, ensure_ascii=False)
+
+
+def test_earphone_hero_uses_title_parameter_without_title_binding():
+    case = next(
+        item
+        for item in build_template_preview_cases()
+        if item.template_id == "BluetoothDeviceOverviewHero@1"
+    )
+
+    assert case.primary_data == ("/isConnected", "/earphoneName")
+    assert case.secondary_data == ("/leftBatteryLevel", "/rightBatteryLevel")
+    assert case.optional_data == ()
+    assert "已连接" in json.dumps(case.messages, ensure_ascii=False)
+    data_model = case.messages[2]["updateDataModel"]["value"]["data"]["earphone"]
+    assert set(data_model) == {
+        "isConnected",
+        "earphoneName",
+        "leftBatteryLevel",
+        "rightBatteryLevel",
+    }

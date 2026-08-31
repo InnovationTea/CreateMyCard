@@ -34,13 +34,17 @@ _PREFLIGHT_REJECT_CASE_IDS = frozenset(
 _UNSUPPORTED_CAPABILITY_CASE_IDS = frozenset({"TRE-081", "TRE-082", "TRE-086"})
 _WORKOUT_END_TIME_CASE_IDS = frozenset({"TRE-066", "TRE-079"})
 _WORKOUT_END_TIME = "/exerciseEndTimeText"
-_REMOVED_TEMPLATE_VARIANTS = frozenset({("DateOverview@1", "dateHero")})
+_REMOVED_TEMPLATE_VARIANTS = frozenset(
+    {
+        ("DateOverview@1", "dateHero"),
+        ("BluetoothDeviceOverview@1", "connection"),
+        ("BluetoothDeviceOverview@1", "earbuds"),
+    }
+)
 _TEMPLATE_IDS = {
     ("WeatherOverview@1", "hero"): "WeatherOverviewFull@1",
-    ("ScheduleOverview@1", "nextEvent"): "ScheduleOverviewNextEventFull@1",
+    ("ScheduleOverview@1", "nextEvent"): "ScheduleOverviewNextEventLocationFull@1",
     ("ScheduleOverview@1", "nextEventLocation"): "ScheduleOverviewNextEventLocationFull@1",
-    ("BluetoothDeviceOverview@1", "connection"): "BluetoothDeviceOverviewConnectionFull@1",
-    ("BluetoothDeviceOverview@1", "earbuds"): "BluetoothDeviceOverviewCaseFull@1",
     ("BluetoothDeviceOverview@1", "earbudPair"): "BluetoothDeviceOverviewEarbudPairFull@1",
     ("BluetoothDeviceOverview@1", "earbudsFullWide"): "BluetoothDeviceOverviewCompleteWideFull@1",
     ("BatteryOverview@1", "chargingPhone"): "BatteryOverviewChargingWeatherCompact@1",

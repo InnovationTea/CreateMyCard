@@ -74,3 +74,21 @@ def test_migration_marks_removed_date_template_as_unmatched() -> None:
     assert migrated.get("expectedMatched") is False
     assert migrated.get("expectedTemplateId") is None
     assert migrated.get("expectedVariantName") is None
+
+
+def test_migration_marks_pruned_earphone_templates_as_unmatched() -> None:
+    for variant_name in ("connection", "earbuds"):
+        case = _case("TRE-001", "GetEarphoneInfo", "/data/earphone")
+        case.update(
+            {
+                "expectedTemplateId": "BluetoothDeviceOverview@1",
+                "expectedVariantName": variant_name,
+            }
+        )
+
+        migrated = migrate_case(case)
+
+        assert migrated.get("expectedPipelineStage") == "retrieval"
+        assert migrated.get("expectedMatched") is False
+        assert migrated.get("expectedTemplateId") is None
+        assert migrated.get("expectedVariantName") is None

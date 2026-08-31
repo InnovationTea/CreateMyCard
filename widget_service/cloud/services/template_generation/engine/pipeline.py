@@ -43,6 +43,7 @@ from services.template_generation.engine.cardplan.template_retrieval import (
     TemplateRetrievalMiss,
     TemplateRetrievalQuery,
     build_template_retrieval_prompt,
+    restrict_query_to_preferred_templates,
     retrieve_template_variants,
 )
 from services.template_generation.engine.tersel_converter import (
@@ -141,6 +142,11 @@ async def generate_template_a2ui(
             )
             raw_query = await generate_json(prompt, "template-retrieval-query")
             query = TemplateRetrievalQuery.model_validate(raw_query)
+            query = restrict_query_to_preferred_templates(
+                query,
+                registry,
+                trusted_template_candidate_ids,
+            )
             selection = retrieve_template_variants(
                 query,
                 selected_task_spec,
