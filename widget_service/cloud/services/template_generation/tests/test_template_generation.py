@@ -1008,6 +1008,23 @@ def test_fusion_ball_background_expands_to_standard_tersel_components():
         for child in background.children[:3]
     )
     assert ball_colors == _WEATHER_PALETTE
+    expected_dimensions = {
+        "fusionBallBackground": ("100%", "100%"),
+        "fusionBallLargeSlot": ("112.5%", "27.5%"),
+        "fusionBallLarge": ("131.25%", "131.25%"),
+        "fusionBallMediumSlot": ("50%", "137.5%"),
+        "fusionBallMedium": ("100%", "100%"),
+        "fusionBallSmallSlot": ("121.875%", "118.75%"),
+        "fusionBallSmall": ("62.5%", "62.5%"),
+        "fusionBallGlassLayer": ("100%", "100%"),
+    }
+    background_nodes = [background, *background.children]
+    background_nodes.extend(child.children[0] for child in background.children[:3])
+    for node in background_nodes:
+        component_id = node.values[-1]["_id"]
+        width, height = expected_dimensions[component_id]
+        assert node.values[-1]["width"] == width
+        assert node.values[-1]["height"] == height
 
 
 def test_fusion_ball_wraps_only_2x2_with_expanded_tersel_background():
@@ -1093,6 +1110,8 @@ def test_fusion_ball_wraps_only_2x2_with_expanded_tersel_background():
     assert overflow_content.values[-1]["_id"] == (
         "__genui_render_component__root_1"
     )
+    assert overflow_content.values[-1]["width"] == "matchParent"
+    assert overflow_content.values[-1]["height"] == "matchParent"
     skeleton = overflow_content.children[0]
     assert skeleton.values[-1]["_id"] == "template_root"
     title_text = skeleton.children[0]
@@ -3753,6 +3772,10 @@ async def test_2x2_battery_pill_action_uses_normal_hero_template():
     overflow_content = components["__genui_render_component__root_1"]
     assert overflow_content["component"] == "Stack"
     assert overflow_content["children"] == ["template_root"]
+    assert overflow_content["styles"] == {
+        "width": "matchParent",
+        "height": "matchParent",
+    }
     layout = components["template_root"]
     assert layout["component"] == "Column"
     assert layout["itemMargin"] == 8

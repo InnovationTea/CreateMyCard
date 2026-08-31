@@ -53,6 +53,11 @@ def _component_ids(dsl: str) -> set[str]:
     return {component["id"] for component in update["components"]}
 
 
+def _components_by_id(dsl: str) -> dict[str, dict[str, Any]]:
+    update = json.loads(dsl.splitlines()[1])["updateComponents"]
+    return {component["id"]: component for component in update["components"]}
+
+
 @pytest.mark.parametrize(
     ("app_version", "expected"),
     [
@@ -119,6 +124,43 @@ def test_converter_reads_app_version_from_protocol_profile(
     assert "fusionBallBackground" not in _component_ids(disabled)
     assert "fusionBallBackground" in _component_ids(enabled)
     assert "app_version" not in inspect.signature(convert_compact_dsl_to_a2ui).parameters
+
+
+def test_converter_expands_fusion_ball_with_relative_dimensions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        get_settings(),
+        "CONFIG",
+        {FUSION_BALL_MIN_PRD_VERSION_CONFIG: "11.7.5.206"},
+    )
+    output = convert_compact_dsl_to_a2ui(
+        _fusion_source(),
+        size="2x2",
+        protocol_profile={"version": "v0.9", "appVersion": "11.7.5.206"},
+    )
+    components = _components_by_id(output)
+    expected_dimensions = {
+        "fusionBallBackground": ("100%", "100%"),
+        "fusionBallLargeSlot": ("112.5%", "27.5%"),
+        "fusionBallLarge": ("131.25%", "131.25%"),
+        "fusionBallMediumSlot": ("50%", "137.5%"),
+        "fusionBallMedium": ("100%", "100%"),
+        "fusionBallSmallSlot": ("121.875%", "118.75%"),
+        "fusionBallSmall": ("62.5%", "62.5%"),
+        "fusionBallGlassLayer": ("100%", "100%"),
+    }
+
+    for component_id, dimensions in expected_dimensions.items():
+        styles = components[component_id]["styles"]
+        assert (styles["width"], styles["height"]) == dimensions
+    assert components["__genui_render_component__root"]["styles"] == {
+        "width": "matchParent",
+        "height": "matchParent",
+        "padding": 12,
+        "borderRadius": 20,
+        "clip": True,
+    }
 
 
 def test_design_processor_copies_task_spec_app_version_into_profile(
