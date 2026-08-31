@@ -53,7 +53,7 @@
       "templateId": "AppUsageOverviewCompact@1",
       "businessId": "AppUsageOverview",
       "capabilityId": "GetAppUsageDuration",
-      "description": "单个应用的当日使用时长摘要，展示应用名称和时长。 组件形态：compact。 布局场景：约 2x1；双 Compact 组成 2x2，或单 Compact + 2 个 PillAction。",
+      "description": "单个应用的当日使用时长摘要，展示应用名称和时长。 组件形态：compact。 布局场景：约 2x1；单 Compact + 2 个 PillAction。",
       "optionalData": [],
       "entry": "templates/app-usage-overview.cardtpl",
       "primaryData": [
@@ -85,6 +85,19 @@
       "optionalData": [
         "/updatedAt"
       ],
+      "entry": "templates/app-usage-overview.cardtpl",
+      "primaryData": [
+        "/appUsage/appName",
+        "/appUsage/durationText"
+      ],
+      "secondaryData": []
+    },
+    {
+      "templateId": "AppUsageOverviewSupport@1",
+      "businessId": "AppUsageOverview",
+      "capabilityId": "GetAppUsageDuration",
+      "description": "单个应用的当日使用时长摘要，展示应用名称和时长。 组件形态：support。 仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
+      "optionalData": [],
       "entry": "templates/app-usage-overview.cardtpl",
       "primaryData": [
         "/appUsage/appName",

@@ -50,7 +50,16 @@ _WEATHER_BUILTIN_ASSETS = (
     "resources/base/media/cold.svg",
 )
 _MAX_UX_MIXED_PROMPT_CHARS = 24_000
-_UX_ACTION_TEMPLATE_ID = "PillAction@1"
+_PILL_ACTION_TEMPLATE_ID = "PillAction@1"
+_ICON_ACTION_TEMPLATE_ID = "IconAction@1"
+
+
+@dataclass(frozen=True)
+class _SecondLayerLayoutSelection:
+    layout_ids: tuple[str, ...]
+    layout_kinds: tuple[str, ...]
+    action_template_ids: tuple[str, ...] = ()
+    embeds_support_actions: bool = False
 
 
 def _weather_builtin_assets_for_components(components: tuple[Any, ...]) -> tuple[str, ...]:
@@ -157,19 +166,27 @@ def build_ux_mixed_prompt(
         event.id for event in task_spec.eventCandidates if event.id is not None
     )
     task_spec = task_spec_with_selected_action(task_spec, selected_action_ids)
-    allowed_layout_ids, layout_kind = _second_layer_layout_selection(
+    layout_selection = _second_layer_layout_selection(
         scope,
         task_spec,
-        required_template_groups,
         registry,
     )
-    candidate_ids_by_component, effective_required_template_groups = (
+    (
+        candidate_ids_by_component,
+        effective_required_template_groups,
+        viable_layout_kinds,
+    ) = (
         _filter_second_layer_template_candidates(
             candidate_ids_by_component,
             required_template_groups,
-            layout_kind,
+            layout_selection.layout_kinds,
         )
     )
+    layout_selection = _prune_layout_selection(
+        layout_selection,
+        viable_layout_kinds,
+    )
+    allowed_layout_ids = layout_selection.layout_ids
     selected_template_ids = tuple(
         template_id
         for component_id in scope.advanced_component_ids
@@ -396,7 +413,7 @@ def build_ux_mixed_prompt(
         for component_id, template_ids in candidate_ids_by_component.items()
     )
     action_template_ids = (
-        (_UX_ACTION_TEMPLATE_ID,) if selected_action_ids else ()
+        layout_selection.action_template_ids if selected_action_ids else ()
     )
     action_template_contracts = build_template_prompt_contracts(
         action_template_ids,
@@ -470,14 +487,16 @@ def build_ux_mixed_prompt(
             "outputGrammar="
             + json.dumps(
                 _output_grammar(
-                    allowed_layout_template_ids[0],
+                    allowed_layout_template_ids,
                     effective_required_template_groups,
                     selected_actions,
+                    action_template_ids,
+                    embeds_support_actions=layout_selection.embeds_support_actions,
                 ),
                 ensure_ascii=False,
             ),
             "第一层已完成展示覆盖。从每个 requiredLocalTemplateGroups 恰好选择一个"
-            " Template，按完整签名设置 Props，并严格使用唯一布局根。",
+            " Template，按完整签名设置 Props，并使用一个与业务后缀及动作形态匹配的布局根。",
             "只输出一棵以分号结束的类 Tersel Template 调用树，不输出说明。",
         )
     )
@@ -566,114 +585,225 @@ def _asset_prompt_candidates(
 
 
 def _output_grammar(
-    layout_template_id: str,
+    layout_template_ids: tuple[str, ...],
     required_template_groups: tuple[tuple[str, ...], ...],
     selected_actions: tuple[dict[str, str], ...],
+    action_template_ids: tuple[str, ...],
+    *,
+    embeds_support_actions: bool,
 ) -> dict[str, Any]:
     business_children = [
         {
             "position": index,
             "templateIds": template_ids,
             "syntax": 'Template("<one templateId from templateIds>", <matching props>)',
+            **(
+                {
+                    "embeddedAction": {
+                        "optionalProp": "actionId",
+                        "allowedValues": selected_actions,
+                    }
+                }
+                if embeds_support_actions
+                else {}
+            ),
         }
         for index, template_ids in enumerate(required_template_groups)
     ]
+    layout_options = [
+        _layout_output_option(
+            layout_template_id,
+            required_template_groups,
+            selected_actions,
+            action_template_ids,
+        )
+        for layout_template_id in layout_template_ids
+    ]
+    return {
+        "layoutOptions": layout_options,
+        "businessChildren": business_children,
+        "childOrder": (
+            "Support businessChildren only; selected actions appear once in Support actionId props"
+            if embeds_support_actions
+            else "businessChildren first, then actionChildren"
+        ),
+    }
+
+
+def _layout_output_option(
+    layout_template_id: str,
+    required_template_groups: tuple[tuple[str, ...], ...],
+    selected_actions: tuple[dict[str, str], ...],
+    action_template_ids: tuple[str, ...],
+) -> dict[str, Any]:
+    layout_id = layout_template_id.removesuffix("@1")
+    layout_kind = {
+        "SingleFocusLayout": "Full",
+        "HeroActionLayout": "Hero",
+        "FullIconActionLayout": "Full",
+        "CompactTwoActionLayout": "Compact",
+        "TwoSupportLayout": "Support",
+        "WideSingleFocusLayout": "WideHero" if selected_actions else "WideFull",
+    }[layout_id]
+    business_template_ids = tuple(
+        tuple(
+            template_id
+            for template_id in group
+            if provider_template_layout_kind(template_id) == layout_kind
+        )
+        for group in required_template_groups
+    )
+    action_template_id = {
+        "HeroActionLayout": _PILL_ACTION_TEMPLATE_ID,
+        "FullIconActionLayout": _ICON_ACTION_TEMPLATE_ID,
+        "CompactTwoActionLayout": _PILL_ACTION_TEMPLATE_ID,
+        "WideSingleFocusLayout": _PILL_ACTION_TEMPLATE_ID if selected_actions else None,
+    }.get(layout_id)
+    if action_template_id not in action_template_ids:
+        action_template_id = None
     action_children = [
         {
             "position": len(required_template_groups) + index,
-            "templateId": _UX_ACTION_TEMPLATE_ID,
-            "syntax": (
-                f'Template("{_UX_ACTION_TEMPLATE_ID}",'
-                + json.dumps(action, ensure_ascii=False, separators=(",", ":"))
-                + ")"
-            ),
+            "templateId": action_template_id,
+            "syntax": _action_output_syntax(action_template_id, action),
         }
         for index, action in enumerate(selected_actions)
+        if action_template_id is not None
     ]
     return {
         "root": f'Template("{layout_template_id}", {{}}, ...children);',
-        "businessChildren": business_children,
+        "layoutKind": layout_kind,
+        "businessTemplateIdsByPosition": business_template_ids,
         "actionChildren": action_children,
-        "childOrder": "businessChildren first, then actionChildren",
     }
 
 
-def _calendar_date_schedule_pair_is_required(
-    scope: AdvancedScopeBrief,
-    required_template_groups: tuple[tuple[str, ...], ...],
-) -> bool:
-    if scope.advanced_component_ids != ("CalendarOverview",):
-        return False
-    candidate_ids = {
-        template_id
-        for group in required_template_groups
-        for template_id in group
-    }
-    has_date = any(template_id.startswith("DateOverview") for template_id in candidate_ids)
-    has_schedule = any(
-        template_id.startswith("ScheduleOverview") for template_id in candidate_ids
+def _action_output_syntax(
+    action_template_id: str,
+    action: dict[str, str],
+) -> str:
+    if action_template_id == _ICON_ACTION_TEMPLATE_ID:
+        props = {
+            "actionId": action["actionId"],
+            "icon": "<one semantically matching trustedAssetSource>",
+        }
+    else:
+        props = action
+    return (
+        f'Template("{action_template_id}",'
+        + json.dumps(props, ensure_ascii=False, separators=(",", ":"))
+        + ")"
     )
-    return has_date and has_schedule
 
 
 def _second_layer_layout_selection(
     scope: AdvancedScopeBrief,
     task_spec: TaskSpec,
-    required_template_groups: tuple[tuple[str, ...], ...],
     registry: CardPlanRegistry,
-) -> tuple[tuple[str, ...], str]:
+) -> _SecondLayerLayoutSelection:
     """Resolve only layout capacity and Action shape in the second layer."""
     action_count = len(task_spec.eventCandidates)
     component_count = len(scope.advanced_component_ids)
-    calendar_pair = _calendar_date_schedule_pair_is_required(
-        scope,
-        required_template_groups,
-    )
-    if calendar_pair:
-        if action_count:
-            raise ValueError("Calendar date-schedule Compact pair cannot include an Action")
-        expected_layout = "TwoCompactLayout"
-        layout_kind = "Compact"
-    elif task_spec.size == "2x2":
-        layout_policy = {
-            (1, 0): ("SingleFocusLayout", "Full"),
-            (1, 1): ("HeroActionLayout", "Hero"),
-            (1, 2): ("CompactTwoActionLayout", "Compact"),
-            (2, 0): ("TwoCompactLayout", "Compact"),
-        }
-        selected = layout_policy.get((component_count, action_count))
-        if selected is None:
+    if task_spec.size == "2x2":
+        if component_count == 2 and action_count <= 2:
+            selection = _SecondLayerLayoutSelection(
+                layout_ids=("TwoSupportLayout",),
+                layout_kinds=("Support",),
+                embeds_support_actions=True,
+            )
+        elif (component_count, action_count) == (1, 0):
+            selection = _SecondLayerLayoutSelection(
+                layout_ids=("SingleFocusLayout",),
+                layout_kinds=("Full",),
+            )
+        elif (component_count, action_count) == (1, 1):
+            layout_ids = ["HeroActionLayout"]
+            layout_kinds = ["Hero"]
+            action_template_ids = [_PILL_ACTION_TEMPLATE_ID]
+            if _has_semantic_action_icon(task_spec):
+                layout_ids.append("FullIconActionLayout")
+                layout_kinds.append("Full")
+                action_template_ids.append(_ICON_ACTION_TEMPLATE_ID)
+            selection = _SecondLayerLayoutSelection(
+                layout_ids=tuple(layout_ids),
+                layout_kinds=tuple(layout_kinds),
+                action_template_ids=tuple(action_template_ids),
+            )
+        elif (component_count, action_count) == (1, 2):
+            selection = _SecondLayerLayoutSelection(
+                layout_ids=("CompactTwoActionLayout",),
+                layout_kinds=("Compact",),
+                action_template_ids=(_PILL_ACTION_TEMPLATE_ID,),
+            )
+        else:
             raise ValueError("2x2 Template candidates do not fit one supported layout")
-        expected_layout, layout_kind = selected
     elif task_spec.size == "2x4" and component_count == 1 and action_count <= 1:
-        expected_layout = "WideSingleFocusLayout"
-        layout_kind = "WideHero" if action_count else "WideFull"
+        selection = _SecondLayerLayoutSelection(
+            layout_ids=("WideSingleFocusLayout",),
+            layout_kinds=("WideHero" if action_count else "WideFull",),
+            action_template_ids=((_PILL_ACTION_TEMPLATE_ID,) if action_count else ()),
+        )
     else:
         raise ValueError("Template candidates do not fit one supported layout")
     allowed_layout_ids = resolve_scope_layout_ids(scope, task_spec, registry)
-    if expected_layout not in allowed_layout_ids:
+    if any(layout_id not in allowed_layout_ids for layout_id in selection.layout_ids):
         raise ValueError("Advanced Scope has no compatible UX layout")
-    return (expected_layout,), layout_kind
+    return selection
+
+
+def _has_semantic_action_icon(task_spec: TaskSpec) -> bool:
+    keywords = {"action", "event", "shortcut", "动作", "操作", "入口", "快捷"}
+    for candidate in task_spec.assetCandidates:
+        if not isinstance(candidate, dict) or not isinstance(candidate.get("src"), str):
+            continue
+        text_values = [str(candidate.get("description", ""))]
+        for key in ("sceneTags", "semanticTags", "tags"):
+            values = candidate.get(key, ())
+            if isinstance(values, list):
+                text_values.extend(str(item) for item in values)
+        normalized = " ".join(text_values).casefold()
+        if any(keyword in normalized for keyword in keywords):
+            return True
+    return False
 
 
 def _filter_second_layer_template_candidates(
     candidates_by_component: dict[str, tuple[str, ...]],
     required_template_groups: tuple[tuple[str, ...], ...],
-    layout_kind: str,
-) -> tuple[dict[str, tuple[str, ...]], tuple[tuple[str, ...], ...]]:
+    layout_kinds: tuple[str, ...],
+) -> tuple[
+    dict[str, tuple[str, ...]],
+    tuple[tuple[str, ...], ...],
+    tuple[str, ...],
+]:
     """Filter first-layer candidates by layout without inspecting business data."""
+    viable_layout_kinds = tuple(
+        layout_kind
+        for layout_kind in layout_kinds
+        if _layout_kind_has_complete_coverage(
+            candidates_by_component,
+            required_template_groups,
+            layout_kind,
+        )
+    )
+    if not viable_layout_kinds:
+        layout_label = "/".join(layout_kinds)
+        raise ValueError(
+            f"First-layer Template candidates have no complete {layout_label} coverage"
+        )
     filtered = {
         component_id: tuple(
             template_id
             for template_id in template_ids
-            if provider_template_layout_kind(template_id) == layout_kind
+            if provider_template_layout_kind(template_id) in viable_layout_kinds
         )
         for component_id, template_ids in candidates_by_component.items()
     }
     for component_id, template_ids in filtered.items():
         if not template_ids:
+            layout_label = "/".join(viable_layout_kinds)
             raise ValueError(
-                f"Advanced Scope component {component_id} has no {layout_kind} template"
+                f"Advanced Scope component {component_id} has no {layout_label} template"
             )
     allowed_ids = {
         template_id
@@ -686,10 +816,68 @@ def _filter_second_layer_template_candidates(
         for group in groups
     )
     if any(not group for group in filtered_groups):
-        raise ValueError(
-            f"First-layer Template candidates have no complete {layout_kind} coverage"
+        layout_label = "/".join(viable_layout_kinds)
+        raise ValueError(f"First-layer Template candidates have no {layout_label} coverage")
+    return filtered, filtered_groups, viable_layout_kinds
+
+
+def _layout_kind_has_complete_coverage(
+    candidates_by_component: dict[str, tuple[str, ...]],
+    required_template_groups: tuple[tuple[str, ...], ...],
+    layout_kind: str,
+) -> bool:
+    ids_by_component = {
+        component_id: {
+            template_id
+            for template_id in template_ids
+            if provider_template_layout_kind(template_id) == layout_kind
+        }
+        for component_id, template_ids in candidates_by_component.items()
+    }
+    if any(not template_ids for template_ids in ids_by_component.values()):
+        return False
+    groups = required_template_groups or tuple(
+        tuple(template_ids) for template_ids in ids_by_component.values()
+    )
+    for template_ids in ids_by_component.values():
+        component_groups = [set(group).intersection(template_ids) for group in groups]
+        component_groups = [group for group in component_groups if group]
+        if component_groups and not set.intersection(*component_groups):
+            return False
+    allowed_ids = set().union(*ids_by_component.values())
+    return all(set(group).intersection(allowed_ids) for group in groups)
+
+
+def _prune_layout_selection(
+    selection: _SecondLayerLayoutSelection,
+    viable_layout_kinds: tuple[str, ...],
+) -> _SecondLayerLayoutSelection:
+    viable = set(viable_layout_kinds)
+    pairs = tuple(
+        (layout_id, layout_kind)
+        for layout_id, layout_kind in zip(
+            selection.layout_ids,
+            selection.layout_kinds,
+            strict=True,
         )
-    return filtered, filtered_groups
+        if layout_kind in viable
+    )
+    if not pairs:
+        raise ValueError("Second-layer layout candidates have no complete business Template")
+    has_pill_layout = any(layout_id != "FullIconActionLayout" for layout_id, _ in pairs)
+    has_icon_layout = any(layout_id == "FullIconActionLayout" for layout_id, _ in pairs)
+    action_templates: list[str] = []
+    for template_id in selection.action_template_ids:
+        if template_id == _PILL_ACTION_TEMPLATE_ID and has_pill_layout:
+            action_templates.append(template_id)
+        if template_id == _ICON_ACTION_TEMPLATE_ID and has_icon_layout:
+            action_templates.append(template_id)
+    return _SecondLayerLayoutSelection(
+        layout_ids=tuple(layout_id for layout_id, _ in pairs),
+        layout_kinds=tuple(layout_kind for _, layout_kind in pairs),
+        action_template_ids=tuple(action_templates),
+        embeds_support_actions=selection.embeds_support_actions,
+    )
 
 
 def _required_template_group(

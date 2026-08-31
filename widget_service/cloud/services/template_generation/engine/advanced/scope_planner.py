@@ -104,6 +104,10 @@ def build_advanced_scope_prompt(
             card_spec=card_spec,
         )
     candidate_ids = {item.name for item in component_candidates}
+    first_layer_theme_ids = registry.first_layer_theme_ids(
+        tuple(item.name for item in component_candidates)
+    )
+    first_layer_theme_id_set = set(first_layer_theme_ids)
     admission_relaxed = advanced_component_data_admission_is_bypassed()
     user_payload = {
         "userQuery": task_spec.userQuery,
@@ -121,12 +125,16 @@ def build_advanced_scope_prompt(
         ],
         "themes": [
             {
-                "id": theme.theme_profile_id,
-                "description": theme.description,
+                "id": theme_id,
+                "description": registry.themes[theme_id].description,
             }
-            for theme in registry.themes.values()
+            for theme_id in first_layer_theme_ids
         ],
-        "crossDomainThemeIds": registry.palette_scene_theme_ids["generic"],
+        "crossDomainThemeIds": tuple(
+            theme_id
+            for theme_id in registry.palette_scene_theme_ids["generic"]
+            if theme_id in first_layer_theme_id_set
+        ),
         "advancedComponents": [
             _scope_candidate_prompt_payload(
                 capability,
@@ -135,6 +143,7 @@ def build_advanced_scope_prompt(
                 candidate_ids,
                 registry,
                 card_spec,
+                first_layer_theme_ids,
                 include_template_coverage=template_route_decision,
             )
             for capability in component_candidates
@@ -182,13 +191,7 @@ def _build_template_route_prompt(
                 f"{capability_id}"
             )
     candidate_id_set = set(candidate_ids)
-    theme_ids = tuple(
-        dict.fromkeys(
-            theme_id
-            for component in component_candidates
-            for theme_id in _theme_ids_for_components((component,), registry)
-        )
-    )
+    theme_ids = registry.first_layer_theme_ids(candidate_ids)
     component_catalog = [
         _template_route_component_payload(
             capability,
@@ -198,6 +201,7 @@ def _build_template_route_prompt(
             candidate_id_set,
             data_roots,
             card_spec,
+            theme_ids,
         )
         for capability in component_candidates
     ]
@@ -277,6 +281,7 @@ def _template_route_component_payload(
     candidate_ids: set[str],
     data_roots: dict[str, str],
     card_spec: dict[str, Any] | None,
+    theme_ids: tuple[str, ...],
 ) -> dict[str, Any]:
     contracts = _component_template_prompt_contracts(
         capability,
@@ -300,7 +305,7 @@ def _template_route_component_payload(
             for capability_id, paths in coverage.items()
             for path in paths
         ),
-        "themeIds": _theme_ids_for_components((capability,), registry),
+        "themeIds": theme_ids,
         "templates": contracts,
         "compatibleComponentIds": _compatible_component_ids(
             capability,
@@ -335,6 +340,7 @@ def _scope_candidate_prompt_payload(
     candidate_ids: set[str],
     registry: CardPlanRegistry,
     card_spec: dict[str, Any] | None,
+    first_layer_theme_ids: tuple[str, ...],
     *,
     include_template_coverage: bool,
 ) -> dict[str, Any]:
@@ -342,7 +348,7 @@ def _scope_candidate_prompt_payload(
         "id": capability.name,
         "description": capability.description,
         "variants": _effective_candidate_variants(capability, task_spec, effective_ids),
-        "themeIds": _theme_ids_for_components((capability,), registry),
+        "themeIds": first_layer_theme_ids,
         "compatibleWith": _compatible_component_ids(
             capability,
             candidate_ids,
@@ -521,6 +527,7 @@ async def plan_advanced_scope_with_llm(
     except ValidationError as exc:
         raise ValueError(f"invalid AdvancedScopeBrief: {exc}") from exc
     scope = _normalize_redundant_2x2_support(scope, task_spec)
+    scope = _normalize_2x2_two_support_theme(scope, task_spec, registry)
     try:
         validate_advanced_scope(
             scope,
@@ -544,6 +551,7 @@ async def plan_advanced_scope_with_llm(
             raise
         try:
             scope = _normalize_scope_to_compatible_layout(scope, task_spec, registry)
+            scope = _normalize_2x2_two_support_theme(scope, task_spec, registry)
         except ValueError:
             raise
         validate_advanced_scope(
@@ -608,6 +616,7 @@ def validate_template_route_decision(
         advancedComponentIds=decision.component_ids,
     )
     scope = _normalize_redundant_2x2_support(scope, task_spec)
+    scope = _normalize_2x2_two_support_theme(scope, task_spec, registry)
     selected_component_ids = set(scope.advanced_component_ids)
     component_candidates = tuple(
         candidate
@@ -658,6 +667,35 @@ def _normalize_scope_to_shared_theme(
     return scope.model_copy(update={"theme_id": theme_ids[0]})
 
 
+def _normalize_2x2_two_support_theme(
+    scope: AdvancedScopeBrief,
+    task_spec: TaskSpec,
+    registry: CardPlanRegistry,
+) -> AdvancedScopeBrief:
+    if task_spec.size != "2x2" or len(scope.advanced_component_ids) != 2:
+        return scope
+    components = tuple(
+        registry.require_ux_business_component(item)
+        for item in scope.advanced_component_ids
+    )
+    if any(
+        not _component_has_layout_suffix(component, "Support", registry)
+        for component in components
+    ):
+        return scope
+    capability_ids = tuple(
+        sorted(
+            {
+                capability_id
+                for component in components
+                for capability_id in component.data_capability_ids
+            }
+        )
+    )
+    theme_id = registry.require_layout_theme("TwoSupportLayout", capability_ids)
+    return scope.model_copy(update={"theme_id": theme_id})
+
+
 def validate_advanced_scope(
     scope: AdvancedScopeBrief,
     task_spec: TaskSpec,
@@ -703,7 +741,7 @@ def validate_advanced_scope(
         raise ValueError("AdvancedScopeBrief selected a component without a production provider")
     if any(task_spec.size not in item.supported_card_sizes for item in components):
         raise ValueError("AdvancedScopeBrief selected a component unsupported by card size")
-    allowed_themes = set(_theme_ids_for_components(components, registry))
+    allowed_themes = set(_theme_ids_for_scope(components, task_spec, registry))
     if scope.theme_id not in allowed_themes:
         raise ValueError("AdvancedScopeBrief selected a Theme outside component palettes")
     if not resolve_scope_layout_ids(scope, task_spec, registry):
@@ -723,7 +761,9 @@ def _normalize_scope_to_compatible_layout(
             components = tuple(
                 registry.require_ux_business_component(item) for item in candidate_ids
             )
-            if scope.theme_id not in set(_theme_ids_for_components(components, registry)):
+            if scope.theme_id not in set(
+                _theme_ids_for_scope(components, task_spec, registry)
+            ):
                 continue
             if resolve_scope_layout_ids(candidate, task_spec, registry):
                 return candidate
@@ -832,18 +872,40 @@ def resolve_scope_layout_ids(
         layout = registry.require_ux_layout_component(layout_id)
         if task_spec.size not in layout.supported_card_sizes:
             continue
+        if layout_id == "TwoSupportLayout":
+            missing_support = any(
+                not _component_has_layout_suffix(component, "Support", registry)
+                for component in components
+            )
+            if missing_support:
+                continue
         if (
             not layout.minimum_children(task_spec.size)
             <= count
             <= layout.max_children_by_size[task_spec.size]
         ):
             continue
-        if action_count < layout.min_action_children_by_size[task_spec.size]:
+        direct_action_count = 0 if layout_id == "TwoSupportLayout" else action_count
+        if direct_action_count < layout.min_action_children_by_size[task_spec.size]:
             continue
-        if action_count > layout.max_action_children_by_size[task_spec.size]:
+        if direct_action_count > layout.max_action_children_by_size[task_spec.size]:
             continue
         allowed.append(layout_id)
     return tuple(sorted(allowed, key=lambda item: _layout_rank(item, count, action_count)))
+
+
+def _component_has_layout_suffix(
+    component: BusinessTemplateGroup,
+    suffix: str,
+    registry: CardPlanRegistry,
+) -> bool:
+    for template_id in component.local_template_ids:
+        if not registry.template_is_enabled(template_id):
+            continue
+        template_name = template_id.rpartition("@")[0]
+        if template_name.endswith(suffix):
+            return True
+    return False
 
 
 def scope_template_ids(
@@ -1117,12 +1179,19 @@ def _compatible_component_ids(
                 continue
         candidate = registry.require_ux_business_component(component_id)
         shared = own_layouts & set(candidate.supported_layouts)
-        if any(
-            registry.require_ux_layout_component(layout_id).minimum_children(size)
-            <= 2
-            <= registry.require_ux_layout_component(layout_id).max_children_by_size[size]
-            for layout_id in shared
-        ):
+        has_compatible_layout = False
+        for layout_id in shared:
+            layout = registry.require_ux_layout_component(layout_id)
+            if size not in layout.supported_card_sizes:
+                continue
+            minimum_children = layout.minimum_children(size)
+            maximum_children = layout.max_children_by_size.get(size)
+            if maximum_children is None:
+                continue
+            if minimum_children <= 2 <= maximum_children:
+                has_compatible_layout = True
+                break
+        if has_compatible_layout:
             compatible.append(component_id)
     return tuple(compatible)
 
@@ -1172,26 +1241,43 @@ def _theme_ids_for_components(
     components: tuple[BusinessTemplateGroup, ...],
     registry: CardPlanRegistry,
 ) -> tuple[str, ...]:
-    capability_ids = {
-        capability_id
-        for component in components
-        for capability_id in component.data_capability_ids
-    }
-    if not capability_ids:
-        return ()
-    return tuple(
-        theme_id
-        for theme_id, theme in registry.themes.items()
-        if capability_ids.intersection(theme.supported_capability_ids)
+    return registry.first_layer_theme_ids(tuple(component.name for component in components))
+
+
+def _theme_ids_for_scope(
+    components: tuple[BusinessTemplateGroup, ...],
+    task_spec: TaskSpec,
+    registry: CardPlanRegistry,
+) -> tuple[str, ...]:
+    theme_ids = _theme_ids_for_components(components, registry)
+    if task_spec.size != "2x2" or len(components) != 2:
+        return theme_ids
+    capability_ids = tuple(
+        sorted(
+            {
+                capability_id
+                for component in components
+                for capability_id in component.data_capability_ids
+            }
+        )
     )
+    layout_theme_ids = registry.layout_theme_ids("TwoSupportLayout", capability_ids)
+    return tuple(dict.fromkeys((*theme_ids, *layout_theme_ids)))
 
 
 def _layout_rank(layout_id: str, count: int, action_count: int) -> tuple[int, str]:
     preferred: dict[tuple[int, int], tuple[str, ...]] = {
         (1, 0): ("SingleFocusLayout", "WideSingleFocusLayout"),
-        (1, 1): ("HeroActionLayout", "SingleFocusLayout", "WideSingleFocusLayout"),
+        (1, 1): (
+            "HeroActionLayout",
+            "FullIconActionLayout",
+            "SingleFocusLayout",
+            "WideSingleFocusLayout",
+        ),
         (1, 2): ("CompactTwoActionLayout",),
-        (2, 0): ("TwoCompactLayout",),
+        (2, 0): ("TwoSupportLayout",),
+        (2, 1): ("TwoSupportLayout",),
+        (2, 2): ("TwoSupportLayout",),
     }
     order = preferred.get((count, action_count), ())
     return (order.index(layout_id) if layout_id in order else len(order), layout_id)

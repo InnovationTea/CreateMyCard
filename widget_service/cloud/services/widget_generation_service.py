@@ -36,6 +36,7 @@ from services.artifact_store import ArtifactStore, RepairArtifactRecord
 from services.capability_registry import CapabilityRegistry
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.edit_request_normalizer import EditRequestNormalizer
+from services.fusion_ball_expander import fusion_ball_enabled
 from services.generation_pipeline import (
     DslProcessingContext,
     DslProcessingResult,
@@ -256,6 +257,7 @@ class WidgetGenerationService:
         try_jsx: bool = False,
         template_source_generator: TemplateSourceGenerator | None = None,
         need_fallback: bool = True,
+        enable_fusion_ball: bool | None = None,
     ) -> GenerateWidgetCardResponse:
         """生成卡片。
 
@@ -268,12 +270,18 @@ class WidgetGenerationService:
 
         入参：
         - request：用户需求、尺寸、候选数据绑定、候选事件、候选素材和版本上下文。
+        - enable_fusion_ball：策略层按本次请求计算的内部融球门禁；
+          直调时由 request.prdVer 计算。
         出参：生成状态、artifact 地址、摘要、用户话术、降级原因和有效能力。
         """
         generation_started_at = time.perf_counter()
         stage_started_at = generation_started_at
         latency_by_stage: dict[str, float] = {}
         settings = get_settings()
+        if enable_fusion_ball is None:
+            enable_fusion_ball = fusion_ball_enabled(request.prdVer)
+        if template_source_generator is not None:
+            template_source_generator.enable_fusion_ball = enable_fusion_ball
         request_body = self._request_body_for_artifact(request)
         generation_mode = (
             "edit" if "sourceArtifactUrl" in request.model_fields_set else "create"
@@ -438,6 +446,7 @@ class WidgetGenerationService:
                 source_load_result,
                 policy,
                 conversion_protocol_profile,
+                enable_fusion_ball,
             )
             if not token_is_valid:
                 logger.error(
@@ -579,6 +588,7 @@ class WidgetGenerationService:
             task_spec=task_spec.model_dump(mode="json", exclude_none=True),
             protocol_profile=conversion_protocol_profile,
             design_profile_id=policy.design_profile_id,
+            enable_fusion_ball=enable_fusion_ball,
             data_capabilities=effective_data_capabilities,
             event_candidates=effective_events,
         )
@@ -1255,6 +1265,10 @@ class WidgetGenerationService:
         )
         profiled_request._model_request_context = request._model_request_context
         profiled_request._raw_request_body = request._raw_request_body
+        # 新包络路由把外部 ToolRequestEnvelope.deviceInfo.prdVer 映射到内部 request.prdVer。
+        # 门禁只在服务端流转，不进入 TaskSpec 或模型输入，
+        # 并在两条生成链路间共享。
+        enable_fusion_ball = fusion_ball_enabled(profiled_request.prdVer)
         is_edit = "sourceArtifactUrl" in request.model_fields_set
         if template_source_generator is None or is_edit:
             return await self.generate_widget_card(
@@ -1263,6 +1277,7 @@ class WidgetGenerationService:
                 before_model_call=before_model_call,
                 try_jsx=try_jsx,
                 need_fallback=need_fallback,
+                enable_fusion_ball=enable_fusion_ball,
             )
         template_source_generator.processor_kind = policy.processor_kind
         template_source_generator.protocol_profile = A2UIProtocolRegistry(
@@ -1272,6 +1287,7 @@ class WidgetGenerationService:
         template_source_generator.model_request_context = (
             self._resolve_model_request_context(profiled_request)
         )
+        template_source_generator.enable_fusion_ball = enable_fusion_ball
 
         return await self.generate_widget_card(
             profiled_request,
@@ -1280,6 +1296,7 @@ class WidgetGenerationService:
             try_jsx=try_jsx,
             template_source_generator=template_source_generator,
             need_fallback=need_fallback,
+            enable_fusion_ball=enable_fusion_ball,
         )
 
     @staticmethod
@@ -1332,6 +1349,7 @@ class WidgetGenerationService:
         source: SourceArtifactLoadResult | None,
         policy: GenerationRoutePolicy,
         conversion_protocol_profile: dict,
+        enable_fusion_ball: bool,
     ) -> bool:
         """用目标接口对应 Processor 验证上一轮 Token，防止跨源格式编辑。"""
         if source is None:
@@ -1346,6 +1364,7 @@ class WidgetGenerationService:
             task_spec=source.artifact.taskSpec,
             protocol_profile=conversion_protocol_profile,
             design_profile_id=policy.design_profile_id,
+            enable_fusion_ball=enable_fusion_ball,
         )
         processor = get_dsl_processor(policy.processor_kind)
         result = await to_thread.run_sync(processor.process, design_token, context)

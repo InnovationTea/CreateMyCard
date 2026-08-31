@@ -202,3 +202,84 @@ Column(
     )
 )
 #End
+
+#Template SleepOverviewSupport@1(props: { sourceIcon?: asset, actionId?: string })
+data = {
+    duration: $path("/nightSleepDurationText"),
+    score: $path("/sleepScore")
+}
+
+Stack({
+  "width": "matchParent",
+  "height": "matchParent",
+  "alignContent": "topStart"
+},
+  Column(
+      {
+          "_advancedComponent": "SleepOverview",
+          "width": "matchParent",
+          "height": "matchParent",
+          "itemMargin": 4,
+          "justifyContent": "start",
+          "alignItems": "start",
+          "clip": true,
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+      },
+      Row(
+          { "itemMargin": 4, "width": "matchParent", "justifyContent": "start", "alignItems": "top" },
+          Column(
+              {
+                  "width": "matchParent",
+                  "itemMargin": 2,
+                  "justifyContent": "start",
+                  "alignItems": "start",
+                  "layoutWeight": 1
+              },
+              Text(
+                  data.duration,
+                  { "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+              ),
+              Text(
+                  "睡眠情况时长",
+                  { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+              ),
+          ),
+          Stack(
+              { "width": 44, "height": 44, "alignContent": "center", "flexShrink": 0 },
+              Progress(
+                  {
+                      "value": data.score,
+                      "total": 100,
+                      "type": "ring",
+                      "color": $theme('supportContentColor'),
+                      "backgroundColor": "#33564AF7",
+                      "width": 44,
+                      "height": 44,
+                      "strokeWidth": 6
+                  }
+              ),
+              IfPresent(
+                  props.sourceIcon,
+                  Image(
+                      props.sourceIcon,
+                      { "width": 20, "height": 20, "objectFit": "contain" }
+                  )
+              )
+          )
+      )
+  ),
+  IfPresent(props.actionId,
+    Stack({
+      "width": "matchParent",
+      "height": "matchParent",
+      "alignContent": "center",
+      "onClick": EventAction(props.actionId)
+    },
+      Text("", {
+        "width": "matchParent",
+        "height": "matchParent"
+      })
+    )
+  )
+)
+#End

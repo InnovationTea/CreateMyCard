@@ -11,6 +11,8 @@ THEME_REFERENCE_PATHS = (
     "progressColor",
     "actionStyle.backgroundColor",
     "actionStyle.contentColor",
+    "supportContentStyle.backgroundColor",
+    "supportContentStyle.borderRadius",
 )
 
 

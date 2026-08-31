@@ -118,3 +118,76 @@ Column(
     )
 )
 #End
+
+#Template ResourceUsageOverviewSupport@1(props: { icon?: asset, actionId?: string })
+data = {
+    usage: $path("/usagePercent"),
+    available: $path("/availableMemText"),
+    total: $path("/totalMemText")
+}
+
+Stack({
+  "width": "matchParent",
+  "height": "matchParent",
+  "alignContent": "topStart"
+},
+  Column(
+    {"_advancedComponent": "ResourceUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 2, "justifyContent": "end", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Stack(
+        {"width": 44, "height": 44, "alignContent": "center", "flexShrink": 0},
+        Progress(
+              {"value": data.usage,
+                "total": 100,
+                "type": "ring",
+                "width": 44,
+                "height": 44,
+                "strokeWidth": 6,
+                "color": $theme('progressColor'),
+                "backgroundColor": "#1A000000"}
+            ),
+        IfPresent(
+              props.icon,
+              Image(
+                      props.icon,
+                      {"width": 20,
+                        "height": 20,
+                        "objectFit": "contain",
+                        "fillColor": $theme('supportContentColor')}
+                    )
+            )
+      ),
+    Row(
+        {"width": "matchParent", "itemMargin": 1, "justifyContent": "center", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+        Text(
+              Expr(`'' + ((${data.usage} + 0.5) - ((${data.usage} + 0.5) % 1))`),
+              {"fontSize": 14, "minFontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            ),
+        Text(
+              "%",
+              {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            )
+      ),
+    Text(
+        data.available,
+        {"width": "matchParent", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      ),
+    Text(
+        data.total,
+        {"width": "matchParent", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+      )
+  ),
+  IfPresent(props.actionId,
+    Stack({
+      "width": "matchParent",
+      "height": "matchParent",
+      "alignContent": "center",
+      "onClick": EventAction(props.actionId)
+    },
+      Text("", {
+        "width": "matchParent",
+        "height": "matchParent"
+      })
+    )
+  )
+)
+#End

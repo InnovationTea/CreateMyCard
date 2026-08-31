@@ -14,6 +14,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
+from services.fusion_ball_expander import (
+    FusionBallExpansionError,
+    expand_fusion_ball_components,
+    fusion_ball_palette_for_root,
+)
+
 ThemeMode = Literal["light", "dark"]
 
 _A2UI_FORM_CATALOG_ID = "ohos.a2ui.extended.catalog.form"
@@ -724,11 +730,17 @@ def convert_compact_dsl_to_a2ui(
     protocol_profile: dict[str, Any] | None = None,
     theme: ThemeMode = "light",
     surface_id: str = "surface_card",
+    enable_fusion_ball: bool = False,
 ) -> str:
     """Convert one Design Compact DSL card to standard three-message A2UI."""
     profile = protocol_profile or {"version": "v0.9"}
     rows = _parse_compact_rows(compact_dsl)
     components, data_rows = _split_component_rows(rows)
+    fusion_palette = fusion_ball_palette_for_root(
+        components,
+        size=size,
+        enable_fusion_ball=enable_fusion_ball,
+    )
 
     normalized_components = [_normalize_component(row) for row in components]
     normalized_components = _normalize_special_action_units(normalized_components)
@@ -747,6 +759,14 @@ def convert_compact_dsl_to_a2ui(
                 fallback_root_gradient=fallback_root_gradient,
             )
         )
+    if fusion_palette is not None:
+        try:
+            converted_components = expand_fusion_ball_components(
+                converted_components,
+                fusion_palette,
+            )
+        except FusionBallExpansionError as exc:
+            raise CompactDslConversionError(str(exc)) from exc
     version = str(profile.get("version") or "v0.9")
     create_surface = {
         "surfaceId": surface_id,

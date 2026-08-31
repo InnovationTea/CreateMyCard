@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from models.generation import WidgetSize
@@ -18,6 +19,9 @@ from services.template_generation.engine.tersel_converter import (
 
 _UX_ACTION_COMPONENTS = frozenset({"PillAction", "IconAction", "ActionTile"})
 _UX_ACTION_TEMPLATE_IDS = frozenset({"PillAction@1", "IconAction@1"})
+_UNQUOTED_TEMPLATE_CALL = re.compile(
+    r"Template(\s*\(\s*)([A-Za-z][A-Za-z0-9_.-]*@[A-Za-z0-9_.-]+)(\s*,)"
+)
 
 
 def _is_ux_action_call(call: ParsedCall) -> bool:
@@ -35,7 +39,9 @@ def frame_ux_layout_root_children(
 ) -> tuple[str, bool]:
     """Frame overflow for the direct layout-root protocol without touching Action."""
     normalized = normalize_hybrid_source(source)
+    normalized, template_ids_repaired = _quote_unquoted_template_ids(normalized)
     normalized, trailing_delimiters_repaired = _close_trailing_delimiters(normalized)
+    framing_repaired = template_ids_repaired or trailing_delimiters_repaired
     try:
         root = parse_ux_layout_card(normalized)
     except TerselConversionError:
@@ -54,7 +60,7 @@ def frame_ux_layout_root_children(
             raise
         normalized = framed
         root = parse_ux_layout_card(normalized)
-        trailing_delimiters_repaired = True
+        framing_repaired = True
     layout_id = _layout_id(root)
     layout = registry.require_ux_layout_component(layout_id)
     if size not in layout.supported_card_sizes:
@@ -67,23 +73,7 @@ def frame_ux_layout_root_children(
     )
     content = tuple(child for child in root.children if child not in actions)
     if len(content) <= maximum:
-        return normalized, trailing_delimiters_repaired
-    if layout_id in {"SingleFocusLayout", "HeroActionLayout"} and not actions:
-        expanded_layout_id = "TwoCompactLayout"
-        expanded_layout = registry.require_ux_layout_component(expanded_layout_id)
-        expanded_maximum = expanded_layout.max_children_by_size[size]
-        if (
-            (allowed_layout_ids is None or expanded_layout_id in allowed_layout_ids)
-            and len(content) <= expanded_maximum
-        ):
-            framed_root = ParsedCall(
-                kind="template",
-                name=expanded_layout_id + "@1",
-                values=({},),
-                children=(*content, *actions),
-                span=root.span,
-            )
-            return _serialize_call(framed_root) + ";", True
+        return normalized, framing_repaired
     business_children = tuple(
         child
         for child in content
@@ -115,6 +105,52 @@ def frame_ux_layout_root_children(
         span=root.span,
     )
     return _serialize_call(framed_root) + ";", True
+
+
+def _quote_unquoted_template_ids(source: str) -> tuple[str, bool]:
+    """Quote a bare first Template argument without touching string literals."""
+    parts: list[str] = []
+    cursor = 0
+    index = 0
+    in_string: str | None = None
+    escaped = False
+    repaired = False
+    while index < len(source):
+        char = source[index]
+        if in_string is not None:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == in_string:
+                in_string = None
+            index += 1
+            continue
+        if char in {'"', "'"}:
+            in_string = char
+            index += 1
+            continue
+        previous_is_identifier = index > 0 and (
+            source[index - 1].isalnum() or source[index - 1] == "_"
+        )
+        if previous_is_identifier:
+            index += 1
+            continue
+        match = _UNQUOTED_TEMPLATE_CALL.match(source, index)
+        if match is None:
+            index += 1
+            continue
+        parts.append(source[cursor:index])
+        parts.append(
+            f'Template{match.group(1)}"{match.group(2)}"{match.group(3)}'
+        )
+        index = match.end()
+        cursor = index
+        repaired = True
+    if not repaired:
+        return source, False
+    parts.append(source[cursor:])
+    return "".join(parts), True
 
 
 def _reparent_wrapped_layout_call(

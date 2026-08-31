@@ -305,8 +305,9 @@ def test_checked_in_layout_templates_use_concrete_container_blueprints() -> None
     registry = get_cardplan_registry()
     fixed_slots = {
         "HeroActionLayout@1": 2,
+        "FullIconActionLayout@1": 2,
         "CompactTwoActionLayout@1": 3,
-        "TwoCompactLayout@1": 2,
+        "TwoSupportLayout@1": 2,
     }
     variable_children = {
         "SingleFocusLayout@1",
@@ -330,6 +331,32 @@ def test_checked_in_layout_templates_use_concrete_container_blueprints() -> None
             assert root.spread_children
 
 
+def test_fusion_theme_rules_cover_compact_eligible_businesses() -> None:
+    registry = get_cardplan_registry(enable_fusion_ball=True)
+    compact_business_ids: set[str] = set()
+    for template_id, definition in registry.templates.items():
+        if not template_id.endswith("Compact@1"):
+            continue
+        if not registry.template_is_enabled(template_id):
+            continue
+        business_id = definition.business_id
+        if business_id is not None:
+            compact_business_ids.add(business_id)
+
+    for theme_id, theme in registry.themes.items():
+        fusion_style = theme.fusion_ball_style
+        if fusion_style is None:
+            continue
+        has_compact_business = bool(
+            compact_business_ids.intersection(fusion_style.business_ids)
+        )
+        if not has_compact_business:
+            continue
+        first_layer_rule = registry.theme_first_layer_rules.get(theme_id)
+        assert first_layer_rule is not None
+        assert "Compact" in first_layer_rule, theme_id
+
+
 def test_checked_in_action_templates_expose_second_layer_props() -> None:
     registry = get_cardplan_registry()
     pill = registry.require_template("PillAction@1")
@@ -350,6 +377,103 @@ def test_checked_in_action_templates_expose_second_layer_props() -> None:
         assert options["onClick"].items[0].kind == "parameter"
         assert options["onClick"].items[0].name == "actionId"
         assert "_actionId" not in options
+
+
+def test_support_template_exposes_optional_internal_action_prop() -> None:
+    support = get_cardplan_registry().require_template(
+        "WeatherOverviewTemperatureSupport@1"
+    )
+    variant = support.variants[0]
+    schema = variant.parameters_schema
+
+    assert schema["properties"]["actionId"]["type"] == "string"
+    assert "actionId" not in schema["required"]
+    action_options = variant.root.values[0].properties
+    assert action_options["onClick"].kind == "event-action"
+    assert action_options["onClick"].items[0].kind == "optional-parameter"
+    assert action_options["onClick"].items[0].name == "actionId"
+
+
+@pytest.mark.parametrize(
+    ("params", "expected_event_name"),
+    (
+        ({"actionId": "event.open.weather"}, "event.open.weather"),
+        ({}, None),
+        ({"actionId": None}, None),
+    ),
+)
+def test_optional_event_action_omits_on_click_without_action_id(
+    params: dict[str, object],
+    expected_event_name: str | None,
+) -> None:
+    source = """#Template OptionalAction@1(props: { actionId?: string })
+data = {
+}
+
+Stack({
+  "width": "matchParent",
+  "onClick": EventAction(props?.actionId)
+}, Text("动作", "body"))
+#End
+"""
+    definition = compile_card_template(
+        source,
+        provider_id="example.action",
+        business_id=None,
+        expected_wire_id="OptionalAction@1",
+        expected_capability_id=None,
+        data_domain=None,
+        description="optional EventAction",
+        supported_card_sizes=(),
+        primary_data=(),
+        secondary_data=(),
+        optional_data=(),
+        output_schema={"type": "object", "properties": {}},
+    )
+    blueprint = definition.variants[0].root
+    action_value = blueprint.values[0].properties["onClick"]
+
+    assert action_value.kind == "event-action"
+    assert action_value.items[0].kind == "optional-parameter"
+    root = _instantiate_blueprint(blueprint, params)
+    options = root.values[0]
+    if expected_event_name is None:
+        assert "onClick" not in options
+    else:
+        assert options["onClick"] == [
+            {
+                "call": "sendToAssistant",
+                "args": {"eventName": expected_event_name},
+            }
+        ]
+
+
+def test_optional_event_action_rejects_required_prop() -> None:
+    source = """#Template InvalidOptionalAction@1(props: { actionId: string })
+data = {
+}
+
+Stack({
+  "onClick": EventAction(props?.actionId)
+}, Text("动作", "body"))
+#End
+"""
+
+    with pytest.raises(ValueError, match="requires an optional prop: actionId"):
+        compile_card_template(
+            source,
+            provider_id="example.action",
+            business_id=None,
+            expected_wire_id="InvalidOptionalAction@1",
+            expected_capability_id=None,
+            data_domain=None,
+            description="invalid optional EventAction",
+            supported_card_sizes=(),
+            primary_data=(),
+            secondary_data=(),
+            optional_data=(),
+            output_schema={"type": "object", "properties": {}},
+        )
 
 
 @pytest.mark.parametrize(
@@ -410,14 +534,24 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
         "2x2",
     )
     _validate_provider_template_layout_action_requirements(
-        "TwoCompactLayout",
+        "TwoSupportLayout",
         (
-            template("WeatherOverviewCompact@1"),
-            template("BatteryOverviewNormalWeatherCompact@1"),
+            template("WeatherOverviewTemperatureSupport@1"),
+            template("BatteryOverviewNormalWeatherSupport@1"),
         ),
         (),
         "2x2",
     )
+    with pytest.raises(TerselConversionError, match="layout combination is invalid"):
+        _validate_provider_template_layout_action_requirements(
+            "TwoSupportLayout",
+            (
+                template("WeatherOverviewCompact@1"),
+                template("BatteryOverviewNormalWeatherCompact@1"),
+            ),
+            (),
+            "2x2",
+        )
     _validate_provider_template_layout_action_requirements(
         "HeroActionLayout",
         (template("BatteryOverviewNormalHero@1"),),
@@ -428,6 +562,12 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
         "SingleFocusLayout",
         (template("WeatherOverviewFull@1"),),
         (),
+        "2x2",
+    )
+    _validate_provider_template_layout_action_requirements(
+        "FullIconActionLayout",
+        (template("WeatherOverviewFull@1"),),
+        (icon,),
         "2x2",
     )
     _validate_provider_template_layout_action_requirements(

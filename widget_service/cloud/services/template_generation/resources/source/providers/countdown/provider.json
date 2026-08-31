@@ -2,12 +2,8 @@
   "bundleFormat": "card-provider-bundle/1",
   "providerId": "com.huawei.countdown.cli",
   "providerVersion": "1.0.0-poc",
-  "firstLayerRule": {
-    "path": "layer-docs/first-layer.md"
-  },
-  "secondLayerRule": {
-    "path": "layer-docs/second-layer.md"
-  },
+  "firstLayerRule": {"path": "layer-docs/first-layer.md"},
+  "secondLayerRule": {"path": "layer-docs/second-layer.md"},
   "capabilities": [
     {
       "capabilityId": "GetCountdownDays",
@@ -23,25 +19,11 @@
       "templateId": "CountdownOverviewFull@1",
       "businessId": "CountdownOverview",
       "capabilityId": "GetCountdownDays",
-      "description": "通用事件的剩余天数摘要。 组件形态：countdown。",
-      "optionalData": [],
+      "description": "通用事件的剩余天数 Full 摘要，可选静态标题。",
       "entry": "templates/countdown-overview.cardtpl",
-      "primaryData": [
-        "/countdownDays"
-      ],
-      "secondaryData": []
-    },
-    {
-      "templateId": "CountdownOverviewCompact@1",
-      "businessId": "CountdownOverview",
-      "capabilityId": "GetCountdownDays",
-      "description": "倒计时紧凑摘要；用于 2x2 双层 Compact 组合。可通过 title 文本属性补充业务标题。",
-      "optionalData": [],
-      "entry": "templates/countdown-overview.cardtpl",
-      "primaryData": [
-        "/countdownDays"
-      ],
-      "secondaryData": []
+      "primaryData": ["/countdownDays"],
+      "secondaryData": [],
+      "optionalData": []
     }
   ],
   "compatibility": {

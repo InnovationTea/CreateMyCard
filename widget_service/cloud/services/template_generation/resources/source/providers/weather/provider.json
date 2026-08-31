@@ -2,12 +2,8 @@
   "bundleFormat": "card-provider-bundle/1",
   "providerId": "com.huawei.weather.cli",
   "providerVersion": "1.0.0-poc",
-  "firstLayerRule": {
-    "path": "layer-docs/first-layer.md"
-  },
-  "secondLayerRule": {
-    "path": "layer-docs/second-layer.md"
-  },
+  "firstLayerRule": {"path": "layer-docs/first-layer.md"},
+  "secondLayerRule": {"path": "layer-docs/second-layer.md"},
   "capabilities": [
     {
       "capabilityId": "ViewWeather",
@@ -23,170 +19,136 @@
       "templateId": "WeatherOverviewCompact@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "温度紧凑版；可选天气图标，辅助显示城市、天气和感冒指数。形态：temperatureCompact。",
-      "optionalData": [],
+      "description": "天气 Compact，展示城市、温度、天气现象和感冒指数，可选天气图标。",
       "entry": "templates/weather-overview.cardtpl",
-      "primaryData": [
-        "/current/temperatureText"
-      ],
+      "primaryData": ["/current/temperatureText"],
       "secondaryData": [
         "/location/districtName",
         "/current/condition",
         "/current/coldLevel"
-      ]
+      ],
+      "optionalData": []
     },
     {
-      "templateId": "WeatherOverviewTemperatureIconCompact@1",
+      "templateId": "WeatherOverviewUvCompact@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "天气温度图标紧凑行；用于 2x2 双层 Compact 组合，上层展示温度、城市和天气图标。 组件形态：temperatureIconCompact。",
+      "description": "紫外线天气 Compact，展示城市、温度、天气现象和紫外线等级，可选天气图标。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
-        "/current/temperatureText"
+        "/current/temperatureText",
+        "/current/uvIndex"
       ],
       "secondaryData": [
+        "/location/districtName",
         "/current/condition"
       ],
-      "optionalData": [
-        "/location/districtName"
-      ]
+      "optionalData": []
     },
     {
-      "templateId": "WeatherOverviewTemperatureAlertUvIconCompact@1",
+      "templateId": "WeatherOverviewTemperatureSupport@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "天气温度图标紧凑行；用于 2x2 双层 Compact 组合，上层展示温度、城市和天气图标，同时要求预警和紫外线字段参与模板匹配。组件形态：temperatureIconCompact。",
+      "description": "温度天气 Support，展示城市、温度、天气现象和感冒风险；仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达，可按需在内部绑定事件。",
       "entry": "templates/weather-overview.cardtpl",
-      "primaryData": [
-        "/current/temperatureText"
-      ],
+      "primaryData": ["/current/temperatureText"],
       "secondaryData": [
+        "/location/districtName",
         "/current/condition",
-        "/current/alertLevel",
-        "/current/uvIndex"
+        "/current/coldLevel"
       ],
-      "optionalData": [
-        "/location/districtName"
-      ]
+      "optionalData": []
     },
     {
-      "templateId": "WeatherOverviewTemperatureUvIconCompact@1",
+      "templateId": "WeatherOverviewTemperatureUvSupport@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "天气温度图标紧凑行；用于 2x2 双层 Compact 组合，上层展示温度、城市和天气图标，同时要求紫外线字段参与模板匹配。组件形态：temperatureIconCompact。",
+      "description": "紫外线天气 Support，展示城市、温度、天气现象和紫外线等级；仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达，可按需在内部绑定事件。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
-        "/current/temperatureText"
-      ],
-      "secondaryData": [
-        "/current/condition",
+        "/current/temperatureText",
         "/current/uvIndex"
       ],
-      "optionalData": [
-        "/location/districtName"
-      ]
-    },
-    {
-      "templateId": "WeatherOverviewTemperatureUvCompact@1",
-      "businessId": "WeatherOverview",
-      "capabilityId": "ViewWeather",
-      "description": "天气温度紧凑行；用于 2x2 双层 Compact 组合，展示温度、城市和天气，同时要求紫外线字段参与模板匹配。无业务 Action 或无合适天气图标素材时使用。组件形态：temperatureCompact。",
-      "entry": "templates/weather-overview.cardtpl",
-      "primaryData": [
-        "/current/temperatureText"
-      ],
       "secondaryData": [
-        "/current/condition",
-        "/current/uvIndex"
+        "/location/districtName",
+        "/current/condition"
       ],
-      "optionalData": [
-        "/location/districtName"
-      ]
+      "optionalData": []
     },
     {
       "templateId": "WeatherOverviewHero@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "温度 Hero；可选天气图标，辅助显示城市、天气和感冒指数。形态：temperatureHero。",
-      "optionalData": [],
+      "description": "温度天气 Hero，展示城市、温度、天气现象和感冒指数，可选天气图标。",
       "entry": "templates/weather-overview.cardtpl",
-      "primaryData": [
-        "/current/temperatureText"
-      ],
+      "primaryData": ["/current/temperatureText"],
       "secondaryData": [
         "/location/districtName",
         "/current/condition",
         "/current/coldLevel"
-      ]
+      ],
+      "optionalData": []
     },
     {
       "templateId": "WeatherOverviewFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "温度 Full；可选天气图标，辅助显示城市、天气、空气质量和感冒指数。",
-      "optionalData": [],
+      "description": "温度天气 Full，展示城市、温度、天气现象、空气质量和感冒指数。",
       "entry": "templates/weather-overview.cardtpl",
-      "primaryData": [
-        "/current/temperatureText"
-      ],
+      "primaryData": ["/current/temperatureText"],
       "secondaryData": [
         "/location/districtName",
         "/current/condition",
         "/current/airQuality",
         "/current/coldLevel"
-      ]
+      ],
+      "optionalData": []
     },
     {
       "templateId": "WeatherOverviewHumidityFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "湿度 Full；辅助显示城市、天气、温度、空气质量和感冒指数。",
-      "optionalData": [],
+      "description": "湿度天气 Full，展示城市、温度、天气现象、湿度、空气质量和感冒指数。",
       "entry": "templates/weather-overview.cardtpl",
-      "primaryData": [
-        "/current/humidityPercent"
-      ],
+      "primaryData": ["/current/humidityPercent"],
       "secondaryData": [
         "/location/districtName",
-        "/current/condition",
         "/current/temperatureText",
+        "/current/condition",
         "/current/airQuality",
         "/current/coldLevel"
-      ]
+      ],
+      "optionalData": []
     },
     {
       "templateId": "WeatherOverviewUvFull@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "紫外线 Full；辅助显示城市、天气、温度、空气质量和感冒指数。",
-      "optionalData": [],
+      "description": "紫外线天气 Full，展示城市、温度、天气现象、紫外线、空气质量和感冒指数。",
       "entry": "templates/weather-overview.cardtpl",
-      "primaryData": [
-        "/current/uvIndex"
-      ],
+      "primaryData": ["/current/uvIndex"],
       "secondaryData": [
         "/location/districtName",
-        "/current/condition",
         "/current/temperatureText",
+        "/current/condition",
         "/current/airQuality",
         "/current/coldLevel"
-      ]
+      ],
+      "optionalData": []
     },
     {
       "templateId": "WeatherOverviewAirQualityHero@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "空气质量 Hero；辅助显示城市、天气和感冒指数。",
-      "optionalData": [],
+      "description": "空气质量天气 Hero，展示城市、天气现象、空气质量和感冒指数。",
       "entry": "templates/weather-overview.cardtpl",
-      "primaryData": [
-        "/current/airQuality"
-      ],
+      "primaryData": ["/current/airQuality"],
       "secondaryData": [
         "/location/districtName",
         "/current/condition",
         "/current/coldLevel"
-      ]
+      ],
+      "optionalData": []
     }
   ],
   "compatibility": {

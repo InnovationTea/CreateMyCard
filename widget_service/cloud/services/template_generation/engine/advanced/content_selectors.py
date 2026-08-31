@@ -73,9 +73,6 @@ _PROVIDER_COMPONENT_FIELDS: dict[str, tuple[str, ...]] = {
         "chargingStatusDesc",
         "healthStatusDesc",
         "pluggedTypeDesc",
-        "nowCurrentText",
-        "voltageText",
-        "isBatteryPresentText",
     ),
     "ResourceUsageOverview": ("usagePercent", "availableMemText", "totalMemText"),
     "AppUsageOverview": (
@@ -1925,9 +1922,7 @@ def bluetooth_device_overview_variants(
         return ()
     if requests_charging and facts.case_charging_status is None:
         return ()
-    if bluetooth_device_overview_template_focus(task_spec.userQuery) == "connection":
-        return ("connection", "hero")
-    return ("earbuds",)
+    return ("template",)
 
 
 def bluetooth_device_overview_template_focus(query: str) -> Literal["connection", "case", "all"]:

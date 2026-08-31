@@ -53,8 +53,9 @@ _LAYOUT_COMPONENTS = frozenset(
     {
         "SingleFocusLayout",
         "HeroActionLayout",
+        "FullIconActionLayout",
         "CompactTwoActionLayout",
-        "TwoCompactLayout",
+        "TwoSupportLayout",
         "WideSingleFocusLayout",
     }
 )
@@ -74,6 +75,7 @@ _REFERENCE_CALLS = frozenset(
         "Asset",
         "Expr",
         "EventAction",
+        "_CardTplOptionalParam",
         "_CardTplInterpolation",
         "_CardTplTheme",
     }
@@ -89,6 +91,7 @@ _MAX_INDEXED_TEMPLATE_CHILDREN = 256
 _PROVIDER_TEMPLATE_LAYOUT_KINDS = (
     "WideHero",
     "WideFull",
+    "Support",
     "Compact",
     "Hero",
     "Full",
@@ -733,12 +736,17 @@ def _translate_ui_template_body(body: str) -> str:
         + f'("{match.group(2)}",',
         body,
     )
-    return re.sub(
+    body = re.sub(
         r"\b(IfPresent|IfAbsent)\(\s*props\.([A-Za-z_][A-Za-z0-9_]*)\s*,",
         lambda match: (
             "IfParam" if match.group(1) == "IfPresent" else "IfMissingParam"
         )
         + f'("{match.group(2)}",',
+        body,
+    )
+    return re.sub(
+        r"\bprops\?\.\s*([A-Za-z_][A-Za-z0-9_]*)",
+        lambda match: f'_CardTplOptionalParam("{match.group(1)}")',
         body,
     )
 
@@ -952,6 +960,10 @@ def _template_value(node: ast.AST) -> TemplateValue:
             raise ValueError("Provider Template reference call is invalid")
         if node.func.id == "EventAction":
             return _event_action_value(node)
+        if node.func.id == "_CardTplOptionalParam":
+            raise ValueError(
+                "Provider Template optional props access is only supported in EventAction"
+            )
         if node.func.id == "_CardTplInterpolation":
             return _interpolation_value(node)
         if node.func.id == "Expr":
@@ -1009,14 +1021,27 @@ def _event_action_value(call: ast.Call) -> TemplateValue:
     if call.keywords or len(call.args) != 1:
         raise ValueError("EventAction requires one props parameter")
     argument = call.args[0]
-    owner = argument.value if isinstance(argument, ast.Attribute) else None
-    valid_owner = isinstance(owner, ast.Name) and owner.id == "props"
-    valid_name = isinstance(argument, ast.Attribute) and _REFERENCE_NAME_RE.fullmatch(
-        argument.attr
-    )
-    if not valid_owner or not valid_name:
-        raise ValueError("EventAction requires one props parameter")
+    if isinstance(argument, ast.Call):
+        function = argument.func
+        is_optional_param = (
+            isinstance(function, ast.Name) and function.id == "_CardTplOptionalParam"
+        )
+        if not is_optional_param:
+            raise ValueError("EventAction requires one props parameter")
+        args = _call_literal_args(argument, "props optional access")
+        name = args[0] if len(args) == 1 else None
+        if not isinstance(name, str) or not _REFERENCE_NAME_RE.fullmatch(name):
+            raise ValueError("EventAction requires one props parameter")
+        return TemplateValue(
+            kind="event-action",
+            items=(TemplateValue(kind="optional-parameter", name=name),),
+        )
     if not isinstance(argument, ast.Attribute):
+        raise ValueError("EventAction requires one props parameter")
+    owner = argument.value
+    valid_owner = isinstance(owner, ast.Name) and owner.id == "props"
+    valid_name = _REFERENCE_NAME_RE.fullmatch(argument.attr) is not None
+    if not valid_owner or not valid_name:
         raise ValueError("EventAction requires one props parameter")
     return TemplateValue(
         kind="event-action",
@@ -1250,7 +1275,7 @@ def _template_references(root: TemplateNode) -> tuple[set[str], set[str]]:
     def visit_value(value: TemplateValue) -> None:
         if value.kind == "binding" and value.name:
             bindings.add(value.name)
-        elif value.kind == "parameter" and value.name:
+        elif value.kind in {"parameter", "optional-parameter"} and value.name:
             parameters.add(value.name)
         for item in value.items:
             visit_value(item)
@@ -1283,6 +1308,18 @@ def _validate_conditional_guards(
             result.update(parameter_references(item))
         for item in value.properties.values():
             result.update(parameter_references(item))
+        return result
+
+    def optional_parameter_references(value: TemplateValue) -> set[str]:
+        result = (
+            {value.name}
+            if value.kind == "optional-parameter" and value.name
+            else set()
+        )
+        for item in value.items:
+            result.update(optional_parameter_references(item))
+        for item in value.properties.values():
+            result.update(optional_parameter_references(item))
         return result
 
     def binding_references(value: TemplateValue) -> set[str]:
@@ -1325,6 +1362,13 @@ def _validate_conditional_guards(
             visit(node.children[0], active_param_guards, child_binding_guards)
             return
         for value in node.values:
+            for parameter_name in optional_parameter_references(value):
+                if parameter_name in required_params:
+                    raise ValueError(
+                        "Provider Template optional props access requires an optional prop: "
+                        f"{parameter_name}"
+                    )
+                guarded_params.add(parameter_name)
             for parameter_name in parameter_references(value):
                 if (
                     parameter_name not in required_params

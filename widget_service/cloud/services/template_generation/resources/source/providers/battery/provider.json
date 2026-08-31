@@ -51,21 +51,6 @@
       ]
     },
     {
-      "templateId": "BatteryOverviewProgressCompact@1",
-      "businessId": "BatteryOverview",
-      "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量进度条紧凑区；用于 2x2 单 Compact 加两个 PillAction 的组合，上半区展示手机电量标题、剩余百分比和横向进度条，按钮由第二层组合。 组件形态：progressCompact。",
-      "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "primaryData": [
-        "/batterySOC",
-        "/batterySOCText"
-      ],
-      "secondaryData": [
-        "/batteryCapacityLevelDesc"
-      ]
-    },
-    {
       "templateId": "BatteryOverviewChargingProgressHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
@@ -93,22 +78,6 @@
       ],
       "secondaryData": [
         "/batteryCapacityLevelDesc"
-      ]
-    },
-    {
-      "templateId": "BatteryOverviewChargingDiagnosticsHero@1",
-      "businessId": "BatteryOverview",
-      "capabilityId": "GetPhoneBatteryInfo",
-      "description": "充电诊断 Hero；用于 2x2 Hero 加一个 PillAction 的组合，标题下竖排展示充电状态、充电电流、电压和电池状态四个 key-value。 组件形态：chargingDiagnosticsHero。",
-      "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "primaryData": [
-        "/chargingStatusDesc"
-      ],
-      "secondaryData": [
-        "/nowCurrentText",
-        "/voltageText",
-        "/isBatteryPresentText"
       ]
     },
     {
@@ -254,22 +223,10 @@
       ]
     },
     {
-      "templateId": "BatteryOverviewTemperatureIconCompact@1",
-      "businessId": "BatteryOverview",
-      "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电池温度图标紧凑行；用于 2x2 双层 Compact 组合，下层展示电池温度和图标。 组件形态：temperatureIconCompact。",
-      "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "primaryData": [
-        "/batteryTemperatureText"
-      ],
-      "secondaryData": []
-    },
-    {
       "templateId": "BatteryOverviewStatusIconCompact@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量状态图标紧凑行；用于 2x2 双层 Compact 组合，展示电量百分比、状态文本和图标。 组件形态：statusIconCompact。",
+      "description": "手机电量状态图标紧凑行；用于 2x2 紧凑内容区域，展示电量百分比、状态文本和图标。 组件形态：statusIconCompact。",
       "optionalData": [
         "/batteryCapacityLevelDesc"
       ],
@@ -280,10 +237,96 @@
       "secondaryData": []
     },
     {
-      "templateId": "BatteryOverviewNormalPowerTemperatureIconCompact@1",
+      "templateId": "BatteryOverviewProgressSupport@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "正常电量状态下的手机电量与电池温度图标紧凑行；用于 2x2 双层 Compact 组合，左侧两行展示电量百分比和手机温度，右侧为电池图标。 组件形态：normalPowerTemperatureIconCompact。",
+      "description": "手机电量进度条紧凑区；用于 2x2 单 Compact 加两个 PillAction 的组合，上半区展示手机电量标题、剩余百分比和横向进度条，按钮由第二层组合。 组件形态：progressCompact。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/batterySOC",
+        "/batterySOCText"
+      ],
+      "secondaryData": [
+        "/batteryCapacityLevelDesc"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewNormalWeatherSupport@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normalWeather。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/batterySOCText"
+      ],
+      "secondaryData": [
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewChargingWeatherSupport@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：chargingWeather。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/batterySOCText"
+      ],
+      "secondaryData": [
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewLowWeatherSupport@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：lowWeather。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/batterySOCText"
+      ],
+      "secondaryData": [
+        "/chargingStatusDesc",
+        "/batteryCapacityLevelDesc"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewTemperatureIconSupport@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电池温度图标紧凑行；用于 2x2 紧凑内容区域，下层展示电池温度和图标。 组件形态：temperatureIconCompact。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/batteryTemperatureText"
+      ],
+      "secondaryData": []
+    },
+    {
+      "templateId": "BatteryOverviewStatusIconSupport@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量状态图标紧凑行；用于 2x2 紧凑内容区域，展示电量百分比、状态文本和图标。 组件形态：statusIconCompact。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
+      "optionalData": [
+        "/batteryCapacityLevelDesc"
+      ],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/batterySOCText"
+      ],
+      "secondaryData": []
+    },
+    {
+      "templateId": "BatteryOverviewNormalPowerTemperatureIconSupport@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "正常电量状态下的手机电量与电池温度图标紧凑行；用于 2x2 紧凑内容区域，左侧两行展示电量百分比和手机温度，右侧为电池图标。 组件形态：normalPowerTemperatureIconCompact。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [

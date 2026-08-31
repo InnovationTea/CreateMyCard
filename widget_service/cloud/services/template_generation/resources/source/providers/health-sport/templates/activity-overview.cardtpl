@@ -295,6 +295,80 @@ Row(
 )
 #End
 
+#Template ActivityOverviewSupport@1(props: { stepsIcon?: asset, actionId?: string })
+data = {
+    steps: $path("/dailySteps")
+}
+
+Stack({
+  "width": "matchParent",
+  "height": "matchParent",
+  "alignContent": "topStart"
+},
+  Column(
+    {
+      "_advancedComponent": "ActivityOverview",
+      "width": "matchParent",
+      "height": "matchParent",
+      "itemMargin": 4,
+      "justifyContent": "spaceBetween",
+      "alignItems": "start",
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+      Row(
+          {
+              "itemMargin": 4,
+              "width": "matchParent",
+              "justifyContent": "spaceBetween",
+              "alignItems": "top"
+          },
+          Column(
+              {
+                  "itemMargin": 2,
+                  "justifyContent": "start",
+                  "alignItems": "start",
+              },
+              Row(
+                  {"itemMargin": 4, "justifyContent": "start", "alignItems": "bottom"},
+                  Text(
+                      data.steps,
+                      {"fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
+                  ),
+                  Text(
+                      "步",
+                      {"fontWeight":500,"fontColor": $theme('supportContentColor'),"fontSize": 10, "maxLines": 1, "margin": {"bottom": 4}}
+                  )
+              ),
+              Text(
+                  "每日步数",
+                  {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "margin": {"top": 2}}
+              )
+          ),
+          IfPresent(
+              props.stepsIcon,
+              Image(
+                  props.stepsIcon,
+                  {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+              )
+          )
+      )
+  ),
+  IfPresent(props.actionId,
+    Stack({
+      "width": "matchParent",
+      "height": "matchParent",
+      "alignContent": "center",
+      "onClick": EventAction(props.actionId)
+    },
+      Text("", {
+        "width": "matchParent",
+        "height": "matchParent"
+      })
+    )
+  )
+)
+#End
+
 #Template ActivityOverviewFull@1(props: { stepsIcon?: asset })
 data = {
     steps: $path("/dailySteps"),

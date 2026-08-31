@@ -334,6 +334,99 @@
       "secondaryData": [
         "/sleepScore"
       ]
+    },
+    {
+      "templateId": "ActivityOverviewSupport@1",
+      "businessId": "ActivityOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "每日步数紧凑摘要，展示步数，可使用步数图标。 组件形态：compact。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
+      "optionalData": [],
+      "entry": "templates/activity-overview.cardtpl",
+      "primaryData": [
+        "/dailySteps"
+      ],
+      "secondaryData": []
+    },
+    {
+      "templateId": "WorkoutOverviewSupport@1",
+      "businessId": "WorkoutOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "最近一次单次运动训练摘要，展示运动类型、该次热量和时长，可使用运动图标。 组件形态：latestCompact。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
+      "optionalData": [],
+      "entry": "templates/workout-overview.cardtpl",
+      "primaryData": [
+        "/exerciseTypeName",
+        "/exerciseDurationText"
+      ],
+      "secondaryData": [
+        "/exerciseCalorieText"
+      ]
+    },
+    {
+      "templateId": "HeartRateOverviewSupport@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "运动平均心率摘要，可补充更新时间。 组件形态：support。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "primaryData": [
+        "/exerciseHeartRateAvg"
+      ],
+      "secondaryData": []
+    },
+    {
+      "templateId": "HeartRateOverviewUpdatedSupport@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "运动平均心率摘要，可补充更新时间。 组件形态：supportUpdated。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "primaryData": [
+        "/exerciseHeartRateAvg"
+      ],
+      "secondaryData": [
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "HeartRateOverviewIconSupport@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "运动平均心率摘要，可补充更新时间。 组件形态：supportIcon。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "primaryData": [
+        "/exerciseHeartRateAvg"
+      ],
+      "secondaryData": []
+    },
+    {
+      "templateId": "HeartRateOverviewUpdatedIconSupport@1",
+      "businessId": "HeartRateOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "运动平均心率摘要，可补充更新时间。 组件形态：supportUpdatedIcon。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
+      "optionalData": [],
+      "entry": "templates/heart-rate-overview.cardtpl",
+      "primaryData": [
+        "/exerciseHeartRateAvg"
+      ],
+      "secondaryData": [
+        "/updatedAt"
+      ]
+    },
+    {
+      "templateId": "SleepOverviewSupport@1",
+      "businessId": "SleepOverview",
+      "capabilityId": "GetHealthAndSportSummary",
+      "description": "睡眠情况紧凑摘要，展示时长和得分环，可使用睡眠图标。 组件形态：compact。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
+      "optionalData": [],
+      "entry": "templates/sleep-overview.cardtpl",
+      "primaryData": [
+        "/nightSleepDurationText"
+      ],
+      "secondaryData": [
+        "/sleepScore"
+      ]
     }
   ],
   "compatibility": {

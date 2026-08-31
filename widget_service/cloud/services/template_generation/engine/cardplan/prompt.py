@@ -10,7 +10,6 @@ from typing import Any
 from app.logger import json_for_log, logger
 from models.generation import TaskSpec
 from services.template_generation.engine.advanced.content_selectors import (
-    bluetooth_device_overview_template_focus,
     extract_battery_overview_facts,
     extract_bluetooth_device_overview_facts,
 )
@@ -183,16 +182,7 @@ def build_hybrid_prompt(
         for fact in facts
         if isinstance(fact.value, (int, float)) and not isinstance(fact.value, bool)
     )
-    actions = tuple(
-        ActionBinding(
-            action_id=event.id or "",
-            display_label=_action_label(event),
-            call=event.call,
-            args=event.args,
-        )
-        for event in task_spec.eventCandidates
-        if event.id
-    )
+    actions = _build_action_bindings(task_spec)
     if getattr(ui_brief, "action_placement", "auto") == "none":
         actions = ()
     selected_definitions = [registry.require_template(wire_id) for wire_id in requested]
@@ -619,15 +609,18 @@ def _composition_rules(ux_layout_root: bool) -> tuple[str, ...]:
             "布局调用可省略配置；需要覆盖默认重排时，"
             "只能把 Contract 声明的一个闭合配置对象"
             "放在第一个 child 前。布局的 businessChildren 数量不含 Action；"
-            "所有 Action 必须是布局根的连续末尾直接 children，"
-            "禁止放进 Column/Row/Stack/List/Template；整卡最多两个 Action。",
+            "除 TwoSupportLayout 外，所有 Action 必须是布局根的连续末尾直接 children，"
+            "禁止放进 Column/Row/Stack/List/业务 Template；整卡最多两个 Action。"
+            "TwoSupportLayout 禁止 Action child，批准事件只能各一次写入 Support 业务"
+            "Template 的可选 actionId Prop。",
             "禁止独立整卡 Header。若 cardComposition.businessTitleCandidate 能准确命名"
             "当前业务，"
             "可在业务内容区使用；若局部 Template 或事实已表达则省略，"
             "禁止从 request 截取标题。",
-            "Action 类型由业务模板后缀决定：Compact/Hero/WideHero 使用 "
-            'Template("PillAction@1", props)，Full/WideFull 不允许 Action。'
-            "Action 与业务组件解耦，不得根据组件改写、丢弃或重新归属 eventId；"
+            "Action 类型由业务模板后缀和布局共同决定：Compact/Hero/WideHero 使用 "
+            'Template("PillAction@1", props)，Full 仅在 FullIconActionLayout 中使用 '
+            'Template("IconAction@1", props)，WideFull 不允许 Action；Support 仅使用内部 '
+            "actionId Prop。Action 不得被改写、丢弃或重复；Support 内部事件需按语义归属业务；"
             "禁止直接调用 PillAction/IconAction/ActionTile、标准 Button 和事件对象。",
         )
     return (
@@ -647,14 +640,21 @@ def _ux_layout_action_rule(contract: HybridBodyContract) -> str:
     ]
     if not actions:
         return "本次没有批准 Action；必须选择 actionPolicy=none/optional 的布局并省略 Action。"
-    return (
+    action_rule = (
         "layoutActionCandidates="
         + json.dumps(actions, ensure_ascii=False)
         + "；按所选布局的 Action 数量范围选择且不得重复 actionId；"
         "PillAction@1 的 actionId/label 必须来自同一候选，icon 可从 "
         "actionIconCandidates 选择；IconAction@1 必须填写批准的 actionId/icon。"
-        "事件由服务端可信 Lowering 注入，禁止输出 call/args/onClick。"
     )
+    two_support_allowed = "TwoSupportLayout" in contract.allowed_layout_component_ids
+    if two_support_allowed:
+        action_rule += (
+            "TwoSupportLayout 不生成 Action child，批准 actionId 必须各一次写入语义匹配的 "
+            "Support Template；"
+        )
+    action_rule += "事件由服务端可信 Lowering 注入，禁止输出 call/args/onClick。"
+    return action_rule
 
 
 def _resolve_theme(task_spec: TaskSpec, ui_brief: Any, registry: CardPlanRegistry) -> str:
@@ -1029,36 +1029,28 @@ def _provider_variant_matches_trusted_state(
                 facts.case_battery_level is not None
                 and facts.case_charging_status is not None
             )
+        has_left = facts.left_battery_level is not None
+        has_right = facts.right_battery_level is not None
+        has_case = facts.case_battery_level is not None
+        if variant_name == "earbudsSupport":
+            return has_left and has_right
         if facts.is_connected is None or facts.earphone_name is None:
             return False
         if variant_name == "hero":
             return True
+        if variant_name == "earbudPairCompact":
+            return has_left and has_right
+        if variant_name == "earbudPairFull":
+            return has_case and has_left and has_right
         paired_with_phone = {
             "GetEarphoneInfo",
             "GetPhoneBatteryInfo",
         } <= capabilities
-        if not facts.is_connected:
-            return variant_name == ("disconnectedPhone" if paired_with_phone else "disconnected")
-        if paired_with_phone:
-            expected = "earbudsPhone" if task_spec.size == "2x2" else "earbudsPhoneWide"
-            return variant_name == expected
-        if task_spec.size == "2x4":
-            return variant_name == "earbudsDynamicWide"
-        focus = bluetooth_device_overview_template_focus(task_spec.userQuery)
-        if focus == "connection":
-            return variant_name == "connection"
-        if focus == "case":
-            return variant_name == "earbuds"
-        has_left = facts.left_battery_level is not None
-        has_right = facts.right_battery_level is not None
-        has_case = facts.case_battery_level is not None
-        if has_left and has_right:
-            return variant_name == ("earbudsFull" if has_case else "earbudPair")
-        if has_left:
-            return variant_name == "leftEarbud"
-        if has_right:
-            return variant_name == "rightEarbud"
-        return has_case and variant_name == "earbuds"
+        if variant_name in {"earbudsPhoneWideFull", "completePhoneWideFull"}:
+            return paired_with_phone
+        if variant_name in {"earbudsDynamicWideFull", "completeWideFull"}:
+            return not paired_with_phone
+        return False
     return True
 
 
@@ -1154,6 +1146,42 @@ def _action_label(event: Any) -> str:
     if isinstance(display_label, str) and display_label.strip():
         return display_label.strip()
     return _ACTION_LABELS.get(getattr(event, "id", "") or "", "打开详情")
+
+
+def _build_action_bindings(task_spec: TaskSpec) -> tuple[ActionBinding, ...]:
+    event_counts: dict[str, int] = {}
+    for event in task_spec.eventCandidates:
+        if not event.id:
+            continue
+        event_counts[event.id] = event_counts.get(event.id, 0) + 1
+
+    event_occurrences: dict[str, int] = {}
+    actions: list[ActionBinding] = []
+    reserved_action_ids = set(event_counts)
+    for event in task_spec.eventCandidates:
+        event_id = event.id
+        if not event_id:
+            continue
+        occurrence = event_occurrences.get(event_id, 0) + 1
+        event_occurrences[event_id] = occurrence
+        action_id = event_id
+        event_count = event_counts.get(event_id)
+        if event_count is None:
+            raise ValueError("Event count is unavailable")
+        if event_count > 1:
+            action_id = f"{event_id}#{occurrence}"
+            if action_id in reserved_action_ids:
+                raise ValueError("Generated Action instance ID collides with an event ID")
+        actions.append(
+            ActionBinding(
+                action_id=action_id,
+                event_id=event_id,
+                display_label=_action_label(event),
+                call=event.call,
+                args=event.args,
+            )
+        )
+    return tuple(actions)
 
 
 def _asset_semantic_tags(asset: dict[str, Any]) -> tuple[str, ...]:
