@@ -19,16 +19,12 @@ def convert_progress_circle_single(node: JSXElement, ctx: ConversionContext) -> 
     value_binding = ctx.bound_data(node.props, "value")
     numeric_value = normalize_percentage_value(raw_value)
     if numeric_value is None:
-        raise ValidationError(
-            "<ProgressCircleSingle> value must be a number or numeric percentage "
-            "such as 68 or '68%'"
-        )
+        raise ValidationError("<ProgressCircleSingle> value must be a number or numeric percentage such as 68 or '68%'")
     if value_binding is not None and isinstance(value_binding.value, str):
         derived_root, plan = ctx.register_derived_display(value_binding)
         if normalize_percentage_value(plan.raw) is None:
             raise ValidationError(
-                "<ProgressCircleSingle> bound value must be a number or numeric "
-                "percentage such as 68 or '68%'"
+                "<ProgressCircleSingle> bound value must be a number or numeric percentage such as 68 or '68%'"
             )
         progress_value = {"path": f"{derived_root}/progressValue"}
     elif value_binding is not None:
@@ -37,7 +33,19 @@ def convert_progress_circle_single(node: JSXElement, ctx: ConversionContext) -> 
         progress_value = numeric_value
     current_palette = palette(ctx)
     card_mode = node.props.get("appearance") == "card"
-    ring = ring_with_icon(ctx, value=progress_value, icon=node.props["icon"], size=52, stroke_width=6, icon_size=20, hint="single_ring", aria_label=node.props.get("ariaLabel"), bar_color=current_palette.progress_bar if card_mode else node.props.get("barColor") or "#FF64BB5C", track_color=current_palette.progress_track if card_mode else node.props.get("trackColor"), icon_color=current_palette.progress_icon if card_mode else None)
+    ring = ring_with_icon(
+        ctx,
+        value=progress_value,
+        icon=node.props["icon"],
+        size=52,
+        stroke_width=6,
+        icon_size=20,
+        hint="single_ring",
+        aria_label=node.props.get("ariaLabel"),
+        bar_color=current_palette.progress_bar if card_mode else node.props.get("barColor") or "#FF64BB5C",
+        track_color=current_palette.progress_track if card_mode else node.props.get("trackColor"),
+        icon_color=current_palette.progress_icon if card_mode else None,
+    )
     has_secondary = node.props.get("secondaryLabel") is not None
     value_styles = {
         "height": 16 if has_secondary else 18,
@@ -70,10 +78,34 @@ def convert_progress_circle_single(node: JSXElement, ctx: ConversionContext) -> 
         )
     else:
         value_text = text(ctx, "ring_display_value", f"{math.trunc(raw_value)}%", styles=value_styles)
-    label = text(ctx, "ring_label", ctx.prop(node, "label"), styles={"height": 20, "fontSize": 14, "fontWeight": 700, "fontColor": current_palette.primary, "maxLines": 1, "textOverflow": "ellipsis"})
+    label = text(
+        ctx,
+        "ring_label",
+        ctx.prop(node, "label"),
+        styles={
+            "height": 20,
+            "fontSize": 14,
+            "fontWeight": 700,
+            "fontColor": current_palette.primary,
+            "maxLines": 1,
+            "textOverflow": "ellipsis",
+        },
+    )
     secondary = None
     if has_secondary:
-        secondary = text(ctx, "ring_secondary_label", ctx.prop(node, "secondaryLabel"), styles={"height": 16, "fontSize": 10, "fontWeight": 400, "fontColor": current_palette.secondary, "maxLines": 1, "textOverflow": "ellipsis"})
+        secondary = text(
+            ctx,
+            "ring_secondary_label",
+            ctx.prop(node, "secondaryLabel"),
+            styles={
+                "height": 16,
+                "fontSize": 10,
+                "fontWeight": 400,
+                "fontColor": current_palette.secondary,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+            },
+        )
     labels = column(
         ctx,
         "ring_stat",

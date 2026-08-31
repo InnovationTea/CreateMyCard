@@ -59,9 +59,7 @@ async def _validate_generated_card_once(
     except TimeoutError as exc:
         process.kill()
         await process.wait()
-        raise ValidatorInfrastructureError(
-            f"JSX 校验超过 {timeout_seconds:g} 秒"
-        ) from exc
+        raise ValidatorInfrastructureError(f"JSX 校验超过 {timeout_seconds:g} 秒") from exc
 
     output = stdout.decode("utf-8", errors="replace").strip()
     error_output = stderr.decode("utf-8", errors="replace").strip()
@@ -69,18 +67,14 @@ async def _validate_generated_card_once(
         report = json.loads(output)
     except json.JSONDecodeError as exc:
         detail = error_output or output or "validator produced no output"
-        raise ValidatorInfrastructureError(
-            f"JSX 校验器未返回合法 JSON：{detail[:1000]}"
-        ) from exc
+        raise ValidatorInfrastructureError(f"JSX 校验器未返回合法 JSON：{detail[:1000]}") from exc
     if not isinstance(report, dict):
         raise ValidatorInfrastructureError("JSX 校验器返回值必须是 JSON object")
     if process.returncode not in {0, 1} or report.get("kind") == "infrastructure":
         details = report.get("findings") or error_output or f"exit={process.returncode}"
         raise ValidatorInfrastructureError(f"JSX 校验器运行失败：{details}")
     if bool(report.get("ok")) != (process.returncode == 0):
-        raise ValidatorInfrastructureError(
-            f"JSX 校验器状态不一致：exit={process.returncode}, ok={report.get('ok')!r}"
-        )
+        raise ValidatorInfrastructureError(f"JSX 校验器状态不一致：exit={process.returncode}, ok={report.get('ok')!r}")
     return report
 
 
@@ -120,34 +114,30 @@ async def validate_generated_card(
         except ValidatorInfrastructureError as exc:
             if attempt >= infrastructure_retries:
                 if infrastructure_retries:
-                    raise ValidatorInfrastructureError(
-                        f"JSX 校验基础设施连续 {attempt + 1} 次失败：{exc}"
-                    ) from exc
+                    raise ValidatorInfrastructureError(f"JSX 校验基础设施连续 {attempt + 1} 次失败：{exc}") from exc
                 raise
-            await asyncio.sleep(min(0.5 * (2 ** attempt), 2.0))
+            await asyncio.sleep(min(0.5 * (2**attempt), 2.0))
 
     raise AssertionError("unreachable")
 
 
-_BROWSER_LAYOUT_CODES = frozenset({
-    "browser-height-overflow",
-    "browser-overflow",
-    "browser-edge-spacing",
-    "browser-vertical-clipping",
-    "browser-semantic-overlap",
-    "browser-semantic-content-overflow",
-})
+_BROWSER_LAYOUT_CODES = frozenset(
+    {
+        "browser-height-overflow",
+        "browser-overflow",
+        "browser-edge-spacing",
+        "browser-vertical-clipping",
+        "browser-semantic-overlap",
+        "browser-semantic-content-overflow",
+    }
+)
 
 
 def _error_findings(report: dict[str, Any]) -> list[dict[str, Any]]:
     findings = report.get("findings")
     if not isinstance(findings, list):
         return []
-    return [
-        item
-        for item in findings
-        if isinstance(item, dict) and item.get("severity") == "error"
-    ]
+    return [item for item in findings if isinstance(item, dict) and item.get("severity") == "error"]
 
 
 def browser_layout_fingerprints(report: dict[str, Any]) -> frozenset[str]:
@@ -188,15 +178,8 @@ def browser_layout_needs_restructure(
 
     current = browser_layout_fingerprints(report)
     repeated = sorted(current & previous_fingerprints)
-    layout_errors = [
-        item
-        for item in _error_findings(report)
-        if str(item.get("code") or "") in _BROWSER_LAYOUT_CODES
-    ]
-    has_total_overflow = any(
-        item.get("code") == "browser-height-overflow"
-        for item in layout_errors
-    )
+    layout_errors = [item for item in _error_findings(report) if str(item.get("code") or "") in _BROWSER_LAYOUT_CODES]
+    has_total_overflow = any(item.get("code") == "browser-height-overflow" for item in layout_errors)
     return bool(repeated or has_total_overflow or len(layout_errors) >= 2), repeated
 
 
@@ -247,11 +230,13 @@ def _aggregate_layout_findings(
         )
         if len(encoded_evidence) > 1200:
             compact_evidence = encoded_evidence[:1200] + "…"
-        evidence.append({
-            "code": item.get("code"),
-            "message": item.get("message"),
-            **({"evidence": compact_evidence} if compact_evidence is not None else {}),
-        })
+        evidence.append(
+            {
+                "code": item.get("code"),
+                "message": item.get("message"),
+                **({"evidence": compact_evidence} if compact_evidence is not None else {}),
+            }
+        )
     if structural_repair:
         suggestion = (
             "当前不是单个组件的轻微偏移。请重新分配整个正文区域：减少真正可舍弃的"
@@ -260,8 +245,7 @@ def _aggregate_layout_findings(
         )
     else:
         suggestion = (
-            "根据 evidence 调整这些组件的共同父级布局，一次解决全部冲突；不要通过裁剪、"
-            "隐藏或删除必需信息规避问题。"
+            "根据 evidence 调整这些组件的共同父级布局，一次解决全部冲突；不要通过裁剪、隐藏或删除必需信息规避问题。"
         )
     return {
         "severity": "error",
@@ -285,11 +269,7 @@ def compact_validation_feedback(
 ) -> list[dict[str, Any]]:
     compact: list[dict[str, Any]] = []
     findings = _error_findings(report)
-    layout_findings = [
-        item
-        for item in findings
-        if str(item.get("code") or "") in _BROWSER_LAYOUT_CODES
-    ]
+    layout_findings = [item for item in findings if str(item.get("code") or "") in _BROWSER_LAYOUT_CODES]
     layout_aggregated = len(layout_findings) >= 2
     for item in findings:
         if item in layout_findings:
@@ -298,28 +278,25 @@ def compact_validation_feedback(
             continue
         compact.append(_compact_finding(item))
     if layout_aggregated:
-        compact.append(_aggregate_layout_findings(
-            layout_findings,
-            structural_repair=structural_repair,
-        ))
+        compact.append(
+            _aggregate_layout_findings(
+                layout_findings,
+                structural_repair=structural_repair,
+            )
+        )
     elif structural_repair and layout_findings:
         layout_code = layout_findings[0].get("code")
-        entry = next(
-            item
-            for item in compact
-            if item.get("code") == layout_code
-        )
+        entry = next(item for item in compact if item.get("code") == layout_code)
         entry["suggestion"] = (
             "同类布局错误在修复后再次出现。不要继续局部移动组件；请重新分配整个正文区域，"
             "保持必需 dataIds/actionId，并只省略真正可舍弃的信息。"
         )
         entry["repeated"] = True
-    if (
-        len(compact) > limit
-        and layout_aggregated
-        and limit > 0
-        and compact[-1].get("code") == "browser-layout-conflict"
-    ):
+    over_limit_with_layout = len(compact) > limit and layout_aggregated and limit > 0
+    has_layout_tail = False
+    if over_limit_with_layout:
+        has_layout_tail = compact[-1].get("code") == "browser-layout-conflict"
+    if over_limit_with_layout and has_layout_tail:
         compact = [*compact[: max(0, limit - 1)], compact[-1]]
     else:
         compact = compact[:limit]

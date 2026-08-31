@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from collections import Counter, defaultdict
-from datetime import datetime
-from typing import Any, Iterable
+from collections import Counter
+from collections.abc import Iterable
+from datetime import UTC, datetime
+from typing import Any
 
 
 _GENERIC_CODES = {
@@ -52,30 +53,60 @@ def _enabled_state(value: Any) -> str:
     return "unknown"
 
 
+def _contains_any(text: str, tokens: Iterable[str]) -> bool:
+    for token in tokens:
+        if token in text:
+            return True
+    return False
+
+
 def _message_category(message: str, phase: str = "", code: str = "") -> str:
     text = f"{phase} {code} {message}".lower()
-    if any(token in text for token in (
-        "validation_infrastructure",
-        "validatorinfrastructureerror",
-        "validator infrastructure",
-        "校验基础设施",
-        "校验器运行失败",
-        "无法启动 jsx 校验器",
-    )):
+    if _contains_any(
+        text,
+        (
+            "validation_infrastructure",
+            "validatorinfrastructureerror",
+            "validator infrastructure",
+            "校验基础设施",
+            "校验器运行失败",
+            "无法启动 jsx 校验器",
+        )
+    ):
         return "validation_infrastructure"
-    if any(token in text for token in ("静态文本", "业务数值", "invented", "not provided", "未提供", "固化")):
+    if _contains_any(text, ("静态文本", "业务数值", "invented", "not provided", "未提供", "固化")):
         return "invented_or_static_data"
-    if any(token in text for token in ("ambiguous without a static semantic label", "requires a static semantic label", "语义标签")):
+    if _contains_any(
+        text,
+        ("ambiguous without a static semantic label", "requires a static semantic label", "语义标签"),
+    ):
         return "metric_semantics"
-    if any(token in text for token in ("dataids", "data id", "data binding", "data-binding", "绑定", "sample value")):
+    if _contains_any(text, ("dataids", "data id", "data binding", "data-binding", "绑定", "sample value")):
         return "data_binding"
-    if any(token in text for token in ("assetcandidates", "functional icon", "resource", " icon", " src", "资源", "图标")):
+    if _contains_any(
+        text,
+        ("assetcandidates", "functional icon", "resource", " icon", " src", "资源", "图标"),
+    ):
         return "asset"
-    if any(token in text for token in ("actionid", "duplicate-action", "interaction", "onclick", "交互", "动作")):
+    if _contains_any(text, ("actionid", "duplicate-action", "interaction", "onclick", "交互", "动作")):
         return "interaction"
-    if any(token in text for token in ("coverage", "unmetrequirement", "需求覆盖")):
+    if _contains_any(text, ("coverage", "unmetrequirement", "需求覆盖")):
         return "coverage"
-    if any(token in text for token in ("overflow", "layout", "geometry", "budget", "card.size", "relative stack", "放不下", "溢出", "尺寸", "布局")):
+    if _contains_any(
+        text,
+        (
+            "overflow",
+            "layout",
+            "geometry",
+            "budget",
+            "card.size",
+            "relative stack",
+            "放不下",
+            "溢出",
+            "尺寸",
+            "布局",
+        )
+    ):
         return "layout"
     if any(token in text for token in ("browser", "chromium", "浏览器")):
         return "browser_validation"
@@ -89,13 +120,16 @@ def _message_category(message: str, phase: str = "", code: str = "") -> str:
 def _reason_code(message: str, phase: str = "", code: str = "") -> str:
     text = message.lower()
     patterns = (
-        ((
-            "validatorinfrastructureerror",
-            "validator infrastructure",
-            "校验基础设施",
-            "校验器运行失败",
-            "无法启动 jsx 校验器",
-        ), "validator-infrastructure"),
+        (
+            (
+                "validatorinfrastructureerror",
+                "validator infrastructure",
+                "校验基础设施",
+                "校验器运行失败",
+                "无法启动 jsx 校验器",
+            ),
+            "validator-infrastructure",
+        ),
         (("unknown data binding", "unknown binding", "未知数据绑定"), "unknown-data-binding"),
         (("cannot be data-bound", "不可绑定"), "unsupported-data-binding"),
         (("does not match sample value", "样例值"), "binding-sample-mismatch"),
@@ -129,7 +163,9 @@ def _iter_findings(result: dict[str, Any]) -> Iterable[dict[str, str]]:
                 yield {
                     "phase": str(finding.get("phase") or result.get("phase") or ""),
                     "code": str(finding.get("code") or ""),
-                    "message": str(finding.get("message") or finding.get("error") or result.get("error") or "unknown error"),
+                    "message": str(
+                        finding.get("message") or finding.get("error") or result.get("error") or "unknown error"
+                    ),
                 }
         return
     yield {
@@ -143,13 +179,16 @@ def _aggregate_reasons(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     grouped: dict[tuple[str, str], dict[str, Any]] = {}
     for item in items:
         key = (item["category"], item["code"])
-        record = grouped.setdefault(key, {
-            "category": item["category"],
-            "code": item["code"],
-            "occurrenceCount": 0,
-            "taskIds": set(),
-            "sampleMessages": [],
-        })
+        record = grouped.setdefault(
+            key,
+            {
+                "category": item["category"],
+                "code": item["code"],
+                "occurrenceCount": 0,
+                "taskIds": set(),
+                "sampleMessages": [],
+            },
+        )
         record["occurrenceCount"] += 1
         record["taskIds"].add(str(item["taskId"]))
         message = item["message"]
@@ -236,7 +275,11 @@ def _task_metrics(
             accepted_submissions += 1
             repair_pending = False
         elif status == "no_tool_call":
-            message = "model output was truncated" if turn.get("finish_reason") == "length" else "model did not call the expected tool"
+            message = (
+                "model output was truncated"
+                if turn.get("finish_reason") == "length"
+                else "model did not call the expected tool"
+            )
             item = {
                 "taskId": task_id,
                 "category": "model_protocol",
@@ -247,12 +290,14 @@ def _task_metrics(
                 retry_reason_items.append(item)
             issue_reason_items.append(item)
         elif status == "request_error":
-            issue_reason_items.append({
-                "taskId": task_id,
-                "category": "api_or_infrastructure",
-                "code": str(turn.get("error_type") or "request-error"),
-                "message": str(turn.get("error") or "model request failed"),
-            })
+            issue_reason_items.append(
+                {
+                    "taskId": task_id,
+                    "category": "api_or_infrastructure",
+                    "code": str(turn.get("error_type") or "request-error"),
+                    "message": str(turn.get("error") or "model request failed"),
+                }
+            )
         elif status == "tool_failed" and tool != "submit_card_jsx":
             item = {
                 "taskId": task_id,
@@ -271,14 +316,10 @@ def _task_metrics(
     rejected_submissions = int(explicit_rejections) if isinstance(explicit_rejections, int) else rejected_submissions
     repair_calls = int(explicit_repairs) if isinstance(explicit_repairs, int) else inferred_repair_calls
     tool_argument_repairs = (
-        int(explicit_argument_repairs)
-        if isinstance(explicit_argument_repairs, int)
-        else inferred_tool_argument_repairs
+        int(explicit_argument_repairs) if isinstance(explicit_argument_repairs, int) else inferred_tool_argument_repairs
     )
     protocol_retries = (
-        int(explicit_protocol_retries)
-        if isinstance(explicit_protocol_retries, int)
-        else inferred_protocol_retries
+        int(explicit_protocol_retries) if isinstance(explicit_protocol_retries, int) else inferred_protocol_retries
     )
     if accepted_submissions == 0 and str(trace.get("status")) not in {"failed", "running", ""}:
         accepted_submissions = 1
@@ -314,11 +355,7 @@ def _task_metrics(
         "repairCalls": repair_calls,
         "toolArgumentRepairs": tool_argument_repairs,
         "protocolRetries": protocol_retries,
-        "firstPass": (
-            rejected_submissions == 0
-            and protocol_retries == 0
-            and str(trace.get("status")) != "failed"
-        ),
+        "firstPass": (rejected_submissions == 0 and protocol_retries == 0 and str(trace.get("status")) != "failed"),
         "warningCount": len(warnings),
         "browserValidationReports": len(validation_reports),
         "browserValidationFailures": browser_failed,
@@ -378,7 +415,7 @@ def build_run_summary(manifest: dict[str, Any], traces: list[dict[str, Any]]) ->
 
     return {
         "schemaVersion": 1,
-        "generatedAt": datetime.now().astimezone().isoformat(),
+        "generatedAt": datetime.now(UTC).astimezone().isoformat(),
         "run": {
             "runId": manifest.get("runId"),
             "status": manifest.get("status"),
@@ -386,9 +423,7 @@ def build_run_summary(manifest: dict[str, Any], traces: list[dict[str, Any]]) ->
             "provider": manifest.get("provider"),
             "thinkingMode": manifest.get("thinkingMode"),
             "validationMode": manifest.get("validationMode"),
-            "layoutBudgetValidationEnabled": manifest.get(
-                "layoutBudgetValidationEnabled"
-            ),
+            "layoutBudgetValidationEnabled": manifest.get("layoutBudgetValidationEnabled"),
             "browserValidationEnabled": manifest.get("browserValidationEnabled"),
             "input": manifest.get("input"),
             "startedAt": manifest.get("startedAt"),
@@ -425,8 +460,7 @@ def build_run_summary(manifest: dict[str, Any], traces: list[dict[str, Any]]) ->
             "averageCallsPerAttemptedTask": _rounded(total_calls / attempted) if attempted else 0.0,
             "tokens": dict(token_totals),
             "averageTokensPerAttemptedTask": {
-                key: _rounded(value / attempted) if attempted else 0.0
-                for key, value in token_totals.items()
+                key: _rounded(value / attempted) if attempted else 0.0 for key, value in token_totals.items()
             },
         },
         "validationAndRetry": {
@@ -442,12 +476,8 @@ def build_run_summary(manifest: dict[str, Any], traces: list[dict[str, Any]]) ->
             "toolArgumentRepairs": total_argument_repairs,
             "protocolRetries": total_protocol_retries,
             "repairedTasks": repaired_tasks,
-            "tasksWithToolArgumentRepairs": sum(
-                1 for row in task_rows if row["toolArgumentRepairs"] > 0
-            ),
-            "tasksWithProtocolRetries": sum(
-                1 for row in task_rows if row["protocolRetries"] > 0
-            ),
+            "tasksWithToolArgumentRepairs": sum(1 for row in task_rows if row["toolArgumentRepairs"] > 0),
+            "tasksWithProtocolRetries": sum(1 for row in task_rows if row["protocolRetries"] > 0),
             "tasksWithSubmissionFailures": sum(1 for row in task_rows if row["submissionFailures"] > 0),
             "tasksWithRejectedSubmissions": sum(1 for row in task_rows if row["rejectedSubmissions"] > 0),
             "averageRepairCallsPerAttemptedTask": _rounded(total_repairs / attempted) if attempted else 0.0,
@@ -498,16 +528,28 @@ def render_run_summary_markdown(summary: dict[str, Any]) -> str:
         "",
         f"- Run elapsed: **{timing['runElapsedSeconds']}s**",
         f"- Average per attempted task: **{timing['averagePerAttemptedTaskSeconds']}s**",
-        f"- P50 / P90 / max: **{timing['p50TaskSeconds']}s / {timing['p90TaskSeconds']}s / {timing['maxTaskSeconds']}s**",
-        f"- Model calls: **{usage['modelCalls']}**, average **{usage['averageCallsPerAttemptedTask']}** per attempted task",
-        f"- Model API time: **{timing['modelApiTotalSeconds']}s**, average **{timing['averageModelCallSeconds']}s** per call",
+        (
+            f"- P50 / P90 / max: **{timing['p50TaskSeconds']}s / "
+            f"{timing['p90TaskSeconds']}s / {timing['maxTaskSeconds']}s**"
+        ),
+        (
+            f"- Model calls: **{usage['modelCalls']}**, average "
+            f"**{usage['averageCallsPerAttemptedTask']}** per attempted task"
+        ),
+        (
+            f"- Model API time: **{timing['modelApiTotalSeconds']}s**, average "
+            f"**{timing['averageModelCallSeconds']}s** per call"
+        ),
         f"- Tokens: `{usage['tokens']}`",
         "",
         "## Validation and retry",
         "",
         f"- Rejected submissions: **{validation['rejectedSubmissions']}**",
         f"- Submission failures: **{validation['submissionFailures']}**",
-        f"- Validated / accepted submissions: **{validation['validatedSubmissions']} / {validation['acceptedSubmissions']}**",
+        (
+            f"- Validated / accepted submissions: **{validation['validatedSubmissions']} / "
+            f"{validation['acceptedSubmissions']}**"
+        ),
         f"- Conversion failures: **{validation['conversionFailures']}**",
         f"- Repair calls: **{validation['repairCalls']}**",
         f"- Local tool-argument repairs: **{validation['toolArgumentRepairs']}**",
@@ -531,13 +573,16 @@ def render_run_summary_markdown(summary: dict[str, Any]) -> str:
             )
     else:
         lines.append("| — | — | 0 | 0 | No retry-triggering issue |")
-    lines.extend([
-        "",
-        "## Per task",
-        "",
-        "| Task | Component | Status | Elapsed | Calls | Submit failures | Repairs | Arg repairs | Protocol retries | Reasons |",
-        "|---|---|---|---:|---:|---:|---:|---:|---:|---|",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Per task",
+            "",
+            "| Task | Component | Status | Elapsed | Calls | Submit failures | "
+            "Repairs | Arg repairs | Protocol retries | Reasons |",
+            "|---|---|---|---:|---:|---:|---:|---:|---:|---|",
+        ]
+    )
     for task in summary["tasks"]:
         lines.append(
             f"| {_markdown_cell(task['taskId'])} | {_markdown_cell(task['componentName'])} | "
@@ -553,10 +598,9 @@ def terminal_summary_lines(summary: dict[str, Any]) -> list[str]:
     outcome = summary["outcome"]
     timing = summary["timing"]
     validation = summary["validationAndRetry"]
-    top_reasons = ", ".join(
-        f"{item['code']}={item['occurrenceCount']}"
-        for item in validation["retryReasons"][:3]
-    ) or "none"
+    top_reasons = (
+        ", ".join(f"{item['code']}={item['occurrenceCount']}" for item in validation["retryReasons"][:3]) or "none"
+    )
     return [
         (
             f"[Summary] attempted={outcome['attemptedTasks']}, produced={outcome['producedTasks']}, "

@@ -7,6 +7,7 @@ import hashlib
 import hmac
 import json
 import random
+import sys
 import time
 import weakref
 from dataclasses import dataclass
@@ -14,7 +15,6 @@ from typing import Any, Literal
 
 import websockets
 
-from app.logger import logger
 from config.config import Settings
 from models.generation import ModelRequestContext
 from utils.base_utils import sts_config
@@ -118,15 +118,16 @@ def _is_tool_choice_compatibility_error(exc: Exception) -> bool:
     if getattr(exc, "status_code", None) not in {400, 422}:
         return False
     message = str(exc).casefold()
-    return any(
-        marker in message
-        for marker in (
-            "tool_choice",
-            "named tool",
-            "named function",
-            "function calling",
-        )
+    compatibility_markers = (
+        "tool_choice",
+        "named tool",
+        "named function",
+        "function calling",
     )
+    for marker in compatibility_markers:
+        if marker in message:
+            return True
+    return False
 
 
 def _content_text(value: object) -> str:
@@ -134,14 +135,13 @@ def _content_text(value: object) -> str:
         return value
     if not isinstance(value, list):
         return ""
-    return "".join(
-        item
-        if isinstance(item, str)
-        else str(item.get("text") or "")
-        if isinstance(item, dict)
-        else ""
-        for item in value
-    )
+    parts = []
+    for item in value:
+        if isinstance(item, str):
+            parts.append(item)
+        elif isinstance(item, dict):
+            parts.append(str(item.get("text") or ""))
+    return "".join(parts)
 
 
 def _merge_tool_calls(
@@ -213,26 +213,16 @@ def _completion_from_payload(payload: object) -> _ModelCompletion | None:
                 reasoning_content=_content_text(message.get("reasoning_content")),
                 tool_calls=_tool_calls_from_value(message.get("tool_calls")),
                 finish_reason=str(choice.get("finish_reason") or ""),
-                usage=(
-                    dict(payload["usage"])
-                    if isinstance(payload.get("usage"), dict)
-                    else {}
-                ),
+                usage=(dict(payload["usage"]) if isinstance(payload.get("usage"), dict) else {}),
             )
-    tool_calls = _tool_calls_from_value(
-        payload.get("tool_calls") or payload.get("toolCalls")
-    )
+    tool_calls = _tool_calls_from_value(payload.get("tool_calls") or payload.get("toolCalls"))
     if tool_calls:
         return _ModelCompletion(
             content=_content_text(payload.get("content") or payload.get("text")),
             reasoning_content=_content_text(payload.get("reasoning_content")),
             tool_calls=tool_calls,
             finish_reason=str(payload.get("finish_reason") or "tool_calls"),
-            usage=(
-                dict(payload["usage"])
-                if isinstance(payload.get("usage"), dict)
-                else {}
-            ),
+            usage=(dict(payload["usage"]) if isinstance(payload.get("usage"), dict) else {}),
         )
     return None
 
@@ -334,10 +324,7 @@ class PlatformChatClient:
                 self._retry_count("master"),
             )
         ]
-        if (
-            self.settings.enable_model_failure_retry
-            and self.settings.enable_openai_fallback
-        ):
+        if self.settings.enable_model_failure_retry and self.settings.enable_openai_fallback:
             plans.append(
                 (
                     self.settings.openai_fallback_client,
@@ -351,7 +338,8 @@ class PlatformChatClient:
                 self.retry_count += 1
                 print(
                     f"{_MODULE} fallback_started provider={provider} role={role}",
-                    file=sys.stderr, flush=True,
+                    file=sys.stderr,
+                    flush=True,
                 )
             try:
                 return await self._complete_with_provider(
@@ -386,9 +374,7 @@ class PlatformChatClient:
         for attempt in range(1, max_attempts + 1):
             try:
                 semaphore = _semaphore(self.settings.model_max_concurrency)
-                async with asyncio.timeout(
-                    self.settings.model_queue_timeout_seconds
-                ):
+                async with asyncio.timeout(self.settings.model_queue_timeout_seconds):
                     await semaphore.acquire()
                 try:
                     async with asyncio.timeout(self.request_timeout):
@@ -410,7 +396,8 @@ class PlatformChatClient:
                     f"attempt={attempt} max_attempts={max_attempts} "
                     f"will_retry={str(should_retry).lower()} "
                     f"error_type={type(exc).__name__}",
-                    file=sys.stderr, flush=True,
+                    file=sys.stderr,
+                    flush=True,
                 )
                 if not should_retry:
                     raise
@@ -508,9 +495,7 @@ class PlatformChatClient:
         except PlatformModelError:
             raise
         except Exception as exc:
-            raise PlatformModelError(
-                "DeepSeek Platform tool completion failed"
-            ) from exc
+            raise PlatformModelError("DeepSeek Platform tool completion failed") from exc
         raise PlatformModelError(
             "DeepSeek Platform connection closed before tool completion",
             code="MODEL_STREAM_INCOMPLETE",
@@ -578,16 +563,12 @@ class PlatformChatClient:
                     delta = choice.get("delta")
                     if isinstance(delta, dict):
                         state["content"].append(_content_text(delta.get("content")))
-                        state["reasoning"].append(
-                            _content_text(delta.get("reasoning_content"))
-                        )
+                        state["reasoning"].append(_content_text(delta.get("reasoning_content")))
                         _merge_tool_calls(state["tool_calls"], delta.get("tool_calls"))
                     message = choice.get("message")
                     if isinstance(message, dict):
                         state["content"].append(_content_text(message.get("content")))
-                        state["reasoning"].append(
-                            _content_text(message.get("reasoning_content"))
-                        )
+                        state["reasoning"].append(_content_text(message.get("reasoning_content")))
                         _merge_tool_calls(
                             state["tool_calls"],
                             message.get("tool_calls"),
@@ -635,9 +616,7 @@ class PlatformChatClient:
             if not secret:
                 raise ValueError("decoded secret key is empty")
         except (KeyError, ValueError) as exc:
-            raise PlatformModelError(
-                f"DeepSeek Platform secret key is unavailable: {config_key}"
-            ) from exc
+            raise PlatformModelError(f"DeepSeek Platform secret key is unavailable: {config_key}") from exc
         signature = base64.b64encode(
             hmac.new(
                 secret,
@@ -672,9 +651,7 @@ class PlatformChatClient:
             delta = choice.get("delta")
             if isinstance(delta, dict):
                 state["content"].append(_content_text(delta.get("content")))
-                state["reasoning"].append(
-                    _content_text(delta.get("reasoning_content"))
-                )
+                state["reasoning"].append(_content_text(delta.get("reasoning_content")))
                 _merge_tool_calls(state["tool_calls"], delta.get("tool_calls"))
             reason = choice.get("finish_reason")
             if isinstance(reason, str) and reason:
@@ -744,16 +721,11 @@ class PlatformChatClient:
             or response.get("statusCode")
             or response.get("errorCode")
         )
-        message = (
-            error_payload.get("message")
-            or response.get("errorMsg")
-            or response.get("errorMessage")
-        )
+        message = error_payload.get("message") or response.get("errorMsg") or response.get("errorMessage")
         if code in {None, "", 0, "0"} and not isinstance(message, str):
             return
         raise PlatformModelError(
-            f"llmclient returned error: code={code}, "
-            f"message={message or 'unknown error'}",
+            f"llmclient returned error: code={code}, message={message or 'unknown error'}",
             code=str(code or "MODEL_PROVIDER_ERROR"),
             status_code=_status_code(code),
         )

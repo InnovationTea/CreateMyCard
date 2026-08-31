@@ -81,10 +81,7 @@ BINDABLE_PROP_TYPES: dict[str, dict[str, frozenset[str]]] = {
     "EventCard": {"title": _SCALAR_TEXT, "time": _SCALAR_TEXT, "location": _SCALAR_TEXT},
 }
 
-BINDABLE_PROPS: dict[str, frozenset[str]] = {
-    tag: frozenset(props)
-    for tag, props in BINDABLE_PROP_TYPES.items()
-}
+BINDABLE_PROPS: dict[str, frozenset[str]] = {tag: frozenset(props) for tag, props in BINDABLE_PROP_TYPES.items()}
 
 
 def data_binding_ids(tag: str, prop: str, value: Any) -> tuple[str, ...] | None:
@@ -96,20 +93,21 @@ def data_binding_ids(tag: str, prop: str, value: Any) -> tuple[str, ...] | None:
     """
     if isinstance(value, str):
         return (value,)
-    if (
-        tag == "EventCard"
-        and prop == "time"
-        and isinstance(value, list)
-        and len(value) == 2
-        and all(isinstance(item, str) for item in value)
-    ):
-        return tuple(value)
-    return None
+    if tag != "EventCard" or prop != "time":
+        return None
+    if not isinstance(value, list) or len(value) != 2:
+        return None
+    if not all(isinstance(item, str) for item in value):
+        return None
+    return tuple(value)
 
-_VALUE_UNIT_COMPONENTS = frozenset({
-    "ProgressLine2",
-    "ProgressLine2WithData",
-})
+
+_VALUE_UNIT_COMPONENTS = frozenset(
+    {
+        "ProgressLine2",
+        "ProgressLine2WithData",
+    }
+)
 _STATUS_ID_MARKERS = frozenset({"status", "state", "condition", "connected", "charging"})
 _STATUS_DESCRIPTION_MARKERS = ("状态", "是否", "天气现象", "连接活跃")
 
@@ -159,10 +157,7 @@ def _error_type_label(allowed: frozenset[str]) -> str:
 
 
 def bindable_prop_type_labels(tag: str) -> dict[str, str]:
-    return {
-        prop: _type_label(allowed)
-        for prop, allowed in BINDABLE_PROP_TYPES.get(tag, {}).items()
-    }
+    return {prop: _type_label(allowed) for prop, allowed in BINDABLE_PROP_TYPES.get(tag, {}).items()}
 
 
 def _type_is_allowed(actual: str, allowed: frozenset[str]) -> bool:
@@ -203,10 +198,7 @@ def collect_display_prop_type_errors(element: JSXElement) -> list[str]:
             continue
         actual = value_type(literal)
         if not _type_is_allowed(actual, allowed):
-            errors.append(
-                f"<{element.tag}> prop {prop!r} expects {_error_type_label(allowed)}, "
-                f"received {actual}"
-            )
+            errors.append(f"<{element.tag}> prop {prop!r} expects {_error_type_label(allowed)}, received {actual}")
             continue
         formatted_error = _formatted_progress_value_error(
             element.tag,
@@ -218,9 +210,7 @@ def collect_display_prop_type_errors(element: JSXElement) -> list[str]:
             errors.append(formatted_error)
 
     item_expected = {
-        prop.removeprefix("items[]."): allowed
-        for prop, allowed in expected.items()
-        if prop.startswith("items[].")
+        prop.removeprefix("items[]."): allowed for prop, allowed in expected.items() if prop.startswith("items[].")
     }
     items = element.props.get("items")
     if not isinstance(items, list):
@@ -239,8 +229,7 @@ def collect_display_prop_type_errors(element: JSXElement) -> list[str]:
             actual = value_type(literal)
             if not _type_is_allowed(actual, allowed):
                 errors.append(
-                    f"<{element.tag}> items[{index}].{prop} expects "
-                    f"{_error_type_label(allowed)}, received {actual}"
+                    f"<{element.tag}> items[{index}].{prop} expects {_error_type_label(allowed)}, received {actual}"
                 )
     return errors
 
@@ -264,8 +253,7 @@ def binding_value_type_error(
         "boolean Prop; use a compatible descriptive string or numeric field, "
         "or omit it."
         if actual == "boolean" and "boolean" not in allowed
-        else f"<{tag}> prop {prop!r} expects {_error_type_label(allowed)}, but data id "
-        f"{binding_id!r} has type {actual}"
+        else f"<{tag}> prop {prop!r} expects {_error_type_label(allowed)}, but data id {binding_id!r} has type {actual}"
     )
 
 
@@ -276,7 +264,8 @@ def is_boolean_text_mapping_target(tag: str, prop: str) -> bool:
         "string" in allowed
         and "boolean" not in allowed
         # These Props drive progress geometry as well as text presentation.
-        and (tag, prop) not in {
+        and (tag, prop)
+        not in {
             ("ProgressCircleSingle", "value"),
             ("ProgressCircle", "externalText"),
         }
@@ -289,10 +278,7 @@ def normalized_boolean_text_map(value: Any) -> dict[bool, str] | None:
         return None
     true_text = value.get("true")
     false_text = value.get("false")
-    if (
-        not isinstance(true_text, str)
-        or not isinstance(false_text, str)
-    ):
+    if not isinstance(true_text, str) or not isinstance(false_text, str):
         return None
     true_text = true_text.strip()
     false_text = false_text.strip()
@@ -324,25 +310,19 @@ def _relocate_unambiguous_item_value_maps(
     items = element.props.get("items")
     if not isinstance(maps, dict) or not isinstance(items, list):
         return
-    item_props = {
-        name.removeprefix("items[].")
-        for name in allowed
-        if name.startswith("items[].")
-    }
-    top_level_props = {
-        name for name in allowed if not name.startswith("items[].")
-    }
+    item_props = {name.removeprefix("items[].") for name in allowed if name.startswith("items[].")}
+    top_level_props = {name for name in allowed if not name.startswith("items[].")}
     remaining = dict(maps)
     for prop, value_map in maps.items():
         if prop in top_level_props or prop not in item_props:
             continue
-        owners = [
-            item
-            for item in items
-            if isinstance(item, dict)
-            and isinstance(item.get("dataIds"), dict)
-            and prop in item["dataIds"]
-        ]
+        owners = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            item_data_ids = item.get("dataIds")
+            if isinstance(item_data_ids, dict) and prop in item_data_ids:
+                owners.append(item)
         if len(owners) != 1:
             continue
         owner = owners[0]
@@ -364,20 +344,14 @@ def data_model_expression_reference(path: str) -> str:
     """Return an A2UI Expression reference for an absolute JSON Pointer."""
     _pointer_segments(path)
     if "}" in path:
-        raise ValidationError(
-            f"data binding path cannot contain '}}' inside an A2UI Expression: {path!r}"
-        )
+        raise ValidationError(f"data binding path cannot contain '}}' inside an A2UI Expression: {path!r}")
     return f"${{{path}}}"
 
 
 def expression_string_literal(value: str) -> str:
     """Quote one static string for the restricted A2UI Expression grammar."""
     escaped = (
-        value.replace("\\", "\\\\")
-        .replace("'", "\\'")
-        .replace("\r", "\\r")
-        .replace("\n", "\\n")
-        .replace("\t", "\\t")
+        value.replace("\\", "\\\\").replace("'", "\\'").replace("\r", "\\r").replace("\n", "\\n").replace("\t", "\\t")
     )
     return f"'{escaped}'"
 
@@ -421,16 +395,10 @@ def _resolved_display_value(
 def status_binding_evidence(binding: DataBinding) -> tuple[bool, bool]:
     """Return independent identifier and description evidence for status semantics."""
     separated = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", binding.id)
-    identifier_words = {
-        word.casefold()
-        for word in re.split(r"[^A-Za-z0-9]+", separated)
-        if word
-    }
+    identifier_words = {word.casefold() for word in re.split(r"[^A-Za-z0-9]+", separated) if word}
     identifier_match = bool(identifier_words & _STATUS_ID_MARKERS)
     description = binding.description.casefold()
-    description_match = any(
-        marker in description for marker in _STATUS_DESCRIPTION_MARKERS
-    )
+    description_match = any(marker in description for marker in _STATUS_DESCRIPTION_MARKERS)
     return identifier_match, description_match
 
 
@@ -440,7 +408,7 @@ def _value_has_exact_trailing_unit(value: str, unit: str) -> bool:
     normalized_unit = unicodedata.normalize("NFKC", unit).strip().casefold()
     if not normalized_unit or not normalized_value.endswith(normalized_unit):
         return False
-    prefix = normalized_value[:-len(normalized_unit)].rstrip()
+    prefix = normalized_value[: -len(normalized_unit)].rstrip()
     return bool(prefix) and prefix[-1].isdigit()
 
 
@@ -610,11 +578,7 @@ class ActionBinding:
         description = value.get("description")
         if description is not None and (not isinstance(description, str) or not description.strip()):
             raise ValidationError(f"compile context actions[{index}].description must be a non-empty string")
-        handler = {
-            key: copy.deepcopy(item)
-            for key, item in value.items()
-            if key not in {"id", "description"}
-        }
+        handler = {key: copy.deepcopy(item) for key, item in value.items() if key not in {"id", "description"}}
         if not isinstance(handler.get("call"), str) or not handler["call"].strip():
             raise ValidationError(f"compile context actions[{index}].call must be a non-empty string")
         if not isinstance(handler.get("args"), dict):
@@ -713,15 +677,10 @@ def materialize_binding_literals(element: JSXElement, compile_context: CompileCo
                 continue
             if len(binding_ids) > 1:
                 try:
-                    bindings = [
-                        compile_context.data_binding(item)
-                        for item in binding_ids
-                    ]
+                    bindings = [compile_context.data_binding(item) for item in binding_ids]
                 except ValidationError:
                     continue
-                element.props[prop] = EVENT_TIME_RANGE_SEPARATOR.join(
-                    str(binding.value) for binding in bindings
-                )
+                element.props[prop] = EVENT_TIME_RANGE_SEPARATOR.join(str(binding.value) for binding in bindings)
                 continue
             try:
                 binding = compile_context.data_binding(binding_ids[0])
@@ -739,19 +698,13 @@ def materialize_binding_literals(element: JSXElement, compile_context: CompileCo
                     value_binding = compile_context.data_binding(value_id)
                 except ValidationError:
                     value_binding = None
-                if (
-                    value_binding is not None
-                    and isinstance(value_binding.value, str)
-                    and normalize_display_value(value_binding.value).mode == "parts"
-                    and "unit" not in data_ids
-                ):
+                has_derived_parts = value_binding is not None and isinstance(value_binding.value, str)
+                if has_derived_parts:
+                    has_derived_parts = normalize_display_value(value_binding.value).mode == "parts"
+                if has_derived_parts and "unit" not in data_ids:
                     element.props.pop("unit", None)
 
-    item_props = {
-        name.removeprefix("items[].")
-        for name in allowed
-        if name.startswith("items[].")
-    }
+    item_props = {name.removeprefix("items[].") for name in allowed if name.startswith("items[].")}
     items = element.props.get("items")
     if isinstance(items, list):
         for item in items:
@@ -779,12 +732,10 @@ def materialize_binding_literals(element: JSXElement, compile_context: CompileCo
                         value_binding = compile_context.data_binding(value_id)
                     except ValidationError:
                         value_binding = None
-                    if (
-                        value_binding is not None
-                        and isinstance(value_binding.value, str)
-                        and normalize_display_value(value_binding.value).mode == "parts"
-                        and "unit" not in item_ids
-                    ):
+                    has_derived_parts = value_binding is not None and isinstance(value_binding.value, str)
+                    if has_derived_parts:
+                        has_derived_parts = normalize_display_value(value_binding.value).mode == "parts"
+                    if has_derived_parts and "unit" not in item_ids:
                         item.pop("unit", None)
 
     # Legacy model output sometimes split one complete formatted string into a
@@ -803,10 +754,7 @@ def materialize_binding_literals(element: JSXElement, compile_context: CompileCo
                 binding = compile_context.data_binding(binding_id)
             except ValidationError:
                 continue
-            if (
-                isinstance(binding.value, str)
-                and normalize_display_value(binding.value).mode == "parts"
-            ):
+            if isinstance(binding.value, str) and normalize_display_value(binding.value).mode == "parts":
                 bound_formatted.append((binding_id, binding))
         if len(bound_formatted) == 1 and all(
             not isinstance(item, dict)

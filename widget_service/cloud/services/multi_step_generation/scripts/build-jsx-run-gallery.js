@@ -135,7 +135,9 @@ function buildEntries({ runDir, outputDir, manifest, traces, babelParser }) {
     const hasFinalJsx = fs.existsSync(finalJsxPath);
     const rejectedJsxPath = hasFinalJsx ? null : findRejectedJsx(runDir, componentName);
     const sourcePath = hasFinalJsx ? finalJsxPath : rejectedJsxPath;
-    const sourceKind = hasFinalJsx ? "final" : rejectedJsxPath ? "rejected" : "none";
+    let sourceKind = "none";
+    if (hasFinalJsx) sourceKind = "final";
+    else if (rejectedJsxPath) sourceKind = "rejected";
     let source = null;
     let compileError = null;
     if (sourcePath) {
@@ -154,7 +156,8 @@ function buildEntries({ runDir, outputDir, manifest, traces, babelParser }) {
     const isPartial = semanticStatus
       ? semanticStatus !== "completed"
       : String(finalStatus).startsWith("partial") || String(finalStatus).startsWith("insufficient");
-    const state = hasFinalJsx ? (isPartial ? "partial" : "success") : "failed";
+    let state = "failed";
+    if (hasFinalJsx) state = isPartial ? "partial" : "success";
     const validationReports = Array.isArray(trace.validation_reports) ? trace.validation_reports : [];
     const validationFailures = validationReports.reduce(
       (count, report) => count + (Array.isArray(report.findings) ? report.findings.filter((finding) => finding.severity !== "warning").length : 0),

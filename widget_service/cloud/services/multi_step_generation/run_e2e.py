@@ -140,9 +140,7 @@ def _fetch_artifact(artifact_url: str, save_path: Path) -> bool:
     try:
         if artifact_url.startswith("file:///"):
             local_path = Path(artifact_url[8:])
-            save_path.write_text(
-                local_path.read_text(encoding="utf-8"), encoding="utf-8"
-            )
+            save_path.write_text(local_path.read_text(encoding="utf-8"), encoding="utf-8")
         elif artifact_url.startswith("http"):
             resp = requests.get(artifact_url, timeout=30, verify=False, stream=True)
             resp.raise_for_status()
@@ -165,12 +163,12 @@ _ROOT_DIMENSIONS = {
 
 def _convert_md_to_dsl(md_content: str, size: str = "2x2") -> str | None:
     """从 artifact.md 中提取 genui 代码块并转换为 JSON 数组。"""
-    pattern = r'```genui\n(.*?)```'
+    pattern = r"```genui\n(.*?)```"
     match = re.search(pattern, md_content, re.DOTALL)
     if not match:
         return None
     json_str = match.group(1)
-    json_objects = json_str.strip().split('\n')
+    json_objects = json_str.strip().split("\n")
     json_array = [json.loads(obj) for obj in json_objects if obj.strip()]
     dimensions = _ROOT_DIMENSIONS.get(size)
     if dimensions:
@@ -259,9 +257,7 @@ def select_cardspecs(args: argparse.Namespace) -> list[Path]:
         return paths
     index = args.index if args.index is not None else 1
     if index < 1 or index > len(paths):
-        raise ValueError(
-            f"CardSpec index 必须在 1..{len(paths)} 之间，收到 {index}"
-        )
+        raise ValueError(f"CardSpec index 必须在 1..{len(paths)} 之间，收到 {index}")
     return [paths[index - 1]]
 
 
@@ -298,10 +294,7 @@ def _candidate_bindings(card_spec: dict[str, Any], path: Path) -> list[dict[str,
         valid_id = isinstance(capability_id, str) and bool(capability_id.strip())
         valid_path = isinstance(write_result_to, str) and bool(write_result_to.strip())
         if not valid_id or not isinstance(arguments, dict) or not valid_path:
-            raise ValueError(
-                f"CardSpec dataBindings[{index}] 缺少合法的 "
-                f"capabilityId/arguments/writeResultTo：{path}"
-            )
+            raise ValueError(f"CardSpec dataBindings[{index}] 缺少合法的 capabilityId/arguments/writeResultTo：{path}")
         candidates.append(
             {
                 "capabilityId": capability_id.strip(),
@@ -480,11 +473,14 @@ async def _run_case(
         )
         elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
         result = _business_result(frame)
-    except (OSError, TimeoutError, ValueError, RuntimeError) as exc:
-        elapsed_ms = round((time.perf_counter() - t0) * 1000, 2) if 't0' in dir() else 0
+    except (OSError, ValueError, RuntimeError) as exc:
+        elapsed_ms = round((time.perf_counter() - t0) * 1000, 2) if "t0" in dir() else 0
         print(f"       ERROR {type(exc).__name__}: {exc} | {elapsed_ms}ms", flush=True)
         return CaseResult(
-            path, False, True, index=task_num,
+            path,
+            False,
+            True,
+            index=task_num,
             error_message=f"{type(exc).__name__}: {exc}",
         )
     succeeded = _business_succeeded(result)
@@ -495,9 +491,7 @@ async def _run_case(
 
     # 落盘 response
     response_path = run_dir / f"q{task_num}_response.json"
-    response_path.write_text(
-        json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    response_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
 
     # 提取 artifact 信息并下载到 md/ 子目录
     artifact_url = data.get("artifactUrl", "")
@@ -515,7 +509,9 @@ async def _run_case(
     # fallback：如果 raw_a2ui 抢取失败，从 artifact.md 提取 DSL
     dsl_file = run_dir / "dsl" / f"q{task_num}.jsonl"
     if artifact_downloaded and not dsl_file.exists():
-        dsl_content = _convert_md_to_dsl(artifact_path.read_text(encoding="utf-8"), size=data.get("suggestSize", data.get("size", "2x2")))
+        dsl_content = _convert_md_to_dsl(
+            artifact_path.read_text(encoding="utf-8"), size=data.get("suggestSize", data.get("size", "2x2"))
+        )
         if dsl_content:
             dsl_file.write_text(dsl_content, encoding="utf-8")
 
@@ -533,14 +529,17 @@ async def _run_case(
         "elapsed_ms": elapsed_ms,
     }
     meta_path = run_dir / f"q{task_num}_meta.json"
-    meta_path.write_text(
-        json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
 
     return CaseResult(
-        path, succeeded, False, index=task_num,
-        response=result, elapsed_ms=elapsed_ms,
-        artifact_url=artifact_url, artifact_digest=artifact_digest,
+        path,
+        succeeded,
+        False,
+        index=task_num,
+        response=result,
+        elapsed_ms=elapsed_ms,
+        artifact_url=artifact_url,
+        artifact_digest=artifact_digest,
         artifact_downloaded=artifact_downloaded,
     )
 
@@ -552,8 +551,7 @@ async def async_main(args: argparse.Namespace) -> int:
     print(f"输出目录: {run_dir}", flush=True)
     print(f"任务总数: {len(paths)}", flush=True)
     print(
-        "请确认平台已关闭模板方案并开启 JSX 方案；"
-        "服务日志应出现 jsx_generation_started。",
+        "请确认平台已关闭模板方案并开启 JSX 方案；服务日志应出现 jsx_generation_started。",
         flush=True,
     )
     results: list[CaseResult] = []
@@ -588,9 +586,7 @@ async def async_main(args: argparse.Namespace) -> int:
         ],
     }
     summary_path = run_dir / "summary.json"
-    summary_path.write_text(
-        json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
 
     print(
         f"汇总：总数={total}，成功={succeeded}，"
@@ -608,7 +604,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     try:
         return asyncio.run(async_main(args))
-    except (OSError, TimeoutError, ValueError, RuntimeError) as exc:
+    except (OSError, ValueError, RuntimeError) as exc:
         print(f"[E2E] {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
         return 2
 

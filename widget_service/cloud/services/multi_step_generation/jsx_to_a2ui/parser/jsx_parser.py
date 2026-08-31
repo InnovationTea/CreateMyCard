@@ -47,7 +47,7 @@ def _balanced(source: str, start: int, opening: str, closing: str) -> tuple[str,
         elif ch == closing:
             depth -= 1
             if depth == 0:
-                return source[start + 1 : pos], pos + 1
+                return source[start + 1:pos], pos + 1
         pos += 1
     raise ParseError(f"unterminated {opening}{closing} block at source offset {start}")
 
@@ -122,7 +122,7 @@ class JSXParser:
             start = self.pos
             while self.pos < len(self.source) and self.source[self.pos] not in "<{":
                 self.pos += 1
-            text = re.sub(r"\s+", " ", self.source[start : self.pos]).strip()
+            text = re.sub(r"\s+", " ", self.source[start:self.pos]).strip()
             if text:
                 children.append(text)
 
@@ -151,7 +151,7 @@ class JSXParser:
         raise self._error("unterminated attribute string")
 
     def _name(self) -> str:
-        match = re.match(r"[A-Za-z_$][A-Za-z0-9_$.-]*", self.source[self.pos :])
+        match = re.match(r"[A-Za-z_$][A-Za-z0-9_$.-]*", self.source[self.pos:])
         if not match:
             raise self._error("expected a JSX name")
         value = match.group(0)

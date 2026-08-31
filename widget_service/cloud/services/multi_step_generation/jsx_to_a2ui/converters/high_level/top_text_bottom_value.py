@@ -42,12 +42,56 @@ def convert_top_text_bottom_value(node: JSXElement, ctx: ConversionContext) -> A
                 ctx,
                 "top_text_bottom_value_item",
                 [
-                    text(ctx, "top_text_bottom_value_label", item["label"], styles={"width": "matchParent", "constraintSize": {"minWidth": 0}, "height": 18, "fontSize": 12, "fontWeight": 500, "fontColor": palette(ctx).primary, "textAlign": "center", "maxLines": 1, "textOverflow": "ellipsis"}),
-                    text(ctx, "top_text_bottom_value_number", ctx.item_prop(node.tag, item, index, "value"), styles={"width": "matchParent", "constraintSize": {"minWidth": 0}, "height": 32, "fontSize": 24, "fontWeight": 700, "fontColor": palette(ctx).primary, "textAlign": "center", "maxLines": 1, "textOverflow": "ellipsis"}),
-                    text(ctx, "top_text_bottom_value_unit", item["unit"], styles={"width": "matchParent", "constraintSize": {"minWidth": 0}, "height": 18, "fontSize": 12, "fontWeight": 400, "fontColor": palette(ctx).secondary, "textAlign": "center", "maxLines": 1, "textOverflow": "ellipsis"}),
+                    text(
+                        ctx,
+                        "top_text_bottom_value_label",
+                        item["label"],
+                        styles={
+                            "height": 18,
+                            "fontSize": 12,
+                            "fontWeight": 500,
+                            "fontColor": palette(ctx).primary,
+                            "textAlign": "center",
+                            "maxLines": 1,
+                            "flexShrink": 0,
+                        },
+                    ),
+                    text(
+                        ctx,
+                        "top_text_bottom_value_number",
+                        ctx.item_prop(node.tag, item, index, "value"),
+                        styles={
+                            "height": 32,
+                            "fontSize": 24,
+                            "fontWeight": 700,
+                            "fontColor": palette(ctx).primary,
+                            "textAlign": "center",
+                            "maxLines": 1,
+                            "flexShrink": 0,
+                        },
+                    ),
+                    text(
+                        ctx,
+                        "top_text_bottom_value_unit",
+                        item["unit"],
+                        styles={
+                            "height": 18,
+                            "fontSize": 12,
+                            "fontWeight": 400,
+                            "fontColor": palette(ctx).secondary,
+                            "textAlign": "center",
+                            "maxLines": 1,
+                            "flexShrink": 0,
+                        },
+                    ),
                 ],
                 gap=0,
-                styles={"height": 68, "alignItems": "center", "justifyContent": "center", "flexShrink": 1, "constraintSize": {"minWidth": 0}},
+                styles={
+                    "height": 68,
+                    "alignItems": "center",
+                    "justifyContent": "center",
+                    "flexShrink": 0,
+                },
             )
         )
     content = row(
@@ -62,28 +106,25 @@ def convert_top_text_bottom_value(node: JSXElement, ctx: ConversionContext) -> A
             "justifyContent": "spaceAround",
         },
     )
-    divider_color = (
-        "#33FFFFFF" if palette(ctx).primary == "#FFFFFFFF" else "#33000000"
-    )
+    divider_color = "#33FFFFFF" if palette(ctx).primary == "#FFFFFFFF" else "#33000000"
     item_count = len(items)
-    dividers = [
-        column(
-            ctx,
-            "top_text_bottom_value_divider",
-            [],
-            styles={
-                "width": 1,
-                "height": 62,
-                "margin": {"left": left, "top": 3},
-                "backgroundColor": divider_color,
-                "flexShrink": 0,
-            },
+    dividers = []
+    for index in range(1, item_count):
+        left = round(296 * index / item_count, 4)
+        dividers.append(
+            column(
+                ctx,
+                "top_text_bottom_value_divider",
+                [],
+                styles={
+                    "width": 1,
+                    "height": 62,
+                    "margin": {"left": left, "top": 3},
+                    "backgroundColor": divider_color,
+                    "flexShrink": 0,
+                },
+            )
         )
-        for left in (
-            round(296 * index / item_count, 4)
-            for index in range(1, item_count)
-        )
-    ]
     return stack(
         ctx,
         "top_text_bottom_value",

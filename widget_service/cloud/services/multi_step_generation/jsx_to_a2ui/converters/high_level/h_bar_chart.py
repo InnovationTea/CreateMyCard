@@ -51,10 +51,8 @@ def convert_h_bar_chart(node: JSXElement, ctx: ConversionContext) -> A2UINode:
 
     bars: list[A2UINode] = []
     for index, item in enumerate(items):
-        where = f"<H_BarChart> items[{index}]"
         assert isinstance(item, dict)
         label = item.get("label")
-        value_unit = item.get("valueUnit")
         percent = item.get("percent")
         assert isinstance(label, str)
         assert isinstance(percent, (int, float)) and not isinstance(percent, bool)

@@ -50,9 +50,9 @@ def compile_source(
                 f"card {name!r} cannot combine compile-time dataIds with an explicit data_models entry"
             )
         generated_data_model = None
-        if (compile_context.data_model or context.derived_data_model) and (
-            context.used_data_ids or context.used_action_ids
-        ):
+        has_generated_data = bool(compile_context.data_model or context.derived_data_model)
+        uses_dynamic_references = bool(context.used_data_ids or context.used_action_ids)
+        if has_generated_data and uses_dynamic_references:
             generated_data_model = merge_data_models(
                 compile_context.data_model,
                 context.derived_data_model,
@@ -67,9 +67,7 @@ def compile_source(
         except ValidationError as exc:
             raise A2UIProtocolOutputError(str(exc)) from exc
         except Exception as exc:
-            raise A2UIProtocolOutputError(
-                f"{type(exc).__name__}: {exc}"
-            ) from exc
+            raise A2UIProtocolOutputError(f"{type(exc).__name__}: {exc}") from exc
         outputs[name] = messages
     return outputs
 

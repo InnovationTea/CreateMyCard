@@ -32,10 +32,20 @@ from ..exceptions import ValidationError
 from ..parser.jsx_ast import JSXElement
 
 
-BASE_COMPONENTS = frozenset({
-    "Text", "Image", "Divider", "Progress", "Button", "Checkbox",
-    "Row", "Column", "List", "Stack",
-})
+BASE_COMPONENTS = frozenset(
+    {
+        "Text",
+        "Image",
+        "Divider",
+        "Progress",
+        "Button",
+        "Checkbox",
+        "Row",
+        "Column",
+        "List",
+        "Stack",
+    }
+)
 
 
 class IdAllocator:
@@ -114,11 +124,7 @@ def collect_binding_validation_errors(
         raw_maps = owner.get("dataValueMaps")
         display_prop = prop.rsplit(".", 1)[-1]
         owner_path = prop.rsplit(".", 1)[0] if prop.startswith("items[") else ""
-        map_location = (
-            f"{owner_path}.dataValueMaps.{display_prop}"
-            if owner_path
-            else f"dataValueMaps.{display_prop}"
-        )
+        map_location = f"{owner_path}.dataValueMaps.{display_prop}" if owner_path else f"dataValueMaps.{display_prop}"
         has_value_map = isinstance(raw_maps, dict) and display_prop in raw_maps
         value_map = raw_maps.get(display_prop) if has_value_map else None
         for item in binding_ids:
@@ -143,8 +149,7 @@ def collect_binding_validation_errors(
                 continue
             if has_value_map:
                 errors.append(
-                    f"<{tag}> {map_location} can only transform a boolean data binding "
-                    "used by a visible text-only Prop"
+                    f"<{tag}> {map_location} can only transform a boolean data binding used by a visible text-only Prop"
                 )
             type_error = binding_value_type_error(
                 tag,
@@ -181,11 +186,7 @@ def collect_binding_validation_errors(
         if not isinstance(data_ids, dict):
             errors.append(f"<{element.tag}> dataIds must be an object")
         else:
-            allowed = {
-                name
-                for name in BINDABLE_PROPS.get(element.tag, frozenset())
-                if not name.startswith("items[].")
-            }
+            allowed = {name for name in BINDABLE_PROPS.get(element.tag, frozenset()) if not name.startswith("items[].")}
             validate_map_keys(element.tag, element.props, allowed, "")
             for prop, binding_id in data_ids.items():
                 if prop not in allowed:
@@ -204,11 +205,7 @@ def collect_binding_validation_errors(
         validate_map_keys(
             element.tag,
             element.props,
-            {
-                name
-                for name in BINDABLE_PROPS.get(element.tag, frozenset())
-                if not name.startswith("items[].")
-            },
+            {name for name in BINDABLE_PROPS.get(element.tag, frozenset()) if not name.startswith("items[].")},
             "",
         )
 
@@ -229,9 +226,7 @@ def collect_binding_validation_errors(
             validate_map_keys(element.tag, item, allowed_items, f"items[{index}].")
             for prop, binding_id in item_ids.items():
                 if prop not in allowed_items:
-                    errors.append(
-                        f"<{element.tag}> items[{index}].{prop} cannot be data-bound"
-                    )
+                    errors.append(f"<{element.tag}> items[{index}].{prop} cannot be data-bound")
                     continue
                 validate(
                     element.tag,
@@ -243,11 +238,7 @@ def collect_binding_validation_errors(
                     item,
                 )
         for index, item in enumerate(items):
-            if (
-                isinstance(item, dict)
-                and "dataValueMaps" in item
-                and "dataIds" not in item
-            ):
+            if isinstance(item, dict) and "dataValueMaps" in item and "dataIds" not in item:
                 validate_map_keys(element.tag, item, allowed_items, f"items[{index}].")
     errors.extend(collect_display_semantic_errors(element, compile_context))
     return errors
@@ -261,6 +252,8 @@ class ConversionContext:
     card_size: str | None = None
     card_content_width: int | float | None = None
     card_content_height: int | float | None = None
+    parent_content_height: int | float | None = None
+    inside_backplate: bool = False
     compile_context: CompileContext = field(default_factory=CompileContext)
     used_data_ids: set[str] = field(default_factory=set)
     used_action_ids: set[str] = field(default_factory=set)
@@ -296,30 +289,29 @@ class ConversionContext:
     def prop(self, element: JSXElement, name: str, default: Any = None) -> Any:
         literal = element.props[name] if name in element.props else default
         data_ids = element.props.get("dataIds")
-        if not isinstance(data_ids, dict) or name not in data_ids:
-            return literal
-        binding_ids = data_binding_ids(element.tag, name, data_ids[name])
-        if binding_ids is None:
-            raise ValidationError(
-                f"<{element.tag}> dataIds.{name} has an invalid binding shape"
-            )
-        if len(binding_ids) > 1:
-            bindings = [self.compile_context.data_binding(item) for item in binding_ids]
-            self.used_data_ids.update(binding.id for binding in bindings)
-            parts: list[str] = []
-            for index, binding in enumerate(bindings):
-                if index:
-                    parts.append(expression_string_literal(EVENT_TIME_RANGE_SEPARATOR))
-                parts.append(data_model_expression_reference(binding.path))
-            return a2ui_expression(parts)
-        binding = self.compile_context.data_binding(binding_ids[0])
-        self.used_data_ids.add(binding.id)
-        value_map = boolean_text_map_for(element.props, name)
-        if value_map is not None and (
-            binding.data_type == "boolean" or isinstance(binding.value, bool)
-        ):
-            return boolean_text_expression(binding.path, value_map)
-        return {"path": binding.path}
+        value = literal
+        if isinstance(data_ids, dict) and name in data_ids:
+            binding_ids = data_binding_ids(element.tag, name, data_ids[name])
+            if binding_ids is None:
+                raise ValidationError(f"<{element.tag}> dataIds.{name} has an invalid binding shape")
+            if len(binding_ids) > 1:
+                bindings = [self.compile_context.data_binding(item) for item in binding_ids]
+                self.used_data_ids.update(binding.id for binding in bindings)
+                parts: list[str] = []
+                for index, binding in enumerate(bindings):
+                    if index:
+                        parts.append(expression_string_literal(EVENT_TIME_RANGE_SEPARATOR))
+                    parts.append(data_model_expression_reference(binding.path))
+                value = a2ui_expression(parts)
+            else:
+                binding = self.compile_context.data_binding(binding_ids[0])
+                self.used_data_ids.add(binding.id)
+                value_map = boolean_text_map_for(element.props, name)
+                if value_map is not None and (binding.data_type == "boolean" or isinstance(binding.value, bool)):
+                    value = boolean_text_expression(binding.path, value_map)
+                else:
+                    value = {"path": binding.path}
+        return value
 
     def item_prop(self, tag: str, item: dict[str, Any], index: int, name: str, default: Any = None) -> Any:
         literal = item[name] if name in item else default
@@ -330,9 +322,7 @@ class ConversionContext:
         binding = self.compile_context.data_binding(binding_id)
         self.used_data_ids.add(binding.id)
         value_map = boolean_text_map_for(item, name)
-        if value_map is not None and (
-            binding.data_type == "boolean" or isinstance(binding.value, bool)
-        ):
+        if value_map is not None and (binding.data_type == "boolean" or isinstance(binding.value, bool)):
             return boolean_text_expression(binding.path, value_map)
         return {"path": binding.path}
 
@@ -384,6 +374,19 @@ class ConversionContext:
             card_size=size,
             card_content_width=width,
             card_content_height=height,
+        )
+
+    def for_children(
+        self,
+        *,
+        parent_content_height: int | float | None = None,
+        enters_backplate: bool = False,
+    ) -> ConversionContext:
+        """Return the inherited layout context used to lower child nodes."""
+        return replace(
+            self,
+            parent_content_height=parent_content_height,
+            inside_backplate=self.inside_backplate or enters_backplate,
         )
 
 

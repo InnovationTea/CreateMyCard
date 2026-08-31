@@ -32,12 +32,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-try:
-    from .card_sizes import CARD_SIZE_DIMENSIONS
-except ImportError:  # Support direct execution: python data_processing.py
-    repo_root = Path(__file__).resolve().parents[1]
-    sys.path.insert(0, str(repo_root))
-    from card_sizes import CARD_SIZE_DIMENSIONS
+CLOUD_ROOT = Path(__file__).resolve().parents[3]
+if str(CLOUD_ROOT) not in sys.path:
+    sys.path.insert(0, str(CLOUD_ROOT))
+
+from services.multi_step_generation.jsx_runner.card_sizes import CARD_SIZE_DIMENSIONS  # noqa: E402
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -129,9 +128,7 @@ def _data_type(value: Any, declared: Any = None) -> str:
         normalized = declared.strip().lower()
         if normalized not in _SUPPORTED_DATA_TYPES:
             allowed = ", ".join(sorted(_SUPPORTED_DATA_TYPES))
-            raise ValueError(
-                f"数据字段 type 必须是以下类型之一：{allowed}；收到 {declared!r}。"
-            )
+            raise ValueError(f"数据字段 type 必须是以下类型之一：{allowed}；收到 {declared!r}。")
         if normalized == "string" and not isinstance(value, str):
             compatible = False
         elif normalized == "integer":
@@ -141,16 +138,11 @@ def _data_type(value: Any, declared: Any = None) -> str:
         elif normalized == "boolean":
             compatible = isinstance(value, bool)
         elif normalized == "string[]":
-            compatible = isinstance(value, list) and all(
-                isinstance(item, str) for item in value
-            )
+            compatible = isinstance(value, list) and all(isinstance(item, str) for item in value)
         else:
             compatible = True
         if not compatible:
-            raise ValueError(
-                f"数据字段声明为 {normalized!r}，但 sample/value 的实际类型是 "
-                f"{_data_type(value)!r}。"
-            )
+            raise ValueError(f"数据字段声明为 {normalized!r}，但 sample/value 的实际类型是 {_data_type(value)!r}。")
         return normalized
     if isinstance(value, bool):
         return "boolean"
@@ -173,17 +165,11 @@ def _is_schema_leaf_candidate(value: dict[str, Any]) -> bool:
     return (
         ("type" in keys and not isinstance(value.get("type"), (dict, list)))
         or ("sampleValue" in keys and not isinstance(value.get("sampleValue"), dict))
-        or (
-            keys
-            and keys.issubset(_SCHEMA_LEAF_KEYS)
-            and isinstance(value.get("description"), str)
-        )
+        or (keys and keys.issubset(_SCHEMA_LEAF_KEYS) and isinstance(value.get("description"), str))
     )
 
 
-def convert_data(
-    value: Any, path: tuple[str | int, ...] = ()
-) -> list[dict[str, Any]]:
+def convert_data(value: Any, path: tuple[str | int, ...] = ()) -> list[dict[str, Any]]:
     """Flatten schema leaves while retaining their hierarchy in source paths.
 
     A schema leaf such as::
@@ -223,11 +209,7 @@ def convert_data(
     if _is_schema_leaf_candidate(value):
         missing = _SCHEMA_LEAF_KEYS - set(value)
         if missing:
-            raise ValueError(
-                f"数据字段 {_json_pointer(path)} 缺少 schema 元数据："
-                + ", ".join(sorted(missing))
-                + "。"
-            )
+            raise ValueError(f"数据字段 {_json_pointer(path)} 缺少 schema 元数据：" + ", ".join(sorted(missing)) + "。")
         description = value["description"]
         if not isinstance(description, str) or not description.strip():
             raise ValueError(f"数据字段 {_json_pointer(path)} 的 description 必须是非空字符串。")
@@ -314,11 +296,13 @@ def convert_asset_candidates(value: Any, task_label: Any) -> list[dict[str, str]
             raise ValueError(f"任务 {task_label!r} 存在重复资源 src：{source!r}。")
         seen_ids.add(asset_id)
         seen_sources.add(normalized_source)
-        candidates.append({
-            "id": asset_id,
-            "src": source,
-            "description": description.strip(),
-        })
+        candidates.append(
+            {
+                "id": asset_id,
+                "src": source,
+                "description": description.strip(),
+            }
+        )
     return candidates
 
 
@@ -352,16 +336,12 @@ def is_raw_task(task: dict[str, Any]) -> bool:
     return bool(RAW_TASK_MARKERS.intersection(task))
 
 
-def prepare_task_for_prompt(
-    task: dict[str, Any], fallback_index: int | None = None
-) -> dict[str, Any]:
+def prepare_task_for_prompt(task: dict[str, Any], fallback_index: int | None = None) -> dict[str, Any]:
     """Return only the compact model-facing view of one task."""
     return prepare_task(task, fallback_index).prompt_task
 
 
-def prepare_task(
-    task: dict[str, Any], fallback_index: int | None = None
-) -> PreparedTask:
+def prepare_task(task: dict[str, Any], fallback_index: int | None = None) -> PreparedTask:
     """Split one input into a compact prompt and a private compile context."""
     processed = convert_task(task, fallback_index) if is_raw_task(task) else copy.deepcopy(task)
 
@@ -383,9 +363,7 @@ def prepare_task(
             raise ValueError(f"任务 {task_label!r} 的 data[{index}] 缺少绝对 path。")
         description = item.get("description")
         if not isinstance(description, str) or not description.strip():
-            raise ValueError(
-                f"任务 {task_label!r} 的 data[{index}].description 必须是非空字符串。"
-            )
+            raise ValueError(f"任务 {task_label!r} 的 data[{index}].description 必须是非空字符串。")
         if "value" not in item:
             raise ValueError(f"任务 {task_label!r} 的 data[{index}] 缺少 value。")
         normalized_item = copy.deepcopy(item)
@@ -412,9 +390,7 @@ def prepare_task(
         prompt_actions.append(prompt_action)
 
     if "icons" in processed and "assetCandidates" not in processed:
-        raise ValueError(
-            f"任务 {task_label!r} 使用了旧版 icons 字段；请从 raw 数据重新生成 processed 数据。"
-        )
+        raise ValueError(f"任务 {task_label!r} 使用了旧版 icons 字段；请从 raw 数据重新生成 processed 数据。")
     prompt_assets = convert_asset_candidates(
         processed.get("assetCandidates", []),
         task_label,
@@ -436,10 +412,7 @@ def prepare_tasks_for_prompt(
     tasks: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     """Prepare a task list in source order for direct model consumption."""
-    return [
-        prepare_task_for_prompt(task, index)
-        for index, task in enumerate(tasks, start=1)
-    ]
+    return [prepare_task_for_prompt(task, index) for index, task in enumerate(tasks, start=1)]
 
 
 def prepare_tasks(tasks: list[dict[str, Any]]) -> list[PreparedTask]:
@@ -455,18 +428,12 @@ def prepare_tasks_from_views(
 ) -> list[PreparedTask]:
     """Rejoin persisted model views with their private contexts safely."""
     if len(prompt_tasks) != len(context_records):
-        raise ValueError(
-            "模型输入与私有上下文条数不一致："
-            f"{len(prompt_tasks)} != {len(context_records)}。"
-        )
+        raise ValueError(f"模型输入与私有上下文条数不一致：{len(prompt_tasks)} != {len(context_records)}。")
 
     if source_indices is None:
         source_indices = list(range(1, len(prompt_tasks) + 1))
     if len(source_indices) != len(prompt_tasks):
-        raise ValueError(
-            "source_indices 与模型输入条数不一致："
-            f"{len(source_indices)} != {len(prompt_tasks)}。"
-        )
+        raise ValueError(f"source_indices 与模型输入条数不一致：{len(source_indices)} != {len(prompt_tasks)}。")
     if any(not isinstance(value, int) or value < 1 for value in source_indices):
         raise ValueError("source_indices 必须全部是从 1 开始的正整数。")
     if len(set(source_indices)) != len(source_indices):
@@ -482,13 +449,9 @@ def prepare_tasks_from_views(
         if not isinstance(context_record, dict):
             raise ValueError(f"私有上下文第 {source_index} 项必须是对象。")
         if context_record.get("sourceIndex") != source_index:
-            raise ValueError(
-                f"私有上下文第 {source_index} 项的 sourceIndex 不匹配。"
-            )
+            raise ValueError(f"私有上下文第 {source_index} 项的 sourceIndex 不匹配。")
         prompt_id = prompt_task.get("id")
-        if context_record.get("id") != prompt_id and (
-            "id" in context_record or prompt_id is not None
-        ):
+        if context_record.get("id") != prompt_id and ("id" in context_record or prompt_id is not None):
             raise ValueError(f"模型输入与私有上下文第 {source_index} 项的 id 不匹配。")
         merged = copy.deepcopy(prompt_task)
         merged["data"] = copy.deepcopy(context_record.get("data", []))
@@ -540,10 +503,7 @@ def convert(
     write_json_safely(output_path, [item.prompt_task for item in prepared])
     write_json_safely(
         context_output_path,
-        [
-            compile_context_record(item, index)
-            for index, item in enumerate(prepared, start=1)
-        ],
+        [compile_context_record(item, index) for index, item in enumerate(prepared, start=1)],
     )
     return len(prepared), output_path, context_output_path
 

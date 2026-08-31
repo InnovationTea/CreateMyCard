@@ -49,8 +49,7 @@ def collect_segmented_text_conversion_errors(node: JSXElement) -> list[str]:
             errors.append(f"{where}.label must be omitted or a non-empty string")
         elif isinstance(label, str) and "${" in label:
             errors.append(
-                f"{where}.label must not contain the reserved A2UI expression marker '${{'; "
-                "use ordinary visible text"
+                f"{where}.label must not contain the reserved A2UI expression marker '${{'; use ordinary visible text"
             )
         value = item.get("value")
         if "value" not in item or isinstance(value, (dict, list, bool)) or value is None:
@@ -65,8 +64,7 @@ def collect_segmented_text_conversion_errors(node: JSXElement) -> list[str]:
                 )
         if "unit" in item:
             errors.append(
-                f"{where}.unit is not supported; keep the complete input display "
-                "value, including its unit, in value"
+                f"{where}.unit is not supported; keep the complete input display value, including its unit, in value"
             )
     return list(dict.fromkeys(errors))
 
@@ -106,8 +104,7 @@ def segmented_text(
         rendered = str(value)
         if "${" in rendered:
             raise ValidationError(
-                f"{where} must not contain the reserved A2UI expression marker '${{'; "
-                "use ordinary visible text"
+                f"{where} must not contain the reserved A2UI expression marker '${{'; use ordinary visible text"
             )
         fragments.append(("literal", rendered))
 
@@ -129,11 +126,7 @@ def segmented_text(
             path = value["path"]
             data_model_expression_reference(path)
             fragments.append(("path", path))
-        elif (
-            isinstance(value, str)
-            and value.strip().startswith("{{")
-            and value.strip().endswith("}}")
-        ):
+        elif isinstance(value, str) and value.strip().startswith("{{") and value.strip().endswith("}}"):
             # item_prop only returns an Expression here for a complete Boolean
             # dataValueMaps mapping. Keep its structure instead of embedding the
             # complete ternary inside parentheses: the target device parser
@@ -141,12 +134,8 @@ def segmented_text(
             binding = ctx.bound_data(item, "value")
             value_map = boolean_text_map_for(item, "value")
             if binding is None or value_map is None:
-                raise ValidationError(
-                    f"{where}.value produced an unsupported nested A2UI Expression"
-                )
-            fragments.append(
-                ("conditional", (binding.path, value_map[True], value_map[False]))
-            )
+                raise ValidationError(f"{where}.value produced an unsupported nested A2UI Expression")
+            fragments.append(("conditional", (binding.path, value_map[True], value_map[False])))
         else:
             append_static(value, f"{where}.value")
 
@@ -154,6 +143,7 @@ def segmented_text(
     if len(fragments) == 1 and fragments[0][0] == "path":
         content = {"path": fragments[0][1]}
     elif dynamic:
+
         def render_expression(parts: list[tuple[str, Any]]) -> str:
             for index, (kind, fragment) in enumerate(parts):
                 if kind != "conditional":
@@ -215,7 +205,29 @@ def ring_with_icon(
     ring_styles = {"width": size, "height": size, "flexShrink": 0}
     if track_color:
         ring_styles["backgroundColor"] = normalize_color(track_color)
-    ring = progress(ctx, f"{hint}_progress", clamp_percent(value), 100, kind="ring", color=normalize_color(bar_color), stroke_width=stroke_width, styles=ring_styles)
-    icon_node = image(ctx, f"{hint}_icon", icon, styles={"width": icon_size, "height": icon_size, "objectFit": "contain"}, fill_color=icon_color or palette(ctx).secondary)
+    ring = progress(
+        ctx,
+        f"{hint}_progress",
+        clamp_percent(value),
+        100,
+        kind="ring",
+        color=normalize_color(bar_color),
+        stroke_width=stroke_width,
+        styles=ring_styles,
+    )
+    icon_node = image(
+        ctx,
+        f"{hint}_icon",
+        icon,
+        styles={"width": icon_size, "height": icon_size, "objectFit": "contain"},
+        fill_color=icon_color or palette(ctx).secondary,
+    )
     props = {"accessibility": accessibility(aria_label)} if aria_label else {}
-    return stack(ctx, hint, [ring, icon_node], align="center", styles={"width": size, "height": size, "flexShrink": 0}, props=props)
+    return stack(
+        ctx,
+        hint,
+        [ring, icon_node],
+        align="center",
+        styles={"width": size, "height": size, "flexShrink": 0},
+        props=props,
+    )

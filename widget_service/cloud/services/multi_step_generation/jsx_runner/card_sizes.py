@@ -12,7 +12,7 @@ try:
 except ImportError:  # Support direct execution through data_processing.py.
     from jsx_to_a2ui.catalog.card_sizes import (
         CARD_SIZE_DIMENSIONS,
-        DEFAULT_CARD_SIZE,
+        DEFAULT_CARD_SIZE,  # noqa: F401 - re-exported for direct-execution imports
         resolve_card_size,
     )
     from jsx_to_a2ui.exceptions import ValidationError
@@ -31,8 +31,11 @@ def task_card_size(task: dict[str, Any] | None, *, default: str | None = None) -
 
 def card_dimensions(size: object) -> tuple[int | float | str, int | float | str] | None:
     """Resolve semantic presets while retaining legacy square runtime sizes."""
+    dimensions = None
     try:
         _, width, height = resolve_card_size(size)
     except ValidationError:
-        return None
-    return width, height
+        pass
+    else:
+        dimensions = (width, height)
+    return dimensions

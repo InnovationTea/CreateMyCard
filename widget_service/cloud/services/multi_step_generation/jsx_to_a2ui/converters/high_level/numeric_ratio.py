@@ -28,14 +28,27 @@ def convert_numeric_ratio(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     unit = node.props.get("unit")
     if unit is None:
         unit = "%" if isinstance(raw_value, (int, float)) else ""
-    icon_image = image(ctx, "ratio_icon_image", node.props["icon"], styles={"width": 12, "height": 12, "objectFit": "contain"}, fill_color=palette(ctx).secondary)
+    icon_image = image(
+        ctx,
+        "ratio_icon_image",
+        node.props["icon"],
+        styles={"width": 12, "height": 12, "objectFit": "contain"},
+        fill_color=palette(ctx).secondary,
+    )
     icon = stack(
         ctx,
         "ratio_icon",
         [icon_image],
         styles={"width": 16, "height": 16, "alignContent": "center", "flexShrink": 0},
     )
-    text_styles = {"height": 16, "fontSize": 10, "fontWeight": 400, "fontColor": palette(ctx).secondary, "maxLines": 1, "flexShrink": 0}
+    text_styles = {
+        "height": 16,
+        "fontSize": 10,
+        "fontWeight": 400,
+        "fontColor": palette(ctx).secondary,
+        "maxLines": 1,
+        "flexShrink": 0,
+    }
     value = text(ctx, "ratio_value", ctx.prop(node, "value"), styles=text_styles)
     value_children = [value]
     if unit:

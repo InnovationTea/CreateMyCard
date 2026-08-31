@@ -39,6 +39,12 @@ def convert_text_block(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     # accent intended for white action surfaces, not the TextBlock foreground.
     accent = current.primary if current.primary == "#FFFFFFFF" else current.action_text
     background = "#1A" + accent[-6:]
+    height = 64
+    if isinstance(ctx.parent_content_height, int | float) and not isinstance(
+        ctx.parent_content_height,
+        bool,
+    ):
+        height = min(height, ctx.parent_content_height)
     blocks: list[A2UINode] = []
     for index, item in enumerate(items):
         assert isinstance(item, dict)
@@ -47,18 +53,46 @@ def convert_text_block(node: JSXElement, ctx: ConversionContext) -> A2UINode:
                 ctx,
                 "text_block_item",
                 [
-                    text(ctx, "text_block_label", item["label"], styles={"width": "matchParent", "constraintSize": {"minWidth": 0}, "height": 18, "fontSize": 12, "fontWeight": 700, "fontColor": accent, "maxLines": 1, "textOverflow": "ellipsis"}),
-                    text(ctx, "text_block_parameter", ctx.item_prop(node.tag, item, index, "parameter"), styles={"width": "matchParent", "constraintSize": {"minWidth": 0}, "height": 16, "fontSize": 10, "fontWeight": 500, "fontColor": accent, "maxLines": 1, "textOverflow": "ellipsis"}),
+                    text(
+                        ctx,
+                        "text_block_label",
+                        item["label"],
+                        styles={
+                            "width": "matchParent",
+                            "constraintSize": {"minWidth": 0},
+                            "height": 18,
+                            "fontSize": 12,
+                            "fontWeight": 700,
+                            "fontColor": accent,
+                            "maxLines": 1,
+                            "textOverflow": "ellipsis",
+                        },
+                    ),
+                    text(
+                        ctx,
+                        "text_block_parameter",
+                        ctx.item_prop(node.tag, item, index, "parameter"),
+                        styles={
+                            "width": "matchParent",
+                            "constraintSize": {"minWidth": 0},
+                            "height": 16,
+                            "fontSize": 10,
+                            "fontWeight": 500,
+                            "fontColor": accent,
+                            "maxLines": 1,
+                            "textOverflow": "ellipsis",
+                        },
+                    ),
                 ],
                 gap=2,
                 styles={
-                    "height": 64,
+                    "height": "matchParent",
                     "padding": {"left": 8, "right": 8},
                     "borderRadius": 16,
                     "backgroundColor": background,
                     "alignItems": "start",
                     "justifyContent": "center",
-                    "constraintSize": {"minWidth": 64},
+                    "constraintSize": {"minWidth": 64, "minHeight": 0},
                     "layoutWeight": 1,
                     "flexShrink": 1,
                 },
@@ -69,5 +103,11 @@ def convert_text_block(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         "text_block",
         blocks,
         gap=8,
-        styles={"width": "matchParent", "height": 64, "alignItems": "center"},
+        styles={
+            "width": "matchParent",
+            "height": height,
+            "constraintSize": {"minHeight": 0, "maxHeight": 64},
+            "flexShrink": 1,
+            "alignItems": "center",
+        },
     )

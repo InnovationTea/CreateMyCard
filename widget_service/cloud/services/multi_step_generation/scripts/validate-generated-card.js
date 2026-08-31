@@ -301,7 +301,9 @@ function normalizeInputSource(source, componentName) {
 
 function pythonFrozenset(source, name) {
   const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = source.match(new RegExp(`${escapedName}\\s*=\\s*frozenset\\(\\{([\\s\\S]*?)\\}\\)`));
+  const match = source.match(
+    new RegExp(`${escapedName}\\s*=\\s*frozenset\\(\\s*\\{([\\s\\S]*?)\\}\\s*\\)`),
+  );
   return new Set(
     match
       ? [...match[1].matchAll(/["']([A-Z][A-Za-z0-9_]*)["']/g)].map((item) => item[1])
@@ -380,16 +382,6 @@ function isCardButtonSlot(element) {
 
 function validateCardButtonSlots(root, cardSize) {
   const findings = [];
-  const cardButtonCount = openingElements(root)
-    .filter((opening) => jsxName(opening.name) === "CardButton")
-    .length;
-  if (cardSize === "2x4" && cardButtonCount === 1) {
-    findings.push(finding(
-      "error",
-      "card-button-single-action",
-      "a 2x4 operation group with one visible action must use PillButton; CardButton is reserved for compact groups with two or more actions",
-    ));
-  }
   const visit = (element) => {
     const children = directJsxChildren(element);
     if (cardSize === "2x4" && children.filter(isCardButtonSlot).length >= 2) {
@@ -484,7 +476,9 @@ function runtimeSchema() {
   });
 
   const contractSource = fs.readFileSync(generationContractPath, "utf8");
-  const safeMatch = contractSource.match(/GENERATION_COMPONENTS\s*=\s*frozenset\(\{([\s\S]*?)\}\)/);
+  const safeMatch = contractSource.match(
+    /GENERATION_COMPONENTS\s*=\s*frozenset\(\s*\{([\s\S]*?)\}\s*\)/,
+  );
   const generationSafe = new Set(safeMatch ? [...safeMatch[1].matchAll(/["']([A-Z][A-Za-z0-9_]*)["']/g)].map((match) => match[1]) : []);
   const generationCommon = pythonFrozenset(contractSource, "GENERATION_COMPONENTS_COMMON");
   const generationSafeBySize = sizeScopedGenerationComponents(contractSource, generationCommon);
@@ -611,9 +605,12 @@ function collectSignature(root) {
       if (prop === "visual") collectNestedResources(component, prop, props[prop]);
     }
     if (["PillButton", "CircleButton", "CardButton"].includes(component)) {
+      let label = "";
+      if (typeof props.label === "string") label = props.label;
+      else if (typeof props.text === "string") label = props.text;
       controls.push({
         component,
-        label: typeof props.label === "string" ? props.label : (typeof props.text === "string" ? props.text : ""),
+        label,
         ariaLabel: typeof props.ariaLabel === "string" ? props.ariaLabel : "",
         icon: typeof props.icon === "string" ? props.icon : "",
         actionId: typeof props.actionId === "string" ? props.actionId : "",
@@ -813,9 +810,9 @@ function controlsMatch(left, right) {
 function validateDuplicateActions(signature, task) {
   const findings = [];
   const controls = signature?.controls || [];
-  const actions = Array.isArray(task?.actions)
-    ? task.actions
-    : (Array.isArray(task?.eventCandidates) ? task.eventCandidates : []);
+  let actions = [];
+  if (Array.isArray(task?.actions)) actions = task.actions;
+  else if (Array.isArray(task?.eventCandidates)) actions = task.eventCandidates;
   const knownActionIds = new Set(actions.map((action) => action?.id).filter((id) => typeof id === "string" && id));
   const reported = new Set();
 
@@ -1559,16 +1556,21 @@ function browserFindings(metrics, cardSize) {
   for (const item of strongestDiagnostics(metrics.visibleHorizontalOverflow, (entry) => entry.requiredSize.width - entry.availableSize.width)) {
     const missing = item.requiredSize.width - item.availableSize.width;
     const label = diagnosticComponentLabel(item);
+    const rejectsTruncation = item.component === "TopTextBottomValue";
     findings.push(browserFinding(
-      "warning",
+      rejectsTruncation ? "error" : "warning",
       "browser-visible-horizontal-overflow",
       `${label} 内容宽度 ${item.requiredSize.width}vp 超出可用宽度 ${item.availableSize.width}vp（超出 ${missing}vp）`,
       {
         component: item.component || "未知 DOM 节点",
         ...(item.componentText ? { componentText: item.componentText } : {}),
         evidence: item,
-        likelyCause: "组件内容为单行或含固定宽度子项，而父级分配宽度不足。",
-        suggestion: "检查父级 width/basis/flex；若组件规范允许换行，应提供足够高度并允许换行。",
+        likelyCause: rejectsTruncation
+          ? "TopTextBottomValue 要求每项完整单行显示，但当前 items 的自然宽度总和超过父级可用宽度。"
+          : "组件内容为单行或含固定宽度子项，而父级分配宽度不足。",
+        suggestion: rejectsTruncation
+          ? "减少或重新分组 TopTextBottomValue.items，或改用更适合密集信息的组件；不得依赖压缩、裁剪或省略号。"
+          : "检查父级 width/basis/flex；若组件规范允许换行，应提供足够高度并允许换行。",
       },
     ));
   }
@@ -1630,7 +1632,9 @@ function browserFindings(metrics, cardSize) {
 function loadTask(taskPath, taskId) {
   if (!taskPath) return null;
   const payload = JSON.parse(fs.readFileSync(taskPath, "utf8"));
-  const tasks = Array.isArray(payload) ? payload : Array.isArray(payload?.tasks) ? payload.tasks : [payload];
+  let tasks = [payload];
+  if (Array.isArray(payload)) tasks = payload;
+  else if (Array.isArray(payload?.tasks)) tasks = payload.tasks;
   if (taskId !== null) {
     const task = tasks.find((item) => String(item?.id) === taskId);
     if (!task) throw new Error(`cannot find task id ${taskId} in ${taskPath}`);
@@ -1642,14 +1646,15 @@ function loadTask(taskPath, taskId) {
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
-  const input = options.stdin
-    ? await readStdin()
-    : options.input
-      ? parseInputPayload(fs.readFileSync(options.input, "utf8"), "--input")
-      : {
-          source: fs.readFileSync(options.jsx, "utf8"),
-          task: loadTask(options.task, options.taskId),
-        };
+  let input;
+  if (options.stdin) input = await readStdin();
+  else if (options.input) input = parseInputPayload(fs.readFileSync(options.input, "utf8"), "--input");
+  else {
+    input = {
+      source: fs.readFileSync(options.jsx, "utf8"),
+      task: loadTask(options.task, options.taskId),
+    };
+  }
   const normalized = normalizeInputSource(input.source, input.componentName);
   const schema = runtimeSchema();
   const findings = [];

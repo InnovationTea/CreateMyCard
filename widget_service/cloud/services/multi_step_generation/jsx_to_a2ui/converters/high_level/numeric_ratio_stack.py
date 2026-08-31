@@ -29,9 +29,7 @@ def collect_numeric_ratio_stack_conversion_errors(node: JSXElement) -> list[str]
         if not isinstance(item, dict):
             errors.append(f"NumericRatioStack.items[{index}] must be an object")
             continue
-        for error in collect_numeric_ratio_conversion_errors(
-            _numeric_ratio_item_node(node, item)
-        ):
+        for error in collect_numeric_ratio_conversion_errors(_numeric_ratio_item_node(node, item)):
             errors.append(f"NumericRatioStack.items[{index}]: {error}")
     return errors
 
@@ -42,7 +40,7 @@ def convert_numeric_ratio_stack(node: JSXElement, ctx: ConversionContext) -> A2U
         raise ValidationError("; ".join(errors))
     items = node.props.get("items")
     children = []
-    for index, item in enumerate(items):
+    for item in items:
         child = _numeric_ratio_item_node(node, item)
         children.append(convert_numeric_ratio(child, ctx))
     return column(ctx, "numeric_ratio_stack", children, gap=4, styles={"alignItems": "start"})

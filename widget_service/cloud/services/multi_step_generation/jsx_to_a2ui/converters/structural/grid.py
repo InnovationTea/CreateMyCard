@@ -9,9 +9,7 @@ from ..base.layout import column, row
 
 
 _ROW_SIZE = re.compile(r"(?P<value>\d+(?:\.\d+)?)px")
-_TWO_COLUMN_TEMPLATE = re.compile(
-    r"\s*(?P<fixed>\d+(?:\.\d+)?)px\s+minmax\(0,\s*(?P<fr>\d+(?:\.\d+)?)fr\)\s*"
-)
+_TWO_COLUMN_TEMPLATE = re.compile(r"\s*(?P<fixed>\d+(?:\.\d+)?)px\s+minmax\(0,\s*(?P<fr>\d+(?:\.\d+)?)fr\)\s*")
 
 
 def _column_tracks(value: object) -> tuple[int, list[tuple[str, int | float]] | None]:
@@ -26,9 +24,7 @@ def _column_tracks(value: object) -> tuple[int, list[tuple[str, int | float]] | 
                 ("width", int(fixed) if fixed.is_integer() else fixed),
                 ("weight", int(weight) if weight.is_integer() else weight),
             ]
-    raise ValidationError(
-        "Grid columns must be a positive integer or '<px> minmax(0, <fr>fr)'"
-    )
+    raise ValidationError("Grid columns must be a positive integer or '<px> minmax(0, <fr>fr)'")
 
 
 def _row_heights(value: object, row_count: int) -> list[int | float | None]:
@@ -102,15 +98,12 @@ def convert_grid(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     heights = _row_heights(node.props.get("rows"), row_count)
     rows: list[A2UINode] = []
     for row_index, index in enumerate(range(0, len(converted), columns)):
-        cells = converted[index : index + columns]
+        cells = converted[index:index + columns]
         # A CSS Grid keeps every declared column track in an incomplete last
         # row. A2UI rows only distribute space among their actual children, so
         # without invisible structural cells a three-item, two-column Grid
         # would stretch its last item across the full row.
-        cells.extend(
-            column(ctx, "grid_empty_cell", [], styles={})
-            for _ in range(columns - len(cells))
-        )
+        cells.extend(column(ctx, "grid_empty_cell", [], styles={}) for _ in range(columns - len(cells)))
         row_height = heights[row_index]
         justify = node.props.get("justify")
         if justify is not None:
@@ -121,16 +114,20 @@ def convert_grid(node: JSXElement, ctx: ConversionContext) -> A2UINode:
                 track = column_tracks[cell_index] if column_tracks else None
                 wrapper_styles: dict[str, object] = {"alignItems": _cell_align(justify)}
                 if track and track[0] == "width":
-                    wrapper_styles.update({
-                        "width": track[1],
-                        "layoutWeight": 0,
-                        "flexShrink": 0,
-                    })
+                    wrapper_styles.update(
+                        {
+                            "width": track[1],
+                            "layoutWeight": 0,
+                            "flexShrink": 0,
+                        }
+                    )
                 else:
-                    wrapper_styles.update({
-                        "layoutWeight": track[1] if track else 1,
-                        "flexShrink": 1,
-                    })
+                    wrapper_styles.update(
+                        {
+                            "layoutWeight": track[1] if track else 1,
+                            "flexShrink": 1,
+                        }
+                    )
                 if row_height is not None:
                     wrapper_styles["height"] = row_height
                 wrapped.append(column(ctx, "grid_cell", [cell], styles=wrapper_styles))
@@ -179,7 +176,11 @@ def convert_grid(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     }
     if minimums:
         styles["constraintSize"] = minimums
-    margin = {key: value for key, value in {"top": node.props.get("mt"), "bottom": node.props.get("mb")}.items() if value is not None}
+    margin = {
+        key: value
+        for key, value in {"top": node.props.get("mt"), "bottom": node.props.get("mb")}.items()
+        if value is not None
+    }
     if margin:
         styles["margin"] = margin
     styles = {key: value for key, value in styles.items() if value is not None}

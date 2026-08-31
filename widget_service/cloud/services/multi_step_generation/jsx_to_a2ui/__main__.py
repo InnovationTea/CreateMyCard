@@ -1,3 +1,4 @@
-from .cli import main
+from services.multi_step_generation.jsx_to_a2ui.cli import main
 
-raise SystemExit(main())
+if __name__ == "__main__":
+    raise SystemExit(main())
