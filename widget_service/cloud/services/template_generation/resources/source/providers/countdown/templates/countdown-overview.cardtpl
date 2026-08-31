@@ -27,7 +27,7 @@ Column(
     ),
     Text(
       "天",
-      { "fontSize": 16, "fontWeight": 500, "fontColor": "#00000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+      { "fontSize": 1, "fontWeight": 500, "fontColor": "#00000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
     )
   ),
   Text(

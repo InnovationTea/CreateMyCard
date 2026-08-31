@@ -2010,10 +2010,12 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
     assert countdown_value.values[0].name == "days"
     assert transparent_unit.component == "Text"
     assert transparent_unit.values[0].value == "天"
+    assert _template_node_options(transparent_unit)["fontSize"] == 1
     assert _template_node_options(transparent_unit)["fontColor"] == "#00000000"
     visible_unit = countdown.children[3]
     assert visible_unit.component == "Text"
     assert visible_unit.values[0].value == "天"
+    assert _template_node_options(visible_unit)["fontSize"] == 16
     visible_unit_color = visible_unit.values[-1].properties["fontColor"]
     assert visible_unit_color.kind == "theme"
     assert visible_unit_color.name == "supportContentColor"
