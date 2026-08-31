@@ -26,13 +26,11 @@ FUSION_BALL_DESIGN_TOKENS = (
 _BASE_COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?$")
 _ARGB_COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{8}$")
 _FUSION_ROOT_TYPES = frozenset({"Row", "Column", "Stack"})
-_DESIGN_TOKEN_BASE_COLORS = {
-    "fusion-ball-schedule-cool": "#FF2BA2D9",
-    "fusion-ball-schedule-warm": "#FFFF5533",
-    "fusion-ball-sport-orange": "#FFFF8833",
-}
 _DESIGN_TOKEN_FIXED_PALETTES = {
-    "fusion-ball-sleep-violet": ("#FF121E59", "#FF2BA2D9", "#FF52CCCC"),
+    "fusion-ball-schedule-cool": ("#FF121E59", "#FF2BA2D9", "#FF52CCCC"),
+    "fusion-ball-schedule-warm": ("#FF731D28", "#FFFF5533", "#FFE68A2E"),
+    "fusion-ball-sleep-violet": ("#FF2B2459", "#FF572BD9", "#FFB398D9"),
+    "fusion-ball-sport-orange": ("#FFB33C24", "#FFFF8833", "#FFFAA89E"),
 }
 _FUSION_CAPSULE_BACKGROUND = "#33FFFFFF"
 _FUSION_CAPSULE_TEXT = "#E6FFFFFF"
@@ -150,12 +148,9 @@ def fusion_ball_palette_for_root(
     if not isinstance(design_token, str):
         return None
     fixed_palette = _DESIGN_TOKEN_FIXED_PALETTES.get(design_token)
-    if fixed_palette is not None:
-        return build_fusion_ball_palette(*fixed_palette)
-    base_color = _DESIGN_TOKEN_BASE_COLORS.get(design_token)
-    if base_color is None:
+    if fixed_palette is None:
         return None
-    return derive_fusion_ball_palette(base_color)
+    return build_fusion_ball_palette(*fixed_palette)
 
 
 def expand_fusion_ball_components(
