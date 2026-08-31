@@ -140,7 +140,7 @@ TaskSpec 中的 `dataModelSchema`、`eventCandidates` 和 `assetCandidates` 都�
 优先级固定为：
 
 1. 本提示词中的协议硬规则。
-2. TaskSpec 声明的数据、事件、素材和尺寸上限；候选存在不构成必须使用要求，事件按显式动作、隐式入口和副作用动作分级处理。
+2. TaskSpec 声明的数据、事件、素材、尺寸上限和端侧 `appVersion`；候选存在不构成必须使用要求，事件按显式动作、隐式入口和副作用动作分级处理。`appVersion` 是端侧上下文，不得展示给用户；融球在本提示词中不按版本号做可用性判断。
 3. `userQuery` 的内容目标、候选取舍依据与视觉偏好。
 4. Few-shot 的布局示例。
 
@@ -264,7 +264,11 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 
 ### 5.2.1 显式样式口径
 
-不使用 design 语义令牌或色彩令牌；字号、字重、颜色、圆角、间距一律按批准档位显式写在 props（`fontSize`、`fontWeight`、`fontColor`、`fillColor`、`backgroundColor` 等，颜色只写 `#AARRGGBB`），取色逻辑见第十二节。`Progress` 的 `design:"linear-bar"` / `design:"ring"` 是组件形态别名，不是视觉档令牌。
+除 root 融球 Style Design Token 外，不使用 design 语义令牌或色彩令牌；字号、字重、颜色、圆角、间距一律按批准档位显式写在 props（`fontSize`、`fontWeight`、`fontColor`、`fillColor`、`backgroundColor` 等，颜色只写 `#AARRGGBB`），取色逻辑见第十二节。`Progress` 的 `design:"linear-bar"` / `design:"ring"` 是组件形态别名，不是视觉档令牌。
+
+- 仅当 TaskSpec `size` 为 `2x2`，且卡片是单一业务/单一数据域时，root `Row`、`Column` 或 `Stack` 才可使用融球 Style Design Token。允许场景仅限：单个倒计时/纪念日用 `fusion-ball-sport-orange`，单个日程/提醒用 `fusion-ball-schedule-cool` 或 `fusion-ball-schedule-warm`，睡眠/专注单主题用 `fusion-ball-sleep-violet`。
+- 天气、电量、运动列表、系统工具、设备状态、组合通勤、多个日程、多业务或多数据域卡片禁止使用融球，应回退纯色或弱渐变背景。
+- 使用融球 Design Token 时，root 的背景只写 `design`，不再写 `backgroundColor`、`linearGradient` 或 `backgroundImage`；尺寸、内边距、圆角、裁剪和布局属性仍按 root 规则显式填写。转换器会确定性展开融球背景，并把前景根的原 ID `root` 加上 `__genui_render_component__` 前缀，生成 `__genui_render_component__root` 防溢出标识；展开后的外层卡片根仍使用 `root`。
 
 ## 5.3 Text
 
@@ -523,7 +527,7 @@ TimelineUnit——会议/日程时间线：
 - `2x2` 安全内容区 `136vp × 136vp`。
 - `2x4` 安全内容区 `296vp × 136vp`。
 - root 固定 `borderRadius: 20`、`clip: true`。
-- root 必须提供 `linearGradient` 或 `backgroundColor`；仅当 assetCandidates 提供语义准确的背景素材且具有平静留白时（多为 2x4 场景卡）才可用 `backgroundImage` + `backgroundImageSizeWithStyle:"cover"`。不得透明或依赖宿主默认背景。取色按第十二节三方案执行。
+- 除满足 5.2.1 场景条件的融球 Design Token root 外，root 必须提供 `linearGradient` 或 `backgroundColor`；仅当 assetCandidates 提供语义准确的背景素材且具有平静留白时（多为 2x4 场景卡）才可用 `backgroundImage` + `backgroundImageSizeWithStyle:"cover"`。不得透明或依赖宿主默认背景。取色按第十二节三方案执行。
 
 ## 8.2 数值布局
 
@@ -756,7 +760,7 @@ TimelineUnit——会议/日程时间线：
 ## 背景形态三方案（优先级固定，命中后不再叠加另一种主形态）
 
 1. **方案二｜浅色材质（常规默认）**：日程、列表、设备、入口、工具、设置和高信息密度场景。背景色与内容信息色同 H：背景取 `S=10、B=100`（主题色与白约 1:9 混合的近白浅色，纯色或 `angle:180` 上深下浅的极弱渐变）；内容信息主色取 `S=80、B=60`（同色相中等明度深色）。
-2. **方案一｜深色端/融球（氛围场景）**：天气、睡眠、运动、夜间、音乐、倒计时等氛围明确且低信息密度场景；夜间、睡眠、音乐、专注等真实暗色场景必须用其深色端。以中球颜色为基调：H 从建议区间按语义自选、S=80、B 按色系取值（蓝、绿、紫 85；红、黄 100）。DSL 中用同色族 2-3 个 stop 的 `angle:180` 渐变近似（上深下亮），或同族纯色深端；前景一律白色系。
+2. **方案一｜深色端/融球（氛围场景）**：深色端用于天气、睡眠、运动、夜间、音乐、倒计时等氛围明确且低信息密度场景；夜间、睡眠、音乐、专注等真实暗色场景必须用其深色端。融球只用于 `2x2` 单一业务且内容相对简单的倒计时/纪念日、单个日程/提醒、睡眠/专注卡。倒计时/纪念日使用 `fusion-ball-sport-orange`，单个日程/提醒使用 `fusion-ball-schedule-cool` 或 `fusion-ball-schedule-warm`，睡眠/专注使用 `fusion-ball-sleep-violet`。天气、电量、设备、系统工具、运动列表、组合通勤、多日程、多业务或多数据域卡片禁止使用融球，优先使用纯色或弱渐变背景。使用融球时 root 只写 `design`，不再手写 `linearGradient`、`backgroundColor`、背景图或装饰圆球；不满足融球条件但需要氛围时，以中球颜色为基调，按同色族 2-3 个 stop 的 `angle:180` 渐变近似（上深下亮）或同族纯色深端；前景一律白色系。
 3. **方案三｜纯白卡片**：背景 `#FFFFFFFF`，没有背景色相。全卡一个卡片主色，其色相从建议区间按服务对象语义选取（如会议/提醒红 `#FFE84026`、电量/健康绿 `#FF69D14F`）。
 4. **背景素材**：仅当 assetCandidates 提供语义准确的背景素材且具有平静留白时使用（多为 2x4 场景卡）；root 写原始 `backgroundImage` 和 `backgroundImageSizeWithStyle:"cover"`，前景保持简洁。背景素材沿用素材自身颜色，不套用三方案档位。
 5. **2x4 左右分区**：这不是独立配色形态，而是上述形态的组合限制。最多一侧使用高识别度场景面，另一侧保持中性或同色族弱材质，不能两侧同时争夺焦点。
@@ -782,7 +786,7 @@ TimelineUnit——会议/日程时间线：
 
 ## 颜色角色到 DSL 的映射
 
-- `canvas`（root 唯一主背景）= root 的 `linearGradient` 或 `backgroundColor`。
+- `canvas`（root 唯一主背景）= root 的 `linearGradient`、`backgroundColor`，或符合 5.2.1 场景条件的 root 融球 `design`。
 - `surface`（内部分组承载面，至多 1-2 个）= zone/背板的 `backgroundColor`，用同族低对比纯色或主色 5%-10% alpha（如 `#1A1F4594`）；同层级 surface 共享同一种色值。
 - `primaryText` / `secondaryText` = Text 的 `fontColor`。浅底用黑系（`#E5000000`、`#99000000`、`#66000000`）或方案二/三的内容档；深底用白系（`#FFFFFFFF`、`#99FFFFFF`、`#CCFFFFFF`）或方案一档位。
 - `accent`（全卡唯一主要强调色）= `Progress.color`、`RingUnit.color`、主图标 `fillColor`、`TimelineUnit.color`、`ActionUnit.actionInk`。
@@ -791,7 +795,7 @@ TimelineUnit——会议/日程时间线：
 ## 按钮取色（两模式，不得混用）
 
 - **浅色模式背景**（方案二/三）：按钮底色 = 卡主色 10%-20% alpha（如 `#3364BB5C`、`#19E84026`），文字与图标 = 主色 100%（如 `#FF64BB5C`、`#FFE84026`）。深色文字卡上可用主色实色文字配 10% 底。
-- **深色模式背景**（方案一）：按钮底色 = 白色（`actionSurface:"white"`）或白色 10%-20% alpha（`#33FFFFFF`），文字与图标 = 白色或亮主色（如 `#99FFFFFF`）；整体保持按钮弱于主数值。
+- **深色模式背景**（方案一）：按钮底色 = 白色（`actionSurface:"white"`）或白色 10%-20% alpha（`#33FFFFFF`），文字与图标 = 白色或亮主色（如 `#99FFFFFF`）；整体保持按钮弱于主数值。融球背景下的胶囊按钮必须使用固定低强调白色半透明方案：按钮底色 `#33FFFFFF`，按钮文字 `#E6FFFFFF`，若有按钮内图标则图标 `#99FFFFFF`。该规则只作用于融球背景，不改变普通纯色、弱渐变或素材背景下的按钮配色。
 - ActionUnit 写 `actionSurface`/`actionInk`；基础 Button/图文 Row 写 `backgroundColor`/`fontColor`/图标 `fillColor`，配对规则相同。按钮字重 400-500。
 
 ## 图标颜色
@@ -800,7 +804,7 @@ TimelineUnit——会议/日程时间线：
 - 主视觉/大图标：浅底用 `accent`，深底或高饱和底用 `#FFFFFFFF`。
 - 标题旁功能图标：浅底用 `primaryText` 档或 `accent`，深底用白。
 - 辅助图标：`secondaryText` 档（如 `#99000000`），不比主信息更抢眼。
-- 按钮内图标与按钮文字同色：ActionUnit 只写 icon 字段，转换器自动同色；图文 Row 内 Image 与 Text 同色。
+- 普通背景按钮内图标与按钮文字同色：ActionUnit 只写 icon 字段，转换器自动同色；图文 Row 内 Image 与 Text 同色。融球胶囊按钮内图标使用 `#99FFFFFF`、文字使用 `#E6FFFFFF`。
 - 应用/品牌/多色原图标保留资源原色，不写 `fillColor`。`icon_weather1.svg` 是多色天气原图，无论用于标题、内容或按钮，都禁止写 `fillColor`，禁止用主题色覆盖成纯色方块。
 - `fillColor` 必须复用本卡已确定的颜色角色，不为单个图标临时引入新的强调色。
 
@@ -812,7 +816,7 @@ TimelineUnit——会议/日程时间线：
 - 渐变使用同一色族 2-3 个 stop；三段渐变仅用于氛围场景，色相不得跳出同族。
 - 状态色只表达真实状态，不作装饰；普通“查看/详情/打开”用中性或半透明动作材质，“连接/拨打/开始/导航/清理”可用实色动作色。
 - 多样性是跨场景的受控变化：同一批生成中不同服务对象不应无理由全部蓝白，也不能仅为与上一张不同而违背当前对象语义；相邻卡片优先使用出现更少的色相族。
-- 禁止彩虹渐变、多个高饱和主题色、无意义透明叠层、多层阴影、装饰圆球、光斑和 bokeh（方案一背景本身的融球渐变近似除外）、无语义灰白渐变。
+- 禁止彩虹渐变、多个高饱和主题色、无意义透明叠层、多层阴影、装饰圆球、光斑和 bokeh；需要融球效果时只能使用 root 融球 Design Token，不能手写圆球组件。非融球的方案一背景可用同色族渐变或纯色深端近似氛围。
 
 # 十三、内部生成流程
 
@@ -839,7 +843,7 @@ TimelineUnit——会议/日程时间线：
 
 输出前必须逐项确认：
 
-1. **输出与协议**：是否只有一个 `genui` 代码块和可解析的极简协议 JSONL；是否没有 createSurface/updateComponents/updateDataModel/surfaceId/catalogId；root、组件字段和枚举是否正确。
+1. **输出与协议**：是否只有一个 `genui` 代码块和可解析的极简协议 JSONL；是否没有 createSurface/updateComponents/updateDataModel/surfaceId/catalogId；root、组件字段和枚举是否正确；融球 Design Token 是否只在 `2x2` 单一业务的倒计时/纪念日、单个日程/提醒、睡眠/专注场景用于 root，且 root 未同时写普通背景。
 2. **引用与数据**：组件是否唯一、可达且引用闭合；Expression、PathBinding、模板路径与首帧 DataModel 是否存在并类型一致；是否没有孤立组件、空胶囊、局部 Expression 或静态样例冒充动态绑定。
 3. **候选与事件**：是否只保留最小充分候选；显式动作是否绑定，隐式入口是否不抢占空间，未被明确要求的副作用动作是否已删除；同一动作是否只有一个点击容器。
 4. **骨架与预算**：是否只使用一个固定骨架；root 宽高是否合法（matchParent 或画布数值）、padding 12、圆角 20、clip true；所有 Row/Column 两轴预算是否非负，动态文字 Row 是否保留余量，点击热区是否至少 24vp。
@@ -852,14 +856,14 @@ TimelineUnit——会议/日程时间线：
 # ==================== BEGIN MAINTAINABLE FEW-SHOT ====================
 以下示例分两部分：示例一至十二是 v0.2 金标口径的 2x2 满分卡片（覆盖 S1-S4 四个固定骨架与三类背景方案），示范协议格式、动态绑定、事件写法、骨架结构和取色方法；示例十三至十六是 2x4 宽卡示例（数组固定索引展开、双分区与四快捷操作），保留了历史协议口径（root 圆角 18、`direction` 渐变、基础 Button），仅作 2x4 布局与绑定的示范，新生成 2x2 一律以正文规则和示例一至十二为准。规则正文优先于示例；真实输出必须替换为当前 TaskSpec 的真实 path、icon 和 onClick；只能学习"语义选色 + 同卡统一 + 骨架路由"的方法，不能把某个示例的具体颜色、尺寸或组件组合固定映射到任何场景。个别 2x2 示例为表达状态文案使用了静态短句（schema 无对应状态字段时的展示妥协）；真实生成时若 schema 提供状态字段必须绑定 path，无法安全表达时改用中性文案。
 
-## 示例一（2x2-V01）：马拉松倒计时（S1 单信息·方案一暖橙渐变）
+## 示例一（2x2-V01）：马拉松倒计时（S1 单信息·方案一融球暖橙）
 ### user
 ```json
 {"userQuery":"使用2*2规格，做个运动会倒数日卡片。展示距离运动会的倒计时天数","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"countdown":{"countdownDays":{"type":"integer","description":"距离目标日期的自然日天数","sampleValue":32}}}},"assetCandidates":[]}
 ```
 ### assistant
 ```genui
-["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFAC442F",0],["#FFD45F38",0.5],["#FFF68E46",1]]},"justifyContent":"start","alignItems":"center","itemMargin":0},["title_area","gap8","value_group"]]
+["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"design":"fusion-ball-sport-orange","justifyContent":"start","alignItems":"center","itemMargin":0},["title_area","gap8","value_group"]]
 ["gap8","Column",{"width":136,"height":8,"flexShrink":0},[]]
 ["title_area","Row",{"width":136,"height":32,"padding":{"top":12},"justifyContent":"center","alignItems":"center","flexShrink":0},["title_text"]]
 ["title_text","Text",{"content":"马拉松倒计时","width":112,"fontSize":16,"fontWeight":500,"fontColor":"#E6FFFFFF","textAlign":"center","maxLines":1,"textOverflow":"clip"}]
@@ -952,7 +956,7 @@ TimelineUnit——会议/日程时间线：
 ["/data/weather/location/prefectureName","上海市"]
 ```
 
-## 示例五（2x2-V05）：融球背景天气（S2 无动作变体·方案一深色端）
+## 示例五（2x2-V05）：深色背景天气（S2 无动作变体·方案一深色端）
 ### user
 ```json
 {"userQuery":"创建一张包含深圳今日天气信息的小卡片，展示当前温度、天气状况、空气质量以及今日温度范围","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"weather":{"current":{"temperatureC":{"type":"number","description":"当前摄氏温度","sampleValue":38},"condition":{"type":"string","description":"白天天气现象","sampleValue":"晴｜空气优"}},"location":{"prefectureName":{"type":"string","description":"城市名称","sampleValue":"深圳"}},"daily":[{"temperatureRangeText":{"type":"string","description":"当日温度范围文本","sampleValue":"26°/16°"}}]}}},"assetCandidates":[{"src":"resources/base/media/cloudy.png","description":"云朵图标"}]}
@@ -976,14 +980,14 @@ TimelineUnit——会议/日程时间线：
 ["/data/weather/location/prefectureName","深圳"]
 ```
 
-## 示例六（2x2-V06）：纯色深底勿扰日程（S2 状态亚型·方案一纯色深端）
+## 示例六（2x2-V06）：融球勿扰日程（S2 状态亚型·方案一融球日程）
 ### user
 ```json
 {"userQuery":"使用2*2规格，做个会议日程免打扰卡片","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate"}}],"dataModelSchema":{"data":{"calendar":{"events":[{"title":{"type":"string","description":"日程标题","sampleValue":"UI需求评审会"},"dtStart":{"type":"string","description":"开始时间","sampleValue":"14:00 - 15:30"}}]}}},"assetCandidates":[{"src":"resources/base/media/calendar_fill.svg","description":"日历图标"}]}
 ```
 ### assistant
 ```genui
-["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"backgroundColor":"#FF86A5D3","justifyContent":"spaceBetween","itemMargin":4},["title_area","content_area","action_area"]]
+["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"design":"fusion-ball-schedule-cool","justifyContent":"spaceBetween","itemMargin":4},["title_area","content_area","action_area"]]
 ["title_area","Row",{"width":136,"height":16,"justifyContent":"spaceBetween","alignItems":"center","flexShrink":0},["section_label","title_icon"]]
 ["section_label","Text",{"content":"下一个日程","fontSize":12,"fontWeight":400,"fontColor":"#E5FFFFFF","maxLines":1,"textOverflow":"clip"}]
 ["title_icon","Image",{"src":"resources/base/media/calendar_fill.svg","width":16,"height":16,"objectFit":"contain","fillColor":"#FFFFFFFF","flexShrink":0}]
@@ -991,7 +995,7 @@ TimelineUnit——会议/日程时间线：
 ["event_title","Text",{"content":{"path":"/data/calendar/events/0/title"},"width":136,"height":28,"fontSize":20,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1,"textOverflow":"clip"}]
 ["event_time","Text",{"content":{"path":"/data/calendar/events/0/dtStart"},"fontSize":12,"fontWeight":400,"fontColor":"#CCFFFFFF","maxLines":1,"textOverflow":"clip"}]
 ["action_area","Column",{"width":136,"flexShrink":0},["cta"]]
-["cta","ActionUnit",{"state":"capsule","label":"勿扰模式","actionSurface":"white","actionInk":"#FF5781BE","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate"}}],"flexShrink":0}]
+["cta","ActionUnit",{"state":"capsule","label":"勿扰模式","actionSurface":"#33FFFFFF","actionInk":"#E6FFFFFF","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate"}}],"flexShrink":0}]
 ["/data/calendar/events/0/title","UI需求评审会"]
 ["/data/calendar/events/0/dtStart","14:00 - 15:30"]
 ```
@@ -1116,14 +1120,14 @@ TimelineUnit——会议/日程时间线：
 ["/data/healthSport/dailyTotalCaloriesText","59 千卡"]
 ```
 
-## 示例十二（2x2-V12）：睡眠监控（S2 数值亚型·方案一柔紫）
+## 示例十二（2x2-V12）：睡眠监控（S2 数值亚型·方案一融球睡眠）
 ### user
 ```json
 {"userQuery":"睡前做个睡眠卡片，看看昨晚睡了多久，点击可以设置早睡闹钟提醒","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate-alarm"}}],"dataModelSchema":{"data":{"healthSport":{"nightSleepDurationText":{"type":"string","description":"夜间睡眠总时长文本","sampleValue":"5小时45分"},"sleepScore":{"type":"integer","description":"睡眠综合得分0-100","sampleValue":72}}}},"assetCandidates":[{"src":"resources/base/media/clock_fill.svg","description":"时钟图标"}]}
 ```
 ### assistant
 ```genui
-["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FF3A2F7E",0],["#FF4A47B0",0.5],["#FF8A7BE0",1]]},"justifyContent":"spaceBetween","itemMargin":4},["title_area","content_area","action_area"]]
+["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"design":"fusion-ball-sleep-violet","justifyContent":"spaceBetween","itemMargin":4},["title_area","content_area","action_area"]]
 ["title_area","Row",{"width":136,"height":20,"justifyContent":"start","alignItems":"center","flexShrink":0},["title_text"]]
 ["title_text","Text",{"content":"睡眠监控","fontSize":12,"fontWeight":400,"fontColor":"#E5FFFFFF","maxLines":1,"textOverflow":"clip"}]
 ["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","itemMargin":4,"flexShrink":1},["value_row","sleep_bar"]]
@@ -1131,7 +1135,7 @@ TimelineUnit——会议/日程时间线：
 ["duration_text","Text",{"content":{"path":"/data/healthSport/nightSleepDurationText"},"fontSize":24,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1,"textOverflow":"clip"}]
 ["sleep_bar","Progress",{"design":"linear-bar","width":136,"height":8,"strokeWidth":8,"value":{"path":"/data/healthSport/sleepScore"},"total":100,"color":"#FFFFFFFF","backgroundColor":"#33FFFFFF"}]
 ["action_area","Column",{"width":136,"flexShrink":0},["cta"]]
-["cta","ActionUnit",{"state":"capsule","label":"早睡提醒","icon":"resources/base/media/clock_fill.svg","actionSurface":"#33FFFFFF","actionInk":"#99FFFFFF","fontSize":14,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate-alarm"}}],"flexShrink":0}]
+["cta","ActionUnit",{"state":"capsule","label":"早睡提醒","icon":"resources/base/media/clock_fill.svg","actionSurface":"#33FFFFFF","actionInk":"#E6FFFFFF","fontSize":14,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate-alarm"}}],"flexShrink":0}]
 ["/data/healthSport/nightSleepDurationText","5小时45分"]
 ["/data/healthSport/sleepScore",72]
 ```

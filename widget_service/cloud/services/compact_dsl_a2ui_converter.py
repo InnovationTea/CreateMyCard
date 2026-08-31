@@ -14,6 +14,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
+from services.fusion_ball_expander import (
+    FusionBallExpansionError,
+    expand_fusion_ball_components,
+    fusion_ball_palette_for_root,
+)
+
 ThemeMode = Literal["light", "dark"]
 
 _A2UI_FORM_CATALOG_ID = "ohos.a2ui.extended.catalog.form"
@@ -724,11 +730,17 @@ def convert_compact_dsl_to_a2ui(
     protocol_profile: dict[str, Any] | None = None,
     theme: ThemeMode = "light",
     surface_id: str = "surface_card",
+    app_version: str = "0",
 ) -> str:
     """Convert one Design Compact DSL card to standard three-message A2UI."""
     profile = protocol_profile or {"version": "v0.9"}
     rows = _parse_compact_rows(compact_dsl)
     components, data_rows = _split_component_rows(rows)
+    fusion_palette = fusion_ball_palette_for_root(
+        components,
+        size=size,
+        app_version=_resolve_app_version(profile, app_version),
+    )
 
     normalized_components = [_normalize_component(row) for row in components]
     normalized_components = _normalize_special_action_units(normalized_components)
@@ -747,6 +759,14 @@ def convert_compact_dsl_to_a2ui(
                 fallback_root_gradient=fallback_root_gradient,
             )
         )
+    if fusion_palette is not None:
+        try:
+            converted_components = expand_fusion_ball_components(
+                converted_components,
+                fusion_palette,
+            )
+        except FusionBallExpansionError as exc:
+            raise CompactDslConversionError(str(exc)) from exc
     version = str(profile.get("version") or "v0.9")
     create_surface = {
         "surfaceId": surface_id,
@@ -817,6 +837,16 @@ def _action_style_for_root_gradient(
         if action_ink is not None and action_background is not None:
             action_style = action_ink, action_background
     return action_style
+
+
+def _resolve_app_version(profile: dict[str, Any], app_version: Any) -> Any:
+    if app_version is not None and str(app_version).strip() not in {"", "0"}:
+        return app_version
+    for key in ("appVersion", "app_version"):
+        profile_app_version = profile.get(key)
+        if profile_app_version is not None and str(profile_app_version).strip():
+            return profile_app_version
+    return app_version
 
 
 def _normalize_ring_stack_children(
@@ -2760,6 +2790,7 @@ def main() -> int:
         protocol_profile={"version": args.version},
         theme=args.theme,
         surface_id=args.surface_id,
+        app_version=args.app_version,
     )
     if args.output:
         Path(args.output).write_text(output + "\n", encoding="utf-8")
@@ -2777,6 +2808,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--surface-id", default="surface_card")
     parser.add_argument("--theme", choices=("light", "dark"), default="light")
     parser.add_argument("--version", default="v0.9")
+    parser.add_argument("--app-version", default="0")
     args = parser.parse_args()
     if not args.stdin and not args.input:
         parser.error("input file is required unless --stdin is used")
