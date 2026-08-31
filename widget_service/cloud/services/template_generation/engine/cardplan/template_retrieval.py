@@ -25,7 +25,7 @@ from services.template_generation.engine.advanced.models import (
 from .registry import CardPlanRegistry
 from .retrieval_index import FieldToken, TemplateVariantSearchRecord
 
-_MAX_COMPONENT_TEMPLATE_CANDIDATES = 12
+_MAX_COMPONENT_TEMPLATE_CANDIDATES = 24
 
 
 class TemplateRetrievalMiss(ValueError):

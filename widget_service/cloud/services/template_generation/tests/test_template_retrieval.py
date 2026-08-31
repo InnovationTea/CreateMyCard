@@ -23,6 +23,7 @@ from services.template_generation.engine.cardplan.template_retrieval import (
     TemplateRetrievalMiss,
     TemplateRetrievalQuery,
     _component_templates_for_capability,
+    _limit_component_templates,
     _required_field_template_groups,
     build_template_retrieval_prompt,
     restrict_query_to_preferred_templates,
@@ -238,6 +239,62 @@ def test_candidate_diagnostics_distinguish_user_and_template_field_failures(
     assert missing_requirement["userRequiredDataFullyCovered"] is False
     assert missing_requirement["userProvidedDataSatisfiesTemplateRequirements"] is True
     assert "user_required_data_not_covered" in missing_requirement["rejectionReasons"]
+
+
+def test_candidate_limit_keeps_24_templates_and_logs_the_25th(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    template_ids = tuple(f"WeatherOverviewFull{index}@1" for index in range(1, 26))
+    matches = {template_id: frozenset() for template_id in template_ids}
+
+    limited_matches = _limit_component_templates(
+        matches,
+        template_ids,
+        frozenset(),
+    )
+
+    assert len(limited_matches) == 24
+    assert template_ids[23] in limited_matches
+    assert template_ids[24] not in limited_matches
+
+    evaluations = [
+        {"templateId": template_id, "rejectionReasons": []}
+        for template_id in template_ids
+    ]
+    info_logs: list[str] = []
+    monkeypatch.setattr(
+        retrieval_module,
+        "logger",
+        SimpleNamespace(info=info_logs.append),
+    )
+    retrieval_module._log_template_candidate_evaluation(
+        capability_id="ViewWeather",
+        business_id="WeatherOverview",
+        data_root="/data/weather",
+        card_size="2x2",
+        user_required_fields=[],
+        candidate_output_fields=set(),
+        task_spec_available_fields=[],
+        disabled_provider_ids=set(),
+        disabled_template_ids=set(),
+        evaluations=evaluations,
+        matches=matches,
+        limited_matches=limited_matches,
+    )
+
+    message = next(item for item in info_logs if "candidate_evaluation" in item)
+    diagnostics = json.loads(message.partition("diagnostics=")[2])
+    dropped = diagnostics.get("droppedByCandidateLimit")
+    templates = diagnostics.get("templates")
+    assert isinstance(templates, list)
+    dropped_template = next(
+        item for item in templates if item.get("templateId") == template_ids[24]
+    )
+    reasons = dropped_template.get("rejectionReasons")
+    assert isinstance(reasons, list)
+
+    assert dropped == [template_ids[24]]
+    assert "candidate_limit_exceeded" in reasons
 
 
 def test_layout_suffix_mismatch_logs_required_layout_and_candidates(
