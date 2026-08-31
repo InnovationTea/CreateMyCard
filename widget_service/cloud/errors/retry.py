@@ -1,175 +1,143 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
-
-"""带指数退避和抖动的异步重试执行器。"""
+"""Retry executor with exponential backoff + jitter."""
 
 import asyncio
 import random
 import time
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any, TypeVar
+from typing import TypeVar, Callable, Awaitable, Optional
 
-from app.logger import logger
 from errors.classifier import ErrorClassifier
 from errors.codes import StatusCode
-from errors.errors import BaseError
+from errors.errors import AgentError, BaseError
 from errors.severity import ErrorSeverity
+from app.logger import logger
 
 T = TypeVar("T")
-RetryCallback = Callable[[int, float, BaseError], Awaitable[None]]
 
 
 @dataclass
 class RetryContext:
-    """封装异常处理入口执行自动重试所需的参数。"""
+    """重试请求上下文，封装 handle() 所需的重试参数。"""
 
-    func: Callable[..., Awaitable[Any]] | None = None
-    args: tuple[Any, ...] = ()
-    kwargs: dict[str, Any] = field(default_factory=dict)
-    config_name: str | None = None
+    func: Optional[Callable[..., Awaitable]] = None
+    args: tuple = ()
+    kwargs: dict = field(default_factory=dict)
+    config_name: Optional[str] = None
 
 
-@dataclass(frozen=True)
+@dataclass
 class RetryConfig:
-    """定义尝试次数、退避间隔和总超时。"""
+    """重试策略配置。"""
 
     max_attempts: int = 3
     base_delay: float = 1.0
     max_delay: float = 60.0
     exponential_base: float = 2.0
     jitter: bool = True
-    total_timeout: float = 300.0
+    total_timeout: float = 300.0  # 5 分钟总超时
 
-    def __post_init__(self) -> None:
-        if self.max_attempts < 1:
-            raise ValueError("max_attempts must be at least 1")
-        if self.base_delay < 0 or self.max_delay < 0:
-            raise ValueError("retry delays must not be negative")
-        if self.exponential_base <= 0:
-            raise ValueError("exponential_base must be greater than 0")
-        if self.total_timeout <= 0:
-            raise ValueError("total_timeout must be greater than 0")
-
-    def compute_delay(
-        self,
-        attempt: int,
-        rate_limit_hint: object = None,
-    ) -> float:
-        """计算指定重试次数执行前的等待时间。"""
-        parsed_hint = self._parse_rate_limit_hint(rate_limit_hint)
-        if parsed_hint is not None and parsed_hint > 0:
-            return min(parsed_hint, self.max_delay)
-
-        delay = self.base_delay * (self.exponential_base**attempt)
+    def compute_delay(self, attempt: int, rate_limit_hint: Optional[float] = None) -> float:
+        """计算第 attempt 次重试前的等待时间。"""
+        # 如果服务端给了 retry-after，优先使用
+        if rate_limit_hint and rate_limit_hint > 0:
+            return min(rate_limit_hint, self.max_delay)
+        delay = self.base_delay * (self.exponential_base ** attempt)
         delay = min(delay, self.max_delay)
+
         if self.jitter:
-            delay *= 0.5 + random.random()
+            delay = delay * (0.5 + random.random())  # [50%, 150%) 随机
+
         return delay
 
-    @staticmethod
-    def _parse_rate_limit_hint(value: object) -> float | None:
-        if value is None:
-            return None
-        try:
-            return float(value)
-        except (TypeError, ValueError) as error:
-            logger.warning("Ignoring invalid retry-after value: {}", type(error).__name__)
-            return None
 
-
+# 预置重试策略
 RETRY_CONFIGS = {
-    "llm_call": RetryConfig(
-        max_attempts=3,
-        base_delay=2.0,
-        max_delay=60.0,
-        total_timeout=300.0,
-    ),
-    "tool_call": RetryConfig(
-        max_attempts=2,
-        base_delay=1.0,
-        max_delay=30.0,
-        total_timeout=1200.0,
-    ),
-    "network": RetryConfig(
-        max_attempts=3,
-        base_delay=0.5,
-        max_delay=30.0,
-        total_timeout=180.0,
-    ),
+    "llm_call": RetryConfig(max_attempts=3, base_delay=2.0, max_delay=60.0, total_timeout=300.0),
+    "tool_call": RetryConfig(max_attempts=2, base_delay=1.0, max_delay=30.0, total_timeout=1200.0),
+    "network": RetryConfig(max_attempts=3, base_delay=0.5, max_delay=30.0, total_timeout=180.0),
 }
 
 
-class RetryExhaustedError(BaseError):
-    """重试次数用尽或总超时耗尽。"""
+class RetryExhaustedError(AgentError):
+    """所有重试用完后抛出。"""
 
-    def __init__(self, attempts: int, last_error: BaseError, config_name: str = ""):
+    def __init__(self, attempts: int, last_error: AgentError, config_name: str = ""):
         super().__init__(
             StatusCode.ERROR,
             msg=(
                 f"Retry exhausted after {attempts} attempts (config={config_name}). "
                 f"Last error: {last_error}"
             ),
+            retryable=False,
             cause=last_error,
         )
         self.attempts = attempts
         self.last_error = last_error
+        self.user_message = getattr(last_error, "user_message", None)
 
 
 class RetryExecutor:
-    """执行异步函数，并自动重试被分类为可重试的异常。"""
+    """执行一个 async 函数，遇到 RETRYABLE 错误时自动重试。"""
 
-    def __init__(self, config: RetryConfig | None = None, config_name: str = "default"):
+    def __init__(self, config: Optional[RetryConfig] = None, config_name: str = "default"):
         self.config = config or RetryConfig()
         self.config_name = config_name
 
     async def execute(
-        self,
-        func: Callable[..., Awaitable[T]],
-        *args: Any,
-        on_retry: RetryCallback | None = None,
-        **kwargs: Any,
+            self,
+            func: Callable[..., Awaitable[T]],
+            *args,
+            on_retry: Optional[Callable[[int, float, AgentError], Awaitable[None]]] = None,
+            **kwargs,
     ) -> T:
-        """执行函数，成功则返回结果，失败则抛出最后一次标准化异常。"""
+        """
+        Args:
+            func:       要执行的异步函数
+            on_retry:   每次重试前的回调 (attempt, delay, error)
+        """
         start_time = time.monotonic()
-        last_error: BaseError | None = None
-        completed_attempts = 0
+        last_error: Optional[BaseError] = None
 
         for attempt in range(self.config.max_attempts):
-            if self._total_timeout_reached(start_time, attempt):
+            # 检查总超时
+            elapsed = time.monotonic() - start_time
+            if attempt > 0 and elapsed >= self.config.total_timeout:
                 break
-            completed_attempts += 1
 
             try:
                 return await func(*args, **kwargs)
             except Exception as raw_error:
                 wrapped, severity = ErrorClassifier.classify(raw_error)
                 last_error = wrapped
-                logger.warning("Classified error [{}]: {}", severity.value, wrapped)
+                logger.warning("Classified error [%s]: %s", severity.value, wrapped)
+                # 不可重试 → 直接抛出
                 if severity != ErrorSeverity.RETRYABLE:
                     raise wrapped from raw_error
+
+                # 最后一次尝试 → 不再等待
                 if attempt == self.config.max_attempts - 1:
                     break
+                logger.warning(f"第{attempt}次尝试重新调用..")
+                # 计算等待时间
+                rate_hint = getattr(wrapped, "retry_after", None)
+                delay = self.config.compute_delay(attempt, rate_hint)
 
-                delay = self.config.compute_delay(
-                    attempt,
-                    getattr(wrapped, "retry_after", None),
-                )
+                # 确保等待后不超总超时
                 remaining = self.config.total_timeout - (time.monotonic() - start_time)
                 if delay > remaining:
                     break
-                if on_retry is not None:
+
+                # 回调通知
+                if on_retry:
                     await on_retry(attempt + 1, delay, wrapped)
+
                 await asyncio.sleep(delay)
 
-        if last_error is None:
-            last_error = ErrorClassifier.classify(TimeoutError("Retry timeout reached"))[0]
+        # 所有重试用完
         raise RetryExhaustedError(
-            attempts=completed_attempts,
+            attempts=self.config.max_attempts,
             last_error=last_error,
             config_name=self.config_name,
         )
-
-    def _total_timeout_reached(self, start_time: float, attempt: int) -> bool:
-        elapsed = time.monotonic() - start_time
-        return attempt > 0 and elapsed >= self.config.total_timeout

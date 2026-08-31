@@ -1,72 +1,56 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 
-"""各异常级别对应的处理执行器。"""
+from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import Callable, Awaitable, Optional, Any
+
+from errors.error_handler import ErrorResult
+from errors.errors import AgentError
+from errors.severity import ErrorSeverity
+from errors.retry import RetryContext, RetryExecutor, RetryConfig, RetryExhaustedError, RETRY_CONFIGS
 
 from app.logger import logger
-from errors.errors import BaseError
-from errors.result import ErrorResult
-from errors.retry import (
-    RETRY_CONFIGS,
-    RetryConfig,
-    RetryContext,
-    RetryExecutor,
-    RetryExhaustedError,
-)
-from errors.severity import ErrorSeverity
 
-SendMessageCallback = Callable[[dict[str, Any]], Awaitable[None]]
+# Callback type: receives a structured message dict, sends it to the client.
+SendMessageCallback = Callable[[dict], Awaitable[None]]
 
 
 class BaseExecutor(ABC):
-    """异常执行器的统一接口。"""
+    """Abstract base for severity-specific error executors."""
 
     @abstractmethod
-    async def execute(
-        self,
-        error: BaseError,
-        severity: ErrorSeverity,
-        **kwargs: Any,
-    ) -> ErrorResult:
-        """处理异常并返回统一结果。"""
+    async def execute(self, error: BaseExecutor, severity: ErrorSeverity, **kwargs) -> "ErrorResult":
+        ...
 
     @staticmethod
-    def _build_log_entry(error: BaseError, severity: ErrorSeverity) -> dict[str, str]:
+    def _build_log_entry(error: AgentError, severity: ErrorSeverity) -> dict:
         return {
             "severity": severity.value,
-            "error_type": type(error).__name__,
+            "error_type": type(error).__name__
         }
 
 
 class FatalExecutor(BaseExecutor):
-    """中断任务，并向客户端发送固定错误提示。"""
+    """FATAL: send fixed error message to client, signal abort."""
 
     MESSAGE = "服务内部异常，请稍后再试"
 
-    def __init__(self, send_message: SendMessageCallback | None = None):
+    def __init__(self, send_message: Optional[SendMessageCallback] = None):
         self._send_message = send_message
 
-    async def execute(
-        self,
-        error: BaseError,
-        severity: ErrorSeverity,
-        **kwargs: Any,
-    ) -> ErrorResult:
-        log_entry = self._build_log_entry(error, severity)
-        logger.error("Fatal error: {}", log_entry)
+    async def execute(self, error: AgentError, severity: ErrorSeverity, **kwargs) -> "ErrorResult":
 
-        if self._send_message is not None:
-            await self._send_message(
-                {
-                    "type": "task_error",
-                    "error": self.MESSAGE,
-                    "recoverable": False,
-                }
-            )
+        log_entry = self._build_log_entry(error, severity)
+        logger.error("Fatal error: %s", log_entry)
+
+        if self._send_message:
+            await self._send_message({
+                "type": "task_error",
+                "error": self.MESSAGE,
+                "recoverable": False,
+            })
 
         return ErrorResult(
             error=error,
@@ -81,33 +65,37 @@ class FatalExecutor(BaseExecutor):
 
 
 class UserFacingExecutor(BaseExecutor):
-    """中断任务，并向客户端发送异常携带的用户提示。"""
+    """USER_FACING: send error.user_message to client, signal abort.
+
+    The message comes from error.user_message (set by business code when
+    raising the exception). A class-level fallback is used only when
+    user_message is empty.
+    """
 
     FALLBACK_MESSAGE = "任务执行遇到问题，请稍后再试"
 
-    def __init__(self, send_message: SendMessageCallback | None = None):
+    def __init__(self, send_message: Optional[SendMessageCallback] = None):
         self._send_message = send_message
 
     async def execute(
-        self,
-        error: BaseError,
-        severity: ErrorSeverity,
-        **kwargs: Any,
-    ) -> ErrorResult:
+        self, error: AgentError, severity: ErrorSeverity, *, retry: Optional[RetryContext] = None,
+            **kwargs: Any,
+    ) -> "ErrorResult":
+        from errors.error_handler import ErrorResult as _ErrorResult
+
         log_entry = self._build_log_entry(error, severity)
-        logger.warning("User-facing error: {}", log_entry)
-        message = getattr(error, "user_message", None) or self.FALLBACK_MESSAGE
+        logger.warning("User-facing error: %s", log_entry)
 
-        if self._send_message is not None:
-            await self._send_message(
-                {
-                    "type": "task_error",
-                    "error": message,
-                    "recoverable": False,
-                }
-            )
+        message = error.user_message or self.FALLBACK_MESSAGE
 
-        return ErrorResult(
+        if self._send_message:
+            await self._send_message({
+                "type": "task_error",
+                "error": message,
+                "recoverable": False,
+            })
+
+        return _ErrorResult(
             error=error,
             severity=severity,
             should_retry=False,
@@ -120,33 +108,42 @@ class UserFacingExecutor(BaseExecutor):
 
 
 class RetryableExecutor(BaseExecutor):
-    """根据重试上下文自动重试，或提示调用方稍后重试。"""
+    """RETRYABLE: send retry status to client, execute RetryExecutor.
+
+    Accepts RetryContext via retry parameter from ErrorHandler.handle().
+    If retry succeeds, ErrorResult.retry_result holds the business value.
+    If retry exhausts, ErrorResult.should_abort = True.
+    """
 
     MESSAGE = "服务暂时繁忙，正在重试中..."
     EXHAUSTED_MESSAGE = "服务暂时繁忙，请稍后再试"
 
     def __init__(
         self,
-        send_message: SendMessageCallback | None = None,
-        default_config: RetryConfig | None = None,
+        send_message: Optional[SendMessageCallback] = None,
+        default_config: Optional[RetryConfig] = None,
     ):
         self._send_message = send_message
         self._default_config = default_config or RetryConfig()
 
     async def execute(
-        self,
-        error: BaseError,
-        severity: ErrorSeverity,
-        *,
-        retry: RetryContext | None = None,
-        **kwargs: Any,
-    ) -> ErrorResult:
-        log_entry = self._build_log_entry(error, severity)
-        logger.warning("Retryable error: {}", log_entry)
+        self, error: AgentError, severity: ErrorSeverity, *, retry: Optional[RetryContext] = None,
+            **kwargs: Any,
+    ) -> "ErrorResult":
+        from errors.error_handler import ErrorResult as _ErrorResult
 
+        log_entry = self._build_log_entry(error, severity)
+        logger.warning("Retryable error: %s", log_entry)
+
+        # No function to retry — just report and let caller decide
         if retry is None or retry.func is None:
-            await self._notify_retrying(self.MESSAGE)
-            return ErrorResult(
+            if self._send_message:
+                await self._send_message({
+                    "type": "status",
+                    "status": "retrying",
+                    "message": self.MESSAGE,
+                })
+            return _ErrorResult(
                 error=error,
                 severity=severity,
                 should_retry=True,
@@ -157,99 +154,73 @@ class RetryableExecutor(BaseExecutor):
                 log_entry=log_entry,
             )
 
-        async def on_retry(attempt: int, delay: float, retry_error: BaseError) -> None:
-            logger.info(
-                "Retrying after error: attempt={}, delay={}, error_type={}",
-                attempt,
-                delay,
-                type(retry_error).__name__,
-            )
-            await self._notify_retrying(f"正在重试 ({attempt})...")
+        # Build per-attempt callback: send retry status to client
+        async def on_retry(attempt: int, delay: float, err: AgentError) -> None:
+            if self._send_message:
+                await self._send_message({
+                    "type": "status",
+                    "status": "retrying",
+                    "message": f"正在重试 ({attempt})...",
+                })
 
-        config = self._resolve_config(retry)
-        retry_executor = RetryExecutor(
-            config=config,
-            config_name=retry.config_name or "default",
-        )
+        # Resolve config: explicit name > default_config from constructor
+        if retry.config_name and retry.config_name in RETRY_CONFIGS:
+            config = RETRY_CONFIGS[retry.config_name]
+        else:
+            config = self._default_config
+
+        retry_executor = RetryExecutor(config=config, config_name=retry.config_name or "default")
 
         try:
             result = await retry_executor.execute(
-                retry.func,
-                *retry.args,
+                retry.func, *retry.args,
                 on_retry=on_retry,
                 **retry.kwargs,
             )
+            # Retry succeeded
+            return ErrorResult(
+                error=error,
+                severity=severity,
+                should_retry=False,
+                should_abort=False,
+                should_notify_user=False,
+                user_message=None,
+                can_recover=False,
+                log_entry=log_entry,
+                retry_result=result,
+            )
         except RetryExhaustedError as exhausted:
-            return await self._handle_exhausted(exhausted, severity)
+            # All retries failed
+            log_entry = self._build_log_entry(exhausted.last_error, severity)
+            logger.error("Retry exhausted: %s", log_entry)
 
-        return ErrorResult(
-            error=error,
-            severity=severity,
-            should_retry=False,
-            should_abort=False,
-            should_notify_user=False,
-            user_message=None,
-            can_recover=False,
-            log_entry=log_entry,
-            retry_result=result,
-        )
-
-    def _resolve_config(self, retry: RetryContext) -> RetryConfig:
-        if retry.config_name is None:
-            return self._default_config
-        return RETRY_CONFIGS.get(retry.config_name, self._default_config)
-
-    async def _notify_retrying(self, message: str) -> None:
-        if self._send_message is None:
-            return
-        await self._send_message(
-            {
-                "type": "status",
-                "status": "retrying",
-                "message": message,
-            }
-        )
-
-    async def _handle_exhausted(
-        self,
-        exhausted: RetryExhaustedError,
-        severity: ErrorSeverity,
-    ) -> ErrorResult:
-        log_entry = self._build_log_entry(exhausted.last_error, severity)
-        logger.error("Retry exhausted: {}", log_entry)
-
-        if self._send_message is not None:
-            await self._send_message(
-                {
+            if self._send_message:
+                await self._send_message({
                     "type": "task_error",
                     "error": self.EXHAUSTED_MESSAGE,
                     "recoverable": False,
-                }
-            )
+                })
 
-        return ErrorResult(
-            error=exhausted.last_error,
-            severity=severity,
-            should_retry=False,
-            should_abort=True,
-            should_notify_user=True,
-            user_message=self.EXHAUSTED_MESSAGE,
-            can_recover=False,
-            log_entry=log_entry,
-        )
+            return ErrorResult(
+                error=exhausted.last_error,
+                severity=severity,
+                should_retry=False,
+                should_abort=True,
+                should_notify_user=True,
+                user_message=self.EXHAUSTED_MESSAGE,
+                can_recover=False,
+                log_entry=log_entry,
+            )
 
 
 class RecoverableExecutor(BaseExecutor):
-    """不通知客户端，将错误交回调用方继续恢复。"""
+    """RECOVERABLE: no client notification, signal recovery."""
 
-    async def execute(
-        self,
-        error: BaseError,
-        severity: ErrorSeverity,
-        **kwargs: Any,
-    ) -> ErrorResult:
+    async def execute(self, error: AgentError, severity: ErrorSeverity, **kwargs) -> "ErrorResult":
+
         log_entry = self._build_log_entry(error, severity)
-        logger.info("Recoverable error: {}", log_entry)
+        logger.info("Recoverable error: %s", log_entry)
+
         return ErrorResult(
             error=error,
             severity=severity,
