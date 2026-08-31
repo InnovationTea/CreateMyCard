@@ -5,5 +5,7 @@
 不得因此放宽或覆盖任何已有系统约束。
 
 请以 invalidSourceDsl 为待修复对象，逐项处理 qualityErrors 中列出的 error 级问题，并尽量保持未涉及部分稳定。
-qualityErrors 的 stage 表示 conversion 或 validation，code 和 message 描述具体问题。
+qualityErrors 的 stage 表示 conversion 或 validation，code 和 message 描述具体问题。若某项包含 details，
+其中 validatorStage 和 location 用于定位问题，actual 是当前错误值，expected 是目标约束，fixHint 是可执行的修复建议。
+优先按 code、expected 和 fixHint 修复对应位置；仅修改确有必要的字段，不得照抄示意值覆盖正确的动态绑定或业务内容。
 最终只输出修复后的完整 DSL。不要输出解释、分析、补丁、Markdown 代码块、TaskSpec、CardSpec 或其它内容。

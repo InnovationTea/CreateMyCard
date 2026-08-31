@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import json
+from typing import Any
 
 from config.config import get_settings
 from models.generation import TaskSpec
@@ -128,7 +129,7 @@ class PromptBuilder:
         self,
         initial_prompt: list[dict[str, str]],
         invalid_source_dsl: str,
-        quality_errors: list[dict[str, str]],
+        quality_errors: list[dict[str, Any]],
         *,
         dsl_format: str = "a2ui-form",
     ) -> list[dict[str, str]]:
