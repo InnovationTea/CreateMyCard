@@ -38,6 +38,14 @@ cloud/api/routes.py
 
 外部调用方不应穿过该文件直接调用 `engine` 内部方法。
 
+### `source_generator.py` 与 `feature_gates.py`
+
+文件：[../source_generator.py](../source_generator.py)、[../feature_gates.py](../feature_gates.py)
+
+`TemplateSourceGenerator` 从公共生成链接收已构造的 `TaskSpec`，直接使用其中已有的 `appVersion`。
+`fusion_ball_enabled()` 将该值与 `CONFIG.fusion_ball_min_prd_version` 比较；任一值缺失、类型错误、版本非法或
+低于最低版本时均关闭。模板模块不重新读取接口请求，也不复制或规范化版本字段。
+
 ### `facade.py`
 
 文件：[../facade.py](../facade.py)
@@ -45,12 +53,9 @@ cloud/api/routes.py
 `request_template_source_dsl()` 是主责任边界：
 
 1. 使用调用方传入的 `ModelExecutionRuntime` 和 `ModelRequestContext` 创建模板模型客户端。
-2. 要求调用方显式传入 `enable_fusion_ball: bool`，并将上层根据新版包络路由从本次接口
-   `request.deviceInfo.prdVer` 提取并映射到内部生成请求的版本，与 `CONFIG.fusion_ball_min_prd_version`
-   完成的请求级特性决策透传给模板引擎；
-   配置或请求版本缺失、非法、低于配置版本时该决策为关闭。请求版本本身不进入 LLM Prompt 消息中的
-   TaskSpec，也不写入五字段 `task-spec-v1` 或 artifact 中的 TaskSpec。同一个布尔决策还会传给 Compact
-   转换器，避免两条链路重复裁决。
+2. 要求调用方显式传入 `enable_fusion_ball: bool`，并将 `TemplateSourceGenerator` 基于
+   `TaskSpec.appVersion` 和 `CONFIG.fusion_ball_min_prd_version` 得出的请求级决策透传给模板引擎；配置或版本
+   缺失、非法、低于配置版本时该决策为关闭。
    有融球 Theme 命中任一候选业务时，第一层 LLM 只接收匹配的
    融球 Theme 候选。
 3. 复制已裁决的 `effective_bindings`，不增加新数据能力或字段。
@@ -121,9 +126,8 @@ cloud/api/routes.py
 模块主编排函数：
 
 1. `2x4` 在 Registry、首层 Prompt 和模型调用前直接返回模板不适用；当前模板 Search 只支持 `2x2`。
-2. 按上层根据新版包络路由从本次接口 `request.deviceInfo.prdVer` 提取并映射到内部生成请求的版本，与配置
-   最低版本确定的
-   `enable_fusion_ball` 加载请求级 Registry 视图；关闭时先移除所有融球 Theme，开启时按本轮候选业务过滤
+2. 按 `TemplateSourceGenerator` 使用 `TaskSpec.appVersion` 和配置最低版本确定的 `enable_fusion_ball` 加载
+   请求级 Registry 视图；关闭时先移除所有融球 Theme，开启时按本轮候选业务过滤
    Theme，只要存在融球匹配就移除全部非融球 Theme，再从 CardSpec 取得已批准能力 ID。
 3. 应用领域 content selectors，建立 `DataShape`。
 4. 根据 `firstLayerComponentSelector` 进入 Search 或旧 LLM 首层路线。
@@ -210,8 +214,8 @@ Search 不选最终 Template、Layout 或 Props，也不改写用户尺寸。
 - 加载 Provider Bundle、Theme、UX 预算和 Template Controls。
 - 派生业务组、数据能力、Provider 和 Template 映射。
 - 提供禁用过滤后的 Template、Layout、Theme 和分层规则。
-- 按上层从本次接口 `request.deviceInfo.prdVer` 与配置最低版本裁决出的请求级 `enable_fusion_ball` 过滤融球
-  Theme，并让 Prompt、检索、Theme 查找和编译共享同一视图。
+- 按 `TaskSpec.appVersion` 与配置最低版本裁决出的请求级 `enable_fusion_ball` 过滤融球 Theme，并让 Prompt、
+  检索、Theme 查找和编译共享同一视图。
 - 构造 Search 索引与尺寸/组合准入。
 
 `get_cardplan_registry()` 按融球开关分别缓存两个只读视图。测试如果修改资源或 Controls，必须清理相关

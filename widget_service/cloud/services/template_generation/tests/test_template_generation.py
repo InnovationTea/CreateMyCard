@@ -24,7 +24,6 @@ from models.service import ArtifactSaveResult
 from services import widget_generation_service as widget_generation_service_module
 from services.artifact_store import ArtifactStore
 from services.card_validation import validate_card
-from services.fusion_ball_expander import FUSION_BALL_MIN_PRD_VERSION_CONFIG
 from services.generation_pipeline import (
     DslProcessingResult,
     DslProcessorKind,
@@ -111,6 +110,9 @@ from services.template_generation.engine.tersel_converter import (
     Nested2Node,
     TerselConversionError,
     convert_tersel_to_a2ui,
+)
+from services.template_generation.feature_gates import (
+    FUSION_BALL_MIN_PRD_VERSION_CONFIG,
 )
 from services.template_generation.profile import read_tersel_protocol_profile
 from services.widget_generation_service import WidgetGenerationService
@@ -5182,13 +5184,11 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     assert response.status == GenerationStatus.SUCCESS
     assert response.artifactUrl == "https://artifact.test/weather-template-terse"
     assert "prdVer" not in captured["artifact"].taskSpec
-    assert "appVersion" not in captured["artifact"].taskSpec
-    template_prompts = json.dumps(
-        [model.first_layer_prompt, model.second_layer_prompt],
-        ensure_ascii=False,
-    )
-    assert '"prdVer"' not in template_prompts
-    assert '"appVersion"' not in template_prompts
+    assert captured["artifact"].taskSpec["appVersion"] == "11.7.5.206"
+    assert model.first_layer_prompt is not None
+    first_layer_payload = json.loads(model.first_layer_prompt[1]["content"])
+    assert "prdVer" not in first_layer_payload["taskSpec"]
+    assert first_layer_payload["taskSpec"]["appVersion"] == "11.7.5.206"
     compact_rows = [json.loads(line) for line in captured["compact"].splitlines()]
     compact_components = {
         row[0]: row for row in compact_rows if len(row) >= 3 and isinstance(row[0], str)
@@ -6026,7 +6026,6 @@ async def test_terse_entry_forwards_gallery_template_overrides(monkeypatch):
 async def test_policy_layer_configures_template_source_generator(monkeypatch):
     expected = object()
     captured: dict[str, Any] = {}
-    observed_prd_versions: list[str | None] = []
 
     async def capture_generation(
         _request: Any,
@@ -6037,10 +6036,6 @@ async def test_policy_layer_configures_template_source_generator(monkeypatch):
 
     service = WidgetGenerationService(model_runtime=object())
     monkeypatch.setattr(service, "generate_widget_card", capture_generation)
-    monkeypatch.setattr(
-        "services.widget_generation_service.fusion_ball_enabled",
-        lambda prd_ver: observed_prd_versions.append(prd_ver) or True,
-    )
     generator = TemplateSourceGenerator(
         trusted_template_candidate_ids=("WeatherOverviewCompact@1",),
     )
@@ -6059,14 +6054,18 @@ async def test_policy_layer_configures_template_source_generator(monkeypatch):
     assert generator.protocol_profile["id"] == A2UI_FORM_PROTOCOL_PROFILE_ID
     assert generator.model_runtime is service.model_runtime
     assert isinstance(generator.model_request_context, ModelRequestContext)
-    assert generator.enable_fusion_ball is True
-    assert captured["enable_fusion_ball"] is True
-    assert observed_prd_versions == [_TEST_APP_VERSION]
+    assert "enable_fusion_ball" not in captured
 
 
 @pytest.mark.asyncio
-async def test_template_source_generator_forwards_request_scoped_fusion_gate(monkeypatch):
+async def test_template_source_generator_uses_task_spec_app_version_gate(monkeypatch):
     observed_flags: list[bool] = []
+
+    monkeypatch.setattr(
+        get_settings(),
+        "CONFIG",
+        {FUSION_BALL_MIN_PRD_VERSION_CONFIG: "11.7.5.206"},
+    )
 
     async def capture_source(
         *_args: Any,
@@ -6092,8 +6091,18 @@ async def test_template_source_generator_forwards_request_scoped_fusion_gate(mon
         app_name="CreateMyCard",
     )
 
-    task_spec = _weather_task_spec()
-    assert await generator(task_spec, _weather_card_spec(), ()) == "template-source"
-    generator.enable_fusion_ball = True
-    assert await generator(task_spec, _weather_card_spec(), ()) == "template-source"
+    disabled_task_spec = _weather_task_spec().model_copy(
+        update={"appVersion": "11.7.5.205"},
+    )
+    enabled_task_spec = _weather_task_spec().model_copy(
+        update={"appVersion": "11.7.5.206"},
+    )
+    assert (
+        await generator(disabled_task_spec, _weather_card_spec(), ())
+        == "template-source"
+    )
+    assert (
+        await generator(enabled_task_spec, _weather_card_spec(), ())
+        == "template-source"
+    )
     assert observed_flags == [False, True]

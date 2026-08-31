@@ -4,7 +4,8 @@
 
 该工具用于让开发者或 AI Agent 一次性生成全部业务 Provider 的 2×2 场景画廊，验证当前模板能否通过正式
 `generate_widget_card_terse_dsl_nested2` 服务入口完成能力裁决、模板路由、A2UI 转换和最终校验。每个场景
-同时生成非融球和融球版本，两者只通过本次接口 `request.deviceInfo.prdVer` 完成请求级裁决。
+同时生成非融球和融球版本。请求中的 `deviceInfo.prdVer` 经公共构建链写入 `TaskSpec.appVersion`，模板生成器
+再使用该已有字段完成请求级裁决。
 
 它与 [Provider 原子模板预览](provider-template-preview-gallery.md) 的定位不同：原子预览不调用模型，适合逐个
 检查 `.cardtpl`；本工具调用正式生成服务，适合检查真实组合是否可用。批跑时只在本地截获最终 Artifact，
@@ -40,8 +41,7 @@ Full 生成“单内容”用例。业务缺少某个后缀时仍保留一张缺
 | 融球 | 请求 `deviceInfo.prdVer = 11.7.5.206` | 等于配置最低版本；单业务 Compact/Full/Hero 命中融球 Theme 时展开融球背景 |
 
 画廊验证前需在服务 `CONFIG` 中配置 `fusion_ball_min_prd_version=11.7.5.206`。批跑结果会校验路由请求版本
-门禁和最终 A2UI 是否按模板融球契约出现受控背景；Artifact TaskSpec 保持 `task-spec-v1` 五字段，不含版本
-字段。
+门禁和最终 A2UI 是否按模板融球契约出现受控背景；Artifact TaskSpec 中的 `appVersion` 应与请求版本一致。
 没有融球 Theme 的业务即使使用 11.7.5.206 也不应出现融球。两种外观保持相同 `providerId` 并相邻写入
 manifest，端侧因此把它们放在对应 Provider 业务的同一个页签中，而不是拆成“融球/非融球”两个页签；
 同一 Provider 中可通过符合条件的 Compact/Full/Hero 场景对照两种实际效果。
@@ -115,9 +115,8 @@ widget_service/.venv312/bin/python \
 - `--strict`：存在真实生成失败时返回非零退出码；模板后缀缺失仍作为画廊检查结果保留。
 - `--model-failure-attempts 1`：覆盖单用例模型失败最大尝试次数；默认值为 2，必须为正整数。
 - Provider 画廊不提供融球命令行开关；每个输入场景固定构造 `11.7.5.205` 与 `11.7.5.206` 两个请求，
-  新版包络路由从各自的 `request.deviceInfo.prdVer` 提取版本并映射到内部生成请求，生成服务在请求边界结合
-  `CONFIG.fusion_ball_min_prd_version` 完成融球裁决；配置或请求版本缺失、非法时两种请求都关闭融球，
-  请求版本不进入 LLM Prompt 消息中的 TaskSpec 或 Artifact TaskSpec。
+  公共构建链将各自的 `request.deviceInfo.prdVer` 写入 `TaskSpec.appVersion`，`TemplateSourceGenerator` 再结合
+  `CONFIG.fusion_ball_min_prd_version` 完成融球裁决；配置或版本缺失、非法时两种请求都关闭融球。
 - `--input-root`、`--output-root`：覆盖默认临时目录。
 
 默认输入和输出目录为：

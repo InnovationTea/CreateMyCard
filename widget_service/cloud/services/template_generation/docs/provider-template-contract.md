@@ -215,12 +215,11 @@ Provider 模板作者侧声明，不进入最终 Tersel 语法。最终产物不
 
 ## 2x2 融球背景
 
-新版包络路由从本次接口 `request.deviceInfo.prdVer` 提取版本并映射到内部生成请求，生成服务在请求边界结合
-`CONFIG.fusion_ball_min_prd_version` 裁决融球；配置或请求版本缺失、非法、低于配置版本时关闭，验证入口未
-显式指定时也关闭。请求版本不进入 LLM Prompt 消息中的 TaskSpec，也不写入五字段 `task-spec-v1` 或
-artifact 中的 TaskSpec。内部
-模板入口要求调用方显式传入 `enable_fusion_ball`。为 `false` 时，所有包含 `fusionBallStyle` 的 Theme 在首层
-Prompt 构造前即从请求级 Registry 视图移除，检索、二层组合和编译也不能再查找或接受这些 Theme。
+`TemplateSourceGenerator` 读取已有 `TaskSpec.appVersion`，与 `CONFIG.fusion_ball_min_prd_version` 比较后
+裁决模板融球；配置或版本缺失、非法、低于配置版本时关闭。模板模块不重新读取请求版本，也不维护第二份
+应用版本。内部模板入口要求调用方显式传入裁决后的 `enable_fusion_ball`。为 `false` 时，所有包含
+`fusionBallStyle` 的 Theme 在首层 Prompt 构造前即从请求级 Registry 视图移除，检索、二层组合和编译也不能
+再查找或接受这些 Theme。
 
 模板 Search 当前整体不支持 `2x4`，此尺寸在任何首层 Prompt 或模型调用前直接判定模板不适用。Wide
 Provider 和 Layout 资源只作后续能力预留，当前不进入生产模板链。

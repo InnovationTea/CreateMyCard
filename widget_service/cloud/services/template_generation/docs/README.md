@@ -43,11 +43,11 @@ await request_template_source_dsl(
 )
 ```
 
-新版包络路由从本次接口 `request.deviceInfo.prdVer` 提取版本并映射到内部生成请求，生成服务在请求边界结合
-`CONFIG.fusion_ball_min_prd_version` 裁决后传入 `enable_fusion_ball`；配置或请求版本缺失、非法、低于配置
-版本时均传 `False`。请求版本不进入 LLM Prompt 消息中的 TaskSpec，也不写入五字段 `task-spec-v1` 或
-artifact 中的 TaskSpec。
-开发验证入口未显式指定时仍默认关闭。本模块责任边界内的 `request_template_source_dsl` 要求显式布尔值。
+生产链由 `TemplateSourceGenerator` 读取已有 `TaskSpec.appVersion`，与
+`CONFIG.fusion_ball_min_prd_version` 比较后，将结果作为内部 `enable_fusion_ball` 传给上述窄入口；配置或
+版本缺失、非法、低于配置版本时均传 `False`。`TaskSpec.appVersion` 沿用公共 TaskSpec 构建链，不在模板
+模块内重新从请求取值或维护第二份版本字段。本模块责任边界内的 `request_template_source_dsl` 仍要求显式
+布尔值。
 关闭时，融球 Theme 会在首层 Prompt 构造前从当前请求的 Registry 视图中移除，后续检索、二层组合和编译也
 不能选择该类 Theme。
 

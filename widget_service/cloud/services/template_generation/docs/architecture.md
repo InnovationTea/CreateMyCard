@@ -62,10 +62,10 @@ Form Profile、模型运行时和请求上下文，再将其注入公共生成�
 
 ```mermaid
 flowchart TD
-    IN[TaskSpec + CardSpec + effective bindings + 融球开关] --> SIZE{size == 2x4?}
+    IN[TaskSpec appVersion + CardSpec + effective bindings] --> SIZE{size == 2x4?}
     SIZE -->|是| MISS[模板路由不适用]
     SIZE -->|否| LOAD[加载 Controls 与 CardPlanRegistry]
-    LOAD --> FUSION{enable_fusion_ball}
+    LOAD --> FUSION{appVersion >= 配置最低版本?}
     FUSION -->|false| FILTER[移除融球 Theme 的请求级视图]
     FUSION -->|true| SELECTOR{firstLayerComponentSelector}
     FILTER --> SELECTOR
@@ -94,11 +94,10 @@ flowchart TD
 2. 编译 `.cardtpl`，校验模板 ID、Props、数据路径、children 槽位和组件闭包。
 3. 从 `provider.json#templates` 派生“业务 -> Template -> 数据能力 -> Provider”索引。
 4. 应用 `disabledProviderIds` 和 `disabledTemplateIds`，确保禁用项不进入首层和二层。
-5. 新版包络路由从本次接口 `request.deviceInfo.prdVer` 提取版本并映射到内部生成请求，生成服务在请求边界结合
-   `CONFIG.fusion_ball_min_prd_version` 裁决；配置或请求版本缺失、非法、低于配置版本时关闭，验证入口未显式
-   指定时也关闭。请求版本不进入 LLM Prompt 消息中的 TaskSpec，也不写入五字段 `task-spec-v1` 或 artifact
-   中的 TaskSpec。只有调用
-   方传入 `enable_fusion_ball=true` 时才构造包含融球 Theme 的请求级视图；关闭时移除所有
+5. `TemplateSourceGenerator` 读取已有 `TaskSpec.appVersion`，与
+   `CONFIG.fusion_ball_min_prd_version` 比较；配置或版本缺失、非法、低于配置版本时关闭。模板模块不重新从
+   请求取值，也不维护另一份应用版本。只有内部 `enable_fusion_ball=true` 时才构造包含融球 Theme 的请求级
+   视图；关闭时移除所有
    `fusionBallStyle` Theme 及其首层规则和场景索引。
 6. 建立字段 Search 索引，供 `retrieve_template_variants()` 查找可覆盖候选。
 
