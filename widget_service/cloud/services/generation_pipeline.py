@@ -150,6 +150,7 @@ class DesignCompactProcessor:
                 source_dsl,
                 size=context.size,
                 protocol_profile=design_protocol,
+                app_version=str(context.task_spec.get("appVersion") or "0"),
             )
             standard_dsl = repair_repeated_display_units(
                 standard_dsl,
