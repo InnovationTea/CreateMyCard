@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -25,7 +25,9 @@ def load_tasks(path: Path) -> list[dict[str, Any]]:
     return payload
 
 
-def select_tasks(tasks: list[dict[str, Any]], *, task_id: str | None, index: int | None, run_all: bool) -> list[dict[str, Any]]:
+def select_tasks(
+    tasks: list[dict[str, Any]], *, task_id: str | None, index: int | None, run_all: bool
+) -> list[dict[str, Any]]:
     if run_all:
         return tasks
     if task_id is not None:
@@ -39,14 +41,14 @@ def select_tasks(tasks: list[dict[str, Any]], *, task_id: str | None, index: int
     return [tasks[selected_index]]
 
 
-def component_name(task: dict[str, Any], fallback_index: int) -> str:
+def build_component_name(task: dict[str, Any], fallback_index: int) -> str:
     raw = str(task.get("id", fallback_index)).strip() or str(fallback_index)
     safe = re.sub(r"[^A-Za-z0-9_$]+", "_", raw).strip("_") or str(fallback_index)
     return f"CardGenerated_{safe}"
 
 
 def create_run_dir(output_root: Path, run_id: str | None = None) -> tuple[str, Path]:
-    resolved_id = run_id or datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
+    resolved_id = run_id or datetime.now(UTC).astimezone().strftime("%Y%m%d-%H%M%S")
     if resolved_id in {".", ".."} or not re.fullmatch(r"[A-Za-z0-9._-]+", resolved_id):
         raise ValueError("run_id may contain only letters, numbers, dot, underscore and hyphen")
     target = output_root.resolve() / resolved_id
@@ -61,9 +63,7 @@ def preview_template_components(template_path: Path = DEFAULT_TEMPLATE) -> froze
     source = template_path.read_text(encoding="utf-8")
     match = TEMPLATE_COMPONENTS_PATTERN.search(source)
     if not match:
-        raise ValueError(
-            "template.html must destructure window.ClawWidgetDesignSystem for generated JSX"
-        )
+        raise ValueError("template.html must destructure window.ClawWidgetDesignSystem for generated JSX")
     names: set[str] = set()
     for entry in match.group("body").split(","):
         name = entry.strip()
@@ -75,14 +75,8 @@ def preview_template_components(template_path: Path = DEFAULT_TEMPLATE) -> froze
     return frozenset(names)
 
 
-def _wrap_expression(component_name: str, jsx: str) -> str:
-    return (
-        f"function {component_name}() {{\n"
-        "  return (\n"
-        f"{jsx.strip()}\n"
-        "  );\n"
-        "}\n"
-    )
+def _wrap_expression(generated_component_name: str, jsx: str) -> str:
+    return f"function {generated_component_name}() {{\n  return (\n{jsx.strip()}\n  );\n}}\n"
 
 
 def write_rejected_card(

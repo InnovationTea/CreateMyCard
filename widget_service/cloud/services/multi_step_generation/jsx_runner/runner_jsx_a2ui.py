@@ -7,7 +7,8 @@ import asyncio
 import json
 import sys
 import time
-from datetime import datetime
+from datetime import UTC, datetime
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -33,7 +34,7 @@ from services.multi_step_generation.jsx_runner.agent import (  # noqa: E402
     JsxA2UIAgent,
 )
 from services.multi_step_generation.jsx_runner.artifacts import (  # noqa: E402
-    component_name,
+    build_component_name,
     create_run_dir,
     load_tasks,
     preview_template_components,
@@ -64,6 +65,55 @@ from services.multi_step_generation.jsx_runner.resources import (  # noqa: E402
     generation_contract_sync_errors,
     generatable_contracts,
 )
+
+
+def _persist_current_trace(
+    *,
+    traces_path: Path,
+    traces: list[dict[str, Any]],
+    task_trace_path: Path,
+    trace_entry: dict[str, Any],
+) -> None:
+    """Keep the aggregate trace and one card's standalone trace in sync."""
+    write_json(traces_path, traces)
+    write_json(task_trace_path, trace_entry)
+
+
+def _checkpoint_trace(
+    update: dict[str, Any],
+    *,
+    traces_path: Path,
+    traces: list[dict[str, Any]],
+    task_trace_path: Path,
+    trace_entry: dict[str, Any],
+    generated_component_name: str,
+    task: dict[str, Any],
+    run_dir: Path,
+) -> None:
+    """Persist one trace update without closing over loop variables."""
+    for turn_record in update.get("turn_trace", []):
+        rejected_jsx = turn_record.get("rejected_jsx")
+        if not isinstance(rejected_jsx, str) or "rejected_artifacts" in turn_record:
+            continue
+        try:
+            turn_record["rejected_artifacts"] = write_rejected_card(
+                jsx=rejected_jsx,
+                component_name=generated_component_name,
+                turn=int(turn_record.get("turn", 0)),
+                task=task,
+                run_dir=run_dir,
+            )
+        except Exception as exc:
+            # Preview persistence is diagnostic and must not mask the original
+            # validation result or stop the generation loop.
+            turn_record["rejected_artifact_error"] = f"{type(exc).__name__}: {exc}"
+    trace_entry.update(update)
+    _persist_current_trace(
+        traces_path=traces_path,
+        traces=traces,
+        task_trace_path=task_trace_path,
+        trace_entry=trace_entry,
+    )
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -128,10 +178,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     validation_group.add_argument(
         "--no-validation",
         action="store_true",
-        help=(
-            "跳过 Runner 静态/浏览器校验，并禁止失败后的模型修复重试；"
-            "仍执行生成 A2UI 所必需的 JSX 解析和转换。"
-        ),
+        help=("跳过 Runner 静态/浏览器校验，并禁止失败后的模型修复重试；仍执行生成 A2UI 所必需的 JSX 解析和转换。"),
     )
     parser.set_defaults(with_browser_validation=True)
     layout_budget_group = parser.add_mutually_exclusive_group()
@@ -194,14 +241,9 @@ def preflight(
         missing.extend(browser_runtime_missing_files())
     if missing:
         raise FileNotFoundError("缺少生成资源：\n" + "\n".join(str(path) for path in missing))
-    missing_template_components = sorted(
-        set(generatable_contracts()) - preview_template_components()
-    )
+    missing_template_components = sorted(set(generatable_contracts()) - preview_template_components())
     if missing_template_components:
-        raise ValueError(
-            "template.html 未向生成 JSX 注册以下组件："
-            + ", ".join(missing_template_components)
-        )
+        raise ValueError("template.html 未向生成 JSX 注册以下组件：" + ", ".join(missing_template_components))
     contract_errors = generation_contract_sync_errors()
     if contract_errors:
         raise ValueError("Runtime 与 JSX→A2UI 合同不同步：\n" + "\n".join(contract_errors))
@@ -210,9 +252,7 @@ def preflight(
 async def async_main(args: argparse.Namespace) -> int:
     validation_enabled = not args.no_validation
     browser_validation = validation_enabled and args.with_browser_validation
-    layout_budget_validation = (
-        validation_enabled and not args.no_layout_budget_validation
-    )
+    layout_budget_validation = validation_enabled and not args.no_layout_budget_validation
     preflight(
         args.input,
         args.context,
@@ -239,10 +279,7 @@ async def async_main(args: argparse.Namespace) -> int:
             raise ValueError("raw task 输入不应指定 --context；Runner 会直接在内存中拆分。")
         context_records = load_tasks(args.context.resolve())
         if len(context_records) != len(loaded_tasks):
-            raise ValueError(
-                "模型输入与私有上下文条数不一致："
-                f"{len(loaded_tasks)} != {len(context_records)}。"
-            )
+            raise ValueError(f"模型输入与私有上下文条数不一致：{len(loaded_tasks)} != {len(context_records)}。")
         selected_contexts = [context_records[index - 1] for index in source_indices]
         prepared_tasks = prepare_tasks_from_views(
             selected_tasks,
@@ -250,11 +287,7 @@ async def async_main(args: argparse.Namespace) -> int:
             source_indices=source_indices,
         )
     else:
-        prepared_tasks = [
-            prepare_task(task, source_index)
-            for source_index, task in selected_records
-        ]
-    prompt_tasks = [prepared.prompt_task for prepared in prepared_tasks]
+        prepared_tasks = [prepare_task(task, source_index) for source_index, task in selected_records]
     if preprocessed_tasks and not args.quiet:
         print(
             f"[Input] 已在内存中预处理 {preprocessed_tasks}/{len(selected_tasks)} 条已选 raw task，"
@@ -262,18 +295,24 @@ async def async_main(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
     if args.check:
-        print(json.dumps({
-            "ok": True,
-            "input": str(args.input.resolve()),
-            "loadedTasks": len(loaded_tasks),
-            "selectedTasks": len(prepared_tasks),
-            "preprocessedTasks": preprocessed_tasks,
-            "generatableComponents": sorted(generatable_contracts()),
-        }, ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                {
+                    "ok": True,
+                    "input": str(args.input.resolve()),
+                    "loadedTasks": len(loaded_tasks),
+                    "selectedTasks": len(prepared_tasks),
+                    "preprocessedTasks": preprocessed_tasks,
+                    "generatableComponents": sorted(generatable_contracts()),
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
         return 0
     tasks = prepared_tasks
     task_names = [
-        component_name(prepared.prompt_task, prepared.source_index or index)
+        build_component_name(prepared.prompt_task, prepared.source_index or index)
         for index, prepared in enumerate(tasks, start=1)
     ]
     duplicate_names = sorted({name for name in task_names if task_names.count(name) > 1})
@@ -295,7 +334,7 @@ async def async_main(args: argparse.Namespace) -> int:
     bridge = JsxA2UIBridge(options=bridge_options)
     agent = bridge.create_agent(agent_factory=JsxA2UIAgent)
     run_id, run_dir = create_run_dir(args.output_dir, args.run_id)
-    run_started_at = datetime.now().astimezone()
+    run_started_at = datetime.now(UTC).astimezone()
     run_started_monotonic = time.monotonic()
     manifest: dict[str, Any] = {
         "runId": run_id,
@@ -312,11 +351,7 @@ async def async_main(args: argparse.Namespace) -> int:
         "browserValidationEnabled": browser_validation,
         "layoutBudgetValidationEnabled": layout_budget_validation,
         "validationMode": (
-            "disabled"
-            if not validation_enabled
-            else "browser"
-            if browser_validation
-            else "static-only"
+            "disabled" if not validation_enabled else "browser" if browser_validation else "static-only"
         ),
         "continueOnError": args.continue_on_error,
         "dynamicValueValidationEnabled": not args.skip_dynamic_value_validation,
@@ -371,7 +406,7 @@ async def async_main(args: argparse.Namespace) -> int:
         task = prepared.prompt_task
         compile_context = prepared.compile_context
         source_index = prepared.source_index or index
-        name = component_name(task, source_index)
+        name = build_component_name(task, source_index)
         task_id = task.get("id", source_index)
         task_started = time.monotonic()
         manifest["attemptedTasks"] = int(manifest["attemptedTasks"]) + 1
@@ -389,33 +424,23 @@ async def async_main(args: argparse.Namespace) -> int:
         traces.append(trace_entry)
         task_trace_path = run_dir / "jsx" / f"{name}.trace.json"
 
-        def persist_current_trace() -> None:
-            """Keep the aggregate trace and this card's standalone trace in sync."""
-            write_json(traces_path, traces)
-            write_json(task_trace_path, trace_entry)
-
         write_json(manifest_path, manifest)
-        persist_current_trace()
-
-        def checkpoint_trace(update: dict[str, Any]) -> None:
-            for turn_record in update.get("turn_trace", []):
-                rejected_jsx = turn_record.get("rejected_jsx")
-                if not isinstance(rejected_jsx, str) or "rejected_artifacts" in turn_record:
-                    continue
-                try:
-                    turn_record["rejected_artifacts"] = write_rejected_card(
-                        jsx=rejected_jsx,
-                        component_name=name,
-                        turn=int(turn_record.get("turn", 0)),
-                        task=task,
-                        run_dir=run_dir,
-                    )
-                except Exception as exc:
-                    # Preview persistence is diagnostic and must not mask the
-                    # original validation result or stop the generation loop.
-                    turn_record["rejected_artifact_error"] = f"{type(exc).__name__}: {exc}"
-            trace_entry.update(update)
-            persist_current_trace()
+        _persist_current_trace(
+            traces_path=traces_path,
+            traces=traces,
+            task_trace_path=task_trace_path,
+            trace_entry=trace_entry,
+        )
+        checkpoint_trace = partial(
+            _checkpoint_trace,
+            traces_path=traces_path,
+            traces=traces,
+            task_trace_path=task_trace_path,
+            trace_entry=trace_entry,
+            generated_component_name=name,
+            task=task,
+            run_dir=run_dir,
+        )
 
         print(f"[{index}/{len(tasks)}] 生成 {name}...", file=sys.stderr)
         try:
@@ -442,27 +467,34 @@ async def async_main(args: argparse.Namespace) -> int:
             manifest["failedTasks"] = int(manifest["failedTasks"]) + 1
             manifest["failures"].append(failure)
             manifest["status"] = "running_with_failures" if args.continue_on_error else "failed"
-            trace_entry.update({
-                "task": task,
-                "status": "failed",
-                "task_id": task_id,
-                "component_name": name,
-                "error_type": type(exc).__name__,
-                "error": str(exc),
-                "elapsed_seconds": failure["elapsedSeconds"],
-                "loaded_resources": loaded_resources or [],
-                "resource_reads": resource_reads or [],
-                "turn_trace": getattr(exc, "turn_trace", []),
-                "validation_reports": getattr(exc, "validation_reports", []),
-            })
+            trace_entry.update(
+                {
+                    "task": task,
+                    "status": "failed",
+                    "task_id": task_id,
+                    "component_name": name,
+                    "error_type": type(exc).__name__,
+                    "error": str(exc),
+                    "elapsed_seconds": failure["elapsedSeconds"],
+                    "loaded_resources": loaded_resources or [],
+                    "resource_reads": resource_reads or [],
+                    "turn_trace": getattr(exc, "turn_trace", []),
+                    "validation_reports": getattr(exc, "validation_reports", []),
+                }
+            )
             write_json(manifest_path, manifest)
-            persist_current_trace()
+            _persist_current_trace(
+                traces_path=traces_path,
+                traces=traces,
+                task_trace_path=task_trace_path,
+                trace_entry=trace_entry,
+            )
             print(
                 json.dumps({"runId": run_id, **failure, "runDir": str(run_dir)}, ensure_ascii=False),
                 file=sys.stderr,
             )
             if not args.continue_on_error:
-                manifest["finishedAt"] = datetime.now().astimezone().isoformat()
+                manifest["finishedAt"] = datetime.now(UTC).astimezone().isoformat()
                 manifest["elapsedSeconds"] = round(time.monotonic() - run_started_monotonic, 2)
                 write_json(manifest_path, manifest)
                 persist_summary()
@@ -499,29 +531,29 @@ async def async_main(args: argparse.Namespace) -> int:
         }
         manifest["cards"].append(card_entry)
         task_elapsed_seconds = round(time.monotonic() - task_started, 2)
-        trace_entry.update({
-            "task": task,
-            "status": card_status,
-            **{key: value for key, value in result.items() if key not in {"source", "jsx", "a2ui"}},
-            "agent_elapsed_seconds": result.get("elapsed_seconds"),
-            "elapsed_seconds": task_elapsed_seconds,
-        })
+        trace_entry.update(
+            {
+                "task": task,
+                "status": card_status,
+                **{key: value for key, value in result.items() if key not in {"source", "jsx", "a2ui"}},
+                "agent_elapsed_seconds": result.get("elapsed_seconds"),
+                "elapsed_seconds": task_elapsed_seconds,
+            }
+        )
         write_json(manifest_path, manifest)
-        persist_current_trace()
+        _persist_current_trace(
+            traces_path=traces_path,
+            traces=traces,
+            task_trace_path=task_trace_path,
+            trace_entry=trace_entry,
+        )
         print(json.dumps({"runId": run_id, **card_entry, "runDir": str(run_dir)}, ensure_ascii=False))
 
-    has_warnings = any(
-        int(manifest[key])
-        for key in ("partialTasks", "insufficientInputTasks", "unverifiedTasks")
-    )
+    has_warnings = any(int(manifest[key]) for key in ("partialTasks", "insufficientInputTasks", "unverifiedTasks"))
     manifest["status"] = (
-        "partial_failed"
-        if manifest["failedTasks"]
-        else "completed_with_warnings"
-        if has_warnings
-        else "completed"
+        "partial_failed" if manifest["failedTasks"] else "completed_with_warnings" if has_warnings else "completed"
     )
-    manifest["finishedAt"] = datetime.now().astimezone().isoformat()
+    manifest["finishedAt"] = datetime.now(UTC).astimezone().isoformat()
     manifest["elapsedSeconds"] = round(time.monotonic() - run_started_monotonic, 2)
     write_json(manifest_path, manifest)
     write_json(traces_path, traces)

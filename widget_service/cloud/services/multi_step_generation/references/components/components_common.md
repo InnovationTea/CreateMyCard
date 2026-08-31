@@ -265,7 +265,7 @@
 | `value-color` | `font-primary` | 核心数值字色 |
 | `unit-typography` | Caption_L / 12px / Regular 400 / 18px | 单位字体规格 |
 | `unit-color` | `font-secondary` | 单位字色 |
-| `align-items` | `flex-end` | 数值与单位按行盒底部对齐；`ProgressLine2` 在自身固定 47vp 数值槽中继续使用 baseline 对齐 |
+| `align-items` | `flex-end` | 独立组件中数值与单位按行盒底部对齐；`ProgressLine2` 使用紧凑单位行盒做 baseline 对齐，但不额外扩大数值行盒 |
 | `gap` | 2px | 数值与单位、单位与下一组数值之间的水平间距 |
 | `temperature-format` | `26°` | 数值和 `°` 作为整体采用 38px Bold 样式 |
 | `description-slot` | 无 | 数值和可选单位就是全部信息 |
@@ -298,6 +298,25 @@
     },
   }}
 />
+```
+
+#### 同级 EmphasisText 的横向组合
+
+`EmphasisText` 自身始终保持“主文本在上、次文本在下”的纵向结构；多个 `EmphasisText` 之间的排列由外层 `Stack` 决定。恰好有两个同级短数据／状态，并且两者自然宽度加 8vp 间距不超过 120vp 时，优先横向排列，避免纵排占用双倍高度。父 `Stack` 必须显式写 `direction="row"`；省略时 runtime 默认使用 `direction="column"`，两个组件会纵排。使用 `minWidth={0}` 保证内容受槽位约束，使用 `justify="between"` 分配剩余横向空间：
+
+```jsx
+<Stack direction="row" width={120} minWidth={0} minHeight={0} gap={8} align="center" justify="between">
+  <EmphasisText
+    mainText="6200"
+    secondaryText="今日步数"
+    dataIds={{ mainText: "healthSport.dailySteps" }}
+  />
+  <EmphasisText
+    mainText="良好"
+    secondaryText="昨晚睡眠"
+    dataIds={{ mainText: "healthSport.sleepStatus" }}
+  />
+</Stack>
 ```
 
 #### 组件样式
@@ -769,9 +788,10 @@ ProgressCircle 分支仍使用同一槽位结构。`unit` 和静态说明不绑�
 | `flex-direction` | `column` | 按 `EmphasizedData + Track/Bar` 纵向排列 |
 | `width` | `100%` | 撑满所在模块 |
 | `min-width` | `0` | 避免处于 flex 内容区时按内容收缩 |
-| `emphasized-data-min-height` | 47px | 固定 ProgressLine2 内数值区域的最小高度 |
-| `emphasized-data-transform` | `translateY(3.5px)` | 去除数字行盒底部约 3.5px 的视觉留白 |
-| `value-line-height` | 47px | ProgressLine2 内 `EmphasizedData` 数值行高 |
+| `emphasized-data-min-height` | `0` | 不为 ProgressLine2 内数值区域增加额外固定高度 |
+| `emphasized-data-transform` | `translateY(3px)` | 保持 38px 逻辑行盒不变，仅抵消字体底部约 3px 的视觉留白 |
+| `value-line-height` | `1` | 与独立 `EmphasizedData` 保持一致，行盒高度不超过 38px 字号高度 |
+| `unit-line-height` | `1` | 将单位行盒收紧到 12px，并与核心数值按 baseline 对齐 |
 | `vertical-gap` | 8vp | `EmphasizedData` 与 Bar 的垂直间距 |
 | `glyph-to-bar-gap` | 8vp | 数字字形底部到 Bar 顶部的目标视觉间距 |
 | `track-height` | 8vp | Track 固定高度 |
@@ -1008,6 +1028,19 @@ ProgressCircle 分支仍使用同一槽位结构。`unit` 和静态说明不绑�
 />
 ```
 
+同时展示两个同级占比值时，两个 `ProgressCircle` 必须放入占满完整可用宽度的横向父 `Stack`。父容器使用 `direction="row"` 横排、`align="center"` 控制垂直居中，并使用 `justify="between"` 分配剩余横向空间：
+
+```jsx
+<Stack direction="row" width={120} minWidth={0} minHeight={0} gap={8} align="center" justify="between">
+  <ProgressCircle
+    ...
+  />
+  <ProgressCircle
+    ...
+  />
+</Stack>
+```
+
 #### 布局约束（非 ProgressCircle Props）
 
 同时展示多个占比值时，每个 `ProgressCircle` 放入当前尺寸 Layout Pattern 分配的独立槽位并水平、垂直居中。数量、网格结构和操作区由当前尺寸的布局文档决定；组件章节不重复声明另一尺寸的布局。
@@ -1223,10 +1256,10 @@ EventCard 不提供业务 `width` Prop，也不根据绑定后的文本长度临
 
 #### 布局约束（非 PillButton Props）
 
-- runtime 几何规格固定为 136 × 36vp、圆角 30vp；组件自身不设置定位。
+- runtime 默认几何规格为 136 × 36vp、圆角 30vp；组件自身不设置定位。位于 `surface="backplate"` 内时，按钮固定使用 120 × 36vp，并在背板内容区中水平居中。
 - 2×2 中由对应 Layout Pattern 提供 136 × 36vp 操作槽。
 - 2×4 中某个语义组／操作区域只有一个 Action 时使用 `PillButton`，外层必须把它放入该语义组所属的左或右半卡区域；按钮不得横跨 296vp 安全内容区。
-- 2×4 半卡父区通常宽 144vp，`PillButton` 保持自身 136vp 固定宽度，由父区负责左对齐、右对齐或居中；不得通过未知 Prop 或样式把按钮拉伸到 144vp 或 296vp。
+- 2×4 透明半卡父区通常宽 144vp，`PillButton` 保持 136vp 默认宽度，由父区负责左对齐、右对齐或居中。Type 13 背板内按钮槽必须写成 `width="full"`，runtime 将按钮固定为 120vp 并水平居中；不得继续在背板内使用 `width={136}` 的按钮槽，也不得通过未知 Prop 或样式把按钮拉伸到 144vp 或 296vp。
 - 如果卡片其他组件已经使用相同 Icon，按钮内省略重复 Icon，只保留文本标签。
 
 2×4 单 Action 示例：
@@ -1253,7 +1286,7 @@ EventCard 不提供业务 `width` Prop，也不根据绑定后的文本长度临
 
 | 样式属性 | 值 | 说明 |
 |---|---|---|
-| `size` | 136 × 36vp | runtime 固定尺寸；2×4 中也不拉伸为整卡宽度 |
+| `size` | 默认 136 × 36vp；Type 13 背板内 120 × 36vp | 背板内通过 runtime 上下文样式自动切换并水平居中；不新增尺寸 Prop，也不拉伸为整卡宽度 |
 | `padding-inline-catalog` | 12px | 普通 catalog 模式的水平内边距 |
 | `padding-card` | 0 | `appearance="card"` 时由固定容器负责内容布局 |
 | `border-radius` | 30vp | runtime 固定圆角 |

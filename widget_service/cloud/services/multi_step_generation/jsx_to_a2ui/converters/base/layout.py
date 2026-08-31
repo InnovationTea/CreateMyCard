@@ -31,7 +31,15 @@ def orient_child_flex_basis(
             converted.styles.pop("height")
 
 
-def row(ctx: ConversionContext, hint: str, children: list[A2UINode | None], *, gap: int | float | None = 0, styles: dict[str, Any] | None = None, props: dict[str, Any] | None = None) -> A2UINode:
+def row(
+    ctx: ConversionContext,
+    hint: str,
+    children: list[A2UINode | None],
+    *,
+    gap: int | float | None = 0,
+    styles: dict[str, Any] | None = None,
+    props: dict[str, Any] | None = None,
+) -> A2UINode:
     _explicit_child_weights(children)
     values = dict(props or {})
     # The Form catalog defaults Row.itemMargin to 16vp.  Emit zero
@@ -41,7 +49,15 @@ def row(ctx: ConversionContext, hint: str, children: list[A2UINode | None], *, g
     return ctx.make("Row", hint, props=values, styles=styles, children=children)
 
 
-def column(ctx: ConversionContext, hint: str, children: list[A2UINode | None], *, gap: int | float | None = 0, styles: dict[str, Any] | None = None, props: dict[str, Any] | None = None) -> A2UINode:
+def column(
+    ctx: ConversionContext,
+    hint: str,
+    children: list[A2UINode | None],
+    *,
+    gap: int | float | None = 0,
+    styles: dict[str, Any] | None = None,
+    props: dict[str, Any] | None = None,
+) -> A2UINode:
     _explicit_child_weights(children)
     values = dict(props or {})
     # Column.itemMargin defaults to 8vp, so omission is not equivalent to 0.
@@ -50,7 +66,15 @@ def column(ctx: ConversionContext, hint: str, children: list[A2UINode | None], *
     return ctx.make("Column", hint, props=values, styles=styles, children=children)
 
 
-def stack(ctx: ConversionContext, hint: str, children: list[A2UINode | None], *, align: str = "center", styles: dict[str, Any] | None = None, props: dict[str, Any] | None = None) -> A2UINode:
+def stack(
+    ctx: ConversionContext,
+    hint: str,
+    children: list[A2UINode | None],
+    *,
+    align: str = "center",
+    styles: dict[str, Any] | None = None,
+    props: dict[str, Any] | None = None,
+) -> A2UINode:
     values = dict(styles or {})
     values.setdefault("alignContent", align)
     return ctx.make("Stack", hint, props=props, styles=values, children=children)

@@ -44,7 +44,16 @@ def convert_progress_line_bar(node: JSXElement, ctx: ConversionContext) -> A2UIN
         bar_color = "#FFFFFFFF" if dark else "#FF0A59F7"
     else:
         bar_color = palette(ctx).primary if raw_bar_color == "var(--card-primary)" else normalize_color(raw_bar_color)
-    bar = progress(ctx, "progress_bar", ctx.prop(node, "currentValue"), ctx.prop(node, "totalValue"), kind="linear", color=bar_color, stroke_width=8, styles={"width": "matchParent", "height": 8, "backgroundColor": track_color})
+    bar = progress(
+        ctx,
+        "progress_bar",
+        ctx.prop(node, "currentValue"),
+        ctx.prop(node, "totalValue"),
+        kind="linear",
+        color=bar_color,
+        stroke_width=8,
+        styles={"width": "matchParent", "height": 8, "backgroundColor": track_color},
+    )
     display_node = node
     if node.props.get("value") is None and node.props.get("items") is None:
         current = node.props.get("currentValue", 0)
@@ -66,16 +75,29 @@ def convert_progress_line_bar(node: JSXElement, ctx: ConversionContext) -> A2UIN
                 raise ValidationError(_DYNAMIC_DISPLAY_ERROR)
         else:
             percent = 0
-            if isinstance(current, (int, float)) and not isinstance(current, bool) and isinstance(total, (int, float)) and not isinstance(total, bool) and total > 0:
+            current_is_number = isinstance(current, int | float) and not isinstance(current, bool)
+            total_is_positive_number = (
+                isinstance(total, int | float)
+                and not isinstance(total, bool)
+                and total > 0
+            )
+            if current_is_number and total_is_positive_number:
                 percent = math.trunc(max(0, min(100, current / total * 100)))
             display_node = JSXElement("EmphasizedData", {"value": percent, "unit": "%"})
-    # ProgressLine2 gives its emphasized value a 47vp line box.  Keep the
-    # ordinary EmphasizedData geometry (38vp) unchanged elsewhere.
+    # ProgressLine2 keeps the ordinary 38vp value line box and tightens the
+    # unit to its 12vp font box. A2UI has no baseline alignment mode, so the
+    # supported bottom alignment is the closest deterministic equivalent.
     data = convert_emphasized_data(
         display_node,
         ctx,
-        value_height=47,
-        unit_height=None,
-        unit_bottom_inset=8,
+        value_height=38,
+        unit_height=12,
+        unit_bottom_inset=0,
     )
-    return column(ctx, "progress_value_above", [data, bar], gap=8, styles={"width": "matchParent", "alignItems": "start"})
+    return column(
+        ctx,
+        "progress_value_above",
+        [data, bar],
+        gap=8,
+        styles={"width": "matchParent", "alignItems": "start"},
+    )

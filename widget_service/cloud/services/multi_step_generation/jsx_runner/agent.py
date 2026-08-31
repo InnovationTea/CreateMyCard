@@ -52,9 +52,12 @@ def _is_tool_choice_compatibility_error(exc: Exception) -> bool:
         "named function",
         "function calling",
     )
-    return status_code in {400, 422} and any(
-        marker in message for marker in compatibility_markers
-    )
+    if status_code not in {400, 422}:
+        return False
+    for marker in compatibility_markers:
+        if marker in message:
+            return True
+    return False
 
 
 def _reasoning_content(message: Any) -> str:
@@ -81,8 +84,7 @@ def _assistant_payload(message: Any) -> dict[str, Any]:
     tool_calls = getattr(message, "tool_calls", None)
     if tool_calls:
         payload["tool_calls"] = [
-            call.model_dump(exclude_none=True) if hasattr(call, "model_dump") else call
-            for call in tool_calls
+            call.model_dump(exclude_none=True) if hasattr(call, "model_dump") else call for call in tool_calls
         ]
     return payload
 
@@ -149,9 +151,7 @@ def _usage_payload(response: Any) -> dict[str, Any] | None:
         if isinstance(completion_details, dict):
             result["completion_tokens_details"] = completion_details
         elif hasattr(completion_details, "model_dump"):
-            result["completion_tokens_details"] = completion_details.model_dump(
-                exclude_none=True
-            )
+            result["completion_tokens_details"] = completion_details.model_dump(exclude_none=True)
     return result or None
 
 
@@ -249,10 +249,7 @@ class JsxA2UIAgent:
         client: Any | None = None,
     ) -> None:
         if client is None:
-            raise RuntimeError(
-                "JsxA2UIAgent 必须由平台 Bridge 注入模型客户端；"
-                "不支持独立 MODEL_* 或直连 OpenAI 配置"
-            )
+            raise RuntimeError("JsxA2UIAgent 必须由平台 Bridge 注入模型客户端；不支持独立 MODEL_* 或直连 OpenAI 配置")
         mode = str(thinking_mode).lower()
         if mode not in THINKING_MODES:
             raise ValueError(f"不支持的 thinking mode：{thinking_mode!r}")
@@ -300,14 +297,8 @@ class JsxA2UIAgent:
     ) -> dict[str, Any]:
         validation_enabled = getattr(self, "validation_enabled", True)
         submit_mode = getattr(self, "submit_mode", "direct")
-        browser_validation = (
-            validation_enabled
-            and getattr(self, "browser_validation", False)
-        )
-        layout_budget_validation = (
-            validation_enabled
-            and getattr(self, "layout_budget_validation", True)
-        )
+        browser_validation = validation_enabled and getattr(self, "browser_validation", False)
+        layout_budget_validation = validation_enabled and getattr(self, "layout_budget_validation", True)
         state = OrderedWorkflowState(
             component_name,
             compile_context=compile_context,
@@ -345,14 +336,16 @@ class JsxA2UIAgent:
         def checkpoint() -> None:
             if trace_callback is None:
                 return
-            trace_callback({
-                "status": "running",
-                "loaded_resources": list(state.loaded_resources),
-                "resource_reads": list(state.resource_reads),
-                "reasoning_trace": reasoning_trace,
-                "turn_trace": turn_trace,
-                "validation_reports": validation_reports,
-            })
+            trace_callback(
+                {
+                    "status": "running",
+                    "loaded_resources": list(state.loaded_resources),
+                    "resource_reads": list(state.resource_reads),
+                    "reasoning_trace": reasoning_trace,
+                    "turn_trace": turn_trace,
+                    "validation_reports": validation_reports,
+                }
+            )
 
         self._log(
             f"[JSX Agent] provider={self.provider}，model={self.model}，"
@@ -368,25 +361,13 @@ class JsxA2UIAgent:
         for turn in range(1, self.max_turns + 1):
             if repair_pending:
                 repair_calls += 1
-            expected_target = (
-                state.expected_stage.key
-                if state.expected_stage is not None
-                else "submit_card_jsx"
-            )
-            expected_tool = (
-                "read_generation_resource"
-                if state.expected_stage is not None
-                else "submit_card_jsx"
-            )
+            expected_target = state.expected_stage.key if state.expected_stage is not None else "submit_card_jsx"
+            expected_tool = "read_generation_resource" if state.expected_stage is not None else "submit_card_jsx"
             directive = _stage_directive(expected_tool) if submit_mode == "direct" else None
             if directive is not None and last_directive_target != expected_target:
                 messages.append({"role": "user", "content": directive})
                 last_directive_target = expected_target
-            expected_tools = [
-                tool
-                for tool in AGENT_TOOLS
-                if tool["function"]["name"] == expected_tool
-            ]
+            expected_tools = [tool for tool in AGENT_TOOLS if tool["function"]["name"] == expected_tool]
             request: dict[str, Any] = {
                 "model": self.model,
                 "messages": messages,
@@ -395,45 +376,29 @@ class JsxA2UIAgent:
                     "type": "function",
                     "function": {"name": expected_tool},
                 },
-                "max_tokens": (
-                    self.max_tokens
-                    if expected_tool == "submit_card_jsx"
-                    else min(self.max_tokens, 512)
-                ),
+                "max_tokens": (self.max_tokens if expected_tool == "submit_card_jsx" else min(self.max_tokens, 512)),
             }
             if expected_tool == "submit_card_jsx" and submit_mode == "auto":
                 request["tool_choice"] = "auto"
             if self.provider == "glm":
                 request["extra_body"] = {
-                    "thinking": {
-                        "type": "disabled" if self.thinking_mode == "disable" else "enabled"
-                    }
+                    "thinking": {"type": "disabled" if self.thinking_mode == "disable" else "enabled"}
                 }
             elif self.provider == "dashscope":
-                request["extra_body"] = {
-                    "enable_thinking": self.thinking_mode != "disable"
-                }
+                request["extra_body"] = {"enable_thinking": self.thinking_mode != "disable"}
                 if self.thinking_mode != "disable":
                     request["reasoning_effort"] = self.thinking_mode
             elif self.provider == "deepseek":
                 request["extra_body"] = {
-                    "thinking": {
-                        "type": "disabled" if self.thinking_mode == "disable" else "enabled"
-                    }
+                    "thinking": {"type": "disabled" if self.thinking_mode == "disable" else "enabled"}
                 }
                 # Resource reads stay on the broadly compatible auto mode. The final
                 # submission prefers a forced call so the model cannot spend thousands
                 # of visible tokens narrating before submit_card_jsx. If the endpoint
                 # rejects forced tool choice, the request loop falls back once and
                 # caches auto mode for the rest of the batch.
-                forced_support = getattr(
-                    self, "_deepseek_forced_tool_choice_supported", None
-                )
-                if (
-                    expected_tool == "read_generation_resource"
-                    or submit_mode == "auto"
-                    or forced_support is False
-                ):
+                forced_support = getattr(self, "_deepseek_forced_tool_choice_supported", None)
+                if expected_tool == "read_generation_resource" or submit_mode == "auto" or forced_support is False:
                     request["tool_choice"] = "auto"
                 if self.thinking_mode != "disable":
                     request["reasoning_effort"] = self.thinking_mode
@@ -442,50 +407,49 @@ class JsxA2UIAgent:
             self._log(f"[JSX Agent {turn}/{self.max_turns}] 当前目标：{expected_target}")
             request_started = time.monotonic()
             tool_choice_fallback = False
+            is_deepseek_direct_submit = (
+                self.provider == "deepseek" and submit_mode == "direct" and expected_tool == "submit_card_jsx"
+            )
             try:
                 try:
                     response = await self._request(request, turn)
                 except Exception as exc:
-                    if (
-                        self.provider == "deepseek"
-                        and submit_mode == "direct"
-                        and expected_tool == "submit_card_jsx"
-                        and request.get("tool_choice") != "auto"
-                        and _is_tool_choice_compatibility_error(exc)
-                    ):
-                        self._deepseek_forced_tool_choice_supported = False
-                        request = {**request, "tool_choice": "auto"}
-                        tool_choice_fallback = True
-                        self._log(
-                            f"[JSX Agent {turn}/{self.max_turns}] "
-                            "当前 DeepSeek 接口不支持强制工具调用，"
-                            "已回退 tool_choice=auto；本批后续任务将复用该结果"
-                        )
-                        response = await self._request(request, turn)
+                    forced_tool_choice_requested = request.get("tool_choice") != "auto"
+                    if is_deepseek_direct_submit and forced_tool_choice_requested:
+                        if _is_tool_choice_compatibility_error(exc):
+                            self._deepseek_forced_tool_choice_supported = False
+                            request = {**request, "tool_choice": "auto"}
+                            tool_choice_fallback = True
+                            self._log(
+                                f"[JSX Agent {turn}/{self.max_turns}] "
+                                "当前 DeepSeek 接口不支持强制工具调用，"
+                                "已回退 tool_choice=auto；本批后续任务将复用该结果"
+                            )
+                            response = await self._request(request, turn)
+                        else:
+                            raise exc
                     else:
-                        raise
+                        raise exc
             except Exception as exc:
                 api_elapsed = round(time.monotonic() - request_started, 2)
-                turn_trace.append({
-                    "turn": turn,
-                    "target": expected_target,
-                    "api_elapsed_seconds": api_elapsed,
-                    "status": "request_error",
-                    "error_type": type(exc).__name__,
-                    "error": str(exc),
-                })
+                turn_trace.append(
+                    {
+                        "turn": turn,
+                        "target": expected_target,
+                        "api_elapsed_seconds": api_elapsed,
+                        "status": "request_error",
+                        "error_type": type(exc).__name__,
+                        "error": str(exc),
+                    }
+                )
                 setattr(exc, "turn_trace", turn_trace)
                 setattr(exc, "loaded_resources", list(state.loaded_resources))
                 setattr(exc, "resource_reads", list(state.resource_reads))
                 setattr(exc, "validation_reports", validation_reports)
                 raise
 
-            if (
-                self.provider == "deepseek"
-                and submit_mode == "direct"
-                and expected_tool == "submit_card_jsx"
-                and request.get("tool_choice") != "auto"
-            ):
+            forced_tool_choice_succeeded = request.get("tool_choice") != "auto"
+            if is_deepseek_direct_submit and forced_tool_choice_succeeded:
                 self._deepseek_forced_tool_choice_supported = True
 
             api_elapsed = round(time.monotonic() - request_started, 2)
@@ -495,13 +459,15 @@ class JsxA2UIAgent:
             reasoning = _reasoning_content(message)
             assistant_content = str(getattr(message, "content", "") or "")
             if reasoning:
-                reasoning_trace.append({
-                    "turn": turn,
-                    "target": expected_target,
-                    "api_elapsed_seconds": api_elapsed,
-                    "finish_reason": finish_reason,
-                    "content": str(reasoning),
-                })
+                reasoning_trace.append(
+                    {
+                        "turn": turn,
+                        "target": expected_target,
+                        "api_elapsed_seconds": api_elapsed,
+                        "finish_reason": finish_reason,
+                        "content": str(reasoning),
+                    }
+                )
             assistant_payload = _assistant_payload(message)
             messages.append(assistant_payload)
             calls = list(message.tool_calls or [])
@@ -530,8 +496,7 @@ class JsxA2UIAgent:
                     turn_record["recovery"] = "length_compaction"
                 else:
                     recovery = (
-                        f"工作流尚未完成，当前目标是 {expected_target}。"
-                        "请只调用当前阶段要求的一个工具，不要直接回答。"
+                        f"工作流尚未完成，当前目标是 {expected_target}。请只调用当前阶段要求的一个工具，不要直接回答。"
                     )
                     turn_record["recovery"] = "request_expected_tool"
                 turn_record["status"] = "no_tool_call"
@@ -573,8 +538,7 @@ class JsxA2UIAgent:
                     result = {
                         "ok": False,
                         "error": (
-                            f"expected tool {expected_tool!r} for {expected_target!r}, "
-                            f"received {function.name!r}"
+                            f"expected tool {expected_tool!r} for {expected_target!r}, received {function.name!r}"
                         ),
                     }
                 elif function.name == "submit_card_jsx" and isinstance(arguments.get("jsx"), str):
@@ -594,22 +558,23 @@ class JsxA2UIAgent:
                         {},
                     )
                     protocol_retries += 1
-                    result.update({
-                        "phase": "tool_arguments",
-                        "instruction": (
-                            "工具参数不是合法 JSON，且无法安全地在本地恢复。"
-                            "请只重新调用当前工具，保证外层 JSON 完整，并正确转义字符串。"
-                        ),
-                    })
+                    result.update(
+                        {
+                            "phase": "tool_arguments",
+                            "instruction": (
+                                "工具参数不是合法 JSON，且无法安全地在本地恢复。"
+                                "请只重新调用当前工具，保证外层 JSON 完整，并正确转义字符串。"
+                            ),
+                        }
+                    )
                     turn_record["recovery"] = "retry_invalid_tool_arguments"
                 if finish_reason == "length":
-                    result.update({
-                        "phase": "truncated_tool_call",
-                        "instruction": (
-                            "上一轮工具参数可能被长度限制截断；"
-                            "请只重新调用当前工具，并压缩参数内容。"
-                        ),
-                    })
+                    result.update(
+                        {
+                            "phase": "truncated_tool_call",
+                            "instruction": ("上一轮工具参数可能被长度限制截断；请只重新调用当前工具，并压缩参数内容。"),
+                        }
+                    )
                     turn_record["recovery"] = "retry_truncated_tool_call"
             terminal_error: RuntimeError | None = None
             browser_failure = False
@@ -617,12 +582,10 @@ class JsxA2UIAgent:
                 preservation_errors: list[dict[str, Any]] = []
                 preservation_warnings: list[dict[str, str]] = []
                 if browser_validation and browser_repair_baseline is not None:
-                    preservation_errors, preservation_warnings = (
-                        browser_repair_preservation_findings(
-                            browser_repair_baseline,
-                            state.pending_submission,
-                            compile_context,
-                        )
+                    preservation_errors, preservation_warnings = browser_repair_preservation_findings(
+                        browser_repair_baseline,
+                        state.pending_submission,
+                        compile_context,
                     )
                 try:
                     report = await validate_generated_card(
@@ -655,12 +618,10 @@ class JsxA2UIAgent:
                         }
                     validation_reports.append(report)
                     if report.get("ok"):
-                        browser_warnings = [
-                            item
-                            for item in report.get("findings", [])
-                            if isinstance(item, dict)
-                            and item.get("severity") == "warning"
-                        ]
+                        browser_warnings = []
+                        for item in report.get("findings", []):
+                            if isinstance(item, dict) and item.get("severity") == "warning":
+                                browser_warnings.append(item)
                         for warning in browser_warnings:
                             if warning not in state.pending_submission.warnings:
                                 state.pending_submission.warnings.append(warning)
@@ -677,31 +638,22 @@ class JsxA2UIAgent:
                             "validationMode": "browser" if browser_validation else "static-only",
                         }
                     else:
-                        report_errors = [
-                            item
-                            for item in report.get("findings", [])
-                            if isinstance(item, dict)
-                            and item.get("severity") != "warning"
-                        ]
+                        report_errors = []
+                        for item in report.get("findings", []):
+                            if isinstance(item, dict) and item.get("severity") != "warning":
+                                report_errors.append(item)
                         has_browser_error = any(
-                            str(item.get("code") or "").startswith("browser-")
-                            for item in report_errors
+                            str(item.get("code") or "").startswith("browser-") for item in report_errors
                         )
                         current_layout_fingerprints = browser_layout_fingerprints(report)
-                        needs_restructure, repeated_findings = (
-                            browser_layout_needs_restructure(
-                                report,
-                                previous_fingerprints=previous_layout_fingerprints,
-                            )
+                        needs_restructure, repeated_findings = browser_layout_needs_restructure(
+                            report,
+                            previous_fingerprints=previous_layout_fingerprints,
                         )
                         if current_layout_fingerprints:
                             previous_layout_fingerprints = current_layout_fingerprints
-                            structural_browser_repair = (
-                                structural_browser_repair or needs_restructure
-                            )
-                        use_structural_repair = bool(
-                            current_layout_fingerprints and structural_browser_repair
-                        )
+                            structural_browser_repair = structural_browser_repair or needs_restructure
+                        use_structural_repair = bool(current_layout_fingerprints and structural_browser_repair)
                         if has_browser_error and browser_repair_baseline is None:
                             browser_repair_baseline = state.pending_submission
                         baseline_data, baseline_actions = submission_reference_ids(
@@ -716,7 +668,9 @@ class JsxA2UIAgent:
                         phase = (
                             "duplicate_action"
                             if "duplicate-action-control" in codes
-                            else "browser_layout" if has_browser_error else "static_validation"
+                            else "browser_layout"
+                            if has_browser_error
+                            else "static_validation"
                         )
                         if has_browser_error:
                             repair_instruction = (
@@ -724,8 +678,7 @@ class JsxA2UIAgent:
                                 "一次解决 findings 中的全部冲突；可以完整省略真正可舍弃的信息，"
                                 "但不得删除交互、把动态值改成静态文本或用裁剪隐藏问题。"
                                 if use_structural_repair
-                                else
-                                "根据 findings 一次修复全部明确错误，并再次调用 submit_card_jsx；"
+                                else "根据 findings 一次修复全部明确错误，并再次调用 submit_card_jsx；"
                                 "保持现有动态绑定和交互，不要通过隐藏或删除必需信息规避问题。"
                             ) + (
                                 " 修复基线使用的 dataIds="
@@ -733,48 +686,42 @@ class JsxA2UIAgent:
                             )
                         else:
                             repair_instruction = (
-                                "根据 findings 修改 JSX，并再次调用 submit_card_jsx；"
-                                "不要通过删掉必需信息规避问题。"
+                                "根据 findings 修改 JSX，并再次调用 submit_card_jsx；不要通过删掉必需信息规避问题。"
                             )
                         result = {
                             "ok": False,
                             "phase": phase,
                             "error": (
-                                "JSX 未通过真实 React 浏览器校验"
-                                if has_browser_error
-                                else "JSX 未通过静态声明式校验"
+                                "JSX 未通过真实 React 浏览器校验" if has_browser_error else "JSX 未通过静态声明式校验"
                             ),
                             "findings": feedback,
                             "instruction": repair_instruction,
                         }
                         if has_browser_error:
-                            result["repairStrategy"] = (
-                                "structural" if use_structural_repair else "targeted"
-                            )
+                            result["repairStrategy"] = "structural" if use_structural_repair else "targeted"
                         if has_browser_error and repeated_findings:
                             result["repeatedFindings"] = repeated_findings
                         if has_browser_error:
                             browser_failure = True
                             browser_failures += 1
-                            result.update({
-                                "browserFailures": browser_failures,
-                                "remainingRepairs": max(
-                                    0,
-                                    self.max_validation_repairs - browser_failures + 1,
-                                ),
-                            })
+                            result.update(
+                                {
+                                    "browserFailures": browser_failures,
+                                    "remainingRepairs": max(
+                                        0,
+                                        self.max_validation_repairs - browser_failures + 1,
+                                    ),
+                                }
+                            )
                             if browser_failures > self.max_validation_repairs:
                                 terminal_error = RuntimeError(
                                     "JSX 浏览器校验连续失败，已用完 "
                                     f"{self.max_validation_repairs} 次修复机会；"
                                     f"最后错误：{feedback}"
                                 )
-            if (
-                function.name == "submit_card_jsx"
-                and not result.get("ok")
-                and result.get("retryable") is False
-                and terminal_error is None
-            ):
+            failed_submit = function.name == "submit_card_jsx" and not result.get("ok")
+            non_retryable_failure = result.get("retryable") is False and terminal_error is None
+            if failed_submit and non_retryable_failure:
                 terminal_error = RuntimeError(
                     "JSX 已完成转换，但转换器生成的 A2UI 未通过协议校验；"
                     "该错误不能通过重新生成 JSX 修复："
@@ -796,10 +743,12 @@ class JsxA2UIAgent:
             if repairable_failure:
                 failed_submissions += 1
                 repair_pending = True
-                result.update({
-                    "failedSubmissions": failed_submissions,
-                    "repairCalls": repair_calls,
-                })
+                result.update(
+                    {
+                        "failedSubmissions": failed_submissions,
+                        "repairCalls": repair_calls,
+                    }
+                )
                 if not browser_failure:
                     result["repairLimit"] = "max_turns"
             elif result.get("ok"):
@@ -811,34 +760,28 @@ class JsxA2UIAgent:
             if result.get("ok") and result.get("warnings"):
                 first_warning = result["warnings"][0]
                 detail = (
-                    first_warning.get("message", "warning")
-                    if isinstance(first_warning, dict)
-                    else str(first_warning)
+                    first_warning.get("message", "warning") if isinstance(first_warning, dict) else str(first_warning)
                 )
             else:
                 detail = "ok" if result.get("ok") else result.get("error")
-            self._log(
-                f"[JSX Agent {turn}/{self.max_turns}] "
-                f"{function.name} [{level}]: {detail}"
-            )
+            self._log(f"[JSX Agent {turn}/{self.max_turns}] {function.name} [{level}]: {detail}")
             if not result.get("ok"):
                 for finding_line in _tool_result_log_findings(result):
                     self._log(finding_line)
             trace_tool_result = _tool_result_summary(result)
-            if (
-                function.name == "read_generation_resource"
-                and result.get("ok")
-                and state.resource_reads
-            ):
-                trace_tool_result["source_files"] = list(
-                    state.resource_reads[-1]["source_files"]
-                )
-            turn_record.update({
-                "status": "tool_completed" if result.get("ok") else "tool_failed",
-                "tool": str(function.name),
-                "tool_result": trace_tool_result,
-            })
-            if function.name == "submit_card_jsx" and not result.get("ok") and submitted_jsx is not None:
+            if function.name == "read_generation_resource" and result.get("ok") and state.resource_reads:
+                trace_tool_result["source_files"] = list(state.resource_reads[-1]["source_files"])
+            turn_record.update(
+                {
+                    "status": "tool_completed" if result.get("ok") else "tool_failed",
+                    "tool": str(function.name),
+                    "tool_result": trace_tool_result,
+                }
+            )
+            rejected_submission = (
+                function.name == "submit_card_jsx" and not result.get("ok") and submitted_jsx is not None
+            )
+            if rejected_submission:
                 turn_record["rejected_jsx"] = submitted_jsx
             turn_trace.append(turn_record)
             checkpoint()
@@ -883,21 +826,13 @@ class JsxA2UIAgent:
                     "turn_trace": turn_trace,
                     "validation_reports": validation_reports,
                     "browser_validation": "enabled" if browser_validation else "skipped",
-                    "layout_budget_validation": (
-                        "enabled" if layout_budget_validation else "disabled"
-                    ),
+                    "layout_budget_validation": ("enabled" if layout_budget_validation else "disabled"),
                     "validation_mode": (
-                        "disabled"
-                        if not validation_enabled
-                        else "browser"
-                        if browser_validation
-                        else "static-only"
+                        "disabled" if not validation_enabled else "browser" if browser_validation else "static-only"
                     ),
                 }
 
-        error = RuntimeError(
-            f"JSX Agent 在 {self.max_turns} 轮内未完成；已读取 {state.loaded_resources}"
-        )
+        error = RuntimeError(f"JSX Agent 在 {self.max_turns} 轮内未完成；已读取 {state.loaded_resources}")
         setattr(error, "turn_trace", turn_trace)
         setattr(error, "loaded_resources", list(state.loaded_resources))
         setattr(error, "resource_reads", list(state.resource_reads))

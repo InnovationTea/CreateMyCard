@@ -22,46 +22,50 @@ _ARRAY_FIELD = r"\b{field}\s*:\s*\[(?P<values>[^]]*)\]"
 # Model-facing Card appearances follow the 0819 designer source. The browser
 # runtime supports neutral-soft only for old JSX, so it is intentionally absent
 # here. The JSX-to-A2UI appearance catalog accepts this same generated set.
-GENERATION_CARD_APPEARANCES = frozenset({
-    "blue-soft",
-    "pink-soft",
-    "yellow-soft",
-    "green-soft",
-    "cyan-soft",
-    "sunny-gradient",
-    "cloudy-gradient",
-    "slate-gradient",
-    "purple-gradient",
-    "orange-gradient",
-    "type0-gradient",
-})
+GENERATION_CARD_APPEARANCES = frozenset(
+    {
+        "blue-soft",
+        "pink-soft",
+        "yellow-soft",
+        "green-soft",
+        "cyan-soft",
+        "sunny-gradient",
+        "cloudy-gradient",
+        "slate-gradient",
+        "purple-gradient",
+        "orange-gradient",
+        "type0-gradient",
+    }
+)
 
 
 # Runtime and converter capabilities are intentionally broader than the model-facing
 # generation surface. Keep this list explicit so internal/catalog and compatibility
 # components do not become generatable merely because runtime has a contract.
-GENERATION_COMPONENTS_COMMON = frozenset({
-    "Badge",
-    "Card",
-    "DoubleLineTitle",
-    "EmphasisText",
-    "EmphasizedData",
-    "EventCard",
-    "Grid",
-    "H_BarChart",
-    "InfoBlock",
-    "NumericRatio",
-    "NumericRatioStack",
-    "PillButton",
-    "ProgressCircle",
-    "ProgressCircleSingle",
-    "ProgressLine2",
-    "SecondaryBody",
-    "SingleLineTitle",
-    "Stack",
-    "Summary",
-    "TableText",
-})
+GENERATION_COMPONENTS_COMMON = frozenset(
+    {
+        "Badge",
+        "Card",
+        "DoubleLineTitle",
+        "EmphasisText",
+        "EmphasizedData",
+        "EventCard",
+        "Grid",
+        "H_BarChart",
+        "InfoBlock",
+        "NumericRatio",
+        "NumericRatioStack",
+        "PillButton",
+        "ProgressCircle",
+        "ProgressCircleSingle",
+        "ProgressLine2",
+        "SecondaryBody",
+        "SingleLineTitle",
+        "Stack",
+        "Summary",
+        "TableText",
+    }
+)
 
 GENERATION_COMPONENTS_BY_SIZE = {
     "2x2": frozenset({"DataDisplay", "CircleButton"}),
@@ -70,33 +74,35 @@ GENERATION_COMPONENTS_BY_SIZE = {
 
 # Keep this explicit literal for the Node validator's static contract discovery.
 # Size-scoped model reads and Python submission validation use the helper below.
-GENERATION_COMPONENTS = frozenset({
-    "Badge",
-    "Card",
-    "CardButton",
-    "CircleButton",
-    "DataDisplay",
-    "DoubleLineTitle",
-    "EmphasisText",
-    "EmphasizedData",
-    "EventCard",
-    "Grid",
-    "H_BarChart",
-    "InfoBlock",
-    "NumericRatio",
-    "NumericRatioStack",
-    "PillButton",
-    "ProgressCircle",
-    "ProgressCircleSingle",
-    "ProgressLine2",
-    "SecondaryBody",
-    "SingleLineTitle",
-    "Stack",
-    "Summary",
-    "TableText",
-    "TextBlock",
-    "TopTextBottomValue",
-})
+GENERATION_COMPONENTS = frozenset(
+    {
+        "Badge",
+        "Card",
+        "CardButton",
+        "CircleButton",
+        "DataDisplay",
+        "DoubleLineTitle",
+        "EmphasisText",
+        "EmphasizedData",
+        "EventCard",
+        "Grid",
+        "H_BarChart",
+        "InfoBlock",
+        "NumericRatio",
+        "NumericRatioStack",
+        "PillButton",
+        "ProgressCircle",
+        "ProgressCircleSingle",
+        "ProgressLine2",
+        "SecondaryBody",
+        "SingleLineTitle",
+        "Stack",
+        "Summary",
+        "TableText",
+        "TextBlock",
+        "TopTextBottomValue",
+    }
+)
 
 
 def generation_components_for_size(card_size: str | None = None) -> frozenset[str]:
@@ -106,10 +112,9 @@ def generation_components_for_size(card_size: str | None = None) -> frozenset[st
         size_specific = GENERATION_COMPONENTS_BY_SIZE[card_size]
     except KeyError as exc:
         allowed = ", ".join(sorted(GENERATION_COMPONENTS_BY_SIZE))
-        raise ValueError(
-            f"unsupported task size {card_size!r}; expected one of {allowed}"
-        ) from exc
+        raise ValueError(f"unsupported task size {card_size!r}; expected one of {allowed}") from exc
     return GENERATION_COMPONENTS_COMMON | size_specific
+
 
 _GENERATION_FORBIDDEN_PROPS = {
     "Card": frozenset({"background"}),
@@ -154,18 +159,17 @@ _GENERATION_ENUM_OVERRIDES = {
         "align": frozenset({"stretch", "flex-start", "center", "flex-end"}),
     },
     "H_BarChart": {"mode": frozenset({"light", "dark"})},
-    **{
-        name: {"appearance": frozenset({"card"})}
-        for name in (
-            "ProgressCircleSingle",
-            "ProgressCircle",
-            "NumericRatio",
-            "NumericRatioStack",
-            "PillButton",
-            "CircleButton",
-        )
-    },
 }
+for _component_name in (
+    "ProgressCircleSingle",
+    "ProgressCircle",
+    "NumericRatio",
+    "NumericRatioStack",
+    "PillButton",
+    "CircleButton",
+):
+    _GENERATION_ENUM_OVERRIDES[_component_name] = {"appearance": frozenset({"card"})}
+
 
 def _quoted_values(source: str) -> set[str]:
     return set(re.findall(r'["\']([^"\']+)["\']', source))
@@ -186,9 +190,7 @@ def runtime_component_contracts(runtime_path: Path | None = None) -> dict[str, C
         fields: dict[str, frozenset[str]] = {}
         for field in ("required", "optional", "requiredOneOf"):
             values = re.search(_ARRAY_FIELD.format(field=field), body)
-            fields[field] = frozenset(
-                _quoted_values(values.group("values")) if values else set()
-            )
+            fields[field] = frozenset(_quoted_values(values.group("values")) if values else set())
         enums: dict[str, frozenset[object]] = {}
         for enum_match in re.finditer(
             r"(?:^|,)\s*(?P<name>[A-Za-z_$][\w$]*)\s*:\s*\[(?P<values>[^]]*)\]",
@@ -200,10 +202,7 @@ def runtime_component_contracts(runtime_path: Path | None = None) -> dict[str, C
             enums[name] = frozenset(_quoted_values(enum_match.group("values")))
         required = fields["required"]
         required_one_of = fields["requiredOneOf"]
-        optional = (
-            (fields["optional"] - {"children"})
-            | (set(enums) - set(required) - set(required_one_of))
-        )
+        optional = (fields["optional"] - {"children"}) | (set(enums) - set(required) - set(required_one_of))
         result[item.group("name")] = Contract(
             required=required,
             optional=frozenset(optional),
@@ -239,14 +238,8 @@ def generatable_contracts(card_size: str | None = None) -> dict[str, Contract]:
         # dataValueMaps is compiler metadata.  It is validated and consumed
         # before the visual runtime, so it need not be a DOM/runtime Prop.
         compiler_metadata = {"dataValueMaps"} if "dataIds" in runtime_props else set()
-        optional = (
-            (item.optional & (runtime_props | compiler_metadata)) - forbidden
-        ) - required
-        enums = {
-            key: values
-            for key, values in (item.enums or {}).items()
-            if key in required or key in optional
-        }
+        optional = ((item.optional & (runtime_props | compiler_metadata)) - forbidden) - required
+        enums = {key: values for key, values in (item.enums or {}).items() if key in required or key in optional}
         for key, values in _GENERATION_ENUM_OVERRIDES.get(name, {}).items():
             if key in required or key in optional:
                 enums[key] = values
@@ -275,8 +268,7 @@ def generation_contract_sync_errors() -> list[str]:
         common_overlap = set(components) & set(GENERATION_COMPONENTS_COMMON)
         if common_overlap:
             errors.append(
-                f"Card size {card_size!r} repeats common generation components: "
-                + ", ".join(sorted(common_overlap))
+                f"Card size {card_size!r} repeats common generation components: " + ", ".join(sorted(common_overlap))
             )
         scoped_components.update(components)
     size_entries = list(GENERATION_COMPONENTS_BY_SIZE.items())
@@ -305,24 +297,15 @@ def generation_contract_sync_errors() -> list[str]:
             errors.append(f"runtime contract is missing generated component {name}")
             continue
         compiler_props = set(item.required) | set(item.optional) | set(item.required_one_of)
-        runtime_props = (
-            set(runtime_item.required)
-            | set(runtime_item.optional)
-            | set(runtime_item.required_one_of)
-        )
+        runtime_props = set(runtime_item.required) | set(runtime_item.optional) | set(runtime_item.required_one_of)
         missing = runtime_props - compiler_props
-        compiler_only_metadata = {
-            "dataValueMaps"
-        } if "dataIds" in runtime_props else set()
+        compiler_only_metadata = {"dataValueMaps"} if "dataIds" in runtime_props else set()
         extra = compiler_props - runtime_props - compiler_only_metadata
         if missing:
-            errors.append(
-                f"compiler contract for {name} is missing runtime props: {', '.join(sorted(missing))}"
-            )
+            errors.append(f"compiler contract for {name} is missing runtime props: {', '.join(sorted(missing))}")
         if extra:
             errors.append(
-                f"compiler contract for {name} contains props removed from runtime: "
-                f"{', '.join(sorted(extra))}"
+                f"compiler contract for {name} contains props removed from runtime: {', '.join(sorted(extra))}"
             )
         if item.required != runtime_item.required:
             errors.append(
@@ -383,13 +366,9 @@ class GenerationResources:
     def missing_files(self) -> list[Path]:
         paths = [stage.path for stage in RESOURCE_STAGES if stage.path is not None]
         paths.append(SKILL_DIR / "references" / "components" / "components_common.md")
+        paths.extend(SKILL_DIR / "references" / "components" / f"components_{size}.md" for size in CARD_SIZE_DIMENSIONS)
         paths.extend(
-            SKILL_DIR / "references" / "components" / f"components_{size}.md"
-            for size in CARD_SIZE_DIMENSIONS
-        )
-        paths.extend(
-            SKILL_DIR / "references" / "layouts" / f"layout_patterns_{size}.md"
-            for size in CARD_SIZE_DIMENSIONS
+            SKILL_DIR / "references" / "layouts" / f"layout_patterns_{size}.md" for size in CARD_SIZE_DIMENSIONS
         )
         paths.append(SKILL_DIR / "design-system-runtime.jsx")
         return [path for path in paths if not path.exists()]
@@ -400,31 +379,32 @@ class GenerationResources:
         if stage is None:
             raise KeyError(f"unknown generation resource {key!r}")
         if key == "jsx_contract":
-            return (SKILL_DIR / "references" / "core.md",)
-        if key == "component_style":
+            files = (SKILL_DIR / "references" / "core.md",)
+        elif key == "component_style":
             resolved_size = card_size or DEFAULT_CARD_SIZE
             if resolved_size not in CARD_SIZE_DIMENSIONS:
                 allowed = ", ".join(sorted(CARD_SIZE_DIMENSIONS))
                 raise ValueError(f"unsupported task size {resolved_size!r}; expected one of {allowed}")
             component_dir = SKILL_DIR / "references" / "components"
-            return (
+            files = (
                 component_dir / "components_common.md",
                 component_dir / f"components_{resolved_size}.md",
             )
-        if key == "layout_patterns":
+        elif key == "layout_patterns":
             resolved_size = card_size or DEFAULT_CARD_SIZE
             if resolved_size not in CARD_SIZE_DIMENSIONS:
                 allowed = ", ".join(sorted(CARD_SIZE_DIMENSIONS))
                 raise ValueError(f"unsupported task size {resolved_size!r}; expected one of {allowed}")
-            return (
-                SKILL_DIR / "references" / "layouts" / f"layout_patterns_{resolved_size}.md",
-            )
-        assert stage.path is not None
-        return (stage.path,)
+            files = (SKILL_DIR / "references" / "layouts" / f"layout_patterns_{resolved_size}.md",)
+        else:
+            assert stage.path is not None
+            files = (stage.path,)
+        return files
 
     def read(self, key: str, *, card_size: str | None = None) -> str:
         source_files = self.source_files(key, card_size=card_size)
         return "\n\n".join(path.read_text(encoding="utf-8") for path in source_files)
+
 
 def iter_asset_values(value: object, *, key: str | None = None) -> Iterable[str]:
     if isinstance(value, dict):

@@ -21,7 +21,20 @@ def _colors(node: JSXElement, ctx: ConversionContext) -> tuple[str, str]:
 
 def convert_circle_button(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     background, foreground = _colors(node, ctx)
-    icon = image(ctx, "circle_button_icon", node.props["icon"], styles={"width": 20, "height": 20, "objectFit": "contain"}, fill_color=foreground)
+    icon = image(
+        ctx,
+        "circle_button_icon",
+        node.props["icon"],
+        styles={"width": 20, "height": 20, "objectFit": "contain"},
+        fill_color=foreground,
+    )
     event = ctx.action_props(node)
     props = {"accessibility": accessibility(node.props["ariaLabel"]), **event}
-    return stack(ctx, "circle_button", [icon], align="center", props=props, styles={"width": 36, "height": 36, "borderRadius": 18, "backgroundColor": background, "flexShrink": 0})
+    return stack(
+        ctx,
+        "circle_button",
+        [icon],
+        align="center",
+        props=props,
+        styles={"width": 36, "height": 36, "borderRadius": 18, "backgroundColor": background, "flexShrink": 0},
+    )

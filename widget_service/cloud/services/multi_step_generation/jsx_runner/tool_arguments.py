@@ -94,8 +94,14 @@ def _decode_opaque_string(source: str) -> str:
     output: list[str] = []
     index = 0
     escapes = {
-        '"': '"', "\\": "\\", "/": "/", "b": "\b", "f": "\f",
-        "n": "\n", "r": "\r", "t": "\t",
+        '"': '"',
+        "\\": "\\",
+        "/": "/",
+        "b": "\b",
+        "f": "\f",
+        "n": "\n",
+        "r": "\r",
+        "t": "\t",
     }
     while index < len(source):
         character = source[index]
@@ -121,24 +127,21 @@ def _decode_opaque_string(source: str) -> str:
 
 def _recover_submit_jsx(source: str) -> tuple[dict[str, Any], list[str]] | None:
     opening = re.match(r'\s*\{\s*"jsx"\s*:\s*"', source)
-    if opening is None:
-        return None
-    boundary = re.compile(
-        r'"\s*,?\s*(?P<field>"(?:decision|coverage|unmetRequirements)")\s*:'
-    )
-    for match in boundary.finditer(source, opening.end()):
-        jsx = _decode_opaque_string(source[opening.end():match.start()]).strip()
-        if not jsx.startswith("<Card") or not (
-            jsx.endswith("</Card>") or re.search(r"/\s*>$", jsx)
-        ):
-            continue
-        try:
-            tail, tail_repairs = _load_object("{" + source[match.start("field"):])
-        except (json.JSONDecodeError, TypeError):
-            continue
-        if isinstance(tail.get("decision"), dict) and "jsx" not in tail:
-            return {"jsx": jsx, **tail}, ["recovered_opaque_jsx", *tail_repairs]
-    return None
+    recovered = None
+    if opening is not None:
+        boundary = re.compile(r'"\s*,?\s*(?P<field>"(?:decision|coverage|unmetRequirements)")\s*:')
+        for match in boundary.finditer(source, opening.end()):
+            jsx = _decode_opaque_string(source[opening.end():match.start()]).strip()
+            if not jsx.startswith("<Card") or not (jsx.endswith("</Card>") or re.search(r"/\s*>$", jsx)):
+                continue
+            try:
+                tail, tail_repairs = _load_object("{" + source[match.start("field"):])
+            except (json.JSONDecodeError, TypeError):
+                continue
+            if isinstance(tail.get("decision"), dict) and "jsx" not in tail:
+                recovered = ({"jsx": jsx, **tail}, ["recovered_opaque_jsx", *tail_repairs])
+                break
+    return recovered
 
 
 def parse_tool_arguments(

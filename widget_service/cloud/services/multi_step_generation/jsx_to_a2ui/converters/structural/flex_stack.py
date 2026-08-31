@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from ...ir.a2ui_nodes import A2UINode, ConversionContext
+from ...catalog.appearances import get_appearance
 from ...exceptions import ValidationError
+from ...ir.a2ui_nodes import A2UINode, ConversionContext
 from ...parser.jsx_ast import JSXElement
 from ..base.layout import column, orient_child_flex_basis, row, stack
 
@@ -26,14 +27,21 @@ def _align(value: str | None, *, is_row: bool) -> str | None:
 
 
 def _justify(value: str | None) -> str | None:
-    return {"flex-start": "start", "flex-end": "end", "space-between": "spaceBetween", "space-around": "spaceAround", "space-evenly": "spaceEvenly", "between": "spaceBetween"}.get(value, value)
+    return {
+        "flex-start": "start",
+        "flex-end": "end",
+        "space-between": "spaceBetween",
+        "space-around": "spaceAround",
+        "space-evenly": "spaceEvenly",
+        "between": "spaceBetween",
+    }.get(value, value)
 
 
 def _dimension(value: object) -> object:
     return "matchParent" if value == "full" else value
 
 
-def _box_styles(node: JSXElement) -> dict[str, object]:
+def _box_styles(node: JSXElement, ctx: ConversionContext) -> dict[str, object]:
     styles: dict[str, object] = {}
     width = _dimension(node.props.get("width"))
     height = _dimension(node.props.get("height"))
@@ -49,26 +57,18 @@ def _box_styles(node: JSXElement) -> dict[str, object]:
         # Generated cards use a column Card. A bare basis therefore reserves
         # vertical space; explicit width/height always wins.
         styles["height"] = node.props["basis"]
-    minimums = {
-        key: value
-        for key, value in {
-            "minWidth": node.props.get("minWidth"),
-            "minHeight": node.props.get("minHeight"),
-        }.items()
-        if value is not None
-    }
+    minimums = {}
+    for key, prop_name in (("minWidth", "minWidth"), ("minHeight", "minHeight")):
+        value = node.props.get(prop_name)
+        if value is not None:
+            minimums[key] = value
     if minimums:
         styles["constraintSize"] = minimums
-    margin = {
-        key: value
-        for key, value in {
-            "top": node.props.get("mt"),
-            "right": node.props.get("mr"),
-            "bottom": node.props.get("mb"),
-            "left": node.props.get("ml"),
-        }.items()
-        if value is not None
-    }
+    margin = {}
+    for key, prop_name in (("top", "mt"), ("right", "mr"), ("bottom", "mb"), ("left", "ml")):
+        value = node.props.get(prop_name)
+        if value is not None:
+            margin[key] = value
     if margin:
         styles["margin"] = margin
     if node.props.get("alignSelf") is not None:
@@ -78,28 +78,61 @@ def _box_styles(node: JSXElement) -> dict[str, object]:
             "or use an explicit layout slot"
         )
     if node.props.get("surface") == "backplate":
-        styles.update({
-            "padding": 6,
-            "borderRadius": 8,
-            "backgroundColor": "#1AFFFFFF",
-            "clip": True,
-        })
+        appearance = get_appearance(ctx.appearance)
+        styles.update(
+            {
+                "padding": 6,
+                "borderRadius": 16,
+                "backgroundColor": (
+                    "#1AFFFFFF"
+                    if appearance.primary == "#FFFFFFFF"
+                    else "#66FFFFFF"
+                ),
+                "clip": True,
+            }
+        )
     return styles
 
 
-def _linear_stack(node: JSXElement, ctx: ConversionContext, *, styles: dict[str, object] | None = None) -> A2UINode:
+def _child_content_height(
+    node: JSXElement,
+    ctx: ConversionContext,
+) -> int | float | None:
+    """Resolve the definite containing-block height visible to child nodes."""
+    raw_height = node.props.get("height")
+    if raw_height == "full":
+        height = ctx.parent_content_height
+    elif isinstance(raw_height, int | float) and not isinstance(raw_height, bool):
+        height = raw_height
+    else:
+        height = None
+    if height is not None and node.props.get("surface") == "backplate":
+        height = max(0, height - 12)
+    return height
+
+
+def _linear_stack(
+    node: JSXElement,
+    ctx: ConversionContext,
+    *,
+    styles: dict[str, object] | None = None,
+) -> A2UINode:
     if node.props.get("wrap"):
         raise ValidationError("Stack wrap=true cannot be represented by the supported A2UI Form subset")
     direction = str(node.props.get("direction") or "column")
     is_row = direction == "row"
     source_children = node.child_elements()
-    children = [ctx.convert(child) for child in source_children]
+    child_ctx = ctx.for_children(
+        parent_content_height=_child_content_height(node, ctx),
+        enters_backplate=node.props.get("surface") == "backplate",
+    )
+    children = [child_ctx.convert(child) for child in source_children]
     orient_child_flex_basis(source_children, children, is_row=is_row)
     if node.props.get("align") in {None, "stretch"}:
         for child in children:
             child.styles.setdefault("height" if is_row else "width", "matchParent")
     layout_styles: dict[str, object] = {
-        **_box_styles(node),
+        **_box_styles(node, ctx),
         **(styles or {}),
         "alignItems": _align(node.props.get("align"), is_row=is_row) or ("top" if is_row else "start"),
         "justifyContent": _justify(node.props.get("justify")),
@@ -155,9 +188,7 @@ def collect_stack_conversion_errors(
             "or use an explicit layout slot"
         )
     if node.props.get("wrap"):
-        errors.append(
-            "Stack wrap=true cannot be represented by the supported A2UI Form subset"
-        )
+        errors.append("Stack wrap=true cannot be represented by the supported A2UI Form subset")
 
     position = node.props.get("position")
     if position == "absolute" and not allow_absolute:
@@ -188,16 +219,11 @@ def _absolute_child(node: JSXElement, ctx: ConversionContext, *, parent_width: i
         child_styles["width"] = width
     if height is not None:
         child_styles["height"] = height
-    margin = {
-        key: value
-        for key, value in {
-            "top": node.props.get("top"),
-            "right": node.props.get("right"),
-            "bottom": node.props.get("bottom"),
-            "left": node.props.get("left"),
-        }.items()
-        if value not in {None, 0}
-    }
+    margin = {}
+    for key in ("top", "right", "bottom", "left"):
+        value = node.props.get(key)
+        if value not in {None, 0}:
+            margin[key] = value
     if margin:
         child_styles["margin"] = margin
     content = _linear_stack(node, ctx, styles=child_styles)
@@ -218,20 +244,22 @@ def _relative_stack(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     # of a 160vp Card with 12vp padding.
     parent_width = _relative_extent(width, "width", ctx.card_content_width)
     parent_height = _relative_extent(height, "height", ctx.card_content_height)
+    child_ctx = ctx.for_children(
+        parent_content_height=max(
+            0,
+            parent_height - (12 if node.props.get("surface") == "backplate" else 0),
+        ),
+        enters_backplate=node.props.get("surface") == "backplate",
+    )
     children: list[A2UINode] = []
     source_children = node.child_elements()
-    flow_children = [
-        child for child in source_children
-        if child.props.get("position") != "absolute"
-    ]
+    flow_children = [child for child in source_children if child.props.get("position") != "absolute"]
     if flow_children:
         # CSS permits normal-flow and absolutely positioned children in the
         # same relative container. A2UI Stack is overlay-only, so lower the
         # normal-flow children into one full-size Row/Column layer first.
         flow_props = {
-            name: node.props[name]
-            for name in ("direction", "gap", "align", "justify", "wrap")
-            if name in node.props
+            name: node.props[name] for name in ("direction", "gap", "align", "justify", "wrap") if name in node.props
         }
         flow_props.update({"width": "full", "height": "full"})
         flow = _linear_stack(
@@ -241,20 +269,29 @@ def _relative_stack(node: JSXElement, ctx: ConversionContext) -> A2UINode:
                 children=list(flow_children),
                 offset=node.offset,
             ),
-            ctx,
+            child_ctx,
         )
-        flow.styles.update({
-            "width": "matchParent",
-            "height": "matchParent",
-            "layoutWeight": 0,
-            "flexShrink": 0,
-        })
+        flow.styles.update(
+            {
+                "width": "matchParent",
+                "height": "matchParent",
+                "layoutWeight": 0,
+                "flexShrink": 0,
+            }
+        )
         children.append(flow)
     for child in source_children:
         if child.props.get("position") != "absolute":
             continue
-        children.append(_absolute_child(child, ctx, parent_width=parent_width, parent_height=parent_height))
-    styles = _box_styles(node)
+        children.append(
+            _absolute_child(
+                child,
+                child_ctx,
+                parent_width=parent_width,
+                parent_height=parent_height,
+            )
+        )
+    styles = _box_styles(node, ctx)
     styles.setdefault("width", "matchParent")
     if node.props.get("flex") != 1:
         styles.setdefault("height", "matchParent")

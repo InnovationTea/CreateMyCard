@@ -31,19 +31,72 @@ def contract(required=(), optional=(), required_one_of=(), **enums) -> Contract:
 CONTRACTS = {
     "Card": contract(optional=("size", "appearance", "background", "padding", "direction", "gap", "align", "justify")),
     "Stack": contract(
-        optional=("direction", "gap", "align", "justify", "wrap", "flex", "basis", "width", "minWidth", "height", "minHeight", "mt", "mb", "ml", "mr", "position", "top", "right", "bottom", "left", "alignSelf", "surface"),
+        optional=(
+            "direction",
+            "gap",
+            "align",
+            "justify",
+            "wrap",
+            "flex",
+            "basis",
+            "width",
+            "minWidth",
+            "height",
+            "minHeight",
+            "mt",
+            "mb",
+            "ml",
+            "mr",
+            "position",
+            "top",
+            "right",
+            "bottom",
+            "left",
+            "alignSelf",
+            "surface",
+        ),
         direction=("column", "row"),
         align=("stretch", "flex-start", "center", "flex-end", "start", "end", "top", "bottom", "baseline"),
-        justify=("start", "center", "end", "between", "flex-start", "flex-end", "space-between", "space-around", "space-evenly"),
+        justify=(
+            "start",
+            "center",
+            "end",
+            "between",
+            "flex-start",
+            "flex-end",
+            "space-between",
+            "space-around",
+            "space-evenly",
+        ),
         position=("relative", "absolute"),
         surface=("backplate",),
     ),
-    "Grid": contract(optional=("columns", "rows", "gap", "rowGap", "columnGap", "flex", "basis", "width", "minWidth", "height", "minHeight", "align", "justify", "mt", "mb")),
+    "Grid": contract(
+        optional=(
+            "columns",
+            "rows",
+            "gap",
+            "rowGap",
+            "columnGap",
+            "flex",
+            "basis",
+            "width",
+            "minWidth",
+            "height",
+            "minHeight",
+            "align",
+            "justify",
+            "mt",
+            "mb",
+        )
+    ),
     "Icon": contract(optional=("name", "src", "size", "alt", "decorative")),
     "AppIcon": contract(optional=("name", "src", "alt")),
     "WeatherIcon": contract(optional=("name", "src", "alt")),
     "SingleLineTitle": contract(required=("title",), optional=("icon", "iconAlt", "iconFit", "invertIcon", "dataIds")),
-    "DoubleLineTitle": contract(required=("title", "secondaryInfo"), optional=("icon", "iconAlt", "iconFit", "invertIcon", "dataIds")),
+    "DoubleLineTitle": contract(
+        required=("title", "secondaryInfo"), optional=("icon", "iconAlt", "iconFit", "invertIcon", "dataIds")
+    ),
     "Badge": contract(
         required=("value",),
         optional=("color", "dataIds"),
@@ -61,7 +114,9 @@ CONTRACTS = {
     "EmphasisText": contract(required=("mainText", "secondaryText"), optional=("dataIds",)),
     "SecondaryBody": contract(optional=("separator", "dataIds"), required_one_of=("body", "items")),
     "Summary": contract(optional=("separator", "dataIds"), required_one_of=("content", "items")),
-    "WeatherSummaryCard": contract(required=("city", "temperature", "condition", "airQuality", "high", "low", "icon"), optional=("ariaLabel",)),
+    "WeatherSummaryCard": contract(
+        required=("city", "temperature", "condition", "airQuality", "high", "low", "icon"), optional=("ariaLabel",)
+    ),
     "SecondaryBodyCard": contract(required=("title", "lines"), optional=("value",)),
     "ProgressLine1": contract(
         required=("currentValue", "totalValue", "leftLabel", "rightLabel"),
@@ -73,11 +128,28 @@ CONTRACTS = {
         optional=("mode", "barColor", "value", "unit", "items", "dataIds"),
         mode=("light", "dark"),
     ),
-    "ProgressLine2WithData": contract(required=("currentValue", "totalValue", "value"), optional=("mode", "barColor", "unit", "items", "dataIds")),
+    "ProgressLine2WithData": contract(
+        required=("currentValue", "totalValue", "value"), optional=("mode", "barColor", "unit", "items", "dataIds")
+    ),
     "H_BarChart": contract(required=("items",), optional=("mode",), mode=("light", "dark")),
     "Gauge": contract(required=("value", "label"), optional=("min", "max", "mode", "dataIds"), mode=("light", "dark")),
-    "ProgressRing": contract(required=("value", "icon"), optional=("size", "strokeWidth", "trackColor", "barColor", "iconSize", "visibleOverflow", "precision", "appearance")),
-    "ProgressCircleSingle": contract(required=("value", "icon", "label"), optional=("displayValue", "secondaryLabel", "ariaLabel", "appearance", "trackColor", "barColor", "dataIds")),
+    "ProgressRing": contract(
+        required=("value", "icon"),
+        optional=(
+            "size",
+            "strokeWidth",
+            "trackColor",
+            "barColor",
+            "iconSize",
+            "visibleOverflow",
+            "precision",
+            "appearance",
+        ),
+    ),
+    "ProgressCircleSingle": contract(
+        required=("value", "icon", "label"),
+        optional=("displayValue", "secondaryLabel", "ariaLabel", "appearance", "trackColor", "barColor", "dataIds"),
+    ),
     "ProgressCircle": contract(
         required=("icon", "externalText"),
         optional=("value", "size", "density", "ariaLabel", "appearance", "trackColor", "barColor", "dataIds"),
@@ -119,9 +191,7 @@ def binding_contract_sync_errors() -> list[str]:
         if top_level and "dataIds" not in contract_props:
             errors.append(f"{tag} has top-level binding types but its contract has no dataIds")
         if top_level and "dataValueMaps" not in contract_props:
-            errors.append(
-                f"{tag} has top-level binding types but its contract has no dataValueMaps"
-            )
+            errors.append(f"{tag} has top-level binding types but its contract has no dataValueMaps")
         if item_level and "items" not in contract_props:
             errors.append(f"{tag} has item binding types but its contract has no items prop")
 
@@ -150,22 +220,16 @@ def collect_jsx_component_errors(
     names = set(node.props)
     missing = item.required - names
     if missing:
-        errors.append(
-            f"<{node.tag}> is missing required props: {', '.join(sorted(missing))}"
-        )
+        errors.append(f"<{node.tag}> is missing required props: {', '.join(sorted(missing))}")
     if item.required_one_of and not names.intersection(item.required_one_of):
         choices = ", ".join(sorted(item.required_one_of))
         errors.append(f"<{node.tag}> requires at least one of these props: {choices}")
     unknown = names - item.required - item.optional - item.required_one_of
     if unknown:
-        errors.append(
-            f"<{node.tag}> has unsupported props: {', '.join(sorted(unknown))}"
-        )
+        errors.append(f"<{node.tag}> has unsupported props: {', '.join(sorted(unknown))}")
     for name, allowed in (item.enums or {}).items():
         if name in node.props and node.props[name] not in allowed:
-            errors.append(
-                f"<{node.tag}> prop {name} has invalid value {node.props[name]!r}"
-            )
+            errors.append(f"<{node.tag}> prop {name} has invalid value {node.props[name]!r}")
     errors.extend(collect_display_prop_type_errors(node))
     return list(dict.fromkeys(errors))
 

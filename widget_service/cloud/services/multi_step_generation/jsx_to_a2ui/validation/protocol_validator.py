@@ -8,9 +8,23 @@ from ..ir.a2ui_nodes import BASE_COMPONENTS
 
 COMMON_PROPS = {"id", "component", "accessibility", "onClick"}
 COMMON_STYLES = {
-    "backgroundImageSizeWithStyle", "flexShrink", "width", "height", "constraintSize",
-    "backgroundImage", "margin", "borderRadius", "visibility", "clip", "backgroundColor",
-    "borderWidth", "borderColor", "padding", "layoutWeight", "shadow", "linearGradient",
+    "backgroundImageSizeWithStyle",
+    "flexShrink",
+    "width",
+    "height",
+    "constraintSize",
+    "backgroundImage",
+    "margin",
+    "borderRadius",
+    "visibility",
+    "clip",
+    "backgroundColor",
+    "borderWidth",
+    "borderColor",
+    "padding",
+    "layoutWeight",
+    "shadow",
+    "linearGradient",
     "aspectRatio",
 }
 PROPS = {
@@ -26,7 +40,16 @@ PROPS = {
     "Stack": {"children"},
 }
 STYLES = {
-    "Text": {"textOverflow", "fontSize", "fontWeight", "fontColor", "textAlign", "maxLines", "maxFontSize", "minFontSize"},
+    "Text": {
+        "textOverflow",
+        "fontSize",
+        "fontWeight",
+        "fontColor",
+        "textAlign",
+        "maxLines",
+        "maxFontSize",
+        "minFontSize",
+    },
     "Image": {"objectFit", "fillColor"},
     "Divider": {"strokeWidth", "vertical", "color"},
     "Progress": {"color", "type", "strokeWidth"},
@@ -40,7 +63,9 @@ STYLES = {
 
 
 def _is_dynamic(value: Any) -> bool:
-    return isinstance(value, dict) or (isinstance(value, str) and value.strip().startswith("{{") and value.strip().endswith("}}"))
+    return isinstance(value, dict) or (
+        isinstance(value, str) and value.strip().startswith("{{") and value.strip().endswith("}}")
+    )
 
 
 def _validate_dynamic_binding(value: Any, where: str) -> None:
@@ -55,9 +80,7 @@ def _validate_dynamic_binding(value: Any, where: str) -> None:
             f"{where} must not use FunctionCall for a dynamic property; "
             "use PathBinding for one source or Expression for multiple sources"
         )
-    raise ValidationError(
-        f"{where} dynamic binding must be a PathBinding or Expression"
-    )
+    raise ValidationError(f"{where} dynamic binding must be a PathBinding or Expression")
 
 
 def _validate_on_click(value: Any, where: str) -> None:
@@ -175,14 +198,39 @@ def validate_components(components: list[dict[str, Any]]) -> None:
         _validate_common_styles(styles, node_id)
         if component == "Text":
             _validate_enum(styles.get("textOverflow"), {"clip", "ellipsis"}, f"{node_id}.styles.textOverflow")
-            _validate_enum(styles.get("textAlign"), {"start", "center", "end", "justify"}, f"{node_id}.styles.textAlign")
+            _validate_enum(
+                styles.get("textAlign"), {"start", "center", "end", "justify"}, f"{node_id}.styles.textAlign"
+            )
             _validate_number(styles.get("fontSize"), f"{node_id}.styles.fontSize", minimum=0)
             _validate_number(styles.get("maxLines"), f"{node_id}.styles.maxLines", minimum=0)
             weight = styles.get("fontWeight")
-            if weight is not None and not _is_dynamic(weight) and (not isinstance(weight, int) or weight < 100 or weight > 900 or weight % 100):
-                raise ValidationError(f"{node_id}.styles.fontWeight must be 100..900 in steps of 100")
+            if weight is not None and not _is_dynamic(weight):
+                weight_out_of_range = not isinstance(weight, int) or weight < 100 or weight > 900
+                if weight_out_of_range or weight % 100:
+                    raise ValidationError(f"{node_id}.styles.fontWeight must be 100..900 in steps of 100")
         if component == "Image":
-            _validate_enum(styles.get("objectFit"), {"fill", "contain", "cover", "auto", "none", "scaleDown", "topStart", "top", "topEnd", "start", "center", "end", "bottomStart", "bottom", "bottomEnd", "matrix"}, f"{node_id}.styles.objectFit")
+            _validate_enum(
+                styles.get("objectFit"),
+                {
+                    "fill",
+                    "contain",
+                    "cover",
+                    "auto",
+                    "none",
+                    "scaleDown",
+                    "topStart",
+                    "top",
+                    "topEnd",
+                    "start",
+                    "center",
+                    "end",
+                    "bottomStart",
+                    "bottom",
+                    "bottomEnd",
+                    "matrix",
+                },
+                f"{node_id}.styles.objectFit",
+            )
         if component == "Row":
             if styles.get("alignItems") not in {None, "top", "center", "bottom"}:
                 raise ValidationError(f"{node_id}.styles.alignItems is invalid for Row")
@@ -190,12 +238,31 @@ def validate_components(components: list[dict[str, Any]]) -> None:
             if styles.get("alignItems") not in {None, "start", "center", "end"}:
                 raise ValidationError(f"{node_id}.styles.alignItems is invalid for Column")
         if component in {"Row", "Column"}:
-            if styles.get("justifyContent") not in {None, "start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly"}:
+            if styles.get("justifyContent") not in {
+                None,
+                "start",
+                "center",
+                "end",
+                "spaceBetween",
+                "spaceAround",
+                "spaceEvenly",
+            }:
                 raise ValidationError(f"{node_id}.styles.justifyContent is invalid")
-        if component == "Progress" and styles.get("type") not in {None, "linear", "ring", "eclipse", "scaleRing", "capsule"}:
+        if component == "Progress" and styles.get("type") not in {
+            None,
+            "linear",
+            "ring",
+            "eclipse",
+            "scaleRing",
+            "capsule",
+        }:
             raise ValidationError(f"{node_id}.styles.type is invalid")
         if component == "Stack":
-            _validate_enum(styles.get("alignContent"), {"topStart", "top", "topEnd", "start", "center", "end", "bottomStart", "bottom", "bottomEnd"}, f"{node_id}.styles.alignContent")
+            _validate_enum(
+                styles.get("alignContent"),
+                {"topStart", "top", "topEnd", "start", "center", "end", "bottomStart", "bottom", "bottomEnd"},
+                f"{node_id}.styles.alignContent",
+            )
         children = item.get("children", [])
         if children and not isinstance(children, list):
             raise ValidationError(f"{node_id}.children must be an array")
@@ -213,7 +280,11 @@ def validate_components(components: list[dict[str, Any]]) -> None:
             _validate_dynamic_binding(item.get("total"), f"{node_id}.total")
             _validate_number(item.get("value"), f"{node_id}.value", minimum=0)
             _validate_number(item.get("total"), f"{node_id}.total", minimum=0)
-            if isinstance(item.get("value"), (int, float)) and not isinstance(item.get("value"), bool) and isinstance(item.get("total"), (int, float)) and not isinstance(item.get("total"), bool) and item["value"] > item["total"]:
+            value = item.get("value")
+            total = item.get("total")
+            value_is_number = isinstance(value, (int, float)) and not isinstance(value, bool)
+            total_is_number = isinstance(total, (int, float)) and not isinstance(total, bool)
+            if value_is_number and total_is_number and value > total:
                 raise ValidationError(f"{node_id}.value must not exceed total")
             _validate_number(styles.get("strokeWidth"), f"{node_id}.styles.strokeWidth", minimum=0)
         if component == "Button" and "label" not in item:

@@ -28,13 +28,14 @@
 | `value` | Title_M / 24px / Bold 700 / 32px / `font-primary` |
 | `unit` | Body_S / 12px / Regular 400 / 18px / `font-secondary` |
 | `divider` | 相邻组之间使用 1 × 62vp 分割线；浅色黑色 20%，深色白色 20% |
-| `overflow` | 三行均为单行省略 |
+| `overflow` | 三行均保持完整单行，不支持省略号；内容总宽度放不下时当前组件组合无效 |
 
 #### 合法 JSX 示例与布局约束
 
 - 只能放入当前尺寸 Card，用于 Type 1 单内容布局并在内容区底部对齐。
 - 必须至少包含 2 个 item；只有 `value` 可绑定 `dataIds`，`label` 和 `unit` 始终保持静态。示例使用 3 项，但不表示只能使用 3 项。
 - 外层模块提供完整 296vp 内容宽度，禁止通过 `style`、`className` 或额外 width Prop 改变规格。
+- 每个 item 的 `label`、`value`、`unit` 都必须完整显示。不得依赖 flex 压缩、裁剪或省略号容纳过多／过长内容；浏览器检测到横向放不下时必须重新分组，或改用更适合密集信息的组件。
 
 ```jsx
 <Card size="2x4" appearance="orange-gradient">
@@ -88,7 +89,7 @@
 | `width` | `100%` | 占满父容器分配的完整宽度 |
 | `items-count` | ≥ 2 | 至少两组 |
 | `item-width` | 等分剩余宽度，最小 64vp | 所有项使用相同弹性宽度并共同撑满父容器 |
-| `item-height` | 64vp | 固定背板高度 |
+| `item-height` | 默认 64vp；父槽较矮时跟随父槽收缩 | 推荐分配 48–64vp；不得低于内部两行文本可完整显示的高度 |
 | `item-padding` | 左右各 8vp | 文本组合在背板内居中 |
 | `item-radius` | 16vp | 背板圆角 |
 | `distribution` | 等宽弹性布局，间距 8vp | 背板宽度按 `(父容器宽度 − 间距总和) ÷ 项数` 分配 |
@@ -102,6 +103,7 @@
 - 只能放入当前尺寸 Card。
 - 外层布局必须向 `TextBlock` 分配完整内容宽度；禁止通过 `style`、`className` 或额外宽度 Prop 改写它的内部分布。
 - 每项等分父容器扣除 8vp 间距后的剩余宽度，且不得小于 64vp；必须控制项数和文本长度，不得依赖溢出、压缩或自然宽度改变分布。
+- `TextBlock` 默认高 64vp；垂直空间不足时，外层固定高度槽可以在 48–64vp 范围内缩短组件。缩短的是整体背板高度，不改变两行文字的字号、行高和 2vp 内部间距。
 
 ```jsx
 <Card size="2x4" appearance="blue-soft">

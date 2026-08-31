@@ -27,21 +27,24 @@ class LiteralParser:
             raise self._error("expected a literal value")
         ch = self.source[self.pos]
         if ch in "\"'":
-            return self._string()
-        if ch == "[":
-            return self._array()
-        if ch == "{":
-            return self._object()
-        number = re.match(r"-?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?", self.source[self.pos :])
-        if number:
-            raw = number.group(0)
-            self.pos += len(raw)
-            return float(raw) if any(c in raw for c in ".eE") else int(raw)
-        name = self._identifier()
-        values = {"true": True, "false": False, "null": None, "undefined": None}
-        if name in values:
-            return values[name]
-        raise self._error(f"identifier {name!r} is not a safe literal")
+            value = self._string()
+        elif ch == "[":
+            value = self._array()
+        elif ch == "{":
+            value = self._object()
+        else:
+            number = re.match(r"-?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?", self.source[self.pos:])
+            if number:
+                raw = number.group(0)
+                self.pos += len(raw)
+                value = float(raw) if any(c in raw for c in ".eE") else int(raw)
+            else:
+                name = self._identifier()
+                values = {"true": True, "false": False, "null": None, "undefined": None}
+                if name not in values:
+                    raise self._error(f"identifier {name!r} is not a safe literal")
+                value = values.get(name)
+        return value
 
     def _array(self) -> list[Any]:
         self.pos += 1
@@ -91,7 +94,7 @@ class LiteralParser:
             elif ch == "\\":
                 escaped = True
             elif ch == quote:
-                raw = self.source[start : self.pos]
+                raw = self.source[start:self.pos]
                 try:
                     return ast.literal_eval(raw)
                 except (SyntaxError, ValueError) as exc:
@@ -100,7 +103,7 @@ class LiteralParser:
 
     def _identifier(self) -> str:
         self._space()
-        match = re.match(r"[A-Za-z_$][A-Za-z0-9_$-]*", self.source[self.pos :])
+        match = re.match(r"[A-Za-z_$][A-Za-z0-9_$-]*", self.source[self.pos:])
         if not match:
             raise self._error("expected an identifier")
         value = match.group(0)

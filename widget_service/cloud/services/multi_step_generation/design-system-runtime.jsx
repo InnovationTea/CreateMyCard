@@ -550,10 +550,11 @@
   --pl2-bar:var(--blue-400);}
 .pl2[data-mode="dark"]{--pl2-bar:#fff;}
 .pl2 .ed{
-  min-height:47px;
+  min-height:0;
   align-items:baseline;
-  transform:translateY(3.5px);}
-.pl2 .ed-val{line-height:47px;}
+  transform:translateY(3px);}
+.pl2 .ed-val{line-height:1;}
+.pl2 .ed-unit{line-height:1;}
 .content-zone > [data-component="progress-line2"]{
   width:100%;
   min-width:0;}
@@ -1094,7 +1095,7 @@
   pointer-events:none;}
 .top-text-bottom-value-item{
   display:flex;
-  flex:0 1 auto;
+  flex:0 0 auto;
   width:max-content;
   min-width:0;
   flex-direction:column;
@@ -1105,10 +1106,10 @@
 .top-text-bottom-value-label,
 .top-text-bottom-value-number,
 .top-text-bottom-value-unit{
-  max-width:100%;
+  max-width:none;
   margin:0;
-  overflow:hidden;
-  text-overflow:ellipsis;
+  overflow:visible;
+  text-overflow:clip;
   white-space:nowrap;}
 .top-text-bottom-value-label{
   font-size:var(--fs-bs);
@@ -1167,8 +1168,10 @@
 .text-block{
   display:flex;
   width:100%;
+  height:64px;
+  max-height:100%;
   min-width:0;
-  align-items:center;
+  align-items:stretch;
   gap:8px;
   font-family:"HarmonyHeiTi","HarmonyOS Sans SC","HarmonyOS Sans",sans-serif;}
 .text-block-item{
@@ -1177,7 +1180,8 @@
   flex:1 1 0;
   width:0;
   min-width:64px;
-  height:64px;
+  height:100%;
+  min-height:0;
   padding:0 8px;
   align-items:center;
   justify-content:center;
@@ -1583,9 +1587,13 @@
 .generated-card-frame [data-surface="backplate"]{
   box-sizing:border-box;
   padding:6px;
-  border-radius:8px;
-  background:rgba(255,255,255,.10);
+  border-radius:16px;
   overflow:hidden;}
+.generated-card-frame[data-tone="light"] [data-surface="backplate"]{
+  background:rgba(255,255,255,.40);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.025);}
+.generated-card-frame[data-tone="dark"] [data-surface="backplate"]{
+  background:rgba(255,255,255,.10);}
 .generated-card-frame .single-line-title,
 .generated-card-frame .double-line-title-main,
 .generated-card-frame .double-line-title-sub,
@@ -1623,9 +1631,10 @@
   position:absolute;top:0;right:0;width:20px;height:20px;border-radius:4px;object-fit:var(--title-icon-fit,contain);}
 .generated-card-frame .ed-val{
   font-size:38px;font-weight:700;line-height:1;color:var(--card-primary);}
-.generated-card-frame .pl2 .ed-val{line-height:47px;}
+.generated-card-frame .pl2 .ed-val{line-height:1;}
 .generated-card-frame .ed-unit{
   font-size:12px;font-weight:400;line-height:1.5;color:var(--card-secondary);}
+.generated-card-frame .pl2 .ed-unit{line-height:1;}
 .generated-card-frame .emphasis-text-main{
   font-size:20px;font-weight:700;line-height:27px;color:var(--card-primary);}
 .generated-card-frame .emphasis-text-secondary{
@@ -1664,6 +1673,8 @@
 .generated-card-frame .btn[data-appearance="card"]::before{display:none;}
 .generated-card-frame .pill-btn[data-appearance="card"]{
   box-sizing:border-box;display:inline-flex;width:136px;min-width:136px;height:36px;padding:0;border-radius:30px;flex:none;}
+.generated-card-frame [data-surface="backplate"] .pill-btn[data-appearance="card"]{
+  width:120px;min-width:120px;max-width:120px;align-self:center;}
 .generated-card-frame .circle-btn[data-appearance="card"]{
   --btn-bg:var(--card-circle-bg);
   --btn-bg-hover:var(--card-circle-bg);
@@ -1975,12 +1986,14 @@
     const dimensions = resolveCardDimensions(size);
     const semanticSize = CARD_SIZE_PRESETS[size] ? size : undefined;
     const cardAppearance = CARD_APPEARANCES[appearance];
+    let cardTone;
+    if (cardAppearance) cardTone = DARK_CARD_APPEARANCES.has(appearance) ? "dark" : "light";
     return (
       <div
         className={cx("ds-frame", cardAppearance && "generated-card-frame", className)}
         data-appearance={appearance}
         data-card-size={semanticSize}
-        data-tone={cardAppearance ? (DARK_CARD_APPEARANCES.has(appearance) ? "dark" : "light") : undefined}
+        data-tone={cardTone}
         style={{
           boxSizing: "border-box",
           position: "relative",
@@ -2099,7 +2112,8 @@
   }
 
   function Icon({ name, src, size, alt = "", decorative = true, className, style, ...rest }) {
-    const dimension = size == null ? undefined : typeof size === "number" ? `${size}px` : size;
+    let dimension;
+    if (size != null) dimension = typeof size === "number" ? `${size}px` : size;
     return (
       <img
         className={className}
@@ -2259,6 +2273,37 @@
     const progress = progressPercentage(primaryText);
     const circumference = 2 * Math.PI * 18;
     const progressLength = circumference * progress / 100;
+    let visualNode = null;
+    if (visualType === "progressCircle") {
+      visualNode = (
+        <div className="info-block-progress" aria-hidden="true">
+          <svg viewBox="0 0 44 44">
+            <circle className="info-block-progress-track" cx="22" cy="22" r="18" />
+            <circle
+              className="info-block-progress-bar"
+              cx="22"
+              cy="22"
+              r="18"
+              strokeDasharray={`${progressLength.toFixed(2)} ${circumference.toFixed(2)}`}
+            />
+          </svg>
+          <div className="info-block-progress-inner">
+            <img src={assetUrl(visualIcon)} alt="" />
+          </div>
+        </div>
+      );
+    } else if (visualType === "icon") {
+      visualNode = (
+        <div className="info-block-visual" aria-hidden="true">
+          <img
+            className="info-block-icon"
+            data-color={visual?.color === "native" ? "native" : undefined}
+            src={assetUrl(visualIcon)}
+            alt=""
+          />
+        </div>
+      );
+    }
 
     return (
       <div className={cx("info-block", className)} data-component="info-block" {...rest}>
@@ -2269,32 +2314,7 @@
           </p>
           <p className="info-block-secondary">{secondaryText}</p>
         </div>
-        {visualType === "progressCircle" ? (
-          <div className="info-block-progress" aria-hidden="true">
-            <svg viewBox="0 0 44 44">
-              <circle className="info-block-progress-track" cx="22" cy="22" r="18" />
-              <circle
-                className="info-block-progress-bar"
-                cx="22"
-                cy="22"
-                r="18"
-                strokeDasharray={`${progressLength.toFixed(2)} ${circumference.toFixed(2)}`}
-              />
-            </svg>
-            <div className="info-block-progress-inner">
-              <img src={assetUrl(visualIcon)} alt="" />
-            </div>
-          </div>
-        ) : visualType === "icon" ? (
-          <div className="info-block-visual" aria-hidden="true">
-            <img
-              className="info-block-icon"
-              data-color={visual?.color === "native" ? "native" : undefined}
-              src={assetUrl(visualIcon)}
-              alt=""
-            />
-          </div>
-        ) : null}
+        {visualNode}
       </div>
     );
   }
@@ -2353,16 +2373,12 @@
   function WeatherSummaryCard({ city, temperature, condition, airQuality, high, low, icon, ariaLabel, className, ...rest }) {
     const resolvedLabel = ariaLabel || `${city}${temperature}，${condition}，${airQuality}，最高${high}最低${low}`;
     const weatherKey = `${condition || ""} ${icon || ""}`.toLowerCase();
-    const weather = weatherKey.includes("sunny") || weatherKey.includes("晴")
-      ? "sunny"
-      : weatherKey.includes("rain") || weatherKey.includes("雨")
-        ? "rain"
-        : "cloudy";
-    const appearance = weather === "sunny"
-      ? "sunny-gradient"
-      : weather === "rain"
-        ? "slate-gradient"
-        : "cloudy-gradient";
+    let weather = "cloudy";
+    if (weatherKey.includes("sunny") || weatherKey.includes("晴")) weather = "sunny";
+    else if (weatherKey.includes("rain") || weatherKey.includes("雨")) weather = "rain";
+    let appearance = "cloudy-gradient";
+    if (weather === "sunny") appearance = "sunny-gradient";
+    else if (weather === "rain") appearance = "slate-gradient";
     return (
       <Card
         size="2x2"

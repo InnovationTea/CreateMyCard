@@ -35,8 +35,8 @@
     }
   </style>
   <script>
-    window.__showCardError = function (message) {
-      var element = document.getElementById("preview-error");
+    window.__showCardError = (message) => {
+      const element = document.getElementById("preview-error");
       if (!element) return;
       element.hidden = false;
       element.textContent = String(message || "Unknown preview error");
@@ -62,7 +62,7 @@
   <div id="root"></div>
   <pre id="preview-error" hidden></pre>
   <script>
-    window.addEventListener("error", function (event) {
+    window.addEventListener("error", (event) => {
       window.__showCardError(
         (event.message || "Script error") +
           (event.filename
@@ -70,14 +70,14 @@
             : "")
       );
     });
-    window.addEventListener("unhandledrejection", function (event) {
-      var reason = event.reason;
+    window.addEventListener("unhandledrejection", (event) => {
+      const reason = event.reason;
       window.__showCardError(reason && (reason.stack || reason.message) || reason);
     });
-    Babel.registerPlugin("strip-compiler-metadata", function () {
+    Babel.registerPlugin("strip-compiler-metadata", () => {
       return {
         visitor: {
-          JSXAttribute: function (path) {
+          JSXAttribute: (path) => {
             if (path.node.name && path.node.name.name === "dataValueMaps") {
               path.remove();
             }

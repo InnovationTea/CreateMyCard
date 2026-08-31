@@ -35,10 +35,8 @@ def convert_table_text(node: JSXElement, ctx: ConversionContext) -> A2UINode:
 
     rows: list[A2UINode] = []
     for index, item in enumerate(items):
-        where = f"<TableText> items[{index}]"
         assert isinstance(item, dict)
         label = item.get("label")
-        parameter = item.get("parameter")
         assert isinstance(label, str)
 
         label_node = text(

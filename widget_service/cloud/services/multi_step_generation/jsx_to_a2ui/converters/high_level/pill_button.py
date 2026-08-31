@@ -22,11 +22,47 @@ def _colors(node: JSXElement, ctx: ConversionContext) -> tuple[str, str, str]:
 
 def convert_pill_button(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     background, foreground, icon_color = _colors(node, ctx)
-    common_styles = {"width": 136, "height": 36, "borderRadius": 30, "backgroundColor": background, "flexShrink": 0}
+    common_styles = {
+        "width": 120 if ctx.inside_backplate else 136,
+        "height": 36,
+        "borderRadius": 30,
+        "backgroundColor": background,
+        "flexShrink": 0,
+    }
     event = ctx.action_props(node)
     if not node.props.get("icon"):
         props = {"label": str(node.props["label"]), "enabled": not bool(node.props.get("disabled", False)), **event}
-        return ctx.make("Button", "pill_button", props=props, styles={**common_styles, "fontSize": 14, "fontWeight": 500, "fontColor": foreground})
-    icon = image(ctx, "pill_icon", node.props["icon"], styles={"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}, fill_color=icon_color)
-    label = text(ctx, "pill_label", node.props["label"], styles={"fontSize": 14, "fontWeight": 500, "fontColor": foreground, "maxLines": 1, "textOverflow": "ellipsis", "flexShrink": 1})
-    return row(ctx, "pill_button", [icon, label], gap=8, props=event, styles={**common_styles, "alignItems": "center", "justifyContent": "center"})
+        return ctx.make(
+            "Button",
+            "pill_button",
+            props=props,
+            styles={**common_styles, "fontSize": 14, "fontWeight": 500, "fontColor": foreground},
+        )
+    icon = image(
+        ctx,
+        "pill_icon",
+        node.props["icon"],
+        styles={"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0},
+        fill_color=icon_color,
+    )
+    label = text(
+        ctx,
+        "pill_label",
+        node.props["label"],
+        styles={
+            "fontSize": 14,
+            "fontWeight": 500,
+            "fontColor": foreground,
+            "maxLines": 1,
+            "textOverflow": "ellipsis",
+            "flexShrink": 1,
+        },
+    )
+    return row(
+        ctx,
+        "pill_button",
+        [icon, label],
+        gap=8,
+        props=event,
+        styles={**common_styles, "alignItems": "center", "justifyContent": "center"},
+    )

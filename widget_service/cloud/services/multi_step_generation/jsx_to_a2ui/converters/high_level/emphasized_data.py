@@ -35,19 +35,18 @@ def convert_emphasized_data(
     errors = collect_emphasized_data_conversion_errors(node)
     if errors:
         raise ValidationError("; ".join(errors))
+
     def derived_items(binding) -> list[dict]:
         root_path, plan = ctx.register_derived_display(binding)
         result = []
         for index, part in enumerate(plan.parts):
             part_path = f"{root_path}/parts/{index}"
-            result.append({
-                "value": {"path": f"{part_path}/value"},
-                "unit": (
-                    {"path": f"{part_path}/unit"}
-                    if part.unit is not None
-                    else None
-                ),
-            })
+            result.append(
+                {
+                    "value": {"path": f"{part_path}/value"},
+                    "unit": ({"path": f"{part_path}/unit"} if part.unit is not None else None),
+                }
+            )
         return result
 
     def bound_string_items(owner: dict, binding, *, item_index: int | None = None) -> list[dict]:
@@ -58,10 +57,12 @@ def convert_emphasized_data(
         if plan.mode == "raw" and isinstance(data_ids, dict) and "unit" in data_ids:
             if item_index is None:
                 return [{"value": ctx.prop(node, "value"), "unit": ctx.prop(node, "unit")}]
-            return [{
-                "value": ctx.item_prop(node.tag, owner, item_index, "value"),
-                "unit": ctx.item_prop(node.tag, owner, item_index, "unit"),
-            }]
+            return [
+                {
+                    "value": ctx.item_prop(node.tag, owner, item_index, "value"),
+                    "unit": ctx.item_prop(node.tag, owner, item_index, "unit"),
+                }
+            ]
         return derived_items(binding)
 
     def literal_items(owner: dict) -> list[dict]:
@@ -69,10 +70,7 @@ def convert_emphasized_data(
         if isinstance(value, str):
             plan = normalize_display_value(value)
             if plan.mode == "parts":
-                return [
-                    {"value": part.value, "unit": part.unit}
-                    for part in plan.parts
-                ]
+                return [{"value": part.value, "unit": part.unit} for part in plan.parts]
         return [{"value": value, "unit": owner.get("unit")}]
 
     raw_items = node.props.get("items")
@@ -93,23 +91,32 @@ def convert_emphasized_data(
             elif value_binding is None:
                 items.extend(literal_items(item))
             else:
-                items.append({
-                    "value": ctx.item_prop(node.tag, item, index, "value"),
-                    "unit": ctx.item_prop(node.tag, item, index, "unit"),
-                })
+                items.append(
+                    {
+                        "value": ctx.item_prop(node.tag, item, index, "value"),
+                        "unit": ctx.item_prop(node.tag, item, index, "unit"),
+                    }
+                )
     children = []
     for index, item in enumerate(items):
-        children.append(text(ctx, f"emphasized_value_{index + 1}", item.get("value"), styles={
-            "height": value_height,
-            "fontSize": 38,
-            "fontWeight": 700,
-            "fontColor": palette(ctx).primary,
-            # JSX renders each emphasized value as one non-wrapping flex item.
-            # Let adjacent descriptive text wrap instead of splitting an
-            # atomic value such as 29 into separate lines.
-            "maxLines": 1,
-            "flexShrink": 0,
-        }))
+        children.append(
+            text(
+                ctx,
+                f"emphasized_value_{index + 1}",
+                item.get("value"),
+                styles={
+                    "height": value_height,
+                    "fontSize": 38,
+                    "fontWeight": 700,
+                    "fontColor": palette(ctx).primary,
+                    # JSX renders each emphasized value as one non-wrapping flex item.
+                    # Let adjacent descriptive text wrap instead of splitting an
+                    # atomic value such as 29 into separate lines.
+                    "maxLines": 1,
+                    "flexShrink": 0,
+                },
+            )
+        )
         if item.get("unit") is not None:
             # Ordinary EmphasizedData uses a 38vp value line box and an 18vp
             # unit line box aligned at the bottom, matching JSX flex-end.
@@ -125,13 +132,21 @@ def convert_emphasized_data(
                 unit_styles["height"] = unit_height
             if unit_bottom_inset:
                 unit_styles["padding"] = {"bottom": unit_bottom_inset}
-            children.append(text(
-                ctx,
-                f"emphasized_unit_{index + 1}",
-                item.get("unit"),
-                styles=unit_styles,
-            ))
-    return row(ctx, "emphasized_data", children, gap=2, styles={
-        "alignItems": "bottom",
-        "flexShrink": 0,
-    })
+            children.append(
+                text(
+                    ctx,
+                    f"emphasized_unit_{index + 1}",
+                    item.get("unit"),
+                    styles=unit_styles,
+                )
+            )
+    return row(
+        ctx,
+        "emphasized_data",
+        children,
+        gap=2,
+        styles={
+            "alignItems": "bottom",
+            "flexShrink": 0,
+        },
+    )

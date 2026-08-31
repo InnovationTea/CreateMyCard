@@ -21,7 +21,9 @@ def _parser() -> argparse.ArgumentParser:
     choice = convert.add_mutually_exclusive_group(required=True)
     choice.add_argument("--card", help="Card function name, e.g. Card0813_19")
     choice.add_argument("--all", action="store_true", help="compile every Card* function")
-    convert.add_argument("--output", type=Path, help="single output file; with --all this contains an object keyed by card name")
+    convert.add_argument(
+        "--output", type=Path, help="single output file; with --all this contains an object keyed by card name"
+    )
     convert.add_argument(
         "--output-dir",
         type=Path,
@@ -43,7 +45,12 @@ def _parser() -> argparse.ArgumentParser:
 def _serialize(messages, output_format: str, compact: bool) -> str:
     if output_format == "jsonl":
         return "\n".join(json.dumps(message, ensure_ascii=False, separators=(",", ":")) for message in messages) + "\n"
-    return json.dumps(messages, ensure_ascii=False, indent=None if compact else 2, separators=(",", ":") if compact else None) + "\n"
+    return (
+        json.dumps(
+            messages, ensure_ascii=False, indent=None if compact else 2, separators=(",", ":") if compact else None
+        )
+        + "\n"
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
