@@ -66,14 +66,3 @@ tempelate.jpg
 SVG图标素材库清单.md
 test/
 test.jsonl
-
-.codex-tmp/
-widget_service/.codex-tmp/
-
-# Local model adapters and generated cloud artifacts
-widget_service/cloud/custom/deepseek_http_client.py
-widget_service/cloud/workspace/
-
-Q*.json
-ux*.txt
-ux*.txt
