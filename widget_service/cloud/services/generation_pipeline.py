@@ -146,11 +146,11 @@ class DesignCompactProcessor:
             design_protocol = A2UIProtocolRegistry.read_design_protocol_profile(
                 design_profile_id
             )
+            design_protocol["appVersion"] = context.task_spec["appVersion"]
             standard_dsl = convert_compact_dsl_to_a2ui(
                 source_dsl,
                 size=context.size,
                 protocol_profile=design_protocol,
-                app_version=str(context.task_spec.get("appVersion") or "0"),
             )
             standard_dsl = repair_repeated_display_units(
                 standard_dsl,
