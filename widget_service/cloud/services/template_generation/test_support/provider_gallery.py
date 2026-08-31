@@ -615,7 +615,11 @@ def _gallery_sample_overrides(
         ),
         None,
     )
-    if weather_template is not None:
+    weather_displays_temperature = (
+        weather_template is not None
+        and "/current/temperatureText" in weather_template.fields
+    )
+    if weather_displays_temperature:
         sample_overrides["/data/weather/current/temperatureText"] = "29°"
     battery_template = next(
         (

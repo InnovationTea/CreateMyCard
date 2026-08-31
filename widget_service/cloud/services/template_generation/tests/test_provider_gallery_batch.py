@@ -372,6 +372,16 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         (input_root / weather_uv.requestFile).read_text(encoding="utf-8")
     )
     assert weather_uv_request["content"]["candidateAssetIds"] == _WEATHER_ASSET_IDS
+    weather_air_quality = _find_case(
+        manifest,
+        "WeatherOverview",
+        "single-one-action",
+        "WeatherOverviewAirQualityHero@1",
+    )
+    weather_air_quality_request = json.loads(
+        (input_root / weather_air_quality.requestFile).read_text(encoding="utf-8")
+    )
+    assert weather_air_quality_request["galleryTest"]["sampleOverrides"] == {}
     assert all(
         "asset.icon_weather1" not in request_path.read_text(encoding="utf-8")
         for request_path in input_root.glob("providers/**/*.json")
