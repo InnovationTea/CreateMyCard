@@ -616,10 +616,12 @@ def test_widget_card_service_complete_flow(monkeypatch):
         assert set(task_spec) == {
             "userQuery",
             "size",
+            "appVersion",
             "eventCandidates",
             "dataModelSchema",
             "assetCandidates",
         }
+        assert task_spec["appVersion"] == APP_VERSION
         assert task_spec["dataModelSchema"]["data"]["weather"]["current"][
             "temperatureText"
         ]["sampleValue"] == "29℃"

@@ -95,6 +95,7 @@ def test_preflight_accepts_weather_without_district_and_builds_specs():
     assert result.blocking_issues == ()
     assert result.card_spec is not None
     assert result.task_spec is not None
+    assert result.task_spec.appVersion == "11.7.5.205"
     assert result.card_spec.dataBindings[0].arguments == {
         "prefectureName": "杭州市",
         "forecastDays": 1,

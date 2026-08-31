@@ -78,6 +78,7 @@ class TaskSpec(BaseModel):
 
     userQuery: str
     size: WidgetSize
+    appVersion: str = "0"
     eventCandidates: list[EventAction] = Field(default_factory=list)
     dataModelSchema: dict[str, Any]
     assetCandidates: list[dict[str, Any]] = Field(default_factory=list)

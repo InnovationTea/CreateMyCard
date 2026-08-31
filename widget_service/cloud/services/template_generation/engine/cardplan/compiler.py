@@ -259,6 +259,12 @@ def compile_hybrid_card(
         contract,
         registry,
     )
+    fusion_palette = _template_fusion_ball_palette(
+        task_spec.size,
+        contract,
+        registry,
+        tuple(state.template_ids),
+    )
     content_height = _estimate_height(content)
     root = _compile_card_shell(card_params, content, task_spec, contract, registry)
     root = _apply_theme_content_color(root, contract, registry)
@@ -286,12 +292,10 @@ def compile_hybrid_card(
         content = _constrain_content_height(content, body_budget)
         root = _compile_card_shell(card_params, content, task_spec, contract, registry)
         root = _apply_theme_content_color(root, contract, registry)
-    root = _apply_template_background(
+    root = apply_fusion_ball_background(
         root,
-        task_spec.size,
-        contract,
-        registry,
-        tuple(state.template_ids),
+        size=task_spec.size,
+        palette=fusion_palette,
     )
     effective = _serialize_effective_document(root, task_spec, enable_data_bindings)
     a2ui = convert_tersel_to_a2ui(
@@ -432,6 +436,12 @@ def compile_ux_layout_card(
     body_budget = _ux_layout_body_budget(registry)
     if content_height > body_budget:
         content = _constrain_content_height(content, body_budget)
+    fusion_palette = _template_fusion_ball_palette(
+        task_spec.size,
+        contract,
+        registry,
+        tuple(state.template_ids),
+    )
     root = _compile_ux_layout_shell(
         content,
         contract,
@@ -445,12 +455,10 @@ def compile_ux_layout_card(
     if depth > contract.limits.max_nesting_depth:
         raise TerselConversionError("Hybrid component depth budget exceeded.")
     _validate_expanded_tree(root, contract)
-    root = _apply_template_background(
+    root = apply_fusion_ball_background(
         root,
-        task_spec.size,
-        contract,
-        registry,
-        tuple(state.template_ids),
+        size=task_spec.size,
+        palette=fusion_palette,
     )
     effective = _serialize_effective_document(root, task_spec, enable_data_bindings)
     a2ui = convert_tersel_to_a2ui(
@@ -4964,16 +4972,15 @@ def _compile_ux_layout_shell(
     return Nested2Node("Column", ("card", root_options), (content,))
 
 
-def _apply_template_background(
-    root: Nested2Node,
+def _template_fusion_ball_palette(
     size: str,
     contract: HybridBodyContract,
     registry: CardPlanRegistry,
     selected_template_ids: tuple[str, ...] = (),
-) -> Nested2Node:
-    """Apply Theme-owned fusion balls only to one selected Full or Hero business."""
+) -> FusionBallPalette | None:
+    """Resolve Theme-owned fusion balls for exactly one selected business."""
     if size != "2x2":
-        return root
+        return None
     theme = registry.require_theme(contract.theme_profile_id)
     fusion = theme.fusion_ball_style
     business_template_items = []
@@ -4984,25 +4991,41 @@ def _apply_template_background(
         business_template_items.append(definition)
     business_templates = tuple(business_template_items)
     if fusion is None or len(business_templates) != 1:
-        return root
+        return None
     business_template = business_templates[0]
     if business_template.capability_id not in theme.supported_capability_ids:
-        return root
+        return None
     if business_template.business_id not in fusion.business_ids:
-        return root
+        return None
     layout_kind = provider_template_layout_kind(business_template.wire_id)
-    if layout_kind not in {"Full", "Hero"}:
-        return root
-    palette = FusionBallPalette(
+    if layout_kind not in {"Compact", "Full", "Hero"}:
+        return None
+    return FusionBallPalette(
         fusion.large_color,
         fusion.medium_color,
         fusion.small_color,
     )
-    return apply_fusion_ball_background(
-        root,
-        size=size,
-        palette=palette,
+
+
+def _apply_template_background(
+    root: Nested2Node,
+    size: str,
+    contract: HybridBodyContract,
+    registry: CardPlanRegistry,
+    selected_template_ids: tuple[str, ...] = (),
+) -> Nested2Node:
+    """Apply the gated Theme background to a root with one content skeleton."""
+    palette = _template_fusion_ball_palette(
+        size,
+        contract,
+        registry,
+        selected_template_ids,
     )
+    if palette is None:
+        return root
+    if len(root.children) != 1:
+        raise ValueError("Fusion-ball template root must contain one content skeleton.")
+    return apply_fusion_ball_background(root, size=size, palette=palette)
 
 
 def _strip_direct_card_chrome_from_call(

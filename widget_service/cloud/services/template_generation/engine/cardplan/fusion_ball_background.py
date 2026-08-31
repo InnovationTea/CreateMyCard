@@ -2,30 +2,16 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any
-
+from services.fusion_ball_expander import (
+    FusionBallPalette,
+    build_fusion_ball_content_id,
+)
 from services.template_generation.engine.tersel_converter import Nested2Node
 
-_CARD_CONTENT_ID = "__genui_render_component__cardContent"
 _ROOT_ID = "root"
-_BACKGROUND_STYLE_KEYS = frozenset(
-    {
-        "backgroundColor",
-        "backgroundImage",
-        "backgroundImageSizeWithStyle",
-        "linearGradient",
-    }
-)
-
-
-@dataclass(frozen=True)
-class FusionBallPalette:
-    """Large, medium, and small ball colors read from one selected Theme."""
-
-    large: str
-    medium: str
-    small: str
+_CONTENT_ROOT_ID = "root_1"
+_TEMPLATE_ROOT_ID = "template_root"
+_SKELETON_LAYOUT_TYPES = frozenset({"Column", "Row", "Stack"})
 
 
 def build_fusion_ball_background(palette: FusionBallPalette) -> Nested2Node:
@@ -78,20 +64,27 @@ def apply_fusion_ball_background(
     """Expand an eligible 2x2 card into standard Tersel components."""
     if size != "2x2" or palette is None:
         return card
-    card_options = _root_card_options(card)
-    foreground_options = {
-        key: value
-        for key, value in card_options.items()
-        if key not in _BACKGROUND_STYLE_KEYS and key != "_id"
-    }
-    foreground_options.update(
-        {
-            "_id": _CARD_CONTENT_ID,
-            "width": 160,
-            "height": 160,
-        }
+    _validate_root_card(card)
+    skeleton = _template_content_skeleton(card)
+    overflow_content = Nested2Node(
+        "Stack",
+        (
+            "overlay",
+            {"_id": build_fusion_ball_content_id(_CONTENT_ROOT_ID)},
+        ),
+        (skeleton,),
     )
-    foreground = Nested2Node(card.component_type, (foreground_options,), card.children)
+    foreground = Nested2Node(
+        "Stack",
+        (
+            "overlay",
+            {
+                "_id": _CONTENT_ROOT_ID,
+                "padding": 12,
+            },
+        ),
+        (overflow_content,),
+    )
     root_options = {
         "_id": _ROOT_ID,
         "padding": 0,
@@ -148,7 +141,7 @@ def _ball_slot(
     )
 
 
-def _root_card_options(card: Nested2Node) -> dict[str, Any]:
+def _validate_root_card(card: Nested2Node) -> None:
     is_card_root = (
         card.component_type == "Column"
         and len(card.values) == 2
@@ -157,4 +150,23 @@ def _root_card_options(card: Nested2Node) -> dict[str, Any]:
     )
     if not is_card_root:
         raise ValueError('Fusion-ball wrapping requires Column("card", options, ...).')
-    return dict(card.values[1])
+
+
+def _template_content_skeleton(card: Nested2Node) -> Nested2Node:
+    if len(card.children) != 1:
+        raise ValueError("Fusion-ball template root must contain one content skeleton.")
+    skeleton = card.children[0]
+    if skeleton.component_type not in _SKELETON_LAYOUT_TYPES:
+        raise ValueError("Fusion-ball content skeleton must be Column, Row, or Stack.")
+    values = list(skeleton.values)
+    if values and isinstance(values[-1], dict):
+        options = dict(values[-1])
+        options["_id"] = _TEMPLATE_ROOT_ID
+        values[-1] = options
+    else:
+        values.append({"_id": _TEMPLATE_ROOT_ID})
+    return Nested2Node(
+        skeleton.component_type,
+        tuple(values),
+        skeleton.children,
+    )

@@ -25,7 +25,8 @@
 - 选择能够完整表达用户显式要求字段且自身 `primaryData` 与 `secondaryData` 全部可用的模板。
 - `batteryIcon` 表达电池、电量或当前充电状态，不得使用动作图标或其他设备品类图标替代；它不绑定固定素材 ID，只在本轮素材候选中匹配。选择带 `batteryIcon` 参数的模板时，必须从本轮电量相关素材候选中传入一个匹配素材。
 - 当目标尺寸为 `2x2` 且 `selectedActionEventIds` 恰好两个、用户需要电量进度条并同时需要两个动作时，优先选择
-  `BatteryOverviewProgressCompact@1`，并把两个动作分别作为末尾连续的 `PillAction@1` 放入 `ActionMatrixLayout@1`；业务模板本身不得携带按钮。
+  `BatteryOverviewProgressCompact@1`，并把两个动作分别作为末尾连续的 `PillAction@1` 放入
+  `CompactTwoActionLayout@1`；业务模板本身不得携带按钮。
 - 当目标尺寸为 `2x2` 且 `selectedActionEventIds` 恰好一个时，按钮只能由第二层输出
   `PillAction@1` 并放入 `HeroActionLayout@1`，业务模板本身不得携带按钮；如果显式要求展示电量进度环和剩余电量百分比，
   只要 `/batterySOC` 与 `/batterySOCText` 可用，就可以选择 `BatteryOverviewPercentRingHero@1`，不要根据电量高低限制使用。

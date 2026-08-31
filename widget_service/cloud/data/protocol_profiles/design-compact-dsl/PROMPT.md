@@ -139,7 +139,7 @@ TaskSpec 中的 `dataModelSchema`、`eventCandidates` 和 `assetCandidates` 都�
 优先级固定为：
 
 1. 本提示词中的协议硬规则。
-2. TaskSpec 声明的数据、事件、素材和尺寸上限；候选存在不构成必须使用要求，事件按显式动作、隐式入口和副作用动作分级处理。
+2. TaskSpec 声明的数据、事件、素材、尺寸上限和端侧 `appVersion`；候选存在不构成必须使用要求，事件按显式动作、隐式入口和副作用动作分级处理。`appVersion` 只控制受支持的生成特性，不得展示给用户。
 3. `userQuery` 的内容目标、候选取舍依据与视觉偏好。
 4. Few-shot 的布局示例。
 
@@ -163,7 +163,7 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 - 每行都是独立、严格、单行、可解析的 JSON；不得使用注释、尾逗号、单引号 JSON 或多行 JSON。
 - 组件行格式固定为 `[id, component, props]` 或 `[id, component, props, children]`。
 - 数据行格式固定为 `[path, value]`，其中 `path` 必须是以 `/` 开头的 JSON Pointer。
-- 第一个组件行必须是 `root`，且 `root` 必须是 `Row` 或 `Column`。
+- 第一个组件行必须是 `root`，且 `root` 必须是 `Row`、`Column` 或 `Stack`。
 - 只生成组件行和数据行；禁止输出 `createSurface`、`updateComponents`、`updateDataModel`、`surfaceId`、`catalogId` 或 A2UI 组件对象数组。
 - 组件行中的 `props` 是一个扁平对象：组件语义字段和样式字段都直接写在 `props` 中，不嵌套 `styles`。
 - 容器组件的 `children` 必须写在第 4 项，且只能是子组件 id 字符串数组；禁止输出对象形式的 children、模板描述或 repeat 描述。普通组件不得有第 4 项。
@@ -271,6 +271,13 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 - Progress：`progress-linear-primary`、`progress-linear-thin`、`progress-linear-segmented`、`progress-linear-threshold`、`progress-ring-primary`。
 - Divider：`divider-hairline`、`divider-thick`。
 - Checkbox：`checkbox-circle-default`、`checkbox-rounded-check`。
+- 仅当 TaskSpec `size` 为 `2x2` 且 `appVersion` 严格大于 `11.7.5.205` 时，root `Row`、`Column` 或
+  `Stack` 才可使用融球 Style Design Token：`fusion-ball-weather-blue`、`fusion-ball-battery-teal`、
+  `fusion-ball-schedule-cool`、`fusion-ball-schedule-warm`、`fusion-ball-sleep-violet`、
+  `fusion-ball-sport-orange`。按用户场景选择且最多使用一个；版本等于阈值、低于阈值、缺失或非法时禁止使用。
+  使用融球 Design Token 时，root 不再写 `backgroundColor`、`linearGradient` 或 `backgroundImage`，转换器会
+  确定性展开融球背景，并把前景根的原 ID `root` 加上 `__genui_render_component__` 前缀，生成
+  `__genui_render_component__root` 防溢出标识；展开后的外层卡片根仍使用 `root`。
 - 色彩 token 可用于 `fontColor`、`fillColor`、`backgroundColor`、`borderColor`、`Divider.color`、`Progress.color/backgroundColor` 等颜色字段：`palette_purple_primary`、`palette_blue_primary`、`palette_mint_primary`、`palette_green_success`、`palette_lime_success`、`palette_violet_primary`、`palette_rose_alert`、`palette_red_warning`、`palette_orange_alert`、`palette_amber_warning`、`palette_yellow_sun`、`palette_purple_soft`、`palette_blue_soft`、`palette_mint_soft`、`palette_green_soft`、`palette_lime_soft`、`palette_violet_soft`、`palette_rose_soft`、`palette_red_soft`、`palette_orange_soft`、`palette_amber_soft`、`palette_yellow_soft`。
 
 ## 5.3 Text
@@ -506,7 +513,7 @@ props 可用样式字段：
 - `2x2` 安全内容区 `136vp × 136vp`。
 - `2x4` 安全内容区 `296vp × 136vp`。
 - root 固定 `borderRadius: 18`、`clip: true`。
-- root 必须提供 `linearGradient`、`backgroundColor` 或来自 assetCandidates 的 `backgroundImage`；不得透明或依赖宿主默认背景。具体选择只按第十二节的统一表面策略执行。
+- 除满足 5.2.1 版本条件的融球 Design Token root 外，root 必须提供 `linearGradient`、`backgroundColor` 或来自 assetCandidates 的 `backgroundImage`；不得透明或依赖宿主默认背景。具体选择只按第十二节的统一表面策略执行。
 
 ## 8.2 数值布局
 
@@ -803,7 +810,7 @@ UX 稿中的 `30fp/38fp` 分别映射为批准阶梯中的 `32fp/40fp`。同一�
 
 输出前必须逐项确认：
 
-1. **输出与协议**：是否只有一个 `genui` 代码块和可解析的极简协议 JSONL；是否没有 createSurface/updateComponents/updateDataModel/surfaceId/catalogId；root、组件字段和枚举是否正确。
+1. **输出与协议**：是否只有一个 `genui` 代码块和可解析的极简协议 JSONL；是否没有 createSurface/updateComponents/updateDataModel/surfaceId/catalogId；root、组件字段和枚举是否正确；融球 Design Token 是否只在 `2x2` 且 `appVersion > 11.7.5.205` 时用于 root。
 2. **引用与数据**：组件是否唯一、可达且引用闭合；Expression、PathBinding、模板路径与首帧 DataModel 是否存在并类型一致；是否没有孤立组件、空胶囊、局部 Expression 或静态样例冒充动态绑定。
 3. **候选与事件**：是否只保留最小充分候选；显式动作是否绑定，隐式入口是否不抢占空间，未被明确要求的副作用动作是否已删除；同一动作是否只有一个点击容器。
 4. **骨架与预算**：是否只使用一个固定骨架；root 是否为 `matchParent`、padding 12、圆角 18、clip true；所有 Row/Column 两轴预算是否非负，动态文字 Row 是否保留余量，点击热区是否至少 24vp。
