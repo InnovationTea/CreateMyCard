@@ -196,6 +196,7 @@ _BATTERY_FACT_FALLBACK_EXEMPT_TEMPLATE_IDS = frozenset(
     {"BatteryOverviewHealthLevelHero@1"}
 )
 
+
 class GalleryInputCase(BaseModel):
     """输入清单中的一个业务场景。"""
 

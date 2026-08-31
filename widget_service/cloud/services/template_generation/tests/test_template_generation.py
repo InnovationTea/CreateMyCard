@@ -2109,6 +2109,7 @@ def test_calendar_templates_follow_latest_schedule_contract() -> None:
     assert "ScheduleOverviewDateFull@1" in rule_content
     assert "Support" in rule_content
 
+
 @pytest.mark.asyncio
 async def test_calendar_dnd_action_restores_label_icon_and_scene_header():
     task = TaskSpec(
@@ -3451,15 +3452,22 @@ async def test_bluetooth_hero_supports_connection_action() -> None:
     components = {
         item["id"]: item for item in messages[1]["updateComponents"]["components"]
     }
-    battery_pair = next(
-        item
-        for item in components.values()
-        if item.get("component") == "Row"
-        and item.get("styles", {}).get("width") == 100
-        and item.get("styles", {}).get("height") == 16
-        and item.get("itemMargin") == 0
-        and item.get("styles", {}).get("justifyContent") == "spaceBetween"
-    )
+    battery_pair: dict[str, Any] | None = None
+    for item in components.values():
+        if item.get("component") != "Row":
+            continue
+        styles = item.get("styles", {})
+        if styles.get("width") != 100:
+            continue
+        if styles.get("height") != 16:
+            continue
+        if item.get("itemMargin") != 0:
+            continue
+        if styles.get("justifyContent") != "spaceBetween":
+            continue
+        battery_pair = item
+        break
+    assert battery_pair is not None
     ear_rows = [components[child_id] for child_id in battery_pair["children"]]
     assert len(ear_rows) == 2
     assert all(row["component"] == "Row" for row in ear_rows)

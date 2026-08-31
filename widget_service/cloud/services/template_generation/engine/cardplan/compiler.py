@@ -4531,29 +4531,30 @@ def _template_value(
     bindings: dict[str, str],
     theme_values: dict[str, object],
 ) -> Any:
+    resolved_value: Any
     if value.kind == "literal":
-        return value.value
-    if value.kind == "parameter":
+        resolved_value = value.value
+    elif value.kind == "parameter":
         if value.name not in params:
             raise TerselConversionError(f"Template parameter is missing: {value.name}")
-        return params[value.name]
-    if value.kind == "optional-parameter":
-        return params.get(value.name)
-    if value.kind == "binding":
+        resolved_value = params[value.name]
+    elif value.kind == "optional-parameter":
+        resolved_value = params.get(value.name)
+    elif value.kind == "binding":
         if value.name not in bindings:
             raise TerselConversionError(f"Template binding is missing: {value.name}")
-        return bindings[value.name]
-    if value.kind == "theme":
+        resolved_value = bindings[value.name]
+    elif value.kind == "theme":
         if value.name not in theme_values:
             raise TerselConversionError(
                 f"Template Theme reference is unavailable: {value.name}"
             )
-        return theme_values[value.name]
-    if value.kind == "interpolation":
+        resolved_value = theme_values[value.name]
+    elif value.kind == "interpolation":
         raise TerselConversionError("Template interpolation must be the first Text value.")
-    if value.kind == "expression":
-        return _provider_runtime_expression(value, bindings)
-    if value.kind == "event-action":
+    elif value.kind == "expression":
+        resolved_value = _provider_runtime_expression(value, bindings)
+    elif value.kind == "event-action":
         if len(value.items) != 1:
             raise TerselConversionError("Template EventAction is invalid.")
         parameter = value.items[0]
@@ -4561,21 +4562,26 @@ def _template_value(
             raise TerselConversionError("Template EventAction is invalid.")
         action_id = _template_value(parameter, params, bindings, theme_values)
         if action_id is None and parameter.kind == "optional-parameter":
-            return None
-        if not isinstance(action_id, str):
-            raise TerselConversionError("Template EventAction ID is invalid.")
-        return [{"call": "sendToAssistant", "args": {"eventName": action_id}}]
-    if value.kind == "array":
-        return [
+            resolved_value = None
+        else:
+            if not isinstance(action_id, str):
+                raise TerselConversionError("Template EventAction ID is invalid.")
+            resolved_value = [
+                {"call": "sendToAssistant", "args": {"eventName": action_id}}
+            ]
+    elif value.kind == "array":
+        resolved_value = [
             _template_value(item, params, bindings, theme_values) for item in value.items
         ]
-    properties: dict[str, Any] = {}
-    for key, item in value.properties.items():
-        resolved = _template_value(item, params, bindings, theme_values)
-        if item.kind == "event-action" and resolved is None:
-            continue
-        properties[key] = resolved
-    return properties
+    else:
+        properties: dict[str, Any] = {}
+        for key, item in value.properties.items():
+            resolved = _template_value(item, params, bindings, theme_values)
+            if item.kind == "event-action" and resolved is None:
+                continue
+            properties[key] = resolved
+        resolved_value = properties
+    return resolved_value
 
 
 def _instantiate_interpolated_text(

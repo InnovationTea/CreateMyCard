@@ -411,6 +411,8 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     assert earphone_case_status_request["content"]["candidateAssetIds"] == [
         "asset.earphone_case_16644"
     ]
+
+
 def test_gallery_inputs_mark_missing_layout_families(tmp_path: Path) -> None:
     manifest = write_gallery_input_dataset(tmp_path / "inputs")
 

@@ -255,12 +255,14 @@ class CardPlanRegistry:
     ) -> tuple[str, ...]:
         """Return layout-scoped Themes that cover every selected capability."""
         required_capabilities = set(capability_ids)
-        return tuple(
-            theme_id
-            for theme_id, theme in self.themes.items()
-            if layout_id in theme.supported_layout_ids
-            and required_capabilities <= set(theme.supported_capability_ids)
-        )
+        compatible_theme_ids: list[str] = []
+        for theme_id, theme in self.themes.items():
+            if layout_id not in theme.supported_layout_ids:
+                continue
+            supported_capabilities = set(theme.supported_capability_ids)
+            if required_capabilities <= supported_capabilities:
+                compatible_theme_ids.append(theme_id)
+        return tuple(compatible_theme_ids)
 
     def require_layout_theme(
         self,

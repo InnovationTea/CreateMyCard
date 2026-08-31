@@ -322,14 +322,14 @@ def build_ux_mixed_prompt(
         bluetooth_facts = extract_bluetooth_device_overview_facts(task_spec.dataModelSchema)
         if bluetooth_facts is None:
             raise ValueError("BluetoothDeviceOverview has no compatible trusted earphone facts")
-        server_owned_bluetooth_literals = {
-            value
-            for value in (
-                bluetooth_facts.earphone_name,
-                bluetooth_facts.case_charging_status,
-            )
-            if value is not None
-        }
+        server_owned_bluetooth_literals: set[str] = set()
+        bluetooth_literals = (
+            bluetooth_facts.earphone_name,
+            bluetooth_facts.case_charging_status,
+        )
+        for value in bluetooth_literals:
+            if value is not None:
+                server_owned_bluetooth_literals.add(value)
         required_literals = tuple(
             item for item in required_literals if item not in server_owned_bluetooth_literals
         )
@@ -777,15 +777,16 @@ def _filter_second_layer_template_candidates(
     tuple[str, ...],
 ]:
     """Filter first-layer candidates by layout without inspecting business data."""
-    viable_layout_kinds = tuple(
-        layout_kind
-        for layout_kind in layout_kinds
-        if _layout_kind_has_complete_coverage(
+    viable_layout_kind_values: list[str] = []
+    for layout_kind in layout_kinds:
+        has_complete_coverage = _layout_kind_has_complete_coverage(
             candidates_by_component,
             required_template_groups,
             layout_kind,
         )
-    )
+        if has_complete_coverage:
+            viable_layout_kind_values.append(layout_kind)
+    viable_layout_kinds = tuple(viable_layout_kind_values)
     if not viable_layout_kinds:
         layout_label = "/".join(layout_kinds)
         raise ValueError(
@@ -853,15 +854,16 @@ def _prune_layout_selection(
     viable_layout_kinds: tuple[str, ...],
 ) -> _SecondLayerLayoutSelection:
     viable = set(viable_layout_kinds)
-    pairs = tuple(
-        (layout_id, layout_kind)
-        for layout_id, layout_kind in zip(
-            selection.layout_ids,
-            selection.layout_kinds,
-            strict=True,
-        )
-        if layout_kind in viable
+    pairs_values: list[tuple[str, str]] = []
+    layout_pairs = zip(
+        selection.layout_ids,
+        selection.layout_kinds,
+        strict=True,
     )
+    for layout_id, layout_kind in layout_pairs:
+        if layout_kind in viable:
+            pairs_values.append((layout_id, layout_kind))
+    pairs = tuple(pairs_values)
     if not pairs:
         raise ValueError("Second-layer layout candidates have no complete business Template")
     has_pill_layout = any(layout_id != "FullIconActionLayout" for layout_id, _ in pairs)

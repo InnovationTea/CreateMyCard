@@ -312,14 +312,16 @@ def _candidate_with_layout_suffixes(
     candidate: TemplateComponentCandidate,
     layout_suffixes: tuple[str, ...],
 ) -> TemplateComponentCandidate:
-    template_ids = tuple(
-        template_id
-        for template_id in candidate.available_template_ids
-        if any(
-            _template_has_layout_suffix(template_id, suffix)
-            for suffix in layout_suffixes
-        )
-    )
+    matching_template_ids: list[str] = []
+    for template_id in candidate.available_template_ids:
+        has_layout_suffix = False
+        for suffix in layout_suffixes:
+            if _template_has_layout_suffix(template_id, suffix):
+                has_layout_suffix = True
+                break
+        if has_layout_suffix:
+            matching_template_ids.append(template_id)
+    template_ids = tuple(matching_template_ids)
     if not template_ids:
         layout_label = "/".join(layout_suffixes)
         raise TemplateRetrievalMiss(

@@ -8,6 +8,14 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 TEMPLATE_CHILD_SLOT_COMPONENT = "__CardTplChildSlot"
+_BUSINESS_TEMPLATE_SUPPORTED_LAYOUTS = (
+    "SingleFocusLayout",
+    "HeroActionLayout",
+    "FullIconActionLayout",
+    "CompactTwoActionLayout",
+    "TwoSupportLayout",
+    "WideSingleFocusLayout",
+)
 
 
 class StrictModel(BaseModel):
@@ -238,14 +246,7 @@ class BusinessTemplateGroup:
 
     @property
     def supported_layouts(self) -> tuple[str, ...]:
-        return (
-            "SingleFocusLayout",
-            "HeroActionLayout",
-            "FullIconActionLayout",
-            "CompactTwoActionLayout",
-            "TwoSupportLayout",
-            "WideSingleFocusLayout",
-        )
+        return _BUSINESS_TEMPLATE_SUPPORTED_LAYOUTS
 
     @property
     def detection_terms(self) -> tuple[str, ...]:
