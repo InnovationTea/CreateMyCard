@@ -76,7 +76,7 @@
 - `dataModelSchema` 是允许使用的数据上限，不是必须展示的字段清单。可以使用任意子集，也可以完全不使用；不得因为字段存在就把它放进卡片。
 - 优先选择直接回答用户核心问题的最小字段集合。`2x2` 通常保留一个主字段和最多两个支撑字段；`2x4` 通常保留一个主结构和最多四类支撑字段。数组按“可见字段类型”计数，不按重复项数量计数；只有用户明确要求且经过布局预算验证时才扩大。
 - `sampleValue` 只用于理解展示形态、估算文本宽度和初始化首帧预览。它不是用户真实运行时数据。
-- 布局估算必须使用完整 `sampleValue`，不能只按数字主体或汉字主体估算；`%`、`℃`、`°`、货币符号、正负号、小数点、冒号、斜杠、括号和单位文字都属于不可丢失的显示内容。
+- 布局估算必须使用完整 `sampleValue`，不能只按数字主体或汉字主体估算；`%`、`°C`、货币符号、正负号、小数点、冒号、斜杠、括号和单位文字都属于不可丢失的显示内容。
 - 对百分比、温度、金额、时间、日期、时长、计数等格式化标量，除当前 `sampleValue` 外，还要用字段语义允许的较长合法值做压力检查。例如百分比至少检查 `100%`；字段描述允许负温时同时考虑负号。无法可靠推导边界时，按当前完整样例估算后仍保留至少 20% 水平余量。
 - 首帧数据行可以直接复用 `sampleValue`、做不改变语义与类型的展示格式化，或按字段 `type/description` 生成同类型的非敏感占位值；可见组件仍必须绑定对应路径，不能直接把该占位值写死在组件属性中。
 - 若任何可见字面量等于某个 `dataModelSchema.sampleValue`，或其内容、格式、状态结论、单位组合能够从该 `sampleValue` 直接或语义推导得到，则该字面量视为动态数据展示，对应组件必须使用 Expression 或 PathBinding 绑定该字段。`sampleValue` 及其等义改写只能作为对应路径的数据行首帧值出现，禁止写入组件的静态 `content`、`label`、`value` 或其它可见属性；不能通过改写措辞、拆分单位、增加前后缀或生成同义状态词规避绑定。
@@ -102,6 +102,7 @@
 - 多个候选完成同一目的时，只选择语义最直接、参数目标最明确的一个；不把同一事件同时绑定 root 和按钮。
 - 没有显式动作或合适的隐式入口时不生成点击行为，也不生成看似可点击的 CTA。未选择的候选无需在 DSL 中留下痕迹。
 - 一个可见事件只允许一个 handler；禁止串联多个动作。
+- TaskSpec 中的候选必须来自当前端侧版本能力清单；生成时只能逐字段复用 TaskSpec 已提供的真实候选。不得为了让卡片“看起来可交互”而编造 `demo://`、`mock://`、`example://`、占位 intent、占位 URI 或能力清单外的数据路径；没有匹配的真实事件时删除点击行为，没有匹配的真实数据时删除对应信息，不用 mock 补齐版面。
 
 ## 2.5 assetCandidates
 
@@ -153,7 +154,7 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":18,"clip":true},["header","main","action"]]
 ["header","Row",{"width":136,"height":20,"alignItems":"center","justifyContent":"spaceBetween"},["title","icon"]]
-["title","Text",{"content":"卡片标题","fontSize":14,"fontWeight":700,"fontColor":"#E5000000","maxLines":1}]
+["title","Text",{"content":"卡片标题","fontSize":14,"fontWeight":700,"fontColor":"#FF1F9947","maxLines":1}]
 ["/state/ready",true]
 ```
 
@@ -210,7 +211,7 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 数据行是 JSON 数组：
 
 ```json
-["/data/weather/current/temperatureText","26℃"]
+["/data/weather/current/temperatureText","26°C"]
 ```
 
 - 第 1 项必须是 JSON Pointer 路径。
@@ -219,9 +220,11 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 - 纯静态或纯事件卡片也要写入最小辅助状态，例如 `["/state/ready",true]`。
 # 五、组件协议
 
-只允许以下十种组件：
+只允许以下十种基础组件：
 
 `Text`、`Image`、`Divider`、`Progress`、`Button`、`Checkbox`、`Row`、`Column`、`List`、`Stack`
+
+此外只允许使用本提示词 5.14 定义、并由转换器确定性展开的紧凑协议宏组件 `ActionUnit`。它不是新增端侧组件，禁止仿照它自造其它 Unit 或高级组件。
 
 禁止：
 
@@ -251,10 +254,10 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 
 规则：
 
-- root 的 `width/height` 写 `"matchParent"` 或画布数值（2x2 `160/160`、2x4 `320/160`），转换器等价处理；关键内部容器、主图、按钮、Progress 使用数值宽高。
+- root 的 `width/height` 一律写 `"matchParent"`（2x2/2x4 画布尺寸由 surface 决定，不写数值）；关键内部容器、主图、按钮、Progress 使用数值宽高。
 - `margin/padding` 使用数字，或完整的 `{top,right,bottom,left}` 对象；不要缺边依赖默认值完成关键预算。
-- `linearGradient` 使用 `{angle,colors}`；统一 `angle:180`（上深下浅或上深下亮），colors 是 `[["#AARRGGBB",0],["#AARRGGBB",1]]`，同色族 2-3 个 stop。不要写斜向、横向渐变；下方 few-shot 中 2x4 历史示例的 `direction` 写法仅作兼容，新生成一律用 `angle`。
-- 对 root 的颜色型背景，默认优先使用克制的同色系 `linearGradient`，其视觉优先级高于单一 `backgroundColor`；纯色只作为明确需要极简、中性或低干扰表面时的选择。
+- `linearGradient` 使用 `{angle,colors}`；统一 `angle:180`（上深下浅或上深下亮），colors 是 `[["#AARRGGBB",0],["#AARRGGBB",1]]`，同色族 2-3 个 stop。不要写斜向、横向渐变。
+- 对 root 的颜色型背景，除本提示词明确列出的纯色例外外，必须优先使用克制的同色系 `linearGradient`，不得因为单一 `backgroundColor` 更容易生成就回退纯色。纯色只允许用于用户明确要求扁平纯色，或高密度列表/网格经预算判断确实需要最低干扰画布的场景。
 - `backgroundImageSizeWithStyle` 优先使用 `cover|contain|fill|auto`。
 - `visibility` 只取 `visible|hidden|none`：`hidden` 不显示但继续占用布局空间，`none` 不显示且不占用空间。不得依赖 `hidden` 或 `none` 掩盖预算失败，也不得动态隐藏用户核心内容、受保护文本或主动作。
 - `flexShrink` 只使用 `[0,1]` 范围内的静态数值；`0` 表示不参与主轴压缩，值越大越优先被压缩。受保护文本或 CTA 可设为 `0`，但仍须按完整内容预留空间，不能把 `flexShrink` 当作布局预算替代品。
@@ -264,10 +267,10 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 
 ### 5.2.1 显式样式口径
 
-除 root 融球 Style Design Token 外，不使用 design 语义令牌或色彩令牌；字号、字重、颜色、圆角、间距一律按批准档位显式写在 props（`fontSize`、`fontWeight`、`fontColor`、`fillColor`、`backgroundColor` 等，颜色只写 `#AARRGGBB`），取色逻辑见第十二节。`Progress` 的 `design:"linear-bar"` / `design:"ring"` 是组件形态别名，不是视觉档令牌。
+除 root 融球 Style Design Token 外，不使用 design 语义令牌或色彩令牌；字号、字重、颜色、圆角、间距一律按批准档位显式写在 props（`fontSize`、`fontWeight`、`fontColor`、`fillColor`、`backgroundColor` 等，颜色只写 `#AARRGGBB`），取色逻辑见第十二节。`Progress` 必须使用 `type` 明确形态：横向进度写 `type:"linear"`，环形进度写 `type:"ring"`；禁止给 Progress 写 `design`，也禁止省略 `type` 后依赖转换器猜测形态。
 
 - 仅当 TaskSpec `size` 为 `2x2`，且卡片是单一业务/单一数据域时，root `Row`、`Column` 或 `Stack` 才可使用融球 Style Design Token。允许场景仅限：单个倒计时/纪念日用 `fusion-ball-sport-orange`，单个日程/提醒用 `fusion-ball-schedule-cool` 或 `fusion-ball-schedule-warm`，睡眠/专注单主题用 `fusion-ball-sleep-violet`。
-- 天气、电量、运动列表、系统工具、设备状态、组合通勤、多个日程、多业务或多数据域卡片禁止使用融球，应回退纯色或弱渐变背景。
+- 天气、电量、运动列表、系统工具、设备状态、组合通勤、多个日程、多业务或多数据域卡片禁止使用融球，一律使用方案二浅色材质。
 - 使用融球 Design Token 时，root 的背景只写 `design`，不再写 `backgroundColor`、`linearGradient` 或 `backgroundImage`；尺寸、内边距、圆角、裁剪和布局属性仍按 root 规则显式填写。转换器会确定性展开融球背景，并把前景根的原 ID `root` 加上 `__genui_render_component__` 前缀，生成 `__genui_render_component__root` 防溢出标识；展开后的外层卡片根仍使用 `root`。
 
 ## 5.3 Text
@@ -275,6 +278,7 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 顶层：
 
 - 必填 `content`：字符串、完整 Expression 或 PathBinding。
+- `content` 不得是空字符串或纯空白。不得用空 Text 绘制圆点、占位、留白或承担尺寸撑开；圆点等必要标记使用可见短符号，纯间距使用父容器布局，无法用合法组件表达时删除该装饰。
 
 props 可用样式字段：
 
@@ -282,7 +286,7 @@ props 可用样式字段：
 
 - `fontWeight` 使用 `100-900`，按 100 递增。
 - `textAlign` 只取 `start|center|end|justify`。
-- `textOverflow` 可省略，转换器会兜底补 `clip`；显式写 `textOverflow:"clip"` 合法。动态受保护文本必须在生成前证明完整内容能够放下。
+- 生成的极简 DSL 不输出 `textOverflow`。转换器可能在完整 DSL 中补充防御性 `clip`，但生成阶段仍必须证明完整压力文本可以放入槽位；不能把转换器兜底当作截断策略，也不能用 `ellipsis`、裁切或遮罩掩盖布局不足。
 - 使用 `minFontSize/maxFontSize` 时两者必须同时设置；它们只能作为字体适配兜底，仍要保证完整压力测试字符串在 `minFontSize` 下能够放入文本框。
 
 ## 5.4 Image
@@ -299,8 +303,9 @@ props 可用样式字段：
 - `objectFit` 优先 `contain`；主媒体确实需要裁切时才用 `cover`。
 - `fillColor` 会覆盖 SVG 内部原有填充色。除非 `description` 明确要求“不可染色、禁止染色、保留原色”，或强调必须保留的多色、渐变、品牌色彩语义，否则所有 SVG 默认设置 `fillColor`，值必须是 `#AARRGGBB`。PNG 等位图不写 `fillColor`；不要抹掉描述明确要求保留的状态、层级或品牌信息。
 - 选择 `fillColor` 时必须以图标所在的直接背景为准，而不是只看 root 背景。图标位于面板、按钮或标签中时，应按该容器的实际底色判断明暗与对比度；半透明容器还要考虑其下方背景。
-- 按图标角色选择颜色：主视觉或大图标在浅色背景上优先使用 `accent`，在深色或高饱和背景上优先使用白色或高对比浅色；标题旁的功能图标优先使用 `primaryText`，只有需要强调分类时才使用 `accent`；辅助图标使用 `secondaryText` 对应色，不得比主信息更抢眼；普通背景按钮内图标必须与按钮文字同色，融球胶囊按钮内图标使用 `#99FFFFFF`、文字使用 `#E6FFFFFF`；只有真实状态语义的图标才使用 `state/action` 色。
+- 按图标角色选择颜色：主视觉或大图标在浅色背景上优先使用 `accent`，在深色或高饱和背景上优先使用白色或高对比浅色；标题旁的功能图标优先使用 `primaryText`，只有需要强调分类时才使用 `accent`；辅助图标使用 `secondaryText` 对应色，不得比主信息更抢眼；按钮内图标必须与按钮文字同色；只有真实状态语义的图标才使用 `state/action` 色。
 - `fillColor` 必须复用本卡已经确定的颜色角色，不为单个图标临时增加新的强调色。描述给出的推荐色或色系可用于确定最合适的颜色角色，但最终颜色必须与直接背景形成清晰对比。
+- 在最终静态预览色上，承担对象识别、状态或动作语义的主要图标与其直接背景的对比度至少达到 3:1；达不到时改用同色族更深/更浅的批准颜色、换用适合当前明暗模式的候选素材，或删除非必要图标，不通过增加描边、阴影或额外底板勉强修补。
 - 同一层级、同一语义的图标使用同一染色角色；同一素材在相同语义下不反复使用不同染色。默认黑色的 SVG 不应直接沿用黑色，除非黑色就是当前浅色表面上的 `primaryText` 颜色且符合整体配色。
 - 只有描述明确要求保留原色的 SVG 才省略 `fillColor`；若其原色在当前背景上不可辨认，则改用其他候选素材或不用图标，不擅自覆盖其颜色。
 
@@ -322,10 +327,10 @@ props 可用样式字段：
 
 props 可用样式字段：
 
-- `type` 只取 `linear|ring|eclipse|scaleRing|capsule`。
+- `type` 必填且只取 `linear|ring`；横向进度固定使用 `linear`，环形进度固定使用 `ring`，不得使用其它形态值或别名。
 - `color` 是纯色字符串或协议允许的动态值，不支持渐变。
 - `strokeWidth` 是数字 vp。
-- ring/scaleRing 必须写相同的稳定 `width/height`。
+- ring 必须写相同的稳定 `width/height`。
 
 只有数据具有明确目标、总量、范围或百分比语义时才使用 Progress。没有进度语义时改用 Text，不把任意数值包装成环形图。
 
@@ -425,29 +430,17 @@ props 可用样式字段：
 
 为减少布局漂移，生成新卡片时所有布局样式 props 默认使用静态合法值，不动态绑定尺寸、间距、圆角、排版、背景或对齐。不要因为组件的某个属性支持 Expression，就推断其它属性也支持。
 
-## 5.14 高级组件（ActionUnit / RingUnit / TimelineUnit）
+## 5.14 高级组件（ActionUnit）
 
-三种高级组件是对基础组件的受控封装，只输出一行且不带 children，由转换器展开为完整结构；2x2 的卡级 CTA、环内百分比读数与日程时间线优先使用它们。
+ActionUnit 是对卡级 CTA 的受控封装，只输出一行且不带 children，由转换器展开为完整结构；2x2 的卡级 CTA 优先使用它。
 
 ActionUnit——卡级 CTA：
 
 - `state:"capsule"`：底部通栏文字胶囊（136x36、radius 20、文字 14），必须有 `label` 和 `onClick`；有匹配动作图标时可写 `icon`，转换器展开为图标+文字整体居中且图标与文字同色。
 - `state:"icon-round"`：右下 30x30 白底圆钮，必须有 `icon` 和 `onClick`，禁止 `label`。
 - 可用字段：`state`、`label`、`icon`、`actionInk`、`actionSurface`、`fontSize`、`fontWeight`、`onClick`、`flexShrink`。
-- `actionSurface` 是按钮底色、`actionInk` 是文字与图标色，必须成对显式写 `#AARRGGBB`（深色卡可写 `actionSurface:"white"`）；取色按第十二节按钮两模式，按钮文字 14/400-500。
+- `actionSurface` 是转换后按钮的实际底色、`actionInk` 是实际文字与图标色，必须成对显式写 `#AARRGGBB`，不得省略后依赖默认皮肤；二者按第十二节按钮规则从卡片同一色相族成对选择。除融球固定样式外，`actionSurface` 必须是 alpha 为 `FF` 的同族有色实体面，不使用灰色、低透明白色或低透明主色，按钮文字使用 14/400-500。
 - capsule 只能放在 root 最后一个 `action_area Column` 内且是其唯一子节点；双按钮（S3 骨架）在该 Column 内纵排两张 capsule。不要用基础 `Button` 手写 CTA 皮，也不要再额外输出 action_icon Image 行。
-
-RingUnit——环内百分比读数：
-
-- 写法：`["id","RingUnit",{"state":"center-reading","size":52,"value":...,"total":100,"reading":{"path":"/...","unit":"%"}}]`；`value` 的 preview 必须是 0-100 整数，小数或长字符串禁止入环。
-- 转换器把环内数字设为 16/700、`%` 单位 10/400 且 opacity 0.6 并底部对齐；不要覆盖这些参数，也不要把数字和 `%` 合成一个 Text。
-- 数值是小数或长字符串时改用 `Stack -> [Progress design:"ring", Image]`（ring_icon_stack）：环内放 20-24 语义图标，完整数值放环外的 Text。
-
-TimelineUnit——会议/日程时间线：
-
-- 只用于 2x2 日程卡左侧时间线行 `Row` 的第一个子节点，右侧是文字列 Column；不要手写空心圆点、竖线 Divider 或 Stack 冒充。
-- 可用字段：`width`（默认 16）、`height`（44-68，按文字区高度调整）、`dotSize`（默认 8）、`dotStroke`（默认 1.5）、`dotOffsetTop`（默认 3）、`color`（圆点与竖线主色，日程推荐当前卡强调色）、`lineColor`（默认 `#1A000000`）、`flexShrink`。
-- 圆点表示当前/下一条事项，竖线向下延伸到时间和地点文本区域。
 
 # 六、动态数据绑定
 
@@ -538,10 +531,12 @@ TimelineUnit——会议/日程时间线：
 - `spaceAround|spaceBetween|spaceEvenly` 只在全部主轴子项都有稳定尺寸时使用，不依赖分布式对齐修复不确定宽高，也不假设它会保留额外固定间距。
 - 包含动态 Text、Button 或图文 CTA 的 Row 在完成各子项压力宽度分配后，主轴还应至少保留 `4vp` 非占用余量；若结果刚好为 `0` 或仅靠默认裁切才能成立，优先改为 Column、扩大主内容槽位或删除次要字段。
 - `clip: true` 只用于约束卡片外形，不是布局策略。任何文本、图标、Progress、状态区或 CTA 的理论边界超出父容器，都属于失败，即使截图中还能露出一部分也不得输出。
+- 删除无语义容器：只有在承担轴向布局、尺寸预算、背景/边框、叠放、对齐或点击边界时才允许新增 Row/Column/Stack。仅包含一个子节点且不承担上述职责的容器必须折叠；不要为命名分区、制造空隙或微调位置连续包裹多层容器。除受控 ring Stack 和必须的卡片 shell 外，从一个区域容器到可见叶子组件通常不超过三层布局容器。
 - 对 2x2 的 root Column，输出前必须在内部列出所有直接子项高度并求和；总和连同 margin/有效间距必须不超过 `136vp`。例如 `20 + 76 + 36 + 36 = 168 > 136` 明确不成立，必须删除/合并一个区域或同时缩小多个区域，不能仅改成 `spaceBetween`。
 - 窄于父容器内部宽度的主焦点组件或动作组件必须显式决定在父容器中的交叉轴位置。若 Progress 环、主插画、主数值、Button 或 clickable Row 的设计意图是水平居中，应由父 Column 使用 `alignItems:"center"`，或放进一个与父容器内部宽度一致且内容居中的 Row/Stack；组件自身的 `justifyContent/alignItems/textAlign` 只控制其内部内容，不能证明该组件自身相对父容器居中。`Stack.alignContent:"center"` 也只控制 Stack 内部子项叠放位置，不会让 Stack 自身在父 Column 中居中。
 - 间距只能使用：`2、4、6、8、10、12、14、16`。
-- 优先使用 `4、8、12、16`；组间距必须大于或等于组内距。
+- 优先使用 `4、8、12、16`；紧密关联的数字与单位可用 `2-4vp`，图标与文字通常至少 `6vp`，独立信息组之间通常至少 `8vp`。`itemMargin:0` 只允许数字与单位、连续符号或其它必须视觉连写的内容；组间距必须大于或等于组内距。
+- 留白必须围绕主信息组分布，不能集中堆在单侧、单角或两个分区之间。除 S1 单信息卡为突出唯一 hero 而保留的有意留白外，不得出现占安全内容区约三分之一以上、且不参与主焦点构图的连续空白；并列同级分区应保持相近高度和视觉重量，不能一侧拥挤、一侧空泛。
 - 内部信息背板圆角通常 `8-12vp`；主要支撑背板可用 `12-16vp`；胶囊圆角取高度一半。
 - 可点击视觉元素宽高不得小于 `24vp`；主胶囊按钮默认高 `36vp`。
 - `2x2` 中带文字的主动作优先使用底部全宽 Button 或全宽图文 Row。不得把 Image + Text 横向塞进窄于 `56vp` 的侧边动作栏；空间不足时改成全宽动作、纯文字 Button，或仅保留带 accessibility.label 的独立图标动作。
@@ -572,7 +567,7 @@ TimelineUnit——会议/日程时间线：
 
 每张卡必须且只能选择一个固定骨架。骨架规定一级 region 的几何关系、角色容量和动作上限；允许在声明范围内微调子组件对齐、字号、颜色和局部高度，不得跨骨架拼接 region，也不得为了使用候选而新增一级区域。
 
-路由顺序固定为：先按 TaskSpec.size 选尺寸分册（2x2 用 9.1 四分法骨架，2x4 用 9.2 宽卡骨架）→ 再按信息关系选骨架 → 再检查 `mustKeep` 是否全部能映射到槽位 → 最后选择结构最简单的可用骨架。若没有骨架能承载，先删除 `shouldKeep`，不得自由发明复杂页面。
+路由顺序固定为：先按 TaskSpec.size 选尺寸分册（2x2 用 9.1 四分法骨架，2x4 用 9.2 W 骨架（按信息承载量 W1→W8））→ 再按信息关系选骨架 → 再检查 `mustKeep` 是否全部能映射到槽位 → 最后选择结构最简单的可用骨架。若没有骨架能承载，先删除 `shouldKeep`，不得自由发明复杂页面。
 
 ## 9.1 2x2 固定骨架（v0.2 四分法）
 
@@ -589,7 +584,7 @@ TimelineUnit——会议/日程时间线：
 
 - 用于：状态卡、数值卡、日程提醒、省电、步数、睡眠等「两条信息 + 一个动作」。
 - region：`title_area 16-20vp` 恒高 + `content_area`（layoutWeight:1）+ `action_area` 底部锚定（36vp 胶囊）；无动作时 `action_area` 换成 `bottom_area`（一组全宽支撑信息）。
-- 亚型：数值亚型（`value_row` 数字+单位 + 进度条/辅助行）；状态亚型（状态文字或 `TimelineUnit` 时间线行 + 辅助行）；视觉亚型（`root -> [title_area, content_area, bottom_area]`，`bottom_area Row -> [ring_icon_stack, action_area]` 左下环内图片 + 右下 icon-round）。
+- 亚型：数值亚型（`value_row` 数字+单位 + 进度条/辅助行）；状态亚型（状态文字列 + 辅助行）；视觉亚型（`root -> [title_area, content_area, bottom_area]`，`bottom_area Row -> [ring_icon_stack, action_area]`，其中 `ring_icon_stack` 固定为环形 Progress 与中心图标的叠放组合，左下展示状态视觉，右下放 icon-round）。
 - 槽位：标题、两行信息、至多一个显式动作。
 - 禁止：两个按钮、三个数据域、弹性中段拉伸（间距一律显式 itemMargin）。
 
@@ -607,51 +602,65 @@ TimelineUnit——会议/日程时间线：
 - 槽位：每方一个视觉主体 + 一组文字；每方至多一个主数值。
 - 禁止：总标题（横行亚型可保留小标题行）、三方分区、两方结构不同构。
 
-## 9.2 2x4 固定骨架
+## 9.2 2x4 固定骨架（v0.3 W 骨架 · 按信息承载量 W1→W8）
 
-### `wide-hero-context`
+2x4 骨架按信息承载量从少到多编号；每张卡必须且只能选择一个骨架，允许在声明范围内微调，不得跨骨架拼接 region。通用约束：分栏一律等分或固定宽（146/144/140），侧栏固定宽统一 140vp；线性进度条一律 `strokeWidth:8`；弹性沉底用 `layoutWeight:1` 空容器占位（`flexShrink` 只收缩不拉伸，禁止用于沉底）；禁止 `justifyContent:"spaceBetween"` 制造三段均分（会把中部元素推离预期位置）。
 
-- 用于：天气加日程、主指标加详情、通勤、媒体说明。
-- region：横向 `104vp + 8vp + 180vp`，或镜像 `180vp + 8vp + 104vp`，保留至少 `4vp` 横向余量；两区高均为 `136vp`。
-- 槽位：一侧唯一 hero，另一侧一个上下文组；全卡最多一个显式动作。
-- 禁止：两侧同时使用高饱和背景、两个主焦点、两个互不相关的对象。
+### `W1-progress-aux`（进度 + 辅助区域）
 
-### `wide-timeseries-strip`
+- 用于：倒计时、强提醒、单主指标进度 + 侧栏辅助（同构事项 / 说明背板 / 双入口）；承载 1 主数值 + 1 进度 + 辅助 0-2 项。
+- region：`content Row -> [progress_zone 146, aux_zone 140]` gap 10。progress_zone：`tag 12fp` 顶 → `count`（38-40fp 大数 + 单位，紧随 tag）→ `layoutWeight:1` spacer → 沉底 `Progress linear 146×8`（strokeWidth 8）+ 端标行（10fp/400/白 60%，条下方两端对齐）。aux_zone 三变体：var-a 双份区域（两张 64 高背板 + gap 8，白 20% 底、圆角 12，各「标题 12fp/700 + 副文 10fp」）；var-b 整体大区域（单背板 136 全高、圆角 14，标题顶部 + 正文沉底、中部留白，无动作）；var-c 双按钮（两枚 140×36 胶囊纵排 gap 10，沉底与进度条底对齐）。
+- 槽位：恰好一个大数 + 一个进度语义；辅助区至多两个事项或两个动作。
+- 禁止：辅助区混排（背板+按钮）、progress_zone 放第二数据域、进度条细于 8vp。
 
-- 用于：逐小时天气、3 至 5 项短趋势、同级状态序列。
-- region：`header 20vp` + `series 64-108vp` + 可选 `action 36vp`；有动作时 series 必须缩短并保证总高不超过 `136vp`。
-- 槽位：重复单元严格同构，每项最多“时间/对象、主值/状态、弱提示”三层。3 项建议每项 `88vp`；4 项每项不超过 `67vp`；5 项每项不超过 `52vp`，项间统一 `8vp`，并始终保留至少 `4vp` 横向余量。
-- 只有每项都是短字段、文本压力检查通过且数组展示数量可由 TaskSpec 或用户请求确定时才允许 4 至 5 项；否则最多 3 项。
-- 禁止：每项独立背板和动作、不同层级混排、长标题、六项及以上。
+### `W2-text-flow`（单列文本流 · 沉底）
 
-### `wide-agenda-stack`
+- 用于：单日程摘要、公告、说明型内容；纯文本无图形无动作，承载 3 单元。
+- region：`kicker 12fp` 顶 + `lower Column 113 justifyContent:end`：`event 76`（标题 20fp/700 + 正文 10fp/两行）+ `date 10fp`（贴正文下方沉底）；kicker 与标题之间大留白（上空下实）。
+- 槽位：一个标题 + 一段正文（≤2 行）+ 一行元信息。
+- 禁止：标题悬空居中、正文三行以上、任何背板与图形。
 
-- 用于：今日日程、未来会议、闹钟和提醒列表。
-- 无 CTA：`header 20vp + 8vp + list 108vp`，展示 2 至 3 项。
-- 有 CTA：`header 20vp + 8vp + list 64vp + 8vp + action 36vp`，最多两项。
-- 槽位：单项最多标题、时间和一个弱字段；当前不使用逐项模板事件。无逐项事件时可使用一个 root 隐式入口。
-- 禁止：完整月历、长滚动列表、三个不同动作、每项独立高对比卡面。
+### `W3-ring-detail`（大环 + 说明列）
 
-### `wide-metric-detail-action`
+- 用于：百分比主指标（电量、完成度）+ 右侧说明，承载 1 环指标 + 3 行说明。
+- region：`title 12fp/700`（高 17）+ `main Row 113`：`ringArea 144`（`Stack 92`：Progress ring strokeWidth 8 + 环心读数 20fp）+ `info 144`（标题 16fp/700 / 值 14fp / 状态 12fp，居中）。
+- 槽位：一个环主指标；右侧至多三行说明。
+- 禁止：环径 <80、右侧第二数据域、环心空置。
 
-- 用于：设备、内存、电池健康、运动健康、睡眠摘要、App 使用时长。
-- region：`metric 104vp + 8vp + detail 180vp`，保留至少 `4vp` 横向余量；可在 detail 内放最多三个统一样式补充指标。若需要底部动作，两侧内容高度共同缩减，为 `36vp` 动作保留完整热区。
-- 槽位：一个主指标、最多三个补充指标、最多一个默认动作；第二动作必须由用户明确要求且骨架预算成立。
-- 禁止：没有主指标、超过三个补充指标、多个图表竞争、长标签。
+### `W4-metric-triple`（三指标等分分割线）
 
-### `wide-dual-domain`
+- 用于：三并列同构指标（健康概览等）。
+- region：`title 18fp/700`（高 22）+ `metrics Row 84`：三列（88/96/88）+ 两条竖 `Divider 1×64` 居中；每列三行严格水平对齐——label 12fp / value 24fp/700 / unit 12fp，列内 justifyContent center；文本型指标列（字段为文本无法拆数值/单位）允许「整行文本 20fp + 空单位占位」+ 顶对齐 10vp 阶梯补偿。
+- 槽位：恰好三个指标；每列一个数值。
+- 禁止：列内行错位（三列 label/value/unit 各自同水平线）、第四列、数值行并单位换行。
 
-- 用于：两个数据域必须同屏比较或共同回答同一个问题。
-- region：`142vp + 8vp + 142vp`，两区等高并保留 `4vp` 横向余量；通过一个共享标题、背景方向或唯一动作建立整卡焦点。
-- 槽位：每区一个短主值和最多两条支撑；最多一个整卡级显式动作或隐式入口。
-- 禁止：拼接两个互不相关的迷你卡、两侧各自拥有 CTA、两个高饱和场景面。
+### `W5-progress-detail`（数值 + 进度 + 双详情）
 
-### `wide-four-action-hub`
+- 用于：线性进度语义（恢复度、目标完成）+ 双详情背板。
+- region：`title 12fp/700`（高 20）+ `body 108`：`progressSlot 50`（数值行 20fp + label 10fp + `Progress linear 296×8 strokeWidth 8`）+ `details Row 50`（两背板 144×2 gap 8、圆角 10、主色 5% 底，各「标题 12fp/700 + 值 10fp」）。
+- 槽位：一个进度主指标 + 两个详情项。
+- 禁止：进度条细于 8vp、三背板、详情行高 >50。
 
-- 用于：用户明确要求同一服务对象下 3 至 4 个同层级快捷操作，例如系统设置或音乐控制。
-- region：`header 20vp + 12vp + actionGrid 104vp`；actionGrid 使用两个 `Row` 组成 `2×2`，两行各 `48vp`、行间 `8vp`，每行两项 `142vp + 8vp + 142vp`，并保留 `4vp` 横向余量。
-- 每个操作必须有精确 eventCandidate、2 至 4 字短标签和可见图标或明确文字；所有副作用动作都必须由用户逐项明确要求。
-- 禁止：用它展示数据、混入不同服务对象、存在主次悬殊的操作、候选不足时伪造按钮、四个以上操作。
+### `W6-agenda-cta`（日程摘要 + 双入口）
+
+- 用于：下一日程/单事件 + 两个真实入口。
+- region：`kicker 12fp` + `event 48`（标题 18fp/700 一行 + 时间 12fp）+ `actions Row 36`：两枚 140×36 胶囊（主色 20% 底 + 主色墨，spaceBetween 闭合 296），沉底。
+- 槽位：一个日程对象 + 恰好两个动作；动作必须有注册事件。
+- 禁止：单按钮、三按钮、标题换行。
+
+### `W7-list-rows`（三行等高列表）
+
+- 用于：近期日程/待办 3 行清单。
+- region：`title 12fp/700`（高 17）+ `list 115`：三行背板 296×33（gap 8）、圆角 8、主色 5% 底；每行 `Row -> [check 圆 14 描边, 文本 12fp]`。
+- 槽位：恰好三行；每行一条文本。
+- 禁止：两行或四行、行内按钮、行高不一。
+
+### `W8-quad-cells`（无标题四格）
+
+- 用于：四设备/四对象同构电量或占比，信息承载最重。
+- region：无标题；`grid 2×2`（格 144×64、gap 8）；每格 `Row padding 12 -> [文本列 64, ringStack 40]`：文本列「数值 16fp/700 + 状态 10fp」，ringStack 为 `Progress ring 40 strokeWidth 4`（弧=各格数值、底环主色 5%）+ 环心图标 16×16。
+- 槽位：恰好四格；每格一个数值 + 一个环。
+- 禁止：标题行、格内双数值、实心图标替代环、第三行格。
 
 骨架落地时还必须满足：
 
@@ -679,6 +688,8 @@ TimelineUnit——会议/日程时间线：
 
 字号按设计稿实测直写，不做档位折算映射；同一卡片最多使用三档字号。
 
+同级内容必须使用同一字号、字重、尺寸和对齐方式；同一组并列指标不能因为某项文本较长就单独降字号或改变垂直位置。某一项放不下时，应统一降低该组字号、统一调整槽位、缩短弱标签或改用更合适的骨架。
+
 字重：
 
 - 主值 `700-800`。
@@ -689,7 +700,8 @@ TimelineUnit——会议/日程时间线：
 受保护文本包括：用户明确标题、状态、日期、时间、主指标、价格、数量、联系人称呼和 CTA。
 
 - 必须完整显示。
-- 格式化动态字段的前缀、后缀和单位是主值的一部分；例如 `18%` 的 `%`、`-6℃` 的负号与 `℃` 都受保护，不得只保证数字主体可见。
+- 格式化动态字段的前缀、后缀和单位是主值的一部分；例如 `18%` 的 `%`、`-6°C` 的负号与 `°C` 都受保护，不得只保证数字主体可见。
+- 温度单位优先统一写作 `°C`。数值型摄氏温度由独立单位 Text 或完整 Expression 补充 `°C`，不得使用单独的 `°`、圆点、实心圆或其它近似符号冒充温度单位；若 TaskSpec 提供的格式化字符串已经包含单位，则完整绑定原值，不重复追加或擅自改写。
 - 不得用 `ellipsis`、`clip`、超小字号、负间距或遮罩掩盖布局失败。
 - 放不下时按顺序处理：缩短弱标签 → 删除可选字段 → 改为两行并增加高度 → 降到批准字号 → 简化布局。
 - 不截断用户明确要求的 CTA；按钮宽度需覆盖文字宽度和左右至少 `8vp` 内边距。
@@ -697,7 +709,7 @@ TimelineUnit——会议/日程时间线：
 动态文本宽度按以下保守规则静默估算：
 
 1. 先构造布局压力字符串：优先取字段语义允许的较长合法值，其次取完整 `sampleValue`；表达式拼接的静态前后缀也必须计入。
-2. 估算单位：每个中文字符约 `1.0 × fontSize`，每个英文或数字约 `0.65 × fontSize`，`%`、`℃`、`°`、货币符号等宽单位约 `0.8 × fontSize`，空格和窄标点约 `0.4 × fontSize`，其余符号至少按 `0.6 × fontSize`。
+2. 估算单位：每个中文字符约 `1.0 × fontSize`，每个英文或数字约 `0.65 × fontSize`，`%`、`°C`、货币符号等宽单位约 `0.8 × fontSize`，空格和窄标点约 `0.4 × fontSize`，其余符号至少按 `0.6 × fontSize`。
 3. 单行文本必须满足 `Text.width - horizontalPadding >= estimatedWidth × 1.2`；粗体、主指标、百分比、温度、金额和时间不得取消这 20% 余量。
 4. Row 中多个文本并排时，先分别完成压力检查，再验证 `sum(child width) + itemMargin + padding <= parent width`；不能把父容器刚好算平当成文本一定放得下。
 5. 空间不足时优先把次要状态移到主值下方、扩大主值槽位或降低到批准字号。不要从已经格式化的动态字符串中剥离单位另造静态 Text；只有 schema 分别提供数值和单位字段时才允许拆分。
@@ -738,18 +750,20 @@ TimelineUnit——会议/日程时间线：
 - Button 和图文按钮的文案必须先做语义压缩：只保留动作和必要对象，优先 2 至 4 个汉字。状态说明、条件、原因和结果提示放在按钮外；“点击、立即、一键、请、去、一下、这里”等不改变动作目标的词默认删除。
 - 图文按钮的最低宽度必须覆盖 `左右 padding + Image.width + itemMargin + 标签压力宽度 × 1.2`。采用默认 `20vp` 图标、`8vp` 间距、`14fp` 文字时，通常不小于 `80vp`；不得生成父 Row 比内部 Image、Text 和间距总和还窄的动作栏。
 - 图文按钮的 `onClick` 只写在外层 Row，内部 Image/Text 不再绑定事件，也不在 Row 中嵌套 Button。只要用户明确要求图文按钮且存在语义准确的候选图标，就必须保留图标并采用该 Row 组合；只有没有合法候选图标时才退化为纯文字 Button。
-- 融球背景下的胶囊按钮必须使用低强调白色半透明方案：ActionUnit 写 `actionSurface:"#33FFFFFF"`、`actionInk:"#E6FFFFFF"`；基础 Button 或图文按钮 Row 的 `backgroundColor` 固定为 `#33FFFFFF`；按钮文字 `fontColor` 固定为 `#E6FFFFFF`；若有按钮内 Image，`fillColor` 固定为 `#99FFFFFF`。该规则只作用于融球背景，不改变普通纯色、弱渐变或素材背景下的按钮配色。
 - 独立图标动作使用带 `onClick` 和静态 accessibility.label 的 Row，外框通常 `30×30vp`、中心 Image `16-20vp`；没有精确图标时不生成。
-- 动作区应在内容之后并贴近底部；按钮不能比主信息更醒目，除非用户核心目标就是执行动作。
+- 动作区应在内容之后并贴近底部。按钮的视觉权重可以低于主信息，但按钮承载面必须与直接背景清晰可辨，不能通过降低透明度让按钮融入 canvas；用户核心目标就是执行动作时，唯一主 CTA 应具有更明确的表面层级。
 - 同一动作不同时绑定 root 和按钮。
 
 ## 11.3 Progress 与环
 
-- Progress 只表达占比、使用率、完成度、电量这类 0-100 数值语义；主值是时长、日期、倒计时、状态、名称、温度或容量文本时禁止生成 Progress。
-- 横向进度固定写法：`Progress design:"linear-bar"`，2x2 宽 136、高 8、圆角 4，写 `value`、`total`、`color`、`backgroundColor`；`color` 用卡面唯一强调色，`backgroundColor` 用主色低透明度（如 `#1A18B87A`）或 `#1A000000`。不要生成 4vp 细进度条。
+- Progress 只表达占比、使用率、完成度、电量等具有明确 `value/total` 比例关系的数值语义；主值是时长、日期、倒计时、状态、名称、温度或容量文本时禁止生成 Progress。百分比场景通常写 `total:100`；目标量场景可写其它可靠总量，但必须满足 `total > 0` 且 `0 <= value <= total`。
+- 每个 Progress 都必须显式写 `type`，只使用两种标准形态：横向进度 `type:"linear"`，环形进度 `type:"ring"`。禁止使用 `design:"linear-bar"`、`design:"ring"` 或其它形态别名，禁止省略 `type`，禁止同时写 `type` 和 `design`。
+- 横向进度固定写法：`Progress type:"linear"`，2x2 宽 136、高 8、圆角 4，写 `value`、`total`、`color`、`backgroundColor`；`color` 用卡面唯一强调色，`backgroundColor` 用主色低透明度（如 `#1A18B87A`）或 `#1A000000`。不要生成 4vp 细进度条。
 - 横向进度优先放在主读数下方，不放进按钮、不放进标题区、不与底部动作重叠。
-- 环形进度写法：`Progress design:"ring"`，48-52 正圆、strokeWidth 5-6；环内显示百分比用 `RingUnit`（见 5.14），数值是小数或长字符串时用 ring_icon_stack。
-- 深色背景（方案一）上的环线、环内数字和 `%` 用白色，轨道 `#33FFFFFF`。
+- 图标与进度条的组合仅允许环形图：图标叠放在进度上使用 `Stack -> [Progress type:"ring", Image]`（ring_icon_stack）；`type:"linear"` 的 Progress 上不得叠放任何图标或文字。
+- 横向进度与数值读数、图标同卡组合是合法形态，但只允许纵向排列：进度条与读数/图标必须是 Column 中上下相邻的兄弟节点，不得放进同一个 Stack 叠放。包含 Progress 的 Stack 只允许环形组合，子节点固定为 `[Progress type:"ring", center_content]`；`center_content` 只能是一个 Image、一个 Text，或一个仅含“数字 + 短单位”的 Row。任何 Stack 不得同时容纳横向进度与其他元素。
+- 环形进度固定写法：`Progress type:"ring"`，宽高必须相同，常规 2x2 场景使用 48-52 正圆、strokeWidth 5-6。环内需要图标时使用 20-24 的语义 Image；环内需要百分比读数时使用 Text，或使用只含数值 Text 与单位 Text 的紧凑 Row；小数、长字符串和多行说明必须放在环外。
+- 深色背景（方案一）上的环线、中心图标、环内读数和单位使用白色档，轨道使用 `#33FFFFFF`；环外读数同样使用白色主文字档。
 - Progress.value 可以绑定 TaskSpec 中的 number/integer 字段并随运行时更新；不能可靠得到数值总量时不输出误导性百分比或进度图，也不编造假进度。
 
 # 十二、表面与颜色
@@ -758,11 +772,23 @@ TimelineUnit——会议/日程时间线：
 
 统一使用 HSB 色彩模式（H 色相、S 饱和度、B 明度），主题色相从建议区间选取：黄 30-50、绿 90-160、青 170-190、蓝 220-240、紫 250-280、红 330-10（跨 0° 环绕）。同一张卡只使用一个色相族。具体色值不登记固定 hex，一律按所在方案的 HSB 档位生成，不得偏离色相区间或改变 S/B 配对档位。
 
-## 背景形态三方案（优先级固定，命中后不再叠加另一种主形态）
+## 卡片双基色与背景形态（优先级固定，命中后不再叠加另一种主形态）
 
-1. **方案二｜浅色材质（常规默认）**：日程、列表、设备、入口、工具、设置和高信息密度场景。背景色与内容信息色同 H：背景取 `S=10、B=100`（主题色与白约 1:9 混合的近白浅色，纯色或 `angle:180` 上深下浅的极弱渐变）；内容信息主色取 `S=80、B=60`（同色相中等明度深色）。
-2. **方案一｜深色端/融球（氛围场景）**：深色端用于天气、睡眠、运动、夜间、音乐、倒计时等氛围明确且低信息密度场景；夜间、睡眠、音乐、专注等真实暗色场景必须用其深色端。融球只用于 `2x2` 单一业务且内容相对简单的倒计时/纪念日、单个日程/提醒、睡眠/专注卡。倒计时/纪念日使用 `fusion-ball-sport-orange`，单个日程/提醒使用 `fusion-ball-schedule-cool` 或 `fusion-ball-schedule-warm`，睡眠/专注使用 `fusion-ball-sleep-violet`。天气、电量、设备、系统工具、运动列表、组合通勤、多日程、多业务或多数据域卡片禁止使用融球，优先使用纯色或弱渐变背景。使用融球时 root 只写 `design`，不再手写 `linearGradient`、`backgroundColor`、背景图或装饰圆球；不满足融球条件但需要氛围时，以中球颜色为基调，按同色族 2-3 个 stop 的 `angle:180` 渐变近似（上深下亮）或同族纯色深端；前景一律白色系。
-3. **方案三｜纯白卡片**：背景 `#FFFFFFFF`，没有背景色相。全卡一个卡片主色，其色相从建议区间按服务对象语义选取（如会议/提醒红 `#FFE84026`、电量/健康绿 `#FF69D14F`）。
+每张卡片只确定**两个主题基色**，二者取同一语义色相族 H（H 按下方语义色相路由选取，不得跨族混用）：
+
+- **主色**：全卡唯一的主题强调基准色。方案一同时承担前景基准；方案二主要承担 hero 主值、关键状态、图表、主图标、按钮文字与图标。
+- **辅助色**：卡面背景的基准色，承担 root 背景（渐变或纯色）。
+
+方案二额外允许一组无色相的**中性墨色**作为阅读文字色：一级 `#E6000000`，二级 `#99000000`。中性墨色不是第三个主题基色，也不计入“前景色/强调色主色不超过 2 种”；它只能承担标题、标签、说明、列表正文等阅读层，不能替代 accent、状态色、Progress、按钮颜色或大面积表面色。纯黑 `#FF000000` 默认不用，避免近白柔和卡面显得生硬。
+
+按场景二选一，确定两个基色的取法：
+
+1. **方案一｜深色端/融球（氛围场景）**：深色端用于天气、睡眠、运动、夜间、音乐、倒计时等氛围明确且低信息密度场景；夜间、睡眠、音乐、专注等真实暗色场景必须用其深色端。融球只用于 `2x2` 单一业务且内容相对简单的倒计时/纪念日、单个日程/提醒、睡眠/专注卡：倒计时/纪念日使用 `fusion-ball-sport-orange`，单个日程/提醒使用 `fusion-ball-schedule-cool` 或 `fusion-ball-schedule-warm`，睡眠/专注使用 `fusion-ball-sleep-violet`；使用融球时 root 只写 `design`，不再手写 `linearGradient`、`backgroundColor`、背景图或装饰圆球。天气、电量、设备、系统工具、运动列表、组合通勤、多日程、多业务或多数据域卡片禁止使用融球，优先使用同色族深色渐变背景。
+   - 辅助色 = H、S=80、B=85（蓝、绿、紫色系）或 B=100（红、黄色系）；DSL 中默认以同色族 2-3 个 stop 的 `angle:180` 渐变近似（上深下亮）。只有用户明确要求纯色时才使用同族纯色深端。
+   - 主色 = 同 H、S=20、B=100 的近白；前景一律白色系。
+2. **方案二｜浅色材质（常规默认）**：日程、列表、设备、入口、工具、设置和高信息密度场景。
+   - 辅助色 = 同 H、S=10、B=100（主色与白约 1:9 混合的近白浅色）。无背景素材且不使用融球时，root 必须先生成 `angle:180` 的同色相双 stop 弱渐变：上端饱和度或明度略高以建立色彩方向，下端更接近同色相近白，两个 stop 均使用 `FF` alpha。只有高信息密度列表/网格、用户明确要求扁平纯色，或经对比检查确认渐变会削弱文字和分区辨识时才使用同族纯色；不能仅以“信息较多”作为纯色理由。近白只作为 canvas 或低对比 surface，不代表前景可以随机配色：标题、标签、说明和列表正文默认使用中性墨色；主值、关键状态、图标、Progress、按钮与分隔线从同一色相族的主色及其 alpha 派生，保证阅读清晰且整卡冷暖倾向一致。
+   - 主色 = 同 H、S=80、B=60（同色相中等明度深色）。
 4. **背景素材**：仅当 assetCandidates 提供语义准确的背景素材且具有平静留白时使用（多为 2x4 场景卡）；root 写原始 `backgroundImage` 和 `backgroundImageSizeWithStyle:"cover"`，前景保持简洁。背景素材沿用素材自身颜色，不套用三方案档位。
 5. **2x4 左右分区**：这不是独立配色形态，而是上述形态的组合限制。最多一侧使用高识别度场景面，另一侧保持中性或同色族弱材质，不能两侧同时争夺焦点。
 
@@ -770,34 +796,49 @@ TimelineUnit——会议/日程时间线：
 
 每次按服务对象路由到一个色相族，不得把不同色相族的背景、背板和强调色随机交叉组合：
 
-- **中性灰白｜通用、信息密集、组合对象**：无色相中性材质；强调语义明确时才路由到对应色相族，没有可靠强调语义时用深灰，不要默认蓝色。
+- **组合对象｜通用、信息密集**：按卡片最主要的信息域路由色相族（工具/概览类取薄荷青，事务/编排类取暖杏），不得使用无色相中性材质。
 - **暖杏珊瑚｜日程、提醒、纪念日、人际事务**：黄区 30-45；需要更红的强调时在红区 350-10 内取。
 - **天空蓝｜天气、出行、位置、航班**：蓝区 220-240；高浓度场景按方案一蓝系（B=85 档）生成。
 - **薄荷青｜系统设置、设备连接、效率工具、健康概览**：绿区上段至青区（H 160-190）。
 - **柔紫｜睡眠、专注、夜间、音乐氛围**：紫区 250-280；真实暗色场景按方案一紫系（B=85 档）生成。
 - **暖橙｜运动、能量、告警、倒计时**：黄区 35-50 深橙段。
 
-无法建立可靠语义映射时，回退 `#FFFFFFFF` 或 `#FFF5F7F9` 中性灰白，不要机械复用浅蓝。
+确实无法建立语义映射时，按信息密集度就近选择薄荷青（工具/概览）或暖杏（事务），不得回退无色相灰白。
 
-## 场景用色档位（按所在方案取）
+## 双基色 → 场景角色映射
 
-- 方案二：按钮背景 = 主色 20%；一级文本 = 卡片主色（S=80/B=60 档）；二级文本 = 主色 60%；图表一 = 主色；图表二 = 主色 20%；辅助信息区域背景 = 主色 10%。
-- 方案一：按钮背景 = `#FFFFFF` 20%；一级文本 = 底色 H、S=20、B=100（近白）；二级文本 = 一级 60%；图表主色与一级文本同色；图表背景 = 白 20%；辅助信息区域背景 = 白 10%。
-- 方案三：按钮背景 = 卡片主色 20%；一级文本 = `#000000` 100%；二级文本 = `#000000` 60%；图表主色 = 卡片主色；图表背景 = `#000000` 10%；辅助信息区域背景 = `#000000` 5%。
+两个基色确定后，各场景角色一律从基色派生（直接使用或加 alpha，标注“白”的除外）；不得跨色相另取色值，也不得给每个列表项单独配色：
+
+| 场景角色 | 派生规则 | 方案一（融球） | 方案二（浅色） |
+|---|---|---|---|
+| 卡片背景（canvas） | 辅助色 | 同族 2-3 stop 渐变，上深下亮 | 同族双 stop 弱渐变；仅命中明确例外时纯色 |
+| 一级阅读文字 / 图表主色 | 文字或主色 100% | 近白 | 标题/正文默认中性墨色；hero 主值/图表使用深主色 |
+| 二级阅读文字 | 文字 60% | 近白 60% | 默认中性墨色 60%；与主题主值强绑定时可用深主色 60% |
+| 图表背景 / 进度轨道 | 白或主色 20% | 白 20% | 主色 20% |
+| 辅助信息区域背景（surface） | 白或主色 10% | 白 10% | 主色 10% |
+| 按钮背景 | 与 canvas 拉开明度的同族浅色实体面 | 同族近白实体面；融球可用固定半透明白 | 同族有色浅表面 |
+| 按钮文字与图标 | 主色 100% | 近白 | 深主色 |
+
 
 ## 颜色角色到 DSL 的映射
 
 - `canvas`（root 唯一主背景）= root 的 `linearGradient`、`backgroundColor`，或符合 5.2.1 场景条件的 root 融球 `design`。
 - `surface`（内部分组承载面，至多 1-2 个）= zone/背板的 `backgroundColor`，用同族低对比纯色或主色 5%-10% alpha（如 `#1A1F4594`）；同层级 surface 共享同一种色值。
-- `primaryText` / `secondaryText` = Text 的 `fontColor`。浅底用黑系（`#E5000000`、`#99000000`、`#66000000`）或方案二/三的内容档；深底用白系（`#FFFFFFFF`、`#99FFFFFF`、`#CCFFFFFF`）或方案一档位。
-- `accent`（全卡唯一主要强调色）= `Progress.color`、`RingUnit.color`、主图标 `fillColor`、`TimelineUnit.color`、`ActionUnit.actionInk`。
-- `state/action`（第二信号色）：仅在真实状态或核心动作需要时出现；不需要时复用 accent 或使用中性材质。
+- `primaryText` / `secondaryText` = Text 的 `fontColor`。方案二近白浅底必须建立中性墨色阅读层：卡片标题、字段标签、说明、日期时间和列表正文默认分别使用 `#E6000000`、`#99000000`，不允许所有文字都机械染成主题色；hero 主值、关键状态以及与图表直接绑定的读数才使用同色相深主色及其 alpha。低信息密度且标题本身就是唯一主题焦点时，标题可以使用深主色，但普通说明文字仍优先中性墨色。深底用白系（`#FFFFFFFF`、`#99FFFFFF`、`#CCFFFFFF`）或方案一档位。一级文字和 CTA 文字相对直接背景的静态对比度至少为 4.5:1；大于等于 24fp 且加粗的唯一 hero 文字至少为 3:1。对比不足时调整同角色明度，不得靠描边、阴影或更换无关色相补救。
+- `accent`（全卡唯一主要强调色）= `Progress.color`、主图标 `fillColor`、`ActionUnit.actionInk`。
+- `state/action`（第二信号色）：仅当 TaskSpec 的动态字段能证明当前确实处于告警、错误、危险、低电量等状态，或核心动作确需区分时出现；不需要时必须复用 accent。红色、玫红色不得用于普通标题、正文、装饰图标、正常状态或常规进度，尤其不得在绿色、青色、蓝色或紫色近白卡面中作为无状态依据的装饰强调色。
 
-## 按钮取色（两模式，不得混用）
+## 按钮取色（实体同族浅面 + 深色同族内容）
 
-- **浅色模式背景**（方案二/三）：按钮底色 = 卡主色 10%-20% alpha（如 `#3364BB5C`、`#19E84026`），文字与图标 = 主色 100%（如 `#FF64BB5C`、`#FFE84026`）。深色文字卡上可用主色实色文字配 10% 底。
-- **深色模式背景**（方案一）：按钮底色 = 白色（`actionSurface:"white"`）或白色 10%-20% alpha（`#33FFFFFF`），文字与图标 = 白色或亮主色（如 `#99FFFFFF`）；整体保持按钮弱于主数值。融球背景下的胶囊按钮必须使用固定低强调白色半透明方案：按钮底色 `#33FFFFFF`，按钮文字 `#E6FFFFFF`，若有按钮内图标则图标 `#99FFFFFF`。该规则只作用于融球背景，不改变普通纯色、弱渐变或素材背景下的按钮配色。
-- ActionUnit 写 `actionSurface`/`actionInk`；基础 Button/图文 Row 写 `backgroundColor`/`fontColor`/图标 `fillColor`，配对规则相同。按钮字重 400-500。
+按钮首先要像一个独立、可点击的承载面，其次才是“弱于主信息”。除融球固定样式外，按钮底色默认使用不透明的同色族浅色实体面，文字与图标使用同色族深色；禁止依赖 10%-20% alpha 叠色形成按钮，因为它在深色渐变上容易融入背景、在近白背景上容易混成灰色。
+
+- **浅色模式背景**（方案二）：按钮底色使用与 canvas 同色相、但明显更深或更饱和的浅色实体面，alpha 固定为 `FF`；建议档位为同 H、S=15-30、B=90-98。文字与图标使用方案二深主色 100%。例如浅蓝卡使用浅蓝按钮面 + 深蓝内容，暖杏卡使用浅杏按钮面 + 深棕内容，薄荷卡使用浅绿按钮面 + 深绿内容。
+- **深色模式背景**（方案一，非融球）：按钮底色使用同色相近白实体面，alpha 固定为 `FF`，建议档位为同 H、S=10-25、B=95-100；文字与图标使用同色相深色档。禁止在深色渐变上继续叠加相近明度的半透明同色按钮，也不使用低透明白色让按钮边界消失。
+- **融球例外**：只有融球背景下的胶囊按钮保留固定半透明白色方案：按钮底色 `#33FFFFFF`，按钮文字 `#E6FFFFFF`，按钮内图标 `#99FFFFFF`。该例外不得扩展到普通纯色、普通渐变或素材背景。
+- **禁止灰色回退**：当 canvas 已有蓝、绿、紫、黄、橙等明确色相时，按钮底色不得使用无色相灰、黑色 alpha、白灰渐变或与当前色相无关的中性色；不得输出类似浅灰按钮 + 彩色文字的拼接方案。只有本身为中性黑白主题且用户明确要求时才可使用灰阶按钮。
+- **区分度门禁**：在最终静态预览色上，按钮承载面必须同时区别于 canvas 和相邻 surface；不能与它们复用相同颜色，也不能只产生极弱透明差。若第一眼只能靠文字或圆角判断按钮边界，必须改用更明确的同族浅色实体面。按钮文字与按钮实体面的静态对比度至少达到 4.5:1；不足时优先加深同色族文字与图标，不把按钮面改成灰色。
+- **按钮组一致性**：同一卡片中的同级按钮共享同一 `actionSurface/actionInk` 配对；不能一个灰色、一个彩色，也不能为每个按钮临时引入新色相。唯一主 CTA 与双并列入口都优先使用上述实体浅面方案。
+- ActionUnit 写 `actionSurface`/`actionInk`；基础 Button/图文 Row 写 `backgroundColor`/`fontColor`/图标 `fillColor`，配对规则完全相同。浅色按钮面不得搭配白色文字；按钮文字和图标使用同一种深色，字重 400-500。
 
 ## 图标颜色
 
@@ -812,12 +853,13 @@ TimelineUnit——会议/日程时间线：
 ## 通用规则
 
 - 普通浅背景使用深色文字；深色或高饱和背景使用白色前景；先证明文字对比度，再决定是否保留场景色。
-- 高信息密度、列表或已有高识别度素材的卡片默认纯色或极弱渐变；明显渐变只在氛围卡。
+- 方案二不得出现“所有 Text 都是同一主题彩色”的整卡染色：至少一个非强调阅读层使用中性墨色；主题色集中在主值、关键状态、图表、主图标和动作上。中性墨色与一个主题色族组合属于合规的单主题配色，不视为增加第二强调色。
+- 无背景素材且不使用融球的普通卡片，root 默认必须使用克制的同色相渐变。高信息密度列表/网格也应先尝试差值更小的同族渐变，只有渐变确实干扰文字或分区时才回退纯色；已有高识别度背景素材时不再叠加渐变。明显渐变只用于低信息密度氛围卡。
 - 渐变方向配合构图：较深或较饱和的一端远离长文本，靠近主图、主值或视觉收束方向；渐变统一 `angle:180` 上下方向，不用斜向横向。
-- 渐变使用同一色族 2-3 个 stop；三段渐变仅用于氛围场景，色相不得跳出同族。
-- 状态色只表达真实状态，不作装饰；普通“查看/详情/打开”用中性或半透明动作材质，“连接/拨打/开始/导航/清理”可用实色动作色。
+- 浅色材质渐变固定使用同色相 2 个 stop，明度单向变化且差值克制，不能出现中途反转、灰白跳色或相邻颜色突变；深色氛围渐变可使用同族 2-3 个 stop，三段渐变仅用于氛围场景。任何渐变都不得跳出同族。
+- 状态色只表达真实状态，不作装饰；普通“查看/详情/打开”使用同色族浅色实体动作面，视觉权重低于主 CTA；“连接/拨打/开始/导航/清理”可提高同族实体面的区分度。只有融球按钮允许使用本节规定的半透明白色例外。
 - 多样性是跨场景的受控变化：同一批生成中不同服务对象不应无理由全部蓝白，也不能仅为与上一张不同而违背当前对象语义；相邻卡片优先使用出现更少的色相族。
-- 禁止彩虹渐变、多个高饱和主题色、无意义透明叠层、多层阴影、装饰圆球、光斑和 bokeh；需要融球效果时只能使用 root 融球 Design Token，不能手写圆球组件。非融球的方案一背景可用同色族渐变或纯色深端近似氛围。
+- 禁止彩虹渐变、多个高饱和主题色、无意义透明叠层、多层阴影、装饰圆球、光斑和 bokeh；需要融球效果时只能使用 root 融球 Design Token，不能手写圆球组件。非融球的方案一背景默认使用同色族渐变建立氛围，只有用户明确要求纯色时才使用纯色深端。
 
 # 十三、内部生成流程
 
@@ -827,7 +869,7 @@ TimelineUnit——会议/日程时间线：
 2. 严格采用 TaskSpec.size，按第九节路由到一个固定骨架。若 `mustKeep` 无法映射，先删除 `shouldKeep` 并回退同尺寸更简单骨架，不跨骨架拼接。
 3. 为骨架填入角色槽位，确定共同对齐线、主辅面积和留白；只保留最小充分数据、事件和素材。显式动作必须落到合法 CTA，隐式入口只能作为不抢占空间的 root 入口，未被显式要求的副作用动作必须删除。
 4. 从 root 到叶子递归计算父子宽高、padding、margin、有效 itemMargin、文本空间和点击热区；对所有受保护文本执行压力检查，任何负剩余空间、单位裁切风险或过小热区都触发删减或骨架回退。
-5. 按第十二节路由语义色相族、选定三方案之一并生成色值，无法可靠映射时回退中性灰白；再建立 canvas/surface/primaryText/secondaryText/accent/state-action 颜色角色，并检查没有因尺寸、骨架或相邻示例而机械复用蓝白配色。为每个素材确定主视觉、标题、辅助、动作或背景职责，角色不明确或会写死动态状态时删除。
+5. 按第十二节路由语义色相族、在方案一（融球深色端）与方案二（浅色材质）中选定其一并生成色值；再建立 canvas/surface/primaryText/secondaryText/accent/state-action 颜色角色。方案二必须把普通阅读文字分配到中性墨色层，把主题色留给主值、图表、图标和动作，并检查没有整卡文字同色染色或因相邻示例而机械复用蓝白配色。为每个素材确定主视觉、标题、辅助、动作或背景职责，角色不明确或会写死动态状态时删除。
 6. 构造完整首帧 DataModel 和组件树，验证组件引用、可达性、动态路径、类型、Expression、模板和事件闭环；选中的动态字段不得用静态 sampleValue 替代绑定。
 7. 生成极简协议 JSONL，并执行第十五节静默检查；失败时只删除弱内容、减少表面或回退骨架，不突破协议和 TaskSpec 边界。
 
@@ -847,15 +889,15 @@ TimelineUnit——会议/日程时间线：
 1. **输出与协议**：是否只有一个 `genui` 代码块和可解析的极简协议 JSONL；是否没有 createSurface/updateComponents/updateDataModel/surfaceId/catalogId；root、组件字段和枚举是否正确；融球 Design Token 是否只在 `2x2` 单一业务的倒计时/纪念日、单个日程/提醒、睡眠/专注场景用于 root，且 root 未同时写普通背景。
 2. **引用与数据**：组件是否唯一、可达且引用闭合；Expression、PathBinding、模板路径与首帧 DataModel 是否存在并类型一致；是否没有孤立组件、空胶囊、局部 Expression 或静态样例冒充动态绑定。
 3. **候选与事件**：是否只保留最小充分候选；显式动作是否绑定，隐式入口是否不抢占空间，未被明确要求的副作用动作是否已删除；同一动作是否只有一个点击容器。
-4. **骨架与预算**：是否只使用一个固定骨架；root 宽高是否合法（matchParent 或画布数值）、padding 12、圆角 20、clip true；所有 Row/Column 两轴预算是否非负，动态文字 Row 是否保留余量，点击热区是否至少 24vp。
-5. **文字与图表**：受保护文本和 CTA 是否完整；格式化值是否包含单位与符号并通过压力检查；Progress 是否只用于范围可靠的数值语义。
-6. **表面与素材**：背景是否按第十二节三方案之一取色且语义准确，无法可靠映射时是否回退中性灰白；canvas、surface、accent 是否同色相族且没有机械复用蓝白；是否只有一个主焦点、清晰对齐线和有限表面；SVG 染色、位图和背景素材是否符合描述及直接背景对比。
-7. **最终简化**：是否已删除弱装饰、重复事实、无关字段、假交互和无意义材质；若仍有任何不确定布局，是否已经回退到同尺寸更简单骨架。
+4. **骨架与预算**：是否只使用一个固定骨架；root 宽高是否为 `"matchParent"`、padding 12、圆角 20、clip true；所有 Row/Column 两轴预算是否非负，动态文字 Row 是否保留余量，点击热区是否至少 24vp。
+5. **文字与图表**：受保护文本和 CTA 是否完整；是否没有空白 Text、`textOverflow`、单独的 `°` 或近似温度单位；格式化值是否包含单位与符号并通过压力检查；全卡字号是否不超过三档、同层级元素是否保持一致；Progress 是否只用于范围可靠的数值语义。
+6. **表面与素材**：背景是否按第十二节两方案之一取色且语义准确、没有无意退化为无色相灰白 canvas；无背景素材且不使用融球时，root 是否已输出同色族 `linearGradient`，若仍使用单一 `backgroundColor` 是否明确命中“用户指定纯色”或“渐变确实干扰高密度列表/网格”的例外；方案二是否存在中性墨色阅读层且没有把所有 Text 染成主题色，主题色是否集中于主值、关键状态、图表、主图标和动作；渐变是否单向连续且没有跳色；canvas、surface、accent 是否同色相族且没有机械复用蓝白；一级文字/CTA 与主语义图标是否分别达到 4.5:1/3:1 的直接背景对比；SVG 染色、位图和背景素材是否符合描述。
+7. **最终简化**：是否只有一个主焦点、清晰对齐线和有限表面；并列分区的高度、视觉重量和留白是否均衡；是否已删除弱装饰、重复事实、无关字段、假交互、无意义单子容器和多余材质；若仍有任何不确定布局，是否已经回退到同尺寸更简单骨架。
 
 只有全部通过后，输出唯一的极简协议 `genui` 代码块。
 
 # ==================== BEGIN MAINTAINABLE FEW-SHOT ====================
-以下示例分两部分：示例一至十二是 v0.2 金标口径的 2x2 满分卡片（覆盖 S1-S4 四个固定骨架与三类背景方案），示范协议格式、动态绑定、事件写法、骨架结构和取色方法；示例十三至十六是 2x4 宽卡示例（数组固定索引展开、双分区与四快捷操作），保留了历史协议口径（root 圆角 18、`direction` 渐变、基础 Button），仅作 2x4 布局与绑定的示范，新生成 2x2 一律以正文规则和示例一至十二为准。规则正文优先于示例；真实输出必须替换为当前 TaskSpec 的真实 path、icon 和 onClick；只能学习"语义选色 + 同卡统一 + 骨架路由"的方法，不能把某个示例的具体颜色、尺寸或组件组合固定映射到任何场景。个别 2x2 示例为表达状态文案使用了静态短句（schema 无对应状态字段时的展示妥协）；真实生成时若 schema 提供状态字段必须绑定 path，无法安全表达时改用中性文案。
+以下示例分两部分：示例一至七是 v0.2 金标口径的 2x2 卡片，覆盖 S1-S4 四个固定骨架；示例八至十五是 v0.2 金标口径的 2x4 宽卡，覆盖 W1-W8 八个固定骨架，含数组固定索引展开、双分区和双入口等形态。示例中的数据路径、事件和素材候选优先取自 `app-11.7.5.205_rom-6.0` 能力清单，不为凑布局编造 mock 能力；真实输出仍必须只使用当前 TaskSpec 实际提供的 path、icon 和 onClick。规则正文优先于示例；只能学习“语义选色 + 同卡统一 + 骨架路由”的方法，不能把某个示例的具体颜色、尺寸或组件组合固定映射到任何场景。
 
 ## 示例一（2x2-V01）：马拉松倒计时（S1 单信息·方案一融球暖橙）
 ### user
@@ -864,454 +906,405 @@ TimelineUnit——会议/日程时间线：
 ```
 ### assistant
 ```genui
-["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"design":"fusion-ball-sport-orange","justifyContent":"start","alignItems":"center","itemMargin":0},["title_area","gap8","value_group"]]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"design":"fusion-ball-sport-orange","justifyContent":"start","alignItems":"center","itemMargin":0},["title_area","gap8","value_group"]]
 ["gap8","Column",{"width":136,"height":8,"flexShrink":0},[]]
 ["title_area","Row",{"width":136,"height":32,"padding":{"top":12},"justifyContent":"center","alignItems":"center","flexShrink":0},["title_text"]]
-["title_text","Text",{"content":"马拉松倒计时","width":112,"fontSize":16,"fontWeight":500,"fontColor":"#E6FFFFFF","textAlign":"center","maxLines":1,"textOverflow":"clip"}]
+["title_text","Text",{"content":"马拉松倒计时","width":112,"fontSize":16,"fontWeight":500,"fontColor":"#E6FFFFFF","textAlign":"center","maxLines":1}]
 ["value_group","Column",{"width":136,"justifyContent":"center","alignItems":"center","itemMargin":2,"flexShrink":1},["value_num","value_unit"]]
-["value_num","Text",{"content":{"path":"/data/countdown/countdownDays"},"fontSize":56,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1,"textOverflow":"clip"}]
-["value_unit","Text",{"content":"天","fontSize":12,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1,"textOverflow":"clip"}]
+["value_num","Text",{"content":{"path":"/data/countdown/countdownDays"},"fontSize":56,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
+["value_unit","Text",{"content":"天","fontSize":12,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
 ["/data/countdown/countdownDays",32]
 ```
 
-## 示例二（2x2-V02）：FreeBuds 电量 + 勿扰（S2 状态亚型·方案二柔紫）
+## 示例二（2x2-V02）：FreeBuds 状态 + 蓝牙设置（S2 状态亚型·方案二柔紫）
 ### user
 ```json
-{"userQuery":"华为耳机播控中心，实时展示耳机连接状态、左右耳及充电盒电量，点击可跳转蓝牙设置界面","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate"}}],"dataModelSchema":{"data":{"earphone":{"earphoneName":{"type":"string","description":"耳机广播名称","sampleValue":"FreeBuds耳机"},"leftBatteryLevel":{"type":"integer","description":"左耳电量百分比","sampleValue":47},"batteryLevel":{"type":"integer","description":"耳机盒电量百分比","sampleValue":95}}}},"assetCandidates":[]}
+{"userQuery":"实时展示华为耳机连接状态、左右耳及充电盒电量，并提供蓝牙设置入口","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}],"dataModelSchema":{"data":{"earphone":{"isConnected":{"type":"boolean","description":"当前是否处于耳机连接活跃状态","sampleValue":true},"earphoneName":{"type":"string","description":"耳机广播名称","sampleValue":"FreeBuds Pro 3"},"leftBatteryLevel":{"type":"integer","description":"左耳电量百分比0到100","sampleValue":47},"rightBatteryLevel":{"type":"integer","description":"右耳电量百分比0到100","sampleValue":62},"batteryLevel":{"type":"integer","description":"充电盒电量百分比0到100","sampleValue":95}}}},"assetCandidates":[]}
 ```
 ### assistant
 ```genui
-["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFF1EFFE",0],["#FFEEEDFE",0.4],["#FFEEEDFE",1]]},"justifyContent":"spaceBetween","alignItems":"start","itemMargin":4},["title_area","content_area","action_area"]]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFE9E7FA",0],["#FFF3F1FE",1]]},"justifyContent":"spaceBetween","alignItems":"start","itemMargin":4},["title_area","content_area","action_area"]]
 ["title_area","Row",{"width":136,"height":16,"justifyContent":"start","alignItems":"center","flexShrink":0},["title_text"]]
-["title_text","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":136,"fontSize":12,"fontWeight":400,"fontColor":"#FF857EC9","maxLines":1,"textOverflow":"clip"}]
+["title_text","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":136,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
 ["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","itemMargin":4,"flexShrink":1},["status_text","battery_row"]]
-["status_text","Text",{"content":"已链接","width":136,"height":32,"fontSize":20,"fontWeight":700,"fontColor":"#FF433E94","maxLines":1,"textOverflow":"clip"}]
-["battery_row","Row",{"justifyContent":"start","alignItems":"center","itemMargin":8},["left_item","case_item"]]
-["left_item","Row",{"width":44,"justifyContent":"start","alignItems":"center","itemMargin":0},["left_badge_wrap","left_num","left_unit"]]
-["left_badge_wrap","Column",{"width":12.75,"height":12,"justifyContent":"center","alignItems":"start"},["left_badge"]]
-["left_badge","Text",{"content":"L","width":8.75,"height":8.75,"borderRadius":4.4,"backgroundColor":"#FFAAA7D4","fontSize":6,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1,"textOverflow":"clip"}]
-["left_num","Text",{"content":{"path":"/data/earphone/leftBatteryLevel"},"fontSize":12,"fontWeight":500,"fontColor":"#FF857EC9","maxLines":1,"textOverflow":"clip"}]
-["left_unit","Text",{"content":"%","fontSize":12,"fontWeight":500,"fontColor":"#FF857EC9","maxLines":1,"textOverflow":"clip"}]
-["case_item","Row",{"width":44,"justifyContent":"start","alignItems":"center","itemMargin":0},["case_badge_wrap","case_num","case_unit"]]
-["case_badge_wrap","Column",{"width":12.75,"height":12,"justifyContent":"center","alignItems":"start"},["case_badge"]]
-["case_badge","Text",{"content":"R","width":8.75,"height":8.75,"borderRadius":4.4,"backgroundColor":"#FFAAA7D4","fontSize":6,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1,"textOverflow":"clip"}]
-["case_num","Text",{"content":{"path":"/data/earphone/batteryLevel"},"fontSize":12,"fontWeight":500,"fontColor":"#FF857EC9","maxLines":1,"textOverflow":"clip"}]
-["case_unit","Text",{"content":"%","fontSize":12,"fontWeight":500,"fontColor":"#FF857EC9","maxLines":1,"textOverflow":"clip"}]
+["status_text","Text",{"content":"{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}","width":136,"height":28,"fontSize":20,"fontWeight":700,"fontColor":"#FF433E94","maxLines":1}]
+["battery_row","Row",{"width":136,"justifyContent":"start","alignItems":"center","itemMargin":8},["left_item","right_item","case_item"]]
+["left_item","Row",{"width":40,"justifyContent":"start","alignItems":"center","itemMargin":2},["left_badge","left_num","left_unit"]]
+["left_badge","Text",{"content":"L","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#FFAAA7D4","fontSize":10,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
+["left_num","Text",{"content":{"path":"/data/earphone/leftBatteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99000000","maxLines":1}]
+["left_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99000000","maxLines":1}]
+["right_item","Row",{"width":40,"justifyContent":"start","alignItems":"center","itemMargin":2},["right_badge","right_num","right_unit"]]
+["right_badge","Text",{"content":"R","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#FFAAA7D4","fontSize":10,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
+["right_num","Text",{"content":{"path":"/data/earphone/rightBatteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99000000","maxLines":1}]
+["right_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99000000","maxLines":1}]
+["case_item","Row",{"width":40,"justifyContent":"start","alignItems":"center","itemMargin":2},["case_badge","case_num","case_unit"]]
+["case_badge","Text",{"content":"盒","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#FFAAA7D4","fontSize":10,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
+["case_num","Text",{"content":{"path":"/data/earphone/batteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99000000","maxLines":1}]
+["case_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99000000","maxLines":1}]
 ["action_area","Column",{"width":136,"flexShrink":0},["cta"]]
-["cta","ActionUnit",{"state":"capsule","label":"勿扰模式","actionSurface":"#33564AF7","actionInk":"#FF433E94","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate"}}],"flexShrink":0}]
-["/data/earphone/earphoneName","FreeBuds耳机"]
+["cta","ActionUnit",{"state":"capsule","label":"蓝牙设置","actionSurface":"#FFDCD8F7","actionInk":"#FF433E94","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}],"flexShrink":0}]
+["/data/earphone/isConnected",true]
+["/data/earphone/earphoneName","FreeBuds Pro 3"]
 ["/data/earphone/leftBatteryLevel",47]
+["/data/earphone/rightBatteryLevel",62]
 ["/data/earphone/batteryLevel",95]
 ```
 
 ## 示例三（2x2-V03）：Free Clip 2 歌单（S3 单信息+双按钮·方案二薄荷绿）
 ### user
 ```json
-{"userQuery":"实时展示耳机连接状态、左右耳电量。同时可以直接进推荐歌单，和收藏歌单。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate-playlist"}},{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate-favorite"}}],"dataModelSchema":{"data":{"earphone":{"earphoneName":{"type":"string","description":"耳机广播名称","sampleValue":"Free Clip 2"},"leftBatteryLevel":{"type":"integer","description":"左耳电量百分比","sampleValue":47},"rightBatteryLevel":{"type":"integer","description":"右耳电量百分比","sampleValue":95}}}},"assetCandidates":[{"src":"resources/base/media/music_fill.svg","description":"推荐歌单音乐图标"},{"src":"resources/base/media/heart_fill.svg","description":"收藏歌单心形图标"}]}
+{"userQuery":"展示耳机名称与左右耳电量，同时提供每日歌单和收藏歌单两个入口。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}},{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}],"dataModelSchema":{"data":{"earphone":{"earphoneName":{"type":"string","description":"耳机广播名称","sampleValue":"Free Clip 2"},"leftBatteryLevel":{"type":"integer","description":"左耳电量百分比","sampleValue":47},"rightBatteryLevel":{"type":"integer","description":"右耳电量百分比","sampleValue":95}}}},"assetCandidates":[{"src":"resources/base/media/music_fill.svg","description":"每日歌单音乐图标"},{"src":"resources/base/media/heart_fill.svg","description":"收藏歌单心形图标"}]}
 ```
 ### assistant
 ```genui
-["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"backgroundColor":"#FFEFF8EE","justifyContent":"spaceBetween","alignItems":"start","itemMargin":8},["header_area","action_area"]]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFE6F5E2",0],["#FFF2FAF0",1]]},"justifyContent":"spaceBetween","alignItems":"start","itemMargin":8},["header_area","action_area"]]
 ["header_area","Column",{"width":136,"justifyContent":"start","alignItems":"start","itemMargin":6,"padding":{"bottom":10},"flexShrink":1},["device_name","battery_row"]]
-["device_name","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":136,"fontSize":16,"fontWeight":700,"fontColor":"#FF487040","maxLines":1,"textOverflow":"clip"}]
+["device_name","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":136,"fontSize":16,"fontWeight":700,"fontColor":"#E6000000","maxLines":1}]
 ["battery_row","Row",{"justifyContent":"start","alignItems":"center","itemMargin":0},["left_item","right_item"]]
-["left_item","Row",{"width":52,"justifyContent":"start","alignItems":"center","itemMargin":0},["left_badge_wrap","left_num","left_unit"]]
-["left_badge_wrap","Column",{"width":12.75,"height":12,"justifyContent":"center","alignItems":"start"},["left_badge"]]
-["left_badge","Text",{"content":"L","width":8.75,"height":8.75,"borderRadius":4.4,"backgroundColor":"#FF64BB5C","fontSize":6,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1,"textOverflow":"clip"}]
-["left_num","Text",{"content":{"path":"/data/earphone/leftBatteryLevel"},"fontSize":10,"fontWeight":400,"fontColor":"#FF64BB5C","maxLines":1,"textOverflow":"clip"}]
-["left_unit","Text",{"content":"%","fontSize":10,"fontWeight":400,"fontColor":"#FF64BB5C","maxLines":1,"textOverflow":"clip"}]
-["right_item","Row",{"width":52,"justifyContent":"start","alignItems":"center","itemMargin":0},["right_badge_wrap","right_num","right_unit"]]
-["right_badge_wrap","Column",{"width":12.75,"height":12,"justifyContent":"center","alignItems":"start"},["right_badge"]]
-["right_badge","Text",{"content":"R","width":8.75,"height":8.75,"borderRadius":4.4,"backgroundColor":"#FF64BB5C","fontSize":6,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1,"textOverflow":"clip"}]
-["right_num","Text",{"content":{"path":"/data/earphone/rightBatteryLevel"},"fontSize":10,"fontWeight":400,"fontColor":"#FF64BB5C","maxLines":1,"textOverflow":"clip"}]
-["right_unit","Text",{"content":"%","fontSize":10,"fontWeight":400,"fontColor":"#FF64BB5C","maxLines":1,"textOverflow":"clip"}]
+["left_item","Row",{"width":52,"justifyContent":"start","alignItems":"center","itemMargin":2},["left_badge","left_num","left_unit"]]
+["left_badge","Text",{"content":"L","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#FF64BB5C","fontSize":10,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
+["left_num","Text",{"content":{"path":"/data/earphone/leftBatteryLevel"},"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["left_unit","Text",{"content":"%","fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["right_item","Row",{"width":52,"justifyContent":"start","alignItems":"center","itemMargin":2},["right_badge","right_num","right_unit"]]
+["right_badge","Text",{"content":"R","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#FF64BB5C","fontSize":10,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
+["right_num","Text",{"content":{"path":"/data/earphone/rightBatteryLevel"},"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["right_unit","Text",{"content":"%","fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
 ["action_area","Column",{"width":136,"itemMargin":8,"flexShrink":0},["cta_play","cta_fav"]]
-["cta_play","ActionUnit",{"state":"capsule","label":"推荐歌单","icon":"resources/base/media/music_fill.svg","actionSurface":"#3364BB5C","actionInk":"#FF64BB5C","fontSize":14,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate-playlist"}}],"flexShrink":0}]
-["cta_fav","ActionUnit",{"state":"capsule","label":"收藏歌单","icon":"resources/base/media/heart_fill.svg","actionSurface":"#3364BB5C","actionInk":"#FF64BB5C","fontSize":14,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate-favorite"}}],"flexShrink":0}]
+["cta_play","ActionUnit",{"state":"capsule","label":"每日歌单","icon":"resources/base/media/music_fill.svg","actionSurface":"#FFDCEFD8","actionInk":"#FF487040","fontSize":14,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}],"flexShrink":0}]
+["cta_fav","ActionUnit",{"state":"capsule","label":"收藏歌单","icon":"resources/base/media/heart_fill.svg","actionSurface":"#FFDCEFD8","actionInk":"#FF487040","fontSize":14,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}],"flexShrink":0}]
 ["/data/earphone/earphoneName","Free Clip 2"]
 ["/data/earphone/leftBatteryLevel",47]
 ["/data/earphone/rightBatteryLevel",95]
 ```
 
-## 示例四（2x2-V04）：雨天打车（S4 纵堆亚型·方案二天空蓝）
-### user
-```json
-{"userQuery":"使用2*2规格，生成雨天叫车小组件。展示当前天气状况和降雨概率，雨天时提醒叫车出行，提供一键导航回家的快捷入口。用户当前位置在上海市青浦区。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate"}}],"dataModelSchema":{"data":{"weather":{"current":{"temperatureC":{"type":"number","description":"当前摄氏温度","sampleValue":23}},"location":{"prefectureName":{"type":"string","description":"城市名称","sampleValue":"上海市"}}}}},"assetCandidates":[{"src":"resources/base/media/thunder.png","description":"雷雨云彩色图标"},{"src":"resources/base/media/location_north_up_right_fill.svg","description":"导航箭头图标"}]}
-```
-### assistant
-```genui
-["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFE6EEFE",0],["#FFD2DDF3",1]]},"justifyContent":"spaceBetween","alignItems":"start","itemMargin":8},["weather_zone","action_zone"]]
-["weather_zone","Row",{"width":136,"height":64,"borderRadius":16,"backgroundColor":"#1A1F4594","padding":{"left":12,"top":8,"right":12,"bottom":8},"justifyContent":"spaceBetween","alignItems":"center","flexShrink":1},["weather_texts","zone_icon"]]
-["weather_texts","Column",{"width":76,"justifyContent":"center","alignItems":"start","itemMargin":2,"flexShrink":1},["temp_row","city_text"]]
-["temp_row","Row",{"width":76,"justifyContent":"start","alignItems":"bottom","itemMargin":0},["temp_num","temp_unit"]]
-["temp_num","Text",{"content":{"path":"/data/weather/current/temperatureC"},"fontSize":20,"fontWeight":700,"fontColor":"#FF1F4594","maxLines":1,"textOverflow":"clip"}]
-["temp_unit","Text",{"content":"°","fontSize":18,"fontWeight":400,"fontColor":"#FF1F4594","padding":{"bottom":2},"maxLines":1,"textOverflow":"clip"}]
-["city_text","Text",{"content":{"path":"/data/weather/location/prefectureName"},"fontSize":12,"fontWeight":500,"fontColor":"#FF1F4595","maxLines":1,"textOverflow":"clip"}]
-["zone_icon","Image",{"src":"resources/base/media/thunder.png","width":40,"height":40,"objectFit":"contain","padding":{"bottom":8},"flexShrink":0}]
-["action_zone","Row",{"width":136,"height":64,"borderRadius":16,"backgroundColor":"#1A2E529E","padding":{"left":12,"top":8,"right":12,"bottom":8},"justifyContent":"spaceBetween","alignItems":"center","flexShrink":0},["action_texts","nav_icon"]]
-["action_texts","Column",{"width":72,"justifyContent":"center","alignItems":"start","itemMargin":2,"flexShrink":1},["action_title","action_sub"]]
-["action_title","Text",{"content":"开始打车","fontSize":14,"fontWeight":700,"fontColor":"#FF1F4594","maxLines":1,"textOverflow":"clip"}]
-["action_sub","Text",{"content":"打车回家","fontSize":12,"fontWeight":500,"fontColor":"#991F4594","maxLines":1,"textOverflow":"clip"}]
-["nav_icon","Image",{"src":"resources/base/media/location_north_up_right_fill.svg","width":24,"height":24,"objectFit":"contain","fillColor":"#FF1F4594","padding":{"right":8},"flexShrink":0}]
-["/data/weather/current/temperatureC",23]
-["/data/weather/location/prefectureName","上海市"]
-```
 
-## 示例五（2x2-V05）：深色背景天气（S2 无动作变体·方案一深色端）
+## 示例四（2x2-V04）：深色背景天气（S2 无动作变体·方案一深色端）
 ### user
 ```json
-{"userQuery":"创建一张包含深圳今日天气信息的小卡片，展示当前温度、天气状况、空气质量以及今日温度范围","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"weather":{"current":{"temperatureC":{"type":"number","description":"当前摄氏温度","sampleValue":38},"condition":{"type":"string","description":"白天天气现象","sampleValue":"晴｜空气优"}},"location":{"prefectureName":{"type":"string","description":"城市名称","sampleValue":"深圳"}},"daily":[{"temperatureRangeText":{"type":"string","description":"当日温度范围文本","sampleValue":"26°/16°"}}]}}},"assetCandidates":[{"src":"resources/base/media/cloudy.png","description":"云朵图标"}]}
+{"userQuery":"创建一张包含深圳今日天气信息的小卡片，展示当前温度、天气状况、空气质量以及今日温度范围","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"weather":{"current":{"temperatureC":{"type":"number","description":"当前摄氏温度","sampleValue":38},"condition":{"type":"string","description":"白天天气现象","sampleValue":"晴｜空气优"}},"location":{"prefectureName":{"type":"string","description":"城市名称","sampleValue":"深圳"}},"daily":[{"temperatureRangeText":{"type":"string","description":"当日温度范围文本","sampleValue":"26°C/16°C"}}]}}},"assetCandidates":[{"src":"resources/base/media/sun_max.svg","description":"单色线框太阳图标，用于晴天与强光天气提示"}]}
 ```
 ### assistant
 ```genui
-["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FF223E77",0],["#FF1D588F",0.45],["#FF0D8FBC",1]]},"justifyContent":"spaceBetween","itemMargin":4},["title_area","content_area","bottom_area"]]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FF223E77",0],["#FF1D588F",0.45],["#FF0D8FBC",1]]},"justifyContent":"spaceBetween","itemMargin":4},["title_area","content_area","bottom_area"]]
 ["title_area","Row",{"width":136,"height":20,"justifyContent":"spaceBetween","alignItems":"center","flexShrink":0},["title_text","title_icon"]]
-["title_text","Text",{"content":{"path":"/data/weather/location/prefectureName"},"fontSize":12,"fontWeight":500,"fontColor":"#99FFFFFF","maxLines":1,"textOverflow":"clip"}]
-["title_icon","Image",{"src":"resources/base/media/cloudy.png","width":20,"height":20,"objectFit":"contain","flexShrink":0}]
+["title_text","Text",{"content":{"path":"/data/weather/location/prefectureName"},"fontSize":12,"fontWeight":500,"fontColor":"#99FFFFFF","maxLines":1}]
+["title_icon","Image",{"src":"resources/base/media/sun_max.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#FFFFFFFF","flexShrink":0}]
 ["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","padding":{"top":4},"flexShrink":1},["value_row"]]
 ["value_row","Row",{"width":136,"justifyContent":"start","alignItems":"bottom","itemMargin":3},["value_num","value_unit"]]
-["value_num","Text",{"content":{"path":"/data/weather/current/temperatureC"},"fontSize":38,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1,"textOverflow":"clip"}]
-["value_unit","Text",{"content":"●","fontSize":11,"fontWeight":700,"fontColor":"#FFFFFFFF","padding":{"bottom":30},"maxLines":1,"textOverflow":"clip"}]
+["value_num","Text",{"content":{"path":"/data/weather/current/temperatureC"},"fontSize":38,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
+["value_unit","Text",{"content":"°C","fontSize":12,"fontWeight":500,"fontColor":"#FFFFFFFF","padding":{"bottom":5},"maxLines":1,"flexShrink":0}]
 ["bottom_area","Column",{"width":136,"height":40,"itemMargin":4,"justifyContent":"start","flexShrink":0},["weather_status","temp_range"]]
-["weather_status","Text",{"content":{"path":"/data/weather/current/condition"},"fontSize":12,"fontWeight":400,"fontColor":"#FFC9ECFF","maxLines":1,"textOverflow":"clip"}]
-["temp_range","Text",{"content":{"path":"/data/weather/daily/0/temperatureRangeText"},"fontSize":12,"fontWeight":400,"fontColor":"#FFC9ECFF","maxLines":1,"textOverflow":"clip"}]
+["weather_status","Text",{"content":{"path":"/data/weather/current/condition"},"fontSize":12,"fontWeight":400,"fontColor":"#FFC9ECFF","maxLines":1}]
+["temp_range","Text",{"content":{"path":"/data/weather/daily/0/temperatureRangeText"},"fontSize":12,"fontWeight":400,"fontColor":"#FFC9ECFF","maxLines":1}]
 ["/data/weather/current/temperatureC",38]
 ["/data/weather/current/condition","晴｜空气优"]
-["/data/weather/daily/0/temperatureRangeText","26°/16°"]
+["/data/weather/daily/0/temperatureRangeText","26°C/16°C"]
 ["/data/weather/location/prefectureName","深圳"]
 ```
 
-## 示例六（2x2-V06）：融球勿扰日程（S2 状态亚型·方案一融球日程）
-### user
-```json
-{"userQuery":"使用2*2规格，做个会议日程免打扰卡片","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate"}}],"dataModelSchema":{"data":{"calendar":{"events":[{"title":{"type":"string","description":"日程标题","sampleValue":"UI需求评审会"},"dtStart":{"type":"string","description":"开始时间","sampleValue":"14:00 - 15:30"}}]}}},"assetCandidates":[{"src":"resources/base/media/calendar_fill.svg","description":"日历图标"}]}
-```
-### assistant
-```genui
-["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"design":"fusion-ball-schedule-cool","justifyContent":"spaceBetween","itemMargin":4},["title_area","content_area","action_area"]]
-["title_area","Row",{"width":136,"height":16,"justifyContent":"spaceBetween","alignItems":"center","flexShrink":0},["section_label","title_icon"]]
-["section_label","Text",{"content":"下一个日程","fontSize":12,"fontWeight":400,"fontColor":"#E5FFFFFF","maxLines":1,"textOverflow":"clip"}]
-["title_icon","Image",{"src":"resources/base/media/calendar_fill.svg","width":16,"height":16,"objectFit":"contain","fillColor":"#FFFFFFFF","flexShrink":0}]
-["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","padding":{"top":4},"itemMargin":4,"flexShrink":1},["event_title","event_time"]]
-["event_title","Text",{"content":{"path":"/data/calendar/events/0/title"},"width":136,"height":28,"fontSize":20,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1,"textOverflow":"clip"}]
-["event_time","Text",{"content":{"path":"/data/calendar/events/0/dtStart"},"fontSize":12,"fontWeight":400,"fontColor":"#CCFFFFFF","maxLines":1,"textOverflow":"clip"}]
-["action_area","Column",{"width":136,"flexShrink":0},["cta"]]
-["cta","ActionUnit",{"state":"capsule","label":"勿扰模式","actionSurface":"#33FFFFFF","actionInk":"#E6FFFFFF","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate"}}],"flexShrink":0}]
-["/data/calendar/events/0/title","UI需求评审会"]
-["/data/calendar/events/0/dtStart","14:00 - 15:30"]
-```
 
-## 示例七（2x2-V07）：省电助手（S2 视觉亚型·环+底部胶囊·方案二薄荷绿）
-### user
-```json
-{"userQuery":"使用2*2规格，创建省电小组件，显示手机剩余电量百分比，带一键开启省电模式开关","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate"}}],"dataModelSchema":{"data":{"phoneBattery":{"batterySOC":{"type":"integer","description":"手机电量百分比","sampleValue":18}}}},"assetCandidates":[{"src":"resources/base/media/battery_leaf_fill.svg","description":"电池图标"}]}
-```
-### assistant
-```genui
-["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"backgroundColor":"#FFEFF8EE","justifyContent":"start","itemMargin":0},["content_area","v7gap","action_area"]]
-["v7gap","Column",{"width":136,"height":14,"flexShrink":0},[]]
-["content_area","Column",{"width":136,"justifyContent":"start","alignItems":"center","padding":{"top":7},"itemMargin":15,"flexShrink":0},["battery_ring","status_text"]]
-["battery_ring","Stack",{"width":48,"height":48,"alignContent":"center","flexShrink":0},["ring_progress","ring_icon"]]
-["ring_progress","Progress",{"design":"ring","width":48,"height":48,"strokeWidth":5,"value":{"path":"/data/phoneBattery/batterySOC"},"total":100,"color":"#FF6FAF62","backgroundColor":"#FFD9EAD6"}]
-["ring_icon","Image",{"src":"resources/base/media/battery_leaf_fill.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#FF6FAF62","flexShrink":0}]
-["status_text","Text",{"content":"手机电量低于20%","width":136,"fontSize":14,"fontWeight":500,"fontColor":"#FF54874E","textAlign":"center","maxLines":1,"textOverflow":"clip"}]
-["action_area","Column",{"width":136,"flexShrink":0},["cta"]]
-["cta","ActionUnit",{"state":"capsule","label":"开启省电模式","actionSurface":"#3364BB5C","actionInk":"#FF54874E","fontSize":14,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate"}}],"flexShrink":0}]
-["/data/phoneBattery/batterySOC",18]
-```
 
-## 示例八（2x2-V08）：运动打卡（S1 变体·右上贴纸+沉底数值·方案一暖橙）
-### user
-```json
-{"userQuery":"展示我连续运动的天数（有图作为背景时）","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{}},"assetCandidates":[{"src":"resources/base/media/figure_run.svg","description":"跑步人形图标"}]}
-```
-### assistant
-```genui
-["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FF7A3A20",0],["#FFBB5828",0.55],["#FFF26819",1]]},"justifyContent":"spaceBetween","itemMargin":4},["badge_area","bottom_block"]]
-["badge_area","Row",{"width":136,"height":20,"justifyContent":"end","alignItems":"center","flexShrink":0},["run_badge"]]
-["run_badge","Image",{"src":"resources/base/media/figure_run.svg","width":26,"height":22,"objectFit":"contain","fillColor":"#FFD98A4E","flexShrink":0}]
-["bottom_block","Column",{"width":136,"layoutWeight":1,"justifyContent":"end","alignItems":"start","itemMargin":2,"flexShrink":1},["title_text","value_row"]]
-["title_text","Text",{"content":"连续运动打卡","fontSize":14,"fontWeight":500,"fontColor":"#FFFFFFFF","maxLines":1,"textOverflow":"clip"}]
-["value_row","Row",{"width":136,"justifyContent":"start","alignItems":"bottom","itemMargin":1,"flexShrink":0},["value_num","value_unit"]]
-["value_num","Text",{"content":"8","fontSize":30,"fontWeight":700,"fontColor":"#FFFFFFFF","flexShrink":0,"maxLines":1,"textOverflow":"clip"}]
-["value_unit","Text",{"content":"天","fontSize":14,"fontWeight":500,"fontColor":"#99FFFFFF","height":32,"flexShrink":0,"padding":{"top":8.5},"maxLines":1,"textOverflow":"clip"}]
-```
 
-## 示例九（2x2-V09）：白色背景内存+耳机（S4 横行亚型·方案三纯白）
+## 示例五（2x2-V05）：手机+耳机电量（S4 横行亚型·方案二薄荷绿）
 ### user
 ```json
-{"userQuery":"使用2*2规格，建个内存优化卡片。卡片需要展示内存占用占比、可用内存和总容量，同时显示耳机剩余电量","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"systemMem":{"usagePercent":{"type":"number","description":"内存占用比例","sampleValue":54},"availableMemText":{"type":"string","description":"系统可用内存，格式化后的文本","sampleValue":"4.50 GB"},"totalMemText":{"type":"string","description":"系统总内存，格式化后的文本","sampleValue":"8.00 GB"}},"earphone":{"chargingStatusDesc":{"type":"string","description":"充电状态中文描述","sampleValue":"耳机充电中"},"batteryLevel":{"type":"integer","description":"耳机盒电量百分比","sampleValue":47}}}},"assetCandidates":[{"src":"resources/base/media/clean_fill.svg","description":"清理图标"},{"src":"resources/base/media/earphone_case_16644.svg","description":"耳机充电盒图标"}]}
+{"userQuery":"使用2*2规格，同时展示手机电量和耳机盒电量及各自充电状态。","size":"2x2","eventCandidates":[],"dataModelSchema":{"data":{"phoneBattery":{"batterySOC":{"type":"integer","description":"手机剩余电量百分比0到100","sampleValue":68},"chargingStatusDesc":{"type":"string","description":"手机当前充电状态","sampleValue":"未充电"}},"earphone":{"batteryLevel":{"type":"integer","description":"耳机盒电量百分比0到100","sampleValue":47},"chargingStatusDesc":{"type":"string","description":"耳机盒当前充电状态","sampleValue":"充电中"}}}},"assetCandidates":[{"src":"resources/base/media/phone_fill.svg","description":"本地手机图标"},{"src":"resources/base/media/earphone_case_16644.svg","description":"本地耳机盒图标"}]}
 ```
 ### assistant
 ```genui
-["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"backgroundColor":"#FFFFFFFF","justifyContent":"start","itemMargin":6},["mem_row","mem_used","ear_row"]]
-["mem_row","Row",{"width":136,"justifyContent":"start","alignItems":"center","itemMargin":8},["mem_ring","mem_col"]]
-["mem_ring","Stack",{"width":52,"height":52,"alignContent":"center","flexShrink":0},["mem_progress","mem_pct"]]
-["mem_progress","Progress",{"design":"ring","width":52,"height":52,"strokeWidth":5,"value":{"path":"/data/systemMem/usagePercent"},"total":100,"color":"#FF64BB5C","backgroundColor":"#FFDEDEDE"}]
-["mem_pct","Row",{"justifyContent":"center","alignItems":"bottom","itemMargin":0},["mem_num","mem_unit"]]
-["mem_num","Text",{"content":{"path":"/data/systemMem/usagePercent"},"fontSize":12,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"textOverflow":"clip"}]
-["mem_unit","Text",{"content":"%","fontSize":8,"fontWeight":500,"fontColor":"#99000000","padding":{"bottom":0},"maxLines":1,"textOverflow":"clip"}]
-["mem_col","Column",{"width":76,"justifyContent":"center","alignItems":"start","flexShrink":1},["mem_label"]]
-["mem_label","Text",{"content":"手机内存","fontSize":14,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"textOverflow":"clip"}]
-["mem_used","Row",{"width":136,"height":16,"justifyContent":"start","alignItems":"bottom","itemMargin":0,"flexShrink":0},["mem_avail","mem_slash","mem_total"]]
-["mem_avail","Text",{"content":{"path":"/data/systemMem/availableMemText"},"fontSize":10,"fontWeight":500,"fontColor":"#66000000","maxLines":1,"textOverflow":"clip"}]
-["mem_slash","Text",{"content":"/","fontSize":10,"fontWeight":500,"fontColor":"#66000000","maxLines":1,"textOverflow":"clip"}]
-["mem_total","Text",{"content":{"path":"/data/systemMem/totalMemText"},"fontSize":10,"fontWeight":500,"fontColor":"#66000000","maxLines":1,"textOverflow":"clip"}]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFDEF7E4",0],["#FFF2FFF5",1]]},"justifyContent":"start","itemMargin":8},["phone_row","ear_row"]]
+["phone_row","Row",{"width":136,"height":64,"justifyContent":"start","alignItems":"center","itemMargin":8},["phone_ring","phone_col"]]
+["phone_ring","Stack",{"width":52,"height":52,"alignContent":"center","flexShrink":0},["phone_progress","phone_icon"]]
+["phone_progress","Progress",{"type":"ring","width":52,"height":52,"strokeWidth":5,"value":{"path":"/data/phoneBattery/batterySOC"},"total":100,"color":"#FF1F9933","backgroundColor":"#331F9933"}]
+["phone_icon","Image",{"src":"resources/base/media/phone_fill.svg","width":16,"height":16,"objectFit":"contain","fillColor":"#991F9933","flexShrink":0}]
+["phone_col","Column",{"width":76,"justifyContent":"center","alignItems":"start","itemMargin":4,"flexShrink":1},["phone_label","phone_value"]]
+["phone_label","Text",{"content":"手机电量","fontSize":12,"fontWeight":700,"fontColor":"#E6000000","maxLines":1}]
+["phone_value","Text",{"content":"{{ ${/data/phoneBattery/batterySOC} + '% · ' + ${/data/phoneBattery/chargingStatusDesc} }}","width":76,"fontSize":10,"fontWeight":500,"fontColor":"#99000000","maxLines":1}]
 ["ear_row","Row",{"width":136,"justifyContent":"start","alignItems":"center","itemMargin":8},["ear_ring","ear_col"]]
 ["ear_ring","Stack",{"width":52,"height":52,"alignContent":"center","flexShrink":0},["ear_progress","ear_icon"]]
-["ear_progress","Progress",{"design":"ring","width":52,"height":52,"strokeWidth":5,"value":{"path":"/data/earphone/batteryLevel"},"total":100,"color":"#FF64BB5C","backgroundColor":"#FFDEDEDE"}]
-["ear_icon","Image",{"src":"resources/base/media/earphone_case_16644.svg","width":16,"height":16,"objectFit":"contain","fillColor":"#FF666666","flexShrink":0}]
-["ear_col","Column",{"width":76,"justifyContent":"center","alignItems":"start","flexShrink":1},["ear_label"]]
-["ear_label","Text",{"content":{"path":"/data/earphone/chargingStatusDesc"},"fontSize":12,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"textOverflow":"clip"}]
-["/data/systemMem/usagePercent",54]
-["/data/systemMem/availableMemText","4.50 GB"]
-["/data/systemMem/totalMemText","8.00 GB"]
-["/data/earphone/chargingStatusDesc","耳机充电中"]
+["ear_progress","Progress",{"type":"ring","width":52,"height":52,"strokeWidth":5,"value":{"path":"/data/earphone/batteryLevel"},"total":100,"color":"#FF1F9933","backgroundColor":"#331F9933"}]
+["ear_icon","Image",{"src":"resources/base/media/earphone_case_16644.svg","width":16,"height":16,"objectFit":"contain","fillColor":"#991F9933","flexShrink":0}]
+["ear_col","Column",{"width":76,"justifyContent":"center","alignItems":"start","itemMargin":4,"flexShrink":1},["ear_label","ear_value"]]
+["ear_label","Text",{"content":"耳机盒电量","fontSize":12,"fontWeight":700,"fontColor":"#E6000000","maxLines":1}]
+["ear_value","Text",{"content":"{{ ${/data/earphone/batteryLevel} + '% · ' + ${/data/earphone/chargingStatusDesc} }}","width":76,"fontSize":10,"fontWeight":500,"fontColor":"#99000000","maxLines":1}]
+["/data/phoneBattery/batterySOC",68]
+["/data/phoneBattery/chargingStatusDesc","未充电"]
 ["/data/earphone/batteryLevel",47]
+["/data/earphone/chargingStatusDesc","充电中"]
 ```
 
-## 示例十（2x2-V10）：日程待办（S2 状态亚型·TimelineUnit 时间线·方案三纯白）
+## 示例六（2x2-V06）：日程待办（S2 状态亚型·信息列·方案二暖杏）
 ### user
 ```json
-{"userQuery":"我今天会排得很满，帮我做个日程卡片，看看下一场会叫什么、几点开始。能直接点击入会。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate-meeting"}}],"dataModelSchema":{"data":{"calendar":{"events":[{"title":{"type":"string","description":"日程标题","sampleValue":"UI需求评审会"},"dtStart":{"type":"string","description":"开始时间","sampleValue":"14:00 - 15:30"},"eventLocation":{"type":"string","description":"地点","sampleValue":"深圳市龙岗区五和大..."},"countdownDays":{"type":"integer","description":"纯数字的倒数日天数，0代表今天","sampleValue":0}}]}}},"assetCandidates":[]}
+{"userQuery":"我今天会排得很满，帮我做个日程卡片，展示下一场日程的名称、开始时间和地点，并提供查看日程入口。","size":"2x2","eventCandidates":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ ${/data/calendar/events/0/entityId} }}"}}}],"dataModelSchema":{"data":{"calendar":{"events":[{"entityId":{"type":"string","description":"系统日程唯一实体ID","sampleValue":"calendar-event-001"},"title":{"type":"string","description":"日程标题","sampleValue":"UI需求评审会"},"dtStart":{"type":"string","description":"开始时间HH:mm","sampleValue":"14:00"},"eventLocation":{"type":"string","description":"日程地点","sampleValue":"五和大道华为基地"},"countdownDays":{"type":"integer","description":"距离日程开始的自然日天数，0代表今天","sampleValue":0}}]}}},"assetCandidates":[]}
 ```
 ### assistant
 ```genui
-["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"backgroundColor":"#FFFFFFFF","justifyContent":"start","itemMargin":4},["title_area","content_area","action_area"]]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFF8EBCD",0],["#FFFFF8EA",1]]},"justifyContent":"start","itemMargin":4},["title_area","content_area","action_area"]]
 ["title_area","Row",{"width":136,"height":16,"justifyContent":"start","alignItems":"center","flexShrink":0},["day_tag"]]
-["day_tag","Text",{"content":"今天","fontSize":12,"fontWeight":700,"fontColor":"#FFE84026","maxLines":1,"textOverflow":"clip"}]
-["content_area","Row",{"width":136,"layoutWeight":1,"padding":{"top":4},"itemMargin":0,"alignItems":"start","justifyContent":"start","flexShrink":1},["timeline","meeting_texts"]]
-["timeline","TimelineUnit",{"height":44,"dotSize":8,"dotStroke":1.5,"dotOffsetTop":3,"color":"#FFE84026","lineColor":"#1A000000","flexShrink":0}]
-["meeting_texts","Column",{"width":"matchParent","layoutWeight":1,"itemMargin":6,"justifyContent":"start","alignItems":"start","flexShrink":1},["event_title","event_time","event_place"]]
-["event_title","Text",{"content":{"path":"/data/calendar/events/0/title"},"fontSize":12,"fontWeight":700,"width":"matchParent","fontColor":"#E5000000","maxLines":1,"textOverflow":"clip"}]
-["event_time","Text",{"content":{"path":"/data/calendar/events/0/dtStart"},"fontSize":12,"fontWeight":400,"width":"matchParent","fontColor":"#99000000","maxLines":1,"textOverflow":"clip"}]
-["event_place","Text",{"content":{"path":"/data/calendar/events/0/eventLocation"},"fontSize":12,"fontWeight":400,"width":"matchParent","fontColor":"#99000000","maxLines":1,"textOverflow":"ellipsis"}]
+["day_tag","Text",{"content":"今天","fontSize":12,"fontWeight":700,"fontColor":"#FF996C1F","maxLines":1}]
+["content_area","Column",{"width":136,"layoutWeight":1,"padding":{"top":4},"itemMargin":6,"justifyContent":"start","alignItems":"start","flexShrink":1},["event_title","event_time","event_place"]]
+["event_title","Text",{"content":{"path":"/data/calendar/events/0/title"},"fontSize":12,"fontWeight":700,"width":"matchParent","fontColor":"#E6000000","maxLines":1}]
+["event_time","Text",{"content":{"path":"/data/calendar/events/0/dtStart"},"fontSize":12,"fontWeight":400,"width":"matchParent","fontColor":"#99000000","maxLines":1}]
+["event_place","Text",{"content":{"path":"/data/calendar/events/0/eventLocation"},"fontSize":12,"fontWeight":400,"width":"matchParent","fontColor":"#99000000","maxLines":1}]
 ["action_area","Column",{"width":136,"flexShrink":0},["cta"]]
-["cta","ActionUnit",{"state":"capsule","label":"加入会议","actionSurface":"#19E84026","actionInk":"#FFE84026","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate-meeting"}}],"flexShrink":0}]
+["cta","ActionUnit",{"state":"capsule","label":"查看日程","actionSurface":"#FFF0DCB8","actionInk":"#FF7A4F0F","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ ${/data/calendar/events/0/entityId} }}"}}}],"flexShrink":0}]
+["/data/calendar/events/0/entityId","calendar-event-001"]
 ["/data/calendar/events/0/title","UI需求评审会"]
-["/data/calendar/events/0/dtStart","14:00 - 15:30"]
-["/data/calendar/events/0/eventLocation","深圳市龙岗区五和大..."]
+["/data/calendar/events/0/dtStart","14:00"]
+["/data/calendar/events/0/eventLocation","五和大道华为基地"]
 ```
 
-## 示例十一（2x2-V11）：今日步数（S2 数值亚型·整卡隐式入口·方案一暖橙）
+## 示例七（2x2-V07）：今日步数（S2 数值亚型·整卡隐式入口·方案一暖橙）
 ### user
 ```json
-{"userQuery":"我今天活动量如何，帮我做个运动小组件，看看走了多少步和消耗多少热量，点击可以查看详情。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate-detail"}}],"dataModelSchema":{"data":{"healthSport":{"dailySteps":{"type":"integer","description":"全天累计步数","sampleValue":2319},"dailyDistanceText":{"type":"string","description":"总距离文本（含单位）","sampleValue":"1.19 公里"},"dailyTotalCaloriesText":{"type":"string","description":"总消耗热量文本（含单位）","sampleValue":"59 千卡"}}}},"assetCandidates":[{"src":"resources/base/media/figure_run.svg","description":"跑步人形图标"}]}
+{"userQuery":"我今天活动量如何，帮我做个运动小组件，看看走了多少步和消耗多少热量，点击可以进入运动详情。","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Health","bundleName":"","abilityName":"","uri":"huaweischeme://healthapp/home/sport?sportType=2"}}],"dataModelSchema":{"data":{"healthSport":{"dailySteps":{"type":"integer","description":"全天累计步数","sampleValue":2319},"dailyDistanceText":{"type":"string","description":"总距离文本（含单位）","sampleValue":"1.19 公里"},"dailyTotalCaloriesText":{"type":"string","description":"总消耗热量文本（含单位）","sampleValue":"59 千卡"}}}},"assetCandidates":[{"src":"resources/base/media/figure_run.svg","description":"跑步人形图标"}]}
 ```
 ### assistant
 ```genui
-["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFF4AD16",0],["#FFF4A815",0.5],["#FFF5B42E",1]]},"justifyContent":"spaceBetween","itemMargin":4,"onClick":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate-detail"}}]},["title_area","content_area","bottom_area"]]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFF4AD16",0],["#FFF4A815",0.5],["#FFF5B42E",1]]},"justifyContent":"spaceBetween","itemMargin":4,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Health","bundleName":"","abilityName":"","uri":"huaweischeme://healthapp/home/sport?sportType=2"}}]},["title_area","content_area","bottom_area"]]
 ["title_area","Row",{"width":136,"height":20,"justifyContent":"spaceBetween","alignItems":"center","flexShrink":0},["title_text","run_icon"]]
-["title_text","Text",{"content":"今日步数","fontSize":12,"fontWeight":400,"fontColor":"#E5FFFFFF","maxLines":1,"textOverflow":"clip"}]
+["title_text","Text",{"content":"今日步数","fontSize":12,"fontWeight":400,"fontColor":"#E5FFFFFF","maxLines":1}]
 ["run_icon","Image",{"src":"resources/base/media/figure_run.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#FFFFFFFF","flexShrink":0}]
 ["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","itemMargin":4,"flexShrink":1},["value_row","step_bar"]]
 ["value_row","Row",{"width":136,"justifyContent":"start","alignItems":"bottom","itemMargin":2},["value_num","value_unit"]]
-["value_num","Text",{"content":{"path":"/data/healthSport/dailySteps"},"fontSize":30,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1,"textOverflow":"clip"}]
-["value_unit","Text",{"content":"步","fontSize":12,"fontWeight":500,"fontColor":"#FFFFFFFF","padding":{"bottom":4},"maxLines":1,"textOverflow":"clip"}]
-["step_bar","Progress",{"design":"linear-bar","width":136,"height":8,"strokeWidth":8,"value":{"path":"/data/healthSport/dailySteps"},"total":8760,"color":"#FFFFFFFF","backgroundColor":"#33FFFFFF"}]
+["value_num","Text",{"content":{"path":"/data/healthSport/dailySteps"},"fontSize":30,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
+["value_unit","Text",{"content":"步","fontSize":12,"fontWeight":500,"fontColor":"#FFFFFFFF","padding":{"bottom":4},"maxLines":1}]
+["step_bar","Progress",{"type":"linear","width":136,"height":8,"strokeWidth":8,"borderRadius":4,"value":{"path":"/data/healthSport/dailySteps"},"total":8760,"color":"#FFFFFFFF","backgroundColor":"#33FFFFFF"}]
 ["bottom_area","Column",{"width":136,"height":34,"itemMargin":2,"justifyContent":"start","flexShrink":0},["aux_1","aux_2"]]
 ["aux_1","Row",{"itemMargin":4,"alignItems":"center"},["aux_1_t","aux_1_v"]]
-["aux_1_t","Text",{"content":"运动距离","fontSize":12,"fontWeight":400,"fontColor":"#E5FFFFFF","maxLines":1,"textOverflow":"clip"}]
-["aux_1_v","Text",{"content":{"path":"/data/healthSport/dailyDistanceText"},"fontSize":12,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1,"textOverflow":"clip"}]
+["aux_1_t","Text",{"content":"运动距离","fontSize":12,"fontWeight":400,"fontColor":"#E5FFFFFF","maxLines":1}]
+["aux_1_v","Text",{"content":{"path":"/data/healthSport/dailyDistanceText"},"fontSize":12,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
 ["aux_2","Row",{"itemMargin":4,"alignItems":"center"},["aux_2_t","aux_2_v"]]
-["aux_2_t","Text",{"content":"消耗热量","fontSize":12,"fontWeight":400,"fontColor":"#E5FFFFFF","maxLines":1,"textOverflow":"clip"}]
-["aux_2_v","Text",{"content":{"path":"/data/healthSport/dailyTotalCaloriesText"},"fontSize":12,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1,"textOverflow":"clip"}]
+["aux_2_t","Text",{"content":"消耗热量","fontSize":12,"fontWeight":400,"fontColor":"#E5FFFFFF","maxLines":1}]
+["aux_2_v","Text",{"content":{"path":"/data/healthSport/dailyTotalCaloriesText"},"fontSize":12,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
 ["/data/healthSport/dailySteps",2319]
 ["/data/healthSport/dailyDistanceText","1.19 公里"]
 ["/data/healthSport/dailyTotalCaloriesText","59 千卡"]
 ```
 
-## 示例十二（2x2-V12）：睡眠监控（S2 数值亚型·方案一融球睡眠）
+
+## 示例八（2x4-V01）：三行近期日程列表（W7-list-rows·方案二暖杏·高密度列表纯色例外）
 ### user
 ```json
-{"userQuery":"睡前做个睡眠卡片，看看昨晚睡了多久，点击可以设置早睡闹钟提醒","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate-alarm"}}],"dataModelSchema":{"data":{"healthSport":{"nightSleepDurationText":{"type":"string","description":"夜间睡眠总时长文本","sampleValue":"5小时45分"},"sleepScore":{"type":"integer","description":"睡眠综合得分0-100","sampleValue":72}}}},"assetCandidates":[{"src":"resources/base/media/clock_fill.svg","description":"时钟图标"}]}
+{"userQuery":"显示最近三项日程，使用三行列表骨架。","size":"2x4","eventCandidates":[],"dataModelSchema":{"data":{"calendar":{"events":[{"title":{"type":"string","description":"日程标题","sampleValue":"项目阶段性汇报"}},{"title":{"type":"string","description":"日程标题","sampleValue":"确认Q3设计需求"}},{"title":{"type":"string","description":"日程标题","sampleValue":"申请下周出差"}}]}}},"assetCandidates":[]}
 ```
 ### assistant
 ```genui
-["root","Column",{"width":160,"height":160,"padding":12,"borderRadius":20,"clip":true,"design":"fusion-ball-sleep-violet","justifyContent":"spaceBetween","itemMargin":4},["title_area","content_area","action_area"]]
-["title_area","Row",{"width":136,"height":20,"justifyContent":"start","alignItems":"center","flexShrink":0},["title_text"]]
-["title_text","Text",{"content":"睡眠监控","fontSize":12,"fontWeight":400,"fontColor":"#E5FFFFFF","maxLines":1,"textOverflow":"clip"}]
-["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","itemMargin":4,"flexShrink":1},["value_row","sleep_bar"]]
-["value_row","Row",{"width":136,"height":36,"justifyContent":"start","alignItems":"bottom"},["duration_text"]]
-["duration_text","Text",{"content":{"path":"/data/healthSport/nightSleepDurationText"},"fontSize":24,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1,"textOverflow":"clip"}]
-["sleep_bar","Progress",{"design":"linear-bar","width":136,"height":8,"strokeWidth":8,"value":{"path":"/data/healthSport/sleepScore"},"total":100,"color":"#FFFFFFFF","backgroundColor":"#33FFFFFF"}]
-["action_area","Column",{"width":136,"flexShrink":0},["cta"]]
-["cta","ActionUnit",{"state":"capsule","label":"早睡提醒","icon":"resources/base/media/clock_fill.svg","actionSurface":"#33FFFFFF","actionInk":"#E6FFFFFF","fontSize":14,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"uri":"demo://replace-with-candidate-alarm"}}],"flexShrink":0}]
-["/data/healthSport/nightSleepDurationText","5小时45分"]
-["/data/healthSport/sleepScore",72]
+["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"backgroundColor":"#FFFFF6E6"},["content"]]
+["content","Column",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":4},["title","list"]]
+["title","Text",{"content":"近期日程","width":296,"height":17,"fontSize":12,"fontWeight":700,"fontColor":"#E6000000","maxLines":1}]
+["list","Column",{"width":296,"height":115,"itemMargin":8},["item0","item1","item2"]]
+["item0","Row",{"width":296,"height":33,"padding":{"left":12,"right":12},"borderRadius":8,"backgroundColor":"#0D996C1F","alignItems":"center"},["text0"]]
+["text0","Text",{"content":{"path":"/data/calendar/events/0/title"},"width":248,"fontSize":12,"fontWeight":400,"fontColor":"#E6000000","maxLines":1}]
+["item1","Row",{"width":296,"height":33,"padding":{"left":12,"right":12},"borderRadius":8,"backgroundColor":"#0D996C1F","alignItems":"center"},["text1"]]
+["text1","Text",{"content":{"path":"/data/calendar/events/1/title"},"width":248,"fontSize":12,"fontWeight":400,"fontColor":"#E6000000","maxLines":1}]
+["item2","Row",{"width":296,"height":33,"padding":{"left":12,"right":12},"borderRadius":8,"backgroundColor":"#0D996C1F","alignItems":"center"},["text2"]]
+["text2","Text",{"content":{"path":"/data/calendar/events/2/title"},"width":248,"fontSize":12,"fontWeight":400,"fontColor":"#E6000000","maxLines":1}]
+["/data/calendar/events/0/title","项目阶段性汇报"]
+["/data/calendar/events/1/title","确认Q3设计需求"]
+["/data/calendar/events/2/title","申请下周出差"]
 ```
-
-## 示例十三：2x4 三日天气数组模板
-
+## 示例九（2x4-V02）：手机电量大环与右侧说明（W3-ring-detail·方案二薄荷青）
 ### user
-
 ```json
-{"userQuery":"做一张横向天气卡，显示杭州未来三天的天气、最高最低温、降雨概率和空气质量，点一下能打开天气详情。","size":"2x4","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","bundleName":"","abilityName":"","uri":"hww://www.huawei.com/totemweather?enterType=share&cityCode="}}],"dataModelSchema":{"data":{"weather":{"location":{"prefectureName":{"type":"string","description":"城市名称","sampleValue":"杭州"}},"daily":[{"weekday":{"type":"string","description":"星期文本","sampleValue":"星期六"},"condition":{"type":"string","description":"白天天气现象","sampleValue":"阵雨"},"temperatureRangeText":{"type":"string","description":"当天温度范围","sampleValue":"25° / 32°"},"rainProbabilityPercent":{"type":"string","description":"白天降雨概率","sampleValue":"70%"},"airQuality":{"type":"string","description":"当天空气质量等级","sampleValue":"良"}}]}}},"assetCandidates":[{"src":"resources/base/media/icon_weather1.svg","description":"自带多色渐变、需要保留原始颜色的天气状态图标，适合天气预报"},{"src":"resources/base/media/drop_1.svg","description":"单色可染色的水滴图标，适合降雨概率展示"},{"src":"resources/base/media/bg_style_aurora_mesh.png","description":"具有中央平静留白的浅蓝薄荷极光背景，适合天气和空气质量类卡片背景"}]}
+{"userQuery":"用大环显示手机电量，右侧给出电量等级和充电状态。","size":"2x4","eventCandidates":[],"dataModelSchema":{"data":{"phoneBattery":{"batterySOC":{"type":"integer","description":"0到100的手机电量百分比","sampleValue":68},"batterySOCText":{"type":"string","description":"格式化电量文本","sampleValue":"68%"},"batteryCapacityLevelDesc":{"type":"string","description":"电量等级","sampleValue":"正常电量"},"chargingStatusDesc":{"type":"string","description":"充电状态","sampleValue":"未充电"}}}},"assetCandidates":[]}
 ```
-
 ### assistant
-
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":18,"clip":true,"backgroundImage":"resources/base/media/bg_style_aurora_mesh.png","backgroundImageSizeWithStyle":"cover","justifyContent":"spaceBetween","alignItems":"center"},["forecastHeader","forecastRow","weatherDetail"]]
-["forecastHeader","Row",{"width":296,"height":20,"justifyContent":"spaceBetween","alignItems":"center"},["forecastTitle","weatherIcon"]]
-["forecastTitle","Text",{"width":260,"height":20,"fontSize":14,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"content":"{{ ${/data/weather/location/prefectureName} + '三日天气' }}"}]
-["weatherIcon","Image",{"width":20,"height":20,"objectFit":"contain","src":"resources/base/media/icon_weather1.svg"}]
-["forecastRow","Row",{"width":296,"height":64,"padding":{"top":6,"right":8,"bottom":6,"left":8},"borderRadius":12,"backgroundColor":"#D9FFFFFF","justifyContent":"start","alignItems":"top","itemMargin":8},["forecastItem0","forecastItem1","forecastItem2"]]
-["forecastItem0","Column",{"width":88,"height":52,"justifyContent":"center","alignItems":"start","itemMargin":2},["dayCondition0","temperatureRange0","weatherMeta0"]]
-["dayCondition0","Text",{"width":88,"height":14,"fontSize":10,"fontWeight":500,"fontColor":"#99000000","maxLines":1,"content":"{{ ${/data/weather/daily/0/weekday} + ' · ' + ${/data/weather/daily/0/condition} }}"}]
-["temperatureRange0","Text",{"width":88,"height":16,"fontSize":12,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"content":"{{ ${/data/weather/daily/0/temperatureRangeText} }}"}]
-["weatherMeta0","Text",{"width":88,"height":12,"fontSize":10,"fontWeight":400,"fontColor":"#66000000","maxLines":1,"content":"{{ '降雨' + ${/data/weather/daily/0/rainProbabilityPercent} + ' · ' + ${/data/weather/daily/0/airQuality} }}"}]
-["forecastItem1","Column",{"width":88,"height":52,"justifyContent":"center","alignItems":"start","itemMargin":2},["dayCondition1","temperatureRange1","weatherMeta1"]]
-["dayCondition1","Text",{"width":88,"height":14,"fontSize":10,"fontWeight":500,"fontColor":"#99000000","maxLines":1,"content":"{{ ${/data/weather/daily/1/weekday} + ' · ' + ${/data/weather/daily/1/condition} }}"}]
-["temperatureRange1","Text",{"width":88,"height":16,"fontSize":12,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"content":"{{ ${/data/weather/daily/1/temperatureRangeText} }}"}]
-["weatherMeta1","Text",{"width":88,"height":12,"fontSize":10,"fontWeight":400,"fontColor":"#66000000","maxLines":1,"content":"{{ '降雨' + ${/data/weather/daily/1/rainProbabilityPercent} + ' · ' + ${/data/weather/daily/1/airQuality} }}"}]
-["forecastItem2","Column",{"width":88,"height":52,"justifyContent":"center","alignItems":"start","itemMargin":2},["dayCondition2","temperatureRange2","weatherMeta2"]]
-["dayCondition2","Text",{"width":88,"height":14,"fontSize":10,"fontWeight":500,"fontColor":"#99000000","maxLines":1,"content":"{{ ${/data/weather/daily/2/weekday} + ' · ' + ${/data/weather/daily/2/condition} }}"}]
-["temperatureRange2","Text",{"width":88,"height":16,"fontSize":12,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"content":"{{ ${/data/weather/daily/2/temperatureRangeText} }}"}]
-["weatherMeta2","Text",{"width":88,"height":12,"fontSize":10,"fontWeight":400,"fontColor":"#66000000","maxLines":1,"content":"{{ '降雨' + ${/data/weather/daily/2/rainProbabilityPercent} + ' · ' + ${/data/weather/daily/2/airQuality} }}"}]
-["weatherDetail","Button",{"width":296,"height":36,"padding":{"top":0,"right":12,"bottom":0,"left":12},"borderRadius":18,"backgroundColor":"#CCFFFFFF","borderWidth":1,"borderColor":"#330A59F7","fontSize":14,"fontWeight":600,"fontColor":"#FF0A59F7","label":"查看天气详情","onClick":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","bundleName":"","abilityName":"","uri":"hww://www.huawei.com/totemweather?enterType=share&cityCode="}}]}]
-["/data/weather/location/prefectureName","杭州"]
-["/data/weather/daily/0/weekday","周六"]
-["/data/weather/daily/0/condition","阵雨"]
-["/data/weather/daily/0/temperatureRangeText","25° / 32°"]
-["/data/weather/daily/0/rainProbabilityPercent","70%"]
-["/data/weather/daily/0/airQuality","良"]
-["/data/weather/daily/1/weekday","周日"]
-["/data/weather/daily/1/condition","多云"]
-["/data/weather/daily/1/temperatureRangeText","24° / 31°"]
-["/data/weather/daily/1/rainProbabilityPercent","30%"]
-["/data/weather/daily/1/airQuality","优"]
-["/data/weather/daily/2/weekday","周一"]
-["/data/weather/daily/2/condition","晴"]
-["/data/weather/daily/2/temperatureRangeText","23° / 33°"]
-["/data/weather/daily/2/rainProbabilityPercent","10%"]
-["/data/weather/daily/2/airQuality","良"]
+["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFDCF8F3",0],["#FFF2FFFC",1]]}},["content"]]
+["content","Column",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":6},["title","main"]]
+["title","Text",{"content":"手机电量","width":296,"height":17,"fontSize":12,"fontWeight":700,"fontColor":"#E6000000","maxLines":1}]
+["main","Row",{"width":296,"height":113,"itemMargin":8,"alignItems":"center"},["ringArea","info"]]
+["ringArea","Column",{"width":144,"height":113,"justifyContent":"center","alignItems":"center"},["ringStack"]]
+["ringStack","Stack",{"width":92,"height":92,"alignContent":"center"},["ring","ringValue"]]
+["ring","Progress",{"type":"ring","width":92,"height":92,"strokeWidth":8,"value":{"path":"/data/phoneBattery/batterySOC"},"total":100,"color":"#FF1F9985","backgroundColor":"#1F1F9985"}]
+["ringValue","Text",{"content":{"path":"/data/phoneBattery/batterySOCText"},"width":76,"fontSize":20,"fontWeight":700,"fontColor":"#FF1F9985","textAlign":"center","maxLines":1}]
+["info","Column",{"width":144,"height":113,"itemMargin":4,"justifyContent":"center"},["infoTitle","level","status"]]
+["infoTitle","Text",{"content":"当前电量","width":144,"fontSize":16,"fontWeight":700,"fontColor":"#E6000000","maxLines":1}]
+["level","Text",{"content":{"path":"/data/phoneBattery/batteryCapacityLevelDesc"},"width":144,"fontSize":12,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["status","Text",{"content":{"path":"/data/phoneBattery/chargingStatusDesc"},"width":144,"fontSize":12,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["/data/phoneBattery/batterySOC",68]
+["/data/phoneBattery/batterySOCText","68%"]
+["/data/phoneBattery/batteryCapacityLevelDesc","正常电量"]
+["/data/phoneBattery/chargingStatusDesc","未充电"]
 ```
-
-## 示例十四：2x4 天气与日程通勤卡
-
+## 示例十（2x4-V03）：睡眠恢复度线性进度与双详情（W5-progress-detail·方案二天空蓝）
 ### user
-
 ```json
-{"userQuery":"做一张上班通勤卡，左边放上海今天的天气，右边放接下来两场会议，底部给我一个导航去公司的按钮。","size":"2x4","eventCandidates":[{"call":"clickToIntent","args":{"intentName":"StartNavigate","params":{"dstLocation":{"location":"company","latitude":"","longitude":""}}}}],"dataModelSchema":{"data":{"weather":{"location":{"prefectureName":{"type":"string","description":"城市名称","sampleValue":"上海"}},"current":{"temperatureText":{"type":"string","description":"当前温度展示文本","sampleValue":"27℃"},"condition":{"type":"string","description":"当前天气现象","sampleValue":"小雨"}}},"calendar":{"events":[{"title":{"type":"string","description":"会议标题","sampleValue":"晨会"},"dtStart":{"type":"string","description":"会议开始时间","sampleValue":"09:00"},"eventLocation":{"type":"string","description":"会议地点","sampleValue":"线上会议"}}]}}},"assetCandidates":[{"src":"resources/base/media/icon_weather1.svg","description":"自带多色渐变、需要保留原始颜色的天气状态图标，适合表达天气信息"},{"src":"resources/base/media/calendar_fill.svg","description":"单色可染色的日历实心图标，适合会议日程"},{"src":"resources/base/media/location_north_up_right_fill.svg","description":"单色可染色的方向导航图标，适合地图导航和路线规划"}]}
+{"userQuery":"用线性进度展示睡眠恢复度，并显示睡眠时长和深睡时长。","size":"2x4","eventCandidates":[],"dataModelSchema":{"data":{"healthSport":{"sleepScore":{"type":"integer","description":"0到100的睡眠综合得分","sampleValue":82},"nightSleepDurationText":{"type":"string","description":"夜间睡眠总时长","sampleValue":"7小时1分"},"deepSleepDurationText":{"type":"string","description":"深睡时长","sampleValue":"2小时15分"}}}},"assetCandidates":[]}
 ```
-
 ### assistant
-
 ```genui
-["root","Row",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":18,"clip":true,"backgroundColor":"#FFF5F7F9","alignItems":"top","itemMargin":8},["weatherPanel","schedulePanel"]]
-["weatherPanel","Column",{"width":104,"height":136,"padding":{"top":8,"right":8,"bottom":8,"left":8},"borderRadius":14,"linearGradient":{"direction":"RightBottom","colors":[["#FF46B1E3",0],["#FF467794",1]]},"justifyContent":"spaceBetween","alignItems":"center"},["weatherHeading","commuteTemperature","commuteCondition","navigateButton"]]
-["weatherHeading","Row",{"width":88,"height":20,"justifyContent":"spaceBetween","alignItems":"center"},["commuteCity","commuteWeatherIcon"]]
-["commuteCity","Text",{"width":60,"height":20,"fontSize":12,"fontWeight":600,"fontColor":"#FFFFFFFF","maxLines":1,"content":"{{ ${/data/weather/location/prefectureName} }}"}]
-["commuteWeatherIcon","Image",{"width":20,"height":20,"objectFit":"contain","src":"resources/base/media/icon_weather1.svg"}]
-["commuteTemperature","Text",{"width":88,"height":40,"fontSize":32,"fontWeight":800,"fontColor":"#FFFFFFFF","maxLines":1,"content":"{{ ${/data/weather/current/temperatureText} }}"}]
-["commuteCondition","Text",{"width":88,"height":16,"fontSize":12,"fontWeight":500,"fontColor":"#99FFFFFF","maxLines":1,"content":"{{ ${/data/weather/current/condition} }}"}]
-["navigateButton","Button",{"width":88,"height":36,"padding":{"top":0,"right":8,"bottom":0,"left":8},"borderRadius":18,"backgroundColor":"#FFFFFFFF","fontSize":12,"fontWeight":600,"fontColor":"#FF0A59F7","label":"导航去公司","onClick":[{"call":"clickToIntent","args":{"intentName":"StartNavigate","params":{"dstLocation":{"location":"company","latitude":"","longitude":""}}}}]}]
-["schedulePanel","Column",{"width":184,"height":136,"padding":{"top":8,"right":8,"bottom":8,"left":8},"borderRadius":14,"backgroundColor":"#FFFFFFFF","justifyContent":"start","alignItems":"start","itemMargin":8},["scheduleHeading","meetingList"]]
-["scheduleHeading","Row",{"width":168,"height":20,"justifyContent":"spaceBetween","alignItems":"center"},["scheduleTitle","calendarIcon"]]
-["scheduleTitle","Text",{"width":136,"height":20,"fontSize":14,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"content":"接下来会议"}]
-["calendarIcon","Image",{"width":20,"height":20,"objectFit":"contain","fillColor":"#FF0A59F7","src":"resources/base/media/calendar_fill.svg"}]
-["meetingList","Column",{"width":168,"height":92,"justifyContent":"start","alignItems":"start","itemMargin":4},["meetingItem0","meetingItem1"]]
-["meetingItem0","Column",{"width":168,"height":44,"justifyContent":"center","alignItems":"start","itemMargin":2},["meetingTitle0","meetingMeta0"]]
-["meetingTitle0","Text",{"width":168,"height":16,"fontSize":12,"fontWeight":600,"fontColor":"#E5000000","maxLines":1,"content":"{{ ${/data/calendar/events/0/title} }}"}]
-["meetingMeta0","Text",{"width":168,"height":14,"fontSize":10,"fontWeight":400,"fontColor":"#66000000","maxLines":1,"content":"{{ ${/data/calendar/events/0/dtStart} + ' · ' + ${/data/calendar/events/0/eventLocation} }}"}]
-["meetingItem1","Column",{"width":168,"height":44,"justifyContent":"center","alignItems":"start","itemMargin":2},["meetingTitle1","meetingMeta1"]]
-["meetingTitle1","Text",{"width":168,"height":16,"fontSize":12,"fontWeight":600,"fontColor":"#E5000000","maxLines":1,"content":"{{ ${/data/calendar/events/1/title} }}"}]
-["meetingMeta1","Text",{"width":168,"height":14,"fontSize":10,"fontWeight":400,"fontColor":"#66000000","maxLines":1,"content":"{{ ${/data/calendar/events/1/dtStart} + ' · ' + ${/data/calendar/events/1/eventLocation} }}"}]
-["/data/weather/location/prefectureName","上海"]
-["/data/weather/current/temperatureText","27℃"]
-["/data/weather/current/condition","小雨"]
-["/data/calendar/events/0/title","晨会"]
-["/data/calendar/events/0/dtStart","09:00"]
-["/data/calendar/events/0/eventLocation","线上会议"]
-["/data/calendar/events/1/title","项目评审"]
-["/data/calendar/events/1/dtStart","10:30"]
-["/data/calendar/events/1/eventLocation","A3会议室"]
+["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFE1EBFC",0],["#FFF0F4FF",1]]}},["content"]]
+["content","Column",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":8},["title","body"]]
+["title","Text",{"content":"睡眠恢复度","width":296,"height":20,"fontSize":12,"fontWeight":700,"fontColor":"#E6000000","maxLines":1}]
+["body","Column",{"width":296,"height":108,"itemMargin":8},["progressSlot","details"]]
+["progressSlot","Column",{"width":296,"height":50,"itemMargin":4,"justifyContent":"center"},["progressText","progress"]]
+["progressText","Row",{"width":296,"alignItems":"bottom","itemMargin":6},["score","scoreLabel"]]
+["score","Text",{"content":"{{ ${/data/healthSport/sleepScore} + '分' }}","fontSize":20,"fontWeight":700,"fontColor":"#FF1F4594","maxLines":1}]
+["scoreLabel","Text",{"content":"睡眠综合得分","fontSize":10,"fontWeight":400,"fontColor":"#99000000","padding":{"bottom":2},"maxLines":1}]
+["progress","Progress",{"type":"linear","width":296,"height":8,"strokeWidth":8,"borderRadius":4,"value":{"path":"/data/healthSport/sleepScore"},"total":100,"color":"#FF1F4594","backgroundColor":"#1F1F4594"}]
+["details","Row",{"width":296,"height":50,"itemMargin":8},["night","deep"]]
+["night","Column",{"width":144,"height":50,"padding":{"left":8,"right":8,"top":6,"bottom":6},"borderRadius":10,"backgroundColor":"#0D1F4594","itemMargin":2,"justifyContent":"center"},["nightLabel","nightValue"]]
+["nightLabel","Text",{"content":"睡眠时长","width":128,"fontSize":12,"fontWeight":700,"fontColor":"#E6000000","maxLines":1}]
+["nightValue","Text",{"content":{"path":"/data/healthSport/nightSleepDurationText"},"width":128,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["deep","Column",{"width":144,"height":50,"padding":{"left":8,"right":8,"top":6,"bottom":6},"borderRadius":10,"backgroundColor":"#0D1F4594","itemMargin":2,"justifyContent":"center"},["deepLabel","deepValue"]]
+["deepLabel","Text",{"content":"深睡时长","width":128,"fontSize":12,"fontWeight":700,"fontColor":"#E6000000","maxLines":1}]
+["deepValue","Text",{"content":{"path":"/data/healthSport/deepSleepDurationText"},"width":128,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["/data/healthSport/sleepScore",82]
+["/data/healthSport/nightSleepDurationText","7小时1分"]
+["/data/healthSport/deepSleepDurationText","2小时15分"]
 ```
-
-## 示例十五：2x4 五项短时间序列，显式整卡详情入口
-
+## 示例十一（2x4-V04）：倒计时与双训练卡（W1-progress-aux·var-a 双份区域·方案一深色端橙三色）
 ### user
-
 ```json
-{"userQuery":"做一张北京未来5小时天气卡，显示时间、温度和天气，点整张卡查看天气详情。","size":"2x4","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","bundleName":"","abilityName":"","uri":"hww://www.huawei.com/totemweather?enterType=share&cityCode="}}],"dataModelSchema":{"data":{"weather":{"location":{"prefectureName":{"type":"string","description":"城市名称","sampleValue":"北京"}},"hourly":[{"timeText":{"type":"string","description":"整点时间，固定返回五项","sampleValue":"14:00"},"temperatureText":{"type":"string","description":"温度展示文本","sampleValue":"26℃"},"condition":{"type":"string","description":"短天气现象","sampleValue":"晴"}}]}}},"assetCandidates":[{"src":"resources/base/media/icon_weather1.svg","description":"自带多色渐变、需要保留原始颜色的天气图标，适合天气标题"}]}
+{"userQuery":"HK100倒计时：左侧显示剩余天数和恢复度，右侧固定展示最近两项训练日程。","size":"2x4","eventCandidates":[],"dataModelSchema":{"data":{"countdown":{"countdownDays":{"type":"integer","description":"距离赛事的自然日天数","sampleValue":32}},"healthSport":{"sleepScore":{"type":"integer","description":"0到100的睡眠恢复分","sampleValue":82}},"calendar":{"events":[{"title":{"type":"string","description":"训练标题","sampleValue":"周一训练计划"},"description":{"type":"string","description":"训练说明","sampleValue":"30min户外跑步"}},{"title":{"type":"string","description":"训练标题","sampleValue":"周三训练计划"},"description":{"type":"string","description":"训练说明","sampleValue":"30min户外跑步"}}]}}},"assetCandidates":[]}
 ```
-
 ### assistant
-
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":18,"clip":true,"linearGradient":{"direction":"RightBottom","colors":[["#FFDCEEFF",0],["#FFF4FAFF",1]]},"justifyContent":"start","alignItems":"start","itemMargin":8,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Weather_CityCode","bundleName":"","abilityName":"","uri":"hww://www.huawei.com/totemweather?enterType=share&cityCode="}}]},["hourlyHeader","hourlyRow"]]
-["hourlyHeader","Row",{"width":296,"height":20,"justifyContent":"spaceBetween","alignItems":"center"},["hourlyTitle","weatherIcon"]]
-["hourlyTitle","Text",{"width":260,"height":20,"fontSize":14,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"content":"{{ ${/data/weather/location/prefectureName} + '未来5小时' }}"}]
-["weatherIcon","Image",{"width":20,"height":20,"objectFit":"contain","src":"resources/base/media/icon_weather1.svg"}]
-["hourlyRow","Row",{"width":296,"height":108,"justifyContent":"start","alignItems":"center","itemMargin":8},["hourlyItem0","hourlyItem1","hourlyItem2","hourlyItem3","hourlyItem4"]]
-["hourlyItem0","Column",{"width":52,"height":84,"padding":{"top":6,"right":2,"bottom":6,"left":2},"borderRadius":10,"backgroundColor":"#FFEAF4FF","justifyContent":"center","alignItems":"center","itemMargin":6},["hourTime0","hourTemperature0","hourCondition0"]]
-["hourTime0","Text",{"width":48,"height":14,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1,"textAlign":"center","content":"{{ ${/data/weather/hourly/0/timeText} }}"}]
-["hourTemperature0","Text",{"width":48,"height":20,"fontSize":16,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"textAlign":"center","content":"{{ ${/data/weather/hourly/0/temperatureText} }}"}]
-["hourCondition0","Text",{"width":48,"height":14,"fontSize":10,"fontWeight":500,"fontColor":"#FF1769E0","maxLines":1,"textAlign":"center","content":"{{ ${/data/weather/hourly/0/condition} }}"}]
-["hourlyItem1","Column",{"width":52,"height":84,"padding":{"top":6,"right":2,"bottom":6,"left":2},"borderRadius":10,"backgroundColor":"#FFEAF4FF","justifyContent":"center","alignItems":"center","itemMargin":6},["hourTime1","hourTemperature1","hourCondition1"]]
-["hourTime1","Text",{"width":48,"height":14,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1,"textAlign":"center","content":"{{ ${/data/weather/hourly/1/timeText} }}"}]
-["hourTemperature1","Text",{"width":48,"height":20,"fontSize":16,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"textAlign":"center","content":"{{ ${/data/weather/hourly/1/temperatureText} }}"}]
-["hourCondition1","Text",{"width":48,"height":14,"fontSize":10,"fontWeight":500,"fontColor":"#FF1769E0","maxLines":1,"textAlign":"center","content":"{{ ${/data/weather/hourly/1/condition} }}"}]
-["hourlyItem2","Column",{"width":52,"height":84,"padding":{"top":6,"right":2,"bottom":6,"left":2},"borderRadius":10,"backgroundColor":"#FFEAF4FF","justifyContent":"center","alignItems":"center","itemMargin":6},["hourTime2","hourTemperature2","hourCondition2"]]
-["hourTime2","Text",{"width":48,"height":14,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1,"textAlign":"center","content":"{{ ${/data/weather/hourly/2/timeText} }}"}]
-["hourTemperature2","Text",{"width":48,"height":20,"fontSize":16,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"textAlign":"center","content":"{{ ${/data/weather/hourly/2/temperatureText} }}"}]
-["hourCondition2","Text",{"width":48,"height":14,"fontSize":10,"fontWeight":500,"fontColor":"#FF1769E0","maxLines":1,"textAlign":"center","content":"{{ ${/data/weather/hourly/2/condition} }}"}]
-["hourlyItem3","Column",{"width":52,"height":84,"padding":{"top":6,"right":2,"bottom":6,"left":2},"borderRadius":10,"backgroundColor":"#FFEAF4FF","justifyContent":"center","alignItems":"center","itemMargin":6},["hourTime3","hourTemperature3","hourCondition3"]]
-["hourTime3","Text",{"width":48,"height":14,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1,"textAlign":"center","content":"{{ ${/data/weather/hourly/3/timeText} }}"}]
-["hourTemperature3","Text",{"width":48,"height":20,"fontSize":16,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"textAlign":"center","content":"{{ ${/data/weather/hourly/3/temperatureText} }}"}]
-["hourCondition3","Text",{"width":48,"height":14,"fontSize":10,"fontWeight":500,"fontColor":"#FF1769E0","maxLines":1,"textAlign":"center","content":"{{ ${/data/weather/hourly/3/condition} }}"}]
-["hourlyItem4","Column",{"width":52,"height":84,"padding":{"top":6,"right":2,"bottom":6,"left":2},"borderRadius":10,"backgroundColor":"#FFEAF4FF","justifyContent":"center","alignItems":"center","itemMargin":6},["hourTime4","hourTemperature4","hourCondition4"]]
-["hourTime4","Text",{"width":48,"height":14,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1,"textAlign":"center","content":"{{ ${/data/weather/hourly/4/timeText} }}"}]
-["hourTemperature4","Text",{"width":48,"height":20,"fontSize":16,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"textAlign":"center","content":"{{ ${/data/weather/hourly/4/temperatureText} }}"}]
-["hourCondition4","Text",{"width":48,"height":14,"fontSize":10,"fontWeight":500,"fontColor":"#FF1769E0","maxLines":1,"textAlign":"center","content":"{{ ${/data/weather/hourly/4/condition} }}"}]
-["/data/weather/location/prefectureName","北京"]
-["/data/weather/hourly/0/timeText","14:00"]
-["/data/weather/hourly/0/temperatureText","26℃"]
-["/data/weather/hourly/0/condition","晴"]
-["/data/weather/hourly/1/timeText","15:00"]
-["/data/weather/hourly/1/temperatureText","27℃"]
-["/data/weather/hourly/1/condition","晴"]
-["/data/weather/hourly/2/timeText","16:00"]
-["/data/weather/hourly/2/temperatureText","26℃"]
-["/data/weather/hourly/2/condition","多云"]
-["/data/weather/hourly/3/timeText","17:00"]
-["/data/weather/hourly/3/temperatureText","24℃"]
-["/data/weather/hourly/3/condition","多云"]
-["/data/weather/hourly/4/timeText","18:00"]
-["/data/weather/hourly/4/temperatureText","22℃"]
-["/data/weather/hourly/4/condition","小雨"]
+["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFB33C24",0],["#FFFF8833",0.52],["#FFFAA89E",1]]}},["content"]]
+["content","Row",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":10},["hero","plans"]]
+["hero","Column",{"width":146,"height":136,"justifyContent":"start"},["tag","count","heroGap","recovery"]]
+["tag","Text",{"content":"距离HK100越野赛","width":146,"fontSize":12,"fontWeight":400,"fontColor":"#F2FFFFFF","maxLines":1}]
+["count","Row",{"width":146,"itemMargin":5,"alignItems":"bottom"},["days","unit"]]
+["heroGap","Column",{"width":146,"height":10,"layoutWeight":1},[]]
+["days","Text",{"content":{"path":"/data/countdown/countdownDays"},"fontSize":40,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
+["unit","Text",{"content":"天剩余","fontSize":12,"fontWeight":400,"fontColor":"#99FFFFFF","padding":{"bottom":6},"maxLines":1}]
+["recovery","Column",{"width":146,"itemMargin":3},["recoveryBar","recoveryLabels"]]
+["recoveryBar","Progress",{"type":"linear","width":146,"height":8,"strokeWidth":8,"borderRadius":4,"value":{"path":"/data/healthSport/sleepScore"},"total":100,"color":"#FFFFFFFF","backgroundColor":"#47FFFFFF"}]
+["recoveryLabels","Row",{"width":146,"justifyContent":"spaceBetween"},["recoveryName","recoveryValue"]]
+["recoveryName","Text",{"content":"训练恢复度","fontSize":10,"fontWeight":400,"fontColor":"#99FFFFFF","maxLines":1}]
+["recoveryValue","Text",{"content":"{{ ${/data/healthSport/sleepScore} + '分' }}","fontSize":10,"fontWeight":400,"fontColor":"#99FFFFFF","maxLines":1}]
+["plans","Column",{"width":140,"height":136,"itemMargin":8},["plan0","plan1"]]
+["plan0","Column",{"width":140,"height":64,"padding":{"left":10,"right":10,"top":8,"bottom":8},"borderRadius":12,"backgroundColor":"#33FFFFFF","itemMargin":3,"justifyContent":"center"},["plan0Title","plan0Desc"]]
+["plan0Title","Text",{"content":{"path":"/data/calendar/events/0/title"},"width":120,"fontSize":12,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
+["plan0Desc","Text",{"content":{"path":"/data/calendar/events/0/description"},"width":120,"fontSize":10,"fontWeight":400,"fontColor":"#F2FFFFFF","maxLines":1}]
+["plan1","Column",{"width":140,"height":64,"padding":{"left":10,"right":10,"top":8,"bottom":8},"borderRadius":12,"backgroundColor":"#33FFFFFF","itemMargin":3,"justifyContent":"center"},["plan1Title","plan1Desc"]]
+["plan1Title","Text",{"content":{"path":"/data/calendar/events/1/title"},"width":120,"fontSize":12,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
+["plan1Desc","Text",{"content":{"path":"/data/calendar/events/1/description"},"width":120,"fontSize":10,"fontWeight":400,"fontColor":"#F2FFFFFF","maxLines":1}]
+["/data/countdown/countdownDays",32]
+["/data/healthSport/sleepScore",82]
+["/data/calendar/events/0/title","周一训练计划"]
+["/data/calendar/events/0/description","30min户外跑步"]
+["/data/calendar/events/1/title","周三训练计划"]
+["/data/calendar/events/1/description","30min户外跑步"]
 ```
-
-## 示例十六：2x4 四快捷操作，所有动作均由用户明确要求
-
+## 示例十二（2x4-V05）：健康三指标（W4-metric-triple·方案一深色端橙三色）
 ### user
-
 ```json
-{"userQuery":"做一张系统快捷卡，分别提供无线网络、蓝牙、显示和声音四个入口。","size":"2x4","eventCandidates":[{"call":"clickToIntent","args":{"intentName":"OpenSettingPage","params":{"page":"wifi"}}},{"call":"clickToIntent","args":{"intentName":"OpenSettingPage","params":{"page":"bluetooth"}}},{"call":"clickToIntent","args":{"intentName":"OpenSettingPage","params":{"page":"display"}}},{"call":"clickToIntent","args":{"intentName":"OpenSettingPage","params":{"page":"sound"}}}],"dataModelSchema":{},"assetCandidates":[{"src":"resources/base/media/wifi_fill.svg","description":"单色可染色的无线网络图标"},{"src":"resources/base/media/bluetooth_fill.svg","description":"单色可染色的蓝牙图标"},{"src":"resources/base/media/brightness_fill.svg","description":"单色可染色的显示亮度图标"},{"src":"resources/base/media/speaker_fill.svg","description":"单色可染色的声音图标"}]}
+{"userQuery":"我的健康数据：睡眠得分、今日消耗热量和今日步数三项并排，用分割线分隔。","size":"2x4","eventCandidates":[],"dataModelSchema":{"data":{"healthSport":{"sleepScore":{"type":"integer","description":"0到100的睡眠得分","sampleValue":80},"dailyTotalCaloriesText":{"type":"string","description":"含单位的今日总消耗热量","sampleValue":"92 千卡"},"dailySteps":{"type":"integer","description":"今日累计步数","sampleValue":2031}}}},"assetCandidates":[]}
 ```
-
 ### assistant
-
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":18,"clip":true,"linearGradient":{"direction":"RightBottom","colors":[["#FFE2F6EE",0],["#FFF8FCFA",1]]},"justifyContent":"start","alignItems":"start","itemMargin":12},["quickTitle","actionGrid"]]
-["quickTitle","Text",{"width":296,"height":20,"fontSize":14,"fontWeight":700,"fontColor":"#E5000000","maxLines":1,"content":"系统快捷"}]
-["actionGrid","Column",{"width":296,"height":104,"justifyContent":"start","alignItems":"start","itemMargin":8},["actionRowOne","actionRowTwo"]]
-["actionRowOne","Row",{"width":296,"height":48,"justifyContent":"start","alignItems":"center","itemMargin":8},["wifiAction","bluetoothAction"]]
-["actionRowTwo","Row",{"width":296,"height":48,"justifyContent":"start","alignItems":"center","itemMargin":8},["displayAction","soundAction"]]
-["wifiAction","Row",{"width":144,"height":48,"padding":{"top":8,"right":10,"bottom":8,"left":10},"borderRadius":12,"backgroundColor":"#FFE1F4ED","justifyContent":"center","alignItems":"center","itemMargin":8,"onClick":[{"call":"clickToIntent","args":{"intentName":"OpenSettingPage","params":{"page":"wifi"}}}],"accessibility":{"label":"打开无线网络设置"}},["wifiIcon","wifiLabel"]]
-["wifiIcon","Image",{"width":20,"height":20,"objectFit":"contain","fillColor":"#FF0F8F78","src":"resources/base/media/wifi_fill.svg"}]
-["wifiLabel","Text",{"width":88,"height":16,"fontSize":12,"fontWeight":600,"fontColor":"#FF0F8F78","maxLines":1,"textAlign":"center","content":"无线网络"}]
-["bluetoothAction","Row",{"width":144,"height":48,"padding":{"top":8,"right":10,"bottom":8,"left":10},"borderRadius":12,"backgroundColor":"#FFE1F4ED","justifyContent":"center","alignItems":"center","itemMargin":8,"onClick":[{"call":"clickToIntent","args":{"intentName":"OpenSettingPage","params":{"page":"bluetooth"}}}],"accessibility":{"label":"打开蓝牙设置"}},["bluetoothIcon","bluetoothLabel"]]
-["bluetoothIcon","Image",{"width":20,"height":20,"objectFit":"contain","fillColor":"#FF0F8F78","src":"resources/base/media/bluetooth_fill.svg"}]
-["bluetoothLabel","Text",{"width":88,"height":16,"fontSize":12,"fontWeight":600,"fontColor":"#FF0F8F78","maxLines":1,"textAlign":"center","content":"蓝牙"}]
-["displayAction","Row",{"width":144,"height":48,"padding":{"top":8,"right":10,"bottom":8,"left":10},"borderRadius":12,"backgroundColor":"#FFE1F4ED","justifyContent":"center","alignItems":"center","itemMargin":8,"onClick":[{"call":"clickToIntent","args":{"intentName":"OpenSettingPage","params":{"page":"display"}}}],"accessibility":{"label":"打开显示设置"}},["displayIcon","displayLabel"]]
-["displayIcon","Image",{"width":20,"height":20,"objectFit":"contain","fillColor":"#FF0F8F78","src":"resources/base/media/brightness_fill.svg"}]
-["displayLabel","Text",{"width":88,"height":16,"fontSize":12,"fontWeight":600,"fontColor":"#FF0F8F78","maxLines":1,"textAlign":"center","content":"显示"}]
-["soundAction","Row",{"width":144,"height":48,"padding":{"top":8,"right":10,"bottom":8,"left":10},"borderRadius":12,"backgroundColor":"#FFE1F4ED","justifyContent":"center","alignItems":"center","itemMargin":8,"onClick":[{"call":"clickToIntent","args":{"intentName":"OpenSettingPage","params":{"page":"sound"}}}],"accessibility":{"label":"打开声音设置"}},["soundIcon","soundLabel"]]
-["soundIcon","Image",{"width":20,"height":20,"objectFit":"contain","fillColor":"#FF0F8F78","src":"resources/base/media/speaker_fill.svg"}]
-["soundLabel","Text",{"width":88,"height":16,"fontSize":12,"fontWeight":600,"fontColor":"#FF0F8F78","maxLines":1,"textAlign":"center","content":"声音"}]
-["/state/ready",true]
+["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFB33C24",0],["#FFFF8833",0.52],["#FFFAA89E",1]]}},["content"]]
+["content","Column",{"width":"matchParent","height":"matchParent","padding":12,"justifyContent":"spaceBetween"},["title","metrics"]]
+["title","Text",{"content":"我的健康数据","width":296,"height":22,"fontSize":18,"fontWeight":700,"fontColor":"#F2FFFFFF","maxLines":1}]
+["metrics","Row",{"width":296,"height":84,"justifyContent":"spaceBetween","alignItems":"stretch"},["metric0","sep0","metric1","sep1","metric2"]]
+["metric0","Column",{"width":96,"height":84,"itemMargin":4,"justifyContent":"center","alignItems":"center"},["label0","value0"]]
+["label0","Text",{"content":"睡眠得分","width":96,"fontSize":12,"fontWeight":400,"fontColor":"#99FFFFFF","textAlign":"center","maxLines":1}]
+["value0","Text",{"content":"{{ ${/data/healthSport/sleepScore} + '分' }}","width":96,"fontSize":20,"fontWeight":700,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
+["sep0","Divider",{"width":1,"height":64,"vertical":true,"color":"#59FFFFFF","alignSelf":"end"}]
+["metric1","Column",{"width":96,"height":84,"itemMargin":4,"justifyContent":"center","alignItems":"center"},["label1","value1"]]
+["label1","Text",{"content":"消耗热量","width":96,"fontSize":12,"fontWeight":400,"fontColor":"#99FFFFFF","textAlign":"center","maxLines":1}]
+["value1","Text",{"content":{"path":"/data/healthSport/dailyTotalCaloriesText"},"width":96,"fontSize":20,"fontWeight":700,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
+["sep1","Divider",{"width":1,"height":64,"vertical":true,"color":"#59FFFFFF","alignSelf":"end"}]
+["metric2","Column",{"width":96,"height":84,"itemMargin":4,"justifyContent":"center","alignItems":"center"},["label2","value2"]]
+["label2","Text",{"content":"今日步数","width":96,"fontSize":12,"fontWeight":400,"fontColor":"#99FFFFFF","textAlign":"center","maxLines":1}]
+["value2","Text",{"content":"{{ ${/data/healthSport/dailySteps} + '步' }}","width":96,"fontSize":20,"fontWeight":700,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
+["/data/healthSport/sleepScore",80]
+["/data/healthSport/dailyTotalCaloriesText","92 千卡"]
+["/data/healthSport/dailySteps",2031]
+```
+## 示例十三（2x4-V06）：无标题设备电量四联（W8-quad-cells·方案二电量绿·高密度网格纯色例外）
+### user
+```json
+{"userQuery":"无标题显示手机、左耳、右耳和耳机盒电量，使用2×2等分格。","size":"2x4","eventCandidates":[],"dataModelSchema":{"data":{"phoneBattery":{"batterySOC":{"type":"integer","description":"手机电量百分比0到100","sampleValue":68},"batterySOCText":{"type":"string","description":"手机电量文本","sampleValue":"68%"},"batteryCapacityLevelDesc":{"type":"string","description":"手机电量等级","sampleValue":"正常电量"}},"earphone":{"leftBatteryLevel":{"type":"integer","description":"左耳电量0到100","sampleValue":76},"leftChargingStatusDesc":{"type":"string","description":"左耳充电状态","sampleValue":"未充电"},"rightBatteryLevel":{"type":"integer","description":"右耳电量0到100","sampleValue":78},"rightChargingStatusDesc":{"type":"string","description":"右耳充电状态","sampleValue":"未充电"},"batteryLevel":{"type":"integer","description":"耳机盒电量0到100","sampleValue":80},"chargingStatusDesc":{"type":"string","description":"耳机盒充电状态","sampleValue":"未充电"}}}},"assetCandidates":[{"src":"resources/base/media/phone_fill.svg","description":"本地手机图标"},{"src":"resources/base/media/l_circle_fill.svg","description":"本地左耳图标"},{"src":"resources/base/media/r_circle_fill.svg","description":"本地右耳图标"},{"src":"resources/base/media/earphone_case_16644.svg","description":"本地耳机盒图标"}]}
+```
+### assistant
+```genui
+["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"backgroundColor":"#FFE6FFF6"},["grid"]]
+["grid","Column",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":8},["row0","row1"]]
+["row0","Row",{"width":296,"height":64,"itemMargin":8},["phoneCell","leftCell"]]
+["row1","Row",{"width":296,"height":64,"itemMargin":8},["rightCell","caseCell"]]
+["phoneCell","Row",{"width":144,"height":64,"padding":12,"borderRadius":16,"backgroundColor":"#0D1F9947","justifyContent":"spaceBetween","alignItems":"center"},["phoneText","phoneRing"]]
+["phoneText","Column",{"width":64,"itemMargin":2},["phoneValue","phoneStatus"]]
+["phoneValue","Text",{"content":{"path":"/data/phoneBattery/batterySOCText"},"width":64,"fontSize":16,"fontWeight":700,"fontColor":"#FF1F9947","maxLines":1}]
+["phoneStatus","Text",{"content":{"path":"/data/phoneBattery/batteryCapacityLevelDesc"},"width":64,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["phoneRing","Stack",{"width":40,"height":40,"alignContent":"center"},["phoneArc","phoneCore"]]
+["phoneArc","Progress",{"type":"ring","width":40,"height":40,"strokeWidth":4,"value":{"path":"/data/phoneBattery/batterySOC"},"total":100,"color":"#FF1F9947","backgroundColor":"#331F9947"}]
+["phoneCore","Image",{"src":"resources/base/media/phone_fill.svg","width":16,"height":16,"objectFit":"contain","fillColor":"#991F9947"}]
+["leftCell","Row",{"width":144,"height":64,"padding":12,"borderRadius":16,"backgroundColor":"#0D1F9947","justifyContent":"spaceBetween","alignItems":"center"},["leftText","leftRing"]]
+["leftText","Column",{"width":64,"itemMargin":2},["leftValue","leftStatus"]]
+["leftValue","Text",{"content":"{{ ${/data/earphone/leftBatteryLevel} + '%' }}","width":64,"fontSize":16,"fontWeight":700,"fontColor":"#FF1F9947","maxLines":1}]
+["leftStatus","Text",{"content":{"path":"/data/earphone/leftChargingStatusDesc"},"width":64,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["leftRing","Stack",{"width":40,"height":40,"alignContent":"center"},["leftArc","leftCore"]]
+["leftArc","Progress",{"type":"ring","width":40,"height":40,"strokeWidth":4,"value":{"path":"/data/earphone/leftBatteryLevel"},"total":100,"color":"#FF1F9947","backgroundColor":"#331F9947"}]
+["leftCore","Image",{"src":"resources/base/media/l_circle_fill.svg","width":16,"height":16,"objectFit":"contain","fillColor":"#991F9947"}]
+["rightCell","Row",{"width":144,"height":64,"padding":12,"borderRadius":16,"backgroundColor":"#0D1F9947","justifyContent":"spaceBetween","alignItems":"center"},["rightText","rightRing"]]
+["rightText","Column",{"width":64,"itemMargin":2},["rightValue","rightStatus"]]
+["rightValue","Text",{"content":"{{ ${/data/earphone/rightBatteryLevel} + '%' }}","width":64,"fontSize":16,"fontWeight":700,"fontColor":"#FF1F9947","maxLines":1}]
+["rightStatus","Text",{"content":{"path":"/data/earphone/rightChargingStatusDesc"},"width":64,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["rightRing","Stack",{"width":40,"height":40,"alignContent":"center"},["rightArc","rightCore"]]
+["rightArc","Progress",{"type":"ring","width":40,"height":40,"strokeWidth":4,"value":{"path":"/data/earphone/rightBatteryLevel"},"total":100,"color":"#FF1F9947","backgroundColor":"#331F9947"}]
+["rightCore","Image",{"src":"resources/base/media/r_circle_fill.svg","width":16,"height":16,"objectFit":"contain","fillColor":"#991F9947"}]
+["caseCell","Row",{"width":144,"height":64,"padding":12,"borderRadius":16,"backgroundColor":"#0D1F9947","justifyContent":"spaceBetween","alignItems":"center"},["caseText","caseRing"]]
+["caseText","Column",{"width":64,"itemMargin":2},["caseValue","caseStatus"]]
+["caseValue","Text",{"content":"{{ ${/data/earphone/batteryLevel} + '%' }}","width":64,"fontSize":16,"fontWeight":700,"fontColor":"#FF1F9947","maxLines":1}]
+["caseStatus","Text",{"content":{"path":"/data/earphone/chargingStatusDesc"},"width":64,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["caseRing","Stack",{"width":40,"height":40,"alignContent":"center"},["caseArc","caseCore"]]
+["caseArc","Progress",{"type":"ring","width":40,"height":40,"strokeWidth":4,"value":{"path":"/data/earphone/batteryLevel"},"total":100,"color":"#FF1F9947","backgroundColor":"#331F9947"}]
+["caseCore","Image",{"src":"resources/base/media/earphone_case_16644.svg","width":16,"height":16,"objectFit":"contain","fillColor":"#991F9947"}]
+["/data/phoneBattery/batterySOC",68]
+["/data/phoneBattery/batterySOCText","68%"]
+["/data/phoneBattery/batteryCapacityLevelDesc","正常电量"]
+["/data/earphone/leftBatteryLevel",76]
+["/data/earphone/leftChargingStatusDesc","未充电"]
+["/data/earphone/rightBatteryLevel",78]
+["/data/earphone/rightChargingStatusDesc","未充电"]
+["/data/earphone/batteryLevel",80]
+["/data/earphone/chargingStatusDesc","未充电"]
+```
+## 示例十四（2x4-V07）：单列日程安排（W2-text-flow·方案二暖杏）
+### user
+```json
+{"userQuery":"展示下一项日程的标题、说明和日期，使用单列文本流。","size":"2x4","eventCandidates":[],"dataModelSchema":{"data":{"calendar":{"events":[{"title":{"type":"string","description":"日程标题","sampleValue":"需求评审会"},"description":{"type":"string","description":"日程说明","sampleValue":"评审卡片数据接口与视觉还原结果"},"startDate":{"type":"string","description":"日程开始日期MM-DD","sampleValue":"12-18"}}]}}},"assetCandidates":[]}
+```
+### assistant
+```genui
+["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFFFF0D8",0],["#FFFFF9EF",1]]}},["content"]]
+["content","Column",{"width":"matchParent","height":"matchParent","padding":12,"justifyContent":"start"},["kicker","lower"]]
+["kicker","Text",{"content":"日程安排","width":296,"fontSize":12,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["event","Column",{"width":296,"height":76,"itemMargin":6,"justifyContent":"end"},["eventTitle","eventDesc"]]
+["eventTitle","Text",{"content":{"path":"/data/calendar/events/0/title"},"width":296,"fontSize":24,"fontWeight":700,"fontColor":"#FF996C1F","maxLines":1}]
+["eventDesc","Text",{"content":{"path":"/data/calendar/events/0/description"},"width":296,"height":34,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":2}]
+["lower","Column",{"width":296,"height":113,"justifyContent":"end"},["event","date"]]
+["date","Text",{"content":{"path":"/data/calendar/events/0/startDate"},"width":296,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["/data/calendar/events/0/title","需求评审会"]
+["/data/calendar/events/0/description","评审卡片数据接口与视觉还原结果"]
+["/data/calendar/events/0/startDate","12-18"]
+```
+## 示例十五（2x4-V08）：下一日程与双真实入口（W6-agenda-cta·方案二暖杏）
+### user
+```json
+{"userQuery":"显示下一项日程的标题、地点和时间，并提供查看日程与专注模式两个入口。","size":"2x4","eventCandidates":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ ${/data/calendar/events/0/entityId} }}"}}},{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"intelligent_scene_entry"}}],"dataModelSchema":{"data":{"calendar":{"events":[{"title":{"type":"string","description":"日程标题","sampleValue":"需求评审会"},"eventLocation":{"type":"string","description":"日程地点","sampleValue":"五和大道华为基地"},"dtStart":{"type":"string","description":"开始时间","sampleValue":"14:00"},"dtEnd":{"type":"string","description":"结束时间","sampleValue":"15:30"},"entityId":{"type":"string","description":"日程实体ID","sampleValue":"calendar-event-001"}}]}}},"assetCandidates":[]}
+```
+### assistant
+```genui
+["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFFFF0D8",0],["#FFFFF9EF",1]]}},["content"]]
+["content","Column",{"width":"matchParent","height":"matchParent","padding":12,"justifyContent":"spaceBetween"},["kicker","event","actions"]]
+["kicker","Text",{"content":"下一个日程","width":296,"fontSize":12,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["event","Column",{"width":296,"height":48,"itemMargin":4},["eventName","eventTime"]]
+["eventName","Text",{"content":"{{ ${/data/calendar/events/0/title} + '·' + ${/data/calendar/events/0/eventLocation} }}","width":296,"fontSize":18,"fontWeight":700,"fontColor":"#FF996C1F","maxLines":1}]
+["eventTime","Text",{"content":"{{ ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} }}","width":296,"fontSize":12,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["actions","Row",{"width":296,"height":36,"justifyContent":"spaceBetween"},["calendarButton","focusButton"]]
+["calendarButton","Button",{"label":"查看日程","width":140,"height":36,"borderRadius":18,"backgroundColor":"#FFF0DCB8","fontColor":"#FF7A4F0F","fontSize":12,"fontWeight":500,"onClick":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ ${/data/calendar/events/0/entityId} }}"}}}]}]
+["focusButton","Button",{"label":"专注模式","width":140,"height":36,"borderRadius":18,"backgroundColor":"#FFF0DCB8","fontColor":"#FF7A4F0F","fontSize":12,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"intelligent_scene_entry"}}]}]
+["/data/calendar/events/0/title","需求评审会"]
+["/data/calendar/events/0/eventLocation","五和大道华为基地"]
+["/data/calendar/events/0/dtStart","14:00"]
+["/data/calendar/events/0/dtEnd","15:30"]
+["/data/calendar/events/0/entityId","calendar-event-001"]
 ```
 
 # ===================== END MAINTAINABLE FEW-SHOT =====================
