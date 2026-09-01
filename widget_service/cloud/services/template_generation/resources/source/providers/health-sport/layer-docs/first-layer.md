@@ -22,7 +22,11 @@
 ## SleepOverview
 
 - 支持路径：`{{dataRoot:GetHealthAndSportSummary}}/nightSleepDurationText`、`{{dataRoot:GetHealthAndSportSummary}}/sleepScore`、`{{dataRoot:GetHealthAndSportSummary}}/sleepStatus`、`{{dataRoot:GetHealthAndSportSummary}}/fallAsleepTimeText`、`{{dataRoot:GetHealthAndSportSummary}}/wakeupTimeText`。
-- 仅有睡眠总时长和 0 到 100 的可信睡眠得分时，可使用紧凑摘要或主视觉；还需要展示可信状态时，使用 2x2 完整摘要。
+- 睡眠总时长是模板准入必需字段。带一个 Action 时可使用主视觉：得分存在时优先展示 0 到 100 的
+  得分进度；缺少得分时展示可信睡眠状态；得分和状态都缺少时，仅在入睡、醒来时刻同时存在时展示
+  完整睡眠时段。紧凑摘要仍要求睡眠得分。
+- 无 Action 的 2x2 完整摘要还要求可信睡眠状态；得分和完整睡眠时段均为可选展示内容，时段只有在
+  入睡、醒来时刻同时存在时才能展示。
 - 支持 2x4 完整作息；不支持阶段、午睡、目标、趋势或建议。
 
 根据 `userQuery` 判断出的任一必须显示字段不能由所选一个或多个组件的支持路径完整覆盖时，不得选择模板路线。

@@ -79,6 +79,7 @@ class TemplateValue(StrictModel):
         "theme",
         "interpolation",
         "expression",
+        "compile-time-conditional",
         "array",
         "object",
     ]
@@ -308,6 +309,11 @@ class ThemeDefinition(StrictModel):
         alias="progressColor",
         pattern=r"^#[0-9A-Fa-f]{8}$",
     )
+    progress_background_color: str | None = Field(
+        default=None,
+        alias="progressBackgroundColor",
+        pattern=r"^#[0-9A-Fa-f]{8}$",
+    )
     root_style: dict[str, Any] = Field(alias="rootStyle")
     action_style: CardActionStyle = Field(alias="actionStyle")
     support_content_style: CardSupportContentStyle | None = Field(
@@ -333,6 +339,9 @@ class ThemeDefinition(StrictModel):
             "primaryColor": self.primary_color,
             "supportContentColor": self.support_content_color,
             "progressColor": self.progress_color or self.primary_color,
+            "progressBackgroundColor": (
+                self.progress_background_color or self.action_style.background_color
+            ),
             "actionStyle.backgroundColor": self.action_style.background_color,
             "actionStyle.contentColor": self.action_style.content_color,
             "supportContentStyle.backgroundColor": support_background,

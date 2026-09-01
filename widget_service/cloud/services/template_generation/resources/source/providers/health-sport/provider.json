@@ -296,14 +296,17 @@
       "templateId": "SleepOverviewFull@1",
       "businessId": "SleepOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠情况完整摘要，展示时长、得分进度和状态，可使用睡眠图标。 组件形态：full。",
-      "optionalData": [],
+      "description": "睡眠情况完整摘要，展示时长和状态，可选展示得分进度或完整睡眠时段，可使用睡眠图标。 组件形态：full。",
+      "optionalData": [
+        "/sleepScore",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText"
+      ],
       "entry": "templates/sleep-overview.cardtpl",
       "primaryData": [
         "/nightSleepDurationText"
       ],
       "secondaryData": [
-        "/sleepScore",
         "/sleepStatus"
       ]
     },
@@ -311,15 +314,18 @@
       "templateId": "SleepOverviewHero@1",
       "businessId": "SleepOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠情况主视觉，展示时长和得分进度，可使用睡眠图标。 组件形态：hero。",
-      "optionalData": [],
+      "description": "睡眠情况主视觉，展示时长，可选展示得分进度、睡眠状态或完整睡眠时段，可使用睡眠图标。 组件形态：hero。",
+      "optionalData": [
+        "/sleepStatus",
+        "/sleepScore",
+        "/fallAsleepTimeText",
+        "/wakeupTimeText"
+      ],
       "entry": "templates/sleep-overview.cardtpl",
       "primaryData": [
         "/nightSleepDurationText"
       ],
-      "secondaryData": [
-        "/sleepScore"
-      ]
+      "secondaryData": []
     },
     {
       "templateId": "SleepOverviewCompact@1",

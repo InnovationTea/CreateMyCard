@@ -7,7 +7,6 @@
     "GetAppUsageDuration",
     "GetEarphoneInfo",
     "GetHealthAndSportSummary",
-    "GetPhoneBatteryInfo",
     "GetSystemMemInfo",
     "ViewWeather"
   ],

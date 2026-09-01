@@ -1,13 +1,14 @@
 {
   "themeFormat": "card-theme/2",
   "themeProfileId": "battery-yellow",
-  "description": "手机电量黄色",
+  "description": "手机电量米黄底青绿色",
   "firstLayerRule": {"path": "first-layer.md"},
   "supportedCapabilityIds": ["GetPhoneBatteryInfo"],
   "paletteSceneIds": ["battery.yellow", "device.battery"],
-  "primaryColor": "#FF99661F",
-  "supportContentColor": "#CC99661F",
-  "progressColor": "#FF99661F",
+  "primaryColor": "#FF1F8F99",
+  "supportContentColor": "#991F8F99",
+  "progressColor": "#FF1F8F99",
+  "progressBackgroundColor": "#331F8F99",
   "rootStyle": {
     "backgroundColor": "#FFFFF3E6",
     "borderRadius": 20,
@@ -17,7 +18,7 @@
     "clip": true
   },
   "actionStyle": {
-    "backgroundColor": "#3399661F",
-    "contentColor": "#FF99661F"
+    "backgroundColor": "#331F8F99",
+    "contentColor": "#FF1F8F99"
   }
 }

@@ -97,7 +97,7 @@
       "templateId": "ScheduleOverviewNextEventLocationFull@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
-      "description": "下一个日程 Full，展示标题、时间范围和地点，可选来源、时间与地点图标。",
+      "description": "下一个日程 Full，展示标题、时间范围和地点，可选日历图标与标题文案。",
       "entry": "templates/schedule-overview.cardtpl",
       "primaryData": [
         "/events/0/title",

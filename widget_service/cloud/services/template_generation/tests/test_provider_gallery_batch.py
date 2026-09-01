@@ -200,7 +200,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
 
     assert not stale_input.exists()
     assert len(manifest.providers) == 8
-    assert sum(len(provider.cases) for provider in manifest.providers) == 118
+    assert sum(len(provider.cases) for provider in manifest.providers) == 108
     scenario_ids = {
         case.scenarioId
         for provider in manifest.providers
@@ -215,7 +215,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         manifest,
         "BatteryOverview",
         "single-two-actions",
-        "BatteryOverviewNormalWeatherCompact@1",
+        "BatteryOverviewCompact@1",
     )
     request = json.loads((input_root / battery_case.requestFile).read_text(encoding="utf-8"))
     assert battery_case.appearanceId == "standard"
@@ -226,7 +226,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         manifest,
         "BatteryOverview",
         "single-two-actions",
-        "BatteryOverviewNormalWeatherCompact@1",
+        "BatteryOverviewCompact@1",
         "fusion",
     )
     battery_fusion_request = json.loads(
@@ -239,7 +239,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         manifest,
         "BatteryOverview",
         "single-content",
-        "BatteryOverviewNormalFull@1",
+        "BatteryOverviewFull@1",
         "fusion",
     )
     assert battery_full_fusion_case.expectsFusionBall
@@ -248,8 +248,8 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     binding = request["content"]["candidateDataBindings"][0]
     assert binding["candidateOutputFields"] == [
         "/batterySOCText",
-        "/chargingStatusDesc",
         "/batteryCapacityLevelDesc",
+        "/chargingStatusDesc",
         "/batterySOC",
     ]
     assert len(request["content"]["candidateEventCandidates"]) == 2
@@ -295,60 +295,38 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 110
+    assert len(targeted_cases) == 100
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
         if case.businessId == "BatteryOverview" and case.scenarioId == "single-content"
     }
     assert battery_full_ids == {
-        "BatteryOverviewNormalFull@1",
-        "BatteryOverviewChargingFull@1",
-        "BatteryOverviewLowFull@1",
+        "BatteryOverviewFull@1",
     }
     battery_charging = _find_case(
         manifest,
         "BatteryOverview",
-        "single-two-actions",
-        "BatteryOverviewChargingWeatherCompact@1",
+        "single-one-action",
+        "BatteryOverviewChargingProgressHero@1",
     )
     charging_request = json.loads(
         (input_root / battery_charging.requestFile).read_text(encoding="utf-8")
     )
     assert charging_request["galleryTest"]["sampleOverrides"] == {
-        "/data/phoneBattery/batterySOCText": "68%",
+        "/data/phoneBattery/batterySOC": 68,
         "/data/phoneBattery/chargingStatusDesc": "正在充电",
-        "/data/phoneBattery/batteryCapacityLevelDesc": "正常电量",
     }
-    battery_low = _find_case(
+    battery_compact = _find_case(
         manifest,
         "BatteryOverview",
         "single-two-actions",
-        "BatteryOverviewLowWeatherCompact@1",
+        "BatteryOverviewCompact@1",
     )
-    low_request = json.loads(
-        (input_root / battery_low.requestFile).read_text(encoding="utf-8")
+    compact_request = json.loads(
+        (input_root / battery_compact.requestFile).read_text(encoding="utf-8")
     )
-    assert low_request["galleryTest"]["sampleOverrides"] == {
-        "/data/phoneBattery/batterySOCText": "15%",
-        "/data/phoneBattery/chargingStatusDesc": "未充电",
-        "/data/phoneBattery/batteryCapacityLevelDesc": "低电量",
-    }
-    battery_low_full = _find_case(
-        manifest,
-        "BatteryOverview",
-        "single-content",
-        "BatteryOverviewLowFull@1",
-    )
-    low_full_request = json.loads(
-        (input_root / battery_low_full.requestFile).read_text(encoding="utf-8")
-    )
-    assert low_full_request["galleryTest"]["sampleOverrides"] == {
-        "/data/phoneBattery/batterySOC": 15,
-        "/data/phoneBattery/batterySOCText": "15%",
-        "/data/phoneBattery/chargingStatusDesc": "未充电",
-        "/data/phoneBattery/batteryCapacityLevelDesc": "低电量",
-    }
+    assert compact_request["galleryTest"]["sampleOverrides"] == {}
     weather_icon = _find_case(
         manifest,
         "WeatherOverview",
@@ -395,10 +373,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     calendar_date_request = json.loads(
         (input_root / calendar_date.requestFile).read_text(encoding="utf-8")
     )
-    assert calendar_date_request["content"]["candidateAssetIds"] == [
-        "asset.clock",
-        "asset.location_north_up_right_fill",
-    ]
+    assert calendar_date_request["content"]["candidateAssetIds"] == []
     earphone_case_status = _find_case(
         manifest,
         "BluetoothDeviceOverview",
@@ -567,10 +542,10 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 118
+    assert summary.total == 108
     assert summary.failed == 0
     assert summary.missing == 18
-    assert summary.not_generated == 100
+    assert summary.not_generated == 90
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 8

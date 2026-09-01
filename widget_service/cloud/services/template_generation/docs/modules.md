@@ -229,7 +229,8 @@ Search 不选最终 Template、Layout 或 Props，也不改写用户尺寸。
 主要入口：
 
 - `load_provider_bundles()` / `load_provider_bundle()`：加载并严格校验 `provider.json`、分层 MD、Schema 和 CardTpl。
-- `compile_card_template()`：将 `cardtpl/1` 编译为 `TemplateDefinition`。
+- `compile_card_template()`：将 `cardtpl/1` 编译为 `TemplateDefinition`，并把仅判断数据路径或 Prop
+  可用性的带括号三元表达式降为受信的生成期条件 IR。
 - `provider_template_admission()` 等准入函数：校验数据路径、尺寸、业务上下文和变体可用性。
 
 安全限制包括文件大小、源文本长度、闭包组件集、禁止对象键、模板 ID/Provider ID 格式和
