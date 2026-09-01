@@ -65,16 +65,21 @@ function formatSeconds(value) {
 }
 
 function findRejectedJsx(runDir, componentName) {
-  const rejectedDir = path.join(runDir, "rejected");
-  if (!fs.existsSync(rejectedDir)) return null;
   const prefix = `${componentName}.turn-`;
-  const candidates = fs.readdirSync(rejectedDir, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && entry.name.startsWith(prefix) && entry.name.endsWith(".rejected.jsx"))
-    .map((entry) => ({
-      path: path.join(rejectedDir, entry.name),
-      turn: finiteNumber(entry.name.match(/\.turn-(\d+)\./)?.[1], -1),
-    }))
-    .sort((left, right) => right.turn - left.turn || right.path.localeCompare(left.path));
+  const candidates = [];
+  for (const directoryName of ["jsx", "rejected"]) {
+    const rejectedDir = path.join(runDir, directoryName);
+    if (!fs.existsSync(rejectedDir)) continue;
+    for (const entry of fs.readdirSync(rejectedDir, { withFileTypes: true })) {
+      const matchesName = entry.name.startsWith(prefix) && entry.name.endsWith(".rejected.jsx");
+      if (!entry.isFile() || !matchesName) continue;
+      candidates.push({
+        path: path.join(rejectedDir, entry.name),
+        turn: finiteNumber(entry.name.match(/\.turn-(\d+)\./)?.[1], -1),
+      });
+    }
+  }
+  candidates.sort((left, right) => right.turn - left.turn || right.path.localeCompare(left.path));
   return candidates[0]?.path || null;
 }
 

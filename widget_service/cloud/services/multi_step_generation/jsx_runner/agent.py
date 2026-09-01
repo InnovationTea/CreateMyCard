@@ -4,13 +4,16 @@ import asyncio
 import json
 import sys
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from .config import (
     MODEL_THINKING_MODE,
     THINKING_MODES,
 )
 from .prompt import build_system_prompt, build_user_prompt
+from .tool_arguments import ToolArgumentError
+from .tool_arguments import parse_tool_arguments as _arguments
 from .validation import (
     browser_layout_fingerprints,
     browser_layout_needs_restructure,
@@ -26,8 +29,6 @@ from .workflow import (
     submission_reference_ids,
     tool_result_message,
 )
-from .tool_arguments import ToolArgumentError, parse_tool_arguments as _arguments
-
 
 SUBMIT_MODES = ("direct", "auto")
 
@@ -446,7 +447,7 @@ class JsxA2UIAgent:
                 setattr(exc, "loaded_resources", list(state.loaded_resources))
                 setattr(exc, "resource_reads", list(state.resource_reads))
                 setattr(exc, "validation_reports", validation_reports)
-                raise
+                raise exc
 
             forced_tool_choice_succeeded = request.get("tool_choice") != "auto"
             if is_deepseek_direct_submit and forced_tool_choice_succeeded:
@@ -779,7 +780,9 @@ class JsxA2UIAgent:
                 }
             )
             rejected_submission = (
-                function.name == "submit_card_jsx" and not result.get("ok") and submitted_jsx is not None
+                function.name == "submit_card_jsx"
+                and not result.get("ok")
+                and submitted_jsx is not None
             )
             if rejected_submission:
                 turn_record["rejected_jsx"] = submitted_jsx
