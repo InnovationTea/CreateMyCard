@@ -263,15 +263,13 @@
       "templateId": "SleepOverviewCompact@1",
       "businessId": "SleepOverview",
       "capabilityId": "GetHealthAndSportSummary",
-      "description": "睡眠情况紧凑摘要，展示时长和得分环，可使用睡眠图标。 组件形态：compact。",
+      "description": "睡眠情况紧凑摘要，展示睡眠时长，可使用睡眠图标。 组件形态：compact。",
       "optionalData": [],
       "entry": "templates/sleep-overview.cardtpl",
       "primaryData": [
         "/nightSleepDurationText"
       ],
-      "secondaryData": [
-        "/sleepScore"
-      ]
+      "secondaryData": []
     },
     {
       "templateId": "ActivityOverviewSupport@1",
