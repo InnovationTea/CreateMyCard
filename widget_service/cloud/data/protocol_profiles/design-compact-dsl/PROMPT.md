@@ -436,7 +436,7 @@ ActionUnit 是对卡级 CTA 的受控封装，只输出一行且不带 children�
 
 ActionUnit——卡级 CTA：
 
-- `state:"capsule"`：底部通栏文字胶囊（136x36、radius 20、文字 14），必须有 `label` 和 `onClick`；有匹配动作图标时可写 `icon`，转换器展开为图标+文字整体居中且图标与文字同色。
+- `state:"capsule"`：底部通栏文字胶囊（136x36、radius 20、文字 14），必须有 `label` 和 `onClick`；有匹配动作图标时可写 `icon`，转换器展开为图标+文字整体居中，图标与文字间距固定 `8vp`，且图标与文字同色。
 - `state:"icon-round"`：右下 30x30 白底圆钮，必须有 `icon` 和 `onClick`，禁止 `label`。
 - 可用字段：`state`、`label`、`icon`、`actionInk`、`actionSurface`、`fontSize`、`fontWeight`、`onClick`、`flexShrink`。
 - `actionSurface` 是转换后按钮的实际底色、`actionInk` 是实际文字与图标色，必须成对显式写 `#AARRGGBB`，不得省略后依赖默认皮肤；二者按第十二节按钮规则从卡片同一色相族成对选择。除融球固定样式外，`actionSurface` 必须是 alpha 为 `FF` 的同族有色实体面，不使用灰色、低透明白色或低透明主色，按钮文字使用 14/400-500。

@@ -23,6 +23,7 @@ from services.generation_pipeline import (
     DslProcessorKind,
     get_dsl_processor,
 )
+from services.prompt_builder import PromptBuilder
 from services.task_spec_builder import TaskSpecBuilder
 
 _DEFAULT_APP_VERSION = "11.7.5.208"
@@ -101,6 +102,75 @@ def test_fusion_ball_gate_fails_closed_for_invalid_config(
     monkeypatch.setattr(get_settings(), "CONFIG", config)
 
     assert fusion_ball_enabled(_DEFAULT_APP_VERSION) is False
+
+
+@pytest.mark.parametrize("previous_design_token", [None, '["/state/ready",true]'])
+def test_design_compact_prompt_appends_fusion_ball_restriction_when_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+    previous_design_token: str | None,
+) -> None:
+    monkeypatch.setattr(
+        get_settings(),
+        "CONFIG",
+        {FUSION_BALL_MIN_PRD_VERSION_CONFIG: "11.7.5.206"},
+    )
+    task_spec = TaskSpec(
+        userQuery="生成日程卡片",
+        size="2x2",
+        appVersion="11.7.5.205",
+        dataModelSchema={"data": {}},
+    )
+
+    prompt = PromptBuilder().build_design_compact(
+        task_spec,
+        "design rules",
+        previous_design_token=previous_design_token,
+    )
+
+    system_prompt = prompt[0]["content"]
+    assert system_prompt.startswith("design rules\n\n# 本次请求运行时限制")
+    assert "禁止在任何组件中生成 `fusion-ball-*` Design Token" in system_prompt
+    assert "root 必须按非融球背景规则生成" in system_prompt
+
+
+def test_design_compact_prompt_is_unchanged_when_fusion_ball_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        get_settings(),
+        "CONFIG",
+        {FUSION_BALL_MIN_PRD_VERSION_CONFIG: "11.7.5.206"},
+    )
+    task_spec = TaskSpec(
+        userQuery="生成日程卡片",
+        size="2x2",
+        appVersion="11.7.5.206",
+        dataModelSchema={"data": {}},
+    )
+
+    prompt = PromptBuilder().build_design_compact(task_spec, "design rules")
+
+    assert prompt[0] == {"role": "system", "content": "design rules"}
+
+
+def test_non_design_compact_prompt_does_not_append_fusion_ball_restriction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(get_settings(), "CONFIG", {})
+    task_spec = TaskSpec(
+        userQuery="生成日程卡片",
+        size="2x2",
+        appVersion="11.7.5.205",
+        dataModelSchema={"data": {}},
+    )
+
+    prompt = PromptBuilder().build_design_token(
+        task_spec,
+        "other design rules",
+        "other-design-token",
+    )
+
+    assert prompt[0] == {"role": "system", "content": "other design rules"}
 
 
 @pytest.mark.parametrize(

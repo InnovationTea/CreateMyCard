@@ -4,6 +4,7 @@ import json
 
 from config.config import get_settings
 from models.generation import TaskSpec
+from services.fusion_ball_expander import fusion_ball_enabled
 from services.protocol_registry import DESIGN_COMPACT_PROFILE_ID
 
 _MODULE = "[Prompt Builder]"
@@ -11,6 +12,12 @@ _MODULE = "[Prompt Builder]"
 SYSTEM_PROMPT = get_settings().system_prompt
 EDIT_SYSTEM_PROMPT = get_settings().edit_system_prompt
 REPAIR_SYSTEM_PROMPT = get_settings().repair_system_prompt
+
+_FUSION_BALL_DISABLED_INSTRUCTION = """# 本次请求运行时限制
+
+本次请求未启用融球能力。忽略本提示词中所有允许使用融球的场景、规则和示例。
+禁止在任何组件中生成 `fusion-ball-*` Design Token，也禁止用普通组件、渐变、圆形、
+光斑或其它方式模拟融球效果。root 必须按非融球背景规则生成。"""
 
 
 class PromptBuilder:
@@ -36,7 +43,12 @@ class PromptBuilder:
         *,
         previous_design_token: str | None = None,
     ) -> list[dict[str, str]]:
-        """保持文件化 system 不变，并把源格式多轮数据放入第二条 user 消息。"""
+        """构造文件化 system 约束，并把源格式多轮数据放入第二条 user 消息。"""
+        effective_system_prompt = self._design_token_system_prompt(
+            task_spec,
+            system_prompt,
+            source_format,
+        )
         task_spec_value = task_spec.model_dump(mode="json", exclude_none=True)
         user_content = json.dumps(task_spec_value, ensure_ascii=False)
         if previous_design_token is not None:
@@ -60,12 +72,24 @@ class PromptBuilder:
                 separators=(",", ":"),
             )
         return [
-            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": effective_system_prompt},
             {
                 "role": "user",
                 "content": user_content,
             },
         ]
+
+    @staticmethod
+    def _design_token_system_prompt(
+        task_spec: TaskSpec,
+        system_prompt: str,
+        source_format: str,
+    ) -> str:
+        if source_format != DESIGN_COMPACT_PROFILE_ID:
+            return system_prompt
+        if fusion_ball_enabled(task_spec.appVersion):
+            return system_prompt
+        return f"{system_prompt}\n\n{_FUSION_BALL_DISABLED_INSTRUCTION}"
 
     def build(
         self,
