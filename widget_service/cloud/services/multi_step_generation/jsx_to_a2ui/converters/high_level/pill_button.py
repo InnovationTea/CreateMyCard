@@ -6,7 +6,7 @@ from ...parser.jsx_ast import JSXElement
 from ..base.image import image
 from ..base.layout import row
 from ..base.text import text
-from ..common import palette
+from ..common import color_with_opacity, palette
 
 
 def _colors(node: JSXElement, ctx: ConversionContext) -> tuple[str, str, str]:
@@ -22,6 +22,10 @@ def _colors(node: JSXElement, ctx: ConversionContext) -> tuple[str, str, str]:
 
 def convert_pill_button(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     background, foreground, icon_color = _colors(node, ctx)
+    if node.props.get("disabled"):
+        background = color_with_opacity(background, 0.4)
+        foreground = color_with_opacity(foreground, 0.4)
+        icon_color = color_with_opacity(icon_color, 0.4)
     common_styles = {
         "width": 120 if ctx.inside_backplate else 136,
         "height": 36,
@@ -31,7 +35,11 @@ def convert_pill_button(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     }
     event = ctx.action_props(node)
     if not node.props.get("icon"):
-        props = {"label": str(node.props["label"]), "enabled": not bool(node.props.get("disabled", False)), **event}
+        props = {
+            "label": str(node.props["label"]),
+            "enabled": not bool(node.props.get("disabled", False)),
+            **event,
+        }
         return ctx.make(
             "Button",
             "pill_button",

@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import math
 
+from ...catalog.bindings import data_model_expression_reference
+from ...catalog.tokens import normalize_color
 from ...exceptions import ValidationError
 from ...ir.a2ui_nodes import A2UINode, ConversionContext
-from ...catalog.tokens import normalize_color
 from ...parser.jsx_ast import JSXElement
 from ..base.layout import column
 from ..base.progress import progress
@@ -12,25 +13,34 @@ from ..common import palette
 from .emphasized_data import convert_emphasized_data
 
 
-_DYNAMIC_DISPLAY_ERROR = (
-    "ProgressLine2 with dynamic currentValue/totalValue must provide "
-    "an explicit bound value or items display; only a bound currentValue "
-    "with a static totalValue={100} can use the implicit percentage display"
-)
-
-
 def collect_progress_line2_conversion_errors(node: JSXElement) -> list[str]:
-    if node.props.get("value") is not None or node.props.get("items") is not None:
-        return []
-    data_ids = node.props.get("dataIds")
-    current_id = data_ids.get("currentValue") if isinstance(data_ids, dict) else None
-    total_id = data_ids.get("totalValue") if isinstance(data_ids, dict) else None
-    if current_id is None and total_id is None:
-        return []
-    total = node.props.get("totalValue", 100)
-    if current_id is not None and total_id is None and total == 100:
-        return []
-    return [_DYNAMIC_DISPLAY_ERROR]
+    return []
+
+
+def _expression_atom(value: object) -> str:
+    if isinstance(value, dict) and set(value) == {"path"}:
+        return data_model_expression_reference(value["path"])
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        raise ValidationError(
+            "ProgressLine2 implicit display requires numeric currentValue and totalValue"
+        )
+    return repr(value)
+
+
+def _dynamic_percentage_expression(current: object, total: object) -> str:
+    current_atom = _expression_atom(current)
+    total_atom = _expression_atom(total)
+    ratio = f"{current_atom} / {total_atom} * 100"
+    # The expression catalog only provides arithmetic, comparison and ternary
+    # operators. For a non-negative value, x - x % 1 is Math.trunc(x).
+    return (
+        "{{ "
+        f"{total_atom} <= 0 ? 0 : "
+        f"{ratio} < 0 ? 0 : "
+        f"{ratio} > 100 ? 100 : "
+        f"{ratio} - {ratio} % 1"
+        " }}"
+    )
 
 
 def convert_progress_line_bar(node: JSXElement, ctx: ConversionContext) -> A2UINode:
@@ -43,7 +53,11 @@ def convert_progress_line_bar(node: JSXElement, ctx: ConversionContext) -> A2UIN
     if raw_bar_color is None:
         bar_color = "#FFFFFFFF" if dark else "#FF0A59F7"
     else:
-        bar_color = palette(ctx).primary if raw_bar_color == "var(--card-primary)" else normalize_color(raw_bar_color)
+        bar_color = (
+            palette(ctx).primary
+            if raw_bar_color == "var(--card-primary)"
+            else normalize_color(raw_bar_color)
+        )
     bar = progress(
         ctx,
         "progress_bar",
@@ -63,16 +77,29 @@ def convert_progress_line_bar(node: JSXElement, ctx: ConversionContext) -> A2UIN
         total_id = data_ids.get("totalValue") if isinstance(data_ids, dict) else None
         if current_id is not None or total_id is not None:
             if current_id is not None and total_id is None and total == 100:
+                current_binding = ctx.bound_data(node.props, "currentValue")
+                assert current_binding is not None
+                derived_root, _ = ctx.register_derived_display(current_binding)
                 display_node = JSXElement(
                     "EmphasizedData",
                     {
-                        "value": current,
+                        "value": {"path": f"{derived_root}/visiblePercentage"},
                         "unit": "%",
-                        "dataIds": {"value": current_id},
                     },
                 )
-            else:  # Final invariant guard; preflight normally catches this.
-                raise ValidationError(_DYNAMIC_DISPLAY_ERROR)
+            else:
+                current_value = ctx.prop(node, "currentValue", 0)
+                total_value = ctx.prop(node, "totalValue", 100)
+                display_node = JSXElement(
+                    "EmphasizedData",
+                    {
+                        "value": _dynamic_percentage_expression(
+                            current_value,
+                            total_value,
+                        ),
+                        "unit": "%",
+                    },
+                )
         else:
             percent = 0
             current_is_number = isinstance(current, int | float) and not isinstance(current, bool)

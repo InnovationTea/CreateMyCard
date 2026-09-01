@@ -36,15 +36,17 @@ def _justify(value: object) -> str | None:
 
 
 def _content_extent(extent: object, padding: object, axis: str) -> int | float | None:
-    if not isinstance(extent, (int, float)) or isinstance(extent, bool):
+    if not isinstance(extent, int | float) or isinstance(extent, bool):
         return None
-    if isinstance(padding, (int, float)) and not isinstance(padding, bool):
+    if isinstance(padding, int | float) and not isinstance(padding, bool):
         return max(0, extent - 2 * padding)
     if isinstance(padding, dict):
         start, end = ("left", "right") if axis == "width" else ("top", "bottom")
         before = padding.get(start, 0)
         after = padding.get(end, 0)
-        if all(isinstance(value, (int, float)) and not isinstance(value, bool) for value in (before, after)):
+        before_is_number = isinstance(before, int | float) and not isinstance(before, bool)
+        after_is_number = isinstance(after, int | float) and not isinstance(after, bool)
+        if before_is_number and after_is_number:
             return max(0, extent - before - after)
     return None
 
@@ -68,6 +70,9 @@ def convert_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     direction = str(node.props.get("direction") or "column")
     is_row = direction == "row"
     orient_child_flex_basis(source_children, children, is_row=is_row)
+    if node.props.get("align") in {None, "stretch"}:
+        for child in children:
+            child.styles.setdefault("height" if is_row else "width", "matchParent")
     styles = {
         "width": width,
         "height": height,
@@ -80,6 +85,15 @@ def convert_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         "alignItems": _align(node.props.get("align"), is_row=is_row),
         "justifyContent": _justify(node.props.get("justify")),
     }
-    styles = {key: value for key, value in styles.items() if value is not None}
+    resolved_styles: dict[str, object] = {}
+    for key, value in styles.items():
+        if value is not None:
+            resolved_styles[key] = value
     layout = row if is_row else column
-    return layout(inner, "root", children, gap=node.props.get("gap", 0), styles=styles)
+    return layout(
+        inner,
+        "root",
+        children,
+        gap=node.props.get("gap", 0),
+        styles=resolved_styles,
+    )

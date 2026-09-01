@@ -445,6 +445,20 @@ def _validate_action_slot_compatibility(
     pill_buttons = [node for node in _walk(root) if node.tag == "PillButton"]
     pattern = _canonical_layout_pattern((decision or {}).get("layoutPattern"))
     size = expected_size or root.props.get("size")
+    is_type_zero = pattern == "0" or root.props.get("appearance") == "type0-gradient"
+    if size == "2x2" and is_type_zero:
+        business_components = [
+            node.tag
+            for node in _walk(root)
+            if node.tag not in {"Card", "Stack", "Grid"}
+        ]
+        if len(business_components) != 1:
+            rendered = ", ".join(business_components) or "none"
+            issues.append(
+                "2x2 layout Type 0 must contain exactly one business component "
+                "and cannot add a title, button, or parallel module; found: "
+                + rendered
+            )
     info_blocks = [node for node in _walk(root) if node.tag == "InfoBlock"]
     if size == "2x2" and info_blocks and len(info_blocks) != 2:
         issues.append("a 2x2 card using InfoBlock must contain exactly two InfoBlock components")

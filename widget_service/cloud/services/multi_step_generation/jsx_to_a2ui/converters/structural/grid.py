@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import re
 
-from ...ir.a2ui_nodes import A2UINode, ConversionContext
 from ...exceptions import ValidationError
+from ...ir.a2ui_nodes import A2UINode, ConversionContext
 from ...parser.jsx_ast import JSXElement
 from ..base.layout import column, row
 
-
 _ROW_SIZE = re.compile(r"(?P<value>\d+(?:\.\d+)?)px")
-_TWO_COLUMN_TEMPLATE = re.compile(r"\s*(?P<fixed>\d+(?:\.\d+)?)px\s+minmax\(0,\s*(?P<fr>\d+(?:\.\d+)?)fr\)\s*")
+_TWO_COLUMN_TEMPLATE = re.compile(
+    r"\s*(?P<fixed>\d+(?:\.\d+)?)px\s+"
+    r"minmax\(0,\s*(?P<fr>\d+(?:\.\d+)?)fr\)\s*"
+)
 
 
 def _column_tracks(value: object) -> tuple[int, list[tuple[str, int | float]] | None]:
@@ -31,7 +33,10 @@ def _row_heights(value: object, row_count: int) -> list[int | float | None]:
     if value is None:
         return [None] * row_count
     if not isinstance(value, str):
-        raise ValidationError("Grid rows must be a complete px template string, for example '54px 54px'")
+        raise ValidationError(
+            "Grid rows must be a complete px template string, "
+            "for example '54px 54px'"
+        )
     tokens = value.split()
     if len(tokens) != row_count or any(_ROW_SIZE.fullmatch(token) is None for token in tokens):
         raise ValidationError(f"Grid rows must contain exactly {row_count} px sizes")
@@ -103,7 +108,10 @@ def convert_grid(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         # row. A2UI rows only distribute space among their actual children, so
         # without invisible structural cells a three-item, two-column Grid
         # would stretch its last item across the full row.
-        cells.extend(column(ctx, "grid_empty_cell", [], styles={}) for _ in range(columns - len(cells)))
+        cells.extend(
+            column(ctx, "grid_empty_cell", [], styles={})
+            for _ in range(columns - len(cells))
+        )
         row_height = heights[row_index]
         justify = node.props.get("justify")
         if justify is not None:
@@ -162,18 +170,20 @@ def convert_grid(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     if height is None and node.props.get("basis") is not None:
         height = node.props["basis"]
     has_basis = node.props.get("basis") is not None
+    width = node.props.get("width")
     styles = {
-        "width": "matchParent" if node.props.get("width") in {None, "full"} else node.props.get("width"),
+        "width": "matchParent" if width in {None, "full"} else width,
         "height": height,
         "layoutWeight": 1 if node.props.get("flex") == 1 and not has_basis else 0,
         "flexShrink": 1 if node.props.get("flex") == 1 and not has_basis else 0,
         "alignItems": "start",
     }
-    minimums = {
-        key: value
-        for key, value in {"minWidth": node.props.get("minWidth"), "minHeight": node.props.get("minHeight")}.items()
-        if value is not None
-    }
+    # JSX Grid also defaults minWidth to 0. Emit it even when omitted so an
+    # A2UI grid remains shrinkable inside a fixed card region.
+    minimums: dict[str, object] = {"minWidth": node.props.get("minWidth", 0)}
+    min_height = node.props.get("minHeight")
+    if min_height is not None:
+        minimums["minHeight"] = min_height
     if minimums:
         styles["constraintSize"] = minimums
     margin = {

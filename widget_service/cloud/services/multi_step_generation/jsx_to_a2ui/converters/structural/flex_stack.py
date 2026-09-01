@@ -6,6 +6,8 @@ from ...ir.a2ui_nodes import A2UINode, ConversionContext
 from ...parser.jsx_ast import JSXElement
 from ..base.layout import column, orient_child_flex_basis, row, stack
 
+_BACKPLATE_PADDING = 6
+
 
 def _align(value: str | None, *, is_row: bool) -> str | None:
     if value is None:
@@ -57,7 +59,10 @@ def _box_styles(node: JSXElement, ctx: ConversionContext) -> dict[str, object]:
         # Generated cards use a column Card. A bare basis therefore reserves
         # vertical space; explicit width/height always wins.
         styles["height"] = node.props["basis"]
-    minimums = {}
+    # JSX Stack defaults minWidth to 0. Preserve that default explicitly:
+    # A2UI containers otherwise keep their content-driven minimum width and
+    # long text can push sibling content outside a fixed card slot.
+    minimums = {"minWidth": node.props.get("minWidth", 0)}
     for key, prop_name in (("minWidth", "minWidth"), ("minHeight", "minHeight")):
         value = node.props.get(prop_name)
         if value is not None:
@@ -65,7 +70,12 @@ def _box_styles(node: JSXElement, ctx: ConversionContext) -> dict[str, object]:
     if minimums:
         styles["constraintSize"] = minimums
     margin = {}
-    for key, prop_name in (("top", "mt"), ("right", "mr"), ("bottom", "mb"), ("left", "ml")):
+    for key, prop_name in (
+        ("top", "mt"),
+        ("right", "mr"),
+        ("bottom", "mb"),
+        ("left", "ml"),
+    ):
         value = node.props.get(prop_name)
         if value is not None:
             margin[key] = value
@@ -81,12 +91,10 @@ def _box_styles(node: JSXElement, ctx: ConversionContext) -> dict[str, object]:
         appearance = get_appearance(ctx.appearance)
         styles.update(
             {
-                "padding": 6,
+                "padding": _BACKPLATE_PADDING,
                 "borderRadius": 16,
                 "backgroundColor": (
-                    "#1AFFFFFF"
-                    if appearance.primary == "#FFFFFFFF"
-                    else "#66FFFFFF"
+                    "#1AFFFFFF" if appearance.primary == "#FFFFFFFF" else "#66FFFFFF"
                 ),
                 "clip": True,
             }
@@ -107,7 +115,7 @@ def _child_content_height(
     else:
         height = None
     if height is not None and node.props.get("surface") == "backplate":
-        height = max(0, height - 12)
+        height = max(0, height - 2 * _BACKPLATE_PADDING)
     return height
 
 
@@ -118,7 +126,9 @@ def _linear_stack(
     styles: dict[str, object] | None = None,
 ) -> A2UINode:
     if node.props.get("wrap"):
-        raise ValidationError("Stack wrap=true cannot be represented by the supported A2UI Form subset")
+        raise ValidationError(
+            "Stack wrap=true cannot be represented by the supported A2UI Form subset"
+        )
     direction = str(node.props.get("direction") or "column")
     is_row = direction == "row"
     source_children = node.child_elements()
@@ -134,13 +144,30 @@ def _linear_stack(
     layout_styles: dict[str, object] = {
         **_box_styles(node, ctx),
         **(styles or {}),
-        "alignItems": _align(node.props.get("align"), is_row=is_row) or ("top" if is_row else "start"),
+        "alignItems": _align(node.props.get("align"), is_row=is_row)
+        or ("top" if is_row else "start"),
         "justifyContent": _justify(node.props.get("justify")),
     }
-    layout_styles = {key: value for key, value in layout_styles.items() if value is not None}
+    resolved_layout_styles: dict[str, object] = {}
+    for key, value in layout_styles.items():
+        if value is not None:
+            resolved_layout_styles[key] = value
+    layout_styles = resolved_layout_styles
     if is_row:
-        return row(ctx, "stack_row", children, gap=node.props.get("gap", 0), styles=layout_styles)
-    return column(ctx, "stack_column", children, gap=node.props.get("gap", 0), styles=layout_styles)
+        return row(
+            ctx,
+            "stack_row",
+            children,
+            gap=node.props.get("gap", 0),
+            styles=layout_styles,
+        )
+    return column(
+        ctx,
+        "stack_column",
+        children,
+        gap=node.props.get("gap", 0),
+        styles=layout_styles,
+    )
 
 
 def _absolute_extent(node: JSXElement, axis: str, parent_extent: int) -> object | None:
@@ -149,7 +176,7 @@ def _absolute_extent(node: JSXElement, axis: str, parent_extent: int) -> object 
         return explicit
     start = node.props.get("left" if axis == "x" else "top")
     end = node.props.get("right" if axis == "x" else "bottom")
-    if isinstance(start, (int, float)) and isinstance(end, (int, float)):
+    if isinstance(start, int | float) and isinstance(end, int | float):
         if start == 0 and end == 0:
             return "matchParent"
         return max(0, parent_extent - start - end)
@@ -157,8 +184,14 @@ def _absolute_extent(node: JSXElement, axis: str, parent_extent: int) -> object 
 
 
 def _absolute_anchor(node: JSXElement) -> str:
-    vertical = "bottom" if node.props.get("bottom") is not None and node.props.get("top") is None else "top"
-    horizontal = "end" if node.props.get("right") is not None and node.props.get("left") is None else "start"
+    vertical = (
+        "bottom"
+        if node.props.get("bottom") is not None and node.props.get("top") is None
+        else "top"
+    )
+    horizontal = (
+        "end" if node.props.get("right") is not None and node.props.get("left") is None else "start"
+    )
     return {
         ("top", "start"): "topStart",
         ("top", "end"): "topEnd",
@@ -208,7 +241,9 @@ def collect_stack_conversion_errors(
     return list(dict.fromkeys(errors))
 
 
-def _absolute_child(node: JSXElement, ctx: ConversionContext, *, parent_width: int, parent_height: int) -> A2UINode:
+def _absolute_child(
+    node: JSXElement, ctx: ConversionContext, *, parent_width: int, parent_height: int
+) -> A2UINode:
     errors = collect_stack_conversion_errors(node, allow_absolute=True)
     if errors:
         raise ValidationError("; ".join(errors))
@@ -247,20 +282,24 @@ def _relative_stack(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     child_ctx = ctx.for_children(
         parent_content_height=max(
             0,
-            parent_height - (12 if node.props.get("surface") == "backplate" else 0),
+            parent_height
+            - (2 * _BACKPLATE_PADDING if node.props.get("surface") == "backplate" else 0),
         ),
         enters_backplate=node.props.get("surface") == "backplate",
     )
     children: list[A2UINode] = []
     source_children = node.child_elements()
-    flow_children = [child for child in source_children if child.props.get("position") != "absolute"]
+    flow_children = [
+        child for child in source_children if child.props.get("position") != "absolute"
+    ]
     if flow_children:
         # CSS permits normal-flow and absolutely positioned children in the
         # same relative container. A2UI Stack is overlay-only, so lower the
         # normal-flow children into one full-size Row/Column layer first.
-        flow_props = {
-            name: node.props[name] for name in ("direction", "gap", "align", "justify", "wrap") if name in node.props
-        }
+        flow_props: dict[str, object] = {}
+        for name in ("direction", "gap", "align", "justify", "wrap"):
+            if name in node.props:
+                flow_props[name] = node.props.get(name)
         flow_props.update({"width": "full", "height": "full"})
         flow = _linear_stack(
             JSXElement(
@@ -279,6 +318,13 @@ def _relative_stack(node: JSXElement, ctx: ConversionContext) -> A2UINode:
                 "flexShrink": 0,
             }
         )
+        if node.props.get("surface") == "backplate":
+            # A relative backplate needs two coordinate spaces. Normal-flow
+            # content is inset by the runtime's padding, while absolute CSS
+            # offsets are measured from the backplate's padding box. Keep the
+            # inset on this flow layer so the absolute anchors below can use
+            # the full outer extent without adding the padding a second time.
+            flow.styles["padding"] = _BACKPLATE_PADDING
         children.append(flow)
     for child in source_children:
         if child.props.get("position") != "absolute":
@@ -292,6 +338,11 @@ def _relative_stack(node: JSXElement, ctx: ConversionContext) -> A2UINode:
             )
         )
     styles = _box_styles(node, ctx)
+    if node.props.get("surface") == "backplate":
+        # A2UI Stack padding also insets overlay children. Leaving it on this
+        # node would turn JSX left={12} into an effective 18vp offset and
+        # bottom={6} into 12vp. Normal-flow padding is carried by `flow` above.
+        styles.pop("padding", None)
     styles.setdefault("width", "matchParent")
     if node.props.get("flex") != 1:
         styles.setdefault("height", "matchParent")
@@ -306,7 +357,7 @@ def relative_stack_child_errors(node: JSXElement) -> list[str]:
 def _relative_extent(value: object, name: str, card_extent: int | float | None) -> int:
     if value in {None, "matchParent"}:
         return int(card_extent if card_extent is not None else 136)
-    if isinstance(value, (int, float)) and not isinstance(value, bool) and value >= 0:
+    if isinstance(value, int | float) and not isinstance(value, bool) and value >= 0:
         return int(value)
     raise ValidationError(f"relative Stack {name} must be a non-negative number or 'full'")
 
