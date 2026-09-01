@@ -4,6 +4,10 @@
     "^data:image/",
     "base64"
   ],
+  "allowedRemoteHosts": [
+    "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
+    "lfcontentcenterdev.hwcloudtest.cn"
+  ],
   "allowlist": [
     "resources/base/media/air_fill.svg",
     "resources/base/media/air_open_fill.svg",
