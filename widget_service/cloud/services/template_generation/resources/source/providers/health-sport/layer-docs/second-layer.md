@@ -11,14 +11,9 @@
   - `WorkoutOverviewFull@1`：最近一次单次运动训练摘要，展示运动类型、该次热量、时长和结束时间。 组件形态：latest。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/exerciseTypeName, /exerciseDurationText；次要数据：/exerciseCalorieText, /exerciseEndTimeText；可选数据：无。
   - `WorkoutOverviewCompact@1`：最近一次单次运动训练摘要，展示运动类型、该次热量和时长，可使用运动图标。 组件形态：latestCompact。 布局场景：约 2x1；单 Compact + 2 个 PillAction。主数据：/exerciseTypeName, /exerciseDurationText；次要数据：/exerciseCalorieText；可选数据：无。
   - `WorkoutOverviewHero@1`：最近一次单次运动训练摘要，展示运动类型、该次热量和时长，可使用运动图标。 组件形态：latestHero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/exerciseTypeName, /exerciseDurationText；次要数据：/exerciseCalorieText；可选数据：无。
-  - `HeartRateOverviewFull@1`：运动平均心率摘要，可补充更新时间。 组件形态：full。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
-  - `HeartRateOverviewUpdatedFull@1`：运动平均心率摘要，可补充更新时间。 组件形态：fullUpdated。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/exerciseHeartRateAvg；次要数据：/updatedAt；可选数据：无。
-  - `HeartRateOverviewIconFull@1`：运动平均心率摘要，可补充更新时间。 组件形态：fullIcon。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
-  - `HeartRateOverviewUpdatedIconFull@1`：运动平均心率摘要，可补充更新时间。 组件形态：fullUpdatedIcon。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/exerciseHeartRateAvg；次要数据：/updatedAt；可选数据：无。
-  - `HeartRateOverviewCompact@1`：运动平均心率摘要，可补充更新时间。 组件形态：support。 布局场景：约 2x1；用于单 Compact 加两个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
-  - `HeartRateOverviewUpdatedCompact@1`：运动平均心率摘要，可补充更新时间。 组件形态：supportUpdated。 布局场景：约 2x1；用于单 Compact 加两个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：/updatedAt；可选数据：无。
-  - `HeartRateOverviewIconCompact@1`：运动平均心率摘要，可补充更新时间。 组件形态：supportIcon。 布局场景：约 2x1；用于单 Compact 加两个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
-  - `HeartRateOverviewUpdatedIconCompact@1`：运动平均心率摘要，可补充更新时间。 组件形态：supportUpdatedIcon。 布局场景：约 2x1；用于单 Compact 加两个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：/updatedAt；可选数据：无。
+  - `HeartRateOverviewFull@1`：运动平均心率摘要。 组件形态：full。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
+  - `HeartRateOverviewCompact@1`：运动平均心率摘要。 组件形态：support。 布局场景：约 2x1；用于单 Compact 加两个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
+  - `HeartRateOverviewIconCompact@1`：运动平均心率摘要。 组件形态：supportIcon。 布局场景：约 2x1；用于单 Compact 加两个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
   - `HeartRateOverviewIconHero@1`：运动平均心率主视觉，展示平均心率，使用心率图标。 组件形态：iconHero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
   - `HeartRateOverviewHero@1`：运动平均心率主视觉，展示平均心率。 组件形态：mainHero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
   - `HeartRateOverviewUpdatedHero@1`：运动平均心率主视觉，展示平均心率，可补充更新时间。 组件形态：mainHeroUpdated。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：/updatedAt；可选数据：无。

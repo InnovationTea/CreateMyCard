@@ -141,18 +141,13 @@
 ## HeartRateOverview
 
 - Provider：`com.huawei.health-sport.cli`；运行状态：启用。
-- 数据能力：`GetHealthAndSportSummary`；模板数：16。
+- 数据能力：`GetHealthAndSportSummary`；模板数：11。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
 | ✅ | `HeartRateOverviewFull@1` | 完整 2x2；无 Action 的单 Full | `/exerciseHeartRateAvg` | 无 | 无 |
-| ✅ | `HeartRateOverviewUpdatedFull@1` | 完整 2x2；无 Action 的单 Full | `/exerciseHeartRateAvg` | `/updatedAt` | 无 |
-| ✅ | `HeartRateOverviewIconFull@1` | 完整 2x2；无 Action 的单 Full | `/exerciseHeartRateAvg` | 无 | 无 |
-| ✅ | `HeartRateOverviewUpdatedIconFull@1` | 完整 2x2；无 Action 的单 Full | `/exerciseHeartRateAvg` | `/updatedAt` | 无 |
 | ✅ | `HeartRateOverviewCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/exerciseHeartRateAvg` | 无 | 无 |
-| ✅ | `HeartRateOverviewUpdatedCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/exerciseHeartRateAvg` | `/updatedAt` | 无 |
 | ✅ | `HeartRateOverviewIconCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/exerciseHeartRateAvg` | 无 | 无 |
-| ✅ | `HeartRateOverviewUpdatedIconCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/exerciseHeartRateAvg` | `/updatedAt` | 无 |
 
 ## SleepOverview
 
