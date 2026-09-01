@@ -6,7 +6,8 @@
   ],
   "allowedRemoteHosts": [
     "hag-ability-test.obs.cn-north-1.myhuaweicloud.com",
-    "lfcontentcenterdev.hwcloudtest.cn"
+    "lfcontentcenterdev.hwcloudtest.cn",
+    "hagres-drcn.dbankcdn.com"
   ],
   "allowlist": [
     "resources/base/media/air_fill.svg",
