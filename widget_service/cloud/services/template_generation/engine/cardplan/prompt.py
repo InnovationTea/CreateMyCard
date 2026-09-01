@@ -34,7 +34,7 @@ _PLAIN_DESIGNS = (
     "icon",
 )
 _PLAIN_LAYOUTS = ("card", "section", "compact", "between", "actions", "list", "dense", "overlay")
-_ACTION_TEMPLATE_IDS = ("PillAction@1", "IconAction@1")
+_ACTION_TEMPLATE_IDS = ("PillAction@1", "IconAction@1", "LargeIconAction@1")
 _ACTION_PROVIDER_ID = "com.huawei.action.cli"
 _ACTION_LABELS = {
     "event.call.phone": "联系家人",
@@ -187,9 +187,15 @@ def build_hybrid_prompt(
         actions = ()
     selected_definitions = [registry.require_template(wire_id) for wire_id in requested]
     if ux_layout_root_ids:
-        # Layout contracts select the exact cardinality. The compact two-action
-        # layout is the only family that consumes both approved controls.
-        content_action_ids = tuple(action.action_id for action in actions[:2])
+        maximum_actions = max(
+            registry.require_ux_layout_component(layout_id).max_action_children_by_size[
+                task_spec.size
+            ]
+            for layout_id in ux_layout_root_ids
+        )
+        content_action_ids = tuple(
+            action.action_id for action in actions[:maximum_actions]
+        )
     else:
         content_action_ids = _resolve_content_action_ids(
             ui_brief=ui_brief,
@@ -610,7 +616,7 @@ def _composition_rules(ux_layout_root: bool) -> tuple[str, ...]:
             "只能把 Contract 声明的一个闭合配置对象"
             "放在第一个 child 前。布局的 businessChildren 数量不含 Action；"
             "除 TwoSupportLayout 外，所有 Action 必须是布局根的连续末尾直接 children，"
-            "禁止放进 Column/Row/Stack/List/业务 Template；整卡最多两个 Action。"
+            "禁止放进 Column/Row/Stack/List/业务 Template；Action 数量必须符合所选布局 Contract。"
             "TwoSupportLayout 禁止 Action child，批准事件只能各一次写入 Support 业务"
             "Template 的可选 actionId Prop。",
             "禁止独立整卡 Header。若 cardComposition.businessTitleCandidate 能准确命名"
@@ -619,9 +625,12 @@ def _composition_rules(ux_layout_root: bool) -> tuple[str, ...]:
             "禁止从 request 截取标题。",
             "Action 类型由业务模板后缀和布局共同决定：Compact/Hero/WideHero 使用 "
             'Template("PillAction@1", props)，Full 仅在 FullIconActionLayout 中使用 '
-            'Template("IconAction@1", props)，WideFull 不允许 Action；Support 仅使用内部 '
+            'Template("IconAction@1", props)，需要大型图标操作槽的 2x4 布局使用 '
+            'Template("LargeIconAction@1", props)，WideFull 仅可在对应组合布局中使用 Action；'
+            "Support 仅使用内部 "
             "actionId Prop。Action 不得被改写、丢弃或重复；Support 内部事件需按语义归属业务；"
-            "禁止直接调用 PillAction/IconAction/ActionTile、标准 Button 和事件对象。",
+            "禁止直接调用 PillAction/IconAction/LargeIconAction/ActionTile、"
+            "标准 Button 和事件对象。",
         )
     return (
         'Card 外壳必须是 Template("card@1", cardParams, content)。',
@@ -645,7 +654,8 @@ def _ux_layout_action_rule(contract: HybridBodyContract) -> str:
         + json.dumps(actions, ensure_ascii=False)
         + "；按所选布局的 Action 数量范围选择且不得重复 actionId；"
         "PillAction@1 的 actionId/label 必须来自同一候选，icon 可从 "
-        "actionIconCandidates 选择；IconAction@1 必须填写批准的 actionId/icon。"
+        "actionIconCandidates 选择；IconAction@1 和 LargeIconAction@1 "
+        "必须填写批准的 actionId/icon。"
     )
     two_support_allowed = "TwoSupportLayout" in contract.allowed_layout_component_ids
     if two_support_allowed:

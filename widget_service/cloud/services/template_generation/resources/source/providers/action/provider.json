@@ -12,6 +12,11 @@
       "templateId": "IconAction@1",
       "description": "图标动作模板，由第二层通过 actionId 和 icon Props 填充展示内容。",
       "entry": "templates/action.cardtpl"
+    },
+    {
+      "templateId": "LargeIconAction@1",
+      "description": "64x64 大型图标动作模板，由第二层通过 actionId 和 icon Props 填充展示内容。",
+      "entry": "templates/action.cardtpl"
     }
   ],
   "compatibility": {

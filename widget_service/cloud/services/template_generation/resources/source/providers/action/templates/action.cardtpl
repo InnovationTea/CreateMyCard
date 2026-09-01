@@ -54,3 +54,25 @@ Stack({
   })
 )
 #End
+
+
+#Template LargeIconAction@1(props: { actionId: string, icon: asset })
+data = {
+}
+
+Stack({
+  "width": 64,
+  "height": 64,
+  "borderRadius": 16,
+  "backgroundColor": $theme('actionStyle.backgroundColor'),
+  "alignContent": "center",
+  "onClick": EventAction(props.actionId)
+},
+  Image(props.icon, {
+    "width": 28,
+    "height": 28,
+    "objectFit": "contain",
+    "fillColor": $theme('actionStyle.contentColor')
+  })
+)
+#End

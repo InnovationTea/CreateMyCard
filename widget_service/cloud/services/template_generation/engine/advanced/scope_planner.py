@@ -1267,17 +1267,22 @@ def _theme_ids_for_scope(
 
 def _layout_rank(layout_id: str, count: int, action_count: int) -> tuple[int, str]:
     preferred: dict[tuple[int, int], tuple[str, ...]] = {
-        (1, 0): ("SingleFocusLayout", "WideSingleFocusLayout"),
+        (1, 0): ("SingleFocusLayout", "WideFullOnlyLayout", "WideSingleFocusLayout"),
         (1, 1): (
             "HeroActionLayout",
             "FullIconActionLayout",
             "SingleFocusLayout",
             "WideSingleFocusLayout",
+            "WideFullHeroActionLayout",
         ),
         (1, 2): ("CompactTwoActionLayout",),
         (2, 0): ("TwoSupportLayout",),
-        (2, 1): ("TwoSupportLayout",),
-        (2, 2): ("TwoSupportLayout",),
+        (2, 1): ("TwoSupportLayout", "WideFullHeroActionLayout"),
+        (2, 2): (
+            "TwoSupportLayout",
+            "WideFullHeroTwoActionLayout",
+            "WideHalfCompactTwoLargeActionLayout",
+        ),
     }
     order = preferred.get((count, action_count), ())
     return (order.index(layout_id) if layout_id in order else len(order), layout_id)

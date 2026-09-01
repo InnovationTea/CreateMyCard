@@ -79,10 +79,13 @@ from .registry import CardPlanRegistry
 
 _STANDARD_CONTAINERS = frozenset({"Row", "Column", "List", "Stack"})
 _CONTAINERS = _STANDARD_CONTAINERS | UX_LAYOUT_COMPONENT_IDS
-_UX_ACTION_COMPONENTS = frozenset({"PillAction", "IconAction", "ActionTile"})
+_UX_ACTION_COMPONENTS = frozenset(
+    {"PillAction", "IconAction", "LargeIconAction", "ActionTile"}
+)
 _ACTION_TEMPLATE_COMPONENTS = {
     "PillAction@1": "PillAction",
     "IconAction@1": "IconAction",
+    "LargeIconAction@1": "LargeIconAction",
 }
 _ACTION_PROVIDER_ID = "com.huawei.action.cli"
 _UX_DIRECT_BUSINESS_COMPONENTS = UX_DIRECT_BUSINESS_COMPONENT_IDS
@@ -874,7 +877,26 @@ def _expand_call(
     )
     _validate_template_params(params, definition.asset_parameter_semantic_tags, contract)
     _validate_template_parameter_relations(params, variant.parameter_relations)
-    if variant.supported_card_sizes and task_spec.size not in variant.supported_card_sizes:
+    standard_template_in_wide_composition = (
+        ux_layout_id
+        in {
+            "WideTwoFullLayout",
+            "WideFullHeroActionLayout",
+            "WideFullTwoCompactLayout",
+            "WideFullHeroTwoActionLayout",
+            "WideFullFourActionLayout",
+            "WideHalfTwoCompactLayout",
+            "WideHalfCompactTwoLargeActionLayout",
+            "WideHalfFourLargeActionLayout",
+        }
+        and task_spec.size == "2x4"
+        and provider_template_layout_kind(wire_id) in {"Full", "Hero", "Compact"}
+    )
+    if (
+        variant.supported_card_sizes
+        and task_spec.size not in variant.supported_card_sizes
+        and not standard_template_in_wide_composition
+    ):
         raise TerselConversionError(
             f"Provider Template does not support the card size: {wire_id}/{task_spec.size}"
         )
@@ -1005,8 +1027,8 @@ def _wrap_action_template(
         not isinstance(icon, str) or icon not in contract.allowed_asset_sources
     ):
         raise TerselConversionError(f"{action_component} icon is not approved.")
-    if action_component == "IconAction" and not isinstance(icon, str):
-        raise TerselConversionError("IconAction requires an approved icon.")
+    if action_component in {"IconAction", "LargeIconAction"} and not isinstance(icon, str):
+        raise TerselConversionError(f"{action_component} requires an approved icon.")
     bound_root, action_ids = _bind_template_actions(root, contract)
     if action_ids != (action_id,):
         raise TerselConversionError(
@@ -1129,7 +1151,7 @@ def _expand_ux_action_call(
     contract: HybridBodyContract,
     state: _ExpansionState,
 ) -> Nested2Node:
-    if call.name not in {"PillAction", "IconAction"}:
+    if call.name not in {"PillAction", "IconAction", "LargeIconAction"}:
         raise TerselConversionError("UX template route Action type is not supported.")
     if len(call.values) != 1 or not isinstance(call.values[0], dict):
         raise TerselConversionError(f"{call.name} requires one object argument.")
@@ -1147,10 +1169,10 @@ def _expand_ux_action_call(
     if binding is None or action_id not in contract.content_action_ids:
         raise TerselConversionError(f"{call.name} Action is not approved.")
     icon = params.get("icon")
-    if call.name == "IconAction" and (
+    if call.name in {"IconAction", "LargeIconAction"} and (
         not isinstance(icon, str) or icon not in contract.allowed_asset_sources
     ):
-        raise TerselConversionError("IconAction icon is not approved.")
+        raise TerselConversionError(f"{call.name} icon is not approved.")
     if action_id not in state.action_ids:
         state.action_ids.append(action_id)
     state.action_occurrences.append(action_id)
@@ -5670,7 +5692,7 @@ def _validate_optional_semantic_assets(
 
 
 def _validate_raw_ux_action(node: ParsedCall, contract: HybridBodyContract) -> None:
-    if node.name not in {"PillAction", "IconAction"}:
+    if node.name not in {"PillAction", "IconAction", "LargeIconAction"}:
         raise TerselConversionError("UX template route Action type is not supported.")
     if node.children or len(node.values) != 1 or not isinstance(node.values[0], dict):
         raise TerselConversionError(f"{node.name} must be one leaf object call.")
@@ -5683,10 +5705,10 @@ def _validate_raw_ux_action(node: ParsedCall, contract: HybridBodyContract) -> N
     if not isinstance(action_id, str) or action_id not in approved_ids:
         raise TerselConversionError(f"{node.name} Action is not approved.")
     icon = params.get("icon")
-    if node.name == "IconAction" and (
+    if node.name in {"IconAction", "LargeIconAction"} and (
         not isinstance(icon, str) or icon not in contract.allowed_asset_sources
     ):
-        raise TerselConversionError("IconAction icon is not approved.")
+        raise TerselConversionError(f"{node.name} icon is not approved.")
 
 
 def _ux_business_component_name(
@@ -5982,21 +6004,52 @@ def _validate_provider_template_layout_action_requirements(
     layout_kinds = tuple(layout_kind_items)
     if not layout_kinds:
         return
-    layout_is_wide = layout_id.startswith("Wide")
-    if layout_is_wide != (size == "2x4"):
-        raise TerselConversionError(
-            "UX Layout Wide marker does not match the target card size."
-        )
-    wide = any(kind.startswith("Wide") for kind in layout_kinds)
-    if wide != (size == "2x4"):
-        raise TerselConversionError(
-            "Provider Template layout suffix mismatches card size."
-        )
     action_names = tuple(
         action_name
         for child in action_children
         if (action_name := _parsed_ux_action_component(child)) is not None
     )
+    layout_is_wide = layout_id.startswith("Wide")
+    if layout_is_wide != (size == "2x4"):
+        raise TerselConversionError(
+            "UX Layout Wide marker does not match the target card size."
+        )
+    wide_composition_contracts = {
+        "WideTwoFullLayout": (("Full", "Full"), ()),
+        "WideFullHeroActionLayout": (("Full", "Hero"), ("PillAction",)),
+        "WideFullTwoCompactLayout": (("Full", "Compact", "Compact"), ()),
+        "WideFullHeroTwoActionLayout": (
+            ("Full", "Hero"),
+            ("PillAction", "PillAction"),
+        ),
+        "WideFullFourActionLayout": (
+            ("Full",),
+            ("LargeIconAction",) * 4,
+        ),
+        "WideTwoHalfLayout": (("WideHalf", "WideHalf"), ()),
+        "WideHalfTwoCompactLayout": (("WideHalf", "Compact", "Compact"), ()),
+        "WideHalfCompactTwoLargeActionLayout": (
+            ("WideHalf", "Compact"),
+            ("LargeIconAction", "LargeIconAction"),
+        ),
+        "WideHalfFourLargeActionLayout": (
+            ("WideHalf",),
+            ("LargeIconAction",) * 4,
+        ),
+    }
+    wide_composition = wide_composition_contracts.get(layout_id)
+    if wide_composition is not None:
+        expected_kinds, expected_action_names = wide_composition
+        if layout_kinds != expected_kinds or action_names != expected_action_names:
+            raise TerselConversionError(
+                f"{layout_id} Provider Template slot combination is invalid."
+            )
+        return
+    wide = any(kind.startswith("Wide") for kind in layout_kinds)
+    if wide != (size == "2x4"):
+        raise TerselConversionError(
+            "Provider Template layout suffix mismatches card size."
+        )
     if len(layout_kinds) == 2 and set(layout_kinds) == {"Support"} and not action_names:
         if layout_id != "TwoSupportLayout":
             raise TerselConversionError(
@@ -6021,6 +6074,7 @@ def _validate_provider_template_layout_action_requirements(
         "Hero": ("PillAction",),
         "WideHero": ("PillAction",),
         "WideFull": (),
+        "WideHalf": (),
     }[layout_kind]
     if action_names != expected_actions:
         raise TerselConversionError(
@@ -6030,7 +6084,8 @@ def _validate_provider_template_layout_action_requirements(
         "Compact": "CompactTwoActionLayout",
         "Hero": "HeroActionLayout",
         "WideHero": "WideSingleFocusLayout",
-        "WideFull": "WideSingleFocusLayout",
+        "WideFull": "WideFullOnlyLayout",
+        "WideHalf": "WideTwoHalfLayout",
     }[layout_kind]
     if layout_id != expected_layout_id:
         raise TerselConversionError(
@@ -6402,7 +6457,7 @@ def _validate_weather_overview_placement(
             f"WeatherOverview role does not match {layout_id}: expected {expected_role}."
         )
     expected_variants = (
-        {"Full", "Hero", "WideFull", "WideHero"}
+        {"Full", "Hero", "WideFull", "WideHero", "WideHalf"}
         if expected_role == "hero"
         else {"Compact"}
     )
@@ -8418,9 +8473,11 @@ def _lower_ux_action(
         default=background,
     )
     icon = params.get("icon")
-    if node.component_type == "IconAction":
+    if node.component_type in {"IconAction", "LargeIconAction"}:
         if not isinstance(icon, str):
-            raise TerselConversionError("IconAction requires an approved icon.")
+            raise TerselConversionError(
+                f"{node.component_type} requires an approved icon."
+            )
         if re.search(r"(?:^|[_-])white(?:[_.-]|$)", icon.casefold()):
             background, foreground = foreground, "#FFFFFFFF"
         return _lower_action_template_tree(

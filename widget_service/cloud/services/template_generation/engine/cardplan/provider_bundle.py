@@ -57,6 +57,16 @@ _LAYOUT_COMPONENTS = frozenset(
         "CompactTwoActionLayout",
         "TwoSupportLayout",
         "WideSingleFocusLayout",
+        "WideFullOnlyLayout",
+        "WideTwoFullLayout",
+        "WideFullHeroActionLayout",
+        "WideFullTwoCompactLayout",
+        "WideFullHeroTwoActionLayout",
+        "WideFullFourActionLayout",
+        "WideTwoHalfLayout",
+        "WideHalfTwoCompactLayout",
+        "WideHalfCompactTwoLargeActionLayout",
+        "WideHalfFourLargeActionLayout",
     }
 )
 _CONDITIONAL_PARAMETER_COMPONENTS = frozenset({"IfParam", "IfMissingParam"})
@@ -91,6 +101,7 @@ _MAX_INDEXED_TEMPLATE_CHILDREN = 256
 _PROVIDER_TEMPLATE_LAYOUT_KINDS = (
     "WideHero",
     "WideFull",
+    "WideHalf",
     "Support",
     "Compact",
     "Hero",
@@ -189,7 +200,11 @@ class ProviderTemplateEntry(StrictModel):
         if self.capability_id is None:
             return ()
         layout_kind = _provider_template_layout_kind(self.template_id)
-        return ("2x4",) if layout_kind in {"WideHero", "WideFull"} else ("2x2",)
+        return (
+            ("2x4",)
+            if layout_kind in {"WideHero", "WideFull", "WideHalf"}
+            else ("2x2",)
+        )
 
     @property
     def requires_layout_action(self) -> bool:

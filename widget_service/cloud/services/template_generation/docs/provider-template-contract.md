@@ -296,9 +296,11 @@ Provider 选择模板。第二层不接收 TaskSpec、`dataFacts`、`mustKeep` �
 不得用基础组件补充业务内容。候选筛选后为空或必需 props 无法满足时直接失败。若第一层输出了 `action`，
 第二层按最终模板后缀选择完整组合：Hero/WideHero 使用一个
 `Template("PillAction@1", props)`，单 Compact 使用两个 PillAction 模板；Full 仅可在
-`FullIconActionLayout` 中使用一个 IconAction；WideFull 不生成 Action。旧 LLM 兼容路径仍可将双 Support 的 actionId
+`FullIconActionLayout` 中使用一个 IconAction；2x4 组合布局还可使用最多四个 LargeIconAction。
+旧 LLM 兼容路径仍可将双 Support 的 actionId
 各一次写入业务模板内部。PillAction Props
-包含 `actionId`、`label` 和可选 `icon`，IconAction Props 包含 `actionId`、`icon`。第二层只决定展示内容，
+包含 `actionId`、`label` 和可选 `icon`，IconAction 与 LargeIconAction Props 包含
+`actionId`、`icon`。第二层只决定展示内容，
 必选 Action CardTpl 必须在交互组件样式中写入 `onClick: EventAction(props.actionId)`；可选事件的
 Support CardTpl 使用 `onClick: EventAction(props?.actionId)`。微服务校验候选配对，将该模板声明绑定为
 可信事件并注入主题色。模型不得输出 `call`、`args`、`onClick`。
@@ -307,7 +309,7 @@ Support CardTpl 使用 `onClick: EventAction(props?.actionId)`。微服务校验
 
 天气、日历、手机电量、耳机、健康运动、应用使用时长、倒计时和系统内存当前共有
 87 个无 Variant 的业务 UI 模板，其中 19 个是 Support；当前形成 11 个业务组。Layout Provider 另提供
-6 个支持 `...children` 的布局模板，Action Provider 提供 2 个动作模板，运行时 Registry 共 95 个模板。
+16 个支持 `...children` 的布局模板，Action Provider 提供 3 个动作模板，运行时 Registry 共 106 个模板。
 名称包含 `Wide` 的布局只用于 `2x4`，其余布局只用于 `2x2`，两类布局不得混用。
 新增或修改资源后执行：
 

@@ -308,6 +308,16 @@ def test_checked_in_layout_templates_use_concrete_container_blueprints() -> None
         "FullIconActionLayout@1": 2,
         "CompactTwoActionLayout@1": 3,
         "TwoSupportLayout@1": 2,
+        "WideFullOnlyLayout@1": 1,
+        "WideTwoFullLayout@1": 2,
+        "WideFullHeroActionLayout@1": 3,
+        "WideFullTwoCompactLayout@1": 3,
+        "WideFullHeroTwoActionLayout@1": 4,
+        "WideFullFourActionLayout@1": 5,
+        "WideTwoHalfLayout@1": 2,
+        "WideHalfTwoCompactLayout@1": 3,
+        "WideHalfCompactTwoLargeActionLayout@1": 4,
+        "WideHalfFourLargeActionLayout@1": 5,
     }
     variable_children = {
         "SingleFocusLayout@1",
@@ -361,15 +371,23 @@ def test_checked_in_action_templates_expose_second_layer_props() -> None:
     registry = get_cardplan_registry()
     pill = registry.require_template("PillAction@1")
     icon = registry.require_template("IconAction@1")
+    large_icon = registry.require_template("LargeIconAction@1")
 
     pill_schema = pill.variants[0].parameters_schema
     icon_schema = icon.variants[0].parameters_schema
+    large_icon_schema = large_icon.variants[0].parameters_schema
     assert pill.provider_id == "com.huawei.action.cli"
     assert pill_schema["required"] == ["actionId", "label"]
     assert set(pill_schema["properties"]) == {"actionId", "label", "icon"}
     assert icon_schema["required"] == ["actionId", "icon"]
     assert set(icon_schema["properties"]) == {"actionId", "icon"}
-    for definition in (pill, icon):
+    assert large_icon_schema["required"] == ["actionId", "icon"]
+    assert set(large_icon_schema["properties"]) == {"actionId", "icon"}
+    large_options = large_icon.variants[0].root.values[0].properties
+    assert large_options["width"].value == 64
+    assert large_options["height"].value == 64
+    assert large_options["borderRadius"].value == 16
+    for definition in (pill, icon, large_icon):
         root = definition.variants[0].root
         assert root.component == "Stack"
         options = root.values[0].properties
@@ -526,6 +544,8 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
     pill_one = action("PillAction@1", "event.one")
     pill_two = action("PillAction@1", "event.two")
     icon = action("IconAction@1", "event.icon")
+    large_one = action("LargeIconAction@1", "event.one")
+    large_two = action("LargeIconAction@1", "event.two")
 
     _validate_provider_template_layout_action_requirements(
         "CompactTwoActionLayout",
@@ -577,9 +597,80 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
         "2x4",
     )
     _validate_provider_template_layout_action_requirements(
-        "WideSingleFocusLayout",
+        "WideFullOnlyLayout",
         (template("AppUsageOverviewWideFull@1"),),
         (),
+        "2x4",
+    )
+    _validate_provider_template_layout_action_requirements(
+        "WideTwoFullLayout",
+        (
+            template("WeatherOverviewFull@1"),
+            template("BatteryOverviewNormalFull@1"),
+        ),
+        (),
+        "2x4",
+    )
+    _validate_provider_template_layout_action_requirements(
+        "WideFullHeroActionLayout",
+        (template("WeatherOverviewFull@1"), template("BatteryOverviewNormalHero@1")),
+        (pill_one,),
+        "2x4",
+    )
+    _validate_provider_template_layout_action_requirements(
+        "WideFullTwoCompactLayout",
+        (
+            template("WeatherOverviewFull@1"),
+            template("BatteryOverviewProgressCompact@1"),
+            template("SleepOverviewCompact@1"),
+        ),
+        (),
+        "2x4",
+    )
+    _validate_provider_template_layout_action_requirements(
+        "WideFullHeroTwoActionLayout",
+        (template("WeatherOverviewFull@1"), template("BatteryOverviewNormalHero@1")),
+        (pill_one, pill_two),
+        "2x4",
+    )
+    _validate_provider_template_layout_action_requirements(
+        "WideFullFourActionLayout",
+        (template("WeatherOverviewFull@1"),),
+        (large_one, large_two, large_one, large_two),
+        "2x4",
+    )
+    _validate_provider_template_layout_action_requirements(
+        "WideTwoHalfLayout",
+        (
+            template("WeatherOverviewWideHalf@1"),
+            template("BatteryOverviewWideHalf@1"),
+        ),
+        (),
+        "2x4",
+    )
+    _validate_provider_template_layout_action_requirements(
+        "WideHalfTwoCompactLayout",
+        (
+            template("WeatherOverviewWideHalf@1"),
+            template("BatteryOverviewProgressCompact@1"),
+            template("SleepOverviewCompact@1"),
+        ),
+        (),
+        "2x4",
+    )
+    _validate_provider_template_layout_action_requirements(
+        "WideHalfCompactTwoLargeActionLayout",
+        (
+            template("WeatherOverviewWideHalf@1"),
+            template("BatteryOverviewProgressCompact@1"),
+        ),
+        (large_one, large_two),
+        "2x4",
+    )
+    _validate_provider_template_layout_action_requirements(
+        "WideHalfFourLargeActionLayout",
+        (template("WeatherOverviewWideHalf@1"),),
+        (large_one, large_two, large_one, large_two),
         "2x4",
     )
 
@@ -608,6 +699,41 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
         _validate_provider_template_layout_action_requirements(
             "WideSingleFocusLayout",
             (template("AppUsageOverviewFull@1"),),
+            (),
+            "2x4",
+        )
+    with pytest.raises(TerselConversionError, match="slot combination is invalid"):
+        _validate_provider_template_layout_action_requirements(
+            "WideFullHeroActionLayout",
+            (template("BatteryOverviewNormalHero@1"), template("WeatherOverviewFull@1")),
+            (pill_one,),
+            "2x4",
+        )
+    with pytest.raises(TerselConversionError, match="slot combination is invalid"):
+        _validate_provider_template_layout_action_requirements(
+            "WideFullFourActionLayout",
+            (template("WeatherOverviewFull@1"),),
+            (pill_one, pill_two),
+            "2x4",
+        )
+    with pytest.raises(TerselConversionError, match="requires WideFullOnlyLayout"):
+        _validate_provider_template_layout_action_requirements(
+            "WideSingleFocusLayout",
+            (template("AppUsageOverviewWideFull@1"),),
+            (),
+            "2x4",
+        )
+    with pytest.raises(TerselConversionError, match="requires WideSingleFocusLayout"):
+        _validate_provider_template_layout_action_requirements(
+            "WideFullOnlyLayout",
+            (template("AppUsageOverviewWideHero@1"),),
+            (pill_one,),
+            "2x4",
+        )
+    with pytest.raises(TerselConversionError, match="slot combination is invalid"):
+        _validate_provider_template_layout_action_requirements(
+            "WideTwoFullLayout",
+            (template("WeatherOverviewFull@1"),),
             (),
             "2x4",
         )

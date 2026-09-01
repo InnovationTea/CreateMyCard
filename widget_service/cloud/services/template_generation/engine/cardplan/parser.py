@@ -26,7 +26,9 @@ from .models import SourceSpan
 
 _FORBIDDEN_KEYS = frozenset({"__proto__", "prototype", "constructor"})
 _CONTAINERS = frozenset({"Row", "Column", "List", "Stack"}) | UX_LAYOUT_COMPONENT_IDS
-_UX_ACTION_COMPONENTS = frozenset({"PillAction", "IconAction", "ActionTile"})
+_UX_ACTION_COMPONENTS = frozenset(
+    {"PillAction", "IconAction", "LargeIconAction", "ActionTile"}
+)
 _LEAVES = (
     frozenset({"Text", "Image", "Divider", "Progress", "Button", "Checkbox"})
     | _UX_ACTION_COMPONENTS
