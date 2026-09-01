@@ -2,7 +2,9 @@
 data = {
     duration: $path("/nightSleepDurationText"),
     status: $path("/sleepStatus"),
-    score: $path("/sleepScore")
+    score: $optionalPath("/sleepScore"),
+    startTime: $optionalPath("/fallAsleepTimeText"),
+    endTime: $optionalPath("/wakeupTimeText"),
 }
 
 Column(
@@ -44,39 +46,62 @@ Column(
                 { "fontSize": 24, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1 }
             )
         ),
-        Progress(
-            {
-                "value": data.score,
-                "total": 100,
-                "strokeWidth": 8,
-                "color": $theme('supportContentColor'),
-                "backgroundColor": "#33564AF7",
-                "height": 12,
-                "width": "matchParent"
-            }
+        IfPresent(
+            data.score,
+            Progress(
+                {
+                    "value": data.score,
+                    "total": 100,
+                    "strokeWidth": 8,
+                    "color": $theme('supportContentColor'),
+                    "backgroundColor": "#33564AF7",
+                    "height": 12,
+                    "width": "matchParent"
+                }
+            )
         )
     ),
     Column(
         { "itemMargin": 4, "justifyContent": "start", "width": "matchParent" },
-        Row(
-            { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
-            Text(
-                "睡眠情况评分",
-                { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+        IfPresent(
+            data.score,
+            Row(
+                { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
+                Text(
+                    "睡眠情况评分",
+                    { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+                ),
+                Text(
+                    data.score,
+                    { "fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+                ),
+                Text(
+                    "分",
+                    { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+                )
             ),
-            Text(
-                data.score,
-                { "fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
-            ),
-            Text(
-                "分",
-                { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+        ),
+        IfAbsent(
+            data.score,
+            IfPresent(
+                data.startTime & data.endTime,
+                Row(
+                    { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
+                    Text(
+                        "时段 ",
+                        { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+                    ),
+                    Text(
+                        `${data.startTime}-${data.endTime}`,
+                        { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+                    ),
+                ),
             )
         ),
         Row(
             { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
             Text(
-                data.status,
+                `状况${data.status}`,
                 {
                     "fontSize": 12,
                     "fontColor": $theme('supportContentColor'),
@@ -92,7 +117,10 @@ Column(
 #Template SleepOverviewHero@1(props: { sourceIcon?: asset })
 data = {
     duration: $path("/nightSleepDurationText"),
-    score: $path("/sleepScore")
+    status: $optionalPath("/sleepStatus"),
+    score: $optionalPath("/sleepScore"),
+    startTime: $optionalPath("/fallAsleepTimeText"),
+    endTime: $optionalPath("/wakeupTimeText"),
 }
 
 Column(
@@ -127,16 +155,54 @@ Column(
             { "fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
         )
     ),
-    Progress(
-        {
-            "value": data.score,
-            "total": 100,
-            "strokeWidth": 8,
-            "color": $theme('supportContentColor'),
-            "backgroundColor": "#33564AF7",
-            "height": 12,
-            "width": "matchParent"
-        }
+    IfPresent(
+        data.score,
+        Progress(
+            {
+                "value": data.score,
+                "total": 100,
+                "strokeWidth": 8,
+                "color": $theme('supportContentColor'),
+                "backgroundColor": "#33564AF7",
+                "height": 12,
+                "width": "matchParent"
+            }
+        )
+    ),
+    IfAbsent(
+        data.score,
+        IfPresent(
+            data.status,
+            Text(
+                `状况${data.status}`,
+                {
+                    "fontSize": 12,
+                    "fontColor": $theme('supportContentColor'),
+                    "maxLines": 1,
+                    "fontWeight": 400,
+                }
+            )
+        )
+    ),
+    IfAbsent(
+        data.score,
+        IfAbsent(
+            data.status,
+            IfPresent(
+                data.startTime & data.endTime,
+                Row(
+                    { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
+                    Text(
+                        "时段 ",
+                        { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+                    ),
+                    Text(
+                        `${data.startTime}-${data.endTime}`,
+                        { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+                    ),
+                ),
+            )
+        )
     )
 )
 #End

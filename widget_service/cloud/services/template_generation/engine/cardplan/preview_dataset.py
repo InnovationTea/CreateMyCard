@@ -81,6 +81,9 @@ _SOURCE_ICON_BY_BUSINESS = {
 }
 _TEXT_BY_TEMPLATE_PARAMETER = {
     ("BluetoothDeviceOverviewHero@1", "title"): "耳机听歌入口",
+    ("WeatherOverviewAirQualityHero@1", "location"): "青浦区",
+    ("WeatherOverviewHumidityFull@1", "location"): "青浦区",
+    ("WeatherOverviewUvFull@1", "location"): "青浦区",
 }
 _SAMPLE_BY_BUSINESS_BINDING: dict[tuple[str, str], Any] = {
     ("ActivityOverview", "calories"): "420 千卡",

@@ -21,6 +21,8 @@
   `TwoSupportLayout@1`。该业务有已批准事件时传入 `actionId`；没有对应事件时省略，模板根节点不生成
   `onClick`。
 - Props 只能使用本轮 Prompt 下发的可信素材或批准事件 ID，不得输出数据路径。
+- 候选模板声明 `location?: string` 时，该 Prop 只作为可选兜底文案。模板优先使用可用的城市或区县
+  数据绑定；只有两个位置数据路径都不可用时才使用该 Prop，Prop 也缺失时显示“当前城市”。
 - 选择能够完整表达用户显式字段且自身 `primaryData` 与 `secondaryData` 全部可用的模板。
 - `conditionIcon` 必须表达本轮 `/current/condition` 对应的天气现象，不得用泛天气、时钟、日历或秒表
   图标覆盖明显不同的晴、雨、雪等状态；没有合适候选时省略。

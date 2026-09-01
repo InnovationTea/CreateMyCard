@@ -95,7 +95,10 @@ def test_match_rejects_query_fields_not_contained_by_any_template() -> None:
         update={"candidateOutputFields": [*_WEATHER_FIELDS, "/current/windDirection"]}
     )
 
-    with pytest.raises(TemplateRetrievalMiss, match="no provider template|no Full template"):
+    with pytest.raises(
+        TemplateRetrievalMiss,
+        match="absent or untyped|no provider template|no Full template",
+    ):
         retrieve_template_variants(query, task, get_cardplan_registry(), (binding,), _card_spec())
 
 
@@ -114,7 +117,7 @@ def test_trusted_gallery_template_drops_runtime_only_retrieval_fields() -> None:
     restricted = restrict_query_to_preferred_templates(
         query,
         get_cardplan_registry(),
-        ("BatteryOverviewStatusIconCompact@1",),
+        ("BatteryOverviewCompact@1",),
     )
 
     assert restricted.required_output_fields_by_capability == {
@@ -124,9 +127,12 @@ def test_trusted_gallery_template_drops_runtime_only_retrieval_fields() -> None:
 
 def test_match_requires_all_provider_required_data_in_task_schema() -> None:
     task = _task()
-    del task.dataModelSchema["data"]["weather"]["location"]["districtName"]
+    del task.dataModelSchema["data"]["weather"]["current"]["condition"]
 
-    with pytest.raises(TemplateRetrievalMiss, match="no provider template|no Full template"):
+    with pytest.raises(
+        TemplateRetrievalMiss,
+        match="absent or untyped|no provider template|no Full template",
+    ):
         retrieve_template_variants(
             _query("/current/condition"),
             task,
@@ -138,7 +144,7 @@ def test_match_requires_all_provider_required_data_in_task_schema() -> None:
 
 def test_provider_required_data_types_are_checked_when_known() -> None:
     task = _task()
-    task.dataModelSchema["data"]["weather"]["location"]["districtName"] = _field(1, "integer")
+    task.dataModelSchema["data"]["weather"]["current"]["condition"] = _field(1, "integer")
 
     with pytest.raises(TemplateRetrievalMiss, match="no provider template|no Full template"):
         retrieve_template_variants(
@@ -690,6 +696,74 @@ def test_search_allows_one_data_business_with_action() -> None:
     assert any(template_id.endswith("Full@1") for template_id in template_ids)
 
 
+def test_q001_sleep_assistant_matches_hero_without_sleep_score() -> None:
+    task = TaskSpec(
+        userQuery="显示今日睡眠时长，点击可打开闹钟快速设置提醒",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.open.clock.alarm",
+                call="clickToDeeplink",
+                args={
+                    "intentName": "Clock",
+                    "bundleName": "com.huawei.hmos.clock",
+                    "abilityName": "com.huawei.hmos.clock.phone",
+                    "uri": "",
+                },
+            )
+        ],
+        dataModelSchema={
+            "data": {
+                "healthSport": {
+                    "nightSleepDurationText": _field("7小时1分"),
+                    "sleepStatus": _field("良好"),
+                    "fallAsleepTimeText": _field("23:15"),
+                    "wakeupTimeText": _field("07:30"),
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetHealthAndSportSummary",
+        writeResultTo="/data/healthSport",
+        candidateOutputFields=[
+            "/nightSleepDurationText",
+            "/sleepStatus",
+            "/fallAsleepTimeText",
+            "/wakeupTimeText",
+        ],
+    )
+    query = TemplateRetrievalQuery(
+        themeId="sleep-night-violet",
+        requiredOutputFieldsByCapability={
+            "GetHealthAndSportSummary": ("/nightSleepDurationText",)
+        },
+        action=("event.open.clock.alarm",),
+    )
+    card_spec = {
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {
+                "capabilityId": "GetHealthAndSportSummary",
+                "writeResultTo": "/data/healthSport",
+            }
+        ],
+    }
+
+    result = retrieve_template_variants(
+        query,
+        task,
+        get_cardplan_registry(),
+        (binding,),
+        card_spec,
+    )
+
+    assert len(result.component_candidates) == 1
+    candidate = result.component_candidates[0]
+    assert candidate.component_id == "SleepOverview"
+    assert "SleepOverviewHero@1" in candidate.available_template_ids
+
+
 def test_search_allows_one_data_business_with_two_actions() -> None:
     task = _task().model_copy(
         update={
@@ -887,7 +961,7 @@ def test_optional_data_is_available_but_not_required_for_second_containment() ->
 
 def test_search_rejects_weather_and_battery_businesses() -> None:
     task = TaskSpec(
-        userQuery="显示天气、电量和手机温度",
+        userQuery="显示天气和手机电量状态",
         size="2x2",
         dataModelSchema={
             "data": {
@@ -903,7 +977,9 @@ def test_search_rejects_weather_and_battery_businesses() -> None:
                 },
                 "phoneBattery": {
                     "batterySOC": _field(68, "integer"),
-                    "batteryTemperatureText": _field("29.0 ℃"),
+                    "batterySOCText": _field("68%"),
+                    "batteryCapacityLevelDesc": _field("正常电量"),
+                    "chargingStatusDesc": _field("未充电"),
                 },
             }
         },
@@ -917,7 +993,7 @@ def test_search_rejects_weather_and_battery_businesses() -> None:
                 "/location/districtName",
                 "/current/coldLevel",
             ),
-            "GetPhoneBatteryInfo": ("/batterySOC", "/batteryTemperatureText"),
+            "GetPhoneBatteryInfo": ("/batterySOC", "/chargingStatusDesc"),
         },
     )
     bindings = (
@@ -934,7 +1010,12 @@ def test_search_rejects_weather_and_battery_businesses() -> None:
         CandidateDataBinding(
             capabilityId="GetPhoneBatteryInfo",
             writeResultTo="/data/phoneBattery",
-            candidateOutputFields=["/batterySOC", "/batteryTemperatureText"],
+            candidateOutputFields=[
+                "/batterySOC",
+                "/batterySOCText",
+                "/batteryCapacityLevelDesc",
+                "/chargingStatusDesc",
+            ],
         ),
     )
     card_spec = {
@@ -957,7 +1038,7 @@ def test_search_rejects_weather_and_battery_businesses() -> None:
 
 def test_search_rejects_weather_uv_and_battery_businesses() -> None:
     task = TaskSpec(
-        userQuery="显示天气、电量和手机温度",
+        userQuery="显示天气紫外线和手机电量状态",
         size="2x2",
         dataModelSchema={
             "data": {
@@ -973,7 +1054,9 @@ def test_search_rejects_weather_uv_and_battery_businesses() -> None:
                 },
                 "phoneBattery": {
                     "batterySOC": _field(68, "integer"),
-                    "batteryTemperatureText": _field("29.0 ℃"),
+                    "batterySOCText": _field("68%"),
+                    "batteryCapacityLevelDesc": _field("正常电量"),
+                    "chargingStatusDesc": _field("未充电"),
                 },
             }
         },
@@ -987,7 +1070,7 @@ def test_search_rejects_weather_uv_and_battery_businesses() -> None:
                 "/location/districtName",
                 "/current/uvIndex",
             ),
-            "GetPhoneBatteryInfo": ("/batterySOC", "/batteryTemperatureText"),
+            "GetPhoneBatteryInfo": ("/batterySOC", "/chargingStatusDesc"),
         },
     )
     bindings = (
@@ -1004,7 +1087,12 @@ def test_search_rejects_weather_uv_and_battery_businesses() -> None:
         CandidateDataBinding(
             capabilityId="GetPhoneBatteryInfo",
             writeResultTo="/data/phoneBattery",
-            candidateOutputFields=["/batterySOC", "/batteryTemperatureText"],
+            candidateOutputFields=[
+                "/batterySOC",
+                "/batterySOCText",
+                "/batteryCapacityLevelDesc",
+                "/chargingStatusDesc",
+            ],
         ),
     )
     card_spec = {

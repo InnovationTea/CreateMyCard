@@ -35,7 +35,7 @@ Column(
           "width": 112,
           "height": 12,
           "fontSize": 12,
-          "fontWeight": 400,
+          "fontWeight": 700,
           "fontColor": $theme('supportContentColor'),
           "maxLines": 1,
           "textOverflow": "ellipsis",
@@ -51,7 +51,7 @@ Column(
           "width": 112,
           "height": 12,
           "fontSize": 12,
-          "fontWeight": 400,
+          "fontWeight": 700,
           "fontColor": $theme('supportContentColor'),
           "maxLines": 1,
           "textOverflow": "ellipsis",
@@ -67,44 +67,88 @@ Column(
           "width": 20,
           "height": 20,
           "objectFit": "contain",
-          "fillColor": $theme('primaryColor'),
+          "fillColor": $theme('supportContentColor'),
           "flexShrink": 0
         }
       )
     )
   ),
-  Column(
+  Row(
     {
       "width": "matchParent",
-      "height": 64,
-      "itemMargin": 4,
+      "height": 56,
+      "itemMargin": 8,
       "justifyContent": "start",
       "alignItems": "start",
       "clip": true,
       "constraintSize": { "minWidth": 0, "minHeight": 0 }
     },
-    Text(
-      data.title,
+    Column(
       {
-        "width": "matchParent",
-        "height": 28,
-        "fontSize": 20,
-        "fontWeight": 700,
-        "fontColor": $theme('primaryColor'),
-        "maxLines": 1,
-        "textOverflow": "ellipsis",
-        "constraintSize": { "minWidth": 0, "minHeight": 0 }
-      }
+        "width": 8,
+        "height": 54,
+        "padding": { "left": 0, "top": 4, "right": 0, "bottom": 0 },
+        "itemMargin": 4,
+        "justifyContent": "start",
+        "alignItems": "center",
+        "flexShrink": 0,
+        "clip": true
+      },
+      Stack(
+        {
+          "width": 8,
+          "height": 8,
+          "borderRadius": 4,
+          "borderWidth": 1.5,
+          "borderColor": $theme('primaryColor'),
+          "alignContent": "center",
+          "flexShrink": 0
+        },
+        Divider({ "width": 0, "height": 0, "strokeWidth": 0, "color": "#00FFFFFF" })
+      ),
+      Divider(
+        {
+          "width": 1,
+          "height": 36,
+          "strokeWidth": 1,
+          "vertical": true,
+          "color": $theme('supportContentColor')
+        }
+      )
     ),
     Column(
-      { "width": 120, "itemMargin": 2, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": { "minWidth": 0, "minHeight": 0 } },
+      {
+        "width": "matchParent",
+        "height": 64,
+        "itemMargin": 4,
+        "justifyContent": "start",
+        "alignItems": "start",
+        "clip": true,
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
+      },
       Text(
-        `${data.start}-${data.end}`,
-        { "width": 120, "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        data.title,
+        {
+          "width": "matchParent",
+          "height": 19,
+          "fontSize": 14,
+          "fontWeight": 700,
+          "fontColor": $theme('primaryColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        }
       ),
-      Text(
-        data.location,
-        { "width": 120, "height": 16, "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+      Column(
+        { "width": 120, "itemMargin": 2, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": { "minWidth": 0, "minHeight": 0 } },
+        Text(
+          `${data.start}-${data.end}`,
+          { "width": 120, "height": 14, "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        ),
+        Text(
+          data.location,
+          { "width": 120, "height": 14, "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        )
       )
     )
   )
@@ -270,7 +314,7 @@ Column(
 )
 #End
 
-#Template ScheduleOverviewTimezoneFull@1(props: { headerLabel?: string, timeIcon?: asset, locationIcon?: asset })
+#Template ScheduleOverviewTimezoneFull@1(props: { headerLabel?: string })
 data = {
     title: $path("/events/0/title"),
     timeZone: $path("/events/0/timeZone"),
@@ -412,57 +456,23 @@ Column(
           "fontColor": $theme('primaryColor'),
           "maxLines": 1,
           "textOverflow": "ellipsis",
-          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+          "margin": { "bottom": 2 },
         }
       ),
-      IfAbsent(
-        props.timeIcon,
-        Text(
-          `${data.start} - ${data.end}`,
-          { "width": "100%", "height": 14, "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
-        )
+      Text(
+        `${data.start} - ${data.end}`,
+        { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       ),
-      IfPresent(
-        props.timeIcon,
-        Row(
-          { "width": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": { "minWidth": 0, "minHeight": 0 } },
-          Image(
-            props.timeIcon,
-            { "width": 12, "height": 12, "objectFit": "contain" }
-          ),
-          Text(
-            `${data.start} - ${data.end}`,
-            { "width": "100%", "height": 14, "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": { "minWidth": 0, "minHeight": 0 } }
-          )
-        )
-      ),
-      IfAbsent(
-        props.locationIcon,
-        Text(
-          data.location,
-          { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
-        )
-      ),
-      IfPresent(
-        props.locationIcon,
-        Row(
-          { "width": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": { "minWidth": 0, "minHeight": 0 } },
-          Image(
-            props.locationIcon,
-            { "width": 12, "height": 12, "objectFit": "contain" }
-          ),
-          Text(
-            data.location,
-            { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": { "minWidth": 0, "minHeight": 0 } }
-          )
-        )
+      Text(
+        data.location,
+        { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       )
     )
   )
 )
 #End
 
-#Template ScheduleOverviewDateFull@1(props: { headerLabel?: string, timeIcon?: asset, locationIcon?: asset })
+#Template ScheduleOverviewDateFull@1(props: { headerLabel?: string })
 data = {
     title: $path("/events/0/title"),
     date: $path("/events/0/startDate"),
@@ -529,14 +539,130 @@ Column(
     {
       "width": "matchParent",
       "height": 44,
-      "fontSize": 16,
-      "minFontSize": 16,
+      "fontSize": 38,
       "fontWeight": 700,
       "fontColor": $theme('primaryColor'),
       "maxLines": 1,
       "textOverflow": "ellipsis",
       "constraintSize": { "minWidth": 0, "minHeight": 0 }
     }
+  ),
+    Row(
+    {
+      "width": "matchParent",
+      "height": 64,
+      "padding": { "left": 0, "top": 10, "right": 0, "bottom": 0 },
+      "itemMargin": 8,
+      "justifyContent": "start",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": { "minWidth": 0, "minHeight": 0 }
+    },
+    Column(
+      {
+        "width": 8,
+        "height": 54,
+        "padding": { "left": 0, "top": 4, "right": 0, "bottom": 0 },
+        "itemMargin": 4,
+        "justifyContent": "start",
+        "alignItems": "center",
+        "flexShrink": 0,
+        "clip": true
+      },
+      Stack(
+        {
+          "width": 8,
+          "height": 8,
+          "borderRadius": 4,
+          "borderWidth": 1.5,
+          "borderColor": $theme('primaryColor'),
+          "backgroundColor": "#00FFFFFF",
+          "alignContent": "center",
+          "flexShrink": 0
+        },
+        Divider({ "width": 0, "height": 0, "strokeWidth": 0, "color": "#00FFFFFF" })
+      ),
+      Divider(
+        {
+          "width": 1,
+          "height": 36,
+          "strokeWidth": 1,
+          "vertical": true,
+          "color": $theme('supportContentColor')
+        }
+      )
+    ),
+    Column(
+      {
+        "width": "matchParent",
+        "height": 54,
+        "layoutWeight": 1,
+        "itemMargin": 2,
+        "justifyContent": "start",
+        "alignItems": "start",
+        "clip": true,
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
+      },
+      Text(
+        data.title,
+        {
+          "width": "matchParent",
+          "height": 20,
+          "fontSize": 14,
+          "fontWeight": 700,
+          "fontColor": $theme('primaryColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "margin": { "bottom": 2 },
+        }
+      ),
+      Text(
+        `${data.start} - ${data.end}`,
+        { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+      ),
+      Text(
+        data.location,
+        { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+      )
+    )
+  )
+)
+#End
+
+#Template ScheduleOverviewDatedMeetingHero@1(props: {})
+data = {
+    date: $path("/events/0/startDate"),
+    title: $path("/events/0/title"),
+    start: $path("/events/0/dtStart"),
+    end: $path("/events/0/dtEnd"),
+    location: $path("/events/0/eventLocation")
+}
+
+Column(
+  {
+    "_advancedComponent": "ScheduleOverview",
+    "_layoutActionBackgroundOpacity": 0.2,
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 8,
+    "justifyContent": "start",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0, "minHeight": 0}
+  },
+  Row(
+    {
+      "width": "matchParent",
+      "height": 16,
+      "justifyContent": "spaceBetween",
+      "alignItems": "center",
+      "clip": true,
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+    Text(
+      data.date,
+      {"width": 104, "height": 16, "fontSize": 12, "fontWeight": 700, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    ),
   ),
   Row(
     {
@@ -604,128 +730,23 @@ Column(
           "fontColor": $theme('primaryColor'),
           "maxLines": 1,
           "textOverflow": "ellipsis",
-          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+          "margin": { "bottom": 2 },
         }
       ),
-      IfAbsent(
-        props.timeIcon,
-        Text(
-          `${data.start} - ${data.end}`,
-          { "width": "100%", "height": 14, "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
-        )
-      ),
-      IfPresent(
-        props.timeIcon,
-        Row(
-          { "width": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": { "minWidth": 0, "minHeight": 0 } },
-          Image(
-            props.timeIcon,
-            { "width": 12, "height": 12, "objectFit": "contain" }
-          ),
-          Text(
-            `${data.start} - ${data.end}`,
-            { "width": "100%", "height": 14, "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": { "minWidth": 0, "minHeight": 0 } }
-          )
-        )
-      ),
-      IfAbsent(
-        props.locationIcon,
-        Text(
-          data.location,
-          { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
-        )
-      ),
-      IfPresent(
-        props.locationIcon,
-        Row(
-          { "width": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": { "minWidth": 0, "minHeight": 0 } },
-          Image(
-            props.locationIcon,
-            { "width": 12, "height": 12, "objectFit": "contain" }
-          ),
-          Text(
-            data.location,
-            { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": { "minWidth": 0, "minHeight": 0 } }
-          )
-        )
-      )
-    )
-  )
-)
-#End
-
-#Template ScheduleOverviewDatedMeetingHero@1(props: {})
-data = {
-    date: $path("/events/0/startDate"),
-    title: $path("/events/0/title"),
-    start: $path("/events/0/dtStart"),
-    end: $path("/events/0/dtEnd"),
-    location: $path("/events/0/eventLocation")
-}
-
-Column(
-  {
-    "_advancedComponent": "ScheduleOverview",
-    "_layoutActionBackgroundOpacity": 0.2,
-    "width": "matchParent",
-    "height": "matchParent",
-    "itemMargin": 8,
-    "justifyContent": "start",
-    "alignItems": "start",
-    "clip": true,
-    "constraintSize": {"minWidth": 0, "minHeight": 0}
-  },
-  Row(
-    {
-      "width": "matchParent",
-      "height": 16,
-      "justifyContent": "spaceBetween",
-      "alignItems": "center",
-      "clip": true,
-      "constraintSize": {"minWidth": 0, "minHeight": 0}
-    },
-    Text(
-      data.date,
-      {"width": 104, "height": 16, "fontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    ),
-    Text(
-      "⌄",
-      {"width": 20, "height": 16, "fontSize": 14, "fontWeight": 500, "fontColor": "#661F4799", "maxLines": 1, "textAlign": "center", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    )
-  ),
-  Row(
-    {"width": "matchParent", "height": 54, "itemMargin": 8, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-    Column(
-      {"width": 8, "height": 54, "padding": {"left": 0, "top": 4, "right": 0, "bottom": 0}, "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "clip": true, "flexShrink": 0, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Stack(
-        {"width": 8, "height": 8, "borderRadius": 4, "backgroundColor": $theme('primaryColor'), "alignContent": "center", "flexShrink": 0},
-        Divider({"width": 0, "height": 0, "strokeWidth": 0, "color": "#00FFFFFF"})
-      ),
-      Divider({"width": 1, "height": 36, "strokeWidth": 1, "vertical": true, "color": $theme('actionStyle.backgroundColor')})
-    ),
-    Column(
-      {"width": 120, "height": 54, "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Text(
-        data.title,
-        {"width": 120, "height": 20, "fontSize": 14, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        `${data.start} - ${data.end}`,
+        { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       ),
-      Column(
-        {"width": 120, "height": 30, "itemMargin": 2, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-        Text(
-          `${data.start}-${data.end}`,
-          {"width": 120, "height": 14, "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-        ),
-        Text(
-          data.location,
-          {"width": 120, "height": 14, "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-        )
+      Text(
+        data.location,
+        { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       )
     )
   )
 )
 #End
 
-#Template ScheduleOverviewNextEventLocationFull@1(props: { sourceIcon?: asset, timeIcon?: asset, locationIcon?: asset })
+#Template ScheduleOverviewNextEventLocationFull@1(props: { headerLabel?: string, calendarIcon?: asset })
 data = {
     title: $path("/events/0/title"),
     location: $path("/events/0/eventLocation"),
@@ -734,85 +755,150 @@ data = {
 }
 
 Column(
-  {"_advancedComponent": "ScheduleOverview", "width": "100%", "height": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+  {
+    "_advancedComponent": "ScheduleOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 8,
+    "justifyContent": "spaceBetween",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": { "minWidth": 0, "minHeight": 0 }
+  },
   Row(
-      {"width": "100%", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "clip": true},
+    {
+      "width": "matchParent",
+      "height": 20,
+      "justifyContent": "spaceBetween",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": { "minWidth": 0, "minHeight": 0 }
+    },
+    IfPresent(
+      props.headerLabel,
       Text(
-            "下一个日程",
-            {"width": "100%", "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-          ),
-      IfPresent(
-            props.sourceIcon,
-            Image(
-                    props.sourceIcon,
-                    {"width": 12, "height": 12, "objectFit": "contain", "fillColor": $theme('primaryColor')}
-                  )
-          )
+        props.headerLabel,
+        {
+          "width": 112,
+          "height": 12,
+          "fontSize": 12,
+          "fontWeight": 700,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        }
+      )
     ),
-  Row(
-      {"width": "100%", "height": "100%", "layoutWeight": 1, "itemMargin": 8, "justifyContent": "start", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-      Column(
-            {"width": 8, "height": "100%", "itemMargin": 2, "justifyContent": "start", "alignItems": "center", "flexShrink": 0, "clip": true},
-            Stack(
-                    {"width": 8, "height": 8, "borderRadius": 4, "borderWidth": 2, "borderColor": $theme('primaryColor'), "backgroundColor": "#00FFFFFF", "alignContent": "center", "flexShrink": 0},
-                    Divider(
-                              {"width": 0, "height": 0, "strokeWidth": 0, "color": "#00FFFFFF"}
-                            )
-                  ),
-            Divider(
-                    {"width": 1, "height": 42, "strokeWidth": 1, "vertical": true, "color": $theme('actionStyle.backgroundColor')}
-                  )
-          ),
-      Column(
-            {"width": "100%", "height": "100%", "layoutWeight": 1, "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-            Text(
-                    data.title,
-                    {"width": "100%", "height": 28, "fontSize": 20, "minFontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  ),
-            IfAbsent(
-                    props.timeIcon,
-                    Text(
-                              `${data.start} - ${data.end}`,
-                              {"width": "100%", "height": 14, "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            )
-                  ),
-            IfPresent(
-                    props.timeIcon,
-                    Row(
-                              {"width": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                              Image(
-                                          props.timeIcon,
-                                          {"width": 12, "height": 12, "objectFit": "contain"}
-                                        ),
-                              Text(
-                                          `${data.start} - ${data.end}`,
-                                          {"width": "100%", "height": 14, "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                        )
-                            )
-                  ),
-            IfAbsent(
-                    props.locationIcon,
-                    Text(
-                              data.location,
-                              {"width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            )
-                  ),
-            IfPresent(
-                    props.locationIcon,
-                    Row(
-                              {"width": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                              Image(
-                                          props.locationIcon,
-                                          {"width": 12, "height": 12, "objectFit": "contain"}
-                                        ),
-                              Text(
-                                          data.location,
-                                          {"width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                        )
-                            )
-                  )
-          )
+    IfAbsent(
+      props.headerLabel,
+      Text(
+        "下一个日程",
+        {
+          "width": 112,
+          "height": 12,
+          "fontSize": 12,
+          "fontWeight": 700,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        }
+      )
+    ),
+    IfPresent(
+      props.calendarIcon,
+      Image(
+        props.calendarIcon,
+        {
+          "width": 20,
+          "height": 20,
+          "objectFit": "contain",
+          "fillColor": $theme('supportContentColor'),
+          "flexShrink": 0
+        }
+      )
     )
+  ),
+  Row(
+    {
+      "width": "matchParent",
+      "height": 64,
+      "padding": { "left": 0, "top": 10, "right": 0, "bottom": 0 },
+      "itemMargin": 8,
+      "justifyContent": "start",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": { "minWidth": 0, "minHeight": 0 }
+    },
+    Column(
+      {
+        "width": 8,
+        "height": 54,
+        "padding": { "left": 0, "top": 4, "right": 0, "bottom": 0 },
+        "itemMargin": 4,
+        "justifyContent": "start",
+        "alignItems": "center",
+        "flexShrink": 0,
+        "clip": true
+      },
+      Stack(
+        {
+          "width": 8,
+          "height": 8,
+          "borderRadius": 4,
+          "borderWidth": 1.5,
+          "borderColor": $theme('primaryColor'),
+          "backgroundColor": "#00FFFFFF",
+          "alignContent": "center",
+          "flexShrink": 0
+        },
+        Divider({ "width": 0, "height": 0, "strokeWidth": 0, "color": "#00FFFFFF" })
+      ),
+      Divider(
+        {
+          "width": 1,
+          "height": 36,
+          "strokeWidth": 1,
+          "vertical": true,
+          "color": $theme('supportContentColor')
+        }
+      )
+    ),
+    Column(
+      {
+        "width": "matchParent",
+        "height": 54,
+        "layoutWeight": 1,
+        "itemMargin": 2,
+        "justifyContent": "start",
+        "alignItems": "start",
+        "clip": true,
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
+      },
+      Text(
+        data.title,
+        {
+          "width": "matchParent",
+          "height": 20,
+          "fontSize": 14,
+          "fontWeight": 700,
+          "fontColor": $theme('primaryColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "margin": { "bottom": 2 },
+        }
+      ),
+      Text(
+        `${data.start} - ${data.end}`,
+        { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+      ),
+      Text(
+        data.location,
+        { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+      )
+    )
+  )
 )
 #End
 

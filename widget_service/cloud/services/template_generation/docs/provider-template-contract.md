@@ -73,7 +73,8 @@ TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路�
 - `WideFull`：完整 `4x2`，单独使用。
 
 业务模板不再重复声明 `supportedCardSizes` 和 `requiresLayoutAction`，Registry 直接从后缀推导。业务语义或
-状态写在后缀前，例如 `BatteryOverviewChargingWeatherCompact@1`。布局 Provider 不受此后缀约束。
+需要区分的状态写在后缀前，例如 `BatteryOverviewChargingProgressHero@1`；同一结构能够覆盖不同状态时使用
+通用名称，例如 `BatteryOverviewCompact@1`。布局 Provider 不受此后缀约束。
 同一 UI 形态的 `Support` 与 `Compact` 在业务族状态校验中使用相同状态判定规则，但形态标识和布局身份
 仍分别保持 `Support` 与 `Compact`，不得把双业务 Support 放入单业务 Compact 布局。
 
@@ -160,6 +161,12 @@ Column({"width": "matchParent", "itemMargin": 4},
   在 TaskSpec 中存在，只有 `optionalData` 可以缺省。
 - `$optionalPath` 声明可选数据，引用必须位于 `IfPresent(data.xxx, ...)` 或
   `IfAbsent(data.xxx, ...)` 内，并进入 `optionalData`。
+- 两个可选字段必须同时存在时，可写
+  `IfPresent(data.first & data.second, child)`：仅当两个字段都存在时展开 `child`；
+  `IfAbsent(data.first & data.second, child)` 则在任意一个字段缺失时展开 `child`。
+  `&` 只允许连接条件首参数中的两个 `data.xxx`，表示存在性“与”，不表示值比较、位运算或通用
+  A2UI 表达式，也不会进入最终 A2UI。`IfPresent` 的子树可以安全引用这两个字段；`IfAbsent` 的子树
+  不得引用它们，因为运行时至少有一个字段不存在。
 - Provider 全局路径中已经存在的值必须使用 `data.xxx`，由服务端根据 `dataDomain + 相对路径`
   绑定为端侧表达式，不得在 `props` 中重复传递。没有对应全局路径的受控派生展示值，以及素材、
   排版等模板参数，
@@ -167,11 +174,19 @@ Column({"width": "matchParent", "itemMargin": 4},
 - 每个 `asset` prop 必须在 Provider 的第二层规则中描述业务语义和省略条件。描述不得枚举或假定固定
   素材全集；第二层只从本轮 TaskSpec 实际下发的素材候选中按 description 匹配，没有合适候选时省略
   可选参数，或选择不依赖该素材的模板。
-- 反引号 `${...}` 可混合 `props`、`data` 和静态分隔符；云侧保留为 A2UI 表达式，不投影样例值。
-- 需要算术、比较、逻辑、三元条件或 `size()` 时使用 ``Expr(`...`)``，例如
+- 反引号 `${...}` 可混合 `props`、`data` 和静态分隔符；包含 `data` 时云侧保留为 A2UI 表达式且不投影
+  样例值，只含 `props` 与静态文本时在可信展开阶段直接拼成确定字符串。
+- 仅需按路径或 Prop 是否可用选择一个值时，可使用带括号的生成期三元表达式，例如
+  `(data.city ? data.city : (props.location ? props.location : "当前城市"))`。条件只允许单个
+  `data.xxx` 或 `props.xxx`；分支只允许 `data.xxx`、`props.xxx`、字面量或继续加括号的三元表达式。
+  编译器按本轮已解析数据绑定和二层 Props 的可用性选择分支并删除三元结构：选中 `data.xxx` 时保留该字段的
+  直接 A2UI 数据绑定，选中 Prop 或字面量时写入对应确定值；不得读取 `sampleValue` 固化展示内容，也不会
+  生成 A2UI `Expr`。可选数据或 Prop 只允许在自身条件的真分支中引用。
+- 需要算术、比较、逻辑、按运行时值计算的三元条件或 `size()` 时使用 ``Expr(`...`)``，例如
   ``Expr(`${data.score} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`)``。`Expr` 至少引用一个 `data` binding，
   不接受 `props`、对象字面量、裸 identifier、未知函数或任意可执行调用；纯静态值继续写字面量。
-- `Expr` 与普通反引号插值最终都归一化为完整 A2UI `{{ ... }}` 属性值，并按本轮 TaskSpec 路径、
+- 需要按运行时值计算的三元条件仍使用 `Expr`；`Expr` 与普通反引号插值最终都归一化为完整 A2UI
+  `{{ ... }}` 属性值，并按本轮 TaskSpec 路径、
   A2UI Form 表达式语法、2048 字符长度和 20 层嵌套限制校验。
 - 同一个 `.cardtpl` 可以包含多个 `#Template ... #End`，`provider.json` 中每个模板条目可指向同一文件；
   文件完整性由 CardPlan bundle 清单统一校验，不在模板条目重复维护摘要。
@@ -306,8 +321,8 @@ Support CardTpl 使用 `onClick: EventAction(props?.actionId)`。微服务校验
 ## 当前迁移范围
 
 天气、日历、手机电量、耳机、健康运动、应用使用时长、倒计时和系统内存当前共有
-87 个无 Variant 的业务 UI 模板，其中 19 个是 Support；当前形成 11 个业务组。Layout Provider 另提供
-6 个支持 `...children` 的布局模板，Action Provider 提供 2 个动作模板，运行时 Registry 共 95 个模板。
+73 个无 Variant 的业务 UI 模板，其中 12 个是 Support；当前形成 11 个业务组。Layout Provider 另提供
+6 个支持 `...children` 的布局模板，Action Provider 提供 2 个动作模板，运行时 Registry 共 81 个模板。
 名称包含 `Wide` 的布局只用于 `2x4`，其余布局只用于 `2x2`，两类布局不得混用。
 新增或修改资源后执行：
 
