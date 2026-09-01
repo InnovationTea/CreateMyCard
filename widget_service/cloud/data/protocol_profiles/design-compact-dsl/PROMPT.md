@@ -154,7 +154,7 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":18,"clip":true},["header","main","action"]]
 ["header","Row",{"width":136,"height":20,"alignItems":"center","justifyContent":"spaceBetween"},["title","icon"]]
-["title","Text",{"content":"卡片标题","fontSize":14,"fontWeight":700,"fontColor":"#FF1F9947","maxLines":1}]
+["title","Text",{"content":"卡片标题","fontSize":12,"fontWeight":400,"fontColor":"#FF1F9947","maxLines":1}]
 ["/state/ready",true]
 ```
 
@@ -519,6 +519,7 @@ ActionUnit——卡级 CTA：
 - root 固定 `padding: 12`。
 - `2x2` 安全内容区 `136vp × 136vp`。
 - `2x4` 安全内容区 `296vp × 136vp`。
+- `2x2` 只要生成标题行，标题行固定贴 root 安全区顶部：`width:136`、`height:20`、`alignItems:"center"`；右侧标题图标固定 `20×20vp`，其顶部等效距 root 上边 `12vp`，右边缘距 root 右边 `12vp`。在 `160×160` root 中，右侧图标左边界等效为 `128vp`。
 - root 固定 `borderRadius: 20`、`clip: true`。
 - 除满足 5.2.1 场景条件的融球 Design Token root 外，root 必须提供 `linearGradient` 或 `backgroundColor`；仅当 assetCandidates 提供语义准确的背景素材且具有平静留白时（多为 2x4 场景卡）才可用 `backgroundImage` + `backgroundImageSizeWithStyle:"cover"`。不得透明或依赖宿主默认背景。取色按第十二节三方案执行。
 
@@ -583,7 +584,7 @@ ActionUnit——卡级 CTA：
 ### `S2-info-pair-action`（两信息 + 单按钮）——最大簇
 
 - 用于：状态卡、数值卡、日程提醒、省电、步数、睡眠等「两条信息 + 一个动作」。
-- region：`title_area 16-20vp` 恒高 + `content_area`（layoutWeight:1）+ `action_area` 底部锚定（36vp 胶囊）；无动作时 `action_area` 换成 `bottom_area`（一组全宽支撑信息）。
+- region：`title_area 20vp` 恒高 + `content_area`（layoutWeight:1）+ `action_area` 底部锚定（36vp 胶囊）；无动作时 `action_area` 换成 `bottom_area`（一组全宽支撑信息）。
 - 亚型：数值亚型（`value_row` 数字+单位 + 进度条/辅助行）；状态亚型（状态文字列 + 辅助行）；视觉亚型（`root -> [title_area, content_area, bottom_area]`，`bottom_area Row -> [ring_icon_stack, action_area]`，其中 `ring_icon_stack` 固定为环形 Progress 与中心图标的叠放组合，左下展示状态视觉，右下放 icon-round）。
 - 槽位：标题、两行信息、至多一个显式动作。
 - 禁止：两个按钮、三个数据域、弹性中段拉伸（间距一律显式 itemMargin）。
@@ -737,7 +738,8 @@ ActionUnit——卡级 CTA：
 
 ## 11.1 图标
 
-- 标题图标默认 `20×20vp`，通常位于标题行右侧。
+- 标题文字固定 `12fp/400`，不得加粗，不得因场景或示例升到 `14/16fp` 或 `500/700`。
+- 标题图标固定 `20×20vp`，通常位于标题行右侧；在 `2x2` 标题行中必须贴安全区右上角，右边缘距 root 右边 `12vp`。
 - 普通语义图标 `16-24vp`。
 - 主视觉图标：2x2 通常 `40-56vp`，2x4 通常 `48-72vp`。
 - 同一卡片图标风格、色彩角色和视觉重量保持一致。
@@ -776,10 +778,10 @@ ActionUnit——卡级 CTA：
 
 每张卡片只确定**两个主题基色**，二者取同一语义色相族 H（H 按下方语义色相路由选取，不得跨族混用）：
 
-- **主色**：全卡唯一的主题强调基准色。方案一同时承担前景基准；方案二主要承担 hero 主值、关键状态、图表、主图标、按钮文字与图标。
+- **主色**：全卡唯一的主题强调基准色。方案一同时承担前景基准；方案二承担浅色背景上的文字、图标、hero 主值、关键状态、图表、按钮文字与图标。
 - **辅助色**：卡面背景的基准色，承担 root 背景（渐变或纯色）。
 
-方案二额外允许一组无色相的**中性墨色**作为阅读文字色：一级 `#E6000000`，二级 `#99000000`。中性墨色不是第三个主题基色，也不计入“前景色/强调色主色不超过 2 种”；它只能承担标题、标签、说明、列表正文等阅读层，不能替代 accent、状态色、Progress、按钮颜色或大面积表面色。纯黑 `#FF000000` 默认不用，避免近白柔和卡面显得生硬。
+方案二不使用无色相黑灰作为默认阅读文字色；浅色背景上的标题、标签、说明、列表正文等文字必须从同一语义色相族的主色派生，通过 alpha 建立层级。
 
 按场景二选一，确定两个基色的取法：
 
@@ -787,7 +789,7 @@ ActionUnit——卡级 CTA：
    - 辅助色 = H、S=80、B=85（蓝、绿、紫色系）或 B=100（红、黄色系）；DSL 中默认以同色族 2-3 个 stop 的 `angle:180` 渐变近似（上深下亮）。只有用户明确要求纯色时才使用同族纯色深端。
    - 主色 = 同 H、S=20、B=100 的近白；前景一律白色系。
 2. **方案二｜浅色材质（常规默认）**：日程、列表、设备、入口、工具、设置和高信息密度场景。
-   - 辅助色 = 同 H、S=10、B=100（主色与白约 1:9 混合的近白浅色）。无背景素材且不使用融球时，root 必须先生成 `angle:180` 的同色相双 stop 弱渐变：上端饱和度或明度略高以建立色彩方向，下端更接近同色相近白，两个 stop 均使用 `FF` alpha。只有高信息密度列表/网格、用户明确要求扁平纯色，或经对比检查确认渐变会削弱文字和分区辨识时才使用同族纯色；不能仅以“信息较多”作为纯色理由。近白只作为 canvas 或低对比 surface，不代表前景可以随机配色：标题、标签、说明和列表正文默认使用中性墨色；主值、关键状态、图标、Progress、按钮与分隔线从同一色相族的主色及其 alpha 派生，保证阅读清晰且整卡冷暖倾向一致。
+   - 辅助色 = 同 H、S=10、B=100（主色与白约 1:9 混合的近白浅色）。无背景素材且不使用融球时，root 必须先生成 `angle:180` 的同色相双 stop 弱渐变：上端饱和度或明度略高以建立色彩方向，下端更接近同色相近白，两个 stop 均使用 `FF` alpha。只有高信息密度列表/网格、用户明确要求扁平纯色，或经对比检查确认渐变会削弱文字和分区辨识时才使用同族纯色；不能仅以“信息较多”作为纯色理由。近白只作为 canvas 或低对比 surface，不代表前景可以随机配色：标题、标签、说明、列表正文、主值、关键状态、图标、Progress、按钮与分隔线都从同一色相族的主色及其 alpha 派生，保证阅读清晰且整卡冷暖倾向一致。
    - 主色 = 同 H、S=80、B=60（同色相中等明度深色）。
 4. **背景素材**：仅当 assetCandidates 提供语义准确的背景素材且具有平静留白时使用（多为 2x4 场景卡）；root 写原始 `backgroundImage` 和 `backgroundImageSizeWithStyle:"cover"`，前景保持简洁。背景素材沿用素材自身颜色，不套用三方案档位。
 5. **2x4 左右分区**：这不是独立配色形态，而是上述形态的组合限制。最多一侧使用高识别度场景面，另一侧保持中性或同色族弱材质，不能两侧同时争夺焦点。
@@ -812,8 +814,8 @@ ActionUnit——卡级 CTA：
 | 场景角色 | 派生规则 | 方案一（融球） | 方案二（浅色） |
 |---|---|---|---|
 | 卡片背景（canvas） | 辅助色 | 同族 2-3 stop 渐变，上深下亮 | 同族双 stop 弱渐变；仅命中明确例外时纯色 |
-| 一级阅读文字 / 图表主色 | 文字或主色 100% | 近白 | 标题/正文默认中性墨色；hero 主值/图表使用深主色 |
-| 二级阅读文字 | 文字 60% | 近白 60% | 默认中性墨色 60%；与主题主值强绑定时可用深主色 60% |
+| 一级阅读文字 / 图表主色 | 文字或主色 100% | 近白 | 主色 100% |
+| 二级阅读文字 | 文字 60% | 近白 60% | 主色 60% |
 | 图表背景 / 进度轨道 | 白或主色 20% | 白 20% | 主色 20% |
 | 辅助信息区域背景（surface） | 白或主色 10% | 白 10% | 主色 10% |
 | 按钮背景 | 与 canvas 拉开明度的同族浅色实体面 | 同族近白实体面；融球可用固定半透明白 | 同族有色浅表面 |
@@ -824,7 +826,7 @@ ActionUnit——卡级 CTA：
 
 - `canvas`（root 唯一主背景）= root 的 `linearGradient`、`backgroundColor`，或符合 5.2.1 场景条件的 root 融球 `design`。
 - `surface`（内部分组承载面，至多 1-2 个）= zone/背板的 `backgroundColor`，用同族低对比纯色或主色 5%-10% alpha（如 `#1A1F4594`）；同层级 surface 共享同一种色值。
-- `primaryText` / `secondaryText` = Text 的 `fontColor`。方案二近白浅底必须建立中性墨色阅读层：卡片标题、字段标签、说明、日期时间和列表正文默认分别使用 `#E6000000`、`#99000000`，不允许所有文字都机械染成主题色；hero 主值、关键状态以及与图表直接绑定的读数才使用同色相深主色及其 alpha。低信息密度且标题本身就是唯一主题焦点时，标题可以使用深主色，但普通说明文字仍优先中性墨色。深底用白系（`#FFFFFFFF`、`#99FFFFFF`、`#CCFFFFFF`）或方案一档位。一级文字和 CTA 文字相对直接背景的静态对比度至少为 4.5:1；大于等于 24fp 且加粗的唯一 hero 文字至少为 3:1。对比不足时调整同角色明度，不得靠描边、阴影或更换无关色相补救。
+- `primaryText` / `secondaryText` = Text 的 `fontColor`。方案二近白浅底必须使用同色相文字：一级文字使用主色 100%，二级文字使用主色 60%，必要的弱说明可使用主色 40%；不得把标题、标签、说明或列表正文默认改成无色相黑灰（如 `#E6000000`、`#99000000`）。深底用白系（`#FFFFFFFF`、`#99FFFFFF`、`#CCFFFFFF`）或方案一档位。一级文字和 CTA 文字相对直接背景的静态对比度至少为 4.5:1；大于等于 24fp 且加粗的唯一 hero 文字至少为 3:1。对比不足时调整同角色明度，不得靠描边、阴影或更换无关色相补救。
 - `accent`（全卡唯一主要强调色）= `Progress.color`、主图标 `fillColor`、`ActionUnit.actionInk`。
 - `state/action`（第二信号色）：仅当 TaskSpec 的动态字段能证明当前确实处于告警、错误、危险、低电量等状态，或核心动作确需区分时出现；不需要时必须复用 accent。红色、玫红色不得用于普通标题、正文、装饰图标、正常状态或常规进度，尤其不得在绿色、青色、蓝色或紫色近白卡面中作为无状态依据的装饰强调色。
 
@@ -843,9 +845,8 @@ ActionUnit——卡级 CTA：
 ## 图标颜色
 
 - `fillColor` 只写 `#AARRGGBB`；以图标所在直接背景判断明暗与对比，不只看 root 背景。
-- 主视觉/大图标：浅底用 `accent`，深底或高饱和底用 `#FFFFFFFF`。
-- 标题旁功能图标：浅底用 `primaryText` 档或 `accent`，深底用白。
-- 辅助图标：`secondaryText` 档（如 `#99000000`），不比主信息更抢眼。
+- 浅色背景上的单色图标必须与同组文字完全同色：标题旁图标使用标题文字的 `fontColor`，辅助图标使用同组辅助文字的 `fontColor`，按钮内图标使用按钮文字色；不得为单色图标另取一档相近色或黑灰色。
+- 主视觉/大图标没有同组文字时使用 `accent`；深底或高饱和底用 `#FFFFFFFF`。
 - 普通背景按钮内图标与按钮文字同色：ActionUnit 只写 icon 字段，转换器自动同色；图文 Row 内 Image 与 Text 同色。融球胶囊按钮内图标使用 `#99FFFFFF`、文字使用 `#E6FFFFFF`。
 - 应用/品牌/多色原图标保留资源原色，不写 `fillColor`。`icon_weather1.svg` 是多色天气原图，无论用于标题、内容或按钮，都禁止写 `fillColor`，禁止用主题色覆盖成纯色方块。
 - `fillColor` 必须复用本卡已确定的颜色角色，不为单个图标临时引入新的强调色。
@@ -853,7 +854,7 @@ ActionUnit——卡级 CTA：
 ## 通用规则
 
 - 普通浅背景使用深色文字；深色或高饱和背景使用白色前景；先证明文字对比度，再决定是否保留场景色。
-- 方案二不得出现“所有 Text 都是同一主题彩色”的整卡染色：至少一个非强调阅读层使用中性墨色；主题色集中在主值、关键状态、图表、主图标和动作上。中性墨色与一个主题色族组合属于合规的单主题配色，不视为增加第二强调色。
+- 方案二不得回退为黑灰阅读层；文字、单色图标、图表和按钮内容都应来自同一语义色相族，通过 100%/60%/40% alpha 和字号字重建立层级。
 - 无背景素材且不使用融球的普通卡片，root 默认必须使用克制的同色相渐变。高信息密度列表/网格也应先尝试差值更小的同族渐变，只有渐变确实干扰文字或分区时才回退纯色；已有高识别度背景素材时不再叠加渐变。明显渐变只用于低信息密度氛围卡。
 - 渐变方向配合构图：较深或较饱和的一端远离长文本，靠近主图、主值或视觉收束方向；渐变统一 `angle:180` 上下方向，不用斜向横向。
 - 浅色材质渐变固定使用同色相 2 个 stop，明度单向变化且差值克制，不能出现中途反转、灰白跳色或相邻颜色突变；深色氛围渐变可使用同族 2-3 个 stop，三段渐变仅用于氛围场景。任何渐变都不得跳出同族。
@@ -869,7 +870,7 @@ ActionUnit——卡级 CTA：
 2. 严格采用 TaskSpec.size，按第九节路由到一个固定骨架。若 `mustKeep` 无法映射，先删除 `shouldKeep` 并回退同尺寸更简单骨架，不跨骨架拼接。
 3. 为骨架填入角色槽位，确定共同对齐线、主辅面积和留白；只保留最小充分数据、事件和素材。显式动作必须落到合法 CTA，隐式入口只能作为不抢占空间的 root 入口，未被显式要求的副作用动作必须删除。
 4. 从 root 到叶子递归计算父子宽高、padding、margin、有效 itemMargin、文本空间和点击热区；对所有受保护文本执行压力检查，任何负剩余空间、单位裁切风险或过小热区都触发删减或骨架回退。
-5. 按第十二节路由语义色相族、在方案一（融球深色端）与方案二（浅色材质）中选定其一并生成色值；再建立 canvas/surface/primaryText/secondaryText/accent/state-action 颜色角色。方案二必须把普通阅读文字分配到中性墨色层，把主题色留给主值、图表、图标和动作，并检查没有整卡文字同色染色或因相邻示例而机械复用蓝白配色。为每个素材确定主视觉、标题、辅助、动作或背景职责，角色不明确或会写死动态状态时删除。
+5. 按第十二节路由语义色相族、在方案一（融球深色端）与方案二（浅色材质）中选定其一并生成色值；再建立 canvas/surface/primaryText/secondaryText/accent/state-action 颜色角色。方案二必须让普通阅读文字、单色图标、图表和动作来自同一语义色相族，并检查没有黑灰默认文字或因相邻示例而机械复用蓝白配色。为每个素材确定主视觉、标题、辅助、动作或背景职责，角色不明确或会写死动态状态时删除。
 6. 构造完整首帧 DataModel 和组件树，验证组件引用、可达性、动态路径、类型、Expression、模板和事件闭环；选中的动态字段不得用静态 sampleValue 替代绑定。
 7. 生成极简协议 JSONL，并执行第十五节静默检查；失败时只删除弱内容、减少表面或回退骨架，不突破协议和 TaskSpec 边界。
 
@@ -891,7 +892,7 @@ ActionUnit——卡级 CTA：
 3. **候选与事件**：是否只保留最小充分候选；显式动作是否绑定，隐式入口是否不抢占空间，未被明确要求的副作用动作是否已删除；同一动作是否只有一个点击容器。
 4. **骨架与预算**：是否只使用一个固定骨架；root 宽高是否为 `"matchParent"`、padding 12、圆角 20、clip true；所有 Row/Column 两轴预算是否非负，动态文字 Row 是否保留余量，点击热区是否至少 24vp。
 5. **文字与图表**：受保护文本和 CTA 是否完整；是否没有空白 Text、`textOverflow`、单独的 `°` 或近似温度单位；格式化值是否包含单位与符号并通过压力检查；全卡字号是否不超过三档、同层级元素是否保持一致；Progress 是否只用于范围可靠的数值语义。
-6. **表面与素材**：背景是否按第十二节两方案之一取色且语义准确、没有无意退化为无色相灰白 canvas；无背景素材且不使用融球时，root 是否已输出同色族 `linearGradient`，若仍使用单一 `backgroundColor` 是否明确命中“用户指定纯色”或“渐变确实干扰高密度列表/网格”的例外；方案二是否存在中性墨色阅读层且没有把所有 Text 染成主题色，主题色是否集中于主值、关键状态、图表、主图标和动作；渐变是否单向连续且没有跳色；canvas、surface、accent 是否同色相族且没有机械复用蓝白；一级文字/CTA 与主语义图标是否分别达到 4.5:1/3:1 的直接背景对比；SVG 染色、位图和背景素材是否符合描述。
+6. **表面与素材**：背景是否按第十二节两方案之一取色且语义准确、没有无意退化为无色相灰白 canvas；无背景素材且不使用融球时，root 是否已输出同色族 `linearGradient`，若仍使用单一 `backgroundColor` 是否明确命中“用户指定纯色”或“渐变确实干扰高密度列表/网格”的例外；方案二文字、单色图标、图表和动作是否来自同一语义色相族且没有黑灰默认阅读层；渐变是否单向连续且没有跳色；canvas、surface、accent 是否同色相族且没有机械复用蓝白；一级文字/CTA 与主语义图标是否分别达到 4.5:1/3:1 的直接背景对比；SVG 染色、位图和背景素材是否符合描述。
 7. **最终简化**：是否只有一个主焦点、清晰对齐线和有限表面；并列分区的高度、视觉重量和留白是否均衡；是否已删除弱装饰、重复事实、无关字段、假交互、无意义单子容器和多余材质；若仍有任何不确定布局，是否已经回退到同尺寸更简单骨架。
 
 只有全部通过后，输出唯一的极简协议 `genui` 代码块。
@@ -908,8 +909,8 @@ ActionUnit——卡级 CTA：
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"design":"fusion-ball-sport-orange","justifyContent":"start","alignItems":"center","itemMargin":0},["title_area","gap8","value_group"]]
 ["gap8","Column",{"width":136,"height":8,"flexShrink":0},[]]
-["title_area","Row",{"width":136,"height":32,"padding":{"top":12},"justifyContent":"center","alignItems":"center","flexShrink":0},["title_text"]]
-["title_text","Text",{"content":"马拉松倒计时","width":112,"fontSize":16,"fontWeight":500,"fontColor":"#E6FFFFFF","textAlign":"center","maxLines":1}]
+["title_area","Row",{"width":136,"height":20,"justifyContent":"center","alignItems":"center","flexShrink":0},["title_text"]]
+["title_text","Text",{"content":"马拉松倒计时","width":112,"fontSize":12,"fontWeight":400,"fontColor":"#E6FFFFFF","textAlign":"center","maxLines":1}]
 ["value_group","Column",{"width":136,"justifyContent":"center","alignItems":"center","itemMargin":2,"flexShrink":1},["value_num","value_unit"]]
 ["value_num","Text",{"content":{"path":"/data/countdown/countdownDays"},"fontSize":56,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
 ["value_unit","Text",{"content":"天","fontSize":12,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
@@ -924,23 +925,23 @@ ActionUnit——卡级 CTA：
 ### assistant
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFE9E7FA",0],["#FFF3F1FE",1]]},"justifyContent":"spaceBetween","alignItems":"start","itemMargin":4},["title_area","content_area","action_area"]]
-["title_area","Row",{"width":136,"height":16,"justifyContent":"start","alignItems":"center","flexShrink":0},["title_text"]]
-["title_text","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":136,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["title_area","Row",{"width":136,"height":20,"justifyContent":"start","alignItems":"center","flexShrink":0},["title_text"]]
+["title_text","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":136,"fontSize":12,"fontWeight":400,"fontColor":"#99433E94","maxLines":1}]
 ["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","itemMargin":4,"flexShrink":1},["status_text","battery_row"]]
 ["status_text","Text",{"content":"{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}","width":136,"height":28,"fontSize":20,"fontWeight":700,"fontColor":"#FF433E94","maxLines":1}]
 ["battery_row","Row",{"width":136,"justifyContent":"start","alignItems":"center","itemMargin":8},["left_item","right_item","case_item"]]
 ["left_item","Row",{"width":40,"justifyContent":"start","alignItems":"center","itemMargin":2},["left_badge","left_num","left_unit"]]
 ["left_badge","Text",{"content":"L","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#FFAAA7D4","fontSize":10,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
-["left_num","Text",{"content":{"path":"/data/earphone/leftBatteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99000000","maxLines":1}]
-["left_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99000000","maxLines":1}]
+["left_num","Text",{"content":{"path":"/data/earphone/leftBatteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99433E94","maxLines":1}]
+["left_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99433E94","maxLines":1}]
 ["right_item","Row",{"width":40,"justifyContent":"start","alignItems":"center","itemMargin":2},["right_badge","right_num","right_unit"]]
 ["right_badge","Text",{"content":"R","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#FFAAA7D4","fontSize":10,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
-["right_num","Text",{"content":{"path":"/data/earphone/rightBatteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99000000","maxLines":1}]
-["right_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99000000","maxLines":1}]
+["right_num","Text",{"content":{"path":"/data/earphone/rightBatteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99433E94","maxLines":1}]
+["right_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99433E94","maxLines":1}]
 ["case_item","Row",{"width":40,"justifyContent":"start","alignItems":"center","itemMargin":2},["case_badge","case_num","case_unit"]]
 ["case_badge","Text",{"content":"盒","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#FFAAA7D4","fontSize":10,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
-["case_num","Text",{"content":{"path":"/data/earphone/batteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99000000","maxLines":1}]
-["case_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99000000","maxLines":1}]
+["case_num","Text",{"content":{"path":"/data/earphone/batteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99433E94","maxLines":1}]
+["case_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99433E94","maxLines":1}]
 ["action_area","Column",{"width":136,"flexShrink":0},["cta"]]
 ["cta","ActionUnit",{"state":"capsule","label":"蓝牙设置","actionSurface":"#FFDCD8F7","actionInk":"#FF433E94","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}],"flexShrink":0}]
 ["/data/earphone/isConnected",true]
@@ -959,16 +960,16 @@ ActionUnit——卡级 CTA：
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFE6F5E2",0],["#FFF2FAF0",1]]},"justifyContent":"spaceBetween","alignItems":"start","itemMargin":8},["header_area","action_area"]]
 ["header_area","Column",{"width":136,"justifyContent":"start","alignItems":"start","itemMargin":6,"padding":{"bottom":10},"flexShrink":1},["device_name","battery_row"]]
-["device_name","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":136,"fontSize":16,"fontWeight":700,"fontColor":"#E6000000","maxLines":1}]
+["device_name","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":136,"fontSize":16,"fontWeight":700,"fontColor":"#FF487040","maxLines":1}]
 ["battery_row","Row",{"justifyContent":"start","alignItems":"center","itemMargin":0},["left_item","right_item"]]
 ["left_item","Row",{"width":52,"justifyContent":"start","alignItems":"center","itemMargin":2},["left_badge","left_num","left_unit"]]
 ["left_badge","Text",{"content":"L","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#FF64BB5C","fontSize":10,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
-["left_num","Text",{"content":{"path":"/data/earphone/leftBatteryLevel"},"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
-["left_unit","Text",{"content":"%","fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["left_num","Text",{"content":{"path":"/data/earphone/leftBatteryLevel"},"fontSize":10,"fontWeight":400,"fontColor":"#99487040","maxLines":1}]
+["left_unit","Text",{"content":"%","fontSize":10,"fontWeight":400,"fontColor":"#99487040","maxLines":1}]
 ["right_item","Row",{"width":52,"justifyContent":"start","alignItems":"center","itemMargin":2},["right_badge","right_num","right_unit"]]
 ["right_badge","Text",{"content":"R","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#FF64BB5C","fontSize":10,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
-["right_num","Text",{"content":{"path":"/data/earphone/rightBatteryLevel"},"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
-["right_unit","Text",{"content":"%","fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["right_num","Text",{"content":{"path":"/data/earphone/rightBatteryLevel"},"fontSize":10,"fontWeight":400,"fontColor":"#99487040","maxLines":1}]
+["right_unit","Text",{"content":"%","fontSize":10,"fontWeight":400,"fontColor":"#99487040","maxLines":1}]
 ["action_area","Column",{"width":136,"itemMargin":8,"flexShrink":0},["cta_play","cta_fav"]]
 ["cta_play","ActionUnit",{"state":"capsule","label":"每日歌单","icon":"resources/base/media/music_fill.svg","actionSurface":"#FFDCEFD8","actionInk":"#FF487040","fontSize":14,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=a001&type=4"}}],"flexShrink":0}]
 ["cta_fav","ActionUnit",{"state":"capsule","label":"收藏歌单","icon":"resources/base/media/heart_fill.svg","actionSurface":"#FFDCEFD8","actionInk":"#FF487040","fontSize":14,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Music","bundleName":"","abilityName":"","uri":"hwmusic://com.huawei.hmsapp.music/showMusicList?code=favoriteSong&type=412"}}],"flexShrink":0}]
@@ -987,7 +988,7 @@ ActionUnit——卡级 CTA：
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FF223E77",0],["#FF1D588F",0.45],["#FF0D8FBC",1]]},"justifyContent":"spaceBetween","itemMargin":4},["title_area","content_area","bottom_area"]]
 ["title_area","Row",{"width":136,"height":20,"justifyContent":"spaceBetween","alignItems":"center","flexShrink":0},["title_text","title_icon"]]
-["title_text","Text",{"content":{"path":"/data/weather/location/prefectureName"},"fontSize":12,"fontWeight":500,"fontColor":"#99FFFFFF","maxLines":1}]
+["title_text","Text",{"content":{"path":"/data/weather/location/prefectureName"},"fontSize":12,"fontWeight":400,"fontColor":"#99FFFFFF","maxLines":1}]
 ["title_icon","Image",{"src":"resources/base/media/sun_max.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#FFFFFFFF","flexShrink":0}]
 ["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","padding":{"top":4},"flexShrink":1},["value_row"]]
 ["value_row","Row",{"width":136,"justifyContent":"start","alignItems":"bottom","itemMargin":3},["value_num","value_unit"]]
@@ -1018,15 +1019,15 @@ ActionUnit——卡级 CTA：
 ["phone_progress","Progress",{"type":"ring","width":52,"height":52,"strokeWidth":5,"value":{"path":"/data/phoneBattery/batterySOC"},"total":100,"color":"#FF1F9933","backgroundColor":"#331F9933"}]
 ["phone_icon","Image",{"src":"resources/base/media/phone_fill.svg","width":16,"height":16,"objectFit":"contain","fillColor":"#991F9933","flexShrink":0}]
 ["phone_col","Column",{"width":76,"justifyContent":"center","alignItems":"start","itemMargin":4,"flexShrink":1},["phone_label","phone_value"]]
-["phone_label","Text",{"content":"手机电量","fontSize":12,"fontWeight":700,"fontColor":"#E6000000","maxLines":1}]
-["phone_value","Text",{"content":"{{ ${/data/phoneBattery/batterySOC} + '% · ' + ${/data/phoneBattery/chargingStatusDesc} }}","width":76,"fontSize":10,"fontWeight":500,"fontColor":"#99000000","maxLines":1}]
+["phone_label","Text",{"content":"手机电量","fontSize":12,"fontWeight":700,"fontColor":"#FF1F9933","maxLines":1}]
+["phone_value","Text",{"content":"{{ ${/data/phoneBattery/batterySOC} + '% · ' + ${/data/phoneBattery/chargingStatusDesc} }}","width":76,"fontSize":10,"fontWeight":500,"fontColor":"#991F9933","maxLines":1}]
 ["ear_row","Row",{"width":136,"justifyContent":"start","alignItems":"center","itemMargin":8},["ear_ring","ear_col"]]
 ["ear_ring","Stack",{"width":52,"height":52,"alignContent":"center","flexShrink":0},["ear_progress","ear_icon"]]
 ["ear_progress","Progress",{"type":"ring","width":52,"height":52,"strokeWidth":5,"value":{"path":"/data/earphone/batteryLevel"},"total":100,"color":"#FF1F9933","backgroundColor":"#331F9933"}]
 ["ear_icon","Image",{"src":"resources/base/media/earphone_case_16644.svg","width":16,"height":16,"objectFit":"contain","fillColor":"#991F9933","flexShrink":0}]
 ["ear_col","Column",{"width":76,"justifyContent":"center","alignItems":"start","itemMargin":4,"flexShrink":1},["ear_label","ear_value"]]
-["ear_label","Text",{"content":"耳机盒电量","fontSize":12,"fontWeight":700,"fontColor":"#E6000000","maxLines":1}]
-["ear_value","Text",{"content":"{{ ${/data/earphone/batteryLevel} + '% · ' + ${/data/earphone/chargingStatusDesc} }}","width":76,"fontSize":10,"fontWeight":500,"fontColor":"#99000000","maxLines":1}]
+["ear_label","Text",{"content":"耳机盒电量","fontSize":12,"fontWeight":700,"fontColor":"#FF1F9933","maxLines":1}]
+["ear_value","Text",{"content":"{{ ${/data/earphone/batteryLevel} + '% · ' + ${/data/earphone/chargingStatusDesc} }}","width":76,"fontSize":10,"fontWeight":500,"fontColor":"#991F9933","maxLines":1}]
 ["/data/phoneBattery/batterySOC",68]
 ["/data/phoneBattery/chargingStatusDesc","未充电"]
 ["/data/earphone/batteryLevel",47]
@@ -1041,12 +1042,12 @@ ActionUnit——卡级 CTA：
 ### assistant
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFF8EBCD",0],["#FFFFF8EA",1]]},"justifyContent":"start","itemMargin":4},["title_area","content_area","action_area"]]
-["title_area","Row",{"width":136,"height":16,"justifyContent":"start","alignItems":"center","flexShrink":0},["day_tag"]]
-["day_tag","Text",{"content":"今天","fontSize":12,"fontWeight":700,"fontColor":"#FF996C1F","maxLines":1}]
+["title_area","Row",{"width":136,"height":20,"justifyContent":"start","alignItems":"center","flexShrink":0},["day_tag"]]
+["day_tag","Text",{"content":"今天","fontSize":12,"fontWeight":400,"fontColor":"#FF996C1F","maxLines":1}]
 ["content_area","Column",{"width":136,"layoutWeight":1,"padding":{"top":4},"itemMargin":6,"justifyContent":"start","alignItems":"start","flexShrink":1},["event_title","event_time","event_place"]]
-["event_title","Text",{"content":{"path":"/data/calendar/events/0/title"},"fontSize":12,"fontWeight":700,"width":"matchParent","fontColor":"#E6000000","maxLines":1}]
-["event_time","Text",{"content":{"path":"/data/calendar/events/0/dtStart"},"fontSize":12,"fontWeight":400,"width":"matchParent","fontColor":"#99000000","maxLines":1}]
-["event_place","Text",{"content":{"path":"/data/calendar/events/0/eventLocation"},"fontSize":12,"fontWeight":400,"width":"matchParent","fontColor":"#99000000","maxLines":1}]
+["event_title","Text",{"content":{"path":"/data/calendar/events/0/title"},"fontSize":12,"fontWeight":700,"width":"matchParent","fontColor":"#FF996C1F","maxLines":1}]
+["event_time","Text",{"content":{"path":"/data/calendar/events/0/dtStart"},"fontSize":12,"fontWeight":400,"width":"matchParent","fontColor":"#99996C1F","maxLines":1}]
+["event_place","Text",{"content":{"path":"/data/calendar/events/0/eventLocation"},"fontSize":12,"fontWeight":400,"width":"matchParent","fontColor":"#99996C1F","maxLines":1}]
 ["action_area","Column",{"width":136,"flexShrink":0},["cta"]]
 ["cta","ActionUnit",{"state":"capsule","label":"查看日程","actionSurface":"#FFF0DCB8","actionInk":"#FF7A4F0F","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ ${/data/calendar/events/0/entityId} }}"}}}],"flexShrink":0}]
 ["/data/calendar/events/0/entityId","calendar-event-001"]
@@ -1093,14 +1094,14 @@ ActionUnit——卡级 CTA：
 ```genui
 ["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"backgroundColor":"#FFFFF6E6"},["content"]]
 ["content","Column",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":4},["title","list"]]
-["title","Text",{"content":"近期日程","width":296,"height":17,"fontSize":12,"fontWeight":700,"fontColor":"#E6000000","maxLines":1}]
+["title","Text",{"content":"近期日程","width":296,"height":17,"fontSize":12,"fontWeight":700,"fontColor":"#FF996C1F","maxLines":1}]
 ["list","Column",{"width":296,"height":115,"itemMargin":8},["item0","item1","item2"]]
 ["item0","Row",{"width":296,"height":33,"padding":{"left":12,"right":12},"borderRadius":8,"backgroundColor":"#0D996C1F","alignItems":"center"},["text0"]]
-["text0","Text",{"content":{"path":"/data/calendar/events/0/title"},"width":248,"fontSize":12,"fontWeight":400,"fontColor":"#E6000000","maxLines":1}]
+["text0","Text",{"content":{"path":"/data/calendar/events/0/title"},"width":248,"fontSize":12,"fontWeight":400,"fontColor":"#FF996C1F","maxLines":1}]
 ["item1","Row",{"width":296,"height":33,"padding":{"left":12,"right":12},"borderRadius":8,"backgroundColor":"#0D996C1F","alignItems":"center"},["text1"]]
-["text1","Text",{"content":{"path":"/data/calendar/events/1/title"},"width":248,"fontSize":12,"fontWeight":400,"fontColor":"#E6000000","maxLines":1}]
+["text1","Text",{"content":{"path":"/data/calendar/events/1/title"},"width":248,"fontSize":12,"fontWeight":400,"fontColor":"#FF996C1F","maxLines":1}]
 ["item2","Row",{"width":296,"height":33,"padding":{"left":12,"right":12},"borderRadius":8,"backgroundColor":"#0D996C1F","alignItems":"center"},["text2"]]
-["text2","Text",{"content":{"path":"/data/calendar/events/2/title"},"width":248,"fontSize":12,"fontWeight":400,"fontColor":"#E6000000","maxLines":1}]
+["text2","Text",{"content":{"path":"/data/calendar/events/2/title"},"width":248,"fontSize":12,"fontWeight":400,"fontColor":"#FF996C1F","maxLines":1}]
 ["/data/calendar/events/0/title","项目阶段性汇报"]
 ["/data/calendar/events/1/title","确认Q3设计需求"]
 ["/data/calendar/events/2/title","申请下周出差"]
@@ -1114,16 +1115,16 @@ ActionUnit——卡级 CTA：
 ```genui
 ["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFDCF8F3",0],["#FFF2FFFC",1]]}},["content"]]
 ["content","Column",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":6},["title","main"]]
-["title","Text",{"content":"手机电量","width":296,"height":17,"fontSize":12,"fontWeight":700,"fontColor":"#E6000000","maxLines":1}]
+["title","Text",{"content":"手机电量","width":296,"height":17,"fontSize":12,"fontWeight":700,"fontColor":"#FF1F9985","maxLines":1}]
 ["main","Row",{"width":296,"height":113,"itemMargin":8,"alignItems":"center"},["ringArea","info"]]
 ["ringArea","Column",{"width":144,"height":113,"justifyContent":"center","alignItems":"center"},["ringStack"]]
 ["ringStack","Stack",{"width":92,"height":92,"alignContent":"center"},["ring","ringValue"]]
 ["ring","Progress",{"type":"ring","width":92,"height":92,"strokeWidth":8,"value":{"path":"/data/phoneBattery/batterySOC"},"total":100,"color":"#FF1F9985","backgroundColor":"#1F1F9985"}]
 ["ringValue","Text",{"content":{"path":"/data/phoneBattery/batterySOCText"},"width":76,"fontSize":20,"fontWeight":700,"fontColor":"#FF1F9985","textAlign":"center","maxLines":1}]
 ["info","Column",{"width":144,"height":113,"itemMargin":4,"justifyContent":"center"},["infoTitle","level","status"]]
-["infoTitle","Text",{"content":"当前电量","width":144,"fontSize":16,"fontWeight":700,"fontColor":"#E6000000","maxLines":1}]
-["level","Text",{"content":{"path":"/data/phoneBattery/batteryCapacityLevelDesc"},"width":144,"fontSize":12,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
-["status","Text",{"content":{"path":"/data/phoneBattery/chargingStatusDesc"},"width":144,"fontSize":12,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["infoTitle","Text",{"content":"当前电量","width":144,"fontSize":16,"fontWeight":700,"fontColor":"#FF1F9985","maxLines":1}]
+["level","Text",{"content":{"path":"/data/phoneBattery/batteryCapacityLevelDesc"},"width":144,"fontSize":12,"fontWeight":400,"fontColor":"#991F9985","maxLines":1}]
+["status","Text",{"content":{"path":"/data/phoneBattery/chargingStatusDesc"},"width":144,"fontSize":12,"fontWeight":400,"fontColor":"#991F9985","maxLines":1}]
 ["/data/phoneBattery/batterySOC",68]
 ["/data/phoneBattery/batterySOCText","68%"]
 ["/data/phoneBattery/batteryCapacityLevelDesc","正常电量"]
@@ -1138,20 +1139,20 @@ ActionUnit——卡级 CTA：
 ```genui
 ["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFE1EBFC",0],["#FFF0F4FF",1]]}},["content"]]
 ["content","Column",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":8},["title","body"]]
-["title","Text",{"content":"睡眠恢复度","width":296,"height":20,"fontSize":12,"fontWeight":700,"fontColor":"#E6000000","maxLines":1}]
+["title","Text",{"content":"睡眠恢复度","width":296,"height":20,"fontSize":12,"fontWeight":700,"fontColor":"#FF1F4594","maxLines":1}]
 ["body","Column",{"width":296,"height":108,"itemMargin":8},["progressSlot","details"]]
 ["progressSlot","Column",{"width":296,"height":50,"itemMargin":4,"justifyContent":"center"},["progressText","progress"]]
 ["progressText","Row",{"width":296,"alignItems":"bottom","itemMargin":6},["score","scoreLabel"]]
 ["score","Text",{"content":"{{ ${/data/healthSport/sleepScore} + '分' }}","fontSize":20,"fontWeight":700,"fontColor":"#FF1F4594","maxLines":1}]
-["scoreLabel","Text",{"content":"睡眠综合得分","fontSize":10,"fontWeight":400,"fontColor":"#99000000","padding":{"bottom":2},"maxLines":1}]
+["scoreLabel","Text",{"content":"睡眠综合得分","fontSize":10,"fontWeight":400,"fontColor":"#991F4594","padding":{"bottom":2},"maxLines":1}]
 ["progress","Progress",{"type":"linear","width":296,"height":8,"strokeWidth":8,"borderRadius":4,"value":{"path":"/data/healthSport/sleepScore"},"total":100,"color":"#FF1F4594","backgroundColor":"#1F1F4594"}]
 ["details","Row",{"width":296,"height":50,"itemMargin":8},["night","deep"]]
 ["night","Column",{"width":144,"height":50,"padding":{"left":8,"right":8,"top":6,"bottom":6},"borderRadius":10,"backgroundColor":"#0D1F4594","itemMargin":2,"justifyContent":"center"},["nightLabel","nightValue"]]
-["nightLabel","Text",{"content":"睡眠时长","width":128,"fontSize":12,"fontWeight":700,"fontColor":"#E6000000","maxLines":1}]
-["nightValue","Text",{"content":{"path":"/data/healthSport/nightSleepDurationText"},"width":128,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["nightLabel","Text",{"content":"睡眠时长","width":128,"fontSize":12,"fontWeight":700,"fontColor":"#FF1F4594","maxLines":1}]
+["nightValue","Text",{"content":{"path":"/data/healthSport/nightSleepDurationText"},"width":128,"fontSize":10,"fontWeight":400,"fontColor":"#991F4594","maxLines":1}]
 ["deep","Column",{"width":144,"height":50,"padding":{"left":8,"right":8,"top":6,"bottom":6},"borderRadius":10,"backgroundColor":"#0D1F4594","itemMargin":2,"justifyContent":"center"},["deepLabel","deepValue"]]
-["deepLabel","Text",{"content":"深睡时长","width":128,"fontSize":12,"fontWeight":700,"fontColor":"#E6000000","maxLines":1}]
-["deepValue","Text",{"content":{"path":"/data/healthSport/deepSleepDurationText"},"width":128,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["deepLabel","Text",{"content":"深睡时长","width":128,"fontSize":12,"fontWeight":700,"fontColor":"#FF1F4594","maxLines":1}]
+["deepValue","Text",{"content":{"path":"/data/healthSport/deepSleepDurationText"},"width":128,"fontSize":10,"fontWeight":400,"fontColor":"#991F4594","maxLines":1}]
 ["/data/healthSport/sleepScore",82]
 ["/data/healthSport/nightSleepDurationText","7小时1分"]
 ["/data/healthSport/deepSleepDurationText","2小时15分"]
@@ -1230,28 +1231,28 @@ ActionUnit——卡级 CTA：
 ["phoneCell","Row",{"width":144,"height":64,"padding":12,"borderRadius":16,"backgroundColor":"#0D1F9947","justifyContent":"spaceBetween","alignItems":"center"},["phoneText","phoneRing"]]
 ["phoneText","Column",{"width":64,"itemMargin":2},["phoneValue","phoneStatus"]]
 ["phoneValue","Text",{"content":{"path":"/data/phoneBattery/batterySOCText"},"width":64,"fontSize":16,"fontWeight":700,"fontColor":"#FF1F9947","maxLines":1}]
-["phoneStatus","Text",{"content":{"path":"/data/phoneBattery/batteryCapacityLevelDesc"},"width":64,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["phoneStatus","Text",{"content":{"path":"/data/phoneBattery/batteryCapacityLevelDesc"},"width":64,"fontSize":10,"fontWeight":400,"fontColor":"#991F9947","maxLines":1}]
 ["phoneRing","Stack",{"width":40,"height":40,"alignContent":"center"},["phoneArc","phoneCore"]]
 ["phoneArc","Progress",{"type":"ring","width":40,"height":40,"strokeWidth":4,"value":{"path":"/data/phoneBattery/batterySOC"},"total":100,"color":"#FF1F9947","backgroundColor":"#331F9947"}]
 ["phoneCore","Image",{"src":"resources/base/media/phone_fill.svg","width":16,"height":16,"objectFit":"contain","fillColor":"#991F9947"}]
 ["leftCell","Row",{"width":144,"height":64,"padding":12,"borderRadius":16,"backgroundColor":"#0D1F9947","justifyContent":"spaceBetween","alignItems":"center"},["leftText","leftRing"]]
 ["leftText","Column",{"width":64,"itemMargin":2},["leftValue","leftStatus"]]
 ["leftValue","Text",{"content":"{{ ${/data/earphone/leftBatteryLevel} + '%' }}","width":64,"fontSize":16,"fontWeight":700,"fontColor":"#FF1F9947","maxLines":1}]
-["leftStatus","Text",{"content":{"path":"/data/earphone/leftChargingStatusDesc"},"width":64,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["leftStatus","Text",{"content":{"path":"/data/earphone/leftChargingStatusDesc"},"width":64,"fontSize":10,"fontWeight":400,"fontColor":"#991F9947","maxLines":1}]
 ["leftRing","Stack",{"width":40,"height":40,"alignContent":"center"},["leftArc","leftCore"]]
 ["leftArc","Progress",{"type":"ring","width":40,"height":40,"strokeWidth":4,"value":{"path":"/data/earphone/leftBatteryLevel"},"total":100,"color":"#FF1F9947","backgroundColor":"#331F9947"}]
 ["leftCore","Image",{"src":"resources/base/media/l_circle_fill.svg","width":16,"height":16,"objectFit":"contain","fillColor":"#991F9947"}]
 ["rightCell","Row",{"width":144,"height":64,"padding":12,"borderRadius":16,"backgroundColor":"#0D1F9947","justifyContent":"spaceBetween","alignItems":"center"},["rightText","rightRing"]]
 ["rightText","Column",{"width":64,"itemMargin":2},["rightValue","rightStatus"]]
 ["rightValue","Text",{"content":"{{ ${/data/earphone/rightBatteryLevel} + '%' }}","width":64,"fontSize":16,"fontWeight":700,"fontColor":"#FF1F9947","maxLines":1}]
-["rightStatus","Text",{"content":{"path":"/data/earphone/rightChargingStatusDesc"},"width":64,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["rightStatus","Text",{"content":{"path":"/data/earphone/rightChargingStatusDesc"},"width":64,"fontSize":10,"fontWeight":400,"fontColor":"#991F9947","maxLines":1}]
 ["rightRing","Stack",{"width":40,"height":40,"alignContent":"center"},["rightArc","rightCore"]]
 ["rightArc","Progress",{"type":"ring","width":40,"height":40,"strokeWidth":4,"value":{"path":"/data/earphone/rightBatteryLevel"},"total":100,"color":"#FF1F9947","backgroundColor":"#331F9947"}]
 ["rightCore","Image",{"src":"resources/base/media/r_circle_fill.svg","width":16,"height":16,"objectFit":"contain","fillColor":"#991F9947"}]
 ["caseCell","Row",{"width":144,"height":64,"padding":12,"borderRadius":16,"backgroundColor":"#0D1F9947","justifyContent":"spaceBetween","alignItems":"center"},["caseText","caseRing"]]
 ["caseText","Column",{"width":64,"itemMargin":2},["caseValue","caseStatus"]]
 ["caseValue","Text",{"content":"{{ ${/data/earphone/batteryLevel} + '%' }}","width":64,"fontSize":16,"fontWeight":700,"fontColor":"#FF1F9947","maxLines":1}]
-["caseStatus","Text",{"content":{"path":"/data/earphone/chargingStatusDesc"},"width":64,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["caseStatus","Text",{"content":{"path":"/data/earphone/chargingStatusDesc"},"width":64,"fontSize":10,"fontWeight":400,"fontColor":"#991F9947","maxLines":1}]
 ["caseRing","Stack",{"width":40,"height":40,"alignContent":"center"},["caseArc","caseCore"]]
 ["caseArc","Progress",{"type":"ring","width":40,"height":40,"strokeWidth":4,"value":{"path":"/data/earphone/batteryLevel"},"total":100,"color":"#FF1F9947","backgroundColor":"#331F9947"}]
 ["caseCore","Image",{"src":"resources/base/media/earphone_case_16644.svg","width":16,"height":16,"objectFit":"contain","fillColor":"#991F9947"}]
@@ -1274,12 +1275,12 @@ ActionUnit——卡级 CTA：
 ```genui
 ["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFFFF0D8",0],["#FFFFF9EF",1]]}},["content"]]
 ["content","Column",{"width":"matchParent","height":"matchParent","padding":12,"justifyContent":"start"},["kicker","lower"]]
-["kicker","Text",{"content":"日程安排","width":296,"fontSize":12,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["kicker","Text",{"content":"日程安排","width":296,"fontSize":12,"fontWeight":400,"fontColor":"#99996C1F","maxLines":1}]
 ["event","Column",{"width":296,"height":76,"itemMargin":6,"justifyContent":"end"},["eventTitle","eventDesc"]]
 ["eventTitle","Text",{"content":{"path":"/data/calendar/events/0/title"},"width":296,"fontSize":24,"fontWeight":700,"fontColor":"#FF996C1F","maxLines":1}]
-["eventDesc","Text",{"content":{"path":"/data/calendar/events/0/description"},"width":296,"height":34,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":2}]
+["eventDesc","Text",{"content":{"path":"/data/calendar/events/0/description"},"width":296,"height":34,"fontSize":10,"fontWeight":400,"fontColor":"#99996C1F","maxLines":2}]
 ["lower","Column",{"width":296,"height":113,"justifyContent":"end"},["event","date"]]
-["date","Text",{"content":{"path":"/data/calendar/events/0/startDate"},"width":296,"fontSize":10,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["date","Text",{"content":{"path":"/data/calendar/events/0/startDate"},"width":296,"fontSize":10,"fontWeight":400,"fontColor":"#99996C1F","maxLines":1}]
 ["/data/calendar/events/0/title","需求评审会"]
 ["/data/calendar/events/0/description","评审卡片数据接口与视觉还原结果"]
 ["/data/calendar/events/0/startDate","12-18"]
@@ -1293,10 +1294,10 @@ ActionUnit——卡级 CTA：
 ```genui
 ["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFFFF0D8",0],["#FFFFF9EF",1]]}},["content"]]
 ["content","Column",{"width":"matchParent","height":"matchParent","padding":12,"justifyContent":"spaceBetween"},["kicker","event","actions"]]
-["kicker","Text",{"content":"下一个日程","width":296,"fontSize":12,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["kicker","Text",{"content":"下一个日程","width":296,"fontSize":12,"fontWeight":400,"fontColor":"#99996C1F","maxLines":1}]
 ["event","Column",{"width":296,"height":48,"itemMargin":4},["eventName","eventTime"]]
 ["eventName","Text",{"content":"{{ ${/data/calendar/events/0/title} + '·' + ${/data/calendar/events/0/eventLocation} }}","width":296,"fontSize":18,"fontWeight":700,"fontColor":"#FF996C1F","maxLines":1}]
-["eventTime","Text",{"content":"{{ ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} }}","width":296,"fontSize":12,"fontWeight":400,"fontColor":"#99000000","maxLines":1}]
+["eventTime","Text",{"content":"{{ ${/data/calendar/events/0/dtStart} + ' - ' + ${/data/calendar/events/0/dtEnd} }}","width":296,"fontSize":12,"fontWeight":400,"fontColor":"#99996C1F","maxLines":1}]
 ["actions","Row",{"width":296,"height":36,"justifyContent":"spaceBetween"},["calendarButton","focusButton"]]
 ["calendarButton","Button",{"label":"查看日程","width":140,"height":36,"borderRadius":18,"backgroundColor":"#FFF0DCB8","fontColor":"#FF7A4F0F","fontSize":12,"fontWeight":500,"onClick":[{"call":"clickToIntent","args":{"intentName":"ViewCalendarEvent","params":{"entityId":"{{ ${/data/calendar/events/0/entityId} }}"}}}]}]
 ["focusButton","Button",{"label":"专注模式","width":140,"height":36,"borderRadius":18,"backgroundColor":"#FFF0DCB8","fontColor":"#FF7A4F0F","fontSize":12,"fontWeight":500,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"intelligent_scene_entry"}}]}]

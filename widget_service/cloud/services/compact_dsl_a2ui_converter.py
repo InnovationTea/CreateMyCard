@@ -434,7 +434,7 @@ _TEXT_DESIGNS: dict[str, dict[str, Any]] = {
     "body-regular-sm": {"fontSize": 12, "fontWeight": 400},
     "caption-emphasis": {"fontSize": 12, "fontWeight": 500},
     "caption-regular": {"fontSize": 10, "fontWeight": 500},
-    "card-header-title": {"fontSize": 14, "fontWeight": 500},
+    "card-header-title": {"fontSize": 12, "fontWeight": 400},
     "metric-hero-value": {"fontSize": 28, "fontWeight": 700},
     "metric-hero-unit": {"fontSize": 12, "fontWeight": 400},
     "metadata-secondary": {"fontSize": 12, "fontWeight": 400},
