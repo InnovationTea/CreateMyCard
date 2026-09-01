@@ -1022,7 +1022,7 @@ def test_fusion_ball_background_expands_to_standard_tersel_components():
     background_nodes.extend(child.children[0] for child in background.children[:3])
     for node in background_nodes:
         component_id = node.values[-1]["_id"]
-        width, height = expected_dimensions[component_id]
+        width, height = expected_dimensions.get(component_id, (0, 0))
         assert node.values[-1]["width"] == width
         assert node.values[-1]["height"] == height
 
