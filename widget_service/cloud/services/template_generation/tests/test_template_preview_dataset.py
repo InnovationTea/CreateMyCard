@@ -16,18 +16,18 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     manifest = write_template_preview_dataset(tmp_path)
     cases = manifest["cases"]
 
-    assert manifest["templateCount"] == 87
+    assert manifest["templateCount"] == 88
     assert manifest["countsByLayout"] == {
         "Support": 19,
         "Compact": 17,
         "Hero": 18,
         "Full": 20,
-        "WideHero": 2,
+        "WideHero": 3,
         "WideFull": 11,
     }
-    assert manifest["countsBySize"] == {"2x2": 74, "2x4": 13}
-    assert len(cases) == 87
-    assert len({case["templateId"] for case in cases}) == 87
+    assert manifest["countsBySize"] == {"2x2": 74, "2x4": 14}
+    assert len(cases) == 88
+    assert len({case["templateId"] for case in cases}) == 88
     assert all((tmp_path / case["file"]).is_file() for case in cases)
 
 
@@ -44,6 +44,60 @@ def test_template_preview_a2ui_has_surface_components_and_data():
         assert root["component"] == "Column"
         slot = next(component for component in components if component["id"] == "root_0")
         assert slot["styles"]["height"] == case.content_height_vp
+
+
+def test_bluetooth_complete_wide_hero_matches_q038_visual_contract():
+    cases = build_template_preview_cases()
+    case = next(
+        item
+        for item in cases
+        if item.template_id == "BluetoothDeviceOverviewCompleteWideHero@1"
+    )
+
+    assert case.layout_kind == "WideHero"
+    assert case.size == "2x4"
+    assert case.content_height_vp == 124
+    assert case.primary_data == (
+        "/isConnected",
+        "/earphoneName",
+        "/batteryLevel",
+        "/leftBatteryLevel",
+        "/rightBatteryLevel",
+    )
+    assert case.secondary_data == (
+        "/chargingStatusDesc",
+        "/leftChargingStatusDesc",
+        "/rightChargingStatusDesc",
+    )
+    components = case.messages[1]["updateComponents"]["components"]
+    component_by_id = {component["id"]: component for component in components}
+    assert component_by_id["root_0_0_0"]["styles"]["height"] == 32
+    assert component_by_id["root_0_0_0_0"]["styles"]["fontSize"] == 16
+    assert component_by_id["root_0_0_0_1"]["styles"]["fontSize"] == 10
+    assert component_by_id["root_0_0_1"]["styles"]["height"] == 72
+    progress_components = [
+        component
+        for component in components
+        if component.get("component") == "Progress"
+    ]
+    assert len(progress_components) == 3
+    assert all(
+        component["styles"]["type"] == "ring"
+        for component in progress_components
+    )
+    assert all(
+        component["styles"]["width"] == 40
+        for component in progress_components
+    )
+    assert all(
+        component["styles"]["height"] == 40
+        for component in progress_components
+    )
+    assert [component["value"] for component in progress_components] == [
+        "{{ ${/data/earphone/leftBatteryLevel} }}",
+        "{{ ${/data/earphone/rightBatteryLevel} }}",
+        "{{ ${/data/earphone/batteryLevel} }}",
+    ]
 
 
 def test_template_preview_assets_are_bundled_by_genui_evaluation():

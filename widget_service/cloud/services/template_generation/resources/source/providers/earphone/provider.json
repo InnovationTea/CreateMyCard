@@ -32,6 +32,26 @@
       "optionalData": []
     },
     {
+      "templateId": "BluetoothDeviceOverviewCompleteWideHero@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "耳机完整 WideHero，左上展示名称和连接状态，居中以左耳、右耳、耳机盒三个环形进度展示电量及充电状态；用于 2x4 WideHero 加一个 PillAction。",
+      "entry": "templates/bluetooth-device-overview.cardtpl",
+      "primaryData": [
+        "/isConnected",
+        "/earphoneName",
+        "/batteryLevel",
+        "/leftBatteryLevel",
+        "/rightBatteryLevel"
+      ],
+      "secondaryData": [
+        "/chargingStatusDesc",
+        "/leftChargingStatusDesc",
+        "/rightChargingStatusDesc"
+      ],
+      "optionalData": []
+    },
+    {
       "templateId": "BluetoothDeviceOverviewCaseStatusCompact@1",
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
