@@ -1,4 +1,4 @@
-"""PR #176 review follow-up tests for request and fusion-ball version handling."""
+"""PR #176 review follow-up tests for fusion-ball version and palette handling."""
 
 from __future__ import annotations
 
@@ -14,7 +14,9 @@ from models.generation import TaskSpec
 from services.compact_dsl_a2ui_converter import convert_compact_dsl_to_a2ui
 from services.fusion_ball_expander import (
     FUSION_BALL_MIN_PRD_VERSION_CONFIG,
+    FusionBallPalette,
     fusion_ball_enabled,
+    fusion_ball_palette_for_root,
 )
 from services.generation_pipeline import (
     DslProcessingContext,
@@ -99,6 +101,54 @@ def test_fusion_ball_gate_fails_closed_for_invalid_config(
     monkeypatch.setattr(get_settings(), "CONFIG", config)
 
     assert fusion_ball_enabled(_DEFAULT_APP_VERSION) is False
+
+
+@pytest.mark.parametrize(
+    ("design_token", "expected_palette"),
+    [
+        (
+            "fusion-ball-schedule-cool",
+            FusionBallPalette("#FF121E59", "#FF2BA2D9", "#FF52CCCC"),
+        ),
+        (
+            "fusion-ball-schedule-warm",
+            FusionBallPalette("#FF731D28", "#FFFF5533", "#FFE68A2E"),
+        ),
+        (
+            "fusion-ball-sleep-violet",
+            FusionBallPalette("#FF2B2459", "#FF572BD9", "#FFB398D9"),
+        ),
+        (
+            "fusion-ball-sport-orange",
+            FusionBallPalette("#FFB33C24", "#FFFF8833", "#FFFAA89E"),
+        ),
+    ],
+)
+def test_fusion_ball_design_tokens_use_fixed_palettes(
+    monkeypatch: pytest.MonkeyPatch,
+    design_token: str,
+    expected_palette: FusionBallPalette,
+) -> None:
+    monkeypatch.setattr(
+        get_settings(),
+        "CONFIG",
+        {FUSION_BALL_MIN_PRD_VERSION_CONFIG: "11.7.5.206"},
+    )
+    components = [
+        {
+            "component_id": "root",
+            "component_type": "Column",
+            "props": {"design": design_token},
+        },
+    ]
+
+    palette = fusion_ball_palette_for_root(
+        components,
+        size="2x2",
+        app_version=_DEFAULT_APP_VERSION,
+    )
+
+    assert palette == expected_palette
 
 
 def test_converter_reads_app_version_from_protocol_profile(
