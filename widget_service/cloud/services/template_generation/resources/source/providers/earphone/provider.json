@@ -32,22 +32,6 @@
       "optionalData": []
     },
     {
-      "templateId": "BluetoothDeviceOverviewCaseStatusCompact@1",
-      "businessId": "BluetoothDeviceOverview",
-      "capabilityId": "GetEarphoneInfo",
-      "description": "耳机盒状态 Compact，展示盒电量与充电状态，可选左右耳充电状态。",
-      "entry": "templates/bluetooth-device-overview.cardtpl",
-      "primaryData": [
-        "/batteryLevel",
-        "/chargingStatusDesc"
-      ],
-      "secondaryData": [],
-      "optionalData": [
-        "/leftChargingStatusDesc",
-        "/rightChargingStatusDesc"
-      ]
-    },
-    {
       "templateId": "BluetoothDeviceOverviewEarbudsPhoneWideFull@1",
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",

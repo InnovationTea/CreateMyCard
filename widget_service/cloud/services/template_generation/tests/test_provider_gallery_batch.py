@@ -200,7 +200,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
 
     assert not stale_input.exists()
     assert len(manifest.providers) == 8
-    assert sum(len(provider.cases) for provider in manifest.providers) == 108
+    assert sum(len(provider.cases) for provider in manifest.providers) == 96
     scenario_ids = {
         case.scenarioId
         for provider in manifest.providers
@@ -295,7 +295,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 100
+    assert len(targeted_cases) == 88
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -374,18 +374,6 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         (input_root / calendar_date.requestFile).read_text(encoding="utf-8")
     )
     assert calendar_date_request["content"]["candidateAssetIds"] == []
-    earphone_case_status = _find_case(
-        manifest,
-        "BluetoothDeviceOverview",
-        "single-two-actions",
-        "BluetoothDeviceOverviewCaseStatusCompact@1",
-    )
-    earphone_case_status_request = json.loads(
-        (input_root / earphone_case_status.requestFile).read_text(encoding="utf-8")
-    )
-    assert earphone_case_status_request["content"]["candidateAssetIds"] == [
-        "asset.earphone_case_16644"
-    ]
 
 
 def test_gallery_inputs_mark_missing_layout_families(tmp_path: Path) -> None:
@@ -542,10 +530,10 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 108
+    assert summary.total == 96
     assert summary.failed == 0
     assert summary.missing == 18
-    assert summary.not_generated == 90
+    assert summary.not_generated == 78
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 8
