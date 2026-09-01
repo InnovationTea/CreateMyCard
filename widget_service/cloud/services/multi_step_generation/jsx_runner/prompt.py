@@ -29,10 +29,16 @@ def build_system_prompt(
             '"2x2" 对应 160x160vp，"2x4" 对应 320x160vp。'
         )
     validation_rule = (
-        "- JSX 提交后会立即经过语法、组件合同、资源、交互引用和静态布局校验；"
-        "Runner 启用浏览器校验时，会追加真实渲染检查。若工具返回错误，必须按 findings 修复并重新提交。"
+        (
+            "- JSX 提交后会立即经过语法、组件合同、资源、交互引用和静态布局校验；"
+            "Runner 启用浏览器校验时，会追加真实渲染检查。"
+            "若工具返回错误，必须按 findings 修复并重新提交。"
+        )
         if validation_enabled
-        else "- 本次运行只接受第一次 JSX 提交，不会返回校验 findings 或安排修复轮次；请确保首次提交满足已读取合同。"
+        else (
+            "- 本次运行只接受第一次 JSX 提交，不会返回校验 findings 或安排修复轮次；"
+            "请确保首次提交满足已读取合同。"
+        )
     )
     lines = (
         "你是鸿蒙桌面卡片生成 Agent。你需要理解任务数据，选择必要信息和设计系统组件，"
@@ -55,7 +61,8 @@ def build_system_prompt(
         "候选列表为空时不得输出资源属性。",
         "- 使用输入中的真实值，不虚构数据；交互信息只能通过输入 `actions` 中已有的 "
         "`actionId` 表达，不添加其他交互属性。",
-        "- Progress、ProgressCircle 等进度组件只能表达输入提供的明确可量化数据，并绑定对应数值字段；"
+        "- Progress、ProgressCircle 等进度组件只能表达输入提供的明确可量化数据，"
+        "并绑定对应数值字段；"
         "只有“正常、健康、已连接”等状态描述时应使用文本组件，不得编造进度值。",
         "- `actions` 是候选动作列表；每个控件最多选择一个 `actionId`，"
         "同一 `actionId` 在一张卡片中最多使用一次。",
@@ -72,4 +79,5 @@ def build_system_prompt(
 
 
 def build_user_prompt(task: dict[str, Any]) -> str:
-    return "请按规定工具工作流，为以下输入生成一张卡片：\n\n" + json.dumps(task, ensure_ascii=False, indent=2)
+    task_json = json.dumps(task, ensure_ascii=False, indent=2)
+    return "请按规定工具工作流，为以下输入生成一张卡片：\n\n" + task_json
