@@ -19,16 +19,22 @@ def convert_progress_circle_single(node: JSXElement, ctx: ConversionContext) -> 
     value_binding = ctx.bound_data(node.props, "value")
     numeric_value = normalize_percentage_value(raw_value)
     if numeric_value is None:
-        raise ValidationError("<ProgressCircleSingle> value must be a number or numeric percentage such as 68 or '68%'")
+        raise ValidationError(
+            "<ProgressCircleSingle> value must be a number or numeric percentage "
+            "such as 68 or '68%'"
+        )
+    derived_root = None
     if value_binding is not None and isinstance(value_binding.value, str):
         derived_root, plan = ctx.register_derived_display(value_binding)
         if normalize_percentage_value(plan.raw) is None:
             raise ValidationError(
-                "<ProgressCircleSingle> bound value must be a number or numeric percentage such as 68 or '68%'"
+                "<ProgressCircleSingle> bound value must be a number or numeric "
+                "percentage such as 68 or '68%'"
             )
         progress_value = {"path": f"{derived_root}/progressValue"}
     elif value_binding is not None:
         progress_value = value
+        derived_root, _ = ctx.register_derived_display(value_binding)
     else:
         progress_value = numeric_value
     current_palette = palette(ctx)
@@ -42,7 +48,11 @@ def convert_progress_circle_single(node: JSXElement, ctx: ConversionContext) -> 
         icon_size=20,
         hint="single_ring",
         aria_label=node.props.get("ariaLabel"),
-        bar_color=current_palette.progress_bar if card_mode else node.props.get("barColor") or "#FF64BB5C",
+        bar_color=(
+            current_palette.progress_bar
+            if card_mode
+            else node.props.get("barColor") or "#FF64BB5C"
+        ),
         track_color=current_palette.progress_track if card_mode else node.props.get("trackColor"),
         icon_color=current_palette.progress_icon if card_mode else None,
     )
@@ -57,7 +67,12 @@ def convert_progress_circle_single(node: JSXElement, ctx: ConversionContext) -> 
     data_ids = node.props.get("dataIds")
     value_is_bound = isinstance(data_ids, dict) and "value" in data_ids
     if "displayValue" in node.props:
-        value_text = text(ctx, "ring_display_value", ctx.prop(node, "displayValue"), styles=value_styles)
+        value_text = text(
+            ctx,
+            "ring_display_value",
+            ctx.prop(node, "displayValue"),
+            styles=value_styles,
+        )
     elif is_formatted_percentage(raw_value):
         value_text = text(
             ctx,
@@ -66,18 +81,26 @@ def convert_progress_circle_single(node: JSXElement, ctx: ConversionContext) -> 
             styles=value_styles,
         )
     elif value_is_bound:
+        display_number = value
+        if derived_root is not None:
+            display_number = {"path": f"{derived_root}/visiblePercentage"}
         value_text = row(
             ctx,
             "ring_display_value",
             [
-                text(ctx, "ring_display_number", value, styles=value_styles),
+                text(ctx, "ring_display_number", display_number, styles=value_styles),
                 text(ctx, "ring_display_unit", "%", styles=value_styles),
             ],
             gap=0,
             styles={"height": value_styles["height"], "alignItems": "center", "flexShrink": 0},
         )
     else:
-        value_text = text(ctx, "ring_display_value", f"{math.trunc(raw_value)}%", styles=value_styles)
+        value_text = text(
+            ctx,
+            "ring_display_value",
+            f"{math.trunc(raw_value)}%",
+            styles=value_styles,
+        )
     label = text(
         ctx,
         "ring_label",
@@ -118,7 +141,11 @@ def convert_progress_circle_single(node: JSXElement, ctx: ConversionContext) -> 
             "flexShrink": 0,
         },
     )
-    props = {"accessibility": accessibility(node.props.get("ariaLabel"))} if node.props.get("ariaLabel") else {}
+    props = (
+        {"accessibility": accessibility(node.props.get("ariaLabel"))}
+        if node.props.get("ariaLabel")
+        else {}
+    )
     return row(
         ctx,
         "progress_circle_single",

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import copy
+import math
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from ..exceptions import ValidationError
-
 
 # Keep this list intentionally explicit.  A full match is safer than guessing
 # that arbitrary copy surrounding a number is a unit.
@@ -51,6 +52,11 @@ class DisplayPlan:
         progress_value = normalize_percentage_value(self.raw)
         if progress_value is not None:
             result["progressValue"] = progress_value
+            # JSX percentage components use Math.trunc() for visible numeric
+            # text while retaining the original precision for progress bars.
+            # Keep both forms in the derived model so A2UI can bind each use
+            # to one ordinary path without a FunctionCall.
+            result["visiblePercentage"] = math.trunc(progress_value)
         return result
 
     @property
@@ -108,7 +114,7 @@ def normalize_percentage_value(raw_value: Any) -> int | float | None:
     """
     if isinstance(raw_value, bool):
         return None
-    if isinstance(raw_value, (int, float)):
+    if isinstance(raw_value, int | float):
         number = float(raw_value)
     elif isinstance(raw_value, str):
         match = _PERCENTAGE_VALUE_PATTERN.fullmatch(raw_value)
@@ -134,7 +140,9 @@ def derived_path_for_source(source_path: str) -> str:
 
 def _pointer_segments(path: str) -> list[str]:
     if not isinstance(path, str) or not path.startswith("/") or path == "/":
-        raise ValidationError(f"data path must be an absolute non-root JSON Pointer; found {path!r}")
+        raise ValidationError(
+            f"data path must be an absolute non-root JSON Pointer; found {path!r}"
+        )
     segments: list[str] = []
     for raw in path[1:].split("/"):
         if re.search(r"~(?![01])", raw):
@@ -160,7 +168,7 @@ def set_pointer_value(root: dict[str, Any], path: str, value: Any) -> None:
                 return
             if node[item_index] is None:
                 node[item_index] = [] if segments[index + 1].isdigit() else {}
-            elif not isinstance(node[item_index], (dict, list)):
+            elif not isinstance(node[item_index], dict | list):
                 raise ValidationError(f"data path conflicts with a scalar parent at {path!r}")
             node = node[item_index]
             continue
@@ -172,7 +180,7 @@ def set_pointer_value(root: dict[str, Any], path: str, value: Any) -> None:
             return
         if segment not in node:
             node[segment] = [] if segments[index + 1].isdigit() else {}
-        elif not isinstance(node[segment], (dict, list)):
+        elif not isinstance(node[segment], dict | list):
             raise ValidationError(f"data path conflicts with a scalar parent at {path!r}")
         node = node[segment]
 

@@ -19,13 +19,27 @@ def jsx_prop_element(node: JSXElement, name: str, *, required: bool = False) -> 
     return value
 
 
-def convert_slot(node: JSXElement, name: str, ctx: ConversionContext, *, required: bool = False) -> A2UINode | None:
+def convert_slot(
+    node: JSXElement,
+    name: str,
+    ctx: ConversionContext,
+    *,
+    required: bool = False,
+) -> A2UINode | None:
     value = jsx_prop_element(node, name, required=required)
     return ctx.convert(value) if value is not None else None
 
 
 def palette(ctx: ConversionContext):
     return get_appearance(ctx.appearance)
+
+
+def color_with_opacity(color: str, opacity: float) -> str:
+    """Apply component opacity to one #AARRGGBB protocol color."""
+    if len(color) != 9 or not color.startswith("#"):
+        raise ValidationError(f"cannot apply opacity to invalid A2UI color {color!r}")
+    alpha = round(int(color[1:3], 16) * opacity)
+    return f"#{alpha:02X}{color[3:]}"
 
 
 def accessibility(label: Any) -> None:

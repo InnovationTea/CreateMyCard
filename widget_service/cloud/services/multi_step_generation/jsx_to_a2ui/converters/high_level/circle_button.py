@@ -5,7 +5,7 @@ from ...ir.a2ui_nodes import A2UINode, ConversionContext
 from ...parser.jsx_ast import JSXElement
 from ..base.image import image
 from ..base.layout import stack
-from ..common import accessibility, palette
+from ..common import accessibility, color_with_opacity, palette
 
 
 def _colors(node: JSXElement, ctx: ConversionContext) -> tuple[str, str]:
@@ -21,6 +21,9 @@ def _colors(node: JSXElement, ctx: ConversionContext) -> tuple[str, str]:
 
 def convert_circle_button(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     background, foreground = _colors(node, ctx)
+    if node.props.get("disabled"):
+        background = color_with_opacity(background, 0.4)
+        foreground = color_with_opacity(foreground, 0.4)
     icon = image(
         ctx,
         "circle_button_icon",
@@ -36,5 +39,11 @@ def convert_circle_button(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         [icon],
         align="center",
         props=props,
-        styles={"width": 36, "height": 36, "borderRadius": 18, "backgroundColor": background, "flexShrink": 0},
+        styles={
+            "width": 36,
+            "height": 36,
+            "borderRadius": 18,
+            "backgroundColor": background,
+            "flexShrink": 0,
+        },
     )

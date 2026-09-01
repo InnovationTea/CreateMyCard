@@ -21,7 +21,9 @@ def collect_table_text_conversion_errors(node: JSXElement) -> list[str]:
         if not isinstance(item.get("label"), str) or not item["label"].strip():
             errors.append(f"{where}.label must be a non-empty string")
         parameter = item.get("parameter")
-        if isinstance(parameter, bool) or not isinstance(parameter, (str, int, float)):
+        if isinstance(parameter, bool) or not isinstance(
+            parameter, str | int | float
+        ):
             errors.append(f"{where}.parameter must be a string or number")
     return errors
 
@@ -50,7 +52,6 @@ def convert_table_text(node: JSXElement, ctx: ConversionContext) -> A2UINode:
                 "fontColor": palette(ctx).secondary,
                 "maxLines": 1,
                 "textOverflow": "ellipsis",
-                "layoutWeight": 1,
                 "flexShrink": 1,
                 "constraintSize": {"minWidth": 0},
             },
@@ -68,7 +69,7 @@ def convert_table_text(node: JSXElement, ctx: ConversionContext) -> A2UINode:
                 "maxLines": 1,
                 "textOverflow": "ellipsis",
                 "flexShrink": 1,
-                "constraintSize": {"minWidth": 0},
+                "constraintSize": {"minWidth": 0, "maxWidth": "70%"},
             },
         )
         rows.append(

@@ -12,7 +12,7 @@ from ..common import palette
 def collect_numeric_ratio_conversion_errors(node: JSXElement) -> list[str]:
     errors: list[str] = []
     raw_value = node.props.get("value")
-    if isinstance(raw_value, bool) or not isinstance(raw_value, (str, int, float)):
+    if isinstance(raw_value, bool) or not isinstance(raw_value, str | int | float):
         errors.append("NumericRatio.value must be a string or number")
     unit = node.props.get("unit")
     if unit is not None and not isinstance(unit, str):
@@ -27,7 +27,7 @@ def convert_numeric_ratio(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     raw_value = node.props.get("value")
     unit = node.props.get("unit")
     if unit is None:
-        unit = "%" if isinstance(raw_value, (int, float)) else ""
+        unit = "%" if isinstance(raw_value, int | float) else ""
     icon_image = image(
         ctx,
         "ratio_icon_image",
@@ -49,7 +49,16 @@ def convert_numeric_ratio(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         "maxLines": 1,
         "flexShrink": 0,
     }
-    value = text(ctx, "ratio_value", ctx.prop(node, "value"), styles=text_styles)
+    value_binding = ctx.bound_data(node.props, "value")
+    display_value = ctx.prop(node, "value")
+    if (
+        value_binding is not None
+        and isinstance(value_binding.value, int | float)
+        and not isinstance(value_binding.value, bool)
+    ):
+        derived_root, _ = ctx.register_derived_display(value_binding)
+        display_value = {"path": f"{derived_root}/visiblePercentage"}
+    value = text(ctx, "ratio_value", display_value, styles=text_styles)
     value_children = [value]
     if unit:
         value_children.append(text(ctx, "ratio_unit", unit, styles=text_styles))
@@ -60,4 +69,10 @@ def convert_numeric_ratio(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         gap=0,
         styles={"height": 16, "alignItems": "center", "flexShrink": 1},
     )
-    return row(ctx, "numeric_ratio", [icon, value_group], gap=4, styles={"height": 16, "alignItems": "center"})
+    return row(
+        ctx,
+        "numeric_ratio",
+        [icon, value_group],
+        gap=4,
+        styles={"height": 16, "alignItems": "center"},
+    )

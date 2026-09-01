@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from ...catalog.display_values import (
+    normalize_display_value,
+    normalize_percentage_value,
+)
 from ...exceptions import ValidationError
-from ...catalog.display_values import normalize_display_value
 from ...ir.a2ui_nodes import A2UINode, ConversionContext
 from ...parser.jsx_ast import JSXElement
 from ..base.layout import row
@@ -39,12 +42,18 @@ def convert_emphasized_data(
     def derived_items(binding) -> list[dict]:
         root_path, plan = ctx.register_derived_display(binding)
         result = []
+        wrappable_raw_text = (
+            plan.mode == "raw"
+            and isinstance(plan.raw, str)
+            and normalize_percentage_value(plan.raw) is None
+        )
         for index, part in enumerate(plan.parts):
             part_path = f"{root_path}/parts/{index}"
             result.append(
                 {
                     "value": {"path": f"{part_path}/value"},
                     "unit": ({"path": f"{part_path}/unit"} if part.unit is not None else None),
+                    "wrappableRawText": wrappable_raw_text,
                 }
             )
         return result
@@ -56,11 +65,18 @@ def convert_emphasized_data(
         # preserve them when the value itself has no formatted unit.
         if plan.mode == "raw" and isinstance(data_ids, dict) and "unit" in data_ids:
             if item_index is None:
-                return [{"value": ctx.prop(node, "value"), "unit": ctx.prop(node, "unit")}]
+                return [
+                    {
+                        "value": ctx.prop(node, "value"),
+                        "unit": ctx.prop(node, "unit"),
+                        "wrappableRawText": False,
+                    }
+                ]
             return [
                 {
                     "value": ctx.item_prop(node.tag, owner, item_index, "value"),
                     "unit": ctx.item_prop(node.tag, owner, item_index, "unit"),
+                    "wrappableRawText": False,
                 }
             ]
         return derived_items(binding)
@@ -70,8 +86,31 @@ def convert_emphasized_data(
         if isinstance(value, str):
             plan = normalize_display_value(value)
             if plan.mode == "parts":
-                return [{"value": part.value, "unit": part.unit} for part in plan.parts]
-        return [{"value": value, "unit": owner.get("unit")}]
+                return [
+                    {
+                        "value": part.value,
+                        "unit": part.unit,
+                        "wrappableRawText": False,
+                    }
+                    for part in plan.parts
+                ]
+            unit = owner.get("unit")
+            return [
+                {
+                    "value": value,
+                    "unit": unit,
+                    "wrappableRawText": (
+                        unit is None and normalize_percentage_value(value) is None
+                    ),
+                }
+            ]
+        return [
+            {
+                "value": value,
+                "unit": owner.get("unit"),
+                "wrappableRawText": False,
+            }
+        ]
 
     raw_items = node.props.get("items")
     items: list[dict] = []
@@ -82,7 +121,13 @@ def convert_emphasized_data(
         elif value_binding is None:
             items.extend(literal_items(node.props))
         else:
-            items.append({"value": ctx.prop(node, "value"), "unit": ctx.prop(node, "unit")})
+            items.append(
+                {
+                    "value": ctx.prop(node, "value"),
+                    "unit": ctx.prop(node, "unit"),
+                    "wrappableRawText": False,
+                }
+            )
     else:
         for index, item in enumerate(raw_items):
             value_binding = ctx.bound_data(item, "value")
@@ -95,26 +140,45 @@ def convert_emphasized_data(
                     {
                         "value": ctx.item_prop(node.tag, item, index, "value"),
                         "unit": ctx.item_prop(node.tag, item, index, "unit"),
+                        "wrappableRawText": False,
                     }
                 )
+    wraps_single_raw_text = (
+        len(items) == 1
+        and items[0].get("wrappableRawText") is True
+        and items[0].get("unit") is None
+    )
     children = []
     for index, item in enumerate(items):
+        value_styles = {
+            "fontSize": 38,
+            "fontWeight": 700,
+            "fontColor": palette(ctx).primary,
+        }
+        if wraps_single_raw_text:
+            value_styles.update(
+                {
+                    "width": "matchParent",
+                    "constraintSize": {"minWidth": 0, "minHeight": value_height},
+                    "flexShrink": 1,
+                }
+            )
+        else:
+            value_styles.update(
+                {
+                    "height": value_height,
+                    # Numeric and structured values are atomic. This prevents
+                    # values such as 29 from splitting across two lines.
+                    "maxLines": 1,
+                    "flexShrink": 0,
+                }
+            )
         children.append(
             text(
                 ctx,
                 f"emphasized_value_{index + 1}",
                 item.get("value"),
-                styles={
-                    "height": value_height,
-                    "fontSize": 38,
-                    "fontWeight": 700,
-                    "fontColor": palette(ctx).primary,
-                    # JSX renders each emphasized value as one non-wrapping flex item.
-                    # Let adjacent descriptive text wrap instead of splitting an
-                    # atomic value such as 29 into separate lines.
-                    "maxLines": 1,
-                    "flexShrink": 0,
-                },
+                styles=value_styles,
             )
         )
         if item.get("unit") is not None:
@@ -140,13 +204,22 @@ def convert_emphasized_data(
                     styles=unit_styles,
                 )
             )
+    row_styles = {
+        "alignItems": "bottom",
+        "flexShrink": 0,
+    }
+    if wraps_single_raw_text:
+        row_styles.update(
+            {
+                "width": "matchParent",
+                "constraintSize": {"minWidth": 0},
+                "flexShrink": 1,
+            }
+        )
     return row(
         ctx,
         "emphasized_data",
         children,
         gap=2,
-        styles={
-            "alignItems": "bottom",
-            "flexShrink": 0,
-        },
+        styles=row_styles,
     )
