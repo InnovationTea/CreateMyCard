@@ -1008,6 +1008,53 @@ def test_fusion_ball_background_expands_to_standard_tersel_components():
         for child in background.children[:3]
     )
     assert ball_colors == _WEATHER_PALETTE
+    expected_dimensions = {
+        "fusionBallBackground": ("100%", "100%"),
+        "fusionBallLargeSlot": ("112.5%", "27.5%"),
+        "fusionBallLarge": ("116.666667%", "477.272727%"),
+        "fusionBallMediumSlot": ("50%", "137.5%"),
+        "fusionBallMedium": ("200%", "72.727273%"),
+        "fusionBallSmallSlot": ("121.875%", "118.75%"),
+        "fusionBallSmall": ("51.282051%", "52.631579%"),
+        "fusionBallGlassLayer": ("100%", "100%"),
+    }
+    background_nodes = [background, *background.children]
+    background_nodes.extend(child.children[0] for child in background.children[:3])
+    for node in background_nodes:
+        component_id = node.values[-1]["_id"]
+        width, height = expected_dimensions[component_id]
+        assert node.values[-1]["width"] == width
+        assert node.values[-1]["height"] == height
+
+
+@pytest.mark.parametrize(
+    ("slot_id", "ball_id", "diameter"),
+    [
+        ("fusionBallLargeSlot", "fusionBallLarge", 210),
+        ("fusionBallMediumSlot", "fusionBallMedium", 160),
+        ("fusionBallSmallSlot", "fusionBallSmall", 100),
+    ],
+)
+def test_fusion_ball_child_percentages_resolve_against_the_direct_slot(
+    slot_id: str,
+    ball_id: str,
+    diameter: int,
+) -> None:
+    background = build_fusion_ball_background(FusionBallPalette(*_WEATHER_PALETTE))
+    nodes = {node.values[-1]["_id"]: node for node in background.children}
+    nodes.update({
+        child.children[0].values[-1]["_id"]: child.children[0]
+        for child in background.children[:3]
+    })
+    slot_styles = nodes[slot_id].values[-1]
+    ball_styles = nodes[ball_id].values[-1]
+    slot_width_ratio = float(slot_styles["width"].removesuffix("%")) / 100
+    slot_height_ratio = float(slot_styles["height"].removesuffix("%")) / 100
+    ball_width_ratio = float(ball_styles["width"].removesuffix("%")) / 100
+    ball_height_ratio = float(ball_styles["height"].removesuffix("%")) / 100
+
+    assert 160 * slot_width_ratio * ball_width_ratio == pytest.approx(diameter)
+    assert 160 * slot_height_ratio * ball_height_ratio == pytest.approx(diameter)
 
 
 def test_fusion_ball_wraps_only_2x2_with_expanded_tersel_background():
@@ -1093,6 +1140,8 @@ def test_fusion_ball_wraps_only_2x2_with_expanded_tersel_background():
     assert overflow_content.values[-1]["_id"] == (
         "__genui_render_component__root_1"
     )
+    assert overflow_content.values[-1]["width"] == "matchParent"
+    assert overflow_content.values[-1]["height"] == "matchParent"
     skeleton = overflow_content.children[0]
     assert skeleton.values[-1]["_id"] == "template_root"
     title_text = skeleton.children[0]
@@ -3753,6 +3802,16 @@ async def test_2x2_battery_pill_action_uses_normal_hero_template():
     overflow_content = components["__genui_render_component__root_1"]
     assert overflow_content["component"] == "Stack"
     assert overflow_content["children"] == ["template_root"]
+    assert overflow_content["styles"] == {
+        "width": "matchParent",
+        "height": "matchParent",
+    }
+    assert components["fusionBallLarge"]["styles"]["width"] == "116.666667%"
+    assert components["fusionBallLarge"]["styles"]["height"] == "477.272727%"
+    assert components["fusionBallMedium"]["styles"]["width"] == "200%"
+    assert components["fusionBallMedium"]["styles"]["height"] == "72.727273%"
+    assert components["fusionBallSmall"]["styles"]["width"] == "51.282051%"
+    assert components["fusionBallSmall"]["styles"]["height"] == "52.631579%"
     layout = components["template_root"]
     assert layout["component"] == "Column"
     assert layout["itemMargin"] == 8

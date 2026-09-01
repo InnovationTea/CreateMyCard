@@ -16,6 +16,7 @@ from config.config import get_settings
 
 FUSION_BALL_CONTENT_ID_PREFIX = "__genui_render_component__"
 FUSION_BALL_MIN_PRD_VERSION_CONFIG = "fusion_ball_min_prd_version"
+FUSION_BALL_BASE_SIZE = 160
 FUSION_BALL_DESIGN_TOKENS = (
     "fusion-ball-schedule-cool",
     "fusion-ball-schedule-warm",
@@ -96,6 +97,15 @@ def build_fusion_ball_content_id(original_id: str) -> str:
     if original_id.startswith(FUSION_BALL_CONTENT_ID_PREFIX):
         return original_id
     return f"{FUSION_BALL_CONTENT_ID_PREFIX}{original_id}"
+
+
+def fusion_ball_relative_size(
+    size: int,
+    parent_size: int = FUSION_BALL_BASE_SIZE,
+) -> str:
+    """Convert one fusion-ball dimension to a percentage of its direct parent."""
+    percentage = f"{size * 100 / parent_size:.6f}".rstrip("0").rstrip(".")
+    return f"{percentage}%"
 
 
 def build_fusion_ball_palette(
@@ -184,8 +194,8 @@ def expand_fusion_ball_components(
         foreground["styles"] = foreground_styles
     for property_name in _BACKGROUND_STYLE_KEYS:
         foreground_styles.pop(property_name, None)
-    foreground_styles["width"] = 160
-    foreground_styles["height"] = 160
+    foreground_styles["width"] = "matchParent"
+    foreground_styles["height"] = "matchParent"
 
     content_components = [foreground, *(item for item in copied if item is not root)]
     _apply_fusion_capsule_styles(content_components, content_id)
@@ -320,8 +330,8 @@ def _build_fusion_ball_components(palette: FusionBallPalette) -> list[dict[str, 
                 "fusionBallSmallSlot",
                 "fusionBallGlassLayer",
             ],
-            width=160,
-            height=160,
+            width=fusion_ball_relative_size(160),
+            height=fusion_ball_relative_size(160),
             borderRadius=20,
             alignContent="topStart",
             clip=True,
@@ -329,33 +339,51 @@ def _build_fusion_ball_components(palette: FusionBallPalette) -> list[dict[str, 
         _stack(
             "fusionBallLargeSlot",
             ["fusionBallLarge"],
-            width=180,
-            height=44,
+            width=fusion_ball_relative_size(180),
+            height=fusion_ball_relative_size(44),
             alignContent="center",
         ),
-        _ball("fusionBallLarge", 210, palette.large),
+        _ball(
+            "fusionBallLarge",
+            210,
+            palette.large,
+            parent_width=180,
+            parent_height=44,
+        ),
         _stack(
             "fusionBallMediumSlot",
             ["fusionBallMedium"],
-            width=80,
-            height=220,
+            width=fusion_ball_relative_size(80),
+            height=fusion_ball_relative_size(220),
             alignContent="bottom",
         ),
-        _ball("fusionBallMedium", 160, palette.medium),
+        _ball(
+            "fusionBallMedium",
+            160,
+            palette.medium,
+            parent_width=80,
+            parent_height=220,
+        ),
         _stack(
             "fusionBallSmallSlot",
             ["fusionBallSmall"],
-            width=195,
-            height=190,
+            width=fusion_ball_relative_size(195),
+            height=fusion_ball_relative_size(190),
             alignContent="bottomEnd",
         ),
-        _ball("fusionBallSmall", 100, palette.small),
+        _ball(
+            "fusionBallSmall",
+            100,
+            palette.small,
+            parent_width=195,
+            parent_height=190,
+        ),
         {
             "id": "fusionBallGlassLayer",
             "component": "Divider",
             "styles": {
-                "width": 160,
-                "height": 160,
+                "width": fusion_ball_relative_size(160),
+                "height": fusion_ball_relative_size(160),
                 "strokeWidth": 0,
                 "color": "#00000000",
                 "backgroundColor": "#0DFFFFFF",
@@ -378,13 +406,20 @@ def _stack(
     }
 
 
-def _ball(component_id: str, diameter: int, color: str) -> dict[str, Any]:
+def _ball(
+    component_id: str,
+    diameter: int,
+    color: str,
+    *,
+    parent_width: int,
+    parent_height: int,
+) -> dict[str, Any]:
     return {
         "id": component_id,
         "component": "Divider",
         "styles": {
-            "width": diameter,
-            "height": diameter,
+            "width": fusion_ball_relative_size(diameter, parent_width),
+            "height": fusion_ball_relative_size(diameter, parent_height),
             "strokeWidth": 0,
             "color": "#00000000",
             "borderRadius": diameter // 2,

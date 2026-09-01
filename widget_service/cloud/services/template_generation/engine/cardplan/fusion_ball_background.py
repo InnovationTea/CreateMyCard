@@ -5,6 +5,7 @@ from __future__ import annotations
 from services.fusion_ball_expander import (
     FusionBallPalette,
     build_fusion_ball_content_id,
+    fusion_ball_relative_size,
 )
 from services.template_generation.engine.tersel_converter import Nested2Node
 
@@ -16,17 +17,35 @@ _SKELETON_LAYOUT_TYPES = frozenset({"Column", "Row", "Stack"})
 
 def build_fusion_ball_background(palette: FusionBallPalette) -> Nested2Node:
     """Return the expanded fusion-ball Tersel background tree for a 160vp card."""
-    large_ball = _ball("fusionBallLarge", 210, palette.large)
-    medium_ball = _ball("fusionBallMedium", 160, palette.medium)
-    small_ball = _ball("fusionBallSmall", 100, palette.small)
+    large_ball = _ball(
+        "fusionBallLarge",
+        210,
+        palette.large,
+        parent_width=180,
+        parent_height=44,
+    )
+    medium_ball = _ball(
+        "fusionBallMedium",
+        160,
+        palette.medium,
+        parent_width=80,
+        parent_height=220,
+    )
+    small_ball = _ball(
+        "fusionBallSmall",
+        100,
+        palette.small,
+        parent_width=195,
+        parent_height=190,
+    )
     return Nested2Node(
         "Stack",
         (
             "overlay",
             {
                 "_id": "fusionBallBackground",
-                "width": 160,
-                "height": 160,
+                "width": fusion_ball_relative_size(160),
+                "height": fusion_ball_relative_size(160),
                 "borderRadius": 18,
                 "alignContent": "topStart",
                 "clip": True,
@@ -41,8 +60,8 @@ def build_fusion_ball_background(palette: FusionBallPalette) -> Nested2Node:
                 (
                     {
                         "_id": "fusionBallGlassLayer",
-                        "width": 160,
-                        "height": 160,
+                        "width": fusion_ball_relative_size(160),
+                        "height": fusion_ball_relative_size(160),
                         "strokeWidth": 0,
                         "color": "#00000000",
                         "backgroundColor": "#0DFFFFFF",
@@ -70,7 +89,11 @@ def apply_fusion_ball_background(
         "Stack",
         (
             "overlay",
-            {"_id": build_fusion_ball_content_id(_CONTENT_ROOT_ID)},
+            {
+                "_id": build_fusion_ball_content_id(_CONTENT_ROOT_ID),
+                "width": "matchParent",
+                "height": "matchParent",
+            },
         ),
         (skeleton,),
     )
@@ -100,14 +123,21 @@ def apply_fusion_ball_background(
     )
 
 
-def _ball(component_id: str, diameter: int, color: str) -> Nested2Node:
+def _ball(
+    component_id: str,
+    diameter: int,
+    color: str,
+    *,
+    parent_width: int,
+    parent_height: int,
+) -> Nested2Node:
     return Nested2Node(
         "Divider",
         (
             {
                 "_id": component_id,
-                "width": diameter,
-                "height": diameter,
+                "width": fusion_ball_relative_size(diameter, parent_width),
+                "height": fusion_ball_relative_size(diameter, parent_height),
                 "strokeWidth": 0,
                 "color": "#00000000",
                 "borderRadius": diameter // 2,
@@ -132,8 +162,8 @@ def _ball_slot(
             "overlay",
             {
                 "_id": component_id,
-                "width": width,
-                "height": height,
+                "width": fusion_ball_relative_size(width),
+                "height": fusion_ball_relative_size(height),
                 "alignContent": alignment,
             },
         ),
