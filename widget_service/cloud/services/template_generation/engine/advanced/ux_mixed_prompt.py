@@ -52,6 +52,7 @@ _WEATHER_BUILTIN_ASSETS = (
 _MAX_UX_MIXED_PROMPT_CHARS = 24_000
 _PILL_ACTION_TEMPLATE_ID = "PillAction@1"
 _ICON_ACTION_TEMPLATE_ID = "IconAction@1"
+_LARGE_ICON_ACTION_TEMPLATE_ID = "LargeIconAction@1"
 
 
 @dataclass(frozen=True)
@@ -60,6 +61,7 @@ class _SecondLayerLayoutSelection:
     layout_kinds: tuple[str, ...]
     action_template_ids: tuple[str, ...] = ()
     embeds_support_actions: bool = False
+    business_layout_kinds: tuple[str, ...] = ()
 
 
 def _weather_builtin_assets_for_components(components: tuple[Any, ...]) -> tuple[str, ...]:
@@ -169,6 +171,7 @@ def build_ux_mixed_prompt(
     layout_selection = _second_layer_layout_selection(
         scope,
         task_spec,
+        required_template_groups,
         registry,
     )
     (
@@ -179,7 +182,8 @@ def build_ux_mixed_prompt(
         _filter_second_layer_template_candidates(
             candidate_ids_by_component,
             required_template_groups,
-            layout_selection.layout_kinds,
+            layout_selection.business_layout_kinds or layout_selection.layout_kinds,
+            exact_slots=bool(layout_selection.business_layout_kinds),
         )
     )
     layout_selection = _prune_layout_selection(
@@ -699,6 +703,7 @@ def _action_output_syntax(
 def _second_layer_layout_selection(
     scope: AdvancedScopeBrief,
     task_spec: TaskSpec,
+    required_template_groups: tuple[tuple[str, ...], ...],
     registry: CardPlanRegistry,
 ) -> _SecondLayerLayoutSelection:
     """Resolve only layout capacity and Action shape in the second layer."""
@@ -737,11 +742,65 @@ def _second_layer_layout_selection(
             )
         else:
             raise ValueError("2x2 Template candidates do not fit one supported layout")
-    elif task_spec.size == "2x4" and component_count == 1 and action_count <= 1:
+    elif task_spec.size == "2x4":
+        group_kinds = tuple(
+            {
+                provider_template_layout_kind(template_id)
+                for template_id in group
+            }
+            for group in required_template_groups
+        )
+        def has_half(index: int) -> bool:
+            return index < len(group_kinds) and "WideHalf" in group_kinds[index]
+        if (component_count, action_count) == (1, 0):
+            layout_id, kinds, actions = "WideFullOnlyLayout", ("WideFull",), ()
+        elif (component_count, action_count) == (1, 1):
+            layout_id, kinds, actions = (
+                "WideSingleFocusLayout", ("WideHero",), (_PILL_ACTION_TEMPLATE_ID,)
+            )
+        elif (component_count, action_count) == (2, 0):
+            layout_id, kinds, actions = (
+                ("WideTwoHalfLayout", ("WideHalf", "WideHalf"), ())
+                if has_half(0) and has_half(1)
+                else ("WideTwoFullLayout", ("Full", "Full"), ())
+            )
+        elif (component_count, action_count) == (2, 1):
+            layout_id, kinds, actions = (
+                "WideFullHeroActionLayout", ("Full", "Hero"), (_PILL_ACTION_TEMPLATE_ID,)
+            )
+        elif (component_count, action_count) == (3, 0):
+            layout_id, kinds, actions = (
+                ("WideHalfTwoCompactLayout", ("WideHalf", "Compact", "Compact"), ())
+                if has_half(0)
+                else ("WideFullTwoCompactLayout", ("Full", "Compact", "Compact"), ())
+            )
+        elif (component_count, action_count) == (2, 2):
+            layout_id, kinds, actions = (
+                (
+                    "WideHalfCompactTwoLargeActionLayout",
+                    ("WideHalf", "Compact"),
+                    (_LARGE_ICON_ACTION_TEMPLATE_ID,),
+                )
+                if has_half(0)
+                else (
+                    "WideFullHeroTwoActionLayout",
+                    ("Full", "Hero"),
+                    (_PILL_ACTION_TEMPLATE_ID,),
+                )
+            )
+        elif (component_count, action_count) == (1, 4):
+            layout_id, kinds, actions = (
+                ("WideHalfFourLargeActionLayout", ("WideHalf",), (_LARGE_ICON_ACTION_TEMPLATE_ID,))
+                if has_half(0)
+                else ("WideFullFourActionLayout", ("Full",), (_LARGE_ICON_ACTION_TEMPLATE_ID,))
+            )
+        else:
+            raise ValueError("2x4 Template candidates do not fit one supported layout")
         selection = _SecondLayerLayoutSelection(
-            layout_ids=("WideSingleFocusLayout",),
-            layout_kinds=("WideHero" if action_count else "WideFull",),
-            action_template_ids=((_PILL_ACTION_TEMPLATE_ID,) if action_count else ()),
+            layout_ids=(layout_id,),
+            layout_kinds=(kinds[0],),
+            action_template_ids=actions,
+            business_layout_kinds=kinds,
         )
     else:
         raise ValueError("Template candidates do not fit one supported layout")
@@ -771,12 +830,41 @@ def _filter_second_layer_template_candidates(
     candidates_by_component: dict[str, tuple[str, ...]],
     required_template_groups: tuple[tuple[str, ...], ...],
     layout_kinds: tuple[str, ...],
+    *,
+    exact_slots: bool = False,
 ) -> tuple[
     dict[str, tuple[str, ...]],
     tuple[tuple[str, ...], ...],
     tuple[str, ...],
 ]:
     """Filter first-layer candidates by layout without inspecting business data."""
+    if exact_slots:
+        if len(layout_kinds) != len(candidates_by_component):
+            raise ValueError("Layout slot count does not match Advanced Scope components")
+        filtered = {
+            component_id: tuple(
+                template_id
+                for template_id in template_ids
+                if provider_template_layout_kind(template_id) == layout_kind
+            )
+            for (component_id, template_ids), layout_kind in zip(
+                candidates_by_component.items(), layout_kinds, strict=True
+            )
+        }
+        if any(not template_ids for template_ids in filtered.values()):
+            raise ValueError(
+                "First-layer Template candidates have no complete layout-slot coverage"
+            )
+        allowed_ids = {item for values in filtered.values() for item in values}
+        groups = required_template_groups or tuple(filtered.values())
+        filtered_groups = tuple(
+            tuple(item for item in group if item in allowed_ids) for group in groups
+        )
+        if any(not group for group in filtered_groups):
+            raise ValueError(
+                "First-layer Template candidates have no complete layout-slot coverage"
+            )
+        return filtered, filtered_groups, layout_kinds
     viable_layout_kind_values: list[str] = []
     for layout_kind in layout_kinds:
         has_complete_coverage = _layout_kind_has_complete_coverage(
@@ -879,6 +967,7 @@ def _prune_layout_selection(
         layout_kinds=tuple(layout_kind for _, layout_kind in pairs),
         action_template_ids=tuple(action_templates),
         embeds_support_actions=selection.embeds_support_actions,
+        business_layout_kinds=selection.business_layout_kinds,
     )
 
 

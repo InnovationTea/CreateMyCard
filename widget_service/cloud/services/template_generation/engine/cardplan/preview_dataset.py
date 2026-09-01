@@ -31,6 +31,7 @@ TemplateLayoutKind = Literal[
     "Full",
     "WideHero",
     "WideFull",
+    "WideHalf",
 ]
 
 _LAYOUT_ORDER = {
@@ -40,6 +41,7 @@ _LAYOUT_ORDER = {
     "Full": 3,
     "WideHero": 4,
     "WideFull": 5,
+    "WideHalf": 6,
 }
 _SIZE_BY_LAYOUT: dict[TemplateLayoutKind, Literal["2x2", "2x4"]] = {
     "Support": "2x2",
@@ -48,6 +50,7 @@ _SIZE_BY_LAYOUT: dict[TemplateLayoutKind, Literal["2x2", "2x4"]] = {
     "Full": "2x2",
     "WideHero": "2x4",
     "WideFull": "2x4",
+    "WideHalf": "2x4",
 }
 _CONTENT_HEIGHT_BY_LAYOUT: dict[TemplateLayoutKind, int] = {
     "Support": 68,
@@ -56,6 +59,7 @@ _CONTENT_HEIGHT_BY_LAYOUT: dict[TemplateLayoutKind, int] = {
     "Full": 136,
     "WideHero": 124,
     "WideFull": 136,
+    "WideHalf": 68,
 }
 _ASSET_BY_PARAMETER = {
     "appIcon": "resources/base/media/icon_tiktok.png",

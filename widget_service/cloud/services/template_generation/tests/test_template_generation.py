@@ -248,7 +248,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 95
+    assert len(registry.provider_template_ids) == 106
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -279,6 +279,16 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "SingleFocusLayout@1",
         "CompactTwoActionLayout@1",
         "WideSingleFocusLayout@1",
+        "WideFullOnlyLayout@1",
+        "WideTwoFullLayout@1",
+        "WideFullHeroActionLayout@1",
+        "WideFullTwoCompactLayout@1",
+        "WideFullHeroTwoActionLayout@1",
+        "WideFullFourActionLayout@1",
+        "WideTwoHalfLayout@1",
+        "WideHalfTwoCompactLayout@1",
+        "WideHalfCompactTwoLargeActionLayout@1",
+        "WideHalfFourLargeActionLayout@1",
     }.issubset(registry.provider_template_ids)
     assert provider_directories == {
         "action",
@@ -309,14 +319,20 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
 
 def test_business_template_suffix_drives_size_and_provider_data_tiers():
     registry = get_cardplan_registry()
-    layout_kinds = {"Support", "Compact", "Hero", "Full", "WideHero", "WideFull"}
+    layout_kinds = {
+        "Support", "Compact", "Hero", "Full", "WideHero", "WideFull", "WideHalf"
+    }
 
     for template_id in registry.provider_template_ids:
         definition = registry.require_template(template_id)
         if definition.capability_id is None:
             continue
         layout_kind = provider_template_layout_kind(template_id)
-        expected_sizes = ("2x4",) if layout_kind in {"WideHero", "WideFull"} else ("2x2",)
+        expected_sizes = (
+            ("2x4",)
+            if layout_kind in {"WideHero", "WideFull", "WideHalf"}
+            else ("2x2",)
+        )
         serialized = definition.model_dump(mode="json", by_alias=True)
 
         assert layout_kind in layout_kinds
@@ -349,6 +365,16 @@ def test_layout_template_wide_marker_drives_exclusive_card_size() -> None:
         "CompactTwoActionLayout": ("2x2",),
         "TwoSupportLayout": ("2x2",),
         "WideSingleFocusLayout": ("2x4",),
+        "WideFullOnlyLayout": ("2x4",),
+        "WideTwoFullLayout": ("2x4",),
+        "WideFullHeroActionLayout": ("2x4",),
+        "WideFullTwoCompactLayout": ("2x4",),
+        "WideFullHeroTwoActionLayout": ("2x4",),
+        "WideFullFourActionLayout": ("2x4",),
+        "WideTwoHalfLayout": ("2x4",),
+        "WideHalfTwoCompactLayout": ("2x4",),
+        "WideHalfCompactTwoLargeActionLayout": ("2x4",),
+        "WideHalfFourLargeActionLayout": ("2x4",),
     }
 
     assert set(registry.ux_layout_components) == set(expected_sizes)
@@ -408,7 +434,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
         template_id.startswith("DateOverview")
         for template_id in calendar.local_template_ids
     )
-    assert len(registry.ux_layout_component_provider_ids) == 6
+    assert len(registry.ux_layout_component_provider_ids) == 16
     for bundle in registry.provider_bundles.values():
         payload = json.loads(
             (registry.source_root / "providers" / bundle.manifest.provider_id.removeprefix(
