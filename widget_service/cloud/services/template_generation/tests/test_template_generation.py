@@ -358,6 +358,47 @@ def test_weather_location_compile_time_conditional_has_optional_sources() -> Non
 
 
 @pytest.mark.parametrize(
+    "template_id",
+    [
+        "WeatherOverviewHumidityFull@1",
+        "WeatherOverviewUvFull@1",
+        "WeatherOverviewAirQualityHero@1",
+    ],
+)
+def test_specialized_weather_location_uses_optional_compile_time_sources(
+    template_id: str,
+) -> None:
+    definition = get_cardplan_registry().require_template(template_id)
+    variant = definition.variants[0]
+    required_props = variant.parameters_schema.get("required", [])
+    properties = variant.parameters_schema.get("properties", {})
+    bindings = {
+        name: f"${{data.weather.{name}}}" for name in variant.required_bindings
+    }
+    bindings["city"] = "${data.weather.location.prefectureName}"
+
+    root = _instantiate_blueprint(
+        variant.root,
+        {},
+        bindings,
+        {
+            "primaryColor": "#FF000000",
+            "supportContentColor": "#99000000",
+        },
+    )
+
+    assert "location" in properties
+    assert "location" not in required_props
+    assert definition.optional_data[:2] == (
+        "/location/prefectureName",
+        "/location/districtName",
+    )
+    assert {"city", "district"}.issubset(variant.optional_bindings)
+    assert "${data.weather.location.prefectureName}" in repr(root)
+    assert "?" not in repr(root)
+
+
+@pytest.mark.parametrize(
     ("location_bindings", "params", "expected"),
     [
         (
@@ -1811,6 +1852,34 @@ def test_first_layer_decision_contract_carries_component_template_candidates():
 
     assert decision.component_ids == ("WeatherOverview", "CalendarOverview")
     assert decision.model_dump(mode="json", by_alias=True) == payload
+
+
+def test_template_route_candidate_limit_matches_retrieval_limit() -> None:
+    template_ids = tuple(f"HeartRateOverviewCandidate{index}@1" for index in range(24))
+    candidate = TemplateComponentCandidate(
+        componentId="HeartRateOverview",
+        availableTemplateIds=template_ids,
+    )
+
+    decision = TemplateRouteDecision(
+        theme="fusion-health-blue",
+        componentCandidates=(candidate,),
+    )
+
+    assert decision.component_candidates[0].available_template_ids == template_ids
+    with pytest.raises(ValueError, match="at most 24 Templates"):
+        TemplateRouteDecision(
+            theme="fusion-health-blue",
+            componentCandidates=(
+                candidate.model_copy(
+                    update={"available_template_ids": template_ids[:13]},
+                ),
+                TemplateComponentCandidate(
+                    componentId="ActivityOverview",
+                    availableTemplateIds=template_ids[11:],
+                ),
+            ),
+        )
 
 
 def test_phone_battery_binding_does_not_auto_include_numeric_soc():
@@ -5778,7 +5847,10 @@ async def test_first_layer_action_is_independent_from_selected_components():
         if line.startswith("componentCandidates=")
     )
     candidates = json.loads(candidate_line.removeprefix("componentCandidates="))
-    assert set(candidates[0]["availableTemplateIds"]) == {"WeatherOverviewHero@1"}
+    assert set(candidates[0]["availableTemplateIds"]) == {
+        "WeatherOverviewHero@1",
+        "WeatherOverviewAirQualityHero@1",
+    }
     messages = [json.loads(line) for line in output.a2ui.splitlines()]
     visible_text = {
         component.get("content")

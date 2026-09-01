@@ -191,9 +191,9 @@
 | ✅ | `WeatherOverviewTemperatureUvSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/current/temperatureText`<br>`/current/uvIndex` | `/location/districtName`<br>`/current/condition` | 无 |
 | ✅ | `WeatherOverviewHero@1` | 约 2x1.7；可选天气图标；Hero + 1 个 PillAction | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/coldLevel` |
 | ✅ | `WeatherOverviewFull@1` | 完整 2x2；可选天气图标；无 Action 的单 Full | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/airQuality`<br>`/current/coldLevel` |
-| ✅ | `WeatherOverviewHumidityFull@1` | 完整 2x2；无 Action 的单 Full | `/current/humidityPercent` | `/current/condition`<br>`/current/temperatureText` | `/current/airQuality`<br>`/current/coldLevel` |
-| ✅ | `WeatherOverviewUvFull@1` | 完整 2x2；无 Action 的单 Full | `/current/uvIndex` | `/current/condition`<br>`/current/temperatureText` | `/current/airQuality`<br>`/current/coldLevel` |
-| ✅ | `WeatherOverviewAirQualityHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/current/airQuality` | `/current/condition` | `/current/coldLevel` |
+| ✅ | `WeatherOverviewHumidityFull@1` | 完整 2x2；无 Action 的单 Full | `/current/humidityPercent` | `/current/condition`<br>`/current/temperatureText` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/airQuality`<br>`/current/coldLevel` |
+| ✅ | `WeatherOverviewUvFull@1` | 完整 2x2；无 Action 的单 Full | `/current/uvIndex` | `/current/condition`<br>`/current/temperatureText` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/airQuality`<br>`/current/coldLevel` |
+| ✅ | `WeatherOverviewAirQualityHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/current/airQuality` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/coldLevel` |
 
 说明：最新天气 UX 中的日出日落与 AQI 数值不在当前 `ViewWeather` 数据契约内，本轮未生成伪数据模板。
 

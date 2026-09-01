@@ -124,6 +124,8 @@
         "/current/condition"
       ],
       "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
         "/current/airQuality",
         "/current/coldLevel"
       ]
@@ -140,6 +142,8 @@
         "/current/condition"
       ],
       "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
         "/current/airQuality",
         "/current/coldLevel"
       ]
@@ -154,7 +158,11 @@
       "secondaryData": [
         "/current/condition"
       ],
-      "optionalData": ["/current/coldLevel"]
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/current/coldLevel"
+      ]
     }
   ],
   "compatibility": {
