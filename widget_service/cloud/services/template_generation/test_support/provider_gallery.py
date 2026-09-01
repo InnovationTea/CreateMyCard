@@ -142,7 +142,6 @@ _ACTION_QUERIES_BY_BUSINESS = {
 
 _ASSET_IDS_BY_TEMPLATE_PREFIX = {
     "BatteryOverview": ("asset.battery_leaf_fill",),
-    "BluetoothDeviceOverviewCaseStatus": ("asset.earphone_case_16644",),
     "HeartRateOverviewIcon": ("asset.heart_fill",),
     "HeartRateOverviewUpdatedIcon": ("asset.heart_fill",),
     "ScheduleOverviewNextEventHero": ("asset.calendar_fill",),
@@ -164,9 +163,6 @@ _ASSET_IDS_BY_TEMPLATE_PREFIX = {
         "asset.clock",
         "asset.location_north_up_right_fill",
         "asset.icon_meeting",
-    ),
-    "BluetoothDeviceOverviewCaseStatusCompact": (
-        "asset.earphone_case_16644",
     ),
     "BluetoothDeviceOverviewEarbudsSupport": (
         "asset.icon_earphone",
