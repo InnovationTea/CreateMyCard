@@ -53,8 +53,8 @@ Column(
                     "value": data.score,
                     "total": 100,
                     "strokeWidth": 8,
-                    "color": $theme('supportContentColor'),
-                    "backgroundColor": "#33564AF7",
+                    "color": $theme('progressColor'),
+                    "backgroundColor": $theme('progressBackgroundColor'),
                     "height": 12,
                     "width": "matchParent"
                 }
@@ -162,8 +162,8 @@ Column(
                 "value": data.score,
                 "total": 100,
                 "strokeWidth": 8,
-                "color": $theme('supportContentColor'),
-                "backgroundColor": "#33564AF7",
+                "color": $theme('progressColor'),
+                "backgroundColor": $theme('progressBackgroundColor'),
                 "height": 12,
                 "width": "matchParent"
             }
@@ -301,8 +301,8 @@ Stack({
                       "value": data.score,
                       "total": 100,
                       "type": "ring",
-                      "color": $theme('supportContentColor'),
-                      "backgroundColor": "#33564AF7",
+                      "color": $theme('progressColor'),
+                      "backgroundColor": $theme('progressBackgroundColor'),
                       "width": 44,
                       "height": 44,
                       "strokeWidth": 6

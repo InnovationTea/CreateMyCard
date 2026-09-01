@@ -10,7 +10,7 @@
   "progressColor": "#FF1F8F99",
   "progressBackgroundColor": "#331F8F99",
   "rootStyle": {
-    "backgroundColor": "#FFFFF3E6",
+    "backgroundColor": "#FFE6FDFF",
     "borderRadius": 20,
     "padding": 12,
     "justifyContent": "spaceBetween",
