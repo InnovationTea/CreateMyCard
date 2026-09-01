@@ -2,31 +2,63 @@
   "functions": {
     "clickToCallPhone": {
       "parameters": {
-        "phoneNumber": {"type": "string"}
+        "phoneNumber": {
+          "type": "string"
+        }
       },
-      "required": ["phoneNumber"]
+      "required": [
+        "phoneNumber"
+      ]
     },
     "clickToDeeplink": {
       "parameters": {
-        "intentName": {"type": "string"},
-        "bundleName": {"type": "string"},
-        "abilityName": {"type": "string"},
-        "uri": {"type": "string"}
+        "intentName": {
+          "type": "string"
+        },
+        "bundleName": {
+          "type": "string"
+        },
+        "abilityName": {
+          "type": "string"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "parameters": {
+          "type": "object"
+        },
+        "tabActive": {
+          "type": "string"
+        }
       },
-      "required": ["intentName", "uri"]
+      "required": [
+        "intentName",
+        "uri"
+      ]
     },
     "clickToApi": {
       "parameters": {
-        "intentName": {"type": "string"},
-        "params": {"type": "object"}
+        "intentName": {
+          "type": "string"
+        },
+        "params": {
+          "type": "object"
+        }
       },
-      "required": ["intentName", "params"],
+      "required": [
+        "intentName",
+        "params"
+      ],
       "supportedIntents": {
         "CallPhone": {
           "params": {
-            "phoneNumber": {"type": "string"}
+            "phoneNumber": {
+              "type": "string"
+            }
           },
-          "required": ["phoneNumber"]
+          "required": [
+            "phoneNumber"
+          ]
         },
         "CleanRAMMemory": {
           "params": {},
@@ -35,35 +67,214 @@
         "EnterMeeting": {
           "params": {},
           "required": []
+        },
+        "SetMobileData": {
+          "params": {
+            "switchFlag": {
+              "type": "number",
+              "enum": [
+                0,
+                1
+              ]
+            }
+          },
+          "required": [
+            "switchFlag"
+          ]
         }
       }
     },
     "clickToIntent": {
       "parameters": {
-        "intentName": {"type": "string"},
-        "params": {"type": "object"}
+        "intentName": {
+          "type": "string"
+        },
+        "params": {
+          "type": "object"
+        },
+        "bundleName": {
+          "type": "string"
+        },
+        "abilityName": {
+          "type": "string"
+        }
       },
-      "required": ["intentName", "params"],
+      "required": [
+        "intentName",
+        "params"
+      ],
       "supportedIntents": {
         "ViewCalendarEvent": {
           "params": {
-            "entityId": {"type": "string"}
+            "entityId": {
+              "type": "string"
+            }
           },
-          "required": ["entityId"]
+          "required": [
+            "entityId"
+          ]
         },
         "StartNavigate": {
           "params": {
-            "dstLocation": {"type": "object"}
+            "dstLocation": {
+              "type": "object"
+            }
           },
-          "required": ["dstLocation"]
+          "required": [
+            "dstLocation"
+          ]
         },
         "SetSettingSwitch": {
           "params": {
-            "appBundleName": {"const": "com.huawei.hmos.settings"},
-            "itemName": {"const": "battery_saving_mode"},
-            "switchFlag": {"type": "number", "enum": [0, 1]}
+            "appBundleName": {
+              "const": "com.huawei.hmos.settings"
+            },
+            "itemName": {
+              "type": "string",
+              "enum": [
+                "battery_saving_mode",
+                "near_link_setting",
+                "bluetooth",
+                "wlan"
+              ]
+            },
+            "switchFlag": {
+              "type": "number",
+              "enum": [
+                0,
+                1
+              ]
+            }
           },
-          "required": ["appBundleName", "itemName", "switchFlag"]
+          "required": [
+            "appBundleName",
+            "itemName",
+            "switchFlag"
+          ]
+        },
+        "EnterSettingPage": {
+          "params": {
+            "appBundleName": {
+              "const": "com.huawei.hmos.settings"
+            },
+            "entryKey": {
+              "const": "display_settings"
+            }
+          },
+          "required": [
+            "appBundleName",
+            "entryKey"
+          ]
+        },
+        "SetLocationSettingSwicth": {
+          "params": {
+            "switchFlag": {
+              "type": "number",
+              "enum": [
+                0,
+                1
+              ]
+            }
+          },
+          "required": [
+            "switchFlag"
+          ]
+        },
+        "SetScreenUseTimeManageSwitch": {
+          "params": {
+            "switchFlag": {
+              "type": "number",
+              "enum": [
+                0,
+                1
+              ]
+            }
+          },
+          "required": [
+            "switchFlag"
+          ]
+        },
+        "SetMicSettingSwicth": {
+          "params": {
+            "switchFlag": {
+              "type": "number",
+              "enum": [
+                0,
+                1
+              ]
+            }
+          },
+          "required": [
+            "switchFlag"
+          ]
+        },
+        "SetSettingOption": {
+          "params": {
+            "appBundleName": {
+              "const": "com.huawei.hmos.settings"
+            },
+            "itemName": {
+              "const": "volume_mode"
+            },
+            "optionValue": {
+              "type": "string",
+              "enum": [
+                "Vibrate",
+                "Sound",
+                "Silent"
+              ]
+            }
+          },
+          "required": [
+            "appBundleName",
+            "itemName",
+            "optionValue"
+          ]
+        },
+        "OpenFlashlight": {
+          "params": {},
+          "required": []
+        },
+        "CloseFlashlight": {
+          "params": {},
+          "required": []
+        },
+        "OpenCamera": {
+          "params": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "Photo",
+                "Video",
+                "PORTRAIT",
+                "CINEMA",
+                "NIGHT",
+                "SUPER_MACRO",
+                "LIGHT_PAINTING",
+                "TIME_LAPSE",
+                "SLOW_MO",
+                "STITCHING",
+                "PRO"
+              ]
+            }
+          },
+          "required": [
+            "mode"
+          ]
+        },
+        "ViewNote": {
+          "params": {
+            "launchType": {
+              "type": "string"
+            },
+            "launchSource": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "launchType",
+            "launchSource"
+          ]
         }
       }
     }
