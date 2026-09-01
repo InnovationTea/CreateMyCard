@@ -12,8 +12,11 @@
     "primaryColor",
     "supportContentColor",
     "progressColor",
+    "progressBackgroundColor",
     "actionStyle.backgroundColor",
-    "actionStyle.contentColor"
+    "actionStyle.contentColor",
+    "supportContentStyle.backgroundColor",
+    "supportContentStyle.borderRadius"
   ],
   "uxTokens": {
     "radius": 20,

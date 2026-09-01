@@ -29,6 +29,8 @@ metadata:
 ## 执行流程
 主流程固定为：先明确区分 create/edit，并仅检查卡片形态、静态边界和最小语义歧义；确认本轮将调用工具后，在首个工具调用前立即发送一次开始处理回复，create 使用“好的，我现在为你创建卡片。”，edit 使用“好的，我现在按你的要求修改卡片。”；随后获取能力概述，基于本轮概述判断动态数据能力满足度，选择可用候选并按需加载 schema，依据 schema 的必填参数追问，再检查最终数据权限、改写生成工具使用的有效 `userQuery`、调用生成工具，最后记录编辑来源并组织自然语言回复。不得在 `getWidgetCapabilityOverview` 前根据 query、历史或经验判断动态数据能力是否满足，也不得因此追问数据参数。对已有卡片提出改颜色、背景、布局、文案或尺寸等修改时，必须判定为 edit，不得改走 create。create 不得携带 `sourceArtifactUrl`；edit 必须携带目标卡片最近一次有效生成业务 payload 中的真实 `artifactUrl` 作为 `sourceArtifactUrl`，不得使用回复文本、示例、缓存或猜测的 URL。
 
+尺寸建议：用户未指定尺寸时，若最终保留至少两个点击能力且包含至少一个数据能力，建议将 `size` 设为 `2x4`；其它场景按满足核心需求的最小尺寸从 `2x2` 开始。用户显式指定尺寸时优先尊重。
+
 四个工具按以下顺序和职责使用：
 
 1. `getWidgetCapabilityOverview`：每个 create 必须调用，获取本轮当前可用数据、事件和素材概述；删除数据/
@@ -73,10 +75,42 @@ generateWidgetCardCompactDsl。无数据候选时跳过 schema 和 permission；
 
 ## 工具调用
 
-依赖 frontmatter 声明的三个微服务工具和一个端工具。使用统一调用格式；仅要求 `arguments` 内各键对应的值是合法 JSON 值，保留现有 invoke 外层和键名格式：
+依赖 frontmatter 声明的三个微服务工具和一个端工具。使用统一调用格式，保留现有
+`invoke` 外层和键名格式。`arguments` 必须是 JSON 对象；其中每个 value 必须直接使用
+JSON 原生值（对象、数组、字符串、数字、布尔值或 `null`），不得把对象或数组序列化成
+字符串，也不得把整个 `arguments` 序列化成字符串。字段类型和必填项仍以当前运行时
+schema 为唯一依据。
+
+正确示例：对象和数组作为原生 JSON 值传入，数组项中的 `arguments` 仍是对象：
 
 ```text
-invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmservice", ...},"skillName":"harmony-card-generation-online")
+invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
+  userQuery:"做一张显示天气的卡片。",
+  candidateDataBindings:[
+    {
+      capabilityId:"ViewWeather",
+      arguments:{forecastDays:1},
+      writeResultTo:"/data/weather"
+    }
+  ],
+  candidateEventCandidates:[]
+},"skillName":"harmony-card-generation-online")
+```
+
+错误示例：将对象、数组或整个参数对象写成字符串；这会导致工具收到错误类型，必须改为
+上面的原生 JSON 值写法：
+
+```text
+// 错误：arguments 是字符串，而不是 JSON 对象
+invoke(functionName:"generateWidgetCardCompactDsl", arguments:"{\\"bundleName\\":\\"com.omega_w_0823.hmservice\\",\\"userQuery\\":\\"做一张显示天气的卡片。\\"}","skillName":"harmony-card-generation-online")
+
+// 错误：candidateDataBindings 和其内部 arguments 被序列化为字符串
+invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
+  bundleName:"com.omega_w_0823.hmservice",
+  userQuery:"做一张显示天气的卡片。",
+  candidateDataBindings:"[{\\"capabilityId\\":\\"ViewWeather\\",\\"arguments\\":{\\"forecastDays\\":1}}]"
+},"skillName":"harmony-card-generation-online")
 ```
 
 ## 不可绕过的重要约束

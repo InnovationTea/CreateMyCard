@@ -43,9 +43,13 @@ await request_template_source_dsl(
 )
 ```
 
-生产服务入口和开发验证入口默认传入 `enable_fusion_ball=False`；只有调用方显式开启时才使用融球。
-本模块责任边界内的 `request_template_source_dsl` 仍要求显式布尔值。关闭时，融球 Theme 会在首层 Prompt
-构造前从当前请求的 Registry 视图中移除，后续检索、二层组合和编译也不能选择该类 Theme。
+生产链由 `TemplateSourceGenerator` 读取已有 `TaskSpec.appVersion`，与
+`CONFIG.fusion_ball_min_prd_version` 比较后，将结果作为内部 `enable_fusion_ball` 传给上述窄入口；配置或
+版本缺失、非法、低于配置版本时均传 `False`。`TaskSpec.appVersion` 沿用公共 TaskSpec 构建链，不在模板
+模块内重新从请求取值或维护第二份版本字段。本模块责任边界内的 `request_template_source_dsl` 仍要求显式
+布尔值。
+关闭时，融球 Theme 会在首层 Prompt 构造前从当前请求的 Registry 视图中移除，后续检索、二层组合和编译也
+不能选择该类 Theme。
 
 Provider Template Search 当前只支持 `2x2` 单业务场景，可组合零到两个属于该业务的显式 Action。`2x4`
 在首层 Prompt 和模型调用前直接判定模板不适用；多业务请求在 Search 后、二层模型调用前确定性判定模板

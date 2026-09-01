@@ -14,6 +14,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
+from services.fusion_ball_expander import (
+    FusionBallExpansionError,
+    expand_fusion_ball_components,
+    fusion_ball_palette_for_root,
+)
+
 ThemeMode = Literal["light", "dark"]
 
 _A2UI_FORM_CATALOG_ID = "ohos.a2ui.extended.catalog.form"
@@ -31,7 +37,6 @@ _COMPONENT_TYPES = frozenset(
         "Button",
         "ActionUnit",
         "Checkbox",
-        "FusionBall",
     }
 )
 _CONTAINER_TYPES = frozenset({"Row", "Column", "List", "Stack"})
@@ -42,9 +47,7 @@ _SEMANTIC_FIELDS = {
     "Button": frozenset({"label", "enabled"}),
     "ActionUnit": frozenset({"label", "enabled"}),
     "Checkbox": frozenset({"label", "value", "select"}),
-    "FusionBall": frozenset({"largeColor", "mediumColor", "smallColor"}),
 }
-_FUSION_BALL_FIELDS = frozenset({"largeColor", "mediumColor", "smallColor"})
 _COMPACT_ONLY_FIELDS = {
     "Progress": frozenset({"threshold"}),
 }
@@ -123,7 +126,16 @@ _COMMON_COMPACT_PROPERTIES = frozenset(
     {"design", "onClick", "accessibility", "accessibily"}
 )
 _COMMON_COMPACT_ONLY_PROPERTIES = frozenset({"accessibility", "accessibily"})
-_ACTION_UNIT_PROPERTIES = frozenset({"state", "icon", "actionInk", "actionSurface"})
+_ACTION_UNIT_PROPERTIES = frozenset(
+    {
+        "state",
+        "icon",
+        "actionInk",
+        "actionSurface",
+        "fontSize",
+        "fontWeight",
+    }
+)
 _ACTION_UNIT_FORBIDDEN_SKIN_PROPERTIES = frozenset(
     {
         "backgroundColor",
@@ -134,8 +146,6 @@ _ACTION_UNIT_FORBIDDEN_SKIN_PROPERTIES = frozenset(
         "design",
         "fillColor",
         "fontColor",
-        "fontSize",
-        "fontWeight",
         "height",
         "layoutWeight",
         "linearGradient",
@@ -424,7 +434,7 @@ _TEXT_DESIGNS: dict[str, dict[str, Any]] = {
     "body-regular-sm": {"fontSize": 12, "fontWeight": 400},
     "caption-emphasis": {"fontSize": 12, "fontWeight": 500},
     "caption-regular": {"fontSize": 10, "fontWeight": 500},
-    "card-header-title": {"fontSize": 14, "fontWeight": 500},
+    "card-header-title": {"fontSize": 12, "fontWeight": 400},
     "metric-hero-value": {"fontSize": 28, "fontWeight": 700},
     "metric-hero-unit": {"fontSize": 12, "fontWeight": 400},
     "metadata-secondary": {"fontSize": 12, "fontWeight": 400},
@@ -432,13 +442,13 @@ _TEXT_DESIGNS: dict[str, dict[str, Any]] = {
 _BUTTON_DESIGNS: dict[str, dict[str, Any]] = {
     "action-capsule-primary": {
         "width": "matchParent",
-        "height": 30,
-        "borderRadius": 15,
+        "height": 36,
+        "borderRadius": 20,
         "padding": {"left": 8, "top": 0, "right": 8, "bottom": 0},
         "backgroundColor": "#190A59F7",
         "fontColor": "font_emphasize",
         "fontSize": 14,
-        "fontWeight": 700,
+        "fontWeight": 500,
         "maxFontSize": 14,
         "minFontSize": 12,
         "maxLines": 1,
@@ -732,6 +742,11 @@ def convert_compact_dsl_to_a2ui(
     profile = protocol_profile or {"version": "v0.9"}
     rows = _parse_compact_rows(compact_dsl)
     components, data_rows = _split_component_rows(rows)
+    fusion_palette = fusion_ball_palette_for_root(
+        components,
+        size=size,
+        app_version=profile.get("appVersion"),
+    )
 
     normalized_components = [_normalize_component(row) for row in components]
     normalized_components = _normalize_special_action_units(normalized_components)
@@ -740,9 +755,6 @@ def convert_compact_dsl_to_a2ui(
 
     icon_round_button_ids = _button_ids_with_design(components, "action-icon-round")
     fallback_root_gradient = _fallback_root_linear_gradient(compact_dsl)
-    has_fusion_ball = any(
-        component.component_type == "FusionBall" for component in normalized_components
-    )
     converted_components = []
     for component in normalized_components:
         hide_label = component.component_id in icon_round_button_ids
@@ -751,9 +763,16 @@ def convert_compact_dsl_to_a2ui(
                 component,
                 hide_label=hide_label,
                 fallback_root_gradient=fallback_root_gradient,
-                has_fusion_ball=has_fusion_ball,
             )
         )
+    if fusion_palette is not None:
+        try:
+            converted_components = expand_fusion_ball_components(
+                converted_components,
+                fusion_palette,
+            )
+        except FusionBallExpansionError as exc:
+            raise CompactDslConversionError(str(exc)) from exc
     version = str(profile.get("version") or "v0.9")
     create_surface = {
         "surfaceId": surface_id,
@@ -798,10 +817,11 @@ def _normalize_special_action_units(
             normalized.append(component)
             continue
         props = copy.deepcopy(component.props)
-        props["actionInk"] = action_ink
-        props["_actionBackground"] = action_background
-        if action_background == "#FFFFFFFF":
-            props["actionSurface"] = "white"
+        props.setdefault("actionInk", action_ink)
+        if "actionSurface" not in props:
+            props["_actionBackground"] = action_background
+            if action_background == "#FFFFFFFF":
+                props["actionSurface"] = "white"
         normalized.append(
             ComponentRow(
                 component.component_id,
@@ -1366,40 +1386,13 @@ def _parse_component_row(value: list[Any], line_number: int) -> ComponentRow:
         props,
         line_number,
     )
-    if component_type == "FusionBall" and len(value) != 3:
-        raise CompactDslConversionError(f"{component_id}: FusionBall cannot have children.")
     children = _parse_children(value, component_id, component_type)
-    if component_type == "FusionBall":
-        _validate_fusion_ball_component(component_id, props, children)
     return ComponentRow(
         component_id=component_id,
         component_type=component_type,
         props=copy.deepcopy(props),
         children=children,
     )
-
-
-def _validate_fusion_ball_component(
-    component_id: str,
-    props: dict[str, Any],
-    children: tuple[str, ...],
-) -> None:
-    if children:
-        raise CompactDslConversionError(f"{component_id}: FusionBall cannot have children.")
-    if set(props) != _FUSION_BALL_FIELDS:
-        raise CompactDslConversionError(
-            f"{component_id}: FusionBall requires largeColor, mediumColor, and smallColor."
-        )
-    if any(not _is_argb_color(value) for value in props.values()):
-        raise CompactDslConversionError(
-            f"{component_id}: FusionBall colors must use #AARRGGBB."
-        )
-
-
-def _is_argb_color(value: Any) -> bool:
-    if not isinstance(value, str) or len(value) != 9 or not value.startswith("#"):
-        return False
-    return all(character in "0123456789abcdefABCDEF" for character in value[1:])
 
 
 def _repair_legacy_component_row(value: list[Any]) -> list[Any]:
@@ -1926,7 +1919,6 @@ def _convert_component_rows(
     *,
     hide_label: bool = False,
     fallback_root_gradient: dict[str, Any] | None = None,
-    has_fusion_ball: bool = False,
 ) -> list[dict[str, Any]]:
     if component.component_type == "ActionUnit":
         return _convert_action_unit(component)
@@ -1935,7 +1927,6 @@ def _convert_component_rows(
             component,
             hide_label=hide_label,
             fallback_root_gradient=fallback_root_gradient,
-            has_fusion_ball=has_fusion_ball,
         )
     ]
 
@@ -1964,6 +1955,7 @@ def _convert_action_unit_capsule(component: ComponentRow) -> list[dict[str, Any]
         component.component_id,
         _BUTTON_DESIGNS["action-capsule-primary"],
     )
+    _apply_action_text_styles(styles, component.props)
     _apply_action_background(styles, component.props)
     action_ink = component.props.get("actionInk")
     if action_ink is not None:
@@ -1982,6 +1974,7 @@ def _convert_action_unit_capsule_with_icon(
         component.component_id,
         _BUTTON_DESIGNS["action-capsule-primary"],
     )
+    _apply_action_text_styles(styles, component.props)
     _apply_action_background(styles, component.props)
     text_styles = _capsule_text_styles(styles, component.props.get("actionInk"))
     row_styles = _capsule_row_styles(styles)
@@ -1989,7 +1982,7 @@ def _convert_action_unit_capsule_with_icon(
         "id": component.component_id,
         "component": "Row",
         "children": [icon_id, text_id],
-        "itemMargin": 4,
+        "itemMargin": 8,
         "onClick": _convert_path_bindings(component.props["onClick"]),
         "styles": row_styles,
     }
@@ -2022,8 +2015,22 @@ def _apply_action_background(
     if isinstance(action_background, str):
         styles["backgroundColor"] = action_background
         return
-    if props.get("actionSurface") == "white":
+    action_surface = props.get("actionSurface")
+    if action_surface == "white":
         styles["backgroundColor"] = "#FFFFFFFF"
+        return
+    if isinstance(action_surface, str) and action_surface:
+        styles["backgroundColor"] = action_surface
+
+
+def _apply_action_text_styles(
+    styles: dict[str, Any],
+    props: dict[str, Any],
+) -> None:
+    for property_name in ("fontSize", "fontWeight"):
+        value = props.get(property_name)
+        if value is not None:
+            styles[property_name] = copy.deepcopy(value)
 
 
 def _capsule_row_styles(styles: dict[str, Any]) -> dict[str, Any]:
@@ -2066,7 +2073,7 @@ def _capsule_text_styles(
         text_styles["fontColor"] = action_ink
     text_styles.update(
         {
-            "width": 94,
+            "maxWidth": 96,
             "height": capsule_styles.get("height", 30),
             "textAlign": "center",
             "textOverflow": "clip",
@@ -2126,7 +2133,6 @@ def _convert_component(
     *,
     hide_label: bool = False,
     fallback_root_gradient: dict[str, Any] | None = None,
-    has_fusion_ball: bool = False,
 ) -> dict[str, Any]:
     output_type = _output_component_type(component, hide_label)
     converted: dict[str, Any] = {
@@ -2172,7 +2178,6 @@ def _convert_component(
             converted,
             styles,
             fallback_root_gradient,
-            has_fusion_ball,
         )
     if _is_icon_button_stack(component, hide_label):
         _normalize_icon_button_stack(styles)
@@ -2210,24 +2215,11 @@ def _normalize_root_component(
     converted: dict[str, Any],
     styles: dict[str, Any],
     fallback_gradient: dict[str, Any] | None,
-    has_fusion_ball: bool,
 ) -> None:
     styles["width"] = "matchParent"
     styles["height"] = "matchParent"
-    if has_fusion_ball or _is_fusion_ball_root(component):
-        for property_name in ("backgroundColor", "linearGradient", "backgroundImage"):
-            styles.pop(property_name, None)
-        return
     _normalize_root_linear_gradient(styles)
     _ensure_root_background(styles, fallback_gradient)
-
-
-def _is_fusion_ball_root(component: ComponentRow) -> bool:
-    return (
-        component.component_id == "root"
-        and component.component_type == "Stack"
-        and component.children[:1] == ("fusionBallBackground",)
-    )
 
 
 def _normalize_root_linear_gradient(styles: dict[str, Any]) -> None:

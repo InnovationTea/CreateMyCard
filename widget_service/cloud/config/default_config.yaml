@@ -1,0 +1,77 @@
+# 蓝区默认配置。绿区 spec 配置存在时，只读取 spec，不与本文件合并。
+ENVIRONMENT: local
+
+hag_slb_url: ""
+osms_prepare_url: ""
+osms_complete_url: ""
+osms_query_url: ""
+osms_delete_url: ""
+hag_osms_ak: ""
+ids_query_url: "http://{{ip}}:{{port}}/hiai/ids/databus/v1/kvcommondata/query"
+ids_access_key: "23232323232"
+sts_serverDomain: ""
+obs.use.edge: false
+obs.expire.time: 3600
+
+enable_artifact_validation: true
+enable_a2ui_model_mock: true
+enable_ids_mock: true
+enable_default_capability_registry_fallback: true
+enable_default_protocol_profile_fallback: true
+enable_validation_failure_retry: false
+enable_widget_edit: false
+enable_artifact_download_mock: true
+enable_widget_directive_commands: false
+enable_openai_fallback: true
+enable_sensitive_log_fields: true
+enable_card_template: false
+enable_jsx_generation: false
+
+model_appid: ""
+model_url: ""
+model_bid: ""
+model_flow_id: ""
+system.prompt: "@file:../../docs/system_prompt.txt"
+edit.system.prompt: "@file:../../docs/edit_system_prompt.txt"
+repair.system.prompt: "@file:../../docs/repair_system_prompt.txt"
+
+a2ui_form_model_backend: mep
+design_compact_model_backend: openai
+validation_failure_max_repair_attempts: 1
+model_max_concurrency: 20
+model_queue_timeout_seconds: 120
+model_request_timeout_seconds: 120
+model_prompt_log_preview_chars: 30
+
+openai_master_client: deepseek_platform
+openai_fallback_client: llmclient
+deepseek_platform_access_key: ""
+deepseek_platform_secret_key_sts_config_key: genui.deepseek.platform.secret.key
+deepseek_platform_ws_url: ""
+deepseek_platform_api_key: AccessService
+deepseek_platform_sender: superagent
+deepseek_platform_model_select: false
+deepseek_platform_thinking_model_name: AGENT-DEEPSEEK-V4-FLASH
+deepseek_platform_model_name: AGENT-DEEPSEEK-V4-FLASH
+
+enable_model_failure_retry: false
+model_failure_max_retry_attempts: 1
+fallback_model_failure_max_retry_attempts: 1
+model_failure_retry_initial_delay_seconds: 1.0
+model_failure_retry_max_delay_seconds: 30.0
+model_failure_retry_backoff_multiplier: 2.0
+model_failure_retry_jitter_ratio: 0.2
+
+deepseek_ws_url: ""
+deepseek_model: deepseek-ai/DeepSeek-V4-Flash
+deepseek_api_key: AccessService
+deepseek_user: genui_user
+deepseek_request_id: genui_ui
+deepseek_temperature: 0.7
+deepseek_top_p: 0.9
+deepseek_top_k: 1
+deepseek_max_tokens: 128000
+deepseek_enable_thinking: false
+deepseek_include_usage: true
+deepseek_debug_usage: true
+deepseek_recv_timeout: 120

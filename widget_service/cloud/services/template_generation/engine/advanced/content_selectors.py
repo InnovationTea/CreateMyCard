@@ -43,7 +43,10 @@ _SELECTOR_COMPONENT_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
         ),
     ),
     "DateOverview": ("date", ("date", "weekday")),
-    "ScheduleOverview": ("schedule", ("title", "timeText", "location")),
+    "ScheduleOverview": (
+        "schedule",
+        ("title", "timeText", "timeZone", "isAllDay", "location"),
+    ),
     "LocationOverview": ("location", ("label", "city", "updatedText")),
 }
 
@@ -68,6 +71,8 @@ _PROVIDER_COMPONENT_FIELDS: dict[str, tuple[str, ...]] = {
         "batterySOCText",
         "batteryCapacityLevelDesc",
         "chargingStatusDesc",
+        "healthStatusDesc",
+        "pluggedTypeDesc",
     ),
     "ResourceUsageOverview": ("usagePercent", "availableMemText", "totalMemText"),
     "AppUsageOverview": (
@@ -99,6 +104,7 @@ _PROVIDER_COMPONENT_FIELDS: dict[str, tuple[str, ...]] = {
         "leftBatteryLevel",
         "rightBatteryLevel",
         "batteryLevel",
+        "chargingStatusDesc",
     ),
     "CountdownOverview": ("countdownDays",),
 }
@@ -159,11 +165,33 @@ class ScheduleOverviewFacts:
 
 
 @dataclass(frozen=True)
+class ScheduleTimezoneFacts:
+    title: str
+    time_zone: str
+    is_all_day: bool
+    location: str
+
+    def as_selector(self) -> dict[str, dict[str, Any]]:
+        return {
+            "title": _field(self.title, "可信首项日程标题"),
+            "timeZone": _field(self.time_zone, "可信首项日程时区"),
+            "isAllDay": {
+                "type": "boolean",
+                "description": "可信首项日程全天状态",
+                "sampleValue": self.is_all_day,
+            },
+            "location": _field(self.location, "可信首项日程地点"),
+        }
+
+
+@dataclass(frozen=True)
 class BatteryOverviewFacts:
     level_percent: int | float
     level_text: str
     capacity_level: str | None = None
     charging_status: str | None = None
+    health_status: str | None = None
+    plugged_type: str | None = None
 
     def as_selector(self) -> dict[str, dict[str, Any]]:
         number_type = "integer" if isinstance(self.level_percent, int) else "number"
@@ -185,6 +213,16 @@ class BatteryOverviewFacts:
                 self.charging_status,
                 "可信充电状态描述",
             )
+        if self.health_status is not None:
+            selected["healthStatusDesc"] = _field(
+                self.health_status,
+                "可信电池健康状态描述",
+            )
+        if self.plugged_type is not None:
+            selected["pluggedTypeDesc"] = _field(
+                self.plugged_type,
+                "可信充电器类型描述",
+            )
         return selected
 
     @property
@@ -200,21 +238,23 @@ class BatteryOverviewFacts:
 
 @dataclass(frozen=True)
 class BluetoothDeviceOverviewFacts:
-    is_connected: bool
-    earphone_name: str
+    is_connected: bool | None = None
+    earphone_name: str | None = None
     left_battery_level: int | float | None = None
     right_battery_level: int | float | None = None
     case_battery_level: int | float | None = None
+    case_charging_status: str | None = None
 
     def as_selector(self) -> dict[str, dict[str, Any]]:
-        selected: dict[str, dict[str, Any]] = {
-            "isConnected": {
+        selected: dict[str, dict[str, Any]] = {}
+        if self.is_connected is not None:
+            selected["isConnected"] = {
                 "type": "boolean",
                 "description": "可信蓝牙耳机连接状态",
                 "sampleValue": self.is_connected,
-            },
-            "earphoneName": _field(self.earphone_name, "可信蓝牙耳机名称"),
-        }
+            }
+        if self.earphone_name is not None:
+            selected["earphoneName"] = _field(self.earphone_name, "可信蓝牙耳机名称")
         for name, value, description in (
             ("leftBatteryLevel", self.left_battery_level, "可信左耳电量百分比"),
             ("rightBatteryLevel", self.right_battery_level, "可信右耳电量百分比"),
@@ -227,6 +267,11 @@ class BluetoothDeviceOverviewFacts:
                 "description": description,
                 "sampleValue": value,
             }
+        if self.case_charging_status is not None:
+            selected["chargingStatusDesc"] = _field(
+                self.case_charging_status,
+                "可信充电盒充电状态",
+            )
         return selected
 
     @property
@@ -1171,6 +1216,15 @@ _BLUETOOTH_CONNECTION_QUERY_TERMS = (
     "是否连接",
 )
 _BLUETOOTH_BATTERY_QUERY_TERMS = ("battery", "电量", "剩余电")
+_BLUETOOTH_CHARGING_QUERY_TERMS = (
+    "charging status",
+    "charging",
+    "充电状态",
+    "充没充",
+    "是否充电",
+    "在充电",
+    "未充电",
+)
 _UNSUPPORTED_RESOURCE_USAGE_QUERY_TERMS = (
     "storage",
     "disk",
@@ -1403,6 +1457,14 @@ def project_content_component_facts(
             battery_facts = extract_battery_overview_facts(schema)
             if battery_facts is not None:
                 selected = battery_facts.as_selector()
+            else:
+                field_names = _provider_fields(component_id, capability_ids)
+                source = _best_source_object(schema, field_names)
+                selected = {}
+                for field_name in field_names:
+                    field = _first_field(source, field_name)
+                    if field is not None:
+                        selected[field_name] = deepcopy(field)
         elif component_id == "BluetoothDeviceOverview":
             bluetooth_facts = extract_bluetooth_device_overview_facts(schema)
             if bluetooth_facts is not None:
@@ -1414,14 +1476,20 @@ def project_content_component_facts(
         elif component_id == "CalendarOverview":
             date_facts = extract_date_overview_facts(schema)
             schedule_facts = extract_schedule_overview_facts(schema)
+            timezone_facts = extract_schedule_timezone_facts(schema)
             if date_facts is not None:
                 selected.update(date_facts.as_selector())
             if schedule_facts is not None:
                 selected.update(schedule_facts.as_selector())
+            if timezone_facts is not None:
+                selected.update(timezone_facts.as_selector())
         elif component_id == "ScheduleOverview":
             schedule_facts = extract_schedule_overview_facts(schema)
+            timezone_facts = extract_schedule_timezone_facts(schema)
             if schedule_facts is not None:
-                selected = schedule_facts.as_selector()
+                selected.update(schedule_facts.as_selector())
+            if timezone_facts is not None:
+                selected.update(timezone_facts.as_selector())
         elif component_id == "DateOverview":
             date_facts = extract_date_overview_facts(schema)
             if date_facts is not None:
@@ -1837,6 +1905,11 @@ def bluetooth_device_overview_variants(
     requests_right = _contains_query_term(normalized, compact, _BLUETOOTH_RIGHT_QUERY_TERMS)
     requests_both = _contains_query_term(normalized, compact, _BLUETOOTH_BOTH_EARS_QUERY_TERMS)
     requests_case = _contains_query_term(normalized, compact, _BLUETOOTH_CASE_QUERY_TERMS)
+    requests_charging = _contains_query_term(
+        normalized,
+        compact,
+        _BLUETOOTH_CHARGING_QUERY_TERMS,
+    )
     if requests_left and facts.left_battery_level is None:
         return ()
     if requests_right and facts.right_battery_level is None:
@@ -1847,7 +1920,9 @@ def bluetooth_device_overview_variants(
         return ()
     if requests_case and facts.case_battery_level is None:
         return ()
-    return ("earbuds",)
+    if requests_charging and facts.case_charging_status is None:
+        return ()
+    return ("template",)
 
 
 def bluetooth_device_overview_template_focus(query: str) -> Literal["connection", "case", "all"]:
@@ -2005,9 +2080,13 @@ def schedule_overview_is_eligible(
     if "GetCalendarEvents" not in capability_ids:
         return False
     facts = extract_schedule_overview_facts(task_spec.dataModelSchema)
-    if facts is None or not schedule_overview_query_is_supported(task_spec.userQuery):
+    timezone_facts = extract_schedule_timezone_facts(task_spec.dataModelSchema)
+    if facts is None and timezone_facts is None:
         return False
-    if schedule_query_requests_location(task_spec.userQuery) and facts.location is None:
+    if not schedule_overview_query_is_supported(task_spec.userQuery):
+        return False
+    location = facts.location if facts is not None else timezone_facts.location
+    if schedule_query_requests_location(task_spec.userQuery) and location is None:
         return False
     return _requested_schedule_assets_are_available(task_spec)
 
@@ -2261,7 +2340,7 @@ def extract_battery_overview_facts(schema: dict[str, Any]) -> BatteryOverviewFac
 def extract_bluetooth_device_overview_facts(
     schema: dict[str, Any],
 ) -> BluetoothDeviceOverviewFacts | None:
-    """Extract one coherent earphone entity with at least one valid battery part."""
+    """Extract one coherent earphone entity with optional battery facts."""
     data = schema.get("data")
     if isinstance(data, dict):
         projected = data.get("BluetoothDeviceOverview")
@@ -2275,9 +2354,11 @@ def extract_bluetooth_device_overview_facts(
             if facts is not None:
                 return facts
     required_identity = {"isConnected", "earphoneName"}
-    battery_fields = {"leftBatteryLevel", "rightBatteryLevel", "batteryLevel"}
+    required_case_status = {"batteryLevel", "chargingStatusDesc"}
     for candidate in _dict_nodes(schema):
-        if not required_identity.issubset(candidate) or not battery_fields.intersection(candidate):
+        has_complete_identity = required_identity.issubset(candidate)
+        has_complete_case_status = required_case_status.issubset(candidate)
+        if not has_complete_identity and not has_complete_case_status:
             continue
         facts = _bluetooth_facts_from_candidate(candidate)
         if facts is not None:
@@ -2290,7 +2371,8 @@ def _bluetooth_facts_from_candidate(
 ) -> BluetoothDeviceOverviewFacts | None:
     is_connected = _trusted_boolean(_first_field(candidate, "isConnected"))
     earphone_name = _trusted_string(_first_field(candidate, "earphoneName"))
-    if is_connected is None or earphone_name is None:
+    has_complete_identity = is_connected is not None and earphone_name is not None
+    if (is_connected is None) != (earphone_name is None):
         return None
     facts = BluetoothDeviceOverviewFacts(
         is_connected=is_connected,
@@ -2302,8 +2384,14 @@ def _bluetooth_facts_from_candidate(
             _first_field(candidate, "rightBatteryLevel")
         ),
         case_battery_level=_trusted_percentage_number(_first_field(candidate, "batteryLevel")),
+        case_charging_status=_trusted_string(
+            _first_field(candidate, "chargingStatusDesc")
+        ),
     )
-    return facts if facts.battery_part_count else None
+    has_complete_case_status = (
+        facts.case_battery_level is not None and facts.case_charging_status is not None
+    )
+    return facts if has_complete_identity or has_complete_case_status else None
 
 
 def _projected_battery_candidates(schema: dict[str, Any]):
@@ -2331,10 +2419,14 @@ def _battery_facts_from_candidate(candidate: dict[str, Any]) -> BatteryOverviewF
     level_text_field = _first_field(candidate, "batterySOCText")
     capacity_field = _first_field(candidate, "batteryCapacityLevelDesc")
     charging_field = _first_field(candidate, "chargingStatusDesc")
+    health_field = _first_field(candidate, "healthStatusDesc")
+    plugged_field = _first_field(candidate, "pluggedTypeDesc")
     level_percent = _trusted_percentage_number(level_field)
     level_text = _trusted_string(level_text_field)
     capacity_level = _trusted_string(capacity_field)
     charging_status = _trusted_string(charging_field)
+    health_status = _trusted_string(health_field)
+    plugged_type = _trusted_string(plugged_field)
     text_percent = _percentage_number_value(level_text_field)
     if level_text is None and level_percent is not None:
         level_text = f"{level_percent:g}%"
@@ -2350,6 +2442,8 @@ def _battery_facts_from_candidate(candidate: dict[str, Any]) -> BatteryOverviewF
         level_text=level_text,
         capacity_level=capacity_level,
         charging_status=charging_status,
+        health_status=health_status,
+        plugged_type=plugged_type,
     )
 
 
@@ -2757,6 +2851,35 @@ def extract_schedule_overview_facts(schema: dict[str, Any]) -> ScheduleOverviewF
     return ScheduleOverviewFacts(title=title, time_text=time_text, location=location)
 
 
+def extract_schedule_timezone_facts(
+    schema: dict[str, Any],
+) -> ScheduleTimezoneFacts | None:
+    """Extract the raw fields required by the dedicated timezone schedule template."""
+    provider = _calendar_schedule_provider(schema)
+    if provider is None:
+        return None
+    event_count = _sample_value(provider.get("eventCount"))
+    if isinstance(event_count, (int, float)) and not isinstance(event_count, bool):
+        if event_count <= 0:
+            return None
+    event = _first_event_object(provider.get("events"))
+    if event is None:
+        return None
+    fields = event.get("properties") if isinstance(event.get("properties"), dict) else event
+    title = _trusted_string(fields.get("title"))
+    time_zone = _trusted_string(fields.get("timeZone"))
+    is_all_day = _trusted_boolean(fields.get("isAllDay"))
+    location = _trusted_string(fields.get("eventLocation"))
+    if any(param is None for param in (title, time_zone, is_all_day, location)):
+        return None
+    return ScheduleTimezoneFacts(
+        title=title,
+        time_zone=time_zone,
+        is_all_day=is_all_day,
+        location=location,
+    )
+
+
 def _projected_schedule_candidates(schema: dict[str, Any]):
     data = schema.get("data")
     if not isinstance(data, dict):
@@ -2984,6 +3107,9 @@ def _calendar_selectors(
 ) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
     schedule_facts = extract_schedule_overview_facts(schema)
     schedule = schedule_facts.as_selector() if schedule_facts is not None else {}
+    timezone_facts = extract_schedule_timezone_facts(schema)
+    if timezone_facts is not None:
+        schedule.update(timezone_facts.as_selector())
     date_facts = extract_date_overview_facts(schema)
     return schedule, date_facts.as_selector() if date_facts is not None else {}
 

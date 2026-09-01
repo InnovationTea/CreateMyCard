@@ -1,15 +1,15 @@
 {
   "themeFormat": "card-theme/2",
   "themeProfileId": "meeting-paper-neutral",
-  "description": "日历日程暖粉色",
+  "description": "日历日程淡蓝色",
   "firstLayerRule": {"path": "first-layer.md"},
   "supportedCapabilityIds": ["GetCalendarEvents"],
   "paletteSceneIds": ["generic", "office.schedule"],
-  "primaryColor": "#FF99331F",
-  "supportContentColor": "#9999331F",
-  "progressColor": "#9999331F",
+  "primaryColor": "#FF1F4799",
+  "supportContentColor": "#991F4799",
+  "progressColor": "#991F4799",
   "rootStyle": {
-    "backgroundColor": "#FFFFEAE6",
+    "backgroundColor": "#FFE5EDFE",
     "borderRadius": 20,
     "padding": 12,
     "justifyContent": "spaceBetween",
@@ -17,7 +17,7 @@
     "clip": true
   },
   "actionStyle": {
-    "backgroundColor": "#3399331F",
-    "contentColor": "#FF99331F"
+    "backgroundColor": "#331F4799",
+    "contentColor": "#FF1F4799"
   }
 }

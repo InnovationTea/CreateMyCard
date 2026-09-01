@@ -62,10 +62,10 @@ Form Profile、模型运行时和请求上下文，再将其注入公共生成�
 
 ```mermaid
 flowchart TD
-    IN[TaskSpec + CardSpec + effective bindings + 融球开关] --> SIZE{size == 2x4?}
+    IN[TaskSpec appVersion + CardSpec + effective bindings] --> SIZE{size == 2x4?}
     SIZE -->|是| MISS[模板路由不适用]
     SIZE -->|否| LOAD[加载 Controls 与 CardPlanRegistry]
-    LOAD --> FUSION{enable_fusion_ball}
+    LOAD --> FUSION{appVersion >= 配置最低版本?}
     FUSION -->|false| FILTER[移除融球 Theme 的请求级视图]
     FUSION -->|true| SELECTOR{firstLayerComponentSelector}
     FILTER --> SELECTOR
@@ -94,8 +94,11 @@ flowchart TD
 2. 编译 `.cardtpl`，校验模板 ID、Props、数据路径、children 槽位和组件闭包。
 3. 从 `provider.json#templates` 派生“业务 -> Template -> 数据能力 -> Provider”索引。
 4. 应用 `disabledProviderIds` 和 `disabledTemplateIds`，确保禁用项不进入首层和二层。
-5. 生产与验证入口默认关闭融球；只有调用方显式传入 `enable_fusion_ball=true` 时才构造包含融球 Theme
-   的请求级视图。关闭时移除所有 `fusionBallStyle` Theme 及其首层规则和场景索引。
+5. `TemplateSourceGenerator` 读取已有 `TaskSpec.appVersion`，与
+   `CONFIG.fusion_ball_min_prd_version` 比较；配置或版本缺失、非法、低于配置版本时关闭。模板模块不重新从
+   请求取值，也不维护另一份应用版本。只有内部 `enable_fusion_ball=true` 时才构造包含融球 Theme 的请求级
+   视图；关闭时移除所有
+   `fusionBallStyle` Theme 及其首层规则和场景索引。
 6. 建立字段 Search 索引，供 `retrieve_template_variants()` 查找可覆盖候选。
 
 Provider Template 和业务分组只从各自 `provider.json` 与 `.cardtpl` 派生；Theme 只从
@@ -131,13 +134,13 @@ Search 路线的首层输出是 `TemplateRetrievalQuery`：
 - 字段必须逐字来自对应 `candidateOutputFields`。
 - CardSpec 写入根必须与 Provider `dataDomain` 一致。
 - 模板的 `primaryData` 和 `secondaryData` 必须都能从 TaskSpec 中取得。
-- Search 只接受一个数据业务，可外加最多两个属于该业务场景的显式 Action。
-- 首层必须完整标定用户显式字段，不得为了迁就单业务限制而省略其他业务；Search 一旦映射出两个或以上
-  业务组件，立即在二层模型调用前返回模板不适用。
-- Search 不按 Action 数量或布局后缀筛选候选；每个保留的 Template 必须独立完整覆盖所属业务的
-  用户显式字段。
-- `2x2`/`2x4` 的 `Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀筛选由第二层完成。
-- `TwoCompactLayout` 作为兼容资源保留，当前默认 Search 路线不会为多业务请求下发该布局。
+- Search 当前只接受一个数据业务，可外加最多两个显式 Action；候选解析后命中多个业务时，在布局后缀过滤和
+  二层模型调用前显式返回模板不适用。
+- 首层必须完整标定用户显式字段，不得为了迁就布局限制而省略其他业务。
+- Search 按 Action 数过滤布局后缀，同时要求每个保留的 Template 独立完整覆盖所属业务的用户显式字段：
+  单业务零、一个、两个 Action 分别保留 Full、Hero+Full、Compact。
+- `Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 的最终组合由第二层完成。
+- `Support`、`TwoSupportLayout` 和 `2x2-two-support` 保留给旧 LLM 选择器兼容测试和原子预览，当前 Search 路径不可达。
 
 结果是 `TemplateRouteSelection`，其 `availableTemplateIds` 仍是二层候选集，不是最终选择。
 
@@ -147,7 +150,7 @@ Search 路线的首层输出是 `TemplateRetrievalQuery`：
 
 - 首层通过的业务 Template 候选，以及每个候选的用途描述、完整 Props Schema、必填/可选关系、
   参数关系和素材参数可用源。
-- 根据当前尺寸、业务数量和 Action 数量确定的唯一 Layout Template 完整契约。
+- 根据当前尺寸、业务数量、Action 数量和素材条件确定的一个或多个 Layout Template 完整契约。
 - 已批准的 Action ID/文案、当前 Action Template 完整签名、可用素材和 Theme ID。
 - 删除未候选模板目录后的 Provider 二层业务指导。
 
@@ -155,8 +158,11 @@ Search 路线的首层输出是 `TemplateRetrievalQuery`：
 `Template(...)` 调用语法和安全禁止项。二层不接收 TaskSpec、`dataFacts`、`mustKeep` 或数据样例，
 只输出受限的 Layout/Template 调用和
 展示 Props。业务 Template 是不可拆分的原子节点，禁止用基础组件补业务内容。候选经布局后缀、Action
-数量或必需参数筛选后为空时直接失败。二层不能输出原始 `call/args`，也不能绕过
-`EventAction(props.actionId)` 生成交互。
+数量或必需参数筛选后为空时直接失败。单业务一个 Action 时，若存在语义匹配图标，二层可在
+`HeroActionLayout + PillAction` 与 `FullIconActionLayout + IconAction` 中选择。当前 Search 不会向二层下发多业务候选。二层不能输出原始
+`call/args`，也不能绕过
+必选事件使用 `EventAction(props.actionId)` 生成交互；Support 的可选事件使用
+`EventAction(props?.actionId)`，未提供 `actionId` 时不生成 `onClick`。
 
 ### 3.4 受信编译与展开
 
@@ -165,16 +171,19 @@ Search 路线的首层输出是 `TemplateRetrievalQuery`：
 1. 用闭包语法解析器读取 Layout 根、业务 Template 和 Action Template。
 2. 校验原始组件数、层级、允许的 Template ID、Props 类型和必传数据。
 3. 按布局后缀校验卡片尺寸、业务节点数和 Action 类型/数量。
-4. 展开 CardTpl，处理 `Bind`、`Param`、`Asset`、`Expr`、条件节点和 children 槽位。
-5. 将 Action Template 的 `EventAction(props.actionId)` 实体化为已批准事件。
+4. 展开 CardTpl，处理 `Bind`、`Param`、`Asset`、运行时 `Expr`、生成期三元、条件节点和 children 槽位；
+   生成期三元只按路径或 Prop 可用性选择直接绑定或确定值，不进入最终 A2UI 表达式。
+5. 将 Action Template 的 `EventAction(props.actionId)` 实体化为已批准事件；对 Support 中的
+   `EventAction(props?.actionId)`，缺少 `actionId` 时省略 `onClick`。
 6. 将 Theme `rootStyle` 应用到卡片根节点；为未显式着色的内容组件补 `primaryColor`；确定性展开
    CardTpl/Tersel 中的 `$theme(...)`；将 `actionStyle` 的背景色和内容色应用到受信 Action Template，保留
-   模板节点已经显式声明的高度、圆角、字号和字重，然后执行布局 Lowering。
-7. 仅当实际产物为单业务 `Full` 或 `Hero` 时插入 Theme 三色的云侧 `FusionBall`；模板内不展开球体树，
-   也不猜测或覆写主辅内容色。
-8. 序列化为 Tersel，再确定性转换为包含云侧组件的三段 A2UI。
-9. 回转 A2UI-Compact 并经公共 Processor 重新生成完整 A2UI 后，统一展开 `FusionBall` 为标准组件，给相邻
-   内容根 ID 增加 `__genui_render_component__` 前缀，再执行 artifact 校验。
+   模板节点已经显式声明的高度、圆角、字号和字重，然后执行布局 Lowering。`TwoSupportLayout` 额外从
+   布局专用主题读取 `supportContentStyle`，统一设置两个 Support 容器的背景色和圆角。
+7. 仅当实际产物为单业务 `Full`、`Hero` 或 `Compact` 时，按 Theme 三色在模板内部直接展开标准 `Stack` 球体树，
+   同时给前景内容根 ID 增加 `__genui_render_component__` 前缀；不猜测或覆写主辅内容色。
+8. 将已经展开的标准组件树序列化为 Tersel，再确定性转换为三段 A2UI。
+9. 回转 A2UI-Compact 并经公共 Processor 重新生成完整 A2UI 后执行 artifact 校验。A2UI-Compact 不接受
+   或保留 `FusionBall` 云端组件。
 
 二层输出发生 `TerselConversionError` 时，模板模块在首次生成后最多使用两次二层修复。
 这与模块返回后的公共 Compact repair 是两套不同的质量阶段。
@@ -191,7 +200,6 @@ Search 路线的首层输出是 `TemplateRetrievalQuery`：
   -> 当前 Form Profile A2UI
   -> Design Compact DSL
   -> 公共 DesignCompactProcessor
-  -> FusionBall 最终确定性展开 + 相邻内容防溢出标记
   -> 最终标准 A2UI
 ```
 

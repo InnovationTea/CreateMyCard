@@ -31,7 +31,6 @@ _COMPONENT_TYPES = frozenset(
         "Progress",
         "Button",
         "Checkbox",
-        "FusionBall",
     }
 )
 _CONTAINER_TYPES = frozenset({"Row", "Column", "List", "Stack"})
@@ -42,9 +41,7 @@ _SEMANTIC_FIELDS = {
     "Progress": frozenset({"value", "total"}),
     "Button": frozenset({"label", "enabled"}),
     "Checkbox": frozenset({"label", "value", "select"}),
-    "FusionBall": frozenset({"largeColor", "mediumColor", "smallColor"}),
 }
-_FUSION_BALL_FIELDS = frozenset({"largeColor", "mediumColor", "smallColor"})
 _COMPACT_ONLY_FIELDS = {
     "Progress": frozenset({"threshold"}),
 }
@@ -1049,8 +1046,6 @@ def _parse_component_row(value: list[Any], line_number: int) -> ComponentRow:
         props,
         line_number,
     )
-    if component_type == "FusionBall" and len(value) != 3:
-        raise CompactDslConversionError(f"{component_id}: FusionBall cannot have children.")
     props = _repair_button_label(component_id, component_type, props)
     children = _parse_children(value, component_id, component_type)
     _validate_component_props(component_id, component_type, props)
@@ -1379,9 +1374,6 @@ def _validate_semantic_props(
     component_type: str,
     props: dict[str, Any],
 ) -> None:
-    if component_type == "FusionBall":
-        _validate_fusion_ball_props(component_id, props)
-        return
     if component_type == "Text":
         _require_literal_or_binding(
             component_id,
@@ -1401,23 +1393,6 @@ def _validate_semantic_props(
         return
     if component_type == "Checkbox":
         _validate_checkbox_props(component_id, props)
-
-
-def _validate_fusion_ball_props(component_id: str, props: dict[str, Any]) -> None:
-    if set(props) != _FUSION_BALL_FIELDS:
-        raise CompactDslConversionError(
-            f"{component_id}: FusionBall requires largeColor, mediumColor, and smallColor."
-        )
-    if any(not _is_argb_color(value) for value in props.values()):
-        raise CompactDslConversionError(
-            f"{component_id}: FusionBall colors must use #AARRGGBB."
-        )
-
-
-def _is_argb_color(value: Any) -> bool:
-    if not isinstance(value, str) or len(value) != 9 or not value.startswith("#"):
-        return False
-    return all(character in "0123456789abcdefABCDEF" for character in value[1:])
 
 
 def _require_literal_or_binding(
@@ -1840,7 +1815,10 @@ def _validate_component_tree(
         raise CompactDslConversionError(
             "The root Row/Column component is missing; model output may be truncated."
         )
-    if first_row.component_id != "root" or first_row.component_type not in _ROOT_COMPONENT_TYPES:
+    if (
+        first_row.component_id != "root"
+        or first_row.component_type not in _ROOT_COMPONENT_TYPES
+    ):
         first_component = f"{first_row.component_id}/{first_row.component_type}"
         raise CompactDslConversionError(
             "The root Row/Column component is missing; model output may be "

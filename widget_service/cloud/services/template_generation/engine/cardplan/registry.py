@@ -241,12 +241,42 @@ class CardPlanRegistry:
         except KeyError as exc:
             raise ValueError(f"unknown CardPlan theme: {theme_id}") from exc
 
-    def theme_reference_values(self, theme_id: str) -> dict[str, str]:
+    def theme_reference_values(self, theme_id: str) -> dict[str, object]:
         """Return the closed set of deterministic values available to `$theme`."""
         values = self.require_theme(theme_id).reference_values
         if tuple(values) != self.theme_reference_paths:
             raise ValueError(f"Theme reference values are incomplete: {theme_id}")
         return values
+
+    def layout_theme_ids(
+        self,
+        layout_id: str,
+        capability_ids: tuple[str, ...],
+    ) -> tuple[str, ...]:
+        """Return layout-scoped Themes that cover every selected capability."""
+        required_capabilities = set(capability_ids)
+        compatible_theme_ids: list[str] = []
+        for theme_id, theme in self.themes.items():
+            if layout_id not in theme.supported_layout_ids:
+                continue
+            supported_capabilities = set(theme.supported_capability_ids)
+            if required_capabilities <= supported_capabilities:
+                compatible_theme_ids.append(theme_id)
+        return tuple(compatible_theme_ids)
+
+    def require_layout_theme(
+        self,
+        layout_id: str,
+        capability_ids: tuple[str, ...],
+    ) -> str:
+        """Resolve one deterministic Theme for a layout-specific composition."""
+        theme_ids = self.layout_theme_ids(layout_id, capability_ids)
+        if len(theme_ids) != 1:
+            raise ValueError(
+                "CardPlan layout requires exactly one compatible Theme: "
+                f"{layout_id}/{sorted(capability_ids)}"
+            )
+        return theme_ids[0]
 
     def provider_first_layer_rules(
         self,
@@ -327,6 +357,39 @@ class CardPlanRegistry:
             {"theme": theme_id, "content": self.theme_first_layer_rules[theme_id]}
             for theme_id in dict.fromkeys(theme_ids)
         )
+
+    def first_layer_theme_ids(
+        self,
+        component_ids: tuple[str, ...],
+    ) -> tuple[str, ...]:
+        """Return business-scoped Themes, preferring Fusion by candidate construction."""
+        components: list[BusinessTemplateGroup] = []
+        for component_id in dict.fromkeys(component_ids):
+            components.append(self.require_ux_business_component(component_id))
+        capability_ids: set[str] = set()
+        for component in components:
+            capability_ids.update(component.data_capability_ids)
+        if not capability_ids:
+            return ()
+
+        requested_business_ids = {component.name for component in components}
+        normal_theme_ids: list[str] = []
+        fusion_theme_ids: list[str] = []
+        for theme in self.themes.values():
+            if theme.supported_layout_ids:
+                continue
+            if capability_ids.isdisjoint(theme.supported_capability_ids):
+                continue
+            fusion = theme.fusion_ball_style
+            if fusion is None:
+                normal_theme_ids.append(theme.theme_profile_id)
+                continue
+            if requested_business_ids.isdisjoint(fusion.business_ids):
+                continue
+            fusion_theme_ids.append(theme.theme_profile_id)
+        if fusion_theme_ids:
+            return tuple(fusion_theme_ids)
+        return tuple(normal_theme_ids)
 
     def _provider_bundles_for_components(
         self,
@@ -422,8 +485,8 @@ class CardPlanRegistry:
     def _validate_distributed_resources(self) -> None:
         if set(self.ux_size_budgets) != {"2x2", "2x4"}:
             raise ValueError("Theme base size budgets are incomplete")
-        if len(self.ux_layout_components) != 5:
-            raise ValueError("Layout Provider must contain 5 families")
+        if len(self.ux_layout_components) != len(UX_LAYOUT_COMPONENT_IDS):
+            raise ValueError("Layout Provider family count is incomplete")
         if not self.ux_business_components:
             raise ValueError("Provider Template business index must not be empty")
         known_layouts = set(self.ux_layout_components)
@@ -434,6 +497,16 @@ class CardPlanRegistry:
         if "generic" not in self.palette_scene_theme_ids:
             raise ValueError("Theme bundles must provide the generic palette scene")
         for theme in self.themes.values():
+            if len(theme.supported_layout_ids) != len(set(theme.supported_layout_ids)):
+                raise ValueError(
+                    f"Theme supportedLayoutIds must be unique: {theme.theme_profile_id}"
+                )
+            unknown_layout_ids = set(theme.supported_layout_ids) - known_layouts
+            if unknown_layout_ids:
+                raise ValueError(
+                    "Theme references unknown Layouts: "
+                    f"{theme.theme_profile_id}/{sorted(unknown_layout_ids)}"
+                )
             fusion = theme.fusion_ball_style
             if fusion is None:
                 continue

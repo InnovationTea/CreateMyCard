@@ -137,36 +137,12 @@ def test_tersel_rejects_unknown_component_design_token() -> None:
         )
 
 
-def test_tersel_fusion_ball_becomes_cloud_a2ui_component() -> None:
+def test_tersel_rejects_cloud_only_fusion_ball_component() -> None:
     profile = read_tersel_protocol_profile()
     source = (
         'Column("card",Stack(FusionBall("#FF121259","#FF2B65D9","#FF57AED9"),'
         'Stack({"_id":"cardContent"},Text("天气","body"))))'
     )
 
-    a2ui = convert_tersel_to_a2ui(source, size="2x2", protocol_profile=profile)
-    components = json.loads(a2ui.splitlines()[1])["updateComponents"]["components"]
-    fusion_ball = next(item for item in components if item["component"] == "FusionBall")
-
-    assert fusion_ball["id"] == "root_0_0"
-    assert fusion_ball["largeColor"] == "#FF121259"
-    assert fusion_ball["mediumColor"] == "#FF2B65D9"
-    assert fusion_ball["smallColor"] == "#FF57AED9"
-    assert set(fusion_ball) == {
-        "id",
-        "component",
-        "largeColor",
-        "mediumColor",
-        "smallColor",
-    }
-
-
-def test_tersel_fusion_ball_requires_three_argb_colors() -> None:
-    profile = read_tersel_protocol_profile()
-
-    with pytest.raises(TerselConversionError, match="three #AARRGGBB"):
-        convert_tersel_to_a2ui(
-            'Column("card",Stack(FusionBall("#121259","#FF2B65D9"),Stack()))',
-            size="2x2",
-            protocol_profile=profile,
-        )
+    with pytest.raises(TerselConversionError, match='Unsupported component type "FusionBall"'):
+        convert_tersel_to_a2ui(source, size="2x2", protocol_profile=profile)

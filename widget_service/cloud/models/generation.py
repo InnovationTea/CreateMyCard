@@ -3,7 +3,8 @@
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
+from packaging.version import InvalidVersion, Version
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator
 
 WidgetSize = Literal["2x2", "2x4"]
 DEFAULT_WIDGET_SIZE: WidgetSize = "2x2"
@@ -78,6 +79,19 @@ class TaskSpec(BaseModel):
 
     userQuery: str
     size: WidgetSize
+    appVersion: str = "11.7.5.208"
     eventCandidates: list[EventAction] = Field(default_factory=list)
     dataModelSchema: dict[str, Any]
     assetCandidates: list[dict[str, Any]] = Field(default_factory=list)
+
+    @field_validator("appVersion")
+    @classmethod
+    def validate_app_version(cls, value: str) -> str:
+        """保证下游始终获得可比较的原始端侧版本。"""
+        if not value.strip():
+            raise ValueError("appVersion must be a non-empty version string")
+        try:
+            Version(value)
+        except InvalidVersion as error:
+            raise ValueError(f"Invalid appVersion: {value}") from error
+        return value

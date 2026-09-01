@@ -1,8 +1,8 @@
 """Search CardTpl candidates from first-layer LLM field requirements.
 
 Search deliberately does not select a final template, layout, component composition,
-card size, or theme compatibility. Those are second-layer responsibilities. The current
-route only admits one data business, optionally combined with explicit Actions.
+card size, or theme compatibility. Those are second-layer responsibilities. The 2x2
+route currently admits one business with zero to two root Actions.
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.logger import json_for_log, logger
 from models.generation import CandidateDataBinding, TaskSpec
 from services.template_generation.engine.advanced.data_shape import extract_data_shape
 from services.template_generation.engine.advanced.models import (
@@ -23,6 +24,8 @@ from services.template_generation.engine.advanced.models import (
 
 from .registry import CardPlanRegistry
 from .retrieval_index import FieldToken, TemplateVariantSearchRecord
+
+_MAX_COMPONENT_TEMPLATE_CANDIDATES = 24
 
 
 class TemplateRetrievalMiss(ValueError):
@@ -75,6 +78,7 @@ def build_template_retrieval_prompt(
     data_shape = extract_data_shape(task_spec)
     capability_ids = tuple(binding.capabilityId for binding in coverage_bindings)
     component_ids = _component_ids_for_capabilities(registry, capability_ids)
+    theme_ids = registry.first_layer_theme_ids(component_ids)
     data_roots = {binding.capabilityId: binding.writeResultTo for binding in coverage_bindings}
     payload = {
         "userQuery": task_spec.userQuery,
@@ -94,25 +98,28 @@ def build_template_retrieval_prompt(
             binding.capabilityId: tuple(binding.candidateOutputFields)
             for binding in coverage_bindings
         },
-        "themes": tuple(registry.themes),
+        "themes": theme_ids,
         "actionCandidates": [
             {"eventId": event.id, "call": event.call}
             for event in task_spec.eventCandidates
             if event.id
         ],
         "providerFirstLayerRules": registry.provider_first_layer_rules(component_ids, data_roots),
-        "themeFirstLayerRules": registry.theme_first_layer_rule_documents(tuple(registry.themes)),
+        "themeFirstLayerRules": registry.theme_first_layer_rule_documents(theme_ids),
     }
     schema = TemplateRetrievalQuery.model_json_schema(by_alias=True)
     system = (
         "你是模板生成第一层。只输出 template-retrieval-query/1 JSON。"
-        "themeId 必须从 themes 选择；requiredOutputFieldsByCapability 的 key 必须来自 "
+        "themeId 必须从 themes 选择；themes 已由服务按当前业务确定性过滤，"
+        "存在融球候选时不会再包含非融球主题。"
+        "requiredOutputFieldsByCapability 的 key 必须来自 "
         "candidateDataBindings。每个 value 仅保留 userQuery、title、description 或 taskSpec "
         "明确要求展示的字段，字段必须逐字来自 "
         "candidateOutputFieldsByCapability；不得按模板反推字段，"
         "也不得补全用户未要求展示的字段。"
-        "不得为了迁就单业务限制而省略用户明确要求的其他业务字段；"
-        "多业务请求由服务端确定性判定模板不适用。"
+        "不得为了迁就布局限制而省略用户明确要求的其他业务字段；"
+        "2x2 模板 Search 当前只接受一个可完整覆盖的业务，"
+        "多个业务由服务端确定性判定模板不适用。"
         "用户只要求某领域卡片、未明确字段时，该 capability 输出空数组。"
         "action 仅当用户明确要求点击、跳转或操作时才选择 actionCandidates 中"
         "语义一致的零到两个不重复 eventId；不能因候选事件存在而默认选择。"
@@ -136,8 +143,12 @@ def retrieve_template_variants(
 ) -> TemplateRouteSelection:
     """Return component candidate sets; never choose a final CardTpl variant."""
     _require_supported_search_size(task_spec)
-    registry.require_theme(query.theme_id)
+    selected_theme = registry.require_theme(query.theme_id)
+    if selected_theme.supported_layout_ids:
+        raise TemplateRetrievalMiss("first-layer Theme must not be layout-scoped")
     _validate_selected_actions(query, task_spec)
+    action_count = _selected_action_count(query, task_spec)
+    preferred_layout_suffix = {1: "Hero", 2: "Compact"}.get(action_count)
     if not query.required_output_fields_by_capability:
         raise TemplateRetrievalMiss("template retrieval has no requested capability")
     candidate_ids = {binding.capabilityId for binding in coverage_bindings}
@@ -161,6 +172,8 @@ def retrieve_template_variants(
             task_spec,
             card_spec,
             preferred_template_ids,
+            preferred_layout_suffix,
+            candidate_output_fields=candidate_paths,
         )
         if not component_templates:
             raise TemplateRetrievalMiss(
@@ -177,10 +190,11 @@ def retrieve_template_variants(
         )
         for component_id, template_ids in sorted(by_component.items())
     )
+    resolved_theme_id = query.theme_id
     if task_spec.size == "2x2":
         candidates, required_groups = _apply_2x2_combination_policy(
             candidates,
-            query.action_ids,
+            action_count,
             required_groups,
         )
     else:
@@ -194,7 +208,7 @@ def retrieve_template_variants(
         )
         required_groups = [candidate.available_template_ids for candidate in candidates]
     scope = AdvancedScopeBrief(
-        themeId=query.theme_id,
+        themeId=resolved_theme_id,
         advancedComponentIds=tuple(candidate.component_id for candidate in candidates),
     )
     return TemplateRouteSelection(
@@ -202,6 +216,39 @@ def retrieve_template_variants(
         componentCandidates=candidates,
         actionIds=query.action_ids,
         requiredTemplateGroups=tuple(required_groups),
+    )
+
+
+def restrict_query_to_preferred_templates(
+    query: TemplateRetrievalQuery,
+    registry: CardPlanRegistry,
+    preferred_template_ids: tuple[str, ...],
+) -> TemplateRetrievalQuery:
+    """Keep gallery-only field demand within its explicitly trusted templates."""
+    if not preferred_template_ids:
+        return query
+    preferred_ids = set(preferred_template_ids)
+    available_paths_by_capability: dict[str, set[str]] = {}
+    matched_ids: set[str] = set()
+    for record in registry.template_variant_search_records:
+        if record.template_id not in preferred_ids:
+            continue
+        matched_ids.add(record.template_id)
+        available_paths_by_capability.setdefault(record.capability_id, set()).update(
+            record.available_paths
+        )
+    if matched_ids != preferred_ids:
+        raise TemplateRetrievalMiss("trusted template candidate is outside Search records")
+    required_fields = {
+        capability_id: tuple(
+            path
+            for path in paths
+            if path in available_paths_by_capability.get(capability_id, set())
+        )
+        for capability_id, paths in query.required_output_fields_by_capability.items()
+    }
+    return query.model_copy(
+        update={"required_output_fields_by_capability": required_fields}
     )
 
 
@@ -213,27 +260,49 @@ def _require_supported_search_size(task_spec: TaskSpec) -> None:
 
 def _apply_2x2_combination_policy(
     candidates: tuple[TemplateComponentCandidate, ...],
-    action_ids: tuple[str, ...],
+    action_count: int,
     required_groups: list[tuple[str, ...]],
 ) -> tuple[tuple[TemplateComponentCandidate, ...], list[tuple[str, ...]]]:
     """Restrict 2x2 candidates to the business and Action capacity contract."""
     component_count = len(candidates)
-    action_count = len(action_ids)
-    if component_count >= 3:
-        raise TemplateRetrievalMiss("2x2 template Search supports at most two businesses")
+    if component_count > 1:
+        raise TemplateRetrievalMiss(
+            "2x2 template Search does not support multiple data businesses"
+        )
     if action_count >= 3:
         raise TemplateRetrievalMiss("2x2 template Search supports at most two Actions")
-    if component_count == 2:
-        if action_count:
-            raise TemplateRetrievalMiss("2x2 two-business templates do not support Actions")
-        layout_suffix = "Compact"
-    elif component_count == 1:
-        layout_suffix = {0: "Full", 1: "Hero", 2: "Compact"}[action_count]
+    if component_count == 1:
+        layout_suffixes = {
+            0: ("Full",),
+            1: ("Hero", "Full"),
+            2: ("Compact",),
+        }[action_count]
     else:
         raise TemplateRetrievalMiss("template Search found no business component")
 
+    business_candidates: list[dict[str, Any]] = []
+    for candidate in candidates:
+        business_candidates.append(
+            {
+                "businessId": candidate.component_id,
+                "availableTemplateIds": list(candidate.available_template_ids),
+            }
+        )
+    layout_label = "/".join(layout_suffixes)
+    layout_diagnostics = {
+        "businessCount": component_count,
+        "actionCount": action_count,
+        "requiredLayoutSuffixes": list(layout_suffixes),
+        "requiredLayoutLabel": layout_label,
+        "businessCandidates": business_candidates,
+    }
+    logger.info(
+        "[Template Retrieval] layout_policy_selected "
+        f"diagnostics={json_for_log(layout_diagnostics)}"
+    )
+
     filtered_candidates = tuple(
-        _candidate_with_layout_suffix(candidate, layout_suffix) for candidate in candidates
+        _candidate_with_layout_suffixes(candidate, layout_suffixes) for candidate in candidates
     )
     allowed_template_ids = {
         template_id
@@ -245,26 +314,61 @@ def _apply_2x2_combination_policy(
         for group in required_groups
     ]
     if any(not group for group in filtered_groups):
+        diagnostics = {
+            "requiredLayoutSuffixes": list(layout_suffixes),
+            "requiredTemplateGroupsBeforeLayout": [list(group) for group in required_groups],
+            "requiredTemplateGroupsAfterLayout": [list(group) for group in filtered_groups],
+            "layoutCompatibleTemplateIds": sorted(allowed_template_ids),
+        }
+        logger.info(
+            "[Template Retrieval] layout_field_coverage_mismatch "
+            f"diagnostics={json_for_log(diagnostics)}"
+        )
         raise TemplateRetrievalMiss(
-            f"2x2 {layout_suffix} templates cannot cover all requested fields"
+            f"2x2 {layout_label} templates cannot cover all requested fields"
         )
     for candidate in filtered_candidates:
-        _require_single_template_coverage(candidate, filtered_groups, layout_suffix)
+        _require_single_template_coverage(candidate, filtered_groups, layout_label)
     return filtered_candidates, filtered_groups
 
 
-def _candidate_with_layout_suffix(
+def _selected_action_count(query: TemplateRetrievalQuery, task_spec: TaskSpec) -> int:
+    selected_action_ids = set(query.action_ids)
+    count = 0
+    for event in task_spec.eventCandidates:
+        if event.id in selected_action_ids:
+            count += 1
+    return count
+
+
+def _candidate_with_layout_suffixes(
     candidate: TemplateComponentCandidate,
-    layout_suffix: str,
+    layout_suffixes: tuple[str, ...],
 ) -> TemplateComponentCandidate:
-    template_ids = tuple(
-        template_id
-        for template_id in candidate.available_template_ids
-        if _template_has_layout_suffix(template_id, layout_suffix)
-    )
+    matching_template_ids: list[str] = []
+    for template_id in candidate.available_template_ids:
+        has_layout_suffix = False
+        for suffix in layout_suffixes:
+            if _template_has_layout_suffix(template_id, suffix):
+                has_layout_suffix = True
+                break
+        if has_layout_suffix:
+            matching_template_ids.append(template_id)
+    template_ids = tuple(matching_template_ids)
     if not template_ids:
+        layout_label = "/".join(layout_suffixes)
+        diagnostics = {
+            "businessId": candidate.component_id,
+            "requiredLayoutSuffixes": list(layout_suffixes),
+            "requiredLayoutLabel": layout_label,
+            "availableTemplateIds": list(candidate.available_template_ids),
+        }
+        logger.info(
+            "[Template Retrieval] layout_suffix_mismatch "
+            f"diagnostics={json_for_log(diagnostics)}"
+        )
         raise TemplateRetrievalMiss(
-            f"2x2 business {candidate.component_id} has no {layout_suffix} template"
+            f"2x2 business {candidate.component_id} has no {layout_label} template"
         )
     return candidate.model_copy(update={"available_template_ids": template_ids})
 
@@ -282,6 +386,16 @@ def _require_single_template_coverage(
         if set(group).intersection(candidate_ids)
     ]
     if component_groups and not set.intersection(*component_groups):
+        diagnostics = {
+            "businessId": candidate.component_id,
+            "requiredLayoutLabel": layout_suffix,
+            "availableTemplateIds": list(candidate.available_template_ids),
+            "requiredTemplateGroups": [sorted(group) for group in component_groups],
+        }
+        logger.info(
+            "[Template Retrieval] single_template_coverage_mismatch "
+            f"diagnostics={json_for_log(diagnostics)}"
+        )
         raise TemplateRetrievalMiss(
             f"2x2 {layout_suffix} templates cannot cover one {candidate.component_id} slot"
         )
@@ -324,8 +438,13 @@ def _component_templates_for_capability(
     task_spec: TaskSpec,
     card_spec: dict[str, Any],
     preferred_template_ids: tuple[str, ...] = (),
+    preferred_layout_suffix: str | None = None,
+    candidate_output_fields: set[str] | None = None,
 ) -> dict[str, dict[str, frozenset[str]]]:
     result: dict[str, dict[str, frozenset[str]]] = {}
+    data_root = _capability_data_root(card_spec, capability_id)
+    provided_output_fields = candidate_output_fields or set()
+    task_spec_available_fields = _task_spec_field_entries(task_spec, data_root)
     business_ids = {
         record.business_id
         for record in registry.template_variant_search_records
@@ -335,9 +454,19 @@ def _component_templates_for_capability(
         group = registry.ux_business_components[business_id]
         template_ids = set(registry.enabled_template_ids(group.local_template_ids))
         matches: dict[str, frozenset[str]] = {}
+        evaluations: list[dict[str, Any]] = []
         for record in registry.template_variant_search_records:
             if record.capability_id != capability_id or record.business_id != business_id:
                 continue
+            evaluations.append(
+                _template_record_evaluation(
+                    record,
+                    task_spec,
+                    data_root,
+                    query_tokens,
+                    template_ids,
+                )
+            )
             if record.template_id not in template_ids:
                 continue
             size_is_supported = not record.supported_card_sizes
@@ -349,13 +478,30 @@ def _component_templates_for_capability(
             matches[record.template_id] = _record_available_query_paths(record, query_tokens)
         if query_tokens:
             matches = {template_id: paths for template_id, paths in matches.items() if paths}
+        limited_matches: dict[str, frozenset[str]] = {}
         if matches:
-            result[business_id] = _limit_component_templates(
+            limited_matches = _limit_component_templates(
                 matches,
                 registry.enabled_template_ids(group.local_template_ids),
                 query_tokens,
                 preferred_template_ids,
+                preferred_layout_suffix,
             )
+            result[business_id] = limited_matches
+        _log_template_candidate_evaluation(
+            capability_id=capability_id,
+            business_id=business_id,
+            data_root=data_root,
+            card_size=task_spec.size,
+            user_required_fields=_field_entries_for_tokens(query_tokens),
+            candidate_output_fields=provided_output_fields,
+            task_spec_available_fields=task_spec_available_fields,
+            disabled_provider_ids=set(getattr(registry, "disabled_provider_ids", ())),
+            disabled_template_ids=set(getattr(registry, "disabled_template_ids", ())),
+            evaluations=evaluations,
+            matches=matches,
+            limited_matches=limited_matches,
+        )
     covered_paths: set[str] = set()
     for templates in result.values():
         for paths in templates.values():
@@ -370,6 +516,7 @@ def _limit_component_templates(
     declared_template_ids: tuple[str, ...],
     query_tokens: frozenset[FieldToken],
     preferred_template_ids: tuple[str, ...] = (),
+    preferred_layout_suffix: str | None = None,
 ) -> dict[str, frozenset[str]]:
     """Keep the upstream candidate bound without dropping field coverage."""
     selected = [
@@ -377,6 +524,23 @@ def _limit_component_templates(
         for template_id in preferred_template_ids
         if template_id in matches
     ]
+    layout_matches: list[str] = []
+    if preferred_layout_suffix is not None:
+        for template_id in declared_template_ids:
+            if template_id not in matches:
+                continue
+            if not _template_has_layout_suffix(template_id, preferred_layout_suffix):
+                continue
+            layout_matches.append(template_id)
+    for token in sorted(query_tokens):
+        template_id = next(
+            (item for item in layout_matches if token.path in matches[item]),
+            None,
+        )
+        if template_id is not None and template_id not in selected:
+            selected.append(template_id)
+    if not query_tokens and layout_matches:
+        selected.append(layout_matches[0])
     for token in sorted(query_tokens):
         template_id = next(
             (
@@ -393,7 +557,165 @@ def _limit_component_templates(
         for template_id in declared_template_ids
         if template_id in matches and template_id not in selected
     )
-    return {template_id: matches[template_id] for template_id in selected[:12]}
+    selected = selected[:_MAX_COMPONENT_TEMPLATE_CANDIDATES]
+    return {template_id: matches[template_id] for template_id in selected}
+
+
+def _template_record_evaluation(
+    record: TemplateVariantSearchRecord,
+    task_spec: TaskSpec,
+    data_root: str,
+    query_tokens: frozenset[FieldToken],
+    enabled_template_ids: set[str],
+) -> dict[str, Any]:
+    """构造单模板的字段覆盖诊断，不记录用户数据值。"""
+    missing_required_fields: list[str] = []
+    required_type_mismatches: list[dict[str, str]] = []
+    required_types = {token.path: token.data_type for token in record.required_field_tokens}
+    for path in sorted(record.required_paths):
+        pointer = f"{data_root.rstrip('/')}{path}"
+        leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, pointer)
+        if leaf is None:
+            missing_required_fields.append(path)
+            continue
+        expected_type = required_types.get(path)
+        actual_type = leaf.get("type")
+        if expected_type is None or actual_type == expected_type:
+            continue
+        required_type_mismatches.append(
+            {
+                "path": path,
+                "expectedType": expected_type,
+                "actualType": actual_type if isinstance(actual_type, str) else "",
+            }
+        )
+
+    matched_user_fields = _record_available_query_paths(record, query_tokens)
+    unmatched_user_fields = sorted(token.path for token in query_tokens)
+    unmatched_user_fields = [
+        path for path in unmatched_user_fields if path not in matched_user_fields
+    ]
+    user_type_mismatches = _user_required_type_mismatches(record, query_tokens)
+    rejection_reasons: list[str] = []
+    if record.template_id not in enabled_template_ids:
+        rejection_reasons.append("template_disabled")
+    size_is_supported = not record.supported_card_sizes
+    size_is_supported = size_is_supported or task_spec.size in record.supported_card_sizes
+    if not size_is_supported:
+        rejection_reasons.append("card_size_not_supported")
+    if missing_required_fields:
+        rejection_reasons.append("user_provided_data_missing_template_required_fields")
+    if required_type_mismatches:
+        rejection_reasons.append("user_provided_data_type_mismatch")
+    if query_tokens and not matched_user_fields:
+        rejection_reasons.append("user_required_data_not_covered")
+
+    return {
+        "templateId": record.template_id,
+        "templateEnabled": record.template_id in enabled_template_ids,
+        "supportedCardSizes": sorted(record.supported_card_sizes),
+        "matchedUserRequiredFields": sorted(matched_user_fields),
+        "unmatchedUserRequiredFields": unmatched_user_fields,
+        "missingTemplateRequiredFields": missing_required_fields,
+        "templateRequiredFieldTypeMismatches": required_type_mismatches,
+        "userRequiredFieldTypeMismatches": user_type_mismatches,
+        "userRequiredDataFullyCovered": not unmatched_user_fields,
+        "userProvidedDataSatisfiesTemplateRequirements": (
+            not missing_required_fields and not required_type_mismatches
+        ),
+        "rejectionReasons": rejection_reasons,
+    }
+
+
+def _user_required_type_mismatches(
+    record: TemplateVariantSearchRecord,
+    query_tokens: frozenset[FieldToken],
+) -> list[dict[str, str]]:
+    template_types = {token.path: token.data_type for token in record.field_tokens}
+    mismatches: list[dict[str, str]] = []
+    for token in sorted(query_tokens):
+        expected_type = template_types.get(token.path)
+        if expected_type is None or expected_type == token.data_type:
+            continue
+        mismatches.append(
+            {
+                "path": token.path,
+                "templateType": expected_type,
+                "userDataType": token.data_type,
+            }
+        )
+    return mismatches
+
+
+def _field_entries_for_tokens(tokens: frozenset[FieldToken]) -> list[dict[str, str]]:
+    return [{"path": token.path, "type": token.data_type} for token in sorted(tokens)]
+
+
+def _task_spec_field_entries(task_spec: TaskSpec, data_root: str) -> list[dict[str, str]]:
+    prefix = f"{data_root.rstrip('/')}/"
+    entries: list[dict[str, str]] = []
+    for field in extract_data_shape(task_spec).fields:
+        if not field.path.startswith(prefix):
+            continue
+        relative_path = f"/{field.path.removeprefix(prefix)}"
+        entries.append({"path": relative_path, "type": field.data_type})
+    return sorted(entries, key=lambda item: item.get("path", ""))
+
+
+def _log_template_candidate_evaluation(
+    *,
+    capability_id: str,
+    business_id: str,
+    data_root: str,
+    card_size: str,
+    user_required_fields: list[dict[str, str]],
+    candidate_output_fields: set[str],
+    task_spec_available_fields: list[dict[str, str]],
+    disabled_provider_ids: set[str],
+    disabled_template_ids: set[str],
+    evaluations: list[dict[str, Any]],
+    matches: dict[str, frozenset[str]],
+    limited_matches: dict[str, frozenset[str]],
+) -> None:
+    eligible_ids = list(matches)
+    selected_ids = list(limited_matches)
+    selected_set = set(selected_ids)
+    dropped_ids = [template_id for template_id in eligible_ids if template_id not in selected_set]
+    for evaluation in evaluations:
+        template_id = evaluation.get("templateId")
+        is_eligible = isinstance(template_id, str) and template_id in matches
+        is_selected = isinstance(template_id, str) and template_id in limited_matches
+        evaluation.update(
+            {
+                "eligibleBeforeCandidateLimit": is_eligible,
+                "selectedAfterCandidateLimit": is_selected,
+            }
+        )
+        if not is_eligible or is_selected:
+            continue
+        reasons = evaluation.get("rejectionReasons")
+        if isinstance(reasons, list):
+            reasons.append("candidate_limit_exceeded")
+
+    diagnostics = {
+        "capabilityId": capability_id,
+        "businessId": business_id,
+        "dataRoot": data_root,
+        "cardSize": card_size,
+        "userRequiredFields": user_required_fields,
+        "candidateOutputFields": sorted(candidate_output_fields),
+        "taskSpecAvailableFields": task_spec_available_fields,
+        "disabledProviderIds": sorted(disabled_provider_ids),
+        "disabledTemplateIds": sorted(disabled_template_ids),
+        "eligibleTemplateIdsBeforeLimit": eligible_ids,
+        "selectedTemplateIdsAfterLimit": selected_ids,
+        "droppedByCandidateLimit": dropped_ids,
+        "templates": evaluations,
+    }
+    logger.info(
+        "[Template Retrieval] candidate_evaluation "
+        f"diagnostics={json_for_log(diagnostics)}"
+    )
 
 
 def _required_field_template_groups(

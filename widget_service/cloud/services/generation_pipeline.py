@@ -146,6 +146,7 @@ class DesignCompactProcessor:
             design_protocol = A2UIProtocolRegistry.read_design_protocol_profile(
                 design_profile_id
             )
+            design_protocol["appVersion"] = context.task_spec["appVersion"]
             standard_dsl = convert_compact_dsl_to_a2ui(
                 source_dsl,
                 size=context.size,

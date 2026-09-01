@@ -20,25 +20,10 @@
   ],
   "templates": [
     {
-      "templateId": "BatteryOverviewPercentRingHero@1",
+      "templateId": "BatteryOverviewFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量百分比环形 Hero；居中展示电量进度环和剩余电量百分比文本，用于第二层组合一个 PillAction。 组件形态：percentRingHero。",
-      "optionalData": [
-        "/chargingStatusDesc"
-      ],
-      "entry": "templates/battery-overview.cardtpl",
-      "primaryData": [
-        "/batterySOC",
-        "/batterySOCText"
-      ],
-      "secondaryData": []
-    },
-    {
-      "templateId": "BatteryOverviewNormalFull@1",
-      "businessId": "BatteryOverview",
-      "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normal。",
+      "description": "手机电量 Full，展示电量进度环、剩余电量文本、充电状态和电量等级；适用于普通、充电中和低电量状态。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -51,29 +36,11 @@
       ]
     },
     {
-      "templateId": "BatteryOverviewProgressCompact@1",
+      "templateId": "BatteryOverviewHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量进度条紧凑区；用于 2x2 单 Compact 加两个 PillAction 的组合，上半区展示手机电量标题、剩余百分比和横向进度条，按钮由第二层组合。 组件形态：progressCompact。",
+      "description": "手机电量 Hero，居中展示电量进度环和当前电量等级，并为底部一个 PillAction 预留空间。",
       "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "primaryData": [
-        "/batterySOC",
-        "/batterySOCText"
-      ],
-      "secondaryData": [
-        "/batteryCapacityLevelDesc"
-      ]
-    },
-    {
-      "templateId": "BatteryOverviewNormalHero@1",
-      "businessId": "BatteryOverview",
-      "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量摘要，面向 2x2 底部 PillAction 预留空间。 组件形态：normalHero。",
-      "optionalData": [
-        "/batterySOCText",
-        "/chargingStatusDesc"
-      ],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
         "/batterySOC"
@@ -83,10 +50,10 @@
       ]
     },
     {
-      "templateId": "BatteryOverviewChargingFull@1",
+      "templateId": "BatteryOverviewWideFull@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：charging。",
+      "description": "手机电量 WideFull，横向展示电量进度环、剩余电量文本、充电状态和电量等级；适用于普通、充电中和低电量状态。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -99,133 +66,13 @@
       ]
     },
     {
-      "templateId": "BatteryOverviewLowFull@1",
+      "templateId": "BatteryOverviewCompact@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：low。",
-      "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "primaryData": [
-        "/batterySOC",
-        "/batterySOCText"
-      ],
-      "secondaryData": [
-        "/chargingStatusDesc",
-        "/batteryCapacityLevelDesc"
-      ]
-    },
-    {
-      "templateId": "BatteryOverviewNormalWideFull@1",
-      "businessId": "BatteryOverview",
-      "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normalWide。",
-      "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "primaryData": [
-        "/batterySOC",
-        "/batterySOCText"
-      ],
-      "secondaryData": [
-        "/chargingStatusDesc",
-        "/batteryCapacityLevelDesc"
-      ]
-    },
-    {
-      "templateId": "BatteryOverviewChargingWideFull@1",
-      "businessId": "BatteryOverview",
-      "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：chargingWide。",
-      "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "primaryData": [
-        "/batterySOC",
-        "/batterySOCText"
-      ],
-      "secondaryData": [
-        "/chargingStatusDesc",
-        "/batteryCapacityLevelDesc"
-      ]
-    },
-    {
-      "templateId": "BatteryOverviewLowWideFull@1",
-      "businessId": "BatteryOverview",
-      "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：lowWide。",
-      "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "primaryData": [
-        "/batterySOC",
-        "/batterySOCText"
-      ],
-      "secondaryData": [
-        "/chargingStatusDesc",
-        "/batteryCapacityLevelDesc"
-      ]
-    },
-    {
-      "templateId": "BatteryOverviewNormalWeatherCompact@1",
-      "businessId": "BatteryOverview",
-      "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：normalWeather。",
-      "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "primaryData": [
-        "/batterySOCText"
-      ],
-      "secondaryData": [
-        "/chargingStatusDesc",
-        "/batteryCapacityLevelDesc"
-      ]
-    },
-    {
-      "templateId": "BatteryOverviewChargingWeatherCompact@1",
-      "businessId": "BatteryOverview",
-      "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：chargingWeather。",
-      "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "primaryData": [
-        "/batterySOCText"
-      ],
-      "secondaryData": [
-        "/chargingStatusDesc",
-        "/batteryCapacityLevelDesc"
-      ]
-    },
-    {
-      "templateId": "BatteryOverviewLowWeatherCompact@1",
-      "businessId": "BatteryOverview",
-      "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量摘要，展示电量数值、文本、充电状态和电量等级。 组件形态：lowWeather。",
-      "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "primaryData": [
-        "/batterySOCText"
-      ],
-      "secondaryData": [
-        "/chargingStatusDesc",
-        "/batteryCapacityLevelDesc"
-      ]
-    },
-    {
-      "templateId": "BatteryOverviewTemperatureIconCompact@1",
-      "businessId": "BatteryOverview",
-      "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电池温度图标紧凑行；用于 2x2 双层 Compact 组合，下层展示电池温度和图标。 组件形态：temperatureIconCompact。",
-      "optionalData": [],
-      "entry": "templates/battery-overview.cardtpl",
-      "primaryData": [
-        "/batteryTemperatureText"
-      ],
-      "secondaryData": []
-    },
-    {
-      "templateId": "BatteryOverviewStatusIconCompact@1",
-      "businessId": "BatteryOverview",
-      "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量状态图标紧凑行；用于 2x2 双层 Compact 组合，展示电量百分比、状态文本和图标。 组件形态：statusIconCompact。",
+      "description": "手机电量 Compact，展示剩余电量文本，并优先补充电量等级；缺少等级时回退展示充电状态。",
       "optionalData": [
-        "/batteryCapacityLevelDesc"
+        "/batteryCapacityLevelDesc",
+        "/chargingStatusDesc"
       ],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
@@ -234,15 +81,45 @@
       "secondaryData": []
     },
     {
-      "templateId": "BatteryOverviewNormalPowerTemperatureIconCompact@1",
+      "templateId": "BatteryOverviewHealthLevelHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "正常电量状态下的手机电量与电池温度图标紧凑行；用于 2x2 双层 Compact 组合，左侧两行展示电量百分比和手机温度，右侧为电池图标。 组件形态：normalPowerTemperatureIconCompact。",
+      "description": "电池健康与当前电量等级 Hero；用于 2x2 Hero 加一个 PillAction 的组合，展示电池体检标题、电池健康状态和当前电量等级。 组件形态：healthLevelHero。",
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/healthStatusDesc"
+      ],
+      "secondaryData": [
+        "/batteryCapacityLevelDesc"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewChargingProgressHero@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量充电进度 Hero；用于 2x2 Hero 加一个 PillAction 的组合，展示手机电量标题、电量数字、横向进度条、充电状态、电池健康和充电器类型。 组件形态：chargingProgressHero。",
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/batterySOC"
+      ],
+      "secondaryData": [
+        "/chargingStatusDesc",
+        "/healthStatusDesc",
+        "/pluggedTypeDesc"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewPercentRingHero@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量百分比环形 Hero；居中展示电量进度环和剩余电量百分比文本，用于第二层组合一个 PillAction。 组件形态：percentRingHero。",
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
         "/batterySOC",
-        "/batteryTemperatureText"
+        "/batterySOCText"
       ],
       "secondaryData": []
     }

@@ -20,6 +20,7 @@ from pydantic import ValidationError
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CLOUD_ROOT = PROJECT_ROOT / "cloud"
 APP_VERSION = ".".join(("11", "7", "5", "205"))
+APP_VERSION_11_7_5_206 = ".".join(("11", "7", "5", "206"))
 APP_VERSION_11_8 = ".".join(("11", "8", "0", "0"))
 APP_VERSION_11_9 = ".".join(("11", "9", "9", "999"))
 APP_VERSION_12 = ".".join(("12", "0", "0", "0"))
@@ -29,6 +30,7 @@ ROM_VERSION_6_9 = "CLS-AL30 " + ".".join(("6", "9", "0", "1"))
 ROM_VERSION_7 = "ALN-AL00 " + ".".join(("7", "1", "0", "100"))
 ROM_VERSION_7_WITHOUT_MODEL = ".".join(("7", "1", "0", "100"))
 REGISTRY_VERSION_6 = f"app-{APP_VERSION}_rom-6.0"
+REGISTRY_VERSION_6_206 = f"app-{APP_VERSION_11_7_5_206}_rom-6.0"
 REGISTRY_VERSION_7 = f"app-{APP_VERSION}_rom-7.1"
 
 if str(CLOUD_ROOT) not in sys.path:
@@ -835,15 +837,38 @@ def test_ids_parser_ignores_provider_intent_and_permission_namespaces():
 
 
 @pytest.mark.parametrize(
-    ("app_version", "rom_version"),
+    ("app_version", "rom_version", "expected_registry"),
     [
-        (APP_VERSION, ROM_VERSION_6),
-        (APP_VERSION_11_8, ROM_VERSION_6_3),
-        (APP_VERSION_11_9, ROM_VERSION_6_9),
+        (APP_VERSION, ROM_VERSION_6, REGISTRY_VERSION_6),
+        (APP_VERSION_11_7_5_206, ROM_VERSION_6, REGISTRY_VERSION_6_206),
+        (APP_VERSION_11_8, ROM_VERSION_6_3, REGISTRY_VERSION_6_206),
+        (APP_VERSION_11_9, ROM_VERSION_6_9, REGISTRY_VERSION_6_206),
     ],
 )
-def test_capability_registry_matches_app_rom_interval(app_version, rom_version):
-    assert CapabilityRegistry.from_app_rom_versions(app_version, rom_version) == REGISTRY_VERSION_6
+def test_capability_registry_matches_app_rom_interval(
+    app_version,
+    rom_version,
+    expected_registry,
+):
+    selected = CapabilityRegistry.from_app_rom_versions(app_version, rom_version)
+
+    assert selected == expected_registry
+
+
+def test_new_capability_registry_is_a_complete_snapshot():
+    old_registry = CapabilityRegistry(version=REGISTRY_VERSION_6)
+    new_registry = CapabilityRegistry(version=REGISTRY_VERSION_6_206)
+
+    old_data_ids = {item.id for item in old_registry.list_data_capabilities()}
+    new_data_ids = {item.id for item in new_registry.list_data_capabilities()}
+    old_event_ids = {item.id for item in old_registry.list_event_capabilities()}
+    new_event_ids = {item.id for item in new_registry.list_event_capabilities()}
+    old_asset_ids = {item.id for item in old_registry.list_asset_capabilities()}
+    new_asset_ids = {item.id for item in new_registry.list_asset_capabilities()}
+
+    assert old_data_ids <= new_data_ids
+    assert old_event_ids <= new_event_ids
+    assert old_asset_ids <= new_asset_ids
 
 
 @pytest.mark.parametrize(

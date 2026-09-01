@@ -29,6 +29,20 @@ Column({
 )
 #End
 
+#Template FullIconActionLayout@1(props: {}, ...children)
+data = {
+}
+
+Stack({
+  "width": "matchParent",
+  "height": "matchParent",
+  "alignContent": "bottomEnd"
+},
+  children[0],
+  children[1]
+)
+#End
+
 
 #Template CompactTwoActionLayout@1(props: {}, ...children)
 data = {
@@ -60,7 +74,7 @@ Column({
 )
 #End
 
-#Template TwoCompactLayout@1(props: {}, ...children)
+#Template TwoSupportLayout@1(props: {}, ...children)
 data = {
 }
 
@@ -71,11 +85,19 @@ Column({
 },
   Column({
     "width": "matchParent",
-    "height": 64
+    "layoutWeight": 1,
+    "justifyContent": "start",
+    "alignItems": "center",
+    "backgroundColor": $theme("supportContentStyle.backgroundColor"),
+    "borderRadius": $theme("supportContentStyle.borderRadius"),
   }, children[0]),
   Column({
     "width": "matchParent",
-    "height": 64
+    "layoutWeight": 1,
+    "justifyContent": "start",
+    "alignItems": "center",
+    "backgroundColor": $theme("supportContentStyle.backgroundColor"),
+    "borderRadius": $theme("supportContentStyle.borderRadius"),
   }, children[1])
 )
 #End

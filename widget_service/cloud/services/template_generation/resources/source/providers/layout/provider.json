@@ -14,13 +14,18 @@
       "entry": "templates/layout.cardtpl"
     },
     {
+      "templateId": "FullIconActionLayout@1",
+      "description": "2x2 完整内容与右下角图标动作布局，承载一个 Full 业务模板和一个 IconAction。",
+      "entry": "templates/layout.cardtpl"
+    },
+    {
       "templateId": "CompactTwoActionLayout@1",
       "description": "2x2 紧凑内容与双动作布局，承载一个 Compact 业务模板和两个 PillAction。",
       "entry": "templates/layout.cardtpl"
     },
     {
-      "templateId": "TwoCompactLayout@1",
-      "description": "2x2 双紧凑内容布局，纵向承载两个 Compact 业务模板。",
+      "templateId": "TwoSupportLayout@1",
+      "description": "仅供兼容 LLM 路径与原子预览使用的 2x2 双业务支撑布局，纵向承载两个可在内部绑定事件的 Support 业务模板；当前 Search 不可达。",
       "entry": "templates/layout.cardtpl"
     },
     {
@@ -88,6 +93,32 @@
       }
     },
     {
+      "name": "FullIconActionLayout",
+      "description": "仅用于 2x2；一个 Full 业务 child 和一个右下角 IconAction child。",
+      "supportedCardSizes": [
+        "2x2"
+      ],
+      "minChildren": 1,
+      "maxChildrenBySize": {
+        "2x2": 1
+      },
+      "actionPolicy": "required",
+      "minActionChildrenBySize": {
+        "2x2": 1
+      },
+      "maxActionChildrenBySize": {
+        "2x2": 1
+      },
+      "parametersSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "loweringBySize": {
+        "2x2": "column"
+      }
+    },
+    {
       "name": "CompactTwoActionLayout",
       "description": "仅用于 2x2；一个 Compact 业务 child 和两个连续的末尾 PillAction child。",
       "supportedCardSizes": [
@@ -114,8 +145,8 @@
       }
     },
     {
-      "name": "TwoCompactLayout",
-      "description": "仅用于 2x2；纵向承载两个 Compact 业务 child，不接受 Action。",
+      "name": "TwoSupportLayout",
+      "description": "仅供兼容 LLM 路径与原子预览使用；在 2x2 纵向承载两个 Support 业务 child，事件只允许绑定在 child 内部；当前 Search 不可达。",
       "supportedCardSizes": [
         "2x2"
       ],

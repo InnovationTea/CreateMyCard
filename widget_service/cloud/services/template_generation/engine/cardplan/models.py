@@ -8,6 +8,14 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 TEMPLATE_CHILD_SLOT_COMPONENT = "__CardTplChildSlot"
+_BUSINESS_TEMPLATE_SUPPORTED_LAYOUTS = (
+    "SingleFocusLayout",
+    "HeroActionLayout",
+    "FullIconActionLayout",
+    "CompactTwoActionLayout",
+    "TwoSupportLayout",
+    "WideSingleFocusLayout",
+)
 
 
 class StrictModel(BaseModel):
@@ -28,6 +36,7 @@ class HybridLimits(StrictModel):
 
 class ActionBinding(StrictModel):
     action_id: str
+    event_id: str = Field(exclude=True)
     display_label: str
     call: str
     args: dict[str, Any]
@@ -64,11 +73,13 @@ class TemplateValue(StrictModel):
     kind: Literal[
         "literal",
         "parameter",
+        "optional-parameter",
         "binding",
         "event-action",
         "theme",
         "interpolation",
         "expression",
+        "compile-time-conditional",
         "array",
         "object",
     ]
@@ -236,13 +247,7 @@ class BusinessTemplateGroup:
 
     @property
     def supported_layouts(self) -> tuple[str, ...]:
-        return (
-            "SingleFocusLayout",
-            "HeroActionLayout",
-            "CompactTwoActionLayout",
-            "TwoCompactLayout",
-            "WideSingleFocusLayout",
-        )
+        return _BUSINESS_TEMPLATE_SUPPORTED_LAYOUTS
 
     @property
     def detection_terms(self) -> tuple[str, ...]:
@@ -261,6 +266,11 @@ class BusinessTemplateGroup:
 class CardActionStyle(StrictModel):
     background_color: str = Field(alias="backgroundColor", pattern=r"^#[0-9A-Fa-f]{8}$")
     content_color: str = Field(alias="contentColor", pattern=r"^#[0-9A-Fa-f]{8}$")
+
+
+class CardSupportContentStyle(StrictModel):
+    background_color: str = Field(alias="backgroundColor", pattern=r"^#[0-9A-Fa-f]{8}$")
+    border_radius: int | float = Field(alias="borderRadius", ge=0)
 
 
 class FusionBallStyle(StrictModel):
@@ -287,6 +297,7 @@ class ThemeDefinition(StrictModel):
     theme_profile_id: str = Field(alias="themeProfileId")
     description: str
     supported_capability_ids: tuple[str, ...] = Field(alias="supportedCapabilityIds")
+    supported_layout_ids: tuple[str, ...] = Field(default=(), alias="supportedLayoutIds")
     palette_scene_ids: tuple[str, ...] = Field(default=(), alias="paletteSceneIds")
     primary_color: str = Field(alias="primaryColor", pattern=r"^#[0-9A-Fa-f]{8}$")
     support_content_color: str = Field(
@@ -298,19 +309,43 @@ class ThemeDefinition(StrictModel):
         alias="progressColor",
         pattern=r"^#[0-9A-Fa-f]{8}$",
     )
+    progress_background_color: str | None = Field(
+        default=None,
+        alias="progressBackgroundColor",
+        pattern=r"^#[0-9A-Fa-f]{8}$",
+    )
     root_style: dict[str, Any] = Field(alias="rootStyle")
     action_style: CardActionStyle = Field(alias="actionStyle")
+    support_content_style: CardSupportContentStyle | None = Field(
+        default=None,
+        alias="supportContentStyle",
+    )
     fusion_ball_style: FusionBallStyle | None = Field(default=None, alias="fusionBallStyle")
     first_layer_rule: MarkdownRuleReference = Field(alias="firstLayerRule")
 
     @property
-    def reference_values(self) -> dict[str, str]:
+    def reference_values(self) -> dict[str, Any]:
+        support_style = self.support_content_style
+        support_background = self.action_style.background_color
+        support_radius: int | float = 18
+        if support_style is not None:
+            support_background = support_style.background_color
+            support_radius = support_style.border_radius
+        else:
+            root_radius = self.root_style.get("borderRadius")
+            if isinstance(root_radius, (int, float)) and not isinstance(root_radius, bool):
+                support_radius = root_radius
         return {
             "primaryColor": self.primary_color,
             "supportContentColor": self.support_content_color,
             "progressColor": self.progress_color or self.primary_color,
+            "progressBackgroundColor": (
+                self.progress_background_color or self.action_style.background_color
+            ),
             "actionStyle.backgroundColor": self.action_style.background_color,
             "actionStyle.contentColor": self.action_style.content_color,
+            "supportContentStyle.backgroundColor": support_background,
+            "supportContentStyle.borderRadius": support_radius,
         }
 
 

@@ -31,6 +31,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--concurrency", type=int, default=1)
     parser.add_argument(
+        "--model-failure-attempts",
+        type=int,
+        default=2,
+        help="仅对 A2UI_GENERATION_FAILED 执行的单用例最大尝试次数",
+    )
+    parser.add_argument(
         "--refresh-inputs",
         action="store_true",
         help="先按当前 Provider 配置重建模拟输入",
@@ -44,11 +50,6 @@ def parse_args() -> argparse.Namespace:
         "--strict",
         action="store_true",
         help="存在生成失败时返回非零退出码；模板缺失不计为生成失败",
-    )
-    parser.add_argument(
-        "--enable-fusion-ball",
-        action="store_true",
-        help="显式开启融球 Theme；默认关闭，不向模型或服务端模板链暴露融球能力",
     )
     return parser.parse_args()
 
@@ -78,7 +79,7 @@ async def run(args: argparse.Namespace) -> int:
             concurrency=args.concurrency,
             provider_ids=provider_ids,
             dry_run=args.dry_run,
-            enable_fusion_ball=args.enable_fusion_ball,
+            model_failure_attempts=args.model_failure_attempts,
         )
         print(
             "Provider 画廊批跑完成："

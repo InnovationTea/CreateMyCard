@@ -237,7 +237,11 @@ async def test_design_compact_edit_uses_previous_design_token(
     expected_system = A2UIProtocolRegistry.read_design_prompt("design-compact-dsl")
 
     assert len(prompts[0]) == 2
-    assert prompts[0][0] == {"role": "system", "content": expected_system}
+    assert prompts[0][0]["role"] == "system"
+    assert prompts[0][0]["content"].startswith(expected_system)
+    assert "禁止在任何组件中生成 `fusion-ball-*` Design Token" in (
+        prompts[0][0]["content"]
+    )
     assert prompts[0][1]["content"].startswith("{")
     assert edit_payload["userQuery"] == "整体改成蓝色"
     assert edit_payload["taskSpec"]["userQuery"] == "整体改成蓝色"

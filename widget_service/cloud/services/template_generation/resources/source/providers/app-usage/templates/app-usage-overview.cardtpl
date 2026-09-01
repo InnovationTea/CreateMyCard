@@ -227,3 +227,54 @@ Column(
     )
 )
 #End
+
+#Template AppUsageOverviewSupport@1(props: { appIcon?: asset, actionId?: string })
+data = {
+    appName: $path("/appUsage/appName"),
+    duration: $path("/appUsage/durationText"),
+}
+
+Stack({
+  "width": "matchParent",
+  "height": "matchParent",
+  "alignContent": "topStart"
+},
+  Column(
+    {"_advancedComponent": "AppUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Row(
+          {"itemMargin":4,"width": "matchParent", "justifyContent": "start", "alignItems": "center"},
+          Column(
+              {"width":"matchParent","itemMargin": 2, "justifyContent": "start", "alignItems": "start", "layoutWeight": 1},
+              Text(
+                  data.appName,
+                  {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1}
+              ),
+              Text(
+                  data.duration,
+                  {"fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
+              ),
+          ),
+          IfPresent(
+              props.appIcon,
+              Image(
+                  props.appIcon,
+                  {"width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0, "_preserveOriginalColor": true}
+              )
+          )
+      )
+  ),
+  IfPresent(props.actionId,
+    Stack({
+      "width": "matchParent",
+      "height": "matchParent",
+      "alignContent": "center",
+      "onClick": EventAction(props.actionId)
+    },
+      Text("", {
+        "width": "matchParent",
+        "height": "matchParent"
+      })
+    )
+  )
+)
+#End

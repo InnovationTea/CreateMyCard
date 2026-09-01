@@ -1,0 +1,31 @@
+{
+  "themeFormat": "card-theme/2",
+  "themeProfileId": "2x2-two-support",
+  "description": "2x2 双业务统一蓝",
+  "firstLayerRule": {"path": "first-layer.md"},
+  "supportedCapabilityIds": [
+    "GetAppUsageDuration",
+    "GetEarphoneInfo",
+    "GetHealthAndSportSummary",
+    "GetSystemMemInfo",
+    "ViewWeather"
+  ],
+  "supportedLayoutIds": ["TwoSupportLayout"],
+  "paletteSceneIds": ["layout.twoSupport"],
+  "primaryColor": "#FF1F4595",
+  "supportContentColor": "#991F4595",
+  "rootStyle": {
+    "backgroundColor": "#1A0A59F7",
+    "borderRadius": 18,
+    "padding": 12,
+    "clip": true
+  },
+  "actionStyle": {
+    "backgroundColor": "#330A59F7",
+    "contentColor": "#FF1F4799"
+  },
+  "supportContentStyle": {
+    "backgroundColor": "#1A2E529E",
+    "borderRadius": 16
+  }
+}
