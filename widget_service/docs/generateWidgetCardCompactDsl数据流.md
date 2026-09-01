@@ -327,6 +327,10 @@ System 消息完整读取：
 cloud/data/protocol_profiles/design-compact-dsl/PROMPT.md
 ```
 
+微服务再使用 `TaskSpec.appVersion` 和 `CONFIG.fusion_ball_min_prd_version` 裁决本轮融球能力。裁决关闭时，
+在上述文件化 system prompt 末尾追加运行时限制，要求模型忽略融球规则和示例并禁止生成
+`fusion-ball-*` Design Token；裁决开启时 system prompt 保持文件原文不变。转换器仍执行同一版本门禁。
+
 创建模式的 user 消息是完整 TaskSpec JSON 字符串：
 
 ```json

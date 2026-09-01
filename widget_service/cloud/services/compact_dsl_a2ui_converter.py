@@ -1982,7 +1982,7 @@ def _convert_action_unit_capsule_with_icon(
         "id": component.component_id,
         "component": "Row",
         "children": [icon_id, text_id],
-        "itemMargin": 4,
+        "itemMargin": 8,
         "onClick": _convert_path_bindings(component.props["onClick"]),
         "styles": row_styles,
     }
@@ -2073,7 +2073,7 @@ def _capsule_text_styles(
         text_styles["fontColor"] = action_ink
     text_styles.update(
         {
-            "width": 94,
+            "maxWidth": 96,
             "height": capsule_styles.get("height", 30),
             "textAlign": "center",
             "textOverflow": "clip",
