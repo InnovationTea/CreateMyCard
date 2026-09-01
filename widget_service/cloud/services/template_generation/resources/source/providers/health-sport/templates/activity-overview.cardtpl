@@ -22,31 +22,24 @@ Column(
         },
         Column(
             {
-                "itemMargin": 2,
+                "itemMargin": 4,
                 "justifyContent": "start",
                 "alignItems": "start",
             },
             Row(
-                {"itemMargin": 4, "justifyContent": "start", "alignItems": "bottom"},
+                {"itemMargin": 2, "justifyContent": "start", "alignItems": "bottom"},
                 Text(
                     data.steps,
                     {"fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
                 ),
                 Text(
                     "步",
-                    {"fontWeight":500,"fontColor": $theme('supportContentColor'),"fontSize": 10, "maxLines": 1, "margin": {"bottom": 4}}
+                    {"fontWeight":500,"fontColor": $theme('supportContentColor'),"fontSize": 12, "maxLines": 1, "margin": {"bottom": 3}}
                 )
             ),
             Text(
                 "每日步数",
-                {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "margin": {"top": 2}}
-            )
-        ),
-        IfPresent(
-            props.stepsIcon,
-            Image(
-                props.stepsIcon,
-                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+                {"fontSize": 10, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1}
             )
         )
     )

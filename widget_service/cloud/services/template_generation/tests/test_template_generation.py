@@ -1945,7 +1945,6 @@ def test_sleep_templates_bind_progress_color_to_theme_support_content() -> None:
     for template_id in (
         "SleepOverviewFull@1",
         "SleepOverviewHero@1",
-        "SleepOverviewCompact@1",
     ):
         root = registry.require_variant(template_id, "default").root
         progress = _template_nodes(root, "Progress")
@@ -2070,7 +2069,7 @@ def test_health_sport_templates_follow_latest_display_contract() -> None:
             "组件形态：hero。"
         ),
         "SleepOverviewCompact@1": (
-            "睡眠情况紧凑摘要，展示时长和得分环，可使用睡眠图标。 组件形态：compact。"
+            "睡眠情况紧凑摘要，展示睡眠时长，可使用睡眠图标。 组件形态：compact。"
         ),
     }
 
@@ -2113,6 +2112,9 @@ def test_health_sport_templates_follow_latest_display_contract() -> None:
             if node.values[0].kind == "literal"
         }
         assert expected_labels <= literal_labels
+
+    for template_id in ("SleepOverviewFull@1", "SleepOverviewHero@1"):
+        root = registry.require_variant(template_id, "default").root
         progress_options = _template_nodes(root, "Progress")[0].values[-1]
         assert progress_options.properties["backgroundColor"].value == "#33564AF7"
 
