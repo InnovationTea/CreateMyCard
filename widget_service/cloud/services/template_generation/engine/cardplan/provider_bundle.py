@@ -1347,6 +1347,7 @@ def _quoted_source_end(source: str, start: int) -> int:
 def _compile_time_conditional_parts(source: str) -> tuple[str, str, str] | None:
     question_index: int | None = None
     colon_index: int | None = None
+    has_top_level_comma = False
     delimiter_pairs = {"(": ")", "[": "]", "{": "}"}
     index = 0
     while index < len(source):
@@ -1359,7 +1360,8 @@ def _compile_time_conditional_parts(source: str) -> tuple[str, str, str] | None:
             index = _matching_delimiter(source, index, char, closer) + 1
             continue
         if char == ",":
-            return None
+            has_top_level_comma = True
+            break
         if char == "?":
             if question_index is not None:
                 raise ValueError(
@@ -1373,16 +1375,18 @@ def _compile_time_conditional_parts(source: str) -> tuple[str, str, str] | None:
                 )
             colon_index = index
         index += 1
-    if question_index is None:
-        return None
-    if colon_index is None:
-        raise ValueError("Provider Template compile-time conditional is missing ':'")
-    condition = source[:question_index].strip()
-    present_value = source[slice(question_index + 1, colon_index)].strip()
-    fallback_value = source[colon_index + 1 :].strip()
-    if not condition or not present_value or not fallback_value:
-        raise ValueError("Provider Template compile-time conditional operand is empty")
-    return condition, present_value, fallback_value
+    result: tuple[str, str, str] | None = None
+    if not has_top_level_comma and question_index is not None:
+        if colon_index is None:
+            raise ValueError("Provider Template compile-time conditional is missing ':'")
+        condition = source[:question_index].strip()
+        present_value = source[slice(question_index + 1, colon_index)].strip()
+        fallback_prefix = source[: colon_index + 1]
+        fallback_value = source.removeprefix(fallback_prefix).strip()
+        if not condition or not present_value or not fallback_value:
+            raise ValueError("Provider Template compile-time conditional operand is empty")
+        result = condition, present_value, fallback_value
+    return result
 
 
 def _contains_unquoted_question_mark(source: str) -> bool:
