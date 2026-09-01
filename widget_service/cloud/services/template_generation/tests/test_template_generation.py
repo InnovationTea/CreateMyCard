@@ -128,7 +128,7 @@ _WEATHER_BODY = (
 def test_ux_mixed_framer_quotes_unquoted_template_ids_only_in_calls() -> None:
     source = (
         'Template(CompactTwoActionLayout@1, {}, '
-        'Template(HeartRateOverviewUpdatedIconCompact@1, '
+        'Template(HeartRateOverviewUpdatedIconHero@1, '
         '{"sourceIcon":"resources/base/media/heart_fill.svg"}), '
         'Template(PillAction@1, {"actionId":"event.open.health.sport", '
         '"label":"Template(Fake@1, label)"}), '
@@ -145,7 +145,7 @@ def test_ux_mixed_framer_quotes_unquoted_template_ids_only_in_calls() -> None:
 
     assert repaired
     assert 'Template("CompactTwoActionLayout@1",' in framed
-    assert 'Template("HeartRateOverviewUpdatedIconCompact@1",' in framed
+    assert 'Template("HeartRateOverviewUpdatedIconHero@1",' in framed
     assert '"label":"Template(Fake@1, label)"' in framed
 _WEATHER_TEMPLATE_FIELDS = (
     "/location/districtName",
@@ -250,7 +250,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 81
+    assert len(registry.provider_template_ids) == 76
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
