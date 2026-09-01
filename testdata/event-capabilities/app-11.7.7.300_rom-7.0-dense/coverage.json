@@ -1,0 +1,70 @@
+{
+  "baselineVersion": "app-11.7.5.205_rom-6.0",
+  "targetVersion": "app-11.7.7.300_rom-7.0",
+  "size": "2x4",
+  "cardCount": 6,
+  "eventCount": 30,
+  "eventsPerCard": 5,
+  "cards": [
+    {
+      "file": "event-dense-01.dat",
+      "eventIds": [
+        "event.setMobileData",
+        "event.open.settings.dndMode",
+        "event.open.settings.sleepMode",
+        "event.open.settings.studyMode",
+        "event.open.settings.mobileNetwork"
+      ]
+    },
+    {
+      "file": "event-dense-02.dat",
+      "eventIds": [
+        "event.open.settings.wifi",
+        "event.open.settings.mobileData",
+        "event.open.settings.simManagement",
+        "event.open.settings.hotspot",
+        "event.open.settings.dataUsage"
+      ]
+    },
+    {
+      "file": "event-dense-03.dat",
+      "eventIds": [
+        "event.open.clock.worldClock",
+        "event.open.clock.alarmTab",
+        "event.open.clock.stopwatch",
+        "event.open.clock.timer",
+        "event.open.contacts.callLog"
+      ]
+    },
+    {
+      "file": "event-dense-04.dat",
+      "eventIds": [
+        "event.open.health.sportsRecord",
+        "event.open.health.activityRecord",
+        "event.open.health.workoutDuration",
+        "event.open.settings.darkMode",
+        "event.setNearLinkMode"
+      ]
+    },
+    {
+      "file": "event-dense-05.dat",
+      "eventIds": [
+        "event.setBluetoothMode",
+        "event.setWifiMode",
+        "event.setLocationSwitch",
+        "event.setScreenUseTimeManageSwitch",
+        "event.setMicPermissionSwitch"
+      ]
+    },
+    {
+      "file": "event-dense-06.dat",
+      "eventIds": [
+        "event.setSoundMode",
+        "event.openFlashlight",
+        "event.closeFlashlight",
+        "event.openCamera",
+        "event.viewNote"
+      ]
+    }
+  ]
+}
