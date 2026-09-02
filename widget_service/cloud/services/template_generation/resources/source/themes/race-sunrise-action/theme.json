@@ -5,21 +5,19 @@
   "firstLayerRule": {"path": "first-layer.md"},
   "supportedCapabilityIds": ["GetHealthAndSportSummary"],
   "paletteSceneIds": ["sport.action"],
-  "primaryColor": "#FFFFFFFF",
-  "supportContentColor": "#99FFFFFF",
+  "primaryColor": "#FF99521F",
+  "supportContentColor": "#9999521F",
+  "progressColor": "#FF99521F",
+  "progressBackgroundColor": "#3399521F",
   "rootStyle": {
-    "backgroundColor": "#FFED6F21",
+    "backgroundColor": "#FFFFF0E6",
     "borderRadius": 20,
     "padding": 12,
     "justifyContent": "spaceBetween",
-    "linearGradient": {
-      "direction": "RightBottom",
-      "colors": [["#FFED6F21", 0], ["#FFF9A01E", 1]]
-    },
     "clip": true
   },
   "actionStyle": {
-    "backgroundColor": "#FFFFFFFF",
-    "contentColor": "#FFED6F21"
+    "backgroundColor": "#3399521F",
+    "contentColor": "#FF99521F"
   }
 }
