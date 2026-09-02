@@ -1,7 +1,7 @@
 {
   "bundleFormat": "card-provider-bundle/1",
   "providerId": "com.huawei.countdown.cli",
-  "providerVersion": "1.0.0-poc",
+  "providerVersion": "1.1.0-poc",
   "firstLayerRule": {"path": "layer-docs/first-layer.md"},
   "secondLayerRule": {"path": "layer-docs/second-layer.md"},
   "capabilities": [
@@ -20,6 +20,16 @@
       "businessId": "CountdownOverview",
       "capabilityId": "GetCountdownDays",
       "description": "通用事件的剩余天数 Full 摘要，可选静态标题。",
+      "entry": "templates/countdown-overview.cardtpl",
+      "primaryData": ["/countdownDays"],
+      "secondaryData": [],
+      "optionalData": []
+    },
+    {
+      "templateId": "CountdownOverviewHero@1",
+      "businessId": "CountdownOverview",
+      "capabilityId": "GetCountdownDays",
+      "description": "通用事件的剩余天数 Hero 摘要，可选静态标题，适合搭配一个主操作。",
       "entry": "templates/countdown-overview.cardtpl",
       "primaryData": ["/countdownDays"],
       "secondaryData": [],

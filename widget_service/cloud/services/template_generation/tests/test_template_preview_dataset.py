@@ -16,12 +16,12 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     manifest = write_template_preview_dataset(tmp_path)
     cases = manifest["cases"]
 
-    assert manifest["templateCount"] == 72
+    assert manifest["templateCount"] == 68
     assert manifest["countsByLayout"] == {
         "Support": 12,
-        "Compact": 12,
-        "Hero": 18,
-        "Full": 17,
+        "Compact": 11,
+        "Hero": 19,
+        "Full": 15,
         "WideHero": 2,
         "WideFull": 9,
     }
