@@ -26,14 +26,15 @@ enable_openai_fallback: true
 enable_sensitive_log_fields: true
 enable_card_template: false
 enable_jsx_generation: false
+fusion_ball_min_prd_version: 11.7.5.206
 
 model_appid: ""
 model_url: ""
 model_bid: ""
 model_flow_id: ""
-system.prompt: "@file:../../docs/system_prompt.txt"
-edit.system.prompt: "@file:../../docs/edit_system_prompt.txt"
-repair.system.prompt: "@file:../../docs/repair_system_prompt.txt"
+system.prompt: "@file:../data/protocol_profiles/design-compact-dsl/PROMPT.md"
+edit.system.prompt: "@file:../data/protocol_profiles/design-compact-dsl/EDIT_SYSTEM_PROMPT.md"
+repair.system.prompt: "@file:../data/protocol_profiles/design-compact-dsl/REPAIR_SYSTEM_PROMPT.md"
 
 a2ui_form_model_backend: mep
 design_compact_model_backend: openai
