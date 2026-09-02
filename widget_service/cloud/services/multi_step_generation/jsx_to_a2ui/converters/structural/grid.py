@@ -71,6 +71,27 @@ def _cell_align(value: object) -> str:
     }.get(value, str(value))
 
 
+def _number(value: object) -> int | float | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int | float):
+        return value
+    if isinstance(value, str):
+        match = _ROW_SIZE.fullmatch(value.strip())
+        if match:
+            number = float(match.group("value"))
+            return int(number) if number.is_integer() else number
+    return None
+
+
+def _grid_extent(node: JSXElement, ctx: ConversionContext, axis: str) -> int | float | None:
+    prop = node.props.get(axis)
+    parent = ctx.parent_content_width if axis == "width" else ctx.parent_content_height
+    if prop in {None, "full"}:
+        return parent
+    return _number(prop)
+
+
 def collect_grid_conversion_errors(node: JSXElement) -> list[str]:
     """Collect the Grid input errors that would make A2UI lowering fail."""
     errors: list[str] = []
@@ -98,9 +119,31 @@ def convert_grid(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     row_gap = node.props.get("rowGap", gap)
     column_gap = node.props.get("columnGap", gap)
     source_children = node.child_elements()
-    converted = [ctx.convert(child) for child in source_children]
-    row_count = (len(converted) + columns - 1) // columns
+    row_count = (len(source_children) + columns - 1) // columns
     heights = _row_heights(node.props.get("rows"), row_count)
+    grid_width = _grid_extent(node, ctx, "width")
+    grid_height = _grid_extent(node, ctx, "height")
+    column_gap_number = _number(column_gap) or 0
+    row_gap_number = _number(row_gap) or 0
+    cell_widths: list[int | float | None] = [None] * columns
+    if grid_width is not None:
+        available_width = max(0, grid_width - column_gap_number * max(0, columns - 1))
+        if column_tracks:
+            fixed_width = column_tracks[0][1]
+            cell_widths = [fixed_width, max(0, available_width - fixed_width)]
+        else:
+            cell_widths = [available_width / columns] * columns
+    resolved_heights = list(heights)
+    if grid_height is not None and row_count and all(value is None for value in heights):
+        available_height = max(0, grid_height - row_gap_number * max(0, row_count - 1))
+        resolved_heights = [available_height / row_count] * row_count
+    converted = [
+        ctx.for_children(
+            parent_content_width=cell_widths[index % columns],
+            parent_content_height=resolved_heights[index // columns],
+        ).convert(child)
+        for index, child in enumerate(source_children)
+    ]
     rows: list[A2UINode] = []
     for row_index, index in enumerate(range(0, len(converted), columns)):
         cells = converted[index:index + columns]

@@ -6,13 +6,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from .config import (
-    JSX_VALIDATOR_PATH,
-    PLATFORM_REPOSITORY_ROOT,
-    PLATFORM_RESOURCE_ROOT,
-    PLAYWRIGHT_BROWSERS_ROOT,
-    REPO_ROOT,
-)
+from .config import JSX_VALIDATOR_PATH, REPO_ROOT, validator_subprocess_environment
 
 
 class ValidatorInfrastructureError(RuntimeError):
@@ -38,11 +32,7 @@ async def _validate_generated_card_once(
     timeout_seconds: float,
 ) -> dict[str, Any]:
     environment = os.environ.copy()
-    environment["GENUI_PLATFORM_ROOT"] = str(PLATFORM_REPOSITORY_ROOT)
-    environment["GENUI_RESOURCE_ROOT"] = str(PLATFORM_RESOURCE_ROOT)
-    # 本地自带 playwright-browsers/ 时优先使用；不存在则不覆盖，让 Playwright 走系统默认路径
-    if PLAYWRIGHT_BROWSERS_ROOT.is_dir():
-        environment["PLAYWRIGHT_BROWSERS_PATH"] = str(PLAYWRIGHT_BROWSERS_ROOT)
+    environment.update(validator_subprocess_environment())
     try:
         process = await asyncio.create_subprocess_exec(
             *command,

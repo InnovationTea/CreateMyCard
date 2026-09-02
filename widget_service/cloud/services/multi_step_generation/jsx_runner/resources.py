@@ -4,11 +4,15 @@ import re
 from collections.abc import Iterable
 from pathlib import Path
 
-from ..jsx_to_a2ui.catalog.bindings import bindable_prop_type_labels
-from ..jsx_to_a2ui.catalog.contracts import CONTRACTS, Contract
-
 from .card_sizes import CARD_SIZE_DIMENSIONS, DEFAULT_CARD_SIZE
 from .config import RESOURCE_STAGES, SKILL_DIR
+
+if "." in (__package__ or ""):
+    from ..jsx_to_a2ui.catalog.bindings import bindable_prop_type_labels
+    from ..jsx_to_a2ui.catalog.contracts import CONTRACTS, Contract
+else:  # Support top-level package imports.
+    from jsx_to_a2ui.catalog.bindings import bindable_prop_type_labels
+    from jsx_to_a2ui.catalog.contracts import CONTRACTS, Contract
 
 
 _CONTRACT_BLOCK = re.compile(

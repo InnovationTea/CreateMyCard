@@ -19,6 +19,14 @@ MODEL_THINKING_MODE = "disable"
 THINKING_MODES = ("disable", "low", "high", "max")
 
 
+def validator_subprocess_environment() -> dict[str, str]:
+    """Return host-specific environment overrides for the shared Node validator."""
+    environment = {"GENUI_RESOURCE_ROOT": str(PLATFORM_RESOURCE_ROOT)}
+    if PLAYWRIGHT_BROWSERS_ROOT.is_dir():
+        environment["PLAYWRIGHT_BROWSERS_PATH"] = str(PLAYWRIGHT_BROWSERS_ROOT)
+    return environment
+
+
 @dataclass(frozen=True, slots=True)
 class ResourceStage:
     key: str
