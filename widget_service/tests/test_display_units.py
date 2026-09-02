@@ -5,9 +5,15 @@ import json
 from models.capability import DataCapability
 from models.generation import CandidateDataBinding
 from services.card_validation import validate_card
+from services.card_validation.diagnostics import Diagnostic
 from services.card_validation.display_unit_rules import repair_repeated_display_units
-from services.generation_pipeline import DslProcessingContext, StandardA2UIProcessor
+from services.generation_pipeline import (
+    DslProcessingContext,
+    QualityIssue,
+    StandardA2UIProcessor,
+)
 from services.task_spec_builder import TaskSpecBuilder
+from services.validator import ArtifactValidator
 
 
 def _capability(unit_included: bool) -> DataCapability:
@@ -185,3 +191,43 @@ def test_validator_accepts_raw_number_with_separate_unit_text():
     )
 
     assert not reporter.has_code("DISPLAY_UNIT_MISSING", "DISPLAY_UNIT_DUPLICATED")
+
+
+def test_artifact_validation_diagnostic_keeps_unit_fix_context_for_repair():
+    diagnostic = Diagnostic(
+        severity="error",
+        code="DISPLAY_UNIT_MISSING",
+        stage="semantic",
+        file_kind="genui",
+        line=2,
+        json_pointer="/updateComponents/componentsById/value/content",
+        actual="{{ ${/data/battery/level} }}",
+        expected={"unitIncluded": False, "displayUnits": ["%"]},
+        message="动态数值字段不包含展示单位，当前 Text 未展示其声明的单位。",
+        fix_hint="在数值后准确追加单位“%”，且只追加一次。",
+    )
+
+    messages, prompt_contexts = ArtifactValidator()._normalize_diagnostics(
+        [diagnostic],
+        "error",
+    )
+    issue = QualityIssue(
+        stage="validation",
+        code="ARTIFACT_VALIDATION_FAILED",
+        message=messages[0],
+        prompt_context=prompt_contexts[0],
+    )
+
+    assert issue.to_prompt_payload() == {
+        "stage": "validation",
+        "category": "ARTIFACT_VALIDATION_FAILED",
+        "code": "DISPLAY_UNIT_MISSING",
+        "validatorStage": "semantic",
+        "fileKind": "genui",
+        "line": 2,
+        "jsonPointer": "/updateComponents/componentsById/value/content",
+        "actual": "{{ ${/data/battery/level} }}",
+        "expected": {"unitIncluded": False, "displayUnits": ["%"]},
+        "message": "动态数值字段不包含展示单位，当前 Text 未展示其声明的单位。",
+        "fixHint": "在数值后准确追加单位“%”，且只追加一次。",
+    }
