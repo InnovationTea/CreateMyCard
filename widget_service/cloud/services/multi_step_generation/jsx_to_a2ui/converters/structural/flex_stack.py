@@ -63,10 +63,16 @@ def _box_styles(node: JSXElement, ctx: ConversionContext) -> dict[str, object]:
     # A2UI containers otherwise keep their content-driven minimum width and
     # long text can push sibling content outside a fixed card slot.
     minimums = {"minWidth": node.props.get("minWidth", 0)}
-    for key, prop_name in (("minWidth", "minWidth"), ("minHeight", "minHeight")):
-        value = node.props.get(prop_name)
-        if value is not None:
-            minimums[key] = value
+    min_height = node.props.get("minHeight")
+    if min_height is None and any(
+        child.tag == "TextBlock" for child in node.child_elements()
+    ):
+        # TextBlock is internally flexible between 48vp and 64vp. Its direct
+        # Stack parent must be allowed to shrink so a basis-only slot can
+        # allocate that range, matching the JSX runtime's local hint.
+        min_height = 0
+    if min_height is not None:
+        minimums["minHeight"] = min_height
     if minimums:
         styles["constraintSize"] = minimums
     margin = {}

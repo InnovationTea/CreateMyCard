@@ -21,7 +21,7 @@ def collect_text_block_conversion_errors(node: JSXElement) -> list[str]:
         if not isinstance(item.get("label"), str) or not item["label"].strip():
             errors.append(f"{where}.label must be a non-empty string")
         parameter = item.get("parameter")
-        if isinstance(parameter, bool) or not isinstance(parameter, (str, int, float)):
+        if isinstance(parameter, bool) or not isinstance(parameter, str | int | float):
             errors.append(f"{where}.parameter must be a string or number")
     return errors
 
@@ -39,12 +39,6 @@ def convert_text_block(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     # accent intended for white action surfaces, not the TextBlock foreground.
     accent = current.primary if current.primary == "#FFFFFFFF" else current.action_text
     background = "#1A" + accent[-6:]
-    height = 64
-    if isinstance(ctx.parent_content_height, int | float) and not isinstance(
-        ctx.parent_content_height,
-        bool,
-    ):
-        height = min(height, ctx.parent_content_height)
     blocks: list[A2UINode] = []
     for index, item in enumerate(items):
         assert isinstance(item, dict)
@@ -105,8 +99,8 @@ def convert_text_block(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         gap=8,
         styles={
             "width": "matchParent",
-            "height": height,
-            "constraintSize": {"minHeight": 0, "maxHeight": 64},
+            "constraintSize": {"minHeight": 48, "maxHeight": 64},
+            "layoutWeight": 1,
             "flexShrink": 1,
             "alignItems": "center",
         },

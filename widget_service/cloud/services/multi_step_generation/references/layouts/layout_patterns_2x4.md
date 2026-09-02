@@ -186,39 +186,33 @@ Type 只约束顶层骨架、主要区域尺寸和区域间距，不锁死区域
 横向 `Stack` 内的按钮包装层不得使用 `basis={36}` 表示按钮高度，因为 `basis` 会占用横向主轴宽度并把 136vp 按钮压进 36vp 槽。应使用 `flex={0} width={136} height={36}` 固定按钮槽。
 
 ```jsx
-<Card size="2x4" appearance="orange-gradient">
+<Card size="2x4" appearance="blue-soft">
   <Stack basis={20} height={20} width="full" direction="row" gap={8} align="center">
-    <Stack basis={72} width={72} height={20}>
-      <SingleLineTitle title="户外跑步" dataIds={{ title: "healthSport.exerciseTypeName" }} />
+    <Stack basis={96} width={96} height={20}>
+      <SingleLineTitle title="内容概览" />
     </Stack>
     <Stack flex={1} minWidth={0} height={20} align="flex-end" justify="center">
-      <Summary
-        items={[
-          { value: "2026-08-06", dataIds: { value: "healthSport.targetDateText" } },
-          { label: "开始", value: "18:30", dataIds: { value: "healthSport.exerciseStartTimeText" } },
-          { label: "结束", value: "19:10", dataIds: { value: "healthSport.exerciseEndTimeText" } },
-        ]}
-      />
+      <Summary content="辅助信息" />
     </Stack>
   </Stack>
-  <Stack basis={48} height={48} width="full" mt={4}>
+  <Stack basis={64} width="full" mt={4}>
     <TextBlock
       items={[
-        { label: "运动时长", parameter: "40分", dataIds: { parameter: "healthSport.exerciseDurationText" } },
-        { label: "平均心率", parameter: "135次/分", dataIds: { parameter: "healthSport.exerciseHeartRateAvg" } },
-        { label: "最高心率", parameter: "168次/分", dataIds: { parameter: "healthSport.exerciseHeartRateMax" } },
+        { label: "属性一", parameter: "内容一" },
+        { label: "属性二", parameter: "内容二" },
+        { label: "属性三", parameter: "内容三" },
       ]}
     />
   </Stack>
   <Stack flex={1} minHeight={0} width="full" direction="row" align="flex-end" justify="end">
     <Stack flex={0} width={136} height={36}>
-      <PillButton label="查看锻炼" icon="resources/base/media/figure_run.svg" appearance="card" actionId="event.open.health.sport" />
+      <PillButton label="查看详情" appearance="card" actionId="action.example" />
     </Stack>
   </Stack>
 </Card>
 ```
 
-此例的顶部标题与 `Summary` 共用 20vp；`TextBlock` 根据父槽收缩为 48vp；底部区域吸收剩余高度，并把 136 × 36vp 的 `PillButton` 贴在右下。三项整宽数据仍共同占满 296vp，不因按钮存在而拆进半卡区域。
+此例的顶部标题与 `Summary` 共用 20vp；父 `Stack` 使用 `basis={64}`，因此 `TextBlock` 保持默认 64vp 高度；底部区域吸收剩余高度，并把 136 × 36vp 的 `PillButton` 贴在右下。只有内容预算不足时才把父槽改为 `basis={48}`，此时 `TextBlock` 自动收缩为 48vp；不得分配小于 48vp 的槽位。三项整宽数据仍共同占满 296vp，不因按钮存在而拆进半卡区域。
 
 ### 7.2 Type 13：可选标题 + 左右独立父内容区
 
