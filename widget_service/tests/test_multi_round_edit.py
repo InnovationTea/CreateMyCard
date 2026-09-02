@@ -541,8 +541,10 @@ def test_edit_prompt_contains_previous_genui_but_not_source_url():
 
     edit_context = json.loads(prompt[1]["content"])
     assert '"userQuery":"改成蓝色"' in prompt[0]["content"]
+    assert '"appVersion"' not in prompt[0]["content"]
     assert edit_context["previousGenui"] == previous_genui
     assert edit_context["editInstruction"] == "改成蓝色"
+    assert "appVersion" not in edit_context["newTaskSpec"]
     assert "sourceArtifactUrl" not in str(prompt)
 
 
