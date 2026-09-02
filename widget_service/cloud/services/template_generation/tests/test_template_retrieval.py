@@ -447,6 +447,84 @@ def test_shared_capability_keeps_each_component_scoped_templates() -> None:
     assert "ScheduleOverviewNextEventLocationFull@1" in result.allowed_template_ids
 
 
+def test_action_param_fields_do_not_block_template_coverage(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """第一层把事件参数字段（entityId）误列为展示需求时，Search 不得失败。"""
+    task = TaskSpec(
+        userQuery="显示最近日程的标题、开始时间，点一下进日程详情",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.viewCalendarEvent",
+                call="clickToIntent",
+                args={
+                    "intentName": "ViewCalendarEvent",
+                    "params": {"entityId": "{{ ${/data/calendar/events/0/entityId} }}"},
+                },
+            )
+        ],
+        dataModelSchema={
+            "data": {
+                "calendar": {
+                    "events": [
+                        {
+                            "title": _field("项目例会"),
+                            "dtStart": _field("14:00"),
+                            "dtEnd": _field("15:00"),
+                            "eventLocation": _field("会议室"),
+                            "entityId": _field("example-event-001"),
+                        }
+                    ]
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetCalendarEvents",
+        writeResultTo="/data/calendar",
+        candidateOutputFields=[
+            "/events/0/title",
+            "/events/0/dtStart",
+            "/events/0/dtEnd",
+            "/events/0/eventLocation",
+            "/events/0/entityId",
+        ],
+    )
+    query = TemplateRetrievalQuery(
+        themeId="meeting-paper-neutral",
+        requiredOutputFieldsByCapability={
+            "GetCalendarEvents": (
+                "/events/0/title",
+                "/events/0/dtStart",
+                "/events/0/eventLocation",
+                "/events/0/entityId",
+            )
+        },
+        action=("event.viewCalendarEvent",),
+    )
+    card_spec = {
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {"capabilityId": "GetCalendarEvents", "writeResultTo": "/data/calendar"}
+        ],
+    }
+    info_logs: list[str] = []
+    monkeypatch.setattr(
+        retrieval_module,
+        "logger",
+        SimpleNamespace(info=info_logs.append),
+    )
+
+    result = retrieve_template_variants(query, task, CardPlanRegistry(), (binding,), card_spec)
+
+    assert "ScheduleOverviewNextEventLocationFull@1" in result.allowed_template_ids
+    message = next(item for item in info_logs if "action_param_fields_dropped" in item)
+    diagnostics = json.loads(message.partition("diagnostics=")[2])
+    assert diagnostics["droppedFields"] == ["/events/0/entityId"]
+    assert diagnostics["capabilityId"] == "GetCalendarEvents"
+
+
 def test_calendar_date_and_schedule_require_one_covering_business_template() -> None:
     task = TaskSpec(
         userQuery="显示日期和下一场会议的标题、时间",
