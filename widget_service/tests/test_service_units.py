@@ -2538,7 +2538,14 @@ def test_task_spec_builder_merges_multiple_capabilities():
     assert task_spec.dataModelSchema["data"]["calendar"]["events"][0]["title"]
 
 
-def test_design_compact_edit_prompt_contains_previous_design_token():
+def test_design_compact_edit_prompt_contains_previous_design_token(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(
+        get_settings(),
+        "CONFIG",
+        {"fusion_ball_min_prd_version": APP_VERSION},
+    )
     task_spec = TaskSpecBuilder().build(
         user_query="整体改成蓝色",
         size="2x4",
@@ -2567,6 +2574,7 @@ def test_design_compact_edit_prompt_contains_previous_design_token():
     assert edit_payload["mode"] == "edit"
     assert edit_payload["userQuery"] == "整体改成蓝色"
     assert edit_payload["taskSpec"]["userQuery"] == "整体改成蓝色"
+    assert "appVersion" not in edit_payload["taskSpec"]
     assert edit_payload["previousDesignToken"] == {
         "format": "design-compact-dsl",
         "content": previous_design_token,
@@ -2575,7 +2583,14 @@ def test_design_compact_edit_prompt_contains_previous_design_token():
     assert "最新格式" in edit_payload["instruction"]
 
 
-def test_design_compact_create_prompt_is_plain_task_spec_json():
+def test_design_compact_create_prompt_is_plain_task_spec_json(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(
+        get_settings(),
+        "CONFIG",
+        {"fusion_ball_min_prd_version": APP_VERSION},
+    )
     event = EventAction(
         id="event.open.weather",
         description="打开天气详情",
@@ -2602,6 +2617,7 @@ def test_design_compact_create_prompt_is_plain_task_spec_json():
         "dataModelSchema",
         "assetCandidates",
     }
+    assert "appVersion" not in payload
     assert payload["userQuery"] == "生成天气卡片"
     assert payload["eventCandidates"] == [
         {
