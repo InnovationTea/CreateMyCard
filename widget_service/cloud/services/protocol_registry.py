@@ -19,6 +19,8 @@ A2UI_FORM_PROTOCOL_PROFILE_ID = "a2ui-form-rom6.0-v1"
 DESIGN_COMPACT_PROFILE_ID = "design-compact-dsl"
 _RANGE_INDEX_FILE = "registry_ranges.json"
 _DESIGN_PROMPT_FILE = "PROMPT.md"
+_DESIGN_EDIT_PROMPT_FILE = "EDIT_SYSTEM_PROMPT.md"
+_DESIGN_REPAIR_PROMPT_FILE = "REPAIR_SYSTEM_PROMPT.md"
 _DESIGN_PROTOCOL_FILE = "protocol.json"
 
 
@@ -174,6 +176,32 @@ class A2UIProtocolRegistry:
         prompt_path = root / design_profile_id / _DESIGN_PROMPT_FILE
         if not prompt_path.is_file():
             raise ValueError(f"Design Compact prompt not found: {prompt_path}")
+        return prompt_path.read_text(encoding="utf-8")
+
+    @classmethod
+    def read_design_edit_prompt(
+        cls,
+        design_profile_id: str,
+        profiles_root: Path | None = None,
+    ) -> str:
+        """读取 Design Compact 多轮编辑系统提示词。"""
+        root = profiles_root or get_settings().data_root / "protocol_profiles"
+        prompt_path = root / design_profile_id / _DESIGN_EDIT_PROMPT_FILE
+        if not prompt_path.is_file():
+            raise ValueError(f"Design Compact edit prompt not found: {prompt_path}")
+        return prompt_path.read_text(encoding="utf-8")
+
+    @classmethod
+    def read_design_repair_prompt(
+        cls,
+        design_profile_id: str,
+        profiles_root: Path | None = None,
+    ) -> str:
+        """读取 Design Compact 修复系统提示词。"""
+        root = profiles_root or get_settings().data_root / "protocol_profiles"
+        prompt_path = root / design_profile_id / _DESIGN_REPAIR_PROMPT_FILE
+        if not prompt_path.is_file():
+            raise ValueError(f"Design Compact repair prompt not found: {prompt_path}")
         return prompt_path.read_text(encoding="utf-8")
 
     @classmethod

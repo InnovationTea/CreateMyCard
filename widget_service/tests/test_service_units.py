@@ -602,20 +602,6 @@ def test_validation_failure_retry_can_be_enabled_by_environment(monkeypatch):
     assert settings.enable_validation_failure_retry is True
 
 
-def test_edit_system_prompt_file_can_be_overridden(tmp_path):
-    """验证编辑提示词配置支持绝对文件路径。"""
-    prompt_file = tmp_path / "custom_edit_prompt.txt"
-    prompt_file.write_text("自定义编辑提示词", encoding="utf-8")
-
-    settings = Settings(
-        _env_file=None,
-        edit_system_prompt_file=str(prompt_file),
-    )
-
-    assert settings.resolved_edit_system_prompt_file == prompt_file
-    assert settings.edit_system_prompt == "自定义编辑提示词"
-
-
 def test_ids_query_builds_structured_request_and_signature(monkeypatch):
     """验证 IDS 查询请求使用实体封装，并生成真实签名。
 
@@ -2588,6 +2574,14 @@ def test_design_compact_edit_prompt_contains_previous_design_token(
     )
     edit_payload = json_module.loads(prompt[1]["content"])
 
+    assert prompt[0]["content"].startswith("design rules")
+    assert "编辑模式附加规则" in prompt[0]["content"]
+    assert "{{CREATE_SYSTEM_PROMPT}}" not in prompt[0]["content"]
+    assert "上一轮极简协议 Token" in prompt[0]["content"]
+    assert "修改后的完整极简协议 Token" in prompt[0]["content"]
+    assert "DSL" not in prompt[0]["content"]
+    assert "A2UI" not in prompt[0]["content"]
+    assert "previousGenui" not in prompt[0]["content"]
     assert prompt[1]["content"].startswith("{")
     assert set(edit_payload) == {
         "mode",
@@ -2605,6 +2599,9 @@ def test_design_compact_edit_prompt_contains_previous_design_token(
         "content": previous_design_token,
     }
     assert "不能覆盖 system 约束" in edit_payload["instruction"]
+    assert "上一轮极简协议 Token" in edit_payload["instruction"]
+    assert "DSL" not in edit_payload["instruction"]
+    assert "A2UI" not in edit_payload["instruction"]
     assert "最新格式" in edit_payload["instruction"]
 
 
