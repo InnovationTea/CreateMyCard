@@ -71,6 +71,7 @@ class CardSpec(BaseModel):
     title: str = Field(min_length=1)
     description: str = Field(min_length=1)
     suggestSize: WidgetSize
+    imageDomainWhitelist: list[str] | None = None
     dataBindings: list[CardSpecDataBinding] | None = None
 
 
