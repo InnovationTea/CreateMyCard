@@ -23,7 +23,10 @@ def test_missing_spec_uses_default_config(
     assert helper.config_file.name == "default_config.yaml"
     assert helper.get("obs.expire.time") == 3600
     assert helper.get("enable_a2ui_model_mock") == "true"
-    assert "{{TASK_SPEC_JSON}}" in helper.get("system.prompt")
+    assert "# 一、任务目标与优先级" in helper.get("system.prompt")
+    assert "编辑模式附加规则" in helper.get("edit.system.prompt")
+    assert "DSL 转换或校验错误修复" in helper.get("repair.system.prompt")
+    assert helper.get("fusion_ball_min_prd_version") == "11.7.5.206"
 
 
 def test_existing_spec_is_used_without_default_merge(

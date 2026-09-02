@@ -105,12 +105,13 @@ def unit_rule_for_path(
 
 
 def matching_unit_literal_count(expression: Any, rule: DisplayUnitRule) -> int:
+    """统计表达式任意分支中与展示单位匹配的字符串字面量。"""
     if not isinstance(expression, str):
         return 0
     return sum(
         1
-        for term in _split_concat_terms(expression_body(expression))
-        if _literal_matches_rule(term, rule)
+        for literal in _string_literal_values(expression_body(expression))
+        if _value_matches_rule(literal, rule)
     )
 
 
@@ -272,12 +273,43 @@ def _literal_matches_rule(term: str, rule: DisplayUnitRule) -> bool:
     match = _STRING_LITERAL_RE.fullmatch(term.strip())
     if match is None:
         return False
-    normalized_literal = _normalized_unit(match.group("value"))
+    return _value_matches_rule(match.group("value"), rule)
+
+
+def _value_matches_rule(value: str, rule: DisplayUnitRule) -> bool:
+    normalized_literal = _normalized_unit(value)
     return any(
         alias in normalized_literal
         for unit in rule.units
         for alias in _normalized_aliases(unit)
     )
+
+
+def _string_literal_values(expression: str) -> list[str]:
+    """提取表达式中的字符串字面量，保留条件分支内的单位文本。"""
+    values: list[str] = []
+    quote: str | None = None
+    chars: list[str] = []
+    escaped = False
+    for char in expression:
+        if quote is None:
+            if char in {"'", '"'}:
+                quote = char
+                chars = []
+            continue
+        if escaped:
+            chars.append(char)
+            escaped = False
+            continue
+        if char == "\\":
+            escaped = True
+            continue
+        if char == quote:
+            values.append("".join(chars))
+            quote = None
+            continue
+        chars.append(char)
+    return values
 
 
 def _literal_exactly_matches_rule(term: str, rule: DisplayUnitRule) -> bool:

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
-
+import json
 import socket
 import os
+import ast
 from functools import lru_cache
 from pathlib import Path
 import platform
@@ -15,6 +16,16 @@ from pydantic_settings import BaseSettings
 def get_container_ip():
     hostname = socket.gethostname()
     return socket.gethostbyname(hostname)
+
+
+def _parse_json_config(value: str, fallback):
+    """容错解析 IAC 注入的 JSON 字符串配置，非法或缺失时回退默认值。"""
+    if not value:
+        return fallback
+    try:
+        return json.loads(value)
+    except (ValueError, TypeError):
+        return fallback
 
 
 class Settings(BaseSettings):
@@ -40,6 +51,10 @@ class Settings(BaseSettings):
     osms_delete_url: str = urljoin(hag_slb_url, CONFIG.get("osms_delete_url"))
     hag_osms_ak: str = CONFIG.get("hag_osms_ak")
     capability_registry_version: str = "app-11.7.5.205_rom-6.0"
+    # src → 云侧 url 映射（JSON 字符串，缺省为空 dict）。生成 DSL 时按 src 命中替换为 url。
+    asset_src_url_mapping: dict = _parse_json_config(
+        CONFIG.get("asset.src.url.mapping"), {}
+    )
     design_compact_profile_id: str = "design-compact-dsl"
     protocol_profile_id: str = "a2ui-form-rom6.0-v1"
     mock_ids_response_path: str = "data/mock/ids_res.json"
