@@ -250,7 +250,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 75
+    assert len(registry.provider_template_ids) == 78
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -314,7 +314,16 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
 
 def test_business_template_suffix_drives_size_and_provider_data_tiers():
     registry = get_cardplan_registry()
-    layout_kinds = {"Support", "Compact", "Hero", "Full", "WideHero", "WideFull"}
+    layout_kinds = {
+        "HeroTitle",
+        "HeroContent",
+        "Support",
+        "Compact",
+        "Hero",
+        "Full",
+        "WideHero",
+        "WideFull",
+    }
 
     for template_id in registry.provider_template_ids:
         definition = registry.require_template(template_id)
@@ -513,6 +522,7 @@ def test_layout_template_wide_marker_drives_exclusive_card_size() -> None:
         "HeroActionLayout": ("2x2",),
         "FullIconActionLayout": ("2x2",),
         "CompactTwoActionLayout": ("2x2",),
+        "HeroTitleContentActionLayout": ("2x2",),
         "TwoSupportLayout": ("2x2",),
         "WideSingleFocusLayout": ("2x4",),
     }
@@ -568,13 +578,13 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 8
+    assert len(calendar.local_template_ids) == 9
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert not any(
         template_id.startswith("DateOverview")
         for template_id in calendar.local_template_ids
     )
-    assert len(registry.ux_layout_component_provider_ids) == 6
+    assert len(registry.ux_layout_component_provider_ids) == 7
     for bundle in registry.provider_bundles.values():
         payload = json.loads(
             (registry.source_root / "providers" / bundle.manifest.provider_id.removeprefix(
@@ -2413,7 +2423,8 @@ def test_calendar_templates_follow_latest_schedule_contract() -> None:
     registry = get_cardplan_registry()
     calendar = registry.require_ux_business_component("CalendarOverview")
 
-    assert len(calendar.local_template_ids) == 8
+    assert len(calendar.local_template_ids) == 9
+    assert "ScheduleOverviewHeroContent@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert not any(
         template_id.endswith(("Support@1", "Compact@1"))
@@ -2771,14 +2782,17 @@ def test_calendar_timezone_full_keeps_reference_geometry():
     timezone_timeline = timezone.children[2]
     timezone_dot_column = timezone_timeline.children[0]
     timezone_dot = timezone_dot_column.children[0]
+    timezone_divider = timezone_dot_column.children[1]
 
     assert timezone_text_options["height"] == 44
     assert timezone_text_options["fontSize"] == 16
     assert timezone_text_options["maxLines"] == 1
-    timeline_padding = timezone_timeline.values[-1].properties["padding"].properties
     dot_padding = timezone_dot_column.values[-1].properties["padding"].properties
-    assert timeline_padding["top"].value == 10
+    assert _template_node_options(timezone_timeline)["height"] == 54
+    assert "padding" not in _template_node_options(timezone_timeline)
     assert dot_padding["top"].value == 4
+    assert dot_padding["bottom"].value == 2
+    assert _template_node_options(timezone_divider)["layoutWeight"] == 1
     assert _template_node_options(timezone_dot)["borderWidth"] == 1.5
     assert _template_node_options(timezone_dot)["backgroundColor"] == "#00FFFFFF"
     assert definition.primary_data == (
@@ -4106,9 +4120,14 @@ async def test_2x2_battery_pill_action_uses_generic_hero_template():
     layout = components["template_root"]
     assert layout["component"] == "Column"
     assert layout["itemMargin"] == 8
-    assert layout["styles"] == {"width": "matchParent", "height": "matchParent"}
+    assert layout["styles"] == {
+        "width": "matchParent",
+        "height": "matchParent",
+        "justifyContent": "start",
+        "alignItems": "center",
+    }
     hero_slot, action_slot = (components[child_id] for child_id in layout["children"])
-    assert hero_slot["styles"] == {"width": "matchParent", "height": 92}
+    assert hero_slot["styles"] == {"width": "matchParent", "layoutWeight": 1}
     assert action_slot["styles"] == {"width": "matchParent", "height": 36}
     action = components[action_slot["children"][0]]
     assert action["component"] == "Stack"

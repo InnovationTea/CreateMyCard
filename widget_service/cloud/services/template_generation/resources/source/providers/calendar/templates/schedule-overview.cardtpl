@@ -115,7 +115,6 @@ Column(
     Column(
       {
         "width": "matchParent",
-        "height": 64,
         "itemMargin": 4,
         "justifyContent": "start",
         "alignItems": "start",
@@ -126,7 +125,7 @@ Column(
         data.title,
         {
           "width": "matchParent",
-          "height": 19,
+          "height": 20,
           "fontSize": 14,
           "fontWeight": 700,
           "fontColor": $theme('primaryColor'),
@@ -383,8 +382,7 @@ Column(
   Row(
     {
       "width": "matchParent",
-      "height": 64,
-      "padding": { "left": 0, "top": 10, "right": 0, "bottom": 0 },
+      "height": 54,
       "itemMargin": 8,
       "justifyContent": "start",
       "alignItems": "start",
@@ -395,7 +393,7 @@ Column(
       {
         "width": 8,
         "height": 54,
-        "padding": { "left": 0, "top": 4, "right": 0, "bottom": 0 },
+        "padding": { "left": 0, "top": 4, "right": 0, "bottom": 2 },
         "itemMargin": 4,
         "justifyContent": "start",
         "alignItems": "center",
@@ -418,7 +416,7 @@ Column(
       Divider(
         {
           "width": 1,
-          "height": 36,
+          "layoutWeight": 1,
           "strokeWidth": 1,
           "vertical": true,
           "color": $theme('supportContentColor')
@@ -537,7 +535,7 @@ Column(
     Row(
     {
       "width": "matchParent",
-      "height": 64,
+      "height": 54,
       "padding": { "left": 0, "top": 10, "right": 0, "bottom": 0 },
       "itemMargin": 8,
       "justifyContent": "start",
@@ -654,8 +652,7 @@ Column(
   Row(
     {
       "width": "matchParent",
-      "height": 64,
-      "padding": { "left": 0, "top": 10, "right": 0, "bottom": 0 },
+      "height": 54,
       "itemMargin": 8,
       "justifyContent": "start",
       "alignItems": "start",
@@ -666,7 +663,7 @@ Column(
       {
         "width": 8,
         "height": 54,
-        "padding": { "left": 0, "top": 4, "right": 0, "bottom": 0 },
+        "padding": { "left": 0, "top": 4, "right": 0, "bottom": 2 },
         "itemMargin": 4,
         "justifyContent": "start",
         "alignItems": "center",
@@ -689,7 +686,7 @@ Column(
       Divider(
         {
           "width": 1,
-          "height": 36,
+          "layoutWeight": 1,
           "strokeWidth": 1,
           "vertical": true,
           "color": $theme('supportContentColor')
@@ -806,8 +803,7 @@ Column(
   Row(
     {
       "width": "matchParent",
-      "height": 64,
-      "padding": { "left": 0, "top": 10, "right": 0, "bottom": 0 },
+      "height": 54,
       "itemMargin": 8,
       "justifyContent": "start",
       "alignItems": "start",
@@ -818,7 +814,7 @@ Column(
       {
         "width": 8,
         "height": 54,
-        "padding": { "left": 0, "top": 4, "right": 0, "bottom": 0 },
+        "padding": { "left": 0, "top": 4, "right": 0, "bottom": 2 },
         "itemMargin": 4,
         "justifyContent": "start",
         "alignItems": "center",
@@ -841,7 +837,7 @@ Column(
       Divider(
         {
           "width": 1,
-          "height": 36,
+          "layoutWeight": 1,
           "strokeWidth": 1,
           "vertical": true,
           "color": $theme('supportContentColor')
@@ -880,6 +876,94 @@ Column(
         data.location,
         { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       )
+    )
+  )
+)
+#End
+
+#Template ScheduleOverviewHeroContent@1(props: {})
+data = {
+    title: $path("/events/0/title"),
+    location: $path("/events/0/eventLocation"),
+    start: $path("/events/0/dtStart"),
+    end: $path("/events/0/dtEnd")
+}
+
+Row(
+  {
+    "width": "matchParent",
+    "height": 54,
+    "itemMargin": 8,
+    "justifyContent": "start",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": { "minWidth": 0, "minHeight": 0 }
+  },
+  Column(
+    {
+      "width": 8,
+      "height": 54,
+      "padding": { "left": 0, "top": 4, "right": 0, "bottom": 2 },
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "alignItems": "center",
+      "flexShrink": 0,
+      "clip": true
+    },
+    Stack(
+      {
+        "width": 8,
+        "height": 8,
+        "borderRadius": 4,
+        "borderWidth": 1.5,
+        "borderColor": $theme('primaryColor'),
+        "backgroundColor": "#00FFFFFF",
+        "alignContent": "center",
+        "flexShrink": 0
+      },
+      Divider({ "width": 0, "height": 0, "strokeWidth": 0, "color": "#00FFFFFF" })
+    ),
+    Divider(
+      {
+        "width": 1,
+        "layoutWeight": 1,
+        "strokeWidth": 1,
+        "vertical": true,
+        "color": $theme('supportContentColor')
+      }
+    )
+  ),
+  Column(
+    {
+      "width": "matchParent",
+      "height": 54,
+      "layoutWeight": 1,
+      "itemMargin": 2,
+      "justifyContent": "start",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": { "minWidth": 0, "minHeight": 0 }
+    },
+    Text(
+      data.title,
+      {
+        "width": "matchParent",
+        "height": 20,
+        "fontSize": 14,
+        "fontWeight": 700,
+        "fontColor": $theme('primaryColor'),
+        "maxLines": 1,
+        "textOverflow": "ellipsis",
+        "margin": { "bottom": 2 },
+      }
+    ),
+    Text(
+      `${data.start} - ${data.end}`,
+      { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+    ),
+    Text(
+      data.location,
+      { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
     )
   )
 )

@@ -27,7 +27,7 @@ DesignToken。Provider 模板是受信资源，不需要用 DesignToken 缩短�
 - `health-sport`：`GetHealthAndSportSummary` → 30 个活动、运动、心率和睡眠 UI 模板
 - `countdown`：`GetCountdownDays` → `CountdownOverviewFull@1`
 - `earphone`：`GetEarphoneInfo` → 9 个耳机状态/电量 UI 模板
-- `layout`：无数据能力 → 6 个支持 `...children` 的布局模板；仅含 `Wide` 的布局用于 `2x4`
+- `layout`：无数据能力 → 7 个支持 `...children` 的布局模板；仅含 `Wide` 的布局用于 `2x4`
 - `action`：无数据能力 → `PillAction@1`、`IconAction@1` 两个 Props 驱动的动作模板
 
 除 `GetSystemMemInfo` 使用 Bundle 本地 Schema 外，
@@ -36,8 +36,9 @@ DesignToken。Provider 模板是受信资源，不需要用 DesignToken 缩短�
 
 Provider 若需要覆盖外层布局 Action 的底托透明度，可在模板根组件样式中声明受信内部属性
 `_layoutActionBackgroundOpacity`。运行时仅在该 Provider Template 独占业务区时，
-以主题 Action 前景色的 RGB 和声明透明度生成底托色。当前生产 Search 的 `2x2` 路径只接收单业务及
-零到两个 Action，多业务会在进入第二层前显式拒绝；兼容的 LLM 选择链路仍使用主题默认 Action 样式。
+以主题 Action 前景色的 RGB 和声明透明度生成底托色。当前生产 Search 的 `2x2` 路径接收单业务及零到
+两个 Action，或双业务加一个 Action；双业务必须按完整 HeroTitle、HeroContent 候选固定排序，其它多业务
+组合在进入第二层前显式拒绝。兼容的 LLM 选择链路仍使用主题默认 Action 样式。
 
 在 `widget_service` 目录执行：
 

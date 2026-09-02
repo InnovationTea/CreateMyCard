@@ -361,6 +361,8 @@ def _template_suffix(template_id: str) -> str:
     for suffix in (
         "WideHero",
         "WideFull",
+        "HeroTitle",
+        "HeroContent",
         "Support",
         "Compact",
         "Hero",

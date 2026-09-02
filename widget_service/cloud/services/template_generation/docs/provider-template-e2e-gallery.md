@@ -16,7 +16,8 @@
 `generate_widget_card_terse_dsl_nested2` 时，通过仅供 Python 服务调用的关键字参数携带目标模板、目标 Action
 和样例覆盖；该入口据此构造 `TemplateSourceGenerator`，它们不进入 `GenerateWidgetCardRequest`、工具请求
 JSON 或公开 Schema。Search 通过后，二层候选才会收窄到目标模板，外部工具请求不能设置这些开发测试约束。
-当前 `2x2` Search 显式拒绝多业务组合，因此该端到端画廊只生成单业务路线。Provider 中已有的 Support
+当前端到端画廊按单个 Provider 展开，因此只生成单业务路线；生产 Search 另支持严格受控的
+HeroTitle + HeroContent + 单 Action 双业务组合，由跨 Provider 集成测试覆盖。Provider 中已有的 Support
 模板与 `TwoSupportLayout` 仍作为底层保留能力和原子预览资源存在，但当前 Search 路线不可达。
 
 ## 场景矩阵
@@ -30,8 +31,8 @@ JSON 或公开 Schema。Search 通过后，二层候选才会收窄到目标模�
 | 单内容 | Full |
 
 因此每个 Compact 生成“单内容 + 2 个 Action”用例，每个 Hero 生成“单内容 + 1 个 Action”用例，每个
-Full 生成“单内容”用例。业务缺少某个后缀时仍保留一张缺失占位卡。画廊不构造 Support 配对请求，避免把
-当前 Search 明确拒绝的多业务组合记录为普通生成失败。
+Full 生成“单内容”用例。业务缺少某个后缀时仍保留一张缺失占位卡。画廊不构造跨 Provider 的
+HeroTitle/HeroContent 配对，也不构造兼容 Support 配对；前者由集成测试覆盖，后者仍不属于 Search 路线。
 
 每个上述用例继续展开为两个相邻外观：
 

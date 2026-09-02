@@ -63,8 +63,11 @@ TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路�
 
 ## UI 模板语法
 
-业务模板 ID 必须以 `Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 之一结束。六类后缀分别表示：
+业务模板 ID 必须以 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、
+`WideFull` 之一结束。八类后缀分别表示：
 
+- `HeroTitle`：双业务单 Action 的位置 0，后接一个 HeroContent；
+- `HeroContent`：双业务单 Action 的位置 1，前置一个 HeroTitle；
 - `Support`：约 `2x1`，保留给旧 LLM 选择器兼容测试和原子预览；事件按需绑定在 Support 内部，当前 Search 不可达；
 - `Compact`：约 `2x1`，只用于一个 Compact 加两个 PillAction；
 - `Hero`：约 `2x1.7`，用于 `2x2` 的 Hero 加一个 PillAction；
@@ -99,8 +102,10 @@ TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路�
 | 1 | 1 | `Hero` | `HeroActionLayout` + 1 个 `PillAction` |
 | 1 | 1 | `Full` | 仅存在语义匹配的已批准图标素材时，使用 `FullIconActionLayout` + 1 个 `IconAction` |
 | 1 | 2 | `Compact` | `CompactTwoActionLayout` + 2 个连续的 `PillAction` |
+| 2 | 1 | 位置 0 为 `HeroTitle`；位置 1 为 `HeroContent` | `HeroTitleContentActionLayout` + 1 个末尾 `PillAction` |
 
-当前 Search 的 `2x2` 组合只包含上表单业务三类场景。候选解析命中多个业务时，在布局后缀过滤和二层模型调用前显式拒绝。
+当前 Search 的 `2x2` 组合只包含上表场景。双业务仅在两侧候选分别完整覆盖显式字段时适用，且由服务端
+确定性重排为 HeroTitle、HeroContent；其它多业务组合在二层模型调用前显式拒绝。
 `TwoSupportLayout`、`2x2-two-support` 与 Support 内部事件绑定仍保留给 `firstLayerComponentSelector="llm"` 兼容路径和原子预览，
 但不进入当前 Search 生产路径。
 
@@ -302,14 +307,14 @@ PillAction 模板使用 `$theme('actionStyle.backgroundColor')` 和 `$theme('act
 `TemplateRouteSelection`。只有这个内部结果才包含 `componentCandidates` 和
 `availableTemplateIds`：
 
-1. `2x2` Search 只允许命中一个业务组件；保留模板必须独立完整承载该业务的显式字段；
+1. `2x2` Search 允许一个业务组件，或恰好两个业务组件加一个 Action；保留模板必须独立完整承载所属业务的显式字段；
 2. 显式字段满足后，再检查候选模板自身 `primaryData` 与 `secondaryData` 在 TaskSpec 中全部存在；
 3. `candidateOutputFields` 只是候选数据投影，不直接等于强制显示集合；
-4. 显式请求命中多个数据业务，或任一字段无法在自己的业务组件内覆盖时，在进入第二层前返回模板不匹配；
+4. 双业务仅在一侧存在完整 `HeroTitle`、另一侧存在完整 `HeroContent` 时按该顺序进入第二层；其它多业务组合或任一字段无法覆盖时返回模板不匹配；
 5. Search 保留字段匹配、模板准入、候选排序和数量上限能力；同一业务可同时返回多个 Hero、Full 或 Compact
    等同形态候选，不能退化为无序枚举；
 6. Action 独立于数据业务计数；单业务按零、一个、两个 Action 分别保留 Full、Hero+Full、Compact；
-7. Action 不影响数据业务计数，但不得用 Action 覆盖或合并第二个数据业务；
+7. Action 不影响数据业务计数；双业务路线必须恰好选择一个 Action，且不得用 Action 覆盖或合并第二个数据业务；
 8. Support 和 `TwoSupportLayout` 仅保留给兼容路径，当前 Search 不将其作为多业务回退。
 
 配置 `firstLayerComponentSelector: "llm"` 时，系统可走兼容选择器
@@ -332,7 +337,7 @@ Support CardTpl 使用 `onClick: EventAction(props?.actionId)`。微服务校验
 
 天气、日历、手机电量、耳机、健康运动、应用使用时长、倒计时和系统内存当前共有
 73 个无 Variant 的业务 UI 模板，其中 12 个是 Support；当前形成 11 个业务组。Layout Provider 另提供
-6 个支持 `...children` 的布局模板，Action Provider 提供 2 个动作模板，运行时 Registry 共 81 个模板。
+7 个支持 `...children` 的布局模板，Action Provider 提供 2 个动作模板，运行时 Registry 共 78 个模板。
 名称包含 `Wide` 的布局只用于 `2x4`，其余布局只用于 `2x2`，两类布局不得混用。
 新增或修改资源后执行：
 

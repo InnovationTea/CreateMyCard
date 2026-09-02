@@ -1,3 +1,52 @@
+#Template WeatherOverviewHeroTitle@1(props: { location?: string })
+data = {
+    city: $optionalPath("/location/prefectureName"),
+    district: $optionalPath("/location/districtName"),
+    temperature: $path("/current/temperatureText"),
+    condition: $optionalPath("/current/condition"),
+}
+
+Row({
+  "width": "matchParent",
+  "height": 24,
+  "itemMargin": 0,
+  "alignItems": "center",
+  "justifyContent": "spaceBetween",
+},
+  Row(
+    {
+      "height": 24,
+      "itemMargin": 4,
+      "justifyContent": "start",
+      "alignItems": "center",
+      "clip": true,
+      "constraintSize": { "minWidth": 0, "minHeight": 0 }
+    },
+    Text(
+      #Expr(data.city ? data.city : (data.district ? data.district : (props.location ? props.location : "当前城市"))),
+      {
+        "fontSize": 16,
+        "fontWeight": 700, "fontColor": $theme('primaryColor'),
+        "maxLines": 1,
+        "textOverflow": "ellipsis",
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
+      }
+    ),
+#if data.condition
+    Text(
+      `${data.temperature} | ${data.condition}`,
+      { "fontSize": 16, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0 }
+    )
+#else
+    Text(
+      data.temperature,
+      { "fontSize": 16, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0 }
+    )
+#endif
+  )
+)
+#End
+
 #Template WeatherOverviewCompact@1(props: { location?: string, conditionIcon?: asset })
 data = {
     city: $optionalPath("/location/prefectureName"),

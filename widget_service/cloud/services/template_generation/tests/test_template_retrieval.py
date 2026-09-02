@@ -7,10 +7,15 @@ from typing import Any, cast
 import pytest
 
 from models.generation import CandidateDataBinding, EventAction, TaskSpec
+from services.protocol_registry import A2UI_FORM_PROTOCOL_PROFILE_ID, A2UIProtocolRegistry
 from services.template_generation.engine.advanced.content_selectors import (
     apply_content_selectors,
 )
+from services.template_generation.engine.advanced.ux_mixed_prompt import (
+    build_ux_mixed_prompt,
+)
 from services.template_generation.engine.cardplan import template_retrieval as retrieval_module
+from services.template_generation.engine.cardplan.compiler import compile_ux_layout_card
 from services.template_generation.engine.cardplan.registry import (
     CardPlanRegistry,
     get_cardplan_registry,
@@ -624,7 +629,8 @@ def test_first_layer_prompt_includes_task_fields_rules_and_action_candidates() -
         {"eventId": "event.open.weather", "call": "clickToDeeplink"}
     ]
     assert "不得为了迁就布局限制而省略" in messages[0]["content"]
-    assert "2x2 模板 Search 当前只接受一个" in messages[0]["content"]
+    assert "2x2 模板 Search 接受一个可完整覆盖的业务" in messages[0]["content"]
+    assert "恰好两个数据业务加一个显式 Action" in messages[0]["content"]
 
 
 def test_calendar_first_layer_rule_excludes_meeting_action_parameters() -> None:
@@ -757,6 +763,134 @@ def test_search_rejects_two_data_businesses() -> None:
                 ]
             },
         )
+
+
+def test_search_orders_complete_hero_title_and_hero_content_businesses() -> None:
+    task = _task().model_copy(
+        update={
+            "userQuery": "显示天气和下一场日程，并提供查看入口",
+            "eventCandidates": [
+                EventAction(
+                    id="event.open.details",
+                    description="查看详情",
+                    call="clickToDeeplink",
+                    args={"uri": "example://details"},
+                )
+            ],
+        }
+    )
+    task.dataModelSchema["data"]["calendar"] = {
+        "events": [
+            {
+                "title": _field("项目例会"),
+                "dtStart": _field("14:00"),
+                "dtEnd": _field("15:00"),
+                "eventLocation": _field("A1 会议室"),
+            }
+        ]
+    }
+    calendar_binding = CandidateDataBinding(
+        capabilityId="GetCalendarEvents",
+        writeResultTo="/data/calendar",
+        candidateOutputFields=[
+            "/events/0/title",
+            "/events/0/dtStart",
+            "/events/0/dtEnd",
+            "/events/0/eventLocation",
+        ],
+    )
+    query = TemplateRetrievalQuery(
+        themeId="family-weather-care-blue",
+        requiredOutputFieldsByCapability={
+            "ViewWeather": (
+                "/location/districtName",
+                "/current/temperatureText",
+                "/current/condition",
+            ),
+            "GetCalendarEvents": (
+                "/events/0/title",
+                "/events/0/dtStart",
+                "/events/0/dtEnd",
+                "/events/0/eventLocation",
+            ),
+        },
+        action=("event.open.details",),
+    )
+    card_spec = {
+        "title": "天气和日程",
+        "description": "显示天气和下一场日程，并提供查看入口",
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"},
+            {
+                "capabilityId": "GetCalendarEvents",
+                "writeResultTo": "/data/calendar",
+            },
+        ],
+    }
+    registry = get_cardplan_registry()
+    result = retrieve_template_variants(
+        query,
+        task,
+        registry,
+        (_binding(), calendar_binding),
+        card_spec,
+    )
+    projection = build_ux_mixed_prompt(
+        task_spec=task,
+        card_spec=card_spec,
+        scope=result.scope,
+        component_candidates=result.component_candidates,
+        required_template_groups=result.required_template_groups,
+        registry=registry,
+    )
+    action = projection.contract.action_bindings[0]
+    source = (
+        'Template("HeroTitleContentActionLayout@1",{},'
+        'Template("WeatherOverviewHeroTitle@1",{}),'
+        'Template("ScheduleOverviewHeroContent@1",{}),'
+        'Template("PillAction@1",'
+        + json.dumps(
+            {"actionId": action.action_id, "label": action.display_label},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        + "));"
+    )
+    compilation = compile_ux_layout_card(
+        source,
+        task_spec=task,
+        contract=projection.contract,
+        protocol_profile=A2UIProtocolRegistry(
+            A2UI_FORM_PROTOCOL_PROFILE_ID
+        ).get_profile(),
+        registry=registry,
+        card_spec=card_spec,
+        enable_data_bindings=True,
+    )
+
+    assert result.scope.advanced_component_ids == (
+        "WeatherOverview",
+        "CalendarOverview",
+    )
+    assert result.component_candidates[0].available_template_ids == (
+        "WeatherOverviewHeroTitle@1",
+    )
+    assert result.component_candidates[1].available_template_ids == (
+        "ScheduleOverviewHeroContent@1",
+    )
+    assert result.required_template_groups == (
+        ("WeatherOverviewHeroTitle@1",),
+        ("ScheduleOverviewHeroContent@1",),
+    )
+    assert projection.allowed_layout_ids == ("HeroTitleContentActionLayout",)
+    child_order = (
+        '"childOrder": "position 0 HeroTitle, position 1 HeroContent, position 2 PillAction"'
+    )
+    assert child_order in projection.messages[1]["content"]
+    assert "HeroTitleContentActionLayout" not in compilation.a2ui
+    assert "events/0/title" in compilation.a2ui
+    assert "current/temperatureText" in compilation.a2ui
 
 
 def test_search_rejects_two_businesses_backed_by_one_capability() -> None:

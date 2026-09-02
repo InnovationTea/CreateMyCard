@@ -3,6 +3,8 @@
 - Provider：`com.huawei.weather.cli`；业务领域为 `WeatherOverview`。
 - 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
 - 可用模板：
+  - `WeatherOverviewHeroTitle@1`：城市、温度和可选天气现象；只用于
+    `HeroTitleContentActionLayout@1` 的第一个业务 child。
   - `WeatherOverviewCompact@1`：城市、温度、天气现象和感冒指数；可选 `conditionIcon`。
   - `WeatherOverviewUvCompact@1`：城市、温度、天气现象和紫外线等级；可选 `conditionIcon`。
   - `WeatherOverviewTemperatureSupport@1`：城市、温度、天气现象和感冒风险；可选
@@ -17,6 +19,8 @@
 - Compact 只用于 `CompactTwoActionLayout@1` 加两个 `PillAction@1`；Hero 只用于
   `HeroActionLayout@1` 加一个 `PillAction@1`；Full 用于无 Action，或搭配一个语义匹配的
   `IconAction@1`。
+- HeroTitle 只用于双业务单 Action 的 `HeroTitleContentActionLayout@1`，并且必须位于
+  HeroContent 之前的第一个业务位置；布局最后一个 child 必须是 `PillAction@1`。
 - Support 仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；在兼容路径中只用于
   `TwoSupportLayout@1`。该业务有已批准事件时传入 `actionId`；没有对应事件时省略，模板根节点不生成
   `onClick`。

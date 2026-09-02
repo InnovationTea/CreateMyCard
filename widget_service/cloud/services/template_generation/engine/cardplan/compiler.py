@@ -6076,6 +6076,20 @@ def _validate_provider_template_layout_action_requirements(
         for child in action_children
         if (action_name := _parsed_ux_action_component(child)) is not None
     )
+    hero_title_content_kinds = ("HeroTitle", "HeroContent")
+    if layout_kinds == hero_title_content_kinds:
+        valid_combination = layout_id == "HeroTitleContentActionLayout"
+        valid_combination = valid_combination and action_names == ("PillAction",)
+        if not valid_combination:
+            raise TerselConversionError(
+                "HeroTitle/HeroContent Provider Templates require ordered "
+                "HeroTitleContentActionLayout children and one PillAction."
+            )
+        return
+    if set(layout_kinds).intersection(hero_title_content_kinds):
+        raise TerselConversionError(
+            "HeroTitle/HeroContent Provider Template order is invalid."
+        )
     if len(layout_kinds) == 2 and set(layout_kinds) == {"Support"} and not action_names:
         if layout_id != "TwoSupportLayout":
             raise TerselConversionError(
