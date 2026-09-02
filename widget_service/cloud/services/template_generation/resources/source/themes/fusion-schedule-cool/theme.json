@@ -6,7 +6,7 @@
   "supportedCapabilityIds": ["GetCalendarEvents"],
   "paletteSceneIds": ["fusion.schedule.cool"],
   "primaryColor": "#FFCCEEFF",
-  "supportContentColor": "#99CCEEFF",
+  "supportContentColor": "#B3CCEEFF",
   "rootStyle": {
     "backgroundColor": "#FF121E59",
     "borderRadius": 20,
@@ -18,7 +18,7 @@
     "clip": true
   },
   "actionStyle": {
-    "backgroundColor": "#33FFFFFF",
+    "backgroundColor": "#33CCEEFF",
     "contentColor": "#FFCCEEFF"
   },
   "fusionBallStyle": {

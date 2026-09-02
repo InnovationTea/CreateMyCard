@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Iterator
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -116,7 +117,9 @@ def build_template_retrieval_prompt(
         "candidateDataBindings。每个 value 仅保留 userQuery、title、description 或 taskSpec "
         "明确要求展示的字段，字段必须逐字来自 "
         "candidateOutputFieldsByCapability；不得按模板反推字段，"
-        "也不得补全用户未要求展示的字段。"
+        "也不得补全用户未要求展示的字段；"
+        "事件参数（如 actionCandidates args 中用于跳转的 entityId）不是展示字段，"
+        "不得加入 requiredOutputFieldsByCapability。"
         "不得为了迁就布局限制而省略用户明确要求的其他业务字段；"
         "2x2 模板 Search 当前只接受一个可完整覆盖的业务，"
         "多个业务由服务端确定性判定模板不适用。"
@@ -162,8 +165,19 @@ def retrieve_template_variants(
         if not set(paths).issubset(candidate_paths):
             raise TemplateRetrievalMiss("required output fields must come from candidates")
         data_root = _capability_data_root(card_spec, capability_id)
+        action_param_paths = _action_param_paths_to_drop(
+            task_spec,
+            registry,
+            capability_id,
+            data_root,
+            paths,
+        )
+        if action_param_paths:
+            _log_action_param_fields_dropped(capability_id, data_root, action_param_paths)
         query_tokens = frozenset(
-            _task_spec_field_token(task_spec, data_root, capability_id, path) for path in paths
+            _task_spec_field_token(task_spec, data_root, capability_id, path)
+            for path in paths
+            if path not in action_param_paths
         )
         component_templates = _component_templates_for_capability(
             registry,
@@ -757,6 +771,76 @@ def _candidate_paths(
     if len(matching) != 1:
         raise TemplateRetrievalMiss("template retrieval requires one binding per capability")
     return set(matching[0].candidateOutputFields)
+
+
+_ACTION_ARG_PATH_PATTERN = re.compile(r"\$\{\s*(/[^{}]+?)\s*\}")
+
+
+def _action_param_paths_to_drop(
+    task_spec: TaskSpec,
+    registry: CardPlanRegistry,
+    capability_id: str,
+    data_root: str,
+    required_paths: tuple[str, ...],
+) -> set[str]:
+    """识别不应阻塞模板覆盖门禁的事件参数字段。
+
+    第一层可能在 requiredOutputFieldsByCapability 中误列事件 args 引用的字段
+    （如跳转参数 entityId）；展开时 compiler 只逐字复制 args，模板永远不渲染
+    这些字段，因此当没有任何模板可展示它们时不让覆盖门禁失败。
+    """
+    action_bound_paths = _action_bound_relative_paths(task_spec, data_root)
+    candidates = action_bound_paths.intersection(required_paths)
+    if not candidates:
+        return set()
+    displayable_paths: set[str] = set()
+    for record in registry.template_variant_search_records:
+        if record.capability_id != capability_id:
+            continue
+        for path in record.available_paths:
+            displayable_paths.add(path)
+    return {path for path in candidates if path not in displayable_paths}
+
+
+def _action_bound_relative_paths(task_spec: TaskSpec, data_root: str) -> set[str]:
+    prefix = f"{data_root.rstrip('/')}/"
+    relative_paths: set[str] = set()
+    for event in task_spec.eventCandidates:
+        for value in _action_arg_string_values(event.args):
+            for match in _ACTION_ARG_PATH_PATTERN.finditer(value):
+                pointer = match.group(1)
+                if pointer.startswith(prefix):
+                    relative_paths.add(f"/{pointer.removeprefix(prefix)}")
+    return relative_paths
+
+
+def _action_arg_string_values(value: Any) -> Iterator[str]:
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from _action_arg_string_values(item)
+    elif isinstance(value, (list, tuple)):
+        for item in value:
+            yield from _action_arg_string_values(item)
+
+
+def _log_action_param_fields_dropped(
+    capability_id: str,
+    data_root: str,
+    dropped_paths: set[str],
+) -> None:
+    logger.info(
+        "[Template Retrieval] action_param_fields_dropped "
+        f"diagnostics={json_for_log(
+            {
+                'capabilityId': capability_id,
+                'dataRoot': data_root,
+                'droppedFields': sorted(dropped_paths),
+                'reason': 'event args bind these fields; templates never render them',
+            }
+        )}"
+    )
 
 
 def _capability_data_root(card_spec: dict[str, Any], capability_id: str) -> str:

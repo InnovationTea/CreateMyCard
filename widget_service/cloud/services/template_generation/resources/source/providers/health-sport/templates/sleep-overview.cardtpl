@@ -2,7 +2,9 @@
 data = {
     duration: $path("/nightSleepDurationText"),
     status: $path("/sleepStatus"),
-    score: $path("/sleepScore")
+    score: $optionalPath("/sleepScore"),
+    startTime: $optionalPath("/fallAsleepTimeText"),
+    endTime: $optionalPath("/wakeupTimeText"),
 }
 
 Column(
@@ -33,7 +35,7 @@ Column(
                 props.sourceIcon,
                 Image(
                     props.sourceIcon,
-                    { "width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0 }
+                    { "width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0 }
                 )
             ),
         ),
@@ -41,42 +43,65 @@ Column(
             { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "margin": {"top": 4} },
             Text(
                 data.duration,
-                { "fontSize": 24, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+                { "fontSize": 20, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1 }
             )
         ),
-        Progress(
-            {
-                "value": data.score,
-                "total": 100,
-                "strokeWidth": 8,
-                "color": $theme('supportContentColor'),
-                "backgroundColor": "#33564AF7",
-                "height": 12,
-                "width": "matchParent"
-            }
+        IfPresent(
+            data.score,
+            Progress(
+                {
+                    "value": data.score,
+                    "total": 100,
+                    "strokeWidth": 8,
+                    "color": $theme('progressColor'),
+                    "backgroundColor": $theme('progressBackgroundColor'),
+                    "height": 12,
+                    "width": "matchParent"
+                }
+            )
         )
     ),
     Column(
         { "itemMargin": 4, "justifyContent": "start", "width": "matchParent" },
-        Row(
-            { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
-            Text(
-                "睡眠情况评分",
-                { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+        IfPresent(
+            data.score,
+            Row(
+                { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
+                Text(
+                    "睡眠情况评分",
+                    { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+                ),
+                Text(
+                    data.score,
+                    { "fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+                ),
+                Text(
+                    "分",
+                    { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+                )
             ),
-            Text(
-                data.score,
-                { "fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
-            ),
-            Text(
-                "分",
-                { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+        ),
+        IfAbsent(
+            data.score,
+            IfPresent(
+                data.startTime & data.endTime,
+                Row(
+                    { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
+                    Text(
+                        "时段 ",
+                        { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+                    ),
+                    Text(
+                        `${data.startTime}-${data.endTime}`,
+                        { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+                    ),
+                ),
             )
         ),
         Row(
             { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
             Text(
-                data.status,
+                `状况${data.status}`,
                 {
                     "fontSize": 12,
                     "fontColor": $theme('supportContentColor'),
@@ -92,7 +117,10 @@ Column(
 #Template SleepOverviewHero@1(props: { sourceIcon?: asset })
 data = {
     duration: $path("/nightSleepDurationText"),
-    score: $path("/sleepScore")
+    status: $optionalPath("/sleepStatus"),
+    score: $optionalPath("/sleepScore"),
+    startTime: $optionalPath("/fallAsleepTimeText"),
+    endTime: $optionalPath("/wakeupTimeText"),
 }
 
 Column(
@@ -116,7 +144,7 @@ Column(
             props.sourceIcon,
             Image(
                 props.sourceIcon,
-                { "width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0 }
+                { "width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0 }
             )
         ),
     ),
@@ -124,27 +152,64 @@ Column(
         { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "margin": {"top": 4} },
         Text(
             data.duration,
-            { "fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+            { "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
         )
     ),
-    Progress(
-        {
-            "value": data.score,
-            "total": 100,
-            "strokeWidth": 8,
-            "color": $theme('supportContentColor'),
-            "backgroundColor": "#33564AF7",
-            "height": 12,
-            "width": "matchParent"
-        }
+    IfPresent(
+        data.score,
+        Progress(
+            {
+                "value": data.score,
+                "total": 100,
+                "strokeWidth": 8,
+                "color": $theme('progressColor'),
+                "backgroundColor": $theme('progressBackgroundColor'),
+                "height": 12,
+                "width": "matchParent"
+            }
+        )
+    ),
+    IfAbsent(
+        data.score,
+        IfPresent(
+            data.status,
+            Text(
+                `状况${data.status}`,
+                {
+                    "fontSize": 12,
+                    "fontColor": $theme('supportContentColor'),
+                    "maxLines": 1,
+                    "fontWeight": 400,
+                }
+            )
+        )
+    ),
+    IfAbsent(
+        data.score,
+        IfAbsent(
+            data.status,
+            IfPresent(
+                data.startTime & data.endTime,
+                Row(
+                    { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
+                    Text(
+                        "时段 ",
+                        { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+                    ),
+                    Text(
+                        `${data.startTime}-${data.endTime}`,
+                        { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+                    ),
+                ),
+            )
+        )
     )
 )
 #End
 
 #Template SleepOverviewCompact@1(props: { sourceIcon?: asset })
 data = {
-    duration: $path("/nightSleepDurationText"),
-    score: $path("/sleepScore")
+    duration: $path("/nightSleepDurationText")
 }
 
 Column(
@@ -170,33 +235,18 @@ Column(
             },
             Text(
                 data.duration,
-                { "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+                { "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
             ),
             Text(
                 "睡眠情况时长",
-                { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
-            ),
+                { "fontSize": 10, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+            )
         ),
-        Stack(
-            { "width": 44, "height": 44, "alignContent": "center", "flexShrink": 0 },
-            Progress(
-                {
-                    "value": data.score,
-                    "total": 100,
-                    "type": "ring",
-                    "color": $theme('supportContentColor'),
-                    "backgroundColor": "#33564AF7",
-                    "width": 44,
-                    "height": 44,
-                    "strokeWidth": 6
-                }
-            ),
-            IfPresent(
+        IfPresent(
+            props.sourceIcon,
+            Image(
                 props.sourceIcon,
-                Image(
-                    props.sourceIcon,
-                    { "width": 20, "height": 20, "objectFit": "contain" }
-                )
+                { "width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0 }
             )
         )
     )
@@ -251,8 +301,8 @@ Stack({
                       "value": data.score,
                       "total": 100,
                       "type": "ring",
-                      "color": $theme('supportContentColor'),
-                      "backgroundColor": "#33564AF7",
+                      "color": $theme('progressColor'),
+                      "backgroundColor": $theme('progressBackgroundColor'),
                       "width": 44,
                       "height": 44,
                       "strokeWidth": 6
@@ -262,7 +312,7 @@ Stack({
                   props.sourceIcon,
                   Image(
                       props.sourceIcon,
-                      { "width": 20, "height": 20, "objectFit": "contain" }
+                      { "width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain" }
                   )
               )
           )

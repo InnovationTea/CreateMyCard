@@ -3,6 +3,7 @@
 ## WeatherOverview
 
 - 支持的 TaskSpec 数据路径：
+  - `{{dataRoot:ViewWeather}}/location/prefectureName`
   - `{{dataRoot:ViewWeather}}/location/districtName`
   - `{{dataRoot:ViewWeather}}/current/temperatureText`
   - `{{dataRoot:ViewWeather}}/current/condition`
@@ -16,3 +17,5 @@
 - 2x2 请求同时包含 `ViewWeather` 与其他数据能力，且 `userQuery`、`title` 或 `description` 明确要求展示天气、温度、天气现象、紫外线或空气质量时，必须保留 `WeatherOverview`，不得因为另一个业务组件可单独成卡而丢弃天气。
 - 不支持小时/多日预报、风力、预警、AQI 数值、日出日落、气压或能见度。
 - 根据 `userQuery` 判断出的必须显示天气字段存在上述支持集合之外的路径时，不得选择。
+- 城市标题按可用性依次使用 `prefectureName`、`districtName`；两者都缺失时允许第二层传入受信的
+  `location`，仍缺失则显示模板默认文案。该选择由模板生成期三元表达式确定，不生成运行时三元表达式。

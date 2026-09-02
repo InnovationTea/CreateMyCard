@@ -79,6 +79,11 @@ from .registry import CardPlanRegistry
 
 _STANDARD_CONTAINERS = frozenset({"Row", "Column", "List", "Stack"})
 _CONTAINERS = _STANDARD_CONTAINERS | UX_LAYOUT_COMPONENT_IDS
+_SINGLE_TEMPLATE_CONDITIONS = frozenset(
+    {"IfParam", "IfMissingParam", "IfBind", "IfMissingBind"}
+)
+_GROUPED_TEMPLATE_CONDITIONS = frozenset({"IfAllBind", "IfAnyMissingBind"})
+_TEMPLATE_CONDITIONS = _SINGLE_TEMPLATE_CONDITIONS | _GROUPED_TEMPLATE_CONDITIONS
 _UX_ACTION_COMPONENTS = frozenset({"PillAction", "IconAction", "ActionTile"})
 _ACTION_TEMPLATE_COMPONENTS = {
     "PillAction@1": "PillAction",
@@ -1027,8 +1032,11 @@ def _validate_provider_template_state(
         wire_id, variant_name = identity
     if wire_id == "BatteryOverview@1":
         state_independent_variants = {
+            "compact",
             "chargingDiagnosticsHero",
             "chargingProgressHero",
+            "full",
+            "hero",
             "healthLevelHero",
             "percentRingHero",
             "progressCompact",
@@ -1037,6 +1045,7 @@ def _validate_provider_template_state(
             "statusIconSupport",
             "temperatureIconCompact",
             "temperatureIconSupport",
+            "wideFull",
         }
         if variant_name in state_independent_variants:
             return
@@ -4387,7 +4396,7 @@ def _instantiate_blueprint(
         raise TerselConversionError(
             "Template child slot cannot be instantiated as a component root."
         )
-    if node.component in {"IfParam", "IfMissingParam", "IfBind", "IfMissingBind"}:
+    if node.component in _TEMPLATE_CONDITIONS:
         raise TerselConversionError(
             "Template conditional cannot be instantiated as a component root."
         )
@@ -4437,23 +4446,11 @@ def _instantiate_blueprint_children(
                 )
             instantiated.append(spread_children[child_slot_index])
             continue
-        if child.component in {"IfParam", "IfMissingParam", "IfBind", "IfMissingBind"}:
-            guard_name = child.values[0].value
-            if not isinstance(guard_name, str):
-                raise TerselConversionError("Template conditional guard must be a string.")
-            if child.component in {"IfParam", "IfMissingParam"}:
-                present = guard_name in params and params[guard_name] is not None
-            else:
-                present = guard_name in bindings
-            should_render = present if child.component in {"IfParam", "IfBind"} else not present
+        if child.component in _TEMPLATE_CONDITIONS:
+            should_render = _template_condition_should_render(child, params, bindings)
             if should_render:
                 selected = child.children[0]
-                if selected.component in {
-                    "IfParam",
-                    "IfMissingParam",
-                    "IfBind",
-                    "IfMissingBind",
-                }:
+                if selected.component in _TEMPLATE_CONDITIONS:
                     instantiated.extend(
                         _instantiate_blueprint_children(
                             (selected,),
@@ -4484,6 +4481,45 @@ def _instantiate_blueprint_children(
             )
         )
     return tuple(instantiated)
+
+
+def _template_condition_should_render(
+    node: TemplateNode,
+    params: dict[str, Any],
+    bindings: dict[str, str],
+) -> bool:
+    if node.component in _GROUPED_TEMPLATE_CONDITIONS:
+        binding_names = _template_condition_binding_names(node)
+        all_present = all(name in bindings for name in binding_names)
+        return all_present if node.component == "IfAllBind" else not all_present
+    guard_name = node.values[0].value
+    if not isinstance(guard_name, str):
+        raise TerselConversionError("Template conditional guard must be a string.")
+    if node.component in {"IfParam", "IfMissingParam"}:
+        present = guard_name in params and params[guard_name] is not None
+    else:
+        present = guard_name in bindings
+    return present if node.component in {"IfParam", "IfBind"} else not present
+
+
+def _template_condition_binding_names(node: TemplateNode) -> tuple[str, str]:
+    if len(node.values) != 1 or node.values[0].kind != "array":
+        raise TerselConversionError(
+            "Template grouped conditional requires two binding names."
+        )
+    items = node.values[0].items
+    if len(items) != 2:
+        raise TerselConversionError(
+            "Template grouped conditional requires two binding names."
+        )
+    binding_names: list[str] = []
+    for item in items:
+        if item.kind != "literal" or not isinstance(item.value, str):
+            raise TerselConversionError(
+                "Template grouped conditional binding must be a string."
+            )
+        binding_names.append(item.value)
+    return binding_names[0], binding_names[1]
 
 
 def _template_child_slot_index(node: TemplateNode) -> int | None:
@@ -4554,6 +4590,13 @@ def _template_value(
         raise TerselConversionError("Template interpolation must be the first Text value.")
     elif value.kind == "expression":
         resolved_value = _provider_runtime_expression(value, bindings)
+    elif value.kind == "compile-time-conditional":
+        resolved_value = _provider_compile_time_conditional(
+            value,
+            params,
+            bindings,
+            theme_values,
+        )
     elif value.kind == "event-action":
         if len(value.items) != 1:
             raise TerselConversionError("Template EventAction is invalid.")
@@ -4584,6 +4627,27 @@ def _template_value(
     return resolved_value
 
 
+def _provider_compile_time_conditional(
+    value: TemplateValue,
+    params: dict[str, Any],
+    bindings: dict[str, str],
+    theme_values: dict[str, object],
+) -> Any:
+    if len(value.items) != 3:
+        raise TerselConversionError("Template compile-time conditional is invalid.")
+    condition, present_value, fallback_value = value.items
+    if condition.kind == "binding" and condition.name:
+        present = condition.name in bindings
+    elif condition.kind == "parameter" and condition.name:
+        present = condition.name in params and params[condition.name] is not None
+    else:
+        raise TerselConversionError(
+            "Template compile-time conditional condition must be data or props."
+        )
+    selected = present_value if present else fallback_value
+    return _template_value(selected, params, bindings, theme_values)
+
+
 def _instantiate_interpolated_text(
     node: TemplateNode,
     params: dict[str, Any],
@@ -4608,6 +4672,8 @@ def _provider_interpolation_expression(
     params: dict[str, Any],
     bindings: dict[str, str],
 ) -> str:
+    if not any(item.kind == "binding" for item in value.items):
+        return _provider_static_interpolation(value, params)
     operands: list[str] = []
     for item in value.items:
         if item.kind == "binding":
@@ -4638,6 +4704,31 @@ def _provider_interpolation_expression(
         raise TerselConversionError(
             f"Template interpolation is not a valid A2UI expression: {exc}"
         ) from exc
+
+
+def _provider_static_interpolation(
+    value: TemplateValue,
+    params: dict[str, Any],
+) -> str:
+    parts: list[str] = []
+    for item in value.items:
+        if item.kind == "parameter":
+            parameter = params.get(item.name or "")
+            if not isinstance(parameter, str):
+                raise TerselConversionError(
+                    f"Template interpolation prop must be a string: {item.name}"
+                )
+            parts.append(parameter)
+            continue
+        if item.kind == "literal" and isinstance(item.value, str):
+            parts.append(item.value)
+            continue
+        raise TerselConversionError(
+            "Static Template interpolation only supports string props and literals."
+        )
+    if not parts:
+        raise TerselConversionError("Template interpolation cannot be empty.")
+    return "".join(parts)
 
 
 def _provider_runtime_expression(

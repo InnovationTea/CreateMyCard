@@ -7,6 +7,8 @@
   "paletteSceneIds": ["fusion.sleep"],
   "primaryColor": "#FFD9CCFF",
   "supportContentColor": "#99D9CCFF",
+  "progressColor": "#FFE5E5E5",
+  "progressBackgroundColor": "#33FFFFFF",
   "rootStyle": {
     "backgroundColor": "#FF2B2459",
     "borderRadius": 20,

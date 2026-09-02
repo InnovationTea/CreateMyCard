@@ -4,7 +4,7 @@
 
 ## 整改总览
 
-- [x] 87 个业务模板全部使用 `Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
+- [x] 72 个业务模板全部使用 `Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
 - [x] 业务模板尺寸和动作组合由后缀推导，不再由 Provider 重复声明。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
 - [x] `primaryData` 与 `secondaryData` 均参与模板准入硬校验。
@@ -30,15 +30,15 @@
 | Provider | 数据能力 | 数据根 | 模板数 | 当前状态 |
 | --- | --- | --- | ---: | --- |
 | app-usage | `GetAppUsageDuration` | `/data/appUsageStats` | 6 | 启用 |
-| battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 21 | 启用 |
+| battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 7 | 启用 |
 | calendar | `GetCalendarEvents` | `/data/calendar` | 8 | 启用 |
 | countdown | `GetCountdownDays` | `/data/countdown` | 1 | 启用 |
-| earphone | `GetEarphoneInfo` | `/data/earphone` | 9 | 启用 |
+| earphone | `GetEarphoneInfo` | `/data/earphone` | 8 | 启用 |
 | health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 30 | 启用 |
 | system-memory | `GetSystemMemInfo` | `/data/systemMem` | 3 | 启用 |
 | weather | `ViewWeather` | `/data/weather` | 9 | 启用 |
 
-下方完整展开本轮调整的 Calendar、Countdown、Earphone 和 Weather；其他 Provider 保留基础形态摘要，
+下方完整展开本轮调整的 Battery、Calendar、Countdown、Earphone 和 Weather；其他 Provider 保留基础形态摘要，
 精确全集以当前 `provider.json` 为准。Support 与 Compact 不要求一一对应；Support/TwoSupport 底层资源
 继续保留，但当前 Search 会显式拒绝 `2x2` 多业务组合。
 
@@ -58,22 +58,17 @@
 ## BatteryOverview
 
 - Provider：`com.huawei.battery.cli`；运行状态：启用。
-- 数据能力：`GetPhoneBatteryInfo`；模板数：21。
+- 数据能力：`GetPhoneBatteryInfo`；模板数：7。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
 | ✅ | `BatteryOverviewPercentRingHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/batterySOC`<br>`/batterySOCText` | 无 | 无 |
-| ✅ | `BatteryOverviewNormalFull@1` | 完整 2x2；无 Action 的单 Full | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
-| ✅ | `BatteryOverviewNormalHero@1` | 约 2x1.7；2x2 Hero + 1 个 PillAction | `/batterySOC` | `/batteryCapacityLevelDesc` | `/batterySOCText`<br>`/chargingStatusDesc` |
-| ✅ | `BatteryOverviewChargingFull@1` | 完整 2x2；无 Action 的单 Full | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
-| ✅ | `BatteryOverviewLowFull@1` | 完整 2x2；无 Action 的单 Full | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
-| ✅ | `BatteryOverviewNormalWideFull@1` | 完整 4x2；单 WideFull | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
-| ✅ | `BatteryOverviewChargingWideFull@1` | 完整 4x2；单 WideFull | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
-| ✅ | `BatteryOverviewLowWideFull@1` | 完整 4x2；单 WideFull | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
-| ✅ | `BatteryOverviewNormalWeatherCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
-| ✅ | `BatteryOverviewChargingWeatherCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
-| ✅ | `BatteryOverviewLowWeatherCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
-| ✅ | `BatteryOverviewStatusIconCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/batterySOCText` | 无 | `/batteryCapacityLevelDesc` |
+| ✅ | `BatteryOverviewFull@1` | 完整 2x2；无 Action 的单 Full | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
+| ✅ | `BatteryOverviewHero@1` | 约 2x1.7；2x2 Hero + 1 个 PillAction | `/batterySOC` | `/batteryCapacityLevelDesc` | 无 |
+| ✅ | `BatteryOverviewWideFull@1` | 完整 4x2；单 WideFull | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
+| ✅ | `BatteryOverviewCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/batterySOCText` | 无 | `/batteryCapacityLevelDesc`<br>`/chargingStatusDesc` |
+| ✅ | `BatteryOverviewChargingProgressHero@1` | 约 2x1.7；充电进度 Hero + 1 个 PillAction | `/batterySOC` | `/chargingStatusDesc`<br>`/healthStatusDesc`<br>`/pluggedTypeDesc` | 无 |
+| ✅ | `BatteryOverviewHealthLevelHero@1` | 约 2x1.7；电池体检 Hero + 1 个 PillAction | `/healthStatusDesc` | `/batteryCapacityLevelDesc` | 无 |
 
 ## CalendarOverview
 
@@ -105,12 +100,11 @@
 ## BluetoothDeviceOverview
 
 - Provider：`com.huawei.earphone.cli`；运行状态：启用。
-- 数据能力：`GetEarphoneInfo`；模板数：9。
+- 数据能力：`GetEarphoneInfo`；模板数：8。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
 | ✅ | `BluetoothDeviceOverviewHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/isConnected`<br>`/earphoneName` | `/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
-| ✅ | `BluetoothDeviceOverviewCaseStatusCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/batteryLevel`<br>`/chargingStatusDesc` | 无 | `/leftChargingStatusDesc`<br>`/rightChargingStatusDesc` |
 | ✅ | `BluetoothDeviceOverviewEarbudsPhoneWideFull@1` | 完整 4x2；单 WideFull | `/isConnected`<br>`/earphoneName` | 无 | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` |
 | ✅ | `BluetoothDeviceOverviewEarbudsDynamicWideFull@1` | 完整 4x2；单 WideFull | `/isConnected`<br>`/earphoneName` | 无 | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` |
 | ✅ | `BluetoothDeviceOverviewEarbudsSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 | 无 |
@@ -146,30 +140,26 @@
 ## HeartRateOverview
 
 - Provider：`com.huawei.health-sport.cli`；运行状态：启用。
-- 数据能力：`GetHealthAndSportSummary`；模板数：16。
+- 数据能力：`GetHealthAndSportSummary`；模板数：11。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
 | ✅ | `HeartRateOverviewFull@1` | 完整 2x2；无 Action 的单 Full | `/exerciseHeartRateAvg` | 无 | 无 |
-| ✅ | `HeartRateOverviewUpdatedFull@1` | 完整 2x2；无 Action 的单 Full | `/exerciseHeartRateAvg` | `/updatedAt` | 无 |
-| ✅ | `HeartRateOverviewIconFull@1` | 完整 2x2；无 Action 的单 Full | `/exerciseHeartRateAvg` | 无 | 无 |
-| ✅ | `HeartRateOverviewUpdatedIconFull@1` | 完整 2x2；无 Action 的单 Full | `/exerciseHeartRateAvg` | `/updatedAt` | 无 |
 | ✅ | `HeartRateOverviewCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/exerciseHeartRateAvg` | 无 | 无 |
-| ✅ | `HeartRateOverviewUpdatedCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/exerciseHeartRateAvg` | `/updatedAt` | 无 |
 | ✅ | `HeartRateOverviewIconCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/exerciseHeartRateAvg` | 无 | 无 |
-| ✅ | `HeartRateOverviewUpdatedIconCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/exerciseHeartRateAvg` | `/updatedAt` | 无 |
 
 ## SleepOverview
 
 - Provider：`com.huawei.health-sport.cli`；运行状态：启用。
 - 数据能力：`GetHealthAndSportSummary`；模板数：4。
-- 展示说明：Compact 以得分环展示时长和得分；Hero 以线性进度展示时长和得分；Full 还展示睡眠状态，
-  三者均可使用睡眠图标。
+- 展示说明：Compact 以得分环展示时长和得分；Hero 展示时长，并按得分、状态、完整睡眠时段的顺序
+  选择一个补充区域；Full 展示时长和状态，可选展示得分或完整睡眠时段。时段仅在入睡、醒来时刻
+  同时存在时展示，三者均可使用睡眠图标。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
-| ✅ | `SleepOverviewFull@1` | 完整 2x2；无 Action 的单 Full | `/nightSleepDurationText` | `/sleepScore`<br>`/sleepStatus` | 无 |
-| ✅ | `SleepOverviewHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/nightSleepDurationText` | `/sleepScore` | 无 |
+| ✅ | `SleepOverviewFull@1` | 完整 2x2；无 Action 的单 Full | `/nightSleepDurationText` | `/sleepStatus` | `/sleepScore`<br>`/fallAsleepTimeText`<br>`/wakeupTimeText` |
+| ✅ | `SleepOverviewHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/nightSleepDurationText` | 无 | `/sleepStatus`<br>`/sleepScore`<br>`/fallAsleepTimeText`<br>`/wakeupTimeText` |
 | ✅ | `SleepOverviewCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/nightSleepDurationText` | `/sleepScore` | 无 |
 
 ## ResourceUsageOverview
@@ -189,15 +179,15 @@
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
-| ✅ | `WeatherOverviewCompact@1` | 约 2x1；可选天气图标；Compact + 2 个 PillAction | `/current/temperatureText` | `/location/districtName`<br>`/current/condition`<br>`/current/coldLevel` | 无 |
-| ✅ | `WeatherOverviewUvCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/current/temperatureText`<br>`/current/uvIndex` | `/location/districtName`<br>`/current/condition` | 无 |
+| ✅ | `WeatherOverviewCompact@1` | 约 2x1；可选天气图标；Compact + 2 个 PillAction | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/coldLevel` |
+| ✅ | `WeatherOverviewUvCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/current/temperatureText`<br>`/current/uvIndex` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName` |
 | ✅ | `WeatherOverviewTemperatureSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/current/temperatureText` | `/location/districtName`<br>`/current/condition`<br>`/current/coldLevel` | 无 |
 | ✅ | `WeatherOverviewTemperatureUvSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/current/temperatureText`<br>`/current/uvIndex` | `/location/districtName`<br>`/current/condition` | 无 |
-| ✅ | `WeatherOverviewHero@1` | 约 2x1.7；可选天气图标；Hero + 1 个 PillAction | `/current/temperatureText` | `/location/districtName`<br>`/current/condition`<br>`/current/coldLevel` | 无 |
-| ✅ | `WeatherOverviewFull@1` | 完整 2x2；可选天气图标；无 Action 的单 Full | `/current/temperatureText` | `/location/districtName`<br>`/current/condition`<br>`/current/airQuality`<br>`/current/coldLevel` | 无 |
-| ✅ | `WeatherOverviewHumidityFull@1` | 完整 2x2；无 Action 的单 Full | `/current/humidityPercent` | `/location/districtName`<br>`/current/condition`<br>`/current/temperatureText`<br>`/current/airQuality`<br>`/current/coldLevel` | 无 |
-| ✅ | `WeatherOverviewUvFull@1` | 完整 2x2；无 Action 的单 Full | `/current/uvIndex` | `/location/districtName`<br>`/current/condition`<br>`/current/temperatureText`<br>`/current/airQuality`<br>`/current/coldLevel` | 无 |
-| ✅ | `WeatherOverviewAirQualityHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/current/airQuality` | `/location/districtName`<br>`/current/condition`<br>`/current/coldLevel` | 无 |
+| ✅ | `WeatherOverviewHero@1` | 约 2x1.7；可选天气图标；Hero + 1 个 PillAction | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/coldLevel` |
+| ✅ | `WeatherOverviewFull@1` | 完整 2x2；可选天气图标；无 Action 的单 Full | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/airQuality`<br>`/current/coldLevel` |
+| ✅ | `WeatherOverviewHumidityFull@1` | 完整 2x2；无 Action 的单 Full | `/current/humidityPercent` | `/current/condition`<br>`/current/temperatureText` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/airQuality`<br>`/current/coldLevel` |
+| ✅ | `WeatherOverviewUvFull@1` | 完整 2x2；无 Action 的单 Full | `/current/uvIndex` | `/current/condition`<br>`/current/temperatureText` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/airQuality`<br>`/current/coldLevel` |
+| ✅ | `WeatherOverviewAirQualityHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/current/airQuality` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/coldLevel` |
 
 说明：最新天气 UX 中的日出日落与 AQI 数值不在当前 `ViewWeather` 数据契约内，本轮未生成伪数据模板。
 

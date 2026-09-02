@@ -188,9 +188,20 @@ Column(
         data.workoutCalories,
         {"fontSize": 24, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "margin": {"top": 4}}
     ),
-    Text(
-        data.duration,
-        {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "margin": {"top": 4}}
+    Row(
+        {
+            "itemMargin": 4,
+            "width": "matchParent",
+            "justifyContent": "start"
+        },
+        Text(
+            "运动时长",
+            {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1}
+        ),
+        Text(
+            data.duration,
+            {"fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1}
+        )
     )
 )
 #End

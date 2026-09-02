@@ -327,6 +327,10 @@ System 消息完整读取：
 cloud/data/protocol_profiles/design-compact-dsl/PROMPT.md
 ```
 
+微服务再使用 `TaskSpec.appVersion` 和 `CONFIG.fusion_ball_min_prd_version` 裁决本轮融球能力。裁决关闭时，
+在上述文件化 system prompt 末尾追加运行时限制，要求模型忽略融球规则和示例并禁止生成
+`fusion-ball-*` Design Token；裁决开启时 system prompt 保持文件原文不变。转换器仍执行同一版本门禁。
+
 创建模式的 user 消息是完整 TaskSpec JSON 字符串：
 
 ```json
@@ -429,8 +433,10 @@ validate_compact_dsl_context(sourceDsl, taskSpec, cardSpec)
 ```
 
 repair 的第二条 user 消息使用 `invalidSourceDsl` 保存当前最新 Design Compact DSL，并通过
-`qualityErrors` 传递结构化的 `stage/code/message`。编辑请求的 `originalUserContent` 还包含来源 artifact
-中的上一轮 `previousDesignToken`，但 repair 的直接目标始终是 `invalidSourceDsl`。
+`qualityErrors` 传递结构化错误。转换错误至少包含 `stage/code/message`；完整 artifact 校验错误还保留
+具体校验错误码、校验阶段、文件类型、行号、JSON Pointer、当前值、期望值和校验器确定性生成的
+`fixHint`，通用分类保存在 `category`。编辑请求的 `originalUserContent` 还包含来源 artifact 中的上一轮
+`previousDesignToken`，但 repair 的直接目标始终是 `invalidSourceDsl`。
 
 模型调用异常重试由 `enable_model_failure_retry` 独立控制，使用原 Prompt 重试，不生成 repair Prompt。
 

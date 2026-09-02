@@ -39,6 +39,7 @@ _REMOVED_TEMPLATE_VARIANTS = frozenset(
         ("DateOverview@1", "dateHero"),
         ("BluetoothDeviceOverview@1", "connection"),
         ("BluetoothDeviceOverview@1", "earbuds"),
+        ("HeartRateOverview@1", "heroUpdated"),
     }
 )
 _TEMPLATE_IDS = {
@@ -47,9 +48,9 @@ _TEMPLATE_IDS = {
     ("ScheduleOverview@1", "nextEventLocation"): "ScheduleOverviewNextEventLocationFull@1",
     ("BluetoothDeviceOverview@1", "earbudPair"): "BluetoothDeviceOverviewEarbudPairFull@1",
     ("BluetoothDeviceOverview@1", "earbudsFullWide"): "BluetoothDeviceOverviewCompleteWideFull@1",
-    ("BatteryOverview@1", "chargingPhone"): "BatteryOverviewChargingWeatherCompact@1",
-    ("BatteryOverview@1", "charging"): "BatteryOverviewChargingFull@1",
-    ("BatteryOverview@1", "chargingWide"): "BatteryOverviewChargingWideFull@1",
+    ("BatteryOverview@1", "chargingPhone"): "BatteryOverviewCompact@1",
+    ("BatteryOverview@1", "charging"): "BatteryOverviewFull@1",
+    ("BatteryOverview@1", "chargingWide"): "BatteryOverviewWideFull@1",
     ("CountdownOverviewFull@1", "countdown"): "CountdownOverviewFull@1",
     ("AppUsageOverview@1", "singleApp"): "AppUsageOverviewFull@1",
     ("AppUsageOverview@1", "singleAppWide"): "AppUsageOverviewWideFull@1",
@@ -58,7 +59,6 @@ _TEMPLATE_IDS = {
     ("ActivityOverview@1", "dailySummaryWide"): "ActivityOverviewDailySummaryWideFull@1",
     ("WorkoutOverviewFull@1", "latest"): "WorkoutOverviewFull@1",
     ("HeartRateOverview@1", "hero"): "HeartRateOverviewFull@1",
-    ("HeartRateOverview@1", "heroUpdated"): "HeartRateOverviewUpdatedFull@1",
     ("SleepOverview@1", "duration"): "SleepOverviewDurationFull@1",
     ("SleepOverview@1", "insufficient"): "SleepOverviewInsufficientFull@1",
     ("SleepOverview@1", "schedule"): "SleepOverviewScheduleWideFull@1",
