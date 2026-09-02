@@ -286,6 +286,9 @@ def _schema_child(current: Any, token: str) -> Any | None:
     if isinstance(current, list):
         if not token.isdigit() or not current:
             return None
+        index = int(token)
+        if index < len(current):
+            return current[index]
         return current[0]
     if not isinstance(current, dict):
         return None
