@@ -627,6 +627,72 @@ def test_first_layer_prompt_includes_task_fields_rules_and_action_candidates() -
     assert "2x2 模板 Search 当前只接受一个" in messages[0]["content"]
 
 
+def test_calendar_first_layer_rule_excludes_meeting_action_parameters() -> None:
+    task = TaskSpec(
+        userQuery="显示下一场会议的标题和时间，并支持一键加入会议",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.enter.meeting",
+                call="clickToDeeplink",
+                args={
+                    "intentName": "EnterMeeting",
+                    "uri": "{{ ${/data/calendar/events/0/oneClickServiceLink} }}",
+                },
+            )
+        ],
+        dataModelSchema={
+            "data": {
+                "calendar": {
+                    "events": [
+                        {
+                            "title": _field("项目例会"),
+                            "dtStart": _field("14:00"),
+                            "dtEnd": _field("15:00"),
+                            "oneClickServiceLink": _field("meeting://join"),
+                            "oneClickServiceType": _field("video"),
+                            "isServiceValid": _field(1, "integer"),
+                            "entityId": _field("calendar-event-001"),
+                        }
+                    ]
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetCalendarEvents",
+        writeResultTo="/data/calendar",
+        candidateOutputFields=[
+            "/events/0/title",
+            "/events/0/dtStart",
+            "/events/0/dtEnd",
+            "/events/0/oneClickServiceLink",
+            "/events/0/oneClickServiceType",
+            "/events/0/isServiceValid",
+            "/events/0/entityId",
+        ],
+    )
+
+    messages = build_template_retrieval_prompt(task, get_cardplan_registry(), (binding,))
+    payload = json.loads(messages[1]["content"])
+    calendar_rule = next(
+        rule["content"]
+        for rule in payload["providerFirstLayerRules"]
+        if rule["providerId"] == "com.huawei.calendar.cli"
+    )
+
+    for action_field in (
+        "oneClickServiceLink",
+        "oneClickServiceType",
+        "isServiceValid",
+        "entityId",
+    ):
+        assert action_field in calendar_rule
+    assert "不得因为 Action" in calendar_rule
+    assert "requiredOutputFieldsByCapability" in calendar_rule
+    assert "event.enter.meeting" in calendar_rule
+
+
 def test_search_rejects_2x4_before_prompt_or_retrieval() -> None:
     task = _task().model_copy(update={"size": "2x4"})
     card_spec = _card_spec() | {"suggestSize": "2x4"}
