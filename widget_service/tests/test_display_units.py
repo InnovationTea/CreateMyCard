@@ -16,7 +16,7 @@ from services.task_spec_builder import TaskSpecBuilder
 from services.validator import ArtifactValidator
 
 
-def _capability(unit_included: bool) -> DataCapability:
+def _capability(unit_included: bool, unit: str = "%") -> DataCapability:
     return DataCapability(
         id="Battery",
         description="测试电量",
@@ -27,7 +27,7 @@ def _capability(unit_included: bool) -> DataCapability:
                     "type": "string" if unit_included else "integer",
                     "description": "测试电量字段",
                     "sampleValue": "68%" if unit_included else 68,
-                    "displayUnits": ["%"],
+                    "displayUnits": [unit],
                     "unitIncluded": unit_included,
                 }
             },
@@ -47,14 +47,19 @@ def _card_spec() -> dict:
     }
 
 
-def _dsl(content: str, *, sibling_units: int = 0) -> str:
+def _dsl(
+    content: str,
+    *,
+    sibling_units: int = 0,
+    sibling_text: str = "%",
+) -> str:
     children = ["value", *[f"unit_{index}" for index in range(sibling_units)]]
     components = [
         {"id": "root", "component": "Row", "children": children},
         {"id": "value", "component": "Text", "content": content},
     ]
     components.extend(
-        {"id": f"unit_{index}", "component": "Text", "content": "%"}
+        {"id": f"unit_{index}", "component": "Text", "content": sibling_text}
         for index in range(sibling_units)
     )
     return "\n".join(
@@ -193,6 +198,94 @@ def test_validator_accepts_raw_number_with_separate_unit_text():
     assert not reporter.has_code("DISPLAY_UNIT_MISSING", "DISPLAY_UNIT_DUPLICATED")
 
 
+def test_validator_accepts_raw_number_when_following_text_contains_unit():
+    reporter = validate_card(
+        artifact={
+            "genui": _dsl(
+                "{{ ${/data/battery/level} }}",
+                sibling_units=1,
+                sibling_text="天后开始",
+            ),
+            "cardSpec": _card_spec(),
+            "effectiveCapabilities": {
+                "data": [
+                    _capability(unit_included=False, unit="天").model_dump(mode="json")
+                ]
+            },
+        }
+    )
+
+    assert not reporter.has_code("DISPLAY_UNIT_MISSING", "DISPLAY_UNIT_DUPLICATED")
+
+
+def test_validator_accepts_raw_number_when_expression_suffix_contains_unit():
+    reporter = validate_card(
+        artifact={
+            "genui": _dsl("{{ ${/data/battery/level} + '天后开始' }}"),
+            "cardSpec": _card_spec(),
+            "effectiveCapabilities": {
+                "data": [
+                    _capability(unit_included=False, unit="天").model_dump(mode="json")
+                ]
+            },
+        }
+    )
+
+    assert not reporter.has_code("DISPLAY_UNIT_MISSING", "DISPLAY_UNIT_DUPLICATED")
+
+
+def test_validator_accepts_raw_number_with_unit_in_conditional_branch():
+    reporter = validate_card(
+        artifact={
+            "genui": _dsl(
+                "{{ ${/data/battery/isConnected} ? '已连接 · ' + "
+                "${/data/battery/level} + '%' : '未连接' }}"
+            ),
+            "cardSpec": _card_spec(),
+            "effectiveCapabilities": {
+                "data": [_capability(unit_included=False).model_dump(mode="json")]
+            },
+        }
+    )
+
+    assert not reporter.has_code("DISPLAY_UNIT_MISSING", "DISPLAY_UNIT_DUPLICATED")
+
+
+def test_validator_reports_duplicate_unit_in_conditional_branch():
+    reporter = validate_card(
+        artifact={
+            "genui": _dsl(
+                "{{ ${/data/battery/isConnected} ? '已连接 · ' + "
+                "${/data/battery/level} + '%' : '未连接' }}"
+            ),
+            "cardSpec": _card_spec(),
+            "effectiveCapabilities": {
+                "data": [_capability(unit_included=True).model_dump(mode="json")]
+            },
+        }
+    )
+
+    assert reporter.has_code("DISPLAY_UNIT_DUPLICATED")
+
+
+def test_validator_reports_duplicate_when_following_text_contains_included_unit():
+    reporter = validate_card(
+        artifact={
+            "genui": _dsl(
+                "{{ ${/data/battery/level} }}",
+                sibling_units=1,
+                sibling_text="% 已使用",
+            ),
+            "cardSpec": _card_spec(),
+            "effectiveCapabilities": {
+                "data": [_capability(unit_included=True).model_dump(mode="json")]
+            },
+        }
+    )
+
+    assert reporter.has_code("DISPLAY_UNIT_DUPLICATED")
+
+
 def test_artifact_validation_diagnostic_keeps_unit_fix_context_for_repair():
     diagnostic = Diagnostic(
         severity="error",
@@ -204,7 +297,10 @@ def test_artifact_validation_diagnostic_keeps_unit_fix_context_for_repair():
         actual="{{ ${/data/battery/level} }}",
         expected={"unitIncluded": False, "displayUnits": ["%"]},
         message="动态数值字段不包含展示单位，当前 Text 未展示其声明的单位。",
-        fix_hint="在数值后准确追加单位“%”，且只追加一次。",
+        fix_hint=(
+            "在数值表达式中追加单位“%”，或让紧邻数值后的静态 Text 包含该单位，"
+            "且整组只展示一次。"
+        ),
     )
 
     messages, prompt_contexts = ArtifactValidator()._normalize_diagnostics(
@@ -229,5 +325,8 @@ def test_artifact_validation_diagnostic_keeps_unit_fix_context_for_repair():
         "actual": "{{ ${/data/battery/level} }}",
         "expected": {"unitIncluded": False, "displayUnits": ["%"]},
         "message": "动态数值字段不包含展示单位，当前 Text 未展示其声明的单位。",
-        "fixHint": "在数值后准确追加单位“%”，且只追加一次。",
+        "fixHint": (
+            "在数值表达式中追加单位“%”，或让紧邻数值后的静态 Text 包含该单位，"
+            "且整组只展示一次。"
+        ),
     }

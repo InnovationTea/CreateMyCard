@@ -5,22 +5,22 @@
       "registryVersion": "app-11.7.5.205_rom-6.0",
       "appVersion": {
         "minInclusive": "11.7.5.205",
-        "maxExclusive": "11.7.5.206"
+        "maxExclusive": "11.7.7.329"
       },
       "romVersion": {
-        "minInclusive": "6.0",
-        "maxExclusive": "7.0"
+        "minInclusive": "7.0",
+        "maxExclusive": "7.2"
       }
     },
     {
-      "registryVersion": "app-11.7.5.206_rom-6.0",
+      "registryVersion": "app-11.7.7.300_rom-7.0",
       "appVersion": {
-        "minInclusive": "11.7.5.206",
-        "maxExclusive": "12.0.0.0"
+        "minInclusive": "11.7.7.330",
+        "maxExclusive": "12.0.0.0"        
       },
       "romVersion": {
-        "minInclusive": "6.0",
-        "maxExclusive": "7.0"
+        "minInclusive": "7.0",
+        "maxExclusive": "8.0"
       }
     }
   ]
