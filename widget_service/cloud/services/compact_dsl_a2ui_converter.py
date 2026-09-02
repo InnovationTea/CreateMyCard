@@ -1932,10 +1932,68 @@ def _convert_component_rows(
 
 
 def _convert_action_unit(component: ComponentRow) -> list[dict[str, Any]]:
+    _validate_action_unit_for_conversion(component)
     state = component.props["state"]
     if state == "capsule":
         return _convert_action_unit_capsule(component)
     return _convert_action_unit_icon_round(component)
+
+
+def _validate_action_unit_for_conversion(component: ComponentRow) -> None:
+    state = component.props.get("state")
+    if state not in {"capsule", "icon-round"}:
+        raise CompactDslConversionError(
+            f'{component.component_id}: ActionUnit.state must be "capsule" or "icon-round".'
+        )
+    if component.children:
+        raise CompactDslConversionError(
+            f"{component.component_id}: ActionUnit must not declare children."
+        )
+    _validate_action_unit_on_click(component)
+    if state == "capsule":
+        _require_action_unit_string(component, "label")
+        icon = component.props.get("icon")
+        if icon is not None and (not isinstance(icon, str) or not icon.strip()):
+            raise CompactDslConversionError(
+                f"{component.component_id}: capsule ActionUnit.icon must be a "
+                "non-empty string."
+            )
+        return
+    _require_action_unit_string(component, "icon")
+    if "label" in component.props:
+        raise CompactDslConversionError(
+            f"{component.component_id}: icon-round ActionUnit must not declare label."
+        )
+
+
+def _validate_action_unit_on_click(component: ComponentRow) -> None:
+    handlers = component.props.get("onClick")
+    if not isinstance(handlers, list) or len(handlers) != 1:
+        raise CompactDslConversionError(
+            f"{component.component_id}: ActionUnit.onClick must contain exactly one handler."
+        )
+    handler = handlers[0]
+    if not isinstance(handler, dict) or set(handler) != {"call", "args"}:
+        raise CompactDslConversionError(
+            f"{component.component_id}: ActionUnit.onClick handler must contain "
+            "only call and args."
+        )
+    call = handler.get("call")
+    args = handler.get("args")
+    if not isinstance(call, str) or not call.strip() or not isinstance(args, dict):
+        raise CompactDslConversionError(
+            f"{component.component_id}: ActionUnit.onClick requires a non-empty "
+            "call and object args."
+        )
+
+
+def _require_action_unit_string(component: ComponentRow, property_name: str) -> None:
+    value = component.props.get(property_name)
+    if isinstance(value, str) and value.strip():
+        return
+    raise CompactDslConversionError(
+        f"{component.component_id}: ActionUnit.{property_name} must be a non-empty string."
+    )
 
 
 def _convert_action_unit_capsule(component: ComponentRow) -> list[dict[str, Any]]:
