@@ -5,7 +5,7 @@
   "firstLayerRule": {"path": "first-layer.md"},
   "supportedCapabilityIds": ["GetPhoneBatteryInfo", "GetEarphoneInfo"],
   "paletteSceneIds": ["fusion.battery"],
-  "primaryColor": "#FFCCFFF6",
+  "primaryColor": "#FFFFFFFF",
   "supportContentColor": "#99CCFFF6",
   "rootStyle": {
     "backgroundColor": "#FF17734C",
@@ -19,7 +19,7 @@
   },
   "actionStyle": {
     "backgroundColor": "#33FFFFFF",
-    "contentColor": "#FFCCFFF6"
+    "contentColor": "#FFFFFFFF"
   },
   "fusionBallStyle": {
     "scene": "battery",

@@ -4,7 +4,7 @@
 
 ## 整改总览
 
-- [x] 69 个业务模板全部使用 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
+- [x] 76 个业务模板全部使用 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
 - [x] 业务模板尺寸和动作组合由后缀推导，不再由 Provider 重复声明。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
 - [x] `primaryData` 与 `secondaryData` 均参与模板准入硬校验。
@@ -103,11 +103,11 @@
 ## BluetoothDeviceOverview
 
 - Provider：`com.huawei.earphone.cli`；运行状态：启用。
-- 数据能力：`GetEarphoneInfo`；模板数：8。
+- 数据能力：`GetEarphoneInfo`；模板数：13。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
-| ✅ | `BluetoothDeviceOverviewHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/isConnected`<br>`/earphoneName` | `/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
+| ✅ | `BluetoothDeviceOverviewHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/isConnected`<br>`/earphoneName` | 无 | `/leftBatteryLevel`<br>`/rightBatteryLevel` |
 | ✅ | `BluetoothDeviceOverviewEarbudsPhoneWideFull@1` | 完整 4x2；单 WideFull | `/isConnected`<br>`/earphoneName` | 无 | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` |
 | ✅ | `BluetoothDeviceOverviewEarbudsDynamicWideFull@1` | 完整 4x2；单 WideFull | `/isConnected`<br>`/earphoneName` | 无 | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` |
 | ✅ | `BluetoothDeviceOverviewEarbudsSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 | 无 |
@@ -115,6 +115,10 @@
 | ✅ | `BluetoothDeviceOverviewCompleteWideFull@1` | 完整 4x2；单 WideFull | `/isConnected`<br>`/earphoneName` | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
 | ✅ | `BluetoothDeviceOverviewEarbudPairCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/earphoneName` | `/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
 | ✅ | `BluetoothDeviceOverviewCompletePhoneWideFull@1` | 完整 4x2；单 WideFull | `/isConnected`<br>`/earphoneName` | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
+| ✅ | `BluetoothDeviceOverviewEarphoneCaseHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/batteryLevel` | `/chargingStatusDesc` | 无 |
+| ✅ | `BluetoothDeviceOverviewEarphoneCaseCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/batteryLevel` | `/chargingStatusDesc` | 无 |
+| ✅ | `BluetoothDeviceOverviewEarphoneHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/earphoneName` | `/batteryLevel` | 无 |
+| ✅ | `BluetoothDeviceOverviewEarphoneCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/earphoneName` | `/batteryLevel` | 无 |
 
 ## ActivityOverview
 
@@ -143,11 +147,12 @@
 ## HeartRateOverview
 
 - Provider：`com.huawei.health-sport.cli`；运行状态：启用。
-- 数据能力：`GetHealthAndSportSummary`；模板数：11。
+- 数据能力：`GetHealthAndSportSummary`；模板数：12。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
 | ✅ | `HeartRateOverviewFull@1` | 完整 2x2；无 Action 的单 Full | `/exerciseHeartRateAvg` | 无 | 无 |
+| ✅ | `HeartRateOverviewMinMaxFull@1` | 完整 2x2；无 Action 的单 Full | `/exerciseHeartRateMax`<br>`/exerciseHeartRateMin` | 无 | `/updatedAt` |
 | ✅ | `HeartRateOverviewCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/exerciseHeartRateAvg` | 无 | 无 |
 | ✅ | `HeartRateOverviewIconCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/exerciseHeartRateAvg` | 无 | 无 |
 

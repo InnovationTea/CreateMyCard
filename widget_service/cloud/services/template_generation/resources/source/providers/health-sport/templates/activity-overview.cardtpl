@@ -373,7 +373,7 @@ Column(
     "constraintSize": {"minWidth": 0, "minHeight": 0}
   },
   Column(
-    {"itemMargin": 12, "justifyContent": "start", "width": "matchParent"},
+    {"itemMargin": 4, "justifyContent": "start", "width": "matchParent"},
     Row(
       {"width": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top"},
       Text(
