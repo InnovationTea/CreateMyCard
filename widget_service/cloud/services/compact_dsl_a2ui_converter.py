@@ -1960,6 +1960,7 @@ def _convert_action_unit_capsule(component: ComponentRow) -> list[dict[str, Any]
     action_ink = component.props.get("actionInk")
     if action_ink is not None:
         styles["fontColor"] = action_ink
+    styles["textAlign"] = "center"
     converted["styles"] = styles
     return [converted]
 
