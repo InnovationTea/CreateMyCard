@@ -1,7 +1,7 @@
 [
   {
     "id": "ViewWeather",
-    "description": "查询指定地区的当前天气与未来数日天气预报。如果不能推断出用户的地区名，则需要追问用户提供。注意，当前不支持查询国外的天气。",
+    "description":  "查询国内某个城市或地区的当前天气以及未来数日天气预报，包含温度、湿度等各类天气指标。注意，天气查询只支持到区县，当前不支持查询国外的天气。",
     "defaultWriteResultTo": "/data/weather",
     "dependencies": {
       "requiredPackages": [
@@ -16,12 +16,12 @@
         "districtName": {
           "type": "string",
           "minLength": 1,
-          "description": "区县名，如'滨江区'。可选。"
+          "description": "区县名，如'滨江区'。可选。注意，部分区县对应多个城市，此时也需要让用户明确是哪个城市。"
         },
         "prefectureName": {
           "type": "string",
           "minLength": 1,
-          "description": "城市名，如'杭州市'。若不能根据用户query或上下文来推断出是哪个城市，则需要向用户发起追问，明确城市名。注意，部分区县对应多个城市，此时也需要让用户明确。"
+          "description": "城市名，如'杭州市'。若可以根据用户query或上下文来推断出是哪个城市，则填写对应城市；该字段可不传，不传时默认会使用用户当前地理位置。"
         },
         "forecastDays": {
           "type": "integer",
