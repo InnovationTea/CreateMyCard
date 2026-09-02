@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     capability_registry_version: str = "app-11.7.5.205_rom-6.0"
     design_compact_profile_id: str = "design-compact-dsl"
     protocol_profile_id: str = "a2ui-form-rom6.0-v1"
-    mock_ids_response_path: str = "docs/ids_res.txt"
+    mock_ids_response_path: str = "data/mock/ids_res.json"
     ids_query_url: str = CONFIG.get("ids_query_url")
     ids_calling_uid: str = "decisionhub"
     ids_dev_fake_id: str = "123**********postmantestdevFakeId"
@@ -174,7 +174,7 @@ class Settings(BaseSettings):
         path = Path(self.mock_ids_response_path)
         if path.is_absolute():
             return path
-        return (self.repo_root / path).resolve()
+        return (self.package_root / path).resolve()
 
 
 @lru_cache
