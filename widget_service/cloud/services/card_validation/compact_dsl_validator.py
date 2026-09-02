@@ -18,6 +18,7 @@ from services.compact_dsl_a2ui_converter import (
 
 _EXPRESSION_PATTERN = re.compile(r"^\{\{\s*(?P<body>.*?)\s*\}\}$")
 _REFERENCE_PATTERN = re.compile(r"\$\{(?P<path>[^{}]*)\}")
+_NON_EMPTY_CONTAINER_TYPES = frozenset({"Row", "Column", "List", "Stack"})
 
 
 @dataclass(frozen=True)
@@ -52,6 +53,7 @@ def validate_compact_dsl(
     data_rows = [row for row in rows if isinstance(row, DataRow)]
     binding_paths: list[str] = []
     errors: list[str] = []
+    _collect_component_contract_errors(components, task_spec, errors)
     for component in components:
         location = f"component {component.component_id}.props"
         _collect_binding_context(
@@ -74,6 +76,146 @@ def validate_compact_dsl(
 
     warnings = _unused_data_capability_warnings(binding_paths, card_spec)
     return CompactDslValidationResult(warnings=tuple(warnings))
+
+
+def _collect_component_contract_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    errors: list[str],
+) -> None:
+    allowed_handlers = _task_event_handlers(task_spec)
+    for component in components:
+        _collect_container_errors(component, errors)
+        if component.component_type == "ActionUnit":
+            _collect_action_unit_errors(component, errors)
+        _collect_on_click_errors(component, allowed_handlers, errors)
+
+
+def _collect_container_errors(
+    component: ComponentRow,
+    errors: list[str],
+) -> None:
+    if component.component_type not in _NON_EMPTY_CONTAINER_TYPES:
+        return
+    if component.children:
+        return
+    errors.append(
+        f"component {component.component_id}: {component.component_type}.children "
+        "must be non-empty; use parent itemMargin, padding, or layout alignment "
+        "instead of an empty spacer container."
+    )
+
+
+def _collect_action_unit_errors(
+    component: ComponentRow,
+    errors: list[str],
+) -> None:
+    location = f"component {component.component_id}"
+    state = component.props.get("state")
+    if state not in {"capsule", "icon-round"}:
+        errors.append(
+            f'{location}: ActionUnit.state must be "capsule" or "icon-round".'
+        )
+        return
+    if component.children:
+        errors.append(f"{location}: ActionUnit must not declare children.")
+    if "onClick" not in component.props:
+        errors.append(f"{location}: ActionUnit.onClick is required.")
+    if state == "capsule":
+        _collect_required_non_empty_string(
+            component.props.get("label"),
+            f"{location}: capsule ActionUnit.label",
+            errors,
+        )
+        icon = component.props.get("icon")
+        if icon is not None and (not isinstance(icon, str) or not icon.strip()):
+            errors.append(
+                f"{location}: capsule ActionUnit.icon must be a non-empty "
+                "string when provided."
+            )
+        return
+    _collect_required_non_empty_string(
+        component.props.get("icon"),
+        f"{location}: icon-round ActionUnit.icon",
+        errors,
+    )
+    if "label" in component.props:
+        errors.append(f"{location}: icon-round ActionUnit must not declare label.")
+
+
+def _collect_required_non_empty_string(
+    value: Any,
+    field: str,
+    errors: list[str],
+) -> None:
+    if isinstance(value, str) and value.strip():
+        return
+    errors.append(f"{field} must be a non-empty string.")
+
+
+def _collect_on_click_errors(
+    component: ComponentRow,
+    allowed_handlers: list[dict[str, Any]],
+    errors: list[str],
+) -> None:
+    if "onClick" not in component.props:
+        return
+    location = f"component {component.component_id}.props.onClick"
+    handlers = component.props.get("onClick")
+    if not isinstance(handlers, list) or len(handlers) != 1:
+        errors.append(f"{location}: onClick must contain exactly one handler.")
+        return
+    handler = handlers[0]
+    if not isinstance(handler, dict):
+        errors.append(f"{location}[0]: handler must be an object.")
+        return
+    if set(handler) != {"call", "args"}:
+        errors.append(f"{location}[0]: handler must contain only call and args.")
+        return
+    call = handler.get("call")
+    args = handler.get("args")
+    if not isinstance(call, str) or not call.strip():
+        errors.append(f"{location}[0].call: call must be a non-empty string.")
+        return
+    if not isinstance(args, dict):
+        errors.append(f"{location}[0].args: args must be an object.")
+        return
+    if handler not in allowed_handlers:
+        errors.append(
+            f"{location}[0]: handler must exactly match a TaskSpec eventCandidate."
+        )
+
+
+def _task_event_handlers(task_spec: dict[str, Any]) -> list[dict[str, Any]]:
+    candidates = task_spec.get("eventCandidates")
+    if not isinstance(candidates, list):
+        return []
+    handlers: list[dict[str, Any]] = []
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        handler = _event_handler_from_candidate(candidate)
+        if handler is not None:
+            handlers.append(handler)
+    return handlers
+
+
+def _event_handler_from_candidate(
+    candidate: dict[str, Any],
+) -> dict[str, Any] | None:
+    source = candidate
+    call = source.get("call")
+    args = source.get("args")
+    if not isinstance(call, str) or not isinstance(args, dict):
+        nested_action = candidate.get("action")
+        if not isinstance(nested_action, dict):
+            return None
+        source = nested_action
+        call = source.get("call")
+        args = source.get("args")
+    if not isinstance(call, str) or not isinstance(args, dict):
+        return None
+    return {"call": call, "args": args}
 
 
 def _collect_binding_context(

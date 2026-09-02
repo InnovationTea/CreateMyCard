@@ -695,6 +695,101 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         )
         self.assertEqual(components["cta_text"]["styles"]["fontWeight"], 500)
 
+    def test_rejects_action_unit_missing_required_props_without_key_error(self) -> None:
+        handler = {"call": "openWeather", "args": {}}
+        cases = (
+            ({"label": "查看天气", "onClick": [handler]}, "ActionUnit.state"),
+            ({"state": "capsule", "onClick": [handler]}, "ActionUnit.label"),
+            ({"state": "capsule", "label": "查看天气"}, "ActionUnit.onClick"),
+            ({"state": "icon-round", "onClick": [handler]}, "ActionUnit.icon"),
+        )
+        for props, expected_error in cases:
+            with self.subTest(expected_error=expected_error):
+                compact_dsl = _serialize(
+                    [
+                        [
+                            "root",
+                            "Column",
+                            {"width": 160, "height": 160},
+                            ["cta"],
+                        ],
+                        ["cta", "ActionUnit", props],
+                        ["/state/ready", True],
+                    ]
+                )
+                with self.assertRaisesRegex(
+                    CompactDslConversionError,
+                    expected_error,
+                ):
+                    convert_compact_dsl_to_a2ui(
+                        compact_dsl,
+                        size="2x2",
+                        protocol_profile=self.profile,
+                    )
+
+    def test_reports_missing_action_unit_on_click_before_conversion(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {"width": 160, "height": 160},
+                    ["cta"],
+                ],
+                [
+                    "cta",
+                    "ActionUnit",
+                    {"state": "capsule", "label": "查看天气"},
+                ],
+                ["/state/ready", True],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslValidationError,
+            "ActionUnit.onClick is required",
+        ):
+            validate_compact_dsl(
+                compact_dsl,
+                task_spec={
+                    "dataModelSchema": {"data": {}},
+                    "assetCandidates": [],
+                    "eventCandidates": [{"call": "openWeather", "args": {}}],
+                },
+                card_spec={"dataBindings": []},
+            )
+
+    def test_rejects_on_click_that_does_not_match_event_candidate(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {
+                        "width": 160,
+                        "height": 160,
+                        "onClick": [{"call": "openCalendar", "args": {}}],
+                    },
+                    [],
+                ],
+                ["/state/ready", True],
+            ]
+        )
+
+        with self.assertRaisesRegex(
+            CompactDslValidationError,
+            "must exactly match a TaskSpec eventCandidate",
+        ):
+            validate_compact_dsl(
+                compact_dsl,
+                task_spec={
+                    "dataModelSchema": {"data": {}},
+                    "assetCandidates": [],
+                    "eventCandidates": [{"call": "openWeather", "args": {}}],
+                },
+                card_spec={"dataBindings": []},
+            )
+
     def test_accepts_one_genui_fence(self) -> None:
         fenced = f"```genui\n{self.compact_dsl}\n```"
 
