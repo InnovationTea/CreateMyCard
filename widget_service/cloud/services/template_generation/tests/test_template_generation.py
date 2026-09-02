@@ -128,7 +128,7 @@ _WEATHER_BODY = (
 def test_ux_mixed_framer_quotes_unquoted_template_ids_only_in_calls() -> None:
     source = (
         'Template(CompactTwoActionLayout@1, {}, '
-        'Template(HeartRateOverviewUpdatedIconCompact@1, '
+        'Template(HeartRateOverviewUpdatedIconHero@1, '
         '{"sourceIcon":"resources/base/media/heart_fill.svg"}), '
         'Template(PillAction@1, {"actionId":"event.open.health.sport", '
         '"label":"Template(Fake@1, label)"}), '
@@ -145,7 +145,7 @@ def test_ux_mixed_framer_quotes_unquoted_template_ids_only_in_calls() -> None:
 
     assert repaired
     assert 'Template("CompactTwoActionLayout@1",' in framed
-    assert 'Template("HeartRateOverviewUpdatedIconCompact@1",' in framed
+    assert 'Template("HeartRateOverviewUpdatedIconHero@1",' in framed
     assert '"label":"Template(Fake@1, label)"' in framed
 _WEATHER_TEMPLATE_FIELDS = (
     "/location/districtName",
@@ -250,7 +250,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 81
+    assert len(registry.provider_template_ids) == 75
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -259,7 +259,6 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "BatteryOverviewChargingProgressHero@1",
         "BatteryOverviewHealthLevelHero@1",
         "BluetoothDeviceOverviewEarbudPairFull@1",
-        "BluetoothDeviceOverviewCaseStatusCompact@1",
         "BluetoothDeviceOverviewHero@1",
         "CountdownOverviewFull@1",
         "HeartRateOverviewFull@1",
@@ -1813,7 +1812,6 @@ def test_checked_in_template_controls_enable_calendar_and_earphone():
     assert registry.template_is_enabled("ScheduleOverviewDateFull@1")
     assert registry.template_is_enabled("ScheduleOverviewNextEventHero@1")
     assert registry.template_is_enabled("BluetoothDeviceOverviewEarbudPairFull@1")
-    assert registry.template_is_enabled("BluetoothDeviceOverviewCaseStatusCompact@1")
     assert registry.template_is_enabled("BluetoothDeviceOverviewHero@1")
     assert registry.template_is_enabled("WeatherOverviewFull@1")
 
@@ -1945,7 +1943,6 @@ def test_sleep_templates_bind_progress_color_to_theme_support_content() -> None:
     for template_id in (
         "SleepOverviewFull@1",
         "SleepOverviewHero@1",
-        "SleepOverviewCompact@1",
     ):
         root = registry.require_variant(template_id, "default").root
         progress = _template_nodes(root, "Progress")
@@ -2070,7 +2067,7 @@ def test_health_sport_templates_follow_latest_display_contract() -> None:
             "组件形态：hero。"
         ),
         "SleepOverviewCompact@1": (
-            "睡眠情况紧凑摘要，展示时长和得分环，可使用睡眠图标。 组件形态：compact。"
+            "睡眠情况紧凑摘要，展示睡眠时长，可使用睡眠图标。 组件形态：compact。"
         ),
     }
 
@@ -2113,6 +2110,9 @@ def test_health_sport_templates_follow_latest_display_contract() -> None:
             if node.values[0].kind == "literal"
         }
         assert expected_labels <= literal_labels
+
+    for template_id in ("SleepOverviewFull@1", "SleepOverviewHero@1"):
+        root = registry.require_variant(template_id, "default").root
         progress_options = _template_nodes(root, "Progress")[0].values[-1]
         assert progress_options.properties["backgroundColor"].value == "#33564AF7"
 
@@ -3456,21 +3456,6 @@ def _bluetooth_card_spec() -> dict[str, Any]:
     }
 
 
-def _bluetooth_case_status_card_spec() -> dict[str, Any]:
-    return {
-        "title": "助眠音乐闹钟",
-        "description": "耳机盒电量、充电状态、歌单和闹钟",
-        "suggestSize": "2x2",
-        "dataBindings": [
-            {
-                "capabilityId": "GetEarphoneInfo",
-                "arguments": {},
-                "writeResultTo": "/data/earphone",
-            }
-        ],
-    }
-
-
 def _battery_task() -> TaskSpec:
     return TaskSpec(
         userQuery="显示设备电量、正常电量和充电状态，支持开启省电模式",
@@ -3680,120 +3665,6 @@ def test_bluetooth_case_status_facts_do_not_require_device_identity() -> None:
     assert facts.case_battery_level == 80
     assert facts.case_charging_status == "充电中"
     assert bluetooth_device_overview_is_eligible(task_spec, {"GetEarphoneInfo"})
-
-
-def test_bluetooth_case_status_compact_matches_e2_geometry() -> None:
-    registry = get_cardplan_registry()
-    root = registry.require_variant(
-        "BluetoothDeviceOverviewCaseStatusCompact@1",
-        "default",
-    ).root
-
-    root_options = _template_node_options(root)
-    rows = _template_nodes(root, "Row")
-    image_options = _template_node_options(_template_nodes(root, "Image")[0])
-    text_options = [
-        _template_node_options(node) for node in _template_nodes(root, "Text")
-    ]
-
-    assert root_options["width"] == "matchParent"
-    assert root_options["height"] == "matchParent"
-    assert root_options["itemMargin"] == 2
-    assert root_options["justifyContent"] == "start"
-    assert root_options["alignItems"] == "start"
-    assert _template_node_options(rows[0]) == {
-        "width": "matchParent",
-        "height": 14,
-        "itemMargin": 8,
-        "justifyContent": "start",
-        "alignItems": "center",
-    }
-    assert _template_node_options(rows[1]) == {
-        "width": 44,
-        "height": 14,
-        "itemMargin": 4,
-        "justifyContent": "start",
-        "alignItems": "center",
-    }
-    assert _template_node_options(rows[2]) == {
-        "width": "matchParent",
-        "height": 12,
-        "itemMargin": 8,
-        "justifyContent": "start",
-        "alignItems": "center",
-    }
-    assert image_options["width"] == 12
-    assert image_options["height"] == 12
-    assert image_options["objectFit"] == "contain"
-    assert [options["height"] for options in text_options] == [16, 16, 14, 14, 12, 12]
-    assert [options["fontSize"] for options in text_options] == [12, 12, 10, 10, 9, 9]
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "device_icon",
-    (
-        "resources/base/media/earphone_case_16644.svg",
-        "resources/base/media/icon_earphone.svg",
-    ),
-)
-async def test_bluetooth_case_status_compact_supports_q18_two_actions(
-    device_icon: str,
-) -> None:
-    binding = CandidateDataBinding(
-        capabilityId="GetEarphoneInfo",
-        writeResultTo="/data/earphone",
-        candidateOutputFields=[
-            "/batteryLevel",
-            "/chargingStatusDesc",
-            "/leftChargingStatusDesc",
-            "/rightChargingStatusDesc",
-        ],
-    )
-    model = _FixedTemplateModel(
-        theme_id="audio-product-neutral-violet",
-        component_id="BluetoothDeviceOverview",
-        available_template_ids=("BluetoothDeviceOverviewCaseStatusCompact@1",),
-        capability_id="GetEarphoneInfo",
-        required_fields=(
-            "/batteryLevel",
-            "/chargingStatusDesc",
-            "/leftChargingStatusDesc",
-            "/rightChargingStatusDesc",
-        ),
-        action_id=("event.open.music.daily", "event.open.clock.alarm"),
-        body=(
-            'Template("CompactTwoActionLayout@1",{},'
-            'Template("BluetoothDeviceOverviewCaseStatusCompact@1",'
-            '{"headerLabel":"助眠音乐闹钟",'
-            f'"deviceIcon":"{device_icon}"}}),'
-            'Template("PillAction@1",{"actionId":"event.open.music.daily",'
-            '"label":"每日推荐","icon":"resources/base/media/music_fill.svg"}),'
-            'Template("PillAction@1",{"actionId":"event.open.clock.alarm",'
-            '"label":"设置闹钟","icon":"resources/base/media/alarm_fill_1.svg"}));'
-        ),
-    )
-
-    output = await generate_template_a2ui(
-        _bluetooth_case_status_task(device_icon),
-        _bluetooth_case_status_card_spec(),
-        (binding,),
-        model,
-    )
-
-    assert output.template_ids == (
-        "BluetoothDeviceOverviewCaseStatusCompact@1",
-        "PillAction@1",
-        "CompactTwoActionLayout@1",
-    )
-    assert "batteryLevel" in output.a2ui
-    assert "chargingStatusDesc" in output.a2ui
-    assert "leftChargingStatusDesc" in output.a2ui
-    assert "rightChargingStatusDesc" in output.a2ui
-    assert "助眠音乐闹钟" in output.a2ui
-    assert device_icon in output.a2ui
-    assert "每日推荐" in output.a2ui
-    assert "设置闹钟" in output.a2ui
 
 
 @pytest.mark.asyncio

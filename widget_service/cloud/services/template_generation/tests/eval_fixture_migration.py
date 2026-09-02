@@ -39,6 +39,7 @@ _REMOVED_TEMPLATE_VARIANTS = frozenset(
         ("DateOverview@1", "dateHero"),
         ("BluetoothDeviceOverview@1", "connection"),
         ("BluetoothDeviceOverview@1", "earbuds"),
+        ("HeartRateOverview@1", "heroUpdated"),
     }
 )
 _TEMPLATE_IDS = {
@@ -58,7 +59,6 @@ _TEMPLATE_IDS = {
     ("ActivityOverview@1", "dailySummaryWide"): "ActivityOverviewDailySummaryWideFull@1",
     ("WorkoutOverviewFull@1", "latest"): "WorkoutOverviewFull@1",
     ("HeartRateOverview@1", "hero"): "HeartRateOverviewFull@1",
-    ("HeartRateOverview@1", "heroUpdated"): "HeartRateOverviewUpdatedFull@1",
     ("SleepOverview@1", "duration"): "SleepOverviewDurationFull@1",
     ("SleepOverview@1", "insufficient"): "SleepOverviewInsufficientFull@1",
     ("SleepOverview@1", "schedule"): "SleepOverviewScheduleWideFull@1",

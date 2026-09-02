@@ -11,26 +11,21 @@
   - `WorkoutOverviewFull@1`：最近一次单次运动训练摘要，展示运动类型、该次热量、时长和结束时间。 组件形态：latest。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/exerciseTypeName, /exerciseDurationText；次要数据：/exerciseCalorieText, /exerciseEndTimeText；可选数据：无。
   - `WorkoutOverviewCompact@1`：最近一次单次运动训练摘要，展示运动类型、该次热量和时长，可使用运动图标。 组件形态：latestCompact。 布局场景：约 2x1；单 Compact + 2 个 PillAction。主数据：/exerciseTypeName, /exerciseDurationText；次要数据：/exerciseCalorieText；可选数据：无。
   - `WorkoutOverviewHero@1`：最近一次单次运动训练摘要，展示运动类型、该次热量和时长，可使用运动图标。 组件形态：latestHero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/exerciseTypeName, /exerciseDurationText；次要数据：/exerciseCalorieText；可选数据：无。
-  - `HeartRateOverviewFull@1`：运动平均心率摘要，可补充更新时间。 组件形态：full。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
-  - `HeartRateOverviewUpdatedFull@1`：运动平均心率摘要，可补充更新时间。 组件形态：fullUpdated。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/exerciseHeartRateAvg；次要数据：/updatedAt；可选数据：无。
-  - `HeartRateOverviewIconFull@1`：运动平均心率摘要，可补充更新时间。 组件形态：fullIcon。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
-  - `HeartRateOverviewUpdatedIconFull@1`：运动平均心率摘要，可补充更新时间。 组件形态：fullUpdatedIcon。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/exerciseHeartRateAvg；次要数据：/updatedAt；可选数据：无。
-  - `HeartRateOverviewCompact@1`：运动平均心率摘要，可补充更新时间。 组件形态：support。 布局场景：约 2x1；用于单 Compact 加两个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
-  - `HeartRateOverviewUpdatedCompact@1`：运动平均心率摘要，可补充更新时间。 组件形态：supportUpdated。 布局场景：约 2x1；用于单 Compact 加两个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：/updatedAt；可选数据：无。
-  - `HeartRateOverviewIconCompact@1`：运动平均心率摘要，可补充更新时间。 组件形态：supportIcon。 布局场景：约 2x1；用于单 Compact 加两个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
-  - `HeartRateOverviewUpdatedIconCompact@1`：运动平均心率摘要，可补充更新时间。 组件形态：supportUpdatedIcon。 布局场景：约 2x1；用于单 Compact 加两个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：/updatedAt；可选数据：无。
+  - `HeartRateOverviewFull@1`：运动平均心率摘要。 组件形态：full。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
+  - `HeartRateOverviewCompact@1`：运动平均心率摘要。 组件形态：support。 布局场景：约 2x1；用于单 Compact 加两个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
+  - `HeartRateOverviewIconCompact@1`：运动平均心率摘要。 组件形态：supportIcon。 布局场景：约 2x1；用于单 Compact 加两个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
   - `HeartRateOverviewIconHero@1`：运动平均心率主视觉，展示平均心率，使用心率图标。 组件形态：iconHero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
   - `HeartRateOverviewHero@1`：运动平均心率主视觉，展示平均心率。 组件形态：mainHero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：无；可选数据：无。
   - `HeartRateOverviewUpdatedHero@1`：运动平均心率主视觉，展示平均心率，可补充更新时间。 组件形态：mainHeroUpdated。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：/updatedAt；可选数据：无。
   - `HeartRateOverviewUpdatedIconHero@1`：运动平均心率主视觉，展示平均心率，可补充更新时间，使用心率图标。 组件形态：mainHeroUpdatedIcon。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/exerciseHeartRateAvg；次要数据：/updatedAt；可选数据：无。
   - `SleepOverviewFull@1`：睡眠情况完整摘要，展示时长和状态，可选展示得分进度或完整睡眠时段，可使用睡眠图标。 组件形态：full。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/nightSleepDurationText；次要数据：/sleepStatus；可选数据：/sleepScore, /fallAsleepTimeText, /wakeupTimeText。
   - `SleepOverviewHero@1`：睡眠情况主视觉，展示时长，可选展示得分进度、睡眠状态或完整睡眠时段，可使用睡眠图标。 组件形态：hero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/nightSleepDurationText；次要数据：无；可选数据：/sleepStatus, /sleepScore, /fallAsleepTimeText, /wakeupTimeText。
-  - `SleepOverviewCompact@1`：睡眠情况紧凑摘要，展示时长和得分环，可使用睡眠图标。 组件形态：compact。 布局场景：约 2x1；单 Compact + 2 个 PillAction。主数据：/nightSleepDurationText；次要数据：/sleepScore；可选数据：无。
+  - `SleepOverviewCompact@1`：睡眠情况紧凑摘要，展示睡眠时长，可使用睡眠图标。 组件形态：compact。 布局场景：约 2x1；单 Compact + 2 个 PillAction。主数据：/nightSleepDurationText；次要数据：无；可选数据：无。
 - 已有 Provider 全局路径的值必须由模板 `data` 绑定；props 可传无全局路径的受控派生值、排版参数和
   素材。
 - 选择能够完整表达用户显式要求字段且自身 `primaryData` 与 `secondaryData` 全部可用的模板。
 - `ActivityOverviewCompact@1` 与 `ActivityOverviewHero@1` 只表达步数；`ActivityOverviewFull@1` 还要求并展示热量和距离。Hero 与 Full 的万步进度是固定展示基准，不得描述成用户个人目标或可信达成率。
-- `SleepOverviewCompact@1` 表达时长和得分。`SleepOverviewHero@1` 至少表达时长，并按得分、状态、
+- `SleepOverviewCompact@1` 表达时长。`SleepOverviewHero@1` 至少表达时长，并按得分、状态、
   完整睡眠时段的顺序选择一个补充区域；睡眠时段仅在入睡和醒来时刻同时存在时展示。
 - `SleepOverviewFull@1` 要求时长和状态；得分存在时展示得分，得分缺失且入睡和醒来时刻都存在时
   补充完整睡眠时段。
