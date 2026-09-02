@@ -1020,9 +1020,11 @@ build(
 标准 `genui` 兜底。
 
 `build_repair()` 在首次调用实际使用的 system prompt 后追加 `repair_system_prompt_file`，并把首次 user
-内容、当前最新源 DSL、`dslFormat` 和结构化 `qualityErrors` 编码成标准 JSON user 消息。每项错误包含
-`stage`、`code`、`message`；编辑模式的首次 user 内容保留上一轮 `previousDesignToken`。模型返回修复后的
-同格式源 DSL，再次执行对应 Processor 和标准 A2UI Validator。
+内容、当前最新源 DSL、`dslFormat` 和结构化 `qualityErrors` 编码成标准 JSON user 消息。转换错误至少包含
+`stage`、`code`、`message`；完整 artifact 校验错误还传递具体校验错误码、`validatorStage`、`fileKind`、
+`line`、`jsonPointer`、`actual`、`expected` 和校验器确定性生成的 `fixHint`，并用 `category` 保留通用错误
+分类。编辑模式的首次 user 内容保留上一轮 `previousDesignToken`。模型返回修复后的同格式源 DSL，再次
+执行对应 Processor 和标准 A2UI Validator。
 
 修复模型调用会对完整 prompt 日志做脱敏，只记录修复类型和错误数量。
 
