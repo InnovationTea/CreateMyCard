@@ -21,7 +21,7 @@
   },
   "DISPLAY_UNIT_MISSING": {
     "message": "动态数值字段缺少展示单位。",
-    "fixHint": "按最终数据绑定对应的能力定义追加一次声明单位。"
+    "fixHint": "在数值表达式中追加声明单位，或让紧邻数值后的静态 Text 包含该单位，且整组只展示一次。"
   },
   "DISPLAY_UNIT_DUPLICATED": {
     "message": "动态字段的展示单位重复。",

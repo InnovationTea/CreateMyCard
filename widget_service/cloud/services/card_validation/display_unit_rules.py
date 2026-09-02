@@ -114,7 +114,20 @@ def matching_unit_literal_count(expression: Any, rule: DisplayUnitRule) -> int:
     )
 
 
-def static_text_matches_rule(value: Any, rule: DisplayUnitRule) -> bool:
+def static_text_contains_rule(value: Any, rule: DisplayUnitRule) -> bool:
+    """判断后置静态文案是否包含任一声明单位或批准别名。"""
+    if not isinstance(value, str):
+        return False
+    normalized_value = _normalized_unit(value)
+    return any(
+        alias in normalized_value
+        for unit in rule.units
+        for alias in _normalized_aliases(unit)
+    )
+
+
+def _static_text_exactly_matches_rule(value: Any, rule: DisplayUnitRule) -> bool:
+    """仅供确定性去重使用，避免删除同时包含业务说明的完整 Text。"""
     return isinstance(value, str) and any(
         _normalized_unit(value) in _normalized_aliases(unit) for unit in rule.units
     )
@@ -174,7 +187,7 @@ def repair_repeated_display_units(
             following_indexes = range(value_index + 1, len(repaired_children))
             for sibling_index in following_indexes:
                 sibling_id = repaired_children[sibling_index]
-                if not static_text_matches_rule(
+                if not _static_text_exactly_matches_rule(
                     by_id.get(sibling_id, {}).get("content"),
                     rule,
                 ):
@@ -213,7 +226,9 @@ def repair_repeated_display_units(
 def _repair_expression_units(expression: str, rule: DisplayUnitRule) -> str:
     terms = _split_concat_terms(expression_body(expression))
     matching_indexes = [
-        index for index, term in enumerate(terms) if _literal_matches_rule(term, rule)
+        index
+        for index, term in enumerate(terms)
+        if _literal_exactly_matches_rule(term, rule)
     ]
     keep_count = 0 if rule.unit_included else 1
     if len(matching_indexes) <= keep_count:
@@ -254,6 +269,18 @@ def _split_concat_terms(body: str) -> list[str]:
 
 
 def _literal_matches_rule(term: str, rule: DisplayUnitRule) -> bool:
+    match = _STRING_LITERAL_RE.fullmatch(term.strip())
+    if match is None:
+        return False
+    normalized_literal = _normalized_unit(match.group("value"))
+    return any(
+        alias in normalized_literal
+        for unit in rule.units
+        for alias in _normalized_aliases(unit)
+    )
+
+
+def _literal_exactly_matches_rule(term: str, rule: DisplayUnitRule) -> bool:
     match = _STRING_LITERAL_RE.fullmatch(term.strip())
     if match is None:
         return False
