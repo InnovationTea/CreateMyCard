@@ -250,7 +250,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 75
+    assert len(registry.provider_template_ids) == 76
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -261,6 +261,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "BluetoothDeviceOverviewEarbudPairFull@1",
         "BluetoothDeviceOverviewHero@1",
         "CountdownOverviewFull@1",
+        "CountdownOverviewHero@1",
         "HeartRateOverviewFull@1",
         "ResourceUsageOverviewFull@1",
         "ScheduleOverviewDatedMeetingHero@1",
@@ -642,6 +643,19 @@ def test_battery_fusion_theme_covers_phone_and_earphone_businesses() -> None:
     )
 
 
+def test_sport_fusion_theme_also_covers_countdown_business() -> None:
+    registry = get_cardplan_registry(True)
+    theme = registry.require_theme("fusion-sport-orange")
+    fusion_style = theme.fusion_ball_style
+
+    assert "GetCountdownDays" in theme.supported_capability_ids
+    assert fusion_style is not None
+    assert "CountdownOverview" in fusion_style.business_ids
+    assert "fusion-sport-orange" in registry.first_layer_theme_ids(
+        ("CountdownOverview",)
+    )
+
+
 def test_search_layout_action_rule_omits_legacy_two_support_instruction() -> None:
     action = ActionBinding(
         action_id="action-0",
@@ -921,7 +935,7 @@ def test_fusion_ball_palette_is_gated_by_selected_theme(
     [
         ("fusion-weather-blue", "#FFCCDDFF", "#99CCDDFF"),
         ("fusion-sleep-violet", "#FFD9CCFF", "#99D9CCFF"),
-        ("fusion-sport-orange", "#FFFFE1CC", "#99FFE1CC"),
+        ("fusion-sport-orange", "#FFFFFFFF", "#99FFFFFF"),
         ("fusion-battery-teal", "#FFCCFFF6", "#99CCFFF6"),
         ("fusion-schedule-cool", "#FFCCEEFF", "#B3CCEEFF"),
     ],
@@ -2301,6 +2315,27 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
     visible_unit_color = visible_unit.values[-1].properties["fontColor"]
     assert visible_unit_color.kind == "theme"
     assert visible_unit_color.name == "supportContentColor"
+
+    countdown_hero = registry.require_variant("CountdownOverviewHero@1", "default").root
+    assert _template_node_options(countdown_hero)["justifyContent"] == "center"
+    countdown_hero_value_row = countdown_hero.children[2]
+    assert countdown_hero_value_row.component == "Row"
+    assert _template_node_options(countdown_hero_value_row)["justifyContent"] == "center"
+    assert len(countdown_hero_value_row.children) == 2
+    hero_value, hero_unit = countdown_hero_value_row.children
+    assert hero_value.values[0].kind == "binding"
+    assert hero_value.values[0].name == "days"
+    assert hero_unit.values[0].value == "天"
+    assert _template_node_options(countdown_hero_value_row)["height"] == 48
+    assert _template_node_options(hero_value)["height"] == 48
+    assert _template_node_options(hero_unit)["height"] == 16
+    hero_unit_margin = hero_unit.values[-1].properties["margin"]
+    assert hero_unit_margin.kind == "object"
+    assert hero_unit_margin.properties["bottom"].value == 8
+    assert _template_node_options(hero_unit)["fontSize"] == 10
+    hero_unit_color = hero_unit.values[-1].properties["fontColor"]
+    assert hero_unit_color.kind == "theme"
+    assert hero_unit_color.name == "supportContentColor"
 
     app_usage = registry.require_variant("AppUsageOverviewFull@1", "default").root
     assert _template_node_options(app_usage)["justifyContent"] == "start"
@@ -4629,6 +4664,120 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
         }
     )
     assert not reporter.has_code("DISPLAY_UNIT_MISSING", "DISPLAY_UNIT_DUPLICATED")
+
+
+@pytest.mark.asyncio
+async def test_q028_countdown_alarm_uses_hero_with_unit_on_the_right():
+    task_spec = TaskSpec(
+        userQuery="2026年11月15日参加广州马拉松，帮我做个卡片，看还有几天，点一下打开闹钟应用。",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.open.clock.alarm",
+                call="clickToDeeplink",
+                args={
+                    "intentName": "Clock",
+                    "bundleName": "com.huawei.hmos.clock",
+                    "abilityName": "com.huawei.hmos.clock.phone",
+                    "uri": "",
+                },
+            )
+        ],
+        assetCandidates=[
+            {
+                "src": "resources/base/media/alarm_fill_1.svg",
+                "description": "闹钟和定时提醒图标",
+                "sceneTags": ["alarm", "reminder"],
+            }
+        ],
+        dataModelSchema={
+            "data": {
+                "countdown": {
+                    "countdownDays": _provider_field(74, "integer"),
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetCountdownDays",
+        arguments={"targetDate": "2026-11-15"},
+        writeResultTo="/data/countdown",
+        candidateOutputFields=["/countdownDays"],
+    )
+    card_spec = {
+        "title": "马拉松倒计时",
+        "description": "比赛倒计时和闹钟",
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {
+                "capabilityId": "GetCountdownDays",
+                "arguments": {"targetDate": "2026-11-15"},
+                "writeResultTo": "/data/countdown",
+            }
+        ],
+    }
+    model = _FixedTemplateModel(
+        theme_id="fusion-sport-orange",
+        component_id="CountdownOverview",
+        available_template_ids=("CountdownOverviewHero@1",),
+        capability_id="GetCountdownDays",
+        required_fields=("/countdownDays",),
+        action_id="event.open.clock.alarm",
+        body=(
+            'Template("HeroActionLayout@1",{},'
+            'Template("CountdownOverviewHero@1",{"title":"马拉松倒计时"}),'
+            'Template("PillAction@1",{"actionId":"event.open.clock.alarm",'
+            '"label":"设置闹钟","icon":"resources/base/media/alarm_fill_1.svg"}));'
+        ),
+    )
+
+    output = await generate_template_a2ui(
+        task_spec,
+        card_spec,
+        (binding,),
+        model,
+        enable_fusion_ball=True,
+    )
+
+    assert output.template_ids == (
+        "CountdownOverviewHero@1",
+        "PillAction@1",
+        "HeroActionLayout@1",
+    )
+    messages = [json.loads(line) for line in output.a2ui.splitlines()]
+    components = messages[1]["updateComponents"]["components"]
+    countdown_row = next(
+        component
+        for component in components
+        if component.get("component") == "Row"
+        and len(component.get("children", ())) == 2
+        and any(
+            child.get("content") == "天"
+            for child in components
+            if child.get("id") in component.get("children", ())
+        )
+    )
+    row_children = [
+        child
+        for child_id in countdown_row["children"]
+        for child in components
+        if child.get("id") == child_id
+    ]
+    assert "countdownDays" in str(row_children[0].get("content"))
+    assert row_children[1]["content"] == "天"
+    assert row_children[0]["styles"]["height"] == 48
+    assert row_children[1]["styles"]["height"] == 16
+    assert row_children[1]["styles"]["margin"] == {"bottom": 8}
+    assert row_children[1]["styles"]["fontSize"] == 10
+    assert "设置闹钟" in json.dumps(components, ensure_ascii=False)
+    assert any("__genui_render_component__" in component["id"] for component in components)
+    action_payload = next(
+        component["onClick"]
+        for component in components
+        if component.get("onClick")
+    )
+    assert action_payload[0]["call"] == "clickToDeeplink"
+    assert action_payload[0]["args"]["intentName"] == "Clock"
 
 
 class WeatherTemplateModel:

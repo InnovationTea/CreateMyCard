@@ -4,7 +4,7 @@
 
 ## 整改总览
 
-- [x] 72 个业务模板全部使用 `Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
+- [x] 68 个业务模板全部使用 `Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
 - [x] 业务模板尺寸和动作组合由后缀推导，不再由 Provider 重复声明。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
 - [x] `primaryData` 与 `secondaryData` 均参与模板准入硬校验。
@@ -32,7 +32,7 @@
 | app-usage | `GetAppUsageDuration` | `/data/appUsageStats` | 6 | 启用 |
 | battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 7 | 启用 |
 | calendar | `GetCalendarEvents` | `/data/calendar` | 8 | 启用 |
-| countdown | `GetCountdownDays` | `/data/countdown` | 1 | 启用 |
+| countdown | `GetCountdownDays` | `/data/countdown` | 2 | 启用 |
 | earphone | `GetEarphoneInfo` | `/data/earphone` | 8 | 启用 |
 | health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 30 | 启用 |
 | system-memory | `GetSystemMemInfo` | `/data/systemMem` | 3 | 启用 |
@@ -91,11 +91,12 @@
 ## CountdownOverview
 
 - Provider：`com.huawei.countdown.cli`；运行状态：启用。
-- 数据能力：`GetCountdownDays`；模板数：1；当前没有 Support、Compact 或 Hero。
+- 数据能力：`GetCountdownDays`；模板数：2；当前没有 Support 或 Compact。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
 | ✅ | `CountdownOverviewFull@1` | 完整 2x2；无 Action，或加一个 IconAction | `/countdownDays` | 无 | 无 |
+| ✅ | `CountdownOverviewHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/countdownDays` | 无 | 无 |
 
 ## BluetoothDeviceOverview
 
