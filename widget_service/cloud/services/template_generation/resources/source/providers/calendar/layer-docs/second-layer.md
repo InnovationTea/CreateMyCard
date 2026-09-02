@@ -10,13 +10,13 @@
   - `ScheduleOverviewReminderHero@1`：日程提醒 Hero；展示标题、开始时间和提前提醒；可选
     `headerLabel`。
   - `ScheduleOverviewTimezoneFull@1`：时区日程 Full；展示时区、标题、起止时间和地点；可选
-    `headerLabel`、`timeIcon` 与 `locationIcon`。
+    `headerLabel`。
   - `ScheduleOverviewDateFull@1`：日期日程 Full；展示真实日期、标题、起止时间和地点；可选
-    `headerLabel`、`timeIcon` 与 `locationIcon`。
+    `headerLabel`。
   - `ScheduleOverviewDatedMeetingHero@1`：带日期会议 Hero；展示真实日期、标题、起止时间和地点，
     不接收展示 Prop。
   - `ScheduleOverviewNextEventLocationFull@1`：下一个日程 Full；展示标题、起止时间和地点；可选
-    `sourceIcon`、`timeIcon` 与 `locationIcon`。
+    `calendarIcon` 与 `headerLabel`。
   - `ScheduleOverviewMeetingWideFull@1`：宽版会议摘要；展示标题、起止时间和地点；可选
     `timeIcon` 与 `locationIcon`。
   - `ScheduleOverviewMeetingSourceWideFull@1`：带来源图标的宽版会议摘要；`sourceIcon` 必填，
@@ -31,7 +31,7 @@
   时间、提醒、时区或地点时，不得用静态文案补齐。
 - 素材参数不绑定固定素材 ID，只从本轮素材候选中按语义匹配：
   - `sourceIcon`：日历应用、日程来源或会议来源语义，使用 Theme 主内容色着色；
-  - `calendarIcon`：日历本或日程管理语义；
+  - `calendarIcon`：日历本或日程管理语义，使用 Theme 辅助内容色着色；
   - `timeIcon`：时钟、时间或日程时刻语义；
   - `locationIcon`：地点、位置、会议室或地图标记语义。
 - 同一模板的多个素材槽位必须分别匹配语义，不得复用同一素材填充来源、时间和地点。

@@ -1,138 +1,141 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
-import platform
+
+import socket
+import os
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+import platform
 
-from pydantic import Field, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from config.config_helper import ConfigHelper
+from urllib.parse import urljoin
+from pydantic_settings import BaseSettings
 
-_DEFAULT_APP_VERSION = ".".join(("11", "7", "5", "205"))
-_DEFAULT_CAPABILITY_REGISTRY_VERSION = f"app-{_DEFAULT_APP_VERSION}_rom-6.0"
-_DEFAULT_LLMCLIENT_HOST = ".".join(("10", "32", "101", "24"))
-_DEFAULT_LLMCLIENT_WS_URL = (
-    f"ws://{_DEFAULT_LLMCLIENT_HOST}:18087/llm/websocket/openai/chat/completions"
-)
+
+def get_container_ip():
+    hostname = socket.gethostname()
+    return socket.gethostbyname(hostname)
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_prefix="WIDGET_SERVICE_",
-        env_file=".env",
-        extra="ignore",
-    )
+    container_ip: str = get_container_ip()
+    if platform.system() == "Windows":
+        LOCAL_FLAG: bool = True
+        HTTP_SERVER_URL: str = f"http://localhost:8080"
+    else:
+        LOCAL_FLAG: bool = False
+        HTTP_SERVER_URL: str = f"https://{container_ip}:8080"
+    PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
+    WORKSPACE_ROOT: Path = PROJECT_ROOT / "workspace"
 
-    env: str = "local"
-    enable_sensitive_log_fields: bool = True
-    capability_registry_version: str = _DEFAULT_CAPABILITY_REGISTRY_VERSION
-    enable_default_capability_registry_fallback: bool = True
-    ids_installation_filter_package_names: tuple[str, ...] = (
-        "com.huawei.hmsapp.totemweather",
-        "com.huawei.hmos.health",
-        "com.huawei.hmos.calendar",
-    )
-    protocol_profile_id: str = "a2ui-form-rom6.0-v1"
+    """配置项"""
+    if LOCAL_FLAG:
+        CONFIG: ConfigHelper = ConfigHelper("local")
+    else:
+        CONFIG: ConfigHelper = ConfigHelper("cloud")
+    hag_slb_url: str = CONFIG.get("hag_slb_url")
+    osms_prepare_url: str = urljoin(hag_slb_url, CONFIG.get("osms_prepare_url"))
+    osms_complete_url: str = urljoin(hag_slb_url, CONFIG.get("osms_complete_url"))
+    osms_query_url: str = urljoin(hag_slb_url, CONFIG.get("osms_query_url"))
+    osms_delete_url: str = urljoin(hag_slb_url, CONFIG.get("osms_delete_url"))
+    hag_osms_ak: str = CONFIG.get("hag_osms_ak")
+    capability_registry_version: str = "app-11.7.5.205_rom-6.0"
     design_compact_profile_id: str = "design-compact-dsl"
-    enable_default_protocol_profile_fallback: bool = True
-    enable_ids_mock: bool = True
-    CONFIG: dict[str, str] = Field(default_factory=dict)
+    protocol_profile_id: str = "a2ui-form-rom6.0-v1"
     mock_ids_response_path: str = "data/mock/ids_res.json"
-    ids_query_url: str = "http://{{ip}}:{{port}}/hiai/ids/databus/v1/kvcommondata/query"
+    ids_query_url: str = CONFIG.get("ids_query_url")
     ids_calling_uid: str = "decisionhub"
     ids_dev_fake_id: str = "123**********postmantestdevFakeId"
-    ids_access_key: str = "23232323232"
-    ids_secret_key: str = "22222"
-    ids_request_timeout_seconds: float = 5.0
+    ids_sign_secret: str = "postman-test-secret"
+    artifact_base_url: str = "https://obs.todo.local/widget"
+    server_host: str = "127.0.0.1"
+    server_port: int = 8855
+    sts_server: str = CONFIG.get("sts_serverDomain")
+    ids_request_timeout_seconds: int = 30
+    ids_access_key: str = CONFIG.get("ids_access_key")
+    obs_preview_supported_file_format: list = ['html']
+    obs_use_edge: bool = CONFIG.get("obs.use.edge") == "true"  # bool类型需要str转bool
+    obs_expire_time: int = CONFIG.get("obs.expire.time")
+    default_ohos_api_version: int = 6
+    enable_artifact_validation: bool = CONFIG.get("enable_artifact_validation") == "true"  # bool类型需要str转bool
+    enable_a2ui_model_mock: bool = CONFIG.get("enable_a2ui_model_mock") == "true"  # bool类型需要str转bool
     default_device_rom_version: str = "6.0"
-    default_prd_version: str = _DEFAULT_APP_VERSION
-    enable_a2ui_model_mock: bool = True
-    a2ui_form_model_backend: Literal["mep", "openai"] = "mep"
-    design_compact_model_backend: Literal["mep", "openai"] = "openai"
-    openai_master_client: Literal["deepseek_platform", "llmclient"] = "deepseek_platform"
-    openai_fallback_client: Literal["deepseek_platform", "llmclient"] = "llmclient"
-    enable_openai_fallback: bool = True
-    # DeepSeek Platform 使用 STS 中的 SK 签名；普通配置中只保存 AK 和 STS key 名。
-    deepseek_platform_access_key: str = ""
-    deepseek_platform_secret_key_sts_config_key: str = "genui.deepseek.platform.secret.key"
-    deepseek_platform_ws_url: str = ""
-    deepseek_platform_model_name: str = "AGENT-DEEPSEEK-V4-FLASH"
-    deepseek_platform_api_key: str = "AccessService"
-    deepseek_platform_sender: str = "superagent"
+    default_prd_version: str = "1.0.0"
+    anyio_thread_pool_tokens: int = 80
+    source_artifact_max_bytes: int = 20 * 1024 * 1024
+    source_artifact_read_timeout_seconds: float = 35.0
+    source_genui_max_chars: int = 200_000
+    model_appid: str = CONFIG.get("model_appid")
+    model_url: str = CONFIG.get("model_url")
+    model_bid: str = CONFIG.get("model_bid")
+    model_flow_id: str = CONFIG.get("model_flow_id")
+    model_temperature: float = 0.4
+    model_top_k: int = 1
+    system_prompt: str = CONFIG.get("system.prompt")
+    edit_system_prompt: str = CONFIG.get("edit.system.prompt")
+    repair_system_prompt: str = CONFIG.get("repair.system.prompt")
+    a2ui_form_model_backend: str = CONFIG.get("a2ui_form_model_backend")
+    design_compact_model_backend: str = CONFIG.get("design_compact_model_backend")
+    validation_failure_max_repair_attempts: int = CONFIG.get("validation_failure_max_repair_attempts")
+    model_max_concurrency: int = CONFIG.get("model_max_concurrency")
+    model_queue_timeout_seconds: int = CONFIG.get("model_queue_timeout_seconds")
+    model_request_timeout_seconds: int = CONFIG.get("model_request_timeout_seconds")
+    model_prompt_log_preview_chars: int = CONFIG.get("model_prompt_log_preview_chars")
+    # 模型降级配置
+    openai_master_client: str = CONFIG.get("openai_master_client")
+    openai_fallback_client: str = CONFIG.get("openai_fallback_client")
+    # DeepSeekPlatform 配置
+    deepseek_platform_access_key: str = CONFIG.get("deepseek_platform_access_key")
+    deepseek_platform_secret_key_sts_config_key: str = CONFIG.get("deepseek_platform_secret_key_sts_config_key")
+    deepseek_platform_ws_url: str = CONFIG.get("deepseek_platform_ws_url")
+    deepseek_platform_api_key: str = CONFIG.get("deepseek_platform_api_key")
+    deepseek_platform_sender: str = CONFIG.get("deepseek_platform_sender")
     deepseek_platform_receiver: str = "LLM-WS"
     deepseek_platform_message_name: str = "llmRecognize"
     deepseek_platform_default_country_code: str = "CN"
     deepseek_platform_default_app_name: str = "com.huawei.hmos.vassistant"
-    # llmclient 使用的 DeepSeek 兼容 WebSocket 请求参数；默认值保持原客户端行为。
-    deepseek_api_key: str = "AccessService"
-    deepseek_model: str = "deepseek-ai/DeepSeek-V4-Flash"
-    deepseek_ws_url: str = _DEFAULT_LLMCLIENT_WS_URL
-    deepseek_user: str = "genui_user"
-    deepseek_request_id: str = "genui_ui"
-    deepseek_temperature: float = Field(default=0.7, ge=0.0, le=2.0)
-    deepseek_top_p: float = Field(default=0.9, ge=0.0, le=1.0)
-    deepseek_top_k: int = Field(default=1, ge=1)
-    deepseek_max_tokens: int = Field(default=128_000, ge=1)
-    deepseek_enable_thinking: bool = False
-    deepseek_include_usage: bool = True
-    deepseek_debug_usage: bool = True
-    deepseek_recv_timeout: int = Field(default=120, ge=1)
-    system_prompt_file: str = "widget_service/docs/system_prompt.txt"
-    edit_system_prompt_file: str = "widget_service/docs/edit_system_prompt.txt"
-    repair_system_prompt_file: str = "widget_service/docs/repair_system_prompt.txt"
-    model_prompt_log_preview_chars: int = Field(default=30, ge=0, le=1000)
-    model_appid: str = ""
-    model_url: str = ""
-    model_path: str = "/"
-    model_name: str = ""
-    model_bid: str = ""
-    model_flow_id: str = ""
-    model_temperature: float = 0.4
-    model_top_k: int = 1
-    model_max_concurrency: int = Field(default=20, ge=1, le=200)
-    model_queue_timeout_seconds: float = Field(default=120.0, gt=0)
-    model_request_timeout_seconds: float = Field(default=120.0, gt=0)
-    enable_artifact_validation: bool = True
-    # 模型调用异常按异步指数退避重试；与 DSL error 触发定向 repair 的开关相互独立。
-    enable_model_failure_retry: bool = False
-    model_failure_max_retry_attempts: int = Field(default=1, ge=1, le=10)
-    fallback_model_failure_max_retry_attempts: int = Field(default=1, ge=1, le=10)
-    model_failure_retry_initial_delay_seconds: float = Field(default=1.0, gt=0.0, le=300.0)
-    model_failure_retry_max_delay_seconds: float = Field(default=30.0, gt=0.0, le=600.0)
-    model_failure_retry_backoff_multiplier: float = Field(default=2.0, ge=1.0, le=10.0)
-    model_failure_retry_jitter_ratio: float = Field(default=0.2, ge=0.0, lt=1.0)
-    enable_validation_failure_retry: bool = False
-    validation_failure_max_repair_attempts: int = Field(default=1, ge=1, le=10)
-    enable_widget_edit: bool = False
-    enable_widget_directive_commands: bool = False
-    artifact_base_url: str = "https://obs.todo.local/widget"
-    enable_artifact_download_mock: bool = True
-    source_artifact_max_bytes: int = 2 * 1024 * 1024
-    source_artifact_read_timeout_seconds: float = 5.0
-    source_genui_max_chars: int = 200_000
-    server_host: str = "localhost"
-    server_port: int = 8855
-    anyio_thread_pool_tokens: int = 80
-    PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
-    WORKSPACE_ROOT: Path = PROJECT_ROOT / "workspace"
+    # 模型限流配置
+    enable_model_failure_retry: bool = CONFIG.get("enable_model_failure_retry") == "true"
+    model_failure_max_retry_attempts: int = CONFIG.get("model_failure_max_retry_attempts")
+    fallback_model_failure_max_retry_attempts: int = CONFIG.get("fallback_model_failure_max_retry_attempts")
+    model_failure_retry_initial_delay_seconds: float = CONFIG.get("model_failure_retry_initial_delay_seconds")
+    model_failure_retry_max_delay_seconds: float = CONFIG.get("model_failure_retry_max_delay_seconds")
+    model_failure_retry_backoff_multiplier: float = CONFIG.get("model_failure_retry_backoff_multiplier")
+    model_failure_retry_jitter_ratio: float = CONFIG.get("model_failure_retry_jitter_ratio")
+    enable_ids_mock: bool = CONFIG.get("enable_ids_mock") == "true"
+    enable_default_capability_registry_fallback: bool = (
+            CONFIG.get("enable_default_capability_registry_fallback") == "true")
+    enable_validation_failure_retry: bool = CONFIG.get("enable_validation_failure_retry") == "true"
+    enable_widget_edit: bool = CONFIG.get("enable_widget_edit") == "true"
+    enable_artifact_download_mock: bool = CONFIG.get("enable_artifact_download_mock") == "true"
+    enable_widget_directive_commands: bool = CONFIG.get("enable_widget_directive_commands") == "true"
+    enable_default_protocol_profile_fallback: bool = CONFIG.get("enable_default_protocol_profile_fallback") == "true"
+    enable_openai_fallback: bool = CONFIG.get("enable_openai_fallback") == "true"
+    enable_sensitive_log_fields: bool = CONFIG.get("enable_sensitive_log_fields") == "true"
+    ids_installation_filter_package_names: tuple[str, ...] = (
+        "com.huawei.hmsapp.totemweather",
+        "com.huawei.hmos.health",
+        "com.huawei.hmos.calendar"
+    )
 
-    @model_validator(mode="after")
-    def validate_model_failure_retry_delays(self) -> "Settings":
-        """保证退避上限不小于首次等待时间。"""
-        max_delay = self.model_failure_retry_max_delay_seconds
-        initial_delay = self.model_failure_retry_initial_delay_seconds
-        if max_delay < initial_delay:
-            raise ValueError("model failure retry max delay must not be less than initial delay")
-        if self.openai_master_client == self.openai_fallback_client:
-            raise ValueError("OpenAI master and fallback clients must be different")
-        return self
-
-    if platform.system() == "Windows":
-        LOCAL_FLAG: bool = True
-        HTTP_SERVER_URL: str = "http://localhost:8080"
-    else:
-        LOCAL_FLAG: bool = False
-        HTTP_SERVER_URL: str = "https://localhost:8080"
+    # deepseek v4 flash model config
+    deepseek_ws_url: str = CONFIG.get("deepseek_ws_url")
+    deepseek_model: str = CONFIG.get("deepseek_model")
+    deepseek_api_key: str = CONFIG.get("deepseek_api_key")
+    deepseek_user: str = CONFIG.get("deepseek_user")
+    deepseek_request_id: str = CONFIG.get("deepseek_request_id")
+    deepseek_temperature: float = CONFIG.get("deepseek_temperature")
+    deepseek_top_p: float = CONFIG.get("deepseek_top_p")
+    deepseek_top_k: int = CONFIG.get("deepseek_top_k")
+    deepseek_max_tokens: int = CONFIG.get("deepseek_max_tokens")
+    deepseek_enable_thinking: bool = CONFIG.get("deepseek_enable_thinking") == "true"  # bool类型需要str转bool
+    deepseek_include_usage: bool = CONFIG.get("deepseek_include_usage") == "true"  # bool类型需要str转bool
+    deepseek_debug_usage: bool = CONFIG.get("deepseek_debug_usage") == "true"  # bool类型需要str转bool
+    deepseek_recv_timeout: int = CONFIG.get("deepseek_recv_timeout")
+    deepseek_platform_model_select: bool = CONFIG.get("deepseek_platform_model_select") == "true"  # 模型选择
+    deepseek_platform_model_name: str = CONFIG.get(
+        "deepseek_platform_thinking_model_name") if deepseek_platform_model_select else CONFIG.get(
+        "deepseek_platform_model_name")
 
     @property
     def package_root(self) -> Path:
@@ -153,52 +156,20 @@ class Settings(BaseSettings):
         return self.package_root / "data"
 
     @property
-    def repository_root(self) -> Path:
-        """获取包含 docs 和 widget_service 的项目根目录。"""
-        return self.package_root.parent.parent
+    def repo_root(self) -> Path:
+        """获取仓库根目录。
 
-    def _resolve_repository_file(self, configured_path: str) -> Path:
-        path = Path(configured_path)
-        if path.is_absolute():
-            return path.resolve()
-        return (self.repository_root / path).resolve()
-
-    @property
-    def resolved_system_prompt_file(self) -> Path:
-        """获取首次生成系统提示词文件路径。"""
-        return self._resolve_repository_file(self.system_prompt_file)
-
-    @property
-    def resolved_edit_system_prompt_file(self) -> Path:
-        """获取编辑模式系统提示词文件路径。"""
-        return self._resolve_repository_file(self.edit_system_prompt_file)
-
-    @property
-    def resolved_repair_system_prompt_file(self) -> Path:
-        """获取校验错误修复提示词文件路径。"""
-        return self._resolve_repository_file(self.repair_system_prompt_file)
-
-    @property
-    def system_prompt(self) -> str:
-        """从配置文件读取首次生成系统提示词。"""
-        return self.resolved_system_prompt_file.read_text(encoding="utf-8")
-
-    @property
-    def edit_system_prompt(self) -> str:
-        """从配置文件读取编辑模式系统提示词。"""
-        return self.resolved_edit_system_prompt_file.read_text(encoding="utf-8")
-
-    @property
-    def repair_system_prompt(self) -> str:
-        """从配置文件读取校验错误修复提示词。"""
-        return self.resolved_repair_system_prompt_file.read_text(encoding="utf-8")
+        入参：无。
+        出参：当前项目仓库根路径。
+        """
+        return self.package_root.parents[1]
 
     @property
     def resolved_mock_ids_response_path(self) -> Path:
         """获取 mock IDS 响应文件路径。
 
         入参：无。
-        出参：解析后的 `cloud/data/mock/ids_res.json` 绝对路径。
+        出参：解析后的 `docs/ids_res.txt` 绝对路径。
         """
         path = Path(self.mock_ids_response_path)
         if path.is_absolute():
@@ -221,5 +192,5 @@ class LoggingConfig:
     if get_settings().LOCAL_FLAG:
         LOG_DIR = PROJECT_ROOT / "logs"
     else:
-        LOG_DIR = "/opt/test/logs/genui-agent-service/debug"
+        LOG_DIR = "/opt/huawei/logs/genui-agent-service/debug"
     NOHUP_PATH = PROJECT_ROOT / "nohup.out"

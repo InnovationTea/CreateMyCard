@@ -23,11 +23,13 @@
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": ["/current/temperatureText"],
       "secondaryData": [
-        "/location/districtName",
-        "/current/condition",
-        "/current/coldLevel"
+        "/current/condition"
       ],
-      "optionalData": []
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/current/coldLevel"
+      ]
     },
     {
       "templateId": "WeatherOverviewUvCompact@1",
@@ -40,10 +42,12 @@
         "/current/uvIndex"
       ],
       "secondaryData": [
-        "/location/districtName",
         "/current/condition"
       ],
-      "optionalData": []
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName"
+      ]
     },
     {
       "templateId": "WeatherOverviewTemperatureSupport@1",
@@ -83,11 +87,13 @@
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": ["/current/temperatureText"],
       "secondaryData": [
-        "/location/districtName",
-        "/current/condition",
-        "/current/coldLevel"
+        "/current/condition"
       ],
-      "optionalData": []
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/current/coldLevel"
+      ]
     },
     {
       "templateId": "WeatherOverviewFull@1",
@@ -97,12 +103,14 @@
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": ["/current/temperatureText"],
       "secondaryData": [
+        "/current/condition"
+      ],
+      "optionalData": [
+        "/location/prefectureName",
         "/location/districtName",
-        "/current/condition",
         "/current/airQuality",
         "/current/coldLevel"
-      ],
-      "optionalData": []
+      ]
     },
     {
       "templateId": "WeatherOverviewHumidityFull@1",
@@ -112,13 +120,15 @@
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": ["/current/humidityPercent"],
       "secondaryData": [
-        "/location/districtName",
         "/current/temperatureText",
-        "/current/condition",
+        "/current/condition"
+      ],
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
         "/current/airQuality",
         "/current/coldLevel"
-      ],
-      "optionalData": []
+      ]
     },
     {
       "templateId": "WeatherOverviewUvFull@1",
@@ -128,13 +138,15 @@
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": ["/current/uvIndex"],
       "secondaryData": [
-        "/location/districtName",
         "/current/temperatureText",
-        "/current/condition",
+        "/current/condition"
+      ],
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
         "/current/airQuality",
         "/current/coldLevel"
-      ],
-      "optionalData": []
+      ]
     },
     {
       "templateId": "WeatherOverviewAirQualityHero@1",
@@ -144,11 +156,13 @@
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": ["/current/airQuality"],
       "secondaryData": [
-        "/location/districtName",
-        "/current/condition",
-        "/current/coldLevel"
+        "/current/condition"
       ],
-      "optionalData": []
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/current/coldLevel"
+      ]
     }
   ],
   "compatibility": {

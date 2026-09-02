@@ -14,12 +14,14 @@ Provider 的业务组件索引直接由 `provider.json#templates[].businessId` �
 所有 `.cardtpl` 组件均使用 [Tersel Option 3](../../../docs/tersel-protocol.md)，直接声明内联样式，不使用
 DesignToken。Provider 模板是受信资源，不需要用 DesignToken 缩短模型 Prompt；主题色通过受限
 `$theme('<path>')` 内联值声明，并在可信展开阶段解析。
+仅按数据路径或 Prop 可用性选择值时使用逐层加括号的生成期三元表达式；编译器只删除三元选择结构，
+选中的 `data.xxx` 继续作为直接 A2UI 数据绑定，不能用 TaskSpec 的 `sampleValue` 固化展示内容。
 
 当前迁移范围：
 
 - `weather`：`ViewWeather` → 9 个 UI 模板
 - `calendar`：`GetCalendarEvents` → 8 个日期/日程 UI 模板
-- `battery`：`GetPhoneBatteryInfo` → 21 个电量 UI 模板
+- `battery`：`GetPhoneBatteryInfo` → 7 个电量 UI 模板
 - `system-memory`：`GetSystemMemInfo` → 3 个内存 UI 模板
 - `app-usage`：`GetAppUsageDuration` → 6 个应用时长 UI 模板
 - `health-sport`：`GetHealthAndSportSummary` → 30 个活动、运动、心率和睡眠 UI 模板

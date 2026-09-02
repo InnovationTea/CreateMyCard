@@ -60,7 +60,14 @@ _LAYOUT_COMPONENTS = frozenset(
     }
 )
 _CONDITIONAL_PARAMETER_COMPONENTS = frozenset({"IfParam", "IfMissingParam"})
-_CONDITIONAL_BINDING_COMPONENTS = frozenset({"IfBind", "IfMissingBind"})
+_SINGLE_CONDITIONAL_BINDING_COMPONENTS = frozenset({"IfBind", "IfMissingBind"})
+_GROUPED_CONDITIONAL_BINDING_COMPONENTS = frozenset(
+    {"IfAllBind", "IfAnyMissingBind"}
+)
+_CONDITIONAL_BINDING_COMPONENTS = (
+    _SINGLE_CONDITIONAL_BINDING_COMPONENTS
+    | _GROUPED_CONDITIONAL_BINDING_COMPONENTS
+)
 _CONDITIONAL_COMPONENTS = _CONDITIONAL_PARAMETER_COMPONENTS | _CONDITIONAL_BINDING_COMPONENTS
 _TEMPLATE_COMPONENTS = _COMPONENTS | _LAYOUT_COMPONENTS | _CONDITIONAL_COMPONENTS
 _CONTAINERS = (
@@ -78,6 +85,7 @@ _REFERENCE_CALLS = frozenset(
         "_CardTplOptionalParam",
         "_CardTplInterpolation",
         "_CardTplTheme",
+        "_CardTplConditional",
     }
 )
 _FORBIDDEN_KEYS = frozenset({"__proto__", "prototype", "constructor"})
@@ -731,6 +739,13 @@ def _matching_delimiter(
 
 def _translate_ui_template_body(body: str) -> str:
     body = re.sub(
+        r"\b(IfPresent|IfAbsent)\(\s*"
+        r"data\.([A-Za-z_][A-Za-z0-9_]*)\s*&\s*"
+        r"data\.([A-Za-z_][A-Za-z0-9_]*)\s*,",
+        _translate_grouped_binding_guard,
+        body,
+    )
+    body = re.sub(
         r"\b(IfPresent|IfAbsent)\(\s*data\.([A-Za-z_][A-Za-z0-9_]*)\s*,",
         lambda match: ("IfBind" if match.group(1) == "IfPresent" else "IfMissingBind")
         + f'("{match.group(2)}",',
@@ -749,6 +764,13 @@ def _translate_ui_template_body(body: str) -> str:
         lambda match: f'_CardTplOptionalParam("{match.group(1)}")',
         body,
     )
+
+
+def _translate_grouped_binding_guard(match: re.Match[str]) -> str:
+    component = "IfAllBind" if match.group(1) == "IfPresent" else "IfAnyMissingBind"
+    binding_names = [match.group(2), match.group(3)]
+    serialized_names = json.dumps(binding_names, separators=(",", ":"))
+    return f"{component}({serialized_names},"
 
 
 def _validate_provider_template_data_contract(
@@ -827,7 +849,10 @@ def provider_template_layout_kind(wire_id: str) -> str | None:
 def _parse_component_body(body: str) -> TemplateNode:
     if not body:
         raise ValueError("Provider Template body is empty")
-    if re.search(r"\b(?:_CardTplInterpolation|_CardTplTheme)\s*\(", body):
+    if re.search(
+        r"\b(?:_CardTplConditional|_CardTplInterpolation|_CardTplTheme)\s*\(",
+        body,
+    ):
         raise ValueError("Provider Template uses a reserved internal name")
     try:
         with_template_strings = _translate_template_strings(body)
@@ -835,9 +860,10 @@ def _parse_component_body(body: str) -> TemplateNode:
             with_template_strings,
             "_CardTplTheme",
         )
+        with_conditionals = _translate_compile_time_conditionals(with_theme_calls)
     except ThemeReferenceSyntaxError as exc:
         raise ValueError(str(exc)) from exc
-    translated = _python_compatible_source(with_theme_calls)
+    translated = _python_compatible_source(with_conditionals)
     try:
         module = ast.parse(translated, mode="exec")
     except SyntaxError as exc:
@@ -885,7 +911,13 @@ def _component_node(node: ast.AST) -> TemplateNode:
         raise ValueError(f"Provider Template leaf cannot contain children: {component}")
     if spread_children and component not in _CONTAINERS:
         raise ValueError(f"Provider Template leaf cannot spread children: {component}")
-    if component in _CONDITIONAL_COMPONENTS:
+    if component in _GROUPED_CONDITIONAL_BINDING_COMPONENTS:
+        if len(values) != 1 or len(children) != 1:
+            raise ValueError(
+                f"Provider Template {component} requires two binding names and one child"
+            )
+        _grouped_conditional_binding_names(values[0])
+    elif component in _CONDITIONAL_COMPONENTS:
         has_single_value = len(values) == 1
         has_literal_name = has_single_value and values[0].kind == "literal"
         has_string_name = has_literal_name and isinstance(values[0].value, str)
@@ -899,6 +931,26 @@ def _component_node(node: ast.AST) -> TemplateNode:
         children=tuple(children),
         spreadChildren=spread_children,
     )
+
+
+def _grouped_conditional_binding_names(value: TemplateValue) -> tuple[str, str]:
+    if value.kind != "array" or len(value.items) != 2:
+        raise ValueError(
+            "Provider Template grouped conditional requires two binding names"
+        )
+    binding_names: list[str] = []
+    for item in value.items:
+        if item.kind != "literal" or not isinstance(item.value, str):
+            raise ValueError(
+                "Provider Template grouped conditional binding must be a string"
+            )
+        binding_names.append(item.value)
+    first_name, second_name = binding_names
+    if first_name == second_name:
+        raise ValueError(
+            "Provider Template grouped conditional bindings must be different"
+        )
+    return first_name, second_name
 
 
 def _indexed_template_child(node: ast.AST) -> int | None:
@@ -978,6 +1030,8 @@ def _template_value(node: ast.AST) -> TemplateValue:
                 raise ValueError("Expr requires one backtick template string")
             interpolation = _interpolation_value(argument)
             return TemplateValue(kind="expression", items=interpolation.items)
+        if node.func.id == "_CardTplConditional":
+            return _compile_time_conditional_value(node)
         if node.func.id == "_CardTplTheme":
             args = _call_literal_args(node, "$theme")
             path = args[0] if len(args) == 1 else None
@@ -1013,8 +1067,31 @@ def _template_value(node: ast.AST) -> TemplateValue:
         return TemplateValue(kind="object", properties=properties)
     raise ValueError(
         "Provider Template values must be literals, bindings, template strings, "
-        "Expr, EventAction, Param, Asset or $theme"
+        "compile-time conditionals, Expr, EventAction, Param, Asset or $theme"
     )
+
+
+def _compile_time_conditional_value(call: ast.Call) -> TemplateValue:
+    if call.keywords or len(call.args) != 3:
+        raise ValueError("Provider Template compile-time conditional requires three operands")
+    items = tuple(_template_value(argument) for argument in call.args)
+    condition = items[0]
+    if condition.kind not in {"binding", "parameter"}:
+        raise ValueError(
+            "Provider Template compile-time conditional condition must be data.xxx or props.xxx"
+        )
+    for branch in items[1:]:
+        if branch.kind not in {
+            "binding",
+            "parameter",
+            "literal",
+            "compile-time-conditional",
+        }:
+            raise ValueError(
+                "Provider Template compile-time conditional branches only support "
+                "data, props, literals or nested conditionals"
+            )
+    return TemplateValue(kind="compile-time-conditional", items=items)
 
 
 def _event_action_value(call: ast.Call) -> TemplateValue:
@@ -1204,6 +1281,126 @@ def _read_template_string(source: str, start: int) -> tuple[str, int]:
     raise ValueError("CardTemplate interpolation is not closed")
 
 
+def _translate_compile_time_conditionals(source: str) -> str:
+    """Lower parenthesized ``condition ? first : second`` into trusted IR calls."""
+    result = _translate_compile_time_conditional_segments(source)
+    if _contains_unquoted_question_mark(result):
+        raise ValueError(
+            "Provider Template compile-time conditional must wrap each ternary in parentheses"
+        )
+    return result
+
+
+def _translate_compile_time_conditional_segments(source: str) -> str:
+    translated: list[str] = []
+    delimiter_pairs = {"(": ")", "[": "]", "{": "}"}
+    index = 0
+    while index < len(source):
+        char = source[index]
+        if char in {'"', "'"}:
+            end = _quoted_source_end(source, index)
+            translated.append(source[slice(index, end)])
+            index = end
+            continue
+        if char == "#":
+            end = source.find("\n", index)
+            if end < 0:
+                translated.append(source[index:])
+                index = len(source)
+            else:
+                translated.append(source[slice(index, end + 1)])
+                index = end + 1
+            continue
+        closer = delimiter_pairs.get(char)
+        if closer is None:
+            translated.append(char)
+            index += 1
+            continue
+        end = _matching_delimiter(source, index, char, closer)
+        inner = _translate_compile_time_conditional_segments(source[slice(index + 1, end)])
+        parts = _compile_time_conditional_parts(inner) if char == "(" else None
+        if parts is None:
+            translated.extend((char, inner, closer))
+        else:
+            condition, present_value, fallback_value = parts
+            translated.append(
+                f"_CardTplConditional({condition},{present_value},{fallback_value})"
+            )
+        index = end + 1
+    return "".join(translated)
+
+
+def _quoted_source_end(source: str, start: int) -> int:
+    quote = source[start]
+    escaped = False
+    for index in range(start + 1, len(source)):
+        char = source[index]
+        if escaped:
+            escaped = False
+        elif char == "\\":
+            escaped = True
+        elif char == quote:
+            return index + 1
+    raise ValueError("Provider Template string literal is not closed")
+
+
+def _compile_time_conditional_parts(source: str) -> tuple[str, str, str] | None:
+    question_index: int | None = None
+    colon_index: int | None = None
+    has_top_level_comma = False
+    delimiter_pairs = {"(": ")", "[": "]", "{": "}"}
+    index = 0
+    while index < len(source):
+        char = source[index]
+        if char in {'"', "'"}:
+            index = _quoted_source_end(source, index)
+            continue
+        closer = delimiter_pairs.get(char)
+        if closer is not None:
+            index = _matching_delimiter(source, index, char, closer) + 1
+            continue
+        if char == ",":
+            has_top_level_comma = True
+            break
+        if char == "?":
+            if question_index is not None:
+                raise ValueError(
+                    "Provider Template compile-time conditional must parenthesize nested ternaries"
+                )
+            question_index = index
+        elif char == ":" and question_index is not None:
+            if colon_index is not None:
+                raise ValueError(
+                    "Provider Template compile-time conditional has multiple fallback branches"
+                )
+            colon_index = index
+        index += 1
+    result: tuple[str, str, str] | None = None
+    if not has_top_level_comma and question_index is not None:
+        if colon_index is None:
+            raise ValueError("Provider Template compile-time conditional is missing ':'")
+        condition = source[:question_index].strip()
+        present_value = source[slice(question_index + 1, colon_index)].strip()
+        fallback_prefix = source[: colon_index + 1]
+        fallback_value = source.removeprefix(fallback_prefix).strip()
+        if not condition or not present_value or not fallback_value:
+            raise ValueError("Provider Template compile-time conditional operand is empty")
+        result = condition, present_value, fallback_value
+    return result
+
+
+def _contains_unquoted_question_mark(source: str) -> bool:
+    index = 0
+    while index < len(source):
+        if source[index] in {'"', "'"}:
+            index = _quoted_source_end(source, index)
+            continue
+        if source[index] == "?":
+            return True
+        index += 1
+    return False
+
+
 def _python_compatible_source(source: str) -> str:
     try:
         tokens = list(tokenize.generate_tokens(io.StringIO(source).readline))
@@ -1302,33 +1499,47 @@ def _validate_conditional_guards(
     guarded_params: set[str] = set()
     guarded_bindings: set[str] = set()
 
-    def parameter_references(value: TemplateValue) -> set[str]:
-        result = {value.name} if value.kind == "parameter" and value.name else set()
+    def visit_value(
+        value: TemplateValue,
+        active_param_guards: set[str],
+        active_binding_guards: set[str],
+    ) -> None:
+        if value.kind == "compile-time-conditional":
+            condition, present_value, fallback_value = value.items
+            next_param_guards = set(active_param_guards)
+            next_binding_guards = set(active_binding_guards)
+            if condition.kind == "parameter" and condition.name:
+                guarded_params.add(condition.name)
+                next_param_guards.add(condition.name)
+            elif condition.kind == "binding" and condition.name:
+                guarded_bindings.add(condition.name)
+                next_binding_guards.add(condition.name)
+            visit_value(present_value, next_param_guards, next_binding_guards)
+            visit_value(fallback_value, active_param_guards, active_binding_guards)
+            return
+        if value.kind == "optional-parameter" and value.name:
+            if value.name in required_params:
+                raise ValueError(
+                    "Provider Template optional props access requires an optional prop: "
+                    f"{value.name}"
+                )
+            guarded_params.add(value.name)
+        elif value.kind == "parameter" and value.name:
+            if value.name not in required_params and value.name not in active_param_guards:
+                raise ValueError(
+                    "Provider Template optional Param/Asset must be nested under "
+                    f"IfPresent(props.{value.name}, ...) or tested by a compile-time conditional"
+                )
+        elif value.kind == "binding" and value.name:
+            if value.name not in required_bindings and value.name not in active_binding_guards:
+                raise ValueError(
+                    "Provider Template optional Bind must be nested under "
+                    f"IfPresent(data.{value.name}, ...) or tested by a compile-time conditional"
+                )
         for item in value.items:
-            result.update(parameter_references(item))
+            visit_value(item, active_param_guards, active_binding_guards)
         for item in value.properties.values():
-            result.update(parameter_references(item))
-        return result
-
-    def optional_parameter_references(value: TemplateValue) -> set[str]:
-        result = (
-            {value.name}
-            if value.kind == "optional-parameter" and value.name
-            else set()
-        )
-        for item in value.items:
-            result.update(optional_parameter_references(item))
-        for item in value.properties.values():
-            result.update(optional_parameter_references(item))
-        return result
-
-    def binding_references(value: TemplateValue) -> set[str]:
-        result = {value.name} if value.kind == "binding" and value.name else set()
-        for item in value.items:
-            result.update(binding_references(item))
-        for item in value.properties.values():
-            result.update(binding_references(item))
-        return result
+            visit_value(item, active_param_guards, active_binding_guards)
 
     def visit(
         node: TemplateNode,
@@ -1349,7 +1560,7 @@ def _validate_conditional_guards(
                 child_param_guards.add(parameter_name)
             visit(node.children[0], child_param_guards, active_binding_guards)
             return
-        if node.component in _CONDITIONAL_BINDING_COMPONENTS:
+        if node.component in _SINGLE_CONDITIONAL_BINDING_COMPONENTS:
             binding_name = node.values[0].value
             if not isinstance(binding_name, str):
                 raise ValueError("Provider Template conditional binding must be a string")
@@ -1361,32 +1572,22 @@ def _validate_conditional_guards(
                 child_binding_guards.add(binding_name)
             visit(node.children[0], active_param_guards, child_binding_guards)
             return
+        if node.component in _GROUPED_CONDITIONAL_BINDING_COMPONENTS:
+            binding_names = _grouped_conditional_binding_names(node.values[0])
+            unknown_bindings = set(binding_names) - set(bindings)
+            if unknown_bindings:
+                unknown_name = sorted(unknown_bindings)[0]
+                raise ValueError(
+                    f"unknown Provider Template conditional binding: {unknown_name}"
+                )
+            guarded_bindings.update(binding_names)
+            child_binding_guards = set(active_binding_guards)
+            if node.component == "IfAllBind":
+                child_binding_guards.update(binding_names)
+            visit(node.children[0], active_param_guards, child_binding_guards)
+            return
         for value in node.values:
-            for parameter_name in optional_parameter_references(value):
-                if parameter_name in required_params:
-                    raise ValueError(
-                        "Provider Template optional props access requires an optional prop: "
-                        f"{parameter_name}"
-                    )
-                guarded_params.add(parameter_name)
-            for parameter_name in parameter_references(value):
-                if (
-                    parameter_name not in required_params
-                    and parameter_name not in active_param_guards
-                ):
-                    raise ValueError(
-                        "Provider Template optional Param/Asset must be nested under "
-                        f"IfPresent(props.{parameter_name}, ...)"
-                    )
-            for binding_name in binding_references(value):
-                if (
-                    binding_name not in required_bindings
-                    and binding_name not in active_binding_guards
-                ):
-                    raise ValueError(
-                        "Provider Template optional Bind must be nested under "
-                        f"IfPresent(data.{binding_name}, ...)"
-                    )
+            visit_value(value, active_param_guards, active_binding_guards)
         for child in node.children:
             visit(child, active_param_guards, active_binding_guards)
 

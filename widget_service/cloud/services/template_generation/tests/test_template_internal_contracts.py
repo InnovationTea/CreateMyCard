@@ -537,7 +537,7 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
         "TwoSupportLayout",
         (
             template("WeatherOverviewTemperatureSupport@1"),
-            template("BatteryOverviewNormalWeatherSupport@1"),
+            template("ResourceUsageOverviewSupport@1"),
         ),
         (),
         "2x2",
@@ -547,14 +547,14 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
             "TwoSupportLayout",
             (
                 template("WeatherOverviewCompact@1"),
-                template("BatteryOverviewNormalWeatherCompact@1"),
+                template("BatteryOverviewCompact@1"),
             ),
             (),
             "2x2",
         )
     _validate_provider_template_layout_action_requirements(
         "HeroActionLayout",
-        (template("BatteryOverviewNormalHero@1"),),
+        (template("BatteryOverviewHero@1"),),
         (pill_one,),
         "2x2",
     )
@@ -586,7 +586,7 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
     with pytest.raises(TerselConversionError, match="Hero.*Action combination"):
         _validate_provider_template_layout_action_requirements(
             "HeroActionLayout",
-            (template("BatteryOverviewNormalHero@1"),),
+            (template("BatteryOverviewHero@1"),),
             (),
             "2x2",
         )
@@ -614,7 +614,7 @@ def test_provider_template_layout_suffix_combinations_are_enforced() -> None:
     with pytest.raises(TerselConversionError, match="requires HeroActionLayout"):
         _validate_provider_template_layout_action_requirements(
             "SingleFocusLayout",
-            (template("BatteryOverviewNormalHero@1"),),
+            (template("BatteryOverviewHero@1"),),
             (pill_one,),
             "2x2",
         )

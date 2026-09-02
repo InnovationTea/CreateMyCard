@@ -12,6 +12,7 @@
     "primaryColor",
     "supportContentColor",
     "progressColor",
+    "progressBackgroundColor",
     "actionStyle.backgroundColor",
     "actionStyle.contentColor",
     "supportContentStyle.backgroundColor",

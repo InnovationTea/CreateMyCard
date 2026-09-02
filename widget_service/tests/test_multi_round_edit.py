@@ -237,7 +237,11 @@ async def test_design_compact_edit_uses_previous_design_token(
     expected_system = A2UIProtocolRegistry.read_design_prompt("design-compact-dsl")
 
     assert len(prompts[0]) == 2
-    assert prompts[0][0] == {"role": "system", "content": expected_system}
+    assert prompts[0][0]["role"] == "system"
+    assert prompts[0][0]["content"].startswith(expected_system)
+    assert "禁止在任何组件中生成 `fusion-ball-*` Design Token" in (
+        prompts[0][0]["content"]
+    )
     assert prompts[0][1]["content"].startswith("{")
     assert edit_payload["userQuery"] == "整体改成蓝色"
     assert edit_payload["taskSpec"]["userQuery"] == "整体改成蓝色"
@@ -537,8 +541,10 @@ def test_edit_prompt_contains_previous_genui_but_not_source_url():
 
     edit_context = json.loads(prompt[1]["content"])
     assert '"userQuery":"改成蓝色"' in prompt[0]["content"]
+    assert '"appVersion"' not in prompt[0]["content"]
     assert edit_context["previousGenui"] == previous_genui
     assert edit_context["editInstruction"] == "改成蓝色"
+    assert "appVersion" not in edit_context["newTaskSpec"]
     assert "sourceArtifactUrl" not in str(prompt)
 
 

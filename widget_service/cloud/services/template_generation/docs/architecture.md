@@ -171,7 +171,8 @@ Search 路线的首层输出是 `TemplateRetrievalQuery`：
 1. 用闭包语法解析器读取 Layout 根、业务 Template 和 Action Template。
 2. 校验原始组件数、层级、允许的 Template ID、Props 类型和必传数据。
 3. 按布局后缀校验卡片尺寸、业务节点数和 Action 类型/数量。
-4. 展开 CardTpl，处理 `Bind`、`Param`、`Asset`、`Expr`、条件节点和 children 槽位。
+4. 展开 CardTpl，处理 `Bind`、`Param`、`Asset`、运行时 `Expr`、生成期三元、条件节点和 children 槽位；
+   生成期三元只按路径或 Prop 可用性选择直接绑定或确定值，不进入最终 A2UI 表达式。
 5. 将 Action Template 的 `EventAction(props.actionId)` 实体化为已批准事件；对 Support 中的
    `EventAction(props?.actionId)`，缺少 `actionId` 时省略 `onClick`。
 6. 将 Theme `rootStyle` 应用到卡片根节点；为未显式着色的内容组件补 `primaryColor`；确定性展开

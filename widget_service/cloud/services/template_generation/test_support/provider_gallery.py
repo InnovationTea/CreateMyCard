@@ -142,7 +142,6 @@ _ACTION_QUERIES_BY_BUSINESS = {
 
 _ASSET_IDS_BY_TEMPLATE_PREFIX = {
     "BatteryOverview": ("asset.battery_leaf_fill",),
-    "BluetoothDeviceOverviewCaseStatus": ("asset.earphone_case_16644",),
     "HeartRateOverviewIcon": ("asset.heart_fill",),
     "HeartRateOverviewUpdatedIcon": ("asset.heart_fill",),
     "ScheduleOverviewNextEventHero": ("asset.calendar_fill",),
@@ -150,15 +149,8 @@ _ASSET_IDS_BY_TEMPLATE_PREFIX = {
         "asset.calendar_fill",
         "asset.icon_meeting",
     ),
-    "ScheduleOverviewDateFull": (
-        "asset.clock",
-        "asset.location_north_up_right_fill",
-    ),
     "ScheduleOverviewNextEventLocationFull": (
         "asset.calendar_fill",
-        "asset.clock",
-        "asset.location_north_up_right_fill",
-        "asset.icon_meeting",
     ),
     "ScheduleOverviewMeetingSourceWideFull": (
         "asset.calendar_fill",
@@ -171,9 +163,6 @@ _ASSET_IDS_BY_TEMPLATE_PREFIX = {
         "asset.clock",
         "asset.location_north_up_right_fill",
         "asset.icon_meeting",
-    ),
-    "BluetoothDeviceOverviewCaseStatusCompact": (
-        "asset.earphone_case_16644",
     ),
     "BluetoothDeviceOverviewEarbudsSupport": (
         "asset.icon_earphone",
@@ -640,13 +629,6 @@ def _gallery_sample_overrides(
             "/data/phoneBattery/batterySOCText": "68%",
             "/data/phoneBattery/chargingStatusDesc": "正在充电",
             "/data/phoneBattery/batteryCapacityLevelDesc": "正常电量",
-        }
-    elif "BatteryOverviewLow" in template_id:
-        battery_overrides = {
-            "/data/phoneBattery/batterySOC": 15,
-            "/data/phoneBattery/batterySOCText": "15%",
-            "/data/phoneBattery/chargingStatusDesc": "未充电",
-            "/data/phoneBattery/batteryCapacityLevelDesc": "低电量",
         }
     available_fields = set(battery_template.fields)
     if not _BATTERY_FACT_FIELDS.intersection(available_fields):
