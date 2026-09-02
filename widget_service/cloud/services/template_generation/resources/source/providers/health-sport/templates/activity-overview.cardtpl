@@ -108,8 +108,8 @@ Column(
             "value": data.steps,
             "total": 10000,
             "strokeWidth": 8,
-            "color": $theme('primaryColor'),
-            "backgroundColor": "#1AFFFFFF",
+            "color": $theme('progressColor'),
+            "backgroundColor": $theme('progressBackgroundColor'),
             "height": 12,
             "width": "matchParent"
         }
@@ -423,8 +423,8 @@ Column(
                   "value": data.steps,
                   "total": 10000,
                   "strokeWidth": 8,
-                  "color": $theme('primaryColor'),
-                  "backgroundColor": "#1AFFFFFF",
+                  "color": $theme('progressColor'),
+                  "backgroundColor": $theme('progressBackgroundColor'),
                   "height": 12,
                   "width": "matchParent"
               }
