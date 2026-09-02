@@ -75,7 +75,10 @@ class FusionBallPalette:
 
 def fusion_ball_enabled(prd_ver: Any) -> bool:
     """按配置最低版本和请求 prdVer 以失效关闭方式裁决融球。"""
-    minimum = get_settings().CONFIG.get(FUSION_BALL_MIN_PRD_VERSION_CONFIG)
+    minimum = get_settings().CONFIG.get(
+        FUSION_BALL_MIN_PRD_VERSION_CONFIG,
+        None,
+    )
     if not isinstance(prd_ver, str) or not isinstance(minimum, str):
         return False
     if not prd_ver or not minimum:

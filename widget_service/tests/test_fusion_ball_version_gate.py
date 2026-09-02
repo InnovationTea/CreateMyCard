@@ -104,6 +104,19 @@ def test_fusion_ball_gate_fails_closed_for_invalid_config(
     assert fusion_ball_enabled(_DEFAULT_APP_VERSION) is False
 
 
+def test_fusion_ball_gate_supplies_default_for_missing_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class MissingConfig:
+        @staticmethod
+        def get(_key: str, default: Any) -> Any:
+            return default
+
+    monkeypatch.setattr(get_settings(), "CONFIG", MissingConfig())
+
+    assert fusion_ball_enabled(_DEFAULT_APP_VERSION) is False
+
+
 @pytest.mark.parametrize("previous_design_token", [None, '["/state/ready",true]'])
 def test_design_compact_prompt_appends_fusion_ball_restriction_when_disabled(
     monkeypatch: pytest.MonkeyPatch,
