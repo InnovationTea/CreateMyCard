@@ -299,8 +299,12 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
     assert all("#Variant" not in source for source in provider_source_texts)
     assert all("IfParam" not in source for source in provider_source_texts)
     assert all("IfMissingParam" not in source for source in provider_source_texts)
-    assert any("IfPresent" in source for source in provider_source_texts)
-    assert any("IfAbsent" in source for source in provider_source_texts)
+    assert all("IfPresent" not in source for source in provider_source_texts)
+    assert all("IfAbsent" not in source for source in provider_source_texts)
+    assert any("#if" in source for source in provider_source_texts)
+    assert any("#else" in source for source in provider_source_texts)
+    assert any("#endif" in source for source in provider_source_texts)
+    assert any("#Expr" in source for source in provider_source_texts)
     assert all(
         definition.variants[0].size == "default"
         for template_id in registry.provider_template_ids
@@ -445,9 +449,61 @@ def test_weather_location_compile_time_conditional_selects_available_reference(
     assert "{{" not in str(location_text.values[0])
 
 
-def test_compile_time_conditional_requires_parenthesized_ternary() -> None:
-    with pytest.raises(ValueError, match="must wrap each ternary in parentheses"):
-        _parse_component_body('Text(data.city ? data.city : "当前城市", {})')
+def test_compile_time_conditional_requires_explicit_expr() -> None:
+    with pytest.raises(ValueError, match="must use #Expr"):
+        _parse_component_body('Text((data.city ? data.city : "当前城市"), {})')
+
+    root = _parse_component_body(
+        'Text(#Expr(data.city ? data.city : '
+        '(props.location ? props.location : "当前城市")), {})'
+    )
+
+    assert root.values[0].kind == "compile-time-conditional"
+    assert root.values[0].items[2].kind == "compile-time-conditional"
+
+
+@pytest.mark.parametrize(
+    ("source", "message"),
+    [
+        ("#else", "has no matching #if"),
+        ("#if data.city", "missing #endif"),
+        ("#if data.city.value\n#endif", "#if target is invalid"),
+        ("Text(#Expr(data.city), {})", "requires one ternary expression"),
+    ],
+)
+def test_provider_compile_directives_reject_invalid_syntax(
+    source: str,
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        _parse_component_body(source)
+
+
+def test_provider_compiler_rejects_legacy_presence_calls() -> None:
+    with pytest.raises(ValueError, match="unsupported Provider Template component"):
+        _parse_component_body('Column({}, IfPresent(data.city, Text(data.city, {})))')
+
+
+def test_provider_structure_directive_selects_compile_time_branch() -> None:
+    root = _parse_component_body(
+        """Column({},
+#if data.city
+  Text(data.city, {}),
+  Text("已定位", {})
+#else
+  Text("当前城市", {})
+#endif
+)"""
+    )
+
+    present = _instantiate_blueprint(root, {}, {"city": "${data.weather.city}"})
+    missing = _instantiate_blueprint(root, {}, {})
+
+    assert present.children[0].values[0] == "${data.weather.city}"
+    assert present.children[1].values[0] == "已定位"
+    assert missing.children[0].values[0] == "当前城市"
+    assert "IfBind" not in repr(present)
+    assert "IfMissingBind" not in repr(missing)
 
 
 def test_layout_template_wide_marker_drives_exclusive_card_size() -> None:

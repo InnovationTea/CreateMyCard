@@ -4449,27 +4449,15 @@ def _instantiate_blueprint_children(
         if child.component in _TEMPLATE_CONDITIONS:
             should_render = _template_condition_should_render(child, params, bindings)
             if should_render:
-                selected = child.children[0]
-                if selected.component in _TEMPLATE_CONDITIONS:
-                    instantiated.extend(
-                        _instantiate_blueprint_children(
-                            (selected,),
-                            params,
-                            bindings,
-                            theme_values,
-                            spread_children=spread_children,
-                        )
+                instantiated.extend(
+                    _instantiate_blueprint_children(
+                        child.children,
+                        params,
+                        bindings,
+                        theme_values,
+                        spread_children=spread_children,
                     )
-                else:
-                    instantiated.append(
-                        _instantiate_blueprint(
-                            selected,
-                            params,
-                            bindings,
-                            theme_values,
-                            spread_children=spread_children,
-                        )
-                    )
+                )
             continue
         instantiated.append(
             _instantiate_blueprint(

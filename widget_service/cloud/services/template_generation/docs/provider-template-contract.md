@@ -141,13 +141,19 @@ Column({"width": "matchParent", "itemMargin": 4},
     "fontWeight": 400,
     "fontColor": $theme('primaryColor')
   }),
-  IfPresent(data.airQuality,
+  #if data.airQuality
     Text(`${data.condition}｜${data.airQuality}`, {
       "fontSize": 12,
       "fontWeight": 500,
       "fontColor": $theme('supportContentColor')
     })
-  )
+  #else
+    Text(`${data.condition}`, {
+      "fontSize": 12,
+      "fontWeight": 500,
+      "fontColor": $theme('supportContentColor')
+    })
+  #endif
 )
 #End
 ```
@@ -159,14 +165,15 @@ Column({"width": "matchParent", "itemMargin": 4},
 
 - `$path` 声明模板展开必需的数据，必须按视觉层级进入 `primaryData` 或 `secondaryData`；两组数据都必须
   在 TaskSpec 中存在，只有 `optionalData` 可以缺省。
-- `$optionalPath` 声明可选数据，引用必须位于 `IfPresent(data.xxx, ...)` 或
-  `IfAbsent(data.xxx, ...)` 内，并进入 `optionalData`。
-- 两个可选字段必须同时存在时，可写
-  `IfPresent(data.first & data.second, child)`：仅当两个字段都存在时展开 `child`；
-  `IfAbsent(data.first & data.second, child)` 则在任意一个字段缺失时展开 `child`。
-  `&` 只允许连接条件首参数中的两个 `data.xxx`，表示存在性“与”，不表示值比较、位运算或通用
-  A2UI 表达式，也不会进入最终 A2UI。`IfPresent` 的子树可以安全引用这两个字段；`IfAbsent` 的子树
-  不得引用它们，因为运行时至少有一个字段不存在。
+- `$optionalPath` 声明可选数据，引用必须位于 `#if data.xxx` 的存在分支，或由 `#Expr` 对该字段先做
+  编译期选择，并进入 `optionalData`。
+- 组件结构的编译期选择使用独占行指令 `#if data.xxx` / `#if props.xxx`、可选的 `#else` 和
+  `#endif`。条件判断的是本轮 binding 或参数是否可用，不读取运行时值；Prop 已提供且不为 `None` 时
+  视为存在，因此 `false`、`0` 和空字符串仍属于存在分支。所有指令在 Provider Template 编译阶段删除，
+  不进入 Tersel 或最终 A2UI。
+- 两个可选数据字段必须同时存在时，可写 `#if data.first && data.second`。仅当两个字段都存在时展开
+  存在分支；任一字段缺失时进入 `#else`。`&&` 只允许连接两个直接的 `data.xxx`，表示编译期存在性
+  “与”，不表示运行时逻辑表达式。存在分支可以安全引用这两个字段，缺失分支不得引用它们。
 - Provider 全局路径中已经存在的值必须使用 `data.xxx`，由服务端根据 `dataDomain + 相对路径`
   绑定为端侧表达式，不得在 `props` 中重复传递。没有对应全局路径的受控派生展示值，以及素材、
   排版等模板参数，
@@ -176,16 +183,19 @@ Column({"width": "matchParent", "itemMargin": 4},
   可选参数，或选择不依赖该素材的模板。
 - 反引号 `${...}` 可混合 `props`、`data` 和静态分隔符；包含 `data` 时云侧保留为 A2UI 表达式且不投影
   样例值，只含 `props` 与静态文本时在可信展开阶段直接拼成确定字符串。
-- 仅需按路径或 Prop 是否可用选择一个值时，可使用带括号的生成期三元表达式，例如
-  `(data.city ? data.city : (props.location ? props.location : "当前城市"))`。条件只允许单个
+- 仅需按路径或 Prop 是否可用选择一个值时，使用显式的编译期语法，例如
+  `#Expr(data.city ? data.city : (data.district ? data.district : (props.location ? props.location : "当前城市")))`。
+  条件只允许单个
   `data.xxx` 或 `props.xxx`；分支只允许 `data.xxx`、`props.xxx`、字面量或继续加括号的三元表达式。
   编译器按本轮已解析数据绑定和二层 Props 的可用性选择分支并删除三元结构：选中 `data.xxx` 时保留该字段的
   直接 A2UI 数据绑定，选中 Prop 或字面量时写入对应确定值；不得读取 `sampleValue` 固化展示内容，也不会
-  生成 A2UI `Expr`。可选数据或 Prop 只允许在自身条件的真分支中引用。
+  生成 A2UI `Expr`。可选数据或 Prop 只允许在自身条件的真分支中引用；未使用 `#Expr` 包裹的普通三元
+  表达式不再接受。
 - 需要算术、比较、逻辑、按运行时值计算的三元条件或 `size()` 时使用 ``Expr(`...`)``，例如
   ``Expr(`${data.score} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`)``。`Expr` 至少引用一个 `data` binding，
   不接受 `props`、对象字面量、裸 identifier、未知函数或任意可执行调用；纯静态值继续写字面量。
-- 需要按运行时值计算的三元条件仍使用 `Expr`；`Expr` 与普通反引号插值最终都归一化为完整 A2UI
+- `#Expr(...)` 与 ``Expr(`...`)`` 语义不同：前者只做编译期值来源选择；后者需要按运行时值计算，
+  与普通反引号插值最终都归一化为完整 A2UI
   `{{ ... }}` 属性值，并按本轮 TaskSpec 路径、
   A2UI Form 表达式语法、2048 字符长度和 20 层嵌套限制校验。
 - 同一个 `.cardtpl` 可以包含多个 `#Template ... #End`，`provider.json` 中每个模板条目可指向同一文件；

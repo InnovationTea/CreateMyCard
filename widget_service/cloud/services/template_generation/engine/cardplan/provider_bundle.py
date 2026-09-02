@@ -469,7 +469,7 @@ def _compile_ui_card_template(
         )
     if bindings and (expected_capability_id is None or data_domain is None):
         raise ValueError("Provider data Template requires capabilityId and dataDomain")
-    transformed = _translate_ui_template_body(body)
+    transformed = _translate_optional_parameter_access(body)
     root = _parse_component_body(transformed)
     if root.component in _CONDITIONAL_COMPONENTS:
         raise ValueError("Provider Template conditional cannot be the Template root")
@@ -737,28 +737,7 @@ def _matching_delimiter(
     raise ValueError("Provider Template data object is not closed")
 
 
-def _translate_ui_template_body(body: str) -> str:
-    body = re.sub(
-        r"\b(IfPresent|IfAbsent)\(\s*"
-        r"data\.([A-Za-z_][A-Za-z0-9_]*)\s*&\s*"
-        r"data\.([A-Za-z_][A-Za-z0-9_]*)\s*,",
-        _translate_grouped_binding_guard,
-        body,
-    )
-    body = re.sub(
-        r"\b(IfPresent|IfAbsent)\(\s*data\.([A-Za-z_][A-Za-z0-9_]*)\s*,",
-        lambda match: ("IfBind" if match.group(1) == "IfPresent" else "IfMissingBind")
-        + f'("{match.group(2)}",',
-        body,
-    )
-    body = re.sub(
-        r"\b(IfPresent|IfAbsent)\(\s*props\.([A-Za-z_][A-Za-z0-9_]*)\s*,",
-        lambda match: (
-            "IfParam" if match.group(1) == "IfPresent" else "IfMissingParam"
-        )
-        + f'("{match.group(2)}",',
-        body,
-    )
+def _translate_optional_parameter_access(body: str) -> str:
     return re.sub(
         r"\bprops\?\.\s*([A-Za-z_][A-Za-z0-9_]*)",
         lambda match: f'_CardTplOptionalParam("{match.group(1)}")',
@@ -766,11 +745,95 @@ def _translate_ui_template_body(body: str) -> str:
     )
 
 
-def _translate_grouped_binding_guard(match: re.Match[str]) -> str:
-    component = "IfAllBind" if match.group(1) == "IfPresent" else "IfAnyMissingBind"
-    binding_names = [match.group(2), match.group(3)]
-    serialized_names = json.dumps(binding_names, separators=(",", ":"))
-    return f"{component}({serialized_names},"
+def _translate_template_directives(body: str) -> str:
+    translated: list[str] = []
+    stack: list[tuple[str, str, bool, int]] = []
+    for line_number, line in enumerate(body.splitlines(keepends=True), start=1):
+        directive = re.match(r"^[ \t]*#(if|else|endif)\b", line)
+        if directive is None:
+            translated.append(line)
+            continue
+        keyword = directive.group(1)
+        newline = "\n" if line.endswith("\n") else ""
+        indent = line[: len(line) - len(line.lstrip(" \t"))]
+        content = line.strip()
+        if keyword == "if":
+            present, missing = _template_directive_components(content, line_number)
+            stack.append((present, missing, False, line_number))
+            translated.append(f"{indent}{present}{newline}")
+            continue
+        if keyword == "else":
+            if content != "#else":
+                raise ValueError(
+                    f"Provider Template #else is invalid at line {line_number}"
+                )
+            if not stack:
+                raise ValueError(
+                    f"Provider Template #else has no matching #if at line {line_number}"
+                )
+            present, missing, has_else, start_line = stack[-1]
+            if has_else:
+                raise ValueError(
+                    f"Provider Template #if at line {start_line} has multiple #else blocks"
+                )
+            stack[-1] = (present, missing, True, start_line)
+            translated.append(f"{indent}), {missing}{newline}")
+            continue
+        if content != "#endif":
+            raise ValueError(
+                f"Provider Template #endif is invalid at line {line_number}"
+            )
+        if not stack:
+            raise ValueError(
+                f"Provider Template #endif has no matching #if at line {line_number}"
+            )
+        stack.pop()
+        translated.append(f"{indent}),{newline}")
+    if stack:
+        _present, _missing, _has_else, start_line = stack[-1]
+        raise ValueError(
+            f"Provider Template #if at line {start_line} is missing #endif"
+        )
+    return "".join(translated)
+
+
+def _template_directive_components(content: str, line_number: int) -> tuple[str, str]:
+    single = re.fullmatch(
+        r"#if[ \t]+(props|data)\.([A-Za-z_][A-Za-z0-9_]*)",
+        content,
+    )
+    if single is not None:
+        namespace, name = single.groups()
+        if namespace == "props":
+            return f'IfParam("{name}",', f'IfMissingParam("{name}",'
+        return f'IfBind("{name}",', f'IfMissingBind("{name}",'
+    grouped = re.fullmatch(
+        r"#if[ \t]+data\.([A-Za-z_][A-Za-z0-9_]*)[ \t]*&&[ \t]*"
+        r"data\.([A-Za-z_][A-Za-z0-9_]*)",
+        content,
+    )
+    if grouped is None or grouped.group(1) == grouped.group(2):
+        raise ValueError(
+            f"Provider Template #if target is invalid at line {line_number}"
+        )
+    binding_names = json.dumps(list(grouped.groups()), separators=(",", ":"))
+    return f"IfAllBind({binding_names},", f"IfAnyMissingBind({binding_names},"
+
+
+def _remove_empty_template_conditionals(body: str) -> str:
+    single = (
+        r'(?:IfParam|IfMissingParam|IfBind|IfMissingBind)\('
+        r'"[A-Za-z_][A-Za-z0-9_]*",\s*\),\s*'
+    )
+    grouped = (
+        r'(?:IfAllBind|IfAnyMissingBind)\(\["[A-Za-z_][A-Za-z0-9_]*",'
+        r'"[A-Za-z_][A-Za-z0-9_]*"\],\s*\),\s*'
+    )
+    result = body
+    while True:
+        result, count = re.subn(rf"\b(?:{single}|{grouped})", "", result)
+        if count == 0:
+            return result
 
 
 def _validate_provider_template_data_contract(
@@ -855,15 +918,17 @@ def _parse_component_body(body: str) -> TemplateNode:
     ):
         raise ValueError("Provider Template uses a reserved internal name")
     try:
-        with_template_strings = _translate_template_strings(body)
+        with_directives = _translate_template_directives(body)
+        with_directives = _remove_empty_template_conditionals(with_directives)
+        with_compile_expressions = _translate_compile_expressions(with_directives)
+        with_template_strings = _translate_template_strings(with_compile_expressions)
         with_theme_calls = translate_theme_reference_calls(
             with_template_strings,
             "_CardTplTheme",
         )
-        with_conditionals = _translate_compile_time_conditionals(with_theme_calls)
     except ThemeReferenceSyntaxError as exc:
         raise ValueError(str(exc)) from exc
-    translated = _python_compatible_source(with_conditionals)
+    translated = _python_compatible_source(with_theme_calls)
     try:
         module = ast.parse(translated, mode="exec")
     except SyntaxError as exc:
@@ -912,18 +977,18 @@ def _component_node(node: ast.AST) -> TemplateNode:
     if spread_children and component not in _CONTAINERS:
         raise ValueError(f"Provider Template leaf cannot spread children: {component}")
     if component in _GROUPED_CONDITIONAL_BINDING_COMPONENTS:
-        if len(values) != 1 or len(children) != 1:
+        if len(values) != 1 or not children:
             raise ValueError(
-                f"Provider Template {component} requires two binding names and one child"
+                f"Provider Template {component} requires two binding names and children"
             )
         _grouped_conditional_binding_names(values[0])
     elif component in _CONDITIONAL_COMPONENTS:
         has_single_value = len(values) == 1
         has_literal_name = has_single_value and values[0].kind == "literal"
         has_string_name = has_literal_name and isinstance(values[0].value, str)
-        if not has_string_name or len(children) != 1:
+        if not has_string_name or not children:
             raise ValueError(
-                f"Provider Template {component} requires one parameter name and one child"
+                f"Provider Template {component} requires one parameter name and children"
             )
     return TemplateNode(
         component=component,
@@ -1281,6 +1346,60 @@ def _read_template_string(source: str, start: int) -> tuple[str, int]:
     raise ValueError("CardTemplate interpolation is not closed")
 
 
+def _translate_compile_expressions(source: str) -> str:
+    translated: list[str] = []
+    quote: str | None = None
+    escaped = False
+    comment = False
+    unwrapped_question = False
+    index = 0
+    marker = "#Expr("
+    while index < len(source):
+        char = source[index]
+        if comment:
+            translated.append(char)
+            comment = char != "\n"
+            index += 1
+            continue
+        if quote is not None:
+            translated.append(char)
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            index += 1
+            continue
+        if char in {'"', "'", "`"}:
+            quote = char
+            translated.append(char)
+            index += 1
+            continue
+        if source.startswith(marker, index):
+            open_index = index + len(marker) - 1
+            close_index = _matching_delimiter(source, open_index, "(", ")")
+            expression = source[slice(open_index + 1, close_index)]
+            lowered = _translate_compile_time_conditionals(f"({expression})")
+            if not lowered.startswith("_CardTplConditional("):
+                raise ValueError("Provider Template #Expr requires one ternary expression")
+            translated.append(lowered)
+            index = close_index + 1
+            continue
+        if char == "#":
+            comment = True
+        elif char == "?":
+            unwrapped_question = True
+        translated.append(char)
+        index += 1
+    result = "".join(translated)
+    if unwrapped_question:
+        raise ValueError(
+            "Provider Template compile-time value selection must use #Expr(...)"
+        )
+    return result
+
+
 def _translate_compile_time_conditionals(source: str) -> str:
     """Lower parenthesized ``condition ? first : second`` into trusted IR calls."""
     result = _translate_compile_time_conditional_segments(source)
@@ -1456,7 +1575,10 @@ def _template_shape(root: TemplateNode) -> tuple[int, int]:
     if root.component == TEMPLATE_CHILD_SLOT_COMPONENT:
         return 0, 0
     if root.component in _CONDITIONAL_COMPONENTS:
-        return _template_shape(root.children[0])
+        child_shapes = [_template_shape(child) for child in root.children]
+        count = sum(shape[0] for shape in child_shapes)
+        depth = max((shape[1] for shape in child_shapes), default=0)
+        return count, depth
     if root.component == "Text" and root.values and root.values[0].kind == "interpolation":
         return 1 + len(root.values[0].items), 2
     child_shapes = [_template_shape(child) for child in root.children]
@@ -1528,13 +1650,13 @@ def _validate_conditional_guards(
             if value.name not in required_params and value.name not in active_param_guards:
                 raise ValueError(
                     "Provider Template optional Param/Asset must be nested under "
-                    f"IfPresent(props.{value.name}, ...) or tested by a compile-time conditional"
+                    f"#if props.{value.name} or #Expr"
                 )
         elif value.kind == "binding" and value.name:
             if value.name not in required_bindings and value.name not in active_binding_guards:
                 raise ValueError(
                     "Provider Template optional Bind must be nested under "
-                    f"IfPresent(data.{value.name}, ...) or tested by a compile-time conditional"
+                    f"#if data.{value.name} or #Expr"
                 )
         for item in value.items:
             visit_value(item, active_param_guards, active_binding_guards)
@@ -1558,7 +1680,8 @@ def _validate_conditional_guards(
             child_param_guards = set(active_param_guards)
             if node.component == "IfParam":
                 child_param_guards.add(parameter_name)
-            visit(node.children[0], child_param_guards, active_binding_guards)
+            for child in node.children:
+                visit(child, child_param_guards, active_binding_guards)
             return
         if node.component in _SINGLE_CONDITIONAL_BINDING_COMPONENTS:
             binding_name = node.values[0].value
@@ -1570,7 +1693,8 @@ def _validate_conditional_guards(
             child_binding_guards = set(active_binding_guards)
             if node.component == "IfBind":
                 child_binding_guards.add(binding_name)
-            visit(node.children[0], active_param_guards, child_binding_guards)
+            for child in node.children:
+                visit(child, active_param_guards, child_binding_guards)
             return
         if node.component in _GROUPED_CONDITIONAL_BINDING_COMPONENTS:
             binding_names = _grouped_conditional_binding_names(node.values[0])
@@ -1584,7 +1708,8 @@ def _validate_conditional_guards(
             child_binding_guards = set(active_binding_guards)
             if node.component == "IfAllBind":
                 child_binding_guards.update(binding_names)
-            visit(node.children[0], active_param_guards, child_binding_guards)
+            for child in node.children:
+                visit(child, active_param_guards, child_binding_guards)
             return
         for value in node.values:
             visit_value(value, active_param_guards, active_binding_guards)

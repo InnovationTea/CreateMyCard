@@ -27,8 +27,7 @@ Column(
       "clip": true,
       "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
-    IfPresent(
-      props.headerLabel,
+    #if props.headerLabel
       Text(
         props.headerLabel,
         {
@@ -42,9 +41,7 @@ Column(
           "constraintSize": {"minWidth": 0, "minHeight": 0}
         }
       )
-    ),
-    IfAbsent(
-      props.headerLabel,
+    #else
       Text(
         "下一个日程",
         {
@@ -58,9 +55,8 @@ Column(
           "constraintSize": {"minWidth": 0, "minHeight": 0}
         }
       )
-    ),
-    IfPresent(
-      props.calendarIcon,
+    #endif
+    #if props.calendarIcon
       Image(
         props.calendarIcon,
         {
@@ -71,7 +67,7 @@ Column(
           "flexShrink": 0
         }
       )
-    )
+    #endif
   ),
   Row(
     {
@@ -182,8 +178,7 @@ Column(
       "clip": true,
       "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
-    IfPresent(
-      props.headerLabel,
+    #if props.headerLabel
       Text(
         props.headerLabel,
         {
@@ -197,9 +192,7 @@ Column(
           "constraintSize": {"minWidth": 0, "minHeight": 0}
         }
       )
-    ),
-    IfAbsent(
-      props.headerLabel,
+    #else
       Text(
         "日程提醒",
         {
@@ -213,7 +206,7 @@ Column(
           "constraintSize": {"minWidth": 0, "minHeight": 0}
         }
       )
-    )
+    #endif
   ),
   Row(
     {
@@ -343,8 +336,7 @@ Column(
       "clip": true,
       "constraintSize": { "minWidth": 0, "minHeight": 0 }
     },
-    IfPresent(
-      props.headerLabel,
+    #if props.headerLabel
       Text(
         props.headerLabel,
         {
@@ -358,9 +350,7 @@ Column(
           "constraintSize": { "minWidth": 0, "minHeight": 0 }
         }
       )
-    ),
-    IfAbsent(
-      props.headerLabel,
+    #else
       Text(
         "日程提醒",
         {
@@ -374,7 +364,7 @@ Column(
           "constraintSize": { "minWidth": 0, "minHeight": 0 }
         }
       )
-    )
+    #endif
   ),
   Text(
     data.timeZone,
@@ -501,8 +491,7 @@ Column(
       "clip": true,
       "constraintSize": { "minWidth": 0, "minHeight": 0 }
     },
-    IfPresent(
-      props.headerLabel,
+    #if props.headerLabel
       Text(
         props.headerLabel,
         {
@@ -516,9 +505,7 @@ Column(
           "constraintSize": { "minWidth": 0, "minHeight": 0 }
         }
       )
-    ),
-    IfAbsent(
-      props.headerLabel,
+    #else
       Text(
         "日程提醒",
         {
@@ -532,7 +519,7 @@ Column(
           "constraintSize": { "minWidth": 0, "minHeight": 0 }
         }
       )
-    )
+    #endif
   ),
   Text(
     data.date,
@@ -774,8 +761,7 @@ Column(
       "clip": true,
       "constraintSize": { "minWidth": 0, "minHeight": 0 }
     },
-    IfPresent(
-      props.headerLabel,
+    #if props.headerLabel
       Text(
         props.headerLabel,
         {
@@ -789,9 +775,7 @@ Column(
           "constraintSize": { "minWidth": 0, "minHeight": 0 }
         }
       )
-    ),
-    IfAbsent(
-      props.headerLabel,
+    #else
       Text(
         "下一个日程",
         {
@@ -805,9 +789,8 @@ Column(
           "constraintSize": { "minWidth": 0, "minHeight": 0 }
         }
       )
-    ),
-    IfPresent(
-      props.calendarIcon,
+    #endif
+    #if props.calendarIcon
       Image(
         props.calendarIcon,
         {
@@ -818,7 +801,7 @@ Column(
           "flexShrink": 0
         }
       )
-    )
+    #endif
   ),
   Row(
     {
@@ -930,48 +913,42 @@ Row(
             data.title,
             {"width": "100%", "fontSize": 16, "minFontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           ),
-      IfAbsent(
-            props.timeIcon,
-            Text(
-                    `${data.start} - ${data.end}`,
-                    {"width": "100%", "fontSize": 14, "minFontSize": 14, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  )
-          ),
-      IfPresent(
-            props.timeIcon,
-            Row(
-                    {"width": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                    Image(
-                              props.timeIcon,
-                              {"width": 12, "height": 12, "objectFit": "contain"}
-                            ),
-                    Text(
-                              `${data.start} - ${data.end}`,
-                              {"width": "100%", "fontSize": 14, "minFontSize": 14, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            )
-                  )
-          ),
-      IfAbsent(
-            props.locationIcon,
-            Text(
-                    data.location,
-                    {"width": "100%", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                  )
-          ),
-      IfPresent(
-            props.locationIcon,
-            Row(
-                    {"width": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                    Image(
-                              props.locationIcon,
-                              {"width": 12, "height": 12, "objectFit": "contain"}
-                            ),
-                    Text(
-                              data.location,
-                              {"width": "100%", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            )
-                  )
-          )
+      #if props.timeIcon
+        Row(
+                {"width": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+                Image(
+                          props.timeIcon,
+                          {"width": 12, "height": 12, "objectFit": "contain"}
+                        ),
+                Text(
+                          `${data.start} - ${data.end}`,
+                          {"width": "100%", "fontSize": 14, "minFontSize": 14, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                        )
+              )
+      #else
+        Text(
+                `${data.start} - ${data.end}`,
+                {"width": "100%", "fontSize": 14, "minFontSize": 14, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+              )
+      #endif
+      #if props.locationIcon
+        Row(
+                {"width": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+                Image(
+                          props.locationIcon,
+                          {"width": 12, "height": 12, "objectFit": "contain"}
+                        ),
+                Text(
+                          data.location,
+                          {"width": "100%", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                        )
+              )
+      #else
+        Text(
+                data.location,
+                {"width": "100%", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+              )
+      #endif
     )
 )
 #End
@@ -1017,48 +994,42 @@ Column(
                     data.title,
                     {"width": "100%", "fontSize": 16, "minFontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   ),
-            IfAbsent(
-                    props.timeIcon,
-                    Text(
-                              `${data.start} - ${data.end}`,
-                              {"width": "100%", "fontSize": 14, "minFontSize": 14, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            )
-                  ),
-            IfPresent(
-                    props.timeIcon,
-                    Row(
-                              {"width": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                              Image(
-                                          props.timeIcon,
-                                          {"width": 12, "height": 12, "objectFit": "contain"}
-                                        ),
-                              Text(
-                                          `${data.start} - ${data.end}`,
-                                          {"width": "100%", "fontSize": 14, "minFontSize": 14, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                        )
-                            )
-                  ),
-            IfAbsent(
-                    props.locationIcon,
-                    Text(
-                              data.location,
-                              {"width": "100%", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                            )
-                  ),
-            IfPresent(
-                    props.locationIcon,
-                    Row(
-                              {"width": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                              Image(
-                                          props.locationIcon,
-                                          {"width": 12, "height": 12, "objectFit": "contain"}
-                                        ),
-                              Text(
-                                          data.location,
-                                          {"width": "100%", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                        )
-                            )
-                  )
+            #if props.timeIcon
+              Row(
+                        {"width": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+                        Image(
+                                    props.timeIcon,
+                                    {"width": 12, "height": 12, "objectFit": "contain"}
+                                  ),
+                        Text(
+                                    `${data.start} - ${data.end}`,
+                                    {"width": "100%", "fontSize": 14, "minFontSize": 14, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                                  )
+                      )
+            #else
+              Text(
+                        `${data.start} - ${data.end}`,
+                        {"width": "100%", "fontSize": 14, "minFontSize": 14, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                      )
+            #endif
+            #if props.locationIcon
+              Row(
+                        {"width": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+                        Image(
+                                    props.locationIcon,
+                                    {"width": 12, "height": 12, "objectFit": "contain"}
+                                  ),
+                        Text(
+                                    data.location,
+                                    {"width": "100%", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                                  )
+                      )
+            #else
+              Text(
+                        data.location,
+                        {"width": "100%", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                      )
+            #endif
           )
     )
 )

@@ -30,16 +30,15 @@ Column(
                       "height": 52,
                       "strokeWidth": 6}
                   ),
-            IfPresent(
-                    props.batteryIcon,
-                    Image(
-                              props.batteryIcon,
-                              {"width": 24,
-                                "height": 24,
-                                "objectFit": "contain",
-                                "fillColor": $theme('supportContentColor')}
-                            )
-                  )
+            #if props.batteryIcon
+              Image(
+                        props.batteryIcon,
+                        {"width": 24,
+                          "height": 24,
+                          "objectFit": "contain",
+                          "fillColor": $theme('supportContentColor')}
+                      )
+            #endif
           )
     )
 )
@@ -84,16 +83,15 @@ Column(
                       "strokeWidth": 6
                     }
                   ),
-            IfPresent(
-                    props.batteryIcon,
-                    Image(
-                              props.batteryIcon,
-                              {"width": 24,
-                                "height": 24,
-                                "objectFit": "contain",
-                                "fillColor": $theme('supportContentColor')}
-                            )
-                  )
+            #if props.batteryIcon
+              Image(
+                        props.batteryIcon,
+                        {"width": 24,
+                          "height": 24,
+                          "objectFit": "contain",
+                          "fillColor": $theme('supportContentColor')}
+                      )
+            #endif
           ),
       Column(
             {"itemMargin":4,
@@ -148,16 +146,15 @@ Column(
                       "height": 52,
                       "strokeWidth": 6}
                   ),
-            IfPresent(
-                    props.batteryIcon,
-                    Image(
-                              props.batteryIcon,
-                              {"width": 24,
-                                "height": 24,
-                                "objectFit": "contain",
-                                "fillColor": $theme('supportContentColor')}
-                            )
-                  )
+            #if props.batteryIcon
+              Image(
+                        props.batteryIcon,
+                        {"width": 24,
+                          "height": 24,
+                          "objectFit": "contain",
+                          "fillColor": $theme('supportContentColor')}
+                      )
+            #endif
           ),
       Column(
             {"width":"matchParent","layoutWeight": 1, "itemMargin": 4, "justifyContent": "center", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
@@ -196,23 +193,19 @@ Column(
       "itemMargin": 4,
       "justifyContent": "start", "alignItems": "start",
     },
-    IfPresent(
-      data.level,
+    #if data.level
       Text(
         data.level,
         { "width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 3, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       )
-    ),
-    IfAbsent(
-      data.level,
-      IfPresent(
-        data.charging,
+    #else
+      #if data.charging
         Text(
           data.charging,
           { "width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 3, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
         )
-      )
-    )
+      #endif
+    #endif
   )
 )
 #End
