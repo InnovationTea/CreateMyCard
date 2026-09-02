@@ -634,6 +634,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(action_styles["borderRadius"], 20)
         self.assertEqual(action_styles["fontSize"], 14)
         self.assertEqual(action_styles["fontWeight"], 400)
+        self.assertEqual(action_styles["textAlign"], "center")
 
     def test_icon_action_unit_keeps_explicit_colors_on_known_gradient(self) -> None:
         compact_dsl = _serialize(
