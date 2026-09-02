@@ -234,6 +234,40 @@ def test_validator_accepts_raw_number_when_expression_suffix_contains_unit():
     assert not reporter.has_code("DISPLAY_UNIT_MISSING", "DISPLAY_UNIT_DUPLICATED")
 
 
+def test_validator_accepts_raw_number_with_unit_in_conditional_branch():
+    reporter = validate_card(
+        artifact={
+            "genui": _dsl(
+                "{{ ${/data/battery/isConnected} ? '已连接 · ' + "
+                "${/data/battery/level} + '%' : '未连接' }}"
+            ),
+            "cardSpec": _card_spec(),
+            "effectiveCapabilities": {
+                "data": [_capability(unit_included=False).model_dump(mode="json")]
+            },
+        }
+    )
+
+    assert not reporter.has_code("DISPLAY_UNIT_MISSING", "DISPLAY_UNIT_DUPLICATED")
+
+
+def test_validator_reports_duplicate_unit_in_conditional_branch():
+    reporter = validate_card(
+        artifact={
+            "genui": _dsl(
+                "{{ ${/data/battery/isConnected} ? '已连接 · ' + "
+                "${/data/battery/level} + '%' : '未连接' }}"
+            ),
+            "cardSpec": _card_spec(),
+            "effectiveCapabilities": {
+                "data": [_capability(unit_included=True).model_dump(mode="json")]
+            },
+        }
+    )
+
+    assert reporter.has_code("DISPLAY_UNIT_DUPLICATED")
+
+
 def test_validator_reports_duplicate_when_following_text_contains_included_unit():
     reporter = validate_card(
         artifact={
