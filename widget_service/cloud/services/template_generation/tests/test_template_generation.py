@@ -250,7 +250,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 75
+    assert len(registry.provider_template_ids) == 76
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -268,6 +268,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "ScheduleOverviewNextEventHero@1",
         "ScheduleOverviewReminderHero@1",
         "ScheduleOverviewTimezoneFull@1",
+        "ScheduleOverviewUpcomingSummaryWideFull@1",
         "SleepOverviewCompact@1",
         "SleepOverviewFull@1",
         "SleepOverviewHero@1",

@@ -4,7 +4,7 @@
 
 ## 整改总览
 
-- [x] 72 个业务模板全部使用 `Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
+- [x] 68 个业务模板全部使用 `Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
 - [x] 业务模板尺寸和动作组合由后缀推导，不再由 Provider 重复声明。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
 - [x] `primaryData` 与 `secondaryData` 均参与模板准入硬校验。
@@ -31,7 +31,7 @@
 | --- | --- | --- | ---: | --- |
 | app-usage | `GetAppUsageDuration` | `/data/appUsageStats` | 6 | 启用 |
 | battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 7 | 启用 |
-| calendar | `GetCalendarEvents` | `/data/calendar` | 8 | 启用 |
+| calendar | `GetCalendarEvents` | `/data/calendar` | 9 | 启用 |
 | countdown | `GetCountdownDays` | `/data/countdown` | 1 | 启用 |
 | earphone | `GetEarphoneInfo` | `/data/earphone` | 8 | 启用 |
 | health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 30 | 启用 |
@@ -87,6 +87,7 @@
 | ✅ | `ScheduleOverviewNextEventLocationFull@1` | 完整 2x2；无 Action 或加一个 IconAction | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewMeetingWideFull@1` | 完整 4x2；单 WideFull | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewMeetingSourceWideFull@1` | 完整 4x2；单 WideFull | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
+| ✅ | `ScheduleOverviewUpcomingSummaryWideFull@1` | 完整 4x2；单 WideFull | `/eventCount`<br>`/events/0/title`<br>`/events/0/dtStart`<br>`/events/0/isAllDay` | 无 | 无 |
 
 ## CountdownOverview
 

@@ -21,6 +21,8 @@
     `timeIcon` 与 `locationIcon`。
   - `ScheduleOverviewMeetingSourceWideFull@1`：带来源图标的宽版会议摘要；`sourceIcon` 必填，
     `timeIcon` 与 `locationIcon` 可选。
+  - `ScheduleOverviewUpcomingSummaryWideFull@1`：近日安排宽版摘要；展示未来七天日程数量，以及最近
+    一场会议的标题、开始时间和全天状态；可选 `calendarIcon`、`timeIcon` 与 `headerLabel`。
 - Hero 只用于 `HeroActionLayout@1` 加一个 `PillAction@1`；Full 只用于 `SingleFocusLayout@1`，
   或在存在语义匹配图标素材时用于 `FullIconActionLayout@1` 加一个 `IconAction@1`。WideFull 当前只作
   `2x4` 预留。

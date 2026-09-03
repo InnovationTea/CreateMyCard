@@ -60,6 +60,7 @@ _CONTENT_HEIGHT_BY_LAYOUT: dict[TemplateLayoutKind, int] = {
 _ASSET_BY_PARAMETER = {
     "appIcon": "resources/base/media/icon_tiktok.png",
     "batteryIcon": "resources/base/media/battery_leaf_fill.svg",
+    "calendarIcon": "resources/base/media/calendar_fill.svg",
     "deviceIcon": "resources/base/media/earphone_case_16644.svg",
     "caloriesIcon": "resources/base/media/flame_fill.svg",
     "conditionIcon": "resources/base/media/icon_weather1.svg",

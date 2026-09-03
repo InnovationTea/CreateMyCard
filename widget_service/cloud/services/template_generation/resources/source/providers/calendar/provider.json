@@ -140,6 +140,21 @@
         "/events/0/eventLocation"
       ],
       "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewUpcomingSummaryWideFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "近日安排 WideFull，展示未来七天日程数量，以及最近一场会议的标题、开始时间和全天状态。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/eventCount",
+        "/events/0/title",
+        "/events/0/dtStart",
+        "/events/0/isAllDay"
+      ],
+      "secondaryData": [],
+      "optionalData": []
     }
   ],
   "compatibility": {

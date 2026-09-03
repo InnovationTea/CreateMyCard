@@ -16,16 +16,16 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     manifest = write_template_preview_dataset(tmp_path)
     cases = manifest["cases"]
 
-    assert manifest["templateCount"] == 72
+    assert manifest["templateCount"] == 68
     assert manifest["countsByLayout"] == {
         "Support": 12,
-        "Compact": 12,
+        "Compact": 11,
         "Hero": 18,
-        "Full": 17,
+        "Full": 15,
         "WideHero": 2,
-        "WideFull": 9,
+        "WideFull": 10,
     }
-    assert manifest["countsBySize"] == {"2x2": 57, "2x4": 11}
+    assert manifest["countsBySize"] == {"2x2": 56, "2x4": 12}
     assert len(cases) == 68
     assert len({case["templateId"] for case in cases}) == 68
     assert all((tmp_path / case["file"]).is_file() for case in cases)
@@ -78,6 +78,53 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
         assert all(count == 1 for count in counts.values())
         assert case.primary_data
         assert json.dumps(case.messages, ensure_ascii=False)
+
+
+def test_calendar_upcoming_summary_widefull_matches_q057_hierarchy():
+    case = next(
+        item
+        for item in build_template_preview_cases()
+        if item.template_id == "ScheduleOverviewUpcomingSummaryWideFull@1"
+    )
+
+    assert case.primary_data == (
+        "/eventCount",
+        "/events/0/title",
+        "/events/0/dtStart",
+        "/events/0/isAllDay",
+    )
+    assert case.secondary_data == ()
+    assert case.optional_data == ()
+    components = case.messages[1]["updateComponents"]["components"]
+    header = next(component for component in components if component.get("content") == "近日安排")
+    count = next(
+        component
+        for component in components
+        if component.get("content") == "{{ ${/data/calendar/eventCount} }}"
+    )
+    calendar_icon = next(
+        component
+        for component in components
+        if component.get("src") == "resources/base/media/calendar_fill.svg"
+    )
+    divider = next(component for component in components if component.get("component") == "Divider")
+    all_day = next(
+        component
+        for component in components
+        if "isAllDay" in str(component.get("content", ""))
+    )
+
+    assert case.size == "2x4"
+    assert case.content_height_vp == 136
+    assert header["styles"]["fontSize"] == 12
+    assert calendar_icon["styles"]["width"] == 20
+    assert calendar_icon["styles"]["height"] == 20
+    assert count["styles"]["fontSize"] == 20
+    assert divider["styles"]["height"] == 56
+    assert "全天日程" in all_day["content"]
+    data_model = case.messages[2]["updateDataModel"]["value"]["data"]["calendar"]
+    assert set(data_model) == {"eventCount", "events"}
+    assert set(data_model["events"][0]) == {"title", "dtStart", "isAllDay"}
 
 
 def test_earphone_hero_uses_title_parameter_without_title_binding():
