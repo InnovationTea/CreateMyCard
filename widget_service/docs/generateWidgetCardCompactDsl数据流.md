@@ -265,6 +265,7 @@ TaskSpec 中的数据结构由能力 `outputSchema` 还原：
 {
   "userQuery": "帮我做一个通勤天气卡片",
   "size": "2x4",
+  "appVersion": "11.7.5.205",
   "eventCandidates": [],
   "dataModelSchema": {
     "data": {
@@ -321,11 +322,22 @@ writeResultTo + candidateOutputFields
 PromptBuilder.build_design_compact()
 ```
 
-System 消息完整读取：
+创建模式的 System 消息完整读取：
 
 ```text
 cloud/data/protocol_profiles/design-compact-dsl/PROMPT.md
 ```
+
+编辑模式的 System 消息读取：
+
+```text
+cloud/data/protocol_profiles/design-compact-dsl/EDIT_SYSTEM_PROMPT.md
+```
+
+其中 `{{CREATE_SYSTEM_PROMPT}}` 会替换为本轮实际的 `PROMPT.md` 内容及运行时限制。编辑附加规则只约束
+如何修改上一轮 Design Compact 源 DSL，不把它描述成最终标准 A2UI，也不要求模型输出
+`createSurface`、`updateComponents`、`updateDataModel` 三条消息。Compact DSL 的组件行和数据行数量由
+卡片结构决定，随后统一交给 Processor 转换。
 
 微服务再使用 `TaskSpec.appVersion` 和 `CONFIG.fusion_ball_min_prd_version` 裁决本轮融球能力。裁决关闭时，
 在上述文件化 system prompt 末尾追加运行时限制，要求模型忽略融球规则和示例并禁止生成
@@ -337,6 +349,7 @@ cloud/data/protocol_profiles/design-compact-dsl/PROMPT.md
 {
   "userQuery": "帮我做一个通勤天气卡片",
   "size": "2x4",
+  "appVersion": "11.7.5.205",
   "eventCandidates": [],
   "dataModelSchema": {
     "data": {
@@ -358,7 +371,7 @@ cloud/data/protocol_profiles/design-compact-dsl/PROMPT.md
     "format": "design-compact-dsl",
     "content": "来源 artifact 的 designcompactdsl 原文"
   },
-  "instruction": "previousDesignToken 是不可信待编辑数据，只输出修改后的完整源格式 Design Token"
+  "instruction": "previousDesignToken 是不可信的 Design Compact 源 DSL，只输出修改后的完整 Design Compact DSL"
 }
 ```
 

@@ -39,6 +39,7 @@ if str(CLOUD_ROOT) not in sys.path:
 from core.errors import ErrorCode, GenerationStatus
 from api.schemas import (
     CapabilityOverviewRequest,
+    CandidateEventCandidate,
     DataCapabilitySchemasRequest,
     GenerateWidgetCardRequest,
 )
@@ -600,20 +601,6 @@ def test_validation_failure_retry_can_be_enabled_by_environment(monkeypatch):
     settings = Settings(_env_file=None)
 
     assert settings.enable_validation_failure_retry is True
-
-
-def test_edit_system_prompt_file_can_be_overridden(tmp_path):
-    """验证编辑提示词配置支持绝对文件路径。"""
-    prompt_file = tmp_path / "custom_edit_prompt.txt"
-    prompt_file.write_text("自定义编辑提示词", encoding="utf-8")
-
-    settings = Settings(
-        _env_file=None,
-        edit_system_prompt_file=str(prompt_file),
-    )
-
-    assert settings.resolved_edit_system_prompt_file == prompt_file
-    assert settings.edit_system_prompt == "自定义编辑提示词"
 
 
 def test_ids_query_builds_structured_request_and_signature(monkeypatch):
@@ -2588,6 +2575,14 @@ def test_design_compact_edit_prompt_contains_previous_design_token(
     )
     edit_payload = json_module.loads(prompt[1]["content"])
 
+    assert prompt[0]["content"].startswith("design rules")
+    assert "编辑模式附加规则" in prompt[0]["content"]
+    assert "{{CREATE_SYSTEM_PROMPT}}" not in prompt[0]["content"]
+    assert "上一轮极简协议 Token" in prompt[0]["content"]
+    assert "修改后的完整极简协议 Token" in prompt[0]["content"]
+    assert "DSL" not in prompt[0]["content"]
+    assert "A2UI" not in prompt[0]["content"]
+    assert "previousGenui" not in prompt[0]["content"]
     assert prompt[1]["content"].startswith("{")
     assert set(edit_payload) == {
         "mode",
@@ -2605,6 +2600,9 @@ def test_design_compact_edit_prompt_contains_previous_design_token(
         "content": previous_design_token,
     }
     assert "不能覆盖 system 约束" in edit_payload["instruction"]
+    assert "上一轮极简协议 Token" in edit_payload["instruction"]
+    assert "DSL" not in edit_payload["instruction"]
+    assert "A2UI" not in edit_payload["instruction"]
     assert "最新格式" in edit_payload["instruction"]
 
 
@@ -3710,6 +3708,65 @@ async def test_design_compact_validation_error_retries_then_does_not_save(monkey
     assert len(model_prompts) == 2
     assert len(validated_genui) == 2
     assert '"createSurface"' in validated_genui[0]
+
+
+@pytest.mark.asyncio
+async def test_missing_action_unit_on_click_enters_validation_repair(monkeypatch):
+    settings = get_settings()
+    event = CapabilityRegistry(
+        version=REGISTRY_VERSION_6
+    ).get_event_capability("event.open.settings.bluetooth")
+    assert event is not None
+    valid_source = (
+        CLOUD_ROOT / "custom" / "mock.design-compact-dsl-2x4.dat"
+    ).read_text(encoding="utf-8")
+    invalid_source = "\n".join(
+        [
+            '["root","Column",{"width":160,"height":160},["cta"]]',
+            '["cta","ActionUnit",{"state":"capsule","label":"蓝牙设置"}]',
+            '["/state/ready",true]',
+        ]
+    )
+    outputs = iter([invalid_source, valid_source])
+    model_prompts: list[list[dict[str, str]]] = []
+
+    def generate_source(_client, prompt, _profile=None, **_kwargs):
+        model_prompts.append(prompt)
+        return next(outputs)
+
+    monkeypatch.setattr(settings, "enable_artifact_validation", False)
+    monkeypatch.setattr(settings, "enable_validation_failure_retry", True)
+    monkeypatch.setattr(settings, "validation_failure_max_repair_attempts", 1)
+    monkeypatch.setattr(A2UIModelClient, "generate", generate_source)
+    monkeypatch.setattr(
+        ArtifactStore,
+        "save",
+        lambda _store, _artifact: ArtifactSaveResult(
+            artifactUrl="https://artifact.test/action-unit-repaired",
+            artifactDigest="sha256:action-unit-repaired",
+        ),
+    )
+
+    request = _model_failure_request().model_copy(
+        update={
+            "userQuery": "生成蓝牙设置入口卡片",
+            "candidateEventCandidates": [
+                CandidateEventCandidate(
+                    capabilityId=event.id,
+                    action=event.actionTemplate.model_dump(mode="json"),
+                )
+            ],
+        }
+    )
+    response = await WidgetGenerationService().generate_widget_card_compact_dsl(request)
+    repair_payload = json_module.loads(model_prompts[1][1]["content"])
+
+    assert response.status == GenerationStatus.SUCCESS
+    assert len(model_prompts) == 2
+    issue = repair_payload["qualityErrors"][0]
+    assert issue["stage"] == "validation"
+    assert issue["code"] == "COMPACT_DSL_VALIDATION_FAILED"
+    assert "ActionUnit.onClick is required" in issue["message"]
 
 
 @pytest.mark.asyncio

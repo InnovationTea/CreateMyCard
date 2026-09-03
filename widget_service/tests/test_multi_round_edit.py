@@ -234,7 +234,18 @@ async def test_design_compact_edit_uses_previous_design_token(
         edited.artifactUrl,
     )
     edit_payload = json.loads(prompts[0][1]["content"])
-    expected_system = A2UIProtocolRegistry.read_design_prompt("design-compact-dsl")
+    create_system = A2UIProtocolRegistry.read_design_prompt("design-compact-dsl")
+    edit_system_file = (
+        CLOUD_ROOT
+        / "data"
+        / "protocol_profiles"
+        / "design-compact-dsl"
+        / "EDIT_SYSTEM_PROMPT.md"
+    )
+    expected_system = edit_system_file.read_text(encoding="utf-8").replace(
+        "{{CREATE_SYSTEM_PROMPT}}",
+        create_system,
+    )
 
     assert len(prompts[0]) == 2
     assert prompts[0][0]["role"] == "system"
@@ -540,8 +551,10 @@ def test_edit_prompt_contains_previous_genui_but_not_source_url():
     )
 
     edit_context = json.loads(prompt[1]["content"])
-    assert '"userQuery":"改成蓝色"' in prompt[0]["content"]
-    assert '"appVersion"' not in prompt[0]["content"]
+    assert prompt[0]["content"].startswith(
+        A2UIProtocolRegistry.read_design_prompt("design-compact-dsl")
+    )
+    assert "编辑模式附加规则" in prompt[0]["content"]
     assert edit_context["previousGenui"] == previous_genui
     assert edit_context["editInstruction"] == "改成蓝色"
     assert "appVersion" not in edit_context["newTaskSpec"]

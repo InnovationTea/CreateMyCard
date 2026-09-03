@@ -1,0 +1,297 @@
+{
+  "data": [],
+  "event": [
+    {
+      "call": "clickToApi",
+      "args": {
+        "intentName": "SetMobileData",
+        "params": {
+          "switchFlag": 0
+        }
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Settings",
+        "bundleName": "com.huawei.hmos.settings",
+        "abilityName": "com.huawei.hmos.settings.MainAbility",
+        "uri": "intelligent_scene_entry",
+        "parameters": {
+          "specifiedModeId": "1"
+        }
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Settings",
+        "bundleName": "com.huawei.hmos.settings",
+        "abilityName": "com.huawei.hmos.settings.MainAbility",
+        "uri": "intelligent_scene_entry",
+        "parameters": {
+          "specifiedModeId": "2"
+        }
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Settings",
+        "bundleName": "com.huawei.hmos.settings",
+        "abilityName": "com.huawei.hmos.settings.MainAbility",
+        "uri": "intelligent_scene_entry",
+        "parameters": {
+          "specifiedModeId": "3"
+        }
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Settings",
+        "bundleName": "com.huawei.hmos.settings",
+        "abilityName": "com.huawei.hmos.settings.MainAbility",
+        "uri": "mobile_network_entry"
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Settings",
+        "bundleName": "com.huawei.hmos.settings",
+        "abilityName": "com.huawei.hmos.settings.MainAbility",
+        "uri": "wifi_entry"
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Settings",
+        "bundleName": "com.huawei.hmos.settings",
+        "abilityName": "com.huawei.hmos.settings.MainAbility",
+        "uri": "mobile_data_settings_entry"
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Settings",
+        "bundleName": "com.huawei.hmos.settings",
+        "abilityName": "com.huawei.hmos.settings.MainAbility",
+        "uri": "sim_card_management_entry"
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Settings",
+        "bundleName": "com.huawei.hmos.settings",
+        "abilityName": "com.huawei.hmos.settings.MainAbility",
+        "uri": "hotspot_data_settings"
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Settings",
+        "bundleName": "com.huawei.hmos.settings",
+        "abilityName": "com.huawei.hmos.settings.MainAbility",
+        "uri": "mobile_data_manage_entry"
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Clock",
+        "bundleName": "com.huawei.hmos.clock",
+        "abilityName": "com.huawei.hmos.clock.phone",
+        "uri": "",
+        "tabActive": "WORLD_CLOCK_TAB"
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Clock",
+        "bundleName": "com.huawei.hmos.clock",
+        "abilityName": "com.huawei.hmos.clock.phone",
+        "uri": "",
+        "tabActive": "ALARM_CLOCK_TAB"
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Clock",
+        "bundleName": "com.huawei.hmos.clock",
+        "abilityName": "com.huawei.hmos.clock.phone",
+        "uri": "",
+        "tabActive": "STOPWATCH_TAB"
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Clock",
+        "bundleName": "com.huawei.hmos.clock",
+        "abilityName": "com.huawei.hmos.clock.phone",
+        "uri": "",
+        "tabActive": "TIMER_TAB"
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Health",
+        "bundleName": "",
+        "abilityName": "",
+        "uri": "huaweischeme://healthapp/router/openwith?address=com.huawei.health.h5.sports-record?h5pro=true&urlType=4&pName=com.huawei.health"
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Health",
+        "bundleName": "",
+        "abilityName": "",
+        "uri": "huaweischeme://healthapp/router/openwith?address=com.huawei.health.h5.sports-record?h5pro=true&urlType=4&pName=com.huawei.health&path=ActiveRecord"
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Health",
+        "bundleName": "",
+        "abilityName": "",
+        "uri": "huaweischeme://healthapp/router/knitCommonPage?pullfrom=Rings_0001&pageType=11"
+      }
+    },
+    {
+      "call": "clickToDeeplink",
+      "args": {
+        "intentName": "Contacts",
+        "bundleName": "com.ohos.contacts",
+        "abilityName": "com.ohos.contacts.MainAbility",
+        "uri": ""
+      }
+    },
+    {
+      "call": "clickToIntent",
+      "args": {
+        "intentName": "EnterSettingPage",
+        "params": {
+          "appBundleName": "com.huawei.hmos.settings",
+          "entryKey": "display_settings"
+        }
+      }
+    },
+    {
+      "call": "clickToIntent",
+      "args": {
+        "intentName": "SetSettingSwitch",
+        "params": {
+          "appBundleName": "com.huawei.hmos.settings",
+          "itemName": "near_link_setting",
+          "switchFlag": 0
+        }
+      }
+    },
+    {
+      "call": "clickToIntent",
+      "args": {
+        "intentName": "SetSettingSwitch",
+        "params": {
+          "appBundleName": "com.huawei.hmos.settings",
+          "itemName": "bluetooth",
+          "switchFlag": 0
+        }
+      }
+    },
+    {
+      "call": "clickToIntent",
+      "args": {
+        "intentName": "SetSettingSwitch",
+        "params": {
+          "appBundleName": "com.huawei.hmos.settings",
+          "itemName": "wlan",
+          "switchFlag": 0
+        }
+      }
+    },
+    {
+      "call": "clickToIntent",
+      "args": {
+        "intentName": "SetLocationSettingSwicth",
+        "params": {
+          "switchFlag": 0
+        }
+      }
+    },
+    {
+      "call": "clickToIntent",
+      "args": {
+        "intentName": "SetScreenUseTimeManageSwitch",
+        "params": {
+          "switchFlag": 0
+        }
+      }
+    },
+    {
+      "call": "clickToIntent",
+      "args": {
+        "intentName": "SetMicSettingSwicth",
+        "params": {
+          "switchFlag": 0
+        }
+      }
+    },
+    {
+      "call": "clickToIntent",
+      "args": {
+        "intentName": "SetSettingOption",
+        "params": {
+          "appBundleName": "com.huawei.hmos.settings",
+          "itemName": "volume_mode",
+          "optionValue": "Vibrate"
+        }
+      }
+    },
+    {
+      "call": "clickToIntent",
+      "args": {
+        "intentName": "OpenFlashlight",
+        "params": {}
+      }
+    },
+    {
+      "call": "clickToIntent",
+      "args": {
+        "intentName": "CloseFlashlight",
+        "params": {}
+      }
+    },
+    {
+      "call": "clickToIntent",
+      "args": {
+        "intentName": "OpenCamera",
+        "params": {
+          "mode": "Photo"
+        }
+      }
+    },
+    {
+      "call": "clickToIntent",
+      "args": {
+        "intentName": "ViewNote",
+        "bundleName": "com.huawei.hmos.notepad",
+        "abilityName": "MainAbility",
+        "params": {
+          "launchType": "0",
+          "launchSource": "1"
+        }
+      }
+    }
+  ],
+  "asset": []
+}
