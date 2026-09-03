@@ -37,7 +37,7 @@ Column(
               Row(
                         {"itemMargin": 1, "justifyContent": "center", "alignItems": "bottom", "width": 52, "constraintSize": {"minWidth": 0, "minHeight": 0}},
                         Text(
-                                    Expr(`'' + ((${data.usage} + 0.5) - ((${data.usage} + 0.5) % 1))`),
+                                    Expr('' + ((data.usage + 0.5) - ((data.usage + 0.5) % 1))),
                                     {"fontSize": 14, "minFontSize": 14, "fontWeight": 600, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                                   ),
                         Text(
@@ -96,7 +96,7 @@ Column(
   Row(
       {"width": "matchParent", "itemMargin": 1, "justifyContent": "center", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Text(
-            Expr(`'' + ((${data.usage} + 0.5) - ((${data.usage} + 0.5) % 1))`),
+            Expr('' + ((data.usage + 0.5) - ((data.usage + 0.5) % 1))),
             {"fontSize": 14, "minFontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           ),
       Text(
@@ -154,7 +154,7 @@ Stack({
     Row(
         {"width": "matchParent", "itemMargin": 1, "justifyContent": "center", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
         Text(
-              Expr(`'' + ((${data.usage} + 0.5) - ((${data.usage} + 0.5) % 1))`),
+              Expr('' + ((data.usage + 0.5) - ((data.usage + 0.5) % 1))),
               {"fontSize": 14, "minFontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
             ),
         Text(

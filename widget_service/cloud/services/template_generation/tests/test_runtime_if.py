@@ -145,11 +145,9 @@ def test_runtime_if_keeps_both_branches_through_public_processor(sample: Any) ->
     assert not [item for item in report.diagnostics if item.severity == "error"]
 
 
-def test_runtime_if_supports_expression_nested_and_omitted_else() -> None:
-    a2ui = _compile(
-        "IF(Expr(`${data.eventCont} > 0`), "
-        "IF(data.eventCont, Text('true')), Column(Text('false')))"
-    )
+@pytest.mark.parametrize("condition", ("Expr(`${data.eventCont} > 0`)", "Expr(data.eventCont > 0)"))
+def test_runtime_if_supports_expression_nested_and_omitted_else(condition: str) -> None:
+    a2ui = _compile(f"IF({condition}, IF(data.eventCont, Text('true')), Column(Text('false')))")
     conditions = [node for node in _components(a2ui) if node.get("component") == "If"]
     assert len(conditions) == 2
     assert conditions[0].get("condition") == "{{ ${/data/calendar/eventCount} > 0 }}"

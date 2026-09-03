@@ -1,4 +1,4 @@
-#Template WeatherOverviewHeroTitle@1(props: { location?: string })
+#Template WeatherOverviewHeroTitle@1(props: { location?: string, conditionIcon?: asset })
 data = {
     city: $optionalPath("/location/prefectureName"),
     district: $optionalPath("/location/districtName"),
@@ -7,6 +7,7 @@ data = {
 }
 
 Row({
+  "_advancedComponent": "WeatherOverview",
   "width": "matchParent",
   "height": 24,
   "itemMargin": 0,
@@ -32,18 +33,30 @@ Row({
         "constraintSize": { "minWidth": 0, "minHeight": 0 }
       }
     ),
-#if data.condition
+    #if data.condition
     Text(
       `${data.temperature} | ${data.condition}`,
       { "fontSize": 16, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0 }
     )
-#else
+    #else
     Text(
       data.temperature,
       { "fontSize": 16, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0 }
     )
-#endif
+    #endif
+  ),
+  #if props.conditionIcon
+  Image(
+    props.conditionIcon,
+    {
+      "width": 20,
+      "height": 20,
+      "objectFit": "contain",
+      "flexShrink": 0,
+      "fillColor": $theme('supportContentColor'),
+    }
   )
+  #endif
 )
 #End
 
@@ -666,7 +679,7 @@ Column(
         "constraintSize": {"minWidth": 0, "minHeight": 0}
       },
       Text(
-        Expr(`'' + ${data.humidity} + '%'`),
+        Expr('' + data.humidity + '%'),
         {"fontSize": 38, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
       )
     )

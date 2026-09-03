@@ -765,7 +765,10 @@ def test_search_rejects_two_data_businesses() -> None:
         )
 
 
-def test_search_orders_complete_hero_title_and_hero_content_businesses() -> None:
+@pytest.mark.parametrize("business_title", [None, "天气和日程", "天气 + 日历日程组合画廊"])
+def test_search_orders_complete_hero_title_and_hero_content_businesses(
+    business_title: str | None,
+) -> None:
     task = _task().model_copy(
         update={
             "userQuery": "显示天气和下一场日程，并提供查看入口",
@@ -817,7 +820,7 @@ def test_search_orders_complete_hero_title_and_hero_content_businesses() -> None
         action=("event.open.details",),
     )
     card_spec = {
-        "title": "天气和日程",
+        "title": business_title or "天气和日程",
         "description": "显示天气和下一场日程，并提供查看入口",
         "suggestSize": "2x2",
         "dataBindings": [
@@ -866,6 +869,7 @@ def test_search_orders_complete_hero_title_and_hero_content_businesses() -> None
         ).get_profile(),
         registry=registry,
         card_spec=card_spec,
+        business_title=business_title,
         enable_data_bindings=True,
     )
 
@@ -891,6 +895,11 @@ def test_search_orders_complete_hero_title_and_hero_content_businesses() -> None
     assert "HeroTitleContentActionLayout" not in compilation.a2ui
     assert "events/0/title" in compilation.a2ui
     assert "current/temperatureText" in compilation.a2ui
+    if business_title is not None:
+        assert business_title in projection.contract.trusted_literals
+        assert business_title not in compilation.a2ui
+        assert card_spec.get("title") == business_title
+    assert compilation.stats.action_used_ids == (action.action_id,)
 
 
 def test_search_rejects_two_businesses_backed_by_one_capability() -> None:

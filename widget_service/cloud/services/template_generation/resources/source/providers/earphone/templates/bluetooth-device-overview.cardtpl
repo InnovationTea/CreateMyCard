@@ -32,7 +32,7 @@ Column(
     }
   ),
   Text(
-    Expr(`${data.connected}? '已连接' : '未连接'`),
+    Expr(data.connected? '已连接' : '未连接'),
     {
       "width": "matchParent",
       "height": 32,
@@ -72,7 +72,7 @@ Column(
         )
       #endif
       Text(
-        Expr(`'' + ${data.left} + '%'`),
+        Expr('' + data.left + '%'),
         { "fontColor": $theme('supportContentColor'), "fontSize": 12, "fontWeight": 500 }
       )
     ),
@@ -96,7 +96,7 @@ Column(
         )
       #endif
       Text(
-        Expr(`'' + ${data.right} + '%'`),
+        Expr('' + data.right + '%'),
         { "fontColor": $theme('supportContentColor'), "fontSize": 12, "fontWeight": 500 }
       )
     )
@@ -131,12 +131,12 @@ Column(
     "minHeight": 0}},
   #if data.battery
     Text(
-          Expr(`${data.connected} ? ${data.name} + ' · 已连接 · 充电盒 ' + ${data.battery} + '%' : ${data.name} + ' · 未连接 · 充电盒 ' + ${data.battery} + '%'`),
+          Expr(data.connected ? data.name + ' · 已连接 · 充电盒 ' + data.battery + '%' : data.name + ' · 未连接 · 充电盒 ' + data.battery + '%'),
           {"width": "matchParent", "fontSize": 11, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "start", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
         )
   #else
     Text(
-          Expr(`${data.connected} ? ${data.name} + ' · 已连接' : ${data.name} + ' · 未连接'`),
+          Expr(data.connected ? data.name + ' · 已连接' : data.name + ' · 未连接'),
           {"width": "matchParent", "fontSize": 11, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "start", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
         )
   #endif
@@ -165,7 +165,7 @@ Column(
                           #endif
                         ),
                 Text(
-                          Expr(`'' + ${data.left} + '%'`),
+                          Expr('' + data.left + '%'),
                           {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                         )
               )
@@ -193,7 +193,7 @@ Column(
                           #endif
                         ),
                 Text(
-                          Expr(`'' + ${data.right} + '%'`),
+                          Expr('' + data.right + '%'),
                           {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                         )
               )
@@ -225,7 +225,7 @@ Column(
                                       #endif
                                     ),
                         Text(
-                                      Expr(`'' + ${data.battery} + '%'`),
+                                      Expr('' + data.battery + '%'),
                                       {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                                     )
                       )
@@ -258,7 +258,7 @@ Column(
   Row(
       {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Text(
-            Expr(`${data.connected} ? ${data.name} + ' · 已连接' : ${data.name} + ' · 未连接'`),
+            Expr(data.connected ? data.name + ' · 已连接' : data.name + ' · 未连接'),
             {"width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "start", "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
           ),
       #if props.sourceIcon
@@ -293,7 +293,7 @@ Column(
                           #endif
                         ),
                 Text(
-                          Expr(`'' + ${data.left} + '%'`),
+                          Expr('' + data.left + '%'),
                           {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                         )
               )
@@ -321,7 +321,7 @@ Column(
                           #endif
                         ),
                 Text(
-                          Expr(`'' + ${data.right} + '%'`),
+                          Expr('' + data.right + '%'),
                           {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                         )
               )
@@ -353,7 +353,7 @@ Column(
                                       #endif
                                     ),
                         Text(
-                                      Expr(`'' + ${data.battery} + '%'`),
+                                      Expr('' + data.battery + '%'),
                                       {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                                     )
                       )
@@ -363,7 +363,7 @@ Column(
     ),
   #if data.battery
     Text(
-          Expr(`'充电盒 ' + ${data.battery} + '%'`),
+          Expr('充电盒 ' + data.battery + '%'),
           {"width": "matchParent", "fontSize": 11, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "start", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
         )
   #endif
@@ -378,6 +378,7 @@ data = {
 
 Row(
   {
+      "_advancedComponent": "BluetoothDeviceOverview",
       "width": "matchParent",
       "height": "matchParent",
       "padding": { "left": 12, "right": 16 },
@@ -396,7 +397,7 @@ Row(
       { "fontSize": 14, "fontWeight": 700, "height": 19, "fontColor": $theme('primaryColor') }
     ),
     Text(
-      Expr(`'L ' + ${data.left} + '% R ' + ${data.right} + '%'`),
+      Expr('L ' + data.left + '% R ' + data.right + '%'),
       { "fontSize": 12, "fontWeight": 500, "height": 16, "fontColor": $theme('primaryColor') }
     )
   ),
@@ -438,7 +439,7 @@ Column(
       { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 18, "constraintSize": { "minWidth": 0, "minHeight": 0 } }
     ),
     Text(
-      Expr(`${data.connected} ? '已连接' : '未连接'`),
+      Expr(data.connected ? '已连接' : '未连接'),
       { "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "height": 26, "constraintSize": { "minWidth": 0, "minHeight": 0 } }
     )
   ),
@@ -461,7 +462,7 @@ Column(
           { "fontSize": 14, "height": 20, "fontWeight": 400, "fontColor":$theme('supportContentColor') }
         )
       #endif
-      Text(Expr(`'' + ${data.left} + '%'`),
+      Text(Expr('' + data.left + '%'),
           { "fontSize": 14, "height": 18, "fontWeight": 500, "fontColor":$theme('supportContentColor') }
         )
     ),
@@ -482,7 +483,7 @@ Column(
           { "fontSize": 14, "height": 20, "fontWeight": 400, "fontColor":$theme('supportContentColor') }
         )
       #endif
-      Text(Expr(`'' + ${data.right} + '%'`),
+      Text(Expr('' + data.right + '%'),
           { "fontSize": 14, "height": 18, "fontWeight": 500, "fontColor":$theme('supportContentColor') }
         )
     ),
@@ -503,7 +504,7 @@ Column(
           { "fontSize": 14, "height": 20, "fontWeight": 400, "fontColor":$theme('supportContentColor') }
         )
       #endif
-      Text(Expr(`'' + ${data.case} + '%'`),
+      Text(Expr('' + data.case + '%'),
           { "fontSize": 14, "height": 18, "fontWeight": 500, "fontColor":$theme('supportContentColor') }
         )
     ),
@@ -533,7 +534,7 @@ Column(
   Row(
       {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Text(
-            Expr(`${data.connected} ? ${data.name} + ' · 已连接' : ${data.name} + ' · 未连接'`),
+            Expr(data.connected ? data.name + ' · 已连接' : data.name + ' · 未连接'),
             {"width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "start", "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
           ),
       #if props.sourceIcon
@@ -567,7 +568,7 @@ Column(
                     #endif
                   ),
             Text(
-                    Expr(`'' + ${data.left} + '%'`),
+                    Expr('' + data.left + '%'),
                     {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   )
           ),
@@ -593,13 +594,13 @@ Column(
                     #endif
                   ),
             Text(
-                    Expr(`'' + ${data.right} + '%'`),
+                    Expr('' + data.right + '%'),
                     {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   )
           )
     ),
   Text(
-      Expr(`'充电盒 ' + ${data.battery} + '%'`),
+      Expr('充电盒 ' + data.battery + '%'),
       {"width": "matchParent", "fontSize": 11, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "start", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     )
 )
@@ -658,7 +659,7 @@ Column(
         )
       #endif
       Text(
-        Expr(`'' + ${data.left} + '%'`),
+        Expr('' + data.left + '%'),
         { "fontColor": $theme('supportContentColor'), "fontSize": 10, "fontWeight": 400 }
       )
     ),
@@ -682,7 +683,7 @@ Column(
         )
       #endif
       Text(
-        Expr(`'' + ${data.right} + '%'`),
+        Expr('' + data.right + '%'),
         { "fontColor": $theme('supportContentColor'), "fontSize": 10, "fontWeight": 400 }
       )
     )
@@ -716,7 +717,7 @@ Column(
     "constraintSize": {"minWidth": 0,
     "minHeight": 0}},
   Text(
-      Expr(`${data.connected} ? ${data.name} + ' · 已连接 · 充电盒 ' + ${data.battery} + '%' : ${data.name} + ' · 未连接 · 充电盒 ' + ${data.battery} + '%'`),
+      Expr(data.connected ? data.name + ' · 已连接 · 充电盒 ' + data.battery + '%' : data.name + ' · 未连接 · 充电盒 ' + data.battery + '%'),
       {"width": "matchParent", "fontSize": 11, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "start", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     ),
   Row(
@@ -743,7 +744,7 @@ Column(
                     #endif
                   ),
             Text(
-                    Expr(`'' + ${data.left} + '%'`),
+                    Expr('' + data.left + '%'),
                     {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   )
           ),
@@ -769,7 +770,7 @@ Column(
                     #endif
                   ),
             Text(
-                    Expr(`'' + ${data.right} + '%'`),
+                    Expr('' + data.right + '%'),
                     {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   )
           )

@@ -2612,8 +2612,10 @@ async def test_calendar_dnd_action_restores_label_icon_and_scene_header():
         for component in components
         if header_row["id"] in component.get("children", ())
     )
-    assert header_row["styles"]["alignItems"] == "start"
-    assert hero_content["itemMargin"] == 0
+    header_styles = header_row.get("styles")
+    assert isinstance(header_styles, dict)
+    assert header_styles.get("alignItems") == "top"
+    assert hero_content.get("itemMargin") == 2
     action = next(component for component in components if component.get("onClick"))
     assert action["styles"]["backgroundColor"] == "#331F4799"
     focus_icon = next(

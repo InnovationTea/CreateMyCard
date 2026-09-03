@@ -111,6 +111,8 @@ Text("${data.weather.current.temperatureText}", "body")
 
 拼接、条件、算术或 `size()` 使用受限 `Expr("...")`。表达式至少引用一个本轮 TaskSpec/DataModel 路径，
 转换后统一成为 A2UI `{{ ... }}` 表达式。纯静态内容继续写字面量，不使用表达式伪装。
+这里的 `Expr("...")` 是可信展开后的 Tersel 语法；Provider `.cardtpl` 作者侧改用无需外层引号的
+`Expr(data.xxx + "单位")`，由模板编译器先解析为绑定 IR，再映射实际 path，不能在云侧读取数据值求值。
 
 `data` 只保存本轮真实 TaskSpec 路径的预览初值。组件引用的动态路径必须在 `data` 中存在，且不得出现
 `_advancedSelectors`、`_templateProjection` 等内部投影字段。

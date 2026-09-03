@@ -34,6 +34,7 @@ from .models import (
     TemplateValue,
     TemplateVariant,
 )
+from .runtime_expression import parse_runtime_expression, translate_runtime_expressions
 
 _COMPONENTS = frozenset(
     {
@@ -87,6 +88,7 @@ _REFERENCE_CALLS = frozenset(
         "_CardTplInterpolation",
         "_CardTplTheme",
         "_CardTplConditional",
+        "_CardTplRuntimeExpr",
     }
 )
 _FORBIDDEN_KEYS = frozenset({"__proto__", "prototype", "constructor"})
@@ -273,6 +275,14 @@ class _UiTemplateData:
     required_bindings: dict[str, TemplateBinding]
     optional_bindings: dict[str, TemplateBinding]
     body: str
+
+
+@dataclass
+class _TemplateDirectiveFrame:
+    missing: str
+    start_line: int
+    has_else: bool = False
+    fallback_depth: int = 0
 
 
 def _data_fields(
@@ -741,20 +751,41 @@ def _matching_delimiter(
 
 
 def _translate_optional_parameter_access(body: str) -> str:
-    return re.sub(
-        r"\bprops\?\.\s*([A-Za-z_][A-Za-z0-9_]*)",
-        lambda match: f'_CardTplOptionalParam("{match.group(1)}")',
-        body,
-    )
+    # 只改写引用，不能把 Expr 或普通 Text 中的同名静态字符串改写成调用。
+    pattern = re.compile(r"\bprops\?\.\s*([A-Za-z_][A-Za-z0-9_]*)")
+    translated: list[str] = []
+    index = 0
+    while index < len(body):
+        if body[index] in {"'", '"', "`"}:
+            end = _quoted_source_end(body, index)
+            translated.append(body[slice(index, end)])
+        elif body[index] == "#" and not body.startswith("#Expr(", index):
+            newline = body.find("\n", index)
+            end = len(body) if newline < 0 else newline + 1
+            translated.append(body[slice(index, end)])
+        else:
+            match = pattern.match(body, index)
+            if match is None:
+                end = index + 1
+                translated.append(body[index])
+            else:
+                end = match.end()
+                translated.append(f'_CardTplOptionalParam("{match.group(1)}")')
+        index = end
+    return "".join(translated)
 
 
 def _translate_template_directives(body: str) -> str:
     translated: list[str] = []
-    stack: list[tuple[str, str, bool, int]] = []
+    stack: list[_TemplateDirectiveFrame] = []
+    quote: str | None = None
     for line_number, line in enumerate(body.splitlines(keepends=True), start=1):
-        directive = re.match(r"^[ \t]*#(if|else|endif)\b", line)
+        directive = None
+        if quote is None:
+            directive = re.match(r"^[ \t]*#(if|elseif|else|endif|end)\b", line)
         if directive is None:
             translated.append(line)
+            quote = _template_line_quote(line, quote)
             continue
         keyword = directive.group(1)
         newline = "\n" if line.endswith("\n") else ""
@@ -762,47 +793,66 @@ def _translate_template_directives(body: str) -> str:
         content = line.strip()
         if keyword == "if":
             present, missing = _template_directive_components(content, line_number)
-            stack.append((present, missing, False, line_number))
+            stack.append(_TemplateDirectiveFrame(missing=missing, start_line=line_number))
             translated.append(f"{indent}{present}{newline}")
             continue
-        if keyword == "else":
-            if content != "#else":
-                raise ValueError(
-                    f"Provider Template #else is invalid at line {line_number}"
-                )
-            if not stack:
-                raise ValueError(
-                    f"Provider Template #else has no matching #if at line {line_number}"
-                )
-            present, missing, has_else, start_line = stack[-1]
-            if has_else:
-                raise ValueError(
-                    f"Provider Template #if at line {start_line} has multiple #else blocks"
-                )
-            stack[-1] = (present, missing, True, start_line)
-            translated.append(f"{indent}), {missing}{newline}")
-            continue
-        if content != "#endif":
-            raise ValueError(
-                f"Provider Template #endif is invalid at line {line_number}"
-            )
+        if keyword in {"else", "endif", "end"} and content != f"#{keyword}":
+            raise ValueError(f"Provider Template #{keyword} is invalid at line {line_number}")
         if not stack:
             raise ValueError(
-                f"Provider Template #endif has no matching #if at line {line_number}"
+                f"Provider Template #{keyword} has no matching #if at line {line_number}"
             )
+        frame = stack[-1]
+        if keyword == "elseif":
+            if frame.has_else:
+                raise ValueError(
+                    f"Provider Template #elseif follows #else at line {line_number}"
+                )
+            present, missing = _template_directive_components(content, line_number)
+            # 新分支只能在此前条件均缺失时展开，复用已有否定条件节点保持引用作用域。
+            translated.append(f"{indent}), {frame.missing}{newline}{indent}{present}{newline}")
+            frame.missing = missing
+            frame.fallback_depth += 1
+            continue
+        if keyword == "else":
+            if frame.has_else:
+                raise ValueError(
+                    f"Provider Template #if at line {frame.start_line} has multiple #else blocks"
+                )
+            frame.has_else = True
+            translated.append(f"{indent}), {frame.missing}{newline}")
+            continue
         stack.pop()
-        translated.append(f"{indent}),{newline}")
+        closings = ")," * (frame.fallback_depth + 1)
+        translated.append(f"{indent}{closings}{newline}")
     if stack:
-        _present, _missing, _has_else, start_line = stack[-1]
         raise ValueError(
-            f"Provider Template #if at line {start_line} is missing #endif"
+            f"Provider Template #if at line {stack[-1].start_line} is missing #endif or #end"
         )
     return "".join(translated)
 
 
+def _template_line_quote(line: str, quote: str | None) -> str | None:
+    """跨行保留字符串状态，避免把插值文本或注释中的指令当成结构指令。"""
+    escaped = False
+    for char in line:
+        if quote is not None:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+        elif char == "#":
+            break
+        elif char in {"'", '"', "`"}:
+            quote = char
+    return quote
+
+
 def _template_directive_components(content: str, line_number: int) -> tuple[str, str]:
     single = re.fullmatch(
-        r"#if[ \t]+(props|data)\.([A-Za-z_][A-Za-z0-9_]*)",
+        r"#(?:if|elseif)[ \t]+(props|data)\.([A-Za-z_][A-Za-z0-9_]*)",
         content,
     )
     if single is not None:
@@ -811,13 +861,14 @@ def _template_directive_components(content: str, line_number: int) -> tuple[str,
             return f'IfParam("{name}",', f'IfMissingParam("{name}",'
         return f'IfBind("{name}",', f'IfMissingBind("{name}",'
     grouped = re.fullmatch(
-        r"#if[ \t]+data\.([A-Za-z_][A-Za-z0-9_]*)[ \t]*&&[ \t]*"
+        r"#(?:if|elseif)[ \t]+data\.([A-Za-z_][A-Za-z0-9_]*)[ \t]*&&[ \t]*"
         r"data\.([A-Za-z_][A-Za-z0-9_]*)",
         content,
     )
     if grouped is None or grouped.group(1) == grouped.group(2):
+        keyword = content.split(maxsplit=1)[0]
         raise ValueError(
-            f"Provider Template #if target is invalid at line {line_number}"
+            f"Provider Template {keyword} target is invalid at line {line_number}"
         )
     binding_names = json.dumps(list(grouped.groups()), separators=(",", ":"))
     return f"IfAllBind({binding_names},", f"IfAnyMissingBind({binding_names},"
@@ -916,14 +967,15 @@ def _parse_component_body(body: str) -> TemplateNode:
     if not body:
         raise ValueError("Provider Template body is empty")
     if re.search(
-        r"\b(?:_CardTplConditional|_CardTplInterpolation|_CardTplTheme)\s*\(",
+        r"\b(?:_CardTplConditional|_CardTplInterpolation|_CardTplTheme|_CardTplRuntimeExpr)\s*\(",
         body,
     ):
         raise ValueError("Provider Template uses a reserved internal name")
     try:
         with_directives = _translate_template_directives(body)
         with_directives = _remove_empty_template_conditionals(with_directives)
-        with_compile_expressions = _translate_compile_expressions(with_directives)
+        with_runtime_expressions = translate_runtime_expressions(with_directives)
+        with_compile_expressions = _translate_compile_expressions(with_runtime_expressions)
         with_template_strings = _translate_template_strings(with_compile_expressions)
         with_theme_calls = translate_theme_reference_calls(
             with_template_strings,
@@ -1107,6 +1159,11 @@ def _template_value(node: ast.AST) -> TemplateValue:
             )
         if node.func.id == "_CardTplInterpolation":
             return _interpolation_value(node)
+        if node.func.id == "_CardTplRuntimeExpr":
+            args = _call_literal_args(node, "Expr")
+            if len(args) != 1 or not isinstance(args[0], str):
+                raise ValueError("Expr requires one expression body")
+            return parse_runtime_expression(args[0])
         if node.func.id == "Expr":
             if node.keywords or len(node.args) != 1:
                 raise ValueError("Expr requires one template string")

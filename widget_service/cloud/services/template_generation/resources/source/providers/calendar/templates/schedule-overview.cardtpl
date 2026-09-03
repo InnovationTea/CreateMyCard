@@ -12,7 +12,7 @@ Column(
     "_layoutActionBackgroundOpacity": 0.2,
     "width": "matchParent",
     "height": "matchParent",
-    "itemMargin": 0,
+    "itemMargin": 2,
     "justifyContent": "start",
     "alignItems": "start",
     "clip": true,
@@ -23,7 +23,7 @@ Column(
       "width": "matchParent",
       "height": 20,
       "justifyContent": "spaceBetween",
-      "alignItems": "start",
+      "alignItems": "top",
       "clip": true,
       "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
@@ -31,10 +31,9 @@ Column(
       Text(
         props.headerLabel,
         {
-          "width": 112,
-          "height": 12,
+          "height": 16,
           "fontSize": 12,
-          "fontWeight": 700,
+          "fontWeight": 400,
           "fontColor": $theme('supportContentColor'),
           "maxLines": 1,
           "textOverflow": "ellipsis",
@@ -45,10 +44,9 @@ Column(
       Text(
         "下一个日程",
         {
-          "width": 112,
-          "height": 12,
+          "height": 16,
           "fontSize": 12,
-          "fontWeight": 700,
+          "fontWeight": 400,
           "fontColor": $theme('supportContentColor'),
           "maxLines": 1,
           "textOverflow": "ellipsis",
@@ -72,18 +70,16 @@ Column(
   Row(
     {
       "width": "matchParent",
-      "height": 56,
       "itemMargin": 8,
       "justifyContent": "start",
-      "alignItems": "start",
+      "alignItems": "top",
       "clip": true,
       "constraintSize": { "minWidth": 0, "minHeight": 0 }
     },
     Column(
       {
         "width": 8,
-        "height": 54,
-        "padding": { "left": 0, "top": 4, "right": 0, "bottom": 0 },
+        "padding": { "left": 0, "top": 4, "right": 0, "bottom": 2 },
         "itemMargin": 4,
         "justifyContent": "start",
         "alignItems": "center",
@@ -97,6 +93,7 @@ Column(
           "borderRadius": 4,
           "borderWidth": 1.5,
           "borderColor": $theme('primaryColor'),
+          "backgroundColor": "#00FFFFFF",
           "alignContent": "center",
           "flexShrink": 0
         },
@@ -105,7 +102,7 @@ Column(
       Divider(
         {
           "width": 1,
-          "height": 36,
+          "layoutWeight": 1,
           "strokeWidth": 1,
           "vertical": true,
           "color": $theme('supportContentColor')
@@ -115,7 +112,8 @@ Column(
     Column(
       {
         "width": "matchParent",
-        "itemMargin": 4,
+        "layoutWeight": 1,
+        "itemMargin": 2,
         "justifyContent": "start",
         "alignItems": "start",
         "clip": true,
@@ -131,19 +129,16 @@ Column(
           "fontColor": $theme('primaryColor'),
           "maxLines": 1,
           "textOverflow": "ellipsis",
-          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+          "margin": { "bottom": 2 },
         }
       ),
-      Column(
-        { "width": 120, "itemMargin": 2, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": { "minWidth": 0, "minHeight": 0 } },
-        Text(
-          `${data.start}-${data.end}`,
-          { "width": 120, "height": 14, "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
-        ),
-        Text(
-          data.location,
-          { "width": 120, "height": 14, "fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
-        )
+      Text(
+        Expr(data.start == "" ? "" : `${data.start} - ${data.end}`),
+        { "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+      ),
+      Text(
+        data.location,
+        { "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       )
     )
   )
@@ -891,6 +886,7 @@ data = {
 
 Row(
   {
+    "_advancedComponent": "ScheduleOverview",
     "width": "matchParent",
     "height": 54,
     "itemMargin": 8,

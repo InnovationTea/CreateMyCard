@@ -81,7 +81,7 @@ Column(
 
 - `IF(condition, trueComponent, falseComponent)` 保留两条组件子树，第三个参数可省略。
   条件使用已声明的 `data.xxx`（或 `Bind("xxx")`），复杂比较使用
-  ``IF(Expr(`${data.eventCont} > 0`), Text('有日程'), Text('暂无日程'))``。
+  `IF(Expr(data.eventCont > 0), Text('有日程'), Text('暂无日程'))`。
 - 分支根必须是具体组件或嵌套 `IF`；不能直接传 `children`、`children[index]` 或生成期指令。
   分支内部可以继续使用生成期指令。IF 不接受样式、Props 条件、任意函数或关键词参数。
 - `$optionalPath` 仍需外层 `#if data.xxx` 保证该 binding 进入模板；运行时 IF 不代表生成期字段授权。
@@ -206,15 +206,20 @@ Column({"width": "matchParent", "itemMargin": 4},
 
 - `$path` 声明模板展开必需的数据，必须按视觉层级进入 `primaryData` 或 `secondaryData`；两组数据都必须
   在 TaskSpec 中存在，只有 `optionalData` 可以缺省。
-- `$optionalPath` 声明可选数据，引用必须位于 `#if data.xxx` 的存在分支，或由 `#Expr` 对该字段先做
-  编译期选择，并进入 `optionalData`。
-- 组件结构的编译期选择使用独占行指令 `#if data.xxx` / `#if props.xxx`、可选的 `#else` 和
-  `#endif`。条件判断的是本轮 binding 或参数是否可用，不读取运行时值；Prop 已提供且不为 `None` 时
+- `$optionalPath` 声明可选数据，引用必须位于 `#if data.xxx` / `#elseif data.xxx` 的存在分支，
+  或由 `#Expr` 对该字段先做编译期选择，并进入 `optionalData`。
+- 组件结构的编译期选择使用独占行指令 `#if data.xxx` / `#if props.xxx`、零个或多个 `#elseif`、
+  可选的 `#else` 和 `#endif`；`#end` 是条件结束指令的等价别名，模板结束标记仍为大小写敏感的 `#End`。
+  条件判断的是本轮 binding 或参数是否可用，不读取运行时值；Prop 已提供且不为 `None` 时
   视为存在，因此 `false`、`0` 和空字符串仍属于存在分支。所有指令在 Provider Template 编译阶段删除，
   不进入 Tersel 或最终 A2UI。
 - 两个可选数据字段必须同时存在时，可写 `#if data.first && data.second`。仅当两个字段都存在时展开
   存在分支；任一字段缺失时进入 `#else`。`&&` 只允许连接两个直接的 `data.xxx`，表示编译期存在性
   “与”，不表示运行时逻辑表达式。存在分支可以安全引用这两个字段，缺失分支不得引用它们。
+- `#elseif` 支持与 `#if` 相同的三种条件：`data.xxx`、`props.xxx`、`data.first && data.second`。
+  从上到下只展开首个命中分支；即使该分支为空，也不继续匹配。没有命中时使用 `#else`，未声明
+  `#else` 时不生成内容。每个条件块最多一个 `#else`，其后不能再声明 `#elseif`；嵌套块独立匹配和闭合。
+  所有分支仍需通过绑定、参数、动作等校验，后续分支不能借用先前分支的可选数据存在性保证。
 - Provider 全局路径中已经存在的值必须使用 `data.xxx`，由服务端根据 `dataDomain + 相对路径`
   绑定为端侧表达式，不得在 `props` 中重复传递。没有对应全局路径的受控派生展示值，以及素材、
   排版等模板参数，
@@ -232,15 +237,38 @@ Column({"width": "matchParent", "itemMargin": 4},
   直接 A2UI 数据绑定，选中 Prop 或字面量时写入对应确定值；不得读取 `sampleValue` 固化展示内容，也不会
   生成 A2UI `Expr`。可选数据或 Prop 只允许在自身条件的真分支中引用；未使用 `#Expr` 包裹的普通三元
   表达式不再接受。
-- 需要算术、比较、逻辑、按运行时值计算的三元条件或 `size()` 时使用 ``Expr(`...`)``，例如
-  ``Expr(`${data.score} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`)``。`Expr` 至少引用一个 `data` binding，
+- 需要算术、比较、逻辑、按运行时值计算的三元条件或 `size()` 时直接使用 `Expr(...)`，无需外层引号，
+  例如 `Expr(data.score <= 20 ? "#FFF9A01E" : "#FF64BB5C")`。`Expr` 至少引用一个 `data` binding，
   不接受 `props`、对象字面量、裸 identifier、未知函数或任意可执行调用；纯静态值继续写字面量。
-- `#Expr(...)` 与 ``Expr(`...`)`` 语义不同：前者只做编译期值来源选择；后者需要按运行时值计算，
+- 表达式内字符串支持单双引号，双引号转换为 A2UI 要求的单引号；反引号字符串支持 `${data.xxx}`
+  插值。例如 ``Expr(data.start == "" ? "" : `${data.start} - ${data.end}`)`` 与
+  `Expr(data.start == "" ? "" : data.start + " - " + data.end)` 都表示条件满足后的时间拼接。
+  插值占位只接受已声明的 `data.xxx`，不接受额外计算或任意路径；普通引号内的 `data.xxx` 是静态文本。
+  编译过程只构建绑定 IR，生成 A2UI 时才映射到实际 path，不读取样例值、不计算条件或拼接结果。
+- 整个 Expr 参数用反引号包裹的旧 ``Expr(`...`)`` 保留旧的表达式正文语义以兼容历史模板；
+  新模板统一使用无外层引号写法。表达式中的反引号分支则按字符串插值解析。
+- `#Expr(...)` 与 `Expr(...)` 语义不同：前者只做编译期值来源选择；后者需要按运行时值计算，
   与普通反引号插值最终都归一化为完整 A2UI
   `{{ ... }}` 属性值，并按本轮 TaskSpec 路径、
   A2UI Form 表达式语法、2048 字符长度和 20 层嵌套限制校验。
 - 同一个 `.cardtpl` 可以包含多个 `#Template ... #End`，`provider.json` 中每个模板条目可指向同一文件；
   文件完整性由 CardPlan bundle 清单统一校验，不在模板条目重复维护摘要。
+
+编译期多分支示例（可选字段须事先通过 `$optionalPath` 声明）：
+
+```text
+#if data.city
+  Text(data.city)
+#elseif data.district
+  Text(data.district)
+#elseif props.location
+  Text(props.location)
+#else
+  Text("当前城市")
+#end
+```
+
+上述 `#end` 可替换为 `#endif`；指令只影响编译期组件选择，不会输出成 A2UI `If`。
 
 允许接收子组件的布局模板显式声明 `...children`，且正文只能放置一次 `children`：
 
@@ -274,7 +302,8 @@ Template("HeroActionLayout@1", {},
 
 可信展开后的最终 Tersel 产物包含组件树和 `data = {...}` 两条语句。组件动态值使用
 现有 `"${data...}"` 字符串占位语法；需要复合运行时计算时使用 `Expr("...")`，并与 Provider
-作者侧的 ``Expr(`...`)`` 归一化到相同 A2UI 表达式。`data` 初值由服务端从 TaskSpec 真实路径确定性生成；
+作者侧的 `Expr(...)` 归一化到相同 A2UI 表达式。作者语法的优化不改变展开后 Tersel 的协议。
+`data` 初值由服务端从 TaskSpec 真实路径确定性生成；
 `$path` 只属于
 Provider 模板作者侧声明，不进入最终 Tersel 语法。最终产物不得包含 `_advancedSelectors` 或
 `_templateProjection`。
