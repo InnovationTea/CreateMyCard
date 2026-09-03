@@ -37,6 +37,10 @@ ComponentName(requiredValues..., designToken?, inlineStyles?, ...children)
 - `designToken` 是组件对应的可选字符串 Token，必须紧跟在必需值之后。
 - `inlineStyles` 是可选对象，必须位于最后一个值参数位置。
 - `children` 只允许出现在 `Row`、`Column`、`List`、`Stack` 等容器中。
+- 运行时虚拟节点另用 `If(condition, trueComponent, falseComponent)`，假分支可省略；
+  condition 必须是完整的运行时表达式字符串。它来自 Provider `IF(...)` 的可信编译，
+  不接受 DesignToken 或样式；转换为 A2UI `If.condition/childrenIf/childrenElse`，
+  不输出普通 children，也不在云侧对两条分支求值或裁剪。
 
 Tersel 只接受当前 Form Catalog 的标准组件，不定义 `FusionBall` 等云端组件。融球 Theme 由受信模板编译器
 在序列化 Tersel 前展开为标准 `Stack` 组件树，因此 Tersel 转换器遇到 `FusionBall(...)` 必须按未知组件拒绝。

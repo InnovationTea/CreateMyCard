@@ -2,6 +2,8 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 from __future__ import annotations
 
+from services.a2ui_runtime_if import validate_runtime_if, validate_runtime_if_graph
+
 from .base import BaseValidator, expression_like, is_empty_required_value, is_json_pointer
 
 
@@ -34,6 +36,13 @@ class ComponentValidator(BaseValidator):
                 line=2,
                 actual=sorted(context.duplicate_component_ids),
                 message="components[].id 必须唯一。",
+            )
+        try:
+            validate_runtime_if_graph(context.components)
+        except ValueError as exc:
+            reporter.add(
+                "error", "DSL_TEMPLATE_CHILDREN_INVALID", "hard", "genui",
+                line=2, message=str(exc),
             )
         if (
             isinstance(context.root_id, str)
@@ -76,6 +85,18 @@ class ComponentValidator(BaseValidator):
             pointer = f"/updateComponents/components/{index}"
             component_id = component.get("id")
             component_type = component.get("component")
+            if component_type == "If":
+                props = {}
+                for key, value in component.items():
+                    if key not in {"id", "component"}:
+                        props[key] = value
+                try:
+                    validate_runtime_if(props)
+                except ValueError as exc:
+                    reporter.add(
+                        "error", "DSL_TEMPLATE_CHILDREN_INVALID", "hard", "genui",
+                        line=2, json_pointer=pointer, message=str(exc),
+                    )
             missing_common = False
             for field in common_required:
                 if field not in component or is_empty_required_value(

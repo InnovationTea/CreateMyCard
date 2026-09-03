@@ -63,6 +63,42 @@ TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路�
 
 ## UI 模板语法
 
+### 端侧运行时 IF
+
+```text
+#Template CalendarConditionFull@1(props: {})
+data = {
+  eventCont: $path("/eventCount")
+}
+Column(
+  IF(data.eventCont, Text('有日程'), Text('暂无日程'))
+)
+#End
+```
+
+`eventCont` 是模板声明的数据别名，实际路径以上面的 `$path` 为准，不自动纠正或猜测字段名。
+`provider.json` 的主数据或次要数据必须包含该路径，且能力 Schema 必须允许该路径。
+
+- `IF(condition, trueComponent, falseComponent)` 保留两条组件子树，第三个参数可省略。
+  条件使用已声明的 `data.xxx`（或 `Bind("xxx")`），复杂比较使用
+  ``IF(Expr(`${data.eventCont} > 0`), Text('有日程'), Text('暂无日程'))``。
+- 分支根必须是具体组件或嵌套 `IF`；不能直接传 `children`、`children[index]` 或生成期指令。
+  分支内部可以继续使用生成期指令。IF 不接受样式、Props 条件、任意函数或关键词参数。
+- `$optionalPath` 仍需外层 `#if data.xxx` 保证该 binding 进入模板；运行时 IF 不代表生成期字段授权。
+  两条运行时分支中的绑定、素材和事件都必须通过现有准入校验。
+- Search 仍根据 Schema 与模板声明选择候选，第二层仍只组合 Template；不得根据 sampleValue
+  删除分支、改换模板或让 LLM 生成 IF。
+- 布局高度使用两条互斥分支的最大值，不相加；不跨分支去重。布局样式施加到每个分支根的实体组件，
+  不施加到 If。运行时 IF 可以作为业务模板根，但完整卡片仍由实体布局模板提供 root shell。
+- 编译后为 `If("{{ ${/data/calendar/eventCount} }}", Text(...), Text(...))`，
+  再转换成 A2UI `{"component":"If","condition":"{{ ... }}","childrenIf":["..."],"childrenElse":["..."]}`。
+  Compact 归档和公共 Processor 保留同名字段，If 行不包含第四项普通 children。
+- 端侧 DataModel 更新触发重新选择分支；0、空字符串、null 等按 JS falsy 规则进入假分支，
+  undefined 或求值失败同样进入假分支。云侧不模拟或执行端侧求值。
+  `#if/#Expr` 继续只做生成期选择，不受此次新增影响。
+
+### 模板后缀与布局
+
 业务模板 ID 必须以 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、
 `WideFull` 之一结束。八类后缀分别表示：
 

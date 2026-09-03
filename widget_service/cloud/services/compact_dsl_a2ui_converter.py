@@ -14,6 +14,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
+from services.a2ui_runtime_if import (
+    IF_BRANCH_FIELDS,
+    component_child_ids,
+    validate_runtime_if,
+    validate_runtime_if_graph,
+)
 from services.fusion_ball_expander import (
     FusionBallExpansionError,
     expand_fusion_ball_components,
@@ -37,10 +43,12 @@ _COMPONENT_TYPES = frozenset(
         "Button",
         "ActionUnit",
         "Checkbox",
+        "If",
     }
 )
 _CONTAINER_TYPES = frozenset({"Row", "Column", "List", "Stack"})
 _SEMANTIC_FIELDS = {
+    "If": frozenset({"condition", "childrenIf", "childrenElse"}),
     "Text": frozenset({"content"}),
     "Image": frozenset({"src"}),
     "Progress": frozenset({"value", "total"}),
@@ -1398,6 +1406,8 @@ def _parse_component_row(value: list[Any], line_number: int) -> ComponentRow:
 def _repair_legacy_component_row(value: list[Any]) -> list[Any]:
     if len(value) not in {3, 4}:
         return value
+    if value[1] == "If":
+        return value
     props = value[2]
     if not isinstance(props, dict) or "children" not in props:
         return value
@@ -1653,6 +1663,15 @@ def _parse_children(
     component_id: str,
     component_type: str,
 ) -> tuple[str, ...]:
+    if component_type == "If":
+        if len(value) != 3:
+            raise CompactDslConversionError(f"{component_id}: If must not have ordinary children.")
+        props = value[2]
+        try:
+            validate_runtime_if(props)
+        except ValueError as exc:
+            raise CompactDslConversionError(f"{component_id}: {exc}") from exc
+        return component_child_ids({"component": "If", **props})
     if len(value) != 4:
         return ()
     if not isinstance(value[3], list):
@@ -1695,10 +1714,16 @@ def _without_children(
     children = tuple(child_id for child_id in row.children if child_id not in removed_ids)
     if children == row.children:
         return row
+    props = copy.deepcopy(row.props)
+    if row.component_type == "If":
+        for field in IF_BRANCH_FIELDS:
+            values = props.get(field)
+            if isinstance(values, list):
+                props[field] = [child for child in values if child not in removed_ids]
     return ComponentRow(
         row.component_id,
         row.component_type,
-        copy.deepcopy(row.props),
+        props,
         children,
     )
 
@@ -1784,6 +1809,20 @@ def _split_component_rows(
         raise CompactDslConversionError(
             "The root component is missing; model output may be truncated."
         )
+    graph: list[dict[str, Any]] = []
+    for component in [root, *components]:
+        node: dict[str, Any] = {
+            "id": component.component_id, "component": component.component_type,
+        }
+        if component.component_type == "If":
+            node.update(component.props)
+        else:
+            node["children"] = list(component.children)
+        graph.append(node)
+    try:
+        validate_runtime_if_graph(graph)
+    except ValueError as exc:
+        raise CompactDslConversionError(str(exc)) from exc
     return [root, *components], data_rows
 
 
@@ -1896,7 +1935,8 @@ def _component_to_tuple(component: ComponentRow) -> list[Any]:
         component.component_type,
         copy.deepcopy(component.props),
     ]
-    if component.component_type in _CONTAINER_TYPES or component.children:
+    has_children = component.component_type in _CONTAINER_TYPES or bool(component.children)
+    if component.component_type != "If" and has_children:
         row.append(list(component.children))
     return row
 

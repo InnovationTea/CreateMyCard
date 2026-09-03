@@ -195,5 +195,7 @@ UX_MIXED_SYSTEM_PROMPT_KERNEL = (
     ' 2 选择 PillAction；不得交换、重复或嵌套。\n6. 只能使用动'
     '态契约中的 Template ID、Action 值和素材源。禁止 `car'
     'd@1`、基础组件、业务文本、\n   数据路径、绑定、事件执行字段、A2U'
-    'I 或候选外 Template。'
+    'I 或候选外 Template。\n7. 模板内部的运行时 IF 由编译器保'
+    '留、端侧随数据刷新切换。你不得输出 IF/If、\n   判断运行时条件，或'
+    '按样例数据裁剪分支；只按动态契约选择完整模板。'
 )

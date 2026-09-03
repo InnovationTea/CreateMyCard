@@ -6,6 +6,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from services.a2ui_runtime_if import component_child_ids
+
 from .base import BaseValidator
 
 _HEX_COLOR = re.compile(r"^#(?P<hex>[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
@@ -75,7 +77,13 @@ class ContrastValidator(BaseValidator):
             return
         self._walk(context, reporter, root, [(1.0, 1.0, 1.0)])
 
-    def _walk(self, context, reporter, component, backgrounds) -> None:
+    def _walk(self, context, reporter, component, backgrounds, ancestors=frozenset()) -> None:
+        component_id = component.get("id")
+        if not isinstance(component_id, str):
+            return
+        if component_id in ancestors:
+            return
+        ancestors = ancestors | {component_id}
         styles = component.get("styles")
         styles = styles if isinstance(styles, dict) else {}
         effective_backgrounds = list(backgrounds)
@@ -118,12 +126,10 @@ class ContrastValidator(BaseValidator):
                             source="aesthetic-contrast",
                         )
 
-        children = component.get("children")
-        child_ids = children if isinstance(children, list) else []
-        for child_id in child_ids:
+        for child_id in component_child_ids(component):
             child = context.components_by_id.get(child_id)
             if isinstance(child, dict):
-                self._walk(context, reporter, child, effective_backgrounds)
+                self._walk(context, reporter, child, effective_backgrounds, ancestors)
 
     @staticmethod
     def _has_text(value: Any) -> bool:

@@ -26,12 +26,14 @@
 ## Form 裁剪范围
 
 - Form 是 HarmonyOS A2UI 扩展协议的严格子集；不支持 A2UI 原生组件，不新增全量扩展协议之外的组件、属性或语法，不支持多端自适应断点。
-- 允许组件只有 `Text`、`Image`、`Divider`、`Progress`、`Button`、`Checkbox`、`Row`、`Column`、`List`、`Stack`。
+- 允许组件只有 `Text`、`Image`、`Divider`、`Progress`、`Button`、`Checkbox`、`Row`、`Column`、`List`、`Stack`、`If`。
+- `If` 是无样式、无事件的运行时虚拟节点，只声明 `condition` 和两条分支引用；
+  字段及约束见组件目录。条件求值留在端侧，云侧必须保留并校验两条分支。
 - 默认不要使用自定义组件。只有用户或宿主明确说明 catalog 已注册自定义组件时才可使用，最终仍只输出两个代码块，不额外输出宿主假设说明。
 
 禁用：
 
-- 组件：`TextInput`、`Toggle`、`Radio`、`CheckboxGroup`、`Select`、`NavContainer`、`Tabs`、`TabContent`、`Web`、`Grid`、`If`
+- 组件：`TextInput`、`Toggle`、`Radio`、`CheckboxGroup`、`Select`、`NavContainer`、`Tabs`、`TabContent`、`Web`、`Grid`
 - 能力/字段：`theme`、`Button.action`、`onAppear`、`onChange`、`onSelect`、`onReachStart`、`onReachEnd`
 - 函数/变量：`setDataModel`、`setAttributes`、`navigate`、`scrollTo`、`sendToAssistant`、`$__widthBreakpoint`、`$__colorMode`
 - 媒体：网络图片、内联/base64 SVG、未声明 SVG、`data:image/svg+xml`

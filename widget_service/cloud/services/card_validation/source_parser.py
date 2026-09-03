@@ -6,6 +6,8 @@ import json
 import re
 from typing import Any
 
+from services.a2ui_runtime_if import component_child_ids
+
 from .base import set_pointer, walk_json
 from .context import ValidationContext
 from .diagnostics import Reporter
@@ -219,9 +221,5 @@ class SourceParser:
                 continue
             result.add(current_id)
             component = by_id.get(current_id, {})
-            children = component.get("children")
-            if isinstance(children, list):
-                stack.extend(child for child in children if isinstance(child, str))
-            elif isinstance(children, dict) and isinstance(children.get("componentId"), str):
-                stack.append(children["componentId"])
+            stack.extend(component_child_ids(component))
         return result

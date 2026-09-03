@@ -38,7 +38,7 @@ _FORBIDDEN_KEYS = frozenset({"__proto__", "prototype", "constructor"})
 _INTERNAL_DATA_KEYS = frozenset({"_advancedSelectors", "_templateProjection"})
 _CONTAINERS = frozenset({"Row", "Column", "List", "Stack"})
 _LEAVES = frozenset({"Text", "Image", "Divider", "Progress", "Button", "Checkbox"})
-_COMPONENTS = _CONTAINERS | _LEAVES
+_COMPONENTS = _CONTAINERS | _LEAVES | {"If"}
 _DATA_PLACEHOLDER = re.compile(r"^\$\{(data(?:\.[A-Za-z_][A-Za-z0-9_]*|\.\d+)+)\}$")
 _A2UI_DATA_REFERENCE = re.compile(
     r"\$\{(/data(?:/[A-Za-z_][A-Za-z0-9_]*|/\d+)+)\}"
@@ -355,7 +355,13 @@ def _parse_component(
                 theme_values=theme_values,
             )
         )
-    if children and component_type not in _CONTAINERS:
+    if component_type == "If":
+        if len(values) != 1 or len(children) not in {1, 2}:
+            raise TerselConversionError("If requires one condition and one or two branches.")
+        condition = values[0]
+        if not isinstance(condition, str) or not condition.strip().startswith("{{"):
+            raise TerselConversionError("If.condition must be a complete expression.")
+    elif children and component_type not in _CONTAINERS:
         raise TerselConversionError(f"{component_type} cannot contain child components.")
     return Nested2Node(component_type, tuple(values), tuple(children))
 
@@ -493,7 +499,10 @@ def _append_compact_rows(
         allowed_expression_paths,
     )
     row: list[Any] = [component_id, node.component_type, props]
-    if node.component_type in _CONTAINERS:
+    if node.component_type == "If":
+        props["childrenIf"] = child_ids[:1]
+        props["childrenElse"] = child_ids[1:]
+    elif node.component_type in _CONTAINERS:
         row.append(child_ids)
     rows.append(row)
     for child, child_id in zip(node.children, child_ids, strict=True):
@@ -717,6 +726,8 @@ def _component_props(
     component_id: str,
     size: str,
 ) -> dict[str, Any]:
+    if node.component_type == "If":
+        return {"condition": node.values[0]}
     if node.component_type in _CONTAINERS:
         return _container_props(node, component_id, size)
     if node.component_type == "Text":

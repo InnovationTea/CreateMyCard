@@ -17,16 +17,18 @@
     "2x2": {"width": 160, "height": 160, "borderRadius": 18},
     "2x4": {"width": 320, "height": 160, "borderRadius": 22}
   },
-  "allowedComponents": ["Text", "Image", "Divider", "Progress", "Button", "Checkbox", "Row", "Column", "List", "Stack"],
-  "forbiddenComponents": ["TextInput", "Toggle", "Radio", "CheckboxGroup", "Select", "NavContainer", "Tabs", "TabContent", "Web", "Grid", "If"],
+  "allowedComponents": ["Text", "Image", "Divider", "Progress", "Button", "Checkbox", "Row", "Column", "List", "Stack", "If"],
+  "forbiddenComponents": ["TextInput", "Toggle", "Radio", "CheckboxGroup", "Select", "NavContainer", "Tabs", "TabContent", "Web", "Grid"],
   "forbiddenComponentFields": {
     "*": ["theme", "onAppear", "onChange", "onSelect", "onReachStart", "onReachEnd"],
-    "Button": ["action"]
+    "Button": ["action"],
+    "If": ["styles", "onClick", "accessibility", "children"]
   },
   "commonTopLevelFields": ["id", "component", "styles", "onClick", "accessibility"],
   "componentCommonRequiredFields": ["id", "component"],
   "componentNonEmptyRequiredFields": ["id", "component", "src", "label", "children"],
   "componentTopLevelFields": {
+    "If": ["condition", "childrenIf", "childrenElse"],
     "Text": ["content"],
     "Image": ["src"],
     "Divider": [],
@@ -39,6 +41,7 @@
     "Stack": ["children"]
   },
   "componentRequiredFields": {
+    "If": ["condition"],
     "Text": ["content"],
     "Image": ["src"],
     "Progress": ["value"],
