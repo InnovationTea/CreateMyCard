@@ -1635,7 +1635,9 @@
         "bundleName": "com.huawei.hmos.clock",
         "abilityName": "com.huawei.hmos.clock.phone",
         "uri": "",
-        "tabActive": "WORLD_CLOCK_TAB"
+        "parameters": {
+          "tabActive": "WORLD_CLOCK_TAB"
+        }
       }
     },
     "dynamicArguments": [],
@@ -1664,10 +1666,20 @@
           "description": "打开时钟应用，固定填写空字符串。",
           "const": ""
         },
-        "tabActive": {
-          "type": "string",
-          "description": "固定填写 WORLD_CLOCK_TAB，显示世界时钟 Tab。",
-          "const": "WORLD_CLOCK_TAB"
+        "parameters": {
+          "type": "object",
+          "description": "Intent 参数对象。",
+          "properties": {
+            "tabActive": {
+              "type": "string",
+              "description": "固定填写 WORLD_CLOCK_TAB，显示世界时钟 Tab。",
+              "const": "WORLD_CLOCK_TAB"
+            }
+          },
+          "required": [
+            "tabActive"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
@@ -1675,7 +1687,7 @@
         "bundleName",
         "abilityName",
         "uri",
-        "tabActive"
+        "parameters"
       ],
       "additionalProperties": false
     },
@@ -1695,7 +1707,9 @@
         "bundleName": "com.huawei.hmos.clock",
         "abilityName": "com.huawei.hmos.clock.phone",
         "uri": "",
-        "tabActive": "ALARM_CLOCK_TAB"
+        "parameters": {
+          "tabActive": "ALARM_CLOCK_TAB"
+        }
       }
     },
     "dynamicArguments": [],
@@ -1724,10 +1738,20 @@
           "description": "打开时钟应用，固定填写空字符串。",
           "const": ""
         },
-        "tabActive": {
-          "type": "string",
-          "description": "固定填写 ALARM_CLOCK_TAB，显示闹钟 Tab。",
-          "const": "ALARM_CLOCK_TAB"
+        "parameters": {
+          "type": "object",
+          "description": "Intent 参数对象。",
+          "properties": {
+            "tabActive": {
+              "type": "string",
+              "description": "固定填写 ALARM_CLOCK_TAB，显示闹钟 Tab。",
+              "const": "ALARM_CLOCK_TAB"
+            }
+          },
+          "required": [
+            "tabActive"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
@@ -1735,7 +1759,7 @@
         "bundleName",
         "abilityName",
         "uri",
-        "tabActive"
+        "parameters"
       ],
       "additionalProperties": false
     },
@@ -1755,7 +1779,9 @@
         "bundleName": "com.huawei.hmos.clock",
         "abilityName": "com.huawei.hmos.clock.phone",
         "uri": "",
-        "tabActive": "STOPWATCH_TAB"
+        "parameters": {
+          "tabActive": "STOPWATCH_TAB"
+        }
       }
     },
     "dynamicArguments": [],
@@ -1784,10 +1810,20 @@
           "description": "打开时钟应用，固定填写空字符串。",
           "const": ""
         },
-        "tabActive": {
-          "type": "string",
-          "description": "固定填写 STOPWATCH_TAB，显示秒表 Tab。",
-          "const": "STOPWATCH_TAB"
+        "parameters": {
+          "type": "object",
+          "description": "Intent 参数对象。",
+          "properties": {
+            "tabActive": {
+              "type": "string",
+              "description": "固定填写 STOPWATCH_TAB，显示秒表 Tab。",
+              "const": "STOPWATCH_TAB"
+            }
+          },
+          "required": [
+            "tabActive"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
@@ -1795,7 +1831,7 @@
         "bundleName",
         "abilityName",
         "uri",
-        "tabActive"
+        "parameters"
       ],
       "additionalProperties": false
     },
@@ -1815,7 +1851,9 @@
         "bundleName": "com.huawei.hmos.clock",
         "abilityName": "com.huawei.hmos.clock.phone",
         "uri": "",
-        "tabActive": "TIMER_TAB"
+        "parameters": {
+          "tabActive": "TIMER_TAB"
+        }
       }
     },
     "dynamicArguments": [],
@@ -1844,10 +1882,20 @@
           "description": "打开时钟应用，固定填写空字符串。",
           "const": ""
         },
-        "tabActive": {
-          "type": "string",
-          "description": "固定填写 TIMER_TAB，显示计时器 Tab。",
-          "const": "TIMER_TAB"
+        "parameters": {
+          "type": "object",
+          "description": "Intent 参数对象。",
+          "properties": {
+            "tabActive": {
+              "type": "string",
+              "description": "固定填写 TIMER_TAB，显示计时器 Tab。",
+              "const": "TIMER_TAB"
+            }
+          },
+          "required": [
+            "tabActive"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
@@ -1855,7 +1903,7 @@
         "bundleName",
         "abilityName",
         "uri",
-        "tabActive"
+        "parameters"
       ],
       "additionalProperties": false
     },

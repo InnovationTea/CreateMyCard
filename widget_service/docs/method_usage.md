@@ -40,16 +40,22 @@ cloud/data/capabilities/{capabilityRegistryVersion}/
 └─ asset_capabilities.json
 ```
 
-当前默认能力清单：
+当前能力清单及命中区间：
 
 ```text
-app-11.7.5.205_rom-6.0
+App [11.7.5.205, 11.7.7.330) + ROM [7.0, 7.2) -> app-11.7.5.205_rom-6.0
+App [11.7.7.330, 12.0.0.0) + ROM [7.0, 8.0) -> app-11.7.7.300_rom-7.0
 ```
 
-当前 App `[11.7.5.205, 12.0.0.0)`、ROM `[6.0, 7.0)` 命中上述目录。App 使用完整数字版本，ROM 从完整 `romVersion` 中抽取主次版本。索引加载时会拒绝倒置区间、App 与 ROM 同时重叠的配置以及不存在的目标目录。
+App 使用完整数字版本，ROM 从完整 `romVersion` 中抽取主次版本。索引加载时会拒绝倒置区间、App 与
+ROM 同时重叠的配置以及不存在的目标目录。
+
+能力目录名是快照标识，不用于推导实际命中范围。当前配置下 ROM 6.x、旧 App 搭配 ROM 7.2 及以上，
+以及其它未覆盖组合没有直接命中；是否使用默认清单由回退开关决定。
 
 五个接口在能力清单版本未命中或目标目录不可用且
-`WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true` 时，统一回退到上述默认能力清单。
+`WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true` 时，统一回退到默认的
+`app-11.7.5.205_rom-6.0` 能力清单。
 关闭开关时，第一、第二接口返回空清单/缺失能力，三个生成接口返回版本不支持。
 
 第一接口的 IDS 安装过滤范围由
@@ -90,9 +96,10 @@ a2ui-form-rom6.0-v1
 
 当前微服务提供五个正式工具能力，其中第四个是 Design Compact DSL 生成变体，第五个是
 TerseDSL-Nested-2 静态生成变体。客户端连接目标 path 后，
-消息体只需要传该能力自己的参数，不需要再传 `operation`。新协议中的 `odid` 位于 `content.odid`，
-字段可选；服务会将其映射到内部设备上下文，缺失或为空时 IDS 查询继续使用固定兜底值，且不从
-`deviceInfo` 读取同名字段。用户和设备上下文由工具层自动注入，本地测试时可以显式传入。
+消息体只需要传该能力自己的参数，不需要再传 `operation`。新协议优先读取 `content.uid` 和
+`content.romVersion`，对应字段缺失或为空时分别回退到 `userAuth.user.userId` 和
+`deviceInfo.romVersion`。`odid` 只从可选的 `content.odid` 读取并映射到内部设备上下文；缺失或为空时
+IDS 查询继续使用固定兜底值。用户和设备上下文通常由工具层自动注入，本地测试时可以显式传入。
 
 业务入口：
 

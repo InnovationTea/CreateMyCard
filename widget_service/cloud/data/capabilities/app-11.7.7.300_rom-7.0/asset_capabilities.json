@@ -80,7 +80,7 @@
     "id": "asset.bell_fill",
     "type": "asset",
     "src": "resources/base/media/bell_fill.svg",
-    "description": "样式：铃铛实心图标，默认黑色，图形为经典吊铃造型；适用：通知提醒、消息提示、闹铃开启状态。",
+    "description": "样式：默认黑色的单色实心铃铛图标，采用经典吊铃造型，底部带铃舌，原始尺寸为 24×24；适用：通知提醒、消息提示、备忘录提醒、闹钟响铃或开启状态，以及日历事项提醒。",
     "sceneTags": [
       "notification",
       "alarm"
@@ -135,7 +135,7 @@
     "id": "asset.checkmark_calendar_fill",
     "type": "asset",
     "src": "resources/base/media/checkmark_calendar_fill.svg",
-    "description": "样式：默认黑色的单色日历实心图标，内部通过镂空表现对勾，支持通过 fillColor 与卡片配色统一；适用：已完成日程、日程确认、任务打卡。",
+    "description": "样式：默认黑色的单色实心日历图标，内部叠加对勾并通过镂空表现细节，原始尺寸为 24×24，支持通过 fillColor 与卡片配色统一；适用：已完成日程、日程或计划确认、签到、待办完成、任务或运动打卡与健康计划。",
     "sceneTags": [
       "calendar",
       "task"
@@ -168,7 +168,7 @@
     "id": "asset.clock_fill",
     "type": "asset",
     "src": "resources/base/media/clock_fill.svg",
-    "description": "样式：默认黑色的单色时钟实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：时间显示、闹钟设置、定时器。",
+    "description": "样式：默认黑色的单色实心圆形时钟图标，内部通过镂空表现表盘指针，原始尺寸为 24×24，支持通过 fillColor 与卡片配色统一；适用：时间显示、闹钟设置、定时器、提醒时间、应用使用时长与运动时长。",
     "sceneTags": [
       "time",
       "clock"
@@ -717,6 +717,391 @@
     "src": "resources/base/media/icon_weather_wind.svg",
     "description": "样式：黑色的线面结合风力图标，主体为水滴状轮廓并带两组横向波浪气流；适用：风速、风向、风力等级或大风提醒。",
     "sceneTags": [],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.average_pace_fill",
+    "type": "asset",
+    "src": "resources/base/media/average_pace_fill.svg",
+    "description": "样式：默认黑色的单色实心半圆仪表盘图标，中央带指针，原始尺寸为 24×24；适用：平均配速、速度、跑步或骑行表现、训练概览与历史成绩。",
+    "sceneTags": [
+      "health",
+      "sport"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.bell_fill_1",
+    "type": "asset",
+    "src": "resources/base/media/bell_fill_1.svg",
+    "description": "样式：默认黑色的单色实心铃铛图标，采用经典吊铃造型，底部带铃舌，原始尺寸为 24×24；适用：通知提醒、消息提示、备忘录提醒、闹钟响铃或开启状态，以及日历事项提醒。",
+    "sceneTags": [
+      "notification",
+      "alarm"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.blood_oxygen_meter_fill",
+    "type": "asset",
+    "src": "resources/base/media/blood_oxygen_meter_fill.svg",
+    "description": "样式：默认黑色的单色实心血氧仪图标，带显示屏与指夹结构，原始尺寸为 24×24；适用：血氧、血氧饱和度、健康检测、健康报告与测量设备入口。",
+    "sceneTags": [
+      "health",
+      "blood-oxygen"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.body_fat_scale_fill_1",
+    "type": "asset",
+    "src": "resources/base/media/body_fat_scale_fill_1.svg",
+    "description": "样式：默认黑色的单色实心方形电子体脂秤图标，顶部带读数与踏板区域，原始尺寸为 24×24；适用：体重、体脂、身体成分、体脂秤连接与体重趋势。",
+    "sceneTags": [
+      "health",
+      "body-composition"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.book_pages_fill_1",
+    "type": "asset",
+    "src": "resources/base/media/book_pages_fill_1.svg",
+    "description": "样式：默认黑色的单色实心展开双页书册图标，内部通过留白表现书页，原始尺寸为 24×24；适用：阅读、内容页、知识记录、笔记库、健康知识与运动课程入口。",
+    "sceneTags": [
+      "reading",
+      "notes"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.bookshelf",
+    "type": "asset",
+    "src": "resources/base/media/bookshelf.svg",
+    "description": "样式：默认黑色的单色书架图标，由多本竖放书籍组成，原始尺寸为 24×24；适用：资料库、收藏、分类归档、备忘录归档、健康报告或指南入口。",
+    "sceneTags": [
+      "library",
+      "archive"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.cake_fill",
+    "type": "asset",
+    "src": "resources/base/media/cake_fill.svg",
+    "description": "样式：默认黑色的单色实心生日蛋糕图标，顶部带蜡烛，原始尺寸为 24×24；适用：生日、纪念日、节日、庆祝事件与运动目标达成。",
+    "sceneTags": [
+      "calendar",
+      "celebration"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.camera_fill",
+    "type": "asset",
+    "src": "resources/base/media/camera_fill.svg",
+    "description": "样式：默认黑色的单色实心相机图标，带矩形机身与圆形镜头，原始尺寸为 24×24；适用：拍照、相册、图像记录、备忘录插图，以及体态或餐食记录。",
+    "sceneTags": [
+      "camera",
+      "media"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.checkmark_calendar_fill_1",
+    "type": "asset",
+    "src": "resources/base/media/checkmark_calendar_fill_1.svg",
+    "description": "样式：默认黑色的单色实心日历图标，内部叠加对勾并通过镂空表现细节，原始尺寸为 24×24，支持通过 fillColor 与卡片配色统一；适用：已完成日程、日程或计划确认、签到、待办完成、任务或运动打卡与健康计划。",
+    "sceneTags": [
+      "calendar",
+      "task"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.checkmark_circle_fill",
+    "type": "asset",
+    "src": "resources/base/media/checkmark_circle_fill.svg",
+    "description": "样式：默认黑色的单色实心圆形图标，内部为对勾留白，原始尺寸为 24×24；适用：完成、确认、成功、已选中、事项勾选、设置保存与目标达成。",
+    "sceneTags": [
+      "task",
+      "success"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.clock_fill_1",
+    "type": "asset",
+    "src": "resources/base/media/clock_fill_1.svg",
+    "description": "样式：默认黑色的单色实心圆形时钟图标，内部通过镂空表现表盘指针，原始尺寸为 24×24，支持通过 fillColor 与卡片配色统一；适用：时间显示、闹钟设置、定时器、提醒时间、应用使用时长与运动时长。",
+    "sceneTags": [
+      "time",
+      "clock"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.control_fill",
+    "type": "asset",
+    "src": "resources/base/media/control_fill.svg",
+    "description": "样式：默认黑色的单色实心控制图标，由上下两条带圆形滑块的调节条组成，原始尺寸为 24×24；适用：系统设置分类、显示、声音、模式与偏好参数调节入口，不用于替代二元开关控件。",
+    "sceneTags": [
+      "settings",
+      "control"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.doc_plaintext_fill",
+    "type": "asset",
+    "src": "resources/base/media/doc_plaintext_fill.svg",
+    "description": "样式：默认黑色的单色实心文档页图标，内部带多行文字，原始尺寸为 24×24；适用：文本笔记、新建或查看详情、说明、健康报告与应用使用时长报告。",
+    "sceneTags": [
+      "notes",
+      "document"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.ellipsis_message_badge_circle_fill",
+    "type": "asset",
+    "src": "resources/base/media/ellipsis_message_badge_circle_fill.svg",
+    "description": "样式：默认黑色的单色实心对话气泡图标，内部含三个省略点并带圆形徽标，原始尺寸为 24×24；适用：消息会话、正在输入、电话或短信提醒、语音留言、客服会话与未读提示。",
+    "sceneTags": [
+      "message",
+      "notification"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.envelope_badge_dot_fill",
+    "type": "asset",
+    "src": "resources/base/media/envelope_badge_dot_fill.svg",
+    "description": "样式：默认黑色的单色实心信封图标，右上叠加圆点徽标，原始尺寸为 26×24；适用：新消息、未读提醒、邮件通知、日历邀请与备忘录共享通知。",
+    "sceneTags": [
+      "message",
+      "notification"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.figure_sleeping_bed_side_fill",
+    "type": "asset",
+    "src": "resources/base/media/figure_sleeping_bed_side_fill.svg",
+    "description": "样式：默认黑色的单色实心侧卧人物与床铺图标，原始尺寸为 24×24；适用：睡眠、休息、睡眠监测、睡眠数据、睡眠模式与就寝提醒。",
+    "sceneTags": [
+      "health",
+      "sleep"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.gearshape_fill",
+    "type": "asset",
+    "src": "resources/base/media/gearshape_fill.svg",
+    "description": "样式：默认黑色的单色实心多齿齿轮图标，原始尺寸为 24×24；适用：系统设置、偏好配置、闹钟规则、相机参数与健康权限设置入口。",
+    "sceneTags": [
+      "settings",
+      "control"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.list_book_fill",
+    "type": "asset",
+    "src": "resources/base/media/list_book_fill.svg",
+    "description": "样式：默认黑色的单色实心书册图标，内部带列表与文字线条，原始尺寸为 24×24；适用：目录、清单、记录册、备忘录列表、日程列表与健康记录列表。",
+    "sceneTags": [
+      "notes",
+      "list"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.list_bullet_square_fill_1",
+    "type": "asset",
+    "src": "resources/base/media/list_bullet_square_fill_1.svg",
+    "description": "样式：默认黑色的单色实心列表图标，左侧带方形项目符号，原始尺寸为 24×24；适用：待办、任务清单、步骤、日程、运动训练计划与拍摄任务。",
+    "sceneTags": [
+      "task",
+      "list"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.local_and_rectangle_fill",
+    "type": "asset",
+    "src": "resources/base/media/local_and_rectangle_fill.svg",
+    "description": "样式：默认黑色的单色实心位置图标，地图定位图钉置于底部矩形底图上，原始尺寸为 24×24；适用：日历地点、备忘录位置、运动轨迹、照片地点、位置服务与定位权限。",
+    "sceneTags": [
+      "location",
+      "navigation"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.mic_fill",
+    "type": "asset",
+    "src": "resources/base/media/mic_fill.svg",
+    "description": "样式：默认黑色的单色实心立式话筒图标，原始尺寸为 24×24；适用：录音、语音输入、语音通话、备忘录语音速记、视频收音与麦克风权限。",
+    "sceneTags": [
+      "audio",
+      "voice"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.mobiledata",
+    "type": "asset",
+    "src": "resources/base/media/mobiledata.svg",
+    "description": "样式：默认黑色的单色移动数据图标，由上下方向的数据传输箭头组成，原始尺寸为 24×24；适用：移动数据、数据流量、上传下载、网络传输、流量管理与设置入口。",
+    "sceneTags": [
+      "network",
+      "mobile-data"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.mobiledata_circle_fill",
+    "type": "asset",
+    "src": "resources/base/media/mobiledata_circle_fill.svg",
+    "description": "样式：默认黑色的单色实心圆形移动数据图标，内部通过留白表现上下数据箭头，原始尺寸为 24×24；适用：移动数据快捷操作、控制中心、网络状态与已启用的数据服务。",
+    "sceneTags": [
+      "network",
+      "mobile-data"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.moon_fill",
+    "type": "asset",
+    "src": "resources/base/media/moon_fill.svg",
+    "description": "样式：默认黑色的单色实心弯月剪影图标，原始尺寸为 24×24；适用：夜间、睡眠、深色模式、勿扰、就寝提醒与夜间使用时长。",
+    "sceneTags": [
+      "sleep",
+      "night"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.pc_ic_tab_index",
+    "type": "asset",
+    "src": "resources/base/media/pc_ic_tab_index.svg",
+    "description": "样式：默认黑色的单色球形索引图标，由多条弧线与节点组成地图或网络意象，原始尺寸为 24×24；适用：探索、网络、全局概览、应用首页、使用时长统计与跨设备入口，不作为备忘录、闹钟或电话的主操作图标。",
+    "sceneTags": [
+      "overview",
+      "navigation"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.recordingtape_rectangle_fill",
+    "type": "asset",
+    "src": "resources/base/media/recordingtape_rectangle_fill.svg",
+    "description": "样式：默认黑色的单色实心长方形磁带盒图标，内部含双卷盘，原始尺寸为 24×24；适用：录音、音频档案、电话录音、语音留言、备忘录录音与视频音频素材。",
+    "sceneTags": [
+      "audio",
+      "recording"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.sdcard_fill",
+    "type": "asset",
+    "src": "resources/base/media/sdcard_fill.svg",
+    "description": "样式：默认黑色的单色实心存储卡图标，带缺角和触点结构，原始尺寸为 24×24；适用：外部存储、导入导出、容量、相机存储位置与健康或备忘录文件导出。",
+    "sceneTags": [
+      "storage",
+      "device"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.service_card_fill",
+    "type": "asset",
+    "src": "resources/base/media/service_card_fill.svg",
+    "description": "样式：默认黑色的单色实心方形服务卡片图标，内部含标题与两行信息，原始尺寸为 24×24；适用：卡片服务、应用首页快捷入口、信息摘要、备忘录或健康摘要与系统快捷服务。",
+    "sceneTags": [
+      "card",
+      "service"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.simcard_fill",
+    "type": "asset",
+    "src": "resources/base/media/simcard_fill.svg",
+    "description": "样式：默认黑色的单色实心 SIM 卡图标，带缺角与芯片区域，原始尺寸为 24×24；适用：蜂窝网络、SIM 卡、电话号码、电话、双卡管理、移动网络与移动数据设置。",
+    "sceneTags": [
+      "network",
+      "sim-card"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.staircase_badge_clock_fill",
+    "type": "asset",
+    "src": "resources/base/media/staircase_badge_clock_fill.svg",
+    "description": "样式：默认黑色的单色实心阶梯图标，叠加小型时钟徽标，原始尺寸为 24×24；适用：爬楼、步行活动、爬楼层数、日常活动、训练耗时与活动时长。",
+    "sceneTags": [
+      "health",
+      "sport"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.stopwatch_2",
+    "type": "asset",
+    "src": "resources/base/media/stopwatch_2.svg",
+    "description": "样式：默认黑色的单色秒表图标，主体顶部带按键，内部通过留白表现表盘指针，原始尺寸为 24×24；适用：计时、秒表、专注时段、运动训练、应用使用时长与倒计时。",
+    "sceneTags": [
+      "time",
+      "sport"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.text_clipboard_fill",
+    "type": "asset",
+    "src": "resources/base/media/text_clipboard_fill.svg",
+    "description": "样式：默认黑色的单色实心剪贴板图标，顶部带夹扣，内部含多行文字，原始尺寸为 24×24；适用：清单、表单、文本记录、任务管理、日历事项、健康测量记录与系统诊断记录。",
+    "sceneTags": [
+      "task",
+      "record"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.video_fill",
+    "type": "asset",
+    "src": "resources/base/media/video_fill.svg",
+    "description": "样式：默认黑色的单色实心摄像机图标，机身带侧向镜头，原始尺寸为 24×24；适用：录像、视频通话、视频内容、运动动作记录与备忘录插入视频。",
+    "sceneTags": [
+      "media",
+      "video"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.wifi",
+    "type": "asset",
+    "src": "resources/base/media/wifi.svg",
+    "description": "样式：默认黑色的单色 Wi-Fi 信号图标，由三层弧线与圆点组成，原始尺寸为 24×24；适用：无线网络、Wi-Fi 连接、网络状态、系统设置与控制中心快捷开关。",
+    "sceneTags": [
+      "network",
+      "wifi"
+    ],
+    "minXiaoyiVersion": "1.0.0"
+  },
+  {
+    "id": "asset.worldclock_fill_2",
+    "type": "asset",
+    "src": "resources/base/media/worldclock_fill_2.svg",
+    "description": "样式：默认黑色的单色实心世界时钟图标，时钟与世界或经纬线意象组合，原始尺寸为 24×24；适用：世界时钟、时区、跨地区时间、海外联系时间与跨时区日程。",
+    "sceneTags": [
+      "time",
+      "world-clock"
+    ],
     "minXiaoyiVersion": "1.0.0"
   }
 ]
