@@ -103,7 +103,7 @@
   <rect x="555" y="755" width="690" height="95" class="condition"/>
   <text x="900" y="786" text-anchor="middle" class="node-title">协议区间选择</text>
   <text x="900" y="813" text-anchor="middle" class="node-text">协议索引与能力清单使用相同的两段 App/ROM 区间</text>
-  <text x="900" y="838" text-anchor="middle" class="small">11.7.7.332 + VDE-AL10 7.0.0.107 → 命中 design-compact-dsl</text>
+  <text x="900" y="838" text-anchor="middle" class="small">content.romVersion=7.0.0.107 → 命中 design-compact-dsl</text>
 
   <path d="M555 802 L450 802" class="branch"/>
   <rect x="90" y="747" width="350" height="112" class="failure"/>

@@ -1230,21 +1230,32 @@ def test_compact_protocol_selection_uses_configured_default_fallback():
     assert selection.design_profile_id == "design-compact-dsl"
 
 
-def test_compact_generation_version_routes_directly_hit_phase_two(monkeypatch):
+def test_router_content_rom_version_selects_phase_two_protocol_profile(monkeypatch):
     monkeypatch.setattr(
         get_settings(),
         "enable_default_protocol_profile_fallback",
         False,
     )
-    request = GenerateWidgetCardRequest(
-        uid="test-user",
-        prdVer=APP_VERSION_11_7_7_332,
-        device={"romVersion": "7.0"},
-        userQuery="生成静态卡片",
-        title="静态卡片",
-        description="二期协议范围测试",
+    _, arguments = _normalize_payload(
+        {
+            "content": {
+                "romVersion": "VDE-AL10 7.0.0.107",
+                "userQuery": "生成静态卡片",
+                "title": "静态卡片",
+                "description": "二期协议范围测试",
+            },
+            "deviceInfo": {
+                "prdVer": APP_VERSION_11_7_7_332,
+                "romVersion": ROM_VERSION_6,
+            },
+            "session": {},
+            "userAuth": {"user": {"userId": "test-user"}},
+        },
+        "generateWidgetCardCompactDsl",
     )
-    request.device._source_rom_version = "VDE-AL10 7.0.0.107"
+    source_rom_version = arguments["device"].pop("_sourceRomVersion")
+    request = GenerateWidgetCardRequest(**arguments)
+    request.device._source_rom_version = source_rom_version
 
     service = WidgetGenerationService()
     registry = service._capability_registry(request)
@@ -1252,6 +1263,7 @@ def test_compact_generation_version_routes_directly_hit_phase_two(monkeypatch):
 
     assert registry.version == REGISTRY_VERSION_7
     assert registry.selection_type == "interval"
+    assert request.device._source_rom_version == "VDE-AL10 7.0.0.107"
     assert selection.normalized_app_version == APP_VERSION_11_7_7_332
     assert selection.normalized_rom_version == "7.0"
     assert selection.protocol_profile_id == "a2ui-form-rom6.0-v1"

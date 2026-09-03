@@ -78,6 +78,7 @@ generate_widget_card_compact_dsl_ws
 ```json
 {
   "content": {
+    "romVersion": "VDE-AL10 7.0.0.107",
     "userQuery": "帮我做一个通勤天气卡片",
     "size": "2x4",
     "title": "通勤助手",
@@ -106,7 +107,7 @@ generate_widget_card_compact_dsl_ws
   "deviceInfo": {
     "locale": "zh-CN",
     "prdVer": "11.7.7.332",
-    "romVersion": "VDE-AL10 7.0.0.107"
+    "romVersion": "CLS-AL30 6.0.0.328"
   },
   "session": {
     "sessionId": "session-001",
@@ -118,6 +119,9 @@ generate_widget_card_compact_dsl_ws
   }
 }
 ```
+
+示例故意让 `content.romVersion` 与 `deviceInfo.romVersion` 不同，用于展示与能力清单接口一致的取值规则：
+优先使用 `content.romVersion`，只有它缺失或为空时才回退到 `deviceInfo.romVersion`。
 
 路由归一化结果：
 
