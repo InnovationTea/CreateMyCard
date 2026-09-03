@@ -143,6 +143,40 @@
         "/rightBatteryLevel"
       ],
       "optionalData": []
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewEarbudsMusicWideHero@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "耳机听歌 WideHero，展示耳机名称、连接状态、耳机盒环形电量和更新时间。",
+      "entry": "templates/bluetooth-device-overview.cardtpl",
+      "primaryData": [
+        "/isConnected",
+        "/earphoneName",
+        "/batteryLevel",
+        "/updatedAt"
+      ],
+      "secondaryData": [],
+      "optionalData": []
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewEarbudsChargingWideHero@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "耳机全览 WideHero，展示名称、连接状态，以及耳机盒、左耳和右耳电量与充电状态。",
+      "entry": "templates/bluetooth-device-overview.cardtpl",
+      "primaryData": [
+        "/isConnected",
+        "/earphoneName",
+        "/batteryLevel",
+        "/chargingStatusDesc",
+        "/leftBatteryLevel",
+        "/leftChargingStatusDesc",
+        "/rightBatteryLevel",
+        "/rightChargingStatusDesc"
+      ],
+      "secondaryData": [],
+      "optionalData": []
     }
   ],
   "compatibility": {

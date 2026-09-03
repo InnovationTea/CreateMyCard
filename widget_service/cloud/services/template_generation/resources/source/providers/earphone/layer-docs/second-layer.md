@@ -15,6 +15,10 @@
     `BluetoothDeviceOverviewEarbudsDynamicWideFull@1`：宽版连接摘要，盒与左右耳电量均为可选数据。
   - `BluetoothDeviceOverviewCompleteWideFull@1`、
     `BluetoothDeviceOverviewCompletePhoneWideFull@1`：宽版完整电量摘要，盒与左右耳电量均为必选数据。
+  - `BluetoothDeviceOverviewEarbudsMusicWideHero@1`：耳机听歌宽版摘要，展示名称、连接状态、耳机盒
+    环形电量和更新时间；用于 `WideSingleFocusLayout@1` 加一个 `PillAction@1`。
+  - `BluetoothDeviceOverviewEarbudsChargingWideHero@1`：耳机全览宽版摘要，三列居中展示耳机盒、左耳
+    和右耳电量及充电状态；用于 `WideSingleFocusLayout@1` 加一个 `PillAction@1`。
 - 兼容路径中的 Support `actionId` 只在该业务有已批准事件时传入；没有对应事件时省略，根节点不生成
   `onClick`。
 - Props 只能使用本轮 Prompt 下发的可信文本或素材，不得输出数据路径。
@@ -24,4 +28,5 @@
   - `caseIcon`：耳机收纳盒或充电盒；
   - `leftEarIcon`、`rightEarIcon`：对应左右耳塞，左右不可互换；
   - `deviceIcon`：整副耳机、成对耳机或耳机盒，不得使用单侧耳塞或通用音乐图标。
+  - `timeIcon`：更新时间、刷新时间或时钟语义；
 - 必填素材没有合适候选时不得选择该模板；可选素材没有合适候选时省略。

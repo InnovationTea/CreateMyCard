@@ -16,18 +16,18 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     manifest = write_template_preview_dataset(tmp_path)
     cases = manifest["cases"]
 
-    assert manifest["templateCount"] == 68
+    assert manifest["templateCount"] == 72
     assert manifest["countsByLayout"] == {
         "Support": 12,
         "Compact": 11,
         "Hero": 18,
         "Full": 15,
-        "WideHero": 2,
+        "WideHero": 6,
         "WideFull": 10,
     }
-    assert manifest["countsBySize"] == {"2x2": 56, "2x4": 12}
-    assert len(cases) == 68
-    assert len({case["templateId"] for case in cases}) == 68
+    assert manifest["countsBySize"] == {"2x2": 56, "2x4": 16}
+    assert len(cases) == 72
+    assert len({case["templateId"] for case in cases}) == 72
     assert all((tmp_path / case["file"]).is_file() for case in cases)
 
 
@@ -54,6 +54,7 @@ def test_template_preview_assets_are_bundled_by_genui_evaluation():
     assert names == {
         "battery_leaf_fill.svg",
         "calendar_fill.svg",
+        "bell_fill.svg",
         "clock_fill.svg",
         "earphone_case_16644.svg",
         "externaldrive_fill.svg",
@@ -61,6 +62,7 @@ def test_template_preview_assets_are_bundled_by_genui_evaluation():
         "flame_fill.svg",
         "heart_fill.svg",
         "icon_earphone.svg",
+        "icon_meeting.svg",
         "icon_tiktok.png",
         "icon_weather1.svg",
         "l_circle_fill.svg",
@@ -145,3 +147,76 @@ def test_earphone_hero_uses_title_parameter_without_title_binding():
         "leftBatteryLevel",
         "rightBatteryLevel",
     }
+
+
+def test_q059_q067_q073_q077_widehero_templates_match_input_contracts():
+    cases = {case.template_id: case for case in build_template_preview_cases()}
+    expected = {
+        "BluetoothDeviceOverviewEarbudsMusicWideHero@1": (
+            "/isConnected",
+            "/earphoneName",
+            "/batteryLevel",
+            "/updatedAt",
+        ),
+        "ScheduleOverviewMeetingReminderWideHero@1": (
+            "/events/0/title",
+            "/events/0/dtStart",
+            "/events/0/eventLocation",
+            "/events/0/remindTime/0",
+        ),
+        "BluetoothDeviceOverviewEarbudsChargingWideHero@1": (
+            "/isConnected",
+            "/earphoneName",
+            "/batteryLevel",
+            "/chargingStatusDesc",
+            "/leftBatteryLevel",
+            "/leftChargingStatusDesc",
+            "/rightBatteryLevel",
+            "/rightChargingStatusDesc",
+        ),
+        "ScheduleOverviewMeetingJoinWideHero@1": (
+            "/events/0/dtStart",
+            "/events/0/eventLocation",
+            "/events/0/senderName",
+            "/events/0/oneClickServiceLink",
+        ),
+    }
+
+    for template_id, primary_data in expected.items():
+        case = cases[template_id]
+        assert case.size == "2x4"
+        assert case.content_height_vp == 124
+        assert case.primary_data == primary_data
+        assert case.secondary_data == ()
+        assert case.optional_data == ()
+
+    music = json.dumps(
+        cases["BluetoothDeviceOverviewEarbudsMusicWideHero@1"].messages,
+        ensure_ascii=False,
+    )
+    reminder = json.dumps(
+        cases["ScheduleOverviewMeetingReminderWideHero@1"].messages,
+        ensure_ascii=False,
+    )
+    charging = json.dumps(
+        cases["BluetoothDeviceOverviewEarbudsChargingWideHero@1"].messages,
+        ensure_ascii=False,
+    )
+    meeting = json.dumps(
+        cases["ScheduleOverviewMeetingJoinWideHero@1"].messages,
+        ensure_ascii=False,
+    )
+
+    assert "耳机听歌" in music
+    assert "更新于" in music
+    assert "earphone_case_16644.svg" in music
+    assert "公司会议" in reminder
+    assert "分钟提醒" in reminder
+    assert "bell_fill.svg" in reminder
+    assert "location_north_up_right_fill.svg" in reminder
+    assert charging.count('"component": "Progress"') == 1
+    assert "leftChargingStatusDesc" in charging
+    assert "rightChargingStatusDesc" in charging
+    assert "需求评审" in meeting
+    assert "发起人" in meeting
+    assert "支持一键入会" in meeting

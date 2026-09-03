@@ -155,6 +155,36 @@
       ],
       "secondaryData": [],
       "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewMeetingReminderWideHero@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "公司会议 WideHero，展示会议标题、开始时间、地点和提前提醒。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/events/0/title",
+        "/events/0/dtStart",
+        "/events/0/eventLocation",
+        "/events/0/remindTime/0"
+      ],
+      "secondaryData": [],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewMeetingJoinWideHero@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "需求评审 WideHero，展示会议开始时间、地点、发起人和一键入会能力。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/events/0/dtStart",
+        "/events/0/eventLocation",
+        "/events/0/senderName",
+        "/events/0/oneClickServiceLink"
+      ],
+      "secondaryData": [],
+      "optionalData": []
     }
   ],
   "compatibility": {

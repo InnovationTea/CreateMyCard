@@ -1,3 +1,176 @@
+#Template ScheduleOverviewMeetingJoinWideHero@1(props: { meetingIcon?: asset })
+data = {
+    start: $path("/events/0/dtStart"),
+    location: $path("/events/0/eventLocation"),
+    sender: $path("/events/0/senderName"),
+    meetingLink: $path("/events/0/oneClickServiceLink")
+}
+
+Column(
+  {
+    "_advancedComponent": "ScheduleOverview",
+    "_layoutActionBackgroundOpacity": 0.2,
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 8,
+    "justifyContent": "start",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0, "minHeight": 0}
+  },
+  Row(
+    {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "center", "clip": true},
+    Text(
+          "需求评审",
+          {"width": "100%", "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        ),
+    IfPresent(
+      props.meetingIcon,
+      Image(
+            props.meetingIcon,
+            {"width": 12, "height": 12, "objectFit": "contain", "fillColor": $theme('primaryColor')}
+          )
+    )
+  ),
+  Row(
+    {"width": "matchParent", "height": 78, "itemMargin": 8, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Column(
+      {"width": 8, "height": 68, "padding": {"left": 0, "top": 4, "right": 0, "bottom": 0}, "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "flexShrink": 0, "clip": true},
+      Stack(
+        {"width": 8, "height": 8, "borderRadius": 4, "borderWidth": 1.5, "borderColor": $theme('primaryColor'), "backgroundColor": "#00FFFFFF", "alignContent": "center", "flexShrink": 0},
+        Divider({"width": 0, "height": 0, "strokeWidth": 0, "color": "#00FFFFFF"})
+      ),
+      Divider(
+        {"width": 1, "height": 50, "strokeWidth": 1, "vertical": true, "color": $theme('supportContentColor')}
+      )
+    ),
+    Column(
+      {"width": "matchParent", "height": "matchParent", "layoutWeight": 1, "itemMargin": 5, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+            data.start,
+            {"width": "100%", "fontSize": 16, "minFontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      Text(
+              data.location,
+              {"width": "100%", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            ),
+      Text(
+              Expr(`'发起人 · ' + ${data.sender}`),
+              {"width": "100%", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            ),
+      Text(
+              Expr(`${data.meetingLink} ? '支持一键入会' : '暂无入会链接'`),
+              {"width": "100%", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+            )
+    )
+  )
+)
+#End
+
+
+#Template ScheduleOverviewMeetingReminderWideHero@1(props: { meetingIcon?: asset, locationIcon?: asset, reminderIcon?: asset })
+data = {
+    title: $path("/events/0/title"),
+    start: $path("/events/0/dtStart"),
+    location: $path("/events/0/eventLocation"),
+    reminder: $path("/events/0/remindTime/0")
+}
+
+Column(
+  {
+    "_advancedComponent": "ScheduleOverview",
+    "_layoutActionBackgroundOpacity": 0.2,
+    "width": "matchParent",
+    "height": "matchParent",
+    "itemMargin": 8,
+    "justifyContent": "start",
+    "alignItems": "start",
+    "clip": true,
+    "constraintSize": {"minWidth": 0, "minHeight": 0}
+  },
+  Row(
+    {"width": "matchParent", "height": 20, "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "center", "clip": true},
+    Text(
+          "公司会议",
+          {"width": "100%", "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        ),
+    IfPresent(
+      props.meetingIcon,
+      Image(
+            props.meetingIcon,
+            {"width": 12, "height": 12, "objectFit": "contain", "fillColor": $theme('primaryColor')}
+          )
+    )
+  ),
+  Row(
+    {"width": "matchParent", "height": 78, "itemMargin": 8, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    Column(
+      {"width": 8, "height": 68, "padding": {"left": 0, "top": 4, "right": 0, "bottom": 0}, "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "flexShrink": 0, "clip": true},
+      Stack(
+        {"width": 8, "height": 8, "borderRadius": 4, "borderWidth": 1.5, "borderColor": $theme('primaryColor'), "backgroundColor": "#00FFFFFF", "alignContent": "center", "flexShrink": 0},
+        Divider({"width": 0, "height": 0, "strokeWidth": 0, "color": "#00FFFFFF"})
+      ),
+      Divider(
+        {"width": 1, "height": 50, "strokeWidth": 1, "vertical": true, "color": $theme('supportContentColor')}
+      )
+    ),
+    Column(
+      {"width": "matchParent", "height": "matchParent", "layoutWeight": 1, "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+      Text(
+            data.title,
+            {"width": "100%", "fontSize": 16, "minFontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      Text(
+            data.start,
+            {"width": "100%", "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          ),
+      IfAbsent(
+        props.locationIcon,
+        Text(
+                data.location,
+                {"width": "100%", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+              )
+      ),
+      IfPresent(
+        props.locationIcon,
+        Row(
+                {"width": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+                Image(
+                          props.locationIcon,
+                          {"width": 12, "height": 12, "objectFit": "contain"}
+                        ),
+                Text(
+                          data.location,
+                          {"width": "100%", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                        )
+              )
+      ),
+      IfAbsent(
+        props.reminderIcon,
+        Text(
+                Expr(`'提前 ' + ${data.reminder} + ' 分钟提醒'`),
+                {"width": "100%", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+              )
+      ),
+      IfPresent(
+        props.reminderIcon,
+        Row(
+                {"width": "100%", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+                Image(
+                          props.reminderIcon,
+                          {"width": 12, "height": 12, "objectFit": "contain"}
+                        ),
+                Text(
+                          Expr(`'提前 ' + ${data.reminder} + ' 分钟提醒'`),
+                          {"width": "100%", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": "#661F4799", "maxLines": 1, "textOverflow": "ellipsis", "layoutWeight": 1, "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                        )
+              )
+      )
+    )
+  )
+)
+#End
+
 #Template ScheduleOverviewNextEventHero@1(props: { calendarIcon?: asset, headerLabel?: string })
 data = {
     title: $path("/events/0/title"),

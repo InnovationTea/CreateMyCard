@@ -250,7 +250,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 76
+    assert len(registry.provider_template_ids) == 80
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -259,6 +259,8 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "BatteryOverviewChargingProgressHero@1",
         "BatteryOverviewHealthLevelHero@1",
         "BluetoothDeviceOverviewEarbudPairFull@1",
+        "BluetoothDeviceOverviewEarbudsChargingWideHero@1",
+        "BluetoothDeviceOverviewEarbudsMusicWideHero@1",
         "BluetoothDeviceOverviewHero@1",
         "CountdownOverviewFull@1",
         "HeartRateOverviewFull@1",
@@ -269,6 +271,8 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "ScheduleOverviewReminderHero@1",
         "ScheduleOverviewTimezoneFull@1",
         "ScheduleOverviewUpcomingSummaryWideFull@1",
+        "ScheduleOverviewMeetingJoinWideHero@1",
+        "ScheduleOverviewMeetingReminderWideHero@1",
         "SleepOverviewCompact@1",
         "SleepOverviewFull@1",
         "SleepOverviewHero@1",

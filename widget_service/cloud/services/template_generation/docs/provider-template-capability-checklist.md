@@ -4,7 +4,7 @@
 
 ## 整改总览
 
-- [x] 68 个业务模板全部使用 `Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
+- [x] 72 个业务模板全部使用 `Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
 - [x] 业务模板尺寸和动作组合由后缀推导，不再由 Provider 重复声明。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
 - [x] `primaryData` 与 `secondaryData` 均参与模板准入硬校验。
@@ -31,9 +31,9 @@
 | --- | --- | --- | ---: | --- |
 | app-usage | `GetAppUsageDuration` | `/data/appUsageStats` | 6 | 启用 |
 | battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 7 | 启用 |
-| calendar | `GetCalendarEvents` | `/data/calendar` | 9 | 启用 |
+| calendar | `GetCalendarEvents` | `/data/calendar` | 11 | 启用 |
 | countdown | `GetCountdownDays` | `/data/countdown` | 1 | 启用 |
-| earphone | `GetEarphoneInfo` | `/data/earphone` | 8 | 启用 |
+| earphone | `GetEarphoneInfo` | `/data/earphone` | 10 | 启用 |
 | health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 30 | 启用 |
 | system-memory | `GetSystemMemInfo` | `/data/systemMem` | 3 | 启用 |
 | weather | `ViewWeather` | `/data/weather` | 9 | 启用 |
@@ -73,7 +73,7 @@
 ## CalendarOverview
 
 - Provider：`com.huawei.calendar.cli`；运行状态：启用。
-- 数据能力：`GetCalendarEvents`；模板数：8。
+- 数据能力：`GetCalendarEvents`；模板数：11。
 - 当前没有 Support 或 Compact；真实日期通过 `ScheduleOverviewDateFull@1` 或
   `ScheduleOverviewDatedMeetingHero@1` 与同一首项日程共同展示。
 
@@ -88,6 +88,8 @@
 | ✅ | `ScheduleOverviewMeetingWideFull@1` | 完整 4x2；单 WideFull | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewMeetingSourceWideFull@1` | 完整 4x2；单 WideFull | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewUpcomingSummaryWideFull@1` | 完整 4x2；单 WideFull | `/eventCount`<br>`/events/0/title`<br>`/events/0/dtStart`<br>`/events/0/isAllDay` | 无 | 无 |
+| ✅ | `ScheduleOverviewMeetingReminderWideHero@1` | 约 4x1.7；WideHero + 1 个 PillAction | `/events/0/title`<br>`/events/0/dtStart`<br>`/events/0/eventLocation`<br>`/events/0/remindTime/0` | 无 | 无 |
+| ✅ | `ScheduleOverviewMeetingJoinWideHero@1` | 约 4x1.7；WideHero + 1 个 PillAction | `/events/0/dtStart`<br>`/events/0/eventLocation`<br>`/events/0/senderName`<br>`/events/0/oneClickServiceLink` | 无 | 无 |
 
 ## CountdownOverview
 
@@ -101,7 +103,7 @@
 ## BluetoothDeviceOverview
 
 - Provider：`com.huawei.earphone.cli`；运行状态：启用。
-- 数据能力：`GetEarphoneInfo`；模板数：8。
+- 数据能力：`GetEarphoneInfo`；模板数：10。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
@@ -113,6 +115,8 @@
 | ✅ | `BluetoothDeviceOverviewCompleteWideFull@1` | 完整 4x2；单 WideFull | `/isConnected`<br>`/earphoneName` | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
 | ✅ | `BluetoothDeviceOverviewEarbudPairCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/earphoneName` | `/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
 | ✅ | `BluetoothDeviceOverviewCompletePhoneWideFull@1` | 完整 4x2；单 WideFull | `/isConnected`<br>`/earphoneName` | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
+| ✅ | `BluetoothDeviceOverviewEarbudsMusicWideHero@1` | 约 4x1.7；WideHero + 1 个 PillAction | `/isConnected`<br>`/earphoneName`<br>`/batteryLevel`<br>`/updatedAt` | 无 | 无 |
+| ✅ | `BluetoothDeviceOverviewEarbudsChargingWideHero@1` | 约 4x1.7；WideHero + 1 个 PillAction | `/isConnected`<br>`/earphoneName`<br>`/batteryLevel`<br>`/chargingStatusDesc`<br>`/leftBatteryLevel`<br>`/leftChargingStatusDesc`<br>`/rightBatteryLevel`<br>`/rightChargingStatusDesc` | 无 | 无 |
 
 ## ActivityOverview
 
