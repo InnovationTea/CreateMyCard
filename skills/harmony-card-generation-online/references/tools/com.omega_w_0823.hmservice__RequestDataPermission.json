@@ -1,5 +1,5 @@
 {
-  "bundleName": "com.omega_w_0823.hmservice",
+  "bundleName": "com.huawei.genui",
   "pluginType": "Device",
   "toolType": "XiaoYiDeviceTool",
   "toolName": "RequestDataPermission",
@@ -85,7 +85,7 @@
         "executeParam": {
           "executeMode": "foreground",
           "intentName": "RequestDataPermission",
-          "bundleName": "com.omega_w_0823.hmservice",
+          "bundleName": "com.huawei.genui",
           "needUnlock": true,
           "actionResponse": true,
           "appType": "OHOS_APP",

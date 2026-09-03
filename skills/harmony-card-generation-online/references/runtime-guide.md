@@ -163,7 +163,7 @@ overview 前仅检查卡片形态、静态范围和最小语义歧义。用户 q
 统一调用格式保持不变。`arguments` 顶层键名沿用当前格式；每个键的 value 必须是合法 JSON 值，嵌套对象和数组元素递归使用 JSON 键和值：
 
 ```text
-invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmservice", ...},"skillName":"harmony-card-generation-online")
+invoke(functionName:"<toolName>", arguments:{bundleName:"com.huawei.genui", ...},"skillName":"harmony-card-generation-online")
 ```
 
 每次调用前从运行时 tools 找到与 frontmatter `bundleName + toolName` 完全匹配的工具。`skillName` 固定为 `harmony-card-generation-online`；除 `bundleName` 外只传当前 `arguments.properties` 声明字段，满足 required、类型、数组项和嵌套结构。能力 `arguments` 还必须匹配本轮能力 `inputSchema`。运行时 schema 是唯一入参依据；文档、示例、快照和内部类不能授权额外字段。
