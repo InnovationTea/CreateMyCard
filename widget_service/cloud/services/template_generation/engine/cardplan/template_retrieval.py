@@ -114,6 +114,7 @@ def build_template_retrieval_prompt(
         "你是模板生成第一层。只输出 template-retrieval-query/1 JSON。"
         "themeId 必须从 themes 选择；themes 已由服务按当前业务确定性过滤，"
         "存在融球候选时不会再包含非融球主题。"
+        "双业务单动作组合在 Search 确定 HeroContent 后，由服务端按该主业务对齐全局主题。"
         "requiredOutputFieldsByCapability 的 key 必须来自 "
         "candidateDataBindings。每个 value 仅保留 userQuery、title、description 或 taskSpec "
         "明确要求展示的字段，字段必须逐字来自 "
@@ -226,6 +227,13 @@ def retrieve_template_variants(
             for candidate in candidates
         )
         required_groups = [candidate.available_template_ids for candidate in candidates]
+    selected_template_ids: list[str] = []
+    for candidate in candidates:
+        selected_template_ids.extend(candidate.available_template_ids)
+    resolved_theme_id = (
+        registry.hero_content_theme_id(tuple(selected_template_ids), query.theme_id)
+        or resolved_theme_id
+    )
     scope = AdvancedScopeBrief(
         themeId=resolved_theme_id,
         advancedComponentIds=tuple(candidate.component_id for candidate in candidates),

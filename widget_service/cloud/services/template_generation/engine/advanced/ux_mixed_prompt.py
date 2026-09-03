@@ -206,10 +206,12 @@ def build_ux_mixed_prompt(
         definition = registry.require_template(template_id)
         if not definition.accepts_children or definition.provider_id != "com.huawei.layout.cli":
             raise ValueError(f"UX Layout Template contract is invalid: {template_id}")
+    theme_id = registry.hero_content_theme_id(selected_template_ids, scope.theme_id)
+    primary_component = components[1] if theme_id is not None else components[0]
     bridge = _ScopePromptBridge(
-        theme_id=scope.theme_id,
+        theme_id=theme_id or scope.theme_id,
         local_template_ids=selected_template_ids,
-        primary_domain=components[0].domain_id,
+        primary_domain=primary_component.domain_id,
         advanced_component_ids=scope.advanced_component_ids,
     )
     base = build_hybrid_prompt(
@@ -507,7 +509,8 @@ def build_ux_mixed_prompt(
             "第一层已完成展示覆盖。从每个 requiredLocalTemplateGroups 恰好选择一个"
             " Template，按完整签名设置 Props，并使用一个与业务后缀及动作形态匹配的布局根。",
             "HeroTitleContentActionLayout 的三个直接 children 必须严格按 HeroTitle、"
-            "HeroContent、PillAction 排列。",
+            "HeroContent、PillAction 排列。全局主题已按主业务 HeroContent 确定，"
+            "标题与动作继承同一主题；融球背景由服务端按版本门禁统一展开，不由模型生成。",
             "只输出一棵以分号结束的类 Tersel Template 调用树，不输出说明。",
         )
     )

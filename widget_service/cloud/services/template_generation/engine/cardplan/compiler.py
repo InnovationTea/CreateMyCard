@@ -5110,7 +5110,7 @@ def _template_fusion_ball_palette(
     registry: CardPlanRegistry,
     selected_template_ids: tuple[str, ...] = (),
 ) -> FusionBallPalette | None:
-    """Resolve Theme-owned fusion balls for exactly one selected business."""
+    """Resolve fusion balls for a single business or the dual-layout HeroContent."""
     if size != "2x2":
         return None
     theme = registry.require_theme(contract.theme_profile_id)
@@ -5122,15 +5122,19 @@ def _template_fusion_ball_palette(
             continue
         business_template_items.append(definition)
     business_templates = tuple(business_template_items)
-    if fusion is None or len(business_templates) != 1:
+    if fusion is None:
         return None
-    business_template = business_templates[0]
+    business_template = registry.hero_content_theme_owner(selected_template_ids)
+    if business_template is None:
+        if len(business_templates) != 1:
+            return None
+        business_template = business_templates[0]
+        layout_kind = provider_template_layout_kind(business_template.wire_id)
+        if layout_kind not in {"Compact", "Full", "Hero"}:
+            return None
     if business_template.capability_id not in theme.supported_capability_ids:
         return None
     if business_template.business_id not in fusion.business_ids:
-        return None
-    layout_kind = provider_template_layout_kind(business_template.wire_id)
-    if layout_kind not in {"Compact", "Full", "Hero"}:
         return None
     return FusionBallPalette(
         fusion.large_color,

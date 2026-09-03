@@ -283,6 +283,12 @@ Provider 模板作者侧声明，不进入最终 Tersel 语法。最终产物不
 
 ## 2x2 融球背景
 
+主题回归以当前 `theme.json` 中的明确颜色为基准，不从待测对象生成预期值。进度使用 `progressColor` 和
+`progressBackgroundColor` 引用；测试夹具必须提供这两个值，不回退到主辅文本色。业务插画及应用图标按模板
+声明保留原色；耳机、心率和睡眠模板明确声明 `fillColor` 的单色图标使用主题辅助内容色。运动记录模板未声明
+颜色及原色保护的图标沿用主题主内容色补值，不能统一按原色图处理。活动步数模板保留进度，运动记录 Full
+模板当前仅展示文字及图标，不要求补回进度组件。
+
 `TemplateSourceGenerator` 读取已有 `TaskSpec.appVersion`，与 `CONFIG.fusion_ball_min_prd_version` 比较后
 裁决模板融球；配置或版本缺失、非法、低于配置版本时关闭。模板模块不重新读取请求版本，也不维护第二份
 应用版本。内部模板入口要求调用方显式传入裁决后的 `enable_fusion_ball`。为 `false` 时，所有包含
@@ -301,10 +307,12 @@ Provider 和 Layout 资源只作后续能力预留，当前不进入生产模板
 中。只声明数据能力仍会被首层主题候选和编译器的业务门禁过滤。回归测试应独立断言倒计时 `Full` 在融球开启时
 选中该主题、展开真实背景，并要求画廊用例预期融球；不得仅以同一份主题白名单推导预期结果来证明覆盖有效。
 
-融球包装仅适用于 `2x2`、单业务，且实际选中的业务模板后缀为 `Full`、`Hero` 或 `Compact` 的场景。单业务
+单业务融球包装适用于 `2x2`，且实际选中的业务模板后缀为 `Full`、`Hero` 或 `Compact` 的场景。单业务
 可以组合零到两个显式 Action：零 Action 使用 `Full`、单 Action 使用 `Hero`、双 Action 使用 `Compact`；
 Action 和 Layout 模板不参与业务数量计算。主题适用能力还必须覆盖该业务模板的数据能力。
-`WideHero`、`WideFull`、无业务和多业务组合均不应用融球包装。
+双业务仅允许 `HeroTitle + HeroContent + PillAction` 例外：以 `HeroContent` 所属主业务确定全局主题，
+该业务及能力必须匹配主题；版本门禁开启时为整卡统一展开一次背景，标题与动作继承该主题。
+`WideHero`、`WideFull`、无业务和其它多业务组合均不应用融球包装。
 
 `2x2` 模板中间根节点使用 `Stack("card", ...)`，ID 为 `root`，两个直接子节点依次为标准融球背景树和内容
 前景 Stack `template_root`。`template_root` 使用 `padding: 12`，其唯一子节点是防溢出 Stack

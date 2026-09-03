@@ -90,7 +90,12 @@ class _GalleryService:
         }
         is_single_business = len(trusted_template_candidate_ids) == 1
         fusion_enabled = request.prdVer == FUSION_PRD_VERSION and supports_fusion
-        if fusion_enabled and is_single_business and eligible_templates:
+        single_fusion = is_single_business and bool(eligible_templates)
+        paired_fusion = trusted_template_candidate_ids == (
+            "WeatherOverviewHeroTitle@1", "ScheduleOverviewHeroContent@1"
+        )
+        eligible_fusion = single_fusion or paired_fusion
+        if fusion_enabled and eligible_fusion:
             components.append(
                 {
                     "id": "fusionBallBackground",
@@ -582,7 +587,9 @@ def test_gallery_paired_inputs_preserve_both_businesses_and_one_action(tmp_path:
         assert case.partnerTemplateId == "ScheduleOverviewHeroContent@1"
         assert case.expectedLayout == "HeroTitle + HeroContent + PillAction"
         assert case.missingReason == ""
-        assert not case.expectsFusionBall
+        assert case.expectsFusionBall is (case.prdVer == FUSION_PRD_VERSION)
+        expected_effect = "门槛版本（融球）" if case.expectsFusionBall else "低版本（非融球）"
+        assert case.appearanceName == expected_effect
         payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
         content = payload.get("content")
         assert isinstance(content, dict)
@@ -636,7 +643,7 @@ async def test_gallery_paired_runner_passes_ordered_templates_to_public_service(
     paths: set[str] = set()
     for case in cases:
         assert case.get("partnerTemplateId") == "ScheduleOverviewHeroContent@1"
-        assert case.get("fusionBallRendered") is False
+        assert case.get("fusionBallRendered") is (case.get("appVersion") == FUSION_PRD_VERSION)
         path = case.get("a2uiFile")
         assert isinstance(path, str)
         assert "schedule-overview-hero-content-1" in path

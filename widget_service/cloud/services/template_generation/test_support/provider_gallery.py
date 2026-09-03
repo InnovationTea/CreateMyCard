@@ -956,6 +956,7 @@ def write_gallery_input_dataset(
         data_capability_ids,
         event_capabilities,
         asset_capabilities,
+        fusion_business_ids,
     )
     if paired_provider.cases:
         providers.append(paired_provider)
@@ -1076,6 +1077,7 @@ def _paired_gallery_provider(
     data_capability_ids: set[str],
     event_capabilities: dict[str, dict[str, Any]],
     asset_capabilities: dict[str, dict[str, Any]],
+    fusion_business_ids: set[str],
 ) -> GalleryInputProvider:
     # 仅用于画廊分组，不注册或伪造生产 Provider / 数据能力。
     provider = GalleryInputProvider(
@@ -1109,6 +1111,9 @@ def _paired_gallery_provider(
                 json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
             )
             appearance_name = "低版本" if appearance.appearance_id == "standard" else "门槛版本"
+            main_supports_fusion = pair.content.business.business_id in fusion_business_ids
+            expects_fusion = appearance.fusion_enabled and main_supports_fusion
+            effect_name = "融球" if expects_fusion else "非融球"
             provider.cases.append(
                 GalleryInputCase(
                     caseId=f"cross-business__{pair.slug}__{scenario_id}__{appearance.appearance_id}",
@@ -1120,9 +1125,9 @@ def _paired_gallery_provider(
                     scenarioId=scenario_id,
                     scenarioName=f"{appearance_name} · {scenario_name}",
                     appearanceId=appearance.appearance_id,
-                    appearanceName=f"{appearance_name}（非融球）",
+                    appearanceName=f"{appearance_name}（{effect_name}）",
                     prdVer=appearance.prd_ver,
-                    expectsFusionBall=False,
+                    expectsFusionBall=expects_fusion,
                     expectedLayout=expected_layout,
                     expectedTemplateSuffix=suffix,
                     targetTemplateId=pair.title.template.template_id,

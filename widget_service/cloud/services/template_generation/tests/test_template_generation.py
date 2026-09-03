@@ -156,7 +156,7 @@ _WEATHER_TEMPLATE_FIELDS = (
     "/daily/0/temperatureRangeText",
 )
 _WEATHER_PALETTE = ("#FF121259", "#FF2B65D9", "#FF57AED9")
-_SPORT_PALETTE = ("#FFB33C24", "#FFFF8833", "#FFFAA89E")
+_SPORT_PALETTE = ("#FFB33024", "#FFFF8833", "#FFE68073")
 _TEST_APP_VERSION = ".".join(("11", "7", "5", "205"))
 
 
@@ -990,7 +990,7 @@ def test_fusion_ball_palette_is_gated_by_selected_theme(
     [
         ("fusion-weather-blue", "#FFCCDDFF", "#99CCDDFF"),
         ("fusion-sleep-violet", "#FFD9CCFF", "#99D9CCFF"),
-        ("fusion-sport-orange", "#FFFFE1CC", "#99FFE1CC"),
+        ("fusion-sport-orange", "#FFFFFFFF", "#99FFFFFF"),
         ("fusion-battery-teal", "#FFCCFFF6", "#99CCFFF6"),
         ("fusion-schedule-cool", "#FFCCEEFF", "#B3CCEEFF"),
     ],
@@ -1047,18 +1047,17 @@ def test_non_fusion_sleep_theme_uses_the_reviewed_solid_palette() -> None:
     assert theme.action_style.background_color == "#33564AF7"
 
 
-def test_non_fusion_sport_theme_uses_the_reviewed_gradient_palette() -> None:
+def test_non_fusion_sport_theme_uses_the_reviewed_solid_palette() -> None:
     theme = get_cardplan_registry().require_theme("race-sunrise-action")
 
-    assert theme.primary_color == "#FFFFFFFF"
-    assert theme.support_content_color == "#99FFFFFF"
-    assert theme.root_style["backgroundColor"] == "#FFED6F21"
-    assert theme.root_style["linearGradient"]["colors"] == [
-        ["#FFED6F21", 0],
-        ["#FFF9A01E", 1],
-    ]
-    assert theme.action_style.content_color == "#FFED6F21"
-    assert theme.action_style.background_color == "#FFFFFFFF"
+    assert theme.primary_color == "#FF99521F"
+    assert theme.support_content_color == "#9999521F"
+    assert theme.progress_color == "#FF99521F"
+    assert theme.progress_background_color == "#3399521F"
+    assert theme.root_style.get("backgroundColor") == "#FFFFF0E6"
+    assert "linearGradient" not in theme.root_style
+    assert theme.action_style.content_color == "#FF99521F"
+    assert theme.action_style.background_color == "#3399521F"
 
 
 def test_non_fusion_earphone_theme_uses_the_reviewed_solid_palette() -> None:
@@ -1084,22 +1083,19 @@ def test_non_fusion_schedule_theme_uses_the_reviewed_solid_palette() -> None:
     assert theme.action_style.background_color == "#331F4799"
 
 
-def test_non_fusion_event_countdown_theme_uses_the_reviewed_gradient_palette() -> None:
+def test_non_fusion_event_countdown_theme_uses_the_reviewed_solid_palette() -> None:
     registry = get_cardplan_registry()
     theme = registry.require_theme("race-night-violet")
     sport_theme = registry.require_theme("race-sunrise-action")
 
     assert theme.supported_capability_ids == ("GetCountdownDays",)
     assert sport_theme.supported_capability_ids == ("GetHealthAndSportSummary",)
-    assert theme.primary_color == "#FFFFFFFF"
-    assert theme.support_content_color == "#99FFFFFF"
-    assert theme.root_style["backgroundColor"] == "#FFED6F21"
-    assert theme.root_style["linearGradient"]["colors"] == [
-        ["#FFED6F21", 0],
-        ["#FFF9A01E", 1],
-    ]
-    assert theme.action_style.content_color == "#FFED6F21"
-    assert theme.action_style.background_color == "#FFFFFFFF"
+    assert theme.primary_color == "#FF99521F"
+    assert theme.support_content_color == "#9999521F"
+    assert theme.root_style.get("backgroundColor") == "#FFFFF0E6"
+    assert "linearGradient" not in theme.root_style
+    assert theme.action_style.content_color == "#FF99521F"
+    assert theme.action_style.background_color == "#3399521F"
 
 
 def test_non_fusion_device_theme_uses_the_reviewed_resource_palette() -> None:
@@ -1129,7 +1125,7 @@ def test_non_fusion_battery_theme_uses_the_compatible_teal_palette() -> None:
     assert theme.support_content_color == "#991F8F99"
     assert theme.progress_color == "#FF1F8F99"
     assert theme.progress_background_color == "#331F8F99"
-    assert theme.root_style["backgroundColor"] == "#FFFFF3E6"
+    assert theme.root_style.get("backgroundColor") == "#FFE6FDFF"
     assert "linearGradient" not in theme.root_style
     assert theme.action_style.content_color == "#FF1F8F99"
     assert theme.action_style.background_color == "#331F8F99"
@@ -1415,13 +1411,39 @@ def test_template_compiler_keeps_non_fusion_2x2_theme_background():
         ("fusion-sport-orange", ("CountdownOverviewFull@1",), True),
         ("fusion-sleep-violet", ("CountdownOverviewFull@1",), False),
         (
+            "fusion-schedule-cool",
+            (
+                "HeroTitleContentActionLayout@1",
+                "WeatherOverviewHeroTitle@1",
+                "ScheduleOverviewHeroContent@1",
+                "PillAction@1",
+            ),
+            True,
+        ),
+        (
+            "fusion-weather-blue",
+            ("WeatherOverviewHeroTitle@1", "ScheduleOverviewHeroContent@1"),
+            False,
+        ),
+        (
+            "meeting-paper-neutral",
+            ("WeatherOverviewHeroTitle@1", "ScheduleOverviewHeroContent@1"),
+            False,
+        ),
+        ("fusion-schedule-cool", ("ScheduleOverviewHeroContent@1",), False),
+        (
+            "fusion-schedule-cool",
+            ("WeatherOverviewHeroTitle@1", "ScheduleOverviewDateFull@1"),
+            False,
+        ),
+        (
             "fusion-sport-orange",
             ("CountdownOverviewFull@1", "ActivityOverviewFull@1"),
             False,
         ),
     ],
 )
-def test_fusion_theme_requires_one_matching_business(
+def test_fusion_theme_requires_matching_primary_business(
     theme_id: str,
     selected_template_ids: tuple[str, ...],
     expect_fusion: bool,
@@ -2014,7 +2036,7 @@ def _template_nodes(node: Any, component: str) -> list[Any]:
     return matches
 
 
-def test_sleep_templates_bind_progress_color_to_theme_support_content() -> None:
+def test_sleep_templates_bind_progress_color_to_theme_progress_token() -> None:
     registry = get_cardplan_registry()
 
     for template_id in (
@@ -2026,9 +2048,10 @@ def test_sleep_templates_bind_progress_color_to_theme_support_content() -> None:
         assert len(progress) == 1
         options = progress[0].values[-1]
         assert options.kind == "object"
-        color = options.properties["color"]
+        color = options.properties.get("color")
+        assert color is not None
         assert color.kind == "theme"
-        assert color.name == "supportContentColor"
+        assert color.name == "progressColor"
 
 
 def test_sleep_hero_requires_both_time_bindings_for_the_fallback_row() -> None:
@@ -2047,6 +2070,8 @@ def test_sleep_hero_requires_both_time_bindings_for_the_fallback_row() -> None:
     theme_values = {
         "primaryColor": "#FF401F99",
         "supportContentColor": "#991F4799",
+        "progressColor": "#991F4799",
+        "progressBackgroundColor": "#33564AF7",
     }
     binding_paths = {
         "duration": "${data.healthSport.nightSleepDurationText}",
@@ -2101,22 +2126,24 @@ def test_sleep_hero_requires_both_time_bindings_for_the_fallback_row() -> None:
     assert not any("wakeupTimeText" in value for value in partial_time_text)
 
 
-def test_sport_templates_bind_progress_color_to_theme_support_content() -> None:
+def test_sport_templates_bind_progress_color_to_theme_progress_token() -> None:
     registry = get_cardplan_registry()
 
-    for template_id in (
-        "ActivityOverviewHero@1",
-        "ActivityOverviewFull@1",
-        "WorkoutOverviewFull@1",
+    for template_id, expected_count in (
+        ("ActivityOverviewHero@1", 1),
+        ("ActivityOverviewFull@1", 1),
+        ("WorkoutOverviewFull@1", 0),
     ):
         root = registry.require_variant(template_id, "default").root
         progress = _template_nodes(root, "Progress")
-        assert len(progress) == 1
-        options = progress[0].values[-1]
-        assert options.kind == "object"
-        color = options.properties["color"]
-        assert color.kind == "theme"
-        assert color.name == "supportContentColor"
+        assert len(progress) == expected_count, template_id
+        for node in progress:
+            options = node.values[-1]
+            assert options.kind == "object"
+            color = options.properties.get("color")
+            assert color is not None
+            assert color.kind == "theme"
+            assert color.name == "progressColor"
 
 
 def test_health_sport_templates_follow_latest_display_contract() -> None:
@@ -2191,7 +2218,10 @@ def test_health_sport_templates_follow_latest_display_contract() -> None:
     for template_id in ("SleepOverviewFull@1", "SleepOverviewHero@1"):
         root = registry.require_variant(template_id, "default").root
         progress_options = _template_nodes(root, "Progress")[0].values[-1]
-        assert progress_options.properties["backgroundColor"].value == "#33564AF7"
+        background_color = progress_options.properties.get("backgroundColor")
+        assert background_color is not None
+        assert background_color.kind == "theme"
+        assert background_color.name == "progressBackgroundColor"
 
 
 def test_earphone_templates_bind_progress_color_to_theme_support_content() -> None:
@@ -2213,7 +2243,7 @@ def test_earphone_templates_bind_progress_color_to_theme_support_content() -> No
     assert progress_count == 10
 
 
-def test_business_artwork_assets_preserve_their_original_colors() -> None:
+def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() -> None:
     registry = get_cardplan_registry()
     original_color_props = {
         "AppUsageOverview": {"appIcon"},
@@ -2222,12 +2252,40 @@ def test_business_artwork_assets_preserve_their_original_colors() -> None:
             "leftEarIcon",
             "rightEarIcon",
             "deviceIcon",
+            "caseIcon",
         },
         "HeartRateOverview": {"sourceIcon"},
         "SleepOverview": {"sourceIcon"},
         "WorkoutOverview": {"sourceIcon"},
     }
     preserved_assets: list[tuple[str, str]] = []
+    expected_themed_assets = {
+        ("BluetoothDeviceOverviewHero@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewHero@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewEarbudsSupport@1", "deviceIcon"),
+        ("BluetoothDeviceOverviewEarbudPairFull@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewEarbudPairFull@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewEarbudPairFull@1", "caseIcon"),
+        ("BluetoothDeviceOverviewEarbudPairCompact@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewEarbudPairCompact@1", "rightEarIcon"),
+        ("HeartRateOverviewIconCompact@1", "sourceIcon"),
+        ("HeartRateOverviewIconHero@1", "sourceIcon"),
+        ("HeartRateOverviewUpdatedIconHero@1", "sourceIcon"),
+        ("HeartRateOverviewIconSupport@1", "sourceIcon"),
+        ("HeartRateOverviewUpdatedIconSupport@1", "sourceIcon"),
+        ("SleepOverviewFull@1", "sourceIcon"),
+        ("SleepOverviewHero@1", "sourceIcon"),
+        ("SleepOverviewCompact@1", "sourceIcon"),
+        ("SleepOverviewSupport@1", "sourceIcon"),
+    }
+    expected_inherited_assets = {
+        ("WorkoutOverviewFull@1", "sourceIcon"),
+        ("WorkoutOverviewCompact@1", "sourceIcon"),
+        ("WorkoutOverviewHero@1", "sourceIcon"),
+        ("WorkoutOverviewSupport@1", "sourceIcon"),
+    }
+    themed_assets: set[tuple[str, str]] = set()
+    inherited_assets: set[tuple[str, str]] = set()
 
     for template_id, definition in registry.templates.items():
         asset_props = original_color_props.get(definition.business_id or "")
@@ -2240,13 +2298,39 @@ def test_business_artwork_assets_preserve_their_original_colors() -> None:
                 continue
             options = image.values[-1]
             assert options.kind == "object"
+            asset_key = (template_id, source.name)
+            if asset_key in expected_themed_assets:
+                color = options.properties.get("fillColor")
+                assert color is not None
+                assert color.kind == "theme"
+                assert color.name == "supportContentColor"
+                assert "_preserveOriginalColor" not in options.properties
+                themed_assets.add(asset_key)
+                continue
             assert "fillColor" not in options.properties
-            preserve_original = options.properties["_preserveOriginalColor"]
+            if asset_key in expected_inherited_assets:
+                assert "_preserveOriginalColor" not in options.properties
+                icon = Nested2Node(
+                    "Image", ("resources/workout.svg", _template_node_options(image)), (),
+                )
+                contract = HybridBodyContract.model_construct(
+                    theme_profile_id="race-sunrise-action"
+                )
+                styled = _apply_theme_content_color(icon, contract, registry)
+                styled_options = styled.values[-1]
+                assert isinstance(styled_options, dict)
+                assert styled_options.get("fillColor") == "#FF99521F"
+                inherited_assets.add(asset_key)
+                continue
+            preserve_original = options.properties.get("_preserveOriginalColor")
+            assert preserve_original is not None, asset_key
             assert preserve_original.kind == "literal"
             assert preserve_original.value is True
             preserved_assets.append((template_id, source.name))
 
-    assert len(preserved_assets) == 45
+    assert len(preserved_assets) == 18
+    assert themed_assets == expected_themed_assets
+    assert inherited_assets == expected_inherited_assets
 
 
 def test_calendar_monochrome_source_icons_use_the_theme_primary_color() -> None:
@@ -5504,6 +5588,7 @@ def test_template_route_prompt_exposes_exact_task_spec_paths_from_bindings():
 
 @pytest.mark.asyncio
 async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact(monkeypatch):
+    monkeypatch.setattr(WidgetGenerationService, "_enable_card_template", lambda _self: True)
     model = WeatherTemplateModel(
         body=(
             'Template("SingleFocusLayout@1",{},Template("WeatherOverviewFull@1",'

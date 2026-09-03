@@ -45,6 +45,57 @@ _WEATHER_FIELDS = (
 )
 
 
+@pytest.mark.parametrize(
+    ("enabled", "requested_theme", "expected_theme"),
+    [
+        (False, "family-weather-care-blue", "meeting-paper-neutral"),
+        (False, "meeting-paper-neutral", "meeting-paper-neutral"),
+        (True, "fusion-weather-blue", "fusion-schedule-cool"),
+        (True, "fusion-schedule-cool", "fusion-schedule-cool"),
+        (True, "meeting-paper-neutral", "fusion-schedule-cool"),
+    ],
+)
+def test_hero_content_theme_follows_main_business_and_version_gate(
+    enabled: bool, requested_theme: str, expected_theme: str,
+) -> None:
+    registry = get_cardplan_registry(enabled)
+    template_ids = (
+        "WeatherOverviewHeroTitle@1", "ScheduleOverviewHeroContent@1", "PillAction@1",
+    )
+    assert registry.hero_content_theme_id(template_ids, requested_theme) == expected_theme
+
+
+def test_hero_content_without_fusion_never_borrows_title_business_fusion() -> None:
+    registry = CardPlanRegistry(enable_fusion_ball=True)
+    registry.themes.pop("fusion-schedule-cool")
+    template_ids = ("WeatherOverviewHeroTitle@1", "ScheduleOverviewHeroContent@1")
+    assert registry.hero_content_theme_id(template_ids, "fusion-weather-blue") == (
+        "meeting-paper-neutral"
+    )
+
+
+@pytest.mark.parametrize(
+    "template_ids",
+    [
+        (),
+        ("WeatherOverviewHeroTitle@1",),
+        ("ScheduleOverviewHeroContent@1",),
+        ("WeatherOverviewHero@1", "ScheduleOverviewHeroContent@1"),
+        ("WeatherOverviewHeroTitle@1", "ScheduleOverviewDateFull@1"),
+        (
+            "WeatherOverviewHeroTitle@1", "ScheduleOverviewHeroContent@1",
+            "SleepOverviewFull@1",
+        ),
+    ],
+)
+def test_other_layouts_do_not_acquire_hero_content_theme_ownership(
+    template_ids: tuple[str, ...],
+) -> None:
+    registry = get_cardplan_registry(True)
+    assert registry.hero_content_theme_owner(template_ids) is None
+    assert registry.hero_content_theme_id(template_ids, "fusion-weather-blue") is None
+
+
 def _field(value: Any, data_type: str = "string") -> dict[str, Any]:
     return {"type": data_type, "description": "trusted", "sampleValue": value}
 
@@ -766,8 +817,18 @@ def test_search_rejects_two_data_businesses() -> None:
 
 
 @pytest.mark.parametrize("business_title", [None, "天气和日程", "天气 + 日历日程组合画廊"])
+@pytest.mark.parametrize(
+    ("enable_fusion_ball", "requested_theme", "expected_theme"),
+    [
+        (False, "family-weather-care-blue", "meeting-paper-neutral"),
+        (True, "fusion-weather-blue", "fusion-schedule-cool"),
+    ],
+)
 def test_search_orders_complete_hero_title_and_hero_content_businesses(
     business_title: str | None,
+    enable_fusion_ball: bool,
+    requested_theme: str,
+    expected_theme: str,
 ) -> None:
     task = _task().model_copy(
         update={
@@ -803,7 +864,7 @@ def test_search_orders_complete_hero_title_and_hero_content_businesses(
         ],
     )
     query = TemplateRetrievalQuery(
-        themeId="family-weather-care-blue",
+        themeId=requested_theme,
         requiredOutputFieldsByCapability={
             "ViewWeather": (
                 "/location/districtName",
@@ -831,7 +892,7 @@ def test_search_orders_complete_hero_title_and_hero_content_businesses(
             },
         ],
     }
-    registry = get_cardplan_registry()
+    registry = get_cardplan_registry(enable_fusion_ball)
     result = retrieve_template_variants(
         query,
         task,
@@ -888,6 +949,49 @@ def test_search_orders_complete_hero_title_and_hero_content_businesses(
         ("ScheduleOverviewHeroContent@1",),
     )
     assert projection.allowed_layout_ids == ("HeroTitleContentActionLayout",)
+    assert result.scope.theme_id == expected_theme
+    assert projection.theme_id == expected_theme
+    assert projection.contract.theme_profile_id == expected_theme
+    messages = [json.loads(line) for line in compilation.a2ui.splitlines() if line.strip()]
+    components = messages[1].get("updateComponents", {}).get("components")
+    assert isinstance(components, list)
+    by_id = {component.get("id"): component for component in components}
+    root = by_id.get("root")
+    assert isinstance(root, dict)
+    expected_color = "#FFCCEEFF" if enable_fusion_ball else "#FF1F4799"
+    themed_text_count = 0
+    for component in components:
+        content = component.get("content")
+        if not isinstance(content, str):
+            continue
+        primary_paths = (
+            "/data/weather/location/districtName", "/data/weather/current/temperatureText",
+            "/data/calendar/events/0/title",
+        )
+        is_primary_text = any(path in content for path in primary_paths)
+        if content == action.display_label or is_primary_text:
+            assert component.get("styles", {}).get("fontColor") == expected_color
+            themed_text_count += 1
+    assert themed_text_count == 4
+    assert "全局主题已按主业务 HeroContent 确定" in projection.messages[1]["content"]
+    if enable_fusion_ball:
+        assert root.get("children") == ["fusionBallBackground", "template_root"]
+        background_count = sum(
+            component.get("id") == "fusionBallBackground" for component in components
+        )
+        assert background_count == 1
+        palette = {
+            "fusionBallLarge": "#FF121E59",
+            "fusionBallMedium": "#FF2BA2D9",
+            "fusionBallSmall": "#FF52CCCC",
+        }
+        for component_id, color in palette.items():
+            component = by_id.get(component_id)
+            assert isinstance(component, dict)
+            assert component.get("styles", {}).get("backgroundColor") == color
+    else:
+        assert root.get("styles", {}).get("backgroundColor") == "#FFE5EDFE"
+        assert "fusionBallBackground" not in by_id
     child_order = (
         '"childOrder": "position 0 HeroTitle, position 1 HeroContent, position 2 PillAction"'
     )
