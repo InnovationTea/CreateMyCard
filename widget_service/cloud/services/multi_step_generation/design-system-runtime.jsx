@@ -1167,9 +1167,11 @@
 /* ── TextBlock · 2×4 自然宽背板文本组 · 至少两组 ────── */
 .text-block{
   display:flex;
+  flex:1 1 64px;
   width:100%;
-  height:64px;
-  max-height:100%;
+  height:auto;
+  min-height:48px;
+  max-height:64px;
   min-width:0;
   align-items:stretch;
   gap:8px;
@@ -2047,6 +2049,11 @@
     style,
     ...rest
   }) {
+    const inferredMinHeight = React.Children.toArray(children).reduce((value, child) => {
+      if (value !== undefined || !React.isValidElement(child)) return value;
+      return child.type?.__clawStackMinHeight;
+    }, undefined);
+    const resolvedMinHeight = minHeight ?? inferredMinHeight;
     return (
       <div
         className={className}
@@ -2062,7 +2069,7 @@
           width: width === "full" ? "100%" : width,
           minWidth,
           height: height === "full" ? "100%" : height,
-          minHeight,
+          minHeight: resolvedMinHeight,
           marginTop: mt,
           marginBottom: mb,
           marginLeft: ml,
@@ -2369,6 +2376,8 @@
       </div>
     );
   }
+
+  TextBlock.__clawStackMinHeight = 0;
 
   function WeatherSummaryCard({ city, temperature, condition, airQuality, high, low, icon, ariaLabel, className, ...rest }) {
     const resolvedLabel = ariaLabel || `${city}${temperature}，${condition}，${airQuality}，最高${high}最低${low}`;

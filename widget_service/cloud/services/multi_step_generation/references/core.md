@@ -78,17 +78,16 @@
 | `width` | `number \| string \| "full"` | 未设置 | `"full"` 表示 `100%` |
 | `minWidth` | `number \| string` | `0` | 通常省略，防止 Flex 子项内容撑宽 |
 | `height` | `number \| string \| "full"` | 未设置 | `"full"` 表示 `100%` |
-| `minHeight` | `number \| string` | 未设置 | 弹性内容区通常显式传 `minHeight={0}` |
+| `minHeight` | `number \| string` | 未设置 | 弹性内容区通常显式传 `minHeight={0}`；直接包裹自适应 `TextBlock` 时 runtime 会局部推断为 `0` |
 | `mt` / `mb` / `ml` / `mr` | `number \| string` | 未设置 | 四方向外边距；优先使用 `gap`，必要时再使用 |
 | `position` | `"relative" \| "absolute"` | 未设置 | 建立定位上下文或锚点子项 |
 | `top` / `right` / `bottom` / `left` | `number \| string` | 未设置 | 只与定位 Stack 配合；数字表示 px |
-| `alignSelf` | CSS `align-self` 值 | 未设置 | 浏览器 runtime 兼容能力；不属于正式生成合同，生成卡禁止使用 |
 | `surface` | `"backplate"` | 未设置 | 为 2×4 Type 13 的任一父内容区启用可选受控背板：白色 10% 背景、8px 圆角和 6px 内边距 |
 
 关键规则：
 
 - `basis` 优先于 `flex`。例如 `basis={12}` 会生成固定 12px 标题槽，而不是弹性区。
-- 弹性内容区使用 `flex={1} minHeight={0}`，避免内容把卡片撑出安全区。
+- 弹性内容区使用 `flex={1} minHeight={0}`，避免内容把卡片撑出安全区。只有直接包裹自适应 `TextBlock` 的 Stack 会由 runtime 局部补充 `minHeight:0`，其他 Stack 保持浏览器默认行为。
 - 右下角操作使用父级 `position="relative"`，子级 `position="absolute" right={0} bottom={0}`。
 - 只有需要边缘锚定的子项使用 `position="absolute"`；其余正文保持正常流式布局，不要改成手工 `top` 坐标。
 - 生成卡不得使用 `wrap` 或 `alignSelf`；需要换行时使用允许自然换行的文本组件，需要局部对齐时通过父 Stack 的 `align`／`justify` 或正式布局槽表达。

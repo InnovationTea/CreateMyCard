@@ -32,15 +32,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-CLOUD_ROOT = Path(__file__).resolve().parents[3]
-if str(CLOUD_ROOT) not in sys.path:
-    sys.path.insert(0, str(CLOUD_ROOT))
-
-from services.multi_step_generation.jsx_runner.card_sizes import CARD_SIZE_DIMENSIONS  # noqa: E402
-
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 SKILL_DIR = SCRIPT_DIR.parent
+if str(SKILL_DIR) not in sys.path:
+    sys.path.insert(0, str(SKILL_DIR))
+
+from jsx_runner.card_sizes import CARD_SIZE_DIMENSIONS  # noqa: E402
+
+
 DEFAULT_INPUT = SKILL_DIR / "data" / "20_tasks_2x2_raw.json"
 DEFAULT_OUTPUT = SKILL_DIR / "data" / "20_tasks_2x2_processed.json"
 DEFAULT_CONTEXT_OUTPUT = SKILL_DIR / "data" / "20_tasks_2x2_compile_context.json"
@@ -470,14 +470,14 @@ def write_json_safely(output_path: Path, payload: Any) -> None:
     file_descriptor, temporary_name = tempfile.mkstemp(
         prefix=f".{output_path.name}.", suffix=".tmp", dir=output_path.parent
     )
+    os.close(file_descriptor)
     temporary_path = Path(temporary_name)
     try:
-        with os.fdopen(file_descriptor, "w", encoding="utf-8") as handle:
+        with temporary_path.open("w", encoding="utf-8") as handle:
             handle.write(serialized)
         temporary_path.replace(output_path)
-    except BaseException:
+    finally:
         temporary_path.unlink(missing_ok=True)
-        raise
 
 
 def compile_context_record(prepared: PreparedTask, source_index: int) -> dict[str, Any]:

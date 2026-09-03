@@ -41,7 +41,8 @@ def convert_h_bar_chart(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     if errors:
         raise ValidationError("; ".join(errors))
     items = node.props.get("items")
-    assert isinstance(items, list)
+    if not isinstance(items, list):
+        raise AssertionError
     mode = node.props.get("mode", "light")
     current = palette(ctx)
     dark = mode == "dark"
@@ -51,11 +52,14 @@ def convert_h_bar_chart(node: JSXElement, ctx: ConversionContext) -> A2UINode:
 
     bars: list[A2UINode] = []
     for index, item in enumerate(items):
-        assert isinstance(item, dict)
+        if not isinstance(item, dict):
+            raise AssertionError
         label = item.get("label")
         percent = item.get("percent")
-        assert isinstance(label, str)
-        assert isinstance(percent, (int, float)) and not isinstance(percent, bool)
+        if not isinstance(label, str):
+            raise AssertionError
+        if not isinstance(percent, int | float) or isinstance(percent, bool):
+            raise AssertionError
 
         label_node = text(
             ctx,

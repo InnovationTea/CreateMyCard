@@ -33,10 +33,12 @@ def convert_top_text_bottom_value(node: JSXElement, ctx: ConversionContext) -> A
     if errors:
         raise ValidationError("; ".join(errors))
     items = node.props["items"]
-    assert isinstance(items, list)
+    if not isinstance(items, list):
+        raise AssertionError
     item_nodes: list[A2UINode] = []
     for index, item in enumerate(items):
-        assert isinstance(item, dict)
+        if not isinstance(item, dict):
+            raise AssertionError
         item_nodes.append(
             column(
                 ctx,

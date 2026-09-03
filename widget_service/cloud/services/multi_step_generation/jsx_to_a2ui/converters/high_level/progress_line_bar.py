@@ -78,7 +78,8 @@ def convert_progress_line_bar(node: JSXElement, ctx: ConversionContext) -> A2UIN
         if current_id is not None or total_id is not None:
             if current_id is not None and total_id is None and total == 100:
                 current_binding = ctx.bound_data(node.props, "currentValue")
-                assert current_binding is not None
+                if current_binding is None:
+                    raise AssertionError
                 derived_root, _ = ctx.register_derived_display(current_binding)
                 display_node = JSXElement(
                     "EmphasizedData",

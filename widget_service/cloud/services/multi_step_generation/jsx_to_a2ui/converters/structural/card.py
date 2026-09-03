@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from ...catalog.appearances import get_appearance
 from ...catalog.card_sizes import resolve_card_size
 from ...catalog.tokens import normalize_color
@@ -40,6 +42,10 @@ def _content_extent(extent: object, padding: object, axis: str) -> int | float |
         return None
     if isinstance(padding, int | float) and not isinstance(padding, bool):
         return max(0, extent - 2 * padding)
+    if isinstance(padding, str):
+        match = re.fullmatch(r"\s*(\d+(?:\.\d+)?)px\s*", padding)
+        if match:
+            return max(0, extent - 2 * float(match.group(1)))
     if isinstance(padding, dict):
         start, end = ("left", "right") if axis == "width" else ("top", "bottom")
         before = padding.get(start, 0)

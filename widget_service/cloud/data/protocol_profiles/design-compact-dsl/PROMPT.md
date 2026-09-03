@@ -168,13 +168,13 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 - 第一个组件行必须是 `root`，且 `root` 必须是 `Row` 或 `Column`。
 - 只生成组件行和数据行；禁止输出 `createSurface`、`updateComponents`、`updateDataModel`、`surfaceId`、`catalogId` 或 A2UI 组件对象数组。
 - 组件行中的 `props` 是一个扁平对象：组件语义字段和样式字段都直接写在 `props` 中，不嵌套 `styles`。
-- 容器组件的 `children` 必须写在第 4 项，且只能是子组件 id 字符串数组；禁止输出对象形式的 children、模板描述或 repeat 描述。普通组件不得有第 4 项。
+- 容器组件的 `children` 必须写在第 4 项，必须是非空的子组件 id 字符串数组；禁止输出对象形式的 children、模板描述、repeat 描述或 `[]`。普通组件不得有第 4 项。
 - 凡是 UI 通过 PathBinding 或 Expression 访问的动态路径，都必须在后续数据行中初始化首帧值。
 
 以下是输出前必须全部通过的零容错门禁；任一项不成立都不得直接输出，必须在内部修复后重新检查：
 
 1. **消息闭环**：必须只输出极简协议 JSONL 行，不能混入 A2UI 三消息、JSON 数组外壳、解释文字或 CardSpec。
-2. **组件闭环**：建立全部组件 id 的集合；`root` 和每个普通 `children` 项都必须在集合中恰好命中一个真实组件。禁止引用未定义的图标、文本或按钮子项，禁止孤立组件。
+2. **组件闭环**：建立全部组件 id 的集合；`root` 和每个普通 `children` 项都必须在集合中恰好命中一个真实组件。每个 Row、Column、List、Stack 都必须包含至少一个真实子组件，禁止用空容器制造间距或弹性留白；间距改用父容器的 `itemMargin`、`padding` 或合法对齐方式。禁止引用未定义的图标、文本或按钮子项，禁止孤立组件。
 3. **字段与表达式分层**：`content/src/label/value/itemMargin/onClick/accessibility` 等组件语义属性和样式属性都写在第三项 `props`；`children` 只能写在第 4 项；不得输出嵌套 `styles`。扫描所有字符串值：只要包含 `{{` 或 `}}`，整个字符串就必须是且只能是一个从首字符开始、到末字符结束的完整 `{{ ... }}`。
 4. **数据闭环**：每个 Expression 或 PathBinding 在首帧都必须可求值；凡是选中用于展示的动态字段，展示组件必须真实绑定该字段。逐项检查组件中的可见静态字面量：若字面量等于某个 `sampleValue`，或语义来源于其内容、格式、状态结论或单位组合，对应组件必须改为绑定该字段；`sampleValue` 及其等义改写只能出现在对应路径的数据行中，不能静态写入 `content`、`label`、`value` 或其它可见属性。
 5. **布局闭环**：从 root 开始递归计算每个 Row/Column 的横纵预算；任何一级出现负剩余空间、越界、被 root 裁切或依赖压缩才能成立，都必须先删减、合并或缩小次要内容再输出。
@@ -195,7 +195,7 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 - 第 1 项是组件 id，必须唯一、稳定、语义化。
 - 第 2 项是组件名，只能使用本提示词允许的十种组件。
 - 第 3 项是 props 扁平对象；不用的属性必须省略，不写 `null`。
-- 第 4 项只允许 Row、Column、List、Stack 使用，且只能表示子组件 id 字符串数组；禁止使用 `{ "componentId": ..., "path": ..., "itemVar": ... }` 这类模板对象；非容器组件不得拥有 children。
+- 第 4 项只允许 Row、Column、List、Stack 使用，且必须是至少包含一个子组件 id 的字符串数组；禁止使用空数组或 `{ "componentId": ..., "path": ..., "itemVar": ... }` 这类模板对象；非容器组件不得拥有 children。
 - `space` 可作为 `itemMargin` 的简写；同一卡片优先统一使用 `itemMargin`。
 - `onClick` 必须是非空数组且恰好一个 handler，并完整复用 eventCandidate 的 `call/args`。
 
@@ -543,7 +543,7 @@ ActionUnit——卡级 CTA：
 - `spaceAround|spaceBetween|spaceEvenly` 只在全部主轴子项都有稳定尺寸时使用，不依赖分布式对齐修复不确定宽高，也不假设它会保留额外固定间距。
 - 包含动态 Text、Button 或图文 CTA 的 Row 在完成各子项压力宽度分配后，主轴还应至少保留 `4vp` 非占用余量；若结果刚好为 `0` 或仅靠默认裁切才能成立，优先改为 Column、扩大主内容槽位或删除次要字段。
 - `clip: true` 只用于约束卡片外形，不是布局策略。任何文本、图标、Progress、状态区或 CTA 的理论边界超出父容器，都属于失败，即使截图中还能露出一部分也不得输出。
-- 删除无语义容器：只有在承担轴向布局、尺寸预算、背景/边框、叠放、对齐或点击边界时才允许新增 Row/Column/Stack。仅包含一个子节点且不承担上述职责的容器必须折叠；不要为命名分区、制造空隙或微调位置连续包裹多层容器。除受控 ring Stack 和必须的卡片 shell 外，从一个区域容器到可见叶子组件通常不超过三层布局容器。
+- 删除无语义容器：只有在承担轴向布局、尺寸预算、背景/边框、叠放、对齐或点击边界时才允许新增 Row/Column/Stack。所有 Row、Column、List、Stack 的 children 都必须非空，绝不使用空容器充当固定间距或 `layoutWeight` 留白；固定间距使用父容器 `itemMargin` 或 `padding`，剩余空间使用具有真实子组件的父容器合法对齐方式。仅包含一个子节点且不承担上述职责的容器必须折叠；不要为命名分区、制造空隙或微调位置连续包裹多层容器。除受控 ring Stack 和必须的卡片 shell 外，从一个区域容器到可见叶子组件通常不超过三层布局容器。
 - 对 2x2 的 root Column，输出前必须在内部列出所有直接子项高度并求和；总和连同 margin/有效间距必须不超过 `136vp`。例如 `20 + 76 + 36 + 36 = 168 > 136` 明确不成立，必须删除/合并一个区域或同时缩小多个区域，不能仅改成 `spaceBetween`。
 - 窄于父容器内部宽度的主焦点组件或动作组件必须显式决定在父容器中的交叉轴位置。若 Progress 环、主插画、主数值、Button 或 clickable Row 的设计意图是水平居中，应由父 Column 使用 `alignItems:"center"`，或放进一个与父容器内部宽度一致且内容居中的 Row/Stack；组件自身的 `justifyContent/alignItems/textAlign` 只控制其内部内容，不能证明该组件自身相对父容器居中。`Stack.alignContent:"center"` 也只控制 Stack 内部子项叠放位置，不会让 Stack 自身在父 Column 中居中。
 - 间距只能使用：`2、4、6、8、10、12、14、16`。
@@ -919,8 +919,7 @@ ActionUnit——卡级 CTA：
 ```
 ### assistant
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"design":"fusion-ball-sport-orange","justifyContent":"start","alignItems":"center","itemMargin":0},["title_area","gap8","value_group"]]
-["gap8","Column",{"width":136,"height":8,"flexShrink":0},[]]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"design":"fusion-ball-sport-orange","justifyContent":"start","alignItems":"center","itemMargin":8},["title_area","value_group"]]
 ["title_area","Row",{"width":136,"height":20,"justifyContent":"center","alignItems":"center","flexShrink":0},["title_text"]]
 ["title_text","Text",{"content":"马拉松倒计时","width":112,"fontSize":12,"fontWeight":400,"fontColor":"#E6FFFFFF","textAlign":"center","maxLines":1}]
 ["value_group","Column",{"width":136,"justifyContent":"center","alignItems":"center","itemMargin":2,"flexShrink":1},["value_num","value_unit"]]
@@ -1178,13 +1177,12 @@ ActionUnit——卡级 CTA：
 ```genui
 ["root","Stack",{"width":"matchParent","height":"matchParent","borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFB33C24",0],["#FFFF8833",0.52],["#FFFAA89E",1]]}},["content"]]
 ["content","Row",{"width":"matchParent","height":"matchParent","padding":12,"itemMargin":10},["hero","plans"]]
-["hero","Column",{"width":146,"height":136,"justifyContent":"start"},["tag","count","heroGap","recovery"]]
-["tag","Text",{"content":"距离HK100越野赛","width":146,"fontSize":12,"fontWeight":400,"fontColor":"#F2FFFFFF","maxLines":1}]
-["count","Row",{"width":146,"itemMargin":5,"alignItems":"bottom"},["days","unit"]]
-["heroGap","Column",{"width":146,"height":10,"layoutWeight":1},[]]
+["hero","Column",{"width":146,"height":136,"justifyContent":"spaceBetween"},["tag","count","recovery"]]
+["tag","Text",{"content":"距离HK100越野赛","width":146,"height":20,"fontSize":12,"fontWeight":400,"fontColor":"#F2FFFFFF","maxLines":1}]
+["count","Row",{"width":146,"height":44,"itemMargin":5,"alignItems":"bottom"},["days","unit"]]
 ["days","Text",{"content":{"path":"/data/countdown/countdownDays"},"fontSize":40,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
 ["unit","Text",{"content":"天剩余","fontSize":12,"fontWeight":400,"fontColor":"#99FFFFFF","padding":{"bottom":6},"maxLines":1}]
-["recovery","Column",{"width":146,"itemMargin":3},["recoveryBar","recoveryLabels"]]
+["recovery","Column",{"width":146,"height":28,"itemMargin":3},["recoveryBar","recoveryLabels"]]
 ["recoveryBar","Progress",{"type":"linear","width":146,"height":8,"strokeWidth":8,"borderRadius":4,"value":{"path":"/data/healthSport/sleepScore"},"total":100,"color":"#FFFFFFFF","backgroundColor":"#47FFFFFF"}]
 ["recoveryLabels","Row",{"width":146,"justifyContent":"spaceBetween"},["recoveryName","recoveryValue"]]
 ["recoveryName","Text",{"content":"训练恢复度","fontSize":10,"fontWeight":400,"fontColor":"#99FFFFFF","maxLines":1}]

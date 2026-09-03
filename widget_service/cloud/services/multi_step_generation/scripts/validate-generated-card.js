@@ -66,19 +66,9 @@ function loadChromium() {
 
 const skillDir = path.resolve(__dirname, "..");
 const repoRoot = skillDir;
-const platformRoot = path.resolve(
-  process.env.GENUI_PLATFORM_ROOT || path.join(skillDir, "../../../../.."),
-);
 const resourceRoot = path.resolve(
-  process.env.GENUI_RESOURCE_ROOT || path.join(platformRoot, "resources"),
+  process.env.GENUI_RESOURCE_ROOT || path.join(repoRoot, "resources"),
 );
-const resourceRelativeToPlatform = path.relative(platformRoot, resourceRoot);
-if (
-  resourceRelativeToPlatform.startsWith("..")
-  || path.isAbsolute(resourceRelativeToPlatform)
-) {
-  throw new Error("GENUI_RESOURCE_ROOT must remain inside the platform repository");
-}
 const runtimePath = path.join(skillDir, "design-system-runtime.jsx");
 const generationContractPath = path.join(skillDir, "jsx_runner/resources.py");
 const templatePath = path.join(skillDir, "templates/template.html");
@@ -384,8 +374,24 @@ function validateCardButtonSlots(root, cardSize) {
   const findings = [];
   const visit = (element) => {
     const children = directJsxChildren(element);
+    const parentName = jsxName(element.openingElement.name);
+    const directCardButtons = children.filter((child) => jsxName(child.openingElement.name) === "CardButton");
+    if (cardSize === "2x4" && parentName === "Card" && directCardButtons.length) {
+      findings.push(finding(
+        "error",
+        "card-button-parent-slot",
+        "CardButton must be placed in a half-card Stack slot or a documented Grid cell",
+      ));
+    }
+    if (cardSize === "2x4" && parentName === "Stack" && directCardButtons.length
+      && !(children.length === 1 && directCardButtons.length === 1)) {
+      findings.push(finding(
+        "error",
+        "card-button-parent-slot",
+        "each CardButton in a Stack must be the only child of its own explicit or flex-allocated slot; Grid cells are already slots",
+      ));
+    }
     if (cardSize === "2x4" && children.filter(isCardButtonSlot).length >= 2) {
-      const parentName = jsxName(element.openingElement.name);
       const props = elementProps(element);
       const columns = props.get("columns") ?? 2;
       const multiColumnGrid = parentName === "Grid" && (
@@ -417,6 +423,13 @@ function validateCardButtonSlots(root, cardSize) {
             "error",
             "card-button-slot-aspect",
             `<CardButton> parent slot must be at least as wide as it is tall; found ${width}×${height}vp`,
+          ));
+        }
+        if (Number.isFinite(width) && width > 144) {
+          findings.push(finding(
+            "error",
+            "card-button-slot-width",
+            `<CardButton> parent slot must stay within one half-card region of at most 144vp; found ${width}vp`,
           ));
         }
         if (Number.isFinite(height) && (height < 48 || height > 64)) {
@@ -699,6 +712,10 @@ function validateStructure(source, componentName, schema, task) {
       }
       resolvedCardSize = taskCardSize || CARD_SIZE_PRESETS[actualSize] || (actualSize === 160 ? CARD_SIZE_PRESETS["2x2"] : null);
       if (!schema.appearances.has(provided.get("appearance"))) findings.push(finding("error", "card-appearance", `unsupported Card.appearance: ${JSON.stringify(provided.get("appearance"))}`));
+      const padding = provided.has("padding") ? provided.get("padding") : 12;
+      if (padding !== 12 && padding !== "12px") {
+        findings.push(finding("error", "card-padding", "Card.padding must be omitted or equal to 12vp"));
+      }
     }
     if (cardModeComponents.has(name) && provided.get("appearance") !== "card") {
       findings.push(finding("error", "card-mode", `<${name}> inside Card must declare appearance="card"`));
@@ -713,6 +730,14 @@ function validateStructure(source, componentName, schema, task) {
     if (Number.isInteger(contract?.itemsMinLength)) {
       const items = provided.get("items");
       if (!Array.isArray(items) || items.length < contract.itemsMinLength) findings.push(finding("error", "component-items", `<${name}> requires at least ${contract.itemsMinLength} items`));
+    }
+    if (name === "NumericRatioStack" && Array.isArray(provided.get("items"))
+      && provided.get("items").length !== 3) {
+      findings.push(finding(
+        "error",
+        "component-items",
+        "<NumericRatioStack> requires exactly three items",
+      ));
     }
     const itemRules = {
       TopTextBottomValue: { required: ["label", "value", "unit"], staticText: ["label", "unit"] },
@@ -897,10 +922,10 @@ async function startStaticServer(previewHtml) {
       response.end(previewHtml);
       return;
     }
-    const isPlatformResource = pathname === "/resources"
+    const isResourceRequest = pathname === "/resources"
       || pathname.startsWith("/resources/");
-    const staticRoot = isPlatformResource ? resourceRoot : repoRoot;
-    const relativeRequest = isPlatformResource
+    const staticRoot = isResourceRequest ? resourceRoot : repoRoot;
+    const relativeRequest = isResourceRequest
       ? pathname.replace(/^\/resources\/?/, "")
       : `.${pathname}`;
     const candidate = path.resolve(staticRoot, relativeRequest);

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from ...catalog.appearances import get_appearance
 from ...exceptions import ValidationError
 from ...ir.a2ui_nodes import A2UINode, ConversionContext
@@ -43,6 +45,19 @@ def _dimension(value: object) -> object:
     return "matchParent" if value == "full" else value
 
 
+def _number(value: object) -> int | float | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int | float):
+        return value
+    if isinstance(value, str):
+        match = re.fullmatch(r"\s*(\d+(?:\.\d+)?)px\s*", value)
+        if match:
+            number = float(match.group(1))
+            return int(number) if number.is_integer() else number
+    return None
+
+
 def _box_styles(node: JSXElement, ctx: ConversionContext) -> dict[str, object]:
     styles: dict[str, object] = {}
     width = _dimension(node.props.get("width"))
@@ -63,10 +78,16 @@ def _box_styles(node: JSXElement, ctx: ConversionContext) -> dict[str, object]:
     # A2UI containers otherwise keep their content-driven minimum width and
     # long text can push sibling content outside a fixed card slot.
     minimums = {"minWidth": node.props.get("minWidth", 0)}
-    for key, prop_name in (("minWidth", "minWidth"), ("minHeight", "minHeight")):
-        value = node.props.get(prop_name)
-        if value is not None:
-            minimums[key] = value
+    min_height = node.props.get("minHeight")
+    if min_height is None and any(
+        child.tag == "TextBlock" for child in node.child_elements()
+    ):
+        # TextBlock is internally flexible between 48vp and 64vp. Its direct
+        # Stack parent must be allowed to shrink so a basis-only slot can
+        # allocate that range, matching the JSX runtime's local hint.
+        min_height = 0
+    if min_height is not None:
+        minimums["minHeight"] = min_height
     if minimums:
         styles["constraintSize"] = minimums
     margin = {}
@@ -102,21 +123,24 @@ def _box_styles(node: JSXElement, ctx: ConversionContext) -> dict[str, object]:
     return styles
 
 
-def _child_content_height(
+def _child_content_extent(
     node: JSXElement,
     ctx: ConversionContext,
+    axis: str,
 ) -> int | float | None:
-    """Resolve the definite containing-block height visible to child nodes."""
-    raw_height = node.props.get("height")
-    if raw_height == "full":
-        height = ctx.parent_content_height
-    elif isinstance(raw_height, int | float) and not isinstance(raw_height, bool):
-        height = raw_height
+    """Resolve the definite content-box extent visible to child nodes."""
+    prop = "width" if axis == "width" else "height"
+    raw_extent = node.props.get(prop)
+    parent_extent = (
+        ctx.parent_content_width if axis == "width" else ctx.parent_content_height
+    )
+    if raw_extent in {None, "full"}:
+        extent = parent_extent
     else:
-        height = None
-    if height is not None and node.props.get("surface") == "backplate":
-        height = max(0, height - 2 * _BACKPLATE_PADDING)
-    return height
+        extent = _number(raw_extent)
+    if extent is not None and node.props.get("surface") == "backplate":
+        extent = max(0, extent - 2 * _BACKPLATE_PADDING)
+    return extent
 
 
 def _linear_stack(
@@ -133,7 +157,8 @@ def _linear_stack(
     is_row = direction == "row"
     source_children = node.child_elements()
     child_ctx = ctx.for_children(
-        parent_content_height=_child_content_height(node, ctx),
+        parent_content_width=_child_content_extent(node, ctx, "width"),
+        parent_content_height=_child_content_extent(node, ctx, "height"),
         enters_backplate=node.props.get("surface") == "backplate",
     )
     children = [child_ctx.convert(child) for child in source_children]
@@ -170,16 +195,18 @@ def _linear_stack(
     )
 
 
-def _absolute_extent(node: JSXElement, axis: str, parent_extent: int) -> object | None:
+def _absolute_extent(node: JSXElement, axis: str, parent_extent: int | float) -> object | None:
     explicit = _dimension(node.props.get("width" if axis == "x" else "height"))
     if explicit is not None:
         return explicit
     start = node.props.get("left" if axis == "x" else "top")
     end = node.props.get("right" if axis == "x" else "bottom")
-    if isinstance(start, int | float) and isinstance(end, int | float):
-        if start == 0 and end == 0:
+    start_number = _number(start)
+    end_number = _number(end)
+    if start_number is not None and end_number is not None:
+        if start_number == 0 and end_number == 0:
             return "matchParent"
-        return max(0, parent_extent - start - end)
+        return max(0, parent_extent - start_number - end_number)
     return None
 
 
@@ -234,6 +261,10 @@ def collect_stack_conversion_errors(
             (_dimension(node.props.get("width")), "width", card_width),
             (_dimension(node.props.get("height")), "height", card_height),
         ):
+            if value in {None, "matchParent"} and extent is None:
+                # Preflight does not carry layout context. The converter makes
+                # the definite-parent check once the real parent is known.
+                continue
             try:
                 _relative_extent(value, name, extent)
             except ValidationError as exc:
@@ -242,7 +273,11 @@ def collect_stack_conversion_errors(
 
 
 def _absolute_child(
-    node: JSXElement, ctx: ConversionContext, *, parent_width: int, parent_height: int
+    node: JSXElement,
+    ctx: ConversionContext,
+    *,
+    parent_width: int | float,
+    parent_height: int | float,
 ) -> A2UINode:
     errors = collect_stack_conversion_errors(node, allow_absolute=True)
     if errors:
@@ -261,7 +296,16 @@ def _absolute_child(
             margin[key] = value
     if margin:
         child_styles["margin"] = margin
-    content = _linear_stack(node, ctx, styles=child_styles)
+    child_width = parent_width if width == "matchParent" else _number(width)
+    child_height = parent_height if height == "matchParent" else _number(height)
+    content = _linear_stack(
+        node,
+        ctx.for_children(
+            parent_content_width=child_width,
+            parent_content_height=child_height,
+        ),
+        styles=child_styles,
+    )
     content.styles["layoutWeight"] = 0
     return stack(
         ctx,
@@ -273,22 +317,29 @@ def _absolute_child(
 
 
 def _relative_stack(node: JSXElement, ctx: ConversionContext) -> A2UINode:
+    source_children = node.child_elements()
+    if not any(child.props.get("position") == "absolute" for child in source_children):
+        return _linear_stack(node, ctx)
     width = _dimension(node.props.get("width"))
     height = _dimension(node.props.get("height"))
-    # A generated card's relative layout surface is the 136x136 content area
-    # of a 160vp Card with 12vp padding.
-    parent_width = _relative_extent(width, "width", ctx.card_content_width)
-    parent_height = _relative_extent(height, "height", ctx.card_content_height)
+    parent_width = _relative_extent(width, "width", ctx.parent_content_width)
+    parent_height = _relative_extent(height, "height", ctx.parent_content_height)
+    content_width = max(
+        0,
+        parent_width
+        - (2 * _BACKPLATE_PADDING if node.props.get("surface") == "backplate" else 0),
+    )
+    content_height = max(
+        0,
+        parent_height
+        - (2 * _BACKPLATE_PADDING if node.props.get("surface") == "backplate" else 0),
+    )
     child_ctx = ctx.for_children(
-        parent_content_height=max(
-            0,
-            parent_height
-            - (2 * _BACKPLATE_PADDING if node.props.get("surface") == "backplate" else 0),
-        ),
+        parent_content_width=content_width,
+        parent_content_height=content_height,
         enters_backplate=node.props.get("surface") == "backplate",
     )
     children: list[A2UINode] = []
-    source_children = node.child_elements()
     flow_children = [
         child for child in source_children if child.props.get("position") != "absolute"
     ]
@@ -354,19 +405,28 @@ def relative_stack_child_errors(node: JSXElement) -> list[str]:
     return []
 
 
-def _relative_extent(value: object, name: str, card_extent: int | float | None) -> int:
+def _relative_extent(
+    value: object,
+    name: str,
+    parent_extent: int | float | None,
+) -> int | float:
     if value in {None, "matchParent"}:
-        return int(card_extent if card_extent is not None else 136)
-    if isinstance(value, int | float) and not isinstance(value, bool) and value >= 0:
-        return int(value)
+        if parent_extent is None:
+            raise ValidationError(
+                f"relative Stack {name}='full' requires a definite parent {name}"
+            )
+        return parent_extent
+    number = _number(value)
+    if number is not None and number >= 0:
+        return number
     raise ValidationError(f"relative Stack {name} must be a non-negative number or 'full'")
 
 
 def convert_flex_stack(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     errors = collect_stack_conversion_errors(
         node,
-        card_width=ctx.card_content_width,
-        card_height=ctx.card_content_height,
+        card_width=ctx.parent_content_width,
+        card_height=ctx.parent_content_height,
     )
     if errors:
         raise ValidationError("; ".join(errors))
