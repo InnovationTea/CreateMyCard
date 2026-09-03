@@ -2,49 +2,47 @@
 data = {
     city: $optionalPath("/location/prefectureName"),
     district: $optionalPath("/location/districtName"),
-    temperature: $path("/current/temperatureText"),
+    temperature: $optionalPath("/current/temperatureText"),
     condition: $optionalPath("/current/condition"),
 }
 
-Row({
-  "_advancedComponent": "WeatherOverview",
-  "width": "matchParent",
-  "height": 24,
-  "itemMargin": 0,
-  "alignItems": "center",
-  "justifyContent": "spaceBetween",
-},
-  Row(
+Row(
+  {
+    "_advancedComponent": "WeatherOverview",
+    "width": "matchParent",
+    "height": 24,
+    "itemMargin": 4,
+    "justifyContent": "spaceBetween",
+    "alignItems": "top",
+    "clip": true,
+    "constraintSize": { "minWidth": 0, "minHeight": 0 }
+  },
+  Text(
+    #Expr(data.city ? data.city : (data.district ? data.district : (props.location ? props.location : "当前城市"))),
     {
-      "height": 24,
-      "itemMargin": 4,
-      "justifyContent": "start",
-      "alignItems": "center",
-      "clip": true,
+      "fontSize": 14,
+      "fontWeight": 700, "fontColor": $theme('primaryColor'),
+      "maxLines": 1,
+      "textOverflow": "ellipsis",
       "constraintSize": { "minWidth": 0, "minHeight": 0 }
-    },
+    }
+  ),
+  #if data.condition && data.temperature
     Text(
-      #Expr(data.city ? data.city : (data.district ? data.district : (props.location ? props.location : "当前城市"))),
-      {
-        "fontSize": 14,
-        "fontWeight": 700, "fontColor": $theme('primaryColor'),
-        "maxLines": 1,
-        "textOverflow": "ellipsis",
-        "constraintSize": { "minWidth": 0, "minHeight": 0 }
-      }
-    ),
-    #if data.condition
-    Text(
-      `${data.temperature} | ${data.condition}`,
+      `${data.condition} | ${data.temperature}`,
       { "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0 }
     )
-    #else
+  #elseif data.condition
+    Text(
+      data.condition,
+      { "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0 }
+    )
+  #elseif data.temperature
     Text(
       data.temperature,
       { "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0 }
     )
-    #endif
-  )
+  #endif
 )
 #End
 

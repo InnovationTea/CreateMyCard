@@ -599,8 +599,8 @@ def test_gallery_paired_inputs_preserve_both_businesses_and_one_action(tmp_path:
             "ViewWeather", "GetCalendarEvents"
         ]
         assert bindings[0].get("candidateOutputFields") == [
-            "/current/temperatureText", "/location/prefectureName",
-            "/location/districtName", "/current/condition"
+            "/location/prefectureName", "/location/districtName",
+            "/current/temperatureText", "/current/condition"
         ]
         assert bindings[1].get("candidateOutputFields") == [
             "/events/0/title", "/events/0/dtStart", "/events/0/dtEnd", "/events/0/eventLocation"

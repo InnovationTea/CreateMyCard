@@ -182,7 +182,7 @@
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
-| ✅ | `WeatherOverviewHeroTitle@1` | 双业务单 Action 的位置 0 | `/current/temperatureText` | 无 | `/location/prefectureName`<br>`/location/districtName`<br>`/current/condition` |
+| ✅ | `WeatherOverviewHeroTitle@1` | 双业务单 Action 的位置 0；左城市、右现象及温度 | 无 | 无 | `/location/prefectureName`<br>`/location/districtName`<br>`/current/temperatureText`<br>`/current/condition` |
 | ✅ | `WeatherOverviewCompact@1` | 约 2x1；可选天气图标；Compact + 2 个 PillAction | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/coldLevel` |
 | ✅ | `WeatherOverviewUvCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/current/temperatureText`<br>`/current/uvIndex` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName` |
 | ✅ | `WeatherOverviewTemperatureSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/current/temperatureText` | `/location/districtName`<br>`/current/condition`<br>`/current/coldLevel` | 无 |
@@ -194,6 +194,8 @@
 | ✅ | `WeatherOverviewAirQualityHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/current/airQuality` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/coldLevel` |
 
 说明：最新天气 UX 中的日出日落与 AQI 数值不在当前 `ViewWeather` 数据契约内，本轮未生成伪数据模板。
+HeroTitle 的温度与现象均可选：同时可用时显示“现象 | 温度”，缺少其中之一时只显示另一项；两者都缺失时
+只保留城市标题。其余天气模板仍按各自主数据和次要数据准入，不因标题模板的可选字段而放宽。
 
 ## 验收口径
 

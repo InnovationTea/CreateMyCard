@@ -85,7 +85,15 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
     for case in cases:
         counts = Counter((*case.primary_data, *case.secondary_data, *case.optional_data))
         assert all(count == 1 for count in counts.values())
-        assert case.primary_data
+        if case.template_id == "WeatherOverviewHeroTitle@1":
+            assert case.primary_data == ()
+            assert case.secondary_data == ()
+            assert case.optional_data == (
+                "/location/prefectureName", "/location/districtName",
+                "/current/temperatureText", "/current/condition",
+            )
+        else:
+            assert case.primary_data
         assert json.dumps(case.messages, ensure_ascii=False)
 
 
