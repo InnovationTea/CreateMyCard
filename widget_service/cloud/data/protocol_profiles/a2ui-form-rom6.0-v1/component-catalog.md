@@ -13,8 +13,8 @@
 ## 支持范围
 
 - 必需 catalog：`"catalogId": "ohos.a2ui.extended.catalog.form"`。
-- 允许组件：`Text`、`Image`、`Divider`、`Progress`、`Button`、`Checkbox`、`Row`、`Column`、`List`、`Stack`、`If`。
-- 禁用组件：`TextInput`、`Toggle`、`Radio`、`CheckboxGroup`、`Select`、`NavContainer`、`Tabs`、`TabContent`、`Web`、`Grid`。
+- 允许组件：`Text`、`Image`、`Divider`、`Progress`、`Button`、`Checkbox`、`Row`、`Column`、`List`、`Stack`。
+- 禁用组件：`TextInput`、`Toggle`、`Radio`、`CheckboxGroup`、`Select`、`NavContainer`、`Tabs`、`TabContent`、`Web`、`Grid`、`If`。
 - 不要把 Form 子集之外的 extended 组件或 Basic Catalog 的属性名混入 Form surface。
 
 ## 字段归属速查
@@ -39,12 +39,6 @@
 
 所有组件对象都写 `id` 和 `component`；下方只列额外字段。
 
-- `If`：运行时条件虚拟节点；必需 `condition`，值为完整 `{{ ... }}` 表达式。
-  `childrenIf`、`childrenElse` 是组件 ID 数组，可省略或为空。端侧按条件切换分支；
-  非布尔结果按 JS falsy 规则转换，undefined 或求值失败进入假分支。不支持普通 `children`、
-  `styles`、`onClick`、`accessibility`，不可替代 root shell。
-  参见 [官方 If 规范](https://gitcode.com/GenerativeUI/Docs/blob/main/reference/extended-components/if.md)。
-
 - `Column`：竖向容器；必需 `children`；`children` 为字符串数组或 `{ "componentId": "...", "path": "/items" }`；`itemMargin` 数字 vp；`styles.justifyContent` 取 `start|center|end|spaceAround|spaceBetween|spaceEvenly`；`styles.alignItems` 取 `start|center|end`。
 - `Row`：横向容器；必需 `children`；`children` 为字符串数组或模板循环对象；`itemMargin` 数字 vp；`wrap` 取 `noWrap|wrap`；`styles.justifyContent` 取 `start|center|end|spaceAround|spaceBetween|spaceEvenly`；`styles.alignItems` 取 `top|center|bottom`。
 - `Stack`：层叠容器，用于光晕、图片背景、叠加内容和进度环；必需 `children`；`children` 为字符串数组；`styles.alignContent` 取 `topStart|top|topEnd|start|center|end|bottomStart|bottom|bottomEnd`。
@@ -58,7 +52,7 @@
 
 ## 通用样式
 
-除虚拟节点 `If` 外，Form 组件支持通用 `styles`：
+所有 Form 组件都支持通用 `styles`：
 
 - 尺寸与约束：`width`、`height`、`constraintSize`
 - 间距与形状：`margin`、`padding`、`borderRadius`

@@ -243,7 +243,6 @@ def build_hybrid_prompt(
                     "Column",
                     "List",
                     "Stack",
-                    "If",
                     *ux_layout_root_ids,
                 )
             )

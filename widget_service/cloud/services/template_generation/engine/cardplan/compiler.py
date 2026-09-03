@@ -5258,9 +5258,6 @@ def _deduplicate_visible_text(node: Nested2Node, task_spec: TaskSpec) -> Nested2
         inside_advanced_component: bool = False,
         inside_action: bool = False,
     ) -> Nested2Node | None:
-        if current.component_type == "If":
-            # 两条分支互斥，不能共享去重状态，也不能删除分支根并改变位置语义。
-            return current
         is_advanced_component = inside_advanced_component or any(
             isinstance(value, dict) and isinstance(value.get("_advancedComponent"), str)
             for value in current.values
@@ -7112,9 +7109,6 @@ def _deduplicate_ux_business_title_fragments(
     """Let one visible business title own its later literal fragments."""
     if not isinstance(title, str) or not title.strip():
         return node
-    if any(item.component_type == "If" for item in _walk_nodes(node)):
-        # 条件标题不保证在每条运行路径可见，保留受信模板中的原始文案。
-        return node
     title_fragment = _semantic_text_fragment(title)
     has_title = any(
         descendant.component_type == "Text" and descendant.values and descendant.values[0] == title
@@ -8184,9 +8178,6 @@ def _ux_support_surface_color(
 
 
 def _merge_node_options(node: Nested2Node, additions: dict[str, Any]) -> Nested2Node:
-    if node.component_type == "If":
-        children = tuple(_merge_node_options(child, additions) for child in node.children)
-        return Nested2Node(node.component_type, node.values, children)
     values = list(node.values)
     options_index = next(
         (index for index, value in enumerate(values) if isinstance(value, dict)),
@@ -8207,9 +8198,6 @@ def _with_flex_weight(
     *,
     axis: Literal["horizontal", "vertical"],
 ) -> Nested2Node:
-    if node.component_type == "If":
-        children = tuple(_with_flex_weight(child, weight, axis=axis) for child in node.children)
-        return Nested2Node(node.component_type, node.values, children)
     values = list(node.values)
     options_index = next(
         (index for index, value in enumerate(values) if isinstance(value, dict)),
@@ -9010,8 +8998,6 @@ def _estimate_height(node: Nested2Node) -> int:
     if isinstance(explicit, (int, float)):
         return int(explicit)
     child_heights = [_estimate_height(child) for child in node.children]
-    if node.component_type == "If":
-        return max(child_heights, default=0)
     if node.component_type in {"Row", "Stack"}:
         return max(child_heights, default=24)
     if node.component_type in {"Column", "List"}:
@@ -9023,9 +9009,6 @@ def _estimate_height(node: Nested2Node) -> int:
 
 
 def _constrain_content_height(node: Nested2Node, budget: int) -> Nested2Node:
-    if node.component_type == "If":
-        children = tuple(_constrain_content_height(child, budget) for child in node.children)
-        return Nested2Node(node.component_type, node.values, children)
     values = list(node.values)
     options_index = next(
         (index for index, value in enumerate(values) if isinstance(value, dict)),

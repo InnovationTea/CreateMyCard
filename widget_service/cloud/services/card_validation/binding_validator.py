@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 from core.json_pointer import parse_json_pointer
-from services.a2ui_runtime_if import component_child_ids
 
 from .base import (
     BaseValidator,
@@ -94,7 +93,10 @@ class BindingValidator(BaseValidator):
             if key not in {"children", "onClick"}
         }
         references = cls._value_references(visible_values)
-        for child_id in component_child_ids(component):
+        children = component.get("children")
+        if not isinstance(children, list):
+            return references
+        for child_id in children:
             if isinstance(child_id, str):
                 references.extend(
                     cls._component_subtree_references(

@@ -36,7 +36,6 @@ def _marker_values(root: TemplateNode) -> list[TemplateValue]:
     for value in root.values:
         marker = value.properties.get("_advancedComponent")
         if marker is not None:
-            assert root.component != "If", "虚拟 If 节点不能承载业务标记"
             markers.append(marker)
     for child in root.children:
         markers.extend(_marker_values(child))

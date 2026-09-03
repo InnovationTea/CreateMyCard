@@ -206,14 +206,14 @@ def test_elseif_text_inside_multiline_literal_is_not_a_directive() -> None:
     assert "#end" in text
 
 
-def test_elseif_preserves_runtime_if_and_a2ui_paths() -> None:
+def test_elseif_preserves_runtime_expression_and_a2ui_paths() -> None:
     definition = _definition(
         '#if props.flag\nText("标记")\n#elseif data.first\n'
-        'IF(data.first, Text("运行时真"), Text("运行时假"))\n'
+        'Text(Expr(data.first == "" ? "空值" : data.first))\n'
         '#else\nText("无绑定")\n#end'
     )
     root = _instantiate_blueprint(definition.variants[0].root, {}, _bindings(("first",)))
-    assert root.children[0].component_type == "If"
+    assert root.children[0].component_type == "Text"
     a2ui = convert_tersel_to_a2ui(
         _serialize_node(root),
         size="2x2",
@@ -229,7 +229,7 @@ def test_elseif_preserves_runtime_if_and_a2ui_paths() -> None:
         },
     )
     assert "${/data/context/first}" in a2ui
-    assert "运行时真" in a2ui and "运行时假" in a2ui
+    assert " == '' ? '空值' : " in a2ui
     assert "无绑定" not in a2ui
     assert "IfMissing" not in a2ui
     assert not validate_card(dsl_text=a2ui).diagnostics

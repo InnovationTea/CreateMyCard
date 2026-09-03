@@ -999,8 +999,6 @@ def _component_node(node: ast.AST) -> TemplateNode:
     if node.keywords:
         raise ValueError("Provider Template component calls do not accept keyword arguments")
     component = node.func.id
-    if component == "IF":
-        return _runtime_if_node(node)
     if component not in _TEMPLATE_COMPONENTS:
         raise ValueError(f"unsupported Provider Template component: {component}")
     values: list[TemplateValue] = []
@@ -1053,25 +1051,6 @@ def _component_node(node: ast.AST) -> TemplateNode:
         children=tuple(children),
         spreadChildren=spread_children,
     )
-
-
-def _runtime_if_node(call: ast.Call) -> TemplateNode:
-    if len(call.args) not in {2, 3}:
-        raise ValueError("Provider Template IF requires a condition and one or two branches")
-    condition = _template_value(call.args[0])
-    if condition.kind == "binding":
-        condition = TemplateValue(kind="expression", items=(condition,))
-    if condition.kind != "expression":
-        raise ValueError("Provider Template IF condition must be data or Expr")
-    branches: list[TemplateNode] = []
-    for argument in call.args[1:]:
-        branch = _component_node(argument)
-        if branch.component in _CONDITIONAL_COMPONENTS:
-            raise ValueError(
-                "Provider Template IF branch root must not be a compile-time directive"
-            )
-        branches.append(branch)
-    return TemplateNode(component="If", values=(condition,), children=tuple(branches))
 
 
 def _grouped_conditional_binding_names(value: TemplateValue) -> tuple[str, str]:

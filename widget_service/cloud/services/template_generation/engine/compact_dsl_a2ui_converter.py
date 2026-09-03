@@ -9,8 +9,6 @@ import json
 from dataclasses import dataclass
 from typing import Any, Literal, TypeGuard
 
-from services.a2ui_runtime_if import component_child_ids, validate_runtime_if
-
 ThemeMode = Literal["light", "dark"]
 
 _A2UI_EXTENDED_CATALOG_ID = "ohos.a2ui.extended.catalog.form"
@@ -33,13 +31,11 @@ _COMPONENT_TYPES = frozenset(
         "Progress",
         "Button",
         "Checkbox",
-        "If",
     }
 )
 _CONTAINER_TYPES = frozenset({"Row", "Column", "List", "Stack"})
 _ROOT_COMPONENT_TYPES = frozenset({"Row", "Column", "Stack"})
 _SEMANTIC_FIELDS = {
-    "If": frozenset({"condition", "childrenIf", "childrenElse"}),
     "Text": frozenset({"content"}),
     "Image": frozenset({"src"}),
     "Progress": frozenset({"value", "total"}),
@@ -1084,15 +1080,6 @@ def _parse_children(
     component_id: str,
     component_type: str,
 ) -> tuple[str, ...]:
-    if component_type == "If":
-        if len(value) != 3:
-            raise CompactDslConversionError(f"{component_id}: If must not have ordinary children.")
-        props = value[2]
-        try:
-            validate_runtime_if(props)
-        except ValueError as exc:
-            raise CompactDslConversionError(f"{component_id}: {exc}") from exc
-        return component_child_ids({"component": "If", **props})
     is_container = component_type in _CONTAINER_TYPES
     if len(value) != 4:
         if is_container:
@@ -1168,13 +1155,6 @@ def _validate_component_props(
     component_type: str,
     props: dict[str, Any],
 ) -> None:
-    if component_type == "If":
-        try:
-            validate_runtime_if(props)
-        except ValueError as exc:
-            raise CompactDslConversionError(f"{component_id}: {exc}") from exc
-        _validate_source_value(props, component_id)
-        return
     for property_name in _FORBIDDEN_PROPERTIES:
         if property_name in props:
             raise CompactDslConversionError(
@@ -2008,8 +1988,7 @@ def _component_to_tuple(component: ComponentRow) -> list[Any]:
         component.component_type,
         copy.deepcopy(component.props),
     ]
-    has_children = component.component_type in _CONTAINER_TYPES or bool(component.children)
-    if component.component_type != "If" and has_children:
+    if component.component_type in _CONTAINER_TYPES or component.children:
         row.append(list(component.children))
     return row
 
@@ -2036,8 +2015,7 @@ def _convert_component(
         "id": component.component_id,
         "component": component.component_type,
     }
-    has_children = component.component_type in _CONTAINER_TYPES or bool(component.children)
-    if component.component_type != "If" and has_children:
+    if component.component_type in _CONTAINER_TYPES or component.children:
         converted["children"] = list(component.children)
     if hide_label:
         converted["label"] = _A2UI_ICON_BUTTON_LABEL

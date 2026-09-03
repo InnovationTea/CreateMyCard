@@ -12,6 +12,7 @@ Template source DSL，但不负责能力裁决、CardSpec/TaskSpec 构造、最�
 | 文档 | 用途 | 是否权威契约 |
 | --- | --- | --- |
 | [云侧方案设计](../../../../../docs/云侧方案设计.md) | 系统边界、对外接口、协议、校验和降级规则 | 是，唯一权威来源 |
+| [template-generation-design.md](template-generation-design.md) | 本轮模板显示、作者语法、暂缓范围和验收要求 | 否，模块内方案 |
 | [architecture.md](architecture.md) | 当前代码的路由、Template 生成流程和失败边界 | 否，实现说明 |
 | [modules.md](modules.md) | 目录、类、函数和代码责任索引 | 否，实现说明 |
 | [tersel-protocol.md](tersel-protocol.md) | Tersel 语法、DesignToken、内联样式和安全边界 | 否，模块内协议说明 |

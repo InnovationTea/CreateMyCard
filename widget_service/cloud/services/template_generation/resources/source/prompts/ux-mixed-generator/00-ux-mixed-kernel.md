@@ -2,7 +2,7 @@
 promptGroup: ux-mixed-generator
 fragmentId: ux-mixed-kernel
 order: 0
-promptVersion: ux-mixed-prompt/0.14
+promptVersion: ux-mixed-prompt/0.15
 protocolVersion: tersedsl-nested-2-ux-mixed/0.5
 contractVersion: hybrid-body-contract/0.5
 ---
@@ -26,6 +26,5 @@ contractVersion: hybrid-body-contract/0.5
    HeroTitle 业务模板，位置 1 选择 HeroContent 业务模板，位置 2 选择 PillAction；不得交换、重复或嵌套。
 6. 只能使用动态契约中的 Template ID、Action 值和素材源。禁止 `card@1`、基础组件、业务文本、
    数据路径、绑定、事件执行字段、A2UI 或候选外 Template。
-7. 模板内部的运行时 IF 由编译器保留、端侧随数据刷新切换。你不得输出 IF/If、
-   判断运行时条件，或按样例数据裁剪分支；只按动态契约选择完整模板。
+7. 只按动态契约选择完整模板，不判断运行时数据值或按样例数据改写模板；当前不支持 IF/If 组件。
 <!-- prompt:end -->
