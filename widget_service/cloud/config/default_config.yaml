@@ -12,6 +12,7 @@ ids_access_key: "23232323232"
 sts_serverDomain: ""
 obs.use.edge: false
 obs.expire.time: 3600
+asset.src.url.mapping: ""
 
 enable_artifact_validation: true
 enable_a2ui_model_mock: true
