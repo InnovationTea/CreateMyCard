@@ -2402,7 +2402,7 @@ def test_device_ring_progress_and_icons_bind_to_distinct_theme_colors() -> None:
                 assert fill_color.name == "supportContentColor"
 
     assert progress_count == 11
-    assert ring_icon_count == 7
+    assert ring_icon_count == 9
 
 
 def test_battery_ring_progress_uses_dedicated_track_theme_color() -> None:
@@ -2414,6 +2414,8 @@ def test_battery_ring_progress_uses_dedicated_track_theme_color() -> None:
         "BatteryOverviewFull@1",
         "BatteryOverviewHero@1",
         "BatteryOverviewWideFull@1",
+        "BatteryOverviewCompact@1",
+        "BatteryOverviewChargingProgressFull@1",
         "BatteryOverviewPercentRingHero@1",
         "BatteryOverviewChargingRingHero@1",
     }
@@ -2509,13 +2511,12 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
         "default",
     ).root
     assert _template_node_options(battery_peer)["justifyContent"] == "start"
-    assert not _template_nodes(battery_peer, "Image")
-    compact_status_row = battery_peer.children[2]
-    assert [child.component for child in compact_status_row.children] == [
-        "IfBind",
-        "IfMissingBind",
+    assert len(_template_nodes(battery_peer, "Image")) == 1
+    compact_content_row = battery_peer.children[0]
+    assert [child.component for child in compact_content_row.children] == [
+        "Stack",
+        "Column",
     ]
-    assert compact_status_row.children[1].children[0].component == "IfBind"
 
     resource_peer = registry.require_variant(
         "ResourceUsageOverviewCompact@1",
@@ -2613,14 +2614,9 @@ def test_battery_templates_follow_consolidated_state_contract() -> None:
     assert set(battery.local_template_ids) == expected_template_ids
     assert not any(template_id.endswith("Support@1") for template_id in expected_template_ids)
     compact = registry.require_template("BatteryOverviewCompact@1")
-    assert compact.primary_data == ()
-    assert compact.secondary_data == ()
-    assert compact.optional_data == (
-        "/batterySOCText",
-        "/batterySOC",
-        "/batteryCapacityLevelDesc",
-        "/chargingStatusDesc",
-    )
+    assert compact.primary_data == ("/batterySOC",)
+    assert compact.secondary_data == ("/chargingStatusDesc",)
+    assert compact.optional_data == ()
 
 
 def test_genui_rsi_battery_and_countdown_templates_keep_expected_geometry() -> None:
@@ -2646,11 +2642,8 @@ def test_genui_rsi_battery_and_countdown_templates_keep_expected_geometry() -> N
         "BatteryOverviewChargingRingHero@1",
         "default",
     ).root
-    assert len(charging_ring.children) == 1
-    ring_status_group = charging_ring.children[0]
-    assert ring_status_group.component == "Column"
-    assert [child.component for child in ring_status_group.children] == ["Stack", "Text"]
-    ring_progress = _template_nodes(ring_status_group, "Progress")[0]
+    assert [child.component for child in charging_ring.children] == ["Stack", "Text"]
+    ring_progress = _template_nodes(charging_ring, "Progress")[0]
     assert _template_node_options(ring_progress)["strokeWidth"] == 6
 
     charging_full = registry.require_variant(
@@ -2658,7 +2651,8 @@ def test_genui_rsi_battery_and_countdown_templates_keep_expected_geometry() -> N
         "default",
     ).root
     charging_full_progress = _template_nodes(charging_full, "Progress")[0]
-    assert _template_node_options(charging_full_progress)["strokeWidth"] == 8
+    assert _template_node_options(charging_full_progress)["type"] == "ring"
+    assert _template_node_options(charging_full_progress)["strokeWidth"] == 6
     assert len(_template_nodes(charging_full, "Row")) == 4
 
     diagnostics = registry.require_variant(
@@ -2666,10 +2660,12 @@ def test_genui_rsi_battery_and_countdown_templates_keep_expected_geometry() -> N
         "default",
     ).root
     assert len(_template_nodes(diagnostics, "Row")) == 4
+    assert len(_template_nodes(diagnostics, "Column")) == 3
 
     compact = registry.require_variant("BatteryOverviewCompact@1", "default").root
     compact_progress = _template_nodes(compact, "Progress")[0]
-    assert _template_node_options(compact_progress)["strokeWidth"] == 8
+    assert _template_node_options(compact_progress)["type"] == "ring"
+    assert _template_node_options(compact_progress)["strokeWidth"] == 6
 
     countdown = registry.require_variant("CountdownOverviewHero@1", "default").root
     value_row = countdown.children[2]
@@ -4561,9 +4557,8 @@ async def test_2x2_battery_generic_compact_accepts_two_pill_actions():
                 "themeId": "fusion-battery-teal",
                 "requiredOutputFieldsByCapability": {
                     "GetPhoneBatteryInfo": [
-                        "/batterySOCText",
+                        "/batterySOC",
                         "/chargingStatusDesc",
-                        "/batteryCapacityLevelDesc",
                     ]
                 },
                 "action": list(action_ids),
@@ -4578,7 +4573,8 @@ async def test_2x2_battery_generic_compact_accepts_two_pill_actions():
             self.second_layer_prompt = prompt
             return (
                 'Template("CompactTwoActionLayout@1",{},'
-                'Template("BatteryOverviewCompact@1",{}),'
+                'Template("BatteryOverviewCompact@1",'
+                '{"batteryIcon":"resources/base/media/battery_leaf_fill.svg"}),'
                 'Template("PillAction@1",{"actionId":"event.setPowerSavingMode",'
                 '"label":"省电模式"}),'
                 'Template("PillAction@1",{"actionId":"event.startNavigate",'
@@ -4635,9 +4631,10 @@ async def test_2x2_battery_generic_compact_accepts_two_pill_actions():
     assert "BatteryOverviewCompact@1" in second_layer_user
     assert "CompactTwoActionLayout@1" in output.template_ids
     assert output.a2ui.count('"call":"clickToIntent"') == 2
-    assert "batterySOCText" in output.a2ui
+    assert "batterySOC" in output.a2ui
     assert "chargingStatusDesc" in output.a2ui
-    assert "batteryCapacityLevelDesc" in output.a2ui
+    assert "batterySOCText" not in output.a2ui
+    assert "batteryCapacityLevelDesc" not in output.a2ui
     assert "省电模式" in output.a2ui and "开始导航" in output.a2ui
     messages = [json.loads(line) for line in output.a2ui.splitlines()]
     components = {

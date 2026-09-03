@@ -179,8 +179,6 @@ def test_trusted_gallery_template_drops_runtime_only_retrieval_fields() -> None:
     assert restricted.required_output_fields_by_capability == {
         "GetPhoneBatteryInfo": (
             "/batterySOC",
-            "/batterySOCText",
-            "/batteryCapacityLevelDesc",
         )
     }
 
