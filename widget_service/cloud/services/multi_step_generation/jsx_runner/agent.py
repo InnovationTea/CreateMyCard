@@ -490,9 +490,9 @@ class JsxA2UIAgent:
                             )
                             response = await self._request(request, turn)
                         else:
-                            raise
+                            raise exc
                     else:
-                        raise
+                        raise exc
             except Exception as exc:
                 api_elapsed = round(time.monotonic() - request_started, 2)
                 turn_trace.append({

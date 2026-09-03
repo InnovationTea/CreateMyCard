@@ -1960,6 +1960,7 @@ def _convert_action_unit_capsule(component: ComponentRow) -> list[dict[str, Any]
     action_ink = component.props.get("actionInk")
     if action_ink is not None:
         styles["fontColor"] = action_ink
+    styles["textAlign"] = "center"
     converted["styles"] = styles
     return [converted]
 
@@ -2477,6 +2478,9 @@ def _schema_child(current: Any, token: str) -> Any | None:
     if isinstance(current, list):
         if not token.isdigit() or not current:
             return None
+        index = int(token)
+        if index < len(current):
+            return current[index]
         return current[0]
     if not isinstance(current, dict):
         return None

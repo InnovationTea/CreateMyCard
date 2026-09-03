@@ -817,15 +817,17 @@ def _absolute_axis_interval(
     size = _number(node.props.get(size_prop))
     if size is None and start is not None and end is not None:
         size = max(0, available - start - end)
-    if size is None:
-        return None
-    if start is not None:
-        origin = start
-    elif end is not None:
-        origin = available - end - size
-    else:
-        return None
-    return origin, origin + size
+    result: tuple[float, float] | None = None
+    if size is not None:
+        if start is not None:
+            origin = start
+        elif end is not None:
+            origin = available - end - size
+        else:
+            origin = None
+        if origin is not None:
+            result = (origin, origin + size)
+    return result
 
 
 def _validate_absolute_sibling_geometry(
@@ -866,10 +868,10 @@ def _validate_absolute_sibling_geometry(
         )
         if horizontal is not None and vertical is not None:
             rectangles.append((index, child, horizontal, vertical))
-    for left_index in range(len(rectangles)):
-        first_index, first, first_x, first_y = rectangles[left_index]
-        for second_index in range(left_index + 1, len(rectangles)):
-            second_number, second, second_x, second_y = rectangles[second_index]
+    for left_index, (first_index, first, first_x, first_y) in enumerate(rectangles):
+        for _, (second_number, second, second_x, second_y) in enumerate(
+            rectangles[left_index + 1:], start=left_index + 1
+        ):
             horizontal_overlap = min(first_x[1], second_x[1]) - max(first_x[0], second_x[0])
             if horizontal_overlap <= 1e-9:
                 continue

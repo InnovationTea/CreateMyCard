@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
 import json
+from typing import Any
 
 from config.config import get_settings
 from models.generation import TaskSpec
@@ -49,7 +50,11 @@ class PromptBuilder:
             system_prompt,
             source_format,
         )
-        task_spec_value = task_spec.model_dump(mode="json", exclude_none=True)
+        task_spec_value = task_spec.model_dump(
+            mode="json",
+            exclude_none=True,
+            exclude={"appVersion"},
+        )
         user_content = json.dumps(task_spec_value, ensure_ascii=False)
         if previous_design_token is not None:
             user_content = json.dumps(
@@ -115,7 +120,8 @@ class PromptBuilder:
                 SYSTEM_PROMPT,
             )
         system_prompt = system_prompt_template.replace(
-            "{{TASK_SPEC_JSON}}", task_spec.model_dump_json()
+            "{{TASK_SPEC_JSON}}",
+            task_spec.model_dump_json(exclude={"appVersion"}),
         )
 
         user_content = task_spec.userQuery
@@ -125,7 +131,11 @@ class PromptBuilder:
                     "mode": "edit",
                     "editInstruction": task_spec.userQuery,
                     "targetSize": task_spec.size,
-                    "newTaskSpec": task_spec.model_dump(mode="json", exclude_none=True),
+                    "newTaskSpec": task_spec.model_dump(
+                        mode="json",
+                        exclude_none=True,
+                        exclude={"appVersion"},
+                    ),
                     "previousGenui": previous_genui,
                     "degradationContext": removed_capability_summary,
                     "instruction": (
@@ -152,7 +162,7 @@ class PromptBuilder:
         self,
         initial_prompt: list[dict[str, str]],
         invalid_source_dsl: str,
-        quality_errors: list[dict[str, str]],
+        quality_errors: list[dict[str, Any]],
         *,
         dsl_format: str = "a2ui-form",
     ) -> list[dict[str, str]]:

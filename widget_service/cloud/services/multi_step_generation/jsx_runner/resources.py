@@ -401,7 +401,8 @@ class GenerationResources:
                 raise ValueError(f"unsupported task size {resolved_size!r}; expected one of {allowed}")
             files = (SKILL_DIR / "references" / "layouts" / f"layout_patterns_{resolved_size}.md",)
         else:
-            assert stage.path is not None
+            if stage.path is None:
+                raise AssertionError
             files = (stage.path,)
         return files
 

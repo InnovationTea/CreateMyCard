@@ -766,6 +766,11 @@ class WidgetGenerationService:
             )
             artifact_validator = ArtifactValidator()
             validation_errors = artifact_validator.validate(artifact, protocol_profile)
+            validation_prompt_contexts = getattr(
+                artifact_validator,
+                "error_prompt_contexts",
+                [],
+            )
             if source_load_result:
                 source_write_roots = {
                     item.writeResultTo
@@ -777,14 +782,20 @@ class WidgetGenerationService:
                         validation_errors.append(
                             f"removed data path remains in edited genui: {removed_root}"
                         )
-            validation_issues = tuple(
-                QualityIssue(
-                    stage="validation",
-                    code="ARTIFACT_VALIDATION_FAILED",
-                    message=message,
+            validation_issues_list: list[QualityIssue] = []
+            for index, message in enumerate(validation_errors):
+                prompt_context: dict = {}
+                if index < len(validation_prompt_contexts):
+                    prompt_context = validation_prompt_contexts[index]
+                validation_issues_list.append(
+                    QualityIssue(
+                        stage="validation",
+                        code="ARTIFACT_VALIDATION_FAILED",
+                        message=message,
+                        prompt_context=prompt_context,
+                    )
                 )
-                for message in validation_errors
-            )
+            validation_issues = tuple(validation_issues_list)
             latest_processing_result = DslProcessingResult(
                 source_dsl=processing_result.source_dsl,
                 standard_dsl=processing_result.standard_dsl,

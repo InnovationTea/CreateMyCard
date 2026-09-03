@@ -144,18 +144,30 @@ async def _repair_compact_dsl_source(
         validation_artifact = source.artifact.model_copy(
             update={"genui": latest_dsl}
         )
-        validation_errors = ArtifactValidator().validate(
+        artifact_validator = ArtifactValidator()
+        validation_errors = artifact_validator.validate(
             validation_artifact,
             validation_protocol,
         )
-        validation_issues = tuple(
-            QualityIssue(
-                stage="validation",
-                code="ARTIFACT_VALIDATION_FAILED",
-                message=message,
-            )
-            for message in validation_errors
+        validation_issues_list: list[QualityIssue] = []
+        validation_prompt_contexts = getattr(
+            artifact_validator,
+            "error_prompt_contexts",
+            [],
         )
+        for index, message in enumerate(validation_errors):
+            prompt_context: dict = {}
+            if index < len(validation_prompt_contexts):
+                prompt_context = validation_prompt_contexts[index]
+            validation_issues_list.append(
+                QualityIssue(
+                    stage="validation",
+                    code="ARTIFACT_VALIDATION_FAILED",
+                    message=message,
+                    prompt_context=prompt_context,
+                )
+            )
+        validation_issues = tuple(validation_issues_list)
         latest_processing_result = DslProcessingResult(
             source_dsl=processing_result.source_dsl,
             standard_dsl=processing_result.standard_dsl,

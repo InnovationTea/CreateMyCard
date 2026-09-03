@@ -634,6 +634,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(action_styles["borderRadius"], 20)
         self.assertEqual(action_styles["fontSize"], 14)
         self.assertEqual(action_styles["fontWeight"], 400)
+        self.assertEqual(action_styles["textAlign"], "center")
 
     def test_icon_action_unit_keeps_explicit_colors_on_known_gradient(self) -> None:
         compact_dsl = _serialize(
@@ -854,6 +855,77 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             self.compact_dsl,
             task_spec=self.task_spec,
             card_spec=self.card_spec,
+        )
+
+        self.assertEqual(result.warnings, ())
+
+    def test_validates_sparse_projected_array_index(self) -> None:
+        compact_dsl = _serialize(
+            [
+                ["root", "Column", {"width": 160, "height": 160}, ["weather"]],
+                [
+                    "weather",
+                    "Text",
+                    {"content": {"path": "/data/weather/daily/4/condition"}},
+                ],
+                ["/data/weather/daily/4/condition", "多云"],
+            ]
+        )
+        daily_schema = [{}, {}, {}, {}, {"condition": {"type": "string"}}]
+        task_spec = {
+            "dataModelSchema": {"data": {"weather": {"daily": daily_schema}}},
+            "assetCandidates": [],
+            "eventCandidates": [],
+        }
+        card_spec = {
+            "dataBindings": [{"writeResultTo": "/data/weather"}],
+        }
+
+        repaired = repair_compact_dsl_binding_paths(
+            compact_dsl,
+            task_spec=task_spec,
+            card_spec=card_spec,
+        )
+        result = validate_compact_dsl(
+            repaired,
+            task_spec=task_spec,
+            card_spec=card_spec,
+        )
+
+        self.assertEqual(repaired, compact_dsl)
+        self.assertEqual(result.warnings, ())
+
+    def test_validates_array_index_against_homogeneous_item_schema(self) -> None:
+        compact_dsl = _serialize(
+            [
+                ["root", "Column", {"width": 160, "height": 160}, ["weather"]],
+                [
+                    "weather",
+                    "Text",
+                    {"content": {"path": "/data/weather/daily/4/condition"}},
+                ],
+                ["/data/weather/daily/4/condition", "多云"],
+            ]
+        )
+        task_spec = {
+            "dataModelSchema": {
+                "data": {
+                    "weather": {
+                        "daily": [{"condition": {"type": "string"}}],
+                    }
+                }
+            },
+            "assetCandidates": [],
+            "eventCandidates": [],
+        }
+        card_spec = {
+            "dataBindings": [{"writeResultTo": "/data/weather"}],
+        }
+
+        result = validate_compact_dsl(
+            compact_dsl,
+            task_spec=task_spec,
+            card_spec=card_spec,
         )
 
         self.assertEqual(result.warnings, ())

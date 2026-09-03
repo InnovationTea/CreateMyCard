@@ -475,9 +475,8 @@ def write_json_safely(output_path: Path, payload: Any) -> None:
         with os.fdopen(file_descriptor, "w", encoding="utf-8") as handle:
             handle.write(serialized)
         temporary_path.replace(output_path)
-    except BaseException:
+    finally:
         temporary_path.unlink(missing_ok=True)
-        raise
 
 
 def compile_context_record(prepared: PreparedTask, source_index: int) -> dict[str, Any]:
