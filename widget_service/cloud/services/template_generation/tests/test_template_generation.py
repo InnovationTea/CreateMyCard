@@ -3788,8 +3788,11 @@ def test_support_provider_family_identity_preserves_support_shape() -> None:
     "template_id",
     (
         "BatteryOverviewCompact@1",
+        "BatteryOverviewChargingProgressFull@1",
+        "BatteryOverviewChargingRingHero@1",
         "BatteryOverviewFull@1",
         "BatteryOverviewHero@1",
+        "BatteryOverviewTemperatureFull@1",
         "BatteryOverviewWideFull@1",
     ),
 )

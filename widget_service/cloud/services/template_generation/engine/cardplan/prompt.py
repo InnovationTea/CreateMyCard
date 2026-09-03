@@ -1004,13 +1004,20 @@ def _provider_variant_matches_trusted_state(
     }
     if wire_id == "BatteryOverview@1":
         state_independent_variants = {
+            "compact",
             "chargingDiagnosticsHero",
+            "chargingProgressFull",
             "chargingProgressHero",
+            "chargingRingHero",
+            "full",
+            "hero",
             "healthLevelHero",
             "percentRingHero",
             "progressCompact",
             "statusIconCompact",
             "temperatureIconCompact",
+            "temperatureFull",
+            "wideFull",
         }
         if variant_name in state_independent_variants:
             return True
