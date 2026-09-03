@@ -318,7 +318,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         (input_root / battery_charging.requestFile).read_text(encoding="utf-8")
     )
     assert charging_request["galleryTest"]["sampleOverrides"] == {
-        "/data/phoneBattery/batterySOC": 68,
+        "/data/phoneBattery/batterySOCText": "68%",
         "/data/phoneBattery/chargingStatusDesc": "正在充电",
     }
     battery_compact = _find_case(

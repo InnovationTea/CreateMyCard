@@ -98,17 +98,16 @@
       "templateId": "BatteryOverviewChargingProgressHero@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量充电进度 Hero；用于 2x2 Hero 加一个 PillAction 的组合，展示手机电量标题、电量数字、横向进度条、充电状态、电池健康和充电器类型。 组件形态：chargingProgressHero。",
-      "optionalData": [],
+      "description": "手机充电状态 Hero；用于 2x2 Hero 加一个 PillAction 的组合，展示手机电量标题、电量百分比文本、充电状态和电池健康，不展示进度条或充电器类型。 组件形态：chargingProgressHero。",
+      "optionalData": [
+        "/chargingStatusDesc",
+        "/healthStatusDesc"
+      ],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
-        "/batterySOC"
+        "/batterySOCText"
       ],
-      "secondaryData": [
-        "/chargingStatusDesc",
-        "/healthStatusDesc",
-        "/pluggedTypeDesc"
-      ]
+      "secondaryData": []
     },
     {
       "templateId": "BatteryOverviewPercentRingHero@1",
@@ -118,8 +117,7 @@
       "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
-        "/batterySOC",
-        "/batterySOCText"
+        "/batterySOC"
       ],
       "secondaryData": []
     }

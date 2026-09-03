@@ -2286,7 +2286,7 @@ def test_device_ring_progress_and_icons_bind_to_distinct_theme_colors() -> None:
                 assert fill_color.kind == "theme"
                 assert fill_color.name == "supportContentColor"
 
-    assert progress_count == 8
+    assert progress_count == 7
     assert ring_icon_count == 7
 
 
@@ -2751,7 +2751,7 @@ async def test_calendar_reminder_hero_keeps_start_and_advance_notice():
         "left": 0,
         "top": 4,
         "right": 0,
-        "bottom": 0,
+        "bottom": 2,
     }
     assert timeline_column["itemMargin"] == 4
     assert timeline_dot["styles"]["borderWidth"] == 1.5
@@ -2790,7 +2790,11 @@ def test_calendar_timezone_full_keeps_reference_geometry():
     assert timezone_text_options["fontSize"] == 16
     assert timezone_text_options["maxLines"] == 1
     dot_padding = timezone_dot_column.values[-1].properties["padding"].properties
-    assert _template_node_options(timezone_timeline)["height"] == 54
+    timeline_height = timezone_timeline.values[-1].properties.get("height")
+    assert timeline_height is not None
+    assert timeline_height.kind == "expression"
+    height_bindings = tuple(item.name for item in timeline_height.items if item.kind == "binding")
+    assert height_bindings == ("start",)
     assert "padding" not in _template_node_options(timezone_timeline)
     assert dot_padding["top"].value == 4
     assert dot_padding["bottom"].value == 2
@@ -4200,7 +4204,7 @@ async def test_2x2_battery_percent_ring_hero_does_not_require_capacity_level():
         component_id="BatteryOverview",
         available_template_ids=("BatteryOverviewPercentRingHero@1",),
         capability_id="GetPhoneBatteryInfo",
-        required_fields=("/batterySOC", "/batterySOCText"),
+        required_fields=("/batterySOC",),
         action_id="event.setPowerSavingMode",
         body=(
             'Template("HeroActionLayout@1",{},'
@@ -4225,7 +4229,7 @@ async def test_2x2_battery_percent_ring_hero_does_not_require_capacity_level():
         "HeroActionLayout@1",
     )
     assert "batterySOC" in output.a2ui
-    assert "batterySOCText" in output.a2ui
+    assert "batterySOCText" not in output.a2ui
     assert "batteryCapacityLevelDesc" not in output.a2ui
     assert "省电模式" in output.a2ui
 
@@ -4236,29 +4240,29 @@ async def test_2x2_battery_charging_progress_hero_uses_status_fields():
         capabilityId="GetPhoneBatteryInfo",
         writeResultTo="/data/phoneBattery",
         candidateOutputFields=[
-            "/batterySOC",
+            "/batterySOCText",
             "/chargingStatusDesc",
             "/healthStatusDesc",
-            "/pluggedTypeDesc",
         ],
     )
     task_spec = _battery_task()
-    task_spec.userQuery = "睡前想把手机充满，看看充上没、电池健康咋样、插的什么充电器。"
-    phone_battery = task_spec.dataModelSchema["data"]["phoneBattery"]
-    del phone_battery["batterySOCText"]
-    del phone_battery["batteryCapacityLevelDesc"]
+    task_spec.userQuery = "睡前想把手机充满，看看剩余电量、充上没和电池健康咋样。"
+    data = task_spec.dataModelSchema.get("data")
+    assert isinstance(data, dict)
+    phone_battery = data.get("phoneBattery")
+    assert isinstance(phone_battery, dict)
+    phone_battery.pop("batterySOC")
+    phone_battery.pop("batteryCapacityLevelDesc")
     phone_battery["healthStatusDesc"] = _provider_field("正常", "string")
-    phone_battery["pluggedTypeDesc"] = _provider_field("未连接充电器", "string")
     model = _FixedTemplateModel(
         theme_id="battery-yellow",
         component_id="BatteryOverview",
         available_template_ids=("BatteryOverviewChargingProgressHero@1",),
         capability_id="GetPhoneBatteryInfo",
         required_fields=(
-            "/batterySOC",
+            "/batterySOCText",
             "/chargingStatusDesc",
             "/healthStatusDesc",
-            "/pluggedTypeDesc",
         ),
         action_id="event.setPowerSavingMode",
         body=(
@@ -4285,7 +4289,8 @@ async def test_2x2_battery_charging_progress_hero_uses_status_fields():
     assert "batterySOC" in output.a2ui
     assert "chargingStatusDesc" in output.a2ui
     assert "healthStatusDesc" in output.a2ui
-    assert "pluggedTypeDesc" in output.a2ui
+    assert "pluggedTypeDesc" not in output.a2ui
+    assert '"component": "Progress"' not in output.a2ui
 
 
 @pytest.mark.asyncio

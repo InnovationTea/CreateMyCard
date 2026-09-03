@@ -496,7 +496,6 @@ def _compile_ui_card_template(
     if spreads_children and indexed_children:
         raise ValueError("Provider Template cannot mix children and children[index] slots")
     _validate_template_child_slot_indexes(indexed_children)
-    _validate_interpolation_bindings(root, bindings)
     _validate_event_action_placement(root)
     binding_references, parameter_references = _template_references(root)
     if not binding_references <= set(bindings):
@@ -507,6 +506,7 @@ def _compile_ui_card_template(
             "unknown Provider Template props reference: "
             f"{sorted(parameter_references - set(properties))}"
         )
+    _validate_interpolation_bindings(root, bindings)
     guarded_params, guarded_bindings = _validate_conditional_guards(
         root,
         properties,

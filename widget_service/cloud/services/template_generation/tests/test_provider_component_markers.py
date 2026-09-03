@@ -90,3 +90,61 @@ def test_earbuds_support_marker_protects_content_and_is_stripped(with_action: bo
     source = _serialize_node(cleaned)
     assert "_advancedComponent" not in source
     assert source.count("耳机电量") == 2
+
+
+def _nodes(root: TemplateNode) -> list[TemplateNode]:
+    nodes = [root]
+    for child in root.children:
+        nodes.extend(_nodes(child))
+    return nodes
+
+
+def test_charging_summary_uses_percent_text_without_removed_progress() -> None:
+    bundle = load_provider_bundle(_PROVIDERS_ROOT / "battery")
+    definition = next(
+        item for item in bundle.templates if item.wire_id == "BatteryOverviewChargingProgressHero@1"
+    )
+    variant = definition.variants[0]
+    nodes = _nodes(variant.root)
+    assert not any(node.component == "Progress" for node in nodes)
+    assert definition.primary_data == ("/batterySOCText",)
+    text_bindings: list[str | None] = []
+    for node in nodes:
+        if node.component != "Text":
+            continue
+        value = node.values[0]
+        assert value.value != "%", "格式化电量已包含百分号，不能再次追加"
+        if value.kind == "binding":
+            text_bindings.append(value.name)
+    assert "percentText" in text_bindings
+    assert "plugged" not in text_bindings
+
+
+def test_calendar_reminder_contract_matches_start_and_reminder() -> None:
+    bundle = load_provider_bundle(_PROVIDERS_ROOT / "calendar")
+    definition = next(
+        item for item in bundle.templates if item.wire_id == "ScheduleOverviewReminderHero@1"
+    )
+    assert set(definition.secondary_data) == {
+        "/events/0/dtStart", "/events/0/remindTime/0"
+    }
+
+
+@pytest.mark.parametrize("names", ((), ("charging",), ("health",), ("charging", "health")))
+def test_charging_summary_guards_every_optional_status(names: tuple[str, ...]) -> None:
+    bundle = load_provider_bundle(_PROVIDERS_ROOT / "battery")
+    definition = next(
+        item for item in bundle.templates if item.wire_id == "BatteryOverviewChargingProgressHero@1"
+    )
+    bindings = {"percentText": "${data.phoneBattery.batterySOCText}"}
+    for name in names:
+        bindings[name] = "${data.phoneBattery." + name + "}"
+    root = _instantiate_blueprint(
+        definition.variants[0].root, {}, bindings,
+        theme_values={"primaryColor": "#FFFFFFFF", "supportContentColor": "#99FFFFFF"},
+    )
+    source = _serialize_node(root)
+    for name in ("charging", "health"):
+        assert (f"/data/phoneBattery/{name}" in source) == (name in names)
+    expected_text_count = 3 if names else 2
+    assert source.count("Text(") == expected_text_count

@@ -9,7 +9,7 @@
   - `ScheduleOverviewNextEventHero@1`：下一个日程 Hero；标题为主数据，起止时间和地点为次要数据；
     可选 `calendarIcon` 与 `headerLabel`。
   - `ScheduleOverviewReminderHero@1`：日程提醒 Hero；展示标题、开始时间和提前提醒；可选
-    `headerLabel`。
+    `headerLabel`。提醒文案通过端侧 Expr 判断开始时间是否为空，不在云侧读取样例值。
   - `ScheduleOverviewTimezoneFull@1`：时区日程 Full；展示时区、标题、起止时间和地点；可选
     `headerLabel`。
   - `ScheduleOverviewDateFull@1`：日期日程 Full；展示真实日期、标题、起止时间和地点；可选

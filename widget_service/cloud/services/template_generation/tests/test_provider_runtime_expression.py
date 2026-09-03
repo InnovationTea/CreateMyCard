@@ -229,3 +229,47 @@ def test_expr_enforces_a2ui_length_and_depth_limits() -> None:
             _expression(f"Expr({body})")
     accepted = "(" * 20 + "data.value" + ")" * 20
     assert "${/data/calendar/value}" in _expression(f"Expr({accepted})")
+
+
+@pytest.mark.parametrize(
+    "body",
+    (
+        'Column(Text(Expr(data.missing == "" ? "" : data.missing)))',
+        'Column(Text(Expr(data.value + data.missing)))',
+        'Column({"height": Expr(data.missing == "" ? 54 : 24)}, Text(data.value))',
+    ),
+)
+def test_expr_reports_undeclared_binding_explicitly(body: str) -> None:
+    with pytest.raises(ValueError, match="unknown Provider Template data reference.*missing"):
+        _definition(body)
+
+
+@pytest.mark.parametrize("start", ("", "09:00"))
+def test_runtime_height_keeps_numeric_branches_and_data_path(start: str) -> None:
+    definition = _definition(
+        'Column(Row({"height": Expr(data.start == "" ? 54 : 24)}, Text(data.start)))',
+        ("start",),
+    )
+    root = _instantiate_blueprint(
+        definition.variants[0].root, {}, {"start": "${data.calendar.start}"}
+    )
+    a2ui = convert_tersel_to_a2ui(
+        _serialize_node(root),
+        size="2x2",
+        protocol_profile=read_tersel_protocol_profile(),
+        task_spec={
+            "dataModelSchema": {
+                "data": {"calendar": {"start": {"type": "string", "sampleValue": start}}}
+            }
+        },
+    )
+    message = json.loads(a2ui.splitlines()[1])
+    update = message.get("updateComponents")
+    assert isinstance(update, dict)
+    components = update.get("components")
+    assert isinstance(components, list)
+    row = next(component for component in components if component.get("component") == "Row")
+    styles = row.get("styles")
+    assert isinstance(styles, dict)
+    assert styles.get("height") == "{{ ${/data/calendar/start} == '' ? 54 : 24 }}"
+    assert not validate_card(dsl_text=a2ui).diagnostics

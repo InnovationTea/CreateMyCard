@@ -71,6 +71,7 @@ Column(
     {
       "width": "matchParent",
       "itemMargin": 8,
+      "height": Expr(data.start == "" ? 24 : 54),
       "justifyContent": "start",
       "alignItems": "top",
       "clip": true,
@@ -79,6 +80,7 @@ Column(
     Column(
       {
         "width": 8,
+        "height": "matchParent",
         "padding": { "left": 0, "top": 4, "right": 0, "bottom": 2 },
         "itemMargin": 4,
         "justifyContent": "start",
@@ -111,7 +113,7 @@ Column(
     ),
     Column(
       {
-        "width": "matchParent",
+        "height": "matchParent",
         "layoutWeight": 1,
         "itemMargin": 2,
         "justifyContent": "start",
@@ -137,7 +139,7 @@ Column(
         { "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       ),
       Text(
-        data.location,
+        Expr(data.location == "" ? "" : data.location),
         { "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       )
     )
@@ -205,18 +207,18 @@ Column(
   Row(
     {
       "width": "matchParent",
-      "height": 56,
       "itemMargin": 8,
+      "height": Expr(data.start == "" ? 24 : 54),
       "justifyContent": "start",
-      "alignItems": "start",
+      "alignItems": "top",
       "clip": true,
-      "constraintSize": {"minWidth": 0, "minHeight": 0}
+      "constraintSize": { "minWidth": 0, "minHeight": 0 }
     },
     Column(
       {
         "width": 8,
-        "height": 54,
-        "padding": {"left": 0, "top": 4, "right": 0, "bottom": 0},
+        "height": "matchParent",
+        "padding": { "left": 0, "top": 4, "right": 0, "bottom": 2 },
         "itemMargin": 4,
         "justifyContent": "start",
         "alignItems": "center",
@@ -234,12 +236,12 @@ Column(
           "alignContent": "center",
           "flexShrink": 0
         },
-        Divider({"width": 0, "height": 0, "strokeWidth": 0, "color": "#00FFFFFF"})
+        Divider({ "width": 0, "height": 0, "strokeWidth": 0, "color": "#00FFFFFF" })
       ),
       Divider(
         {
           "width": 1,
-          "height": 36,
+          "layoutWeight": 1,
           "strokeWidth": 1,
           "vertical": true,
           "color": $theme('supportContentColor')
@@ -248,14 +250,13 @@ Column(
     ),
     Column(
       {
-        "width": "matchParent",
-        "height": 54,
+        "height": "matchParent",
         "layoutWeight": 1,
         "itemMargin": 2,
         "justifyContent": "start",
         "alignItems": "start",
         "clip": true,
-        "constraintSize": {"minWidth": 0, "minHeight": 0}
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
       },
       Text(
         data.title,
@@ -267,34 +268,16 @@ Column(
           "fontColor": $theme('primaryColor'),
           "maxLines": 1,
           "textOverflow": "ellipsis",
-          "constraintSize": {"minWidth": 0, "minHeight": 0}
+          "margin": { "bottom": 2 },
         }
       ),
       Text(
         data.start,
-        {
-          "width": "matchParent",
-          "height": 14,
-          "fontSize": 12,
-          "fontWeight": 400,
-          "fontColor": $theme('supportContentColor'),
-          "maxLines": 1,
-          "textOverflow": "ellipsis",
-          "constraintSize": {"minWidth": 0, "minHeight": 0}
-        }
+        { "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       ),
       Text(
-        `提前${data.reminder}分钟提醒`,
-        {
-          "width": "matchParent",
-          "height": 14,
-          "fontSize": 10,
-          "fontWeight": 400,
-          "fontColor": $theme('supportContentColor'),
-          "maxLines": 1,
-          "textOverflow": "ellipsis",
-          "constraintSize": {"minWidth": 0, "minHeight": 0}
-        }
+        Expr(data.start == "" ? "" : `提前${data.reminder}分钟提醒`),
+        { "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       )
     )
   )
@@ -377,17 +360,17 @@ Column(
   Row(
     {
       "width": "matchParent",
-      "height": 54,
       "itemMargin": 8,
+      "height": Expr(data.start == "" ? 24 : 54),
       "justifyContent": "start",
-      "alignItems": "start",
+      "alignItems": "top",
       "clip": true,
       "constraintSize": { "minWidth": 0, "minHeight": 0 }
     },
     Column(
       {
         "width": 8,
-        "height": 54,
+        "height": "matchParent",
         "padding": { "left": 0, "top": 4, "right": 0, "bottom": 2 },
         "itemMargin": 4,
         "justifyContent": "start",
@@ -420,8 +403,7 @@ Column(
     ),
     Column(
       {
-        "width": "matchParent",
-        "height": 54,
+        "height": "matchParent",
         "layoutWeight": 1,
         "itemMargin": 2,
         "justifyContent": "start",
@@ -443,12 +425,12 @@ Column(
         }
       ),
       Text(
-        `${data.start} - ${data.end}`,
-        { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        Expr(data.start == "" ? "" : `${data.start} - ${data.end}`),
+        { "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       ),
       Text(
-        data.location,
-        { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        Expr(data.location == "" ? "" : data.location),
+        { "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       )
     )
   )
@@ -527,22 +509,21 @@ Column(
       "constraintSize": { "minWidth": 0, "minHeight": 0 }
     }
   ),
-    Row(
+  Row(
     {
       "width": "matchParent",
-      "height": 54,
-      "padding": { "left": 0, "top": 10, "right": 0, "bottom": 0 },
       "itemMargin": 8,
+      "height": Expr(data.start == "" ? 24 : 54),
       "justifyContent": "start",
-      "alignItems": "start",
+      "alignItems": "top",
       "clip": true,
       "constraintSize": { "minWidth": 0, "minHeight": 0 }
     },
     Column(
       {
         "width": 8,
-        "height": 54,
-        "padding": { "left": 0, "top": 4, "right": 0, "bottom": 0 },
+        "height": "matchParent",
+        "padding": { "left": 0, "top": 4, "right": 0, "bottom": 2 },
         "itemMargin": 4,
         "justifyContent": "start",
         "alignItems": "center",
@@ -565,7 +546,7 @@ Column(
       Divider(
         {
           "width": 1,
-          "height": 36,
+          "layoutWeight": 1,
           "strokeWidth": 1,
           "vertical": true,
           "color": $theme('supportContentColor')
@@ -574,8 +555,7 @@ Column(
     ),
     Column(
       {
-        "width": "matchParent",
-        "height": 54,
+        "height": "matchParent",
         "layoutWeight": 1,
         "itemMargin": 2,
         "justifyContent": "start",
@@ -597,12 +577,12 @@ Column(
         }
       ),
       Text(
-        `${data.start} - ${data.end}`,
-        { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        Expr(data.start == "" ? "" : `${data.start} - ${data.end}`),
+        { "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       ),
       Text(
-        data.location,
-        { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        Expr(data.location == "" ? "" : data.location),
+        { "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       )
     )
   )
@@ -647,17 +627,17 @@ Column(
   Row(
     {
       "width": "matchParent",
-      "height": 54,
       "itemMargin": 8,
+      "height": Expr(data.start == "" ? 24 : 54),
       "justifyContent": "start",
-      "alignItems": "start",
+      "alignItems": "top",
       "clip": true,
       "constraintSize": { "minWidth": 0, "minHeight": 0 }
     },
     Column(
       {
         "width": 8,
-        "height": 54,
+        "height": "matchParent",
         "padding": { "left": 0, "top": 4, "right": 0, "bottom": 2 },
         "itemMargin": 4,
         "justifyContent": "start",
@@ -690,8 +670,7 @@ Column(
     ),
     Column(
       {
-        "width": "matchParent",
-        "height": 54,
+        "height": "matchParent",
         "layoutWeight": 1,
         "itemMargin": 2,
         "justifyContent": "start",
@@ -713,12 +692,12 @@ Column(
         }
       ),
       Text(
-        `${data.start} - ${data.end}`,
-        { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        Expr(data.start == "" ? "" : `${data.start} - ${data.end}`),
+        { "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       ),
       Text(
-        data.location,
-        { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        Expr(data.location == "" ? "" : data.location),
+        { "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       )
     )
   )
@@ -798,17 +777,17 @@ Column(
   Row(
     {
       "width": "matchParent",
-      "height": 54,
       "itemMargin": 8,
+      "height": Expr(data.start == "" ? 24 : 54),
       "justifyContent": "start",
-      "alignItems": "start",
+      "alignItems": "top",
       "clip": true,
       "constraintSize": { "minWidth": 0, "minHeight": 0 }
     },
     Column(
       {
         "width": 8,
-        "height": 54,
+        "height": "matchParent",
         "padding": { "left": 0, "top": 4, "right": 0, "bottom": 2 },
         "itemMargin": 4,
         "justifyContent": "start",
@@ -841,8 +820,7 @@ Column(
     ),
     Column(
       {
-        "width": "matchParent",
-        "height": 54,
+        "height": "matchParent",
         "layoutWeight": 1,
         "itemMargin": 2,
         "justifyContent": "start",
@@ -864,12 +842,12 @@ Column(
         }
       ),
       Text(
-        `${data.start} - ${data.end}`,
-        { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        Expr(data.start == "" ? "" : `${data.start} - ${data.end}`),
+        { "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       ),
       Text(
-        data.location,
-        { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        Expr(data.location == "" ? "" : data.location),
+        { "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       )
     )
   )
@@ -888,17 +866,17 @@ Row(
   {
     "_advancedComponent": "ScheduleOverview",
     "width": "matchParent",
-    "height": 54,
     "itemMargin": 8,
+    "height": Expr(data.start == "" ? 24 : 54),
     "justifyContent": "start",
-    "alignItems": "start",
+    "alignItems": "top",
     "clip": true,
     "constraintSize": { "minWidth": 0, "minHeight": 0 }
   },
   Column(
     {
       "width": 8,
-      "height": 54,
+      "height": "matchParent",
       "padding": { "left": 0, "top": 4, "right": 0, "bottom": 2 },
       "itemMargin": 4,
       "justifyContent": "start",
@@ -931,8 +909,7 @@ Row(
   ),
   Column(
     {
-      "width": "matchParent",
-      "height": 54,
+      "height": "matchParent",
       "layoutWeight": 1,
       "itemMargin": 2,
       "justifyContent": "start",
@@ -954,12 +931,12 @@ Row(
       }
     ),
     Text(
-      `${data.start} - ${data.end}`,
-      { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+      Expr(data.start == "" ? "" : `${data.start} - ${data.end}`),
+      { "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
     ),
     Text(
-      data.location,
-      { "width": "100%", "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+      Expr(data.location == "" ? "" : data.location),
+      { "height": 14, "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
     )
   )
 )

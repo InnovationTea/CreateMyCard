@@ -33,7 +33,7 @@
       "templateId": "ScheduleOverviewReminderHero@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
-      "description": "日程提醒 Hero，以时间轴展示标题、开始时间和提前提醒。",
+      "description": "日程提醒 Hero，以时间轴展示标题、开始时间和提前提醒；开始时间为空时由端侧隐藏提醒文案。",
       "entry": "templates/schedule-overview.cardtpl",
       "primaryData": ["/events/0/title"],
       "secondaryData": [
