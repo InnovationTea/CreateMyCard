@@ -19,8 +19,9 @@ The service follows `docs/AGENTS.md`:
 - `generateWidgetCard` selects `mep` or the composite `openai` route through
   `WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND`.
   `generateWidgetCardCompactDsl` selects its backend through `WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND`, loads
-  the Design profile from `data/protocol_profiles/registry_ranges.json`, and converts Design Compact DSL with that
-  profile's `protocol.json` before validation and storage. Create requests first try the controlled Template route;
+  the Design profile from `data/protocol_profiles/registry_ranges.json`, whose App/ROM intervals mirror the capability
+  registry intervals, and converts Design Compact DSL with that profile's `protocol.json` before validation and
+  storage. Create requests first try the controlled Template route;
   a Template mismatch can fall back to the ordinary Design Compact model route. The generation routes share one
   policy-driven pipeline and the same model-failure, quality-repair, and validation switches. Tool callers cannot
   select or override either backend.

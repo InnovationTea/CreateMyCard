@@ -140,9 +140,11 @@ Parser 只接受单根组件调用、字面量、白名单组件和安全对象�
 语法验证其中的上一轮模型原始输出。第五接口沿用 Design Compact 后端配置；两项后端配置都可取
 `mep` 或 `openai`。其它配置值会在启动配置校验阶段直接报错，不做自动迁移。
 
-第四接口的协议区间索引位于 `cloud/data/protocol_profiles/registry_ranges.json`。未命中时，只有
-`WIDGET_SERVICE_ENABLE_DEFAULT_PROTOCOL_PROFILE_FALLBACK=true` 才回退到
-`WIDGET_SERVICE_PROTOCOL_PROFILE_ID`。
+第四接口的协议区间索引位于 `cloud/data/protocol_profiles/registry_ranges.json`，其 App/ROM 区间与能力清单
+保持一致：App `[11.7.5.205, 11.7.7.330)` 且 ROM `[7.0, 7.2)`，以及 App
+`[11.7.7.330, 12.0.0.0)` 且 ROM `[7.0, 8.0)`。当前两段都映射到同一套 A2UI Form Profile 和
+`design-compact-dsl`；未命中时，只有 `WIDGET_SERVICE_ENABLE_DEFAULT_PROTOCOL_PROFILE_FALLBACK=true`
+才回退到 `WIDGET_SERVICE_PROTOCOL_PROFILE_ID`。
 
 所有帧的插件顶层 `errorCode` 固定为 `"0"`，`errorMessage` 固定为空字符串，`items`
 固定为空数组。业务错误码、异常详情和业务响应只放在 final 帧的 `streamContent` 中。

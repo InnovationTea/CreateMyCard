@@ -6,11 +6,23 @@
       "designProfileId": "design-compact-dsl",
       "appVersion": {
         "minInclusive": "11.7.5.205",
+        "maxExclusive": "11.7.7.330"
+      },
+      "romVersion": {
+        "minInclusive": "7.0",
+        "maxExclusive": "7.2"
+      }
+    },
+    {
+      "protocolProfileId": "a2ui-form-rom6.0-v1",
+      "designProfileId": "design-compact-dsl",
+      "appVersion": {
+        "minInclusive": "11.7.7.330",
         "maxExclusive": "12.0.0.0"
       },
       "romVersion": {
-        "minInclusive": "6.0",
-        "maxExclusive": "7.0"
+        "minInclusive": "7.0",
+        "maxExclusive": "8.0"
       }
     }
   ]

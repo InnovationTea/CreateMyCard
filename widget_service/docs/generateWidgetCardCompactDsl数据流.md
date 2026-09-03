@@ -105,8 +105,8 @@ generate_widget_card_compact_dsl_ws
   },
   "deviceInfo": {
     "locale": "zh-CN",
-    "prdVer": "11.7.5.205",
-    "romVersion": "CLS-AL30 6.0.0.328"
+    "prdVer": "11.7.7.332",
+    "romVersion": "VDE-AL10 7.0.0.107"
   },
   "session": {
     "sessionId": "session-001",
@@ -123,9 +123,9 @@ generate_widget_card_compact_dsl_ws
 
 ```text
 requestId = session-001&interaction-compact-001
-prdVer = 11.7.5.205
-device.romVersion = 6.0
-device._source_rom_version = CLS-AL30 6.0.0.328
+prdVer = 11.7.7.332
+device.romVersion = 7.0
+device._source_rom_version = VDE-AL10 7.0.0.107
 ```
 
 创建模式要求 `userQuery`、`title` 和 `description` 非空。请求合法后先发送 `start`，再每 6 秒发送
@@ -151,8 +151,8 @@ ROM = device._source_rom_version
 当前示例：
 
 ```text
-App 11.7.5.205
-ROM CLS-AL30 6.0.0.328 → 6.0
+App 11.7.7.332
+ROM VDE-AL10 7.0.0.107 → 7.0
 ```
 
 从 `cloud/data/protocol_profiles/registry_ranges.json` 命中：
@@ -163,6 +163,15 @@ ROM CLS-AL30 6.0.0.328 → 6.0
   "designProfileId": "design-compact-dsl"
 }
 ```
+
+协议索引与能力清单索引使用相同的两段左闭右开区间：
+
+```text
+App [11.7.5.205, 11.7.7.330) + ROM [7.0, 7.2)
+App [11.7.7.330, 12.0.0.0) + ROM [7.0, 8.0)
+```
+
+当前两段都映射到上述同一套输出协议和 Design Profile。
 
 两者职责不同：
 

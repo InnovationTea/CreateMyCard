@@ -25,12 +25,11 @@ APP_VERSION_11_7_7_328 = ".".join(("11", "7", "7", "328"))
 APP_VERSION_11_7_7_329 = ".".join(("11", "7", "7", "329"))
 APP_VERSION_11_7_7_330 = ".".join(("11", "7", "7", "330"))
 APP_VERSION_11_7_7_331 = ".".join(("11", "7", "7", "331"))
+APP_VERSION_11_7_7_332 = ".".join(("11", "7", "7", "332"))
 APP_VERSION_11_8 = ".".join(("11", "8", "0", "0"))
 APP_VERSION_11_9 = ".".join(("11", "9", "9", "999"))
 APP_VERSION_12 = ".".join(("12", "0", "0", "0"))
 ROM_VERSION_6 = "CLS-AL30 " + ".".join(("6", "0", "0", "328"))
-ROM_VERSION_6_3 = "CLS-AL30 " + ".".join(("6", "3", "1", "20"))
-ROM_VERSION_6_9 = "CLS-AL30 " + ".".join(("6", "9", "0", "1"))
 ROM_VERSION_7_0 = "ALN-AL00 " + ".".join(("7", "0", "0", "100"))
 ROM_VERSION_7 = "ALN-AL00 " + ".".join(("7", "1", "0", "100"))
 ROM_VERSION_7_2 = "ALN-AL00 " + ".".join(("7", "2", "0", "100"))
@@ -1159,12 +1158,17 @@ def test_capability_registry_requested_label_uses_normalized_versions():
 @pytest.mark.parametrize(
     ("app_version", "rom_version"),
     [
-        (APP_VERSION, ROM_VERSION_6),
-        (APP_VERSION_11_8, ROM_VERSION_6_3),
-        (APP_VERSION_11_9, ROM_VERSION_6_9),
+        (APP_VERSION, ROM_VERSION_7_0),
+        (APP_VERSION_11_7_7_329, ROM_VERSION_7),
+        (APP_VERSION_11_7_7_330, ROM_VERSION_7_0),
+        (APP_VERSION_11_7_7_332, "VDE-AL10 7.0.0.107"),
+        (APP_VERSION_11_9, "ALN-AL00 7.9.0.1"),
     ],
 )
-def test_protocol_registry_matches_app_rom_interval(app_version, rom_version):
+def test_protocol_registry_matches_capability_app_rom_intervals(
+    app_version,
+    rom_version,
+):
     selection = A2UIProtocolRegistry.from_app_rom_versions(app_version, rom_version)
 
     assert selection.protocol_profile_id == "a2ui-form-rom6.0-v1"
@@ -1174,20 +1178,47 @@ def test_protocol_registry_matches_app_rom_interval(app_version, rom_version):
 @pytest.mark.parametrize(
     ("app_version", "rom_version"),
     [
-        (APP_VERSION_12, "6.0"),
-        (APP_VERSION, "7.0"),
+        (APP_VERSION_12, ROM_VERSION_7_0),
+        (APP_VERSION, ROM_VERSION_6),
+        (APP_VERSION, ROM_VERSION_7_2),
+        (APP_VERSION_11_7_7_330, "ALN-AL00 8.0.0.1"),
     ],
 )
-def test_protocol_registry_excludes_maximum_boundaries(app_version, rom_version):
+def test_protocol_registry_excludes_capability_range_boundaries(
+    app_version,
+    rom_version,
+):
     with pytest.raises(ValueError, match="range not found"):
         A2UIProtocolRegistry.from_app_rom_versions(app_version, rom_version)
+
+
+def test_protocol_ranges_follow_capability_version_intervals():
+    protocol_path = CLOUD_ROOT / "data" / "protocol_profiles" / "registry_ranges.json"
+    capability_path = CLOUD_ROOT / "data" / "capabilities" / "registry_ranges.json"
+    protocol_payload = json_module.loads(protocol_path.read_text(encoding="utf-8"))
+    capability_payload = json_module.loads(capability_path.read_text(encoding="utf-8"))
+    protocol_ranges = protocol_payload.get("ranges")
+    capability_ranges = capability_payload.get("ranges")
+
+    assert isinstance(protocol_ranges, list)
+    assert isinstance(capability_ranges, list)
+    assert len(protocol_ranges) == len(capability_ranges)
+    for protocol_range, capability_range in zip(
+        protocol_ranges,
+        capability_ranges,
+        strict=True,
+    ):
+        assert protocol_range.get("appVersion") == capability_range.get("appVersion")
+        assert protocol_range.get("romVersion") == capability_range.get("romVersion")
+        assert protocol_range.get("protocolProfileId") == "a2ui-form-rom6.0-v1"
+        assert protocol_range.get("designProfileId") == "design-compact-dsl"
 
 
 def test_compact_protocol_selection_uses_configured_default_fallback():
     request = GenerateWidgetCardRequest(
         uid="test-user",
         prdVer=APP_VERSION_12,
-        device={"romVersion": "7.0"},
+        device={"romVersion": "8.0"},
         userQuery="生成静态卡片",
         title="静态卡片",
         description="协议回退测试",
@@ -1195,6 +1226,34 @@ def test_compact_protocol_selection_uses_configured_default_fallback():
 
     selection = WidgetGenerationService()._compact_protocol_selection(request)
 
+    assert selection.protocol_profile_id == "a2ui-form-rom6.0-v1"
+    assert selection.design_profile_id == "design-compact-dsl"
+
+
+def test_compact_generation_version_routes_directly_hit_phase_two(monkeypatch):
+    monkeypatch.setattr(
+        get_settings(),
+        "enable_default_protocol_profile_fallback",
+        False,
+    )
+    request = GenerateWidgetCardRequest(
+        uid="test-user",
+        prdVer=APP_VERSION_11_7_7_332,
+        device={"romVersion": "7.0"},
+        userQuery="生成静态卡片",
+        title="静态卡片",
+        description="二期协议范围测试",
+    )
+    request.device._source_rom_version = "VDE-AL10 7.0.0.107"
+
+    service = WidgetGenerationService()
+    registry = service._capability_registry(request)
+    selection = service._compact_protocol_selection(request)
+
+    assert registry.version == REGISTRY_VERSION_7
+    assert registry.selection_type == "interval"
+    assert selection.normalized_app_version == APP_VERSION_11_7_7_332
+    assert selection.normalized_rom_version == "7.0"
     assert selection.protocol_profile_id == "a2ui-form-rom6.0-v1"
     assert selection.design_profile_id == "design-compact-dsl"
 
