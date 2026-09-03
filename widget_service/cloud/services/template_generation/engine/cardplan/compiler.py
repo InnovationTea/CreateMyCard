@@ -99,6 +99,7 @@ _ICON_SECONDARY = "#99000000"
 _TRACK_COLOR = "#1A000000"
 _NORMAL_DATA_COLOR = "#FF64BB5C"
 _WARNING_DATA_COLOR = "#FFF9A01E"
+_TEMPLATE_ROOT_ID = "template_root"
 _LAYOUT_ALIASES = {
     ("Column", "card"): "section",
     ("Column", "section-relaxed"): "section",
@@ -5048,7 +5049,7 @@ def _compile_card_shell(
                 tuple(header_children),
             )
         )
-    children.append(content)
+    children.append(_merge_node_options(content, {"_id": _TEMPLATE_ROOT_ID}))
     action = params.get("action")
     if isinstance(action, dict):
         binding = next(item for item in contract.action_bindings if item.action_id == action["id"])
@@ -5099,7 +5100,8 @@ def _compile_ux_layout_shell(
     root_options.pop("width", None)
     root_options.pop("height", None)
     root_options["_id"] = "root"
-    return Nested2Node("Column", ("card", root_options), (content,))
+    template_root = _merge_node_options(content, {"_id": _TEMPLATE_ROOT_ID})
+    return Nested2Node("Column", ("card", root_options), (template_root,))
 
 
 def _template_fusion_ball_palette(

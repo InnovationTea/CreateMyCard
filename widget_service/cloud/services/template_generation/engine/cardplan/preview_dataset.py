@@ -439,6 +439,7 @@ def _preview_root(content: Nested2Node, content_height: int) -> Nested2Node:
         "alignItems": "start",
         "clip": True,
     }
+    slot_options["_id"] = "template_root"
     slot = Nested2Node("Column", ("section", slot_options), (content,))
     return Nested2Node("Column", ("card", root_options), (slot,))
 

@@ -9,6 +9,7 @@ from typing import Any
 from .base import BaseValidator
 
 _HEX_COLOR = re.compile(r"^#(?P<hex>[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
+_TEMPLATE_ROOT_ID = "template_root"
 
 
 def _rgba(value: Any) -> tuple[float, float, float, float] | None:
@@ -76,6 +77,9 @@ class ContrastValidator(BaseValidator):
         self._walk(context, reporter, root, [(1.0, 1.0, 1.0)])
 
     def _walk(self, context, reporter, component, backgrounds) -> None:
+        # 模板内容沿用模板配色，不追加对比度诊断；其它校验仍由各自的 validator 执行。
+        if component.get("id") == _TEMPLATE_ROOT_ID:
+            return
         styles = component.get("styles")
         styles = styles if isinstance(styles, dict) else {}
         effective_backgrounds = list(backgrounds)

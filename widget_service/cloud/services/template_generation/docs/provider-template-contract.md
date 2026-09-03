@@ -307,8 +307,8 @@ Action 和 Layout 模板不参与业务数量计算。主题适用能力还必�
 `WideHero`、`WideFull`、无业务和多业务组合均不应用融球包装。
 
 `2x2` 模板中间根节点使用 `Stack("card", ...)`，ID 为 `root`，两个直接子节点依次为标准融球背景树和内容
-前景 Stack `root_1`。`root_1` 使用 `padding: 12`，其唯一子节点是防溢出 Stack
-`__genui_render_component__root_1`；防溢出 Stack 的唯一子节点是原布局骨架 `template_root`，骨架自身不加
+前景 Stack `template_root`。`template_root` 使用 `padding: 12`，其唯一子节点是防溢出 Stack
+`__genui_render_component__template_root`；防溢出 Stack 的唯一子节点是原布局骨架 `root_1`，骨架自身不加
 防溢出前缀。模板编译器根据 Theme 中的三个 `#AARRGGBB` 颜色直接展开球体、定位容器和玻璃层。
 不满足门禁的卡片继续使用 Theme 原有纯色或线性渐变。融球包装只替换卡片根背景，不改写业务文本、图标或
 Action 内容颜色。业务 Provider 必须显式区分主内容与辅助内容，分别使用 `$theme('primaryColor')` 和
@@ -320,9 +320,13 @@ PillAction 模板使用 `$theme('actionStyle.backgroundColor')` 和 `$theme('act
 
 融球树在模板 CardPlan/Tersel 阶段已经由标准组件组成：`Stack` 承载定位层，三球和玻璃层使用无 children
 约束的 `Divider` 视觉叶节点，并在进入 A2UI-Compact 前完成。玻璃层使用 5% 白色和
-`backdropBlur: {"radius": 120}`。模板路径在 `root_1` 与 `template_root` 之间注入 ID 为
-`__genui_render_component__root_1` 的标准 Stack，以启用端侧内容层防溢出能力；`template_root` 保持普通布局
+`backdropBlur: {"radius": 120}`。模板路径在 `template_root` 与 `root_1` 之间注入 ID 为
+`__genui_render_component__template_root` 的标准 Stack，以启用端侧内容层防溢出能力；`root_1` 保持普通布局
 骨架 ID。A2UI-Compact 不声明 `FusionBall` 组件能力，任何残留均按不支持组件拒绝。
+
+非融球模板和预览数据集同样保留 `root → template_root`，公共校验根始终为 `root`。
+`template_root` 是模板内容层的固定标识：公共对比度校验只跳过该节点及其子树，
+并列的非模板内容仍按原规则检查；组件、表达式、数据、事件和素材校验不受影响。
 
 ## 首层 Search、确定性检索与第二层 LLM 规则
 

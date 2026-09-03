@@ -789,7 +789,10 @@ def test_theme_styles_have_distinct_root_content_and_action_scopes() -> None:
 
     assert root_options["backgroundColor"] == "#FFFFFFFF"
     assert root_options["padding"] == 12
-    assert root.children == (styled,)
+    template_root = root.children[0]
+    assert template_root.component_type == styled.component_type
+    assert template_root.children == styled.children
+    assert template_root.values[-1]["_id"] == "template_root"
     assert default_text.values[-1]["fontColor"] == "#E6000000"
     assert explicit_text.values[-1]["fontColor"] == "#FF123456"
     assert image.values[-1]["fillColor"] == "#FF654321"
@@ -1307,17 +1310,17 @@ def test_fusion_ball_wraps_only_2x2_with_expanded_tersel_background():
     assert wrapped.children[0].component_type == "Stack"
     assert wrapped.children[0].values[-1]["_id"] == "fusionBallBackground"
     assert wrapped.children[1].component_type == "Stack"
-    assert foreground_options["_id"] == "root_1"
+    assert foreground_options["_id"] == "template_root"
     assert foreground_options["padding"] == 12
     overflow_content = wrapped.children[1].children[0]
     assert overflow_content.component_type == "Stack"
     assert overflow_content.values[-1]["_id"] == (
-        "__genui_render_component__root_1"
+        "__genui_render_component__template_root"
     )
     assert overflow_content.values[-1]["width"] == "matchParent"
     assert overflow_content.values[-1]["height"] == "matchParent"
     skeleton = overflow_content.children[0]
-    assert skeleton.values[-1]["_id"] == "template_root"
+    assert skeleton.values[-1]["_id"] == "root_1"
     title_text = skeleton.children[0]
     content_text = skeleton.children[1]
     content_icon = skeleton.children[2]
@@ -1448,13 +1451,14 @@ def test_fusion_theme_requires_one_matching_business(
     if expect_fusion:
         assert decorated.children[0].component_type == "Stack"
         assert decorated.children[0].values[-1]["_id"] == "fusionBallBackground"
-        assert decorated.children[1].values[-1]["_id"] == "root_1"
+        assert decorated.children[1].values[-1]["_id"] == "template_root"
         overflow_content = decorated.children[1].children[0]
         assert overflow_content.values[-1]["_id"] == (
-            "__genui_render_component__root_1"
+            "__genui_render_component__template_root"
         )
+        assert decorated.values[-1]["_id"] == "root"
         content = overflow_content.children[0]
-        assert content.values[-1]["_id"] == "template_root"
+        assert content.values[-1]["_id"] == "root_1"
         assert content.children[0].values[-1]["fontColor"] == "#FFCCDDFF"
 
 
@@ -4000,6 +4004,21 @@ async def test_bluetooth_music_action_uses_hero_pair_data():
     assert "FreeBuds Pro" in output.a2ui
     assert "isConnected" in output.a2ui
     assert "earphoneName" in output.a2ui
+    messages = [json.loads(line) for line in output.a2ui.splitlines()]
+    update_components = messages[1]["updateComponents"]
+    component_ids = {
+        component["id"] for component in update_components["components"]
+    }
+    assert update_components["root"] == "root"
+    assert "root" in component_ids
+    assert "template_root" in component_ids
+    assert "fusionBallBackground" not in component_ids
+    root = next(
+        component
+        for component in update_components["components"]
+        if component["id"] == "root"
+    )
+    assert "template_root" in root["children"]
     assert model.second_layer_prompt is not None
     second_layer_user = model.second_layer_prompt[1]["content"]
     contracts_line = next(
@@ -4109,17 +4128,21 @@ async def test_2x2_battery_pill_action_uses_generic_hero_template():
     components = {
         item["id"]: item for item in messages[1]["updateComponents"]["components"]
     }
-    assert components["root"]["children"] == ["fusionBallBackground", "root_1"]
-    content = components["root_1"]
+    assert messages[1]["updateComponents"]["root"] == "root"
+    assert components["root"]["children"] == [
+        "fusionBallBackground",
+        "template_root",
+    ]
+    content = components["template_root"]
     assert content["styles"] == {
         "width": "matchParent",
         "height": "matchParent",
         "padding": 12,
     }
-    assert content["children"] == ["__genui_render_component__root_1"]
-    overflow_content = components["__genui_render_component__root_1"]
+    assert content["children"] == ["__genui_render_component__template_root"]
+    overflow_content = components["__genui_render_component__template_root"]
     assert overflow_content["component"] == "Stack"
-    assert overflow_content["children"] == ["template_root"]
+    assert overflow_content["children"] == ["root_1"]
     assert overflow_content["styles"] == {
         "width": "matchParent",
         "height": "matchParent",
@@ -4130,7 +4153,7 @@ async def test_2x2_battery_pill_action_uses_generic_hero_template():
     assert components["fusionBallMedium"]["styles"]["height"] == "72.727273%"
     assert components["fusionBallSmall"]["styles"]["width"] == "51.282051%"
     assert components["fusionBallSmall"]["styles"]["height"] == "52.631579%"
-    layout = components["template_root"]
+    layout = components["root_1"]
     assert layout["component"] == "Column"
     assert layout["itemMargin"] == 8
     assert layout["styles"] == {
@@ -4446,12 +4469,20 @@ async def test_2x2_battery_generic_compact_accepts_two_pill_actions():
     components = {
         item["id"]: item for item in messages[1]["updateComponents"]["components"]
     }
-    assert components["root"]["children"] == ["fusionBallBackground", "root_1"]
+    assert messages[1]["updateComponents"]["root"] == "root"
+    assert components["root"]["children"] == [
+        "fusionBallBackground",
+        "template_root",
+    ]
     assert components["fusionBallLarge"]["styles"]["backgroundColor"] == "#FF17734C"
     assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#FF26BFA6"
     assert components["fusionBallSmall"]["styles"]["backgroundColor"] == "#FF60BF98"
-    assert components["root_1"]["children"] == ["__genui_render_component__root_1"]
-    assert components["__genui_render_component__root_1"]["children"] == ["template_root"]
+    assert components["template_root"]["children"] == [
+        "__genui_render_component__template_root"
+    ]
+    assert components["__genui_render_component__template_root"]["children"] == [
+        "root_1"
+    ]
 
 
 def test_battery_generic_hero_requires_a_selected_layout_action():
@@ -4733,7 +4764,7 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
     assert isinstance(root, dict)
     if enable_fusion_ball:
         assert root.get("component") == "Stack"
-        assert root.get("children") == ["fusionBallBackground", "root_1"]
+        assert root.get("children") == ["fusionBallBackground", "template_root"]
     else:
         assert root.get("component") == "Column"
         assert "fusionBallBackground" not in components_by_id
@@ -5576,6 +5607,7 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     messages = [json.loads(line) for line in captured["artifact"].genui.splitlines()]
     protocol_profile = A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile()
     assert messages[0]["createSurface"]["catalogId"] == protocol_profile["catalogId"]
+    assert messages[1]["updateComponents"]["root"] == "root"
     root = next(
         item
         for item in messages[1]["updateComponents"]["components"]
@@ -5588,6 +5620,7 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     assert root["styles"]["borderRadius"] == 18
     assert root["styles"]["backgroundColor"] == "#FFE5EDFE"
     assert "linearGradient" not in root["styles"]
+    assert "template_root" in root["children"]
     assert "fusionBallBackground" not in component_ids
     assert all(not component_id.startswith("fusionBall") for component_id in component_ids)
     assert captured["artifact"].effectiveCapabilities["data"] == ["ViewWeather"]
@@ -5649,16 +5682,17 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
         row[0]: row for row in compact_rows if len(row) >= 3 and isinstance(row[0], str)
     }
     assert all(row[1] != "FusionBall" for row in compact_rows if len(row) >= 2)
-    assert compact_rows[0][0:2] == ["root", "Stack"]
-    foreground_id = "root_1"
-    overflow_content_id = "__genui_render_component__root_1"
-    content_id = "template_root"
-    assert compact_rows[0][3] == ["fusionBallBackground", foreground_id]
+    root_id = "root"
+    assert compact_rows[0][0:2] == [root_id, "Stack"]
+    foreground_id = "template_root"
+    overflow_content_id = "__genui_render_component__template_root"
+    content_id = "root_1"
+    assert compact_components[root_id][3] == ["fusionBallBackground", foreground_id]
     assert compact_components[foreground_id][2]["padding"] == 12
     assert compact_components[foreground_id][3] == [overflow_content_id]
     assert compact_components[overflow_content_id][3] == [content_id]
-    assert compact_rows[0][2]["backgroundColor"] == "#00000000"
-    assert "linearGradient" not in compact_rows[0][2]
+    assert compact_components[root_id][2]["backgroundColor"] == "#00000000"
+    assert "linearGradient" not in compact_components[root_id][2]
     assert compact_components["fusionBallLarge"][2]["backgroundColor"] == (
         _WEATHER_PALETTE[0]
     )
@@ -5672,16 +5706,17 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     messages = [json.loads(line) for line in captured["artifact"].genui.splitlines()]
     protocol_profile = A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile()
     assert messages[0]["createSurface"]["catalogId"] == protocol_profile["catalogId"]
+    assert messages[1]["updateComponents"]["root"] == root_id
     components = {item["id"]: item for item in messages[1]["updateComponents"]["components"]}
-    assert components["root"]["component"] == "Stack"
-    assert components["root"]["children"] == [
+    assert components[root_id]["component"] == "Stack"
+    assert components[root_id]["children"] == [
         "fusionBallBackground",
         foreground_id,
     ]
     assert components[foreground_id]["styles"]["padding"] == 12
     assert components[foreground_id]["children"] == [overflow_content_id]
     assert components[overflow_content_id]["children"] == [content_id]
-    assert components["root"]["styles"]["backgroundColor"] == "#00000000"
+    assert components[root_id]["styles"]["backgroundColor"] == "#00000000"
     assert components["fusionBallLarge"]["component"] == "Divider"
     assert components["fusionBallMedium"]["component"] == "Divider"
     assert components["fusionBallSmall"]["component"] == "Divider"

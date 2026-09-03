@@ -41,10 +41,17 @@ def test_template_preview_a2ui_has_surface_components_and_data():
         assert "createSurface" in case.messages[0]
         assert "updateComponents" in case.messages[1]
         assert "updateDataModel" in case.messages[2]
-        components = case.messages[1]["updateComponents"]["components"]
+        update_components = case.messages[1]["updateComponents"]
+        assert update_components["root"] == "root"
+        components = update_components["components"]
         root = next(component for component in components if component["id"] == "root")
         assert root["component"] == "Column"
-        slot = next(component for component in components if component["id"] == "root_0")
+        assert root["children"] == ["template_root"]
+        slot = next(
+            component
+            for component in components
+            if component["id"] == "template_root"
+        )
         assert slot["styles"]["height"] == case.content_height_vp
 
 
