@@ -55,9 +55,6 @@ Column(
                     {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   )
     ),
-    Divider(
-      {"width": 1, "height": 54, "strokeWidth": 1, "vertical": true, "color": $theme('actionStyle.backgroundColor'), "flexShrink": 0}
-    ),
     Column(
       {"width": "matchParent", "height": "matchParent", "layoutWeight": 1, "itemMargin": 6, "justifyContent": "center", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Row(
@@ -181,9 +178,6 @@ Column(
                     Expr(`'' + ${data.battery} + '%'`),
                     {"width": "matchParent", "fontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
                   )
-    ),
-    Divider(
-      {"width": 1, "height": 48, "strokeWidth": 1, "vertical": true, "color": $theme('actionStyle.backgroundColor'), "flexShrink": 0}
     ),
     Column(
       {"width": "matchParent", "height": "matchParent", "layoutWeight": 1, "itemMargin": 10, "justifyContent": "center", "alignItems": "start", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},

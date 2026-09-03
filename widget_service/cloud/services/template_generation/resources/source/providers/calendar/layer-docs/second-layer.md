@@ -24,9 +24,9 @@
   - `ScheduleOverviewUpcomingSummaryWideFull@1`：近日安排宽版摘要；展示未来七天日程数量，以及最近
     一场会议的标题、开始时间和全天状态；可选 `calendarIcon`、`timeIcon` 与 `headerLabel`。
   - `ScheduleOverviewMeetingReminderWideHero@1`：公司会议宽版摘要；展示标题、开始时间、地点和提前
-    提醒；可选 `meetingIcon`、`locationIcon` 与 `reminderIcon`。
+    提醒；可选 `calendarIcon`、`locationIcon` 与 `reminderIcon`。
   - `ScheduleOverviewMeetingJoinWideHero@1`：需求评审宽版摘要；展示开始时间、地点、发起人和入会能力；
-    可选 `meetingIcon`。
+    可选 `calendarIcon`。
 - Hero 只用于 `HeroActionLayout@1` 加一个 `PillAction@1`；Full 只用于 `SingleFocusLayout@1`，
   或在存在语义匹配图标素材时用于 `FullIconActionLayout@1` 加一个 `IconAction@1`。WideFull 当前只作
   `2x4` 预留；WideHero 用于 `WideSingleFocusLayout@1` 加一个 `PillAction@1`。

@@ -62,7 +62,6 @@ def test_template_preview_assets_are_bundled_by_genui_evaluation():
         "flame_fill.svg",
         "heart_fill.svg",
         "icon_earphone.svg",
-        "icon_meeting.svg",
         "icon_tiktok.png",
         "icon_weather1.svg",
         "l_circle_fill.svg",
@@ -109,7 +108,6 @@ def test_calendar_upcoming_summary_widefull_matches_q057_hierarchy():
         for component in components
         if component.get("src") == "resources/base/media/calendar_fill.svg"
     )
-    divider = next(component for component in components if component.get("component") == "Divider")
     all_day = next(
         component
         for component in components
@@ -122,7 +120,7 @@ def test_calendar_upcoming_summary_widefull_matches_q057_hierarchy():
     assert calendar_icon["styles"]["width"] == 20
     assert calendar_icon["styles"]["height"] == 20
     assert count["styles"]["fontSize"] == 20
-    assert divider["styles"]["height"] == 56
+    assert not any(component.get("component") == "Divider" for component in components)
     assert "全天日程" in all_day["content"]
     data_model = case.messages[2]["updateDataModel"]["value"]["data"]["calendar"]
     assert set(data_model) == {"eventCount", "events"}
@@ -212,11 +210,19 @@ def test_q059_q067_q073_q077_widehero_templates_match_input_contracts():
     assert "earphone_case_16644.svg" in music
     assert "公司会议" in reminder
     assert "分钟提醒" in reminder
+    assert "calendar_fill.svg" in reminder
     assert "bell_fill.svg" in reminder
     assert "location_north_up_right_fill.svg" in reminder
+    assert reminder.count('"component": "Divider"') == 2
+    assert '"itemMargin": 2' in reminder
     assert charging.count('"component": "Progress"') == 1
+    assert '"component": "Divider"' not in charging
     assert "leftChargingStatusDesc" in charging
     assert "rightChargingStatusDesc" in charging
+    assert '"component": "Divider"' not in music
     assert "需求评审" in meeting
+    assert "calendar_fill.svg" in meeting
+    assert meeting.count('"component": "Divider"') == 2
+    assert '"itemMargin": 2' in meeting
     assert "发起人" in meeting
     assert "支持一键入会" in meeting
