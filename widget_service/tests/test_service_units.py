@@ -840,6 +840,8 @@ def test_ids_parser_ignores_provider_intent_and_permission_namespaces():
     [
         (APP_VERSION, ROM_VERSION_7_0, REGISTRY_VERSION_6),
         (APP_VERSION_11_7_7_328, ROM_VERSION_7, REGISTRY_VERSION_6),
+        (APP_VERSION_11_7_7_329, ROM_VERSION_7, REGISTRY_VERSION_6),
+        ("11.7.7.329.999", ROM_VERSION_7, REGISTRY_VERSION_6),
         (APP_VERSION_11_7_7_330, ROM_VERSION_7_0, REGISTRY_VERSION_7),
         (APP_VERSION_11_8, ROM_VERSION_7, REGISTRY_VERSION_7),
         (APP_VERSION_11_9, "ALN-AL00 7.9.0.1", REGISTRY_VERSION_7),
@@ -866,7 +868,7 @@ def test_capability_registry_range_file_matches_main_configuration():
                 "registryVersion": REGISTRY_VERSION_6,
                 "appVersion": {
                     "minInclusive": APP_VERSION,
-                    "maxExclusive": APP_VERSION_11_7_7_329,
+                    "maxExclusive": APP_VERSION_11_7_7_330,
                 },
                 "romVersion": {
                     "minInclusive": "7.0",
@@ -1099,15 +1101,13 @@ def test_router_content_rom_version_selects_capability_registry(
     ("app_version", "rom_version"),
     [
         ("11.7.5.204", "7.0"),
-        (APP_VERSION_11_7_7_329, "7.0"),
-        ("11.7.7.329.999", "7.1"),
         (APP_VERSION_11_7_7_330, "6.9"),
         (APP_VERSION, ROM_VERSION_7_2),
         (APP_VERSION_12, "7.0"),
         (APP_VERSION_11_8, "8.0"),
     ],
 )
-def test_capability_registry_rejects_unmatched_boundaries_and_gaps(
+def test_capability_registry_rejects_unmatched_boundaries_and_combinations(
     app_version,
     rom_version,
 ):
