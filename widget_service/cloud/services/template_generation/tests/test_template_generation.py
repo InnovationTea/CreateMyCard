@@ -250,17 +250,21 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 78
+    assert len(registry.provider_template_ids) == 80
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
         "BatteryOverviewFull@1",
         "BatteryOverviewHero@1",
         "BatteryOverviewChargingProgressHero@1",
+        "BatteryOverviewChargingProgressFull@1",
+        "BatteryOverviewChargingDiagnosticsHero@1",
+        "BatteryOverviewChargingRingHero@1",
         "BatteryOverviewHealthLevelHero@1",
         "BluetoothDeviceOverviewEarbudPairFull@1",
         "BluetoothDeviceOverviewHero@1",
         "CountdownOverviewFull@1",
+        "CountdownOverviewHero@1",
         "HeartRateOverviewFull@1",
         "ResourceUsageOverviewFull@1",
         "ScheduleOverviewDatedMeetingHero@1",
@@ -708,6 +712,19 @@ def test_battery_fusion_theme_covers_phone_and_earphone_businesses() -> None:
     )
 
 
+def test_sport_fusion_theme_covers_countdown_business() -> None:
+    registry = get_cardplan_registry(True)
+    theme = registry.require_theme("fusion-sport-orange")
+    fusion_style = theme.fusion_ball_style
+
+    assert "GetCountdownDays" in theme.supported_capability_ids
+    assert fusion_style is not None
+    assert "CountdownOverview" in fusion_style.business_ids
+    assert "fusion-sport-orange" in registry.first_layer_theme_ids(
+        ("CountdownOverview",)
+    )
+
+
 def test_search_layout_action_rule_omits_legacy_two_support_instruction() -> None:
     action = ActionBinding(
         action_id="action-0",
@@ -1004,7 +1021,10 @@ def test_fusion_theme_content_and_action_colors_are_exact(
 
     assert theme.primary_color == primary
     assert theme.support_content_color == support
-    assert theme.action_style.content_color == primary
+    expected_action_content = (
+        "#FFFFFFFF" if theme_id == "fusion-sport-orange" else primary
+    )
+    assert theme.action_style.content_color == expected_action_content
     expected_action_background = (
         "#33CCEEFF" if theme_id == "fusion-schedule-cool" else "#33FFFFFF"
     )
@@ -2381,7 +2401,7 @@ def test_device_ring_progress_and_icons_bind_to_distinct_theme_colors() -> None:
                 assert fill_color.kind == "theme"
                 assert fill_color.name == "supportContentColor"
 
-    assert progress_count == 7
+    assert progress_count == 11
     assert ring_icon_count == 7
 
 
@@ -2395,6 +2415,7 @@ def test_battery_ring_progress_uses_dedicated_track_theme_color() -> None:
         "BatteryOverviewHero@1",
         "BatteryOverviewWideFull@1",
         "BatteryOverviewPercentRingHero@1",
+        "BatteryOverviewChargingRingHero@1",
     }
 
     for definition in bundle.templates:
@@ -2489,7 +2510,7 @@ def test_pr7_visual_fixes_are_encoded_in_provider_cardtpl_variants():
     ).root
     assert _template_node_options(battery_peer)["justifyContent"] == "start"
     assert not _template_nodes(battery_peer, "Image")
-    compact_status_row = battery_peer.children[1]
+    compact_status_row = battery_peer.children[2]
     assert [child.component for child in compact_status_row.children] == [
         "IfBind",
         "IfMissingBind",
@@ -2582,18 +2603,83 @@ def test_battery_templates_follow_consolidated_state_contract() -> None:
         "BatteryOverviewCompact@1",
         "BatteryOverviewHealthLevelHero@1",
         "BatteryOverviewChargingProgressHero@1",
+        "BatteryOverviewChargingProgressFull@1",
+        "BatteryOverviewChargingDiagnosticsHero@1",
+        "BatteryOverviewChargingRingHero@1",
         "BatteryOverviewPercentRingHero@1",
+        "BatteryOverviewTemperatureFull@1",
     }
 
     assert set(battery.local_template_ids) == expected_template_ids
     assert not any(template_id.endswith("Support@1") for template_id in expected_template_ids)
     compact = registry.require_template("BatteryOverviewCompact@1")
-    assert compact.primary_data == ("/batterySOCText",)
+    assert compact.primary_data == ()
     assert compact.secondary_data == ()
     assert compact.optional_data == (
+        "/batterySOCText",
+        "/batterySOC",
         "/batteryCapacityLevelDesc",
         "/chargingStatusDesc",
     )
+
+
+def test_genui_rsi_battery_and_countdown_templates_keep_expected_geometry() -> None:
+    registry = get_cardplan_registry(True)
+
+    temperature = registry.require_variant(
+        "BatteryOverviewTemperatureFull@1",
+        "default",
+    ).root
+    temperature_text_options = [
+        _template_node_options(node) for node in _template_nodes(temperature, "Text")
+    ]
+    assert _template_node_options(temperature)["justifyContent"] == "spaceBetween"
+    assert [options["fontSize"] for options in temperature_text_options] == [
+        12,
+        20,
+        12,
+        10,
+        10,
+    ]
+
+    charging_ring = registry.require_variant(
+        "BatteryOverviewChargingRingHero@1",
+        "default",
+    ).root
+    assert len(charging_ring.children) == 1
+    ring_status_group = charging_ring.children[0]
+    assert ring_status_group.component == "Column"
+    assert [child.component for child in ring_status_group.children] == ["Stack", "Text"]
+    ring_progress = _template_nodes(ring_status_group, "Progress")[0]
+    assert _template_node_options(ring_progress)["strokeWidth"] == 6
+
+    charging_full = registry.require_variant(
+        "BatteryOverviewChargingProgressFull@1",
+        "default",
+    ).root
+    charging_full_progress = _template_nodes(charging_full, "Progress")[0]
+    assert _template_node_options(charging_full_progress)["strokeWidth"] == 8
+    assert len(_template_nodes(charging_full, "Row")) == 4
+
+    diagnostics = registry.require_variant(
+        "BatteryOverviewChargingDiagnosticsHero@1",
+        "default",
+    ).root
+    assert len(_template_nodes(diagnostics, "Row")) == 4
+
+    compact = registry.require_variant("BatteryOverviewCompact@1", "default").root
+    compact_progress = _template_nodes(compact, "Progress")[0]
+    assert _template_node_options(compact_progress)["strokeWidth"] == 8
+
+    countdown = registry.require_variant("CountdownOverviewHero@1", "default").root
+    value_row = countdown.children[2]
+    value, unit = value_row.children
+    assert _template_node_options(value)["height"] == 48
+    assert unit.values[0].value == "天"
+    assert _template_node_options(unit)["height"] == 16
+    unit_margin = unit.values[-1].properties["margin"]
+    assert unit_margin.kind == "object"
+    assert unit_margin.properties["bottom"].value == 8
 
 
 @pytest.mark.asyncio
@@ -4199,11 +4285,15 @@ async def test_2x2_battery_pill_action_uses_generic_hero_template():
     template_contracts = json.loads(
         template_contract_line.removeprefix("templateContracts=")
     )
-    assert template_contracts[0]["templateId"] == "BatteryOverviewHero@1"
-    assert template_contracts[0]["callSyntax"] == (
+    hero_contract = next(
+        contract
+        for contract in template_contracts
+        if contract["templateId"] == "BatteryOverviewHero@1"
+    )
+    assert hero_contract["callSyntax"] == (
         'Template("BatteryOverviewHero@1", <props matching propsSchema>)'
     )
-    assert template_contracts[0]["propsSchema"]["additionalProperties"] is False
+    assert hero_contract["propsSchema"]["additionalProperties"] is False
     assert '"height":36' in output.a2ui
     assert "省电模式" in output.a2ui
     assert "batterySOC" in output.a2ui

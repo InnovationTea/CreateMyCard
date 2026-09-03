@@ -1,7 +1,7 @@
 {
   "themeFormat": "card-theme/2",
   "themeProfileId": "battery-yellow",
-  "description": "手机电量米黄底青绿色",
+  "description": "手机电量浅青底青绿色",
   "firstLayerRule": {"path": "first-layer.md"},
   "supportedCapabilityIds": ["GetPhoneBatteryInfo"],
   "paletteSceneIds": ["battery.yellow", "device.battery"],
