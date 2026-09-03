@@ -43,12 +43,15 @@ cloud/data/capabilities/{capabilityRegistryVersion}/
 当前能力清单及命中区间：
 
 ```text
-App [11.7.5.205, 12.0.0.0) + ROM [6.0, 7.0) -> app-11.7.5.205_rom-6.0
-App [11.7.7.300, 12.0.0.0) + ROM [7.0, 8.0) -> app-11.7.7.300_rom-7.0
+App [11.7.5.205, 11.7.7.330) + ROM [7.0, 7.2) -> app-11.7.5.205_rom-6.0
+App [11.7.7.330, 12.0.0.0) + ROM [7.0, 8.0) -> app-11.7.7.300_rom-7.0
 ```
 
 App 使用完整数字版本，ROM 从完整 `romVersion` 中抽取主次版本。索引加载时会拒绝倒置区间、App 与
 ROM 同时重叠的配置以及不存在的目标目录。
+
+能力目录名是快照标识，不用于推导实际命中范围。当前配置下 ROM 6.x、旧 App 搭配 ROM 7.2 及以上，
+以及其它未覆盖组合没有直接命中；是否使用默认清单由回退开关决定。
 
 五个接口在能力清单版本未命中或目标目录不可用且
 `WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true` 时，统一回退到默认的

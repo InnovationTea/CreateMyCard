@@ -10,7 +10,12 @@ The service follows `docs/AGENTS.md`:
   right-open ranges in `cloud/data/capabilities/registry_ranges.json`.
 - `TaskSpec.dataModelSchema` is projected directly from each capability `outputSchema`: the service reads `type`, `description`, and `sampleValue` from the selected leaf and writes it at `writeResultTo + candidateOutputFields` path. There is no separate data-model mapping file or runtime field-renaming layer.
 - `romVersion` is the only accepted ROM field name. A full value such as `CLS-AL30 6.0.0.328` is normalized to the major/minor version `6.0`.
-- All five interfaces currently map App `[11.7.5.205, 12.0.0.0)` and ROM `[6.0, 7.0)` to `app-11.7.5.205_rom-6.0`. An unmatched version falls back to this default when `WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true`.
+- All five interfaces use the ranges in `cloud/data/capabilities/registry_ranges.json`: App
+  `[11.7.5.205, 11.7.7.330)` with ROM `[7.0, 7.2)` maps to
+  `app-11.7.5.205_rom-6.0`, while App `[11.7.7.330, 12.0.0.0)` with ROM
+  `[7.0, 8.0)` maps to `app-11.7.7.300_rom-7.0`. An unmatched version falls back
+  to the configured default when
+  `WIDGET_SERVICE_ENABLE_DEFAULT_CAPABILITY_REGISTRY_FALLBACK=true`.
 - `generateWidgetCard` selects `mep` or the composite `openai` route through
   `WIDGET_SERVICE_A2UI_FORM_MODEL_BACKEND`.
   `generateWidgetCardCompactDsl` selects its backend through `WIDGET_SERVICE_DESIGN_COMPACT_MODEL_BACKEND`, loads
