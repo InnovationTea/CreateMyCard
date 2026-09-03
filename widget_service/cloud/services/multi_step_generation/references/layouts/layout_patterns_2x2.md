@@ -36,7 +36,7 @@
 标题参考高度：
 
 - `SingleLineTitle` 文本高 18vp；带 20vp Icon 时标题区通常为 20vp。
-- `DoubleLineTitle` 含一行副信息时约为 `19 + 4 + 18 = 41vp`；副信息为两行时继续自然增高。
+- `DoubleLineTitle` 含一行副信息时为 `18 + 4 + 18 = 40vp`；副信息为两行时继续自然增高。
 - 参考高度只用于容量判断。JSX 必须使用自然高度，不得把参考高度写成固定 `top` 或固定标题槽高度。
 - Type 0、Type 3、Type 6、Type 12、Type 15 为无标题布局。
 

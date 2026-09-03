@@ -2,17 +2,17 @@ from __future__ import annotations
 
 from typing import Any
 
-try:
+if "." in (__package__ or ""):
     from ..jsx_to_a2ui.catalog.card_sizes import (
         CARD_SIZE_DIMENSIONS,
         DEFAULT_CARD_SIZE,
         resolve_card_size,
     )
     from ..jsx_to_a2ui.exceptions import ValidationError
-except ImportError:  # Support direct execution through data_processing.py.
+else:  # Support top-level and direct-execution imports.
     from jsx_to_a2ui.catalog.card_sizes import (
         CARD_SIZE_DIMENSIONS,
-        DEFAULT_CARD_SIZE,  # noqa: F401 - re-exported for direct-execution imports
+        DEFAULT_CARD_SIZE,  # noqa: F401 - re-exported for callers
         resolve_card_size,
     )
     from jsx_to_a2ui.exceptions import ValidationError

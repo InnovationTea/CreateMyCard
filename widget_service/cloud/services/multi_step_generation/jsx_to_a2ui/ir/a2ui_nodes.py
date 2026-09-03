@@ -252,6 +252,7 @@ class ConversionContext:
     card_size: str | None = None
     card_content_width: int | float | None = None
     card_content_height: int | float | None = None
+    parent_content_width: int | float | None = None
     parent_content_height: int | float | None = None
     inside_backplate: bool = False
     compile_context: CompileContext = field(default_factory=CompileContext)
@@ -374,17 +375,21 @@ class ConversionContext:
             card_size=size,
             card_content_width=width,
             card_content_height=height,
+            parent_content_width=width,
+            parent_content_height=height,
         )
 
     def for_children(
         self,
         *,
+        parent_content_width: int | float | None = None,
         parent_content_height: int | float | None = None,
         enters_backplate: bool = False,
     ) -> ConversionContext:
         """Return the inherited layout context used to lower child nodes."""
         return replace(
             self,
+            parent_content_width=parent_content_width,
             parent_content_height=parent_content_height,
             inside_backplate=self.inside_backplate or enters_backplate,
         )

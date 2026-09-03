@@ -41,8 +41,8 @@ def convert_emphasis_text(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         "emphasis_text",
         [main, secondary],
         styles={
-            "width": "matchParent",
             "constraintSize": {"minWidth": 0},
+            "flexShrink": 1,
             "alignItems": "start",
         },
     )

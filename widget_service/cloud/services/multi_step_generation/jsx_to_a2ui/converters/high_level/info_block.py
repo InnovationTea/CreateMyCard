@@ -41,9 +41,11 @@ def convert_info_block(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     if errors:
         raise ValidationError("; ".join(errors))
     visual = node.props["visual"]
-    assert isinstance(visual, dict)
+    if not isinstance(visual, dict):
+        raise AssertionError
     icon = visual["icon"]
-    assert isinstance(icon, str)
+    if not isinstance(icon, str):
+        raise AssertionError
 
     primary_value = ctx.prop(node, "primaryText")
     primary = text(

@@ -89,7 +89,7 @@
 | `width` | `100%` | 占满父容器分配的完整宽度 |
 | `items-count` | ≥ 2 | 至少两组 |
 | `item-width` | 等分剩余宽度，最小 64vp | 所有项使用相同弹性宽度并共同撑满父容器 |
-| `item-height` | 默认 64vp；父槽较矮时跟随父槽收缩 | 推荐分配 48–64vp；不得低于内部两行文本可完整显示的高度 |
+| `item-height` | 自适应 48–64vp，默认 64vp | `TextBlock` 会跟随父级纵向槽在该范围内收缩；父槽大于 64vp 时仍保持 64vp，小于 48vp 时不再继续压缩 |
 | `item-padding` | 左右各 8vp | 文本组合在背板内居中 |
 | `item-radius` | 16vp | 背板圆角 |
 | `distribution` | 等宽弹性布局，间距 8vp | 背板宽度按 `(父容器宽度 − 间距总和) ÷ 项数` 分配 |
@@ -103,7 +103,20 @@
 - 只能放入当前尺寸 Card。
 - 外层布局必须向 `TextBlock` 分配完整内容宽度；禁止通过 `style`、`className` 或额外宽度 Prop 改写它的内部分布。
 - 每项等分父容器扣除 8vp 间距后的剩余宽度，且不得小于 64vp；必须控制项数和文本长度，不得依赖溢出、压缩或自然宽度改变分布。
-- `TextBlock` 默认高 64vp；垂直空间不足时，外层固定高度槽可以在 48–64vp 范围内缩短组件。缩短的是整体背板高度，不改变两行文字的字号、行高和 2vp 内部间距。
+- `TextBlock` 默认高 64vp，并在父级纵向槽分配 48–64vp 时自动跟随收缩。缩短的是整体背板高度，不改变两行文字的字号、行高和 2vp 内部间距。
+- 需要紧凑高度时，`TextBlock` 必须是外层纵向 `Stack` 的直接子组件；外层只需用 `basis={48}` 分配 48vp 主轴空间，不要求再重复写 `height={48}`。runtime 只对直接包裹 `TextBlock` 的 Stack 启用纵向收缩，不影响其他 Stack。不得给 `TextBlock` 分配小于 48vp 的槽位。
+
+```jsx
+<Stack basis={48} width="full" mt={4}>
+  <TextBlock
+    items={[
+      { label: "空气质量", parameter: "良", dataIds: { parameter: "weather.airQuality" } },
+      { label: "紫外线", parameter: "中等", dataIds: { parameter: "weather.uvIndex" } },
+      { label: "感冒指数", parameter: "低", dataIds: { parameter: "weather.coldLevel" } },
+    ]}
+  />
+</Stack>
+```
 
 ```jsx
 <Card size="2x4" appearance="blue-soft">
