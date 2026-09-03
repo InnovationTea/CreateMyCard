@@ -613,7 +613,7 @@ def test_registry_uses_only_distributed_provider_and_theme_sources() -> None:
     assert set(registry.themes) == {
         "audio-product-neutral-violet",
         "2x2-two-support",
-        "battery-yellow",
+        "battery-teal",
         "device-clean-blue-teal",
         "digital-wellbeing-neutral-dark",
         "family-weather-care-blue",
@@ -1138,7 +1138,7 @@ def test_non_fusion_device_theme_uses_the_reviewed_resource_palette() -> None:
 
 
 def test_non_fusion_battery_theme_uses_the_compatible_teal_palette() -> None:
-    theme = get_cardplan_registry().require_theme("battery-yellow")
+    theme = get_cardplan_registry().require_theme("battery-teal")
 
     assert theme.supported_capability_ids == ("GetPhoneBatteryInfo",)
     assert theme.primary_color == "#FF1F8F99"
@@ -1165,7 +1165,7 @@ def test_disabled_fusion_feature_removes_themes_from_server_registry_view() -> N
     assert set(disabled_registry.themes) == {
         "2x2-two-support",
         "audio-product-neutral-violet",
-        "battery-yellow",
+        "battery-teal",
         "device-clean-blue-teal",
         "digital-wellbeing-neutral-dark",
         "family-weather-care-blue",
@@ -4459,7 +4459,7 @@ async def test_2x2_battery_charging_progress_hero_uses_status_fields():
     phone_battery.pop("batteryCapacityLevelDesc")
     phone_battery["healthStatusDesc"] = _provider_field("正常", "string")
     model = _FixedTemplateModel(
-        theme_id="battery-yellow",
+        theme_id="battery-teal",
         component_id="BatteryOverview",
         available_template_ids=("BatteryOverviewChargingProgressHero@1",),
         capability_id="GetPhoneBatteryInfo",
@@ -4514,7 +4514,7 @@ async def test_2x2_battery_health_level_hero_uses_health_fields():
         "batteryCapacityLevelDesc": _provider_field("正常电量", "string"),
     }
     model = _FixedTemplateModel(
-        theme_id="battery-yellow",
+        theme_id="battery-teal",
         component_id="BatteryOverview",
         available_template_ids=("BatteryOverviewHealthLevelHero@1",),
         capability_id="GetPhoneBatteryInfo",
