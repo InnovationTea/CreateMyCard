@@ -1409,6 +1409,13 @@ def test_template_compiler_keeps_non_fusion_2x2_theme_background():
         ),
         ("fusion-sleep-violet", ("SleepOverviewFull@1",), True),
         ("fusion-sleep-violet", ("ActivityOverviewFull@1",), False),
+        ("fusion-sport-orange", ("CountdownOverviewFull@1",), True),
+        ("fusion-sleep-violet", ("CountdownOverviewFull@1",), False),
+        (
+            "fusion-sport-orange",
+            ("CountdownOverviewFull@1", "ActivityOverviewFull@1"),
+            False,
+        ),
     ],
 )
 def test_fusion_theme_requires_one_matching_business(
@@ -4638,8 +4645,28 @@ def test_first_layer_action_candidate_exposes_only_event_identity():
     ]
 
 
+@pytest.mark.parametrize(
+    ("enable_fusion_ball", "expected_theme_id"),
+    [(False, "race-night-violet"), (True, "fusion-sport-orange")],
+)
+def test_countdown_theme_candidates_follow_fusion_gate(
+    enable_fusion_ball: bool,
+    expected_theme_id: str,
+) -> None:
+    registry = get_cardplan_registry(enable_fusion_ball)
+
+    assert registry.first_layer_theme_ids(("CountdownOverview",)) == (expected_theme_id,)
+
+
 @pytest.mark.asyncio
-async def test_generic_countdown_query_uses_countdown_overview_without_workout_semantics():
+@pytest.mark.parametrize(
+    ("enable_fusion_ball", "theme_id"),
+    [(False, "race-night-violet"), (True, "fusion-sport-orange")],
+)
+async def test_generic_countdown_query_uses_countdown_overview_without_workout_semantics(
+    enable_fusion_ball: bool,
+    theme_id: str,
+) -> None:
     task_spec = TaskSpec(
         userQuery="做一张日程倒数卡片，我想看看高考还剩下多少天",
         size="2x2",
@@ -4672,7 +4699,7 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
         candidateOutputFields=["/countdownDays"],
     )
     model = _FixedTemplateModel(
-        theme_id="race-night-violet",
+        theme_id=theme_id,
         component_id="CountdownOverview",
         available_template_ids=("CountdownOverviewFull@1",),
         capability_id="GetCountdownDays",
@@ -4680,12 +4707,54 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
         body='Template("SingleFocusLayout@1",{},Template("CountdownOverviewFull@1",{}));',
     )
 
-    output = await generate_template_a2ui(task_spec, card_spec, (binding,), model)
+    output = await generate_template_a2ui(
+        task_spec,
+        card_spec,
+        (binding,),
+        model,
+        enable_fusion_ball=enable_fusion_ball,
+    )
 
     assert output.template_ids == ("CountdownOverviewFull@1", "SingleFocusLayout@1")
     assert "countdownDays" in output.a2ui
     assert "倒计时" in output.a2ui
     assert "运动倒计时" not in output.a2ui
+    messages = [json.loads(line) for line in output.a2ui.splitlines()]
+    update = messages[1].get("updateComponents")
+    assert isinstance(update, dict)
+    components = update.get("components")
+    assert isinstance(components, list)
+    components_by_id: dict[str, dict[str, Any]] = {}
+    for component in components:
+        component_id = component.get("id")
+        assert isinstance(component_id, str)
+        components_by_id[component_id] = component
+    root = components_by_id.get("root")
+    assert isinstance(root, dict)
+    if enable_fusion_ball:
+        assert root.get("component") == "Stack"
+        assert root.get("children") == ["fusionBallBackground", "root_1"]
+    else:
+        assert root.get("component") == "Column"
+        assert "fusionBallBackground" not in components_by_id
+        root_styles = root.get("styles")
+        assert isinstance(root_styles, dict)
+        assert root_styles.get("backgroundColor") == "#FFFFF0E6"
+    expected_ball_colors = {
+        "fusionBallLarge": "#FFB33024",
+        "fusionBallMedium": "#FFFF8833",
+        "fusionBallSmall": "#FFE68073",
+    }
+    for ball_id, expected_color in expected_ball_colors.items():
+        if not enable_fusion_ball:
+            assert ball_id not in components_by_id
+            continue
+        ball = components_by_id.get(ball_id)
+        assert isinstance(ball, dict)
+        assert ball.get("component") == "Divider"
+        ball_styles = ball.get("styles")
+        assert isinstance(ball_styles, dict)
+        assert ball_styles.get("backgroundColor") == expected_color
     reporter = validate_card(
         artifact={
             "genui": output.a2ui,

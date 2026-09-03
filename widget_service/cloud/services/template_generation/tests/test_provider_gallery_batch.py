@@ -35,6 +35,7 @@ _WEATHER_ASSET_IDS = [
 
 _FUSION_CAPABILITY_IDS = {
     "GetCalendarEvents",
+    "GetCountdownDays",
     "GetEarphoneInfo",
     "GetHealthAndSportSummary",
     "GetPhoneBatteryInfo",
@@ -380,6 +381,30 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     assert calendar_date_request["content"]["candidateAssetIds"] == []
 
 
+@pytest.mark.parametrize(
+    ("appearance_id", "expected_version", "expects_fusion"),
+    [("standard", DEFAULT_PRD_VERSION, False), ("fusion", FUSION_PRD_VERSION, True)],
+)
+def test_countdown_gallery_inputs_require_fusion_when_enabled(
+    tmp_path: Path,
+    appearance_id: str,
+    expected_version: str,
+    expects_fusion: bool,
+) -> None:
+    manifest = write_gallery_input_dataset(tmp_path / "inputs")
+    case = _find_case(
+        manifest,
+        "CountdownOverview",
+        "single-content",
+        "CountdownOverviewFull@1",
+        appearance_id,
+    )
+
+    assert case.missingReason == ""
+    assert case.prdVer == expected_version
+    assert case.expectsFusionBall is expects_fusion
+
+
 def test_gallery_inputs_mark_missing_layout_families(tmp_path: Path) -> None:
     manifest = write_gallery_input_dataset(tmp_path / "inputs")
 
@@ -469,6 +494,9 @@ async def test_gallery_runner_calls_public_service_and_groups_a2ui_by_provider(
         a2ui_path = output_root / case["a2uiFile"]
         assert a2ui_path.is_file()
         assert len(json.loads(a2ui_path.read_text(encoding="utf-8"))) == 3
+        expects_fusion = case.get("appearanceId") == "fusion"
+        assert case.get("expectsFusionBall") is expects_fusion
+        assert case.get("fusionBallRendered") is expects_fusion
 
 
 @pytest.mark.asyncio

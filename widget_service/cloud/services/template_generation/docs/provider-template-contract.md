@@ -296,6 +296,11 @@ Provider 和 Layout 资源只作后续能力预留，当前不进入生产模板
 在自身 `themes/<theme-id>/theme.json` 的 `fusionBallStyle` 中保存允许的 `businessIds` 以及大、中、小球真实
 `#AARRGGBB` 颜色，不得在代码中维护按场景索引的第二份固定色板。
 
+`fusion-sport-orange` 同时覆盖活动、心率、运动和倒计时业务；倒计时的数据能力 `GetCountdownDays` 与
+业务 `CountdownOverview` 必须分别声明在主题的 `supportedCapabilityIds` 和 `fusionBallStyle.businessIds`
+中。只声明数据能力仍会被首层主题候选和编译器的业务门禁过滤。回归测试应独立断言倒计时 `Full` 在融球开启时
+选中该主题、展开真实背景，并要求画廊用例预期融球；不得仅以同一份主题白名单推导预期结果来证明覆盖有效。
+
 融球包装仅适用于 `2x2`、单业务，且实际选中的业务模板后缀为 `Full`、`Hero` 或 `Compact` 的场景。单业务
 可以组合零到两个显式 Action：零 Action 使用 `Full`、单 Action 使用 `Hero`、双 Action 使用 `Compact`；
 Action 和 Layout 模板不参与业务数量计算。主题适用能力还必须覆盖该业务模板的数据能力。
