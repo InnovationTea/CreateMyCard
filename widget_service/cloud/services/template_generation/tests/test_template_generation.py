@@ -1023,10 +1023,7 @@ def test_fusion_theme_content_and_action_colors_are_exact(
 
     assert theme.primary_color == primary
     assert theme.support_content_color == support
-    expected_action_content = (
-        "#FFFFFFFF" if theme_id == "fusion-sport-orange" else primary
-    )
-    assert theme.action_style.content_color == expected_action_content
+    assert theme.action_style.content_color == primary
     expected_action_background = (
         "#33CCEEFF" if theme_id == "fusion-schedule-cool" else "#33FFFFFF"
     )
