@@ -5,6 +5,8 @@
 - 可用模板：
   - `BluetoothDeviceOverviewHero@1`：展示连接状态、设备名和左右耳电量；可选左右耳图标；用于
     `HeroActionLayout@1` 加一个 `PillAction@1`。
+  - `BluetoothDeviceOverviewEarbudChargingWideHero@1`：用于 2x4 左右耳电量与充电状态；左上保留标题，
+    中部等距居中展示两个 44vp 电量环；用于 `WideSingleFocusLayout@1` 加一个 `PillAction@1`。
   - `BluetoothDeviceOverviewEarbudsSupport@1`：展示左右耳电量；`deviceIcon` 必填；仅供兼容 LLM 路径
     与原子预览使用，当前 Search 不可达；兼容双业务场景中可传 `actionId`，事件绑定在 Support 根节点内部。
   - `BluetoothDeviceOverviewEarbudPairFull@1`：展示连接状态、设备名、盒电量和左右耳电量；盒与左右耳

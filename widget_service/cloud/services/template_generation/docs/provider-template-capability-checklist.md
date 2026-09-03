@@ -100,11 +100,12 @@
 ## BluetoothDeviceOverview
 
 - Provider：`com.huawei.earphone.cli`；运行状态：启用。
-- 数据能力：`GetEarphoneInfo`；模板数：8。
+- 数据能力：`GetEarphoneInfo`；模板数：9。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
 | ✅ | `BluetoothDeviceOverviewHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/isConnected`<br>`/earphoneName` | `/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
+| ✅ | `BluetoothDeviceOverviewEarbudChargingWideHero@1` | 约 4x1.7；WideHero + 1 个 PillAction | `/leftBatteryLevel`<br>`/leftChargingStatusDesc`<br>`/rightBatteryLevel`<br>`/rightChargingStatusDesc` | 无 | 无 |
 | ✅ | `BluetoothDeviceOverviewEarbudsPhoneWideFull@1` | 完整 4x2；单 WideFull | `/isConnected`<br>`/earphoneName` | 无 | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` |
 | ✅ | `BluetoothDeviceOverviewEarbudsDynamicWideFull@1` | 完整 4x2；单 WideFull | `/isConnected`<br>`/earphoneName` | 无 | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` |
 | ✅ | `BluetoothDeviceOverviewEarbudsSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 | 无 |

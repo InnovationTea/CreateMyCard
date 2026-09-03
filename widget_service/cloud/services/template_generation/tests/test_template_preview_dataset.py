@@ -16,16 +16,16 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     manifest = write_template_preview_dataset(tmp_path)
     cases = manifest["cases"]
 
-    assert manifest["templateCount"] == 72
+    assert manifest["templateCount"] == 68
     assert manifest["countsByLayout"] == {
         "Support": 12,
-        "Compact": 12,
+        "Compact": 11,
         "Hero": 18,
-        "Full": 17,
-        "WideHero": 2,
+        "Full": 15,
+        "WideHero": 3,
         "WideFull": 9,
     }
-    assert manifest["countsBySize"] == {"2x2": 57, "2x4": 11}
+    assert manifest["countsBySize"] == {"2x2": 56, "2x4": 12}
     assert len(cases) == 68
     assert len({case["templateId"] for case in cases}) == 68
     assert all((tmp_path / case["file"]).is_file() for case in cases)
@@ -97,4 +97,47 @@ def test_earphone_hero_uses_title_parameter_without_title_binding():
         "earphoneName",
         "leftBatteryLevel",
         "rightBatteryLevel",
+    }
+
+
+def test_earphone_charging_widehero_keeps_centered_pair_and_action_space():
+    case = next(
+        item
+        for item in build_template_preview_cases()
+        if item.template_id == "BluetoothDeviceOverviewEarbudChargingWideHero@1"
+    )
+
+    assert case.primary_data == (
+        "/leftBatteryLevel",
+        "/leftChargingStatusDesc",
+        "/rightBatteryLevel",
+        "/rightChargingStatusDesc",
+    )
+    assert case.secondary_data == ()
+    assert case.optional_data == ()
+    components = case.messages[1]["updateComponents"]["components"]
+    title = next(component for component in components if component.get("content") == "左右耳电量")
+    pair = next(
+        component
+        for component in components
+        if component.get("component") == "Row"
+        and component.get("styles", {}).get("justifyContent") == "spaceEvenly"
+    )
+    progress_nodes = [
+        component for component in components if component.get("component") == "Progress"
+    ]
+
+    assert title["styles"]["height"] == 16
+    assert pair["styles"]["height"] == 72
+    assert pair["itemMargin"] == 16
+    assert len(progress_nodes) == 2
+    assert all(node["styles"]["width"] == 44 for node in progress_nodes)
+    assert all(node["styles"]["height"] == 44 for node in progress_nodes)
+    assert all(node["styles"]["strokeWidth"] == 6 for node in progress_nodes)
+    data_model = case.messages[2]["updateDataModel"]["value"]["data"]["earphone"]
+    assert set(data_model) == {
+        "leftBatteryLevel",
+        "leftChargingStatusDesc",
+        "rightBatteryLevel",
+        "rightChargingStatusDesc",
     }
