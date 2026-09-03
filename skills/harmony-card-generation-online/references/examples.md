@@ -68,7 +68,7 @@
 
 ```text
 invoke(functionName:"getWidgetCapabilityOverview", arguments:{
-  bundleName:"com.omega_w_0823.hmservice"
+  bundleName:"com.huawei.genui"
 },"skillName":"harmony-card-generation-online")
 ```
 
@@ -78,7 +78,7 @@ invoke(functionName:"getWidgetCapabilityOverview", arguments:{
 
 ```text
 invoke(functionName:"getDataCapabilitySchemas", arguments:{
-  bundleName:"com.omega_w_0823.hmservice",
+  bundleName:"com.huawei.genui",
   dataCapabilityIds:["ViewWeather","GetCalendarEvents"]
 },"skillName":"harmony-card-generation-online")
 ```
@@ -89,7 +89,7 @@ invoke(functionName:"getDataCapabilitySchemas", arguments:{
 
 ```text
 invoke(functionName:"RequestDataPermission", arguments:{
-  bundleName:"com.omega_w_0823.hmservice",
+  bundleName:"com.huawei.genui",
   dataCapabilityIds:["ViewWeather","GetCalendarEvents"]
 },"skillName":"harmony-card-generation-online")
 ```
@@ -110,7 +110,7 @@ invoke(functionName:"RequestDataPermission", arguments:{
 
 ```text
 invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
-  bundleName:"com.omega_w_0823.hmservice",
+  bundleName:"com.huawei.genui",
   userQuery:"做一张通勤卡片，显示上海青浦今天的天气和下一场日程。",
   title:"通勤助手",
   description:"天气日程速览",
@@ -186,7 +186,7 @@ overview 返回无需动态参数的闹钟入口事件后，没有数据候选�
 
 ```text
 invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
-  bundleName:"com.omega_w_0823.hmservice",
+  bundleName:"com.huawei.genui",
   userQuery:"做一个打开闹钟应用的入口卡片。",
   title:"闹钟入口",
   description:"快速打开闹钟",
@@ -230,7 +230,7 @@ overview 确认天气可用、股票不可用。天气仍是核心，股票可�
 
 ```text
 invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
-  bundleName:"com.omega_w_0823.hmservice",
+  bundleName:"com.huawei.genui",
   userQuery:"做一张通勤卡片，显示今天的天气。",
   title:"通勤天气",
   description:"今日天气速览",
@@ -340,7 +340,7 @@ overview → schema → permission（invoke 报错）→ generate
 
 ```text
 invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
-  bundleName:"com.omega_w_0823.hmservice",
+  bundleName:"com.huawei.genui",
   userQuery:"颜色换成红色，信息排紧凑一点",
   sourceArtifactUrl:"https://obs.example/widget/v1.md"
 },"skillName":"harmony-card-generation-online")
@@ -356,7 +356,7 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 
 ```text
 invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
-  bundleName:"com.omega_w_0823.hmservice",
+  bundleName:"com.huawei.genui",
   userQuery:"去掉日历，只保留天气",
   sourceArtifactUrl:"https://obs.example/widget/v1.md",
   candidateDataBindings:[

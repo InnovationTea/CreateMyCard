@@ -3,13 +3,13 @@ name: harmony-card-generation-online
 description: "为小艺/HarmonyOS 创建、生成、预览或连续编辑可添加到桌面的服务卡片（桌面卡片、服务卡片、widget、小组件）。当用户明确提出上述卡片意图，或要求‘使用桌面卡片生成技能’‘调用桌面卡片生成能力’‘使用服务卡片/小组件生成技能’‘用卡片技能生成或修改桌面卡片’等类似表达时使用。典型动态数据场景包括天气与未来预报、日历日程与会议、指定日期倒计时、指定 App 今日使用时长、蓝牙耳机连接与电量、手机电池与充电健康、睡眠与健康运动；典型点击动作包括拨号、清理运行内存，打开指定设置页、天气城市页、闹钟、音乐歌单、运动健康锻炼或睡眠页、日程详情或会议，导航到确切位置，以及开启或关闭省电模式。即使需求中的数据或动作可能不受支持，也应先加载本 Skill，再按运行时能力概述裁决、调整后生成或引导。不要用于普通对话、卡片意图不明、其他任意非华为自带 App 数据或操作、银行卡、会员卡、名片、游戏卡牌、普通网页/UI 等泛卡片语义。"
 metadata:
   tools:
-    - bundleName: "com.omega_w_0823.hmservice"
+    - bundleName: "com.huawei.genui"
       toolName: "getWidgetCapabilityOverview"
-    - bundleName: "com.omega_w_0823.hmservice"
+    - bundleName: "com.huawei.genui"
       toolName: "getDataCapabilitySchemas"
-    - bundleName: "com.omega_w_0823.hmservice"
+    - bundleName: "com.huawei.genui"
       toolName: "RequestDataPermission"
-    - bundleName: "com.omega_w_0823.hmservice"
+    - bundleName: "com.huawei.genui"
       toolName: "generateWidgetCardCompactDsl"
 ---
 
@@ -85,7 +85,7 @@ schema 为唯一依据。
 
 ```text
 invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
-  bundleName:"com.omega_w_0823.hmservice",
+  bundleName:"com.huawei.genui",
   userQuery:"做一张显示天气的卡片。",
   candidateDataBindings:[
     {
@@ -103,11 +103,11 @@ invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
 
 ```text
 // 错误：arguments 是字符串，而不是 JSON 对象
-invoke(functionName:"generateWidgetCardCompactDsl", arguments:"{\\"bundleName\\":\\"com.omega_w_0823.hmservice\\",\\"userQuery\\":\\"做一张显示天气的卡片。\\"}","skillName":"harmony-card-generation-online")
+invoke(functionName:"generateWidgetCardCompactDsl", arguments:"{\\"bundleName\\":\\"com.huawei.genui\\",\\"userQuery\\":\\"做一张显示天气的卡片。\\"}","skillName":"harmony-card-generation-online")
 
 // 错误：candidateDataBindings 和其内部 arguments 被序列化为字符串
 invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
-  bundleName:"com.omega_w_0823.hmservice",
+  bundleName:"com.huawei.genui",
   userQuery:"做一张显示天气的卡片。",
   candidateDataBindings:"[{\\"capabilityId\\":\\"ViewWeather\\",\\"arguments\\":{\\"forecastDays\\":1}}]"
 },"skillName":"harmony-card-generation-online")
