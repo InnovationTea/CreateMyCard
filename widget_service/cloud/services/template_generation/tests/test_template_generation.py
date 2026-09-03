@@ -613,7 +613,6 @@ def test_registry_uses_only_distributed_provider_and_theme_sources() -> None:
     assert set(registry.themes) == {
         "audio-product-neutral-violet",
         "2x2-two-support",
-        "battery-teal",
         "device-clean-blue-teal",
         "digital-wellbeing-neutral-dark",
         "family-weather-care-blue",
@@ -707,6 +706,9 @@ def test_battery_fusion_theme_covers_phone_and_earphone_businesses() -> None:
         "BatteryOverview",
         "BluetoothDeviceOverview",
     }
+    assert registry.first_layer_theme_ids(("BatteryOverview",)) == (
+        "fusion-battery-teal",
+    )
     assert registry.first_layer_theme_ids(("BluetoothDeviceOverview",)) == (
         "fusion-battery-teal",
     )
@@ -1137,20 +1139,6 @@ def test_non_fusion_device_theme_uses_the_reviewed_resource_palette() -> None:
     assert theme.action_style.background_color == "#1A0A59F7"
 
 
-def test_non_fusion_battery_theme_uses_the_compatible_teal_palette() -> None:
-    theme = get_cardplan_registry().require_theme("battery-teal")
-
-    assert theme.supported_capability_ids == ("GetPhoneBatteryInfo",)
-    assert theme.primary_color == "#FF1F8F99"
-    assert theme.support_content_color == "#991F8F99"
-    assert theme.progress_color == "#FF1F8F99"
-    assert theme.progress_background_color == "#331F8F99"
-    assert theme.root_style.get("backgroundColor") == "#FFE6FDFF"
-    assert "linearGradient" not in theme.root_style
-    assert theme.action_style.content_color == "#FF1F8F99"
-    assert theme.action_style.background_color == "#331F8F99"
-
-
 def test_disabled_fusion_feature_removes_themes_from_server_registry_view() -> None:
     enabled_registry = get_cardplan_registry(True)
     disabled_registry = get_cardplan_registry(False)
@@ -1165,7 +1153,6 @@ def test_disabled_fusion_feature_removes_themes_from_server_registry_view() -> N
     assert set(disabled_registry.themes) == {
         "2x2-two-support",
         "audio-product-neutral-violet",
-        "battery-teal",
         "device-clean-blue-teal",
         "digital-wellbeing-neutral-dark",
         "family-weather-care-blue",
@@ -4458,7 +4445,7 @@ async def test_2x2_battery_charging_progress_hero_uses_status_fields():
     phone_battery.pop("batteryCapacityLevelDesc")
     phone_battery["healthStatusDesc"] = _provider_field("正常", "string")
     model = _FixedTemplateModel(
-        theme_id="battery-teal",
+        theme_id="fusion-battery-teal",
         component_id="BatteryOverview",
         available_template_ids=("BatteryOverviewChargingProgressHero@1",),
         capability_id="GetPhoneBatteryInfo",
@@ -4513,7 +4500,7 @@ async def test_2x2_battery_health_level_hero_uses_health_fields():
         "batteryCapacityLevelDesc": _provider_field("正常电量", "string"),
     }
     model = _FixedTemplateModel(
-        theme_id="battery-teal",
+        theme_id="fusion-battery-teal",
         component_id="BatteryOverview",
         available_template_ids=("BatteryOverviewHealthLevelHero@1",),
         capability_id="GetPhoneBatteryInfo",
