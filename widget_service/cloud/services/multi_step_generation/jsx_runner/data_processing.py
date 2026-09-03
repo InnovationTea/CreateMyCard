@@ -470,9 +470,10 @@ def write_json_safely(output_path: Path, payload: Any) -> None:
     file_descriptor, temporary_name = tempfile.mkstemp(
         prefix=f".{output_path.name}.", suffix=".tmp", dir=output_path.parent
     )
+    os.close(file_descriptor)
     temporary_path = Path(temporary_name)
     try:
-        with os.fdopen(file_descriptor, "w", encoding="utf-8") as handle:
+        with temporary_path.open("w", encoding="utf-8") as handle:
             handle.write(serialized)
         temporary_path.replace(output_path)
     finally:
