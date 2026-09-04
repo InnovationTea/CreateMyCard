@@ -4854,9 +4854,11 @@ def _task_spec_schema_leaf(schema: dict[str, Any], pointer: str) -> dict[str, An
         if isinstance(current, dict):
             current = current.get(part)
             continue
-        if isinstance(current, list) and part.isdigit() and current:
+        if isinstance(current, list) and part.isdigit():
             index = int(part)
-            current = current[index] if index < len(current) else current[0]
+            if index >= len(current):
+                return None
+            current = current[index]
             continue
         return None
     if not isinstance(current, dict) or "type" not in current:
