@@ -106,4 +106,6 @@ def test_design_prompt_contains_root_height_hard_gate_examples() -> None:
 
     assert "## 3.1 一级高度算账硬门禁" in prompt
     assert "20 + 64 + 64 + 8 × 2 = 164 > 136" in prompt
-    assert "64 + 40 + 36 = 140 > 136" in prompt
+    assert "64 + 40 + 36 + 8 × 2 = 156 > 136" in prompt
+    assert "itemMargin 不生效" not in prompt
+    assert "两者可以同时设置" in prompt

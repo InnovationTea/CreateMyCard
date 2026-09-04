@@ -19,9 +19,6 @@ from services.compact_dsl_a2ui_converter import (
 _EXPRESSION_PATTERN = re.compile(r"^\{\{\s*(?P<body>.*?)\s*\}\}$")
 _REFERENCE_PATTERN = re.compile(r"\$\{(?P<path>[^{}]*)\}")
 _NON_EMPTY_CONTAINER_TYPES = frozenset({"Row", "Column", "List", "Stack"})
-_DISTRIBUTED_JUSTIFY_VALUES = frozenset(
-    {"spaceAround", "spaceBetween", "spaceEvenly"}
-)
 _REFERENCE_CANVAS_HEIGHT = {
     "2x2": 160.0,
     "2x4": 160.0,
@@ -126,7 +123,6 @@ def _collect_height_budget_errors(
     for component in components:
         if component.component_type not in {"Column", "List"}:
             continue
-        _collect_distributed_item_margin_error(component, errors)
         available_height = _component_available_height(
             component,
             task_spec,
@@ -147,23 +143,6 @@ def _collect_height_budget_errors(
             f"it overflows by {_format_vp(overflow)}vp. Reduce child heights, margins, "
             "or gaps instead of relying on clipping, flex shrink, or distributed alignment."
         )
-
-
-def _collect_distributed_item_margin_error(
-    component: ComponentRow,
-    errors: list[str],
-) -> None:
-    justify_content = component.props.get("justifyContent")
-    item_margin = _non_negative_number(component.props.get("itemMargin"))
-    uses_distributed_alignment = justify_content in _DISTRIBUTED_JUSTIFY_VALUES
-    if not uses_distributed_alignment or item_margin is None or item_margin == 0.0:
-        return
-    errors.append(
-        f"component {component.component_id}: itemMargin must be omitted when "
-        f'justifyContent is "{justify_content}"; first prove that fixed child heights '
-        "fit, then let distributed alignment allocate only non-negative remaining space."
-    )
-
 
 def _component_available_height(
     component: ComponentRow,
@@ -251,8 +230,6 @@ def _action_unit_minimum_height(component: ComponentRow) -> float:
 
 def _vertical_gap(component: ComponentRow, child_count: int) -> float:
     if child_count < 2:
-        return 0.0
-    if component.props.get("justifyContent") in _DISTRIBUTED_JUSTIFY_VALUES:
         return 0.0
     property_name = "space" if component.component_type == "List" else "itemMargin"
     gap = _non_negative_number(component.props.get(property_name))

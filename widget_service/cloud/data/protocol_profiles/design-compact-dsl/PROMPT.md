@@ -189,13 +189,13 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 1. `2x2` 和 `2x4` 的 root 可用高度都固定为 `136vp`，即 `160 - 12 - 12`。不得把 root 外部高度 `160vp` 当作内容高度。
 2. 对 root Column 的每个直接子节点确定最小占用高度 `H_i`。子节点显式写了 `height` 时使用该值；未写时，按其后代固定高度、上下 padding、上下 margin 和内部纵向间距求出最小高度。含 `36vp` 按钮的无高度 action 容器，其最小高度至少为 `36vp`，不能按 `0vp` 处理。
 3. `justifyContent` 为 `start|center|end` 时：`H_required = ΣH_i + Σ上下 margin + itemMargin × (子节点数 - 1)`。
-4. `justifyContent` 为 `spaceAround|spaceBetween|spaceEvenly` 时禁止同时写 `itemMargin`；先计算 `H_required = ΣH_i + Σ上下 margin`，只有 `H_required <= 136` 才能把非负剩余空间交给分布式对齐。
+4. `justifyContent` 为 `spaceAround|spaceBetween|spaceEvenly` 时，`itemMargin` 表示必须保留的最小间距，仍然计入 `H_required`；只有扣除子节点、margin 和最小间距后剩余空间大于或等于 `0`，才能把剩余空间交给分布式对齐。不得仅因两者同时出现就判错，也不得假设分布式对齐会吞掉 `itemMargin`。
 5. `layoutWeight`、`flexShrink`、`clip` 和分布式对齐都不能抵消已经算出的固定高度。`H_required > 136` 时必须删除弱区域、合并标题、降低区域固定高度或改选更简单骨架。
 
 以下两种结构无论截图是否暂时可见都必须判定失败：
 
 - `20 + 64 + 64 + 8 × 2 = 164 > 136`：标题行与 S4 纵堆双 `64vp` 区域不可共存；删除总标题，保留 `64 + 8 + 64 = 136`。
-- `64 + 40 + 36 = 140 > 136`：即使使用 `spaceBetween` 且忽略所有额外间距也放不下；必须先缩小或合并区域，不能再叠加 `itemMargin`。
+- `64 + 40 + 36 + 8 × 2 = 156 > 136`：使用 `spaceBetween` 时仍须计入两个 `8vp` 最小间距；即使暂时忽略间距，固定高度 `140vp` 也已经放不下，必须先缩小或合并区域。
 
 # 四、极简协议结构
 
@@ -397,7 +397,7 @@ props 可用样式字段：
 
 - `justifyContent`：`start|center|end|spaceAround|spaceBetween|spaceEvenly`。
 - `alignItems`：`top|center|bottom`。
-- `justifyContent` 为 `spaceAround|spaceBetween|spaceEvenly` 时，`itemMargin` 不生效，因此不得同时设置；间距完全由剩余主轴空间的分配规则决定。需要固定间距时使用 `start|center|end + itemMargin`。
+- `justifyContent` 为 `spaceAround|spaceBetween|spaceEvenly` 时，`itemMargin` 仍作为相邻子项之间必须保留的最小间距；扣除该间距后，只能将非负剩余空间交给分布式对齐。两者可以同时设置，但不能依赖分布式对齐消除负剩余空间。
 
 ## 5.10 Column
 
@@ -410,7 +410,7 @@ props 可用样式字段：
 
 - `justifyContent`：`start|center|end|spaceAround|spaceBetween|spaceEvenly`。
 - `alignItems`：`start|center|end`。
-- `justifyContent` 为 `spaceAround|spaceBetween|spaceEvenly` 时，`itemMargin` 不生效，因此不得同时设置；间距完全由剩余主轴空间的分配规则决定。需要固定间距时使用 `start|center|end + itemMargin`。
+- `justifyContent` 为 `spaceAround|spaceBetween|spaceEvenly` 时，`itemMargin` 仍作为相邻子项之间必须保留的最小间距；扣除该间距后，只能将非负剩余空间交给分布式对齐。两者可以同时设置，但不能依赖分布式对齐消除负剩余空间。
 
 ## 5.11 List
 
@@ -554,7 +554,7 @@ ActionUnit——卡级 CTA：
 - 关键内部容器、图片、Progress、Button 使用数值宽高。
 - 对每个 Row/Column 分别计算两个轴的内部预算：`内部宽度 = 父宽度 - 左右 padding`，`内部高度 = 父高度 - 上下 padding`；子项的 width/height、四向 margin 和有效 `itemMargin` 都按所在轴计入。root 的直接内容预算必须固定按 `2x2: 136×136`、`2x4: 296×136` 检查，不能把 `160×160` 或 `320×160` 当成 padding 后仍可使用的空间。
 - Row/Column 使用 `start|center|end` 时，主轴占用量为 `所有子项主轴尺寸 + 所有子项主轴 margin + 有效 itemMargin × 间隔数`，该值不得超过父容器主轴内部预算；交叉轴上每个子项的尺寸与 margin 也不得超过交叉轴内部预算。
-- Row/Column 使用 `spaceAround|spaceBetween|spaceEvenly` 时不得设置或计入 `itemMargin`；先计算 `剩余主轴空间 = 父容器主轴内部预算 - 所有子项主轴尺寸 - 所有子项主轴 margin`，剩余空间必须大于或等于 `0`，再按分布规则分配。分布式对齐不能压缩子项，也不能修复负剩余空间。
+- Row/Column 使用 `spaceAround|spaceBetween|spaceEvenly` 时，先计算 `剩余主轴空间 = 父容器主轴内部预算 - 所有子项主轴尺寸 - 所有子项主轴 margin - itemMargin × 间隔数`，剩余空间必须大于或等于 `0`，再在最小 `itemMargin` 之外按分布规则分配。`itemMargin` 缺失时按 `0` 计算；分布式对齐不能压缩子项，也不能修复负剩余空间。
 - `spaceAround|spaceBetween|spaceEvenly` 只在全部主轴子项都有稳定尺寸时使用，不依赖分布式对齐修复不确定宽高，也不假设它会保留额外固定间距。
 - 包含动态 Text、Button 或图文 CTA 的 Row 在完成各子项压力宽度分配后，主轴还应至少保留 `4vp` 非占用余量；若结果刚好为 `0` 或仅靠默认裁切才能成立，优先改为 Column、扩大主内容槽位或删除次要字段。
 - `clip: true` 只用于约束卡片外形，不是布局策略。任何文本、图标、Progress、状态区或 CTA 的理论边界超出父容器，都属于失败，即使截图中还能露出一部分也不得输出。
@@ -917,7 +917,7 @@ ActionUnit——卡级 CTA：
 1. **输出与协议**：是否只有一个 `genui` 代码块和可解析的极简协议 JSONL；是否没有 createSurface/updateComponents/updateDataModel/surfaceId/catalogId；root、组件字段和枚举是否正确；融球 Design Token 是否只在 `2x2` 单一业务的倒计时/纪念日、单个日程/提醒、睡眠/专注场景用于 root，且 root 未同时写普通背景。
 2. **引用与数据**：组件是否唯一、可达且引用闭合；Expression、PathBinding、模板路径与首帧 DataModel 是否存在并类型一致；是否没有孤立组件、空胶囊、局部 Expression 或静态样例冒充动态绑定。
 3. **候选与事件**：是否只保留最小充分候选；显式动作是否绑定，隐式入口是否不抢占空间，未被明确要求的副作用动作是否已删除；同一动作是否只有一个点击容器。
-4. **骨架与预算**：是否只使用一个固定骨架；root 宽高是否为 `"matchParent"`、padding 12、圆角 20、clip true；root Column 是否使用 `alignItems:"center"`，root Row 的固定参考宽度直接内容是否使用 `justifyContent:"center"`，且没有把 root 的整组居中误写成内部文字全部居中；是否已按 3.1 节逐项写出 root 直接子节点的最小高度并确认 `H_required <= 136vp`；分布式对齐是否未同时携带 `itemMargin`；所有 Row/Column 两轴预算是否非负，动态文字 Row 是否保留余量，点击热区是否至少 24vp。
+4. **骨架与预算**：是否只使用一个固定骨架；root 宽高是否为 `"matchParent"`、padding 12、圆角 20、clip true；root Column 是否使用 `alignItems:"center"`，root Row 的固定参考宽度直接内容是否使用 `justifyContent:"center"`，且没有把 root 的整组居中误写成内部文字全部居中；是否已按 3.1 节逐项写出 root 直接子节点的最小高度、margin 和 `itemMargin` 并确认 `H_required <= 136vp`；分布式对齐是否只分配扣除最小间距后的非负剩余空间；所有 Row/Column 两轴预算是否非负，动态文字 Row 是否保留余量，点击热区是否至少 24vp。
 5. **文字与图表**：卡片级标题是否默认不超过 8 个字符，超长例外是否已证明完整可读且不挤压其它内容；受保护文本和 CTA 是否完整；是否没有空白 Text、`textOverflow`、单独的 `°` 或近似温度单位；格式化值是否包含单位与符号并通过压力检查；全卡字号是否不超过三档、同层级元素是否保持一致；Progress 是否只用于范围可靠的数值语义。
 6. **表面与素材**：背景是否按第十二节两方案之一取色且语义准确、没有无意退化为无色相灰白 canvas；无背景素材且不使用融球时，root 是否已输出同色族 `linearGradient`，若仍使用单一 `backgroundColor` 是否明确命中“用户指定纯色”或“渐变确实干扰高密度列表/网格”的例外；方案二文字、单色图标、图表和动作是否来自同一语义色相族且没有黑灰默认阅读层；渐变是否单向连续且没有跳色；canvas、surface、accent 是否同色相族且没有机械复用蓝白；一级文字/CTA 与主语义图标是否分别达到 4.5:1/3:1 的直接背景对比；SVG 染色、位图和背景素材是否符合描述。
 7. **最终简化**：是否只有一个主焦点、清晰对齐线和有限表面；并列分区的高度、视觉重量和留白是否均衡；是否已删除弱装饰、重复事实、无关字段、假交互、无意义单子容器和多余材质；若仍有任何不确定布局，是否已经回退到同尺寸更简单骨架。
