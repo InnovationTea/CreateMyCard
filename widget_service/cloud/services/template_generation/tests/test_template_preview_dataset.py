@@ -16,20 +16,20 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     manifest = write_template_preview_dataset(tmp_path)
     cases = manifest["cases"]
 
-    assert manifest["templateCount"] == 69
+    assert manifest["templateCount"] == 91
     assert manifest["countsByLayout"] == {
         "HeroTitle": 1,
         "HeroContent": 1,
         "Support": 12,
-        "Compact": 11,
-        "Hero": 18,
-        "Full": 15,
+        "Compact": 13,
+        "Hero": 29,
+        "Full": 24,
         "WideHero": 2,
         "WideFull": 9,
     }
-    assert manifest["countsBySize"] == {"2x2": 58, "2x4": 11}
-    assert len(cases) == 69
-    assert len({case["templateId"] for case in cases}) == 69
+    assert manifest["countsBySize"] == {"2x2": 80, "2x4": 11}
+    assert len(cases) == 91
+    assert len({case["templateId"] for case in cases}) == 91
     assert all((tmp_path / case["file"]).is_file() for case in cases)
 
 
@@ -69,6 +69,7 @@ def test_template_preview_assets_are_bundled_by_genui_evaluation():
         "figure_run.svg",
         "flame_fill.svg",
         "heart_fill.svg",
+        "heat_generation.svg",
         "icon_earphone.svg",
         "icon_tiktok.png",
         "icon_weather1.svg",
@@ -92,6 +93,13 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
                 "/location/prefectureName", "/location/districtName",
                 "/current/temperatureText", "/current/condition",
             )
+        elif case.template_id == "HeartRateOverviewMinMaxFull@1":
+            assert case.primary_data == (
+                "/exerciseHeartRateMax",
+                "/exerciseHeartRateMin",
+            )
+            assert case.secondary_data == ()
+            assert case.optional_data == ("/updatedAt",)
         else:
             assert case.primary_data
         assert json.dumps(case.messages, ensure_ascii=False)
@@ -105,9 +113,9 @@ def test_earphone_hero_uses_title_parameter_without_title_binding():
     )
 
     assert case.primary_data == ("/isConnected", "/earphoneName")
-    assert case.secondary_data == ("/leftBatteryLevel", "/rightBatteryLevel")
-    assert case.optional_data == ()
-    assert "已连接" in json.dumps(case.messages, ensure_ascii=False)
+    assert case.secondary_data == ()
+    assert case.optional_data == ("/leftBatteryLevel", "/rightBatteryLevel")
+    assert "已链接" in json.dumps(case.messages, ensure_ascii=False)
     data_model = case.messages[2]["updateDataModel"]["value"]["data"]["earphone"]
     assert set(data_model) == {
         "isConnected",

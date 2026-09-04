@@ -77,6 +77,7 @@ _ASSET_BY_PARAMETER = {
     "locationIcon": "resources/base/media/location_north_up_right_fill.svg",
     "rightEarIcon": "resources/base/media/r_circle_fill.svg",
     "stepsIcon": "resources/base/media/figure_run.svg",
+    "temperatureIcon": "resources/base/media/heat_generation.svg",
     "timeIcon": "resources/base/media/clock_fill.svg",
 }
 _SOURCE_ICON_BY_BUSINESS = {
@@ -117,6 +118,8 @@ _SAMPLE_BY_BUSINESS_BINDING: dict[tuple[str, str], Any] = {
     ("CalendarOverview", "title"): "UI需求评审会",
     ("CalendarOverview", "updatedAt"): "今天 09:00",
     ("HeartRateOverview", "average"): 135,
+    ("HeartRateOverview", "max"): 168,
+    ("HeartRateOverview", "min"): 112,
     ("HeartRateOverview", "updatedAt"): "今天 09:00",
     ("ResourceUsageOverview", "available"): "5.2 GB",
     ("ResourceUsageOverview", "total"): "12 GB",

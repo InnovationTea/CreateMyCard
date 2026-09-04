@@ -50,6 +50,7 @@ from services.template_generation.engine.advanced.content_selectors import (
     app_usage_overview_query_is_supported,
     apply_content_selectors,
     bluetooth_device_overview_is_eligible,
+    bluetooth_device_overview_variants,
     extract_battery_overview_facts,
     extract_bluetooth_device_overview_facts,
     extract_schedule_overview_facts,
@@ -96,7 +97,10 @@ from services.template_generation.engine.cardplan.models import (
     HybridBodyContract,
     HybridLimits,
 )
-from services.template_generation.engine.cardplan.prompt import _ux_layout_action_rule
+from services.template_generation.engine.cardplan.prompt import (
+    _provider_variant_matches_trusted_state,
+    _ux_layout_action_rule,
+)
 from services.template_generation.engine.cardplan.provider_bundle import (
     _parse_component_body,
     load_provider_bundle,
@@ -250,7 +254,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 92
+    assert len(registry.provider_template_ids) == 100
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -262,10 +266,16 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "BatteryOverviewChargingRingHero@1",
         "BatteryOverviewHealthLevelHero@1",
         "BluetoothDeviceOverviewEarbudPairFull@1",
+        "BluetoothDeviceOverviewEarbudsFull@1",
+        "BluetoothDeviceOverviewEarphoneCaseHero@1",
+        "BluetoothDeviceOverviewEarphoneCaseCompact@1",
+        "BluetoothDeviceOverviewEarphoneHero@1",
+        "BluetoothDeviceOverviewEarphoneCompact@1",
         "BluetoothDeviceOverviewHero@1",
         "CountdownOverviewFull@1",
         "CountdownOverviewHero@1",
         "HeartRateOverviewFull@1",
+        "HeartRateOverviewMinMaxFull@1",
         "ResourceUsageOverviewFull@1",
         "ScheduleOverviewDatedMeetingHero@1",
         "ScheduleOverviewDatedAllDayHero@1",
@@ -283,6 +293,8 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "ScheduleOverviewTwoEventsFull@1",
         "SleepOverviewCompact@1",
         "SleepOverviewFull@1",
+        "SleepOverviewNapFull@1",
+        "SleepOverviewNapHero@1",
         "SleepOverviewHero@1",
         "WeatherOverviewAirQualityHero@1",
         "WeatherOverviewFull@1",
@@ -1017,7 +1029,7 @@ def test_fusion_ball_palette_is_gated_by_selected_theme(
     ("theme_id", "primary", "support"),
     [
         ("fusion-weather-blue", "#FFCCDDFF", "#99CCDDFF"),
-        ("fusion-sleep-violet", "#FFD9CCFF", "#99D9CCFF"),
+        ("fusion-sleep-violet", "#E6FFFFFF", "#99D9CCFF"),
         ("fusion-sport-orange", "#FFFFFFFF", "#99FFFFFF"),
         ("fusion-battery-teal", "#FFCCFFF6", "#99CCFFF6"),
         ("fusion-schedule-cool", "#FFCCEEFF", "#B3CCEEFF"),
@@ -1615,10 +1627,15 @@ def test_workout_template_requires_one_complete_training_session():
     registry = get_cardplan_registry()
     definition = registry.require_template("WorkoutOverviewFull@1")
 
-    assert definition.primary_data == ("/exerciseTypeName", "/exerciseDurationText")
+    assert definition.primary_data == ("/exerciseDurationText",)
     assert definition.secondary_data == ("/exerciseCalorieText", "/exerciseEndTimeText")
-    assert definition.optional_data == ()
+    assert definition.optional_data == ("/exerciseTypeName",)
     assert set(definition.variants[0].parameters_schema["properties"]) == {"sourceIcon"}
+
+    hero = registry.require_template("WorkoutOverviewHero@1")
+    assert hero.primary_data == ("/exerciseDurationText",)
+    assert hero.secondary_data == ()
+    assert hero.optional_data == ("/exerciseTypeName", "/exerciseCalorieText")
 
     session = {
         "exerciseTypeName": {
@@ -1646,11 +1663,30 @@ def test_workout_template_requires_one_complete_training_session():
     assert facts is not None
     assert facts.end_time_text == "19:10"
 
-    incomplete = {key: value for key, value in session.items() if key != "exerciseEndTimeText"}
-    assert extract_workout_latest_facts({"data": {"healthSport": incomplete}}) is None
+    without_end_time = {
+        key: value for key, value in session.items() if key != "exerciseEndTimeText"
+    }
+    relaxed = extract_workout_latest_facts({"data": {"healthSport": without_end_time}})
+    assert relaxed is not None
+    assert relaxed.end_time_text is None
+
+    without_type = {
+        key: value for key, value in session.items() if key != "exerciseTypeName"
+    }
+    untyped = extract_workout_latest_facts({"data": {"healthSport": without_type}})
+    assert untyped is not None
+    assert untyped.exercise_type_name is None
+
+    without_calorie = {
+        key: value for key, value in session.items() if key != "exerciseCalorieText"
+    }
+    calorieless = extract_workout_latest_facts({"data": {"healthSport": without_calorie}})
+    assert calorieless is not None
+    assert calorieless.calorie_text is None
+    assert "exerciseCalorieText" not in calorieless.as_selector()
 
 
-def test_first_layer_receives_workout_session_routing_rules_and_four_required_paths():
+def test_first_layer_receives_workout_session_routing_rules_and_required_paths():
     session = {
         "exerciseTypeName": {
             "type": "string",
@@ -1715,7 +1751,6 @@ def test_first_layer_receives_workout_session_routing_rules_and_four_required_pa
         item for item in workout["templates"] if item["templateId"] == "WorkoutOverviewFull@1"
     )
     assert template["requiredTaskSpecPaths"] == [
-        "/data/healthSport/exerciseTypeName",
         "/data/healthSport/exerciseDurationText",
         "/data/healthSport/exerciseCalorieText",
         "/data/healthSport/exerciseEndTimeText",
@@ -2049,7 +2084,7 @@ def _template_nodes(node: Any, component: str) -> list[Any]:
     return matches
 
 
-def test_sleep_templates_bind_progress_color_to_theme_progress_token() -> None:
+def test_sleep_templates_bind_progress_color_to_dedicated_theme_tokens() -> None:
     registry = get_cardplan_registry()
 
     for template_id in (
@@ -2065,6 +2100,9 @@ def test_sleep_templates_bind_progress_color_to_theme_progress_token() -> None:
         assert color is not None
         assert color.kind == "theme"
         assert color.name == "progressColor"
+        background = options.properties["backgroundColor"]
+        assert background.kind == "theme"
+        assert background.name == "progressBackgroundColor"
 
 
 def test_sleep_hero_requires_both_time_bindings_for_the_fallback_row() -> None:
@@ -2083,8 +2121,8 @@ def test_sleep_hero_requires_both_time_bindings_for_the_fallback_row() -> None:
     theme_values = {
         "primaryColor": "#FF401F99",
         "supportContentColor": "#991F4799",
-        "progressColor": "#991F4799",
-        "progressBackgroundColor": "#33564AF7",
+        "progressColor": "#33564AF7",
+        "progressBackgroundColor": "#1F33564A",
     }
     binding_paths = {
         "duration": "${data.healthSport.nightSleepDurationText}",
@@ -2139,24 +2177,21 @@ def test_sleep_hero_requires_both_time_bindings_for_the_fallback_row() -> None:
     assert not any("wakeupTimeText" in value for value in partial_time_text)
 
 
-def test_sport_templates_bind_progress_color_to_theme_progress_token() -> None:
+def test_sport_templates_bind_progress_color_to_dedicated_theme_tokens() -> None:
     registry = get_cardplan_registry()
 
-    for template_id, expected_count in (
-        ("ActivityOverviewHero@1", 1),
-        ("ActivityOverviewFull@1", 1),
-        ("WorkoutOverviewFull@1", 0),
+    for template_id in (
+        "ActivityOverviewHero@1",
+        "ActivityOverviewFull@1",
     ):
         root = registry.require_variant(template_id, "default").root
         progress = _template_nodes(root, "Progress")
-        assert len(progress) == expected_count, template_id
-        for node in progress:
-            options = node.values[-1]
-            assert options.kind == "object"
-            color = options.properties.get("color")
-            assert color is not None
-            assert color.kind == "theme"
-            assert color.name == "progressColor"
+        assert len(progress) == 1
+        options = progress[0].values[-1]
+        assert options.kind == "object"
+        color = options.properties["color"]
+        assert color.kind == "theme"
+        assert color.name == "progressColor"
 
 
 def test_health_sport_templates_follow_latest_display_contract() -> None:
@@ -2175,7 +2210,7 @@ def test_health_sport_templates_follow_latest_display_contract() -> None:
         ),
         "SleepOverviewFull@1": (
             "睡眠情况完整摘要，展示时长和状态，"
-            "可选展示得分进度或完整睡眠时段，可使用睡眠图标。 "
+            "可选展示得分进度、完整睡眠时段或小睡时长，可使用睡眠图标。 "
             "组件形态：full。"
         ),
         "SleepOverviewHero@1": (
@@ -2185,6 +2220,14 @@ def test_health_sport_templates_follow_latest_display_contract() -> None:
         ),
         "SleepOverviewCompact@1": (
             "睡眠情况紧凑摘要，展示睡眠时长，可使用睡眠图标。 组件形态：compact。"
+        ),
+        "SleepOverviewNapFull@1": (
+            "作息提醒完整摘要，展示小睡累计时长，可选展示入睡-醒来时段，可使用睡眠图标。 "
+            "组件形态：full。"
+        ),
+        "SleepOverviewNapHero@1": (
+            "作息提醒主视觉，展示小睡累计时长，可选展示入睡-醒来时段，可使用睡眠图标。 "
+            "组件形态：hero。"
         ),
     }
 
@@ -2218,6 +2261,8 @@ def test_health_sport_templates_follow_latest_display_contract() -> None:
         "SleepOverviewFull@1": {"睡眠情况", "睡眠情况评分"},
         "SleepOverviewHero@1": {"睡眠情况"},
         "SleepOverviewCompact@1": {"睡眠情况时长"},
+        "SleepOverviewNapFull@1": {"作息提醒"},
+        "SleepOverviewNapHero@1": {"作息提醒"},
     }
     for template_id, expected_labels in sleep_labels.items():
         root = registry.require_variant(template_id, "default").root
@@ -2231,14 +2276,18 @@ def test_health_sport_templates_follow_latest_display_contract() -> None:
     for template_id in ("SleepOverviewFull@1", "SleepOverviewHero@1"):
         root = registry.require_variant(template_id, "default").root
         progress_options = _template_nodes(root, "Progress")[0].values[-1]
-        background_color = progress_options.properties.get("backgroundColor")
-        assert background_color is not None
-        assert background_color.kind == "theme"
-        assert background_color.name == "progressBackgroundColor"
+        background = progress_options.properties["backgroundColor"]
+        assert background.kind == "theme"
+        assert background.name == "progressBackgroundColor"
 
 
 def test_earphone_templates_bind_progress_color_to_theme_support_content() -> None:
     registry = get_cardplan_registry()
+    ring_progress_templates = {
+        "BluetoothDeviceOverviewEarbudsFull@1",
+        "BluetoothDeviceOverviewEarphoneCaseHero@1",
+        "BluetoothDeviceOverviewEarphoneHero@1",
+    }
     progress_count = 0
 
     for template_id, definition in registry.templates.items():
@@ -2251,9 +2300,14 @@ def test_earphone_templates_bind_progress_color_to_theme_support_content() -> No
             assert options.kind == "object"
             color = options.properties["color"]
             assert color.kind == "theme"
-            assert color.name == "supportContentColor"
+            expected_color = (
+                "progressColor"
+                if template_id in ring_progress_templates
+                else "supportContentColor"
+            )
+            assert color.name == expected_color
 
-    assert progress_count == 10
+    assert progress_count == 14
 
 
 def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() -> None:
@@ -2266,6 +2320,7 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
             "rightEarIcon",
             "deviceIcon",
             "caseIcon",
+            "earphoneIcon",
         },
         "HeartRateOverview": {"sourceIcon"},
         "SleepOverview": {"sourceIcon"},
@@ -2281,6 +2336,12 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("BluetoothDeviceOverviewEarbudPairFull@1", "caseIcon"),
         ("BluetoothDeviceOverviewEarbudPairCompact@1", "leftEarIcon"),
         ("BluetoothDeviceOverviewEarbudPairCompact@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewEarbudsFull@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewEarbudsFull@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewEarphoneCaseHero@1", "caseIcon"),
+        ("BluetoothDeviceOverviewEarphoneCaseCompact@1", "caseIcon"),
+        ("BluetoothDeviceOverviewEarphoneHero@1", "earphoneIcon"),
+        ("BluetoothDeviceOverviewEarphoneCompact@1", "earphoneIcon"),
         ("HeartRateOverviewIconCompact@1", "sourceIcon"),
         ("HeartRateOverviewIconHero@1", "sourceIcon"),
         ("HeartRateOverviewUpdatedIconHero@1", "sourceIcon"),
@@ -2290,6 +2351,8 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("SleepOverviewHero@1", "sourceIcon"),
         ("SleepOverviewCompact@1", "sourceIcon"),
         ("SleepOverviewSupport@1", "sourceIcon"),
+        ("SleepOverviewNapFull@1", "sourceIcon"),
+        ("SleepOverviewNapHero@1", "sourceIcon"),
     }
     expected_inherited_assets = {
         ("WorkoutOverviewFull@1", "sourceIcon"),
@@ -3929,6 +3992,161 @@ def test_bluetooth_case_status_facts_do_not_require_device_identity() -> None:
     assert facts.case_battery_level == 80
     assert facts.case_charging_status == "充电中"
     assert bluetooth_device_overview_is_eligible(task_spec, {"GetEarphoneInfo"})
+
+
+def test_bluetooth_case_facts_admit_earphone_case_hero() -> None:
+    task_spec = _bluetooth_case_status_task()
+
+    facts = extract_bluetooth_device_overview_facts(task_spec.dataModelSchema)
+
+    assert facts is not None
+    assert facts.case_battery_level == 80
+    assert facts.case_charging_status == "充电中"
+    assert bluetooth_device_overview_variants(task_spec, {"GetEarphoneInfo"}) == ("template",)
+    _validate_provider_template_state(
+        "BluetoothDeviceOverviewEarphoneCaseHero@1",
+        "default",
+        task_spec,
+        business_names={"BluetoothDeviceOverview"},
+    )
+
+
+def test_bluetooth_case_facts_admit_earphone_case_compact() -> None:
+    task_spec = _bluetooth_case_status_task()
+
+    facts = extract_bluetooth_device_overview_facts(task_spec.dataModelSchema)
+
+    assert facts is not None
+    assert facts.case_battery_level == 80
+    assert facts.case_charging_status == "充电中"
+    assert bluetooth_device_overview_variants(task_spec, {"GetEarphoneInfo"}) == ("template",)
+    assert provider_template_family_identity(
+        "BluetoothDeviceOverviewEarphoneCaseCompact@1"
+    ) == (
+        "BluetoothDeviceOverview@1",
+        "earphoneCaseCompact",
+    )
+    _validate_provider_template_state(
+        "BluetoothDeviceOverviewEarphoneCaseCompact@1",
+        "default",
+        task_spec,
+        business_names={"BluetoothDeviceOverview"},
+    )
+
+
+def test_bluetooth_name_and_case_battery_admit_earphone_hero() -> None:
+    task_spec = _bluetooth_task("展示耳机名称和电量").model_copy(
+        update={
+            "dataModelSchema": {
+                "data": {
+                    "earphone": {
+                        "earphoneName": _provider_field("FreeBuds Pro 3", "string"),
+                        "batteryLevel": _provider_field(80, "integer"),
+                    }
+                }
+            }
+        }
+    )
+
+    facts = extract_bluetooth_device_overview_facts(task_spec.dataModelSchema)
+
+    assert facts is not None
+    assert facts.is_connected is None
+    assert facts.earphone_name == "FreeBuds Pro 3"
+    assert facts.case_battery_level == 80
+    assert provider_template_family_identity(
+        "BluetoothDeviceOverviewEarphoneHero@1"
+    ) == (
+        "BluetoothDeviceOverview@1",
+        "earphoneHero",
+    )
+    assert _provider_variant_matches_trusted_state(
+        "BluetoothDeviceOverviewEarphoneHero@1",
+        "default",
+        task_spec,
+        _bluetooth_card_spec(),
+    )
+    _validate_provider_template_state(
+        "BluetoothDeviceOverviewEarphoneHero@1",
+        "default",
+        task_spec,
+        business_names={"BluetoothDeviceOverview"},
+    )
+
+
+def test_bluetooth_name_and_case_battery_admit_earphone_compact() -> None:
+    task_spec = _bluetooth_task("展示耳机名称和电量").model_copy(
+        update={
+            "dataModelSchema": {
+                "data": {
+                    "earphone": {
+                        "earphoneName": _provider_field("FreeBuds Pro 3", "string"),
+                        "batteryLevel": _provider_field(80, "integer"),
+                    }
+                }
+            }
+        }
+    )
+
+    facts = extract_bluetooth_device_overview_facts(task_spec.dataModelSchema)
+
+    assert facts is not None
+    assert facts.is_connected is None
+    assert facts.earphone_name == "FreeBuds Pro 3"
+    assert facts.case_battery_level == 80
+    assert provider_template_family_identity(
+        "BluetoothDeviceOverviewEarphoneCompact@1"
+    ) == (
+        "BluetoothDeviceOverview@1",
+        "earphoneCompact",
+    )
+    assert _provider_variant_matches_trusted_state(
+        "BluetoothDeviceOverviewEarphoneCompact@1",
+        "default",
+        task_spec,
+        _bluetooth_card_spec(),
+    )
+    _validate_provider_template_state(
+        "BluetoothDeviceOverviewEarphoneCompact@1",
+        "default",
+        task_spec,
+        business_names={"BluetoothDeviceOverview"},
+    )
+
+
+def test_bluetooth_ear_battery_facts_admit_per_ear_charging_status() -> None:
+    task_spec = _bluetooth_task("看看左右耳机电量，各自是否在充电").model_copy(
+        update={
+            "dataModelSchema": {
+                "data": {
+                    "earphone": {
+                        "leftBatteryLevel": _provider_field(76, "integer"),
+                        "leftChargingStatusDesc": _provider_field("未充电", "string"),
+                        "rightBatteryLevel": _provider_field(78, "integer"),
+                        "rightChargingStatusDesc": _provider_field("充电中", "string"),
+                    }
+                }
+            }
+        }
+    )
+
+    facts = extract_bluetooth_device_overview_facts(task_spec.dataModelSchema)
+
+    assert facts is not None
+    assert facts.is_connected is None
+    assert facts.earphone_name is None
+    assert facts.left_battery_level == 76
+    assert facts.right_battery_level == 78
+    selector = facts.as_selector()
+    assert selector["leftChargingStatusDesc"]["sampleValue"] == "未充电"
+    assert selector["rightChargingStatusDesc"]["sampleValue"] == "充电中"
+    assert bluetooth_device_overview_variants(task_spec, {"GetEarphoneInfo"}) == ("template",)
+    _validate_provider_template_state(
+        "BluetoothDeviceOverviewEarbudsFull@1",
+        "default",
+        task_spec,
+        business_names={"BluetoothDeviceOverview"},
+    )
 
 
 @pytest.mark.asyncio

@@ -1285,6 +1285,172 @@ def test_search_allows_one_data_business_with_two_actions() -> None:
     )
 
 
+def test_bluetooth_case_compact_supports_two_actions() -> None:
+    task = TaskSpec(
+        userQuery="看看耳机盒是否在充电、电量有多少",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.open.music.daily",
+                call="clickToDeeplink",
+                args={"intentName": "Music"},
+            ),
+            EventAction(
+                id="event.open.clock.alarm",
+                call="clickToDeeplink",
+                args={"intentName": "Clock"},
+            ),
+        ],
+        dataModelSchema={
+            "data": {
+                "earphone": {
+                    "batteryLevel": _field(80, "integer"),
+                    "chargingStatusDesc": _field("充电中"),
+                }
+            }
+        },
+    )
+    query = TemplateRetrievalQuery(
+        themeId="family-weather-care-blue",
+        requiredOutputFieldsByCapability={
+            "GetEarphoneInfo": ("/batteryLevel", "/chargingStatusDesc")
+        },
+        action_ids=("event.open.music.daily", "event.open.clock.alarm"),
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetEarphoneInfo",
+        writeResultTo="/data/earphone",
+        candidateOutputFields=["/batteryLevel", "/chargingStatusDesc"],
+    )
+    card_spec = {
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {"capabilityId": "GetEarphoneInfo", "writeResultTo": "/data/earphone"}
+        ],
+    }
+
+    result = retrieve_template_variants(
+        query,
+        task,
+        get_cardplan_registry(),
+        (binding,),
+        card_spec,
+    )
+
+    assert result.component_candidates[0].available_template_ids == (
+        "BluetoothDeviceOverviewEarphoneCaseCompact@1",
+    )
+
+
+def test_bluetooth_earphone_hero_supports_name_and_battery() -> None:
+    task = TaskSpec(
+        userQuery="展示耳机名称和耳机电量",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.open.music.daily",
+                call="clickToDeeplink",
+                args={"intentName": "Music"},
+            ),
+        ],
+        dataModelSchema={
+            "data": {
+                "earphone": {
+                    "earphoneName": _field("FreeBuds Pro 3"),
+                    "batteryLevel": _field(80, "integer"),
+                }
+            }
+        },
+    )
+    query = TemplateRetrievalQuery(
+        themeId="family-weather-care-blue",
+        requiredOutputFieldsByCapability={
+            "GetEarphoneInfo": ("/earphoneName", "/batteryLevel")
+        },
+        action_ids=("event.open.music.daily",),
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetEarphoneInfo",
+        writeResultTo="/data/earphone",
+        candidateOutputFields=["/earphoneName", "/batteryLevel"],
+    )
+    card_spec = {
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {"capabilityId": "GetEarphoneInfo", "writeResultTo": "/data/earphone"}
+        ],
+    }
+
+    result = retrieve_template_variants(
+        query,
+        task,
+        get_cardplan_registry(),
+        (binding,),
+        card_spec,
+    )
+
+    assert result.component_candidates[0].available_template_ids == (
+        "BluetoothDeviceOverviewEarphoneHero@1",
+    )
+
+
+def test_bluetooth_earphone_compact_supports_name_battery_and_two_actions() -> None:
+    task = TaskSpec(
+        userQuery="展示耳机名称和耳机电量",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.open.music.daily",
+                call="clickToDeeplink",
+                args={"intentName": "Music"},
+            ),
+            EventAction(
+                id="event.open.settings.dnd",
+                call="clickToDeeplink",
+                args={"intentName": "Settings"},
+            ),
+        ],
+        dataModelSchema={
+            "data": {
+                "earphone": {
+                    "earphoneName": _field("FreeBuds Pro 3"),
+                    "batteryLevel": _field(80, "integer"),
+                }
+            }
+        },
+    )
+    query = TemplateRetrievalQuery(
+        themeId="family-weather-care-blue",
+        requiredOutputFieldsByCapability={
+            "GetEarphoneInfo": ("/earphoneName", "/batteryLevel")
+        },
+        action_ids=("event.open.music.daily", "event.open.settings.dnd"),
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetEarphoneInfo",
+        writeResultTo="/data/earphone",
+        candidateOutputFields=["/earphoneName", "/batteryLevel"],
+    )
+    card_spec = {
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {"capabilityId": "GetEarphoneInfo", "writeResultTo": "/data/earphone"}
+        ],
+    }
+
+    result = retrieve_template_variants(
+        query,
+        task,
+        get_cardplan_registry(),
+        (binding,),
+        card_spec,
+    )
+
+    assert result.component_candidates[0].available_template_ids == (
+        "BluetoothDeviceOverviewEarphoneCompact@1",
+    )
+
+
 def test_search_without_action_keeps_only_full_candidates() -> None:
     """没有事件时 Search 只保留 Full，避免第二层生成多余动作区域。"""
     result = retrieve_template_variants(

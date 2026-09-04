@@ -278,9 +278,10 @@ def build_ux_mixed_prompt(
     if has_heart_rate:
         heart_rate_facts = extract_heart_rate_overview_facts(task_spec.dataModelSchema)
         if heart_rate_facts is None:
-            raise ValueError("HeartRateOverview has no trusted positive average heart rate")
+            raise ValueError("HeartRateOverview has no trusted exercise heart-rate facts")
+        heart_rate_numbers = heart_rate_facts.bpm_values()
         required_numbers = tuple(
-            item for item in required_numbers if item != heart_rate_facts.average_bpm
+            item for item in required_numbers if item not in heart_rate_numbers
         )
         if heart_rate_facts.updated_at is not None:
             required_literals = tuple(
@@ -316,7 +317,9 @@ def build_ux_mixed_prompt(
     if "SleepOverview" in direct_components:
         sleep_facts = extract_sleep_overview_facts(task_spec.dataModelSchema)
         if sleep_facts is None:
-            raise ValueError("SleepOverview has no losslessly renderable night duration")
+            raise ValueError(
+                "SleepOverview has no losslessly renderable night or nap duration"
+            )
         server_owned_sleep_literals = {
             sleep_facts.duration_text,
             sleep_facts.status,
@@ -337,6 +340,8 @@ def build_ux_mixed_prompt(
         bluetooth_literals = (
             bluetooth_facts.earphone_name,
             bluetooth_facts.case_charging_status,
+            bluetooth_facts.left_charging_status,
+            bluetooth_facts.right_charging_status,
         )
         for value in bluetooth_literals:
             if value is not None:

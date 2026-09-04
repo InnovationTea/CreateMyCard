@@ -4,7 +4,7 @@ data = {
 }
 
 Column(
-    { "_advancedComponent": "HeartRateOverview", "itemMargin": 4, "width": "matchParent", "height": "matchParent", "justifyContent": "center", "alignItems": "center", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
+    { "_advancedComponent": "HeartRateOverview", "itemMargin": 0, "width": "matchParent", "height": "matchParent", "justifyContent": "center", "alignItems": "center", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
     Text(
         "运动平均心率",
         { "width": "matchParent", "fontSize": 16, "minFontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
@@ -14,15 +14,74 @@ Column(
         Text(
             data.average,
             { "fontSize": 56, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
-        ),
-        Text(
-            "次/分钟",
-            { "fontSize": 1, "fontWeight": 500, "fontColor": "#00000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
         )
     ),
     Text(
         "次/分钟",
         { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+    )
+)
+#End
+
+#Template HeartRateOverviewMinMaxFull@1(props: {})
+data = {
+    max: $path("/exerciseHeartRateMax"),
+    min: $path("/exerciseHeartRateMin"),
+    updatedAt: $optionalPath("/updatedAt")
+}
+
+Column(
+    {
+        "_advancedComponent": "HeartRateOverview",
+        "width": "matchParent",
+        "height": "matchParent",
+        "itemMargin": 4,
+        "justifyContent": "spaceBetween",
+        "alignItems": "start",
+        "clip": true,
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
+    },
+    Column(
+        { "itemMargin": 8, "justifyContent": "start", "width": "matchParent" },
+        Row(
+            { "width": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top" },
+            Text(
+                "心率监测",
+                {
+                    "fontSize": 12,
+                    "fontWeight": 400,
+                    "fontColor": $theme('supportContentColor'),
+                    "maxLines": 1
+                }
+            )
+        ),
+        Row(
+            { "width": "matchParent", "justifyContent": "start", "alignItems": "bottom" },
+            Text(
+                Expr(`'' + ${data.min} + '/' + ${data.max}`),
+                { "fontSize": 34, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+            )
+        ),
+        Text(
+            "每分钟心率区间",
+            { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+        )
+    ),
+    Column(
+        { "itemMargin": 4, "justifyContent": "start", "width": "matchParent" },
+        #if data.updatedAt
+            Row(
+                { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
+                Text(
+                    data.updatedAt,
+                    { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+                ),
+                Text(
+                    "更新",
+                    { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+                )
+            )
+        #endif
     )
 )
 #End
