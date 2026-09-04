@@ -10,6 +10,8 @@ from .base import BaseValidator
 
 _HEX_COLOR = re.compile(r"^#(?P<hex>[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
 _TEMPLATE_ROOT_ID = "template_root"
+_NORMAL_ROOT_ID = "root_0"
+_FUSION_BACKGROUND_ID = "fusionBallBackground"
 _OPAQUE_ALPHA = 1.0
 
 RgbColor = tuple[float, float, float]
@@ -129,12 +131,17 @@ class ContrastValidator(BaseValidator):
         root = by_id.get(context.root_id)
         if not isinstance(root, dict):
             return
+        root_children = root.get("children")
+        root_child_ids = root_children if isinstance(root_children, list) else []
+        is_fusion_scene = _FUSION_BACKGROUND_ID in root_child_ids
+        is_normal_scene = _NORMAL_ROOT_ID in root_child_ids
         self._walk(
             context,
             reporter,
             root,
             [(1.0, 1.0, 1.0)],
             is_gradient=False,
+            is_fusion_scene=is_fusion_scene and not is_normal_scene,
         )
 
     def _walk(
@@ -145,6 +152,7 @@ class ContrastValidator(BaseValidator):
         backgrounds: list[RgbColor],
         *,
         is_gradient: bool,
+        is_fusion_scene: bool,
     ) -> None:
         # 模板内容沿用模板配色，不追加对比度诊断；其它校验仍由各自的 validator 执行。
         if component.get("id") == _TEMPLATE_ROOT_ID:
@@ -174,6 +182,25 @@ class ContrastValidator(BaseValidator):
         if component.get("component") == "Text" and self._has_text(component.get("content")):
             color_key = "fontColor" if "fontColor" in styles else "textColor"
             foreground = styles.get(color_key)
+            if is_fusion_scene:
+                component_id = component.get("id")
+                pointer = (
+                    f"/updateComponents/componentsById/{component_id}/styles/{color_key}"
+                )
+                reporter.add(
+                    "warning",
+                    "VISUAL.CONTRAST",
+                    self.stage,
+                    "genui",
+                    line=2,
+                    json_pointer=pointer,
+                    actual={"scene": "fusionBall", "requiresRenderReview": True},
+                    expected="端侧渲染后确认文字区域对比度",
+                    message="fusionBall 背景由兄弟装饰层合成，静态对比度不作阻塞判定",
+                    fix_hint="请在端侧渲染后复核文字可读性；仅在实际不可读时调整颜色。",
+                    source="aesthetic-contrast",
+                )
+                return
             ratios = []
             for item in effective_backgrounds:
                 try:
@@ -183,7 +210,9 @@ class ContrastValidator(BaseValidator):
             if ratios:
                 ratio = _reported_contrast_ratio(ratios, is_gradient)
                 if ratio < 4.5:
-                    severity = "error" if ratio < 3 else "warning"
+                    # 渐变 stop 只代表背景采样点，无法证明文本矩形整体不可读。
+                    # 渐变场景统一进入渲染复核；纯色背景继续按最低阈值阻塞。
+                    severity = "warning" if is_gradient else ("error" if ratio < 3 else "warning")
                     component_id = component.get("id")
                     pointer = (
                         f"/updateComponents/componentsById/{component_id}/styles/{color_key}"
@@ -196,9 +225,22 @@ class ContrastValidator(BaseValidator):
                         line=2,
                         json_pointer=pointer,
                         actual=round(ratio, 2),
-                        expected=">= 3:1; >= 4.5:1 recommended",
-                        message=f"text contrast is {ratio:.2f}:1",
-                        fix_hint="Use a stronger foreground color or adjust the background.",
+                        expected=(
+                            ">= 3:1 after render review; >= 4.5:1 recommended"
+                            if is_gradient
+                            else ">= 3:1; >= 4.5:1 recommended"
+                        ),
+                        message=(
+                            f"text contrast is {ratio:.2f}:1; gradient requires render review"
+                            if is_gradient
+                            else f"text contrast is {ratio:.2f}:1"
+                        ),
+                        fix_hint=(
+                            "Confirm readability on the rendered gradient; adjust contrast "
+                            "only if the text area is unclear."
+                            if is_gradient
+                            else "Use a stronger foreground color or adjust the background."
+                        ),
                         source="aesthetic-contrast",
                     )
 
@@ -213,6 +255,7 @@ class ContrastValidator(BaseValidator):
                     child,
                     effective_backgrounds,
                     is_gradient=is_gradient,
+                    is_fusion_scene=is_fusion_scene,
                 )
 
     @staticmethod

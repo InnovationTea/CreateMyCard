@@ -49,6 +49,45 @@ def test_contrast_validator_accepts_high_contrast_text() -> None:
     assert not any(item.code == "VISUAL.CONTRAST" for item in reporter.diagnostics)
 
 
+def test_fusion_ball_scene_defers_contrast_to_render_review() -> None:
+    components = [
+        {
+            "id": "root",
+            "component": "Stack",
+            "children": ["fusionBallBackground", "content"],
+            "styles": {"backgroundColor": "#00000000"},
+        },
+        {
+            "id": "fusionBallBackground",
+            "component": "Stack",
+            "children": ["ball"],
+        },
+        {
+            "id": "ball",
+            "component": "Divider",
+            "styles": {"backgroundColor": "#FF172F73"},
+        },
+        {
+            "id": "content",
+            "component": "Column",
+            "children": ["label"],
+        },
+        {
+            "id": "label",
+            "component": "Text",
+            "content": "融合背景文字",
+            "styles": {"fontColor": "#FFFFFFFF"},
+        },
+    ]
+
+    reporter = validate_card(dsl_text=_component_dsl(components))
+
+    contrast = [item for item in reporter.diagnostics if item.code == "VISUAL.CONTRAST"]
+    assert len(contrast) == 1
+    assert contrast[0].severity == "warning"
+    assert contrast[0].actual == {"scene": "fusionBall", "requiresRenderReview": True}
+
+
 def _component_dsl(components: list[dict[str, Any]]) -> str:
     messages = [
         {
@@ -234,7 +273,7 @@ def test_gradient_still_reports_when_multiple_samples_have_low_contrast() -> Non
         item for item in reporter.diagnostics if item.code == "VISUAL.CONTRAST"
     ]
     assert len(contrast) == 1
-    assert contrast[0].severity == "error"
+    assert contrast[0].severity == "warning"
     assert contrast[0].actual < 3
 
 
