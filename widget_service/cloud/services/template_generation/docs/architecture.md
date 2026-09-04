@@ -57,8 +57,8 @@ Form Profile、模型运行时和请求上下文，再将其注入公共生成�
 ## 3. Template 内部主流程
 
 当前 `template_controls.json` 的 `firstLayerComponentSelector` 默认为 `search`。该路线不让首层模型
-直接选最终 Template，而是让它标定用户显式字段、Theme 和 Action，再由服务端 Search
-确定可交给二层的候选。
+直接选最终 Template，而是让它标定用户显式字段、各业务可空的主焦点字段和 Action；服务端 Search
+只筛选数据可用模板，再由确定性 Planner 生成可交给二层的完整原子 Plan。
 
 ```mermaid
 flowchart TD
@@ -69,14 +69,15 @@ flowchart TD
     FUSION -->|false| FILTER[移除融球 Theme 的请求级视图]
     FUSION -->|true| SELECTOR{firstLayerComponentSelector}
     FILTER --> SELECTOR
-    SELECTOR -->|search| MARK[首层 LLM: themeId + 显式字段 + action]
-    MARK --> SEARCH[确定性 Template Search]
+    SELECTOR -->|search| MARK[首层 LLM: 显式字段 + 主焦点 + action]
+    MARK --> SEARCH[纯数据 Template Search]
+    SEARCH --> PLAN[Planner: Layout + Theme + 业务顺序 + Action 消费者]
     SELECTOR -->|llm| LEGACY[首层 LLM: componentCandidates]
-    SEARCH --> COVER[能力、字段、数据根和模板覆盖校验]
+    PLAN --> COVER[最多三个完整原子 Plan]
     LEGACY --> COVER
     COVER --> PROJECT[投影二层 TaskSpec 与受信运行时数据]
     PROJECT --> PROMPT[构造二层 UX Mixed Prompt]
-    PROMPT --> BODY[二层 LLM: Layout + Template + Action Props]
+    PROMPT --> BODY[二层 LLM: 选择一个 Plan + 补 Props]
     BODY --> FRAME[补全受控根结构]
     FRAME --> COMPILE[解析、准入、展开、Theme/Action Lowering]
     COMPILE -->|Tersel 质量问题，最多 2 次| PROMPT
@@ -99,7 +100,7 @@ flowchart TD
    请求取值，也不维护另一份应用版本。只有内部 `enable_fusion_ball=true` 时才构造包含融球 Theme 的请求级
    视图；关闭时移除所有
    `fusionBallStyle` Theme 及其首层规则和场景索引。
-6. 建立字段 Search 索引，供 `retrieve_template_variants()` 查找可覆盖候选。
+6. 建立字段 Search 索引，供 `search_template_variants()` 查找纯数据可覆盖候选。
 
 Provider Template 和业务分组只从各自 `provider.json` 与 `.cardtpl` 派生；Theme 只从
 `themes/<theme-id>/theme.json` 加载。`themes/base/theme-base.json` 仅保存跨主题一致的 UX Token、尺寸预算
@@ -108,7 +109,7 @@ Provider Template 和业务分组只从各自 `provider.json` 与 `.cardtpl` 派
 注册表或 Controls 无法严格加载时，模板路由不可用。Compact 是否继续原生成链取决于
 `need_fallback`；Tersel 不回退。
 
-融球开关关闭后，Search 和旧 LLM 首层 Prompt 均不能看到融球 Theme 的 ID、描述和首层规则；二层与
+默认 Search 首层 Prompt 不接收任何 Theme。融球开关关闭后，Planner、旧 LLM 首层 Prompt、二层与
 编译阶段复用同一过滤视图，因此伪造融球 Theme ID 会按未知 Theme 拒绝，而不是在最终转换时静默忽略。
 
 模板 Search 当前整体不支持 `2x4`。这类请求在 Registry、首层 Prompt 和模型调用前直接返回模板不适用；
@@ -116,51 +117,56 @@ Compact create 进入原 Compact 回退，Tersel 模板入口直接失败。Wide
 
 ### 3.2 首层 Search
 
-Search 路线的首层输出是 `TemplateRetrievalQuery`：
+Search 路线的首层输出是 `TemplateSearchIntent`：
 
 ```json
 {
-  "themeId": "fusion-weather-blue",
   "requiredOutputFieldsByCapability": {
     "ViewWeather": ["/current/temperatureText", "/current/condition"]
+  },
+  "primaryOutputFieldByCapability": {
+    "ViewWeather": "/current/temperatureText"
   },
   "action": ["event.open.weather"]
 }
 ```
 
-首层不能输出组件、Template、布局、Props 或尺寸。服务端 Search 继续校验：
+首层不能输出 Theme、schemaVersion、组件、Template、布局、Props 或尺寸。服务端 Search 继续校验：
 
 - 能力 ID 必须来自有效数据绑定。
 - 字段必须逐字来自对应 `candidateOutputFields`。
 - CardSpec 写入根必须与 Provider `dataDomain` 一致。
 - 模板的 `primaryData` 和 `secondaryData` 必须都能从 TaskSpec 中取得。
-- Search 接受一个数据业务加零到两个显式 Action，或恰好两个数据业务加一个显式 Action。双业务必须分别
-  具备完整 `HeroTitle`、`HeroContent` 候选，服务端按该顺序重排；其它多业务组合在二层模型调用前显式返回模板不适用。
 - 首层必须完整标定用户显式字段，不得为了迁就布局限制而省略其他业务。
-- Search 按 Action 数过滤布局后缀，同时要求每个保留的 Template 独立完整覆盖所属业务的用户显式字段：
-  单业务零、一个、两个 Action 分别保留 Full、Hero+Full、Compact。
-- `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 的最终组合由第二层完成。
-- `Support`、`TwoSupportLayout` 和 `2x2-two-support` 保留给旧 LLM 选择器兼容测试和原子预览，当前 Search 路径不可达。
+- 每个保留的 Template 必须独立完整覆盖所属业务的用户显式字段。覆盖集合使用
+  `primaryData + secondaryData + optionalData`；其中只有 `primaryData + secondaryData` 是运行时硬前置。
+- Search 不读取 Action 数量或布局后缀；`HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、
+  `Full`、`WideHero`、`WideFull` 都按相同数据规则进入候选。
 
-结果是 `TemplateRouteSelection`，其 `availableTemplateIds` 仍是二层候选集，不是最终选择。
+结果是按 capability/business 分组的 `TemplateSearchResult`，只包含显式字段、模板 ID 及其覆盖字段。
 
-### 3.3 二层组合
+### 3.3 Planner 与二层组合
+
+确定性 `template_plan_planner.py` 从同一 Registry 重新取得 Search 候选的模板定义，联合规划 Layout、
+Theme、业务槽位顺序以及每个 Action 由根 Action Template 还是垂域 Support Template 消费。每个 Plan
+必须覆盖全部显式字段并消费每个已选 Action 恰好一次；`2x2` 单业务优先匹配显式主焦点与模板
+`primaryData`。Theme 在请求级 Registry 可用集合内按主业务与场景元数据稳定选择；双 Support 使用布局
+专用 Theme。Planner 稳定排序、去重后最多向二层下发三个完整 Plan。
 
 `build_ux_mixed_prompt()` 只向二层暴露：
 
-- 首层通过的业务 Template 候选，以及每个候选的用途描述、完整 Props Schema、必填/可选关系、
+- 最多三个原子 Plan，以及 Plan 涉及模板的用途描述、完整 Props Schema、必填/可选关系、
   参数关系和素材参数可用源。
-- 根据当前尺寸、业务数量、Action 数量和素材条件确定的一个或多个 Layout Template 完整契约。
-- 已批准的 Action ID/文案、当前 Action Template 完整签名、可用素材和 Theme ID。
+- Plan 已确定的 Layout Template、Theme、业务顺序和 Action 消费位置。
+- 已批准的 Action ID/文案、Plan 涉及的 Action Template 完整签名和可用素材。
 - 删除未候选模板目录后的 Provider 二层业务指导。
 
 二层 system Prompt 不复用通用 Hybrid/Design Compact 规则，只保留类 Tersel 直接
 `Template(...)` 调用语法和安全禁止项。二层不接收 TaskSpec、`dataFacts`、`mustKeep` 或数据样例，
 只输出受限的 Layout/Template 调用和
-展示 Props。业务 Template 是不可拆分的原子节点，禁止用基础组件补业务内容。候选经布局后缀、Action
-数量或必需参数筛选后为空时直接失败。单业务一个 Action 时，若存在语义匹配图标，二层可在
-`HeroActionLayout + PillAction` 与 `FullIconActionLayout + IconAction` 中选择。双业务单 Action 只下发
-`HeroTitleContentActionLayout`，并固定三个直接 children 的后缀与顺序。二层不能输出原始
+展示 Props。业务 Template 是不可拆分的原子节点，禁止用基础组件补业务内容。二层必须完整选择一个
+Plan，只能补全开放 Props 与可信素材，不得跨 Plan 混用 Layout、业务模板、顺序或 Action 消费位置。
+二层不能输出原始
 `call/args`，也不能绕过
 必选事件使用 `EventAction(props.actionId)` 生成交互；Support 的可选事件使用
 `EventAction(props?.actionId)`，未提供 `actionId` 时不生成 `onClick`。
@@ -170,8 +176,9 @@ Search 路线的首层输出是 `TemplateRetrievalQuery`：
 `compile_ux_layout_card()` 是二层输出到 A2UI 的硬边界。它主要执行：
 
 1. 用闭包语法解析器读取 Layout 根、业务 Template 和 Action Template。
-2. 校验原始组件数、层级、允许的 Template ID、Props 类型和必传数据。
-3. 按布局后缀校验卡片尺寸、业务节点数和 Action 类型/数量。
+2. 要求根 Layout、直接业务 Template 的 ID 与顺序、根 Action 以及业务内嵌 `actionId` 完整匹配同一个
+   Planner Plan，拒绝跨 Plan 混合。
+3. 校验原始组件数、层级、允许的 Template ID、Props 类型、必传数据、布局尺寸和 Action 类型/数量。
 4. 展开 CardTpl，处理 `Bind`、`Param`、`Asset`、运行时 `Expr`、生成期三元、条件节点和 children 槽位；
    生成期三元只按路径或 Prop 可用性选择直接绑定或确定值，不进入最终 A2UI 表达式。
 5. 将 Action Template 的 `EventAction(props.actionId)` 实体化为已批准事件；对 Support 中的

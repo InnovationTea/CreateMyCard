@@ -117,20 +117,18 @@ Column({
 },
   Column({
     "width": "matchParent",
-    "itemMargin": 4,
+    "itemMargin": 8,
     "layoutWeight": 1,
   },
     Column({
       "width": "matchParent",
-      "height": 24,
       "justifyContent": "start",
-      "alignItems": "center",
+      "alignItems": "start",
     }, children[0]),
     Column({
       "width": "matchParent",
-      "layoutWeight": 1,
       "justifyContent": "start",
-      "alignItems": "center",
+      "alignItems": "start",
     }, children[1])
   ),
   Column({

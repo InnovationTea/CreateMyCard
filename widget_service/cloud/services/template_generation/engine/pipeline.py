@@ -35,16 +35,26 @@ from services.template_generation.engine.advanced.ux_mixed_prompt import (
     build_ux_mixed_validation_retry_prompt,
 )
 from services.template_generation.engine.cardplan.compiler import compile_ux_layout_card
+from services.template_generation.engine.cardplan.models import (
+    CARDTPL_SOURCE_FORMATS,
+    TemplatePlan,
+)
 from services.template_generation.engine.cardplan.registry import (
     CardPlanRegistry,
     get_cardplan_registry,
 )
+from services.template_generation.engine.cardplan.template_plan_planner import (
+    plan_template_candidates,
+    planner_component_candidates,
+    planner_required_template_groups,
+    planner_scope,
+)
 from services.template_generation.engine.cardplan.template_retrieval import (
     TemplateRetrievalMiss,
-    TemplateRetrievalQuery,
+    TemplateSearchIntent,
     build_template_retrieval_prompt,
-    restrict_query_to_preferred_templates,
-    retrieve_template_variants,
+    restrict_search_intent_to_preferred_templates,
+    search_template_variants,
 )
 from services.template_generation.engine.tersel_converter import (
     TerselConversionError,
@@ -124,6 +134,7 @@ async def generate_template_a2ui(
         return await model_client.generate_json(prompt, phase=phase)
 
     try:
+        template_plans: tuple[TemplatePlan, ...] = ()
         if controls.first_layer_component_selector == "llm":
             selection = await plan_template_route_with_llm(
                 selected_task_spec,
@@ -141,32 +152,41 @@ async def generate_template_a2ui(
                 coverage_bindings,
             )
             raw_query = await generate_json(prompt, "template-retrieval-query")
-            query = TemplateRetrievalQuery.model_validate(raw_query)
-            query = restrict_query_to_preferred_templates(
-                query,
+            intent = TemplateSearchIntent.model_validate(raw_query)
+            intent = restrict_search_intent_to_preferred_templates(
+                intent,
                 registry,
                 trusted_template_candidate_ids,
             )
-            selection = retrieve_template_variants(
-                query,
+            intent = _restrict_template_intent_actions(
+                intent,
+                trusted_template_action_ids,
+                selected_task_spec,
+            )
+            search_result = search_template_variants(
+                intent,
                 selected_task_spec,
                 registry,
                 coverage_bindings,
                 card_spec,
                 preferred_template_ids=trusted_template_candidate_ids,
             )
-            selection = _restrict_template_candidates(
-                selection,
-                trusted_template_candidate_ids,
-            )
-            selection = _restrict_template_actions(
-                selection,
-                trusted_template_action_ids,
+            template_plans = plan_template_candidates(
+                intent,
+                search_result,
                 selected_task_spec,
+                registry,
+            )
+            selection = TemplateRouteSelection(
+                scope=planner_scope(template_plans),
+                componentCandidates=planner_component_candidates(template_plans),
+                actionIds=intent.action_ids,
+                requiredTemplateGroups=planner_required_template_groups(template_plans),
             )
             logger.info(
                 f"{_MODULE} template_retrieval matched=True "
-                f"component_count={len(selection.component_candidates)}"
+                f"business_candidate_count={len(search_result.business_candidates)} "
+                f"plan_count={len(template_plans)}"
             )
     except TemplateRouteNotApplicable:
         raise
@@ -191,6 +211,7 @@ async def generate_template_a2ui(
             scope=scope,
             component_candidates=selection.component_candidates,
             required_template_groups=selection.required_template_groups,
+            template_plans=template_plans,
             registry=registry,
             model_client=model_client,
         )
@@ -229,68 +250,21 @@ def _with_trusted_sample_overrides(
     return task_spec.model_copy(update={"dataModelSchema": schema})
 
 
-def _restrict_template_candidates(
-    selection: TemplateRouteSelection,
-    trusted_template_candidate_ids: tuple[str, ...],
-) -> TemplateRouteSelection:
-    """将开发测试画廊的受信目标收窄到已通过 Search 的候选模板。"""
-    if not trusted_template_candidate_ids:
-        return selection
-    target_ids = tuple(dict.fromkeys(trusted_template_candidate_ids))
-    if len(target_ids) != len(trusted_template_candidate_ids):
-        raise TemplateRetrievalMiss("trusted template candidates must be unique")
-    if not set(target_ids).issubset(selection.allowed_template_ids):
-        raise TemplateRetrievalMiss("trusted template candidate is outside Search results")
-    candidates = tuple(
-        TemplateComponentCandidate(
-            componentId=candidate.component_id,
-            availableTemplateIds=tuple(
-                template_id
-                for template_id in candidate.available_template_ids
-                if template_id in target_ids
-            ),
-        )
-        for candidate in selection.component_candidates
-        if set(candidate.available_template_ids).intersection(target_ids)
-    )
-    selected_ids = tuple(
-        template_id
-        for candidate in candidates
-        for template_id in candidate.available_template_ids
-    )
-    if set(selected_ids) != set(target_ids):
-        raise TemplateRetrievalMiss("trusted template candidates are ambiguous")
-    scope = selection.scope.model_copy(
-        update={
-            "advanced_component_ids": tuple(
-                candidate.component_id for candidate in candidates
-            )
-        }
-    )
-    return selection.model_copy(
-        update={
-            "scope": scope,
-            "component_candidates": candidates,
-            "required_template_groups": tuple((template_id,) for template_id in target_ids),
-        }
-    )
-
-
-def _restrict_template_actions(
-    selection: TemplateRouteSelection,
+def _restrict_template_intent_actions(
+    intent: TemplateSearchIntent,
     trusted_template_action_ids: tuple[str, ...],
     task_spec: TaskSpec,
-) -> TemplateRouteSelection:
-    """将开发测试画廊的 Action 选择收窄到请求中明确指定的事件。"""
+) -> TemplateSearchIntent:
+    """Apply trusted gallery Action overrides before deterministic planning."""
     if not trusted_template_action_ids:
-        return selection
+        return intent
     action_ids = tuple(dict.fromkeys(trusted_template_action_ids))
     if len(action_ids) != len(trusted_template_action_ids):
         raise TemplateRetrievalMiss("trusted template Actions must be unique")
     candidate_ids = {event.id for event in task_spec.eventCandidates if event.id}
     if not set(action_ids).issubset(candidate_ids):
         raise TemplateRetrievalMiss("trusted template Action is outside TaskSpec")
-    return selection.model_copy(update={"action_ids": action_ids})
+    return intent.model_copy(update={"action_ids": action_ids})
 
 
 def _task_spec_log_summary(task_spec: TaskSpec) -> dict[str, Any]:
@@ -332,6 +306,7 @@ async def _generate_selected_templates(
     required_template_groups: tuple[tuple[str, ...], ...],
     registry: CardPlanRegistry,
     model_client: Any,
+    template_plans: tuple[TemplatePlan, ...] = (),
 ) -> TemplateEngineOutput:
     projected_task_spec = project_content_component_facts(
         source_task_spec,
@@ -352,6 +327,7 @@ async def _generate_selected_templates(
         scope=scope,
         component_candidates=component_candidates,
         required_template_groups=required_template_groups,
+        template_plans=template_plans,
         registry=registry,
     )
     logger.info(
@@ -412,6 +388,7 @@ async def _generate_selected_templates(
         f"{_MODULE} selected_templates_generated "
         f"template_count={compilation.stats.template_call_count} "
         f"expanded_component_count={compilation.stats.expanded_component_count} "
+        f"matched_plan_id={compilation.stats.matched_plan_id} "
         f"repair_count={repair_count}"
     )
     return TemplateEngineOutput(
@@ -466,7 +443,9 @@ def _with_provider_template_runtime_data(
         template_ids = template_ids_by_component.get(component_id, ())
         for template_id in registry.enabled_template_ids(template_ids):
             definition = registry.require_template(template_id)
-            if definition.source_format != "cardtpl/1" or not definition.capability_id:
+            if definition.source_format not in CARDTPL_SOURCE_FORMATS:
+                continue
+            if not definition.capability_id:
                 continue
             root = _provider_binding_root(card_spec, definition.capability_id)
             if root is None:

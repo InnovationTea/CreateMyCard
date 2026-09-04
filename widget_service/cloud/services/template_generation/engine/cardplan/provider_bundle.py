@@ -25,6 +25,7 @@ from services.template_generation.engine.theme_reference import (
 )
 
 from .models import (
+    CARDTPL_SOURCE_FORMATS,
     TEMPLATE_CHILD_SLOT_COMPONENT,
     BusinessTemplateGroup,
     StrictModel,
@@ -99,6 +100,7 @@ _PROVIDER_VERSION_RE = re.compile(r"^[1-9][0-9]*\.[0-9]+\.[0-9]+(?:-[a-z0-9.-]+)
 _MAX_BUNDLE_FILE_BYTES = 1_048_576
 _MAX_TEMPLATE_SOURCE_CHARS = 262_144
 _MAX_INDEXED_TEMPLATE_CHILDREN = 256
+_MAX_PRESENCE_MATCH_ITEMS = 4
 _PROVIDER_TEMPLATE_LAYOUT_KINDS = (
     "WideHero",
     "WideFull",
@@ -285,6 +287,19 @@ class _TemplateDirectiveFrame:
     fallback_depth: int = 0
 
 
+@dataclass(frozen=True)
+class _PresenceMatchItem:
+    namespace: Literal["data", "props"]
+    name: str
+    value_source: str
+
+
+@dataclass(frozen=True)
+class _PresenceMatchBranch:
+    size: int | None
+    body: str
+
+
 def _data_fields(
     paths: tuple[str, ...],
     output_schema: dict[str, Any],
@@ -370,6 +385,7 @@ def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
         template_bytes = _bounded_file_bytes(template_path)
         definition = compile_card_template(
             template_bytes.decode("utf-8"),
+            template_language=manifest.compatibility.template_language,
             provider_id=manifest.provider_id,
             business_id=entry.business_id,
             expected_wire_id=wire_id,
@@ -409,6 +425,7 @@ def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
 def compile_card_template(
     source: str,
     *,
+    template_language: Literal["cardtpl/1", "cardtpl/2"] = "cardtpl/1",
     provider_id: str,
     business_id: str | None,
     expected_wire_id: str,
@@ -421,13 +438,18 @@ def compile_card_template(
     optional_data: tuple[str, ...],
     output_schema: dict[str, Any],
 ) -> TemplateDefinition:
-    """Compile one non-executable ``cardtpl/1`` source into the trusted Template IR."""
+    """Compile one non-executable CardTemplate source into the trusted Template IR."""
     if len(source) > _MAX_TEMPLATE_SOURCE_CHARS:
         raise ValueError("Provider Template source exceeds the size limit")
+    if template_language not in CARDTPL_SOURCE_FORMATS:
+        raise ValueError("unsupported Provider Template language")
     if re.search(r"(?m)^\s*#Template\s+[A-Za-z]", source) is None:
-        raise ValueError("Provider Template must use the cardtpl/1 UI syntax")
+        raise ValueError(
+            f"Provider Template must use the {template_language} UI syntax"
+        )
     return _compile_ui_card_template(
         source,
+        template_language=template_language,
         provider_id=provider_id,
         business_id=business_id,
         expected_wire_id=expected_wire_id,
@@ -445,6 +467,7 @@ def compile_card_template(
 def _compile_ui_card_template(
     source: str,
     *,
+    template_language: Literal["cardtpl/1", "cardtpl/2"],
     provider_id: str,
     business_id: str | None,
     expected_wire_id: str,
@@ -483,7 +506,10 @@ def _compile_ui_card_template(
     if bindings and (expected_capability_id is None or data_domain is None):
         raise ValueError("Provider data Template requires capabilityId and dataDomain")
     transformed = _translate_optional_parameter_access(body)
-    root = _parse_component_body(transformed)
+    root = _parse_component_body(
+        transformed,
+        template_language=template_language,
+    )
     if root.component in _CONDITIONAL_COMPONENTS:
         raise ValueError("Provider Template conditional cannot be the Template root")
     spreads_children = any(node.spread_children for node in _walk_template_nodes(root))
@@ -579,7 +605,7 @@ def _compile_ui_card_template(
             "bindings": {
                 name: binding.model_dump(by_alias=True) for name, binding in bindings.items()
             },
-            "sourceFormat": "cardtpl/1",
+            "sourceFormat": template_language,
             "variants": [variant.model_dump(by_alias=True)],
         }
     )
@@ -775,6 +801,395 @@ def _translate_optional_parameter_access(body: str) -> str:
     return "".join(translated)
 
 
+def _translate_presence_match_directives(body: str, *, enabled: bool) -> str:
+    lines = body.splitlines(keepends=True)
+    translated: list[str] = []
+    quote: str | None = None
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        stripped = line.strip()
+        is_match = quote is None and re.match(r"#match\b", stripped) is not None
+        if is_match:
+            if not enabled:
+                raise ValueError("Provider Template #match requires cardtpl/2")
+            items, alias, header_end = _read_presence_match_header(lines, index)
+            branches, block_end = _read_presence_match_branches(
+                lines,
+                header_end + 1,
+                len(items),
+            )
+            lowered = _lower_presence_match(items, alias, branches)
+            if lowered:
+                translated.extend((lowered, ",\n"))
+            index = block_end + 1
+            continue
+        is_orphan = (
+            quote is None
+            and re.match(r"#(?:case|default)\b", stripped) is not None
+        )
+        if is_orphan:
+            raise ValueError("Provider Template #case/#default requires #match")
+        translated.append(line)
+        quote = _template_line_quote(line, quote)
+        index += 1
+    return "".join(translated)
+
+
+def _read_presence_match_header(
+    lines: list[str],
+    start: int,
+) -> tuple[tuple[_PresenceMatchItem, ...], str, int]:
+    header_parts: list[str] = []
+    for index in range(start, len(lines)):
+        header_parts.append(lines[index])
+        source = "".join(header_parts).strip()
+        prefix = re.match(r"#match\s+present\s*\(", source)
+        if prefix is None:
+            raise ValueError("Provider Template #match must call present(...)")
+        open_index = prefix.end() - 1
+        try:
+            close_index = _matching_delimiter(source, open_index, "(", ")")
+        except ValueError:
+            continue
+        tail = source[slice(close_index + 1, None)].strip()
+        alias_match = re.fullmatch(r"as\s+([A-Za-z_][A-Za-z0-9_]*)", tail)
+        if alias_match is None:
+            raise ValueError("Provider Template #match must end with 'as <name>'")
+        alias = alias_match.group(1)
+        if alias in {"data", "props", "children"}:
+            raise ValueError(f"Provider Template #match alias is reserved: {alias}")
+        items_source = source[slice(open_index + 1, close_index)]
+        return _parse_presence_match_items(items_source), alias, index
+    raise ValueError("Provider Template #match present(...) is not closed")
+
+
+def _parse_presence_match_items(source: str) -> tuple[_PresenceMatchItem, ...]:
+    raw_items = _split_top_level_sources(source)
+    if not raw_items:
+        raise ValueError("Provider Template present(...) requires at least one item")
+    if len(raw_items) > _MAX_PRESENCE_MATCH_ITEMS:
+        raise ValueError(
+            "Provider Template present(...) exceeds the four-item limit"
+        )
+    items = tuple(_parse_presence_match_item(item) for item in raw_items)
+    guards = tuple((item.namespace, item.name) for item in items)
+    if len(guards) != len(set(guards)):
+        raise ValueError("Provider Template present(...) guards must be unique")
+    return items
+
+
+def _parse_presence_match_item(source: str) -> _PresenceMatchItem:
+    value = source.strip()
+    direct = _presence_reference(value)
+    if direct is not None:
+        namespace, name = direct
+        return _PresenceMatchItem(namespace, name, value)
+    if not value.startswith("("):
+        raise ValueError(
+            "Provider Template transformed present item must use '(guard => value)'"
+        )
+    close_index = _matching_delimiter(value, 0, "(", ")")
+    if close_index != len(value) - 1:
+        raise ValueError("Provider Template transformed present item is invalid")
+    inner = value[slice(1, -1)].strip()
+    arrow_index = _top_level_arrow_index(inner)
+    if arrow_index is None:
+        raise ValueError(
+            "Provider Template present(...) items must be data/props references"
+        )
+    guard_source = inner[:arrow_index].strip()
+    transformed_source = inner[slice(arrow_index + 2, None)].strip()
+    guard = _presence_reference(guard_source)
+    if guard is None or not transformed_source:
+        raise ValueError("Provider Template transformed present item is invalid")
+    namespace, name = guard
+    return _PresenceMatchItem(namespace, name, transformed_source)
+
+
+def _presence_reference(source: str) -> tuple[Literal["data", "props"], str] | None:
+    match = re.fullmatch(
+        r"(data|props)\.([A-Za-z_][A-Za-z0-9_]*)",
+        source,
+    )
+    if match is None:
+        return None
+    namespace, name = match.groups()
+    if namespace == "data":
+        return "data", name
+    return "props", name
+
+
+def _split_top_level_sources(source: str) -> tuple[str, ...]:
+    parts: list[str] = []
+    stack: list[str] = []
+    pairs = {"(": ")", "[": "]", "{": "}"}
+    quote: str | None = None
+    escaped = False
+    start = 0
+    for index, char in enumerate(source):
+        if quote is not None:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            continue
+        if char in {'"', "'", "`"}:
+            quote = char
+            continue
+        closer = pairs.get(char)
+        if closer is not None:
+            stack.append(closer)
+            continue
+        if char in pairs.values():
+            if not stack or stack.pop() != char:
+                raise ValueError("Provider Template present(...) delimiters are invalid")
+            continue
+        if char == "," and not stack:
+            item = source[slice(start, index)].strip()
+            if not item:
+                raise ValueError("Provider Template present(...) contains an empty item")
+            parts.append(item)
+            start = index + 1
+    if quote is not None or stack:
+        raise ValueError("Provider Template present(...) item is not closed")
+    final = source[slice(start, None)].strip()
+    if final:
+        parts.append(final)
+    elif parts:
+        raise ValueError("Provider Template present(...) contains an empty item")
+    return tuple(parts)
+
+
+def _top_level_arrow_index(source: str) -> int | None:
+    stack: list[str] = []
+    pairs = {"(": ")", "[": "]", "{": "}"}
+    quote: str | None = None
+    escaped = False
+    arrow_index: int | None = None
+    index = 0
+    while index < len(source):
+        char = source[index]
+        if quote is not None:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            index += 1
+            continue
+        if char in {'"', "'", "`"}:
+            quote = char
+            index += 1
+            continue
+        closer = pairs.get(char)
+        if closer is not None:
+            stack.append(closer)
+            index += 1
+            continue
+        if char in pairs.values():
+            if not stack or stack.pop() != char:
+                raise ValueError("Provider Template transformed item delimiters are invalid")
+            index += 1
+            continue
+        if source.startswith("=>", index) and not stack:
+            if arrow_index is not None:
+                raise ValueError("Provider Template transformed item has multiple arrows")
+            arrow_index = index
+            index += 2
+            continue
+        index += 1
+    if quote is not None or stack:
+        raise ValueError("Provider Template transformed item is not closed")
+    return arrow_index
+
+
+def _read_presence_match_branches(
+    lines: list[str],
+    start: int,
+    item_count: int,
+) -> tuple[tuple[_PresenceMatchBranch, ...], int]:
+    branches: list[_PresenceMatchBranch] = []
+    case_sizes: set[int] = set()
+    current_size: int | None = None
+    current_body: list[str] = []
+    branch_started = False
+    default_seen = False
+    conditional_depth = 0
+    quote: str | None = None
+    for index in range(start, len(lines)):
+        line = lines[index]
+        stripped = line.strip()
+        directive = None
+        if quote is None:
+            directive = re.fullmatch(
+                r"#(match|case|default|if|elseif|else|endif|end)\b(.*)",
+                stripped,
+            )
+        if directive is None:
+            if not branch_started and stripped:
+                raise ValueError("Provider Template #match content must start with #case")
+            current_body.append(line)
+            quote = _template_line_quote(line, quote)
+            continue
+        keyword, suffix = directive.groups()
+        suffix = suffix.strip()
+        if keyword == "match":
+            raise ValueError("Provider Template #match cannot be nested")
+        if keyword == "if":
+            conditional_depth += 1
+            current_body.append(line)
+            continue
+        if keyword in {"elseif", "else"}:
+            current_body.append(line)
+            continue
+        if keyword == "endif":
+            if conditional_depth == 0:
+                raise ValueError("Provider Template #match must end with #end")
+            conditional_depth -= 1
+            current_body.append(line)
+            continue
+        if keyword == "end" and conditional_depth > 0:
+            conditional_depth -= 1
+            current_body.append(line)
+            continue
+        if keyword == "end":
+            if suffix:
+                raise ValueError("Provider Template #end is invalid")
+            if branch_started:
+                _append_presence_match_branch(
+                    branches,
+                    current_size,
+                    current_body,
+                )
+            if not branches:
+                raise ValueError("Provider Template #match requires at least one branch")
+            return tuple(branches), index
+        if conditional_depth > 0:
+            raise ValueError("Provider Template #case cannot be nested in #if")
+        if branch_started:
+            _append_presence_match_branch(branches, current_size, current_body)
+        current_body = []
+        branch_started = True
+        if keyword == "default":
+            if suffix or default_seen:
+                raise ValueError("Provider Template #match has an invalid #default")
+            current_size = None
+            default_seen = True
+            continue
+        if default_seen:
+            raise ValueError("Provider Template #case cannot follow #default")
+        case_match = re.fullmatch(r"[0-9]+", suffix)
+        if case_match is None:
+            raise ValueError("Provider Template #case requires a non-negative integer")
+        case_size = int(suffix)
+        if case_size > item_count:
+            raise ValueError("Provider Template #case exceeds present(...) size")
+        if case_size in case_sizes:
+            raise ValueError(f"Provider Template #case is duplicated: {case_size}")
+        case_sizes.add(case_size)
+        current_size = case_size
+    raise ValueError("Provider Template #match is missing #end")
+
+
+def _append_presence_match_branch(
+    branches: list[_PresenceMatchBranch],
+    size: int | None,
+    body_lines: list[str],
+) -> None:
+    body = "".join(body_lines).strip()
+    if not body:
+        name = "#default" if size is None else f"#case {size}"
+        raise ValueError(f"Provider Template {name} branch cannot be empty")
+    branches.append(_PresenceMatchBranch(size, body))
+
+
+def _lower_presence_match(
+    items: tuple[_PresenceMatchItem, ...],
+    alias: str,
+    branches: tuple[_PresenceMatchBranch, ...],
+) -> str:
+    by_size = {branch.size: branch for branch in branches if branch.size is not None}
+    default = next((branch for branch in branches if branch.size is None), None)
+
+    def lower(level: int, present_indexes: tuple[int, ...]) -> str:
+        if level == len(items):
+            branch = by_size.get(len(present_indexes), default)
+            if branch is None:
+                return ""
+            selected = tuple(items[item_index] for item_index in present_indexes)
+            return _replace_presence_match_items(branch.body, alias, selected)
+        item = items[level]
+        present_source = lower(level + 1, (*present_indexes, level))
+        missing_source = lower(level + 1, present_indexes)
+        present_component = "IfBind" if item.namespace == "data" else "IfParam"
+        missing_component = (
+            "IfMissingBind" if item.namespace == "data" else "IfMissingParam"
+        )
+        alternatives: list[str] = []
+        if present_source:
+            alternatives.append(
+                f'{present_component}("{item.name}",\n{present_source}\n)'
+            )
+        if missing_source:
+            alternatives.append(
+                f'{missing_component}("{item.name}",\n{missing_source}\n)'
+            )
+        return ",\n".join(alternatives)
+
+    return lower(0, ())
+
+
+def _replace_presence_match_items(
+    source: str,
+    alias: str,
+    items: tuple[_PresenceMatchItem, ...],
+) -> str:
+    reference = re.compile(
+        rf"(?<![A-Za-z0-9_.]){re.escape(alias)}\s*\[\s*([0-9]+)\s*\]"
+    )
+    alias_name = re.compile(
+        rf"(?<![A-Za-z0-9_.]){re.escape(alias)}\b"
+    )
+    translated: list[str] = []
+    index = 0
+    while index < len(source):
+        char = source[index]
+        if char in {'"', "'", "`"}:
+            end = _quoted_source_end(source, index)
+            translated.append(source[slice(index, end)])
+            index = end
+            continue
+        if char == "#":
+            end = source.find("\n", index)
+            if end < 0:
+                translated.append(source[index:])
+                break
+            translated.append(source[slice(index, end + 1)])
+            index = end + 1
+            continue
+        item_match = reference.match(source, index)
+        if item_match is not None:
+            item_index = int(item_match.group(1))
+            if item_index >= len(items):
+                raise ValueError(
+                    f"Provider Template {alias}[{item_index}] is out of range"
+                )
+            translated.append(f"({items[item_index].value_source})")
+            index = item_match.end()
+            continue
+        if alias_name.match(source, index) is not None:
+            raise ValueError(
+                f"Provider Template {alias} only supports literal indexes"
+            )
+        translated.append(char)
+        index += 1
+    return "".join(translated)
+
+
 def _translate_template_directives(body: str) -> str:
     translated: list[str] = []
     stack: list[_TemplateDirectiveFrame] = []
@@ -963,7 +1378,11 @@ def provider_template_layout_kind(wire_id: str) -> str | None:
     return None
 
 
-def _parse_component_body(body: str) -> TemplateNode:
+def _parse_component_body(
+    body: str,
+    *,
+    template_language: Literal["cardtpl/1", "cardtpl/2"] = "cardtpl/1",
+) -> TemplateNode:
     if not body:
         raise ValueError("Provider Template body is empty")
     if re.search(
@@ -972,7 +1391,11 @@ def _parse_component_body(body: str) -> TemplateNode:
     ):
         raise ValueError("Provider Template uses a reserved internal name")
     try:
-        with_directives = _translate_template_directives(body)
+        with_matches = _translate_presence_match_directives(
+            body,
+            enabled=template_language == "cardtpl/2",
+        )
+        with_directives = _translate_template_directives(with_matches)
         with_directives = _remove_empty_template_conditionals(with_directives)
         with_runtime_expressions = translate_runtime_expressions(with_directives)
         with_compile_expressions = _translate_compile_expressions(with_runtime_expressions)
@@ -1913,7 +2336,7 @@ def _reject_forbidden_keys(value: Any) -> None:
 
 
 def _validate_compatibility(compatibility: ProviderCompatibility) -> None:
-    if compatibility.template_language != "cardtpl/1":
+    if compatibility.template_language not in CARDTPL_SOURCE_FORMATS:
         raise ValueError("unsupported Provider Template language")
     if compatibility.catalog_id != "ohos.a2ui.extended.catalog.form":
         raise ValueError("Provider Bundle Catalog mismatch")
@@ -2061,7 +2484,7 @@ def provider_template_admission(
     context_admission = provider_template_context_admission(definition, task_spec)
     if not context_admission.admitted:
         return context_admission
-    if definition.source_format != "cardtpl/1":
+    if definition.source_format not in CARDTPL_SOURCE_FORMATS:
         return ProviderTemplateAdmission(True)
     if not definition.bindings:
         return ProviderTemplateAdmission(True)
@@ -2096,7 +2519,7 @@ def provider_template_variant_admission(
     context_admission = provider_template_context_admission(definition, task_spec)
     if not context_admission.admitted:
         return context_admission
-    if definition.source_format != "cardtpl/1":
+    if definition.source_format not in CARDTPL_SOURCE_FORMATS:
         return ProviderTemplateAdmission(True)
     if not definition.bindings:
         return ProviderTemplateAdmission(True)

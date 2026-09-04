@@ -562,9 +562,18 @@ Column(
                 "alignItems": "start",
                 "itemMargin": 2
             },
-            Text(
-                "左耳机",
-                { "fontColor": $theme('primaryColor'), "fontSize": 14, "fontWeight": 700 }
+            Row(
+                { "itemMargin": 4, "alignItems": "center" },
+                #if props.leftEarIcon
+                    Image(
+                        props.leftEarIcon,
+                        { "width": 16, "height": 16, "fillColor": $theme('supportContentColor') }
+                    ),
+                #endif
+                Text(
+                    "左耳机",
+                    { "fontColor": $theme('primaryColor'), "fontSize": 14, "fontWeight": 700 }
+                )
             ),
             #if data.leftDesc
                 Text(
@@ -616,9 +625,18 @@ Column(
                 "alignItems": "start",
                 "itemMargin": 2
             },
-            Text(
-                "右耳机",
-                { "fontColor": $theme('primaryColor'), "fontSize": 14, "fontWeight": 700 }
+            Row(
+                { "itemMargin": 4, "alignItems": "center" },
+                #if props.rightEarIcon
+                    Image(
+                        props.rightEarIcon,
+                        { "width": 16, "height": 16, "fillColor": $theme('supportContentColor') }
+                    ),
+                #endif
+                Text(
+                    "右耳机",
+                    { "fontColor": $theme('primaryColor'), "fontSize": 14, "fontWeight": 700 }
+                )
             ),
             #if data.rightDesc
                 Text(

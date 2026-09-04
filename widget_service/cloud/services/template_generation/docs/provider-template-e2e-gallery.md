@@ -4,8 +4,8 @@
 
 该工具用于让开发者或 AI Agent 一次性生成全部业务 Provider 的 2×2 场景画廊，验证当前模板能否通过正式
 `generate_widget_card_terse_dsl_nested2` 服务入口完成能力裁决、模板路由、A2UI 转换和最终校验。每个场景
-同时生成非融球和融球版本。请求中的 `deviceInfo.prdVer` 经公共构建链写入 `TaskSpec.appVersion`，模板生成器
-再使用该已有字段完成请求级裁决。
+只生成融球外观，请求中的 `deviceInfo.prdVer` 固定使用高版本 `11.7.5.206`，经公共构建链写入
+`TaskSpec.appVersion`，模板生成器再使用该已有字段完成请求级裁决。
 
 它与 [Provider 原子模板预览](provider-template-preview-gallery.md) 的定位不同：原子预览不调用模型，适合逐个
 检查 `.cardtpl`；本工具调用正式生成服务，适合检查真实组合是否可用。批跑时只在本地截获最终 Artifact，
@@ -18,7 +18,8 @@
 JSON 或公开 Schema。Search 通过后，二层候选才会收窄到目标模板，外部工具请求不能设置这些开发测试约束。
 端到端画廊同时覆盖单业务路线和严格受控的 HeroTitle + HeroContent + 单 Action 双业务组合；后者从
 正式模板自动配对，单列“跨业务组合”页签。Provider 中已有的 Support
-模板与 `TwoSupportLayout` 仍作为底层保留能力和原子预览资源存在，但当前 Search 路线不可达。
+模板现在会进入数据 Search，并可由 Planner 组成 `TwoSupportLayout`，但当前端到端画廊尚未生成这类组合，
+仍需通过原子预览和 Planner 单元测试覆盖。
 
 ## 场景矩阵
 
@@ -36,23 +37,21 @@ Full 生成“单内容”用例。业务缺少某个后缀时仍保留一张缺
 独立数据能力、互不重叠的写入根自动配对；当前为天气标题 + 日程内容，唯一按钮采用内容业务的注册动作
 “查看日程详情”。两个模板各自的字段、素材和样例覆盖合并为输入，两个目标模板按固定顺序传给公开入口
 的测试约束，仍由 Search 和第二层模型生成 `HeroTitleContentActionLayout`，不手工拼接最终 A2UI。
-任一成员禁用或数据能力未注册时保留缺失记录，不调用模型。画廊不构造不属于 Search 路线的 Support 配对。
+任一成员禁用或数据能力未注册时保留缺失记录，不调用模型。画廊当前不构造 Support 配对；这是画廊场景矩阵
+尚未扩展，不代表生产 Search 或 Planner 不支持。
 
-每个上述用例继续展开为两个相邻外观：
+每个上述用例只生成一种高版本外观：
 
 | 外观 | 路由请求版本来源 | 预期 |
 | --- | --- | --- |
-| 非融球 | 请求 `deviceInfo.prdVer = 11.7.5.205` | 低于配置最低版本，融球关闭 |
-| 融球 | 请求 `deviceInfo.prdVer = 11.7.5.206` | 等于配置最低版本；单业务 Compact/Full/Hero 命中融球 Theme 时展开融球背景 |
+| 融球 | 请求 `deviceInfo.prdVer = 11.7.5.206` | 达到配置最低版本；单业务 Compact/Full/Hero 命中融球 Theme 时展开融球背景 |
 
 画廊验证前需在服务 `CONFIG` 中配置 `fusion_ball_min_prd_version=11.7.5.206`。批跑结果会校验路由请求版本
 门禁和最终 A2UI 是否按模板融球契约出现受控背景；Artifact TaskSpec 中的 `appVersion` 应与请求版本一致。
-没有融球 Theme 的业务即使使用 11.7.5.206 也不应出现融球。两种外观保持相同 `providerId` 并相邻写入
-manifest，端侧因此把它们放在对应 Provider 业务的同一个页签中，而不是拆成“融球/非融球”两个页签；
-同一 Provider 中可通过符合条件的 Compact/Full/Hero 场景对照两种实际效果。
-双业务组合也验证这两个版本，以 `HeroContent` 主业务确定整卡主题。低版本不启用融球；达到门槛且主业务
-具有融球主题时，整卡统一展开一次该业务的背景。当前天气标题 + 日程内容组合应分别呈现普通日程主题和
-日程融球主题，不使用天气主题。画廊按主业务支持情况标注并校验实际融球结果。
+没有融球 Theme 的业务即使使用 11.7.5.206 也不应伪造融球背景。画廊不再生成低版本非融球对照用例。
+双业务组合同样只使用高版本，并以 `HeroContent` 主业务确定整卡主题；主业务具有融球主题时，整卡统一展开
+一次该业务的背景。当前天气标题 + 日程内容组合应呈现日程融球主题，不使用天气主题。画廊按主业务支持情况
+标注并校验实际融球结果。
 
 模拟输入从当前 `provider.json` 读取 Provider、业务、能力写入根，以及目标模板自己的主数据和次要数据；
 这些必选数据全部进入 `candidateOutputFields`。数据能力参数和 Action 内容来自当前能力注册表，用户 query
@@ -95,8 +94,8 @@ widget_service/.venv312/bin/python \
   --refresh-inputs --dry-run --concurrency 2
 ```
 
-以 2026-09-03 当前资源为基线，应生成 8 个业务分组加 1 个跨业务组合分组，共 98 个用例；无模型 dry-run 中
-18 个状态为 `missing`，80 个状态为 `not_generated`。Provider 或模板调整后数量可以变化，应以重新生成的
+以 2026-09-04 当前资源为基线，应生成 8 个业务分组加 1 个跨业务组合分组，共 70 个用例；无模型 dry-run 中
+8 个状态为 `missing`，62 个状态为 `not_generated`。Provider 或模板调整后数量可以变化，应以重新生成的
 输入 manifest 为准，不能继续复用旧结果目录中的数量。
 
 ### 真实批跑
@@ -123,9 +122,9 @@ widget_service/.venv312/bin/python \
 - `--dry-run`：不调用模型，仅生成“待批跑/缺失”结果清单，适合验证输入和端侧导入。
 - `--strict`：存在真实生成失败时返回非零退出码；模板后缀缺失仍作为画廊检查结果保留。
 - `--model-failure-attempts 1`：覆盖单用例模型失败最大尝试次数；默认值为 2，必须为正整数。
-- Provider 画廊不提供融球命令行开关；每个输入场景固定构造 `11.7.5.205` 与 `11.7.5.206` 两个请求，
-  公共构建链将各自的 `request.deviceInfo.prdVer` 写入 `TaskSpec.appVersion`，`TemplateSourceGenerator` 再结合
-  `CONFIG.fusion_ball_min_prd_version` 完成融球裁决；配置或版本缺失、非法时两种请求都关闭融球。
+- Provider 画廊不提供融球命令行开关；每个输入场景只构造 `deviceInfo.prdVer = 11.7.5.206` 的高版本请求，
+  公共构建链将其写入 `TaskSpec.appVersion`，`TemplateSourceGenerator` 再结合
+  `CONFIG.fusion_ball_min_prd_version` 完成融球裁决；配置缺失、非法或高于输入版本时仍会关闭融球。
 - `--input-root`、`--output-root`：覆盖默认临时目录。
 
 默认输入和输出目录为：
@@ -138,8 +137,8 @@ widget_service/cloud/services/template_generation/test/provider_gallery_output/
 输入请求是与工具调用一致的 `content + deviceInfo + session + userAuth` 包络；每个请求按
 `providers/<provider>/<business>/<template>/<appearance>/<scenario>.json` 存放。输出按同样的
 Provider/业务/模板层级保存 A2UI 消息数组，根目录 `manifest.json` 记录目标模板以及 `success`、`failed`、
-`missing` 和 `not_generated` 状态。双版本输入使用
-`provider-template-gallery-input/4`；端侧输出继续使用 `provider-template-gallery-output/2`，并在新的
+`missing` 和 `not_generated` 状态。单高版本输入沿用
+`provider-template-gallery-input/4`；端侧输出继续使用 `provider-template-gallery-output/2`，并在
 请求版本字段 `prdVer` 之外保留兼容别名 `appVersion`；`partnerTemplateId` 在单业务中为空，在双业务中记录
 第二个业务模板。双业务的路径包含两个模板 ID，避免多个配对互相覆盖。旧的任务规格版本副本字段不再输出，
 现有端侧导入器无需升级即可读取。

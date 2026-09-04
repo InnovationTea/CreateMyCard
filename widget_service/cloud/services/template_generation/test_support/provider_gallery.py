@@ -32,7 +32,6 @@ from services.widget_generation_service import WidgetGenerationService
 
 INPUT_SCHEMA_VERSION = "provider-template-gallery-input/4"
 OUTPUT_SCHEMA_VERSION = "provider-template-gallery-output/2"
-DEFAULT_PRD_VERSION = "11.7.5.205"
 FUSION_PRD_VERSION = "11.7.5.206"
 DEFAULT_ROM_VERSION = "6.0"
 DEFAULT_BUNDLE_NAME = "com.huawei.genui.evaluation"
@@ -308,12 +307,6 @@ class GalleryAppearance:
 
 
 _GALLERY_APPEARANCES = (
-    GalleryAppearance(
-        appearance_id="standard",
-        appearance_name="非融球",
-        prd_ver=DEFAULT_PRD_VERSION,
-        fusion_enabled=False,
-    ),
     GalleryAppearance(
         appearance_id="fusion",
         appearance_name="融球",
@@ -1110,7 +1103,7 @@ def _paired_gallery_provider(
             absolute_path.write_text(
                 json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
             )
-            appearance_name = "低版本" if appearance.appearance_id == "standard" else "门槛版本"
+            appearance_name = "高版本"
             main_supports_fusion = pair.content.business.business_id in fusion_business_ids
             expects_fusion = appearance.fusion_enabled and main_supports_fusion
             effect_name = "融球" if expects_fusion else "非融球"
@@ -1176,7 +1169,7 @@ def _request_from_envelope(payload: dict[str, Any]) -> GenerateWidgetCardRequest
         interaction_id=interaction_id,
         device_id=device_info.deviceId or "template-gallery-device",
         country_code=device_info.countryCode or "CN",
-        app_version=device_info.prdVer or DEFAULT_PRD_VERSION,
+        app_version=device_info.prdVer or FUSION_PRD_VERSION,
         app_name=envelope.bundleName or DEFAULT_BUNDLE_NAME,
     )
     return request

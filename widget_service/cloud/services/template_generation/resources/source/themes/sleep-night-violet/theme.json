@@ -6,7 +6,7 @@
   "supportedCapabilityIds": ["GetHealthAndSportSummary"],
   "paletteSceneIds": ["sleep.violet"],
   "primaryColor": "#FF401F99",
-  "supportContentColor": "#99401F99",
+  "supportContentColor": "#991F4799",
   "rootStyle": {
     "backgroundColor": "#FFEDE6FF",
     "borderRadius": 20,
@@ -16,7 +16,7 @@
     "clip": true
   },
   "actionStyle": {
-    "backgroundColor": "#33401F99",
+    "backgroundColor": "#33564AF7",
     "contentColor": "#FF401F99"
   }
 }

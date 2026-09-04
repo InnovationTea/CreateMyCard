@@ -8,8 +8,9 @@
 - [x] 业务模板尺寸和动作组合由后缀推导，不再由 Provider 重复声明。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
 - [x] `primaryData` 与 `secondaryData` 均参与模板准入硬校验。
-- [x] Support/TwoSupport 底层资源仍保留且 Search 不可达；生产 Search 仅额外开放
-  HeroTitle + HeroContent + 单 PillAction 的受控双业务组合；Compact 使用双 PillAction；Full 用于无 Action，或搭配一个 IconAction。
+- [x] Search 按数据覆盖返回 Support 等全部尺寸可用模板；Planner 可选择双 Support，并把 Action 分配给
+  支持 `actionId` 的垂域模板，也可选择 HeroTitle + HeroContent + 单 PillAction；Compact 使用双
+  PillAction；Full 用于无 Action，或搭配一个 IconAction。
 - [x] PillAction/IconAction 使用独立 Action Provider 模板，第二层只输出批准的展示 Props。
 - [x] 第一层支持选择零到两个不重复 eventId。
 - [x] 每个业务模板均在 `provider.json` 中声明主数据、次要数据、可选数据和布局场景。
@@ -20,7 +21,7 @@
 | --- | --- | --- |
 | HeroTitle | 双业务单 Action 的位置 0；后接 HeroContent | 2x2 |
 | HeroContent | 双业务单 Action 的位置 1；前置 HeroTitle | 2x2 |
-| Support | 约 2x1；底层双 Support 资源保留，当前 Search 不可达 | 2x2 |
+| Support | 约 2x1；由 Planner 组成双 Support，可在业务内部消费 Action | 2x2 |
 | Compact | 约 2x1；单 Compact + 2 个 PillAction | 2x2 |
 | Hero | 约 2x1.7；Hero + 1 个 PillAction | 2x2 |
 | Full | 完整 2x2；无 Action，或 Full + 1 个 IconAction | 2x2 |
@@ -41,8 +42,8 @@
 | weather | `ViewWeather` | `/data/weather` | 10 | 启用 |
 
 下方完整展开本轮调整的 Battery、Calendar、Countdown、Earphone 和 Weather；其他 Provider 保留基础形态摘要，
-精确全集以当前 `provider.json` 为准。Support 与 Compact 不要求一一对应；Support/TwoSupport 底层资源
-继续保留但 Search 不可达，双业务只开放 HeroTitle + HeroContent + 单 Action 的固定组合。
+精确全集以当前 `provider.json` 为准。Support 与 Compact 不要求一一对应；Search 只判断数据可用性，
+双业务布局与 Action 消费位置统一由 Planner 决定。
 
 ## AppUsageOverview
 
@@ -60,17 +61,21 @@
 ## BatteryOverview
 
 - Provider：`com.huawei.battery.cli`；运行状态：启用。
-- 数据能力：`GetPhoneBatteryInfo`；模板数：7。
+- 数据能力：`GetPhoneBatteryInfo`；模板数：11。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
-| ✅ | `BatteryOverviewPercentRingHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/batterySOC`<br>`/batterySOCText` | 无 | 无 |
+| ✅ | `BatteryOverviewPercentRingHero@1` | 约 2x1.7；百分比环 Hero + 1 个 PillAction | `/batterySOC` | 无 | 无 |
 | ✅ | `BatteryOverviewFull@1` | 完整 2x2；无 Action 的单 Full | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewHero@1` | 约 2x1.7；2x2 Hero + 1 个 PillAction | `/batterySOC` | `/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewWideFull@1` | 完整 4x2；单 WideFull | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
-| ✅ | `BatteryOverviewCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/batterySOCText` | 无 | `/batteryCapacityLevelDesc`<br>`/chargingStatusDesc` |
-| ✅ | `BatteryOverviewChargingProgressHero@1` | 约 2x1.7；充电进度 Hero + 1 个 PillAction | `/batterySOC` | `/chargingStatusDesc`<br>`/healthStatusDesc`<br>`/pluggedTypeDesc` | 无 |
+| ✅ | `BatteryOverviewCompact@1` | 约 2x1；36vp 环形进度 Compact + 2 个 PillAction，电量图标可选 | `/batterySOC` | `/chargingStatusDesc` | 无 |
+| ✅ | `BatteryOverviewChargingProgressHero@1` | 约 2x1.7；充电状态 Hero + 1 个 PillAction | `/batterySOCText` | 无 | `/chargingStatusDesc`<br>`/healthStatusDesc` |
 | ✅ | `BatteryOverviewHealthLevelHero@1` | 约 2x1.7；电池体检 Hero + 1 个 PillAction | `/healthStatusDesc` | `/batteryCapacityLevelDesc` | 无 |
+| ✅ | `BatteryOverviewChargingProgressFull@1` | 完整 2x2；充电进度单 Full | `/batterySOC` | `/chargingStatusDesc`<br>`/healthStatusDesc`<br>`/pluggedTypeDesc` | 无 |
+| ✅ | `BatteryOverviewChargingDiagnosticsHero@1` | 约 2x1.7；充电诊断 Hero + 1 个 PillAction | `/nowCurrentText`<br>`/voltageText` | `/batteryCapacityLevelDesc`<br>`/isBatteryPresentText` | 无 |
+| ✅ | `BatteryOverviewChargingRingHero@1` | 约 2x1.7；充电状态环 Hero + 1 个 PillAction | `/batterySOC` | `/chargingStatusDesc` | 无 |
+| ✅ | `BatteryOverviewTemperatureFull@1` | 完整 2x2；电池温度单 Full | `/batteryTemperatureText` | `/pluggedTypeDesc`<br>`/updatedAt` | 无 |
 
 ## CalendarOverview
 

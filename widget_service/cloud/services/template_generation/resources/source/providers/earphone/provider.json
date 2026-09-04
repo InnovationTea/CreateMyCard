@@ -69,7 +69,7 @@
       "templateId": "BluetoothDeviceOverviewEarbudsSupport@1",
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "耳机电量 Support，展示左右耳电量和设备图标；仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达，可按需在内部绑定事件。",
+      "description": "耳机电量 Support，展示左右耳电量和设备图标；可由 Planner 放入双业务布局，并按需在内部绑定事件。",
       "entry": "templates/bluetooth-device-overview.cardtpl",
       "primaryData": [
         "/leftBatteryLevel",

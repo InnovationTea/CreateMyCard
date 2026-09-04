@@ -15,7 +15,13 @@ from services.template_generation.engine.advanced.content_selectors import (
 )
 
 from .generated.prompts import BODY_SYSTEM_PROMPT_KERNEL, UX_MIXED_SYSTEM_PROMPT_KERNEL
-from .models import ActionBinding, Fact, HybridBodyContract, HybridLimits
+from .models import (
+    CARDTPL_SOURCE_FORMATS,
+    ActionBinding,
+    Fact,
+    HybridBodyContract,
+    HybridLimits,
+)
 from .provider_bundle import (
     provider_template_admission,
     provider_template_family_identity,
@@ -421,10 +427,12 @@ def _system_prompt(
                         contract,
                     )
                 params[name] = parameter
-            if definition.source_format != "cardtpl/1" or variant.size != "default":
+            if definition.source_format not in CARDTPL_SOURCE_FORMATS:
                 raise ValueError(
-                    f"Template is outside the supported cardtpl/1 contract: {wire_id}"
+                    f"Template is outside the supported CardTemplate contract: {wire_id}"
                 )
+            if variant.size != "default":
+                raise ValueError(f"Template variant is not default: {wire_id}")
             call = f"Template({wire_id!r}, props)"
             if ux_layout_root:
                 layout_kind = provider_template_layout_kind(wire_id)
@@ -566,10 +574,12 @@ def build_template_prompt_contracts(
                 continue
             if not _variant_has_available_required_assets(variant, definition, contract):
                 continue
-            if definition.source_format != "cardtpl/1" or variant.size != "default":
+            if definition.source_format not in CARDTPL_SOURCE_FORMATS:
                 raise ValueError(
-                    f"Template is outside the supported cardtpl/1 contract: {wire_id}"
+                    f"Template is outside the supported CardTemplate contract: {wire_id}"
                 )
+            if variant.size != "default":
+                raise ValueError(f"Template variant is not default: {wire_id}")
             properties = variant.parameters_schema.get("properties", {})
             parameter_sources: dict[str, dict[str, Any]] = {}
             for name, schema in properties.items():
@@ -1202,6 +1212,11 @@ def _build_action_bindings(task_spec: TaskSpec) -> tuple[ActionBinding, ...]:
             )
         )
     return tuple(actions)
+
+
+def action_binding_ids(task_spec: TaskSpec) -> tuple[str, ...]:
+    """Return stable per-occurrence Action IDs used by prompt and compiler contracts."""
+    return tuple(action.action_id for action in _build_action_bindings(task_spec))
 
 
 def _asset_semantic_tags(asset: dict[str, Any]) -> tuple[str, ...]:

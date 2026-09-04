@@ -65,12 +65,68 @@ TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路�
 
 ## UI 模板语法
 
+### 协议版本
+
+Provider Bundle 通过 `compatibility.templateLanguage` 选择作者协议：
+
+- `cardtpl/1`：保留现有语法和行为；
+- `cardtpl/2`：兼容 `cardtpl/1`，并增加 `#match present(...)` 有序可选项匹配。
+
+版本由 Bundle 显式声明，编译后的 `TemplateDefinition.sourceFormat` 保留实际版本。旧 Bundle 不自动升级，
+也不会因为加载器支持 v2 而改变展开结果。
+
 ### 条件能力边界
 
 本轮暂缓运行时 `IF(...)`，模板、Tersel、A2UI-Compact 和公共 A2UI 均不接受 `If` 组件。
 编译期 `#if/#elseif/#else/#endif/#end`、`#Expr` 和运行时属性表达式 `Expr(...)` 继续支持；
 不得读取 `sampleValue` 来模拟运行时组件分支。保留能力、暂缓范围与验收要求见
 [模板专项方案](template-generation-design.md)。
+
+### 有序可选项匹配（`cardtpl/2`）
+
+当同一区域需要按可用字段数量切换布局时，使用 `#match present(...) as <alias>`。`present(...)` 按声明顺序
+收集可用值并压缩缺失项；随后以 `#case <size>` 精确匹配收集数量，未命中的数量进入可选 `#default`：
+
+```text
+#match present(
+  data.city,
+  data.temperature,
+  (data.uv => `紫外线等级${data.uv}`)
+) as items
+#case 0
+  Text("暂无数据")
+#case 1
+  Text(items[0])
+#case 2
+  Row({"itemMargin": 4},
+    Text(items[0]),
+    Text(items[1])
+  )
+#default
+  Column({"itemMargin": 2},
+    Text(items[0]),
+    Text(items[1]),
+    Text(items[2])
+  )
+#end
+```
+
+规则如下：
+
+- 每项可以是直接守卫 `data.xxx` / `props.xxx`，或带转换的 `(data.xxx => value)` /
+  `(props.xxx => value)`；带转换形式必须使用外层括号。左侧字段不存在时不计算右侧，也不向列表加入项；
+  存在时把右侧值加入列表。右侧使用现有 CardTemplate 值语法，并在最终使用位置接受类型和上下文校验。
+- `present(...)` 最少 1 项、最多 4 项，守卫不得重复。别名不得使用 `data`、`props` 或 `children`，且只支持
+  `items[0]` 这类非负整数字面量索引，不支持遍历、动态索引或读取 `size` 属性。
+- 存在性只表示本轮 binding 或 Prop 可用且不为 `None`，不读取运行时数据内容；`false`、`0` 和空字符串
+  均视为存在。转换中的反引号插值和 `Expr(...)` 仍生成绑定 IR，由端侧按真实路径求值，不读取
+  `sampleValue`。
+- `#case` 使用不大于声明项数的非负整数，同一数量只能出现一次；`#default` 最多一个且必须位于所有
+  `#case` 之后。每个分支必须至少包含一个组件；未声明匹配分支且没有 `#default` 时不生成内容。
+- 编译器枚举最多 4 项的可用性组合，按每个组合的压缩列表静态校验索引和可选引用作用域。因此如果
+  `#default` 可能接收数量 0，`items[0]` 会在加载模板时直接报错，而不是把风险留到运行时。
+- `#match` 不允许嵌套；分支内部仍可使用现有 `#if`。该结构在 Bundle 加载阶段确定性降为现有存在性条件
+  IR，`#match`、别名和列表均不进入 Tersel 或最终 A2UI，也不引入新的运行时 `If` 组件。
 
 ### 模板后缀与布局
 
@@ -79,7 +135,8 @@ TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路�
 
 - `HeroTitle`：双业务单 Action 的位置 0，后接一个 HeroContent；
 - `HeroContent`：双业务单 Action 的位置 1，前置一个 HeroTitle；
-- `Support`：约 `2x1`，保留给旧 LLM 选择器兼容测试和原子预览；事件按需绑定在 Support 内部，当前 Search 不可达；
+- `Support`：约 `2x1`，Search 按数据覆盖返回候选，由 Planner 组成双 Support；事件可按需绑定在
+  Support 内部；
 - `Compact`：约 `2x1`，只用于一个 Compact 加两个 PillAction；
 - `Hero`：约 `2x1.7`，用于 `2x2` 的 Hero 加一个 PillAction；
 - `Full`：完整 `2x2`，无 Action 时单独使用，或在存在语义匹配图标素材时加一个 IconAction；
@@ -341,54 +398,59 @@ PillAction 模板使用 `$theme('actionStyle.backgroundColor')` 和 `$theme('act
 ## 首层 Search、确定性检索与第二层 LLM 规则
 
 当前默认配置 `firstLayerComponentSelector: "search"`。第一层模型不直接选择业务组件或模板，只输出
-`TemplateRetrievalQuery`，顶层字段为 `themeId`、`requiredOutputFieldsByCapability`、`action`：
+`TemplateSearchIntent`，顶层字段为 `requiredOutputFieldsByCapability`、
+`primaryOutputFieldByCapability`、`action`：
 
-1. `themeId` 必须来自当前可用 Theme；
-2. `requiredOutputFieldsByCapability` 按数据能力列出用户显式要求展示的字段；
-3. `action` 输出零到两个不重复、与显式动作对应的 `eventId`，不参与数据覆盖；
-4. 模型不得输出组件 ID、模板 ID、布局或最终 props。
+1. `requiredOutputFieldsByCapability` 按数据能力列出用户显式要求展示的 JSON Pointer；
+2. `primaryOutputFieldByCapability` 只记录用户明确表达的单业务主焦点，无法判断时省略该业务；
+3. `action` 输出零到两个不重复、与显式动作对应的 `eventId`；
+4. 模型不得输出 Theme、Schema、组件 ID、模板 ID、布局或最终 Props。
 
 成功示例：
 
 ```json
 {
-  "themeId": "fusion-weather-blue",
   "requiredOutputFieldsByCapability": {
-    "ViewWeather": ["currentTemperature", "weatherCondition", "hourlyForecast"]
+    "ViewWeather": [
+      "/current/temperatureText",
+      "/current/airQuality",
+      "/location/districtName"
+    ]
+  },
+  "primaryOutputFieldByCapability": {
+    "ViewWeather": "/current/temperatureText"
   },
   "action": []
 }
 ```
 
-服务随后由 `retrieve_template_variants()` 做确定性检索，结合能力字段、注册表和模板候选生成
-`TemplateRouteSelection`。只有这个内部结果才包含 `componentCandidates` 和
-`availableTemplateIds`：
+`search_template_variants()` 的职责只包含尺寸与数据准入，输出按能力和业务分组的候选：
 
-1. `2x2` Search 允许一个业务组件，或恰好两个业务组件加一个 Action；保留模板必须独立完整承载所属业务的显式字段；
-2. 显式字段满足后，再检查候选模板自身 `primaryData` 与 `secondaryData` 在 TaskSpec 中全部存在；
-3. `candidateOutputFields` 只是候选数据投影，不直接等于强制显示集合；
-4. 双业务仅在一侧存在完整 `HeroTitle`、另一侧存在完整 `HeroContent` 时按该顺序进入第二层；其它多业务组合或任一字段无法覆盖时返回模板不匹配；
-5. Search 保留字段匹配、模板准入、候选排序和数量上限能力；同一业务可同时返回多个 Hero、Full 或 Compact
-   等同形态候选，不能退化为无序枚举；
-6. Action 独立于数据业务计数；单业务按零、一个、两个 Action 分别保留 Full、Hero+Full、Compact；
-7. Action 不影响数据业务计数；双业务路线必须恰好选择一个 Action，且不得用 Action 覆盖或合并第二个数据业务；
-8. Support 和 `TwoSupportLayout` 仅保留给兼容路径，当前 Search 不将其作为多业务回退。
+1. 每个候选模板必须独立覆盖该业务的全部显式字段；覆盖集合为
+   `primaryData + secondaryData + optionalData`。
+2. 模板运行硬前置只取 `primaryData + secondaryData`；`optionalData` 缺失不会阻止模板进入候选。
+3. Search 不按 Action 数量、布局后缀、Theme 或业务位置过滤，所以 HeroTitle、HeroContent、Support、
+   Compact、Hero、Full 等形态按同一数据规则参与。
+4. `candidateOutputFields` 是输入可选范围；只有首层选中的字段才是本次显式展示要求。
+
+确定性 `template_plan_planner.py` 在 Search 与第二层 LLM 之间重新读取 Registry 元数据，联合规划 Theme、
+Layout、业务顺序、准确模板 ID 和 Action 消费位置。每个 Plan 必须覆盖全部显式字段并消费每个已选 Action
+恰好一次；`2x2` 单业务优先让用户主焦点命中模板 `primaryData`。Action 可以由根 Action 模板消费，也可由
+声明可选 `actionId` 的垂域 Support 模板消费。Planner 稳定排序、去重后最多输出三个完整原子 Plan。
 
 配置 `firstLayerComponentSelector: "llm"` 时，系统可走兼容选择器
 `plan_template_route_with_llm()`，由第一层直接产出 Theme、组件候选和 Action；该路径不是当前默认生产路径。
 
-第二层只读取确定性检索选中的业务 Provider `secondLayerRule`，从
-`availableTemplateIds` 按尺寸、布局和 Action 数量选择最终 UI 模板及展示 props；根布局也必须从 Layout
-Provider 选择模板。第二层不接收 TaskSpec、`dataFacts`、`mustKeep` 或数据样例，不重新判断展示字段，
-不得用基础组件补充业务内容。候选筛选后为空或必需 props 无法满足时直接失败。若第一层输出了 `action`，
-第二层按最终模板后缀选择完整组合：Hero/WideHero 使用一个
-`Template("PillAction@1", props)`，单 Compact 使用两个 PillAction 模板；Full 仅可在
-`FullIconActionLayout` 中使用一个 IconAction；WideFull 不生成 Action。旧 LLM 兼容路径仍可将双 Support 的 actionId
-各一次写入业务模板内部。PillAction Props
-包含 `actionId`、`label` 和可选 `icon`，IconAction Props 包含 `actionId`、`icon`。第二层只决定展示内容，
-必选 Action CardTpl 必须在交互组件样式中写入 `onClick: EventAction(props.actionId)`；可选事件的
-Support CardTpl 使用 `onClick: EventAction(props?.actionId)`。微服务校验候选配对，将该模板声明绑定为
-可信事件并注入主题色。模型不得输出 `call`、`args`、`onClick`。
+第二层只在最多三个 Plan 中完整选择一个，并补全所选模板允许开放的 Props 和可信素材；不得自行更换
+Theme、Layout、业务顺序、模板 ID 或 Action 消费位置，也不得跨 Plan 混用。它不接收 TaskSpec、
+`dataFacts`、`mustKeep` 或数据样例，不重新判断展示字段，不得用基础组件补业务内容。编译器在展开前验证
+最终调用树与且仅与一个 Plan 完全一致，混合两个 Plan 或重复、遗漏 Action 均按契约失败。
+
+PillAction Props 包含 `actionId`、`label` 和可选 `icon`，IconAction Props 包含 `actionId`、`icon`。
+必选 Action CardTpl 在交互组件样式中写入 `onClick: EventAction(props.actionId)`；Support CardTpl 的可选事件
+使用 `onClick: EventAction(props?.actionId)`。微服务将受信 `actionId` 绑定到已批准事件，模型不得输出
+原始 `call`、`args` 或 `onClick`。完整模块边界见
+[Search 与 Planner 交互契约](template-search-planner-contract.md)。
 
 ## 当前迁移范围
 

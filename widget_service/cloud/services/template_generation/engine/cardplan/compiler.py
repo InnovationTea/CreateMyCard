@@ -64,12 +64,14 @@ from .fusion_ball_background import (
     apply_fusion_ball_background,
 )
 from .models import (
+    CARDTPL_SOURCE_FORMATS,
     TEMPLATE_CHILD_SLOT_COMPONENT,
     ExpansionStats,
     HybridBodyContract,
     TemplateDefinition,
     TemplateNode,
     TemplateParameterRelation,
+    TemplatePlan,
     TemplateValue,
     TemplateVariant,
 )
@@ -368,6 +370,7 @@ def compile_ux_layout_card(
         registry=registry,
         embedded_actions=True,
     )
+    matched_plan_id = _validate_allowed_template_plan(composition, contract, registry)
     raw_count = _count_calls(composition)
     if raw_count > contract.limits.max_raw_components:
         raise TerselConversionError("Hybrid raw component budget exceeded.")
@@ -489,6 +492,7 @@ def compile_ux_layout_card(
         effective_output=effective,
         a2ui=a2ui,
         stats=ExpansionStats(
+            matched_plan_id=matched_plan_id,
             template_call_count=state.template_calls,
             template_used_ids=tuple(state.template_ids),
             template_variant_normalization_count=state.template_variant_normalizations,
@@ -889,14 +893,13 @@ def _expand_call(
         task_spec,
         business_names=_contract_ux_business_component_names(contract, registry),
     )
-    if (
-        definition.source_format == "cardtpl/1"
-        and definition.compatible_theme_profile_ids
-        and contract.theme_profile_id not in definition.compatible_theme_profile_ids
-    ):
-        raise TerselConversionError(
-            f"Provider Template does not support the theme: {wire_id}/{contract.theme_profile_id}"
-        )
+    is_card_template = definition.source_format in CARDTPL_SOURCE_FORMATS
+    if is_card_template and definition.compatible_theme_profile_ids:
+        if contract.theme_profile_id not in definition.compatible_theme_profile_ids:
+            raise TerselConversionError(
+                "Provider Template does not support the theme: "
+                f"{wire_id}/{contract.theme_profile_id}"
+            )
     binding_values = _provider_template_binding_values(
         definition,
         variant,
@@ -1094,13 +1097,15 @@ def _validate_provider_template_state(
         if variant_name == "earphoneHero":
             if facts.earphone_name is None or facts.case_battery_level is None:
                 raise TerselConversionError(
-                    "Bluetooth Provider Template variant does not match the trusted earphone battery."
+                    "Bluetooth Provider Template variant does not match "
+                    "the trusted earphone battery."
                 )
             return
         if variant_name == "earphoneCompact":
             if facts.earphone_name is None or facts.case_battery_level is None:
                 raise TerselConversionError(
-                    "Bluetooth Provider Template variant does not match the trusted earphone battery."
+                    "Bluetooth Provider Template variant does not match "
+                    "the trusted earphone battery."
                 )
             return
         has_left = facts.left_battery_level is not None
@@ -4845,7 +4850,7 @@ def _provider_template_binding_values(
     task_spec: TaskSpec,
     binding_roots: dict[str, str],
 ) -> dict[str, str]:
-    if definition.source_format != "cardtpl/1":
+    if definition.source_format not in CARDTPL_SOURCE_FORMATS:
         return {}
     if not definition.bindings:
         return {}
@@ -6199,6 +6204,66 @@ def _parsed_layout_template_id(
     return layout_id
 
 
+def _validate_allowed_template_plan(
+    composition: ParsedCall,
+    contract: HybridBodyContract,
+    registry: CardPlanRegistry,
+) -> str | None:
+    """Require the model output to match one complete Planner result atomically."""
+    if not contract.allowed_template_plans:
+        return None
+    matched_plan_ids = tuple(
+        plan.plan_id
+        for plan in contract.allowed_template_plans
+        if _composition_matches_template_plan(composition, plan, registry)
+    )
+    if len(matched_plan_ids) != 1:
+        raise TerselConversionError(
+            "UX Layout output must match exactly one atomic Template Plan."
+        )
+    return matched_plan_ids[0]
+
+
+def _composition_matches_template_plan(
+    composition: ParsedCall,
+    plan: TemplatePlan,
+    registry: CardPlanRegistry,
+) -> bool:
+    layout_id = _parsed_layout_template_id(composition, registry)
+    if f"{layout_id}@1" != plan.layout_template_id:
+        return False
+    root_assignments = tuple(
+        item for item in plan.action_assignments if item.consumer == "root-action"
+    )
+    expected_child_count = len(plan.business_slots) + len(root_assignments)
+    if len(composition.children) != expected_child_count:
+        return False
+    embedded_actions = {
+        item.business_position: item.action_id
+        for item in plan.action_assignments
+        if item.consumer == "business-template"
+    }
+    for slot in plan.business_slots:
+        child = composition.children[slot.position]
+        if child.kind != "template" or child.name != slot.template_id:
+            return False
+        params = child.values[0] if child.values and isinstance(child.values[0], dict) else {}
+        expected_action_id = embedded_actions.get(slot.position)
+        if expected_action_id is None and "actionId" in params:
+            return False
+        if expected_action_id is not None and params.get("actionId") != expected_action_id:
+            return False
+    action_offset = len(plan.business_slots)
+    for index, assignment in enumerate(root_assignments):
+        child = composition.children[action_offset + index]
+        if child.kind != "template" or child.name != assignment.action_template_id:
+            return False
+        params = child.values[0] if child.values and isinstance(child.values[0], dict) else {}
+        if params.get("actionId") != assignment.action_id:
+            return False
+    return True
+
+
 def _validate_ux_business_component_placement(
     layout_id: str,
     content: tuple[ParsedCall, ...],
@@ -7319,7 +7384,9 @@ def _instantiate_provider_layout_blueprint(
     definition_items = []
     for wire_id in contract.allowed_template_ids:
         definition = registry.require_template(wire_id)
-        if definition.template_id != layout_id or definition.source_format != "cardtpl/1":
+        if definition.template_id != layout_id:
+            continue
+        if definition.source_format not in CARDTPL_SOURCE_FORMATS:
             continue
         definition_items.append(definition)
     definitions = tuple(definition_items)
@@ -8552,13 +8619,17 @@ def _provider_layout_action_background(
     """Resolve a single-business Provider Template Action background override."""
     if len(_contract_ux_business_component_names(contract, registry)) != 1:
         return default
-    opacities = {
-        definition.layout_action_style.background_opacity
-        for wire_id in contract.allowed_template_ids
-        if (definition := registry.templates.get(wire_id)) is not None
-        and definition.source_format == "cardtpl/1"
-        and definition.layout_action_style is not None
-    }
+    opacities: set[float] = set()
+    for wire_id in contract.allowed_template_ids:
+        definition = registry.templates.get(wire_id)
+        if definition is None:
+            continue
+        if definition.source_format not in CARDTPL_SOURCE_FORMATS:
+            continue
+        style = definition.layout_action_style
+        if style is None:
+            continue
+        opacities.add(style.background_opacity)
     if len(opacities) != 1:
         return default
     if not foreground.startswith("#") or len(foreground) != 9:

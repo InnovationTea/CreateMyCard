@@ -675,15 +675,14 @@ def test_first_layer_prompt_includes_task_fields_rules_and_action_candidates() -
     assert payload["taskSpecDataFields"]
     assert payload["taskSpec"] == task.model_dump(mode="json")
     assert payload["providerFirstLayerRules"]
-    assert payload["themeFirstLayerRules"]
-    assert "2x2-two-support" not in payload["themes"]
-    assert "2x2-two-support" not in payload["themeFirstLayerRules"]
+    assert "themeFirstLayerRules" not in payload
+    assert "themes" not in payload
     assert payload["actionCandidates"] == [
         {"eventId": "event.open.weather", "call": "clickToDeeplink"}
     ]
     assert "不得为了迁就布局限制而省略" in messages[0]["content"]
-    assert "2x2 模板 Search 接受一个可完整覆盖的业务" in messages[0]["content"]
-    assert "恰好两个数据业务加一个显式 Action" in messages[0]["content"]
+    assert "这些组合约束由服务端 Planner" in messages[0]["content"]
+    assert "不得判断业务是否能组成布局" in messages[0]["content"]
 
 
 def test_calendar_first_layer_rule_excludes_meeting_action_parameters() -> None:
@@ -981,18 +980,24 @@ def test_search_orders_complete_hero_title_and_hero_content_businesses(
     by_id = {component.get("id"): component for component in components}
     root = by_id.get("root")
     assert isinstance(root, dict)
-    expected_color = "#FFCCEEFF" if enable_fusion_ball else "#FF1F4799"
+    expected_primary_color = "#FFCCEEFF" if enable_fusion_ball else "#FF1F4799"
+    expected_support_color = "#B3CCEEFF" if enable_fusion_ball else "#991F4799"
     themed_text_count = 0
     for component in components:
         content = component.get("content")
         if not isinstance(content, str):
             continue
-        primary_paths = (
-            "/data/weather/location/districtName", "/data/weather/current/temperatureText",
-            "/data/weather/current/condition", "/data/calendar/events/0/title",
+        weather_title_paths = (
+            "/data/weather/location/districtName",
+            "/data/weather/current/temperatureText",
+            "/data/weather/current/condition",
         )
-        is_primary_text = any(path in content for path in primary_paths)
-        if content == action.display_label or is_primary_text:
+        is_weather_title = any(path in content for path in weather_title_paths)
+        is_calendar_title = "/data/calendar/events/0/title" in content
+        if content == action.display_label or is_calendar_title or is_weather_title:
+            expected_color = (
+                expected_support_color if is_weather_title else expected_primary_color
+            )
             assert component.get("styles", {}).get("fontColor") == expected_color
             themed_text_count += 1
     assert themed_text_count == (3 if weather_state == "neither" else 4)

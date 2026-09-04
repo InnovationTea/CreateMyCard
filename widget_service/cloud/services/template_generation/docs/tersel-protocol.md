@@ -38,7 +38,9 @@ ComponentName(requiredValues..., designToken?, inlineStyles?, ...children)
 - `inlineStyles` 是可选对象，必须位于最后一个值参数位置。
 - `children` 只允许出现在 `Row`、`Column`、`List`、`Stack` 等容器中。
 - 本轮不支持运行时 `If` 组件；模板 `#if/#elseif/#else/#endif/#end` 只做编译期选择，
-  不输出虚拟节点。`Expr(...)` 可继续生成组件属性中的运行时表达式。
+  不输出虚拟节点。`cardtpl/2` 的 `#match present(...)` 同样在受信模板编译阶段按可用 binding/Prop
+  确定性展开，不向 Tersel 增加数组、别名、`size` 或条件语法。`Expr(...)` 可继续生成组件属性中的
+  运行时表达式。
 
 Tersel 只接受当前 Form Catalog 的标准组件，不定义 `FusionBall` 等云端组件。融球 Theme 由受信模板编译器
 在序列化 Tersel 前展开为标准 `Stack` 组件树，因此 Tersel 转换器遇到 `FusionBall(...)` 必须按未知组件拒绝。

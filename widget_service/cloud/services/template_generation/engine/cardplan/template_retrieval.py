@@ -1,9 +1,8 @@
-"""Search CardTpl candidates from first-layer LLM field requirements.
+"""Search data-eligible CardTpl candidates from first-layer field requirements.
 
-Search deliberately does not select a final template, layout, component composition,
-card size, or theme compatibility. Those are second-layer responsibilities. The 2x2
-route admits one business with zero to two root Actions, or exactly two businesses with
-one root Action when HeroTitle/HeroContent coverage is complete.
+The production Search does not select Theme, Layout, business order, Action placement,
+or a final Template. The legacy retrieval adapter remains in this module for the old
+first-layer route and compatibility tests.
 """
 
 from __future__ import annotations
@@ -13,7 +12,7 @@ import re
 from collections.abc import Iterator
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.logger import json_for_log, logger
 from models.generation import CandidateDataBinding, TaskSpec
@@ -34,6 +33,68 @@ class TemplateRetrievalMiss(ValueError):
     """No provider-backed component can cover the first-layer request."""
 
 
+class TemplateSearchIntent(BaseModel):
+    """First-layer semantic intent; it deliberately contains no UI decision."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
+
+    required_output_fields_by_capability: dict[str, tuple[str, ...]] = Field(
+        alias="requiredOutputFieldsByCapability",
+    )
+    primary_output_field_by_capability: dict[str, str] = Field(
+        default_factory=dict,
+        alias="primaryOutputFieldByCapability",
+    )
+    action_ids: tuple[str, ...] = Field(default=(), alias="action", max_length=2)
+
+    @field_validator("required_output_fields_by_capability")
+    @classmethod
+    def valid_fields(cls, values: dict[str, tuple[str, ...]]) -> dict[str, tuple[str, ...]]:
+        _validate_output_fields(values)
+        return values
+
+    @field_validator("action_ids", mode="before")
+    @classmethod
+    def normalized_actions(cls, value: Any) -> tuple[str, ...]:
+        return _normalized_action_ids(value)
+
+    @model_validator(mode="after")
+    def valid_primary_fields(self) -> TemplateSearchIntent:
+        required = self.required_output_fields_by_capability
+        for capability_id, path in self.primary_output_field_by_capability.items():
+            if capability_id not in required:
+                raise ValueError("primary output capability must have explicit output fields")
+            if path not in required[capability_id]:
+                raise ValueError("primary output field must be one explicit output field")
+        return self
+
+
+class TemplateSearchCandidate(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
+
+    template_id: str = Field(alias="templateId", min_length=1)
+    covered_explicit_fields: tuple[str, ...] = Field(alias="coveredExplicitFields")
+
+
+class TemplateBusinessCandidates(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
+
+    capability_id: str = Field(alias="capabilityId", min_length=1)
+    business_id: str = Field(alias="businessId", min_length=1)
+    explicit_fields: tuple[str, ...] = Field(alias="explicitFields")
+    candidates: tuple[TemplateSearchCandidate, ...]
+
+
+class TemplateSearchResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
+
+    card_size: str = Field(alias="cardSize", min_length=1)
+    business_candidates: tuple[TemplateBusinessCandidates, ...] = Field(
+        alias="businessCandidates",
+        min_length=1,
+    )
+
+
 class TemplateRetrievalQuery(BaseModel):
     """The first-layer decision: theme, display demands, and explicit Action."""
 
@@ -48,26 +109,34 @@ class TemplateRetrievalQuery(BaseModel):
     @field_validator("required_output_fields_by_capability")
     @classmethod
     def valid_fields(cls, values: dict[str, tuple[str, ...]]) -> dict[str, tuple[str, ...]]:
-        pattern = re.compile(r"^/(?:[^/~]|~[01])+(?:/(?:[^/~]|~[01])+)*$")
-        for capability_id, paths in values.items():
-            if not capability_id.strip() or len(paths) != len(set(paths)):
-                raise ValueError("capability IDs and output fields must be unique")
-            if any(pattern.fullmatch(path) is None for path in paths):
-                raise ValueError("required output fields must be JSON Pointers")
+        _validate_output_fields(values)
         return values
 
     @field_validator("action_ids", mode="before")
     @classmethod
     def normalized_actions(cls, value: Any) -> tuple[str, ...]:
-        if value is None:
-            return ()
-        values = (value,) if isinstance(value, str) else tuple(value)
-        normalized = tuple(item.strip() for item in values if isinstance(item, str))
-        if len(normalized) != len(values) or any(not item for item in normalized):
-            raise ValueError("action must contain only non-empty eventIds")
-        if len(normalized) != len(set(normalized)):
-            raise ValueError("action eventIds must be unique")
-        return normalized
+        return _normalized_action_ids(value)
+
+
+def _validate_output_fields(values: dict[str, tuple[str, ...]]) -> None:
+    pattern = re.compile(r"^/(?:[^/~]|~[01])+(?:/(?:[^/~]|~[01])+)*$")
+    for capability_id, paths in values.items():
+        if not capability_id.strip() or len(paths) != len(set(paths)):
+            raise ValueError("capability IDs and output fields must be unique")
+        if any(pattern.fullmatch(path) is None for path in paths):
+            raise ValueError("required output fields must be JSON Pointers")
+
+
+def _normalized_action_ids(value: Any) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    values = (value,) if isinstance(value, str) else tuple(value)
+    normalized = tuple(item.strip() for item in values if isinstance(item, str))
+    if len(normalized) != len(values) or any(not item for item in normalized):
+        raise ValueError("action must contain only non-empty eventIds")
+    if len(normalized) != len(set(normalized)):
+        raise ValueError("action eventIds must be unique")
+    return normalized
 
 
 def build_template_retrieval_prompt(
@@ -80,7 +149,6 @@ def build_template_retrieval_prompt(
     data_shape = extract_data_shape(task_spec)
     capability_ids = tuple(binding.capabilityId for binding in coverage_bindings)
     component_ids = _component_ids_for_capabilities(registry, capability_ids)
-    theme_ids = registry.first_layer_theme_ids(component_ids)
     data_roots = {binding.capabilityId: binding.writeResultTo for binding in coverage_bindings}
     payload = {
         "userQuery": task_spec.userQuery,
@@ -100,21 +168,16 @@ def build_template_retrieval_prompt(
             binding.capabilityId: tuple(binding.candidateOutputFields)
             for binding in coverage_bindings
         },
-        "themes": theme_ids,
         "actionCandidates": [
             {"eventId": event.id, "call": event.call}
             for event in task_spec.eventCandidates
             if event.id
         ],
         "providerFirstLayerRules": registry.provider_first_layer_rules(component_ids, data_roots),
-        "themeFirstLayerRules": registry.theme_first_layer_rule_documents(theme_ids),
     }
-    schema = TemplateRetrievalQuery.model_json_schema(by_alias=True)
+    schema = TemplateSearchIntent.model_json_schema(by_alias=True)
     system = (
         "你是模板生成第一层。只输出 template-retrieval-query/1 JSON。"
-        "themeId 必须从 themes 选择；themes 已由服务按当前业务确定性过滤，"
-        "存在融球候选时不会再包含非融球主题。"
-        "双业务单动作组合在 Search 确定 HeroContent 后，由服务端按该主业务对齐全局主题。"
         "requiredOutputFieldsByCapability 的 key 必须来自 "
         "candidateDataBindings。每个 value 仅保留 userQuery、title、description 或 taskSpec "
         "明确要求展示的字段，字段必须逐字来自 "
@@ -123,19 +186,150 @@ def build_template_retrieval_prompt(
         "事件参数（如 actionCandidates args 中用于跳转的 entityId）不是展示字段，"
         "不得加入 requiredOutputFieldsByCapability。"
         "不得为了迁就布局限制而省略用户明确要求的其他业务字段；"
-        "2x2 模板 Search 接受一个可完整覆盖的业务，或恰好两个数据业务加一个显式 Action；"
-        "双业务仅在服务端能够分别证明 HeroTitle 与 HeroContent 完整覆盖时适用，"
-        "业务位置与布局由服务端确定，不得在本层输出。"
+        "不得判断业务是否能组成布局，也不得决定业务位置或 Action 消费者；"
+        "这些组合约束由服务端 Planner 在数据 Search 之后处理。"
         "用户只要求某领域卡片、未明确字段时，该 capability 输出空数组。"
+        "primaryOutputFieldByCapability 是稀疏映射：仅当用户对某个 capability 明确表达"
+        "唯一主焦点字段时输出，值必须同时出现在该 capability 的显式字段数组中；"
+        "无法判断时省略该 capability，不能按模板或领域常识猜测。"
         "action 仅当用户明确要求点击、跳转或操作时才选择 actionCandidates 中"
         "语义一致的零到两个不重复 eventId；不能因候选事件存在而默认选择。"
-        "不得输出组件、模板、Variant、尺寸、布局、Props 或理由。\n"
+        "不得输出主题、schemaVersion、组件、模板、Variant、尺寸、布局、Props 或理由。\n"
         + json.dumps(schema, ensure_ascii=False)
     )
     return [
         {"role": "system", "content": system},
         {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
     ]
+
+
+def search_template_variants(
+    intent: TemplateSearchIntent,
+    task_spec: TaskSpec,
+    registry: CardPlanRegistry,
+    coverage_bindings: tuple[CandidateDataBinding, ...],
+    card_spec: dict[str, Any],
+    *,
+    preferred_template_ids: tuple[str, ...] = (),
+) -> TemplateSearchResult:
+    """Search only data-eligible templates for the requested card size.
+
+    Layout, Theme, Action placement, business order, and final ranking intentionally
+    remain outside this function. Every returned candidate independently covers all
+    explicit fields of its capability; fields declared only as optionalData are valid
+    coverage and are never treated as a hard admission requirement.
+    """
+    _require_supported_search_size(task_spec)
+    if not intent.required_output_fields_by_capability:
+        raise TemplateRetrievalMiss("template Search has no requested capability")
+    candidate_ids = {binding.capabilityId for binding in coverage_bindings}
+    requested_ids = set(intent.required_output_fields_by_capability)
+    if not requested_ids.issubset(candidate_ids):
+        raise TemplateRetrievalMiss("requested capability is outside candidate data bindings")
+
+    result_groups: list[TemplateBusinessCandidates] = []
+    matched_preferred_ids: set[str] = set()
+    preferred_ids = set(preferred_template_ids)
+    for capability_id, requested_paths in intent.required_output_fields_by_capability.items():
+        candidate_paths = _candidate_paths(coverage_bindings, capability_id)
+        if not set(requested_paths).issubset(candidate_paths):
+            raise TemplateRetrievalMiss("required output fields must come from candidates")
+        data_root = _capability_data_root(card_spec, capability_id)
+        dropped_paths = _action_param_paths_to_drop(
+            task_spec,
+            registry,
+            capability_id,
+            data_root,
+            requested_paths,
+        )
+        if dropped_paths:
+            _log_action_param_fields_dropped(capability_id, data_root, dropped_paths)
+        explicit_fields = tuple(path for path in requested_paths if path not in dropped_paths)
+        query_tokens = frozenset(
+            _task_spec_field_token(task_spec, data_root, capability_id, path)
+            for path in explicit_fields
+        )
+        matches_by_business = _component_templates_for_capability(
+            registry,
+            capability_id,
+            query_tokens,
+            task_spec,
+            card_spec,
+            preferred_template_ids,
+            candidate_output_fields=candidate_paths,
+        )
+        for business_id, matches in matches_by_business.items():
+            candidates: list[TemplateSearchCandidate] = []
+            for template_id, covered_paths in matches.items():
+                if preferred_ids and template_id not in preferred_ids:
+                    continue
+                if not set(explicit_fields).issubset(covered_paths):
+                    continue
+                candidates.append(
+                    TemplateSearchCandidate(
+                        templateId=template_id,
+                        coveredExplicitFields=tuple(
+                            path for path in explicit_fields if path in covered_paths
+                        ),
+                    )
+                )
+                if template_id in preferred_ids:
+                    matched_preferred_ids.add(template_id)
+            if candidates:
+                result_groups.append(
+                    TemplateBusinessCandidates(
+                        capabilityId=capability_id,
+                        businessId=business_id,
+                        explicitFields=explicit_fields,
+                        candidates=tuple(candidates),
+                    )
+                )
+        has_capability_result = any(
+            group.capability_id == capability_id for group in result_groups
+        )
+        if not has_capability_result:
+            raise TemplateRetrievalMiss(
+                f"no provider template covers capability {capability_id} and its requested fields"
+            )
+    if preferred_ids and matched_preferred_ids != preferred_ids:
+        raise TemplateRetrievalMiss("trusted template candidate is outside Search results")
+    return TemplateSearchResult(
+        cardSize=task_spec.size,
+        businessCandidates=tuple(result_groups),
+    )
+
+
+def restrict_search_intent_to_preferred_templates(
+    intent: TemplateSearchIntent,
+    registry: CardPlanRegistry,
+    preferred_template_ids: tuple[str, ...],
+) -> TemplateSearchIntent:
+    """Keep trusted-gallery field intent within the explicitly selected Templates."""
+    if not preferred_template_ids:
+        return intent
+    legacy = TemplateRetrievalQuery(
+        themeId="__unused__",
+        requiredOutputFieldsByCapability=intent.required_output_fields_by_capability,
+        action=intent.action_ids,
+    )
+    restricted = restrict_query_to_preferred_templates(
+        legacy,
+        registry,
+        preferred_template_ids,
+    )
+    primary_fields = {
+        capability_id: path
+        for capability_id, path in intent.primary_output_field_by_capability.items()
+        if path in restricted.required_output_fields_by_capability.get(capability_id, ())
+    }
+    return intent.model_copy(
+        update={
+            "required_output_fields_by_capability": (
+                restricted.required_output_fields_by_capability
+            ),
+            "primary_output_field_by_capability": primary_fields,
+        }
+    )
 
 
 def retrieve_template_variants(
@@ -995,10 +1189,14 @@ def _record_available_query_paths(
 
 
 def _validate_selected_actions(query: TemplateRetrievalQuery, task_spec: TaskSpec) -> None:
-    if not query.action_ids:
+    _validate_selected_action_ids(query.action_ids, task_spec)
+
+
+def _validate_selected_action_ids(action_ids: tuple[str, ...], task_spec: TaskSpec) -> None:
+    if not action_ids:
         return
-    action_ids = {event.id for event in task_spec.eventCandidates if event.id}
-    if not set(query.action_ids).issubset(action_ids):
+    candidate_ids = {event.id for event in task_spec.eventCandidates if event.id}
+    if not set(action_ids).issubset(candidate_ids):
         raise TemplateRetrievalMiss("selected Action is outside TaskSpec.eventCandidates")
 
 
