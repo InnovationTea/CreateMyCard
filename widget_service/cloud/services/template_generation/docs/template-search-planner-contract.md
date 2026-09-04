@@ -113,6 +113,10 @@ Plan 共享排名第一的可用 Theme；不同 Theme 不在第二层混合。�
 在请求级 Registry 可用集合内按业务语义和主题场景元数据稳定选择；`TwoSupportLayout` 使用覆盖全部业务
 能力的布局专用 Theme。
 
+每个业务组至少提供一个可进入 `TwoSupportLayout` 的规范化 Support。单个 Support 槽位固定为两行文本
+信息：第一行使用主内容色表达主信息，第二行使用辅助内容色表达辅助信息；两行均为单行省略。Support
+提供可选 `actionId`，仅在 Planner 把已批准事件分配给该业务槽位时消费，未分配时编译器省略 `onClick`。
+
 ## 5. 第二层 LLM
 
 第二层输入最多三个完整 Plan，以及这些 Plan 涉及的 Template 完整 Props 签名、可信字符串、数字、素材

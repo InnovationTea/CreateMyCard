@@ -2,9 +2,10 @@
 
 - Provider：`com.huawei.calendar.cli`；业务领域统一为 `CalendarOverview`。
 - 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
-- 当前日历 Provider 没有 `Support` 或 `Compact` 模板，因此不进入单业务双 Action 或兼容 Support 的
-  `2x2` 组合；不得用 Hero、Full 或 WideFull 冒充缺失形态。双业务单 Action 仅允许使用
-  `ScheduleOverviewHeroContent@1`，且固定放在 `HeroTitleContentActionLayout@1` 的第二个业务位置。
+- 当前日历 Provider 没有 `Compact` 模板，因此不进入单业务双 Action 组合；不得用 Hero、Full 或
+  WideFull 冒充缺失形态。双业务可选择 `ScheduleOverviewSupport@1` 进入 `TwoSupportLayout@1`；
+  双业务单 Action 也可以使用 `ScheduleOverviewHeroContent@1`，并固定放在
+  `HeroTitleContentActionLayout@1` 的第二个业务位置。
 - 可用模板：
   - `ScheduleOverviewNextEventHero@1`：下一个日程 Hero；标题为主数据，起止时间和地点为次要数据；
     可选 `calendarIcon` 与 `headerLabel`。
@@ -18,6 +19,8 @@
     不接收展示 Prop。
   - `ScheduleOverviewHeroContent@1`：日程 HeroContent；展示标题、起止时间和地点；只用于
     `HeroTitleContentActionLayout@1` 的第二个业务 child。
+  - `ScheduleOverviewSupport@1`：日程 Support；第一行展示首项日程标题，第二行展示开始时间，并按
+    可用性追加结束时间和地点；只用于 `TwoSupportLayout@1`，可接收 Planner 分配的 `actionId`。
   - `ScheduleOverviewNextEventLocationFull@1`：下一个日程 Full；展示标题、起止时间和地点；可选
     `calendarIcon` 与 `headerLabel`。
   - `ScheduleOverviewMeetingWideFull@1`：宽版会议摘要；展示标题、起止时间和地点；可选

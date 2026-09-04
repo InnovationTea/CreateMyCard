@@ -180,6 +180,20 @@
         "/pluggedTypeDesc",
         "/updatedAt"
       ]
+    },
+    {
+      "templateId": "BatteryOverviewSupport@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量 Support，第一行展示剩余电量，第二行展示充电状态；用于 TwoSupportLayout，可在业务根节点消费一个已批准 Action。",
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/batterySOC"
+      ],
+      "secondaryData": [
+        "/chargingStatusDesc"
+      ]
     }
   ],
   "compatibility": {

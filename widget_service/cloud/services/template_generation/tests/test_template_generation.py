@@ -254,7 +254,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 100
+    assert len(registry.provider_template_ids) == 103
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -603,7 +603,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 18
+    assert len(calendar.local_template_ids) == 19
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert not any(
         template_id.startswith("DateOverview")
@@ -686,7 +686,7 @@ def test_two_support_layout_theme_is_deterministic_and_exposes_slot_styles() -> 
     }
 
 
-def test_two_support_layout_rejects_business_without_support_template() -> None:
+def test_two_support_layout_accepts_calendar_after_support_expansion() -> None:
     scope = AdvancedScopeBrief(
         themeId="family-weather-care-blue",
         advancedComponentIds=("WeatherOverview", "CalendarOverview"),
@@ -698,7 +698,7 @@ def test_two_support_layout_rejects_business_without_support_template() -> None:
         get_cardplan_registry(),
     )
 
-    assert "TwoSupportLayout" not in layout_ids
+    assert "TwoSupportLayout" in layout_ids
 
 
 def test_registry_hides_fusion_themes_by_default() -> None:
@@ -2596,12 +2596,12 @@ def test_calendar_templates_follow_latest_schedule_contract() -> None:
     registry = get_cardplan_registry()
     calendar = registry.require_ux_business_component("CalendarOverview")
 
-    assert len(calendar.local_template_ids) == 18
+    assert len(calendar.local_template_ids) == 19
     assert "ScheduleOverviewHeroContent@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
+    assert "ScheduleOverviewSupport@1" in calendar.local_template_ids
     assert not any(
-        template_id.endswith(("Support@1", "Compact@1"))
-        for template_id in calendar.local_template_ids
+        template_id.endswith("Compact@1") for template_id in calendar.local_template_ids
     )
 
     date_full = registry.require_template("ScheduleOverviewDateFull@1")
@@ -2681,14 +2681,101 @@ def test_battery_templates_follow_consolidated_state_contract() -> None:
         "BatteryOverviewChargingRingHero@1",
         "BatteryOverviewPercentRingHero@1",
         "BatteryOverviewTemperatureFull@1",
+        "BatteryOverviewSupport@1",
     }
 
     assert set(battery.local_template_ids) == expected_template_ids
-    assert not any(template_id.endswith("Support@1") for template_id in expected_template_ids)
     compact = registry.require_template("BatteryOverviewCompact@1")
     assert compact.primary_data == ("/batterySOC",)
     assert compact.secondary_data == ("/chargingStatusDesc",)
     assert compact.optional_data == ()
+
+
+def test_each_business_group_has_a_canonical_support_template() -> None:
+    registry = get_cardplan_registry()
+    expected_supports = {
+        "ActivityOverview": "ActivityOverviewSupport@1",
+        "AppUsageOverview": "AppUsageOverviewSupport@1",
+        "BatteryOverview": "BatteryOverviewSupport@1",
+        "BluetoothDeviceOverview": "BluetoothDeviceOverviewEarbudsSupport@1",
+        "CalendarOverview": "ScheduleOverviewSupport@1",
+        "CountdownOverview": "CountdownOverviewSupport@1",
+        "HeartRateOverview": "HeartRateOverviewSupport@1",
+        "ResourceUsageOverview": "ResourceUsageOverviewSupport@1",
+        "SleepOverview": "SleepOverviewSupport@1",
+        "WeatherOverview": "WeatherOverviewTemperatureSupport@1",
+        "WorkoutOverview": "WorkoutOverviewSupport@1",
+    }
+
+    for business_id, template_id in expected_supports.items():
+        component = registry.require_ux_business_component(business_id)
+        assert template_id in component.local_template_ids
+
+
+@pytest.mark.parametrize(
+    ("template_id", "params"),
+    (
+        ("BatteryOverviewSupport@1", {}),
+        ("ScheduleOverviewSupport@1", {}),
+        ("CountdownOverviewSupport@1", {"title": "高考倒计时"}),
+    ),
+)
+def test_new_support_templates_follow_two_line_contract(
+    template_id: str,
+    params: dict[str, object],
+) -> None:
+    registry = get_cardplan_registry()
+    definition = registry.require_template(template_id)
+    variant = definition.variants[0]
+    root = variant.root
+    root_options = root.values[-1].properties
+
+    assert root.component == "Row"
+    padding = root_options.get("padding")
+    assert padding is not None
+    left_padding = padding.properties.get("left")
+    assert left_padding is not None
+    assert left_padding.value == 12
+    action = root_options.get("onClick")
+    assert action is not None
+    assert action.kind == "event-action"
+    assert action.items[0].kind == "optional-parameter"
+    assert action.items[0].name == "actionId"
+    properties = variant.parameters_schema.get("properties")
+    assert isinstance(properties, dict)
+    action_schema = properties.get("actionId")
+    assert isinstance(action_schema, dict)
+    assert action_schema.get("type") == "string"
+    assert "actionId" not in variant.parameters_schema.get("required", [])
+
+    bindings = {
+        name: "${data.support." + name + "}"
+        for name in definition.bindings
+    }
+    instantiated = _instantiate_blueprint(
+        root,
+        params,
+        bindings,
+        registry.theme_reference_values("2x2-two-support"),
+    )
+    content = instantiated.children[0]
+    texts = [child for child in content.children if child.component_type == "Text"]
+
+    assert content.component_type == "Column"
+    content_options = content.values[0]
+    assert isinstance(content_options, dict)
+    assert content_options.get("itemMargin") == 2
+    assert len(texts) == 2
+    primary_options = texts[0].values[-1]
+    support_options = texts[1].values[-1]
+    assert isinstance(primary_options, dict)
+    assert isinstance(support_options, dict)
+    assert primary_options.get("height") == 20
+    assert primary_options.get("fontSize") == 14
+    assert primary_options.get("fontWeight") == 700
+    assert support_options.get("height") == 16
+    assert support_options.get("fontSize") == 12
+    assert support_options.get("fontWeight") == 500
 
 
 def test_battery_compact_uses_optional_icon_and_36vp_ring() -> None:

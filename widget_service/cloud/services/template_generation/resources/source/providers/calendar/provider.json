@@ -284,6 +284,23 @@
         "/events/0/eventLocation"
       ],
       "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewSupport@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "日程 Support，第一行展示首项日程标题，第二行展示开始时间，并按可用性追加结束时间和地点；用于 TwoSupportLayout，可在业务根节点消费一个已批准 Action。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/events/0/title"
+      ],
+      "secondaryData": [
+        "/events/0/dtStart"
+      ],
+      "optionalData": [
+        "/events/0/dtEnd",
+        "/events/0/eventLocation"
+      ]
     }
   ],
   "compatibility": {

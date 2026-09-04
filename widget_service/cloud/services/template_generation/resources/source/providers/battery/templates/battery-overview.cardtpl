@@ -43,6 +43,62 @@ Column(
     )
 )
 #End
+
+#Template BatteryOverviewSupport@1(props: { actionId?: string })
+data = {
+    percent: $path("/batterySOC"),
+    charging: $path("/chargingStatusDesc")
+}
+
+Row(
+  {
+    "_advancedComponent": "BatteryOverview",
+    "width": "matchParent",
+    "padding": { "left": 12 },
+    "justifyContent": "start",
+    "alignItems": "center",
+    "clip": true,
+    "constraintSize": { "minWidth": 0, "minHeight": 0 },
+    "onClick": EventAction(props?.actionId)
+  },
+  Column(
+    {
+      "width": "matchParent",
+      "itemMargin": 2,
+      "justifyContent": "start",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": { "minWidth": 0, "minHeight": 0 }
+    },
+    Text(
+      Expr("电量 " + data.percent + "%"),
+      {
+        "width": "matchParent",
+        "height": 20,
+        "fontSize": 14,
+        "fontWeight": 700,
+        "fontColor": $theme('primaryColor'),
+        "maxLines": 1,
+        "textOverflow": "ellipsis",
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
+      }
+    ),
+    Text(
+      data.charging,
+      {
+        "width": "matchParent",
+        "height": 16,
+        "fontSize": 12,
+        "fontWeight": 500,
+        "fontColor": $theme('supportContentColor'),
+        "maxLines": 1,
+        "textOverflow": "ellipsis",
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
+      }
+    )
+  )
+)
+#End
 #Template BatteryOverviewHero@1(props: { batteryIcon?: asset })
 data = {
     percent: $path("/batterySOC"),

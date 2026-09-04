@@ -147,6 +147,112 @@ Column(
 )
 #End
 
+#Template ScheduleOverviewSupport@1(props: { actionId?: string })
+data = {
+    title: $path("/events/0/title"),
+    start: $path("/events/0/dtStart"),
+    end: $optionalPath("/events/0/dtEnd"),
+    location: $optionalPath("/events/0/eventLocation")
+}
+
+Row(
+  {
+    "_advancedComponent": "ScheduleOverview",
+    "width": "matchParent",
+    "padding": { "left": 12 },
+    "justifyContent": "start",
+    "alignItems": "center",
+    "clip": true,
+    "constraintSize": { "minWidth": 0, "minHeight": 0 },
+    "onClick": EventAction(props?.actionId)
+  },
+  Column(
+    {
+      "width": "matchParent",
+      "itemMargin": 2,
+      "justifyContent": "start",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": { "minWidth": 0, "minHeight": 0 }
+    },
+    Text(
+      data.title,
+      {
+        "width": "matchParent",
+        "height": 20,
+        "fontSize": 14,
+        "fontWeight": 700,
+        "fontColor": $theme('primaryColor'),
+        "maxLines": 1,
+        "textOverflow": "ellipsis",
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
+      }
+    ),
+    #if data.end
+      #if data.location
+        Text(
+          `${data.start} - ${data.end}｜${data.location}`,
+          {
+            "width": "matchParent",
+            "height": 16,
+            "fontSize": 12,
+            "fontWeight": 500,
+            "fontColor": $theme('supportContentColor'),
+            "maxLines": 1,
+            "textOverflow": "ellipsis",
+            "constraintSize": { "minWidth": 0, "minHeight": 0 }
+          }
+        )
+      #else
+        Text(
+          `${data.start} - ${data.end}`,
+          {
+            "width": "matchParent",
+            "height": 16,
+            "fontSize": 12,
+            "fontWeight": 500,
+            "fontColor": $theme('supportContentColor'),
+            "maxLines": 1,
+            "textOverflow": "ellipsis",
+            "constraintSize": { "minWidth": 0, "minHeight": 0 }
+          }
+        )
+      #endif
+    #else
+      #if data.location
+        Text(
+          `${data.start}｜${data.location}`,
+          {
+            "width": "matchParent",
+            "height": 16,
+            "fontSize": 12,
+            "fontWeight": 500,
+            "fontColor": $theme('supportContentColor'),
+            "maxLines": 1,
+            "textOverflow": "ellipsis",
+            "constraintSize": { "minWidth": 0, "minHeight": 0 }
+          }
+        )
+      #else
+        Text(
+          data.start,
+          {
+            "width": "matchParent",
+            "height": 16,
+            "fontSize": 12,
+            "fontWeight": 500,
+            "fontColor": $theme('supportContentColor'),
+            "maxLines": 1,
+            "textOverflow": "ellipsis",
+            "constraintSize": { "minWidth": 0, "minHeight": 0 }
+          }
+        )
+      #endif
+    #endif
+  )
+)
+#End
+
 #Template ScheduleOverviewTwoEventsFull@1(props: {})
 data = {
     firstTitle: $path("/events/0/title"),

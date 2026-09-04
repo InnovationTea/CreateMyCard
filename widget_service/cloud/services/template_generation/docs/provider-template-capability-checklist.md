@@ -4,7 +4,7 @@
 
 ## 整改总览
 
-- [x] 76 个业务模板全部使用 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
+- [x] 94 个业务模板全部使用 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
 - [x] 业务模板尺寸和动作组合由后缀推导，不再由 Provider 重复声明。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
 - [x] `primaryData` 与 `secondaryData` 均参与模板准入硬校验。
@@ -33,11 +33,11 @@
 | Provider | 数据能力 | 数据根 | 模板数 | 当前状态 |
 | --- | --- | --- | ---: | --- |
 | app-usage | `GetAppUsageDuration` | `/data/appUsageStats` | 6 | 启用 |
-| battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 7 | 启用 |
-| calendar | `GetCalendarEvents` | `/data/calendar` | 9 | 启用 |
-| countdown | `GetCountdownDays` | `/data/countdown` | 1 | 启用 |
-| earphone | `GetEarphoneInfo` | `/data/earphone` | 8 | 启用 |
-| health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 25 | 启用 |
+| battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 12 | 启用 |
+| calendar | `GetCalendarEvents` | `/data/calendar` | 19 | 启用 |
+| countdown | `GetCountdownDays` | `/data/countdown` | 3 | 启用 |
+| earphone | `GetEarphoneInfo` | `/data/earphone` | 13 | 启用 |
+| health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 28 | 启用 |
 | system-memory | `GetSystemMemInfo` | `/data/systemMem` | 3 | 启用 |
 | weather | `ViewWeather` | `/data/weather` | 10 | 启用 |
 
@@ -61,7 +61,7 @@
 ## BatteryOverview
 
 - Provider：`com.huawei.battery.cli`；运行状态：启用。
-- 数据能力：`GetPhoneBatteryInfo`；模板数：11。
+- 数据能力：`GetPhoneBatteryInfo`；模板数：12。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
@@ -70,6 +70,7 @@
 | ✅ | `BatteryOverviewHero@1` | 约 2x1.7；2x2 Hero + 1 个 PillAction | `/batterySOC` | `/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewWideFull@1` | 完整 4x2；单 WideFull | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewCompact@1` | 约 2x1；36vp 环形进度 Compact + 2 个 PillAction，电量图标可选 | `/batterySOC` | `/chargingStatusDesc` | 无 |
+| ✅ | `BatteryOverviewSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/batterySOC` | `/chargingStatusDesc` | 无 |
 | ✅ | `BatteryOverviewChargingProgressHero@1` | 约 2x1.7；充电状态 Hero + 1 个 PillAction | `/batterySOCText` | 无 | `/chargingStatusDesc`<br>`/healthStatusDesc` |
 | ✅ | `BatteryOverviewHealthLevelHero@1` | 约 2x1.7；电池体检 Hero + 1 个 PillAction | `/healthStatusDesc` | `/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewChargingProgressFull@1` | 完整 2x2；充电进度单 Full | `/batterySOC` | `/chargingStatusDesc`<br>`/healthStatusDesc`<br>`/pluggedTypeDesc` | 无 |
@@ -80,8 +81,8 @@
 ## CalendarOverview
 
 - Provider：`com.huawei.calendar.cli`；运行状态：启用。
-- 数据能力：`GetCalendarEvents`；模板数：9。
-- 当前没有 Support 或 Compact；真实日期通过 `ScheduleOverviewDateFull@1` 或
+- 数据能力：`GetCalendarEvents`；模板数：19。
+- 当前没有 Compact；真实日期通过 `ScheduleOverviewDateFull@1` 或
   `ScheduleOverviewDatedMeetingHero@1` 与同一首项日程共同展示。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
@@ -92,6 +93,7 @@
 | ✅ | `ScheduleOverviewDateFull@1` | 完整 2x2；无 Action 或加一个 IconAction | `/events/0/startDate`<br>`/events/0/title` | `/events/0/dtStart`<br>`/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewDatedMeetingHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/events/0/startDate`<br>`/events/0/title` | `/events/0/dtStart`<br>`/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewHeroContent@1` | 双业务单 Action 的位置 1 | `/events/0/title` | `/events/0/dtStart`<br>`/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
+| ✅ | `ScheduleOverviewSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/events/0/title` | `/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` |
 | ✅ | `ScheduleOverviewNextEventLocationFull@1` | 完整 2x2；无 Action 或加一个 IconAction | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewMeetingWideFull@1` | 完整 4x2；单 WideFull | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewMeetingSourceWideFull@1` | 完整 4x2；单 WideFull | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
@@ -99,11 +101,13 @@
 ## CountdownOverview
 
 - Provider：`com.huawei.countdown.cli`；运行状态：启用。
-- 数据能力：`GetCountdownDays`；模板数：1；当前没有 Support、Compact 或 Hero。
+- 数据能力：`GetCountdownDays`；模板数：3；当前没有 Compact。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
 | ✅ | `CountdownOverviewFull@1` | 完整 2x2；无 Action，或加一个 IconAction | `/countdownDays` | 无 | 无 |
+| ✅ | `CountdownOverviewHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/countdownDays` | 无 | 无 |
+| ✅ | `CountdownOverviewSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/countdownDays` | 无 | 无 |
 
 ## BluetoothDeviceOverview
 

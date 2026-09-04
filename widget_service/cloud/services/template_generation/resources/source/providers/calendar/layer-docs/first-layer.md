@@ -37,6 +37,8 @@
 - 不支持超过两项的日程列表、实时状态、分钟倒计时、会议号或待办。发起人和备注只在完整匹配提醒详情、
   备注详情或日程清点模板时支持，不能据此放宽其它模板。
 - 根据 `userQuery` 判断出的必须显示日历字段存在上述支持集合之外的路径时，不得选择。
-- 当前没有 Support 或 Compact 模板；双 Action 场景不进入模板路线。2x2 恰好包含两个数据业务和一个
-  显式 Action 时，日历只有在标题、起止时间和地点都可用且能完整使用
-  `ScheduleOverviewHeroContent@1` 时才可进入组合，并固定作为第二个业务位置。
+- `2x2` 多业务场景中，首项日程标题和开始时间均可用时，可以选择 `ScheduleOverviewSupport@1`；结束时间
+  和地点按实际可用性追加到第二行。该模板只占 `TwoSupportLayout@1` 的一个业务槽位。
+- `2x2` 恰好包含两个数据业务和一个显式 Action 时，日历也可以在标题、起止时间和地点都可用且能完整
+  使用 `ScheduleOverviewHeroContent@1` 时进入 HeroTitle + HeroContent 组合，并固定作为第二个业务位置。
+- 当前没有 Compact 模板，因此单业务双 Action 场景不进入模板路线。

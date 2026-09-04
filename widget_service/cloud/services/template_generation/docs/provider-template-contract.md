@@ -170,12 +170,13 @@ Provider Bundle 通过 `compatibility.templateLanguage` 选择作者协议：
 | 1 | 1 | `Hero` | `HeroActionLayout` + 1 个 `PillAction` |
 | 1 | 1 | `Full` | 仅存在语义匹配的已批准图标素材时，使用 `FullIconActionLayout` + 1 个 `IconAction` |
 | 1 | 2 | `Compact` | `CompactTwoActionLayout` + 2 个连续的 `PillAction` |
+| 2 | 0～2 | 两个独立覆盖各自显式字段的 `Support` | `TwoSupportLayout`；已选事件由对应业务模板的 `actionId` 各消费一次 |
 | 2 | 1 | 位置 0 为 `HeroTitle`；位置 1 为 `HeroContent` | `HeroTitleContentActionLayout` + 1 个末尾 `PillAction` |
 
-当前 Search 的 `2x2` 组合只包含上表场景。双业务仅在两侧候选分别完整覆盖显式字段时适用，且由服务端
-确定性重排为 HeroTitle、HeroContent；其它多业务组合在二层模型调用前显式拒绝。
-`TwoSupportLayout`、`2x2-two-support` 与 Support 内部事件绑定仍保留给 `firstLayerComponentSelector="llm"` 兼容路径和原子预览，
-但不进入当前 Search 生产路径。
+双业务仅在两侧候选分别完整覆盖显式字段时适用。Planner 可以确定性重排为 HeroTitle、HeroContent，
+也可以选择两个 Support；其它多业务组合在二层模型调用前显式拒绝。每个业务组至少提供一个规范化
+Support 入口：模板在一个业务槽位内使用两行文本，第一行为主信息、第二行为辅助信息；允许同一行由多个
+Text 组成，但不得增加第三个信息段落。
 
 Search 只保留能够独立完整覆盖所属业务显式字段的模板候选，不提前在 `Hero` 与
 `Full + IconAction` 之间做最终视觉选择。第二层只能使用 Search 返回的候选、已批准事件和
@@ -455,8 +456,9 @@ PillAction Props 包含 `actionId`、`label` 和可选 `icon`，IconAction Props
 ## 当前迁移范围
 
 天气、日历、手机电量、耳机、健康运动、应用使用时长、倒计时和系统内存当前共有
-83 个无 Variant 的业务 UI 模板，其中 12 个是 Support；当前形成 11 个业务组。Layout Provider 另提供
-7 个支持 `...children` 的布局模板，Action Provider 提供 2 个动作模板，运行时 Registry 共 92 个模板。
+94 个无 Variant 的业务 UI 模板，其中 15 个是 Support；当前形成 11 个业务组，且每个业务组至少有一个
+Support。Layout Provider 另提供 7 个支持 `...children` 的布局模板，Action Provider 提供 2 个动作模板，
+运行时 Registry 共 103 个模板。
 名称包含 `Wide` 的布局只用于 `2x4`，其余布局只用于 `2x2`，两类布局不得混用。
 新增或修改资源后执行：
 

@@ -296,6 +296,89 @@ def test_planner_can_assign_action_to_vertical_business_template() -> None:
     )
 
 
+def test_planner_composes_new_provider_supports_and_consumes_two_actions() -> None:
+    action_ids = ("event.open.battery", "event.open.calendar")
+    task_spec = TaskSpec(
+        userQuery="同时显示手机电量和下一个日程，并支持分别查看详情",
+        size="2x2",
+        dataModelSchema={},
+        eventCandidates=[
+            EventAction(
+                id=action_id,
+                displayLabel="查看详情",
+                call="clickToIntent",
+                args={"intentName": action_id},
+            )
+            for action_id in action_ids
+        ],
+    )
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={
+            "GetPhoneBatteryInfo": ("/batterySOC", "/chargingStatusDesc"),
+            "GetCalendarEvents": ("/events/0/title", "/events/0/dtStart"),
+        },
+        action=action_ids,
+    )
+    result = TemplateSearchResult(
+        cardSize="2x2",
+        businessCandidates=(
+            TemplateBusinessCandidates(
+                capabilityId="GetPhoneBatteryInfo",
+                businessId="BatteryOverview",
+                explicitFields=("/batterySOC", "/chargingStatusDesc"),
+                candidates=(
+                    TemplateSearchCandidate(
+                        templateId="BatteryOverviewSupport@1",
+                        coveredExplicitFields=(
+                            "/batterySOC",
+                            "/chargingStatusDesc",
+                        ),
+                    ),
+                ),
+            ),
+            TemplateBusinessCandidates(
+                capabilityId="GetCalendarEvents",
+                businessId="CalendarOverview",
+                explicitFields=("/events/0/title", "/events/0/dtStart"),
+                candidates=(
+                    TemplateSearchCandidate(
+                        templateId="ScheduleOverviewSupport@1",
+                        coveredExplicitFields=(
+                            "/events/0/title",
+                            "/events/0/dtStart",
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
+
+    plans = plan_template_candidates(
+        intent,
+        result,
+        task_spec,
+        get_cardplan_registry(),
+    )
+
+    assert plans
+    assert all(plan.layout_template_id == "TwoSupportLayout@1" for plan in plans)
+    assert all(
+        {slot.template_id for slot in plan.business_slots}
+        == {"BatteryOverviewSupport@1", "ScheduleOverviewSupport@1"}
+        for plan in plans
+    )
+    assert all(
+        {assignment.business_position for assignment in plan.action_assignments}
+        == {0, 1}
+        for plan in plans
+    )
+    assert all(
+        assignment.consumer == "business-template"
+        for plan in plans
+        for assignment in plan.action_assignments
+    )
+
+
 def test_validator_rejects_cross_plan_action_assignment_mix() -> None:
     plans = _support_plans()
     assert len(plans) >= 2
