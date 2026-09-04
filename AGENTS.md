@@ -97,6 +97,7 @@
 ## 关键文件说明
 
 - `docs/云侧方案设计.md`：云侧方案、系统边界、工具接口、协议约束、校验、降级、测试和日志规范。
+- `widget_service/cloud/services/card_validation/字段约束与演进记录.md`：校验输入字段的分类约束、字段来源和规则变化登记；不替代方案总文档。
 - `skills/harmony-card-generation-online/`：按照目标链路设计的在线云侧编排 Skill，需随方案持续优化。
 - `skills/harmony-card-generation-offline/`：离线直出 Skill，用于不走云侧微服务时由主 Agent 端到端生成、修复、评审或解释本地 `genui` 与 `cardspec` 产物；只能作为兜底、调试和历史视觉参考，不作为在线链路协议依据。
 - `skills/harmony-card-template-generation/`：独立的模板驱动生成 Skill，由主 Agent 从固定布局和受控组件变体中选择一个模板并生成本地 `genui` 与 `cardspec`；不调用在线或离线生成 Skill。
