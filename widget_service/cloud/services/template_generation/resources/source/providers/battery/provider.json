@@ -69,16 +69,15 @@
       "templateId": "BatteryOverviewCompact@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量 Compact，展示剩余电量文本，并优先补充电量等级；缺少等级时回退展示充电状态。",
-      "optionalData": [
-        "/batteryCapacityLevelDesc",
-        "/chargingStatusDesc"
-      ],
+      "description": "手机电量 Compact，以 44vp 环形进度展示 /batterySOC，环内为电量图标，右侧展示百分比和充电状态；用于下方组合两个 PillAction。",
+      "optionalData": [],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
-        "/batterySOCText"
+        "/batterySOC"
       ],
-      "secondaryData": []
+      "secondaryData": [
+        "/chargingStatusDesc"
+      ]
     },
     {
       "templateId": "BatteryOverviewHealthLevelHero@1",
@@ -120,6 +119,67 @@
         "/batterySOC"
       ],
       "secondaryData": []
+    },
+    {
+      "templateId": "BatteryOverviewChargingProgressFull@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量充电进度 Full；顶部标题，中部以 44vp 环形进度和电量图标展示百分比及充电状态，底部以两行相邻 key-value 展示电池健康和充电类型。组件形态：chargingProgressFull。",
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/batterySOC"
+      ],
+      "secondaryData": [
+        "/chargingStatusDesc",
+        "/healthStatusDesc",
+        "/pluggedTypeDesc"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewChargingDiagnosticsHero@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "充电诊断 Hero；以两个圆角信息面板、每个面板两行 key-value 展示充电电流、充电电压、电量等级和电池识别状态，用于第二层组合一个 PillAction。组件形态：chargingDiagnosticsHero。",
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/nowCurrentText",
+        "/voltageText"
+      ],
+      "secondaryData": [
+        "/batteryCapacityLevelDesc",
+        "/isBatteryPresentText"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewChargingRingHero@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "手机电量充电状态环形 Hero；环内展示 /batterySOC 数字及百分号，环形进度同样使用 /batterySOC，环下展示 /chargingStatusDesc，用于第二层组合一个 PillAction。组件形态：chargingRingHero。",
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/batterySOC"
+      ],
+      "secondaryData": [
+        "/chargingStatusDesc"
+      ]
+    },
+    {
+      "templateId": "BatteryOverviewTemperatureFull@1",
+      "businessId": "BatteryOverview",
+      "capabilityId": "GetPhoneBatteryInfo",
+      "description": "电池温度 Full，顶部展示标题和温度图标，中部展示当前温度与充电器类型，底部两行展示更新时间。",
+      "optionalData": [],
+      "entry": "templates/battery-overview.cardtpl",
+      "primaryData": [
+        "/batteryTemperatureText"
+      ],
+      "secondaryData": [
+        "/pluggedTypeDesc",
+        "/updatedAt"
+      ]
     }
   ],
   "compatibility": {

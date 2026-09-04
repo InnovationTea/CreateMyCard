@@ -3,7 +3,7 @@
   "themeProfileId": "fusion-sport-orange",
   "description": "运动活力橙融球",
   "firstLayerRule": {"path": "first-layer.md"},
-  "supportedCapabilityIds": ["GetHealthAndSportSummary","GetCountdownDays"],
+  "supportedCapabilityIds": ["GetHealthAndSportSummary", "GetCountdownDays"],
   "paletteSceneIds": ["fusion.sport"],
   "primaryColor": "#FFFFFFFF",
   "supportContentColor": "#99FFFFFF",
@@ -23,7 +23,12 @@
   },
   "fusionBallStyle": {
     "scene": "health-sport",
-    "businessIds": ["ActivityOverview", "HeartRateOverview", "WorkoutOverview", "CountdownOverview"],
+    "businessIds": [
+      "ActivityOverview",
+      "HeartRateOverview",
+      "WorkoutOverview",
+      "CountdownOverview"
+    ],
     "largeColor": "#FFB33024",
     "mediumColor": "#FFFF8833",
     "smallColor": "#FFE68073"

@@ -57,8 +57,6 @@ Action 内容为 `#FF99521F`，进度轨道和 Action 背板为 `#3399521F`。�
 `#FF1F4799`，辅助内容及进度颜色为 `#991F4799`，Action 背板为 `#331F4799`。当前 Calendar Provider
 没有进度组件，`progressColor` 作为主题协议能力预留给后续显式引用。
 
-手机电量普通主题保留 `battery-yellow` 兼容 ID，使用 `#FFE6FDFF` 浅青背景；主内容、Action 文本和进度为
-`#FF1F8F99`，辅助内容为 `#991F8F99`，进度轨道和 Action 背板为 `#331F8F99`。
 赛事倒计时非融球主题使用 `#FFFFF0E6` 纯色背景；主内容及 Action 内容为 `#FF99521F`，辅助内容为
 `#9999521F`，Action 背板为 `#3399521F`。当前 Countdown Provider 没有进度组件。
 设备非融球主题使用 `#FFFFFFFF` 底色及 `#1AF9A01E` 到 `#00FFFFFF` 的线性渐变；主内容为

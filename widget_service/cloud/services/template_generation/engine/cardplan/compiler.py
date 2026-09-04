@@ -1034,7 +1034,9 @@ def _validate_provider_template_state(
         state_independent_variants = {
             "compact",
             "chargingDiagnosticsHero",
+            "chargingProgressFull",
             "chargingProgressHero",
+            "chargingRingHero",
             "full",
             "hero",
             "healthLevelHero",
@@ -1045,6 +1047,7 @@ def _validate_provider_template_state(
             "statusIconSupport",
             "temperatureIconCompact",
             "temperatureIconSupport",
+            "temperatureFull",
             "wideFull",
         }
         if variant_name in state_independent_variants:
