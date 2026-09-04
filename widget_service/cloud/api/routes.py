@@ -244,36 +244,50 @@ def _directive_size_from_raw_payload(payload: Any) -> WidgetSize:
     return _normalize_directive_size(content.get("size"))
 
 
-def _pick_device_rom_version(device_info: dict[str, Any]) -> str:
-    """从 deviceInfo 中读取 ROM 版本。
+def _raw_device_rom_version(
+    device_info: dict[str, Any],
+    content_rom_version: Any = None,
+) -> str:
+    """按 content、deviceInfo、默认配置的顺序选择完整 ROM 版本。"""
+    if content_rom_version is not None and str(content_rom_version).strip():
+        return str(content_rom_version)
+    device_rom_version = device_info.get("romVersion")
+    if device_rom_version is not None and str(device_rom_version).strip():
+        return str(device_rom_version)
+    return get_settings().default_device_rom_version
+
+
+def _pick_device_rom_version(
+    device_info: dict[str, Any],
+    content_rom_version: Any = None,
+) -> str:
+    """优先读取 content.romVersion，并归一化为内部 ROM 版本。
 
     入参：
     - device_info：外部请求中的 deviceInfo 字典。
+    - content_rom_version：content 中可选的完整 ROM 版本。
     出参：内部 DeviceContext 使用的 romVersion。
     """
-    settings = get_settings()
-    value = device_info.get("romVersion")
-    if value is not None and str(value).strip():
-        return CapabilityRegistry.normalize_rom_version(str(value))
-    return CapabilityRegistry.normalize_rom_version(settings.default_device_rom_version)
+    raw_rom_version = _raw_device_rom_version(device_info, content_rom_version)
+    return CapabilityRegistry.normalize_rom_version(raw_rom_version)
 
 
 def _device_context_from_envelope(
     envelope: ToolRequestEnvelope,
     odid: Any = None,
+    content_rom_version: Any = None,
 ) -> dict[str, Any]:
-    """把外部 deviceInfo 和 content.odid 转换成内部 DeviceContext 字典。
+    """把外部设备信息转换成内部 DeviceContext 字典。
 
     入参：
     - envelope：已经解析后的 WebSocket 外部请求包络。
     - odid：content 中可选的设备 odid。
+    - content_rom_version：content 中可选且优先使用的完整 ROM 版本。
     出参：可直接传给 DeviceContext 的字典。
     """
     device_info = envelope.deviceInfo.model_dump(mode="json", exclude_none=True)
     phone_type = device_info.get("phoneType")
-    raw_rom_version = device_info.get("romVersion")
-    if raw_rom_version is None or not str(raw_rom_version).strip():
-        raw_rom_version = get_settings().default_device_rom_version
+    raw_rom_version = _raw_device_rom_version(device_info, content_rom_version)
     return {
         "deviceId": device_info.get("deviceId"),
         "deviceType": phone_type or str(device_info.get("deviceType", "")),
@@ -281,7 +295,7 @@ def _device_context_from_envelope(
         "deviceName": device_info.get("deviceFormation"),
         "odid": odid,
         "udid": device_info.get("udid"),
-        "romVersion": _pick_device_rom_version(device_info),
+        "romVersion": _pick_device_rom_version(device_info, content_rom_version),
         "_sourceRomVersion": str(raw_rom_version),
         "marketingName": device_info.get("marketingName") or phone_type,
     }
@@ -297,12 +311,18 @@ def _arguments_from_envelope(envelope: ToolRequestEnvelope, operation: str) -> d
     """
     arguments = dict(envelope.content)
     odid = arguments.pop("odid", None)
+    content_uid = arguments.pop("uid", None)
+    content_rom_version = arguments.pop("romVersion", None)
     if operation in GENERATION_OPERATIONS and not arguments.get("userQuery"):
         arguments["userQuery"] = envelope.utterance.original if envelope.utterance else ""
-    arguments["uid"] = envelope.userAuth.user.userId or ""
+    arguments["uid"] = _first_text(content_uid, envelope.userAuth.user.userId)
     arguments["locale"] = envelope.deviceInfo.locale or "zh-CN"
     arguments["prdVer"] = envelope.deviceInfo.prdVer
-    arguments["device"] = _device_context_from_envelope(envelope, odid)
+    arguments["device"] = _device_context_from_envelope(
+        envelope,
+        odid,
+        content_rom_version,
+    )
     return arguments
 
 
@@ -384,9 +404,10 @@ def _request_trace_hashes(payload: dict[str, Any]) -> dict[str, str]:
 def _combined_request_trace_hash(trace_hashes: dict[str, str]) -> str:
     """使用 & 拼接用户和设备的脱敏排障摘要。"""
     user_trace_hash = trace_hashes.get("user_trace_hash", "")
-    if not user_trace_hash:
+    device_trace_hash = trace_hashes.get("device_trace_hash", "")
+    if not user_trace_hash or not device_trace_hash:
         return "None"
-    return f"{user_trace_hash}"
+    return f"{user_trace_hash}&{device_trace_hash}"
 
 
 def _sha256_trace_value(value: Any) -> str:

@@ -33,7 +33,7 @@
       "templateId": "ScheduleOverviewReminderHero@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
-      "description": "日程提醒 Hero，以时间轴展示标题、开始时间和提前提醒。",
+      "description": "日程提醒 Hero，以时间轴展示标题、开始时间和提前提醒；开始时间为空时由端侧隐藏提醒文案。",
       "entry": "templates/schedule-overview.cardtpl",
       "primaryData": ["/events/0/title"],
       "secondaryData": [
@@ -86,6 +86,20 @@
         "/events/0/startDate",
         "/events/0/title"
       ],
+      "secondaryData": [
+        "/events/0/dtStart",
+        "/events/0/dtEnd",
+        "/events/0/eventLocation"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewHeroContent@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "日程 HeroContent，展示标题、时间范围和地点；仅用于 HeroTitleContentActionLayout 的第二个业务位置。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": ["/events/0/title"],
       "secondaryData": [
         "/events/0/dtStart",
         "/events/0/dtEnd",

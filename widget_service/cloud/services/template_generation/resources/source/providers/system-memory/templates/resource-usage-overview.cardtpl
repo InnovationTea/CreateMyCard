@@ -25,30 +25,27 @@ Column(
                       "color": $theme('progressColor'),
                       "backgroundColor": "#1A000000"}
                   ),
-            IfPresent(
-                    props.icon,
-                    Image(
-                              props.icon,
-                              {"width": 24,
-                                "height": 24,
-                                "objectFit": "contain",
-                                "fillColor": $theme('supportContentColor')}
-                            )
-                  ),
-            IfAbsent(
-                    props.icon,
-                    Row(
-                              {"itemMargin": 1, "justifyContent": "center", "alignItems": "bottom", "width": 52, "constraintSize": {"minWidth": 0, "minHeight": 0}},
-                              Text(
-                                          Expr(`'' + ((${data.usage} + 0.5) - ((${data.usage} + 0.5) % 1))`),
-                                          {"fontSize": 14, "minFontSize": 14, "fontWeight": 600, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                        ),
-                              Text(
-                                          "%",
-                                          {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-                                        )
-                            )
-                  )
+            #if props.icon
+              Image(
+                        props.icon,
+                        {"width": 24,
+                          "height": 24,
+                          "objectFit": "contain",
+                          "fillColor": $theme('supportContentColor')}
+                      )
+            #else
+              Row(
+                        {"itemMargin": 1, "justifyContent": "center", "alignItems": "bottom", "width": 52, "constraintSize": {"minWidth": 0, "minHeight": 0}},
+                        Text(
+                                    Expr('' + ((data.usage + 0.5) - ((data.usage + 0.5) % 1))),
+                                    {"fontSize": 14, "minFontSize": 14, "fontWeight": 600, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                                  ),
+                        Text(
+                                    "%",
+                                    {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+                                  )
+                      )
+            #endif
           ),
       Column(
             {"width":"matchParent","layoutWeight": 1, "itemMargin": 4, "justifyContent": "center", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
@@ -86,21 +83,20 @@ Column(
               "color": $theme('progressColor'),
               "backgroundColor": "#1A000000"}
           ),
-      IfPresent(
-            props.icon,
-            Image(
-                    props.icon,
-                    {"width": 20,
-                      "height": 20,
-                      "objectFit": "contain",
-                      "fillColor": $theme('supportContentColor')}
-                  )
-          )
+      #if props.icon
+        Image(
+                props.icon,
+                {"width": 20,
+                  "height": 20,
+                  "objectFit": "contain",
+                  "fillColor": $theme('supportContentColor')}
+              )
+      #endif
     ),
   Row(
       {"width": "matchParent", "itemMargin": 1, "justifyContent": "center", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
       Text(
-            Expr(`'' + ((${data.usage} + 0.5) - ((${data.usage} + 0.5) % 1))`),
+            Expr('' + ((data.usage + 0.5) - ((data.usage + 0.5) % 1))),
             {"fontSize": 14, "minFontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
           ),
       Text(
@@ -145,21 +141,20 @@ Stack({
                 "color": $theme('progressColor'),
                 "backgroundColor": "#1A000000"}
             ),
-        IfPresent(
-              props.icon,
-              Image(
-                      props.icon,
-                      {"width": 20,
-                        "height": 20,
-                        "objectFit": "contain",
-                        "fillColor": $theme('supportContentColor')}
-                    )
-            )
+        #if props.icon
+          Image(
+                  props.icon,
+                  {"width": 20,
+                    "height": 20,
+                    "objectFit": "contain",
+                    "fillColor": $theme('supportContentColor')}
+                )
+        #endif
       ),
     Row(
         {"width": "matchParent", "itemMargin": 1, "justifyContent": "center", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
         Text(
-              Expr(`'' + ((${data.usage} + 0.5) - ((${data.usage} + 0.5) % 1))`),
+              Expr('' + ((data.usage + 0.5) - ((data.usage + 0.5) % 1))),
               {"fontSize": 14, "minFontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
             ),
         Text(
@@ -176,7 +171,7 @@ Stack({
         {"width": "matchParent", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
       )
   ),
-  IfPresent(props.actionId,
+  #if props.actionId
     Stack({
       "width": "matchParent",
       "height": "matchParent",
@@ -188,6 +183,6 @@ Stack({
         "height": "matchParent"
       })
     )
-  )
+  #endif
 )
 #End

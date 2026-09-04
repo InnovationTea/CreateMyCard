@@ -23,7 +23,7 @@
   },
   "fusionBallStyle": {
     "scene": "health-sport",
-    "businessIds": ["ActivityOverview", "HeartRateOverview", "WorkoutOverview"],
+    "businessIds": ["ActivityOverview", "HeartRateOverview", "WorkoutOverview", "CountdownOverview"],
     "largeColor": "#FFB33024",
     "mediumColor": "#FFFF8833",
     "smallColor": "#FFE68073"

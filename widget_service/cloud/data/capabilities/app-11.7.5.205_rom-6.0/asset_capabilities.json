@@ -80,7 +80,7 @@
     "id": "asset.bell_fill",
     "type": "asset",
     "src": "resources/base/media/bell_fill.svg",
-    "description": "样式：铃铛实心图标，默认黑色，图形为经典吊铃造型；适用：通知提醒、消息提示、闹铃开启状态。",
+    "description": "样式：默认黑色的单色实心铃铛图标，采用经典吊铃造型，底部带铃舌，原始尺寸为 24×24；适用：通知提醒、消息提示、备忘录提醒、闹钟响铃或开启状态，以及日历事项提醒。",
     "sceneTags": [
       "notification",
       "alarm"
@@ -135,7 +135,7 @@
     "id": "asset.checkmark_calendar_fill",
     "type": "asset",
     "src": "resources/base/media/checkmark_calendar_fill.svg",
-    "description": "样式：默认黑色的单色日历实心图标，内部通过镂空表现对勾，支持通过 fillColor 与卡片配色统一；适用：已完成日程、日程确认、任务打卡。",
+    "description": "样式：默认黑色的单色实心日历图标，内部叠加对勾并通过镂空表现细节，原始尺寸为 24×24，支持通过 fillColor 与卡片配色统一；适用：已完成日程、日程或计划确认、签到、待办完成、任务或运动打卡与健康计划。",
     "sceneTags": [
       "calendar",
       "task"
@@ -168,7 +168,7 @@
     "id": "asset.clock_fill",
     "type": "asset",
     "src": "resources/base/media/clock_fill.svg",
-    "description": "样式：默认黑色的单色时钟实心图标，内部通过镂空表现表盘指针，支持通过 fillColor 与卡片配色统一；适用：时间显示、闹钟设置、定时器。",
+    "description": "样式：默认黑色的单色实心圆形时钟图标，内部通过镂空表现表盘指针，原始尺寸为 24×24，支持通过 fillColor 与卡片配色统一；适用：时间显示、闹钟设置、定时器、提醒时间、应用使用时长与运动时长。",
     "sceneTags": [
       "time",
       "clock"

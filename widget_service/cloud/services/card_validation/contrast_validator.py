@@ -9,23 +9,24 @@ from typing import Any
 from .base import BaseValidator
 
 _HEX_COLOR = re.compile(r"^#(?P<hex>[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
+_TEMPLATE_ROOT_ID = "template_root"
 
 
-def _rgba(value: Any) -> tuple[float, float, float, float] | None:
+def _rgba(value: Any) -> tuple[float, float, float, float]:
     if not isinstance(value, str):
-        return None
+        raise ValueError("color value must be a hex string")
     match = _HEX_COLOR.fullmatch(value.strip())
     if match is None:
-        return None
+        raise ValueError(f"invalid hex color: {value!r}")
     raw = match.group("hex")
     if len(raw) == 6:
         alpha = 1.0
-        red, green, blue = (int(raw[index : index + 2], 16) / 255 for index in (0, 2, 4))
-        return red, green, blue, alpha
+        red, green, blue = (int(raw[index:index + 2], 16) / 255 for index in (0, 2, 4))
+        return (red, green, blue, alpha)
     # DSL uses ARGB for eight-digit colors.
     alpha = int(raw[:2], 16) / 255
-    red, green, blue = (int(raw[index : index + 2], 16) / 255 for index in (2, 4, 6))
-    return red, green, blue, alpha
+    red, green, blue = (int(raw[index:index + 2], 16) / 255 for index in (2, 4, 6))
+    return (red, green, blue, alpha)
 
 
 def _composite(
@@ -49,10 +50,8 @@ def _luminance(rgb: tuple[float, float, float]) -> float:
     return 0.2126 * red + 0.7152 * green + 0.0722 * blue
 
 
-def _contrast(foreground: Any, background: tuple[float, float, float]) -> float | None:
+def _contrast(foreground: Any, background: tuple[float, float, float]) -> float:
     parsed = _rgba(foreground)
-    if parsed is None:
-        return None
     foreground_rgb = _composite(background, parsed)
     first = _luminance(foreground_rgb)
     second = _luminance(background)
@@ -76,47 +75,57 @@ class ContrastValidator(BaseValidator):
         self._walk(context, reporter, root, [(1.0, 1.0, 1.0)])
 
     def _walk(self, context, reporter, component, backgrounds) -> None:
+        # 模板内容沿用模板配色，不追加对比度诊断；其它校验仍由各自的 validator 执行。
+        if component.get("id") == _TEMPLATE_ROOT_ID:
+            return
         styles = component.get("styles")
         styles = styles if isinstance(styles, dict) else {}
         effective_backgrounds = list(backgrounds)
-        background = _rgba(styles.get("backgroundColor"))
-        if background is not None:
+        try:
+            background = _rgba(styles.get("backgroundColor"))
             effective_backgrounds = [_composite(effective_backgrounds[-1], background)]
+        except ValueError:
+            pass
         gradient = styles.get("linearGradient") or styles.get("radialGradient")
         if isinstance(gradient, dict) and isinstance(gradient.get("colors"), list):
             for stop in gradient["colors"]:
                 raw = stop[0] if isinstance(stop, (list, tuple)) and stop else stop
-                color = _rgba(raw)
-                if color is not None:
+                try:
+                    color = _rgba(raw)
                     effective_backgrounds.append(_composite(effective_backgrounds[-1], color))
+                except ValueError:
+                    continue
 
         if component.get("component") == "Text" and self._has_text(component.get("content")):
             color_key = "fontColor" if "fontColor" in styles else "textColor"
             foreground = styles.get(color_key)
-            if foreground is not None:
-                ratios = [_contrast(foreground, item) for item in effective_backgrounds]
-                ratios = [ratio for ratio in ratios if ratio is not None]
-                if ratios:
-                    ratio = min(ratios)
-                    if ratio < 4.5:
-                        severity = "error" if ratio < 3 else "warning"
-                        component_id = component.get("id")
-                        pointer = (
-                            f"/updateComponents/componentsById/{component_id}/styles/{color_key}"
-                        )
-                        reporter.add(
-                            severity,
-                            "VISUAL.CONTRAST",
-                            self.stage,
-                            "genui",
-                            line=2,
-                            json_pointer=pointer,
-                            actual=round(ratio, 2),
-                            expected=">= 3:1; >= 4.5:1 recommended",
-                            message=f"text contrast is {ratio:.2f}:1",
-                            fix_hint="Use a stronger foreground color or adjust the background.",
-                            source="aesthetic-contrast",
-                        )
+            ratios = []
+            for item in effective_backgrounds:
+                try:
+                    ratios.append(_contrast(foreground, item))
+                except ValueError:
+                    continue
+            if ratios:
+                ratio = min(ratios)
+                if ratio < 4.5:
+                    severity = "error" if ratio < 3 else "warning"
+                    component_id = component.get("id")
+                    pointer = (
+                        f"/updateComponents/componentsById/{component_id}/styles/{color_key}"
+                    )
+                    reporter.add(
+                        severity,
+                        "VISUAL.CONTRAST",
+                        self.stage,
+                        "genui",
+                        line=2,
+                        json_pointer=pointer,
+                        actual=round(ratio, 2),
+                        expected=">= 3:1; >= 4.5:1 recommended",
+                        message=f"text contrast is {ratio:.2f}:1",
+                        fix_hint="Use a stronger foreground color or adjust the background.",
+                        source="aesthetic-contrast",
+                    )
 
         children = component.get("children")
         child_ids = children if isinstance(children, list) else []

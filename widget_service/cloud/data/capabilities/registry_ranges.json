@@ -5,7 +5,7 @@
       "registryVersion": "app-11.7.5.205_rom-6.0",
       "appVersion": {
         "minInclusive": "11.7.5.205",
-        "maxExclusive": "11.7.7.329"
+        "maxExclusive": "11.7.7.330"
       },
       "romVersion": {
         "minInclusive": "7.0",

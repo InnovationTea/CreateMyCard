@@ -5,20 +5,17 @@ data = {
 
 Column(
   { "_advancedComponent": "CountdownOverview", "itemMargin": 4, "width": "matchParent", "height": "matchParent", "justifyContent": "center", "alignItems": "center", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
-  IfPresent(
-    props.title,
+  #if props.title
     Text(
       props.title,
       { "width": "matchParent", "fontSize": 16, "minFontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
     )
-  ),
-  IfAbsent(
-    props.title,
+  #else
     Text(
       "倒计时",
       { "width": "matchParent", "fontSize": 16, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
     )
-  ),
+  #endif
   Row(
     { "width": "matchParent", "margin": { "top": 4 }, "itemMargin": 0, "justifyContent": "center", "alignItems": "bottom", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
     Text(
