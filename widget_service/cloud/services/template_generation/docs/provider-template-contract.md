@@ -391,8 +391,8 @@ Support CardTpl 使用 `onClick: EventAction(props?.actionId)`。微服务校验
 ## 当前迁移范围
 
 天气、日历、手机电量、耳机、健康运动、应用使用时长、倒计时和系统内存当前共有
-73 个无 Variant 的业务 UI 模板，其中 12 个是 Support；当前形成 11 个业务组。Layout Provider 另提供
-7 个支持 `...children` 的布局模板，Action Provider 提供 2 个动作模板，运行时 Registry 共 78 个模板。
+74 个无 Variant 的业务 UI 模板，其中 12 个是 Support；当前形成 11 个业务组。Layout Provider 另提供
+7 个支持 `...children` 的布局模板，Action Provider 提供 2 个动作模板，运行时 Registry 共 83 个模板。
 名称包含 `Wide` 的布局只用于 `2x4`，其余布局只用于 `2x2`，两类布局不得混用。
 新增或修改资源后执行：
 

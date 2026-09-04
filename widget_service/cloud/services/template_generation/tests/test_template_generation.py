@@ -250,7 +250,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 80
+    assert len(registry.provider_template_ids) == 83
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -2385,7 +2385,7 @@ def test_device_ring_progress_and_icons_bind_to_distinct_theme_colors() -> None:
                 assert fill_color.kind == "theme"
                 assert fill_color.name == "supportContentColor"
 
-    assert progress_count == 11
+    assert progress_count == 10
     assert ring_icon_count == 9
 
 
