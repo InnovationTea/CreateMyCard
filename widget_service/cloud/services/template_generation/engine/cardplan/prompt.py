@@ -1033,15 +1033,26 @@ def _provider_variant_matches_trusted_state(
         facts = extract_bluetooth_device_overview_facts(task_spec.dataModelSchema)
         if facts is None:
             return False
-        if variant_name in {"caseStatus", "caseStatusCompact"}:
+        if variant_name in {
+            "caseStatus",
+            "caseStatusCompact",
+            "earphoneCaseCompact",
+            "earphoneCaseHero",
+        }:
             return (
                 facts.case_battery_level is not None
                 and facts.case_charging_status is not None
             )
+        if variant_name == "earphoneHero":
+            return facts.earphone_name is not None and facts.case_battery_level is not None
+        if variant_name == "earphoneCompact":
+            return facts.earphone_name is not None and facts.case_battery_level is not None
         has_left = facts.left_battery_level is not None
         has_right = facts.right_battery_level is not None
         has_case = facts.case_battery_level is not None
         if variant_name == "earbudsSupport":
+            return has_left and has_right
+        if variant_name == "earbudsFull":
             return has_left and has_right
         if facts.is_connected is None or facts.earphone_name is None:
             return False
