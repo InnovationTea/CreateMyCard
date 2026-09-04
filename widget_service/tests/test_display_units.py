@@ -330,3 +330,13 @@ def test_artifact_validation_diagnostic_keeps_unit_fix_context_for_repair():
             "且整组只展示一次。"
         ),
     }
+    assert issue.to_repair_payload() == {
+        "at": "genui:2 /updateComponents/componentsById/value/content",
+        "problem": "动态数值字段不包含展示单位，当前 Text 未展示其声明的单位。",
+        "fix": (
+            "在数值表达式中追加单位“%”，或让紧邻数值后的静态 Text 包含该单位，"
+            "且整组只展示一次。"
+        ),
+        "current": "{{ ${/data/battery/level} }}",
+        "expected": {"unitIncluded": False, "displayUnits": ["%"]},
+    }

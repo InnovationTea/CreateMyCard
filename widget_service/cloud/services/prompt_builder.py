@@ -178,10 +178,10 @@ class PromptBuilder:
             {
                 "originalUserContent": initial_prompt[1]["content"],
                 "invalidSourceDsl": invalid_source_dsl,
-                "qualityErrors": quality_errors,
+                "repairTasks": quality_errors,
                 "dslFormat": dsl_format,
                 "instruction": (
-                    "以 invalidSourceDsl 为直接修复对象，逐项处理 qualityErrors，"
+                    "以 invalidSourceDsl 为直接修复对象，逐项处理 repairTasks，"
                     "只输出修复后的完整源格式 DSL，不输出解释、补丁、Markdown 或其它内容。"
                 ),
             },
