@@ -10,9 +10,13 @@ from .base import BaseValidator
 
 _HEX_COLOR = re.compile(r"^#(?P<hex>[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
 _TEMPLATE_ROOT_ID = "template_root"
+_OPAQUE_ALPHA = 1.0
+
+RgbColor = tuple[float, float, float]
+RgbaColor = tuple[float, float, float, float]
 
 
-def _rgba(value: Any) -> tuple[float, float, float, float]:
+def _rgba(value: Any) -> RgbaColor:
     if not isinstance(value, str):
         raise ValueError("color value must be a hex string")
     match = _HEX_COLOR.fullmatch(value.strip())
@@ -30,9 +34,9 @@ def _rgba(value: Any) -> tuple[float, float, float, float]:
 
 
 def _composite(
-    background: tuple[float, float, float],
-    foreground: tuple[float, float, float, float],
-) -> tuple[float, float, float]:
+    background: RgbColor,
+    foreground: RgbaColor,
+) -> RgbColor:
     red, green, blue = background
     top_red, top_green, top_blue, alpha = foreground
     return (
@@ -42,7 +46,7 @@ def _composite(
     )
 
 
-def _luminance(rgb: tuple[float, float, float]) -> float:
+def _luminance(rgb: RgbColor) -> float:
     def linear(value: float) -> float:
         return value / 12.92 if value <= 0.03928 else ((value + 0.055) / 1.055) ** 2.4
 
@@ -50,12 +54,65 @@ def _luminance(rgb: tuple[float, float, float]) -> float:
     return 0.2126 * red + 0.7152 * green + 0.0722 * blue
 
 
-def _contrast(foreground: Any, background: tuple[float, float, float]) -> float:
+def _contrast(foreground: Any, background: RgbColor) -> float:
     parsed = _rgba(foreground)
     foreground_rgb = _composite(background, parsed)
     first = _luminance(foreground_rgb)
     second = _luminance(background)
     return (max(first, second) + 0.05) / (min(first, second) + 0.05)
+
+
+def _interpolate_color(left: RgbaColor, right: RgbaColor) -> RgbaColor:
+    return (
+        (left[0] + right[0]) / 2,
+        (left[1] + right[1]) / 2,
+        (left[2] + right[2]) / 2,
+        (left[3] + right[3]) / 2,
+    )
+
+
+def _gradient_color_samples(gradient: Any) -> list[RgbaColor]:
+    if not isinstance(gradient, dict):
+        return []
+    stops = gradient.get("colors")
+    if not isinstance(stops, list):
+        return []
+
+    colors: list[RgbaColor] = []
+    for stop in stops:
+        raw = stop[0] if isinstance(stop, (list, tuple)) and stop else stop
+        try:
+            colors.append(_rgba(raw))
+        except ValueError:
+            continue
+
+    samples: list[RgbaColor] = []
+    for index, color in enumerate(colors):
+        samples.append(color)
+        if index + 1 < len(colors):
+            samples.append(_interpolate_color(color, colors[index + 1]))
+    return samples
+
+
+def _composite_candidates(
+    backgrounds: list[RgbColor],
+    foregrounds: list[RgbaColor],
+) -> list[RgbColor]:
+    candidates: list[RgbColor] = []
+    for background in backgrounds:
+        for foreground in foregrounds:
+            candidate = _composite(background, foreground)
+            if candidate not in candidates:
+                candidates.append(candidate)
+    return candidates
+
+
+def _reported_contrast_ratio(ratios: list[float], is_gradient: bool) -> float:
+    ordered = sorted(ratios)
+    if is_gradient and len(ordered) >= 3:
+        # 容忍渐变边缘的一个孤立最差样本；多个低对比样本仍会触发诊断。
+        return ordered[1]
+    return ordered[0]
 
 
 class ContrastValidator(BaseValidator):
@@ -72,9 +129,23 @@ class ContrastValidator(BaseValidator):
         root = by_id.get(context.root_id)
         if not isinstance(root, dict):
             return
-        self._walk(context, reporter, root, [(1.0, 1.0, 1.0)])
+        self._walk(
+            context,
+            reporter,
+            root,
+            [(1.0, 1.0, 1.0)],
+            is_gradient=False,
+        )
 
-    def _walk(self, context, reporter, component, backgrounds) -> None:
+    def _walk(
+        self,
+        context: Any,
+        reporter: Any,
+        component: dict[str, Any],
+        backgrounds: list[RgbColor],
+        *,
+        is_gradient: bool,
+    ) -> None:
         # 模板内容沿用模板配色，不追加对比度诊断；其它校验仍由各自的 validator 执行。
         if component.get("id") == _TEMPLATE_ROOT_ID:
             return
@@ -83,18 +154,22 @@ class ContrastValidator(BaseValidator):
         effective_backgrounds = list(backgrounds)
         try:
             background = _rgba(styles.get("backgroundColor"))
-            effective_backgrounds = [_composite(effective_backgrounds[-1], background)]
+            effective_backgrounds = _composite_candidates(
+                effective_backgrounds,
+                [background],
+            )
+            if background[3] >= _OPAQUE_ALPHA:
+                is_gradient = False
         except ValueError:
             pass
         gradient = styles.get("linearGradient") or styles.get("radialGradient")
-        if isinstance(gradient, dict) and isinstance(gradient.get("colors"), list):
-            for stop in gradient["colors"]:
-                raw = stop[0] if isinstance(stop, (list, tuple)) and stop else stop
-                try:
-                    color = _rgba(raw)
-                    effective_backgrounds.append(_composite(effective_backgrounds[-1], color))
-                except ValueError:
-                    continue
+        gradient_samples = _gradient_color_samples(gradient)
+        if gradient_samples:
+            effective_backgrounds = _composite_candidates(
+                effective_backgrounds,
+                gradient_samples,
+            )
+            is_gradient = True
 
         if component.get("component") == "Text" and self._has_text(component.get("content")):
             color_key = "fontColor" if "fontColor" in styles else "textColor"
@@ -106,7 +181,7 @@ class ContrastValidator(BaseValidator):
                 except ValueError:
                     continue
             if ratios:
-                ratio = min(ratios)
+                ratio = _reported_contrast_ratio(ratios, is_gradient)
                 if ratio < 4.5:
                     severity = "error" if ratio < 3 else "warning"
                     component_id = component.get("id")
@@ -132,8 +207,18 @@ class ContrastValidator(BaseValidator):
         for child_id in child_ids:
             child = context.components_by_id.get(child_id)
             if isinstance(child, dict):
-                self._walk(context, reporter, child, effective_backgrounds)
+                self._walk(
+                    context,
+                    reporter,
+                    child,
+                    effective_backgrounds,
+                    is_gradient=is_gradient,
+                )
 
     @staticmethod
     def _has_text(value: Any) -> bool:
-        return isinstance(value, str) and value.strip() and not value.strip().startswith("{{")
+        if isinstance(value, str):
+            return bool(value.strip())
+        if isinstance(value, dict):
+            return bool(value)
+        return value is not None

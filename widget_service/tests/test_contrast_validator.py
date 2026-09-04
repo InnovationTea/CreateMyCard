@@ -169,6 +169,107 @@ def test_unreachable_template_marker_does_not_skip_normal_card() -> None:
     assert reporter.has_code("VISUAL.CONTRAST")
 
 
+def test_gradient_does_not_retain_uncovered_default_background() -> None:
+    components = [
+        {
+            "id": "root",
+            "component": "Column",
+            "children": ["label"],
+            "styles": {
+                "width": "matchParent",
+                "height": "matchParent",
+                "linearGradient": {
+                    "angle": 180,
+                    "colors": [
+                        ["#FF1D3A6A", 0],
+                        ["#FF1D588F", 0.45],
+                        ["#FF0D8FBC", 1],
+                    ],
+                },
+            },
+        },
+        {
+            "id": "label",
+            "component": "Text",
+            "content": "北京出行",
+            "styles": {"fontColor": "#FFFFFFFF"},
+        },
+    ]
+
+    reporter = validate_card(dsl_text=_component_dsl(components))
+
+    assert not reporter.has_code("VISUAL.CONTRAST")
+
+
+def test_gradient_still_reports_when_multiple_samples_have_low_contrast() -> None:
+    components = [
+        {
+            "id": "root",
+            "component": "Column",
+            "children": ["label"],
+            "styles": {
+                "width": "matchParent",
+                "height": "matchParent",
+                "linearGradient": {
+                    "angle": 180,
+                    "colors": [
+                        ["#FFFFFFFF", 0],
+                        ["#FFF4F4F4", 0.5],
+                        ["#FFE8E8E8", 1],
+                    ],
+                },
+            },
+        },
+        {
+            "id": "label",
+            "component": "Text",
+            "content": "低对比文字",
+            "styles": {"fontColor": "#FFFFFFFF"},
+        },
+    ]
+
+    reporter = validate_card(dsl_text=_component_dsl(components))
+
+    contrast = [
+        item for item in reporter.diagnostics if item.code == "VISUAL.CONTRAST"
+    ]
+    assert len(contrast) == 1
+    assert contrast[0].severity == "error"
+    assert contrast[0].actual < 3
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        {"path": "/data/label"},
+        "{{ ${/data/label} }}",
+    ],
+)
+def test_dynamic_text_also_participates_in_contrast_validation(content: Any) -> None:
+    components = [
+        {
+            "id": "root",
+            "component": "Column",
+            "children": ["label"],
+            "styles": {
+                "width": "matchParent",
+                "height": "matchParent",
+                "backgroundColor": "#FFFFFFFF",
+            },
+        },
+        {
+            "id": "label",
+            "component": "Text",
+            "content": content,
+            "styles": {"fontColor": "#FFFFFFFF"},
+        },
+    ]
+
+    reporter = validate_card(dsl_text=_component_dsl(components))
+
+    assert reporter.has_code("VISUAL.CONTRAST")
+
+
 @pytest.mark.parametrize(("field", "value", "expected_code"), [
     ("component", "UnsupportedTemplateComponent", "DSL_COMPONENT_UNKNOWN"),
     ("content", "{{ ${/data/missing} }}", "BINDING_PATH_NOT_FOUND"),

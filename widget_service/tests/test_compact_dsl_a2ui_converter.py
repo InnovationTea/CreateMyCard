@@ -989,7 +989,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
                 card_spec={"suggestSize": "2x2", "dataBindings": []},
             )
 
-    def test_rejects_distributed_root_with_negative_remaining_height(self) -> None:
+    def test_rejects_distributed_root_when_minimum_gaps_overflow(self) -> None:
         compact_dsl = _serialize(
             [
                 [
@@ -1024,11 +1024,45 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
             )
 
         message = str(raised.exception)
-        self.assertIn("itemMargin must be omitted", message)
         self.assertIn(
-            "vertical layout requires at least 140vp within 136vp",
+            "vertical layout requires at least 156vp within 136vp",
             message,
         )
+
+    def test_accepts_distributed_root_with_item_margin_when_it_fits(self) -> None:
+        compact_dsl = _serialize(
+            [
+                [
+                    "root",
+                    "Column",
+                    {
+                        "width": "matchParent",
+                        "height": "matchParent",
+                        "padding": 12,
+                        "itemMargin": 4,
+                        "justifyContent": "spaceBetween",
+                    },
+                    ["title_area", "content_area", "action_area"],
+                ],
+                ["title_area", "Text", {"content": "标题", "height": 20}],
+                ["content_area", "Text", {"content": "内容", "height": 40}],
+                ["action_area", "Column", {}, ["cta"]],
+                ["cta", "Button", {"label": "查看详情", "height": 36}],
+            ]
+        )
+
+        result = validate_compact_dsl(
+            compact_dsl,
+            task_spec={
+                "size": "2x2",
+                "dataModelSchema": {},
+                "assetCandidates": [],
+                "eventCandidates": [],
+            },
+            card_spec={"suggestSize": "2x2", "dataBindings": []},
+        )
+
+        self.assertEqual(result.warnings, ())
 
     def test_accepts_s4_vertical_regions_at_exact_safe_height(self) -> None:
         compact_dsl = _serialize(
