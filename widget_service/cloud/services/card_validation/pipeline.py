@@ -18,7 +18,6 @@ from .asset_validator import AssetValidator
 from .binding_validator import BindingValidator
 from .cardspec_validator import CardSpecValidator
 from .component_validator import ComponentValidator
-from .contrast_validator import ContrastValidator
 from .cross_validator import CrossValidator
 from .diagnostics import Reporter
 from .display_unit_validator import DisplayUnitValidator
@@ -37,9 +36,7 @@ STATIC_VALIDATORS = [
     CrossValidator(),
 ]
 
-QUALITY_VALIDATORS = [
-    ContrastValidator(),
-]
+
 
 EFFECTIVE_VALIDATORS = [
     EffectiveCapabilityValidator(),
@@ -70,7 +67,7 @@ def run_pipeline(
     *,
     stop_on_stage_error: bool = False,
 ) -> None:
-    validators = list(STATIC_VALIDATORS) + list(EFFECTIVE_VALIDATORS) + list(QUALITY_VALIDATORS)
+    validators = list(STATIC_VALIDATORS) + list(EFFECTIVE_VALIDATORS)
     for current_stage in selected_stages(stage):
         if stop_on_stage_error and current_stage == "semantic" and reporter.has_error("hard"):
             return
