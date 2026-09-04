@@ -156,7 +156,7 @@ _WEATHER_TEMPLATE_FIELDS = (
     "/daily/0/temperatureRangeText",
 )
 _WEATHER_PALETTE = ("#FF121259", "#FF2B65D9", "#FF57AED9")
-_SPORT_PALETTE = ("#FFB33C24", "#FFFF8833", "#FFFAA89E")
+_SPORT_PALETTE = ("#FFB33024", "#FFFF8833", "#FFE68073")
 _TEST_APP_VERSION = ".".join(("11", "7", "5", "205"))
 
 
@@ -250,7 +250,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 75
+    assert len(registry.provider_template_ids) == 78
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -299,8 +299,12 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
     assert all("#Variant" not in source for source in provider_source_texts)
     assert all("IfParam" not in source for source in provider_source_texts)
     assert all("IfMissingParam" not in source for source in provider_source_texts)
-    assert any("IfPresent" in source for source in provider_source_texts)
-    assert any("IfAbsent" in source for source in provider_source_texts)
+    assert all("IfPresent" not in source for source in provider_source_texts)
+    assert all("IfAbsent" not in source for source in provider_source_texts)
+    assert any("#if" in source for source in provider_source_texts)
+    assert any("#else" in source for source in provider_source_texts)
+    assert any("#endif" in source for source in provider_source_texts)
+    assert any("#Expr" in source for source in provider_source_texts)
     assert all(
         definition.variants[0].size == "default"
         for template_id in registry.provider_template_ids
@@ -310,7 +314,16 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
 
 def test_business_template_suffix_drives_size_and_provider_data_tiers():
     registry = get_cardplan_registry()
-    layout_kinds = {"Support", "Compact", "Hero", "Full", "WideHero", "WideFull"}
+    layout_kinds = {
+        "HeroTitle",
+        "HeroContent",
+        "Support",
+        "Compact",
+        "Hero",
+        "Full",
+        "WideHero",
+        "WideFull",
+    }
 
     for template_id in registry.provider_template_ids:
         definition = registry.require_template(template_id)
@@ -445,9 +458,61 @@ def test_weather_location_compile_time_conditional_selects_available_reference(
     assert "{{" not in str(location_text.values[0])
 
 
-def test_compile_time_conditional_requires_parenthesized_ternary() -> None:
-    with pytest.raises(ValueError, match="must wrap each ternary in parentheses"):
-        _parse_component_body('Text(data.city ? data.city : "当前城市", {})')
+def test_compile_time_conditional_requires_explicit_expr() -> None:
+    with pytest.raises(ValueError, match="must use #Expr"):
+        _parse_component_body('Text((data.city ? data.city : "当前城市"), {})')
+
+    root = _parse_component_body(
+        'Text(#Expr(data.city ? data.city : '
+        '(props.location ? props.location : "当前城市")), {})'
+    )
+
+    assert root.values[0].kind == "compile-time-conditional"
+    assert root.values[0].items[2].kind == "compile-time-conditional"
+
+
+@pytest.mark.parametrize(
+    ("source", "message"),
+    [
+        ("#else", "has no matching #if"),
+        ("#if data.city", "missing #endif"),
+        ("#if data.city.value\n#endif", "#if target is invalid"),
+        ("Text(#Expr(data.city), {})", "requires one ternary expression"),
+    ],
+)
+def test_provider_compile_directives_reject_invalid_syntax(
+    source: str,
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        _parse_component_body(source)
+
+
+def test_provider_compiler_rejects_legacy_presence_calls() -> None:
+    with pytest.raises(ValueError, match="unsupported Provider Template component"):
+        _parse_component_body('Column({}, IfPresent(data.city, Text(data.city, {})))')
+
+
+def test_provider_structure_directive_selects_compile_time_branch() -> None:
+    root = _parse_component_body(
+        """Column({},
+#if data.city
+  Text(data.city, {}),
+  Text("已定位", {})
+#else
+  Text("当前城市", {})
+#endif
+)"""
+    )
+
+    present = _instantiate_blueprint(root, {}, {"city": "${data.weather.city}"})
+    missing = _instantiate_blueprint(root, {}, {})
+
+    assert present.children[0].values[0] == "${data.weather.city}"
+    assert present.children[1].values[0] == "已定位"
+    assert missing.children[0].values[0] == "当前城市"
+    assert "IfBind" not in repr(present)
+    assert "IfMissingBind" not in repr(missing)
 
 
 def test_layout_template_wide_marker_drives_exclusive_card_size() -> None:
@@ -457,6 +522,7 @@ def test_layout_template_wide_marker_drives_exclusive_card_size() -> None:
         "HeroActionLayout": ("2x2",),
         "FullIconActionLayout": ("2x2",),
         "CompactTwoActionLayout": ("2x2",),
+        "HeroTitleContentActionLayout": ("2x2",),
         "TwoSupportLayout": ("2x2",),
         "WideSingleFocusLayout": ("2x4",),
     }
@@ -512,13 +578,13 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 8
+    assert len(calendar.local_template_ids) == 9
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert not any(
         template_id.startswith("DateOverview")
         for template_id in calendar.local_template_ids
     )
-    assert len(registry.ux_layout_component_provider_ids) == 6
+    assert len(registry.ux_layout_component_provider_ids) == 7
     for bundle in registry.provider_bundles.values():
         payload = json.loads(
             (registry.source_root / "providers" / bundle.manifest.provider_id.removeprefix(
@@ -723,7 +789,10 @@ def test_theme_styles_have_distinct_root_content_and_action_scopes() -> None:
 
     assert root_options["backgroundColor"] == "#FFFFFFFF"
     assert root_options["padding"] == 12
-    assert root.children == (styled,)
+    template_root = root.children[0]
+    assert template_root.component_type == styled.component_type
+    assert template_root.children == styled.children
+    assert template_root.values[-1]["_id"] == "template_root"
     assert default_text.values[-1]["fontColor"] == "#E6000000"
     assert explicit_text.values[-1]["fontColor"] == "#FF123456"
     assert image.values[-1]["fillColor"] == "#FF654321"
@@ -921,7 +990,7 @@ def test_fusion_ball_palette_is_gated_by_selected_theme(
     [
         ("fusion-weather-blue", "#FFCCDDFF", "#99CCDDFF"),
         ("fusion-sleep-violet", "#FFD9CCFF", "#99D9CCFF"),
-        ("fusion-sport-orange", "#FFFFE1CC", "#99FFE1CC"),
+        ("fusion-sport-orange", "#FFFFFFFF", "#99FFFFFF"),
         ("fusion-battery-teal", "#FFCCFFF6", "#99CCFFF6"),
         ("fusion-schedule-cool", "#FFCCEEFF", "#B3CCEEFF"),
     ],
@@ -978,18 +1047,17 @@ def test_non_fusion_sleep_theme_uses_the_reviewed_solid_palette() -> None:
     assert theme.action_style.background_color == "#33564AF7"
 
 
-def test_non_fusion_sport_theme_uses_the_reviewed_gradient_palette() -> None:
+def test_non_fusion_sport_theme_uses_the_reviewed_solid_palette() -> None:
     theme = get_cardplan_registry().require_theme("race-sunrise-action")
 
-    assert theme.primary_color == "#FFFFFFFF"
-    assert theme.support_content_color == "#99FFFFFF"
-    assert theme.root_style["backgroundColor"] == "#FFED6F21"
-    assert theme.root_style["linearGradient"]["colors"] == [
-        ["#FFED6F21", 0],
-        ["#FFF9A01E", 1],
-    ]
-    assert theme.action_style.content_color == "#FFED6F21"
-    assert theme.action_style.background_color == "#FFFFFFFF"
+    assert theme.primary_color == "#FF99521F"
+    assert theme.support_content_color == "#9999521F"
+    assert theme.progress_color == "#FF99521F"
+    assert theme.progress_background_color == "#3399521F"
+    assert theme.root_style.get("backgroundColor") == "#FFFFF0E6"
+    assert "linearGradient" not in theme.root_style
+    assert theme.action_style.content_color == "#FF99521F"
+    assert theme.action_style.background_color == "#3399521F"
 
 
 def test_non_fusion_earphone_theme_uses_the_reviewed_solid_palette() -> None:
@@ -1015,22 +1083,19 @@ def test_non_fusion_schedule_theme_uses_the_reviewed_solid_palette() -> None:
     assert theme.action_style.background_color == "#331F4799"
 
 
-def test_non_fusion_event_countdown_theme_uses_the_reviewed_gradient_palette() -> None:
+def test_non_fusion_event_countdown_theme_uses_the_reviewed_solid_palette() -> None:
     registry = get_cardplan_registry()
     theme = registry.require_theme("race-night-violet")
     sport_theme = registry.require_theme("race-sunrise-action")
 
     assert theme.supported_capability_ids == ("GetCountdownDays",)
     assert sport_theme.supported_capability_ids == ("GetHealthAndSportSummary",)
-    assert theme.primary_color == "#FFFFFFFF"
-    assert theme.support_content_color == "#99FFFFFF"
-    assert theme.root_style["backgroundColor"] == "#FFED6F21"
-    assert theme.root_style["linearGradient"]["colors"] == [
-        ["#FFED6F21", 0],
-        ["#FFF9A01E", 1],
-    ]
-    assert theme.action_style.content_color == "#FFED6F21"
-    assert theme.action_style.background_color == "#FFFFFFFF"
+    assert theme.primary_color == "#FF99521F"
+    assert theme.support_content_color == "#9999521F"
+    assert theme.root_style.get("backgroundColor") == "#FFFFF0E6"
+    assert "linearGradient" not in theme.root_style
+    assert theme.action_style.content_color == "#FF99521F"
+    assert theme.action_style.background_color == "#3399521F"
 
 
 def test_non_fusion_device_theme_uses_the_reviewed_resource_palette() -> None:
@@ -1060,7 +1125,7 @@ def test_non_fusion_battery_theme_uses_the_compatible_teal_palette() -> None:
     assert theme.support_content_color == "#991F8F99"
     assert theme.progress_color == "#FF1F8F99"
     assert theme.progress_background_color == "#331F8F99"
-    assert theme.root_style["backgroundColor"] == "#FFFFF3E6"
+    assert theme.root_style.get("backgroundColor") == "#FFE6FDFF"
     assert "linearGradient" not in theme.root_style
     assert theme.action_style.content_color == "#FF1F8F99"
     assert theme.action_style.background_color == "#331F8F99"
@@ -1241,17 +1306,17 @@ def test_fusion_ball_wraps_only_2x2_with_expanded_tersel_background():
     assert wrapped.children[0].component_type == "Stack"
     assert wrapped.children[0].values[-1]["_id"] == "fusionBallBackground"
     assert wrapped.children[1].component_type == "Stack"
-    assert foreground_options["_id"] == "root_1"
+    assert foreground_options["_id"] == "template_root"
     assert foreground_options["padding"] == 12
     overflow_content = wrapped.children[1].children[0]
     assert overflow_content.component_type == "Stack"
     assert overflow_content.values[-1]["_id"] == (
-        "__genui_render_component__root_1"
+        "__genui_render_component__template_root"
     )
     assert overflow_content.values[-1]["width"] == "matchParent"
     assert overflow_content.values[-1]["height"] == "matchParent"
     skeleton = overflow_content.children[0]
-    assert skeleton.values[-1]["_id"] == "template_root"
+    assert skeleton.values[-1]["_id"] == "root_1"
     title_text = skeleton.children[0]
     content_text = skeleton.children[1]
     content_icon = skeleton.children[2]
@@ -1343,9 +1408,42 @@ def test_template_compiler_keeps_non_fusion_2x2_theme_background():
         ),
         ("fusion-sleep-violet", ("SleepOverviewFull@1",), True),
         ("fusion-sleep-violet", ("ActivityOverviewFull@1",), False),
+        ("fusion-sport-orange", ("CountdownOverviewFull@1",), True),
+        ("fusion-sleep-violet", ("CountdownOverviewFull@1",), False),
+        (
+            "fusion-schedule-cool",
+            (
+                "HeroTitleContentActionLayout@1",
+                "WeatherOverviewHeroTitle@1",
+                "ScheduleOverviewHeroContent@1",
+                "PillAction@1",
+            ),
+            True,
+        ),
+        (
+            "fusion-weather-blue",
+            ("WeatherOverviewHeroTitle@1", "ScheduleOverviewHeroContent@1"),
+            False,
+        ),
+        (
+            "meeting-paper-neutral",
+            ("WeatherOverviewHeroTitle@1", "ScheduleOverviewHeroContent@1"),
+            False,
+        ),
+        ("fusion-schedule-cool", ("ScheduleOverviewHeroContent@1",), False),
+        (
+            "fusion-schedule-cool",
+            ("WeatherOverviewHeroTitle@1", "ScheduleOverviewDateFull@1"),
+            False,
+        ),
+        (
+            "fusion-sport-orange",
+            ("CountdownOverviewFull@1", "ActivityOverviewFull@1"),
+            False,
+        ),
     ],
 )
-def test_fusion_theme_requires_one_matching_business(
+def test_fusion_theme_requires_matching_primary_business(
     theme_id: str,
     selected_template_ids: tuple[str, ...],
     expect_fusion: bool,
@@ -1375,13 +1473,14 @@ def test_fusion_theme_requires_one_matching_business(
     if expect_fusion:
         assert decorated.children[0].component_type == "Stack"
         assert decorated.children[0].values[-1]["_id"] == "fusionBallBackground"
-        assert decorated.children[1].values[-1]["_id"] == "root_1"
+        assert decorated.children[1].values[-1]["_id"] == "template_root"
         overflow_content = decorated.children[1].children[0]
         assert overflow_content.values[-1]["_id"] == (
-            "__genui_render_component__root_1"
+            "__genui_render_component__template_root"
         )
+        assert decorated.values[-1]["_id"] == "root"
         content = overflow_content.children[0]
-        assert content.values[-1]["_id"] == "template_root"
+        assert content.values[-1]["_id"] == "root_1"
         assert content.children[0].values[-1]["fontColor"] == "#FFCCDDFF"
 
 
@@ -1937,7 +2036,7 @@ def _template_nodes(node: Any, component: str) -> list[Any]:
     return matches
 
 
-def test_sleep_templates_bind_progress_color_to_theme_support_content() -> None:
+def test_sleep_templates_bind_progress_color_to_theme_progress_token() -> None:
     registry = get_cardplan_registry()
 
     for template_id in (
@@ -1949,9 +2048,10 @@ def test_sleep_templates_bind_progress_color_to_theme_support_content() -> None:
         assert len(progress) == 1
         options = progress[0].values[-1]
         assert options.kind == "object"
-        color = options.properties["color"]
+        color = options.properties.get("color")
+        assert color is not None
         assert color.kind == "theme"
-        assert color.name == "supportContentColor"
+        assert color.name == "progressColor"
 
 
 def test_sleep_hero_requires_both_time_bindings_for_the_fallback_row() -> None:
@@ -1970,6 +2070,8 @@ def test_sleep_hero_requires_both_time_bindings_for_the_fallback_row() -> None:
     theme_values = {
         "primaryColor": "#FF401F99",
         "supportContentColor": "#991F4799",
+        "progressColor": "#991F4799",
+        "progressBackgroundColor": "#33564AF7",
     }
     binding_paths = {
         "duration": "${data.healthSport.nightSleepDurationText}",
@@ -2024,22 +2126,24 @@ def test_sleep_hero_requires_both_time_bindings_for_the_fallback_row() -> None:
     assert not any("wakeupTimeText" in value for value in partial_time_text)
 
 
-def test_sport_templates_bind_progress_color_to_theme_support_content() -> None:
+def test_sport_templates_bind_progress_color_to_theme_progress_token() -> None:
     registry = get_cardplan_registry()
 
-    for template_id in (
-        "ActivityOverviewHero@1",
-        "ActivityOverviewFull@1",
-        "WorkoutOverviewFull@1",
+    for template_id, expected_count in (
+        ("ActivityOverviewHero@1", 1),
+        ("ActivityOverviewFull@1", 1),
+        ("WorkoutOverviewFull@1", 0),
     ):
         root = registry.require_variant(template_id, "default").root
         progress = _template_nodes(root, "Progress")
-        assert len(progress) == 1
-        options = progress[0].values[-1]
-        assert options.kind == "object"
-        color = options.properties["color"]
-        assert color.kind == "theme"
-        assert color.name == "supportContentColor"
+        assert len(progress) == expected_count, template_id
+        for node in progress:
+            options = node.values[-1]
+            assert options.kind == "object"
+            color = options.properties.get("color")
+            assert color is not None
+            assert color.kind == "theme"
+            assert color.name == "progressColor"
 
 
 def test_health_sport_templates_follow_latest_display_contract() -> None:
@@ -2114,7 +2218,10 @@ def test_health_sport_templates_follow_latest_display_contract() -> None:
     for template_id in ("SleepOverviewFull@1", "SleepOverviewHero@1"):
         root = registry.require_variant(template_id, "default").root
         progress_options = _template_nodes(root, "Progress")[0].values[-1]
-        assert progress_options.properties["backgroundColor"].value == "#33564AF7"
+        background_color = progress_options.properties.get("backgroundColor")
+        assert background_color is not None
+        assert background_color.kind == "theme"
+        assert background_color.name == "progressBackgroundColor"
 
 
 def test_earphone_templates_bind_progress_color_to_theme_support_content() -> None:
@@ -2136,7 +2243,7 @@ def test_earphone_templates_bind_progress_color_to_theme_support_content() -> No
     assert progress_count == 10
 
 
-def test_business_artwork_assets_preserve_their_original_colors() -> None:
+def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() -> None:
     registry = get_cardplan_registry()
     original_color_props = {
         "AppUsageOverview": {"appIcon"},
@@ -2145,12 +2252,40 @@ def test_business_artwork_assets_preserve_their_original_colors() -> None:
             "leftEarIcon",
             "rightEarIcon",
             "deviceIcon",
+            "caseIcon",
         },
         "HeartRateOverview": {"sourceIcon"},
         "SleepOverview": {"sourceIcon"},
         "WorkoutOverview": {"sourceIcon"},
     }
     preserved_assets: list[tuple[str, str]] = []
+    expected_themed_assets = {
+        ("BluetoothDeviceOverviewHero@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewHero@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewEarbudsSupport@1", "deviceIcon"),
+        ("BluetoothDeviceOverviewEarbudPairFull@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewEarbudPairFull@1", "rightEarIcon"),
+        ("BluetoothDeviceOverviewEarbudPairFull@1", "caseIcon"),
+        ("BluetoothDeviceOverviewEarbudPairCompact@1", "leftEarIcon"),
+        ("BluetoothDeviceOverviewEarbudPairCompact@1", "rightEarIcon"),
+        ("HeartRateOverviewIconCompact@1", "sourceIcon"),
+        ("HeartRateOverviewIconHero@1", "sourceIcon"),
+        ("HeartRateOverviewUpdatedIconHero@1", "sourceIcon"),
+        ("HeartRateOverviewIconSupport@1", "sourceIcon"),
+        ("HeartRateOverviewUpdatedIconSupport@1", "sourceIcon"),
+        ("SleepOverviewFull@1", "sourceIcon"),
+        ("SleepOverviewHero@1", "sourceIcon"),
+        ("SleepOverviewCompact@1", "sourceIcon"),
+        ("SleepOverviewSupport@1", "sourceIcon"),
+    }
+    expected_inherited_assets = {
+        ("WorkoutOverviewFull@1", "sourceIcon"),
+        ("WorkoutOverviewCompact@1", "sourceIcon"),
+        ("WorkoutOverviewHero@1", "sourceIcon"),
+        ("WorkoutOverviewSupport@1", "sourceIcon"),
+    }
+    themed_assets: set[tuple[str, str]] = set()
+    inherited_assets: set[tuple[str, str]] = set()
 
     for template_id, definition in registry.templates.items():
         asset_props = original_color_props.get(definition.business_id or "")
@@ -2163,13 +2298,39 @@ def test_business_artwork_assets_preserve_their_original_colors() -> None:
                 continue
             options = image.values[-1]
             assert options.kind == "object"
+            asset_key = (template_id, source.name)
+            if asset_key in expected_themed_assets:
+                color = options.properties.get("fillColor")
+                assert color is not None
+                assert color.kind == "theme"
+                assert color.name == "supportContentColor"
+                assert "_preserveOriginalColor" not in options.properties
+                themed_assets.add(asset_key)
+                continue
             assert "fillColor" not in options.properties
-            preserve_original = options.properties["_preserveOriginalColor"]
+            if asset_key in expected_inherited_assets:
+                assert "_preserveOriginalColor" not in options.properties
+                icon = Nested2Node(
+                    "Image", ("resources/workout.svg", _template_node_options(image)), (),
+                )
+                contract = HybridBodyContract.model_construct(
+                    theme_profile_id="race-sunrise-action"
+                )
+                styled = _apply_theme_content_color(icon, contract, registry)
+                styled_options = styled.values[-1]
+                assert isinstance(styled_options, dict)
+                assert styled_options.get("fillColor") == "#FF99521F"
+                inherited_assets.add(asset_key)
+                continue
+            preserve_original = options.properties.get("_preserveOriginalColor")
+            assert preserve_original is not None, asset_key
             assert preserve_original.kind == "literal"
             assert preserve_original.value is True
             preserved_assets.append((template_id, source.name))
 
-    assert len(preserved_assets) == 45
+    assert len(preserved_assets) == 18
+    assert themed_assets == expected_themed_assets
+    assert inherited_assets == expected_inherited_assets
 
 
 def test_calendar_monochrome_source_icons_use_the_theme_primary_color() -> None:
@@ -2220,7 +2381,7 @@ def test_device_ring_progress_and_icons_bind_to_distinct_theme_colors() -> None:
                 assert fill_color.kind == "theme"
                 assert fill_color.name == "supportContentColor"
 
-    assert progress_count == 8
+    assert progress_count == 7
     assert ring_icon_count == 7
 
 
@@ -2357,7 +2518,8 @@ def test_calendar_templates_follow_latest_schedule_contract() -> None:
     registry = get_cardplan_registry()
     calendar = registry.require_ux_business_component("CalendarOverview")
 
-    assert len(calendar.local_template_ids) == 8
+    assert len(calendar.local_template_ids) == 9
+    assert "ScheduleOverviewHeroContent@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert not any(
         template_id.endswith(("Support@1", "Compact@1"))
@@ -2545,8 +2707,10 @@ async def test_calendar_dnd_action_restores_label_icon_and_scene_header():
         for component in components
         if header_row["id"] in component.get("children", ())
     )
-    assert header_row["styles"]["alignItems"] == "start"
-    assert hero_content["itemMargin"] == 0
+    header_styles = header_row.get("styles")
+    assert isinstance(header_styles, dict)
+    assert header_styles.get("alignItems") == "top"
+    assert hero_content.get("itemMargin") == 2
     action = next(component for component in components if component.get("onClick"))
     assert action["styles"]["backgroundColor"] == "#331F4799"
     focus_icon = next(
@@ -2682,7 +2846,7 @@ async def test_calendar_reminder_hero_keeps_start_and_advance_notice():
         "left": 0,
         "top": 4,
         "right": 0,
-        "bottom": 0,
+        "bottom": 2,
     }
     assert timeline_column["itemMargin"] == 4
     assert timeline_dot["styles"]["borderWidth"] == 1.5
@@ -2715,14 +2879,21 @@ def test_calendar_timezone_full_keeps_reference_geometry():
     timezone_timeline = timezone.children[2]
     timezone_dot_column = timezone_timeline.children[0]
     timezone_dot = timezone_dot_column.children[0]
+    timezone_divider = timezone_dot_column.children[1]
 
     assert timezone_text_options["height"] == 44
     assert timezone_text_options["fontSize"] == 16
     assert timezone_text_options["maxLines"] == 1
-    timeline_padding = timezone_timeline.values[-1].properties["padding"].properties
     dot_padding = timezone_dot_column.values[-1].properties["padding"].properties
-    assert timeline_padding["top"].value == 10
+    timeline_height = timezone_timeline.values[-1].properties.get("height")
+    assert timeline_height is not None
+    assert timeline_height.kind == "expression"
+    height_bindings = tuple(item.name for item in timeline_height.items if item.kind == "binding")
+    assert height_bindings == ("start",)
+    assert "padding" not in _template_node_options(timezone_timeline)
     assert dot_padding["top"].value == 4
+    assert dot_padding["bottom"].value == 2
+    assert _template_node_options(timezone_divider)["layoutWeight"] == 1
     assert _template_node_options(timezone_dot)["borderWidth"] == 1.5
     assert _template_node_options(timezone_dot)["backgroundColor"] == "#00FFFFFF"
     assert definition.primary_data == (
@@ -3917,6 +4088,21 @@ async def test_bluetooth_music_action_uses_hero_pair_data():
     assert "FreeBuds Pro" in output.a2ui
     assert "isConnected" in output.a2ui
     assert "earphoneName" in output.a2ui
+    messages = [json.loads(line) for line in output.a2ui.splitlines()]
+    update_components = messages[1]["updateComponents"]
+    component_ids = {
+        component["id"] for component in update_components["components"]
+    }
+    assert update_components["root"] == "root"
+    assert "root" in component_ids
+    assert "template_root" in component_ids
+    assert "fusionBallBackground" not in component_ids
+    root = next(
+        component
+        for component in update_components["components"]
+        if component["id"] == "root"
+    )
+    assert "template_root" in root["children"]
     assert model.second_layer_prompt is not None
     second_layer_user = model.second_layer_prompt[1]["content"]
     contracts_line = next(
@@ -4026,17 +4212,21 @@ async def test_2x2_battery_pill_action_uses_generic_hero_template():
     components = {
         item["id"]: item for item in messages[1]["updateComponents"]["components"]
     }
-    assert components["root"]["children"] == ["fusionBallBackground", "root_1"]
-    content = components["root_1"]
+    assert messages[1]["updateComponents"]["root"] == "root"
+    assert components["root"]["children"] == [
+        "fusionBallBackground",
+        "template_root",
+    ]
+    content = components["template_root"]
     assert content["styles"] == {
         "width": "matchParent",
         "height": "matchParent",
         "padding": 12,
     }
-    assert content["children"] == ["__genui_render_component__root_1"]
-    overflow_content = components["__genui_render_component__root_1"]
+    assert content["children"] == ["__genui_render_component__template_root"]
+    overflow_content = components["__genui_render_component__template_root"]
     assert overflow_content["component"] == "Stack"
-    assert overflow_content["children"] == ["template_root"]
+    assert overflow_content["children"] == ["root_1"]
     assert overflow_content["styles"] == {
         "width": "matchParent",
         "height": "matchParent",
@@ -4047,12 +4237,17 @@ async def test_2x2_battery_pill_action_uses_generic_hero_template():
     assert components["fusionBallMedium"]["styles"]["height"] == "72.727273%"
     assert components["fusionBallSmall"]["styles"]["width"] == "51.282051%"
     assert components["fusionBallSmall"]["styles"]["height"] == "52.631579%"
-    layout = components["template_root"]
+    layout = components["root_1"]
     assert layout["component"] == "Column"
     assert layout["itemMargin"] == 8
-    assert layout["styles"] == {"width": "matchParent", "height": "matchParent"}
+    assert layout["styles"] == {
+        "width": "matchParent",
+        "height": "matchParent",
+        "justifyContent": "start",
+        "alignItems": "center",
+    }
     hero_slot, action_slot = (components[child_id] for child_id in layout["children"])
-    assert hero_slot["styles"] == {"width": "matchParent", "height": 92}
+    assert hero_slot["styles"] == {"width": "matchParent", "layoutWeight": 1}
     assert action_slot["styles"] == {"width": "matchParent", "height": 36}
     action = components[action_slot["children"][0]]
     assert action["component"] == "Stack"
@@ -4123,7 +4318,7 @@ async def test_2x2_battery_percent_ring_hero_does_not_require_capacity_level():
         component_id="BatteryOverview",
         available_template_ids=("BatteryOverviewPercentRingHero@1",),
         capability_id="GetPhoneBatteryInfo",
-        required_fields=("/batterySOC", "/batterySOCText"),
+        required_fields=("/batterySOC",),
         action_id="event.setPowerSavingMode",
         body=(
             'Template("HeroActionLayout@1",{},'
@@ -4148,7 +4343,7 @@ async def test_2x2_battery_percent_ring_hero_does_not_require_capacity_level():
         "HeroActionLayout@1",
     )
     assert "batterySOC" in output.a2ui
-    assert "batterySOCText" in output.a2ui
+    assert "batterySOCText" not in output.a2ui
     assert "batteryCapacityLevelDesc" not in output.a2ui
     assert "省电模式" in output.a2ui
 
@@ -4159,29 +4354,29 @@ async def test_2x2_battery_charging_progress_hero_uses_status_fields():
         capabilityId="GetPhoneBatteryInfo",
         writeResultTo="/data/phoneBattery",
         candidateOutputFields=[
-            "/batterySOC",
+            "/batterySOCText",
             "/chargingStatusDesc",
             "/healthStatusDesc",
-            "/pluggedTypeDesc",
         ],
     )
     task_spec = _battery_task()
-    task_spec.userQuery = "睡前想把手机充满，看看充上没、电池健康咋样、插的什么充电器。"
-    phone_battery = task_spec.dataModelSchema["data"]["phoneBattery"]
-    del phone_battery["batterySOCText"]
-    del phone_battery["batteryCapacityLevelDesc"]
+    task_spec.userQuery = "睡前想把手机充满，看看剩余电量、充上没和电池健康咋样。"
+    data = task_spec.dataModelSchema.get("data")
+    assert isinstance(data, dict)
+    phone_battery = data.get("phoneBattery")
+    assert isinstance(phone_battery, dict)
+    phone_battery.pop("batterySOC")
+    phone_battery.pop("batteryCapacityLevelDesc")
     phone_battery["healthStatusDesc"] = _provider_field("正常", "string")
-    phone_battery["pluggedTypeDesc"] = _provider_field("未连接充电器", "string")
     model = _FixedTemplateModel(
         theme_id="battery-yellow",
         component_id="BatteryOverview",
         available_template_ids=("BatteryOverviewChargingProgressHero@1",),
         capability_id="GetPhoneBatteryInfo",
         required_fields=(
-            "/batterySOC",
+            "/batterySOCText",
             "/chargingStatusDesc",
             "/healthStatusDesc",
-            "/pluggedTypeDesc",
         ),
         action_id="event.setPowerSavingMode",
         body=(
@@ -4208,7 +4403,8 @@ async def test_2x2_battery_charging_progress_hero_uses_status_fields():
     assert "batterySOC" in output.a2ui
     assert "chargingStatusDesc" in output.a2ui
     assert "healthStatusDesc" in output.a2ui
-    assert "pluggedTypeDesc" in output.a2ui
+    assert "pluggedTypeDesc" not in output.a2ui
+    assert '"component": "Progress"' not in output.a2ui
 
 
 @pytest.mark.asyncio
@@ -4357,12 +4553,20 @@ async def test_2x2_battery_generic_compact_accepts_two_pill_actions():
     components = {
         item["id"]: item for item in messages[1]["updateComponents"]["components"]
     }
-    assert components["root"]["children"] == ["fusionBallBackground", "root_1"]
+    assert messages[1]["updateComponents"]["root"] == "root"
+    assert components["root"]["children"] == [
+        "fusionBallBackground",
+        "template_root",
+    ]
     assert components["fusionBallLarge"]["styles"]["backgroundColor"] == "#FF17734C"
     assert components["fusionBallMedium"]["styles"]["backgroundColor"] == "#FF26BFA6"
     assert components["fusionBallSmall"]["styles"]["backgroundColor"] == "#FF60BF98"
-    assert components["root_1"]["children"] == ["__genui_render_component__root_1"]
-    assert components["__genui_render_component__root_1"]["children"] == ["template_root"]
+    assert components["template_root"]["children"] == [
+        "__genui_render_component__template_root"
+    ]
+    assert components["__genui_render_component__template_root"]["children"] == [
+        "root_1"
+    ]
 
 
 def test_battery_generic_hero_requires_a_selected_layout_action():
@@ -4556,8 +4760,28 @@ def test_first_layer_action_candidate_exposes_only_event_identity():
     ]
 
 
+@pytest.mark.parametrize(
+    ("enable_fusion_ball", "expected_theme_id"),
+    [(False, "race-night-violet"), (True, "fusion-sport-orange")],
+)
+def test_countdown_theme_candidates_follow_fusion_gate(
+    enable_fusion_ball: bool,
+    expected_theme_id: str,
+) -> None:
+    registry = get_cardplan_registry(enable_fusion_ball)
+
+    assert registry.first_layer_theme_ids(("CountdownOverview",)) == (expected_theme_id,)
+
+
 @pytest.mark.asyncio
-async def test_generic_countdown_query_uses_countdown_overview_without_workout_semantics():
+@pytest.mark.parametrize(
+    ("enable_fusion_ball", "theme_id"),
+    [(False, "race-night-violet"), (True, "fusion-sport-orange")],
+)
+async def test_generic_countdown_query_uses_countdown_overview_without_workout_semantics(
+    enable_fusion_ball: bool,
+    theme_id: str,
+) -> None:
     task_spec = TaskSpec(
         userQuery="做一张日程倒数卡片，我想看看高考还剩下多少天",
         size="2x2",
@@ -4590,7 +4814,7 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
         candidateOutputFields=["/countdownDays"],
     )
     model = _FixedTemplateModel(
-        theme_id="race-night-violet",
+        theme_id=theme_id,
         component_id="CountdownOverview",
         available_template_ids=("CountdownOverviewFull@1",),
         capability_id="GetCountdownDays",
@@ -4598,12 +4822,54 @@ async def test_generic_countdown_query_uses_countdown_overview_without_workout_s
         body='Template("SingleFocusLayout@1",{},Template("CountdownOverviewFull@1",{}));',
     )
 
-    output = await generate_template_a2ui(task_spec, card_spec, (binding,), model)
+    output = await generate_template_a2ui(
+        task_spec,
+        card_spec,
+        (binding,),
+        model,
+        enable_fusion_ball=enable_fusion_ball,
+    )
 
     assert output.template_ids == ("CountdownOverviewFull@1", "SingleFocusLayout@1")
     assert "countdownDays" in output.a2ui
     assert "倒计时" in output.a2ui
     assert "运动倒计时" not in output.a2ui
+    messages = [json.loads(line) for line in output.a2ui.splitlines()]
+    update = messages[1].get("updateComponents")
+    assert isinstance(update, dict)
+    components = update.get("components")
+    assert isinstance(components, list)
+    components_by_id: dict[str, dict[str, Any]] = {}
+    for component in components:
+        component_id = component.get("id")
+        assert isinstance(component_id, str)
+        components_by_id[component_id] = component
+    root = components_by_id.get("root")
+    assert isinstance(root, dict)
+    if enable_fusion_ball:
+        assert root.get("component") == "Stack"
+        assert root.get("children") == ["fusionBallBackground", "template_root"]
+    else:
+        assert root.get("component") == "Column"
+        assert "fusionBallBackground" not in components_by_id
+        root_styles = root.get("styles")
+        assert isinstance(root_styles, dict)
+        assert root_styles.get("backgroundColor") == "#FFFFF0E6"
+    expected_ball_colors = {
+        "fusionBallLarge": "#FFB33024",
+        "fusionBallMedium": "#FFFF8833",
+        "fusionBallSmall": "#FFE68073",
+    }
+    for ball_id, expected_color in expected_ball_colors.items():
+        if not enable_fusion_ball:
+            assert ball_id not in components_by_id
+            continue
+        ball = components_by_id.get(ball_id)
+        assert isinstance(ball, dict)
+        assert ball.get("component") == "Divider"
+        ball_styles = ball.get("styles")
+        assert isinstance(ball_styles, dict)
+        assert ball_styles.get("backgroundColor") == expected_color
     reporter = validate_card(
         artifact={
             "genui": output.a2ui,
@@ -5322,6 +5588,7 @@ def test_template_route_prompt_exposes_exact_task_spec_paths_from_bindings():
 
 @pytest.mark.asyncio
 async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact(monkeypatch):
+    monkeypatch.setattr(WidgetGenerationService, "_enable_card_template", lambda _self: True)
     model = WeatherTemplateModel(
         body=(
             'Template("SingleFocusLayout@1",{},Template("WeatherOverviewFull@1",'
@@ -5425,6 +5692,7 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     messages = [json.loads(line) for line in captured["artifact"].genui.splitlines()]
     protocol_profile = A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile()
     assert messages[0]["createSurface"]["catalogId"] == protocol_profile["catalogId"]
+    assert messages[1]["updateComponents"]["root"] == "root"
     root = next(
         item
         for item in messages[1]["updateComponents"]["components"]
@@ -5437,6 +5705,7 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     assert root["styles"]["borderRadius"] == 18
     assert root["styles"]["backgroundColor"] == "#FFE5EDFE"
     assert "linearGradient" not in root["styles"]
+    assert "template_root" in root["children"]
     assert "fusionBallBackground" not in component_ids
     assert all(not component_id.startswith("fusionBall") for component_id in component_ids)
     assert captured["artifact"].effectiveCapabilities["data"] == ["ViewWeather"]
@@ -5498,16 +5767,17 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
         row[0]: row for row in compact_rows if len(row) >= 3 and isinstance(row[0], str)
     }
     assert all(row[1] != "FusionBall" for row in compact_rows if len(row) >= 2)
-    assert compact_rows[0][0:2] == ["root", "Stack"]
-    foreground_id = "root_1"
-    overflow_content_id = "__genui_render_component__root_1"
-    content_id = "template_root"
-    assert compact_rows[0][3] == ["fusionBallBackground", foreground_id]
+    root_id = "root"
+    assert compact_rows[0][0:2] == [root_id, "Stack"]
+    foreground_id = "template_root"
+    overflow_content_id = "__genui_render_component__template_root"
+    content_id = "root_1"
+    assert compact_components[root_id][3] == ["fusionBallBackground", foreground_id]
     assert compact_components[foreground_id][2]["padding"] == 12
     assert compact_components[foreground_id][3] == [overflow_content_id]
     assert compact_components[overflow_content_id][3] == [content_id]
-    assert compact_rows[0][2]["backgroundColor"] == "#00000000"
-    assert "linearGradient" not in compact_rows[0][2]
+    assert compact_components[root_id][2]["backgroundColor"] == "#00000000"
+    assert "linearGradient" not in compact_components[root_id][2]
     assert compact_components["fusionBallLarge"][2]["backgroundColor"] == (
         _WEATHER_PALETTE[0]
     )
@@ -5521,16 +5791,17 @@ async def test_terse_entry_uses_compact_template_source_with_fusion_ball_theme(m
     messages = [json.loads(line) for line in captured["artifact"].genui.splitlines()]
     protocol_profile = A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile()
     assert messages[0]["createSurface"]["catalogId"] == protocol_profile["catalogId"]
+    assert messages[1]["updateComponents"]["root"] == root_id
     components = {item["id"]: item for item in messages[1]["updateComponents"]["components"]}
-    assert components["root"]["component"] == "Stack"
-    assert components["root"]["children"] == [
+    assert components[root_id]["component"] == "Stack"
+    assert components[root_id]["children"] == [
         "fusionBallBackground",
         foreground_id,
     ]
     assert components[foreground_id]["styles"]["padding"] == 12
     assert components[foreground_id]["children"] == [overflow_content_id]
     assert components[overflow_content_id]["children"] == [content_id]
-    assert components["root"]["styles"]["backgroundColor"] == "#00000000"
+    assert components[root_id]["styles"]["backgroundColor"] == "#00000000"
     assert components["fusionBallLarge"]["component"] == "Divider"
     assert components["fusionBallMedium"]["component"] == "Divider"
     assert components["fusionBallSmall"]["component"] == "Divider"

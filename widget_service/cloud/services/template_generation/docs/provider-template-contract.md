@@ -63,8 +63,20 @@ TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路�
 
 ## UI 模板语法
 
-业务模板 ID 必须以 `Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 之一结束。六类后缀分别表示：
+### 条件能力边界
 
+本轮暂缓运行时 `IF(...)`，模板、Tersel、A2UI-Compact 和公共 A2UI 均不接受 `If` 组件。
+编译期 `#if/#elseif/#else/#endif/#end`、`#Expr` 和运行时属性表达式 `Expr(...)` 继续支持；
+不得读取 `sampleValue` 来模拟运行时组件分支。保留能力、暂缓范围与验收要求见
+[模板专项方案](template-generation-design.md)。
+
+### 模板后缀与布局
+
+业务模板 ID 必须以 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、
+`WideFull` 之一结束。八类后缀分别表示：
+
+- `HeroTitle`：双业务单 Action 的位置 0，后接一个 HeroContent；
+- `HeroContent`：双业务单 Action 的位置 1，前置一个 HeroTitle；
 - `Support`：约 `2x1`，保留给旧 LLM 选择器兼容测试和原子预览；事件按需绑定在 Support 内部，当前 Search 不可达；
 - `Compact`：约 `2x1`，只用于一个 Compact 加两个 PillAction；
 - `Hero`：约 `2x1.7`，用于 `2x2` 的 Hero 加一个 PillAction；
@@ -99,8 +111,10 @@ TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路�
 | 1 | 1 | `Hero` | `HeroActionLayout` + 1 个 `PillAction` |
 | 1 | 1 | `Full` | 仅存在语义匹配的已批准图标素材时，使用 `FullIconActionLayout` + 1 个 `IconAction` |
 | 1 | 2 | `Compact` | `CompactTwoActionLayout` + 2 个连续的 `PillAction` |
+| 2 | 1 | 位置 0 为 `HeroTitle`；位置 1 为 `HeroContent` | `HeroTitleContentActionLayout` + 1 个末尾 `PillAction` |
 
-当前 Search 的 `2x2` 组合只包含上表单业务三类场景。候选解析命中多个业务时，在布局后缀过滤和二层模型调用前显式拒绝。
+当前 Search 的 `2x2` 组合只包含上表场景。双业务仅在两侧候选分别完整覆盖显式字段时适用，且由服务端
+确定性重排为 HeroTitle、HeroContent；其它多业务组合在二层模型调用前显式拒绝。
 `TwoSupportLayout`、`2x2-two-support` 与 Support 内部事件绑定仍保留给 `firstLayerComponentSelector="llm"` 兼容路径和原子预览，
 但不进入当前 Search 生产路径。
 
@@ -141,13 +155,19 @@ Column({"width": "matchParent", "itemMargin": 4},
     "fontWeight": 400,
     "fontColor": $theme('primaryColor')
   }),
-  IfPresent(data.airQuality,
+  #if data.airQuality
     Text(`${data.condition}｜${data.airQuality}`, {
       "fontSize": 12,
       "fontWeight": 500,
       "fontColor": $theme('supportContentColor')
     })
-  )
+  #else
+    Text(`${data.condition}`, {
+      "fontSize": 12,
+      "fontWeight": 500,
+      "fontColor": $theme('supportContentColor')
+    })
+  #endif
 )
 #End
 ```
@@ -159,14 +179,20 @@ Column({"width": "matchParent", "itemMargin": 4},
 
 - `$path` 声明模板展开必需的数据，必须按视觉层级进入 `primaryData` 或 `secondaryData`；两组数据都必须
   在 TaskSpec 中存在，只有 `optionalData` 可以缺省。
-- `$optionalPath` 声明可选数据，引用必须位于 `IfPresent(data.xxx, ...)` 或
-  `IfAbsent(data.xxx, ...)` 内，并进入 `optionalData`。
-- 两个可选字段必须同时存在时，可写
-  `IfPresent(data.first & data.second, child)`：仅当两个字段都存在时展开 `child`；
-  `IfAbsent(data.first & data.second, child)` 则在任意一个字段缺失时展开 `child`。
-  `&` 只允许连接条件首参数中的两个 `data.xxx`，表示存在性“与”，不表示值比较、位运算或通用
-  A2UI 表达式，也不会进入最终 A2UI。`IfPresent` 的子树可以安全引用这两个字段；`IfAbsent` 的子树
-  不得引用它们，因为运行时至少有一个字段不存在。
+- `$optionalPath` 声明可选数据，引用必须位于 `#if data.xxx` / `#elseif data.xxx` 的存在分支，
+  或由 `#Expr` 对该字段先做编译期选择，并进入 `optionalData`。
+- 组件结构的编译期选择使用独占行指令 `#if data.xxx` / `#if props.xxx`、零个或多个 `#elseif`、
+  可选的 `#else` 和 `#endif`；`#end` 是条件结束指令的等价别名，模板结束标记仍为大小写敏感的 `#End`。
+  条件判断的是本轮 binding 或参数是否可用，不读取运行时值；Prop 已提供且不为 `None` 时
+  视为存在，因此 `false`、`0` 和空字符串仍属于存在分支。所有指令在 Provider Template 编译阶段删除，
+  不进入 Tersel 或最终 A2UI。
+- 两个可选数据字段必须同时存在时，可写 `#if data.first && data.second`。仅当两个字段都存在时展开
+  存在分支；任一字段缺失时进入 `#else`。`&&` 只允许连接两个直接的 `data.xxx`，表示编译期存在性
+  “与”，不表示运行时逻辑表达式。存在分支可以安全引用这两个字段，缺失分支不得引用它们。
+- `#elseif` 支持与 `#if` 相同的三种条件：`data.xxx`、`props.xxx`、`data.first && data.second`。
+  从上到下只展开首个命中分支；即使该分支为空，也不继续匹配。没有命中时使用 `#else`，未声明
+  `#else` 时不生成内容。每个条件块最多一个 `#else`，其后不能再声明 `#elseif`；嵌套块独立匹配和闭合。
+  所有分支仍需通过绑定、参数、动作等校验，后续分支不能借用先前分支的可选数据存在性保证。
 - Provider 全局路径中已经存在的值必须使用 `data.xxx`，由服务端根据 `dataDomain + 相对路径`
   绑定为端侧表达式，不得在 `props` 中重复传递。没有对应全局路径的受控派生展示值，以及素材、
   排版等模板参数，
@@ -176,20 +202,46 @@ Column({"width": "matchParent", "itemMargin": 4},
   可选参数，或选择不依赖该素材的模板。
 - 反引号 `${...}` 可混合 `props`、`data` 和静态分隔符；包含 `data` 时云侧保留为 A2UI 表达式且不投影
   样例值，只含 `props` 与静态文本时在可信展开阶段直接拼成确定字符串。
-- 仅需按路径或 Prop 是否可用选择一个值时，可使用带括号的生成期三元表达式，例如
-  `(data.city ? data.city : (props.location ? props.location : "当前城市"))`。条件只允许单个
+- 仅需按路径或 Prop 是否可用选择一个值时，使用显式的编译期语法，例如
+  `#Expr(data.city ? data.city : (data.district ? data.district : (props.location ? props.location : "当前城市")))`。
+  条件只允许单个
   `data.xxx` 或 `props.xxx`；分支只允许 `data.xxx`、`props.xxx`、字面量或继续加括号的三元表达式。
   编译器按本轮已解析数据绑定和二层 Props 的可用性选择分支并删除三元结构：选中 `data.xxx` 时保留该字段的
   直接 A2UI 数据绑定，选中 Prop 或字面量时写入对应确定值；不得读取 `sampleValue` 固化展示内容，也不会
-  生成 A2UI `Expr`。可选数据或 Prop 只允许在自身条件的真分支中引用。
-- 需要算术、比较、逻辑、按运行时值计算的三元条件或 `size()` 时使用 ``Expr(`...`)``，例如
-  ``Expr(`${data.score} <= 20 ? '#FFF9A01E' : '#FF64BB5C'`)``。`Expr` 至少引用一个 `data` binding，
+  生成 A2UI `Expr`。可选数据或 Prop 只允许在自身条件的真分支中引用；未使用 `#Expr` 包裹的普通三元
+  表达式不再接受。
+- 需要算术、比较、逻辑、按运行时值计算的三元条件或 `size()` 时直接使用 `Expr(...)`，无需外层引号，
+  例如 `Expr(data.score <= 20 ? "#FFF9A01E" : "#FF64BB5C")`。`Expr` 至少引用一个 `data` binding，
   不接受 `props`、对象字面量、裸 identifier、未知函数或任意可执行调用；纯静态值继续写字面量。
-- 需要按运行时值计算的三元条件仍使用 `Expr`；`Expr` 与普通反引号插值最终都归一化为完整 A2UI
+- 表达式内字符串支持单双引号，双引号转换为 A2UI 要求的单引号；反引号字符串支持 `${data.xxx}`
+  插值。例如 ``Expr(data.start == "" ? "" : `${data.start} - ${data.end}`)`` 与
+  `Expr(data.start == "" ? "" : data.start + " - " + data.end)` 都表示条件满足后的时间拼接。
+  插值占位只接受已声明的 `data.xxx`，不接受额外计算或任意路径；普通引号内的 `data.xxx` 是静态文本。
+  编译过程只构建绑定 IR，生成 A2UI 时才映射到实际 path，不读取样例值、不计算条件或拼接结果。
+- 整个 Expr 参数用反引号包裹的旧 ``Expr(`...`)`` 保留旧的表达式正文语义以兼容历史模板；
+  新模板统一使用无外层引号写法。表达式中的反引号分支则按字符串插值解析。
+- `#Expr(...)` 与 `Expr(...)` 语义不同：前者只做编译期值来源选择；后者需要按运行时值计算，
+  与普通反引号插值最终都归一化为完整 A2UI
   `{{ ... }}` 属性值，并按本轮 TaskSpec 路径、
   A2UI Form 表达式语法、2048 字符长度和 20 层嵌套限制校验。
 - 同一个 `.cardtpl` 可以包含多个 `#Template ... #End`，`provider.json` 中每个模板条目可指向同一文件；
   文件完整性由 CardPlan bundle 清单统一校验，不在模板条目重复维护摘要。
+
+编译期多分支示例（可选字段须事先通过 `$optionalPath` 声明）：
+
+```text
+#if data.city
+  Text(data.city)
+#elseif data.district
+  Text(data.district)
+#elseif props.location
+  Text(props.location)
+#else
+  Text("当前城市")
+#end
+```
+
+上述 `#end` 可替换为 `#endif`；指令只影响编译期组件选择，不会输出成 A2UI `If`。
 
 允许接收子组件的布局模板显式声明 `...children`，且正文只能放置一次 `children`：
 
@@ -223,12 +275,19 @@ Template("HeroActionLayout@1", {},
 
 可信展开后的最终 Tersel 产物包含组件树和 `data = {...}` 两条语句。组件动态值使用
 现有 `"${data...}"` 字符串占位语法；需要复合运行时计算时使用 `Expr("...")`，并与 Provider
-作者侧的 ``Expr(`...`)`` 归一化到相同 A2UI 表达式。`data` 初值由服务端从 TaskSpec 真实路径确定性生成；
+作者侧的 `Expr(...)` 归一化到相同 A2UI 表达式。作者语法的优化不改变展开后 Tersel 的协议。
+`data` 初值由服务端从 TaskSpec 真实路径确定性生成；
 `$path` 只属于
 Provider 模板作者侧声明，不进入最终 Tersel 语法。最终产物不得包含 `_advancedSelectors` 或
 `_templateProjection`。
 
 ## 2x2 融球背景
+
+主题回归以当前 `theme.json` 中的明确颜色为基准，不从待测对象生成预期值。进度使用 `progressColor` 和
+`progressBackgroundColor` 引用；测试夹具必须提供这两个值，不回退到主辅文本色。业务插画及应用图标按模板
+声明保留原色；耳机、心率和睡眠模板明确声明 `fillColor` 的单色图标使用主题辅助内容色。运动记录模板未声明
+颜色及原色保护的图标沿用主题主内容色补值，不能统一按原色图处理。活动步数模板保留进度，运动记录 Full
+模板当前仅展示文字及图标，不要求补回进度组件。
 
 `TemplateSourceGenerator` 读取已有 `TaskSpec.appVersion`，与 `CONFIG.fusion_ball_min_prd_version` 比较后
 裁决模板融球；配置或版本缺失、非法、低于配置版本时关闭。模板模块不重新读取请求版本，也不维护第二份
@@ -243,14 +302,21 @@ Provider 和 Layout 资源只作后续能力预留，当前不进入生产模板
 在自身 `themes/<theme-id>/theme.json` 的 `fusionBallStyle` 中保存允许的 `businessIds` 以及大、中、小球真实
 `#AARRGGBB` 颜色，不得在代码中维护按场景索引的第二份固定色板。
 
-融球包装仅适用于 `2x2`、单业务，且实际选中的业务模板后缀为 `Full`、`Hero` 或 `Compact` 的场景。单业务
+`fusion-sport-orange` 同时覆盖活动、心率、运动和倒计时业务；倒计时的数据能力 `GetCountdownDays` 与
+业务 `CountdownOverview` 必须分别声明在主题的 `supportedCapabilityIds` 和 `fusionBallStyle.businessIds`
+中。只声明数据能力仍会被首层主题候选和编译器的业务门禁过滤。回归测试应独立断言倒计时 `Full` 在融球开启时
+选中该主题、展开真实背景，并要求画廊用例预期融球；不得仅以同一份主题白名单推导预期结果来证明覆盖有效。
+
+单业务融球包装适用于 `2x2`，且实际选中的业务模板后缀为 `Full`、`Hero` 或 `Compact` 的场景。单业务
 可以组合零到两个显式 Action：零 Action 使用 `Full`、单 Action 使用 `Hero`、双 Action 使用 `Compact`；
 Action 和 Layout 模板不参与业务数量计算。主题适用能力还必须覆盖该业务模板的数据能力。
-`WideHero`、`WideFull`、无业务和多业务组合均不应用融球包装。
+双业务仅允许 `HeroTitle + HeroContent + PillAction` 例外：以 `HeroContent` 所属主业务确定全局主题，
+该业务及能力必须匹配主题；版本门禁开启时为整卡统一展开一次背景，标题与动作继承该主题。
+`WideHero`、`WideFull`、无业务和其它多业务组合均不应用融球包装。
 
 `2x2` 模板中间根节点使用 `Stack("card", ...)`，ID 为 `root`，两个直接子节点依次为标准融球背景树和内容
-前景 Stack `root_1`。`root_1` 使用 `padding: 12`，其唯一子节点是防溢出 Stack
-`__genui_render_component__root_1`；防溢出 Stack 的唯一子节点是原布局骨架 `template_root`，骨架自身不加
+前景 Stack `template_root`。`template_root` 使用 `padding: 12`，其唯一子节点是防溢出 Stack
+`__genui_render_component__template_root`；防溢出 Stack 的唯一子节点是原布局骨架 `root_1`，骨架自身不加
 防溢出前缀。模板编译器根据 Theme 中的三个 `#AARRGGBB` 颜色直接展开球体、定位容器和玻璃层。
 不满足门禁的卡片继续使用 Theme 原有纯色或线性渐变。融球包装只替换卡片根背景，不改写业务文本、图标或
 Action 内容颜色。业务 Provider 必须显式区分主内容与辅助内容，分别使用 `$theme('primaryColor')` 和
@@ -262,9 +328,13 @@ PillAction 模板使用 `$theme('actionStyle.backgroundColor')` 和 `$theme('act
 
 融球树在模板 CardPlan/Tersel 阶段已经由标准组件组成：`Stack` 承载定位层，三球和玻璃层使用无 children
 约束的 `Divider` 视觉叶节点，并在进入 A2UI-Compact 前完成。玻璃层使用 5% 白色和
-`backdropBlur: {"radius": 120}`。模板路径在 `root_1` 与 `template_root` 之间注入 ID 为
-`__genui_render_component__root_1` 的标准 Stack，以启用端侧内容层防溢出能力；`template_root` 保持普通布局
+`backdropBlur: {"radius": 120}`。模板路径在 `template_root` 与 `root_1` 之间注入 ID 为
+`__genui_render_component__template_root` 的标准 Stack，以启用端侧内容层防溢出能力；`root_1` 保持普通布局
 骨架 ID。A2UI-Compact 不声明 `FusionBall` 组件能力，任何残留均按不支持组件拒绝。
+
+非融球模板和预览数据集同样保留 `root → template_root`，公共校验根始终为 `root`。
+`template_root` 是模板内容层的固定标识：公共对比度校验只跳过该节点及其子树，
+并列的非模板内容仍按原规则检查；组件、表达式、数据、事件和素材校验不受影响。
 
 ## 首层 Search、确定性检索与第二层 LLM 规则
 
@@ -292,14 +362,14 @@ PillAction 模板使用 `$theme('actionStyle.backgroundColor')` 和 `$theme('act
 `TemplateRouteSelection`。只有这个内部结果才包含 `componentCandidates` 和
 `availableTemplateIds`：
 
-1. `2x2` Search 只允许命中一个业务组件；保留模板必须独立完整承载该业务的显式字段；
+1. `2x2` Search 允许一个业务组件，或恰好两个业务组件加一个 Action；保留模板必须独立完整承载所属业务的显式字段；
 2. 显式字段满足后，再检查候选模板自身 `primaryData` 与 `secondaryData` 在 TaskSpec 中全部存在；
 3. `candidateOutputFields` 只是候选数据投影，不直接等于强制显示集合；
-4. 显式请求命中多个数据业务，或任一字段无法在自己的业务组件内覆盖时，在进入第二层前返回模板不匹配；
+4. 双业务仅在一侧存在完整 `HeroTitle`、另一侧存在完整 `HeroContent` 时按该顺序进入第二层；其它多业务组合或任一字段无法覆盖时返回模板不匹配；
 5. Search 保留字段匹配、模板准入、候选排序和数量上限能力；同一业务可同时返回多个 Hero、Full 或 Compact
    等同形态候选，不能退化为无序枚举；
 6. Action 独立于数据业务计数；单业务按零、一个、两个 Action 分别保留 Full、Hero+Full、Compact；
-7. Action 不影响数据业务计数，但不得用 Action 覆盖或合并第二个数据业务；
+7. Action 不影响数据业务计数；双业务路线必须恰好选择一个 Action，且不得用 Action 覆盖或合并第二个数据业务；
 8. Support 和 `TwoSupportLayout` 仅保留给兼容路径，当前 Search 不将其作为多业务回退。
 
 配置 `firstLayerComponentSelector: "llm"` 时，系统可走兼容选择器
@@ -322,7 +392,7 @@ Support CardTpl 使用 `onClick: EventAction(props?.actionId)`。微服务校验
 
 天气、日历、手机电量、耳机、健康运动、应用使用时长、倒计时和系统内存当前共有
 73 个无 Variant 的业务 UI 模板，其中 12 个是 Support；当前形成 11 个业务组。Layout Provider 另提供
-6 个支持 `...children` 的布局模板，Action Provider 提供 2 个动作模板，运行时 Registry 共 81 个模板。
+7 个支持 `...children` 的布局模板，Action Provider 提供 2 个动作模板，运行时 Registry 共 78 个模板。
 名称包含 `Wide` 的布局只用于 `2x4`，其余布局只用于 `2x2`，两类布局不得混用。
 新增或修改资源后执行：
 

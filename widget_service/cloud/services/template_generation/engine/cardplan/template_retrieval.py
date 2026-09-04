@@ -2,7 +2,8 @@
 
 Search deliberately does not select a final template, layout, component composition,
 card size, or theme compatibility. Those are second-layer responsibilities. The 2x2
-route currently admits one business with zero to two root Actions.
+route admits one business with zero to two root Actions, or exactly two businesses with
+one root Action when HeroTitle/HeroContent coverage is complete.
 """
 
 from __future__ import annotations
@@ -113,6 +114,7 @@ def build_template_retrieval_prompt(
         "你是模板生成第一层。只输出 template-retrieval-query/1 JSON。"
         "themeId 必须从 themes 选择；themes 已由服务按当前业务确定性过滤，"
         "存在融球候选时不会再包含非融球主题。"
+        "双业务单动作组合在 Search 确定 HeroContent 后，由服务端按该主业务对齐全局主题。"
         "requiredOutputFieldsByCapability 的 key 必须来自 "
         "candidateDataBindings。每个 value 仅保留 userQuery、title、description 或 taskSpec "
         "明确要求展示的字段，字段必须逐字来自 "
@@ -121,8 +123,9 @@ def build_template_retrieval_prompt(
         "事件参数（如 actionCandidates args 中用于跳转的 entityId）不是展示字段，"
         "不得加入 requiredOutputFieldsByCapability。"
         "不得为了迁就布局限制而省略用户明确要求的其他业务字段；"
-        "2x2 模板 Search 当前只接受一个可完整覆盖的业务，"
-        "多个业务由服务端确定性判定模板不适用。"
+        "2x2 模板 Search 接受一个可完整覆盖的业务，或恰好两个数据业务加一个显式 Action；"
+        "双业务仅在服务端能够分别证明 HeroTitle 与 HeroContent 完整覆盖时适用，"
+        "业务位置与布局由服务端确定，不得在本层输出。"
         "用户只要求某领域卡片、未明确字段时，该 capability 输出空数组。"
         "action 仅当用户明确要求点击、跳转或操作时才选择 actionCandidates 中"
         "语义一致的零到两个不重复 eventId；不能因候选事件存在而默认选择。"
@@ -151,9 +154,12 @@ def retrieve_template_variants(
         raise TemplateRetrievalMiss("first-layer Theme must not be layout-scoped")
     _validate_selected_actions(query, task_spec)
     action_count = _selected_action_count(query, task_spec)
-    preferred_layout_suffix = {1: "Hero", 2: "Compact"}.get(action_count)
     if not query.required_output_fields_by_capability:
         raise TemplateRetrievalMiss("template retrieval has no requested capability")
+    has_multiple_capabilities = len(query.required_output_fields_by_capability) > 1
+    preferred_layout_suffix = None
+    if not has_multiple_capabilities:
+        preferred_layout_suffix = {1: "Hero", 2: "Compact"}.get(action_count)
     candidate_ids = {binding.capabilityId for binding in coverage_bindings}
     if not set(query.required_output_fields_by_capability).issubset(candidate_ids):
         raise TemplateRetrievalMiss("requested capability is outside candidate data bindings")
@@ -221,6 +227,13 @@ def retrieve_template_variants(
             for candidate in candidates
         )
         required_groups = [candidate.available_template_ids for candidate in candidates]
+    selected_template_ids: list[str] = []
+    for candidate in candidates:
+        selected_template_ids.extend(candidate.available_template_ids)
+    resolved_theme_id = (
+        registry.hero_content_theme_id(tuple(selected_template_ids), query.theme_id)
+        or resolved_theme_id
+    )
     scope = AdvancedScopeBrief(
         themeId=resolved_theme_id,
         advancedComponentIds=tuple(candidate.component_id for candidate in candidates),
@@ -280,8 +293,10 @@ def _apply_2x2_combination_policy(
     """Restrict 2x2 candidates to the business and Action capacity contract."""
     component_count = len(candidates)
     if component_count > 1:
-        raise TemplateRetrievalMiss(
-            "2x2 template Search does not support multiple data businesses"
+        return _apply_2x2_dual_business_policy(
+            candidates,
+            action_count,
+            required_groups,
         )
     if action_count >= 3:
         raise TemplateRetrievalMiss("2x2 template Search supports at most two Actions")
@@ -344,6 +359,84 @@ def _apply_2x2_combination_policy(
     for candidate in filtered_candidates:
         _require_single_template_coverage(candidate, filtered_groups, layout_label)
     return filtered_candidates, filtered_groups
+
+
+def _apply_2x2_dual_business_policy(
+    candidates: tuple[TemplateComponentCandidate, ...],
+    action_count: int,
+    required_groups: list[tuple[str, ...]],
+) -> tuple[tuple[TemplateComponentCandidate, ...], list[tuple[str, ...]]]:
+    """Resolve the only Search-supported dual-business shape and its slot order."""
+    if len(candidates) != 2 or action_count != 1:
+        raise TemplateRetrievalMiss(
+            "2x2 template Search does not support multiple data businesses "
+            "without exactly one Action"
+        )
+    for title_index, content_index in ((0, 1), (1, 0)):
+        title_candidate = _candidate_with_optional_layout_suffix(
+            candidates[title_index],
+            "HeroTitle",
+        )
+        content_candidate = _candidate_with_optional_layout_suffix(
+            candidates[content_index],
+            "HeroContent",
+        )
+        if title_candidate is None or content_candidate is None:
+            continue
+        try:
+            title_candidate = _candidate_with_complete_field_coverage(
+                title_candidate,
+                required_groups,
+            )
+            content_candidate = _candidate_with_complete_field_coverage(
+                content_candidate,
+                required_groups,
+            )
+        except TemplateRetrievalMiss:
+            continue
+        ordered_candidates = (title_candidate, content_candidate)
+        ordered_groups = [
+            title_candidate.available_template_ids,
+            content_candidate.available_template_ids,
+        ]
+        diagnostics = {
+            "businessCount": 2,
+            "actionCount": 1,
+            "layout": "HeroTitleContentActionLayout",
+            "businessOrder": [
+                {
+                    "businessId": title_candidate.component_id,
+                    "requiredLayoutSuffix": "HeroTitle",
+                },
+                {
+                    "businessId": content_candidate.component_id,
+                    "requiredLayoutSuffix": "HeroContent",
+                },
+            ],
+        }
+        logger.info(
+            "[Template Retrieval] dual_business_layout_policy_selected "
+            f"diagnostics={json_for_log(diagnostics)}"
+        )
+        return ordered_candidates, ordered_groups
+    raise TemplateRetrievalMiss(
+        "2x2 template Search does not support multiple data businesses without complete "
+        "HeroTitle and HeroContent coverage"
+    )
+
+
+def _candidate_with_optional_layout_suffix(
+    candidate: TemplateComponentCandidate,
+    layout_suffix: str,
+) -> TemplateComponentCandidate | None:
+    template_ids = tuple(
+        template_id
+        for template_id in candidate.available_template_ids
+        if _template_has_layout_suffix(template_id, layout_suffix)
+    )
+    if not template_ids:
+        return None
+    return candidate.model_copy(update={"available_template_ids": template_ids})
 
 
 def _selected_action_count(query: TemplateRetrievalQuery, task_spec: TaskSpec) -> int:

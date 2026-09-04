@@ -31,13 +31,12 @@ Column(
                     "maxLines": 1
                 }
             ),
-            IfPresent(
-                props.sourceIcon,
-                Image(
-                    props.sourceIcon,
-                    { "width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0 }
-                )
-            ),
+            #if props.sourceIcon
+              Image(
+                  props.sourceIcon,
+                  { "width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0 }
+              )
+            #endif
         ),
         Row(
             { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "margin": {"top": 4} },
@@ -46,58 +45,53 @@ Column(
                 { "fontSize": 20, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1 }
             )
         ),
-        IfPresent(
-            data.score,
-            Progress(
-                {
-                    "value": data.score,
-                    "total": 100,
-                    "strokeWidth": 8,
-                    "color": $theme('progressColor'),
-                    "backgroundColor": $theme('progressBackgroundColor'),
-                    "height": 12,
-                    "width": "matchParent"
-                }
-            )
-        )
+        #if data.score
+          Progress(
+              {
+                  "value": data.score,
+                  "total": 100,
+                  "strokeWidth": 8,
+                  "color": $theme('progressColor'),
+                  "backgroundColor": $theme('progressBackgroundColor'),
+                  "height": 12,
+                  "width": "matchParent"
+              }
+          )
+        #endif
     ),
     Column(
         { "itemMargin": 4, "justifyContent": "start", "width": "matchParent" },
-        IfPresent(
-            data.score,
+        #if data.score
+          Row(
+              { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
+              Text(
+                  "睡眠情况评分",
+                  { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+              ),
+              Text(
+                  data.score,
+                  { "fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+              ),
+              Text(
+                  "分",
+                  { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+              )
+          ),
+        #else
+          #if data.startTime && data.endTime
             Row(
                 { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
                 Text(
-                    "睡眠情况评分",
+                    "时段 ",
                     { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
                 ),
                 Text(
-                    data.score,
-                    { "fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+                    `${data.startTime}-${data.endTime}`,
+                    { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
                 ),
-                Text(
-                    "分",
-                    { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
-                )
             ),
-        ),
-        IfAbsent(
-            data.score,
-            IfPresent(
-                data.startTime & data.endTime,
-                Row(
-                    { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
-                    Text(
-                        "时段 ",
-                        { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
-                    ),
-                    Text(
-                        `${data.startTime}-${data.endTime}`,
-                        { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
-                    ),
-                ),
-            )
-        ),
+          #endif
+        #endif
         Row(
             { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
             Text(
@@ -140,13 +134,12 @@ Column(
             "睡眠情况",
             { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
         ),
-        IfPresent(
-            props.sourceIcon,
-            Image(
-                props.sourceIcon,
-                { "width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0 }
-            )
-        ),
+        #if props.sourceIcon
+          Image(
+              props.sourceIcon,
+              { "width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0 }
+          )
+        #endif
     ),
     Row(
         { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "margin": {"top": 4} },
@@ -155,55 +148,50 @@ Column(
             { "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
         )
     ),
-    IfPresent(
-        data.score,
-        Progress(
+    #if data.score
+      Progress(
+          {
+              "value": data.score,
+              "total": 100,
+              "strokeWidth": 8,
+              "color": $theme('progressColor'),
+              "backgroundColor": $theme('progressBackgroundColor'),
+              "height": 12,
+              "width": "matchParent"
+          }
+      )
+    #else
+      #if data.status
+        Text(
+            `状况${data.status}`,
             {
-                "value": data.score,
-                "total": 100,
-                "strokeWidth": 8,
-                "color": $theme('progressColor'),
-                "backgroundColor": $theme('progressBackgroundColor'),
-                "height": 12,
-                "width": "matchParent"
+                "fontSize": 12,
+                "fontColor": $theme('supportContentColor'),
+                "maxLines": 1,
+                "fontWeight": 400,
             }
         )
-    ),
-    IfAbsent(
-        data.score,
-        IfPresent(
-            data.status,
-            Text(
-                `状况${data.status}`,
-                {
-                    "fontSize": 12,
-                    "fontColor": $theme('supportContentColor'),
-                    "maxLines": 1,
-                    "fontWeight": 400,
-                }
-            )
-        )
-    ),
-    IfAbsent(
-        data.score,
-        IfAbsent(
-            data.status,
-            IfPresent(
-                data.startTime & data.endTime,
-                Row(
-                    { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
-                    Text(
-                        "时段 ",
-                        { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
-                    ),
-                    Text(
-                        `${data.startTime}-${data.endTime}`,
-                        { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
-                    ),
-                ),
-            )
-        )
-    )
+      #endif
+    #endif
+    #if data.score
+    #else
+      #if data.status
+      #else
+        #if data.startTime && data.endTime
+          Row(
+              { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
+              Text(
+                  "时段 ",
+                  { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+              ),
+              Text(
+                  `${data.startTime}-${data.endTime}`,
+                  { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+              ),
+          ),
+        #endif
+      #endif
+    #endif
 )
 #End
 
@@ -242,13 +230,12 @@ Column(
                 { "fontSize": 10, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
             )
         ),
-        IfPresent(
-            props.sourceIcon,
-            Image(
-                props.sourceIcon,
-                { "width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0 }
-            )
-        )
+        #if props.sourceIcon
+          Image(
+              props.sourceIcon,
+              { "width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0 }
+          )
+        #endif
     )
 )
 #End
@@ -308,17 +295,16 @@ Stack({
                       "strokeWidth": 6
                   }
               ),
-              IfPresent(
-                  props.sourceIcon,
-                  Image(
-                      props.sourceIcon,
-                      { "width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain" }
-                  )
-              )
+              #if props.sourceIcon
+                Image(
+                    props.sourceIcon,
+                    { "width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain" }
+                )
+              #endif
           )
       )
   ),
-  IfPresent(props.actionId,
+  #if props.actionId
     Stack({
       "width": "matchParent",
       "height": "matchParent",
@@ -330,6 +316,6 @@ Stack({
         "height": "matchParent"
       })
     )
-  )
+  #endif
 )
 #End
