@@ -19,6 +19,14 @@ from services.compact_dsl_a2ui_converter import (
 _EXPRESSION_PATTERN = re.compile(r"^\{\{\s*(?P<body>.*?)\s*\}\}$")
 _REFERENCE_PATTERN = re.compile(r"\$\{(?P<path>[^{}]*)\}")
 _NON_EMPTY_CONTAINER_TYPES = frozenset({"Row", "Column", "List", "Stack"})
+_DISTRIBUTED_JUSTIFY_VALUES = frozenset(
+    {"spaceAround", "spaceBetween", "spaceEvenly"}
+)
+_REFERENCE_CANVAS_HEIGHT = {
+    "2x2": 160.0,
+    "2x4": 160.0,
+    "4x2": 160.0,
+}
 
 
 @dataclass(frozen=True)
@@ -54,6 +62,7 @@ def validate_compact_dsl(
     binding_paths: list[str] = []
     errors: list[str] = []
     _collect_component_contract_errors(components, task_spec, errors)
+    _collect_height_budget_errors(components, task_spec, card_spec, errors)
     for component in components:
         location = f"component {component.component_id}.props"
         _collect_binding_context(
@@ -104,6 +113,185 @@ def _collect_container_errors(
         "must be non-empty; use parent itemMargin, padding, or layout alignment "
         "instead of an empty spacer container."
     )
+
+
+def _collect_height_budget_errors(
+    components: list[ComponentRow],
+    task_spec: dict[str, Any],
+    card_spec: dict[str, Any],
+    errors: list[str],
+) -> None:
+    """Reject vertical layouts whose declared minimum height cannot fit."""
+    components_by_id = {component.component_id: component for component in components}
+    for component in components:
+        if component.component_type not in {"Column", "List"}:
+            continue
+        _collect_distributed_item_margin_error(component, errors)
+        available_height = _component_available_height(
+            component,
+            task_spec,
+            card_spec,
+        )
+        if available_height is None:
+            continue
+        required_height = _column_children_minimum_height(
+            component,
+            components_by_id,
+        )
+        if required_height <= available_height:
+            continue
+        overflow = required_height - available_height
+        errors.append(
+            f"component {component.component_id}: vertical layout requires at least "
+            f"{_format_vp(required_height)}vp within {_format_vp(available_height)}vp; "
+            f"it overflows by {_format_vp(overflow)}vp. Reduce child heights, margins, "
+            "or gaps instead of relying on clipping, flex shrink, or distributed alignment."
+        )
+
+
+def _collect_distributed_item_margin_error(
+    component: ComponentRow,
+    errors: list[str],
+) -> None:
+    justify_content = component.props.get("justifyContent")
+    item_margin = _non_negative_number(component.props.get("itemMargin"))
+    uses_distributed_alignment = justify_content in _DISTRIBUTED_JUSTIFY_VALUES
+    if not uses_distributed_alignment or item_margin is None or item_margin == 0.0:
+        return
+    errors.append(
+        f"component {component.component_id}: itemMargin must be omitted when "
+        f'justifyContent is "{justify_content}"; first prove that fixed child heights '
+        "fit, then let distributed alignment allocate only non-negative remaining space."
+    )
+
+
+def _component_available_height(
+    component: ComponentRow,
+    task_spec: dict[str, Any],
+    card_spec: dict[str, Any],
+) -> float | None:
+    outer_height = _component_outer_height(component, task_spec, card_spec)
+    if outer_height is None:
+        return None
+    return max(0.0, outer_height - _vertical_padding(component.props))
+
+
+def _component_outer_height(
+    component: ComponentRow,
+    task_spec: dict[str, Any],
+    card_spec: dict[str, Any],
+) -> float | None:
+    if component.component_id == "root":
+        size = card_spec.get("suggestSize")
+        if not isinstance(size, str) or not size:
+            size = task_spec.get("size")
+        if isinstance(size, str):
+            reference_height = _REFERENCE_CANVAS_HEIGHT.get(size)
+            if reference_height is not None:
+                return reference_height
+    return _non_negative_number(component.props.get("height"))
+
+
+def _column_children_minimum_height(
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+) -> float:
+    child_heights: list[float] = []
+    for child_id in component.children:
+        child = components_by_id.get(child_id)
+        if child is None:
+            continue
+        child_height = _minimum_outer_height(child, components_by_id, set())
+        child_heights.append(child_height + _vertical_margin(child.props))
+
+    gap = _vertical_gap(component, len(child_heights))
+    return sum(child_heights) + gap
+
+
+def _minimum_outer_height(
+    component: ComponentRow,
+    components_by_id: dict[str, ComponentRow],
+    visiting: set[str],
+) -> float:
+    explicit_height = _non_negative_number(component.props.get("height"))
+    if explicit_height is not None:
+        return explicit_height
+    if component.component_type == "ActionUnit":
+        return _action_unit_minimum_height(component)
+    if component.component_type not in _NON_EMPTY_CONTAINER_TYPES:
+        return 0.0
+    if component.component_id in visiting:
+        return 0.0
+
+    visiting.add(component.component_id)
+    child_heights: list[float] = []
+    for child_id in component.children:
+        child = components_by_id.get(child_id)
+        if child is None:
+            continue
+        child_height = _minimum_outer_height(child, components_by_id, visiting)
+        child_heights.append(child_height + _vertical_margin(child.props))
+    visiting.remove(component.component_id)
+
+    if component.component_type in {"Column", "List"}:
+        content_height = sum(child_heights)
+        content_height += _vertical_gap(component, len(child_heights))
+    else:
+        content_height = max(child_heights, default=0.0)
+    return _vertical_padding(component.props) + content_height
+
+
+def _action_unit_minimum_height(component: ComponentRow) -> float:
+    if component.props.get("state") == "capsule":
+        return 36.0
+    if component.props.get("state") == "icon-round":
+        return 30.0
+    return 0.0
+
+
+def _vertical_gap(component: ComponentRow, child_count: int) -> float:
+    if child_count < 2:
+        return 0.0
+    if component.props.get("justifyContent") in _DISTRIBUTED_JUSTIFY_VALUES:
+        return 0.0
+    property_name = "space" if component.component_type == "List" else "itemMargin"
+    gap = _non_negative_number(component.props.get(property_name))
+    if gap is None:
+        return 0.0
+    return gap * (child_count - 1)
+
+
+def _vertical_padding(props: dict[str, Any]) -> float:
+    return _vertical_box_extent(props.get("padding"))
+
+
+def _vertical_margin(props: dict[str, Any]) -> float:
+    return _vertical_box_extent(props.get("margin"))
+
+
+def _vertical_box_extent(value: Any) -> float:
+    scalar = _non_negative_number(value)
+    if scalar is not None:
+        return scalar * 2
+    if not isinstance(value, dict):
+        return 0.0
+    top = _non_negative_number(value.get("top")) or 0.0
+    bottom = _non_negative_number(value.get("bottom")) or 0.0
+    return top + bottom
+
+
+def _non_negative_number(value: Any) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    if value < 0:
+        return None
+    return float(value)
+
+
+def _format_vp(value: float) -> str:
+    if value.is_integer():
+        return str(int(value))
+    return f"{value:.2f}".rstrip("0").rstrip(".")
 
 
 def _collect_action_unit_errors(
