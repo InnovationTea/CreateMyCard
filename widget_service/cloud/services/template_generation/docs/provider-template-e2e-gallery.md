@@ -16,7 +16,8 @@
 `generate_widget_card_terse_dsl_nested2` 时，通过仅供 Python 服务调用的关键字参数携带目标模板、目标 Action
 和样例覆盖；该入口据此构造 `TemplateSourceGenerator`，它们不进入 `GenerateWidgetCardRequest`、工具请求
 JSON 或公开 Schema。Search 通过后，二层候选才会收窄到目标模板，外部工具请求不能设置这些开发测试约束。
-当前 `2x2` Search 显式拒绝多业务组合，因此该端到端画廊只生成单业务路线。Provider 中已有的 Support
+端到端画廊同时覆盖单业务路线和严格受控的 HeroTitle + HeroContent + 单 Action 双业务组合；后者从
+正式模板自动配对，单列“跨业务组合”页签。Provider 中已有的 Support
 模板与 `TwoSupportLayout` 仍作为底层保留能力和原子预览资源存在，但当前 Search 路线不可达。
 
 ## 场景矩阵
@@ -28,10 +29,14 @@ JSON 或公开 Schema。Search 通过后，二层候选才会收窄到目标模�
 | 单内容 + 2 个 Action | Compact + 2 × PillAction |
 | 单内容 + 1 个 Action | Hero + PillAction |
 | 单内容 | Full |
+| 双业务 + 1 个 Action | HeroTitle + HeroContent + PillAction |
 
 因此每个 Compact 生成“单内容 + 2 个 Action”用例，每个 Hero 生成“单内容 + 1 个 Action”用例，每个
-Full 生成“单内容”用例。业务缺少某个后缀时仍保留一张缺失占位卡。画廊不构造 Support 配对请求，避免把
-当前 Search 明确拒绝的多业务组合记录为普通生成失败。
+Full 生成“单内容”用例。业务缺少某个后缀时仍保留一张缺失占位卡。HeroTitle 与 HeroContent 按两个
+独立数据能力、互不重叠的写入根自动配对；当前为天气标题 + 日程内容，唯一按钮采用内容业务的注册动作
+“查看日程详情”。两个模板各自的字段、素材和样例覆盖合并为输入，两个目标模板按固定顺序传给公开入口
+的测试约束，仍由 Search 和第二层模型生成 `HeroTitleContentActionLayout`，不手工拼接最终 A2UI。
+任一成员禁用或数据能力未注册时保留缺失记录，不调用模型。画廊不构造不属于 Search 路线的 Support 配对。
 
 每个上述用例继续展开为两个相邻外观：
 
@@ -45,6 +50,9 @@ Full 生成“单内容”用例。业务缺少某个后缀时仍保留一张缺
 没有融球 Theme 的业务即使使用 11.7.5.206 也不应出现融球。两种外观保持相同 `providerId` 并相邻写入
 manifest，端侧因此把它们放在对应 Provider 业务的同一个页签中，而不是拆成“融球/非融球”两个页签；
 同一 Provider 中可通过符合条件的 Compact/Full/Hero 场景对照两种实际效果。
+双业务组合也验证这两个版本，以 `HeroContent` 主业务确定整卡主题。低版本不启用融球；达到门槛且主业务
+具有融球主题时，整卡统一展开一次该业务的背景。当前天气标题 + 日程内容组合应分别呈现普通日程主题和
+日程融球主题，不使用天气主题。画廊按主业务支持情况标注并校验实际融球结果。
 
 模拟输入从当前 `provider.json` 读取 Provider、业务、能力写入根，以及目标模板自己的主数据和次要数据；
 这些必选数据全部进入 `candidateOutputFields`。数据能力参数和 Action 内容来自当前能力注册表，用户 query
@@ -87,8 +95,8 @@ widget_service/.venv312/bin/python \
   --refresh-inputs --dry-run --concurrency 2
 ```
 
-以 2026-09-01 当前资源为基线，应生成 8 个 Provider、108 个用例；无模型 dry-run 中 18 个状态为
-`missing`，90 个状态为 `not_generated`。Provider 或模板调整后数量可以变化，应以重新生成的
+以 2026-09-03 当前资源为基线，应生成 8 个业务分组加 1 个跨业务组合分组，共 98 个用例；无模型 dry-run 中
+18 个状态为 `missing`，80 个状态为 `not_generated`。Provider 或模板调整后数量可以变化，应以重新生成的
 输入 manifest 为准，不能继续复用旧结果目录中的数量。
 
 ### 真实批跑
@@ -111,6 +119,7 @@ widget_service/.venv312/bin/python \
 常用参数：
 
 - `--provider com.huawei.weather.cli`：只批跑一个 Provider，可重复指定。
+- `--provider gallery.cross-business`：只批跑双业务组合；该 ID 仅为画廊分组标识，不是生产能力。
 - `--dry-run`：不调用模型，仅生成“待批跑/缺失”结果清单，适合验证输入和端侧导入。
 - `--strict`：存在真实生成失败时返回非零退出码；模板后缀缺失仍作为画廊检查结果保留。
 - `--model-failure-attempts 1`：覆盖单用例模型失败最大尝试次数；默认值为 2，必须为正整数。
@@ -131,8 +140,9 @@ widget_service/cloud/services/template_generation/test/provider_gallery_output/
 Provider/业务/模板层级保存 A2UI 消息数组，根目录 `manifest.json` 记录目标模板以及 `success`、`failed`、
 `missing` 和 `not_generated` 状态。双版本输入使用
 `provider-template-gallery-input/4`；端侧输出继续使用 `provider-template-gallery-output/2`，并在新的
-请求版本字段 `prdVer` 之外保留兼容别名 `appVersion` 和空的 `partnerTemplateId`；旧的任务规格版本副本
-字段不再输出，现有端侧导入器无需升级即可读取。
+请求版本字段 `prdVer` 之外保留兼容别名 `appVersion`；`partnerTemplateId` 在单业务中为空，在双业务中记录
+第二个业务模板。双业务的路径包含两个模板 ID，避免多个配对互相覆盖。旧的任务规格版本副本字段不再输出，
+现有端侧导入器无需升级即可读取。
 
 ## 端侧导入
 
@@ -146,6 +156,7 @@ python3 scripts/sync_provider_scenario_gallery.py
 导入脚本只复制状态为 `success` 的 A2UI 文件，同时完整保留失败和缺失记录。端侧首页进入
 “Provider 场景画廊”后，可按 Provider 页签检查每个业务的全部模板实例和适用布局；没有 A2UI 的场景显示
 错误卡片和具体原因。
+“跨业务组合”页签专门展示 HeroTitle + HeroContent + PillAction，不要仅检查单业务页签就认定组合已安装。
 
 同步脚本默认读取：
 

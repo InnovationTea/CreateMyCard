@@ -15,8 +15,9 @@
     `BluetoothDeviceOverviewEarbudsDynamicWideFull@1`：宽版连接摘要，盒与左右耳电量均为可选数据。
   - `BluetoothDeviceOverviewCompleteWideFull@1`、
     `BluetoothDeviceOverviewCompletePhoneWideFull@1`：宽版完整电量摘要，盒与左右耳电量均为必选数据。
-  - `BluetoothDeviceOverviewEarbudsMusicWideHero@1`：耳机听歌宽版摘要，展示名称、连接状态、耳机盒
-    环形电量和更新时间；用于 `WideSingleFocusLayout@1` 加一个 `PillAction@1`。
+  - `BluetoothDeviceOverviewEarbudsMusicWideHero@1`：耳机听歌宽版摘要，左对齐突出名称和连接状态，
+    使用充电盒图标配合小号文字展示盒电量和更新时间；用于 `WideSingleFocusLayout@1` 加一个
+    `PillAction@1`。
   - `BluetoothDeviceOverviewEarbudsChargingWideHero@1`：耳机全览宽版摘要，三列居中展示耳机盒、左耳
     和右耳电量及充电状态；用于 `WideSingleFocusLayout@1` 加一个 `PillAction@1`。
 - 兼容路径中的 Support `actionId` 只在该业务有已批准事件时传入；没有对应事件时省略，根节点不生成

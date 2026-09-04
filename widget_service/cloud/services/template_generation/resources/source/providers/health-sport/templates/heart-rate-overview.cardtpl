@@ -58,7 +58,7 @@ Stack({
             )
       )
   ),
-  IfPresent(props.actionId,
+  #if props.actionId
     Stack({
       "width": "matchParent",
       "height": "matchParent",
@@ -70,7 +70,7 @@ Stack({
         "height": "matchParent"
       })
     )
-  )
+  #endif
 )
 #End
 
@@ -110,7 +110,7 @@ Stack({
         {"fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}, "width": "matchParent"}
       )
   ),
-  IfPresent(props.actionId,
+  #if props.actionId
     Stack({
       "width": "matchParent",
       "height": "matchParent",
@@ -122,7 +122,7 @@ Stack({
         "height": "matchParent"
       })
     )
-  )
+  #endif
 )
 #End
 
@@ -161,7 +161,7 @@ Stack({
             )
       )
   ),
-  IfPresent(props.actionId,
+  #if props.actionId
     Stack({
       "width": "matchParent",
       "height": "matchParent",
@@ -173,7 +173,7 @@ Stack({
         "height": "matchParent"
       })
     )
-  )
+  #endif
 )
 #End
 
@@ -217,7 +217,7 @@ Stack({
         {"fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}, "width": "matchParent"}
       )
   ),
-  IfPresent(props.actionId,
+  #if props.actionId
     Stack({
       "width": "matchParent",
       "height": "matchParent",
@@ -229,7 +229,7 @@ Stack({
         "height": "matchParent"
       })
     )
-  )
+  #endif
 )
 #End
 

@@ -16,8 +16,10 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     manifest = write_template_preview_dataset(tmp_path)
     cases = manifest["cases"]
 
-    assert manifest["templateCount"] == 72
+    assert manifest["templateCount"] == 74
     assert manifest["countsByLayout"] == {
+        "HeroTitle": 1,
+        "HeroContent": 1,
         "Support": 12,
         "Compact": 11,
         "Hero": 18,
@@ -25,9 +27,9 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
         "WideHero": 6,
         "WideFull": 10,
     }
-    assert manifest["countsBySize"] == {"2x2": 56, "2x4": 16}
-    assert len(cases) == 72
-    assert len({case["templateId"] for case in cases}) == 72
+    assert manifest["countsBySize"] == {"2x2": 58, "2x4": 16}
+    assert len(cases) == 74
+    assert len({case["templateId"] for case in cases}) == 74
     assert all((tmp_path / case["file"]).is_file() for case in cases)
 
 
@@ -39,10 +41,17 @@ def test_template_preview_a2ui_has_surface_components_and_data():
         assert "createSurface" in case.messages[0]
         assert "updateComponents" in case.messages[1]
         assert "updateDataModel" in case.messages[2]
-        components = case.messages[1]["updateComponents"]["components"]
+        update_components = case.messages[1]["updateComponents"]
+        assert update_components["root"] == "root"
+        components = update_components["components"]
         root = next(component for component in components if component["id"] == "root")
         assert root["component"] == "Column"
-        slot = next(component for component in components if component["id"] == "root_0")
+        assert root["children"] == ["template_root"]
+        slot = next(
+            component
+            for component in components
+            if component["id"] == "template_root"
+        )
         assert slot["styles"]["height"] == case.content_height_vp
 
 
@@ -77,7 +86,15 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
     for case in cases:
         counts = Counter((*case.primary_data, *case.secondary_data, *case.optional_data))
         assert all(count == 1 for count in counts.values())
-        assert case.primary_data
+        if case.template_id == "WeatherOverviewHeroTitle@1":
+            assert case.primary_data == ()
+            assert case.secondary_data == ()
+            assert case.optional_data == (
+                "/location/prefectureName", "/location/districtName",
+                "/current/temperatureText", "/current/condition",
+            )
+        else:
+            assert case.primary_data
         assert json.dumps(case.messages, ensure_ascii=False)
 
 
@@ -206,8 +223,12 @@ def test_q059_q067_q073_q077_widehero_templates_match_input_contracts():
     )
 
     assert "耳机听歌" in music
+    assert "充电盒电量" in music
     assert "更新于" in music
     assert "earphone_case_16644.svg" in music
+    assert '"component": "Progress"' not in music
+    assert '"fontSize": 16' in music
+    assert '"fontSize": 14' in music
     assert "公司会议" in reminder
     assert "分钟提醒" in reminder
     assert "calendar_fill.svg" in reminder

@@ -24,6 +24,11 @@
       "entry": "templates/layout.cardtpl"
     },
     {
+      "templateId": "HeroTitleContentActionLayout@1",
+      "description": "2x2 双业务与底部动作布局；第一个 child 必须是 HeroTitle，第二个 child 必须是 HeroContent，最后一个 child 必须是 PillAction。",
+      "entry": "templates/layout.cardtpl"
+    },
+    {
       "templateId": "TwoSupportLayout@1",
       "description": "仅供兼容 LLM 路径与原子预览使用的 2x2 双业务支撑布局，纵向承载两个可在内部绑定事件的 Support 业务模板；当前 Search 不可达。",
       "entry": "templates/layout.cardtpl"
@@ -160,6 +165,32 @@
       },
       "maxActionChildrenBySize": {
         "2x2": 0
+      },
+      "parametersSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "loweringBySize": {
+        "2x2": "column"
+      }
+    },
+    {
+      "name": "HeroTitleContentActionLayout",
+      "description": "仅用于 2x2；按顺序承载一个 HeroTitle 业务 child、一个 HeroContent 业务 child 和一个末尾 PillAction child。",
+      "supportedCardSizes": [
+        "2x2"
+      ],
+      "minChildren": 2,
+      "maxChildrenBySize": {
+        "2x2": 2
+      },
+      "actionPolicy": "required",
+      "minActionChildrenBySize": {
+        "2x2": 1
+      },
+      "maxActionChildrenBySize": {
+        "2x2": 1
       },
       "parametersSchema": {
         "type": "object",

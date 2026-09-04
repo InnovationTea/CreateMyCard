@@ -7,10 +7,15 @@ from typing import Any, cast
 import pytest
 
 from models.generation import CandidateDataBinding, EventAction, TaskSpec
+from services.protocol_registry import A2UI_FORM_PROTOCOL_PROFILE_ID, A2UIProtocolRegistry
 from services.template_generation.engine.advanced.content_selectors import (
     apply_content_selectors,
 )
+from services.template_generation.engine.advanced.ux_mixed_prompt import (
+    build_ux_mixed_prompt,
+)
 from services.template_generation.engine.cardplan import template_retrieval as retrieval_module
+from services.template_generation.engine.cardplan.compiler import compile_ux_layout_card
 from services.template_generation.engine.cardplan.registry import (
     CardPlanRegistry,
     get_cardplan_registry,
@@ -38,6 +43,57 @@ _WEATHER_FIELDS = (
     "/current/coldLevel",
     "/daily/0/temperatureRangeText",
 )
+
+
+@pytest.mark.parametrize(
+    ("enabled", "requested_theme", "expected_theme"),
+    [
+        (False, "family-weather-care-blue", "meeting-paper-neutral"),
+        (False, "meeting-paper-neutral", "meeting-paper-neutral"),
+        (True, "fusion-weather-blue", "fusion-schedule-cool"),
+        (True, "fusion-schedule-cool", "fusion-schedule-cool"),
+        (True, "meeting-paper-neutral", "fusion-schedule-cool"),
+    ],
+)
+def test_hero_content_theme_follows_main_business_and_version_gate(
+    enabled: bool, requested_theme: str, expected_theme: str,
+) -> None:
+    registry = get_cardplan_registry(enabled)
+    template_ids = (
+        "WeatherOverviewHeroTitle@1", "ScheduleOverviewHeroContent@1", "PillAction@1",
+    )
+    assert registry.hero_content_theme_id(template_ids, requested_theme) == expected_theme
+
+
+def test_hero_content_without_fusion_never_borrows_title_business_fusion() -> None:
+    registry = CardPlanRegistry(enable_fusion_ball=True)
+    registry.themes.pop("fusion-schedule-cool")
+    template_ids = ("WeatherOverviewHeroTitle@1", "ScheduleOverviewHeroContent@1")
+    assert registry.hero_content_theme_id(template_ids, "fusion-weather-blue") == (
+        "meeting-paper-neutral"
+    )
+
+
+@pytest.mark.parametrize(
+    "template_ids",
+    [
+        (),
+        ("WeatherOverviewHeroTitle@1",),
+        ("ScheduleOverviewHeroContent@1",),
+        ("WeatherOverviewHero@1", "ScheduleOverviewHeroContent@1"),
+        ("WeatherOverviewHeroTitle@1", "ScheduleOverviewDateFull@1"),
+        (
+            "WeatherOverviewHeroTitle@1", "ScheduleOverviewHeroContent@1",
+            "SleepOverviewFull@1",
+        ),
+    ],
+)
+def test_other_layouts_do_not_acquire_hero_content_theme_ownership(
+    template_ids: tuple[str, ...],
+) -> None:
+    registry = get_cardplan_registry(True)
+    assert registry.hero_content_theme_owner(template_ids) is None
+    assert registry.hero_content_theme_id(template_ids, "fusion-weather-blue") is None
 
 
 def _field(value: Any, data_type: str = "string") -> dict[str, Any]:
@@ -624,7 +680,74 @@ def test_first_layer_prompt_includes_task_fields_rules_and_action_candidates() -
         {"eventId": "event.open.weather", "call": "clickToDeeplink"}
     ]
     assert "不得为了迁就布局限制而省略" in messages[0]["content"]
-    assert "2x2 模板 Search 当前只接受一个" in messages[0]["content"]
+    assert "2x2 模板 Search 接受一个可完整覆盖的业务" in messages[0]["content"]
+    assert "恰好两个数据业务加一个显式 Action" in messages[0]["content"]
+
+
+def test_calendar_first_layer_rule_excludes_meeting_action_parameters() -> None:
+    task = TaskSpec(
+        userQuery="显示下一场会议的标题和时间，并支持一键加入会议",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.enter.meeting",
+                call="clickToDeeplink",
+                args={
+                    "intentName": "EnterMeeting",
+                    "uri": "{{ ${/data/calendar/events/0/oneClickServiceLink} }}",
+                },
+            )
+        ],
+        dataModelSchema={
+            "data": {
+                "calendar": {
+                    "events": [
+                        {
+                            "title": _field("项目例会"),
+                            "dtStart": _field("14:00"),
+                            "dtEnd": _field("15:00"),
+                            "oneClickServiceLink": _field("meeting://join"),
+                            "oneClickServiceType": _field("video"),
+                            "isServiceValid": _field(1, "integer"),
+                            "entityId": _field("calendar-event-001"),
+                        }
+                    ]
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="GetCalendarEvents",
+        writeResultTo="/data/calendar",
+        candidateOutputFields=[
+            "/events/0/title",
+            "/events/0/dtStart",
+            "/events/0/dtEnd",
+            "/events/0/oneClickServiceLink",
+            "/events/0/oneClickServiceType",
+            "/events/0/isServiceValid",
+            "/events/0/entityId",
+        ],
+    )
+
+    messages = build_template_retrieval_prompt(task, get_cardplan_registry(), (binding,))
+    payload = json.loads(messages[1]["content"])
+    calendar_rule = next(
+        rule["content"]
+        for rule in payload["providerFirstLayerRules"]
+        if rule["providerId"] == "com.huawei.calendar.cli"
+    )
+
+    for action_field in (
+        "oneClickServiceLink",
+        "oneClickServiceType",
+        "isServiceValid",
+        "entityId",
+    ):
+        assert action_field in calendar_rule
+    assert "不得因为 Action" in calendar_rule
+    assert "requiredOutputFieldsByCapability" in calendar_rule
+    assert "event.enter.meeting" in calendar_rule
 
 
 def test_search_rejects_2x4_before_prompt_or_retrieval() -> None:
@@ -690,6 +813,279 @@ def test_search_rejects_two_data_businesses() -> None:
                     },
                 ]
             },
+        )
+
+
+@pytest.mark.parametrize("business_title", [None, "天气和日程", "天气 + 日历日程组合画廊"])
+@pytest.mark.parametrize("weather_state", ["both", "condition", "temperature", "neither", "empty"])
+@pytest.mark.parametrize(
+    ("enable_fusion_ball", "requested_theme", "expected_theme"),
+    [
+        (False, "family-weather-care-blue", "meeting-paper-neutral"),
+        (True, "fusion-weather-blue", "fusion-schedule-cool"),
+    ],
+)
+def test_search_orders_complete_hero_title_and_hero_content_businesses(
+    business_title: str | None,
+    enable_fusion_ball: bool,
+    requested_theme: str,
+    expected_theme: str,
+    weather_state: str,
+) -> None:
+    task = _task().model_copy(
+        update={
+            "userQuery": "显示天气和下一场日程，并提供查看入口",
+            "eventCandidates": [
+                EventAction(
+                    id="event.open.details",
+                    description="查看详情",
+                    call="clickToDeeplink",
+                    args={"uri": "example://details"},
+                )
+            ],
+        }
+    )
+    data = task.dataModelSchema.get("data")
+    assert isinstance(data, dict)
+    weather = data.get("weather")
+    assert isinstance(weather, dict)
+    current = weather.get("current")
+    assert isinstance(current, dict)
+    weather_fields = ["/location/districtName"]
+    for field_name in ("temperatureText", "condition"):
+        field_is_available = weather_state in {"both", "empty"}
+        field_is_available = field_is_available or weather_state == field_name.removesuffix("Text")
+        if field_is_available:
+            weather_fields.append(f"/current/{field_name}")
+            if weather_state == "empty":
+                current[field_name] = _field("")
+        else:
+            current.pop(field_name)
+    weather_binding = _binding().model_copy(update={"candidateOutputFields": weather_fields})
+    data["calendar"] = {
+        "events": [
+            {
+                "title": _field("项目例会"),
+                "dtStart": _field("14:00"),
+                "dtEnd": _field("15:00"),
+                "eventLocation": _field("A1 会议室"),
+            }
+        ]
+    }
+    calendar_binding = CandidateDataBinding(
+        capabilityId="GetCalendarEvents",
+        writeResultTo="/data/calendar",
+        candidateOutputFields=[
+            "/events/0/title",
+            "/events/0/dtStart",
+            "/events/0/dtEnd",
+            "/events/0/eventLocation",
+        ],
+    )
+    query = TemplateRetrievalQuery(
+        themeId=requested_theme,
+        requiredOutputFieldsByCapability={
+            "ViewWeather": tuple(weather_fields),
+            "GetCalendarEvents": (
+                "/events/0/title",
+                "/events/0/dtStart",
+                "/events/0/dtEnd",
+                "/events/0/eventLocation",
+            ),
+        },
+        action=("event.open.details",),
+    )
+    card_spec = {
+        "title": business_title or "天气和日程",
+        "description": "显示天气和下一场日程，并提供查看入口",
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"},
+            {
+                "capabilityId": "GetCalendarEvents",
+                "writeResultTo": "/data/calendar",
+            },
+        ],
+    }
+    registry = get_cardplan_registry(enable_fusion_ball)
+    first_layer_messages = build_template_retrieval_prompt(
+        task, registry, (weather_binding, calendar_binding)
+    )
+    first_layer_text = json.dumps(first_layer_messages, ensure_ascii=False)
+    assert "不要求温度字段必须存在" in first_layer_text
+    assert "温度字段可用且能完整使用" not in first_layer_text
+    result = retrieve_template_variants(
+        query,
+        task,
+        registry,
+        (weather_binding, calendar_binding),
+        card_spec,
+    )
+    projection = build_ux_mixed_prompt(
+        task_spec=task,
+        card_spec=card_spec,
+        scope=result.scope,
+        component_candidates=result.component_candidates,
+        required_template_groups=result.required_template_groups,
+        registry=registry,
+    )
+    action = projection.contract.action_bindings[0]
+    source = (
+        'Template("HeroTitleContentActionLayout@1",{},'
+        'Template("WeatherOverviewHeroTitle@1",{}),'
+        'Template("ScheduleOverviewHeroContent@1",{}),'
+        'Template("PillAction@1",'
+        + json.dumps(
+            {"actionId": action.action_id, "label": action.display_label},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        + "));"
+    )
+    compilation = compile_ux_layout_card(
+        source,
+        task_spec=task,
+        contract=projection.contract,
+        protocol_profile=A2UIProtocolRegistry(
+            A2UI_FORM_PROTOCOL_PROFILE_ID
+        ).get_profile(),
+        registry=registry,
+        card_spec=card_spec,
+        business_title=business_title,
+        enable_data_bindings=True,
+    )
+
+    assert result.scope.advanced_component_ids == (
+        "WeatherOverview",
+        "CalendarOverview",
+    )
+    assert result.component_candidates[0].available_template_ids == (
+        "WeatherOverviewHeroTitle@1",
+    )
+    assert result.component_candidates[1].available_template_ids == (
+        "ScheduleOverviewHeroContent@1",
+    )
+    assert result.required_template_groups == (
+        ("WeatherOverviewHeroTitle@1",),
+        ("ScheduleOverviewHeroContent@1",),
+    )
+    assert projection.allowed_layout_ids == ("HeroTitleContentActionLayout",)
+    assert result.scope.theme_id == expected_theme
+    assert projection.theme_id == expected_theme
+    assert projection.contract.theme_profile_id == expected_theme
+    messages = [json.loads(line) for line in compilation.a2ui.splitlines() if line.strip()]
+    components = messages[1].get("updateComponents", {}).get("components")
+    assert isinstance(components, list)
+    by_id = {component.get("id"): component for component in components}
+    root = by_id.get("root")
+    assert isinstance(root, dict)
+    expected_color = "#FFCCEEFF" if enable_fusion_ball else "#FF1F4799"
+    themed_text_count = 0
+    for component in components:
+        content = component.get("content")
+        if not isinstance(content, str):
+            continue
+        primary_paths = (
+            "/data/weather/location/districtName", "/data/weather/current/temperatureText",
+            "/data/weather/current/condition", "/data/calendar/events/0/title",
+        )
+        is_primary_text = any(path in content for path in primary_paths)
+        if content == action.display_label or is_primary_text:
+            assert component.get("styles", {}).get("fontColor") == expected_color
+            themed_text_count += 1
+    assert themed_text_count == (3 if weather_state == "neither" else 4)
+    assert "全局主题已按主业务 HeroContent 确定" in projection.messages[1]["content"]
+    assert "不得因缺少温度拒绝该模板" in projection.messages[1]["content"]
+    city_nodes = [
+        component for component in components
+        if "/data/weather/location/districtName" in str(component.get("content", ""))
+    ]
+    assert len(city_nodes) == 1
+    city_id = city_nodes[0].get("id")
+    headers = [component for component in components if city_id in component.get("children", [])]
+    assert len(headers) == 1
+    header = headers[0]
+    assert header.get("component") == "Row"
+    header_children = header.get("children")
+    assert isinstance(header_children, list)
+    assert header_children[0] == city_id
+    assert len(header_children) == (1 if weather_state == "neither" else 2)
+    if weather_state != "neither":
+        details = by_id.get(header_children[1])
+        assert isinstance(details, dict)
+        assert details.get("component") == "Text"
+        details_content = details.get("content")
+        assert isinstance(details_content, str)
+        if weather_state in {"both", "empty"}:
+            assert details_content.index("/condition") < details_content.index("/temperatureText")
+            assert " | " in details_content
+        else:
+            assert "|" not in details_content
+    if enable_fusion_ball:
+        assert root.get("children") == ["fusionBallBackground", "template_root"]
+        background_count = sum(
+            component.get("id") == "fusionBallBackground" for component in components
+        )
+        assert background_count == 1
+        palette = {
+            "fusionBallLarge": "#FF121E59",
+            "fusionBallMedium": "#FF2BA2D9",
+            "fusionBallSmall": "#FF52CCCC",
+        }
+        for component_id, color in palette.items():
+            component = by_id.get(component_id)
+            assert isinstance(component, dict)
+            assert component.get("styles", {}).get("backgroundColor") == color
+    else:
+        assert root.get("styles", {}).get("backgroundColor") == "#FFE5EDFE"
+        assert "fusionBallBackground" not in by_id
+    child_order = (
+        '"childOrder": "position 0 HeroTitle, position 1 HeroContent, position 2 PillAction"'
+    )
+    assert child_order in projection.messages[1]["content"]
+    assert "HeroTitleContentActionLayout" not in compilation.a2ui
+    assert "events/0/title" in compilation.a2ui
+    for field_name in ("temperatureText", "condition"):
+        assert (f"/data/weather/current/{field_name}" in compilation.a2ui) == (
+            f"/current/{field_name}" in weather_fields
+        )
+    assert "_advancedComponent" not in compilation.a2ui
+    if business_title is not None:
+        assert business_title in projection.contract.trusted_literals
+        assert business_title not in compilation.a2ui
+        assert card_spec.get("title") == business_title
+    assert compilation.stats.action_used_ids == (action.action_id,)
+
+
+@pytest.mark.parametrize("action_count", (0, 1, 2))
+@pytest.mark.parametrize("weather_field", ("/current/condition", "/location/districtName"))
+def test_optional_weather_title_does_not_relax_single_business_templates(
+    action_count: int, weather_field: str,
+) -> None:
+    events = [
+        EventAction(
+            id=f"event.open.{index}", description="查看详情", call="clickToDeeplink",
+            args={"uri": "example://details"},
+        )
+        for index in range(action_count)
+    ]
+    task = TaskSpec(
+        userQuery="显示城市或天气现象", size="2x2", eventCandidates=events,
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "location": {"districtName": _field("青浦区")},
+                    "current": {"condition": _field("多云")},
+                }
+            }
+        },
+    )
+    query = _query(weather_field).model_copy(
+        update={"action_ids": tuple(event.id for event in events)}
+    )
+    with pytest.raises(TemplateRetrievalMiss):
+        retrieve_template_variants(
+            query, task, get_cardplan_registry(), (_binding(),), _card_spec()
         )
 
 

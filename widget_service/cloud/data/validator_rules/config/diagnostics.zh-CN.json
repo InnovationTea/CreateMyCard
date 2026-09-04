@@ -1,4 +1,12 @@
 {
+  "ASSET.EMOJI_ICON": {
+    "message": "不应使用 emoji 作为视觉图标。",
+    "fixHint": "将 emoji 替换为已注册的本地图标素材。"
+  },
+  "TYPE.FONT_SIZE_MIN": {
+    "message": "字号不得低于 8vp。",
+    "fixHint": "将字号调整为不低于 8vp 的可读字号。"
+  },
   "DSL_JSONL_LINE_COUNT": {
     "message": "genui 必须是三行 JSONL。",
     "fixHint": "输出 createSurface、updateComponents、updateDataModel 三行 JSON。"

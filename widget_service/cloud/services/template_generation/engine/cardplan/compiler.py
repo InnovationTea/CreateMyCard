@@ -99,6 +99,7 @@ _ICON_SECONDARY = "#99000000"
 _TRACK_COLOR = "#1A000000"
 _NORMAL_DATA_COLOR = "#FF64BB5C"
 _WARNING_DATA_COLOR = "#FFF9A01E"
+_TEMPLATE_ROOT_ID = "template_root"
 _LAYOUT_ALIASES = {
     ("Column", "card"): "section",
     ("Column", "section-relaxed"): "section",
@@ -420,7 +421,6 @@ def compile_ux_layout_card(
             "UX Layout Actions must consume each selected Action exactly once."
         )
     expanded = _append_missing_required_literals_to_ux_layout(expanded, contract)
-    expanded = _inject_ux_business_title(expanded, business_title, contract)
     expanded = _strip_2x2_composite_headers(expanded, size=task_spec.size)
     expanded = _normalize_weather_condition_icons(expanded, contract)
     content = _lower_ux_layout_root(
@@ -4449,27 +4449,15 @@ def _instantiate_blueprint_children(
         if child.component in _TEMPLATE_CONDITIONS:
             should_render = _template_condition_should_render(child, params, bindings)
             if should_render:
-                selected = child.children[0]
-                if selected.component in _TEMPLATE_CONDITIONS:
-                    instantiated.extend(
-                        _instantiate_blueprint_children(
-                            (selected,),
-                            params,
-                            bindings,
-                            theme_values,
-                            spread_children=spread_children,
-                        )
+                instantiated.extend(
+                    _instantiate_blueprint_children(
+                        child.children,
+                        params,
+                        bindings,
+                        theme_values,
+                        spread_children=spread_children,
                     )
-                else:
-                    instantiated.append(
-                        _instantiate_blueprint(
-                            selected,
-                            params,
-                            bindings,
-                            theme_values,
-                            spread_children=spread_children,
-                        )
-                    )
+                )
             continue
         instantiated.append(
             _instantiate_blueprint(
@@ -5061,7 +5049,7 @@ def _compile_card_shell(
                 tuple(header_children),
             )
         )
-    children.append(content)
+    children.append(_merge_node_options(content, {"_id": _TEMPLATE_ROOT_ID}))
     action = params.get("action")
     if isinstance(action, dict):
         binding = next(item for item in contract.action_bindings if item.action_id == action["id"])
@@ -5112,7 +5100,8 @@ def _compile_ux_layout_shell(
     root_options.pop("width", None)
     root_options.pop("height", None)
     root_options["_id"] = "root"
-    return Nested2Node("Column", ("card", root_options), (content,))
+    template_root = _merge_node_options(content, {"_id": _TEMPLATE_ROOT_ID})
+    return Nested2Node("Column", ("card", root_options), (template_root,))
 
 
 def _template_fusion_ball_palette(
@@ -5121,7 +5110,7 @@ def _template_fusion_ball_palette(
     registry: CardPlanRegistry,
     selected_template_ids: tuple[str, ...] = (),
 ) -> FusionBallPalette | None:
-    """Resolve Theme-owned fusion balls for exactly one selected business."""
+    """Resolve fusion balls for a single business or the dual-layout HeroContent."""
     if size != "2x2":
         return None
     theme = registry.require_theme(contract.theme_profile_id)
@@ -5133,15 +5122,19 @@ def _template_fusion_ball_palette(
             continue
         business_template_items.append(definition)
     business_templates = tuple(business_template_items)
-    if fusion is None or len(business_templates) != 1:
+    if fusion is None:
         return None
-    business_template = business_templates[0]
+    business_template = registry.hero_content_theme_owner(selected_template_ids)
+    if business_template is None:
+        if len(business_templates) != 1:
+            return None
+        business_template = business_templates[0]
+        layout_kind = provider_template_layout_kind(business_template.wire_id)
+        if layout_kind not in {"Compact", "Full", "Hero"}:
+            return None
     if business_template.capability_id not in theme.supported_capability_ids:
         return None
     if business_template.business_id not in fusion.business_ids:
-        return None
-    layout_kind = provider_template_layout_kind(business_template.wire_id)
-    if layout_kind not in {"Compact", "Full", "Hero"}:
         return None
     return FusionBallPalette(
         fusion.large_color,
@@ -6088,6 +6081,20 @@ def _validate_provider_template_layout_action_requirements(
         for child in action_children
         if (action_name := _parsed_ux_action_component(child)) is not None
     )
+    hero_title_content_kinds = ("HeroTitle", "HeroContent")
+    if layout_kinds == hero_title_content_kinds:
+        valid_combination = layout_id == "HeroTitleContentActionLayout"
+        valid_combination = valid_combination and action_names == ("PillAction",)
+        if not valid_combination:
+            raise TerselConversionError(
+                "HeroTitle/HeroContent Provider Templates require ordered "
+                "HeroTitleContentActionLayout children and one PillAction."
+            )
+        return
+    if set(layout_kinds).intersection(hero_title_content_kinds):
+        raise TerselConversionError(
+            "HeroTitle/HeroContent Provider Template order is invalid."
+        )
     if len(layout_kinds) == 2 and set(layout_kinds) == {"Support"} and not action_names:
         if layout_id != "TwoSupportLayout":
             raise TerselConversionError(
@@ -7027,54 +7034,6 @@ def _is_literal_component_header(node: Nested2Node) -> bool:
 
 def _is_plain_literal_text(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip()) and "${" not in value
-
-
-def _inject_ux_business_title(
-    node: Nested2Node,
-    title: str | None,
-    contract: HybridBodyContract,
-) -> Nested2Node:
-    """Project the trusted CardSpec title into the business region when useful."""
-    if contract.required_business_component_ids or _is_advanced_component_region(node):
-        return node
-    if not isinstance(title, str) or not title.strip() or title not in contract.trusted_literals:
-        return node
-    normalized_title = _semantic_text_fragment(title)
-    visible = tuple(
-        descendant.values[0]
-        for descendant in _walk_nodes(node)
-        if descendant.component_type == "Text"
-        and descendant.values
-        and isinstance(descendant.values[0], str)
-    )
-    visible_blob = "".join(_semantic_text_fragment(item) for item in visible)
-    if normalized_title and normalized_title in visible_blob:
-        return node
-    content, actions = _split_ux_layout_children(node)
-    if not content:
-        return node
-    title_font_size = 10 if len(normalized_title) > 8 else 14
-    title_node = Nested2Node(
-        "Text",
-        (
-            title,
-            "compact-title",
-            {
-                "width": "100%",
-                "fontSize": title_font_size,
-                "minFontSize": 9,
-                "maxLines": 1,
-                "textOverflow": "ellipsis",
-            },
-        ),
-        (),
-    )
-    first = content[0]
-    if first.component_type in {"Column", "List"}:
-        first = Nested2Node(first.component_type, first.values, (title_node, *first.children))
-    else:
-        first = Nested2Node("Column", ("compact",), (title_node, first))
-    return Nested2Node(node.component_type, node.values, (first, *content[1:], *actions))
 
 
 def _inject_phone_earphone_title(

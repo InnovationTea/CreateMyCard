@@ -148,7 +148,7 @@
       "templateId": "BluetoothDeviceOverviewEarbudsMusicWideHero@1",
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
-      "description": "耳机听歌 WideHero，展示耳机名称、连接状态、耳机盒环形电量和更新时间。",
+      "description": "耳机听歌 WideHero，左对齐突出耳机名称和连接状态，并以充电盒图标配合小号文字展示盒电量和更新时间。",
       "entry": "templates/bluetooth-device-overview.cardtpl",
       "primaryData": [
         "/isConnected",

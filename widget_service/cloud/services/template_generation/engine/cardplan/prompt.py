@@ -612,7 +612,8 @@ def _composition_rules(ux_layout_root: bool) -> tuple[str, ...]:
             "除 TwoSupportLayout 外，所有 Action 必须是布局根的连续末尾直接 children，"
             "禁止放进 Column/Row/Stack/List/业务 Template；整卡最多两个 Action。"
             "TwoSupportLayout 禁止 Action child，批准事件只能各一次写入 Support 业务"
-            "Template 的可选 actionId Prop。",
+            "Template 的可选 actionId Prop。HeroTitleContentActionLayout 必须恰好按位置放置 "
+            "HeroTitle、HeroContent、PillAction 三个直接 children，不得交换、重复或嵌套。",
             "禁止独立整卡 Header。若 cardComposition.businessTitleCandidate 能准确命名"
             "当前业务，"
             "可在业务内容区使用；若局部 Template 或事实已表达则省略，"
@@ -621,6 +622,7 @@ def _composition_rules(ux_layout_root: bool) -> tuple[str, ...]:
             'Template("PillAction@1", props)，Full 仅在 FullIconActionLayout 中使用 '
             'Template("IconAction@1", props)，WideFull 不允许 Action；Support 仅使用内部 '
             "actionId Prop。Action 不得被改写、丢弃或重复；Support 内部事件需按语义归属业务；"
+            "HeroTitle/HeroContent 仅允许按位置组合到 HeroTitleContentActionLayout；"
             "禁止直接调用 PillAction/IconAction/ActionTile、标准 Button 和事件对象。",
         )
     return (

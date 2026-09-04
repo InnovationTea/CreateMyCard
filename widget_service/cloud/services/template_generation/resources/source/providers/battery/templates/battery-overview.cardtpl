@@ -30,16 +30,15 @@ Column(
                       "height": 52,
                       "strokeWidth": 6}
                   ),
-            IfPresent(
-                    props.batteryIcon,
-                    Image(
-                              props.batteryIcon,
-                              {"width": 24,
-                                "height": 24,
-                                "objectFit": "contain",
-                                "fillColor": $theme('supportContentColor')}
-                            )
-                  )
+            #if props.batteryIcon
+              Image(
+                        props.batteryIcon,
+                        {"width": 24,
+                          "height": 24,
+                          "objectFit": "contain",
+                          "fillColor": $theme('supportContentColor')}
+                      )
+            #endif
           )
     )
 )
@@ -84,16 +83,15 @@ Column(
                       "strokeWidth": 6
                     }
                   ),
-            IfPresent(
-                    props.batteryIcon,
-                    Image(
-                              props.batteryIcon,
-                              {"width": 24,
-                                "height": 24,
-                                "objectFit": "contain",
-                                "fillColor": $theme('supportContentColor')}
-                            )
-                  )
+            #if props.batteryIcon
+              Image(
+                        props.batteryIcon,
+                        {"width": 24,
+                          "height": 24,
+                          "objectFit": "contain",
+                          "fillColor": $theme('supportContentColor')}
+                      )
+            #endif
           ),
       Column(
             {"itemMargin":4,
@@ -148,16 +146,15 @@ Column(
                       "height": 52,
                       "strokeWidth": 6}
                   ),
-            IfPresent(
-                    props.batteryIcon,
-                    Image(
-                              props.batteryIcon,
-                              {"width": 24,
-                                "height": 24,
-                                "objectFit": "contain",
-                                "fillColor": $theme('supportContentColor')}
-                            )
-                  )
+            #if props.batteryIcon
+              Image(
+                        props.batteryIcon,
+                        {"width": 24,
+                          "height": 24,
+                          "objectFit": "contain",
+                          "fillColor": $theme('supportContentColor')}
+                      )
+            #endif
           ),
       Column(
             {"width":"matchParent","layoutWeight": 1, "itemMargin": 4, "justifyContent": "center", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
@@ -196,23 +193,19 @@ Column(
       "itemMargin": 4,
       "justifyContent": "start", "alignItems": "start",
     },
-    IfPresent(
-      data.level,
+    #if data.level
       Text(
         data.level,
         { "width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 3, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       )
-    ),
-    IfAbsent(
-      data.level,
-      IfPresent(
-        data.charging,
+    #else
+      #if data.charging
         Text(
           data.charging,
           { "width": "matchParent", "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 3, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
         )
-      )
-    )
+      #endif
+    #endif
   )
 )
 #End
@@ -253,10 +246,9 @@ Column(
 
 #Template BatteryOverviewChargingProgressHero@1(props: {})
 data = {
-    percent: $path("/batterySOC"),
-    charging: $path("/chargingStatusDesc"),
-    health: $path("/healthStatusDesc"),
-    plugged: $path("/pluggedTypeDesc")
+    percentText: $path("/batterySOCText"),
+    charging: $optionalPath("/chargingStatusDesc"),
+    health: $optionalPath("/healthStatusDesc"),
 }
 
 Column(
@@ -279,40 +271,41 @@ Column(
   Row(
       {
         "width": "matchParent",
-        "height": 24,
+        "height": 44,
         "itemMargin": 2,
+        "margin": { "top": 6 },
         "justifyContent": "start",
         "alignItems": "bottom",
         "clip": true,
         "constraintSize": {"minWidth": 0, "minHeight": 0}
       },
       Text(
-          data.percent,
-          {"width": 34, "fontSize": 20, "minFontSize": 16, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-        ),
-      Text(
-          "%",
-          {"width": 16, "fontSize": 12, "fontWeight": 600, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "left", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+          data.percentText,
+          { "fontSize": 38, "minFontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
         )
     ),
-  Progress(
-      {"value": data.percent, "total": 100, "strokeWidth": 8, "color": $theme('progressColor'), "backgroundColor": $theme('actionStyle.backgroundColor'), "height": 8, "width": "matchParent"}
-    ),
+  #if data.charging && data.health
   Text(
       `${data.charging} · ${data.health}`,
       {"width": "matchParent", "height": 14, "fontSize": 12, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-    ),
-  Text(
-      data.plugged,
+    )
+  #elseif data.charging
+    Text(
+      `${data.charging}`,
       {"width": "matchParent", "height": 14, "fontSize": 12, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     )
+  #elseif data.health
+    Text(
+      `${data.health}`,
+      {"width": "matchParent", "height": 14, "fontSize": 12, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+    )
+  #endif
 )
 #End
 
 #Template BatteryOverviewPercentRingHero@1(props: { batteryIcon: asset })
 data = {
     percent: $path("/batterySOC"),
-    percentText: $path("/batterySOCText")
 }
 
 Column(
@@ -349,7 +342,7 @@ Column(
           )
     ),
   Text(
-      `手机电量剩余${data.percentText}`,
+      Expr("手机电量剩余" + data.percent + "%"),
       {"width": "matchParent", "height": 28, "fontSize": 14, "minFontSize": 12, "fontWeight": 500, "fontColor": $theme('primaryColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
     )
 )

@@ -16,6 +16,21 @@
   ],
   "templates": [
     {
+      "templateId": "WeatherOverviewHeroTitle@1",
+      "businessId": "WeatherOverview",
+      "capabilityId": "ViewWeather",
+      "description": "天气 HeroTitle，左侧展示城市，右侧按可用字段展示天气现象 | 温度、单独现象或单独温度；两者均缺失时只保留城市。仅用于 HeroTitleContentActionLayout 的第一个业务位置。",
+      "entry": "templates/weather-overview.cardtpl",
+      "primaryData": [],
+      "secondaryData": [],
+      "optionalData": [
+        "/location/prefectureName",
+        "/location/districtName",
+        "/current/temperatureText",
+        "/current/condition"
+      ]
+    },
+    {
       "templateId": "WeatherOverviewCompact@1",
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
