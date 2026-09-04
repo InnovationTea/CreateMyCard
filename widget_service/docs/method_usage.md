@@ -129,7 +129,14 @@ Design Compact DSL，再由服务内转换器读取该 Design profile 下的 `pr
 主 Agent 调用第四接口时不感知 WebSocket 的 `content` 字段，只使用标准工具调用格式：`arguments`、
 `functionName`、`skillName` 位于同层。`arguments` 必须直接传 JSON 对象，并包含 `bundleName`、
 `userQuery`、`title`、`description` 等工具字段；若误传为 JSON 字符串，服务会在模型调用前返回
-`/arguments` 错误，要求将字符串反序列化为对象后重新调用。
+`/arguments` 错误，要求将字符串反序列化为对象后重新调用。可通过
+`WIDGET_SERVICE_ENABLE_COMPACT_DSL_ARGUMENT_REPAIR_FALLBACK` 开启连续失败兜底，并使用
+`WIDGET_SERVICE_COMPACT_DSL_ARGUMENT_REPAIR_REMINDER_COUNT` 配置先提醒的次数；默认值为 `1`，即同一
+`requestId` 第一次返回原有提醒，第二次仍出现字符串化 `arguments` 时调用 A2UI client 修复。修复调用使用
+`cloud/data/protocol_profiles/design-compact-dsl/ARGUMENT_REPAIR_SYSTEM_PROMPT.md` 中的独立 JSON Prompt，
+不加载卡片生成系统 Prompt。模型输入明确携带原始字符串 `invalidArguments`；模型返回的对象
+替换请求 `content` 后，仍需通过正常请求模型、
+预检、生成、校验和存储流程。任意一次不再携带字符串化 `arguments` 的请求会清除该 `requestId` 的连续计数。
 
 `generateWidgetCardTerseDslNested2` 从
 `cloud/data/protocol_profiles/terse-dsl-nested-2/PROMPT.md` 读取本地 Prompt。模型输出只进入

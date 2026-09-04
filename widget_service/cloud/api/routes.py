@@ -40,6 +40,11 @@ from models.service import (
     WidgetWebSocketResultMessage,
 )
 from services.capability_registry import CapabilityRegistry
+from services.compact_dsl_argument_repair import (
+    compact_dsl_argument_issue_tracker,
+    has_explicit_stringified_arguments,
+    repair_compact_dsl_content,
+)
 from services.widget_directive import (
     WidgetDirectiveState,
     build_widget_directive_response,
@@ -136,15 +141,67 @@ DEFAULT_ERROR_EXPLANATION = (
 
 
 class StringifiedToolArgumentsError(ValueError):
-    """表示主 Agent 把工具 arguments 错误序列化成了 JSON 字符串。"""
+    """表示工具 arguments 在传输映射前后被错误地字符串化。"""
 
     error_code = ErrorCode.INVALID_ARGUMENTS
 
-    def __init__(self) -> None:
-        super().__init__("tool arguments must be a JSON object instead of a JSON string")
+    def __init__(
+        self,
+        *,
+        model_called: bool = False,
+        repair_failure_type: str = "",
+        transport_only: bool = False,
+    ) -> None:
+        error_message = "tool arguments were stringified before content mapping"
+        if not transport_only:
+            error_message = "content.arguments must not be a JSON string"
+        super().__init__(error_message)
+        self.model_called = model_called
+        self.repair_failure_type = repair_failure_type
+        self.transport_only = transport_only
 
     def details(self) -> dict[str, Any]:
         """构造保持插件包络格式的可执行修复说明。"""
+        if self.transport_only:
+            return self._transport_only_details()
+        stage = "argumentRepair" if self.model_called else "requestEnvelope"
+        details = {
+            "stage": stage,
+            "modelCalled": self.model_called,
+            "retryable": True,
+            "requiredActions": ["FIX_AND_RETRY"],
+            "agentInstruction": (
+                "外层请求是合法 JSON，但工具调用的 arguments 被序列化成字符串，"
+                "导致传输包的 content 中出现多余的字符串字段 arguments。"
+                "请把该字符串反序列化为 JSON 对象，并将其业务字段直接作为"
+                " generateWidgetCardCompactDsl 的 arguments 重新调用。"
+            ),
+            "issues": [
+                {
+                    "code": "STRINGIFIED_TOOL_ARGUMENTS",
+                    "path": "/content/arguments",
+                    "message": "content 中多传了字符串类型的 arguments 字段。",
+                    "expected": "content directly contains the tool business fields",
+                    "actualType": "string",
+                    "agentAction": "FIX_AND_RETRY",
+                    "retryable": True,
+                    "capabilityId": "",
+                    "repairInstruction": (
+                        "反序列化 content.arguments，把恢复出的业务字段提升到 content，"
+                        "并移除 content.skillName、content.functionName 和 content.arguments。"
+                    ),
+                    "referenceSource": "generateWidgetCardCompactDsl tool schema",
+                }
+            ],
+            "warnings": [],
+        }
+        if self.repair_failure_type:
+            details["repairFailureType"] = self.repair_failure_type
+        return details
+
+    @staticmethod
+    def _transport_only_details() -> dict[str, Any]:
+        """构造工具层仅保留四个透传字段时的原有纠错提示。"""
         return {
             "stage": "requestEnvelope",
             "modelCalled": False,
@@ -360,7 +417,7 @@ def _validate_compact_dsl_content(
         raise StringifiedToolArgumentsError()
     if set(content) == COMPACT_DSL_TRANSPORT_CONTENT_KEYS:
         # arguments 为字符串时，部分工具层不会展开业务字段，只保留自动透传字段。
-        raise StringifiedToolArgumentsError()
+        raise StringifiedToolArgumentsError(transport_only=True)
 
 
 def _mapping(value: Any) -> dict[str, Any]:
@@ -424,7 +481,7 @@ def _raw_request_for_log(payload: dict[str, Any]) -> str:
 
 def _model_request_context_from_payload(
     payload: dict[str, Any],
-    request: VersionedToolRequest,
+    request: VersionedToolRequest | None,
 ) -> ModelRequestContext:
     """从原始工具请求构造模型服务使用的稳定动态上下文。"""
     settings = get_settings()
@@ -432,6 +489,8 @@ def _model_request_context_from_payload(
     device_info = _mapping(payload.get("deviceInfo"))
     content = _mapping(payload.get("content"))
     arguments = _mapping(payload.get("arguments"))
+    request_device_id = request.device.deviceId if request is not None else None
+    request_app_version = request.prdVer if request is not None else None
     session_id = _first_text(session.get("sessionId"), default=uuid.uuid4().hex)
     interaction_id = _first_text(
         session.get("interactionId"),
@@ -440,14 +499,14 @@ def _model_request_context_from_payload(
     device_id = _first_text(
         session.get("deviceId"),
         device_info.get("deviceId"),
-        request.device.deviceId,
+        request_device_id,
         default=f"aiwidget-{uuid.uuid4().hex}",
     )
     app_version = _first_text(
         session.get("clientVersion"),
         session.get("prdVer"),
         device_info.get("prdVer"),
-        request.prdVer,
+        request_app_version,
         default=settings.default_prd_version,
     )
     app_name = _first_text(
@@ -469,6 +528,55 @@ def _model_request_context_from_payload(
         app_version=app_version,
         app_name=app_name,
     )
+
+
+async def _repair_compact_dsl_content_if_needed(
+    payload: dict[str, Any],
+    operation: str,
+    request_id: str | None,
+    model_runtime: ModelExecutionRuntime | None,
+) -> bool:
+    """连续出现字符串化 arguments 时按配置调用模型恢复 content。"""
+    has_issue = has_explicit_stringified_arguments(payload)
+    if operation != COMPACT_DSL_OPERATION or not has_issue:
+        compact_dsl_argument_issue_tracker.reset(request_id)
+        return False
+    settings = get_settings()
+    if not settings.enable_compact_dsl_argument_repair_fallback:
+        compact_dsl_argument_issue_tracker.reset(request_id)
+        return False
+    if not request_id:
+        return False
+    issue_count, should_repair = compact_dsl_argument_issue_tracker.record(
+        request_id,
+        settings.compact_dsl_argument_repair_reminder_count,
+    )
+    logger.info(
+        f"{_MODULE} compact_dsl_argument_issue_recorded request_id={request_id} "
+        f"issue_count={issue_count} repair_enabled=true "
+        f"should_repair={json_for_log(should_repair)}"
+    )
+    if not should_repair:
+        return False
+    try:
+        repaired_content = await repair_compact_dsl_content(
+            payload,
+            backend=settings.design_compact_model_backend,
+            model_runtime=model_runtime,
+            request_context=_model_request_context_from_payload(payload, None),
+        )
+    except Exception as exc:
+        logger.error(
+            f"{_MODULE} compact_dsl_argument_repair_failed request_id={request_id} "
+            f"exception_type={type(exc).__name__} traceback={traceback.format_exc()}"
+        )
+        raise StringifiedToolArgumentsError(
+            model_called=True,
+            repair_failure_type=type(exc).__name__,
+        ) from exc
+    payload["content"] = repaired_content
+    compact_dsl_argument_issue_tracker.reset(request_id)
+    return True
 
 
 def _error_details(
@@ -733,6 +841,14 @@ async def _serve_operation_websocket(
             try:
                 if not isinstance(payload, dict):
                     raise ValueError("WebSocket request body must be a JSON object")
+                content_repaired = await _repair_compact_dsl_content_if_needed(
+                    payload,
+                    operation,
+                    request_id,
+                    model_runtime,
+                )
+                if content_repaired:
+                    raw_request_body = json.dumps(payload, ensure_ascii=False)
                 request_id, arguments = _normalize_payload(payload, operation)
                 # 解析出 requestId 后立即写入日志上下文，后续链路共用同一日志标识。
                 task_logger.set_user_device_trace(combined_trace_hash)
