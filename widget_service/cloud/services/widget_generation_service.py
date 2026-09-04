@@ -603,7 +603,11 @@ class WidgetGenerationService:
                     )
                     return require_generated_dsl(result)
                 except Exception as exc:
-                    fallback = "jsx" if try_jsx else ("original_protocol_flow" if need_fallback else "none")
+                    fallback = (
+                        "jsx"
+                        if try_jsx
+                        else ("original_protocol_flow" if need_fallback else "none")
+                    )
                     logger.info(
                         f"{_MODULE} template_source_generation_failed "
                         f"operation={policy.operation} fallback={fallback} "
@@ -662,7 +666,7 @@ class WidgetGenerationService:
             nonlocal model_call_phase, quality_repair_attempt_count
             quality_repair_attempt_count += 1
             quality_error_payloads = [
-                item.to_prompt_payload() for item in latest_processing_result.errors
+                item.to_repair_payload() for item in latest_processing_result.errors
             ]
             if len(quality_error_payloads) != len(quality_errors):
                 raise RuntimeError("repair quality issue state is inconsistent")
