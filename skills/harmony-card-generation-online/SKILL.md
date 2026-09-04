@@ -86,42 +86,10 @@ getDataCapabilitySchemas → 基于 schema 的 required 参数追问（如有）
 
 ## 工具调用
 
-依赖 frontmatter 声明的三个微服务工具和一个端工具。使用统一调用格式，保留现有
-`invoke` 外层和键名格式。`arguments` 必须是 JSON 对象；其中每个 value 必须直接使用
-JSON 原生值（对象、数组、字符串、数字、布尔值或 `null`），不得把对象或数组序列化成
-字符串，也不得把整个 `arguments` 序列化成字符串。字段类型和必填项仍以当前运行时
-schema 为唯一依据。
-
-正确示例：对象和数组作为原生 JSON 值传入，数组项中的 `arguments` 仍是对象：
+依赖 frontmatter 声明的三个微服务工具和一个端工具。使用统一调用格式；仅要求 `arguments` 内各键对应的值是合法 JSON 值，保留现有 invoke 外层和键名格式：
 
 ```text
-invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
-  bundleName:"com.omega_w_0823.hmservice",
-  userQuery:"做一张显示天气的卡片。",
-  candidateDataBindings:[
-    {
-      capabilityId:"ViewWeather",
-      arguments:{forecastDays:1},
-      writeResultTo:"/data/weather"
-    }
-  ],
-  candidateEventCandidates:[]
-},"skillName":"harmony-card-generation-online")
-```
-
-错误示例：将对象、数组或整个参数对象写成字符串；这会导致工具收到错误类型，必须改为
-上面的原生 JSON 值写法：
-
-```text
-// 错误：arguments 是字符串，而不是 JSON 对象
-invoke(functionName:"generateWidgetCardCompactDsl", arguments:"{\\"bundleName\\":\\"com.omega_w_0823.hmservice\\",\\"userQuery\\":\\"做一张显示天气的卡片。\\"}","skillName":"harmony-card-generation-online")
-
-// 错误：candidateDataBindings 和其内部 arguments 被序列化为字符串
-invoke(functionName:"generateWidgetCardCompactDsl", arguments:{
-  bundleName:"com.omega_w_0823.hmservice",
-  userQuery:"做一张显示天气的卡片。",
-  candidateDataBindings:"[{\\"capabilityId\\":\\"ViewWeather\\",\\"arguments\\":{\\"forecastDays\\":1}}]"
-},"skillName":"harmony-card-generation-online")
+invoke(functionName:"<toolName>", arguments:{bundleName:"com.omega_w_0823.hmservice", ...},"skillName":"harmony-card-generation-online")
 ```
 
 ## 不可绕过的重要约束
