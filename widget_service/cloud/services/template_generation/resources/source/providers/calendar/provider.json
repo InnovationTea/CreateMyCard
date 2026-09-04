@@ -154,6 +154,51 @@
         "/events/0/eventLocation"
       ],
       "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewUpcomingSummaryWideFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "近日安排 WideFull，以统一左对齐的信息层级突出未来七天日程数量和最近一场会议标题，并补充开始时间与全天状态。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/eventCount",
+        "/events/0/title",
+        "/events/0/dtStart",
+        "/events/0/isAllDay"
+      ],
+      "secondaryData": [],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewMeetingReminderWideHero@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "公司会议 WideHero，展示会议标题、开始时间、地点和提前提醒。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/events/0/title",
+        "/events/0/dtStart",
+        "/events/0/eventLocation",
+        "/events/0/remindTime/0"
+      ],
+      "secondaryData": [],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewMeetingJoinWideHero@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "需求评审 WideHero，展示会议开始时间、地点、发起人和一键入会能力。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/events/0/dtStart",
+        "/events/0/eventLocation",
+        "/events/0/senderName",
+        "/events/0/oneClickServiceLink"
+      ],
+      "secondaryData": [],
+      "optionalData": []
     }
   ],
   "compatibility": {

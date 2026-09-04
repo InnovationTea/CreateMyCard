@@ -262,6 +262,8 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "BatteryOverviewChargingRingHero@1",
         "BatteryOverviewHealthLevelHero@1",
         "BluetoothDeviceOverviewEarbudPairFull@1",
+        "BluetoothDeviceOverviewEarbudsChargingWideHero@1",
+        "BluetoothDeviceOverviewEarbudsMusicWideHero@1",
         "BluetoothDeviceOverviewHero@1",
         "CountdownOverviewFull@1",
         "CountdownOverviewHero@1",
@@ -272,6 +274,9 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "ScheduleOverviewNextEventHero@1",
         "ScheduleOverviewReminderHero@1",
         "ScheduleOverviewTimezoneFull@1",
+        "ScheduleOverviewUpcomingSummaryWideFull@1",
+        "ScheduleOverviewMeetingJoinWideHero@1",
+        "ScheduleOverviewMeetingReminderWideHero@1",
         "SleepOverviewCompact@1",
         "SleepOverviewFull@1",
         "SleepOverviewHero@1",
@@ -582,7 +587,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 9
+    assert len(calendar.local_template_ids) == 12
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert not any(
         template_id.startswith("DateOverview")
@@ -2244,7 +2249,7 @@ def test_earphone_templates_bind_progress_color_to_theme_support_content() -> No
             assert color.kind == "theme"
             assert color.name == "supportContentColor"
 
-    assert progress_count == 10
+    assert progress_count == 11
 
 
 def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() -> None:
@@ -2332,7 +2337,7 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
             assert preserve_original.value is True
             preserved_assets.append((template_id, source.name))
 
-    assert len(preserved_assets) == 18
+    assert len(preserved_assets) == 24
     assert themed_assets == expected_themed_assets
     assert inherited_assets == expected_inherited_assets
 
@@ -2524,7 +2529,7 @@ def test_calendar_templates_follow_latest_schedule_contract() -> None:
     registry = get_cardplan_registry()
     calendar = registry.require_ux_business_component("CalendarOverview")
 
-    assert len(calendar.local_template_ids) == 9
+    assert len(calendar.local_template_ids) == 12
     assert "ScheduleOverviewHeroContent@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert not any(
@@ -3064,13 +3069,17 @@ async def test_calendar_timezone_full_requires_time_range() -> None:
 
 
 @pytest.mark.asyncio
-async def test_calendar_event_count_template_is_not_advertised() -> None:
+async def test_calendar_event_count_is_only_advertised_by_upcoming_summary() -> None:
     registry = get_cardplan_registry()
     calendar = registry.require_ux_business_component("CalendarOverview")
     rule = registry.provider_second_layer_rules(("CalendarOverview",))[0]["content"]
 
     assert "ScheduleOverviewEventCountHero@1" not in calendar.local_template_ids
     assert "ScheduleOverviewEventCountHero@1" not in rule
+    upcoming_summary = registry.require_template(
+        "ScheduleOverviewUpcomingSummaryWideFull@1"
+    )
+    assert "/eventCount" in upcoming_summary.primary_data
     assert all(
         "/eventCount"
         not in (
@@ -3079,6 +3088,7 @@ async def test_calendar_event_count_template_is_not_advertised() -> None:
             *definition.optional_data,
         )
         for template_id in calendar.local_template_ids
+        if template_id != "ScheduleOverviewUpcomingSummaryWideFull@1"
         for definition in (registry.require_template(template_id),)
     )
 

@@ -24,9 +24,16 @@
     `timeIcon` 与 `locationIcon`。
   - `ScheduleOverviewMeetingSourceWideFull@1`：带来源图标的宽版会议摘要；`sourceIcon` 必填，
     `timeIcon` 与 `locationIcon` 可选。
+  - `ScheduleOverviewUpcomingSummaryWideFull@1`：近日安排宽版摘要；以统一左对齐的信息层级突出未来
+    七天日程数量和最近一场会议标题，并补充开始时间和全天状态；可选 `calendarIcon`、`timeIcon` 与
+    `headerLabel`。
+  - `ScheduleOverviewMeetingReminderWideHero@1`：公司会议宽版摘要；展示标题、开始时间、地点和提前
+    提醒；可选 `calendarIcon`、`locationIcon` 与 `reminderIcon`。
+  - `ScheduleOverviewMeetingJoinWideHero@1`：需求评审宽版摘要；展示开始时间、地点、发起人和入会能力；
+    可选 `calendarIcon`。
 - Hero 只用于 `HeroActionLayout@1` 加一个 `PillAction@1`；Full 只用于 `SingleFocusLayout@1`，
   或在存在语义匹配图标素材时用于 `FullIconActionLayout@1` 加一个 `IconAction@1`。WideFull 当前只作
-  `2x4` 预留。
+  `2x4` 预留；WideHero 用于 `WideSingleFocusLayout@1` 加一个 `PillAction@1`。
 - HeroContent 必须位于 HeroTitle 之后，且布局第三个直接 child 必须是一个 `PillAction@1`；不得交换
   两个业务位置或在业务模板内嵌 Action。
 - `headerLabel` 只能逐字复用 `cardComposition.businessTitleCandidate`，没有可信标题时省略。
@@ -39,5 +46,7 @@
   - `calendarIcon`：日历本或日程管理语义，使用 Theme 辅助内容色着色；
   - `timeIcon`：时钟、时间或日程时刻语义；
   - `locationIcon`：地点、位置、会议室或地图标记语义。
+  - `meetingIcon`：会议、日程或视频会议语义；
+  - `reminderIcon`：提醒、铃铛或通知语义。
 - 同一模板的多个素材槽位必须分别匹配语义，不得复用同一素材填充来源、时间和地点。
 - Action 图标必须与动作语义一致；`PillAction@1` 没有匹配素材时省略 `icon`，不得复用业务内容素材。
