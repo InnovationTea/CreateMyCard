@@ -286,6 +286,97 @@ def test_validator_reports_duplicate_when_following_text_contains_included_unit(
     assert reporter.has_code("DISPLAY_UNIT_DUPLICATED")
 
 
+def test_validator_does_not_assign_another_dynamic_metrics_unit_to_previous_value():
+    capability = DataCapability(
+        id="Weather",
+        description="测试天气",
+        outputSchema={
+            "type": "object",
+            "properties": {
+                "temperatureC": {
+                    "type": "number",
+                    "description": "当前温度纯数值",
+                    "displayUnits": ["℃"],
+                    "unitIncluded": False,
+                },
+                "feelsLikeC": {
+                    "type": "number",
+                    "description": "体感温度纯数值",
+                    "displayUnits": ["℃"],
+                    "unitIncluded": False,
+                },
+            },
+        },
+    )
+    components = [
+        {
+            "id": "root",
+            "component": "Row",
+            "children": ["temperature_num", "temperature_unit", "feels_text"],
+        },
+        {
+            "id": "temperature_num",
+            "component": "Text",
+            "content": "{{ ${/data/weather/temperatureC} }}",
+        },
+        {"id": "temperature_unit", "component": "Text", "content": "°C"},
+        {
+            "id": "feels_text",
+            "component": "Text",
+            "content": "{{ '体感 ' + ${/data/weather/feelsLikeC} + '°C' }}",
+        },
+    ]
+    genui = "\n".join(
+        json.dumps(row, ensure_ascii=False, separators=(",", ":"))
+        for row in [
+            {
+                "version": "v0.9",
+                "createSurface": {
+                    "surfaceId": "card",
+                    "catalogId": "ohos.a2ui.extended.catalog.form",
+                },
+            },
+            {
+                "version": "v0.9",
+                "updateComponents": {
+                    "surfaceId": "card",
+                    "root": "root",
+                    "components": components,
+                },
+            },
+            {
+                "version": "v0.9",
+                "updateDataModel": {
+                    "surfaceId": "card",
+                    "path": "/",
+                    "value": {
+                        "data": {"weather": {"temperatureC": 29, "feelsLikeC": 31}}
+                    },
+                },
+            },
+        ]
+    )
+    reporter = validate_card(
+        artifact={
+            "genui": genui,
+            "cardSpec": {
+                "dataBindings": [
+                    {
+                        "capabilityId": "Weather",
+                        "arguments": {},
+                        "writeResultTo": "/data/weather",
+                    }
+                ]
+            },
+            "effectiveCapabilities": {
+                "data": [capability.model_dump(mode="json")]
+            },
+        }
+    )
+
+    assert not reporter.has_code("DISPLAY_UNIT_MISSING", "DISPLAY_UNIT_DUPLICATED")
+
+
 def test_artifact_validation_diagnostic_keeps_unit_fix_context_for_repair():
     diagnostic = Diagnostic(
         severity="error",
