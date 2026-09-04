@@ -55,6 +55,17 @@ The service follows `docs/AGENTS.md`:
   `WIDGET_SERVICE_MODEL_FAILURE_RETRY_JITTER_RATIO` settings. Backoff does not hold a worker thread or model permit.
   Conversion and Validator errors still trigger immediate targeted repair through the separate validation retry switch.
   Final model failures never enter validation or artifact persistence.
+- `WIDGET_SERVICE_ENABLE_COMPACT_DSL_ARGUMENT_REPAIR_FALLBACK=false` controls malformed fourth-interface tool-call
+  recovery. When enabled, the service tracks stringified `content.arguments` per `requestId` in the current process.
+  `WIDGET_SERVICE_COMPACT_DSL_ARGUMENT_REPAIR_REMINDER_COUNT=1` means the first consecutive occurrence returns the
+  existing correction instruction and the second invokes `A2UIModelClient` with the JSON-only prompt from
+  `data/protocol_profiles/design-compact-dsl/ARGUMENT_REPAIR_SYSTEM_PROMPT.md`.
+  `WIDGET_SERVICE_COMPACT_DSL_ARGUMENT_REPAIR_MAX_ATTEMPTS=2` controls the dedicated content-validation attempts.
+  The original string is always sent unchanged as `rawArguments`; no heuristic JSON repair runs before or after the
+  model. Each output must pass strict JSON parsing and request validation. A rejected first output is retried with its
+  validation errors. Registered event actions are rebuilt from the App/ROM capability registry, and only declared
+  dynamic values are retained. If all model outputs fail, a minimal static request keeps recoverable user text and
+  continues through the normal generation flow.
 - With model mock disabled, all three generation routes use `A2UIModelClient.generate()` and the internal
   `UnifiedModelClient.generate()` entry. The `openai` route uses DeepSeek Platform as master and the existing
   `cloud/custom/llmclient.py` as fallback by default. Configure them with `WIDGET_SERVICE_OPENAI_MASTER_CLIENT` and

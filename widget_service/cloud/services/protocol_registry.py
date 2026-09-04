@@ -21,6 +21,7 @@ _RANGE_INDEX_FILE = "registry_ranges.json"
 _DESIGN_PROMPT_FILE = "PROMPT.md"
 _DESIGN_EDIT_PROMPT_FILE = "EDIT_SYSTEM_PROMPT.md"
 _DESIGN_REPAIR_PROMPT_FILE = "REPAIR_SYSTEM_PROMPT.md"
+_DESIGN_ARGUMENT_REPAIR_PROMPT_FILE = "ARGUMENT_REPAIR_SYSTEM_PROMPT.md"
 _DESIGN_PROTOCOL_FILE = "protocol.json"
 
 
@@ -202,6 +203,21 @@ class A2UIProtocolRegistry:
         prompt_path = root / design_profile_id / _DESIGN_REPAIR_PROMPT_FILE
         if not prompt_path.is_file():
             raise ValueError(f"Design Compact repair prompt not found: {prompt_path}")
+        return prompt_path.read_text(encoding="utf-8")
+
+    @classmethod
+    def read_design_argument_repair_prompt(
+        cls,
+        design_profile_id: str,
+        profiles_root: Path | None = None,
+    ) -> str:
+        """读取 Design Compact 工具入参修复系统提示词。"""
+        root = profiles_root or get_settings().data_root / "protocol_profiles"
+        prompt_path = root / design_profile_id / _DESIGN_ARGUMENT_REPAIR_PROMPT_FILE
+        if not prompt_path.is_file():
+            raise ValueError(
+                f"Design Compact argument repair prompt not found: {prompt_path}"
+            )
         return prompt_path.read_text(encoding="utf-8")
 
     @classmethod

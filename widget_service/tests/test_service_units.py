@@ -108,6 +108,10 @@ from services.card_validator import validate_card
 from services.card_validation import validate_card as validate_card_api
 from services.card_validation.rule_registry import RuleRegistry
 from services.capability_registry import CapabilityRegistry
+from services.compact_dsl_argument_repair import (
+    ConsecutiveArgumentIssueTracker,
+    _build_repair_prompt,
+)
 from services.device_capability_resolver import DeviceCapabilityResolver
 from services.edit_request_normalizer import EditRequestNormalizer
 from services.generation_pipeline import (
@@ -599,6 +603,29 @@ def test_widget_directive_commands_are_disabled_by_default(monkeypatch):
     monkeypatch.delenv("WIDGET_SERVICE_ENABLE_WIDGET_DIRECTIVE_COMMANDS", raising=False)
 
     assert Settings(_env_file=None).enable_widget_directive_commands is False
+
+
+def test_compact_dsl_argument_repair_defaults_to_one_reminder(monkeypatch):
+    monkeypatch.delenv(
+        "WIDGET_SERVICE_ENABLE_COMPACT_DSL_ARGUMENT_REPAIR_FALLBACK",
+        raising=False,
+    )
+    settings = Settings(_env_file=None)
+
+    assert settings.enable_compact_dsl_argument_repair_fallback is False
+    assert settings.compact_dsl_argument_repair_reminder_count == 1
+    assert settings.compact_dsl_argument_repair_max_attempts == 2
+
+
+def test_consecutive_argument_issue_tracker_counts_per_request_and_resets():
+    tracker = ConsecutiveArgumentIssueTracker()
+
+    assert tracker.record("request-a", 2) == (1, False)
+    assert tracker.record("request-b", 2) == (1, False)
+    assert tracker.record("request-a", 2) == (2, False)
+    assert tracker.record("request-a", 2) == (3, True)
+    tracker.reset("request-a")
+    assert tracker.record("request-a", 2) == (1, False)
 
 
 def test_model_failure_retry_can_be_enabled_by_environment(monkeypatch):
@@ -1212,6 +1239,59 @@ def test_protocol_ranges_follow_capability_version_intervals():
         assert protocol_range.get("romVersion") == capability_range.get("romVersion")
         assert protocol_range.get("protocolProfileId") == "a2ui-form-rom6.0-v1"
         assert protocol_range.get("designProfileId") == "design-compact-dsl"
+
+
+def test_argument_repair_prompt_focuses_on_irregular_json_structure():
+    prompt = A2UIProtocolRegistry.read_design_argument_repair_prompt(
+        "design-compact-dsl"
+    )
+
+    assert "rawArguments" in prompt
+    assert "targetStructure" in prompt
+    assert "缺少右花括号" in prompt
+    assert "或右方括号" in prompt
+    assert "action.args" in prompt
+    assert "previousOutput" in prompt
+    assert "validationErrors" in prompt
+    assert "machineRecoveredCandidate" not in prompt
+    assert "ViewWeather" not in prompt
+    assert "event.call.phone" not in prompt
+    assert "relationship" not in prompt
+    assert "generateWidgetCardCompactDsl" not in prompt
+    assert "functionName" not in prompt
+    assert "skillName" not in prompt
+    assert "接口" not in prompt
+    assert "DSL" not in prompt
+
+
+def test_argument_repair_prompt_keeps_raw_json_without_machine_repair():
+    broken_json = (
+        '{"candidateDataBindings":{"capabilityId":"ViewWeather",'
+        '"arguments":"{\\"forecastDays\\":1}"'
+    )
+    messages = _build_repair_prompt(
+        {
+            "arguments": broken_json,
+            "romVersion": ROM_VERSION_7_0,
+        }
+    )
+
+    system_content = messages[0].get("content")
+    user_content = messages[1].get("content")
+    assert isinstance(system_content, str)
+    assert isinstance(user_content, str)
+    repair_input = json_module.loads(user_content)
+    assert isinstance(repair_input, dict)
+    assert repair_input.get("rawArguments") == broken_json
+    assert repair_input.get("preservedTopLevelFields") == {
+        "romVersion": ROM_VERSION_7_0,
+    }
+    assert "machineRecoveredCandidate" not in repair_input
+    target_structure = repair_input.get("targetStructure")
+    assert isinstance(target_structure, dict)
+    assert isinstance(target_structure.get("candidateDataBindings"), list)
+    assert isinstance(target_structure.get("candidateEventCandidates"), list)
+    assert "array 的字段即使只有一项也必须输出 array" in system_content
 
 
 def test_compact_protocol_selection_uses_configured_default_fallback():
@@ -3271,6 +3351,32 @@ async def test_a2ui_model_client_real_mode_forwards_messages(monkeypatch):
     monkeypatch.setattr(client, "convert_dsl", lambda value: value)
 
     assert await client.generate(messages) == "forwarded"
+
+
+@pytest.mark.asyncio
+async def test_a2ui_model_client_raw_json_profile_keeps_custom_prompt_and_output():
+    """参数修复可使用自定义提示词，且不会被 A2UI DSL 后处理改写。"""
+    messages = [
+        {"role": "system", "content": "repair only"},
+        {"role": "user", "content": '{"rawArguments":"{}"}'},
+    ]
+    raw_output = "```json\n{\n  \"userQuery\": \"天气卡片\"\n}\n```"
+    captured: list[list[dict[str, str]]] = []
+
+    class FakeTransport:
+        @staticmethod
+        def generate(value):
+            captured.append(value)
+            return raw_output
+
+    client = A2UIModelClient(use_mock=False, transport=FakeTransport())
+    result = await client.generate(
+        messages,
+        {"id": "argument-repair", "format": "raw-json"},
+    )
+
+    assert captured == [messages]
+    assert result == raw_output
 
 
 @pytest.mark.asyncio
