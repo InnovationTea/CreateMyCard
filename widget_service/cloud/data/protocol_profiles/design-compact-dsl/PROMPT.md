@@ -626,6 +626,7 @@ ActionUnit——卡级 CTA：
 
 - 用于：两个并列理解的事实/分区（天气+打车、内存+耳机）。
 - 亚型：纵堆（`root -> [zone_top, zone_bottom]`，root `itemMargin:8`，两 zone 各高 64、borderRadius 16 的同族低对比背板，`64 + 8 + 64 = 136`，不得再增加 title/header/footer；zone 内 `Row -> [文字组, 视觉主体]`，其中一方可承载动作入口）；横行（`root -> [title_area?, content_area]`，`content_area Row -> [visual_group, text_group]`，visual_group 为 ring/Stack/主图标 48-52，text_group 为文字列）。
+- 纵堆的两块 zone 背板固定左右 `padding:12`，使内部内容距 160vp root 左右边界均为 24vp；zone 内部水平预算按 `136 - 12 - 12 = 112vp` 计算，不得只依赖 root 的 12vp 内边距。
 - 槽位：每方一个视觉主体 + 一组文字；每方至多一个主数值。
 - 禁止：总标题（横行亚型可保留小标题行）、三方分区、两方结构不同构。
 
