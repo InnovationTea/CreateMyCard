@@ -31,13 +31,12 @@ Column(
                 "alignItems": "start",
                 "constraintSize": {"minWidth": 0, "minHeight": 0}
             },
-            IfPresent(
-                props.sourceIcon,
-                Image(
-                    props.sourceIcon,
-                    {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
-                )
-            ),
+            #if props.sourceIcon
+              Image(
+                  props.sourceIcon,
+                  {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+              )
+            #endif
             Text(
                 data.workoutType,
                 {
@@ -141,13 +140,12 @@ Column(
                 }
             )
         ),
-        IfPresent(
-            props.sourceIcon,
-            Image(
-                props.sourceIcon,
-                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
-            )
-        )
+        #if props.sourceIcon
+          Image(
+              props.sourceIcon,
+              {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+          )
+        #endif
     )
 )
 #End
@@ -176,13 +174,12 @@ Column(
             data.workoutType,
             {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1}
         ),
-        IfPresent(
-            props.sourceIcon,
-            Image(
-                props.sourceIcon,
-                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
-            )
-        )
+        #if props.sourceIcon
+          Image(
+              props.sourceIcon,
+              {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+          )
+        #endif
     ),
     Text(
         data.workoutCalories,
@@ -258,16 +255,15 @@ Stack({
                   }
               )
           ),
-          IfPresent(
-              props.sourceIcon,
-              Image(
-                  props.sourceIcon,
-                  {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
-              )
-          )
+          #if props.sourceIcon
+            Image(
+                props.sourceIcon,
+                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+            )
+          #endif
       )
   ),
-  IfPresent(props.actionId,
+  #if props.actionId
     Stack({
       "width": "matchParent",
       "height": "matchParent",
@@ -279,6 +275,6 @@ Stack({
         "height": "matchParent"
       })
     )
-  )
+  #endif
 )
 #End

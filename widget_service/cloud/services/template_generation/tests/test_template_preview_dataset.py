@@ -16,18 +16,20 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     manifest = write_template_preview_dataset(tmp_path)
     cases = manifest["cases"]
 
-    assert manifest["templateCount"] == 72
+    assert manifest["templateCount"] == 69
     assert manifest["countsByLayout"] == {
+        "HeroTitle": 1,
+        "HeroContent": 1,
         "Support": 12,
-        "Compact": 12,
+        "Compact": 11,
         "Hero": 18,
-        "Full": 17,
+        "Full": 15,
         "WideHero": 2,
         "WideFull": 9,
     }
-    assert manifest["countsBySize"] == {"2x2": 57, "2x4": 11}
-    assert len(cases) == 68
-    assert len({case["templateId"] for case in cases}) == 68
+    assert manifest["countsBySize"] == {"2x2": 58, "2x4": 11}
+    assert len(cases) == 69
+    assert len({case["templateId"] for case in cases}) == 69
     assert all((tmp_path / case["file"]).is_file() for case in cases)
 
 
@@ -39,10 +41,17 @@ def test_template_preview_a2ui_has_surface_components_and_data():
         assert "createSurface" in case.messages[0]
         assert "updateComponents" in case.messages[1]
         assert "updateDataModel" in case.messages[2]
-        components = case.messages[1]["updateComponents"]["components"]
+        update_components = case.messages[1]["updateComponents"]
+        assert update_components["root"] == "root"
+        components = update_components["components"]
         root = next(component for component in components if component["id"] == "root")
         assert root["component"] == "Column"
-        slot = next(component for component in components if component["id"] == "root_0")
+        assert root["children"] == ["template_root"]
+        slot = next(
+            component
+            for component in components
+            if component["id"] == "template_root"
+        )
         assert slot["styles"]["height"] == case.content_height_vp
 
 
@@ -76,7 +85,15 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
     for case in cases:
         counts = Counter((*case.primary_data, *case.secondary_data, *case.optional_data))
         assert all(count == 1 for count in counts.values())
-        assert case.primary_data
+        if case.template_id == "WeatherOverviewHeroTitle@1":
+            assert case.primary_data == ()
+            assert case.secondary_data == ()
+            assert case.optional_data == (
+                "/location/prefectureName", "/location/districtName",
+                "/current/temperatureText", "/current/condition",
+            )
+        else:
+            assert case.primary_data
         assert json.dumps(case.messages, ensure_ascii=False)
 
 

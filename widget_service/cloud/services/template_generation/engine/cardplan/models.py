@@ -13,6 +13,7 @@ _BUSINESS_TEMPLATE_SUPPORTED_LAYOUTS = (
     "HeroActionLayout",
     "FullIconActionLayout",
     "CompactTwoActionLayout",
+    "HeroTitleContentActionLayout",
     "TwoSupportLayout",
     "WideSingleFocusLayout",
 )

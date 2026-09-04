@@ -4,12 +4,12 @@
 
 ## 整改总览
 
-- [x] 72 个业务模板全部使用 `Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
+- [x] 69 个业务模板全部使用 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
 - [x] 业务模板尺寸和动作组合由后缀推导，不再由 Provider 重复声明。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
 - [x] `primaryData` 与 `secondaryData` 均参与模板准入硬校验。
-- [x] Support/TwoSupport 底层资源仍保留，但当前 Search 显式拒绝 `2x2` 多业务；Compact 使用双
-  PillAction；Full 用于无 Action，或搭配一个 IconAction。
+- [x] Support/TwoSupport 底层资源仍保留且 Search 不可达；生产 Search 仅额外开放
+  HeroTitle + HeroContent + 单 PillAction 的受控双业务组合；Compact 使用双 PillAction；Full 用于无 Action，或搭配一个 IconAction。
 - [x] PillAction/IconAction 使用独立 Action Provider 模板，第二层只输出批准的展示 Props。
 - [x] 第一层支持选择零到两个不重复 eventId。
 - [x] 每个业务模板均在 `provider.json` 中声明主数据、次要数据、可选数据和布局场景。
@@ -18,6 +18,8 @@
 
 | 后缀 | 布局及组合场景 | 卡片尺寸 |
 | --- | --- | --- |
+| HeroTitle | 双业务单 Action 的位置 0；后接 HeroContent | 2x2 |
+| HeroContent | 双业务单 Action 的位置 1；前置 HeroTitle | 2x2 |
 | Support | 约 2x1；底层双 Support 资源保留，当前 Search 不可达 | 2x2 |
 | Compact | 约 2x1；单 Compact + 2 个 PillAction | 2x2 |
 | Hero | 约 2x1.7；Hero + 1 个 PillAction | 2x2 |
@@ -31,16 +33,16 @@
 | --- | --- | --- | ---: | --- |
 | app-usage | `GetAppUsageDuration` | `/data/appUsageStats` | 6 | 启用 |
 | battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 7 | 启用 |
-| calendar | `GetCalendarEvents` | `/data/calendar` | 8 | 启用 |
+| calendar | `GetCalendarEvents` | `/data/calendar` | 9 | 启用 |
 | countdown | `GetCountdownDays` | `/data/countdown` | 1 | 启用 |
 | earphone | `GetEarphoneInfo` | `/data/earphone` | 8 | 启用 |
-| health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 30 | 启用 |
+| health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 25 | 启用 |
 | system-memory | `GetSystemMemInfo` | `/data/systemMem` | 3 | 启用 |
-| weather | `ViewWeather` | `/data/weather` | 9 | 启用 |
+| weather | `ViewWeather` | `/data/weather` | 10 | 启用 |
 
 下方完整展开本轮调整的 Battery、Calendar、Countdown、Earphone 和 Weather；其他 Provider 保留基础形态摘要，
 精确全集以当前 `provider.json` 为准。Support 与 Compact 不要求一一对应；Support/TwoSupport 底层资源
-继续保留，但当前 Search 会显式拒绝 `2x2` 多业务组合。
+继续保留但 Search 不可达，双业务只开放 HeroTitle + HeroContent + 单 Action 的固定组合。
 
 ## AppUsageOverview
 
@@ -73,7 +75,7 @@
 ## CalendarOverview
 
 - Provider：`com.huawei.calendar.cli`；运行状态：启用。
-- 数据能力：`GetCalendarEvents`；模板数：8。
+- 数据能力：`GetCalendarEvents`；模板数：9。
 - 当前没有 Support 或 Compact；真实日期通过 `ScheduleOverviewDateFull@1` 或
   `ScheduleOverviewDatedMeetingHero@1` 与同一首项日程共同展示。
 
@@ -84,6 +86,7 @@
 | ✅ | `ScheduleOverviewTimezoneFull@1` | 完整 2x2；无 Action 或加一个 IconAction | `/events/0/timeZone`<br>`/events/0/title` | `/events/0/dtStart`<br>`/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewDateFull@1` | 完整 2x2；无 Action 或加一个 IconAction | `/events/0/startDate`<br>`/events/0/title` | `/events/0/dtStart`<br>`/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewDatedMeetingHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/events/0/startDate`<br>`/events/0/title` | `/events/0/dtStart`<br>`/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
+| ✅ | `ScheduleOverviewHeroContent@1` | 双业务单 Action 的位置 1 | `/events/0/title` | `/events/0/dtStart`<br>`/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewNextEventLocationFull@1` | 完整 2x2；无 Action 或加一个 IconAction | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewMeetingWideFull@1` | 完整 4x2；单 WideFull | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewMeetingSourceWideFull@1` | 完整 4x2；单 WideFull | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
@@ -175,10 +178,11 @@
 ## WeatherOverview
 
 - Provider：`com.huawei.weather.cli`；运行状态：启用。
-- 数据能力：`ViewWeather`；模板数：9。
+- 数据能力：`ViewWeather`；模板数：10。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
+| ✅ | `WeatherOverviewHeroTitle@1` | 双业务单 Action 的位置 0；左城市、右现象及温度 | 无 | 无 | `/location/prefectureName`<br>`/location/districtName`<br>`/current/temperatureText`<br>`/current/condition` |
 | ✅ | `WeatherOverviewCompact@1` | 约 2x1；可选天气图标；Compact + 2 个 PillAction | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/coldLevel` |
 | ✅ | `WeatherOverviewUvCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/current/temperatureText`<br>`/current/uvIndex` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName` |
 | ✅ | `WeatherOverviewTemperatureSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/current/temperatureText` | `/location/districtName`<br>`/current/condition`<br>`/current/coldLevel` | 无 |
@@ -190,6 +194,8 @@
 | ✅ | `WeatherOverviewAirQualityHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/current/airQuality` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/coldLevel` |
 
 说明：最新天气 UX 中的日出日落与 AQI 数值不在当前 `ViewWeather` 数据契约内，本轮未生成伪数据模板。
+HeroTitle 的温度与现象均可选：同时可用时显示“现象 | 温度”，缺少其中之一时只显示另一项；两者都缺失时
+只保留城市标题。其余天气模板仍按各自主数据和次要数据准入，不因标题模板的可选字段而放宽。
 
 ## 验收口径
 

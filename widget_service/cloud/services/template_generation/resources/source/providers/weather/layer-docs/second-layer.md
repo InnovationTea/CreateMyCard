@@ -3,6 +3,8 @@
 - Provider：`com.huawei.weather.cli`；业务领域为 `WeatherOverview`。
 - 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
 - 可用模板：
+  - `WeatherOverviewHeroTitle@1`：左侧城市，右侧可选天气现象和温度；只用于
+    `HeroTitleContentActionLayout@1` 的第一个业务 child。
   - `WeatherOverviewCompact@1`：城市、温度、天气现象和感冒指数；可选 `conditionIcon`。
   - `WeatherOverviewUvCompact@1`：城市、温度、天气现象和紫外线等级；可选 `conditionIcon`。
   - `WeatherOverviewTemperatureSupport@1`：城市、温度、天气现象和感冒风险；可选
@@ -17,6 +19,12 @@
 - Compact 只用于 `CompactTwoActionLayout@1` 加两个 `PillAction@1`；Hero 只用于
   `HeroActionLayout@1` 加一个 `PillAction@1`；Full 用于无 Action，或搭配一个语义匹配的
   `IconAction@1`。
+- HeroTitle 只用于双业务单 Action 的 `HeroTitleContentActionLayout@1`，并且必须位于
+  HeroContent 之前的第一个业务位置；布局最后一个 child 必须是 `PillAction@1`。
+- 天气 HeroTitle 的城市、区县、温度及天气现象均为可选绑定；不得因缺少温度拒绝该模板或要求补造温度。
+  模板固定采用高 24、间距 4 的左右 Row，城市在左侧单行省略，右侧依次选择“天气现象 | 温度”、
+  单独现象或单独温度；两者都缺失时不生成右侧内容，也不保留分隔符。模型不要重排或拆分模板内部布局。
+  分支由编译器按绑定存在性裁剪，不读取空样例值；城市兜底仍遵循下方 location 规则。
 - Support 仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；在兼容路径中只用于
   `TwoSupportLayout@1`。该业务有已批准事件时传入 `actionId`；没有对应事件时省略，模板根节点不生成
   `onClick`。

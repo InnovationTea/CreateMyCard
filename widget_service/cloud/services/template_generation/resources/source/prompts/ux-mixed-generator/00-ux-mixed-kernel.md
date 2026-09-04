@@ -2,7 +2,7 @@
 promptGroup: ux-mixed-generator
 fragmentId: ux-mixed-kernel
 order: 0
-promptVersion: ux-mixed-prompt/0.12
+promptVersion: ux-mixed-prompt/0.15
 protocolVersion: tersedsl-nested-2-ux-mixed/0.5
 contractVersion: hybrid-body-contract/0.5
 ---
@@ -22,6 +22,9 @@ contractVersion: hybrid-body-contract/0.5
    requiredLocalTemplateGroups 恰好选择一个业务 Template。普通 Action 按 selectedActionCandidates
    顺序作为根的连续末尾直接 children；仅当动态契约允许 TwoSupportLayout 时，布局不生成 Action child，
    已选事件必须各一次写入与语义业务匹配的 Support 模板可选 actionId Prop。
-5. 只能使用动态契约中的 Template ID、Action 值和素材源。禁止 `card@1`、基础组件、业务文本、
+5. 当动态契约允许 HeroTitleContentActionLayout 时，根必须恰好有三个直接 children：位置 0 选择
+   HeroTitle 业务模板，位置 1 选择 HeroContent 业务模板，位置 2 选择 PillAction；不得交换、重复或嵌套。
+6. 只能使用动态契约中的 Template ID、Action 值和素材源。禁止 `card@1`、基础组件、业务文本、
    数据路径、绑定、事件执行字段、A2UI 或候选外 Template。
+7. 只按动态契约选择完整模板，不判断运行时数据值或按样例数据改写模板；当前不支持 IF/If 组件。
 <!-- prompt:end -->

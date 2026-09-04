@@ -11,6 +11,21 @@
         "type": "object",
         "requiredProperties": ["userQuery", "title", "description"],
         "properties": {
+          "uid": {
+            "type": "string",
+            "required": false,
+            "description": "非空时优先使用，缺失时回退 userAuth.user.userId。"
+          },
+          "romVersion": {
+            "type": "string",
+            "required": false,
+            "description": "非空时优先使用，缺失时回退 deviceInfo.romVersion。"
+          },
+          "odid": {
+            "type": "string",
+            "required": false,
+            "description": "可选设备 odid。"
+          },
           "userQuery": {"type": "string", "minLength": 1},
           "sourceArtifactUrl": {
             "type": "string",

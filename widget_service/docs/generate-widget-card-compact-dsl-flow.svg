@@ -102,8 +102,8 @@
 
   <rect x="555" y="755" width="690" height="95" class="condition"/>
   <text x="900" y="786" text-anchor="middle" class="node-title">协议区间选择</text>
-  <text x="900" y="813" text-anchor="middle" class="node-text">App 11.7.5.205 ≤ v &lt; 12.0.0.0；ROM 6.0 ≤ v &lt; 7.0</text>
-  <text x="900" y="838" text-anchor="middle" class="small">CLS-AL30 6.0.0.328 → 6.0；命中 design-compact-dsl</text>
+  <text x="900" y="813" text-anchor="middle" class="node-text">协议索引与能力清单使用相同的两段 App/ROM 区间</text>
+  <text x="900" y="838" text-anchor="middle" class="small">content.romVersion=7.0.0.107 → 命中 design-compact-dsl</text>
 
   <path d="M555 802 L450 802" class="branch"/>
   <rect x="90" y="747" width="350" height="112" class="failure"/>
@@ -114,7 +114,7 @@
   <path d="M900 850 L900 884" class="flow"/>
   <rect x="555" y="890" width="690" height="88" class="condition"/>
   <text x="900" y="921" text-anchor="middle" class="node-title">能力清单区间选择</text>
-  <text x="900" y="949" text-anchor="middle" class="node-text">命中 app-11.7.5.205_rom-6.0；旧 capabilityRegistryVersion 不能覆盖</text>
+  <text x="900" y="949" text-anchor="middle" class="node-text">命中 app-11.7.7.300_rom-7.0；旧 capabilityRegistryVersion 不能覆盖</text>
 
   <path d="M1245 934 L1360 934" class="branch"/>
   <rect x="1370" y="880" width="300" height="112" class="failure"/>
