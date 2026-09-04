@@ -250,12 +250,6 @@ class A2UIModelClient:
     ) -> str:
         """按目标 DSL 格式统一处理各模型后端的原始输出。"""
         dsl_text = self.extract_genui_payload(raw_output)
-        if protocol_profile.get("format") == "raw-json":
-            logger.info(
-                f"{_MODULE} raw_json_processed backend={self.backend} "
-                f"output_length={len(dsl_text)}"
-            )
-            return dsl_text
         is_design_compact = (
             protocol_profile.get("id") == DESIGN_COMPACT_PROFILE_ID
         )

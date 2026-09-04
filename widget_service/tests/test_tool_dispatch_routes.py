@@ -8,7 +8,6 @@ import sys
 import uuid
 from pathlib import Path
 
-import pytest
 from fastapi.testclient import TestClient
 
 from ws_response_parser import parse_legacy_stream_content
@@ -63,9 +62,6 @@ get_settings = importlib.import_module("config.config").get_settings
 WidgetGenerationService = importlib.import_module(
     "services.widget_generation_service"
 ).WidgetGenerationService
-compact_dsl_argument_issue_tracker = importlib.import_module(
-    "services.compact_dsl_argument_repair"
-).compact_dsl_argument_issue_tracker
 
 
 def _tool_payload(
@@ -1152,7 +1148,7 @@ def test_generation_validation_error_does_not_end_before_start(monkeypatch):
 
 
 def test_compact_route_rejects_stringified_tool_arguments(monkeypatch):
-    """外层请求合法但 content.arguments 为字符串时应返回精确错误。"""
+    """第四接口应明确要求主 Agent 将 arguments 直接传为 JSON 对象。"""
     def unexpected_generate(*_args, **_kwargs):
         raise AssertionError("malformed tool arguments must not call the model")
 
@@ -1172,17 +1168,11 @@ def test_compact_route_rejects_stringified_tool_arguments(monkeypatch):
         ),
     }
     client = TestClient(app)
-    request = _tool_payload(content, interaction_id)
-
-    assert isinstance(request, dict)
-    request_content = request.get("content")
-    assert isinstance(request_content, dict)
-    assert isinstance(request_content.get("arguments"), str)
 
     with client.websocket_connect(
         "/api/v1/ws/tools/generateWidgetCardCompactDsl"
     ) as websocket:
-        websocket.send_json(request)
+        websocket.send_json(_tool_payload(content, interaction_id))
         response = websocket.receive_json()
 
     assert response["errorCode"] == "0"
@@ -1196,583 +1186,18 @@ def test_compact_route_rejects_stringified_tool_arguments(monkeypatch):
     details = legacy_message["error"]["details"]
     assert details["stage"] == "requestEnvelope"
     assert details["modelCalled"] is False
-    assert details["issues"][0]["path"] == "/content/arguments"
+    assert details["issues"][0]["path"] == "/arguments"
     assert details["issues"][0]["actualType"] == "string"
-    assert "外层请求是合法 JSON" in details["agentInstruction"]
-    assert "content 中出现多余" in details["agentInstruction"]
+    assert "arguments 必须直接传合法的 JSON 对象" in details["agentInstruction"]
+    assert "content" not in details["agentInstruction"]
 
 
-@pytest.mark.parametrize("damage_inner_json", [False, True])
-def test_compact_route_repairs_second_consecutive_stringified_arguments(
-    monkeypatch,
-    damage_inner_json,
-):
-    """同一 requestId 第二次出现字符串 arguments 时修复并继续生成。"""
-    settings = get_settings()
-    monkeypatch.setattr(
-        settings,
-        "enable_compact_dsl_argument_repair_fallback",
-        True,
-    )
-    monkeypatch.setattr(
-        settings,
-        "compact_dsl_argument_repair_reminder_count",
-        1,
-    )
-    monkeypatch.setattr(settings, "compact_dsl_argument_repair_max_attempts", 2)
-    business_content = {
-        "bundleName": "com.huawei.genui",
-        "userQuery": "生成实时天气卡片",
-        "size": "2x2",
-        "title": "实时天气",
-        "description": "实时天气观察",
-        "candidateDataBindings": [],
-        "candidateEventCandidates": [],
-        "candidateAssetIds": [],
-    }
-    rom_version = "VYG-AL00 " + ".".join(("7", "0", "0", "105"))
-    stringified_arguments = json.dumps(business_content, ensure_ascii=False)
-    if damage_inner_json:
-        stringified_arguments = stringified_arguments[:-1]
-    malformed_content = {
-        "skillName": "harmony-card-generation-online",
-        "functionName": "generateWidgetCardCompactDsl",
-        "romVersion": rom_version,
-        "arguments": stringified_arguments,
-    }
-    repaired_content = {**business_content, "romVersion": rom_version}
-    model_calls: list[dict] = []
-
-    async def generate_by_profile(
-        _self,
-        prompt,
-        protocol_profile,
-        **kwargs,
-    ):
-        model_calls.append(
-            {
-                "prompt": prompt,
-                "profile": protocol_profile,
-                "kwargs": kwargs,
-            }
-        )
-        if protocol_profile.get("format") == "raw-json":
-            return (
-                "```json\n"
-                + json.dumps(repaired_content, ensure_ascii=False)
-                + "\n```"
-            )
-        return _valid_model_output(_self, prompt, protocol_profile)
-
-    saved_request_bodies: list[str] = []
-
-    def capture_artifact(store, artifact):
-        saved_request_bodies.append(store.request_body)
-        return ArtifactSaveResult(
-            artifactUrl="https://test.invalid/widget/repaired-arguments.json",
-            artifactDigest="sha256:repaired-arguments",
-        )
-
-    monkeypatch.setattr(A2UIModelClient, "generate", generate_by_profile)
-    monkeypatch.setattr(ArtifactStore, "save", capture_artifact)
-    damage_label = "damaged" if damage_inner_json else "valid"
-    interaction_id = f"repair-stringified-arguments-{damage_label}"
-    request_id = _request_id(interaction_id)
-    request = _tool_payload(malformed_content, interaction_id)
-    request.update(
-        {
-            "skillName": malformed_content.get("skillName"),
-            "functionName": malformed_content.get("functionName"),
-            "romVersion": rom_version,
-            "arguments": malformed_content.get("arguments"),
-        }
-    )
-    client = TestClient(app)
-    compact_dsl_argument_issue_tracker.clear()
-    try:
-        with client.websocket_connect(
-            "/api/v1/ws/tools/generateWidgetCardCompactDsl"
-        ) as websocket:
-            websocket.send_json(request)
-            first_response = websocket.receive_json()
-            first_stream = first_response["reply"]["streamInfo"]
-            first_message = parse_legacy_stream_content(first_stream["streamContent"])
-
-            websocket.send_json(request)
-            second_response = _receive_final_frame(websocket, request_id)
-    finally:
-        compact_dsl_argument_issue_tracker.clear()
-
-    assert first_message["errorCode"] == "INVALID_ARGUMENTS"
-    assert first_message["error"]["details"]["modelCalled"] is False
-    second_message = _assert_success_envelope(
-        second_response,
-        "generateWidgetCardCompactDsl",
-        request_id,
-    )
-    assert second_message["data"]["status"] == "success"
-    assert [item["profile"]["format"] for item in model_calls] == [
-        "raw-json",
-        "compact-dsl",
-    ]
-    repair_call = model_calls[0]
-    assert repair_call["kwargs"] == {
-        "suppress_prompt_log": True,
-        "phase": "argument_repair",
-    }
-    repair_input = json.loads(repair_call["prompt"][1]["content"])
-    assert repair_input["rawArguments"] == malformed_content["arguments"]
-    assert repair_input["preservedTopLevelFields"] == {"romVersion": rom_version}
-    assert "machineRecoveredCandidate" not in repair_input
-    assert "targetStructure" in repair_input
-    system_prompt = repair_call["prompt"][0]["content"]
-    assert "严格的 JSON 结构恢复器" in system_prompt
-    assert "machineRecoveredCandidate" not in system_prompt
-    assert "generateWidgetCardCompactDsl" not in system_prompt
-    assert "DSL" not in system_prompt
-    assert "odid" not in repair_input
-    saved_payload = json.loads(saved_request_bodies[0])
-    assert saved_payload["content"] == {
-        "odid": DEVICE_ODID,
-        **repaired_content,
-    }
-
-
-@pytest.mark.parametrize(
-    ("first_output", "error_fragment"),
-    [
-        ("not-json", "invalid JSON"),
-        ('{"userQuery":"生成天气卡片"}', "title"),
-    ],
-    ids=["invalid-json", "invalid-structure"],
-)
-def test_compact_argument_repair_retries_with_previous_output_and_errors(
-    monkeypatch,
-    first_output,
-    error_fragment,
-):
-    """首次输出不是 JSON 时，第二次调用携带原输出和解析错误。"""
-    settings = get_settings()
-    monkeypatch.setattr(settings, "enable_compact_dsl_argument_repair_fallback", True)
-    monkeypatch.setattr(settings, "compact_dsl_argument_repair_reminder_count", 0)
-    monkeypatch.setattr(settings, "compact_dsl_argument_repair_max_attempts", 2)
-    repaired_content = {
-        "userQuery": "生成天气卡片",
-        "size": "2x2",
-        "title": "天气",
-        "description": "天气卡片",
-        "candidateDataBindings": [],
-        "candidateEventCandidates": [],
-        "candidateAssetIds": [],
-    }
-    repair_prompts: list[list[dict[str, str]]] = []
-
-    async def generate_after_retry(_self, prompt, protocol_profile, **_kwargs):
-        if protocol_profile.get("format") != "raw-json":
-            return _valid_model_output(_self, prompt, protocol_profile)
-        repair_prompts.append(prompt)
-        if len(repair_prompts) == 1:
-            return first_output
-        return json.dumps(repaired_content, ensure_ascii=False)
-
-    monkeypatch.setattr(A2UIModelClient, "generate", generate_after_retry)
-    monkeypatch.setattr(
-        ArtifactStore,
-        "save",
-        lambda _store, _artifact: ArtifactSaveResult(
-            artifactUrl="https://test.invalid/widget/retried-recovery.json",
-            artifactDigest="sha256:retried-recovery",
-        ),
-    )
-    interaction_id = "argument-repair-content-retry"
-    request_id = _request_id(interaction_id)
-    content = {
-        "arguments": '{"userQuery":"生成天气卡片"',
-        "romVersion": "VYG-AL00 " + ".".join(("7", "0", "0", "105")),
-    }
-    compact_dsl_argument_issue_tracker.clear()
-    try:
-        client = TestClient(app)
-        device_info = {
-            **DEVICE_INFO,
-            "prdVer": ".".join(("11", "7", "7", "225")),
-        }
-        with client.websocket_connect(
-            "/api/v1/ws/tools/generateWidgetCardCompactDsl"
-        ) as websocket:
-            websocket.send_json(
-                _tool_payload(content, interaction_id, device_info=device_info)
-            )
-            response = _receive_final_frame(websocket, request_id)
-    finally:
-        compact_dsl_argument_issue_tracker.clear()
-
-    message = _assert_success_envelope(
-        response,
-        "generateWidgetCardCompactDsl",
-        request_id,
-    )
-    assert message["data"]["status"] == "success"
-    assert len(repair_prompts) == 2
-    first_input = json.loads(repair_prompts[0][1]["content"])
-    second_input = json.loads(repair_prompts[1][1]["content"])
-    assert "previousOutput" not in first_input
-    assert "validationErrors" not in first_input
-    assert second_input["rawArguments"] == first_input["rawArguments"]
-    assert second_input["previousOutput"] == first_output
-    assert any(error_fragment in item for item in second_input["validationErrors"])
-
-
-def test_compact_argument_repair_rebuilds_event_from_current_registry(monkeypatch):
-    """模型夹带未声明事件字段时，以当前版本能力清单模板重建 action。"""
-    settings = get_settings()
-    monkeypatch.setattr(settings, "enable_compact_dsl_argument_repair_fallback", True)
-    monkeypatch.setattr(settings, "compact_dsl_argument_repair_reminder_count", 0)
-    monkeypatch.setattr(settings, "compact_dsl_argument_repair_max_attempts", 2)
-    repaired_content = {
-        "bundleName": "com.huawei.genui",
-        "userQuery": "生成天气卡片并拨打电话",
-        "size": "2x2",
-        "title": "实时天气",
-        "description": "实时天气观察",
-        "candidateDataBindings": [
-            {
-                "capabilityId": "ViewWeather",
-                "arguments": {"prefectureName": "南京市", "forecastDays": 1},
-                "writeResultTo": "/data/weather",
-                "candidateOutputFields": ["/location/prefectureName"],
-            }
-        ],
-        "candidateEventCandidates": [
-            {
-                "capabilityId": "event.call.phone",
-                "action": {
-                    "call": "hallucinatedCall",
-                    "args": {
-                        "intentName": "HallucinatedIntent",
-                        "params": {"phoneNumber": "122", "relationship": ""},
-                    },
-                },
-            }
-        ],
-        "candidateAssetIds": [],
-    }
-    saved_request_bodies: list[str] = []
-
-    async def generate_by_profile(_self, prompt, protocol_profile, **_kwargs):
-        if protocol_profile.get("format") == "raw-json":
-            return json.dumps(repaired_content, ensure_ascii=False)
-        return _valid_model_output(_self, prompt, protocol_profile)
-
-    def capture_artifact(store, _artifact):
-        saved_request_bodies.append(store.request_body)
-        return ArtifactSaveResult(
-            artifactUrl="https://test.invalid/widget/canonical-event.json",
-            artifactDigest="sha256:canonical-event",
-        )
-
-    monkeypatch.setattr(A2UIModelClient, "generate", generate_by_profile)
-    monkeypatch.setattr(ArtifactStore, "save", capture_artifact)
-    interaction_id = "argument-repair-event-canonicalization"
-    request_id = _request_id(interaction_id)
-    malformed = json.dumps(repaired_content, ensure_ascii=False)
-    array_boundary = '}], "candidateEventCandidates"'
-    malformed = malformed.replace(
-        array_boundary,
-        '}, "candidateEventCandidates"',
-        1,
-    )
-    with pytest.raises(json.JSONDecodeError):
-        json.loads(malformed)
-    content = {
-        "arguments": malformed,
-        "romVersion": "VYG-AL00 " + ".".join(("7", "0", "0", "105")),
-    }
-    compact_dsl_argument_issue_tracker.clear()
-    try:
-        client = TestClient(app)
-        device_info = {
-            **DEVICE_INFO,
-            "prdVer": ".".join(("11", "7", "7", "225")),
-        }
-        with client.websocket_connect(
-            "/api/v1/ws/tools/generateWidgetCardCompactDsl"
-        ) as websocket:
-            websocket.send_json(
-                _tool_payload(content, interaction_id, device_info=device_info)
-            )
-            response = _receive_final_frame(websocket, request_id)
-    finally:
-        compact_dsl_argument_issue_tracker.clear()
-
-    message = _assert_success_envelope(
-        response,
-        "generateWidgetCardCompactDsl",
-        request_id,
-    )
-    assert message["data"]["status"] == "success"
-    saved_payload = json.loads(saved_request_bodies[0])
-    event = saved_payload["content"]["candidateEventCandidates"][0]
-    assert event == {
-        "capabilityId": "event.call.phone",
-        "action": {
-            "call": "clickToApi",
-            "args": {
-                "intentName": "CallPhone",
-                "params": {"phoneNumber": "122"},
-            },
-        },
-    }
-
-
-def test_compact_argument_repair_drops_unregistered_and_invalid_candidates(monkeypatch):
-    """能力清单不存在或预检不通过的候选不会再次阻断兜底生成。"""
-    settings = get_settings()
-    monkeypatch.setattr(settings, "enable_compact_dsl_argument_repair_fallback", True)
-    monkeypatch.setattr(settings, "compact_dsl_argument_repair_reminder_count", 0)
-    monkeypatch.setattr(settings, "compact_dsl_argument_repair_max_attempts", 2)
-    repaired_content = {
-        "userQuery": "生成天气卡片",
-        "size": "2x2",
-        "title": "天气",
-        "description": "天气卡片",
-        "candidateDataBindings": [
-            {
-                "capabilityId": "ViewWeather",
-                "arguments": {"forecastDays": 1},
-                "writeResultTo": "/data/weather",
-                "candidateOutputFields": [],
-            },
-            {
-                "capabilityId": "unknown.data",
-                "arguments": {},
-                "writeResultTo": "/data/unknown",
-                "candidateOutputFields": [],
-            },
-        ],
-        "candidateEventCandidates": [
-            {
-                "capabilityId": "unknown.event",
-                "action": {"call": "unknown", "args": {}},
-            }
-        ],
-        "candidateAssetIds": ["unknown.asset"],
-    }
-    saved_request_bodies: list[str] = []
-
-    async def generate_by_profile(_self, prompt, protocol_profile, **_kwargs):
-        if protocol_profile.get("format") == "raw-json":
-            return json.dumps(repaired_content, ensure_ascii=False)
-        return _valid_model_output(_self, prompt, protocol_profile)
-
-    def capture_artifact(store, _artifact):
-        saved_request_bodies.append(store.request_body)
-        return ArtifactSaveResult(
-            artifactUrl="https://test.invalid/widget/pruned-candidates.json",
-            artifactDigest="sha256:pruned-candidates",
-        )
-
-    monkeypatch.setattr(A2UIModelClient, "generate", generate_by_profile)
-    monkeypatch.setattr(ArtifactStore, "save", capture_artifact)
-    interaction_id = "argument-repair-pruned-candidates"
-    request_id = _request_id(interaction_id)
-    content = {
-        "arguments": json.dumps(repaired_content, ensure_ascii=False),
-        "romVersion": "VYG-AL00 " + ".".join(("7", "0", "0", "105")),
-    }
-    compact_dsl_argument_issue_tracker.clear()
-    try:
-        client = TestClient(app)
-        with client.websocket_connect(
-            "/api/v1/ws/tools/generateWidgetCardCompactDsl"
-        ) as websocket:
-            websocket.send_json(_tool_payload(content, interaction_id))
-            response = _receive_final_frame(websocket, request_id)
-    finally:
-        compact_dsl_argument_issue_tracker.clear()
-
-    message = _assert_success_envelope(
-        response,
-        "generateWidgetCardCompactDsl",
-        request_id,
-    )
-    assert message["data"]["status"] == "success"
-    saved_content = json.loads(saved_request_bodies[0])["content"]
-    assert saved_content["candidateDataBindings"] == []
-    assert saved_content["candidateEventCandidates"] == []
-    assert saved_content["candidateAssetIds"] == []
-
-
-def test_compact_argument_repair_uses_minimal_request_after_invalid_model_outputs(
+def test_compact_route_infers_stringified_arguments_from_transport_only_content(
     monkeypatch,
 ):
-    """两次模型输出均非法时从原字符串保留文本并继续静态生成。"""
-    settings = get_settings()
-    monkeypatch.setattr(
-        settings,
-        "enable_compact_dsl_argument_repair_fallback",
-        True,
-    )
-    monkeypatch.setattr(
-        settings,
-        "compact_dsl_argument_repair_reminder_count",
-        0,
-    )
-    monkeypatch.setattr(settings, "compact_dsl_argument_repair_max_attempts", 2)
-
-    model_formats: list[str] = []
-
-    async def invalid_repair_output(_self, prompt, protocol_profile, **_kwargs):
-        model_format = protocol_profile.get("format", "")
-        model_formats.append(model_format)
-        if model_format == "raw-json":
-            return "[]"
-        return _valid_model_output(_self, prompt, protocol_profile)
-
-    saved_request_bodies: list[str] = []
-
-    def capture_artifact(store, _artifact):
-        saved_request_bodies.append(store.request_body)
-        return ArtifactSaveResult(
-            artifactUrl="https://test.invalid/widget/minimal-recovery.json",
-            artifactDigest="sha256:minimal-recovery",
-        )
-
-    monkeypatch.setattr(A2UIModelClient, "generate", invalid_repair_output)
-    monkeypatch.setattr(ArtifactStore, "save", capture_artifact)
-    interaction_id = "failed-argument-repair"
-    request_id = _request_id(interaction_id)
-    content = {
-        "arguments": (
-            '{"candidateDataBindings":[{"capabilityId":"broken"},'
-            '"userQuery":"天气卡片","title":"实时天气",'
-            '"description":"天气观察"'
-        ),
-        "romVersion": "VYG-AL00 " + ".".join(("7", "0", "0", "105")),
-    }
-    client = TestClient(app)
-    request = _tool_payload(content, interaction_id)
-    compact_dsl_argument_issue_tracker.clear()
-    try:
-        with client.websocket_connect(
-            "/api/v1/ws/tools/generateWidgetCardCompactDsl"
-        ) as websocket:
-            websocket.send_json(request)
-            response = _receive_final_frame(websocket, request_id)
-    finally:
-        compact_dsl_argument_issue_tracker.clear()
-
-    message = _assert_success_envelope(
-        response,
-        "generateWidgetCardCompactDsl",
-        request_id,
-    )
-    assert message["data"]["status"] == "success"
-    assert model_formats == ["raw-json", "raw-json", "compact-dsl"]
-    saved_payload = json.loads(saved_request_bodies[0])
-    saved_content = saved_payload["content"]
-    assert saved_content["userQuery"] == "天气卡片"
-    assert saved_content["title"] == "实时天气"
-    assert saved_content["description"] == "天气观察"
-    assert saved_content["candidateDataBindings"] == []
-    assert saved_content["candidateEventCandidates"] == []
-    assert saved_content["candidateAssetIds"] == []
-
-
-def test_compact_valid_request_breaks_stringified_argument_streak(monkeypatch):
-    """同一 requestId 中间出现合法请求后，下一次异常重新从首次提醒计数。"""
-    settings = get_settings()
-    monkeypatch.setattr(
-        settings,
-        "enable_compact_dsl_argument_repair_fallback",
-        True,
-    )
-    monkeypatch.setattr(
-        settings,
-        "compact_dsl_argument_repair_reminder_count",
-        1,
-    )
-    model_formats: list[str] = []
-
-    async def generate_without_repair(_self, prompt, protocol_profile, **_kwargs):
-        model_format = protocol_profile.get("format", "")
-        model_formats.append(model_format)
-        if model_format == "raw-json":
-            raise AssertionError("a valid request must reset the malformed-input streak")
-        return _valid_model_output(_self, prompt, protocol_profile)
-
-    def capture_artifact(_store, _artifact):
-        return ArtifactSaveResult(
-            artifactUrl="https://test.invalid/widget/streak-reset.json",
-            artifactDigest="sha256:streak-reset",
-        )
-
-    monkeypatch.setattr(A2UIModelClient, "generate", generate_without_repair)
-    monkeypatch.setattr(ArtifactStore, "save", capture_artifact)
-    interaction_id = "argument-streak-reset"
-    request_id = _request_id(interaction_id)
-    valid_content = {
-        "userQuery": "生成天气卡片",
-        "title": "天气",
-        "description": "天气卡片",
-        "size": "2x2",
-        "romVersion": "VYG-AL00 " + ".".join(("7", "0", "0", "105")),
-    }
-    malformed_content = {
-        "arguments": json.dumps(valid_content, ensure_ascii=False),
-        "romVersion": valid_content["romVersion"],
-    }
-    client = TestClient(app)
-    compact_dsl_argument_issue_tracker.clear()
-    try:
-        with client.websocket_connect(
-            "/api/v1/ws/tools/generateWidgetCardCompactDsl"
-        ) as websocket:
-            websocket.send_json(_tool_payload(malformed_content, interaction_id))
-            first_response = websocket.receive_json()
-
-            websocket.send_json(_tool_payload(valid_content, interaction_id))
-            valid_response = _receive_final_frame(websocket, request_id)
-
-            websocket.send_json(_tool_payload(malformed_content, interaction_id))
-            third_response = websocket.receive_json()
-    finally:
-        compact_dsl_argument_issue_tracker.clear()
-
-    first_message = parse_legacy_stream_content(
-        first_response["reply"]["streamInfo"]["streamContent"]
-    )
-    _assert_success_envelope(
-        valid_response,
-        "generateWidgetCardCompactDsl",
-        request_id,
-    )
-    third_message = parse_legacy_stream_content(
-        third_response["reply"]["streamInfo"]["streamContent"]
-    )
-    assert first_message["error"]["details"]["modelCalled"] is False
-    assert third_message["error"]["details"]["modelCalled"] is False
-    assert model_formats == ["compact-dsl"]
-
-
-def test_compact_route_keeps_transport_only_stringified_arguments_reminder(
-    monkeypatch,
-):
-    """四个透传字段场景沿用纠错提示，不进入连续计数或模型兜底。"""
-    settings = get_settings()
-    monkeypatch.setattr(
-        settings,
-        "enable_compact_dsl_argument_repair_fallback",
-        True,
-    )
-    monkeypatch.setattr(
-        settings,
-        "compact_dsl_argument_repair_reminder_count",
-        0,
-    )
-
+    """工具层未展开业务字段时，应按字符串化 arguments 提示主 Agent。"""
     def unexpected_generate(*_args, **_kwargs):
-        raise AssertionError("transport-only content must not call the model")
+        raise AssertionError("missing tool arguments must not call the model")
 
     monkeypatch.setattr(A2UIModelClient, "generate", unexpected_generate)
     interaction_id = "inferred-stringified-tool-arguments"
@@ -1783,19 +1208,12 @@ def test_compact_route_keeps_transport_only_stringified_arguments_reminder(
         "bundleName": "com.omega_w_0823.hmservice",
     }
     client = TestClient(app)
-    request = _tool_payload(content, interaction_id)
-    request_content = request.get("content")
-    assert isinstance(request_content, dict)
-    assert set(request_content) == {"uid", "odid", "romVersion", "bundleName"}
-    compact_dsl_argument_issue_tracker.clear()
-    try:
-        with client.websocket_connect(
-            "/api/v1/ws/tools/generateWidgetCardCompactDsl"
-        ) as websocket:
-            websocket.send_json(request)
-            response = websocket.receive_json()
-    finally:
-        compact_dsl_argument_issue_tracker.clear()
+
+    with client.websocket_connect(
+        "/api/v1/ws/tools/generateWidgetCardCompactDsl"
+    ) as websocket:
+        websocket.send_json(_tool_payload(content, interaction_id))
+        response = websocket.receive_json()
 
     assert response["errorCode"] == "0"
     assert response["errorMessage"] == ""
@@ -1813,6 +1231,9 @@ def test_compact_route_keeps_transport_only_stringified_arguments_reminder(
     assert details["issues"][0]["actualType"] == "string"
     assert "arguments 必须直接传合法的 JSON 对象" in details["agentInstruction"]
     assert "content" not in details["agentInstruction"]
+    assert "uid" not in details["agentInstruction"]
+    assert "odid" not in details["agentInstruction"]
+    assert "romVersion" not in details["agentInstruction"]
 
 
 def test_generation_model_error_sends_start_and_failure_commands(monkeypatch):
