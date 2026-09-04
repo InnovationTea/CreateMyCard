@@ -39,29 +39,59 @@ const parser = loadModule(["@babel/parser"], "@babel/parser");
 
 function loadChromium() {
   let playwright;
+
   try {
     playwright = loadModule(["playwright"], "playwright");
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     throw new Error(
-      `Playwright Node.js 依赖缺失。请先在项目根目录运行 \`npm install\`。原始错误：${error.message}`,
+      `Playwright Node.js 依赖缺失。请先在项目根目录运行 ` +
+      `\`npm install\`。原始错误：${message}`,
     );
   }
 
   const { chromium } = playwright;
+
+  if (!chromium || typeof chromium.launch !== "function") {
+    throw new Error(
+      "Playwright chromium 对象无效，缺少 launch() 方法。",
+    );
+  }
+
+  const customChromiumPath =
+    process.env.CHROMIUM_EXECUTABLE_PATH ||
+    "/opt/chrome-linux/chrome";
+
   let executablePath;
-  try {
-    executablePath = chromium.executablePath();
-  } catch (error) {
-    throw new Error(
-      `无法确定 Chromium 安装位置。请运行 \`npm run install:chromium\`（或 \`npx playwright install chromium\`）。原始错误：${error.message}`,
-    );
+
+  if (fs.existsSync(customChromiumPath)) {
+    executablePath = customChromiumPath;
+  } else {
+    try {
+      executablePath = chromium.executablePath();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `无法确定 Chromium 安装位置。请运行 ` +
+        `\`npm run install:chromium\` 或 ` +
+        `\`npx playwright install chromium\`。原始错误：${message}`,
+      );
+    }
+
+    if (!executablePath || !fs.existsSync(executablePath)) {
+      throw new Error(
+        `Playwright Chromium 浏览器未安装（预期位置：` +
+        `${executablePath || "未知"}）。请运行 ` +
+        `\`npm run install:chromium\` 或 ` +
+        `\`npx playwright install chromium\`。`,
+      );
+    }
   }
-  if (!executablePath || !fs.existsSync(executablePath)) {
-    throw new Error(
-      `Playwright Chromium 浏览器未安装（预期位置：${executablePath || "未知"}）。请在项目根目录运行 \`npm run install:chromium\`（或 \`npx playwright install chromium\`），然后重新执行浏览器校验。`,
-    );
-  }
-  return chromium;
+
+  return {
+    chromium,
+    executablePath,
+  };
 }
 
 const skillDir = path.resolve(__dirname, "..");
@@ -1338,7 +1368,7 @@ async function browserValidation(previewHtml, screenshotPath, resources) {
   // Resolve the executable before starting the HTTP server. A missing browser
   // must fail immediately instead of leaving the server alive until Python's
   // validator timeout expires.
-  const chromium = loadChromium();
+  const { chromium, executablePath } = loadChromium();
   const serverInfo = await startStaticServer(previewHtml);
   let browser = null;
   let context = null;
@@ -1348,7 +1378,10 @@ async function browserValidation(previewHtml, screenshotPath, resources) {
     const allowedUnavailableResources = new Set((resources || []).map((resource) => (
       new URL(runtimeAssetUrl(resource.value), assetBaseUrl).href
     )));
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({ 
+      headless: false,
+      executablePath,
+    });
     context = await browser.newContext({ viewport: { width: 520, height: 420 }, deviceScaleFactor: 1 });
     page = await context.newPage();
     const runtimeErrors = [];
