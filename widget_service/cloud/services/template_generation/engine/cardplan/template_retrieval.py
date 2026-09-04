@@ -969,8 +969,11 @@ def _task_spec_schema_leaf(schema: dict[str, Any], pointer: str) -> dict[str, An
         part = raw_part.replace("~1", "/").replace("~0", "~")
         if isinstance(current, dict):
             current = current.get(part)
-        elif isinstance(current, list) and part == "0" and current:
-            current = current[0]
+        elif isinstance(current, list) and part.isdigit():
+            index = int(part)
+            if index >= len(current):
+                return None
+            current = current[index]
         else:
             return None
     return current if isinstance(current, dict) else None

@@ -24,6 +24,24 @@
     `timeIcon` 与 `locationIcon`。
   - `ScheduleOverviewMeetingSourceWideFull@1`：带来源图标的宽版会议摘要；`sourceIcon` 必填，
     `timeIcon` 与 `locationIcon` 可选。
+  - `ScheduleOverviewTwoEventsFull@1`：双日程 Full；按顺序展示前两项日程各自的标题和开始时间，
+    不接收展示 Prop。
+  - `ScheduleOverviewLocationDescriptionEndFull@1`：备注详情 Full；展示首项日程的备注、结束时间和地点；
+    可选 `calendarIcon` 与 `headerLabel`。
+  - `ScheduleOverviewDatedAllDayHero@1`：带日期全天日程 Hero；展示日期、标题和全天状态，
+    不接收展示 Prop；全天文案由端侧 `Expr(...)` 按运行时布尔值计算。
+  - `ScheduleOverviewLocationHero@1`：地点日程 Hero；展示地点和开始时间，可选结束时间；可选
+    `calendarIcon` 与 `headerLabel`。
+  - `ScheduleOverviewTimezoneDateEndFull@1`：时区日期日程 Full；展示标题、日期、时区和结束时间；可选
+    `calendarIcon` 与 `headerLabel`。
+  - `ScheduleOverviewReminderDetailsHero@1`：提醒详情 Hero；展示数据更新时间、发起人、重要类型和提前
+    提醒分钟数，不接收展示 Prop。
+  - `ScheduleOverviewTitleHero@1`：标题日程 Hero；展示标题和开始时间，可选结束时间；可选
+    `calendarIcon` 与 `headerLabel`。
+  - `ScheduleOverviewEventCountDetailsHero@1`：近期日程清点 Hero；展示日程总数及首项日程的标题、
+    开始时间和备注，不接收展示 Prop。
+  - `ScheduleOverviewTimezoneAllDayFull@1`：时区全天日程 Full；展示标题、全天状态、时区和地点；可选
+    `calendarIcon` 与 `headerLabel`；全天文案由端侧 `Expr(...)` 按运行时布尔值计算。
 - Hero 只用于 `HeroActionLayout@1` 加一个 `PillAction@1`；Full 只用于 `SingleFocusLayout@1`，
   或在存在语义匹配图标素材时用于 `FullIconActionLayout@1` 加一个 `IconAction@1`。WideFull 当前只作
   `2x4` 预留。
@@ -32,8 +50,9 @@
 - `headerLabel` 只能逐字复用 `cardComposition.businessTitleCandidate`，没有可信标题时省略。
 - 已有 Provider 全局路径的值必须由模板 `data` 绑定；Props 只能使用本轮 Prompt 下发的可信文本或素材，
   不得输出数据路径。
-- 选择能够完整表达用户显式字段且自身 `primaryData` 与 `secondaryData` 全部可用的模板。缺少真实日期、
-  时间、提醒、时区或地点时，不得用静态文案补齐。
+- 选择能够完整表达用户显式字段且自身 `primaryData` 与 `secondaryData` 全部可用的模板。标题 Hero 与地点
+  Hero 是两个独立候选；二者都只在自身完整覆盖显式字段时可选。缺少真实日期、时间、提醒、时区、地点、
+  发起人、重要类型、备注或日程总数时，不得用静态文案或其它数组项补齐。
 - 素材参数不绑定固定素材 ID，只从本轮素材候选中按语义匹配：
   - `sourceIcon`：日历应用、日程来源或会议来源语义，使用 Theme 主内容色着色；
   - `calendarIcon`：日历本或日程管理语义，使用 Theme 辅助内容色着色；

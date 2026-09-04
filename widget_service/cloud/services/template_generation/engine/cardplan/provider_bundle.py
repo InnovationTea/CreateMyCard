@@ -1300,7 +1300,7 @@ def _schema_leaf(schema: dict[str, Any], pointer: str) -> dict[str, Any] | None:
         if not isinstance(current, dict):
             return None
         if current.get("type") == "array":
-            if part != "0":
+            if not part.isdigit():
                 return None
             current = current.get("items")
             continue
@@ -2250,8 +2250,11 @@ def _task_spec_schema_leaf(
         if isinstance(current, dict):
             current = current.get(part)
             continue
-        if isinstance(current, list) and part == "0" and current:
-            current = current[0]
+        if isinstance(current, list) and part.isdigit():
+            index = int(part)
+            if index >= len(current):
+                return None
+            current = current[index]
             continue
         return None
     if not isinstance(current, dict) or not isinstance(current.get("type"), str):

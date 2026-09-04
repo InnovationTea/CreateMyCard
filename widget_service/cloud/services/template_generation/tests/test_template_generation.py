@@ -250,7 +250,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 83
+    assert len(registry.provider_template_ids) == 92
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -268,10 +268,19 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "HeartRateOverviewFull@1",
         "ResourceUsageOverviewFull@1",
         "ScheduleOverviewDatedMeetingHero@1",
+        "ScheduleOverviewDatedAllDayHero@1",
         "ScheduleOverviewDateFull@1",
+        "ScheduleOverviewEventCountDetailsHero@1",
+        "ScheduleOverviewLocationDescriptionEndFull@1",
+        "ScheduleOverviewLocationHero@1",
         "ScheduleOverviewNextEventHero@1",
+        "ScheduleOverviewReminderDetailsHero@1",
         "ScheduleOverviewReminderHero@1",
+        "ScheduleOverviewTitleHero@1",
+        "ScheduleOverviewTimezoneAllDayFull@1",
+        "ScheduleOverviewTimezoneDateEndFull@1",
         "ScheduleOverviewTimezoneFull@1",
+        "ScheduleOverviewTwoEventsFull@1",
         "SleepOverviewCompact@1",
         "SleepOverviewFull@1",
         "SleepOverviewHero@1",
@@ -582,7 +591,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 9
+    assert len(calendar.local_template_ids) == 18
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert not any(
         template_id.startswith("DateOverview")
@@ -2524,7 +2533,7 @@ def test_calendar_templates_follow_latest_schedule_contract() -> None:
     registry = get_cardplan_registry()
     calendar = registry.require_ux_business_component("CalendarOverview")
 
-    assert len(calendar.local_template_ids) == 9
+    assert len(calendar.local_template_ids) == 18
     assert "ScheduleOverviewHeroContent@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert not any(
@@ -2546,6 +2555,20 @@ def test_calendar_templates_follow_latest_schedule_contract() -> None:
         "ScheduleOverviewTimezoneFull@1": {"headerLabel"},
         "ScheduleOverviewDateFull@1": {"headerLabel"},
         "ScheduleOverviewNextEventLocationFull@1": {
+            "calendarIcon",
+            "headerLabel",
+        },
+        "ScheduleOverviewLocationDescriptionEndFull@1": {
+            "calendarIcon",
+            "headerLabel",
+        },
+        "ScheduleOverviewLocationHero@1": {"calendarIcon", "headerLabel"},
+        "ScheduleOverviewTitleHero@1": {"calendarIcon", "headerLabel"},
+        "ScheduleOverviewTimezoneDateEndFull@1": {
+            "calendarIcon",
+            "headerLabel",
+        },
+        "ScheduleOverviewTimezoneAllDayFull@1": {
             "calendarIcon",
             "headerLabel",
         },
@@ -2575,6 +2598,8 @@ def test_calendar_templates_follow_latest_schedule_contract() -> None:
     rule_content = second_layer_rules[0].get("content")
     assert isinstance(rule_content, str)
     assert "ScheduleOverviewDateFull@1" in rule_content
+    assert "ScheduleOverviewTwoEventsFull@1" in rule_content
+    assert "ScheduleOverviewEventCountDetailsHero@1" in rule_content
     assert "Support" in rule_content
 
 
@@ -3063,23 +3088,22 @@ async def test_calendar_timezone_full_requires_time_range() -> None:
     )
 
 
-@pytest.mark.asyncio
-async def test_calendar_event_count_template_is_not_advertised() -> None:
+def test_calendar_event_count_details_template_is_advertised() -> None:
     registry = get_cardplan_registry()
     calendar = registry.require_ux_business_component("CalendarOverview")
     rule = registry.provider_second_layer_rules(("CalendarOverview",))[0]["content"]
 
-    assert "ScheduleOverviewEventCountHero@1" not in calendar.local_template_ids
-    assert "ScheduleOverviewEventCountHero@1" not in rule
-    assert all(
-        "/eventCount"
-        not in (
-            *definition.primary_data,
-            *definition.secondary_data,
-            *definition.optional_data,
-        )
-        for template_id in calendar.local_template_ids
-        for definition in (registry.require_template(template_id),)
+    template_id = "ScheduleOverviewEventCountDetailsHero@1"
+    assert template_id in calendar.local_template_ids
+    assert template_id in rule
+    definition = registry.require_template(template_id)
+    assert definition.primary_data == (
+        "/eventCount",
+        "/events/0/title",
+    )
+    assert definition.secondary_data == (
+        "/events/0/dtStart",
+        "/events/0/description",
     )
 
 

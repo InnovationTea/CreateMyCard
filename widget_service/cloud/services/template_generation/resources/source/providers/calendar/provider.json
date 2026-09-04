@@ -154,6 +154,136 @@
         "/events/0/eventLocation"
       ],
       "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewTwoEventsFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "双日程 Full，按时间顺序展示前两项日程各自的标题和开始时间。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/events/0/title",
+        "/events/1/title"
+      ],
+      "secondaryData": [
+        "/events/0/dtStart",
+        "/events/1/dtStart"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewLocationDescriptionEndFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "日程详情 Full，展示备注、结束时间和地点，可选日历图标与标题文案。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": ["/events/0/description"],
+      "secondaryData": [
+        "/events/0/dtEnd",
+        "/events/0/eventLocation"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewDatedAllDayHero@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "带日期全天日程 Hero，展示日期、标题和全天状态。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/events/0/startDate",
+        "/events/0/title"
+      ],
+      "secondaryData": ["/events/0/isAllDay"],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewLocationHero@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "地点日程 Hero，展示地点和开始时间，结束时间可选。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/events/0/eventLocation",
+        "/events/0/dtStart"
+      ],
+      "secondaryData": [],
+      "optionalData": ["/events/0/dtEnd"]
+    },
+    {
+      "templateId": "ScheduleOverviewTimezoneDateEndFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "时区日期日程 Full，展示时区、标题、日期和结束时间。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/events/0/timeZone",
+        "/events/0/title"
+      ],
+      "secondaryData": [
+        "/events/0/startDate",
+        "/events/0/dtEnd"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewReminderDetailsHero@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "日程提醒详情 Hero，展示数据更新时间、发起人、重要类型和提前提醒时间。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": ["/events/0/senderName"],
+      "secondaryData": [
+        "/events/0/importantEventType",
+        "/events/0/remindTime/0",
+        "/updatedAt"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewTitleHero@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "标题日程 Hero，展示标题和开始时间，结束时间可选。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/events/0/title",
+        "/events/0/dtStart"
+      ],
+      "secondaryData": [],
+      "optionalData": ["/events/0/dtEnd"]
+    },
+    {
+      "templateId": "ScheduleOverviewEventCountDetailsHero@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "近期日程清点 Hero，以数量徽标展示日程总数，并展示最近一项的标题、开始时间和备注。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/eventCount",
+        "/events/0/title"
+      ],
+      "secondaryData": [
+        "/events/0/dtStart",
+        "/events/0/description"
+      ],
+      "optionalData": []
+    },
+    {
+      "templateId": "ScheduleOverviewTimezoneAllDayFull@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "时区全天日程 Full，展示时区、标题、全天状态和地点。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/events/0/timeZone",
+        "/events/0/title"
+      ],
+      "secondaryData": [
+        "/events/0/isAllDay",
+        "/events/0/eventLocation"
+      ],
+      "optionalData": []
     }
   ],
   "compatibility": {

@@ -25,6 +25,68 @@ _UPDATED_AT_DATE = re.compile(
     r"(?P=separator)(?P<day>\d{2})(?:[ T].*)?$"
 )
 
+_SCHEDULE_TEMPLATE_VARIANT_SPECS: tuple[
+    tuple[str, tuple[tuple[str, str, str, bool], ...]],
+    ...,
+] = (
+    (
+        "locationStart",
+        (
+            ("eventLocation", "/events/0/eventLocation", "string", False),
+            ("dtStart", "/events/0/dtStart", "string", False),
+        ),
+    ),
+    (
+        "datedAllDay",
+        (
+            ("title", "/events/0/title", "string", False),
+            ("startDate", "/events/0/startDate", "string", False),
+            ("isAllDay", "/events/0/isAllDay", "boolean", False),
+        ),
+    ),
+    (
+        "timezoneDateEnd",
+        (
+            ("title", "/events/0/title", "string", False),
+            ("timeZone", "/events/0/timeZone", "string", False),
+            ("startDate", "/events/0/startDate", "string", False),
+            ("dtEnd", "/events/0/dtEnd", "string", False),
+        ),
+    ),
+    (
+        "locationDescriptionEnd",
+        (
+            ("eventLocation", "/events/0/eventLocation", "string", False),
+            ("description", "/events/0/description", "string", False),
+            ("dtEnd", "/events/0/dtEnd", "string", False),
+        ),
+    ),
+    (
+        "reminderDetails",
+        (
+            ("senderName", "/events/0/senderName", "string", True),
+            ("importantEventType", "/events/0/importantEventType", "integer", False),
+            ("remindTime", "/events/0/remindTime/0", "string", False),
+            ("updatedAt", "/updatedAt", "string", False),
+        ),
+    ),
+    (
+        "eventCountDetails",
+        (
+            ("eventCount", "/eventCount", "integer", False),
+            ("title", "/events/0/title", "string", False),
+            ("dtStart", "/events/0/dtStart", "string", False),
+            ("description", "/events/0/description", "string", False),
+        ),
+    ),
+)
+
+_SCHEDULE_VARIANT_ALLOWED_UNSUPPORTED_TERMS: dict[str, frozenset[str]] = {
+    "locationDescriptionEnd": frozenset({"备注", "memo"}),
+    "reminderDetails": frozenset({"邀请人", "发起人", "sender name"}),
+    "eventCountDetails": frozenset({"备注", "memo"}),
+}
+
 _BATCH_DATA_ADMISSION_ENABLED: ContextVar[bool] = ContextVar(
     "advanced_component_batch_data_admission_enabled",
     default=False,
@@ -1477,19 +1539,23 @@ def project_content_component_facts(
             date_facts = extract_date_overview_facts(schema)
             schedule_facts = extract_schedule_overview_facts(schema)
             timezone_facts = extract_schedule_timezone_facts(schema)
+            variant_fields = extract_schedule_template_variant_fields(schema)
             if date_facts is not None:
                 selected.update(date_facts.as_selector())
             if schedule_facts is not None:
                 selected.update(schedule_facts.as_selector())
             if timezone_facts is not None:
                 selected.update(timezone_facts.as_selector())
+            selected.update(variant_fields)
         elif component_id == "ScheduleOverview":
             schedule_facts = extract_schedule_overview_facts(schema)
             timezone_facts = extract_schedule_timezone_facts(schema)
+            variant_fields = extract_schedule_template_variant_fields(schema)
             if schedule_facts is not None:
                 selected.update(schedule_facts.as_selector())
             if timezone_facts is not None:
                 selected.update(timezone_facts.as_selector())
+            selected.update(variant_fields)
         elif component_id == "DateOverview":
             date_facts = extract_date_overview_facts(schema)
             if date_facts is not None:
@@ -2081,11 +2147,23 @@ def schedule_overview_is_eligible(
         return False
     facts = extract_schedule_overview_facts(task_spec.dataModelSchema)
     timezone_facts = extract_schedule_timezone_facts(task_spec.dataModelSchema)
-    if facts is None and timezone_facts is None:
+    variant_fields, variant_names = _schedule_template_variant_projection(
+        task_spec.dataModelSchema
+    )
+    if facts is None and timezone_facts is None and not variant_fields:
         return False
-    if not schedule_overview_query_is_supported(task_spec.userQuery):
+    if not schedule_overview_query_is_supported(
+        task_spec.userQuery
+    ) and not _schedule_template_variant_query_is_supported(
+        task_spec.userQuery,
+        variant_names,
+    ):
         return False
-    location = facts.location if facts is not None else timezone_facts.location
+    location = facts.location if facts is not None else None
+    if location is None and timezone_facts is not None:
+        location = timezone_facts.location
+    if location is None:
+        location = _trusted_string(variant_fields.get("eventLocation"))
     if schedule_query_requests_location(task_spec.userQuery) and location is None:
         return False
     return _requested_schedule_assets_are_available(task_spec)
@@ -2101,6 +2179,28 @@ def schedule_overview_query_is_supported(query: str) -> bool:
     ):
         return False
     return _contains_query_term(normalized, compact, _SCHEDULE_QUERY_TERMS)
+
+
+def _schedule_template_variant_query_is_supported(
+    query: str,
+    variant_names: frozenset[str],
+) -> bool:
+    """Permit unsupported terms only when one complete template shape handles them."""
+    normalized, compact = _normalized_query(query)
+    if not _contains_query_term(normalized, compact, _SCHEDULE_QUERY_TERMS):
+        return False
+    matched_unsupported = {
+        term
+        for term in _UNSUPPORTED_SCHEDULE_QUERY_TERMS
+        if _contains_query_term(normalized, compact, (term,))
+    }
+    if not matched_unsupported:
+        return False
+    return any(
+        matched_unsupported <= allowed_terms
+        for variant_name, allowed_terms in _SCHEDULE_VARIANT_ALLOWED_UNSUPPORTED_TERMS.items()
+        if variant_name in variant_names
+    )
 
 
 def resource_usage_overview_is_eligible(
@@ -2880,6 +2980,94 @@ def extract_schedule_timezone_facts(
     )
 
 
+def extract_schedule_template_variant_fields(
+    schema: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    """Preserve trusted raw fields used by the supported calendar variants."""
+    selected, _variant_names = _schedule_template_variant_projection(schema)
+    return selected
+
+
+def _schedule_template_variant_projection(
+    schema: dict[str, Any],
+) -> tuple[dict[str, dict[str, Any]], frozenset[str]]:
+    provider = _calendar_schedule_provider(schema)
+    if provider is None:
+        return {}, frozenset()
+    event_count = _sample_value(provider.get("eventCount"))
+    if isinstance(event_count, (int, float)) and not isinstance(event_count, bool):
+        if event_count <= 0:
+            return {}, frozenset()
+    selected: dict[str, dict[str, Any]] = {}
+    variant_names: set[str] = set()
+    for variant_name, shape in _SCHEDULE_TEMPLATE_VARIANT_SPECS:
+        shape_fields: dict[str, dict[str, Any]] = {}
+        for projection_name, path, data_type, allow_empty in shape:
+            field = _calendar_variant_schema_leaf(provider, path)
+            if not _trusted_schedule_variant_field(
+                field,
+                data_type=data_type,
+                allow_empty=allow_empty,
+            ):
+                shape_fields = {}
+                break
+            shape_fields[projection_name] = deepcopy(field)
+        if shape_fields:
+            selected.update(shape_fields)
+            variant_names.add(variant_name)
+    return selected, frozenset(variant_names)
+
+
+def _calendar_variant_schema_leaf(
+    provider: dict[str, Any],
+    pointer: str,
+) -> dict[str, Any] | None:
+    current: Any = provider
+    for raw_part in pointer.removeprefix("/").split("/"):
+        part = raw_part.replace("~1", "/").replace("~0", "~")
+        if isinstance(current, list):
+            if not part.isdigit():
+                return None
+            index = int(part)
+            if index >= len(current):
+                return None
+            current = current[index]
+            continue
+        if not isinstance(current, dict):
+            return None
+        if current.get("type") == "array":
+            if not part.isdigit():
+                return None
+            current = current.get("items")
+            continue
+        if part in current:
+            current = current[part]
+            continue
+        properties = current.get("properties")
+        if not isinstance(properties, dict) or part not in properties:
+            return None
+        current = properties[part]
+    return current if isinstance(current, dict) else None
+
+
+def _trusted_schedule_variant_field(
+    field: dict[str, Any] | None,
+    *,
+    data_type: str,
+    allow_empty: bool,
+) -> bool:
+    if not isinstance(field, dict) or field.get("type") != data_type:
+        return False
+    sample = field.get("sampleValue")
+    if data_type == "string":
+        return isinstance(sample, str) and (allow_empty or bool(sample.strip()))
+    if data_type == "boolean":
+        return isinstance(sample, bool)
+    if data_type == "integer":
+        return isinstance(sample, int) and not isinstance(sample, bool)
+    return False
+
+
 def _projected_schedule_candidates(schema: dict[str, Any]):
     data = schema.get("data")
     if not isinstance(data, dict):
@@ -3110,6 +3298,7 @@ def _calendar_selectors(
     timezone_facts = extract_schedule_timezone_facts(schema)
     if timezone_facts is not None:
         schedule.update(timezone_facts.as_selector())
+    schedule.update(extract_schedule_template_variant_fields(schema))
     date_facts = extract_date_overview_facts(schema)
     return schedule, date_facts.as_selector() if date_facts is not None else {}
 
