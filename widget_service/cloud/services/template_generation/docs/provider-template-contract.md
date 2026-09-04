@@ -60,6 +60,8 @@ TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路�
 
 `dataSchema.path` 优先引用上游能力数据；没有稳定上游路径时允许指向 Provider 内的本地 Schema。
 业务 Provider 的 CardSpec `writeResultTo` 必须和 `dataDomain` 完全一致，否则模板准入失败。
+数据路径访问数组时必须写显式非负整数索引（例如 `/events/0/title`、`/events/1/title`）；准入与编译均按
+该索引读取 TaskSpec，不得在索引缺失或越界时回退到第 `0` 项。
 
 ## UI 模板语法
 
@@ -391,8 +393,8 @@ Support CardTpl 使用 `onClick: EventAction(props?.actionId)`。微服务校验
 ## 当前迁移范围
 
 天气、日历、手机电量、耳机、健康运动、应用使用时长、倒计时和系统内存当前共有
-74 个无 Variant 的业务 UI 模板，其中 12 个是 Support；当前形成 11 个业务组。Layout Provider 另提供
-7 个支持 `...children` 的布局模板，Action Provider 提供 2 个动作模板，运行时 Registry 共 83 个模板。
+83 个无 Variant 的业务 UI 模板，其中 12 个是 Support；当前形成 11 个业务组。Layout Provider 另提供
+7 个支持 `...children` 的布局模板，Action Provider 提供 2 个动作模板，运行时 Registry 共 92 个模板。
 名称包含 `Wide` 的布局只用于 `2x4`，其余布局只用于 `2x2`，两类布局不得混用。
 新增或修改资源后执行：
 
