@@ -134,9 +134,13 @@ Design Compact DSL，再由服务内转换器读取该 Design profile 下的 `pr
 `WIDGET_SERVICE_COMPACT_DSL_ARGUMENT_REPAIR_REMINDER_COUNT` 配置先提醒的次数；默认值为 `1`，即同一
 `requestId` 第一次返回原有提醒，第二次仍出现字符串化 `arguments` 时调用 A2UI client 修复。修复调用使用
 `cloud/data/protocol_profiles/design-compact-dsl/ARGUMENT_REPAIR_SYSTEM_PROMPT.md` 中的独立 JSON Prompt，
-不加载卡片生成系统 Prompt。模型输入明确携带原始字符串 `invalidArguments`；模型返回的对象
-替换请求 `content` 后，仍需通过正常请求模型、
-预检、生成、校验和存储流程。任意一次不再携带字符串化 `arguments` 的请求会清除该 `requestId` 的连续计数。
+不加载卡片生成系统 Prompt。模型输入以 `rawArguments` 原样携带原始字符串，不使用 `json_repair` 或其它
+启发式修复结果作为模型输入。`WIDGET_SERVICE_COMPACT_DSL_ARGUMENT_REPAIR_MAX_ATTEMPTS` 默认值为 `2`；
+第一次输出无法通过严格 JSON、请求结构校验时，第二次会同时携带上次输出和具体错误进行定向纠正。
+合法模型结果还会按当前 App/ROM 能力清单重建事件 `actionTemplate`，只保留清单声明的动态参数，并移除
+无法通过生成预检的候选。全部模型输出仍失败时，服务从原始字符串中无损提取可识别的需求文本，构造不含
+动态候选的最小静态请求继续生成。恢复结果替换请求 `content` 后，仍需通过正常生成、校验和存储流程；
+任意一次不再携带字符串化 `arguments` 的请求会清除该 `requestId` 的连续计数。
 
 `generateWidgetCardTerseDslNested2` 从
 `cloud/data/protocol_profiles/terse-dsl-nested-2/PROMPT.md` 读取本地 Prompt。模型输出只进入

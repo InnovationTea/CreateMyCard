@@ -29,6 +29,7 @@ def test_missing_spec_uses_default_config(
     assert helper.get("fusion_ball_min_prd_version") == "11.7.5.206"
     assert helper.get("enable_compact_dsl_argument_repair_fallback") == "false"
     assert helper.get("compact_dsl_argument_repair_reminder_count") == 1
+    assert helper.get("compact_dsl_argument_repair_max_attempts") == 2
 
 
 def test_existing_spec_is_used_without_default_merge(

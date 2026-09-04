@@ -43,7 +43,7 @@ from services.capability_registry import CapabilityRegistry
 from services.compact_dsl_argument_repair import (
     compact_dsl_argument_issue_tracker,
     has_explicit_stringified_arguments,
-    repair_compact_dsl_content,
+    recover_compact_dsl_content,
 )
 from services.widget_directive import (
     WidgetDirectiveState,
@@ -559,11 +559,12 @@ async def _repair_compact_dsl_content_if_needed(
     if not should_repair:
         return False
     try:
-        repaired_content = await repair_compact_dsl_content(
+        recovery = await recover_compact_dsl_content(
             payload,
             backend=settings.design_compact_model_backend,
             model_runtime=model_runtime,
             request_context=_model_request_context_from_payload(payload, None),
+            max_attempts=settings.compact_dsl_argument_repair_max_attempts,
         )
     except Exception as exc:
         logger.error(
@@ -574,8 +575,12 @@ async def _repair_compact_dsl_content_if_needed(
             model_called=True,
             repair_failure_type=type(exc).__name__,
         ) from exc
-    payload["content"] = repaired_content
-    compact_dsl_argument_issue_tracker.reset(request_id)
+    payload["content"] = recovery.content
+    logger.info(
+        f"{_MODULE} compact_dsl_argument_recovered request_id={request_id} "
+        f"mode={recovery.mode} attempts={recovery.attempts} "
+        f"dropped_candidates={json_for_log(recovery.dropped_candidates)}"
+    )
     return True
 
 
@@ -938,6 +943,8 @@ async def _serve_operation_websocket(
                             widget_directive_started = True
 
                     result = await handler(service, request, send_model_start_command)
+                if content_repaired:
+                    compact_dsl_argument_issue_tracker.reset(request_id)
                 result_data = result.model_dump(mode="json", exclude_none=True)
                 duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
                 logger.info(

@@ -147,6 +147,10 @@ class Settings(BaseSettings):
         "compact_dsl_argument_repair_reminder_count",
         1,
     )
+    compact_dsl_argument_repair_max_attempts: int = CONFIG.get(
+        "compact_dsl_argument_repair_max_attempts",
+        2,
+    )
     enable_default_protocol_profile_fallback: bool = (
         CONFIG.get("enable_default_protocol_profile_fallback") == "true"
     )

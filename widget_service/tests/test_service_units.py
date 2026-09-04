@@ -614,6 +614,7 @@ def test_compact_dsl_argument_repair_defaults_to_one_reminder(monkeypatch):
 
     assert settings.enable_compact_dsl_argument_repair_fallback is False
     assert settings.compact_dsl_argument_repair_reminder_count == 1
+    assert settings.compact_dsl_argument_repair_max_attempts == 2
 
 
 def test_consecutive_argument_issue_tracker_counts_per_request_and_resets():
@@ -1245,13 +1246,17 @@ def test_argument_repair_prompt_focuses_on_irregular_json_structure():
         "design-compact-dsl"
     )
 
-    assert "brokenJson" in prompt
-    assert "缺少右花括号或右方括号" in prompt
-    assert "字段被放到了错误层级" in prompt
-    assert "machineRecoveredCandidate" in prompt
-    assert "不能把它当作正确结构直接照抄" in prompt
-    assert '"candidateDataBindings": [' in prompt
-    assert '"action": {' in prompt
+    assert "rawArguments" in prompt
+    assert "targetStructure" in prompt
+    assert "缺少右花括号" in prompt
+    assert "或右方括号" in prompt
+    assert "action.args" in prompt
+    assert "previousOutput" in prompt
+    assert "validationErrors" in prompt
+    assert "machineRecoveredCandidate" not in prompt
+    assert "ViewWeather" not in prompt
+    assert "event.call.phone" not in prompt
+    assert "relationship" not in prompt
     assert "generateWidgetCardCompactDsl" not in prompt
     assert "functionName" not in prompt
     assert "skillName" not in prompt
@@ -1259,7 +1264,7 @@ def test_argument_repair_prompt_focuses_on_irregular_json_structure():
     assert "DSL" not in prompt
 
 
-def test_argument_repair_prompt_keeps_broken_json_and_marks_candidate_untrusted():
+def test_argument_repair_prompt_keeps_raw_json_without_machine_repair():
     broken_json = (
         '{"candidateDataBindings":{"capabilityId":"ViewWeather",'
         '"arguments":"{\\"forecastDays\\":1}"'
@@ -1277,14 +1282,16 @@ def test_argument_repair_prompt_keeps_broken_json_and_marks_candidate_untrusted(
     assert isinstance(user_content, str)
     repair_input = json_module.loads(user_content)
     assert isinstance(repair_input, dict)
-    recovered_candidate = repair_input.get("machineRecoveredCandidate")
-    assert repair_input.get("brokenJson") == broken_json
+    assert repair_input.get("rawArguments") == broken_json
     assert repair_input.get("preservedTopLevelFields") == {
         "romVersion": ROM_VERSION_7_0,
     }
-    assert isinstance(recovered_candidate, dict)
-    assert isinstance(recovered_candidate.get("candidateDataBindings"), dict)
-    assert "candidateDataBindings` 是 object array" in system_content
+    assert "machineRecoveredCandidate" not in repair_input
+    target_structure = repair_input.get("targetStructure")
+    assert isinstance(target_structure, dict)
+    assert isinstance(target_structure.get("candidateDataBindings"), list)
+    assert isinstance(target_structure.get("candidateEventCandidates"), list)
+    assert "array 的字段即使只有一项也必须输出 array" in system_content
 
 
 def test_compact_protocol_selection_uses_configured_default_fallback():
@@ -3351,7 +3358,7 @@ async def test_a2ui_model_client_raw_json_profile_keeps_custom_prompt_and_output
     """参数修复可使用自定义提示词，且不会被 A2UI DSL 后处理改写。"""
     messages = [
         {"role": "system", "content": "repair only"},
-        {"role": "user", "content": '{"brokenJson":"{}"}'},
+        {"role": "user", "content": '{"rawArguments":"{}"}'},
     ]
     raw_output = "```json\n{\n  \"userQuery\": \"天气卡片\"\n}\n```"
     captured: list[list[dict[str, str]]] = []

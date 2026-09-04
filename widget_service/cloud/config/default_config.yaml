@@ -25,6 +25,7 @@ enable_artifact_download_mock: true
 enable_widget_directive_commands: false
 enable_compact_dsl_argument_repair_fallback: false
 compact_dsl_argument_repair_reminder_count: 1
+compact_dsl_argument_repair_max_attempts: 2
 enable_openai_fallback: true
 enable_sensitive_log_fields: true
 enable_card_template: false
