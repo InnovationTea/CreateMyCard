@@ -103,23 +103,18 @@ class ArtifactValidator:
 
     @staticmethod
     def _diagnostic_prompt_context(item: Diagnostic) -> dict[str, Any]:
-        """保留确定性诊断细节，避免修复模型再次猜测具体规则。"""
+        """保留确定性诊断细节，供日志、回放和修复反馈转换使用。"""
         context: dict[str, Any] = {
             "stage": "validation",
             "category": "ARTIFACT_VALIDATION_FAILED",
             "code": item.code,
             "validatorStage": item.stage,
             "fileKind": item.file_kind,
-            "message": item.message,
-        }
-        optional_values = {
             "line": item.line,
             "jsonPointer": item.json_pointer,
             "actual": item.actual,
             "expected": item.expected,
+            "message": item.message,
             "fixHint": item.fix_hint,
         }
-        for key, value in optional_values.items():
-            if value not in (None, "", []):
-                context[key] = value
-        return context
+        return {key: value for key, value in context.items() if value not in (None, "", [])}

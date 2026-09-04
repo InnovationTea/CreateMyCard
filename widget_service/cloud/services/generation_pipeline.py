@@ -51,6 +51,34 @@ class QualityIssue:
         payload.update(self.prompt_context)
         return payload
 
+    def to_repair_payload(self) -> dict[str, Any]:
+        """返回面向修复模型的最小反馈，隐藏校验器内部元数据。"""
+        payload: dict[str, Any] = {}
+        context = self.prompt_context
+        location = context.get("at")
+        if not location and context.get("fileKind"):
+            location = context["fileKind"]
+            if context.get("line") is not None:
+                location += f":{context['line']}"
+            if context.get("jsonPointer"):
+                location += f" {context['jsonPointer']}"
+        if location:
+            payload["at"] = location
+        problem = context.get("problem") or context.get("message") or self.message
+        payload["problem"] = problem
+        for key in ("why", "current", "expected"):
+            source_key = {"current": "actual"}.get(key, key)
+            value = context.get(key, context.get(source_key))
+            if value not in (None, "", []):
+                payload[key] = value
+        fix = context.get("fix") or context.get("fixHint")
+        if fix:
+            payload["fix"] = fix
+        note = context.get("note")
+        if note:
+            payload["note"] = note
+        return payload
+
 
 @dataclass(frozen=True)
 class DslProcessingContext:

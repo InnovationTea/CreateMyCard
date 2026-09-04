@@ -185,7 +185,7 @@ async def _repair_compact_dsl_source(
                 backend=settings.design_compact_model_backend,
                 operation_name="generateWidgetCardCompactDsl",
             )
-        quality_errors = [item.to_prompt_payload() for item in latest_issues]
+        quality_errors = [item.to_repair_payload() for item in latest_issues]
         repair_prompt = PromptBuilder().build_repair(
             initial_prompt,
             source_dsl,
