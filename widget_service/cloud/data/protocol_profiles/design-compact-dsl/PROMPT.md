@@ -182,6 +182,21 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 7. **动作闭环**：Button 或 clickable Row 的可见文案只表达动作本身，默认压缩为简短的“动词 + 对象”。任何含“导航、打开、查看、清理、开启、关闭、拨打”等动作语义的按钮外观都必须具有合法 `onClick`；否则删除动作措辞和按钮外观。
 8. **状态闭环**：静态文案、颜色和图标不得与首帧动态值矛盾，也不得把某个可能变化的状态永久写死。无法由当前受控绑定安全表达的状态提示必须改为中性信息或删除。
 
+## 3.1 一级高度算账硬门禁
+
+生成组件行之前，必须先在内部完成 root 一级高度算账；算不清或结果大于安全内容区时禁止开始输出 DSL：
+
+1. `2x2` 和 `2x4` 的 root 可用高度都固定为 `136vp`，即 `160 - 12 - 12`。不得把 root 外部高度 `160vp` 当作内容高度。
+2. 对 root Column 的每个直接子节点确定最小占用高度 `H_i`。子节点显式写了 `height` 时使用该值；未写时，按其后代固定高度、上下 padding、上下 margin 和内部纵向间距求出最小高度。含 `36vp` 按钮的无高度 action 容器，其最小高度至少为 `36vp`，不能按 `0vp` 处理。
+3. `justifyContent` 为 `start|center|end` 时：`H_required = ΣH_i + Σ上下 margin + itemMargin × (子节点数 - 1)`。
+4. `justifyContent` 为 `spaceAround|spaceBetween|spaceEvenly` 时禁止同时写 `itemMargin`；先计算 `H_required = ΣH_i + Σ上下 margin`，只有 `H_required <= 136` 才能把非负剩余空间交给分布式对齐。
+5. `layoutWeight`、`flexShrink`、`clip` 和分布式对齐都不能抵消已经算出的固定高度。`H_required > 136` 时必须删除弱区域、合并标题、降低区域固定高度或改选更简单骨架。
+
+以下两种结构无论截图是否暂时可见都必须判定失败：
+
+- `20 + 64 + 64 + 8 × 2 = 164 > 136`：标题行与 S4 纵堆双 `64vp` 区域不可共存；删除总标题，保留 `64 + 8 + 64 = 136`。
+- `64 + 40 + 36 = 140 > 136`：即使使用 `spaceBetween` 且忽略所有额外间距也放不下；必须先缩小或合并区域，不能再叠加 `itemMargin`。
+
 # 四、极简协议结构
 
 ## 4.1 组件行
@@ -562,7 +577,7 @@ ActionUnit——卡级 CTA：
 - `2x2` 最多 3 个主区域和 1 个显式动作。
 - `2x4` 最多 4 个主区域，默认最多 2 个动作；只有 `wide-four-action-hub` 允许 3 至 4 个由用户逐项明确要求、同一对象且同层级的动作。
 - `2x2` 的 root 直接内容组默认不超过 3 个，优先采用“标题/上下文 + 主显示组 + 可选动作或支撑组”。弱 footer、额外状态条和第二数据域不因字号较小就免于计数；出现第 4 组时必须合并到已有组或删除优先级最低的一组。
-- `2x2` 最多使用 1 个内部内容背板；`2x4` 最多使用 1 个主内容背板和 1 个弱辅助背板。列表项优先用间距、排版或 Divider 分组，不默认每项都套圆角底板。
+- `2x2` 最多使用 1 个内部内容背板；仅 S4 纵堆允许两个等高、同构、同层级的弱背板，并且此时 root 只能直接包含这两个区域，不再增加总标题或第三个区域。`2x4` 最多使用 1 个主内容背板和 1 个弱辅助背板。列表项优先用间距、排版或 Divider 分组，不默认每项都套圆角底板。
 - 一个表面只选择一种主要层级信号：背景填充、边框或阴影三者至多强化一种；不得同时使用强填充、明显边框和阴影。
 - 不生成 dashboard 式密集仪表盘、营销海报、完整页面、完整月历或复杂表单。除受控的 `wide-four-action-hub` 外，不生成导航中心或按钮矩阵。
 
@@ -610,7 +625,7 @@ ActionUnit——卡级 CTA：
 ### `S4-parallel-zones`（双方平行信息）
 
 - 用于：两个并列理解的事实/分区（天气+打车、内存+耳机）。
-- 亚型：纵堆（`root -> [zone_top, zone_bottom]`，两 zone 各高 64、borderRadius 16 的同族低对比背板，zone 内 `Row -> [文字组, 视觉主体]`，其中一方可承载动作入口）；横行（`root -> [title_area?, content_area]`，`content_area Row -> [visual_group, text_group]`，visual_group 为 ring/Stack/主图标 48-52，text_group 为文字列）。
+- 亚型：纵堆（`root -> [zone_top, zone_bottom]`，root `itemMargin:8`，两 zone 各高 64、borderRadius 16 的同族低对比背板，`64 + 8 + 64 = 136`，不得再增加 title/header/footer；zone 内 `Row -> [文字组, 视觉主体]`，其中一方可承载动作入口）；横行（`root -> [title_area?, content_area]`，`content_area Row -> [visual_group, text_group]`，visual_group 为 ring/Stack/主图标 48-52，text_group 为文字列）。
 - 槽位：每方一个视觉主体 + 一组文字；每方至多一个主数值。
 - 禁止：总标题（横行亚型可保留小标题行）、三方分区、两方结构不同构。
 
@@ -902,7 +917,7 @@ ActionUnit——卡级 CTA：
 1. **输出与协议**：是否只有一个 `genui` 代码块和可解析的极简协议 JSONL；是否没有 createSurface/updateComponents/updateDataModel/surfaceId/catalogId；root、组件字段和枚举是否正确；融球 Design Token 是否只在 `2x2` 单一业务的倒计时/纪念日、单个日程/提醒、睡眠/专注场景用于 root，且 root 未同时写普通背景。
 2. **引用与数据**：组件是否唯一、可达且引用闭合；Expression、PathBinding、模板路径与首帧 DataModel 是否存在并类型一致；是否没有孤立组件、空胶囊、局部 Expression 或静态样例冒充动态绑定。
 3. **候选与事件**：是否只保留最小充分候选；显式动作是否绑定，隐式入口是否不抢占空间，未被明确要求的副作用动作是否已删除；同一动作是否只有一个点击容器。
-4. **骨架与预算**：是否只使用一个固定骨架；root 宽高是否为 `"matchParent"`、padding 12、圆角 20、clip true；root Column 是否使用 `alignItems:"center"`，root Row 的固定参考宽度直接内容是否使用 `justifyContent:"center"`，且没有把 root 的整组居中误写成内部文字全部居中；所有 Row/Column 两轴预算是否非负，动态文字 Row 是否保留余量，点击热区是否至少 24vp。
+4. **骨架与预算**：是否只使用一个固定骨架；root 宽高是否为 `"matchParent"`、padding 12、圆角 20、clip true；root Column 是否使用 `alignItems:"center"`，root Row 的固定参考宽度直接内容是否使用 `justifyContent:"center"`，且没有把 root 的整组居中误写成内部文字全部居中；是否已按 3.1 节逐项写出 root 直接子节点的最小高度并确认 `H_required <= 136vp`；分布式对齐是否未同时携带 `itemMargin`；所有 Row/Column 两轴预算是否非负，动态文字 Row 是否保留余量，点击热区是否至少 24vp。
 5. **文字与图表**：卡片级标题是否默认不超过 8 个字符，超长例外是否已证明完整可读且不挤压其它内容；受保护文本和 CTA 是否完整；是否没有空白 Text、`textOverflow`、单独的 `°` 或近似温度单位；格式化值是否包含单位与符号并通过压力检查；全卡字号是否不超过三档、同层级元素是否保持一致；Progress 是否只用于范围可靠的数值语义。
 6. **表面与素材**：背景是否按第十二节两方案之一取色且语义准确、没有无意退化为无色相灰白 canvas；无背景素材且不使用融球时，root 是否已输出同色族 `linearGradient`，若仍使用单一 `backgroundColor` 是否明确命中“用户指定纯色”或“渐变确实干扰高密度列表/网格”的例外；方案二文字、单色图标、图表和动作是否来自同一语义色相族且没有黑灰默认阅读层；渐变是否单向连续且没有跳色；canvas、surface、accent 是否同色相族且没有机械复用蓝白；一级文字/CTA 与主语义图标是否分别达到 4.5:1/3:1 的直接背景对比；SVG 染色、位图和背景素材是否符合描述。
 7. **最终简化**：是否只有一个主焦点、清晰对齐线和有限表面；并列分区的高度、视觉重量和留白是否均衡；是否已删除弱装饰、重复事实、无关字段、假交互、无意义单子容器和多余材质；若仍有任何不确定布局，是否已经回退到同尺寸更简单骨架。
