@@ -12,9 +12,9 @@ class BridgeOptions:
     max_tokens: int = 8192
     request_timeout: float = 120.0
     max_browser_repairs: int = 5
-    browser_validation: bool = False
+    browser_validation: bool = True
     validation_enabled: bool = True
-    layout_budget_validation: bool = True
+    layout_budget_validation: bool = False
     validate_dynamic_values: bool = True
     submit_mode: str = "direct"
     thinking_mode: str = "disable"
