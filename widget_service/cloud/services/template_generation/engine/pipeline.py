@@ -468,8 +468,8 @@ def _with_provider_template_runtime_data(
             definition = registry.require_template(template_id)
             if definition.source_format != "cardtpl/1" or not definition.capability_id:
                 continue
-            root = _provider_binding_root(card_spec, definition.capability_id)
-            if root is None:
+            roots = _provider_binding_roots(card_spec, definition.capability_id)
+            if len(roots) != definition.binding_count:
                 continue
             data = schema.get("data")
             component_projection = data.pop(component_id, None) if isinstance(data, dict) else None
@@ -489,13 +489,14 @@ def _with_provider_template_runtime_data(
                     )
                 )
             )
-            for relative_path in provider_paths:
-                path = f"{root.rstrip('/')}{relative_path}"
-                value = _pointer_value(source.dataModelSchema, path)
-                if value is None:
-                    continue
-                _set_pointer_value(schema, path, deepcopy(value))
-                changed = True
+            for root in roots:
+                for relative_path in provider_paths:
+                    path = f"{root.rstrip('/')}{relative_path}"
+                    value = _pointer_value(source.dataModelSchema, path)
+                    if value is None:
+                        continue
+                    _set_pointer_value(schema, path, deepcopy(value))
+                    changed = True
     for path in _event_binding_paths(source):
         value = _pointer_value(source.dataModelSchema, path)
         if value is None:
@@ -536,21 +537,23 @@ def _value_binding_paths(value: Any) -> tuple[str, ...]:
     return ()
 
 
-def _provider_binding_root(
+def _provider_binding_roots(
     card_spec: dict[str, Any],
     capability_id: str,
-) -> str | None:
+) -> tuple[str, ...]:
     bindings = card_spec.get("dataBindings")
     if not isinstance(bindings, list):
-        return None
-    roots = {
+        return ()
+    roots = tuple(
         item.get("writeResultTo")
         for item in bindings
         if isinstance(item, dict)
         and item.get("capabilityId") == capability_id
         and _valid_provider_binding_root(item.get("writeResultTo"))
-    }
-    return next(iter(roots)) if len(roots) == 1 else None
+    )
+    if len(set(roots)) != len(roots):
+        return ()
+    return roots
 
 
 def _valid_provider_binding_root(value: Any) -> bool:

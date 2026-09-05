@@ -61,6 +61,7 @@ from services.template_generation.engine.tersel_converter import (
 
 from .fusion_ball_background import (
     FusionBallPalette,
+    apply_content_safe_inset,
     apply_fusion_ball_background,
 )
 from .models import (
@@ -297,11 +298,18 @@ def compile_hybrid_card(
         content = _constrain_content_height(content, body_budget)
         root = _compile_card_shell(card_params, content, contract, registry)
         root = _apply_theme_content_color(root, contract, registry)
-    root = apply_fusion_ball_background(
-        root,
-        size=task_spec.size,
-        palette=fusion_palette,
-    )
+    if (
+        fusion_palette is None
+        and contract.theme_profile_id
+        in {"family-weather-care-blue", "fusion-weather-blue"}
+    ):
+        root = apply_content_safe_inset(root, size=task_spec.size)
+    else:
+        root = apply_fusion_ball_background(
+            root,
+            size=task_spec.size,
+            palette=fusion_palette,
+        )
     effective = _serialize_effective_document(root, task_spec, enable_data_bindings)
     a2ui = convert_tersel_to_a2ui(
         effective,
@@ -463,11 +471,18 @@ def compile_ux_layout_card(
     if depth > contract.limits.max_nesting_depth:
         raise TerselConversionError("Hybrid component depth budget exceeded.")
     _validate_expanded_tree(root, contract)
-    root = apply_fusion_ball_background(
-        root,
-        size=task_spec.size,
-        palette=fusion_palette,
-    )
+    if (
+        fusion_palette is None
+        and contract.theme_profile_id
+        in {"family-weather-care-blue", "fusion-weather-blue"}
+    ):
+        root = apply_content_safe_inset(root, size=task_spec.size)
+    else:
+        root = apply_fusion_ball_background(
+            root,
+            size=task_spec.size,
+            palette=fusion_palette,
+        )
     effective = _serialize_effective_document(root, task_spec, enable_data_bindings)
     a2ui = convert_tersel_to_a2ui(
         effective,
@@ -723,7 +738,7 @@ def _expand_call(
     registry: CardPlanRegistry,
     state: _ExpansionState,
     task_spec: TaskSpec,
-    provider_binding_roots: dict[str, str],
+    provider_binding_roots: dict[str, tuple[str, ...]],
     ux_layout_id: str | None = None,
 ) -> Nested2Node:
     if call.kind == "component":
@@ -4812,13 +4827,15 @@ def _a2ui_expression_string(value: str) -> str:
     return f"'{escaped}'"
 
 
-def _provider_binding_roots(card_spec: dict[str, Any] | None) -> dict[str, str]:
+def _provider_binding_roots(
+    card_spec: dict[str, Any] | None,
+) -> dict[str, tuple[str, ...]]:
     if card_spec is None:
         return {}
     raw_bindings = card_spec.get("dataBindings")
     if not isinstance(raw_bindings, list):
         return {}
-    roots: dict[str, str] = {}
+    roots: dict[str, list[str]] = {}
     for raw_binding in raw_bindings:
         if not isinstance(raw_binding, dict):
             continue
@@ -4826,13 +4843,13 @@ def _provider_binding_roots(card_spec: dict[str, Any] | None) -> dict[str, str]:
         root = raw_binding.get("writeResultTo")
         if not isinstance(capability_id, str) or not _valid_runtime_binding_root(root):
             continue
-        existing = roots.get(capability_id)
-        if existing is not None and existing != root:
+        capability_roots = roots.setdefault(capability_id, [])
+        if root in capability_roots:
             raise TerselConversionError(
-                f"CardSpec has ambiguous data roots for capability: {capability_id}"
+                f"CardSpec has duplicate data roots for capability: {capability_id}"
             )
-        roots[capability_id] = root
-    return roots
+        capability_roots.append(root)
+    return {capability_id: tuple(values) for capability_id, values in roots.items()}
 
 
 def _valid_runtime_binding_root(value: Any) -> bool:
@@ -4843,7 +4860,7 @@ def _provider_template_binding_values(
     definition: TemplateDefinition,
     variant: TemplateVariant,
     task_spec: TaskSpec,
-    binding_roots: dict[str, str],
+    binding_roots: dict[str, tuple[str, ...]],
 ) -> dict[str, str]:
     if definition.source_format != "cardtpl/1":
         return {}
@@ -4854,14 +4871,20 @@ def _provider_template_binding_values(
         raise TerselConversionError(
             f"Provider Template requires CardSpec.dataBindings: {definition.wire_id}"
         )
-    root = binding_roots[capability_id]
-    if definition.data_domain is not None and root != definition.data_domain:
+    roots = binding_roots[capability_id]
+    if len(roots) != definition.binding_count:
         raise TerselConversionError(
-            f"Provider Template dataDomain does not match CardSpec: {definition.wire_id}"
+            f"Provider Template binding count does not match CardSpec: {definition.wire_id}"
         )
+    if definition.binding_count == 1 and definition.data_domain is not None:
+        if roots[0] != definition.data_domain:
+            raise TerselConversionError(
+                f"Provider Template dataDomain does not match CardSpec: {definition.wire_id}"
+            )
     values: dict[str, str] = {}
     for name in (*variant.required_bindings, *variant.optional_bindings):
         binding = definition.bindings[name]
+        root = roots[binding.root_index]
         path = f"{root.rstrip('/')}{binding.path}"
         leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, path)
         if leaf is None:
@@ -7248,6 +7271,8 @@ def _lower_registered_ux_layout(
     contract: HybridBodyContract,
     registry: CardPlanRegistry,
 ) -> Nested2Node:
+    if layout_id == "HeroActionLayout" and content and _consumes_layout_action(content[0]):
+        return _lower_hero_action_layout(content, actions, configuration, size, registry)
     provider_layout = _instantiate_provider_layout_blueprint(
         layout_id,
         content,
@@ -7415,6 +7440,14 @@ def _lower_hero_action_layout(
         return _weighted_row((hero, support_action), (50, 50), registry)
 
     base = _single_region(content[0], justify="start", registry=registry)
+    if actions and _consumes_layout_action(content[0]):
+        action_options = next(
+            (value for value in actions[0].values if isinstance(value, dict)),
+            None,
+        )
+        if action_options is None or "onClick" not in action_options:
+            raise TerselConversionError("Consumed layout Action must declare onClick.")
+        return _merge_node_options(base, {"onClick": action_options["onClick"]})
     return _place_optional_layout_action(
         base,
         actions,
@@ -8065,6 +8098,16 @@ def _is_weather_region(node: Nested2Node) -> bool:
     )
 
 
+def _consumes_layout_action(node: Nested2Node) -> bool:
+    return any(
+        any(
+            isinstance(value, dict) and value.get("_consumeLayoutAction") is True
+            for value in item.values
+        )
+        for item in _walk_nodes(node)
+    )
+
+
 def _is_advanced_component_region(node: Nested2Node) -> bool:
     return any(
         any(
@@ -8203,6 +8246,7 @@ def _strip_advanced_component_markers(node: Nested2Node) -> Nested2Node:
         "_advancedComponent",
         "_preserveOriginalColor",
         "_layoutActionBackgroundOpacity",
+        "_consumeLayoutAction",
     }
     for value in node.values:
         if isinstance(value, dict) and not marker_keys.isdisjoint(value):
@@ -8211,6 +8255,7 @@ def _strip_advanced_component_markers(node: Nested2Node) -> Nested2Node:
             cleaned.pop("_advancedComponent", None)
             cleaned.pop("_preserveOriginalColor", None)
             cleaned.pop("_layoutActionBackgroundOpacity", None)
+            cleaned.pop("_consumeLayoutAction", None)
             values.append(cleaned)
         else:
             values.append(value)
