@@ -30,7 +30,11 @@ from services.template_generation.engine.advanced.scope_planner import (
 from services.template_generation.engine.advanced.ux_mixed_framer import (
     frame_ux_layout_root_children,
 )
+from services.template_generation.engine.advanced.ux_mixed_composer import (
+    compose_deterministic_tree,
+)
 from services.template_generation.engine.advanced.ux_mixed_prompt import (
+    UxMixedPromptProjection,
     build_ux_mixed_prompt,
     build_ux_mixed_validation_retry_prompt,
 )
@@ -80,6 +84,7 @@ async def generate_template_a2ui(
     model_client: Any,
     *,
     enable_fusion_ball: bool = False,
+    use_deterministic_composer: bool | None = None,
     trusted_template_candidate_ids: tuple[str, ...] = (),
     trusted_template_action_ids: tuple[str, ...] = (),
     trusted_template_sample_overrides: dict[str, Any] | None = None,
@@ -184,6 +189,11 @@ async def generate_template_a2ui(
             selected_task_spec,
             selection.action_ids,
         )
+        composer_enabled = (
+            controls.second_layer_deterministic_composer
+            if use_deterministic_composer is None
+            else use_deterministic_composer
+        )
         return await _generate_selected_templates(
             source_task_spec=selected_task_spec,
             card_spec=card_spec,
@@ -193,6 +203,7 @@ async def generate_template_a2ui(
             required_template_groups=selection.required_template_groups,
             registry=registry,
             model_client=model_client,
+            use_deterministic_composer=composer_enabled,
         )
     except TemplateGenerationError:
         raise
@@ -332,6 +343,7 @@ async def _generate_selected_templates(
     required_template_groups: tuple[tuple[str, ...], ...],
     registry: CardPlanRegistry,
     model_client: Any,
+    use_deterministic_composer: bool = False,
 ) -> TemplateEngineOutput:
     projected_task_spec = project_content_component_facts(
         source_task_spec,
@@ -360,41 +372,26 @@ async def _generate_selected_templates(
     )
     protocol_profile = read_tersel_protocol_profile()
     messages = projection.messages
+    compilation = None
     repair_count = 0
-    while True:
-        phase = "advanced-mixed-body" if repair_count == 0 else "advanced-mixed-body-repair"
-        raw_output = await _generate_hybrid_body(model_client, messages, phase=phase)
-        try:
-            framed_output, _ = frame_ux_layout_root_children(
-                raw_output,
-                size=projected_task_spec.size,
-                registry=registry,
-                allowed_layout_ids=projection.allowed_layout_ids,
-            )
-            compilation = compile_ux_layout_card(
-                framed_output,
-                task_spec=projected_task_spec,
-                contract=projection.contract,
-                protocol_profile=protocol_profile,
-                registry=registry,
-                business_title=str(card_spec.get("title") or "") or None,
-                card_spec=card_spec,
-                enable_data_bindings=True,
-            )
-            break
-        except TerselConversionError as exc:
-            logger.info(
-                f"{_MODULE} template_body_validation_failed "
-                f"repair_count={repair_count} detail={exc}"
-            )
-            if repair_count >= _MAX_BODY_REPAIRS:
-                raise TemplateGenerationError("template body validation failed") from exc
-            repair_count += 1
-            messages = build_ux_mixed_validation_retry_prompt(
-                projection.messages,
-                raw_output,
-                exc,
-            )
+    if use_deterministic_composer:
+        compilation = _compile_deterministic_composition(
+            projection,
+            projected_task_spec=projected_task_spec,
+            card_spec=card_spec,
+            protocol_profile=protocol_profile,
+            registry=registry,
+        )
+    if compilation is None:
+        compilation, repair_count = await _generate_composition_with_repairs(
+            model_client=model_client,
+            messages=messages,
+            projection=projection,
+            projected_task_spec=projected_task_spec,
+            card_spec=card_spec,
+            protocol_profile=protocol_profile,
+            registry=registry,
+        )
 
     requested_asset_sources = {
         source
@@ -423,6 +420,97 @@ async def _generate_selected_templates(
         expanded_component_count=compilation.stats.expanded_component_count,
         theme_id=projection.theme_id,
     )
+
+
+def _compile_deterministic_composition(
+    projection: UxMixedPromptProjection,
+    *,
+    projected_task_spec: TaskSpec,
+    card_spec: dict[str, Any],
+    protocol_profile: dict[str, Any],
+    registry: CardPlanRegistry,
+):
+    """Prototype 01: expand an over-determined selection without the LLM.
+
+    The deterministic tree must pass the same framer and compiler contract
+    checks as LLM output; any rejection falls back to the LLM composition
+    path, so fail-closed behavior is unchanged.
+    """
+    deterministic_tree = compose_deterministic_tree(projection, registry)
+    if deterministic_tree is None:
+        return None
+    try:
+        framed_output, _ = frame_ux_layout_root_children(
+            deterministic_tree,
+            size=projected_task_spec.size,
+            registry=registry,
+            allowed_layout_ids=projection.allowed_layout_ids,
+        )
+        compilation = compile_ux_layout_card(
+            framed_output,
+            task_spec=projected_task_spec,
+            contract=projection.contract,
+            protocol_profile=protocol_profile,
+            registry=registry,
+            business_title=str(card_spec.get("title") or "") or None,
+            card_spec=card_spec,
+            enable_data_bindings=True,
+        )
+    except TerselConversionError as exc:
+        logger.info(
+            f"{_MODULE} deterministic_composer_fallback detail={exc}"
+        )
+        return None
+    logger.info(f"{_MODULE} deterministic_composer_applied")
+    return compilation
+
+
+async def _generate_composition_with_repairs(
+    *,
+    model_client: Any,
+    messages: list[dict[str, str]],
+    projection: UxMixedPromptProjection,
+    projected_task_spec: TaskSpec,
+    card_spec: dict[str, Any],
+    protocol_profile: dict[str, Any],
+    registry: CardPlanRegistry,
+):
+    """LLM composition with the bounded validation repair loop."""
+    repair_count = 0
+    while True:
+        phase = "advanced-mixed-body" if repair_count == 0 else "advanced-mixed-body-repair"
+        raw_output = await _generate_hybrid_body(model_client, messages, phase=phase)
+        try:
+            framed_output, _ = frame_ux_layout_root_children(
+                raw_output,
+                size=projected_task_spec.size,
+                registry=registry,
+                allowed_layout_ids=projection.allowed_layout_ids,
+            )
+            compilation = compile_ux_layout_card(
+                framed_output,
+                task_spec=projected_task_spec,
+                contract=projection.contract,
+                protocol_profile=protocol_profile,
+                registry=registry,
+                business_title=str(card_spec.get("title") or "") or None,
+                card_spec=card_spec,
+                enable_data_bindings=True,
+            )
+            return compilation, repair_count
+        except TerselConversionError as exc:
+            logger.info(
+                f"{_MODULE} template_body_validation_failed "
+                f"repair_count={repair_count} detail={exc}"
+            )
+            if repair_count >= _MAX_BODY_REPAIRS:
+                raise TemplateGenerationError("template body validation failed") from exc
+            repair_count += 1
+            messages = build_ux_mixed_validation_retry_prompt(
+                projection.messages,
+                raw_output,
+                exc,
+            )
 
 
 async def _generate_hybrid_body(

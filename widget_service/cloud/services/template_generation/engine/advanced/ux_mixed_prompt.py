@@ -93,6 +93,14 @@ class UxMixedPromptProjection:
     requested_template_ids: tuple[str, ...]
     allowed_layout_ids: tuple[str, ...]
     theme_id: str
+    # Deterministic-composition inputs (prototype 01): everything the second
+    # layer already resolved while assembling the prompt, so an
+    # over-determined selection can be expanded without the LLM.
+    layout_selection: _SecondLayerLayoutSelection
+    component_template_ids: tuple[tuple[str, tuple[str, ...]], ...]
+    action_template_ids: tuple[str, ...]
+    selected_action_ids: tuple[str, ...]
+    selected_actions: tuple[dict[str, str], ...]
 
 
 def build_ux_mixed_validation_retry_prompt(
@@ -532,6 +540,14 @@ def build_ux_mixed_prompt(
         requested_template_ids=allowed_template_ids,
         allowed_layout_ids=allowed_layout_ids,
         theme_id=base.theme_id,
+        layout_selection=layout_selection,
+        component_template_ids=tuple(
+            (component_id, candidate_ids_by_component[component_id])
+            for component_id in scope.advanced_component_ids
+        ),
+        action_template_ids=action_template_ids,
+        selected_action_ids=selected_action_ids,
+        selected_actions=selected_actions,
     )
 
 

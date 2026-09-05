@@ -15,7 +15,7 @@ obs.expire.time: 3600
 asset.src.url.mapping: ""
 
 enable_artifact_validation: true
-enable_a2ui_model_mock: true
+enable_a2ui_model_mock: false
 enable_ids_mock: true
 enable_default_capability_registry_fallback: true
 enable_default_protocol_profile_fallback: true
@@ -26,7 +26,7 @@ enable_widget_directive_commands: false
 enable_compact_dsl_argument_repair_fallback: false
 compact_dsl_argument_repair_reminder_count: 1
 compact_dsl_argument_repair_max_attempts: 2
-enable_openai_fallback: true
+enable_openai_fallback: false
 enable_sensitive_log_fields: true
 enable_card_template: false
 enable_jsx_generation: false
@@ -48,8 +48,8 @@ model_queue_timeout_seconds: 120
 model_request_timeout_seconds: 120
 model_prompt_log_preview_chars: 30
 
-openai_master_client: deepseek_platform
-openai_fallback_client: llmclient
+openai_master_client: llmclient
+openai_fallback_client: deepseek_platform
 deepseek_platform_access_key: ""
 deepseek_platform_secret_key_sts_config_key: genui.deepseek.platform.secret.key
 deepseek_platform_ws_url: ""
@@ -67,16 +67,18 @@ model_failure_retry_max_delay_seconds: 30.0
 model_failure_retry_backoff_multiplier: 2.0
 model_failure_retry_jitter_ratio: 0.2
 
-deepseek_ws_url: ""
-deepseek_model: deepseek-ai/DeepSeek-V4-Flash
-deepseek_api_key: AccessService
+deepseek_api_url: https://api.deepseek.com
+deepseek_ws_url: ws://10.32.101.24:18087/llm/websocket/openai/chat/completions
+deepseek_model: deepseek-chat
+deepseek_api_key: sk-5426b9878ab74cec9852da9ee648d4b6
 deepseek_user: genui_user
 deepseek_request_id: genui_ui
 deepseek_temperature: 0.7
 deepseek_top_p: 0.9
 deepseek_top_k: 1
-deepseek_max_tokens: 128000
+deepseek_max_tokens: 8192
 deepseek_enable_thinking: false
 deepseek_include_usage: true
 deepseek_debug_usage: true
 deepseek_recv_timeout: 120
+artifact_base_url: http://192.168.43.4:8855/api/v1/artifacts
