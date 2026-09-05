@@ -4389,7 +4389,9 @@ async def test_bluetooth_music_action_uses_hero_pair_data():
     )
     card_spec = _bluetooth_card_spec() | {"title": "耳机听歌入口"}
 
-    output = await generate_template_a2ui(task_spec, card_spec, (binding,), model)
+    output = await generate_template_a2ui(
+        task_spec, card_spec, (binding,), model, use_deterministic_composer=False
+    )
 
     assert output.template_ids == (
         "BluetoothDeviceOverviewHero@1",
@@ -4848,6 +4850,7 @@ async def test_2x2_battery_generic_compact_accepts_two_pill_actions():
         (binding,),
         model,
         enable_fusion_ball=True,
+        use_deterministic_composer=False,
     )
 
     assert output.template_ids == (
@@ -4957,6 +4960,7 @@ async def test_battery_hero_without_pill_action_is_repaired_to_full_template():
         (binding,),
         model,
         enable_fusion_ball=True,
+        use_deterministic_composer=False,
     )
 
     assert model.body_calls == 2
@@ -5027,6 +5031,7 @@ async def test_second_layer_invalid_direct_calls_are_retried_exactly_twice() -> 
             _battery_card_spec(),
             (binding,),
             model,
+            use_deterministic_composer=False,
         )
 
     assert model.body_calls == 3
@@ -5321,6 +5326,7 @@ async def test_disabled_fusion_feature_hides_themes_from_first_layer_prompt(
     controls = TemplateControls(
         schemaVersion="template-controls/1",
         firstLayerComponentSelector=selector,
+        secondLayerDeterministicComposer=False,
     )
     monkeypatch.setattr(template_pipeline_module, "load_template_controls", lambda: controls)
     binding = CandidateDataBinding(
@@ -5905,6 +5911,14 @@ def test_template_route_prompt_exposes_exact_task_spec_paths_from_bindings():
 @pytest.mark.asyncio
 async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact(monkeypatch):
     monkeypatch.setattr(WidgetGenerationService, "_enable_card_template", lambda _self: True)
+    monkeypatch.setattr(
+        template_pipeline_module,
+        "load_template_controls",
+        lambda: TemplateControls(
+            schemaVersion="template-controls/1",
+            secondLayerDeterministicComposer=False,
+        ),
+    )
     model = WeatherTemplateModel(
         body=(
             'Template("SingleFocusLayout@1",{},Template("WeatherOverviewFull@1",'
@@ -6186,6 +6200,7 @@ async def test_search_candidates_are_derived_from_registry_not_model_template_id
         _weather_card_spec(),
         (binding,),
         model,
+        use_deterministic_composer=False,
     )
 
     assert model.body_called is True
@@ -6212,6 +6227,7 @@ async def test_second_layer_rejects_provider_template_outside_first_layer_candid
             _weather_card_spec(),
             (binding,),
             model,
+            use_deterministic_composer=False,
         )
 
     assert model.body_called is True
@@ -6237,6 +6253,7 @@ async def test_unused_candidate_fields_do_not_block_query_required_weather_field
         _weather_card_spec(),
         (binding,),
         model,
+        use_deterministic_composer=False,
     )
 
     assert output.template_ids == ("WeatherOverviewFull@1", "SingleFocusLayout@1")
@@ -6493,6 +6510,7 @@ async def test_duplicate_weather_pill_actions_keep_independent_event_bindings():
         _weather_card_spec(),
         (binding,),
         model,
+        use_deterministic_composer=False,
     )
 
     assert model.second_layer_prompt is not None

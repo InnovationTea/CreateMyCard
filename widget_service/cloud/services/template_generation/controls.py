@@ -30,6 +30,10 @@ class TemplateControls(BaseModel):
         default="search",
         alias="firstLayerComponentSelector",
     )
+    second_layer_deterministic_composer: bool = Field(
+        default=True,
+        alias="secondLayerDeterministicComposer",
+    )
 
     @model_validator(mode="after")
     def disabled_ids_are_unique(self) -> TemplateControls:
