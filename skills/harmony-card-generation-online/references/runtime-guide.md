@@ -2,6 +2,59 @@
 
 本文档是本 Skill 正常 create/edit 路径唯一需要加载的运行时资料。一次任务只读取一次本文档，不再加载其它 reference；示例和静态工具快照仅用于用户明确要求的联调、排障或回归，且不能覆盖当前运行时 schema。
 
+## 回复闸门状态机
+
+用户回复不是工具调用的副作用，而是必须单独完成的动作。读取本指南后，先记住下面的状态机；每次工具返回都要先分类，再按状态机决定下一步，不能边分类边调用下一个工具。
+
+```text
+INIT -> (NEED_USER_REPLY | READY_TO_CALL)
+READY_TO_CALL -> CALLING -> (NEED_USER_REPLY | READY_TO_CALL)
+NEED_USER_REPLY -> USER_REPLY_SENT -> (READY_TO_CALL | WAITING_USER | DONE)
+WAITING_USER -> READY_TO_CALL
+```
+
+- `INIT`：刚完成模式和形态判断；确认会调用工具时，先为开始处理消息进入 `NEED_USER_REPLY`；若已确定追问或引导，则直接进入对应回复闸门。
+- `READY_TO_CALL`：只有当前置条件满足且没有待发送回复时，才可调用一个工具。
+- `CALLING`：工具执行期间静默；工具返回、内部轨迹、参数写入和 `userQuery` 更新都不算用户回复。
+- `NEED_USER_REPLY`：工具结果或流程决策要求用户可见消息时的硬闸门。此时只能发送一条独立普通用户消息；禁止调用任何工具、结束本轮、写入下一工具参数或把工具结果直接转发。
+- `USER_REPLY_SENT`：确认独立消息已发送后，才能进入下一状态。发送失败或未确认时停留在 `NEED_USER_REPLY`，不得继续工具链。
+- `WAITING_USER`：已追问或请求替代确认，等待用户答复，不调用工具。
+- `DONE`：最终摘要、失败说明或结束引导已发送，才允许结束本轮。
+
+两个结果闸门必须分别执行：外部来源成功且校验通过后，下一条用户可见消息必须使用本指南后文的固定来源结果播报模板；生成返回合法 `success/degraded` 和新 URL 后，下一条用户可见消息必须使用本指南后文的用途 + 内容总结模板。任一消息未发送前，不得调用下一个来源、调用生成工具或进入 `DONE`。
+
+### 闸门执行算法
+
+按下面的顺序执行，不得把步骤合并到一次工具调用或一条混合消息中：
+
+```text
+state = INIT
+if this task will call a tool:
+  state = NEED_USER_REPLY
+  send exactly one start-processing message (create or edit)
+  if the send is not confirmed:
+    stop; keep state = NEED_USER_REPLY
+  state = USER_REPLY_SENT
+  state = READY_TO_CALL
+else:
+  route the task to the matching question or guidance reply gate
+while state != DONE:
+  assert state == READY_TO_CALL
+  call exactly one tool
+  state = CALLING
+  classify the result without replying
+  if the result needs a user-visible message:
+    state = NEED_USER_REPLY
+    send exactly one standalone ordinary user message from the matching template
+    if the send is not confirmed:
+      stop; keep state = NEED_USER_REPLY
+    state = USER_REPLY_SENT
+    continue according to the template post-send action
+  state = READY_TO_CALL
+```
+
+“继续 according to post-send action”只能是继续一个后续工具、进入 `WAITING_USER` 或进入 `DONE`。来源成功的后续动作必须等结果播报发送确认；生成成功的后续动作必须等用途 + 内容总结发送确认。不得在同一条消息中同时发送来源播报和最终总结，也不得先调用后续工具再补发前一条消息。
+
 ## 模式、编辑链与调用轨迹
 
 ### 模式判断
@@ -247,9 +300,9 @@ payload 常用字段为 `status`、`message`、可选 `artifactUrl/suggestSize/r
 
 ## 用户回复规范（唯一出口）
 
-本节是用户可见回复的唯一规范和唯一出口，Agent 必须严格遵循。Skill 的任一流程节点需要播报、追问、说明结果或结束引导时，必须回到本节确定状态，再使用对应固定话术或生成后摘要模板；不得凭普通对话习惯自行改写、拼接、解释工具结果，或承诺未执行的端侧操作。固定话术中的占位符只能按本节规则替换，不能原样输出。除本节外，其它章节只能描述“何时需要回复”，不能新增或改写用户话术。
+本节是用户可见回复的唯一规范和唯一出口，Agent 必须严格遵循。任一流程节点需要播报、追问、说明结果或结束引导时，先回到上方“回复闸门状态机”进入 `NEED_USER_REPLY`，再选择本节唯一匹配的话术；发送确认后才能继续调用、等待用户或结束。固定话术中的占位符只能按本节规则替换，不能原样输出。除本节外，其它章节只能描述“何时需要回复”，不能新增或改写用户话术。
 
-执行顺序固定为：确定当前回复状态 → 选择本节唯一匹配的模板 → 发送一条用户可见回复 → 根据“发送后动作”继续调用或停止等待。发送前必须执行本节的禁止项检查；需要等待用户时不得继续调用，需要继续工具链时不得把内部工具步骤混入回复。
+执行顺序固定为：工具返回或流程决策 → 分类 → `NEED_USER_REPLY` → 选择本节唯一匹配的模板 → 发送一条独立用户可见回复 → 确认发送成功并进入 `USER_REPLY_SENT` → 根据“发送后动作”继续调用、等待用户或进入 `DONE`。发送前必须执行本节的禁止项检查；需要等待用户时不得继续调用，需要继续工具链时不得把内部工具步骤混入回复。
 
 ### 输出优先级
 
