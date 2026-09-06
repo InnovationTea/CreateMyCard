@@ -256,7 +256,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 103
+    assert len(registry.provider_template_ids) == 105
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -605,7 +605,7 @@ def test_business_groups_are_derived_from_provider_templates() -> None:
     assert provider_layout_components == set(registry.ux_layout_components)
     assert len(registry.ux_business_component_provider_ids) == 11
     calendar = registry.require_ux_business_component("CalendarOverview")
-    assert len(calendar.local_template_ids) == 19
+    assert len(calendar.local_template_ids) == 22
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
     assert not any(
         template_id.startswith("DateOverview")
@@ -2289,6 +2289,7 @@ def test_earphone_templates_bind_progress_color_to_theme_support_content() -> No
         "BluetoothDeviceOverviewEarbudsFull@1",
         "BluetoothDeviceOverviewEarphoneCaseHero@1",
         "BluetoothDeviceOverviewEarphoneHero@1",
+        "BluetoothDeviceOverviewChargeSupport@1",
     }
     progress_count = 0
 
@@ -2309,7 +2310,7 @@ def test_earphone_templates_bind_progress_color_to_theme_support_content() -> No
             )
             assert color.name == expected_color
 
-    assert progress_count == 14
+    assert progress_count == 15
 
 
 def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() -> None:
@@ -2324,7 +2325,7 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
             "caseIcon",
             "earphoneIcon",
         },
-        "HeartRateOverview": {"sourceIcon"},
+        "HeartRateOverview": {"sourceIcon", "heartIcon"},
         "SleepOverview": {"sourceIcon"},
         "WorkoutOverview": {"sourceIcon"},
     }
@@ -2333,6 +2334,7 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("BluetoothDeviceOverviewHero@1", "leftEarIcon"),
         ("BluetoothDeviceOverviewHero@1", "rightEarIcon"),
         ("BluetoothDeviceOverviewEarbudsSupport@1", "deviceIcon"),
+        ("BluetoothDeviceOverviewChargeSupport@1", "deviceIcon"),
         ("BluetoothDeviceOverviewEarbudPairFull@1", "leftEarIcon"),
         ("BluetoothDeviceOverviewEarbudPairFull@1", "rightEarIcon"),
         ("BluetoothDeviceOverviewEarbudPairFull@1", "caseIcon"),
@@ -2347,8 +2349,7 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("HeartRateOverviewIconCompact@1", "sourceIcon"),
         ("HeartRateOverviewIconHero@1", "sourceIcon"),
         ("HeartRateOverviewUpdatedIconHero@1", "sourceIcon"),
-        ("HeartRateOverviewIconSupport@1", "sourceIcon"),
-        ("HeartRateOverviewUpdatedIconSupport@1", "sourceIcon"),
+        ("HeartRateOverviewSupport@1", "heartIcon"),
         ("SleepOverviewFull@1", "sourceIcon"),
         ("SleepOverviewHero@1", "sourceIcon"),
         ("SleepOverviewCompact@1", "sourceIcon"),
@@ -2459,8 +2460,8 @@ def test_device_ring_progress_and_icons_bind_to_distinct_theme_colors() -> None:
                 assert fill_color.kind == "theme"
                 assert fill_color.name == "supportContentColor"
 
-    assert progress_count == 10
-    assert ring_icon_count == 9
+    assert progress_count == 11
+    assert ring_icon_count == 10
 
 
 def test_battery_ring_progress_uses_dedicated_track_theme_color() -> None:
@@ -2598,10 +2599,10 @@ def test_calendar_templates_follow_latest_schedule_contract() -> None:
     registry = get_cardplan_registry()
     calendar = registry.require_ux_business_component("CalendarOverview")
 
-    assert len(calendar.local_template_ids) == 19
+    assert len(calendar.local_template_ids) == 22
     assert "ScheduleOverviewHeroContent@1" in calendar.local_template_ids
     assert "ScheduleOverviewDateFull@1" in calendar.local_template_ids
-    assert "ScheduleOverviewSupport@1" in calendar.local_template_ids
+    assert "ScheduleOverviewTimeSupport@1" in calendar.local_template_ids
     assert not any(
         template_id.endswith("Compact@1") for template_id in calendar.local_template_ids
     )
@@ -2700,7 +2701,7 @@ def test_each_business_group_has_a_canonical_support_template() -> None:
         "AppUsageOverview": "AppUsageOverviewSupport@1",
         "BatteryOverview": "BatteryOverviewSupport@1",
         "BluetoothDeviceOverview": "BluetoothDeviceOverviewEarbudsSupport@1",
-        "CalendarOverview": "ScheduleOverviewSupport@1",
+        "CalendarOverview": "ScheduleOverviewTimeSupport@1",
         "CountdownOverview": "CountdownOverviewSupport@1",
         "HeartRateOverview": "HeartRateOverviewSupport@1",
         "ResourceUsageOverview": "ResourceUsageOverviewSupport@1",
@@ -2717,8 +2718,7 @@ def test_each_business_group_has_a_canonical_support_template() -> None:
 @pytest.mark.parametrize(
     ("template_id", "params"),
     (
-        ("BatteryOverviewSupport@1", {}),
-        ("ScheduleOverviewSupport@1", {}),
+        ("ScheduleOverviewTimeSupport@1", {}),
         ("CountdownOverviewSupport@1", {"title": "高考倒计时"}),
     ),
 )
@@ -2766,17 +2766,18 @@ def test_new_support_templates_follow_two_line_contract(
     assert content.component_type == "Column"
     content_options = content.values[0]
     assert isinstance(content_options, dict)
-    assert content_options.get("itemMargin") == 2
+    is_calendar_support = template_id == "ScheduleOverviewTimeSupport@1"
+    assert content_options.get("itemMargin") == (4 if is_calendar_support else 2)
     assert len(texts) == 2
     primary_options = texts[0].values[-1]
     support_options = texts[1].values[-1]
     assert isinstance(primary_options, dict)
     assert isinstance(support_options, dict)
-    assert primary_options.get("height") == 20
-    assert primary_options.get("fontSize") == 14
+    assert primary_options.get("height") == (None if is_calendar_support else 20)
+    assert primary_options.get("fontSize") == (16 if is_calendar_support else 14)
     assert primary_options.get("fontWeight") == 700
-    assert support_options.get("height") == 16
-    assert support_options.get("fontSize") == 12
+    assert support_options.get("height") == (None if is_calendar_support else 16)
+    assert support_options.get("fontSize") == (14 if is_calendar_support else 12)
     assert support_options.get("fontWeight") == 500
 
 
@@ -2816,7 +2817,7 @@ def test_battery_compact_uses_optional_icon_and_36vp_ring() -> None:
     assert _template_node_options(progress)["height"] == 36
     assert _template_node_options(icon)["width"] == 12
     assert _template_node_options(icon)["height"] == 12
-    assert _template_node_options(text_column)["height"] == 32
+    assert "height" not in _template_node_options(text_column)
 
     bindings = {
         "percent": "${data.phoneBattery.batterySOC}",

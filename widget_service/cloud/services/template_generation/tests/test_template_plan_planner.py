@@ -342,7 +342,7 @@ def test_planner_composes_new_provider_supports_and_consumes_two_actions() -> No
                 explicitFields=("/events/0/title", "/events/0/dtStart"),
                 candidates=(
                     TemplateSearchCandidate(
-                        templateId="ScheduleOverviewSupport@1",
+                        templateId="ScheduleOverviewTimeSupport@1",
                         coveredExplicitFields=(
                             "/events/0/title",
                             "/events/0/dtStart",
@@ -364,7 +364,7 @@ def test_planner_composes_new_provider_supports_and_consumes_two_actions() -> No
     assert all(plan.layout_template_id == "TwoSupportLayout@1" for plan in plans)
     assert all(
         {slot.template_id for slot in plan.business_slots}
-        == {"BatteryOverviewSupport@1", "ScheduleOverviewSupport@1"}
+        == {"BatteryOverviewSupport@1", "ScheduleOverviewTimeSupport@1"}
         for plan in plans
     )
     assert all(

@@ -182,9 +182,13 @@ _SUPPORT_ASSET_IDS_BY_TEMPLATE = {
     "ActivityOverviewSupport@1": ("asset.figure_run",),
     "WorkoutOverviewSupport@1": ("asset.figure_run",),
     "SleepOverviewSupport@1": ("asset.moon_z_fill_1",),
-    "HeartRateOverviewIconSupport@1": ("asset.heart_fill",),
-    "HeartRateOverviewUpdatedIconSupport@1": ("asset.heart_fill",),
+    "HeartRateOverviewSupport@1": ("asset.heart_fill",),
     "BluetoothDeviceOverviewEarbudsSupport@1": ("asset.icon_earphone",),
+    "BluetoothDeviceOverviewChargeSupport@1": ("asset.earphone_case_16644",),
+    "ScheduleOverviewTimeSupport@1": ("asset.calendar_fill",),
+    "ScheduleOverviewLocationSupport@1": ("asset.calendar_fill",),
+    "ScheduleOverviewStartTimeSupport@1": ("asset.calendar_fill",),
+    "ScheduleOverviewDateSupport@1": ("asset.calendar_fill",),
 }
 # 指定版本没有多云图标；固定测试样例保持多云，不能改成晴天来迁就素材。
 _SUPPORT_WEATHER_CONDITION = "多云"
@@ -548,6 +552,8 @@ def _data_binding(
         )
     if template is not None and template.template_id.startswith("ScheduleOverviewNextEvent"):
         fields = _ordered_unique([*configured_fields, *_CALENDAR_NEXT_EVENT_RUNTIME_FIELDS])
+    if template_id == "ScheduleOverviewTimeSupport@1":
+        fields = _ordered_unique([*fields, "/events/0/dtEnd"])
     if definition.business_id == "WorkoutOverview":
         fields = _ordered_unique([*fields, *_WORKOUT_RUNTIME_FIELDS])
     if definition.business_id == "BluetoothDeviceOverview":

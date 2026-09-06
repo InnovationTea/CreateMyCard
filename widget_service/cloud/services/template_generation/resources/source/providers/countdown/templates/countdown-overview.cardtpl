@@ -43,7 +43,7 @@ Row(
   {
     "_advancedComponent": "CountdownOverview",
     "width": "matchParent",
-    "padding": { "left": 12 },
+    "padding": { "left": 12, "right": 12 },
     "justifyContent": "start",
     "alignItems": "center",
     "clip": true,

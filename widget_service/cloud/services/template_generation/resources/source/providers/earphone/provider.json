@@ -2,8 +2,12 @@
   "bundleFormat": "card-provider-bundle/1",
   "providerId": "com.huawei.earphone.cli",
   "providerVersion": "1.0.0-poc",
-  "firstLayerRule": {"path": "layer-docs/first-layer.md"},
-  "secondLayerRule": {"path": "layer-docs/second-layer.md"},
+  "firstLayerRule": {
+    "path": "layer-docs/first-layer.md"
+  },
+  "secondLayerRule": {
+    "path": "layer-docs/second-layer.md"
+  },
   "capabilities": [
     {
       "capabilityId": "GetEarphoneInfo",
@@ -67,7 +71,11 @@
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudsSupport@1",
-      "assetParameterSemanticTags": { "deviceIcon": ["earphone-body"] },
+      "assetParameterSemanticTags": {
+        "deviceIcon": [
+          "earphone-body"
+        ]
+      },
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
       "description": "耳机电量 Support，展示左右耳电量和设备图标；可由 Planner 放入双业务布局，并按需在内部绑定事件。",
@@ -78,6 +86,25 @@
       ],
       "secondaryData": [],
       "optionalData": []
+    },
+    {
+      "templateId": "BluetoothDeviceOverviewChargeSupport@1",
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "耳机充电 Support：32vp 电量环与两行文本展示耳机盒或整体电量、充电状态；必需充电盒图标，根节点可绑定事件。",
+      "entry": "templates/bluetooth-device-overview.cardtpl",
+      "primaryData": [
+        "/batteryLevel"
+      ],
+      "secondaryData": [
+        "/chargingStatusDesc"
+      ],
+      "optionalData": [],
+      "assetParameterSemanticTags": {
+        "deviceIcon": [
+          "earphone-case"
+        ]
+      }
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudsFull@1",

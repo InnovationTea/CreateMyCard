@@ -2,8 +2,12 @@
   "bundleFormat": "card-provider-bundle/1",
   "providerId": "com.huawei.calendar.cli",
   "providerVersion": "1.0.0-poc",
-  "firstLayerRule": {"path": "layer-docs/first-layer.md"},
-  "secondLayerRule": {"path": "layer-docs/second-layer.md"},
+  "firstLayerRule": {
+    "path": "layer-docs/first-layer.md"
+  },
+  "secondLayerRule": {
+    "path": "layer-docs/second-layer.md"
+  },
   "capabilities": [
     {
       "capabilityId": "GetCalendarEvents",
@@ -21,7 +25,9 @@
       "capabilityId": "GetCalendarEvents",
       "description": "下一个日程 Hero，展示标题、时间范围和地点，可选日历图标与标题文案。",
       "entry": "templates/schedule-overview.cardtpl",
-      "primaryData": ["/events/0/title"],
+      "primaryData": [
+        "/events/0/title"
+      ],
       "secondaryData": [
         "/events/0/dtStart",
         "/events/0/dtEnd",
@@ -35,7 +41,9 @@
       "capabilityId": "GetCalendarEvents",
       "description": "日程提醒 Hero，以时间轴展示标题、开始时间和提前提醒；开始时间为空时由端侧隐藏提醒文案。",
       "entry": "templates/schedule-overview.cardtpl",
-      "primaryData": ["/events/0/title"],
+      "primaryData": [
+        "/events/0/title"
+      ],
       "secondaryData": [
         "/events/0/dtStart",
         "/events/0/remindTime/0"
@@ -99,7 +107,9 @@
       "capabilityId": "GetCalendarEvents",
       "description": "日程 HeroContent，展示标题、时间范围和地点；仅用于 HeroTitleContentActionLayout 的第二个业务位置。",
       "entry": "templates/schedule-overview.cardtpl",
-      "primaryData": ["/events/0/title"],
+      "primaryData": [
+        "/events/0/title"
+      ],
       "secondaryData": [
         "/events/0/dtStart",
         "/events/0/dtEnd",
@@ -177,7 +187,9 @@
       "capabilityId": "GetCalendarEvents",
       "description": "日程详情 Full，展示备注、结束时间和地点，可选日历图标与标题文案。",
       "entry": "templates/schedule-overview.cardtpl",
-      "primaryData": ["/events/0/description"],
+      "primaryData": [
+        "/events/0/description"
+      ],
       "secondaryData": [
         "/events/0/dtEnd",
         "/events/0/eventLocation"
@@ -194,7 +206,9 @@
         "/events/0/startDate",
         "/events/0/title"
       ],
-      "secondaryData": ["/events/0/isAllDay"],
+      "secondaryData": [
+        "/events/0/isAllDay"
+      ],
       "optionalData": []
     },
     {
@@ -208,7 +222,9 @@
         "/events/0/dtStart"
       ],
       "secondaryData": [],
-      "optionalData": ["/events/0/dtEnd"]
+      "optionalData": [
+        "/events/0/dtEnd"
+      ]
     },
     {
       "templateId": "ScheduleOverviewTimezoneDateEndFull@1",
@@ -232,7 +248,9 @@
       "capabilityId": "GetCalendarEvents",
       "description": "日程提醒详情 Hero，展示数据更新时间、发起人、重要类型和提前提醒时间。",
       "entry": "templates/schedule-overview.cardtpl",
-      "primaryData": ["/events/0/senderName"],
+      "primaryData": [
+        "/events/0/senderName"
+      ],
       "secondaryData": [
         "/events/0/importantEventType",
         "/events/0/remindTime/0",
@@ -251,7 +269,9 @@
         "/events/0/dtStart"
       ],
       "secondaryData": [],
-      "optionalData": ["/events/0/dtEnd"]
+      "optionalData": [
+        "/events/0/dtEnd"
+      ]
     },
     {
       "templateId": "ScheduleOverviewEventCountDetailsHero@1",
@@ -286,10 +306,10 @@
       "optionalData": []
     },
     {
-      "templateId": "ScheduleOverviewSupport@1",
+      "templateId": "ScheduleOverviewTimeSupport@1",
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
-      "description": "日程 Support，第一行展示首项日程标题，第二行展示开始时间，并按可用性追加结束时间和地点；用于 TwoSupportLayout，可在业务根节点消费一个已批准 Action。",
+      "description": "日程 时间段，结束时间缺失时仅展示开始时间 Support：主行展示首项日程标题，辅助行展示时间段，结束时间缺失时仅展示开始时间；可选 24vp 日历图标，根节点可绑定事件。",
       "entry": "templates/schedule-overview.cardtpl",
       "primaryData": [
         "/events/0/title"
@@ -298,9 +318,70 @@
         "/events/0/dtStart"
       ],
       "optionalData": [
-        "/events/0/dtEnd",
+        "/events/0/dtEnd"
+      ],
+      "assetParameterSemanticTags": {
+        "calendarIcon": [
+          "calendar"
+        ]
+      }
+    },
+    {
+      "templateId": "ScheduleOverviewLocationSupport@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "日程 地点 Support：主行展示首项日程标题，辅助行展示地点；可选 24vp 日历图标，根节点可绑定事件。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/events/0/title"
+      ],
+      "secondaryData": [
         "/events/0/eventLocation"
-      ]
+      ],
+      "optionalData": [],
+      "assetParameterSemanticTags": {
+        "calendarIcon": [
+          "calendar"
+        ]
+      }
+    },
+    {
+      "templateId": "ScheduleOverviewStartTimeSupport@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "日程 开始时间 Support：主行展示首项日程标题，辅助行展示开始时间；可选 24vp 日历图标，根节点可绑定事件。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/events/0/title"
+      ],
+      "secondaryData": [
+        "/events/0/dtStart"
+      ],
+      "optionalData": [],
+      "assetParameterSemanticTags": {
+        "calendarIcon": [
+          "calendar"
+        ]
+      }
+    },
+    {
+      "templateId": "ScheduleOverviewDateSupport@1",
+      "businessId": "CalendarOverview",
+      "capabilityId": "GetCalendarEvents",
+      "description": "日程 日期 Support：主行展示首项日程标题，辅助行展示日期；可选 24vp 日历图标，根节点可绑定事件。",
+      "entry": "templates/schedule-overview.cardtpl",
+      "primaryData": [
+        "/events/0/title"
+      ],
+      "secondaryData": [
+        "/events/0/startDate"
+      ],
+      "optionalData": [],
+      "assetParameterSemanticTags": {
+        "calendarIcon": [
+          "calendar"
+        ]
+      }
     }
   ],
   "compatibility": {

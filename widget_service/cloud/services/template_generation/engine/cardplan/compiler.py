@@ -1077,7 +1077,7 @@ def _validate_provider_template_state(
             raise TerselConversionError(
                 "Bluetooth Provider Template has no trusted earphone facts."
             )
-        if variant_name in {"caseStatusCompact", "earphoneCaseCompact"}:
+        if variant_name in {"caseStatusCompact", "earphoneCaseCompact", "chargeSupport"}:
             if (
                 facts.case_battery_level is None
                 or facts.case_charging_status is None

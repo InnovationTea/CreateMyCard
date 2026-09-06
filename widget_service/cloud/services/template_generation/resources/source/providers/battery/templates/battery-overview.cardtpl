@@ -44,9 +44,10 @@ Column(
 )
 #End
 
-#Template BatteryOverviewSupport@1(props: { actionId?: string })
+#Template BatteryOverviewSupport@1(props: { batteryIcon?: asset, actionId?: string })
 data = {
     percent: $path("/batterySOC"),
+    percentText: $optionalPath("/batterySOCText"),
     charging: $path("/chargingStatusDesc")
 }
 
@@ -54,51 +55,109 @@ Row(
   {
     "_advancedComponent": "BatteryOverview",
     "width": "matchParent",
-    "padding": { "left": 12 },
+    "height": "matchParent",
+    "padding": { "left": 12, "right": 12 },
     "justifyContent": "start",
     "alignItems": "center",
     "clip": true,
     "constraintSize": { "minWidth": 0, "minHeight": 0 },
     "onClick": EventAction(props?.actionId)
   },
-  Column(
+  Row(
     {
       "width": "matchParent",
-      "itemMargin": 2,
+      "height": 44,
+      "itemMargin": 8,
       "justifyContent": "start",
-      "alignItems": "start",
-      "clip": true,
-      "constraintSize": { "minWidth": 0, "minHeight": 0 }
+      "alignItems": "center",
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
-    Text(
-      Expr("电量 " + data.percent + "%"),
-      {
-        "width": "matchParent",
-        "height": 20,
-        "fontSize": 14,
-        "fontWeight": 700,
-        "fontColor": $theme('primaryColor'),
-        "maxLines": 1,
-        "textOverflow": "ellipsis",
-        "constraintSize": { "minWidth": 0, "minHeight": 0 }
-      }
+    Stack(
+      {"width": 32, "height": 32, "alignContent": "center", "flexShrink": 0},
+      Progress(
+        {
+          "value": data.percent,
+          "total": 100,
+          "type": "ring",
+          "color": $theme('progressColor'),
+          "backgroundColor": $theme('progressBackgroundColor'),
+          "width": 32,
+          "height": 32,
+          "strokeWidth": 6
+        }
+      ),
+      #if props.batteryIcon
+      Image(
+        props.batteryIcon,
+        {
+          "width": 12,
+          "height": 12,
+          "objectFit": "contain",
+          "fillColor": $theme('supportContentColor')
+        }
+      )
+      #endif
     ),
-    Text(
-      data.charging,
+    Column(
       {
-        "width": "matchParent",
-        "height": 16,
-        "fontSize": 12,
-        "fontWeight": 500,
-        "fontColor": $theme('supportContentColor'),
-        "maxLines": 1,
-        "textOverflow": "ellipsis",
-        "constraintSize": { "minWidth": 0, "minHeight": 0 }
-      }
+        "itemMargin": 4,
+        "justifyContent": "start",
+        "alignItems": "start",
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+      },
+      #if data.percent
+      Text(
+        Expr("电量 " + data.percent + "%"),
+        {
+          "fontSize": 14,
+          "fontWeight": 700,
+          "fontColor": $theme('primaryColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      ),
+      #elseif data.percentText
+      Text(
+        Expr("电量 " + data.percentText),
+        {
+          "fontSize": 14,
+          "fontWeight": 700,
+          "fontColor": $theme('primaryColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      ),
+      #else
+      Text(
+        "电量信息异常",
+        {
+          "fontSize": 14,
+          "fontWeight": 700,
+          "fontColor": $theme('primaryColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      ),
+      #endif
+      Text(
+        data.charging,
+        {
+          "fontSize": 12,
+          "fontWeight": 400,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      )
     )
   )
 )
 #End
+
 #Template BatteryOverviewHero@1(props: { batteryIcon?: asset })
 data = {
     percent: $path("/batterySOC"),
@@ -284,7 +343,6 @@ Column(
     ),
     Column(
       {
-        "height": 32,
         "itemMargin": 4,
         "justifyContent": "start",
         "alignItems": "start",
@@ -293,7 +351,6 @@ Column(
       Text(
         Expr("电量 " + data.percent + "%"),
         {
-          "height": 16,
           "fontSize": 14,
           "fontWeight": 700,
           "fontColor": $theme('primaryColor'),
@@ -305,7 +362,6 @@ Column(
       Text(
         data.charging,
         {
-          "height": 12,
           "fontSize": 12,
           "fontWeight": 400,
           "fontColor": $theme('supportContentColor'),

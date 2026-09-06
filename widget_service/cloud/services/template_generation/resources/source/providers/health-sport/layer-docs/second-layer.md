@@ -3,6 +3,14 @@
 - Provider：`com.huawei.health-sport.cli`。
 - 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
 - 可用模板：
+  - `ActivityOverviewSupport@1`：每日步数为主信息，第二行固定说明，可选 `stepsIcon`；不展示热量和距离。
+  - `WorkoutOverviewSupport@1`：主数据 /exerciseCalorieText，次要数据 /exerciseDurationText，
+    可选 /exerciseTypeName；主行展示热量，辅助行展示运动类型与时长，可选 `sourceIcon`。
+  - `HeartRateOverviewSupport@1`：主数据 /exerciseHeartRateAvg；主行心率值和单位，辅助行
+    “运动平均心率”，可选 `heartIcon`。不再提供 UpdatedSupport、IconSupport、UpdatedIconSupport。
+  - `SleepOverviewSupport@1`：仅要求 /nightSleepDurationText，辅助行为睡眠说明，可选 `sourceIcon`；
+    不展示得分或进度环，不能覆盖用户显式要求的得分。
+    四种 Support 均只用于 `TwoSupportLayout@1`，可接收 Planner 分配的 `actionId` 并绑定根节点点击。
   - `ActivityOverviewCompact@1`：每日步数紧凑摘要，展示步数，可使用步数图标。 组件形态：compact。 布局场景：约 2x1；单 Compact + 2 个 PillAction。主数据：/dailySteps；次要数据：无；可选数据：无。
   - `ActivityOverviewFull@1`：今日活动完整摘要，展示步数、固定万步基准进度、消耗热量和运动距离，可使用步数图标。 组件形态：full。 布局场景：完整 2x2；无 Action 时单独使用。主数据：/dailySteps；次要数据：/dailyTotalCaloriesText, /dailyDistanceText；可选数据：无。
   - `ActivityOverviewHero@1`：今日活动步数主视觉，展示步数和固定万步基准进度，可使用步数图标。 组件形态：hero。 布局场景：约 2x1.7；Hero + 1 个 PillAction。主数据：/dailySteps；次要数据：无；可选数据：无。
@@ -39,6 +47,7 @@
   - `ActivityOverviewWideHero@1`、`ActivityOverviewWideFull@1` 的 `caloriesIcon`：热量、能量消耗或火焰语义；`distanceIcon`：距离、里程或路线语义。其它活动模板不得传入这两个参数。
   - `WorkoutOverview*.sourceIcon`：与本轮运动类型一致的训练或运动项目语义。
   - `HeartRateOverview*.sourceIcon`：心率、脉搏或心脏健康语义；需要图标的模板只有存在匹配素材时才可选择。
+  - `heartIcon`：HeartRateOverviewSupport 的心脏健康图标，不接受运动或天气资源。
   - `SleepOverview*.sourceIcon`：睡眠、夜间或月亮语义。
 - 图标与文字共享紧凑指标行时，保留模板的自适应字号；禁止为了放入图标而截断必须展示的指标值。
 - 双业务 Support 按各自素材参数的 `allowedSources` 独立选图，不能共用另一业务的候选语义。

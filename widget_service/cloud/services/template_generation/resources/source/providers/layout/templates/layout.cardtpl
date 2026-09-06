@@ -86,7 +86,7 @@ Column({
   "height": "matchParent",
   "itemMargin": 8
 },
-  Column({
+  Row({
     "width": "matchParent",
     "layoutWeight": 1,
     "justifyContent": "start",
@@ -94,7 +94,7 @@ Column({
     "backgroundColor": $theme("supportContentStyle.backgroundColor"),
     "borderRadius": $theme("supportContentStyle.borderRadius"),
   }, children[0]),
-  Column({
+  Row({
     "width": "matchParent",
     "layoutWeight": 1,
     "justifyContent": "start",

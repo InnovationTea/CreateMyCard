@@ -28,6 +28,7 @@ _PROVIDER_DIRECTORIES = tuple(
 _SHAPE_SPECIFIC_MARKERS = {
     "WeatherOverviewTemperatureSupport@1": "WeatherOverviewTemperatureSupport",
     "WeatherOverviewTemperatureUvSupport@1": "WeatherOverviewTemperatureSupport",
+    "WeatherOverviewTemperaturecoldLevelSupport@1": "WeatherOverviewTemperatureSupport",
 }
 
 

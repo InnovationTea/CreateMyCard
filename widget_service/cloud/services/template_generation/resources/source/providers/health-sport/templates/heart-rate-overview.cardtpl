@@ -83,208 +83,48 @@ Column(
 )
 #End
 
-#Template HeartRateOverviewSupport@1(props: { actionId?: string })
+#Template HeartRateOverviewSupport@1(props: { heartIcon?: asset, actionId?: string })
 data = {
     average: $path("/exerciseHeartRateAvg")
 }
 
-Stack({
-  "width": "matchParent",
-  "height": "matchParent",
-  "alignContent": "topStart"
-},
+Row(
+  {
+    "_advancedComponent": "HeartRateOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "justifyContent": "spaceBetween",
+    "alignItems": "center",
+    "padding": { "left": 12, "right": 12 },
+    "onClick": EventAction(props?.actionId)
+  },
   Column(
-    {"_advancedComponent": "HeartRateOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
+    { "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
     Row(
-        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-        Text(
-              "运动平均心率",
-              {"fontSize": 10, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}, "width": "matchParent"}
-            )
+      { "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
+      Text(
+        data.average,
+        { "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
       ),
-    Row(
-        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-        Text(
-              data.average,
-              {"fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-            ),
-        Text(
-              "次/分钟",
-              {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-            )
+      Text(
+        "次/分钟",
+        { "fontSize": 10, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "padding": { "bottom": 6 } }
       )
-  ),
-  #if props.actionId
-    Stack({
-      "width": "matchParent",
-      "height": "matchParent",
-      "alignContent": "center",
-      "onClick": EventAction(props.actionId)
-    },
-      Text("", {
-        "width": "matchParent",
-        "height": "matchParent"
-      })
-    )
-  #endif
-)
-#End
-
-#Template HeartRateOverviewUpdatedSupport@1(props: { actionId?: string })
-data = {
-    average: $path("/exerciseHeartRateAvg"),
-    updatedAt: $path("/updatedAt")
-}
-
-Stack({
-  "width": "matchParent",
-  "height": "matchParent",
-  "alignContent": "topStart"
-},
-  Column(
-    {"_advancedComponent": "HeartRateOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-    Row(
-        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-        Text(
-              "运动平均心率",
-              {"fontSize": 10, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}, "width": "matchParent"}
-            )
-      ),
-    Row(
-        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-        Text(
-              data.average,
-              {"fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-            ),
-        Text(
-              "次/分钟",
-              {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-            )
-      ),
+    ),
     Text(
-        data.updatedAt,
-        {"fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}, "width": "matchParent"}
-      )
-  ),
-  #if props.actionId
-    Stack({
-      "width": "matchParent",
-      "height": "matchParent",
-      "alignContent": "center",
-      "onClick": EventAction(props.actionId)
-    },
-      Text("", {
-        "width": "matchParent",
-        "height": "matchParent"
-      })
+      "运动平均心率",
+      { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 }, "width": "matchParent" }
     )
-  #endif
-)
-#End
-
-#Template HeartRateOverviewIconSupport@1(props: { sourceIcon: asset, actionId?: string })
-data = {
-    average: $path("/exerciseHeartRateAvg")
-}
-
-Stack({
-  "width": "matchParent",
-  "height": "matchParent",
-  "alignContent": "topStart"
-},
-  Column(
-    {"_advancedComponent": "HeartRateOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-    Row(
-        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-        Image(
-              props.sourceIcon,
-              {"width": 16, "height": 16, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0}
-            ),
-        Text(
-              "运动平均心率",
-              {"fontSize": 10, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}, "width": "matchParent"}
-            )
-      ),
-    Row(
-        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-        Text(
-              data.average,
-              {"fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-            ),
-        Text(
-              "次/分钟",
-              {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-            )
-      )
   ),
-  #if props.actionId
-    Stack({
-      "width": "matchParent",
-      "height": "matchParent",
-      "alignContent": "center",
-      "onClick": EventAction(props.actionId)
-    },
-      Text("", {
-        "width": "matchParent",
-        "height": "matchParent"
-      })
-    )
-  #endif
-)
-#End
-
-#Template HeartRateOverviewUpdatedIconSupport@1(props: { sourceIcon: asset, actionId?: string })
-data = {
-    average: $path("/exerciseHeartRateAvg"),
-    updatedAt: $path("/updatedAt")
-}
-
-Stack({
-  "width": "matchParent",
-  "height": "matchParent",
-  "alignContent": "topStart"
-},
-  Column(
-    {"_advancedComponent": "HeartRateOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-    Row(
-        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "top", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-        Image(
-              props.sourceIcon,
-              {"width": 16, "height": 16, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0}
-            ),
-        Text(
-              "运动平均心率",
-              {"fontSize": 10, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}, "width": "matchParent"}
-            )
-      ),
-    Row(
-        {"width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "constraintSize": {"minWidth": 0, "minHeight": 0}},
-        Text(
-              data.average,
-              {"fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-            ),
-        Text(
-              "次/分钟",
-              {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
-            )
-      ),
-    Text(
-        data.updatedAt,
-        {"fontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}, "width": "matchParent"}
-      )
-  ),
-  #if props.actionId
-    Stack({
-      "width": "matchParent",
-      "height": "matchParent",
-      "alignContent": "center",
-      "onClick": EventAction(props.actionId)
-    },
-      Text("", {
-        "width": "matchParent",
-        "height": "matchParent"
-      })
-    )
+  #if props.heartIcon
+  Image(
+    props.heartIcon,
+    {
+      "width": 24,
+      "height": 24,
+      "fillColor": $theme("supportContentColor")
+    }
+  )
   #endif
 )
 #End

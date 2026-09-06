@@ -209,7 +209,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     assert not stale_input.exists()
     assert len(manifest.providers) == 10
     all_cases = [case for provider in manifest.providers for case in provider.cases]
-    assert len(all_cases) == 115
+    assert len(all_cases) == 121
     assert {case.appearanceId for case in all_cases} == {"fusion"}
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
     for case in all_cases:
@@ -298,7 +298,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 112
+    assert len(targeted_cases) == 118
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -548,10 +548,10 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 115
+    assert summary.total == 121
     assert summary.failed == 0
     assert summary.missing == 14
-    assert summary.not_generated == 101
+    assert summary.not_generated == 107
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 10
@@ -679,8 +679,8 @@ def test_support_inputs_cover_every_template_and_three_action_counts(tmp_path: P
             if template.suffix == "Support":
                 expected_templates.add(template.template_id)
     assert {case.targetTemplateId for case in provider.cases} == expected_templates
-    assert len(provider.cases) == len(expected_templates) * 3 == 45
-    assert len({case.caseId for case in provider.cases}) == 45
+    assert len(provider.cases) == len(expected_templates) * 3 == 51
+    assert len({case.caseId for case in provider.cases}) == 51
     for case in provider.cases:
         assert not case.expectsFusionBall
         assert case.expectedLayout == "TwoSupportLayout"
@@ -706,11 +706,11 @@ async def test_support_runner_preserves_targets_actions_and_missing_members(tmp_
     summary = await ProviderGalleryBatchRunner(service).run(
         input_root, tmp_path / "output", provider_ids={"gallery.two-support"}, concurrency=2,
     )
-    assert summary.total == 45
-    assert summary.success == 39
+    assert summary.total == 51
+    assert summary.success == 45
     assert summary.missing == 6
     assert summary.failed == summary.not_generated == 0
-    assert len(service.requests) == 39
+    assert len(service.requests) == 45
     assert {len(actions) for actions in service.template_action_ids} == {0, 1, 2}
     for template_ids in service.template_candidate_ids:
         assert len(template_ids) == 2

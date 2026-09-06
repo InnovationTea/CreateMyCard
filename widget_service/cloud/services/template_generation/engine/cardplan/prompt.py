@@ -90,6 +90,7 @@ _ASSET_SEMANTIC_TERMS = {
     "audio": ("audio", "music", "earphone", "headphone", "音频", "音乐", "耳机"),
     "earphone": ("earphone", "earbud", "headphone", "耳机", "耳塞"),
     "earphone-body": ("耳机本体", "左右分体", "earphone body", "earbuds body"),
+    "earphone-case": ("耳机收纳盒", "耳机充电盒", "earphone case", "earbud case"),
     "app-icon": ("应用图标", "品牌", "app icon"),
     "phone-device": ("smartphone", "phone icon", "icon_phone", "手机图标"),
     "music": ("music", "playlist", "音乐", "歌单"),

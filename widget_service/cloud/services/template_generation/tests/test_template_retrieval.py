@@ -626,7 +626,9 @@ def test_calendar_date_and_schedule_require_one_covering_business_template() -> 
         },
     )
 
-    with pytest.raises(TemplateRetrievalMiss, match="no provider template|cannot cover"):
+    with pytest.raises(
+        TemplateRetrievalMiss, match="no provider template|cannot cover|no Full template"
+    ):
         retrieve_template_variants(
             query,
             task,

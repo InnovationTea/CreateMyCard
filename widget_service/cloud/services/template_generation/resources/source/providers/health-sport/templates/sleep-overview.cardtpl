@@ -283,81 +283,41 @@ Column(
 
 #Template SleepOverviewSupport@1(props: { sourceIcon?: asset, actionId?: string })
 data = {
-    duration: $path("/nightSleepDurationText"),
-    score: $path("/sleepScore")
+    duration: $path("/nightSleepDurationText")
 }
 
-Stack({
-  "width": "matchParent",
-  "height": "matchParent",
-  "alignContent": "topStart"
-},
-  Column(
-      {
-          "_advancedComponent": "SleepOverview",
-          "width": "matchParent",
-          "height": "matchParent",
-          "itemMargin": 4,
-          "justifyContent": "start",
-          "alignItems": "start",
-          "clip": true,
-          "constraintSize": { "minWidth": 0, "minHeight": 0 }
-      },
-      Row(
-          { "itemMargin": 4, "width": "matchParent", "justifyContent": "start", "alignItems": "top" },
-          Column(
-              {
-                  "width": "matchParent",
-                  "itemMargin": 2,
-                  "justifyContent": "start",
-                  "alignItems": "start",
-                  "layoutWeight": 1
-              },
-              Text(
-                  data.duration,
-                  { "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
-              ),
-              Text(
-                  "睡眠监测时长",
-                  { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
-              ),
-          ),
-          Stack(
-              { "width": 44, "height": 44, "alignContent": "center", "flexShrink": 0 },
-              Progress(
-                  {
-                      "value": data.score,
-                      "total": 100,
-                      "type": "ring",
-                      "color": $theme('progressColor'),
-                      "backgroundColor": $theme('progressBackgroundColor'),
-                      "width": 44,
-                      "height": 44,
-                      "strokeWidth": 6
-                  }
-              ),
-              #if props.sourceIcon
-                Image(
-                    props.sourceIcon,
-                    { "width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain" }
-                )
-              #endif
-          )
-      )
-  ),
-  #if props.actionId
-    Stack({
-      "width": "matchParent",
-      "height": "matchParent",
-      "alignContent": "center",
-      "onClick": EventAction(props.actionId)
+Row(
+    {
+        "_advancedComponent": "SleepOverview",
+        "itemMargin": 4, "width": "matchParent", "justifyContent": "spaceBetween",
+        "alignItems": "center", "padding": { "left": 12, "right": 12 },
+        "onClick": EventAction(props?.actionId)
     },
-      Text("", {
-        "width": "matchParent",
-        "height": "matchParent"
-      })
+    Column(
+        {
+            "itemMargin": 4,
+            "justifyContent": "start",
+            "alignItems": "start",
+        },
+        Text(
+            data.duration,
+            { "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+        ),
+        Text(
+            "睡眠监测时长",
+            { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+        ),
+    ),
+    #if props.sourceIcon
+    Image(
+        props.sourceIcon,
+        {
+            "width": 24,
+            "height": 24,
+            "fillColor": $theme("supportContentColor")
+        }
     )
-  #endif
+    #endif
 )
 #End
 

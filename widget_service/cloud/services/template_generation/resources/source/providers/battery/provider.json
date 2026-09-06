@@ -185,15 +185,22 @@
       "templateId": "BatteryOverviewSupport@1",
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
-      "description": "手机电量 Support，第一行展示剩余电量，第二行展示充电状态；用于 TwoSupportLayout，可在业务根节点消费一个已批准 Action。",
-      "optionalData": [],
+      "description": "手机电量 Support：32vp 电量环加两行主辅文本；数值电量与充电状态必需，带单位电量文本可选，可在根节点绑定事件。",
+      "optionalData": [
+        "/batterySOCText"
+      ],
       "entry": "templates/battery-overview.cardtpl",
       "primaryData": [
         "/batterySOC"
       ],
       "secondaryData": [
         "/chargingStatusDesc"
-      ]
+      ],
+      "assetParameterSemanticTags": {
+        "batteryIcon": [
+          "battery"
+        ]
+      }
     }
   ],
   "compatibility": {

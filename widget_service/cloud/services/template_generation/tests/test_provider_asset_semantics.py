@@ -30,9 +30,13 @@ _SLOTS = (
     ("ActivityOverviewSupport@1", "stepsIcon", "figure_run.svg"),
     ("WorkoutOverviewSupport@1", "sourceIcon", "figure_run.svg"),
     ("SleepOverviewSupport@1", "sourceIcon", "moon_z_fill_1.svg"),
-    ("HeartRateOverviewIconSupport@1", "sourceIcon", "heart_fill.svg"),
-    ("HeartRateOverviewUpdatedIconSupport@1", "sourceIcon", "heart_fill.svg"),
+    ("HeartRateOverviewSupport@1", "heartIcon", "heart_fill.svg"),
     ("BluetoothDeviceOverviewEarbudsSupport@1", "deviceIcon", "icon_earphone.svg"),
+    ("BluetoothDeviceOverviewChargeSupport@1", "deviceIcon", "earphone_case_16644.svg"),
+    ("ScheduleOverviewTimeSupport@1", "calendarIcon", "calendar_fill.svg"),
+    ("ScheduleOverviewLocationSupport@1", "calendarIcon", "calendar_fill.svg"),
+    ("ScheduleOverviewStartTimeSupport@1", "calendarIcon", "calendar_fill.svg"),
+    ("ScheduleOverviewDateSupport@1", "calendarIcon", "calendar_fill.svg"),
 )
 
 
@@ -66,7 +70,7 @@ def test_every_support_asset_slot_has_executable_semantics(
         for name, tags in definition.asset_parameter_semantic_tags.items():
             assert tags, f"{definition.wire_id}.{name}"
             slot_count += 1
-    assert slot_count == 10
+    assert slot_count == 14
 
 
 @pytest.mark.parametrize(("template_id", "parameter", "filename"), _SLOTS)
@@ -83,12 +87,14 @@ def test_mixed_catalog_is_filtered_per_business_slot(
     assert _SOURCE + filename in allowed
     assert _SOURCE + "drop_1.svg" not in allowed
     assert _SOURCE + "icon_weather_temperature1.svg" not in allowed
-    if parameter == "deviceIcon":
+    if template_id == "BluetoothDeviceOverviewEarbudsSupport@1":
         assert _SOURCE + "earphone_case_16644.svg" not in allowed
+    if template_id == "BluetoothDeviceOverviewChargeSupport@1":
+        assert _SOURCE + "icon_earphone.svg" not in allowed
 
 
 @pytest.mark.parametrize("template_id", (
-    "WeatherOverviewTemperatureSupport@1", "WeatherOverviewTemperatureUvSupport@1",
+    "WeatherOverviewTemperatureSupport@1",
 ))
 def test_weather_slot_only_accepts_condition_assets(
     definitions: dict[str, TemplateDefinition],
@@ -209,11 +215,15 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_has_no_substitute(
         "ActivityOverviewSupport@1": "asset.figure_run",
         "WorkoutOverviewSupport@1": "asset.figure_run",
         "SleepOverviewSupport@1": "asset.moon_z_fill_1",
-        "HeartRateOverviewIconSupport@1": "asset.heart_fill",
-        "HeartRateOverviewUpdatedIconSupport@1": "asset.heart_fill",
+        "HeartRateOverviewSupport@1": "asset.heart_fill",
         "BluetoothDeviceOverviewEarbudsSupport@1": "asset.icon_earphone",
+        "BluetoothDeviceOverviewChargeSupport@1": "asset.earphone_case_16644",
+        "ScheduleOverviewTimeSupport@1": "asset.calendar_fill",
+        "ScheduleOverviewLocationSupport@1": "asset.calendar_fill",
+        "ScheduleOverviewStartTimeSupport@1": "asset.calendar_fill",
+        "ScheduleOverviewDateSupport@1": "asset.calendar_fill",
     }
-    assert len(provider.cases) == 45
+    assert len(provider.cases) == 51
     for case in provider.cases:
         payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
         content = payload.get("content")

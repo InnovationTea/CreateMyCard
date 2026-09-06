@@ -7,9 +7,9 @@
   - `BatteryOverviewHero@1`：约 2x1.7 的通用电量 Hero；展示电量进度环和电量等级，用于主内容加一个 `PillAction@1`。主数据：/batterySOC；次要数据：/batteryCapacityLevelDesc；可选数据：无。
   - `BatteryOverviewWideFull@1`：完整 4x2 电量摘要；横向展示电量进度环、剩余电量文本、充电状态和电量等级。主数据：/batterySOC, /batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
   - `BatteryOverviewCompact@1`：约 2x1 的电量摘要，用于一个 Compact 加两个 `PillAction@1`；左侧以 36vp 环形进度展示 `/batterySOC`，环内可选电量图标，右侧展示“电量 /batterySOC%”和 `/chargingStatusDesc`。主数据：/batterySOC；次要数据：/chargingStatusDesc；可选数据：无。
-  - `BatteryOverviewSupport@1`：约 2x1 的双业务电量摘要；第一行展示 `/batterySOC`，第二行展示
-    `/chargingStatusDesc`，只用于 `TwoSupportLayout@1`。主数据：/batterySOC；次要数据：
-    /chargingStatusDesc；可选数据：无。
+  - `BatteryOverviewSupport@1`：约 2x1 的双业务电量摘要；32vp 电量环配两行文本，环内可选 12vp 图标。
+    主数据：/batterySOC；次要数据：/chargingStatusDesc；可选数据：/batterySOCText。
+    数值电量必需且 0% 合法；不得用文本、异常提示或零值伪造缺失的数值电量。
   - `BatteryOverviewPercentRingHero@1`：手机电量百分比环形 Hero，居中展示电量进度环和剩余电量百分比；
     显示文本通过端侧 Expr 拼接数值和百分号，不依赖格式化电量字段。底部按钮由第二层组合
     `PillAction@1`。主数据：/batterySOC；次要数据：无；可选数据：无。
@@ -29,8 +29,9 @@
 - `batteryIcon` 表达电池、电量或当前充电状态，不得使用动作图标或其他设备品类图标替代；它不绑定固定素材 ID，只在本轮素材候选中匹配。模板将该参数声明为必选时必须传入匹配素材；声明为可选时仅在存在匹配素材时传入，否则省略。
 - 通用 Full、Hero、WideFull 和 Compact 同时覆盖普通、充电中和低电量状态，不再根据状态选择重复模板 ID。
 - 选择 `BatteryOverviewCompact@1` 时，必须同时具备 `/batterySOC` 与 `/chargingStatusDesc`；`batteryIcon` 为可选参数，仅在本轮存在匹配的电量素材时传入。
-- 选择 `BatteryOverviewSupport@1` 时，必须同时具备 `/batterySOC` 与 `/chargingStatusDesc`；模板只接收
-  Planner 分配的可选 `actionId`，不得放入单业务 Compact 布局。
+- 选择 `BatteryOverviewSupport@1` 时，`/batterySOC` 与 `/chargingStatusDesc` 均必需。
+  接收可选 `batteryIcon` 与 Planner 分配的 `actionId`，仅用于双业务布局。
+  省电模式绿叶图标不得冒充普通电量或充电状态。
 - 当目标尺寸为 `2x2`、没有动作，且用户显式要求电池温度、充电器类型和更新时间时，三个字段均可用才选择
   `BatteryOverviewTemperatureFull@1`；`temperatureIcon` 从本轮温度相关素材候选中选择，优先使用 `asset.heat_generation`。
 - 当目标尺寸为 `2x2` 且 `selectedActionEventIds` 恰好一个时，按钮只能由第二层输出
