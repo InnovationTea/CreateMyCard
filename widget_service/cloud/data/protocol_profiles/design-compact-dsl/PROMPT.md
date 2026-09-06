@@ -293,8 +293,8 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 
 除 root 融球 Style Design Token 外，不使用 design 语义令牌或色彩令牌；字号、字重、颜色、圆角、间距一律按批准档位显式写在 props（`fontSize`、`fontWeight`、`fontColor`、`fillColor`、`backgroundColor` 等，颜色只写 `#AARRGGBB`），取色逻辑见第十二节。`Progress` 必须使用 `type` 明确形态：横向进度写 `type:"linear"`，环形进度写 `type:"ring"`；禁止给 Progress 写 `design`，也禁止省略 `type` 后依赖转换器猜测形态。
 
-- 仅当 TaskSpec `size` 为 `2x2`，且卡片是单一业务/单一数据域时，root `Row`、`Column` 或 `Stack` 才可使用融球 Style Design Token。允许场景仅限：单个倒计时/纪念日用 `fusion-ball-sport-orange`，单个日程/提醒用 `fusion-ball-schedule-cool` 或 `fusion-ball-schedule-warm`，睡眠/专注单主题用 `fusion-ball-sleep-violet`。
-- 天气、电量、运动列表、系统工具、设备状态、组合通勤、多个日程、多业务或多数据域卡片禁止使用融球，一律使用方案二浅色材质。
+- 仅当 TaskSpec `size` 为 `2x2`，且卡片是单一业务/单一数据域时，root `Row`、`Column` 或 `Stack` 才可使用融球 Style Design Token。允许场景仅限：单个倒计时/纪念日用 `fusion-ball-sport-orange`，单个日程/提醒用 `fusion-ball-schedule-cool` 或 `fusion-ball-schedule-warm`，睡眠/专注单主题用 `fusion-ball-sleep-violet`，单一蓝牙耳机状态/电量且内容简单时用 `fusion-ball-battery-teal`。
+- 天气、手机电量、运动列表、系统工具、除上述单一蓝牙耳机场景外的设备状态、组合通勤、多个日程、多业务或多数据域卡片禁止使用融球，一律使用方案二浅色材质。
 - 使用融球 Design Token 时，root 的背景只写 `design`，不再写 `backgroundColor`、`linearGradient` 或 `backgroundImage`；尺寸、内边距、圆角、裁剪和布局属性仍按 root 规则显式填写。转换器会确定性展开融球背景，并把前景根的原 ID `root` 加上 `__genui_render_component__` 前缀，生成 `__genui_render_component__root` 防溢出标识；展开后的外层卡片根仍使用 `root`。
 
 ## 5.3 Text
@@ -626,6 +626,7 @@ ActionUnit——卡级 CTA：
 
 - 用于：两个并列理解的事实/分区（天气+打车、内存+耳机）。
 - 亚型：纵堆（`root -> [zone_top, zone_bottom]`，root `itemMargin:8`，两 zone 各高 64、borderRadius 16 的同族低对比背板，`64 + 8 + 64 = 136`，不得再增加 title/header/footer；zone 内 `Row -> [文字组, 视觉主体]`，其中一方可承载动作入口）；横行（`root -> [title_area?, content_area]`，`content_area Row -> [visual_group, text_group]`，visual_group 为 ring/Stack/主图标 48-52，text_group 为文字列）。
+- 纵堆的两块 zone 背板固定左右 `padding:12`，使内部内容距 160vp root 左右边界均为 24vp；zone 内部水平预算按 `136 - 12 - 12 = 112vp` 计算，不得只依赖 root 的 12vp 内边距。
 - 槽位：每方一个视觉主体 + 一组文字；每方至多一个主数值。
 - 禁止：总标题（横行亚型可保留小标题行）、三方分区、两方结构不同构。
 
@@ -812,7 +813,7 @@ ActionUnit——卡级 CTA：
 
 按场景二选一，确定两个基色的取法：
 
-1. **方案一｜深色端/融球（氛围场景）**：深色端用于天气、睡眠、运动、夜间、音乐、倒计时等氛围明确且低信息密度场景；夜间、睡眠、音乐、专注等真实暗色场景必须用其深色端。融球只用于 `2x2` 单一业务且内容相对简单的倒计时/纪念日、单个日程/提醒、睡眠/专注卡：倒计时/纪念日使用 `fusion-ball-sport-orange`，单个日程/提醒使用 `fusion-ball-schedule-cool` 或 `fusion-ball-schedule-warm`，睡眠/专注使用 `fusion-ball-sleep-violet`；使用融球时 root 只写 `design`，不再手写 `linearGradient`、`backgroundColor`、背景图或装饰圆球。天气、电量、设备、系统工具、运动列表、组合通勤、多日程、多业务或多数据域卡片禁止使用融球，优先使用同色族深色渐变背景。
+1. **方案一｜深色端/融球（氛围场景）**：深色端用于天气、睡眠、运动、夜间、音乐、倒计时等氛围明确且低信息密度场景；夜间、睡眠、音乐、专注等真实暗色场景必须用其深色端。融球只用于 `2x2` 单一业务且内容相对简单的倒计时/纪念日、单个日程/提醒、睡眠/专注、蓝牙耳机状态/电量卡：倒计时/纪念日使用 `fusion-ball-sport-orange`，单个日程/提醒使用 `fusion-ball-schedule-cool` 或 `fusion-ball-schedule-warm`，睡眠/专注使用 `fusion-ball-sleep-violet`，蓝牙耳机使用 `fusion-ball-battery-teal`；使用融球时 root 只写 `design`，不再手写 `linearGradient`、`backgroundColor`、背景图或装饰圆球。天气、手机电量、系统工具、运动列表、组合通勤、多日程、多业务、多数据域或其它设备卡片禁止使用融球，优先使用同色族深色渐变背景。
    - 辅助色 = H、S=80、B=85（蓝、绿、紫色系）或 B=100（红、黄色系）；DSL 中默认以同色族 2-3 个 stop 的 `angle:180` 渐变近似（上深下亮）。只有用户明确要求纯色时才使用同族纯色深端。
    - 主色 = 同 H、S=20、B=100 的近白；前景一律白色系。
 2. **方案二｜浅色材质（常规默认）**：日程、列表、设备、入口、工具、设置和高信息密度场景。
@@ -914,7 +915,7 @@ ActionUnit——卡级 CTA：
 
 输出前必须逐项确认：
 
-1. **输出与协议**：是否只有一个 `genui` 代码块和可解析的极简协议 JSONL；是否没有 createSurface/updateComponents/updateDataModel/surfaceId/catalogId；root、组件字段和枚举是否正确；融球 Design Token 是否只在 `2x2` 单一业务的倒计时/纪念日、单个日程/提醒、睡眠/专注场景用于 root，且 root 未同时写普通背景。
+1. **输出与协议**：是否只有一个 `genui` 代码块和可解析的极简协议 JSONL；是否没有 createSurface/updateComponents/updateDataModel/surfaceId/catalogId；root、组件字段和枚举是否正确；融球 Design Token 是否只在 `2x2` 单一业务的倒计时/纪念日、单个日程/提醒、睡眠/专注、简单蓝牙耳机状态/电量场景用于 root，且 root 未同时写普通背景。
 2. **引用与数据**：组件是否唯一、可达且引用闭合；Expression、PathBinding、模板路径与首帧 DataModel 是否存在并类型一致；是否没有孤立组件、空胶囊、局部 Expression 或静态样例冒充动态绑定。
 3. **候选与事件**：是否只保留最小充分候选；显式动作是否绑定，隐式入口是否不抢占空间，未被明确要求的副作用动作是否已删除；同一动作是否只有一个点击容器。
 4. **骨架与预算**：是否只使用一个固定骨架；root 宽高是否为 `"matchParent"`、padding 12、圆角 20、clip true；root Column 是否使用 `alignItems:"center"`，root Row 的固定参考宽度直接内容是否使用 `justifyContent:"center"`，且没有把 root 的整组居中误写成内部文字全部居中；是否已按 3.1 节逐项写出 root 直接子节点的最小高度、margin 和 `itemMargin` 并确认 `H_required <= 136vp`；分布式对齐是否只分配扣除最小间距后的非负剩余空间；所有 Row/Column 两轴预算是否非负，动态文字 Row 是否保留余量，点击热区是否至少 24vp。
@@ -943,33 +944,33 @@ ActionUnit——卡级 CTA：
 ["/data/countdown/countdownDays",32]
 ```
 
-## 示例二（2x2-V02）：FreeBuds 状态 + 蓝牙设置（S2 状态亚型·方案二柔紫）
+## 示例二（2x2-V02）：FreeBuds 状态 + 蓝牙设置（S2 状态亚型·方案一青绿融球）
 ### user
 ```json
 {"userQuery":"实时展示华为耳机连接状态、左右耳及充电盒电量，并提供蓝牙设置入口","size":"2x2","eventCandidates":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}],"dataModelSchema":{"data":{"earphone":{"isConnected":{"type":"boolean","description":"当前是否处于耳机连接活跃状态","sampleValue":true},"earphoneName":{"type":"string","description":"耳机广播名称","sampleValue":"FreeBuds Pro 3"},"leftBatteryLevel":{"type":"integer","description":"左耳电量百分比0到100","sampleValue":47},"rightBatteryLevel":{"type":"integer","description":"右耳电量百分比0到100","sampleValue":62},"batteryLevel":{"type":"integer","description":"充电盒电量百分比0到100","sampleValue":95}}}},"assetCandidates":[]}
 ```
 ### assistant
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"linearGradient":{"angle":180,"colors":[["#FFE9E7FA",0],["#FFF3F1FE",1]]},"justifyContent":"spaceBetween","alignItems":"center","itemMargin":4},["title_area","content_area","action_area"]]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"design":"fusion-ball-battery-teal","justifyContent":"spaceBetween","alignItems":"center","itemMargin":4},["title_area","content_area","action_area"]]
 ["title_area","Row",{"width":136,"height":20,"justifyContent":"start","alignItems":"center","flexShrink":0},["title_text"]]
-["title_text","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":136,"fontSize":12,"fontWeight":400,"fontColor":"#99433E94","maxLines":1}]
+["title_text","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":136,"fontSize":12,"fontWeight":400,"fontColor":"#99CCFFF6","maxLines":1}]
 ["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","itemMargin":4,"flexShrink":1},["status_text","battery_row"]]
-["status_text","Text",{"content":"{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}","width":136,"height":28,"fontSize":20,"fontWeight":700,"fontColor":"#FF433E94","maxLines":1}]
+["status_text","Text",{"content":"{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}","width":136,"height":28,"fontSize":20,"fontWeight":700,"fontColor":"#FFCCFFF6","maxLines":1}]
 ["battery_row","Row",{"width":136,"justifyContent":"start","alignItems":"center","itemMargin":8},["left_item","right_item","case_item"]]
 ["left_item","Row",{"width":40,"justifyContent":"start","alignItems":"center","itemMargin":2},["left_badge","left_num","left_unit"]]
-["left_badge","Text",{"content":"L","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#FFAAA7D4","fontSize":10,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
-["left_num","Text",{"content":{"path":"/data/earphone/leftBatteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99433E94","maxLines":1}]
-["left_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99433E94","maxLines":1}]
+["left_badge","Text",{"content":"L","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#33FFFFFF","fontSize":10,"fontWeight":500,"fontColor":"#FFCCFFF6","textAlign":"center","maxLines":1}]
+["left_num","Text",{"content":{"path":"/data/earphone/leftBatteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99CCFFF6","maxLines":1}]
+["left_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99CCFFF6","maxLines":1}]
 ["right_item","Row",{"width":40,"justifyContent":"start","alignItems":"center","itemMargin":2},["right_badge","right_num","right_unit"]]
-["right_badge","Text",{"content":"R","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#FFAAA7D4","fontSize":10,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
-["right_num","Text",{"content":{"path":"/data/earphone/rightBatteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99433E94","maxLines":1}]
-["right_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99433E94","maxLines":1}]
+["right_badge","Text",{"content":"R","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#33FFFFFF","fontSize":10,"fontWeight":500,"fontColor":"#FFCCFFF6","textAlign":"center","maxLines":1}]
+["right_num","Text",{"content":{"path":"/data/earphone/rightBatteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99CCFFF6","maxLines":1}]
+["right_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99CCFFF6","maxLines":1}]
 ["case_item","Row",{"width":40,"justifyContent":"start","alignItems":"center","itemMargin":2},["case_badge","case_num","case_unit"]]
-["case_badge","Text",{"content":"盒","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#FFAAA7D4","fontSize":10,"fontWeight":500,"fontColor":"#FFFFFFFF","textAlign":"center","maxLines":1}]
-["case_num","Text",{"content":{"path":"/data/earphone/batteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99433E94","maxLines":1}]
-["case_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99433E94","maxLines":1}]
+["case_badge","Text",{"content":"盒","width":10.5,"height":10.5,"borderRadius":5.25,"backgroundColor":"#33FFFFFF","fontSize":10,"fontWeight":500,"fontColor":"#FFCCFFF6","textAlign":"center","maxLines":1}]
+["case_num","Text",{"content":{"path":"/data/earphone/batteryLevel"},"fontSize":10,"fontWeight":500,"fontColor":"#99CCFFF6","maxLines":1}]
+["case_unit","Text",{"content":"%","fontSize":10,"fontWeight":500,"fontColor":"#99CCFFF6","maxLines":1}]
 ["action_area","Column",{"width":136,"flexShrink":0},["cta"]]
-["cta","ActionUnit",{"state":"capsule","label":"蓝牙设置","actionSurface":"#FFDCD8F7","actionInk":"#FF433E94","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}],"flexShrink":0}]
+["cta","ActionUnit",{"state":"capsule","label":"蓝牙设置","actionSurface":"#33FFFFFF","actionInk":"#E6FFFFFF","fontSize":14,"fontWeight":400,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Settings","bundleName":"com.huawei.hmos.settings","abilityName":"com.huawei.hmos.settings.MainAbility","uri":"bluetooth_entry"}}],"flexShrink":0}]
 ["/data/earphone/isConnected",true]
 ["/data/earphone/earphoneName","FreeBuds Pro 3"]
 ["/data/earphone/leftBatteryLevel",47]
