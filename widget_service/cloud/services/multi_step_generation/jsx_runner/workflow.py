@@ -52,7 +52,9 @@ else:  # Support top-level package imports.
 from .card_sizes import CARD_SIZE_DIMENSIONS, card_dimensions, task_card_size
 from .config import RESOURCE_STAGES
 from .layout_rules import (
+    TOP_LEVEL_2X2_TYPES,
     TOP_LEVEL_2X4_TYPES,
+    declared_2x2_layout_errors,
     declared_layout_errors,
     fixed_grid_errors,
     fixed_slot_dimension_errors,
@@ -339,7 +341,15 @@ def _validate_layout_decision(
     pattern = _canonical_layout_pattern(decision.get("layoutPattern"))
     if pattern is None:
         errors.append("decision.layoutPattern must name a documented Type layout")
-    if (expected_size or root.props.get("size")) == "2x4":
+    size = expected_size or root.props.get("size")
+    if size == "2x2":
+        if pattern is not None and pattern not in TOP_LEVEL_2X2_TYPES:
+            errors.append(
+                "2x2 top-level Type must be 0, 1, 2, 3, 6, 10-A, 10-B, "
+                "10-C, 11-A, 12, 14 or 15"
+            )
+        errors.extend(declared_2x2_layout_errors(root, pattern))
+    if size == "2x4":
         if pattern is not None and pattern not in TOP_LEVEL_2X4_TYPES:
             errors.append("2x4 top-level Type must be 12, 13, 14, 15, 15-R or 17")
         errors.extend(declared_layout_errors(root, pattern))
@@ -585,11 +595,14 @@ def _validate_action_slot_compatibility(
                     "be stacked vertically; a single horizontal row is not allowed"
                 )
     for node in _walk(root):
-        if node.tag != "Stack" or _number(node.props.get("width")) != 36 or _number(node.props.get("height")) != 36:
+        width = _number(node.props.get("width"))
+        height = _number(node.props.get("height"))
+        if node.tag != "Stack" or width != height or width not in {36, 40}:
             continue
         if any(descendant.tag == "PillButton" for descendant in _walk(node) if descendant is not node):
             issues.append(
-                "a Stack with width={36} height={36} is a CircleButton action slot and "
+                f"a Stack with width={{{int(width)}}} height={{{int(height)}}} is a "
+                "compact CircleButton action slot and "
                 "cannot contain the fixed-width PillButton; use CircleButton or select a "
                 "full-width PillButton layout"
             )

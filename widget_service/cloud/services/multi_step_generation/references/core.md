@@ -84,10 +84,12 @@
 | `mt` / `mb` / `ml` / `mr` | `number \| string` | 未设置 | 四方向外边距；优先使用 `gap`，必要时再使用 |
 | `position` | `"relative" \| "absolute"` | 未设置 | 建立定位上下文或锚点子项 |
 | `top` / `right` / `bottom` / `left` | `number \| string` | 未设置 | 只与定位 Stack 配合；数字表示 px |
-| `surface` | `"backplate"` | 未设置 | 为 2×4 Type 13 的任一父内容区启用可选受控背板：白色 10% 背景、8px 圆角和 6px 内边距 |
+| `surface` | `"backplate"` | 未设置 | 为 2×4 Type 13 的任一父内容区启用受控背板：Light Mode 使用白色 40%，Dark Mode 使用白色 10%，圆角 16vp、内边距 6vp |
 
 关键规则：
 
+- `Stack` 默认使用 `direction="column"`：`justify` 控制垂直方向，`align` 控制水平方向。例如左对齐且底端对齐写为 `align="flex-start" justify="end"`。
+- 使用 `direction="row"` 时轴向互换：`justify` 控制水平方向，`align` 控制垂直方向。例如内容靠右且底端对齐写为 `justify="end" align="flex-end"`。
 - `basis` 优先于 `flex`。例如 `basis={12}` 会生成固定 12px 标题槽，而不是弹性区。
 - 弹性内容区使用 `flex={1} minHeight={0}`，避免内容把卡片撑出安全区。只有直接包裹自适应 `TextBlock` 的 Stack 会由 runtime 局部补充 `minHeight:0`，其他 Stack 保持浏览器默认行为。
 - 右下角操作使用父级 `position="relative"`，子级 `position="absolute" right={0} bottom={0}`。

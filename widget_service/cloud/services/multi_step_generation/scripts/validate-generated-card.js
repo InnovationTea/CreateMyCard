@@ -1638,6 +1638,13 @@ function browserFindings(metrics, cardSize) {
       .map(([edge]) => `${edge} ${rounded(item.distances[edge])}vp`)
       .join("、");
     const label = diagnosticComponentLabel(item);
+    const parentWidth = Number(item.parentLayout?.rect?.width);
+    const componentWidth = Number(item.rect?.width);
+    const isProgressCircleSingleLabelOverflow = item.component === "ProgressCircleSingle"
+      && Number.isFinite(parentWidth)
+      && Number.isFinite(componentWidth)
+      && componentWidth > parentWidth + 0.75
+      && (item.shortfall.left > 0.75 || item.shortfall.right > 0.75);
     findings.push(browserFinding(
       severity,
       "browser-edge-spacing",
@@ -1646,8 +1653,12 @@ function browserFindings(metrics, cardSize) {
         component: item.component || "未知 DOM 节点",
         ...(item.componentText ? { componentText: item.componentText } : {}),
         evidence: item,
-        likelyCause: "组件位置、尺寸或父级布局占用了 Card 的 12vp 安全内边距。",
-        suggestion: "调整父级 Stack/Grid 的 padding、width、height、basis、flex 或定位，使组件四边均位于 Card 的 12vp 安全区内。",
+        likelyCause: isProgressCircleSingleLabelOverflow
+          ? `ProgressCircleSingle 的环形区域、间距和 label 共同形成 ${rounded(componentWidth)}vp 固有宽度，超过父内容区的 ${rounded(parentWidth)}vp；label 过长且组件不换行，因此侵入 Card 安全边距。`
+          : "组件位置、尺寸或父级布局占用了 Card 的 12vp 安全内边距。",
+        suggestion: isProgressCircleSingleLabelOverflow
+          ? "保留 ProgressCircleSingle、value、dataIds 和完整 ariaLabel，优先概括静态 label，使其不超过 5 个汉字（例如将“白天降雨概率”缩短为“降雨概率”）；不要仅为通过校验而替换组件或删除动态数据。若 label 必须动态绑定且无法缩短，再重新选择能容纳完整文本的布局或组件。"
+          : "调整父级 Stack/Grid 的 padding、width、height、basis、flex 或定位，使组件四边均位于 Card 的 12vp 安全区内。",
       },
     ));
   }

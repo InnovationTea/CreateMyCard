@@ -1,4 +1,4 @@
-"""Structural 2x4 rules; never infer a layout Type from business text."""
+"""Structural layout rules; never infer a layout Type from business text."""
 
 from __future__ import annotations
 
@@ -6,12 +6,38 @@ import math
 import re
 from typing import Any
 
+TOP_LEVEL_2X2_TYPES = frozenset(
+    {"0", "1", "2", "3", "6", "10-A", "10-B", "10-C", "11-A", "12", "14", "15"}
+)
 TOP_LEVEL_2X4_TYPES = frozenset({"12", "13", "14", "15", "15-R", "17"})
 FIXED_SLOT_COMPONENTS = frozenset({"CardButton", "InfoBlock"})
+
+_TWO_BY_TWO_ACTION_SPECS = {
+    "10-A": ("PillButton", 1),
+    "10-B": ("PillButton", 1),
+    "10-C": ("PillButton", 2),
+    "11-A": ("CircleButton", 1),
+    "12": ("PillButton", 1),
+    "14": ("CircleButton", 1),
+    "15": ("PillButton", 2),
+}
+_TWO_BY_TWO_NO_ACTION_TYPES = frozenset({"0", "1", "2", "3", "6"})
+_TWO_BY_TWO_TITLE_TYPES = frozenset({"1", "2", "10-A", "10-B", "10-C", "11-A", "14"})
+_TWO_BY_TWO_NO_TITLE_TYPES = frozenset({"0", "3", "6", "12", "15"})
 
 
 def _finite_number(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def _literal_vp(value: Any) -> float | None:
+    if _finite_number(value):
+        return float(value)
+    if isinstance(value, str):
+        match = re.fullmatch(r"\s*(\d+(?:\.\d+)?)px\s*", value)
+        if match:
+            return float(match.group(1))
+    return None
 
 
 def _descendants(nodes: list[Any]) -> list[Any]:
@@ -55,6 +81,62 @@ def preferred_axis_size(node: Any, parent: Any, axis: str) -> Any:
     if _finite_number(value) and _finite_number(minimum):
         value = max(value, minimum)
     return value
+
+
+def _direct_component_slots(root: Any, component: str) -> list[Any]:
+    slots: list[Any] = []
+    for node in _descendants([root]):
+        if node.tag != "Stack":
+            continue
+        if any(child.tag == component for child in node.child_elements()):
+            slots.append(node)
+    return slots
+
+
+def declared_2x2_layout_errors(root: Any, pattern: str | None) -> list[str]:
+    """Validate only the topology made definite by an explicit 2x2 Type."""
+    if pattern not in TOP_LEVEL_2X2_TYPES:
+        return []
+    descendants = _descendants(root.child_elements())
+    button_counts = {
+        component: sum(node.tag == component for node in descendants)
+        for component in ("PillButton", "CircleButton")
+    }
+    total_actions = sum(button_counts.values())
+    errors: list[str] = []
+    title_count = sum(
+        node.tag in {"SingleLineTitle", "DoubleLineTitle"}
+        for node in descendants
+    )
+    if pattern in _TWO_BY_TWO_TITLE_TYPES and title_count != 1:
+        errors.append(f"2x2 Type {pattern} requires exactly one title component")
+    if pattern in _TWO_BY_TWO_NO_TITLE_TYPES and title_count:
+        errors.append(f"2x2 Type {pattern} does not provide a title slot")
+    if pattern in _TWO_BY_TWO_NO_ACTION_TYPES and total_actions:
+        errors.append(f"2x2 Type {pattern} does not provide an action slot")
+    expected = _TWO_BY_TWO_ACTION_SPECS.get(pattern)
+    if expected is not None:
+        component, count = expected
+        other = "CircleButton" if component == "PillButton" else "PillButton"
+        if button_counts[component] != count or button_counts[other]:
+            errors.append(
+                f"2x2 Type {pattern} requires exactly {count} {component} action"
+                f"{'s' if count != 1 else ''} and no {other}"
+            )
+    if pattern in {"11-A", "14"} and button_counts["CircleButton"] == 1:
+        slots = _direct_component_slots(root, "CircleButton")
+        valid_slots = [
+            slot
+            for slot in slots
+            if _literal_vp(slot.props.get("width")) == 40
+            and _literal_vp(slot.props.get("height")) == 40
+        ]
+        if len(valid_slots) != 1:
+            errors.append(
+                f"2x2 Type {pattern} requires its CircleButton inside one explicit "
+                "40vp × 40vp Stack action slot"
+            )
+    return list(dict.fromkeys(errors))
 
 
 def fixed_slot_dimension_errors(container: Any) -> list[str]:
