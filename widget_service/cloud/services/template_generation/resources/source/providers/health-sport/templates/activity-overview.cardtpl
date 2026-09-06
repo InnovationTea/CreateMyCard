@@ -287,71 +287,45 @@ data = {
     steps: $path("/dailySteps")
 }
 
-Stack({
-  "width": "matchParent",
-  "height": "matchParent",
-  "alignContent": "topStart"
-},
-  Column(
+Row(
     {
-      "_advancedComponent": "ActivityOverview",
-      "width": "matchParent",
-      "height": "matchParent",
-      "itemMargin": 4,
-      "justifyContent": "spaceBetween",
-      "alignItems": "start",
-      "constraintSize": {"minWidth": 0, "minHeight": 0}
-    },
-      Row(
-          {
-              "itemMargin": 4,
-              "width": "matchParent",
-              "justifyContent": "spaceBetween",
-              "alignItems": "top"
-          },
-          Column(
-              {
-                  "itemMargin": 2,
-                  "justifyContent": "start",
-                  "alignItems": "start",
-              },
-              Row(
-                  {"itemMargin": 4, "justifyContent": "start", "alignItems": "bottom"},
-                  Text(
-                      data.steps,
-                      {"fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
-                  ),
-                  Text(
-                      "步",
-                      {"fontWeight":500,"fontColor": $theme('supportContentColor'),"fontSize": 10, "maxLines": 1, "margin": {"bottom": 4}}
-                  )
-              ),
-              Text(
-                  "每日步数",
-                  {"fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "margin": {"top": 2}}
-              )
-          ),
-          #if props.stepsIcon
-            Image(
-                props.stepsIcon,
-                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
-            )
-          #endif
-      )
-  ),
-  #if props.actionId
-    Stack({
-      "width": "matchParent",
-      "height": "matchParent",
-      "alignContent": "center",
-      "onClick": EventAction(props.actionId)
-    },
-      Text("", {
+        "_advancedComponent": "ActivityOverview",
+        "itemMargin": 4,
         "width": "matchParent",
-        "height": "matchParent"
-      })
+        "height": "matchParent",
+        "justifyContent": "spaceBetween",
+        "alignItems": "center",
+        "padding": { "left": 12, "right": 12 },
+        "onClick": EventAction(props?.actionId)
+    },
+    Column(
+        {
+            "itemMargin": 4,
+            "justifyContent": "start",
+            "alignItems": "start",
+        },
+        Row(
+            { "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom" },
+            Text(
+                data.steps,
+                { "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+            ),
+            Text(
+                "步",
+                { "fontWeight": 500, "fontColor": $theme('supportContentColor'), "fontSize": 10, "maxLines": 1, "padding": { "bottom": 4 } }
+            )
+        ),
+        Text(
+            "每日步数",
+            { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+        )
+    ),
+    #if props.stepsIcon
+    Image(
+        props.stepsIcon,
+        { "width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0, "fillColor": $theme('supportContentColor') }
     )
-  #endif
+    #endif
 )
 #End
 

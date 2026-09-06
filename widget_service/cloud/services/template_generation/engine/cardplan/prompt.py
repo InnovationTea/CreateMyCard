@@ -15,7 +15,13 @@ from services.template_generation.engine.advanced.content_selectors import (
 )
 
 from .generated.prompts import BODY_SYSTEM_PROMPT_KERNEL, UX_MIXED_SYSTEM_PROMPT_KERNEL
-from .models import ActionBinding, Fact, HybridBodyContract, HybridLimits
+from .models import (
+    CARDTPL_SOURCE_FORMATS,
+    ActionBinding,
+    Fact,
+    HybridBodyContract,
+    HybridLimits,
+)
 from .provider_bundle import (
     provider_template_admission,
     provider_template_family_identity,
@@ -77,10 +83,15 @@ _ASSET_SEMANTIC_TERMS = {
     "pulse": ("pulse", "bpm", "脉搏", "心率"),
     "call": ("call", "phone", "电话", "拨打"),
     "weather": ("weather", "天气"),
+    "weather-condition": ("晴天", "天气降雨", "台风", "大风提醒"),
+    "sleep": ("sleep", "睡眠", "月亮"),
     "alert": ("alert", "warning", "预警", "警告"),
     "product": ("product", "earphone", "headphone", "耳机"),
     "audio": ("audio", "music", "earphone", "headphone", "音频", "音乐", "耳机"),
     "earphone": ("earphone", "earbud", "headphone", "耳机", "耳塞"),
+    "earphone-body": ("耳机本体", "左右分体", "earphone body", "earbuds body"),
+    "earphone-case": ("耳机收纳盒", "耳机充电盒", "earphone case", "earbud case"),
+    "app-icon": ("应用图标", "品牌", "app icon"),
     "phone-device": ("smartphone", "phone icon", "icon_phone", "手机图标"),
     "music": ("music", "playlist", "音乐", "歌单"),
     "favorite": ("favorite", "like", "heart", "收藏", "心动", "心形"),
@@ -421,10 +432,12 @@ def _system_prompt(
                         contract,
                     )
                 params[name] = parameter
-            if definition.source_format != "cardtpl/1" or variant.size != "default":
+            if definition.source_format not in CARDTPL_SOURCE_FORMATS:
                 raise ValueError(
-                    f"Template is outside the supported cardtpl/1 contract: {wire_id}"
+                    f"Template is outside the supported CardTemplate contract: {wire_id}"
                 )
+            if variant.size != "default":
+                raise ValueError(f"Template variant is not default: {wire_id}")
             call = f"Template({wire_id!r}, props)"
             if ux_layout_root:
                 layout_kind = provider_template_layout_kind(wire_id)
@@ -566,10 +579,12 @@ def build_template_prompt_contracts(
                 continue
             if not _variant_has_available_required_assets(variant, definition, contract):
                 continue
-            if definition.source_format != "cardtpl/1" or variant.size != "default":
+            if definition.source_format not in CARDTPL_SOURCE_FORMATS:
                 raise ValueError(
-                    f"Template is outside the supported cardtpl/1 contract: {wire_id}"
+                    f"Template is outside the supported CardTemplate contract: {wire_id}"
                 )
+            if variant.size != "default":
+                raise ValueError(f"Template variant is not default: {wire_id}")
             properties = variant.parameters_schema.get("properties", {})
             parameter_sources: dict[str, dict[str, Any]] = {}
             for name, schema in properties.items():
@@ -1202,6 +1217,11 @@ def _build_action_bindings(task_spec: TaskSpec) -> tuple[ActionBinding, ...]:
             )
         )
     return tuple(actions)
+
+
+def action_binding_ids(task_spec: TaskSpec) -> tuple[str, ...]:
+    """Return stable per-occurrence Action IDs used by prompt and compiler contracts."""
+    return tuple(action.action_id for action in _build_action_bindings(task_spec))
 
 
 def _asset_semantic_tags(asset: dict[str, Any]) -> tuple[str, ...]:

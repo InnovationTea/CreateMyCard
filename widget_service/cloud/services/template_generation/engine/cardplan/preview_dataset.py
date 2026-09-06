@@ -68,6 +68,8 @@ _CONTENT_HEIGHT_BY_LAYOUT: dict[TemplateLayoutKind, int] = {
 _ASSET_BY_PARAMETER = {
     "appIcon": "resources/base/media/icon_tiktok.png",
     "batteryIcon": "resources/base/media/battery_leaf_fill.svg",
+    "calendarIcon": "resources/base/media/calendar_fill.svg",
+    "heartIcon": "resources/base/media/heart_fill.svg",
     "deviceIcon": "resources/base/media/earphone_case_16644.svg",
     "caloriesIcon": "resources/base/media/flame_fill.svg",
     "conditionIcon": "resources/base/media/icon_weather1.svg",
@@ -94,6 +96,13 @@ _TEXT_BY_TEMPLATE_PARAMETER = {
     ("WeatherOverviewHumidityFull@1", "location"): "青浦区",
     ("WeatherOverviewUvFull@1", "location"): "青浦区",
 }
+# Support 的固定预览样例不能用充电盒冒充耳机本体，也不为多云或普通电量借用图标。
+_SUPPORT_PREVIEW_ASSET_OVERRIDES: dict[tuple[str, str], str | None] = {
+    ("BluetoothDeviceOverviewEarbudsSupport@1", "deviceIcon"):
+        "resources/base/media/icon_earphone.svg",
+    ("BatteryOverviewSupport@1", "batteryIcon"): None,
+    ("WeatherOverviewTemperatureSupport@1", "conditionIcon"): None,
+}
 _SAMPLE_BY_BUSINESS_BINDING: dict[tuple[str, str], Any] = {
     ("ActivityOverview", "calories"): "420 千卡",
     ("ActivityOverview", "distance"): "4.6 公里",
@@ -102,6 +111,7 @@ _SAMPLE_BY_BUSINESS_BINDING: dict[tuple[str, str], Any] = {
     ("AppUsageOverview", "duration"): "1小时26分",
     ("AppUsageOverview", "updatedAt"): "今天 09:00",
     ("BluetoothDeviceOverview", "battery"): 80,
+    ("BluetoothDeviceOverview", "percent"): 80,
     ("BluetoothDeviceOverview", "chargingStatus"): "充电中",
     ("BluetoothDeviceOverview", "left"): 76,
     ("BluetoothDeviceOverview", "leftChargingStatus"): "未充电",
@@ -111,6 +121,7 @@ _SAMPLE_BY_BUSINESS_BINDING: dict[tuple[str, str], Any] = {
     ("CountdownOverview", "days"): 28,
     ("CalendarOverview", "description"): "评审本周 UI 交付方案",
     ("CalendarOverview", "end"): "15:30",
+    ("CalendarOverview", "date"): "8月19日",
     ("CalendarOverview", "eventCount"): 1,
     ("CalendarOverview", "location"): "深圳市龙岗区五和大道",
     ("CalendarOverview", "start"): "14:00",
@@ -321,6 +332,12 @@ def _template_parameters(definition: TemplateDefinition) -> dict[str, str]:
     properties = definition.variants[0].parameters_schema.get("properties", {})
     parameters: dict[str, str] = {}
     for name in properties:
+        key = (definition.wire_id, name)
+        if key in _SUPPORT_PREVIEW_ASSET_OVERRIDES:
+            asset = _SUPPORT_PREVIEW_ASSET_OVERRIDES.get(key)
+            if asset is not None:
+                parameters[name] = asset
+            continue
         text = _TEXT_BY_TEMPLATE_PARAMETER.get((definition.wire_id, name))
         if text is not None:
             parameters[name] = text

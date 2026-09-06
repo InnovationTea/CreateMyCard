@@ -5,14 +5,14 @@
 该数据集用于逐个检查正式业务 Provider Template 的端侧显示效果。生成过程直接读取 Provider Bundle 与
 `.cardtpl`，在本地可信展开器中生成标准 A2UI，不调用 LLM，也不经过在线微服务。
 
-数据集覆盖 69 个业务模板，不包含 7 个布局模板和 2 个 Action 模板：
+数据集覆盖 96 个业务模板，不包含 7 个布局模板和 2 个 Action 模板：
 
 - HeroTitle：1 个，使用 2×2 卡片容器，模板内容高度 24vp。
 - HeroContent：1 个，使用 2×2 卡片容器，模板内容高度 54vp。
-- Support：12 个，使用 2×2 卡片容器，模板内容高度 68vp；原子预览省略可选内部事件。
-- Compact：11 个，使用 2×2 卡片容器，模板内容高度 68vp。
-- Hero：18 个，使用 2×2 卡片容器，模板内容高度 124vp。
-- Full：15 个，使用 2×2 卡片容器，模板内容高度 136vp。
+- Support：17 个，使用 2×2 卡片容器，模板内容高度 68vp；原子预览省略可选内部事件。
+- Compact：13 个，使用 2×2 卡片容器，模板内容高度 68vp。
+- Hero：29 个，使用 2×2 卡片容器，模板内容高度 124vp。
+- Full：24 个，使用 2×2 卡片容器，模板内容高度 136vp。
 - WideHero：2 个，使用 4×2 卡片容器，模板内容高度 124vp。
 - WideFull：9 个，使用 4×2 卡片容器，模板内容高度 136vp。
 
@@ -31,9 +31,10 @@ PYTHONPATH=widget_service/cloud widget_service/.venv312/bin/python \
 输出目录包含：
 
 - `manifest.json`：模板 ID、业务、Provider、能力、后缀、卡片尺寸、内容高度，以及主数据、次要数据和可选数据。
-- `T001.json` 至 `T069.json`：每个模板独立的 A2UI 消息数组，固定包含 `createSurface`、
+- `T001.json` 至 `T096.json`：每个模板独立的 A2UI 消息数组，固定包含 `createSurface`、
   `updateComponents` 和 `updateDataModel`。
 
+Support 原子预览分别使用耳机本体、耳机盒、日历和心率对应图标；多云与普通电量不借用图标。
 样例数据只用于视觉预览。绑定路径和类型来自正式 Provider 契约，素材路径必须能在目标 HAP 的
 `resources/base/media` 中解析。
 

@@ -4,8 +4,8 @@
 
 该工具用于让开发者或 AI Agent 一次性生成全部业务 Provider 的 2×2 场景画廊，验证当前模板能否通过正式
 `generate_widget_card_terse_dsl_nested2` 服务入口完成能力裁决、模板路由、A2UI 转换和最终校验。每个场景
-同时生成非融球和融球版本。请求中的 `deviceInfo.prdVer` 经公共构建链写入 `TaskSpec.appVersion`，模板生成器
-再使用该已有字段完成请求级裁决。
+只生成一种高版本外观，请求中的 `deviceInfo.prdVer` 固定使用 `11.7.5.206`，经公共构建链写入
+`TaskSpec.appVersion`，模板生成器再使用该已有字段完成请求级裁决。
 
 它与 [Provider 原子模板预览](provider-template-preview-gallery.md) 的定位不同：原子预览不调用模型，适合逐个
 检查 `.cardtpl`；本工具调用正式生成服务，适合检查真实组合是否可用。批跑时只在本地截获最终 Artifact，
@@ -17,10 +17,10 @@
 和样例覆盖；该入口据此构造 `TemplateSourceGenerator`，它们不进入 `GenerateWidgetCardRequest`、工具请求
 JSON 或公开 Schema。Search 通过后，二层候选才会收窄到目标模板，外部工具请求不能设置这些开发测试约束。
 端到端画廊同时覆盖单业务路线和严格受控的 HeroTitle + HeroContent + 单 Action 双业务组合；后者从
-正式模板自动配对，单列“跨业务组合”页签。Provider 中已有的 Support
-模板与 `TwoSupportLayout` 仍作为底层保留能力和原子预览资源存在，但当前 Search 路线不可达。
+正式模板自动配对，单列“跨业务组合”页签。Support 模板组成 `TwoSupportLayout`，单列
+“双业务段落”页签，覆盖无操作、一个操作、两个操作；操作由业务根节点消费，不额外添加按钮。
 
-## 场景矩阵
+## 自动化场景矩阵
 
 每个业务按模板实例展开适用的 2×2 场景，而不是把同后缀模板的字段合并成一个用例：
 
@@ -30,29 +30,30 @@ JSON 或公开 Schema。Search 通过后，二层候选才会收窄到目标模�
 | 单内容 + 1 个 Action | Hero + PillAction |
 | 单内容 | Full |
 | 双业务 + 1 个 Action | HeroTitle + HeroContent + PillAction |
+| 双业务段落 + 0/1/2 个 Action | TwoSupportLayout + 两个 Support，Action 绑定业务段落 |
 
 因此每个 Compact 生成“单内容 + 2 个 Action”用例，每个 Hero 生成“单内容 + 1 个 Action”用例，每个
 Full 生成“单内容”用例。业务缺少某个后缀时仍保留一张缺失占位卡。HeroTitle 与 HeroContent 按两个
 独立数据能力、互不重叠的写入根自动配对；当前为天气标题 + 日程内容，唯一按钮采用内容业务的注册动作
 “查看日程详情”。两个模板各自的字段、素材和样例覆盖合并为输入，两个目标模板按固定顺序传给公开入口
 的测试约束，仍由 Search 和第二层模型生成 `HeroTitleContentActionLayout`，不手工拼接最终 A2UI。
-任一成员禁用或数据能力未注册时保留缺失记录，不调用模型。画廊不构造不属于 Search 路线的 Support 配对。
+任一成员禁用或数据能力未注册时保留缺失记录，不调用模型。Support 采用模板覆盖集而非全排列：每种
+Support 作为首段一次，优先匹配可用天气 Support；天气模板匹配第一个可用且数据根独立的其他业务。
+每对展开 0/1/2 个操作，两个操作分别绑定两个业务的首个注册动作；不配对同能力或重叠数据根。
 
-每个上述用例继续展开为两个相邻外观：
+每个上述用例只生成一种高版本外观：
 
 | 外观 | 路由请求版本来源 | 预期 |
 | --- | --- | --- |
-| 非融球 | 请求 `deviceInfo.prdVer = 11.7.5.205` | 低于配置最低版本，融球关闭 |
-| 融球 | 请求 `deviceInfo.prdVer = 11.7.5.206` | 等于配置最低版本；单业务 Compact/Full/Hero 命中融球 Theme 时展开融球背景 |
+| 融球 | 请求 `deviceInfo.prdVer = 11.7.5.206` | 达到配置最低版本；单业务 Compact/Full/Hero 命中融球 Theme 时展开融球背景 |
 
 画廊验证前需在服务 `CONFIG` 中配置 `fusion_ball_min_prd_version=11.7.5.206`。批跑结果会校验路由请求版本
 门禁和最终 A2UI 是否按模板融球契约出现受控背景；Artifact TaskSpec 中的 `appVersion` 应与请求版本一致。
-没有融球 Theme 的业务即使使用 11.7.5.206 也不应出现融球。两种外观保持相同 `providerId` 并相邻写入
-manifest，端侧因此把它们放在对应 Provider 业务的同一个页签中，而不是拆成“融球/非融球”两个页签；
-同一 Provider 中可通过符合条件的 Compact/Full/Hero 场景对照两种实际效果。
-双业务组合也验证这两个版本，以 `HeroContent` 主业务确定整卡主题。低版本不启用融球；达到门槛且主业务
-具有融球主题时，整卡统一展开一次该业务的背景。当前天气标题 + 日程内容组合应分别呈现普通日程主题和
-日程融球主题，不使用天气主题。画廊按主业务支持情况标注并校验实际融球结果。
+没有融球 Theme 的业务即使使用 11.7.5.206 也不应伪造融球背景。画廊不再生成低版本非融球对照用例。
+双业务组合同样只使用高版本，并以 `HeroContent` 主业务确定整卡主题；主业务具有融球主题时，整卡统一展开
+一次该业务的背景。当前天气标题 + 日程内容组合应呈现日程融球主题，不使用天气主题。画廊按主业务支持情况
+标注并校验实际融球结果。
+`TwoSupportLayout` 使用统一双段落主题，高版本下也应保持非融球，画廊会对此独立断言。
 
 模拟输入从当前 `provider.json` 读取 Provider、业务、能力写入根，以及目标模板自己的主数据和次要数据；
 这些必选数据全部进入 `candidateOutputFields`。数据能力参数和 Action 内容来自当前能力注册表，用户 query
@@ -62,6 +63,29 @@ Compact/Hero/Full 模板”，供端侧显示异常卡片。生成完成后还�
 不调用模型。
 
 ## 生成
+
+### 双业务素材校验
+
+素材来源为 `cloud/data/capabilities/app-11.7.5.205_rom-6.0/asset_capabilities.json`，
+每个 Support 独立取候选后再合并请求，模板槽位仍独立校验：
+
+| 业务图标槽位 | 当前画廊资源 | 约束 |
+| --- | --- | --- |
+| 步数 | `figure_run.svg` | 注册说明明确支持步数统计 |
+| 训练 | `figure_run.svg` | 当前跑步样例，不代表任意运动项目 |
+| 睡眠 | `moon_z_fill_1.svg` | 月亮与 Z，不能用天气水滴 |
+| 心率图标形态 | `heart_fill.svg` | 心脏健康，不借用天气或运动图标 |
+| 耳机 | `icon_earphone.svg` | 耳机本体，不用充电盒冒充 |
+| 日程四种 Support | `calendar_fill.svg` | 24vp 日历图标 |
+| 耳机充电 Support | `earphone_case_16644.svg` | 盒或整体电量，不冒充左右耳电量 |
+| 天气基础温度 Support | 不传图标 | 多云样例没有对应注册资源；保留状态文字，不用温度计或太阳替代 |
+| 天气紫外线/感冒风险 Support | 无图标槽位 | 纯文本，不能传入已移除的 conditionIcon |
+
+电量 Support 必须提供数值电量与充电状态，展示 32vp 环；普通未充电样例省略电池绿叶图标。
+倒计时保持文字结构；心率只保留一个可选 heartIcon 的 Support。
+应用时长、系统内存仍因数据能力未注册保留缺失场景；应用品牌和内存槽位也不能借用其他业务资源。
+以上是测试素材选择，不是生产素材全集。生产按当前候选描述、槽位语义以及实际状态匹配，
+天气状态未知或没有对应图标时省略；不读取样例值生成运行时组件分支。
 
 ### 环境准备
 
@@ -95,8 +119,9 @@ widget_service/.venv312/bin/python \
   --refresh-inputs --dry-run --concurrency 2
 ```
 
-以 2026-09-03 当前资源为基线，应生成 8 个业务分组加 1 个跨业务组合分组，共 98 个用例；无模型 dry-run 中
-18 个状态为 `missing`，80 个状态为 `not_generated`。Provider 或模板调整后数量可以变化，应以重新生成的
+以 2026-09-06 当前资源为基线，应生成 8 个业务分组、1 个跨业务组合和 1 个双业务段落分组，共 121 个用例；
+其中 51 个 Support 配对用例。无模型 dry-run 中 14 个状态为 `missing`，107 个状态为 `not_generated`。
+Provider 或模板调整后数量可以变化，应以重新生成的
 输入 manifest 为准，不能继续复用旧结果目录中的数量。
 
 ### 真实批跑
@@ -120,12 +145,13 @@ widget_service/.venv312/bin/python \
 
 - `--provider com.huawei.weather.cli`：只批跑一个 Provider，可重复指定。
 - `--provider gallery.cross-business`：只批跑双业务组合；该 ID 仅为画廊分组标识，不是生产能力。
+- `--provider gallery.two-support`：只批跑双业务段落，覆盖全部 17 种 Support 模板的 51 个场景。
 - `--dry-run`：不调用模型，仅生成“待批跑/缺失”结果清单，适合验证输入和端侧导入。
 - `--strict`：存在真实生成失败时返回非零退出码；模板后缀缺失仍作为画廊检查结果保留。
 - `--model-failure-attempts 1`：覆盖单用例模型失败最大尝试次数；默认值为 2，必须为正整数。
-- Provider 画廊不提供融球命令行开关；每个输入场景固定构造 `11.7.5.205` 与 `11.7.5.206` 两个请求，
-  公共构建链将各自的 `request.deviceInfo.prdVer` 写入 `TaskSpec.appVersion`，`TemplateSourceGenerator` 再结合
-  `CONFIG.fusion_ball_min_prd_version` 完成融球裁决；配置或版本缺失、非法时两种请求都关闭融球。
+- Provider 画廊不提供融球命令行开关；每个输入场景只构造 `deviceInfo.prdVer = 11.7.5.206` 的高版本请求，
+  公共构建链将其写入 `TaskSpec.appVersion`，`TemplateSourceGenerator` 再结合
+  `CONFIG.fusion_ball_min_prd_version` 完成融球裁决；配置缺失、非法或高于输入版本时仍会关闭融球。
 - `--input-root`、`--output-root`：覆盖默认临时目录。
 
 默认输入和输出目录为：
@@ -138,8 +164,8 @@ widget_service/cloud/services/template_generation/test/provider_gallery_output/
 输入请求是与工具调用一致的 `content + deviceInfo + session + userAuth` 包络；每个请求按
 `providers/<provider>/<business>/<template>/<appearance>/<scenario>.json` 存放。输出按同样的
 Provider/业务/模板层级保存 A2UI 消息数组，根目录 `manifest.json` 记录目标模板以及 `success`、`failed`、
-`missing` 和 `not_generated` 状态。双版本输入使用
-`provider-template-gallery-input/4`；端侧输出继续使用 `provider-template-gallery-output/2`，并在新的
+`missing` 和 `not_generated` 状态。单高版本输入沿用
+`provider-template-gallery-input/4`；端侧输出继续使用 `provider-template-gallery-output/2`，并在
 请求版本字段 `prdVer` 之外保留兼容别名 `appVersion`；`partnerTemplateId` 在单业务中为空，在双业务中记录
 第二个业务模板。双业务的路径包含两个模板 ID，避免多个配对互相覆盖。旧的任务规格版本副本字段不再输出，
 现有端侧导入器无需升级即可读取。
@@ -153,10 +179,16 @@ cd ../genui_evaluation
 python3 scripts/sync_provider_scenario_gallery.py
 ```
 
-导入脚本只复制状态为 `success` 的 A2UI 文件，同时完整保留失败和缺失记录。端侧首页进入
+导入脚本从完整自动化结果中生成显示子集，只复制入选且状态为 `success` 的 A2UI 文件，保留入选场景的
+失败和缺失记录。端侧首页进入
 “Provider 场景画廊”后，可按 Provider 页签检查每个业务的全部模板实例和适用布局；没有 A2UI 的场景显示
 错误卡片和具体原因。
 “跨业务组合”页签专门展示 HeroTitle + HeroContent + PillAction，不要仅检查单业务页签就认定组合已安装。
+“双业务段落”页签每组只展示一张，选用两个段落都绑定操作的版本。按
+`targetTemplateId + partnerTemplateId + appearanceId` 区分组，保留不同模板和不同顺序的组合。
+0/1/2 个操作的完整矩阵仍保留在云侧输入、批跑产物及自动化测试中，不再重复导入视觉画廊。
+选中的双操作版本若失败或缺失，显示其真实状态，不用另一操作版本替代；若完全缺少该版本，导入报错，
+不会静默丢弃整组。单业务 Compact/Hero/Full 与 HeroTitle + HeroContent 组合不受影响。
 
 同步脚本默认读取：
 
@@ -164,8 +196,17 @@ python3 scripts/sync_provider_scenario_gallery.py
 ../CreateMyCard/widget_service/cloud/services/template_generation/test/provider_gallery_output/
 ```
 
-如果两个工程不是同级目录，使用 `--source` 和 `--target` 显式指定来源与目标。同步完成后，脚本打印的
-用例数必须与云侧输出 manifest 的 `counts.total` 一致，A2UI 数必须与 `counts.success` 一致。
+如果两个工程不是同级目录，使用 `--source` 和 `--target` 显式指定来源与目标。同步不修改来源目录，
+端侧 manifest 的 `counts` 按显示子集重新计算，不能再与完整自动化结果的总数直接比较。
+当前基线：自动化 121 个场景 / 107 份 A2UI；显示画廊预计 87 个场景 / 77 份 A2UI / 10 个缺失占位。
+其中双业务段落由 51 个自动化场景缩减为 17 张显示卡（15 成功、2 缺失）。每份入选 A2UI 应与源文件
+逐字节一致，源 manifest 和 0/1/2 操作文件应保持不变。
+
+显示筛选回归测试在端侧工程执行：
+
+```bash
+python3 -m pytest scripts/test_sync_provider_scenario_gallery.py -q
+```
 
 ## 构建与安装
 

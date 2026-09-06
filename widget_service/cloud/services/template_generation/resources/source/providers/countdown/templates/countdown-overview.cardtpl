@@ -24,12 +24,83 @@ Column(
     ),
     Text(
       "天",
-      { "fontSize": 1, "fontWeight": 500, "fontColor": "#00000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+      { "fontSize": 8, "fontWeight": 500, "fontColor": "#00000000", "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
     )
   ),
   Text(
     "天",
     { "fontSize": 16, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
+  )
+)
+#End
+
+#Template CountdownOverviewSupport@1(props: { title?: string, actionId?: string })
+data = {
+    days: $path("/countdownDays")
+}
+
+Row(
+  {
+    "_advancedComponent": "CountdownOverview",
+    "width": "matchParent",
+    "padding": { "left": 12, "right": 12 },
+    "justifyContent": "start",
+    "alignItems": "center",
+    "clip": true,
+    "constraintSize": { "minWidth": 0, "minHeight": 0 },
+    "onClick": EventAction(props?.actionId)
+  },
+  Column(
+    {
+      "width": "matchParent",
+      "itemMargin": 2,
+      "justifyContent": "start",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": { "minWidth": 0, "minHeight": 0 }
+    },
+    #if props.title
+      Text(
+        props.title,
+        {
+          "width": "matchParent",
+          "height": 20,
+          "fontSize": 14,
+          "fontWeight": 700,
+          "fontColor": $theme('primaryColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        }
+      )
+    #else
+      Text(
+        "倒计时",
+        {
+          "width": "matchParent",
+          "height": 20,
+          "fontSize": 14,
+          "fontWeight": 700,
+          "fontColor": $theme('primaryColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        }
+      )
+    #endif
+    Text(
+      Expr("剩余 " + data.days + " 天"),
+      {
+        "width": "matchParent",
+        "height": 16,
+        "fontSize": 12,
+        "fontWeight": 500,
+        "fontColor": $theme('supportContentColor'),
+        "maxLines": 1,
+        "textOverflow": "ellipsis",
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
+      }
+    )
   )
 )
 #End

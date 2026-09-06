@@ -500,6 +500,93 @@ Row(
 
 #End
 
+#Template BluetoothDeviceOverviewChargeSupport@1(props: { deviceIcon: asset, actionId?: string })
+data = {
+    percent: $path("/batteryLevel"),
+    charging: $path("/chargingStatusDesc")
+}
+
+Row(
+  {
+    "_advancedComponent": "BluetoothDeviceOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "padding": { "left": 12, "right": 12 },
+    "justifyContent": "start",
+    "alignItems": "center",
+    "clip": true,
+    "constraintSize": { "minWidth": 0, "minHeight": 0 },
+    "onClick": EventAction(props?.actionId)
+  },
+  Row(
+    {
+      "width": "matchParent",
+      "height": 44,
+      "itemMargin": 8,
+      "justifyContent": "start",
+      "alignItems": "center",
+      "constraintSize": {"minWidth": 0, "minHeight": 0}
+    },
+    Stack(
+      {"width": 36, "height": 36, "alignContent": "center", "flexShrink": 0},
+      Progress(
+        {
+          "value": data.percent,
+          "total": 100,
+          "type": "ring",
+          "color": $theme('progressColor'),
+          "backgroundColor": $theme('progressBackgroundColor'),
+          "width": 36,
+          "height": 36,
+          "strokeWidth": 6
+        }
+      ),
+      #if props.deviceIcon
+      Image(
+        props.deviceIcon,
+        {
+          "width": 12,
+          "height": 12,
+          "objectFit": "contain",
+          "fillColor": $theme('supportContentColor')
+        }
+      )
+      #endif
+    ),
+    Column(
+      {
+        "itemMargin": 4,
+        "justifyContent": "start",
+        "alignItems": "start",
+        "constraintSize": {"minWidth": 0, "minHeight": 0}
+      },
+      Text(
+        Expr("电量 " + data.percent + "%"),
+        {
+          "fontSize": 14,
+          "fontWeight": 700,
+          "fontColor": $theme('primaryColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      ),
+      Text(
+        data.charging,
+        {
+          "fontSize": 12,
+          "fontWeight": 400,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": {"minWidth": 0, "minHeight": 0}
+        }
+      )
+    )
+  )
+)
+#End
+
 #Template BluetoothDeviceOverviewEarbudsFull@1(props: { leftEarIcon?: asset, rightEarIcon?: asset })
 data = {
     left: $path("/leftBatteryLevel"),
@@ -562,9 +649,18 @@ Column(
                 "alignItems": "start",
                 "itemMargin": 2
             },
-            Text(
-                "左耳机",
-                { "fontColor": $theme('primaryColor'), "fontSize": 14, "fontWeight": 700 }
+            Row(
+                { "itemMargin": 4, "alignItems": "center" },
+                #if props.leftEarIcon
+                    Image(
+                        props.leftEarIcon,
+                        { "width": 16, "height": 16, "fillColor": $theme('supportContentColor') }
+                    ),
+                #endif
+                Text(
+                    "左耳机",
+                    { "fontColor": $theme('primaryColor'), "fontSize": 14, "fontWeight": 700 }
+                )
             ),
             #if data.leftDesc
                 Text(
@@ -616,9 +712,18 @@ Column(
                 "alignItems": "start",
                 "itemMargin": 2
             },
-            Text(
-                "右耳机",
-                { "fontColor": $theme('primaryColor'), "fontSize": 14, "fontWeight": 700 }
+            Row(
+                { "itemMargin": 4, "alignItems": "center" },
+                #if props.rightEarIcon
+                    Image(
+                        props.rightEarIcon,
+                        { "width": 16, "height": 16, "fillColor": $theme('supportContentColor') }
+                    ),
+                #endif
+                Text(
+                    "右耳机",
+                    { "fontColor": $theme('primaryColor'), "fontSize": 14, "fontWeight": 700 }
+                )
             ),
             #if data.rightDesc
                 Text(

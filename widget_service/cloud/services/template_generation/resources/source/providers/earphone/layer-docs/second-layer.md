@@ -5,8 +5,11 @@
 - 可用模板：
   - `BluetoothDeviceOverviewHero@1`：展示连接状态、设备名，左右耳电量可选；可选左右耳图标；用于
     `HeroActionLayout@1` 加一个 `PillAction@1`。
-  - `BluetoothDeviceOverviewEarbudsSupport@1`：展示左右耳电量；`deviceIcon` 必填；仅供兼容 LLM 路径
-    与原子预览使用，当前 Search 不可达；兼容双业务场景中可传 `actionId`，事件绑定在 Support 根节点内部。
+  - `BluetoothDeviceOverviewEarbudsSupport@1`：展示左右耳电量；`deviceIcon` 必填；Planner 可将其用于
+    `TwoSupportLayout@1`，并传入 `actionId` 将事件绑定在 Support 根节点内部。
+  - `BluetoothDeviceOverviewChargeSupport@1`：展示盒或整体电量及充电状态，32vp 环配两行文本；
+    主数据 /batteryLevel、次要数据 /chargingStatusDesc 均必需；`deviceIcon` 必填且必须表达充电盒。
+    用于 `TwoSupportLayout@1`，支持可选根节点事件 `actionId`，不展示左右耳电量。
   - `BluetoothDeviceOverviewEarbudsFull@1`：展示左右耳电量，可选展示左右耳充电状态，左右耳图标可选；
     用于无 Action 的 Full。
   - `BluetoothDeviceOverviewEarphoneCaseHero@1`：展示耳机仓电量进度环和充电状态文本；`caseIcon`
@@ -35,5 +38,6 @@
   - `caseIcon`：耳机收纳盒或充电盒；
   - `earphoneIcon`：整副耳机、耳机产品或蓝牙音频设备；
   - `leftEarIcon`、`rightEarIcon`：对应左右耳塞，左右不可互换；
-  - `deviceIcon`：整副耳机、成对耳机或耳机盒，不得使用单侧耳塞或通用音乐图标。
+  - `deviceIcon`：EarbudsSupport 只接受整副或成对耳机本体，ChargeSupport 只接受耳机收纳盒或充电盒；
+    两个同名参数的语义不能混用，也不得使用单侧耳塞或通用音乐图标。
 - 必填素材没有合适候选时不得选择该模板；可选素材没有合适候选时省略。

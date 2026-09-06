@@ -256,86 +256,61 @@ data = {
     duration: $path("/exerciseDurationText")
 }
 
-Stack({
-  "width": "matchParent",
-  "height": "matchParent",
-  "alignContent": "topStart"
-},
-  Column(
-      {
-          "_advancedComponent": "WorkoutOverview",
-          "width": "matchParent",
-          "height": "matchParent",
-          "itemMargin": 4,
-          "justifyContent": "spaceBetween",
-          "alignItems": "start",
-          "constraintSize": {"minWidth": 0, "minHeight": 0}
-      },
-      Row(
-          {
-              "itemMargin": 4,
-              "width": "matchParent",
-              "justifyContent": "spaceBetween",
-              "alignItems": "top"
-          },
-          Column(
-              {
-                  "itemMargin": 2,
-                  "justifyContent": "start",
-                  "alignItems": "start"
-              },
-              Text(
-                  data.workoutCalories,
-                  {"fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1}
-              ),
-              #if data.workoutType
-                  Text(
-                    `${data.workoutType} | ${data.duration}`,
-                    {
-                        "fontWeight": 400,
-                        "fontColor": $theme('supportContentColor'),
-                        "fontSize": 12,
-                        "maxLines": 1,
-                        "textOverflow": "ellipsis",
-                        "constraintSize": {"minWidth": 0, "minHeight": 0},
-                        "margin": {"top": 2}
-                    }
-                  )
-              #else
-                  Text(
-                    data.duration,
-                    {
-                        "fontWeight": 400,
-                        "fontColor": $theme('supportContentColor'),
-                        "fontSize": 12,
-                        "maxLines": 1,
-                        "textOverflow": "ellipsis",
-                        "constraintSize": {"minWidth": 0, "minHeight": 0},
-                        "margin": {"top": 2}
-                    }
-                  )
-              #endif
-          ),
-          #if props.sourceIcon
-            Image(
-                props.sourceIcon,
-                {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
-            )
-          #endif
-      )
-  ),
-  #if props.actionId
-    Stack({
-      "width": "matchParent",
-      "height": "matchParent",
-      "alignContent": "center",
-      "onClick": EventAction(props.actionId)
-    },
-      Text("", {
+Row(
+    {
+        "_advancedComponent": "WorkoutOverview",
         "width": "matchParent",
-        "height": "matchParent"
-      })
+        "height": "matchParent",
+        "itemMargin": 4,
+        "justifyContent": "spaceBetween",
+        "alignItems": "center",
+        "padding": { "left": 12, "right": 12 },
+        "onClick": EventAction(props?.actionId)
+    },
+    Column(
+        {
+            "itemMargin": 2,
+            "justifyContent": "start",
+            "alignItems": "start"
+        },
+        Text(
+            data.workoutCalories,
+            { "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+        ),
+        #if data.workoutType
+            Text(
+            `${data.workoutType}${data.duration}`,
+            {
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "fontSize": 12,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "constraintSize": { "minWidth": 0, "minHeight": 0 },
+                "margin": { "top": 2 }
+            }
+        )
+            #else
+            Text(
+            data.duration,
+            {
+                "fontWeight": 400,
+                "fontColor": $theme('supportContentColor'),
+                "fontSize": 12,
+                "maxLines": 1,
+                "textOverflow": "ellipsis",
+                "constraintSize": { "minWidth": 0, "minHeight": 0 },
+                "margin": { "top": 2 }
+            }
+        )
+            #endif
+    ),
+    #if props.sourceIcon
+    Image(
+        props.sourceIcon,
+        { "width": 24, "height": 24, "objectFit": "contain", "flexShrink": 0, "fillColor": $theme('supportContentColor') }
     )
-  #endif
+    #endif
 )
+
 #End

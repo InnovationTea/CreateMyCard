@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .models import TemplateDefinition, TemplateVariant
+from .models import CARDTPL_SOURCE_FORMATS, TemplateDefinition, TemplateVariant
 
 
 @dataclass(frozen=True, order=True)
@@ -37,11 +37,9 @@ def build_template_variant_search_records(
     for definition in templates.values():
         capability_id = definition.capability_id
         business_id = definition.business_id
-        if (
-            definition.source_format != "cardtpl/1"
-            or capability_id is None
-            or business_id is None
-        ):
+        if definition.source_format not in CARDTPL_SOURCE_FORMATS:
+            continue
+        if capability_id is None or business_id is None:
             continue
         for variant in definition.variants:
             records.append(_build_record(definition, variant, capability_id, business_id))

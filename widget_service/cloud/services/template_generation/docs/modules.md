@@ -57,8 +57,8 @@ cloud/api/routes.py
 2. 要求调用方显式传入 `enable_fusion_ball: bool`，并将 `TemplateSourceGenerator` 基于
    `TaskSpec.appVersion` 和 `CONFIG.fusion_ball_min_prd_version` 得出的请求级决策透传给模板引擎；配置或版本
    缺失、非法、低于配置版本时该决策为关闭。
-   有融球 Theme 命中任一候选业务时，第一层 LLM 只接收匹配的
-   融球 Theme 候选。
+   默认 Search 首层不接收 Theme；Planner 与旧 LLM 路线只从该请求级 Registry 视图选择 Theme，
+   有融球 Theme 命中候选业务时不会再看到非融球 Theme。
 3. 复制已裁决的 `effective_bindings`，不增加新数据能力或字段。
 4. 调用 `generate_template_a2ui()` 获得受信展开后的 A2UI 和诊断信息。
 5. 调用 `prepare_template_source_dsl()` 转成当前 Processor 要求的源格式。
@@ -132,16 +132,17 @@ cloud/api/routes.py
    Theme，只要存在融球匹配就移除全部非融球 Theme，再从 CardSpec 取得已批准能力 ID。
 3. 应用领域 content selectors，建立 `DataShape`。
 4. 根据 `firstLayerComponentSelector` 进入 Search 或旧 LLM 首层路线。
-5. 将请求转换为 `TemplateRouteSelection`；Search 允许单业务加零到两个显式 Action，或双业务加一个显式
-   Action。双业务只在完整 `HeroTitle`、`HeroContent` 覆盖成立时按该顺序进入二层，其它组合显式失败。
-6. 调用 `_generate_selected_templates()` 完成二层生成、受信编译和 A2UI 产出。
+5. 默认路线先由纯数据 Search 返回按业务分组的可用模板，再由确定性 `template_plan_planner.py` 联合规划
+   Layout、Theme、业务顺序及 Action 消费位置，最多产生三个完整原子 Plan；旧 `llm` 路线继续返回
+   `TemplateRouteSelection`。
+6. 调用 `_generate_selected_templates()` 将原子 Plan 交给二层选择，并完成受信编译和 A2UI 产出。
 
 ### `_generate_selected_templates()`
 
 - `project_content_component_facts()` 保留已选业务所需的事实。
 - `_with_provider_template_runtime_data()` 补回 Provider 必需路径和事件表达式依赖。
-- `build_ux_mixed_prompt()` 生成二层专用轻量 Prompt 和硬契约；静态部分只保留类 Tersel 语法，
-  布局、候选模板、Action 和完整 Props 签名均按本轮 Search 结果动态下发。
+- `build_ux_mixed_prompt()` 生成二层专用轻量 Prompt 和硬契约；默认路线下发 Planner 产出的最多三个
+  原子 Plan，以及 Plan 涉及模板的完整 Props 签名。
 - `_generate_hybrid_body()` 调用共享模型生成受限布局/Template 调用。
 - `frame_ux_layout_root_children()` 补全根布局包装。
 - `compile_ux_layout_card()` 完成硬校验和展开；质量错误最多进行两次二层修复。
@@ -181,8 +182,8 @@ Search 默认路线仍复用该文件的能力和 Action 边界函数，但不�
 
 文件：[Prompt](../engine/advanced/ux_mixed_prompt.py)，[Framer](../engine/advanced/ux_mixed_framer.py)
 
-- `build_ux_mixed_prompt()` 将首层候选、唯一 Layout、Action、Theme ID、可信素材和相关
-  Provider 指导组合为二层契约，不再拼接通用 Hybrid Prompt。
+- `build_ux_mixed_prompt()` 将 Planner 原子 Plan、Action、Theme ID、可信素材和相关 Provider 指导组合为
+  二层契约；第二层只能选择一个完整 Plan 并补全开放 Props。
 - `build_ux_mixed_validation_retry_prompt()` 针对二层受限输出的具体校验错误构造修复消息，
   首次失败后最多重试两次。
 - `frame_ux_layout_root_children()` 确保二层产物只在已批准 Layout 根内组合。
@@ -200,11 +201,23 @@ Search 默认路线仍复用该文件的能力和 Action 边界函数，但不�
 
 文件：[Search](../engine/cardplan/template_retrieval.py)，[索引](../engine/cardplan/retrieval_index.py)
 
-- `build_template_retrieval_prompt()` 让首层只输出 Theme、显式字段和 Action。
-- `retrieve_template_variants()` 根据字段 Token、数据能力、尺寸和 CardSpec 确定性返回二层候选。
+- `build_template_retrieval_prompt()` 让首层只输出显式字段、各业务可空的主焦点字段和 Action。
+- `search_template_variants()` 根据字段 Token、数据能力、尺寸和 CardSpec 返回纯数据可用候选；输出不重复
+  模板输入定义。
+- `retrieve_template_variants()` 仅保留给旧测试与兼容调用，默认流水线不再用它做布局组合过滤。
 - `TemplateRetrievalMiss` 表示当前 Search 约束下无完整覆盖。
 
-Search 不选最终 Template、Layout 或 Props，也不改写用户尺寸。
+Search 不选择 Theme、最终 Template、Layout、Action 消费位置或 Props，也不改写用户尺寸。详细交互契约见
+[Template Search 与 Planner 交互契约](template-search-planner-contract.md)。
+
+### `template_plan_planner.py`
+
+文件：[../engine/cardplan/template_plan_planner.py](../engine/cardplan/template_plan_planner.py)
+
+- 从同一 Registry 按 `templateId` 重新取得模板主数据、布局角色和 Action 参数能力。
+- 要求每个 Plan 覆盖全部显式字段，并消费全部已选 Action 恰好一次。
+- `2x2` 单业务优先匹配首层显式主焦点与模板 `primaryData`。
+- 在布局、业务顺序、根 Action 与垂域模板 Action 之间联合求解，稳定排序、去重后最多输出三个 Plan。
 
 ### `registry.py`
 
@@ -229,8 +242,9 @@ Search 不选最终 Template、Layout 或 Props，也不改写用户尺寸。
 主要入口：
 
 - `load_provider_bundles()` / `load_provider_bundle()`：加载并严格校验 `provider.json`、分层 MD、Schema 和 CardTpl。
-- `compile_card_template()`：将 `cardtpl/1` 编译为 `TemplateDefinition`，并把仅判断数据路径或 Prop
-  可用性的带括号三元表达式降为受信的生成期条件 IR。
+- `compile_card_template()`：将 `cardtpl/1` / `cardtpl/2` 编译为 `TemplateDefinition`，并把仅判断数据路径
+  或 Prop 可用性的带括号三元表达式降为受信的生成期条件 IR；v2 的 `#match present(...)` 也在此按最多
+  4 个有序可选项展开为现有条件 IR，转换后的值仍沿用既有绑定和表达式校验。
 - `provider_template_admission()` 等准入函数：校验数据路径、尺寸、业务上下文和变体可用性。
 
 安全限制包括文件大小、源文本长度、闭包组件集、禁止对象键、模板 ID/Provider ID 格式和
@@ -242,7 +256,7 @@ children 槽位数量。
 
 `build_hybrid_prompt()` 仍用于构造可信素材、Action 和 Hybrid Contract，但它的通用消息文本不进入
 第二层模型。`build_template_prompt_contracts()` 只为本轮候选动态生成完整 Props 签名；
-`build_ux_mixed_prompt()` 把这些签名与唯一 Layout 和 Action 契约组合成最终轻量 Prompt。
+`build_ux_mixed_prompt()` 把这些签名与最多三个原子 Plan 和 Action 契约组合成最终轻量 Prompt。
 
 ### `parser.py`
 
@@ -259,7 +273,8 @@ children 槽位数量。
 - `compile_hybrid_card()`：执行通用受信展开、Theme/Action Lowering 和 A2UI 生成。
 - `HybridCompilation`：同时保留原始输出、有效内部 DSL、A2UI 和展开统计。
 
-编译器是模型输出的主要硬门禁，不应把布局、Action 或数据准入只放在 Prompt 文案中。
+编译器是模型输出的主要硬门禁。默认路线在展开前要求根 Layout、业务模板顺序和 Action 消费位置完整
+匹配同一个 Planner Plan，跨 Plan 混用会被拒绝。
 
 ### `models.py`
 
@@ -330,6 +345,7 @@ Provider 契约的唯一事实源是 `provider.json` 和它引用的资源；The
 | --- | --- |
 | `test_template_generation.py` | 主流水线、准入、Prompt、展开、Theme、Action 和路由回归 |
 | `test_template_retrieval.py` | 首层字段标定与确定性 Search |
+| `test_template_plan_planner.py` | 纯数据 Search、主焦点排序、Action 消费规划和原子 Plan 校验 |
 | `test_template_internal_contracts.py` | CardTpl 语法、children 槽位、Action 和布局后缀契约 |
 | `test_template_preview_dataset.py` | 预览数据集、模板统计、A2UI 结构和素材路径 |
 | `test_a2ui_expression.py` | Tersel、CardTpl 共用表达式语法与路径归一化 |

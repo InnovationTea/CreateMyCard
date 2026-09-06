@@ -5,9 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 TEMPLATE_CHILD_SLOT_COMPONENT = "__CardTplChildSlot"
+CARDTPL_SOURCE_FORMATS = frozenset({"cardtpl/1", "cardtpl/2"})
 _BUSINESS_TEMPLATE_SUPPORTED_LAYOUTS = (
     "SingleFocusLayout",
     "HeroActionLayout",
@@ -45,6 +46,84 @@ class ActionBinding(StrictModel):
     material_hint: Literal["frosted", "brand-solid", "semantic-solid", "icon-control"] = "frosted"
 
 
+class TemplatePlanBusinessSlot(StrictModel):
+    """One exact, ordered business-template placement chosen by the Planner."""
+
+    position: int = Field(ge=0)
+    business_id: str = Field(alias="businessId", min_length=1)
+    capability_id: str = Field(alias="capabilityId", min_length=1)
+    template_id: str = Field(alias="templateId", min_length=1)
+    layout_role: str = Field(alias="layoutRole", min_length=1)
+    covered_explicit_fields: tuple[str, ...] = Field(
+        default=(),
+        alias="coveredExplicitFields",
+    )
+    primary_matched_fields: tuple[str, ...] = Field(
+        default=(),
+        alias="primaryMatchedFields",
+    )
+
+
+class TemplatePlanActionAssignment(StrictModel):
+    """Lock one selected Action to either the layout or a business Template."""
+
+    action_id: str = Field(alias="actionId", min_length=1)
+    consumer: Literal["root-action", "business-template"]
+    business_position: int | None = Field(default=None, alias="businessPosition", ge=0)
+    action_template_id: str | None = Field(default=None, alias="actionTemplateId")
+
+    @model_validator(mode="after")
+    def valid_consumer(self) -> TemplatePlanActionAssignment:
+        if self.consumer == "root-action":
+            if self.business_position is not None or self.action_template_id is None:
+                raise ValueError("root Action must declare only actionTemplateId")
+        elif self.business_position is None or self.action_template_id is not None:
+            raise ValueError("business Action must declare only businessPosition")
+        return self
+
+
+class TemplatePlan(StrictModel):
+    """An atomic Planner result; the second-layer LLM may select but not remix it."""
+
+    plan_id: str = Field(alias="planId", min_length=1)
+    theme_id: str = Field(alias="themeId", min_length=1)
+    layout_template_id: str = Field(alias="layoutTemplateId", min_length=1)
+    business_slots: tuple[TemplatePlanBusinessSlot, ...] = Field(
+        alias="businessSlots",
+        min_length=1,
+        max_length=2,
+    )
+    action_assignments: tuple[TemplatePlanActionAssignment, ...] = Field(
+        default=(),
+        alias="actionAssignments",
+        max_length=2,
+    )
+
+    @model_validator(mode="after")
+    def valid_positions(self) -> TemplatePlan:
+        expected_positions = tuple(range(len(self.business_slots)))
+        actual_positions = tuple(slot.position for slot in self.business_slots)
+        if actual_positions != expected_positions:
+            raise ValueError("Template Plan business positions must be contiguous and ordered")
+        valid_positions = set(expected_positions)
+        business_positions = [
+            item.business_position
+            for item in self.action_assignments
+            if item.consumer == "business-template"
+        ]
+        if any(position not in valid_positions for position in business_positions):
+            raise ValueError("Template Plan Action references an unknown business position")
+        if len(business_positions) != len(set(business_positions)):
+            raise ValueError("Template Plan business slot accepts at most one Action")
+        business_ids = tuple(slot.business_id for slot in self.business_slots)
+        if len(business_ids) != len(set(business_ids)):
+            raise ValueError("Template Plan business slots must be unique")
+        action_ids = tuple(item.action_id for item in self.action_assignments)
+        if len(action_ids) != len(set(action_ids)):
+            raise ValueError("Template Plan Action assignments must be unique")
+        return self
+
+
 class HybridBodyContract(StrictModel):
     contract_version: Literal["hybrid-body-contract/0.5"] = "hybrid-body-contract/0.5"
     theme_profile_id: str
@@ -66,6 +145,7 @@ class HybridBodyContract(StrictModel):
     allowed_layout_component_ids: tuple[str, ...] = ()
     allowed_business_component_ids: tuple[str, ...] = ()
     required_business_component_ids: tuple[str, ...] = ()
+    allowed_template_plans: tuple[TemplatePlan, ...] = Field(default=(), max_length=3)
     template_only_composition: bool = False
     limits: HybridLimits
 
@@ -199,7 +279,7 @@ class TemplateDefinition(StrictModel):
     )
     accepts_children: bool = Field(default=False, alias="acceptsChildren")
     bindings: dict[str, TemplateBinding] = Field(default_factory=dict)
-    source_format: Literal["registry-json", "cardtpl/1"] = Field(
+    source_format: Literal["registry-json", "cardtpl/1", "cardtpl/2"] = Field(
         default="registry-json",
         alias="sourceFormat",
     )
@@ -351,6 +431,7 @@ class ThemeDefinition(StrictModel):
 
 
 class ExpansionStats(StrictModel):
+    matched_plan_id: str | None = None
     template_call_count: int = 0
     template_used_ids: tuple[str, ...] = ()
     template_variant_normalization_count: int = 0

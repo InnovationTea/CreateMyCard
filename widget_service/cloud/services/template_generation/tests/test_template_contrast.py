@@ -52,7 +52,7 @@ def test_compiled_template_skips_only_marked_content_contrast(size: str, fusion:
 
 def test_all_template_previews_keep_contrast_exemption() -> None:
     cases = build_template_preview_cases()
-    assert len(cases) == 91
+    assert len(cases) == 96
     for case in cases:
         a2ui = "\n".join(json.dumps(message) for message in case.messages)
         assert not validate_card(dsl_text=a2ui).has_code("VISUAL.CONTRAST")

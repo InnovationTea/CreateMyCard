@@ -7,7 +7,9 @@
   `IconAction@1`。
 - `CountdownOverviewHero@1` 展示同一份 `/countdownDays`，将单位“天”放在数字右侧，可传入本轮可信
   `title`，用于 `HeroActionLayout@1` 加一个 `PillAction@1`。
-- 当前没有 Support 或 Compact，因此不进入双业务或双 PillAction 的 `2x2` 组合；不得用 Full 或 Hero
+- `CountdownOverviewSupport@1` 第一行展示本轮可信 `title` 或默认“倒计时”，第二行展示
+  `/countdownDays`；只用于 `TwoSupportLayout@1`，可接收 Planner 分配的 `actionId`。
+- 当前没有 Compact，因此不进入单业务双 PillAction 的 `2x2` 组合；不得用 Full、Hero 或 Support
   冒充缺失形态。
 - `title` 只能来自本轮可信文本，例如“高考倒数”“运动会倒数日”“马拉松倒计时”；不得由天数反推
   事件名或目标日期。

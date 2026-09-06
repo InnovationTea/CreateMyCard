@@ -5,8 +5,11 @@
   "firstLayerRule": {"path": "first-layer.md"},
   "supportedCapabilityIds": [
     "GetAppUsageDuration",
+    "GetCalendarEvents",
+    "GetCountdownDays",
     "GetEarphoneInfo",
     "GetHealthAndSportSummary",
+    "GetPhoneBatteryInfo",
     "GetSystemMemInfo",
     "ViewWeather"
   ],

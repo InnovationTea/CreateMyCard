@@ -51,9 +51,10 @@
     },
     {
       "templateId": "ResourceUsageOverviewSupport@1",
+      "assetParameterSemanticTags": { "icon": ["memory"] },
       "businessId": "ResourceUsageOverview",
       "capabilityId": "GetSystemMemInfo",
-      "description": "系统内存占用摘要，展示占用率、可用内存和总内存。 组件形态：memoryPeer。 Support 形态仅供兼容 LLM 路径与原子预览使用，当前 Search 不可达；可在模板内部按需绑定已选事件。",
+      "description": "系统内存占用摘要，展示占用率、可用内存和总内存。组件形态：memoryPeer。Support 形态可由 Planner 放入双业务布局，并在模板内部按需绑定已选事件。",
       "optionalData": [],
       "entry": "templates/resource-usage-overview.cardtpl",
       "primaryData": [
