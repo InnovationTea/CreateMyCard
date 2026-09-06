@@ -164,12 +164,13 @@ _SPORT_PALETTE = ("#FFB33024", "#FFFF8833", "#FFE68073")
 _TEST_APP_VERSION = ".".join(("11", "7", "5", "205"))
 
 
-def test_weather_single_color_template_icon_uses_provided_fill_color() -> None:
+@pytest.mark.parametrize("marker", ("WeatherOverview", "WeatherOverviewTemperatureSupport"))
+def test_weather_single_color_template_icon_uses_provided_fill_color(marker: str) -> None:
     contract = HybridBodyContract.model_construct(asset_semantic_tags_by_source={})
     source = "resources/base/media/icon_high_temperature.svg"
     root = Nested2Node(
         "Row",
-        ({"_advancedComponent": "WeatherOverview"},),
+        ({"_advancedComponent": marker},),
         (
             Nested2Node(
                 "Image",
@@ -194,12 +195,13 @@ def test_weather_single_color_template_icon_uses_provided_fill_color() -> None:
     assert "_preserveOriginalColor" not in icon_options
 
 
-def test_weather_multicolor_template_icon_preserves_original_color() -> None:
+@pytest.mark.parametrize("marker", ("WeatherOverview", "WeatherOverviewTemperatureSupport"))
+def test_weather_multicolor_template_icon_preserves_original_color(marker: str) -> None:
     contract = HybridBodyContract.model_construct(asset_semantic_tags_by_source={})
     source = "resources/base/media/icon_weather1.svg"
     root = Nested2Node(
         "Row",
-        ({"_advancedComponent": "WeatherOverview"},),
+        ({"_advancedComponent": marker},),
         (
             Nested2Node(
                 "Image",
@@ -2778,6 +2780,24 @@ def test_new_support_templates_follow_two_line_contract(
     assert support_options.get("fontWeight") == 500
 
 
+def test_heart_rate_full_keeps_value_and_unit_as_adjacent_texts() -> None:
+    registry = get_cardplan_registry()
+    definition = registry.require_template("HeartRateOverviewFull@1")
+    root = _instantiate_blueprint(
+        definition.variants[0].root,
+        {},
+        {"average": "${data.healthSport.exerciseHeartRateAvg}"},
+        registry.theme_reference_values("race-sunrise-action"),
+    )
+    assert [child.component_type for child in root.children] == ["Text", "Text", "Text"]
+    assert root.children[1].values[0] == "${data.healthSport.exerciseHeartRateAvg}"
+    assert root.children[2].values[0] == "次/分钟"
+    options = root.children[1].values[-1]
+    assert isinstance(options, dict)
+    assert options.get("fontSize") == 56
+    assert options.get("textAlign") == "center"
+
+
 def test_battery_compact_uses_optional_icon_and_36vp_ring() -> None:
     definition = get_cardplan_registry().require_template("BatteryOverviewCompact@1")
     variant = definition.variants[0]
@@ -4012,6 +4032,7 @@ def test_support_provider_family_identity_preserves_support_shape() -> None:
         "BatteryOverviewHero@1",
         "BatteryOverviewTemperatureFull@1",
         "BatteryOverviewWideFull@1",
+        "BatteryOverviewSupport@1",
     ),
 )
 def test_generic_battery_templates_accept_trusted_battery_state(

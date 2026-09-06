@@ -94,6 +94,7 @@
     },
     {
       "templateId": "AppUsageOverviewSupport@1",
+      "assetParameterSemanticTags": { "appIcon": ["app-icon"] },
       "businessId": "AppUsageOverview",
       "capabilityId": "GetAppUsageDuration",
       "description": "单个应用的当日使用时长摘要，展示应用名称和时长。组件形态：support。可由 Planner 放入双业务布局，并在模板内部按需绑定已选事件。",

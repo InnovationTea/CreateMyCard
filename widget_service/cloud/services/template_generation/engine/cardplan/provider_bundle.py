@@ -95,6 +95,7 @@ _REFERENCE_CALLS = frozenset(
 _FORBIDDEN_KEYS = frozenset({"__proto__", "prototype", "constructor"})
 _TEMPLATE_ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9-]{0,63}$")
 _REFERENCE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
+_ASSET_SEMANTIC_TAG_RE = re.compile(r"^[a-z][a-z0-9-]{0,63}$")
 _PROVIDER_ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:\.[a-z][a-z0-9-]*)+$")
 _PROVIDER_VERSION_RE = re.compile(r"^[1-9][0-9]*\.[0-9]+\.[0-9]+(?:-[a-z0-9.-]+)?$")
 _MAX_BUNDLE_FILE_BYTES = 1_048_576
@@ -169,6 +170,9 @@ class ProviderTemplateEntry(StrictModel):
     primary_data: tuple[str, ...] = Field(default=(), alias="primaryData")
     secondary_data: tuple[str, ...] = Field(default=(), alias="secondaryData")
     optional_data: tuple[str, ...] = Field(default=(), alias="optionalData")
+    asset_parameter_semantic_tags: dict[str, tuple[str, ...]] = Field(
+        default_factory=dict, alias="assetParameterSemanticTags"
+    )
     entry: str = Field(min_length=1)
 
     @model_validator(mode="after")
@@ -197,6 +201,15 @@ class ProviderTemplateEntry(StrictModel):
             raise ValueError("Provider data Template must declare businessId")
         if self.capability_id is not None:
             _provider_template_layout_kind(self.template_id)
+        for name, tags in self.asset_parameter_semantic_tags.items():
+            if _REFERENCE_NAME_RE.fullmatch(name) is None:
+                raise ValueError(f"Provider asset parameter name is invalid: {name}")
+            if not tags or len(tags) != len(set(tags)):
+                raise ValueError(
+                    f"Provider asset semantic tags must be nonempty and unique: {name}"
+                )
+            if any(_ASSET_SEMANTIC_TAG_RE.fullmatch(tag) is None for tag in tags):
+                raise ValueError(f"Provider asset semantic tag is invalid: {name}")
         return self
 
     @property
@@ -398,9 +411,17 @@ def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
             optional_data=entry.optional_data,
             output_schema=output_schema,
         )
-        definition = definition.model_copy(
-            update={"requires_layout_action": entry.requires_layout_action}
-        )
+        asset_tags = dict(definition.asset_parameter_semantic_tags)
+        for name, tags in entry.asset_parameter_semantic_tags.items():
+            if name not in asset_tags:
+                raise ValueError(
+                    f"Provider semantic tags reference a non-asset Prop: {wire_id}.{name}"
+                )
+            asset_tags[name] = tags
+        definition = definition.model_copy(update={
+            "requires_layout_action": entry.requires_layout_action,
+            "asset_parameter_semantic_tags": asset_tags,
+        })
         _validate_provider_template_data_contract(definition, entry)
         definitions.append(definition)
 

@@ -322,6 +322,7 @@
     },
     {
       "templateId": "ActivityOverviewSupport@1",
+      "assetParameterSemanticTags": { "stepsIcon": ["steps"] },
       "businessId": "ActivityOverview",
       "capabilityId": "GetHealthAndSportSummary",
       "description": "每日步数紧凑摘要，展示步数，可使用步数图标。组件形态：compact。Support 形态可由 Planner 放入双业务布局，并在模板内部按需绑定已选事件。",
@@ -334,6 +335,7 @@
     },
     {
       "templateId": "WorkoutOverviewSupport@1",
+      "assetParameterSemanticTags": { "sourceIcon": ["workout"] },
       "businessId": "WorkoutOverview",
       "capabilityId": "GetHealthAndSportSummary",
       "description": "最近一次单次运动训练摘要，展示该次热量和时长，可选展示运动类型，可使用运动图标。组件形态：latestCompact。Support 形态可由 Planner 放入双业务布局，并在模板内部按需绑定已选事件。",
@@ -376,6 +378,7 @@
     },
     {
       "templateId": "HeartRateOverviewIconSupport@1",
+      "assetParameterSemanticTags": { "sourceIcon": ["heart"] },
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
       "description": "运动平均心率摘要。组件形态：supportIcon。Support 形态可由 Planner 放入双业务布局，并在模板内部按需绑定已选事件。",
@@ -388,6 +391,7 @@
     },
     {
       "templateId": "HeartRateOverviewUpdatedIconSupport@1",
+      "assetParameterSemanticTags": { "sourceIcon": ["heart"] },
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
       "description": "运动平均心率摘要，可补充更新时间。组件形态：supportUpdatedIcon。Support 形态可由 Planner 放入双业务布局，并在模板内部按需绑定已选事件。",
@@ -402,6 +406,7 @@
     },
     {
       "templateId": "SleepOverviewSupport@1",
+      "assetParameterSemanticTags": { "sourceIcon": ["sleep"] },
       "businessId": "SleepOverview",
       "capabilityId": "GetHealthAndSportSummary",
       "description": "睡眠情况紧凑摘要，展示时长和得分环，可使用睡眠图标。组件形态：compact。Support 形态可由 Planner 放入双业务布局，并在模板内部按需绑定已选事件。",

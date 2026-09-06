@@ -1048,6 +1048,7 @@ def _validate_provider_template_state(
             "progressSupport",
             "statusIconCompact",
             "statusIconSupport",
+            "support",
             "temperatureIconCompact",
             "temperatureIconSupport",
             "temperatureFull",
@@ -4298,7 +4299,7 @@ def _validate_template_params(
 ) -> None:
     for key, value in params.items():
         values = _primitive_values(value)
-        is_asset_parameter = any(
+        is_asset_parameter = key in asset_tags or any(
             token in key.casefold() for token in ("icon", "image", "asset", "source", "src")
         )
         for item in values:
@@ -4386,7 +4387,7 @@ def _normalize_template_asset_params(
 ) -> dict[str, Any]:
     normalized = dict(params)
     for key, value in params.items():
-        is_asset_parameter = any(
+        is_asset_parameter = key in asset_tags or any(
             token in key.casefold() for token in ("icon", "image", "asset", "source", "src")
         )
         if not is_asset_parameter or not isinstance(value, str):
@@ -8221,7 +8222,9 @@ def _normalize_weather_condition_icons(
         None,
     )
     options = dict(node.values[options_index]) if options_index is not None else {}
-    inside_weather = weather_region or options.get("_advancedComponent") == "WeatherOverview"
+    inside_weather = weather_region or options.get("_advancedComponent") in {
+        "WeatherOverview", "WeatherOverviewTemperatureSupport"
+    }
     children = tuple(
         _normalize_weather_condition_icons(child, contract, weather_region=inside_weather)
         for child in node.children

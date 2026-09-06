@@ -67,6 +67,7 @@
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudsSupport@1",
+      "assetParameterSemanticTags": { "deviceIcon": ["earphone-body"] },
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
       "description": "耳机电量 Support，展示左右耳电量和设备图标；可由 Planner 放入双业务布局，并按需在内部绑定事件。",

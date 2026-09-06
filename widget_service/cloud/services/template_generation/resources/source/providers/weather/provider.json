@@ -66,6 +66,7 @@
     },
     {
       "templateId": "WeatherOverviewTemperatureSupport@1",
+      "assetParameterSemanticTags": { "conditionIcon": ["weather-condition"] },
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
       "description": "温度天气 Support，展示城市、温度、天气现象和感冒风险；可由 Planner 放入双业务布局，并按需在内部绑定事件。",
@@ -80,6 +81,7 @@
     },
     {
       "templateId": "WeatherOverviewTemperatureUvSupport@1",
+      "assetParameterSemanticTags": { "conditionIcon": ["weather-condition"] },
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
       "description": "紫外线天气 Support，展示城市、温度、天气现象和紫外线等级；可由 Planner 放入双业务布局，并按需在内部绑定事件。",

@@ -207,12 +207,14 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     manifest = write_gallery_input_dataset(input_root)
 
     assert not stale_input.exists()
-    assert len(manifest.providers) == 9
+    assert len(manifest.providers) == 10
     all_cases = [case for provider in manifest.providers for case in provider.cases]
-    assert len(all_cases) == 70
+    assert len(all_cases) == 115
     assert {case.appearanceId for case in all_cases} == {"fusion"}
     assert {case.prdVer for case in all_cases} == {FUSION_PRD_VERSION}
-    assert all(case.expectsFusionBall for case in all_cases if not case.missingReason)
+    for case in all_cases:
+        if not case.missingReason:
+            assert case.expectsFusionBall is (case.providerSlug != "two-support")
     scenario_ids = {
         case.scenarioId
         for provider in manifest.providers
@@ -223,6 +225,9 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         "single-one-action",
         "single-content",
         "dual-one-action",
+        "dual-support-content",
+        "dual-support-one-action",
+        "dual-support-two-actions",
     }
     battery_case = _find_case(
         manifest,
@@ -293,7 +298,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 67
+    assert len(targeted_cases) == 112
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
@@ -543,13 +548,13 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 70
+    assert summary.total == 115
     assert summary.failed == 0
-    assert summary.missing == 8
-    assert summary.not_generated == 62
+    assert summary.missing == 14
+    assert summary.not_generated == 101
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
-    assert len(reloaded.providers) == 9
+    assert len(reloaded.providers) == 10
 
 
 def test_gallery_paired_inputs_preserve_both_businesses_and_one_action(tmp_path: Path) -> None:
@@ -662,3 +667,63 @@ def test_gallery_pairs_reject_overlapping_business_data(conflict: str) -> None:
     else:
         content = replace(content, data_domain=pair.title.business.data_domain + "/nested")
     assert provider_gallery._gallery_template_pairs([pair.title.business, content]) == []
+
+
+def test_support_inputs_cover_every_template_and_three_action_counts(tmp_path: Path) -> None:
+    manifest = write_gallery_input_dataset(tmp_path)
+    provider = next(item for item in manifest.providers if item.providerSlug == "two-support")
+    definitions = provider_gallery._load_business_definitions(provider_gallery._PROVIDER_ROOT)
+    expected_templates: set[str] = set()
+    for definition in definitions:
+        for template in definition.templates:
+            if template.suffix == "Support":
+                expected_templates.add(template.template_id)
+    assert {case.targetTemplateId for case in provider.cases} == expected_templates
+    assert len(provider.cases) == len(expected_templates) * 3 == 45
+    assert len({case.caseId for case in provider.cases}) == 45
+    for case in provider.cases:
+        assert not case.expectsFusionBall
+        assert case.expectedLayout == "TwoSupportLayout"
+        payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
+        content = payload.get("content")
+        assert isinstance(content, dict)
+        bindings = content.get("candidateDataBindings")
+        assert isinstance(bindings, list)
+        assert len(bindings) == 2
+        assert bindings[0].get("capabilityId") != bindings[1].get("capabilityId")
+        assert bindings[0].get("writeResultTo") != bindings[1].get("writeResultTo")
+        events = content.get("candidateEventCandidates")
+        assert isinstance(events, list)
+        assert len(events) == provider_gallery._expected_action_count(case.scenarioId)
+        assert len({event.get("capabilityId") for event in events}) == len(events)
+
+
+@pytest.mark.asyncio
+async def test_support_runner_preserves_targets_actions_and_missing_members(tmp_path: Path) -> None:
+    input_root = tmp_path / "inputs"
+    write_gallery_input_dataset(input_root)
+    service = _GalleryService()
+    summary = await ProviderGalleryBatchRunner(service).run(
+        input_root, tmp_path / "output", provider_ids={"gallery.two-support"}, concurrency=2,
+    )
+    assert summary.total == 45
+    assert summary.success == 39
+    assert summary.missing == 6
+    assert summary.failed == summary.not_generated == 0
+    assert len(service.requests) == 39
+    assert {len(actions) for actions in service.template_action_ids} == {0, 1, 2}
+    for template_ids in service.template_candidate_ids:
+        assert len(template_ids) == 2
+        assert all(template_id.endswith("Support@1") for template_id in template_ids)
+    output = json.loads(summary.manifest_path.read_text(encoding="utf-8"))
+    providers = output.get("providers")
+    assert isinstance(providers, list)
+    cases = providers[0].get("cases")
+    assert isinstance(cases, list)
+    for case in cases:
+        if case.get("status") != "success":
+            continue
+        assert case.get("fusionBallRendered") is False
+        path = case.get("a2uiFile")
+        assert isinstance(path, str)
+        assert (summary.manifest_path.parent / path).is_file()
