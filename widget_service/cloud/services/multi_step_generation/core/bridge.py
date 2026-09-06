@@ -143,7 +143,7 @@ class JsxA2UIBridge:
                 trace_data,
                 result,
                 prepared.prompt_task,
-                prepared.compile_context,
+                result.get("compile_context", prepared.compile_context),
             )
 
         logger.info(

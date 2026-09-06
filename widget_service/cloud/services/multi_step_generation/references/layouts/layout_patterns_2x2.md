@@ -25,7 +25,6 @@
 | 区域 | 必要性 | 尺寸 / 弹性 | 布局规则 |
 |---|---|---|---|
 | 标题区 | 按 Type 必选 | `flex0; height:auto` | 宽度占满 136vp；高度由标题组件实际撑开，不参与剩余空间分配 |
-| 标题 Icon | 按标题组件选用 | 20 × 20vp | 锚定标题区右上角；标题区高度取文字组与 Icon 实际高度的较大值 |
 | 内容区 | 必选 | 通常为 `flex1` | 必须继续说明是高度自适应、宽度自适应或宽高均自适应 |
 | PillButton 区 | 按 Type 必选 / 可选 | `flex0`; 136 × 36vp | 只能用于 2×2 的底部整宽操作槽；默认设计圆角 18vp，Type 10-C 为 40vp |
 | CircleButton 区 | 按 Type 必选 | `flex0`; 36 × 36vp | Icon 20 × 20vp，不显示文字，由外层布局锚定安全内容区右下角 |
@@ -35,7 +34,7 @@
 
 标题参考高度：
 
-- `SingleLineTitle` 文本高 18vp；带 20vp Icon 时标题区通常为 20vp。
+- `SingleLineTitle` 是纯文本标题，高度固定为 18vp。
 - `DoubleLineTitle` 含一行副信息时为 `18 + 4 + 18 = 40vp`；副信息为两行时继续自然增高。
 - 参考高度只用于容量判断。JSX 必须使用自然高度，不得把参考高度写成固定 `top` 或固定标题槽高度。
 - Type 0、Type 3、Type 6、Type 12、Type 15 为无标题布局。
@@ -55,8 +54,9 @@
 ### 3.1 2×2 按钮限制
 
 - 2×2 只允许 `PillButton` 和 `CircleButton`
-- 有文字的整宽操作使用 `PillButton`
-- 只有 Icon 且语义可由 `ariaLabel` 完整说明的右下快捷操作使用 `CircleButton`
+- 先按真实内容高度检查底部空间。标题和必需内容完整呈现后，若仍可闭合出内容与按钮之间的 `8vp` 间距及 `136 × 36vp` 底部操作槽，必须优先选择带可见操作文本的 `PillButton`，并改用 Type 10-A、Type 10-B 或其他提供底部整宽操作槽的兼容 Type。
+- 不得仅因 action 提供 Icon，或为了沿用 Type 14，而把本可放入底部的 `PillButton` 降级为 `CircleButton`。
+- 只有底部 `136 × 36vp` 操作槽确实无法与必需内容共同容纳、右下 `36 × 36vp` 槽可以安全避让正文，并且操作仅靠 Icon 也能明确表达时，才使用 `CircleButton`；完整操作名称写入 `ariaLabel`。
 - 同一 action 只能生成一个按钮，禁止同时用 `PillButton` 和 `CircleButton` 表示同一个 action
 - 有两个 action 时全部使用 PillButton，使用 Type 10-C 或 Type 15，上下排列，禁止 `CircleButton` 加 `PillButton`
 
@@ -65,7 +65,7 @@
 | 完整态顶层模块数 | Type |
 |---:|---|
 | 1 | Type 0 |
-| 2 | Type 1、Type 3 |
+| 2 | Type 1、Type 3、Type 14（无全局标题变体） |
 | 3 | Type 2、Type 10-A、Type 12、Type 14、Type 15 |
 | 4 | Type 6、Type 10-B、Type 10-C、Type 11-A |
 
@@ -87,7 +87,7 @@
 | Type 2 | 标题 + 核心 + 明细 | 标题 `flex0`；两内容区均 `flex1`、高度自适应 | 单区高 `(136 − T − 8 − 8) ÷ 2` | 标题、核心、明细相邻间距均为 8vp；两个内容区默认等分剩余高度 |
 | Type 10-A | 标题 + 单内容 + 可选 PillButton | 内容 `flex1`；按钮 `flex0` | 有按钮：内容高 `136 − T − 8 − 8 − 36`；无按钮：`136 − T − 8` | 按钮缺省时同时移除按钮槽及其相邻 8vp |
 | Type 12 | 无标题 + 上方双列 + 可选 PillButton | 双列与按钮均 `flex0` | 完整态：双列各 64 × 92，`64 + 8 + 64 = 136`，`92 + 8 + 36 = 136` | 两个同级对象与一个整宽操作；无按钮时双列内容可占满 136vp 高度 |
-| Type 14 | 标题 + 正文 + 右下 CircleButton | 正文 `flex1`；Action `flex0` | 正文宽 92；Action 36 × 36；`92 + 8 + 36 = 136`；正文高 `136 − T − 8` | `Layer + Anchor`；Action 锚定安全内容区右下角 |
+| Type 14 | 可选标题 + 正文 + 右下 CircleButton | 正文 `flex1`；Action `flex0` | 有标题时正文画布高 `136 − T − 8`，无标题时高 136；上方短内容可使用至多 116vp 宽度；进入底部按钮高度带的内容宽度不超过 92vp；Action 36 × 36 | `Layer + Anchor`；Action 锚定安全内容区右下角，正文按实际高度避让按钮；正文组件已有完整语义标签时可省略全局标题 |
 | Type 15 | 无标题内容 + 两个 PillButton | 三个模块均 `flex0` | `48 + 8 + 36 + 8 + 36 = 136` | 内容区 136 × 48；两个整宽 Action 均必选 |
 | Type 10-B | 标题 + Hero + 次要信息 + 可选 PillButton | 内容组 `flex1`；Hero/次要信息自然高度；按钮 `flex0` | 标题与内容组 8；Hero 与次要信息 2；内容组与按钮 8 | Hero 与次要信息按内容自然撑高，不等分、不写死高度 |
 | Type 10-C | 标题 + 内容 + 两个 PillButton | 内容 `flex1`；两个 Action `flex0` | 内容高 `136 − T − 8 − 8 − 36 − 8 − 36 = 40 − T` | 相邻顶层区域均为 8vp；两个 Action 均必选 |
@@ -239,40 +239,59 @@
 
   <Stack basis={36} height={36} width="full">
     <PillButton
-      label="查看详情"
-      appearance="card"
-      actionId="detail.open"
+      {...}
     />
   </Stack>
 </Card>
 ```
 
-### 7.7 Type 14：标题 + 正文 + 右下 CircleButton
+### 7.7 Type 14：可选标题 + 正文 + 右下 CircleButton
+
+Type 14 是分层锚点布局，不是从上到下固定的 92vp + 44vp 两列布局：
+- `CircleButton` 自身不负责定位；`right={0}`、`bottom={0}` 属于外层 `Stack`。
+- 位于按钮上方并能在按钮顶部之前结束的短正文，可以使用至多 116vp 宽度。2×2 中 `EventCard` 的 runtime 最大宽度正好为 116px；
+- 正文若会延伸进入右下角 36 × 36vp 的按钮高度带，进入该高度带的部分必须在按钮左侧结束；可以将底部信息拆入宽 92vp 的独立槽，或让正文整体使用 92vp。不得依赖覆盖、裁剪或隐藏必需文字避让按钮。
+- 是否使用 116vp 由正文真实高度决定，不是所有 Type 14 内容都无条件扩宽。提交前必须确认正文可见边界与按钮至少不相交。
 
 ```jsx
-<Card size="2x2" appearance="slate-gradient" gap={8}>
+<Card size="2x2" appearance="blue-soft" gap={8}>
   <Stack flex={0}>
-    <SingleLineTitle title="叫车出行" />
+    <SingleLineTitle title="需求评审会" />
   </Stack>
 
-  <Stack flex={1} minHeight={0} width="full" position="relative">
-    <Stack position="absolute" left={0} top={0} bottom={0} width={92} minWidth={0}>
-      {/* 正文 */}
+  <Stack flex={1} minHeight={0} width="full" minWidth={0} position="relative">
+    <Stack position="absolute" left={0} top={0} width={116} minWidth={0}>
+      {...}
     </Stack>
 
     <Stack position="absolute" right={0} bottom={0} width={36} height={36} align="center" justify="center">
       <CircleButton
-        icon="phone_fill.svg"
-        ariaLabel="拨打电话"
-        appearance="card"
-        actionId="phone.call"
+        {...}
       />
     </Stack>
   </Stack>
 </Card>
 ```
 
-`CircleButton` 自身不负责定位；`right={0}`、`bottom={0}` 属于外层 `Stack`。
+当 `DataDisplay` 等正文组件自身已经包含完整标签，并且组件高度会进入按钮所在的底部高度带时，可以省略全局标题，将正文限制在左侧 92vp，并把 `CircleButton` 锚定到右下角：
+
+```jsx
+<Card size="2x2" appearance="type0-gradient">
+  <Stack width="full" height="full" position="relative">
+    <Stack position="absolute" left={0} top={0} bottom={0} width={92} minWidth={0} align="center" justify="center">
+      <DataDisplay
+        {...}
+      />
+    </Stack>
+
+    <Stack position="absolute" right={0} bottom={0} width={36} height={36} align="center" justify="center">
+      <CircleButton
+        {...}
+      />
+    </Stack>
+  </Stack>
+</Card>
+```
 
 ### 7.8 Type 15：无标题内容 + 两个 PillButton
 
@@ -402,13 +421,9 @@
 - 不要在标题与下方内容之间继续使用旧版 2vp；0828 规范统一为 8vp。
 - 不要把 `CardButton` 放入 2×2；2×2 只允许 `PillButton` 和 `CircleButton`。
 - 不要把 `position`、`right`、`bottom` 传给 `CircleButton`；定位属于外层 `Stack`。
-- Type 14 和 Type 11-A 的操作槽暂按当前 runtime 使用 36 × 36vp，正文 / 次要信息宽度为 92vp，满足 `92 + 8 + 36 = 136`。
+- Type 14 和 Type 11-A 的操作槽暂按当前 runtime 使用 36 × 36vp。Type 11-A 的底部次要信息槽仍使用 92vp，满足 `92 + 8 + 36 = 136`；Type 14 的上方短正文可扩展至 116vp，只有进入按钮高度带的内容才必须按 92vp 或等效结构避让按钮。
 - `CircleButton` 没有可用 Icon 或 action 需要显示文字时，改用带底部 `PillButton` 的 Type，不得将 `PillButton` 塞进右下圆形操作槽。
 - 安全内容区内使用 `right={0}`、`bottom={0}`；`Card` 已提供 12vp padding，不要重复写 12。
 - 不要同时用父级 `gap` 和空白 `Stack` 表示同一段间距。
 - 不要让整宽组件在 `align="flex-start"` 的父容器内按内容宽度收缩。
 - Type 10-C 和带 `DoubleLineTitle` 的布局必须先计算剩余高度；不足以容纳业务组件时不得生成。
-
-## 9. 临时实现差异
-
-0828 设计稿将 `CircleButton` 定义为 40 × 40vp；当前 runtime 的按钮自身为 36 × 36px。为了保证文档示例可以直接由当前 runtime 复现，本文件暂时统一使用 36 × 36vp，并将相邻内容区设为 92vp。后续 runtime 升级为 40 × 40px 时，应同步恢复为 `88 + 8 + 40 = 136vp`。

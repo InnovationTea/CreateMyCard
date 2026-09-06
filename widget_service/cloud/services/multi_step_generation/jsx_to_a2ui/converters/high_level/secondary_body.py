@@ -26,5 +26,5 @@ def convert_secondary_body(node: JSXElement, ctx: ConversionContext) -> A2UINode
         "fontColor": palette(ctx).primary,
         "textAlign": "start",
         "flexShrink": 1,
-        "constraintSize": {"minWidth": 0},
+        "constraintSize": {"minWidth": 0, "minHeight": 19},
     })

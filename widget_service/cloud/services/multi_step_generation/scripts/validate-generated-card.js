@@ -360,12 +360,26 @@ function elementProps(element) {
     .map((attribute) => [jsxName(attribute.name), attributeValue(attribute)]));
 }
 
-function cardButtonSlotDimensions(parent, childIndex) {
+function preferredAxisSize(element, parent, axis) {
+  const props = elementProps(element);
+  const parentProps = elementProps(parent);
+  let value = props.get(axis);
+  const mainAxis = (parentProps.get("direction") ?? "column") === "row" ? "width" : "height";
+  if (["Card", "Stack"].includes(jsxName(parent?.openingElement?.name))
+    && axis === mainAxis && props.get("position") !== "absolute") {
+    if (props.get("basis") != null) value = props.get("basis");
+    else if (props.get("flex") === 1) return null;
+  }
+  const minimum = props.get(axis === "width" ? "minWidth" : "minHeight");
+  return Number.isFinite(value) && Number.isFinite(minimum) ? Math.max(value, minimum) : value;
+}
+
+function cardButtonSlotDimensions(parent, childIndex, ancestor = null) {
   const parentName = jsxName(parent?.openingElement?.name);
   const props = elementProps(parent);
   if (parentName === "Stack") {
-    const width = props.get("width");
-    const height = props.get("height");
+    const width = preferredAxisSize(parent, ancestor, "width");
+    const height = preferredAxisSize(parent, ancestor, "height");
     return {
       width: Number.isFinite(width) ? width : null,
       height: Number.isFinite(height) ? height : null,
@@ -400,9 +414,38 @@ function isCardButtonSlot(element) {
   return children.length === 1 && jsxName(children[0].openingElement.name) === "CardButton";
 }
 
+function fixedSlotKind(element) {
+  const name = jsxName(element?.openingElement?.name);
+  if (["CardButton", "InfoBlock"].includes(name)) return name;
+  const children = directJsxChildren(element);
+  const childName = children.length === 1 ? jsxName(children[0].openingElement.name) : null;
+  return name === "Stack" && ["CardButton", "InfoBlock"].includes(childName) ? childName : null;
+}
+
+function validateFixedSlotDimensions(element) {
+  const findings = [];
+  const parentName = jsxName(element.openingElement.name);
+  const isGrid = parentName === "Grid";
+  directJsxChildren(element).forEach((child, index) => {
+    const kind = fixedSlotKind(child);
+    if (kind === null || (!isGrid && kind !== "CardButton")) return;
+    const dimensions = isGrid ? cardButtonSlotDimensions(element, index) : {};
+    for (const [axis, expected] of [["width", 144], ["height", 64]]) {
+      const explicit = jsxName(child.openingElement.name) === "Stack" ? preferredAxisSize(child, element, axis) : null;
+      const value = explicit == null || explicit === "full" ? dimensions[axis] : explicit;
+      if (Number.isFinite(value) && value !== expected) {
+        findings.push(finding("error", "fixed-slot-dimension",
+          `2x4 fixed slot ${axis} must be ${expected}vp; found ${value}vp`));
+      }
+    }
+  });
+  return findings;
+}
+
 function validateCardButtonSlots(root, cardSize) {
   const findings = [];
-  const visit = (element) => {
+  const visit = (element, ancestor = null) => {
+    if (cardSize === "2x4") findings.push(...validateFixedSlotDimensions(element));
     const children = directJsxChildren(element);
     const parentName = jsxName(element.openingElement.name);
     const directCardButtons = children.filter((child) => jsxName(child.openingElement.name) === "CardButton");
@@ -421,7 +464,7 @@ function validateCardButtonSlots(root, cardSize) {
         "each CardButton in a Stack must be the only child of its own explicit or flex-allocated slot; Grid cells are already slots",
       ));
     }
-    if (cardSize === "2x4" && children.filter(isCardButtonSlot).length >= 2) {
+    if (cardSize === "2x4" && children.some((child) => fixedSlotKind(child) !== null)) {
       const props = elementProps(element);
       const columns = props.get("columns") ?? 2;
       const multiColumnGrid = parentName === "Grid" && (
@@ -429,25 +472,38 @@ function validateCardButtonSlots(root, cardSize) {
         || (typeof columns === "string" && columns.trim().split(/\s+/).length > 1)
       );
       if (multiColumnGrid) {
-        const slotCount = children.filter(isCardButtonSlot).length;
-        if (columns !== 2 || ![3, 4].includes(slotCount)) {
+        for (const axis of ["rowGap", "columnGap"]) {
+          const gap = props.get(axis) ?? props.get("gap") ?? 0;
+          if (Number.isFinite(gap) && gap !== 8) {
+            findings.push(finding("error", "fixed-grid-gap", `Type 14 ${axis} must be 8vp; found ${gap}vp`));
+          }
+        }
+        const kinds = children.map(fixedSlotKind);
+        const columnCount = typeof columns === "string" ? columns.trim().split(/\s+/).length : columns;
+        if (columnCount !== 2 || kinds.length !== 4 || kinds.some((kind) => kind === null)) {
           findings.push(finding(
             "error",
             "card-button-grid-layout",
-            "a multi-column CardButton Grid must be the documented Type 9 layout with two columns and three or four actions",
+            "Type 14 requires four valid CardButton/InfoBlock slots in a two-column Grid",
           ));
         }
-      } else if (["Card", "Stack"].includes(parentName) && (props.get("direction") ?? "column") === "row") {
+        if (kinds.length === 4 && kinds.every((kind) => kind !== null)
+          && (kinds[0] !== kinds[2] || kinds[1] !== kinds[3])) {
+          findings.push(finding("error", "card-button-grid-layout",
+            "Type 14 mixed CardButton/InfoBlock slots must use the same component type within each column"));
+        }
+      } else if (children.filter(isCardButtonSlot).length >= 2
+        && ["Card", "Stack"].includes(parentName) && (props.get("direction") ?? "column") === "row") {
         findings.push(finding(
           "error",
           "card-button-horizontal-layout",
-          "outside the documented Type 9 Grid, 2x4 CardButton actions must be stacked vertically; a single horizontal row is not allowed",
+          "outside the documented Type 14 Grid, 2x4 CardButton actions must be stacked vertically; a single horizontal row is not allowed",
         ));
       }
     }
     children.forEach((child, index) => {
       if (jsxName(child.openingElement.name) === "CardButton") {
-        const { width, height } = cardButtonSlotDimensions(element, index);
+        const { width, height } = cardButtonSlotDimensions(element, index, ancestor);
         if (Number.isFinite(width) && Number.isFinite(height) && width < height) {
           findings.push(finding(
             "error",
@@ -470,7 +526,7 @@ function validateCardButtonSlots(root, cardSize) {
           ));
         }
       }
-      visit(child);
+      visit(child, element);
     });
   };
   visit(root);
@@ -794,9 +850,9 @@ function validateStructure(source, componentName, schema, task) {
     if (name === "InfoBlock") {
       const visual = provided.get("visual");
       const visualKeys = visual && typeof visual === "object" && !Array.isArray(visual) ? Object.keys(visual) : [];
-      if (!visual || !["icon", "progressCircle"].includes(visual.type) || typeof visual.icon !== "string" || !visual.icon.trim()) {
+      if (visual !== undefined && (!visual || !["icon", "progressCircle"].includes(visual.type) || typeof visual.icon !== "string" || !visual.icon.trim())) {
         findings.push(finding("error", "info-block-visual", '<InfoBlock> visual must select icon or progressCircle and provide a non-empty icon src'));
-      } else {
+      } else if (visual !== undefined) {
         const allowedKeys = visual.type === "icon" ? ["type", "icon", "color"] : ["type", "icon"];
         if (visualKeys.some((key) => !allowedKeys.includes(key)) || (visual.type === "icon" && ![undefined, "native"].includes(visual.color))) findings.push(finding("error", "info-block-visual", '<InfoBlock> visual contains unsupported fields or color'));
       }
@@ -846,7 +902,7 @@ function validateResources(signature, task) {
       findings.push(finding(
         "error",
         "resource-not-candidate",
-        `${resource.component}.${resource.prop}=${JSON.stringify(resource.value)} is not an exact src from input assetCandidates`,
+        `${resource.component}.${resource.prop}=${JSON.stringify(resource.value)} is not an exact model-facing src from input assetCandidates`,
       ));
     }
   }
@@ -1493,8 +1549,8 @@ function browserFindings(metrics, cardSize) {
           ? "该组件使用的 src 无法由浏览器加载，可能是资源路径错误、文件缺失或资源服务不可达。"
           : "浏览器请求失败，但当前 DOM 中没有找到使用该 URL 的具体组件，可能是 runtime 或样式资源。",
         suggestion: owner
-          ? "将该组件的资源属性改为输入 assetCandidates 中存在且可访问的 src。"
-          : "检查失败 URL 的来源；如果属于组件资源，请使用输入 assetCandidates 提供的完整 src。",
+          ? "将该组件的资源属性改为输入 assetCandidates 中存在且可访问的模型侧 src；默认媒体资源只写文件名。"
+          : "检查失败 URL 的来源；如果属于默认媒体资源，请使用输入 assetCandidates 提供的文件名，不要手写 resources/base/media/。",
       },
     ));
   }

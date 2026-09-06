@@ -7,9 +7,11 @@ The converter intentionally avoids business-specific event and field mappings:
 * ``dataModelSchema.data`` becomes a flat ``data`` array whose items contain
   a unique path-derived ``id``, a stable source ``path``, the original
   ``description``, declared or inferred ``type``, and the sample value as
-  ``value``;
+  ``value``; known unitless API fields retain their source types while private
+  display-unit metadata controls text formatting without changing calculations;
 * ``assetCandidates`` keeps the ordered ``id``/``src``/``description`` records
-  that the model may reference;
+  that the model may reference, shortening direct ``resources/base/media``
+  children to filenames for model-facing prompts;
 * the top-level semantic ``size`` field is preserved unchanged for layout routing;
 * every data field named ``updatedAt`` is omitted;
 * a source ``id`` is preserved when present and is not invented when absent.
@@ -39,6 +41,10 @@ if str(SKILL_DIR) not in sys.path:
     sys.path.insert(0, str(SKILL_DIR))
 
 from jsx_runner.card_sizes import CARD_SIZE_DIMENSIONS  # noqa: E402
+from jsx_to_a2ui.catalog.display_units import (  # noqa: E402
+    format_display_unit,
+    has_display_unit,
+)
 
 
 DEFAULT_INPUT = SKILL_DIR / "data" / "20_tasks_2x2_raw.json"
@@ -119,6 +125,44 @@ def _validate_task_size(value: Any, task_label: Any) -> str:
 
 _SUPPORTED_DATA_TYPES = frozenset({"string", "integer", "number", "boolean", "string[]"})
 _SCHEMA_LEAF_KEYS = frozenset({"type", "description", "sampleValue"})
+
+# Display-unit suffixes for upstream API fields whose raw values omit the unit.
+# Keep this keyed by the stable binding ID: descriptions are prose and must not
+# silently change preprocessing behavior when their wording changes.
+DISPLAY_UNIT_SUFFIX_BY_BINDING_ID: dict[str, str] = {
+    "calendar.events.0.countdownDays": "天",
+    "calendar.events.0.remindTime.0": "分钟",
+    "countdown.countdownDays": "天",
+    "earphone.batteryLevel": "%",
+    "earphone.leftBatteryLevel": "%",
+    "earphone.rightBatteryLevel": "%",
+    "healthSport.dailySteps": "步",
+    "healthSport.exerciseHeartRateAvg": "次/分钟",
+    "healthSport.exerciseHeartRateMax": "次/分钟",
+    "healthSport.exerciseHeartRateMin": "次/分钟",
+    "phoneBattery.batterySOC": "%",
+    "weather.current.feelsLikeC": "℃",
+    "weather.current.humidityPercent": "%",
+    "weather.current.temperatureC": "℃",
+    "weather.current.windLevel": "级",
+    "weather1.current.temperatureC": "℃",
+    "weather2.current.temperatureC": "℃",
+}
+
+def _format_binding_value(binding_id: str, value: Any) -> tuple[Any, bool]:
+    """Append a missing display-unit suffix to a known binding value.
+
+    Return ``(value, changed)``. A formatted string supplied by the API wins,
+    making preprocessing idempotent and preventing values such as ``"68%"``
+    from becoming ``"68%%"``.
+    """
+    unit = DISPLAY_UNIT_SUFFIX_BY_BINDING_ID.get(binding_id)
+    if unit is None:
+        return copy.deepcopy(value), False
+    if has_display_unit(value, unit):
+        return value, False
+    formatted = format_display_unit(value, unit)
+    return formatted, formatted != value
 
 
 def _data_type(value: Any, declared: Any = None) -> str:
@@ -263,6 +307,24 @@ def convert_actions(value: Any, task_label: Any) -> list[dict[str, Any]]:
     return actions
 
 
+DEFAULT_ASSET_ROOT = "resources/base/media/"
+
+
+def model_asset_src(source: str) -> str:
+    """Return the compact resource reference exposed to the JSX model.
+
+    Runtime and JSX -> A2UI both resolve a plain filename against
+    ``resources/base/media/``. Keep non-default and nested paths intact so the
+    model never loses information that the default resolver cannot reconstruct.
+    """
+    normalized = source.replace("\\", "/")
+    if normalized.startswith(DEFAULT_ASSET_ROOT):
+        relative = normalized[len(DEFAULT_ASSET_ROOT):]
+        if relative and "/" not in relative:
+            return relative
+    return normalized
+
+
 def convert_asset_candidates(value: Any, task_label: Any) -> list[dict[str, str]]:
     """Validate and retain the model-facing asset candidates for one task."""
     if value is None:
@@ -366,20 +428,30 @@ def prepare_task(task: dict[str, Any], fallback_index: int | None = None) -> Pre
             raise ValueError(f"任务 {task_label!r} 的 data[{index}].description 必须是非空字符串。")
         if "value" not in item:
             raise ValueError(f"任务 {task_label!r} 的 data[{index}] 缺少 value。")
+        normalized_type = _data_type(item["value"], item.get("type"))
         normalized_item = copy.deepcopy(item)
         normalized_item["description"] = description.strip()
-        normalized_item["type"] = _data_type(item["value"], item.get("type"))
+        normalized_item["type"] = normalized_type
+        unit = DISPLAY_UNIT_SUFFIX_BY_BINDING_ID.get(item["id"])
+        _, value_was_formatted = _format_binding_value(item["id"], item["value"])
+        if value_was_formatted:
+            normalized_item["displayUnit"] = unit
         compile_data.append(normalized_item)
     _validate_unique_binding_records(compile_data, task_label)
-    prompt_data = [
-        {
+    prompt_data: list[dict[str, Any]] = []
+    for item in compile_data:
+        prompt_item = {
             "id": item["id"],
             "type": item["type"],
             "description": item.get("description", ""),
             "value": copy.deepcopy(item["value"]),
         }
-        for item in compile_data
-    ]
+        unit = item.get("displayUnit")
+        if unit:
+            prompt_item["description"] += (
+                f"（原值用于数值计算；文本展示自动追加单位“{unit}”，无需重复填写单位。）"
+            )
+        prompt_data.append(prompt_item)
 
     compile_actions = convert_actions(processed.get("actions", []), processed.get("id", fallback_index))
     prompt_actions = []
@@ -395,6 +467,10 @@ def prepare_task(task: dict[str, Any], fallback_index: int | None = None) -> Pre
         processed.get("assetCandidates", []),
         task_label,
     )
+    prompt_assets = [
+        {**item, "src": model_asset_src(item["src"])}
+        for item in prompt_assets
+    ]
 
     prompt_task = copy.deepcopy(processed)
     prompt_task["data"] = prompt_data

@@ -6,7 +6,9 @@ from ...ir.a2ui_nodes import A2UINode, ConversionContext
 from ...parser.jsx_ast import JSXElement
 from ...catalog.tokens import normalize_color
 from ...catalog.bindings import (
+    DataBinding,
     a2ui_expression,
+    boolean_text_expression,
     boolean_text_map_for,
     data_model_expression_reference,
     expression_string_literal,
@@ -69,6 +71,26 @@ def collect_segmented_text_conversion_errors(node: JSXElement) -> list[str]:
     return list(dict.fromkeys(errors))
 
 
+def _segmented_expression_fragments(
+    value: str,
+    binding: DataBinding | None,
+    value_map: dict[bool, str] | None,
+    where: str,
+) -> list[tuple[str, Any]]:
+    """Compose only expressions whose structure is known from binding metadata."""
+    if binding is not None:
+        if value_map is not None and value == boolean_text_expression(binding.path, value_map):
+            return [("conditional", (binding.path, value_map[True], value_map[False]))]
+        if binding.display_unit and binding.display_value != binding.value:
+            expected = a2ui_expression([
+                data_model_expression_reference(binding.path),
+                expression_string_literal(binding.display_unit),
+            ])
+            if value == expected:
+                return [("path", binding.path), ("literal", binding.display_unit)]
+    raise ValidationError(f"{where}.value produced an unsupported nested A2UI Expression")
+
+
 def segmented_text(
     node: JSXElement,
     ctx: ConversionContext,
@@ -127,15 +149,12 @@ def segmented_text(
             data_model_expression_reference(path)
             fragments.append(("path", path))
         elif isinstance(value, str) and value.strip().startswith("{{") and value.strip().endswith("}}"):
-            # item_prop only returns an Expression here for a complete Boolean
-            # dataValueMaps mapping. Keep its structure instead of embedding the
-            # complete ternary inside parentheses: the target device parser
-            # rejects a whole conditional grouped in this property position.
+            # Flatten known unit suffixes into path/literal fragments. Boolean
+            # mappings keep their conditional structure; neither expression
+            # may be nested as a wrapped string or grouped ternary.
             binding = ctx.bound_data(item, "value")
             value_map = boolean_text_map_for(item, "value")
-            if binding is None or value_map is None:
-                raise ValidationError(f"{where}.value produced an unsupported nested A2UI Expression")
-            fragments.append(("conditional", (binding.path, value_map[True], value_map[False])))
+            fragments.extend(_segmented_expression_fragments(value, binding, value_map, where))
         else:
             append_static(value, f"{where}.value")
 

@@ -99,7 +99,7 @@
 
     <Stack position="absolute" right={0} bottom={0} width={36} height={36}>
       <CircleButton
-        icon="resources/base/media/phone_fill.svg"
+        icon="phone_fill.svg"
         ariaLabel="拨打电话"
         appearance="card"
         actionId="contact.callPrimary"

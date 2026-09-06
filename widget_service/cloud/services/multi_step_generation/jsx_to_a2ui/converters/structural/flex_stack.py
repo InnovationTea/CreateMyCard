@@ -6,7 +6,7 @@ from ...catalog.appearances import get_appearance
 from ...exceptions import ValidationError
 from ...ir.a2ui_nodes import A2UINode, ConversionContext
 from ...parser.jsx_ast import JSXElement
-from ..base.layout import column, orient_child_flex_basis, row, stack
+from ..base.layout import adapt_flex_children, column, row, stack
 
 _BACKPLATE_PADDING = 6
 
@@ -143,6 +143,80 @@ def _child_content_extent(
     return extent
 
 
+def _edge_extent(value: object, first: str, second: str) -> float:
+    number = _number(value)
+    if number is not None:
+        return float(number * 2)
+    if not isinstance(value, dict):
+        return 0
+    return float(
+        (_number(value.get(first)) or 0)
+        + (_number(value.get(second)) or 0)
+    )
+
+
+def _minimum_node_height(node: A2UINode) -> float:
+    explicit = _number(node.styles.get("height")) or 0
+    constraints = node.styles.get("constraintSize")
+    minimum = (
+        _number(constraints.get("minHeight")) or 0
+        if isinstance(constraints, dict)
+        else 0
+    )
+    if not node.children:
+        return float(max(explicit, minimum))
+
+    child_heights = [
+        _minimum_node_height(child)
+        + _edge_extent(child.styles.get("margin"), "top", "bottom")
+        for child in node.children
+    ]
+    if node.component in {"Column", "List"}:
+        gap = _number(node.props.get("itemMargin", node.props.get("space"))) or 0
+        content = sum(child_heights) + gap * max(0, len(child_heights) - 1)
+    else:
+        content = max(child_heights, default=0)
+    content += _edge_extent(node.styles.get("padding"), "top", "bottom")
+    return float(max(explicit, minimum, content))
+
+
+def _intrinsic_row_alignment(
+    node: JSXElement,
+    source_children: list[JSXElement],
+    children: list[A2UINode],
+) -> str | None:
+    is_auto_height = (
+        node.props.get("height") is None
+        and node.props.get("basis") is None
+        and node.props.get("flex") != 1
+    )
+    uses_default_stretch = node.props.get("align") in {None, "stretch"}
+    has_full_height_child = any(
+        child.props.get("height") == "full" for child in source_children
+    )
+    if not (is_auto_height and uses_default_stretch and has_full_height_child):
+        return None
+
+    heights = [_minimum_node_height(child) for child in children]
+    tallest = max(heights, default=0)
+    shorter_alignments: set[str] = set()
+    for source, height in zip(source_children, heights, strict=True):
+        if height >= tallest:
+            continue
+        alignment = (
+            _justify(source.props.get("justify"))
+            if source.tag == "Stack"
+            else "start"
+        )
+        if alignment not in {None, "start", "center", "end"}:
+            return None
+        shorter_alignments.add(alignment or "start")
+    if len(shorter_alignments) > 1:
+        return None
+    alignment = next(iter(shorter_alignments), "start")
+    return {"start": "top", "center": "center", "end": "bottom"}[alignment]
+
+
 def _linear_stack(
     node: JSXElement,
     ctx: ConversionContext,
@@ -160,16 +234,36 @@ def _linear_stack(
         parent_content_width=_child_content_extent(node, ctx, "width"),
         parent_content_height=_child_content_extent(node, ctx, "height"),
         enters_backplate=node.props.get("surface") == "backplate",
+        intrinsic_width=ctx.intrinsic_width,
     )
-    children = [child_ctx.convert(child) for child in source_children]
-    orient_child_flex_basis(source_children, children, is_row=is_row)
-    if node.props.get("align") in {None, "stretch"}:
+    stretch = node.props.get("align") in {None, "stretch"}
+    children = [
+        child_ctx.for_flex_child(child, is_row=is_row, stretch=stretch).convert(child)
+        for child in source_children
+    ]
+    adapt_flex_children(source_children, children, is_row=is_row)
+    intrinsic_row_alignment = (
+        _intrinsic_row_alignment(node, source_children, children)
+        if is_row
+        else None
+    )
+    if intrinsic_row_alignment is not None:
+        for source, child in zip(source_children, children, strict=True):
+            if (
+                source.props.get("height") == "full"
+                and child.styles.get("height") == "matchParent"
+            ):
+                child.styles.pop("height")
+    elif stretch and (is_row or not ctx.intrinsic_width):
+        # Filling an auto-width Column creates a parent/child measurement
+        # dependency in A2UI. Keep that subtree content-sized instead.
         for child in children:
             child.styles.setdefault("height" if is_row else "width", "matchParent")
     layout_styles: dict[str, object] = {
         **_box_styles(node, ctx),
         **(styles or {}),
-        "alignItems": _align(node.props.get("align"), is_row=is_row)
+        "alignItems": intrinsic_row_alignment
+        or _align(node.props.get("align"), is_row=is_row)
         or ("top" if is_row else "start"),
         "justifyContent": _justify(node.props.get("justify")),
     }

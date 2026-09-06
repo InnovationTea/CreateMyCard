@@ -8,7 +8,7 @@ from ...catalog.tokens import normalize_color
 from ...exceptions import ValidationError
 from ...ir.a2ui_nodes import A2UINode, ConversionContext
 from ...parser.jsx_ast import JSXElement
-from ..base.layout import column, orient_child_flex_basis, row
+from ..base.layout import adapt_flex_children, column, row
 
 
 def _align(value: object, *, is_row: bool) -> str | None:
@@ -69,14 +69,18 @@ def convert_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         _content_extent(height, padding, "height"),
     )
     source_children = node.child_elements()
-    children = [inner.convert(child) for child in source_children]
+    direction = str(node.props.get("direction") or "column")
+    is_row = direction == "row"
+    stretch = node.props.get("align") in {None, "stretch"}
+    children = [
+        inner.for_flex_child(child, is_row=is_row, stretch=stretch).convert(child)
+        for child in source_children
+    ]
     if not children:
         raise ValidationError("<Card> must contain at least one component child")
     background = node.props.get("background")
-    direction = str(node.props.get("direction") or "column")
-    is_row = direction == "row"
-    orient_child_flex_basis(source_children, children, is_row=is_row)
-    if node.props.get("align") in {None, "stretch"}:
+    adapt_flex_children(source_children, children, is_row=is_row)
+    if stretch:
         for child in children:
             child.styles.setdefault("height" if is_row else "width", "matchParent")
     styles = {

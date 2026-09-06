@@ -105,7 +105,7 @@ async def validate_generated_card(
             if attempt >= infrastructure_retries:
                 if infrastructure_retries:
                     raise ValidatorInfrastructureError(f"JSX 校验基础设施连续 {attempt + 1} 次失败：{exc}") from exc
-                raise
+                raise exc
             await asyncio.sleep(min(0.5 * (2**attempt), 2.0))
 
     raise AssertionError("unreachable")

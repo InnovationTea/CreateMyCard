@@ -926,11 +926,6 @@
   align-items:flex-start;
   width:100%;
   gap:4px;}
-.title-area-icon{
-  display:block;
-  flex:0 0 20px;
-  width:20px;
-  height:20px;}
 .title-position-demo{
   box-sizing:border-box;
   width:276px;
@@ -1358,9 +1353,15 @@
 
 /* ── Badge ────────────────────────────────────────── */
 .badge{
+  box-sizing:border-box;
+  flex:0 0 auto;
+  align-self:flex-start;
+  width:max-content;
+  max-width:100%;
   height:16px;border-radius:8px;
   display:inline-flex;align-items:center;justify-content:center;
   padding:0 6px;
+  white-space:nowrap;
   font-size:.625rem;font-weight:500;
   --badge-color:var(--blue-400);
   background:color-mix(in srgb, var(--badge-color) 10%, transparent);
@@ -1614,8 +1615,6 @@
 .generated-card-frame .title-demo-row{position:relative;width:100%;min-height:12px;height:auto;gap:4px;align-items:flex-start;}
 .generated-card-frame .single-line-title-layout{
   box-sizing:border-box;width:100%;min-height:12px;height:auto;padding-right:0;}
-.generated-card-frame .title-demo-row[data-has-icon="true"] .single-line-title-layout,
-.generated-card-frame .title-demo-row[data-has-icon="true"] .double-line-title{padding-right:24px;}
 .generated-card-frame .single-line-title{
   font-size:12px;font-weight:400;line-height:18px;color:var(--card-secondary);}
 .generated-card-frame .ec-title{
@@ -1629,8 +1628,6 @@
   font-size:12px;font-weight:700;line-height:18px;color:var(--card-primary);}
 .generated-card-frame .double-line-title-sub{
   font-size:12px;font-weight:500;line-height:18px;color:var(--card-secondary);}
-.generated-card-frame .title-area-icon{
-  position:absolute;top:0;right:0;width:20px;height:20px;border-radius:4px;object-fit:var(--title-icon-fit,contain);}
 .generated-card-frame .ed-val{
   font-size:38px;font-weight:700;line-height:1;color:var(--card-primary);}
 .generated-card-frame .pl2 .ed-val{line-height:1;}
@@ -1677,6 +1674,8 @@
   box-sizing:border-box;display:inline-flex;width:136px;min-width:136px;height:36px;padding:0;border-radius:30px;flex:none;}
 .generated-card-frame [data-surface="backplate"] .pill-btn[data-appearance="card"]{
   width:120px;min-width:120px;max-width:120px;align-self:center;}
+.generated-card-frame[data-card-size="2x4"] [data-surface="backplate"] .pill-btn[data-appearance="card"]{
+  width:118px;min-width:118px;max-width:118px;border-radius:18px;}
 .generated-card-frame .circle-btn[data-appearance="card"]{
   --btn-bg:var(--card-circle-bg);
   --btn-bg-hover:var(--card-circle-bg);
@@ -1894,7 +1893,7 @@
     return Math.min(max, Math.max(min, number));
   }
 
-  const FORMATTED_PERCENTAGE_PATTERN = /^\s*\d+(?:\.\d+)?\s*%\s*$/;
+  const FORMATTED_PERCENTAGE_PATTERN = /^\s*\d+(?:\.\d+)?\s*[%％]\s*$/;
 
   function isFormattedPercentage(value) {
     return typeof value === "string" && FORMATTED_PERCENTAGE_PATTERN.test(value);
@@ -1922,6 +1921,11 @@
 
   function formatPercentage(value) {
     return `${visiblePercentage(value)}%`;
+  }
+
+  function formatProgressCircleText(value) {
+    if (isFormattedPercentage(value)) return value.trim();
+    return formatPercentage(progressPercentage(value));
   }
 
   function assetUrl(value) {
@@ -2141,36 +2145,21 @@
     return <Icon name={name} src={src} alt={alt} decorative={!alt} className={cx("weather-icon-demo-glyph", className)} {...rest} />;
   }
 
-  function TitleIcon({ icon, alt = "", fit = "contain", inverted = false }) {
-    if (!icon) return null;
+  function SingleLineTitle({ title, icon: _legacyIcon, iconAlt: _legacyIconAlt, iconFit: _legacyIconFit, invertIcon: _legacyInvertIcon, dataIds, className, ...rest }) {
     return (
-      <Icon
-        src={icon}
-        alt={alt}
-        decorative={!alt}
-        className="title-area-icon"
-        style={{ "--title-icon-fit": fit, objectFit: fit, filter: inverted ? "brightness(0) invert(1)" : undefined }}
-      />
-    );
-  }
-
-  function SingleLineTitle({ title, icon, iconAlt, iconFit = "contain", invertIcon = false, dataIds, className, ...rest }) {
-    return (
-      <div className={cx("title-demo-row", className)} data-has-icon={icon ? "true" : "false"} {...rest}>
+      <div className={cx("title-demo-row", className)} {...rest}>
         <div className="single-line-title-layout"><p className="single-line-title">{title}</p></div>
-        <TitleIcon icon={icon} alt={iconAlt} fit={iconFit} inverted={invertIcon} />
       </div>
     );
   }
 
-  function DoubleLineTitle({ title, secondaryInfo, icon, iconAlt, iconFit = "contain", invertIcon = false, dataIds, className, ...rest }) {
+  function DoubleLineTitle({ title, secondaryInfo, icon: _legacyIcon, iconAlt: _legacyIconAlt, iconFit: _legacyIconFit, invertIcon: _legacyInvertIcon, dataIds, className, ...rest }) {
     return (
-      <div className={cx("title-demo-row", className)} data-has-icon={icon ? "true" : "false"} {...rest}>
+      <div className={cx("title-demo-row", className)} {...rest}>
         <div className="double-line-title">
           <p className="double-line-title-main">{title}</p>
           <p className="double-line-title-sub">{secondaryInfo}</p>
         </div>
-        <TitleIcon icon={icon} alt={iconAlt} fit={iconFit} inverted={invertIcon} />
       </div>
     );
   }
@@ -2179,8 +2168,13 @@
     return <span className={cx("badge", className)} data-color={color} {...rest}>{children ?? value}</span>;
   }
 
-  const emphasizedUnitPattern = /\s*([+-]?\d+(?:\.\d+)?)\s*(次\/分|公里\/小时|千米\/小时|毫秒|分钟|小时|千卡|公里|千米|GB可用|TB|GB|MB|KB|mA|mV|A|V|W|秒|分|天|步|米|克|升|元|次|个|%|％)/g;
-  const emphasizedCelsiusPattern = /^\s*([+-]?\d+(?:\.\d+)?)\s*(?:℃|°\s*C)\s*$/i;
+  const emphasizedUnitPattern = new RegExp(
+    String.raw`\s*([+-]?\d+(?:\.\d+)?)\s*`
+      + String.raw`(次[/／]分钟|次[/／]分|bpm|公里/小时|千米/小时|毫秒|分钟|小时|千卡|公里|千米|`
+      + String.raw`GB可用|TB|GB|MB|KB|mA|mV|A|V|W|秒|分|天|步|米|克|升|元|次|个|级|%|％)`,
+    "gi",
+  );
+  const emphasizedCelsiusPattern = /^\s*([+-]?\d+(?:\.\d+)?)\s*(?:℃|°\s*C|摄氏度)\s*$/i;
 
   function normalizeEmphasizedItem(item) {
     if (typeof item.value !== "string") return [item];
@@ -2274,6 +2268,14 @@
     );
   }
 
+  function repeatsNumericUnit(value, unit) {
+    if (typeof value !== "string" || typeof unit !== "string") return false;
+    const normalizedValue = value.normalize("NFKC").trim().toLowerCase();
+    const normalizedUnit = unit.normalize("NFKC").trim().toLowerCase();
+    if (!normalizedUnit || !normalizedValue.endsWith(normalizedUnit)) return false;
+    return /^[+-]?[0-9]+(?:\.[0-9]+)?$/.test(normalizedValue.slice(0, -normalizedUnit.length).trim());
+  }
+
   function InfoBlock({ primaryText, secondaryText, unit, visual, dataIds, className, ...rest }) {
     const visualType = visual?.type;
     const visualIcon = visual?.icon;
@@ -2317,7 +2319,8 @@
         <div className="info-block-copy">
           <p className="info-block-primary">
             <span className="info-block-primary-value">{primaryText}</span>
-            {unit != null && <span className="info-block-unit">{unit}</span>}
+            {unit != null && !repeatsNumericUnit(primaryText, unit)
+              && <span className="info-block-unit">{unit}</span>}
           </p>
           <p className="info-block-secondary">{secondaryText}</p>
         </div>
@@ -2581,7 +2584,15 @@
     const threeLines = secondaryLabel != null;
     const resolvedTrack = appearance === "card" ? "var(--card-progress-track)" : (trackColor || "rgba(0,0,0,.10)");
     const resolvedBar = appearance === "card" ? "var(--card-progress-bar)" : (barColor || "#64bb5c");
-    const resolvedDisplayValue = displayValue ?? (isFormattedPercentage(value) ? value.trim() : formatPercentage(value));
+    const sharesPercentageBinding = dataIds?.value != null && dataIds.displayValue === dataIds.value;
+    let resolvedDisplayValue = displayValue;
+    if (resolvedDisplayValue == null || sharesPercentageBinding) {
+      if (isFormattedPercentage(value)) {
+        resolvedDisplayValue = value.trim();
+      } else {
+        resolvedDisplayValue = formatPercentage(value);
+      }
+    }
     return (
       <div className={cx("pc-single-combo", className)} role="img" aria-label={ariaLabel || `${label} ${resolvedDisplayValue}`} {...rest}>
         <ProgressRing value={progressPercentage(value)} size={52} strokeWidth={6} trackColor={resolvedTrack} barColor={resolvedBar} icon={icon} iconSize="single" visibleOverflow={appearance !== "card"} precision={appearance === "card" ? 1 : 0} appearance={appearance} />
@@ -2603,7 +2614,7 @@
     const iconSize = size === "md" ? "md" : "sm";
     const resolvedTrack = appearance === "card" ? "var(--card-progress-track)" : trackColor;
     const resolvedBar = appearance === "card" ? "var(--card-progress-bar)" : (barColor || "#64bb5c");
-    const resolvedExternalText = externalText ?? formatPercentage(value);
+    const resolvedExternalText = formatProgressCircleText(externalText ?? value);
     const resolvedProgressValue = progressPercentage(externalText ?? value);
     return (
       <div className={cx("pc-component", className)} data-density={density} role="img" aria-label={ariaLabel || resolvedExternalText} {...rest}>
@@ -2715,15 +2726,15 @@
     Stack: { optional: ["children", "direction", "gap", "align", "justify", "wrap", "flex", "basis", "width", "minWidth", "height", "minHeight", "mt", "mb", "ml", "mr", "position", "top", "right", "bottom", "left", "alignSelf", "surface"], surface: ["backplate"] },
     Grid: { optional: ["children", "columns", "rows", "gap", "rowGap", "columnGap", "flex", "basis", "width", "minWidth", "height", "minHeight", "align", "justify", "mt", "mb"] },
     Icon: { optional: ["name", "src", "size", "alt", "decorative"] },
-    SingleLineTitle: { required: ["title"], optional: ["icon", "iconAlt", "iconFit", "invertIcon", "dataIds"] },
-    DoubleLineTitle: { required: ["title", "secondaryInfo"], optional: ["icon", "iconAlt", "iconFit", "invertIcon", "dataIds"] },
+    SingleLineTitle: { required: ["title"], optional: ["dataIds"] },
+    DoubleLineTitle: { required: ["title", "secondaryInfo"], optional: ["dataIds"] },
     Badge: { required: ["value"], optional: ["dataIds"], color: ["blue", "orange", "green", "red", "purple", "cyan", "pink"] },
     EmphasizedData: { requiredOneOf: ["value", "items"], optional: ["unit", "dataIds"] },
     EmphasisText: { required: ["mainText", "secondaryText"], optional: ["dataIds"] },
     SecondaryBody: { requiredOneOf: ["body", "items"], optional: ["separator", "dataIds"] },
     Summary: { requiredOneOf: ["content", "items"], optional: ["separator", "dataIds"] },
     DataDisplay: { required: ["label", "value", "supportingText"], optional: ["dataIds"] },
-    InfoBlock: { required: ["primaryText", "secondaryText", "visual"], optional: ["unit", "dataIds"] },
+    InfoBlock: { required: ["primaryText", "secondaryText"], optional: ["unit", "visual", "dataIds"] },
     TopTextBottomValue: { required: ["items"], itemsMinLength: 2 },
     TableText: { required: ["items"], itemsMinLength: 2 },
     TextBlock: { required: ["items"], itemsMinLength: 2 },

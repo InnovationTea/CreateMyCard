@@ -402,7 +402,7 @@ class GenerationResources:
             files = (SKILL_DIR / "references" / "layouts" / f"layout_patterns_{resolved_size}.md",)
         else:
             if stage.path is None:
-                raise AssertionError
+                raise AssertionError()
             files = (stage.path,)
         return files
 

@@ -175,6 +175,7 @@ def _tool_result_summary(result: dict[str, Any]) -> dict[str, Any]:
         "repairLimit",
         "browserFailures",
         "remainingRepairs",
+        "layoutBudgetFailures",
         "repairStrategy",
         "repeatedFindings",
         "findings",
@@ -182,6 +183,57 @@ def _tool_result_summary(result: dict[str, Any]) -> dict[str, Any]:
         "validationMode",
     )
     return {field: result[field] for field in fields if field in result}
+
+
+def _is_static_layout_failure(result: dict[str, Any]) -> bool:
+    """Return whether a failed submission contains a proven layout-budget error."""
+    if result.get("ok"):
+        return False
+    if result.get("phase") == "layout_budget":
+        return True
+    findings = result.get("findings")
+    if not isinstance(findings, list):
+        return False
+    return any(
+        isinstance(item, dict)
+        and item.get("severity") == "error"
+        and item.get("code") == "layout-budget"
+        for item in findings
+    )
+
+
+def _static_layout_repair_feedback(
+    result: dict[str, Any],
+    consecutive_failures: int,
+) -> dict[str, Any]:
+    """Escalate repeated static layout repairs without changing validation severity."""
+    updated = {
+        **result,
+        "layoutBudgetFailures": consecutive_failures,
+        "repairStrategy": "targeted",
+    }
+    if consecutive_failures == 1:
+        return updated
+    if consecutive_failures == 2:
+        updated["repairStrategy"] = "rebudget"
+        updated["instruction"] = (
+            "这是连续第 2 次确定性布局预算失败。不要只修改当前报错中的一个数字；"
+            "请从每个受影响组件的共同父容器重新计算标题、正文、按钮的固定最小尺寸，"
+            "以及全部 gap、padding、top 和 bottom，并一次解决 findings 中的所有 ERROR。"
+            "WARNING 仍只作提示；必须保留用户明确要求的信息、动态 dataIds 和 actionId，"
+            "不得依赖 overflow、裁剪或压缩固定组件规避问题。"
+        )
+        return updated
+    updated["repairStrategy"] = "structural"
+    updated["instruction"] = (
+        f"这是连续第 {consecutive_failures} 次确定性布局预算失败，当前布局仍未闭合。"
+        "停止逐个调整 2–4vp 或只移动单个组件；请重新分配整个受影响内容区，"
+        "重新分组共同父容器，并在必要时更换 Layout Pattern。"
+        "如果原结构经过完整重算可以闭合，也可以保留，但必须一次满足所有固定最小尺寸"
+        "和规范间距。必须保留用户明确要求的信息、动态 dataIds 和 actionId；"
+        "不得通过删除必需内容、静态化动态值、overflow 或裁剪绕过校验。"
+    )
+    return updated
 
 
 def _tool_result_log_level(result: dict[str, Any]) -> str:
@@ -363,6 +415,7 @@ class JsxA2UIAgent:
         protocol_retries = 0
         repair_pending = False
         browser_failures = 0
+        static_layout_failure_streak = 0
         previous_layout_fingerprints: frozenset[str] = frozenset()
         structural_browser_repair = False
         browser_repair_baseline: CompiledSubmission | None = None
@@ -507,7 +560,7 @@ class JsxA2UIAgent:
                 setattr(exc, "loaded_resources", list(state.loaded_resources))
                 setattr(exc, "resource_reads", list(state.resource_reads))
                 setattr(exc, "validation_reports", validation_reports)
-                raise
+                raise exc
 
             forced_tool_choice_succeeded = request.get("tool_choice") != "auto"
             if is_deepseek_direct_submit and forced_tool_choice_succeeded:
@@ -790,6 +843,15 @@ class JsxA2UIAgent:
                                     f"{self.max_validation_repairs} 次修复机会；"
                                     f"最后错误：{feedback}"
                                 )
+            if function.name == "submit_card_jsx":
+                if _is_static_layout_failure(result):
+                    static_layout_failure_streak += 1
+                    result = _static_layout_repair_feedback(
+                        result,
+                        static_layout_failure_streak,
+                    )
+                else:
+                    static_layout_failure_streak = 0
             failed_submit = function.name == "submit_card_jsx" and not result.get("ok")
             non_retryable_failure = result.get("retryable") is False and terminal_error is None
             if failed_submit and non_retryable_failure:
@@ -887,6 +949,7 @@ class JsxA2UIAgent:
                     "jsx": state.submission.jsx,
                     "a2ui": state.submission.messages,
                     "decision": state.submission.decision,
+                    "compile_context": state.submission.compile_context,
                     "coverage": state.submission.coverage,
                     "unmet_requirements": state.submission.unmet_requirements,
                     "semantic_status": state.submission.semantic_status,

@@ -10,14 +10,17 @@ from typing import Any
 from ..exceptions import ValidationError
 from ..parser.jsx_ast import JSXElement
 from .display_values import normalize_display_value
+from .display_units import format_display_unit
 
 
 _STRING = frozenset({"string"})
 _NUMBER = frozenset({"integer", "number"})
 _SCALAR_TEXT = frozenset({"string", "integer", "number"})
 _BOOLEAN = frozenset({"boolean"})
-_FORMATTED_PERCENTAGE = re.compile(r"^\s*\d+(?:\.\d+)?\s*%\s*$")
+_FORMATTED_PERCENTAGE = re.compile(r"^\s*\d+(?:\.\d+)?\s*[%％]\s*$")
 EVENT_TIME_RANGE_SEPARATOR = " – "
+EMPHASIS_TEXT_MULTI_VALUE_SEPARATOR = " ｜ "
+INFO_BLOCK_MULTI_VALUE_SEPARATOR = " ｜ "
 
 # One executable source of truth for both literal Props and data bindings.
 # Booleans are intentionally excluded from visible text/value Props: Python's
@@ -88,18 +91,37 @@ def data_binding_ids(tag: str, prop: str, value: Any) -> tuple[str, ...] | None:
     """Normalize one display Prop's public dataIds value.
 
     Most display Props bind one ID. EventCard.time additionally accepts the
-    ordered pair [dtStartId, dtEndId] so one visible time range can remain
-    responsive to both source fields.
+    ordered pair [dtStartId, dtEndId]. EmphasisText.mainText,
+    EmphasisText.secondaryText and InfoBlock.secondaryText accept an ordered
+    array of two or more IDs so one visible line can remain responsive to
+    multiple short source fields.
     """
     if isinstance(value, str):
         return (value,)
-    if tag != "EventCard" or prop != "time":
+    if not isinstance(value, list):
         return None
-    if not isinstance(value, list) or len(value) != 2:
+    if tag == "EventCard" and prop == "time":
+        expected_length = len(value) == 2
+    elif tag == "EmphasisText" and prop in {"mainText", "secondaryText"}:
+        expected_length = len(value) >= 2
+    elif tag == "InfoBlock" and prop == "secondaryText":
+        expected_length = len(value) >= 2
+    else:
         return None
-    if not all(isinstance(item, str) for item in value):
+    if not expected_length or not all(isinstance(item, str) for item in value):
         return None
     return tuple(value)
+
+
+def data_binding_separator(tag: str, prop: str) -> str:
+    """Return the fixed visible separator for one supported multi-ID Prop."""
+    if tag == "EventCard" and prop == "time":
+        return EVENT_TIME_RANGE_SEPARATOR
+    if tag == "EmphasisText" and prop in {"mainText", "secondaryText"}:
+        return EMPHASIS_TEXT_MULTI_VALUE_SEPARATOR
+    if tag == "InfoBlock" and prop == "secondaryText":
+        return INFO_BLOCK_MULTI_VALUE_SEPARATOR
+    raise ValidationError(f"<{tag}> dataIds.{prop} does not support multiple data IDs")
 
 
 _VALUE_UNIT_COMPONENTS = frozenset(
@@ -138,6 +160,40 @@ def _is_path_binding(value: Any) -> bool:
         and isinstance(value.get("path"), str)
         and value["path"].startswith("/")
     )
+
+
+def _literal_is_explicit_in_query(literal: Any, user_query: str | None) -> bool:
+    """Return whether a bound display literal is explicitly stated by the user.
+
+    ``data[].value`` is a preview sample, while the query may carry the concrete
+    value for the current request.  Matching stays deliberately conservative:
+    strings must occur verbatim and numbers must occur as standalone tokens.
+    """
+
+    if not user_query or isinstance(literal, bool) or literal is None:
+        return False
+    if isinstance(literal, str):
+        value = literal.strip()
+        return bool(value) and value in user_query
+    if isinstance(literal, (int, float)):
+        token = re.escape(format(literal, ".15g"))
+        return re.search(rf"(?<![\d.]){token}(?![\d.])", user_query) is not None
+    return False
+
+
+def _literal_matches_binding_storage_type(literal: Any, binding: "DataBinding") -> bool:
+    """Avoid changing the underlying path type merely for display formatting."""
+
+    binding_type = binding.data_type or value_type(binding.value)
+    if binding_type == "string":
+        return isinstance(literal, str)
+    if binding_type == "integer":
+        return isinstance(literal, int) and not isinstance(literal, bool)
+    if binding_type == "number":
+        return isinstance(literal, (int, float)) and not isinstance(literal, bool)
+    if binding_type == "boolean":
+        return isinstance(literal, bool)
+    return type(literal) is type(binding.value)
 
 
 def _type_label(allowed: frozenset[str]) -> str:
@@ -520,6 +576,17 @@ class DataBinding:
     value: Any
     description: str = ""
     data_type: str | None = None
+    display_unit: str | None = None
+
+    @property
+    def display_value(self) -> Any:
+        return format_display_unit(self.value, self.display_unit)
+
+    def value_for_prop(self, tag: str, prop: str) -> Any:
+        allowed = BINDABLE_PROP_TYPES.get(tag, {}).get(prop)
+        if allowed == _NUMBER or (tag in {"ProgressCircleSingle", "Gauge"} and prop == "value"):
+            return self.value
+        return self.display_value
 
     @classmethod
     def from_payload(cls, value: Any, index: int) -> "DataBinding":
@@ -538,6 +605,10 @@ class DataBinding:
         if not isinstance(description, str):
             raise ValidationError(f"compile context data[{index}].description must be a string")
         data_type = value.get("type")
+        display_unit = value.get("displayUnit")
+        if display_unit is not None:
+            if not isinstance(display_unit, str) or not display_unit.strip():
+                raise ValidationError("displayUnit must be a non-empty string")
         if data_type is not None and (not isinstance(data_type, str) or not data_type.strip()):
             raise ValidationError(f"compile context data[{index}].type must be a non-empty string")
         return cls(
@@ -546,6 +617,7 @@ class DataBinding:
             value=_json_safe_copy(value["value"], f"compile context data[{index}].value"),
             description=description,
             data_type=data_type.strip().lower() if isinstance(data_type, str) else None,
+            display_unit=display_unit,
         )
 
     def payload(self) -> dict[str, Any]:
@@ -557,6 +629,8 @@ class DataBinding:
         }
         if self.data_type is not None:
             result["type"] = self.data_type
+        if self.display_unit is not None:
+            result["displayUnit"] = self.display_unit
         return result
 
 
@@ -662,14 +736,75 @@ class CompileContext:
         except KeyError as exc:
             raise ValidationError(f"unknown action id {action_id!r}") from exc
 
+    def override_data_binding_value(self, binding_id: str, value: Any) -> DataBinding:
+        """Use a query-grounded literal as this compilation's initial value."""
 
-def materialize_binding_literals(element: JSXElement, compile_context: CompileContext) -> None:
-    """Make bound samples authoritative in normalized JSX and A2UI output."""
+        binding = self.data_binding(binding_id)
+        overridden = DataBinding(
+            id=binding.id,
+            path=binding.path,
+            value=_json_safe_copy(value, f"query override for {binding.id!r}"),
+            description=binding.description,
+            data_type=binding.data_type,
+            display_unit=binding.display_unit,
+        )
+        self.data[binding_id] = overridden
+        self.data_model = {}
+        for item in self.data.values():
+            _set_pointer(self.data_model, item.path, item.value)
+        return overridden
+
+
+def _override_query_grounded_binding(
+    compile_context: CompileContext,
+    query_overrides: dict[str, Any],
+    binding: DataBinding,
+    value: Any,
+) -> DataBinding:
+    previous = query_overrides.get(binding.id)
+    has_previous = binding.id in query_overrides
+    same_value = has_previous and previous == value
+    if has_previous and not same_value:
+        raise ValidationError(
+            f"data binding {binding.id!r} cannot represent conflicting query-grounded literals "
+            f"{previous!r} and {value!r}"
+        )
+    query_overrides[binding.id] = copy.deepcopy(value)
+    return compile_context.override_data_binding_value(binding.id, value)
+
+
+def materialize_binding_literals(
+    element: JSXElement,
+    compile_context: CompileContext,
+    *,
+    user_query: str | None = None,
+    _query_overrides: dict[str, Any] | None = None,
+) -> None:
+    """Resolve bound literals for normalized JSX and A2UI initial data.
+
+    A literal explicitly present in ``user_query`` wins over a conflicting
+    preview sample for the same single-ID binding.  Other literals continue to
+    use the sample, preserving the existing anti-hallucination behavior.
+    """
+
+    is_root_call = _query_overrides is None
+    query_overrides = _query_overrides if _query_overrides is not None else {}
 
     allowed = BINDABLE_PROPS.get(element.tag, frozenset())
     _relocate_unambiguous_item_value_maps(element, allowed)
     data_ids = element.props.get("dataIds")
     if isinstance(data_ids, dict):
+        if (
+            element.tag == "ProgressCircleSingle"
+            and isinstance(data_ids.get("value"), str)
+            and data_ids.get("displayValue") == data_ids["value"]
+        ):
+            # One percentage source already drives both the ring and its
+            # visible text.  Removing the duplicate display binding lets the
+            # component append a static percent unit without changing the
+            # authoritative source value.
+            data_ids.pop("displayValue", None)
+            element.props.pop("displayValue", None)
         top_level = {name for name in allowed if not name.startswith("items[].")}
         for prop, binding_id in data_ids.items():
             binding_ids = data_binding_ids(element.tag, prop, binding_id)
@@ -680,7 +815,10 @@ def materialize_binding_literals(element: JSXElement, compile_context: CompileCo
                     bindings = [compile_context.data_binding(item) for item in binding_ids]
                 except ValidationError:
                     continue
-                element.props[prop] = EVENT_TIME_RANGE_SEPARATOR.join(str(binding.value) for binding in bindings)
+                separator = data_binding_separator(element.tag, prop)
+                element.props[prop] = separator.join(
+                    str(binding.value_for_prop(element.tag, prop)) for binding in bindings
+                )
                 continue
             try:
                 binding = compile_context.data_binding(binding_ids[0])
@@ -689,18 +827,32 @@ def materialize_binding_literals(element: JSXElement, compile_context: CompileCo
             value_map = boolean_text_map_for(element.props, prop)
             if value_map is not None and isinstance(binding.value, bool):
                 element.props[prop] = value_map[binding.value]
+            elif (
+                prop in element.props
+                and _literal_matches_binding_storage_type(element.props[prop], binding)
+                and _literal_is_explicit_in_query(element.props[prop], user_query)
+            ):
+                binding = _override_query_grounded_binding(
+                    compile_context,
+                    query_overrides,
+                    binding,
+                    element.props[prop],
+                )
+                element.props[prop] = copy.deepcopy(binding.value_for_prop(element.tag, prop))
             else:
-                element.props[prop] = copy.deepcopy(binding.value)
-        if element.tag == "EmphasizedData":
+                element.props[prop] = copy.deepcopy(binding.value_for_prop(element.tag, prop))
+        if element.tag in {"EmphasizedData", "ProgressLine2", "ProgressLine2WithData"}:
             value_id = data_ids.get("value")
             if isinstance(value_id, str):
                 try:
                     value_binding = compile_context.data_binding(value_id)
                 except ValidationError:
                     value_binding = None
-                has_derived_parts = value_binding is not None and isinstance(value_binding.value, str)
+                has_derived_parts = value_binding is not None and isinstance(value_binding.display_value, str)
+                if value_binding is not None and value_binding.display_unit and "unit" in data_ids:
+                    element.props["value"] = copy.deepcopy(value_binding.value)
                 if has_derived_parts:
-                    has_derived_parts = normalize_display_value(value_binding.value).mode == "parts"
+                    has_derived_parts = normalize_display_value(value_binding.display_value).mode == "parts"
                 if has_derived_parts and "unit" not in data_ids:
                     element.props.pop("unit", None)
 
@@ -723,18 +875,32 @@ def materialize_binding_literals(element: JSXElement, compile_context: CompileCo
                 value_map = boolean_text_map_for(item, prop)
                 if value_map is not None and isinstance(binding.value, bool):
                     item[prop] = value_map[binding.value]
+                elif (
+                    prop in item
+                    and _literal_matches_binding_storage_type(item[prop], binding)
+                    and _literal_is_explicit_in_query(item[prop], user_query)
+                ):
+                    binding = _override_query_grounded_binding(
+                        compile_context,
+                        query_overrides,
+                        binding,
+                        item[prop],
+                    )
+                    item[prop] = copy.deepcopy(binding.value_for_prop(element.tag, f"items[].{prop}"))
                 else:
-                    item[prop] = copy.deepcopy(binding.value)
-            if element.tag == "EmphasizedData":
+                    item[prop] = copy.deepcopy(binding.value_for_prop(element.tag, f"items[].{prop}"))
+            if element.tag in {"EmphasizedData", "ProgressLine2", "ProgressLine2WithData"}:
                 value_id = item_ids.get("value")
                 if isinstance(value_id, str):
                     try:
                         value_binding = compile_context.data_binding(value_id)
                     except ValidationError:
                         value_binding = None
-                    has_derived_parts = value_binding is not None and isinstance(value_binding.value, str)
+                    has_derived_parts = value_binding is not None and isinstance(value_binding.display_value, str)
+                    if value_binding is not None and value_binding.display_unit and "unit" in item_ids:
+                        item["value"] = copy.deepcopy(value_binding.value)
                     if has_derived_parts:
-                        has_derived_parts = normalize_display_value(value_binding.value).mode == "parts"
+                        has_derived_parts = normalize_display_value(value_binding.display_value).mode == "parts"
                     if has_derived_parts and "unit" not in item_ids:
                         item.pop("unit", None)
 
@@ -769,4 +935,19 @@ def materialize_binding_literals(element: JSXElement, compile_context: CompileCo
             element.props["dataIds"] = {"value": binding_id}
 
     for child in element.child_elements():
-        materialize_binding_literals(child, compile_context)
+        materialize_binding_literals(
+            child,
+            compile_context,
+            user_query=user_query,
+            _query_overrides=query_overrides,
+        )
+
+    if is_root_call and query_overrides:
+        # A query-grounded value may be discovered after an earlier use of the
+        # same binding. Reapply the final context so every occurrence has one
+        # canonical initial value, independent of JSX traversal order.
+        materialize_binding_literals(
+            element,
+            compile_context,
+            _query_overrides=query_overrides,
+        )

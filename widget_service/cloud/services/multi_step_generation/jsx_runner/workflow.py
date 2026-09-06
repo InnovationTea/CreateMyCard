@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import math
 import re
+from contextvars import ContextVar
 from dataclasses import dataclass, field, replace
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -49,11 +51,22 @@ else:  # Support top-level package imports.
 
 from .card_sizes import CARD_SIZE_DIMENSIONS, card_dimensions, task_card_size
 from .config import RESOURCE_STAGES
+from .layout_rules import (
+    TOP_LEVEL_2X4_TYPES,
+    declared_layout_errors,
+    fixed_grid_errors,
+    fixed_slot_dimension_errors,
+    fixed_slot_kind,
+    preferred_axis_size,
+)
 from .resources import (
     GenerationResources,
     generatable_contracts,
     iter_asset_values,
 )
+
+
+_BUDGET_CARD_SIZE: ContextVar[str | None] = ContextVar("layout_budget_card_size", default=None)
 
 
 @dataclass(slots=True)
@@ -62,6 +75,7 @@ class CompiledSubmission:
     jsx: str
     messages: list[dict[str, Any]]
     decision: dict[str, Any]
+    compile_context: dict[str, Any] = field(default_factory=dict)
     coverage: list[dict[str, Any]] = field(default_factory=list)
     unmet_requirements: list[str] = field(default_factory=list)
     semantic_status: str = "completed"
@@ -118,7 +132,8 @@ def browser_repair_preservation_findings(
         return errors, warnings
 
     try:
-        context = CompileContext.from_payload(compile_context)
+        effective_context = baseline.compile_context or compile_context
+        context = CompileContext.from_payload(effective_context)
         cards = extract_card_functions(candidate.source)
         root = cards[next(iter(cards))]
     except ConversionError:
@@ -304,7 +319,7 @@ def _canonical_layout_pattern(value: object) -> str | None:
     if not isinstance(value, str) or not value.strip():
         return None
     lowered = value.lower()
-    match = re.search(r"type\s*[-_ ]?\s*(\d+)(?:\s*[-_ ]\s*([abc]))?", lowered)
+    match = re.search(r"type\s*[-_ ]?\s*(\d+)(?:\s*[-_ ]\s*([abcr])\b)?", lowered)
     if not match:
         return None
     number, suffix = match.groups()
@@ -324,6 +339,10 @@ def _validate_layout_decision(
     pattern = _canonical_layout_pattern(decision.get("layoutPattern"))
     if pattern is None:
         errors.append("decision.layoutPattern must name a documented Type layout")
+    if (expected_size or root.props.get("size")) == "2x4":
+        if pattern is not None and pattern not in TOP_LEVEL_2X4_TYPES:
+            errors.append("2x4 top-level Type must be 12, 13, 14, 15, 15-R or 17")
+        errors.extend(declared_layout_errors(root, pattern))
     appearance = root.props.get("appearance")
     if appearance == "type0-gradient" and pattern != "0":
         errors.append("Card appearance='type0-gradient' may only be used with layout Type 0")
@@ -351,11 +370,10 @@ def _validate_assets(root: JSXElement, prompt_task: dict[str, Any] | None) -> No
         for source in iter_asset_values(node.props):
             normalized = source.replace("\\", "/")
             if allowed_sources is not None and normalized not in allowed_sources:
-                errors.append(f"<{node.tag}> resource {source!r} is not an exact src from input assetCandidates")
-            if node.tag in {"SingleLineTitle", "DoubleLineTitle"}:
-                icon_alt = node.props.get("iconAlt")
-                if not isinstance(icon_alt, str) or not icon_alt.strip():
-                    errors.append(f"<{node.tag}> with an Icon must declare a non-empty iconAlt")
+                errors.append(
+                    f"<{node.tag}> resource {source!r} is not an exact model-facing src "
+                    "from input assetCandidates"
+                )
     if errors:
         raise ValidationError("; ".join(dict.fromkeys(errors)))
 
@@ -416,7 +434,7 @@ def _validate_layout_values(root: JSXElement) -> None:
         children = node.child_elements()
         for index, child in enumerate(children):
             if child.tag == "CardButton":
-                width, height = _card_button_slot_dimensions(node, index)
+                width, height = _card_button_slot_dimensions(node, index, parent)
                 if width is not None and height is not None and width < height:
                     issues.append(
                         "<CardButton> parent slot must be at least as wide as it is tall; "
@@ -448,6 +466,20 @@ _INTRINSIC_HEIGHTS = {
     "TopTextBottomValue": 68,
     "TextBlock": 48,
 }
+
+# Keep tiny sub-pixel/rounding differences advisory. This matches the browser
+# validator's visible-overflow tolerance while still rejecting a flex slot that
+# is provably too small for a component's static lower bound.
+_LAYOUT_VISUAL_TOLERANCE = 1.5
+
+_PROGRESS_CIRCLE_SINGLE_RING_WIDTH = 52
+_PROGRESS_CIRCLE_SINGLE_CONTENT_GAP = 8
+_PROGRESS_CIRCLE_SINGLE_MIN_TEXT_SLOT = 14
+_PROGRESS_CIRCLE_SINGLE_MIN_WIDTH = (
+    _PROGRESS_CIRCLE_SINGLE_RING_WIDTH
+    + _PROGRESS_CIRCLE_SINGLE_CONTENT_GAP
+    + _PROGRESS_CIRCLE_SINGLE_MIN_TEXT_SLOT
+)
 
 
 def _number(value: object) -> float | None:
@@ -522,6 +554,7 @@ def _validate_action_slot_compatibility(
 
     if size == "2x4":
         for container in _walk(root):
+            issues.extend(fixed_slot_dimension_errors(container))
             children = container.child_elements()
             direct_card_buttons = [child for child in children if child.tag == "CardButton"]
             if container.tag == "Card" and direct_card_buttons:
@@ -535,19 +568,20 @@ def _validate_action_slot_compatibility(
                     "each CardButton in a Stack must be the only child of its own "
                     "explicit or flex-allocated slot; Grid cells are already slots"
                 )
-            slot_count = sum(is_card_button_slot(child) for child in children)
-            if slot_count < 2:
-                continue
             if container.tag == "Grid" and (_grid_column_count(container) or 1) > 1:
-                columns = _grid_column_count(container)
-                if columns != 2 or slot_count not in {3, 4}:
-                    issues.append(
-                        "a multi-column CardButton Grid must be the documented Type 9 "
-                        "layout with two columns and three or four actions"
-                    )
-            elif container.tag in {"Card", "Stack"} and container.props.get("direction", "column") == "row":
+                if any(fixed_slot_kind(child) is not None for child in children):
+                    issues.extend(fixed_grid_errors(children, _grid_column_count(container)))
+                    for axis in ("rowGap", "columnGap"):
+                        gap = _number(container.props.get(axis, container.props.get("gap", 0)))
+                        if gap is not None and gap != 8:
+                            issues.append(f"Type 14 {axis} must be 8vp; found {_vp(gap)}vp")
+            elif (
+                sum(is_card_button_slot(child) for child in children) >= 2
+                and container.tag in {"Card", "Stack"}
+                and container.props.get("direction", "column") == "row"
+            ):
                 issues.append(
-                    "outside the documented Type 9 Grid, 2x4 CardButton actions must "
+                    "outside the documented Type 14 Grid, 2x4 CardButton actions must "
                     "be stacked vertically; a single horizontal row is not allowed"
                 )
     for node in _walk(root):
@@ -635,11 +669,12 @@ def _grid_column_count(node: JSXElement) -> int | None:
 def _card_button_slot_dimensions(
     parent: JSXElement,
     child_index: int,
+    ancestor: JSXElement | None = None,
 ) -> tuple[float | None, float | None]:
     """Return only statically provable CardButton parent-slot dimensions."""
     if parent.tag == "Stack":
-        width = _number(parent.props.get("width"))
-        height = _explicit_height(parent)
+        width = _number(preferred_axis_size(parent, ancestor, "width")) if ancestor else _number(parent.props.get("width"))
+        height = _number(preferred_axis_size(parent, ancestor, "height")) if ancestor else _explicit_height(parent)
         return width, height
     if parent.tag != "Grid":
         return None, None
@@ -677,7 +712,7 @@ def _minimum_height(node: JSXElement) -> float:
     if node.tag == "Icon":
         return _height_lower_bound(node, _number(node.props.get("size")) or 0)
     if node.tag == "SingleLineTitle":
-        return _height_lower_bound(node, 20 if node.props.get("icon") is not None else 18)
+        return _height_lower_bound(node, 18)
     if node.tag == "DoubleLineTitle":
         return _height_lower_bound(node, 40)
     if node.tag == "Summary":
@@ -771,6 +806,38 @@ def _minimum_height(node: JSXElement) -> float:
     )
 
 
+def _non_shrinking_auto_height(node: JSXElement) -> float:
+    """Return the deterministic auto-size reservation of a flex: 0 child."""
+    explicit = _explicit_height(node)
+    if explicit is not None:
+        return _height_lower_bound(node, explicit)
+    if node.tag == "TextBlock":
+        # The runtime declares flex-basis: 64px, min-height: 48px. A direct
+        # flex: 0 wrapper uses the 64px auto size and cannot shrink to 48px.
+        return _height_lower_bound(node, 64)
+    if node.tag != "Stack":
+        return _minimum_height(node)
+    children = [
+        child
+        for child in node.child_elements()
+        if child.props.get("position") != "absolute"
+    ]
+    if not children:
+        return _minimum_height(node)
+    heights = [
+        _non_shrinking_auto_height(child) + _margin_extent(child, "mt", "mb")
+        for child in children
+    ]
+    if node.props.get("direction", "column") == "row":
+        content_height = max(heights, default=0)
+    else:
+        content_height = sum(heights) + _gap(node) * max(0, len(heights) - 1)
+    return _height_lower_bound(
+        node,
+        content_height + _vertical_padding(node),
+    )
+
+
 def _vp(value: float) -> str:
     numeric = float(value)
     return str(int(numeric)) if numeric.is_integer() else f"{numeric:g}"
@@ -811,12 +878,15 @@ def _absolute_axis_interval(
     start_prop: str,
     end_prop: str,
     size_prop: str,
+    fallback_size: float | None = None,
 ) -> tuple[float, float] | None:
     start = _number(node.props.get(start_prop))
     end = _number(node.props.get(end_prop))
     size = _number(node.props.get(size_prop))
     if size is None and start is not None and end is not None:
         size = max(0, available - start - end)
+    elif size is None and (start is not None or end is not None):
+        size = fallback_size
     result: tuple[float, float] | None = None
     if size is not None:
         if start is not None:
@@ -830,12 +900,163 @@ def _absolute_axis_interval(
     return result
 
 
+def _axis_overlap(first: tuple[float, float], second: tuple[float, float]) -> float:
+    return min(first[1], second[1]) - max(first[0], second[0])
+
+
+def _collect_absolute_rectangles(
+    children: list[JSXElement],
+    available_width: float,
+    available_height: float,
+) -> tuple[
+    list[tuple[int, JSXElement, tuple[float, float], tuple[float, float]]],
+    list[tuple[int, tuple[float, float], tuple[float, float]]],
+]:
+    rectangles: list[tuple[int, JSXElement, tuple[float, float], tuple[float, float]]] = []
+    estimated: list[tuple[int, tuple[float, float], tuple[float, float]]] = []
+    for index, child in enumerate(children, start=1):
+        horizontal = _absolute_axis_interval(
+            child,
+            available_width,
+            start_prop="left",
+            end_prop="right",
+            size_prop="width",
+        )
+        if horizontal is None:
+            continue
+        vertical = _absolute_axis_interval(
+            child,
+            available_height,
+            start_prop="top",
+            end_prop="bottom",
+            size_prop="height",
+            fallback_size=_minimum_height(child),
+        )
+        if vertical is not None:
+            rectangles.append((index, child, horizontal, vertical))
+        estimated_height = _estimated_auto_height(
+            child,
+            horizontal[1] - horizontal[0],
+        )
+        estimated_vertical = _absolute_axis_interval(
+            child,
+            available_height,
+            start_prop="top",
+            end_prop="bottom",
+            size_prop="height",
+            fallback_size=estimated_height,
+        )
+        if estimated_vertical is not None:
+            estimated.append((index, horizontal, estimated_vertical))
+    return rectangles, estimated
+
+
+def _validate_proven_absolute_overlaps(
+    node: JSXElement,
+    path: str,
+    rectangles: list[tuple[int, JSXElement, tuple[float, float], tuple[float, float]]],
+    issues: list[str],
+) -> set[tuple[int, int]]:
+    overlaps: set[tuple[int, int]] = set()
+    for left_index, (first_index, first, first_x, first_y) in enumerate(rectangles):
+        for second_number, second, second_x, second_y in rectangles[left_index + 1:]:
+            if _axis_overlap(first_x, second_x) <= 1e-9:
+                continue
+            vertical_overlap = _axis_overlap(first_y, second_y)
+            if vertical_overlap > 1e-9:
+                overlaps.add((first_index, second_number))
+                issues.append(
+                    f"{path}/<Stack>[{first_index}] overlaps "
+                    f"{path}/<Stack>[{second_number}] by {_vp(vertical_overlap)}vp vertically"
+                )
+                continue
+            first_is_button = _contains_component(first, "PillButton")
+            second_is_button = _contains_component(second, "PillButton")
+            backplate_button_gap = (
+                node.props.get("surface") == "backplate"
+                and first_is_button != second_is_button
+            )
+            opposing_edge_gap = _uses_opposing_vertical_edges(first, second)
+            if not backplate_button_gap and not opposing_edge_gap:
+                continue
+            gap = max(second_y[0] - first_y[1], first_y[0] - second_y[1])
+            if gap < 8 - 1e-9:
+                if backplate_button_gap:
+                    issues.append(
+                        f"{path} upper content and backplate PillButton require an 8vp gap; "
+                        f"found {_vp(gap)}vp"
+                    )
+                else:
+                    issues.append(
+                        f"{path} opposing absolute content regions require an 8vp gap; "
+                        f"found {_vp(gap)}vp"
+                    )
+    return overlaps
+
+
+def _uses_opposing_vertical_edges(first: JSXElement, second: JSXElement) -> bool:
+    first_uses_top = first.props.get("top") is not None
+    first_uses_bottom = first.props.get("bottom") is not None
+    second_uses_top = second.props.get("top") is not None
+    second_uses_bottom = second.props.get("bottom") is not None
+    first_from_top = first_uses_top and not first_uses_bottom
+    first_from_bottom = first_uses_bottom and not first_uses_top
+    second_from_top = second_uses_top and not second_uses_bottom
+    second_from_bottom = second_uses_bottom and not second_uses_top
+    return (first_from_top and second_from_bottom) or (
+        first_from_bottom and second_from_top
+    )
+
+
+def _estimated_flow_height_risk_message(
+    path: str,
+    required: float,
+    available: float,
+) -> str:
+    return (
+        f"{path} may need about {_vp(required)}vp vertically after text wrapping "
+        f"while only {_vp(available)}vp is available; text height is font-dependent, "
+        "so this estimate is advisory only"
+    )
+
+
+def _validate_estimated_absolute_overlaps(
+    path: str,
+    rectangles: list[tuple[int, tuple[float, float], tuple[float, float]]],
+    proven_overlaps: set[tuple[int, int]],
+    advisory_issues: list[str] | None,
+) -> None:
+    if advisory_issues is None:
+        return
+    for left_index, first_entry in enumerate(rectangles):
+        first_index, first_x, first_y = first_entry
+        for second_entry in rectangles[left_index + 1:]:
+            second_number, second_x, second_y = second_entry
+            if (first_index, second_number) in proven_overlaps:
+                continue
+            if _axis_overlap(first_x, second_x) <= 1e-9:
+                continue
+            vertical_overlap = _axis_overlap(first_y, second_y)
+            if vertical_overlap <= 1e-9:
+                continue
+            message = (
+                f"{path}/<Stack>[{first_index}] and {path}/<Stack>[{second_number}] "
+                f"have about {_vp(vertical_overlap)}vp vertical overlap after likely "
+                "text wrapping"
+            )
+            advisory_issues.append(
+                message
+                + "; text height is font-dependent, so the estimate is advisory only"
+            )
+
+
 def _validate_absolute_sibling_geometry(
     node: JSXElement,
     available_width: float | None,
     available_height: float,
     path: str,
     issues: list[str],
+    advisory_issues: list[str] | None,
 ) -> None:
     absolute_children = [
         child for child in node.child_elements() if child.props.get("position") == "absolute"
@@ -850,48 +1071,23 @@ def _validate_absolute_sibling_geometry(
             )
     if available_width is None:
         return
-    rectangles: list[tuple[int, JSXElement, tuple[float, float], tuple[float, float]]] = []
-    for index, child in enumerate(absolute_children, start=1):
-        horizontal = _absolute_axis_interval(
-            child,
-            available_width,
-            start_prop="left",
-            end_prop="right",
-            size_prop="width",
-        )
-        vertical = _absolute_axis_interval(
-            child,
-            available_height,
-            start_prop="top",
-            end_prop="bottom",
-            size_prop="height",
-        )
-        if horizontal is not None and vertical is not None:
-            rectangles.append((index, child, horizontal, vertical))
-    for left_index, (first_index, first, first_x, first_y) in enumerate(rectangles):
-        for _, (second_number, second, second_x, second_y) in enumerate(
-            rectangles[left_index + 1:], start=left_index + 1
-        ):
-            horizontal_overlap = min(first_x[1], second_x[1]) - max(first_x[0], second_x[0])
-            if horizontal_overlap <= 1e-9:
-                continue
-            vertical_overlap = min(first_y[1], second_y[1]) - max(first_y[0], second_y[0])
-            if vertical_overlap > 1e-9:
-                issues.append(
-                    f"{path}/<Stack>[{first_index}] overlaps "
-                    f"{path}/<Stack>[{second_number}] by {_vp(vertical_overlap)}vp vertically"
-                )
-                continue
-            first_is_button = _contains_component(first, "PillButton")
-            second_is_button = _contains_component(second, "PillButton")
-            if node.props.get("surface") != "backplate" or first_is_button == second_is_button:
-                continue
-            gap = max(second_y[0] - first_y[1], first_y[0] - second_y[1])
-            if gap < 8 - 1e-9:
-                issues.append(
-                    f"{path} upper content and backplate PillButton require an 8vp gap; "
-                    f"found {_vp(gap)}vp"
-                )
+    proven, estimated = _collect_absolute_rectangles(
+        absolute_children,
+        available_width,
+        available_height,
+    )
+    proven_overlaps = _validate_proven_absolute_overlaps(
+        node,
+        path,
+        proven,
+        issues,
+    )
+    _validate_estimated_absolute_overlaps(
+        path,
+        estimated,
+        proven_overlaps,
+        advisory_issues,
+    )
 
 
 def _validate_relative_stack(
@@ -965,6 +1161,7 @@ def _validate_relative_stack(
         available,
         path,
         issues,
+        advisory_issues,
     )
 
 
@@ -1149,6 +1346,8 @@ def _validate_vertical_container(
             reservation = inner
         elif basis is not None:
             reservation = max(basis, _number(child.props.get("minHeight")) or 0)
+        elif _number(child.props.get("flex")) == 0:
+            reservation = _non_shrinking_auto_height(child)
         else:
             reservation = _minimum_height(child)
         reservations[index] = reservation
@@ -1161,8 +1360,41 @@ def _validate_vertical_container(
     if not parent_can_close:
         issues.append(_vertical_overflow_message(path, minimum_total, inner))
 
+    if (
+        parent_can_close
+        and node.tag == "Stack"
+        and len(children) >= 2
+        and inner_width is not None
+        and advisory_issues is not None
+    ):
+        estimated_total = gap_total + sum(
+            _estimated_auto_height(
+                child,
+                _number(child.props.get("width")) or inner_width,
+            )
+            + _margin_extent(child, "mt", "mb")
+            for child in children
+        )
+        if estimated_total > inner + _LAYOUT_VISUAL_TOLERANCE:
+            advisory_issues.append(
+                _estimated_flow_height_risk_message(
+                    path,
+                    estimated_total,
+                    inner,
+                )
+            )
+
     remaining = max(0, inner - fixed_total)
     total_weight = sum(weight for _, _, weight in flex_children)
+    deterministic_flex_allocation = (
+        bool(flex_children)
+        and (node.tag == "Card" or _explicit_height(node) is not None)
+        and all(
+            _number(child.props.get("minHeight")) == 0
+            and child.props.get("height") is None
+            for _, child, _ in flex_children
+        )
+    )
     for index, child in enumerate(children, start=1):
         if child.tag not in {"Stack", "Grid"}:
             continue
@@ -1170,18 +1402,28 @@ def _validate_vertical_container(
         if flex_entry is not None:
             child_available = remaining * flex_entry[2] / total_weight
             child_minimum = _minimum_height(child)
-            if (
-                parent_can_close
-                and child_minimum > child_available + 1e-9
-                and advisory_issues is not None
-            ):
-                advisory_issues.append(
-                    _flex_vertical_risk_message(
-                        f"{path}/<{child.tag}>[{index}]",
-                        child_minimum,
-                        child_available,
+            child_path = f"{path}/<{child.tag}>[{index}]"
+            if parent_can_close and child_minimum > child_available + 1e-9:
+                shortfall = child_minimum - child_available
+                if (
+                    deterministic_flex_allocation
+                    and shortfall > _LAYOUT_VISUAL_TOLERANCE
+                ):
+                    issues.append(
+                        _vertical_overflow_message(
+                            child_path,
+                            child_minimum,
+                            child_available,
+                        )
                     )
-                )
+                elif advisory_issues is not None:
+                    advisory_issues.append(
+                        _flex_vertical_risk_message(
+                            child_path,
+                            child_minimum,
+                            child_available,
+                        )
+                    )
             if parent_can_close:
                 child_available = max(child_available, child_minimum)
         else:
@@ -1199,10 +1441,31 @@ def _validate_vertical_container(
         )
 
 
+def _budget_tree_with_resolved_basis(root: JSXElement) -> JSXElement:
+    """Use a private tree so budgets never read a size overridden by basis."""
+    def visit(node: JSXElement, parent: JSXElement | None) -> JSXElement:
+        props = node.props
+        if (
+            parent is not None and parent.tag in {"Card", "Stack"}
+            and node.props.get("position") != "absolute"
+            and _numeric_basis(node) is not None
+        ):
+            axis = "width" if parent.props.get("direction", "column") == "row" else "height"
+            if axis in props:
+                props = {**props, axis: preferred_axis_size(node, parent, axis)}
+        return replace(node, props=props, children=[
+            visit(child, node) if isinstance(child, JSXElement) else child
+            for child in node.children
+        ])
+
+    return visit(root, None)
+
+
 def _validate_layout_budget(
     root: JSXElement,
     advisory_issues: list[str] | None = None,
 ) -> None:
+    root = _budget_tree_with_resolved_basis(root)
     dimensions = card_dimensions(root.props.get("size"))
     if dimensions is None:
         return
@@ -1210,14 +1473,18 @@ def _validate_layout_budget(
     width = _number(dimensions[0])
     if height is not None:
         issues: list[str] = []
-        _validate_vertical_container(
-            root,
-            height,
-            "<Card>",
-            issues,
-            available_width=width,
-            advisory_issues=advisory_issues,
-        )
+        token = _BUDGET_CARD_SIZE.set(root.props.get("size"))
+        try:
+            _validate_vertical_container(
+                root,
+                height,
+                "<Card>",
+                issues,
+                available_width=width,
+                advisory_issues=advisory_issues,
+            )
+        finally:
+            _BUDGET_CARD_SIZE.reset(token)
         if issues:
             raise LayoutBudgetError("; ".join(dict.fromkeys(issues)))
 
@@ -1266,7 +1533,7 @@ def _minimum_width(
     )
     intrinsic = {
         "CircleButton": 36,
-        "PillButton": 120 if inside_backplate else 136,
+        "PillButton": (118 if _BUDGET_CARD_SIZE.get() == "2x4" else 120) if inside_backplate else 136,
         "NumericRatio": 20,
         "InfoBlock": 136,
         "TopTextBottomValue": 296,
@@ -1276,10 +1543,9 @@ def _minimum_width(
         count = len(items) if isinstance(items, list) else 0
         intrinsic = count * 64 + max(0, count - 1) * 8
     if node.tag == "ProgressCircleSingle":
-        # Only the 52vp ring and the 8vp content gap are renderer-independent.
-        # The no-shrink text group is real, but its exact width is font-dependent
-        # and is therefore reported separately as an advisory risk.
-        intrinsic = 60
+        # The required label needs one contract-defined 14vp text slot in
+        # addition to the fixed ring and gap. Longer text remains advisory.
+        intrinsic = _PROGRESS_CIRCLE_SINGLE_MIN_WIDTH
     if node.tag == "ProgressCircle":
         intrinsic = 96 if node.props.get("size", "sm") == "md" else 44
     own_minimum = max(declared, intrinsic)
@@ -1345,6 +1611,109 @@ def _estimated_text_width(value: Any, font_size: float) -> float:
     return units * font_size
 
 
+def _segmented_text(node: JSXElement, content_prop: str) -> str:
+    items = node.props.get("items")
+    if not isinstance(items, list):
+        value = node.props.get(content_prop)
+        return str(value) if value is not None else ""
+    separator = node.props.get("separator", " ｜ ")
+    separator_text = separator if isinstance(separator, str) else " ｜ "
+    parts: list[str] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        label = item.get("label")
+        value = item.get("value")
+        parts.append(
+            (str(label) if label is not None else "")
+            + (str(value) if value is not None else "")
+        )
+    return separator_text.join(parts)
+
+
+def _estimated_wrapped_lines(value: Any, font_size: float, width: float) -> int:
+    if width <= 0 or value is None:
+        return 1
+    estimated_width = _estimated_text_width(value, font_size)
+    return max(1, math.ceil(estimated_width / width))
+
+
+def _estimated_text_component_height(
+    node: JSXElement,
+    available_width: float,
+) -> float | None:
+    if node.tag == "EmphasizedData":
+        required_width = _emphasized_data_width(node)
+        lines = (
+            max(1, math.ceil(required_width / available_width))
+            if available_width > 0
+            else 1
+        )
+        return _height_lower_bound(node, lines * 38)
+    if node.tag == "EventCard":
+        content_width = max(1, available_width - 15)
+        lines = _estimated_wrapped_lines(
+            node.props.get("title"),
+            14,
+            content_width,
+        )
+        lines = min(2, lines)
+        height = lines * 18 + 4 + 16
+        if node.props.get("location") is not None:
+            height += 16
+        return _height_lower_bound(node, height)
+    if node.tag == "Summary":
+        line_height = 12 if node.props.get("density") == "tight" else 14
+        lines = _estimated_wrapped_lines(
+            _segmented_text(node, "content"),
+            10,
+            available_width,
+        )
+        return _height_lower_bound(node, lines * line_height)
+    if node.tag == "SecondaryBody":
+        lines = _estimated_wrapped_lines(
+            _segmented_text(node, "body"),
+            14,
+            available_width,
+        )
+        return _height_lower_bound(node, lines * 19)
+    return None
+
+
+def _estimated_auto_height(node: JSXElement, available_width: float) -> float:
+    """Estimate font-dependent auto height for advisory overlap findings only."""
+    explicit = _explicit_height(node)
+    if explicit is not None:
+        return _height_lower_bound(node, explicit)
+    minimum = _minimum_height(node)
+    text_component_height = _estimated_text_component_height(node, available_width)
+    if text_component_height is not None:
+        return text_component_height
+    if node.tag != "Stack":
+        return minimum
+    children = [
+        child
+        for child in node.child_elements()
+        if child.props.get("position") != "absolute"
+    ]
+    if not children:
+        return minimum
+    inner_width = max(0, available_width - _horizontal_padding(node))
+    heights: list[float] = []
+    for child in children:
+        child_width = _number(child.props.get("width"))
+        if child_width is None:
+            child_width = inner_width
+        child_height = _estimated_auto_height(child, child_width)
+        heights.append(child_height + _margin_extent(child, "mt", "mb"))
+    if node.props.get("direction", "column") == "row":
+        content_height = max(heights, default=0)
+    else:
+        content_height = sum(heights) + _gap(node) * max(0, len(heights) - 1)
+    estimated = content_height + _vertical_padding(node)
+    return _height_lower_bound(node, max(minimum, estimated))
+
+
 def _progress_circle_single_width_estimate(node: JSXElement) -> float:
     """Estimate the non-shrinkable ring + text width used by the runtime."""
     three_lines = node.props.get("secondaryLabel") is not None
@@ -1405,10 +1774,10 @@ def _progress_circle_single_width_risk_message(
 def _wrapping_text_candidates(node: JSXElement) -> list[tuple[str, object, float]]:
     if node.tag == "DoubleLineTitle":
         return [("secondaryInfo", node.props.get("secondaryInfo"), 12)]
-    if node.tag == "Summary" and "items" not in node.props:
-        return [("content", node.props.get("content"), 10)]
-    if node.tag == "SecondaryBody" and "items" not in node.props:
-        return [("body", node.props.get("body"), 14)]
+    if node.tag == "Summary":
+        return [("items" if "items" in node.props else "content", _segmented_text(node, "content"), 10)]
+    if node.tag == "SecondaryBody":
+        return [("items" if "items" in node.props else "body", _segmented_text(node, "body"), 14)]
     if node.tag == "EventCard":
         return [("title", node.props.get("title"), 14)]
     if node.tag == "EmphasisText":
@@ -1417,6 +1786,44 @@ def _wrapping_text_candidates(node: JSXElement) -> list[tuple[str, object, float
             ("secondaryText", node.props.get("secondaryText"), 12),
         ]
     return []
+
+
+def _estimated_row_text_width(node: JSXElement) -> float | None:
+    if node.tag == "EmphasisText":
+        return max(
+            _estimated_text_width(node.props.get("mainText"), 20),
+            _estimated_text_width(node.props.get("secondaryText"), 12),
+        )
+    if node.tag == "EmphasizedData":
+        return _emphasized_data_width(node)
+    if node.tag == "Summary":
+        return _estimated_text_width(_segmented_text(node, "content"), 10)
+    if node.tag == "SecondaryBody":
+        return _estimated_text_width(_segmented_text(node, "body"), 14)
+    if node.tag != "Stack":
+        return None
+    children = [
+        child
+        for child in node.child_elements()
+        if child.props.get("position") != "absolute"
+    ]
+    estimates = [_estimated_row_text_width(child) for child in children]
+    known = [estimate for estimate in estimates if estimate is not None]
+    if not known:
+        return None
+    if node.props.get("direction", "column") == "row":
+        content_width = sum(known) + _gap(node) * max(0, len(known) - 1)
+    else:
+        content_width = max(known)
+    return content_width + _horizontal_padding(node)
+
+
+def _auto_row_width_risk_message(path: str, required: float, available: float) -> str:
+    return (
+        f"{path} auto-sized text children may need about {_vp(required)}vp horizontally "
+        f"while the row provides {_vp(available)}vp; font metrics and flex shrink may "
+        "force wrapping, so this estimate is advisory only"
+    )
 
 
 def _wrapping_text_risk_message(
@@ -1464,8 +1871,6 @@ def _validate_horizontal_container(
         )
     if node.tag == "EmphasizedData":
         required_text = _emphasized_data_width(node)
-        # Character-based width estimation is not renderer measurement. It must
-        # never trigger a model repair, even when the difference looks large.
         if required_text > inner * 1.08 + 1e-9:
             advisory_issues.append(_horizontal_text_risk_message(path, required_text, inner))
     elif node.tag == "ProgressCircleSingle":
@@ -1479,7 +1884,7 @@ def _validate_horizontal_container(
                 )
             )
     for prop, value, font_size in _wrapping_text_candidates(node):
-        if not isinstance(value, str) or not value:
+        if value is None or isinstance(value, bool) or str(value) == "":
             continue
         required_text = _estimated_text_width(value, font_size)
         if required_text > inner * 1.08 + 1e-9:
@@ -1616,10 +2021,7 @@ def _validate_horizontal_container(
         declared_widths = [
             max(
                 basis,
-                _minimum_width(
-                    child,
-                    inside_backplate=children_inside_backplate,
-                ),
+                _number(child.props.get("minWidth")) or 0,
             )
             if (basis := _numeric_basis(child)) is not None
             else _declared_width(
@@ -1648,6 +2050,33 @@ def _validate_horizontal_container(
         weights = {index: _flex_weight(children[index]) for index in flexible_indices}
         total_weight = sum(weights.values()) if all_flexible_are_weighted else 0
         fixed_width_total = sum(value for value in declared_widths if value is not None)
+        estimated_flexible_widths = {
+            index: _estimated_row_text_width(children[index])
+            for index in flexible_indices
+        }
+        known_estimates = [
+            estimate
+            for estimate in estimated_flexible_widths.values()
+            if estimate is not None
+        ]
+        if not total_weight and len(known_estimates) >= 2:
+            estimated_required = fixed_total + gap_total + sum(
+                max(
+                    minimum_widths[index],
+                    estimated_flexible_widths[index]
+                    if estimated_flexible_widths[index] is not None
+                    else minimum_widths[index],
+                )
+                for index in flexible_indices
+            )
+            if estimated_required > inner * 1.08 + 1e-9:
+                advisory_issues.append(
+                    _auto_row_width_risk_message(
+                        path,
+                        estimated_required,
+                        inner,
+                    )
+                )
         for index, (child, child_width) in enumerate(
             zip(children, declared_widths),
             start=1,
@@ -1719,6 +2148,7 @@ def _validate_horizontal_budget(
     root: JSXElement,
     advisory_issues: list[str] | None = None,
 ) -> None:
+    root = _budget_tree_with_resolved_basis(root)
     dimensions = card_dimensions(root.props.get("size"))
     if dimensions is None:
         return
@@ -1726,7 +2156,11 @@ def _validate_horizontal_budget(
     if width is not None:
         issues: list[str] = []
         warnings: list[str] = []
-        _validate_horizontal_container(root, width, "<Card>", issues, warnings)
+        token = _BUDGET_CARD_SIZE.set(root.props.get("size"))
+        try:
+            _validate_horizontal_container(root, width, "<Card>", issues, warnings)
+        finally:
+            _BUDGET_CARD_SIZE.reset(token)
         if advisory_issues is not None:
             advisory_issues.extend(dict.fromkeys(warnings))
         if issues:
@@ -1895,6 +2329,8 @@ _COMPLETE_NUMERIC_METRIC = re.compile(
     flags=re.IGNORECASE,
 )
 
+_COMPOSITE_METRIC_SEPARATOR = re.compile(r"\s*(?:/|／|\||｜|–|—|~|～|至)\s*")
+
 
 def _is_complete_numeric_metric(value: Any) -> bool:
     if isinstance(value, bool) or value is None:
@@ -1902,6 +2338,35 @@ def _is_complete_numeric_metric(value: Any) -> bool:
     if isinstance(value, (int, float)):
         return True
     return isinstance(value, str) and _COMPLETE_NUMERIC_METRIC.fullmatch(value) is not None
+
+
+def _is_composite_emphasized_metric(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    parts = _COMPOSITE_METRIC_SEPARATOR.split(value.strip())
+    return len(parts) > 1 and all(_is_complete_numeric_metric(part) for part in parts)
+
+
+def _validate_emphasized_data_semantics(root: JSXElement) -> None:
+    issues: list[str] = []
+    for node in _walk(root):
+        if node.tag != "EmphasizedData":
+            continue
+        raw_items = node.props.get("items")
+        owners = raw_items if isinstance(raw_items, list) else [node.props]
+        for index, owner in enumerate(owners):
+            if not isinstance(owner, dict) or not _is_composite_emphasized_metric(
+                owner.get("value")
+            ):
+                continue
+            location = f"items[{index}].value" if isinstance(raw_items, list) else "value"
+            issues.append(
+                f"EmphasizedData.{location}={owner['value']!r} contains multiple complete "
+                "metrics separated as one emphasized value; use a component or layout "
+                "with separate value slots"
+            )
+    if issues:
+        raise ValidationError("; ".join(dict.fromkeys(issues)))
 
 
 def _validate_status_unit_semantics(
@@ -2365,9 +2830,14 @@ class OrderedWorkflowState:
 
         parsed_compile_context: CompileContext | None = None
         compile_context_error: ConversionError | None = None
+        user_query = str((self.prompt_task or {}).get("userQuery") or "")
         try:
             parsed_compile_context = CompileContext.from_payload(self.compile_context)
-            materialize_binding_literals(root, parsed_compile_context)
+            materialize_binding_literals(
+                root,
+                parsed_compile_context,
+                user_query=user_query,
+            )
             expression = _serialize_jsx(root)
             source = wrap_card_source(self.component_name, expression)
         except ConversionError as exc:
@@ -2389,6 +2859,7 @@ class OrderedWorkflowState:
             validators = [
                 lambda: _validate_generation_subset(root, self.expected_card_size),
                 lambda: _validate_layout_values(root),
+                lambda: _validate_emphasized_data_semantics(root),
                 lambda: _validate_action_slot_compatibility(
                     root,
                     decision,
@@ -2437,8 +2908,6 @@ class OrderedWorkflowState:
                 except ConversionError as exc:
                     add_finding(exc)
 
-            if compile_context_error is not None:
-                add_finding(compile_context_error)
             if parsed_compile_context is not None:
                 try:
                     _validate_status_unit_semantics(
@@ -2455,6 +2924,9 @@ class OrderedWorkflowState:
                         parsed_compile_context,
                     ):
                         add_finding(ValidationError(message))
+
+        if compile_context_error is not None:
+            add_finding(compile_context_error)
 
         (
             normalized_coverage,
@@ -2496,7 +2968,7 @@ class OrderedWorkflowState:
             messages = compile_source(
                 source,
                 card=self.component_name,
-                compile_contexts={self.component_name: self.compile_context},
+                compile_contexts={self.component_name: parsed_compile_context},
             )[self.component_name]
         except ConversionError as exc:
             retryable = _error_retryable(exc)
@@ -2522,6 +2994,7 @@ class OrderedWorkflowState:
             jsx=expression,
             messages=messages,
             decision=decision or {},
+            compile_context=parsed_compile_context.payload(),
             coverage=normalized_coverage,
             unmet_requirements=normalized_unmet,
             semantic_status=semantic_status,

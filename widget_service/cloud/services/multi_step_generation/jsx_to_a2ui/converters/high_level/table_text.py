@@ -34,15 +34,15 @@ def convert_table_text(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         raise ValidationError("; ".join(errors))
     items = node.props.get("items")
     if not isinstance(items, list):
-        raise AssertionError
+        raise AssertionError()
 
     rows: list[A2UINode] = []
     for index, item in enumerate(items):
         if not isinstance(item, dict):
-            raise AssertionError
+            raise AssertionError()
         label = item.get("label")
         if not isinstance(label, str):
-            raise AssertionError
+            raise AssertionError()
 
         label_node = text(
             ctx,

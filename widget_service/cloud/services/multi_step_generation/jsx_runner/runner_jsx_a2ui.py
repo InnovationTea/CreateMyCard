@@ -450,7 +450,13 @@ async def async_main(args: argparse.Namespace) -> int:
                 compile_context=compile_context,
                 trace_callback=checkpoint_trace,
             )
-            paths = write_card(result, run_dir, task, compile_context=compile_context)
+            effective_compile_context = result.get("compile_context", compile_context)
+            paths = write_card(
+                result,
+                run_dir,
+                task,
+                compile_context=effective_compile_context,
+            )
         except Exception as exc:
             failure = {
                 "taskId": task_id,
@@ -498,7 +504,7 @@ async def async_main(args: argparse.Namespace) -> int:
                 manifest["elapsedSeconds"] = round(time.monotonic() - run_started_monotonic, 2)
                 write_json(manifest_path, manifest)
                 persist_summary()
-                raise
+                raise exc
             continue
 
         semantic_status = str(result.get("semantic_status") or "completed")

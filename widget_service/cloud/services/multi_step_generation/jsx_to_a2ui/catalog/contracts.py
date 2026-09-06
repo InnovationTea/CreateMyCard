@@ -93,9 +93,9 @@ CONTRACTS = {
     "Icon": contract(optional=("name", "src", "size", "alt", "decorative")),
     "AppIcon": contract(optional=("name", "src", "alt")),
     "WeatherIcon": contract(optional=("name", "src", "alt")),
-    "SingleLineTitle": contract(required=("title",), optional=("icon", "iconAlt", "iconFit", "invertIcon", "dataIds")),
+    "SingleLineTitle": contract(required=("title",), optional=("dataIds",)),
     "DoubleLineTitle": contract(
-        required=("title", "secondaryInfo"), optional=("icon", "iconAlt", "iconFit", "invertIcon", "dataIds")
+        required=("title", "secondaryInfo"), optional=("dataIds",)
     ),
     "Badge": contract(
         required=("value",),
@@ -104,8 +104,8 @@ CONTRACTS = {
     ),
     "DataDisplay": contract(required=("label", "value", "supportingText"), optional=("dataIds",)),
     "InfoBlock": contract(
-        required=("primaryText", "secondaryText", "visual"),
-        optional=("unit", "dataIds"),
+        required=("primaryText", "secondaryText"),
+        optional=("unit", "visual", "dataIds"),
     ),
     "TopTextBottomValue": contract(required=("items",)),
     "TableText": contract(required=("items",)),

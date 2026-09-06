@@ -11,12 +11,8 @@ def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     current_palette = palette(ctx)
     has_location = node.props.get("location") is not None
     event_height = 54 if has_location else 38
-    # Do not size the rail from its parent. On the real A2UI runtime a
-    # matchParent rail plus a weighted Divider consumes every bit of height
-    # offered by an outer flexible slot, making the timeline extend to the
-    # bottom of the card. The JSX rail only spans EventCard's own text box:
-    # 5 top padding + 8 dot + 5 gap + the remaining 20/36 vp.
-    line_height = event_height - 18
+    # The event itself explicitly wraps its text height. Only its rail fills
+    # that local height; it must not make the event fill the outer card slot.
     dot = stack(
         ctx,
         "event_dot",
@@ -33,7 +29,7 @@ def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
     line = ctx.make(
         "Divider",
         "event_line",
-        styles={"vertical": True, "strokeWidth": 1, "color": "#FFD8D8D8", "height": line_height},
+        styles={"vertical": True, "strokeWidth": 1, "color": "#FFD8D8D8", "layoutWeight": 1},
     )
     rail = column(
         ctx,
@@ -42,6 +38,7 @@ def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         gap=5,
         styles={
             "width": 8,
+            "height": "matchParent",
             "padding": {"top": 5},
             "alignItems": "center",
             "flexShrink": 0,
@@ -54,6 +51,7 @@ def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         ctx.prop(node, "title"),
         styles={
             **bounded_text,
+            "constraintSize": {"minWidth": 0, "minHeight": 18},
             "fontSize": 14,
             "fontWeight": 500,
             "fontColor": current_palette.primary,
@@ -119,6 +117,7 @@ def convert_event_card(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         gap=7,
         styles={
             "width": "matchParent",
+            "height": "wrapContent",
             "flexShrink": 1,
             "constraintSize": constraint_size,
             "alignItems": "top",

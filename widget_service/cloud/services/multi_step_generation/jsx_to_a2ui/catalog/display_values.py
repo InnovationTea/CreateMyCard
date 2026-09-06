@@ -8,16 +8,18 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..exceptions import ValidationError
+from .display_units import format_display_unit
 
 # Keep this list intentionally explicit.  A full match is safer than guessing
 # that arbitrary copy surrounding a number is a unit.
 _UNIT_PATTERN = re.compile(
     r"\s*([+-]?\d+(?:\.\d+)?)\s*"
-    r"(次/分|公里/小时|千米/小时|毫秒|分钟|小时|千卡|公里|千米|"
-    r"GB可用|TB|GB|MB|KB|mA|mV|A|V|W|秒|分|天|步|米|克|升|元|次|个|%|％)"
+    r"(次[/／]分钟|次[/／]分|bpm|公里/小时|千米/小时|毫秒|分钟|小时|千卡|公里|千米|"
+    r"GB可用|TB|GB|MB|KB|mA|mV|A|V|W|秒|分|天|步|米|克|升|元|次|个|级|%|％)",
+    re.IGNORECASE,
 )
 _CELSIUS_PATTERN = re.compile(
-    r"^\s*([+-]?\d+(?:\.\d+)?)\s*(?:℃|°\s*C)\s*$",
+    r"^\s*([+-]?\d+(?:\.\d+)?)\s*(?:℃|°\s*C|摄氏度)\s*$",
     re.IGNORECASE,
 )
 _PERCENTAGE_VALUE_PATTERN = re.compile(
@@ -205,10 +207,27 @@ def merge_data_models(*models: dict[str, Any] | None) -> dict[str, Any]:
     return result
 
 
+def source_display_model(raw_value: Any, display_unit: str | None = None) -> tuple[dict[str, Any], DisplayPlan]:
+    """Keep numerical derivations separate from optional text-only formatting."""
+    plan = normalize_display_value(raw_value)
+    model = plan.data_model_value()
+    if display_unit:
+        formatted = format_display_unit(raw_value, display_unit)
+        plan = normalize_display_value(formatted)
+        model.update({
+            "displayUnit": display_unit,
+            "unitText": formatted,
+            "unitParts": [part.data_model_value() for part in plan.parts],
+        })
+    return model, plan
+
+
 def apply_source_update(
     update_data_model: Callable[[str, Any], None],
     source_path: str,
     raw_value: Any,
+    *,
+    display_unit: str | None = None,
 ) -> DisplayPlan:
     """Synchronize one real path and its private display path.
 
@@ -217,7 +236,9 @@ def apply_source_update(
     component tree must also be rebuilt because A2UI paths cannot add/remove
     Text nodes by themselves.
     """
-    plan = normalize_display_value(raw_value)
+    # Forward the binding's private displayUnit when present. Raw source values
+    # remain untouched, including empty/status strings and explicit precision.
+    model, plan = source_display_model(raw_value, display_unit)
     update_data_model(source_path, copy.deepcopy(raw_value))
-    update_data_model(derived_path_for_source(source_path), plan.data_model_value())
+    update_data_model(derived_path_for_source(source_path), model)
     return plan

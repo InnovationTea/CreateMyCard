@@ -171,7 +171,7 @@
 ```jsx
 <CardButton
   text="播放音乐"
-  icon="resources/base/media/music_fill.svg"
+  icon="music_fill.svg"
   actionId="media.play"
 />
 ```
@@ -186,13 +186,13 @@
 #### 布局约束（非 CardButton Props）
 
 - 只能用于当前尺寸 Card。
-- 仅在同一语义组／操作区域包含两个及以上 Action 时使用；两个 Action 可放入 Type 15、Type 16 的半卡宽竖排操作列，三个或四个 Action 可组成 Type 9 的 2×2 操作网格。该区域只有一个 Action 时改用 `PillButton`。
-- 竖排操作列优先使用 Type 15、Type 16；2×2 操作网格使用 Type 9。Type 13 的单个父区只有能容纳两个及以上上下竖排操作槽时才可使用。
+- 用于 Type 14、Type 15、Type 15-R、Type 17 的固定 Action 槽；Type 17 右下槽只有一个 Action 时仍必须使用 `CardButton`。
+- 竖排固定槽列使用 Type 15、Type 15-R；四宫格使用 Type 14，四槽必须填满，允许与 `InfoBlock` 分列混用。Type 13 子布局的按钮使用 `PillButton`，不使用 `CardButton`。
 - 组件使用 `width: 100%`、`height: 100%` 占满父槽。宽高由外层 `Stack` 或 `Grid` 按 Layout Pattern 分配，禁止给组件传固定尺寸。
 - 每个父槽最多占一个半卡宽区域，通常为 144vp；禁止使用 296vp 整卡宽操作槽。
 - 父槽必须满足“宽度 ≥ 高度”；不得把 CardButton 放入窄高槽位。
-- 多个 `CardButton` 不得仅做一行左右并排；三个或四个 Action 可以组成两列、最多两行的 2×2 操作网格。
-- `CardButton` 必须完整位于 48–64vp 高的父槽内；竖排或网格中的按钮槽应通过父 `Stack`／`Grid` 明确分配，不使用 `alignSelf`。
+- 多个 `CardButton` 不得仅做一行左右并排；Type 14 为完整的两列两行四宫格，同类组件按列纵排，不能使用旧 Type 9 的三槽网格。
+- `CardButton` 必须完整位于 144 × 64vp 的固定父槽内；竖排或网格中的按钮槽应通过父 `Stack`／`Grid` 明确分配，不使用 `alignSelf`。
 - runtime 固定使用横向排列：文本在左，Icon 在右。
 - `CardButton` 不使用 `appearance="card"`、`variant` 或 `color`。它根据所在 Card 的明暗背景自动使用主题色或白色。
 

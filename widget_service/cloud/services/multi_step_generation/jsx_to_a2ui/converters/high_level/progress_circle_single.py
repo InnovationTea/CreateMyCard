@@ -66,7 +66,12 @@ def convert_progress_circle_single(node: JSXElement, ctx: ConversionContext) -> 
     }
     data_ids = node.props.get("dataIds")
     value_is_bound = isinstance(data_ids, dict) and "value" in data_ids
-    if "displayValue" in node.props:
+    shares_percentage_binding = (
+        isinstance(data_ids, dict)
+        and isinstance(data_ids.get("value"), str)
+        and data_ids.get("displayValue") == data_ids["value"]
+    )
+    if "displayValue" in node.props and not shares_percentage_binding:
         value_text = text(
             ctx,
             "ring_display_value",

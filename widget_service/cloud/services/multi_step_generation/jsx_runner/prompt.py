@@ -54,15 +54,20 @@ def build_system_prompt(
         "重要约束：",
         "- 只能使用 component_style 和 jsx_contract 中明确允许的组件与属性；"
         "组件用法以 component_style 为准，核心 JSX 与布局原语以 jsx_contract 为准。",
-        "- 禁止 div/span/img/button 等原生 HTML，禁止 style、className、spread props、"
-        "变量、函数调用、条件、map、Hooks 和副作用。",
-        "- 任何 icon/src/checkIcon 都只能逐字使用当前输入 `assetCandidates` 中已有的 `src`；"
-        "根据其 `description` 选择语义匹配的资源，禁止编造、缩写或改写路径。"
+        "- 任何 icon、src 或 checkIcon 只能逐字使用当前输入 `assetCandidates` 中已有的 `src`；"
+        "根据候选的 description 选择语义匹配的资源，禁止编造、改写路径或补充目录前缀；"
         "候选列表为空时不得输出资源属性。",
-        "- 使用输入中的真实值，不虚构数据；交互信息只能通过输入 `actions` 中已有的 "
-        "`actionId` 表达，不添加其他交互属性。",
-        "- Progress、ProgressCircle 等进度组件只能表达输入提供的明确可量化数据，"
-        "并绑定对应数值字段；"
+        "- `userQuery` 是当前请求的意图和具体事实来源，`data[].value` 只是动态字段的预览样例。"
+        "若 `userQuery` 明确给出了与某个单一数据字段同义的具体名称、地点、时间或状态，"
+        "而其与样例值不同，可见 Prop 必须使用 `userQuery` 中的事实，同时仍绑定该字段的真实 `dataId`；"
+        "不得为了跟随样例值而改写用户明确提供的事实。"
+        "`userQuery` 未提供对应具体值时，才使用 `data[].value`。"
+        "一个 Prop 绑定多个 `dataId` 时不得猜测如何把查询文本反向拆分到多个动态字段；不得虚构数据。"
+        "交互信息只能通过输入 `actions` 中已有的 `actionId` 表达，不添加其他交互属性。",
+        "- 同一个输入数据 ID 在整张卡片中原则上只展示一次。"
+        "某个 ID 已绑定到一个可见 Prop，或已作为 `dataIds` 数组成员组合进某个文本后，"
+        "不得再将该 ID 绑定到 Summary 或其他组件重复展示；"
+        "提交前展平检查所有 `dataIds`，删除重复事实，但不得因去重删除未展示的必需信息。",
         "只有“正常、健康、已连接”等状态描述时应使用文本组件，不得编造进度值。",
         "- `actions` 是候选动作列表；每个控件最多选择一个 `actionId`，"
         "同一 `actionId` 在一张卡片中最多使用一次。",

@@ -27,6 +27,7 @@ def compile_source(
     compile_all: bool = False,
     data_models: dict[str, dict[str, Any]] | None = None,
     compile_contexts: dict[str, CompileContext | dict[str, Any]] | None = None,
+    user_query: str | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     cards = extract_card_functions(source)
     if card:
@@ -47,7 +48,11 @@ def compile_source(
     for name, jsx in selected.items():
         compile_context_payload = (compile_contexts or {}).get(name)
         compile_context = CompileContext.from_payload(compile_context_payload)
-        materialize_binding_literals(jsx, compile_context)
+        materialize_binding_literals(
+            jsx,
+            compile_context,
+            user_query=user_query,
+        )
         context = create_context(name, compile_context=compile_context)
         root = context.convert(jsx)
         explicit_data_model = (data_models or {}).get(name)

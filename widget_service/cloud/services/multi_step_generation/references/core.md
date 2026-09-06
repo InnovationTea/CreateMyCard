@@ -11,7 +11,9 @@
 
 动态数据必须保留真实显示 Prop，并仅用 `dataIds` 记录输入中的数据 `id`。`dataIds` 不得用于 `Card`、`Stack`、`Grid` 或视觉与布局属性。
 
-`dataIds` 只能逐字引用当前输入 `data[].id` 中真实存在的值。通常一个显示 Prop 对应一个 ID；`EventCard.time` 是唯一例外，可按 `[dtStartId, dtEndId]` 绑定开始与结束两个 ID，具体写法见当前尺寸加载的组件文档。根据 `userQuery` 概括出的卡片标题、区块标签、静态单位和按钮文案属于静态 UI 文案，不需要绑定；只有输入 `data[]` 明确提供了对应业务字段时，标题或副标题才绑定。不得按业务域猜测或虚构 `calendar.cardTitle`、`memory.cardTitle` 等 ID。
+`data[].value` 是动态字段的预览样例，不会覆盖 `userQuery` 明确给出的同义当前事实。单 ID 绑定冲突时，可见 Prop 使用 `userQuery` 中的具体值，但仍必须绑定原数据 `id`，以便后续实时数据继续更新同一显示 Prop。多 ID 组合字段不从查询文本反向猜测各字段值。
+
+`dataIds` 只能逐字引用当前输入 `data[].id` 中真实存在的值。通常一个显示 Prop 对应一个 ID；`EventCard.time` 可按 `[dtStartId, dtEndId]` 绑定开始与结束两个 ID，`EmphasisText.mainText` 和 `secondaryText` 可使用包含两个或更多 ID 的有序数组，具体写法见当前尺寸加载的组件文档。根据 `userQuery` 概括出的卡片标题、区块标签、静态单位和按钮文案属于静态 UI 文案，不需要绑定；只有输入 `data[]` 明确提供了对应业务字段时，标题或副标题才绑定。不得按业务域猜测或虚构 `calendar.cardTitle`、`memory.cardTitle` 等 ID。
 
 ## 2. 布局原语真实 API
 
@@ -145,7 +147,7 @@
   <Stack flex={1} minHeight={0} width="full" minWidth={0} mt={2} align="flex-start" justify="center">
     <ProgressCircleSingle
       value={43.75}
-      icon="resources/base/media/externaldrive_fill.svg"
+      icon="externaldrive_fill.svg"
       displayValue="4.5GB"
       label="剩余内存"
       ariaLabel="内存已用43.75%，可用4.5GB"
@@ -173,7 +175,7 @@
 <Grid columns={2} gap={8} flex={1} align="center">
   <Stack align="center">
     <ProgressCircle
-      icon="resources/base/media/phone_fill.svg"
+      icon="phone_fill.svg"
       externalText="68%"
       ariaLabel="手机电量68%"
       appearance="card"
@@ -182,7 +184,7 @@
   </Stack>
   <Stack align="center">
     <ProgressCircle
-      icon="resources/base/media/kidswatch_fill.svg"
+      icon="kidswatch_fill.svg"
       externalText="52%"
       ariaLabel="手表电量52%"
       appearance="card"
@@ -272,25 +274,25 @@
 
 两种 Card 的圆角均由 Card 规格提供，背景层不再自带 160×160vp 或 24px 圆角约束。
 
-## 4. Icon 使用范围与资源路径
+## 4. Icon 使用范围与资源文件名
 
-生成代码中的任何 `icon`、`src` 或 `checkIcon` 都必须逐字使用当前输入 `assetCandidates[].src` 中已有的值，并根据同一候选项的 `description` 判断语义是否适合当前位置。候选列表为空时不得输出资源属性；不得缩写路径或根据语义猜测文件名。
+生成代码中的任何 `icon`、`src` 或 `checkIcon` 都必须逐字使用当前输入 `assetCandidates[].src` 中已有的模型侧值，并根据同一候选项的 `description` 判断语义是否适合当前位置。Runner 会把默认媒体目录 `resources/base/media/` 下的普通资源转换成 `icon_weather1.svg` 这样的文件名后再送给模型；生成 JSX 直接复制该文件名，不得重新补目录。候选列表为空时不得输出资源属性，也不得根据语义猜测文件名。
 
 | Icon 类型 | 允许位置 | 使用方式 |
 |---|---|---|
-| 应用 Icon | 单一应用来源时的标题区右上角 | 通过 `SingleLineTitle.icon` 或 `DoubleLineTitle.icon` 传入，通常配合 `iconFit="cover"`；信息来自多个应用时不展示应用 Icon |
-| 天气 Icon | 标题区右上角 | 通过标题组件的 `icon` 传入，通常使用默认 `iconFit="contain"` |
+| 应用或天气 Icon | `InfoBlock` 等支持 Icon 的业务组件内部 | 通过对应业务组件的 Icon Prop 传入；不得放入标题组件 |
 | 通用功能 Icon | ProgressCircle、NumericRatio、按钮等组件内部 | 通过对应业务组件的 `icon` 传入 |
-| 通用功能 Icon | 标题区右上角 | 禁止；不得用来替代应用来源或天气状态 Icon |
+| 任意 Icon | 标题区右上角 | 禁止；`SingleLineTitle` 与 `DoubleLineTitle` 均为纯文本标题 |
 
 资源引用规则：
 
-- 将候选 `src` 视为不透明字符串，逐字复制当前任务中选中的完整值；不得补扩展名、补目录、删减路径段或截成文件名。
+- 将模型输入中的候选 `src` 视为不透明字符串并逐字复制。默认媒体资源通常只有文件名；不得补 `resources/base/media/`、补扩展名或改写名称。非默认目录资源若仍包含路径，则保留输入给出的路径，不得自行截短。
+- JSX Runtime 和后续协议处理层会把不含 `/` 的普通文件名统一解析为 `resources/base/media/<文件名>`；该补全不会改变组件布局和视觉样式。
 - 文档和 runtime 中是否存在同名本地文件，不构成生成侧可使用该资源的依据。
-- 应用 Icon 和天气 Icon 均为 20 × 20vp、圆角 4vp；应用 Icon 通常使用 `cover`，天气 Icon 通常使用 `contain`。
-- 只有信息明确来自单一应用时才展示该应用 Icon；信息来自多个应用时，不得选择其中任一应用 Icon 作为标题 Icon，也不得并列展示多个应用 Icon。
+- 应用 Icon 和天气 Icon 的尺寸、裁切方式由实际承载它们的业务组件决定，不再使用标题区 20 × 20vp 规格。
+- 只有信息明确来自单一应用时才展示该应用 Icon；信息来自多个应用时，不得选择其中任一应用 Icon 作为代表，也不得并列展示多个应用 Icon。
 - 只能使用当前输入 `assetCandidates` 中列出的资源 `src`，不得根据语义虚构文件名。
-- 有业务语义的标题 Icon 必须提供 `iconAlt`；`CircleButton` 必须提供 `ariaLabel`。
+- `CircleButton` 必须提供 `ariaLabel`。
 
 ## 5. 设计规则与 JSX 责任归属
 

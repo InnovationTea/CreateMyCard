@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from ...catalog.bindings import a2ui_expression, data_model_expression_reference
 from ...catalog.display_values import (
     normalize_display_value,
     normalize_percentage_value,
@@ -32,7 +33,7 @@ def convert_emphasized_data(
     ctx: ConversionContext,
     *,
     value_height: int = 38,
-    unit_height: int | None = 18,
+    unit_height: int | None = None,
     unit_bottom_inset: int = 0,
 ) -> A2UINode:
     errors = collect_emphasized_data_conversion_errors(node)
@@ -41,6 +42,10 @@ def convert_emphasized_data(
 
     def derived_items(binding) -> list[dict]:
         root_path, plan = ctx.register_derived_display(binding)
+        parts_key = "parts"
+        if binding.display_unit:
+            plan = normalize_display_value(binding.display_value)
+            parts_key = "unitParts"
         result = []
         wrappable_raw_text = (
             plan.mode == "raw"
@@ -48,7 +53,7 @@ def convert_emphasized_data(
             and normalize_percentage_value(plan.raw) is None
         )
         for index, part in enumerate(plan.parts):
-            part_path = f"{root_path}/parts/{index}"
+            part_path = f"{root_path}/{parts_key}/{index}"
             result.append(
                 {
                     "value": {"path": f"{part_path}/value"},
@@ -59,6 +64,24 @@ def convert_emphasized_data(
         return result
 
     def bound_string_items(owner: dict, binding, *, item_index: int | None = None) -> list[dict]:
+        data_ids = owner.get("dataIds")
+        if binding.display_unit and isinstance(data_ids, dict) and "unit" in data_ids:
+            if item_index is None:
+                unit = ctx.prop(node, "unit")
+            else:
+                unit = ctx.item_prop(node.tag, owner, item_index, "unit")
+            return [{"value": {"path": binding.path}, "unit": unit, "wrappableRawText": False}]
+        if binding.display_unit and isinstance(binding.value, str):
+            return derived_items(binding)
+        if binding.display_value != binding.value:
+            # Keep the real numeric path live. A fixed unit does not need a
+            # derived model or a rebuilt Text tree on every source update.
+            value = {"path": binding.path}
+            unit = binding.display_unit
+            if unit == "℃":
+                value = a2ui_expression([data_model_expression_reference(binding.path), "'°'"])
+                unit = None
+            return [{"value": value, "unit": unit, "wrappableRawText": False}]
         plan = normalize_display_value(binding.value)
         data_ids = owner.get("dataIds")
         # Two independently bound source fields are already structured data;
@@ -116,7 +139,7 @@ def convert_emphasized_data(
     items: list[dict] = []
     if raw_items is None:
         value_binding = ctx.bound_data(node.props, "value")
-        if value_binding is not None and isinstance(value_binding.value, str):
+        if value_binding is not None and isinstance(value_binding.display_value, str):
             items.extend(bound_string_items(node.props, value_binding))
         elif value_binding is None:
             items.extend(literal_items(node.props))
@@ -131,7 +154,7 @@ def convert_emphasized_data(
     else:
         for index, item in enumerate(raw_items):
             value_binding = ctx.bound_data(item, "value")
-            if value_binding is not None and isinstance(value_binding.value, str):
+            if value_binding is not None and isinstance(value_binding.display_value, str):
                 items.extend(bound_string_items(item, value_binding, item_index=index))
             elif value_binding is None:
                 items.extend(literal_items(item))
@@ -182,20 +205,21 @@ def convert_emphasized_data(
             )
         )
         if item.get("unit") is not None:
-            # Ordinary EmphasizedData uses a 38vp value line box and an 18vp
-            # unit line box aligned at the bottom, matching JSX flex-end.
-            # Components with distinct typography geometry (ProgressLine2)
-            # can opt into their own baseline approximation explicitly.
+            # Ordinary units can wrap beside an atomic number, with an 18vp
+            # line box. ProgressLine2 opts into its fixed unit geometry.
             unit_styles = {
                 "fontSize": 12,
                 "fontWeight": 400,
                 "fontColor": palette(ctx).secondary,
-                "flexShrink": 0,
+                "flexShrink": 1,
             }
-            if unit_height is not None:
+            if unit_height is None:
+                unit_styles["constraintSize"] = {"minHeight": 18}
+            else:
                 unit_styles["height"] = unit_height
+                unit_styles["flexShrink"] = 0
             if unit_bottom_inset:
-                unit_styles["padding"] = {"bottom": unit_bottom_inset}
+                unit_styles["margin"] = {"bottom": unit_bottom_inset}
             children.append(
                 text(
                     ctx,
@@ -208,6 +232,8 @@ def convert_emphasized_data(
         "alignItems": "bottom",
         "flexShrink": 0,
     }
+    if unit_height is None:
+        row_styles.update({"flexShrink": 1, "constraintSize": {"maxWidth": "100%"}})
     if wraps_single_raw_text:
         row_styles.update(
             {

@@ -25,6 +25,6 @@ def convert_summary(node: JSXElement, ctx: ConversionContext) -> A2UINode:
         "fontColor": palette(ctx).secondary,
         "textAlign": "start",
         "flexShrink": 1,
-        "constraintSize": {"minWidth": 0},
+        "constraintSize": {"minWidth": 0, "minHeight": 14},
     }
     return text(ctx, "summary", ctx.prop(node, "content"), styles=styles)
