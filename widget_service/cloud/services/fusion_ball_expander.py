@@ -18,6 +18,7 @@ FUSION_BALL_CONTENT_ID_PREFIX = "__genui_render_component__"
 FUSION_BALL_MIN_PRD_VERSION_CONFIG = "fusion_ball_min_prd_version"
 FUSION_BALL_BASE_SIZE = 160
 FUSION_BALL_DESIGN_TOKENS = (
+    "fusion-ball-battery-teal",
     "fusion-ball-schedule-cool",
     "fusion-ball-schedule-warm",
     "fusion-ball-sleep-violet",
@@ -28,6 +29,7 @@ _BASE_COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?$")
 _ARGB_COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{8}$")
 _FUSION_ROOT_TYPES = frozenset({"Row", "Column", "Stack"})
 _DESIGN_TOKEN_FIXED_PALETTES = {
+    "fusion-ball-battery-teal": ("#FF17734C", "#FF26BFA6", "#FF60BF98"),
     "fusion-ball-schedule-cool": ("#FF121E59", "#FF2BA2D9", "#FF52CCCC"),
     "fusion-ball-schedule-warm": ("#FF731D28", "#FFFF5533", "#FFE68A2E"),
     "fusion-ball-sleep-violet": ("#FF2B2459", "#FF572BD9", "#FFB398D9"),
