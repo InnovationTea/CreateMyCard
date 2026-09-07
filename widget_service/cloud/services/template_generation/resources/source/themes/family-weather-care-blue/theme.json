@@ -7,6 +7,7 @@
   "paletteSceneIds": ["weather.sunnyCare"],
   "primaryColor": "#FF1F4799",
   "supportContentColor": "#991F4799",
+  "progressBackgroundColor": "#330A59F7",
   "rootStyle": {
     "backgroundColor": "#FFE5EDFE",
     "borderRadius": 18,
@@ -14,7 +15,11 @@
     "clip": true
   },
   "actionStyle": {
-    "backgroundColor": "#330A59F7",
+    "backgroundColor": "#332E529E",
     "contentColor": "#FF1F4799"
+  },
+  "supportContentStyle": {
+    "backgroundColor": "#1A2E529E",
+    "borderRadius": 12
   }
 }

@@ -28,6 +28,9 @@ from .registry import CardPlanRegistry
 from .retrieval_index import FieldToken, TemplateVariantSearchRecord
 
 _MAX_COMPONENT_TEMPLATE_CANDIDATES = 24
+_TEMPLATE_QUERY_DISCRIMINATORS = {
+    "WeatherOverviewAlertFull@1": frozenset({"/current/alertLevel"}),
+}
 
 
 class TemplateRetrievalMiss(ValueError):
@@ -97,8 +100,8 @@ def build_template_retrieval_prompt(
         ],
         "candidateDataBindings": [binding.model_dump(mode="json") for binding in coverage_bindings],
         "candidateOutputFieldsByCapability": {
-            binding.capabilityId: tuple(binding.candidateOutputFields)
-            for binding in coverage_bindings
+            capability_id: tuple(sorted(_candidate_paths(coverage_bindings, capability_id)))
+            for capability_id in dict.fromkeys(capability_ids)
         },
         "themes": theme_ids,
         "actionCandidates": [
@@ -170,18 +173,26 @@ def retrieve_template_variants(
         candidate_paths = _candidate_paths(coverage_bindings, capability_id)
         if not set(paths).issubset(candidate_paths):
             raise TemplateRetrievalMiss("required output fields must come from candidates")
-        data_root = _capability_data_root(card_spec, capability_id)
-        action_param_paths = _action_param_paths_to_drop(
-            task_spec,
-            registry,
-            capability_id,
-            data_root,
-            paths,
-        )
+        data_roots = _capability_data_roots(card_spec, capability_id)
+        action_param_paths: set[str] = set()
+        for data_root in data_roots:
+            action_param_paths.update(
+                _action_param_paths_to_drop(
+                    task_spec,
+                    registry,
+                    capability_id,
+                    data_root,
+                    paths,
+                )
+            )
         if action_param_paths:
-            _log_action_param_fields_dropped(capability_id, data_root, action_param_paths)
+            _log_action_param_fields_dropped(
+                capability_id,
+                ",".join(data_roots),
+                action_param_paths,
+            )
         query_tokens = frozenset(
-            _task_spec_field_token(task_spec, data_root, capability_id, path)
+            _task_spec_field_token(task_spec, data_roots, capability_id, path)
             for path in paths
             if path not in action_param_paths
         )
@@ -549,7 +560,8 @@ def _component_templates_for_capability(
     candidate_output_fields: set[str] | None = None,
 ) -> dict[str, dict[str, frozenset[str]]]:
     result: dict[str, dict[str, frozenset[str]]] = {}
-    data_root = _capability_data_root(card_spec, capability_id)
+    data_roots = _capability_data_roots(card_spec, capability_id)
+    data_root = data_roots[0]
     provided_output_fields = candidate_output_fields or set()
     task_spec_available_fields = _task_spec_field_entries(task_spec, data_root)
     business_ids = {
@@ -576,9 +588,13 @@ def _component_templates_for_capability(
             )
             if record.template_id not in template_ids:
                 continue
+            if record.binding_count != len(data_roots):
+                continue
             size_is_supported = not record.supported_card_sizes
             size_is_supported = size_is_supported or task_spec.size in record.supported_card_sizes
             if not size_is_supported:
+                continue
+            if not _template_query_discriminator_is_requested(record, query_tokens):
                 continue
             if not _template_required_fields_are_available(record, task_spec, card_spec):
                 continue
@@ -710,6 +726,8 @@ def _template_record_evaluation(
     size_is_supported = size_is_supported or task_spec.size in record.supported_card_sizes
     if not size_is_supported:
         rejection_reasons.append("card_size_not_supported")
+    if not _template_query_discriminator_is_requested(record, query_tokens):
+        rejection_reasons.append("template_query_discriminator_not_requested")
     if missing_required_fields:
         rejection_reasons.append("user_provided_data_missing_template_required_fields")
     if required_type_mismatches:
@@ -732,6 +750,16 @@ def _template_record_evaluation(
         ),
         "rejectionReasons": rejection_reasons,
     }
+
+
+def _template_query_discriminator_is_requested(
+    record: TemplateVariantSearchRecord,
+    query_tokens: frozenset[FieldToken],
+) -> bool:
+    discriminators = _TEMPLATE_QUERY_DISCRIMINATORS.get(record.template_id)
+    if not discriminators:
+        return True
+    return bool(discriminators.intersection(token.path for token in query_tokens))
 
 
 def _user_required_type_mismatches(
@@ -861,9 +889,12 @@ def _candidate_paths(
     coverage_bindings: tuple[CandidateDataBinding, ...], capability_id: str
 ) -> set[str]:
     matching = [item for item in coverage_bindings if item.capabilityId == capability_id]
-    if len(matching) != 1:
-        raise TemplateRetrievalMiss("template retrieval requires one binding per capability")
-    return set(matching[0].candidateOutputFields)
+    if not matching:
+        raise TemplateRetrievalMiss("template retrieval requires a capability binding")
+    paths = set(matching[0].candidateOutputFields)
+    for binding in matching[1:]:
+        paths.intersection_update(binding.candidateOutputFields)
+    return paths
 
 
 _ACTION_ARG_PATH_PATTERN = re.compile(r"\$\{\s*(/[^{}]+?)\s*\}")
@@ -936,31 +967,43 @@ def _log_action_param_fields_dropped(
     )
 
 
-def _capability_data_root(card_spec: dict[str, Any], capability_id: str) -> str:
+def _capability_data_roots(
+    card_spec: dict[str, Any], capability_id: str
+) -> tuple[str, ...]:
     bindings = card_spec.get("dataBindings")
     if not isinstance(bindings, list):
         raise TemplateRetrievalMiss("CardSpec data bindings are unavailable")
-    roots = {
+    roots = tuple(
         item.get("writeResultTo")
         for item in bindings
         if isinstance(item, dict) and item.get("capabilityId") == capability_id
-    }
-    valid = {root for root in roots if isinstance(root, str) and root.startswith("/data")}
-    if len(valid) != 1:
+    )
+    valid = tuple(root for root in roots if isinstance(root, str) and root.startswith("/data"))
+    if not valid or len(valid) != len(roots) or len(set(valid)) != len(valid):
         raise TemplateRetrievalMiss("capability data root is unavailable or ambiguous")
-    return next(iter(valid))
+    return valid
 
 
 def _task_spec_field_token(
-    task_spec: TaskSpec, data_root: str, capability_id: str, relative_path: str
+    task_spec: TaskSpec,
+    data_roots: tuple[str, ...],
+    capability_id: str,
+    relative_path: str,
 ) -> FieldToken:
-    pointer = f"{data_root.rstrip('/')}{relative_path}"
-    leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, pointer)
-    if leaf is None or not isinstance(leaf.get("type"), str):
+    data_types: set[str] = set()
+    for data_root in data_roots:
+        pointer = f"{data_root.rstrip('/')}{relative_path}"
+        leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, pointer)
+        if leaf is None or not isinstance(leaf.get("type"), str):
+            raise TemplateRetrievalMiss(
+                f"required output field is absent or untyped in TaskSpec: {relative_path}"
+            )
+        data_types.add(str(leaf["type"]))
+    if len(data_types) != 1:
         raise TemplateRetrievalMiss(
-            f"required output field is absent or untyped in TaskSpec: {relative_path}"
+            f"required output field has inconsistent types: {relative_path}"
         )
-    return FieldToken(capability_id, relative_path, str(leaf["type"]))
+    return FieldToken(capability_id, relative_path, data_types.pop())
 
 
 def _task_spec_schema_leaf(schema: dict[str, Any], pointer: str) -> dict[str, Any] | None:
@@ -1007,14 +1050,17 @@ def _template_required_fields_are_available(
     task_spec: TaskSpec,
     card_spec: dict[str, Any],
 ) -> bool:
-    data_root = _capability_data_root(card_spec, record.capability_id)
-    for path in record.required_paths:
-        pointer = f"{data_root.rstrip('/')}{path}"
-        if _task_spec_schema_leaf(task_spec.dataModelSchema, pointer) is None:
-            return False
-    for token in record.required_field_tokens:
-        pointer = f"{data_root.rstrip('/')}{token.path}"
-        leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, pointer)
-        if leaf is None or leaf.get("type") != token.data_type:
-            return False
+    data_roots = _capability_data_roots(card_spec, record.capability_id)
+    if len(data_roots) != record.binding_count:
+        return False
+    for data_root in data_roots:
+        for path in record.required_paths:
+            pointer = f"{data_root.rstrip('/')}{path}"
+            if _task_spec_schema_leaf(task_spec.dataModelSchema, pointer) is None:
+                return False
+        for token in record.required_field_tokens:
+            pointer = f"{data_root.rstrip('/')}{token.path}"
+            leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, pointer)
+            if leaf is None or leaf.get("type") != token.data_type:
+                return False
     return True

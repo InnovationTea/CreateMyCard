@@ -28,6 +28,7 @@ class TemplateVariantSearchRecord:
     field_tokens: frozenset[FieldToken]
     required_field_tokens: frozenset[FieldToken]
     required_parameter_count: int
+    binding_count: int = 1
 
 
 def build_template_variant_search_records(
@@ -80,4 +81,5 @@ def _build_record(
         ),
         required_field_tokens=required_tokens,
         required_parameter_count=len(variant.parameters_schema.get("required", ())),
+        binding_count=definition.binding_count,
     )

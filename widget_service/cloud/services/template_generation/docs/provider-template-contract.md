@@ -402,3 +402,13 @@ Support CardTpl 使用 `onClick: EventAction(props?.actionId)`。微服务校验
 .venv312/bin/python cloud/services/template_generation/tools/build_cardplan_bundle.py
 PYTHONPATH=cloud .venv312/bin/pytest -q cloud/services/template_generation/tests
 ```
+## 同能力多实例绑定
+
+Provider Template 默认 `bindingCount=1`。需要消费同一 `capabilityId` 的两份运行时结果时，
+模板清单必须显式声明 `bindingCount: 2`，CardTpl 使用
+`$path(0, "/relative/path")`、`$path(1, "/relative/path")`（可选字段对应
+`$optionalPath`）区分两份绑定。编号严格对应 CardSpec `dataBindings` 的原始顺序。
+
+多实例模板只有在相同能力的数据绑定数量与声明完全一致、各 `writeResultTo` 唯一，且每个
+数据根均满足模板必选字段和类型时才可进入 Search 与编译。普通单实例模板仍要求运行时根
+与 Provider 的 `dataDomain` 完全一致。
