@@ -125,7 +125,8 @@ data = {
 Stack({
   "width": "matchParent",
   "height": "matchParent",
-  "alignContent": "topStart"
+  "alignContent": "topStart",
+  "padding": { "left": 8, "right": 8 }
 },
   Column(
     {"_advancedComponent": "ResourceUsageOverview", "width": "matchParent", "height": "matchParent", "itemMargin": 2, "justifyContent": "end", "alignItems": "center", "clip": true, "constraintSize": {"minWidth": 0, "minHeight": 0}},
@@ -159,16 +160,16 @@ Stack({
             ),
         Text(
               "%",
-              {"fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+              {"fontSize": 14, "minFontSize": 14, "fontWeight": 700, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
             )
       ),
     Text(
         data.available,
-        {"width": "matchParent", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        {"width": "matchParent", "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
       ),
     Text(
         data.total,
-        {"width": "matchParent", "fontSize": 10, "minFontSize": 10, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
+        {"width": "matchParent", "fontSize": 12, "minFontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textAlign": "center", "textOverflow": "ellipsis", "constraintSize": {"minWidth": 0, "minHeight": 0}}
       )
   ),
   #if props.actionId

@@ -472,7 +472,7 @@ Row(
       "_advancedComponent": "BluetoothDeviceOverview",
       "width": "matchParent",
       "height": "matchParent",
-      "padding": { "left": 12, "right": 16 },
+      "padding": { "left": 8, "right": 8 },
       "alignItems": "center",
       "justifyContent": "spaceBetween",
       "onClick": EventAction(props?.actionId)
@@ -489,12 +489,12 @@ Row(
     ),
     Text(
       Expr('L ' + data.left + '% R ' + data.right + '%'),
-      { "fontSize": 12, "fontWeight": 500, "height": 16, "fontColor": $theme('primaryColor') }
+      { "fontSize": 12, "fontWeight": 400, "height": 16, "fontColor": $theme('primaryColor') }
     )
   ),
   Image(
     props.deviceIcon,
-    { "width": 24, "height": 24, "fillColor": $theme('supportContentColor') }
+    { "width": 24, "height": 24, "flexShrink": 0, "fillColor": $theme('supportContentColor') }
   )
 )
 
@@ -511,7 +511,7 @@ Row(
     "_advancedComponent": "BluetoothDeviceOverview",
     "width": "matchParent",
     "height": "matchParent",
-    "padding": { "left": 12, "right": 12 },
+    "padding": { "left": 8, "right": 8 },
     "justifyContent": "start",
     "alignItems": "center",
     "clip": true,
@@ -521,38 +521,11 @@ Row(
   Row(
     {
       "width": "matchParent",
-      "height": 44,
       "itemMargin": 8,
-      "justifyContent": "start",
+      "justifyContent": "spaceBetween",
       "alignItems": "center",
       "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
-    Stack(
-      {"width": 36, "height": 36, "alignContent": "center", "flexShrink": 0},
-      Progress(
-        {
-          "value": data.percent,
-          "total": 100,
-          "type": "ring",
-          "color": $theme('progressColor'),
-          "backgroundColor": $theme('progressBackgroundColor'),
-          "width": 36,
-          "height": 36,
-          "strokeWidth": 6
-        }
-      ),
-      #if props.deviceIcon
-      Image(
-        props.deviceIcon,
-        {
-          "width": 12,
-          "height": 12,
-          "objectFit": "contain",
-          "fillColor": $theme('supportContentColor')
-        }
-      )
-      #endif
-    ),
     Column(
       {
         "itemMargin": 4,
@@ -582,6 +555,32 @@ Row(
           "constraintSize": {"minWidth": 0, "minHeight": 0}
         }
       )
+    ),
+    Stack(
+      {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
+      Progress(
+        {
+          "value": data.percent,
+          "total": 100,
+          "type": "ring",
+          "color": $theme('progressColor'),
+          "backgroundColor": $theme('progressBackgroundColor'),
+          "width": 40,
+          "height": 40,
+          "strokeWidth": 6
+        }
+      ),
+      #if props.deviceIcon
+      Image(
+        props.deviceIcon,
+        {
+          "width": 16,
+          "height": 16,
+          "objectFit": "contain",
+          "fillColor": $theme('supportContentColor')
+        }
+      )
+      #endif
     )
   )
 )

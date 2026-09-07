@@ -7,7 +7,8 @@
     `HeroActionLayout@1` 加一个 `PillAction@1`。
   - `BluetoothDeviceOverviewEarbudsSupport@1`：展示左右耳电量；`deviceIcon` 必填；Planner 可将其用于
     `TwoSupportLayout@1`，并传入 `actionId` 将事件绑定在 Support 根节点内部。
-  - `BluetoothDeviceOverviewChargeSupport@1`：展示盒或整体电量及充电状态，32vp 环配两行文本；
+  - `BluetoothDeviceOverviewChargeSupport@1`：左侧两行文本展示盒或整体电量及充电状态，
+    右侧 40vp 电量环，环内图标为 16vp；
     主数据 /batteryLevel、次要数据 /chargingStatusDesc 均必需；`deviceIcon` 必填且必须表达充电盒。
     用于 `TwoSupportLayout@1`，支持可选根节点事件 `actionId`，不展示左右耳电量。
   - `BluetoothDeviceOverviewEarbudsFull@1`：展示左右耳电量，可选展示左右耳充电状态，左右耳图标可选；

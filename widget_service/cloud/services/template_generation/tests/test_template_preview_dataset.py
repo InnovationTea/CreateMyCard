@@ -72,7 +72,7 @@ def test_template_preview_assets_are_bundled_by_genui_evaluation():
         "heat_generation.svg",
         "icon_earphone.svg",
         "icon_tiktok.png",
-        "icon_weather1.svg",
+        "icon_weather_thermometer.svg",
         "l_circle_fill.svg",
         "location_north_up_right_fill.svg",
         "moon_z_fill_1.svg",
@@ -107,6 +107,35 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
         else:
             assert case.primary_data
         assert json.dumps(case.messages, ensure_ascii=False)
+
+
+def test_cloudy_weather_preview_does_not_use_thermometer_for_single_business():
+    single_template_ids = {
+        "WeatherOverviewCompact@1", "WeatherOverviewUvCompact@1",
+        "WeatherOverviewHero@1", "WeatherOverviewFull@1",
+    }
+    checked: set[str] = set()
+    for case in build_template_preview_cases():
+        if case.template_id not in single_template_ids:
+            continue
+        checked.add(case.template_id)
+        update = case.messages[1].get("updateComponents")
+        assert isinstance(update, dict)
+        components = update.get("components")
+        assert isinstance(components, list)
+        assert not any(component.get("component") == "Image" for component in components)
+        model = case.messages[2].get("updateDataModel")
+        assert isinstance(model, dict)
+        value = model.get("value")
+        assert isinstance(value, dict)
+        data = value.get("data")
+        assert isinstance(data, dict)
+        weather = data.get("weather")
+        assert isinstance(weather, dict)
+        current = weather.get("current")
+        assert isinstance(current, dict)
+        assert current.get("condition") == "多云"
+    assert checked == single_template_ids
 
 
 def test_earphone_hero_uses_title_parameter_without_title_binding():

@@ -15,7 +15,7 @@
   ],
   "supportedLayoutIds": ["TwoSupportLayout"],
   "paletteSceneIds": ["layout.twoSupport"],
-  "primaryColor": "#FF1F4595",
+  "primaryColor": "#E61F4595",
   "supportContentColor": "#991F4595",
   "rootStyle": {
     "backgroundColor": "#1A0A59F7",
@@ -25,7 +25,7 @@
   },
   "actionStyle": {
     "backgroundColor": "#330A59F7",
-    "contentColor": "#FF1F4799"
+    "contentColor": "#E61F4799"
   },
   "supportContentStyle": {
     "backgroundColor": "#1A2E529E",

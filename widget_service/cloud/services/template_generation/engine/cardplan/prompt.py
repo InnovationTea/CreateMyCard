@@ -84,6 +84,9 @@ _ASSET_SEMANTIC_TERMS = {
     "call": ("call", "phone", "电话", "拨打"),
     "weather": ("weather", "天气"),
     "weather-condition": ("晴天", "天气降雨", "台风", "大风提醒"),
+    "weather-indicator": (
+        "晴天", "天气降雨", "台风", "大风提醒", "体感温度", "天气温度", "当前气温",
+    ),
     "sleep": ("sleep", "睡眠", "月亮"),
     "alert": ("alert", "warning", "预警", "警告"),
     "product": ("product", "earphone", "headphone", "耳机"),

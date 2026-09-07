@@ -56,7 +56,7 @@ Row(
     "_advancedComponent": "BatteryOverview",
     "width": "matchParent",
     "height": "matchParent",
-    "padding": { "left": 12, "right": 12 },
+    "padding": { "left": 8, "right": 8 },
     "justifyContent": "start",
     "alignItems": "center",
     "clip": true,
@@ -66,38 +66,11 @@ Row(
   Row(
     {
       "width": "matchParent",
-      "height": 44,
       "itemMargin": 8,
-      "justifyContent": "start",
+      "justifyContent": "spaceBetween",
       "alignItems": "center",
       "constraintSize": {"minWidth": 0, "minHeight": 0}
     },
-    Stack(
-      {"width": 32, "height": 32, "alignContent": "center", "flexShrink": 0},
-      Progress(
-        {
-          "value": data.percent,
-          "total": 100,
-          "type": "ring",
-          "color": $theme('progressColor'),
-          "backgroundColor": $theme('progressBackgroundColor'),
-          "width": 32,
-          "height": 32,
-          "strokeWidth": 6
-        }
-      ),
-      #if props.batteryIcon
-      Image(
-        props.batteryIcon,
-        {
-          "width": 12,
-          "height": 12,
-          "objectFit": "contain",
-          "fillColor": $theme('supportContentColor')
-        }
-      )
-      #endif
-    ),
     Column(
       {
         "itemMargin": 4,
@@ -153,7 +126,33 @@ Row(
           "constraintSize": {"minWidth": 0, "minHeight": 0}
         }
       )
-    )
+    ),
+    Stack(
+      {"width": 40, "height": 40, "alignContent": "center", "flexShrink": 0},
+      Progress(
+        {
+          "value": data.percent,
+          "total": 100,
+          "type": "ring",
+          "color": $theme('progressColor'),
+          "backgroundColor": $theme('progressBackgroundColor'),
+          "width": 40,
+          "height": 40,
+          "strokeWidth": 6
+        }
+      ),
+      #if props.batteryIcon
+      Image(
+        props.batteryIcon,
+        {
+          "width": 16,
+          "height": 16,
+          "objectFit": "contain",
+          "fillColor": $theme('supportContentColor')
+        }
+      )
+      #endif
+    ),
   )
 )
 #End

@@ -72,7 +72,6 @@ _ASSET_BY_PARAMETER = {
     "heartIcon": "resources/base/media/heart_fill.svg",
     "deviceIcon": "resources/base/media/earphone_case_16644.svg",
     "caloriesIcon": "resources/base/media/flame_fill.svg",
-    "conditionIcon": "resources/base/media/icon_weather1.svg",
     "distanceIcon": "resources/base/media/location_north_up_right_fill.svg",
     "icon": "resources/base/media/externaldrive_fill.svg",
     "leftEarIcon": "resources/base/media/l_circle_fill.svg",
@@ -96,12 +95,13 @@ _TEXT_BY_TEMPLATE_PARAMETER = {
     ("WeatherOverviewHumidityFull@1", "location"): "青浦区",
     ("WeatherOverviewUvFull@1", "location"): "青浦区",
 }
-# Support 的固定预览样例不能用充电盒冒充耳机本体，也不为多云或普通电量借用图标。
+# 单业务多云样例没有匹配状态素材，省略图标；Support 可使用表达气温的温度计。
 _SUPPORT_PREVIEW_ASSET_OVERRIDES: dict[tuple[str, str], str | None] = {
     ("BluetoothDeviceOverviewEarbudsSupport@1", "deviceIcon"):
         "resources/base/media/icon_earphone.svg",
     ("BatteryOverviewSupport@1", "batteryIcon"): None,
-    ("WeatherOverviewTemperatureSupport@1", "conditionIcon"): None,
+    ("WeatherOverviewTemperatureSupport@1", "conditionIcon"):
+        "resources/base/media/icon_weather_thermometer.svg",
 }
 _SAMPLE_BY_BUSINESS_BINDING: dict[tuple[str, str], Any] = {
     ("ActivityOverview", "calories"): "420 千卡",

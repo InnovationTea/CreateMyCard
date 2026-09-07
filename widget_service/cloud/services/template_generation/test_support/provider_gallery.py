@@ -174,11 +174,13 @@ _ASSET_IDS_BY_TEMPLATE_PREFIX = {
 }
 
 _ASSET_SEARCH_TERMS_BY_TEMPLATE_PREFIX = {
-    "WeatherOverview": ("weather", "天气"),
+    # 当前单业务样例为多云；指定素材版本没有对应状态资源，不能下发晴雨等不匹配图标。
+    "WeatherOverview": (),
 }
 
 # 双业务画廊使用独立测试素材，不把另一业务的候选当作通用图标。
 _SUPPORT_ASSET_IDS_BY_TEMPLATE = {
+    "WeatherOverviewTemperatureSupport@1": ("asset.icon_weather_thermometer",),
     "ActivityOverviewSupport@1": ("asset.figure_run",),
     "WorkoutOverviewSupport@1": ("asset.figure_run",),
     "SleepOverviewSupport@1": ("asset.moon_z_fill_1",),
@@ -190,7 +192,7 @@ _SUPPORT_ASSET_IDS_BY_TEMPLATE = {
     "ScheduleOverviewStartTimeSupport@1": ("asset.calendar_fill",),
     "ScheduleOverviewDateSupport@1": ("asset.calendar_fill",),
 }
-# 指定版本没有多云图标；固定测试样例保持多云，不能改成晴天来迁就素材。
+# 指定版本没有多云状态图标；样例保持多云，允许使用独立表达气温的温度计。
 _SUPPORT_WEATHER_CONDITION = "多云"
 
 _CALENDAR_NEXT_EVENT_RUNTIME_FIELDS = ("/events/0/dtStart",)

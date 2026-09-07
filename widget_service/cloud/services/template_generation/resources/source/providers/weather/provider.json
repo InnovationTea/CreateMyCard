@@ -50,7 +50,12 @@
         "/location/prefectureName",
         "/location/districtName",
         "/current/coldLevel"
-      ]
+      ],
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather-condition"
+        ]
+      }
     },
     {
       "templateId": "WeatherOverviewUvCompact@1",
@@ -68,18 +73,23 @@
       "optionalData": [
         "/location/prefectureName",
         "/location/districtName"
-      ]
+      ],
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather-condition"
+        ]
+      }
     },
     {
       "templateId": "WeatherOverviewTemperatureSupport@1",
       "assetParameterSemanticTags": {
         "conditionIcon": [
-          "weather-condition"
+          "weather-indicator"
         ]
       },
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "基础天气 Support：主行展示城市和温度，辅助行展示天气现象；城市区县可选，使用 location 或当前城市兜底；可选 24vp 天气状态图标和根节点事件。",
+      "description": "基础天气 Support：主行展示城市和温度，辅助行展示天气现象；城市区县可选，使用 location 或当前城市兜底；可选 24vp 气温温度计或天气状态图标和根节点事件。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
         "/current/temperatureText"
@@ -144,7 +154,12 @@
         "/location/prefectureName",
         "/location/districtName",
         "/current/coldLevel"
-      ]
+      ],
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather-condition"
+        ]
+      }
     },
     {
       "templateId": "WeatherOverviewFull@1",
@@ -163,7 +178,12 @@
         "/location/districtName",
         "/current/airQuality",
         "/current/coldLevel"
-      ]
+      ],
+      "assetParameterSemanticTags": {
+        "conditionIcon": [
+          "weather-condition"
+        ]
+      }
     },
     {
       "templateId": "WeatherOverviewHumidityFull@1",

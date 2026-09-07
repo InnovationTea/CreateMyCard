@@ -22,15 +22,7 @@ from services.template_generation.test_support.provider_gallery import (
     write_gallery_input_dataset,
 )
 
-_WEATHER_ASSET_IDS = [
-    "asset.drop_1",
-    "asset.sun_max",
-    "asset.sun_min",
-    "asset.icon_weather_temperature1",
-    "asset.icon_weather_thermometer_medium",
-    "asset.icon_weather_thermometer",
-    "asset.icon_weather_wind",
-]
+_WEATHER_ASSET_IDS: list[str] = []
 
 _FUSION_CAPABILITY_IDS = {
     "GetCalendarEvents",

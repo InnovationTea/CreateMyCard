@@ -264,7 +264,7 @@ Row(
         "itemMargin": 4,
         "justifyContent": "spaceBetween",
         "alignItems": "center",
-        "padding": { "left": 12, "right": 12 },
+        "padding": { "left": 8, "right": 8 },
         "onClick": EventAction(props?.actionId)
     },
     Column(

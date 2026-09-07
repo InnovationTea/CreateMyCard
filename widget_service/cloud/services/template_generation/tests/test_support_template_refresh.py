@@ -23,6 +23,27 @@ _CALENDAR_SUPPORTS = (
     ("ScheduleOverviewDateSupport@1", "/events/0/startDate"),
 )
 
+# 主数值与同排单位都属于主文本；应用时长模板保留原有的辅助信息在上布局。
+_SUPPORT_PRIMARY_TEXT_INDEXES = {
+    "ActivityOverviewSupport@1": (0,),
+    "AppUsageOverviewSupport@1": (1,),
+    "BatteryOverviewSupport@1": (0,),
+    "BluetoothDeviceOverviewEarbudsSupport@1": (0,),
+    "BluetoothDeviceOverviewChargeSupport@1": (0,),
+    "CountdownOverviewSupport@1": (0,),
+    "HeartRateOverviewSupport@1": (0,),
+    "ResourceUsageOverviewSupport@1": (0, 1),
+    "ScheduleOverviewTimeSupport@1": (0,),
+    "ScheduleOverviewLocationSupport@1": (0,),
+    "ScheduleOverviewStartTimeSupport@1": (0,),
+    "ScheduleOverviewDateSupport@1": (0,),
+    "SleepOverviewSupport@1": (0,),
+    "WeatherOverviewTemperatureSupport@1": (0, 1),
+    "WeatherOverviewTemperatureUvSupport@1": (0, 1),
+    "WeatherOverviewTemperaturecoldLevelSupport@1": (0, 1),
+    "WorkoutOverviewSupport@1": (0,),
+}
+
 
 def _nodes(root: Nested2Node, kind: str) -> list[Nested2Node]:
     result = [root] if root.component_type == kind else []
@@ -40,6 +61,156 @@ def _instantiate(
         definition.variants[0].root, params or {}, bindings,
         registry.theme_reference_values("2x2-two-support"),
     )
+
+
+def _support_ux_root(
+    template_id: str, with_optional: bool, with_action: bool,
+) -> Nested2Node:
+    definition = get_cardplan_registry().require_template(template_id)
+    variant = definition.variants[0]
+    bindings: dict[str, str] = {}
+    for name in definition.bindings:
+        if not with_optional and name in variant.optional_bindings:
+            continue
+        bindings[name] = "${data.support." + name + "}"
+    required_parameters = variant.parameters_schema.get("required", [])
+    params: dict[str, str] = {}
+    for name in definition.asset_parameter_semantic_tags:
+        if with_optional or name in required_parameters:
+            params[name] = "resources/base/media/fixture.svg"
+    properties = variant.parameters_schema.get("properties", {})
+    if with_optional:
+        for name in ("title", "location"):
+            if name in properties:
+                params[name] = "测试内容"
+    if with_action:
+        params["actionId"] = "event.support.test"
+    return _instantiate(template_id, bindings, params)
+
+
+def _standalone_images(root: Nested2Node) -> list[Nested2Node]:
+    # 环内小图标不是独立右侧图标，不将其放大到 24vp。
+    if any(child.component_type == "Progress" for child in root.children):
+        return []
+    images = [root] if root.component_type == "Image" else []
+    for child in root.children:
+        images.extend(_standalone_images(child))
+    return images
+
+
+@pytest.mark.parametrize("template_id", tuple(_SUPPORT_PRIMARY_TEXT_INDEXES))
+@pytest.mark.parametrize("with_optional", (False, True))
+@pytest.mark.parametrize("with_action", (False, True))
+def test_support_ux_spacing_typography_and_right_icon(
+    template_id: str, with_optional: bool, with_action: bool,
+) -> None:
+    root = _support_ux_root(template_id, with_optional, with_action)
+    options = root.values[0]
+    assert isinstance(options, dict)
+    padding = options.get("padding")
+    assert isinstance(padding, dict)
+    assert padding.get("left") == padding.get("right") == 8
+
+    # 旧覆盖层中的空 Text 仅提供点击命中区域，不属于主辅信息。
+    texts = [node for node in _nodes(root, "Text") if node.values[0] != ""]
+    primary_indexes = _SUPPORT_PRIMARY_TEXT_INDEXES.get(template_id)
+    assert primary_indexes is not None
+    assert len(texts) > len(primary_indexes)
+    for index, node in enumerate(texts):
+        styles = node.values[-1]
+        assert isinstance(styles, dict)
+        primary = index in primary_indexes
+        font_size = 14 if primary else 12
+        assert styles.get("fontSize") == font_size
+        assert styles.get("fontWeight") == (700 if primary else 400)
+        assert styles.get("minFontSize", font_size) == font_size
+
+    for node in _standalone_images(root):
+        styles = node.values[-1]
+        assert isinstance(styles, dict)
+        assert styles.get("width") == styles.get("height") == 24
+        assert styles.get("flexShrink") == 0
+    assert _serialize_node(root).count('"onClick":') == int(with_action)
+
+
+def test_support_ux_contract_covers_every_registered_support() -> None:
+    supports = {
+        name for name in get_cardplan_registry().templates if name.endswith("Support@1")
+    }
+    assert supports == set(_SUPPORT_PRIMARY_TEXT_INDEXES)
+
+
+@pytest.mark.parametrize(("template_id", "binding", "unit", "caption"), (
+    ("ActivityOverviewSupport@1", "steps", "步", "每日步数"),
+    ("HeartRateOverviewSupport@1", "average", "次/分钟", "运动平均心率"),
+))
+def test_health_support_combines_numeric_value_and_unit_with_runtime_binding(
+    template_id: str, binding: str, unit: str, caption: str,
+) -> None:
+    root = _support_ux_root(template_id, with_optional=True, with_action=False)
+    texts = _nodes(root, "Text")
+    assert len(texts) == 2
+    assert texts[0].values[0] == "{{ ${/data/support/" + binding + "} + '" + unit + "' }}"
+    assert texts[1].values[0] == caption
+
+
+@pytest.mark.parametrize("title", (None, "运动会倒计时", "倒计时与天气"))
+def test_countdown_support_prioritizes_remaining_days(title: str | None) -> None:
+    params = {"title": title} if title is not None else {}
+    root = _instantiate("CountdownOverviewSupport@1", {"days": "${data.countdown.days}"}, params)
+    texts = _nodes(root, "Text")
+    assert len(texts) == 2
+    assert texts[0].values[0] == "{{ '剩余' + ${/data/countdown/days} + '天' }}"
+    assert texts[1].values[0] == (title if title is not None else "倒计时")
+    # 显式主行容器隔离下一行标题，避免其中的“天”被误识别为数值单位。
+    assert root.children[0].children[0].component_type == "Row"
+    assert len(root.children[0].children[0].children) == 1
+
+
+@pytest.mark.parametrize("template_id", (
+    "BatteryOverviewSupport@1", "BluetoothDeviceOverviewChargeSupport@1",
+))
+def test_battery_support_places_progress_to_the_right_of_text(template_id: str) -> None:
+    root = _support_ux_root(template_id, with_optional=True, with_action=False)
+    content = root.children[0]
+    assert [node.component_type for node in content.children] == ["Column", "Stack"]
+    styles = content.values[0]
+    assert isinstance(styles, dict)
+    assert styles.get("justifyContent") == "spaceBetween"
+
+
+def test_heart_rate_support_keeps_two_direct_text_lines_without_forced_width() -> None:
+    root = _support_ux_root("HeartRateOverviewSupport@1", with_optional=True, with_action=False)
+    content = root.children[0]
+    assert content.component_type == "Column"
+    assert [node.component_type for node in content.children] == ["Text", "Text"]
+    for node in content.children:
+        styles = node.values[-1]
+        assert isinstance(styles, dict)
+        assert styles.get("width") is None
+        assert styles.get("maxLines") == 1
+        assert styles.get("textOverflow") == "ellipsis"
+        assert styles.get("constraintSize") == {"minWidth": 0, "minHeight": 0}
+
+
+@pytest.mark.parametrize(("template_id", "ring_size", "icon_size"), (
+    ("BatteryOverviewSupport@1", 40, 16),
+    ("BluetoothDeviceOverviewChargeSupport@1", 40, 16),
+    ("ResourceUsageOverviewSupport@1", 44, 20),
+))
+def test_support_ux_preserves_progress_and_inner_icon_sizes(
+    template_id: str, ring_size: int, icon_size: int,
+) -> None:
+    root = _support_ux_root(template_id, with_optional=True, with_action=False)
+    progress = _nodes(root, "Progress")
+    images = _nodes(root, "Image")
+    assert len(progress) == len(images) == 1
+    progress_styles = progress[0].values[-1]
+    icon_styles = images[0].values[-1]
+    assert isinstance(progress_styles, dict)
+    assert isinstance(icon_styles, dict)
+    assert progress_styles.get("width") == progress_styles.get("height") == ring_size
+    assert icon_styles.get("width") == icon_styles.get("height") == icon_size
 
 
 def test_support_inventory_removes_deleted_templates() -> None:
@@ -91,7 +262,7 @@ def test_calendar_time_does_not_leave_separator_without_end(with_end: bool) -> N
 @pytest.mark.parametrize("percent_fields", ((), ("percentText",), ("percent",), (
     "percent", "percentText",
 )))
-def test_battery_support_requires_numeric_percent_for_32vp_ring(
+def test_battery_support_requires_numeric_percent_for_40vp_ring(
     percent_fields: tuple[str, ...],
 ) -> None:
     bindings = {"charging": "${data.phoneBattery.chargingStatusDesc}"}
@@ -112,7 +283,7 @@ def test_battery_support_requires_numeric_percent_for_32vp_ring(
     if progresses:
         options = progresses[0].values[-1]
         assert isinstance(options, dict)
-        assert options.get("width") == options.get("height") == 32
+        assert options.get("width") == options.get("height") == 40
         assert options.get("value") == "${data.phoneBattery.percent}"
 
 
@@ -174,7 +345,7 @@ def test_support_preview_assets_preserve_device_and_weather_semantics() -> None:
         "BluetoothDeviceOverviewEarbudsSupport@1": ["icon_earphone.svg"],
         "BluetoothDeviceOverviewChargeSupport@1": ["earphone_case_16644.svg"],
         "HeartRateOverviewSupport@1": ["heart_fill.svg"],
-        "WeatherOverviewTemperatureSupport@1": [],
+        "WeatherOverviewTemperatureSupport@1": ["icon_weather_thermometer.svg"],
         "WeatherOverviewTemperatureUvSupport@1": [],
         "WeatherOverviewTemperaturecoldLevelSupport@1": [],
         "BatteryOverviewSupport@1": [],

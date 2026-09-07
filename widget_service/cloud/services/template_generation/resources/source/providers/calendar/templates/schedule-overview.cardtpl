@@ -158,7 +158,7 @@ Row(
   {
     "_advancedComponent": "ScheduleOverview",
     "width": "matchParent",
-    "padding": { "left": 12, "right": 12 },
+    "padding": { "left": 8, "right": 8 },
     "justifyContent": "spaceBetween",
     "alignItems": "center",
     "clip": true,
@@ -189,7 +189,7 @@ Row(
       `${data.start} - ${data.end}`,
       {
         "fontSize": 12,
-        "fontWeight": 500,
+        "fontWeight": 400,
         "fontColor": $theme('supportContentColor'),
         "maxLines": 1,
         "textOverflow": "ellipsis",
@@ -200,7 +200,7 @@ Row(
     Text(
       data.start,
       {
-        "fontSize": 12, "fontWeight": 500,
+        "fontSize": 12, "fontWeight": 400,
         "fontColor": $theme('supportContentColor'), "maxLines": 1,
         "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 }
       }
@@ -210,7 +210,7 @@ Row(
   #if props.calendarIcon
   Image(
     props.calendarIcon,
-    { "width": 24, "height": 24, "fillColor": $theme('supportContentColor') }
+    { "width": 24, "height": 24, "flexShrink": 0, "fillColor": $theme('supportContentColor') }
   )
   #endif
 )
@@ -226,7 +226,7 @@ Row(
   {
     "_advancedComponent": "ScheduleOverview",
     "width": "matchParent",
-    "padding": { "left": 12, "right": 12 },
+    "padding": { "left": 8, "right": 8 },
     "justifyContent": "spaceBetween",
     "alignItems": "center",
     "clip": true,
@@ -256,7 +256,7 @@ Row(
       data.location,
       {
         "fontSize": 12,
-        "fontWeight": 500,
+        "fontWeight": 400,
         "fontColor": $theme('supportContentColor'),
         "maxLines": 1,
         "textOverflow": "ellipsis",
@@ -267,7 +267,7 @@ Row(
   #if props.calendarIcon
   Image(
     props.calendarIcon,
-    { "width": 24, "height": 24, "fillColor": $theme('supportContentColor') }
+    { "width": 24, "height": 24, "flexShrink": 0, "fillColor": $theme('supportContentColor') }
   )
   #endif
 )
@@ -283,7 +283,7 @@ Row(
   {
     "_advancedComponent": "ScheduleOverview",
     "width": "matchParent",
-    "padding": { "left": 12, "right": 12 },
+    "padding": { "left": 8, "right": 8 },
     "justifyContent": "spaceBetween",
     "alignItems": "center",
     "clip": true,
@@ -313,7 +313,7 @@ Row(
       data.start,
       {
         "fontSize": 12,
-        "fontWeight": 500,
+        "fontWeight": 400,
         "fontColor": $theme('supportContentColor'),
         "maxLines": 1,
         "textOverflow": "ellipsis",
@@ -324,7 +324,7 @@ Row(
   #if props.calendarIcon
   Image(
     props.calendarIcon,
-    { "width": 24, "height": 24, "fillColor": $theme('supportContentColor') }
+    { "width": 24, "height": 24, "flexShrink": 0, "fillColor": $theme('supportContentColor') }
   )
   #endif
 )
@@ -340,7 +340,7 @@ Row(
   {
     "_advancedComponent": "ScheduleOverview",
     "width": "matchParent",
-    "padding": { "left": 12, "right": 12 },
+    "padding": { "left": 8, "right": 8 },
     "justifyContent": "spaceBetween",
     "alignItems": "center",
     "clip": true,
@@ -370,7 +370,7 @@ Row(
       data.date,
       {
         "fontSize": 12,
-        "fontWeight": 500,
+        "fontWeight": 400,
         "fontColor": $theme('supportContentColor'),
         "maxLines": 1,
         "textOverflow": "ellipsis",
@@ -381,7 +381,7 @@ Row(
   #if props.calendarIcon
   Image(
     props.calendarIcon,
-    { "width": 24, "height": 24, "fillColor": $theme('supportContentColor') }
+    { "width": 24, "height": 24, "flexShrink": 0, "fillColor": $theme('supportContentColor') }
   )
   #endif
 )

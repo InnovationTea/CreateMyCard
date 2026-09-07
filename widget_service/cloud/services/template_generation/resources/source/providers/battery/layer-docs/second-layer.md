@@ -7,7 +7,7 @@
   - `BatteryOverviewHero@1`：约 2x1.7 的通用电量 Hero；展示电量进度环和电量等级，用于主内容加一个 `PillAction@1`。主数据：/batterySOC；次要数据：/batteryCapacityLevelDesc；可选数据：无。
   - `BatteryOverviewWideFull@1`：完整 4x2 电量摘要；横向展示电量进度环、剩余电量文本、充电状态和电量等级。主数据：/batterySOC, /batterySOCText；次要数据：/chargingStatusDesc, /batteryCapacityLevelDesc；可选数据：无。
   - `BatteryOverviewCompact@1`：约 2x1 的电量摘要，用于一个 Compact 加两个 `PillAction@1`；左侧以 36vp 环形进度展示 `/batterySOC`，环内可选电量图标，右侧展示“电量 /batterySOC%”和 `/chargingStatusDesc`。主数据：/batterySOC；次要数据：/chargingStatusDesc；可选数据：无。
-  - `BatteryOverviewSupport@1`：约 2x1 的双业务电量摘要；32vp 电量环配两行文本，环内可选 12vp 图标。
+  - `BatteryOverviewSupport@1`：约 2x1 的双业务电量摘要；左侧两行文本，右侧 40vp 电量环，环内可选 16vp 图标。
     主数据：/batterySOC；次要数据：/chargingStatusDesc；可选数据：/batterySOCText。
     数值电量必需且 0% 合法；不得用文本、异常提示或零值伪造缺失的数值电量。
   - `BatteryOverviewPercentRingHero@1`：手机电量百分比环形 Hero，居中展示电量进度环和剩余电量百分比；

@@ -95,25 +95,18 @@ Row(
     "height": "matchParent",
     "justifyContent": "spaceBetween",
     "alignItems": "center",
-    "padding": { "left": 12, "right": 12 },
+    "padding": { "left": 8, "right": 8 },
     "onClick": EventAction(props?.actionId)
   },
   Column(
     { "itemMargin": 4, "justifyContent": "start", "alignItems": "start", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
-    Row(
-      { "itemMargin": 2, "justifyContent": "start", "alignItems": "bottom", "constraintSize": { "minWidth": 0, "minHeight": 0 } },
-      Text(
-        data.average,
-        { "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
-      ),
-      Text(
-        "次/分钟",
-        { "fontSize": 10, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "padding": { "bottom": 6 } }
-      )
+    Text(
+      Expr(data.average + "次/分钟"),
+      { "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
     ),
     Text(
       "运动平均心率",
-      { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 }, "width": "matchParent" }
+      { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1, "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 } }
     )
   ),
   #if props.heartIcon
@@ -121,7 +114,7 @@ Row(
     props.heartIcon,
     {
       "width": 24,
-      "height": 24,
+      "height": 24, "flexShrink": 0,
       "fillColor": $theme("supportContentColor")
     }
   )

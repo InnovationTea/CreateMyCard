@@ -125,7 +125,7 @@ from services.widget_generation_service import WidgetGenerationService
 
 _WEATHER_BODY = (
     'Template("SingleFocusLayout@1",{},Template("WeatherOverviewFull@1",'
-    '{"conditionIcon":"resources/base/media/icon_weather1.svg"}));'
+    '{"conditionIcon":"resources/base/media/drop_1.svg"}));'
 )
 
 
@@ -677,12 +677,12 @@ def test_two_support_layout_theme_is_deterministic_and_exposes_slot_styles() -> 
         ("GetHealthAndSportSummary",),
     ) == "2x2-two-support"
     assert registry.theme_reference_values("2x2-two-support") == {
-        "primaryColor": "#FF1F4595",
+        "primaryColor": "#E61F4595",
         "supportContentColor": "#991F4595",
-        "progressColor": "#FF1F4595",
+        "progressColor": "#E61F4595",
         "progressBackgroundColor": "#330A59F7",
         "actionStyle.backgroundColor": "#330A59F7",
-        "actionStyle.contentColor": "#FF1F4799",
+        "actionStyle.contentColor": "#E61F4799",
         "supportContentStyle.backgroundColor": "#1A2E529E",
         "supportContentStyle.borderRadius": 16,
     }
@@ -2356,12 +2356,12 @@ def test_business_artwork_and_monochrome_icons_keep_explicit_color_policies() ->
         ("SleepOverviewSupport@1", "sourceIcon"),
         ("SleepOverviewNapFull@1", "sourceIcon"),
         ("SleepOverviewNapHero@1", "sourceIcon"),
+        ("WorkoutOverviewSupport@1", "sourceIcon"),
     }
     expected_inherited_assets = {
         ("WorkoutOverviewFull@1", "sourceIcon"),
         ("WorkoutOverviewCompact@1", "sourceIcon"),
         ("WorkoutOverviewHero@1", "sourceIcon"),
-        ("WorkoutOverviewSupport@1", "sourceIcon"),
     }
     themed_assets: set[tuple[str, str]] = set()
     inherited_assets: set[tuple[str, str]] = set()
@@ -2737,7 +2737,7 @@ def test_new_support_templates_follow_two_line_contract(
     assert padding is not None
     left_padding = padding.properties.get("left")
     assert left_padding is not None
-    assert left_padding.value == 12
+    assert left_padding.value == 8
     action = root_options.get("onClick")
     assert action is not None
     assert action.kind == "event-action"
@@ -2761,24 +2761,28 @@ def test_new_support_templates_follow_two_line_contract(
         registry.theme_reference_values("2x2-two-support"),
     )
     content = instantiated.children[0]
-    texts = [child for child in content.children if child.component_type == "Text"]
+    texts = []
+    for child in content.children:
+        if child.component_type == "Text":
+            texts.append(child)
+        elif child.component_type == "Row":
+            texts.extend(node for node in child.children if node.component_type == "Text")
 
     assert content.component_type == "Column"
     content_options = content.values[0]
     assert isinstance(content_options, dict)
-    is_calendar_support = template_id == "ScheduleOverviewTimeSupport@1"
-    assert content_options.get("itemMargin") == (4 if is_calendar_support else 2)
+    assert content_options.get("itemMargin") == 4
     assert len(texts) == 2
     primary_options = texts[0].values[-1]
     support_options = texts[1].values[-1]
     assert isinstance(primary_options, dict)
     assert isinstance(support_options, dict)
-    assert primary_options.get("height") == (None if is_calendar_support else 20)
-    assert primary_options.get("fontSize") == (16 if is_calendar_support else 14)
+    assert primary_options.get("height") is None
+    assert primary_options.get("fontSize") == 14
     assert primary_options.get("fontWeight") == 700
-    assert support_options.get("height") == (None if is_calendar_support else 16)
-    assert support_options.get("fontSize") == (14 if is_calendar_support else 12)
-    assert support_options.get("fontWeight") == 500
+    assert support_options.get("height") is None
+    assert support_options.get("fontSize") == 12
+    assert support_options.get("fontWeight") == 400
 
 
 def test_heart_rate_full_keeps_value_and_unit_as_adjacent_texts() -> None:
@@ -5779,7 +5783,7 @@ def _weather_request() -> GenerateWidgetCardRequest:
                 ],
             }
         ],
-        candidateAssetIds=["asset.icon_weather_temperature1"],
+        candidateAssetIds=["asset.drop_1"],
     )
 
 
@@ -5797,9 +5801,9 @@ def _weather_task_spec() -> TaskSpec:
         eventCandidates=[],
         assetCandidates=[
             {
-                "src": "resources/base/media/icon_weather1.svg",
-                "description": "天气状态图标",
-                "sceneTags": ["condition", "weather"],
+                "src": "resources/base/media/drop_1.svg",
+                "description": "水滴图标，适用于天气降雨信息",
+                "sceneTags": ["water", "weather"],
             }
         ],
         dataModelSchema={
@@ -5808,7 +5812,7 @@ def _weather_task_spec() -> TaskSpec:
                     "location": {"districtName": field("青浦区")},
                     "current": {
                         "temperatureText": field("29°C"),
-                        "condition": field("多云"),
+                        "condition": field("小雨"),
                         "airQuality": field("良"),
                         "coldLevel": field("低"),
                     },
@@ -6077,7 +6081,7 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     model = WeatherTemplateModel(
         body=(
             'Template("SingleFocusLayout@1",{},Template("WeatherOverviewFull@1",'
-            '{"conditionIcon":"resources/base/media/icon_weather_temperature1.svg"}));'
+            '{"conditionIcon":"resources/base/media/drop_1.svg"}));'
         )
     )
     captured: dict[str, Any] = {}
@@ -6159,7 +6163,7 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     }
     assert template_contracts[0]["parameterSources"]["conditionIcon"] == {
         "valueKind": "asset-source",
-        "allowedSources": ["resources/base/media/icon_weather_temperature1.svg"],
+        "allowedSources": ["resources/base/media/drop_1.svg"],
     }
     assert "layoutContracts=" in second_layer_user
     assert "actionContracts=[]" in second_layer_user
@@ -6691,13 +6695,13 @@ async def test_duplicate_weather_pill_actions_keep_independent_event_bindings():
         'IconAction({"actionId":"event.open.weather"})',
         (
             'IconAction({"actionId":"event.open.weather",'
-            '"icon":"resources/base/media/icon_weather1.svg"})'
+            '"icon":"resources/base/media/drop_1.svg"})'
         ),
         'ActionTile({"actionId":"event.open.weather"})',
         'PillAction({"actionId":"event.open.weather"})',
         (
             'PillAction({"actionId":"event.open.weather",'
-            '"icon":"resources/base/media/icon_weather1.svg"})'
+            '"icon":"resources/base/media/drop_1.svg"})'
         ),
     ],
 )
@@ -6706,7 +6710,8 @@ async def test_second_layer_rejects_direct_action_components(action_call: str):
         action_id="event.open.weather",
         body=(
             'Template("SingleFocusLayout@1",{},Template("WeatherOverviewFull@1",'
-            '{"conditionIcon":"resources/base/media/icon_weather1.svg"}),' + action_call + ");"
+            '{"conditionIcon":"resources/base/media/drop_1.svg"}),'
+            + action_call + ");"
         ),
     )
     task_spec = _weather_task_spec().model_copy(

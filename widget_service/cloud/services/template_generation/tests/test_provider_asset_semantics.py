@@ -94,9 +94,11 @@ def test_mixed_catalog_is_filtered_per_business_slot(
 
 
 @pytest.mark.parametrize("template_id", (
+    "WeatherOverviewCompact@1", "WeatherOverviewUvCompact@1",
     "WeatherOverviewTemperatureSupport@1",
+    "WeatherOverviewHero@1", "WeatherOverviewFull@1",
 ))
-def test_weather_slot_only_accepts_condition_assets(
+def test_weather_slot_separates_single_and_dual_business_assets(
     definitions: dict[str, TemplateDefinition],
     catalog_contract: HybridBodyContract,
     template_id: str,
@@ -104,13 +106,44 @@ def test_weather_slot_only_accepts_condition_assets(
     definition = definitions.get(template_id)
     assert definition is not None
     allowed = _parameter_allowed_asset_sources("conditionIcon", definition, catalog_contract)
-    assert set(allowed) == {
+    state_sources = {
         _SOURCE + "sun_max.svg", _SOURCE + "drop_1.svg",
         _SOURCE + "typhoon_fill.svg", _SOURCE + "icon_weather_wind.svg",
     }
+    temperature_sources = {
+        _SOURCE + "heat_generation.svg", _SOURCE + "icon_weather_temperature1.svg",
+        _SOURCE + "icon_weather_thermometer_medium.svg",
+        _SOURCE + "icon_weather_thermometer.svg",
+    }
+    if template_id == "WeatherOverviewTemperatureSupport@1":
+        assert set(allowed) == state_sources | temperature_sources
+    else:
+        assert set(allowed) == state_sources
+        for source in temperature_sources:
+            with pytest.raises(TerselConversionError, match="semantics"):
+                _normalize_template_asset_params(
+                    {"conditionIcon": source}, definition.asset_parameter_semantic_tags,
+                    catalog_contract, required_parameters=frozenset(),
+                )
+        temperature_only = catalog_contract.model_copy(
+            update={"allowed_asset_sources": tuple(temperature_sources)}
+        )
+        assert _parameter_allowed_asset_sources(
+            "conditionIcon", definition, temperature_only,
+        ) == ()
+        assert _normalize_template_asset_params(
+            {}, definition.asset_parameter_semantic_tags, temperature_only,
+            required_parameters=frozenset(),
+        ) == {}
+    for source in allowed:
+        normalized = _normalize_template_asset_params(
+            {"conditionIcon": source}, definition.asset_parameter_semantic_tags,
+            catalog_contract, required_parameters=frozenset(),
+        )
+        assert normalized == {"conditionIcon": source}
     with pytest.raises(TerselConversionError, match="semantics"):
         _normalize_template_asset_params(
-            {"conditionIcon": _SOURCE + "icon_weather_temperature1.svg"},
+            {"conditionIcon": _SOURCE + "icon_high_temperature.svg"},
             definition.asset_parameter_semantic_tags,
             catalog_contract,
             required_parameters=frozenset(),
@@ -206,12 +239,13 @@ def test_legacy_bundle_keeps_unrestricted_asset_behavior(tmp_path: Path) -> None
     assert definition.asset_parameter_semantic_tags == {"glyph": ()}
 
 
-def test_gallery_both_slots_have_their_own_assets_and_cloudy_has_no_substitute(
+def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_icon(
     tmp_path: Path,
 ) -> None:
     manifest = write_gallery_input_dataset(tmp_path)
     provider = next(item for item in manifest.providers if item.providerSlug == "two-support")
     expected = {
+        "WeatherOverviewTemperatureSupport@1": "asset.icon_weather_thermometer",
         "ActivityOverviewSupport@1": "asset.figure_run",
         "WorkoutOverviewSupport@1": "asset.figure_run",
         "SleepOverviewSupport@1": "asset.moon_z_fill_1",

@@ -70,7 +70,7 @@
 | ✅ | `BatteryOverviewHero@1` | 约 2x1.7；2x2 Hero + 1 个 PillAction | `/batterySOC` | `/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewWideFull@1` | 完整 4x2；单 WideFull | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewCompact@1` | 约 2x1；36vp 环形进度 Compact + 2 个 PillAction，电量图标可选 | `/batterySOC` | `/chargingStatusDesc` | 无 |
-| ✅ | `BatteryOverviewSupport@1` | 约 2x1；32vp 环与双行文本，事件在模板内部 | `/batterySOC` | `/chargingStatusDesc` | `/batterySOCText` |
+| ✅ | `BatteryOverviewSupport@1` | 约 2x1；左侧双行文本，右侧 40vp 环、可选 16vp 内图标，事件在模板内部 | `/batterySOC` | `/chargingStatusDesc` | `/batterySOCText` |
 | ✅ | `BatteryOverviewChargingProgressHero@1` | 约 2x1.7；充电状态 Hero + 1 个 PillAction | `/batterySOCText` | 无 | `/chargingStatusDesc`<br>`/healthStatusDesc` |
 | ✅ | `BatteryOverviewHealthLevelHero@1` | 约 2x1.7；电池体检 Hero + 1 个 PillAction | `/healthStatusDesc` | `/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewChargingProgressFull@1` | 完整 2x2；充电进度单 Full | `/batterySOC` | `/chargingStatusDesc`<br>`/healthStatusDesc`<br>`/pluggedTypeDesc` | 无 |
@@ -131,7 +131,7 @@
 | ✅ | `BluetoothDeviceOverviewEarphoneCaseCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/batteryLevel` | `/chargingStatusDesc` | 无 |
 | ✅ | `BluetoothDeviceOverviewEarphoneHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/earphoneName` | `/batteryLevel` | 无 |
 | ✅ | `BluetoothDeviceOverviewEarphoneCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/earphoneName` | `/batteryLevel` | 无 |
-| ✅ | `BluetoothDeviceOverviewChargeSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/batteryLevel` | `/chargingStatusDesc` | 无 |
+| ✅ | `BluetoothDeviceOverviewChargeSupport@1` | 约 2x1；左侧双行文本，右侧 40vp 环与 16vp 盒图标，事件在模板内部 | `/batteryLevel` | `/chargingStatusDesc` | 无 |
 
 ## ActivityOverview
 
