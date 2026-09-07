@@ -96,6 +96,7 @@ _FORBIDDEN_KEYS = frozenset({"__proto__", "prototype", "constructor"})
 _TEMPLATE_ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9-]{0,63}$")
 _REFERENCE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
 _ASSET_SEMANTIC_TAG_RE = re.compile(r"^[a-z][a-z0-9-]{0,63}$")
+_EVENT_TYPE_ID_RE = re.compile(r"event\.[A-Za-z][A-Za-z0-9]*(?:\.[A-Za-z][A-Za-z0-9]*)*")
 _PROVIDER_ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:\.[a-z][a-z0-9-]*)+$")
 _PROVIDER_VERSION_RE = re.compile(r"^[1-9][0-9]*\.[0-9]+\.[0-9]+(?:-[a-z0-9.-]+)?$")
 _MAX_BUNDLE_FILE_BYTES = 1_048_576
@@ -173,7 +174,19 @@ class ProviderTemplateEntry(StrictModel):
     asset_parameter_semantic_tags: dict[str, tuple[str, ...]] = Field(
         default_factory=dict, alias="assetParameterSemanticTags"
     )
+    supported_event_ids: tuple[str, ...] = Field(default=(), alias="supportedEventIds")
     entry: str = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def supported_events_are_valid(self) -> ProviderTemplateEntry:
+        if len(self.supported_event_ids) != len(set(self.supported_event_ids)):
+            raise ValueError("Provider supportedEventIds must be unique")
+        for event_id in self.supported_event_ids:
+            if _EVENT_TYPE_ID_RE.fullmatch(event_id) is None:
+                raise ValueError("Provider supportedEventIds must contain event type IDs")
+        if self.supported_event_ids and self.business_id is None:
+            raise ValueError("Provider supportedEventIds requires a business Template")
+        return self
 
     @model_validator(mode="after")
     def data_paths_are_disjoint(self) -> ProviderTemplateEntry:
@@ -421,7 +434,14 @@ def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
         definition = definition.model_copy(update={
             "requires_layout_action": entry.requires_layout_action,
             "asset_parameter_semantic_tags": asset_tags,
+            "supported_event_ids": entry.supported_event_ids,
         })
+        if entry.supported_event_ids:
+            for variant in definition.variants:
+                properties = variant.parameters_schema.get("properties", {})
+                required = variant.parameters_schema.get("required", ())
+                if "actionId" not in properties or "actionId" in required:
+                    raise ValueError("Provider supportedEventIds requires optional actionId")
         _validate_provider_template_data_contract(definition, entry)
         definitions.append(definition)
 

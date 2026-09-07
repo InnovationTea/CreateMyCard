@@ -257,7 +257,7 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
         "ScheduleOverviewStartTimeSupport@1": "asset.calendar_fill",
         "ScheduleOverviewDateSupport@1": "asset.calendar_fill",
     }
-    assert len(provider.cases) == 51
+    assert len(provider.cases) == 50
     for case in provider.cases:
         payload = json.loads((tmp_path / case.requestFile).read_text(encoding="utf-8"))
         content = payload.get("content")

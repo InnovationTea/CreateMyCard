@@ -117,6 +117,11 @@ Plan 共享排名第一的可用 Theme；不同 Theme 不在第二层混合。�
 信息：第一行使用主内容色表达主信息，第二行使用辅助内容色表达辅助信息；两行均为单行省略。Support
 提供可选 `actionId`，仅在 Planner 把已批准事件分配给该业务槽位时消费，未分配时编译器省略 `onClick`。
 
+Support 通过模板条目的 `supportedEventIds` 声明内嵌事件白名单。Planner 按事件类型过滤业务位置，
+保留完整动作实例 ID，再枚举合法分配；不能仅根据是否声明 actionId 分配。缺失或空白名单禁止绑定。
+天气必须同城市，日程必须同一展示项；无合法归属时该 Plan 不可用，不能移给搭档业务或静默丢弃动作。
+完整清单和验证规则见 [Support 事件归属契约](support-template-action-policy.md)。
+
 ## 5. 第二层 LLM
 
 第二层输入最多三个完整 Plan，以及这些 Plan 涉及的 Template 完整 Props 签名、可信字符串、数字、素材
@@ -135,6 +140,8 @@ Plan 共享排名第一的可用 Theme；不同 Theme 不在第二层混合。�
 及事件 ID、业务 Template 内嵌 `actionId` 的槽位必须完整匹配同一个 Plan。若调用树跨 Plan 混用，或同时
 匹配零个或多个 Plan，直接拒绝；唯一匹配的 `planId` 记录到内部展开统计和日志。之后才进入原有 Props、
 数据绑定、Action 唯一消费、节点预算、主题展开和 A2UI 转换校验。
+
+业务模板展开前独立执行与 Planner 共用的事件白名单和对象归属校验，覆盖错误 Plan 与旧兼容入口。
 
 旧 `firstLayerComponentSelector=llm` 路径保留原有 `TemplateRouteSelection` 行为用于兼容，不使用新的
 Planner 原子 Plan 契约。

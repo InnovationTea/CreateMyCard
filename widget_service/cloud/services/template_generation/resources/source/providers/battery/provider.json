@@ -183,6 +183,7 @@
     },
     {
       "templateId": "BatteryOverviewSupport@1",
+      "supportedEventIds": ["event.open.settings.battery","event.open.settings.batteryHealth","event.setPowerSavingMode"],
       "businessId": "BatteryOverview",
       "capabilityId": "GetPhoneBatteryInfo",
       "description": "手机电量 Support：左侧两行主辅文本，右侧 40vp 电量环，环内可选 16vp 图标；数值电量与充电状态必需，带单位电量文本可选，可在根节点绑定事件。",

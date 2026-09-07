@@ -258,6 +258,7 @@ class TemplateDefinition(StrictModel):
         default_factory=dict,
         alias="assetParameterSemanticTags",
     )
+    supported_event_ids: tuple[str, ...] = Field(default=(), alias="supportedEventIds")
     provider_id: str | None = Field(default=None, alias="providerId")
     business_id: str | None = Field(default=None, alias="businessId")
     capability_id: str | None = Field(default=None, alias="capabilityId")

@@ -17,6 +17,7 @@ from services.template_generation.engine.cardplan.models import (
     TemplatePlan,
 )
 from services.template_generation.engine.cardplan.parser import parse_ux_layout_card
+from services.template_generation.engine.cardplan.prompt import action_bindings
 from services.template_generation.engine.cardplan.registry import get_cardplan_registry
 from services.template_generation.engine.cardplan.template_plan_planner import (
     plan_template_candidates,
@@ -242,8 +243,16 @@ def _support_plans() -> tuple[TemplatePlan, ...]:
             EventAction(
                 id=action_id,
                 displayLabel="天气详情",
-                call="clickToIntent",
-                args={"intentName": "Weather"},
+                call="clickToDeeplink",
+                args={
+                    "intentName": "Weather_CityCode",
+                    "bundleName": "",
+                    "abilityName": "",
+                    "uri": (
+                        "{{ 'hww://www.huawei.com/totemweather?enterType=share&cityCode='"
+                        " + ${/data/weather/location/cityCode} }}"
+                    ),
+                },
             )
         ],
     )
@@ -297,19 +306,32 @@ def test_planner_can_assign_action_to_vertical_business_template() -> None:
 
 
 def test_planner_composes_new_provider_supports_and_consumes_two_actions() -> None:
-    action_ids = ("event.open.battery", "event.open.calendar")
+    action_ids = ("event.open.settings.battery", "event.viewCalendarEvent")
     task_spec = TaskSpec(
         userQuery="同时显示手机电量和下一个日程，并支持分别查看详情",
         size="2x2",
         dataModelSchema={},
         eventCandidates=[
             EventAction(
-                id=action_id,
-                displayLabel="查看详情",
+                id="event.open.settings.battery",
+                displayLabel="电池设置",
+                call="clickToDeeplink",
+                args={
+                    "intentName": "Settings",
+                    "bundleName": "com.huawei.hmos.settings",
+                    "abilityName": "com.huawei.hmos.settings.MainAbility",
+                    "uri": "battery",
+                },
+            ),
+            EventAction(
+                id="event.viewCalendarEvent",
+                displayLabel="查看日程",
                 call="clickToIntent",
-                args={"intentName": action_id},
-            )
-            for action_id in action_ids
+                args={
+                    "intentName": "ViewCalendarEvent",
+                    "params": {"entityId": "{{ ${/data/calendar/events/0/entityId} }}"},
+                },
+            ),
         ],
     )
     intent = TemplateSearchIntent(
@@ -395,6 +417,17 @@ def test_validator_rejects_cross_plan_action_assignment_mix() -> None:
         required_literals=(),
         protected_literals=(),
         allowed_template_plans=plans,
+        action_bindings=action_bindings(TaskSpec(
+            userQuery="查看天气",
+            size="2x2",
+            dataModelSchema={},
+            eventCandidates=[EventAction(
+                id=action_id,
+                call="clickToDeeplink",
+                args={"uri": "{{ ${/data/weather/location/cityCode} }}"},
+            )],
+        )),
+        content_action_ids=(action_id,),
         limits=HybridLimits(
             max_raw_components=16,
             max_expanded_components=64,

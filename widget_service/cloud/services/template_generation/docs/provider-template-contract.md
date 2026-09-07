@@ -65,6 +65,14 @@ TaskSpec 后的绝对根路径；模板内的数据路径始终相对该根路�
 
 ## UI 模板语法
 
+### Support 内嵌事件白名单
+
+业务模板条目通过 `supportedEventIds` 声明可消费的注册事件类型 ID；不填写动作实例后缀，也不复制
+事件参数。缺失或空数组表示禁止内嵌事件，非空时模板必须声明可选 `actionId`。
+Planner 和编译器共同校验事件类型、业务数据对象及唯一消费；Prompt 从配置派生该模板实际可用的
+`allowedActionIds`。独立 Action 模板仍使用原候选机制，Search 不参与事件分配。
+完整白名单及语义边界见 [Support 事件归属契约](support-template-action-policy.md)。
+
 ### 协议版本
 
 Provider Bundle 通过 `compatibility.templateLanguage` 选择作者协议：

@@ -259,6 +259,7 @@ class ProviderTemplateDefinition:
     description: str
     suffix: str
     fields: tuple[str, ...]
+    supported_event_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -458,6 +459,7 @@ def _template_definition(template: dict[str, Any]) -> ProviderTemplateDefinition
         description=str(template.get("description") or "").strip(),
         suffix=_template_suffix(template_id),
         fields=_ordered_unique([str(item) for item in fields]),
+        supported_event_ids=tuple(template.get("supportedEventIds", ())),
     )
 
 
@@ -1200,6 +1202,19 @@ def _paired_gallery_provider(
     return provider
 
 
+def _support_action_options(
+    pair: GalleryTemplatePair,
+    event_capabilities: dict[str, dict[str, Any]],
+) -> list[str]:
+    event_ids: list[str] = []
+    for selection in (pair.title, pair.content):
+        for event_id in selection.template.supported_event_ids:
+            if event_id in event_capabilities:
+                event_ids.append(event_id)
+                break
+    return event_ids
+
+
 def _support_request_envelope(
     pair: GalleryTemplatePair,
     scenario_id: str,
@@ -1214,14 +1229,18 @@ def _support_request_envelope(
     action_count = _expected_action_count(scenario_id)
     events: list[dict[str, Any]] = []
     action_queries: list[str] = []
-    for selection in (pair.title, pair.content)[:action_count]:
-        business_id = selection.business.business_id
-        action_ids = _ACTION_IDS_BY_BUSINESS.get(business_id)
-        queries = _ACTION_QUERIES_BY_BUSINESS.get(business_id)
-        if not action_ids or not queries:
-            raise ValueError(f"support gallery requires registered actions: {business_id}")
-        events.append(_event_candidate(event_capabilities, action_ids[0]))
-        action_queries.append(queries[0])
+    action_options = _support_action_options(pair, event_capabilities)
+    if action_count > len(action_options):
+        raise ValueError("support gallery has no feasible business Action assignment")
+    for event_id in action_options[:action_count]:
+        event = event_capabilities.get(event_id)
+        if event is None:
+            raise ValueError("support gallery event is not registered")
+        description = event.get("description")
+        if not isinstance(description, str) or not description:
+            raise ValueError("support gallery event description is missing")
+        events.append(_event_candidate(event_capabilities, event_id))
+        action_queries.append(description)
     action_query = "不显示按钮，内容不绑定点击事件。"
     if action_queries:
         action_query = f"点击对应业务段落可执行操作：{'、'.join(action_queries)}，不另加按钮。"
@@ -1255,6 +1274,10 @@ def _support_gallery_provider(
     for pair in _support_template_pairs(definitions, controls, data_capability_ids):
         missing_reason = _paired_missing_reason(pair, controls, data_capability_ids)
         for scenario_id in scenarios:
+            if _expected_action_count(scenario_id) > len(
+                _support_action_options(pair, event_capabilities)
+            ):
+                continue
             scenario_name, layout, suffix = _scenario_metadata(scenario_id)
             for appearance in _GALLERY_APPEARANCES:
                 request_path = (

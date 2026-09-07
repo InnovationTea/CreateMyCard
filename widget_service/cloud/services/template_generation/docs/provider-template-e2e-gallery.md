@@ -124,8 +124,10 @@ widget_service/.venv312/bin/python \
   --refresh-inputs --dry-run --concurrency 2
 ```
 
-以 2026-09-06 当前资源为基线，应生成 8 个业务分组、1 个跨业务组合和 1 个双业务段落分组，共 121 个用例；
-其中 51 个 Support 配对用例。无模型 dry-run 中 14 个状态为 `missing`，107 个状态为 `not_generated`。
+当前应生成 8 个业务分组、1 个跨业务组合和 1 个双业务段落分组，共 120 个用例；
+其中 50 个 Support 配对用例。无模型 dry-run 中 14 个状态为 `missing`，106 个状态为 `not_generated`。
+Support 事件从模板 `supportedEventIds` 与当前注册事件的交集选取；倒计时不绑定事件，
+与天气配对时只有 0/1 动作，不再生成借用闹钟的 2 动作案例。其它单业务独立操作策略保持不变。
 Provider 或模板调整后数量可以变化，应以重新生成的
 输入 manifest 为准，不能继续复用旧结果目录中的数量。
 
@@ -150,7 +152,7 @@ widget_service/.venv312/bin/python \
 
 - `--provider com.huawei.weather.cli`：只批跑一个 Provider，可重复指定。
 - `--provider gallery.cross-business`：只批跑双业务组合；该 ID 仅为画廊分组标识，不是生产能力。
-- `--provider gallery.two-support`：只批跑双业务段落，覆盖全部 17 种 Support 模板的 51 个场景。
+- `--provider gallery.two-support`：只批跑双业务段落，覆盖全部 17 种 Support 模板的 50 个可行场景。
 - `--dry-run`：不调用模型，仅生成“待批跑/缺失”结果清单，适合验证输入和端侧导入。
 - `--strict`：存在真实生成失败时返回非零退出码；模板后缀缺失仍作为画廊检查结果保留。
 - `--model-failure-attempts 1`：覆盖单用例模型失败最大尝试次数；默认值为 2，必须为正整数。
@@ -189,11 +191,12 @@ python3 scripts/sync_provider_scenario_gallery.py
 “Provider 场景画廊”后，可按 Provider 页签检查每个业务的全部模板实例和适用布局；没有 A2UI 的场景显示
 错误卡片和具体原因。
 “跨业务组合”页签专门展示 HeroTitle + HeroContent + PillAction，不要仅检查单业务页签就认定组合已安装。
-“双业务段落”页签每组只展示一张，选用两个段落都绑定操作的版本。按
+“双业务段落”页签每组只展示一张，从已有可行场景中依次优先选用双操作、单操作、无操作版本。按
 `targetTemplateId + partnerTemplateId + appearanceId` 区分组，保留不同模板和不同顺序的组合。
 0/1/2 个操作的完整矩阵仍保留在云侧输入、批跑产物及自动化测试中，不再重复导入视觉画廊。
-选中的双操作版本若失败或缺失，显示其真实状态，不用另一操作版本替代；若完全缺少该版本，导入报错，
-不会静默丢弃整组。单业务 Compact/Hero/Full 与 HeroTitle + HeroContent 组合不受影响。
+选中的版本若失败或缺失，显示其真实状态，不用另一操作版本替代。倒计时与天气配对没有双操作场景，
+因此展示单操作版本；同组同操作版本重复时导入报错。单业务 Compact/Hero/Full 与
+HeroTitle + HeroContent 组合不受影响。
 
 同步脚本默认读取：
 
@@ -203,8 +206,9 @@ python3 scripts/sync_provider_scenario_gallery.py
 
 如果两个工程不是同级目录，使用 `--source` 和 `--target` 显式指定来源与目标。同步不修改来源目录，
 端侧 manifest 的 `counts` 按显示子集重新计算，不能再与完整自动化结果的总数直接比较。
-当前基线：自动化 121 个场景 / 107 份 A2UI；显示画廊预计 87 个场景 / 77 份 A2UI / 10 个缺失占位。
-其中双业务段落由 51 个自动化场景缩减为 17 张显示卡（15 成功、2 缺失）。每份入选 A2UI 应与源文件
+当前输入规模：自动化 120 个场景；能力齐备的 106 项需实际生成后才能计为成功，不将 dry-run 当作成功。
+每组一张的端侧筛选策略不变，显示画廊预计 87 项，其中 10 个既有缺失占位。
+双业务段落由 50 个自动化场景缩减为 17 张显示卡（15 组数据可用、2 组缺失）。每份入选 A2UI 应与源文件
 逐字节一致，源 manifest 和 0/1/2 操作文件应保持不变。
 
 场景同步脚本只复制 A2UI，不复制 SVG 素材。构建前应核对每个 `Image.src` 均已注册，且存在于

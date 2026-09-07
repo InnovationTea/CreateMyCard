@@ -59,6 +59,7 @@ from services.template_generation.engine.tersel_converter import (
     serialize_task_spec_data,
 )
 
+from .business_actions import supports_business_action
 from .fusion_ball_background import (
     FusionBallPalette,
     apply_fusion_ball_background,
@@ -882,6 +883,7 @@ def _expand_call(
         ),
     )
     _validate_template_params(params, definition.asset_parameter_semantic_tags, contract)
+    _validate_business_template_action(definition, params, contract, task_spec.size)
     _validate_template_parameter_relations(params, variant.parameter_relations)
     if variant.supported_card_sizes and task_spec.size not in variant.supported_card_sizes:
         raise TerselConversionError(
@@ -6205,6 +6207,28 @@ def _parsed_layout_template_id(
     return layout_id
 
 
+def _validate_business_template_action(
+    definition: TemplateDefinition,
+    params: dict[str, Any],
+    contract: HybridBodyContract,
+    card_size: str,
+) -> None:
+    if definition.business_id is None or "actionId" not in params:
+        return
+    action_id = params.get("actionId")
+    action = next(
+        (item for item in contract.action_bindings if item.action_id == action_id),
+        None,
+    )
+    if action is None or action.action_id not in contract.content_action_ids:
+        raise TerselConversionError("Business Template Action is not approved.")
+    if not supports_business_action(definition, action, card_size):
+        raise TerselConversionError(
+            f"Business Template Action does not match supported events or data context: "
+            f"{definition.wire_id}/{action.action_id}"
+        )
+
+
 def _validate_allowed_template_plan(
     composition: ParsedCall,
     contract: HybridBodyContract,
@@ -6222,6 +6246,12 @@ def _validate_allowed_template_plan(
         raise TerselConversionError(
             "UX Layout output must match exactly one atomic Template Plan."
         )
+    for child in composition.children:
+        if child.kind != "template":
+            continue
+        definition = registry.require_template(child.name)
+        params = child.values[0] if child.values and isinstance(child.values[0], dict) else {}
+        _validate_business_template_action(definition, params, contract, "2x2")
     return matched_plan_ids[0]
 
 

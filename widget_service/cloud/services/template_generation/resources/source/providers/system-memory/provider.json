@@ -51,6 +51,7 @@
     },
     {
       "templateId": "ResourceUsageOverviewSupport@1",
+      "supportedEventIds": ["event.clean.memory"],
       "assetParameterSemanticTags": { "icon": ["memory"] },
       "businessId": "ResourceUsageOverview",
       "capabilityId": "GetSystemMemInfo",

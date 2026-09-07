@@ -71,6 +71,7 @@
     },
     {
       "templateId": "BluetoothDeviceOverviewEarbudsSupport@1",
+      "supportedEventIds": ["event.open.settings.bluetooth"],
       "assetParameterSemanticTags": {
         "deviceIcon": [
           "earphone-body"
@@ -89,6 +90,7 @@
     },
     {
       "templateId": "BluetoothDeviceOverviewChargeSupport@1",
+      "supportedEventIds": ["event.open.settings.bluetooth"],
       "businessId": "BluetoothDeviceOverview",
       "capabilityId": "GetEarphoneInfo",
       "description": "耳机充电 Support：左侧两行文本展示耳机盒或整体电量、充电状态，右侧 40vp 电量环及 16vp 充电盒图标；必需充电盒图标，根节点可绑定事件。",

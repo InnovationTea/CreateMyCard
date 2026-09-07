@@ -322,6 +322,7 @@
     },
     {
       "templateId": "ActivityOverviewSupport@1",
+      "supportedEventIds": ["event.open.health.sport"],
       "assetParameterSemanticTags": {
         "stepsIcon": [
           "steps"
@@ -339,6 +340,7 @@
     },
     {
       "templateId": "WorkoutOverviewSupport@1",
+      "supportedEventIds": ["event.open.health.sport"],
       "assetParameterSemanticTags": {
         "sourceIcon": [
           "workout"
@@ -360,6 +362,7 @@
     },
     {
       "templateId": "HeartRateOverviewSupport@1",
+      "supportedEventIds": ["event.open.health.sport"],
       "businessId": "HeartRateOverview",
       "capabilityId": "GetHealthAndSportSummary",
       "description": "心率 Support：主行展示运动平均心率及单位，辅助行展示指标说明；可选 24vp 心脏图标，根节点可绑定事件。",
@@ -377,6 +380,7 @@
     },
     {
       "templateId": "SleepOverviewSupport@1",
+      "supportedEventIds": ["event.open.health.sleep"],
       "assetParameterSemanticTags": {
         "sourceIcon": [
           "sleep"

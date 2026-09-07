@@ -82,6 +82,7 @@
     },
     {
       "templateId": "WeatherOverviewTemperatureSupport@1",
+      "supportedEventIds": ["event.open.weather"],
       "assetParameterSemanticTags": {
         "conditionIcon": [
           "weather-indicator"
@@ -104,6 +105,7 @@
     },
     {
       "templateId": "WeatherOverviewTemperatureUvSupport@1",
+      "supportedEventIds": ["event.open.weather"],
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
       "description": "紫外线天气 Support：主行展示城市和温度，辅助行展示天气现象及紫外线等级；城市区县可选并提供兜底，纯文本形态，可绑定根节点事件。",
@@ -122,6 +124,7 @@
     },
     {
       "templateId": "WeatherOverviewTemperaturecoldLevelSupport@1",
+      "supportedEventIds": ["event.open.weather"],
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
       "description": "感冒风险天气 Support：主行展示城市和温度，辅助行展示天气现象及感冒风险；城市区县可选并提供兜底，纯文本形态，可绑定根节点事件。",

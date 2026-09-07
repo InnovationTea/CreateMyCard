@@ -11,13 +11,15 @@ from services.template_generation.engine.advanced.models import (
     TemplateComponentCandidate,
 )
 
+from .business_actions import supports_business_action
 from .models import (
+    ActionBinding,
     TemplateDefinition,
     TemplatePlan,
     TemplatePlanActionAssignment,
     TemplatePlanBusinessSlot,
 )
-from .prompt import action_binding_ids
+from .prompt import action_bindings
 from .provider_bundle import provider_template_layout_kind
 from .registry import CardPlanRegistry
 from .template_retrieval import (
@@ -191,14 +193,11 @@ def _selected_action_ids(
     if not set(intent.action_ids).issubset(available_ids):
         raise TemplateRetrievalMiss("Planner Action is outside TaskSpec.eventCandidates")
     selected_ids = set(intent.action_ids)
-    selected_task_spec = task_spec.model_copy(
-        update={
-            "eventCandidates": [
-                event for event in task_spec.eventCandidates if event.id in selected_ids
-            ]
-        }
+    return tuple(
+        action.action_id
+        for action in action_bindings(task_spec)
+        if action.event_id in selected_ids
     )
-    return action_binding_ids(selected_task_spec)
 
 
 def _single_business_drafts(
@@ -250,6 +249,7 @@ def _dual_business_drafts(
 ) -> tuple[tuple[TemplatePlan, tuple[int, ...]], ...]:
     if task_spec.size != "2x2" or len(action_ids) > 2:
         return ()
+    bindings = action_bindings(task_spec)
     result: list[tuple[TemplatePlan, tuple[int, ...]]] = []
     ordered_groups = tuple(permutations(groups))
     if len(action_ids) == 1:
@@ -310,6 +310,7 @@ def _dual_business_drafts(
                 slots,
                 registry,
                 task_spec.size,
+                bindings,
             ):
                 plan = _make_plan("TwoSupportLayout@1", slots, assignments, registry)
                 if plan is not None:
@@ -375,18 +376,28 @@ def _business_action_assignment_options(
     slots: tuple[TemplatePlanBusinessSlot, ...],
     registry: CardPlanRegistry,
     card_size: str,
+    bindings: tuple[ActionBinding, ...],
 ) -> tuple[tuple[TemplatePlanActionAssignment, ...], ...]:
     if not action_ids:
         return ((),)
-    eligible_positions = tuple(
-        slot.position
-        for slot in slots
-        if _template_accepts_action(slot.template_id, registry, card_size)
-    )
-    if len(eligible_positions) < len(action_ids):
-        return ()
+    bindings_by_id = {binding.action_id: binding for binding in bindings}
+    position_options: list[tuple[int, ...]] = []
+    for action_id in action_ids:
+        action = bindings_by_id.get(action_id)
+        if action is None:
+            return ()
+        eligible: list[int] = []
+        for slot in slots:
+            definition = registry.require_template(slot.template_id)
+            if supports_business_action(definition, action, card_size):
+                eligible.append(slot.position)
+        if not eligible:
+            return ()
+        position_options.append(tuple(eligible))
     results: list[tuple[TemplatePlanActionAssignment, ...]] = []
-    for positions in permutations(eligible_positions, len(action_ids)):
+    for positions in product(*position_options):
+        if len(positions) != len(set(positions)):
+            continue
         results.append(
             tuple(
                 TemplatePlanActionAssignment(
@@ -398,21 +409,6 @@ def _business_action_assignment_options(
             )
         )
     return tuple(results)
-
-
-def _template_accepts_action(
-    template_id: str,
-    registry: CardPlanRegistry,
-    card_size: str,
-) -> bool:
-    definition = registry.require_template(template_id)
-    for variant in definition.variants:
-        size_is_supported = not variant.supported_card_sizes
-        size_is_supported = size_is_supported or card_size in variant.supported_card_sizes
-        properties = variant.parameters_schema.get("properties", {})
-        if size_is_supported and "actionId" in properties:
-            return True
-    return False
 
 
 def _make_plan(

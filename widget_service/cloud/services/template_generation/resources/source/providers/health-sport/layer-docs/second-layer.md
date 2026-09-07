@@ -2,6 +2,9 @@
 
 - Provider：`com.huawei.health-sport.cli`。
 - 调用统一使用 `Template("TemplateId@1", props)`；不再输出 Variant。
+- Support 内嵌事件只允许使用该模板参数来源中的 `allowedActionIds`，不得借用其他业务的事件。
+  步数、训练和运动心率允许关联锻炼页，但不得宣称直达步数、心率或某次训练详情；睡眠只关联睡眠详情。
+  可用入口不代表默认增加点击，仍须遵循用户要求和所选 Plan 的唯一分配。
 - 可用模板：
   - `ActivityOverviewSupport@1`：每日步数为主信息，第二行固定说明，可选 `stepsIcon`；不展示热量和距离。
   - `WorkoutOverviewSupport@1`：主数据 /exerciseCalorieText，次要数据 /exerciseDurationText，

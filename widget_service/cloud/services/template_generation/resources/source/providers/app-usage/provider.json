@@ -94,6 +94,7 @@
     },
     {
       "templateId": "AppUsageOverviewSupport@1",
+      "supportedEventIds": ["event.open.settings.parentControl"],
       "assetParameterSemanticTags": { "appIcon": ["app-icon"] },
       "businessId": "AppUsageOverview",
       "capabilityId": "GetAppUsageDuration",
