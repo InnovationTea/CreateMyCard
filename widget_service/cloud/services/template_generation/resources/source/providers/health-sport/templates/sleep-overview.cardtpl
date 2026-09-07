@@ -1,7 +1,10 @@
 #Template SleepOverviewFull@1(props: { sourceIcon?: asset })
 data = {
     duration: $path("/nightSleepDurationText"),
-    status: $path("/sleepStatus"),
+    napDuration: $optionalPath("/totalNapDurationText"),
+    deepDuration: $optionalPath("/deepSleepDurationText"),
+    type: $optionalPath("/sleepTypeDesc"),
+    status: $optionalPath("/sleepStatus"),
     score: $optionalPath("/sleepScore"),
     startTime: $optionalPath("/fallAsleepTimeText"),
     endTime: $optionalPath("/wakeupTimeText"),
@@ -22,27 +25,39 @@ Column(
         { "itemMargin": 8, "justifyContent": "start", "width": "matchParent" },
         Row(
             { "width": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top" },
-            Text(
-                "睡眠情况",
-                {
-                    "fontSize": 12,
-                    "fontWeight": 500,
-                    "fontColor": $theme('supportContentColor'),
-                    "maxLines": 1
-                }
-            ),
+            #if data.type
+                Text(
+                    data.type,
+                    {
+                        "fontSize": 12,
+                        "fontWeight": 400,
+                        "fontColor": $theme('supportContentColor'),
+                        "maxLines": 1
+                    }
+                ),
+            #else
+                Text(
+                    "睡眠监测",
+                    {
+                        "fontSize": 12,
+                        "fontWeight": 400,
+                        "fontColor": $theme('supportContentColor'),
+                        "maxLines": 1
+                    }
+                ),
+            #endif
             #if props.sourceIcon
-              Image(
-                  props.sourceIcon,
-                  { "width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0 }
-              )
+                Image(
+                    props.sourceIcon,
+                    { "width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0 }
+                )
             #endif
         ),
         Row(
-            { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "margin": {"top": 4} },
+            { "width": "matchParent", "justifyContent": "start", "alignItems": "bottom" },
             Text(
                 data.duration,
-                { "fontSize": 20, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+                { "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
             )
         ),
         #if data.score
@@ -62,48 +77,74 @@ Column(
     Column(
         { "itemMargin": 4, "justifyContent": "start", "width": "matchParent" },
         #if data.score
-          Row(
-              { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
-              Text(
-                  "睡眠情况评分",
-                  { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
-              ),
-              Text(
-                  data.score,
-                  { "fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
-              ),
-              Text(
-                  "分",
-                  { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
-              )
-          ),
-        #else
-          #if data.startTime && data.endTime
             Row(
                 { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
                 Text(
-                    "时段 ",
+                    "睡眠监测评分",
                     { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
                 ),
                 Text(
-                    `${data.startTime}-${data.endTime}`,
-                    { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+                    data.score,
+                    { "fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
                 ),
+                Text(
+                    "分",
+                    { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+                )
             ),
-          #endif
+        #else
+            #if data.startTime && data.endTime
+                Row(
+                    { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
+                    Text(
+                        "时段",
+                        { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+                    ),
+                    Text(
+                        `${data.startTime}-${data.endTime}`,
+                        { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+                    ),
+                ),
+            #endif
         #endif
-        Row(
-            { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
-            Text(
-                `状况${data.status}`,
-                {
-                    "fontSize": 12,
-                    "fontColor": $theme('supportContentColor'),
-                    "maxLines": 1,
-                    "fontWeight": 400,
-                }
+        #if data.status
+            Row(
+                { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
+                Text(
+                    "睡眠状况",
+                    { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+                ),
+                Text(
+                    data.status,
+                    { "fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+                )
+            ),
+        #endif
+        #if data.deepDuration
+            Row(
+                { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
+                Text(
+                    "深度睡眠",
+                    { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+                ),
+                Text(
+                    data.deepDuration,
+                    { "fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+                )
             )
-        )
+        #elseif data.napDuration
+            Row(
+                { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
+                Text(
+                    "小睡时长",
+                    { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+                ),
+                Text(
+                    data.napDuration,
+                    { "fontSize": 12, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+                )
+            )
+        #endif
     )
 )
 #End
@@ -131,7 +172,7 @@ Column(
     Row(
         { "width": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top" },
         Text(
-            "睡眠情况",
+            "睡眠监测",
             { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
         ),
         #if props.sourceIcon
@@ -142,7 +183,7 @@ Column(
         #endif
     ),
     Row(
-        { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center", "margin": {"top": 4} },
+        { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
         Text(
             data.duration,
             { "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
@@ -163,7 +204,7 @@ Column(
     #else
       #if data.status
         Text(
-            `状况${data.status}`,
+            `睡眠状况${data.status}`,
             {
                 "fontSize": 12,
                 "fontColor": $theme('supportContentColor'),
@@ -226,7 +267,7 @@ Column(
                 { "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
             ),
             Text(
-                "睡眠情况时长",
+                "睡眠监测时长",
                 { "fontSize": 10, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
             )
         ),
@@ -277,7 +318,7 @@ Stack({
                   { "fontSize": 16, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
               ),
               Text(
-                  "睡眠情况时长",
+                  "睡眠监测时长",
                   { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
               ),
           ),
@@ -317,5 +358,124 @@ Stack({
       })
     )
   #endif
+)
+#End
+
+#Template SleepOverviewNapFull@1(props: { sourceIcon?: asset })
+data = {
+    duration: $path("/totalNapDurationText"),
+    startTime: $optionalPath("/fallAsleepTimeText"),
+    endTime: $optionalPath("/wakeupTimeText"),
+}
+
+Column(
+    {
+        "_advancedComponent": "SleepOverview",
+        "width": "matchParent",
+        "height": "matchParent",
+        "itemMargin": 4,
+        "justifyContent": "spaceBetween",
+        "alignItems": "start",
+        "clip": true,
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
+    },
+    Column(
+        { "itemMargin": 8, "justifyContent": "start", "width": "matchParent" },
+        Row(
+            { "width": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top" },
+            Text(
+                "作息提醒",
+                {
+                    "fontSize": 12,
+                    "fontWeight": 500,
+                    "fontColor": $theme('supportContentColor'),
+                    "maxLines": 1
+                }
+            ),
+            #if props.sourceIcon
+                Image(
+                    props.sourceIcon,
+                    { "width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0 }
+                )
+            #endif
+        ),
+        Row(
+            { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "bottom", "margin": {"top": 4} },
+            Text(
+                data.duration,
+                { "fontSize": 20, "fontWeight": 800, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+            )
+        )
+    ),
+    Column(
+        { "itemMargin": 4, "justifyContent": "start", "width": "matchParent" },
+        #if data.startTime && data.endTime
+            Row(
+                { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
+                Text(
+                    "时段 ",
+                    { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+                ),
+                Text(
+                    `${data.startTime}-${data.endTime}`,
+                    { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+                )
+            )
+        #endif
+    )
+)
+#End
+
+#Template SleepOverviewNapHero@1(props: { sourceIcon?: asset })
+data = {
+    duration: $path("/totalNapDurationText"),
+    startTime: $optionalPath("/fallAsleepTimeText"),
+    endTime: $optionalPath("/wakeupTimeText"),
+}
+
+Column(
+    {
+        "_advancedComponent": "SleepOverview",
+        "width": "matchParent",
+        "height": "matchParent",
+        "itemMargin": 8,
+        "justifyContent": "start",
+        "alignItems": "start",
+        "clip": true,
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
+    },
+    Row(
+        { "width": "matchParent", "itemMargin": 4, "justifyContent": "spaceBetween", "alignItems": "top" },
+        Text(
+            "睡眠监测",
+            { "fontSize": 12, "fontWeight": 500, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+        ),
+        #if props.sourceIcon
+            Image(
+                props.sourceIcon,
+                { "width": 20, "height": 20, "fillColor": $theme('supportContentColor'), "objectFit": "contain", "flexShrink": 0 }
+            ),
+        #endif
+    ),
+    Row(
+        { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
+        Text(
+            data.duration,
+            { "fontSize": 20, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1 }
+        )
+    ),
+    #if data.startTime && data.endTime
+        Row(
+            { "width": "matchParent", "itemMargin": 4, "justifyContent": "start", "alignItems": "center" },
+            Text(
+                "睡眠时段",
+                { "fontWeight": 400, "fontColor": $theme('supportContentColor'), "fontSize": 12, "maxLines": 1 }
+            ),
+            Text(
+                `${data.startTime}-${data.endTime}`,
+                { "fontSize": 12, "fontWeight": 400, "fontColor": $theme('supportContentColor'), "maxLines": 1 }
+            )
+        )
+    #endif
 )
 #End
