@@ -190,7 +190,7 @@
     "id": "asset.drop_1",
     "type": "asset",
     "src": "resources/base/media/drop_1.svg",
-    "description": "样式：水滴图标，默认黑色，图形为圆润水滴轮廓；适用：湿度数据展示、饮水提醒、天气降雨信息。",
+    "description": "样式：双水滴实心图标，默认黑色，图形为左侧较大水滴与右侧较小水滴错位叠放，顶部尖收、底部圆润；适用：湿度数据展示、饮水提醒、天气降雨信息。",
     "sceneTags": [
       "weather",
       "water"
