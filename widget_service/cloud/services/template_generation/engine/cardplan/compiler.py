@@ -1073,7 +1073,7 @@ def _validate_provider_template_state(
             raise TerselConversionError(
                 "Bluetooth Provider Template has no trusted earphone facts."
             )
-        if variant_name == "caseStatusCompact":
+        if variant_name in {"caseStatusCompact", "earphoneCaseCompact"}:
             if (
                 facts.case_battery_level is None
                 or facts.case_charging_status is None
@@ -1082,10 +1082,37 @@ def _validate_provider_template_state(
                     "Bluetooth Provider Template variant does not match the trusted case status."
                 )
             return
+        if variant_name == "earphoneCaseHero":
+            if (
+                facts.case_battery_level is None
+                or facts.case_charging_status is None
+            ):
+                raise TerselConversionError(
+                    "Bluetooth Provider Template variant does not match the trusted case status."
+                )
+            return
+        if variant_name == "earphoneHero":
+            if facts.earphone_name is None or facts.case_battery_level is None:
+                raise TerselConversionError(
+                    "Bluetooth Provider Template variant does not match the trusted earphone battery."
+                )
+            return
+        if variant_name == "earphoneCompact":
+            if facts.earphone_name is None or facts.case_battery_level is None:
+                raise TerselConversionError(
+                    "Bluetooth Provider Template variant does not match the trusted earphone battery."
+                )
+            return
         has_left = facts.left_battery_level is not None
         has_right = facts.right_battery_level is not None
         has_case = facts.case_battery_level is not None
         if variant_name == "earbudsSupport":
+            if not has_left or not has_right:
+                raise TerselConversionError(
+                    "Bluetooth Provider Template variant does not match the trusted data shape."
+                )
+            return
+        if variant_name == "earbudsFull":
             if not has_left or not has_right:
                 raise TerselConversionError(
                     "Bluetooth Provider Template variant does not match the trusted data shape."
@@ -1481,7 +1508,7 @@ def _expand_workout_overview_call(
     facts = extract_workout_latest_facts(task_spec.dataModelSchema)
     if facts is None:
         raise TerselConversionError(
-            "WorkoutOverview latest requires four trusted non-empty exercise fields."
+            "WorkoutOverview latest requires trusted exercise duration text."
         )
     return _workout_latest_overview(facts, source_icon, calorie_icon, registry)
 
@@ -1492,6 +1519,19 @@ def _workout_latest_overview(
     calorie_icon: Any,
     registry: CardPlanRegistry,
 ) -> Nested2Node:
+    children = (
+        _overview_header("最近锻炼", source_icon, registry),
+        _overview_text(facts.exercise_type_name or "运动记录", "compact-title", 20, 700),
+        _overview_value_row(
+            facts.duration_text,
+            "",
+            accent="#FFFF7A45",
+            registry=registry,
+            hero=True,
+        ),
+    )
+    if facts.calorie_text is not None:
+        children += (_overview_fact_row(facts.calorie_text, calorie_icon, registry),)
     root = Nested2Node(
         "Column",
         (
@@ -1505,18 +1545,7 @@ def _workout_latest_overview(
                 "constraintSize": {"minWidth": 0, "minHeight": 0},
             },
         ),
-        (
-            _overview_header("最近锻炼", source_icon, registry),
-            _overview_text(facts.exercise_type_name, "compact-title", 20, 700),
-            _overview_value_row(
-                facts.duration_text,
-                "",
-                accent="#FFFF7A45",
-                registry=registry,
-                hero=True,
-            ),
-            _overview_fact_row(facts.calorie_text, calorie_icon, registry),
-        ),
+        children,
     )
     return _mark_advanced_component(root, "WorkoutOverview")
 
@@ -1540,20 +1569,26 @@ def _expand_heart_rate_overview_call(
     facts = extract_heart_rate_overview_facts(task_spec.dataModelSchema)
     if facts is None:
         raise TerselConversionError(
-            "HeartRateOverview requires a trusted positive exercise average heart rate."
+            "HeartRateOverview requires trusted exercise heart-rate facts."
         )
     parameters = call.values[0]
     role = str(parameters["role"])
     source_icon = parameters.get("sourceIcon")
+    if facts.average_bpm is not None:
+        header_title = "运动平均心率"
+        value_text = str(facts.average_bpm)
+    else:
+        header_title = "运动心率区间"
+        value_text = f"{facts.min_bpm}/{facts.max_bpm}"
     children: list[Nested2Node] = [
         _overview_header(
-            "运动平均心率",
+            header_title,
             source_icon,
             registry,
             compact=role == "support",
         ),
         _overview_value_row(
-            str(facts.average_bpm),
+            value_text,
             "bpm",
             accent="#FFE84057",
             registry=registry,
@@ -1592,7 +1627,7 @@ def _expand_sleep_overview_call(
     facts = extract_sleep_overview_facts(task_spec.dataModelSchema)
     if facts is None:
         raise TerselConversionError(
-            "SleepOverview requires a losslessly renderable night duration."
+            "SleepOverview requires a losslessly renderable night or nap duration."
         )
     parameters = call.values[0]
     variant = str(parameters["variant"])
@@ -1602,6 +1637,8 @@ def _expand_sleep_overview_call(
             "SleepOverview variant is not backed by this query and trusted projection."
         )
     role = str(parameters["role"])
+    if facts.is_nap and role != "hero":
+        raise TerselConversionError("SleepOverview nap variant renders as hero only.")
     source_icon = parameters.get("sourceIcon")
     multi_business = len(contract.allowed_business_component_ids) > 1
     if multi_business:
@@ -1618,6 +1655,7 @@ def _expand_sleep_overview_call(
         facts,
         source_icon,
         wide=task_spec.size == "2x4",
+        title_text="小睡" if facts.is_nap else "睡眠",
         primary_color=theme.primary_color,
         support_content_color=theme.support_content_color,
         registry=registry,
@@ -1629,6 +1667,7 @@ def _sleep_hero_overview(
     source_icon: Any,
     *,
     wide: bool,
+    title_text: str,
     primary_color: str,
     support_content_color: str,
     registry: CardPlanRegistry,
@@ -1636,6 +1675,7 @@ def _sleep_hero_overview(
     secondary_color = support_content_color
     title = _sleep_title_row(
         source_icon,
+        title_text=title_text,
         primary_color=primary_color,
         registry=registry,
     )
@@ -1751,12 +1791,13 @@ def _sleep_support_overview(
 def _sleep_title_row(
     source_icon: Any,
     *,
+    title_text: str,
     primary_color: str,
     registry: CardPlanRegistry,
 ) -> Nested2Node:
     title = _merge_node_options(
         _sleep_text(
-            "睡眠",
+            title_text,
             "compact-title",
             font_size=12,
             font_weight=400,
@@ -5607,7 +5648,7 @@ def _validate_raw_ux_business_component(
         "BluetoothDeviceOverview": {"earbuds"},
         "DateOverview": {"compactDate", "dateHero"},
         "HeartRateOverview": {"average"},
-        "SleepOverview": {"duration", "insufficient", "schedule"},
+        "SleepOverview": {"duration", "insufficient", "schedule", "nap"},
         "ScheduleOverview": {
             "nextEvent",
             "meetingCompact",
@@ -8891,7 +8932,8 @@ def _validate_required_numbers(
         elif call.name == "HeartRateOverview":
             facts = extract_heart_rate_overview_facts(task_spec.dataModelSchema)
             if facts is not None:
-                actual[facts.average_bpm] += 1
+                for bpm_value in facts.bpm_values():
+                    actual[bpm_value] += 1
         for child in call.children:
             visit(child)
 

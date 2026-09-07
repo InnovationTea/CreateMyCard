@@ -209,7 +209,7 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
 
     assert not stale_input.exists()
     assert len(manifest.providers) == 9
-    assert sum(len(provider.cases) for provider in manifest.providers) == 98
+    assert sum(len(provider.cases) for provider in manifest.providers) == 140
     scenario_ids = {
         case.scenarioId
         for provider in manifest.providers
@@ -257,10 +257,9 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
     assert battery_fusion_request["deviceInfo"]["prdVer"] == FUSION_PRD_VERSION
     binding = request["content"]["candidateDataBindings"][0]
     assert binding["candidateOutputFields"] == [
-        "/batterySOCText",
-        "/batteryCapacityLevelDesc",
-        "/chargingStatusDesc",
         "/batterySOC",
+        "/chargingStatusDesc",
+        "/batterySOCText",
     ]
     assert len(request["content"]["candidateEventCandidates"]) == 2
     assert "打开电池设置" in request["content"]["userQuery"]
@@ -305,14 +304,16 @@ def test_gallery_inputs_cover_all_provider_business_scenarios(tmp_path: Path) ->
         for case in provider.cases:
             if case.targetTemplateId:
                 targeted_cases.append(case)
-    assert len(targeted_cases) == 90
+    assert len(targeted_cases) == 134
     battery_full_ids = {
         case.targetTemplateId
         for case in targeted_cases
         if case.businessId == "BatteryOverview" and case.scenarioId == "single-content"
     }
     assert battery_full_ids == {
+        "BatteryOverviewChargingProgressFull@1",
         "BatteryOverviewFull@1",
+        "BatteryOverviewTemperatureFull@1",
     }
     battery_charging = _find_case(
         manifest,
@@ -427,9 +428,14 @@ def test_gallery_inputs_mark_missing_layout_families(tmp_path: Path) -> None:
             if is_calendar and is_hero:
                 calendar_hero_ids.add(case.targetTemplateId)
     assert calendar_hero_ids == {
+        "ScheduleOverviewDatedAllDayHero@1",
         "ScheduleOverviewDatedMeetingHero@1",
+        "ScheduleOverviewEventCountDetailsHero@1",
+        "ScheduleOverviewLocationHero@1",
         "ScheduleOverviewNextEventHero@1",
+        "ScheduleOverviewReminderDetailsHero@1",
         "ScheduleOverviewReminderHero@1",
+        "ScheduleOverviewTitleHero@1",
     }
     calendar_full = _find_case(
         manifest,
@@ -474,18 +480,20 @@ async def test_gallery_runner_calls_public_service_and_groups_a2ui_by_provider(
 
     assert not stale_output.exists()
     assert summary.total == 6
-    assert summary.success == 2
+    assert summary.success == 4
     assert summary.failed == 0
-    assert summary.missing == 4
-    assert len(service.requests) == 2
-    assert service.prd_versions.count(DEFAULT_PRD_VERSION) == 1
-    assert service.prd_versions.count(FUSION_PRD_VERSION) == 1
+    assert summary.missing == 2
+    assert len(service.requests) == 4
+    assert service.prd_versions.count(DEFAULT_PRD_VERSION) == 2
+    assert service.prd_versions.count(FUSION_PRD_VERSION) == 2
     assert all(service.template_candidate_ids)
     assert all(isinstance(item, dict) for item in service.template_sample_overrides)
-    assert sorted(len(item) for item in service.template_action_ids) == [0, 0]
+    assert sorted(len(item) for item in service.template_action_ids) == [0, 0, 1, 1]
     assert sorted(len(request.candidateEventCandidates or []) for request in service.requests) == [
         0,
         0,
+        1,
+        1,
     ]
     output_manifest = json.loads(summary.manifest_path.read_text(encoding="utf-8"))
     assert len(output_manifest["providers"]) == 1
@@ -567,10 +575,10 @@ async def test_gallery_dry_run_emits_missing_and_not_generated_results(
 
     summary = await runner.run(input_root, output_root, dry_run=True)
 
-    assert summary.total == 98
+    assert summary.total == 140
     assert summary.failed == 0
-    assert summary.missing == 18
-    assert summary.not_generated == 80
+    assert summary.missing == 16
+    assert summary.not_generated == 124
     assert service.requests == []
     reloaded = load_gallery_input_manifest(input_root)
     assert len(reloaded.providers) == 9
