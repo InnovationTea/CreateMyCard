@@ -4393,7 +4393,7 @@ async def test_bluetooth_hero_supports_connection_action() -> None:
     components = {
         item["id"]: item for item in messages[1]["updateComponents"]["components"]
     }
-    battery_pair: dict[str, Any] | None = None
+    battery_pairs: list[dict[str, Any]] = []
     for item in components.values():
         if item.get("component") != "Row":
             continue
@@ -4406,9 +4406,9 @@ async def test_bluetooth_hero_supports_connection_action() -> None:
             continue
         if styles.get("justifyContent") != "spaceBetween":
             continue
-        battery_pair = item
-        break
-    assert battery_pair is not None
+        battery_pairs.append(item)
+    assert len(battery_pairs) == 1
+    battery_pair = battery_pairs[0]
     ear_rows = [components[child_id] for child_id in battery_pair["children"]]
     assert len(ear_rows) == 2
     assert all(row["component"] == "Row" for row in ear_rows)

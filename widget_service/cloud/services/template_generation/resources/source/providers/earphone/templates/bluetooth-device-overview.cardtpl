@@ -118,65 +118,6 @@ Column(
                 )
             )
         )
-    #endif
-    #if data.left && data.right
-        Row(
-            {
-                "width": 100,
-                "height": 16,
-                "itemMargin": 0,
-                "justifyContent": "spaceBetween",
-                "alignItems": "center",
-            },
-            Row(
-                {
-                    "width": 50,
-                    "height": 16,
-                    "itemMargin": 2,
-                    "justifyContent": "start",
-                    "alignItems": "center",
-                },
-                #if props.leftEarIcon
-                    Image(
-                        props.leftEarIcon,
-                        { "width": 12, "height": 12, "fillColor": $theme('supportContentColor') }
-                    ),
-                #else
-                    Text(
-                        "左",
-                        { "fontColor": $theme('supportContentColor'), "fontSize": 12, "fontWeight": 500 }
-                    ),
-                #endif
-                Text(
-                    Expr(`'' + ${data.left} + '%'`),
-                    { "fontColor": $theme('supportContentColor'), "fontSize": 12, "fontWeight": 500 }
-                )
-            ),
-            Row(
-                {
-                    "width": 50,
-                    "height": 16,
-                    "itemMargin": 2,
-                    "justifyContent": "start",
-                    "alignItems": "center",
-                },
-                #if props.rightEarIcon
-                    Image(
-                        props.rightEarIcon,
-                        { "width": 12, "height": 12, "fillColor": $theme('supportContentColor') }
-                    ),
-                #else
-                    Text(
-                        "右",
-                        { "fontColor": $theme('supportContentColor'), "fontSize": 12, "fontWeight": 500 }
-                    ),
-                #endif
-                Text(
-                    Expr(`'' + ${data.right} + '%'`),
-                    { "fontColor": $theme('supportContentColor'), "fontSize": 12, "fontWeight": 500 }
-                )
-            )
-        )
     #else
         Text(
             data.name,
