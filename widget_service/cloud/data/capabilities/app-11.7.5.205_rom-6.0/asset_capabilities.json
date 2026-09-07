@@ -187,10 +187,10 @@
     "minXiaoyiVersion": "1.0.0"
   },
   {
-    "id": "asset.drop_1",
+    "id": "asset.drop_2_fill",
     "type": "asset",
-    "src": "resources/base/media/drop_1.svg",
-    "description": "样式：水滴图标，默认黑色，图形为圆润水滴轮廓；适用：湿度数据展示、饮水提醒、天气降雨信息。",
+    "src": "resources/base/media/drop_2_fill.svg",
+    "description": "样式：双水滴实心图标，默认黑色，图形为左下较大水滴与右上较小水滴错位叠放；适用：湿度数据展示、饮水提醒、天气降雨信息。",
     "sceneTags": [
       "weather",
       "water"
@@ -500,12 +500,13 @@
     "minXiaoyiVersion": "1.0.0"
   },
   {
-    "id": "asset.sun_max",
+    "id": "asset.cloud_sun_fill_1",
     "type": "asset",
-    "src": "resources/base/media/sun_max.svg",
-    "description": "样式：默认黑色的单色线框太阳，中央大圆环，周围为八条较长放射线；适用：高亮度、强光、晴天或亮度增大。",
+    "src": "resources/base/media/cloud_sun_fill_1.svg",
+    "description": "样式：云太阳实心图标，默认黑色，图形为云朵遮住部分太阳并带放射线；适用：多云、晴间多云天气展示。",
     "sceneTags": [
       "weather",
+      "cloud",
       "sun"
     ],
     "minXiaoyiVersion": "1.0.0"
