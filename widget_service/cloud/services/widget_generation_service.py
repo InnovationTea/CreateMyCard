@@ -105,7 +105,7 @@ class WidgetGenerationService:
         if request.operation == "getDataCapabilitySchemas":
             # schema 是按需加载能力详情，必须明确传入主 Agent 已筛选出的数据能力 ID。
             if not request.dataCapabilityIds:
-                trigger_mq(body={"apiParamErrorTwo": 1})
+                trigger_mq(body={"getDataCapabilitySchemasInterfaceParamError": 1})
                 raise ValueError("dataCapabilityIds is required for getDataCapabilitySchemas.")
             return self.get_data_capability_schemas(
                 DataCapabilitySchemasRequest(**request.model_dump(exclude={"operation"}))
@@ -419,7 +419,7 @@ class WidgetGenerationService:
                 f"issue_count={len(preflight.blocking_issues)} "
                 f"issues={json_for_log(issue_payloads)}"
             )
-            trigger_mq(body={"apiParamErrorThree": 1})
+            trigger_mq(body={"generateWidgetCardCompactDslInterfaceParamError": 1})
             raise GenerationPreflightError(preflight)
         effective_bindings = list(preflight.effective_bindings)
         effective_data_capabilities = list(preflight.effective_data_capabilities)

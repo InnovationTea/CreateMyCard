@@ -55,14 +55,14 @@ from utils.trigger_mq import trigger_mq
 _MODULE = "[WS Router]"
 
 INTERFACE_TYPE = {
-    "getWidgetCapabilityOverview": "apiLatencyOne",
-    "getDataCapabilitySchemas": "apiLatencyTwo",
-    "generateWidgetCardCompactDsl": "apiLatencyThree"
+    "getWidgetCapabilityOverview": "getWidgetCapabilityOverviewInterfaceTime",
+    "getDataCapabilitySchemas": "getDataCapabilitySchemasInterfaceTime",
+    "generateWidgetCardCompactDsl": "generateWidgetCardCompactDslInterfaceTime"
 }
 
 INTERFACE_PARAMETER_ERROR_TYPE = {
-    "getDataCapabilitySchemas": "apiParamErrorTwo",
-    "generateWidgetCardCompactDsl": "apiParamErrorThree"
+    "getDataCapabilitySchemas": "getDataCapabilitySchemasInterfaceParamError",
+    "generateWidgetCardCompactDsl": "generateWidgetCardCompactDslInterfaceParamError"
 }
 
 
