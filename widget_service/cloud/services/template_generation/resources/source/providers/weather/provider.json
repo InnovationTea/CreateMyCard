@@ -90,15 +90,16 @@
       },
       "businessId": "WeatherOverview",
       "capabilityId": "ViewWeather",
-      "description": "基础天气 Support：主行展示城市和温度，辅助行展示天气现象；城市区县可选，使用 location 或当前城市兜底；可选 24vp 气温温度计或天气状态图标和根节点事件。",
+      "description": "基础天气 Support：主行展示城市和温度，辅助行展示天气现象并可追加体感温度；兼容格式化温度或纯数值摄氏温度。城市区县可选，使用 location 或当前城市兜底；仅在绑定事件时显示可选 24vp 气温温度计或天气状态图标。",
       "entry": "templates/weather-overview.cardtpl",
       "primaryData": [
-        "/current/temperatureText"
-      ],
-      "secondaryData": [
         "/current/condition"
       ],
+      "secondaryData": [],
       "optionalData": [
+        "/current/temperatureText",
+        "/current/temperatureC",
+        "/current/feelsLikeC",
         "/location/prefectureName",
         "/location/districtName"
       ]

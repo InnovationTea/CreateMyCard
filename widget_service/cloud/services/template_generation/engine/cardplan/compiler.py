@@ -1128,6 +1128,13 @@ def _validate_provider_template_state(
         has_left = facts.left_battery_level is not None
         has_right = facts.right_battery_level is not None
         has_case = facts.case_battery_level is not None
+        if variant_name == "connectionSupport":
+            if facts.is_connected is None or not has_case:
+                raise TerselConversionError(
+                    "Bluetooth Provider Template variant does not match "
+                    "the trusted connection and case battery."
+                )
+            return
         if variant_name == "earbudsSupport":
             if not has_left or not has_right:
                 raise TerselConversionError(

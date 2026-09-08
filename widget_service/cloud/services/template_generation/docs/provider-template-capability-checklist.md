@@ -4,7 +4,7 @@
 
 ## 整改总览
 
-- [x] 96 个业务模板全部使用 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
+- [x] 106 个业务模板全部使用 `HeroTitle`、`HeroContent`、`Support`、`Compact`、`Hero`、`Full`、`WideHero`、`WideFull` 后缀。
 - [x] 业务模板尺寸和动作组合由后缀推导，不再由 Provider 重复声明。
 - [x] Provider 数据统一拆为 `primaryData`、`secondaryData`、`optionalData`。
 - [x] `primaryData` 与 `secondaryData` 均参与模板准入硬校验。
@@ -96,7 +96,7 @@
 | ✅ | `ScheduleOverviewNextEventLocationFull@1` | 完整 2x2；无 Action 或加一个 IconAction | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewMeetingWideFull@1` | 完整 4x2；单 WideFull | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewMeetingSourceWideFull@1` | 完整 4x2；单 WideFull | `/events/0/title`<br>`/events/0/dtStart` | `/events/0/dtEnd`<br>`/events/0/eventLocation` | 无 |
-| ✅ | `ScheduleOverviewTimeSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/events/0/title` | `/events/0/dtStart` | `/events/0/dtEnd` |
+| ✅ | `ScheduleOverviewTimeSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/events/0/dtStart` | 无 | `/events/0/title`<br>`/events/0/dtEnd`<br>`/events/0/eventLocation` |
 | ✅ | `ScheduleOverviewLocationSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/events/0/title` | `/events/0/eventLocation` | 无 |
 | ✅ | `ScheduleOverviewStartTimeSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/events/0/title` | `/events/0/dtStart` | 无 |
 | ✅ | `ScheduleOverviewDateSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/events/0/title` | `/events/0/startDate` | 无 |
@@ -123,6 +123,7 @@
 | ✅ | `BluetoothDeviceOverviewEarbudsPhoneWideFull@1` | 完整 4x2；单 WideFull | `/isConnected`<br>`/earphoneName` | 无 | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` |
 | ✅ | `BluetoothDeviceOverviewEarbudsDynamicWideFull@1` | 完整 4x2；单 WideFull | `/isConnected`<br>`/earphoneName` | 无 | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` |
 | ✅ | `BluetoothDeviceOverviewEarbudsSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 | 无 |
+| ✅ | `BluetoothDeviceOverviewConnectionSupport@1` | 约 2x1；耳机仓电量与连接状态，事件在模板内部 | `/batteryLevel` | `/isConnected` | 无 |
 | ✅ | `BluetoothDeviceOverviewEarbudPairFull@1` | 完整 2x2；无 Action 或加一个 IconAction | `/isConnected`<br>`/earphoneName` | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
 | ✅ | `BluetoothDeviceOverviewCompleteWideFull@1` | 完整 4x2；单 WideFull | `/isConnected`<br>`/earphoneName` | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
 | ✅ | `BluetoothDeviceOverviewEarbudPairCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/earphoneName` | `/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
@@ -207,7 +208,7 @@
 | ✅ | `WeatherOverviewHeroTitle@1` | 双业务单 Action 的位置 0；左城市、右现象及温度 | 无 | 无 | `/location/prefectureName`<br>`/location/districtName`<br>`/current/temperatureText`<br>`/current/condition` |
 | ✅ | `WeatherOverviewCompact@1` | 约 2x1；可选天气图标；Compact + 2 个 PillAction | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/coldLevel` |
 | ✅ | `WeatherOverviewUvCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/current/temperatureText`<br>`/current/uvIndex` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName` |
-| ✅ | `WeatherOverviewTemperatureSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName` |
+| ✅ | `WeatherOverviewTemperatureSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/current/condition` | 无 | `/current/temperatureText`<br>`/current/temperatureC`<br>`/current/feelsLikeC`<br>`/location/prefectureName`<br>`/location/districtName` |
 | ✅ | `WeatherOverviewTemperatureUvSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/current/temperatureText` | `/current/condition`<br>`/current/uvIndex` | `/location/prefectureName`<br>`/location/districtName` |
 | ✅ | `WeatherOverviewHero@1` | 约 2x1.7；可选天气图标；Hero + 1 个 PillAction | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/coldLevel` |
 | ✅ | `WeatherOverviewFull@1` | 完整 2x2；可选天气图标；无 Action 的单 Full | `/current/temperatureText` | `/current/condition` | `/location/prefectureName`<br>`/location/districtName`<br>`/current/airQuality`<br>`/current/coldLevel` |

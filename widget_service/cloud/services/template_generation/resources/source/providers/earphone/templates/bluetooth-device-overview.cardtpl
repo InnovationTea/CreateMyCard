@@ -441,6 +441,69 @@ Row(
 
 #End
 
+#Template BluetoothDeviceOverviewConnectionSupport@1(props: { deviceIcon?: asset, actionId?: string })
+data = {
+    connected: $path("/isConnected"),
+    percent: $path("/batteryLevel")
+}
+
+Row(
+  {
+    "_advancedComponent": "BluetoothDeviceOverview",
+    "width": "matchParent",
+    "height": "matchParent",
+    "padding": { "left": 8, "right": 8 },
+    "justifyContent": "spaceBetween",
+    "alignItems": "center",
+    "clip": true,
+    "constraintSize": { "minWidth": 0, "minHeight": 0 },
+    "onClick": EventAction(props?.actionId)
+  },
+  Column(
+    {
+      "itemMargin": 2,
+      "layoutWeight": 1,
+      "justifyContent": "start",
+      "alignItems": "start",
+      "clip": true,
+      "constraintSize": { "minWidth": 0, "minHeight": 0 }
+    },
+    Text(
+      Expr("耳机仓 " + data.percent + "%"),
+      {
+        "height": 20,
+        "fontSize": 14,
+        "fontWeight": 700,
+        "fontColor": $theme('primaryColor'),
+        "maxLines": 1,
+        "textOverflow": "ellipsis",
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
+      }
+    ),
+    Text(
+      Expr("连接状态 " + data.connected),
+      {
+        "height": 16,
+        "fontSize": 12,
+        "fontWeight": 400,
+        "fontColor": $theme('supportContentColor'),
+        "maxLines": 1,
+        "textOverflow": "ellipsis",
+        "constraintSize": { "minWidth": 0, "minHeight": 0 }
+      }
+    )
+  ),
+  #if props.actionId
+    #if props.deviceIcon
+    Image(
+      props.deviceIcon,
+      { "width": 24, "height": 24, "flexShrink": 0, "fillColor": $theme('supportContentColor') }
+    )
+    #endif
+  #endif
+)
+#End
+
 #Template BluetoothDeviceOverviewChargeSupport@1(props: { deviceIcon: asset, actionId?: string })
 data = {
     percent: $path("/batteryLevel"),

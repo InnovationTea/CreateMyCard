@@ -310,20 +310,23 @@
       "supportedEventIds": ["event.viewCalendarEvent","event.enter.meeting"],
       "businessId": "CalendarOverview",
       "capabilityId": "GetCalendarEvents",
-      "description": "日程 时间段，结束时间缺失时仅展示开始时间 Support：主行展示首项日程标题，辅助行展示时间段，结束时间缺失时仅展示开始时间；可选 24vp 日历图标，根节点可绑定事件。",
+      "description": "日程时间 Support：有标题时主行展示标题、辅助行展示开始时间或时间段；无标题时主行展示开始时间、辅助行展示地点或查看提示。仅在绑定事件时显示可选 24vp 日历或会议图标。",
       "entry": "templates/schedule-overview.cardtpl",
       "primaryData": [
-        "/events/0/title"
-      ],
-      "secondaryData": [
         "/events/0/dtStart"
       ],
+      "secondaryData": [],
       "optionalData": [
-        "/events/0/dtEnd"
+        "/events/0/title",
+        "/events/0/dtEnd",
+        "/events/0/eventLocation"
       ],
       "assetParameterSemanticTags": {
         "calendarIcon": [
           "calendar"
+        ],
+        "meetingIcon": [
+          "meeting"
         ]
       }
     },

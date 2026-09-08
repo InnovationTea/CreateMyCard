@@ -224,7 +224,9 @@ data = {
     condition: $path("/current/condition"),
     city: $optionalPath("/location/prefectureName"),
     district: $optionalPath("/location/districtName"),
-    temperature: $path("/current/temperatureText"),
+    temperatureText: $optionalPath("/current/temperatureText"),
+    temperatureC: $optionalPath("/current/temperatureC"),
+    feelsLikeC: $optionalPath("/current/feelsLikeC"),
 }
 
 Row(
@@ -240,7 +242,8 @@ Row(
   },
   Column(
     {
-      "itemMargin": 4,
+      "itemMargin": 2,
+      "layoutWeight": 1,
       "justifyContent": "start",
       "alignItems": "start",
       "clip": true,
@@ -264,33 +267,61 @@ Row(
           "constraintSize": { "minWidth": 0, "minHeight": 0 }
         }
       ),
-      Text(
-        data.temperature,
-        { "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0 }
-      )
+      #if data.temperatureText
+        Text(
+          data.temperatureText,
+          { "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0 }
+        )
+      #else
+        #if data.temperatureC
+          Text(
+            Expr(data.temperatureC + "℃"),
+            { "fontSize": 14, "fontWeight": 700, "fontColor": $theme('primaryColor'), "maxLines": 1, "flexShrink": 0 }
+          )
+        #endif
+      #endif
     ),
-    Text(
-      data.condition,
-      {
-        "fontSize": 12,
-        "fontWeight": 400, "fontColor": $theme('supportContentColor'),
-        "maxLines": 1,
-        "textOverflow": "ellipsis",
-        "constraintSize": { "minWidth": 0, "minHeight": 0 }
-      }
-    )
+    #if data.feelsLikeC
+      Text(
+        Expr(data.condition + " · 体感 " + data.feelsLikeC + "℃"),
+        {
+          "width": "matchParent",
+          "height": 16,
+          "fontSize": 12,
+          "fontWeight": 400, "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        }
+      )
+    #else
+      Text(
+        data.condition,
+        {
+          "width": "matchParent",
+          "height": 16,
+          "fontSize": 12,
+          "fontWeight": 400, "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        }
+      )
+    #endif
   ),
-  #if props.conditionIcon
-    Image(
-      props.conditionIcon,
-      {
-        "width": 24,
-        "height": 24,
-        "objectFit": "contain",
-        "flexShrink": 0,
-        "fillColor": $theme('supportContentColor'),
-      }
-    )
+  #if props.actionId
+    #if props.conditionIcon
+      Image(
+        props.conditionIcon,
+        {
+          "width": 24,
+          "height": 24,
+          "objectFit": "contain",
+          "flexShrink": 0,
+          "fillColor": $theme('supportContentColor'),
+        }
+      )
+    #endif
   #endif
 )
 #End
