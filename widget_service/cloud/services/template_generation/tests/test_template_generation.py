@@ -56,6 +56,7 @@ from services.template_generation.engine.advanced.content_selectors import (
     extract_schedule_overview_facts,
     extract_schedule_timezone_facts,
     extract_workout_latest_facts,
+    project_content_component_facts,
     schedule_overview_is_eligible,
 )
 from services.template_generation.engine.advanced.data_shape import extract_data_shape
@@ -85,6 +86,7 @@ from services.template_generation.engine.cardplan.compiler import (
     _lower_action_template_tree,
     _normalize_weather_condition_icons,
     _provider_layout_action_background,
+    _provider_template_binding_values,
     _validate_provider_template_state,
 )
 from services.template_generation.engine.cardplan.fusion_ball_background import (
@@ -254,7 +256,7 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         if path.is_dir()
     }
 
-    assert len(registry.provider_template_ids) == 100
+    assert len(registry.provider_template_ids) == 109
     assert {
         "ActivityOverviewFull@1",
         "AppUsageOverviewFull@1",
@@ -297,10 +299,19 @@ def test_all_provider_templates_are_loaded_from_the_isolated_directory():
         "SleepOverviewNapHero@1",
         "SleepOverviewHero@1",
         "WeatherOverviewAirQualityHero@1",
+        "WeatherOverviewAlertFull@1",
+        "WeatherOverviewCareAlertFull@1",
+        "WeatherOverviewConditionHero@1",
+        "WeatherOverviewDailyCompareFull@1",
+        "WeatherOverviewDailyDateFull@1",
+        "WeatherOverviewDailyHealthFull@1",
+        "WeatherOverviewDailyRainFull@1",
+        "WeatherOverviewDualCityFull@1",
         "WeatherOverviewFull@1",
         "WeatherOverviewHero@1",
         "WeatherOverviewHumidityFull@1",
         "WeatherOverviewUvFull@1",
+        "WeatherOverviewWindHero@1",
         "WorkoutOverviewFull@1",
         "SingleFocusLayout@1",
         "CompactTwoActionLayout@1",
@@ -392,6 +403,372 @@ def test_weather_location_compile_time_conditional_has_optional_sources() -> Non
     )
     assert variant.required_bindings == ("temperature", "condition")
     assert variant.optional_bindings == ("city", "district", "coldLevel")
+
+
+def test_weather_condition_hero_matches_q001_data_contract() -> None:
+    definition = get_cardplan_registry().require_template("WeatherOverviewConditionHero@1")
+    variant = definition.variants[0]
+
+    assert definition.primary_data == ("/current/condition",)
+    assert definition.secondary_data == ()
+    assert definition.optional_data == (
+        "/location/prefectureName",
+        "/location/districtName",
+    )
+    assert variant.required_bindings == ("condition",)
+    assert variant.optional_bindings == ("city", "district")
+
+
+@pytest.mark.parametrize(
+    (
+        "template_id",
+        "primary_data",
+        "secondary_data",
+        "optional_data",
+        "required_bindings",
+        "optional_bindings",
+    ),
+    [
+        (
+            "WeatherOverviewDailyDateFull@1",
+            ("/daily/1/condition",),
+            ("/daily/1/date", "/daily/1/weekday"),
+            ("/location/districtName",),
+            ("date", "weekday", "condition"),
+            ("district",),
+        ),
+        (
+            "WeatherOverviewDailyRainFull@1",
+            ("/daily/1/rainProbabilityPercent",),
+            ("/daily/1/temperatureRangeText",),
+            (),
+            ("rainProbability", "temperatureRange"),
+            (),
+        ),
+        (
+            "WeatherOverviewDailyCompareFull@1",
+            ("/daily/0/condition", "/daily/1/condition"),
+            ("/daily/0/airQuality", "/daily/1/airQuality"),
+            (),
+            (
+                "todayCondition",
+                "todayAirQuality",
+                "tomorrowCondition",
+                "tomorrowAirQuality",
+            ),
+            (),
+        ),
+        (
+            "WeatherOverviewDailyHealthFull@1",
+            ("/daily/1/uvIndex",),
+            ("/daily/1/airQuality", "/daily/1/coldLevel"),
+            (),
+            ("airQuality", "uvIndex", "coldLevel"),
+            (),
+        ),
+    ],
+)
+def test_weather_daily_templates_declare_exact_item_contracts(
+    template_id: str,
+    primary_data: tuple[str, ...],
+    secondary_data: tuple[str, ...],
+    optional_data: tuple[str, ...],
+    required_bindings: tuple[str, ...],
+    optional_bindings: tuple[str, ...],
+) -> None:
+    definition = get_cardplan_registry().require_template(template_id)
+    variant = definition.variants[0]
+
+    assert definition.primary_data == primary_data
+    assert definition.secondary_data == secondary_data
+    assert definition.optional_data == optional_data
+    assert variant.required_bindings == required_bindings
+    assert variant.optional_bindings == optional_bindings
+
+
+def test_weather_daily_item_binding_uses_the_exact_array_index() -> None:
+    definition = get_cardplan_registry().require_template(
+        "WeatherOverviewDailyCompareFull@1"
+    )
+    variant = definition.variants[0]
+    task = TaskSpec(
+        userQuery="展示明日天气",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "daily": [
+                        {
+                            "condition": {"type": "string", "sampleValue": "晴"},
+                            "airQuality": {"type": "string", "sampleValue": "优"},
+                        },
+                        {
+                            "condition": {"type": "string", "sampleValue": "多云"},
+                            "airQuality": {"type": "string", "sampleValue": "良"},
+                        },
+                    ]
+                }
+            }
+        },
+    )
+
+    values = _provider_template_binding_values(
+        definition,
+        variant,
+        task,
+        {"ViewWeather": ("/data/weather",)},
+    )
+
+    assert values["todayCondition"] == "${data.weather.daily.0.condition}"
+    assert values["tomorrowCondition"] == "${data.weather.daily.1.condition}"
+
+
+def test_weather_daily_item_binding_does_not_fallback_to_index_zero() -> None:
+    definition = get_cardplan_registry().require_template(
+        "WeatherOverviewDailyDateFull@1"
+    )
+    variant = definition.variants[0]
+    task = TaskSpec(
+        userQuery="展示明日天气",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "daily": [
+                        {"condition": {"type": "string", "sampleValue": "晴"}},
+                    ]
+                }
+            }
+        },
+    )
+
+    with pytest.raises(TerselConversionError, match="daily/1"):
+        _provider_template_binding_values(
+            definition,
+            variant,
+            task,
+            {"ViewWeather": ("/data/weather",)},
+        )
+
+
+def test_weather_alert_full_matches_q004_data_contract() -> None:
+    definition = get_cardplan_registry().require_template("WeatherOverviewAlertFull@1")
+    variant = definition.variants[0]
+
+    assert definition.primary_data == ("/updatedAt",)
+    assert definition.secondary_data == ()
+    assert definition.optional_data == ("/current/alertLevel",)
+    assert variant.required_bindings == ("updatedAt",)
+    assert variant.optional_bindings == ("alertLevel",)
+
+
+def test_weather_alert_full_falls_back_when_alert_is_missing() -> None:
+    definition = get_cardplan_registry().require_template("WeatherOverviewAlertFull@1")
+    root = _instantiate_blueprint(
+        definition.variants[0].root,
+        {},
+        {"updatedAt": "${data.weather.updatedAt}"},
+        {
+            "primaryColor": "#FF000000",
+            "supportContentColor": "#99000000",
+        },
+    )
+
+    assert "无预警信息" in repr(root)
+    assert "${data.weather.updatedAt}" in repr(root)
+
+
+def test_weather_alert_full_falls_back_when_alert_is_empty() -> None:
+    definition = get_cardplan_registry().require_template("WeatherOverviewAlertFull@1")
+    root = _instantiate_blueprint(
+        definition.variants[0].root,
+        {},
+        {
+            "alertLevel": "${data.weather.current.alertLevel}",
+            "updatedAt": "${data.weather.updatedAt}",
+        },
+        {
+            "primaryColor": "#FF000000",
+            "supportContentColor": "#99000000",
+        },
+    )
+
+    rendered = repr(root)
+    assert "无预警信息" in rendered
+    assert "${/data/weather/current/alertLevel}" in rendered
+
+
+def test_q004_alert_fields_are_renderable_weather_facts() -> None:
+    def field(value: str) -> dict[str, str]:
+        return {
+            "type": "string",
+            "description": "weather field",
+            "sampleValue": value,
+        }
+
+    task_spec = TaskSpec(
+        userQuery="显示长沙天气预警和更新时间",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "current": {"alertLevel": field("暴雨黄色预警")},
+                    "updatedAt": field("2026-08-28 09:00"),
+                }
+            }
+        },
+    )
+
+    projected = project_content_component_facts(
+        task_spec,
+        {"ViewWeather"},
+        ("WeatherOverview",),
+    )
+
+    weather = projected.dataModelSchema["data"]["WeatherOverview"]
+    assert weather["alertLevel"]["sampleValue"] == "暴雨黄色预警"
+    assert weather["updatedAt"]["sampleValue"] == "2026-08-28 09:00"
+
+
+def test_weather_wind_hero_matches_q025_data_contract() -> None:
+    definition = get_cardplan_registry().require_template("WeatherOverviewWindHero@1")
+    variant = definition.variants[0]
+
+    assert definition.primary_data == (
+        "/current/windDirection",
+        "/current/windLevel",
+    )
+    assert definition.secondary_data == (
+        "/location/prefectureName",
+        "/updatedAt",
+    )
+    assert definition.optional_data == ()
+    assert variant.required_bindings == (
+        "city",
+        "windDirection",
+        "windLevel",
+        "updatedAt",
+    )
+
+
+def test_weather_dual_city_full_matches_q034_data_contract() -> None:
+    definition = get_cardplan_registry().require_template("WeatherOverviewDualCityFull@1")
+    variant = definition.variants[0]
+
+    assert definition.binding_count == 2
+    assert definition.primary_data == (
+        "/current/temperatureC",
+        "/current/condition",
+    )
+    assert definition.secondary_data == ()
+    assert definition.optional_data == ("/location/prefectureName",)
+    assert variant.required_bindings == (
+        "firstTemperature",
+        "firstCondition",
+        "secondTemperature",
+        "secondCondition",
+    )
+    assert definition.bindings["firstTemperature"].root_index == 0
+    assert definition.bindings["secondTemperature"].root_index == 1
+    assert variant.optional_bindings == ("firstCity", "secondCity")
+
+
+def test_weather_care_alert_full_matches_q043_data_contract() -> None:
+    definition = get_cardplan_registry().require_template("WeatherOverviewCareAlertFull@1")
+    variant = definition.variants[0]
+
+    assert definition.primary_data == ("/current/alertLevel",)
+    assert definition.secondary_data == (
+        "/location/prefectureName",
+        "/current/uvIndex",
+        "/current/airQuality",
+    )
+    assert definition.optional_data == ()
+    assert variant.required_bindings == (
+        "city",
+        "alertLevel",
+        "uvIndex",
+        "airQuality",
+    )
+    assert variant.optional_bindings == ()
+
+
+def test_weather_care_alert_full_uses_three_section_layout() -> None:
+    definition = get_cardplan_registry().require_template("WeatherOverviewCareAlertFull@1")
+    root = _instantiate_blueprint(
+        definition.variants[0].root,
+        {"uvIcon": "resources/base/media/sun_max.svg"},
+        {
+            "city": "${data.weather.location.prefectureName}",
+            "alertLevel": "${data.weather.current.alertLevel}",
+            "uvIndex": "${data.weather.current.uvIndex}",
+            "airQuality": "${data.weather.current.airQuality}",
+        },
+        {
+            "primaryColor": "#FF000000",
+            "supportContentColor": "#99000000",
+        },
+    )
+
+    header, focus, details = root.children
+    assert header.component_type == "Row"
+    assert header.values[-1]["height"] == 20
+    assert header.children[1].values[-1]["width"] == 20
+    assert header.children[1].values[-1]["height"] == 20
+    assert focus.component_type == "Column"
+    assert "无预警信息" in repr(focus.children[0].values[0])
+    assert focus.children[1].values[0] == "天气预警"
+    assert details.component_type == "Column"
+    assert details.values[-1]["height"] == 36
+    assert details.values[-1]["padding"] == {"right": 34}
+
+
+@pytest.mark.parametrize(
+    ("template_id", "icon_prop"),
+    [
+        ("WeatherOverviewConditionHero@1", "conditionIcon"),
+        ("WeatherOverviewDailyDateFull@1", "conditionIcon"),
+        ("WeatherOverviewDailyRainFull@1", "rainIcon"),
+        ("WeatherOverviewDailyHealthFull@1", "uvIcon"),
+        ("WeatherOverviewCareAlertFull@1", "uvIcon"),
+        ("WeatherOverviewAlertFull@1", "alertIcon"),
+        ("WeatherOverviewWindHero@1", "locationIcon"),
+    ],
+)
+def test_added_weather_template_icons_are_20vp(
+    template_id: str,
+    icon_prop: str,
+) -> None:
+    definition = get_cardplan_registry().require_template(template_id)
+    variant = definition.variants[0]
+    bindings = {
+        name: f"${{data.weather.{name}}}"
+        for name in (*variant.required_bindings, *variant.optional_bindings)
+    }
+    root = _instantiate_blueprint(
+        variant.root,
+        {icon_prop: "resources/base/media/weather.svg"},
+        bindings,
+        {
+            "primaryColor": "#FF000000",
+            "supportContentColor": "#99000000",
+            "actionStyle.backgroundColor": "#332E529E",
+            "actionStyle.contentColor": "#FF000000",
+            "supportContentStyle.backgroundColor": "#1A2E529E",
+            "supportContentStyle.borderRadius": 12,
+        },
+    )
+
+    pending = [root]
+    images = []
+    while pending:
+        node = pending.pop()
+        if node.component_type == "Image":
+            images.append(node)
+        pending.extend(node.children)
+    assert len(images) == 1
+    assert images[0].values[-1]["width"] == 20
+    assert images[0].values[-1]["height"] == 20
 
 
 @pytest.mark.parametrize(
@@ -867,6 +1244,16 @@ def test_all_themes_use_fixed_root_inset_and_color_only_action_style() -> None:
         }
 
 
+def test_weather_theme_uses_shared_action_and_dual_card_backgrounds() -> None:
+    registry = get_cardplan_registry()
+    theme = registry.require_theme("family-weather-care-blue")
+
+    assert theme.fusion_ball_style is None
+    assert theme.root_style["padding"] == 12
+    assert theme.action_style.background_color == "#332E529E"
+    assert theme.reference_values["supportContentStyle.backgroundColor"] == "#1A2E529E"
+
+
 def test_every_provider_asset_prop_has_second_layer_semantic_description():
     registry = get_cardplan_registry()
     providers_root = registry.source_root / "providers"
@@ -1073,7 +1460,16 @@ def test_non_fusion_weather_theme_uses_the_reviewed_solid_palette() -> None:
     assert theme.root_style["backgroundColor"] == "#FFE5EDFE"
     assert "linearGradient" not in theme.root_style
     assert theme.action_style.content_color == "#FF1F4799"
-    assert theme.action_style.background_color == "#330A59F7"
+    assert theme.action_style.background_color == "#332E529E"
+
+
+def test_fusion_weather_theme_uses_ten_percent_tinted_support_capsules() -> None:
+    theme = get_cardplan_registry(True).require_theme("fusion-weather-blue")
+
+    assert theme.reference_values["supportContentStyle.backgroundColor"] == (
+        "#1ACCEEFF"
+    )
+    assert theme.reference_values["supportContentStyle.borderRadius"] == 12
 
 
 def test_non_fusion_sleep_theme_uses_the_reviewed_solid_palette() -> None:
@@ -3599,6 +3995,95 @@ class _FixedTemplateModel:
 
 
 @pytest.mark.asyncio
+async def test_q025_wind_hero_uses_card_click_without_visible_pill_action() -> None:
+    task_spec = TaskSpec(
+        userQuery="显示厦门当前风向、风力和更新时间，点击查看天气详情",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.open.weather",
+                call="clickToDeeplink",
+                args={"intentName": "Weather_CityCode"},
+            )
+        ],
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "location": {"prefectureName": _provider_field("厦门市", "string")},
+                    "current": {
+                        "windDirection": _provider_field("东南风", "string"),
+                        "windLevel": _provider_field(2, "integer"),
+                    },
+                    "updatedAt": _provider_field("2026-09-03 10:00", "string"),
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=[
+            "/location/prefectureName",
+            "/current/windDirection",
+            "/current/windLevel",
+            "/updatedAt",
+        ],
+    )
+    card_spec = {
+        "title": "海边航拍",
+        "description": "城市风况和更新时间",
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {"capabilityId": "ViewWeather", "writeResultTo": "/data/weather"}
+        ],
+    }
+    model = _FixedTemplateModel(
+        theme_id="fusion-weather-blue",
+        component_id="WeatherOverview",
+        available_template_ids=("WeatherOverviewWindHero@1",),
+        capability_id="ViewWeather",
+        required_fields=(
+            "/location/prefectureName",
+            "/current/windDirection",
+            "/current/windLevel",
+            "/updatedAt",
+        ),
+        action_id="event.open.weather",
+        body=(
+            'Template("HeroActionLayout@1",{},'
+            'Template("WeatherOverviewWindHero@1",{}),'
+            'Template("PillAction@1",{"actionId":"event.open.weather",'
+            '"label":"天气详情"}));'
+        ),
+    )
+
+    output = await generate_template_a2ui(
+        task_spec,
+        card_spec,
+        (binding,),
+        model,
+        enable_fusion_ball=True,
+    )
+
+    messages = [json.loads(line) for line in output.a2ui.splitlines()]
+    components = messages[1]["updateComponents"]["components"]
+    assert not any(
+        component.get("content") == "天气详情" for component in components
+    ), [
+        component
+        for component in components
+        if component.get("content") == "天气详情" or component.get("onClick")
+    ]
+    clickable = [component for component in components if component.get("onClick")]
+    assert len(clickable) == 1
+    assert clickable[0].get("children")
+    payload = json.dumps(components, ensure_ascii=False)
+    assert "windDirection" in payload
+    assert "windLevel" in payload
+    assert "updatedAt" in payload
+
+
+@pytest.mark.asyncio
 async def test_q001_sleep_assistant_generates_hero_without_sleep_score() -> None:
     task_spec = TaskSpec(
         userQuery="显示今日睡眠时长，点击可打开闹钟快速设置提醒",
@@ -6009,19 +6494,24 @@ async def test_weather_template_defaults_to_non_fusion_a2ui_and_compact_artifact
     protocol_profile = A2UIProtocolRegistry(A2UI_FORM_PROTOCOL_PROFILE_ID).get_profile()
     assert messages[0]["createSurface"]["catalogId"] == protocol_profile["catalogId"]
     assert messages[1]["updateComponents"]["root"] == "root"
-    root = next(
-        item
+    components_by_id = {
+        item["id"]: item
         for item in messages[1]["updateComponents"]["components"]
-        if item["id"] == "root"
-    )
+    }
+    root = components_by_id["root"]
     component_ids = {
         item["id"] for item in messages[1]["updateComponents"]["components"]
     }
-    assert root["component"] == "Column"
+    assert root["component"] == "Stack"
+    assert root["styles"]["padding"] == 0
     assert root["styles"]["borderRadius"] == 18
     assert root["styles"]["backgroundColor"] == "#FFE5EDFE"
     assert "linearGradient" not in root["styles"]
-    assert "template_root" in root["children"]
+    assert root["children"] == ["template_root"]
+    assert components_by_id["template_root"]["styles"]["padding"] == 12
+    assert components_by_id["template_root"]["children"] == [
+        "__genui_render_component__template_root"
+    ]
     assert "fusionBallBackground" not in component_ids
     assert all(not component_id.startswith("fusionBall") for component_id in component_ids)
     assert captured["artifact"].effectiveCapabilities["data"] == ["ViewWeather"]
@@ -6241,6 +6731,226 @@ async def test_unused_candidate_fields_do_not_block_query_required_weather_field
 
     assert output.template_ids == ("WeatherOverviewFull@1", "SingleFocusLayout@1")
     assert model.body_called is True
+
+
+@pytest.mark.asyncio
+async def test_q034_dual_city_template_compiles_both_runtime_roots() -> None:
+    class DualCityWeatherModel:
+        async def generate_json(
+            self,
+            _prompt: list[dict[str, str]],
+            **_kwargs: Any,
+        ) -> dict[str, Any]:
+            return {
+                "themeId": "fusion-weather-blue",
+                "requiredOutputFieldsByCapability": {
+                    "ViewWeather": ["/current/temperatureC", "/current/condition"]
+                },
+                "action": [],
+            }
+
+        async def generate(
+            self,
+            _prompt: list[dict[str, str]],
+            *_args: Any,
+            **_kwargs: Any,
+        ) -> str:
+            return (
+                'Template("SingleFocusLayout@1",{},'
+                'Template("WeatherOverviewDualCityFull@1",{}));'
+            )
+
+    def string_field(value: str) -> dict[str, Any]:
+        return {"type": "string", "description": "weather field", "sampleValue": value}
+
+    def number_field(value: int) -> dict[str, Any]:
+        return {"type": "number", "description": "temperature", "sampleValue": value}
+
+    task_spec = TaskSpec(
+        userQuery="显示成都和上海的温度及天气现象",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "weather1": {
+                    "current": {
+                        "temperatureC": number_field(29),
+                        "condition": string_field("多云"),
+                    },
+                },
+                "weather2": {
+                    "current": {
+                        "temperatureC": number_field(25),
+                        "condition": string_field("小雨"),
+                    },
+                },
+            }
+        },
+    )
+    bindings = (
+        CandidateDataBinding(
+            capabilityId="ViewWeather",
+            arguments={"prefectureName": "上海市", "forecastDays": 1},
+            writeResultTo="/data/weather1",
+            candidateOutputFields=["/current/temperatureC", "/current/condition"],
+        ),
+        CandidateDataBinding(
+            capabilityId="ViewWeather",
+            arguments={"prefectureName": "成都市", "forecastDays": 1},
+            writeResultTo="/data/weather2",
+            candidateOutputFields=["/current/temperatureC", "/current/condition"],
+        ),
+    )
+    card_spec = {
+        "title": "双城天气",
+        "description": "两地温度天气",
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {
+                "capabilityId": binding.capabilityId,
+                "arguments": binding.arguments,
+                "writeResultTo": binding.writeResultTo,
+            }
+            for binding in bindings
+        ],
+    }
+
+    output = await generate_template_a2ui(
+        task_spec,
+        card_spec,
+        bindings,
+        DualCityWeatherModel(),
+        enable_fusion_ball=True,
+    )
+
+    assert output.template_ids == (
+        "WeatherOverviewDualCityFull@1",
+        "SingleFocusLayout@1",
+    )
+    assert "${/data/weather1/current/temperatureC}" in output.a2ui
+    assert "${/data/weather2/current/temperatureC}" in output.a2ui
+    assert "${/data/weather1/current/condition}" in output.a2ui
+    assert "${/data/weather2/current/condition}" in output.a2ui
+    assert "城市一" in output.a2ui
+    assert "城市二" in output.a2ui
+    assert "fusionBallBackground" in output.a2ui
+
+
+@pytest.mark.asyncio
+async def test_q043_care_weather_compiles_with_phone_action() -> None:
+    class CareWeatherModel:
+        async def generate_json(
+            self,
+            _prompt: list[dict[str, str]],
+            **_kwargs: Any,
+        ) -> dict[str, Any]:
+            return {
+                "themeId": "family-weather-care-blue",
+                "requiredOutputFieldsByCapability": {
+                    "ViewWeather": [
+                        "/location/prefectureName",
+                        "/current/alertLevel",
+                        "/current/uvIndex",
+                        "/current/airQuality",
+                    ]
+                },
+                "action": ["event.call.phone"],
+            }
+
+        async def generate(
+            self,
+            _prompt: list[dict[str, str]],
+            *_args: Any,
+            **_kwargs: Any,
+        ) -> str:
+            return (
+                'Template("FullIconActionLayout@1",{},'
+                'Template("WeatherOverviewCareAlertFull@1",'
+                '{"uvIcon":"resources/base/media/sun_max.svg"}),'
+                'Template("IconAction@1",{"actionId":"event.call.phone",'
+                '"icon":"resources/base/media/phone_fill.svg"}));'
+            )
+
+    def field(value: str) -> dict[str, Any]:
+        return {"type": "string", "description": "weather field", "sampleValue": value}
+
+    task_spec = TaskSpec(
+        userQuery="查看长沙天气预警、紫外线和空气质量，并给妈妈打电话",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.call.phone",
+                call="clickToApi",
+                args={
+                    "intentName": "CallPhone",
+                    "params": {"relationship": "母亲", "phoneNumber": ""},
+                },
+            )
+        ],
+        assetCandidates=[
+            {
+                "src": "resources/base/media/sun_max.svg",
+                "description": "紫外线太阳图标",
+                "sceneTags": ["weather", "sun", "uv"],
+            },
+            {
+                "src": "resources/base/media/phone_fill.svg",
+                "description": "拨打电话功能入口图标",
+                "sceneTags": ["phone", "call", "contact"],
+            },
+        ],
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "location": {"prefectureName": field("长沙市")},
+                    "current": {
+                        "alertLevel": field("寒潮蓝色预警"),
+                        "uvIndex": field("中等"),
+                        "airQuality": field("良"),
+                    },
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        arguments={"prefectureName": "长沙市", "forecastDays": 1},
+        writeResultTo="/data/weather",
+        candidateOutputFields=[
+            "/location/prefectureName",
+            "/current/alertLevel",
+            "/current/uvIndex",
+            "/current/airQuality",
+        ],
+    )
+    card_spec = {
+        "title": "长沙关怀",
+        "description": "天气预警+电话入口",
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {
+                "capabilityId": "ViewWeather",
+                "arguments": binding.arguments,
+                "writeResultTo": "/data/weather",
+            }
+        ],
+    }
+
+    output = await generate_template_a2ui(
+        task_spec,
+        card_spec,
+        (binding,),
+        CareWeatherModel(),
+    )
+
+    assert output.template_ids == (
+        "WeatherOverviewCareAlertFull@1",
+        "IconAction@1",
+        "FullIconActionLayout@1",
+    )
+    assert "${/data/weather/current/alertLevel}" in output.a2ui
+    assert "${/data/weather/current/uvIndex}" in output.a2ui
+    assert "${/data/weather/current/airQuality}" in output.a2ui
+    assert "CallPhone" in output.a2ui
 
 
 @pytest.mark.asyncio

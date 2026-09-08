@@ -109,6 +109,7 @@ class TemplateParameterRelation(StrictModel):
 class TemplateBinding(StrictModel):
     path: str = Field(pattern=r"^/(?:[^/~]|~[01])+(?:/(?:[^/~]|~[01])+)*$")
     data_type: Literal["string", "integer", "number", "boolean", "null"] = Field(alias="type")
+    root_index: int = Field(default=0, alias="rootIndex", ge=0)
 
 
 class TemplateVariant(StrictModel):
@@ -182,6 +183,7 @@ class TemplateDefinition(StrictModel):
     business_id: str | None = Field(default=None, alias="businessId")
     capability_id: str | None = Field(default=None, alias="capabilityId")
     data_domain: str | None = Field(default=None, alias="dataDomain")
+    binding_count: int = Field(default=1, alias="bindingCount", ge=1, le=2)
     primary_data: tuple[str, ...] = Field(default=(), alias="primaryData")
     primary_data_fields: tuple[TemplateBinding, ...] = Field(
         default=(),

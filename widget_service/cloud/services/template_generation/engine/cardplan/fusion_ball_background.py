@@ -123,6 +123,50 @@ def apply_fusion_ball_background(
     )
 
 
+def apply_content_safe_inset(
+    card: Nested2Node,
+    *,
+    size: str,
+) -> Nested2Node:
+    """Move a 2x2 card's safe inset onto a dedicated foreground layer."""
+    if size != "2x2":
+        return card
+    _validate_root_card(card)
+    if len(card.children) != 1:
+        return card
+    skeleton = _content_skeleton(card)
+    root_options = dict(card.values[1])
+    safe_inset = root_options.pop("padding", 12)
+    root_options.pop("itemMargin", None)
+    root_options.pop("alignItems", None)
+    root_options["padding"] = 0
+    root_options.setdefault("alignContent", "topStart")
+    overflow_content = Nested2Node(
+        "Stack",
+        (
+            "overlay",
+            {
+                "_id": build_fusion_ball_content_id(_TEMPLATE_ROOT_ID),
+                "width": "matchParent",
+                "height": "matchParent",
+            },
+        ),
+        (skeleton,),
+    )
+    foreground = Nested2Node(
+        "Stack",
+        (
+            "overlay",
+            {
+                "_id": _TEMPLATE_ROOT_ID,
+                "padding": safe_inset,
+            },
+        ),
+        (overflow_content,),
+    )
+    return Nested2Node("Stack", ("card", root_options), (foreground,))
+
+
 def _ball(
     component_id: str,
     diameter: int,

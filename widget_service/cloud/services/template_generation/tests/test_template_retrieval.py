@@ -447,6 +447,122 @@ def test_specialized_weather_focus_routes_to_ux_template(
     assert expected_template in result.allowed_template_ids
 
 
+@pytest.mark.parametrize(
+    ("daily", "paths", "expected_template"),
+    [
+        (
+            [
+                {},
+                {
+                    "date": _field("2026-09-04"),
+                    "weekday": _field("星期五"),
+                    "condition": _field("多云"),
+                },
+            ],
+            ("/daily/1/date", "/daily/1/weekday", "/daily/1/condition"),
+            "WeatherOverviewDailyDateFull@1",
+        ),
+        (
+            [
+                {},
+                {
+                    "temperatureRangeText": _field("25℃ / 32℃"),
+                    "rainProbabilityPercent": _field("20%"),
+                },
+            ],
+            (
+                "/daily/1/temperatureRangeText",
+                "/daily/1/rainProbabilityPercent",
+            ),
+            "WeatherOverviewDailyRainFull@1",
+        ),
+        (
+            [
+                {
+                    "condition": _field("晴"),
+                    "airQuality": _field("优"),
+                },
+                {
+                    "condition": _field("多云"),
+                    "airQuality": _field("良"),
+                },
+            ],
+            (
+                "/daily/0/condition",
+                "/daily/0/airQuality",
+                "/daily/1/condition",
+                "/daily/1/airQuality",
+            ),
+            "WeatherOverviewDailyCompareFull@1",
+        ),
+        (
+            [
+                {},
+                {
+                    "airQuality": _field("良"),
+                    "uvIndex": _field("中等"),
+                    "coldLevel": _field("低"),
+                },
+            ],
+            ("/daily/1/airQuality", "/daily/1/uvIndex", "/daily/1/coldLevel"),
+            "WeatherOverviewDailyHealthFull@1",
+        ),
+    ],
+)
+def test_weather_daily_item_template_matches_array_index_cases(
+    daily: list[dict[str, Any]],
+    paths: tuple[str, ...],
+    expected_template: str,
+) -> None:
+    task = TaskSpec(
+        userQuery="展示逐日天气",
+        size="2x2",
+        dataModelSchema={"data": {"weather": {"daily": daily}}},
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=list(paths),
+    )
+
+    result = retrieve_template_variants(
+        _query(*paths),
+        task,
+        get_cardplan_registry(),
+        (binding,),
+        _card_spec(),
+    )
+
+    assert expected_template in result.allowed_template_ids
+
+
+def test_weather_daily_item_index_must_exist_in_task_spec() -> None:
+    task = TaskSpec(
+        userQuery="展示明日天气",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "weather": {"daily": [{"condition": _field("晴")}]},
+            }
+        },
+    )
+    path = "/daily/1/condition"
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=[path],
+    )
+
+    with pytest.raises(TemplateRetrievalMiss, match="absent or untyped"):
+        retrieve_template_variants(
+            _query(path),
+            task,
+            get_cardplan_registry(),
+            (binding,),
+            _card_spec(),
+        )
+
+
 def test_shared_capability_keeps_each_component_scoped_templates() -> None:
     task = TaskSpec(
         userQuery="显示下一场会议的标题和时间",
@@ -1085,10 +1201,17 @@ def test_optional_weather_title_does_not_relax_single_business_templates(
     query = _query(weather_field).model_copy(
         update={"action_ids": tuple(event.id for event in events)}
     )
-    with pytest.raises(TemplateRetrievalMiss):
-        retrieve_template_variants(
+    if action_count == 1:
+        result = retrieve_template_variants(
             query, task, get_cardplan_registry(), (_binding(),), _card_spec()
         )
+        assert "WeatherOverviewConditionHero@1" in result.allowed_template_ids
+        assert "WeatherOverviewHeroTitle@1" not in result.allowed_template_ids
+    else:
+        with pytest.raises(TemplateRetrievalMiss):
+            retrieve_template_variants(
+                query, task, get_cardplan_registry(), (_binding(),), _card_spec()
+            )
 
 
 def test_search_rejects_two_businesses_backed_by_one_capability() -> None:
@@ -1170,6 +1293,289 @@ def test_search_allows_one_data_business_with_action() -> None:
     template_ids = result.component_candidates[0].available_template_ids
     assert any(template_id.endswith("Hero@1") for template_id in template_ids)
     assert any(template_id.endswith("Full@1") for template_id in template_ids)
+
+
+def test_q001_weather_condition_fields_match_condition_hero() -> None:
+    task = TaskSpec(
+        userQuery="看杭州市西湖区现在是什么天气，点一下查看详情",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.open.weather",
+                call="clickToDeeplink",
+                args={"intentName": "Weather_CityCode"},
+            )
+        ],
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "location": {
+                        "cityCode": _field("60814"),
+                        "districtName": _field("西湖区"),
+                        "prefectureName": _field("杭州市"),
+                    },
+                    "current": {"condition": _field("多云")},
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=[
+            "/location/cityCode",
+            "/location/districtName",
+            "/location/prefectureName",
+            "/current/condition",
+        ],
+    )
+    query = TemplateRetrievalQuery(
+        themeId="family-weather-care-blue",
+        requiredOutputFieldsByCapability={
+            "ViewWeather": ("/location/districtName", "/current/condition")
+        },
+        action=("event.open.weather",),
+    )
+
+    result = retrieve_template_variants(
+        query,
+        task,
+        get_cardplan_registry(),
+        (binding,),
+        _card_spec(),
+    )
+
+    assert result.component_candidates[0].available_template_ids == (
+        "WeatherOverviewConditionHero@1",
+    )
+
+
+def test_q004_weather_alert_fields_match_alert_full() -> None:
+    task = TaskSpec(
+        userQuery="重点看长沙当前天气预警和信息更新时间",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "current": {"alertLevel": _field("暴雨黄色预警")},
+                    "updatedAt": _field("2026-09-03 10:00"),
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=["/current/alertLevel", "/updatedAt"],
+    )
+    query = TemplateRetrievalQuery(
+        themeId="family-weather-care-blue",
+        requiredOutputFieldsByCapability={
+            "ViewWeather": ("/current/alertLevel", "/updatedAt")
+        },
+    )
+
+    result = retrieve_template_variants(
+        query,
+        task,
+        get_cardplan_registry(),
+        (binding,),
+        _card_spec(),
+    )
+
+    assert result.component_candidates[0].available_template_ids == (
+        "WeatherOverviewAlertFull@1",
+    )
+
+
+def test_q025_weather_wind_fields_match_wind_hero() -> None:
+    task = TaskSpec(
+        userQuery="查看厦门当地风向、风力和天气更新时间，点一下查看详情",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.open.weather",
+                call="clickToDeeplink",
+                args={"intentName": "Weather_CityCode"},
+            )
+        ],
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "location": {
+                        "prefectureName": _field("厦门市"),
+                        "cityCode": _field("59102"),
+                    },
+                    "current": {
+                        "windDirection": _field("东南风"),
+                        "windLevel": _field(3, "integer"),
+                    },
+                    "updatedAt": _field("2026-09-03 10:00"),
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=[
+            "/location/prefectureName",
+            "/current/windDirection",
+            "/current/windLevel",
+            "/updatedAt",
+            "/location/cityCode",
+        ],
+    )
+    query = TemplateRetrievalQuery(
+        themeId="family-weather-care-blue",
+        requiredOutputFieldsByCapability={
+            "ViewWeather": (
+                "/location/prefectureName",
+                "/current/windDirection",
+                "/current/windLevel",
+                "/updatedAt",
+            )
+        },
+        action=("event.open.weather",),
+    )
+
+    result = retrieve_template_variants(
+        query,
+        task,
+        get_cardplan_registry(),
+        (binding,),
+        _card_spec(),
+    )
+
+    assert result.component_candidates[0].available_template_ids == (
+        "WeatherOverviewWindHero@1",
+    )
+
+
+def test_q034_two_weather_bindings_match_dual_city_full() -> None:
+    weather_schema = {
+        "location": {"prefectureName": _field("上海市")},
+        "current": {
+            "temperatureC": _field(29, "number"),
+            "condition": _field("多云"),
+        },
+    }
+    task = TaskSpec(
+        userQuery="显示成都和上海的温度及天气现象",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "weather1": weather_schema,
+                "weather2": {
+                    "location": {"prefectureName": _field("成都市")},
+                    "current": {
+                        "temperatureC": _field(25, "number"),
+                        "condition": _field("小雨"),
+                    },
+                },
+            }
+        },
+    )
+    bindings = (
+        CandidateDataBinding(
+            capabilityId="ViewWeather",
+            writeResultTo="/data/weather1",
+            candidateOutputFields=["/current/temperatureC", "/current/condition"],
+        ),
+        CandidateDataBinding(
+            capabilityId="ViewWeather",
+            writeResultTo="/data/weather2",
+            candidateOutputFields=["/current/temperatureC", "/current/condition"],
+        ),
+    )
+    card_spec = {
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {"capabilityId": item.capabilityId, "writeResultTo": item.writeResultTo}
+            for item in bindings
+        ],
+    }
+    query = TemplateRetrievalQuery(
+        themeId="family-weather-care-blue",
+        requiredOutputFieldsByCapability={
+            "ViewWeather": ("/current/temperatureC", "/current/condition")
+        },
+    )
+
+    result = retrieve_template_variants(
+        query,
+        task,
+        get_cardplan_registry(),
+        bindings,
+        card_spec,
+    )
+
+    assert result.component_candidates[0].available_template_ids == (
+        "WeatherOverviewDualCityFull@1",
+    )
+
+
+def test_q043_weather_care_fields_match_care_alert_full() -> None:
+    task = TaskSpec(
+        userQuery="查看长沙天气预警、紫外线和空气质量，并给妈妈打电话",
+        size="2x2",
+        eventCandidates=[
+            EventAction(
+                id="event.call.phone",
+                call="clickToApi",
+                args={
+                    "intentName": "CallPhone",
+                    "params": {"relationship": "母亲", "phoneNumber": ""},
+                },
+            )
+        ],
+        dataModelSchema={
+            "data": {
+                "weather": {
+                    "location": {"prefectureName": _field("长沙市")},
+                    "current": {
+                        "alertLevel": _field("寒潮蓝色预警"),
+                        "uvIndex": _field("中等"),
+                        "airQuality": _field("良"),
+                    },
+                }
+            }
+        },
+    )
+    binding = CandidateDataBinding(
+        capabilityId="ViewWeather",
+        writeResultTo="/data/weather",
+        candidateOutputFields=[
+            "/location/prefectureName",
+            "/current/alertLevel",
+            "/current/uvIndex",
+            "/current/airQuality",
+        ],
+    )
+    query = TemplateRetrievalQuery(
+        themeId="family-weather-care-blue",
+        requiredOutputFieldsByCapability={
+            "ViewWeather": (
+                "/location/prefectureName",
+                "/current/alertLevel",
+                "/current/uvIndex",
+                "/current/airQuality",
+            )
+        },
+        action=("event.call.phone",),
+    )
+
+    result = retrieve_template_variants(
+        query,
+        task,
+        get_cardplan_registry(),
+        (binding,),
+        _card_spec(),
+    )
+
+    assert result.component_candidates[0].available_template_ids == (
+        "WeatherOverviewCareAlertFull@1",
+    )
 
 
 def test_q001_sleep_assistant_matches_hero_without_sleep_score() -> None:
