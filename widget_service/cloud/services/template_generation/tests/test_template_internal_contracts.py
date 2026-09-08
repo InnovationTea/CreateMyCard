@@ -336,6 +336,26 @@ def test_checked_in_layout_templates_use_concrete_container_blueprints() -> None
             assert root.spread_children
 
 
+def test_hero_title_content_layout_keeps_flexible_business_heights() -> None:
+    root = get_cardplan_registry().require_template(
+        "HeroTitleContentActionLayout@1"
+    ).variants[0].root
+    content_region, action_region = root.children
+    content_options = content_region.values[0].properties
+
+    assert content_options["itemMargin"].value == 8
+    assert content_options["layoutWeight"].value == 1
+    assert len(content_region.children) == 2
+    for business_region in content_region.children:
+        options = business_region.values[0].properties
+        assert options["width"].value == "matchParent"
+        assert options["justifyContent"].value == "start"
+        assert options["alignItems"].value == "start"
+        assert "height" not in options
+        assert "layoutWeight" not in options
+    assert action_region.values[0].properties["height"].value == 36
+
+
 def test_fusion_theme_rules_cover_compact_eligible_businesses() -> None:
     registry = get_cardplan_registry(enable_fusion_ball=True)
     compact_business_ids: set[str] = set()

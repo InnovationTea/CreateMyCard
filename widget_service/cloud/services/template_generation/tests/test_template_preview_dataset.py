@@ -16,20 +16,20 @@ def test_template_preview_dataset_covers_all_business_templates(tmp_path):
     manifest = write_template_preview_dataset(tmp_path)
     cases = manifest["cases"]
 
-    assert manifest["templateCount"] == 100
+    assert manifest["templateCount"] == 105
     assert manifest["countsByLayout"] == {
         "HeroTitle": 1,
         "HeroContent": 1,
-        "Support": 12,
+        "Support": 17,
         "Compact": 13,
         "Hero": 31,
         "Full": 31,
         "WideHero": 2,
         "WideFull": 9,
     }
-    assert manifest["countsBySize"] == {"2x2": 89, "2x4": 11}
-    assert len(cases) == 100
-    assert len({case["templateId"] for case in cases}) == 100
+    assert manifest["countsBySize"] == {"2x2": 94, "2x4": 11}
+    assert len(cases) == 105
+    assert len({case["templateId"] for case in cases}) == 105
     assert all((tmp_path / case["file"]).is_file() for case in cases)
 
 
@@ -71,8 +71,9 @@ def test_template_preview_assets_are_bundled_by_genui_evaluation():
         "heart_fill.svg",
         "heat_generation.svg",
         "icon_earphone.svg",
+        "icon_phone.svg",
         "icon_tiktok.png",
-        "icon_weather1.svg",
+        "icon_weather_thermometer.svg",
         "l_circle_fill.svg",
         "location_north_up_right_fill.svg",
         "moon_z_fill_1.svg",
@@ -100,9 +101,42 @@ def test_template_preview_manifest_data_tiers_are_disjoint():
             )
             assert case.secondary_data == ()
             assert case.optional_data == ("/updatedAt",)
+        elif case.template_id == "BatteryOverviewSupport@1":
+            assert case.primary_data == ("/batterySOC",)
+            assert case.secondary_data == ("/chargingStatusDesc",)
+            assert case.optional_data == ("/batterySOCText",)
         else:
             assert case.primary_data
         assert json.dumps(case.messages, ensure_ascii=False)
+
+
+def test_cloudy_weather_preview_does_not_use_thermometer_for_single_business():
+    single_template_ids = {
+        "WeatherOverviewCompact@1", "WeatherOverviewUvCompact@1",
+        "WeatherOverviewHero@1", "WeatherOverviewFull@1",
+    }
+    checked: set[str] = set()
+    for case in build_template_preview_cases():
+        if case.template_id not in single_template_ids:
+            continue
+        checked.add(case.template_id)
+        update = case.messages[1].get("updateComponents")
+        assert isinstance(update, dict)
+        components = update.get("components")
+        assert isinstance(components, list)
+        assert not any(component.get("component") == "Image" for component in components)
+        model = case.messages[2].get("updateDataModel")
+        assert isinstance(model, dict)
+        value = model.get("value")
+        assert isinstance(value, dict)
+        data = value.get("data")
+        assert isinstance(data, dict)
+        weather = data.get("weather")
+        assert isinstance(weather, dict)
+        current = weather.get("current")
+        assert isinstance(current, dict)
+        assert current.get("condition") == "多云"
+    assert checked == single_template_ids
 
 
 def test_earphone_hero_uses_title_parameter_without_title_binding():

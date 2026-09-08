@@ -34,6 +34,17 @@
       "primaryData": ["/countdownDays"],
       "secondaryData": [],
       "optionalData": []
+    },
+    {
+      "templateId": "CountdownOverviewSupport@1",
+      "supportedEventIds": [],
+      "businessId": "CountdownOverview",
+      "capabilityId": "GetCountdownDays",
+      "description": "倒计时 Support，第一行主文本展示剩余天数，第二行辅助文本展示可信标题或默认标题；用于 TwoSupportLayout，当前没有关联事件，必须省略 actionId。",
+      "entry": "templates/countdown-overview.cardtpl",
+      "primaryData": ["/countdownDays"],
+      "secondaryData": [],
+      "optionalData": []
     }
   ],
   "compatibility": {
