@@ -177,10 +177,18 @@ def build_hybrid_prompt(
         if ux_layout_root_ids
         else [str(card_spec.get("title", "")), str(card_spec.get("description", ""))]
     )
+    binding_argument_literals: list[str] = []
+    for binding in card_spec.get("dataBindings", []):
+        if not isinstance(binding, dict) or not isinstance(binding.get("arguments"), dict):
+            continue
+        for value in binding["arguments"].values():
+            if isinstance(value, str) and value.strip():
+                binding_argument_literals.append(str(value))
     trusted_literals = _unique(
         [
             *((task_spec.userQuery,) if expose_data_facts else ()),
             *card_literals,
+            *binding_argument_literals,
             *(str(fact.value) for fact in facts if isinstance(fact.value, str)),
             *(_action_label(event) for event in task_spec.eventCandidates),
         ]

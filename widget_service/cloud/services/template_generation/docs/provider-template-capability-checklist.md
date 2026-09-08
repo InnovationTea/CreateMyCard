@@ -33,10 +33,10 @@
 | Provider | 数据能力 | 数据根 | 模板数 | 当前状态 |
 | --- | --- | --- | ---: | --- |
 | app-usage | `GetAppUsageDuration` | `/data/appUsageStats` | 6 | 启用 |
-| battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 12 | 启用 |
+| battery | `GetPhoneBatteryInfo` | `/data/phoneBattery` | 13 | 启用 |
 | calendar | `GetCalendarEvents` | `/data/calendar` | 22 | 启用 |
 | countdown | `GetCountdownDays` | `/data/countdown` | 3 | 启用 |
-| earphone | `GetEarphoneInfo` | `/data/earphone` | 14 | 启用 |
+| earphone | `GetEarphoneInfo` | `/data/earphone` | 15 | 启用 |
 | health-sport | `GetHealthAndSportSummary` | `/data/healthSport` | 25 | 启用 |
 | system-memory | `GetSystemMemInfo` | `/data/systemMem` | 3 | 启用 |
 | weather | `ViewWeather` | `/data/weather` | 11 | 启用 |
@@ -61,7 +61,7 @@
 ## BatteryOverview
 
 - Provider：`com.huawei.battery.cli`；运行状态：启用。
-- 数据能力：`GetPhoneBatteryInfo`；模板数：12。
+- 数据能力：`GetPhoneBatteryInfo`；模板数：13。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
@@ -70,7 +70,8 @@
 | ✅ | `BatteryOverviewHero@1` | 约 2x1.7；2x2 Hero + 1 个 PillAction | `/batterySOC` | `/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewWideFull@1` | 完整 4x2；单 WideFull | `/batterySOC`<br>`/batterySOCText` | `/chargingStatusDesc`<br>`/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewCompact@1` | 约 2x1；36vp 环形进度 Compact + 2 个 PillAction，电量图标可选 | `/batterySOC` | `/chargingStatusDesc` | 无 |
-| ✅ | `BatteryOverviewSupport@1` | 约 2x1；左侧双行文本，右侧 40vp 环、可选 16vp 内图标，事件在模板内部 | `/batterySOC` | `/chargingStatusDesc` | `/batterySOCText` |
+| ✅ | `BatteryOverviewSupport@1` | 约 2x1；左侧文本（充电状态可选辅行，缺失时回退展示电池温度，均缺失时单行），右侧 40vp 环、可选 16vp 内图标，事件在模板内部 | `/batterySOC` | 无 | `/chargingStatusDesc`<br>`/batterySOCText`<br>`/batteryTemperatureText` |
+| ✅ | `BatteryOverviewStatusSupport@1` | 约 2x1；左侧双行文本展示充电状态与充电器类型，右侧可选 24vp 电池图标，事件在模板内部 | `/chargingStatusDesc` | `/pluggedTypeDesc` | 无 |
 | ✅ | `BatteryOverviewChargingProgressHero@1` | 约 2x1.7；充电状态 Hero + 1 个 PillAction | `/batterySOCText` | 无 | `/chargingStatusDesc`<br>`/healthStatusDesc` |
 | ✅ | `BatteryOverviewHealthLevelHero@1` | 约 2x1.7；电池体检 Hero + 1 个 PillAction | `/healthStatusDesc` | `/batteryCapacityLevelDesc` | 无 |
 | ✅ | `BatteryOverviewChargingProgressFull@1` | 完整 2x2；充电进度单 Full | `/batterySOC` | `/chargingStatusDesc`<br>`/healthStatusDesc`<br>`/pluggedTypeDesc` | 无 |
@@ -115,7 +116,7 @@
 ## BluetoothDeviceOverview
 
 - Provider：`com.huawei.earphone.cli`；运行状态：启用。
-- 数据能力：`GetEarphoneInfo`；模板数：14。
+- 数据能力：`GetEarphoneInfo`；模板数：15。
 
 | 状态 | 模板 | 布局场景 | 主数据 | 次要数据 | 可选数据 |
 | --- | --- | --- | --- | --- | --- |
@@ -123,7 +124,7 @@
 | ✅ | `BluetoothDeviceOverviewEarbudsPhoneWideFull@1` | 完整 4x2；单 WideFull | `/isConnected`<br>`/earphoneName` | 无 | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` |
 | ✅ | `BluetoothDeviceOverviewEarbudsDynamicWideFull@1` | 完整 4x2；单 WideFull | `/isConnected`<br>`/earphoneName` | 无 | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` |
 | ✅ | `BluetoothDeviceOverviewEarbudsSupport@1` | 约 2x1；双 Support，事件在模板内部 | `/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 | 无 |
-| ✅ | `BluetoothDeviceOverviewConnectionSupport@1` | 约 2x1；耳机仓电量与连接状态，事件在模板内部 | `/batteryLevel` | `/isConnected` | 无 |
+| ✅ | `BluetoothDeviceOverviewConnectionSupport@1` | 约 2x1；连接状态主行加粗、可选仓电量次行与 40vp 电量环，事件在模板内部 | `/isConnected` | 无 | `/batteryLevel` |
 | ✅ | `BluetoothDeviceOverviewEarbudPairFull@1` | 完整 2x2；无 Action 或加一个 IconAction | `/isConnected`<br>`/earphoneName` | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
 | ✅ | `BluetoothDeviceOverviewCompleteWideFull@1` | 完整 4x2；单 WideFull | `/isConnected`<br>`/earphoneName` | `/batteryLevel`<br>`/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
 | ✅ | `BluetoothDeviceOverviewEarbudPairCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/earphoneName` | `/leftBatteryLevel`<br>`/rightBatteryLevel` | 无 |
@@ -132,7 +133,7 @@
 | ✅ | `BluetoothDeviceOverviewEarphoneCaseCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/batteryLevel` | `/chargingStatusDesc` | 无 |
 | ✅ | `BluetoothDeviceOverviewEarphoneHero@1` | 约 2x1.7；Hero + 1 个 PillAction | `/earphoneName` | `/batteryLevel` | 无 |
 | ✅ | `BluetoothDeviceOverviewEarphoneCompact@1` | 约 2x1；单 Compact + 2 个 PillAction | `/earphoneName` | `/batteryLevel` | 无 |
-| ✅ | `BluetoothDeviceOverviewChargeSupport@1` | 约 2x1；左侧双行文本，右侧 40vp 环与 16vp 盒图标，事件在模板内部 | `/batteryLevel` | `/chargingStatusDesc` | 无 |
+| ✅ | `BluetoothDeviceOverviewChargeSupport@1` | 约 2x1；左侧双行文本（电量可选，缺失时省略电量行与电量环），右侧 40vp 环与 16vp 盒图标，事件在模板内部 | 无 | `/chargingStatusDesc` | `/batteryLevel` |
 
 ## ActivityOverview
 
