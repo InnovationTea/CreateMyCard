@@ -191,6 +191,9 @@ class Settings(BaseSettings):
         else CONFIG.get("deepseek_platform_model_name")
     )
 
+    # dmq 华山开关
+    ai_widget_data_huashan_enable: bool = CONFIG.get("ai_widget_data_huashan_enable") == "true"
+
     @property
     def package_root(self) -> Path:
         """获取 Python 包根目录。

@@ -13,6 +13,7 @@ from custom.llmclient import LLMClientOptions, stream_genui
 from custom.mep_model_transport import MepModelTransport
 from custom.model_transport import ModelProvider, ModelTransport, ModelTransportError
 from models.generation import ModelRequestContext
+from utils.trigger_mq import trigger_mq
 
 _MODULE = "[Model Runtime]"
 
@@ -84,6 +85,7 @@ class ModelExecutionRuntime:
             async with asyncio.timeout(queue_timeout):
                 await self._semaphore.acquire()
         except TimeoutError as exc:
+            trigger_mq(body={"taskFailModelCrash": 1})
             logger.error(
                 f"{_MODULE} queue_timeout provider={provider} "
                 f"timeout_seconds={queue_timeout} exception={exc!r}"
@@ -159,6 +161,7 @@ class ModelExecutionRuntime:
             async with asyncio.timeout(timeout):
                 return await operation
         except TimeoutError as exc:
+            trigger_mq(body={"taskFailModelCrash": 1})
             logger.error(
                 f"{_MODULE} request_timeout provider={provider} "
                 f"timeout_seconds={timeout} exception={exc!r} "
