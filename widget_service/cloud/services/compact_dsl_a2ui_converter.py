@@ -324,11 +324,11 @@ _PLAIN_BACKGROUND_INKS = {
     "#FFE6FDFF": "#FF1F8F99",
 }
 _TEXT_DESIGNS: dict[str, dict[str, Any]] = {
-    "metric-display-xl": {"fontSize": 56, "fontWeight": 300},
-    "metric-display-lg": {"fontSize": 48, "fontWeight": 300},
+    "metric-display-xl": {"fontSize": 38, "fontWeight": 300},
+    "metric-display-lg": {"fontSize": 38, "fontWeight": 300},
     "metric-display-md": {"fontSize": 36, "fontWeight": 700},
-    "heading-primary-lg": {"fontSize": 30, "fontWeight": 700},
-    "heading-primary-md": {"fontSize": 24, "fontWeight": 700},
+    "heading-primary-lg": {"fontSize": 20, "fontWeight": 700},
+    "heading-primary-md": {"fontSize": 20, "fontWeight": 700},
     "heading-primary-sm": {"fontSize": 20, "fontWeight": 700},
     "heading-secondary-lg": {"fontSize": 18, "fontWeight": 500},
     "heading-secondary-md": {"fontSize": 16, "fontWeight": 500},
@@ -339,7 +339,7 @@ _TEXT_DESIGNS: dict[str, dict[str, Any]] = {
     "caption-emphasis": {"fontSize": 12, "fontWeight": 500},
     "caption-regular": {"fontSize": 10, "fontWeight": 500},
     "card-header-title": {"fontSize": 12, "fontWeight": 400},
-    "metric-hero-value": {"fontSize": 28, "fontWeight": 700},
+    "metric-hero-value": {"fontSize": 30, "fontWeight": 700},
     "metric-hero-unit": {"fontSize": 12, "fontWeight": 400},
     "metadata-secondary": {"fontSize": 12, "fontWeight": 400},
 }

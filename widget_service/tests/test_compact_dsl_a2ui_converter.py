@@ -1533,6 +1533,21 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertIn("/data/weather", result.warnings[0])
 
 class FixedBackgroundColorTest(unittest.TestCase):
+    def test_text_design_font_defaults_and_limits(self) -> None:
+        sizes = {
+            "metric-display-xl": 38,
+            "metric-display-lg": 38,
+            "metric-hero-value": 30,
+            "heading-primary-lg": 20,
+            "heading-primary-md": 20,
+            "card-header-title": 12,
+        }
+        for design, expected_size in sizes.items():
+            with self.subTest(design=design):
+                source = _serialize([["value", "Text", {"content": "123", "design": design}]])
+                normalized = normalize_compact_dsl_design_tokens(source)
+                self.assertEqual(json.loads(normalized)[2]["fontSize"], expected_size)
+
     @staticmethod
     def _convert(background: dict, action_colors: dict | None = None) -> dict:
         action = {
