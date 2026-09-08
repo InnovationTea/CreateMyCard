@@ -182,6 +182,16 @@ Provider/业务/模板层级保存 A2UI 消息数组，根目录 `manifest.json`
 
 ## 端侧导入
 
+日程时间轴样式回归覆盖六个独立模板：`ScheduleOverviewLocationDescriptionEndFull@1`、
+`ScheduleOverviewEventCountDetailsHero@1`、`ScheduleOverviewDatedAllDayHero@1`、
+`ScheduleOverviewTimezoneDateEndFull@1`、`ScheduleOverviewTimezoneAllDayFull@1` 和
+`ScheduleOverviewReminderHero@1`。主行高度 20vp，辅助行高度 14vp；前三者的时间轴与正文容器
+高度为 54vp，时区 Full 的时间轴高度为 70vp、竖线为 50vp、底部留白为 2vp。
+正文移除固定 120vp 宽度，提醒 Hero 不强制正文占满剩余宽度；保留既有字体、主题色、运行时绑定
+和省略规则，不改变 Search 字段覆盖、动作配置或四种双业务日程 Support。
+定向刷新时仅替换受影响模板的生成结果，其余已验证卡片保持逐字节不变；先验证模板实例化与最终
+A2UI 的尺寸，再检查同步清单和 HAP 打包一致性，最后完成实机页面抽查。
+
 耳机 `BluetoothDeviceOverviewHero@1` 需额外检查内容唯一性：左右耳数据均可用时只展示一组电量，
 每侧电量只出现一次；图标存在时替代对应“左／右”文字，不额外复制一组。任一侧数据缺失时保留
 既有耳机名称回退，不展示不完整电量组。自动化覆盖四种数据可用组合与四种图标组合，并在实际
