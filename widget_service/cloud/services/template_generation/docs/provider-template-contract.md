@@ -368,6 +368,19 @@ Template("HeroActionLayout@1", {},
 Provider 模板作者侧声明，不进入最终 Tersel 语法。最终产物不得包含 `_advancedSelectors` 或
 `_templateProjection`。
 
+## Image 原色保护与着色
+
+`Image` 的着色仅由模板声明控制，不根据资源文件名前缀、天气业务或素材语义标签推断。
+
+- `"_preserveOriginalColor": true` 表示保留素材原色，不自动注入 `fillColor`。
+- 未开启原色保护时，保留模板显式声明的 `fillColor`（包括 `$theme(...)` 引用）；未声明颜色时
+  沿用当前内容或动作主题的默认补色规则。太阳、云雨及温度计不再被编译器强制改为黄色、白色或原色。
+- 原色保护与 `fillColor` 不得同时声明；模板加载时检查静态冲突，运行时编译复核展开后的冲突。
+  继承原色保护的 Image 也不能声明 `fillColor`。失败沿用现有模板配置或编译错误，不静默删除任一声明。
+- `_preserveOriginalColor` 是模板编译私有标记，在最终 Tersel/A2UI 输出前移除，不扩展端侧协议。
+- 需要原色的应用图标、天气插画由模板作者显式声明保护；模型不能根据文件名自行添加原色保护，
+  也不能改变模板内部着色。基础温度 Support 已声明 `supportContentColor`，温度计直接使用该颜色。
+
 ## 2x2 融球背景
 
 主题回归以当前 `theme.json` 中的明确颜色为基准，不从待测对象生成预期值。进度使用 `progressColor` 和

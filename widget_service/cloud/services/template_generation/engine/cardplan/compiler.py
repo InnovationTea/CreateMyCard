@@ -95,7 +95,6 @@ _ACTION_TEMPLATE_COMPONENTS = {
 _ACTION_PROVIDER_ID = "com.huawei.action.cli"
 _UX_DIRECT_BUSINESS_COMPONENTS = UX_DIRECT_BUSINESS_COMPONENT_IDS
 _DANGEROUS_EVENT_KEYS = frozenset({"onClick", "call", "args", "action"})
-_SUNNY_WEATHER_ICON_COLOR = "#FFFFC300"
 _FONT_PRIMARY = "#E6000000"
 _FONT_SECONDARY = "#99000000"
 _ICON_SECONDARY = "#99000000"
@@ -305,6 +304,7 @@ def compile_hybrid_card(
         size=task_spec.size,
         palette=fusion_palette,
     )
+    root = _strip_advanced_component_markers(root)
     effective = _serialize_effective_document(root, task_spec, enable_data_bindings)
     a2ui = convert_tersel_to_a2ui(
         effective,
@@ -426,7 +426,6 @@ def compile_ux_layout_card(
         )
     expanded = _append_missing_required_literals_to_ux_layout(expanded, contract)
     expanded = _strip_2x2_composite_headers(expanded, size=task_spec.size)
-    expanded = _normalize_weather_condition_icons(expanded, contract)
     content = _lower_ux_layout_root(
         expanded,
         size=task_spec.size,
@@ -4027,16 +4026,6 @@ def _expand_weather_overview_call(
         "objectFit": "contain",
         "flexShrink": 0,
     }
-    if _weather_icon_is_sun(condition_icon, contract):
-        condition_icon_options["fillColor"] = _SUNNY_WEATHER_ICON_COLOR
-    else:
-        icon_tags = set(contract.asset_semantic_tags_by_source.get(condition_icon, ()))
-        if _weather_icon_is_multicolor(condition_icon):
-            condition_icon_options["_preserveOriginalColor"] = True
-        elif icon_tags & {"water", "rain", "drop", "cloud", "storm", "snow"}:
-            condition_icon_options["fillColor"] = "#FFFFFFFF"
-        else:
-            condition_icon_options["fillColor"] = "#FFFFFFFF"
     title = Nested2Node(
         "Row",
         (
@@ -4250,25 +4239,6 @@ def _expand_weather_overview_call(
             ),
         ),
     )
-
-
-def _weather_icon_is_sun(
-    condition_icon: str,
-    contract: HybridBodyContract,
-) -> bool:
-    icon_tags = set(contract.asset_semantic_tags_by_source.get(condition_icon, ()))
-    return bool(icon_tags & {"sun", "sunny"})
-
-
-def _weather_icon_is_multicolor(condition_icon: str) -> bool:
-    """Recognize the bundled full-color weather artwork family.
-
-    These SVGs contain several gradients but may still carry a cloud scene tag.
-    Applying a monochrome fill to them turns the rendered artwork into a solid
-    rectangle on device.
-    """
-    filename = condition_icon.rsplit("/", 1)[-1].casefold()
-    return filename.startswith("icon_weather") or filename.startswith("weather_icon")
 
 
 def _weather_text(
@@ -5463,6 +5433,15 @@ def _reclaim_optional_chrome_for_content(
     return normalized
 
 
+def _validate_image_color_options(
+    options: dict[str, Any], *, preserve_original: bool,
+) -> None:
+    if preserve_original and "fillColor" in options:
+        raise TerselConversionError(
+            "Image _preserveOriginalColor cannot be combined with fillColor."
+        )
+
+
 def _apply_theme_content_color(
     node: Nested2Node,
     contract: HybridBodyContract,
@@ -5474,6 +5453,8 @@ def _apply_theme_content_color(
     theme = registry.require_theme(contract.theme_profile_id)
     options = next((value for value in node.values if isinstance(value, dict)), {})
     preserve_here = preserve_original or options.get("_preserveOriginalColor") is True
+    if node.component_type == "Image":
+        _validate_image_color_options(options, preserve_original=preserve_here)
     action_here = inside_action or isinstance(options.get("_boundTemplateAction"), str)
     children = tuple(
         _apply_theme_content_color(
@@ -8240,51 +8221,6 @@ def _normalize_weather_fill_parent_dimensions(node: Nested2Node) -> Nested2Node:
     return Nested2Node(node.component_type, tuple(values), children)
 
 
-def _normalize_weather_condition_icons(
-    node: Nested2Node,
-    contract: HybridBodyContract,
-    *,
-    weather_region: bool = False,
-) -> Nested2Node:
-    """Apply the existing weather icon color policy to direct and Template regions."""
-    options_index = next(
-        (index for index, value in enumerate(node.values) if isinstance(value, dict)),
-        None,
-    )
-    options = dict(node.values[options_index]) if options_index is not None else {}
-    inside_weather = weather_region or options.get("_advancedComponent") in {
-        "WeatherOverview", "WeatherOverviewTemperatureSupport"
-    }
-    children = tuple(
-        _normalize_weather_condition_icons(child, contract, weather_region=inside_weather)
-        for child in node.children
-    )
-    if not inside_weather or node.component_type != "Image" or not node.values:
-        return Nested2Node(node.component_type, node.values, children)
-    source = node.values[0]
-    if not isinstance(source, str):
-        return Nested2Node(node.component_type, node.values, children)
-    icon_tags = set(contract.asset_semantic_tags_by_source.get(source, ()))
-    if _weather_icon_is_sun(source, contract):
-        options.pop("_preserveOriginalColor", None)
-        options["fillColor"] = _SUNNY_WEATHER_ICON_COLOR
-    elif _weather_icon_is_multicolor(source):
-        options.pop("fillColor", None)
-        options["_preserveOriginalColor"] = True
-    elif icon_tags & {"water", "rain", "drop", "cloud", "storm", "snow"}:
-        options.pop("_preserveOriginalColor", None)
-        options["fillColor"] = "#FFFFFFFF"
-    else:
-        options.pop("_preserveOriginalColor", None)
-        options.setdefault("fillColor", "#FFFFFFFF")
-    values = list(node.values)
-    if options_index is None:
-        values.append(options)
-    else:
-        values[options_index] = options
-    return Nested2Node(node.component_type, tuple(values), children)
-
-
 def _is_date_region(node: Nested2Node) -> bool:
     return any(
         any(
@@ -8680,12 +8616,19 @@ def _lower_action_template_tree(
     if len(node.children) != 1 or node.children[0].component_type != "Stack":
         raise TerselConversionError("UX Action must contain one trusted Action Template.")
 
-    def apply_foreground(current: Nested2Node) -> Nested2Node:
-        children = tuple(apply_foreground(child) for child in current.children)
+    def apply_foreground(
+        current: Nested2Node, preserve_original: bool = False,
+    ) -> Nested2Node:
+        options = next((value for value in current.values if isinstance(value, dict)), {})
+        preserve_here = preserve_original or options.get("_preserveOriginalColor") is True
+        children = tuple(apply_foreground(child, preserve_here) for child in current.children)
         styled = Nested2Node(current.component_type, current.values, children)
         if current.component_type == "Text":
             return _merge_node_options(styled, {"fontColor": foreground})
         if current.component_type == "Image":
+            _validate_image_color_options(options, preserve_original=preserve_here)
+            if preserve_here or "fillColor" in options:
+                return styled
             return _merge_node_options(styled, {"fillColor": foreground})
         return styled
 

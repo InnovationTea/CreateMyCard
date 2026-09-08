@@ -564,6 +564,7 @@ def _compile_ui_card_template(
         raise ValueError("Provider Template cannot mix children and children[index] slots")
     _validate_template_child_slot_indexes(indexed_children)
     _validate_event_action_placement(root)
+    _validate_image_color_declarations(root)
     binding_references, parameter_references = _template_references(root)
     if not binding_references <= set(bindings):
         unknown_data = sorted(binding_references - set(bindings))
@@ -2253,6 +2254,26 @@ def _validate_interpolation_bindings(
             if value.kind == "interpolation" and (node.component != "Text" or index != 0):
                 raise ValueError("CardTemplate interpolation must be the first Text value")
             _validate_dynamic_template_value(value, bindings, direct=True)
+
+
+def _validate_image_color_declarations(
+    node: TemplateNode, preserve_original: bool = False,
+) -> None:
+    options: dict[str, TemplateValue] = {}
+    for value in node.values:
+        if value.kind == "object":
+            options.update(value.properties)
+    preserve_value = options.get("_preserveOriginalColor")
+    declared_preserve = (
+        preserve_value is not None
+        and preserve_value.kind == "literal"
+        and preserve_value.value is True
+    )
+    preserve_here = preserve_original or declared_preserve
+    if node.component == "Image" and preserve_here and "fillColor" in options:
+        raise ValueError("Image _preserveOriginalColor cannot be combined with fillColor")
+    for child in node.children:
+        _validate_image_color_declarations(child, preserve_here)
 
 
 def _validate_event_action_placement(root: TemplateNode) -> None:

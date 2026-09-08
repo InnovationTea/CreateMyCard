@@ -83,7 +83,6 @@ from services.template_generation.engine.cardplan.compiler import (
     _inject_resource_battery_title,
     _instantiate_blueprint,
     _lower_action_template_tree,
-    _normalize_weather_condition_icons,
     _provider_layout_action_background,
     _validate_provider_template_state,
 )
@@ -166,7 +165,7 @@ _TEST_APP_VERSION = ".".join(("11", "7", "5", "205"))
 
 @pytest.mark.parametrize("marker", ("WeatherOverview", "WeatherOverviewTemperatureSupport"))
 def test_weather_single_color_template_icon_uses_provided_fill_color(marker: str) -> None:
-    contract = HybridBodyContract.model_construct(asset_semantic_tags_by_source={})
+    contract = HybridBodyContract.model_construct(theme_profile_id="2x2-two-support")
     source = "resources/base/media/icon_high_temperature.svg"
     root = Nested2Node(
         "Row",
@@ -180,7 +179,6 @@ def test_weather_single_color_template_icon_uses_provided_fill_color(marker: str
                         "width": 20,
                         "height": 20,
                         "fillColor": "#FF1F4594",
-                        "_preserveOriginalColor": True,
                     },
                 ),
                 (),
@@ -188,16 +186,17 @@ def test_weather_single_color_template_icon_uses_provided_fill_color(marker: str
         ),
     )
 
-    normalized = _normalize_weather_condition_icons(root, contract)
+    normalized = _apply_theme_content_color(root, contract, get_cardplan_registry())
 
     icon_options = normalized.children[0].values[1]
-    assert icon_options["fillColor"] == "#FF1F4594"
+    assert isinstance(icon_options, dict)
+    assert icon_options.get("fillColor") == "#FF1F4594"
     assert "_preserveOriginalColor" not in icon_options
 
 
 @pytest.mark.parametrize("marker", ("WeatherOverview", "WeatherOverviewTemperatureSupport"))
-def test_weather_multicolor_template_icon_preserves_original_color(marker: str) -> None:
-    contract = HybridBodyContract.model_construct(asset_semantic_tags_by_source={})
+def test_weather_template_icon_preserves_original_color_when_declared(marker: str) -> None:
+    contract = HybridBodyContract.model_construct(theme_profile_id="2x2-two-support")
     source = "resources/base/media/icon_weather1.svg"
     root = Nested2Node(
         "Row",
@@ -210,7 +209,7 @@ def test_weather_multicolor_template_icon_preserves_original_color(marker: str) 
                     {
                         "width": 20,
                         "height": 20,
-                        "fillColor": "#FF1F4594",
+                        "_preserveOriginalColor": True,
                     },
                 ),
                 (),
@@ -218,10 +217,11 @@ def test_weather_multicolor_template_icon_preserves_original_color(marker: str) 
         ),
     )
 
-    normalized = _normalize_weather_condition_icons(root, contract)
+    normalized = _apply_theme_content_color(root, contract, get_cardplan_registry())
 
     icon_options = normalized.children[0].values[1]
-    assert icon_options["_preserveOriginalColor"] is True
+    assert isinstance(icon_options, dict)
+    assert icon_options.get("_preserveOriginalColor") is True
     assert "fillColor" not in icon_options
 
 
