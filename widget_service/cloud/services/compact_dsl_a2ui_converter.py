@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import argparse
 import copy
-import hashlib
 import json
 import re
 import sys
@@ -316,108 +315,13 @@ _COLOR_TOKENS = {
     "mask_fifth": "#19000000",
     "mask_sixth": "#0C000000",
 }
-_ROOT_LINEAR_GRADIENT_PALETTES = (
-    {
-        "angle": 180,
-        "colors": [
-            ["#FFEAF2FF", 0.0],
-            ["#FFF7FBFF", 0.55],
-            ["#FFFFFFFF", 1.0],
-        ],
-    },
-    {
-        "angle": 180,
-        "colors": [
-            ["#FFFFE9E5", 0.0],
-            ["#FFFFF6F3", 0.55],
-            ["#FFFFFFFF", 1.0],
-        ],
-    },
-    {
-        "angle": 180,
-        "colors": [
-            ["#FFF0F2F5", 0.0],
-            ["#FFF8F9FA", 0.55],
-            ["#FFFFFFFF", 1.0],
-        ],
-    },
-    {
-        "angle": 180,
-        "colors": [
-            ["#FFE7F8EE", 0.0],
-            ["#FFF5FCF8", 0.55],
-            ["#FFFFFFFF", 1.0],
-        ],
-    },
-    {
-        "angle": 180,
-        "colors": [
-            ["#FFFFEDD8", 0.0],
-            ["#FFFFF8EF", 0.55],
-            ["#FFFFFFFF", 1.0],
-        ],
-    },
-    {
-        "angle": 180,
-        "colors": [
-            ["#FFF1E8FF", 0.0],
-            ["#FFFAF6FF", 0.55],
-            ["#FFFFFFFF", 1.0],
-        ],
-    },
-)
-_GRADIENT_ACTION_INKS = {
-    frozenset({"#FF317AF7", "#FF46B1E3"}): "#FF317AF7",
-    frozenset({"#FF46484D", "#FF467794"}): "#FF467794",
-    frozenset({"#FFED6F21", "#FFF9A01E"}): "#FFED6F21",
-    frozenset({"#FFAC49F5", "#FFC386F0"}): "#FFAC49F5",
-    frozenset({"#1A0A59F7", "#FFFFFFFF"}): "#FF0A59F7",
-    frozenset({"#1AE84026", "#FFFFFFFF"}): "#FFE84026",
-    frozenset({"#1A000000", "#FFFFFFFF"}): "#FF46484D",
-    frozenset({"#1A64BB5C", "#FFFFFFFF"}): "#FF64BB5C",
-    frozenset({"#1AF9A01E", "#FFFFFFFF"}): "#FFF9A01E",
-    frozenset({"#1AED6F21", "#FFFFFFFF"}): "#FFED6F21",
-    frozenset({"#1AAC49F5", "#FFFFFFFF"}): "#FFAC49F5",
-    frozenset({"#FFEAF2FF", "#FFF7FBFF", "#FFFFFFFF"}): "#FF0A59F7",
-    frozenset({"#FFFFE9E5", "#FFFFF6F3", "#FFFFFFFF"}): "#FFE84026",
-    frozenset({"#FFF0F2F5", "#FFF8F9FA", "#FFFFFFFF"}): "#FF46484D",
-    frozenset({"#FFE7F8EE", "#FFF5FCF8", "#FFFFFFFF"}): "#FF64BB5C",
-    frozenset({"#FFFFEDD8", "#FFFFF8EF", "#FFFFFFFF"}): "#FFF9A01E",
-    frozenset({"#FFF1E8FF", "#FFFAF6FF", "#FFFFFFFF"}): "#FFAC49F5",
-}
-_GRADIENT_ACTION_BACKGROUNDS = {
-    frozenset({"#FF317AF7", "#FF46B1E3"}): "#FFFFFFFF",
-    frozenset({"#FF46484D", "#FF467794"}): "#FFFFFFFF",
-    frozenset({"#FFED6F21", "#FFF9A01E"}): "#FFFFFFFF",
-    frozenset({"#FFAC49F5", "#FFC386F0"}): "#FFFFFFFF",
-    frozenset({"#1A0A59F7", "#FFFFFFFF"}): "#1A0A59F7",
-    frozenset({"#1AE84026", "#FFFFFFFF"}): "#1AE84026",
-    frozenset({"#1A000000", "#FFFFFFFF"}): "#1A000000",
-    frozenset({"#1A64BB5C", "#FFFFFFFF"}): "#1A64BB5C",
-    frozenset({"#1AF9A01E", "#FFFFFFFF"}): "#1AF9A01E",
-    frozenset({"#1AED6F21", "#FFFFFFFF"}): "#1AED6F21",
-    frozenset({"#1AAC49F5", "#FFFFFFFF"}): "#1AAC49F5",
-    frozenset({"#FFEAF2FF", "#FFF7FBFF", "#FFFFFFFF"}): "#1A0A59F7",
-    frozenset({"#FFFFE9E5", "#FFFFF6F3", "#FFFFFFFF"}): "#1AE84026",
-    frozenset({"#FFF0F2F5", "#FFF8F9FA", "#FFFFFFFF"}): "#1A000000",
-    frozenset({"#FFE7F8EE", "#FFF5FCF8", "#FFFFFFFF"}): "#1A64BB5C",
-    frozenset({"#FFFFEDD8", "#FFFFF8EF", "#FFFFFFFF"}): "#1AF9A01E",
-    frozenset({"#FFF1E8FF", "#FFFAF6FF", "#FFFFFFFF"}): "#1AAC49F5",
-}
-_SHALLOW_ROOT_GRADIENTS = {
-    frozenset({"#1A0A59F7", "#FFFFFFFF"}): _ROOT_LINEAR_GRADIENT_PALETTES[0],
-    frozenset({"#1AE84026", "#FFFFFFFF"}): _ROOT_LINEAR_GRADIENT_PALETTES[1],
-    frozenset({"#1A000000", "#FFFFFFFF"}): _ROOT_LINEAR_GRADIENT_PALETTES[2],
-    frozenset({"#1A64BB5C", "#FFFFFFFF"}): _ROOT_LINEAR_GRADIENT_PALETTES[3],
-    frozenset({"#1AF9A01E", "#FFFFFFFF"}): _ROOT_LINEAR_GRADIENT_PALETTES[4],
-    frozenset({"#1AED6F21", "#FFFFFFFF"}): _ROOT_LINEAR_GRADIENT_PALETTES[4],
-    frozenset({"#1AAC49F5", "#FFFFFFFF"}): _ROOT_LINEAR_GRADIENT_PALETTES[5],
-    frozenset({"#FFEAF2FF", "#FFF7FBFF", "#FFFFFFFF"}): _ROOT_LINEAR_GRADIENT_PALETTES[0],
-    frozenset({"#FFFFE9E5", "#FFFFF6F3", "#FFFFFFFF"}): _ROOT_LINEAR_GRADIENT_PALETTES[1],
-    frozenset({"#FFF0F2F5", "#FFF8F9FA", "#FFFFFFFF"}): _ROOT_LINEAR_GRADIENT_PALETTES[2],
-    frozenset({"#FFE7F8EE", "#FFF5FCF8", "#FFFFFFFF"}): _ROOT_LINEAR_GRADIENT_PALETTES[3],
-    frozenset({"#FFFFEDD8", "#FFFFF8EF", "#FFFFFFFF"}): _ROOT_LINEAR_GRADIENT_PALETTES[4],
-    frozenset({"#FFF1E8FF", "#FFFAF6FF", "#FFFFFFFF"}): _ROOT_LINEAR_GRADIENT_PALETTES[5],
+_DEFAULT_ROOT_BACKGROUND = "#FFE5EDFE"
+_PLAIN_BACKGROUND_INKS = {
+    "#FFE5EDFE": "#FF1F4799",
+    "#FFEDE6FF": "#FF401F99",
+    "#FFF0FFE6": "#FF52991F",
+    "#FFFFF3E6": "#FF99661F",
+    "#FFE6FDFF": "#FF1F8F99",
 }
 _TEXT_DESIGNS: dict[str, dict[str, Any]] = {
     "metric-display-xl": {"fontSize": 56, "fontWeight": 300},
@@ -445,8 +349,8 @@ _BUTTON_DESIGNS: dict[str, dict[str, Any]] = {
         "height": 36,
         "borderRadius": 20,
         "padding": {"left": 8, "top": 0, "right": 8, "bottom": 0},
-        "backgroundColor": "#190A59F7",
-        "fontColor": "font_emphasize",
+        "backgroundColor": "#331F4799",
+        "fontColor": "#FF1F4799",
         "fontSize": 14,
         "fontWeight": 500,
         "maxFontSize": 14,
@@ -754,7 +658,6 @@ def convert_compact_dsl_to_a2ui(
     data_model = _build_data_model(data_rows)
 
     icon_round_button_ids = _button_ids_with_design(components, "action-icon-round")
-    fallback_root_gradient = _fallback_root_linear_gradient(compact_dsl)
     converted_components = []
     for component in normalized_components:
         hide_label = component.component_id in icon_round_button_ids
@@ -762,7 +665,6 @@ def convert_compact_dsl_to_a2ui(
             _convert_component_rows(
                 component,
                 hide_label=hide_label,
-                fallback_root_gradient=fallback_root_gradient,
             )
         )
     if fusion_palette is not None:
@@ -806,10 +708,9 @@ def convert_compact_dsl_to_a2ui(
 def _normalize_special_action_units(
     components: list[ComponentRow],
 ) -> list[ComponentRow]:
-    action_style = _action_style_for_root_gradient(components)
-    if action_style is None:
+    action_ink = _action_ink_for_root(components)
+    if action_ink is None:
         return components
-    action_ink, action_background = action_style
 
     normalized: list[ComponentRow] = []
     for component in components:
@@ -818,10 +719,7 @@ def _normalize_special_action_units(
             continue
         props = copy.deepcopy(component.props)
         props.setdefault("actionInk", action_ink)
-        if "actionSurface" not in props:
-            props["_actionBackground"] = action_background
-            if action_background == "#FFFFFFFF":
-                props["actionSurface"] = "white"
+        props.setdefault("actionSurface", f"#33{action_ink[3:]}")
         normalized.append(
             ComponentRow(
                 component.component_id,
@@ -833,17 +731,17 @@ def _normalize_special_action_units(
     return normalized
 
 
-def _action_style_for_root_gradient(
-    components: list[ComponentRow],
-) -> tuple[str, str] | None:
-    action_style: tuple[str, str] | None = None
-    color_set = _root_gradient_color_set(components)
-    if color_set is not None:
-        action_ink = _GRADIENT_ACTION_INKS.get(color_set)
-        action_background = _GRADIENT_ACTION_BACKGROUNDS.get(color_set)
-        if action_ink is not None and action_background is not None:
-            action_style = action_ink, action_background
-    return action_style
+def _action_ink_for_root(components: list[ComponentRow]) -> str | None:
+    for component in components:
+        if component.component_id != "root":
+            continue
+        props = component.props
+        if "linearGradient" in props or "backgroundImage" in props:
+            return None
+        background = props.get("backgroundColor", _DEFAULT_ROOT_BACKGROUND)
+        if isinstance(background, str):
+            return _PLAIN_BACKGROUND_INKS.get(background.upper())
+    return None
 
 
 def _normalize_ring_stack_children(
@@ -884,45 +782,6 @@ def _normalize_ring_stack_children(
             )
         )
     return normalized
-
-
-def _root_gradient_color_set(components: list[ComponentRow]) -> frozenset[str] | None:
-    if not components:
-        return None
-    root = components[0]
-    if root.component_id != "root":
-        return None
-    gradient = root.props.get("linearGradient")
-    if not isinstance(gradient, dict):
-        return None
-    colors = gradient.get("colors")
-    if not isinstance(colors, list):
-        return None
-    return _gradient_color_set(colors)
-
-
-def _gradient_color_set(colors: list[Any]) -> frozenset[str] | None:
-    normalized_colors: set[str] = set()
-    for stop in colors:
-        if not isinstance(stop, list) or len(stop) != 2:
-            return None
-        color = stop[0]
-        if not isinstance(color, str):
-            return None
-        normalized_color = _normalize_gradient_color(color)
-        if normalized_color is None:
-            return None
-        normalized_colors.add(normalized_color)
-    return frozenset(normalized_colors)
-
-
-def _normalize_gradient_color(color: str) -> str | None:
-    normalized = color.strip().upper()
-    if len(normalized) == 7 and normalized.startswith("#"):
-        return f"#FF{normalized[1:]}"
-    if len(normalized) == 9 and normalized.startswith("#"):
-        return normalized
-    return None
 
 
 def _strip_optional_genui_fence(compact_dsl: str) -> str:
@@ -1918,7 +1777,6 @@ def _convert_component_rows(
     component: ComponentRow,
     *,
     hide_label: bool = False,
-    fallback_root_gradient: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     if component.component_type == "ActionUnit":
         return _convert_action_unit(component)
@@ -1926,7 +1784,6 @@ def _convert_component_rows(
         _convert_component(
             component,
             hide_label=hide_label,
-            fallback_root_gradient=fallback_root_gradient,
         )
     ]
 
@@ -2054,7 +1911,7 @@ def _convert_action_unit_capsule_with_icon(
             "height": 16,
             "objectFit": "contain",
             "flexShrink": 0,
-            "fillColor": text_styles.get("fontColor", "#FF0A59F7"),
+            "fillColor": text_styles.get("fontColor", "#FF1F4799"),
         },
     }
     text = {
@@ -2070,10 +1927,6 @@ def _apply_action_background(
     styles: dict[str, Any],
     props: dict[str, Any],
 ) -> None:
-    action_background = props.get("_actionBackground")
-    if isinstance(action_background, str):
-        styles["backgroundColor"] = action_background
-        return
     action_surface = props.get("actionSurface")
     if action_surface == "white":
         styles["backgroundColor"] = "#FFFFFFFF"
@@ -2191,7 +2044,6 @@ def _convert_component(
     component: ComponentRow,
     *,
     hide_label: bool = False,
-    fallback_root_gradient: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     output_type = _output_component_type(component, hide_label)
     converted: dict[str, Any] = {
@@ -2232,12 +2084,7 @@ def _convert_component(
             styles[property_name] = value
 
     if component.component_id == "root":
-        _normalize_root_component(
-            component,
-            converted,
-            styles,
-            fallback_root_gradient,
-        )
+        _normalize_root_component(styles)
     if _is_icon_button_stack(component, hide_label):
         _normalize_icon_button_stack(styles)
     if component.component_type == "Text":
@@ -2269,53 +2116,11 @@ def _normalize_text_component(styles: dict[str, Any]) -> None:
     styles.setdefault("textOverflow", "clip")
 
 
-def _normalize_root_component(
-    component: ComponentRow,
-    converted: dict[str, Any],
-    styles: dict[str, Any],
-    fallback_gradient: dict[str, Any] | None,
-) -> None:
+def _normalize_root_component(styles: dict[str, Any]) -> None:
     styles["width"] = "matchParent"
     styles["height"] = "matchParent"
-    _normalize_root_linear_gradient(styles)
-    _ensure_root_background(styles, fallback_gradient)
-
-
-def _normalize_root_linear_gradient(styles: dict[str, Any]) -> None:
-    gradient = styles.get("linearGradient")
-    if not isinstance(gradient, dict):
-        return
-    colors = gradient.get("colors")
-    if not isinstance(colors, list):
-        return
-    color_set = _gradient_color_set(colors)
-    if color_set is None:
-        return
-    shallow_gradient = _SHALLOW_ROOT_GRADIENTS.get(color_set)
-    if shallow_gradient is None:
-        return
-    styles["linearGradient"] = copy.deepcopy(shallow_gradient)
-
-
-def _ensure_root_background(
-    styles: dict[str, Any],
-    fallback_gradient: dict[str, Any] | None,
-) -> None:
-    has_background = any(
-        name in styles
-        for name in ("linearGradient", "backgroundColor", "backgroundImage")
-    )
-    if has_background:
-        return
-    gradient = fallback_gradient or _ROOT_LINEAR_GRADIENT_PALETTES[0]
-    styles["linearGradient"] = copy.deepcopy(gradient)
-
-
-def _fallback_root_linear_gradient(seed: str) -> dict[str, Any]:
-    digest = hashlib.sha256(seed.encode("utf-8")).digest()
-    palette_index = int.from_bytes(digest[:2], "big")
-    palette_index %= len(_ROOT_LINEAR_GRADIENT_PALETTES)
-    return copy.deepcopy(_ROOT_LINEAR_GRADIENT_PALETTES[palette_index])
+    if not any(name in styles for name in ("linearGradient", "backgroundColor", "backgroundImage")):
+        styles["backgroundColor"] = _DEFAULT_ROOT_BACKGROUND
 
 
 def _move_component_property(

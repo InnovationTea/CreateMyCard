@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import unittest
+from unittest.mock import patch
 
 from services.card_validation import (
     CompactDslValidationError,
@@ -190,7 +191,7 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
         self.assertEqual(components["action"][2]["fontWeight"], 500)
         self.assertEqual(
             components["action"][2]["backgroundColor"],
-            "#190A59F7",
+            "#331F4799",
         )
 
     def test_expands_action_icon_round_design(self) -> None:
@@ -1530,6 +1531,98 @@ class CompactDslA2uiConverterTest(unittest.TestCase):
 
         self.assertEqual(len(result.warnings), 1)
         self.assertIn("/data/weather", result.warnings[0])
+
+class FixedBackgroundColorTest(unittest.TestCase):
+    @staticmethod
+    def _convert(background: dict, action_colors: dict | None = None) -> dict:
+        action = {
+            "state": "capsule",
+            "label": "Open",
+            "icon": "resources/base/media/music_fill.svg",
+            "onClick": [{"call": "clickToIntent", "args": {"intentName": "Settings"}}],
+            **(action_colors or {}),
+        }
+        source = _serialize([
+            ["root", "Column", background, ["action"]],
+            ["action", "ActionUnit", action],
+        ])
+        result = convert_compact_dsl_to_a2ui(source, size="2x2")
+        update = json.loads(result.splitlines()[1]).get("updateComponents")
+        assert isinstance(update, dict)
+        return {item.get("id"): item for item in update.get("components", [])}
+
+    def test_plain_background_sets_matching_button_defaults(self) -> None:
+        palettes = [
+            ("#FFE5EDFE", "#FF1F4799", "#331F4799"),
+            ("#FFEDE6FF", "#FF401F99", "#33401F99"),
+            ("#FFF0FFE6", "#FF52991F", "#3352991F"),
+            ("#FFFFF3E6", "#FF99661F", "#3399661F"),
+            ("#FFE6FDFF", "#FF1F8F99", "#331F8F99"),
+        ]
+        for background, ink, surface in palettes:
+            with self.subTest(background=background):
+                components = self._convert({"backgroundColor": background})
+                self.assertEqual(components["root"]["styles"]["backgroundColor"], background)
+                self.assertNotIn("linearGradient", components["root"]["styles"])
+                self.assertEqual(components["action"]["styles"]["backgroundColor"], surface)
+                self.assertEqual(components["action_text"]["styles"]["fontColor"], ink)
+                self.assertEqual(components["action_icon"]["styles"]["fillColor"], ink)
+
+    def test_missing_background_defaults_to_blue(self) -> None:
+        components = self._convert({})
+        self.assertEqual(components["root"]["styles"]["backgroundColor"], "#FFE5EDFE")
+        self.assertNotIn("linearGradient", components["root"]["styles"])
+
+    def test_explicit_colors_and_gradients_are_preserved(self) -> None:
+        backgrounds = [
+            {"backgroundColor": "#FFF0FFE6"},
+            {"backgroundColor": "#FF101010"},
+            {"linearGradient": {
+                "angle": 90,
+                "colors": [["#1A64BB5C", 0], ["#FFFFFFFF", 1]],
+            }},
+        ]
+        for background in backgrounds:
+            with self.subTest(background=background):
+                components = self._convert(
+                    background,
+                    {"actionInk": "#FFE84026", "actionSurface": "#FF123456"},
+                )
+                for name, value in background.items():
+                    self.assertEqual(components["root"]["styles"][name], value)
+                self.assertEqual(components["action"]["styles"]["backgroundColor"], "#FF123456")
+                self.assertEqual(components["action_text"]["styles"]["fontColor"], "#FFE84026")
+
+    @patch("services.fusion_ball_expander.fusion_ball_enabled", return_value=True)
+    def test_fusion_keeps_original_icons_and_uses_white_capsule_colors(self, _enabled) -> None:
+        for fill in ({}, {"fillColor": "#FF1F8F99"}):
+            with self.subTest(fill=fill):
+                source = _serialize([
+                    ["root", "Column", {"design": "fusion-ball-battery-teal"}, ["action"]],
+                    ["action", "Row", {
+                        "height": 36, "borderRadius": 20,
+                        "onClick": [{"call": "clickToIntent", "args": {"intentName": "Settings"}}],
+                        "backgroundColor": "#331F8F99",
+                    }, ["icon", "label"]],
+                    ["icon", "Image", {
+                        "src": "resources/base/media/music_fill.svg" if fill
+                        else "resources/base/media/icon_weather1.svg",
+                        "width": 16, "height": 16, **fill,
+                    }],
+                    ["label", "Text", {"content": "Open", "fontColor": "#FF1F8F99"}],
+                ])
+                result = convert_compact_dsl_to_a2ui(source, size="2x2")
+                update = json.loads(result.splitlines()[1]).get("updateComponents")
+                assert isinstance(update, dict)
+                components = {item.get("id"): item for item in update.get("components", [])}
+                self.assertEqual(components["action"]["styles"]["backgroundColor"], "#33FFFFFF")
+                self.assertEqual(components["label"]["styles"]["fontColor"], "#E6FFFFFF")
+                expected_fill = "#99FFFFFF" if fill else None
+                self.assertEqual(components["icon"]["styles"].get("fillColor"), expected_fill)
+                self.assertEqual(
+                    components["fusionBallGlassLayer"]["styles"]["backgroundColor"], "#1AFFFFFF"
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

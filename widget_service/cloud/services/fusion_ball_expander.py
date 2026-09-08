@@ -251,7 +251,7 @@ def _apply_fusion_capsule_styles(
                 continue
             if child.get("component") == "Text":
                 child_styles["fontColor"] = _FUSION_CAPSULE_TEXT
-            elif child.get("component") == "Image":
+            elif child.get("component") == "Image" and "fillColor" in child_styles:
                 child_styles["fillColor"] = _FUSION_CAPSULE_ICON
 
 
@@ -386,7 +386,7 @@ def _build_fusion_ball_components(palette: FusionBallPalette) -> list[dict[str, 
                 "height": fusion_ball_relative_size(160),
                 "strokeWidth": 0,
                 "color": "#00000000",
-                "backgroundColor": "#0DFFFFFF",
+                "backgroundColor": "#1AFFFFFF",
                 "backdropBlur": {"radius": 120},
             },
         },
