@@ -89,6 +89,26 @@
       "optionalData": []
     },
     {
+      "templateId": "BluetoothDeviceOverviewConnectionSupport@1",
+      "supportedEventIds": ["event.open.settings.bluetooth"],
+      "businessId": "BluetoothDeviceOverview",
+      "capabilityId": "GetEarphoneInfo",
+      "description": "耳机连接与仓电量 Support：主行加粗展示耳机仓电量，辅助行展示连接状态；仅在绑定事件时显示可选 24vp 耳机图标。",
+      "entry": "templates/bluetooth-device-overview.cardtpl",
+      "primaryData": [
+        "/batteryLevel"
+      ],
+      "secondaryData": [
+        "/isConnected"
+      ],
+      "optionalData": [],
+      "assetParameterSemanticTags": {
+        "deviceIcon": [
+          "earphone"
+        ]
+      }
+    },
+    {
       "templateId": "BluetoothDeviceOverviewChargeSupport@1",
       "supportedEventIds": ["event.open.settings.bluetooth"],
       "businessId": "BluetoothDeviceOverview",

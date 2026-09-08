@@ -147,11 +147,12 @@ Column(
 )
 #End
 
-#Template ScheduleOverviewTimeSupport@1(props: { calendarIcon?: asset, actionId?: string })
+#Template ScheduleOverviewTimeSupport@1(props: { calendarIcon?: asset, meetingIcon?: asset, actionId?: string })
 data = {
-    title: $path("/events/0/title"),
+    title: $optionalPath("/events/0/title"),
     start: $path("/events/0/dtStart"),
     end: $optionalPath("/events/0/dtEnd"),
+    location: $optionalPath("/events/0/eventLocation"),
 }
 
 Row(
@@ -167,27 +168,74 @@ Row(
   },
   Column(
     {
-      "itemMargin": 4,
+      "itemMargin": 2,
+      "layoutWeight": 1,
       "justifyContent": "start",
       "alignItems": "start",
       "clip": true,
       "constraintSize": { "minWidth": 0, "minHeight": 0 }
     },
-    Text(
-      data.title,
-      {
-        "fontSize": 14,
-        "fontWeight": 700,
-        "fontColor": $theme('primaryColor'),
-        "maxLines": 1,
-        "textOverflow": "ellipsis",
-        "constraintSize": { "minWidth": 0, "minHeight": 0 }
-      }
-    ),
+    #if data.title
+      Text(
+        data.title,
+        {
+          "height": 20,
+          "fontSize": 14,
+          "fontWeight": 700,
+          "fontColor": $theme('primaryColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        }
+      ),
+    #else
+      Text(
+        data.start,
+        {
+          "height": 20,
+          "fontSize": 14,
+          "fontWeight": 700,
+          "fontColor": $theme('primaryColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        }
+      ),
+    #endif
+    #if data.location
+      #if data.title
+      Text(
+        Expr(data.start + " · " + data.location),
+        {
+          "height": 16,
+          "fontSize": 12,
+          "fontWeight": 400,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        }
+      )
+      #else
+      Text(
+        data.location,
+        {
+          "height": 16,
+          "fontSize": 12,
+          "fontWeight": 400,
+          "fontColor": $theme('supportContentColor'),
+          "maxLines": 1,
+          "textOverflow": "ellipsis",
+          "constraintSize": { "minWidth": 0, "minHeight": 0 }
+        }
+      )
+      #endif
+    #else
     #if data.end
     Text(
       `${data.start} - ${data.end}`,
       {
+        "height": 16,
         "fontSize": 12,
         "fontWeight": 400,
         "fontColor": $theme('supportContentColor'),
@@ -198,20 +246,30 @@ Row(
     )
     #else
     Text(
-      data.start,
+      #Expr(data.title ? data.start : "点击查看日程"),
       {
-        "fontSize": 12, "fontWeight": 400,
+        "height": 16, "fontSize": 12, "fontWeight": 400,
         "fontColor": $theme('supportContentColor'), "maxLines": 1,
         "textOverflow": "ellipsis", "constraintSize": { "minWidth": 0, "minHeight": 0 }
       }
     )
     #endif
+    #endif
   ),
-  #if props.calendarIcon
-  Image(
-    props.calendarIcon,
-    { "width": 24, "height": 24, "flexShrink": 0, "fillColor": $theme('supportContentColor') }
-  )
+  #if props.actionId
+    #if props.calendarIcon
+    Image(
+      props.calendarIcon,
+      { "width": 24, "height": 24, "flexShrink": 0, "fillColor": $theme('supportContentColor') }
+    )
+    #else
+      #if props.meetingIcon
+      Image(
+        props.meetingIcon,
+        { "width": 24, "height": 24, "flexShrink": 0, "fillColor": $theme('supportContentColor') }
+      )
+      #endif
+    #endif
   #endif
 )
 #End

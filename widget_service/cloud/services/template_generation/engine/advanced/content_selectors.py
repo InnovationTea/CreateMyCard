@@ -2553,15 +2553,20 @@ def extract_bluetooth_device_overview_facts(
     required_case_status = {"batteryLevel", "chargingStatusDesc"}
     required_ear_battery = {"leftBatteryLevel", "rightBatteryLevel"}
     required_name_and_case_battery = {"earphoneName", "batteryLevel"}
+    required_connection_and_case_battery = {"isConnected", "batteryLevel"}
     for candidate in _dict_nodes(schema):
         has_complete_identity = required_identity.issubset(candidate)
         has_complete_case_status = required_case_status.issubset(candidate)
         has_complete_ear_battery = required_ear_battery.issubset(candidate)
         has_name_and_case_battery = required_name_and_case_battery.issubset(candidate)
+        has_connection_and_case_battery = (
+            required_connection_and_case_battery.issubset(candidate)
+        )
         contains_no_fact = not has_complete_identity \
             and not has_complete_case_status \
             and not has_complete_ear_battery \
-            and not has_name_and_case_battery
+            and not has_name_and_case_battery \
+            and not has_connection_and_case_battery
         if contains_no_fact:
             continue
         facts = _bluetooth_facts_from_candidate(candidate)
@@ -2582,7 +2587,12 @@ def _bluetooth_facts_from_candidate(
     has_name_and_case_battery = (
         earphone_name is not None and case_battery_level is not None
     )
-    if not has_name_and_case_battery and (is_connected is None) != (
+    has_connection_and_case_battery = (
+        is_connected is not None and case_battery_level is not None
+    )
+    if not has_name_and_case_battery and not has_connection_and_case_battery and (
+        is_connected is None
+    ) != (
         earphone_name is None
     ):
         return None
@@ -2615,12 +2625,16 @@ def _bluetooth_facts_from_candidate(
     has_name_and_case_battery = (
         facts.earphone_name is not None and facts.case_battery_level is not None
     )
+    has_connection_and_case_battery = (
+        facts.is_connected is not None and facts.case_battery_level is not None
+    )
     return (
         facts
         if has_complete_identity
         or has_complete_case_status
         or has_complete_ear_battery
         or has_name_and_case_battery
+        or has_connection_and_case_battery
         else None
     )
 

@@ -7,13 +7,15 @@
     `HeroTitleContentActionLayout@1` 的第一个业务 child。
   - `WeatherOverviewCompact@1`：城市、温度、天气现象和感冒指数；可选 `conditionIcon`。
   - `WeatherOverviewUvCompact@1`：城市、温度、天气现象和紫外线等级；可选 `conditionIcon`。
-  - `WeatherOverviewTemperatureSupport@1`：城市、温度和天气现象；可选
-    `conditionIcon` 与内部事件 `actionId`。
+  - `WeatherOverviewTemperatureSupport@1`：城市、温度和天气现象，兼容格式化温度或纯数值摄氏温度；
+    体感温度可选并与天气现象合并到 12vp 辅助行。可选 `conditionIcon` 与内部事件 `actionId`，
+    图标只在该 Support 收到 `actionId` 时显示。
   - `WeatherOverviewTemperatureUvSupport@1`：城市、温度、天气现象和紫外线等级；纯文本，
     不接收图标；可选内部事件 `actionId`。
   - `WeatherOverviewTemperaturecoldLevelSupport@1`：城市、温度、天气现象和感冒风险；纯文本，
     不接收图标；可选内部事件 `actionId`。保留声明中的小写 coldLevel，不更改模板 ID。
-    三种 Support 均以温度为主数据，天气现象及各自风险指数为次要数据；城市和区县可选，
+    基础 Support 以天气现象为必需数据，温度、体感、城市和区县可选；另两种 Support 仍以温度为主数据，
+    天气现象及各自风险指数为次要数据；城市和区县可选，
     可接收 `location` 兜底。不能让基础温度模板覆盖不存在的紫外线或感冒风险展示。
   - `WeatherOverviewHero@1`：温度天气 Hero；可选 `conditionIcon`。
   - `WeatherOverviewConditionHero@1`：以当前天气现象为主焦点的 Hero；城市与 `conditionIcon` 可选。

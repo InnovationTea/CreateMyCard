@@ -7,6 +7,8 @@
     `HeroActionLayout@1` 加一个 `PillAction@1`。
   - `BluetoothDeviceOverviewEarbudsSupport@1`：展示左右耳电量；`deviceIcon` 必填；Planner 可将其用于
     `TwoSupportLayout@1`，并传入 `actionId` 将事件绑定在 Support 根节点内部。
+  - `BluetoothDeviceOverviewConnectionSupport@1`：14vp 主行展示耳机仓电量，12vp 辅助行展示连接状态；
+    用于 `TwoSupportLayout@1`。`deviceIcon` 可选且只在该 Support 收到 `actionId` 时以 24vp 显示。
   - `BluetoothDeviceOverviewChargeSupport@1`：左侧两行文本展示盒或整体电量及充电状态，
     右侧 40vp 电量环，环内图标为 16vp；
     主数据 /batteryLevel、次要数据 /chargingStatusDesc 均必需；`deviceIcon` 必填且必须表达充电盒。
@@ -39,6 +41,7 @@
   - `caseIcon`：耳机收纳盒或充电盒；
   - `earphoneIcon`：整副耳机、耳机产品或蓝牙音频设备；
   - `leftEarIcon`、`rightEarIcon`：对应左右耳塞，左右不可互换；
-  - `deviceIcon`：EarbudsSupport 只接受整副或成对耳机本体，ChargeSupport 只接受耳机收纳盒或充电盒；
-    两个同名参数的语义不能混用，也不得使用单侧耳塞或通用音乐图标。
+  - `deviceIcon`：EarbudsSupport 只接受整副或成对耳机本体，ChargeSupport 只接受耳机收纳盒或充电盒，
+    ConnectionSupport 接受整副耳机或充电盒；同名参数必须按具体模板语义匹配，不得使用单侧耳塞或
+    通用音乐图标。
 - 必填素材没有合适候选时不得选择该模板；可选素材没有合适候选时省略。
