@@ -16,10 +16,19 @@
     三种 Support 均以温度为主数据，天气现象及各自风险指数为次要数据；城市和区县可选，
     可接收 `location` 兜底。不能让基础温度模板覆盖不存在的紫外线或感冒风险展示。
   - `WeatherOverviewHero@1`：温度天气 Hero；可选 `conditionIcon`。
+  - `WeatherOverviewConditionHero@1`：以当前天气现象为主焦点的 Hero；城市与 `conditionIcon` 可选。
   - `WeatherOverviewFull@1`：完整温度天气摘要；可选 `conditionIcon`。
   - `WeatherOverviewHumidityFull@1`：以湿度为主焦点的完整天气摘要。
   - `WeatherOverviewUvFull@1`：以紫外线为主焦点的完整天气摘要。
   - `WeatherOverviewAirQualityHero@1`：以空气质量为主焦点的 Hero。
+  - `WeatherOverviewAlertFull@1`：以天气预警为主焦点并显示更新时间的 Full；可选地点、预警和时间图标。
+  - `WeatherOverviewCareAlertFull@1`：展示城市、天气预警、紫外线和空气质量的三段式关怀型 Full；可选紫外线图标，底部为右下角电话动作预留空间。
+  - `WeatherOverviewWindHero@1`：展示城市、当前风向、风力等级和更新时间的 Hero；可选风向、时间和位置图标。
+  - `WeatherOverviewDualCityFull@1`：并列展示两个天气数据绑定的温度与天气现象；城市名称可选。
+  - `WeatherOverviewDailyDateFull@1`：明日日期天气 Full，突出天气现象，并展示日期和星期。
+  - `WeatherOverviewDailyRainFull@1`：明日降雨 Full，突出降雨概率，并展示温度范围。
+  - `WeatherOverviewDailyCompareFull@1`：双日天气对比 Full，并列展示 `daily[0]`、`daily[1]` 的天气现象和空气质量。
+  - `WeatherOverviewDailyHealthFull@1`：明日健康指数 Full，突出紫外线等级，并展示空气质量和感冒指数。
 - Compact 只用于 `CompactTwoActionLayout@1` 加两个 `PillAction@1`；Hero 只用于
   `HeroActionLayout@1` 加一个 `PillAction@1`；Full 用于无 Action，或搭配一个语义匹配的
   `IconAction@1`。
@@ -36,7 +45,13 @@
 - 候选模板声明 `location?: string` 时，该 Prop 只作为可选兜底文案。模板优先使用可用的城市或区县
   数据绑定；只有两个位置数据路径都不可用时才使用该 Prop，Prop 也缺失时显示“当前城市”。
 - 选择能够完整表达用户显式字段且自身 `primaryData` 与 `secondaryData` 全部可用的模板。
-- 单业务 Compact、UvCompact、Hero、Full 的 `conditionIcon` 只允许与本轮 `/current/condition`
+- `windIcon`、`timeIcon`、`locationIcon` 必须分别匹配风况、时间和地点语义；风力等级直接绑定
+  `/current/windLevel`，模板单独追加“级”，不得把单位写入数据路径或伪造静态风力。
+- `alertIcon`、`rainIcon`、`uvIcon` 分别表达天气预警、降雨和紫外线语义；
+  仅从对应参数允许的可信素材中选择，缺少匹配素材时省略可选图标，不得跨语义借用。
+- 日出日落和 AQI 数值不在当前数据契约内，不得用静态值伪造；天气预警必须绑定
+  `/current/alertLevel`，更新时间必须绑定 `/updatedAt`。
+- 单业务模板的 `conditionIcon` 只允许与本轮 `/current/condition`
   一致的天气状态图标，不允许温度计；状态未知或缺少匹配的状态资源时省略图标，保留天气文本。
 - 双业务 `TwoSupportLayout@1` 中，基础温度 Support 的 `conditionIcon` 可以选择表达气温的温度计，
   也可以选择与当前天气一致的状态图标。状态未知或缺少对应状态资源时仍可使用气温温度计；
@@ -48,4 +63,3 @@
 - 不得使用体温/发热专用图标冒充气温，也不得使用与实际天气不一致的晴、雨、雪等图标，
   或从搭档业务借用时钟、日历、运动、睡眠、心率图标。不得为了匹配图标改变天气数据，
   也不得把静态太阳当作通用天气标识。
-- 日出日落、天气预警和 AQI 数值不在当前数据契约内，不得用静态值伪造。

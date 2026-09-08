@@ -27,6 +27,7 @@ from services.template_generation.engine.cardplan.template_plan_planner import (
 )
 from services.template_generation.engine.cardplan.template_retrieval import (
     TemplateBusinessCandidates,
+    TemplateRetrievalMiss,
     TemplateSearchCandidate,
     TemplateSearchIntent,
     TemplateSearchResult,
@@ -146,6 +147,70 @@ def test_search_keeps_optional_only_template_and_reports_concise_coverage() -> N
     assert hero_title is not None
     assert hero_title.covered_explicit_fields == weather.explicit_fields
     assert set(result.model_dump(by_alias=True)) == {"cardSize", "businessCandidates"}
+
+
+@pytest.mark.parametrize("second_temperature", ("number", "string", "missing"))
+def test_dual_city_search_and_planner_validate_both_runtime_roots(
+    second_temperature: str,
+) -> None:
+    second_current = {"condition": _field("小雨")}
+    if second_temperature != "missing":
+        value: object = 25 if second_temperature == "number" else "25"
+        second_current["temperatureC"] = _field(value, second_temperature)
+    task = TaskSpec(
+        userQuery="显示成都和上海的温度及天气现象",
+        size="2x2",
+        dataModelSchema={
+            "data": {
+                "weather1": {
+                    "current": {
+                        "temperatureC": _field(29, "number"),
+                        "condition": _field("多云"),
+                    },
+                },
+                "weather2": {"current": second_current},
+            },
+        },
+    )
+    fields = ("/current/temperatureC", "/current/condition")
+    bindings = tuple(
+        CandidateDataBinding(
+            capabilityId="ViewWeather",
+            writeResultTo=root,
+            candidateOutputFields=list(fields),
+        )
+        for root in ("/data/weather1", "/data/weather2")
+    )
+    card_spec = {
+        "suggestSize": "2x2",
+        "dataBindings": [
+            {"capabilityId": binding.capabilityId, "writeResultTo": binding.writeResultTo}
+            for binding in bindings
+        ],
+    }
+    intent = TemplateSearchIntent(
+        requiredOutputFieldsByCapability={"ViewWeather": fields},
+    )
+    registry = get_cardplan_registry()
+
+    if second_temperature != "number":
+        with pytest.raises(TemplateRetrievalMiss):
+            search_template_variants(intent, task, registry, bindings, card_spec)
+        return
+
+    result = search_template_variants(intent, task, registry, bindings, card_spec)
+    assert len(result.business_candidates) == 1
+    candidates = result.business_candidates[0].candidates
+    assert tuple(candidate.template_id for candidate in candidates) == (
+        "WeatherOverviewDualCityFull@1",
+    )
+    assert candidates[0].covered_explicit_fields == fields
+    plans = plan_template_candidates(intent, result, task, registry)
+    assert 1 <= len(plans) <= 3
+    for plan in plans:
+        assert len(plan.business_slots) == 1
+        assert plan.business_slots[0].template_id == "WeatherOverviewDualCityFull@1"
+        assert plan.layout_template_id == "SingleFocusLayout@1"
 
 
 def test_single_business_planner_prefers_explicit_primary_data_match() -> None:

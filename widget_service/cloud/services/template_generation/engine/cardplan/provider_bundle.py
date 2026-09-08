@@ -167,6 +167,7 @@ class ProviderTemplateEntry(StrictModel):
         pattern=r"^[A-Z][A-Za-z0-9]{0,63}$",
     )
     capability_id: str | None = Field(default=None, alias="capabilityId", min_length=1)
+    binding_count: int = Field(default=1, alias="bindingCount", ge=1, le=2)
     description: str = Field(min_length=1)
     primary_data: tuple[str, ...] = Field(default=(), alias="primaryData")
     secondary_data: tuple[str, ...] = Field(default=(), alias="secondaryData")
@@ -214,6 +215,8 @@ class ProviderTemplateEntry(StrictModel):
             raise ValueError("Provider data Template must declare businessId")
         if self.capability_id is not None:
             _provider_template_layout_kind(self.template_id)
+        if self.binding_count > 1 and (self.capability_id is None or not has_data):
+            raise ValueError("Provider multi-binding Template must declare capability data")
         for name, tags in self.asset_parameter_semantic_tags.items():
             if _REFERENCE_NAME_RE.fullmatch(name) is None:
                 raise ValueError(f"Provider asset parameter name is invalid: {name}")
@@ -422,6 +425,7 @@ def load_provider_bundle(bundle_root: Path) -> LoadedProviderBundle:
             primary_data=entry.primary_data,
             secondary_data=entry.secondary_data,
             optional_data=entry.optional_data,
+            binding_count=entry.binding_count,
             output_schema=output_schema,
         )
         asset_tags = dict(definition.asset_parameter_semantic_tags)
@@ -478,6 +482,7 @@ def compile_card_template(
     secondary_data: tuple[str, ...],
     optional_data: tuple[str, ...],
     output_schema: dict[str, Any],
+    binding_count: int = 1,
 ) -> TemplateDefinition:
     """Compile one non-executable CardTemplate source into the trusted Template IR."""
     if len(source) > _MAX_TEMPLATE_SOURCE_CHARS:
@@ -501,6 +506,7 @@ def compile_card_template(
         primary_data=primary_data,
         secondary_data=secondary_data,
         optional_data=optional_data,
+        binding_count=binding_count,
         output_schema=output_schema,
     )
 
@@ -519,6 +525,7 @@ def _compile_ui_card_template(
     primary_data: tuple[str, ...],
     secondary_data: tuple[str, ...],
     optional_data: tuple[str, ...],
+    binding_count: int,
     output_schema: dict[str, Any],
 ) -> TemplateDefinition:
     """Compile the UI-oriented ``#Template Id(props, ...children)`` syntax."""
@@ -528,7 +535,7 @@ def _compile_ui_card_template(
     required_params = signature_contract.required_params
     asset_tags = signature_contract.asset_tags
     accepts_children = signature_contract.accepts_children
-    template_data = _ui_template_data(block, output_schema)
+    template_data = _ui_template_data(block, output_schema, binding_count)
     bindings = template_data.bindings
     required_bindings = template_data.required_bindings
     optional_bindings = template_data.optional_bindings
@@ -546,6 +553,9 @@ def _compile_ui_card_template(
         )
     if bindings and (expected_capability_id is None or data_domain is None):
         raise ValueError("Provider data Template requires capabilityId and dataDomain")
+    used_root_indexes = {binding.root_index for binding in bindings.values()}
+    if bindings and used_root_indexes != set(range(binding_count)):
+        raise ValueError("Provider Template must bind every declared data root")
     transformed = _translate_optional_parameter_access(body)
     root = _parse_component_body(
         transformed,
@@ -637,6 +647,7 @@ def _compile_ui_card_template(
             "businessId": business_id,
             "capabilityId": expected_capability_id,
             "dataDomain": data_domain,
+            "bindingCount": binding_count,
             "primaryData": primary_data,
             "primaryDataFields": _data_fields(primary_data, output_schema),
             "secondaryData": secondary_data,
@@ -739,6 +750,7 @@ def _ui_template_signature(
 def _ui_template_data(
     block: str,
     output_schema: dict[str, Any],
+    binding_count: int,
 ) -> _UiTemplateData:
     match = re.match(r"\s*data\s*=\s*\{", block)
     if match is None:
@@ -752,6 +764,7 @@ def _ui_template_data(
     optional: dict[str, TemplateBinding] = {}
     entry_re = re.compile(
         r"([A-Za-z_][A-Za-z0-9_]*)\s*:\s*\$(path|optionalPath)\(\s*"
+        r"(?:(\d+)\s*,\s*)?"
         r"(\"(?:\\.|[^\"])*\"|'(?:\\.|[^'])*')\s*\)\s*(?:,|$)",
         re.S,
     )
@@ -759,10 +772,13 @@ def _ui_template_data(
     for item in entry_re.finditer(source):
         if source[slice(cursor, item.start())].strip():
             raise ValueError("invalid Provider Template data declaration")
-        name, function_name, raw_path = item.groups()
+        name, function_name, raw_root_index, raw_path = item.groups()
         path = ast.literal_eval(raw_path)
+        root_index = int(raw_root_index) if raw_root_index is not None else 0
         if name in bindings or not isinstance(path, str) or not _provider_relative_data_path(path):
             raise ValueError(f"invalid Provider Template data binding: {name}")
+        if root_index >= binding_count:
+            raise ValueError(f"Provider Template data binding root is out of range: {name}")
         leaf = _schema_leaf(output_schema, path)
         if not isinstance(leaf, dict) or leaf.get("type") not in {
             "string",
@@ -772,7 +788,7 @@ def _ui_template_data(
             "null",
         }:
             raise ValueError(f"Provider Template data path does not match outputSchema: {path}")
-        binding = TemplateBinding(path=path, type=leaf["type"])
+        binding = TemplateBinding(path=path, type=leaf["type"], rootIndex=root_index)
         bindings[name] = binding
         (required if function_name == "path" else optional)[name] = binding
         cursor = item.end()
@@ -2553,18 +2569,19 @@ def provider_template_admission(
     capability_id = definition.capability_id
     if not capability_id:
         return ProviderTemplateAdmission(False, "missing-capability-id")
-    root = _provider_data_root(card_spec, capability_id)
-    if isinstance(root, ProviderTemplateAdmission):
-        return root
-    if definition.data_domain is not None and root != definition.data_domain:
-        return ProviderTemplateAdmission(False, "data-domain-mismatch", path=root)
+    roots = _provider_data_roots(card_spec, capability_id, definition.binding_count)
+    if isinstance(roots, ProviderTemplateAdmission):
+        return roots
+    if definition.binding_count == 1 and definition.data_domain is not None:
+        if roots[0] != definition.data_domain:
+            return ProviderTemplateAdmission(False, "data-domain-mismatch", path=roots[0])
     failures: list[ProviderTemplateAdmission] = []
     for variant in definition.variants:
         admission = _provider_variant_binding_admission(
             definition,
             variant,
             task_spec,
-            root,
+            roots,
         )
         if admission.admitted:
             return admission
@@ -2588,12 +2605,13 @@ def provider_template_variant_admission(
     capability_id = definition.capability_id
     if not capability_id:
         return ProviderTemplateAdmission(False, "missing-capability-id")
-    root = _provider_data_root(card_spec, capability_id)
-    if isinstance(root, ProviderTemplateAdmission):
-        return root
-    if definition.data_domain is not None and root != definition.data_domain:
-        return ProviderTemplateAdmission(False, "data-domain-mismatch", path=root)
-    return _provider_variant_binding_admission(definition, variant, task_spec, root)
+    roots = _provider_data_roots(card_spec, capability_id, definition.binding_count)
+    if isinstance(roots, ProviderTemplateAdmission):
+        return roots
+    if definition.binding_count == 1 and definition.data_domain is not None:
+        if roots[0] != definition.data_domain:
+            return ProviderTemplateAdmission(False, "data-domain-mismatch", path=roots[0])
+    return _provider_variant_binding_admission(definition, variant, task_spec, roots)
 
 
 def provider_template_context_admission(
@@ -2610,18 +2628,20 @@ def _provider_variant_binding_admission(
     definition: TemplateDefinition,
     variant: TemplateVariant,
     task_spec: TaskSpec,
-    root: str,
+    roots: tuple[str, ...],
 ) -> ProviderTemplateAdmission:
-    for relative_path in definition.required_data:
-        path = f"{root.rstrip('/')}{relative_path}"
-        if _task_spec_schema_leaf(task_spec.dataModelSchema, path) is None:
-            return ProviderTemplateAdmission(
-                False,
-                "required-data-unavailable",
-                path=path,
-            )
+    for root in roots:
+        for relative_path in definition.required_data:
+            path = f"{root.rstrip('/')}{relative_path}"
+            if _task_spec_schema_leaf(task_spec.dataModelSchema, path) is None:
+                return ProviderTemplateAdmission(
+                    False,
+                    "required-data-unavailable",
+                    path=path,
+                )
     for name in variant.required_bindings:
         binding = definition.bindings[name]
+        root = roots[binding.root_index]
         path = f"{root.rstrip('/')}{binding.path}"
         leaf = _task_spec_schema_leaf(task_spec.dataModelSchema, path)
         if leaf is None:
@@ -2698,27 +2718,28 @@ def _parameter_value_matches_type(value: object, expected: object) -> bool:
     return False
 
 
-def _provider_data_root(
+def _provider_data_roots(
     card_spec: dict[str, Any] | None,
     capability_id: str,
-) -> str | ProviderTemplateAdmission:
+    binding_count: int,
+) -> tuple[str, ...] | ProviderTemplateAdmission:
     if card_spec is None:
         return ProviderTemplateAdmission(False, "card-spec-unavailable")
     raw_bindings = card_spec.get("dataBindings")
     if not isinstance(raw_bindings, list):
         return ProviderTemplateAdmission(False, "data-bindings-unavailable")
-    roots = {
+    roots = tuple(
         item.get("writeResultTo")
         for item in raw_bindings
         if isinstance(item, dict)
         and item.get("capabilityId") == capability_id
         and _valid_runtime_data_root(item.get("writeResultTo"))
-    }
+    )
     if not roots:
         return ProviderTemplateAdmission(False, "capability-binding-unavailable")
-    if len(roots) > 1:
+    if len(roots) != binding_count or len(set(roots)) != len(roots):
         return ProviderTemplateAdmission(False, "capability-binding-ambiguous")
-    return next(iter(roots))
+    return roots
 
 
 def _valid_runtime_data_root(value: Any) -> bool:
