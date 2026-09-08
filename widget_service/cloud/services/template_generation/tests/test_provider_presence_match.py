@@ -11,6 +11,7 @@ from services.template_generation.engine.cardplan.compiler import _instantiate_b
 from services.template_generation.engine.cardplan.models import TemplateDefinition
 from services.template_generation.engine.cardplan.provider_bundle import (
     _parse_component_body,
+    _presence_reference,
     compile_card_template,
     load_provider_bundle,
 )
@@ -27,6 +28,34 @@ _AVAILABLE_SETS = (
     ("temperature", "uv"),
     ("city", "temperature", "uv"),
 )
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    (
+        ("data.city", ("data", "city")),
+        ("props.label", ("props", "label")),
+        ("data._city2", ("data", "_city2")),
+        ("props.Label2", ("props", "Label2")),
+        ("", None),
+        ("data", None),
+        ("props.", None),
+        ("data.1city", None),
+        ("other.city", None),
+        ("data.city.name", None),
+        ("props?.label", None),
+        (" data.city", None),
+        ("props.label ", None),
+        ("data.city\n", None),
+        ("data.城市", None),
+        ("data.city()", None),
+    ),
+)
+def test_presence_reference_preserves_optional_tuple_contract(
+    source: str,
+    expected: tuple[Literal["data", "props"], str] | None,
+) -> None:
+    assert _presence_reference(source) == expected
 
 
 def _definition(

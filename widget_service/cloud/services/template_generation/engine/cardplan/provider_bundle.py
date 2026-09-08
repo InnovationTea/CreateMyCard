@@ -966,16 +966,18 @@ def _parse_presence_match_item(source: str) -> _PresenceMatchItem:
 
 
 def _presence_reference(source: str) -> tuple[Literal["data", "props"], str] | None:
+    reference: tuple[Literal["data", "props"], str] | None = None
     match = re.fullmatch(
         r"(data|props)\.([A-Za-z_][A-Za-z0-9_]*)",
         source,
     )
-    if match is None:
-        return None
-    namespace, name = match.groups()
-    if namespace == "data":
-        return "data", name
-    return "props", name
+    if match is not None:
+        namespace, name = match.groups()
+        if namespace == "data":
+            reference = ("data", name)
+        else:
+            reference = ("props", name)
+    return reference
 
 
 def _split_top_level_sources(source: str) -> tuple[str, ...]:
