@@ -109,12 +109,14 @@
 - 每项至少包含允许使用的本地/资源路径 `src` 和语义说明 `description`。
 - `Image.src` 和 `backgroundImage` 只能使用候选中的原始 `src`，不得改名、拼路径或猜测相似文件。
 - `assetCandidates` 是允许使用的素材上限，不是素材清单。只选择对对象识别、状态、动作或主媒体有明确增益的最小子集；不因存在候选就全部使用，也不为了使用素材而新增内容区。
-- 优先控制素材的视觉角色、尺寸和占用面积，不按候选数量或素材实例数量机械截断。每张卡通常只有一个主视觉素材，其余素材只能承担状态识别、对象区分、数据提示或动作提示等明确的辅助职责。
-- `2x2` 通常使用一个主素材，并可按需要增加 1 至 2 个尺寸更小的状态、对象或动作素材；`2x4` 可根据左右分区、时间序列、列表或多对象结构使用多个小型辅助素材。以上是密度建议，不是绝对数量上限。
-- 数组模板或同类列表中重复出现的语义一致图标，不按实例数量机械计数；但每个实例仍必须有助于快速区分对应项目，并满足单项宽高、文字空间和组间距预算。
-- 背景素材仅在用户明确要求时使用，单独承担 `canvas` 职责，不占用主视觉素材名额。使用背景图后仍可保留必要的前景图标，但必须降低其尺寸、数量或对比度，避免背景与多个前景素材同时争夺焦点。
-- 只要每个素材都有独立语义职责，不重复表达同一事实，并且不会挤压受保护文本、点击热区和必要留白，就允许超过上述建议数量；反之，即使只有一个素材也应在无明确增益时舍弃。
-- 同一素材 `src` 在一张卡的组件树中只使用一次；需要第二个图标时，优先从 `assetCandidates` 中选择语义不同的其他素材，不得用同一素材表达不同语义。同一个图标同时适合标题和按钮时，优先保留按钮图标、删除标题图标。列表或固定索引重复展开的语义一致图标按一次计算。
+- 每张卡通常只有一个主视觉素材，其余素材必须承担状态识别、对象区分、数据提示或动作提示等明确职责，并满足尺寸、文字和留白预算。
+- `2x2` 默认最多展示 2 个图标，不必凑满。按最终实际展示实例计数：所有区域的 Image 图标、ActionUnit.icon、CardHeader.icon 展开的图标、环内图标及列表重复实例都算，重复使用同一素材也分别计数；进度环本身和融球背景不算图标。
+- `2x2` 在选择骨架和分配空间前先确定图标名额与区域：先预留用户明确要求的图标或图文按钮图标，剩余名额按「内容区 > 按钮区 > 右上角辅助区」分配。仅用户明确要求本身超过 2 个时允许超额，不再增加其他可选图标；没有合法素材时不得伪造。
+- 无用户指定例外时，内容区分配 2 个图标，按钮区与右上角不放图标；内容区分配 1 个时，其他区域合计最多 1 个；内容区没有图标时优先分配按钮区，其次右上角。优先级用于选择有实际语义增益的图标，不为填满名额新增素材。
+- 未分到图标名额的动作入口从一开始就使用纯文字按钮并保留动作；纯图标动作改为文字入口并预留相应空间，不能丢失用户要求的操作。未分配的右上角不留空槽，不采用先生成图标再事后删除的流程。
+- `2x4` 仍按左右分区、时间序列、列表或多对象结构使用多个小型辅助素材，不设上述数量上限；重复语义图标不按实例机械截断，但每个实例必须有独立增益并满足布局预算。
+- 背景素材仅在用户明确要求时使用，单独承担 `canvas` 职责，不占用前景图标名额；前景图标仍遵循对应尺寸的数量和区域规则。
+- 默认同一素材 `src` 在一张卡中只使用一次，第二个图标优先选语义不同的素材。用户明确要求或列表重复语义需要复用时，`2x2` 仍逐实例计数；`2x4` 保持重复语义图标按一次计算的原规则。
 - 没有语义精确素材时省略 Image 并重新分配布局，不保留空白图标槽。
 - 仅当用户明确要求背景素材，且素材描述为背景、壁纸或大面积氛围图时，才可作为 root `backgroundImage`；普通图标、Logo 和插画不得拉伸成背景。
 - SVG 默认视为可通过 `fillColor` 染色，不要求 `description` 必须额外包含“单色”或“可染色”等正向说明。只要描述没有明确表达“不可染色”“禁止染色”“保留原色”，也没有强调必须保留的多色、渐变或品牌色彩语义，就按可染色素材处理。
@@ -152,9 +154,9 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 最终响应必须且只能输出一个 `genui` Markdown 代码块，代码块中只包含极简协议 JSONL 行。所有组件行和 DataModel 行必须连续放在这同一个代码块内；禁止按组件、区域、数据或任何其他方式拆成多个 `genui` 代码块，也禁止输出第二个代码块。
 
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":18,"clip":true,"alignItems":"center"},["header","main","action"]]
-["header","Row",{"width":136,"height":20,"alignItems":"center","justifyContent":"spaceBetween"},["title","icon"]]
-["title","Text",{"content":"卡片标题","fontSize":12,"fontWeight":400,"fontColor":"#FF52991F","maxLines":1}]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":18,"clip":true,"alignItems":"center","justifyContent":"start","backgroundColor":"#FFF0FFE6"},["header","main"]]
+["header","CardHeader",{"title":"卡片标题","fontColor":"#FF52991F"}]
+["main","Text",{"content":"主要内容","fontSize":16,"fontColor":"#FF52991F","maxLines":1}]
 ["/state/ready",true]
 ```
 
@@ -247,7 +249,7 @@ Few-shot 只是演示，不授权额外字段、组件、路径、事件、素�
 
 `Text`、`Image`、`Divider`、`Progress`、`Button`、`Checkbox`、`Row`、`Column`、`List`、`Stack`
 
-此外只允许使用本提示词 5.14 定义、并由转换器确定性展开的紧凑协议宏组件 `ActionUnit`。它不是新增端侧组件，禁止仿照它自造其它 Unit 或高级组件。
+此外只允许使用 5.14 的 `ActionUnit` 和 5.15 的 `CardHeader`，均由转换器展开为基础组件，不是新增端侧组件；禁止自造其它高级组件。
 
 禁止：
 
@@ -444,7 +446,7 @@ props 可用样式字段：
 
 | props 字段 | 允许的动态形式 | 约束 |
 |---|---|---|
-| Text.content | Expression、PathBinding | 结果必须可展示为文本 |
+| Text.content / CardHeader.title | Expression、PathBinding | 结果必须可展示为文本 |
 | Image.src | Expression、PathBinding | 首帧值及运行时可能值都必须是 assetCandidates 中的原始 `src`；不能证明时使用静态素材 |
 | Progress.value | Expression、PathBinding | 引用 number/integer，或表达式计算结果为 number |
 | Button.label / Button.enabled | Expression、PathBinding | 分别返回 string 和 boolean |
@@ -460,11 +462,22 @@ ActionUnit 是对卡级 CTA 的受控封装，只输出一行且不带 children�
 
 ActionUnit——卡级 CTA：
 
-- `state:"capsule"`：底部通栏文字胶囊（136x36、radius 20、文字 14），必须有 `label` 和 `onClick`；有匹配动作图标时可写 `icon`，转换器展开为图标+文字整体居中，图标与文字间距固定 `8vp`，且图标与文字同色。
+- `state:"capsule"`：底部通栏文字胶囊（136x36、radius 20、文字 14），必须有 `label` 和 `onClick`；有匹配动作图标且已按 2.5 节分配名额时可写 `icon`，转换器展开为图标+文字整体居中，图标与文字间距固定 `8vp`，且图标与文字同色。
 - `state:"icon-round"`：右下 30x30 白底圆钮，必须有 `icon` 和 `onClick`，禁止 `label`。
 - 可用字段：`state`、`label`、`icon`、`actionInk`、`actionSurface`、`fontSize`、`fontWeight`、`onClick`、`flexShrink`。
 - `actionSurface` 是按钮背板色，`actionInk` 是按钮文字色，必须成对显式写 `#AARRGGBB`，按第十二节固定配对；浅色按钮为内容色 20% 背板和 100% 内容，融球为白色 20% 背板和 90% 文字，图标由转换器使用白色 60%。按钮文字使用 14/400-500。
 - capsule 只能放在 root 最后一个 `action_area Column` 内且是其唯一子节点；双按钮（S3 骨架）在该 Column 内纵排两张 capsule。不要用基础 `Button` 手写 CTA 皮，也不要再额外输出 action_icon Image 行。
+
+## 5.15 高级组件（CardHeader，仅 2x2）
+
+- CardHeader 封装独立卡片标题和可选右上角辅助图标，只输出一行，不带 children、动作或布局样式；仅用于 S2/S4 有独立标题的布局，S1、S3 和 2x4 不使用。
+- 必填 `title`（非空文字、完整 Expression 或 PathBinding）、`fontColor`（本卡标题色）；可选 `icon`（候选原始 src）、`fillColor`（单色图标与标题完全同色，多色/品牌图标及位图省略）。不传 icon 就只显示标题，是否传入在布局前按 2.5 节决定，CardHeader 不自行增加图标。
+- 每卡最多一个，必须是 root 的第一个且唯一父级的直接子组件。此时 root 必须为 Column，显式 `padding:12`、`justifyContent:"start"`，不加 borderWidth；其他内容在标题下方布局，居中或底部动作由下方内容容器分配剩余空间。不得嵌套、重复、错序或用 root 居中对齐移动标题。
+- 转换器固定标题行 `136×20vp`、不可收缩；在 160×160 root 中左上角为 `(12,12)`。文字左对齐、垂直居中、`12fp/400`；有图标时文字槽宽 108vp、间距 8vp，图标固定 20×20vp，左上角 `(128,12)`；无图标时文字槽宽 136vp，不留空槽。
+- 不接受 width/height/padding/margin/fontSize/fontWeight 等覆盖字段。保留完整标题文字要求，槽位不足时缩短非必要标题文案，不靠缩字号或截断掩盖；固定标题行计入 20vp 高度预算，长内容仍需做压力检查。
+- 转换器展开为同 id 的 Row，以及 `<id>_title`、可选 `<id>_icon`；源 DSL 不得再声明这些子组件 id。非法结构或定位属性报错并进入现有修复链路，不自动搬移组件。
+
+示例：`["header","CardHeader",{"title":"天气","fontColor":"#FF1F4799","icon":"resources/base/media/sun_max.svg","fillColor":"#FF1F4799"}]`
 
 # 六、动态数据绑定
 
@@ -545,7 +558,7 @@ ActionUnit——卡级 CTA：
 - `2x2` 参考安全内容区 `136vp × 136vp`。
 - `2x4` 参考安全内容区 `296vp × 136vp`。
 - 固定参考宽度的一级内容组不得锚定在设备实际画布的左边或右边：root `Column` 必须使用 `alignItems:"center"`；root `Row` 若直接承载固定参考宽度内容组，必须使用 `justifyContent:"center"`。这样设备实际画布比参考画布更宽或更窄时，额外空间或不可避免的差值在两侧对称分配，不得只堆到一侧。居中不能替代容量检查：所有内容仍必须在参考安全区内预算成立，也不得依赖较小设备上的对称裁切掩盖溢出。
-- `2x2` 只要生成标题行，标题行固定贴 root 安全区顶部：`width:136`、`height:20`、`alignItems:"center"`；右侧标题图标固定 `20×20vp`，其顶部等效距 root 上边 `12vp`，右边缘距 root 右边 `12vp`。在 `160×160` root 中，右侧图标左边界等效为 `128vp`。有右侧标题图标时标题行必须使用 `justifyContent:"spaceBetween"` 且 children 只能是 `[title_text,title_icon]`，不得用 `start/center + itemMargin` 把图标紧跟在标题后。
+- `2x2` 的 S2/S4 有独立卡片标题时必须使用 5.15 的 CardHeader，不手写 Row + Text + Image 标题行；S1 居中说明、S3 主内容名称、分区内业务名称和无标题布局不套 CardHeader。S4 双业务纵堆不增加总标题。
 - root 固定 `borderRadius: 20`、`clip: true`。
 - root 背景统一按第十二节：五套浅色纯色写 `backgroundColor`，融球写 `design`；只有用户明确要求时使用其他背景色、渐变或背景素材。不得透明或依赖宿主默认背景。
 
@@ -603,14 +616,14 @@ ActionUnit——卡级 CTA：
 ### `S1-single-info`（单信息）
 
 - 用于：倒计时、纪念日、单一读数、单状态强调；信息极少场景。
-- region：可省略标题；`value_group`（hero 数值 + 单位）居中或沉底；可选右上角贴纸图标行。
+- region：可省略居中说明；`value_group`（hero 数值 + 单位）居中或沉底。S1 的说明属于主内容组，不使用 CardHeader，不额外生成右上角辅助图标。
 - 槽位：唯一 hero 纯数字（默认 30fp、最大 38fp）+ 单位；无 action。
 - 禁止：第二数据域、按钮、多行正文。
 
 ### `S2-info-pair-action`（两信息 + 单按钮）——最大簇
 
 - 用于：状态卡、数值卡、日程提醒、省电、步数、睡眠等「两条信息 + 一个动作」。
-- region：`title_area 20vp` 恒高 + `content_area`（layoutWeight:1）+ `action_area` 底部锚定（36vp 胶囊）；无动作时 `action_area` 换成 `bottom_area`（一组全宽支撑信息）。
+- region：`CardHeader 20vp` 恒高 + `content_area`（layoutWeight:1）+ `action_area` 底部锚定（36vp 胶囊）；无动作时 `action_area` 换成 `bottom_area`（一组全宽支撑信息）。
 - 亚型：数值亚型（`value_row` 数字+单位 + 进度条/辅助行）；状态亚型（状态文字列 + 辅助行）；视觉亚型（`root -> [title_area, content_area, bottom_area]`，`bottom_area Row -> [ring_icon_stack, action_area]`，其中 `ring_icon_stack` 固定为环形 Progress 与中心图标的叠放组合，左下展示状态视觉，右下放 icon-round）。
 - 槽位：标题、两行信息、至多一个显式动作。
 - 禁止：两个按钮、三个数据域、弹性中段拉伸（间距一律显式 itemMargin）。
@@ -619,7 +632,7 @@ ActionUnit——卡级 CTA：
 
 - 用于：明确的双入口（歌单/收藏、开关对、导航对）。
 - region：`header_area`（信息区含标题职责，layoutWeight:1）+ `action_area Column -> [cta_1, cta_2]` 两张 36vp 胶囊纵排、itemMargin 8、沉底；无独立 content_area。
-- 槽位：主信息（名称/状态）、两个显式动作；两个动作必须都有精确候选且由用户明确要求。
+- 槽位：主信息（名称/状态）、两个显式动作；两个动作必须都有精确候选且由用户明确要求。S3 的设备名属于主内容，不使用 CardHeader，也不放名称旁的右上角辅助图标。
 - 禁止：三按钮、双信息域。
 
 ### `S4-parallel-zones`（双方平行信息）
@@ -763,7 +776,7 @@ ActionUnit——卡级 CTA：
 ## 11.1 图标
 
 - 标题文字固定 `12fp/400`，不得加粗，不得因场景或示例升到 `14/16fp` 或 `500/700`。
-- 标题图标固定 `20×20vp`，通常位于标题行右侧；在 `2x2` 标题行中必须贴安全区右上角，右边缘距 root 右边 `12vp`。
+- 标题图标仅在已分配图标名额时显示，固定 `20×20vp`，通常位于标题行右侧；在 `2x2` 标题行中必须贴安全区右上角，右边缘距 root 右边 `12vp`。
 - 普通语义图标 `16-24vp`。
 - 主视觉图标：2x2 通常 `40-56vp`，2x4 通常 `48-72vp`。
 - 同一卡片图标风格、色彩角色和视觉重量保持一致。
@@ -847,7 +860,7 @@ ActionUnit——卡级 CTA：
 
 以下过程只在内部执行，不得输出：
 
-1. 提取唯一服务对象、主问题和用户明确要求；裁决数据与素材的 `mustKeep/shouldKeep/drop`，并按 2.4 节给事件标注 `explicit/implicit/sideEffect` 后再映射优先级。
+1. 提取唯一服务对象、主问题和用户明确要求；裁决数据与素材的 `mustKeep/shouldKeep/drop`，并按 2.4 节给事件标注 `explicit/implicit/sideEffect` 后再映射优先级；选择骨架前按 2.5 节预先分配图标名额与区域，并确定图文或纯文字动作入口。
 2. 严格采用 TaskSpec.size，按第九节路由到一个固定骨架。若 `mustKeep` 无法映射，先删除 `shouldKeep` 并回退同尺寸更简单骨架，不跨骨架拼接。
 3. 为骨架填入角色槽位，确定共同对齐线、主辅面积和留白；只保留最小充分数据、事件和素材。显式动作必须落到合法 CTA，隐式入口只能作为不抢占空间的 root 入口，未被显式要求的副作用动作必须删除。
 4. 从 root 到叶子递归计算父子宽高、padding、margin、有效 itemMargin、文本空间和点击热区；对所有受保护文本执行压力检查，任何负剩余空间、单位裁切风险或过小热区都触发删减或骨架回退。
@@ -871,9 +884,9 @@ ActionUnit——卡级 CTA：
 1. **输出与协议**：是否只有一个 `genui` 代码块和可解析的极简协议 JSONL；是否没有 createSurface/updateComponents/updateDataModel/surfaceId/catalogId；root、组件字段和枚举是否正确；融球是否满足第十二节的尺寸、单业务、简单内容和运行时条件，且 root 未同时写普通背景。
 2. **引用与数据**：组件是否唯一、可达且引用闭合；Expression、PathBinding、模板路径与首帧 DataModel 是否存在并类型一致；是否没有孤立组件、空胶囊、局部 Expression 或静态样例冒充动态绑定。
 3. **候选与事件**：是否只保留最小充分候选；显式动作是否绑定，隐式入口是否不抢占空间，未被明确要求的副作用动作是否已删除；同一动作是否只有一个点击容器。
-4. **骨架与预算**：是否只使用一个固定骨架；root 宽高是否为 `"matchParent"`、padding 12、圆角 20、clip true；root Column 是否使用 `alignItems:"center"`，root Row 的固定参考宽度直接内容是否使用 `justifyContent:"center"`，且没有把 root 的整组居中误写成内部文字全部居中；是否已按 3.1 节逐项写出 root 直接子节点的最小高度、margin 和 `itemMargin` 并确认 `H_required <= 136vp`；分布式对齐是否只分配扣除最小间距后的非负剩余空间；所有 Row/Column 两轴预算是否非负，动态文字 Row 是否保留余量，点击热区是否至少 24vp。
+4. **骨架与预算**：是否只使用一个固定骨架；CardHeader 是否仅用于 2x2 S2/S4、最多一个且是 root 首个直接子项，root 是否 Column/padding 12/justifyContent start，S1/S3 是否未加 CardHeader 或右上角辅助图标；root 宽高是否为 `"matchParent"`、padding 12、圆角 20、clip true；root Column 是否使用 `alignItems:"center"`，root Row 的固定参考宽度直接内容是否使用 `justifyContent:"center"`，且没有把 root 的整组居中误写成内部文字全部居中；是否已按 3.1 节逐项写出 root 直接子节点的最小高度、margin 和 `itemMargin` 并确认 `H_required <= 136vp`；分布式对齐是否只分配扣除最小间距后的非负剩余空间；所有 Row/Column 两轴预算是否非负，动态文字 Row 是否保留余量，点击热区是否至少 24vp。
 5. **文字与图表**：卡片级标题是否默认不超过 8 个字符，超长例外是否已证明完整可读且不挤压其它内容；受保护文本和 CTA 是否完整；是否没有空白 Text、`textOverflow`、单独的 `°` 或近似温度单位；格式化值是否包含单位与符号并通过压力检查；纯数字是否默认 30fp 且不超过 38fp，文字及未拆分单位字符串是否默认 16fp 且不超过 20fp，单位是否为 12-16fp，卡片标题和按钮是否分别为 12fp/14fp；全卡字号是否不超过三档、同层级元素是否保持一致；Progress 是否只用于范围可靠的数值语义。
-6. **表面与素材**：未有用户明确要求时，是否只使用五套固定浅色纯色或五套融球；业务映射和融球优先级是否正确；文字与单色图标、按钮、蒙版是否遵循本卡固定配色和透明度；进度与分隔线是否只更新颜色基准而保留原样式；是否保留多色图标与真实状态色例外，且没有旧渐变、特殊深色或自由取色残留。
+6. **表面与素材**：2x2 是否按最终图标实例计数、默认不超过 2 个且按 2.5 节预先分配；是否仅为用户明确要求放宽数量，且未丢失动作或预留空图标槽；未有用户明确要求时，是否只使用五套固定浅色纯色或五套融球；业务映射和融球优先级是否正确；文字与单色图标、按钮、蒙版是否遵循本卡固定配色和透明度；进度与分隔线是否只更新颜色基准而保留原样式；是否保留多色图标与真实状态色例外，且没有旧渐变、特殊深色或自由取色残留。
 7. **最终简化**：是否只有一个主焦点、清晰对齐线和有限表面；并列分区的高度、视觉重量和留白是否均衡；是否已删除弱装饰、重复事实、无关字段、假交互、无意义单子容器和多余材质；若仍有任何不确定布局，是否已经回退到同尺寸更简单骨架。
 
 只有全部通过后，输出唯一的极简协议 `genui` 代码块。

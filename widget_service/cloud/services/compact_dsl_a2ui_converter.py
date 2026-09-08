@@ -35,6 +35,7 @@ _COMPONENT_TYPES = frozenset(
         "Progress",
         "Button",
         "ActionUnit",
+        "CardHeader",
         "Checkbox",
     }
 )
@@ -646,6 +647,7 @@ def convert_compact_dsl_to_a2ui(
     profile = protocol_profile or {"version": "v0.9"}
     rows = _parse_compact_rows(compact_dsl)
     components, data_rows = _split_component_rows(rows)
+    validate_card_header_layout(components, size=size)
     fusion_palette = fusion_ball_palette_for_root(
         components,
         size=size,
@@ -703,6 +705,89 @@ def convert_compact_dsl_to_a2ui(
         },
     ]
     return _serialize_rows(messages)
+
+
+def validate_card_header_layout(components: list[ComponentRow], *, size: str) -> None:
+    headers = [item for item in components if item.component_type == "CardHeader"]
+    if not headers:
+        return
+    if size != "2x2" or len(headers) != 1:
+        raise CompactDslConversionError("CardHeader requires 2x2 and at most one instance.")
+    header = headers[0]
+    root = next((item for item in components if item.component_id == "root"), None)
+    if root is None or root.component_type != "Column":
+        raise CompactDslConversionError("CardHeader requires a root Column.")
+    parents = [item.component_id for item in components if header.component_id in item.children]
+    if parents != ["root"] or root.children[0] != header.component_id:
+        raise CompactDslConversionError("CardHeader must be the first direct child of root only.")
+    padding = root.props.get("padding")
+    valid_padding = padding == 12 or padding == {
+        "left": 12, "right": 12, "top": 12, "bottom": 12,
+    }
+    if not valid_padding or root.props.get("justifyContent") != "start":
+        raise CompactDslConversionError("CardHeader requires root padding:12 and justifyContent:start.")
+    if root.props.get("borderWidth", 0) != 0:
+        raise CompactDslConversionError("CardHeader root must not add a border inset.")
+    allowed = {"title", "fontColor", "icon", "fillColor"}
+    if header.children or set(header.props) - allowed:
+        raise CompactDslConversionError(
+            "CardHeader accepts title/fontColor/icon/fillColor only, without children or layout props."
+        )
+    title = header.props.get("title")
+    valid_title = isinstance(title, str) and bool(title.strip())
+    if not valid_title and not _is_path_binding(title):
+        raise CompactDslConversionError("CardHeader.title must be non-empty text or a path binding.")
+    icon = header.props.get("icon")
+    if "icon" in header.props and (not isinstance(icon, str) or not icon.strip()):
+        raise CompactDslConversionError("CardHeader.icon must be a non-empty asset path when present.")
+    if "fillColor" in header.props and icon is None:
+        raise CompactDslConversionError("CardHeader.fillColor requires icon.")
+    for name in ("fontColor", "fillColor"):
+        if name == "fillColor" and name not in header.props:
+            continue
+        color = header.props.get(name)
+        if not isinstance(color, str) or not re.fullmatch(r"#[0-9A-Fa-f]{8}", color):
+            raise CompactDslConversionError(f"CardHeader.{name} must use #AARRGGBB.")
+    generated_ids = {f"{header.component_id}_title", f"{header.component_id}_icon"}
+    if any(item.component_id in generated_ids for item in components):
+        raise CompactDslConversionError("CardHeader generated title/icon ids must not collide.")
+
+
+def _convert_card_header(component: ComponentRow) -> list[dict[str, Any]]:
+    props = component.props
+    icon = props.get("icon")
+    title_id = f"{component.component_id}_title"
+    icon_id = f"{component.component_id}_icon"
+    children = [title_id, icon_id] if icon else [title_id]
+    row = {
+        "id": component.component_id,
+        "component": "Row",
+        "children": children,
+        "itemMargin": 8 if icon else 0,
+        "styles": {
+            "width": 136, "height": 20, "flexShrink": 0,
+            "justifyContent": "start", "alignItems": "center",
+        },
+    }
+    title = {
+        "id": title_id,
+        "component": "Text",
+        "content": _convert_path_bindings(props.get("title")),
+        "styles": {
+            "width": 108 if icon else 136, "fontSize": 12, "fontWeight": 400,
+            "fontColor": props.get("fontColor"), "textAlign": "start",
+            "maxLines": 1, "flexShrink": 0,
+        },
+    }
+    converted = [row, title]
+    if icon:
+        image_styles = {"width": 20, "height": 20, "objectFit": "contain", "flexShrink": 0}
+        if "fillColor" in props:
+            image_styles["fillColor"] = props.get("fillColor")
+        converted.append({
+            "id": icon_id, "component": "Image", "src": icon, "styles": image_styles,
+        })
+    return converted
 
 
 def _normalize_special_action_units(
@@ -1778,6 +1863,8 @@ def _convert_component_rows(
     *,
     hide_label: bool = False,
 ) -> list[dict[str, Any]]:
+    if component.component_type == "CardHeader":
+        return _convert_card_header(component)
     if component.component_type == "ActionUnit":
         return _convert_action_unit(component)
     return [
@@ -2375,7 +2462,7 @@ def _card_spec_data_roots(card_spec: dict[str, Any]) -> list[str]:
 def _candidate_component_asset_source(component: ComponentRow) -> str | None:
     if component.component_type == "Image":
         source = component.props.get("src")
-    elif component.component_type == "ActionUnit":
+    elif component.component_type in {"ActionUnit", "CardHeader"}:
         source = component.props.get("icon")
     else:
         return None

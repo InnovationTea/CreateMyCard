@@ -25,9 +25,8 @@
 ```
 ### assistant
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"spaceBetween","alignItems":"center","itemMargin":4,"design":"fusion-ball-battery-teal"},["title_area","content_area","action_area"]]
-["title_area","Row",{"width":136,"height":20,"justifyContent":"start","alignItems":"center","flexShrink":0},["title_text"]]
-["title_text","Text",{"content":{"path":"/data/earphone/earphoneName"},"width":136,"fontSize":12,"fontWeight":400,"fontColor":"#99FFFFFF","maxLines":1}]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"design":"fusion-ball-battery-teal"},["title_area","content_area","action_area"]]
+["title_area","CardHeader",{"title":{"path":"/data/earphone/earphoneName"},"fontColor":"#99FFFFFF"}]
 ["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","itemMargin":4,"flexShrink":1},["status_text","battery_row"]]
 ["status_text","Text",{"content":"{{ ${/data/earphone/isConnected} ? '已连接' : '未连接' }}","width":136,"height":28,"fontSize":20,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]
 ["battery_row","Row",{"width":136,"justifyContent":"start","alignItems":"center","itemMargin":8},["left_item","right_item","case_item"]]
@@ -87,10 +86,8 @@
 ```
 ### assistant
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"spaceBetween","alignItems":"center","itemMargin":4,"backgroundColor":"#FFE5EDFE"},["title_area","content_area","bottom_area"]]
-["title_area","Row",{"width":136,"height":20,"justifyContent":"spaceBetween","alignItems":"center","flexShrink":0},["title_text","title_icon"]]
-["title_text","Text",{"content":{"path":"/data/weather/location/prefectureName"},"fontSize":12,"fontWeight":400,"fontColor":"#991F4799","maxLines":1}]
-["title_icon","Image",{"src":"resources/base/media/sun_max.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#FF1F4799","flexShrink":0}]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"backgroundColor":"#FFE5EDFE"},["title_area","content_area","bottom_area"]]
+["title_area","CardHeader",{"title":{"path":"/data/weather/location/prefectureName"},"fontColor":"#991F4799","icon":"resources/base/media/sun_max.svg","fillColor":"#991F4799"}]
 ["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","padding":{"top":4},"flexShrink":1},["value_row"]]
 ["value_row","Row",{"width":136,"justifyContent":"start","alignItems":"bottom","itemMargin":3},["value_num","value_unit"]]
 ["value_num","Text",{"content":{"path":"/data/weather/current/temperatureC"},"fontSize":38,"fontWeight":700,"fontColor":"#FF1F4799","maxLines":1}]
@@ -143,8 +140,7 @@
 ### assistant
 ```genui
 ["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"design":"fusion-ball-schedule-cool"},["title_area","content_area","action_area"]]
-["title_area","Row",{"width":136,"height":20,"justifyContent":"start","alignItems":"center","flexShrink":0},["day_tag"]]
-["day_tag","Text",{"content":"今天","fontSize":12,"fontWeight":400,"fontColor":"#FFFFFFFF","maxLines":1}]
+["title_area","CardHeader",{"title":"今天","fontColor":"#FFFFFFFF"}]
 ["content_area","Column",{"width":136,"layoutWeight":1,"padding":{"top":4},"itemMargin":6,"justifyContent":"start","alignItems":"start","flexShrink":1},["event_title","event_time","event_place"]]
 ["event_title","Text",{"content":{"path":"/data/calendar/events/0/title"},"fontSize":12,"fontWeight":700,"width":"matchParent","fontColor":"#FFFFFFFF","maxLines":1}]
 ["event_time","Text",{"content":{"path":"/data/calendar/events/0/dtStart"},"fontSize":12,"fontWeight":400,"width":"matchParent","fontColor":"#99FFFFFF","maxLines":1}]
@@ -164,10 +160,8 @@
 ```
 ### assistant
 ```genui
-["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"spaceBetween","alignItems":"center","itemMargin":4,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Health","bundleName":"","abilityName":"","uri":"huaweischeme://healthapp/home/sport?sportType=2"}}],"design":"fusion-ball-sport-orange"},["title_area","content_area","bottom_area"]]
-["title_area","Row",{"width":136,"height":20,"justifyContent":"spaceBetween","alignItems":"center","flexShrink":0},["title_text","run_icon"]]
-["title_text","Text",{"content":"今日步数","fontSize":12,"fontWeight":400,"fontColor":"#99FFFFFF","maxLines":1}]
-["run_icon","Image",{"src":"resources/base/media/figure_run.svg","width":20,"height":20,"objectFit":"contain","fillColor":"#FFFFFFFF","flexShrink":0}]
+["root","Column",{"width":"matchParent","height":"matchParent","padding":12,"borderRadius":20,"clip":true,"justifyContent":"start","alignItems":"center","itemMargin":4,"onClick":[{"call":"clickToDeeplink","args":{"intentName":"Health","bundleName":"","abilityName":"","uri":"huaweischeme://healthapp/home/sport?sportType=2"}}],"design":"fusion-ball-sport-orange"},["title_area","content_area","bottom_area"]]
+["title_area","CardHeader",{"title":"今日步数","fontColor":"#99FFFFFF","icon":"resources/base/media/figure_run.svg","fillColor":"#99FFFFFF"}]
 ["content_area","Column",{"width":136,"layoutWeight":1,"justifyContent":"start","alignItems":"start","itemMargin":4,"flexShrink":1},["value_row","step_bar"]]
 ["value_row","Row",{"width":136,"justifyContent":"start","alignItems":"bottom","itemMargin":2},["value_num","value_unit"]]
 ["value_num","Text",{"content":{"path":"/data/healthSport/dailySteps"},"fontSize":30,"fontWeight":700,"fontColor":"#FFFFFFFF","maxLines":1}]

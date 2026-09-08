@@ -1639,5 +1639,94 @@ class FixedBackgroundColorTest(unittest.TestCase):
                 )
 
 
+class CardHeaderTest(unittest.TestCase):
+    @staticmethod
+    def _rows() -> list:
+        return [
+            ["root", "Column", {
+                "padding": 12, "justifyContent": "start", "backgroundColor": "#FFE5EDFE",
+            }, ["header", "body"]],
+            ["header", "CardHeader", {"title": "Weather", "fontColor": "#FF1F4799"}],
+            ["body", "Text", {"content": "23", "height": 40}],
+        ]
+
+    def test_fixed_geometry_and_optional_icon(self) -> None:
+        for icon_props in ({}, {"icon": "weather.svg"}, {
+            "icon": "sun.svg", "fillColor": "#FF1F4799",
+        }):
+            with self.subTest(icon=icon_props):
+                rows = self._rows()
+                rows[1][2].update(icon_props)
+                rows[1][2]["title"] = {"path": "/data/title"}
+                rows.append(["/data/title", "Weather"])
+                output = convert_compact_dsl_to_a2ui(_serialize(rows), size="2x2")
+                update = json.loads(output.splitlines()[1]).get("updateComponents")
+                components = {item.get("id"): item for item in update.get("components", [])}
+                header = components["header"]
+                title = components["header_title"]
+                self.assertEqual(header["component"], "Row")
+                self.assertEqual(header["styles"], {
+                    "width": 136, "height": 20, "flexShrink": 0,
+                    "justifyContent": "start", "alignItems": "center",
+                })
+                self.assertEqual(title["content"], "{{ ${/data/title} }}")
+                self.assertEqual(title["styles"]["fontSize"], 12)
+                self.assertEqual(title["styles"]["fontWeight"], 400)
+                self.assertEqual(title["styles"]["textAlign"], "start")
+                self.assertEqual(title["styles"]["width"], 108 if icon_props else 136)
+                if icon_props:
+                    icon = components["header_icon"]["styles"]
+                    self.assertEqual((icon["width"], icon["height"]), (20, 20))
+                    self.assertEqual(icon.get("fillColor"), icon_props.get("fillColor"))
+                    self.assertEqual(12 + title["styles"]["width"] + header["itemMargin"], 128)
+                else:
+                    self.assertNotIn("header_icon", components)
+                    self.assertEqual(header["children"], ["header_title"])
+
+    def test_invalid_placement_and_overrides_fail(self) -> None:
+        cases = []
+        for name, value in (("justifyContent", "center"), ("justifyContent", "spaceAround"),
+                            ("padding", 8), ("borderWidth", 1)):
+            rows = self._rows()
+            rows[0][2][name] = value
+            cases.append(rows)
+        rows = self._rows()
+        rows[0][1] = "Row"
+        cases.append(rows)
+        rows = self._rows()
+        rows[0][3] = ["body", "header"]
+        cases.append(rows)
+        rows = self._rows()
+        rows[0][3] = ["body"]
+        rows[2] = ["body", "Column", {}, ["header"]]
+        cases.append(rows)
+        rows = self._rows()
+        rows[0][3].append("other_header")
+        rows.append(["other_header", "CardHeader", {"title": "Other", "fontColor": "#FFFFFFFF"}])
+        cases.append(rows)
+        rows = self._rows()
+        rows[0][3].append("header_title")
+        rows.append(["header_title", "Text", {"content": "collision"}])
+        cases.append(rows)
+        for props in ({"margin": 12}, {"fontSize": 16}, {"onClick": []}, {"title": ""}):
+            rows = self._rows()
+            rows[1][2].update(props)
+            cases.append(rows)
+        for rows in cases:
+            with self.subTest(rows=rows):
+                with self.assertRaises(CompactDslConversionError):
+                    convert_compact_dsl_to_a2ui(_serialize(rows), size="2x2")
+                with self.assertRaises(CompactDslValidationError):
+                    validate_compact_dsl(_serialize(rows), task_spec={"size": "2x2"}, card_spec={})
+        with self.assertRaises(CompactDslConversionError):
+            convert_compact_dsl_to_a2ui(_serialize(self._rows()), size="2x4")
+
+    def test_header_height_is_included_in_budget(self) -> None:
+        rows = self._rows()
+        rows[2][2]["height"] = 117
+        with self.assertRaisesRegex(CompactDslValidationError, "137vp"):
+            validate_compact_dsl(_serialize(rows), task_spec={"size": "2x2"}, card_spec={})
+
+
 if __name__ == "__main__":
     unittest.main()
