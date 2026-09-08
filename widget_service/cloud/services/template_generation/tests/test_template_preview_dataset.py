@@ -71,6 +71,7 @@ def test_template_preview_assets_are_bundled_by_genui_evaluation():
         "heart_fill.svg",
         "heat_generation.svg",
         "icon_earphone.svg",
+        "icon_phone.svg",
         "icon_tiktok.png",
         "icon_weather_thermometer.svg",
         "l_circle_fill.svg",

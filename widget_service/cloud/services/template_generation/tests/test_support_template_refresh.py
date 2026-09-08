@@ -348,7 +348,7 @@ def test_support_preview_assets_preserve_device_and_weather_semantics() -> None:
         "WeatherOverviewTemperatureSupport@1": ["icon_weather_thermometer.svg"],
         "WeatherOverviewTemperatureUvSupport@1": [],
         "WeatherOverviewTemperaturecoldLevelSupport@1": [],
-        "BatteryOverviewSupport@1": [],
+        "BatteryOverviewSupport@1": ["icon_phone.svg"],
     }
     for case in build_template_preview_cases():
         if case.template_id not in expected:

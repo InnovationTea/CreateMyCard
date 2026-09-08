@@ -180,6 +180,7 @@ _ASSET_SEARCH_TERMS_BY_TEMPLATE_PREFIX = {
 
 # 双业务画廊使用独立测试素材，不把另一业务的候选当作通用图标。
 _SUPPORT_ASSET_IDS_BY_TEMPLATE = {
+    "BatteryOverviewSupport@1": ("asset.icon_phone",),
     "WeatherOverviewTemperatureSupport@1": ("asset.icon_weather_thermometer",),
     "ActivityOverviewSupport@1": ("asset.figure_run",),
     "WorkoutOverviewSupport@1": ("asset.figure_run",),

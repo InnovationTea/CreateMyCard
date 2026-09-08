@@ -27,6 +27,7 @@ _ROOT = Path(__file__).resolve().parents[1]
 _ASSETS = _ROOT.parents[1] / "data/capabilities/app-11.7.5.205_rom-6.0/asset_capabilities.json"
 _SOURCE = "resources/base/media/"
 _SLOTS = (
+    ("BatteryOverviewSupport@1", "batteryIcon", "icon_phone.svg"),
     ("ActivityOverviewSupport@1", "stepsIcon", "figure_run.svg"),
     ("WorkoutOverviewSupport@1", "sourceIcon", "figure_run.svg"),
     ("SleepOverviewSupport@1", "sourceIcon", "moon_z_fill_1.svg"),
@@ -91,6 +92,19 @@ def test_mixed_catalog_is_filtered_per_business_slot(
         assert _SOURCE + "earphone_case_16644.svg" not in allowed
     if template_id == "BluetoothDeviceOverviewChargeSupport@1":
         assert _SOURCE + "icon_earphone.svg" not in allowed
+    if template_id == "BatteryOverviewSupport@1":
+        assert allowed == (_SOURCE + "icon_phone.svg",)
+
+
+def test_phone_battery_support_icon_does_not_change_single_business_asset_semantics(
+    definitions: dict[str, TemplateDefinition],
+    catalog_contract: HybridBodyContract,
+) -> None:
+    definition = definitions.get("BatteryOverviewCompact@1")
+    assert definition is not None
+    allowed = _parameter_allowed_asset_sources("batteryIcon", definition, catalog_contract)
+    assert definition.asset_parameter_semantic_tags.get("batteryIcon") == ()
+    assert allowed == catalog_contract.allowed_asset_sources
 
 
 @pytest.mark.parametrize("template_id", (
@@ -245,6 +259,7 @@ def test_gallery_both_slots_have_their_own_assets_and_cloudy_keeps_temperature_i
     manifest = write_gallery_input_dataset(tmp_path)
     provider = next(item for item in manifest.providers if item.providerSlug == "two-support")
     expected = {
+        "BatteryOverviewSupport@1": "asset.icon_phone",
         "WeatherOverviewTemperatureSupport@1": "asset.icon_weather_thermometer",
         "ActivityOverviewSupport@1": "asset.figure_run",
         "WorkoutOverviewSupport@1": "asset.figure_run",
